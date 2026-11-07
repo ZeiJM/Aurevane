@@ -190,8 +190,8 @@ describe('persistent event definition', () => {
   })
 })
 
-it('validates a private carried-Item discovery without enabling rewards or public phases', () => {
-  const hidden: PersistentEventDefinition = {
+const hiddenDiscovery = () =>
+  ({
     ...definition(),
     category: 'hidden-discoveries',
     scope: { type: 'global' },
@@ -212,12 +212,30 @@ it('validates a private carried-Item discovery without enabling rewards or publi
       secondItemId: 'fixture.fragment-two',
       clue: 'The fragments fit together.',
     },
-  }
+  }) satisfies PersistentEventDefinition
+
+const recovery = {
+  giverNpcId: '77777777-7777-4777-8777-777777777777',
+  checkpoint: { sectorId: 'verdant-expanse', x: 3, y: 4 },
+  outputItemId: 'fixture.restored-sword',
+  offer: 'Choose the recovery route to restore the blade.',
+  travel: 'Follow the route and return with both fragments.',
+  ready: 'Bring both fragments to the forge.',
+  completed: 'The blade is restored.',
+}
+
+const restorationDiscovery = (): PersistentEventDefinition => {
+  const event = hiddenDiscovery()
+  return { ...event, inventoryDiscovery: { ...event.inventoryDiscovery, restoration: recovery } }
+}
+
+it('validates a private carried-Item discovery without enabling rewards or public phases', () => {
+  const hidden = hiddenDiscovery()
   expect(() => validatePersistentEventDefinition(hidden)).not.toThrow()
   expect(() =>
     validatePersistentEventDefinition({
       ...hidden,
-      inventoryDiscovery: { ...hidden.inventoryDiscovery!, secondItemId: 'fixture.fragment-one' },
+      inventoryDiscovery: { ...hidden.inventoryDiscovery, secondItemId: 'fixture.fragment-one' },
     }),
   ).toThrow('Choose two different carried Item identities')
   expect(() =>
@@ -229,4 +247,54 @@ it('validates a private carried-Item discovery without enabling rewards or publi
   expect(() =>
     validatePersistentEventDefinition({ ...hidden, rewardPackageRefs: ['reward.fixture'] }),
   ).toThrow('no shared effects or rewards')
+})
+
+it('accepts the authored recovery route and its distinct sword in a private discovery', () => {
+  expect(() => validatePersistentEventDefinition(restorationDiscovery())).not.toThrow()
+})
+
+it.each([
+  ['null restoration', null],
+  ['array restoration', [recovery]],
+  ['an unsupported restoration field', { ...recovery, combatTrial: {} }],
+  [
+    'a giver that is not an authored NPC UUID',
+    { ...recovery, giverNpcId: 'eastern-watch-officer' },
+  ],
+  ['an output with a malformed Item identity', { ...recovery, outputItemId: 'fixture.Sword' }],
+  ['the first fragment as the output', { ...recovery, outputItemId: 'fixture.fragment-one' }],
+  ['the second fragment as the output', { ...recovery, outputItemId: 'fixture.fragment-two' }],
+  ['an absent checkpoint', { ...recovery, checkpoint: undefined }],
+  ['a malformed sector', { ...recovery, checkpoint: { ...recovery.checkpoint, sectorId: 'A' } }],
+  ['a cell outside the grid', { ...recovery, checkpoint: { ...recovery.checkpoint, x: 13 } }],
+  ['a fractional cell', { ...recovery, checkpoint: { ...recovery.checkpoint, y: 4.5 } }],
+  [
+    'an extra checkpoint field',
+    { ...recovery, checkpoint: { ...recovery.checkpoint, autoPath: true } },
+  ],
+  ['missing travel dialogue', { ...recovery, travel: undefined }],
+  ['untrimmed offer dialogue', { ...recovery, offer: ' Offer ' }],
+  ['overlong completion dialogue', { ...recovery, completed: 'x'.repeat(801) }],
+])('rejects %s for the recovery route', (_label, restoration) => {
+  const hidden = hiddenDiscovery()
+  const candidate = {
+    ...hidden,
+    inventoryDiscovery: { ...hidden.inventoryDiscovery, restoration },
+  } as unknown as PersistentEventDefinition
+  expect(() => validatePersistentEventDefinition(candidate)).toThrow(/restoration/i)
+})
+
+it('preserves hidden scope and forbids shared phases or rewards for restoration', () => {
+  const hidden = restorationDiscovery()
+  for (const candidate of [
+    { ...hidden, category: 'story-campaigns' as const },
+    { ...hidden, scope: { type: 'region', key: 'verdant-expanse' } as const },
+    { ...hidden, phases: [...hidden.phases, { ...hidden.phases[0]!, id: 'another-phase' }] },
+    { ...hidden, rewardPackageRefs: ['reward.fixture'] },
+    { ...hidden, aftermathRefs: ['aftermath.fixture'] },
+  ]) {
+    expect(() => validatePersistentEventDefinition(candidate)).toThrow(
+      'requires a global Hidden Discovery',
+    )
+  }
 })

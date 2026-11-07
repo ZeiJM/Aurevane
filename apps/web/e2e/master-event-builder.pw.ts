@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import type { WorldView } from '../src/world/types'
 import { itemFixture } from '../../../packages/game-core/src/content/items-test-fixtures'
+import { defaultBasicSkills } from '../../../packages/game-core/src/combat/combat-basic-actions'
 
 import { expect, test, type Page, type Response, type TestInfo } from '@playwright/test'
 
@@ -11,6 +12,7 @@ import { createEventPageAccessFixture } from './event-page-access-fixture'
 let eventPageAccess: ReturnType<typeof createEventPageAccessFixture> | undefined
 let fixtureWorldNpc: string | undefined
 let fixtureStoryEvent: { eventKey: string; userId: string } | undefined
+let fixtureEventOwner: string | undefined
 test.afterEach(() => {
   try {
     if (fixtureStoryEvent) {
@@ -44,6 +46,12 @@ test.afterEach(() => {
     fixtureStoryEvent = undefined
     eventPageAccess?.restore()
     eventPageAccess = undefined
+    if (fixtureEventOwner) {
+      queryLocalDatabase(
+        `delete from app_private.master_panel_role_assignments where user_id='${fixtureEventOwner}' and role='game-owner'`,
+      )
+      fixtureEventOwner = undefined
+    }
     if (fixtureWorldNpc) {
       queryLocalDatabase(
         `update app_private.npc_designs set world=null where id='${fixtureWorldNpc}'`,
@@ -606,6 +614,270 @@ test('an authored item exchange settles once when two World requests race', asyn
 test('Farmer Joe dialogue, realm travel and guardian challenge are separate World actions', async ({
   page,
 }, info) => completeAuthoredStoryJourney(page, info, 'sealed-realm'))
+
+test('an authored Sanalex recovery consumes the fragments and lets a full Gear player equip the owed sword', async ({
+  page,
+}, info) => {
+  test.skip(info.project.name !== 'desktop-chromium', 'Requires the disposable Owner fixture.')
+  test.setTimeout(120_000)
+  const host = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://invalid').hostname
+  if (!['127.0.0.1', 'localhost'].includes(host))
+    throw new Error('Sanalex browser verification requires disposable local Supabase.')
+
+  const token = randomUUID().replaceAll('-', '')
+  const email = `restoration-owner-${token}@example.test`
+  const title = `Sanalex Recovery ${token.slice(0, 8)}`
+  const eventKey = `event.browser-restoration-${token}`
+  const giver = randomUUID()
+  const smith = 'Restoration smith'
+  const position = { sectorId: 'verdant-expanse', x: 2, y: 4 }
+  const checkpoint = { ...position, x: 3 }
+  const first = itemFixture({
+    id: `fixture.restoration-first-${token}`,
+    name: 'Forge fragment',
+    itemClass: 'general',
+    inventoryCategory: 'general',
+    equipment: null,
+    qualityPoints: 0,
+  })
+  const second = { ...first, id: `fixture.restoration-second-${token}`, name: 'Hilt fragment' }
+  const ability = defaultBasicSkills().find((skill) => skill.id === 'unarmed.basic')!.ability!
+  const sword = itemFixture({
+    id: `fixture.restoration-sword-${token}`,
+    name: 'Restored fixture sword',
+    itemClass: 'weapon',
+    equipment: { slot: 'hand', hands: 1 },
+    ability,
+    actions: { attack: { behaviorId: ability.behaviors[0]!.id, name: 'Restored Cut' } },
+  })
+  const filler = itemFixture({ id: `fixture.restoration-gear-${token}`, name: 'Spare forge helm' })
+  await createAccountAndEnterCharacter({
+    page,
+    email,
+    password: 'Restoration-browser-2026!',
+    characterName: `Forge ${token.slice(0, 12).replace(/\d/g, (d) => String.fromCharCode(65 + Number(d)))}`,
+  })
+  const userId = localUserId(email)
+  fixtureEventOwner = userId
+  fixtureWorldNpc = giver
+  const draft = {
+    name: smith,
+    portraitRef: null,
+    uses: ['world', 'story'],
+    arena: null,
+    world: { ...position, radius: 1, greeting: 'Welcome to the forge.' },
+  }
+  queryLocalDatabase(`
+    begin;
+    insert into app_private.master_panel_role_assignments(user_id,role) values('${userId}','game-owner');
+    select public.write_master_npc_design_v1('${userId}',null,'${giver}',0,'save',
+      '${escapeSqlLiteral(JSON.stringify(draft))}'::jsonb);
+    select public.write_master_npc_design_v1('${userId}',null,'${giver}',1,'commit-story',null);
+    select public.write_master_npc_design_v1('${userId}',null,'${giver}',2,'commit-world',null);
+    select public.seed_runtime_item_sources_v1('${escapeSqlLiteral(JSON.stringify([first, second, sword, filler]))}'::jsonb);
+    commit;
+  `)
+  const readWorld = async (): Promise<WorldView> => {
+    const response = await page.request.get('/api/world')
+    expect(response.ok()).toBe(true)
+    return response.json()
+  }
+  const characterId = (await readWorld()).characterId
+  expect(characterId).toMatch(/^[0-9a-f-]{36}$/)
+  expect((await page.request.get('/api/character/items')).ok()).toBe(true)
+  queryLocalDatabase(`
+    select public.grant_character_items_v1('${userId}','${characterId}',
+      (public.read_character_item_inventory_v1('${userId}','${characterId}')->>'revision')::bigint,
+      'fixture:restoration:${token}', jsonb_build_array(
+        jsonb_build_object('itemId','${first.id}','quantity',1),
+        jsonb_build_object('itemId','${second.id}','quantity',1),
+        jsonb_build_object('itemId','${filler.id}','quantity',40-(select count(*)
+          from app_private.character_item_stacks where character_id='${characterId}' and inventory_category='gear'))
+      ));
+  `)
+  const stock = () =>
+    JSON.parse(
+      queryLocalDatabase(`
+        select jsonb_build_object(
+          'fragments', coalesce(sum(quantity) filter (where item_id in ('${first.id}','${second.id}')),0),
+          'swords', coalesce(sum(quantity) filter (where item_id='${sword.id}'),0),
+          'gear', count(*) filter (where inventory_category='gear'))
+        from app_private.character_item_stacks where character_id='${characterId}';
+      `),
+    )
+  expect(stock()).toEqual({ fragments: 2, swords: 0, gear: 40 })
+
+  await page.goto('/master/events')
+  await page
+    .getByRole('navigation', { name: 'Event categories' })
+    .getByRole('button', { name: 'Hidden Discoveries', exact: true })
+    .click()
+  const sections = page.getByRole('navigation', { name: 'Event authoring sections' })
+  const section = (name: string) => sections.getByRole('button', { name, exact: true }).click()
+  await section('Setup')
+  await page
+    .getByRole('combobox', { name: 'Category', exact: true })
+    .selectOption('hidden-discoveries')
+  await page.getByLabel(/^Family/).selectOption('lore-revelation')
+  await page.getByLabel(/^Scope/).selectOption('global')
+  await page.getByLabel('Title', { exact: true }).fill(title)
+  await section('Discovery')
+  await page.getByLabel('Enable a carried Item discovery').check()
+  await page.getByLabel('First carried Item ID').fill(first.id)
+  await page.getByLabel('Second carried Item ID').fill(second.id)
+  const clue = 'Two carried fragments fit the empty forge mould.'
+  await page.getByLabel('Revealed clue').fill(clue)
+  await page.getByLabel('Enable a recovery route').check()
+  await page.getByRole('combobox', { name: 'Restoration giver', exact: true }).selectOption(giver)
+  await page.getByLabel('Restored weapon Item ID').fill(sword.id)
+  const coordinates = page.getByRole('group', { name: 'Restoration checkpoint' })
+  await coordinates.getByLabel('Sector', { exact: true }).selectOption(checkpoint.sectorId)
+  await coordinates.getByLabel('Cell X', { exact: true }).fill(String(checkpoint.x))
+  await coordinates.getByLabel('Cell Y', { exact: true }).fill(String(checkpoint.y))
+  await page.getByLabel('Recovery offer', { exact: true }).fill('Visit the forge checkpoint.')
+  await page
+    .getByLabel('Recovery guidance', { exact: true })
+    .fill('Reach the checkpoint and return.')
+  await page
+    .getByLabel('Ready to restore', { exact: true })
+    .fill('Bring both fragments to the forge.')
+  await page
+    .getByLabel('Restoration completion', { exact: true })
+    .fill('The fixture blade is restored.')
+  await page.screenshot({
+    path: info.outputPath('sanalex-recovery-authoring.png'),
+    animations: 'disabled',
+  })
+  await section('Schedule')
+  await page.getByLabel('Event key').fill(eventKey)
+  await page.getByLabel('Confirm publication or schedule for this audience').check()
+  await runEventOperation(page, 'publish', 'Publish')
+  const start = new Date(Date.now() + 60 * 60 * 1000).toISOString().slice(0, 16)
+  const end = new Date(Date.now() + 120 * 60 * 1000).toISOString().slice(0, 16)
+  await page.getByRole('textbox', { name: 'Start', exact: true }).fill(start)
+  await page.getByRole('textbox', { name: 'End', exact: true }).fill(end)
+  await page.getByLabel('Confirm publication or schedule for this audience').check()
+  fixtureStoryEvent = { eventKey, userId }
+  await runEventOperation(page, 'schedule', 'Schedule')
+  const runId = queryLocalDatabase(
+    `select id from app_private.event_runs where event_key='${eventKey}'`,
+  )
+  expect(runId).toMatch(/^[0-9a-f-]{36}$/)
+  expect((await readWorld()).objectives.some((entry) => entry.name === title)).toBe(false)
+  queryLocalDatabase(`
+    begin;
+    update app_private.event_runs set scheduled_start_at=clock_timestamp()-interval '1 second' where id='${runId}';
+    select * from public.operate_event_run_v2('${userId}','${characterId}','${runId}',1,gen_random_uuid(),'start',null,true);
+    commit;
+  `)
+
+  const openMissions = async () => {
+    const details = page.getByRole('button', { name: 'Details', exact: true })
+    if (await details.isVisible()) await details.click()
+    await page.getByRole('tab', { name: /Missions/ }).click()
+  }
+  const move = async (destination: typeof position) => {
+    const state = await readWorld()
+    const response = await page.request.post('/api/world', {
+      data: {
+        characterId,
+        expectedVersion: state.version,
+        commandId: randomUUID(),
+        intent: { kind: 'walk', destination },
+      },
+    })
+    expect(response.ok()).toBe(true)
+    await page.reload()
+    await expect
+      .poll(async () => (await readWorld()).position, { timeout: 15_000 })
+      .toEqual(destination)
+    await openMissions()
+  }
+  const talk = () =>
+    page
+      .getByRole('region', { name: 'Local interaction' })
+      .getByRole('heading', { name: title, exact: true })
+      .locator('..')
+      .getByRole('button', { name: `Talk to ${smith}` })
+      .click()
+  const dialogue = page.getByRole('dialog', { name: smith })
+  await page.goto('/game/world')
+  await openMissions()
+  await expect(page.getByText(clue)).toBeVisible()
+  expect(stock()).toEqual({ fragments: 2, swords: 0, gear: 40 })
+  await move(position)
+  await talk()
+  await dialogue.getByRole('button', { name: 'Choose recovery route', exact: true }).click()
+  await dialogue.getByRole('button', { name: 'End conversation' }).click()
+  await move(checkpoint)
+  await move(position)
+  await talk()
+  await dialogue.getByRole('button', { name: `Restore ${sword.name}`, exact: true }).click()
+  await expect(
+    dialogue.getByText(`Hand over 1 ${first.name} and 1 ${second.name} to restore ${sword.name}?`, {
+      exact: true,
+    }),
+  ).toBeVisible()
+  expect(stock()).toEqual({ fragments: 2, swords: 0, gear: 40 })
+  await dialogue.getByRole('button', { name: 'Keep them for now', exact: true }).click()
+  expect(stock()).toEqual({ fragments: 2, swords: 0, gear: 40 })
+  await dialogue.getByRole('button', { name: `Restore ${sword.name}`, exact: true }).click()
+  await dialogue.getByRole('button', { name: 'Confirm restoration', exact: true }).click()
+  await expect.poll(stock).toEqual({ fragments: 0, swords: 0, gear: 40 })
+  await expect(dialogue.getByText(/You need an open Gear slot/)).toBeVisible()
+  await page.screenshot({
+    path: info.outputPath('sanalex-recovery-owed.png'),
+    animations: 'disabled',
+  })
+
+  await page.goto('/game/loadout/items')
+  await page
+    .getByRole('button', { name: /Slot \d+: Spare forge helm/ })
+    .first()
+    .click()
+  const discard = page.getByRole('dialog', { name: filler.name })
+  await discard.getByRole('button', { name: 'Discard stack', exact: true }).click()
+  await discard.getByRole('button', { name: 'Confirm discard', exact: true }).click()
+  await expect.poll(stock).toEqual({ fragments: 0, swords: 0, gear: 39 })
+  await page.goto('/game/world')
+  await openMissions()
+  await talk()
+  const submittedClaim = page.waitForRequest(
+    (request) =>
+      request.method() === 'POST' &&
+      new URL(request.url()).pathname === '/api/world' &&
+      request.postDataJSON()?.intent?.actionId === 'claim-restoration',
+  )
+  await dialogue.getByRole('button', { name: `Collect ${sword.name}`, exact: true }).click()
+  await expect.poll(stock).toEqual({ fragments: 0, swords: 1, gear: 40 })
+  await move(checkpoint)
+  const replay = await page.request.post('/api/world', {
+    data: (await submittedClaim).postDataJSON(),
+  })
+  expect(replay.ok()).toBe(true)
+  expect((await replay.json()).position).toEqual(checkpoint)
+  expect(stock()).toEqual({ fragments: 0, swords: 1, gear: 40 })
+
+  await page.goto('/game/loadout/items')
+  await page.getByRole('button', { name: /Slot \d+: Restored fixture sword/ }).click()
+  await page
+    .getByRole('dialog', { name: sword.name })
+    .getByRole('button', { name: 'Equip', exact: true })
+    .click()
+  await expect(
+    page.getByRole('button', { name: `Main Hand: ${sword.name}`, exact: true }),
+  ).toBeVisible()
+  const equipped = queryLocalDatabase(`
+    select slot->'item'->'actions'->'attack'->>'name'
+    from jsonb_array_elements(public.read_character_battle_equipment_v1('${userId}','${characterId}')->'equipment') equipped(slot)
+    where slot->'item'->>'id'='${sword.id}';
+  `)
+  expect(equipped).toBe('Restored Cut')
+  await page.screenshot({
+    path: info.outputPath('sanalex-recovery-equipped.png'),
+    animations: 'disabled',
+  })
+})
 
 test('an authored World NPC challenge admits a battle only within reach', async ({
   page,

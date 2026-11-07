@@ -42,14 +42,19 @@ export function WorldDialogue({
 }) {
   const dialog = useRef<HTMLDialogElement>(null)
   const close = useRef<HTMLButtonElement>(null)
+  const primaryReply = useRef<HTMLButtonElement>(null)
+  const cancelReply = useRef<HTMLButtonElement>(null)
   const responding = useRef(false)
   const [topicId, setTopicId] = useState<string | null>(initialTopic.id)
+  const [confirmingTopic, setConfirmingTopic] = useState<string | null>(null)
   const [historyOpen, setHistoryOpen] = useState(false)
   const [loreTopic, setLoreTopic] = useState<string | null>(null)
   const [history, setHistory] = useState<{ speaker: string; body: string }[]>([])
   const [failedPortraits, setFailedPortraits] = useState(() => new Set<string>())
   const [ended, setEnded] = useState<string | null>(null)
   const topic = topics.find((entry) => entry.id === topicId)
+  const confirmation = topic && topic.id === confirmingTopic ? topic.confirmation : undefined
+  const confirmationOpen = Boolean(confirmation)
   const speaker = topic ?? topics[0] ?? initialTopic
   const neutralPortrait = speaker.portraitUrl
   const expressionPortrait =
@@ -61,6 +66,7 @@ export function WorldDialogue({
   const interrupted =
     interruption ?? (!topics.length ? 'This speaker is no longer within reach.' : null)
   if (interrupted && !ended) setEnded(interrupted)
+  const showReplies = !ended && !historyOpen && !confirmation
 
   useEffect(() => {
     const element = dialog.current
@@ -77,9 +83,19 @@ export function WorldDialogue({
     if (busy) dialog.current?.focus({ preventScroll: true })
   }, [busy])
 
+  useEffect(() => {
+    if (confirmationOpen) cancelReply.current?.focus({ preventScroll: true })
+  }, [confirmationOpen])
+
+  const cancelConfirmation = () => {
+    setConfirmingTopic(null)
+    requestAnimationFrame(() => primaryReply.current?.focus({ preventScroll: true }))
+  }
+
   const reply = async (actionId: WorldInteractionActionId, label: string) => {
     if (!topic || busy || responding.current) return
     responding.current = true
+    setConfirmingTopic(null)
     try {
       if (await onReply(topic.id, actionId)) {
         setLoreTopic(null)
@@ -107,7 +123,9 @@ export function WorldDialogue({
       aria-busy={busy || undefined}
       onCancel={(event) => {
         event.preventDefault()
-        if (!busy && !responding.current) onClose()
+        if (busy || responding.current) return
+        if (confirmation && !ended) cancelConfirmation()
+        else onClose()
       }}
       onKeyDown={(event) => {
         if (event.key !== 'Tab') return
@@ -169,6 +187,10 @@ export function WorldDialogue({
           <p className={styles.speech} role="status">
             {ended}
           </p>
+        ) : confirmation ? (
+          <p className={styles.speech} id="world-dialogue-confirmation" aria-live="polite">
+            {confirmation.prompt}
+          </p>
         ) : historyOpen ? (
           <section aria-label="Conversation history" className={styles.context}>
             {history.length ? (
@@ -225,18 +247,45 @@ export function WorldDialogue({
         ) : null}
       </div>
       <footer className={styles.responses}>
-        {!ended && !historyOpen ? extraResponses : null}
-        {!ended && !historyOpen && topic?.actionId && topic.actionLabel ? (
+        {!ended && confirmation && topic?.actionId && topic.actionLabel ? (
+          <>
+            <button
+              type="button"
+              className={styles.primary}
+              aria-describedby="world-dialogue-confirmation"
+              onClick={() => void reply(topic.actionId!, topic.actionLabel!)}
+              disabled={busy}
+            >
+              {confirmation.label}
+            </button>
+            <button
+              ref={cancelReply}
+              type="button"
+              aria-describedby="world-dialogue-confirmation"
+              onClick={cancelConfirmation}
+              disabled={busy}
+            >
+              {confirmation.cancelLabel}
+            </button>
+          </>
+        ) : null}
+        {showReplies ? extraResponses : null}
+        {showReplies && topic?.actionId && topic.actionLabel ? (
           <button
+            ref={primaryReply}
             type="button"
             className={styles.primary}
-            onClick={() => void reply(topic.actionId!, topic.actionLabel!)}
+            onClick={() =>
+              topic.confirmation
+                ? setConfirmingTopic(topic.id)
+                : void reply(topic.actionId!, topic.actionLabel!)
+            }
             disabled={busy}
           >
             {busy ? 'Sending reply…' : topic.actionLabel}
           </button>
         ) : null}
-        {!ended && !historyOpen && topic?.alternative ? (
+        {showReplies && topic?.alternative ? (
           <button
             type="button"
             disabled={busy}
@@ -248,7 +297,7 @@ export function WorldDialogue({
             {topic.alternative.label}
           </button>
         ) : null}
-        {!ended && !historyOpen && topic?.lore ? (
+        {showReplies && topic?.lore ? (
           <button
             type="button"
             disabled={busy}
@@ -257,12 +306,12 @@ export function WorldDialogue({
             {loreTopic === topic.id ? 'Back to the quest' : 'About the sealed realm'}
           </button>
         ) : null}
-        {!ended && !historyOpen && topic?.declineLabel ? (
+        {showReplies && topic?.declineLabel ? (
           <button type="button" disabled={busy} onClick={onClose}>
             {topic.declineLabel}
           </button>
         ) : null}
-        {!ended && !historyOpen && topic && topics.length > 1 ? (
+        {showReplies && topic && topics.length > 1 ? (
           <button
             type="button"
             onClick={() => {
@@ -274,13 +323,15 @@ export function WorldDialogue({
             Topics
           </button>
         ) : null}
-        <button
-          type="button"
-          onClick={() => setHistoryOpen(!historyOpen)}
-          disabled={busy || Boolean(ended)}
-        >
-          {historyOpen ? 'Back to conversation' : 'History'}
-        </button>
+        {!confirmation || ended ? (
+          <button
+            type="button"
+            onClick={() => setHistoryOpen(!historyOpen)}
+            disabled={busy || Boolean(ended)}
+          >
+            {historyOpen ? 'Back to conversation' : 'History'}
+          </button>
+        ) : null}
       </footer>
     </dialog>
   )

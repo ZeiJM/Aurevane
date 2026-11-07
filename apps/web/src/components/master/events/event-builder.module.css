@@ -202,6 +202,37 @@
   border-top: 1px solid rgba(215, 187, 127, 0.08);
 }
 
+.restorationFields {
+  min-width: 0;
+}
+
+.restorationFields > p {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.restorationCheckpoint {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0.5rem;
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius-sm);
+}
+
+@media (max-width: 480px) {
+  .restorationCheckpoint {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .restorationCheckpoint > label:first-of-type {
+    grid-column: 1 / -1;
+  }
+}
+
 .sectionHeading h2,
 .sectionHeading h3 {
   font-size: 0.88rem;

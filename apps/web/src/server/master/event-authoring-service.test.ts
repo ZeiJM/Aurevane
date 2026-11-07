@@ -4,7 +4,10 @@ vi.mock('server-only', () => ({}))
 
 import { createEventStarter } from '@/components/master/events/event-authoring-assists'
 import { eventRuntimeBlockers } from '@/components/master/events/event-runtime-support'
-import type { PersistentEventDefinition } from '@aurevane/game-core/events/persistent-event'
+import type {
+  PersistentEventDefinition,
+  PersonalJourneyPosition,
+} from '@aurevane/game-core/events/persistent-event'
 
 import {
   createEventAuthoringService,
@@ -60,6 +63,38 @@ const definition = (
   ],
   rewardPackageRefs: [],
   aftermathRefs: [],
+})
+
+const discoveryDefinition = (checkpoint?: PersonalJourneyPosition): PersistentEventDefinition => ({
+  ...definition({ type: 'global' }),
+  eventKey: 'event.fragment-fixture',
+  category: 'hidden-discoveries',
+  phases: [
+    {
+      id: 'discover',
+      name: 'Discovery',
+      objectives: [],
+      effects: [],
+      cleanupEffects: [],
+      transition: { type: 'manual' },
+    },
+  ],
+  inventoryDiscovery: {
+    firstItemId: 'fixture.fragment-one',
+    secondItemId: 'fixture.fragment-two',
+    clue: 'The fragments fit together.',
+    ...(checkpoint && {
+      restoration: {
+        giverNpcId: '77777777-7777-4777-8777-777777777777',
+        checkpoint,
+        outputItemId: 'fixture.restored-sword',
+        offer: 'Choose the recovery route to restore the blade.',
+        travel: 'Follow the route and return with both fragments.',
+        ready: 'Bring both fragments to the forge.',
+        completed: 'The blade is restored.',
+      },
+    }),
+  },
 })
 
 class StaffStore implements MasterPanelStaffAccessStore {
@@ -249,6 +284,50 @@ describe('Event Builder authoring service', () => {
       valid: false,
       issues: [expect.objectContaining({ code: 'ARBITRARY_EXECUTION_FIELD' })],
     })
+  })
+
+  it.each([
+    ['a blocked tile', { sectorId: 'verdant-expanse', x: 0, y: 0 }],
+    ['an unknown sector', { sectorId: 'missing-sector', x: 3, y: 4 }],
+  ])('rejects a restoration checkpoint on %s before publication', async (_label, checkpoint) => {
+    const { service, store } = serviceFor(access(OWNER, ['game-owner']))
+    const candidate = discoveryDefinition(checkpoint)
+    expect(service.validateDefinition(candidate)).toMatchObject({
+      valid: false,
+      issues: [
+        {
+          path: 'inventoryDiscovery.restoration.checkpoint',
+          code: 'EVENT_ARRIVAL_DESTINATION_UNWALKABLE',
+        },
+      ],
+    })
+    await expect(
+      service.publish({
+        actorUserId: OWNER,
+        definition: candidate,
+        expectedBaseVersion: null,
+        correlationKey: '88888888-8888-4888-8888-888888888888',
+        confirmed: true,
+      }),
+    ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+    expect(store.current).toBeNull()
+  })
+
+  it.each([
+    ['with a walkable restoration checkpoint', { sectorId: 'verdant-expanse', x: 3, y: 4 }],
+    ['with only a clue', undefined],
+  ])('accepts a private discovery %s', async (_label, checkpoint) => {
+    const { service } = serviceFor(access(EVENT_STAFF, ['event-staff']))
+    const candidate = discoveryDefinition(checkpoint)
+    expect(service.validateDefinition(candidate)).toEqual({ valid: true, issues: [] })
+    await expect(
+      service.saveDraft({
+        actorUserId: EVENT_STAFF,
+        definition: candidate,
+        baseVersion: null,
+        expectedDraftVersion: null,
+      }),
+    ).resolves.toMatchObject({ definition: candidate })
   })
 
   it('rejects publication after live Events page access is removed', async () => {

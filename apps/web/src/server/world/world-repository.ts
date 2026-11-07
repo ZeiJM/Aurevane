@@ -9,6 +9,7 @@ import { STEP_MS } from '@/world/catalog'
 import type { WorldMovementReceipt } from '@/world/movement-receipt'
 import type {
   WorldCommand,
+  WorldInteractionActionId,
   WorldPlayer,
   WorldSceneViewport,
   WorldState,
@@ -17,7 +18,6 @@ import type {
 import { eventWorldObjectives } from './world-events'
 import { loadWorldNpcs, peekWorldNpcs, resetWorldNpcReadCache } from './world-npcs'
 import {
-  personalQuestRunId,
   projectPersonalQuests,
   projectRepeatableTravel,
   repeatableTravelReference,
@@ -25,7 +25,7 @@ import {
 import { localWorldInteractions } from './world-objectives'
 import { WORLD_OBJECTIVES, resolveSector } from './world-content'
 import { projectWorldFerry } from './world-ferry'
-import { isWorldUuid } from '@/world/command'
+import { isWorldRestorationAction, isWorldUuid, personalQuestRunId } from '@/world/command'
 import { resolveWorldEnvironment } from '@/world/environment'
 import { readWorldEnvironmentSettings } from './world-environment-store'
 import {
@@ -83,6 +83,10 @@ export function worldRpcError(error: { message?: string; code?: string }): never
     message === 'ITEM_DEFINITION_UNAVAILABLE'
   )
     throw new AurevaneError('INVALID_REQUEST', 'An item in this exchange is currently unavailable.')
+  if (message === 'EVENT_INVENTORY_RESTORATION_WEAPON_UNAVAILABLE')
+    throw new AurevaneError('INVALID_REQUEST', 'The restored weapon is currently unavailable.')
+  if (message === 'WORLD_RESTORATION_WEAPON_ALREADY_EARNED')
+    throw new AurevaneError('INVALID_REQUEST', 'You have already earned this restored weapon.')
   if (message.includes('WORLD_QUEST_ACTION_UNAVAILABLE'))
     throw new AurevaneError('INVALID_REQUEST', 'This quest response is no longer available.')
   if (message.includes('WORLD_FERRY_PORT'))
@@ -418,6 +422,25 @@ export async function commitWorldCommand(
     const { view } = await readWorld(userId, characterId)
     return { ...view, battleSessionId }
   }
+  const commitPersonalQuest = async (runId: string, actionId: WorldInteractionActionId) => {
+    const { error } = await createSupabaseAdminClient().rpc('commit_world_personal_quest_v1', {
+      p_user_id: userId,
+      p_character_id: characterId,
+      p_expected_version: command.expectedVersion,
+      p_command_id: command.commandId,
+      p_run_id: runId,
+      p_action: actionId,
+      p_request_fingerprint: fingerprint,
+    })
+    if (error) worldRpcError(error)
+    return (await readWorld(userId, characterId)).view
+  }
+  if (command.intent.kind === 'interact' && isWorldRestorationAction(command.intent.actionId)) {
+    const runId = personalQuestRunId(command.intent.interactionId)
+    if (!runId) throw new AurevaneError('INVALID_REQUEST', 'Choose a valid restoration quest.')
+    // Only the database can distinguish a stale restoration from its durable receipt.
+    return commitPersonalQuest(runId, command.intent.actionId)
+  }
   if (command.intent.kind === 'interact') {
     const referenceId = repeatableTravelReference(command.intent.interactionId)
     if (referenceId) {
@@ -466,17 +489,7 @@ export async function commitWorldCommand(
         const { view } = await readWorld(userId, characterId)
         return { ...view, battleSessionId: battle.battleSessionId }
       }
-      const { error } = await createSupabaseAdminClient().rpc('commit_world_personal_quest_v1', {
-        p_user_id: userId,
-        p_character_id: characterId,
-        p_expected_version: command.expectedVersion,
-        p_command_id: command.commandId,
-        p_run_id: runId,
-        p_action: command.intent.actionId,
-        p_request_fingerprint: fingerprint,
-      })
-      if (error) worldRpcError(error)
-      return (await readWorld(userId, characterId)).view
+      return commitPersonalQuest(runId, command.intent.actionId)
     }
     if (command.intent.actionId?.endsWith('-realm'))
       throw new AurevaneError('INVALID_REQUEST', 'Choose a valid realm interaction.')

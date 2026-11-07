@@ -6,6 +6,7 @@ import {
   validatePersistentEventDefinition,
   type EventCategory,
   type PersistentEventDefinition,
+  type PersonalJourneyPosition,
 } from '@aurevane/game-core/events/persistent-event'
 import { AurevaneError } from '@aurevane/game-core/errors'
 
@@ -213,6 +214,11 @@ function forbiddenIssues(
   return issues
 }
 
+function isWalkableEventDestination(target: PersonalJourneyPosition): boolean {
+  const sector = CHARTED_SECTORS.find((candidate) => candidate.id === target.sectorId)
+  return sector !== undefined && isWalkable(sector, target)
+}
+
 function validateDefinition(definition: unknown): EventDefinitionValidationResult {
   const issues = forbiddenIssues(definition)
   if (!isRecord(definition)) {
@@ -231,25 +237,27 @@ function validateDefinition(definition: unknown): EventDefinitionValidationResul
       const travelJourney =
         typed.repeatableTravel?.journey ??
         (typed.personalJourney?.type === 'travel-and-report' ? typed.personalJourney : undefined)
-      if (travelJourney) {
-        const target = travelJourney.destination
-        const sector = CHARTED_SECTORS.find((candidate) => candidate.id === target.sectorId)
-        if (!sector || !isWalkable(sector, target)) {
-          issues.push({
-            path: typed.repeatableTravel
-              ? 'repeatableTravel.journey.destination'
-              : 'personalJourney.destination',
-            code: 'EVENT_ARRIVAL_DESTINATION_UNWALKABLE',
-            message: 'Choose a walkable quest destination on the current World map.',
-          })
-        }
+      if (travelJourney && !isWalkableEventDestination(travelJourney.destination)) {
+        issues.push({
+          path: typed.repeatableTravel
+            ? 'repeatableTravel.journey.destination'
+            : 'personalJourney.destination',
+          code: 'EVENT_ARRIVAL_DESTINATION_UNWALKABLE',
+          message: 'Choose a walkable quest destination on the current World map.',
+        })
+      }
+      const checkpoint = typed.inventoryDiscovery?.restoration?.checkpoint
+      if (checkpoint && !isWalkableEventDestination(checkpoint)) {
+        issues.push({
+          path: 'inventoryDiscovery.restoration.checkpoint',
+          code: 'EVENT_ARRIVAL_DESTINATION_UNWALKABLE',
+          message: 'Choose a walkable restoration checkpoint on the current World map.',
+        })
       }
       typed.phases.forEach((phase, phaseIndex) => {
         phase.objectives.forEach((objective, objectiveIndex) => {
           if (objective.completion !== 'world-arrival') return
-          const target = objective.worldNavigation!
-          const sector = CHARTED_SECTORS.find((candidate) => candidate.id === target.sectorId)
-          if (!sector || !isWalkable(sector, target)) {
+          if (!isWalkableEventDestination(objective.worldNavigation!)) {
             issues.push({
               path: `phases[${phaseIndex}].objectives[${objectiveIndex}].worldNavigation`,
               code: 'EVENT_ARRIVAL_DESTINATION_UNWALKABLE',

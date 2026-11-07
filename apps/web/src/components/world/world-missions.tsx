@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { FRONTIER_APPROACH } from '@/world/catalog'
+import { isWorldRestorationAction } from '@/world/command'
 import { samePosition } from '@/world/travel'
 import type { WorldIntent, WorldInteraction, WorldView } from '@/world/types'
 import styles from './workspace.module.css'
@@ -131,10 +132,14 @@ export function WorldMissions({
       >
         {shownQuests.length ? (
           shownQuests.map((objective) => {
-            const localReport = view.interactions.some(
+            const localResponse = view.interactions.some(
               (interaction) =>
                 interaction.objectiveId === objective.id &&
-                (interaction.actionId === 'report' || interaction.actionId === 'hand-over'),
+                (interaction.actionId === 'report' ||
+                  interaction.actionId === 'hand-over' ||
+                  (isWorldRestorationAction(interaction.actionId) &&
+                    !!objective.destination &&
+                    samePosition(view.position, objective.destination))),
             )
             return (
               <div className={styles.quest} key={objective.id}>
@@ -143,7 +148,7 @@ export function WorldMissions({
                   {objective.completed || objective.progress === 'ready' ? '✓ ' : '○ '}
                   {objective.description}
                 </p>
-                {!objective.completed && !localReport
+                {!objective.completed && !localResponse
                   ? autoPathButton(
                       objective,
                       'Start Auto-path',

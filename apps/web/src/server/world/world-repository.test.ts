@@ -1298,3 +1298,47 @@ it('sends repeatable reports by attempt identity through the normal World intera
     }),
   )
 })
+
+it('routes recovery retries through the durable quest receipt after later movement', async () => {
+  const runId = '00000000-0000-4000-8000-000000000017'
+  const interactionId = `quest-run-${runId}`
+  const initial = payload()
+  let version = 1
+  rpc.mockImplementation(async (name: string) => {
+    if (name === 'commit_world_personal_quest_v1') {
+      version = Math.max(version, 2)
+      return { data: { ...initial.state, version } }
+    }
+    return { data: { ...initial, state: { ...initial.state, version } } }
+  })
+  const restore: WorldCommand = {
+    ...command,
+    intent: { kind: 'interact', interactionId, actionId: 'restore-item' },
+  }
+  expect((await commitWorldCommand('owner', characterId, restore)).version).toBe(2)
+  version = 3
+  expect((await commitWorldCommand('owner', characterId, restore)).version).toBe(3)
+  const calls = rpc.mock.calls.filter(([name]) => name === 'commit_world_personal_quest_v1')
+  expect(calls).toHaveLength(2)
+  expect(calls[0]).toEqual(calls[1])
+  expect(calls[0]?.[1]).toMatchObject({
+    p_user_id: 'owner',
+    p_character_id: characterId,
+    p_expected_version: 1,
+    p_command_id: restore.commandId,
+    p_run_id: runId,
+    p_action: 'restore-item',
+  })
+})
+
+it.each([
+  [
+    'EVENT_INVENTORY_RESTORATION_WEAPON_UNAVAILABLE',
+    'The restored weapon is currently unavailable.',
+  ],
+  ['WORLD_RESTORATION_WEAPON_ALREADY_EARNED', 'You have already earned this restored weapon.'],
+])('keeps %s actionable and private in the conversation', (message, feedback) => {
+  expect(() => worldRpcError({ code: '22023', message })).toThrow(
+    expect.objectContaining({ code: 'INVALID_REQUEST', message: feedback }),
+  )
+})

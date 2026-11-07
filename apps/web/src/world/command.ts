@@ -1,10 +1,19 @@
 import { validCell } from './travel'
-import type { WorldCommand, WorldIntent } from './types'
+import type { WorldCommand, WorldIntent, WorldRestorationActionId } from './types'
 const object = (v: unknown): v is Record<string, unknown> =>
   v !== null && typeof v === 'object' && !Array.isArray(v)
 export const isWorldUuid = (v: unknown): v is string =>
   typeof v === 'string' &&
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v)
+export const PERSONAL_QUEST_INTERACTION_PREFIX = 'quest-run-'
+export function personalQuestRunId(interactionId: string): string | null {
+  if (!interactionId.startsWith(PERSONAL_QUEST_INTERACTION_PREFIX)) return null
+  const runId = interactionId.slice(PERSONAL_QUEST_INTERACTION_PREFIX.length)
+  return isWorldUuid(runId) ? runId : null
+}
+export function isWorldRestorationAction(value: unknown): value is WorldRestorationActionId {
+  return value === 'choose-restoration' || value === 'restore-item' || value === 'claim-restoration'
+}
 export function parseWorldCommand(value: unknown): WorldCommand | null {
   if (
     !object(value) ||
@@ -48,7 +57,9 @@ export function parseWorldCommand(value: unknown): WorldCommand | null {
       input.actionId === 'travel-realm' ||
       input.actionId === 'leave-realm' ||
       input.actionId === 'challenge-realm' ||
-      input.actionId === 'challenge-npc')
+      input.actionId === 'challenge-npc' ||
+      (isWorldRestorationAction(input.actionId) &&
+        personalQuestRunId(input.interactionId) !== null))
   )
     intent = {
       kind: 'interact',

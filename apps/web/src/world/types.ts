@@ -131,7 +131,9 @@ export interface WorldObjective {
   completed: boolean
   progress?: WorldObjectiveProgress
 }
+export type WorldRestorationActionId = 'choose-restoration' | 'restore-item' | 'claim-restoration'
 export type WorldInteractionActionId =
+  | WorldRestorationActionId
   | 'accept'
   | 'report'
   | 'hand-over'
@@ -152,6 +154,7 @@ export interface WorldInteraction {
   body: string
   actionId?: WorldInteractionActionId | null
   actionLabel: string | null
+  confirmation?: { prompt: string; label: string; cancelLabel: string }
   alternative?: { actionId: WorldInteractionActionId; label: string }
   lore?: string
   declineLabel?: string

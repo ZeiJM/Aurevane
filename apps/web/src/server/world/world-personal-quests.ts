@@ -6,18 +6,14 @@ import {
 } from '@aurevane/game-core/events/persistent-event'
 import { isStarterCharacterPortraitRef } from '@aurevane/game-core/character/starter-options'
 import { resolvePublicCharacterImageUrl } from '@/media/public-character-portrait'
-import { isWorldUuid } from '@/world/command'
+import { isWorldUuid, PERSONAL_QUEST_INTERACTION_PREFIX } from '@/world/command'
 import { validCell } from '@/world/travel'
 import type { WorldInteraction, WorldObjective, WorldPosition } from '@/world/types'
 
-const prefix = 'quest-run-'
 const repeatablePrefix = 'repeatable-travel-'
 function interactionReference(interactionId: string, idPrefix: string): string | null {
   const reference = interactionId.slice(idPrefix.length)
   return interactionId.startsWith(idPrefix) && isWorldUuid(reference) ? reference : null
-}
-export function personalQuestRunId(interactionId: string): string | null {
-  return interactionReference(interactionId, prefix)
 }
 export function repeatableTravelReference(interactionId: string): string | null {
   return interactionReference(interactionId, repeatablePrefix)
@@ -44,7 +40,7 @@ function position(value: unknown): WorldPosition | null {
 
 export function projectPersonalQuests(
   rows: unknown,
-  idPrefix = prefix,
+  idPrefix = PERSONAL_QUEST_INTERACTION_PREFIX,
 ): {
   objectives: WorldObjective[]
   interactions: WorldInteraction[]
@@ -74,7 +70,22 @@ export function projectPersonalQuests(
         }).format(availableAt)} UTC.`
       : ''
     const body = row.body.slice(0, 800) + availability
-    if (row.discovery === true) {
+    const restoration =
+      idPrefix === PERSONAL_QUEST_INTERACTION_PREFIX &&
+      row.discovery === true &&
+      isWorldUuid(row.giverId) &&
+      typeof row.speaker === 'string' &&
+      typeof row.firstName === 'string' &&
+      typeof row.secondName === 'string' &&
+      typeof row.outputName === 'string' &&
+      (row.progress === 'active' || row.progress === 'ready' || row.progress === 'completed')
+        ? {
+            cost: `1 ${row.firstName} and 1 ${row.secondName}`,
+            outputName: row.outputName,
+            claimPending: row.progress === 'completed' && row.itemClaimPending === true,
+          }
+        : null
+    if (row.discovery === true && !restoration) {
       objectives.push({
         id,
         name: title,
@@ -137,8 +148,16 @@ export function projectPersonalQuests(
       typeof outputName === 'string'
         ? { inputQuantity, inputName, outputName }
         : null
-    let description = body + reward
-    if (exchange && row.accessGranted === true) {
+    const clue =
+      restoration && progress === 'active' && typeof row.discoveryClue === 'string'
+        ? row.discoveryClue.slice(0, 800)
+        : ''
+    let description = (clue && clue !== body ? `${clue} ${body}` : body) + reward
+    if (restoration?.claimPending) {
+      description += ` ${restoration.outputName} is reserved. You need an open Gear slot to collect it from ${speaker}.`
+    } else if (restoration && progress === 'ready') {
+      description += ` Restoration requires ${restoration.cost}.`
+    } else if (exchange && row.accessGranted === true) {
       description +=
         row.itemClaimPending === true
           ? ` Return to ${giver?.label ?? speaker} to collect ${exchange.outputName}.`
@@ -148,6 +167,8 @@ export function projectPersonalQuests(
       description += ` ${exchange.inputName}: ${owned} / ${exchange.inputQuantity}. Reward: ${exchange.outputName}.`
     }
     const destination = position(row.destination)
+    // The exchange is settled, but keep its owed weapon in the active journal.
+    const displayedProgress = restoration?.claimPending ? 'ready' : progress
     objectives.push({
       id,
       name: title,
@@ -157,8 +178,8 @@ export function projectPersonalQuests(
       autoPath: destination !== null,
       guidance: 'exact',
       destination,
-      completed: progress === 'completed',
-      progress,
+      completed: displayedProgress === 'completed',
+      progress: displayedProgress,
     })
     if (row.local !== true) continue
     const handOver = exchange ? `Hand over ${exchange.inputQuantity} ${exchange.inputName}` : null
@@ -170,8 +191,15 @@ export function projectPersonalQuests(
       'travel-realm': 'Travel to the realm',
       'leave-realm': 'Leave the realm',
       'challenge-realm': 'Challenge the guardian',
+      'choose-restoration': 'Choose recovery route',
+      'restore-item': restoration ? `Restore ${restoration.outputName}` : null,
+      'claim-restoration': restoration ? `Collect ${restoration.outputName}` : null,
     }
     const actionId =
+      (restoration &&
+        ((progress === 'active' && row.action === 'choose-restoration') ||
+          (progress === 'ready' && row.action === 'restore-item') ||
+          (restoration.claimPending && row.action === 'claim-restoration'))) ||
       (progress === 'available' && row.action === 'accept') ||
       (progress === 'ready' &&
         (row.action === 'report' || (exchange && row.action === 'hand-over'))) ||
@@ -190,7 +218,7 @@ export function projectPersonalQuests(
       objectiveId: id,
       title,
       body: body + reward,
-      progress,
+      progress: displayedProgress,
       actionId,
       speakerId: row.giverId,
       speaker,
@@ -212,6 +240,15 @@ export function projectPersonalQuests(
             ? { declineLabel: "I'll return later" }
             : {}),
       actionLabel: actionId ? responses[actionId] : null,
+      ...(actionId === 'restore-item' && restoration
+        ? {
+            confirmation: {
+              prompt: `Hand over ${restoration.cost} to restore ${restoration.outputName}?`,
+              label: 'Confirm restoration',
+              cancelLabel: 'Keep them for now',
+            },
+          }
+        : {}),
       ...(handOver && progress !== 'available'
         ? { lastReply: row.accessGranted === true ? handOver : responses.accept }
         : {}),

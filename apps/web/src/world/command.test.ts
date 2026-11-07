@@ -66,3 +66,20 @@ it('allows a quest reply to name the exchange action without taking quantities o
     ).toEqual({ ...base, intent })
   }
 })
+
+it.each(['choose-restoration', 'restore-item', 'claim-restoration'])(
+  'accepts %s only as a personal quest intent, never caller-chosen materials',
+  (actionId) => {
+    const interactionId = 'quest-run-00000000-0000-4000-8000-000000000017'
+    const intent = { kind: 'interact', interactionId, actionId }
+    expect(
+      parseWorldCommand({
+        ...base,
+        intent: { ...intent, fragments: ['forged.item'], outputItemId: 'forged.sword' },
+      }),
+    ).toEqual({ ...base, intent })
+    expect(
+      parseWorldCommand({ ...base, intent: { ...intent, interactionId: 'eastern-watch-officer' } }),
+    ).toBeNull()
+  },
+)

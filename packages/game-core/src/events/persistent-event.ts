@@ -213,6 +213,50 @@ function shortText(value: string, label: string, max: number): void {
   }
 }
 
+function validateInventoryRestoration(discovery: PersonalInventoryDiscovery): void {
+  const { restoration } = discovery
+  if (restoration === undefined) return
+  const dialogueFields = ['offer', 'travel', 'ready', 'completed'] as const
+  const allowedFields = ['giverNpcId', 'checkpoint', 'outputItemId', ...dialogueFields]
+  if (
+    !restoration ||
+    typeof restoration !== 'object' ||
+    Array.isArray(restoration) ||
+    Object.keys(restoration).some((key) => !allowedFields.includes(key))
+  ) {
+    throw new TypeError('The restoration route must contain only supported fields.')
+  }
+  if (!isPersonalJourneyNpcId(restoration.giverNpcId)) {
+    throw new TypeError('Choose a published World and Story NPC as the restoration giver.')
+  }
+  if (
+    !isPersonalItemIdentity(restoration.outputItemId) ||
+    restoration.outputItemId === discovery.firstItemId ||
+    restoration.outputItemId === discovery.secondItemId
+  ) {
+    throw new TypeError('Choose a restoration weapon Item identity distinct from both fragments.')
+  }
+  const { checkpoint } = restoration
+  if (
+    !checkpoint ||
+    typeof checkpoint !== 'object' ||
+    Array.isArray(checkpoint) ||
+    Object.keys(checkpoint).some((key) => !['sectorId', 'x', 'y'].includes(key)) ||
+    !Number.isInteger(checkpoint.x) ||
+    checkpoint.x < 0 ||
+    checkpoint.x > 12 ||
+    !Number.isInteger(checkpoint.y) ||
+    checkpoint.y < 0 ||
+    checkpoint.y > 8
+  ) {
+    throw new TypeError('Choose a restoration checkpoint with a World sector and valid grid cell.')
+  }
+  identity(checkpoint.sectorId, 'Restoration checkpoint sector')
+  for (const field of dialogueFields) {
+    shortText(restoration[field], `Restoration ${field} dialogue`, 800)
+  }
+}
+
 function positiveSafeInteger(value: number, label: string): void {
   if (!Number.isSafeInteger(value) || value < 1) {
     throw new RangeError(`${label} must be a positive safe integer.`)
@@ -350,7 +394,7 @@ export function validatePersistentEventDefinition(definition: PersistentEventDef
       !discovery ||
       typeof discovery !== 'object' ||
       Object.keys(discovery).some(
-        (key) => !['firstItemId', 'secondItemId', 'clue'].includes(key),
+        (key) => !['firstItemId', 'secondItemId', 'clue', 'restoration'].includes(key),
       ) ||
       !isPersonalItemIdentity(discovery.firstItemId) ||
       !isPersonalItemIdentity(discovery.secondItemId) ||
@@ -376,6 +420,7 @@ export function validatePersistentEventDefinition(definition: PersistentEventDef
       )
     }
     shortText(discovery.clue, 'Revealed clue', 800)
+    validateInventoryRestoration(discovery)
   }
 
   if (definition.repeatableTravel !== undefined) {

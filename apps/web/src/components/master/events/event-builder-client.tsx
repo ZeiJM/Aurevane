@@ -17,6 +17,7 @@ import {
 } from './event-authoring-assists'
 import { PersonalJourneyFields } from './personal-journey-fields'
 import { RepeatableTravelFields } from './repeatable-travel-fields'
+import { InventoryRestorationFields } from './inventory-restoration-fields'
 import { eventAudienceLabel } from './event-audience'
 import { WORLD_REGIONS } from '@/world/catalog'
 import { isWorldWeather, WORLD_WEATHER } from '@/world/environment'
@@ -152,6 +153,7 @@ export function EventBuilderClient({
   const blockers = eventRuntimeBlockers(definition)
   const eventCategory = resolveEventCategory(definition)
   const inventoryDiscovery = definition.inventoryDiscovery
+  const hasInventoryRestoration = Boolean(inventoryDiscovery?.restoration)
   const query = eventQuery.trim().toLowerCase()
   const visibleEvents = catalogue.events.filter(
     (entry) =>
@@ -174,7 +176,8 @@ export function EventBuilderClient({
   }, [])
 
   useEffect(() => {
-    if (tab !== 'Phases' && tab !== 'Journey') return
+    if (tab !== 'Phases' && tab !== 'Journey' && !(tab === 'Discovery' && hasInventoryRestoration))
+      return
     let request: AbortController | undefined
     async function loadStoryNpcs() {
       request?.abort()
@@ -197,7 +200,7 @@ export function EventBuilderClient({
       request?.abort()
       window.removeEventListener('focus', loadStoryNpcs)
     }
-  }, [tab])
+  }, [tab, hasInventoryRestoration])
 
   const selectedPhase =
     definition.phases.find((phase) => phase.id === selectedPhaseId) ?? definition.phases[0]
@@ -867,7 +870,7 @@ export function EventBuilderClient({
               The journal reveals the clue when a character carries both Items. Discovery keeps both
               Items in inventory.
             </p>
-            <label>
+            <label className={styles.checkbox}>
               <input
                 type="checkbox"
                 checked={Boolean(inventoryDiscovery)}
@@ -919,6 +922,14 @@ export function EventBuilderClient({
                     }
                   />
                 </label>
+                <InventoryRestorationFields
+                  value={inventoryDiscovery.restoration}
+                  storyNpcs={storyNpcs}
+                  canUseGlobalScope={canUseGlobalScope}
+                  change={(restoration) =>
+                    patchDefinition({ inventoryDiscovery: { ...inventoryDiscovery, restoration } })
+                  }
+                />
               </>
             ) : null}
           </section>
