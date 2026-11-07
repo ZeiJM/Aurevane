@@ -13,6 +13,7 @@ export type WorldMovementReceipt = Pick<
   | 'nextStepAt'
   | 'battleSessionId'
   | 'movementBlocked'
+  | 'ferry'
 > & {
   kind: 'movement'
   currentSector?: WorldView['sectors'][number]
@@ -60,6 +61,7 @@ export function mergeWorldMovement(view: WorldView, receipt: WorldMovementReceip
   return retainWorldSceneReferences(view, {
     ...view,
     ...owned,
+    ferry: receipt.ferry,
     sectors,
     players,
     npcs: npcs ?? view.npcs?.filter((npc) => npc.position.sectorId === receipt.position.sectorId),

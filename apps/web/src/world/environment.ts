@@ -10,6 +10,8 @@ export interface WorldEnvironmentSettings {
   dayLengthMinutes?: number
   /** Real minutes between automatic weather rolls; absent historical settings retain six hours. */
   weatherRollMinutes?: number
+  /** Real minutes between phases for newly arriving uncharted expeditions. */
+  warpedShiftMinutes?: number
   /** Added to the in-game clock, in in-game minutes (-1440..1440). */
   timeOffsetMinutes: number
   /** When set, the clock is frozen at this minute of the in-game day (0..1439). */
@@ -37,10 +39,13 @@ export const MAX_TIME_OFFSET_MINUTES = 1440
 export const MAX_WORLD_DAY_MINUTES = 10080
 export const MAX_WEATHER_ROLL_MINUTES = 10080
 export const DEFAULT_WEATHER_ROLL_MINUTES = 360
+export const DEFAULT_WARPED_SHIFT_MINUTES = 1440
+export const MAX_WARPED_SHIFT_MINUTES = 10080
 export const MAX_WEATHER_DURATION_MINUTES = 576000
 export const DEFAULT_WORLD_ENVIRONMENT_SETTINGS: WorldEnvironmentSettings = {
   dayLengthMinutes: 1440,
   weatherRollMinutes: DEFAULT_WEATHER_ROLL_MINUTES,
+  warpedShiftMinutes: DEFAULT_WARPED_SHIFT_MINUTES,
   timeOffsetMinutes: 0,
   frozenMinuteOfDay: null,
   weatherOverride: null,

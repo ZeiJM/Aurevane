@@ -1,6 +1,7 @@
 import { AurevaneError } from '@aurevane/game-core/errors'
 import { cookies } from 'next/headers'
 import { getAuthenticatedActor } from '@/server/auth/actor'
+import { assertGameplayMutationAllowed } from '@/server/account/active-game-session'
 import { SELECTED_CHARACTER_COOKIE } from '@/server/character/selected-character'
 import { toServerErrorResponse } from '@/server/http/error-response'
 import { attackWorldPlayer } from '@/server/world/world-battle'
@@ -89,6 +90,8 @@ export async function POST(request: Request) {
     intentKind = command.intent.kind
     if (command.characterId !== actor.characterId)
       throw new AurevaneError('STALE_VERSION', 'Your selected character changed. Refresh the map.')
+    if (command.intent.kind === 'board-ferry' || command.intent.kind === 'leave-ferry')
+      await assertGameplayMutationAllowed(actor.userId)
     if (command.intent.kind === 'attack') {
       const receipt = await attackWorldPlayer(
         actor.userId,

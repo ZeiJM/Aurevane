@@ -17,7 +17,13 @@ export function parseWorldCommand(value: unknown): WorldCommand | null {
     return null
   const input = value.intent
   let intent: WorldIntent
-  if (input.kind === 'tick' || input.kind === 'stop' || input.kind === 'cross')
+  if (
+    input.kind === 'tick' ||
+    input.kind === 'stop' ||
+    input.kind === 'cross' ||
+    input.kind === 'board-ferry' ||
+    input.kind === 'leave-ferry'
+  )
     intent = { kind: input.kind }
   else if (input.kind === 'walk' && object(input.destination)) {
     const p = input.destination

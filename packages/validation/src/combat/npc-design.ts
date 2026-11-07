@@ -115,6 +115,12 @@ export function parsePublishedStoryNpc(value: unknown) {
   return publishedIdentity.safeParse(value).data ?? null
 }
 
+const npcArenaRehearsalRequest = z.object({ id: npcId, revision }).strict()
+
+export function parseNpcArenaRehearsalRequest(value: unknown) {
+  return npcArenaRehearsalRequest.safeParse(value).data ?? null
+}
+
 export function parseNpcDesignCommand(value: unknown) {
   return npcDesignCommand.safeParse(value).data ?? null
 }

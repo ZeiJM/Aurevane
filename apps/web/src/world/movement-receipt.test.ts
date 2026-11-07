@@ -32,6 +32,10 @@ it('updates only confirmed owned movement and retains the loaded scene and peer 
   expect(next.players[0]?.attackable).toBe(false)
   expect(next.position).toEqual(receipt.position)
   expect(next.interactions).toEqual([])
+  const ferry = { port: 'mainland', nextDepartureAt: 300_000, fareCrowns: 0 } as const
+  const atDock = mergeWorldMovement(view, { ...receipt, ferry })
+  expect(atDock.ferry).toEqual(ferry)
+  expect(mergeWorldMovement(atDock, { ...receipt, version: 3 }).ferry).toBeUndefined()
   const arrivalTopics = [{ id: 'destination-conversation' }] as WorldView['interactions']
   expect(mergeWorldMovement(view, { ...receipt, interactions: arrivalTopics }).interactions).toBe(
     arrivalTopics,

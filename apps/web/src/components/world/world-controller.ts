@@ -300,6 +300,7 @@ export class WorldController {
         environment: incoming.environment,
         ...(sameVersion
           ? {
+              ...(incoming.serverNow >= this.view.serverNow ? { ferry: incoming.ferry } : {}),
               npcs: incoming.npcs,
               objectives: incoming.objectives,
               interactions: incoming.interactions,

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { appearanceManifestFromImageUrl } from '@/appearance/appearance-manifest'
 import type { WorldInteraction, WorldInteractionActionId, WorldObjective } from '@/world/types'
 import styles from './world-dialogue.module.css'
@@ -27,6 +27,7 @@ export function WorldDialogue({
   busy,
   onReply,
   onClose,
+  extraResponses,
 }: {
   opener: HTMLButtonElement
   initialTopic: WorldInteraction
@@ -37,6 +38,7 @@ export function WorldDialogue({
   busy: boolean
   onReply: (id: string, actionId: WorldInteractionActionId) => Promise<boolean>
   onClose: () => void
+  extraResponses?: ReactNode
 }) {
   const dialog = useRef<HTMLDialogElement>(null)
   const close = useRef<HTMLButtonElement>(null)
@@ -220,6 +222,7 @@ export function WorldDialogue({
         ) : null}
       </div>
       <footer className={styles.responses}>
+        {!ended && !historyOpen ? extraResponses : null}
         {!ended && !historyOpen && topic?.actionId && topic.actionLabel ? (
           <button
             type="button"

@@ -49,6 +49,18 @@ describe('scoped World presence refresh', () => {
     expect(refreshed.interactions).toEqual([])
     expect(refreshed.sectors).toBe(previous.sectors)
   })
+  it('refreshes and clears ferry projection without replacing the world geometry', () => {
+    const atDock = {
+      ...view,
+      ferry: { port: 'mainland', nextDepartureAt: 300_000, fareCrowns: 0 },
+    } as const
+    const dock = mergeWorldRefresh(view, worldRefreshResponse(atDock, worldRefreshUrl(view)))
+    expect(dock.ferry).toEqual(atDock.ferry)
+    expect(dock.sectors).toBe(view.sectors)
+    const elsewhere = mergeWorldRefresh(dock, worldRefreshResponse(view, worldRefreshUrl(dock)))
+    expect(elsewhere.ferry).toBeUndefined()
+    expect(elsewhere.sectors).toBe(view.sectors)
+  })
   it('observes the local scene promptly while preserving authored own-step deadlines', () => {
     const idle = {
       routeLength: 0,

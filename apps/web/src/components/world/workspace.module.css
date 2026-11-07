@@ -623,14 +623,49 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(ellipse at 50% 45%, #1c434b, #0f262e 70%);
+  background:
+    radial-gradient(ellipse at 50% 44%, #28424a 0%, transparent 70%),
+    repeating-linear-gradient(0deg, #af986714 0 1px, transparent 1px 34px),
+    repeating-linear-gradient(90deg, #af986711 0 1px, transparent 1px 34px), #0c212a;
   overflow: hidden;
+}
+.globeTitle {
+  position: absolute;
+  top: clamp(12px, 2cqh, 26px);
+  left: clamp(12px, 2cqw, 28px);
+  z-index: 1;
+  pointer-events: none;
+}
+.globeTitle span {
+  color: #bcab86;
+  font:
+    0.64rem/1.4 system-ui,
+    sans-serif;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+.globeTitle h2 {
+  margin: 4px 0 0;
+  color: #f1dfb6;
+  font: 500 clamp(1.3rem, 3cqw, 2.15rem)/1.12 var(--av-font-heading, Georgia);
+  text-shadow: 0 2px 7px #0b171c;
 }
 .globeFrame {
   width: min(82%, calc(100cqh - 90px));
   aspect-ratio: 1;
   position: relative;
+  isolation: isolate;
   filter: drop-shadow(0 8px 24px #0008);
+}
+.globeFrame::before {
+  position: absolute;
+  inset: -4%;
+  border: 1px solid #b99e643d;
+  border-radius: 50%;
+  background: repeating-conic-gradient(#ddc1873f 0 0.4deg, transparent 0.4deg 5deg);
+  mask-image: radial-gradient(transparent 68%, #000 68% 70.8%, transparent 71%);
+  content: '';
+  pointer-events: none;
 }
 .stageArea {
   container-type: size;
@@ -705,17 +740,68 @@
   bottom: 14px;
   left: 12px;
   right: 12px;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
   pointer-events: none;
   color: #afc7bf;
   font-size: 10px;
 }
-.globeCaption p {
-  margin: 0 0 6px;
-}
 .globeCaption span {
-  font: italic 12px Georgia;
-  color: #829c99;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #c2c9c1;
+}
+.globeCaption i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #bfb683;
+}
+.globeCaption span + span i {
+  background: #837193;
+}
+.globeVeilLabel {
+  position: absolute;
+  z-index: 1;
+  transform: translate(-50%, -50%);
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  color: #f6e4c3;
+  font:
+    small-caps 600 clamp(0.7rem, 1.8cqw, 1rem)/1.15 Georgia,
+    serif;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+  text-shadow:
+    0 1px 3px #120d1e,
+    0 1px 8px #120d1e,
+    0 0 5px #120d1e;
+  pointer-events: none;
+}
+.globeVeilLabel i {
+  color: #e3c9e9;
+  font:
+    normal 1.35rem/1 Georgia,
+    serif;
+}
+.globeFerry {
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 25px;
+  height: 25px;
+  color: #ffe6a9;
+  background: #183039df;
+  border: 1px solid #c2a573;
+  border-radius: 50%;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 12px #ffd58755;
 }
 .destination {
   padding: 20px;
@@ -740,15 +826,30 @@
 }
 .sectorPicker {
   position: absolute;
-  top: 14px;
-  left: 14px;
-  max-width: 75%;
+  top: clamp(75px, 12cqh, 105px);
+  left: clamp(12px, 2cqw, 28px);
+  max-width: min(75%, 17rem);
   font-size: 10px;
-  color: #bccbbd;
-  background: #203c40e0;
-  padding: 8px;
-  border: 1px solid #9f834f;
-  border-radius: 3px;
+  color: #e0d8bf;
+  background: #142a32ed;
+  padding: 9px;
+  border: 1px solid #947e54;
+  border-radius: 5px;
+  box-shadow: 0 4px 18px #06161c67;
+}
+.globeOrientation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 9px;
+}
+.workspace .globeOrientation button {
+  min-height: 35px;
+  padding: 3px 7px;
+  border: 1px solid #a68f624f;
+  background: #253b41;
+  color: #e9dab9;
+  font-size: 0.72rem;
 }
 .sectorPicker summary {
   cursor: pointer;
@@ -851,7 +952,38 @@
     font-size: 9px;
   }
   .globeFrame {
-    width: min(90%, calc(100cqh - 100px));
+    width: min(88%, calc(100cqh - 160px));
+    translate: 0 -13px;
+  }
+  .sectorPicker {
+    top: auto;
+    bottom: 31px;
+    left: 12px;
+    right: 12px;
+    max-width: none;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 8px;
+  }
+  .sectorPicker .townPicker {
+    margin-bottom: 0;
+  }
+  .sectorPicker select {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .sectorPicker details {
+    grid-column: 1 / -1;
+  }
+  .sectorPicker .globeOrientation {
+    margin-bottom: 0;
+    align-content: center;
+  }
+  .workspace .globeOrientation button {
+    min-height: 40px;
+  }
+  .globeTitle {
+    top: 9px;
   }
   .position {
     padding: 20px;
@@ -870,6 +1002,7 @@
     max-width: calc(100% - 28px);
   }
   .globeCaption {
+    bottom: 9px;
     font-size: 9px;
   }
   .destination {
@@ -910,6 +1043,14 @@
   }
   .globeFrame {
     width: min(65%, calc(100cqh - 35px));
+    translate: 0;
+  }
+  .sectorPicker {
+    top: 64px;
+    bottom: auto;
+    right: auto;
+    max-width: min(35%, 15rem);
+    grid-template-columns: 1fr;
   }
   .stageBar {
     min-height: 32px;

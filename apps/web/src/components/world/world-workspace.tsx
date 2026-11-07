@@ -1,7 +1,7 @@
 'use client'
 import { worldTimeLabel, worldDayPhase, WORLD_DAY_REAL_MS } from '@/world/environment'
 import { ChatPanel } from '@/components/social/chat/chat-panel'
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { useRouter } from 'next/navigation'
 import { WORLD_LAND_NAME } from '@/world/atlas'
 import { WORLD_REGIONS } from '@/world/catalog'
@@ -35,6 +35,13 @@ import { WorldMap } from './world-map'
 import { WorldGlobe } from './world-globe'
 import { WorldMissions } from './world-missions'
 import { dialogueSpeakerId, WorldDialogue } from './world-dialogue'
+import {
+  FERRY_CONVERSATION_ID,
+  FerryDialogueAction,
+  WorldFerryStation,
+  ferrymanTopic,
+  worldViewWithFerryman,
+} from './world-ferry'
 import dialogueStyles from './world-dialogue.module.css'
 import { clampWorldZoom, WORLD_MIN_ZOOM, WORLD_MAX_ZOOM } from './world-zoom'
 import { battleSessionHref } from '@/components/battle/battle-return-navigation'
@@ -353,7 +360,7 @@ export function WorldWorkspace({
       scheduleScene()
       const current = instance.view,
         now = current.serverNow + Math.max(0, Date.now() - acceptedAt.current)
-      const delay = worldSyncDelayMs({
+      const syncDelay = worldSyncDelayMs({
         routeLength: current.route.length,
         movementBlocked: Boolean(current.movementBlocked),
         nextStepAt: current.nextStepAt,
@@ -362,6 +369,16 @@ export function WorldWorkspace({
         observePlayers: localViewActive.current,
         onlinePlayers: current.players.filter((player) => player.online !== false).length,
       })
+      const passage = current.ferry?.passage
+      const ferryTransition = passage
+        ? now < passage.departureAt
+          ? passage.departureAt
+          : passage.arrivalAt
+        : current.ferry?.nextDepartureAt
+      const delay =
+        ferryTransition && ferryTransition > now
+          ? Math.min(syncDelay, ferryTransition - now + 50)
+          : syncDelay
       timer = window.setTimeout(
         async () => {
           if (document.visibilityState === 'visible' && !instance.pending) {
@@ -469,8 +486,15 @@ export function WorldWorkspace({
           await instance.refresh()
       }
       const current = instance.view
-      if (current.battleSessionId || current.movementBlocked) return
-      const localTopic = current.interactions.find((entry) => entry.id === topic.id)
+      const ferryman = topic.id === FERRY_CONVERSATION_ID
+      if (
+        current.battleSessionId ||
+        (current.movementBlocked && !(ferryman && current.ferry?.passage))
+      )
+        return
+      const localTopic = ferryman
+        ? ferrymanTopic(current.ferry, current.serverNow)
+        : current.interactions.find((entry) => entry.id === topic.id)
       if (!localTopic || current.route.length) {
         setMessage('This speaker is no longer within reach.')
         return
@@ -485,6 +509,13 @@ export function WorldWorkspace({
     const receipt = await controller.current?.send({ kind: 'interact', interactionId, actionId })
     return receipt?.applied === true
   }
+  const mapView = useMemo(() => worldViewWithFerryman(view), [view])
+  const ferry = view.ferry
+  const ferryman = ferrymanTopic(ferry, view.serverNow)
+  const isFerryConversation = conversation?.topic.id === FERRY_CONVERSATION_ID
+  const ferryBusy = active?.kind === 'board-ferry' || active?.kind === 'leave-ferry'
+  const ferryVisible = Boolean(ferry && ((mode === 'local' && ferry.port) || ferry.passage))
+  const currentMessage = message || (ferry?.passage ? null : view.movementBlocked)
   const currentSector = view.sectors.find((s) => s.id === approvedPosition.sectorId)
   const local = currentSector ?? view.sectors[0]!
   const currentCell = currentSector?.cells.find(
@@ -590,7 +621,7 @@ export function WorldWorkspace({
         <div className={styles.stageArea}>
           {mode === 'local' ? (
             <WorldMap
-              view={view}
+              view={mapView}
               motion={motion}
               portrait={character.portrait}
               animate={animate}
@@ -621,6 +652,16 @@ export function WorldWorkspace({
               }}
             />
           )}
+          {ferryVisible && ferry ? (
+            <WorldFerryStation
+              ferry={ferry}
+              serverNow={view.serverNow}
+              disabled={Boolean(active || (!ferry.passage && view.movementBlocked))}
+              onTalk={(event) => {
+                if (ferryman) void openConversation(ferryman, event.currentTarget)
+              }}
+            />
+          ) : null}
         </div>
         <aside
           id="world-panel"
@@ -830,9 +871,9 @@ export function WorldWorkspace({
           </div>
         </aside>
       </div>
-      {message || view.movementBlocked ? (
+      {currentMessage ? (
         <div className={styles.errorNotice} role="alert">
-          <span>{message || view.movementBlocked}</span>
+          <span>{currentMessage}</span>
           {message ? (
             <button aria-label="Dismiss message" onClick={() => setMessage('')}>
               ×
@@ -844,19 +885,39 @@ export function WorldWorkspace({
         <WorldDialogue
           initialTopic={conversation.topic}
           opener={conversation.opener}
-          topics={view.interactions.filter(
-            (topic) => dialogueSpeakerId(topic) === dialogueSpeakerId(conversation.topic),
-          )}
+          topics={
+            isFerryConversation
+              ? ferryman
+                ? [ferryman]
+                : []
+              : view.interactions.filter(
+                  (topic) => dialogueSpeakerId(topic) === dialogueSpeakerId(conversation.topic),
+                )
+          }
           objectives={view.objectives}
           interruption={
             view.battleSessionId
               ? 'Battle started. Your conversation ended.'
-              : view.movementBlocked ||
-                (view.route.length ? 'Travel interrupted the conversation.' : null)
+              : isFerryConversation
+                ? ferry?.passage && view.serverNow >= ferry.passage.departureAt
+                  ? 'The ferry has departed. Follow your crossing on the world map.'
+                  : null
+                : view.movementBlocked ||
+                  (view.route.length ? 'Travel interrupted the conversation.' : null)
           }
           error={message}
-          busy={active?.kind === 'interact'}
+          busy={active?.kind === 'interact' || ferryBusy}
           onReply={replyToConversation}
+          extraResponses={
+            isFerryConversation && ferry ? (
+              <FerryDialogueAction
+                ferry={ferry}
+                serverNow={view.serverNow}
+                busy={Boolean(ferryBusy || view.battleSessionId)}
+                onCommand={(kind) => send({ kind })}
+              />
+            ) : undefined
+          }
           onClose={() => {
             setConversation(null)
             setMessage('')

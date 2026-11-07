@@ -1,5 +1,6 @@
 import type { AppearanceExpression } from '@/appearance/appearance-manifest'
 import type { WorldEnvironment } from './environment'
+import type { FerryPassage, WorldFerryView } from './ferry'
 
 export interface WorldPosition {
   sectorId: string
@@ -20,8 +21,13 @@ export interface WorldState {
   /** Final target when a long journey continues beyond the saved route window. */
   routeDestination?: WorldPosition | null
   nextStepAt: number | null
+  ferry?: FerryPassage & { warpedPhase: number | null }
   discoveries: Record<string, number[]>
   discoveredAnchors?: string[]
+  /** Authoritative phase captured at the uncharted continent's ferry landing. */
+  warpedPhase?: number
+  /** Field observations physically recorded during an expedition. */
+  warpedDiscoveries?: string[]
   completedObjectives: string[]
   objectiveProgress?: Record<string, WorldObjectiveProgress>
 }
@@ -48,6 +54,8 @@ export interface WorldLandmark {
   y: number
   /** Original scenic landmark sprite; does not grant an interaction or reward. */
   sceneryIndex?: number
+  /** Private warped-continent scenery atlas, revealed only in the local scene. */
+  warpedArt?: number
   kind:
     | 'settlement'
     | 'watchtower'
@@ -101,6 +109,10 @@ export interface WorldSector {
   generated?: boolean
   atlasColumn?: number
   atlasRow?: number
+  /** Local projection on a private landmass. These are not globe coordinates. */
+  sceneColumn?: number
+  sceneRow?: number
+  warpedTheme?: 'haven' | 'ashen' | 'fracture' | 'wayfarer' | 'amber' | 'amethyst'
   townId?: string
   landscape?: 'sakura' | 'autumn' | 'wisteria' | 'willow' | 'wildflowers'
   buildings?: readonly WorldBuilding[]
@@ -201,6 +213,7 @@ export interface WorldNpcPresentation {
 }
 
 export interface WorldView {
+  ferry?: WorldFerryView
   /** Service registration and private receive capability are available for this scene. */
   livePresence?: boolean
   characterId: string
@@ -228,6 +241,8 @@ export interface WorldView {
   environment: WorldEnvironment
 }
 export type WorldIntent =
+  | { kind: 'board-ferry' }
+  | { kind: 'leave-ferry' }
   | { kind: 'walk'; destination: WorldPosition }
   | { kind: 'autopath'; objectiveId: string }
   | { kind: 'stop' }

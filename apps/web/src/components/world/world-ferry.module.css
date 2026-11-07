@@ -1,0 +1,48 @@
+.station {
+  position: absolute;
+  z-index: 2;
+  top: 0.65rem;
+  left: 0.65rem;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.75rem;
+  max-width: calc(100% - 1.3rem);
+  padding: 0.55rem 0.7rem;
+  background: #10272df5;
+  color: #f8e9c9;
+  border: 1px solid #d7b777;
+  border-radius: 0.5rem;
+  box-shadow: 0 3px 12px #07171c66;
+}
+
+.station div {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.station span,
+.dialogueStatus {
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.station button,
+.primary {
+  min-height: 2.5rem;
+  padding: 0.4rem 0.65rem;
+  border: 1px solid #d7b777;
+  border-radius: 0.35rem;
+  background: #f0d497;
+  color: #201c15;
+}
+
+.station button:focus-visible,
+.primary:focus-visible {
+  outline: 2px solid #fff4cb;
+  outline-offset: 2px;
+}
+
+.dialogueStatus {
+  align-self: center;
+}

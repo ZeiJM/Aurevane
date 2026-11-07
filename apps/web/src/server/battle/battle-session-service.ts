@@ -220,6 +220,7 @@ interface Dependencies {
   readEffectTimingPolicy?: () => Promise<CombatEffectTimingPolicy>
   readElevationPolicy?: () => Promise<BattlefieldElevationPolicy>
   readArenaNpc?: (id: string) => Promise<ArenaNpc | null>
+  readUsageProvenance?: typeof createBattleUsageProvenance
 }
 
 function battleIntentPrivacyKind(kind: BattleIntent['kind']): BattlePrivacyCommandKind {
@@ -819,6 +820,7 @@ export function createBattleSessionService({
   readEffectTimingPolicy,
   readElevationPolicy,
   readArenaNpc,
+  readUsageProvenance = createBattleUsageProvenance,
 }: Dependencies): BattleSessionService {
   return {
     async createSession(command) {
@@ -1067,7 +1069,7 @@ export function createBattleSessionService({
           }
       }
       const battle = encounter.tactical.battle
-      const usageBalance = await createBattleUsageProvenance('pve-recruit', [command.userId])
+      const usageBalance = await readUsageProvenance('pve-recruit', [command.userId])
       const persisted = await battles.createBattleSession({
         actorKey: command.userId,
         idempotencyKey: command.idempotencyKey,

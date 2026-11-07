@@ -4,6 +4,8 @@ import type { WorldObjective, WorldPosition, WorldSector, WorldState } from '@/w
 import { resolveWildSector } from '@/world/wilds'
 import { isWildSectorId } from '@/world/wild-ids'
 import { atlasSectors } from '@/world/atlas'
+import { isWarpedContinentSector, warpedContinentSectors } from './warped-continent'
+import { ferryDeckSector } from './world-ferry'
 
 // Private authored content: never imported by a Client Component.
 export const SURVEY_SECTOR: WorldSector = {
@@ -51,11 +53,15 @@ const atlasIds = new Set(atlas.map((sector) => sector.id))
 // Legacy roads/trails stay resolvable for characters parked there. New journeys use the
 // contiguous atlas; importing the old graph into every route would recreate teleport seams.
 const legacy = [...CHARTED_SECTORS, ...TRAIL_SECTORS].filter((s) => !atlasIds.has(s.id))
-export const WORLD_SECTORS = [...atlas, ...legacy, SURVEY_SECTOR]
+export const WORLD_SECTORS = [...atlas, ...legacy, SURVEY_SECTOR, ...warpedContinentSectors]
 const AUTHORED_BY_ID = new Map(WORLD_SECTORS.map((sector) => [sector.id, sector]))
 /** Any sector, authored or generated, by id; null when the id names nothing. */
 export function resolveSector(id: string): WorldSector | null {
-  return AUTHORED_BY_ID.get(id) ?? (isWildSectorId(id) ? resolveWildSector(id) : null)
+  return (
+    AUTHORED_BY_ID.get(id) ??
+    ferryDeckSector(id) ??
+    (isWildSectorId(id) ? resolveWildSector(id) : null)
+  )
 }
 const cellIndex = (p: { x: number; y: number }) => p.y * GRID_WIDTH + p.x
 function discovered(state: WorldState, p: WorldPosition) {
@@ -68,8 +74,12 @@ function discovered(state: WorldState, p: WorldPosition) {
 export function isKnownCell(state: WorldState, p: WorldPosition) {
   const sector = resolveSector(p.sectorId)
   if (!sector) return false
+  const warped = isWarpedContinentSector(p.sectorId)
+  if (warped && !isWarpedContinentSector(state.position.sectorId)) return false
   if (sector.charted || discovered(state, p)) return true
-  if (!sector.generated) return false
+  if (state.ferry && state.position.sectorId === p.sectorId && ferryDeckSector(p.sectorId))
+    return true
+  if (!sector.generated && !warped) return false
   return sector.roads.some((road) => {
     if (road.from.x !== p.x || road.from.y !== p.y) return false
     const origin = resolveSector(road.to.sectorId)
@@ -79,6 +89,9 @@ export function isKnownCell(state: WorldState, p: WorldPosition) {
 /** Everything a character can see on their map: charted ground plus what they have explored. */
 export function visibleSectors(state: WorldState): WorldSector[] {
   const visible = new Map<string, WorldSector>()
+  const onWarpedContinent = isWarpedContinentSector(state.position.sectorId)
+  const deck = state.ferry ? ferryDeckSector(state.position.sectorId) : null
+  if (deck) visible.set(deck.id, deck)
   const legacyJourney = legacy.some(
     (s) =>
       s.id === state.position.sectorId ||
@@ -86,10 +99,11 @@ export function visibleSectors(state: WorldState): WorldSector[] {
   )
   for (const sector of WORLD_SECTORS)
     if (
-      (sector.charted && (atlasIds.has(sector.id) || legacyJourney)) ||
-      state.discoveries[sector.id] ||
-      sector.id === state.position.sectorId ||
-      state.route.some((step) => step.position.sectorId === sector.id)
+      (!isWarpedContinentSector(sector.id) || onWarpedContinent) &&
+      ((sector.charted && (atlasIds.has(sector.id) || legacyJourney)) ||
+        state.discoveries[sector.id] ||
+        sector.id === state.position.sectorId ||
+        state.route.some((step) => step.position.sectorId === sector.id))
     )
       visible.set(sector.id, sector)
   for (const id of Object.keys(state.discoveries)) {
@@ -98,7 +112,11 @@ export function visibleSectors(state: WorldState): WorldSector[] {
   }
   for (const sector of [...visible.values()])
     for (const road of sector.roads) {
-      if (visible.has(road.to.sectorId) || !isWildSectorId(road.to.sectorId)) continue
+      if (
+        visible.has(road.to.sectorId) ||
+        (!isWildSectorId(road.to.sectorId) && !isWarpedContinentSector(road.to.sectorId))
+      )
+        continue
       const next = resolveSector(road.to.sectorId)
       if (next && isKnownCell(state, road.to)) visible.set(next.id, next)
     }

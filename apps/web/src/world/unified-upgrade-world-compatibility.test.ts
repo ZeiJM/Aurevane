@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import baseline from '../../../../docs/verification/unified-upgrade/map-baseline.json'
 import { expect, it, vi } from 'vitest'
 import { isKnownCell, visibleSectors, WORLD_SECTORS } from '@/server/world/world-content'
+import { isWarpedContinentSector } from '@/server/world/warped-continent'
 import { atlasSectors } from './atlas'
 import { GRID_HEIGHT, GRID_WIDTH, WORLD_REGIONS } from './catalog'
 import { ATLAS_COLUMNS, ATLAS_ROWS } from './topology'
@@ -11,10 +12,11 @@ vi.mock('server-only', () => ({}))
 
 it('preserves the unified upgrade baseline for world coordinates, crossings, landmarks and travel', () => {
   const sectors = atlasSectors()
-  const landmarkRows = WORLD_SECTORS.flatMap((sector) =>
+  const originalSectors = WORLD_SECTORS.filter(({ id }) => !isWarpedContinentSector(id))
+  const landmarkRows = originalSectors.flatMap((sector) =>
     sector.landmarks.map(({ id, kind, x, y }) => [sector.id, id, kind, x, y]),
   )
-  const terrainRows = WORLD_SECTORS.map((sector) => [
+  const terrainRows = originalSectors.map((sector) => [
     sector.id,
     sector.coordinate,
     sector.regionId,
@@ -60,7 +62,7 @@ it('preserves the unified upgrade baseline for world coordinates, crossings, lan
     atlas: [ATLAS_COLUMNS, ATLAS_ROWS],
     addressSpaceTiles: [ATLAS_COLUMNS * GRID_WIDTH, ATLAS_ROWS * GRID_HEIGHT],
     atlasSectors: sectors.length,
-    resolvedServerSectors: WORLD_SECTORS.length,
+    resolvedServerSectors: originalSectors.length,
     counts,
     regions: WORLD_REGIONS.map(({ id, name }) => ({
       id,

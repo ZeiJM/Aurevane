@@ -55,11 +55,26 @@ import { buildBiomeTransitions } from './map-biome-transitions'
 import { worldRenderTerrain } from './map-render-terrain'
 import { DEFAULT_MAP_QUALITY, mapQualityBudgets, type MapQuality } from './map-quality'
 import { paintSnowRoadShoulders } from './map-snow-road'
+import { paintFerryDeck } from './map-ferry-deck'
+import {
+  buildWarpedFogField,
+  paintWarpedFogEdge,
+  paintWarpedScree,
+  WARPED_FOG_COLOR,
+} from './map-warped-fog'
+import {
+  regionalBuildingIndex,
+  townPaving,
+  warpedPalette,
+  WORLD_STRUCTURE_ASPECT,
+  WORLD_STRUCTURE_FLOOR,
+} from './map-regional-art'
 
 import { MAP_X, MAP_Y, projectMapPoint, unprojectMapPoint } from './map-projection'
 
 const BASE = '/media/art/world/runtime/'
 const WINTER_ART = 'frostmere'
+const FERRY_SEA = '#2b5360'
 const WINTER_ATLAS_ASPECT = 336 / 384
 
 function winterBuildingIndex(sector: WorldSectorView, building: WorldBuilding) {
@@ -526,6 +541,7 @@ export function createMapRenderer(
   let featurePlacements = indexFeaturePlacements(renderSectors)
   let bridgeWater = indexBridgeWater(renderSectors, featurePlacements)
   let coastField = buildPublicCoasts({ ...view, sectors: renderSectors })
+  let warpedFog = buildWarpedFogField(renderSectors)
   let heatEmitters = terrainHeatEmitters(renderSectors)
   const clouds = [0, 1, 2].map((i) => createCloudTexture('world-cloud:' + i))
   let cachedPixels = 0
@@ -536,6 +552,7 @@ export function createMapRenderer(
     featurePlacements = indexFeaturePlacements(renderSectors)
     bridgeWater = indexBridgeWater(renderSectors, featurePlacements)
     coastField = buildPublicCoasts({ ...view, sectors: renderSectors })
+    warpedFog = buildWarpedFogField(renderSectors)
     heatEmitters = terrainHeatEmitters(renderSectors)
     terrainKeys.clear()
     featureKeys.clear()
@@ -545,12 +562,14 @@ export function createMapRenderer(
         JSON.stringify([
           sector.regionId,
           sector.townId,
+          sector.warpedTheme,
           sector.cells.map((cell) => [cell.x, cell.y, cell.terrain]),
           sector.regionId === WINTER_ART &&
             sector.landmarks
               .filter((landmark) => landmark.kind === 'marketplace')
               .map(({ x, y }) => [x, y]),
           coastField.get(sector.id),
+          warpedFog.get(sector.id)?.key,
         ]),
       )
       featureKeys.set(
@@ -567,7 +586,7 @@ export function createMapRenderer(
     cache.clear()
     cachedPixels = 0
   }
-  const load = (name: string, version = 'v02') => {
+  const load = (name: string, version = 'v02', format = 'webp') => {
     const image = new Image()
     image.onload = () => {
       // Only the terrain sheet is baked into ground layers. Scenery sheets
@@ -575,16 +594,43 @@ export function createMapRenderer(
       if (name === 'terrain') clearCache()
       requestDraw()
     }
-    image.src = BASE + name + '-' + version + '.webp'
+    image.src = BASE + name + '-' + version + '.' + format
     images.set(name, image)
   }
   for (const name of ['terrain', 'buildings', 'nature', 'props', 'biomes']) load(name)
   load('beauties', 'v03')
-  const loadWinterArt = () => {
+  const loadRegionalArt = () => {
+    if (!images.has('ferry-fittings') && renderSectors.some(({ id }) => id.startsWith('ferry:')))
+      load('ferry-fittings', 'v01', 'svg')
     if (!images.has(WINTER_ART) && renderSectors.some((sector) => sector.regionId === WINTER_ART))
       load(WINTER_ART, 'v01')
+    if (
+      !images.has('regional-settlements') &&
+      renderSectors.some((sector) =>
+        sector.buildings?.some((building) => regionalBuildingIndex(sector, building) !== undefined),
+      )
+    )
+      load('regional-settlements', 'v01')
+    if (
+      !images.has('warped-landmarks') &&
+      renderSectors.some((sector) =>
+        sector.landmarks.some(
+          (landmark) => landmark.warpedArt !== undefined && landmark.warpedArt < 6,
+        ),
+      )
+    )
+      load('warped-landmarks', 'v01')
+    if (
+      !images.has('warped-refuges') &&
+      renderSectors.some((sector) =>
+        sector.landmarks.some(
+          (landmark) => landmark.warpedArt !== undefined && landmark.warpedArt >= 6,
+        ),
+      )
+    )
+      load('warped-refuges', 'v01')
   }
-  loadWinterArt()
+  loadRegionalArt()
   const resize = () => {
     width = canvas.clientWidth
     height = canvas.clientHeight
@@ -658,8 +704,11 @@ export function createMapRenderer(
     c.scale(groundScale, groundScale)
     c.imageSmoothingEnabled = true
     c.imageSmoothingQuality = 'high'
-    c.fillStyle = '#233d3c'
-    c.fillRect(0, 0, layer.width, layer.height)
+    const warped = sector.warpedTheme ? warpedPalette[sector.warpedTheme] : undefined
+    if (!warped) {
+      c.fillStyle = '#233d3c'
+      c.fillRect(0, 0, layer.width, layer.height)
+    }
     const texture = images.get('terrain')
     // One world-anchored material gradient crosses every cell and sector without
     // resetting its colour at tile edges. Water/lava animation stays on the overlay.
@@ -669,6 +718,7 @@ export function createMapRenderer(
       tile,
       (sector.atlasColumn ?? 0) * GRID_WIDTH,
       (sector.atlasRow ?? 0) * GRID_HEIGHT,
+      sector.warpedTheme === 'amethyst',
     )
     const lavaMaterial = liquidMaterial(
       c,
@@ -790,6 +840,11 @@ export function createMapRenderer(
       for (const material of [own, vertical, horizontal, diagonal])
         material.strip.width = material.strip.height = 0
     }
+    const ferryDeck = sector.id.startsWith('ferry:')
+      ? new Set(
+          sector.cells.filter(({ terrain }) => terrain !== '~').map(({ x, y }) => `${x}:${y}`),
+        )
+      : null
     const snowRoadTerrain =
       sector.regionId === WINTER_ART
         ? new Map(sector.cells.map((cell) => [`${cell.x}:${cell.y}`, cell]))
@@ -797,10 +852,18 @@ export function createMapRenderer(
     const winterMarket = snowRoadTerrain
       ? sector.landmarks.filter((landmark) => landmark.kind === 'marketplace')
       : []
+    const pavement = sector.townId ? townPaving[sector.townId] : undefined
+    const fogCells = warpedFog.get(sector.id)?.cells
     for (const cell of sector.cells) {
       const x = cell.x * tile,
         y = cell.y * tile
-      if (cell.terrain === '=' || cell.terrain === 's') {
+      if (warped && cell.terrain !== '~' && cell.terrain !== 'l') {
+        c.fillStyle = warped
+        c.fillRect(x, y, tile + 1, tile + 1)
+      }
+      if (ferryDeck && cell.terrain !== '~') {
+        paintFerryDeck(c, cell, tile, ferryDeck)
+      } else if (cell.terrain === '=' || cell.terrain === 's') {
         const square = winterMarket.some(
           (landmark) => Math.abs(landmark.x - cell.x) + Math.abs(landmark.y - cell.y) <= 3,
         )
@@ -811,7 +874,7 @@ export function createMapRenderer(
             snowRoadTerrain.get(`${cell.x}:${cell.y + 1}`)?.terrain === '~' ||
             snowRoadTerrain.get(`${cell.x}:${cell.y - 1}`)?.terrain === '~')
         const winterPath = snowRoadTerrain && !square && !waterAdjacent
-        c.fillStyle = sector.townId ? '#aa9d7b' : '#a49b77'
+        c.fillStyle = pavement?.color ?? (sector.townId ? '#aa9d7b' : '#a49b77')
         c.globalAlpha = winterPath ? 0.4 : 0.72
         c.fillRect(x, y, tile + 1, tile + 1)
         c.globalAlpha = 1
@@ -819,6 +882,7 @@ export function createMapRenderer(
           const sw = texture.width / 4,
             sh = texture.height / 2
           if (winterPath) c.globalAlpha = sector.townId ? 0.6 : 0.45
+          else if (pavement) c.globalAlpha = 0.76
           c.drawImage(
             texture,
             ((((sector.atlasColumn ?? 0) * GRID_WIDTH + cell.x) % 4) * sw) / 4,
@@ -832,7 +896,9 @@ export function createMapRenderer(
           )
           c.globalAlpha = 1
         }
-        c.fillStyle = winterPath ? 'rgba(195,178,146,.15)' : 'rgba(192,180,146,.35)'
+        c.fillStyle = winterPath
+          ? 'rgba(195,178,146,.15)'
+          : (pavement?.glaze ?? 'rgba(192,180,146,.35)')
         c.fillRect(x, y, tile + 1, tile + 1)
         if (winterPath)
           paintSnowRoadShoulders(
@@ -846,12 +912,12 @@ export function createMapRenderer(
       }
       if (cell.terrain === '~' || cell.terrain === 'l') {
         const water = cell.terrain === '~'
-        c.fillStyle = water ? waterMaterial : lavaMaterial
+        c.fillStyle = water ? (ferryDeck ? FERRY_SEA : waterMaterial) : lavaMaterial
         c.fillRect(x, y, tile, tile)
-        if (water) {
+        if (water && !ferryDeck) {
           const profile = waterField.get(sector.id)?.cells.get(`${cell.x}:${cell.y}`)
-          if (profile) paintWaterGround(c, profile, tile)
-        } else {
+          if (profile) paintWaterGround(c, profile, tile, sector.warpedTheme === 'amethyst')
+        } else if (!water) {
           c.strokeStyle = '#6b5140'
           c.lineWidth = 5
           for (const [dx, dy] of [
@@ -885,7 +951,10 @@ export function createMapRenderer(
         shade.addColorStop(1, 'rgba(51,56,53,0)')
         c.fillStyle = shade
         c.fillRect(x, y, tile, tile)
+        if (warped) paintWarpedScree(c, cell, tile, sector.id)
       }
+      const fogMask = fogCells?.get(`${cell.x}:${cell.y}`)
+      if (fogMask) paintWarpedFogEdge(c, cell, tile, fogMask)
     }
     paintCoastLand(c, coastField.get(sector.id) ?? [], tile, sector.regionId)
     // A crossing is a continuous stone support, not a blue pond stamped on
@@ -1082,7 +1151,12 @@ export function createMapRenderer(
       onVisiblePlayers(visibleIds)
     }
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0)
-    ctx.fillStyle = current?.charted ? '#284b57' : '#233d3c'
+    ctx.fillStyle = current?.warpedTheme
+      ? WARPED_FOG_COLOR
+      : current?.charted
+        ? '#284b57'
+        : '#233d3c'
+    if (view.position.sectorId.startsWith('ferry:')) ctx.fillStyle = FERRY_SEA
     ctx.fillRect(0, 0, width, height)
     const visible = renderSectors.filter((sector) => {
       const p = screen(sectorOrigin(sector))
@@ -1138,7 +1212,10 @@ export function createMapRenderer(
       props = images.get('props'),
       biomes = images.get('biomes'),
       beauties = images.get('beauties'),
-      winterArt = images.get(WINTER_ART)
+      winterArt = images.get(WINTER_ART),
+      settlementArt = images.get('regional-settlements'),
+      warpedLandmarks = images.get('warped-landmarks'),
+      warpedRefuges = images.get('warped-refuges')
     let waterCells = 0,
       wildlifeCount = 0,
       coastEdges = 0,
@@ -1161,7 +1238,8 @@ export function createMapRenderer(
       ctx.drawImage(ground(sector), 0, 0, GRID_WIDTH * tile, GRID_HEIGHT * tile)
       ctx.restore()
       const palette = palettes[sector.regionId] ?? palettes['verdant-expanse']!
-      if (nature?.complete && nature.naturalWidth)
+      const fogCells = warpedFog.get(sector.id)?.cells
+      if (!sector.id.startsWith('ferry:') && nature?.complete && nature.naturalWidth)
         for (const cell of sector.cells) {
           if (
             sector.landscape === 'wildflowers' &&
@@ -1192,6 +1270,11 @@ export function createMapRenderer(
             'umbral-march': 7,
           }
           const rock = cell.terrain === '#'
+          const warpedRock =
+            rock && sector.warpedTheme ? hashString(`${sector.id}:${cell.x}:${cell.y}:rock`) : null
+          const fogMask = warpedRock === null ? 0 : fogCells?.get(`${cell.x}:${cell.y}`)
+          if (warpedRock !== null && (fogMask ? warpedRock % 5 !== 0 : warpedRock % 5 > 2)) continue
+          const rockScale = warpedRock === null ? 1 : 0.63 + (warpedRock % 6) * 0.095
           // Rock floors require their measured biome crop; a tree-sheet fallback
           // includes neighbouring canopies and empty padding beneath its roots.
           if (rock && (!biomes?.complete || !biomes.naturalWidth)) continue
@@ -1227,8 +1310,8 @@ export function createMapRenderer(
           addScenery({
             x: origin.x + cell.x + 0.5,
             y: origin.y + cell.y + (rock ? 0.5 : 0.75),
-            width: tile * (artPlacement?.width ?? (rock ? 1.8 : 1.65)),
-            height: tile * (artPlacement?.height ?? (rock ? 1.7 : 2.55)),
+            width: tile * (artPlacement?.width ?? (rock ? 1.8 : 1.65)) * rockScale,
+            height: tile * (artPlacement?.height ?? (rock ? 1.7 : 2.55)) * rockScale,
             image: asset,
             index,
             columns: 4,
@@ -1270,6 +1353,27 @@ export function createMapRenderer(
           })
           continue
         }
+        const regionalIndex =
+          settlementArt?.complete && settlementArt.naturalWidth
+            ? regionalBuildingIndex(sector, building)
+            : undefined
+        if (regionalIndex !== undefined && settlementArt) {
+          const size = width * (sector.id === sector.townId ? 1.28 : 1.12)
+          addScenery({
+            ...point,
+            width: size,
+            height: size * WORLD_STRUCTURE_ASPECT,
+            image: settlementArt,
+            index: regionalIndex,
+            columns: 4,
+            rows: 2,
+            anchorX: 0.5,
+            anchorY: WORLD_STRUCTURE_FLOOR,
+            tree: false,
+            forge: regionalIndex === 3,
+          })
+          continue
+        }
         const asset = building.propIndex === undefined ? buildings : props
         if (!asset?.complete || !asset.naturalWidth) continue
         addScenery({
@@ -1290,6 +1394,48 @@ export function createMapRenderer(
       // Painting them after the character pass would hide someone on a bridge/anchor.
       if (props?.complete && props.naturalWidth)
         for (const landmark of sector.landmarks) {
+          if (sector.id.startsWith('ferry:')) {
+            const fittings = images.get('ferry-fittings')
+            if (fittings?.complete && fittings.naturalWidth) {
+              const size = tile * 2.1
+              addScenery({
+                x: origin.x + landmark.x + 0.5,
+                y: origin.y + landmark.y + 0.6,
+                width: size,
+                height: size,
+                image: fittings,
+                index: landmark.id === 'ferry-stern' ? 0 : 1,
+                columns: 2,
+                rows: 1,
+                anchorX: 0.5,
+                anchorY: 0.83,
+                tree: false,
+              })
+            }
+            continue
+          }
+
+          if (landmark.warpedArt !== undefined) {
+            const asset = landmark.warpedArt < 6 ? warpedLandmarks : warpedRefuges
+            if (asset?.complete && asset.naturalWidth) {
+              const size =
+                tile * (landmark.kind === 'hamlet' || landmark.kind === 'ruin' ? 3 : 2.55)
+              addScenery({
+                x: origin.x + landmark.x + 0.5,
+                y: origin.y + landmark.y + 0.67,
+                width: size,
+                height: size * WORLD_STRUCTURE_ASPECT,
+                image: asset,
+                index: landmark.warpedArt % 6,
+                columns: 3,
+                rows: 2,
+                anchorX: 0.5,
+                anchorY: WORLD_STRUCTURE_FLOOR,
+                tree: false,
+              })
+              continue
+            }
+          }
           const scenic =
             landmark.sceneryIndex !== undefined && beauties?.complete && beauties.naturalWidth
           const asset = scenic ? beauties! : props
@@ -1344,7 +1490,8 @@ export function createMapRenderer(
             ctx.transform(MAP_X, MAP_Y, -MAP_X, MAP_Y, at.x, at.y)
             if (cell.terrain === '~') {
               const profile = waterField.get(sector.id)?.cells.get(`${cell.x}:${cell.y}`)
-              if (profile) paintWaterMotion(ctx, profile, tile, now)
+              if (profile)
+                paintWaterMotion(ctx, profile, tile, now, sector.warpedTheme === 'amethyst')
               ctx.restore()
               continue
             }
@@ -2441,7 +2588,7 @@ export function createMapRenderer(
       const indexStarted = profiling ? performance.now() : 0
       if (terrainChanged) {
         indexTerrain()
-        loadWinterArt()
+        loadRegionalArt()
       }
       if (profiling) {
         const ended = performance.now()

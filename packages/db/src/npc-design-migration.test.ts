@@ -5,7 +5,7 @@ import { expect, it } from 'vitest'
 
 const root = resolve(process.cwd(), '../../supabase')
 
-it('keeps Arena drafts private and per-use publication valid after the full migration chain', async () => {
+it('preserves NPC publication and shared ferry presence after the full migration chain', async () => {
   const db = await PGlite.create()
   try {
     await db.exec(`create role anon; create role authenticated; create role service_role;
@@ -31,6 +31,7 @@ it('keeps Arena drafts private and per-use publication valid after the full migr
       }
     }
     await db.exec(readFileSync(resolve(root, 'tests/npc_design_arena_opponents.sql'), 'utf8'))
+    await db.exec(readFileSync(resolve(root, 'tests/world_ferry_shared_presence.sql'), 'utf8'))
     expect(
       (await db.query('select count(*)::int as count from app_private.npc_designs')).rows,
     ).toEqual([{ count: 0 }])

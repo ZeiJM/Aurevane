@@ -26,15 +26,15 @@ export function atlasNeighbor(column: number, row: number, dx: number, dy: numbe
     : { column: wrapAtlasColumn(column + dx), row: targetRow }
 }
 export function sectorMapOrigin(
-  sector: Pick<WorldSector, 'atlasColumn' | 'atlasRow' | 'charted'>,
+  sector: Pick<WorldSector, 'atlasColumn' | 'atlasRow' | 'sceneColumn' | 'sceneRow' | 'charted'>,
   referenceX?: number,
 ) {
-  const x = (sector.atlasColumn ?? 0) * GRID_WIDTH
+  const x = (sector.atlasColumn ?? sector.sceneColumn ?? 0) * GRID_WIDTH
   return {
     x:
       sector.charted && sector.atlasColumn !== undefined && referenceX !== undefined
         ? wrappedMapX(x, referenceX)
         : x,
-    y: (sector.atlasRow ?? 0) * GRID_HEIGHT,
+    y: (sector.atlasRow ?? sector.sceneRow ?? 0) * GRID_HEIGHT,
   }
 }

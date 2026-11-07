@@ -1,4 +1,5 @@
 import type { GlobeLocation } from '@/world/globe-math'
+import { globeVeilTexture } from './globe-veil'
 
 /** Bounded software sphere for devices without WebGL; same projection/picking. */
 export function globeFallbackPixels(
@@ -10,6 +11,7 @@ export function globeFallbackPixels(
   size = 420,
 ) {
   const pixels = new Uint8ClampedArray(size * size * 4)
+  const veil = globeVeilTexture()
   const radians = Math.PI / 180,
     tilt = camera.latitude * radians
   const ct = Math.cos(tilt),
@@ -34,10 +36,20 @@ export function globeFallbackPixels(
       const source = (ty * texture.width + tx) * 4,
         index = (y * size + x) * 4
       const land = texture.pixels[source + 3]! / 255
+      const fogPixel =
+        (Math.min(veil.height - 1, Math.floor(v * veil.height)) * veil.width +
+          Math.min(veil.width - 1, Math.floor(u * veil.width))) *
+        4
+      const fog = (veil.pixels[fogPixel + 3]! / 255) * (1 - land)
       const light = 0.7 + z * 0.3,
         rim = Math.pow(1 - z, 4) * 0.24
       const wave = Math.sin(u * 197 + Math.sin(v * 59)) * Math.sin(v * 131)
-      const ocean = [22 + wave * 3, 58 + wave * 5, 69 + wave * 6]
+      const contour = Math.pow(0.5 + 0.5 * Math.sin((u * 26 + v * 11 + wave * 0.12) * 6.28318), 14)
+      const ocean = [
+        14 + wave * 3 + contour * 5,
+        38 + wave * 5 + contour * 8,
+        50 + wave * 6 + contour * 9,
+      ]
       const edge = Math.min(
         (u * columns) % 1,
         1 - ((u * columns) % 1),
@@ -45,7 +57,8 @@ export function globeFallbackPixels(
         1 - ((v * rows) % 1),
       )
       for (let c = 0; c < 3; c++) {
-        const value = texture.pixels[source + c]! * land + ocean[c]! * (1 - land)
+        const surface = texture.pixels[source + c]! * land + ocean[c]! * (1 - land)
+        const value = surface * (1 - fog) + veil.pixels[fogPixel + c]! * fog
         pixels[index + c] =
           value * light * (1 - rim) +
           [61, 134, 149][c]! * rim +

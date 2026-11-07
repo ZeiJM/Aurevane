@@ -100,6 +100,20 @@ it('persists weather cadence separately from override duration and rejects malfo
   expect(rpc).not.toHaveBeenCalled()
 })
 
+it('writes a validated uncharted shift interval through the versioned environment RPC', async () => {
+  rpc.mockResolvedValueOnce({ data: { ...stored, warpedShiftMinutes: 480 } })
+  expect(
+    await setWorldEnvironment({ ...base, change: { ...base.change, warpedShiftMinutes: 480 } }),
+  ).toMatchObject({ warpedShiftMinutes: 480 })
+  expect(rpc.mock.calls[0]![1].p_settings.warpedShiftMinutes).toBe(480)
+  rpc.mockReset()
+  for (const warpedShiftMinutes of [0, 1.5, 10081, '5', null])
+    await expect(
+      setWorldEnvironment({ ...base, change: { ...base.change, warpedShiftMinutes } }),
+    ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+  expect(rpc).not.toHaveBeenCalled()
+})
+
 const scheduledChange = {
   dayLengthMinutes: 120,
   weatherRollMinutes: 1,

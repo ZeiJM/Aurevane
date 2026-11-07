@@ -20,6 +20,7 @@ import {
 } from '@/appearance/appearance-manifest'
 import { AppearanceBuilderDialog } from '@/components/character/appearance-builder-dialog'
 import { ArenaNpcCard } from '@/components/battle/arena-npc-card'
+import type { NpcArenaRehearsal } from '@/server/master/npc-arena-rehearsal'
 import styles from './npc-design-editor.module.css'
 
 const DEFAULT_ARENA = { arenaId: 'duel-yard', aiDifficulty: 'high', lore: '' } as const
@@ -29,6 +30,17 @@ const USE_LABELS: Record<NpcUse, string> = {
   world: 'World character',
   story: 'Story character',
 }
+const REHEARSAL_ACTION_LABELS = {
+  'prepare-controlled': 'Prepared a controlled ability',
+  'legal-damage': 'Attacked a legal target',
+  'close-distance': 'Moved closer to the opponent',
+  'ranged-spacing': 'Moved to keep range',
+  'guard-survival': 'Guarded',
+  'recover-survival': 'Recovered health',
+  'face-threat': 'Faced the opponent',
+  'safe-end-turn': 'Ended its turn',
+} satisfies Record<NpcArenaRehearsal['decisions'][number]['reason'], string>
+
 const INITIAL_DRAFT: NpcDesignDraft = {
   name: '',
   portraitRef: null,
@@ -53,6 +65,7 @@ export function NpcDesignEditor({
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
+  const [rehearsal, setRehearsal] = useState<NpcArenaRehearsal | null>(null)
   const [retirePrompt, setRetirePrompt] = useState<NpcUse | null>(null)
   const current = records.find((record) => record.id === selectedId)
   const dirty = JSON.stringify(draft) !== JSON.stringify(current?.draft ?? INITIAL_DRAFT)
@@ -75,6 +88,7 @@ export function NpcDesignEditor({
     setNotice('')
     setError('')
     setRetirePrompt(null)
+    setRehearsal(null)
   }
 
   function toggleUse(use: NpcUse) {
@@ -121,6 +135,31 @@ export function NpcDesignEditor({
       )
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Unable to save the NPC.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function rehearse(record: NpcDesignRecord) {
+    if (busy) return
+    setBusy(true)
+    setError('')
+    setRehearsal(null)
+    try {
+      const response = await fetch('/api/master/npc-design/rehearse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: record.id, revision: record.revision }),
+      })
+      const result = (await response.json()) as {
+        rehearsal?: NpcArenaRehearsal
+        error?: { message?: string }
+      }
+      if (!response.ok || !result.rehearsal)
+        throw new Error(result.error?.message ?? 'The Arena rehearsal did not start.')
+      setRehearsal(result.rehearsal)
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : 'The Arena rehearsal did not start.')
     } finally {
       setBusy(false)
     }
@@ -298,6 +337,41 @@ export function NpcDesignEditor({
               portraitRef={draft.portraitRef}
               imageUrl={draft.imageUrl}
             />
+            {current ? (
+              <div>
+                <button
+                  type="button"
+                  disabled={busy || dirty || !ready.arena}
+                  onClick={() => void rehearse(current)}
+                >
+                  Test one AI turn
+                </button>
+                <p className={styles.hint}>
+                  Runs the saved draft against a practice character. Nothing is published or added
+                  to player records.
+                </p>
+              </div>
+            ) : null}
+            {rehearsal && !dirty ? (
+              <section aria-label="Arena rehearsal result" className={styles.rehearsal}>
+                <strong>
+                  {rehearsal.opponentName} · {rehearsal.arenaName}
+                </strong>
+                <ol>
+                  {rehearsal.decisions.map(({ reason }, index) => (
+                    <li key={index}>{REHEARSAL_ACTION_LABELS[reason]}</li>
+                  ))}
+                </ol>
+                <ul>
+                  {rehearsal.combatants.map(({ name, hp, maxHp }, index) => (
+                    <li key={index}>
+                      {name} · {hp} / {maxHp} HP
+                    </li>
+                  ))}
+                </ul>
+                {rehearsal.nextTurn ? <p>Next turn · {rehearsal.nextTurn}</p> : null}
+              </section>
+            ) : null}
           </fieldset>
         ) : null}
         {world ? (

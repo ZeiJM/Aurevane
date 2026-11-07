@@ -92,3 +92,15 @@
     overflow: visible;
   }
 }
+
+.rehearsal {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid currentColor;
+  border-radius: 0.35rem;
+}
+
+.rehearsal :is(ol, ul, p) {
+  margin: 0;
+}

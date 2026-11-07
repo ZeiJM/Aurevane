@@ -19,6 +19,7 @@ import { loadWorldNpcs, peekWorldNpcs, resetWorldNpcReadCache } from './world-np
 import { personalQuestRunId, projectPersonalQuests } from './world-personal-quests'
 import { localWorldInteractions } from './world-objectives'
 import { WORLD_OBJECTIVES, resolveSector } from './world-content'
+import { projectWorldFerry } from './world-ferry'
 import { resolveWorldEnvironment } from '@/world/environment'
 import { readWorldEnvironmentSettings } from './world-environment-store'
 import {
@@ -57,6 +58,12 @@ export function worldRpcError(error: { message?: string; code?: string }): never
     )
   if (message.includes('WORLD_QUEST_ACTION_UNAVAILABLE'))
     throw new AurevaneError('INVALID_REQUEST', 'This quest response is no longer available.')
+  if (message.includes('WORLD_FERRY_PORT'))
+    throw new AurevaneError('INVALID_REQUEST', 'Stop at the ferry station before boarding.')
+  if (message.includes('WORLD_FERRY_WINDOW'))
+    throw new AurevaneError('INVALID_REQUEST', 'Boarding opens five minutes before departure.')
+  if (message.includes('WORLD_FERRY_UNDERWAY'))
+    throw new AurevaneError('INVALID_REQUEST', 'Disembark after the ferry reaches its destination.')
   if (message.includes('WORLD_STEP_NOT_DUE'))
     throw new AurevaneError('INVALID_REQUEST', 'Your next step is not due yet.')
   throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'World travel is temporarily unavailable.')
@@ -351,6 +358,18 @@ export async function commitWorldCommand(
       }),
     )
     .digest('hex')
+  if (command.intent.kind === 'board-ferry' || command.intent.kind === 'leave-ferry') {
+    const { error } = await createSupabaseAdminClient().rpc('commit_world_ferry_v1', {
+      p_user_id: userId,
+      p_character_id: characterId,
+      p_expected_version: command.expectedVersion,
+      p_command_id: command.commandId,
+      p_kind: command.intent.kind,
+      p_request_fingerprint: fingerprint,
+    })
+    if (error) worldRpcError(error)
+    return (await readWorld(userId, characterId)).view
+  }
   if (current.lastCommandId === command.commandId) {
     if (current.lastCommandFingerprint !== fingerprint)
       throw new AurevaneError('IDEMPOTENCY_CONFLICT', 'That travel command was already used.')
@@ -488,6 +507,7 @@ function movementReceipt(
     )
   const npcs = peekWorldNpcs(state)
   return {
+    ferry: projectWorldFerry(state, data.serverNow),
     kind: 'movement',
     currentSector,
     ...(npcs ? { npcs: npcs.npcs } : {}),
