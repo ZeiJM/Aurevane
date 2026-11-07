@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "content-installed-and-verified-under-hold",
+  "status": "hold-removed-final-probes-pending",
   "pr": 1023,
   "receiptBranch": "agent/item-preview-corrections-release-20261107",
   "sourceCommit": "3efadd14ff7bb17d9b4dc4beb1990e8e7040dad2",
@@ -123,7 +123,7 @@
     "completedCreate": true,
     "verifiedSource": "3efadd14ff7bb17d9b4dc4beb1990e8e7040dad2"
   },
-  "holdActive": true,
+  "holdActive": false,
   "promoted": true,
   "migrationsApplied": [
     {
@@ -544,5 +544,7 @@
     },
     "enabledOwners": 1,
     "descriptionMigrationCount": 1
-  }
+  },
+  "holdRemoved": true,
+  "finalRoutingVersion": "cc2ece10-84d1-457e-89b7-7ecb8867710a"
 }
