@@ -216,7 +216,17 @@ describe('independent sleeve cuffs', () => {
     const assets = [...appearance.APPEARANCE_EXPRESSIONS, 'icon', 'atlas'] as const
     const oldAtlases = [renderAppearanceAsset(original, 'atlas')]
     const atlasOutputs = new Set(oldAtlases)
-    for (const cuff of ['folded', 'flared', 'braced'] as const) {
+    for (const cuff of [
+      'folded',
+      'flared',
+      'braced',
+      'wrapped',
+      'laced',
+      'laminated',
+      'splitbell',
+      'gauntlet',
+      'scalloped',
+    ] as const) {
       const blueprint = appearance.withCuff(original, cuff)!
       const manifest = appearance.compileAppearanceManifest(blueprint)
       const [version, id] = manifest.id.split('/') as [string, string]
@@ -232,7 +242,7 @@ describe('independent sleeve cuffs', () => {
         if (asset === 'atlas') atlasOutputs.add(drawing)
       }
     }
-    expect(atlasOutputs.size).toBe(4)
+    expect(atlasOutputs.size).toBe(10)
   })
 
   it('keeps old wardrobe atlases and portraits at their previously served bytes', () => {
