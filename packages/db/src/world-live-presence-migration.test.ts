@@ -105,8 +105,10 @@ beforeAll(async () => {
     ),
   )
   await db.exec(existing('20261011161830_world_multistep_pacing.sql'))
+  await db.exec(existing('20261012135027_world_scene_players.sql'))
   await db.exec(sql)
   await db.exec(existing('20261107165921_world_scene_registration_lock_nowait.sql'))
+  await db.exec(existing('20261108140122_world_scene_fallback_movement.sql'))
 }, 30000)
 beforeEach(async () => {
   await db.exec('begin')
@@ -273,6 +275,39 @@ it('returns only the first twelve approved persisted steps with a shared databas
   })
 })
 
+it('preserves bounded approved movement in the read-only fallback scene', async () => {
+  const route = Array.from({ length: 13 }, (_, i) => ({
+    position: { ...initialPosition, x: initialPosition.x + i + 1 },
+    durationMs: 200,
+  }))
+  await db.query('update app_private.character_world_state set state=$2 where character_id=$1', [
+    peer,
+    { ...initial, version: 9, route, nextStepAt: 4000 },
+  ])
+  const fallback = async (version: number, ids: string[]) =>
+    (
+      await db.query<{ receipt: Receipt }>(
+        'select public.read_world_scene_players_v1($1,$2,$3,$4,$5) receipt',
+        [owner, character, version, ids, initialPosition],
+      )
+    ).rows[0]!.receipt
+
+  const result = await fallback(1, [initialPosition.sectorId])
+  expect(result.players.find((player) => player.characterId === peer)).toMatchObject({
+    position: initialPosition,
+    movement: {
+      version: 9,
+      serverNow: expect.any(Number),
+      nextStepAt: 4000,
+      route: route.slice(0, 12),
+    },
+  })
+  expect(result.players.find((player) => player.characterId === unsaved)?.movement).toBeUndefined()
+  expect((await fallback(1, ['neighbour'])).players).toEqual([])
+  expect((await fallback(0, [initialPosition.sectorId])).players).toEqual([])
+  expect(await live()).toMatchObject({ registered: false, players: [] })
+})
+
 it('reads and renews only the registry scene, preserving the owned state and server initial position', async () => {
   expect(await live()).toMatchObject({
     registered: false,
@@ -327,6 +362,7 @@ it('reads and renews only the registry scene, preserving the owned state and ser
 it('grants browser roles only the receive helper and no registry or scene RPC access', async () => {
   for (const role of ['anon', 'authenticated']) {
     for (const signature of [
+      'read_world_scene_players_v1(uuid,uuid,bigint,text[],jsonb)',
       'read_world_scene_players_v2(uuid,uuid,bigint,text[],jsonb)',
       'read_world_live_players_v1(uuid,uuid,bigint)',
     ]) {
