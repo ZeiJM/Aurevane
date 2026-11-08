@@ -41,8 +41,8 @@ jobs:
     if: ${{ needs.verification-plan.outputs.execute == 'true' }}
     name: Execute Responsive browser smoke
     runs-on: ubuntu-latest
-    # Full fallback keeps every scenario; isolated presentation uses core plus affected cases.
-    timeout-minutes: 120
+    # The serial full suite needs headroom for Edge and evidence after Chromium.
+    timeout-minutes: 150
     env:
       TURBO_TELEMETRY_DISABLED: 1
       NEXT_TELEMETRY_DISABLED: 1
