@@ -180,6 +180,16 @@ interface Scenery {
   chimney?: Chimney
   ferryMast?: boolean
 }
+interface SceneryBatch {
+  layer: HTMLCanvasElement
+  left: number
+  top: number
+}
+const STATIONARY_SCENERY_PIXEL_LIMIT = 800_000
+
+function usesCompactScenery(item: Scenery) {
+  return !item.underpass && !item.mirror && !item.ferryMast
+}
 // Inspected biomes-v02 floor contacts, excluding empty cell padding. Preserve
 // the original painted scale; anchor the rubble floor rather than the cell edge.
 const rockArt: Record<
@@ -554,6 +564,12 @@ export function createMapRenderer(
     }
   >()
   const biomeRasters = new Map<string, HTMLCanvasElement>()
+  let stationaryScenery: Scenery[] | null = null
+  let sceneryBatches = new Map<string, SceneryBatch>()
+  const clearStationaryScenery = () => {
+    stationaryScenery = null
+    sceneryBatches.clear()
+  }
   let stationaryGround: {
     camera: MapPoint
     ambient: boolean
@@ -583,6 +599,7 @@ export function createMapRenderer(
   let visibleGroundIds = new Set<string>()
   function indexTerrain() {
     stationaryGround = null
+    clearStationaryScenery()
     waterField = buildWaterField(renderSectors)
     biomeField = buildBiomeTransitions(renderSectors)
     featurePlacements = indexFeaturePlacements(renderSectors)
@@ -622,6 +639,7 @@ export function createMapRenderer(
     cache.clear()
     cachedPixels = 0
     stationaryGround = null
+    clearStationaryScenery()
   }
   const load = (name: string, version = 'v02', format = 'webp') => {
     const image = new Image()
@@ -629,6 +647,7 @@ export function createMapRenderer(
       // Only the terrain sheet is baked into ground layers. Scenery sheets
       // paint separately; loading them must not rebuild every visible tile.
       if (name === 'terrain') clearCache()
+      else clearStationaryScenery()
       requestDraw()
     }
     image.src = BASE + name + '-' + version + '.' + format
@@ -1193,6 +1212,7 @@ export function createMapRenderer(
     // existing sector path when there is little ground to combine.
     const projection = { camera, ambient, layer: null as HTMLCanvasElement | null, start, end }
     stationaryGround = projection
+    clearStationaryScenery()
     if (end - start < 4) return projection
     const layer = document.createElement('canvas')
     layer.width = canvas.width
@@ -1349,7 +1369,10 @@ export function createMapRenderer(
       !sample.moving &&
       camera.x === sample.point.x &&
       camera.y === sample.point.y
-    if (!cacheStationaryGround) stationaryGround = null
+    if (!cacheStationaryGround) {
+      stationaryGround = null
+      clearStationaryScenery()
+    }
     const projection = cacheStationaryGround ? stationaryGroundLayer(visible, ambient) : null
     if (timing) {
       timing.projectedGroundSectors = projection?.layer ? projection.end - projection.start : 0
@@ -1360,7 +1383,8 @@ export function createMapRenderer(
       timing.prepareMs = ended - phaseAt
       phaseAt = ended
     }
-    const scenery: Scenery[] = []
+    const cachedScenery = projection?.layer ? stationaryScenery : null
+    const scenery = cachedScenery ?? []
     const addScenery = (item: Scenery) => {
       const p = screen(item)
       if (
@@ -1419,9 +1443,14 @@ export function createMapRenderer(
         ctx.drawImage(ground(sector), 0, 0, GRID_WIDTH * tile, GRID_HEIGHT * tile)
         ctx.restore()
       }
-      const mixedTreeRegions = biomeField.get(sector.id)?.treeRegions
-      const fogCells = warpedFog.get(sector.id)?.cells
-      if (!sector.id.startsWith('ferry:') && nature?.complete && nature.naturalWidth)
+      if (
+        !cachedScenery &&
+        !sector.id.startsWith('ferry:') &&
+        nature?.complete &&
+        nature.naturalWidth
+      ) {
+        const mixedTreeRegions = biomeField.get(sector.id)?.treeRegions
+        const fogCells = warpedFog.get(sector.id)?.cells
         for (const cell of sector.cells) {
           if (
             sector.landscape === 'wildflowers' &&
@@ -1512,7 +1541,8 @@ export function createMapRenderer(
               : {}),
           })
         }
-      for (const building of sector.buildings ?? []) {
+      }
+      for (const building of cachedScenery ? [] : (sector.buildings ?? [])) {
         const winterIndex =
           winterArt?.complete && winterArt.naturalWidth
             ? winterBuildingIndex(sector, building)
@@ -1579,7 +1609,7 @@ export function createMapRenderer(
       }
       // Landmark structures share scenery depth/culling and identity occlusion.
       // Painting them after the character pass would hide someone on a bridge/anchor.
-      if (props?.complete && props.naturalWidth)
+      if (!cachedScenery && props?.complete && props.naturalWidth)
         for (const landmark of sector.landmarks) {
           if (sector.id.startsWith('ferry:')) {
             const fittings = images.get('ferry-fittings')
@@ -1688,6 +1718,7 @@ export function createMapRenderer(
             ctx.restore()
           }
     }
+    if (projection?.layer && !cachedScenery) stationaryScenery = scenery
     if (timing) {
       const ended = performance.now()
       timing.terrainMs = ended - phaseAt
@@ -1775,7 +1806,12 @@ export function createMapRenderer(
     }
     const objects = [
       ...animals,
-      ...scenery.map((item) => ({ y: item.x + item.y, type: 'scenery' as const, item })),
+      ...scenery.map((item, ordinal) => ({
+        y: item.x + item.y,
+        type: 'scenery' as const,
+        item,
+        ordinal,
+      })),
     ].sort((a, b) => a.y - b.y)
     const tokenScale = tile / 64
     const radius = Math.round(34 * tokenScale * identityRatio) / identityRatio / 2
@@ -2014,8 +2050,95 @@ export function createMapRenderer(
       )
     }
     const cacheBiomeRasters = width < 600 && tile < 32 && ratio > 1 && rasterZoomAt === null
+    const paintCompact = (
+      target: CanvasRenderingContext2D,
+      item: Scenery,
+      x: number,
+      y: number,
+    ) => {
+      const raster = cacheBiomeRasters && item.image === biomes ? biomeRaster(item) : null
+      if (raster) target.drawImage(raster, x, y, item.width, item.height)
+      else
+        sprite(
+          target,
+          item.image,
+          item.index,
+          item.columns,
+          item.rows,
+          x,
+          y,
+          item.width,
+          item.height,
+          item.source,
+        )
+    }
+    const nextBatches = projection?.layer ? new Map<string, SceneryBatch>() : null
+    let remainingBatchPixels = STATIONARY_SCENERY_PIXEL_LIMIT
+    const paintBatch = (items: Scenery[], key: string) => {
+      if (!nextBatches || items.length < 8) return false
+      let batch = sceneryBatches.get(key)
+      if (!batch) {
+        const points = items.map((item) => {
+          const point = screen(item)
+          return {
+            item,
+            x: point.x - item.width * (item.anchorX ?? 0.5),
+            y: point.y - item.height * (item.anchorY ?? 1),
+          }
+        })
+        const left = Math.max(0, Math.floor(Math.min(...points.map(({ x }) => x)) * ratio))
+        const top = Math.max(0, Math.floor(Math.min(...points.map(({ y }) => y)) * ratio))
+        const right = Math.min(
+          canvas.width,
+          Math.ceil(Math.max(...points.map(({ item, x }) => x + item.width)) * ratio),
+        )
+        const bottom = Math.min(
+          canvas.height,
+          Math.ceil(Math.max(...points.map(({ item, y }) => y + item.height)) * ratio),
+        )
+        const pixels = (right - left) * (bottom - top)
+        if (right <= left || bottom <= top || pixels > remainingBatchPixels) return false
+        const layer = document.createElement('canvas')
+        layer.width = right - left
+        layer.height = bottom - top
+        const target = layer.getContext('2d')
+        if (!target) return false
+        target.setTransform(ratio, 0, 0, ratio, -left, -top)
+        for (const { item, x, y } of points) paintCompact(target, item, x, y)
+        batch = { layer, left, top }
+      }
+      const pixels = batch.layer.width * batch.layer.height
+      if (pixels > remainingBatchPixels) return false
+      remainingBatchPixels -= pixels
+      nextBatches.set(key, batch)
+      ctx.save()
+      ctx.setTransform(1, 0, 0, 1, 0, 0)
+      ctx.drawImage(batch.layer, batch.left, batch.top)
+      ctx.restore()
+      return true
+    }
     let detailedScenery = 0
-    for (const object of objects) {
+    let runEnd = 0
+    for (let index = 0; index < objects.length; index++) {
+      const object = objects[index]!
+      if (nextBatches && index >= runEnd) {
+        // Compose only consecutive compact sprites. Moving animals and bridges
+        // still paint in place, preserving their original overlaps.
+        const items: Scenery[] = []
+        const ordinals: number[] = []
+        runEnd = index
+        while (runEnd < objects.length) {
+          const next = objects[runEnd]!
+          if (next.type !== 'scenery' || !usesCompactScenery(next.item)) break
+          items.push(next.item)
+          ordinals.push(next.ordinal)
+          runEnd++
+        }
+        if (paintBatch(items, ordinals.join(','))) {
+          index = runEnd - 1
+          continue
+        }
+      }
       if (object.type === 'animal') {
         const p = screen(object.point)
         drawWildlife(ctx, nature!, object.animal, object.pose, p.x, p.y, tile)
@@ -2028,24 +2151,10 @@ export function createMapRenderer(
       // cropped draw, without per-object shadows, transforms or canopy sway.
       const detailed = tile >= 32 && detailedScenery < 180
       if (detailed) detailedScenery++
-      if (!detailed && !item.underpass && !item.mirror && !item.ferryMast) {
+      if (!detailed && usesCompactScenery(item)) {
         const x = p.x - item.width * (item.anchorX ?? 0.5)
         const y = p.y - item.height * (item.anchorY ?? 1)
-        const raster = cacheBiomeRasters && item.image === biomes ? biomeRaster(item) : null
-        if (raster) ctx.drawImage(raster, x, y, item.width, item.height)
-        else
-          sprite(
-            ctx,
-            item.image,
-            item.index,
-            item.columns,
-            item.rows,
-            x,
-            y,
-            item.width,
-            item.height,
-            item.source,
-          )
+        paintCompact(ctx, item, x, y)
         continue
       }
       ctx.save()
@@ -2220,6 +2329,7 @@ export function createMapRenderer(
         )
       ctx.restore()
     }
+    if (nextBatches) sceneryBatches = nextBatches
     const labelBounds: { x: number; y: number; width: number; height: number }[] = []
     for (const sector of visible) {
       const origin = sectorOrigin(sector)

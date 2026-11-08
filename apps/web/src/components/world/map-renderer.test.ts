@@ -3066,6 +3066,54 @@ describe('native map input and bounded lifecycle', () => {
       vi.unstubAllGlobals()
     }
   })
+  it('reuses compact scenery at rest and discards its pixels after art or camera changes', () => {
+    const position = { sectorId: 'aureth-crown', x: 6, y: 4 }
+    const view = projectWorld({ ...newWorldState(), position }, [], 1000)
+    const s = scene(false, view)
+    try {
+      Object.assign(s.canvas, { clientWidth: 393, clientHeight: 851 })
+      s.resize()
+      const settings = { animate: false, zoom: 0.35 }
+      s.renderer.settings(settings)
+      const batches = () =>
+        s.draws.filter(
+          ({ image, args, matrix }) =>
+            args.length === 2 &&
+            matrix[0] === 1 &&
+            (image.width < s.canvas.width || image.height < s.canvas.height),
+        )
+      s.frame(40)
+      const first = batches().map(({ image }) => image)
+      expect(first.length).toBeGreaterThan(0)
+      expect(
+        first.reduce((pixels, image) => pixels + image.width * image.height, 0),
+      ).toBeLessThanOrEqual(800_000)
+
+      s.draws.length = 0
+      s.renderer.settings(settings)
+      s.frame(80)
+      expect(batches().map(({ image }) => image)).toEqual(first)
+      expect(batches().every(({ image }, index) => image === first[index])).toBe(true)
+
+      s.draws.length = 0
+      s.images
+        .find((image) => (image as HTMLImageElement).src.endsWith('nature-v02.webp'))
+        ?.onload?.()
+      s.frame(120)
+      expect(batches().length).toBeGreaterThan(0)
+      expect(batches().some(({ image }) => first.includes(image))).toBe(false)
+
+      s.draws.length = 0
+      s.motion.plan([{ position: { ...position, x: 7 }, durationMs: 200 }], view.sectors, 120)
+      s.renderer.settings(settings)
+      s.frame(160)
+      expect(batches()).toEqual([])
+      expect(s.draws.some(({ src }) => src.endsWith('nature-v02.webp'))).toBe(true)
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  })
   it('does not keep an idle animation loop when ambient effects are disabled', () => {
     const s = scene()
     s.renderer.settings({ animate: false, zoom: 1 })

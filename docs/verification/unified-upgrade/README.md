@@ -11,6 +11,16 @@ The November 5 unified handover is the controlling product specification. Its 70
 - [#1035](https://github.com/ZeiJM/Aurevane/pull/1035) is the combined release draft. All ten current heads, #1025 through #1034, are ancestors of the candidate. This includes the requirements and equipment UI, World contention fallback, private sealed realm, shared ferry and Void, appearance and both Cinderwake routes. Review and release use the combined candidate.
 - The current fixture names are **Maren Vale**, **Alder Venn’s Wolf Hunt**, **Reforging Cinderwake**, and **The Ashen Sentinel**. The restored blade is **Cinderwake**. The Sentinel fixture uses Ashbound raiders and a configurable daily combat discovery.
 
+## Production preflight
+
+The previous verified application baseline is `e65e6bebde6ceb23eb1eb68ed5af58cc536503db`, tree `4e68e3daa38282ea21054dcf9d2da9c2c520b9d0`. All 21 workflows passed on that tree. [Living Atlas browser](https://github.com/ZeiJM/Aurevane/actions/runs/42442258030) passed seven authored Event and World NPC cases and 57 Atlas cases, including the eight-account private presence and reconnect case. [World timing](https://github.com/ZeiJM/Aurevane/actions/runs/42442257970) repeated both movement cases twenty times. Carry this evidence forward as a baseline and require fresh checks for any successor tree.
+
+The production migration ledger ends at `20261107103304`. It contains none of the 32 unified migrations from `20261107114807_npc_design_arena_opponents` through `20261108031500_appearance_cuff_constructions`. Generate the ordered list from the approved main-to-candidate diff and record each file's hash before applying it. Production also returned zero legacy v1 appearance URLs in the profile pointer that the activation migration would move. Refresh those read-only checks immediately before the release. Match existing hosted migrations by their reviewed history mapping before applying any new migration.
+
+Prepare the one production rollout against the exact tested tree. Before admitting new writes, verify the application build, ordered migration plan, predecessor function bodies and ACLs, and an owner-approved content publication list. Keep the disposable fixtures out of that list. Preserve both production aliases and the existing retirement guards. Capture the relevant current configuration, draft, reward, player, and battle-pin baselines for the postflight.
+
+Rehearse rollback on a disposable stack that has the new schema. The previous application source has no versioned appearance media route. After accepting an appearance activation or pin created by this release, recovery needs a build that continues serving those immutable URLs. Keep the migration ledger and recorded progress intact. A previous-build alias switch is a recovery option only after compatibility has been demonstrated for the state at the time of the switch.
+
 ## Authority map
 
 | Surface | Current authority | Integration and verification boundary |

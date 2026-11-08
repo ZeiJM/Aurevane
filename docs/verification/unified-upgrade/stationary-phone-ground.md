@@ -23,3 +23,17 @@ The matched market cases retained the 590 × 1,277 terrain backing, 1,081 × 2,3
 Mobile smoke at 1× CPU verified 13 coast edges with 25 visible peers on the original coast path, and four travelers including the viewer repeatedly settled legal movement commands in rainy Frostmere. The movement capture recorded 101 distinct rendered viewer coordinates and 9 animated water cells. The focused renderer regression shows a reused stationary bitmap with changing water strokes, an invalidated bitmap after late terrain art, and the original ground draw while the camera moves. The 58 World Vitest files (770 tests) passed.
 
 The renderer still misses the stable 30 FPS phone target in this congested fixture. These are headless loopback observations, without an authenticated multiplayer transport, sustained handset thermals, or a production capacity claim.
+
+## Reusing stationary scenery
+
+The same zoomed-out, settled path reuses the scenery placements and rasterizes consecutive runs of compact sprites into bounded, cropped canvases. Wildlife, bridge underpasses and the ferry mast keep their original depth slots and rendering paths. Moving and zooming use the ordinary renderer. New terrain or art, a resize, or a new camera projection clears the cache. Retained batches use at most 800,000 RGBA pixels.
+
+The control disabled only the scenery placement and batch cache. These runs used the same 393 × 851 CSS viewport, 2.75 DPR, 4× CPU slowdown, 35% zoom and Balanced setting, with 6.5 seconds sampled per case.
+
+| Visible peers | Browser RAF p95, ms | Map draw interval p95, ms | Map callback p95, ms |
+| ---: | ---: | ---: | ---: |
+| 25 | 50.0 → 16.8 | 44.9 → 37.5 | 17.0 → 7.9 |
+| 50 | 50.0 → 16.8 | 51.5 → 36.5 | 21.0 → 10.8 |
+| 100 | 50.1 → 16.8 | 50.3 → 36.0 | 18.4 → 10.2 |
+
+The renderer kept all visible peers, nine animated water cells and twelve wildlife in each run. In the fixed-motion captures, at most 0.43% of display pixels changed. Only 17 of 2,529,540 pixels per capture differed by more than 3/255 in any channel, with a maximum difference of 6/255. Median map draw interval reached 33.3 ms. The draw p95 and physical handset validation remain open.

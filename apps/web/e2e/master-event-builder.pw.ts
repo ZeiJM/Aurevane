@@ -616,9 +616,11 @@ test('an authored item exchange settles once when two World requests race', asyn
   page,
 }, info) => completeAuthoredStoryJourney(page, info, 'item-exchange'))
 
-test('Maren Vale dialogue, realm travel and guardian challenge are separate World actions', async ({
-  page,
-}, info) => completeAuthoredStoryJourney(page, info, 'sealed-realm'))
+test(
+  'Maren Vale dialogue, realm travel and guardian challenge are separate World actions',
+  { tag: '@sealed-realm' },
+  async ({ page }, info) => completeAuthoredStoryJourney(page, info, 'sealed-realm'),
+)
 
 async function winFixtureBattle(
   page: Page,
