@@ -582,7 +582,20 @@ try {
     await expect(
       challenge.getByText('An unlocked challenge stays pending across the daily reset.'),
     ).toBeVisible()
-    await challenge.getByLabel('Qualifying World encounter tag').fill('ashbound-raider')
+    const challengeTag = challenge.getByRole('textbox', { name: 'Qualifying World encounter tag' })
+    const browseTags = challenge.getByText('Browse published tags', { exact: true })
+    await challengeTag.fill('saved-tag')
+    await browseTags.click()
+    const tagSector = challengeSelect('Encounter tag sector')
+    const tagChoice = challengeSelect('Published encounter tag')
+    await tagSector.selectOption('emberreach')
+    await tagChoice.selectOption('ashbound-raider')
+    await expect(challengeTag).toHaveValue('ashbound-raider')
+    await tagSector.selectOption('frostmere')
+    await expect(tagChoice).toBeDisabled()
+    await expect(tagChoice.locator('option')).toHaveText('No published tags in this sector')
+    await expect(challengeTag).toHaveValue('ashbound-raider')
+    await browseTags.click()
     await challenge.getByLabel('Calendar timezone').fill('America/Port_of_Spain')
     await challenge.getByLabel('Daily reset time').fill('06:30')
     await challengeSeason.selectOption('seasonal')
@@ -629,6 +642,7 @@ try {
     await expect(challengeToggle).toBeChecked()
     await expect(challengeSector).toHaveValue('emberreach')
     await expect(challengeNpc.locator('option:checked')).toHaveText('Ashen Sentinel')
+    await expect(challengeTag).toHaveValue('ashbound-raider')
     await expect(challenge.getByLabel('Challenge revealed')).toHaveValue(
       'The Ashen Sentinel awaits.',
     )

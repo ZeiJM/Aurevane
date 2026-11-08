@@ -55,6 +55,33 @@ it('returns only the identity of committed encounters on walkable World cells', 
   expect(mocks.readPublishedWorldNpcs).toHaveBeenCalledWith(sectorId)
 })
 
+it('lists unique tags from eligible encounters in the selected World sector', async () => {
+  const tags = (values: string[]) => ({ ...sentinel.encounter, tags: values })
+  mocks.readPublishedWorldNpcs.mockResolvedValue([
+    { ...sentinel, encounter: tags(['wolf', 'ashbound-raider']) },
+    { ...sentinel, encounter: tags(['wolf']) },
+    { ...sentinel, encounter: null },
+    { ...sentinel, x: 10, y: 0, encounter: tags(['unreachable']) },
+  ])
+  const response = await GET(new Request(`${request().url}&view=tags`))
+  expect(response.status).toBe(200)
+  expect(response.headers.get('cache-control')).toBe('private, no-store')
+  expect(await response.json()).toEqual({ tags: ['ashbound-raider', 'wolf'] })
+  expect(mocks.requireCapability).toHaveBeenCalledWith('verified-author', 'events.author')
+  expect(mocks.readPublishedWorldNpcs).toHaveBeenCalledExactlyOnceWith(sectorId)
+})
+
+it('requires one charted sector for tag browsing', async () => {
+  const endpoint = new URL(request().url)
+  endpoint.search = 'view=tags'
+  expect((await GET(new Request(endpoint))).status).toBe(400)
+  expect((await GET(new Request(`${request('missing-sector').url}&view=tags`))).status).toBe(400)
+  expect((await GET(new Request(`${request().url}&view=tags&npcId=${sentinel.id}`))).status).toBe(
+    400,
+  )
+  expect(mocks.readPublishedWorldNpcs).not.toHaveBeenCalled()
+})
+
 it('rejects unknown sectors without looking up NPCs', async () => {
   expect((await GET(request('missing-sector'))).status).toBe(400)
   expect(mocks.readPublishedWorldNpcs).not.toHaveBeenCalled()
@@ -63,6 +90,7 @@ it('rejects unknown sectors without looking up NPCs', async () => {
 it('rejects direct reads from accounts without Events authoring access', async () => {
   mocks.requireCapability.mockRejectedValue(new AurevaneError('FORBIDDEN', 'No Event access.'))
   expect((await GET(request())).status).toBe(403)
+  expect((await GET(new Request(`${request().url}&view=tags`))).status).toBe(403)
   expect(mocks.readPublishedWorldNpcs).not.toHaveBeenCalled()
 })
 

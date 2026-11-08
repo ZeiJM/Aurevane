@@ -114,7 +114,7 @@ beforeAll(async () => {
     [actor],
   )
   for (const [id, name] of [
-    [joe, 'Farmer Joe'],
+    [joe, 'Maren Vale'],
     [guardian, 'Aurevane'],
   ]) {
     const placement =
@@ -344,7 +344,7 @@ it('requires separate access, travel and boss admission, keeps access on loss an
   await grant(0, 'fixture:seeds', [{ itemId: seed.id, quantity: 14 }])
   expect(await read()).toEqual([
     expect.objectContaining({
-      speaker: 'Farmer Joe',
+      speaker: 'Maren Vale',
       lore: journey.realm.lore,
       progress: 'available',
       action: 'accept',

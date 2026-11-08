@@ -2,7 +2,28 @@ import { describe, expect, it, vi } from 'vitest'
 import { atlasSectors } from '@/world/atlas'
 import { terrainWalkable } from '@/world/terrain'
 import type { WorldSectorView } from '@/world/types'
-import { buildWaterField, paintWaterMotion, waterfallHighlights } from './map-water'
+import {
+  buildWaterField,
+  paintWaterfallMotion,
+  paintWaterMotion,
+  waterfallHighlights,
+} from './map-water'
+
+function waterCanvas() {
+  return {
+    ellipse: vi.fn(),
+    bezierCurveTo: vi.fn(),
+    rect: vi.fn(),
+    save: vi.fn(),
+    restore: vi.fn(),
+    beginPath: vi.fn(),
+    clip: vi.fn(),
+    moveTo: vi.fn(),
+    lineTo: vi.fn(),
+    stroke: vi.fn(),
+    fill: vi.fn(),
+  }
+}
 
 function sector(id: string, atlasRow = 0, cells: [number, number, string][] = []): WorldSectorView {
   return {
@@ -29,6 +50,63 @@ function sector(id: string, atlasRow = 0, cells: [number, number, string][] = []
 }
 
 describe('world-connected water presentation', () => {
+  it('adds localized rain impact rings inside the same clipped surface as the current', () => {
+    const stream = sector('stream', 0, [
+      [5, 4, '~'],
+      [5, 5, '~'],
+      [5, 6, '~'],
+    ])
+    const cell = buildWaterField([stream]).get(stream.id)!.cells.get('5:5')!
+    expect(cell.channel).toBe(true)
+    const clear = waterCanvas(),
+      rain = waterCanvas()
+    for (let now = 0; now < 2200; now += 100) {
+      paintWaterMotion(clear as unknown as CanvasRenderingContext2D, cell, 48, now, false, {
+        rain: 0,
+        windSpeed: 0.04,
+      })
+      paintWaterMotion(rain as unknown as CanvasRenderingContext2D, cell, 48, now, false, {
+        rain: 1,
+        windSpeed: 0.04,
+      })
+    }
+    expect(clear.ellipse).not.toHaveBeenCalled()
+    expect(rain.ellipse.mock.calls.length).toBeGreaterThan(0)
+    expect(rain.bezierCurveTo.mock.calls).toEqual(clear.bezierCurveTo.mock.calls)
+    expect(rain.rect).toHaveBeenCalledWith(0, 0, 48, 48)
+    for (const [x, y, radiusX, radiusY] of rain.ellipse.mock.calls) {
+      expect(x - radiusX).toBeGreaterThan(0)
+      expect(x + radiusX).toBeLessThan(48)
+      expect(y - radiusY).toBeGreaterThan(0)
+      expect(y + radiusY).toBeLessThan(48)
+    }
+  })
+
+  it('bends only fine waterfall spray downwind and leaves gravity and the impact pool fixed', () => {
+    const west = waterCanvas(),
+      east = waterCanvas(),
+      low = waterCanvas()
+    paintWaterfallMotion(west as unknown as CanvasRenderingContext2D, 0, 0, 240, 240, 1000, -0.05)
+    paintWaterfallMotion(east as unknown as CanvasRenderingContext2D, 0, 0, 240, 240, 1000, 0.05)
+    paintWaterfallMotion(
+      low as unknown as CanvasRenderingContext2D,
+      0,
+      0,
+      240,
+      240,
+      1000,
+      0.05,
+      false,
+    )
+    expect(east.moveTo.mock.calls).toEqual(west.moveTo.mock.calls)
+    expect(east.lineTo.mock.calls).toEqual(west.lineTo.mock.calls)
+    expect(east.ellipse.mock.calls[0]).toEqual(west.ellipse.mock.calls[0])
+    expect(east.ellipse.mock.calls.length).toBeGreaterThan(1)
+    expect(east.ellipse.mock.calls[1]![0]).toBeGreaterThan(west.ellipse.mock.calls[1]![0])
+    expect(east.ellipse.mock.calls[1]![1]).toBe(west.ellipse.mock.calls[1]![1])
+    expect(low.ellipse.mock.calls).toEqual(east.ellipse.mock.calls.slice(0, 1))
+  })
+
   it('keeps Willow Cascades’ closed receiving pool free of channel glints', () => {
     const { rows, roads, landmarks, ...willow } = atlasSectors().find(
       ({ id }) => id === 'atlas:69:36',

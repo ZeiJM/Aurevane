@@ -42,10 +42,12 @@ import {
 } from './map-water'
 import { buildPublicCoasts, paintCoastLand, paintCoastSea } from './map-coast'
 import {
+  advanceSurfaceRain,
   advanceWorldWind,
   paintPrecipitation,
   paintTerrainAtmosphere,
   precipitationKind,
+  surfaceRainTarget,
   terrainHeatEmitters,
   worldWindTarget,
   type WorldWind,
@@ -56,7 +58,13 @@ import { buildBiomeTransitions } from './map-biome-transitions'
 import { worldRenderTerrain } from './map-render-terrain'
 import { DEFAULT_MAP_QUALITY, mapQualityBudgets, type MapQuality } from './map-quality'
 import { paintSnowRoadShoulders } from './map-snow-road'
-import { paintFerryDeck } from './map-ferry-deck'
+import {
+  ferryWaterFrame,
+  paintFerryDeck,
+  paintFerryHull,
+  paintFerryRig,
+  paintFerrySea,
+} from './map-ferry-deck'
 import {
   buildWarpedFogField,
   paintWarpedFogEdge,
@@ -65,17 +73,21 @@ import {
 } from './map-warped-fog'
 import {
   regionalBuildingIndex,
+  settlementChimneys,
   townPaving,
+  warpedChimneys,
   warpedPalette,
+  winterChimneys,
   WORLD_STRUCTURE_ASPECT,
   WORLD_STRUCTURE_FLOOR,
+  type Chimney,
 } from './map-regional-art'
+import { createChimneyPuff, paintChimneySmoke } from './map-chimney'
 
 import { MAP_X, MAP_Y, projectMapPoint, unprojectMapPoint } from './map-projection'
 
 const BASE = '/media/art/world/runtime/'
 const WINTER_ART = 'frostmere'
-const FERRY_SEA = '#2b5360'
 const WINTER_ATLAS_ASPECT = 336 / 384
 
 function winterBuildingIndex(sector: WorldSectorView, building: WorldBuilding) {
@@ -165,6 +177,8 @@ interface Scenery {
   bridgeStrips?: BridgeStrip[]
   waterfall?: boolean
   forge?: boolean
+  chimney?: Chimney
+  ferryMast?: boolean
 }
 // Inspected biomes-v02 floor contacts, excluding empty cell padding. Preserve
 // the original painted scale; anchor the rubble floor rather than the cell edge.
@@ -481,6 +495,7 @@ export function createMapRenderer(
     disposed = false,
     frame = 0,
     last = 0,
+    lastPaintRaf = -Infinity,
     drawn = 0,
     dirty = true,
     wasMoving = false,
@@ -547,6 +562,9 @@ export function createMapRenderer(
     end: number
   } | null = null
   let wind: WorldWind | undefined
+  let surfaceRain: number | undefined
+  let chimneyPuff: HTMLCanvasElement | undefined
+  let ferryClockAt = performance.now()
   let hitTargets: { id: string; self: boolean; x: number; y: number; radius: number }[] = []
   const frameTimes: number[] = []
   const terrainKeys = new Map<string, string>()
@@ -620,7 +638,7 @@ export function createMapRenderer(
   load('beauties', 'v03')
   const loadRegionalArt = () => {
     if (!images.has('ferry-fittings') && renderSectors.some(({ id }) => id.startsWith('ferry:')))
-      load('ferry-fittings', 'v01', 'svg')
+      load('ferry-fittings', 'v02', 'svg')
     if (!images.has(WINTER_ART) && renderSectors.some((sector) => sector.regionId === WINTER_ART))
       load(WINTER_ART, 'v01')
     if (
@@ -724,8 +742,9 @@ export function createMapRenderer(
     c.scale(groundScale, groundScale)
     c.imageSmoothingEnabled = true
     c.imageSmoothingQuality = 'high'
+    const onFerry = sector.id.startsWith('ferry:')
     const warped = sector.warpedTheme ? warpedPalette[sector.warpedTheme] : undefined
-    if (!warped) {
+    if (!warped && !onFerry) {
       c.fillStyle = '#233d3c'
       c.fillRect(0, 0, layer.width, layer.height)
     }
@@ -779,7 +798,7 @@ export function createMapRenderer(
         target.globalAlpha = 1
       }
     }
-    for (const cell of sector.cells) paintMaterial(c, cell, sector.regionId)
+    if (!onFerry) for (const cell of sector.cells) paintMaterial(c, cell, sector.regionId)
     const materialLayer = (
       x: number,
       y: number,
@@ -860,7 +879,7 @@ export function createMapRenderer(
       for (const material of [own, vertical, horizontal, diagonal])
         material.strip.width = material.strip.height = 0
     }
-    const ferryDeck = sector.id.startsWith('ferry:')
+    const ferryDeck = onFerry
       ? new Set(
           sector.cells.filter(({ terrain }) => terrain !== '~').map(({ x, y }) => `${x}:${y}`),
         )
@@ -881,9 +900,11 @@ export function createMapRenderer(
         c.fillStyle = warped
         c.fillRect(x, y, tile + 1, tile + 1)
       }
-      if (ferryDeck && cell.terrain !== '~') {
-        paintFerryDeck(c, cell, tile, ferryDeck)
-      } else if (cell.terrain === '=' || cell.terrain === 's') {
+      if (ferryDeck) {
+        if (cell.terrain !== '~') paintFerryDeck(c, cell, tile, ferryDeck)
+        continue
+      }
+      if (cell.terrain === '=' || cell.terrain === 's') {
         const square = winterMarket.some(
           (landmark) => Math.abs(landmark.x - cell.x) + Math.abs(landmark.y - cell.y) <= 3,
         )
@@ -932,9 +953,9 @@ export function createMapRenderer(
       }
       if (cell.terrain === '~' || cell.terrain === 'l') {
         const water = cell.terrain === '~'
-        c.fillStyle = water ? (ferryDeck ? FERRY_SEA : waterMaterial) : lavaMaterial
+        c.fillStyle = water ? waterMaterial : lavaMaterial
         c.fillRect(x, y, tile, tile)
-        if (water && !ferryDeck) {
+        if (water) {
           const profile = waterField.get(sector.id)?.cells.get(`${cell.x}:${cell.y}`)
           if (profile) paintWaterGround(c, profile, tile, sector.warpedTheme === 'amethyst')
         } else if (!water) {
@@ -1234,6 +1255,7 @@ export function createMapRenderer(
     if (!timing && canvas.dataset.renderTiming !== undefined) delete canvas.dataset.renderTiming
     let phaseAt = start
     last = now
+    lastPaintRaf = rafAt
     camera = {
       x: camera.x + (sample.point.x - camera.x) * (1 - Math.exp(-delta / 90)),
       y: camera.y + (sample.point.y - camera.y) * (1 - Math.exp(-delta / 90)),
@@ -1246,9 +1268,21 @@ export function createMapRenderer(
     const windTarget = worldWindTarget(weather, regionId)
     const windElapsed = wind ? Math.min(250, Math.max(0, now - previousFrame)) : 0
     wind = advanceWorldWind(wind ?? { speed: windTarget, offset: 0 }, windTarget, windElapsed)
+    const rainTarget = surfaceRainTarget(weather, regionId)
+    surfaceRain = advanceSurfaceRain(surfaceRain ?? rainTarget, rainTarget, windElapsed)
+    const surfaceWeather = { rain: surfaceRain, windSpeed: wind.speed }
     const budget = mapQualityBudgets[quality]
     const richAtmosphere = budget.clouds && (width >= 600 || quality === 'high')
     const ambient = animate && !reduced
+    const ferryFrame = current?.id.startsWith('ferry:')
+      ? ferryWaterFrame(
+          view.ferry?.passage,
+          view.serverNow + Math.max(0, now - ferryClockAt),
+          now,
+          wind,
+          ambient,
+        )
+      : null
     const visibleIds = view.players
       .filter((player) => {
         const point = remoteMotion.sample(player.characterId, now, camera)
@@ -1269,8 +1303,8 @@ export function createMapRenderer(
       : current?.charted
         ? '#284b57'
         : '#233d3c'
-    if (view.position.sectorId.startsWith('ferry:')) ctx.fillStyle = FERRY_SEA
-    ctx.fillRect(0, 0, width, height)
+    if (ferryFrame) paintFerrySea(ctx, width, height, ferryFrame, quality === 'low')
+    else ctx.fillRect(0, 0, width, height)
     const visible = renderSectors.filter((sector) => {
       const p = screen(sectorOrigin(sector))
       return (
@@ -1353,6 +1387,15 @@ export function createMapRenderer(
     for (const [index, sector] of visible.entries()) {
       const origin = sectorOrigin(sector),
         p = screen(origin)
+      if (ferryFrame && sector.id === current?.id)
+        paintFerryHull(
+          ctx,
+          sector.cells,
+          (x, y) => screen({ x: origin.x + x, y: origin.y + y }),
+          tile,
+          ferryFrame,
+          quality === 'low',
+        )
       if (projection?.layer && index >= projection.start && index < projection.end) {
         if (index === projection.start) {
           ctx.save()
@@ -1492,6 +1535,7 @@ export function createMapRenderer(
             anchorY: 306 / 336,
             tree: false,
             forge: winterIndex === 1,
+            chimney: winterChimneys[winterIndex],
           })
           continue
         }
@@ -1513,6 +1557,7 @@ export function createMapRenderer(
             anchorY: WORLD_STRUCTURE_FLOOR,
             tree: false,
             forge: regionalIndex === 3,
+            chimney: settlementChimneys[regionalIndex],
           })
           continue
         }
@@ -1539,7 +1584,7 @@ export function createMapRenderer(
           if (sector.id.startsWith('ferry:')) {
             const fittings = images.get('ferry-fittings')
             if (fittings?.complete && fittings.naturalWidth) {
-              const size = tile * 2.1
+              const size = tile * (landmark.id === 'ferry-mast' ? 3.25 : 2.4)
               addScenery({
                 x: origin.x + landmark.x + 0.5,
                 y: origin.y + landmark.y + 0.6,
@@ -1552,6 +1597,7 @@ export function createMapRenderer(
                 anchorX: 0.5,
                 anchorY: 0.83,
                 tree: false,
+                ferryMast: landmark.id === 'ferry-mast',
               })
             }
             continue
@@ -1574,6 +1620,7 @@ export function createMapRenderer(
                 anchorX: 0.5,
                 anchorY: WORLD_STRUCTURE_FLOOR,
                 tree: false,
+                chimney: warpedChimneys[landmark.warpedArt],
               })
               continue
             }
@@ -1614,7 +1661,7 @@ export function createMapRenderer(
             waterfall: Boolean(scenic && index === 4),
           })
         }
-      if (ambient)
+      if (ambient && !sector.id.startsWith('ferry:'))
         for (const cell of sector.cells)
           if ((cell.terrain === '~' || cell.terrain === 'l') && waterCells < budget.water) {
             const point = screen({ x: origin.x + cell.x, y: origin.y + cell.y })
@@ -1626,7 +1673,14 @@ export function createMapRenderer(
             if (cell.terrain === '~') {
               const profile = waterField.get(sector.id)?.cells.get(`${cell.x}:${cell.y}`)
               if (profile)
-                paintWaterMotion(ctx, profile, tile, now, sector.warpedTheme === 'amethyst')
+                paintWaterMotion(
+                  ctx,
+                  profile,
+                  tile,
+                  now,
+                  sector.warpedTheme === 'amethyst',
+                  surfaceWeather,
+                )
               ctx.restore()
               continue
             }
@@ -1974,7 +2028,7 @@ export function createMapRenderer(
       // cropped draw, without per-object shadows, transforms or canopy sway.
       const detailed = tile >= 32 && detailedScenery < 180
       if (detailed) detailedScenery++
-      if (!detailed && !item.underpass && !item.mirror) {
+      if (!detailed && !item.underpass && !item.mirror && !item.ferryMast) {
         const x = p.x - item.width * (item.anchorX ?? 0.5)
         const y = p.y - item.height * (item.anchorY ?? 1)
         const raster = cacheBiomeRasters && item.image === biomes ? biomeRaster(item) : null
@@ -2097,25 +2151,36 @@ export function createMapRenderer(
               waterCells++
               ctx.save()
               ctx.translate((wrappedMapX(cell.x, item.x) - item.x) * tile, (cell.y - item.y) * tile)
-              if (cell.profile) paintWaterMotion(ctx, cell.profile, tile, now)
+              if (cell.profile)
+                paintWaterMotion(ctx, cell.profile, tile, now, false, surfaceWeather)
               else paintLavaMotion(ctx, tile, now, cell.x, cell.y)
               ctx.restore()
             }
         }
         ctx.restore()
       }
+      const spriteX = (movingTree || anchored ? 0 : p.x) - item.width * (item.anchorX ?? 0.5)
+      const spriteY = (movingTree || anchored ? 0 : p.y) - item.height * (item.anchorY ?? 1)
       sprite(
         ctx,
         item.image,
         item.index,
         item.columns,
         item.rows,
-        (movingTree || anchored ? 0 : p.x) - item.width * (item.anchorX ?? 0.5),
-        (movingTree || anchored ? 0 : p.y) - item.height * (item.anchorY ?? 1),
+        spriteX,
+        spriteY,
         item.width,
         item.height,
         item.source,
       )
+      if (item.ferryMast && ferryFrame)
+        paintFerryRig(
+          ctx,
+          spriteX + item.width * (114 / 240),
+          spriteY + item.height * (45 / 240),
+          item.width,
+          ferryFrame,
+        )
       if (item.forge && ambient && budget.clouds) {
         const x = item.width * 0.12
         const y = -item.height * 0.22
@@ -2127,6 +2192,21 @@ export function createMapRenderer(
         ctx.fillStyle = glow
         ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2)
       }
+      if (item.chimney && ambient && budget.clouds) {
+        chimneyPuff ??= createChimneyPuff()
+        paintChimneySmoke(
+          ctx,
+          chimneyPuff,
+          item.chimney,
+          spriteX,
+          spriteY,
+          item.width,
+          item.height,
+          hashString(`${item.x}:${item.y}`),
+          now,
+          wind.speed,
+        )
+      }
       if (item.waterfall && ambient)
         paintWaterfallMotion(
           ctx,
@@ -2135,6 +2215,8 @@ export function createMapRenderer(
           item.width,
           item.height,
           now,
+          wind.speed,
+          budget.clouds,
         )
       ctx.restore()
     }
@@ -2485,7 +2567,7 @@ export function createMapRenderer(
       dirty ||
       (wasMoving && !sample.moving) ||
       (wasRemoteMoving && !remoteMoving) ||
-      now - last >= interval - 1
+      rafAt - lastPaintRaf >= interval - 1
     ) {
       draw(now, rafAt)
       dirty = false
@@ -2516,6 +2598,7 @@ export function createMapRenderer(
     frame = 0
     if (!disposed && !paused && document.visibilityState === 'visible') {
       last = 0
+      lastPaintRaf = -Infinity
       dirty = true
       frame = requestAnimationFrame(loop)
     }
@@ -2723,8 +2806,9 @@ export function createMapRenderer(
       const terrain = worldRenderTerrain(next, renderSectors)
       const terrainChanged = terrain !== renderSectors || next.atlas !== view.atlas
       renderSectors = terrain
-      view = next
       const peerStarted = performance.now()
+      if (next.serverNow !== view.serverNow) ferryClockAt = peerStarted
+      view = next
       remoteMotion.update(next, peerStarted, camera)
       const indexStarted = profiling ? performance.now() : 0
       if (terrainChanged) {

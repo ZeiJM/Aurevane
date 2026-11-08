@@ -8,6 +8,7 @@ import type {
 import type { EventWorkspaceCatalogue } from '@/server/master/event-authoring-service'
 import type { StoryNpcCatalogue } from './event-phase-cast'
 import { initialPersonalJourney, PersonalJourneyFields } from './personal-journey-fields'
+import { WorldEncounterTagField } from './world-encounter-tag-field'
 import styles from './event-builder.module.css'
 
 const initialHunt: PersonalHuntJourney = {
@@ -64,14 +65,11 @@ function RepeatableHuntFields({
           ))}
         </select>
       </label>
-      <label>
-        World encounter tag
-        <input
-          value={journey.npcTag}
-          maxLength={32}
-          onChange={(event) => change({ ...journey, npcTag: event.target.value })}
-        />
-      </label>
+      <WorldEncounterTagField
+        label="World encounter tag"
+        value={journey.npcTag}
+        onChange={(npcTag) => change({ ...journey, npcTag })}
+      />
       <label>
         Required defeats
         <input

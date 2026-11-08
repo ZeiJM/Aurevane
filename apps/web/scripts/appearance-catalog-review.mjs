@@ -60,6 +60,7 @@ const {
   compileAppearanceManifest,
   parseAppearanceBlueprint,
   varyAppearanceOutfit,
+  withCuff,
   withLowerGarment,
 } = await server.ssrLoadModule('/src/appearance/appearance-manifest.ts')
 const { WARDROBE_CUTS, WARDROBE_CUT_LABELS } = await server.ssrLoadModule(
@@ -67,6 +68,9 @@ const { WARDROBE_CUTS, WARDROBE_CUT_LABELS } = await server.ssrLoadModule(
 )
 const { LOWER_GARMENTS, LOWER_GARMENT_LABELS } = await server.ssrLoadModule(
   '/src/appearance/appearance-lower-catalog.ts',
+)
+const { CUFFS, CUFF_LABELS } = await server.ssrLoadModule(
+  '/src/appearance/appearance-cuff-catalog.ts',
 )
 const { renderAppearanceAsset } = await server.ssrLoadModule('/src/appearance/appearance-svg.ts')
 const { GET } = await server.ssrLoadModule(
@@ -105,6 +109,10 @@ const controlled = WARDROBE_CUTS.map((coat) =>
 const lowerBase = parseAppearanceBlueprint({ ...structuralBase, coat: 'bolero' })
 const lowerComparison = ['original', ...LOWER_GARMENTS].map((lower) =>
   row(LOWER_GARMENT_LABELS[lower], withLowerGarment(lowerBase, lower)),
+)
+const cuffBase = parseAppearanceBlueprint({ ...structuralBase, coat: 'doublet' })
+const cuffComparison = ['original', ...CUFFS].map((cuff) =>
+  row(CUFF_LABELS[cuff], withCuff(cuffBase, cuff)),
 )
 
 function sampleLooks() {
@@ -194,6 +202,11 @@ server.middlewares.use(async (req, res, next) => {
       res.end(
         `<!DOCTYPE html><html lang="en"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Appearance builder review</title><div id="root"></div><script type="module" src="${fixtureModule}"></script></html>`,
       )
+      return
+    }
+    if (url.pathname === '/cuff-comparison') {
+      res.setHeader('Content-Type', 'text/html; charset=utf-8')
+      res.end(gallery(cuffComparison, 'Sleeve cuffs', 'Same outfit and lower garment.', true))
       return
     }
     if (url.pathname === '/lower-comparison') {
@@ -294,11 +307,20 @@ async function enumerateStructure() {
     LOWER_GARMENTS.map((lower) => ({ ...blueprint, v: 2, lower })),
   )
   const validLower = lowerCandidates.map(parseAppearanceBlueprint).filter(Boolean)
+  const cuffCandidates = [...raw, ...lowerCandidates].flatMap((blueprint) =>
+    CUFFS.map((cuff) => ({ ...blueprint, v: 3, lower: blueprint.lower ?? 'original', cuff })),
+  )
+  const validCuffs = cuffCandidates.map(parseAppearanceBlueprint).filter(Boolean)
   const exact = new Set()
   const counted = []
   // A stable greedy lower bound: every retained pair clears the pixel threshold.
   // Putting the canonical cuts first ensures that small fitting variants cannot crowd them out.
-  const ordered = [...controlled.map(({ blueprint }) => blueprint), ...valid, ...validLower]
+  const ordered = [
+    ...controlled.map(({ blueprint }) => blueprint),
+    ...valid,
+    ...validLower,
+    ...validCuffs,
+  ]
   for (const blueprint of ordered) {
     const pixels = await spritePixels(blueprint, true)
     const key = pixelKey(pixels)
@@ -315,12 +337,15 @@ async function enumerateStructure() {
     }
   }
   return {
-    attempted: raw.length + lowerCandidates.length,
-    compatible: valid.length + validLower.length,
+    attempted: raw.length + lowerCandidates.length + cuffCandidates.length,
+    compatible: valid.length + validLower.length + validCuffs.length,
     v1Counted: counted.filter(({ blueprint }) => blueprint.v === 1).length,
     v2Attempted: lowerCandidates.length,
     v2Compatible: validLower.length,
     v2Counted: counted.filter(({ blueprint }) => blueprint.v === 2).length,
+    v3Attempted: cuffCandidates.length,
+    v3Compatible: validCuffs.length,
+    v3Counted: counted.filter(({ blueprint }) => blueprint.v === 3).length,
     uniquePixelOutputs: exact.size,
     counted: counted.length,
     countedByCut: Object.fromEntries(
@@ -440,6 +465,7 @@ async function reviewBuilder(browser, origin) {
     const dialog = page.getByRole('dialog')
     const silhouette = dialog.getByLabel('Silhouette')
     const lower = dialog.getByLabel('Lower garment')
+    const cuffs = dialog.getByRole('combobox', { name: /^Sleeve cuffs/ })
     const optionDisabled = (select, value) =>
       select.locator(`option[value="${value}"]`).evaluate((option) => option.disabled)
     const portrait = dialog.getByAltText('Neutral appearance portrait')
@@ -450,6 +476,7 @@ async function reviewBuilder(browser, origin) {
       await silhouette.locator('option[value="greatcloak"]').evaluate((option) => option.disabled),
     )
     await silhouette.selectOption('bolero')
+    assert(await optionDisabled(cuffs, 'flared'))
     assert.notEqual(await src(), initial)
     assert.equal(await optionDisabled(lower, 'kilt'), false)
     await lower.selectOption('kilt')
@@ -481,6 +508,12 @@ async function reviewBuilder(browser, origin) {
     assert.equal(await silhouette.inputValue(), 'cuirass')
     await silhouette.selectOption('bolero')
     await lower.selectOption('divided')
+    await silhouette.selectOption('doublet')
+    await cuffs.selectOption('flared')
+    assert.match(await src(), /appearance\/3\/.+\.divided\.flared\/neutral\.svg$/)
+    await cuffs.selectOption('original')
+    assert.match(await src(), /appearance\/2\/.+\.divided\/neutral\.svg$/)
+    await cuffs.selectOption('braced')
     const chosen = await src()
     const bounds = await dialog.evaluate((element) => {
       const box = element.getBoundingClientRect()
@@ -510,13 +543,14 @@ async function reviewBuilder(browser, origin) {
     await open.click()
     assert.equal(await src(), chosen)
     assert.equal(await lower.inputValue(), 'divided')
+    assert.equal(await cuffs.inputValue(), 'braced')
     assert.deepEqual(errors, [])
     await page.close()
     receipts.push({
       mode,
       viewport,
       rules:
-        'incompatible options, v1/v2 lower selection and restore, variation, undo, asset validation, confirm and reopen',
+        'incompatible options, independent lower garments and cuffs, variation, undo, asset validation, confirm and reopen',
     })
   }
   return receipts
@@ -546,6 +580,7 @@ try {
   }
   await capture('/comparison', 'wardrobe-comparison.png')
   await capture('/lower-comparison', 'lower-garment-comparison.png')
+  await capture('/cuff-comparison', 'sleeve-cuff-comparison.png')
   for (let start = 0; start < samples.length; start += 20) {
     await capture(`/review?start=${start}`, `catalog-${String(start + 1).padStart(3, '0')}.png`)
   }
@@ -554,6 +589,7 @@ try {
   for (const { manifest } of [
     ...controlled,
     ...lowerComparison,
+    ...cuffComparison,
     ...samples,
     ...APPEARANCE_PRESETS.map(({ name, blueprint }) => row(name, blueprint)),
   ]) {
@@ -574,9 +610,10 @@ try {
       validAssets++
     }
   }
-  const [comparison, lowerGarments, structure, diversity, builder] = await Promise.all([
+  const [comparison, lowerGarments, cuffs, structure, diversity, builder] = await Promise.all([
     compareCuts(controlled),
     compareCuts(lowerComparison),
+    compareCuts(cuffComparison),
     enumerateStructure(),
     measureDiversity(),
     reviewBuilder(browser, origin),
@@ -589,6 +626,7 @@ try {
     views,
     comparison,
     lowerGarments,
+    cuffs,
     structure,
     diversity,
     builder,

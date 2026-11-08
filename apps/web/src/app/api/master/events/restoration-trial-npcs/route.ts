@@ -20,7 +20,11 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const npcId = searchParams.get('npcId')
     const sectorId = searchParams.get('sectorId')
+    const view = searchParams.get('view')
     const headers = { 'Cache-Control': 'private, no-store' }
+    if (view !== null && (view !== 'tags' || sectorId === null || npcId !== null)) {
+      throw new AurevaneError('INVALID_REQUEST', 'Choose one charted sector to browse tags.')
+    }
     if (npcId !== null) {
       if (sectorId !== null || !isPersonalJourneyNpcId(npcId)) {
         throw new AurevaneError('INVALID_REQUEST', 'Choose a single World encounter NPC.')
@@ -42,8 +46,14 @@ export async function GET(request: Request) {
     const sector = resolveSector(sectorId)
     if (!sector?.charted)
       throw new AurevaneError('INVALID_REQUEST', 'Choose a charted World sector.')
-    const npcs = (await readPublishedWorldNpcs(sector.id))
-      .filter((npc) => npc.encounter && isWalkable(sector, npc))
+    const encounters = (await readPublishedWorldNpcs(sector.id)).filter(
+      (npc) => npc.encounter && isWalkable(sector, npc),
+    )
+    if (view === 'tags') {
+      const tags = [...new Set(encounters.flatMap((npc) => npc.encounter?.tags ?? []))].sort()
+      return Response.json({ tags }, { headers })
+    }
+    const npcs = encounters
       .map(({ id, name }) => ({ id, name }))
       .sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id))
     return Response.json({ npcs }, { headers })

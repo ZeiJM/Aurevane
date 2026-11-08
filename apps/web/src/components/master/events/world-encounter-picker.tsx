@@ -6,11 +6,58 @@ import { CHARTED_SECTORS } from '@/world/catalog'
 type Choice = { id: string; name: string }
 type SavedEncounter = Choice & { sectorId: string }
 type SavedEncounterLookup = { npcId: string; npc: SavedEncounter | null | 'unavailable' }
-const encounterNpcEndpoint = '/api/master/events/restoration-trial-npcs'
+export const encounterNpcEndpoint = '/api/master/events/restoration-trial-npcs'
 const defaultSectors: readonly Choice[] = CHARTED_SECTORS
 type EncounterCatalogue = {
   sectorId: string
   npcs: Choice[] | 'unavailable'
+}
+
+export function WorldEncounterSectorField({
+  label,
+  value,
+  placeholder,
+  onChange,
+}: {
+  label: string
+  value: string
+  placeholder: string
+  onChange: (next: string) => void
+}) {
+  const [sectorOptions, setSectorOptions] = useState(defaultSectors)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    async function loadSectors() {
+      try {
+        const response = await fetch(encounterNpcEndpoint, { signal: controller.signal })
+        if (!response.ok) return
+        const { sectors } = (await response.json()) as { sectors: Choice[] }
+        if (!controller.signal.aborted) setSectorOptions(sectors)
+      } catch {
+        // Keep the built-in sector choices when the full map list is unavailable.
+      }
+    }
+    void loadSectors()
+    return () => controller.abort()
+  }, [])
+
+  return (
+    <label>
+      {label}
+      <select aria-label={label} value={value} onChange={(event) => onChange(event.target.value)}>
+        <option value="">{placeholder}</option>
+        {value && !sectorOptions.some((sector) => sector.id === value) ? (
+          <option value={value}>{value}</option>
+        ) : null}
+        {sectorOptions.map((sector) => (
+          <option key={sector.id} value={sector.id}>
+            {sector.name}
+          </option>
+        ))}
+      </select>
+    </label>
+  )
 }
 
 export function WorldEncounterPicker({
@@ -29,7 +76,6 @@ export function WorldEncounterPicker({
   onChange: (next: string) => void
 }) {
   const [sectorOverride, setSectorOverride] = useState<string>()
-  const [sectorOptions, setSectorOptions] = useState(defaultSectors)
   const [catalogue, setCatalogue] = useState<EncounterCatalogue | null>(null)
   const [savedLookup, setSavedLookup] = useState<SavedEncounterLookup | null>(null)
   const savedResult = savedLookup?.npcId === npcId ? savedLookup.npc : undefined
@@ -39,22 +85,6 @@ export function WorldEncounterPicker({
     sectorOverride ?? savedNpc?.sectorId ?? (locatingSavedNpc ? '' : fallbackSectorId)
   const result = catalogue?.sectorId === sectorId ? catalogue.npcs : null
   const npcs = Array.isArray(result) ? result : []
-
-  useEffect(() => {
-    const controller = new AbortController()
-    async function loadSectors() {
-      try {
-        const response = await fetch(encounterNpcEndpoint, { signal: controller.signal })
-        if (!response.ok) return
-        const { sectors } = (await response.json()) as { sectors: Choice[] }
-        if (!controller.signal.aborted) setSectorOptions(sectors)
-      } catch {
-        // Keep the built-in sector choices when the full map list is unavailable.
-      }
-    }
-    void loadSectors()
-    return () => controller.abort()
-  }, [])
 
   useEffect(() => {
     if (!npcId) return
@@ -115,26 +145,14 @@ export function WorldEncounterPicker({
 
   return (
     <>
-      <label>
-        {sectorLabel}
-        <select
-          aria-label={sectorLabel}
-          value={sectorId}
-          onChange={(event) => setSectorOverride(event.target.value)}
-        >
-          <option value="">
-            {locatingSavedNpc ? 'Locating saved encounter…' : 'Choose a sector to list encounters'}
-          </option>
-          {sectorId && !sectorOptions.some((sector) => sector.id === sectorId) ? (
-            <option value={sectorId}>{sectorId}</option>
-          ) : null}
-          {sectorOptions.map((sector) => (
-            <option key={sector.id} value={sector.id}>
-              {sector.name}
-            </option>
-          ))}
-        </select>
-      </label>
+      <WorldEncounterSectorField
+        label={sectorLabel}
+        value={sectorId}
+        placeholder={
+          locatingSavedNpc ? 'Locating saved encounter…' : 'Choose a sector to list encounters'
+        }
+        onChange={setSectorOverride}
+      />
       <label>
         {npcLabel}
         <select

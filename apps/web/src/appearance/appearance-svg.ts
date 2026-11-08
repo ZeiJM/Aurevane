@@ -191,7 +191,7 @@ function sprite(
     <g transform="translate(${pose === 'down' ? 12 : 0} ${-rise}) rotate(${tilt} 24 53)">
       <g transform="translate(24 0) scale(${look} 1) translate(-24 0)">
         ${
-          blueprint.v === 2
+          blueprint.v !== 1 && blueprint.lower !== 'original'
             ? renderLowerGarment(
                 blueprint.lower,
                 palettes[blueprint.palette],

@@ -33,6 +33,7 @@ declare
   v_battle uuid := '84000000-0000-4000-8000-000000000021';
   v_first text := '/api/media/appearance/1/slight.tan.braid.copper.tunic.open.split.lacing.pointed.linen.satchel.pine/neutral.svg';
   v_next text := '/api/media/appearance/2/broad.deep.crop.onyx.cuirass.fur.close.clasps.split.quilt.brooch.indigo.greaves/neutral.svg';
+  v_cuffed text := '/api/media/appearance/3/broad.deep.crop.onyx.cuirass.fur.close.clasps.split.quilt.brooch.indigo.greaves.braced/neutral.svg';
   v_receipt jsonb;
   v_snapshot jsonb;
 begin
@@ -76,6 +77,19 @@ begin
     raise exception 'stale look accepted';
   exception when sqlstate 'PT409' then null;
   end;
+  assert app_private.valid_npc_appearance_v1(to_jsonb(v_cuffed)), 'NPC accepts cuffs with a separate lower layer';
+  assert app_private.valid_npc_appearance_v1(to_jsonb(replace(v_cuffed,'.greaves.','.original.'))), 'NPC accepts cuffs with original trousers';
+  assert not app_private.valid_npc_appearance_v1(to_jsonb(replace(v_cuffed,'.cuirass.','.bolero.'))), 'NPC rejects cuffs on an incompatible top';
+  assert not app_private.valid_npc_appearance_v1(to_jsonb(replace(v_cuffed,'.braced/','.original/'))), 'NPC rejects v3 aliases of a v2 outfit';
+  begin
+    perform public.commit_character_appearance_v2(v_user,v_character,3,replace(v_cuffed,'.braced/','.original/'));
+    raise exception 'player appearance accepted an alias for a v2 outfit';
+  exception when sqlstate '22023' then null;
+  end;
+  v_receipt := public.commit_character_appearance_v2(v_user,v_character,3,v_cuffed);
+  assert v_receipt = jsonb_build_object('revision',4,'imageUrl',v_cuffed,'pendingImageUrl',null), 'safe immediate activation of v3';
+  assert (select image_url=v_first from public.get_battle_character_appearances_v1(v_battle)
+    where character_id=v_character), 'v3 activation preserves the old battle pin';
   assert not has_function_privilege('authenticated','public.commit_character_appearance_v2(uuid,uuid,integer,text)','execute'), 'browser cannot mutate appearance';
   assert not has_function_privilege('authenticated','public.get_battle_character_appearances_v1(uuid)','execute'), 'browser cannot enumerate pins';
 end;

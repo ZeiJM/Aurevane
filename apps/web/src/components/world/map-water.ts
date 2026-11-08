@@ -26,6 +26,8 @@ export function paintWaterfallMotion(
   width: number,
   height: number,
   now: number,
+  windSpeed = 0,
+  spray = true,
 ) {
   context.save()
   context.strokeStyle = '#e4f6f1'
@@ -51,6 +53,30 @@ export function paintWaterfallMotion(
     Math.PI * 2,
   )
   context.stroke()
+  if (spray) {
+    // The sheet and impact stay where the art put them; only airborne spray
+    // bends across the scene. Phases fade in and out around the impact point.
+    context.fillStyle = '#d7efed'
+    for (let i = 0; i < 6; i++) {
+      const age = (now / (1100 + i * 87) + i / 6) % 1
+      const side = i % 2 ? 1 : -1
+      const drift = windSpeed * 3.4 * age ** 1.45 + side * age * (0.024 + (i % 3) * 0.012)
+      const rise = Math.sin(age * Math.PI * 0.8) * (0.033 + (i % 3) * 0.015)
+      const size = Math.max(0.65, width * (0.004 + age * 0.013))
+      context.globalAlpha = Math.sin(age * Math.PI) * (0.36 - age * 0.16)
+      context.beginPath()
+      context.ellipse(
+        x + width * (0.49 + drift),
+        y + height * (0.78 - rise),
+        size,
+        size * 0.58,
+        0,
+        0,
+        Math.PI * 2,
+      )
+      context.fill()
+    }
+  }
   context.restore()
 }
 interface Bank {
@@ -365,6 +391,35 @@ export function paintWaterGround(
   context.restore()
 }
 
+export interface SurfaceWeather {
+  rain: number
+  windSpeed: number
+}
+
+function paintRainImpact(
+  context: CanvasRenderingContext2D,
+  cell: WaterCell,
+  tile: number,
+  now: number,
+  rain: number,
+  amethyst: boolean,
+) {
+  if (rain < 0.015) return
+  const phase = (now / (1400 + (cell.seed % 800)) + (cell.seed % 997) / 997) % 1
+  const lifetime = 0.25 + 0.21 * rain
+  if (phase >= lifetime) return
+  const age = phase / lifetime
+  const x = (0.29 + ((cell.seed >>> 8) % 83) / 200) * tile
+  const y = (0.29 + ((cell.seed >>> 17) % 83) / 200) * tile
+  const radius = tile * (0.025 + age * 0.19)
+  context.globalAlpha = Math.sin(age * Math.PI) * (1 - age * 0.5) * rain * 0.49
+  context.strokeStyle = amethyst ? '#f1d5fa' : '#d4efe9'
+  context.lineWidth = Math.max(0.65, tile * 0.02)
+  context.beginPath()
+  context.ellipse(x, y, radius, radius * 0.89, 0, 0, Math.PI * 2)
+  context.stroke()
+}
+
 /** A clipped pool ripple or four short channel glints, capped by the caller. */
 export function paintWaterMotion(
   context: CanvasRenderingContext2D,
@@ -372,33 +427,50 @@ export function paintWaterMotion(
   tile: number,
   now: number,
   amethyst = false,
+  weather?: SurfaceWeather,
 ) {
   context.save()
   clipCell(context, tile)
+  const roughness = Math.min(1, Math.abs(weather?.windSpeed ?? 0) / 0.06)
   if (!cell.channel) {
     const phase = (now / (4200 + (cell.seed % 1800)) + (cell.seed % 997) / 997) % 1
     const radius = tile * (0.13 + phase * 0.29)
     context.strokeStyle = amethyst ? '#e0c5f1' : '#bbded0'
-    context.globalAlpha = Math.sin(phase * Math.PI) * 0.16
+    context.globalAlpha = Math.sin(phase * Math.PI) * (0.16 + roughness * 0.14)
     context.lineWidth = tile * 0.012
     context.beginPath()
-    context.ellipse(tile / 2, tile / 2, radius, radius * 0.86, 0, 0, Math.PI * 2)
+    context.ellipse(
+      tile / 2,
+      tile / 2,
+      radius,
+      radius * (0.86 - roughness * 0.12),
+      0,
+      0,
+      Math.PI * 2,
+    )
     context.stroke()
-    context.restore()
-    return
+  } else {
+    const speed = 8500 + (cell.seed % 3500)
+    for (let i = 0; i < 4; i++) {
+      const phase = (now / speed + i * 0.25 + (cell.seed % 997) / 997) % 1
+      const from = phase * 0.86,
+        offset = (i - 1.5) * 0.13
+      context.globalAlpha =
+        Math.sin(phase * Math.PI) * (i === 1 ? 0.54 : 0.3) * (1 + roughness * 0.18)
+      context.strokeStyle = amethyst
+        ? i % 2
+          ? '#e0c5f1'
+          : '#b685ee'
+        : i % 2
+          ? '#bbded0'
+          : '#82c6c7'
+      context.lineWidth = tile * (i === 1 ? 0.014 : 0.009)
+      context.beginPath()
+      trace(context, stream(cell.flow, from, from + 0.09, offset), tile)
+      context.stroke()
+    }
   }
-  const speed = 8500 + (cell.seed % 3500)
-  for (let i = 0; i < 4; i++) {
-    const phase = (now / speed + i * 0.25 + (cell.seed % 997) / 997) % 1
-    const from = phase * 0.86,
-      offset = (i - 1.5) * 0.13
-    context.globalAlpha = Math.sin(phase * Math.PI) * (i === 1 ? 0.54 : 0.3)
-    context.strokeStyle = amethyst ? (i % 2 ? '#e0c5f1' : '#b685ee') : i % 2 ? '#bbded0' : '#82c6c7'
-    context.lineWidth = tile * (i === 1 ? 0.014 : 0.009)
-    context.beginPath()
-    trace(context, stream(cell.flow, from, from + 0.09, offset), tile)
-    context.stroke()
-  }
+  if (weather) paintRainImpact(context, cell, tile, now, weather.rain, amethyst)
   context.restore()
 }
 

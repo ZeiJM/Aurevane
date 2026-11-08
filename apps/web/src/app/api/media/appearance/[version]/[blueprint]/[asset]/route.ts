@@ -6,8 +6,7 @@ export async function GET(
   { params }: { params: Promise<{ version: string; blueprint: string; asset: string }> },
 ) {
   const { version, blueprint: id, asset: filename } = await params
-  if (version !== '1' && version !== '2') return new Response(null, { status: 404 })
-  const blueprint = appearanceBlueprintFromId(id, version === '1' ? 1 : 2)
+  const blueprint = appearanceBlueprintFromId(id, version)
   const asset = filename.endsWith('.svg') ? filename.slice(0, -4) : ''
   if (!blueprint || !isAppearanceAsset(asset)) return new Response(null, { status: 404 })
 

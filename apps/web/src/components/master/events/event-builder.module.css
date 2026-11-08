@@ -206,6 +206,22 @@
   min-width: 0;
 }
 
+.encounterTagField,
+.encounterTagChoices {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.encounterTagField summary {
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.encounterTagChoices {
+  margin-top: 0.35rem;
+}
+
 .restorationFields > p,
 .restorationTrial > p {
   margin: 0;

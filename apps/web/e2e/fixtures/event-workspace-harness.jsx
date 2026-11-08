@@ -109,7 +109,13 @@ window.fetch = async (input, options) => {
     const npcs = window.__retiredTrialNpc ? [challengeNpc] : [trialNpc, challengeNpc]
     return Response.json({ npc: npcs.find((npc) => input.endsWith(`npcId=${npc.id}`)) ?? null })
   }
-  if (input.startsWith('/api/master/events/restoration-trial-npcs?sectorId='))
+  if (input.startsWith('/api/master/events/restoration-trial-npcs?sectorId=')) {
+    const query = new URL(input, window.location.origin).searchParams
+    if (query.get('view') === 'tags') {
+      return Response.json({
+        tags: query.get('sectorId') === 'emberreach' ? ['ashbound-raider', 'wolf'] : [],
+      })
+    }
     return Response.json({
       npcs: input.endsWith('sectorId=emberreach')
         ? (window.__retiredTrialNpc ? [challengeNpc] : [trialNpc, challengeNpc]).map(
@@ -117,6 +123,7 @@ window.fetch = async (input, options) => {
           )
         : [],
     })
+  }
   const body = JSON.parse(options.body)
   window.__eventRequests.push({ path: input, body })
   if (input === '/api/master/events') {

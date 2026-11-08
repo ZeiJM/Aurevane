@@ -77,6 +77,16 @@ export function precipitationKind(weather: WorldWeather, regionId: string): Prec
       : 'rain'
     : null
 }
+
+/** Falling snow never leaves liquid impact rings. This is a visual blend only. */
+export function surfaceRainTarget(weather: WorldWeather, regionId: string) {
+  return precipitationKind(weather, regionId) === 'rain' ? (weather === 'storm' ? 1 : 0.55) : 0
+}
+
+export function advanceSurfaceRain(previous: number, target: number, elapsedMs: number) {
+  return previous + (target - previous) * (1 - Math.exp(-elapsedMs / 780))
+}
+
 export function precipitationParticle(
   kind: Precipitation,
   index: number,

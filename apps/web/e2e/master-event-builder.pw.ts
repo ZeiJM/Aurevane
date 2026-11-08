@@ -345,9 +345,9 @@ async function completeAuthoredStoryJourney(
       insert into app_private.event_reward_packages(reward_package_ref,package_version,reward_kind,amount,published_by,budget_ref)
         values('${reward}',1,'character-xp',25,'${userId}','${budget}');
       insert into app_private.npc_designs(id,revision,draft,world,story) values
-        ('${joe}',1,'{"name":"Farmer Joe","portraitRef":null,"uses":["world","story"],"arena":null}',
-         '{"id":"${joe}","revision":1,"name":"Farmer Joe","portraitRef":null,"sectorId":"verdant-expanse","x":2,"y":4,"radius":1,"greeting":"Welcome to the farm."}',
-         '{"id":"${joe}","revision":1,"name":"Farmer Joe","portraitRef":null}'),
+        ('${joe}',1,'{"name":"Maren Vale","portraitRef":null,"uses":["world","story"],"arena":null}',
+         '{"id":"${joe}","revision":1,"name":"Maren Vale","portraitRef":null,"sectorId":"verdant-expanse","x":2,"y":4,"radius":1,"greeting":"Welcome to the farm."}',
+         '{"id":"${joe}","revision":1,"name":"Maren Vale","portraitRef":null}'),
         ('${guardian}',1,'{"name":"Aurevane","portraitRef":null,"uses":["story"],"arena":null}',null,
          '{"id":"${guardian}","revision":1,"name":"Aurevane","portraitRef":null}');
     `)
@@ -486,7 +486,7 @@ async function completeAuthoredStoryJourney(
     .getByRole('region', { name: 'Local interaction' })
     .getByRole('heading', { name: title, exact: true })
     .locator('..')
-  const giver = realm ? 'Farmer Joe' : 'Watch officer'
+  const giver = realm ? 'Maren Vale' : 'Watch officer'
   const talk = () => interaction.getByRole('button', { name: `Talk to ${giver}` }).click()
   const dialogue = page.getByRole('dialog', { name: giver })
   const progress = async () =>
@@ -616,7 +616,7 @@ test('an authored item exchange settles once when two World requests race', asyn
   page,
 }, info) => completeAuthoredStoryJourney(page, info, 'item-exchange'))
 
-test('Farmer Joe dialogue, realm travel and guardian challenge are separate World actions', async ({
+test('Maren Vale dialogue, realm travel and guardian challenge are separate World actions', async ({
   page,
 }, info) => completeAuthoredStoryJourney(page, info, 'sealed-realm'))
 
@@ -1248,7 +1248,16 @@ test('an authored Alder Venn wolf hunt credits five World victories and starts c
   await page.getByLabel('Enable repeatable activity', { exact: true }).check()
   await page.getByLabel('Activity type', { exact: true }).selectOption('defeat-and-report')
   await page.getByLabel('Quest giver', { exact: true }).selectOption(giverId)
-  await page.getByLabel('World encounter tag', { exact: true }).fill(tag)
+  await page.getByText('Browse published tags', { exact: true }).click()
+  await page
+    .getByRole('combobox', { name: 'Encounter tag sector', exact: true })
+    .selectOption(trail.sectorId)
+  await page
+    .getByRole('combobox', { name: 'Published encounter tag', exact: true })
+    .selectOption(tag)
+  await expect(page.getByRole('textbox', { name: 'World encounter tag', exact: true })).toHaveValue(
+    tag,
+  )
   await page.getByLabel('Required defeats', { exact: true }).fill('5')
   await page.getByLabel('Character XP reward', { exact: true }).selectOption(rewardRef)
   await page.getByLabel('Recurrence', { exact: true }).selectOption('rolling-24h')
@@ -1490,11 +1499,16 @@ test('an authored Ashen Sentinel discovery unlocks one private challenge after f
   await page.getByLabel('Title', { exact: true }).fill(title)
   await section('Discovery')
   await page.getByLabel('Enable a daily combat discovery', { exact: true }).check()
-  await page.getByLabel('Qualifying World encounter tag', { exact: true }).fill(tag)
   await expect(page.getByLabel('Required daily defeats', { exact: true })).toHaveValue('14')
   await page.getByLabel('Calendar timezone', { exact: true }).fill('UTC')
   const challenge = page.getByRole('group', { name: 'Daily combat challenge' })
   const challengeSelect = (name: string) => challenge.getByRole('combobox', { name, exact: true })
+  await challenge.getByText('Browse published tags', { exact: true }).click()
+  await challengeSelect('Encounter tag sector').selectOption(raiderPosition.sectorId)
+  await challengeSelect('Published encounter tag').selectOption(tag)
+  await expect(
+    challenge.getByRole('textbox', { name: 'Qualifying World encounter tag' }),
+  ).toHaveValue(tag)
   await expect(challengeSelect('Challenge availability')).toHaveValue('evergreen')
   await challengeSelect('Challenge sector').selectOption(championPosition.sectorId)
   await challengeSelect('Challenge encounter NPC').selectOption(championId)

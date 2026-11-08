@@ -10,6 +10,7 @@ import {
   compileAppearanceManifest,
   parseAppearanceBlueprint,
   varyAppearanceOutfit,
+  withCuff,
   withLowerGarment,
   type AppearanceBlueprint,
   type AppearanceExpression,
@@ -25,6 +26,12 @@ import {
   supportsLowerGarment,
   type LowerGarmentChoice,
 } from '@/appearance/appearance-lower-catalog'
+import {
+  CUFFS,
+  CUFF_LABELS,
+  supportsCuff,
+  type CuffChoice,
+} from '@/appearance/appearance-cuff-catalog'
 import styles from './appearance-builder.module.css'
 
 type Field = keyof typeof APPEARANCE_CATALOG
@@ -39,6 +46,7 @@ const groups: readonly { name: string; fields: readonly Field[] }[] = [
 const labels: Partial<Record<Field, string>> = { hairColor: 'Hair color', coat: 'Silhouette' }
 const fields = groups.flatMap(({ fields }) => fields)
 const lowerChoices = ['original', ...LOWER_GARMENTS] as const
+const cuffChoices = ['original', ...CUFFS] as const
 const title = (value: string) => value.charAt(0).toUpperCase() + value.slice(1)
 const partLabel = (field: Field, value: string) =>
   (field === 'coat' ? WARDROBE_CUT_LABELS[value as keyof typeof WARDROBE_CUT_LABELS] : undefined) ??
@@ -54,10 +62,14 @@ function randomizeParts(value: AppearanceBlueprint, parts: readonly Field[]) {
 }
 
 function randomizeOutfit(value: AppearanceBlueprint, parts: readonly Field[]) {
-  const next = randomizeParts(withLowerGarment(value, 'original') ?? value, parts)
+  const originalCuffs = withCuff(value, 'original') ?? value
+  const next = randomizeParts(withLowerGarment(originalCuffs, 'original') ?? originalCuffs, parts)
   if (!supportsLowerGarment(next.coat)) return next
   const lower = lowerChoices[Math.floor(Math.random() * lowerChoices.length)] ?? 'original'
-  return withLowerGarment(next, lower) ?? next
+  const withLower = withLowerGarment(next, lower) ?? next
+  if (!supportsCuff(next.coat)) return withLower
+  const cuff = cuffChoices[Math.floor(Math.random() * cuffChoices.length)] ?? 'original'
+  return withCuff(withLower, cuff) ?? withLower
 }
 
 export function AppearanceBuilder({
@@ -71,7 +83,11 @@ export function AppearanceBuilder({
 }) {
   const manifest = useMemo(() => compileAppearanceManifest(value), [value])
   const lowerHint = useId()
+  const cuffHint = useId()
   const hasSeparateLowerLayer = supportsLowerGarment(value.coat)
+  const hasCuffs = supportsCuff(value.coat)
+  const lower = value.v === 1 ? 'original' : value.lower
+  const cuff = value.v === 3 ? value.cuff : 'original'
   const [expression, setExpression] = useState<AppearanceExpression>('neutral')
   const [initial] = useState(value)
   const [history, setHistory] = useState<AppearanceBlueprint[]>([])
@@ -163,10 +179,33 @@ export function AppearanceBuilder({
               ))}
               {name === 'Clothing' ? (
                 <label>
+                  Sleeve cuffs
+                  <select
+                    aria-describedby={cuffHint}
+                    value={cuff}
+                    onChange={(event) => {
+                      const next = withCuff(value, event.target.value as CuffChoice)
+                      if (next) update(next)
+                    }}
+                  >
+                    {cuffChoices.map((choice) => (
+                      <option
+                        key={choice}
+                        value={choice}
+                        disabled={choice !== 'original' && !hasCuffs}
+                      >
+                        {CUFF_LABELS[choice]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
+              {name === 'Clothing' ? (
+                <label>
                   Lower garment
                   <select
                     aria-describedby={lowerHint}
-                    value={value.v === 2 ? value.lower : 'original'}
+                    value={lower}
                     onChange={(event) => {
                       const next = withLowerGarment(value, event.target.value as LowerGarmentChoice)
                       if (next) update(next)
@@ -205,14 +244,23 @@ export function AppearanceBuilder({
               ) : null}
             </div>
             {name === 'Clothing' ? (
-              <small id={lowerHint}>
-                {clothingConflicts.join(' ')}{' '}
-                {!hasSeparateLowerLayer
-                  ? 'Choose a compatible short top to use a separate lower garment.'
-                  : value.v === 2
-                    ? 'Select original trousers to unlock tops that cover this layer.'
-                    : 'The lower garment is visible in the field and battle previews.'}
-              </small>
+              <>
+                <small id={lowerHint}>
+                  {clothingConflicts.join(' ')}{' '}
+                  {!hasSeparateLowerLayer
+                    ? 'Choose a compatible short top to use a separate lower garment.'
+                    : lower !== 'original'
+                      ? 'Select original trousers to unlock tops that cover this layer.'
+                      : 'The lower garment is visible in the field and battle previews.'}
+                </small>
+                <small id={cuffHint}>
+                  {!hasCuffs
+                    ? 'Choose a short top with exposed sleeves to change its cuffs.'
+                    : cuff !== 'original'
+                      ? 'Select original cuffs to unlock other tops.'
+                      : 'Cuffs are visible in the field and battle previews.'}
+                </small>
+              </>
             ) : null}
           </fieldset>
         ))}

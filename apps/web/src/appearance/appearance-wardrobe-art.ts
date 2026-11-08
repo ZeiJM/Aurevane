@@ -1,3 +1,4 @@
+import type { Cuff } from './appearance-cuff-catalog'
 import type { AppearanceBlueprint } from './appearance-manifest'
 import type { WardrobeCut } from './appearance-wardrobe-catalog'
 
@@ -193,6 +194,29 @@ export function wardrobeLegs([, shade, light]: Palette, walk: number) {
     ${line(`M${left - 1.7} 53h3.2M${right - 1.7} 53h3.2`, light, 0.7)}`
 }
 
+function sleeveCuff(
+  cuff: Cuff,
+  [fabric, shade, light, trim]: Palette,
+  shoulderX: number,
+  wristX: number,
+  wristY: number,
+  sleeveWidth: number,
+) {
+  const angle = Math.atan2(shoulderX - wristX, wristY - 26) * (180 / Math.PI)
+  const spread = Math.max(1, sleeveWidth / 7)
+  const shell = {
+    folded: part('M-4.2-6.2Q0-5.3 4.2-6.2L3.6-1Q0 .2-3.6-1Z', light),
+    flared: part('M-2.6-6.2H2.6L5.8-.7 3.9.8 0-.2-3.9.8-5.8-.7Z', fabric),
+    braced: part('M-4.8-4.8 0-9 4.8-4.8 3-1 0 .4-3-1Z', trim),
+  }[cuff]
+  const finish = {
+    folded: line('M-3.3-3.9Q0-2.9 3.3-3.9M-3-1.6Q0-.8 3-1.6', shade, 0.9),
+    flared: line('M-4.5-.8 0-1.7 4.5-.8M-1.9-5H1.9', trim, 1.25),
+    braced: part('M0-7.4 2.9-4.2 0-1.2-2.9-4.2Z', shade, light),
+  }[cuff]
+  return `<g transform="translate(${wristX} ${wristY}) rotate(${angle}) scale(${spread} 1)">${shell}${finish}</g>`
+}
+
 export function wardrobeArms(
   garment: Garment,
   blueprint: AppearanceBlueprint,
@@ -215,7 +239,19 @@ export function wardrobeArms(
     <g opacity="${profile ? '.92' : '1'}">
       ${line(armLines, outline, width + 1.5)}
       ${line(armLines, garment.arms === 'bare' ? skin : garment.arms === 'armored' ? shade : fabric, width)}
-      ${line(cuffs, trim, 1.6)}
+      ${
+        blueprint.v === 3
+          ? sleeveCuff(
+              blueprint.cuff,
+              [fabric, shade, light, trim],
+              24 - shoulder,
+              left,
+              36,
+              width,
+            ) +
+            sleeveCuff(blueprint.cuff, [fabric, shade, light, trim], armStart, armEnd, armY, width)
+          : line(cuffs, trim, 1.6)
+      }
       ${blueprint.sleeves === 'split' ? line(`M${left - 2} 31l3 2M${armEnd - 2} ${armY - 4}l3 2`, light, 1.4) : ''}
       ${blueprint.sleeves === 'puffed' ? line(`M${25 - shoulder} 26l-2 4M${armStart - 1} 26l2 4`, light, 2.4) : ''}
       <circle cx="${left}" cy="37" r="1.65" fill="${skin}" stroke="${outline}" stroke-width=".6"/>

@@ -170,3 +170,83 @@ describe('manual appearance manifests', () => {
     expect((await get('2', blueprint.replace('.bolero.', '.greatcloak.'))).status).toBe(404)
   })
 })
+
+describe('independent sleeve cuffs', () => {
+  const original = { ...appearance.APPEARANCE_PRESETS[0].blueprint, coat: 'doublet' } as const
+  const url =
+    '/api/media/appearance/3/slight.tan.braid.copper.doublet.open.split.lacing.pointed.linen.satchel.pine.original.flared/neutral.svg'
+
+  it('loads a canonical v3 recipe while retaining the original trousers', () => {
+    expect(appearance.appearanceManifestFromImageUrl(url)?.blueprint).toEqual({
+      ...original,
+      v: 3,
+      lower: 'original',
+      cuff: 'flared',
+    })
+  })
+
+  it('adds and removes the cuff without resetting the separate lower garment', () => {
+    const kilt = appearance.withLowerGarment(original, 'kilt')!
+    const flared = appearance.withCuff(kilt, 'flared')!
+    expect(flared).toEqual({ ...kilt, v: 3, cuff: 'flared' })
+    expect(appearance.withCuff(flared, 'original')).toEqual(kilt)
+    const cuffsOnly = appearance.withLowerGarment(flared, 'original')!
+    expect(appearance.compileAppearanceManifest(cuffsOnly).portraits.neutral).toBe(url)
+    expect(appearance.appearanceManifestFromImageUrl(url)?.blueprint).toEqual(cuffsOnly)
+    expect(appearance.withCuff(cuffsOnly, 'original')).toEqual(original)
+  })
+
+  it('rejects hidden cuffs, unknown IDs and aliases for historical recipes', () => {
+    expect(
+      appearance.appearanceManifestFromImageUrl(url.replace('.doublet.', '.bolero.')),
+    ).toBeNull()
+    expect(
+      appearance.appearanceManifestFromImageUrl(url.replace('.flared/', '.original/')),
+    ).toBeNull()
+    expect(
+      appearance.appearanceManifestFromImageUrl(url.replace('.flared/', '.invented/')),
+    ).toBeNull()
+    expect(appearance.appearanceManifestFromImageUrl(url.replace('/3/', '/2/'))).toBeNull()
+    expect(
+      appearance.appearanceManifestFromImageUrl(url.replace('.original.', '.invented.')),
+    ).toBeNull()
+  })
+
+  it('returns a complete immutable bundle with distinct atlas art for each cuff', async () => {
+    const assets = [...appearance.APPEARANCE_EXPRESSIONS, 'icon', 'atlas'] as const
+    const oldAtlases = [renderAppearanceAsset(original, 'atlas')]
+    const atlasOutputs = new Set(oldAtlases)
+    for (const cuff of ['folded', 'flared', 'braced'] as const) {
+      const blueprint = appearance.withCuff(original, cuff)!
+      const manifest = appearance.compileAppearanceManifest(blueprint)
+      const [version, id] = manifest.id.split('/') as [string, string]
+      for (const asset of assets) {
+        const filename = `${asset}.svg`
+        const result = await GET(new Request(`https://example.test${url}`), {
+          params: Promise.resolve({ version, blueprint: id, asset: filename }),
+        })
+        expect(result.status).toBe(200)
+        expect(result.headers.get('Cache-Control')).toContain('immutable')
+        const drawing = await result.text()
+        expect(drawing).toMatch(/^<svg /)
+        if (asset === 'atlas') atlasOutputs.add(drawing)
+      }
+    }
+    expect(atlasOutputs.size).toBe(4)
+  })
+
+  it('keeps old wardrobe atlases and portraits at their previously served bytes', () => {
+    const v2 = appearance.withLowerGarment(original, 'kilt')!
+    expect(sha256(renderAppearanceAsset(original, 'atlas'))).toBe(
+      '4d8f72f38f2b5396f80bf715490faf402a8b4fc3c457c1be3ee1aa6c0b2c639a',
+    )
+    expect(sha256(renderAppearanceAsset(v2, 'atlas'))).toBe(
+      '38bbbbb95eff536385e64f68a62163a07424270f87eeaf1cf136e26e9251de05',
+    )
+    for (const blueprint of [original, v2]) {
+      expect(sha256(renderAppearanceAsset(blueprint, 'neutral'))).toBe(
+        '811b9f12102810f08e0ace419ca83c7e8a6b7854974bc7fc44cb6543971739e6',
+      )
+    }
+  })
+})

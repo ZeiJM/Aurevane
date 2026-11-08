@@ -4,6 +4,7 @@ import type { PersonalCombatDiscovery } from '@aurevane/game-core/events/persist
 import type { EventWorkspaceCatalogue } from '@/server/master/event-authoring-service'
 import { EventXpPackageField } from './event-xp-package-field'
 import { WorldEncounterPicker } from './world-encounter-picker'
+import { WorldEncounterTagField } from './world-encounter-tag-field'
 import styles from './event-builder.module.css'
 
 const initialDiscovery: PersonalCombatDiscovery = {
@@ -67,14 +68,11 @@ function ChallengeFields({
     <fieldset className={styles.restorationTrial}>
       <legend>Daily combat challenge</legend>
       <div className={styles.grid}>
-        <label>
-          Qualifying World encounter tag
-          <input
-            value={value.npcTag}
-            maxLength={32}
-            onChange={(event) => change({ ...value, npcTag: event.target.value })}
-          />
-        </label>
+        <WorldEncounterTagField
+          label="Qualifying World encounter tag"
+          value={value.npcTag}
+          onChange={(npcTag) => change({ ...value, npcTag })}
+        />
         <label>
           Required daily defeats
           <input

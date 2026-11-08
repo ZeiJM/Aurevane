@@ -3078,6 +3078,26 @@ describe('native map input and bounded lifecycle', () => {
     s.renderer.dispose()
     vi.unstubAllGlobals()
   })
+  it('keeps the idle paint cadence when a previous animation callback entered late', () => {
+    const s = scene()
+    const clock = vi.mocked(performance.now)
+    try {
+      clock.mockReturnValue(104)
+      s.frame(100)
+      expect(s.canvas.dataset.frameNow).toBe('104')
+
+      clock.mockReturnValue(117)
+      s.frame(100 + 1000 / 60)
+      expect(s.canvas.dataset.frameNow).toBe('104')
+
+      clock.mockReturnValue(134)
+      s.frame(100 + 1000 / 30)
+      expect(s.canvas.dataset.frameNow).toBe('134')
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  })
   it.each(['effects off', 'reduced motion'])(
     'finishes the drawn step and camera with %s without pointer input',
     (mode) => {
@@ -3223,6 +3243,41 @@ it('uses distinct Frostmere building art at the existing public footprint anchor
     )
     expect(forge.matrix[4]).toBeCloseTo(foot.x * 1.5, 1)
     expect(forge.matrix[5]).toBeCloseTo(foot.y * 1.5, 1)
+  } finally {
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+})
+
+it('carries smoke from the painted Frostmere forge flue without removing the building in Low quality', () => {
+  const state = newWorldState()
+  state.position = { sectorId: 'frostmere', x: 6, y: 4 }
+  const initial = projectWorld(state, [], 1000)
+  const s = scene(false, { ...initial, environment: { ...initial.environment, weather: 'storm' } })
+  try {
+    const atlas = s.images.find((image) =>
+      (image as HTMLImageElement).src.endsWith('frostmere-v01.webp'),
+    )!
+    Object.assign(atlas, { width: 1536, height: 336, naturalWidth: 1536 })
+    s.frame(40)
+    const forge = s.draws.find(({ image, args }) => image === atlas && args[0] === 384)!
+    const wisps = s.draws.filter(
+      ({ image, args, order }) =>
+        order > forge.order && image.width === 64 && image.height === 64 && args.length === 4,
+    )
+    expect(wisps).toHaveLength(5)
+    const puff = wisps[0]!.image
+    // Source cell x222/y96 is the flue, not the forge doorway or building centre.
+    const chimneyX = forge.args[4]! + (222 / 384) * forge.args[6]!
+    const chimneyY = forge.args[5]! + (96 / 336) * forge.args[7]!
+    expect(wisps.every(({ args }) => args[1]! < chimneyY)).toBe(true)
+    expect(wisps.some(({ args }) => Math.abs(args[0]! + args[2]! / 2 - chimneyX) < 8)).toBe(true)
+
+    s.draws.length = 0
+    s.renderer.settings({ animate: true, zoom: 1, quality: 'low' })
+    s.frame(100)
+    expect(s.draws.some(({ image, args }) => image === atlas && args[0] === 384)).toBe(true)
+    expect(s.draws.some(({ image }) => image === puff)).toBe(false)
   } finally {
     s.renderer.dispose()
     vi.unstubAllGlobals()

@@ -27,6 +27,26 @@ export function regionalBuildingIndex(sector: WorldSectorView, building: WorldBu
 export const WORLD_STRUCTURE_ASPECT = 336 / 384
 export const WORLD_STRUCTURE_FLOOR = 313 / 336
 
+export type Chimney = readonly [x: number, y: number, exposure: number]
+
+// Flue openings measured in their 384 × 336 source cells. Buildings with no
+// working flue, including the abandoned Void ruins, never emit smoke.
+export const winterChimneys: Readonly<Partial<Record<number, Chimney>>> = {
+  1: [222, 96, 0.8],
+}
+
+export const settlementChimneys: Readonly<Partial<Record<number, Chimney>>> = {
+  1: [230, 21, 0.72], // mill
+  2: [226, 16, 1], // coastal tavern
+  3: [186, 27, 0.8], // forge
+  6: [227, 59, 0.58], // woodland lodge
+}
+
+export const warpedChimneys: Readonly<Partial<Record<number, Chimney>>> = {
+  7: [236, 18, 0.74], // Lantern Refuge
+  11: [297, 45, 0.55], // Sporelight Homes
+}
+
 export const townPaving: Readonly<Record<string, { color: string; glaze: string }>> = {
   'aureth-crown': { color: '#ad9b79', glaze: 'rgba(208,189,146,.30)' },
   'verdant-expanse': { color: '#747759', glaze: 'rgba(91,112,64,.33)' },
