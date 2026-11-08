@@ -1921,7 +1921,11 @@ test('an authored Mentor challenge binds the World battle and grants the fast vi
     .getByRole('button', { name: `Talk to ${npcName}`, exact: true })
     .click()
   const dialogue = page.getByRole('dialog', { name: npcName })
-  await expect(dialogue.getByText(/earned the fast victory bonus/i)).toBeVisible()
+  await expect(
+    dialogue
+      .locator('p[aria-live="polite"]')
+      .filter({ hasText: 'You earned the fast victory bonus.' }),
+  ).toBeVisible()
   await dialogue.getByRole('button', { name: 'Collect Character XP', exact: true }).click()
   await expect.poll(xp).toBe(before + 15)
   expect(

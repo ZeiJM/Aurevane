@@ -31,6 +31,8 @@ async function assertLabelHelp(control, helpName) {
 }
 
 async function assertCurrentEffectChoices(picker, required) {
+  // A completed navigation can still precede the React mount; evaluateAll does not wait.
+  await browserExpect(picker).toBeAttached()
   const options = await picker
     .locator('option')
     .evaluateAll((elements) =>
