@@ -6,7 +6,10 @@ import {
   endCombatTurn,
   executeCombatAction,
 } from '../../game-core/src/combat/actions'
-import { createTacticalBattleState } from '../../game-core/src/combat/board'
+import {
+  createTacticalBattleState,
+  selectCurrentFinalFacing,
+} from '../../game-core/src/combat/board'
 import { applyCurrentPoisonState } from '../../game-core/src/combat/combat-dots'
 import { spawnCombatSummon } from '../../game-core/src/combat/combat-summons'
 import {
@@ -243,25 +246,37 @@ it('admits one World-only published NPC and captures provenance for the exact re
 })
 
 const combatant = { player: `character:${owner}`, opponent: 'world:fixture' }
-async function admitEvidenceFixture(linked = true, playerActs = true, atStartup = false) {
-  const id = linked ? 'fixture-world-evidence' : 'fixture-practice-evidence'
-  if (linked) {
-    await db.query("select public.write_master_npc_design_v1($1,null,$2,0,'save',$3)", [
-      owner,
-      npc,
-      {
-        name: 'Field opponent',
-        portraitRef: null,
-        uses: ['world'],
-        arena: null,
-        world: { ...world, encounter },
-      },
-    ])
-    await db.query("select public.write_master_npc_design_v1($1,null,$2,1,'commit-world',null)", [
-      owner,
-      npc,
-    ])
-  }
+async function publishEvidenceOpponent(tags = encounter.tags) {
+  await db.query("select public.write_master_npc_design_v1($1,null,$2,0,'save',$3)", [
+    owner,
+    npc,
+    {
+      name: 'Field opponent',
+      portraitRef: null,
+      uses: ['world'],
+      arena: null,
+      world: { ...world, encounter: { ...encounter, tags } },
+    },
+  ])
+  await db.query("select public.write_master_npc_design_v1($1,null,$2,1,'commit-world',null)", [
+    owner,
+    npc,
+  ])
+}
+
+async function admitEvidenceFixture(
+  linked = true,
+  playerActs = true,
+  atStartup = false,
+  mentor?: { runId: string; training?: boolean; ordinary?: boolean },
+) {
+  const id = mentor
+    ? `mentor-${crypto.randomUUID()}`
+    : linked
+      ? 'fixture-world-evidence'
+      : 'fixture-practice-evidence'
+  const request = mentor ? crypto.randomUUID() : command
+  if (linked && !mentor) await publishEvidenceOpponent()
   const combatants = [combatant.player, combatant.opponent].map((id, index) => ({
     id,
     teamId: index === 0 ? 'players' : 'opponents',
@@ -333,10 +348,12 @@ async function admitEvidenceFixture(linked = true, playerActs = true, atStartup 
   ]
   const response = linked
     ? await db.query<{ battle_session_id: string }>(
-        'select * from public.start_world_npc_battle_v1($1,$1,1,$2,$3,$4,$5,$6,1,1,$7,$8,$9,$10,$11)',
+        mentor && !mentor.ordinary
+          ? 'select * from public.start_world_mentor_battle_v1($1,$1,$14,$2,$3,$4,$5,$6,1,1,$7,$8,$9,$10,$11,$12,$13)'
+          : 'select * from public.start_world_npc_battle_v1($1,$1,1,$2,$3,$4,$5,$6,1,1,$7,$8,$9,$10,$11)',
         [
           owner,
-          command,
+          request,
           npc,
           'world:fingerprint',
           'battle:fingerprint',
@@ -352,6 +369,9 @@ async function admitEvidenceFixture(linked = true, playerActs = true, atStartup 
                 eventVisibilityOverrides: [],
               }
             : null,
+          ...(mentor && !mentor.ordinary
+            ? [mentor.runId, mentor.training ?? false, await mentorWorldVersion()]
+            : []),
         ],
       )
     : await db.query<{ battle_session_id: string }>(
@@ -361,13 +381,14 @@ async function admitEvidenceFixture(linked = true, playerActs = true, atStartup 
   const session = response.rows[0]!.battle_session_id
   return {
     session,
+    request,
     state,
     snapshot,
     commit: (
       result: { state: object; events: readonly unknown[] },
       actor = owner,
       expectedVersion = 1,
-      requestKey = other,
+      requestKey = mentor ? crypto.randomUUID() : other,
     ) =>
       db.query<{ battle_version: number; replayed: boolean }>(
         'select * from public.commit_battle_intent_v3($1::text,$2,$3,$1::uuid,$4,$5,$6,$7,null)',
@@ -785,4 +806,341 @@ it.each([
   )
   expect(await terminal(fight.session)).toEqual([{ outcome, battle_version: 3 }])
   expect(await defeats(fight.session)).toEqual([])
+})
+
+const mentorEventKey = 'event.fixture-mentor'
+const mentorDefinition = (patch: Record<string, unknown> = {}) => ({
+  schemaVersion: 1,
+  eventKey: mentorEventKey,
+  templateKey: 'template.mentor',
+  contentVersion: 1,
+  title: 'Mentor fixture',
+  summary: 'A disposable World challenge.',
+  internalNotes: '',
+  family: 'lore-revelation',
+  category: 'repeatable-activities',
+  scope: { type: 'global' },
+  mentorChallenge: {
+    opponentNpcId: npc,
+    offer: 'Face your mentor.',
+    victory: 'Your mentor yields.',
+    defeat: 'Your mentor offers practice.',
+    victoryRewardPackageRef: 'reward.mentor-victory',
+    defeatRewardPackageRef: 'reward.mentor-defeat',
+    fastVictory: { withinSeconds: 60, rewardPackageRef: 'reward.mentor-bonus' },
+    recurrence: { mode: 'rolling-24h' },
+    ...patch,
+  },
+  phases: [
+    {
+      id: 'challenge',
+      name: 'Challenge',
+      objectives: [],
+      effects: [],
+      cleanupEffects: [],
+      transition: { type: 'manual' },
+    },
+  ],
+  rewardPackageRefs: [],
+  aftermathRefs: [],
+})
+
+const publishMentor = (definition = mentorDefinition()) =>
+  db.query(
+    'select * from public.publish_event_definition_v2($1,null::uuid,$2,$3::jsonb,null,gen_random_uuid(),null,true)',
+    [owner, mentorEventKey, definition],
+  )
+
+it('rejects a Mentor definition that assigns the same reward package to both terminal outcomes', async () => {
+  await rejected(
+    () => publishMentor(mentorDefinition({ defeatRewardPackageRef: 'reward.mentor-victory' })),
+    'EVENT_MENTOR_INVALID',
+  )
+})
+
+async function mentorWorldVersion() {
+  const { rows } = await db.query<{ version: number }>(
+    "select (state->>'version')::integer version from app_private.character_world_state where character_id=$1",
+    [owner],
+  )
+  return rows[0]!.version
+}
+
+async function startMentorOccurrence() {
+  await publishEvidenceOpponent([])
+  await db.query(
+    "insert into app_private.event_reward_budget_policies values('budget.mentor-fixture','character-xp',100,$1,now())",
+    [owner],
+  )
+  await db.query(
+    `insert into app_private.event_reward_packages(reward_package_ref,package_version,reward_kind,amount,published_by,budget_ref)
+      values('reward.mentor-victory',1,'character-xp',20,$1,'budget.mentor-fixture'),
+            ('reward.mentor-defeat',1,'character-xp',7,$1,'budget.mentor-fixture'),
+            ('reward.mentor-bonus',1,'character-xp',3,$1,'budget.mentor-fixture')`,
+    [owner],
+  )
+  await publishMentor()
+  const { rows } = await db.query<{ run_id: string }>(
+    `select * from public.schedule_event_run_v2($1,null::uuid,$2,gen_random_uuid(),'schedule:mentor',
+      clock_timestamp()+interval '1 minute',clock_timestamp()+interval '7 days',null,true)`,
+    [owner, mentorEventKey],
+  )
+  const runId = rows[0]!.run_id
+  await db.query(
+    "update app_private.event_runs set scheduled_start_at=clock_timestamp()-interval '1 second' where id=$1",
+    [runId],
+  )
+  await db.query(
+    "select * from public.operate_event_run_v2($1,null::uuid,$2,1,gen_random_uuid(),'start',null,true)",
+    [owner, runId],
+  )
+  return runId
+}
+
+const mentorRows = async () =>
+  (
+    await db.query<{ view: { personalQuests: Array<Record<string, unknown>> } }>(
+      'select public.read_world_state_v1($1,$1,$2) view',
+      [owner, { version: 1, position, route: [], nextStepAt: null, discoveries: {} }],
+    )
+  ).rows[0]!.view.personalQuests.filter((row) => row.mentor === true)
+
+const claimMentor = async (session: string, request: string, version?: number) =>
+  db.query('select public.claim_world_mentor_reward_v1($1,$1,$2,$3,$4,$5) state', [
+    owner,
+    version ?? (await mentorWorldVersion()),
+    request,
+    session,
+    `claim:${session}`,
+  ])
+
+async function mentorAward(session: string) {
+  return (
+    await db.query<{ awarded_xp: number | null }>(
+      'select awarded_xp from app_private.event_mentor_attempts where battle_session_id=$1',
+      [session],
+    )
+  ).rows[0]!.awarded_xp
+}
+
+it('settles an admitted fast victory after pause and grants the exclusive base plus additive bonus once', async () => {
+  const runId = await startMentorOccurrence()
+  expect(await mentorRows()).toMatchObject([{ runId, local: true, action: 'challenge-mentor' }])
+  const fight = await admitEvidenceFixture(true, true, false, { runId })
+  await db.query(
+    "select * from public.operate_event_run_v2($1,null::uuid,$2,2,gen_random_uuid(),'pause',null,true)",
+    [owner, runId],
+  )
+  const replay = await db.query(
+    'select public.read_world_mentor_battle_replay_v1($1,$1,$2,false,$3,$4) battle',
+    [owner, runId, fight.request, 'world:fingerprint'],
+  )
+  expect(replay.rows).toEqual([{ battle: fight.session }])
+  await fight.commit(lethalStrike(fight.state, combatant.opponent))
+  expect(await mentorRows()).toMatchObject([
+    {
+      runId: fight.session,
+      action: 'claim-mentor-reward',
+      rewardPending: true,
+      body: expect.stringContaining('fast victory bonus'),
+    },
+  ])
+  await rejected(
+    () => admitEvidenceFixture(true, true, false, { runId }),
+    'WORLD_QUEST_ACTION_UNAVAILABLE',
+  )
+  const claim = crypto.randomUUID()
+  const version = await mentorWorldVersion()
+  await claimMentor(fight.session, claim, version)
+  await claimMentor(fight.session, claim, version)
+  expect(await mentorAward(fight.session)).toBe(23)
+  expect(
+    (
+      await db.query(
+        "select requested_amount from app_private.character_xp_grants where character_id=$1 and source_id like 'event.mentor:%' order by requested_amount",
+        [owner],
+      )
+    ).rows,
+  ).toEqual([{ requested_amount: 3 }, { requested_amount: 20 }])
+  await rejected(
+    () => claimMentor(fight.session, crypto.randomUUID()),
+    'WORLD_QUEST_ACTION_UNAVAILABLE',
+  )
+})
+
+it('unlocks reward-free training only after a genuine defeat and enforces the challenge cooldown', async () => {
+  const runId = await startMentorOccurrence()
+  await rejected(
+    () => admitEvidenceFixture(true, true, false, { runId, training: true }),
+    'WORLD_QUEST_ACTION_UNAVAILABLE',
+  )
+  const fight = await admitEvidenceFixture(true, false, false, { runId })
+  await fight.commit(lethalStrike(fight.state, combatant.player))
+  expect(await mentorRows()).toMatchObject([
+    { runId: fight.session, action: 'claim-mentor-reward', rewardPending: true },
+    { runId, action: 'train-mentor' },
+  ])
+  await claimMentor(fight.session, crypto.randomUUID())
+  expect(await mentorAward(fight.session)).toBe(7)
+  await rejected(
+    () => admitEvidenceFixture(true, true, false, { runId }),
+    'WORLD_QUEST_ACTION_UNAVAILABLE',
+  )
+  const training = await admitEvidenceFixture(true, true, false, { runId, training: true })
+  await training.commit(lethalStrike(training.state, combatant.opponent))
+  await rejected(
+    () => claimMentor(training.session, crypto.randomUUID()),
+    'WORLD_QUEST_ACTION_UNAVAILABLE',
+  )
+  expect(await mentorAward(training.session)).toBeNull()
+})
+
+it('pays only the base package when the server elapsed time exceeds the fast victory threshold', async () => {
+  const runId = await startMentorOccurrence()
+  const fight = await admitEvidenceFixture(true, true, false, { runId })
+  await db.query(
+    "update app_private.world_npc_battles set admitted_at=admitted_at-interval '61 seconds' where battle_session_id=$1",
+    [fight.session],
+  )
+  await fight.commit(lethalStrike(fight.state, combatant.opponent))
+  expect(await mentorRows()).toMatchObject([{ runId: fight.session, body: 'Your mentor yields.' }])
+  await claimMentor(fight.session, crypto.randomUUID())
+  expect(await mentorAward(fight.session)).toBe(20)
+})
+
+it.each(['surrender', 'timeout', 'abandoned'] as const)(
+  'keeps a disconnected attempt bound and gives no Mentor reward or training for %s',
+  async (ending) => {
+    const runId = await startMentorOccurrence()
+    const fight = await admitEvidenceFixture(true, true, false, { runId })
+    expect(await mentorRows()).toEqual([])
+    await rejected(
+      () => claimMentor(fight.session, crypto.randomUUID()),
+      'WORLD_QUEST_ACTION_UNAVAILABLE',
+    )
+    if (ending === 'surrender') {
+      await fight.commit(surrenderPvpCombatant(fight.state, combatant.player))
+    } else if (ending === 'timeout') {
+      const poisoned = reattachStatDrivenCombatBridge(
+        applyCurrentPoisonState(
+          fight.state,
+          combatant.opponent,
+          combatant.player,
+          'world-fixture.poison',
+          undefined,
+          15,
+          1,
+        ),
+        fight.state.statBridge,
+      )
+      await fight.commit({ state: poisoned, events: [] })
+      await fight.commit(
+        timeoutAiTurn(prepareAiQualityCombatant(poisoned, combatant.player)),
+        owner,
+        2,
+      )
+    } else {
+      await db.query('select app_private.abandon_active_battles_for_user_v1($1)', [owner])
+    }
+    expect(await terminal(fight.session)).toMatchObject([{ outcome: ending }])
+    expect(await mentorRows()).toEqual([])
+    await rejected(
+      () => claimMentor(fight.session, crypto.randomUUID()),
+      'WORLD_QUEST_ACTION_UNAVAILABLE',
+    )
+    await rejected(
+      () => admitEvidenceFixture(true, true, false, { runId, training: true }),
+      'WORLD_QUEST_ACTION_UNAVAILABLE',
+    )
+    expect(await mentorAward(fight.session)).toBeNull()
+  },
+)
+
+it('does not grant a defeat reward or training when a timeout hands off to a separate lethal AI command', async () => {
+  const runId = await startMentorOccurrence()
+  const fight = await admitEvidenceFixture(true, true, false, { runId })
+  const timeout = timeoutAiTurn(prepareAiQualityCombatant(fight.state, combatant.player))
+  expect(timeout.events).toContainEqual(
+    expect.objectContaining({ event: 'ai_turn_timed_out', hadActivity: false }),
+  )
+  await fight.commit(timeout)
+  await fight.commit(
+    lethalStrike(
+      reattachStatDrivenCombatBridge(timeout.state, fight.state.statBridge),
+      combatant.player,
+    ),
+    owner,
+    2,
+  )
+  expect(await terminal(fight.session)).toEqual([{ outcome: 'defeat', battle_version: 3 }])
+  expect(await mentorRows()).toEqual([])
+  await rejected(
+    () => claimMentor(fight.session, crypto.randomUUID()),
+    'WORLD_QUEST_ACTION_UNAVAILABLE',
+  )
+  await rejected(
+    () => admitEvidenceFixture(true, true, false, { runId, training: true }),
+    'WORLD_QUEST_ACTION_UNAVAILABLE',
+  )
+})
+
+it('reserves the generic World encounter while the Mentor occurrence is live or paused', async () => {
+  const runId = await startMentorOccurrence()
+  const genericRead = () =>
+    db.query('select public.read_world_npc_battle_v1($1,$1,$2,1)', [owner, npc])
+  const list = async () =>
+    (
+      await db.query<{ value: Array<Record<string, unknown>> }>(
+        'select public.read_published_world_npcs_v1($1) value',
+        [position.sectorId],
+      )
+    ).rows[0]!.value
+  await rejected(genericRead, 'WORLD_NPC_CHALLENGE_UNAVAILABLE')
+  expect((await list()).find((row) => row.id === npc)?.encounter).toBeUndefined()
+  await rejected(
+    () => admitEvidenceFixture(true, true, false, { runId, ordinary: true }),
+    'WORLD_NPC_CHALLENGE_UNAVAILABLE',
+  )
+  expect((await db.query('select 1 from app_private.world_npc_battles')).rowCount).toBe(0)
+
+  await db.query(
+    "select * from public.operate_event_run_v2($1,null::uuid,$2,2,gen_random_uuid(),'pause',null,true)",
+    [owner, runId],
+  )
+  await rejected(genericRead, 'WORLD_NPC_CHALLENGE_UNAVAILABLE')
+  expect((await list()).find((row) => row.id === npc)?.encounter).toBeUndefined()
+})
+
+it('allows a legitimate defeat after a timed-out player resumes play', async () => {
+  const runId = await startMentorOccurrence()
+  const fight = await admitEvidenceFixture(true, true, false, { runId })
+  const timeout = timeoutAiTurn(prepareAiQualityCombatant(fight.state, combatant.player))
+  await fight.commit(timeout)
+  const finishTurn = (state: typeof fight.state) => {
+    const tactical = selectCurrentFinalFacing(state.tactical, 'west').state
+    return endCombatTurn({ ...state, tactical }, PV1F_COMBAT_CONTENT)
+  }
+  const opponentPass = finishTurn(
+    reattachStatDrivenCombatBridge(timeout.state, fight.state.statBridge),
+  )
+  await fight.commit(opponentPass, owner, 2)
+  const playerPass = finishTurn(
+    reattachStatDrivenCombatBridge(opponentPass.state, fight.state.statBridge),
+  )
+  expect(playerPass.events).toContainEqual(
+    expect.objectContaining({ event: 'turn_ended', combatantId: combatant.player }),
+  )
+  await fight.commit(playerPass, owner, 3)
+  await fight.commit(
+    lethalStrike(
+      reattachStatDrivenCombatBridge(playerPass.state, fight.state.statBridge),
+      combatant.player,
+    ),
+    owner,
+    4,
+  )
+  expect(await mentorRows()).toMatchObject([
+    { runId: fight.session, action: 'claim-mentor-reward' },
+    { runId, action: 'train-mentor' },
+  ])
 })

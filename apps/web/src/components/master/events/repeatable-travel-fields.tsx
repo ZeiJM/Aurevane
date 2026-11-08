@@ -8,6 +8,7 @@ import type {
 import type { EventWorkspaceCatalogue } from '@/server/master/event-authoring-service'
 import type { StoryNpcCatalogue } from './event-phase-cast'
 import { initialPersonalJourney, PersonalJourneyFields } from './personal-journey-fields'
+import { EventRecurrenceField } from './event-recurrence-field'
 import { WorldEncounterTagField } from './world-encounter-tag-field'
 import styles from './event-builder.module.css'
 
@@ -141,7 +142,6 @@ export function RepeatableTravelFields({
   const setPolicy = (recurrence: EventRecurrence) => {
     if (value) change({ ...value, recurrence })
   }
-  const calendar = policy?.mode !== 'rolling-24h' ? policy : undefined
   return (
     <>
       <label className={styles.checkbox}>
@@ -198,57 +198,11 @@ export function RepeatableTravelFields({
         </>
       )}
       {value && policy && (
-        <fieldset>
-          <legend>Next availability</legend>
-          <label>
-            Recurrence
-            <select
-              aria-label="Recurrence"
-              value={policy.mode}
-              onChange={(event) => {
-                const mode = event.target.value
-                if (mode === 'rolling-24h') setPolicy({ mode })
-                else if (mode === 'calendar-day' || mode === 'calendar-week') {
-                  setPolicy({
-                    mode,
-                    timeZone: calendar?.timeZone ?? 'UTC',
-                    resetMinute: calendar?.resetMinute ?? 0,
-                  })
-                }
-              }}
-            >
-              <option value="rolling-24h">24 hours after reporting</option>
-              <option value="calendar-day">Next calendar day reset</option>
-              <option value="calendar-week">Next Monday reset</option>
-            </select>
-          </label>
-          {calendar && (
-            <>
-              <label>
-                Calendar timezone
-                <input
-                  value={calendar.timeZone}
-                  placeholder="Area/City"
-                  onChange={(event) => setPolicy({ ...calendar, timeZone: event.target.value })}
-                />
-              </label>
-              <label>
-                Local reset time
-                <input
-                  type="time"
-                  value={`${Math.floor(calendar.resetMinute / 60)
-                    .toString()
-                    .padStart(2, '0')}:${(calendar.resetMinute % 60).toString().padStart(2, '0')}`}
-                  onChange={(event) => {
-                    const [hours, minutes] = event.target.value.split(':').map(Number)
-                    if (hours !== undefined && minutes !== undefined)
-                      setPolicy({ ...calendar, resetMinute: hours * 60 + minutes })
-                  }}
-                />
-              </label>
-            </>
-          )}
-        </fieldset>
+        <EventRecurrenceField
+          policy={policy}
+          setPolicy={setPolicy}
+          rollingLabel="24 hours after reporting"
+        />
       )}
     </>
   )

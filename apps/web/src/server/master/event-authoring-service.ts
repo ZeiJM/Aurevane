@@ -372,16 +372,23 @@ export function createEventAuthoringService({
         : new Date(0).toISOString()
       const repeatable = definition.repeatableTravel?.journey
       const discovery = definition.combatDiscovery
-      const rewardPackageRefs = discovery
+      const mentor = definition.mentorChallenge
+      const rewardPackageRefs = mentor
         ? [
-            ...new Set([
-              discovery.firstRewardPackageRef,
-              ...(discovery.repeatRewardPackageRef ? [discovery.repeatRewardPackageRef] : []),
-            ]),
+            mentor.victoryRewardPackageRef,
+            mentor.defeatRewardPackageRef,
+            ...(mentor.fastVictory ? [mentor.fastVictory.rewardPackageRef] : []),
           ]
-        : repeatable?.type === 'defeat-and-report'
-          ? [repeatable.rewardPackageRef]
-          : [...definition.rewardPackageRefs]
+        : discovery
+          ? [
+              ...new Set([
+                discovery.firstRewardPackageRef,
+                ...(discovery.repeatRewardPackageRef ? [discovery.repeatRewardPackageRef] : []),
+              ]),
+            ]
+          : repeatable?.type === 'defeat-and-report'
+            ? [repeatable.rewardPackageRef]
+            : [...definition.rewardPackageRefs]
 
       return {
         testClock,

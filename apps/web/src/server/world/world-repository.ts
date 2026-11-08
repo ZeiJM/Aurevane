@@ -24,6 +24,8 @@ import { projectWorldFerry } from './world-ferry'
 import {
   avengerTicketReference,
   isWorldRestorationAction,
+  isWorldMentorAction,
+  mentorReference,
   isWorldUuid,
   personalQuestRunId,
   repeatableActivityReference,
@@ -452,6 +454,32 @@ export async function commitWorldCommand(
       p_expected_version: command.expectedVersion,
       p_command_id: command.commandId,
       p_ticket_id: ticketId,
+      p_request_fingerprint: fingerprint,
+    })
+    if (error) worldRpcError(error)
+    return (await readWorld(userId, characterId)).view
+  }
+  if (command.intent.kind === 'interact' && isWorldMentorAction(command.intent.actionId)) {
+    const reference = mentorReference(command.intent.interactionId)
+    if (!reference) throw new AurevaneError('INVALID_REQUEST', 'Choose a valid Mentor action.')
+    if (command.intent.actionId !== 'claim-mentor-reward') {
+      const { startWorldMentorBattle } = await import('./world-npc-battle')
+      const battleSessionId = await startWorldMentorBattle(
+        userId,
+        characterId,
+        reference,
+        command.intent.actionId === 'train-mentor',
+        command,
+        fingerprint,
+      )
+      return { ...(await readWorld(userId, characterId)).view, battleSessionId }
+    }
+    const { error } = await createSupabaseAdminClient().rpc('claim_world_mentor_reward_v1', {
+      p_user_id: userId,
+      p_character_id: characterId,
+      p_expected_version: command.expectedVersion,
+      p_command_id: command.commandId,
+      p_mentor_battle_id: reference,
       p_request_fingerprint: fingerprint,
     })
     if (error) worldRpcError(error)

@@ -21,6 +21,8 @@ Prepare the one production rollout against the exact tested tree. Before admitti
 
 Rehearse rollback on a disposable stack that has the new schema. The previous application source has no versioned appearance media route. After accepting an appearance activation or pin created by this release, recovery needs a build that continues serving those immutable URLs. Keep the migration ledger and recorded progress intact. A previous-build alias switch is a recovery option only after compatibility has been demonstrated for the state at the time of the switch.
 
+The Mentor successor adds `20261108122349_mentor_world_challenge.sql` as the 33rd candidate migration. Mentor authoring uses approved Character XP packages, an untagged published World opponent, and one challenge per configured recurrence. Canonical battle receipts determine the exclusive outcome and any additive fast-victory bonus. A genuine defeat unlocks separate practice with no Mentor reward. Isolated database coverage exercises pause and replay. The exact-tree authenticated browser and physical-handset gates are still open.
+
 ## Authority map
 
 | Surface | Current authority | Integration and verification boundary |

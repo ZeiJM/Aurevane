@@ -72,7 +72,7 @@ jobs:
         run: |
           pnpm --filter @aurevane/web exec playwright test e2e/master-event-builder.pw.ts \
             --project=desktop-chromium --project=mobile-chromium \
-            --grep 'an authored (Story Campaign|item exchange|World NPC|Alder Venn wolf hunt|Ashen Sentinel|Cinderwake (recovery|combat trial))|@sealed-realm' \
+            --grep 'an authored (Story Campaign|item exchange|World NPC|Alder Venn wolf hunt|Ashen Sentinel|Mentor challenge|Cinderwake (recovery|combat trial))|@sealed-realm' \
             --output=test-results-story --reporter=list,github
       - name: Save authenticated story failure context
         if: ${{ failure() && steps.story.outcome == 'failure' }}

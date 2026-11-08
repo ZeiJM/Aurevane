@@ -16,6 +16,7 @@ import {
   initialDefinition,
 } from './event-authoring-assists'
 import { PersonalJourneyFields } from './personal-journey-fields'
+import { MentorChallengeFields } from './mentor-challenge-fields'
 import { RepeatableTravelFields } from './repeatable-travel-fields'
 import { InventoryRestorationFields } from './inventory-restoration-fields'
 import { CombatDiscoveryFields } from './combat-discovery-fields'
@@ -155,6 +156,7 @@ export function EventBuilderClient({
   const eventCategory = resolveEventCategory(definition)
   const inventoryDiscovery = definition.inventoryDiscovery
   const combatDiscovery = definition.combatDiscovery
+  const mentorChallenge = definition.mentorChallenge
   const hasInventoryRestoration = Boolean(inventoryDiscovery?.restoration)
   const query = eventQuery.trim().toLowerCase()
   const visibleEvents = catalogue.events.filter(
@@ -602,7 +604,8 @@ export function EventBuilderClient({
               ...(eventCategory === 'story-campaigns' ||
               eventCategory === 'repeatable-activities' ||
               definition.personalJourney ||
-              definition.repeatableTravel
+              definition.repeatableTravel ||
+              mentorChallenge
                 ? ['Journey']
                 : []),
               ...(eventCategory === 'hidden-discoveries' || inventoryDiscovery || combatDiscovery
@@ -817,31 +820,45 @@ export function EventBuilderClient({
 
           <section className={styles.card} hidden={tab !== 'Journey'} aria-label="Personal journey">
             <h2>
-              {eventCategory === 'repeatable-activities' || definition.repeatableTravel
+              {eventCategory === 'repeatable-activities' ||
+              definition.repeatableTravel ||
+              mentorChallenge
                 ? 'Repeatable activity'
                 : 'Personal journey'}
             </h2>
-            {eventCategory === 'repeatable-activities' || definition.repeatableTravel ? (
-              <RepeatableTravelFields
-                value={definition.repeatableTravel}
-                storyNpcs={storyNpcs}
+            {(eventCategory === 'repeatable-activities' || mentorChallenge) &&
+            !definition.repeatableTravel ? (
+              <MentorChallengeFields
+                value={mentorChallenge}
                 rewards={catalogue.rewards}
-                change={(repeatableTravel) =>
-                  patchDefinition({
-                    repeatableTravel,
-                    ...(repeatableTravel?.journey.type === 'travel-and-report' &&
-                    definition.scope.type === 'region'
-                      ? {
-                          scope: {
-                            type: 'region',
-                            key: PERSONAL_QUEST_GIVERS[repeatableTravel.journey.giverId].position
-                              .sectorId,
-                          },
-                        }
-                      : {}),
-                  })
-                }
+                change={(mentorChallenge) => patchDefinition({ mentorChallenge })}
               />
+            ) : null}
+            {eventCategory === 'repeatable-activities' ||
+            definition.repeatableTravel ||
+            mentorChallenge ? (
+              !mentorChallenge && (
+                <RepeatableTravelFields
+                  value={definition.repeatableTravel}
+                  storyNpcs={storyNpcs}
+                  rewards={catalogue.rewards}
+                  change={(repeatableTravel) =>
+                    patchDefinition({
+                      repeatableTravel,
+                      ...(repeatableTravel?.journey.type === 'travel-and-report' &&
+                      definition.scope.type === 'region'
+                        ? {
+                            scope: {
+                              type: 'region',
+                              key: PERSONAL_QUEST_GIVERS[repeatableTravel.journey.giverId].position
+                                .sectorId,
+                            },
+                          }
+                        : {}),
+                    })
+                  }
+                />
+              )
             ) : (
               <PersonalJourneyFields
                 journey={definition.personalJourney}
@@ -1387,17 +1404,19 @@ export function EventBuilderClient({
                 </select>
               </label>
               <p>
-                {combatDiscovery
-                  ? 'Choose the challenge’s Character XP packages in Discovery. Leave shared rewards and aftermath empty.'
-                  : definition.repeatableTravel?.journey.type === 'defeat-and-report'
-                    ? 'Choose the hunt’s Character XP package in Journey. Leave shared rewards and aftermath empty.'
-                    : definition.personalJourney?.type === 'item-exchange'
-                      ? definition.personalJourney.realm
-                        ? 'Choose an approved Character XP reward for the first guardian victory.'
-                        : 'The item and access are set in Personal journey. Leave Character XP rewards empty.'
-                      : definition.personalJourney
-                        ? 'Approved Character XP is granted once when the player returns and reports. Active attempts keep their original rewards.'
-                        : 'Only budget-approved Character XP packages are listed. Shared events currently have no live reward producer.'}
+                {mentorChallenge
+                  ? 'Choose Mentor rewards in Journey. Leave shared rewards and aftermath empty.'
+                  : combatDiscovery
+                    ? 'Choose the challenge’s Character XP packages in Discovery. Leave shared rewards and aftermath empty.'
+                    : definition.repeatableTravel?.journey.type === 'defeat-and-report'
+                      ? 'Choose the hunt’s Character XP package in Journey. Leave shared rewards and aftermath empty.'
+                      : definition.personalJourney?.type === 'item-exchange'
+                        ? definition.personalJourney.realm
+                          ? 'Choose an approved Character XP reward for the first guardian victory.'
+                          : 'The item and access are set in Personal journey. Leave Character XP rewards empty.'
+                        : definition.personalJourney
+                          ? 'Approved Character XP is granted once when the player returns and reports. Active attempts keep their original rewards.'
+                          : 'Only budget-approved Character XP packages are listed. Shared events currently have no live reward producer.'}
               </p>
               <label>
                 Aftermath refs

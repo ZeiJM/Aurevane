@@ -9,6 +9,7 @@ import { resolvePublicCharacterImageUrl } from '@/media/public-character-portrai
 import {
   AVENGER_INTERACTION_PREFIX,
   isWorldUuid,
+  MENTOR_INTERACTION_PREFIX,
   PERSONAL_QUEST_INTERACTION_PREFIX,
   REPEATABLE_ACTIVITY_INTERACTION_PREFIX,
 } from '@/world/command'
@@ -47,10 +48,16 @@ export function projectPersonalQuests(
   if (!Array.isArray(rows)) return { objectives, interactions }
   let personalRows = 0
   let combatDiscoveryRows = 0
+  let mentorRows = 0
   for (const row of rows) {
     const avenger =
       idPrefix === PERSONAL_QUEST_INTERACTION_PREFIX && object(row) && row.avenger === true
-    if (avenger) {
+    const mentor =
+      idPrefix === PERSONAL_QUEST_INTERACTION_PREFIX && object(row) && row.mentor === true
+    if (mentor) {
+      if (mentorRows >= 24) continue
+      mentorRows += 1
+    } else if (avenger) {
       if (combatDiscoveryRows >= 24) continue
       combatDiscoveryRows += 1
     } else {
@@ -64,7 +71,9 @@ export function projectPersonalQuests(
       typeof row.body !== 'string'
     )
       continue
-    const id = (avenger ? AVENGER_INTERACTION_PREFIX : idPrefix) + row.runId
+    const id =
+      (mentor ? MENTOR_INTERACTION_PREFIX : avenger ? AVENGER_INTERACTION_PREFIX : idPrefix) +
+      row.runId
     const title = row.title.slice(0, 120)
     const repeatable = idPrefix === REPEATABLE_ACTIVITY_INTERACTION_PREFIX
     const availableAt =
@@ -90,7 +99,9 @@ export function projectPersonalQuests(
         ? ` ${row.defeats} of ${row.requiredDefeats} qualifying defeats.`
         : ''
     const xpPending =
-      (repeatable || avenger) && row.progress === 'completed' && row.rewardPending === true
+      (repeatable || avenger || mentor) &&
+      row.progress === 'completed' &&
+      row.rewardPending === true
     const body =
       row.body.slice(0, 800) +
       huntProgress +
@@ -225,6 +236,9 @@ export function projectPersonalQuests(
       'leave-realm': 'Leave the realm',
       'challenge-realm': 'Challenge the guardian',
       'challenge-avenger': 'Start challenge',
+      'challenge-mentor': 'Challenge the mentor',
+      'train-mentor': 'Train with the mentor',
+      'claim-mentor-reward': 'Collect Character XP',
       'choose-restoration': 'Choose recovery route',
       'choose-restoration-trial': 'Choose trial route',
       'restore-item': restoration ? `Restore ${restoration.outputName}` : null,
@@ -238,8 +252,12 @@ export function projectPersonalQuests(
       (progress === 'available' && row.action === 'accept') ||
       (xpPending &&
         ((repeatable && row.action === 'claim-hunt-reward') ||
-          (avenger && row.action === 'claim-avenger-reward'))) ||
+          (avenger && row.action === 'claim-avenger-reward') ||
+          (mentor && row.action === 'claim-mentor-reward'))) ||
       (avenger && progress === 'ready' && row.action === 'challenge-avenger') ||
+      (mentor &&
+        progress === 'ready' &&
+        (row.action === 'challenge-mentor' || row.action === 'train-mentor')) ||
       (progress === 'ready' &&
         (row.action === 'report' || (exchange && row.action === 'hand-over'))) ||
       (row.accessGranted === true &&
@@ -266,6 +284,7 @@ export function projectPersonalQuests(
       ...(typeof row.lore === 'string' ? { lore: row.lore.slice(0, 800) } : {}),
       ...(alternativeAction === 'leave-realm' ||
       alternativeAction === 'travel-realm' ||
+      (mentor && actionId === 'challenge-mentor' && alternativeAction === 'train-mentor') ||
       (actionId === 'choose-restoration' && alternativeAction === 'choose-restoration-trial')
         ? {
             alternative: {

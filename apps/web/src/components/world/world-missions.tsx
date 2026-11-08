@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { FRONTIER_APPROACH } from '@/world/catalog'
-import { isWorldRestorationAction } from '@/world/command'
+import { isWorldMentorAction, isWorldRestorationAction } from '@/world/command'
 import { samePosition } from '@/world/travel'
 import type { WorldIntent, WorldInteraction, WorldView } from '@/world/types'
 import styles from './workspace.module.css'
@@ -139,6 +139,7 @@ export function WorldMissions({
                   interaction.actionId === 'hand-over' ||
                   interaction.actionId === 'challenge-avenger' ||
                   interaction.actionId === 'claim-avenger-reward' ||
+                  isWorldMentorAction(interaction.actionId) ||
                   ((isWorldRestorationAction(interaction.actionId) ||
                     interaction.actionId === 'claim-hunt-reward') &&
                     !!objective.destination &&

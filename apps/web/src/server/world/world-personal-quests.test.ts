@@ -289,3 +289,34 @@ it('keeps an earned sword visible for collection until it is delivered', () => {
   ])
   expect(delivered.interactions[0]?.actionId).toBeNull()
 })
+
+it('projects Mentor practice and an owned claim through distinct World commands', () => {
+  const row = {
+    mentor: true,
+    runId,
+    title: 'Mentor challenge',
+    body: 'Meet the mentor.',
+    giverId,
+    speaker: 'Mentor',
+    progress: 'ready',
+    destination: giverPosition,
+    local: true,
+    action: 'challenge-mentor',
+    alternativeAction: 'train-mentor',
+  }
+  expect(projectPersonalQuests([row]).interactions[0]).toMatchObject({
+    id: `mentor-${runId}`,
+    actionId: 'challenge-mentor',
+    alternative: { actionId: 'train-mentor', label: 'Train with the mentor' },
+  })
+  const claim = {
+    ...row,
+    progress: 'completed',
+    action: 'claim-mentor-reward',
+    rewardPending: true,
+  }
+  expect(projectPersonalQuests([claim]).interactions[0]).toMatchObject({
+    actionId: 'claim-mentor-reward',
+  })
+  expect(projectPersonalQuests([{ ...claim, local: false }]).interactions).toEqual([])
+})

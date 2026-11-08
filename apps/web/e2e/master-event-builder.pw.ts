@@ -1761,3 +1761,170 @@ test('an authored World NPC challenge admits a battle only within reach', async 
   await returnToWorld.click()
   await expect(page).toHaveURL(/\/game\/world(?:\?|$)/)
 })
+
+test('an authored Mentor challenge binds the World battle and grants the fast victory package once', async ({
+  page,
+}, info) => {
+  test.skip(
+    !['desktop-chromium', 'mobile-chromium'].includes(info.project.name),
+    'Uses the disposable desktop and mobile World fixtures.',
+  )
+  test.setTimeout(180_000)
+  page.setDefaultTimeout(20_000)
+  const host = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://invalid').hostname
+  if (!['127.0.0.1', 'localhost'].includes(host))
+    throw new Error('Mentor verification requires disposable local Supabase.')
+
+  const token = randomUUID().replaceAll('-', '')
+  const email = `mentor-owner-${token}@example.test`
+  const title = `Mentor challenge ${token.slice(0, 8)}`
+  const eventKey = `event.browser-mentor-${token}`
+  const budget = `budget.browser-mentor-${token}`
+  const reward = (kind: string) => `reward.mentor-${kind}-${token}`
+  const npcId = randomUUID()
+  const npcName = 'Mentor fixture'
+  const weapon = fixtureWeapon(`fixture.mentor-blade-${token}`, 'Mentor fixture blade', 'Trail Cut')
+
+  await createAccountAndEnterCharacter({
+    page,
+    email,
+    password: 'Mentor-browser-2026!',
+    characterName: `Mentor ${token.slice(0, 12).replace(/\d/g, (d) => String.fromCharCode(65 + Number(d)))}`,
+  })
+  const userId = localUserId(email)
+  fixtureEventOwner = userId
+  fixtureWorldNpc = npcId
+  const readWorld = async (): Promise<WorldView> => {
+    const response = await page.request.get('/api/world')
+    expect(response.ok()).toBe(true)
+    return response.json()
+  }
+  const { characterId, position: placement } = await readWorld()
+  expect((await page.request.get('/api/character/items')).ok()).toBe(true)
+  const npc = {
+    name: npcName,
+    portraitRef: null,
+    uses: ['world'],
+    arena: null,
+    world: {
+      ...placement,
+      radius: 1,
+      greeting: 'Ready to spar?',
+      encounter: { arenaId: 'duel-yard', aiDifficulty: 'easy', tags: [] },
+    },
+  }
+  queryLocalDatabase(`
+    begin;
+    insert into app_private.master_panel_role_assignments(user_id,role) values('${userId}','game-owner');
+    select public.write_master_npc_design_v1('${userId}',null,'${npcId}',0,'save',
+      '${escapeSqlLiteral(JSON.stringify(npc))}'::jsonb);
+    select public.write_master_npc_design_v1('${userId}',null,'${npcId}',1,'commit-world',null);
+    insert into app_private.event_reward_budget_policies values('${budget}','character-xp',25,'${userId}',now());
+    insert into app_private.event_reward_packages(reward_package_ref,package_version,reward_kind,amount,published_by,budget_ref)
+      values('${reward('win')}',1,'character-xp',12,'${userId}','${budget}'),
+            ('${reward('loss')}',1,'character-xp',5,'${userId}','${budget}'),
+            ('${reward('fast')}',1,'character-xp',3,'${userId}','${budget}');
+    select public.seed_runtime_item_sources_v1('${escapeSqlLiteral(JSON.stringify([weapon]))}'::jsonb);
+    select public.grant_character_items_v1('${userId}','${characterId}',
+      (public.read_character_item_inventory_v1('${userId}','${characterId}')->>'revision')::bigint,
+      'fixture:mentor:${token}',jsonb_build_array(jsonb_build_object('itemId','${weapon.id}','quantity',1)));
+    commit;
+  `)
+  await page.goto('/game/loadout/items')
+  await page.getByRole('button', { name: /Slot \d+: Mentor fixture blade/ }).click()
+  await page
+    .getByRole('dialog', { name: weapon.name })
+    .getByRole('button', { name: 'Equip', exact: true })
+    .click()
+  await expect(
+    page.getByRole('button', { name: `Main Hand: ${weapon.name}`, exact: true }),
+  ).toBeVisible()
+
+  await page.goto('/master/events')
+  await page
+    .getByRole('navigation', { name: 'Event categories' })
+    .getByRole('button', { name: 'Repeatable Activities', exact: true })
+    .click()
+  const section = (name: string) =>
+    page
+      .getByRole('navigation', { name: 'Event authoring sections' })
+      .getByRole('button', { name, exact: true })
+      .click()
+  await section('Setup')
+  await page
+    .getByRole('combobox', { name: 'Category', exact: true })
+    .selectOption('repeatable-activities')
+  await page.getByLabel(/^Family/).selectOption('lore-revelation')
+  await page.getByLabel(/^Scope/).selectOption('global')
+  await page.getByLabel('Title', { exact: true }).fill(title)
+  await section('Journey')
+  await page.getByLabel('Enable a Mentor challenge', { exact: true }).check()
+  const mentor = page.getByRole('group', { name: 'Mentor challenge', exact: true })
+  const select = (name: string, value: string) =>
+    mentor.getByRole('combobox', { name, exact: true }).selectOption(value)
+  await select('Mentor sector', placement.sectorId)
+  await select('Mentor encounter NPC', npcId)
+  await select('Victory Character XP package', reward('win'))
+  await select('Defeat Character XP package', reward('loss'))
+  await mentor.getByLabel('Add a fast victory bonus', { exact: true }).check()
+  await mentor.getByLabel('Fast victory time in seconds', { exact: true }).fill('3600')
+  await select('Fast victory bonus XP package', reward('fast'))
+  await mentor.getByLabel('Challenge offer', { exact: true }).fill('Face your mentor.')
+  await mentor.getByLabel('Victory dialogue', { exact: true }).fill('Your mentor yields.')
+  await mentor.getByLabel('Defeat dialogue', { exact: true }).fill('Your mentor offers practice.')
+  await section('Schedule')
+  await page.getByLabel('Event key').fill(eventKey)
+  await page.getByLabel('Confirm publication or schedule for this audience').check()
+  await runEventOperation(page, 'publish', 'Publish')
+  await page
+    .getByRole('textbox', { name: 'Start', exact: true })
+    .fill(new Date(Date.now() + 3_600_000).toISOString().slice(0, 16))
+  await page
+    .getByRole('textbox', { name: 'End', exact: true })
+    .fill(new Date(Date.now() + 7_200_000).toISOString().slice(0, 16))
+  await page.getByLabel('Confirm publication or schedule for this audience').check()
+  fixtureStoryEvent = { eventKey, userId }
+  await runEventOperation(page, 'schedule', 'Schedule')
+  const runId = queryLocalDatabase(
+    `select id from app_private.event_runs where event_key='${eventKey}'`,
+  )
+  expect(runId).toMatch(/^[0-9a-f-]{36}$/)
+  queryLocalDatabase(`
+    begin;
+    update app_private.event_runs set scheduled_start_at=clock_timestamp()-interval '1 second' where id='${runId}';
+    select * from public.operate_event_run_v2('${userId}','${characterId}','${runId}',1,gen_random_uuid(),'start',null,true);
+    commit;
+  `)
+
+  const openMissions = async () => {
+    const details = page.getByRole('button', { name: 'Details', exact: true })
+    if (await details.isVisible()) await details.click()
+    await page.getByRole('tab', { name: /Missions/ }).click()
+  }
+  await page.goto('/game/world')
+  await openMissions()
+  const xp = () =>
+    Number(queryLocalDatabase(`select xp from public.characters where id='${characterId}'`))
+  const before = xp()
+  await challengeFixtureNpc(page, npcName, characterId, weapon.name, {
+    title,
+    action: 'Challenge the mentor',
+  })
+  await page.getByRole('button', { name: 'Return to World', exact: true }).click()
+  await expect(page).toHaveURL(/\/game\/world(?:\?|$)/)
+  await openMissions()
+  expect(xp()).toBe(before)
+  await page
+    .getByRole('region', { name: 'Local interaction' })
+    .getByRole('heading', { name: title, exact: true })
+    .locator('..')
+    .getByRole('button', { name: `Talk to ${npcName}`, exact: true })
+    .click()
+  const dialogue = page.getByRole('dialog', { name: npcName })
+  await expect(dialogue.getByText(/earned the fast victory bonus/i)).toBeVisible()
+  await dialogue.getByRole('button', { name: 'Collect Character XP', exact: true }).click()
+  await expect.poll(xp).toBe(before + 15)
+  expect(
+    (await readWorld()).interactions.some((row) => row.actionId === 'claim-mentor-reward'),
+  ).toBe(false)
+})

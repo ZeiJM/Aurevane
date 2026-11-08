@@ -233,7 +233,7 @@ function mapRpcError(error: RpcError): never {
       'Choose a tag used by a published World encounter.',
       { cause: error },
     )
-  const combatDiscoveryMessages: Readonly<Record<string, string>> = {
+  const privateChallengeMessages: Readonly<Record<string, string>> = {
     EVENT_COMBAT_DISCOVERY_INVALID:
       'Complete the daily combat discovery using Global scope and one manual phase without shared rewards or effects.',
     EVENT_COMBAT_DISCOVERY_TARGET_UNAVAILABLE: 'Choose a tag used by a published World encounter.',
@@ -242,9 +242,17 @@ function mapRpcError(error: RpcError): never {
     EVENT_COMBAT_DISCOVERY_REWARD_UNAVAILABLE:
       'Choose an approved Character XP package for each configured discovery reward.',
     EVENT_COMBAT_DISCOVERY_SEASON_END_REQUIRED: 'Choose an end time for a seasonal discovery.',
+    EVENT_MENTOR_INVALID:
+      'Complete the Mentor challenge using Global scope, one manual phase and distinct rewards.',
+    EVENT_MENTOR_IDENTITY_IMMUTABLE:
+      'Use a new Event identity when adding or removing a Mentor challenge.',
+    EVENT_MENTOR_OPPONENT_UNAVAILABLE:
+      'Choose a published World encounter outside sealed realms with no qualification tags.',
+    EVENT_MENTOR_REWARD_UNAVAILABLE:
+      'Choose an approved Character XP package for each Mentor reward.',
   }
-  if (Object.hasOwn(combatDiscoveryMessages, message)) {
-    throw new AurevaneError('INVALID_REQUEST', combatDiscoveryMessages[message]!, { cause: error })
+  if (Object.hasOwn(privateChallengeMessages, message)) {
+    throw new AurevaneError('INVALID_REQUEST', privateChallengeMessages[message]!, { cause: error })
   }
   if (
     error.code === '22023' ||

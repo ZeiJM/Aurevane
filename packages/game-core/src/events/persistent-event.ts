@@ -147,6 +147,17 @@ export interface RepeatableTravel {
   readonly recurrence: EventRecurrence
 }
 
+export interface MentorChallenge {
+  readonly opponentNpcId: string
+  readonly offer: string
+  readonly victory: string
+  readonly defeat: string
+  readonly victoryRewardPackageRef: string
+  readonly defeatRewardPackageRef: string
+  readonly fastVictory?: { readonly withinSeconds: number; readonly rewardPackageRef: string }
+  readonly recurrence: EventRecurrence
+}
+
 export interface PersistentEventDefinition {
   readonly schemaVersion: typeof PERSISTENT_EVENT_SCHEMA_VERSION
   readonly eventKey: string
@@ -160,6 +171,7 @@ export interface PersistentEventDefinition {
   readonly personalJourney?: PersonalJourney
   readonly inventoryDiscovery?: PersonalInventoryDiscovery
   readonly combatDiscovery?: PersonalCombatDiscovery
+  readonly mentorChallenge?: MentorChallenge
   readonly repeatableTravel?: RepeatableTravel
   readonly scope: EventScope
   readonly phases: readonly PersistentEventPhaseDefinition[]
@@ -333,6 +345,50 @@ function validateCalendarReset(timeZone: string, resetMinute: number): void {
   if (!Number.isInteger(resetMinute) || resetMinute < 0 || resetMinute > 1439) {
     throw new TypeError('Choose a calendar reset time from 00:00 to 23:59.')
   }
+}
+
+function validateMentorChallenge(
+  definition: PersistentEventDefinition,
+  mentor: MentorChallenge,
+): void {
+  if (
+    resolveEventCategory(definition) !== 'repeatable-activities' ||
+    definition.scope.type !== 'global' ||
+    definition.personalJourney !== undefined ||
+    definition.repeatableTravel !== undefined ||
+    definition.combatDiscovery !== undefined ||
+    definition.inventoryDiscovery !== undefined ||
+    definition.rewardPackageRefs.length
+  ) {
+    throw new TypeError(
+      'A Mentor challenge requires a global Repeatable Activity with its own rewards.',
+    )
+  }
+  validatePrivateQuestPhase(definition, 'A Mentor challenge')
+  if (!mentor || !isPersonalJourneyNpcId(mentor.opponentNpcId))
+    throw new TypeError('Choose a published World encounter for the Mentor.')
+  shortText(mentor.offer, 'Mentor offer', 800)
+  shortText(mentor.victory, 'Victory dialogue', 800)
+  shortText(mentor.defeat, 'Defeat dialogue', 800)
+  const rewards = [mentor.victoryRewardPackageRef, mentor.defeatRewardPackageRef]
+  if (mentor.fastVictory !== undefined) {
+    const bonus = mentor.fastVictory
+    if (
+      !bonus ||
+      !Number.isInteger(bonus.withinSeconds) ||
+      bonus.withinSeconds < 1 ||
+      bonus.withinSeconds > 3600
+    )
+      throw new TypeError('Choose a fast victory threshold from 1 to 3,600 seconds.')
+    rewards.push(bonus.rewardPackageRef)
+  }
+  for (const reward of rewards) identity(reward, 'Mentor Character XP package')
+  if (new Set(rewards).size !== rewards.length)
+    throw new TypeError('Choose a different Character XP package for each Mentor reward.')
+  const policy = mentor.recurrence
+  if (!policy || !['rolling-24h', 'calendar-day', 'calendar-week'].includes(policy.mode))
+    throw new TypeError('Choose a supported recurrence.')
+  if (policy.mode !== 'rolling-24h') validateCalendarReset(policy.timeZone, policy.resetMinute)
 }
 
 function validateCombatDiscovery(definition: PersistentEventDefinition): void {
@@ -565,6 +621,8 @@ export function validatePersistentEventDefinition(definition: PersistentEventDef
     }
   }
 
+  if (definition.mentorChallenge !== undefined)
+    validateMentorChallenge(definition, definition.mentorChallenge)
   if (definition.combatDiscovery !== undefined) validateCombatDiscovery(definition)
 
   if (definition.inventoryDiscovery !== undefined) {

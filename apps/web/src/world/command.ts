@@ -8,6 +8,7 @@ export const isWorldUuid = (v: unknown): v is string =>
 export const PERSONAL_QUEST_INTERACTION_PREFIX = 'quest-run-'
 export const REPEATABLE_ACTIVITY_INTERACTION_PREFIX = 'repeatable-travel-'
 export const AVENGER_INTERACTION_PREFIX = 'avenger-'
+export const MENTOR_INTERACTION_PREFIX = 'mentor-'
 export function personalQuestRunId(interactionId: string): string | null {
   if (!interactionId.startsWith(PERSONAL_QUEST_INTERACTION_PREFIX)) return null
   const runId = interactionId.slice(PERSONAL_QUEST_INTERACTION_PREFIX.length)
@@ -22,6 +23,16 @@ export function avengerTicketReference(interactionId: string): string | null {
   if (!interactionId.startsWith(AVENGER_INTERACTION_PREFIX)) return null
   const ticketId = interactionId.slice(AVENGER_INTERACTION_PREFIX.length)
   return isWorldUuid(ticketId) ? ticketId : null
+}
+export function mentorReference(interactionId: string): string | null {
+  if (!interactionId.startsWith(MENTOR_INTERACTION_PREFIX)) return null
+  const reference = interactionId.slice(MENTOR_INTERACTION_PREFIX.length)
+  return isWorldUuid(reference) ? reference : null
+}
+export function isWorldMentorAction(
+  value: unknown,
+): value is 'challenge-mentor' | 'train-mentor' | 'claim-mentor-reward' {
+  return value === 'challenge-mentor' || value === 'train-mentor' || value === 'claim-mentor-reward'
 }
 export function isWorldRestorationAction(value: unknown): value is WorldRestorationActionId {
   return (
@@ -77,6 +88,7 @@ export function parseWorldCommand(value: unknown): WorldCommand | null {
       input.actionId === 'challenge-npc' ||
       ((input.actionId === 'challenge-avenger' || input.actionId === 'claim-avenger-reward') &&
         avengerTicketReference(input.interactionId) !== null) ||
+      (isWorldMentorAction(input.actionId) && mentorReference(input.interactionId) !== null) ||
       (input.actionId === 'claim-hunt-reward' &&
         repeatableActivityReference(input.interactionId) !== null) ||
       (isWorldRestorationAction(input.actionId) &&

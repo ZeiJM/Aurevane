@@ -65,9 +65,22 @@ interface WorldBattleAdmissionContext {
 }
 
 type WorldBattleAdmission = WorldBattleAdmissionContext &
-  ({ runId: string } | { npcId: string; ticketId?: string })
+  (
+    | { runId: string }
+    | ({ npcId: string } & (
+        { ticketId?: string; mentor?: never } | { ticketId?: never; mentor: MentorBattleTarget }
+      ))
+  )
 
-export type WorldNpcBattleTarget = { npcId: string } | { ticketId: string }
+type MentorBattleTarget = { mentorRunId: string; training: boolean }
+export type WorldNpcBattleTarget = { npcId: string } | { ticketId: string } | MentorBattleTarget
+
+export function worldNpcBattleTargetArgs(target: WorldNpcBattleTarget) {
+  if ('mentorRunId' in target)
+    return { p_mentor_run_id: target.mentorRunId, p_training: target.training }
+  if ('ticketId' in target) return { p_ticket_id: target.ticketId }
+  return { p_npc_id: target.npcId }
+}
 
 export async function readWorldNpcBattleReplay(
   client: ReturnType<typeof createSupabaseAdminClient>,
@@ -76,15 +89,17 @@ export async function readWorldNpcBattleReplay(
   throwWorldError: WorldBattleAdmissionContext['throwWorldError'],
 ): Promise<string | null> {
   const { data, error } = await client.rpc(
-    'ticketId' in target
-      ? 'read_world_avenger_battle_replay_v1'
-      : 'read_world_npc_battle_replay_v1',
+    'mentorRunId' in target
+      ? 'read_world_mentor_battle_replay_v1'
+      : 'ticketId' in target
+        ? 'read_world_avenger_battle_replay_v1'
+        : 'read_world_npc_battle_replay_v1',
     {
       p_user_id: input.userId,
       p_character_id: input.characterId,
       p_command_id: input.commandId,
       p_world_fingerprint: input.worldFingerprint,
-      ...('ticketId' in target ? { p_ticket_id: target.ticketId } : { p_npc_id: target.npcId }),
+      ...worldNpcBattleTargetArgs(target),
     },
   )
   if (error) throwWorldError(error)
@@ -115,7 +130,8 @@ export function createSupabaseBattleSessionRepository(
         // A concurrent creation may share an NPC but belong to a different World command.
         const receipt = await readWorldNpcBattleReplay(
           supabase,
-          world.ticketId === undefined ? { npcId: world.npcId } : { ticketId: world.ticketId },
+          world.mentor ??
+            (world.ticketId === undefined ? { npcId: world.npcId } : { ticketId: world.ticketId }),
           {
             userId: input.userId,
             characterId: world.characterId,
@@ -161,9 +177,11 @@ export function createSupabaseBattleSessionRepository(
         ? await supabase.rpc(
             'runId' in world
               ? 'start_world_personal_realm_battle_v1'
-              : world.ticketId === undefined
-                ? 'start_world_npc_battle_v1'
-                : 'start_world_avenger_battle_v1',
+              : world.mentor
+                ? 'start_world_mentor_battle_v1'
+                : world.ticketId === undefined
+                  ? 'start_world_npc_battle_v1'
+                  : 'start_world_avenger_battle_v1',
             {
               ...common,
               ...startup,
@@ -174,6 +192,7 @@ export function createSupabaseBattleSessionRepository(
                 ? { p_run_id: world.runId }
                 : {
                     p_npc_id: world.npcId,
+                    ...(world.mentor ? worldNpcBattleTargetArgs(world.mentor) : {}),
                     ...(world.ticketId === undefined ? {} : { p_ticket_id: world.ticketId }),
                   }),
               p_world_fingerprint: world.worldFingerprint,

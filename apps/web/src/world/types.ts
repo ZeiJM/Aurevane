@@ -144,6 +144,9 @@ export type WorldInteractionActionId =
   | 'leave-realm'
   | 'challenge-realm'
   | 'challenge-npc'
+  | 'challenge-mentor'
+  | 'train-mentor'
+  | 'claim-mentor-reward'
   | 'challenge-avenger'
   | 'claim-avenger-reward'
 export interface WorldInteraction {

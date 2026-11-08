@@ -7,6 +7,7 @@ import { createBattleSessionService } from '@/server/battle/battle-session-servi
 import {
   createSupabaseBattleSessionRepository,
   readWorldNpcBattleReplay,
+  worldNpcBattleTargetArgs,
   type WorldNpcBattleTarget,
 } from '@/server/battle/supabase-battle-session-repository'
 import { createSupabaseCharacterBuildRepository } from '@/server/character/supabase-character-build-repository'
@@ -39,6 +40,23 @@ export function startWorldAvengerBattle(
   return startWorldEncounterBattle(userId, characterId, { ticketId }, command, worldFingerprint)
 }
 
+export function startWorldMentorBattle(
+  userId: string,
+  characterId: string,
+  mentorRunId: string,
+  training: boolean,
+  command: WorldCommand,
+  worldFingerprint: string,
+): Promise<string> {
+  return startWorldEncounterBattle(
+    userId,
+    characterId,
+    { mentorRunId, training },
+    command,
+    worldFingerprint,
+  )
+}
+
 async function startWorldEncounterBattle(
   userId: string,
   characterId: string,
@@ -57,17 +75,21 @@ async function startWorldEncounterBattle(
   const replay = await readReplay()
   if (replay) return replay
   const { data, error } = await client.rpc(
-    'ticketId' in target ? 'read_world_avenger_battle_v1' : 'read_world_npc_battle_v1',
+    'mentorRunId' in target
+      ? 'read_world_mentor_battle_v1'
+      : 'ticketId' in target
+        ? 'read_world_avenger_battle_v1'
+        : 'read_world_npc_battle_v1',
     {
       p_user_id: userId,
       p_character_id: characterId,
       p_expected_version: command.expectedVersion,
-      ...('ticketId' in target ? { p_ticket_id: target.ticketId } : { p_npc_id: target.npcId }),
+      ...worldNpcBattleTargetArgs(target),
     },
   )
   if (error) {
-    if ('ticketId' in target) {
-      // Preparation can become stale after another request admits the same ticket.
+    if (!('npcId' in target)) {
+      // Another request can admit the same challenge during preparation.
       const racedReplay = await readReplay()
       if (racedReplay) return racedReplay
     }
@@ -88,7 +110,11 @@ async function startWorldEncounterBattle(
     battles: createSupabaseBattleSessionRepository({
       characterId,
       npcId: opponent.id,
-      ...('ticketId' in target ? { ticketId: target.ticketId } : {}),
+      ...('mentorRunId' in target
+        ? { mentor: target }
+        : 'ticketId' in target
+          ? { ticketId: target.ticketId }
+          : {}),
       expectedVersion: command.expectedVersion,
       worldFingerprint,
       throwWorldError: worldRpcError,
