@@ -622,11 +622,12 @@ test(
   async ({ page }, info) => completeAuthoredStoryJourney(page, info, 'sealed-realm'),
 )
 
-async function winFixtureBattle(
+async function finishFixtureBattle(
   page: Page,
   battleId: string,
   characterId: string,
   weaponName: string,
+  outcome: 'Victory' | 'Defeat' = 'Victory',
 ) {
   const endpoint = `/api/battles/${battleId}`
   const battlefield = page.locator('main[data-unified-battle="true"]')
@@ -634,7 +635,7 @@ async function winFixtureBattle(
   const readBattle = async () => {
     const response = await page.request.get(endpoint)
     expect(response.ok()).toBe(true)
-    return ((await response.json()) as { battle: BattleSessionView }).battle.snapshot.tactical
+    return ((await response.json()) as { battle: BattleSessionView }).battle
   }
   const commit = async (target: ReturnType<Page['getByRole']>) => {
     const pending = page.waitForResponse(
@@ -648,12 +649,44 @@ async function winFixtureBattle(
   }
 
   await expect(battlefield).toBeVisible()
+  if (outcome === 'Defeat') {
+    await expect(finish).toBeEnabled()
+    const before = await readBattle()
+    const actorId = `character:${characterId}`
+    const actorIndex = before.snapshot.tactical.battle.combatants.findIndex(
+      (unit) => unit.id === actorId,
+    )
+    expect(actorIndex).toBeGreaterThanOrEqual(0)
+    // Prepare a low-HP fixture in both copies of the current snapshot. The NPC
+    // must still land the knockout through the normal battle command path.
+    const prepared = queryLocalDatabase(`
+      with prepared_session as (
+        update app_private.battle_sessions
+        set current_snapshot = jsonb_set(current_snapshot, '{tactical,battle,combatants,${actorIndex},hp}', '1'::jsonb)
+        where id = '${battleId}' and current_version = ${before.battleVersion}
+          and lifecycle = 'active'
+          and current_snapshot #>> '{tactical,battle,combatants,${actorIndex},id}' = '${actorId}'
+        returning id, current_version, current_snapshot
+      ), prepared_snapshot as (
+        update app_private.battle_snapshots snapshot set snapshot = session.current_snapshot
+        from prepared_session session
+        where snapshot.battle_session_id = session.id and snapshot.battle_version = session.current_version
+        returning snapshot.battle_version
+      )
+      select count(*) from prepared_snapshot;
+    `)
+    expect(prepared).toBe('1')
+    await page.reload()
+    expect((await readBattle()).snapshot.tactical.battle.combatants[actorIndex]?.hp).toBe(1)
+  }
   const attack = battlefield.locator('[data-battle-command="attack"]')
   await expect(attack).toHaveAccessibleName(new RegExp(`^${weaponName},`))
   for (let command = 0; command < 30; command++) {
-    if ((await readBattle()).battle.lifecycle !== 'active') break
+    if ((await readBattle()).snapshot.tactical.battle.lifecycle !== 'active') break
     await expect(finish).toBeEnabled({ timeout: 20_000 })
-    const state = await readBattle()
+    const {
+      snapshot: { tactical: state },
+    } = await readBattle()
     const player = state.battle.combatants.find((unit) => unit.id === `character:${characterId}`)!
     const enemy = state.battle.combatants.find((unit) => unit.teamId === 'opponents')!
     const from = state.placements.find((entry) => entry.combatantId === player.id)!.position
@@ -665,7 +698,7 @@ async function winFixtureBattle(
     await expect(
       battlefield.getByRole('progressbar', { name: 'Action Economy remaining' }),
     ).toHaveAttribute('aria-valuenow', String(ap))
-    if (distance === 1 && ap >= PV1F_BASIC_ATTACK_COST) {
+    if (outcome === 'Victory' && distance === 1 && ap >= PV1F_BASIC_ATTACK_COST) {
       await attack.click()
       const target = battlefield.getByRole('button', {
         name: new RegExp(`^Tile ${to.x + 1}, ${to.y + 1};.*occupied by`),
@@ -717,9 +750,7 @@ async function winFixtureBattle(
     expect((await opponentTurn).ok()).toBe(true)
   }
   await expect(
-    page
-      .getByTestId('battle-result-overlay')
-      .getByRole('heading', { name: 'Victory', exact: true }),
+    page.getByTestId('battle-result-overlay').getByRole('heading', { name: outcome, exact: true }),
   ).toBeVisible()
 }
 
@@ -759,7 +790,11 @@ async function challengeFixtureNpc(
   name: string,
   characterId: string,
   weaponName: string,
-  { title = 'Challenge', action = 'Start battle' } = {},
+  {
+    title = 'Challenge',
+    action = 'Start battle',
+    outcome = 'Victory',
+  }: { title?: string; action?: string; outcome?: 'Victory' | 'Defeat' | 'Surrender' } = {},
 ) {
   await page
     .getByRole('region', { name: 'Local interaction' })
@@ -773,12 +808,26 @@ async function challengeFixtureNpc(
     .click()
   await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}\?returnTo=world/)
   const battleId = new URL(page.url()).pathname.split('/').at(-1)!
-  await winFixtureBattle(page, battleId, characterId, weaponName)
+  if (outcome === 'Surrender') {
+    const battlefield = page.locator('main[data-unified-battle="true"]')
+    await expect(battlefield).toHaveAttribute('data-local-turn', 'true')
+    await expect(battlefield).not.toHaveAttribute('aria-busy', 'true')
+    await page.getByRole('button', { name: 'Surrender', exact: true }).click()
+    await page.getByRole('button', { name: 'Confirm Surrender' }).click()
+    await expect(
+      page
+        .getByTestId('battle-result-overlay')
+        .getByRole('heading', { name: 'Defeat', exact: true }),
+    ).toBeVisible()
+  } else {
+    await finishFixtureBattle(page, battleId, characterId, weaponName, outcome)
+  }
   expect(
     queryLocalDatabase(
       `select outcome from app_private.world_npc_terminal_receipts where battle_session_id='${battleId}'`,
     ),
-  ).toBe('victory')
+  ).toBe(outcome.toLowerCase())
+  return battleId
 }
 
 async function completeCinderwakeRestoration(
@@ -1762,9 +1811,11 @@ test('an authored World NPC challenge admits a battle only within reach', async 
   await expect(page).toHaveURL(/\/game\/world(?:\?|$)/)
 })
 
-test('an authored Mentor challenge binds the World battle and grants the fast victory package once', async ({
-  page,
-}, info) => {
+async function completeMentorChallenge(
+  page: Page,
+  info: TestInfo,
+  outcome: 'Victory' | 'Defeat' | 'Surrender',
+) {
   test.skip(
     !['desktop-chromium', 'mobile-chromium'].includes(info.project.name),
     'Uses the disposable desktop and mobile World fixtures.',
@@ -1909,26 +1960,64 @@ test('an authored Mentor challenge binds the World battle and grants the fast vi
   await challengeFixtureNpc(page, npcName, characterId, weapon.name, {
     title,
     action: 'Challenge the mentor',
+    outcome,
   })
   await page.getByRole('button', { name: 'Return to World', exact: true }).click()
   await expect(page).toHaveURL(/\/game\/world(?:\?|$)/)
   await openMissions()
+  const actions = async () =>
+    (await readWorld()).interactions.filter((row) => row.title === title).map((row) => row.actionId)
   expect(xp()).toBe(before)
-  await page
+  if (outcome === 'Surrender') {
+    expect(await actions()).toEqual([])
+    await expect(page.getByRole('heading', { name: title, exact: true })).toHaveCount(0)
+    return
+  }
+
+  const canTrain = outcome === 'Defeat'
+  expect(await actions()).toEqual(
+    canTrain ? ['claim-mentor-reward', 'train-mentor'] : ['claim-mentor-reward'],
+  )
+  const claimRow = page
     .getByRole('region', { name: 'Local interaction' })
     .getByRole('heading', { name: title, exact: true })
     .locator('..')
-    .getByRole('button', { name: `Talk to ${npcName}`, exact: true })
-    .click()
+    .first()
+  await claimRow.getByRole('button', { name: `Talk to ${npcName}`, exact: true }).click()
   const dialogue = page.getByRole('dialog', { name: npcName })
-  await expect(
-    dialogue
-      .locator('p[aria-live="polite"]')
-      .filter({ hasText: 'You earned the fast victory bonus.' }),
-  ).toBeVisible()
+  const speech = canTrain ? 'Your mentor offers practice.' : 'You earned the fast victory bonus.'
+  await expect(dialogue.locator('p[aria-live="polite"]').filter({ hasText: speech })).toBeVisible()
   await dialogue.getByRole('button', { name: 'Collect Character XP', exact: true }).click()
-  await expect.poll(xp).toBe(before + 15)
+  const claimed = before + (canTrain ? 5 : 15)
+  await expect.poll(xp).toBe(claimed)
+  await expect.poll(actions).toEqual(canTrain ? ['train-mentor'] : [])
+  if (!canTrain) return
+
+  await page.reload()
+  await openMissions()
+  const practice = await challengeFixtureNpc(page, npcName, characterId, weapon.name, {
+    title,
+    action: 'Train with the mentor',
+  })
   expect(
-    (await readWorld()).interactions.some((row) => row.actionId === 'claim-mentor-reward'),
-  ).toBe(false)
-})
+    queryLocalDatabase(
+      `select training from app_private.event_mentor_attempts where battle_session_id='${practice}'`,
+    ),
+  ).toBe('t')
+  await page.getByRole('button', { name: 'Return to World', exact: true }).click()
+  await expect(page).toHaveURL(/\/game\/world(?:\?|$)/)
+  expect(await actions()).toEqual(['train-mentor'])
+  expect(xp()).toBe(claimed)
+}
+
+test('an authored Mentor challenge binds the World battle and grants the fast victory package once', async ({
+  page,
+}, info) => completeMentorChallenge(page, info, 'Victory'))
+
+test('an authored Mentor challenge grants defeat XP and unlocks reward-free practice', async ({
+  page,
+}, info) => completeMentorChallenge(page, info, 'Defeat'))
+
+test('an authored Mentor challenge gives no reward or practice after surrender', async ({
+  page,
+}, info) => completeMentorChallenge(page, info, 'Surrender'))
