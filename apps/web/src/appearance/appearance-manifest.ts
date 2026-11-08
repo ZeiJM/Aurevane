@@ -149,8 +149,10 @@ export function withLowerGarment(
   if (blueprint.v === 3) return parseAppearanceBlueprint({ ...blueprint, lower: choice })
   if (choice !== 'original') return parseAppearanceBlueprint({ ...blueprint, v: 2, lower: choice })
   if (blueprint.v === 1) return blueprint
-  const { lower: _lower, ...parts } = blueprint
-  return parseAppearanceBlueprint({ ...parts, v: 1 })
+  return parseAppearanceBlueprint({
+    v: 1,
+    ...Object.fromEntries(fields.map((field) => [field, blueprint[field]])),
+  })
 }
 
 export function withCuff(
@@ -166,7 +168,8 @@ export function withCuff(
     })
   }
   if (blueprint.v !== 3) return blueprint
-  const { cuff: _cuff, lower, ...parts } = blueprint
+  const { lower } = blueprint
+  const parts = Object.fromEntries(fields.map((field) => [field, blueprint[field]]))
   return parseAppearanceBlueprint(
     lower === 'original' ? { ...parts, v: 1 } : { ...parts, v: 2, lower },
   )

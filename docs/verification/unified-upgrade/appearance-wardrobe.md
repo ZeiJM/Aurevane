@@ -34,3 +34,9 @@ The new v2 recipe appends one lower-garment ID. Both media versions use the same
 `lower-garment-comparison.png` holds identity, color, top and fittings constant across eight new choices and the original. The closest pair differed by 305 material or edge pixels across the two gameplay crops. The closest silhouette pair differed by 104 opaque outline pixels. The same command above now includes that sheet, the original 120 seeded looks, and 1,064 route responses.
 
 The expanded inventory uses the prior threshold and preserves the v1 enumeration order. It rasterized 1,827 compatible constructions from 5,832 attempted recipes. The pairwise filter retained **1,794**, comprising 570 v1 and 1,224 v2 constructions. Each retained v2 recipe cleared the same threshold against all earlier v1 and v2 selections. This leaves 8,206 constructions to the 10,000 target. The count covers the vector rig. Independent cuff and lining choices, further layering, and production painted coverage remain open.
+
+## Independent sleeve cuffs
+
+The v3 recipe adds turned-back cuffs, flared cuffs or plated bracers on compatible tops with exposed sleeves. The cuff and lower garment can be selected independently. Selecting the original cuffs returns to the v1 or v2 recipe, depending on the lower garment. The existing player and NPC authority validates the new URLs, and the isolated database tests exercise approval and battle pinning. Existing v1 and v2 fixture assets retain their original bytes.
+
+The catalog review checked 1,092 media responses and confirmed the builder flow at 1280 × 860 and 390 × 844. On the same structural threshold it retained **5,196** of 5,229 compatible constructions, including 3,402 from v3. This leaves 4,804 constructions to the 10,000 target. In the controlled cuff comparison, the closest pair differed by 152 material or edge pixels and the closest silhouettes differed by 17 pixels across the two gameplay crops.
