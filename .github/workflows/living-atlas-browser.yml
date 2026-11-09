@@ -266,6 +266,10 @@ jobs:
               staged = workdir / 'supabase' / 'migrations'
               staged.mkdir(parents=True)
               shutil.copyfile('supabase/config.toml', staged.parent / 'config.toml')
+              # The CLI validates config content paths before connecting.
+              template = Path('supabase/templates/recovery.html')
+              (workdir / template.parent).mkdir()
+              shutil.copyfile(template, workdir / template)
               for path, (version, name, parts, digest) in zip(source, ledger):
                   if (
                       not re.fullmatch(r'\d{14}', version)
