@@ -17,16 +17,26 @@ on:
       - 'supabase/migrations/*world*'
       - '.github/workflows/living-atlas-browser.yml'
   workflow_dispatch:
+    inputs:
+      staging_dry_run:
+        description: 'Verify the isolated staging migration plan'
+        type: boolean
+        default: false
+      expected_candidate:
+        description: 'Exact candidate commit SHA for the staging dry run'
+        type: string
+        required: false
 
 permissions:
   contents: read
 
 concurrency:
-  group: living-atlas-browser-${{ github.ref }}
+  group: living-atlas-browser-${{ github.ref }}-${{ inputs.staging_dry_run || false }}
   cancel-in-progress: true
 
 jobs:
   verify:
+    if: ${{ !inputs.staging_dry_run }}
     runs-on: ubuntu-latest
     # The authenticated Atlas suite covers many full-route journeys; the previous
     # 20-minute cap cancelled an otherwise progressing run at scenario 39.
@@ -163,3 +173,129 @@ jobs:
       - name: Stop disposable database
         if: always()
         run: pnpm exec supabase stop --no-backup
+
+  staging-migration-plan:
+    if: >-
+      ${{ github.event_name == 'workflow_dispatch' && inputs.staging_dry_run &&
+        github.repository == 'ZeiJM/Aurevane' &&
+        github.ref == 'refs/heads/agent/unified-release-candidate-20261107' }}
+    environment: Aurevane Unified Acceptance
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Verify the requested candidate commit
+        env:
+          EXPECTED_CANDIDATE: ${{ inputs.expected_candidate }}
+        run: test "$GITHUB_SHA" = "$EXPECTED_CANDIDATE"
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install the pinned migration CLI
+        run: npm install --prefix "$RUNNER_TEMP/aurevane-staging-cli" --no-save supabase@2.114.0
+      - name: Verify staging ledger and dry-run remaining migrations
+        env:
+          STAGING_DB_URL: ${{ secrets.AUREVANE_STAGING_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD 'HEAD^{tree}'
+          python3 - <<'PY'
+          import hashlib
+          import os
+          import re
+          import shutil
+          import subprocess
+          import tempfile
+          from pathlib import Path
+          from urllib.parse import parse_qs, unquote, urlsplit
+
+          uri = os.environ.pop('STAGING_DB_URL')
+          try:
+              target = urlsplit(uri)
+              target_verified = (
+                  target.scheme in {'postgresql', 'postgres'}
+                  and target.hostname == 'aws-0-us-east-2.pooler.supabase.com'
+                  and target.port == 5432
+                  and target.username == 'postgres.lryykonjkvtzjyfikrme'
+                  and target.path == '/postgres'
+                  and parse_qs(target.query) == {'sslmode': ['require']}
+                  and not target.fragment
+                  and bool(target.password)
+                  and '[YOUR-PASSWORD]' not in unquote(target.password)
+              )
+          except ValueError:
+              target_verified = False
+          if not target_verified:
+              raise SystemExit('The isolated staging connection string is missing or has an unexpected target.')
+
+          source = sorted(Path('supabase/migrations').glob('*.sql'))
+          versions = [path.name.split('_', 1)[0] for path in source]
+          if len(source) != 247 or len(set(versions)) != len(source):
+              raise SystemExit('Candidate migration inventory differs from the reviewed 247 files.')
+          ledger_query = """
+              select version, name, cardinality(statements),
+                     encode(sha256(convert_to(statements[1], 'UTF8')), 'hex')
+              from supabase_migrations.schema_migrations order by version
+          """
+          def read_ledger():
+              result = subprocess.run(
+                  ['psql', '-XAt', '-F', '\t', '-w', '-v', 'ON_ERROR_STOP=1', '-c', ledger_query],
+                  env={**os.environ, 'PGDATABASE': uri, 'PGCONNECT_TIMEOUT': '15',
+                       'PGOPTIONS': '-c default_transaction_read_only=on'},
+                  text=True, capture_output=True, timeout=30,
+              )
+              if result.returncode:
+                  raise SystemExit('The read-only staging ledger connection or query failed.')
+              return [line.split('\t') for line in result.stdout.splitlines()]
+
+          ledger = read_ledger()
+          if len(ledger) != 20:
+              raise SystemExit('The staging ledger no longer contains the 20 reviewed entries.')
+          pending = [path.name for path in source[len(ledger):]]
+          if (pending[0], pending[-1]) != (
+              '20260819002814_six_attributes_and_character_swap_cooldown.sql',
+              '20261108140122_world_scene_fallback_movement.sql',
+          ):
+              raise SystemExit('The staging batch boundaries differ from the reviewed manifest.')
+
+          with tempfile.TemporaryDirectory() as tmp:
+              workdir = Path(tmp)
+              staged = workdir / 'supabase' / 'migrations'
+              staged.mkdir(parents=True)
+              shutil.copyfile('supabase/config.toml', staged.parent / 'config.toml')
+              for path, (version, name, parts, digest) in zip(source, ledger):
+                  if (
+                      not re.fullmatch(r'\d{14}', version)
+                      or version in versions
+                      or name != f'aurevane_{path.stem}'
+                      or parts != '1'
+                      or hashlib.sha256(path.read_bytes()).hexdigest() != digest
+                  ):
+                      raise SystemExit(f'Staging history differs from the candidate at {path.name}.')
+                  # Match the hosted aliases locally for the dry run. Do not repair the remote ledger.
+                  shutil.copyfile(path, staged / f'{version}_{name}.sql')
+              for path in source[len(ledger):]:
+                  shutil.copyfile(path, staged / path.name)
+
+              cli = Path(os.environ['RUNNER_TEMP']) / 'aurevane-staging-cli/node_modules/.bin/supabase'
+              try:
+                  plan = subprocess.run(
+                      [cli, 'db', 'push', '--workdir', workdir, '--db-url', uri, '--dry-run', '--include-all'],
+                      text=True, capture_output=True, timeout=90,
+                  )
+              except subprocess.TimeoutExpired:
+                  raise SystemExit('Supabase CLI staging dry run timed out.') from None
+              if plan.returncode:
+                  raise SystemExit('Supabase CLI staging dry run failed.')
+              planned = re.findall(r'\b\d{14}_[A-Za-z0-9_-]+\.sql\b', plan.stdout + plan.stderr)
+              if planned != pending:
+                  raise SystemExit('Supabase CLI did not return the reviewed migration sequence.')
+          if read_ledger() != ledger:
+              raise SystemExit('Staging migration history changed during the dry run.')
+          print(f'Verified {len(ledger)} applied entries and {len(pending)} pending migrations.')
+          print(f'First pending migration: {pending[0]}')
+          print(f'Last pending migration: {pending[-1]}')
+          PY
