@@ -197,7 +197,7 @@ jobs:
         run: npm install --prefix "$RUNNER_TEMP/aurevane-staging-cli" --no-save supabase@2.114.0
       - name: Verify staging ledger and dry-run remaining migrations
         env:
-          STAGING_DB_URL: ${{ secrets.AUREVANE_STAGING_DB_URL }}
+          STAGING_DB_PASSWORD: ${{ secrets.AUREVANE_STAGING_DB_PASSWORD }}
         shell: bash
         run: |
           set -euo pipefail
@@ -210,26 +210,15 @@ jobs:
           import subprocess
           import tempfile
           from pathlib import Path
-          from urllib.parse import parse_qs, unquote, urlsplit
+          from urllib.parse import quote
 
-          uri = os.environ.pop('STAGING_DB_URL')
-          try:
-              target = urlsplit(uri)
-              target_verified = (
-                  target.scheme in {'postgresql', 'postgres'}
-                  and target.hostname == 'aws-0-us-east-2.pooler.supabase.com'
-                  and target.port == 5432
-                  and target.username == 'postgres.lryykonjkvtzjyfikrme'
-                  and target.path == '/postgres'
-                  and parse_qs(target.query) == {'sslmode': ['require']}
-                  and not target.fragment
-                  and bool(target.password)
-                  and '[YOUR-PASSWORD]' not in unquote(target.password)
-              )
-          except ValueError:
-              target_verified = False
-          if not target_verified:
-              raise SystemExit('The isolated staging connection string is missing or has an unexpected target.')
+          password = os.environ.pop('STAGING_DB_PASSWORD', '')
+          if not password:
+              raise SystemExit('The isolated staging database password is missing.')
+
+          host = 'aws-0-us-east-2.pooler.supabase.com'
+          user = 'postgres.lryykonjkvtzjyfikrme'
+          uri = f"postgresql://{user}:{quote(password, safe='')}@{host}:5432/postgres?sslmode=require"
 
           source = sorted(Path('supabase/migrations').glob('*.sql'))
           versions = [path.name.split('_', 1)[0] for path in source]
@@ -244,9 +233,9 @@ jobs:
               result = subprocess.run(
                   ['psql', '-XqAt', '-F', '\t', '-w', '-v', 'ON_ERROR_STOP=1',
                    '-c', 'begin read only', '-c', ledger_query, '-c', 'rollback'],
-                  env={**os.environ, 'PGHOST': target.hostname, 'PGPORT': str(target.port),
-                       'PGDATABASE': 'postgres', 'PGUSER': target.username,
-                       'PGPASSWORD': unquote(target.password), 'PGSSLMODE': 'require',
+                  env={**os.environ, 'PGHOST': host, 'PGPORT': '5432',
+                       'PGDATABASE': 'postgres', 'PGUSER': user,
+                       'PGPASSWORD': password, 'PGSSLMODE': 'require',
                        'PGCONNECT_TIMEOUT': '15'},
                   text=True, capture_output=True, timeout=30,
               )
