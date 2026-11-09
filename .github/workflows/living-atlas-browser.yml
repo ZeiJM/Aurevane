@@ -242,13 +242,24 @@ jobs:
           """
           def read_ledger():
               result = subprocess.run(
-                  ['psql', '-XAt', '-F', '\t', '-w', '-v', 'ON_ERROR_STOP=1', '-c', ledger_query],
-                  env={**os.environ, 'PGDATABASE': uri, 'PGCONNECT_TIMEOUT': '15',
-                       'PGOPTIONS': '-c default_transaction_read_only=on'},
+                  ['psql', '-XqAt', '-F', '\t', '-w', '-v', 'ON_ERROR_STOP=1',
+                   '-c', 'begin read only', '-c', ledger_query, '-c', 'rollback'],
+                  env={**os.environ, 'PGHOST': target.hostname, 'PGPORT': str(target.port),
+                       'PGDATABASE': 'postgres', 'PGUSER': target.username,
+                       'PGPASSWORD': unquote(target.password), 'PGSSLMODE': 'require',
+                       'PGCONNECT_TIMEOUT': '15'},
                   text=True, capture_output=True, timeout=30,
               )
               if result.returncode:
-                  raise SystemExit('The read-only staging ledger connection or query failed.')
+                  error = result.stderr.lower()
+                  reason = 'connection or query error'
+                  if 'password authentication failed' in error:
+                      reason = 'password authentication failed'
+                  elif 'could not translate host name' in error:
+                      reason = 'staging hostname lookup failed'
+                  elif 'timeout expired' in error:
+                      reason = 'staging connection timed out'
+                  raise SystemExit(f'The read-only staging ledger check failed: {reason}.')
               return [line.split('\t') for line in result.stdout.splitlines()]
 
           ledger = read_ledger()
