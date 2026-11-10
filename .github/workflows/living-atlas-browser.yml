@@ -26,8 +26,12 @@ on:
         description: 'Apply the verified migration batch to isolated staging'
         type: boolean
         default: false
+      production_dry_run:
+        description: 'Verify the production migration plan without applying it'
+        type: boolean
+        default: false
       expected_candidate:
-        description: 'Exact candidate commit SHA for the staging run'
+        description: 'Exact candidate commit SHA for the migration plan or apply'
         type: string
         required: false
 
@@ -35,12 +39,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: living-atlas-browser-${{ github.ref }}-${{ inputs.staging_dry_run || inputs.staging_apply || false }}
-  cancel-in-progress: ${{ !inputs.staging_dry_run && !inputs.staging_apply }}
+  group: living-atlas-browser-${{ github.ref }}-${{ inputs.staging_dry_run || inputs.staging_apply || inputs.production_dry_run || false }}
+  cancel-in-progress: ${{ !inputs.staging_dry_run && !inputs.staging_apply && !inputs.production_dry_run }}
 
 jobs:
   verify:
-    if: ${{ !inputs.staging_dry_run && !inputs.staging_apply }}
+    if: ${{ !inputs.staging_dry_run && !inputs.staging_apply && !inputs.production_dry_run }}
     runs-on: ubuntu-latest
     # The authenticated Atlas suite covers many full-route journeys; the previous
     # 20-minute cap cancelled an otherwise progressing run at scenario 39.
@@ -180,7 +184,8 @@ jobs:
 
   staging-migration-plan:
     if: >-
-      ${{ github.event_name == 'workflow_dispatch' && (inputs.staging_dry_run || inputs.staging_apply) &&
+      ${{ github.event_name == 'workflow_dispatch' && !inputs.production_dry_run &&
+        (inputs.staging_dry_run || inputs.staging_apply) &&
         github.repository == 'ZeiJM/Aurevane' &&
         github.ref == 'refs/heads/agent/unified-release-candidate-20261107' }}
     environment: Aurevane Unified Acceptance
@@ -343,3 +348,32 @@ jobs:
                       raise SystemExit('Staging postflight did not match the candidate migration versions.')
                   print(f'Staging postflight verified {len(final)} applied migrations and preserved all {len(ledger)} existing entries.')
           PY
+
+  production-migration-plan:
+    if: >-
+      ${{ github.event_name == 'workflow_dispatch' && inputs.production_dry_run &&
+        !inputs.staging_dry_run && !inputs.staging_apply &&
+        github.repository == 'ZeiJM/Aurevane' &&
+        github.ref == 'refs/heads/agent/unified-release-candidate-20261107' }}
+    environment: Production
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Verify the requested candidate commit
+        env:
+          EXPECTED_CANDIDATE: ${{ inputs.expected_candidate }}
+        run: test "$GITHUB_SHA" = "$EXPECTED_CANDIDATE"
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install the pinned migration CLI
+        run: npm install --prefix "$RUNNER_TEMP/aurevane-production-cli" --no-save supabase@2.114.0
+      - name: Dry-run the ordered production migration batch
+        env:
+          AUREVANE_PRODUCTION_DB_URL: ${{ secrets.AUREVANE_PRODUCTION_DB_URL }}
+        run: |
+          git rev-parse HEAD 'HEAD^{tree}'
+          python3 .github/scripts/plan-aurevane-production-migrations.py "$RUNNER_TEMP/aurevane-production-cli/node_modules/.bin/supabase"
