@@ -118,15 +118,24 @@ export function paintPrecipitation(
 ) {
   const kind = precipitationKind(weather, regionId)
   if (!kind || width <= 0 || height <= 0) return 0
+  const spindrift = kind === 'snow' && weather === 'storm'
   const count = Math.ceil((kind === 'snow' ? 64 : weather === 'storm' ? 128 : 88) * density)
   context.save()
   context.lineCap = 'round'
   context.lineWidth = 1
   for (let index = 0; index < count; index++) {
     const particle = precipitationParticle(kind, index, width, height, now, wind.offset)
-    context.globalAlpha = particle.alpha
+    context.globalAlpha = spindrift ? particle.alpha * 1.35 : particle.alpha
     context.beginPath()
-    if (kind === 'snow') {
+    if (spindrift) {
+      context.strokeStyle = '#e2edf4'
+      context.moveTo(particle.x, particle.y)
+      context.lineTo(
+        particle.x + wind.speed * (85 + particle.radius * 38),
+        particle.y + particle.radius * 2,
+      )
+      context.stroke()
+    } else if (kind === 'snow') {
       context.fillStyle = '#edf4ed'
       context.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2)
       context.fill()

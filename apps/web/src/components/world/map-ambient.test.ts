@@ -1,14 +1,37 @@
-import { expect, it } from 'vitest'
+import { expect, it, vi } from 'vitest'
 import { projectWorld } from '@/server/world/world-service'
+import { GRID_HEIGHT, GRID_WIDTH } from '@/world/catalog'
 import { newWorldState } from '@/world/travel'
-import { createWildlife, wildlifePose, type Wildlife } from './map-ambient'
-import { vi } from 'vitest'
+import { createWildlife, wildlifePose, wildlifeVisible, type Wildlife } from './map-ambient'
 vi.mock('server-only', () => ({}))
 
+const town = projectWorld(newWorldState(), [], 1000).sectors[0]!
+function countryside(regionId: string, terrain: (x: number, y: number) => string = () => '.') {
+  return {
+    ...town,
+    id: 'habitat',
+    townId: undefined,
+    landmarks: [],
+    regionId,
+    cells: Array.from({ length: GRID_WIDTH * GRID_HEIGHT }, (_, index) => {
+      const x = index % GRID_WIDTH
+      const y = Math.floor(index / GRID_WIDTH)
+      const ground = terrain(x, y)
+      return { x, y, terrain: ground, safe: ground === 's', walkable: ground !== '~' }
+    }),
+  }
+}
+
+function population(sector: ReturnType<typeof countryside>) {
+  return Array.from({ length: 60 }, (_, i) =>
+    createWildlife({ ...sector, id: `${sector.id}-${i}` }),
+  ).flat()
+}
+
 it('keeps wildlife sparse across countryside while retaining independently seeded animals', () => {
-  const sector = projectWorld(newWorldState(), [], 1000).sectors[0]!
+  const sector = countryside('verdant-expanse', (x) => (x < 2 ? '~' : x >= 9 ? 't' : '.'))
   const wildlife = Array.from({ length: 30 }, (_, i) =>
-    createWildlife({ ...sector, id: 'density-' + i, townId: undefined }),
+    createWildlife({ ...sector, id: 'density-' + i }),
   )
   expect(wildlife.every((animals) => animals.length <= 1)).toBe(true)
   expect(wildlife.flat().some((animal) => animal.flying)).toBe(true)
@@ -17,8 +40,8 @@ it('keeps wildlife sparse across countryside while retaining independently seede
 })
 
 it('wanders along legal connected ground with pauses instead of sliding in place', () => {
-  const sector = projectWorld(newWorldState(), [], 1000).sectors[0]!
-  const wildlife = createWildlife({ ...sector, townId: undefined })
+  const sector = countryside('frostmere')
+  const wildlife = createWildlife(sector)
   const animal = wildlife.find((a) => !a.flying)!
   expect(animal.path.length).toBeGreaterThan(1)
   const poses = Array.from({ length: 120 }, (_, i) => wildlifePose(animal, i * 300, true))
@@ -32,6 +55,44 @@ it('wanders along legal connected ground with pauses instead of sliding in place
     ).toBe(true)
   }
   expect(wildlifePose(animal, 12000, false)).toEqual(wildlifePose(animal, 0, false))
+})
+
+it('keeps wildlife out of town districts, ferry decks and private Void terrain', () => {
+  const sector = countryside('frostmere')
+  expect(createWildlife({ ...sector, townId: 'frostmere' })).toEqual([])
+  expect(createWildlife({ ...sector, id: 'ferry:test' })).toEqual([])
+  expect(createWildlife({ ...sector, warpedTheme: 'haven' })).toEqual([])
+})
+
+it('uses shore, woodland and open snow species only in their allowed habitats', () => {
+  const shore = population(countryside('hollow-coast', (x) => (x < 2 ? '~' : '.')))
+  const woods = population(countryside('verdant-expanse', (x) => (x % 2 === 0 ? 't' : '.')))
+  const snow = population(countryside('frostmere'))
+
+  expect(new Set(shore.map(({ index }) => index))).toEqual(new Set([7]))
+  expect(new Set(woods.map(({ index }) => index))).toEqual(new Set([4, 5]))
+  expect(new Set(snow.map(({ index }) => index))).toEqual(new Set([6]))
+  expect(population(countryside('glasswind-desert'))).toEqual([])
+  expect(shore.every(({ path }) => path.every(({ x }) => x >= 2 && x < 4))).toBe(true)
+})
+
+it('keeps every route point outside the local road and protected ground buffers', () => {
+  const sector = countryside('frostmere', (x) => (x === 3 ? '=' : x === 10 ? 's' : '.'))
+  const animals = population(sector)
+  expect(animals.length).toBeGreaterThan(0)
+  for (const { path } of animals)
+    expect(path.every(({ x }) => Math.abs(Math.floor(x) - 3) > 2 && Math.floor(x) < 10)).toBe(true)
+})
+
+it('uses shared daylight and weather for when animals appear', () => {
+  const deer: Wildlife = { seed: 1, index: 5, flying: false, path: [] }
+  const hare: Wildlife = { ...deer, index: 6 }
+  expect(wildlifeVisible(deer, 'Dusk', 'clear')).toBe(true)
+  expect(wildlifeVisible(deer, 'Day', 'clear')).toBe(false)
+  expect(wildlifeVisible(hare, 'Dawn', 'clear')).toBe(true)
+  expect(wildlifeVisible(hare, 'Night', 'clear')).toBe(false)
+  expect(wildlifeVisible(deer, 'Dusk', 'storm')).toBe(false)
+  expect(wildlifeVisible({ ...deer, seed: 3 }, 'Dusk', 'fog')).toBe(true)
 })
 
 it('drives visible strides from ground distance and settles every gait during a pause', () => {

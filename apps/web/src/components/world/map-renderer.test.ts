@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
 import { projectWorld } from '@/server/world/world-service'
-import { newWorldState } from '@/world/travel'
+import { newWorldState, revealNearby } from '@/world/travel'
 import { localRoute, mapPoint, WorldMotion } from './world-motion'
 import { createMapRenderer } from './map-renderer'
 import { MAP_X, MAP_Y, projectMapPoint, unprojectMapPoint } from './map-projection'
@@ -3296,6 +3296,28 @@ it('uses distinct Frostmere building art at the existing public footprint anchor
     vi.unstubAllGlobals()
   }
 })
+
+it.each([
+  ['frostmere', 'settlement-dressing', 8, 4],
+  ['uncharted-belfry', 'void-dressing', 5, 4],
+] as const)(
+  'draws loaded dressing on the projected %s canvas without town wildlife',
+  (sectorId, sheet, x, y) => {
+    const state = newWorldState()
+    state.position = { sectorId, x, y }
+    if (sectorId.startsWith('uncharted-')) state.warpedPhase = 0
+    const initial = projectWorld(revealNearby(state), [], 1000)
+    const s = scene(false, initial)
+    try {
+      s.frame(40)
+      expect(s.draws.some(({ src }) => src.endsWith(`${sheet}-v01.webp`))).toBe(true)
+      expect(s.canvas.dataset.wildlife).toBe('0')
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  },
+)
 
 it('carries smoke from the painted Frostmere forge flue without removing the building in Low quality', () => {
   const state = newWorldState()

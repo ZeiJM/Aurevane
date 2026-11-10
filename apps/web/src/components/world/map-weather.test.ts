@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
   advanceWorldWind,
+  paintPrecipitation,
   precipitationKind,
   precipitationParticle,
   terrainHeatEmitters,
@@ -69,5 +70,25 @@ describe('bounded weather motion', () => {
     expect(laterSnow.y - snow.y).toBeLessThan(laterRain.y - rain.y)
     expect(laterSnow.x).not.toBe(snow.x)
     expect(precipitationParticle('snow', 5, 800, 600, 1000).radius).not.toBe(snow.radius)
+  })
+  it('renders storm snow as directional spindrift within the normal snow particle budget', () => {
+    const drawing = {
+      save: vi.fn(),
+      restore: vi.fn(),
+      beginPath: vi.fn(),
+      moveTo: vi.fn(),
+      lineTo: vi.fn(),
+      stroke: vi.fn(),
+      fill: vi.fn(),
+      arc: vi.fn(),
+    }
+    const canvas = drawing as unknown as CanvasRenderingContext2D
+    const wind = { speed: -0.05, offset: -40 }
+    const flakes = paintPrecipitation(canvas, 800, 600, 1000, 'rain', 'frostmere', wind)
+    const storm = paintPrecipitation(canvas, 800, 600, 1000, 'storm', 'frostmere', wind)
+    expect(storm).toBe(flakes)
+    expect(drawing.stroke).toHaveBeenCalledTimes(storm)
+    expect(drawing.arc).toHaveBeenCalledTimes(flakes)
+    expect(drawing.lineTo.mock.calls[0]![0]).toBeLessThan(drawing.moveTo.mock.calls[0]![0])
   })
 })

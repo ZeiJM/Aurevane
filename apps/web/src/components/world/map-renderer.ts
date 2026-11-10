@@ -1,3 +1,4 @@
+import { worldDayPhase } from '@/world/environment'
 import {
   APPEARANCE_ASSET_PREFIX,
   APPEARANCE_FRAME,
@@ -28,6 +29,7 @@ import {
   createCloudTexture,
   createWildlife,
   wildlifePose,
+  wildlifeVisible,
   type Wildlife,
   type WildlifePose,
 } from './map-ambient'
@@ -56,6 +58,8 @@ import { drawWildlife } from './map-wildlife'
 import { buildBiomeTransitions } from './map-biome-transitions'
 
 import { worldRenderTerrain } from './map-render-terrain'
+import { buildSettlementEdges, paintSettlementEdges } from './map-settlement-edge'
+import { paintVoidGlimmer, sceneryDressing } from './map-dressing'
 import { DEFAULT_MAP_QUALITY, mapQualityBudgets, type MapQuality } from './map-quality'
 import { paintSnowRoadShoulders } from './map-snow-road'
 import {
@@ -179,6 +183,7 @@ interface Scenery {
   forge?: boolean
   chimney?: Chimney
   ferryMast?: boolean
+  voidGlimmer?: boolean
 }
 interface SceneryBatch {
   layer: HTMLCanvasElement
@@ -585,10 +590,12 @@ export function createMapRenderer(
   const frameTimes: number[] = []
   const terrainKeys = new Map<string, string>()
   const featureKeys = new Map<string, string>()
-  const wildlife = new Map<string, Wildlife[]>()
+  const wildlife = new WeakMap<WorldSectorView, Wildlife[]>()
+  const dressing = new WeakMap<WorldSectorView, ReturnType<typeof sceneryDressing>>()
   let renderSectors = worldRenderTerrain(view)
   let waterField = buildWaterField(renderSectors)
   let biomeField = buildBiomeTransitions(renderSectors)
+  let settlementEdges: ReturnType<typeof buildSettlementEdges>
   let featurePlacements = indexFeaturePlacements(renderSectors)
   let bridgeWater = indexBridgeWater(renderSectors, featurePlacements)
   let coastField = buildPublicCoasts({ ...view, sectors: renderSectors })
@@ -602,6 +609,7 @@ export function createMapRenderer(
     clearStationaryScenery()
     waterField = buildWaterField(renderSectors)
     biomeField = buildBiomeTransitions(renderSectors)
+    settlementEdges = buildSettlementEdges(renderSectors)
     featurePlacements = indexFeaturePlacements(renderSectors)
     bridgeWater = indexBridgeWater(renderSectors, featurePlacements)
     coastField = buildPublicCoasts({ ...view, sectors: renderSectors })
@@ -622,6 +630,7 @@ export function createMapRenderer(
               .filter((landmark) => landmark.kind === 'marketplace')
               .map(({ x, y }) => [x, y]),
           coastField.get(sector.id),
+          settlementEdges.get(sector.id),
           warpedFog.get(sector.id)?.key,
         ]),
       )
@@ -629,10 +638,9 @@ export function createMapRenderer(
         sector.id,
         JSON.stringify([...(featurePlacements.get(sector.id)?.values() ?? [])]),
       )
-      if (!wildlife.has(sector.id)) wildlife.set(sector.id, createWildlife(sector))
+      if (!wildlife.has(sector)) wildlife.set(sector, createWildlife(sector))
+      if (!dressing.has(sector)) dressing.set(sector, sceneryDressing(sector))
     }
-    for (const id of wildlife.keys())
-      if (!renderSectors.some((s) => s.id === id)) wildlife.delete(id)
   }
   indexTerrain()
   const clearCache = () => {
@@ -656,6 +664,8 @@ export function createMapRenderer(
   for (const name of ['terrain', 'buildings', 'nature', 'props', 'biomes']) load(name)
   load('beauties', 'v03')
   const loadRegionalArt = () => {
+    for (const sector of renderSectors)
+      for (const { sheet } of dressing.get(sector) ?? []) if (!images.has(sheet)) load(sheet, 'v01')
     if (!images.has('ferry-fittings') && renderSectors.some(({ id }) => id.startsWith('ferry:')))
       load('ferry-fittings', 'v02', 'svg')
     if (!images.has(WINTER_ART) && renderSectors.some((sector) => sector.regionId === WINTER_ART))
@@ -1016,6 +1026,14 @@ export function createMapRenderer(
       const fogMask = fogCells?.get(`${cell.x}:${cell.y}`)
       if (fogMask) paintWarpedFogEdge(c, cell, tile, fogMask)
     }
+    const edges = settlementEdges.get(sector.id)
+    if (edges)
+      paintSettlementEdges(
+        c,
+        edges,
+        tile,
+        pavement?.color ?? (sector.regionId === WINTER_ART ? '#a4aaa4' : '#95856a'),
+      )
     paintCoastLand(c, coastField.get(sector.id) ?? [], tile, sector.regionId)
     // A crossing is a continuous stone support, not a blue pond stamped on
     // the avenue. Shade only its supplied liquid mouths and its legal deck.
@@ -1607,6 +1625,26 @@ export function createMapRenderer(
           tree: false,
         })
       }
+      if (!cachedScenery)
+        for (const prop of dressing.get(sector) ?? []) {
+          const image = images.get(prop.sheet)
+          if (!image?.complete || !image.naturalWidth) continue
+          const isVoid = prop.sheet === 'void-dressing'
+          const size = tile * (isVoid ? 0.96 : 0.8)
+          addScenery({
+            x: origin.x + prop.x + 0.5,
+            y: origin.y + prop.y + 0.55,
+            width: size,
+            height: size,
+            image,
+            index: prop.index,
+            columns: 2,
+            rows: 2,
+            anchorY: 0.94,
+            tree: false,
+            voidGlimmer: isVoid,
+          })
+        }
       // Landmark structures share scenery depth/culling and identity occlusion.
       // Painting them after the character pass would hide someone on a bridge/anchor.
       if (!cachedScenery && props?.complete && props.naturalWidth)
@@ -1734,10 +1772,12 @@ export function createMapRenderer(
       facing: number
       pose: WildlifePose
     }[] = []
+    const daylight = worldDayPhase(view.environment.minuteOfDay)
     if (nature?.complete && nature.naturalWidth)
       for (const sector of visible) {
         const origin = sectorOrigin(sector)
-        for (const animal of wildlife.get(sector.id) ?? []) {
+        for (const animal of wildlife.get(sector) ?? []) {
+          if (!wildlifeVisible(animal, daylight, weather)) continue
           const pose = wildlifePose(animal, now, ambient)
           const point = { x: origin.x + pose.x, y: origin.y + pose.y },
             p = screen(point)
@@ -2118,6 +2158,7 @@ export function createMapRenderer(
       return true
     }
     let detailedScenery = 0
+    let glimmerCount = 0
     let runEnd = 0
     for (let index = 0; index < objects.length; index++) {
       const object = objects[index]!
@@ -2300,6 +2341,20 @@ export function createMapRenderer(
         glow.addColorStop(1, 'rgba(255,140,55,0)')
         ctx.fillStyle = glow
         ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2)
+      }
+      if (item.voidGlimmer && ambient && budget.clouds && glimmerCount < 6) {
+        glimmerCount++
+        paintVoidGlimmer(
+          ctx,
+          item.index,
+          spriteX,
+          spriteY,
+          item.width,
+          now,
+          hashString(`${item.x}:${item.y}`),
+          wind.speed,
+          weather,
+        )
       }
       if (item.chimney && ambient && budget.clouds) {
         chimneyPuff ??= createChimneyPuff()
