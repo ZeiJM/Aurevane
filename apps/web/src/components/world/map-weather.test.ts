@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   advanceWorldWind,
   paintPrecipitation,
+  paintWeatherVeil,
   precipitationKind,
   precipitationParticle,
   terrainHeatEmitters,
@@ -91,4 +92,21 @@ describe('bounded weather motion', () => {
     expect(drawing.arc).toHaveBeenCalledTimes(flakes)
     expect(drawing.lineTo.mock.calls[0]![0]).toBeLessThan(drawing.moveTo.mock.calls[0]![0])
   })
+})
+
+it('adds soft fog without making clear or windy skies look overcast', () => {
+  const gradient = { addColorStop: vi.fn() }
+  const drawing = {
+    save: vi.fn(),
+    restore: vi.fn(),
+    createRadialGradient: vi.fn(() => gradient),
+    fillRect: vi.fn(),
+  }
+  const canvas = drawing as unknown as CanvasRenderingContext2D
+  paintWeatherVeil(canvas, 800, 600, 'clear', 1200)
+  paintWeatherVeil(canvas, 800, 600, 'wind', -100)
+  expect(drawing.fillRect).not.toHaveBeenCalled()
+  paintWeatherVeil(canvas, 800, 600, 'fog', -100)
+  expect(drawing.createRadialGradient).toHaveBeenCalledTimes(3)
+  expect(gradient.addColorStop).toHaveBeenCalledWith(1, 'transparent')
 })

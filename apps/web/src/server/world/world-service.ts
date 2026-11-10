@@ -43,6 +43,7 @@ import {
   applyWarpedContinentPhase,
   isWarpedContinentSector,
   recordWarpedFieldObservation,
+  warpedDistrictScenery,
 } from './warped-continent'
 import {
   advanceWorldObjectiveProgress,
@@ -293,9 +294,14 @@ export function projectWorldSector(state: WorldState, sector: WorldSector): Worl
           walkable: isWalkable(sector, { x, y }),
           safe: isSafe(sector, { x, y }),
         })
+  const warpedScenery = sector.warpedTheme ? warpedDistrictScenery(sector.id) : undefined
+  const revealedScenery =
+    warpedScenery &&
+    cells.some(({ x, y, walkable }) => walkable && x === warpedScenery.x && y === warpedScenery.y)
   const legacyTrail = /^trail:.*:(\d+)$/.exec(sector.id)
   return {
     ...publicSector,
+    ...(revealedScenery ? { warpedScenery } : {}),
     ...(legacyTrail ? { atlasColumn: Number(legacyTrail[1]), atlasRow: 0 } : {}),
     cells,
     landmarks: sector.landmarks.filter((p) => isKnown(state, { ...p, sectorId: sector.id })),

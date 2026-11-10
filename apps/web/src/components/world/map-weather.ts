@@ -210,6 +210,37 @@ export function paintTerrainAtmosphere(
   return count
 }
 
+/** Screen-space weather light stays soft and below names and actor markers. */
+export function paintWeatherVeil(
+  context: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  weather: WorldWeather,
+  windOffset: number,
+) {
+  if (weather !== 'fog' && weather !== 'overcast' && weather !== 'storm') return
+  const fog = weather === 'fog'
+  context.save()
+  for (let i = 0; i < 3; i++) {
+    const radius = width * (0.42 + i * 0.1)
+    const x = wrap(windOffset * (fog ? 0.22 : 0.44) + (i * width) / 2, width + 2 * radius) - radius
+    const y = height * (0.18 + i * 0.31)
+    const bank = context.createRadialGradient(x, y, 0, x, y, radius)
+    bank.addColorStop(
+      0,
+      fog
+        ? 'rgba(197,213,206,.19)'
+        : weather === 'storm'
+          ? 'rgba(28,42,64,.21)'
+          : 'rgba(48,61,71,.13)',
+    )
+    bank.addColorStop(1, 'transparent')
+    context.fillStyle = bank
+    context.fillRect(x - radius, y - radius, radius * 2, radius * 2)
+  }
+  context.restore()
+}
+
 export function regionalWeatherLabel(weather: WorldWeather, regionId: string): string {
   if (precipitationKind(weather, regionId) === 'snow')
     return weather === 'storm' ? 'Snowstorm' : 'Snow'

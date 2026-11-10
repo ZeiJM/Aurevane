@@ -40,7 +40,7 @@ function nearBuildings(sector: WorldSectorView, { x, y }: WorldCell) {
 }
 
 /** Stone is reserved for built-up road entrances with dry ground on both sides. */
-export function buildSettlementEdges(sectors: readonly WorldSectorView[], coasts?: CoastField) {
+export function buildSettlementGround(sectors: readonly WorldSectorView[], coasts?: CoastField) {
   const byAtlas = new Map<string, WorldSectorView>()
   const terrain = new Map(
     sectors.map((sector) => [
@@ -85,24 +85,30 @@ export function buildSettlementEdges(sectors: readonly WorldSectorView[], coasts
     return false
   }
 
-  const field = new Map<string, SettlementEdge[]>()
+  const edgesBySector = new Map<string, SettlementEdge[]>()
+  const shoreRoads = new Map<string, Set<string>>()
   for (const sector of sectors) {
-    if (!sector.townId || !sector.buildings?.length) continue
+    if (!sector.townId) continue
     const edges: SettlementEdge[] = []
+    const shore = new Set<string>()
     for (const cell of sector.cells) {
-      if (!cell.safe || !cell.walkable || (cell.terrain !== '=' && cell.terrain !== 's')) continue
-      if (!nearBuildings(sector, cell)) continue
+      if (!cell.walkable || (cell.terrain !== '=' && cell.terrain !== 's')) continue
+      if (nearShore(sector, cell.x, cell.y)) {
+        shore.add(address(cell.x, cell.y))
+        continue
+      }
+      if (!cell.safe || !nearBuildings(sector, cell)) continue
       for (const [dx, dy, side] of steps) {
         const outside = groundAt(sector, cell.x + dx, cell.y + dy)
         if (!outside?.cell?.walkable || outside.cell.safe || outside.cell.terrain !== '=') continue
-        if (nearShore(sector, cell.x, cell.y) || nearShore(outside.sector, outside.x, outside.y))
-          continue
+        if (nearShore(outside.sector, outside.x, outside.y)) continue
         edges.push({ x: cell.x, y: cell.y, side })
       }
     }
-    if (edges.length) field.set(sector.id, edges)
+    if (edges.length) edgesBySector.set(sector.id, edges)
+    if (shore.size) shoreRoads.set(sector.id, shore)
   }
-  return field
+  return { edges: edgesBySector, shoreRoads }
 }
 
 /** Bake a stone lip into the settlement side of the ground, under scenery and actors. */

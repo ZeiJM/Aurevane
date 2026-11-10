@@ -209,9 +209,17 @@ export interface WorldCell {
   walkable: boolean
   safe: boolean
 }
+export interface WorldWarpedScenery {
+  x: number
+  y: number
+  sheet: 'void-dressing' | 'void-relics' | 'void-frontier'
+  index: number
+}
 export interface WorldSectorView extends Omit<WorldSector, 'rows' | 'roads'> {
   cells: WorldCell[]
   exits: WorldRoad[]
+  /** Private focal art, supplied only for surveyed ground. */
+  warpedScenery?: WorldWarpedScenery
 }
 /** Public presentation only: no private cells, roads, peers or interactions. */
 export type WorldScenerySector = readonly [

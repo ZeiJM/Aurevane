@@ -236,6 +236,12 @@ export function paintCoastLand(
     wrack.addColorStop(0, 'rgba(48,49,44,.72)')
     wrack.addColorStop(1, 'rgba(48,49,44,0)')
     paintBand(context, edge, tile, 0, -0.22, wrack)
+    // A narrow irregular face gives the dry bank relief where it meets the water.
+    const face = colourBand(context, edge, tile, 0, -0.15)
+    face.addColorStop(0, 'rgba(37,38,32,.55)')
+    face.addColorStop(0.43, `rgba(${palette.dry},.51)`)
+    face.addColorStop(1, 'transparent')
+    paintBand(context, edge, tile, 0, -0.18, face)
     context.fillStyle = palette.stone
     const count = (edge.to - edge.from) * 5
     for (let i = 0; i < count; i++) {
@@ -249,6 +255,29 @@ export function paintCoastLand(
         context.fillRect((x + 0.025) * tile, (y - 0.045) * tile, size * 0.9, size * 1.25)
     }
     context.globalAlpha = 1
+    // Rooted tufts interrupt long grassy or marshy banks while rocky and cold
+    // shores keep their more exposed silhouettes.
+    if (
+      regionId === 'verdant-expanse' ||
+      regionId === 'hollow-coast' ||
+      regionId === 'umbral-march'
+    ) {
+      context.beginPath()
+      context.strokeStyle =
+        regionId === 'hollow-coast' ? 'rgba(141,149,109,.56)' : 'rgba(103,119,66,.62)'
+      context.lineWidth = tile * 0.012
+      for (let i = 0; i < edge.to - edge.from; i++) {
+        const seed = hashString(`${edge.seed}:${edge.from + i}:reeds`)
+        if (seed % 5 < 2) continue
+        const t = (i + 0.24 + (seed % 47) / 100) / (edge.to - edge.from)
+        const [x, y] = coastPoint(edge, t, -0.25 - (seed % 19) / 100)
+        for (let blade = -1; blade <= 1; blade++) {
+          context.moveTo((x + blade * 0.025) * tile, y * tile)
+          context.lineTo((x + blade * 0.062) * tile, (y - 0.09 - (seed % 7) / 100) * tile)
+        }
+      }
+      context.stroke()
+    }
   }
   context.restore()
 }
@@ -290,7 +319,9 @@ export function paintCoastSea(
   budget = 16,
   regionId = '',
   waves = 3,
+  windSpeed = 0,
 ) {
+  const roughness = animate ? Math.min(1, Math.abs(windSpeed) / 0.055) : 0
   const visibleEdges = edges.slice(0, Math.max(0, Math.min(16, budget)))
   const palette = regionalCoasts[regionId] ?? commonCoast
   context.save()
@@ -307,11 +338,11 @@ export function paintCoastSea(
       const phase = animate
         ? (now / (9600 + (edge.seed % 2000)) + wave / waves + (edge.seed % 97) / 97) % 1
         : (wave + 1) / (waves + 1)
-      context.globalAlpha = Math.sin(phase * Math.PI) * 0.26
+      context.globalAlpha = Math.sin(phase * Math.PI) * (0.22 + roughness * 0.17)
       context.strokeStyle = '#d1e3cd'
-      context.lineWidth = tile * 0.016
+      context.lineWidth = tile * (0.013 + roughness * 0.01)
       context.beginPath()
-      trace(context, edge, tile, 0.08 + phase * 1.3)
+      trace(context, edge, tile, 0.08 + phase * (1.15 + roughness * 0.62))
       context.stroke()
     }
     context.globalAlpha = 1

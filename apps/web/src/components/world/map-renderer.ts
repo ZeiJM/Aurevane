@@ -48,6 +48,7 @@ import {
   advanceWorldWind,
   paintPrecipitation,
   paintTerrainAtmosphere,
+  paintWeatherVeil,
   precipitationKind,
   surfaceRainTarget,
   terrainHeatEmitters,
@@ -58,8 +59,8 @@ import { drawWildlife } from './map-wildlife'
 import { buildBiomeTransitions } from './map-biome-transitions'
 
 import { worldRenderTerrain } from './map-render-terrain'
-import { buildSettlementEdges, paintSettlementEdges } from './map-settlement-edge'
-import { paintVoidGlimmer, sceneryDressing } from './map-dressing'
+import { buildSettlementGround, paintSettlementEdges } from './map-settlement-edge'
+import { naturalDressing, paintTownLight, paintVoidGlimmer, sceneryDressing } from './map-dressing'
 import { DEFAULT_MAP_QUALITY, mapQualityBudgets, type MapQuality } from './map-quality'
 import { paintSnowRoadShoulders } from './map-snow-road'
 import {
@@ -128,6 +129,26 @@ const palettes: Record<string, [string, number, number]> = {
   'starfall-highlands': ['#7c7c77', 7, 1],
   'umbral-march': ['#384e48', 1, 0],
 }
+const regionalGround: Readonly<Partial<Record<string, number>>> = {
+  'aureth-crown': 0,
+  'verdant-expanse': 1,
+  frostmere: 2,
+  'starfall-highlands': 3,
+  emberreach: 4,
+  'glasswind-desert': 5,
+  'hollow-coast': 6,
+  'umbral-march': 7,
+}
+const trailColours: Readonly<Partial<Record<string, string>>> = {
+  'verdant-expanse': '#9e865d',
+  'aureth-crown': '#b6a473',
+  frostmere: '#aaa28e',
+  'starfall-highlands': '#9e9286',
+  emberreach: '#887262',
+  'glasswind-desert': '#c1a16b',
+  'hollow-coast': '#a19b79',
+  'umbral-march': '#817d61',
+}
 const regionalTrees: Readonly<Partial<Record<string, number>>> = {
   'aureth-crown': 6,
   'hollow-coast': 5,
@@ -183,7 +204,9 @@ interface Scenery {
   forge?: boolean
   chimney?: Chimney
   ferryMast?: boolean
-  voidGlimmer?: boolean
+  voidGlimmer?: string
+  townLight?: 'town-centres-north' | 'town-centres-south'
+  windFlex?: number
 }
 interface SceneryBatch {
   layer: HTMLCanvasElement
@@ -595,7 +618,7 @@ export function createMapRenderer(
   let renderSectors = worldRenderTerrain(view)
   let waterField = buildWaterField(renderSectors)
   let biomeField = buildBiomeTransitions(renderSectors)
-  let settlementEdges: ReturnType<typeof buildSettlementEdges>
+  let settlementGround: ReturnType<typeof buildSettlementGround>
   let featurePlacements = indexFeaturePlacements(renderSectors)
   let bridgeWater = indexBridgeWater(renderSectors, featurePlacements)
   let coastField = buildPublicCoasts({ ...view, sectors: renderSectors })
@@ -612,7 +635,7 @@ export function createMapRenderer(
     featurePlacements = indexFeaturePlacements(renderSectors)
     bridgeWater = indexBridgeWater(renderSectors, featurePlacements)
     coastField = buildPublicCoasts({ ...view, sectors: renderSectors })
-    settlementEdges = buildSettlementEdges(renderSectors, coastField)
+    settlementGround = buildSettlementGround(renderSectors, coastField)
     warpedFog = buildWarpedFogField(renderSectors)
     heatEmitters = terrainHeatEmitters(renderSectors)
     terrainKeys.clear()
@@ -630,7 +653,8 @@ export function createMapRenderer(
               .filter((landmark) => landmark.kind === 'marketplace')
               .map(({ x, y }) => [x, y]),
           coastField.get(sector.id),
-          settlementEdges.get(sector.id),
+          settlementGround.edges.get(sector.id),
+          Array.from(settlementGround.shoreRoads.get(sector.id) ?? []),
           warpedFog.get(sector.id)?.key,
         ]),
       )
@@ -639,7 +663,8 @@ export function createMapRenderer(
         JSON.stringify([...(featurePlacements.get(sector.id)?.values() ?? [])]),
       )
       if (!wildlife.has(sector)) wildlife.set(sector, createWildlife(sector))
-      if (!dressing.has(sector)) dressing.set(sector, sceneryDressing(sector))
+      if (!dressing.has(sector))
+        dressing.set(sector, [...sceneryDressing(sector), ...naturalDressing(sector)])
     }
   }
   indexTerrain()
@@ -654,7 +679,7 @@ export function createMapRenderer(
     image.onload = () => {
       // Only the terrain sheet is baked into ground layers. Scenery sheets
       // paint separately; loading them must not rebuild every visible tile.
-      if (name === 'terrain') clearCache()
+      if (name === 'terrain' || name === 'regional-ground') clearCache()
       else clearStationaryScenery()
       requestDraw()
     }
@@ -663,6 +688,7 @@ export function createMapRenderer(
   }
   for (const name of ['terrain', 'buildings', 'nature', 'props', 'biomes']) load(name)
   load('beauties', 'v03')
+  load('regional-ground', 'v01')
   const loadRegionalArt = () => {
     for (const sector of renderSectors)
       for (const { sheet } of dressing.get(sector) ?? []) if (!images.has(sheet)) load(sheet, 'v01')
@@ -778,6 +804,7 @@ export function createMapRenderer(
       c.fillRect(0, 0, layer.width, layer.height)
     }
     const texture = images.get('terrain')
+    const groundArt = images.get('regional-ground')
     // One world-anchored material gradient crosses every cell and sector without
     // resetting its colour at tile edges. Water/lava animation stays on the overlay.
     const waterMaterial = liquidMaterial(
@@ -807,23 +834,43 @@ export function createMapRenderer(
         y = cell.y * tile - offsetY
       target.fillStyle = material[0]
       target.fillRect(x, y, tile + 1, tile + 1)
-      if (texture?.complete && texture.naturalWidth) {
-        target.globalAlpha = 0.66
-        const sw = texture.width / 4,
-          sh = texture.height / 2,
-          index = regionId === 'verdant-expanse' && cell.terrain === 't' ? 1 : material[1]
+      const regionalIndex = regionalGround[regionId]
+      const painted = regionalIndex !== undefined && groundArt?.complete && groundArt.naturalWidth
+      const source = painted ? groundArt : texture
+      if (source?.complete && source.naturalWidth) {
+        target.globalAlpha = painted ? 0.8 : 0.66
+        const sw = source.width / 4,
+          sh = source.height / 2,
+          index = painted
+            ? regionalIndex
+            : regionId === 'verdant-expanse' && cell.terrain === 't'
+              ? 1
+              : material[1]
+        const wx = (sector.atlasColumn ?? sector.sceneColumn ?? 0) * GRID_WIDTH + cell.x
+        const wy = (sector.atlasRow ?? sector.sceneRow ?? 0) * GRID_HEIGHT + cell.y
+        // Reflect alternating blocks so their edges meet without a repeated seam.
+        const flipX = painted && Math.floor(wx / 4) % 2 !== 0
+        const flipY = painted && Math.floor(wy / 4) % 2 !== 0
+        const flipped = flipX || flipY
+        if (flipped) {
+          target.save()
+          target.translate(x + (flipX ? tile + 1 : 0), y + (flipY ? tile + 1 : 0))
+          target.scale(flipX ? -1 : 1, flipY ? -1 : 1)
+        }
+        const sx = flipX ? 3 - (wx % 4) : wx % 4
+        const sy = flipY ? 3 - (wy % 4) : wy % 4
         target.drawImage(
-          texture,
-          (index % 4) * sw + ((((sector.atlasColumn ?? 0) * GRID_WIDTH + cell.x) % 4) * sw) / 4,
-          Math.floor(index / 4) * sh +
-            ((((sector.atlasRow ?? 0) * GRID_HEIGHT + cell.y) % 4) * sh) / 4,
+          source,
+          (index % 4) * sw + (sx * sw) / 4,
+          Math.floor(index / 4) * sh + (sy * sh) / 4,
           sw / 4,
           sh / 4,
-          x,
-          y,
+          flipped ? 0 : x,
+          flipped ? 0 : y,
           tile + 1,
           tile + 1,
         )
+        if (flipped) target.restore()
         target.globalAlpha = 1
       }
     }
@@ -913,21 +960,22 @@ export function createMapRenderer(
           sector.cells.filter(({ terrain }) => terrain !== '~').map(({ x, y }) => `${x}:${y}`),
         )
       : null
-    const snowRoadTerrain =
+    const localTerrain = new Map(sector.cells.map((cell) => [`${cell.x}:${cell.y}`, cell]))
+    const winterMarket =
       sector.regionId === WINTER_ART
-        ? new Map(sector.cells.map((cell) => [`${cell.x}:${cell.y}`, cell]))
-        : null
-    const winterMarket = snowRoadTerrain
-      ? sector.landmarks.filter((landmark) => landmark.kind === 'marketplace')
-      : []
+        ? sector.landmarks.filter((landmark) => landmark.kind === 'marketplace')
+        : []
     const pavement = sector.townId ? townPaving[sector.townId] : undefined
     const fogCells = warpedFog.get(sector.id)?.cells
+    const shoreRoads = settlementGround.shoreRoads.get(sector.id)
     for (const cell of sector.cells) {
       const x = cell.x * tile,
         y = cell.y * tile
       if (warped && cell.terrain !== '~' && cell.terrain !== 'l') {
         c.fillStyle = warped
+        c.globalAlpha = 0.54
         c.fillRect(x, y, tile + 1, tile + 1)
+        c.globalAlpha = 1
       }
       if (ferryDeck) {
         if (cell.terrain !== '~') paintFerryDeck(c, cell, tile, ferryDeck)
@@ -938,17 +986,22 @@ export function createMapRenderer(
           (landmark) => Math.abs(landmark.x - cell.x) + Math.abs(landmark.y - cell.y) <= 3,
         )
         const waterAdjacent =
-          snowRoadTerrain &&
-          (snowRoadTerrain.get(`${cell.x + 1}:${cell.y}`)?.terrain === '~' ||
-            snowRoadTerrain.get(`${cell.x - 1}:${cell.y}`)?.terrain === '~' ||
-            snowRoadTerrain.get(`${cell.x}:${cell.y + 1}`)?.terrain === '~' ||
-            snowRoadTerrain.get(`${cell.x}:${cell.y - 1}`)?.terrain === '~')
-        const winterPath = snowRoadTerrain && !square && !waterAdjacent
-        c.fillStyle = pavement?.color ?? (sector.townId ? '#aa9d7b' : '#a49b77')
-        c.globalAlpha = winterPath ? 0.4 : 0.72
+          localTerrain.get(`${cell.x + 1}:${cell.y}`)?.terrain === '~' ||
+          localTerrain.get(`${cell.x - 1}:${cell.y}`)?.terrain === '~' ||
+          localTerrain.get(`${cell.x}:${cell.y + 1}`)?.terrain === '~' ||
+          localTerrain.get(`${cell.x}:${cell.y - 1}`)?.terrain === '~'
+        const winterPath = sector.regionId === WINTER_ART && !square && !waterAdjacent
+        const naturalTrail =
+          waterAdjacent ||
+          shoreRoads?.has(`${cell.x}:${cell.y}`) ||
+          (!square && (!sector.townId || !cell.safe))
+        c.fillStyle = naturalTrail
+          ? (trailColours[sector.regionId] ?? '#96896e')
+          : (pavement?.color ?? '#aa9d7b')
+        c.globalAlpha = winterPath ? 0.4 : naturalTrail ? 0.54 : 0.72
         c.fillRect(x, y, tile + 1, tile + 1)
         c.globalAlpha = 1
-        if (texture?.complete && texture.naturalWidth) {
+        if (!naturalTrail && texture?.complete && texture.naturalWidth) {
           const sw = texture.width / 4,
             sh = texture.height / 2
           if (winterPath) c.globalAlpha = sector.townId ? 0.6 : 0.45
@@ -966,16 +1019,17 @@ export function createMapRenderer(
           )
           c.globalAlpha = 1
         }
-        c.fillStyle = winterPath
-          ? 'rgba(195,178,146,.15)'
-          : (pavement?.glaze ?? 'rgba(192,180,146,.35)')
+        c.fillStyle =
+          naturalTrail || winterPath
+            ? 'rgba(195,178,146,.15)'
+            : (pavement?.glaze ?? 'rgba(192,180,146,.35)')
         c.fillRect(x, y, tile + 1, tile + 1)
         if (winterPath)
           paintSnowRoadShoulders(
             c,
             cell,
             tile,
-            snowRoadTerrain,
+            localTerrain,
             sector.id,
             sector.townId ? 0.34 : 0.51,
           )
@@ -1026,7 +1080,7 @@ export function createMapRenderer(
       const fogMask = fogCells?.get(`${cell.x}:${cell.y}`)
       if (fogMask) paintWarpedFogEdge(c, cell, tile, fogMask)
     }
-    const edges = settlementEdges.get(sector.id)
+    const edges = settlementGround.edges.get(sector.id)
     if (edges)
       paintSettlementEdges(
         c,
@@ -1457,6 +1511,7 @@ export function createMapRenderer(
           16 - coastEdges,
           sector.regionId,
           budget.surf,
+          wind.speed,
         )
         ctx.drawImage(ground(sector), 0, 0, GRID_WIDTH * tile, GRID_HEIGHT * tile)
         ctx.restore()
@@ -1629,8 +1684,12 @@ export function createMapRenderer(
         for (const prop of dressing.get(sector) ?? []) {
           const image = images.get(prop.sheet)
           if (!image?.complete || !image.naturalWidth) continue
-          const isVoid = prop.sheet === 'void-dressing'
-          const size = tile * (isVoid ? 0.96 : 0.8)
+          const verge = prop.sheet === 'wild-verges'
+          const townLight =
+            prop.sheet === 'town-centres-north' || prop.sheet === 'town-centres-south'
+              ? prop.sheet
+              : undefined
+          const size = tile * (verge ? 0.63 : prop.sheet === 'settlement-dressing' ? 0.8 : 1.35)
           addScenery({
             x: origin.x + prop.x + 0.5,
             y: origin.y + prop.y + 0.55,
@@ -1642,7 +1701,9 @@ export function createMapRenderer(
             rows: 2,
             anchorY: 0.94,
             tree: false,
-            voidGlimmer: isVoid,
+            voidGlimmer: prop.glow,
+            townLight,
+            windFlex: verge ? 0.34 : undefined,
           })
         }
       // Landmark structures share scenery depth/culling and identity occlusion.
@@ -2159,6 +2220,7 @@ export function createMapRenderer(
     }
     let detailedScenery = 0
     let glimmerCount = 0
+    let townLightCount = 0
     let runEnd = 0
     for (let index = 0; index < objects.length; index++) {
       const object = objects[index]!
@@ -2220,7 +2282,7 @@ export function createMapRenderer(
       }
       // Stable individual phase, pace, strength and sheltered pauses. The base
       // stays fixed while the canopy bends, rather than sliding the whole tree.
-      const movingTree = ambient && budget.foliage > 0 && item.tree
+      const movingTree = ambient && budget.foliage > 0 && (item.tree || item.windFlex !== undefined)
       if (movingTree) {
         const seed = hashString(`${item.x}:${item.y}`),
           phase = (seed % 6283) / 1000,
@@ -2233,7 +2295,8 @@ export function createMapRenderer(
             (0.58 + 0.42 * Math.sin(now / period + phase)) *
             exposure *
             gust *
-            budget.foliage
+            budget.foliage *
+            (item.windFlex ?? 1)
         ctx.transform(1, 0, -sway / item.height, 1, p.x, p.y)
       }
       const anchored = item.anchorY !== undefined
@@ -2342,11 +2405,25 @@ export function createMapRenderer(
         ctx.fillStyle = glow
         ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2)
       }
+      if (item.townLight && ambient && budget.clouds && townLightCount < 5) {
+        townLightCount++
+        paintTownLight(
+          ctx,
+          item.townLight,
+          item.index,
+          spriteX,
+          spriteY,
+          item.width,
+          now,
+          weather,
+          daylight === 'Night',
+        )
+      }
       if (item.voidGlimmer && ambient && budget.clouds && glimmerCount < 6) {
         glimmerCount++
         paintVoidGlimmer(
           ctx,
-          item.index,
+          item.voidGlimmer,
           spriteX,
           spriteY,
           item.width,
@@ -2484,16 +2561,7 @@ export function createMapRenderer(
           budget.weather,
         ),
       )
-      if (richAtmosphere && (weather === 'fog' || weather === 'overcast' || weather === 'storm')) {
-        ctx.fillStyle = weather === 'fog' ? 'rgba(207,217,201,.07)' : 'rgba(25,39,47,.08)'
-        for (let i = 0; i < 5; i++) {
-          const span = width + 400
-          const x = ((((wind.offset * 0.3 + (i * width) / 4) % span) + span) % span) - 200
-          ctx.beginPath()
-          ctx.ellipse(x, height * (0.12 + i * 0.21), 250, 85, 0.1, 0, Math.PI * 2)
-          ctx.fill()
-        }
-      }
+      if (richAtmosphere) paintWeatherVeil(ctx, width, height, weather, wind.offset)
       const petals = current?.landscape === 'sakura' || current?.landscape === 'wisteria'
       const temperate = !['glasswind-desert', 'emberreach', 'frostmere'].includes(regionId)
       ctx.fillStyle = petals ? 'rgba(245,189,213,.75)' : 'rgba(214,195,124,.56)'

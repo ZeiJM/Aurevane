@@ -7,6 +7,7 @@ import type {
   WorldPosition,
   WorldSector,
   WorldState,
+  WorldWarpedScenery,
 } from '@/world/types'
 
 export const WARPED_CONTINENT_LANDING: WorldPosition = { sectorId: 'uncharted-landing', x: 6, y: 4 }
@@ -26,6 +27,30 @@ const districts = [
   ['shale', 1, 3, 2],
   ['relic', 2, 3, 4],
 ] as const
+
+const districtScenery: Partial<
+  Record<string, readonly [WorldWarpedScenery['sheet'], number, number, number]>
+> = {
+  'uncharted-glass': ['void-relics', 0, 7, 2],
+  'uncharted-belfry': ['void-dressing', 1, 5, 6],
+  'uncharted-pale': ['void-relics', 1, 7, 6],
+  'uncharted-orchard': ['void-dressing', 0, 5, 2],
+  'uncharted-landing': ['void-frontier', 0, 8, 3],
+  'uncharted-mirrors': ['void-relics', 2, 6, 6],
+  'uncharted-cinders': ['void-relics', 3, 6, 2],
+  'uncharted-verge': ['void-frontier', 0, 4, 6],
+  'uncharted-tarn': ['void-frontier', 1, 5, 2],
+  'uncharted-spiral': ['void-frontier', 2, 6, 6],
+  'uncharted-geodes': ['void-dressing', 3, 8, 2],
+  'uncharted-shale': ['void-dressing', 2, 4, 6],
+  'uncharted-relic': ['void-frontier', 3, 7, 2],
+}
+export function warpedDistrictScenery(sectorId: string): WorldWarpedScenery | undefined {
+  const art = districtScenery[sectorId]
+  if (!art) return
+  const [sheet, index, x, y] = art
+  return { sheet, index, x, y }
+}
 
 const themes = [
   {

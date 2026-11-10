@@ -3,7 +3,7 @@ import { ATLAS_COLUMNS } from '@/world/topology'
 import type { WorldCell, WorldSectorView } from '@/world/types'
 import { describe, expect, it } from 'vitest'
 import { buildPublicCoasts } from './map-coast'
-import { buildSettlementEdges } from './map-settlement-edge'
+import { buildSettlementGround } from './map-settlement-edge'
 
 function cell(x: number, y: number, safe: boolean, terrain = '=', walkable = true): WorldCell {
   return { x, y, safe, terrain, walkable }
@@ -43,7 +43,7 @@ describe('settlement ground edges', () => {
       cell(5, 3, false, '.'),
       cell(4, 4, false, '#', false),
     ])
-    const edges = buildSettlementEdges([town]).get('town')
+    const edges = buildSettlementGround([town]).edges.get('town')
     expect(edges?.map(({ x, y, side }) => [x, y, side])).toEqual([[5, 4, 1]])
   })
 
@@ -58,23 +58,29 @@ describe('settlement ground edges', () => {
     const wild = sector('wild', [cell(0, 4, false)], 0)
     const shore = sector('shore', [cell(0, 4, false), cell(1, 3, false, '~', false)], 0)
 
-    expect(buildSettlementEdges([town, district]).get('town')).toBeUndefined()
+    expect(buildSettlementGround([town, district]).edges.get('town')).toBeUndefined()
     expect(
-      buildSettlementEdges([town, wild])
-        .get('town')
+      buildSettlementGround([town, wild])
+        .edges.get('town')
         ?.map(({ side }) => side),
     ).toEqual([1])
-    expect(buildSettlementEdges([town, shore]).get('town')).toBeUndefined()
+    expect(buildSettlementGround([town, shore]).edges.get('town')).toBeUndefined()
+    const sharedBank = { ...shore, cells: [...shore.cells, cell(0, 3, false, '~', false)] }
+    expect(buildSettlementGround([town, sharedBank]).shoreRoads.get('town')).toEqual(
+      new Set([`${GRID_WIDTH - 1}:4`]),
+    )
   })
 
   it('keeps stone off inland shores and exposed coastlines even on a town road', () => {
     const town = builtTown('town', [cell(5, 4, true), cell(6, 4, false)])
     const lake = { ...town, cells: [...town.cells, cell(6, 3, false, '~', false)] }
-    expect(buildSettlementEdges([lake]).get('town')).toBeUndefined()
+    expect(buildSettlementGround([lake]).edges.get('town')).toBeUndefined()
 
     const coastal = builtTown('town', [cell(5, 0, true), cell(6, 0, false)], 1, 5)
     const coasts = buildPublicCoasts({ sectors: [coastal], atlas: [] })
-    expect(buildSettlementEdges([coastal], coasts).get('town')).toBeUndefined()
+    const ground = buildSettlementGround([coastal], coasts)
+    expect(ground.edges.get('town')).toBeUndefined()
+    expect(ground.shoreRoads.get('town')).toEqual(new Set(['5:0', '6:0']))
   })
 
   it('leaves distant town edges, expedition landings and ferry decks unpaved', () => {
@@ -83,6 +89,6 @@ describe('settlement ground edges', () => {
     const landing = sector('uncharted-landing', ground)
     const ferry = sector('ferry:test', ground)
     const camp = sector('camp', ground, 2)
-    expect(buildSettlementEdges([town, landing, ferry, camp]).size).toBe(0)
+    expect(buildSettlementGround([town, landing, ferry, camp]).edges.size).toBe(0)
   })
 })

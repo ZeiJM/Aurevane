@@ -117,3 +117,40 @@ it('reaches the deep sea colour before every point on the irregular shelf outlin
   expect(outline.length).toBeGreaterThan(1)
   expect(gradientEnd).toBeLessThanOrEqual(Math.min(...outline))
 })
+
+it('brings out longer, brighter wave crests in strong wind within the same surf budget', () => {
+  const sample = (speed: number) => {
+    const lineWidths: number[] = []
+    const drawing = {
+      save: vi.fn(),
+      restore: vi.fn(),
+      beginPath: vi.fn(),
+      closePath: vi.fn(),
+      fill: vi.fn(),
+      moveTo: vi.fn(),
+      lineTo: vi.fn(),
+      createLinearGradient: () => ({ addColorStop: vi.fn() }),
+      lineWidth: 0,
+      stroke() {
+        lineWidths.push(this.lineWidth)
+      },
+    }
+    paintCoastSea(
+      drawing as unknown as CanvasRenderingContext2D,
+      [{ side: 1, from: 0, to: 9, seed: 53, openStart: false, openEnd: false }],
+      48,
+      1500,
+      true,
+      1,
+      'hollow-coast',
+      3,
+      speed,
+    )
+    return lineWidths
+  }
+  const calm = sample(0.007)
+  const storm = sample(-0.054)
+  expect(calm).toHaveLength(3)
+  expect(storm).toHaveLength(3)
+  expect(storm[0]!).toBeGreaterThan(calm[0]!)
+})

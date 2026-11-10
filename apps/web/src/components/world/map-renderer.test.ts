@@ -3367,3 +3367,19 @@ it('uses projected walkability for staff inspection without a player marker', ()
     vi.unstubAllGlobals()
   }
 })
+
+it('draws the new regional material and focal asset at normal zoom', () => {
+  const state = newWorldState()
+  state.position = { sectorId: 'frostmere', x: 6, y: 4 }
+  const s = scene(true, projectWorld(state, [], 1000))
+  try {
+    s.frame(40)
+    const material = s.draws.filter(({ src }) => src.endsWith('regional-ground-v01.webp'))
+    expect(material.length).toBeGreaterThan(0)
+    expect(material.some(({ matrix }) => matrix[0]! < 0 || matrix[3]! < 0)).toBe(true)
+    expect(s.draws.some(({ src }) => src.endsWith('town-centres-north-v01.webp'))).toBe(true)
+  } finally {
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+})
