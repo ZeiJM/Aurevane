@@ -228,11 +228,19 @@ jobs:
 
           source = sorted(Path('supabase/migrations').glob('*.sql'))
           versions = [path.name.split('_', 1)[0] for path in source]
-          if len(source) != 247 or len(set(versions)) != len(source):
-              raise SystemExit('Candidate migration inventory differs from the reviewed 247 files.')
+          source_digests = {path: hashlib.sha256(path.read_bytes()).hexdigest() for path in source}
+          inventory = '\n'.join(f'{path.name}\t{source_digests[path]}' for path in source)
+          reviewed_inventory = '52ad63acedf2f8930b147ab1e6e734469523999408d0c3fd2eca61e1be268d31'
+          if (
+              len(source) != 248
+              or len(set(versions)) != len(source)
+              or hashlib.sha256(inventory.encode()).hexdigest() != reviewed_inventory
+          ):
+              raise SystemExit('Candidate migration inventory differs from the reviewed 248 files.')
           ledger_query = """
               select version, name, cardinality(statements),
-                     encode(sha256(convert_to(statements[1], 'UTF8')), 'hex')
+                     encode(sha256(convert_to(statements[1], 'UTF8')), 'hex'),
+                     encode(sha256(convert_to(statements::text, 'UTF8')), 'hex')
               from supabase_migrations.schema_migrations order by version
           """
           def read_ledger():
@@ -258,14 +266,21 @@ jobs:
               return [line.split('\t') for line in result.stdout.splitlines()]
 
           ledger = read_ledger()
-          if len(ledger) != 20:
-              raise SystemExit('The staging ledger no longer contains the 20 reviewed entries.')
+          if len(ledger) != 247:
+              raise SystemExit('The staging ledger no longer contains the 247 reviewed entries.')
+          # Pin the verified staging snapshot, including all stored statement bodies.
+          ledger_snapshot = '\n'.join('\t'.join(row) for row in ledger)
+          reviewed_snapshot = '204a5cf8d085ae2487673621c7f5f24c20c7a765bae20351f30979a9597a3e64'
+          if hashlib.sha256(ledger_snapshot.encode()).hexdigest() != reviewed_snapshot:
+              raise SystemExit('The staging ledger fingerprint differs from the reviewed snapshot.')
+          aliases = [row for row in ledger if row[1].startswith('aurevane_')]
+          canonical = {row[0]: row[1] for row in ledger if not row[1].startswith('aurevane_')}
+          expected_canonical = dict(path.stem.split('_', 1) for path in source[len(aliases):-1])
+          if len(aliases) != 20 or canonical != expected_canonical:
+              raise SystemExit('The installed migration versions and names differ from the reviewed manifest.')
           pending = [path.name for path in source[len(ledger):]]
-          if (pending[0], pending[-1]) != (
-              '20260819002814_six_attributes_and_character_swap_cooldown.sql',
-              '20261108140122_world_scene_fallback_movement.sql',
-          ):
-              raise SystemExit('The staging batch boundaries differ from the reviewed manifest.')
+          if pending != ['20261110085555_published_foundation_character_creation.sql']:
+              raise SystemExit('The pending migration differs from the reviewed Foundation increment.')
 
           with tempfile.TemporaryDirectory() as tmp:
               workdir = Path(tmp)
@@ -276,18 +291,18 @@ jobs:
               template = Path('supabase/templates/recovery.html')
               (workdir / template.parent).mkdir()
               shutil.copyfile(template, workdir / template)
-              for path, (version, name, parts, digest) in zip(source, ledger):
+              for path, (version, name, parts, digest, _) in zip(source, aliases):
                   if (
                       not re.fullmatch(r'\d{14}', version)
                       or version in versions
                       or name != f'aurevane_{path.stem}'
                       or parts != '1'
-                      or hashlib.sha256(path.read_bytes()).hexdigest() != digest
+                      or source_digests[path] != digest
                   ):
                       raise SystemExit(f'Staging history differs from the candidate at {path.name}.')
                   # Match the hosted aliases locally for the dry run. Do not repair the remote ledger.
                   shutil.copyfile(path, staged / f'{version}_{name}.sql')
-              for path in source[len(ledger):]:
+              for path in source[len(aliases):]:
                   shutil.copyfile(path, staged / path.name)
 
               cli = Path(os.environ['RUNNER_TEMP']) / 'aurevane-staging-cli/node_modules/.bin/supabase'
@@ -316,10 +331,10 @@ jobs:
                   final = read_ledger()
                   original = {row[0]: row for row in ledger}
                   current = {row[0]: row for row in final}
-                  expected = versions[len(ledger):]
+                  expected = [tuple(path.stem.split('_', 1)) for path in source[len(ledger):]]
                   if any(current.get(version) != row for version, row in original.items()):
                       raise SystemExit('An existing staging migration entry changed during apply.')
-                  applied = [row[0] for row in final if row[0] not in original]
+                  applied = [tuple(row[:2]) for row in final if row[0] not in original]
                   if result.returncode:
                       state = re.search(r'\bSQLSTATE ([A-Z0-9]{5})\b', result.stdout + result.stderr)
                       detail = f' SQLSTATE {state[1]}.' if state else ''
