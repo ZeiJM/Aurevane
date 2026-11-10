@@ -1,13 +1,13 @@
 import { GRID_HEIGHT, GRID_WIDTH } from '@/world/catalog'
 import { atlasNeighbor } from '@/world/topology'
 import type { WorldCell, WorldSectorView } from '@/world/types'
+import type { CoastEdge } from './map-coast'
 
 type Side = 0 | 1 | 2 | 3
 interface SettlementEdge {
   x: number
   y: number
   side: Side
-  road: boolean
 }
 
 const steps = [
@@ -18,11 +18,29 @@ const steps = [
 ] as const
 
 const address = (x: number, y: number) => `${x}:${y}`
-const isGround = (cell: WorldCell | undefined): cell is WorldCell =>
-  Boolean(cell?.walkable && cell.terrain !== '~' && cell.terrain !== 'l')
+type CoastField = ReadonlyMap<string, readonly CoastEdge[]>
 
-/** Use the projected protection boundary where both sides of a crossing are visible. */
-export function buildSettlementEdges(sectors: readonly WorldSectorView[]) {
+function bordersOpenSea(coasts: CoastField | undefined, sectorId: string, x: number, y: number) {
+  return coasts?.get(sectorId)?.some(({ side, from, to }) => {
+    const along = side % 2 ? y : x
+    if (along < from || along >= to) return false
+    if (side === 0) return y === 0
+    if (side === 1) return x === GRID_WIDTH - 1
+    if (side === 2) return y === GRID_HEIGHT - 1
+    return x === 0
+  })
+}
+
+function nearBuildings(sector: WorldSectorView, { x, y }: WorldCell) {
+  return sector.buildings?.some((building) => {
+    const dx = Math.max(building.x - x, 0, x - (building.x + building.width - 1))
+    const dy = Math.max(building.y - y, 0, y - (building.y + building.height - 1))
+    return dx + dy <= 3
+  })
+}
+
+/** Stone is reserved for built-up road entrances with dry ground on both sides. */
+export function buildSettlementEdges(sectors: readonly WorldSectorView[], coasts?: CoastField) {
   const byAtlas = new Map<string, WorldSectorView>()
   const terrain = new Map(
     sectors.map((sector) => [
@@ -35,32 +53,51 @@ export function buildSettlementEdges(sectors: readonly WorldSectorView[]) {
       byAtlas.set(address(sector.atlasColumn, sector.atlasRow), sector)
   }
 
+  function groundAt(sector: WorldSectorView, x: number, y: number) {
+    let neighbor = sector
+    if (x < 0 || x >= GRID_WIDTH || y < 0 || y >= GRID_HEIGHT) {
+      if (!sector.charted || sector.atlasColumn === undefined || sector.atlasRow === undefined)
+        return
+      const dx = x < 0 ? -1 : x >= GRID_WIDTH ? 1 : 0
+      const dy = y < 0 ? -1 : y >= GRID_HEIGHT ? 1 : 0
+      const next = atlasNeighbor(sector.atlasColumn, sector.atlasRow, dx, dy)
+      const loaded = next && byAtlas.get(address(next.column, next.row))
+      if (!loaded) return
+      neighbor = loaded
+      x = (x + GRID_WIDTH) % GRID_WIDTH
+      y = (y + GRID_HEIGHT) % GRID_HEIGHT
+    }
+    return { cell: terrain.get(neighbor)?.get(address(x, y)), sector: neighbor, x, y }
+  }
+
+  function nearShore(sector: WorldSectorView, x: number, y: number) {
+    for (let dy = -1; dy <= 1; dy++)
+      for (let dx = -1; dx <= 1; dx++) {
+        const ground = groundAt(sector, x + dx, y + dy)
+        if (
+          ground &&
+          (ground.cell?.terrain === '~' ||
+            ground.cell?.terrain === 'l' ||
+            bordersOpenSea(coasts, ground.sector.id, ground.x, ground.y))
+        )
+          return true
+      }
+    return false
+  }
+
   const field = new Map<string, SettlementEdge[]>()
   for (const sector of sectors) {
-    if (sector.id.startsWith('ferry:')) continue
+    if (!sector.townId || !sector.buildings?.length) continue
     const edges: SettlementEdge[] = []
     for (const cell of sector.cells) {
-      if (!cell.safe || !isGround(cell) || (!sector.townId && cell.terrain !== 's')) continue
+      if (!cell.safe || !cell.walkable || (cell.terrain !== '=' && cell.terrain !== 's')) continue
+      if (!nearBuildings(sector, cell)) continue
       for (const [dx, dy, side] of steps) {
-        let x = cell.x + dx,
-          y = cell.y + dy,
-          neighbor: WorldSectorView | undefined = sector
-        if (x < 0 || x >= GRID_WIDTH || y < 0 || y >= GRID_HEIGHT) {
-          if (!sector.charted || sector.atlasColumn === undefined || sector.atlasRow === undefined)
-            continue
-          const next = atlasNeighbor(sector.atlasColumn, sector.atlasRow, dx, dy)
-          neighbor = next ? byAtlas.get(address(next.column, next.row)) : undefined
-          x = (x + GRID_WIDTH) % GRID_WIDTH
-          y = (y + GRID_HEIGHT) % GRID_HEIGHT
-        }
-        const outside = neighbor && terrain.get(neighbor)?.get(address(x, y))
-        if (isGround(outside) && !outside.safe)
-          edges.push({
-            x: cell.x,
-            y: cell.y,
-            side,
-            road: outside.terrain === '=' && (cell.terrain === '=' || cell.terrain === 's'),
-          })
+        const outside = groundAt(sector, cell.x + dx, cell.y + dy)
+        if (!outside?.cell?.walkable || outside.cell.safe || outside.cell.terrain !== '=') continue
+        if (nearShore(sector, cell.x, cell.y) || nearShore(outside.sector, outside.x, outside.y))
+          continue
+        edges.push({ x: cell.x, y: cell.y, side })
       }
     }
     if (edges.length) field.set(sector.id, edges)
@@ -75,8 +112,8 @@ export function paintSettlementEdges(
   tile: number,
   stone: string,
 ) {
-  for (const { x, y, side, road } of edges) {
-    const width = tile * (road ? 0.28 : 0.15)
+  for (const { x, y, side } of edges) {
+    const width = tile * 0.21
     const startX = (x + Number(side === 1 || side === 2)) * tile
     const startY = (y + Number(side === 2 || side === 3)) * tile
     context.save()
