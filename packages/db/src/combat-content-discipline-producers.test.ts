@@ -2173,8 +2173,58 @@ async function createWithPersonalBonuses(
     )
   ).rows[0]!
 }
+
+const foundationAtlas = { ...authored.atlas, family: 'foundation', band: 'foundation' }
+
+it('admits a published authored Foundation at creation and rejects an advanced Primary', async () => {
+  const draft = await authoredDraft()
+  const advanced = await publish(authored.id, draft.draft.draftVersion, null)
+  const create = (version: number) =>
+    db.query<{ foundation_discipline_id: string; might: number; intellect: number }>(
+      `select * from public.create_character_v4($1,0::smallint,$2,'authored-starter',1,'Core Creator','core-creator','default','they','portrait','appearance',$3,0,0,0,0,5,0,$4)`,
+      [owner, crypto.randomUUID(), authored.id, version],
+    )
+
+  const loadChoices = async () =>
+    (
+      await db.query<{ value: { discipline_id: string }[] }>(
+        'select public.get_character_creation_catalog_v1($1) as value',
+        [owner],
+      )
+    ).rows[0]!.value.map((row) => row.discipline_id)
+  expect(await loadChoices()).toHaveLength(6)
+  expect(await loadChoices()).not.toContain(authored.id)
+  await db.exec('savepoint advanced_creation')
+  await expect(create(advanced.current.contentVersion)).rejects.toThrow(
+    'FOUNDATION_PRIMARY_DISCIPLINE_UNAVAILABLE',
+  )
+  await db.exec('rollback to savepoint advanced_creation')
+
+  const foundation = await write(authored.id, {
+    action: 'save',
+    expectedRevision: advanced.revision,
+    definition: {
+      ...authored,
+      atlas: foundationAtlas,
+    },
+  })
+  const published = await publish(
+    authored.id,
+    foundation.draft.draftVersion,
+    advanced.current.contentVersion,
+  )
+  expect(await loadChoices()).toContain(authored.id)
+  const result = await create(published.current.contentVersion)
+  expect(result.rows[0]).toMatchObject({
+    foundation_discipline_id: authored.id,
+    might: authored.core.might,
+    intellect: authored.core.intellect + 5,
+  })
+})
+
 it('creation applies five personal choices to the current Core and replays after publication', async () => {
   const first = await publishNativeDiscipline('vanguard', {
+    atlas: foundationAtlas,
     core: { might: 8, finesse: 4, vitality: 7, agility: 4, intellect: 4, resolve: 4 },
   })
   const request = crypto.randomUUID()
@@ -2196,6 +2246,7 @@ it('creation applies five personal choices to the current Core and replays after
     resolve: 1,
   })
   await publishNativeDiscipline('vanguard', {
+    atlas: foundationAtlas,
     core: { might: 9, finesse: 4, vitality: 6, agility: 4, intellect: 4, resolve: 4 },
   })
   const replay = await createWithPersonalBonuses(first.current.contentVersion, request)
@@ -2205,9 +2256,11 @@ it('creation applies five personal choices to the current Core and replays after
 })
 it('creation rejects a stale displayed Core with no character or idempotency write', async () => {
   const first = await publishNativeDiscipline('vanguard', {
+    atlas: foundationAtlas,
     core: { might: 8, finesse: 4, vitality: 7, agility: 4, intellect: 4, resolve: 4 },
   })
   await publishNativeDiscipline('vanguard', {
+    atlas: foundationAtlas,
     core: { might: 9, finesse: 4, vitality: 6, agility: 4, intellect: 4, resolve: 4 },
   })
   const request = crypto.randomUUID()
@@ -2640,13 +2693,16 @@ it('new admission refuses a forged extension override without any partial battle
 })
 
 it('grant-only Foundation creation uses the account entitlement and cannot bypass it through a new slot', async () => {
-  const published = await publishNativeDiscipline('vanguard', { unlock: { kind: 'unavailable' } })
+  const published = await publishNativeDiscipline('vanguard', {
+    atlas: foundationAtlas,
+    unlock: { kind: 'unavailable' },
+  })
   const create = () =>
     db.query(
       "select * from public.create_character_v4($1,1::smallint,$2,$3,1,'Extra Player','extra-player','default','they','portrait','appearance','vanguard',2,0,2,0,0,1,$4)",
       [other, crypto.randomUUID(), 'grant-creation', published.current.contentVersion],
     )
-  await denied(create, /PRIMARY_DISCIPLINE_MASTERY_REQUIRED/)
+  await denied(create, /FOUNDATION_PRIMARY_DISCIPLINE_UNAVAILABLE/)
   await db.query('select public.write_discipline_player_grants_v1($1,null,$2,$3,$4,$5)', [
     owner,
     'vanguard',

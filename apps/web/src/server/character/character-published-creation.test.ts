@@ -17,7 +17,7 @@ it('sends the five chosen bonuses and displayed Core version to atomic creation'
         pronounPresetId: 'they_them',
         portraitRef: 'portrait.starter.wayfarer-01',
         starterAppearanceRef: 'appearance.starter.traveler-01',
-        foundationDisciplineId: 'vanguard',
+        foundationDisciplineId: 'discipline.authored-foundation',
         attributeBonuses: {
           might: 2,
           finesse: 0,
@@ -32,6 +32,7 @@ it('sends the five chosen bonuses and displayed Core version to atomic creation'
   expect(rpc).toHaveBeenCalledWith(
     'create_character_v4',
     expect.objectContaining({
+      p_foundation_discipline_id: 'discipline.authored-foundation',
       p_bonus_might: 2,
       p_bonus_vitality: 2,
       p_bonus_resolve: 1,
@@ -104,13 +105,13 @@ it('public Atlas carries current authored metadata and never resurrects a remove
 })
 
 import { loadPublishedFoundations } from './published-discipline-catalogue'
-it('filters grant-only Foundation choices by verified account entitlement without fabricating Mastery', async () => {
+it('lists an authored Foundation returned by the account-scoped creation catalogue', async () => {
   const core = { might: 7, finesse: 4, vitality: 7, agility: 4, intellect: 3, resolve: 6 }
   const definition = {
     schemaVersion: 1,
-    id: 'vanguard',
+    id: 'discipline.authored-foundation',
     contentVersion: 7,
-    name: 'Vanguard',
+    name: 'Authored Foundation',
     description: 'Grant only.',
     sortOrder: 0,
     enabled: true,
@@ -132,8 +133,8 @@ it('filters grant-only Foundation choices by verified account entitlement withou
     resonanceSelections: [],
   }
   const row = {
-    discipline_id: 'vanguard',
-    name: 'Vanguard',
+    discipline_id: definition.id,
+    name: definition.name,
     summary: 'Grant only.',
     profile_version: 7,
     definition_version: 7,
@@ -144,15 +145,9 @@ it('filters grant-only Foundation choices by verified account entitlement withou
     off_focus_cap: 40,
     authored_definition: definition,
   }
-  let granted = false
-  rpc.mockImplementation(async (name: string) => ({
-    data: name === 'get_current_discipline_catalog_v1' ? [row] : granted ? ['vanguard'] : [],
-    error: null,
-  }))
-  expect(await loadPublishedFoundations('account')).toEqual([])
-  granted = true
+  rpc.mockResolvedValue({ data: [row], error: null })
   expect(await loadPublishedFoundations('account')).toEqual([
-    expect.objectContaining({ id: 'vanguard', profileVersion: 7 }),
+    expect.objectContaining({ id: definition.id, profileVersion: 7 }),
   ])
-  expect(rpc).toHaveBeenCalledWith('get_account_discipline_grants_v1', { p_user_id: 'account' })
+  expect(rpc).toHaveBeenCalledWith('get_character_creation_catalog_v1', { p_user_id: 'account' })
 })

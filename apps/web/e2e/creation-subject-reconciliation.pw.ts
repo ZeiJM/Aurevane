@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-import { createVerifiedAccountAndSignIn } from './pv1f-test-helpers'
+import { allocateCreationPoints, createVerifiedAccountAndSignIn } from './pv1f-test-helpers'
 
 function safeName(info: { workerIndex: number }) {
   const suffix = `${Date.now()}${info.workerIndex}`
@@ -90,6 +90,7 @@ test('Creation Confirm follows its own subject composition and keeps genuine sub
   const creation = page.getByTestId('character-creation')
   await creation.getByLabel('Character name', { exact: true }).fill(safeName(info))
   await creation.getByRole('button', { name: 'Choose your discipline', exact: true }).click()
+  await allocateCreationPoints(page)
   await creation.getByRole('button', { name: 'Review character', exact: true }).click()
 
   const workspace = creation.getByTestId('creation-confirm-workspace')

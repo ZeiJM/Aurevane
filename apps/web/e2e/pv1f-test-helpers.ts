@@ -56,6 +56,13 @@ async function signInExistingAccount(input: {
   await expect(page.getByRole('heading', { name: 'Choose your character' })).toBeVisible()
 }
 
+export async function allocateCreationPoints(page: Page): Promise<void> {
+  const creation = page.getByTestId('character-creation')
+  for (const attribute of ['might', 'might', 'vitality', 'vitality', 'resolve']) {
+    await creation.getByRole('button', { name: `Increase ${attribute} bonus` }).click()
+  }
+}
+
 async function createCharacterAfterSignIn(input: {
   page: Page
   characterName: string
@@ -72,6 +79,7 @@ async function createCharacterAfterSignIn(input: {
   await expect(page.getByTestId('creation-discipline-workspace')).toBeVisible({ timeout: 15_000 })
   const reviewCharacter = page.getByRole('button', { name: 'Review character' })
   await expect(reviewCharacter).toBeVisible({ timeout: 15_000 })
+  await allocateCreationPoints(page)
   await expect(reviewCharacter).toBeEnabled()
 
   await reviewCharacter.click()

@@ -116,7 +116,7 @@ export interface CanonicalCharacterCreationIntent {
   portraitRef: CharacterPortraitRef
   starterAppearanceRef: StarterAppearanceRef
   attributeBonuses: CharacterAttributeBonuses
-  foundationDisciplineId: FoundationDisciplineId
+  foundationDisciplineId: string
 }
 
 export interface InitialCharacterStateV1 {
@@ -194,7 +194,7 @@ function isPronounPresetId(value: string): value is PronounPresetId {
   return pronounPresetIds.has(value)
 }
 
-function isContentReference(value: unknown): value is string {
+export function isContentReference(value: unknown): value is string {
   return (
     typeof value === 'string' &&
     value.length > 0 &&
@@ -284,7 +284,10 @@ function validateAttributeBonuses(
   return canonicalBonuses
 }
 
-export function validateCharacterCreationIntent(value: unknown): CharacterCreationValidationResult {
+export function validateCharacterCreationIntent(
+  value: unknown,
+  disciplineSource: 'builtin' | 'published' = 'builtin',
+): CharacterCreationValidationResult {
   const issues: CharacterCreationRuleIssue[] = []
   if (!isRecord(value)) {
     return {
@@ -371,10 +374,10 @@ export function validateCharacterCreationIntent(value: unknown): CharacterCreati
   const attributeBonuses = validateAttributeBonuses(value.attributeBonuses, issues)
 
   const foundationDisciplineId = value.foundationDisciplineId
-  if (
-    typeof foundationDisciplineId !== 'string' ||
-    !isFoundationDisciplineId(foundationDisciplineId)
-  ) {
+  const validDisciplineId =
+    isContentReference(foundationDisciplineId) &&
+    (disciplineSource === 'published' || isFoundationDisciplineId(foundationDisciplineId))
+  if (!validDisciplineId) {
     issues.push({
       code: 'invalid_foundation_discipline',
       field: 'foundationDisciplineId',
@@ -392,8 +395,7 @@ export function validateCharacterCreationIntent(value: unknown): CharacterCreati
     !isCharacterPortraitRef(portraitRef) ||
     !isStarterAppearanceRef(starterAppearanceRef) ||
     attributeBonuses === null ||
-    typeof foundationDisciplineId !== 'string' ||
-    !isFoundationDisciplineId(foundationDisciplineId)
+    !validDisciplineId
   ) {
     return { ok: false, issues }
   }
@@ -439,7 +441,7 @@ export function buildInitialCharacterState(
     pronounPresetId: value.pronounPresetId,
     portraitRef: value.portraitRef,
     starterAppearanceRef: value.starterAppearanceRef,
-    foundationDisciplineId: value.foundationDisciplineId,
+    foundationDisciplineId: discipline.id,
     attributes: {
       might: discipline.baseAttributes.might + value.attributeBonuses.might,
       finesse: discipline.baseAttributes.finesse + value.attributeBonuses.finesse,

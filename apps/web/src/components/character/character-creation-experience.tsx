@@ -50,20 +50,6 @@ const attributeCopy = {
   resolve: 'Strength of will: MP, ward, initiative, and resistance against hostile effects.',
 } as const
 
-function starterBonusesForDiscipline(disciplineId: string): CharacterAttributeBonuses {
-  const discipline = FOUNDATION_DISCIPLINES.find((candidate) => candidate.id === disciplineId)
-  return discipline
-    ? { ...discipline.startingAttributeBonuses }
-    : {
-        might: 0,
-        finesse: 0,
-        vitality: 0,
-        agility: 0,
-        intellect: 0,
-        resolve: 0,
-      }
-}
-
 const DEFAULT_FOUNDATION_PREVIEW: readonly PublishedFoundationDiscipline[] =
   FOUNDATION_DISCIPLINES.map((d) => ({
     ...d,
@@ -83,15 +69,17 @@ export function CharacterCreationExperience({
   const [presentationId, setPresentationId] = useState<CharacterPresentationId>('masculine')
   const [portraitRef, setPortraitRef] = useState(ADVENTURE_CHARACTER_PORTRAITS[0].ref)
   const [manualLook, setManualLook] = useState<AppearanceBlueprint | null>(null)
-  const [starterAppearanceRef, setStarterAppearanceRef] = useState(
-    STARTER_CHARACTER_APPEARANCES[0].ref,
-  )
   const [foundationDisciplineId, setFoundationDisciplineId] = useState(
     disciplines[0]?.id ?? 'vanguard',
   )
-  const [attributeBonuses, setAttributeBonuses] = useState<CharacterAttributeBonuses>(() =>
-    starterBonusesForDiscipline(disciplines[0]?.id ?? 'vanguard'),
-  )
+  const [attributeBonuses, setAttributeBonuses] = useState<CharacterAttributeBonuses>({
+    might: 0,
+    finesse: 0,
+    vitality: 0,
+    agility: 0,
+    intellect: 0,
+    resolve: 0,
+  })
   const [submitting, setSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [invalidFields, setInvalidFields] = useState<readonly string[]>([])
@@ -140,14 +128,14 @@ export function CharacterCreationExperience({
       // expose pronouns; a deterministic compatibility value follows the chosen presentation.
       pronounPresetId: defaultPronounPresetForPresentation(presentationId),
       portraitRef,
-      starterAppearanceRef,
+      starterAppearanceRef: STARTER_CHARACTER_APPEARANCES[0].ref,
       attributeBonuses,
       foundationDisciplineId,
     }
   }
 
   function advanceIdentity() {
-    const validation = validateCharacterCreationIntent(creationIntent())
+    const validation = validateCharacterCreationIntent(creationIntent(), 'published')
     const nameIssue = validation.ok
       ? undefined
       : validation.issues.find((issue) => issue.field === 'name')
@@ -164,7 +152,7 @@ export function CharacterCreationExperience({
   async function submitCharacter() {
     if (submitting || remainingPoints !== 0) return
 
-    const validation = validateCharacterCreationIntent(creationIntent())
+    const validation = validateCharacterCreationIntent(creationIntent(), 'published')
     if (!validation.ok) {
       const fields = validation.issues.map((issue) => issue.field)
       setInvalidFields(fields)
@@ -385,34 +373,6 @@ export function CharacterCreationExperience({
                 </label>
               </aside>
             </div>
-            <div className={styles.identityDetails}>
-              <fieldset className={styles.choiceGroup}>
-                <legend>First appearance</legend>
-                <p className={styles.choiceHint}>
-                  A matter of appearance only; no hidden strength lies here.
-                </p>
-                <div className={styles.appearanceGrid}>
-                  {STARTER_CHARACTER_APPEARANCES.map((option) => (
-                    <label
-                      key={option.ref}
-                      className={styles.optionCard}
-                      data-selected={starterAppearanceRef === option.ref}
-                    >
-                      <input
-                        checked={starterAppearanceRef === option.ref}
-                        name="appearance"
-                        onChange={() => {
-                          changed()
-                          setStarterAppearanceRef(option.ref)
-                        }}
-                        type="radio"
-                      />
-                      <strong>{option.label}</strong>
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
-            </div>
 
             {errorMessage ? (
               <p className={styles.error} role="alert">
@@ -467,7 +427,6 @@ export function CharacterCreationExperience({
                         onChange={() => {
                           changed()
                           setFoundationDisciplineId(discipline.id)
-                          setAttributeBonuses(starterBonusesForDiscipline(discipline.id))
                         }}
                         type="radio"
                       />
@@ -494,10 +453,7 @@ export function CharacterCreationExperience({
                 <div className={styles.attributeHeader}>
                   <div>
                     <h3>Starting attributes</h3>
-                    <p>
-                      {CHARACTER_CREATION_RULES_V1.attributes.disciplineBaseTotal} Discipline points
-                      · {CHARACTER_CREATION_RULES_V1.attributes.bonusBudget} personal points
-                    </p>
+                    <p>Fixed Discipline Core with five points to spend.</p>
                   </div>
                   <strong data-testid="attribute-points">
                     {remainingPoints} personal points remaining
@@ -508,7 +464,6 @@ export function CharacterCreationExperience({
                   {CHARACTER_ATTRIBUTE_IDS.map((attributeId) => {
                     const bonus = attributeBonuses[attributeId]
                     const base = selectedDiscipline.baseAttributes[attributeId]
-                    const total = base + bonus
                     return (
                       <div
                         className={styles.attributeCard}
@@ -521,9 +476,7 @@ export function CharacterCreationExperience({
                       >
                         <div>
                           <strong>{attributeId[0].toUpperCase() + attributeId.slice(1)}</strong>
-                          <small>
-                            Base {base} · +{bonus} · Total {total}
-                          </small>
+                          <small>Core {base}</small>
                         </div>
                         <div className={styles.attributeControl}>
                           <button
@@ -636,16 +589,6 @@ export function CharacterCreationExperience({
                   <div>
                     <dt>Portrait</dt>
                     <dd>{selectedPortrait.label}</dd>
-                  </div>
-                  <div>
-                    <dt>Starter appearance</dt>
-                    <dd>
-                      {
-                        STARTER_CHARACTER_APPEARANCES.find(
-                          (item) => item.ref === starterAppearanceRef,
-                        )?.label
-                      }
-                    </dd>
                   </div>
                   {CHARACTER_ATTRIBUTE_IDS.map((attributeId) => (
                     <div key={attributeId}>

@@ -236,12 +236,6 @@
   color: #333a33;
   font: 500 1.4rem var(--av-font-display);
 }
-.identityDetails {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  align-content: start;
-  gap: 1.2rem;
-}
 .field {
   display: grid;
   min-width: 0;
@@ -289,11 +283,6 @@
 }
 .inlineChoice input {
   accent-color: #345951;
-}
-.appearanceGrid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.4rem;
 }
 .optionCard {
   position: relative;
@@ -539,12 +528,6 @@
   .scene {
     display: none;
   }
-  .identityDetails {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-  .appearanceGrid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
   .disciplineGrid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -583,9 +566,6 @@
   }
   .previewLabel {
     grid-column: 1 / -1;
-  }
-  .identityDetails {
-    grid-template-columns: 1fr;
   }
   .disciplineGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -652,19 +632,6 @@
 .collectionHeading {
   margin: 0.65rem 0 0.25rem;
   font: 500 1rem/1.35 var(--av-font-display);
-}
-.identityDetails {
-  grid-template-columns: 1fr;
-  gap: 0;
-}
-.appearanceGrid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-.identityDetails .choiceHint {
-  display: none;
-}
-.identityDetails .optionCard strong {
-  font-size: 0.875rem;
 }
 .portraitPreview .field small {
   font-size: 0.6875rem;
@@ -767,9 +734,6 @@
   .choiceHint {
     font-size: 0.75rem;
   }
-  .identityDetails .optionCard {
-    padding: 0.4rem;
-  }
   .sceneCopy {
     font-size: 1rem;
   }
@@ -796,9 +760,6 @@
   }
   .genderChoices .inlineChoice {
     min-height: 2.75rem;
-  }
-  .appearanceGrid {
-    grid-template-columns: 1fr;
   }
   .attributeGrid {
     grid-template-columns: 1fr;

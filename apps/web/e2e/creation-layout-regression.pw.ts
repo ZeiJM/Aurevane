@@ -209,7 +209,7 @@ test('Creation exposes twelve portraits per gender and preserves the complete au
   await creation.getByRole('radio', { name: 'Female', exact: true }).check()
   await expect(portraits).toHaveCount(12)
   await portraits.last().check()
-  await creation.locator('input[name="appearance"]').last().check()
+  await expect(creation.locator('input[name="appearance"]')).toHaveCount(0)
   await next.click()
   await expect(creation).toHaveAttribute('data-step', 'discipline')
   const disciplineSigils = creation
@@ -225,7 +225,14 @@ test('Creation exposes twelve portraits per gender and preserves the complete au
   }
   await expect(creation.getByRole('heading', { level: 1 })).toBeFocused()
   const disciplines = creation.locator('input[name="discipline"]')
+  await expect(creation.getByTestId('attribute-points')).toContainText(
+    '5 personal points remaining',
+  )
+  await expect(creation.getByRole('button', { name: 'Review character' })).toBeDisabled()
+  const increaseMight = creation.getByRole('button', { name: 'Increase might bonus' })
+  for (let index = 0; index < 5; index++) await increaseMight.click()
   await disciplines.nth(1).check()
+  await expect(creation.getByRole('status', { name: 'might bonus' })).toHaveText('+5')
   const decrease = creation.locator('button[aria-label^="Decrease"]:not([disabled])').first()
   const attribute = (await decrease.getAttribute('aria-label'))!.split(' ')[1]
   await decrease.click()
@@ -257,7 +264,7 @@ test('Creation exposes twelve portraits per gender and preserves the complete au
       .toBeLessThanOrEqual(1)
   await expect(creation.getByText('Portrait', { exact: true })).toBeVisible()
   await expect(creation.getByText('Female adventurer 12', { exact: true })).toBeVisible()
-  await expect(creation.getByText('Lightstep travelwear', { exact: true })).toBeVisible()
+  await expect(creation.getByText('Starter appearance', { exact: true })).toHaveCount(0)
   await expect(creation).not.toContainText(/pronouns/i)
   if (process.env.LAYOUT_REVIEW_OUTPUT)
     await page.screenshot({
@@ -274,7 +281,6 @@ test('Creation exposes twelve portraits per gender and preserves the complete au
   await expect(name).toHaveValue(characterName)
   await expect(portraits.last()).toBeChecked()
   await expect(creation.getByRole('radio', { name: 'Female', exact: true })).toBeChecked()
-  await expect(creation.locator('input[name="appearance"]').last()).toBeChecked()
   await next.click()
   await creation.getByRole('button', { name: 'Review character', exact: true }).click()
 
@@ -319,11 +325,12 @@ test('Creation exposes twelve portraits per gender and preserves the complete au
     name: characterName,
     portraitRef: 'portrait.adventure.female-12',
     presentationId: 'feminine',
-    starterAppearanceRef: 'appearance.starter.lightstep',
+    starterAppearanceRef: 'appearance.starter.roadworn',
   })
   expect(requests).toHaveLength(2)
   expect(requests[0].idempotencyKey).toBe(requests[1].idempotencyKey)
   expect(requests[1].intent.pronounPresetId).toBe('she_her')
+  expect(requests[1].intent.attributeBonuses).toMatchObject({ might: 5 })
   await expect(page).toHaveURL(/\/game\/haven$/)
   await page.goto('/game/character')
   const railIdentity = page
