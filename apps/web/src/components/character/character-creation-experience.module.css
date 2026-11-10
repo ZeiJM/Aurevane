@@ -766,6 +766,12 @@
 }
 
 @media (min-width: 1100px) and (max-height: 800px) {
+  .disciplineStep {
+    gap: 0.45rem;
+  }
+  .attributeGrid {
+    row-gap: 0.125rem;
+  }
   .previewFrame {
     width: min(100%, 11rem);
   }
