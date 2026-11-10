@@ -432,6 +432,52 @@ async function measureWorldMultiplayer(
     const canvas = first.page.locator(worldStage)
     await expect(canvas).toHaveAttribute('data-frame-p95', /\d/, { timeout: 30_000 })
     result.observerRendererCallbackP95Ms = Number(await canvas.getAttribute('data-frame-p95'))
+    // The rolling counter above can still contain arrival work. Collect a
+    // fresh window with all eight sessions connected after the move receipts.
+    const postArrival = await canvas.evaluate((element) => {
+      const stage = element as HTMLCanvasElement
+      const started = performance.now()
+      const previous = stage.dataset.renderDiagnostics
+      const draws: { at: number; work: number; ground: number }[] = []
+      const frameIntervals: number[] = []
+      let lastFrame: number | undefined
+      let lastTiming: string | undefined
+      let raf = 0
+      stage.dataset.renderDiagnostics = 'timing'
+      return new Promise<{ draws: typeof draws; frameIntervals: number[] }>((resolve) => {
+        const sample = (at: number) => {
+          if (lastFrame !== undefined) frameIntervals.push(at - lastFrame)
+          lastFrame = at
+          const raw = stage.dataset.renderTiming
+          if (raw && raw !== lastTiming) {
+            lastTiming = raw
+            const { startedAt, completedAt, groundBuildMs, groundResampleMs } = JSON.parse(raw)
+            if (startedAt >= started && completedAt >= startedAt)
+              draws.push({
+                at: startedAt,
+                work: completedAt - startedAt,
+                ground: groundBuildMs + groundResampleMs,
+              })
+          }
+          raf = requestAnimationFrame(sample)
+        }
+        raf = requestAnimationFrame(sample)
+        setTimeout(() => {
+          cancelAnimationFrame(raf)
+          if (previous === undefined) delete stage.dataset.renderDiagnostics
+          else stage.dataset.renderDiagnostics = previous
+          resolve({ draws, frameIntervals })
+        }, 4000)
+      })
+    })
+    result.observerPostArrival = {
+      rendererCallbackMs: percentiles(postArrival.draws.map(({ work }) => work)),
+      groundBuildAndResampleMs: percentiles(postArrival.draws.map(({ ground }) => ground)),
+      drawIntervalMs: percentiles(
+        postArrival.draws.slice(1).map(({ at }, i) => at - postArrival.draws[i]!.at),
+      ),
+      browserFrameIntervalMs: percentiles(postArrival.frameIntervals),
+    }
     await first.page.screenshot({ path: info.outputPath('world-multiplayer-hotspot.png') })
 
     result.reconnectCanvasReadyMs = percentiles(await load(true))

@@ -89,9 +89,10 @@ describe('shoreline material and corners', () => {
   })
 })
 
-it('reaches the deep sea colour before every point on the irregular shelf outline', () => {
+it('fades the deep shelf edge before its outline so neighboring shallows stay visible', () => {
   const vertices: number[] = []
-  const gradient = vi.fn(() => ({ addColorStop: vi.fn() }))
+  const addColorStop = vi.fn()
+  const gradient = vi.fn(() => ({ addColorStop }))
   const context = {
     save: vi.fn(),
     restore: vi.fn(),
@@ -116,6 +117,7 @@ it('reaches the deep sea colour before every point on the irregular shelf outlin
   const outline = vertices.filter((x) => x > 13)
   expect(outline.length).toBeGreaterThan(1)
   expect(gradientEnd).toBeLessThanOrEqual(Math.min(...outline))
+  expect(addColorStop).toHaveBeenCalledWith(1, 'rgba(40,75,87,0)')
 })
 
 it('brings out longer, brighter wave crests in strong wind within the same surf budget', () => {

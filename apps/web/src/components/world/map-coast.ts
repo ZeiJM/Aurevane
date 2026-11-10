@@ -283,14 +283,14 @@ export function paintCoastLand(
 }
 
 const SHELF_DEPTH = 2.65
-// The outline varies by at most 16.5%. Reach the exact ocean background
-// inside its shallowest dip, so the raster never draws dark geometric edges.
+// The outline varies by at most 16.5%. Finish fading inside its shallowest dip
+// so a deep shelf cannot paint over the shallows from an adjoining coastline.
 const SHELF_BLEND = SHELF_DEPTH * 0.82
 function shelfStops(gradient: CanvasGradient, palette: CoastPalette) {
   gradient.addColorStop(0, palette.wet)
   gradient.addColorStop(0.18, palette.shelf)
-  gradient.addColorStop(0.56, '#396b73')
-  gradient.addColorStop(1, '#284b57')
+  gradient.addColorStop(0.56, 'rgba(57,107,115,.82)')
+  gradient.addColorStop(1, 'rgba(40,75,87,0)')
 }
 function paintOpenCorner(
   context: CanvasRenderingContext2D,
