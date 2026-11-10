@@ -5,6 +5,8 @@ import {
   MAX_WORLD_DAY_MINUTES,
   MAX_WEATHER_ROLL_MINUTES,
   DEFAULT_WEATHER_ROLL_MINUTES,
+  DEFAULT_WARPED_SHIFT_MINUTES,
+  MAX_WARPED_SHIFT_MINUTES,
   WORLD_WEATHER,
   resolveWorldEnvironment,
   worldTimeLabel,
@@ -13,6 +15,7 @@ import {
   type WorldWeather,
 } from '@/world/environment'
 import { MasterHelp } from '../master-help'
+import { WorldEnvironmentPreview } from './world-environment-preview'
 import styles from './world-environment-editor.module.css'
 const weatherLabels: Record<WorldWeather, string> = {
   clear: 'Clear',
@@ -39,6 +42,9 @@ export function WorldEnvironmentEditor({
   const [weatherRoll, setWeatherRoll] = useState(
     String(initialSettings.weatherRollMinutes ?? DEFAULT_WEATHER_ROLL_MINUTES),
   )
+  const [warpedShift, setWarpedShift] = useState(
+    String(initialSettings.warpedShiftMinutes ?? DEFAULT_WARPED_SHIFT_MINUTES),
+  )
   const [offset, setOffset] = useState(String(initialSettings.timeOffsetMinutes))
   const [frozen, setFrozen] = useState(initialSettings.frozenMinuteOfDay !== null)
   const [clock, setClock] = useState(worldTimeLabel(initialSettings.frozenMinuteOfDay ?? 720))
@@ -57,6 +63,7 @@ export function WorldEnvironmentEditor({
   const offsetValue = /^-?\d{1,4}$/.test(offset) ? Number(offset) : NaN
   const dayValue = /^\d+$/.test(dayLength) ? Number(dayLength) : NaN
   const rollValue = /^\d+$/.test(weatherRoll) ? Number(weatherRoll) : NaN
+  const warpedValue = /^\d+$/.test(warpedShift) ? Number(warpedShift) : NaN
   const frozenMinute = frozen ? parseClock(clock) : null
   const valid =
     Math.abs(offsetValue) <= MAX_TIME_OFFSET_MINUTES &&
@@ -66,7 +73,10 @@ export function WorldEnvironmentEditor({
     dayValue <= MAX_WORLD_DAY_MINUTES &&
     Number.isSafeInteger(rollValue) &&
     rollValue >= 1 &&
-    rollValue <= MAX_WEATHER_ROLL_MINUTES
+    rollValue <= MAX_WEATHER_ROLL_MINUTES &&
+    Number.isSafeInteger(warpedValue) &&
+    warpedValue >= 1 &&
+    warpedValue <= MAX_WARPED_SHIFT_MINUTES
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!valid || saving) return
@@ -81,6 +91,9 @@ export function WorldEnvironmentEditor({
           change: {
             dayLengthMinutes: dayValue,
             weatherRollMinutes: rollValue,
+            ...(warpedValue === (settings.warpedShiftMinutes ?? DEFAULT_WARPED_SHIFT_MINUTES)
+              ? {}
+              : { warpedShiftMinutes: warpedValue }),
             timeOffsetMinutes: offsetValue,
             frozenMinuteOfDay: frozenMinute,
             weather: weather === 'live' ? null : weather,
@@ -221,6 +234,26 @@ export function WorldEnvironmentEditor({
           <small>Manual selections last until the next automatic roll.</small>
         </fieldset>
       </div>
+      <fieldset disabled={saving}>
+        <legend>Uncharted continent</legend>
+        <label>
+          Landscape shift interval (real minutes)
+          <input
+            type="number"
+            min={1}
+            max={MAX_WARPED_SHIFT_MINUTES}
+            step="1"
+            required
+            value={warpedShift}
+            onChange={(event) => setWarpedShift(event.currentTarget.value)}
+          />
+        </label>
+        <small>
+          Default: 1440 minutes (24 hours). The interval applies to new arrivals. Expeditions
+          already ashore keep their current landscape.
+        </small>
+      </fieldset>
+      <WorldEnvironmentPreview liveWeather={current?.weather} />
       <button type="submit" disabled={saving || !valid}>
         {saving ? 'Saving…' : 'Save Changes'}
       </button>

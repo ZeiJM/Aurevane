@@ -107,6 +107,7 @@ const battleSessionCreateRequestSchema = z
   .object({
     idempotencyKey: z.string().uuid(),
     characterId: z.string().uuid(),
+    arenaNpcId: z.string().uuid().optional(),
     arenaId: tacticalHallArenaIdSchema.default('basic-training-floor'),
     aiDifficulty: battleAiDifficultySchema.default('standard'),
     battleHallRecordId: battleHallRecordIdSchema.default('recruit-sparring'),
@@ -117,8 +118,12 @@ const battleSessionCreateRequestSchema = z
   .refine((request) => 1 + request.allyCount + request.enemyCount <= 6)
   .refine(
     (request) =>
-      request.battleHallRecordId === 'recruit-sparring' ||
+      (request.battleHallRecordId === 'recruit-sparring' && request.arenaNpcId === undefined) ||
       (request.allyCount === 0 && request.enemyCount === 1),
+  )
+  .refine(
+    (request) =>
+      request.arenaNpcId === undefined || request.battleHallRecordId === 'recruit-sparring',
   )
 
 const battleIntentRequestSchema = z

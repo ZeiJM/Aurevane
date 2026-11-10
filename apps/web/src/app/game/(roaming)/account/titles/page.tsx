@@ -2,9 +2,12 @@ import { AccountBannedError } from '@aurevane/game-core/errors'
 import { createSupabaseCharacterBuildRepository } from '@/server/character/supabase-character-build-repository'
 import { isAurevaneError } from '@aurevane/game-core/errors'
 import { headers } from 'next/headers'
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
+import { CharacterAppearanceSettings } from '@/components/account/character-appearance-settings'
 import { CharacterTitleSettings } from '@/components/account/character-title-settings'
+import { SettingsScene } from '@/components/settings/settings-scene'
 import { AuthenticatedGameRecoveryContent } from '@/components/shell/authenticated-game-shell'
 import { getOptionalPublicSupabaseConfig } from '@/lib/supabase/config'
 import { getCurrentAccountServicesReadiness } from '@/server/account/account-services-readiness'
@@ -43,7 +46,6 @@ export default async function CharacterTitlesPage() {
     ])
   if (activeBattleResult.status === 'rejected') throw activeBattleResult.reason
   const activeBattle = activeBattleResult.value
-  if (activeBattle) redirect(`/game/battle/${activeBattle.battleSessionId}`)
   if (activeSpectatingResult.status === 'rejected') throw activeSpectatingResult.reason
   const activeSpectating = activeSpectatingResult.value
   if (activeSpectating) redirect(`/game/battle/spectate/${activeSpectating.battleKey}`)
@@ -58,6 +60,18 @@ export default async function CharacterTitlesPage() {
     throw selectedCharacterResult.reason
   }
   const character = selectedCharacterResult.value
+  if (activeBattle) {
+    if (!character) redirect(`/game/battle/${activeBattle.battleSessionId}`)
+    return (
+      <SettingsScene
+        title="Character appearance"
+        description="You can preview a new look now. It will activate after your battle ends."
+      >
+        <Link href={`/game/battle/${activeBattle.battleSessionId}`}>Return to battle</Link>
+        <CharacterAppearanceSettings characterId={character.id} />
+      </SettingsScene>
+    )
+  }
 
   let titleState
   let portraitChoice
@@ -85,7 +99,11 @@ export default async function CharacterTitlesPage() {
       disciplineName={activeBuild?.primaryDefinition.name ?? 'Unavailable Discipline'}
       personalTitle={titleState.personalTitle}
       personalTitleSetAt={titleState.personalTitleSetAt}
-      imageUrl={displayState.imageUrl}
+      imageUrl={
+        displayState.legacyImageUrl === undefined
+          ? displayState.imageUrl
+          : displayState.legacyImageUrl
+      }
       portraitRef={character.portraitRef}
       portraitChoiceAvailable={portraitChoice.available}
       portraitChoiceUsedAt={portraitChoice.changedAt}

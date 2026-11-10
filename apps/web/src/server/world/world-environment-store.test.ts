@@ -24,6 +24,7 @@ it('reads stored settings', async () => {
     version: 4,
     dayLengthMinutes: 1440,
     weatherRollMinutes: 360,
+    warpedShiftMinutes: 1440,
     timeOffsetMinutes: -30,
     frozenMinuteOfDay: 600,
     weatherOverride: 'fog',
@@ -62,4 +63,14 @@ it('parses weather cadence with historical six-hour default and strict whole-min
   })
   for (const weatherRollMinutes of [0, -1, 1.5, 10081, '5', null])
     expect(parseWorldEnvironmentSettings({ ...base, weatherRollMinutes })).toBeNull()
+})
+
+it('reads the expedition cadence separately from the world clock and rejects invalid intervals', () => {
+  const base = { version: 1, timeOffsetMinutes: 0 }
+  expect(parseWorldEnvironmentSettings(base)?.warpedShiftMinutes).toBe(1440)
+  expect(
+    parseWorldEnvironmentSettings({ ...base, dayLengthMinutes: 120, warpedShiftMinutes: 30 }),
+  ).toMatchObject({ dayLengthMinutes: 120, warpedShiftMinutes: 30 })
+  for (const warpedShiftMinutes of [0, 1.5, 10081, '5', null])
+    expect(parseWorldEnvironmentSettings({ ...base, warpedShiftMinutes })).toBeNull()
 })

@@ -815,3 +815,20 @@ describe('review regressions for authoritative walking', () => {
     expect(replanned.route.every((s) => !(s.position.x === 12 && s.position.y === 2))).toBe(true)
   })
 })
+
+it('admits local movement inside an owned realm without making it discoverable from the open World', () => {
+  const realm = { sectorId: 'sealed-realm:77777777-7777-4777-8777-777777777777', x: 6, y: 4 }
+  const foreign = { ...realm, sectorId: 'sealed-realm:88888888-8888-4888-8888-888888888888' }
+  const outside = { ...newWorldState(), discoveries: { [realm.sectorId]: [58] } }
+  expect(isKnownCell(outside, realm)).toBe(false)
+  expect(visibleSectors(outside).some((sector) => sector.id === realm.sectorId)).toBe(false)
+  expect(() => resolveWorldIntent(outside, { kind: 'walk', destination: realm }, 1000)).toThrow()
+
+  const inside = { ...newWorldState(), position: realm }
+  expect(isKnownCell(inside, foreign)).toBe(false)
+  const view = projectWorld(inside, [], 1000)
+  expect(view.sectors.map(({ id }) => id)).toEqual([realm.sectorId])
+  expect(
+    resolveWorldIntent(inside, { kind: 'walk', destination: { ...realm, x: 7 } }, 1000).route,
+  ).toContainEqual(expect.objectContaining({ position: { ...realm, x: 7 } }))
+})

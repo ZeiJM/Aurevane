@@ -1,8 +1,9 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { WorldView } from './types'
 import {
   mergeWorldRefresh,
   retainWorldSceneReferences,
+  readWorldSceneRefresh,
   worldRefreshResponse,
   worldRefreshUrl,
 } from './presence'
@@ -38,6 +39,28 @@ describe('scoped World presence refresh', () => {
     expect(
       mergeWorldRefresh(previous, worldRefreshResponse(next, worldRefreshUrl(previous))).objectives,
     ).toEqual(next.objectives)
+  })
+  it('refreshes local conversation availability without downloading unchanged terrain', () => {
+    const previous = { ...view, interactions: [{ id: 'local-topic' }] } as WorldView
+    const next = { ...previous, interactions: [] }
+    const refreshed = mergeWorldRefresh(
+      previous,
+      worldRefreshResponse(next, worldRefreshUrl(previous)),
+    )
+    expect(refreshed.interactions).toEqual([])
+    expect(refreshed.sectors).toBe(previous.sectors)
+  })
+  it('refreshes and clears ferry projection without replacing the world geometry', () => {
+    const atDock = {
+      ...view,
+      ferry: { port: 'mainland', nextDepartureAt: 300_000, fareCrowns: 0 },
+    } as const
+    const dock = mergeWorldRefresh(view, worldRefreshResponse(atDock, worldRefreshUrl(view)))
+    expect(dock.ferry).toEqual(atDock.ferry)
+    expect(dock.sectors).toBe(view.sectors)
+    const elsewhere = mergeWorldRefresh(dock, worldRefreshResponse(view, worldRefreshUrl(dock)))
+    expect(elsewhere.ferry).toBeUndefined()
+    expect(elsewhere.sectors).toBe(view.sectors)
   })
   it('observes the local scene promptly while preserving authored own-step deadlines', () => {
     const idle = {
@@ -122,6 +145,84 @@ describe('retained authorized scene references', () => {
     expect(retainWorldSceneReferences(view, changed).atlas).toBe(changed.atlas)
     const other = { ...structuredClone(view), characterId: 'other' }
     expect(retainWorldSceneReferences(view, other)).toBe(other)
+  })
+})
+
+describe('optional atlas reuse on full scene hydration', () => {
+  const token = 'a'.repeat(64)
+  const known: WorldView & { atlasToken: string } = {
+    ...view,
+    atlasToken: token,
+    objectives: [],
+    interactions: [],
+    anchors: [],
+    archive: [],
+  }
+  const { atlas, ...scene } = known
+  const reply = { ...scene, kind: 'scene' as const, serverNow: 1100 }
+
+  it('requests a token on the cold read and preserves all fresh authority on a matching warm reply', async () => {
+    const cold = vi.fn(async () => known)
+    expect(await readWorldSceneRefresh(view, () => view, cold)).toEqual(known)
+    expect(cold).toHaveBeenCalledExactlyOnceWith('owner:full')
+    const changed: typeof reply = {
+      ...reply,
+      version: 8,
+      sectors: [{ ...view.sectors[0]!, id: 'new-scene' }],
+      interactions: [
+        {
+          id: 'new-interaction',
+          objectiveId: 'new-objective',
+          title: 'New topic',
+          speaker: 'Guide',
+          body: 'Fresh conversation.',
+          actionLabel: null,
+          progress: 'available',
+        },
+      ],
+      anchors: [{ id: 'new-anchor', name: 'Lookout', sectorId: 'new-scene' }],
+    }
+    const warm = vi.fn(async () => changed)
+    const merged = await readWorldSceneRefresh(known, () => known, warm)
+    expect(warm).toHaveBeenCalledExactlyOnceWith(`owner:${token}`)
+    const { kind, ...expected } = changed
+    expect(merged).not.toHaveProperty('kind', kind)
+    expect(merged).toEqual({ ...expected, atlas })
+    expect(merged.atlas).toBe(atlas)
+  })
+
+  it.each([
+    ['foreign receipt', { ...reply, characterId: 'other' }, known],
+    ['different token', { ...reply, atlasToken: 'b'.repeat(64) }, known],
+    ['stale version', reply, { ...known, version: 8 }],
+    ['stale clock', reply, { ...known, serverNow: 1200 }],
+    ['changed selection', reply, { ...known, characterId: 'other' }],
+    ['changed atlas', reply, { ...known, atlasToken: 'b'.repeat(64) }],
+    [
+      'omitted private objectives',
+      { ...reply, objectives: undefined } as unknown as typeof reply,
+      known,
+    ],
+  ] as const)('retries a full read for %s', async (_name, warm, current) => {
+    const full = {
+      ...current,
+      atlas: [{ id: 'newly-approved' }],
+      atlasToken: undefined,
+    } as WorldView
+    const load = vi.fn<(knownAtlas?: string) => Promise<WorldView | typeof reply>>()
+    load.mockResolvedValueOnce(warm).mockResolvedValueOnce(full)
+    const merged = await readWorldSceneRefresh(known, () => current, load)
+    expect(load.mock.calls).toEqual([[`owner:${token}`], []])
+    expect(merged).toEqual(full)
+    expect(merged.atlas).not.toBe(known.atlas)
+  })
+
+  it('does not accept an atlas omission when the unconditional retry also omits it', async () => {
+    const load = vi.fn(async () => reply)
+    await expect(readWorldSceneRefresh(view, () => view, load)).rejects.toThrow(
+      'The world scene could not be refreshed safely.',
+    )
+    expect(load.mock.calls).toEqual([['owner:full'], []])
   })
 })
 

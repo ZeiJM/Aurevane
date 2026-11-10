@@ -159,3 +159,20 @@
 .sections {
   align-items: start;
 }
+
+.previewControls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+  gap: 0.65rem;
+}
+.previewCanvas {
+  display: block;
+  width: 100%;
+  height: clamp(14rem, 38vh, 25rem);
+  background: #203c41;
+  border-radius: 0.25rem;
+  pointer-events: none;
+}
+.authorityOverlay {
+  margin: 0.2rem 0;
+}

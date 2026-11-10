@@ -1,19 +1,22 @@
 'use client'
 import { useState } from 'react'
 import { FRONTIER_APPROACH } from '@/world/catalog'
+import { isWorldMentorAction, isWorldRestorationAction } from '@/world/command'
 import { samePosition } from '@/world/travel'
-import type { WorldIntent, WorldView } from '@/world/types'
+import type { WorldIntent, WorldInteraction, WorldView } from '@/world/types'
 import styles from './workspace.module.css'
 export function WorldMissions({
   view,
   disabled,
   send,
   stopMoving,
+  openConversation,
 }: {
   view: WorldView
   disabled: boolean
   send: (intent: WorldIntent) => void
   stopMoving: () => void
+  openConversation: (interaction: WorldInteraction, opener: HTMLButtonElement) => void
 }) {
   const [filter, setFilter] = useState<'active' | 'completed'>('active')
   const local = view.sectors.find((s) => s.id === view.position.sectorId)!
@@ -24,9 +27,7 @@ export function WorldMissions({
   const pulseObjectives = view.objectives.filter((o) => o.kind === 'event' && !o.completed),
     questObjectives = view.objectives.filter((o) => o.kind === 'quest'),
     shownQuests = questObjectives.filter((o) => o.completed === (filter === 'completed')),
-    interactions = view.interactions.filter(
-      (i) => i.progress === 'available' || i.progress === 'active',
-    )
+    interactions = view.interactions
   const autoPathButton = (
     objective: WorldView['objectives'][number],
     start: string,
@@ -90,24 +91,15 @@ export function WorldMissions({
           {interactions.map((interaction) => (
             <div className={styles.quest} key={interaction.id}>
               <h3>{interaction.title}</h3>
-              <p>
-                <strong>{interaction.speaker}</strong> · {interaction.body}
-              </p>
-              {interaction.actionLabel ? (
-                <button
-                  className={styles.primary}
-                  disabled={disabled || view.route.length > 0}
-                  onClick={() => void send({ kind: 'interact', interactionId: interaction.id })}
-                >
-                  {interaction.actionLabel}
-                </button>
-              ) : (
-                <p className={styles.quiet}>
-                  {interaction.progress === 'completed'
-                    ? 'This objective is complete.'
-                    : 'Return after checking the eastern watch.'}
-                </p>
-              )}
+              <button
+                className={styles.primary}
+                disabled={disabled}
+                aria-haspopup="dialog"
+                data-world-primary-action="conversation"
+                onClick={(event) => openConversation(interaction, event.currentTarget)}
+              >
+                Talk to {interaction.speaker}
+              </button>
             </div>
           ))}
         </section>
@@ -140,15 +132,19 @@ export function WorldMissions({
       >
         {shownQuests.length ? (
           shownQuests.map((objective) => {
-            const turnIn =
-              objective.progress === 'ready'
-                ? view.interactions.find(
-                    (interaction) =>
-                      interaction.objectiveId === objective.id &&
-                      interaction.progress === 'ready' &&
-                      interaction.actionLabel,
-                  )
-                : undefined
+            const localResponse = view.interactions.some(
+              (interaction) =>
+                interaction.objectiveId === objective.id &&
+                (interaction.actionId === 'report' ||
+                  interaction.actionId === 'hand-over' ||
+                  interaction.actionId === 'challenge-avenger' ||
+                  interaction.actionId === 'claim-avenger-reward' ||
+                  isWorldMentorAction(interaction.actionId) ||
+                  ((isWorldRestorationAction(interaction.actionId) ||
+                    interaction.actionId === 'claim-hunt-reward') &&
+                    !!objective.destination &&
+                    samePosition(view.position, objective.destination))),
+            )
             return (
               <div className={styles.quest} key={objective.id}>
                 <h3>{objective.name}</h3>
@@ -156,17 +152,14 @@ export function WorldMissions({
                   {objective.completed || objective.progress === 'ready' ? '✓ ' : '○ '}
                   {objective.description}
                 </p>
-                {turnIn ? (
-                  <button
-                    className={styles.primary}
-                    disabled={disabled || view.route.length > 0}
-                    onClick={() => send({ kind: 'interact', interactionId: turnIn.id })}
-                  >
-                    Complete quest
-                  </button>
-                ) : !objective.completed ? (
-                  autoPathButton(objective, 'Start Auto-path', 'Follow the clues', 'Stop Auto-path')
-                ) : null}
+                {!objective.completed && !localResponse
+                  ? autoPathButton(
+                      objective,
+                      'Start Auto-path',
+                      'Follow the clues',
+                      'Stop Auto-path',
+                    )
+                  : null}
               </div>
             )
           })

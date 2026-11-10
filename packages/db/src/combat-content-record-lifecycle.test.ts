@@ -662,7 +662,7 @@ it('every legacy mutation overload checks actual authority before its precise re
     await denied(() => db.query(sql, values), /OPERATOR_REQUIRED/)
   }
 })
-it('retains all 48 legacy, 21 workspace and 3 Owner actor contracts with private helpers inaccessible', async () => {
+it('retains all 48 legacy, 29 workspace and 4 Owner actor contracts with private helpers inaccessible', async () => {
   const workspaceSignatures = [
     'public.grant_master_test_item_v1(uuid,uuid,text,integer,bigint,text,uuid)',
     'public.read_master_panel_navigation_v1(uuid,uuid)',
@@ -685,6 +685,14 @@ it('retains all 48 legacy, 21 workspace and 3 Owner actor contracts with private
     'public.write_discipline_player_grants_v1(uuid,uuid,text,uuid[],text,text)',
     'public.read_master_usage_balance_v1(uuid,uuid,text)',
     'public.read_master_usage_balance_week_v1(uuid,uuid,text,date)',
+    'public.read_master_panel_access_v3(uuid,uuid)',
+    'public.read_master_panel_navigation_v2(uuid,uuid)',
+    'public.save_master_panel_navigation_v2(uuid,bigint,jsonb,uuid)',
+    'public.read_master_npc_designs_v1(uuid,uuid)',
+    'public.write_master_npc_design_v1(uuid,uuid,uuid,bigint,text,jsonb)',
+    'public.read_master_story_npcs_v1(uuid,uuid,uuid)',
+    'public.read_master_restoration_trial_npc_v1(uuid,uuid,uuid)',
+    'public.find_master_npc_appearance_conflicts_v1(uuid,uuid,text[])',
   ]
   const workspaceContracts = (
     await db.query<{
@@ -703,6 +711,7 @@ it('retains all 48 legacy, 21 workspace and 3 Owner actor contracts with private
     'public.search_master_item_grant_characters_v1(uuid,uuid,text)',
     'public.read_master_item_grant_target_v1(uuid,uuid,uuid)',
     'public.grant_master_item_to_character_v1(uuid,uuid,uuid,text,integer,bigint,text,uuid)',
+    'public.commit_master_npc_uniform_v1(uuid,uuid,uuid,bigint,text,text)',
   ]
   const ownerHelper = 'app_private.assert_master_item_grant_owner_v1(uuid,uuid)'
   const ownerContracts = (
@@ -718,14 +727,14 @@ it('retains all 48 legacy, 21 workspace and 3 Owner actor contracts with private
     )
   ).rows
   expect(legacyActorSignatures).toHaveLength(48)
-  expect(workspaceContracts).toHaveLength(21)
-  expect(ownerContracts).toHaveLength(3)
+  expect(workspaceContracts).toHaveLength(29)
+  expect(ownerContracts).toHaveLength(4)
   expect(await actorSignatures()).toEqual(
     [
       ...legacyActorSignatures,
       ...workspaceContracts.map((contract) => contract.signature),
       ...ownerContracts.map((contract) => contract.signature),
-      // Unlike the delegated workspace APIs, these share a protected Owner assertion.
+      // Targeted Item APIs share a protected Owner assertion.
       (
         await db.query<{ signature: string }>(
           "select format('%I.%I(%s)',n.nspname,p.proname,oidvectortypes(p.proargtypes)) signature from pg_proc p join pg_namespace n on n.oid=p.pronamespace where p.oid=$1::regprocedure and 'p_actor_character_id'=any(p.proargnames)",
@@ -757,6 +766,8 @@ it('retains all 48 legacy, 21 workspace and 3 Owner actor contracts with private
   expect(helpers.every((r) => !r.allowed)).toBe(true)
   const workspaceHelpers = [
     ownerHelper,
+    'app_private.sync_npc_appearance_claims_v2(uuid,text[],text,boolean)',
+    'app_private.write_master_npc_design_v2(uuid,uuid,uuid,bigint,text,jsonb,text)',
     'app_private.guard_deleted_content_v1()',
     'app_private.discipline_deletion_keys_v1(text)',
     'app_private.discipline_deletion_impact_v1(text)',

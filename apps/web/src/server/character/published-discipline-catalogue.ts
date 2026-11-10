@@ -14,7 +14,6 @@ import {
   FOUNDATION_DISCIPLINES,
   type FoundationBaseAttributes,
   type FoundationAttributeId,
-  type FoundationStartingAttributeBonuses,
 } from '@aurevane/game-core/character/foundation-disciplines'
 import { AurevaneError } from '@aurevane/game-core/errors'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
@@ -32,17 +31,20 @@ export interface PublishedPrimaryDiscipline {
   baseAttributes: FoundationBaseAttributes
   focusAttributes: readonly FoundationAttributeId[]
 }
-export interface PublishedFoundationDiscipline extends Omit<
+export type PublishedFoundationDiscipline = Omit<
   PublishedPrimaryDiscipline,
   'authoredDefinition' | 'nativeUnlock'
-> {
-  startingAttributeBonuses: FoundationStartingAttributeBonuses
-}
+>
+
 export async function loadPublishedPrimaryDisciplines(): Promise<PublishedPrimaryDiscipline[]> {
   const { data, error } = await createSupabaseAdminClient().rpc('get_current_discipline_catalog_v1')
+  return parsePublishedPrimaryDisciplines(error ? null : data)
+}
+
+function parsePublishedPrimaryDisciplines(data: unknown): PublishedPrimaryDiscipline[] {
   const unavailable = () =>
     new AurevaneError('PERSISTENCE_UNAVAILABLE', 'The current Discipline catalogue is unavailable.')
-  if (error || !Array.isArray(data)) throw unavailable()
+  if (!Array.isArray(data)) throw unavailable()
   return data.map((row: Record<string, unknown>) => {
     if (
       typeof row.discipline_id !== 'string' ||
@@ -92,48 +94,37 @@ export async function loadPublishedPrimaryDisciplines(): Promise<PublishedPrimar
     }
   })
 }
+const starterOrder = new Map<string, number>(
+  FOUNDATION_DISCIPLINES.map((discipline, index) => [discipline.id, index]),
+)
+
 export async function loadPublishedFoundations(
-  userId?: string,
+  userId: string,
 ): Promise<PublishedFoundationDiscipline[]> {
-  const current = await loadPublishedPrimaryDisciplines()
-  const grants = new Set<string>()
-  if (userId && current.some((row) => row.authoredDefinition?.unlock.kind === 'unavailable')) {
-    const { data, error } = await createSupabaseAdminClient().rpc(
-      'get_account_discipline_grants_v1',
-      { p_user_id: userId },
+  const { data, error } = await createSupabaseAdminClient().rpc(
+    'get_character_creation_catalog_v1',
+    {
+      p_user_id: userId,
+    },
+  )
+  return parsePublishedPrimaryDisciplines(error ? null : data)
+    .sort(
+      (a, b) =>
+        (starterOrder.get(a.id) ?? starterOrder.size) -
+        (starterOrder.get(b.id) ?? starterOrder.size),
     )
-    if (error || !Array.isArray(data) || data.some((id) => typeof id !== 'string'))
-      throw new AurevaneError(
-        'PERSISTENCE_UNAVAILABLE',
-        'Foundation access is temporarily unavailable.',
-      )
-    for (const id of data) grants.add(id)
-  }
-  return FOUNDATION_DISCIPLINES.flatMap((legacy) => {
-    const row = current.find(
-      (candidate) =>
-        candidate.id === legacy.id &&
-        candidate.enabledForPrimary &&
-        (candidate.authoredDefinition?.unlock.kind !== 'unavailable' || grants.has(candidate.id)),
-    )
-    return row
-      ? [
-          {
-            ...(row.media ? { media: row.media } : {}),
-            id: row.id,
-            name: row.name,
-            summary: row.summary,
-            profileVersion: row.profileVersion,
-            definitionVersion: row.definitionVersion,
-            enabledForPrimary: row.enabledForPrimary,
-            enabledForSecondary: row.enabledForSecondary,
-            baseAttributes: row.baseAttributes,
-            focusAttributes: row.focusAttributes,
-            startingAttributeBonuses: legacy.startingAttributeBonuses,
-          },
-        ]
-      : []
-  })
+    .map((row) => ({
+      ...(row.media ? { media: row.media } : {}),
+      id: row.id,
+      name: row.name,
+      summary: row.summary,
+      profileVersion: row.profileVersion,
+      definitionVersion: row.definitionVersion,
+      enabledForPrimary: row.enabledForPrimary,
+      enabledForSecondary: row.enabledForSecondary,
+      baseAttributes: row.baseAttributes,
+      focusAttributes: row.focusAttributes,
+    }))
 }
 
 export async function loadPublishedDisciplineAtlas(): Promise<DisciplineAtlasEntry[]> {

@@ -394,6 +394,9 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
+      - name: Verify fragment discovery across two PostgreSQL sessions
+        run: python3 .github/scripts/verify-personal-inventory-discovery.py
+
       - name: Stop local Supabase services
         if: always()
         run: pnpm exec supabase stop --no-backup

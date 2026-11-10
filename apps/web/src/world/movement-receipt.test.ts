@@ -9,6 +9,7 @@ it('updates only confirmed owned movement and retains the loaded scene and peer 
     atlas: [],
     players: [{ attackable: true }],
     environment: {},
+    interactions: [{ id: 'origin-conversation' }],
     position: { sectorId: 'a', x: 1, y: 1 },
   } as unknown as WorldView
   const receipt = {
@@ -30,6 +31,15 @@ it('updates only confirmed owned movement and retains the loaded scene and peer 
   expect(next.environment).toBe(view.environment)
   expect(next.players[0]?.attackable).toBe(false)
   expect(next.position).toEqual(receipt.position)
+  expect(next.interactions).toEqual([])
+  const ferry = { port: 'mainland', nextDepartureAt: 300_000, fareCrowns: 0 } as const
+  const atDock = mergeWorldMovement(view, { ...receipt, ferry })
+  expect(atDock.ferry).toEqual(ferry)
+  expect(mergeWorldMovement(atDock, { ...receipt, version: 3 }).ferry).toBeUndefined()
+  const arrivalTopics = [{ id: 'destination-conversation' }] as WorldView['interactions']
+  expect(mergeWorldMovement(view, { ...receipt, interactions: arrivalTopics }).interactions).toBe(
+    arrivalTopics,
+  )
   expect(() => mergeWorldMovement(view, { ...receipt, characterId: 'other' })).toThrow()
   expect(() => mergeWorldMovement(view, { ...receipt, version: 0 })).toThrow()
 })

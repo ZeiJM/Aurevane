@@ -1,4 +1,6 @@
+import type { AppearanceExpression } from '@/appearance/appearance-manifest'
 import type { WorldEnvironment } from './environment'
+import type { FerryPassage, WorldFerryView } from './ferry'
 
 export interface WorldPosition {
   sectorId: string
@@ -19,8 +21,13 @@ export interface WorldState {
   /** Final target when a long journey continues beyond the saved route window. */
   routeDestination?: WorldPosition | null
   nextStepAt: number | null
+  ferry?: FerryPassage & { warpedPhase: number | null }
   discoveries: Record<string, number[]>
   discoveredAnchors?: string[]
+  /** Authoritative phase captured at the uncharted continent's ferry landing. */
+  warpedPhase?: number
+  /** Field observations physically recorded during an expedition. */
+  warpedDiscoveries?: string[]
   completedObjectives: string[]
   objectiveProgress?: Record<string, WorldObjectiveProgress>
 }
@@ -47,6 +54,8 @@ export interface WorldLandmark {
   y: number
   /** Original scenic landmark sprite; does not grant an interaction or reward. */
   sceneryIndex?: number
+  /** Private warped-continent scenery atlas, revealed only in the local scene. */
+  warpedArt?: number
   kind:
     | 'settlement'
     | 'watchtower'
@@ -100,6 +109,10 @@ export interface WorldSector {
   generated?: boolean
   atlasColumn?: number
   atlasRow?: number
+  /** Local projection on a private landmass. These are not globe coordinates. */
+  sceneColumn?: number
+  sceneRow?: number
+  warpedTheme?: 'haven' | 'ashen' | 'fracture' | 'wayfarer' | 'amber' | 'amethyst'
   townId?: string
   landscape?: 'sakura' | 'autumn' | 'wisteria' | 'willow' | 'wildflowers'
   buildings?: readonly WorldBuilding[]
@@ -111,19 +124,48 @@ export interface WorldObjective {
   name: string
   description: string
   kind: 'quest' | 'event'
+  authority?: 'personal-quest'
   autoPath: boolean
   guidance: 'exact' | 'clue'
   destination: WorldPosition | null
   completed: boolean
   progress?: WorldObjectiveProgress
 }
+export type WorldRestorationActionId =
+  'choose-restoration' | 'choose-restoration-trial' | 'restore-item' | 'claim-restoration'
+export type WorldInteractionActionId =
+  | WorldRestorationActionId
+  | 'accept'
+  | 'report'
+  | 'claim-hunt-reward'
+  | 'hand-over'
+  | 'claim-exchange'
+  | 'travel-realm'
+  | 'leave-realm'
+  | 'challenge-realm'
+  | 'challenge-npc'
+  | 'challenge-mentor'
+  | 'train-mentor'
+  | 'claim-mentor-reward'
+  | 'challenge-avenger'
+  | 'claim-avenger-reward'
 export interface WorldInteraction {
   id: string
   objectiveId: string
   title: string
   speaker: string
+  /** Stable reusable identity when more than one local topic shares a speaker. */
+  speakerId?: string
+  portraitUrl?: string
+  expression?: AppearanceExpression
   body: string
+  actionId?: WorldInteractionActionId | null
   actionLabel: string | null
+  confirmation?: { prompt: string; label: string; cancelLabel: string }
+  alternative?: { actionId: WorldInteractionActionId; label: string }
+  lore?: string
+  declineLabel?: string
+  lastReply?: string
   progress: WorldObjectiveProgress
 }
 export interface WorldAnchorDiscovery {
@@ -184,7 +226,15 @@ export interface WorldSceneViewport {
   width: number
   height: number
 }
+export interface WorldNpcPresentation {
+  id: string
+  name: string
+  position: WorldPosition
+  imageUrl: string | null
+}
+
 export interface WorldView {
+  ferry?: WorldFerryView
   /** Service registration and private receive capability are available for this scene. */
   livePresence?: boolean
   characterId: string
@@ -200,7 +250,10 @@ export interface WorldView {
   scenery?: WorldScenerySector[]
   /** Compact overview; private terrain and undiscovered landmarks never enter this list. */
   atlas?: WorldAtlasCell[]
+  /** Opt-in scene transport receipt for this character's exact atlas projection. */
+  atlasToken?: string
   players: WorldPlayer[]
+  npcs?: WorldNpcPresentation[]
   objectives: WorldObjective[]
   interactions: WorldInteraction[]
   anchors: WorldAnchorDiscovery[]
@@ -211,12 +264,14 @@ export interface WorldView {
   environment: WorldEnvironment
 }
 export type WorldIntent =
+  | { kind: 'board-ferry' }
+  | { kind: 'leave-ferry' }
   | { kind: 'walk'; destination: WorldPosition }
   | { kind: 'autopath'; objectiveId: string }
   | { kind: 'stop' }
   | { kind: 'tick' }
   | { kind: 'cross' }
-  | { kind: 'interact'; interactionId: string }
+  | { kind: 'interact'; interactionId: string; actionId?: WorldInteractionActionId }
   | { kind: 'attack'; targetId: string }
 export interface WorldCommand {
   characterId: string

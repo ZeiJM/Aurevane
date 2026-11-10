@@ -47,6 +47,9 @@ export class WorldController {
   get attackPending() {
     return [this.currentJob, ...this.queue].some((job) => job?.intent.kind === 'attack')
   }
+  get movementPending() {
+    return [this.currentJob, ...this.queue].some((job) => job && movement(job.intent))
+  }
   get pending() {
     return this.running || this.queue.length > 0
   }
@@ -293,10 +296,13 @@ export class WorldController {
         sectors: incoming.sectors,
         scenery: incoming.scenery,
         atlas: incoming.atlas,
+        atlasToken: incoming.atlasToken,
         players,
         environment: incoming.environment,
         ...(sameVersion
           ? {
+              ...(incoming.serverNow >= this.view.serverNow ? { ferry: incoming.ferry } : {}),
+              npcs: incoming.npcs,
               objectives: incoming.objectives,
               interactions: incoming.interactions,
               anchors: incoming.anchors,

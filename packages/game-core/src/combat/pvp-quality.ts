@@ -124,8 +124,9 @@ export function surrenderPvpCombatant(
     events.push(...handedOff.events)
   }
 
-  const currentTarget = getCombatant(nextState, combatantId)
-  nextState = rebuildCombatant(nextState, { ...currentTarget, hp: 0 })
+  // The turn handoff already removes a surrendering active summon.
+  const currentTarget = nextState.tactical.battle.combatants.find((unit) => unit.id === combatantId)
+  if (currentTarget) nextState = rebuildCombatant(nextState, { ...currentTarget, hp: 0 })
   events.push({ event: 'pvp_combatant_surrendered', combatantId })
 
   const livingTeams = new Set(

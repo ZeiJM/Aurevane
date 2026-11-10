@@ -86,6 +86,7 @@ it('keeps repeatable portrait authority after every canonical migration', async 
       }
     }
     await db.exec(regression)
+    await db.exec(readFileSync(resolve(root, 'tests/safe_character_appearance.sql'), 'utf8'))
     expect(
       (
         await db.query(

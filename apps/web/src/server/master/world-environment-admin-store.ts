@@ -9,6 +9,7 @@ import {
   MAX_WORLD_DAY_MINUTES,
   MAX_WEATHER_ROLL_MINUTES,
   MAX_WEATHER_DURATION_MINUTES,
+  MAX_WARPED_SHIFT_MINUTES,
   isWorldWeather,
   type WorldEnvironmentSettings,
   type WorldWeather,
@@ -17,6 +18,7 @@ import {
 export interface WorldEnvironmentChange {
   dayLengthMinutes: number
   weatherRollMinutes?: number
+  warpedShiftMinutes?: number
   timeOffsetMinutes: number
   /** null returns to the live clock. */
   frozenMinuteOfDay: number | null
@@ -72,6 +74,15 @@ export async function setWorldEnvironment(input: {
       `Weather roll interval must be a whole number from 1 to ${MAX_WEATHER_ROLL_MINUTES} real minutes.`,
     )
   const frozen = change.frozenMinuteOfDay ?? null
+  if (
+    change.warpedShiftMinutes !== undefined &&
+    (!Number.isSafeInteger(change.warpedShiftMinutes) ||
+      change.warpedShiftMinutes < 1 ||
+      change.warpedShiftMinutes > MAX_WARPED_SHIFT_MINUTES)
+  )
+    invalid(
+      `Uncharted shift interval must be a whole number from 1 to ${MAX_WARPED_SHIFT_MINUTES} real minutes.`,
+    )
   if (frozen !== null && (!Number.isInteger(frozen) || frozen < 0 || frozen > 1439))
     invalid('Frozen time must be a minute of the day from 0 to 1439.')
   const weather = change.weather ?? null
@@ -127,6 +138,9 @@ export async function setWorldEnvironment(input: {
       ...(change.weatherRollMinutes === undefined
         ? {}
         : { weatherRollMinutes: change.weatherRollMinutes }),
+      ...(change.warpedShiftMinutes === undefined
+        ? {}
+        : { warpedShiftMinutes: change.warpedShiftMinutes }),
       timeOffsetMinutes: change.timeOffsetMinutes,
       frozenMinuteOfDay: frozen,
       ...override,

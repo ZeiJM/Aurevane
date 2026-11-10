@@ -42,6 +42,7 @@ type Intent =
     }
   | { action: 'unequip'; position: EquipmentPosition }
   | { action: 'sort'; category: ItemInventoryCategory; order: string }
+  | { action: 'discard'; stackId: string }
 export function CharacterItems({
   initialView,
   presentationId = 'androgynous',
@@ -61,7 +62,11 @@ export function CharacterItems({
     [error, setError] = useState<string | null>(
       initialView ? null : 'Your Items could not be loaded.',
     ),
-    [needsRefresh, setNeedsRefresh] = useState(!initialView)
+    [needsRefresh, setNeedsRefresh] = useState(!initialView),
+    [discardConfirmation, setDiscardConfirmation] = useState<{
+      stackId: string
+      revision: number
+    } | null>(null)
   const equipmentArtwork = getImageAsset(`ui.equipment.${presentationId}.v1`)
   const pending = useRef(false)
   const mounted = useRef(true)
@@ -146,6 +151,7 @@ export function CharacterItems({
       if (intent.action !== 'sort') {
         setSelected(null)
         setPickerPosition(null)
+        setDiscardConfirmation(null)
       }
     } catch (cause) {
       failure =
@@ -172,6 +178,7 @@ export function CharacterItems({
   }
   function open(stack: OwnedItem, p?: EquipmentPosition) {
     setSelected(stack.id)
+    setDiscardConfirmation(null)
     setInspectionPosition(p ?? null)
     setPickerPosition(null)
     setError(null)
@@ -184,6 +191,8 @@ export function CharacterItems({
     )
   const disabled = busy || view.battleLocked || needsRefresh
   const chosen = view.stacks.find((s) => s.id === selected)
+  const confirmingDiscard =
+    discardConfirmation?.stackId === chosen?.id && discardConfirmation?.revision === view.revision
   const assigned = chosen ? EQUIPMENT_POSITIONS.filter((p) => view.equipment[p] === chosen.id) : []
   const candidatePositions = chosen?.item ? itemPositions(chosen.item) : []
   const targetPosition = candidatePositions.find((p) => !view.equipment[p]) ?? candidatePositions[0]
@@ -271,8 +280,8 @@ export function CharacterItems({
       ) : null}
       {view.battleLocked ? (
         <p role="status" className={styles.warning}>
-          Equipment, sorting and equipment Support changes are locked during a pending or active
-          battle. Your Items update automatically after the battle ends.
+          Item changes are locked during a pending or active battle. Your Items update automatically
+          after the battle ends.
         </p>
       ) : null}
       <div className={styles.columns}>
@@ -349,15 +358,11 @@ export function CharacterItems({
                         ? 'Two-handed'
                         : (s?.item?.name ?? (s ? 'Unavailable Item' : 'Empty'))}
                     </strong>
-                    <small>
-                      {blocked
-                        ? 'Off Hand blocked'
-                        : s?.item
-                          ? `${s.item.qualityPoints} QP`
-                          : s
-                            ? 'Remove to repair'
-                            : 'Unequipped'}
-                    </small>
+                    {blocked || !s?.item ? (
+                      <small>
+                        {blocked ? 'Off Hand blocked' : s ? 'Remove to repair' : 'Unequipped'}
+                      </small>
+                    ) : null}
                     <span className={styles.equipmentArtwork}>
                       {s?.item?.artworkSrc ? (
                         <Image
@@ -586,7 +591,35 @@ export function CharacterItems({
                 ) : (
                   <button disabled>Cannot be equipped</button>
                 )}
+                {chosen.canDiscard && !confirmingDiscard ? (
+                  <button
+                    disabled={disabled}
+                    onClick={() =>
+                      setDiscardConfirmation({ stackId: chosen.id, revision: view.revision })
+                    }
+                  >
+                    Discard stack
+                  </button>
+                ) : null}
               </div>
+              {chosen.canDiscard && confirmingDiscard ? (
+                <section className={styles.warning} aria-label="Confirm discard">
+                  <p>
+                    {`Permanently discard ${chosen.quantity} × ${chosen.item?.name ?? 'Unavailable Item'}? This frees one inventory slot.`}
+                  </p>
+                  <div className={styles.actionButtons}>
+                    <button autoFocus disabled={busy} onClick={() => setDiscardConfirmation(null)}>
+                      Keep stack
+                    </button>
+                    <button
+                      disabled={disabled}
+                      onClick={() => void mutate({ action: 'discard', stackId: chosen.id })}
+                    >
+                      Confirm discard
+                    </button>
+                  </div>
+                </section>
+              ) : null}
               {!removals.length && proposal?.requiredReplacements.length ? (
                 <section className={styles.statComparison} aria-label="Equipment comparison">
                   <h4>Stat changes if equipped</h4>

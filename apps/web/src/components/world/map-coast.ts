@@ -8,6 +8,8 @@ export interface CoastEdge {
   from: number
   to: number
   seed: number
+  openStart: boolean
+  openEnd: boolean
 }
 const offsets = [
   [0, -1],
@@ -54,23 +56,58 @@ export function buildPublicCoasts(view: Pick<WorldView, 'sectors' | 'atlas'>) {
             from: start,
             to: i,
             seed: hashString(`${sector.atlasColumn}:${sector.atlasRow}:${side}`),
+            openStart: false,
+            openEnd: false,
           })
           start = null
         }
+      }
+    }
+    // An exposed side can end at another occupied chunk or in the middle of
+    // its own water channel. Round only the open-sea corners where two full
+    // land edges meet and the diagonal has no public terrain.
+    const corners = [
+      { x: -1, y: -1, horizontal: 0, vertical: 3 },
+      { x: 1, y: -1, horizontal: 0, vertical: 1 },
+      { x: -1, y: 1, horizontal: 2, vertical: 3 },
+      { x: 1, y: 1, horizontal: 2, vertical: 1 },
+    ] as const
+    for (const corner of corners) {
+      const diagonal = atlasNeighbor(sector.atlasColumn, sector.atlasRow, corner.x, corner.y)
+      if (diagonal && occupied.has(`${diagonal.column}:${diagonal.row}`)) continue
+      const xEnd = corner.x > 0 ? 'openEnd' : 'openStart'
+      const yEnd = corner.y > 0 ? 'openEnd' : 'openStart'
+      const horizontal = edges.find(
+        (edge) =>
+          edge.side === corner.horizontal &&
+          (corner.x > 0 ? edge.to === GRID_WIDTH : edge.from === 0),
+      )
+      const vertical = edges.find(
+        (edge) =>
+          edge.side === corner.vertical &&
+          (corner.y > 0 ? edge.to === GRID_HEIGHT : edge.from === 0),
+      )
+      if (horizontal && vertical) {
+        horizontal[xEnd] = true
+        vertical[yEnd] = true
       }
     }
   }
   return field
 }
 
-/** All offsets point seawards, so surf never conceals legal walkable ground. */
+/** Positive distance points out to sea. Dry material uses a separate inland pass. */
 export function coastPoint(
   edge: CoastEdge,
   t: number,
   distance: number,
 ): readonly [number, number] {
   const along = edge.from + (edge.to - edge.from) * t,
-    outward = distance + Math.sin(along * 1.23 + edge.seed) * distance * 0.16
+    outward =
+      distance +
+      (Math.sin(along * 1.23 + edge.seed) * 0.12 + Math.sin(along * 2.81 + edge.seed) * 0.045) *
+        distance *
+        Math.sin(t * Math.PI)
   return edge.side === 0
     ? [along, -outward]
     : edge.side === 1
@@ -79,15 +116,171 @@ export function coastPoint(
         ? [along, GRID_HEIGHT + outward]
         : [-outward, along]
 }
-function trace(context: CanvasRenderingContext2D, edge: CoastEdge, tile: number, distance: number) {
-  for (let i = 0; i <= 24; i++) {
-    const point = coastPoint(edge, i / 24, distance)
-    if (i === 0) context.moveTo(point[0] * tile, point[1] * tile)
+function trace(
+  context: CanvasRenderingContext2D,
+  edge: CoastEdge,
+  tile: number,
+  distance: number,
+  reverse = false,
+) {
+  const steps = Math.max(4, (edge.to - edge.from) * 2)
+  for (let i = 0; i <= steps; i++) {
+    const point = coastPoint(edge, reverse ? 1 - i / steps : i / steps, distance)
+    if (i === 0 && !reverse) context.moveTo(point[0] * tile, point[1] * tile)
     else context.lineTo(point[0] * tile, point[1] * tile)
   }
 }
 
-/** Bounded sea-side shading and surf, painted before the cached land layer. */
+type CoastPalette = {
+  dry: string
+  wet: string
+  shelf: string
+  stone: string
+  width: number
+}
+
+const commonCoast: CoastPalette = {
+  dry: '181,159,113',
+  wet: '#635f4c',
+  shelf: '#65998f',
+  stone: '#9a947d',
+  width: 0.7,
+}
+const rockyCoast: CoastPalette = {
+  dry: '132,129,112',
+  wet: '#4c5149',
+  shelf: '#578b86',
+  stone: '#b3ac96',
+  width: 0.44,
+}
+const regionalCoasts: Record<string, CoastPalette> = {
+  frostmere: {
+    dry: '165,150,125',
+    wet: '#575b54',
+    shelf: '#72a3a0',
+    stone: '#d0c7b8',
+    width: 0.82,
+  },
+  'hollow-coast': rockyCoast,
+  'starfall-highlands': rockyCoast,
+  'umbral-march': {
+    dry: '104,110,78',
+    wet: '#4e5242',
+    shelf: '#5a8070',
+    stone: '#8b9b78',
+    width: 0.56,
+  },
+  'glasswind-desert': {
+    dry: '199,176,130',
+    wet: '#77674a',
+    shelf: '#6b9f92',
+    stone: '#c6b79c',
+    width: 0.9,
+  },
+  emberreach: {
+    dry: '110,101,96',
+    wet: '#494846',
+    shelf: '#638982',
+    stone: '#948785',
+    width: 0.56,
+  },
+}
+
+function colourBand(
+  context: CanvasRenderingContext2D,
+  edge: CoastEdge,
+  tile: number,
+  from: number,
+  to: number,
+) {
+  // A perpendicular gradient uses the nominal offsets. A perturbed midpoint
+  // can leave the far edge tinted where the wavy shelf is narrower.
+  const near = coastPoint(edge, 0, from)
+  const far = coastPoint(edge, 0, to)
+  return context.createLinearGradient(near[0] * tile, near[1] * tile, far[0] * tile, far[1] * tile)
+}
+
+function paintBand(
+  context: CanvasRenderingContext2D,
+  edge: CoastEdge,
+  tile: number,
+  from: number,
+  to: number,
+  colour: CanvasGradient,
+) {
+  context.beginPath()
+  trace(context, edge, tile, from)
+  trace(context, edge, tile, to, true)
+  context.closePath()
+  context.fillStyle = colour
+  context.fill()
+}
+
+/** Cache dry sediment and stone details with the land raster. */
+export function paintCoastLand(
+  context: CanvasRenderingContext2D,
+  edges: readonly CoastEdge[],
+  tile: number,
+  regionId: string,
+) {
+  const palette = regionalCoasts[regionId] ?? commonCoast
+  context.save()
+  for (const edge of edges) {
+    const gradient = colourBand(context, edge, tile, 0, -palette.width)
+    gradient.addColorStop(0, palette.wet)
+    gradient.addColorStop(0.24, `rgba(${palette.dry},.9)`)
+    gradient.addColorStop(0.68, `rgba(${palette.dry},.28)`)
+    gradient.addColorStop(1, 'transparent')
+    paintBand(context, edge, tile, 0, -palette.width, gradient)
+    const wrack = colourBand(context, edge, tile, 0, -0.18)
+    wrack.addColorStop(0, 'rgba(48,49,44,.72)')
+    wrack.addColorStop(1, 'rgba(48,49,44,0)')
+    paintBand(context, edge, tile, 0, -0.22, wrack)
+    context.fillStyle = palette.stone
+    const count = (edge.to - edge.from) * 5
+    for (let i = 0; i < count; i++) {
+      const seed = hashString(`${edge.seed}:${edge.from}:${i}:gravel`)
+      const fraction = (i + (seed % 79) / 79) / count
+      const [x, y] = coastPoint(edge, fraction, -0.09 - ((seed >>> 8) % 47) / 100)
+      const size = tile * (0.015 + ((seed >>> 16) % 42) / 1000)
+      context.globalAlpha = 0.15 + (seed % 23) / 100
+      context.fillRect(x * tile, y * tile, size * 1.6, size)
+      if (seed % 7 === 0)
+        context.fillRect((x + 0.025) * tile, (y - 0.045) * tile, size * 0.9, size * 1.25)
+    }
+    context.globalAlpha = 1
+  }
+  context.restore()
+}
+
+const SHELF_DEPTH = 2.65
+// The outline varies by at most 16.5%. Reach the exact ocean background
+// inside its shallowest dip, so the raster never draws dark geometric edges.
+const SHELF_BLEND = SHELF_DEPTH * 0.82
+function shelfStops(gradient: CanvasGradient, palette: CoastPalette) {
+  gradient.addColorStop(0, palette.wet)
+  gradient.addColorStop(0.18, palette.shelf)
+  gradient.addColorStop(0.56, '#396b73')
+  gradient.addColorStop(1, '#284b57')
+}
+function paintOpenCorner(
+  context: CanvasRenderingContext2D,
+  edge: CoastEdge,
+  tile: number,
+  end: 0 | 1,
+  palette: CoastPalette,
+) {
+  const [x, y] = coastPoint(edge, end, 0)
+  const cx = x * tile
+  const cy = y * tile
+  const size = SHELF_DEPTH * tile
+  const gradient = context.createRadialGradient(cx, cy, 0, cx, cy, SHELF_BLEND * tile)
+  shelfStops(gradient, palette)
+  context.fillStyle = gradient
+  context.fillRect(cx + (end === 0 ? -size : 0), cy + (edge.side === 0 ? -size : 0), size, size)
+}
+
+/** Paint the submerged shelf outside legal ground. Only the surf phase varies. */
 export function paintCoastSea(
   context: CanvasRenderingContext2D,
   edges: readonly CoastEdge[],
@@ -95,43 +288,33 @@ export function paintCoastSea(
   now: number,
   animate: boolean,
   budget = 16,
+  regionId = '',
+  waves = 3,
 ) {
   const visibleEdges = edges.slice(0, Math.max(0, Math.min(16, budget)))
+  const palette = regionalCoasts[regionId] ?? commonCoast
   context.save()
-  context.lineCap = 'round'
+  context.lineCap = 'butt'
   for (const edge of visibleEdges) {
-    const near = coastPoint(edge, 0.5, 0),
-      far = coastPoint(edge, 0.5, 2.3),
-      gradient = context.createLinearGradient(
-        near[0] * tile,
-        near[1] * tile,
-        far[0] * tile,
-        far[1] * tile,
-      )
-    gradient.addColorStop(0, '#678f82')
-    gradient.addColorStop(0.2, '#487c79')
-    gradient.addColorStop(0.65, '#315f6b')
-    gradient.addColorStop(1, '#284b57')
-    context.beginPath()
-    trace(context, edge, tile, 0)
-    for (let i = 24; i >= 0; i--) {
-      const p = coastPoint(edge, i / 24, 2.3)
-      context.lineTo(p[0] * tile, p[1] * tile)
+    if (edge.side === 0 || edge.side === 2) {
+      if (edge.openStart) paintOpenCorner(context, edge, tile, 0, palette)
+      if (edge.openEnd) paintOpenCorner(context, edge, tile, 1, palette)
     }
-    context.closePath()
-    context.fillStyle = gradient
-    context.fill()
-    for (let wave = 0; wave < 3; wave++) {
+    const gradient = colourBand(context, edge, tile, 0, SHELF_BLEND)
+    shelfStops(gradient, palette)
+    paintBand(context, edge, tile, 0, SHELF_DEPTH, gradient)
+    for (let wave = 0; wave < waves; wave++) {
       const phase = animate
-        ? (now / (9000 + (edge.seed % 2000)) + wave / 3 + (edge.seed % 97) / 97) % 1
-        : (wave + 1) / 4
-      context.globalAlpha = Math.sin(phase * Math.PI) * 0.24
+        ? (now / (9600 + (edge.seed % 2000)) + wave / waves + (edge.seed % 97) / 97) % 1
+        : (wave + 1) / (waves + 1)
+      context.globalAlpha = Math.sin(phase * Math.PI) * 0.26
       context.strokeStyle = '#d1e3cd'
       context.lineWidth = tile * 0.016
       context.beginPath()
-      trace(context, edge, tile, 0.05 + phase * 1.4)
+      trace(context, edge, tile, 0.08 + phase * 1.3)
       context.stroke()
     }
+    context.globalAlpha = 1
   }
   context.restore()
   return visibleEdges.length

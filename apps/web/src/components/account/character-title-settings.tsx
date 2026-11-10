@@ -7,6 +7,7 @@ import type { CharacterPortraitRef } from '@aurevane/game-core/character/creatio
 import { useRouter } from 'next/navigation'
 import { useMemo, useRef, useState } from 'react'
 
+import { CharacterAppearanceSettings } from './character-appearance-settings'
 import { SettingsScene } from '@/components/settings/settings-scene'
 import styles from './character-title-settings.module.css'
 
@@ -337,8 +338,8 @@ export function CharacterTitleSettings({
           ) : (
             <>
               <p>
-                Confirming replaces any custom image with the portrait you choose. You can change
-                your default portrait again later.
+                Confirming replaces any custom portrait URL with the portrait you choose. A shared
+                appearance takes precedence over your default portrait.
               </p>
               <fieldset className={styles.portraitGallery} disabled={portraitPending}>
                 <legend>Choose your default portrait</legend>
@@ -389,6 +390,15 @@ export function CharacterTitleSettings({
           )}
         </dialog>
 
+        <section className={styles.profileImage} aria-labelledby="character-appearance-heading">
+          <div>
+            <span>Character image and sprites</span>
+            <h2 id="character-appearance-heading">Character appearance</h2>
+            <p>Build a look and review its expressions, field sprite and battle sprite.</p>
+          </div>
+          <CharacterAppearanceSettings characterId={characterId} />
+        </section>
+
         <section className={styles.profileImage} aria-labelledby="profile-image-heading">
           <div>
             <span>Character image</span>
@@ -397,6 +407,7 @@ export function CharacterTitleSettings({
               Direct JPG, PNG, WebP or GIF link; square-cropped. Use 128–4096 px artwork, up to 8 MB
               static or 12 MB GIF.
             </p>
+            <p>Used when the character does not have a shared appearance.</p>
           </div>
           {imageDraft.trim() && !imagePreviewFailed && !currentHostMessage ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -435,8 +446,8 @@ export function CharacterTitleSettings({
               aria-invalid={currentHostMessage ? true : undefined}
             />
             <small>
-              ImgBB: use “Direct link” (i.ibb.co). Leave blank and save to restore your built-in
-              portrait.
+              ImgBB: use “Direct link” (i.ibb.co). Leave blank and save to restore the built-in
+              portrait fallback.
             </small>
           </label>
           <div className={styles.portraitActions}>

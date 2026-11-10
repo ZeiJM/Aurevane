@@ -210,6 +210,50 @@ try {
   await automatic.evaluate(() => window.dispatchEvent(new Event('focus')))
   await expect(automaticSort).toBeEnabled()
   await automatic.close()
+  for (const viewport of [
+    { width: 1366, height: 768 },
+    { width: 390, height: 844 },
+  ].filter(includeViewport)) {
+    const discard = await browser.newPage({ viewport })
+    await discard.goto(`${server.resolvedUrls.local[0]}?shell=items&discard`, {
+      waitUntil: 'networkidle',
+    })
+    await discard.getByRole('button', { name: 'Event', exact: true }).click()
+    await discard.getByRole('button', { name: /Letter of Introduction, quantity 1/ }).click()
+    const dialog = discard.getByRole('dialog')
+    await expect(dialog.getByRole('button', { name: 'Discard stack' })).toHaveCount(0)
+    await dialog.getByRole('button', { name: 'Close', exact: true }).click()
+    await discard.getByRole('button', { name: 'General', exact: true }).click()
+    const stack = discard.getByRole('button', { name: /Rope Coil, quantity 1/ })
+    await stack.click()
+    const choose = dialog.getByRole('button', { name: 'Discard stack' })
+    await choose.click()
+    await expect(dialog.getByRole('region', { name: 'Confirm discard' })).toContainText(
+      'Permanently discard 1 × Rope Coil?',
+    )
+    await expect(dialog.getByRole('button', { name: 'Keep stack' })).toBeFocused()
+    await dialog.getByRole('button', { name: 'Keep stack' }).click()
+    assert.equal(await discard.evaluate(() => window.calls.length), 0)
+    await choose.click()
+    await dialog.getByRole('button', { name: 'Confirm discard' }).click()
+    await expect(dialog).toHaveCount(0)
+    await expect(stack).toHaveCount(0)
+    assert.equal(await discard.evaluate(() => window.calls.length), 1)
+    assert.deepEqual(await discard.evaluate(() => window.calls[0]), {
+      characterId: 'native',
+      expectedRevision: 1,
+      catalogueToken: 'a'.repeat(32),
+      action: 'discard',
+      stackId: 'owned-rope-coil',
+    })
+    await discard.reload({ waitUntil: 'networkidle' })
+    await discard.getByRole('button', { name: 'General', exact: true }).click()
+    await expect(stack).toHaveCount(0)
+    await discard.close()
+    console.log(
+      `Inventory capacity recovery: explicit confirmation at ${viewport.width}×${viewport.height}`,
+    )
+  }
   const recovery = await browser.newPage({ viewport: { width: 1366, height: 768 } })
   await recovery.goto(`${server.resolvedUrls.local[0]}?shell=items&missing&read-failure`, {
     waitUntil: 'networkidle',
@@ -455,7 +499,7 @@ try {
           .querySelector('[class*="positionName"]')
           .getBoundingClientRect()
         const name = button.querySelector('strong').getBoundingClientRect()
-        const helper = button.querySelector('small').getBoundingClientRect()
+        const helper = button.querySelector('small')?.getBoundingClientRect()
         const image = button.querySelector('img,[class*="emptyIcon"]').getBoundingClientRect()
         return {
           left: box.left,
@@ -467,10 +511,12 @@ try {
           labelBottom: label.bottom,
           nameTop: name.top,
           nameBottom: name.bottom,
-          helperTop: helper.top,
-          helperBottom: helper.bottom,
-          helperLeft: helper.left,
-          helperRight: helper.right,
+          helper: helper && {
+            top: helper.top,
+            bottom: helper.bottom,
+            left: helper.left,
+            right: helper.right,
+          },
           imageLeft: image.left,
           imageRight: image.right,
           nameLeft: name.left,
@@ -494,8 +540,18 @@ try {
       JSON.stringify({ viewport, equipmentFit }),
     )
     for (const slot of equipmentFit.slots) {
+      const helper = slot.helper
+      assert.ok(
+        !helper ||
+          (helper.top >= slot.top &&
+            helper.bottom <= slot.bottom &&
+            helper.left >= slot.left &&
+            helper.right <= slot.right),
+        JSON.stringify({ viewport, slot }),
+      )
       assert.ok(
         slot.nameTop >= slot.top &&
+          slot.nameBottom <= slot.bottom &&
           slot.top >= Math.max(equipmentFit.gridTop, equipmentFit.budgetBottom) - 1 &&
           slot.labelTop >= slot.bottom &&
           slot.labelBottom <= slot.cellBottom &&
@@ -505,20 +561,13 @@ try {
               ? slot.imageTop >= slot.top &&
                 slot.imageBottom <= slot.bottom &&
                 slot.nameLeft >= slot.imageRight + 2 &&
-                slot.nameBottom <= slot.helperTop + 1 &&
-                slot.helperBottom <= slot.bottom &&
-                slot.helperLeft >= slot.left &&
-                slot.helperRight <= slot.right
+                (!helper || slot.nameBottom <= helper.top + 1)
               : slot.imageTop >= slot.top &&
                 slot.imageBottom <= slot.nameTop + 1 &&
-                slot.nameBottom <= slot.bottom &&
-                slot.helperTop >= slot.top &&
-                slot.helperBottom <= slot.nameTop + 1 &&
-                slot.helperLeft >= slot.left &&
-                slot.helperRight <= slot.right &&
+                (!helper || helper.bottom <= slot.nameTop + 1) &&
                 slot.centered <= 1
-            : slot.nameBottom <= slot.helperTop + 1 &&
-              slot.helperBottom <= slot.imageTop + 1 &&
+            : slot.nameBottom <= (helper?.top ?? slot.imageTop) + 1 &&
+              (!helper || helper.bottom <= slot.imageTop + 1) &&
               slot.imageBottom <= slot.labelTop + 1 &&
               slot.centered <= 1),
         JSON.stringify({ viewport, slot }),
@@ -680,6 +729,7 @@ try {
     })
     await page.goto(server.resolvedUrls.local[0], { waitUntil: 'networkidle' })
     await expect(page.getByText('66 / 100 QP', { exact: true })).toBeVisible()
+    await expect(page.locator('[data-equipment-position]').getByText(/^\d+ QP$/)).toHaveCount(0)
     await page.getByRole('button', { name: /Slot \d+: Warden Helm/ }).click()
     let dialog = page.getByRole('dialog')
     await expect(dialog.getByRole('combobox')).toHaveCount(0)

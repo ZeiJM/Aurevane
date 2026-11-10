@@ -2,10 +2,16 @@ import 'server-only'
 import { createHash } from 'node:crypto'
 
 import {
+  resolveEventCategory,
   validatePersistentEventDefinition,
+  type EventCategory,
   type PersistentEventDefinition,
+  type PersonalJourneyPosition,
 } from '@aurevane/game-core/events/persistent-event'
 import { AurevaneError } from '@aurevane/game-core/errors'
+
+import { CHARTED_SECTORS } from '@/world/catalog'
+import { isWalkable } from '@/world/travel'
 
 import type { MasterPanelAccess, MasterPanelStaffAccessService } from './staff-access'
 import { hasMasterPanelCapability } from './staff-access'
@@ -58,6 +64,7 @@ export interface EventDefinitionPreview {
   readonly eventKey: string
   readonly title: string
   readonly family: string
+  readonly category: EventCategory
   readonly scope: PersistentEventDefinition['scope']
   readonly phaseCount: number
   readonly selectedPhase: {
@@ -77,6 +84,7 @@ export interface EventWorkspaceCatalogue {
     eventKey: string
     title: string
     scope: PersistentEventDefinition['scope']
+    category: EventCategory
     draftVersion: number | null
     publishedVersion: number | null
   }>
@@ -206,6 +214,11 @@ function forbiddenIssues(
   return issues
 }
 
+function isWalkableEventDestination(target: PersonalJourneyPosition): boolean {
+  const sector = CHARTED_SECTORS.find((candidate) => candidate.id === target.sectorId)
+  return sector !== undefined && isWalkable(sector, target)
+}
+
 function validateDefinition(definition: unknown): EventDefinitionValidationResult {
   const issues = forbiddenIssues(definition)
   if (!isRecord(definition)) {
@@ -219,9 +232,41 @@ function validateDefinition(definition: unknown): EventDefinitionValidationResul
 
   if (issues.length === 0) {
     try {
-      validatePersistentEventDefinition(
-        structuredClone(definition) as unknown as PersistentEventDefinition,
-      )
+      const typed = structuredClone(definition) as unknown as PersistentEventDefinition
+      validatePersistentEventDefinition(typed)
+      const journey = typed.repeatableTravel?.journey ?? typed.personalJourney
+      if (
+        journey?.type === 'travel-and-report' &&
+        !isWalkableEventDestination(journey.destination)
+      ) {
+        issues.push({
+          path: typed.repeatableTravel
+            ? 'repeatableTravel.journey.destination'
+            : 'personalJourney.destination',
+          code: 'EVENT_ARRIVAL_DESTINATION_UNWALKABLE',
+          message: 'Choose a walkable quest destination on the current World map.',
+        })
+      }
+      const checkpoint = typed.inventoryDiscovery?.restoration?.checkpoint
+      if (checkpoint && !isWalkableEventDestination(checkpoint)) {
+        issues.push({
+          path: 'inventoryDiscovery.restoration.checkpoint',
+          code: 'EVENT_ARRIVAL_DESTINATION_UNWALKABLE',
+          message: 'Choose a walkable restoration checkpoint on the current World map.',
+        })
+      }
+      typed.phases.forEach((phase, phaseIndex) => {
+        phase.objectives.forEach((objective, objectiveIndex) => {
+          if (objective.completion !== 'world-arrival') return
+          if (!isWalkableEventDestination(objective.worldNavigation!)) {
+            issues.push({
+              path: `phases[${phaseIndex}].objectives[${objectiveIndex}].worldNavigation`,
+              code: 'EVENT_ARRIVAL_DESTINATION_UNWALKABLE',
+              message: 'Choose a walkable destination on the current World map.',
+            })
+          }
+        })
+      })
     } catch (error) {
       issues.push({
         path: '$',
@@ -325,12 +370,32 @@ export function createEventAuthoringService({
       const testClock = input.testClock
         ? validTimestamp(input.testClock, 'testClock')
         : new Date(0).toISOString()
+      const repeatable = definition.repeatableTravel?.journey
+      const discovery = definition.combatDiscovery
+      const mentor = definition.mentorChallenge
+      const rewardPackageRefs = mentor
+        ? [
+            mentor.victoryRewardPackageRef,
+            mentor.defeatRewardPackageRef,
+            ...(mentor.fastVictory ? [mentor.fastVictory.rewardPackageRef] : []),
+          ]
+        : discovery
+          ? [
+              ...new Set([
+                discovery.firstRewardPackageRef,
+                ...(discovery.repeatRewardPackageRef ? [discovery.repeatRewardPackageRef] : []),
+              ]),
+            ]
+          : repeatable?.type === 'defeat-and-report'
+            ? [repeatable.rewardPackageRef]
+            : [...definition.rewardPackageRefs]
 
       return {
         testClock,
         eventKey: definition.eventKey,
         title: definition.title,
         family: definition.family,
+        category: resolveEventCategory(definition),
         scope: definition.scope,
         phaseCount: definition.phases.length,
         selectedPhase: {
@@ -341,7 +406,7 @@ export function createEventAuthoringService({
           cleanupEffectCount: phase.cleanupEffects.length,
           transitionType: phase.transition.type,
         },
-        rewardPackageRefs: [...definition.rewardPackageRefs],
+        rewardPackageRefs,
         aftermathRefs: [...definition.aftermathRefs],
       }
     },
@@ -403,6 +468,9 @@ export function createEventAuthoringService({
       }
       if (current.definition.scope.type === 'global') {
         requireCapability(access, 'events.global_scope')
+      }
+      if (current.definition.combatDiscovery?.mode === 'seasonal' && !end) {
+        throw new AurevaneError('INVALID_REQUEST', 'Choose an end time for a seasonal discovery.')
       }
 
       return store.schedule({

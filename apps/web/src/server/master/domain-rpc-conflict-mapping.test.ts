@@ -41,3 +41,23 @@ it('unrelated SQL errors retain the existing persistence classification', async 
     new RpcEventAuthoringStore(rpc, 'owner').readDraft('event.test'),
   ).rejects.toMatchObject({ code: 'PERSISTENCE_UNAVAILABLE' })
 })
+
+it.each([
+  ['EVENT_INVENTORY_RESTORATION_TRIAL_INVALID', /complete the combat trial/i],
+  ['EVENT_INVENTORY_RESTORATION_TRIAL_NPC_UNAVAILABLE', /published World encounter/i],
+  ['EVENT_INVENTORY_RESTORATION_REWARDS_INVALID', /different Character XP amounts/i],
+  ['EVENT_REPEATABLE_HUNT_INVALID', /complete the hunt/i],
+  ['EVENT_REPEATABLE_HUNT_GIVER_UNAVAILABLE', /Story NPC with a World placement/i],
+  ['EVENT_REPEATABLE_HUNT_REWARD_UNAVAILABLE', /approved Character XP package/i],
+  ['EVENT_REPEATABLE_HUNT_TARGET_UNAVAILABLE', /tag used by a published World encounter/i],
+  ['EVENT_COMBAT_DISCOVERY_INVALID', /daily combat discovery/i],
+  ['EVENT_COMBAT_DISCOVERY_TARGET_UNAVAILABLE', /tag used by a published World encounter/i],
+  ['EVENT_COMBAT_DISCOVERY_OPPONENT_UNAVAILABLE', /published World encounter.*qualifying tag/i],
+  ['EVENT_COMBAT_DISCOVERY_REWARD_UNAVAILABLE', /approved Character XP/i],
+  ['EVENT_COMBAT_DISCOVERY_SEASON_END_REQUIRED', /end time.*seasonal/i],
+])('explains %s from the authoritative Event validator', async (message, expected) => {
+  rpc.mockResolvedValue({ data: null, error: { code: '22023', message } })
+  await expect(
+    new RpcEventAuthoringStore(rpc, 'owner').readDraft('event.test'),
+  ).rejects.toMatchObject({ code: 'INVALID_REQUEST', message: expect.stringMatching(expected) })
+})

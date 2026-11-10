@@ -1,5 +1,6 @@
 import 'server-only'
 
+import type { EventCategory } from '@aurevane/game-core/events/persistent-event'
 import { AurevaneError } from '@aurevane/game-core/errors'
 
 import type { MasterPanelAccess, MasterPanelStaffAccessService } from './staff-access'
@@ -18,6 +19,7 @@ export type EventOperationCommand = (typeof EVENT_OPERATION_COMMANDS)[number]
 
 export interface EventOperationRunSummary {
   readonly title?: string
+  readonly category?: EventCategory
   readonly participantCount?: number
   readonly runId: string
   readonly eventKey: string
@@ -90,6 +92,15 @@ export interface EventOperationDashboard {
     readonly executedAt: string | null
     readonly appliedAmount: number | null
   }[]
+  readonly personalRewards?: readonly {
+    readonly attemptId: string
+    readonly characterId: string
+    readonly completedAt: string
+    readonly awardedXp: number
+    readonly itemName: string | null
+    readonly itemClaimPending: boolean
+  }[]
+  readonly personalRewardsPendingCount?: number
   readonly cleanupRequirements: readonly {
     readonly phaseId: string
     readonly effectOrdinal: number

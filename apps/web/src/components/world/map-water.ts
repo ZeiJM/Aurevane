@@ -26,6 +26,8 @@ export function paintWaterfallMotion(
   width: number,
   height: number,
   now: number,
+  windSpeed = 0,
+  spray = true,
 ) {
   context.save()
   context.strokeStyle = '#e4f6f1'
@@ -51,6 +53,30 @@ export function paintWaterfallMotion(
     Math.PI * 2,
   )
   context.stroke()
+  if (spray) {
+    // The sheet and impact stay where the art put them; only airborne spray
+    // bends across the scene. Phases fade in and out around the impact point.
+    context.fillStyle = '#d7efed'
+    for (let i = 0; i < 6; i++) {
+      const age = (now / (1100 + i * 87) + i / 6) % 1
+      const side = i % 2 ? 1 : -1
+      const drift = windSpeed * 3.4 * age ** 1.45 + side * age * (0.024 + (i % 3) * 0.012)
+      const rise = Math.sin(age * Math.PI * 0.8) * (0.033 + (i % 3) * 0.015)
+      const size = Math.max(0.65, width * (0.004 + age * 0.013))
+      context.globalAlpha = Math.sin(age * Math.PI) * (0.36 - age * 0.16)
+      context.beginPath()
+      context.ellipse(
+        x + width * (0.49 + drift),
+        y + height * (0.78 - rise),
+        size,
+        size * 0.58,
+        0,
+        0,
+        Math.PI * 2,
+      )
+      context.fill()
+    }
+  }
   context.restore()
 }
 interface Bank {
@@ -199,17 +225,15 @@ export function buildWaterField(sectors: readonly WorldSectorView[]): Map<string
           shallow: bankCurves(side as Side, wx, wy, true),
         })
       })
+      const connected = neighbours.map((material) => material === '~')
+      const connectionCount = connected.filter(Boolean).length
       cells.set(cellKey(cell.x, cell.y), {
         x: cell.x,
         y: cell.y,
         seed: hashString(`${namespace(sector)}:${wx}:${wy}:water`),
-        channel: neighbours.filter((material) => material === '~').length <= 2,
+        channel: connectionCount > 0 && connectionCount <= 2,
         banks,
-        flow: currentCurve(
-          wx,
-          wy,
-          neighbours.map((material) => material === '~'),
-        ),
+        flow: currentCurve(wx, wy, connected),
       })
     }
     // Adjacent changes must invalidate a cached bank even when its own cells are identical.
@@ -278,7 +302,12 @@ function clipCell(context: CanvasRenderingContext2D, tile: number) {
 }
 
 /** Static depth, reflected colour and broken filaments belong in the ground cache. */
-export function paintWaterGround(context: CanvasRenderingContext2D, cell: WaterCell, tile: number) {
+export function paintWaterGround(
+  context: CanvasRenderingContext2D,
+  cell: WaterCell,
+  tile: number,
+  amethyst = false,
+) {
   context.save()
   context.translate(cell.x * tile, cell.y * tile)
   clipCell(context, tile)
@@ -287,7 +316,7 @@ export function paintWaterGround(context: CanvasRenderingContext2D, cell: WaterC
       context.beginPath()
       trace(context, cell.flow, tile)
       context.lineWidth = tile * width
-      context.strokeStyle = 'rgba(9,47,58,.09)'
+      context.strokeStyle = amethyst ? 'rgba(36,18,73,.17)' : 'rgba(9,47,58,.09)'
       context.stroke()
     }
   }
@@ -301,11 +330,11 @@ export function paintWaterGround(context: CanvasRenderingContext2D, cell: WaterC
       end[0] * tile,
       end[1] * tile,
     )
-    gradient.addColorStop(0, 'rgba(40,51,35,.85)')
-    gradient.addColorStop(0.16, 'rgba(125,133,79,.63)')
-    gradient.addColorStop(0.38, 'rgba(93,157,124,.54)')
-    gradient.addColorStop(0.72, 'rgba(101,174,155,.31)')
-    gradient.addColorStop(1, 'rgba(97,174,161,0)')
+    gradient.addColorStop(0, amethyst ? 'rgba(37,27,49,.9)' : 'rgba(40,51,35,.85)')
+    gradient.addColorStop(0.16, amethyst ? 'rgba(146,115,143,.64)' : 'rgba(125,133,79,.63)')
+    gradient.addColorStop(0.38, amethyst ? 'rgba(183,118,217,.66)' : 'rgba(93,157,124,.54)')
+    gradient.addColorStop(0.72, amethyst ? 'rgba(166,111,218,.34)' : 'rgba(101,174,155,.31)')
+    gradient.addColorStop(1, amethyst ? 'rgba(148,103,186,0)' : 'rgba(97,174,161,0)')
     context.beginPath()
     const a = bankPoint(bank.side, 0, 0),
       b = bankPoint(bank.side, 1, 0)
@@ -320,20 +349,31 @@ export function paintWaterGround(context: CanvasRenderingContext2D, cell: WaterC
     context.fill()
     context.beginPath()
     bank.edge.forEach((curve, i) => trace(context, curve, tile, i === 0))
-    context.strokeStyle = vertical ? 'rgba(195,195,130,.48)' : 'rgba(181,199,147,.37)'
+    context.strokeStyle = amethyst
+      ? 'rgba(233,197,236,.46)'
+      : vertical
+        ? 'rgba(195,195,130,.48)'
+        : 'rgba(181,199,147,.37)'
     context.lineWidth = tile * 0.022
     context.stroke()
     // A wide transparent rim adds bank depth without a hard straight outline.
-    context.strokeStyle = 'rgba(12,55,54,.21)'
+    context.strokeStyle = amethyst ? 'rgba(60,34,105,.24)' : 'rgba(12,55,54,.21)'
     context.lineWidth = tile * 0.065
     context.stroke()
   }
-  const colours = [
-    'rgba(137,199,180,.20)',
-    'rgba(191,215,177,.13)',
-    'rgba(13,67,78,.20)',
-    'rgba(181,220,205,.27)',
-  ]
+  const colours = amethyst
+    ? [
+        'rgba(191,152,236,.33)',
+        'rgba(215,174,221,.22)',
+        'rgba(67,32,114,.25)',
+        'rgba(236,201,247,.33)',
+      ]
+    : [
+        'rgba(137,199,180,.20)',
+        'rgba(191,215,177,.13)',
+        'rgba(13,67,78,.20)',
+        'rgba(181,220,205,.27)',
+      ]
   for (let i = 0; i < 19; i++) {
     const salt = hashString(`${cell.seed}:${i}`),
       from = ((salt % 8191) / 8191) * 0.88
@@ -351,27 +391,86 @@ export function paintWaterGround(context: CanvasRenderingContext2D, cell: WaterC
   context.restore()
 }
 
-/** Four short travelling glints follow the cached current; work stays capped by the caller. */
+export interface SurfaceWeather {
+  rain: number
+  windSpeed: number
+}
+
+function paintRainImpact(
+  context: CanvasRenderingContext2D,
+  cell: WaterCell,
+  tile: number,
+  now: number,
+  rain: number,
+  amethyst: boolean,
+) {
+  if (rain < 0.015) return
+  const phase = (now / (1400 + (cell.seed % 800)) + (cell.seed % 997) / 997) % 1
+  const lifetime = 0.25 + 0.21 * rain
+  if (phase >= lifetime) return
+  const age = phase / lifetime
+  const x = (0.29 + ((cell.seed >>> 8) % 83) / 200) * tile
+  const y = (0.29 + ((cell.seed >>> 17) % 83) / 200) * tile
+  const radius = tile * (0.025 + age * 0.19)
+  context.globalAlpha = Math.sin(age * Math.PI) * (1 - age * 0.5) * rain * 0.49
+  context.strokeStyle = amethyst ? '#f1d5fa' : '#d4efe9'
+  context.lineWidth = Math.max(0.65, tile * 0.02)
+  context.beginPath()
+  context.ellipse(x, y, radius, radius * 0.89, 0, 0, Math.PI * 2)
+  context.stroke()
+}
+
+/** A clipped pool ripple or four short channel glints, capped by the caller. */
 export function paintWaterMotion(
   context: CanvasRenderingContext2D,
   cell: WaterCell,
   tile: number,
   now: number,
+  amethyst = false,
+  weather?: SurfaceWeather,
 ) {
   context.save()
   clipCell(context, tile)
-  const speed = 8500 + (cell.seed % 3500)
-  for (let i = 0; i < 4; i++) {
-    const phase = (now / speed + i * 0.25 + (cell.seed % 997) / 997) % 1
-    const from = phase * 0.86,
-      offset = (i - 1.5) * 0.13
-    context.globalAlpha = Math.sin(phase * Math.PI) * (i === 1 ? 0.54 : 0.3)
-    context.strokeStyle = i % 2 ? '#bbded0' : '#82c6c7'
-    context.lineWidth = tile * (i === 1 ? 0.014 : 0.009)
+  const roughness = Math.min(1, Math.abs(weather?.windSpeed ?? 0) / 0.06)
+  if (!cell.channel) {
+    const phase = (now / (4200 + (cell.seed % 1800)) + (cell.seed % 997) / 997) % 1
+    const radius = tile * (0.13 + phase * 0.29)
+    context.strokeStyle = amethyst ? '#e0c5f1' : '#bbded0'
+    context.globalAlpha = Math.sin(phase * Math.PI) * (0.16 + roughness * 0.14)
+    context.lineWidth = tile * 0.012
     context.beginPath()
-    trace(context, stream(cell.flow, from, from + 0.09, offset), tile)
+    context.ellipse(
+      tile / 2,
+      tile / 2,
+      radius,
+      radius * (0.86 - roughness * 0.12),
+      0,
+      0,
+      Math.PI * 2,
+    )
     context.stroke()
+  } else {
+    const speed = 8500 + (cell.seed % 3500)
+    for (let i = 0; i < 4; i++) {
+      const phase = (now / speed + i * 0.25 + (cell.seed % 997) / 997) % 1
+      const from = phase * 0.86,
+        offset = (i - 1.5) * 0.13
+      context.globalAlpha =
+        Math.sin(phase * Math.PI) * (i === 1 ? 0.54 : 0.3) * (1 + roughness * 0.18)
+      context.strokeStyle = amethyst
+        ? i % 2
+          ? '#e0c5f1'
+          : '#b685ee'
+        : i % 2
+          ? '#bbded0'
+          : '#82c6c7'
+      context.lineWidth = tile * (i === 1 ? 0.014 : 0.009)
+      context.beginPath()
+      trace(context, stream(cell.flow, from, from + 0.09, offset), tile)
+      context.stroke()
+    }
   }
+  if (weather) paintRainImpact(context, cell, tile, now, weather.rain, amethyst)
   context.restore()
 }
 
@@ -382,15 +481,20 @@ export function liquidMaterial(
   tile: number,
   originX: number,
   originY: number,
+  amethyst = false,
 ) {
   const gradient = context.createLinearGradient(
-    -originX * tile,
-    -originY * tile,
-    (ATLAS_COLUMNS * GRID_WIDTH - originX) * tile,
-    (ATLAS_ROWS * GRID_HEIGHT - originY) * tile,
+    amethyst ? tile : -originX * tile,
+    amethyst ? tile * 4 : -originY * tile,
+    (amethyst ? 8 : ATLAS_COLUMNS * GRID_WIDTH - originX) * tile,
+    (amethyst ? 7 : ATLAS_ROWS * GRID_HEIGHT - originY) * tile,
   )
   const colours =
-    material === 'water' ? ['#245e67', '#3e7b82', '#244e60'] : ['#702f25', '#bd5b2e', '#4d2526']
+    material === 'water'
+      ? amethyst
+        ? ['#563786', '#8e61c5', '#4b3476']
+        : ['#245e67', '#3e7b82', '#244e60']
+      : ['#702f25', '#bd5b2e', '#4d2526']
   colours.forEach((colour, i) => gradient.addColorStop(i / (colours.length - 1), colour))
   return gradient
 }

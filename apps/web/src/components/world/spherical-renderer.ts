@@ -1,5 +1,6 @@
 import type { WorldAtlasCell } from '@/world/types'
 import { globeAtlasDetailPixels, readGlobePainting, type GlobePainting } from './globe-atlas'
+import { globeVeilTexture } from './globe-veil'
 /** A single full-screen triangle pair renders the atlas or the inside of a panorama. */
 export function createSphericalRenderer(
   canvas: HTMLCanvasElement,
@@ -31,7 +32,7 @@ export function createSphericalRenderer(
     fragment = compile(
       gl.FRAGMENT_SHADER,
       `precision highp float;
- varying vec2 uv; uniform sampler2D painting;uniform sampler2D atlas;uniform float hasAtlas; uniform vec2 camera;uniform float zoom;uniform float panorama;uniform float grid;uniform float aspect;uniform vec2 resolution;
+ varying vec2 uv; uniform sampler2D painting;uniform sampler2D atlas;uniform sampler2D surveyVeil;uniform float hasAtlas; uniform vec2 camera;uniform float zoom;uniform float panorama;uniform float grid;uniform float aspect;uniform vec2 resolution;
  const float PI=3.14159265359;
  void main(){
   vec2 p=(uv*2.-1.); vec3 ray;
@@ -54,24 +55,20 @@ export function createSphericalRenderer(
     charted=land;
     float relief=dot(color,vec3(.299,.587,.114));
     float ridge=sin(map.x*193.+sin(map.y*79.)*3.)*sin(map.y*163.+cos(map.x*53.)*2.);
-    vec3 ocean=mix(vec3(.065,.18,.22),vec3(.15,.32,.35),relief*.65);
-    vec3 surface=ground.rgb*(.96+relief*.08)+vec3(.015,.012,.01)*ridge;
+    float contour=pow(.5+.5*sin((map.x*26.+map.y*11.+ridge*.12)*2.*PI),14.);
+    vec3 ocean=mix(vec3(.045,.116,.159),vec3(.107,.236,.26),relief*.53);
+    ocean+=vec3(.022,.034,.037)*contour;
+    vec3 surface=ground.rgb*(1.04+relief*.08)+vec3(.015,.012,.01)*ridge;
     color=mix(ocean,surface,land);
    }
-   float lon=(map.x-.5)*360.;float lat=(.5-map.y)*180.;
-   float fog=max(smoothstep(63.,88.,lon),max(1.-smoothstep(-106.,-78.,lon),smoothstep(69.,84.,abs(lat))));
-   fog*=1.-charted;
-   float cloud=sin(map.x*73.+sin(map.y*29.))*sin(map.y*97.+cos(map.x*41.));
-   float grain=sin(map.x*189.+sin(map.y*31.))*sin(map.y*119.);
-   float contour=.5+.5*sin((map.x*23.+map.y*17.+cloud*.18)*6.28318);
-   vec3 veil=mix(vec3(.045,.105,.145),vec3(.12,.25,.29),.5+.28*cloud);
-   veil+=vec3(.035,.055,.045)*(grain*.5+contour*.35);
-   color=mix(color,veil,fog);
+   vec4 veil=texture2D(surveyVeil,map);
+   float fog=veil.a*(1.-charted)*hasAtlas;
+   color=mix(color,veil.rgb,fog);
    vec2 cell=fract(map*resolution);float edge=min(min(cell.x,1.-cell.x),min(cell.y,1.-cell.y));
-   float line=(1.-smoothstep(.007,.021,edge))*grid*(.13+.87*(1.-fog))*.24;
+   float line=(1.-smoothstep(.007,.021,edge))*grid*(.17+.43*charted)*(1.-fog)*.25;
    color=mix(color,vec3(.70,.82,.76),line);
    color*=.78+.22*ray.z;
-   float rim=pow(1.-ray.z,4.);color=mix(color,vec3(.20,.65,.85),rim*.5);
+   float rim=pow(1.-ray.z,4.);color=mix(color,vec3(.35,.57,.62),rim*.48);
   }
   gl_FragColor=vec4(color,1.);
  }`,
@@ -115,11 +112,13 @@ export function createSphericalRenderer(
       'resolution',
       'hasAtlas',
       'atlas',
+      'surveyVeil',
       'painting',
     ].map((name) => [name, gl.getUniformLocation(program, name)]),
   )
   gl.uniform1i(uniforms.painting!, 0)
   gl.uniform1i(uniforms.atlas!, 1)
+  gl.uniform1i(uniforms.surveyVeil!, 2)
   const atlasTexture = gl.createTexture()!
   gl.activeTexture(gl.TEXTURE1)
   gl.bindTexture(gl.TEXTURE_2D, atlasTexture)
@@ -128,7 +127,16 @@ export function createSphericalRenderer(
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4))
+  const veilTexture = gl.createTexture()!
+  gl.activeTexture(gl.TEXTURE2)
+  gl.bindTexture(gl.TEXTURE_2D, veilTexture)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4))
   gl.activeTexture(gl.TEXTURE0)
+  let veilUploaded = false
   let atlasKey = '',
     hasAtlas = false
   let atlasCells: readonly WorldAtlasCell[] = [],
@@ -149,6 +157,23 @@ export function createSphericalRenderer(
       gl!.UNSIGNED_BYTE,
       detail.pixels,
     )
+    if (!veilUploaded) {
+      const veil = globeVeilTexture()
+      gl!.activeTexture(gl!.TEXTURE2)
+      gl!.bindTexture(gl!.TEXTURE_2D, veilTexture)
+      gl!.texImage2D(
+        gl!.TEXTURE_2D,
+        0,
+        gl!.RGBA,
+        veil.width,
+        veil.height,
+        0,
+        gl!.RGBA,
+        gl!.UNSIGNED_BYTE,
+        veil.pixels,
+      )
+      veilUploaded = true
+    }
     gl!.activeTexture(gl!.TEXTURE0)
   }
   let loaded = false,
@@ -226,6 +251,7 @@ export function createSphericalRenderer(
       canvas.removeEventListener('webglcontextlost', lost)
       gl.deleteTexture(texture)
       gl.deleteTexture(atlasTexture)
+      gl.deleteTexture(veilTexture)
       gl.deleteBuffer(buffer)
       gl.deleteProgram(program)
       gl.deleteShader(vertex)

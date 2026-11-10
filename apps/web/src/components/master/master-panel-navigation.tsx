@@ -22,6 +22,7 @@ const icons = {
   music: '♫',
   'world-environment': '☼',
   activity: '≡',
+  'npc-design': '♟',
 } as const
 
 export function MasterPanelNavigation({

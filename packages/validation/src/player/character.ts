@@ -9,6 +9,7 @@ export const characterCreationRequestSchema = z
     idempotencyKey: z.string().uuid(),
     intent: characterCreationPayloadSchema,
     expectedProfileVersion: z.number().int().positive().optional(),
+    appearance: z.unknown().optional(),
   })
   .strict()
 

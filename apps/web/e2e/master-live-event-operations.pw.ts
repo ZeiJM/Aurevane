@@ -233,13 +233,29 @@ test('Event Staff operates a run, completes cleanup and archives Chronicle safel
   await page.getByRole('button', { name: 'Live Operations', exact: true }).click()
 
   await expect(page.getByRole('heading', { name: 'Event runs', exact: true })).toBeVisible()
-  await expect(page.getByText('Operations console', { exact: true })).toBeVisible()
+  const categories = page.getByRole('navigation', { name: 'Event categories' })
+  for (const category of [
+    'World Events',
+    'Story Campaigns',
+    'Repeatable Activities',
+    'Hidden Discoveries',
+  ]) {
+    await expect(categories.getByRole('button', { name: category, exact: true })).toBeVisible()
+  }
+  const workspace = page.getByRole('navigation', { name: 'Events workspace' })
+  await workspace.getByRole('button', { name: 'Calendar', exact: true }).click()
+  const calendar = page.getByRole('region', { name: 'Event calendar' })
+  await expect(calendar.getByText('Browser Live Operations', { exact: true })).toBeVisible()
+  await categories.getByRole('button', { name: 'Hidden Discoveries', exact: true }).click()
+  await expect(calendar.getByText('Browser Live Operations', { exact: true })).toHaveCount(0)
+  await categories.getByRole('button', { name: 'World Events', exact: true }).click()
+  await workspace.getByRole('button', { name: 'Live Operations', exact: true }).click()
   await expect(page.getByLabel('Event Run').locator(`option[value="${runId}"]`)).toHaveCount(1)
   await page.getByLabel('Event Run').selectOption(runId)
 
   const runHeader = page
     .locator('header')
-    .filter({ has: page.getByText('Authoritative Event Run', { exact: true }) })
+    .filter({ has: page.getByRole('heading', { name: 'Browser Live Operations', exact: true }) })
   const runStatus = runHeader.locator('[data-status]')
   async function expectRunStatus(status: string) {
     await expect(runHeader.locator('code')).toHaveText(runId)

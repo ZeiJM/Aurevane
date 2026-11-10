@@ -1,12 +1,14 @@
 import { AurevaneError } from '@aurevane/game-core/errors'
 import { cookies } from 'next/headers'
 import { getAuthenticatedActor } from '@/server/auth/actor'
+import { assertGameplayMutationAllowed } from '@/server/account/active-game-session'
 import { SELECTED_CHARACTER_COOKIE } from '@/server/character/selected-character'
 import { toServerErrorResponse } from '@/server/http/error-response'
 import { attackWorldPlayer } from '@/server/world/world-battle'
+import { worldAtlasReceipt } from '@/server/world/world-atlas-receipt'
 import { commitWorldCommand, readWorld } from '@/server/world/world-repository'
-import { isWorldUuid, parseWorldCommand } from '@/world/command'
-import { worldRefreshResponse } from '@/world/presence'
+import { isWorldUuid, parseWorldCommand, repeatableActivityReference } from '@/world/command'
+import { WORLD_ATLAS_HEADER, worldRefreshResponse } from '@/world/presence'
 
 export const dynamic = 'force-dynamic'
 let lastSlowApprovalAt = -Infinity
@@ -37,12 +39,18 @@ export async function GET(request?: Request) {
         ? readWorld(actor.userId, actor.characterId, viewport)
         : readWorld(actor.userId, actor.characterId))
     ).view
-    return json(worldRefreshResponse(view, request?.url ?? '/api/world'))
+    const receipt = worldRefreshResponse(view, request?.url ?? '/api/world')
+    return json(
+      'kind' in receipt
+        ? receipt
+        : worldAtlasReceipt(receipt, request?.headers.get(WORLD_ATLAS_HEADER) ?? null),
+    )
   } catch (error) {
     return toServerErrorResponse(error)
   }
 }
 export async function POST(request: Request) {
+  const receivedAt = Date.now()
   const startedAt = performance.now()
   let identityAt: number | null = null
   let intentKind: string | null = null
@@ -89,6 +97,8 @@ export async function POST(request: Request) {
     intentKind = command.intent.kind
     if (command.characterId !== actor.characterId)
       throw new AurevaneError('STALE_VERSION', 'Your selected character changed. Refresh the map.')
+    if (command.intent.kind === 'board-ferry' || command.intent.kind === 'leave-ferry')
+      await assertGameplayMutationAllowed(actor.userId)
     if (command.intent.kind === 'attack') {
       const receipt = await attackWorldPlayer(
         actor.userId,
@@ -104,17 +114,26 @@ export async function POST(request: Request) {
         ),
       )
     }
-    return finish(
-      json(
-        await commitWorldCommand(
+    const repeatableReport =
+      command.intent.kind === 'interact' &&
+      command.intent.actionId === 'report' &&
+      repeatableActivityReference(command.intent.interactionId) !== null
+    const result = repeatableReport
+      ? await commitWorldCommand(
+          actor.userId,
+          actor.characterId,
+          command,
+          false,
+          new Date(receivedAt).toISOString(),
+        )
+      : await commitWorldCommand(
           actor.userId,
           actor.characterId,
           command,
           request.headers.get('x-world-response') === 'movement' &&
             ['walk', 'autopath', 'tick', 'stop'].includes(command.intent.kind),
-        ),
-      ),
-    )
+        )
+    return finish(json(result))
   } catch (error) {
     return finish(toServerErrorResponse(error))
   }

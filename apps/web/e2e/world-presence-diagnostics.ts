@@ -18,29 +18,74 @@ export function matchesWorldWalk(body: unknown, destination: WorldPosition): boo
   )
 }
 
-export function summarizeWorldSocketFrame(payload: string | Buffer) {
+const worldTopicPrefix = 'realtime:world-scene:'
+
+/** Used to correlate joins and invalidations in memory. Use the summary for artifacts. */
+export function inspectWorldSocketFrame(payload: string | Buffer) {
+  if (Buffer.isBuffer(payload)) {
+    // Realtime V2 server Broadcast (kind 4): topic, event, metadata and encoding
+    // lengths are in the five-byte header, even if the user payload is JSON.
+    if (payload.length < 5 || payload[0] !== 4 || (payload[4] !== 0 && payload[4] !== 1))
+      return null
+    const topicEnd = 5 + payload[1]!
+    const eventEnd = topicEnd + payload[2]!
+    const payloadStart = eventEnd + payload[3]!
+    if (payloadStart > payload.length || (payload[4] === 1 && payloadStart === payload.length))
+      return null
+    const topic = payload.toString('utf8', 5, topicEnd)
+    if (!topic.startsWith(worldTopicPrefix)) return null
+    return {
+      sectorId: topic.slice(worldTopicPrefix.length),
+      ref: null,
+      event: 'broadcast',
+      status: 'none',
+      changed: payload.toString('utf8', topicEnd, eventEnd) === 'changed',
+      encoding: 'binary',
+    }
+  }
   try {
-    const raw: unknown = JSON.parse(payload.toString())
+    const raw: unknown = JSON.parse(payload)
     const frame = Array.isArray(raw)
-      ? { topic: raw[2], event: raw[3], payload: raw[4] }
+      ? { ref: raw[1], topic: raw[2], event: raw[3], payload: raw[4] }
       : object(raw)
     const event = frame.event
     if (
       typeof frame.topic !== 'string' ||
-      !frame.topic.startsWith('realtime:world-scene:') ||
+      !frame.topic.startsWith(worldTopicPrefix) ||
       typeof event !== 'string' ||
-      !['phx_join', 'phx_reply', 'phx_error', 'phx_close', 'broadcast', 'system'].includes(event)
+      ![
+        'phx_join',
+        'phx_leave',
+        'phx_reply',
+        'phx_error',
+        'phx_close',
+        'broadcast',
+        'system',
+      ].includes(event)
     )
       return null
-    const status = object(frame.payload).status
+    const { status, event: userEvent } = object(frame.payload)
     return {
+      sectorId: frame.topic.slice(worldTopicPrefix.length),
+      ref: typeof frame.ref === 'string' && /^\d+$/.test(frame.ref) ? frame.ref : null,
       event,
       status: status === 'ok' || status === 'error' ? status : 'none',
-      ownerOrigin: frame.topic === 'realtime:world-scene:atlas:58:28',
-      peerOrigin: frame.topic === 'realtime:world-scene:atlas:59:28',
+      changed: event === 'broadcast' && userEvent === 'changed',
+      encoding: 'text',
     }
   } catch {
     return null
+  }
+}
+
+export function summarizeWorldSocketFrame(payload: string | Buffer) {
+  const frame = inspectWorldSocketFrame(payload)
+  if (!frame) return null
+  return {
+    event: frame.event,
+    status: frame.status,
+    ownerOrigin: frame.sectorId === 'atlas:58:28',
+    peerOrigin: frame.sectorId === 'atlas:59:28',
   }
 }
 

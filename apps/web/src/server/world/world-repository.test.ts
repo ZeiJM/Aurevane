@@ -1,9 +1,10 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 import { createHash } from 'node:crypto'
 vi.mock('server-only', () => ({}))
-const { rpc, sceneRpc, lastRead, profileImages, environmentSettings } = vi.hoisted(() => ({
+const { rpc, sceneRpc, npcRpc, lastRead, profileImages, environmentSettings } = vi.hoisted(() => ({
   rpc: vi.fn(),
   sceneRpc: vi.fn(),
+  npcRpc: vi.fn(),
   lastRead: { value: null as { state: { version: number }; players: unknown[] } | null },
   environmentSettings: vi.fn(),
   profileImages: new Map<string, string>(),
@@ -13,6 +14,7 @@ vi.mock('@/lib/supabase/admin', () => ({
     rpc: async (name: string, args: unknown) => {
       if (name === 'read_world_scene_players_v1' || name === 'read_world_scene_players_v2')
         return sceneRpc(name, args)
+      if (name === 'read_published_world_npcs_v1') return npcRpc(name, args)
       const result = await rpc(name, args)
       if (name === 'read_world_state_v1' && result.data?.state) lastRead.value = result.data
       return result
@@ -63,9 +65,47 @@ beforeEach(() => {
   sceneRpc.mockReset().mockImplementation(async () => ({
     data: { version: lastRead.value!.state.version, players: lastRead.value!.players },
   }))
+  npcRpc.mockReset().mockResolvedValue({ data: [] })
   profileImages.clear()
   environmentSettings.mockReset().mockResolvedValue(DEFAULT_WORLD_ENVIRONMENT_SETTINGS)
   vi.mocked(loadPublicCharacterProfileImageMap).mockClear()
+})
+
+it('loads only local published NPCs and reuses the sector result between presentation reads', async () => {
+  rpc.mockResolvedValue({ data: payload() })
+  npcRpc.mockResolvedValue({
+    data: [
+      {
+        id: '50bcf54b-d667-4e03-af93-3457b0055a95',
+        name: 'World Fixture',
+        portraitRef: null,
+        revision: 2,
+        sectorId: 'verdant-expanse',
+        x: 5,
+        y: 4,
+        radius: 2,
+        greeting: 'Safe travels.',
+      },
+    ],
+  })
+  const results = await Promise.all([
+    readWorld('owner', characterId),
+    readWorld('owner', characterId),
+  ])
+  expect(npcRpc).toHaveBeenCalledExactlyOnceWith('read_published_world_npcs_v1', {
+    p_sector_id: 'verdant-expanse',
+  })
+  for (const { view } of results) {
+    expect(view.npcs).toHaveLength(1)
+    expect(view.players).toEqual([])
+    expect(view.interactions).toContainEqual(
+      expect.objectContaining({
+        speaker: 'World Fixture',
+        body: 'Safe travels.',
+        actionLabel: null,
+      }),
+    )
+  }
 })
 
 function deferred<T>() {
@@ -540,11 +580,38 @@ it.each(['42883', 'PGRST202'])(
   },
 )
 
+it('serves the owned scene without live presence when registration cannot lock the character', async () => {
+  const state = { ...newWorldState(), position: { sectorId: 'atlas:58:28', x: 12, y: 4 } }
+  rpc.mockResolvedValue({ data: { ...payload(), state } })
+  sceneRpc.mockImplementation(async (name: string) =>
+    name === 'read_world_scene_players_v2'
+      ? {
+          error: {
+            code: '55P03',
+            message: 'could not obtain lock on row in relation "characters"',
+          },
+        }
+      : { data: { version: state.version, players: [scenePlayer('neighbour', 'atlas:59:28')] } },
+  )
+
+  const { view } = await readWorld('owner', characterId)
+
+  expect(view.livePresence).toBe(false)
+  expect(view.players.map((player) => player.characterId)).toEqual(['neighbour'])
+  expect(sceneRpc).toHaveBeenNthCalledWith(2, 'read_world_scene_players_v1', {
+    p_user_id: 'owner',
+    p_character_id: characterId,
+    p_expected_version: state.version,
+    p_scene_sector_ids: view.sectors.map((sector) => sector.id),
+    p_initial_position: newWorldState().position,
+  })
+})
+
 it('never hides a permission error by falling back to the old reader', async () => {
   rpc.mockResolvedValue({ data: payload() })
-  sceneRpc.mockResolvedValueOnce({ error: { code: '42501', message: 'denied' } })
+  sceneRpc.mockResolvedValueOnce({ error: { code: '42501', message: 'WORLD_NOT_OWNED' } })
   await expect(readWorld('owner', characterId)).rejects.toMatchObject({
-    code: 'PERSISTENCE_UNAVAILABLE',
+    code: 'FORBIDDEN',
   })
   expect(sceneRpc).toHaveBeenCalledTimes(1)
 })
@@ -561,28 +628,37 @@ it('keeps unsurveyed players private even when returned by the scene read', asyn
   expect((await readWorld('owner', characterId)).view.players).toEqual([])
 })
 
-it('retries a raced scene registration instead of publishing its partial legacy peer list', async () => {
-  const state = {
-      ...newWorldState(),
-      version: 5,
-      position: { sectorId: 'atlas:58:28', x: 12, y: 4 },
-    },
-    next = { ...state, version: 6, position: { sectorId: 'atlas:59:28', x: 0, y: 4 } },
-    neighbour = scenePlayer('neighbour', 'atlas:58:28', 12, 4)
-  rpc
-    .mockResolvedValueOnce({ data: { ...payload(), state, players: [] } })
-    .mockResolvedValueOnce({ data: { ...payload(), state: next, players: [] } })
-  sceneRpc
-    .mockResolvedValueOnce({ data: { version: next.version, players: [] } })
-    .mockResolvedValueOnce({ data: { version: next.version, players: [neighbour] } })
-  const { view } = await readWorld('owner', characterId, { width: 2560, height: 1440 })
-  expect(view.version).toBe(next.version)
-  expect(view.position).toEqual(next.position)
-  expect(view.livePresence).toBe(true)
-  expect(view.players.map((player) => player.characterId)).toEqual(['neighbour'])
-  expect(view.scenery!.length).toBeGreaterThan(view.sectors.length)
-  expect(sceneRpc.mock.calls.map(([, args]) => args.p_expected_version)).toEqual([5, 6])
-})
+it.each([false, true])(
+  'retries with a fresh World version when a scene read races movement (lock fallback=%s)',
+  async (lockFallback) => {
+    const state = {
+        ...newWorldState(),
+        version: 5,
+        position: { sectorId: 'atlas:58:28', x: 12, y: 4 },
+      },
+      next = { ...state, version: 6, position: { sectorId: 'atlas:59:28', x: 0, y: 4 } },
+      neighbour = scenePlayer('neighbour', 'atlas:58:28', 12, 4)
+    rpc
+      .mockResolvedValueOnce({ data: { ...payload(), state, players: [] } })
+      .mockResolvedValueOnce({ data: { ...payload(), state: next, players: [] } })
+    if (lockFallback)
+      sceneRpc.mockResolvedValueOnce({ error: { code: '55P03', message: 'character row locked' } })
+    sceneRpc
+      .mockResolvedValueOnce({ data: { version: next.version, players: [] } })
+      .mockResolvedValueOnce({ data: { version: next.version, players: [neighbour] } })
+    const { view } = await readWorld('owner', characterId, { width: 2560, height: 1440 })
+    expect(view.version).toBe(next.version)
+    expect(view.position).toEqual(next.position)
+    expect(view.livePresence).toBe(true)
+    expect(view.players.map((player) => player.characterId)).toEqual(['neighbour'])
+    expect(view.scenery!.length).toBeGreaterThan(view.sectors.length)
+    expect(sceneRpc.mock.calls.map(([name, args]) => [name, args.p_expected_version])).toEqual([
+      ['read_world_scene_players_v2', 5],
+      ...(lockFallback ? [['read_world_scene_players_v1', 5]] : []),
+      ['read_world_scene_players_v2', 6],
+    ])
+  },
+)
 
 it('bounds scene registration retries and never publishes a mismatched peer snapshot', async () => {
   const state = newWorldState()
@@ -1106,3 +1182,274 @@ it.each(['ITEM_ADMISSION_RETRY', 'ITEM_CATALOGUE_RETRY', 'ITEM_PREPARATION_STALE
     )
   },
 )
+
+it('projects a personal quest from owned state and submits only explicit replies to quest authority', async () => {
+  const runId = '00000000-0000-4000-8000-000000000017'
+  const interactionId = `quest-run-${runId}`
+  const initial = payload()
+  const offer = {
+    runId,
+    title: 'A Watch report',
+    body: 'Take the trail and report back.',
+    giverId: 'eastern-watch-officer',
+    progress: 'available',
+    action: 'accept',
+    local: true,
+  }
+  let replyCommitted = false
+  rpc.mockImplementation(async (name: string) => {
+    if (name === 'commit_world_personal_quest_v1') {
+      replyCommitted = true
+      return { data: { ...initial.state, version: 2 } }
+    }
+    return {
+      data: {
+        ...initial,
+        state: { ...initial.state, version: replyCommitted ? 2 : 1 },
+        personalQuests: [
+          replyCommitted
+            ? { ...offer, body: 'Reach the trail.', progress: 'active', action: null }
+            : offer,
+        ],
+      },
+    }
+  })
+  const view = (await readWorld('owner', characterId)).view
+  expect(view.interactions).toContainEqual(
+    expect.objectContaining({ id: interactionId, actionId: 'accept' }),
+  )
+  await expect(
+    commitWorldCommand('owner', characterId, {
+      ...command,
+      intent: { kind: 'interact', interactionId },
+    }),
+  ).rejects.toThrow('Choose an explicit quest response')
+  expect(rpc.mock.calls.every(([name]) => name === 'read_world_state_v1')).toBe(true)
+
+  const active = await commitWorldCommand('owner', characterId, {
+    ...command,
+    intent: { kind: 'interact', interactionId, actionId: 'accept' },
+  })
+  expect(rpc).toHaveBeenCalledWith(
+    'commit_world_personal_quest_v1',
+    expect.objectContaining({ p_run_id: runId, p_action: 'accept', p_character_id: characterId }),
+  )
+  expect(active.objectives).toContainEqual(
+    expect.objectContaining({ id: interactionId, progress: 'active', completed: false }),
+  )
+  expect(active.interactions).toContainEqual(
+    expect.objectContaining({ id: interactionId, actionId: null }),
+  )
+})
+
+it('replays the exact NPC challenge binding through the normal World command', async () => {
+  const npcId = '50bcf54b-d667-4e03-af93-3457b0055a95'
+  const battleId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+  rpc.mockImplementation(async (name: string) => ({
+    data: name === 'read_world_npc_battle_replay_v1' ? battleId : payload(),
+  }))
+  const challenge = {
+    ...command,
+    intent: {
+      kind: 'interact',
+      interactionId: `npc-challenge-${npcId}`,
+      actionId: 'challenge-npc',
+    },
+  } as const
+  const view = await commitWorldCommand('owner', characterId, challenge)
+  expect(view.battleSessionId).toBe(battleId)
+  expect(rpc).toHaveBeenCalledWith('read_world_npc_battle_replay_v1', {
+    p_user_id: 'owner',
+    p_character_id: characterId,
+    p_npc_id: npcId,
+    p_command_id: command.commandId,
+    p_world_fingerprint: expect.stringMatching(/^[a-f0-9]{64}$/),
+  })
+  expect(rpc.mock.calls.map(([name]) => name)).not.toContain('read_world_npc_battle_v1')
+})
+
+it.each(['report', 'claim-hunt-reward'] as const)(
+  'sends repeatable %s by attempt identity through the normal World interaction',
+  async (actionId) => {
+    const attemptId = '00000000-0000-4000-8000-000000000047'
+    const interactionId = `repeatable-travel-${attemptId}`
+    const initial = payload()
+    const ready = {
+      runId: attemptId,
+      title: 'Trail survey',
+      body: 'Report back.',
+      giverId: 'eastern-watch-officer',
+      progress: actionId === 'report' ? 'ready' : 'completed',
+      rewardPending: actionId === 'claim-hunt-reward',
+      action: actionId,
+      local: true,
+    }
+    let settled = false
+    const receivedAt = actionId === 'report' ? '2026-11-08T05:59:59.000Z' : undefined
+    const commitRpc = receivedAt
+      ? 'commit_world_repeatable_activity_v2'
+      : 'commit_world_repeatable_travel_v1'
+    rpc.mockImplementation(async (name: string) => {
+      if (name === commitRpc) {
+        settled = true
+        return { data: { ...initial.state, version: 2 } }
+      }
+      return {
+        data: {
+          ...initial,
+          state: { ...initial.state, version: settled ? 2 : 1 },
+          repeatableActivities: [
+            settled
+              ? {
+                  ...ready,
+                  progress: 'completed',
+                  rewardPending: false,
+                  action: null,
+                  nextAvailableAt: '2026-11-08T00:00:00Z',
+                }
+              : ready,
+          ],
+        },
+      }
+    })
+    const { view } = await readWorld('owner', characterId)
+    expect(view.interactions).toContainEqual(
+      expect.objectContaining({ id: interactionId, actionId }),
+    )
+    const report = {
+      ...command,
+      intent: { kind: 'interact', interactionId, actionId } as const,
+    }
+    const complete = await commitWorldCommand('owner', characterId, report, false, receivedAt)
+    expect(complete.objectives).toContainEqual(
+      expect.objectContaining({
+        id: interactionId,
+        completed: true,
+        description: expect.stringContaining('Available again'),
+      }),
+    )
+    // After the World version changes, the durable receipt still handles a retry.
+    await commitWorldCommand('owner', characterId, report, false, receivedAt)
+    expect(rpc.mock.calls.filter(([name]) => name === commitRpc)).toHaveLength(2)
+    expect(rpc).toHaveBeenCalledWith(
+      commitRpc,
+      expect.objectContaining({
+        p_reference_id: attemptId,
+        p_action: actionId,
+        p_character_id: characterId,
+        ...(receivedAt ? { p_received_at: receivedAt } : {}),
+      }),
+    )
+  },
+)
+
+it('claims an Avenger reward through the owned ticket even on a replay after World movement', async () => {
+  const ticketId = '00000000-0000-4000-8000-000000000047'
+  const initial = payload()
+  const claim = {
+    ...command,
+    intent: {
+      kind: 'interact',
+      interactionId: `avenger-${ticketId}`,
+      actionId: 'claim-avenger-reward',
+    } as const,
+  }
+  let claimed = false
+  rpc.mockImplementation(async (name: string) => {
+    if (name === 'claim_world_avenger_reward_v1') {
+      claimed = true
+      return { data: { ...initial.state, version: 4 } }
+    }
+    return {
+      data: {
+        ...initial,
+        state: { ...initial.state, version: claimed ? 4 : 1 },
+        personalQuests: [
+          {
+            runId: ticketId,
+            title: 'The Ashen Sentinel',
+            body: 'The Sentinel has fallen. The gate is quiet again.',
+            avenger: true,
+            giverId: '55555555-5555-4555-8555-555555555555',
+            speaker: 'Ashen Sentinel',
+            progress: 'completed',
+            ...(claimed
+              ? { awardedXp: 19 }
+              : { rewardPending: true, action: 'claim-avenger-reward' }),
+            local: true,
+          },
+        ],
+      },
+    }
+  })
+  expect((await readWorld('owner', characterId)).view.interactions).toContainEqual(
+    expect.objectContaining({ id: claim.intent.interactionId, actionId: 'claim-avenger-reward' }),
+  )
+  await commitWorldCommand('owner', characterId, claim)
+  const replay = await commitWorldCommand('owner', characterId, claim)
+  expect(replay.version).toBe(4)
+  expect(replay.objectives).toContainEqual(
+    expect.objectContaining({ id: claim.intent.interactionId, completed: true }),
+  )
+  const writes = rpc.mock.calls.filter(([name]) => name === 'claim_world_avenger_reward_v1')
+  expect(writes).toHaveLength(2)
+  expect(writes[0]).toEqual([
+    'claim_world_avenger_reward_v1',
+    {
+      p_user_id: 'owner',
+      p_character_id: characterId,
+      p_expected_version: 1,
+      p_command_id: claim.commandId,
+      p_ticket_id: ticketId,
+      p_request_fingerprint: expect.stringMatching(/^[a-f0-9]{64}$/),
+    },
+  ])
+  expect(writes[1]).toEqual(writes[0])
+})
+
+it.each(['restore-item', 'choose-restoration-trial'] as const)(
+  'routes %s retries through the durable quest receipt after later movement',
+  async (actionId) => {
+    const runId = '00000000-0000-4000-8000-000000000017'
+    const interactionId = `quest-run-${runId}`
+    const initial = payload()
+    let version = 1
+    rpc.mockImplementation(async (name: string) => {
+      if (name === 'commit_world_personal_quest_v1') {
+        version = Math.max(version, 2)
+        return { data: { ...initial.state, version } }
+      }
+      return { data: { ...initial, state: { ...initial.state, version } } }
+    })
+    const restore: WorldCommand = {
+      ...command,
+      intent: { kind: 'interact', interactionId, actionId },
+    }
+    expect((await commitWorldCommand('owner', characterId, restore)).version).toBe(2)
+    version = 3
+    expect((await commitWorldCommand('owner', characterId, restore)).version).toBe(3)
+    const calls = rpc.mock.calls.filter(([name]) => name === 'commit_world_personal_quest_v1')
+    expect(calls).toHaveLength(2)
+    expect(calls[0]).toEqual(calls[1])
+    expect(calls[0]?.[1]).toMatchObject({
+      p_user_id: 'owner',
+      p_character_id: characterId,
+      p_expected_version: 1,
+      p_command_id: restore.commandId,
+      p_run_id: runId,
+      p_action: actionId,
+    })
+  },
+)
+
+it.each([
+  [
+    'EVENT_INVENTORY_RESTORATION_WEAPON_UNAVAILABLE',
+    'The restored weapon is currently unavailable.',
+  ],
+  ['WORLD_RESTORATION_WEAPON_ALREADY_EARNED', 'You have already earned this restored weapon.'],
+])('keeps %s actionable and private in the conversation', (message, feedback) => {
+  expect(() => worldRpcError({ code: '22023', message })).toThrow(
+    expect.objectContaining({ code: 'INVALID_REQUEST', message: feedback }),
+  )
+})

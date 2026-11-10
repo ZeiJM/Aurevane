@@ -1,5 +1,5 @@
 {
-  "version": "world-runtime-v03",
+  "version": "world-runtime-v04",
   "origin": "Original assets generated for Aurevane with OpenAI imagegen; not third-party game assets",
   "assets": {
     "terrain-v02.webp": {
@@ -29,6 +29,19 @@
         "highland observatory",
         "frontier lodge",
         "watchtower"
+      ]
+    },
+    "frostmere-v01.webp": {
+      "columns": 4,
+      "rows": 1,
+      "cellWidth": 384,
+      "cellHeight": 336,
+      "anchor": [192, 306],
+      "cells": [
+        "Frostmere stone chapel",
+        "Frostmere winter forge",
+        "Frostmere timber storehouse",
+        "Frostmere winter market"
       ]
     },
     "nature-v02.webp": {

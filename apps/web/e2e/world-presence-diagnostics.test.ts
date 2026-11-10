@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
   cleanupWorldPresenceFixtures,
+  inspectWorldSocketFrame,
   matchesWorldWalk,
   summarizeWorldSocketFrame,
   worldPresenceDiagnostics,
@@ -62,6 +63,46 @@ describe('World failure boundary diagnostics', () => {
         JSON.stringify({ topic: 'other', event: 'phx_reply', payload: { status: 'ok' } }),
       ),
     ).toBeNull()
+  })
+
+  it('counts a V2 binary World invalidation without decoding metadata or user payload', () => {
+    const topic = Buffer.from('realtime:world-scene:atlas:58:28')
+    const userEvent = Buffer.from('changed')
+    const metadata = Buffer.from('{"private":"never copy"}')
+    const frame = Buffer.concat([
+      Buffer.from([4, topic.length, userEvent.length, metadata.length, 1]),
+      topic,
+      userEvent,
+      metadata,
+      Buffer.from('{}'),
+    ])
+    expect(summarizeWorldSocketFrame(frame)).toEqual({
+      event: 'broadcast',
+      status: 'none',
+      ownerOrigin: true,
+      peerOrigin: false,
+    })
+    expect(summarizeWorldSocketFrame(frame.subarray(0, 12))).toBeNull()
+    expect(summarizeWorldSocketFrame(Buffer.from([3, ...frame.subarray(1)]))).toBeNull()
+    expect(summarizeWorldSocketFrame(Buffer.from([4, 1, 1, 0, 0, 97, 98]))).toBeNull()
+  })
+
+  it('distinguishes the World changed event from unrelated text broadcasts and join replies', () => {
+    const topic = 'realtime:world-scene:atlas:58:28'
+    const inspect = (event: string, payload: unknown) =>
+      inspectWorldSocketFrame(JSON.stringify(['1', '19', topic, event, payload]))
+    expect(inspect('broadcast', { event: 'changed' })).toMatchObject({
+      sectorId: 'atlas:58:28',
+      changed: true,
+      encoding: 'text',
+    })
+    expect(inspect('broadcast', { event: 'chat' })?.changed).toBe(false)
+    expect(inspect('phx_reply', { status: 'ok', event: 'changed' })).toMatchObject({
+      sectorId: 'atlas:58:28',
+      ref: '19',
+      changed: false,
+      status: 'ok',
+    })
   })
 
   it.each(['no-request', 'rejected-request', 'presence-failure'])(

@@ -6,6 +6,8 @@ import {
   MAX_WORLD_DAY_MINUTES,
   MAX_WEATHER_ROLL_MINUTES,
   DEFAULT_WEATHER_ROLL_MINUTES,
+  DEFAULT_WARPED_SHIFT_MINUTES,
+  MAX_WARPED_SHIFT_MINUTES,
   isWorldWeather,
   type WorldEnvironmentSettings,
 } from '@/world/environment'
@@ -32,6 +34,14 @@ export function parseWorldEnvironmentSettings(data: unknown): WorldEnvironmentSe
     weatherRollMinutes > MAX_WEATHER_ROLL_MINUTES
   )
     return null
+  const warpedShiftMinutes =
+    d.warpedShiftMinutes === undefined ? DEFAULT_WARPED_SHIFT_MINUTES : d.warpedShiftMinutes
+  if (
+    !int(warpedShiftMinutes) ||
+    warpedShiftMinutes < 1 ||
+    warpedShiftMinutes > MAX_WARPED_SHIFT_MINUTES
+  )
+    return null
   const frozen = d.frozenMinuteOfDay ?? null
   if (frozen !== null && (!int(frozen) || (frozen as number) < 0 || (frozen as number) > 1439))
     return null
@@ -43,6 +53,7 @@ export function parseWorldEnvironmentSettings(data: unknown): WorldEnvironmentSe
     version: d.version as number,
     dayLengthMinutes,
     weatherRollMinutes,
+    warpedShiftMinutes,
     timeOffsetMinutes: d.timeOffsetMinutes as number,
     frozenMinuteOfDay: frozen as number | null,
     weatherOverride: weather,

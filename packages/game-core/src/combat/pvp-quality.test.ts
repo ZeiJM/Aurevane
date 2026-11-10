@@ -6,6 +6,8 @@ import { reconcileCombatAbilitySources } from './combat-behavior-runtime'
 import { source } from './combat-behavior.test-utils'
 import { createPendingBattle, startBattle } from './battle-state'
 import { createTacticalBattleState } from './board'
+import { spawnCombatSummon } from './combat-summons'
+import { resolveMatureSkillVersion } from './mature-skills'
 import {
   createPv1fTemporaryResources,
   executePv1fAction,
@@ -25,6 +27,7 @@ import {
   surrenderPvpCombatant,
 } from './pvp-quality'
 import {
+  createCurrentStatDrivenCombatEncounterState,
   createStatDrivenCombatEncounterState,
   type StatDrivenCombatProfile,
 } from './stat-driven-combat'
@@ -304,6 +307,62 @@ describe('battle turn quality rules', () => {
       { event: 'battle_completed', winningTeamId: 'team:0' },
     ])
   })
+
+  it('completes a team surrender while its summon is taking a turn', () => {
+    const initial = encounter('ai')
+    const position = { x: 2, y: 0 }
+    const tactical = createTacticalBattleState({
+      ...initial.tactical,
+      width: 3,
+      tiles: [...initial.tactical.tiles, { position, elevation: 0, terrainId: 'open-ground' }],
+    })
+    const state = createCurrentStatDrivenCombatEncounterState(
+      { ...initial, tactical },
+      initial.statBridge.combatants.map((row) => ({
+        ...row,
+        level: 1,
+        criticalChance: 0,
+        physicalPower: 20,
+        mysticPower: 20,
+      })),
+    )
+    const skill = resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)!
+    const spawned = spawnCombatSummon(state, {
+      ownerCombatantId: 'player',
+      sourceSkillId: skill.id,
+      sourceSkillVersion: skill.contentVersion,
+      profile: skill.summonProfile!,
+      position,
+      facing: 'east',
+    }).state
+    const summonId = spawned.effectState!.summons![0]!.combatantId
+    let turn = spawned
+    for (let index = 0; index < 5; index += 1) {
+      const active = turn.tactical.battle.currentTurn?.combatantId
+      if (active === summonId) break
+      turn = finishPv1fTurn(turn, active === 'opponent' ? 'west' : 'east').state
+    }
+    expect(turn.tactical.battle.currentTurn?.combatantId).toBe(summonId)
+
+    const playerSurrender = surrenderPvpCombatant(turn, 'player')
+    expect(playerSurrender.state.tactical.battle.currentTurn?.combatantId).toBe(summonId)
+    const summonSurrender = surrenderPvpCombatant(playerSurrender.state, summonId)
+    expect(summonSurrender.state.tactical.battle.lifecycle).toBe('completed')
+    expect(summonSurrender.state.tactical.battle.currentTurn).toBeNull()
+    expect(summonSurrender.state.tactical.battle.combatants.map(({ id, hp }) => [id, hp])).toEqual([
+      ['player', 0],
+      ['opponent', 100],
+    ])
+    expect(summonSurrender.state.effectState?.summons).toEqual([])
+    expect(summonSurrender.events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ event: 'summon_defeated', combatantId: summonId }),
+        { event: 'pvp_combatant_surrendered', combatantId: summonId },
+        { event: 'battle_completed', winningTeamId: 'team:1' },
+      ]),
+    )
+  })
+
   it.each(['pvp', 'ai'] as const)(
     'does not count a preview, rejected command or passive AP loss as %s activity',
     (kind) => {

@@ -13,6 +13,7 @@ import {
 } from '@/server/account/active-game-session'
 import { getAuthenticatedActor } from '@/server/auth/actor'
 import { loadCharacterIdentityRailContext } from '@/server/character/character-identity-rail-context'
+import { readPublishedArenaNpcs } from '@/server/master/npc-design-store'
 import { loadSelectedCharacter } from '@/server/character/selected-character'
 
 export const dynamic = 'force-dynamic'
@@ -55,7 +56,7 @@ export default async function BattleLaunchPage({
     throw error
   }
 
-  const params = await searchParams
+  const [params, arenaNpcs] = await Promise.all([searchParams, readPublishedArenaNpcs()])
   const initialJoinKey = typeof params.join === 'string' ? params.join : null
 
   return (
@@ -64,6 +65,7 @@ export default async function BattleLaunchPage({
       characterId={character.id}
       characterName={character.name}
       initialJoinKey={initialJoinKey}
+      arenaNpcs={arenaNpcs}
     />
   )
 }

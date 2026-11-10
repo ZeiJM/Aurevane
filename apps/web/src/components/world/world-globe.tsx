@@ -1,11 +1,14 @@
 'use client'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ATLAS_COLUMNS, ATLAS_ROWS } from '@/world/atlas'
 import { GRID_HEIGHT, GRID_WIDTH } from '@/world/catalog'
+import { FERRY_MAINLAND_DOCK } from '@/world/ferry'
 import { globeSectorCenter, globeSectorCoordinate, projectGlobePoint } from '@/world/globe-math'
 import type { WorldView } from '@/world/types'
 import { SphericalView } from './spherical-view'
 import { globeTowns, projectGlobeTowns } from './globe-atlas'
+import { UNCHARTED_VEIL_FOCUS } from './globe-veil'
+import { globeFerryPosition } from './globe-ferry'
 import styles from './workspace.module.css'
 const sectorOrder = new Intl.Collator('en', { numeric: true })
 export function WorldGlobe({
@@ -36,12 +39,28 @@ export function WorldGlobe({
         }
       : sectorCenter
   const anchor = view.atlas?.find((s) => s.id === current.regionId)
-  const location = mapped ??
-    globeSectorCenter(anchor?.coordinate ?? '', ATLAS_COLUMNS, ATLAS_ROWS) ?? {
-      longitude: 0,
-      latitude: 0,
-    }
+  const location =
+    mapped ??
+    (current.warpedTheme
+      ? UNCHARTED_VEIL_FOCUS
+      : (globeSectorCenter(anchor?.coordinate ?? '', ATLAS_COLUMNS, ATLAS_ROWS) ?? {
+          longitude: 0,
+          latitude: 0,
+        }))
   const [camera, setCamera] = useState(location)
+  const [ferryTime, setFerryTime] = useState<{ serverNow: number; now: number }>()
+  useEffect(() => {
+    const started = performance.now()
+    const timer = setInterval(
+      () =>
+        setFerryTime({
+          serverNow: view.serverNow,
+          now: view.serverNow + (performance.now() - started),
+        }),
+      1000,
+    )
+    return () => clearInterval(timer)
+  }, [view.serverNow])
   const towns = useMemo(
     () =>
       globeTowns(view.atlas ?? []).sort((a, b) =>
@@ -69,8 +88,26 @@ export function WorldGlobe({
   )
   const pin = projectGlobePoint(location, camera)
   const labels = projectGlobeTowns(view.atlas ?? [], camera, zoom)
+  const veil = projectGlobePoint(UNCHARTED_VEIL_FOCUS, camera)
+  const veilX = veil.x * zoom
+  const veilY = veil.y * zoom
+  const port = view.atlas?.find(
+    (sector) => sector.charted && sector.id === FERRY_MAINLAND_DOCK.sectorId,
+  )
+  const dockLocation = port ? globeSectorCenter(port.coordinate, ATLAS_COLUMNS, ATLAS_ROWS) : null
+  const vessel =
+    dockLocation &&
+    globeFerryPosition(
+      ferryTime?.serverNow === view.serverNow ? ferryTime.now : view.serverNow,
+      dockLocation,
+    )
+  const ferry = vessel && projectGlobePoint(vessel, camera)
   return (
     <div className={styles.globeScene}>
+      <div className={styles.globeTitle}>
+        <span>Surveyor’s collection</span>
+        <h2>World Atlas</h2>
+      </div>
       <div className={styles.globeFrame}>
         <SphericalView
           src="/media/art/world/globe-v01.webp"
@@ -123,9 +160,59 @@ export function WorldGlobe({
               You are here
             </span>
           ) : null}
+          {veil.visible && Math.hypot(veilX, veilY) < Math.min(0.72, zoom * 0.8) ? (
+            <span
+              className={styles.globeVeilLabel}
+              style={{ left: `${(veilX + 1) * 50}%`, top: `${(1 - veilY) * 50}%` }}
+            >
+              <i aria-hidden="true">◇</i>
+              Uncharted waters
+            </span>
+          ) : null}
+          {ferry?.visible &&
+          Math.hypot(ferry.x * zoom, ferry.y * zoom) < Math.min(0.94, zoom * 0.96) ? (
+            <span
+              className={styles.globeFerry}
+              role="img"
+              aria-label="Ferry underway"
+              style={{
+                left: `${(ferry.x * zoom + 1) * 50}%`,
+                top: `${(1 - ferry.y * zoom) * 50}%`,
+              }}
+            >
+              <svg
+                viewBox="0 0 24 24"
+                width="18"
+                height="18"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path d="M12 2v12H4l8-12zm2 3 6 9h-6V5zM2 16h20l-4 5H6z" />
+              </svg>
+            </span>
+          ) : null}
         </SphericalView>
       </div>
       <div className={styles.sectorPicker}>
+        <div className={styles.globeOrientation} aria-label="Globe orientation">
+          <button type="button" onClick={() => setCamera(location)}>
+            My position
+          </button>
+          {port ? (
+            <button type="button" onClick={() => selectSector(port.id)}>
+              Ferry dock
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => {
+              onSelect(null)
+              setCamera(UNCHARTED_VEIL_FOCUS)
+            }}
+          >
+            Uncharted waters
+          </button>
+        </div>
         <label className={styles.townPicker}>
           Main towns
           <select
@@ -155,6 +242,14 @@ export function WorldGlobe({
             </select>
           </label>
         </details>
+      </div>
+      <div className={styles.globeCaption}>
+        <span>
+          <i aria-hidden="true" /> Charted ground
+        </span>
+        <span>
+          <i aria-hidden="true" /> Uncharted waters
+        </span>
       </div>
     </div>
   )

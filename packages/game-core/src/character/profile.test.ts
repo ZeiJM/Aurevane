@@ -48,7 +48,7 @@ describe('character profile read model', () => {
       presentationLabel: 'Androgynous',
       pronounLabel: 'They / Them',
     })
-    expect(profile.foundationDiscipline.name).toBe('Vanguard')
+    expect(profile.foundationDiscipline?.name).toBe('Vanguard')
     expect(serialized).not.toContain(character.userId)
     expect(serialized).not.toContain(character.nameKey)
     expect(profile).not.toHaveProperty('userId')
@@ -72,6 +72,15 @@ describe('character profile read model', () => {
       progressBasisPoints: 0,
       isMaxLevel: false,
     })
+  })
+
+  it('renders a profile created with an authored Foundation', () => {
+    const profile = buildCharacterProfileReadModel(
+      { ...character, foundationDisciplineId: 'discipline.authored-foundation' },
+      levelCurve,
+    )
+    expect(profile.identity.name).toBe(character.name)
+    expect(profile.attributes).toEqual(character.attributes)
   })
 
   it('rejects persisted Level drift from the authoritative cumulative XP curve', () => {

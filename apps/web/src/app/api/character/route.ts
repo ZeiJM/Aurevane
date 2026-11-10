@@ -40,6 +40,7 @@ export async function POST(request: Request) {
       idempotencyKey: creation.idempotencyKey,
       intent: creation.intent,
       expectedProfileVersion: creation.expectedProfileVersion,
+      appearance: creation.appearance,
     })
 
     await authorizeCharacterSelection({

@@ -43,6 +43,7 @@ export interface CharacterItemsState {
   readonly definitions: ItemCatalogue
   readonly catalogueToken: string
   readonly battleLocked: boolean
+  readonly discardableStackIds?: readonly string[]
 }
 export type ItemInventoryWrite =
   | {
@@ -56,6 +57,7 @@ export type ItemInventoryWrite =
       readonly category: ItemInventoryCategory
       readonly stackIds: readonly string[]
     }
+  | { readonly action: 'discard'; readonly stackId: string }
 export interface CharacterItemsRepository {
   read(userId: string, characterId: string): Promise<CharacterItemsState>
   write(
@@ -92,6 +94,7 @@ export interface CharacterItemsView {
     readonly inventoryCategory: ItemInventoryCategory
     readonly slotIndex: number
     readonly quantity: number
+    readonly canDiscard?: boolean
     readonly unmetEquipRequirements?: readonly string[]
     readonly item: ItemPresentation | null
   }[]
@@ -102,6 +105,7 @@ export function characterItemsView(
   notices: CharacterItemsView['notices'] = [],
 ): CharacterItemsView {
   const { snapshot, definitions } = state
+  const discardable = new Set(state.discardableStackIds)
   let baseEvasion: number | undefined
   if (state.equipContext?.baseCoreStats) {
     try {
@@ -141,6 +145,7 @@ export function characterItemsView(
         inventoryCategory: stack.inventoryCategory,
         slotIndex: stack.slotIndex,
         quantity: stack.quantity,
+        ...(discardable.has(stack.id) ? { canDiscard: true } : {}),
         unmetEquipRequirements:
           definition?.schemaVersion === 2
             ? evaluateItemEquipRequirements(definition.equipRequirements, state.equipContext)
@@ -209,6 +214,7 @@ export async function mutateCharacterItems(
     unequip: ['position'],
     support: ['selection'],
     sort: ['category', 'order'],
+    discard: ['stackId'],
   }
   if (
     !object(input) ||
@@ -240,6 +246,15 @@ export async function mutateCharacterItems(
   if (current.battleLocked) invalid('Items cannot change during a pending or active battle.')
   const { snapshot, definitions } = current
   const revision = input.expectedRevision as number
+  if (input.action === 'discard') {
+    if (typeof input.stackId !== 'string' || !current.discardableStackIds?.includes(input.stackId))
+      invalid('This Item stack cannot be discarded.')
+    const saved = await repository.write(userId, characterId, revision, current.catalogueToken, {
+      action: 'discard',
+      stackId: input.stackId,
+    })
+    return characterItemsView(saved.state, saved.notices)
+  }
   let result
   let replacePositions: EquipmentPosition[] = []
   let category: ItemInventoryCategory | undefined

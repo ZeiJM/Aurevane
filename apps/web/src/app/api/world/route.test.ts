@@ -88,6 +88,103 @@ it('ignores query identity as authority and returns a full current receipt after
   expect(await response.json()).toEqual(view)
   expect(readWorld).toHaveBeenCalledWith('owner', view.characterId)
 })
+it('omits only the exact atlas on opt-in hydration after the new owned scene is read', async () => {
+  const atlas = [
+    { id: 'charted', charted: true },
+    { id: 'owned-discovery', charted: false },
+  ] as WorldView['atlas']
+  const initial = { ...view, atlas }
+  readWorld.mockResolvedValue({ view: initial })
+  const request = (known?: string, characterId = view.characterId) =>
+    new Request('https://example.test/api/world?sceneWidth=393&sceneHeight=851', {
+      headers: known ? { 'x-world-atlas': `${characterId}:${known}` } : {},
+    })
+  expect(await (await GET(request())).json()).toEqual(initial)
+  const cold = await (await GET(request('full'))).json()
+  expect(cold).toEqual({ ...initial, atlasToken: expect.stringMatching(/^[0-9a-f]{64}$/) })
+
+  const next = {
+    ...initial,
+    atlas: structuredClone(atlas),
+    version: 5,
+    serverNow: 1100,
+    sectors: [{ id: 'new-authorized-scene' }],
+    scenery: [['chart-only-buffer']],
+    objectives: [{ id: 'private-objective' }],
+    interactions: [{ id: 'private-interaction' }],
+    archive: [{ id: 'private-archive' }],
+  }
+  readWorld.mockResolvedValue({ view: next }).mockClear()
+  const response = await GET(request(cold.atlasToken))
+  expect(response.headers.get('Cache-Control')).toBe('private, no-store')
+  expect(readWorld).toHaveBeenCalledExactlyOnceWith('owner', view.characterId, {
+    width: 393,
+    height: 851,
+  })
+  const { atlas: sentAtlas, ...freshScene } = next
+  expect(sentAtlas).toEqual(atlas)
+  expect(await response.json()).toEqual({
+    ...freshScene,
+    kind: 'scene',
+    atlasToken: cold.atlasToken,
+  })
+
+  const compact = await GET(
+    new Request(
+      `https://example.test/api/world?presenceVersion=5&characterId=${view.characterId}`,
+      {
+        headers: { 'x-world-atlas': `${view.characterId}:${cold.atlasToken}` },
+      },
+    ),
+  )
+  expect(await compact.json()).toMatchObject({ kind: 'presence' })
+
+  readWorld.mockRejectedValueOnce(new AurevaneError('FORBIDDEN', 'World ownership changed.'))
+  const denied = await GET(request(cold.atlasToken))
+  expect(denied.status).toBe(403)
+  expect(await denied.json()).not.toHaveProperty('atlasToken')
+})
+it('resends current atlas when a private atlas entry changes, disappears, or the character changes', async () => {
+  const oldAtlas = [
+    { id: 'charted', charted: true },
+    { id: 'old-secret', charted: false },
+  ]
+  const request = (characterId: string, token: string) =>
+    new Request('https://example.test/api/world', {
+      headers: { 'x-world-atlas': `${characterId}:${token}` },
+    })
+  readWorld.mockResolvedValue({ view: { ...view, atlas: oldAtlas } })
+  const old = await (await GET(request(view.characterId, 'full'))).json()
+  expect(old.atlasToken).toMatch(/^[0-9a-f]{64}$/)
+
+  const newAtlas = [
+    { id: 'charted', charted: true },
+    { id: 'new-secret', charted: false },
+  ]
+  readWorld.mockResolvedValue({ view: { ...view, atlas: newAtlas } })
+  const changed = await (await GET(request(view.characterId, old.atlasToken))).json()
+  expect(changed).toEqual({ ...view, atlas: newAtlas, atlasToken: expect.any(String) })
+  expect(changed.atlasToken).not.toBe(old.atlasToken)
+  const cleared = [{ id: 'charted', charted: true }]
+  readWorld.mockResolvedValue({ view: { ...view, atlas: cleared } })
+  expect(await (await GET(request(view.characterId, changed.atlasToken))).json()).toEqual({
+    ...view,
+    atlas: cleared,
+    atlasToken: expect.any(String),
+  })
+
+  selection.value = '00000000-0000-4000-8000-000000000012'
+  const other = { ...view, characterId: selection.value, atlas: oldAtlas }
+  readWorld.mockResolvedValue({ view: other }).mockClear()
+  expect(await (await GET(request(view.characterId, old.atlasToken))).json()).toEqual(other)
+  const foreignToken = await (await GET(request(selection.value, old.atlasToken))).json()
+  expect(foreignToken).toEqual({ ...other, atlasToken: expect.any(String) })
+  expect(foreignToken.atlasToken).not.toBe(old.atlasToken)
+  expect(readWorld.mock.calls).toEqual([
+    ['owner', selection.value],
+    ['owner', selection.value],
+  ])
+})
 it('rejects absent authentication or selection before any World read', async () => {
   actor.mockRejectedValueOnce(new AurevaneError('FORBIDDEN', 'Sign in.'))
   expect((await GET()).status).toBe(403)
@@ -118,6 +215,45 @@ it('opts only authenticated movement commands into compact approval without chan
   expect(commitWorldCommand).toHaveBeenLastCalledWith('owner', id, body, true)
   expect((await POST(request(false))).status).toBe(200)
   expect(commitWorldCommand).toHaveBeenLastCalledWith('owner', id, body, false)
+})
+
+it('anchors a repeatable report to the server receipt before session verification', async () => {
+  const receivedAt = '2026-11-08T05:59:59.000Z'
+  const body = {
+    characterId: view.characterId,
+    expectedVersion: view.version,
+    commandId: '00000000-0000-4000-8000-000000000099',
+    intent: {
+      kind: 'interact',
+      interactionId: 'repeatable-travel-00000000-0000-4000-8000-000000000047',
+      actionId: 'report',
+    },
+  }
+  vi.useFakeTimers({ toFake: ['Date'] })
+  try {
+    vi.setSystemTime(new Date(receivedAt))
+    actor.mockImplementationOnce(async () => {
+      vi.setSystemTime(new Date('2026-11-08T06:00:01.000Z'))
+      return { userId: 'owner' }
+    })
+    const response = await POST(
+      new Request('https://example.test/api/world', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ ...body, receivedAt: '2000-01-01T00:00:00.000Z' }),
+      }),
+    )
+    expect(response.status).toBe(200)
+    expect(commitWorldCommand).toHaveBeenCalledExactlyOnceWith(
+      'owner',
+      view.characterId,
+      body,
+      false,
+      receivedAt,
+    )
+  } finally {
+    vi.useRealTimers()
+  }
 })
 it('opts compact attacks into committed identity while preserving complete legacy responses', async () => {
   const { attackWorldPlayer } = await import('@/server/world/world-battle')

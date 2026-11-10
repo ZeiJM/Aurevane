@@ -1,10 +1,47 @@
 import { validCell } from './travel'
-import type { WorldCommand, WorldIntent } from './types'
+import type { WorldCommand, WorldIntent, WorldRestorationActionId } from './types'
 const object = (v: unknown): v is Record<string, unknown> =>
   v !== null && typeof v === 'object' && !Array.isArray(v)
 export const isWorldUuid = (v: unknown): v is string =>
   typeof v === 'string' &&
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v)
+export const PERSONAL_QUEST_INTERACTION_PREFIX = 'quest-run-'
+export const REPEATABLE_ACTIVITY_INTERACTION_PREFIX = 'repeatable-travel-'
+export const AVENGER_INTERACTION_PREFIX = 'avenger-'
+export const MENTOR_INTERACTION_PREFIX = 'mentor-'
+export function personalQuestRunId(interactionId: string): string | null {
+  if (!interactionId.startsWith(PERSONAL_QUEST_INTERACTION_PREFIX)) return null
+  const runId = interactionId.slice(PERSONAL_QUEST_INTERACTION_PREFIX.length)
+  return isWorldUuid(runId) ? runId : null
+}
+export function repeatableActivityReference(interactionId: string): string | null {
+  if (!interactionId.startsWith(REPEATABLE_ACTIVITY_INTERACTION_PREFIX)) return null
+  const reference = interactionId.slice(REPEATABLE_ACTIVITY_INTERACTION_PREFIX.length)
+  return isWorldUuid(reference) ? reference : null
+}
+export function avengerTicketReference(interactionId: string): string | null {
+  if (!interactionId.startsWith(AVENGER_INTERACTION_PREFIX)) return null
+  const ticketId = interactionId.slice(AVENGER_INTERACTION_PREFIX.length)
+  return isWorldUuid(ticketId) ? ticketId : null
+}
+export function mentorReference(interactionId: string): string | null {
+  if (!interactionId.startsWith(MENTOR_INTERACTION_PREFIX)) return null
+  const reference = interactionId.slice(MENTOR_INTERACTION_PREFIX.length)
+  return isWorldUuid(reference) ? reference : null
+}
+export function isWorldMentorAction(
+  value: unknown,
+): value is 'challenge-mentor' | 'train-mentor' | 'claim-mentor-reward' {
+  return value === 'challenge-mentor' || value === 'train-mentor' || value === 'claim-mentor-reward'
+}
+export function isWorldRestorationAction(value: unknown): value is WorldRestorationActionId {
+  return (
+    value === 'choose-restoration' ||
+    value === 'choose-restoration-trial' ||
+    value === 'restore-item' ||
+    value === 'claim-restoration'
+  )
+}
 export function parseWorldCommand(value: unknown): WorldCommand | null {
   if (
     !object(value) ||
@@ -17,7 +54,13 @@ export function parseWorldCommand(value: unknown): WorldCommand | null {
     return null
   const input = value.intent
   let intent: WorldIntent
-  if (input.kind === 'tick' || input.kind === 'stop' || input.kind === 'cross')
+  if (
+    input.kind === 'tick' ||
+    input.kind === 'stop' ||
+    input.kind === 'cross' ||
+    input.kind === 'board-ferry' ||
+    input.kind === 'leave-ferry'
+  )
     intent = { kind: input.kind }
   else if (input.kind === 'walk' && object(input.destination)) {
     const p = input.destination
@@ -33,9 +76,29 @@ export function parseWorldCommand(value: unknown): WorldCommand | null {
   } else if (
     input.kind === 'interact' &&
     typeof input.interactionId === 'string' &&
-    /^[a-z0-9][a-z0-9-]{0,99}$/.test(input.interactionId)
+    /^[a-z0-9][a-z0-9-]{0,99}$/.test(input.interactionId) &&
+    (input.actionId === undefined ||
+      input.actionId === 'accept' ||
+      input.actionId === 'report' ||
+      input.actionId === 'hand-over' ||
+      input.actionId === 'claim-exchange' ||
+      input.actionId === 'travel-realm' ||
+      input.actionId === 'leave-realm' ||
+      input.actionId === 'challenge-realm' ||
+      input.actionId === 'challenge-npc' ||
+      ((input.actionId === 'challenge-avenger' || input.actionId === 'claim-avenger-reward') &&
+        avengerTicketReference(input.interactionId) !== null) ||
+      (isWorldMentorAction(input.actionId) && mentorReference(input.interactionId) !== null) ||
+      (input.actionId === 'claim-hunt-reward' &&
+        repeatableActivityReference(input.interactionId) !== null) ||
+      (isWorldRestorationAction(input.actionId) &&
+        personalQuestRunId(input.interactionId) !== null))
   )
-    intent = { kind: 'interact', interactionId: input.interactionId }
+    intent = {
+      kind: 'interact',
+      interactionId: input.interactionId,
+      ...(input.actionId === undefined ? {} : { actionId: input.actionId }),
+    }
   else if (
     input.kind === 'autopath' &&
     typeof input.objectiveId === 'string' &&

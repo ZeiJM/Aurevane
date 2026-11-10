@@ -9,13 +9,27 @@ import { STEP_MS } from '@/world/catalog'
 import type { WorldMovementReceipt } from '@/world/movement-receipt'
 import type {
   WorldCommand,
+  WorldInteractionActionId,
   WorldPlayer,
   WorldSceneViewport,
   WorldState,
   WorldView,
 } from '@/world/types'
 import { eventWorldObjectives } from './world-events'
+import { loadWorldNpcs, peekWorldNpcs, resetWorldNpcReadCache } from './world-npcs'
+import { projectPersonalQuests, projectRepeatableTravel } from './world-personal-quests'
+import { localWorldInteractions } from './world-objectives'
 import { WORLD_OBJECTIVES, resolveSector } from './world-content'
+import { projectWorldFerry } from './world-ferry'
+import {
+  avengerTicketReference,
+  isWorldRestorationAction,
+  isWorldMentorAction,
+  mentorReference,
+  isWorldUuid,
+  personalQuestRunId,
+  repeatableActivityReference,
+} from '@/world/command'
 import { resolveWorldEnvironment } from '@/world/environment'
 import { readWorldEnvironmentSettings } from './world-environment-store'
 import {
@@ -27,7 +41,7 @@ import {
 
 export function worldRpcError(error: { message?: string; code?: string }): never {
   const message = error.message ?? ''
-  if (message.includes('WORLD_NOT_OWNED'))
+  if (message.includes('WORLD_NOT_OWNED') || message === 'ITEM_OWNERSHIP')
     throw new AurevaneError('FORBIDDEN', 'That character is unavailable.')
   if (message.includes('WORLD_STALE') || error.code === 'PT409' || error.code === '40001')
     throw new AurevaneError(
@@ -45,8 +59,46 @@ export function worldRpcError(error: { message?: string; code?: string }): never
     throw new AurevaneError('INVALID_REQUEST', 'Return to your active battle.')
   if (message.includes('WORLD_SPECTATING'))
     throw new AurevaneError('INVALID_REQUEST', 'Leave spectating before travelling.')
+  if (message === 'WORLD_NPC_CHALLENGE_UNAVAILABLE')
+    throw new AurevaneError('INVALID_REQUEST', 'This NPC challenge is no longer available.')
+  if (message === 'WORLD_NPC_CHALLENGE_OUT_OF_RANGE')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Stop moving within reach of the NPC before challenging them.',
+    )
   if (message.includes('WORLD_TARGET'))
     throw new AurevaneError('INVALID_REQUEST', 'That player is no longer within reach.')
+  if (message.includes('WORLD_QUEST_OUT_OF_RANGE'))
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Return to the quest giver and stop moving before replying.',
+    )
+  if (message === 'WORLD_QUEST_ITEMS_MISSING')
+    throw new AurevaneError('INVALID_REQUEST', 'You no longer carry all of the required items.')
+  if (message === 'ITEM_CAPACITY')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Make room in your inventory before collecting this item.',
+    )
+  if (message === 'ITEM_BATTLE_ACTIVE')
+    throw new AurevaneError('INVALID_REQUEST', 'Return to your active battle.')
+  if (
+    message === 'EVENT_PERSONAL_EXCHANGE_ITEMS_UNAVAILABLE' ||
+    message === 'ITEM_DEFINITION_UNAVAILABLE'
+  )
+    throw new AurevaneError('INVALID_REQUEST', 'An item in this exchange is currently unavailable.')
+  if (message === 'EVENT_INVENTORY_RESTORATION_WEAPON_UNAVAILABLE')
+    throw new AurevaneError('INVALID_REQUEST', 'The restored weapon is currently unavailable.')
+  if (message === 'WORLD_RESTORATION_WEAPON_ALREADY_EARNED')
+    throw new AurevaneError('INVALID_REQUEST', 'You have already earned this restored weapon.')
+  if (message.includes('WORLD_QUEST_ACTION_UNAVAILABLE'))
+    throw new AurevaneError('INVALID_REQUEST', 'This quest response is no longer available.')
+  if (message.includes('WORLD_FERRY_PORT'))
+    throw new AurevaneError('INVALID_REQUEST', 'Stop at the ferry station before boarding.')
+  if (message.includes('WORLD_FERRY_WINDOW'))
+    throw new AurevaneError('INVALID_REQUEST', 'Boarding opens five minutes before departure.')
+  if (message.includes('WORLD_FERRY_UNDERWAY'))
+    throw new AurevaneError('INVALID_REQUEST', 'Disembark after the ferry reaches its destination.')
   if (message.includes('WORLD_STEP_NOT_DUE'))
     throw new AurevaneError('INVALID_REQUEST', 'Your next step is not due yet.')
   throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'World travel is temporarily unavailable.')
@@ -66,6 +118,8 @@ async function readWorldData(
   players: WorldPlayer[]
   serverNow: number
   eventObjectives?: unknown
+  personalQuests?: unknown
+  repeatableActivities?: unknown
   trainingExpired?: boolean
   blocked?: string
   battleSessionId?: string
@@ -135,6 +189,7 @@ async function cachedEnvironmentSettings() {
   return value
 }
 export function resetWorldReadCaches() {
+  resetWorldNpcReadCache()
   portraitCache = null
   environmentCache = null
 }
@@ -183,6 +238,8 @@ export async function settleWorldAttackAuthority(
   const next = resolveWorldIntent(state, intent, current.serverNow, [
     ...WORLD_OBJECTIVES,
     ...eventWorldObjectives(current.eventObjectives),
+    ...projectPersonalQuests(current.personalQuests).objectives,
+    ...projectRepeatableTravel(current.repeatableActivities).objectives,
   ])
   const fingerprint = createHash('sha256')
     .update(JSON.stringify({ characterId, expectedVersion, intent }))
@@ -236,13 +293,21 @@ async function presentWorldData(
   data: Awaited<ReturnType<typeof readWorldData>>,
   viewport?: WorldSceneViewport,
 ) {
-  const objectives = [...WORLD_OBJECTIVES, ...eventWorldObjectives(data.eventObjectives)]
+  const quests = projectPersonalQuests(data.personalQuests)
+  const activities = projectRepeatableTravel(data.repeatableActivities)
+  const objectives = [
+    ...WORLD_OBJECTIVES,
+    ...eventWorldObjectives(data.eventObjectives),
+    ...quests.objectives,
+    ...activities.objectives,
+  ]
   const state = data.state as WorldState
   // Build the expensive terrain projection once. Only its server-derived scene IDs
   // can widen presence; unsurveyed cells are filtered before images or serialization.
   const view = projectWorld(state, [], data.serverNow, objectives, undefined, viewport)
+  view.interactions.push(...quests.interactions, ...activities.interactions)
   const sceneSectorIds = view.sectors.map((sector) => sector.id)
-  const [presence, environmentSettings] = await Promise.all([
+  const [presence, environmentSettings, localNpcs] = await Promise.all([
     (async () => {
       const args = {
         p_user_id: userId,
@@ -253,11 +318,13 @@ async function presentWorldData(
       }
       const client = createSupabaseAdminClient()
       const result = await client.rpc('read_world_scene_players_v2', args)
-      if (result.error?.code === '42883' || result.error?.code === 'PGRST202')
+      const code = result.error?.code
+      if (code === '42883' || code === 'PGRST202' || code === '55P03')
         return { ...(await client.rpc('read_world_scene_players_v1', args)), live: false }
       return { ...result, live: true }
     })(),
     cachedEnvironmentSettings(),
+    loadWorldNpcs(state),
   ])
   if (presence.error) worldRpcError(presence.error)
   const scene = presence.data
@@ -271,6 +338,8 @@ async function presentWorldData(
   if (scene.version !== state.version) throw new WorldSceneChanged()
   const players = projectWorldPlayers(state, scene.players, sceneSectorIds)
   view.players = await resolveWorldPlayerImages(players)
+  view.npcs = localNpcs.npcs
+  view.interactions.push(...localNpcs.interactions)
   view.livePresence = presence.live
   view.environment = resolveWorldEnvironment(data.serverNow, environmentSettings)
   view.characterId = characterId
@@ -296,6 +365,7 @@ export function commitWorldCommand(
   characterId: string,
   command: WorldCommand,
   compactMovement?: false,
+  receivedAt?: string,
 ): Promise<WorldView>
 export function commitWorldCommand(
   userId: string,
@@ -314,6 +384,7 @@ export async function commitWorldCommand(
   characterId: string,
   command: WorldCommand,
   compactMovement = false,
+  receivedAt?: string,
 ) {
   // Intent resolution needs authority, not terrain/scene/portrait/environment presentation.
   // Keep training materialization in this read and blocking/version checks in the commit RPC.
@@ -329,6 +400,140 @@ export async function commitWorldCommand(
       }),
     )
     .digest('hex')
+  if (command.intent.kind === 'board-ferry' || command.intent.kind === 'leave-ferry') {
+    const { error } = await createSupabaseAdminClient().rpc('commit_world_ferry_v1', {
+      p_user_id: userId,
+      p_character_id: characterId,
+      p_expected_version: command.expectedVersion,
+      p_command_id: command.commandId,
+      p_kind: command.intent.kind,
+      p_request_fingerprint: fingerprint,
+    })
+    if (error) worldRpcError(error)
+    return (await readWorld(userId, characterId)).view
+  }
+  if (command.intent.kind === 'interact' && command.intent.actionId === 'challenge-npc') {
+    const npcId = command.intent.interactionId.startsWith('npc-challenge-')
+      ? command.intent.interactionId.slice('npc-challenge-'.length)
+      : null
+    if (!isWorldUuid(npcId) || npcId !== npcId.toLowerCase())
+      throw new AurevaneError('INVALID_REQUEST', 'Choose a valid World NPC challenge.')
+    const { startWorldNpcBattle } = await import('./world-npc-battle')
+    const battleSessionId = await startWorldNpcBattle(
+      userId,
+      characterId,
+      npcId,
+      command,
+      fingerprint,
+    )
+    const { view } = await readWorld(userId, characterId)
+    return { ...view, battleSessionId }
+  }
+  if (
+    command.intent.kind === 'interact' &&
+    (command.intent.actionId === 'challenge-avenger' ||
+      command.intent.actionId === 'claim-avenger-reward')
+  ) {
+    const ticketId = avengerTicketReference(command.intent.interactionId)
+    if (!ticketId) throw new AurevaneError('INVALID_REQUEST', 'Choose a valid private challenge.')
+    if (command.intent.actionId === 'challenge-avenger') {
+      const { startWorldAvengerBattle } = await import('./world-npc-battle')
+      const battleSessionId = await startWorldAvengerBattle(
+        userId,
+        characterId,
+        ticketId,
+        command,
+        fingerprint,
+      )
+      const { view } = await readWorld(userId, characterId)
+      return { ...view, battleSessionId }
+    }
+    const { error } = await createSupabaseAdminClient().rpc('claim_world_avenger_reward_v1', {
+      p_user_id: userId,
+      p_character_id: characterId,
+      p_expected_version: command.expectedVersion,
+      p_command_id: command.commandId,
+      p_ticket_id: ticketId,
+      p_request_fingerprint: fingerprint,
+    })
+    if (error) worldRpcError(error)
+    return (await readWorld(userId, characterId)).view
+  }
+  if (command.intent.kind === 'interact' && isWorldMentorAction(command.intent.actionId)) {
+    const reference = mentorReference(command.intent.interactionId)
+    if (!reference) throw new AurevaneError('INVALID_REQUEST', 'Choose a valid Mentor action.')
+    if (command.intent.actionId !== 'claim-mentor-reward') {
+      const { startWorldMentorBattle } = await import('./world-npc-battle')
+      const battleSessionId = await startWorldMentorBattle(
+        userId,
+        characterId,
+        reference,
+        command.intent.actionId === 'train-mentor',
+        command,
+        fingerprint,
+      )
+      return { ...(await readWorld(userId, characterId)).view, battleSessionId }
+    }
+    const { error } = await createSupabaseAdminClient().rpc('claim_world_mentor_reward_v1', {
+      p_user_id: userId,
+      p_character_id: characterId,
+      p_expected_version: command.expectedVersion,
+      p_command_id: command.commandId,
+      p_mentor_battle_id: reference,
+      p_request_fingerprint: fingerprint,
+    })
+    if (error) worldRpcError(error)
+    return (await readWorld(userId, characterId)).view
+  }
+  const commitPersonalQuest = async (runId: string, actionId: WorldInteractionActionId) => {
+    const { error } = await createSupabaseAdminClient().rpc('commit_world_personal_quest_v1', {
+      p_user_id: userId,
+      p_character_id: characterId,
+      p_expected_version: command.expectedVersion,
+      p_command_id: command.commandId,
+      p_run_id: runId,
+      p_action: actionId,
+      p_request_fingerprint: fingerprint,
+    })
+    if (error) worldRpcError(error)
+    return (await readWorld(userId, characterId)).view
+  }
+  if (command.intent.kind === 'interact' && isWorldRestorationAction(command.intent.actionId)) {
+    const runId = personalQuestRunId(command.intent.interactionId)
+    if (!runId) throw new AurevaneError('INVALID_REQUEST', 'Choose a valid restoration quest.')
+    // Only the database can distinguish a stale restoration from its durable receipt.
+    return commitPersonalQuest(runId, command.intent.actionId)
+  }
+  if (command.intent.kind === 'interact') {
+    const referenceId = repeatableActivityReference(command.intent.interactionId)
+    if (referenceId) {
+      if (
+        command.intent.actionId !== 'accept' &&
+        command.intent.actionId !== 'report' &&
+        command.intent.actionId !== 'claim-hunt-reward'
+      )
+        throw new AurevaneError('INVALID_REQUEST', 'Choose an explicit activity response.')
+      const params = {
+        p_user_id: userId,
+        p_character_id: characterId,
+        p_expected_version: command.expectedVersion,
+        p_command_id: command.commandId,
+        p_reference_id: referenceId,
+        p_action: command.intent.actionId,
+        p_request_fingerprint: fingerprint,
+      }
+      const client = createSupabaseAdminClient()
+      const { error } =
+        command.intent.actionId === 'report' && receivedAt
+          ? await client.rpc('commit_world_repeatable_activity_v2', {
+              ...params,
+              p_received_at: receivedAt,
+            })
+          : await client.rpc('commit_world_repeatable_travel_v1', params)
+      if (error) worldRpcError(error)
+      return (await readWorld(userId, characterId)).view
+    }
+  }
   if (current.lastCommandId === command.commandId) {
     if (current.lastCommandFingerprint !== fingerprint)
       throw new AurevaneError('IDEMPOTENCY_CONFLICT', 'That travel command was already used.')
@@ -342,9 +547,33 @@ export async function commitWorldCommand(
     )
   if (command.intent.kind === 'attack')
     throw new AurevaneError('INVALID_REQUEST', 'Use the encounter command for attacks.')
+  if (command.intent.kind === 'interact') {
+    const runId = personalQuestRunId(command.intent.interactionId)
+    if (runId) {
+      if (!command.intent.actionId)
+        throw new AurevaneError('INVALID_REQUEST', 'Choose an explicit quest response.')
+      if (command.intent.actionId === 'challenge-realm') {
+        const { startPersonalRealmBattle } = await import('./world-realm-battle')
+        const battle = await startPersonalRealmBattle(
+          userId,
+          characterId,
+          runId,
+          command,
+          fingerprint,
+        )
+        const { view } = await readWorld(userId, characterId)
+        return { ...view, battleSessionId: battle.battleSessionId }
+      }
+      return commitPersonalQuest(runId, command.intent.actionId)
+    }
+    if (command.intent.actionId?.endsWith('-realm'))
+      throw new AurevaneError('INVALID_REQUEST', 'Choose a valid realm interaction.')
+  }
   const next = resolveWorldIntent(state, command.intent, current.serverNow, [
     ...WORLD_OBJECTIVES,
     ...eventWorldObjectives(current.eventObjectives),
+    ...projectPersonalQuests(current.personalQuests).objectives,
+    ...projectRepeatableTravel(current.repeatableActivities).objectives,
   ])
   const { data: committed, error } = await createSupabaseAdminClient().rpc(
     'commit_world_state_v1',
@@ -445,9 +674,13 @@ function movementReceipt(
       'PERSISTENCE_UNAVAILABLE',
       'Movement terrain could not be loaded safely.',
     )
+  const npcs = peekWorldNpcs(state)
   return {
+    ferry: projectWorldFerry(state, data.serverNow),
     kind: 'movement',
     currentSector,
+    ...(npcs ? { npcs: npcs.npcs } : {}),
+    interactions: [...localWorldInteractions(state), ...(npcs?.interactions ?? [])],
     characterId,
     version: state.version,
     serverNow: data.serverNow,

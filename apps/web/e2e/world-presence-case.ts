@@ -384,21 +384,22 @@ export async function verifyWorldScenePresence(
     })
     await other.goto('/game/world')
     let blockedFallbackReads = 0
-    const blockedRead = page.waitForRequest(
-      (request) =>
-        request.method() === 'GET' &&
-        new URL(request.url()).pathname === '/api/world' &&
-        new URL(request.url()).searchParams.has('presenceVersion'),
-      { timeout: 5000 },
-    )
-    const fallbackRoute = async (route: import('@playwright/test').Route) => {
-      if (route.request().method() === 'GET') {
-        blockedFallbackReads++
-        await route.abort()
-      } else await route.continue()
+    const generalWorldUrl = /^https?:\/\/[^/?#]+\/api\/world(?:\?.*)?$/
+    const fallbackRoute = async (route: Route) => {
+      const request = route.request()
+      if (request.method() !== 'GET') return route.continue()
+      await route.abort()
+      if (new URL(request.url()).searchParams.has('presenceVersion')) blockedFallbackReads++
     }
-    await page.route('**/api/world?*', fallbackRoute)
-    await blockedRead
+    await page.route(generalWorldUrl, fallbackRoute)
+    try {
+      // A request event alone can fire before interception is installed. Start
+      // the timed walk only after the route has actually aborted a normal poll.
+      await expect.poll(() => blockedFallbackReads, { timeout: 5000 }).toBeGreaterThan(0)
+    } catch (error) {
+      await page.unroute(generalWorldUrl, fallbackRoute)
+      throw error
+    }
     const startedAt = Date.now()
     const movedPresence = page.waitForResponse(
       async (response) => {
@@ -451,7 +452,7 @@ export async function verifyWorldScenePresence(
         expect(blockedFallbackReads).toBeGreaterThan(0)
         await walking.click
       } finally {
-        await page.unroute('**/api/world?*', fallbackRoute)
+        await page.unroute(generalWorldUrl, fallbackRoute)
         await Promise.allSettled([delivery, walking.click])
       }
       expect(observed).not.toHaveProperty('sectors')

@@ -18,6 +18,7 @@ interface BattleLogPanelProps {
   detailsHost?: HTMLElement | null
   onDetailsOpenChange?: (open: boolean) => void
   onToggleLog?: () => void
+  onLogLoaded?: (log: BattleLogView) => void
   logOpen?: boolean
   open?: boolean
   onClose?: () => void
@@ -148,6 +149,7 @@ export function BattleLogPanel({
   onDetailsOpenChange,
   onToggleLog,
   logOpen,
+  onLogLoaded,
 }: BattleLogPanelProps) {
   const runtimePlayerName = useBattlePlayerName()
   const effectivePlayerName = playerName ?? runtimePlayerName ?? undefined
@@ -178,6 +180,7 @@ export function BattleLogPanel({
         throw new Error(body.error?.message ?? 'Battle history is temporarily unavailable.')
       }
       setLog(body.battleLog)
+      onLogLoaded?.(body.battleLog)
       setError(null)
     } catch (loadError) {
       if (sequence !== requestSequence.current) return
@@ -189,7 +192,7 @@ export function BattleLogPanel({
     } finally {
       if (sequence === requestSequence.current) setLoading(false)
     }
-  }, [battleSessionId])
+  }, [battleSessionId, onLogLoaded])
 
   useEffect(() => {
     if (!visible) return

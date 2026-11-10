@@ -2,7 +2,10 @@ import 'server-only'
 
 import { createSelectedCharacterRpc } from './selected-character-rpc'
 
-import type { PersistentEventDefinition } from '@aurevane/game-core/events/persistent-event'
+import {
+  resolveEventCategory,
+  type PersistentEventDefinition,
+} from '@aurevane/game-core/events/persistent-event'
 import { AurevaneError } from '@aurevane/game-core/errors'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
@@ -12,6 +15,7 @@ import type {
   EventDefinitionDraftRecord,
   EventDefinitionVersionRecord,
   EventRunTransitionRecord,
+  EventWorkspaceCatalogue,
   ScheduledEventRunRecord,
 } from './event-authoring-service'
 
@@ -169,6 +173,87 @@ function mapRpcError(error: RpcError): never {
       { cause: error },
     )
   }
+  if (message === 'EVENT_PERSONAL_REALM_NPCS_UNAVAILABLE')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Choose a published Story NPC with a World placement in the selected audience and a different published Story NPC as guardian.',
+      { cause: error },
+    )
+  if (message === 'EVENT_INVENTORY_DISCOVERY_ITEM_UNAVAILABLE')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Choose two enabled Material, Event, or General Items for this discovery.',
+      { cause: error },
+    )
+  if (message === 'EVENT_INVENTORY_RESTORATION_TRIAL_INVALID')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Complete the combat trial and choose Character XP packages for both restoration routes.',
+      { cause: error },
+    )
+  if (message === 'EVENT_INVENTORY_RESTORATION_TRIAL_NPC_UNAVAILABLE')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Choose a published World encounter NPC for the restoration trial.',
+      { cause: error },
+    )
+  if (message === 'EVENT_INVENTORY_RESTORATION_REWARDS_INVALID')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Choose approved reward packages with different Character XP amounts for the two restoration routes.',
+      { cause: error },
+    )
+  if (message === 'EVENT_PERSONAL_EXCHANGE_ITEMS_UNAVAILABLE')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Choose enabled Material, Event, or General stock to hand in and an enabled Event or General Item to receive.',
+      { cause: error },
+    )
+  if (message === 'EVENT_REPEATABLE_HUNT_INVALID')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Complete the hunt details and use one manual phase with no shared objectives or effects.',
+      { cause: error },
+    )
+  if (message === 'EVENT_REPEATABLE_HUNT_GIVER_UNAVAILABLE')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Choose Global audience and a published Story NPC with a World placement.',
+      { cause: error },
+    )
+  if (message === 'EVENT_REPEATABLE_HUNT_REWARD_UNAVAILABLE')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Choose an approved Character XP package for the hunt.',
+      { cause: error },
+    )
+  if (message === 'EVENT_REPEATABLE_HUNT_TARGET_UNAVAILABLE')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Choose a tag used by a published World encounter.',
+      { cause: error },
+    )
+  const privateChallengeMessages: Readonly<Record<string, string>> = {
+    EVENT_COMBAT_DISCOVERY_INVALID:
+      'Complete the daily combat discovery using Global scope and one manual phase without shared rewards or effects.',
+    EVENT_COMBAT_DISCOVERY_TARGET_UNAVAILABLE: 'Choose a tag used by a published World encounter.',
+    EVENT_COMBAT_DISCOVERY_OPPONENT_UNAVAILABLE:
+      'Choose a published World encounter that does not share the qualifying tag.',
+    EVENT_COMBAT_DISCOVERY_REWARD_UNAVAILABLE:
+      'Choose an approved Character XP package for each configured discovery reward.',
+    EVENT_COMBAT_DISCOVERY_SEASON_END_REQUIRED: 'Choose an end time for a seasonal discovery.',
+    EVENT_MENTOR_INVALID:
+      'Complete the Mentor challenge using Global scope, one manual phase and distinct rewards.',
+    EVENT_MENTOR_IDENTITY_IMMUTABLE:
+      'Use a new Event identity when adding or removing a Mentor challenge.',
+    EVENT_MENTOR_OPPONENT_UNAVAILABLE:
+      'Choose a published World encounter outside sealed realms with no qualification tags.',
+    EVENT_MENTOR_REWARD_UNAVAILABLE:
+      'Choose an approved Character XP package for each Mentor reward.',
+  }
+  if (Object.hasOwn(privateChallengeMessages, message)) {
+    throw new AurevaneError('INVALID_REQUEST', privateChallengeMessages[message]!, { cause: error })
+  }
   if (
     error.code === '22023' ||
     message.includes('EVENT_DEFINITION_') ||
@@ -201,7 +286,11 @@ export class RpcEventAuthoringStore implements EventAuthoringStore {
     const catalogue = isObject(data) ? data : null
     if (!catalogue || !Array.isArray(catalogue.events) || !Array.isArray(catalogue.rewards))
       throw unavailable()
-    return catalogue as unknown as import('./event-authoring-service').EventWorkspaceCatalogue
+    const events = catalogue.events.map((entry: unknown) => {
+      if (!isObject(entry)) throw unavailable('The server returned an invalid Event catalogue.')
+      return { ...entry, category: resolveEventCategory(entry) }
+    })
+    return { events, rewards: catalogue.rewards } as unknown as EventWorkspaceCatalogue
   }
 
   async readDraft(eventKey: string): Promise<EventDefinitionDraftRecord | null> {

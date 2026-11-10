@@ -41,6 +41,7 @@ export function throwItemRpcError(error: { code?: string; message?: string }): n
     ITEM_EQUIP_REQUIREMENTS: 'This character does not meet the Item equip requirements.',
     ITEM_DUPLICATE_CONSUMABLE: 'Consumable positions require different Items.',
     ITEM_CAPACITY: 'This inventory category is full.',
+    ITEM_DISCARD_PROTECTED: 'This Item stack cannot be discarded.',
     ITEM_DELETION_PENDING: 'This character is pending deletion.',
     ITEM_GRANT_CONFLICT: 'This grant request has already been used for different Items.',
     ITEM_TEST_GRANT_INVALID: 'Choose a current Item and a quantity from 1 to 99 (one for Gear).',
@@ -102,6 +103,15 @@ export function parseCharacterItemsState(value: unknown, characterId: string): C
   for (const [position, id] of Object.entries(s.equipment))
     if (!EQUIPMENT_POSITIONS.includes(position as never) || typeof id !== 'string' || !ids.has(id))
       unavailable()
+  const discardable = value.discardableStackIds
+  if (
+    discardable !== undefined &&
+    (!Array.isArray(discardable) ||
+      discardable.length > 80 ||
+      discardable.some((id) => typeof id !== 'string' || !ids.has(id)) ||
+      new Set(discardable).size !== discardable.length)
+  )
+    unavailable()
   const selected = s.selectedSupport
   if (
     selected.kind === 'basic'
@@ -147,6 +157,7 @@ export function parseCharacterItemsState(value: unknown, characterId: string): C
     definitions,
     catalogueToken: value.catalogueToken,
     battleLocked: value.battleLocked,
+    ...(discardable === undefined ? {} : { discardableStackIds: discardable as string[] }),
     ...(value.starterNotice === undefined
       ? {}
       : { starterNotice: parseStarterNotice(value.starterNotice) }),

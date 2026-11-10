@@ -4,7 +4,6 @@ import { isAurevaneError } from '@aurevane/game-core/errors'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
-import { AurevaneImage } from '@/components/media/aurevane-image'
 import { CharacterCreationExperience } from '@/components/character/character-creation-experience'
 import { AccountMenu } from '@/components/shell/account-menu'
 import { SiteHeader } from '@/components/shell/site-header'
@@ -42,9 +41,6 @@ export default async function CharacterCreationPage({
 
   return (
     <div className={styles.shell} data-character-creation-page="true">
-      <div className={styles.world} aria-hidden="true">
-        <AurevaneImage assetId="environment.adventure.threshold" />
-      </div>
       <SiteHeader
         className={styles.header}
         brandHref="/game"

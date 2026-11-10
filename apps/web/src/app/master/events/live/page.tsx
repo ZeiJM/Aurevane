@@ -16,6 +16,7 @@ export default async function MasterEventOperationsPage() {
       description="Monitor and operate authoritative Event Runs, phases, cleanup, recovery, rewards, and Chronicle closure."
     >
       <EventWorkspaceClient
+        canManageNpcs={hasMasterPanelCapability(access, 'npc.manage')}
         canPublish={hasMasterPanelCapability(access, 'events.production_publish')}
         canUseGlobalScope={hasMasterPanelCapability(access, 'events.global_scope')}
         canEmergencyStop={hasMasterPanelCapability(access, 'events.emergency_stop')}

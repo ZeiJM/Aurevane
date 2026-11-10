@@ -1016,6 +1016,13 @@
   grid-template-columns: minmax(6rem, 0.8fr) minmax(0, 1.5fr) auto;
 }
 
+.operationWorkspace .itemList > .personalReward {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  overflow-wrap: anywhere;
+}
+
 .operationDock {
   display: grid;
   align-content: start;
@@ -1430,4 +1437,45 @@
   :global(.av-master) .operations :is(button, input, select) {
     min-height: 2.75rem;
   }
+}
+
+.runFilters {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.calendar {
+  display: grid;
+  gap: 0.75rem;
+  max-block-size: 66dvh;
+  overflow: auto;
+  padding: 0.9rem;
+  background: var(--av-panel, #f4ead6);
+  color: var(--av-text, #30372f);
+  border: 1px solid #ad9977;
+  border-radius: 4px;
+}
+
+.calendar .runFilters {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+}
+
+.calendarEntries {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.calendarEntries li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.85rem;
+  padding: 0.6rem 0;
+  border-block-start: 1px solid #ad9977;
+}
+
+.calendarEntries strong {
+  flex-basis: 100%;
 }

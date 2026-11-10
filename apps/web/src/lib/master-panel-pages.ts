@@ -38,6 +38,7 @@ const PAGE_DEFINITIONS = [
   { id: 'music', label: 'Site Music', capabilities: ['music.manage'] },
   { id: 'world-environment', label: 'World Environment', capabilities: ['world.manage'] },
   { id: 'activity', label: 'Activity Log', capabilities: ['activity.read'] },
+  { id: 'npc-design', label: 'NPC Design', capabilities: ['npc.manage'] },
 ] as const satisfies readonly {
   id: string
   label: string

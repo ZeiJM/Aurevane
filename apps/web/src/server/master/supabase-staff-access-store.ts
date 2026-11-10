@@ -200,10 +200,21 @@ export class RpcMasterPanelStaffAccessStore implements MasterPanelStaffAccessSto
     this.#rpc = rpc
   }
 
+  async #readCompatible(name: string, previousName: string, args: Parameters<StaffAccessRpc>[1]) {
+    const result = await this.#rpc(name, args)
+    return result.error?.code === 'PGRST202' || result.error?.code === '42883'
+      ? this.#rpc(previousName, args)
+      : result
+  }
+
   async readAccess(userId: string): Promise<MasterPanelAccessRecord | null> {
-    const { data, error } = await this.#rpc('read_master_panel_access_v2', {
-      p_user_id: userId,
-    })
+    const { data, error } = await this.#readCompatible(
+      'read_master_panel_access_v3',
+      'read_master_panel_access_v2',
+      {
+        p_user_id: userId,
+      },
+    )
     if (error) mapRpcError(error)
     const row = oneRow(data)
     if (!row) return null
@@ -218,20 +229,28 @@ export class RpcMasterPanelStaffAccessStore implements MasterPanelStaffAccessSto
   }
 
   async readRoleDefaults(actorUserId: string): Promise<MasterPanelRoleDefaults> {
-    const { data, error } = await this.#rpc('read_master_panel_role_defaults_v1', {
-      p_actor_user_id: actorUserId,
-    })
+    const { data, error } = await this.#readCompatible(
+      'read_master_panel_role_defaults_v2',
+      'read_master_panel_role_defaults_v1',
+      {
+        p_actor_user_id: actorUserId,
+      },
+    )
     if (error) mapRpcError(error)
     return parseRoleDefaults(data)
   }
   async saveRoleDefaults(
     input: SaveMasterPanelRoleDefaultsInput,
   ): Promise<MasterPanelRoleDefaults> {
-    const { data, error } = await this.#rpc('save_master_panel_role_defaults_v1', {
-      p_actor_user_id: input.actorUserId,
-      p_expected_revision: input.expectedRevision,
-      p_roles: input.roles,
-    })
+    const { data, error } = await this.#readCompatible(
+      'save_master_panel_role_defaults_v2',
+      'save_master_panel_role_defaults_v1',
+      {
+        p_actor_user_id: input.actorUserId,
+        p_expected_revision: input.expectedRevision,
+        p_roles: input.roles,
+      },
+    )
     if (error) mapRpcError(error)
     return parseRoleDefaults(data)
   }

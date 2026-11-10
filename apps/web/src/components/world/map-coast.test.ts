@@ -3,7 +3,7 @@ vi.mock('server-only', () => ({}))
 import { projectWorld } from '@/server/world/world-service'
 import { newWorldState } from '@/world/travel'
 import type { WorldView } from '@/world/types'
-import { buildPublicCoasts, coastPoint } from './map-coast'
+import { buildPublicCoasts, coastPoint, paintCoastSea } from './map-coast'
 
 describe('public shoreline presentation', () => {
   const view = (): WorldView => projectWorld(newWorldState(), [], 1000)
@@ -51,4 +51,69 @@ describe('public shoreline presentation', () => {
     const ocean = { ...root, cells: root.cells.map((c) => ({ ...c, terrain: '~' })) }
     expect(buildPublicCoasts({ sectors: [ocean], atlas: [] }).get(root.id)).toEqual([])
   })
+})
+
+describe('shoreline material and corners', () => {
+  it('joins two exposed edges through open sea while keeping the dry band inland', () => {
+    const root = projectWorld(newWorldState(), [], 1000).sectors[0]!
+    const sector = {
+      ...root,
+      cells: root.cells.map((cell) => ({ ...cell, terrain: '.' as const })),
+    }
+    const edges = buildPublicCoasts({ sectors: [sector], atlas: [] }).get(sector.id)!
+    const north = edges.find((edge) => edge.side === 0)!
+    expect(north.openStart).toBe(true)
+    expect(north.openEnd).toBe(true)
+    expect(coastPoint(north, 0.5, -0.4)[1]).toBeGreaterThan(0)
+    expect(coastPoint(north, 0.5, 0.4)[1]).toBeLessThan(0)
+  })
+
+  it('does not round off a corner occupied by another public sector', () => {
+    const world = projectWorld(newWorldState(), [], 1000)
+    const root = world.sectors[0]!
+    const sector = {
+      ...root,
+      cells: root.cells.map((cell) => ({ ...cell, terrain: '.' as const })),
+    }
+    const diagonal = {
+      id: 'public-diagonal',
+      column: root.atlasColumn! + 1,
+      row: root.atlasRow! - 1,
+      charted: true,
+      name: 'Public diagonal',
+      coordinate: root.coordinate,
+      regionId: root.regionId,
+    }
+    const edges = buildPublicCoasts({ sectors: [sector], atlas: [diagonal] }).get(sector.id)!
+    expect(edges.find((edge) => edge.side === 0)?.openEnd).toBe(false)
+  })
+})
+
+it('reaches the deep sea colour before every point on the irregular shelf outline', () => {
+  const vertices: number[] = []
+  const gradient = vi.fn(() => ({ addColorStop: vi.fn() }))
+  const context = {
+    save: vi.fn(),
+    restore: vi.fn(),
+    createLinearGradient: gradient,
+    beginPath: vi.fn(),
+    moveTo: (x: number) => vertices.push(x),
+    lineTo: (x: number) => vertices.push(x),
+    closePath: vi.fn(),
+    fill: vi.fn(),
+  } as unknown as CanvasRenderingContext2D
+  paintCoastSea(
+    context,
+    [{ side: 1, from: 0, to: 9, seed: 53, openStart: false, openEnd: false }],
+    1,
+    0,
+    false,
+    1,
+    'frostmere',
+    0,
+  )
+  const gradientEnd = (gradient.mock.calls[0] as unknown as [number, number, number, number])[2]
+  const outline = vertices.filter((x) => x > 13)
+  expect(outline.length).toBeGreaterThan(1)
+  expect(gradientEnd).toBeLessThanOrEqual(Math.min(...outline))
 })

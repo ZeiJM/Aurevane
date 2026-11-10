@@ -1,5 +1,8 @@
 'use client'
 
+import { BattlefieldAppearanceToken } from './battlefield-appearance-token'
+import { useBattleAppearanceCues } from './use-battle-appearance-cues'
+
 import { BattleItemPicker } from './battle-item-picker'
 import { useSelectedBattleItem } from './use-selected-battle-item'
 
@@ -932,6 +935,7 @@ function BattleExperienceContent({
       selectedOwnedRecoveryGroups,
     ),
   )
+  const appearanceCues = useBattleAppearanceCues(battle.battleSessionId, battle.battleVersion)
   const tactical = battle.snapshot.tactical
   const battleState = tactical.battle
   const localParticipant = viewModel.localParticipant
@@ -3535,29 +3539,16 @@ function BattleExperienceContent({
                           }
                           data-defeated={combatant?.hp === 0 || undefined}
                         >
-                          {participant.profileImageUrl && !participant.portraitAssetId ? (
-                            <BattleSummonPortrait
-                              src={participant.profileImageUrl}
-                              name={participant.name}
-                              fallbackClassName={`${bridgeStyles.portraitFallback} ${bridgeStyles.unitPortraitFallback}`}
-                              className={styles.unitPortrait}
-                            />
-                          ) : participant.portraitAssetId ? (
-                            <CharacterPortraitImage
-                              imageUrl={participant.profileImageUrl}
-                              fallbackAssetId={participant.portraitAssetId}
-                              className={styles.unitPortrait}
-                              sizes="96px"
-                              alt=""
-                            />
-                          ) : (
-                            <span
-                              className={`${bridgeStyles.portraitFallback} ${bridgeStyles.unitPortraitFallback}`}
-                              aria-hidden="true"
-                            >
-                              {participant.name.charAt(0).toUpperCase()}
-                            </span>
-                          )}
+                          <BattlefieldAppearanceToken
+                            imageUrl={participant.profileImageUrl}
+                            portraitAssetId={participant.portraitAssetId}
+                            facing={placement.facing}
+                            defeated={combatant?.hp === 0}
+                            cue={appearanceCues.cues?.get(placement.combatantId)}
+                            name={participant.name}
+                            className={styles.unitPortrait}
+                            fallbackClassName={`${bridgeStyles.portraitFallback} ${bridgeStyles.unitPortraitFallback}`}
+                          />
                           <strong>{participant.name}</strong>
                         </span>
                       ) : null}
@@ -3914,6 +3905,7 @@ function BattleExperienceContent({
               setMobileWorkspace(chronicleOpen ? 'actions' : 'log')
             }}
             presentation="timeline"
+            onLogLoaded={appearanceCues.onLogLoaded}
             detailsHost={desktopLayout ? null : chronicleDetailsHost}
             onDetailsOpenChange={handleChronicleDetailsOpen}
             resetEpoch={chronicleDetailsEpoch}

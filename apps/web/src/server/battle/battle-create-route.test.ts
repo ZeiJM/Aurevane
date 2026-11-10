@@ -41,7 +41,7 @@ import { POST } from '../../app/api/battles/route'
 const CHARACTER_ID = '22222222-2222-4222-8222-222222222222'
 const IDEMPOTENCY_KEY = '44444444-4444-4444-8444-444444444444'
 
-function request(allyCount: number, enemyCount: number) {
+function request(allyCount: number, enemyCount: number, overrides = {}) {
   return new Request('http://localhost/api/battles', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -52,6 +52,7 @@ function request(allyCount: number, enemyCount: number) {
       allyCount,
       enemyCount,
       idempotencyKey: IDEMPOTENCY_KEY,
+      ...overrides,
     }),
   })
 }
@@ -87,6 +88,18 @@ describe('actual battle creation route', () => {
       expect(response.headers.get('cache-control')).toBe('private, no-store')
     },
   )
+
+  it('validates the stable Arena opponent ID and rejects incompatible encounter choices', async () => {
+    const arenaNpcId = '94000000-0000-4000-8000-000000000003'
+    expect((await POST(request(0, 1, { arenaNpcId }))).status).toBe(200)
+    expect(boundary.createSession).toHaveBeenCalledWith(expect.objectContaining({ arenaNpcId }))
+    boundary.createSession.mockClear()
+    expect((await POST(request(1, 1, { arenaNpcId }))).status).toBe(400)
+    expect(
+      (await POST(request(0, 1, { arenaNpcId, battleHallRecordId: 'mastery-trial' }))).status,
+    ).toBe(400)
+    expect(boundary.createSession).not.toHaveBeenCalled()
+  })
 
   it('rejects an over-capacity team before creating a session', async () => {
     const response = await POST(request(2, 4))

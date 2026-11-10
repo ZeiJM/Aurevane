@@ -47,6 +47,7 @@ const run = {
   runId: '22222222-2222-4222-8222-222222222222',
   eventKey: definition.eventKey,
   title: definition.title,
+  category: 'world-events',
   definitionVersionId: '33333333-3333-4333-8333-333333333333',
   lifecycleStatus: 'live',
   stateVersion: 1,
@@ -60,7 +61,69 @@ const run = {
   updatedAt: '2026-10-25T12:00:00Z',
 }
 window.__eventRequests = []
+let castDraft = null
+let trialDraft = null
+let combatDraft = null
+const trialNpc = {
+  id: 'ea82f11d-41df-4c5d-bba6-727904e95de8',
+  name: 'Forge Sentinel',
+  sectorId: 'emberreach',
+}
+const challengeNpc = {
+  id: '7cc73d08-0742-4b08-8f96-8e56294073cb',
+  name: 'Ashen Sentinel',
+  sectorId: 'emberreach',
+}
 window.fetch = async (input, options) => {
+  if (input === '/api/master/events/story-npcs')
+    return Response.json({
+      npcs: [
+        {
+          id: '39076058-5dba-457a-899c-d57b958540ca',
+          name: 'Frostmere Keeper',
+          portraitRef: 'portrait.starter.wayfarer-01',
+          revision: 3,
+        },
+        {
+          id: 'ec9f4cb3-d9f7-4d34-a9d8-a1f1a7c6d0f9',
+          name: 'Harbor Watch',
+          portraitRef: null,
+          revision: 2,
+        },
+      ].filter((npc) => npc.id !== window.__retiredStoryNpc),
+    })
+  if (input === '/api/master/events/restoration-trial-npcs')
+    return Response.json({
+      sectors: [
+        { id: 'verdant-expanse', name: 'Verdant Expanse' },
+        { id: 'emberreach', name: 'Emberreach' },
+        { id: 'frostmere', name: 'Frostmere' },
+      ],
+    })
+  if (input.startsWith('/api/master/events/restoration-trial-npcs?npcId=')) {
+    if (window.__holdTrialNpcLookup) {
+      await new Promise((resolve) => {
+        window.__releaseTrialNpcLookup = resolve
+      })
+    }
+    const npcs = window.__retiredTrialNpc ? [challengeNpc] : [trialNpc, challengeNpc]
+    return Response.json({ npc: npcs.find((npc) => input.endsWith(`npcId=${npc.id}`)) ?? null })
+  }
+  if (input.startsWith('/api/master/events/restoration-trial-npcs?sectorId=')) {
+    const query = new URL(input, window.location.origin).searchParams
+    if (query.get('view') === 'tags') {
+      return Response.json({
+        tags: query.get('sectorId') === 'emberreach' ? ['ashbound-raider', 'wolf'] : [],
+      })
+    }
+    return Response.json({
+      npcs: input.endsWith('sectorId=emberreach')
+        ? (window.__retiredTrialNpc ? [challengeNpc] : [trialNpc, challengeNpc]).map(
+            ({ id, name }) => ({ id, name }),
+          )
+        : [],
+    })
+  }
   const body = JSON.parse(options.body)
   window.__eventRequests.push({ path: input, body })
   if (input === '/api/master/events') {
@@ -71,33 +134,57 @@ window.fetch = async (input, options) => {
             {
               eventKey: 'event.ready',
               title: definition.title,
+              category: 'world-events',
               scope: definition.scope,
+              category: 'world-events',
               publishedVersion: 3,
               draftVersion: null,
             },
             {
               eventKey: 'event.stale',
               title: 'Older private draft',
+              category: 'world-events',
               scope: definition.scope,
+              category: 'world-events',
               publishedVersion: 3,
               draftVersion: 2,
             },
+            {
+              eventKey: 'event.story',
+              title: 'A separate Story Campaign',
+              category: 'story-campaigns',
+              scope: definition.scope,
+              publishedVersion: null,
+              draftVersion: 1,
+            },
           ],
-          rewards: [{ key: 'reward.watch', label: '25 Character XP · v1', budget: 'budget.watch' }],
+          rewards: [
+            { key: 'reward.watch', label: '25 Character XP · v1', budget: 'budget.watch' },
+            { key: 'reward.recovery', label: '10 Character XP · v1', budget: 'budget.forge' },
+            { key: 'reward.trial', label: '40 Character XP · v1', budget: 'budget.forge' },
+          ],
         },
       })
     if (body.operation === 'load')
       return Response.json({
         workspace: {
           draft:
-            body.eventKey === 'event.stale'
-              ? {
-                  definition: { ...definition, eventKey: 'event.stale' },
-                  baseVersion: 2,
-                  draftVersion: 2,
-                }
-              : null,
-          current: { definition, definitionVersion: 3 },
+            body.eventKey === 'event.restoration-trial'
+              ? trialDraft
+              : body.eventKey === 'event.ashen-sentinel'
+                ? combatDraft
+                : body.eventKey === 'event.cast-check'
+                  ? castDraft
+                  : body.eventKey === 'event.stale'
+                    ? {
+                        definition: { ...definition, eventKey: 'event.stale' },
+                        baseVersion: 2,
+                        draftVersion: 2,
+                      }
+                    : null,
+          current: ['event.restoration-trial', 'event.ashen-sentinel'].includes(body.eventKey)
+            ? null
+            : { definition, definitionVersion: 3 },
           versions: [{ definitionVersion: 3, current: true, publishedAt: '2026-10-25T12:00:00Z' }],
         },
       })
@@ -106,14 +193,17 @@ window.fetch = async (input, options) => {
         { error: { message: 'Event definition changed. Reload before publishing.' } },
         { status: 409 },
       )
-    if (body.operation === 'save-draft')
-      return Response.json({
-        draft: {
-          definition: body.definition,
-          baseVersion: body.baseVersion,
-          draftVersion: (body.expectedDraftVersion ?? 0) + 1,
-        },
-      })
+    if (body.operation === 'save-draft') {
+      const draft = {
+        definition: body.definition,
+        baseVersion: body.baseVersion,
+        draftVersion: (body.expectedDraftVersion ?? 0) + 1,
+      }
+      if (body.definition.eventKey === 'event.cast-check') castDraft = draft
+      if (body.definition.eventKey === 'event.restoration-trial') trialDraft = draft
+      if (body.definition.eventKey === 'event.ashen-sentinel') combatDraft = draft
+      return Response.json({ draft })
+    }
     if (body.operation === 'validate')
       return Response.json({ validation: { valid: true, issues: [] } })
     if (body.operation === 'preview')
@@ -176,6 +266,17 @@ window.fetch = async (input, options) => {
             executedAt: '2026-10-25T12:00:00Z',
           },
         ],
+        personalRewardsPendingCount: 1,
+        personalRewards: [
+          {
+            attemptId: 'fixture-attempt',
+            characterId: 'fixture-character',
+            completedAt: '2026-10-25T12:00:00Z',
+            awardedXp: 0,
+            itemName: 'Realm key',
+            itemClaimPending: true,
+          },
+        ],
         cleanupRequirements: [],
         chronicle: null,
       },
@@ -209,6 +310,6 @@ createRoot(document.getElementById('root')).render(
     title="Events & Live Ops"
     description="Local production-component verification"
   >
-    <EventWorkspaceClient canPublish canUseGlobalScope canEmergencyStop />
+    <EventWorkspaceClient canPublish canUseGlobalScope canEmergencyStop canManageNpcs />
   </MasterPanelShell>,
 )

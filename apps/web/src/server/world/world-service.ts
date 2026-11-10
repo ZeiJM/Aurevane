@@ -36,8 +36,14 @@ import {
   visibleSectors,
 } from './world-content'
 import { worldArchiveEntries } from './world-archive'
+import { projectWorldFerry } from './world-ferry'
 import { atlasAddress } from '@/world/atlas'
 import { wrappedColumnDistance, wrappedMapX } from '@/world/topology'
+import {
+  applyWarpedContinentPhase,
+  isWarpedContinentSector,
+  recordWarpedFieldObservation,
+} from './warped-continent'
 import {
   advanceWorldObjectiveProgress,
   effectiveWorldObjectives,
@@ -69,7 +75,7 @@ function publicAtlasSurface(sector: ReturnType<typeof visibleSectors>[number]) {
 }
 export function resolveWorldIntent(
   state: WorldState,
-  intent: Exclude<WorldIntent, { kind: 'attack' }>,
+  intent: Exclude<WorldIntent, { kind: 'attack' | 'board-ferry' | 'leave-ferry' }>,
   now: number,
   objectives: readonly WorldObjective[] = WORLD_OBJECTIVES,
 ): WorldState {
@@ -113,7 +119,7 @@ export function resolveWorldIntent(
     }
   } else if (intent.kind === 'interact') {
     next =
-      resolveWorldInteraction(state, intent.interactionId) ??
+      resolveWorldInteraction(state, intent.interactionId, intent.actionId) ??
       invalid('That interaction is not available here.')
   } else {
     let destination: WorldPosition
@@ -150,9 +156,11 @@ export function resolveWorldIntent(
         : null,
     }
   }
-  next = advanceWorldObjectiveProgress(revealNearby(next))
+  next = advanceWorldObjectiveProgress(next.ferry ? next : revealNearby(next))
   const discoveredAnchors = new Set(next.discoveredAnchors ?? [])
   const currentSector = resolveSector(next.position.sectorId)
+  if (currentSector)
+    next = recordWarpedFieldObservation(next, applyWarpedContinentPhase(next, currentSector))
   const currentAnchor = currentSector?.landmarks.find(
     (landmark) =>
       landmark.kind === 'anchor' &&
@@ -164,6 +172,8 @@ export function resolveWorldIntent(
   const completed = new Set(next.completedObjectives)
   for (const objective of effectiveWorldObjectives(next, objectives))
     if (
+      objective.kind !== 'event' &&
+      objective.authority !== 'personal-quest' &&
       !isInteractionWorldObjectiveId(objective.id) &&
       objective.destination &&
       samePosition(next.position, objective.destination)
@@ -270,6 +280,7 @@ export function projectWorldPlayers(
 
 /** Shared private-filtered sector projection; movement receipts need only their origin. */
 export function projectWorldSector(state: WorldState, sector: WorldSector): WorldSectorView {
+  sector = applyWarpedContinentPhase(state, sector)
   const { rows, roads, ...publicSector } = sector
   const cells = []
   for (let y = 0; y < GRID_HEIGHT; y++)
@@ -302,6 +313,7 @@ export function projectWorld(
 ): WorldView {
   const visible = visibleSectors(state)
   const currentSector = resolveSector(state.position.sectorId)!
+  const onWarpedContinent = isWarpedContinentSector(currentSector.id)
   const currentAddress = atlasAddress(currentSector)
   const arrivingIds = new Set(state.route.slice(0, 8).map((step) => step.position.sectorId))
   const exitIds = new Set(currentSector.roads.map((road) => road.to.sectorId))
@@ -310,6 +322,7 @@ export function projectWorld(
       if (
         sector.id === state.position.sectorId ||
         arrivingIds.has(sector.id) ||
+        (onWarpedContinent && isWarpedContinentSector(sector.id)) ||
         (currentSector.id.startsWith('trail:') &&
           sector.id.startsWith('trail:') &&
           exitIds.has(sector.id))
@@ -429,8 +442,10 @@ export function projectWorld(
         sectorId: sector.id,
       })),
   )
+  const ferry = projectWorldFerry(state, now)
   return {
     characterId: '',
+    ...(ferry ? { ferry } : {}),
     version: state.version,
     serverNow: now,
     position: state.position,
@@ -463,7 +478,10 @@ export function projectWorld(
         o.guidance === 'exact' && o.destination && isKnown(state, o.destination)
           ? o.destination
           : null,
-      completed: o.completed || state.completedObjectives.includes(o.id),
+      completed:
+        o.kind === 'event' || o.authority === 'personal-quest'
+          ? o.completed
+          : o.completed || state.completedObjectives.includes(o.id),
     })),
     interactions: localWorldInteractions(state),
     anchors,

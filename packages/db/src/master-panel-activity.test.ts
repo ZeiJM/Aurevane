@@ -14,6 +14,11 @@ const migration = readFileSync(
   'utf8',
 )
 
+const calendarMigration = readFileSync(
+  resolve(process.cwd(), '../../supabase/migrations/20261107152119_calendar_reset_window.sql'),
+  'utf8',
+)
+
 it('atomically records real panel changes, limits private data and clears only the weekly feed', async () => {
   const db = await PGlite.create()
   try {
@@ -44,6 +49,54 @@ it('atomically records real panel changes, limits private data and clears only t
       create table app_private.event_operations_audit(actor_user_id uuid,run_id uuid,action text,command text);
     `)
     await db.exec(migration)
+    await db.exec(calendarMigration)
+    await db.exec("set time zone 'America/New_York'")
+    await db.exec(`begin;
+      do $fixture$
+      begin
+        execute replace(
+          pg_get_functiondef('public.read_master_panel_activity_v1(uuid,integer,bigint)'::regprocedure),
+          'statement_timestamp()', quote_literal('2026-03-08 12:00:00+00') || '::timestamptz'
+        );
+      end;
+      $fixture$;
+    `)
+    const { rows: dstWeek } = await db.query(
+      `select (week->>'resetsAt')::timestamptz = '2026-03-09 00:00:00+00'::timestamptz as reset_on_utc_monday
+      from public.read_master_panel_activity_v1($1,100,null) week`,
+      [owner],
+    )
+    expect(dstWeek).toEqual([{ reset_on_utc_monday: true }])
+    await db.exec('rollback')
+    const { rows: calendarWindows } = await db.query(`
+      select label, to_char(starts_at at time zone 'UTC','YYYY-MM-DD HH24:MI:SS') as starts,
+        to_char(resets_at at time zone 'UTC','YYYY-MM-DD HH24:MI:SS') as resets
+      from (values
+        ('utc-week', '2026-03-08 12:00:00+00'::timestamptz, 'week', 'UTC', 0),
+        ('local-week', '2026-03-08 12:00:00+00'::timestamptz, 'week', 'America/New_York', 0),
+        ('local-day', '2026-11-07 08:00:00+00'::timestamptz, 'day', 'America/Port_of_Spain', 240),
+        ('before-gap-reset', '2026-03-08 07:29:59+00'::timestamptz, 'day', 'America/New_York', 150),
+        ('at-gap-reset', '2026-03-08 07:30:00+00'::timestamptz, 'day', 'America/New_York', 150),
+        ('before-fold-reset', '2026-11-01 05:45:00+00'::timestamptz, 'day', 'America/New_York', 90),
+        ('at-fold-reset', '2026-11-01 06:30:00+00'::timestamptz, 'day', 'America/New_York', 90)
+      ) fixture(label, at, period, zone, reset_minute)
+      cross join lateral app_private.calendar_reset_window_v1(at, period, zone, reset_minute)
+    `)
+    expect(calendarWindows).toEqual([
+      { label: 'utc-week', starts: '2026-03-02 00:00:00', resets: '2026-03-09 00:00:00' },
+      { label: 'local-week', starts: '2026-03-02 05:00:00', resets: '2026-03-09 04:00:00' },
+      { label: 'local-day', starts: '2026-11-07 08:00:00', resets: '2026-11-08 08:00:00' },
+      { label: 'before-gap-reset', starts: '2026-03-07 07:30:00', resets: '2026-03-08 07:30:00' },
+      { label: 'at-gap-reset', starts: '2026-03-08 07:30:00', resets: '2026-03-09 06:30:00' },
+      { label: 'before-fold-reset', starts: '2026-10-31 05:30:00', resets: '2026-11-01 06:30:00' },
+      { label: 'at-fold-reset', starts: '2026-11-01 06:30:00', resets: '2026-11-02 06:30:00' },
+    ])
+    await expect(
+      db.query("select * from app_private.calendar_reset_window_v1(now(),'month','UTC',0)"),
+    ).rejects.toThrow('INVALID_CALENDAR_RESET_WINDOW')
+    await expect(
+      db.query("select * from app_private.calendar_reset_window_v1(now(),'day','UTC',1440)"),
+    ).rejects.toThrow('INVALID_CALENDAR_RESET_WINDOW')
     expect((await db.query('select schedule,command from cron.job')).rows).toEqual([
       { schedule: '0 0 * * 1', command: 'select app_private.clear_master_panel_activity_v1();' },
     ])
@@ -115,6 +168,10 @@ it('atomically records real panel changes, limits private data and clears only t
     expect(result.entries).toContainEqual(expect.objectContaining({ subject: 'Ember Crisis' }))
     expect(JSON.stringify(result)).not.toContain('private payload')
     expect(JSON.stringify(result)).not.toContain(character)
+    for (const boundary of [result.weekStartsAt, result.resetsAt]) {
+      const time = new Date(boundary)
+      expect([time.getUTCDay(), time.getUTCHours(), time.getUTCMinutes()]).toEqual([1, 0, 0])
+    }
     expect(Date.parse(result.resetsAt) - Date.parse(result.weekStartsAt)).toBe(
       7 * 24 * 60 * 60 * 1000,
     )

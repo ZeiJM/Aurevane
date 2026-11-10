@@ -2,7 +2,12 @@ import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
 
-import type { PersistentEventDefinition } from '@aurevane/game-core/events/persistent-event'
+import { createEventStarter } from '@/components/master/events/event-authoring-assists'
+import { eventRuntimeBlockers } from '@/components/master/events/event-runtime-support'
+import type {
+  PersistentEventDefinition,
+  PersonalJourneyPosition,
+} from '@aurevane/game-core/events/persistent-event'
 
 import {
   createEventAuthoringService,
@@ -58,6 +63,38 @@ const definition = (
   ],
   rewardPackageRefs: [],
   aftermathRefs: [],
+})
+
+const discoveryDefinition = (checkpoint?: PersonalJourneyPosition): PersistentEventDefinition => ({
+  ...definition({ type: 'global' }),
+  eventKey: 'event.fragment-fixture',
+  category: 'hidden-discoveries',
+  phases: [
+    {
+      id: 'discover',
+      name: 'Discovery',
+      objectives: [],
+      effects: [],
+      cleanupEffects: [],
+      transition: { type: 'manual' },
+    },
+  ],
+  inventoryDiscovery: {
+    firstItemId: 'fixture.fragment-one',
+    secondItemId: 'fixture.fragment-two',
+    clue: 'The fragments fit together.',
+    ...(checkpoint && {
+      restoration: {
+        giverNpcId: '77777777-7777-4777-8777-777777777777',
+        checkpoint,
+        outputItemId: 'fixture.restored-sword',
+        offer: 'Choose the recovery route to restore the blade.',
+        travel: 'Follow the route and return with both fragments.',
+        ready: 'Bring both fragments to the forge.',
+        completed: 'The blade is restored.',
+      },
+    }),
+  },
 })
 
 class StaffStore implements MasterPanelStaffAccessStore {
@@ -181,6 +218,29 @@ function serviceFor(record: MasterPanelAccessRecord) {
 }
 
 describe('Event Builder authoring service', () => {
+  it.each(['timed-world', 'world-arrival', 'travel-and-report'] as const)(
+    'validates, saves and reloads the %s starter as a private draft',
+    async (starter) => {
+      const { service } = serviceFor(access(EVENT_STAFF, ['event-staff']))
+      const prepared = createEventStarter(starter, `event.test-${starter}`)
+      expect(eventRuntimeBlockers(prepared)).toEqual([])
+      expect(service.validateDefinition(prepared)).toEqual({ valid: true, issues: [] })
+      await service.saveDraft({
+        actorUserId: EVENT_STAFF,
+        definition: prepared,
+        baseVersion: null,
+        expectedDraftVersion: null,
+      })
+      await expect(
+        service.loadWorkspace({ actorUserId: EVENT_STAFF, eventKey: prepared.eventKey }),
+      ).resolves.toMatchObject({
+        draft: { definition: prepared, draftVersion: 1 },
+        current: null,
+        versions: [],
+      })
+    },
+  )
+
   it('allows Event Staff to validate, preview and save private typed drafts', async () => {
     const { service } = serviceFor(access(EVENT_STAFF, ['event-staff']))
 
@@ -213,6 +273,118 @@ describe('Event Builder authoring service', () => {
     ).resolves.toMatchObject({ draftVersion: 1, baseVersion: null })
   })
 
+  it('saves and reloads a repeatable hunt without requiring a travel destination', async () => {
+    const { service } = serviceFor(access(OWNER, ['game-owner']))
+    const candidate = {
+      ...definition({ type: 'global' }),
+      eventKey: 'event.alder-venn-hunt',
+      category: 'repeatable-activities',
+      phases: [
+        {
+          id: 'hunt',
+          name: 'Hunt',
+          objectives: [],
+          effects: [],
+          cleanupEffects: [],
+          transition: { type: 'manual' },
+        },
+      ],
+      repeatableTravel: {
+        journey: {
+          type: 'defeat-and-report',
+          giverId: '77777777-7777-4777-8777-777777777777',
+          npcTag: 'wolf',
+          requiredDefeats: 5,
+          rewardPackageRef: 'reward.alder-venn-hunt',
+          offer: 'Drive the wolves off the pasture.',
+          active: 'Defeat five wolves and return.',
+          ready: 'Tell me how the hunt went.',
+          completed: 'The pasture is safe again.',
+        },
+        recurrence: { mode: 'rolling-24h' },
+      },
+    } as const
+    expect(service.validateDefinition(candidate)).toEqual({ valid: true, issues: [] })
+    await expect(
+      service.previewDefinition({ actorUserId: OWNER, definition: candidate }),
+    ).resolves.toMatchObject({ rewardPackageRefs: ['reward.alder-venn-hunt'] })
+    await service.saveDraft({
+      actorUserId: OWNER,
+      definition: candidate,
+      baseVersion: null,
+      expectedDraftVersion: null,
+    })
+    await expect(
+      service.loadWorkspace({ actorUserId: OWNER, eventKey: candidate.eventKey }),
+    ).resolves.toMatchObject({ draft: { definition: candidate } })
+  })
+
+  it('previews and saves a combat discovery and requires an End for seasonal scheduling', async () => {
+    const { service } = serviceFor(access(OWNER, ['game-owner']))
+    const candidate = {
+      ...definition({ type: 'global' }),
+      eventKey: 'event.ashen-sentinel',
+      title: 'The Ashen Sentinel',
+      family: 'lore-revelation',
+      category: 'hidden-discoveries',
+      phases: [
+        {
+          id: 'discovery',
+          name: 'Discovery',
+          objectives: [],
+          effects: [],
+          cleanupEffects: [],
+          transition: { type: 'manual' },
+        },
+      ],
+      combatDiscovery: {
+        npcTag: 'ashbound-raider',
+        requiredDefeats: 14,
+        timeZone: 'UTC',
+        resetMinute: 0,
+        opponentNpcId: '77777777-7777-4777-8777-777777777777',
+        mode: 'seasonal',
+        ready: 'The challenger is ready.',
+        completed: 'You have won the challenge.',
+        firstRewardPackageRef: 'reward.first',
+        repeatRewardPackageRef: 'reward.repeat',
+      },
+    } as const
+    await expect(
+      service.previewDefinition({ actorUserId: OWNER, definition: candidate }),
+    ).resolves.toMatchObject({ rewardPackageRefs: ['reward.first', 'reward.repeat'] })
+    await service.saveDraft({
+      actorUserId: OWNER,
+      definition: candidate,
+      baseVersion: null,
+      expectedDraftVersion: null,
+    })
+    await expect(
+      service.loadWorkspace({ actorUserId: OWNER, eventKey: candidate.eventKey }),
+    ).resolves.toMatchObject({ draft: { definition: candidate } })
+    await service.publish({
+      actorUserId: OWNER,
+      definition: candidate,
+      expectedBaseVersion: null,
+      correlationKey: '88888888-8888-4888-8888-888888888888',
+      confirmed: true,
+    })
+    const schedule = {
+      actorUserId: OWNER,
+      eventKey: candidate.eventKey,
+      idempotencyKey: '88888888-8888-4888-8888-888888888888',
+      scheduledStartAt: '2026-11-01T12:00:00.000Z',
+      confirmed: true,
+    }
+    await expect(service.schedule({ ...schedule, scheduledEndAt: null })).rejects.toMatchObject({
+      code: 'INVALID_REQUEST',
+      message: expect.stringMatching(/end time.*seasonal/i),
+    })
+    await expect(
+      service.schedule({ ...schedule, scheduledEndAt: '2026-11-02T12:00:00.000Z' }),
+    ).resolves.toMatchObject({ stateVersion: 1 })
+  })
+
   it('rejects arbitrary execution fields before persistence', () => {
     const { service } = serviceFor(access(EVENT_STAFF, ['event-staff']))
     const invalid = {
@@ -224,6 +396,50 @@ describe('Event Builder authoring service', () => {
       valid: false,
       issues: [expect.objectContaining({ code: 'ARBITRARY_EXECUTION_FIELD' })],
     })
+  })
+
+  it.each([
+    ['a blocked tile', { sectorId: 'verdant-expanse', x: 0, y: 0 }],
+    ['an unknown sector', { sectorId: 'missing-sector', x: 3, y: 4 }],
+  ])('rejects a restoration checkpoint on %s before publication', async (_label, checkpoint) => {
+    const { service, store } = serviceFor(access(OWNER, ['game-owner']))
+    const candidate = discoveryDefinition(checkpoint)
+    expect(service.validateDefinition(candidate)).toMatchObject({
+      valid: false,
+      issues: [
+        {
+          path: 'inventoryDiscovery.restoration.checkpoint',
+          code: 'EVENT_ARRIVAL_DESTINATION_UNWALKABLE',
+        },
+      ],
+    })
+    await expect(
+      service.publish({
+        actorUserId: OWNER,
+        definition: candidate,
+        expectedBaseVersion: null,
+        correlationKey: '88888888-8888-4888-8888-888888888888',
+        confirmed: true,
+      }),
+    ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+    expect(store.current).toBeNull()
+  })
+
+  it.each([
+    ['with a walkable restoration checkpoint', { sectorId: 'verdant-expanse', x: 3, y: 4 }],
+    ['with only a clue', undefined],
+  ])('accepts a private discovery %s', async (_label, checkpoint) => {
+    const { service } = serviceFor(access(EVENT_STAFF, ['event-staff']))
+    const candidate = discoveryDefinition(checkpoint)
+    expect(service.validateDefinition(candidate)).toEqual({ valid: true, issues: [] })
+    await expect(
+      service.saveDraft({
+        actorUserId: EVENT_STAFF,
+        definition: candidate,
+        baseVersion: null,
+        expectedDraftVersion: null,
+      }),
+    ).resolves.toMatchObject({ definition: candidate })
   })
 
   it('rejects publication after live Events page access is removed', async () => {

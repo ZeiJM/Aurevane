@@ -272,6 +272,8 @@ function mapRpcError(error: RpcError, target?: PublicationTarget): never {
 
     COMBAT_CONTENT_BUILTIN_SELECTION_DEPENDENCY:
       'This content is still selected by an existing Discipline or Discipline pair. Its selection must be replaced before archive is available.',
+    ITEM_PENDING_EVENT_EXCHANGE:
+      'Players have earned this Item and still need to collect it. Keep an eligible version available.',
     COMBAT_CONTENT_DEPENDENCIES:
       'This content is still in use. Review Used by before changing its lifecycle.',
     COMBAT_CONTENT_ARCHIVED:

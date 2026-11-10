@@ -4,7 +4,7 @@ import { expect, test, type Locator } from '@playwright/test'
 
 import { createVerifiedAccountAndSignIn } from './pv1f-test-helpers'
 
-test('Creation exposes twelve portraits per gender and preserves the complete authenticated three-step journey', async ({
+test('Creation exposes 24 portraits per gender and preserves the complete authenticated three-step journey', async ({
   page,
 }, info) => {
   test.setTimeout(120_000)
@@ -41,7 +41,7 @@ test('Creation exposes twelve portraits per gender and preserves the complete au
   const library = creation.locator('[data-portrait-library]')
   const portraits = library.locator('input[name="portrait"]')
   await expect(library).toBeVisible()
-  await expect(portraits).toHaveCount(12)
+  await expect(portraits).toHaveCount(24)
   const decoded = await library.locator('img').evaluateAll(async (images) => {
     return Promise.all(
       images.map(async (image) => {
@@ -66,11 +66,11 @@ test('Creation exposes twelve portraits per gender and preserves the complete au
       }),
     )
   })
-  expect(decoded).toHaveLength(12)
+  expect(decoded).toHaveLength(24)
   expect(
     decoded.every((image) => image.loaded && image.width >= 96 && image.width === image.height),
   ).toBe(true)
-  expect(new Set(decoded.map((image) => image.src)).size).toBe(12)
+  expect(new Set(decoded.map((image) => image.src)).size).toBe(24)
 
   const sizes =
     info.project.name === 'mobile-chromium'
@@ -166,8 +166,8 @@ test('Creation exposes twelve portraits per gender and preserves the complete au
         .soft(metrics.gender.bottom, `${label}: Gender precedes the collection`)
         .toBeLessThanOrEqual(metrics.gallery.y)
       expect
-        .soft(metrics.galleryOverflow, `${label}: all twelve portraits fit without gallery scroll`)
-        .toBeLessThanOrEqual(1)
+        .soft(metrics.galleryOverflow, `${label}: gallery keeps scrolling within the workspace`)
+        .toBeGreaterThan(0)
     }
     if (size.width >= 1280 && size.height >= 768)
       expect
@@ -195,7 +195,7 @@ test('Creation exposes twelve portraits per gender and preserves the complete au
   await portraits.last().check()
   await portraits.last().focus()
   await page.keyboard.press('ArrowLeft')
-  await expect(portraits.nth(10)).toBeChecked()
+  await expect(portraits.nth(22)).toBeChecked()
   await page.keyboard.press('ArrowRight')
   await expect(portraits.last()).toBeChecked()
   await expect(portraits.last()).toBeInViewport({ ratio: 1 })
@@ -207,9 +207,10 @@ test('Creation exposes twelve portraits per gender and preserves the complete au
   expect(focusedPortrait.top).toBeGreaterThanOrEqual(0)
   expect(focusedPortrait.bottom).toBeLessThanOrEqual(focusedPortrait.viewportHeight + 1)
   await creation.getByRole('radio', { name: 'Female', exact: true }).check()
-  await expect(portraits).toHaveCount(12)
+  await expect(portraits).toHaveCount(24)
+  await expect(portraits.first()).toBeChecked()
   await portraits.last().check()
-  await creation.locator('input[name="appearance"]').last().check()
+  await expect(creation.locator('input[name="appearance"]')).toHaveCount(0)
   await next.click()
   await expect(creation).toHaveAttribute('data-step', 'discipline')
   const disciplineSigils = creation
@@ -225,7 +226,14 @@ test('Creation exposes twelve portraits per gender and preserves the complete au
   }
   await expect(creation.getByRole('heading', { level: 1 })).toBeFocused()
   const disciplines = creation.locator('input[name="discipline"]')
+  await expect(creation.getByTestId('attribute-points')).toContainText(
+    '5 personal points remaining',
+  )
+  await expect(creation.getByRole('button', { name: 'Review character' })).toBeDisabled()
+  const increaseMight = creation.getByRole('button', { name: 'Increase might bonus' })
+  for (let index = 0; index < 5; index++) await increaseMight.click()
   await disciplines.nth(1).check()
+  await expect(creation.getByRole('status', { name: 'might bonus' })).toHaveText('+5')
   const decrease = creation.locator('button[aria-label^="Decrease"]:not([disabled])').first()
   const attribute = (await decrease.getAttribute('aria-label'))!.split(' ')[1]
   await decrease.click()
@@ -256,8 +264,8 @@ test('Creation exposes twelve portraits per gender and preserves the complete au
       .poll(() => page.evaluate(() => document.documentElement.scrollHeight - innerHeight))
       .toBeLessThanOrEqual(1)
   await expect(creation.getByText('Portrait', { exact: true })).toBeVisible()
-  await expect(creation.getByText('Female adventurer 12', { exact: true })).toBeVisible()
-  await expect(creation.getByText('Lightstep travelwear', { exact: true })).toBeVisible()
+  await expect(creation.getByText('Female adventurer 24', { exact: true })).toBeVisible()
+  await expect(creation.getByText('Starter appearance', { exact: true })).toHaveCount(0)
   await expect(creation).not.toContainText(/pronouns/i)
   if (process.env.LAYOUT_REVIEW_OUTPUT)
     await page.screenshot({
@@ -274,7 +282,6 @@ test('Creation exposes twelve portraits per gender and preserves the complete au
   await expect(name).toHaveValue(characterName)
   await expect(portraits.last()).toBeChecked()
   await expect(creation.getByRole('radio', { name: 'Female', exact: true })).toBeChecked()
-  await expect(creation.locator('input[name="appearance"]').last()).toBeChecked()
   await next.click()
   await creation.getByRole('button', { name: 'Review character', exact: true }).click()
 
@@ -317,13 +324,14 @@ test('Creation exposes twelve portraits per gender and preserves the complete au
   const payload = await response.json()
   expect(payload.character).toMatchObject({
     name: characterName,
-    portraitRef: 'portrait.adventure.female-12',
+    portraitRef: 'portrait.starter.wayfarer-30',
     presentationId: 'feminine',
-    starterAppearanceRef: 'appearance.starter.lightstep',
+    starterAppearanceRef: 'appearance.starter.roadworn',
   })
   expect(requests).toHaveLength(2)
   expect(requests[0].idempotencyKey).toBe(requests[1].idempotencyKey)
   expect(requests[1].intent.pronounPresetId).toBe('she_her')
+  expect(requests[1].intent.attributeBonuses).toMatchObject({ might: 5 })
   await expect(page).toHaveURL(/\/game\/haven$/)
   await page.goto('/game/character')
   const railIdentity = page

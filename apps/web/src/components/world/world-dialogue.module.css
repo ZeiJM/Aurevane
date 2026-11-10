@@ -1,0 +1,225 @@
+.dialogue {
+  --dialogue-gold: #d9b879;
+  --dialogue-ink: #f3e8d1;
+  --dialogue-line: #a98753;
+  position: fixed;
+  inset: auto 0 max(1.5rem, env(safe-area-inset-bottom)) 0;
+  box-sizing: border-box;
+  width: min(48rem, calc(100% - 3rem));
+  max-width: none;
+  max-height: min(72dvh, 34rem);
+  margin: 0 auto;
+  padding: 1rem;
+  overflow: hidden;
+  border: 1px solid var(--dialogue-line);
+  border-radius: 0.9rem;
+  background: linear-gradient(148deg, #183139, #0c202b 70%);
+  color: var(--dialogue-ink);
+  box-shadow:
+    0 14px 44px #08131be0,
+    inset 0 0 0 3px #bf9c591f;
+  font-family: var(--av-font-body, Georgia);
+}
+.dialogue[open] {
+  display: grid;
+  grid-template:
+    'portrait header' auto
+    'portrait reading' minmax(0, 1fr)
+    'portrait replies' auto / 7.75rem minmax(0, 1fr);
+  column-gap: 1rem;
+  row-gap: 0.65rem;
+}
+.dialogue::backdrop {
+  background: #07141e30;
+}
+.dialogue button {
+  min-height: 44px;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid #708887;
+  border-radius: 0.45rem;
+  background: #1d3842;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.dialogue button:hover:not(:disabled) {
+  border-color: #f2d698;
+  filter: brightness(1.12);
+}
+.dialogue button:focus-visible {
+  outline: 2px solid #a7e2e1;
+  outline-offset: 2px;
+}
+.dialogue button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+.portrait {
+  grid-area: portrait;
+  display: grid;
+  place-items: center;
+  align-self: start;
+  aspect-ratio: 3 / 4;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid #ba9d69;
+  border-radius: 0.6rem;
+  background: radial-gradient(ellipse at 50% 35%, #3b5960, #152e3b 75%);
+}
+.portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 30%;
+}
+.portrait svg {
+  width: 40%;
+  max-height: 65%;
+  stroke: #dcbe86;
+  stroke-width: 1.6;
+}
+.header {
+  grid-area: header;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.header h2,
+.header p,
+.reading p,
+.context h3 {
+  margin: 0;
+}
+.header h2 {
+  color: var(--dialogue-ink);
+  font: 500 clamp(1.25rem, 3.5vw, 1.7rem) / 1.15 var(--av-font-heading, Georgia);
+  overflow-wrap: anywhere;
+}
+.header p {
+  margin-bottom: 0.2rem;
+  color: var(--dialogue-gold);
+  font-size: 0.72rem;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+.header button {
+  width: 44px;
+  flex-shrink: 0;
+  padding: 0;
+  font-size: 1.4rem;
+}
+.reading {
+  grid-area: reading;
+  display: grid;
+  align-content: start;
+  gap: 0.55rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  overflow-wrap: anywhere;
+  line-height: 1.45;
+}
+.speech,
+.context {
+  padding: 0.7rem 0.85rem;
+  border-radius: 0.45rem;
+}
+.speech {
+  background: #e8dcc0;
+  color: #152b31;
+}
+.context {
+  border: 1px solid #4e6a70;
+  background: #1c3540;
+  color: #dee9e6;
+}
+.context div {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.25rem 0.75rem;
+  margin-bottom: 0.2rem;
+}
+.context h3 {
+  color: var(--dialogue-ink);
+  font-size: 1rem;
+}
+.context span {
+  color: #f1d497;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.context p {
+  color: #cfddda;
+  font-size: 0.93rem;
+}
+.history {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0;
+  padding-left: 1.4rem;
+}
+.history strong {
+  display: block;
+  color: var(--dialogue-gold);
+}
+.topics {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.25rem;
+}
+.responses {
+  grid-area: replies;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+.responses .primary {
+  border-color: #dfbc77;
+  background: #dfbc77;
+  color: #152b31;
+  font-weight: 700;
+}
+.error {
+  color: #ffd0bb;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .portrait img {
+    animation: portrait-in 160ms ease-out;
+  }
+}
+@keyframes portrait-in {
+  from {
+    opacity: 0.75;
+  }
+}
+@media (max-width: 760px), (max-height: 500px) and (pointer: coarse) {
+  .mapObstruction {
+    visibility: hidden;
+  }
+  .dialogue {
+    inset: auto 0 0 0;
+    width: 100%;
+    max-height: 78dvh;
+    padding: 0.8rem max(0.8rem, env(safe-area-inset-right))
+      max(0.85rem, env(safe-area-inset-bottom)) max(0.8rem, env(safe-area-inset-left));
+    border-radius: 1rem 1rem 0 0;
+  }
+  .dialogue[open] {
+    grid-template:
+      'portrait header' auto
+      'reading reading' minmax(0, 1fr)
+      'replies replies' auto / 3.25rem minmax(0, 1fr);
+    column-gap: 0.65rem;
+  }
+  .portrait {
+    align-self: center;
+    aspect-ratio: 1;
+  }
+  .responses .primary {
+    flex-basis: 100%;
+  }
+}

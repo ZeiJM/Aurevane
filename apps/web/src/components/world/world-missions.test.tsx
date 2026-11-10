@@ -15,6 +15,7 @@ const render = (view: WorldView) =>
       disabled: false,
       send: vi.fn(),
       stopMoving: vi.fn(),
+      openConversation: vi.fn(),
     }),
   )
 describe('mission status and authoritative turn-in', () => {
@@ -28,14 +29,16 @@ describe('mission status and authoritative turn-in', () => {
     expect(markup).not.toContain('Tracked Quests')
     expect(markup).toContain('Hinterland Patrol')
   })
-  it('offers Complete quest only for a ready objective at its authoritative issuer', () => {
+  it('routes local quest actions through the conversation before any reply can be sent', () => {
     const state = {
       ...newWorldState(),
       position: VERDANT_SETTLEMENT,
       objectiveProgress: { 'eastern-watch': 'ready' as const },
     }
     const ready = projectWorld(state, [], 1000)
-    expect(render(ready)).toContain('Complete quest')
+    expect(render(ready)).toContain('Talk to Watch officer')
+    expect(render(ready)).not.toContain('Complete quest')
+    expect(render({ ...ready, interactions: [] })).not.toContain('Talk to Watch officer')
     expect(render({ ...ready, interactions: [] })).not.toContain('Complete quest')
     expect(render(projectWorld(newWorldState(), [], 1000))).not.toContain('Complete quest')
     expect(
@@ -43,3 +46,42 @@ describe('mission status and authoritative turn-in', () => {
     ).not.toContain('Complete quest')
   })
 })
+
+it.each(['claim-restoration', 'claim-hunt-reward'] as const)(
+  'uses local %s instead of auto-pathing to the current giver',
+  (actionId) => {
+    const view = projectWorld(newWorldState(), [], 1000)
+    const id = 'quest-run-44444444-4444-4444-8444-444444444444'
+    const quest = {
+      id,
+      name: 'Reserved sword',
+      description: 'Collect your reserved sword.',
+      kind: 'quest',
+      autoPath: true,
+      guidance: 'exact',
+      destination: view.position,
+      completed: false,
+      progress: 'ready',
+    } as const
+    const markup = render({
+      ...view,
+      objectives: [quest],
+      interactions: [
+        {
+          id,
+          objectiveId: id,
+          title: quest.name,
+          speaker: 'Restoration Smith',
+          body: 'The sword is ready.',
+          progress: 'ready',
+          actionId,
+          actionLabel:
+            actionId === 'claim-restoration' ? 'Collect Cinderwake' : 'Collect Character XP',
+        },
+      ],
+    })
+    expect(markup).toContain('Talk to Restoration Smith')
+    expect(markup).not.toContain('Start Auto-path')
+    expect(render({ ...view, objectives: [quest], interactions: [] })).toContain('Start Auto-path')
+  },
+)
