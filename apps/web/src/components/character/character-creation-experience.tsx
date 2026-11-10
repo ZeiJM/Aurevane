@@ -13,8 +13,7 @@ import type { PublishedFoundationDiscipline } from '@/server/character/published
 import {
   defaultPronounPresetForPresentation,
   STARTER_CHARACTER_APPEARANCES,
-  STARTER_CHARACTER_PORTRAITS,
-  ADVENTURE_CHARACTER_PORTRAITS,
+  CREATION_CHARACTER_PORTRAITS,
 } from '@aurevane/game-core/character/starter-options'
 import { GameButton } from '@aurevane/ui'
 import Link from 'next/link'
@@ -67,7 +66,7 @@ export function CharacterCreationExperience({
   const [step, setStep] = useState<Step>('identity')
   const [name, setName] = useState('')
   const [presentationId, setPresentationId] = useState<CharacterPresentationId>('masculine')
-  const [portraitRef, setPortraitRef] = useState(ADVENTURE_CHARACTER_PORTRAITS[0].ref)
+  const [portraitRef, setPortraitRef] = useState(CREATION_CHARACTER_PORTRAITS[0].ref)
   const [manualLook, setManualLook] = useState<AppearanceBlueprint | null>(null)
   const [foundationDisciplineId, setFoundationDisciplineId] = useState(
     disciplines[0]?.id ?? 'vanguard',
@@ -86,14 +85,13 @@ export function CharacterCreationExperience({
   const idempotencyKey = useRef<string | null>(null)
   const stepHeading = useRef<HTMLHeadingElement>(null)
 
-  const portraitChoices = ADVENTURE_CHARACTER_PORTRAITS.filter(
+  const portraitChoices = CREATION_CHARACTER_PORTRAITS.filter(
     (option) => option.presentationId === presentationId,
   )
   const selectedDiscipline =
     disciplines.find((candidate) => candidate.id === foundationDisciplineId) ?? disciplines[0]
   const selectedPortrait =
-    STARTER_CHARACTER_PORTRAITS.find((option) => option.ref === portraitRef) ??
-    STARTER_CHARACTER_PORTRAITS[0]
+    portraitChoices.find((option) => option.ref === portraitRef) ?? portraitChoices[0]
   const spentPoints = CHARACTER_ATTRIBUTE_IDS.reduce(
     (total, attributeId) => total + attributeBonuses[attributeId],
     0,
@@ -224,8 +222,8 @@ export function CharacterCreationExperience({
     >
       <div className={styles.scene} aria-hidden="true">
         <AurevaneImage
-          assetId="environment.adventure.threshold"
-          sizes="(min-width: 761px) 28vw, 100vw"
+          assetId="environment.character-creation.wayfarer-gate"
+          sizes="(min-width: 1100px) 49vw, 1px"
         />
         <div className={styles.sceneVeil} />
         <div className={styles.sceneCopy}>
@@ -271,7 +269,7 @@ export function CharacterCreationExperience({
                             changed()
                             setPresentationId(option.id)
                             setPortraitRef(
-                              ADVENTURE_CHARACTER_PORTRAITS.find(
+                              CREATION_CHARACTER_PORTRAITS.find(
                                 (portrait) => portrait.presentationId === option.id,
                               )!.ref,
                             )
@@ -290,7 +288,7 @@ export function CharacterCreationExperience({
               <div className={styles.choiceGroup} data-portrait-library="true">
                 <h2 className={styles.collectionHeading}>Choose your visage</h2>
                 <p className={styles.choiceHint}>
-                  {portraitChoices.length} portraits. Choose your likeness.
+                  {portraitChoices.length} portraits. Scroll to see them all.
                 </p>
                 <AppearanceBuilderDialog
                   label="Build my character"
@@ -301,7 +299,7 @@ export function CharacterCreationExperience({
                     setManualLook(look)
                   }}
                 />
-                <div className={styles.portraitGrid} data-portrait-grid="true">
+                <div className={styles.portraitGrid} data-portrait-grid="true" key={presentationId}>
                   {portraitChoices.map((option) => (
                     <label
                       key={option.ref}

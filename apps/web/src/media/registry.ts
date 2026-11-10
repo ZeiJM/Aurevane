@@ -117,6 +117,18 @@ const IMAGE_ASSETS = [
     })),
   ),
   {
+    id: 'environment.character-creation.wayfarer-gate',
+    kind: 'environment',
+    status: 'approved',
+    requestId: 'ART-UI-CREATION-20261110',
+    generationRequestId: 'ART-UI-CREATION-20261110',
+    decorative: true,
+    alt: '',
+    src: '/media/art/adventure/wayfarer-gate-v01.webp',
+    width: 960,
+    height: 1200,
+  },
+  {
     id: 'environment.adventure.threshold',
     kind: 'environment',
     status: 'approved',
