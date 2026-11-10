@@ -9,7 +9,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from urllib.parse import urlsplit
+from urllib.parse import unquote, urlsplit
 
 LEDGER_COUNT = 221
 LEDGER_HASH = "9529cbf5df840fda23858a94d887e3dbe5ea78f033b6a009c03106b0f6b72ea2"
@@ -55,16 +55,29 @@ def run_checked(command, description, **kwargs):
     except (OSError, subprocess.TimeoutExpired):
         raise SystemExit(f"{description} could not complete.") from None
     if result.returncode:
+        error = result.stderr.lower()
+        if "password authentication failed" in error or "tenant or user not found" in error:
+            raise SystemExit(f"{description} failed: authentication rejected.")
         raise SystemExit(f"{description} failed. No connection details were logged.")
     return result
 
 
 def read_ledger(uri):
+    connection = urlsplit(uri)
     result = run_checked(
         ["psql", "-XqAtw", "-v", "ON_ERROR_STOP=1", "-c", "begin read only",
          "-c", LEDGER_QUERY, "-c", "rollback"],
         "Read-only production ledger check",
-        env={**os.environ, "PGDATABASE": uri, "PGCONNECT_TIMEOUT": "15"},
+        env={
+            **os.environ,
+            "PGHOST": connection.hostname,
+            "PGPORT": str(connection.port),
+            "PGDATABASE": connection.path.removeprefix("/"),
+            "PGUSER": connection.username,
+            "PGPASSWORD": unquote(connection.password),
+            "PGSSLMODE": connection.query.removeprefix("sslmode="),
+            "PGCONNECT_TIMEOUT": "15",
+        },
     )
     try:
         ledger = json.loads(result.stdout)
