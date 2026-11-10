@@ -30,6 +30,10 @@ on:
         description: 'Verify the production migration plan without applying it'
         type: boolean
         default: false
+      production_apply:
+        description: 'Apply the verified unified migration batch to production'
+        type: boolean
+        default: false
       expected_candidate:
         description: 'Exact candidate commit SHA for the migration plan or apply'
         type: string
@@ -39,12 +43,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: living-atlas-browser-${{ github.ref }}-${{ inputs.staging_dry_run || inputs.staging_apply || inputs.production_dry_run || false }}
-  cancel-in-progress: ${{ !inputs.staging_dry_run && !inputs.staging_apply && !inputs.production_dry_run }}
+  group: living-atlas-browser-${{ github.ref }}-${{ inputs.staging_dry_run || inputs.staging_apply || inputs.production_dry_run || inputs.production_apply || false }}
+  cancel-in-progress: ${{ !inputs.staging_dry_run && !inputs.staging_apply && !inputs.production_dry_run && !inputs.production_apply }}
 
 jobs:
   verify:
-    if: ${{ !inputs.staging_dry_run && !inputs.staging_apply && !inputs.production_dry_run }}
+    if: ${{ !inputs.staging_dry_run && !inputs.staging_apply && !inputs.production_dry_run && !inputs.production_apply }}
     runs-on: ubuntu-latest
     # The authenticated Atlas suite covers many full-route journeys; the previous
     # 20-minute cap cancelled an otherwise progressing run at scenario 39.
@@ -184,7 +188,7 @@ jobs:
 
   staging-migration-plan:
     if: >-
-      ${{ github.event_name == 'workflow_dispatch' && !inputs.production_dry_run &&
+      ${{ github.event_name == 'workflow_dispatch' && !inputs.production_dry_run && !inputs.production_apply &&
         (inputs.staging_dry_run || inputs.staging_apply) &&
         github.repository == 'ZeiJM/Aurevane' &&
         github.ref == 'refs/heads/agent/unified-release-candidate-20261107' }}
@@ -351,7 +355,9 @@ jobs:
 
   production-migration-plan:
     if: >-
-      ${{ github.event_name == 'workflow_dispatch' && inputs.production_dry_run &&
+      ${{ github.event_name == 'workflow_dispatch' &&
+        ((inputs.production_dry_run && !inputs.production_apply) ||
+         (inputs.production_apply && !inputs.production_dry_run)) &&
         !inputs.staging_dry_run && !inputs.staging_apply &&
         github.repository == 'ZeiJM/Aurevane' &&
         github.ref == 'refs/heads/agent/unified-release-candidate-20261107' }}
@@ -362,18 +368,45 @@ jobs:
       - name: Verify the requested candidate commit
         env:
           EXPECTED_CANDIDATE: ${{ inputs.expected_candidate }}
-        run: test "$GITHUB_SHA" = "$EXPECTED_CANDIDATE"
+          PRODUCTION_APPLY: ${{ inputs.production_apply }}
+        run: |
+          if [ "$PRODUCTION_APPLY" = true ]; then
+            test "$EXPECTED_CANDIDATE" = 98d41f1edc6891d605d7fb78a9563bc7ae068809
+          else
+            test "$GITHUB_SHA" = "$EXPECTED_CANDIDATE"
+          fi
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+      - uses: actions/checkout@v4
+        if: ${{ inputs.production_apply }}
+        with:
+          ref: main
+          path: production-source
+          persist-credentials: false
+      - name: Verify the released main tree
+        if: ${{ inputs.production_apply }}
+        working-directory: production-source
+        run: |
+          test "$(git rev-parse HEAD)" = 98d41f1edc6891d605d7fb78a9563bc7ae068809
+          test "$(git rev-parse 'HEAD^{tree}')" = 732688833a07ce1e002bce614fd204e1efa1b88a
       - uses: actions/setup-node@v4
         with:
           node-version: 24
       - name: Install the pinned migration CLI
         run: npm install --prefix "$RUNNER_TEMP/aurevane-production-cli" --no-save supabase@2.114.0
-      - name: Dry-run the ordered production migration batch
+      - name: Verify the ordered production migration batch
+        if: ${{ inputs.production_dry_run }}
         env:
           AUREVANE_PRODUCTION_DB_URL: ${{ secrets.AUREVANE_PRODUCTION_DB_URL }}
         run: |
           git rev-parse HEAD 'HEAD^{tree}'
           python3 .github/scripts/plan-aurevane-production-migrations.py "$RUNNER_TEMP/aurevane-production-cli/node_modules/.bin/supabase"
+      - name: Apply the ordered production migration batch
+        if: ${{ inputs.production_apply }}
+        working-directory: production-source
+        env:
+          AUREVANE_PRODUCTION_DB_URL: ${{ secrets.AUREVANE_PRODUCTION_DB_URL }}
+        run: |
+          git rev-parse HEAD 'HEAD^{tree}'
+          python3 "$GITHUB_WORKSPACE/.github/scripts/plan-aurevane-production-migrations.py" "$RUNNER_TEMP/aurevane-production-cli/node_modules/.bin/supabase" --apply
