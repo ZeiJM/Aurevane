@@ -267,3 +267,43 @@ it('retains the global sixteen-edge and three-crest surf budget', () => {
   ).toBe(0)
   expect(context.stroke).toHaveBeenCalledTimes(48)
 })
+
+it('carries regional dry sediment across the curved wet lip instead of a constant dark border', () => {
+  const fills: unknown[] = [],
+    stops: string[][] = []
+  const ctx = {
+    save: vi.fn(),
+    restore: vi.fn(),
+    beginPath: vi.fn(),
+    closePath: vi.fn(),
+    moveTo: vi.fn(),
+    lineTo: vi.fn(),
+    stroke: vi.fn(),
+    fillStyle: null as unknown,
+    createLinearGradient() {
+      const colours: string[] = []
+      stops.push(colours)
+      return {
+        colours,
+        addColorStop(_n: number, s: string) {
+          colours.push(s)
+        },
+      }
+    },
+    fill() {
+      fills.push(this.fillStyle)
+    },
+  }
+  paintCoastSea(
+    ctx as unknown as CanvasRenderingContext2D,
+    [{ side: 1, from: 1, to: 7, seed: 53, openStart: false, openEnd: false }],
+    64,
+    1000,
+    false,
+    1,
+    'frostmere',
+    0,
+  )
+  expect(typeof fills[1]).toBe('object')
+  expect(stops.some((s) => s[0]?.includes('165,150,125') && s.at(-1) === '#575b54')).toBe(true)
+})

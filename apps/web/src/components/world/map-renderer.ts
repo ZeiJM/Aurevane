@@ -1,3 +1,4 @@
+import { vegetationPose } from './map-vegetation'
 import { worldDayPhase } from '@/world/environment'
 import {
   APPEARANCE_ASSET_PREFIX,
@@ -1616,6 +1617,16 @@ export function createMapRenderer(
           )
             continue
           const rock = cell.terrain === '#'
+          const pose = vegetationPose(
+            sector.warpedTheme ? sector.id : 'public',
+            origin.x + cell.x,
+            origin.y + cell.y,
+            rock ||
+              Boolean(mixedTreeRegions) ||
+              Boolean(sector.townId) ||
+              sector.landmarks.some((l) => Math.abs(l.x - cell.x) + Math.abs(l.y - cell.y) <= 3),
+            Boolean(sector.warpedTheme),
+          )
           const mixedTreeRegion = mixedTreeRegions?.get(cell)
           const treeRegion = mixedTreeRegion ?? sector.regionId
           const warpedRock =
@@ -1665,10 +1676,10 @@ export function createMapRenderer(
           const family = asset === beauties ? 'beauties' : asset === biomes ? 'biomes' : 'nature'
           const artPlacement = rockPlacement ?? (!rock ? treeArt[family]?.[index] : undefined)
           addScenery({
-            x: origin.x + cell.x + 0.5,
-            y: origin.y + cell.y + (rock ? 0.5 : 0.75),
-            width: tile * (artPlacement?.width ?? (rock ? 1.8 : 1.65)) * scale,
-            height: tile * (artPlacement?.height ?? (rock ? 1.7 : 2.55)) * scale,
+            x: origin.x + cell.x + 0.5 + pose.x,
+            y: origin.y + cell.y + (rock ? 0.5 : 0.75) + pose.y,
+            width: tile * (artPlacement?.width ?? (rock ? 1.8 : 1.65)) * scale * pose.scale,
+            height: tile * (artPlacement?.height ?? (rock ? 1.7 : 2.55)) * scale * pose.scale,
             image: asset,
             index,
             columns: 4,

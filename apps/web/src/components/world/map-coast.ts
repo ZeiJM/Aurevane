@@ -390,7 +390,11 @@ export function paintCoastSea(
     // The cached dry raster ends at the rectangular sector border. Back the
     // curved wet lip before that raster is drawn, so the border cannot show
     // through as a straight gap between land and the displaced shallows.
-    paintBand(context, edge, tile, -0.3, 0, palette.wet)
+    const lip = colourBand(context, edge, tile, -0.3, 0.3)
+    lip.addColorStop(0, `rgb(${palette.dry})`)
+    lip.addColorStop(0.45, `rgb(${palette.dry})`)
+    lip.addColorStop(1, palette.wet)
+    paintBand(context, edge, tile, -0.3, 0, lip)
     for (let wave = 0; wave < waves; wave++) {
       const phase = animate
         ? (now / (9600 + (edge.seed % 2000)) + wave / waves + (edge.seed % 97) / 97) % 1

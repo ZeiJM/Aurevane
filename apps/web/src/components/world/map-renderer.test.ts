@@ -3559,3 +3559,32 @@ it('uses the decoded snowy hamlet sheet only in Frostmere and falls back while i
     vi.unstubAllGlobals()
   }
 })
+
+it('renders different woodland growth sizes while keeping town trees authored', () => {
+  const initial = projectWorld(newWorldState(), [], 1000)
+  const root = initial.sectors.find((s) => s.id === initial.position.sectorId)!
+  const forest = {
+    ...root,
+    regionId: 'frostmere',
+    townId: undefined,
+    landmarks: [],
+    buildings: [],
+    cells: root.cells.map((c) => ({ ...c, terrain: 't', walkable: true, safe: false })),
+  }
+  const run = (townId?: string) => {
+    const s = scene(false, { ...initial, sectors: [{ ...forest, townId }] })
+    try {
+      s.frame(40)
+      return new Set(
+        s.draws
+          .filter((d) => d.src.endsWith('nature-v02.webp') && d.args.length === 8)
+          .map((d) => Number(d.args[6]!.toFixed(3))),
+      )
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  }
+  expect(run().size).toBeGreaterThan(5)
+  expect(run(root.id).size).toBe(1)
+})

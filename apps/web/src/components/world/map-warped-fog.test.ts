@@ -38,6 +38,12 @@ it('varies private fringe depth along each exposed edge while leaving legal exit
   const gradients: number[][] = []
   const fills: number[][] = []
   const context = {
+    beginPath: vi.fn(),
+    moveTo: vi.fn(),
+    lineTo: vi.fn(),
+    quadraticCurveTo: vi.fn(),
+    closePath: vi.fn(),
+    fill: vi.fn(),
     createLinearGradient: (...points: number[]) => {
       gradients.push(points)
       return { addColorStop: vi.fn() }
@@ -72,6 +78,12 @@ it('paints only supplied private fringe sides with deterministic cached contours
   const sample = (mask: number) => {
     const gradients: number[][] = []
     const context = {
+      beginPath: vi.fn(),
+      moveTo: vi.fn(),
+      lineTo: vi.fn(),
+      quadraticCurveTo: vi.fn(),
+      closePath: vi.fn(),
+      fill: vi.fn(),
       createLinearGradient: (...points: number[]) => {
         gradients.push(points)
         return { addColorStop: vi.fn() }
@@ -90,4 +102,37 @@ it('paints only supplied private fringe sides with deterministic cached contours
   expect(sample(0b0010)).toEqual(sample(0b0010))
   expect(sample(0b0010).every(([x, , endX]) => x === 4 * 48 && endX! < x!)).toBe(true)
   expect(sample(0b0010).length).toBeLessThanOrEqual(16)
+})
+
+it('softens only exposed corners with curved in-cell wisps and keeps exits clear', () => {
+  const vertices: number[][] = [],
+    curves: number[][] = []
+  const ctx = {
+    createLinearGradient: () => ({ addColorStop: vi.fn() }),
+    fillRect: vi.fn(),
+    beginPath: vi.fn(),
+    closePath: vi.fn(),
+    fill: vi.fn(),
+    moveTo: (...v: number[]) => vertices.push(v),
+    lineTo: (...v: number[]) => vertices.push(v),
+    quadraticCurveTo: (...v: number[]) => curves.push(v),
+  }
+  const cell = { x: 3, y: 4, terrain: '=', walkable: true, safe: false }
+  paintWarpedFogEdge(ctx as unknown as CanvasRenderingContext2D, cell, 1, 0b1001)
+  expect(curves.length).toBe(1)
+  for (const [x, y] of [
+    ...vertices,
+    ...curves.flatMap((v) => [
+      [v[0]!, v[1]!],
+      [v[2]!, v[3]!],
+    ]),
+  ]) {
+    expect(x).toBeGreaterThanOrEqual(3)
+    expect(x).toBeLessThan(3.5)
+    expect(y).toBeGreaterThanOrEqual(4)
+    expect(y).toBeLessThan(4.5)
+  }
+  curves.length = 0
+  paintWarpedFogEdge(ctx as unknown as CanvasRenderingContext2D, cell, 1, 0b0001)
+  expect(curves).toHaveLength(0)
 })

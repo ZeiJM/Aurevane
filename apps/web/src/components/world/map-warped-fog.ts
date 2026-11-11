@@ -77,6 +77,41 @@ export function paintWarpedFogEdge(
       )
     }
   })
+  // Round only supplied exposed corners. Never span into an unknown neighbor,
+  // and keep the middle of every legal exit wholly outside these wisps.
+  for (const corner of [
+    { bits: 9, x: 0, y: 0, dx: 1, dy: 1 },
+    { bits: 3, x: 1, y: 0, dx: -1, dy: 1 },
+    { bits: 6, x: 1, y: 1, dx: -1, dy: -1 },
+    { bits: 12, x: 0, y: 1, dx: 1, dy: -1 },
+  ]) {
+    if ((mask & corner.bits) !== corner.bits) continue
+    const seed = hashString(`${cell.x}:${cell.y}:${corner.bits}:corner`)
+    const radius = (cell.walkable ? 0.35 + (seed % 8) / 100 : 0.68 + (seed % 13) / 100) * tile
+    const x = (cell.x + corner.x) * tile,
+      y = (cell.y + corner.y) * tile
+    const fog = context.createLinearGradient(
+      x,
+      y,
+      x + corner.dx * radius * 0.5,
+      y + corner.dy * radius * 0.5,
+    )
+    fog.addColorStop(0, WARPED_FOG_COLOR)
+    fog.addColorStop(0.35, 'rgba(37,44,61,.76)')
+    fog.addColorStop(1, 'rgba(37,44,61,0)')
+    context.fillStyle = fog
+    context.beginPath()
+    context.moveTo(x, y)
+    context.lineTo(x + corner.dx * radius, y)
+    context.quadraticCurveTo(
+      x + corner.dx * radius * 0.35,
+      y + corner.dy * radius * 0.35,
+      x,
+      y + corner.dy * radius,
+    )
+    context.closePath()
+    context.fill()
+  }
 }
 
 /** Small broken slate masses signal collision even when the full boulder sprite is omitted. */
