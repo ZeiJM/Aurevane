@@ -54,6 +54,25 @@ describe('public shoreline presentation', () => {
 })
 
 describe('shoreline material and corners', () => {
+  it.each([0, 1, 2, 3] as const)(
+    'breaks the straight dry shoreline on side %s without moving its endpoints or legal ground',
+    (side) => {
+      const edge = { side, from: 2, to: 7, seed: 53, openStart: false, openEnd: false }
+      const outward = ([x, y]: readonly [number, number]) =>
+        side === 0 ? -y : side === 1 ? x - 13 : side === 2 ? y - 9 : -x
+      const points = Array.from({ length: 21 }, (_, i) => coastPoint(edge, i / 20, 0))
+      const offsets = points.map(outward)
+      expect(Math.max(...offsets) - Math.min(...offsets)).toBeGreaterThan(0.06)
+      expect(offsets.every((offset) => offset >= 0 && offset <= 0.25)).toBe(true)
+      expect(offsets[0]).toBeCloseTo(0, 12)
+      expect(offsets.at(-1)).toBeCloseTo(0, 12)
+      expect(points.map((point) => point[side % 2 ? 1 : 0])).toEqual(
+        Array.from({ length: 21 }, (_, i) => 2 + i / 4),
+      )
+      expect(outward(coastPoint(edge, 0.5, -0.4))).toBeLessThan(0)
+    },
+  )
+
   it('joins two exposed edges through open sea while keeping the dry band inland', () => {
     const root = projectWorld(newWorldState(), [], 1000).sectors[0]!
     const sector = {
@@ -91,6 +110,7 @@ describe('shoreline material and corners', () => {
 
 it('fades the deep shelf edge before its outline so neighboring shallows stay visible', () => {
   const vertices: number[] = []
+  const paths: number[][] = []
   const addColorStop = vi.fn()
   const gradient = vi.fn(() => ({ addColorStop }))
   const context = {
@@ -101,7 +121,7 @@ it('fades the deep shelf edge before its outline so neighboring shallows stay vi
     moveTo: (x: number) => vertices.push(x),
     lineTo: (x: number) => vertices.push(x),
     closePath: vi.fn(),
-    fill: vi.fn(),
+    fill: () => paths.push(vertices.splice(0)),
   } as unknown as CanvasRenderingContext2D
   paintCoastSea(
     context,
@@ -114,10 +134,17 @@ it('fades the deep shelf edge before its outline so neighboring shallows stay vi
     0,
   )
   const gradientEnd = (gradient.mock.calls[0] as unknown as [number, number, number, number])[2]
-  const outline = vertices.filter((x) => x > 13)
+  // The first path returns along the outer shelf. The near bank now also
+  // extends into sea, so a simple x > 13 filter would mix both contours.
+  const outline = paths[0]!.slice(paths[0]!.length / 2)
   expect(outline.length).toBeGreaterThan(1)
   expect(gradientEnd).toBeLessThanOrEqual(Math.min(...outline))
   expect(addColorStop).toHaveBeenCalledWith(1, 'rgba(40,75,87,0)')
+  const apron = paths[1]!
+  expect(Math.min(...apron)).toBeLessThan(13)
+  expect(Math.max(...apron)).toBeGreaterThan(13.06)
+  const lip = paths[0]!.slice(0, outline.length).reverse()
+  apron.slice(apron.length / 2).forEach((point, i) => expect(point).toBeCloseTo(lip[i]!, 12))
 })
 
 it('brings out longer, brighter wave crests in strong wind within the same surf budget', () => {

@@ -50,6 +50,9 @@ export function registerWorldArtReviewCases({
       'biomes-v02',
       'beauties-v03',
       'regional-ground-v01',
+      ...(sector.charted && sector.landmarks.some(({ kind }) => kind === 'hamlet')
+        ? ['hamlet-buildings-v01']
+        : []),
       ...new Set(dressing.map(({ sheet }) => `${sheet}-v01`)),
       ...(sector.regionId === 'frostmere' ? ['frostmere-v01'] : []),
       ...(sector.buildings?.length ? ['regional-settlements-v01'] : []),

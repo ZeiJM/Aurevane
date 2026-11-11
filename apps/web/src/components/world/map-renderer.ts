@@ -60,7 +60,13 @@ import { buildBiomeTransitions } from './map-biome-transitions'
 
 import { worldRenderTerrain } from './map-render-terrain'
 import { buildSettlementGround, paintSettlementEdges } from './map-settlement-edge'
-import { naturalDressing, paintTownLight, paintVoidGlimmer, sceneryDressing } from './map-dressing'
+import {
+  hamletFamilyIndex,
+  naturalDressing,
+  paintTownLight,
+  paintVoidGlimmer,
+  sceneryDressing,
+} from './map-dressing'
 import { DEFAULT_MAP_QUALITY, mapQualityBudgets, type MapQuality } from './map-quality'
 import { paintSnowRoadShoulders } from './map-snow-road'
 import {
@@ -692,6 +698,17 @@ export function createMapRenderer(
   const loadRegionalArt = () => {
     for (const sector of renderSectors)
       for (const { sheet } of dressing.get(sector) ?? []) if (!images.has(sheet)) load(sheet, 'v01')
+    if (
+      !images.has('hamlet-buildings') &&
+      renderSectors.some(
+        (sector) =>
+          sector.charted &&
+          sector.landmarks.some(
+            ({ kind, name }) => kind === 'hamlet' && hamletFamilyIndex(name) !== undefined,
+          ),
+      )
+    )
+      load('hamlet-buildings', 'v01')
     if (!images.has('ferry-fittings') && renderSectors.some(({ id }) => id.startsWith('ferry:')))
       load('ferry-fittings', 'v02', 'svg')
     if (!images.has(WINTER_ART) && renderSectors.some((sector) => sector.regionId === WINTER_ART))
@@ -1474,6 +1491,7 @@ export function createMapRenderer(
       beauties = images.get('beauties'),
       winterArt = images.get(WINTER_ART),
       settlementArt = images.get('regional-settlements'),
+      hamletBuildings = images.get('hamlet-buildings'),
       warpedLandmarks = images.get('warped-landmarks'),
       warpedRefuges = images.get('warped-refuges')
     let waterCells = 0,
@@ -1770,6 +1788,27 @@ export function createMapRenderer(
               })
               continue
             }
+          }
+          const hamlet =
+            sector.charted && landmark.kind === 'hamlet'
+              ? hamletFamilyIndex(landmark.name)
+              : undefined
+          if (hamlet !== undefined && hamletBuildings?.complete && hamletBuildings.naturalWidth) {
+            const size = tile * 3.2
+            addScenery({
+              x: origin.x + landmark.x + 0.5,
+              y: origin.y + landmark.y + 0.67,
+              width: size,
+              height: size * WORLD_STRUCTURE_ASPECT,
+              image: hamletBuildings,
+              index: hamlet,
+              columns: 2,
+              rows: 2,
+              anchorX: 0.5,
+              anchorY: WORLD_STRUCTURE_FLOOR,
+              tree: false,
+            })
+            continue
           }
           const scenic =
             landmark.sceneryIndex !== undefined && beauties?.complete && beauties.naturalWidth

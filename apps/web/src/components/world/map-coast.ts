@@ -103,8 +103,16 @@ export function coastPoint(
   distance: number,
 ): readonly [number, number] {
   const along = edge.from + (edge.to - edge.from) * t,
+    // Keep the legal ground intact. This wet apron only extends into public
+    // sea, tapering to the authored endpoints and away from the bank's face.
+    apron =
+      Math.sin(t * Math.PI) ** 2 *
+      (0.13 +
+        Math.sin(along * 0.81 + edge.seed) * 0.07 +
+        Math.sin(along * 1.73 + edge.seed) * 0.04),
     outward =
       distance +
+      apron * Math.max(0, 1 - Math.abs(distance) / 0.65) +
       (Math.sin(along * 1.23 + edge.seed) * 0.12 + Math.sin(along * 2.81 + edge.seed) * 0.045) *
         distance *
         Math.sin(t * Math.PI)
@@ -206,7 +214,7 @@ function paintBand(
   tile: number,
   from: number,
   to: number,
-  colour: CanvasGradient,
+  colour: CanvasGradient | string,
 ) {
   context.beginPath()
   trace(context, edge, tile, from)
@@ -334,6 +342,10 @@ export function paintCoastSea(
     const gradient = colourBand(context, edge, tile, 0, SHELF_BLEND)
     shelfStops(gradient, palette)
     paintBand(context, edge, tile, 0, SHELF_DEPTH, gradient)
+    // The cached dry raster ends at the rectangular sector border. Back the
+    // curved wet lip before that raster is drawn, so the border cannot show
+    // through as a straight gap between land and the displaced shallows.
+    paintBand(context, edge, tile, -0.3, 0, palette.wet)
     for (let wave = 0; wave < waves; wave++) {
       const phase = animate
         ? (now / (9600 + (edge.seed % 2000)) + wave / waves + (edge.seed % 97) / 97) % 1

@@ -38,6 +38,8 @@ const hamletWork: Partial<Record<string, number>> = {
   'Brookside Steading': 3,
 }
 
+export const hamletFamilyIndex = (name: string) => hamletWork[name]
+
 const voidGlow = {
   haven: '#cfe8bd',
   ashen: '#f89557',
@@ -132,7 +134,7 @@ export function sceneryDressing(sector: WorldSectorView): ScenicDressing[] {
     place(sheet, index, { x, y }, { sideGround: true })
   }
   if (smallSettlement) {
-    const index = hamletWork[smallSettlement.name]
+    const index = hamletFamilyIndex(smallSettlement.name)
     if (index !== undefined) place('hamlet-dressing', index, smallSettlement)
   }
   return dressing
