@@ -434,6 +434,14 @@ async function measureWorldMultiplayer(
     result.observerRendererCallbackP95Ms = Number(await canvas.getAttribute('data-frame-p95'))
     // The rolling counter above can still contain arrival work. Collect a
     // fresh window with all eight sessions connected after the move receipts.
+    const profiles = await Promise.all(
+      participants.map(async ({ page }) => {
+        const client = await page.context().newCDPSession(page)
+        await client.send('Performance.enable')
+        const before = await client.send('Performance.getMetrics')
+        return { client, before }
+      }),
+    )
     const postArrival = await canvas.evaluate((element) => {
       const stage = element as HTMLCanvasElement
       const started = performance.now()
@@ -478,6 +486,29 @@ async function measureWorldMultiplayer(
       ),
       browserFrameIntervalMs: percentiles(postArrival.frameIntervals),
     }
+    result.hotspotBrowserWork = await Promise.all(
+      profiles.map(async ({ client, before }, session) => {
+        try {
+          const after = await client.send('Performance.getMetrics')
+          const previous = new Map(before.metrics.map(({ name, value }) => [name, value]))
+          const current = new Map(after.metrics.map(({ name, value }) => [name, value]))
+          const elapsed = (name: string) => {
+            expect(previous.has(name) && current.has(name)).toBe(true)
+            return Number(((current.get(name)! - previous.get(name)!) * 1000).toFixed(1))
+          }
+          return {
+            session,
+            elapsedMs: elapsed('Timestamp'),
+            mainThreadBusyMs: elapsed('TaskDuration'),
+            scriptMs: elapsed('ScriptDuration'),
+            layoutMs: elapsed('LayoutDuration'),
+            styleMs: elapsed('RecalcStyleDuration'),
+          }
+        } finally {
+          await client.detach()
+        }
+      }),
+    )
     await first.page.screenshot({ path: info.outputPath('world-multiplayer-hotspot.png') })
 
     result.reconnectCanvasReadyMs = percentiles(await load(true))

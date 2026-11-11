@@ -26,3 +26,13 @@ The artwork is original AI-assisted game scenery inspired by the supplied compos
 | `regional-ground-v01.webp` | Aureth meadow, Verdant moss, Frostmere snow, Starfall slate, Emberreach ash, Glasswind sand, Hollow Coast grass, Umbral forest earth | 181050 |
 
 This renderer update uses the existing coordinates, protection flags and traversal rules. The earlier request for major-town Quick Travel and one replaceable or clearable custom pin is tracked as a separate travel change. Native visual acceptance remains open. Local Chromium exited before navigation because the workspace denied its process socket.
+
+## Native follow-through
+
+The completed runs for `b406726a322b2032f110b82f7d41296a23b31457` passed CI, Living Atlas and Responsive browser smoke. The reviewed Frostmere capture confirms that the deep shelf no longer covers neighboring shallows. Long straight shore edges remain visible and still need natural shaping review.
+
+The eight-session test reports 2.9 ms p95 renderer work after arrival, but 150 ms p95 browser frame intervals. The rolling renderer counter still includes 250 ms p95 earlier work. Physical-handset performance remains open. The next run also records each session's elapsed, main-thread task, script, layout and style time across that sample to investigate the delay.
+
+Native capture coverage now enumerates all 72 existing mainland hamlets by region and all thirteen private Void districts. Seven additional phase views cover the five rare observations and the Cinderfields and Relic Valley refuges. Phase zero already includes Lantern Refuge. The fixtures survey only disposable local characters and exercise the authenticated World page and its private scene projection. These captures require visual review after the browser run.
+
+Verification for this follow-up covers TypeScript, targeted ESLint and formatting, Playwright discovery, the real hamlet and Void placement preflight, and adjacent dressing, projection and timing tests. Runtime game logic and migrations are outside this follow-up. The configured CI and browser workflows provide the native final verification.
