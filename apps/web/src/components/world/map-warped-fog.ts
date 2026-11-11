@@ -76,6 +76,40 @@ export function paintWarpedFogEdge(
         (vertical ? 1 / strips : depth) * tile,
       )
     }
+    // Blocked edge cells can accept a deeper curved pocket without hiding a
+    // legal exit. Scenery is composited after this cached ground pass, so the
+    // lobe breaks the square floor silhouette while focal art stays readable.
+    if (!cell.walkable) {
+      const seed = hashString(`${cell.x}:${cell.y}:${i}:pocket`)
+      const start = 0.05 + (seed % 13) / 100
+      const end = 0.86 - ((seed >>> 7) % 12) / 100
+      const middle = 0.38 + ((seed >>> 14) % 25) / 100
+      const depth = 0.58 + ((seed >>> 20) % 19) / 100
+      const edgeX = cell.x + x
+      const edgeY = cell.y + y
+      const startX = edgeX + (vertical ? 0 : start)
+      const startY = edgeY + (vertical ? start : 0)
+      const endX = edgeX + (vertical ? 0 : end)
+      const endY = edgeY + (vertical ? end : 0)
+      const innerX = edgeX + (vertical ? -dx * depth : middle)
+      const innerY = edgeY + (vertical ? middle : -dy * depth)
+      const pocket = context.createLinearGradient(
+        edgeX * tile,
+        edgeY * tile,
+        (edgeX - dx * depth) * tile,
+        (edgeY - dy * depth) * tile,
+      )
+      pocket.addColorStop(0, WARPED_FOG_COLOR)
+      pocket.addColorStop(0.52, 'rgba(37,44,61,.84)')
+      pocket.addColorStop(1, 'rgba(37,44,61,0)')
+      context.fillStyle = pocket
+      context.beginPath()
+      context.moveTo(startX * tile, startY * tile)
+      context.lineTo(endX * tile, endY * tile)
+      context.quadraticCurveTo(innerX * tile, innerY * tile, startX * tile, startY * tile)
+      context.closePath()
+      context.fill()
+    }
   })
   // Round only supplied exposed corners. Never span into an unknown neighbor,
   // and keep the middle of every legal exit wholly outside these wisps.

@@ -136,3 +136,41 @@ it('softens only exposed corners with curved in-cell wisps and keeps exits clear
   paintWarpedFogEdge(ctx as unknown as CanvasRenderingContext2D, cell, 1, 0b0001)
   expect(curves).toHaveLength(0)
 })
+
+it('cuts deterministic curved fog pockets into blocked fringe cells without covering legal exits', () => {
+  const sample = (walkable: boolean) => {
+    const curves: number[][] = []
+    const vertices: number[][] = []
+    const context = {
+      createLinearGradient: () => ({ addColorStop: vi.fn() }),
+      fillRect: vi.fn(),
+      beginPath: vi.fn(),
+      closePath: vi.fn(),
+      fill: vi.fn(),
+      moveTo: (...points: number[]) => vertices.push(points),
+      lineTo: (...points: number[]) => vertices.push(points),
+      quadraticCurveTo: (...points: number[]) => curves.push(points),
+    }
+    paintWarpedFogEdge(
+      context as unknown as CanvasRenderingContext2D,
+      { x: 3, y: 4, terrain: walkable ? '=' : 'o', walkable, safe: false },
+      1,
+      0b0010,
+    )
+    return { curves, vertices }
+  }
+  const blocked = sample(false)
+  expect(blocked.curves.length).toBeGreaterThan(0)
+  expect(sample(false)).toEqual(blocked)
+  expect(sample(true).curves).toEqual([])
+  for (const [cx, cy, x, y] of blocked.curves) {
+    expect(cx).toBeGreaterThanOrEqual(3.2)
+    expect(cx).toBeLessThanOrEqual(4)
+    expect(x).toBeGreaterThanOrEqual(3.2)
+    expect(x).toBeLessThanOrEqual(4)
+    expect(cy).toBeGreaterThanOrEqual(4)
+    expect(cy).toBeLessThanOrEqual(5)
+    expect(y).toBeGreaterThanOrEqual(4)
+    expect(y).toBeLessThanOrEqual(5)
+  }
+})

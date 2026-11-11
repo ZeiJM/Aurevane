@@ -238,6 +238,48 @@ it.each([0, 1, 2, 3] as const)(
   },
 )
 
+it.each([0, 1, 2, 3] as const)(
+  'interrupts the straight bank on side %s with bounded wet-sediment tongues',
+  (side) => {
+    const paths: { points: number[][]; stops: string[] }[] = []
+    let points: number[][] = []
+    const context = {
+      save: vi.fn(),
+      restore: vi.fn(),
+      beginPath: () => {
+        points = []
+      },
+      moveTo: (x: number, y: number) => points.push([x, y]),
+      lineTo: (x: number, y: number) => points.push([x, y]),
+      closePath: vi.fn(),
+      fillRect: vi.fn(),
+      createLinearGradient: () => ({
+        stops: [] as string[],
+        addColorStop(_at: number, colour: string) {
+          this.stops.push(colour)
+        },
+      }),
+      fillStyle: null as unknown,
+      fill() {
+        paths.push({ points, stops: (this.fillStyle as { stops: string[] }).stops })
+      },
+    }
+    const edge = { side, from: 1, to: 8, seed: 91, openStart: false, openEnd: false }
+    paintCoastLand(context as unknown as CanvasRenderingContext2D, [edge], 1, 'frostmere')
+    const wash = paths.filter(({ stops }) => stops.includes('#575b54'))
+    expect(wash.length).toBeGreaterThanOrEqual(3)
+    for (const { points: vertices } of wash) {
+      const along = vertices.map((point) => point[side % 2 ? 1 : 0]!)
+      expect(Math.max(...along) - Math.min(...along)).toBeLessThan(1.8)
+      for (const [x, y] of vertices) {
+        const inward = side === 0 ? y! : side === 1 ? 13 - x! : side === 2 ? 9 - y! : x!
+        expect(inward).toBeGreaterThanOrEqual(-1e-12)
+        expect(inward).toBeLessThanOrEqual(0.72)
+      }
+    }
+  },
+)
+
 it('retains the global sixteen-edge and three-crest surf budget', () => {
   const context = {
     save: vi.fn(),

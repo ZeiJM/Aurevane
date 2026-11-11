@@ -284,6 +284,20 @@ export function paintCoastLand(
     gradient.addColorStop(0.68, `rgba(${palette.dry},.28)`)
     gradient.addColorStop(1, 'transparent')
     paintLandBand(context, edge, tile, palette.width, gradient)
+    // Dark wet-sediment tongues reach into legal ground in short, separated
+    // patches. They change only the cached surface material: the authored
+    // border, walkability and sea apron remain exactly where they were.
+    const wash = colourBand(context, edge, tile, 0, -0.72)
+    wash.addColorStop(0, palette.wet)
+    wash.addColorStop(0.38, `rgba(${palette.dry},.58)`)
+    wash.addColorStop(1, 'transparent')
+    const washPatches = Math.max(3, Math.ceil((edge.to - edge.from) / 1.7))
+    for (let i = 0; i < washPatches; i++) {
+      const seed = hashString(`${edge.seed}:${edge.from}:${i}:wash`)
+      const from = (i + 0.04 + (seed % 11) / 100) / washPatches
+      const to = Math.min(1, (i + 0.5 + ((seed >>> 7) % 19) / 100) / washPatches)
+      paintLandBand(context, edge, tile, 0.34 + ((seed >>> 15) % 15) / 100, wash, from, to, true)
+    }
     const wrack = colourBand(context, edge, tile, 0, -0.36)
     wrack.addColorStop(0, 'rgba(48,49,44,.72)')
     wrack.addColorStop(0.42, `rgba(${palette.dry},.51)`)
