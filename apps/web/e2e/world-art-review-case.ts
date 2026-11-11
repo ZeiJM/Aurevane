@@ -1,3 +1,4 @@
+import { unoccupiedArtStep } from './world-art-step'
 import { waitForWorldArt } from './world-art-readiness'
 import { createHash } from 'node:crypto'
 import { writeFileSync } from 'node:fs'
@@ -109,66 +110,71 @@ export function registerWorldArtReviewCases({
           },
         })
       })
-      const cases: WorldView['environment']['weather'][] =
-        info.project.name === 'mobile-chromium'
-          ? ['clear', 'storm']
-          : ['clear', 'overcast', 'wind', 'fog', 'rain', 'storm']
-      const evidence: unknown[] = []
-      const canvas = page.locator('canvas[data-world-stage]')
-      for (const condition of cases) {
-        weather = condition
-        const result = await scene(page, characterId, { sectorId: region.id, x: 6, y: 4 })
-        expect(result.sector.townId).toBe(region.id)
-        expect(result.dressing.length).toBeGreaterThan(0)
-        const precipitation =
-          condition === 'rain' || condition === 'storm'
-            ? region.id === 'frostmere'
-              ? 'snow'
-              : 'rain'
-            : 'none'
-        await expect(canvas).toHaveAttribute('data-precipitation', precipitation)
-        if (precipitation !== 'none')
-          await expect
-            .poll(async () => Number(await canvas.getAttribute('data-precipitation-particles')))
-            .toBeGreaterThan(0)
-        const frames = []
-        for (let sample = 0; sample < 2; sample++) {
-          const frame = Number(await canvas.getAttribute('data-frame-now'))
-          await expect
-            .poll(async () => Number(await canvas.getAttribute('data-frame-now')))
-            .toBeGreaterThan(frame + 240)
-          // Native screenshots remain readable even when a public portrait taints Canvas.
-          const pixels = await canvas.screenshot({ animations: 'disabled' })
-          frames.push({
-            frame: Number(await canvas.getAttribute('data-frame-now')),
-            sha256: createHash('sha256').update(pixels).digest('hex'),
+      try {
+        const cases: WorldView['environment']['weather'][] =
+          info.project.name === 'mobile-chromium'
+            ? ['clear', 'storm']
+            : ['clear', 'overcast', 'wind', 'fog', 'rain', 'storm']
+        const evidence: unknown[] = []
+        const canvas = page.locator('canvas[data-world-stage]')
+        for (const condition of cases) {
+          weather = condition
+          const result = await scene(page, characterId, { sectorId: region.id, x: 6, y: 4 })
+          expect(result.sector.townId).toBe(region.id)
+          expect(result.dressing.length).toBeGreaterThan(0)
+          const precipitation =
+            condition === 'rain' || condition === 'storm'
+              ? region.id === 'frostmere'
+                ? 'snow'
+                : 'rain'
+              : 'none'
+          await expect(canvas).toHaveAttribute('data-precipitation', precipitation)
+          if (precipitation !== 'none')
+            await expect
+              .poll(async () => Number(await canvas.getAttribute('data-precipitation-particles')))
+              .toBeGreaterThan(0)
+          const frames = []
+          for (let sample = 0; sample < 2; sample++) {
+            const frame = Number(await canvas.getAttribute('data-frame-now'))
+            await expect
+              .poll(async () => Number(await canvas.getAttribute('data-frame-now')))
+              .toBeGreaterThan(frame + 240)
+            // Native screenshots remain readable even when a public portrait taints Canvas.
+            const pixels = await canvas.screenshot({ animations: 'disabled' })
+            frames.push({
+              frame: Number(await canvas.getAttribute('data-frame-now')),
+              sha256: createHash('sha256').update(pixels).digest('hex'),
+            })
+            await capture(page, info, `art-town-${region.id}-${condition}-${sample}`)
+          }
+          // Rain/snow is genuinely moving, not only a weather label in scene metadata.
+          if (condition === 'rain' || condition === 'storm')
+            expect(frames[0]!.sha256).not.toBe(frames[1]!.sha256)
+          evidence.push({
+            visualFixture: { weather: condition, minuteOfDay: 720, frozen: true },
+            frames,
+            ...result,
           })
-          await capture(page, info, `art-town-${region.id}-${condition}-${sample}`)
         }
-        // Rain/snow is genuinely moving, not only a weather label in scene metadata.
-        if (condition === 'rain' || condition === 'storm')
-          expect(frames[0]!.sha256).not.toBe(frames[1]!.sha256)
-        evidence.push({
-          visualFixture: { weather: condition, minuteOfDay: 720, frozen: true },
-          frames,
-          ...result,
-        })
+        await page.emulateMedia({ reducedMotion: 'reduce' })
+        await expect(canvas).toHaveAttribute('data-precipitation-particles', '0')
+        await capture(page, info, `art-town-${region.id}-reduced-motion`)
+        writeFileSync(
+          info.outputPath('world-art-review.json'),
+          JSON.stringify(
+            {
+              scope: 'local visual weather fixture, not shared weather or human acceptance',
+              evidence,
+              reducedMotion: true,
+            },
+            null,
+            2,
+          ),
+        )
+      } finally {
+        // Drain intercepted polling before Playwright disposes its route request context.
+        await page.unrouteAll({ behavior: 'wait' })
       }
-      await page.emulateMedia({ reducedMotion: 'reduce' })
-      await expect(canvas).toHaveAttribute('data-precipitation-particles', '0')
-      await capture(page, info, `art-town-${region.id}-reduced-motion`)
-      writeFileSync(
-        info.outputPath('world-art-review.json'),
-        JSON.stringify(
-          {
-            scope: 'local visual weather fixture, not shared weather or human acceptance',
-            evidence,
-            reducedMotion: true,
-          },
-          null,
-          2,
-        ),
-      )
     })
   }
 
@@ -198,13 +204,20 @@ export function registerWorldArtReviewCases({
         }
       })
     const evidence = []
-    for (const { label, from, to } of cases) {
+    for (const { label, from, to: preferred } of cases) {
       const start = sector.cells.find((c) => c.x === from.x && c.y === from.y)!
-      const end = sector.cells.find((c) => c.x === to.x && c.y === to.y)!
       expect(start.walkable).toBe(true)
-      expect(end.walkable).toBe(true)
       if (label === 'tree') expect(start.terrain).toBe('t')
       await scene(page, characterId, { sectorId: sector.id, ...from })
+      const fresh = await world(page)
+      const destination = unoccupiedArtStep(sector, from, preferred, [
+        ...fresh.players,
+        ...(fresh.npcs ?? []),
+      ])
+      expect(destination, 'Capture walk requires an unoccupied legal adjacent cell').toBeDefined()
+      const to = destination!
+      const end = sector.cells.find((c) => c.x === to.x && c.y === to.y)!
+      expect(end.walkable).toBe(true)
       const before = await sample()
       expect(before.visible).toBe(true)
       expect(before.opacity).toBe(1)
@@ -244,10 +257,8 @@ export function registerWorldArtReviewCases({
       expect(ghostAlpha).toBeGreaterThan(0)
       expect(ghostAlpha).toBeLessThanOrEqual(1)
       await capture(page, info, `art-occlusion-${label}-before`)
-      await stageWalk(page, { sectorId: sector.id, ...to })
-      await expect
-        .poll(async () => (await world(page)).position)
-        .toEqual({ sectorId: sector.id, ...to })
+      await stageWalk(page, to)
+      await expect.poll(async () => (await world(page)).position).toEqual(to)
       // Wait for the actual client traveller to catch the authoritative endpoint.
       const canvas = page.locator('canvas[data-world-stage]')
       await expect
