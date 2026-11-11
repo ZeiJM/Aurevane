@@ -1545,6 +1545,23 @@ export function createMapRenderer(
             })
           }
           if (cell.terrain !== 't' && cell.terrain !== '#') continue
+          // Keep the viewing side of surveyed private landmarks clear of
+          // canopy. Ground and walkability retain their authoritative terrain.
+          if (
+            cell.terrain === 't' &&
+            sector.warpedTheme &&
+            sector.landmarks.some((landmark) => {
+              const dx = cell.x - landmark.x
+              const dy = cell.y - landmark.y
+              return (
+                landmark.warpedArt !== undefined &&
+                dx + dy >= 0 &&
+                dx + dy <= 3 &&
+                Math.abs(dx - dy) <= 2
+              )
+            })
+          )
+            continue
           const rock = cell.terrain === '#'
           const mixedTreeRegion = mixedTreeRegions?.get(cell)
           const treeRegion = mixedTreeRegion ?? sector.regionId

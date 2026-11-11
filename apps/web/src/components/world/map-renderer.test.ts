@@ -3383,3 +3383,50 @@ it('draws the new regional material and focal asset at normal zoom', () => {
     vi.unstubAllGlobals()
   }
 })
+
+it.each([
+  ['private', true, 2],
+  ['ordinary', false, 3],
+] as const)(
+  'retains surrounding trees while clearing only %s landmark foregrounds',
+  (_name, privateScene, expectedTrees) => {
+    const state = newWorldState()
+    state.position = { sectorId: 'uncharted-tarn', x: 6, y: 4 }
+    state.warpedPhase = 7
+    state.discoveries[state.position.sectorId] = Array.from({ length: 117 }, (_, i) => i)
+    const view = projectWorld(state, [], 1000)
+    const sector = view.sectors.find(({ id }) => id === state.position.sectorId)!
+    const initial = {
+      ...view,
+      sectors: [
+        {
+          ...sector,
+          regionId: 'aureth-crown',
+          landscape: undefined,
+          warpedTheme: privateScene ? sector.warpedTheme : undefined,
+          cells: sector.cells.map((cell) => ({
+            ...cell,
+            terrain:
+              (cell.x === 8 && cell.y === 6) ||
+              (cell.x === 3 && cell.y === 1) ||
+              (cell.x === 7 && cell.y === 4)
+                ? 't'
+                : '.',
+          })),
+        },
+      ],
+    }
+    const s = scene(false, initial)
+    try {
+      s.frame(40)
+      expect(s.draws.filter(({ src }) => src.endsWith('biomes-v02.webp'))).toHaveLength(
+        expectedTrees,
+      )
+      expect(s.draws.some(({ src }) => src.endsWith('warped-landmarks-v01.webp'))).toBe(true)
+      expect(initial.sectors[0]!.cells.find(({ x, y }) => x === 8 && y === 6)?.terrain).toBe('t')
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  },
+)
