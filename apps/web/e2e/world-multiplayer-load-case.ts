@@ -30,6 +30,73 @@ function percentiles(values: number[]) {
   return { samples: values.length, p50: at(0.5), p95: at(0.95), p99: at(0.99) }
 }
 
+export async function captureNativeBrowserWork(browser: Browser, info: TestInfo) {
+  const client = await browser.newBrowserCDPSession()
+  type Event = {
+    name: string
+    cat: string
+    ph: string
+    ts: number
+    dur?: number
+    pid: number
+    tid: number
+    args?: Record<string, unknown>
+  }
+  const traceEvents: Event[] = []
+  let droppedEvents = 0
+  const categories = 'toplevel,devtools.timeline,cc,gpu,disabled-by-default-devtools.timeline'
+  client.on('Tracing.dataCollected', ({ value }) => {
+    // The protocol declares trace events as unstructured dictionaries.
+    for (const event of value as unknown as Event[]) {
+      if (!['X', 'B', 'E', 'M', 'i', 'I'].includes(event.ph)) continue
+      if (traceEvents.length >= 100_000) {
+        droppedEvents++
+        continue
+      }
+      // Timing and thread labels suffice for attribution. Omit URLs, request
+      // details, stacks and other event arguments from the saved evidence.
+      const { name, cat, ph, ts, dur, pid, tid } = event
+      traceEvents.push({
+        name,
+        cat,
+        ph,
+        ts,
+        dur,
+        pid,
+        tid,
+        ...(ph === 'M' && typeof event.args?.name === 'string'
+          ? { args: { name: event.args.name } }
+          : {}),
+      })
+    }
+  })
+  try {
+    await client.send('Tracing.start', { categories, transferMode: 'ReportEvents' })
+    const startedAt = performance.now()
+    try {
+      // A separate four-second window preserves the untraced cadence sample.
+      await new Promise((resolve) => setTimeout(resolve, 4000))
+    } finally {
+      const complete = new Promise<void>((resolve) =>
+        client.once('Tracing.tracingComplete', () => resolve()),
+      )
+      await client.send('Tracing.end')
+      await complete
+    }
+    await writeFile(
+      info.outputPath('world-multiplayer-native-trace.json'),
+      JSON.stringify({
+        traceEvents,
+        droppedEvents,
+        categories,
+        elapsedMs: performance.now() - startedAt,
+      }),
+    )
+  } finally {
+    await client.detach()
+  }
+}
+
 async function measured<T>(send: () => Promise<APIResponse>) {
   const started = performance.now()
   const response = await send()
@@ -510,6 +577,7 @@ async function measureWorldMultiplayer(
       }),
     )
     await first.page.screenshot({ path: info.outputPath('world-multiplayer-hotspot.png') })
+    await captureNativeBrowserWork(browser, info)
 
     result.reconnectCanvasReadyMs = percentiles(await load(true))
     await expect.poll(async () => (await world(first.page)).position.sectorId).toBe('atlas:59:28')

@@ -158,6 +158,7 @@ jobs:
             apps/web/test-results/**/world-private-scene-join-diagnostics.json
             apps/web/test-results/**/world-live-peer-delivery.json
             apps/web/test-results/**/world-multiplayer-load.json
+            apps/web/test-results/**/world-multiplayer-native-trace.json
             apps/web/test-results/**/world-multiplayer-hotspot.png
             apps/web/test-results/**/world-art-review.json
             apps/web/test-results/**/art-hamlet-*.png
