@@ -161,6 +161,7 @@ jobs:
             apps/web/test-results/**/world-multiplayer-native-trace.json
             apps/web/test-results/**/world-multiplayer-hotspot.png
             apps/web/test-results/**/world-art-review.json
+            apps/web/test-results/**/world-ambient-pause.json
             apps/web/test-results/**/art-*.png
             apps/web/test-results/**/biome-boundary-*.png
             apps/web/test-results/**/coastal-road-*.png
@@ -176,6 +177,13 @@ jobs:
             apps/web/test-results/**/world-realtime-diagnostics.json
             apps/web/test-results/**/portrait-zoom-*.png
             apps/web/test-results/**/world-refined-controls.png
+          retention-days: 7
+      - name: Save bounded ambient pause failure evidence
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: living-atlas-ambient-pause-failure
+          path: apps/web/test-results/*ambient*/
           retention-days: 7
       - name: Save Atlas screenshots and traces
         if: always()

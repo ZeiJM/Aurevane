@@ -1,5 +1,5 @@
 import { openMapSettings, closeMapSettings } from './world-map-settings-helpers'
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import {
   gateWorldMutationDefinition,
   WORLD_MUTATION_GATE_SIGNATURES,
@@ -1633,14 +1633,41 @@ test('ambient clouds, water and wildlife remain alive with bounded effects and c
     cloudPhase: await canvas.getAttribute('data-cloud-phase'),
     wildlifeWalking: await canvas.getAttribute('data-wildlife-walking'),
   }
-  const pausedFrame = await canvas.screenshot()
+  const pauseState = async () => {
+    const snapshot = await world(page)
+    return {
+      environment: snapshot.environment,
+      serverNow: snapshot.serverNow,
+      position: snapshot.position,
+      routeLength: snapshot.route.length,
+      playersDigest: createHash('sha256').update(JSON.stringify(snapshot.players)).digest('hex'),
+      canvas: await canvas.evaluate((node) => ({ ...node.dataset })),
+      artResources: await page.evaluate(() =>
+        (performance.getEntriesByType('resource') as PerformanceResourceTiming[])
+          .filter((entry) => new URL(entry.name).pathname.startsWith('/media/art/'))
+          .map((entry) => ({ path: new URL(entry.name).pathname, end: entry.responseEnd })),
+      ),
+    }
+  }
+  const beforePauseState = await pauseState()
+  const pausedFrame = await canvas.screenshot({
+    path: info.outputPath('terrain-motion-paused-before.png'),
+  })
   await page.waitForTimeout(1200)
   expect({
     clouds: await canvas.getAttribute('data-clouds'),
     cloudPhase: await canvas.getAttribute('data-cloud-phase'),
     wildlifeWalking: await canvas.getAttribute('data-wildlife-walking'),
   }).toEqual(ambientState)
-  expect((await canvas.screenshot()).equals(pausedFrame)).toBe(true)
+  const afterPauseState = await pauseState()
+  const afterPauseFrame = await canvas.screenshot({
+    path: info.outputPath('terrain-motion-paused-after.png'),
+  })
+  writeFileSync(
+    info.outputPath('world-ambient-pause.json'),
+    JSON.stringify({ before: beforePauseState, after: afterPauseState }),
+  )
+  expect(afterPauseFrame.equals(pausedFrame)).toBe(true)
   await openMapSettings(page)
   await page.getByRole('checkbox', { name: 'Ambient animation', exact: true }).check()
   await closeMapSettings(page)
