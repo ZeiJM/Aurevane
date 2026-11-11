@@ -45,20 +45,37 @@ export function paintWarpedFogEdge(
 ) {
   edges.forEach(({ dx, dy, x, y }, i) => {
     if (!(mask & (1 << i))) return
-    const startX = (cell.x + x) * tile,
-      startY = (cell.y + y) * tile
-    const depth = cell.walkable ? 0.37 : 0.56
-    const fog = context.createLinearGradient(
-      startX,
-      startY,
-      startX - dx * tile * depth,
-      startY - dy * tile * depth,
-    )
-    fog.addColorStop(0, WARPED_FOG_COLOR)
-    fog.addColorStop(0.44, 'rgba(37,44,61,.71)')
-    fog.addColorStop(1, 'rgba(37,44,61,0)')
-    context.fillStyle = fog
-    context.fillRect(cell.x * tile, cell.y * tile, tile + 1, tile + 1)
+    const vertical = dx !== 0
+    const across = vertical ? cell.x + x : cell.y + y
+    const along = vertical ? cell.y : cell.x
+    const salt = ((hashString(`${i}:${across}:fog`) % 997) / 997) * Math.PI * 2
+    // Cached narrow strips follow an uneven fringe instead of one square fade.
+    // Even four exposed sides leave a walkable exit's center wholly readable.
+    const strips = 12
+    for (let strip = 0; strip < strips; strip++) {
+      const t = (strip + 0.5) / strips
+      const phase = (along + t) * Math.PI * 2 + salt
+      const depth =
+        (cell.walkable ? 0.32 : 0.53) + Math.sin(phase) * 0.075 + Math.sin(phase * 2.1) * 0.025
+      const startX = (cell.x + x + (vertical ? 0 : t)) * tile
+      const startY = (cell.y + y + (vertical ? t : 0)) * tile
+      const fog = context.createLinearGradient(
+        startX,
+        startY,
+        startX - dx * tile * depth,
+        startY - dy * tile * depth,
+      )
+      fog.addColorStop(0, WARPED_FOG_COLOR)
+      fog.addColorStop(0.44, 'rgba(37,44,61,.71)')
+      fog.addColorStop(1, 'rgba(37,44,61,0)')
+      context.fillStyle = fog
+      context.fillRect(
+        (cell.x + (vertical ? (dx > 0 ? 1 - depth : 0) : strip / strips)) * tile,
+        (cell.y + (vertical ? strip / strips : dy > 0 ? 1 - depth : 0)) * tile,
+        (vertical ? depth : 1 / strips) * tile,
+        (vertical ? 1 / strips : depth) * tile,
+      )
+    }
   })
 }
 

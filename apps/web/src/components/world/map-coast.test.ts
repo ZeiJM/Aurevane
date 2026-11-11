@@ -3,7 +3,7 @@ vi.mock('server-only', () => ({}))
 import { projectWorld } from '@/server/world/world-service'
 import { newWorldState } from '@/world/travel'
 import type { WorldView } from '@/world/types'
-import { buildPublicCoasts, coastPoint, paintCoastSea } from './map-coast'
+import { buildPublicCoasts, coastPoint, paintCoastLand, paintCoastSea } from './map-coast'
 
 describe('public shoreline presentation', () => {
   const view = (): WorldView => projectWorld(newWorldState(), [], 1000)
@@ -182,4 +182,88 @@ it('brings out longer, brighter wave crests in strong wind within the same surf 
   expect(calm).toHaveLength(3)
   expect(storm).toHaveLength(3)
   expect(storm[0]!).toBeGreaterThan(calm[0]!)
+})
+
+it.each([0, 1, 2, 3] as const)(
+  'breaks the dark inland face into bounded wrack patches on side %s',
+  (side) => {
+    const paths: { points: number[][]; stops: string[] }[] = []
+    let points: number[][] = []
+    const context = {
+      save: vi.fn(),
+      restore: vi.fn(),
+      beginPath: () => {
+        points = []
+      },
+      moveTo: (x: number, y: number) => points.push([x, y]),
+      lineTo: (x: number, y: number) => points.push([x, y]),
+      closePath: vi.fn(),
+      fillRect: (x: number, y: number, width: number, height: number) =>
+        paths.push({
+          points: [
+            [x, y],
+            [x + width, y + height],
+          ],
+          stops: [],
+        }),
+      createLinearGradient: () => ({
+        stops: [] as string[],
+        addColorStop(_at: number, colour: string) {
+          this.stops.push(colour)
+        },
+      }),
+      fillStyle: null as unknown,
+      fill() {
+        paths.push({ points, stops: (this.fillStyle as { stops: string[] }).stops })
+      },
+    }
+    const edge = { side, from: 2, to: 7, seed: 53, openStart: false, openEnd: false }
+    paintCoastLand(context as unknown as CanvasRenderingContext2D, [edge], 1, 'glasswind-desert')
+    const dark = paths.filter(({ stops }) => stops.some((colour) => colour.includes('48,49,44')))
+    expect(dark.length).toBeGreaterThan(3)
+    for (const path of dark) {
+      const along = path.points.map((p) => p[side % 2 ? 1 : 0]!)
+      expect(Math.max(...along) - Math.min(...along)).toBeLessThan(1.4)
+    }
+    // Sediment and wrack are ground texture, never an invented land apron.
+    for (const { points: vertices } of paths)
+      for (const [x, y] of vertices) {
+        const inward = side === 0 ? y! : side === 1 ? 13 - x! : side === 2 ? 9 - y! : x!
+        expect(inward).toBeGreaterThanOrEqual(-1e-12)
+        expect(inward).toBeLessThan(1.3)
+        const along = side % 2 ? y! : x!
+        expect(along).toBeGreaterThanOrEqual(2)
+        expect(along).toBeLessThanOrEqual(7)
+      }
+  },
+)
+
+it('retains the global sixteen-edge and three-crest surf budget', () => {
+  const context = {
+    save: vi.fn(),
+    restore: vi.fn(),
+    beginPath: vi.fn(),
+    closePath: vi.fn(),
+    moveTo: vi.fn(),
+    lineTo: vi.fn(),
+    fill: vi.fn(),
+    stroke: vi.fn(),
+    createLinearGradient: () => ({ addColorStop: vi.fn() }),
+  }
+  const edges = Array.from({ length: 24 }, (_, seed) => ({
+    side: 1 as const,
+    from: 0,
+    to: 9,
+    seed,
+    openStart: false,
+    openEnd: false,
+  }))
+  expect(
+    paintCoastSea(context as unknown as CanvasRenderingContext2D, edges, 48, 1000, true, 24),
+  ).toBe(16)
+  expect(context.stroke).toHaveBeenCalledTimes(48)
+  expect(
+    paintCoastSea(context as unknown as CanvasRenderingContext2D, edges, 48, 1000, true, 0),
+  ).toBe(0)
+  expect(context.stroke).toHaveBeenCalledTimes(48)
 })

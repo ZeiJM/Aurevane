@@ -1817,7 +1817,7 @@ describe('native map input and bounded lifecycle', () => {
     s.renderer.dispose()
     vi.unstubAllGlobals()
   })
-  it('feathers loaded biome materials over three tiles and retains the cached result while moving', () => {
+  it('feathers loaded biome materials over four tiles and retains the cached result while moving', () => {
     const s = scene(true)
     const current = s.view.sectors.find((sector) => sector.id === s.view.position.sectorId)!
     const cells = current.cells.map((cell) => ({ ...cell, terrain: '.', walkable: true }))
@@ -1838,9 +1838,11 @@ describe('native map input and bounded lifecycle', () => {
     )
     expect(feather).toHaveLength(2)
     for (const gradient of feather) {
-      expect(Math.abs(gradient.coordinates[2]! - gradient.coordinates[0]!)).toBe(3 * 64)
+      expect(Math.abs(gradient.coordinates[2]! - gradient.coordinates[0]!)).toBe(4 * 64)
       expect(gradient.stops).toEqual([
         [0, 'rgba(0,0,0,.5)'],
+        [0.35, 'rgba(0,0,0,.37)'],
+        [0.75, 'rgba(0,0,0,.08)'],
         [1, 'rgba(0,0,0,0)'],
       ])
     }
@@ -3514,3 +3516,46 @@ it.each([
     }
   },
 )
+
+it('uses the decoded snowy hamlet sheet only in Frostmere and falls back while it loads', () => {
+  const initial = projectWorld(newWorldState(), [], 1000)
+  const root = initial.sectors.find((s) => s.id === initial.position.sectorId)!
+  const cold = {
+    ...root,
+    regionId: 'frostmere',
+    buildings: [],
+    landmarks: [
+      { id: 'winter-hamlet', kind: 'hamlet' as const, name: 'Hayward Farmstead', x: 6, y: 4 },
+    ],
+  }
+  const s = scene(false, { ...initial, sectors: [cold] })
+  try {
+    const winter = s.images.find((image) =>
+      (image as HTMLImageElement).src.endsWith('hamlet-buildings-winter-v01.webp'),
+    )
+    expect(winter).toBeDefined()
+    Object.assign(winter!, { width: 768, height: 672, naturalWidth: 768 })
+    s.frame(40)
+    expect(s.draws.some(({ image }) => image === winter)).toBe(true)
+    Object.assign(winter!, { complete: false, naturalWidth: 0 })
+    s.renderer.update({ ...initial, sectors: [{ ...cold }] })
+    s.draws.length = 0
+    s.frame(80)
+    expect(s.draws.some(({ src }) => src.endsWith('hamlet-buildings-v01.webp'))).toBe(true)
+    expect(s.draws.some(({ image }) => image === winter)).toBe(false)
+  } finally {
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+  const warm = scene(false, { ...initial, sectors: [{ ...cold, regionId: 'aureth-crown' }] })
+  try {
+    expect(
+      warm.images.some((image) =>
+        (image as HTMLImageElement).src.includes('hamlet-buildings-winter'),
+      ),
+    ).toBe(false)
+  } finally {
+    warm.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+})

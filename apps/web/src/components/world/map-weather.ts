@@ -246,3 +246,17 @@ export function regionalWeatherLabel(weather: WorldWeather, regionId: string): s
     return weather === 'storm' ? 'Snowstorm' : 'Snow'
   return weather.charAt(0).toUpperCase() + weather.slice(1)
 }
+
+/** Leaves/pollen give clear and windy weather their own motion; wet skies keep rain/snow. */
+export function airborneMoteProfile(weather: WorldWeather, petals: boolean) {
+  if (weather === 'rain' || weather === 'storm' || weather === 'fog') return null
+  return {
+    drift: weather === 'wind' ? 2.1 : 1.15,
+    width: petals ? 3.4 : weather === 'wind' ? 2.8 : 1.3,
+    colour: petals
+      ? 'rgba(245,189,213,.75)'
+      : weather === 'wind'
+        ? 'rgba(171,151,94,.62)'
+        : 'rgba(225,215,160,.43)',
+  }
+}

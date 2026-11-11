@@ -1728,7 +1728,7 @@ test('charted globe travel survives unrelated frontier discoveries and retains b
 
 registerWorldInputCases({ enter, world, place, stageWalk, capture, openJournal })
 registerWorldLandscapeCases({ enter, world, place, stageWalk, capture })
-registerWorldArtReviewCases({ enter, world, sql, capture })
+registerWorldArtReviewCases({ enter, world, sql, capture, stageWalk })
 registerWorldMultiplayerLoadCase({ enter, world, place, sql })
 
 test('known neighbouring players follow the visible viewport with service-only presence authority', async ({

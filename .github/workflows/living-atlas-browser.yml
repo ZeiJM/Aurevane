@@ -161,8 +161,12 @@ jobs:
             apps/web/test-results/**/world-multiplayer-native-trace.json
             apps/web/test-results/**/world-multiplayer-hotspot.png
             apps/web/test-results/**/world-art-review.json
-            apps/web/test-results/**/art-hamlet-*.png
-            apps/web/test-results/**/art-void-*.png
+            apps/web/test-results/**/art-*.png
+            apps/web/test-results/**/biome-boundary-*.png
+            apps/web/test-results/**/coastal-road-*.png
+            apps/web/test-results/**/four-biome-*.png
+            apps/web/test-results/**/weather-*.png
+            apps/web/test-results/**/terrain-motion-*.png
             apps/web/test-results-story/**/authored-watch-*-complete.png
             apps/web/test-results-story/**/sealed-realm-challenge.png
             apps/web/test-results-story/**/authored-world-npc-challenge.png

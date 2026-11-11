@@ -46,6 +46,7 @@ import { buildPublicCoasts, paintCoastLand, paintCoastSea } from './map-coast'
 import {
   advanceSurfaceRain,
   advanceWorldWind,
+  airborneMoteProfile,
   paintPrecipitation,
   paintTerrainAtmosphere,
   paintWeatherVeil,
@@ -59,6 +60,7 @@ import { drawWildlife } from './map-wildlife'
 import { buildBiomeTransitions } from './map-biome-transitions'
 
 import { worldRenderTerrain } from './map-render-terrain'
+import { settlementComposition } from './map-settlement-composition'
 import { buildSettlementGround, paintSettlementEdges } from './map-settlement-edge'
 import {
   hamletFamilyIndex,
@@ -68,6 +70,7 @@ import {
   sceneryDressing,
 } from './map-dressing'
 import { DEFAULT_MAP_QUALITY, mapQualityBudgets, type MapQuality } from './map-quality'
+import { buildTrailGround, paintNaturalTrail } from './map-trail'
 import { paintSnowRoadShoulders } from './map-snow-road'
 import {
   ferryWaterFrame,
@@ -670,7 +673,11 @@ export function createMapRenderer(
       )
       if (!wildlife.has(sector)) wildlife.set(sector, createWildlife(sector))
       if (!dressing.has(sector))
-        dressing.set(sector, [...sceneryDressing(sector), ...naturalDressing(sector)])
+        dressing.set(sector, [
+          ...sceneryDressing(sector),
+          ...naturalDressing(sector),
+          ...settlementComposition(sector),
+        ])
     }
   }
   indexTerrain()
@@ -709,6 +716,18 @@ export function createMapRenderer(
       )
     )
       load('hamlet-buildings', 'v01')
+    if (
+      !images.has('hamlet-buildings-winter') &&
+      renderSectors.some(
+        (sector) =>
+          sector.charted &&
+          sector.regionId === WINTER_ART &&
+          sector.landmarks.some(
+            ({ kind, name }) => kind === 'hamlet' && hamletFamilyIndex(name) !== undefined,
+          ),
+      )
+    )
+      load('hamlet-buildings-winter', 'v01')
     if (!images.has('ferry-fittings') && renderSectors.some(({ id }) => id.startsWith('ferry:')))
       load('ferry-fittings', 'v02', 'svg')
     if (!images.has(WINTER_ART) && renderSectors.some((sector) => sector.regionId === WINTER_ART))
@@ -932,6 +951,8 @@ export function createMapRenderer(
                 ? blend.createLinearGradient(0, height, 0, 0)
                 : blend.createLinearGradient(0, 0, width, 0)
       mask.addColorStop(0, 'rgba(0,0,0,.5)')
+      mask.addColorStop(0.35, 'rgba(0,0,0,.37)')
+      mask.addColorStop(0.75, 'rgba(0,0,0,.08)')
       mask.addColorStop(1, 'rgba(0,0,0,0)')
       blend.globalCompositeOperation = 'destination-in'
       blend.fillStyle = mask
@@ -978,6 +999,7 @@ export function createMapRenderer(
         )
       : null
     const localTerrain = new Map(sector.cells.map((cell) => [`${cell.x}:${cell.y}`, cell]))
+    const trailTerrain = buildTrailGround(sector, renderSectors)
     const winterMarket =
       sector.regionId === WINTER_ART
         ? sector.landmarks.filter((landmark) => landmark.kind === 'marketplace')
@@ -1015,9 +1037,21 @@ export function createMapRenderer(
         c.fillStyle = naturalTrail
           ? (trailColours[sector.regionId] ?? '#96896e')
           : (pavement?.color ?? '#aa9d7b')
-        c.globalAlpha = winterPath ? 0.4 : naturalTrail ? 0.54 : 0.72
-        c.fillRect(x, y, tile + 1, tile + 1)
-        c.globalAlpha = 1
+        if (naturalTrail) {
+          paintNaturalTrail(
+            c,
+            cell,
+            tile,
+            trailTerrain,
+            trailColours[sector.regionId] ?? '#96896e',
+            sector.id,
+            winterPath,
+          )
+        } else {
+          c.globalAlpha = winterPath ? 0.4 : 0.72
+          c.fillRect(x, y, tile + 1, tile + 1)
+          c.globalAlpha = 1
+        }
         if (!naturalTrail && texture?.complete && texture.naturalWidth) {
           const sw = texture.width / 4,
             sh = texture.height / 2
@@ -1040,8 +1074,8 @@ export function createMapRenderer(
           naturalTrail || winterPath
             ? 'rgba(195,178,146,.15)'
             : (pavement?.glaze ?? 'rgba(192,180,146,.35)')
-        c.fillRect(x, y, tile + 1, tile + 1)
-        if (winterPath)
+        if (!naturalTrail) c.fillRect(x, y, tile + 1, tile + 1)
+        if (winterPath && !naturalTrail)
           paintSnowRoadShoulders(
             c,
             cell,
@@ -1492,6 +1526,7 @@ export function createMapRenderer(
       winterArt = images.get(WINTER_ART),
       settlementArt = images.get('regional-settlements'),
       hamletBuildings = images.get('hamlet-buildings'),
+      winterHamletBuildings = images.get('hamlet-buildings-winter'),
       warpedLandmarks = images.get('warped-landmarks'),
       warpedRefuges = images.get('warped-refuges')
     let waterCells = 0,
@@ -1724,7 +1759,10 @@ export function createMapRenderer(
             prop.sheet === 'town-centres-north' || prop.sheet === 'town-centres-south'
               ? prop.sheet
               : undefined
-          const size = tile * (verge ? 0.63 : prop.sheet === 'settlement-dressing' ? 0.8 : 1.35)
+          const size =
+            tile *
+            (verge ? 0.63 : prop.sheet === 'settlement-dressing' ? 0.8 : 1.35) *
+            (prop.scale ?? 1)
           addScenery({
             x: origin.x + prop.x + 0.5,
             y: origin.y + prop.y + 0.55,
@@ -1793,14 +1831,20 @@ export function createMapRenderer(
             sector.charted && landmark.kind === 'hamlet'
               ? hamletFamilyIndex(landmark.name)
               : undefined
-          if (hamlet !== undefined && hamletBuildings?.complete && hamletBuildings.naturalWidth) {
+          const hamletArt =
+            sector.regionId === WINTER_ART &&
+            winterHamletBuildings?.complete &&
+            winterHamletBuildings.naturalWidth
+              ? winterHamletBuildings
+              : hamletBuildings
+          if (hamlet !== undefined && hamletArt?.complete && hamletArt.naturalWidth) {
             const size = tile * 3.2
             addScenery({
               x: origin.x + landmark.x + 0.5,
               y: origin.y + landmark.y + 0.67,
               width: size,
               height: size * WORLD_STRUCTURE_ASPECT,
-              image: hamletBuildings,
+              image: hamletArt,
               index: hamlet,
               columns: 2,
               rows: 2,
@@ -2620,17 +2664,19 @@ export function createMapRenderer(
       if (richAtmosphere) paintWeatherVeil(ctx, width, height, weather, wind.offset)
       const petals = current?.landscape === 'sakura' || current?.landscape === 'wisteria'
       const temperate = !['glasswind-desert', 'emberreach', 'frostmere'].includes(regionId)
-      ctx.fillStyle = petals ? 'rgba(245,189,213,.75)' : 'rgba(214,195,124,.56)'
-      for (let i = 0; i < (temperate ? Math.ceil(14 * budget.weather) : 0); i++) {
+      const motes = airborneMoteProfile(weather, petals)
+      if (motes) ctx.fillStyle = motes.colour
+      for (let i = 0; i < (temperate && motes ? Math.ceil(14 * budget.weather) : 0); i++) {
         const phase = (now / (11000 + i * 370) + i * 0.13) % 1
         const span = width + 160
-        const x = ((((i * 137 + wind.offset * 1.6) % span) + span) % span) - 80,
+        const x = ((((i * 137 + wind.offset * motes!.drift) % span) + span) % span) - 80,
           y = (i * 101 + Math.sin(now / 2400 + i) * 26 + phase * 70) % height
         ctx.save()
         ctx.translate(x, y)
+        ctx.globalAlpha = Math.sin(phase * Math.PI) * 0.8
         ctx.rotate(Math.sin(now / 900 + i) * 0.8)
         ctx.beginPath()
-        ctx.ellipse(0, 0, petals ? 3.4 : 2.6, 1.4, 0, 0, Math.PI * 2)
+        ctx.ellipse(0, 0, motes!.width, petals ? 1.4 : 0.85, 0, 0, Math.PI * 2)
         ctx.fill()
         ctx.restore()
       }
