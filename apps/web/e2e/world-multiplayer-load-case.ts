@@ -30,6 +30,115 @@ function percentiles(values: number[]) {
   return { samples: values.length, p50: at(0.5), p95: at(0.95), p99: at(0.99) }
 }
 
+export async function captureNativeBrowserWork(browser: Browser, info: TestInfo) {
+  const client = await browser.newBrowserCDPSession()
+  type Event = {
+    name: string
+    cat: string
+    ph: string
+    ts: number
+    dur?: number
+    pid: number
+    tid: number
+    args?: Record<string, unknown>
+  }
+  type DurationSummary = Pick<Event, 'name' | 'cat' | 'pid' | 'tid'> & {
+    count: number
+    durationUs: number
+    maxDurationUs: number
+    firstTs: number
+    lastEndTs: number
+  }
+  const traceEvents: Event[] = []
+  const metadataEvents: Event[] = []
+  const summaries = new Map<string, DurationSummary>()
+  let droppedEvents = 0
+  let summaryOverflowEvents = 0
+  let metadataOverflowEvents = 0
+  const categories = 'toplevel,devtools.timeline,cc,gpu,disabled-by-default-devtools.timeline'
+  client.on('Tracing.dataCollected', ({ value }) => {
+    // The protocol declares trace events as unstructured dictionaries.
+    for (const event of value as unknown as Event[]) {
+      if (!['X', 'B', 'E', 'M', 'i', 'I'].includes(event.ph)) continue
+      // Timing and thread labels suffice for attribution. Omit URLs, request
+      // details, stacks and other event arguments from the saved evidence.
+      const { name, cat, ph, ts, dur, pid, tid } = event
+      const retained: Event = {
+        name,
+        cat,
+        ph,
+        ts,
+        dur,
+        pid,
+        tid,
+        ...(ph === 'M' && typeof event.args?.name === 'string'
+          ? { args: { name: event.args.name } }
+          : {}),
+      }
+      if (ph === 'M') {
+        if (metadataEvents.length < 1024) metadataEvents.push(retained)
+        else metadataOverflowEvents++
+      }
+      // Aggregate complete-duration spans before capping the detailed trace.
+      // These inclusive wall times may overlap and are not exclusive CPU costs.
+      if (ph === 'X' && dur !== undefined && Number.isFinite(dur) && dur >= 0) {
+        const key = JSON.stringify([pid, tid, cat, name])
+        const existing = summaries.get(key)
+        if (existing) {
+          existing.count++
+          existing.durationUs += dur
+          existing.maxDurationUs = Math.max(existing.maxDurationUs, dur)
+          existing.firstTs = Math.min(existing.firstTs, ts)
+          existing.lastEndTs = Math.max(existing.lastEndTs, ts + dur)
+        } else if (summaries.size < 4096) {
+          summaries.set(key, {
+            name,
+            cat,
+            pid,
+            tid,
+            count: 1,
+            durationUs: dur,
+            maxDurationUs: dur,
+            firstTs: ts,
+            lastEndTs: ts + dur,
+          })
+        } else summaryOverflowEvents++
+      }
+      if (traceEvents.length < 100_000) traceEvents.push(retained)
+      else droppedEvents++
+    }
+  })
+  try {
+    await client.send('Tracing.start', { categories, transferMode: 'ReportEvents' })
+    const startedAt = performance.now()
+    try {
+      // A separate four-second window preserves the untraced cadence sample.
+      await new Promise((resolve) => setTimeout(resolve, 4000))
+    } finally {
+      const complete = new Promise<void>((resolve) =>
+        client.once('Tracing.tracingComplete', () => resolve()),
+      )
+      await client.send('Tracing.end')
+      await complete
+    }
+    await writeFile(
+      info.outputPath('world-multiplayer-native-trace.json'),
+      JSON.stringify({
+        traceEvents,
+        droppedEvents,
+        metadataEvents,
+        durationSummaries: [...summaries.values()],
+        summaryOverflowEvents,
+        metadataOverflowEvents,
+        categories,
+        elapsedMs: performance.now() - startedAt,
+      }),
+    )
+  } finally {
+    await client.detach()
+  }
+}
+
 async function measured<T>(send: () => Promise<APIResponse>) {
   const started = performance.now()
   const response = await send()
@@ -432,7 +541,85 @@ async function measureWorldMultiplayer(
     const canvas = first.page.locator(worldStage)
     await expect(canvas).toHaveAttribute('data-frame-p95', /\d/, { timeout: 30_000 })
     result.observerRendererCallbackP95Ms = Number(await canvas.getAttribute('data-frame-p95'))
+    // The rolling counter above can still contain arrival work. Collect a
+    // fresh window with all eight sessions connected after the move receipts.
+    const profiles = await Promise.all(
+      participants.map(async ({ page }) => {
+        const client = await page.context().newCDPSession(page)
+        await client.send('Performance.enable')
+        const before = await client.send('Performance.getMetrics')
+        return { client, before }
+      }),
+    )
+    const postArrival = await canvas.evaluate((element) => {
+      const stage = element as HTMLCanvasElement
+      const started = performance.now()
+      const previous = stage.dataset.renderDiagnostics
+      const draws: { at: number; work: number; ground: number }[] = []
+      const frameIntervals: number[] = []
+      let lastFrame: number | undefined
+      let lastTiming: string | undefined
+      let raf = 0
+      stage.dataset.renderDiagnostics = 'timing'
+      return new Promise<{ draws: typeof draws; frameIntervals: number[] }>((resolve) => {
+        const sample = (at: number) => {
+          if (lastFrame !== undefined) frameIntervals.push(at - lastFrame)
+          lastFrame = at
+          const raw = stage.dataset.renderTiming
+          if (raw && raw !== lastTiming) {
+            lastTiming = raw
+            const { startedAt, completedAt, groundBuildMs, groundResampleMs } = JSON.parse(raw)
+            if (startedAt >= started && completedAt >= startedAt)
+              draws.push({
+                at: startedAt,
+                work: completedAt - startedAt,
+                ground: groundBuildMs + groundResampleMs,
+              })
+          }
+          raf = requestAnimationFrame(sample)
+        }
+        raf = requestAnimationFrame(sample)
+        setTimeout(() => {
+          cancelAnimationFrame(raf)
+          if (previous === undefined) delete stage.dataset.renderDiagnostics
+          else stage.dataset.renderDiagnostics = previous
+          resolve({ draws, frameIntervals })
+        }, 4000)
+      })
+    })
+    result.observerPostArrival = {
+      rendererCallbackMs: percentiles(postArrival.draws.map(({ work }) => work)),
+      groundBuildAndResampleMs: percentiles(postArrival.draws.map(({ ground }) => ground)),
+      drawIntervalMs: percentiles(
+        postArrival.draws.slice(1).map(({ at }, i) => at - postArrival.draws[i]!.at),
+      ),
+      browserFrameIntervalMs: percentiles(postArrival.frameIntervals),
+    }
+    result.hotspotBrowserWork = await Promise.all(
+      profiles.map(async ({ client, before }, session) => {
+        try {
+          const after = await client.send('Performance.getMetrics')
+          const previous = new Map(before.metrics.map(({ name, value }) => [name, value]))
+          const current = new Map(after.metrics.map(({ name, value }) => [name, value]))
+          const elapsed = (name: string) => {
+            expect(previous.has(name) && current.has(name)).toBe(true)
+            return Number(((current.get(name)! - previous.get(name)!) * 1000).toFixed(1))
+          }
+          return {
+            session,
+            elapsedMs: elapsed('Timestamp'),
+            mainThreadBusyMs: elapsed('TaskDuration'),
+            scriptMs: elapsed('ScriptDuration'),
+            layoutMs: elapsed('LayoutDuration'),
+            styleMs: elapsed('RecalcStyleDuration'),
+          }
+        } finally {
+          await client.detach()
+        }
+      }),
+    )
     await first.page.screenshot({ path: info.outputPath('world-multiplayer-hotspot.png') })
+    await captureNativeBrowserWork(browser, info)
 
     result.reconnectCanvasReadyMs = percentiles(await load(true))
     await expect.poll(async () => (await world(first.page)).position.sectorId).toBe('atlas:59:28')

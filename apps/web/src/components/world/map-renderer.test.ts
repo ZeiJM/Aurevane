@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
 import { projectWorld } from '@/server/world/world-service'
-import { newWorldState } from '@/world/travel'
+import { newWorldState, revealNearby } from '@/world/travel'
 import { localRoute, mapPoint, WorldMotion } from './world-motion'
 import { createMapRenderer } from './map-renderer'
 import { MAP_X, MAP_Y, projectMapPoint, unprojectMapPoint } from './map-projection'
@@ -3261,6 +3261,90 @@ it('reuses cropped scenery rasters across zoomed-out phone frames', () => {
   }
 })
 
+it.each([
+  ['Hayward Farmstead', 0],
+  ["Millers' Rest", 1],
+  ['Thistledown Farm', 2],
+  ['Brookside Steading', 3],
+] as const)('renders %s as its own substantial hamlet building', (name, index) => {
+  const initial = projectWorld(newWorldState(), [], 1000)
+  const root = initial.sectors.find(({ id }) => id === initial.position.sectorId)!
+  const landmark = { id: 'hamlet-art-test', name, kind: 'hamlet' as const, x: 6, y: 4 }
+  const s = scene(false, {
+    ...initial,
+    sectors: [{ ...root, buildings: [], landmarks: [landmark] }],
+  })
+  try {
+    const atlas = s.images.find((image) =>
+      (image as HTMLImageElement).src.endsWith('hamlet-buildings-v01.webp'),
+    )
+    expect(atlas).toBeDefined()
+    Object.assign(atlas!, { width: 768, height: 672, naturalWidth: 768 })
+    s.frame(40)
+    const building = s.draws.find(({ image }) => image === atlas)!
+    expect(building).toBeDefined()
+    expect(building.args.slice(0, 4)).toEqual([
+      (index % 2) * 384,
+      Math.floor(index / 2) * 336,
+      384,
+      336,
+    ])
+    expect(building.args[6]).toBeGreaterThanOrEqual(64 * 3)
+    const center = mapPoint({ sectorId: root.id, x: 6, y: 4 }, initial.sectors)
+    const foot = projectMapPoint(
+      { x: center.x, y: center.y + 0.17 },
+      mapPoint(initial.position, initial.sectors),
+      { x: 0, y: 0 },
+      64,
+      800,
+      600,
+    )
+    expect(building.matrix[4]).toBeCloseTo(foot.x * 1.5, 1)
+    expect(building.matrix[5]).toBeCloseTo(foot.y * 1.5, 1)
+
+    Object.assign(atlas!, { complete: false, naturalWidth: 0 })
+    s.renderer.update({ ...initial, sectors: [{ ...root, buildings: [], landmarks: [landmark] }] })
+    s.draws.length = 0
+    s.frame(80)
+    expect(s.draws.some(({ src }) => src.endsWith('props-v02.webp'))).toBe(true)
+    expect(s.draws.some(({ image }) => image === atlas)).toBe(false)
+  } finally {
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+})
+
+it.each([
+  [false, 'Hayward Farmstead'],
+  [true, 'Unrecognized settlement'],
+] as const)('keeps the hamlet building sheet off unsupported scenes (%s, %s)', (charted, name) => {
+  const initial = projectWorld(newWorldState(), [], 1000)
+  const root = initial.sectors.find(({ id }) => id === initial.position.sectorId)!
+  const s = scene(false, {
+    ...initial,
+    sectors: [
+      {
+        ...root,
+        charted,
+        buildings: [],
+        landmarks: [{ id: 'fallback', kind: 'hamlet', name, x: 6, y: 4 }],
+      },
+    ],
+  })
+  try {
+    s.frame(40)
+    expect(
+      s.images.some((image) =>
+        (image as HTMLImageElement).src.endsWith('hamlet-buildings-v01.webp'),
+      ),
+    ).toBe(false)
+    expect(s.draws.some(({ src }) => src.endsWith('props-v02.webp'))).toBe(true)
+  } finally {
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+})
+
 it('uses distinct Frostmere building art at the existing public footprint anchors', () => {
   const state = newWorldState()
   state.position = { sectorId: 'frostmere', x: 6, y: 4 }
@@ -3296,6 +3380,28 @@ it('uses distinct Frostmere building art at the existing public footprint anchor
     vi.unstubAllGlobals()
   }
 })
+
+it.each([
+  ['frostmere', 'settlement-dressing', 8, 4],
+  ['uncharted-belfry', 'void-dressing', 5, 4],
+] as const)(
+  'draws loaded dressing on the projected %s canvas without town wildlife',
+  (sectorId, sheet, x, y) => {
+    const state = newWorldState()
+    state.position = { sectorId, x, y }
+    if (sectorId.startsWith('uncharted-')) state.warpedPhase = 0
+    const initial = projectWorld(revealNearby(state), [], 1000)
+    const s = scene(false, initial)
+    try {
+      s.frame(40)
+      expect(s.draws.some(({ src }) => src.endsWith(`${sheet}-v01.webp`))).toBe(true)
+      expect(s.canvas.dataset.wildlife).toBe('0')
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  },
+)
 
 it('carries smoke from the painted Frostmere forge flue without removing the building in Low quality', () => {
   const state = newWorldState()
@@ -3345,3 +3451,66 @@ it('uses projected walkability for staff inspection without a player marker', ()
     vi.unstubAllGlobals()
   }
 })
+
+it('draws the new regional material and focal asset at normal zoom', () => {
+  const state = newWorldState()
+  state.position = { sectorId: 'frostmere', x: 6, y: 4 }
+  const s = scene(true, projectWorld(state, [], 1000))
+  try {
+    s.frame(40)
+    const material = s.draws.filter(({ src }) => src.endsWith('regional-ground-v01.webp'))
+    expect(material.length).toBeGreaterThan(0)
+    expect(material.some(({ matrix }) => matrix[0]! < 0 || matrix[3]! < 0)).toBe(true)
+    expect(s.draws.some(({ src }) => src.endsWith('town-centres-north-v01.webp'))).toBe(true)
+  } finally {
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+})
+
+it.each([
+  ['private', true, 2],
+  ['ordinary', false, 3],
+] as const)(
+  'retains surrounding trees while clearing only %s landmark foregrounds',
+  (_name, privateScene, expectedTrees) => {
+    const state = newWorldState()
+    state.position = { sectorId: 'uncharted-tarn', x: 6, y: 4 }
+    state.warpedPhase = 7
+    state.discoveries[state.position.sectorId] = Array.from({ length: 117 }, (_, i) => i)
+    const view = projectWorld(state, [], 1000)
+    const sector = view.sectors.find(({ id }) => id === state.position.sectorId)!
+    const initial = {
+      ...view,
+      sectors: [
+        {
+          ...sector,
+          regionId: 'aureth-crown',
+          landscape: undefined,
+          warpedTheme: privateScene ? sector.warpedTheme : undefined,
+          cells: sector.cells.map((cell) => ({
+            ...cell,
+            terrain:
+              (cell.x === 8 && cell.y === 6) ||
+              (cell.x === 3 && cell.y === 1) ||
+              (cell.x === 7 && cell.y === 4)
+                ? 't'
+                : '.',
+          })),
+        },
+      ],
+    }
+    const s = scene(false, initial)
+    try {
+      s.frame(40)
+      expect(s.draws.filter(({ src }) => src.endsWith('biomes-v02.webp'))).toHaveLength(
+        expectedTrees,
+      )
+      expect(s.draws.some(({ src }) => src.endsWith('warped-landmarks-v01.webp'))).toBe(true)
+      expect(initial.sectors[0]!.cells.find(({ x, y }) => x === 8 && y === 6)?.terrain).toBe('t')
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  },
+)

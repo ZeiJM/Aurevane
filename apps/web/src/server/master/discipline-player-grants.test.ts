@@ -11,6 +11,31 @@ const request = (body: unknown) =>
     method: 'POST',
     body: JSON.stringify(body),
   })
+it.each([
+  ['DISCIPLINE_GRANT_UNAVAILABLE', /Discipline.*disabled.*Enable.*Commit Now/],
+  ['DISCIPLINE_GRANT_RECIPIENT_UNAVAILABLE', /player.*unavailable.*Search/i],
+] as const)(
+  'explains the action needed for %s without echoing database details',
+  async (message, help) => {
+    const response = await handleDisciplinePlayerGrants(
+      request({
+        operation: 'grant',
+        disciplineId: 'runeblade',
+        accountIds: [user],
+        reason: 'Testing',
+      }),
+      {
+        getActor: async () => ({ userId: user }),
+        requireAccess: async () => undefined,
+        rpc: async () => ({ data: null, error: { message } }),
+      },
+    )
+    expect(response.status).toBe(400)
+    const body = await response.json()
+    expect(body.error.message).toMatch(help)
+    expect(body.error.message).not.toContain('DISCIPLINE_GRANT_')
+  },
+)
 it('uses authenticated actor and stable verified IDs, deduplicates a batch', async () => {
   const rpc = vi.fn(async () => ({ data: { changed: 1 }, error: null }))
   const requireAccess = vi.fn(async () => undefined)

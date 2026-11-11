@@ -89,6 +89,16 @@ export async function handleDisciplinePlayerGrants(
     if (result.error) {
       if (result.error.message.includes('MASTER_FORBIDDEN'))
         throw new AurevaneError('FORBIDDEN', 'Game Content access is required.')
+      if (result.error.message === 'DISCIPLINE_GRANT_UNAVAILABLE')
+        throw new AurevaneError(
+          'INVALID_REQUEST',
+          'This Discipline is disabled or unavailable as a Primary or Secondary. Enable it and Commit Now before granting access.',
+        )
+      if (result.error.message === 'DISCIPLINE_GRANT_RECIPIENT_UNAVAILABLE')
+        throw new AurevaneError(
+          'INVALID_REQUEST',
+          'A selected player is unavailable. Search players again and select a verified account with an active character.',
+        )
       if (result.error.message.includes('DISCIPLINE_GRANT_'))
         throw new AurevaneError(
           'INVALID_REQUEST',

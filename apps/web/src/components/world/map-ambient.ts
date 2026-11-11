@@ -1,3 +1,5 @@
+import { GRID_HEIGHT, GRID_WIDTH } from '@/world/catalog'
+import type { WorldWeather, worldDayPhase } from '@/world/environment'
 import type { WorldSectorView } from '@/world/types'
 import { hashString, seeded } from '@/world/terrain-gen'
 
@@ -7,47 +9,105 @@ export interface Wildlife {
   flying: boolean
   path: { x: number; y: number }[]
 }
-/** Decoration only: ground paths use projected legal cells, never player commands. */
+const FOX = 4
+const DEER = 5
+const HARE = 6
+const SHORE_BIRD = 7
+const woods = new Set(['aureth-crown', 'verdant-expanse', 'frostmere', 'umbral-march'])
+const shore = new Set(['aureth-crown', 'verdant-expanse', 'frostmere', 'hollow-coast'])
+const snowfields = new Set(['frostmere', 'starfall-highlands'])
+const steps = [
+  [1, 0],
+  [-1, 0],
+  [0, 1],
+  [0, -1],
+] as const
+const tileKey = (x: number, y: number) => y * GRID_WIDTH + x
+const inBounds = (x: number, y: number) => x >= 0 && x < GRID_WIDTH && y >= 0 && y < GRID_HEIGHT
+
+function addBuffer(cells: Set<number>, cx: number, cy: number, radius: number) {
+  for (let dy = -radius; dy <= radius; dy++)
+    for (let dx = Math.abs(dy) - radius; dx <= radius - Math.abs(dy); dx++)
+      if (inBounds(cx + dx, cy + dy)) cells.add(tileKey(cx + dx, cy + dy))
+}
+
+/** Decoration only. Both the spawn and its route stay inside the same local habitat. */
 export function createWildlife(sector: WorldSectorView): Wildlife[] {
-  const random = seeded(sector.id + ':wildlife')
-  const ground = sector.cells.filter((c) => c.walkable && (c.terrain === '.' || c.terrain === '='))
-  const cells = new Map(ground.map((c) => [`${c.x}:${c.y}`, c]))
-  const animals: Wildlife[] = []
-  for (let i = 0; i < 1; i++) {
-    const cell = ground[Math.floor(random() * ground.length)]
-    if (!cell) continue
-    const flying = random() < 0.3
-    const path = [{ x: cell.x + 0.5, y: cell.y + 0.5 }]
-    if (flying) path.push({ x: cell.x + 3.5, y: cell.y + 2.5 })
-    else {
-      for (let j = 0; j < 3; j++) {
-        const p = path[path.length - 1]!
-        const choices = [
-          [1, 0],
-          [-1, 0],
-          [0, 1],
-          [0, -1],
-        ]
-          .map(([x, y]) => ({ x: p.x + x!, y: p.y + y! }))
-          .filter(
-            (p) =>
-              cells.has(`${Math.floor(p.x)}:${Math.floor(p.y)}`) &&
-              !path.some((q) => p.x === q.x && p.y === q.y),
-          )
-        const next = choices[Math.floor(random() * choices.length)]
-        if (!next) break
-        path.push(next)
-      }
-    }
-    if (path.length < 2) continue
-    animals.push({
-      seed: hashString(sector.id + ':' + i),
-      index: flying ? 7 : 4 + Math.floor(random() * 3),
-      flying,
-      path,
-    })
+  if (sector.townId || sector.warpedTheme || sector.id.startsWith('ferry:')) return []
+  const wooded = woods.has(sector.regionId)
+  const coastal = shore.has(sector.regionId)
+  const snowy = snowfields.has(sector.regionId)
+  if (!wooded && !coastal && !snowy) return []
+
+  const excluded = new Set<number>()
+  const water = new Set<number>()
+  const trees = new Set<number>()
+  for (const cell of sector.cells) {
+    if (cell.safe) addBuffer(excluded, cell.x, cell.y, 6)
+    else if (cell.terrain === '=') addBuffer(excluded, cell.x, cell.y, 2)
+    if (coastal && cell.terrain === '~') addBuffer(water, cell.x, cell.y, 2)
+    if (cell.terrain === 't') addBuffer(trees, cell.x, cell.y, 2)
   }
-  return animals
+  for (const landmark of sector.landmarks)
+    if (landmark.kind === 'hamlet' || landmark.kind === 'settlement')
+      addBuffer(excluded, landmark.x, landmark.y, 6)
+
+  const habitats = new Map<number, readonly number[]>()
+  const ground = sector.cells.filter((cell) => {
+    const key = tileKey(cell.x, cell.y)
+    if (!cell.walkable || cell.terrain !== '.' || excluded.has(key)) return false
+    const species = water.has(key)
+      ? [SHORE_BIRD]
+      : trees.has(key)
+        ? wooded
+          ? [FOX, DEER]
+          : []
+        : snowy
+          ? [HARE]
+          : []
+    if (species.length === 0) return false
+    habitats.set(key, species)
+    return true
+  })
+  const random = seeded(sector.id + ':wildlife')
+  const cell = ground[Math.floor(random() * ground.length)]
+  if (!cell) return []
+  const species = habitats.get(tileKey(cell.x, cell.y))!
+  const index = species[Math.floor(random() * species.length)]!
+  const route = [{ x: cell.x, y: cell.y }]
+  for (let step = 0; step < 3; step++) {
+    const previous = route[route.length - 1]!
+    const choices = steps
+      .map(([dx, dy]) => ({ x: previous.x + dx, y: previous.y + dy }))
+      .filter(
+        ({ x, y }) =>
+          inBounds(x, y) &&
+          habitats.get(tileKey(x, y))?.includes(index) &&
+          !route.some((point) => point.x === x && point.y === y),
+      )
+    const next = choices[Math.floor(random() * choices.length)]
+    if (!next) break
+    route.push(next)
+  }
+  if (route.length < 2) return []
+  return [
+    {
+      seed: hashString(sector.id + ':0'),
+      index,
+      flying: index === SHORE_BIRD,
+      path: route.map(({ x, y }) => ({ x: x + 0.5, y: y + 0.5 })),
+    },
+  ]
+}
+
+export function wildlifeVisible(
+  animal: Wildlife,
+  daylight: ReturnType<typeof worldDayPhase>,
+  weather: WorldWeather,
+) {
+  if (animal.index === DEER && daylight !== 'Dusk') return false
+  if (animal.index === HARE && daylight !== 'Dawn') return false
+  return (weather !== 'storm' && weather !== 'fog') || animal.seed % 3 === 0
 }
 export interface WildlifePose {
   x: number

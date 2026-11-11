@@ -119,7 +119,7 @@ function bankCurves(side: Side, worldX: number, worldY: number, shallow: boolean
   const inset = (t: number) => {
     const phase = (along + t) * 1.7 + across * 0.43
     return (
-      (shallow ? 0.15 : 0.025) +
+      (shallow ? 0.22 : 0.025) +
       Math.sin(phase) * (shallow ? 0.035 : 0.013) +
       Math.sin(phase * 2.3) * 0.008
     )
@@ -323,7 +323,7 @@ export function paintWaterGround(
   for (const bank of cell.banks) {
     const vertical = bank.side === 1 || bank.side === 3
     const start = bankPoint(bank.side, 0.5, 0),
-      end = bankPoint(bank.side, 0.5, 0.2)
+      end = bankPoint(bank.side, 0.5, 0.27)
     const gradient = context.createLinearGradient(
       start[0] * tile,
       start[1] * tile,
@@ -360,6 +360,14 @@ export function paintWaterGround(
     context.strokeStyle = amethyst ? 'rgba(60,34,105,.24)' : 'rgba(12,55,54,.21)'
     context.lineWidth = tile * 0.065
     context.stroke()
+    // Small submerged gravel stays within the legal water cell.
+    context.fillStyle = amethyst ? 'rgba(199,161,232,.32)' : 'rgba(186,182,137,.29)'
+    for (let grain = 0; grain < 4; grain++) {
+      const seed = hashString(`${cell.seed}:${bank.side}:${grain}:gravel`)
+      const [x, y] = bankPoint(bank.side, 0.12 + grain * 0.23, 0.055 + (seed % 10) / 100)
+      const size = tile * (0.009 + (seed % 15) / 1000)
+      context.fillRect(x * tile, y * tile, size * 1.45, size)
+    }
   }
   const colours = amethyst
     ? [

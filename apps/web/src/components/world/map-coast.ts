@@ -103,8 +103,16 @@ export function coastPoint(
   distance: number,
 ): readonly [number, number] {
   const along = edge.from + (edge.to - edge.from) * t,
+    // Keep the legal ground intact. This wet apron only extends into public
+    // sea, tapering to the authored endpoints and away from the bank's face.
+    apron =
+      Math.sin(t * Math.PI) ** 2 *
+      (0.13 +
+        Math.sin(along * 0.81 + edge.seed) * 0.07 +
+        Math.sin(along * 1.73 + edge.seed) * 0.04),
     outward =
       distance +
+      apron * Math.max(0, 1 - Math.abs(distance) / 0.65) +
       (Math.sin(along * 1.23 + edge.seed) * 0.12 + Math.sin(along * 2.81 + edge.seed) * 0.045) *
         distance *
         Math.sin(t * Math.PI)
@@ -206,7 +214,7 @@ function paintBand(
   tile: number,
   from: number,
   to: number,
-  colour: CanvasGradient,
+  colour: CanvasGradient | string,
 ) {
   context.beginPath()
   trace(context, edge, tile, from)
@@ -236,6 +244,12 @@ export function paintCoastLand(
     wrack.addColorStop(0, 'rgba(48,49,44,.72)')
     wrack.addColorStop(1, 'rgba(48,49,44,0)')
     paintBand(context, edge, tile, 0, -0.22, wrack)
+    // A narrow irregular face gives the dry bank relief where it meets the water.
+    const face = colourBand(context, edge, tile, 0, -0.15)
+    face.addColorStop(0, 'rgba(37,38,32,.55)')
+    face.addColorStop(0.43, `rgba(${palette.dry},.51)`)
+    face.addColorStop(1, 'transparent')
+    paintBand(context, edge, tile, 0, -0.18, face)
     context.fillStyle = palette.stone
     const count = (edge.to - edge.from) * 5
     for (let i = 0; i < count; i++) {
@@ -249,19 +263,42 @@ export function paintCoastLand(
         context.fillRect((x + 0.025) * tile, (y - 0.045) * tile, size * 0.9, size * 1.25)
     }
     context.globalAlpha = 1
+    // Rooted tufts interrupt long grassy or marshy banks while rocky and cold
+    // shores keep their more exposed silhouettes.
+    if (
+      regionId === 'verdant-expanse' ||
+      regionId === 'hollow-coast' ||
+      regionId === 'umbral-march'
+    ) {
+      context.beginPath()
+      context.strokeStyle =
+        regionId === 'hollow-coast' ? 'rgba(141,149,109,.56)' : 'rgba(103,119,66,.62)'
+      context.lineWidth = tile * 0.012
+      for (let i = 0; i < edge.to - edge.from; i++) {
+        const seed = hashString(`${edge.seed}:${edge.from + i}:reeds`)
+        if (seed % 5 < 2) continue
+        const t = (i + 0.24 + (seed % 47) / 100) / (edge.to - edge.from)
+        const [x, y] = coastPoint(edge, t, -0.25 - (seed % 19) / 100)
+        for (let blade = -1; blade <= 1; blade++) {
+          context.moveTo((x + blade * 0.025) * tile, y * tile)
+          context.lineTo((x + blade * 0.062) * tile, (y - 0.09 - (seed % 7) / 100) * tile)
+        }
+      }
+      context.stroke()
+    }
   }
   context.restore()
 }
 
 const SHELF_DEPTH = 2.65
-// The outline varies by at most 16.5%. Reach the exact ocean background
-// inside its shallowest dip, so the raster never draws dark geometric edges.
+// The outline varies by at most 16.5%. Finish fading inside its shallowest dip
+// so a deep shelf cannot paint over the shallows from an adjoining coastline.
 const SHELF_BLEND = SHELF_DEPTH * 0.82
 function shelfStops(gradient: CanvasGradient, palette: CoastPalette) {
   gradient.addColorStop(0, palette.wet)
   gradient.addColorStop(0.18, palette.shelf)
-  gradient.addColorStop(0.56, '#396b73')
-  gradient.addColorStop(1, '#284b57')
+  gradient.addColorStop(0.56, 'rgba(57,107,115,.82)')
+  gradient.addColorStop(1, 'rgba(40,75,87,0)')
 }
 function paintOpenCorner(
   context: CanvasRenderingContext2D,
@@ -290,7 +327,9 @@ export function paintCoastSea(
   budget = 16,
   regionId = '',
   waves = 3,
+  windSpeed = 0,
 ) {
+  const roughness = animate ? Math.min(1, Math.abs(windSpeed) / 0.055) : 0
   const visibleEdges = edges.slice(0, Math.max(0, Math.min(16, budget)))
   const palette = regionalCoasts[regionId] ?? commonCoast
   context.save()
@@ -303,15 +342,19 @@ export function paintCoastSea(
     const gradient = colourBand(context, edge, tile, 0, SHELF_BLEND)
     shelfStops(gradient, palette)
     paintBand(context, edge, tile, 0, SHELF_DEPTH, gradient)
+    // The cached dry raster ends at the rectangular sector border. Back the
+    // curved wet lip before that raster is drawn, so the border cannot show
+    // through as a straight gap between land and the displaced shallows.
+    paintBand(context, edge, tile, -0.3, 0, palette.wet)
     for (let wave = 0; wave < waves; wave++) {
       const phase = animate
         ? (now / (9600 + (edge.seed % 2000)) + wave / waves + (edge.seed % 97) / 97) % 1
         : (wave + 1) / (waves + 1)
-      context.globalAlpha = Math.sin(phase * Math.PI) * 0.26
+      context.globalAlpha = Math.sin(phase * Math.PI) * (0.22 + roughness * 0.17)
       context.strokeStyle = '#d1e3cd'
-      context.lineWidth = tile * 0.016
+      context.lineWidth = tile * (0.013 + roughness * 0.01)
       context.beginPath()
-      trace(context, edge, tile, 0.08 + phase * 1.3)
+      trace(context, edge, tile, 0.08 + phase * (1.15 + roughness * 0.62))
       context.stroke()
     }
     context.globalAlpha = 1
