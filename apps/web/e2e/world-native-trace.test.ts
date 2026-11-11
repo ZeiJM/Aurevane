@@ -71,3 +71,82 @@ it('detaches the diagnostic session if native tracing cannot start', async () =>
   expect(client.detach).toHaveBeenCalledOnce()
   expect(writeFile).not.toHaveBeenCalled()
 })
+
+it('summarizes duration events and keeps late thread labels after the raw trace fills', async () => {
+  vi.useFakeTimers()
+  const { browser, info, listeners } = protocol()
+  const pending = captureNativeBrowserWork(browser, info)
+  await vi.advanceTimersByTimeAsync(0)
+  const event = { name: 'UpdateLayer', cat: 'cc', ph: 'X', ts: 1, dur: 2, pid: 3, tid: 4 }
+  listeners.get('Tracing.dataCollected')?.({ value: Array(100_001).fill(event) })
+  listeners.get('Tracing.dataCollected')?.({
+    value: [
+      {
+        name: 'thread_name',
+        cat: '__metadata',
+        ph: 'M',
+        ts: 0,
+        pid: 3,
+        tid: 4,
+        args: { name: 'CrRendererMain', token: 'private-fixture-token' },
+      },
+    ],
+  })
+  await vi.advanceTimersByTimeAsync(4000)
+  await pending
+  const data = JSON.parse(vi.mocked(writeFile).mock.calls[0]![1] as string)
+  expect(data.traceEvents).toHaveLength(100_000)
+  expect(data.droppedEvents).toBe(2)
+  expect(data.durationSummaries).toEqual([
+    {
+      name: 'UpdateLayer',
+      cat: 'cc',
+      pid: 3,
+      tid: 4,
+      count: 100_001,
+      durationUs: 200_002,
+      maxDurationUs: 2,
+      firstTs: 1,
+      lastEndTs: 3,
+    },
+  ])
+  expect(data.metadataEvents[0].args).toEqual({ name: 'CrRendererMain' })
+  expect(data.summaryOverflowEvents).toBe(0)
+  expect(data.metadataOverflowEvents).toBe(0)
+})
+
+it('reports bounded summary and metadata overflow while continuing existing duration groups', async () => {
+  vi.useFakeTimers()
+  const { browser, info, listeners } = protocol()
+  const pending = captureNativeBrowserWork(browser, info)
+  await vi.advanceTimersByTimeAsync(0)
+  const events = Array.from({ length: 4097 }, (_, i) => ({
+    name: `task-${i}`,
+    cat: 'cc',
+    ph: 'X',
+    ts: 1,
+    dur: 2,
+    pid: 3,
+    tid: 4,
+  }))
+  listeners.get('Tracing.dataCollected')?.({ value: [...events, events[0]] })
+  listeners.get('Tracing.dataCollected')?.({
+    value: Array(1025).fill({
+      name: 'thread_name',
+      cat: '__metadata',
+      ph: 'M',
+      ts: 0,
+      pid: 3,
+      tid: 4,
+      args: { name: 'CrRendererMain' },
+    }),
+  })
+  await vi.advanceTimersByTimeAsync(4000)
+  await pending
+  const data = JSON.parse(vi.mocked(writeFile).mock.calls[0]![1] as string)
+  expect(data.durationSummaries).toHaveLength(4096)
+  expect(data.durationSummaries[0].count).toBe(2)
+  expect(data.summaryOverflowEvents).toBe(1)
+  expect(data.metadataEvents).toHaveLength(1024)
+  expect(data.metadataOverflowEvents).toBe(1)
+})

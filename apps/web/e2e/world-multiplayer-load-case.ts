@@ -42,21 +42,28 @@ export async function captureNativeBrowserWork(browser: Browser, info: TestInfo)
     tid: number
     args?: Record<string, unknown>
   }
+  type DurationSummary = Pick<Event, 'name' | 'cat' | 'pid' | 'tid'> & {
+    count: number
+    durationUs: number
+    maxDurationUs: number
+    firstTs: number
+    lastEndTs: number
+  }
   const traceEvents: Event[] = []
+  const metadataEvents: Event[] = []
+  const summaries = new Map<string, DurationSummary>()
   let droppedEvents = 0
+  let summaryOverflowEvents = 0
+  let metadataOverflowEvents = 0
   const categories = 'toplevel,devtools.timeline,cc,gpu,disabled-by-default-devtools.timeline'
   client.on('Tracing.dataCollected', ({ value }) => {
     // The protocol declares trace events as unstructured dictionaries.
     for (const event of value as unknown as Event[]) {
       if (!['X', 'B', 'E', 'M', 'i', 'I'].includes(event.ph)) continue
-      if (traceEvents.length >= 100_000) {
-        droppedEvents++
-        continue
-      }
       // Timing and thread labels suffice for attribution. Omit URLs, request
       // details, stacks and other event arguments from the saved evidence.
       const { name, cat, ph, ts, dur, pid, tid } = event
-      traceEvents.push({
+      const retained: Event = {
         name,
         cat,
         ph,
@@ -67,7 +74,38 @@ export async function captureNativeBrowserWork(browser: Browser, info: TestInfo)
         ...(ph === 'M' && typeof event.args?.name === 'string'
           ? { args: { name: event.args.name } }
           : {}),
-      })
+      }
+      if (ph === 'M') {
+        if (metadataEvents.length < 1024) metadataEvents.push(retained)
+        else metadataOverflowEvents++
+      }
+      // Aggregate complete-duration spans before capping the detailed trace.
+      // These inclusive wall times may overlap and are not exclusive CPU costs.
+      if (ph === 'X' && dur !== undefined && Number.isFinite(dur) && dur >= 0) {
+        const key = JSON.stringify([pid, tid, cat, name])
+        const existing = summaries.get(key)
+        if (existing) {
+          existing.count++
+          existing.durationUs += dur
+          existing.maxDurationUs = Math.max(existing.maxDurationUs, dur)
+          existing.firstTs = Math.min(existing.firstTs, ts)
+          existing.lastEndTs = Math.max(existing.lastEndTs, ts + dur)
+        } else if (summaries.size < 4096) {
+          summaries.set(key, {
+            name,
+            cat,
+            pid,
+            tid,
+            count: 1,
+            durationUs: dur,
+            maxDurationUs: dur,
+            firstTs: ts,
+            lastEndTs: ts + dur,
+          })
+        } else summaryOverflowEvents++
+      }
+      if (traceEvents.length < 100_000) traceEvents.push(retained)
+      else droppedEvents++
     }
   })
   try {
@@ -88,6 +126,10 @@ export async function captureNativeBrowserWork(browser: Browser, info: TestInfo)
       JSON.stringify({
         traceEvents,
         droppedEvents,
+        metadataEvents,
+        durationSummaries: [...summaries.values()],
+        summaryOverflowEvents,
+        metadataOverflowEvents,
         categories,
         elapsedMs: performance.now() - startedAt,
       }),
