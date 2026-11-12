@@ -375,7 +375,9 @@ try {
         await sections.getByRole('button', { name: 'Teleport Player', exact: true }).click()
         await reader.getByRole('button', { name: 'Review teleport', exact: true }).click()
         await expect(reader.getByRole('alert')).toContainText('staff reason')
-        await reader.getByLabel('Destination map', { exact: true }).selectOption('currentVoid')
+        await reader
+          .getByRole('combobox', { name: 'Destination map', exact: true })
+          .selectOption('currentVoid')
         await expect(reader.getByLabel('Sector number', { exact: true })).toHaveAttribute(
           'max',
           '768',

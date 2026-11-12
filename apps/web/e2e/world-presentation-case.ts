@@ -92,8 +92,8 @@ export async function verifyWorldPresentation(
     await page.getByRole('button', { name: /Details/ }).click()
   const coordinates = workspace.locator('[data-world-coordinates]')
   await expect(coordinates).toHaveCount(1)
-  await expect(coordinates).toContainText('Sector S59-29')
-  await expect(coordinates).toContainText('E760 · N320')
+  await expect(coordinates).toContainText('Sector 3643')
+  await expect(coordinates).toContainText('X:6 · Y:4')
   await expect(page.getByRole('button', { name: 'View Town', exact: true })).toHaveCount(0)
   const verifyPlayerRows = async () => {
     // Presence can change between awaited locator calls. Measure the currently
@@ -214,7 +214,8 @@ export async function verifyWorldPresentation(
   await expect
     .poll(async () => Number(await canvas.getAttribute('data-camera-x')), { timeout: 5000 })
     .toBe(58 * GRID_WIDTH + 7.5)
-  await expect(coordinates).toContainText('E761 · N320')
+  await expect(coordinates).toContainText('Sector 3643')
+  await expect(coordinates).toContainText('X:7 · Y:4')
   const after = (await canvas.boundingBox())!
   expect(after).toEqual(box)
   await capture(page, info, 'world-refined-controls')
