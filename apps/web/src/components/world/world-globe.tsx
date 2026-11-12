@@ -2,15 +2,19 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ATLAS_COLUMNS, ATLAS_ROWS } from '@/world/atlas'
 import { GRID_HEIGHT, GRID_WIDTH } from '@/world/catalog'
+import { sectorDisplayNumber, sectorLabel } from '@/world/coordinate-label'
 import { FERRY_MAINLAND_DOCK } from '@/world/ferry'
 import { globeSectorCenter, globeSectorCoordinate, projectGlobePoint } from '@/world/globe-math'
-import type { WorldView } from '@/world/types'
+import type { WorldAtlasCell, WorldView } from '@/world/types'
 import { SphericalView } from './spherical-view'
 import { globeTowns, projectGlobeTowns } from './globe-atlas'
 import { UNCHARTED_VEIL_FOCUS } from './globe-veil'
 import { globeFerryPosition } from './globe-ferry'
 import styles from './workspace.module.css'
 const sectorOrder = new Intl.Collator('en', { numeric: true })
+const geographicOrder = (a: WorldAtlasCell, b: WorldAtlasCell) =>
+  (sectorDisplayNumber(a) ?? Infinity) - (sectorDisplayNumber(b) ?? Infinity) ||
+  sectorOrder.compare(a.coordinate, b.coordinate)
 export function WorldGlobe({
   view,
   selected,
@@ -62,10 +66,7 @@ export function WorldGlobe({
     return () => clearInterval(timer)
   }, [view.serverNow])
   const towns = useMemo(
-    () =>
-      globeTowns(view.atlas ?? []).sort((a, b) =>
-        sectorOrder.compare(a.sector.coordinate, b.sector.coordinate),
-      ),
+    () => globeTowns(view.atlas ?? []).sort((a, b) => geographicOrder(a.sector, b.sector)),
     [view.atlas],
   )
   const selectSector = (id: string | null) => {
@@ -78,10 +79,10 @@ export function WorldGlobe({
     () =>
       view.atlas
         ?.filter((s) => s.charted)
-        .sort((a, b) => sectorOrder.compare(a.coordinate, b.coordinate))
+        .sort(geographicOrder)
         .map((sector) => (
           <option key={sector.id} value={sector.id}>
-            {sector.coordinate} · {sector.name}
+            {sectorLabel(sector)} · {sector.name}
           </option>
         )),
     [view.atlas],
@@ -223,7 +224,7 @@ export function WorldGlobe({
             <option value="">Find a town</option>
             {towns.map(({ sector }) => (
               <option key={sector.id} value={sector.id}>
-                {sector.name} · {sector.coordinate}
+                {sector.name} · {sectorLabel(sector)}
               </option>
             ))}
           </select>

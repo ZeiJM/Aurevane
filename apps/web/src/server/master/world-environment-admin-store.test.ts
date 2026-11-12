@@ -265,3 +265,25 @@ it('clears a retained earlier expiry that elapses during the save without restar
     },
   })
 })
+
+it('sends immediate Void selections to the authoritative atomic writer, preserving keep and clear choices', async () => {
+  for (const voidRealm of ['glass-tides', 'unchanged', null]) {
+    rpc.mockResolvedValueOnce({ data: stored })
+    await setWorldEnvironment({ ...base, change: { ...base.change, voidRealm } })
+    expect(rpc.mock.lastCall?.[1].p_settings.voidRealm).toBe(voidRealm)
+  }
+})
+it('rejects unknown Void selections before persistence and maps selected-page denial', async () => {
+  for (const voidRealm of ['unknown', '', 1, {}, true]) {
+    await expect(
+      setWorldEnvironment({ ...base, change: { ...base.change, voidRealm } }),
+    ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+  }
+  expect(rpc).not.toHaveBeenCalled()
+  rpc.mockResolvedValueOnce({
+    error: { code: '42501', message: 'MASTER_PANEL_PAGE_ACCESS_REQUIRED' },
+  })
+  await expect(
+    setWorldEnvironment({ ...base, change: { ...base.change, voidRealm: 'glass-tides' } }),
+  ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+})

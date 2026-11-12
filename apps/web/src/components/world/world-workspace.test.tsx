@@ -6,7 +6,8 @@ vi.mock('server-only', () => ({}))
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn(), replace: vi.fn() }) }))
 
 import { projectWorld } from '@/server/world/world-service'
-import { newWorldState } from '@/world/travel'
+import { newWorldState, revealNearby } from '@/world/travel'
+import { VOID_REALMS } from '@/world/void-realms'
 import { WorldWorkspace } from './world-workspace'
 
 describe('World page', () => {
@@ -58,7 +59,7 @@ describe('World page', () => {
     state.position = { sectorId: 'crown-road', x: 5, y: 4 }
     expect(render(projectWorld(state, [], 1000))).not.toContain('View Town')
   })
-  it('shows the confirmed current sector and east/north coordinates beside the panel gear', () => {
+  it('shows the confirmed geographic sector number and local X/Y beside the panel gear', () => {
     const state = newWorldState()
     state.position = { sectorId: 'atlas:58:28', x: 6, y: 4 }
     state.route = [{ position: { ...state.position, x: 10 }, durationMs: 200 }]
@@ -75,16 +76,49 @@ describe('World page', () => {
       markup.match(/<div class="[^"]*panelFoot[^"]*"[^>]*>([\s\S]*?)<\/div>/)?.[1] ?? ''
     const initial = foot(render())
     expect(initial).toContain('data-world-coordinates')
-    expect(initial).toContain('Sector S59-29')
-    expect(initial).toContain('N320')
-    expect(initial).toContain('E760')
-    expect(initial).not.toContain('E764')
+    expect(initial).toContain('Sector3643 · X:6 · Y:4')
+    expect(initial).not.toContain('S59-29')
+    expect(initial).not.toContain('N320')
+    expect(initial).not.toContain('E760')
+    expect(initial).not.toContain('X:10')
     expect(initial).toContain('aria-label="Map settings"')
     view.position = { sectorId: 'atlas:58:28', x: 7, y: 3 }
     const moved = foot(render())
-    expect(moved).toContain('N321')
-    expect(moved).toContain('E761')
-    expect(moved).not.toContain('N320')
+    expect(moved).toContain('Sector3643 · X:7 · Y:3')
+    expect(moved).not.toContain('X:6')
+  })
+  it('masks Void local X/Y while preserving its geographic sector number', () => {
+    const state = newWorldState()
+    state.position = { sectorId: 'uncharted-landing', x: 6, y: 4 }
+    state.warpedPhase = 0
+    const view = projectWorld(revealNearby(state), [], 1000)
+    const markup = renderToStaticMarkup(
+      createElement(WorldWorkspace, {
+        initialView: view,
+        character: { name: 'Traveller', portrait: '/portrait.webp' },
+      }),
+    )
+    expect(markup).toContain('Sector6 · X:? · Y:?')
+    expect(markup).not.toContain('X:6')
+    expect(markup).not.toContain('Y:4')
+    expect(markup).not.toContain('Beyond the charts')
+  })
+  it('names only the active Void world beside its district and masks the new grid position', () => {
+    const state = newWorldState()
+    state.position = { sectorId: 'void:ivory-veil:21:6', x: 6, y: 4 }
+    state.warpedPhase = 0
+    const view = projectWorld(revealNearby(state), [], 1000)
+    const markup = renderToStaticMarkup(
+      createElement(WorldWorkspace, {
+        initialView: view,
+        character: { name: 'Traveller', portrait: '/portrait.webp' },
+      }),
+    )
+    expect(markup).toContain(`${VOID_REALMS[0].name} · `)
+    expect(markup).toContain('Sector214 · X:? · Y:?')
+    expect(markup).not.toContain('X:6')
+    expect(markup).not.toContain('Y:4')
+    for (const realm of VOID_REALMS.slice(1)) expect(markup).not.toContain(realm.name)
   })
   it('shows persistent training blocking in an alert and clears it with authoritative release', () => {
     const view = projectWorld(newWorldState(), [], 1000)

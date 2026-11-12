@@ -216,6 +216,7 @@ jobs:
             apps/web/test-results/**/art-void-*.png
             apps/web/test-results/**/art-water-*.png
             apps/web/test-results/**/art-scenery-*.png
+            apps/web/test-results/**/art-surfaces-*.png
             apps/web/test-results/**/art-occlusion-*.png
           retention-days: 7
       - name: Save bounded ambient pause failure evidence

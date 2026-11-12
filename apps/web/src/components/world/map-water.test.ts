@@ -8,7 +8,10 @@ import {
   paintWaterfallMotion,
   paintWaterMotion,
   paintWaterGround,
+  paintLavaGround,
+  paintLavaMotion,
   waterfallHighlights,
+  type WaterCell,
 } from './map-water'
 
 function waterCanvas() {
@@ -564,4 +567,361 @@ it('keeps horizontal bank positions and tangents coherent across loaded chunk jo
     expect(end[3][1]).toBeCloseTo(start[0][1], 14)
     expect(end[3][1] - end[2][1]).toBeCloseTo(start[1][1] - start[0][1], 14)
   }
+})
+
+it('meanders over several supplied cells rather than resetting its bank wave every tile', () => {
+  const cells = Array.from(
+    { length: 9 },
+    (_, y) =>
+      [
+        [5, y, '~'],
+        [4, y, '.'],
+      ] as [number, number, string][],
+  ).flat()
+  const field = buildWaterField([sector('meander', 0, cells)]).get('meander')!.cells
+  const midpoints = Array.from(
+    { length: 9 },
+    (_, y) => field.get(`5:${y}`)!.banks[0]!.edge[2]![0][0],
+  )
+  expect(Math.max(...midpoints) - Math.min(...midpoints)).toBeGreaterThan(0.065)
+  // Integrating each cubic removes small scallops; the bank still wanders over
+  // multiple cells, so increasing a tile-period ripple cannot satisfy this guard.
+  const means = Array.from(
+    { length: 9 },
+    (_, y) =>
+      field
+        .get(`5:${y}`)!
+        .banks[0]!.edge.flat()
+        .reduce((sum, [x]) => sum + x, 0) / 16,
+  )
+  expect(Math.max(...means) - Math.min(...means)).toBeGreaterThan(0.055)
+  for (let y = 0; y < 8; y++) {
+    for (const layer of ['edge', 'shallow'] as const) {
+      const end = field.get(`5:${y}`)!.banks[0]![layer].at(-1)!
+      const start = field.get(`5:${y + 1}`)!.banks[0]![layer][0]!
+      expect(end[3][0]).toBeCloseTo(start[0][0], 13)
+      expect(end[3][0] - end[2][0]).toBeCloseTo(start[1][0] - start[0][0], 13)
+    }
+  }
+})
+
+it('joins bank positions, tangents and flow across the public longitude wrap', () => {
+  const west = {
+    ...sector('wrap-west', 2, [
+      [12, 5, '~'],
+      [12, 4, '.'],
+    ]),
+    atlasColumn: 127,
+  }
+  const east = sector('wrap-east', 2, [
+    [0, 5, '~'],
+    [0, 4, '.'],
+  ])
+  const cells = buildWaterField([west, east])
+  const a = cells.get(west.id)!.cells.get('12:5')!
+  const b = cells.get(east.id)!.cells.get('0:5')!
+  for (const layer of ['edge', 'shallow'] as const) {
+    const end = a.banks[0]![layer].at(-1)!,
+      start = b.banks[0]![layer][0]!
+    expect(end[3][1]).toBeCloseTo(start[0][1], 12)
+    expect(end[3][1] - end[2][1]).toBeCloseTo(start[1][1] - start[0][1], 12)
+  }
+  expect(a.flow[3][1]).toBeCloseTo(b.flow[0][1], 12)
+  expect(a.flow[3][1] - a.flow[2][1]).toBeCloseTo(b.flow[1][1] - b.flow[0][1], 12)
+})
+
+it('builds lava-only known-cell profiles without joining private terrain or changing authority', () => {
+  const source = sector('lava', 0, [
+    [5, 4, 'l'],
+    [5, 5, 'l'],
+    [6, 5, 'l'],
+    [4, 5, '~'],
+    [5, 6, '.'],
+  ])
+  const privateView = { ...sector('private-lava', 1, [[5, 0, 'l']]), charted: false }
+  const publicView = sector('public-dry', 0, [[5, 8, '.']])
+  const before = JSON.stringify([source, privateView, publicView])
+  const field = buildWaterField([source, privateView, publicView], 'lava')
+  expect([...field.get(source.id)!.cells.keys()]).toEqual(['5:4', '5:5', '6:5'])
+  expect([...buildWaterField([source]).get(source.id)!.cells.keys()]).toEqual(['4:5'])
+  const bend = field.get(source.id)!.cells.get('5:5')!
+  expect(bend.channel).toBe(true)
+  expect(bend.flow[0][1]).toBe(0)
+  expect(bend.flow[3][0]).toBe(1)
+  expect(bend.banks.map(({ side }) => side)).toEqual([2, 3])
+  const isolated = field.get(privateView.id)!
+  expect(isolated.key).toBe(buildWaterField([privateView], 'lava').get(privateView.id)!.key)
+  expect(isolated.cells.get('5:0')!.banks).toEqual([])
+  expect(JSON.stringify([source, privateView, publicView])).toBe(before)
+})
+
+it('preserves proven bridge mouths independently for water and lava profiles', () => {
+  const source = sector('lava-bridge', 0, [
+    [5, 3, 'l'],
+    [5, 4, '='],
+    [5, 5, 'l'],
+    [6, 3, '~'],
+  ])
+  const field = buildWaterField([source], 'lava').get(source.id)!.cells
+  expect([...field.keys()]).toEqual(['5:3', '5:5'])
+  expect(field.get('5:3')!.banks.map(({ side }) => side)).toEqual([1])
+  source.cells[2]!.terrain = '~'
+  expect(
+    buildWaterField([source], 'lava')
+      .get(source.id)!
+      .cells.get('5:3')!
+      .banks.map(({ side }) => side),
+  ).toEqual([1, 2])
+})
+
+it('paints deterministic irregular cooling crust and hot seams only within its supplied lava cell', () => {
+  const profile = buildWaterField(
+    [
+      sector('crust', 0, [
+        [5, 4, 'l'],
+        [5, 5, 'l'],
+        [6, 5, 'l'],
+        [4, 5, '.'],
+      ]),
+    ],
+    'lava',
+  )
+    .get('crust')!
+    .cells.get('5:5')!
+  const canvas = () => ({
+    ...waterCanvas(),
+    translate: vi.fn(),
+    closePath: vi.fn(),
+    fillRect: vi.fn(),
+  })
+  const first = canvas(),
+    second = canvas()
+  paintLavaGround(first as unknown as CanvasRenderingContext2D, profile, 48)
+  paintLavaGround(second as unknown as CanvasRenderingContext2D, profile, 48)
+  expect(first.translate).toHaveBeenCalledWith(240, 240)
+  expect(first.rect).toHaveBeenCalledWith(0, 0, 48, 48)
+  expect(first.clip).toHaveBeenCalledOnce()
+  expect(first.clip.mock.invocationCallOrder[0]).toBeLessThan(
+    first.fill.mock.invocationCallOrder[0]!,
+  )
+  expect(first.bezierCurveTo.mock.calls.length).toBeGreaterThan(0)
+  expect(first.fill.mock.calls.length).toBeGreaterThan(1)
+  expect(first.lineTo.mock.calls).toEqual(second.lineTo.mock.calls)
+  expect(first.bezierCurveTo.mock.calls).toEqual(second.bezierCurveTo.mock.calls)
+  expect(first.stroke.mock.calls.length).toBeLessThanOrEqual(20)
+})
+
+it('moves three clipped lava filaments along the supplied curved profile and preserves the fallback', () => {
+  const profile = buildWaterField(
+    [
+      sector('lava-flow', 0, [
+        [5, 4, 'l'],
+        [5, 5, 'l'],
+        [6, 5, 'l'],
+      ]),
+    ],
+    'lava',
+  )
+    .get('lava-flow')!
+    .cells.get('5:5')!
+  const canvas = () => ({ ...waterCanvas(), quadraticCurveTo: vi.fn() })
+  const first = canvas(),
+    second = canvas(),
+    fixed = canvas(),
+    fallback = canvas()
+  paintLavaMotion(first as unknown as CanvasRenderingContext2D, 48, 1000, 5, 5, profile)
+  paintLavaMotion(second as unknown as CanvasRenderingContext2D, 48, 1600, 5, 5, profile)
+  paintLavaMotion(fixed as unknown as CanvasRenderingContext2D, 48, 1000, 5, 5, profile)
+  paintLavaMotion(fallback as unknown as CanvasRenderingContext2D, 48, 1000, 5, 5)
+  expect(first.rect).toHaveBeenCalledWith(0, 0, 48, 48)
+  expect(first.clip).toHaveBeenCalledOnce()
+  expect(first.clip.mock.invocationCallOrder[0]).toBeLessThan(
+    first.stroke.mock.invocationCallOrder[0]!,
+  )
+  expect(first.bezierCurveTo).toHaveBeenCalledTimes(3)
+  expect(first.quadraticCurveTo).not.toHaveBeenCalled()
+  expect(first.bezierCurveTo.mock.calls).not.toEqual(second.bezierCurveTo.mock.calls)
+  expect(first.bezierCurveTo.mock.calls).toEqual(fixed.bezierCurveTo.mock.calls)
+  for (const coordinates of first.bezierCurveTo.mock.calls)
+    expect(coordinates.every((n: number) => Number.isFinite(n))).toBe(true)
+  expect(fallback.quadraticCurveTo).toHaveBeenCalledTimes(3)
+  expect(fallback.bezierCurveTo).not.toHaveBeenCalled()
+})
+
+it.each(['grand', 'lava'] as const)(
+  'anchors %s falling highlights to both standardized source channels',
+  (style) => {
+    for (const now of [0, 120, 9100]) {
+      const highlights = waterfallHighlights(now, style)
+      expect(highlights).toHaveLength(8)
+      highlights.forEach((point, i) => {
+        const lower = i >= 4
+        expect(Math.abs(point.x - (lower ? 0.49 : 0.5))).toBeLessThanOrEqual(0.027)
+        expect(point.y).toBeGreaterThanOrEqual(lower ? 0.5 : 0.2)
+        expect(point.y + point.length).toBeLessThanOrEqual(lower ? 0.78 : 0.4)
+      })
+    }
+    const first = waterfallHighlights(0, style),
+      second = waterfallHighlights(120, style)
+    expect(second[0]!.y).toBeGreaterThan(first[0]!.y)
+  },
+)
+
+it.each(['grand', 'lava'] as const)(
+  'keeps %s waterfall roots and receiving pool fixed while wind bends only airborne particles',
+  (style) => {
+    const west = waterCanvas(),
+      east = waterCanvas(),
+      fixed = waterCanvas(),
+      low = waterCanvas()
+    paintWaterfallMotion(
+      west as unknown as CanvasRenderingContext2D,
+      10,
+      20,
+      240,
+      240,
+      1000,
+      -0.05,
+      true,
+      style,
+    )
+    paintWaterfallMotion(
+      east as unknown as CanvasRenderingContext2D,
+      10,
+      20,
+      240,
+      240,
+      1000,
+      0.05,
+      true,
+      style,
+    )
+    paintWaterfallMotion(
+      fixed as unknown as CanvasRenderingContext2D,
+      10,
+      20,
+      240,
+      240,
+      1000,
+      0.05,
+      true,
+      style,
+    )
+    paintWaterfallMotion(
+      low as unknown as CanvasRenderingContext2D,
+      10,
+      20,
+      240,
+      240,
+      1000,
+      0.05,
+      false,
+      style,
+    )
+    expect(east.moveTo.mock.calls).toEqual(west.moveTo.mock.calls)
+    expect(east.lineTo.mock.calls).toEqual(west.lineTo.mock.calls)
+    expect(east.ellipse.mock.calls[0]!.slice(0, 2)).toEqual([10 + 240 * 0.49, 20 + 240 * 0.9])
+    expect(east.ellipse.mock.calls[0]).toEqual(west.ellipse.mock.calls[0])
+    expect(east.ellipse.mock.calls[1]![0]).toBeGreaterThan(west.ellipse.mock.calls[1]![0])
+    expect(east.ellipse.mock.calls.length).toBeLessThanOrEqual(7)
+    expect(east.ellipse.mock.calls).toEqual(fixed.ellipse.mock.calls)
+    expect(low.ellipse).toHaveBeenCalledOnce()
+    expect(east).toHaveProperty('fillStyle', style === 'lava' ? '#ffc36b' : '#d7efed')
+    expect(east).toHaveProperty('strokeStyle', style === 'lava' ? '#ffe0a0' : '#e4f6f1')
+  },
+)
+
+it('uses the supplied lava bend geometry rather than a fixed decorative curve', () => {
+  const profile = buildWaterField(
+    [
+      sector('lava-bend', 0, [
+        [5, 4, 'l'],
+        [5, 5, 'l'],
+        [6, 5, 'l'],
+      ]),
+    ],
+    'lava',
+  )
+    .get('lava-bend')!
+    .cells.get('5:5')!
+  const turned: WaterCell = {
+    ...profile,
+    flow: profile.flow.map(([x, y]) => [1 - y, x]) as unknown as WaterCell['flow'],
+  }
+  const first = waterCanvas(),
+    rotated = waterCanvas()
+  paintLavaMotion(first as unknown as CanvasRenderingContext2D, 48, 1000, 5, 5, profile)
+  paintLavaMotion(rotated as unknown as CanvasRenderingContext2D, 48, 1000, 5, 5, turned)
+  for (const [i, coordinates] of first.bezierCurveTo.mock.calls.entries()) {
+    const result = rotated.bezierCurveTo.mock.calls[i]!
+    for (let point = 0; point < 6; point += 2) {
+      expect(result[point]).toBeCloseTo(48 - coordinates[point + 1], 12)
+      expect(result[point + 1]).toBeCloseTo(coordinates[point], 12)
+    }
+  }
+})
+
+it('gives lava falls small rising gold embers instead of broad water spray', () => {
+  const water = waterCanvas(),
+    lava = waterCanvas()
+  paintWaterfallMotion(
+    water as unknown as CanvasRenderingContext2D,
+    0,
+    0,
+    240,
+    240,
+    1000,
+    0,
+    true,
+    'grand',
+  )
+  paintWaterfallMotion(
+    lava as unknown as CanvasRenderingContext2D,
+    0,
+    0,
+    240,
+    240,
+    1000,
+    0,
+    true,
+    'lava',
+  )
+  expect(lava.ellipse.mock.calls[0]).toEqual(water.ellipse.mock.calls[0])
+  for (let i = 1; i <= 6; i++) {
+    const ember = lava.ellipse.mock.calls[i]!,
+      spray = water.ellipse.mock.calls[i]!
+    expect(ember[2]).toBeLessThan(spray[2])
+    expect(ember[1]).toBeLessThan(spray[1])
+  }
+})
+
+it('joins supplied adjacent Void water cells without inventing banks or mixing other worlds', () => {
+  const a = {
+    ...sector('void:ivory-veil:0:0', 0, [[12, 4, '~']]),
+    charted: false,
+    atlasColumn: undefined,
+    atlasRow: undefined,
+    sceneColumn: 0,
+    sceneRow: 0,
+  }
+  const b = {
+    ...sector('void:ivory-veil:1:0', 0, [[0, 4, '~']]),
+    charted: false,
+    atlasColumn: undefined,
+    atlasRow: undefined,
+    sceneColumn: 1,
+    sceneRow: 0,
+  }
+  const foreign = {
+    ...b,
+    id: 'void:cinder-choir:1:0',
+    cells: [{ x: 0, y: 4, terrain: '.', walkable: true, safe: false }],
+  }
+  const alone = buildWaterField([a, foreign]).get(a.id)!.cells.get('12:4')!
+  expect(alone.channel).toBe(false)
+  expect(alone.banks).toEqual([])
+  const joined = buildWaterField([a, b, foreign])
+  expect(joined.get(a.id)!.cells.get('12:4')!.channel).toBe(true)
+  expect(joined.get(b.id)!.cells.get('0:4')!.channel).toBe(true)
+  expect(joined.get(a.id)!.cells.get('12:4')!.banks).toEqual([])
 })

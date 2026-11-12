@@ -1,3 +1,5 @@
+import { mapSceneDomain } from './map-scene-domain'
+import { sectorMapOrigin } from '@/world/topology'
 import { ATLAS_COLUMNS, ATLAS_ROWS } from '@/world/topology'
 import { GRID_HEIGHT, GRID_WIDTH } from '@/world/catalog'
 import { hashString } from '@/world/terrain-gen'
@@ -6,14 +8,23 @@ import type { WorldCell as TerrainCell, WorldSectorView } from '@/world/types'
 type Point = readonly [number, number]
 type Curve = readonly [Point, Point, Point, Point]
 type Side = 0 | 1 | 2 | 3
+type WaterfallStyle = 'water' | 'grand' | 'lava'
+const worldWidth = ATLAS_COLUMNS * GRID_WIDTH
+const wrapX = (x: number) => ((x % worldWidth) + worldWidth) % worldWidth
+// Integral longitude frequencies meet in both value and slope at the atlas seam.
+const longitudeFrequency = (radians: number) =>
+  (Math.round((worldWidth * radians) / (Math.PI * 2)) * Math.PI * 2) / worldWidth
 /** Source-art channel coordinates: only the falling water moves, never its rocks. */
-export function waterfallHighlights(now: number) {
+export function waterfallHighlights(now: number, style: WaterfallStyle = 'water') {
   return Array.from({ length: 8 }, (_, i) => {
     const lower = i >= 4,
-      phase = (now / (820 + i * 39) + (i % 4) / 4) % 1
+      phase = (now / (820 + i * 39) + (i % 4) / 4) % 1,
+      standard = style === 'water'
     return {
-      x: (lower ? 0.48 : 0.47) + ((i % 3) - 1) * 0.013,
-      y: (lower ? 0.51 : 0.32) + phase * 0.13,
+      x: (standard ? (lower ? 0.48 : 0.47) : lower ? 0.49 : 0.5) + ((i % 3) - 1) * 0.013,
+      y:
+        (standard ? (lower ? 0.51 : 0.32) : lower ? 0.5 : 0.2) +
+        phase * (standard ? 0.13 : lower ? 0.258 : 0.178),
       length: 0.022,
       alpha: Math.sin(phase * Math.PI) * 0.32,
     }
@@ -28,12 +39,15 @@ export function paintWaterfallMotion(
   now: number,
   windSpeed = 0,
   spray = true,
+  style: WaterfallStyle = 'water',
 ) {
+  const lava = style === 'lava',
+    impactY = style === 'water' ? 0.78 : 0.9
   context.save()
-  context.strokeStyle = '#e4f6f1'
+  context.strokeStyle = lava ? '#ffe0a0' : '#e4f6f1'
   context.lineCap = 'round'
   context.lineWidth = Math.max(0.6, width * 0.007)
-  for (const point of waterfallHighlights(now)) {
+  for (const point of waterfallHighlights(now, style)) {
     context.globalAlpha = point.alpha
     context.beginPath()
     context.moveTo(x + point.x * width, y + point.y * height)
@@ -45,7 +59,7 @@ export function paintWaterfallMotion(
   context.beginPath()
   context.ellipse(
     x + width * 0.49,
-    y + height * 0.78,
+    y + height * impactY,
     width * (0.05 + phase * 0.12),
     height * (0.015 + phase * 0.025),
     0,
@@ -54,22 +68,21 @@ export function paintWaterfallMotion(
   )
   context.stroke()
   if (spray) {
-    // The sheet and impact stay where the art put them; only airborne spray
-    // bends across the scene. Phases fade in and out around the impact point.
-    context.fillStyle = '#d7efed'
+    // Only airborne spray/embers drift; the painted sheet and impact stay fixed.
+    context.fillStyle = lava ? '#ffc36b' : '#d7efed'
     for (let i = 0; i < 6; i++) {
       const age = (now / (1100 + i * 87) + i / 6) % 1
       const side = i % 2 ? 1 : -1
       const drift = windSpeed * 3.4 * age ** 1.45 + side * age * (0.024 + (i % 3) * 0.012)
-      const rise = Math.sin(age * Math.PI * 0.8) * (0.033 + (i % 3) * 0.015)
+      const rise = Math.sin(age * Math.PI * 0.8) * ((lava ? 0.06 : 0.033) + (i % 3) * 0.015)
       const size = Math.max(0.65, width * (0.004 + age * 0.013))
       context.globalAlpha = Math.sin(age * Math.PI) * (0.36 - age * 0.16)
       context.beginPath()
       context.ellipse(
         x + width * (0.49 + drift),
-        y + height * (0.78 - rise),
-        size,
-        size * 0.58,
+        y + height * (impactY - rise),
+        size * (lava ? 0.35 : 1),
+        size * (lava ? 0.72 : 0.58),
         0,
         0,
         Math.PI * 2,
@@ -182,25 +195,20 @@ function bankCurves(
 ): Curve[] {
   const vertical = side === 1 || side === 3
   const along = vertical ? worldY : worldX
-  const across = vertical ? worldX + Number(side === 1) : worldY + Number(side === 2)
+  const boundary = vertical ? worldX + Number(side === 1) : worldY + Number(side === 2)
+  const across = vertical && namespace === 'atlas' ? wrapX(boundary) : boundary
   const salt = ((hashString(`${namespace}:${across}:bank`) % 997) / 997) * Math.PI * 2
-  // World-space phases keep both position and tangent coherent between cells.
-  // The face has a visible scallop; the shallow contour leaves a clear channel core.
-  const inset = (t: number) => {
-    const phase = (along + t) * Math.PI * 2 + salt
-    return (
-      (shallow ? 0.22 : 0.08) +
-      Math.sin(phase) * (shallow ? 0.04 : 0.044) +
-      Math.sin((along + t) * 11.1 + across * 0.43 + salt) * (shallow ? 0.014 : 0.016)
-    )
-  }
-  const derivative = (t: number) => {
-    const phase = (along + t) * Math.PI * 2 + salt
-    return (
-      Math.cos(phase) * Math.PI * 2 * (shallow ? 0.04 : 0.044) +
-      Math.cos((along + t) * 11.1 + across * 0.43 + salt) * 11.1 * (shallow ? 0.014 : 0.016)
-    )
-  }
+  // Broad meanders span roughly seven cells; finer irregularities roughen the
+  // shore without resetting its position or tangent at every tile boundary.
+  const broad = vertical || namespace !== 'atlas' ? 0.85 : longitudeFrequency(0.85)
+  const fine = vertical || namespace !== 'atlas' ? 11.1 : longitudeFrequency(11.1)
+  const inset = (t: number) =>
+    (shallow ? 0.225 : 0.09) +
+    Math.sin((along + t) * broad + salt) * (shallow ? 0.034 : 0.042) +
+    Math.sin((along + t) * fine + across * 0.43 + salt) * (shallow ? 0.018 : 0.036)
+  const derivative = (t: number) =>
+    Math.cos((along + t) * broad + salt) * broad * (shallow ? 0.034 : 0.042) +
+    Math.cos((along + t) * fine + across * 0.43 + salt) * fine * (shallow ? 0.018 : 0.036)
   return [0, 0.25, 0.5, 0.75].map((t) => [
     bankPoint(side, t, inset(t)),
     bankPoint(side, t + 1 / 12, inset(t) + derivative(t) / 12),
@@ -209,7 +217,12 @@ function bankCurves(
   ])
 }
 
-function currentCurve(worldX: number, worldY: number, connected: boolean[]): Curve {
+function currentCurve(
+  worldX: number,
+  worldY: number,
+  connected: boolean[],
+  publicAtlas: boolean,
+): Curve {
   let start: Side = 0,
     end: Side = 2
   if (connected[0] && connected[2]) {
@@ -239,7 +252,10 @@ function currentCurve(worldX: number, worldY: number, connected: boolean[]): Cur
     // Both cells sharing an edge evaluate exactly the same world-space port.
     const along = vertical ? worldY + Number(side === 2) : worldX + Number(side === 1)
     const across = vertical ? worldX : worldY
-    return bankPoint(side, 0.5 + Math.sin(along * 0.67 + across * 0.31) * 0.065, 0)
+    const phase = vertical
+      ? along * 0.67 + (publicAtlas ? wrapX(across) : across) * 0.31
+      : along * (publicAtlas ? longitudeFrequency(0.67) : 0.67) + across * 0.31
+    return bankPoint(side, 0.5 + Math.sin(phase) * 0.065, 0)
   }
   const a = port(start),
     b = port(end)
@@ -251,27 +267,26 @@ function currentCurve(worldX: number, worldY: number, connected: boolean[]): Cur
 }
 
 /** Only supplied cells participate. Private/legacy sectors have their own namespace. */
-export function buildWaterField(sectors: readonly WorldSectorView[]): Map<string, WaterSector> {
+export function buildWaterField(
+  sectors: readonly WorldSectorView[],
+  material: 'water' | 'lava' = 'water',
+): Map<string, WaterSector> {
+  const liquid = material === 'lava' ? 'l' : '~'
   const terrain = new Map<string, TerrainCell>()
-  const namespace = (sector: WorldSectorView) =>
-    sector.charted && sector.atlasColumn !== undefined && sector.atlasRow !== undefined
-      ? 'atlas'
-      : sector.id
+  const namespace = mapSceneDomain
   const address = (sector: WorldSectorView, x: number, y: number) =>
     `${namespace(sector)}:${cellKey(namespace(sector) === 'atlas' ? ((x % (ATLAS_COLUMNS * GRID_WIDTH)) + ATLAS_COLUMNS * GRID_WIDTH) % (ATLAS_COLUMNS * GRID_WIDTH) : x, y)}`
   for (const sector of sectors) {
-    const ox = (sector.atlasColumn ?? 0) * GRID_WIDTH,
-      oy = (sector.atlasRow ?? 0) * GRID_HEIGHT
+    const { x: ox, y: oy } = sectorMapOrigin(sector)
     for (const cell of sector.cells) terrain.set(address(sector, ox + cell.x, oy + cell.y), cell)
   }
   const field = new Map<string, WaterSector>()
   const water = new Map<string, WaterCell>()
   for (const sector of sectors) {
     const cells = new Map<string, WaterCell>()
-    const ox = (sector.atlasColumn ?? 0) * GRID_WIDTH,
-      oy = (sector.atlasRow ?? 0) * GRID_HEIGHT
+    const { x: ox, y: oy } = sectorMapOrigin(sector)
     for (const cell of sector.cells) {
-      if (cell.terrain !== '~') continue
+      if (cell.terrain !== liquid) continue
       const wx = ox + cell.x,
         wy = oy + cell.y
       const neighbours = directions.map(([dx, dy]) => {
@@ -281,9 +296,9 @@ export function buildWaterField(sectors: readonly WorldSectorView[]): Map<string
         if (neighbour?.terrain === '=' && neighbour.walkable)
           for (let distance = 2; distance <= 4; distance++) {
             const next = at(distance)
-            // The dry bridge remains dry and legal. Only a supplied water
-            // endpoint proves that this bank continues beneath its deck.
-            if (next?.terrain === '~') return '~'
+            // The dry bridge remains dry and legal. Only a supplied matching
+            // liquid endpoint proves that this bank continues beneath its deck.
+            if (next?.terrain === liquid) return liquid
             if (next?.terrain !== '=' || !next.walkable) break
           }
         return neighbour?.terrain
@@ -291,22 +306,22 @@ export function buildWaterField(sectors: readonly WorldSectorView[]): Map<string
       const banks: Bank[] = []
       neighbours.forEach((material, side) => {
         // Unknown cells are neither invented land nor an exposed shoreline.
-        if (material === undefined || material === '~') return
+        if (material === undefined || material === liquid) return
         banks.push({
           side: side as Side,
           edge: bankCurves(side as Side, wx, wy, false, namespace(sector)),
           shallow: bankCurves(side as Side, wx, wy, true, namespace(sector)),
         })
       })
-      const connected = neighbours.map((material) => material === '~')
+      const connected = neighbours.map((material) => material === liquid)
       const connectionCount = connected.filter(Boolean).length
       const profile: WaterCell = {
         x: cell.x,
         y: cell.y,
-        seed: hashString(`${namespace(sector)}:${wx}:${wy}:water`),
+        seed: hashString(`${namespace(sector)}:${wx}:${wy}:${material}`),
         channel: connectionCount > 0 && connectionCount <= 2,
         banks,
-        flow: currentCurve(wx, wy, connected),
+        flow: currentCurve(wx, wy, connected, namespace(sector) === 'atlas'),
         depth: banks.length ? 0 : 3,
       }
       cells.set(cellKey(cell.x, cell.y), profile)
@@ -342,8 +357,7 @@ export function buildWaterField(sectors: readonly WorldSectorView[]): Map<string
   }
   for (const sector of sectors) {
     const part = field.get(sector.id)!
-    const ox = (sector.atlasColumn ?? 0) * GRID_WIDTH,
-      oy = (sector.atlasRow ?? 0) * GRID_HEIGHT
+    const { x: ox, y: oy } = sectorMapOrigin(sector)
     for (const cell of part.cells.values()) {
       cell.cornerDepths = [
         [0, 0],
@@ -703,6 +717,66 @@ export function liquidMaterial(
   return gradient
 }
 
+/** Cached cooling plates and hot seams stay inside the supplied lava cell. */
+export function paintLavaGround(context: CanvasRenderingContext2D, cell: WaterCell, tile: number) {
+  context.save()
+  context.translate(cell.x * tile, cell.y * tile)
+  clipCell(context, tile)
+  // Broken, irregular cooling plates expose the warmer material beneath.
+  // This deterministic detail runs only when the caller rebuilds its ground cache.
+  for (let i = 0; i < 7; i++) {
+    const salt = hashString(`${cell.seed}:${i}:crust`)
+    const cx = 0.09 + (salt % 811) / 1000,
+      cy = 0.08 + ((salt >>> 10) % 821) / 1000,
+      radius = 0.09 + ((salt >>> 21) % 100) / 1000
+    context.beginPath()
+    for (let corner = 0; corner < 6; corner++) {
+      const angle = (corner / 6) * Math.PI * 2
+      const reach = radius * (0.74 + ((salt >>> (corner * 3)) % 7) / 10)
+      const x = (cx + Math.cos(angle) * reach) * tile,
+        y = (cy + Math.sin(angle) * reach) * tile
+      if (corner === 0) context.moveTo(x, y)
+      else context.lineTo(x, y)
+    }
+    context.closePath()
+    context.fillStyle = i % 2 ? 'rgba(43,31,34,.51)' : 'rgba(76,39,37,.60)'
+    context.fill()
+    context.strokeStyle = 'rgba(246,124,51,.39)'
+    context.lineWidth = tile * 0.012
+    context.stroke()
+  }
+  // Banks inherit the same multi-cell outline as water, with cooler dark rims.
+  for (const bank of cell.banks) {
+    context.beginPath()
+    const a = bankPoint(bank.side, 0, 0),
+      b = bankPoint(bank.side, 1, 0)
+    context.moveTo(a[0] * tile, a[1] * tile)
+    context.lineTo(b[0] * tile, b[1] * tile)
+    for (const curve of [...bank.edge].reverse()) {
+      context.lineTo(curve[3][0] * tile, curve[3][1] * tile)
+      trace(context, [curve[3], curve[2], curve[1], curve[0]], tile, false)
+    }
+    context.closePath()
+    context.fillStyle = 'rgba(42,30,33,.73)'
+    context.fill()
+    context.beginPath()
+    bank.edge.forEach((curve, i) => trace(context, curve, tile, i === 0))
+    context.strokeStyle = 'rgba(255,165,69,.60)'
+    context.lineWidth = tile * 0.018
+    context.stroke()
+  }
+  for (let i = 0; i < 5; i++) {
+    const salt = hashString(`${cell.seed}:${i}:hot-seam`)
+    const from = (salt % 811) / 1000
+    context.beginPath()
+    trace(context, stream(cell.flow, from, Math.min(1, from + 0.12), (i - 2) * 0.13), tile)
+    context.strokeStyle = i % 2 ? 'rgba(255,204,99,.50)' : 'rgba(242,112,39,.55)'
+    context.lineWidth = tile * (i % 2 ? 0.014 : 0.029)
+    context.stroke()
+  }
+  context.restore()
+}
+
 /** Reuse exactly the same world phase on open lava and beneath a proven crossing. */
 export function paintLavaMotion(
   context: CanvasRenderingContext2D,
@@ -710,6 +784,7 @@ export function paintLavaMotion(
   now: number,
   worldX: number,
   worldY: number,
+  profile?: WaterCell,
 ) {
   context.save()
   clipCell(context, tile)
@@ -720,8 +795,18 @@ export function paintLavaMotion(
     const shift = phase * tile
     context.globalAlpha = Math.sin(phase * Math.PI) * 0.85
     context.beginPath()
-    context.moveTo(-12 + shift, tile * (0.23 + i * 0.27))
-    context.quadraticCurveTo(shift, tile * (0.25 + i * 0.27), shift + 28, tile * (0.23 + i * 0.27))
+    if (profile) {
+      const from = phase * 0.83
+      trace(context, stream(profile.flow, from, from + 0.14, (i - 1) * 0.16), tile)
+    } else {
+      context.moveTo(-12 + shift, tile * (0.23 + i * 0.27))
+      context.quadraticCurveTo(
+        shift,
+        tile * (0.25 + i * 0.27),
+        shift + 28,
+        tile * (0.23 + i * 0.27),
+      )
+    }
     context.stroke()
   }
   context.restore()

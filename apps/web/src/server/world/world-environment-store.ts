@@ -1,4 +1,5 @@
 import 'server-only'
+import { isVoidRealmId } from '@/world/void-realms'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import {
   DEFAULT_WORLD_ENVIRONMENT_SETTINGS,
@@ -49,7 +50,22 @@ export function parseWorldEnvironmentSettings(data: unknown): WorldEnvironmentSe
   if (weather !== null && !isWorldWeather(weather)) return null
   const until = d.weatherOverrideUntilMs ?? null
   if (until !== null && !int(until)) return null
+  const voidRealmOverride = d.voidRealmOverride ?? null
+  const voidRealmOverrideUntil = d.voidRealmOverrideUntilMs ?? null
+  if (
+    voidRealmOverride !== null &&
+    (typeof voidRealmOverride !== 'string' || !isVoidRealmId(voidRealmOverride))
+  )
+    return null
+  if (
+    voidRealmOverrideUntil !== null &&
+    (!int(voidRealmOverrideUntil) || voidRealmOverrideUntil < 0)
+  )
+    return null
+  if ((voidRealmOverride === null) !== (voidRealmOverrideUntil === null)) return null
   return {
+    voidRealmOverride,
+    voidRealmOverrideUntil,
     version: d.version as number,
     dayLengthMinutes,
     weatherRollMinutes,

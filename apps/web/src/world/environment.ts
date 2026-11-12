@@ -2,6 +2,7 @@
  * Server-owned World environment: a shared in-game day/night clock and weather.
  * The default clock follows UTC; configurable cycles remain shared for everyone. Pure and deterministic so every player (and test) resolves the same result.
  */
+import { VOID_REALMS, type VoidRealmId } from '@/world/void-realms'
 import { weatherAtHour, type WorldWeather } from '@aurevane/game-core/world/weather'
 
 export {
@@ -18,6 +19,9 @@ export interface WorldEnvironmentSettings {
   weatherRollMinutes?: number
   /** Real minutes between phases for newly arriving uncharted expeditions. */
   warpedShiftMinutes?: number
+  /** Shared map override; expires at a real UTC roll boundary. Historical absence means automatic. */
+  voidRealmOverride?: VoidRealmId | null
+  voidRealmOverrideUntil?: number | null
   /** Added to the in-game clock, in in-game minutes (-1440..1440). */
   timeOffsetMinutes: number
   /** When set, the clock is frozen at this minute of the in-game day (0..1439). */
@@ -52,6 +56,8 @@ export const DEFAULT_WORLD_ENVIRONMENT_SETTINGS: WorldEnvironmentSettings = {
   dayLengthMinutes: 1440,
   weatherRollMinutes: DEFAULT_WEATHER_ROLL_MINUTES,
   warpedShiftMinutes: DEFAULT_WARPED_SHIFT_MINUTES,
+  voidRealmOverride: null,
+  voidRealmOverrideUntil: null,
   timeOffsetMinutes: 0,
   frozenMinuteOfDay: null,
   weatherOverride: null,
@@ -104,4 +110,32 @@ export function worldDayPhase(minute: number): 'Night' | 'Dawn' | 'Day' | 'Dusk'
   if (minute >= 480 && minute < 1080) return 'Day'
   if (minute >= 1080 && minute < 1200) return 'Dusk'
   return 'Night'
+}
+
+export interface VoidRotation {
+  realmId: VoidRealmId
+  source: 'live' | 'master'
+  /** Epoch milliseconds of the next shared UTC interval boundary. */
+  nextRollAt: number
+}
+
+/**
+ * One seeded draw per UTC interval for the whole World, with repeats allowed.
+ * Keep this arithmetic and catalog order in sync with world_void_realm_at_phase_v1.
+ * This deliberately does not reinterpret historical warpedPhase expedition ids.
+ */
+export function resolveVoidRotation(
+  nowMs: number,
+  settings: WorldEnvironmentSettings = DEFAULT_WORLD_ENVIRONMENT_SETTINGS,
+): VoidRotation {
+  const intervalMs = (settings.warpedShiftMinutes ?? DEFAULT_WARPED_SHIFT_MINUTES) * 60_000
+  const phase = Math.floor(nowMs / intervalMs)
+  const nextRollAt = (phase + 1) * intervalMs
+  const forced = settings.voidRealmOverride
+  if (forced && settings.voidRealmOverrideUntil != null && nowMs < settings.voidRealmOverrideUntil)
+    return { realmId: forced, source: 'master', nextRollAt }
+  const prime = 2_147_483_647n
+  const seed = ((((BigInt(phase) % prime) + prime) % prime) * 48_271n + 131_071n) % prime
+  const index = Number(((seed * seed + 104_729n) % prime) % 8n)
+  return { realmId: VOID_REALMS[index]!.id, source: 'live', nextRollAt }
 }

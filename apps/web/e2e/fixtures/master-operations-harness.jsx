@@ -190,6 +190,24 @@ window.fetch = async (input, options) => {
       })
     if (body.operation === 'read' && body.characterId === player.characterId)
       return Response.json({ player })
+    if (
+      body.operation === 'teleport' &&
+      body.characterId === player.characterId &&
+      body.confirmed === true
+    ) {
+      // Transport fixture only: database legality, authorization and rotation are
+      // exercised by the real SQL tests, not by this component interaction proof.
+      const { sectorNumber, x, y, map } = body.destination
+      player = {
+        ...player,
+        world: {
+          version: body.expectedVersion + 1,
+          position: { sectorId: map === 'mainland' ? 'atlas:62:28' : 'void:ivory-veil:1:1', x, y },
+          locationLabel: `Sector${sectorNumber} · X:${x} · Y:${y}`,
+        },
+      }
+      return Response.json({ player })
+    }
     // Controlled transport response for the post-save focus proof. Authority
     // and persistence are covered by the authenticated recovery workflow.
     if (
@@ -224,6 +242,8 @@ window.fetch = async (input, options) => {
     const intervalMs = change.weatherRollMinutes * 60_000
     const now = Date.now()
     const nextRoll = (Math.floor(now / intervalMs) + 1) * intervalMs
+    const voidInterval = (change.warpedShiftMinutes ?? settings.warpedShiftMinutes) * 60_000
+    const voidNextRoll = (Math.floor(now / voidInterval) + 1) * voidInterval
     const activeOverride =
       settings.weatherOverride &&
       (settings.weatherOverrideUntil === null || settings.weatherOverrideUntil > now)
@@ -231,6 +251,13 @@ window.fetch = async (input, options) => {
       ...settings,
       dayLengthMinutes: change.dayLengthMinutes,
       weatherRollMinutes: change.weatherRollMinutes,
+      warpedShiftMinutes: change.warpedShiftMinutes ?? settings.warpedShiftMinutes,
+      ...(Object.hasOwn(change, 'voidRealm')
+        ? {
+            voidRealmOverride: change.voidRealm,
+            voidRealmOverrideUntil: change.voidRealm === null ? null : voidNextRoll,
+          }
+        : {}),
       timeOffsetMinutes: change.timeOffsetMinutes,
       frozenMinuteOfDay: change.frozenMinuteOfDay,
       ...(change.weather === 'unchanged'

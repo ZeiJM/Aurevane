@@ -6,6 +6,7 @@ import type {
   MasterPlayerView,
   PlayerCorrection,
   PlayerRecoveryResult,
+  PlayerTeleportDestination,
 } from '@/master/players'
 import {
   PlayerCorrectionForm,
@@ -13,6 +14,7 @@ import {
   playerContentLabel,
   playerLabel,
 } from './player-correction-form'
+import { PlayerTeleportForm } from './player-teleport-form'
 import styles from './players-workspace.module.css'
 import { MasterHelp } from './master-help'
 import { pv1fSkillByActionId } from '@aurevane/game-core/combat/pv1f-skills'
@@ -34,6 +36,13 @@ async function request<T>(body: Record<string, unknown>): Promise<T> {
 type Review =
   | { kind: 'edit'; command: PlayerCorrection; requestKey: string }
   | { kind: 'recover'; requestKey: string }
+  | {
+      kind: 'teleport'
+      requestKey: string
+      expectedVersion: number
+      destination: PlayerTeleportDestination
+      reason: string
+    }
 export function PlayersWorkspace({
   initialPlayer = null,
 }: {
@@ -105,6 +114,18 @@ export function PlayersWorkspace({
         })
         setPlayer(result.player)
         setNotice('Correction saved. Calculated values have been refreshed.')
+      } else if (review.kind === 'teleport') {
+        const result = await request<{ player: MasterPlayerView }>({
+          operation: 'teleport',
+          characterId: player.characterId,
+          expectedVersion: review.expectedVersion,
+          destination: review.destination,
+          reason: review.reason,
+          requestKey: review.requestKey,
+          confirmed: true,
+        })
+        setPlayer(result.player)
+        setNotice('Player teleported. Their previous path has been cancelled.')
       } else if (player.battle) {
         const result = await request<PlayerRecoveryResult>({
           operation: 'recover',
@@ -263,7 +284,7 @@ export function PlayersWorkspace({
                 <dt>World position</dt>
                 <dd>
                   {player.world?.position
-                    ? `${player.world.position.sectorId} · ${player.world.position.x}, ${player.world.position.y}`
+                    ? (player.world.locationLabel ?? 'Saved location unavailable')
                     : 'No saved position'}
                 </dd>
               </div>
@@ -278,10 +299,26 @@ export function PlayersWorkspace({
             {review ? (
               <section className={styles.review}>
                 <h3 tabIndex={-1} ref={reviewHeading}>
-                  {review.kind === 'edit' ? 'Review correction' : 'Confirm all participants'}
+                  {review.kind === 'edit'
+                    ? 'Review correction'
+                    : review.kind === 'teleport'
+                      ? 'Review teleport'
+                      : 'Confirm all participants'}
                 </h3>
                 {review.kind === 'edit' ? (
                   <PlayerCorrectionReview player={player} command={review.command} />
+                ) : review.kind === 'teleport' ? (
+                  <>
+                    <p>
+                      Teleport <strong>{player.name}</strong> to{' '}
+                      {review.destination.map === 'mainland'
+                        ? 'Mainland'
+                        : 'Current Void (selected at save time)'}{' '}
+                      · Sector{review.destination.sectorNumber} · X:{review.destination.x} · Y:
+                      {review.destination.y}. Their current path will be cancelled.
+                    </p>
+                    <p>Staff reason: {review.reason}</p>
+                  </>
                 ) : (
                   <>
                     <p>
@@ -309,13 +346,17 @@ export function PlayersWorkspace({
                   />
                   {review.kind === 'edit'
                     ? `I confirm this correction for ${player.name}.`
-                    : 'I confirm ending the encounter for every participant listed above.'}
+                    : review.kind === 'teleport'
+                      ? `I confirm teleporting ${player.name} to this destination.`
+                      : 'I confirm ending the encounter for every participant listed above.'}
                 </label>
                 <div className={styles.actions}>
                   <button disabled={busy || !confirmed} onClick={save}>
                     {review.kind === 'edit'
                       ? 'Save confirmed correction'
-                      : 'End encounter without rewards'}
+                      : review.kind === 'teleport'
+                        ? 'Teleport player'
+                        : 'End encounter without rewards'}
                   </button>
                   <button
                     disabled={busy}
@@ -334,6 +375,26 @@ export function PlayersWorkspace({
                 key={player.fingerprint}
                 player={player}
                 navigationDisabled={busy || !!review}
+                teleport={
+                  <PlayerTeleportForm
+                    disabled={
+                      busy ||
+                      !!review ||
+                      player.deletionPending ||
+                      !!player.battle ||
+                      (!!player.world && player.world.version === undefined)
+                    }
+                    onReview={(destination, reason) =>
+                      preview({
+                        kind: 'teleport',
+                        requestKey: crypto.randomUUID(),
+                        expectedVersion: player.world?.version ?? 0,
+                        destination,
+                        reason,
+                      })
+                    }
+                  />
+                }
                 encounter={
                   player.battle ? (
                     <section className={styles.encounter}>

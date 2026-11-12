@@ -1,4 +1,5 @@
 'use client'
+import { VOID_REALMS, type VoidRealmId } from '@/world/void-realms'
 import { useEffect, useState, type FormEvent } from 'react'
 import {
   MAX_TIME_OFFSET_MINUTES,
@@ -9,6 +10,7 @@ import {
   MAX_WARPED_SHIFT_MINUTES,
   WORLD_WEATHER,
   resolveWorldEnvironment,
+  resolveVoidRotation,
   worldTimeLabel,
   worldDayPhase,
   type WorldEnvironmentSettings,
@@ -49,6 +51,7 @@ export function WorldEnvironmentEditor({
   const [frozen, setFrozen] = useState(initialSettings.frozenMinuteOfDay !== null)
   const [clock, setClock] = useState(worldTimeLabel(initialSettings.frozenMinuteOfDay ?? 720))
   const [weather, setWeather] = useState<WorldWeather | 'live' | 'unchanged'>('unchanged')
+  const [voidRealm, setVoidRealm] = useState<VoidRealmId | 'live' | 'unchanged'>('unchanged')
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
   useEffect(() => {
@@ -60,6 +63,7 @@ export function WorldEnvironmentEditor({
     }
   }, [])
   const current = now === null ? null : resolveWorldEnvironment(now, settings)
+  const voidRotation = now === null ? null : resolveVoidRotation(now, settings)
   const offsetValue = /^-?\d{1,4}$/.test(offset) ? Number(offset) : NaN
   const dayValue = /^\d+$/.test(dayLength) ? Number(dayLength) : NaN
   const rollValue = /^\d+$/.test(weatherRoll) ? Number(weatherRoll) : NaN
@@ -97,6 +101,9 @@ export function WorldEnvironmentEditor({
             timeOffsetMinutes: offsetValue,
             frozenMinuteOfDay: frozenMinute,
             weather: weather === 'live' ? null : weather,
+            ...(voidRealm === 'unchanged'
+              ? {}
+              : { voidRealm: voidRealm === 'live' ? null : voidRealm }),
           },
         }),
       })
@@ -108,6 +115,7 @@ export function WorldEnvironmentEditor({
         throw new Error(body.error?.message ?? 'The world environment could not be saved.')
       setSettings(body.settings)
       setWeather('unchanged')
+      setVoidRealm('unchanged')
       setMessage('World environment saved. Players receive it with their next World update.')
     } catch (error) {
       setMessage(
@@ -235,9 +243,50 @@ export function WorldEnvironmentEditor({
         </fieldset>
       </div>
       <fieldset disabled={saving}>
-        <legend>Uncharted continent</legend>
+        <legend>Void maps</legend>
+        {voidRotation ? (
+          <p data-testid="void-rotation-current">
+            Current shared map:{' '}
+            {VOID_REALMS.find((realm) => realm.id === voidRotation.realmId)!.name} (
+            {voidRotation.source === 'master' ? 'forced' : 'automatic random selection'}). Next
+            automatic map roll:{' '}
+            {new Date(voidRotation.nextRollAt).toLocaleString(undefined, {
+              dateStyle: 'medium',
+              timeStyle: 'short',
+            })}{' '}
+            (local time).
+          </p>
+        ) : (
+          <p>Reading the current shared map…</p>
+        )}
+        {voidRotation?.source === 'master' && settings.voidRealmOverrideUntil != null ? (
+          <p>
+            Forced map ends{' '}
+            {new Date(settings.voidRealmOverrideUntil).toLocaleString(undefined, {
+              dateStyle: 'medium',
+              timeStyle: 'short',
+            })}{' '}
+            (local time) · {Math.ceil((settings.voidRealmOverrideUntil - now!) / 60_000)} min
+            remaining.
+          </p>
+        ) : null}
         <label>
-          Landscape shift interval (real minutes)
+          Map selection
+          <select
+            value={voidRealm}
+            onChange={(event) => setVoidRealm(event.currentTarget.value as typeof voidRealm)}
+          >
+            <option value="unchanged">Keep current map</option>
+            <option value="live">Return to automatic random maps</option>
+            {VOID_REALMS.map((realm) => (
+              <option key={realm.id} value={realm.id}>
+                {realm.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Automatic map roll interval (real minutes)
           <input
             type="number"
             min={1}
@@ -249,8 +298,10 @@ export function WorldEnvironmentEditor({
           />
         </label>
         <small>
-          Default: 1440 minutes (24 hours). The interval applies to new arrivals. Expeditions
-          already ashore keep their current landscape.
+          Default: 1440 minutes (24 hours). Every shared roll randomly selects one of eight maps;
+          repeats are possible. Saving a specific map forces the shared selection immediately until
+          the next automatic roll. Keep current map preserves an earlier expiry. Expeditions already
+          ashore keep their current landscape.
         </small>
       </fieldset>
       <WorldEnvironmentPreview liveWeather={current?.weather} />

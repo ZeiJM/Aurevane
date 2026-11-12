@@ -50,7 +50,11 @@ export interface MasterPlayerView {
   disciplines: { id: string; name: string; primary: boolean; secondary: boolean }[]
   learnedSkills: DisciplineSkillReference[]
   savedLoadouts: { name: string; slotIndex: number; primary: string; secondary: string | null }[]
-  world: { position?: { sectorId?: string; x?: number; y?: number } } | null
+  world: {
+    locationLabel?: string
+    version?: number
+    position?: { sectorId?: string; x?: number; y?: number }
+  } | null
   training: {
     plannedWindow: string | null
     plannedAt: string | null
@@ -70,4 +74,11 @@ export interface PlayerRecoveryResult {
   rewards?: 'NoRewards'
   version: number
   replayed: boolean
+}
+
+export interface PlayerTeleportDestination {
+  map: 'mainland' | 'currentVoid'
+  sectorNumber: number
+  x: number
+  y: number
 }

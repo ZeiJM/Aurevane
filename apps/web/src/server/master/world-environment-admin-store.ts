@@ -1,4 +1,5 @@
 import 'server-only'
+import { isVoidRealmId, type VoidRealmId } from '@/world/void-realms'
 import { createSelectedCharacterRpc } from './selected-character-rpc'
 import { AurevaneError } from '@aurevane/game-core/errors'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
@@ -19,6 +20,8 @@ export interface WorldEnvironmentChange {
   dayLengthMinutes: number
   weatherRollMinutes?: number
   warpedShiftMinutes?: number
+  /** undefined/unchanged keeps the active selection; null resumes random rolls. */
+  voidRealm?: VoidRealmId | null | 'unchanged'
   timeOffsetMinutes: number
   /** null returns to the live clock. */
   frozenMinuteOfDay: number | null
@@ -73,6 +76,13 @@ export async function setWorldEnvironment(input: {
     invalid(
       `Weather roll interval must be a whole number from 1 to ${MAX_WEATHER_ROLL_MINUTES} real minutes.`,
     )
+  if (
+    change.voidRealm !== undefined &&
+    change.voidRealm !== null &&
+    change.voidRealm !== 'unchanged' &&
+    !isVoidRealmId(change.voidRealm)
+  )
+    invalid('Unknown Void map.')
   const frozen = change.frozenMinuteOfDay ?? null
   if (
     change.warpedShiftMinutes !== undefined &&
@@ -141,6 +151,7 @@ export async function setWorldEnvironment(input: {
       ...(change.warpedShiftMinutes === undefined
         ? {}
         : { warpedShiftMinutes: change.warpedShiftMinutes }),
+      ...(change.voidRealm === undefined ? {} : { voidRealm: change.voidRealm }),
       timeOffsetMinutes: change.timeOffsetMinutes,
       frozenMinuteOfDay: frozen,
       ...override,

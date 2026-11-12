@@ -39,6 +39,8 @@ import { worldArchiveEntries } from './world-archive'
 import { projectWorldFerry } from './world-ferry'
 import { atlasAddress } from '@/world/atlas'
 import { wrappedColumnDistance, wrappedMapX } from '@/world/topology'
+import { parseVoidSectorId, isVoidRealmSectorId } from '@/world/void-realms'
+import { voidRealmScenery } from './void-realms'
 import {
   applyWarpedContinentPhase,
   isWarpedContinentSector,
@@ -201,7 +203,7 @@ export function projectWorldPlayers(
   const ids = new Set(sceneSectorIds)
   const sector = resolveSector(state.position.sectorId)!
   const supplied = players.some((player) => player.movement !== undefined)
-    ? visibleSectors(state).filter((sector) => ids.has(sector.id))
+    ? visibleSectors(state, { sceneOnly: true }).filter((sector) => ids.has(sector.id))
     : []
   const object = (value: unknown): value is Record<string, unknown> =>
     value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -294,7 +296,11 @@ export function projectWorldSector(state: WorldState, sector: WorldSector): Worl
           walkable: isWalkable(sector, { x, y }),
           safe: isSafe(sector, { x, y }),
         })
-  const warpedScenery = sector.warpedTheme ? warpedDistrictScenery(sector.id) : undefined
+  const warpedScenery = isVoidRealmSectorId(sector.id)
+    ? voidRealmScenery(sector.id)
+    : sector.warpedTheme
+      ? warpedDistrictScenery(sector.id)
+      : undefined
   const revealedScenery =
     warpedScenery &&
     cells.some(({ x, y, walkable }) => walkable && x === warpedScenery.x && y === warpedScenery.y)
@@ -317,9 +323,10 @@ export function projectWorld(
   environment: WorldEnvironment = resolveWorldEnvironment(now),
   viewport?: WorldSceneViewport,
 ): WorldView {
-  const visible = visibleSectors(state)
+  const visible = visibleSectors(state, { sceneOnly: true })
   const currentSector = resolveSector(state.position.sectorId)!
   const onWarpedContinent = isWarpedContinentSector(currentSector.id)
+  const currentVoidAddress = parseVoidSectorId(currentSector.id)
   const currentAddress = atlasAddress(currentSector)
   const arrivingIds = new Set(state.route.slice(0, 8).map((step) => step.position.sectorId))
   const exitIds = new Set(currentSector.roads.map((road) => road.to.sectorId))
@@ -334,6 +341,15 @@ export function projectWorld(
           exitIds.has(sector.id))
       )
         return true
+      if (currentVoidAddress) {
+        const address = parseVoidSectorId(sector.id)
+        return Boolean(
+          address &&
+          address.realmId === currentVoidAddress.realmId &&
+          Math.abs(address.column - currentVoidAddress.column) <= 2 &&
+          Math.abs(address.row - currentVoidAddress.row) <= 2,
+        )
+      }
       const address = atlasAddress(sector)
       return Boolean(
         sector.charted === currentSector.charted &&
@@ -353,6 +369,13 @@ export function projectWorld(
               ? 2
               : 3
       const sceneDistance = (sector: typeof a) => {
+        if (currentVoidAddress) {
+          const address = parseVoidSectorId(sector.id)
+          return address
+            ? (address.column - currentVoidAddress.column) ** 2 +
+                (address.row - currentVoidAddress.row) ** 2
+            : Infinity
+        }
         const address = atlasAddress(sector)
         if (!address || !currentAddress) return Infinity
         const currentX = currentAddress.column * GRID_WIDTH
@@ -449,16 +472,20 @@ export function projectWorld(
       })),
   )
   const ferry = projectWorldFerry(state, now)
+  const route = state.route.filter((step) => isKnown(state, step.position))
   return {
     characterId: '',
     ...(ferry ? { ferry } : {}),
     version: state.version,
     serverNow: now,
     position: state.position,
-    route: state.route.filter((s) => isKnown(state, s.position)),
-    nextStepAt: state.nextStepAt,
-    routeObjectiveId: state.route.length ? (state.routeObjectiveId ?? null) : null,
-    routeDestination: state.route.length ? (state.routeDestination ?? null) : null,
+    route,
+    nextStepAt: route.length ? state.nextStepAt : null,
+    routeObjectiveId: route.length ? (state.routeObjectiveId ?? null) : null,
+    routeDestination:
+      route.length && state.routeDestination && isKnown(state, state.routeDestination)
+        ? state.routeDestination
+        : null,
     sectors,
     scenery,
     atlas: visible.flatMap((sector) => {

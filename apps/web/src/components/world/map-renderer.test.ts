@@ -1377,6 +1377,8 @@ describe('native map input and bounded lifecycle', () => {
   })
   it('anchors the painted bridge footprint on its legal crossing and aligns its span with the road', () => {
     const s = scene(true)
+    for (const image of s.images as HTMLImageElement[])
+      if (image.src.endsWith('grand-bridges-v01.webp')) Object.assign(image, { complete: false })
     const props = s.images.find((image) =>
       (image as HTMLImageElement).src.endsWith('props-v02.webp'),
     )!
@@ -1428,6 +1430,8 @@ describe('native map input and bounded lifecycle', () => {
       const state = newWorldState()
       state.position = { ...state.position, sectorId }
       const s = scene(true, projectWorld(state, [], 1000))
+      for (const image of s.images as HTMLImageElement[])
+        if (image.src.endsWith('grand-bridges-v01.webp')) Object.assign(image, { complete: false })
       s.frame(40)
       const origin = mapPoint({ ...s.view.position, x: 0, y: 0 }, s.view.sectors)
       const camera = mapPoint(s.view.position, s.view.sectors)
@@ -1501,6 +1505,9 @@ describe('native map input and bounded lifecycle', () => {
         ],
       })
       try {
+        for (const image of s.images as HTMLImageElement[])
+          if (image.src.endsWith('grand-bridges-v01.webp'))
+            Object.assign(image, { complete: false })
         const sheet = s.images.find((image) =>
           (image as HTMLImageElement).src.endsWith('props-v02.webp'),
         )!
@@ -1617,6 +1624,9 @@ describe('native map input and bounded lifecycle', () => {
       const own = view.sectors.find((sector) => sector.id === sectorId)!
       const s = scene(mode === 'reduced', { ...view, players: [], sectors: [own] })
       try {
+        for (const image of s.images as HTMLImageElement[])
+          if (image.src.endsWith('grand-bridges-v01.webp'))
+            Object.assign(image, { complete: false })
         const props = s.images.find((image) =>
           (image as HTMLImageElement).src.endsWith('props-v02.webp'),
         )!
@@ -3799,4 +3809,221 @@ it('joins depth colours between supplied open water and a proven bridge underpas
     paint.mockRestore()
     vi.unstubAllGlobals()
   }
+})
+
+it.each([
+  'aureth-crown',
+  'verdant-expanse',
+  'frostmere',
+  'starfall-highlands',
+  'emberreach',
+  'glasswind-desert',
+  'hollow-coast',
+  'umbral-march',
+])('paints dedicated %s settlement floor art on existing paving', (sectorId) => {
+  const state = { ...newWorldState(), position: { sectorId, x: 6, y: 4 } }
+  const view = projectWorld(state, [], 1000)
+  const s = scene(true, view)
+  try {
+    s.frame(40)
+    expect(s.draws.some((d) => d.src.endsWith('settlement-floors-v01.webp'))).toBe(true)
+  } finally {
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+})
+
+it('retains paving fallback until dedicated floors decode, then rebuilds cached ground once', () => {
+  const s = scene(true)
+  try {
+    const floor = (s.images as HTMLImageElement[]).find((i) =>
+      i.src.endsWith('settlement-floors-v01.webp'),
+    )!
+    expect(floor).toBeDefined()
+    Object.assign(floor, { complete: false, naturalWidth: 0 })
+    s.frame(40)
+    expect(s.draws.some((d) => d.src.endsWith('settlement-floors-v01.webp'))).toBe(false)
+    Object.assign(floor, { complete: true, naturalWidth: 1200 })
+    floor.onload!(new Event('load'))
+    s.frame(80)
+    expect(s.draws.some((d) => d.src.endsWith('settlement-floors-v01.webp'))).toBe(true)
+    const layers = s.layerCount()
+    s.frame(120)
+    expect(s.layerCount()).toBe(layers)
+  } finally {
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+})
+
+it('uses decoded grand art for town crossings while preserving original-art fallback', () => {
+  const s = scene(true)
+  try {
+    const art = (s.images as HTMLImageElement[]).find((i) =>
+      i.src.endsWith('grand-bridges-v01.webp'),
+    )!
+    expect(art).toBeDefined()
+    Object.assign(art, { complete: false, naturalWidth: 0 })
+    s.frame(40)
+    expect(s.draws.some((d) => d.src.endsWith('props-v02.webp'))).toBe(true)
+    Object.assign(art, { complete: true, naturalWidth: 1536, width: 1536, height: 512 })
+    art.onload!(new Event('load'))
+    s.draws.length = 0
+    s.frame(80)
+    const bridge = s.draws.find((d) => d.image === art)!
+    expect(bridge).toBeDefined()
+    expect(bridge.args.slice(0, 4)).toEqual([512, 0, 512, 512])
+    expect(bridge.args[6]).toBeGreaterThan(64 * 2)
+  } finally {
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+})
+it('draws an anchored animated lava cascade only on the real Emberreach lava channel', () => {
+  const state = { ...newWorldState(), position: { sectorId: 'emberreach', x: 9, y: 7 } }
+  const s = scene(false, projectWorld(state, [], 1000))
+  const motion = vi.spyOn(waterPainting, 'paintWaterfallMotion')
+  try {
+    s.frame(40)
+    expect(s.draws.some((d) => d.src.endsWith('lavafalls-v01.webp'))).toBe(true)
+    expect(motion.mock.calls.some((c) => c[8] === 'lava')).toBe(true)
+    motion.mockClear()
+    s.renderer.settings({ animate: false, zoom: 1 })
+    s.frame(80)
+    expect(motion).not.toHaveBeenCalled()
+  } finally {
+    motion.mockRestore()
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+})
+it('bakes the public impact basin into cached known ground after its art decodes', () => {
+  const state = { ...newWorldState(), position: { sectorId: 'atlas:45:9', x: 9, y: 6 } }
+  const s = scene(true, projectWorld(state, [], 1000))
+  try {
+    const art = (s.images as HTMLImageElement[]).find((i) =>
+      i.src.endsWith('impact-basins-v01.webp'),
+    )!
+    expect(art).toBeDefined()
+    Object.assign(art, {
+      complete: true,
+      naturalWidth: 1536,
+      naturalHeight: 512,
+      width: 1536,
+      height: 512,
+    })
+    art.onload!(new Event('load'))
+    s.frame(40)
+    expect(s.draws.some((d) => d.image === art && d.args[6] === 3 * 64)).toBe(true)
+    const count = s.draws.filter((d) => d.image === art).length
+    s.frame(80)
+    expect(s.draws.filter((d) => d.image === art)).toHaveLength(count)
+  } finally {
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+})
+
+it.each([
+  ['void:ivory-veil:12:11', 'waterfalls-v01.webp', 'grand'],
+  ['void:cinder-choir:17:12', 'lavafalls-v01.webp', 'lava'],
+] as const)(
+  'uses actual supplied %s cascade geography with matching animated material',
+  (sectorId, sheet, style) => {
+    const state = {
+      ...newWorldState(),
+      position: { sectorId, x: 6, y: 4 },
+      discoveries: { [sectorId]: Array.from({ length: 117 }, (_, i) => i) },
+    }
+    const s = scene(false, projectWorld(state, [], 1000))
+    const motion = vi.spyOn(waterPainting, 'paintWaterfallMotion')
+    try {
+      s.frame(40)
+      expect(s.draws.some((d) => d.src.endsWith(sheet))).toBe(true)
+      expect(motion.mock.calls.some((c) => c[8] === style)).toBe(true)
+    } finally {
+      motion.mockRestore()
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  },
+)
+it('uses the fallen-firmament impact stamp only after all nine real footprint cells are supplied', () => {
+  const sectorId = 'void:starfall-basin:16:10'
+  const state = {
+    ...newWorldState(),
+    position: { sectorId, x: 6, y: 4 },
+    discoveries: { [sectorId]: Array.from({ length: 117 }, (_, i) => i) },
+  }
+  const view = projectWorld(state, [], 1000)
+  const s = scene(true, view)
+  try {
+    const art = (s.images as HTMLImageElement[]).find((i) =>
+      i.src.endsWith('impact-basins-v01.webp'),
+    )!
+    expect(art).toBeDefined()
+    Object.assign(art, { naturalWidth: 1536, naturalHeight: 512, width: 1536, height: 512 })
+    art.onload!(new Event('load'))
+    s.frame(40)
+    expect(s.draws.some((d) => d.image === art && d.args[0] === 1024)).toBe(true)
+    s.draws.length = 0
+    s.renderer.update({
+      ...view,
+      sectors: view.sectors.map((sector) => ({
+        ...sector,
+        cells: sector.cells.filter((cell) => cell.x !== 5 || cell.y !== 3),
+      })),
+    })
+    s.frame(80)
+    expect(s.draws.some((d) => d.image === art)).toBe(false)
+  } finally {
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+})
+
+it('enlarges a clear-ground shrine without moving its visual foot as nearby ground is revealed', () => {
+  const base = projectWorld(newWorldState(), [], 1000)
+  const root = base.sectors.find((s) => s.id === base.position.sectorId)!
+  const cells = Array.from({ length: 117 }, (_, i) => ({
+    x: i % 13,
+    y: Math.floor(i / 13),
+    terrain: '.',
+    walkable: true,
+    safe: false,
+  }))
+  const paint = (known: typeof cells) => {
+    const s = scene(true, {
+      ...base,
+      scenery: undefined,
+      sectors: [
+        {
+          ...root,
+          buildings: [],
+          cells: known,
+          landmarks: [{ id: 'shrine', name: 'Moonpetal Shrine', kind: 'shrine', x: 6, y: 4 }],
+        },
+      ],
+    })
+    try {
+      s.frame(40)
+      const shrine = s.draws.find(
+        (d) => d.src.endsWith('props-v02.webp') && d.args[0] === 0 && d.args[1] === 600,
+      )!
+      expect(shrine).toBeDefined()
+      return {
+        width: shrine.args[6]!,
+        footX: shrine.args[4]! + shrine.args[6]! / 2,
+        footY: shrine.args[5]! + shrine.args[7]!,
+      }
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  }
+  const ordinary = paint(cells.filter((c) => c.x !== 5 || c.y !== 3))
+  const grand = paint(cells)
+  expect(grand.width).toBeGreaterThan(ordinary.width * 1.9)
+  expect(grand.footX).toBeCloseTo(ordinary.footX, 5)
+  expect(grand.footY).toBeCloseTo(ordinary.footY, 5)
 })

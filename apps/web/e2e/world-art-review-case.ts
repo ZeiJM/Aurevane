@@ -7,6 +7,7 @@ import { writeFileSync } from 'node:fs'
 import { expect, test, type Page, type TestInfo } from '@playwright/test'
 import { settlementComposition } from '../src/components/world/map-settlement-composition'
 import { buildWaterField } from '../src/components/world/map-water'
+import { landmarkArtSize } from '../src/components/world/map-surface-art'
 import {
   naturalDressing,
   regionalScenery,
@@ -91,6 +92,63 @@ export function registerWorldArtReviewCases({
         observedDepths: [...new Set(profiles.map(({ depth }) => depth))],
         waterCells: profiles.length,
       })
+    }
+    writeFileSync(info.outputPath('world-art-review.json'), JSON.stringify(evidence, null, 2))
+  })
+
+  test('new mainland surfaces and grand crossings have normal-zoom review views', async ({
+    page,
+  }, info) => {
+    test.skip(info.project.name === 'laptop-chromium', 'Desktop and phone surface review.')
+    test.setTimeout(150_000)
+    await enter(page)
+    const { characterId } = await world(page)
+    const evidence = []
+    const shrineSector = atlasSectors().find((sector) =>
+      sector.landmarks.some(
+        (site) =>
+          site.kind === 'shrine' &&
+          landmarkArtSize(
+            {
+              ...sector,
+              exits: [...sector.roads],
+              cells: sector.rows.flatMap((row, y) =>
+                [...row].map((terrain, x) => ({
+                  x,
+                  y,
+                  terrain,
+                  safe: false,
+                  walkable: '.st='.includes(terrain),
+                })),
+              ),
+            },
+            site,
+            1.55,
+          ) === 3.2,
+      ),
+    )
+    const shrine = shrineSector?.landmarks.find((site) => site.kind === 'shrine')
+    expect(shrine).toBeDefined()
+    const cases = [
+      ['woodland-bridge', 'verdant-expanse', 9, 4],
+      ['crown-bridge', 'aureth-crown', 9, 4],
+      ['lavafall', 'emberreach', 9, 7],
+      ['willow-cascade', 'atlas:69:36', 8, 3],
+      ['alpine-impact', 'atlas:45:9', 9, 6],
+      ['meadow-impact', 'atlas:65:21', 2, 2],
+      ['grand-shrine', shrineSector!.id, shrine!.x, shrine!.y],
+    ] as const
+    for (const [key, sectorId, x, y] of cases) {
+      const result = await scene(page, characterId, { sectorId, x, y })
+      expect(
+        result.sector.cells.some((cell) => cell.x === x && cell.y === y && cell.walkable),
+      ).toBe(true)
+      if (key === 'grand-shrine') {
+        const site = result.sector.landmarks.find((landmark) => landmark.kind === 'shrine')!
+        expect(landmarkArtSize(result.sector, site, 1.55)).toBe(3.2)
+      }
+      await capture(page, info, `art-surfaces-${key}`)
+      evidence.push({ key, ...result })
     }
     writeFileSync(info.outputPath('world-art-review.json'), JSON.stringify(evidence, null, 2))
   })

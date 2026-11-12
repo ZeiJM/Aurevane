@@ -5,6 +5,8 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import { useRouter } from 'next/navigation'
 import { WORLD_LAND_NAME } from '@/world/atlas'
 import { WORLD_REGIONS } from '@/world/catalog'
+import { positionLabel } from '@/world/coordinate-label'
+import { parseVoidSectorId, VOID_REALMS } from '@/world/void-realms'
 import { regionalWeatherLabel } from './map-weather'
 import {
   defaultMapQuality,
@@ -528,7 +530,13 @@ export function WorldWorkspace({
   )
   const zone = currentCell?.safe === true ? 'safe' : currentCell?.safe === false ? 'pvp' : 'unknown'
   const region = WORLD_REGIONS.find((r) => r.id === local.regionId),
-    localName = local.townId ? (region?.name ?? local.name) : local.name
+    voidAddress = parseVoidSectorId(approvedPosition.sectorId),
+    voidRealm = voidAddress && VOID_REALMS.find((realm) => realm.id === voidAddress.realmId),
+    localName = voidRealm
+      ? `${voidRealm.name} · ${local.name}`
+      : local.townId
+        ? (region?.name ?? local.name)
+        : local.name
   const actionBusy = Boolean(active && ['attack', 'interact', 'cross'].includes(active.kind)),
     disabled = actionBusy || Boolean(view.movementBlocked)
   const visibleIds = visiblePlayerIds && new Set(visiblePlayerIds)
@@ -793,7 +801,7 @@ export function WorldWorkspace({
                 ) : null}
                 {mode === 'global' && destination ? (
                   <section className={styles.destination} aria-label="Selected destination">
-                    <small>{destination.coordinate}</small>
+                    <small>{positionLabel(destination, { x: 6, y: 4 })}</small>
                     <h2>{destination.name}</h2>
                     <button
                       className={styles.primary}
@@ -861,13 +869,10 @@ export function WorldWorkspace({
               aria-label="Current sector and coordinates"
             >
               <span className={styles.coordinateHeader}>
-                <span>Sector {local.coordinate}</span>
+                <span>{positionLabel(currentSector, approvedPosition)}</span>
                 <span className={styles.zoneStatus} data-world-zone={zone} role="status">
                   {zone === 'safe' ? 'Safe Zone' : zone === 'pvp' ? 'PvP Zone' : 'Zone unavailable'}
                 </span>
-              </span>
-              <span>
-                E{local.east + approvedPosition.x} · N{local.north - approvedPosition.y}
               </span>
             </p>
             <div className={styles.panelFootActions}>

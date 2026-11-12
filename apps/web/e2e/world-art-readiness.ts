@@ -1,3 +1,6 @@
+import { impactSite } from '../src/components/world/map-impact'
+import { lavaFallSite } from '../src/components/world/map-surface-art'
+import { settlementFloorIndex } from '../src/components/world/map-settlement-floor'
 import { expect, type Page } from '@playwright/test'
 import {
   hamletFamilyIndex,
@@ -23,7 +26,15 @@ export async function waitForWorldArt(page: Page, view: WorldView) {
     'water-materials-v01',
   ])
   for (const sector of worldRenderTerrain(view)) {
+    if (settlementFloorIndex(sector) !== undefined) sheets.add('settlement-floors-v01')
     if (sector.warpedTheme) sheets.add('void-ground-v01')
+    if (impactSite(sector)) sheets.add('impact-basins-v01')
+    if (lavaFallSite(sector)) sheets.add('lavafalls-v01')
+    if (sector.landmarks.some((l) => l.kind === 'bridge')) sheets.add('grand-bridges-v01')
+    if (sector.landmarks.some((l) => l.sceneryIndex === 4)) {
+      sheets.add('waterfalls-v01')
+      if (sector.cells.some((c) => c.terrain === 'l')) sheets.add('lavafalls-v01')
+    }
     for (const prop of [
       ...sceneryDressing(sector),
       ...naturalDressing(sector),
