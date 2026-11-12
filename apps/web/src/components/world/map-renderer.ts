@@ -928,23 +928,18 @@ export function createMapRenderer(
     const texture = images.get('terrain')
     const groundArt = images.get('regional-ground')
     const privateGround = sector.warpedTheme ? images.get('void-ground') : undefined
+    const materialOrigin = sectorMapOrigin(sector)
     // One world-anchored material gradient crosses every cell and sector without
     // resetting its colour at tile edges. Water/lava animation stays on the overlay.
     const waterMaterial = liquidMaterial(
       c,
       'water',
       tile,
-      (sector.atlasColumn ?? 0) * GRID_WIDTH,
-      (sector.atlasRow ?? 0) * GRID_HEIGHT,
+      materialOrigin.x,
+      materialOrigin.y,
       sector.warpedTheme ?? false,
     )
-    const lavaMaterial = liquidMaterial(
-      c,
-      'lava',
-      tile,
-      (sector.atlasColumn ?? 0) * GRID_WIDTH,
-      (sector.atlasRow ?? 0) * GRID_HEIGHT,
-    )
+    const lavaMaterial = liquidMaterial(c, 'lava', tile, materialOrigin.x, materialOrigin.y)
     const paintMaterial = (
       target: CanvasRenderingContext2D,
       cell: WorldCell,

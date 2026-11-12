@@ -3811,6 +3811,80 @@ it('joins depth colours between supplied open water and a proven bridge underpas
   }
 })
 
+it('keeps private lava colours continuous across sector edges and beneath the Blackglass Span', () => {
+  const sectorId = 'void:cinder-choir:8:8'
+  const neighborId = 'void:cinder-choir:9:8'
+  const supplied = [sectorId, neighborId]
+  for (let row = 7; row <= 9; row++)
+    for (let column = 7; column <= 9; column++) {
+      const id = `void:cinder-choir:${column}:${row}`
+      if (!supplied.includes(id)) supplied.push(id)
+    }
+  const state = {
+    ...newWorldState(),
+    position: { sectorId, x: 4, y: 3 },
+    discoveries: Object.fromEntries(
+      supplied.map((id) => [id, Array.from({ length: 117 }, (_, i) => i)]),
+    ),
+  }
+  const view = projectWorld(state, [], 1000)
+  const sectors = supplied.map((id) => view.sectors.find((s) => s.id === id)!)
+  expect(sectors.every(Boolean)).toBe(true)
+  const material = vi.spyOn(waterPainting, 'liquidMaterial')
+  const s = scene(true, { ...view, sectors, scenery: undefined })
+  try {
+    Object.assign(s.canvas, { clientWidth: 2000, clientHeight: 1400 })
+    s.resize()
+    s.frame(40)
+    const colours = ['#702f25', '#bd5b2e', '#4d2526']
+    const gradients = s.gradients.filter(
+      (g) => g.stops.length === 3 && g.stops.every((stop, i) => stop[1] === colours[i]),
+    )
+    const calls = material.mock.calls.filter((call) => call[1] === 'lava')
+    expect(
+      gradients.length,
+      JSON.stringify(calls.map((call) => call.slice(1))),
+    ).toBeGreaterThanOrEqual(3)
+    expect(calls.length).toBe(gradients.length)
+    // Sample actual renderer-created gradients at the same physical world point.
+    // Sector8:8 starts at104,72; its eastern neighbor starts at117,72.
+    const rgb = (gradient: (typeof gradients)[number], x: number, y: number) => {
+      const [x1, y1, x2, y2] = gradient.coordinates as [number, number, number, number]
+      const dx = x2 - x1,
+        dy = y2 - y1
+      const t = Math.max(0, Math.min(1, ((x - x1) * dx + (y - y1) * dy) / (dx * dx + dy * dy)))
+      const pair = t <= 0.5 ? 0 : 1
+      const amount = (t - pair * 0.5) * 2
+      const colour = (hex: string) => [1, 3, 5].map((at) => parseInt(hex.slice(at, at + 2), 16))
+      const a = colour(gradient.stops[pair]![1]),
+        b = colour(gradient.stops[pair + 1]![1])
+      return a.map((value, i) => value + (b[i]! - value) * amount)
+    }
+    const neighborIndex = calls.findIndex((call) => call[3] === 117 && call[4] === 72)
+    expect(neighborIndex).toBeGreaterThanOrEqual(0)
+    const ground = gradients[0]!,
+      underpass = gradients[1]!,
+      neighbor = gradients[neighborIndex]!
+    const underpassOrigin = calls[1]!
+    const onGround = rgb(ground, 4.5 * 64, 3.5 * 64)
+    const belowBridge = rgb(
+      underpass,
+      (108.5 - underpassOrigin[3]) * 64,
+      (75.5 - underpassOrigin[4]) * 64,
+    )
+    const westEdge = rgb(ground, 13 * 64, 3 * 64)
+    const eastEdge = rgb(neighbor, 0, 3 * 64)
+    for (let channel = 0; channel < 3; channel++) {
+      expect(onGround[channel]).toBeCloseTo(belowBridge[channel]!, 8)
+      expect(westEdge[channel]).toBeCloseTo(eastEdge[channel]!, 8)
+    }
+  } finally {
+    s.renderer.dispose()
+    material.mockRestore()
+    vi.unstubAllGlobals()
+  }
+})
+
 it.each([
   'aureth-crown',
   'verdant-expanse',
