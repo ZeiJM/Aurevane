@@ -12,6 +12,14 @@ Read this first; open detailed sources only for the task being worked on. This i
 - Plan: `docs/superpowers/plans/2026-11-12-world-map-correction.md`.
 - Detailed evidence/open gates: `docs/verification/2026-11-12-world-map-correction-progress.md`.
 
+## Current remote and quality checkpoint — November 12, 17:55 Trinidad
+
+- The recovered candidate is preserved on the non-deploying remote branch `agent/world-map-correction-20261112`; draft PR #1039 points at `b1d2514c42bec3c1f495048bd5a9056f934b5683`. Main was still `2c3c73d1` at the last refresh. The recovery archive's immutable map baseline is tracked; the remote source is not live.
+- The first local combined gate passed format/lint, then exposed the omitted baseline import. After restoring it, typecheck and production build passed. The full test run passed 9,514/9,515 web tests; one old Void row-major label assertion expected sector 34 instead of 66. Focused teleport tests passed 11/11 after repair.
+- The second combined gate passed format/lint/typecheck and 9,514/9,515 web tests; its sole failure was the exhaustive eight-realm geometry test exceeding the default five-second timeout under full-suite load. The same 14-test realm file passed alone in 42 seconds overall; the geography case previously passed in 4.56 seconds. Its threshold is unchanged and its per-case budget is now 30 seconds. The combined focused realm/teleport recheck passed 25/25; a final combined gate remains pending.
+- PR CI at the earlier head found one obsolete browser expectation of 768 instead of the actual 64×48 = 3,072 Void sectors; the browser assertion has been repaired. Local Chromium cannot launch because sandbox socket creation returns EPERM. The Living Atlas authenticated browser workflow is still running; exact-head CI must rerun after the repairs are pushed.
+- Next action: commit/push these three test-only repairs, verify the new remote SHA, then complete exact-head local/CI and native image/performance review before migration or release. Hourly checks remain paused.
+
 ## Preserve the requested result
 
 Retain the receipt/ground-loading fix; remove rock shadows/floating art; measure map performance; provide organic rivers/lakes/sea/lava with depth/weather motion, authoritative town-water walking and shallow footsteps, eight distinct towns/Crown walls/moat, coherent relief, grand remote ruins/bridges/towns, larger-than-town waterfall valley/open colosseum, occasional large HQ ocean discoveries, crisp globe and real private64×48 Uncharted supercontinents. Verify artwork at actual gameplay zoom.

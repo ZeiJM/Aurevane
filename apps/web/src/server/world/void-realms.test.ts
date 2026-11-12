@@ -326,5 +326,5 @@ describe('authored private Void worlds', () => {
         ).length
         expect(difference).toBeGreaterThan(8000)
       }
-  })
+  }, 30_000)
 })

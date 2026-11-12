@@ -380,7 +380,7 @@ try {
           .selectOption('currentVoid')
         await expect(reader.getByLabel('Sector number', { exact: true })).toHaveAttribute(
           'max',
-          '768',
+          '3072',
         )
         await reader.getByLabel('Sector number', { exact: true }).fill('34')
         await reader.getByLabel('X coordinate', { exact: true }).fill('6')
