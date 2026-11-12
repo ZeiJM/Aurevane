@@ -20,6 +20,12 @@ Read this first; open detailed sources only for the task being worked on. This i
 - PR CI at the earlier head found one obsolete browser expectation of 768 instead of the actual 64×48 = 3,072 Void sectors; the browser assertion has been repaired. Local Chromium cannot launch because sandbox socket creation returns EPERM. The Living Atlas authenticated browser workflow is still running; exact-head CI must rerun after the repairs are pushed.
 - Next action: commit/push these three test-only repairs, verify the new remote SHA, then complete exact-head local/CI and native image/performance review before migration or release. Hourly checks remain paused.
 
+## Follow-up source review — November 12, 18:02 Trinidad
+
+- Test-only repairs were pushed as `5edad1a53c6fe1e3bdcc29fa0ed30859dc34b179`, with remote SHA verified. The earlier PR runs are superseded; fresh CI at this head started.
+- Whole-branch review found one Important scene selection defect: when all 13 legacy Uncharted districts and a local 5×5 supercontinent neighborhood were discovered, distant districts consumed the 25-sector scene budget and withdrew nearby surveyed ground. A new saturation regression failed on the original source, then the private scene filter/distance were corrected using `sceneColumn`/`sceneRow`. Focused World/continent/renderer tests pass 275/275. A targeted review found no further Important side effect; current/route priority and private cell masking remain intact.
+- Final combined local quality and exact-head CI are pending on this source correction. Next action: finish the combined gate, commit/push this reviewed fix, verify the new remote SHA and review native desktop/phone Atlas captures and timings. No migration or deployment has occurred. Hourly checks remain paused.
+
 ## Preserve the requested result
 
 Retain the receipt/ground-loading fix; remove rock shadows/floating art; measure map performance; provide organic rivers/lakes/sea/lava with depth/weather motion, authoritative town-water walking and shallow footsteps, eight distinct towns/Crown walls/moat, coherent relief, grand remote ruins/bridges/towns, larger-than-town waterfall valley/open colosseum, occasional large HQ ocean discoveries, crisp globe and real private64×48 Uncharted supercontinents. Verify artwork at actual gameplay zoom.

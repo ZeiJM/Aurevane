@@ -8,7 +8,7 @@ import {
   revealNearby,
 } from '@/world/travel'
 import { isKnownCell, resolveSector, visibleSectors } from './world-content'
-import { resolveWarpedContinentSector } from './warped-continent'
+import { resolveWarpedContinentSector, warpedContinentSectors } from './warped-continent'
 import { GRAND_DISCOVERY_SITES } from '@/world/discovery-sites'
 import { FRONTIER_APPROACH, STEP_MS } from '@/world/catalog'
 import { wrapAtlasColumn } from '@/world/topology'
@@ -63,6 +63,24 @@ describe('world authority and spoiler projection', () => {
     const mainland = { ...state, position: newWorldState().position }
     expect(visibleSectors(mainland).some((sector) => sector.id === interior.id)).toBe(false)
     expect(JSON.stringify(projectWorld(mainland, [], 1000))).not.toContain(interior.id)
+  })
+  it('keeps nearby surveyed Uncharted ground when legacy districts fill the scene budget', () => {
+    const nearby = Array.from({ length: 25 }, (_, index) =>
+      `uncharted-expanse:${32 + (index % 5) - 2}:${24 + Math.floor(index / 5) - 2}`,
+    )
+    const state = {
+      ...newWorldState(),
+      position: { sectorId: 'uncharted-expanse:32:24', x: 6, y: 4 },
+      discoveries: Object.fromEntries(
+        [...nearby, ...warpedContinentSectors.map((sector) => sector.id)].map((id) => [id, [58]]),
+      ),
+    }
+    const view = projectWorld(state, [], 1000)
+    expect(view.sectors).toHaveLength(25)
+    expect(new Set(view.sectors.map((sector) => sector.id))).toEqual(new Set(nearby))
+    expect(view.scenery).toEqual([])
+    expect(JSON.stringify(projectWorld({ ...state, position: newWorldState().position }, [], 1000)))
+      .not.toContain('uncharted-expanse:32:24')
   })
   it('retains authored deadlines and private approved peer routes when held replacements arrive late', () => {
     const walk = (state: ReturnType<typeof newWorldState>, x: number, now: number) =>

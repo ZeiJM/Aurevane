@@ -410,12 +410,22 @@ export function projectWorld(
       if (
         sector.id === state.position.sectorId ||
         arrivingIds.has(sector.id) ||
-        (onWarpedContinent && isWarpedContinentSector(sector.id)) ||
         (currentSector.id.startsWith('trail:') &&
           sector.id.startsWith('trail:') &&
           exitIds.has(sector.id))
       )
         return true
+      if (onWarpedContinent) {
+        return Boolean(
+          isWarpedContinentSector(sector.id) &&
+            currentSector.sceneColumn !== undefined &&
+            currentSector.sceneRow !== undefined &&
+            sector.sceneColumn !== undefined &&
+            sector.sceneRow !== undefined &&
+            Math.abs(sector.sceneColumn - currentSector.sceneColumn) <= 2 &&
+            Math.abs(sector.sceneRow - currentSector.sceneRow) <= 2,
+        )
+      }
       if (currentVoidAddress) {
         const address = parseVoidSectorId(sector.id)
         return Boolean(
@@ -444,6 +454,15 @@ export function projectWorld(
               ? 2
               : 3
       const sceneDistance = (sector: typeof a) => {
+        if (onWarpedContinent) {
+          return sector.sceneColumn !== undefined &&
+            sector.sceneRow !== undefined &&
+            currentSector.sceneColumn !== undefined &&
+            currentSector.sceneRow !== undefined
+            ? (sector.sceneColumn - currentSector.sceneColumn) ** 2 +
+                (sector.sceneRow - currentSector.sceneRow) ** 2
+            : Infinity
+        }
         if (currentVoidAddress) {
           const address = parseVoidSectorId(sector.id)
           return address
