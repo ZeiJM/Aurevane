@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto'
 import { writeFileSync } from 'node:fs'
 import { expect, test, type Page, type TestInfo } from '@playwright/test'
 import { settlementComposition } from '../src/components/world/map-settlement-composition'
+import { buildWaterField } from '../src/components/world/map-water'
 import { naturalDressing, sceneryDressing } from '../src/components/world/map-dressing'
 import { atlasSectors } from '../src/world/atlas'
 import { GRID_HEIGHT, GRID_WIDTH, WORLD_REGIONS } from '../src/world/catalog'
@@ -57,6 +58,54 @@ export function registerWorldArtReviewCases({
   }
 
   type ArtScene = Awaited<ReturnType<typeof scene>>
+
+  test('regional water materials have image-ready bank and depth review views', async ({
+    page,
+  }, info) => {
+    test.skip(info.project.name !== 'desktop-chromium', 'Review actual water surfaces once.')
+    test.setTimeout(120_000)
+    await enter(page)
+    const { characterId } = await world(page)
+    const evidence: unknown[] = []
+    for (const regionId of ['verdant-expanse', 'hollow-coast', 'frostmere']) {
+      const candidate = atlasSectors()
+        .filter((sector) => sector.regionId === regionId && !sector.townId)
+        .map((sector) => {
+          const ground = sector.rows.flatMap((row, y) =>
+            [...row].flatMap((terrain, x) =>
+              ['.', '=', 's'].includes(terrain) &&
+              [
+                [0, 1],
+                [1, 0],
+                [0, -1],
+                [-1, 0],
+              ].some(([dx, dy]) => sector.rows[y + dy!]?.[x + dx!] === '~')
+                ? [{ x, y }]
+                : [],
+            ),
+          )
+          return { sector, ground, water: sector.rows.join('').split('~').length - 1 }
+        })
+        .filter(({ ground, water }) => ground.length && water > 0)
+        .sort((a, b) => b.water - a.water)[0]
+      expect(candidate).toBeDefined()
+      const { sector } = await scene(page, characterId, {
+        sectorId: candidate!.sector.id,
+        ...candidate!.ground[0]!,
+      })
+      const profiles = [...buildWaterField([sector]).get(sector.id)!.cells.values()]
+      expect(profiles.length).toBeGreaterThan(0)
+      expect(profiles.some(({ banks }) => banks.length > 0)).toBe(true)
+      await capture(page, info, `art-water-depth-${regionId}`)
+      evidence.push({
+        regionId,
+        sector,
+        observedDepths: [...new Set(profiles.map(({ depth }) => depth))],
+        waterCells: profiles.length,
+      })
+    }
+    writeFileSync(info.outputPath('world-art-review.json'), JSON.stringify(evidence, null, 2))
+  })
 
   for (const region of WORLD_REGIONS) {
     test(`all ${region.name} hamlets have working scenery at normal zoom`, async ({

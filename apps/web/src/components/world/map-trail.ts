@@ -1,5 +1,5 @@
 import { GRID_HEIGHT, GRID_WIDTH } from '@/world/catalog'
-import { atlasNeighbor } from '@/world/topology'
+import { atlasNeighbor, WORLD_MAP_WIDTH } from '@/world/topology'
 import type { WorldCell, WorldSectorView } from '@/world/types'
 import { hashString } from '@/world/terrain-gen'
 
@@ -13,6 +13,25 @@ const directions = [
 ] as const
 const road = (cell: WorldCell | undefined) =>
   cell?.walkable && (cell.terrain === '=' || cell.terrain === 's')
+
+/** Most countryside road authority has no visible paving or continuous stripe. */
+export function naturalTrailWear(sector: WorldSectorView, cell: WorldCell) {
+  if (
+    sector.townId ||
+    sector.landmarks.some((l) => Math.abs(l.x - cell.x) + Math.abs(l.y - cell.y) <= 4)
+  )
+    return 1
+  const worldX = (sector.atlasColumn ?? sector.sceneColumn ?? 0) * GRID_WIDTH + cell.x
+  const x = sector.charted
+    ? ((worldX % WORLD_MAP_WIDTH) + WORLD_MAP_WIDTH) % WORLD_MAP_WIDTH
+    : worldX
+  const y = (sector.atlasRow ?? sector.sceneRow ?? 0) * GRID_HEIGHT + cell.y
+  const wear =
+    hashString(
+      `${sector.charted ? 'public' : sector.id}:${Math.floor(x / 3)}:${Math.floor(y / 3)}:footpath`,
+    ) % 100
+  return wear < 64 ? 0 : 0.22 + ((wear - 64) / 35) * 0.5
+}
 
 /** Read only supplied public neighbors; a missing chunk never supplies a road. */
 export function buildTrailGround(
@@ -57,9 +76,10 @@ export function paintNaturalTrail(
   colour: string,
   seed: string,
   winter: boolean,
+  wear = 1,
 ) {
   const ports = trailPorts(cell, terrain)
-  if (!ports.length) return 0
+  if (!ports.length || wear <= 0) return 0
   const salt = hashString(`${seed}:${cell.x}:${cell.y}:trail`)
   const cx = 0.5 + ((salt % 17) / 16 - 0.5) * 0.12,
     cy = 0.5 + (((salt >>> 8) % 17) / 16 - 0.5) * 0.12
@@ -71,11 +91,11 @@ export function paintNaturalTrail(
   context.lineJoin = 'round'
   context.strokeStyle = colour
   for (const [width, alpha] of [
-    [0.79, 0.07],
-    [0.59, 0.15],
-    [0.39, winter ? 0.2 : 0.24],
+    [0.48, 0.035],
+    [0.31, 0.08],
+    [0.18, winter ? 0.12 : 0.17],
   ]) {
-    context.globalAlpha = alpha!
+    context.globalAlpha = alpha! * wear
     context.lineWidth = tile * width!
     context.beginPath()
     for (const [x, y] of ports) {

@@ -71,7 +71,7 @@ import {
   sceneryDressing,
 } from './map-dressing'
 import { DEFAULT_MAP_QUALITY, mapQualityBudgets, type MapQuality } from './map-quality'
-import { buildTrailGround, paintNaturalTrail } from './map-trail'
+import { buildTrailGround, naturalTrailWear, paintNaturalTrail } from './map-trail'
 import { paintSnowRoadShoulders } from './map-snow-road'
 import {
   ferryWaterFrame,
@@ -149,6 +149,14 @@ const regionalGround: Readonly<Partial<Record<string, number>>> = {
   'hollow-coast': 6,
   'umbral-march': 7,
 }
+const voidGroundIndex = {
+  haven: 0,
+  ashen: 1,
+  fracture: 2,
+  wayfarer: 3,
+  amber: 4,
+  amethyst: 5,
+} as const
 const trailColours: Readonly<Partial<Record<string, string>>> = {
   'verdant-expanse': '#9e865d',
   'aureth-crown': '#b6a473',
@@ -665,6 +673,7 @@ export function createMapRenderer(
           coastField.get(sector.id),
           settlementGround.edges.get(sector.id),
           Array.from(settlementGround.shoreRoads.get(sector.id) ?? []),
+          Array.from(settlementGround.pavedCells.get(sector.id) ?? []),
           warpedFog.get(sector.id)?.key,
         ]),
       )
@@ -693,7 +702,13 @@ export function createMapRenderer(
     image.onload = () => {
       // Only the terrain sheet is baked into ground layers. Scenery sheets
       // paint separately; loading them must not rebuild every visible tile.
-      if (name === 'terrain' || name === 'regional-ground') clearCache()
+      if (
+        name === 'terrain' ||
+        name === 'regional-ground' ||
+        name === 'water-materials' ||
+        name === 'void-ground'
+      )
+        clearCache()
       else clearStationaryScenery()
       requestDraw()
     }
@@ -702,8 +717,12 @@ export function createMapRenderer(
   }
   for (const name of ['terrain', 'buildings', 'nature', 'props', 'biomes']) load(name)
   load('beauties', 'v03')
-  load('regional-ground', 'v01')
+  load('regional-ground', 'v02')
+  load('living-trees', 'v01')
+  load('water-materials', 'v01')
   const loadRegionalArt = () => {
+    if (!images.has('void-ground') && renderSectors.some((sector) => sector.warpedTheme))
+      load('void-ground', 'v01')
     for (const sector of renderSectors)
       for (const { sheet } of dressing.get(sector) ?? []) if (!images.has(sheet)) load(sheet, 'v01')
     if (
@@ -842,6 +861,7 @@ export function createMapRenderer(
     }
     const texture = images.get('terrain')
     const groundArt = images.get('regional-ground')
+    const privateGround = sector.warpedTheme ? images.get('void-ground') : undefined
     // One world-anchored material gradient crosses every cell and sector without
     // resetting its colour at tile edges. Water/lava animation stays on the overlay.
     const waterMaterial = liquidMaterial(
@@ -871,12 +891,19 @@ export function createMapRenderer(
         y = cell.y * tile - offsetY
       target.fillStyle = material[0]
       target.fillRect(x, y, tile + 1, tile + 1)
-      const regionalIndex = regionalGround[regionId]
-      const painted = regionalIndex !== undefined && groundArt?.complete && groundArt.naturalWidth
-      const source = painted ? groundArt : texture
+      const privateIndex =
+        sector.warpedTheme && privateGround?.complete && privateGround.naturalWidth
+          ? voidGroundIndex[sector.warpedTheme]
+          : undefined
+      const regionalIndex = privateIndex ?? regionalGround[regionId]
+      const painted =
+        regionalIndex !== undefined &&
+        (privateIndex !== undefined || (groundArt?.complete && groundArt.naturalWidth))
+      const source = privateIndex !== undefined ? privateGround : painted ? groundArt : texture
       if (source?.complete && source.naturalWidth) {
-        target.globalAlpha = painted ? 0.8 : 0.66
-        const sw = source.width / 4,
+        target.globalAlpha = painted ? 0.96 : 0.66
+        const columns = privateIndex !== undefined ? 3 : 4
+        const sw = source.width / columns,
           sh = source.height / 2,
           index = painted
             ? regionalIndex
@@ -898,8 +925,8 @@ export function createMapRenderer(
         const sy = flipY ? 3 - (wy % 4) : wy % 4
         target.drawImage(
           source,
-          (index % 4) * sw + (sx * sw) / 4,
-          Math.floor(index / 4) * sh + (sy * sh) / 4,
+          (index % columns) * sw + (sx * sw) / 4,
+          Math.floor(index / columns) * sh + (sy * sh) / 4,
           sw / 4,
           sh / 4,
           flipped ? 0 : x,
@@ -1008,6 +1035,7 @@ export function createMapRenderer(
     const pavement = sector.townId ? townPaving[sector.townId] : undefined
     const fogCells = warpedFog.get(sector.id)?.cells
     const shoreRoads = settlementGround.shoreRoads.get(sector.id)
+    const pavedCells = settlementGround.pavedCells.get(sector.id)
     for (const cell of sector.cells) {
       const x = cell.x * tile,
         y = cell.y * tile
@@ -1021,7 +1049,7 @@ export function createMapRenderer(
         if (cell.terrain !== '~') paintFerryDeck(c, cell, tile, ferryDeck)
         continue
       }
-      if (cell.terrain === '=' || cell.terrain === 's') {
+      if (cell.terrain === '=' || cell.terrain === 's' || pavedCells?.has(`${cell.x}:${cell.y}`)) {
         const square = winterMarket.some(
           (landmark) => Math.abs(landmark.x - cell.x) + Math.abs(landmark.y - cell.y) <= 3,
         )
@@ -1032,9 +1060,10 @@ export function createMapRenderer(
           localTerrain.get(`${cell.x}:${cell.y - 1}`)?.terrain === '~'
         const winterPath = sector.regionId === WINTER_ART && !square && !waterAdjacent
         const naturalTrail =
-          waterAdjacent ||
-          shoreRoads?.has(`${cell.x}:${cell.y}`) ||
-          (!square && (!sector.townId || !cell.safe))
+          !pavedCells?.has(`${cell.x}:${cell.y}`) &&
+          (waterAdjacent ||
+            shoreRoads?.has(`${cell.x}:${cell.y}`) ||
+            (!square && (!sector.townId || !cell.safe)))
         c.fillStyle = naturalTrail
           ? (trailColours[sector.regionId] ?? '#96896e')
           : (pavement?.color ?? '#aa9d7b')
@@ -1047,6 +1076,7 @@ export function createMapRenderer(
             trailColours[sector.regionId] ?? '#96896e',
             sector.id,
             winterPath,
+            naturalTrailWear(sector, cell),
           )
         } else {
           c.globalAlpha = winterPath ? 0.4 : 0.72
@@ -1092,7 +1122,16 @@ export function createMapRenderer(
         c.fillRect(x, y, tile, tile)
         if (water) {
           const profile = waterField.get(sector.id)?.cells.get(`${cell.x}:${cell.y}`)
-          if (profile) paintWaterGround(c, profile, tile, sector.warpedTheme === 'amethyst')
+          if (profile)
+            paintWaterGround(
+              c,
+              profile,
+              tile,
+              sector.warpedTheme === 'amethyst',
+              images.get('water-materials'),
+              (sector.atlasColumn ?? sector.sceneColumn ?? 0) * GRID_WIDTH + cell.x,
+              (sector.atlasRow ?? sector.sceneRow ?? 0) * GRID_HEIGHT + cell.y,
+            )
         } else if (!water) {
           c.strokeStyle = '#6b5140'
           c.lineWidth = 5
@@ -1194,7 +1233,15 @@ export function createMapRenderer(
                 ? bridgeWater.profiles.get(bridgeWater.address(sector, x, y))
                 : undefined
             if (profile)
-              paintWaterGround(liquid, { ...profile, x: x - bounds.x, y: y - bounds.y }, tile)
+              paintWaterGround(
+                liquid,
+                { ...profile, x: x - bounds.x, y: y - bounds.y },
+                tile,
+                false,
+                images.get('water-materials'),
+                x,
+                y,
+              )
             cells.push({ x, y, profile })
           }
       surfaces.set(id, { canvas: surface, ...bounds, cells })
@@ -1229,7 +1276,7 @@ export function createMapRenderer(
     if (!item.source) return null
     const pixelWidth = Math.ceil(item.width * ratio)
     const pixelHeight = Math.ceil(item.height * ratio)
-    const key = `${item.source.join(',')}:${pixelWidth}:${pixelHeight}`
+    const key = `${item.image.src}:${item.source.join(',')}:${pixelWidth}:${pixelHeight}`
     const cached = biomeRasters.get(key)
     if (cached) return cached
 
@@ -1520,6 +1567,7 @@ export function createMapRenderer(
         scenery.push(item)
     }
     const nature = images.get('nature'),
+      livingTrees = images.get('living-trees'),
       buildings = images.get('buildings'),
       props = images.get('props'),
       biomes = images.get('biomes'),
@@ -1661,20 +1709,45 @@ export function createMapRenderer(
                     ? 3
                     : undefined
               : undefined
+          const livingIndex =
+            !rock &&
+            scenicTree === undefined &&
+            !sector.warpedTheme &&
+            livingTrees?.complete &&
+            livingTrees.naturalWidth
+              ? regionalGround[treeRegion]
+              : undefined
           const asset =
-            scenicTree !== undefined
-              ? beauties!
-              : special !== undefined && biomes?.complete && biomes.naturalWidth
-                ? biomes
-                : nature
+            livingIndex !== undefined
+              ? livingTrees!
+              : scenicTree !== undefined
+                ? beauties!
+                : special !== undefined && biomes?.complete && biomes.naturalWidth
+                  ? biomes
+                  : nature
           const rockPlacement = rock && asset === biomes ? rockArt[special!] : undefined
           const index =
+            livingIndex ??
             scenicTree ??
             (asset === biomes
               ? special!
               : (palettes[treeRegion] ?? palettes['verdant-expanse']!)[2])
           const family = asset === beauties ? 'beauties' : asset === biomes ? 'biomes' : 'nature'
-          const artPlacement = rockPlacement ?? (!rock ? treeArt[family]?.[index] : undefined)
+          const artPlacement =
+            livingIndex !== undefined
+              ? {
+                  width: 1.9,
+                  height: 2.8,
+                  anchorX: 0.5,
+                  anchorY: 488 / 512,
+                  source: [
+                    (livingIndex % 4) / 4,
+                    Math.floor(livingIndex / 4) / 2,
+                    1 / 4,
+                    1 / 2,
+                  ] as const,
+                }
+              : (rockPlacement ?? (!rock ? treeArt[family]?.[index] : undefined))
           addScenery({
             x: origin.x + cell.x + 0.5 + pose.x,
             y: origin.y + cell.y + (rock ? 0.5 : 0.75) + pose.y,
@@ -2268,7 +2341,10 @@ export function createMapRenderer(
       x: number,
       y: number,
     ) => {
-      const raster = cacheBiomeRasters && item.image === biomes ? biomeRaster(item) : null
+      const raster =
+        cacheBiomeRasters && (item.image === biomes || item.image === livingTrees)
+          ? biomeRaster(item)
+          : null
       if (raster) target.drawImage(raster, x, y, item.width, item.height)
       else
         sprite(

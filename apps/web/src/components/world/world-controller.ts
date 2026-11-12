@@ -265,6 +265,23 @@ export class WorldController {
           from = step.position
         }
       }
+      // Route cells alone do not cover the surrounding camera. This includes
+      // resize races where owned authority is unchanged but a later scene has
+      // already supplied the larger viewport.
+      const staleScene =
+        incoming.version < this.view.version ||
+        (incoming.version === this.view.version && incoming.serverNow < this.view.serverNow)
+      if (
+        staleScene &&
+        this.transport.sceneCovered?.(this.view) === true &&
+        this.transport.sceneCovered({
+          ...this.view,
+          sectors: incoming.sectors,
+          scenery: incoming.scenery,
+          atlas: incoming.atlas,
+        }) === false
+      )
+        return
       const sameVersion = incoming.version === this.view.version
       const peers = new Map(this.view.players.map((player) => [player.characterId, player]))
       const known = (position: WorldView['position']) =>

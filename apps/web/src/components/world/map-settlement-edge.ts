@@ -87,7 +87,26 @@ export function buildSettlementGround(sectors: readonly WorldSectorView[], coast
 
   const edgesBySector = new Map<string, SettlementEdge[]>()
   const shoreRoads = new Map<string, Set<string>>()
+  const pavedCells = new Map<string, Set<string>>()
   for (const sector of sectors) {
+    // The built surface is presentation only. Gardens/trees, liquid and remote
+    // ground retain their supplied material and every cell retains its authority.
+    const paved = new Set<string>()
+    if (sector.charted && !sector.warpedTheme && !sector.id.startsWith('ferry:'))
+      for (const cell of sector.cells) {
+        if (!cell.walkable || !['.', '=', 's'].includes(cell.terrain)) continue
+        if (nearShore(sector, cell.x, cell.y)) continue
+        const nearGarden = sector.landmarks.some(
+          (l) => l.kind === 'grove' && Math.abs(l.x - cell.x) + Math.abs(l.y - cell.y) <= 2,
+        )
+        if (nearGarden) continue
+        const builtYard = sector.townId && cell.safe && nearBuildings(sector, cell)
+        const hamletYard = sector.landmarks.some(
+          (l) => l.kind === 'hamlet' && Math.abs(l.x - cell.x) + Math.abs(l.y - cell.y) <= 2,
+        )
+        if (builtYard || hamletYard) paved.add(address(cell.x, cell.y))
+      }
+    if (paved.size) pavedCells.set(sector.id, paved)
     if (!sector.townId) continue
     const edges: SettlementEdge[] = []
     const shore = new Set<string>()
@@ -108,7 +127,7 @@ export function buildSettlementGround(sectors: readonly WorldSectorView[], coast
     if (edges.length) edgesBySector.set(sector.id, edges)
     if (shore.size) shoreRoads.set(sector.id, shore)
   }
-  return { edges: edgesBySector, shoreRoads }
+  return { edges: edgesBySector, shoreRoads, pavedCells }
 }
 
 /** Bake a stone lip into the settlement side of the ground, under scenery and actors. */

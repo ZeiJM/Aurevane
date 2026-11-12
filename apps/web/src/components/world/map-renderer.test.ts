@@ -62,6 +62,12 @@ function scene(reduced = false, initial?: WorldView) {
   }
   const context = new Proxy(
     {
+      createImageData: (width: number, height: number) => ({
+        width,
+        height,
+        data: new Uint8ClampedArray(width * height * 4),
+      }),
+      putImageData() {},
       measureText: (text: string) => ({ width: text.length * 7 }),
       globalAlpha: 1,
       fillStyle: '',
@@ -583,7 +589,7 @@ describe('native map input and bounded lifecycle', () => {
     ['autumn', 'verdant-expanse', 'autumn', 7, false, 'beauties', 1077, 439, 891, 1335],
     ['wisteria', 'verdant-expanse', 'wisteria', 7, false, 'beauties', 1540, 443, 1323, 1774],
   ] as const)(
-    'isolates the %s canopy and roots at the original painted scale',
+    'isolates the fallback %s canopy and roots at the original painted scale',
     (
       _name,
       regionId,
@@ -609,6 +615,8 @@ describe('native map input and bounded lifecycle', () => {
         })
       for (const image of s.images) {
         const picture = image as HTMLImageElement
+        if (picture.src.endsWith('living-trees-v01.webp'))
+          Object.assign(image, { complete: false, naturalWidth: 0 })
         if (picture.src.endsWith('nature-v02.webp'))
           Object.assign(image, { width: 1514, height: 1039, naturalWidth: 1514 })
         if (picture.src.endsWith('biomes-v02.webp') || picture.src.endsWith('beauties-v03.webp'))
@@ -659,9 +667,9 @@ describe('native map input and bounded lifecycle', () => {
           sectors: [{ ...sector, regionId: 'frostmere', cells, buildings: [], landmarks: [] }],
         })
       const sheet = s.images.find((image) =>
-        (image as HTMLImageElement).src.endsWith('nature-v02.webp'),
+        (image as HTMLImageElement).src.endsWith('living-trees-v01.webp'),
       )!
-      Object.assign(sheet, { width: 1514, height: 1039, naturalWidth: 1514 })
+      Object.assign(sheet, { width: 1536, height: 1024, naturalWidth: 1536 })
       if (mode === 'effects off') s.renderer.settings({ animate: false, zoom: 1 })
       const point = mapPoint({ ...base.position, x: base.position.x + 2 }, s.view.sectors)
       const expected = projectMapPoint(
@@ -679,7 +687,7 @@ describe('native map input and bounded lifecycle', () => {
         s.renderer.settings({ animate: mode !== 'effects off', zoom: 1 })
         s.frame(now)
         const tree = s.draws
-            .filter((draw) => draw.src.endsWith('nature-v02.webp') && draw.args[1]! < 300)
+            .filter((draw) => draw.src.endsWith('living-trees-v01.webp') && draw.args[1]! < 300)
             .at(-1)!,
           a = tree.args,
           m = tree.matrix,
@@ -688,8 +696,8 @@ describe('native map input and bounded lifecycle', () => {
               y = a[5]! + ((py - a[1]!) / a[3]!) * a[7]!
             return { x: m[0]! * x + m[2]! * y + m[4]!, y: m[1]! * x + m[3]! * y + m[5]! }
           }
-        contacts.push(project(599, 596))
-        canopies.push(project(587, 80))
+        contacts.push(project(960, 488))
+        canopies.push(project(960, 40))
         layers.push(s.layerCount())
       }
       for (const contact of contacts) {
@@ -1813,7 +1821,11 @@ describe('native map input and bounded lifecycle', () => {
       sectors: [sectors[0]!, { ...sectors[1]!, cells: [cell(10, 0, '.')] }],
     })
     s.frame(80)
-    expect(s.layerCount() - layers).toBe(2)
+    // Two rebuilt ground layers plus one reusable 2x2 depth scratch raster.
+    expect(s.layerCount() - layers).toBe(3)
+    const warmed = s.layerCount()
+    s.frame(120)
+    expect(s.layerCount()).toBe(warmed)
     s.renderer.dispose()
     vi.unstubAllGlobals()
   })
@@ -1860,16 +1872,16 @@ describe('native map input and bounded lifecycle', () => {
     const s = scene(true, view)
     try {
       for (const image of s.images as HTMLImageElement[]) {
-        if (image.src.endsWith('nature-v02.webp'))
-          Object.assign(image, { width: 1514, height: 1039, naturalWidth: 1514 })
+        if (image.src.endsWith('living-trees-v01.webp'))
+          Object.assign(image, { width: 1536, height: 1024, naturalWidth: 1536 })
         if (image.src.endsWith('biomes-v02.webp'))
           Object.assign(image, { width: 1774, height: 887, naturalWidth: 1774 })
       }
       s.frame(40)
       const camera = mapPoint(position, view.sectors)
       for (const [sectorId, x, y, sheet, cropX, floorX, floorY] of [
-        ['atlas:56:14', 5, 8, 'biomes', 0, 252, 867],
-        ['atlas:56:15', 0, 0, 'nature', 443, 599, 596],
+        ['atlas:56:14', 5, 8, 'living-trees', 1152, 1344, 488],
+        ['atlas:56:15', 0, 0, 'living-trees', 768, 960, 488],
       ] as const) {
         const sector = view.sectors.find((sector) => sector.id === sectorId)!
         expect(sector.cells.find((cell) => cell.x === x && cell.y === y)?.terrain).toBe('t')
@@ -1885,7 +1897,7 @@ describe('native map input and bounded lifecycle', () => {
         expect(
           s.draws.some(({ src, args, matrix: m }) => {
             if (
-              !src.endsWith(`${sheet}-v02.webp`) ||
+              !src.endsWith(`${sheet}-v01.webp`) ||
               args.length !== 8 ||
               Math.abs(args[0]! - cropX) > 0.001
             )
@@ -2652,13 +2664,16 @@ describe('native map input and bounded lifecycle', () => {
             s.draws
               .filter(
                 (draw) =>
-                  draw.src.endsWith('nature-v02.webp') &&
-                  Math.abs(draw.args[1]! - (26 / 1039) * 1200) < 1e-6,
+                  (draw.src.endsWith('living-trees-v01.webp') && Math.abs(draw.args[1]!) < 1e-6) ||
+                  (draw.src === '' &&
+                    draw.args.length === 4 &&
+                    draw.image.width === Math.ceil(tile * 1.9 * 1.5) &&
+                    draw.image.height === Math.ceil(tile * 2.8 * 1.5)),
               )
               .map((draw) => {
                 const [x, y, width, height] = draw.args.slice(-4)
-                const rootX = x! + width! * (224 / 442)
-                const rootY = y! + height! * (577 / 591)
+                const rootX = x! + width! * 0.5
+                const rootY = y! + height! * (488 / 512)
                 return key(
                   (draw.matrix[0]! * rootX + draw.matrix[2]! * rootY + draw.matrix[4]!) / 1.5,
                   (draw.matrix[1]! * rootX + draw.matrix[3]! * rootY + draw.matrix[5]!) / 1.5,
@@ -3238,7 +3253,8 @@ it('reuses cropped scenery rasters across zoomed-out phone frames', () => {
     s.renderer.settings({ animate: true, zoom: 0.35 })
     s.frame(40)
     const crop = s.draws.find(
-      (draw) => draw.src.endsWith('biomes-v02.webp') && draw.args[4] === 0 && draw.args[5] === 0,
+      (draw) =>
+        draw.src.endsWith('living-trees-v01.webp') && draw.args[4] === 0 && draw.args[5] === 0,
     )
     expect(crop).toBeDefined()
     const cachedDraw = s.draws.find(
@@ -3254,7 +3270,7 @@ it('reuses cropped scenery rasters across zoomed-out phone frames', () => {
 
     s.draws.length = 0
     s.frame(100)
-    expect(s.draws.some(({ src }) => src.endsWith('biomes-v02.webp'))).toBe(false)
+    expect(s.draws.some(({ src }) => src.endsWith('living-trees-v01.webp'))).toBe(false)
     expect(s.draws.some(({ image }) => image === cachedDraw!.image)).toBe(true)
   } finally {
     s.renderer.dispose()
@@ -3460,10 +3476,59 @@ it('draws the new regional material and focal asset at normal zoom', () => {
   const s = scene(true, projectWorld(state, [], 1000))
   try {
     s.frame(40)
-    const material = s.draws.filter(({ src }) => src.endsWith('regional-ground-v01.webp'))
+    const material = s.draws.filter(({ src }) => src.endsWith('regional-ground-v02.webp'))
     expect(material.length).toBeGreaterThan(0)
     expect(material.some(({ matrix }) => matrix[0]! < 0 || matrix[3]! < 0)).toBe(true)
     expect(s.draws.some(({ src }) => src.endsWith('town-centres-north-v01.webp'))).toBe(true)
+  } finally {
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+})
+
+it('replaces ordinary Ember trees with living foliage and keeps decoded old-art fallback', () => {
+  const state = { ...newWorldState(), position: { sectorId: 'emberreach', x: 6, y: 4 } }
+  const view = projectWorld(state, [], 1000)
+  const sector = {
+    ...view.sectors[0]!,
+    landmarks: [],
+    buildings: [],
+    cells: [{ x: 6, y: 3, terrain: 't', walkable: true, safe: false }],
+  }
+  const source = { ...view, sectors: [sector], scenery: undefined }
+  const s = scene(true, source)
+  try {
+    s.frame(40)
+    expect(s.draws.some(({ src }) => src.endsWith('living-trees-v01.webp'))).toBe(true)
+    const living = (s.images as HTMLImageElement[]).find((image) =>
+      image.src.endsWith('living-trees-v01.webp'),
+    )!
+    Object.assign(living, { complete: false, naturalWidth: 0 })
+    s.draws.length = 0
+    s.renderer.update({ ...source, sectors: [{ ...sector }] })
+    s.frame(80)
+    expect(s.draws.some(({ src }) => src.endsWith('living-trees-v01.webp'))).toBe(false)
+    expect(s.draws.some(({ src }) => src.endsWith('biomes-v02.webp'))).toBe(true)
+  } finally {
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+})
+
+it('uses dedicated Void ground only for supplied private scenery', () => {
+  const view = projectWorld(newWorldState(), [], 1000)
+  const sector = {
+    ...view.sectors[0]!,
+    charted: false,
+    warpedTheme: 'haven' as const,
+    landmarks: [],
+    buildings: [],
+    cells: [{ x: 6, y: 4, terrain: '.', walkable: true, safe: false }],
+  }
+  const s = scene(true, { ...view, sectors: [sector], scenery: undefined })
+  try {
+    s.frame(40)
+    expect(s.draws.some(({ src }) => src.endsWith('void-ground-v01.webp'))).toBe(true)
   } finally {
     s.renderer.dispose()
     vi.unstubAllGlobals()
@@ -3505,9 +3570,11 @@ it.each([
     const s = scene(false, initial)
     try {
       s.frame(40)
-      expect(s.draws.filter(({ src }) => src.endsWith('biomes-v02.webp'))).toHaveLength(
-        expectedTrees,
-      )
+      expect(
+        s.draws.filter(({ src }) =>
+          src.endsWith(privateScene ? 'biomes-v02.webp' : 'living-trees-v01.webp'),
+        ),
+      ).toHaveLength(expectedTrees)
       expect(s.draws.some(({ src }) => src.endsWith('warped-landmarks-v01.webp'))).toBe(true)
       expect(initial.sectors[0]!.cells.find(({ x, y }) => x === 8 && y === 6)?.terrain).toBe('t')
     } finally {
@@ -3577,7 +3644,7 @@ it('renders different woodland growth sizes while keeping town trees authored', 
       s.frame(40)
       return new Set(
         s.draws
-          .filter((d) => d.src.endsWith('nature-v02.webp') && d.args.length === 8)
+          .filter((d) => d.src.endsWith('living-trees-v01.webp') && d.args.length === 8)
           .map((d) => Number(d.args[6]!.toFixed(3))),
       )
     } finally {

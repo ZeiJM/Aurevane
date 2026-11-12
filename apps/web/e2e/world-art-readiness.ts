@@ -17,9 +17,12 @@ export async function waitForWorldArt(page: Page, view: WorldView) {
     'props-v02',
     'biomes-v02',
     'beauties-v03',
-    'regional-ground-v01',
+    'regional-ground-v02',
+    'living-trees-v01',
+    'water-materials-v01',
   ])
   for (const sector of worldRenderTerrain(view)) {
+    if (sector.warpedTheme) sheets.add('void-ground-v01')
     for (const prop of [
       ...sceneryDressing(sector),
       ...naturalDressing(sector),

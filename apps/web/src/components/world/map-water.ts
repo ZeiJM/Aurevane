@@ -91,11 +91,22 @@ export interface WaterCell {
   channel: boolean
   banks: Bank[]
   flow: Curve
+  /** Cosmetic distance from a supplied dry bank, capped at three water cells. */
+  depth?: number
+  cornerDepths?: readonly [number, number, number, number]
 }
 interface WaterSector {
   key: string
   cells: Map<string, WaterCell>
 }
+const depthRasters = new WeakMap<
+  CanvasRenderingContext2D,
+  {
+    layer: HTMLCanvasElement
+    context: CanvasRenderingContext2D
+    pixels: ImageData
+  }
+>()
 const directions = [
   [0, -1],
   [1, 0],
@@ -196,13 +207,15 @@ export function buildWaterField(sectors: readonly WorldSectorView[]): Map<string
     sector.charted && sector.atlasColumn !== undefined && sector.atlasRow !== undefined
       ? 'atlas'
       : sector.id
+  const address = (sector: WorldSectorView, x: number, y: number) =>
+    `${namespace(sector)}:${cellKey(namespace(sector) === 'atlas' ? ((x % (ATLAS_COLUMNS * GRID_WIDTH)) + ATLAS_COLUMNS * GRID_WIDTH) % (ATLAS_COLUMNS * GRID_WIDTH) : x, y)}`
   for (const sector of sectors) {
     const ox = (sector.atlasColumn ?? 0) * GRID_WIDTH,
       oy = (sector.atlasRow ?? 0) * GRID_HEIGHT
-    for (const cell of sector.cells)
-      terrain.set(`${namespace(sector)}:${cellKey(ox + cell.x, oy + cell.y)}`, cell)
+    for (const cell of sector.cells) terrain.set(address(sector, ox + cell.x, oy + cell.y), cell)
   }
   const field = new Map<string, WaterSector>()
+  const water = new Map<string, WaterCell>()
   for (const sector of sectors) {
     const cells = new Map<string, WaterCell>()
     const ox = (sector.atlasColumn ?? 0) * GRID_WIDTH,
@@ -213,7 +226,7 @@ export function buildWaterField(sectors: readonly WorldSectorView[]): Map<string
         wy = oy + cell.y
       const neighbours = directions.map(([dx, dy]) => {
         const at = (distance: number) =>
-          terrain.get(`${namespace(sector)}:${cellKey(wx + dx * distance, wy + dy * distance)}`)
+          terrain.get(address(sector, wx + dx * distance, wy + dy * distance))
         const neighbour = at(1)
         if (neighbour?.terrain === '=' && neighbour.walkable)
           for (let distance = 2; distance <= 4; distance++) {
@@ -237,17 +250,69 @@ export function buildWaterField(sectors: readonly WorldSectorView[]): Map<string
       })
       const connected = neighbours.map((material) => material === '~')
       const connectionCount = connected.filter(Boolean).length
-      cells.set(cellKey(cell.x, cell.y), {
+      const profile: WaterCell = {
         x: cell.x,
         y: cell.y,
         seed: hashString(`${namespace(sector)}:${wx}:${wy}:water`),
         channel: connectionCount > 0 && connectionCount <= 2,
         banks,
         flow: currentCurve(wx, wy, connected),
-      })
+        depth: banks.length ? 0 : 3,
+      }
+      cells.set(cellKey(cell.x, cell.y), profile)
+      water.set(address(sector, wx, wy), profile)
     }
     // Adjacent changes must invalidate a cached bank even when its own cells are identical.
     field.set(sector.id, { key: JSON.stringify([...cells.values()]), cells })
+  }
+  // Multi-source breadth-first propagation visits known water only. Missing and
+  // private neighbors cannot become invented banks, depths or revealed terrain.
+  let frontier = [...water.entries()].filter(([, cell]) => cell.depth === 0).map(([key]) => key)
+  for (let depth = 1; depth < 3; depth++) {
+    const next: string[] = []
+    for (const key of frontier) {
+      const split = key.lastIndexOf(':'),
+        before = key.lastIndexOf(':', split - 1)
+      const space = key.slice(0, before),
+        x = Number(key.slice(before + 1, split)),
+        y = Number(key.slice(split + 1))
+      for (const [dx, dy] of directions) {
+        const nx =
+          space === 'atlas'
+            ? (x + dx + ATLAS_COLUMNS * GRID_WIDTH) % (ATLAS_COLUMNS * GRID_WIDTH)
+            : x + dx
+        const neighborKey = `${space}:${cellKey(nx, y + dy)}`
+        const neighbor = water.get(neighborKey)
+        if (!neighbor || neighbor.depth! <= depth) continue
+        neighbor.depth = depth
+        next.push(neighborKey)
+      }
+    }
+    frontier = next
+  }
+  for (const sector of sectors) {
+    const part = field.get(sector.id)!
+    const ox = (sector.atlasColumn ?? 0) * GRID_WIDTH,
+      oy = (sector.atlasRow ?? 0) * GRID_HEIGHT
+    for (const cell of part.cells.values()) {
+      cell.cornerDepths = [
+        [0, 0],
+        [1, 0],
+        [1, 1],
+        [0, 1],
+      ].map(([cx, cy]) => {
+        const depths = [-1, 0].flatMap((dy) =>
+          [-1, 0].flatMap((dx) => {
+            const neighbor = water.get(
+              address(sector, ox + cell.x + cx! + dx, oy + cell.y + cy! + dy),
+            )
+            return neighbor ? [neighbor.depth!] : []
+          }),
+        )
+        return depths.reduce((sum, depth) => sum + depth, 0) / depths.length
+      }) as [number, number, number, number]
+    }
+    part.key = JSON.stringify([...part.cells.values()])
   }
   return field
 }
@@ -317,10 +382,74 @@ export function paintWaterGround(
   cell: WaterCell,
   tile: number,
   amethyst = false,
+  material?: HTMLImageElement,
+  worldX = cell.x,
+  worldY = cell.y,
 ) {
   context.save()
   context.translate(cell.x * tile, cell.y * tile)
   clipCell(context, tile)
+  const paintTexture = (index: number, alpha: number) => {
+    if (!material?.complete || !material.naturalWidth) return
+    const sw = material.width / 2,
+      sh = material.height / 2
+    const flipX = Math.floor(worldX / 4) % 2 !== 0,
+      flipY = Math.floor(worldY / 4) % 2 !== 0
+    const px = ((worldX % 4) + 4) % 4,
+      py = ((worldY % 4) + 4) % 4
+    context.save()
+    context.globalAlpha = alpha
+    context.translate(flipX ? tile : 0, flipY ? tile : 0)
+    context.scale(flipX ? -1 : 1, flipY ? -1 : 1)
+    context.drawImage(
+      material,
+      (index % 2) * sw + ((flipX ? 3 - px : px) * sw) / 4,
+      Math.floor(index / 2) * sh + ((flipY ? 3 - py : py) * sh) / 4,
+      sw / 4,
+      sh / 4,
+      0,
+      0,
+      tile + 1,
+      tile + 1,
+    )
+    context.restore()
+  }
+  if (material?.complete && material.naturalWidth) {
+    const corners = cell.cornerDepths ?? [
+      cell.depth ?? 2,
+      cell.depth ?? 2,
+      cell.depth ?? 2,
+      cell.depth ?? 2,
+    ]
+    const depthColour = (depth: number) => {
+      const t = Math.max(0, Math.min(1, depth / 3))
+      const shallow = amethyst ? [159, 128, 193] : [111, 190, 171]
+      const deep = amethyst ? [56, 40, 94] : [20, 74, 100]
+      return shallow.map((value, i) => Math.round(value + (deep[i]! - value) * t))
+    }
+    let raster = depthRasters.get(context)
+    if (!raster) {
+      const layer = document.createElement('canvas')
+      layer.width = layer.height = 2
+      const target = layer.getContext('2d')
+      if (target) {
+        raster = { layer, context: target, pixels: target.createImageData(2, 2) }
+        depthRasters.set(context, raster)
+      }
+    }
+    if (raster) {
+      // Row-major pixels are TL,TR,BL,BR. Align pixel centres with the cell
+      // vertices, not its centre quadrants: the scaled raster interpolates all
+      // four shared colours without the previous per-tile diagonal steps.
+      for (const [pixel, corner] of [0, 1, 3, 2].entries())
+        raster.pixels.data.set([...depthColour(corners[corner]!), 255], pixel * 4)
+      raster.context.putImageData(raster.pixels, 0, 0)
+      context.imageSmoothingEnabled = true
+      context.drawImage(raster.layer, -tile / 2, -tile / 2, tile * 2, tile * 2)
+    }
+    paintTexture(amethyst ? 3 : 1, amethyst ? 0.32 : 0.2)
+    if (!amethyst) paintTexture(2, 0.12)
+  }
   if (cell.channel) {
     for (const width of [0.76, 0.58, 0.36]) {
       context.beginPath()
@@ -357,6 +486,12 @@ export function paintWaterGround(
     context.closePath()
     context.fillStyle = gradient
     context.fill()
+    if (!amethyst) {
+      context.save()
+      context.clip()
+      paintTexture(0, 0.24)
+      context.restore()
+    }
     context.beginPath()
     bank.edge.forEach((curve, i) => trace(context, curve, tile, i === 0))
     context.strokeStyle = amethyst

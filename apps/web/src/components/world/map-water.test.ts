@@ -6,6 +6,7 @@ import {
   buildWaterField,
   paintWaterfallMotion,
   paintWaterMotion,
+  paintWaterGround,
   waterfallHighlights,
 } from './map-water'
 
@@ -50,6 +51,159 @@ function sector(id: string, atlasRow = 0, cells: [number, number, string][] = []
 }
 
 describe('world-connected water presentation', () => {
+  it('uses the clear sand-bottom texture only inside a supplied bank mask', () => {
+    vi.stubGlobal('document', {
+      createElement: () => ({
+        getContext: () => ({
+          createImageData: () => ({ data: new Uint8ClampedArray(16) }),
+          putImageData() {},
+        }),
+      }),
+    })
+    const drawImage = vi.fn(),
+      clip = vi.fn()
+    const context = new Proxy(
+      { drawImage, clip, createLinearGradient: () => ({ addColorStop() {} }) },
+      { get: (target, key) => (key in target ? target[key as keyof typeof target] : () => {}) },
+    ) as unknown as CanvasRenderingContext2D
+    const material = {
+      complete: true,
+      naturalWidth: 768,
+      width: 768,
+      height: 768,
+    } as HTMLImageElement
+    const water = buildWaterField([
+      sector('shore', 0, [
+        [0, 0, '.'],
+        [1, 0, '~'],
+      ]),
+    ])
+      .get('shore')!
+      .cells.get('1:0')!
+    try {
+      paintWaterGround(context, water, 64, false, material)
+      expect(
+        drawImage.mock.calls.some(([image, sx, sy]) => image === material && sx < 384 && sy < 384),
+      ).toBe(true)
+      expect(clip.mock.calls.length).toBeGreaterThanOrEqual(2)
+      drawImage.mockClear()
+      paintWaterGround(context, { ...water, banks: [] }, 64, false, material)
+      expect(
+        drawImage.mock.calls.some(([image, sx, sy]) => image === material && sx < 384 && sy < 384),
+      ).toBe(false)
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+  it('paints equal depth colours on a shared edge instead of diagonal per-tile steps', () => {
+    const sample = (corners: readonly [number, number, number, number], px: number) => {
+      let result: number[] = []
+      const raster = {
+        width: 2,
+        height: 2,
+        pixels: new Uint8ClampedArray(16),
+        getContext: () => ({
+          createImageData: () => ({ data: new Uint8ClampedArray(16) }),
+          putImageData: (image: { data: Uint8ClampedArray }) => {
+            raster.pixels = image.data.slice()
+          },
+        }),
+      }
+      vi.stubGlobal('document', { createElement: () => raster })
+      const rgb = (s: string) => s.match(/[\d.]+/g)!.map(Number)
+      const ctx = new Proxy(
+        {
+          fillStyle: '' as unknown,
+          createLinearGradient: (...xy: number[]) => ({
+            xy,
+            stops: [] as [number, string][],
+            addColorStop(at: number, c: string) {
+              this.stops.push([at, c])
+            },
+          }),
+          fillRect() {
+            const g = this.fillStyle as { xy: number[]; stops: [number, string][] }
+            if (!g?.stops?.[0]?.[1].startsWith('rgb(')) return
+            const [x, y, x1, y1] = g.xy,
+              dx = x1! - x!,
+              dy = y1! - y!,
+              t = ((px - x!) * dx + (32 - y!) * dy) / (dx * dx + dy * dy),
+              a = rgb(g.stops[0]![1]),
+              b = rgb(g.stops.at(-1)![1])
+            result = a.map((v, i) => v + (b[i]! - v) * t)
+          },
+          drawImage(image: typeof raster, ...args: number[]) {
+            if (image !== raster) return
+            const [x, y, w, h] = args,
+              u = Math.max(0, Math.min(1, ((px - x!) / w!) * 2 - 0.5)),
+              v = Math.max(0, Math.min(1, ((32 - y!) / h!) * 2 - 0.5))
+            result = [0, 1, 2].map(
+              (channel) =>
+                image.pixels[channel]! * (1 - u) * (1 - v) +
+                image.pixels[4 + channel]! * u * (1 - v) +
+                image.pixels[8 + channel]! * (1 - u) * v +
+                image.pixels[12 + channel]! * u * v,
+            )
+          },
+        },
+        { get: (target, key) => (key in target ? target[key as keyof typeof target] : () => {}) },
+      ) as unknown as CanvasRenderingContext2D
+      const profile = buildWaterField([sector('sample', 0, [[0, 0, '~']])])
+        .get('sample')!
+        .cells.get('0:0')!
+      paintWaterGround(ctx, { ...profile, cornerDepths: corners }, 64, false, {
+        complete: true,
+        naturalWidth: 768,
+        width: 768,
+        height: 768,
+      } as HTMLImageElement)
+      return result
+    }
+    try {
+      expect(sample([0.5, 1.5, 1.5, 0.5], 64)).toEqual(sample([1.5, 2.5, 2.5, 1.5], 0))
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+  it('derives increasing depth from supplied banks and shares corner depths across sector edges', () => {
+    const a = sector(
+      'a',
+      0,
+      Array.from(
+        { length: 13 * 9 },
+        (_, i) =>
+          [i % 13, Math.floor(i / 13), i % 13 === 0 ? '.' : '~'] as [number, number, string],
+      ),
+    )
+    const field = buildWaterField([a]).get('a')!.cells
+    expect(field.get('1:4')!.depth).toBe(0)
+    expect(field.get('2:4')!.depth).toBe(1)
+    expect(field.get('4:4')!.depth).toBe(3)
+    expect(field.get('1:4')!.cornerDepths![1]).toBe(field.get('2:4')!.cornerDepths![0])
+    expect(field.get('1:4')!.cornerDepths![2]).toBe(field.get('2:4')!.cornerDepths![3])
+    const isolated = buildWaterField([sector('private', 0, [[4, 4, '~']])])
+      .get('private')!
+      .cells.get('4:4')!
+    expect(isolated.banks).toHaveLength(0)
+    expect(isolated.depth).toBe(3)
+  })
+  it('continues bank depth across public longitude wrap without borrowing a private shoreline', () => {
+    const west = {
+      ...sector('west', 10, [
+        [12, 4, '~'],
+        [11, 4, '~'],
+      ]),
+      atlasColumn: 127,
+    }
+    const east = { ...sector('east', 10, [[0, 4, '.']]), atlasColumn: 0 }
+    expect(buildWaterField([west, east]).get('west')!.cells.get('12:4')!.depth).toBe(0)
+    expect(buildWaterField([west]).get('west')!.cells.get('12:4')!.depth).toBe(3)
+    expect(
+      buildWaterField([west, { ...east, charted: false }])
+        .get('west')!
+        .cells.get('12:4')!.depth,
+    ).toBe(3)
+  })
   it('adds localized rain impact rings inside the same clipped surface as the current', () => {
     const stream = sector('stream', 0, [
       [5, 4, '~'],

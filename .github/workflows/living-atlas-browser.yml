@@ -162,7 +162,6 @@ jobs:
             apps/web/test-results/**/world-multiplayer-hotspot.png
             apps/web/test-results/**/world-art-review.json
             apps/web/test-results/**/world-ambient-pause.json
-            apps/web/test-results/**/art-*.png
             apps/web/test-results/**/biome-boundary-*.png
             apps/web/test-results/**/coastal-road-*.png
             apps/web/test-results/**/four-biome-*.png
@@ -177,6 +176,45 @@ jobs:
             apps/web/test-results/**/world-realtime-diagnostics.json
             apps/web/test-results/**/portrait-zoom-*.png
             apps/web/test-results/**/world-refined-controls.png
+          retention-days: 7
+      - name: Save hamlet art review images
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: living-atlas-art-hamlets
+          path: apps/web/test-results/**/art-hamlet-*.png
+          retention-days: 7
+      - name: Save northern town art review images
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: living-atlas-art-towns-north
+          path: |
+            apps/web/test-results/**/art-town-aureth-crown-*.png
+            apps/web/test-results/**/art-town-verdant-expanse-*.png
+            apps/web/test-results/**/art-town-frostmere-*.png
+            apps/web/test-results/**/art-town-starfall-highlands-*.png
+          retention-days: 7
+      - name: Save southern town art review images
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: living-atlas-art-towns-south
+          path: |
+            apps/web/test-results/**/art-town-hollow-coast-*.png
+            apps/web/test-results/**/art-town-emberreach-*.png
+            apps/web/test-results/**/art-town-glasswind-desert-*.png
+            apps/web/test-results/**/art-town-umbral-march-*.png
+          retention-days: 7
+      - name: Save Void water and occlusion art review images
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: living-atlas-art-void-water-occlusion
+          path: |
+            apps/web/test-results/**/art-void-*.png
+            apps/web/test-results/**/art-water-*.png
+            apps/web/test-results/**/art-occlusion-*.png
           retention-days: 7
       - name: Save bounded ambient pause failure evidence
         if: ${{ failure() }}

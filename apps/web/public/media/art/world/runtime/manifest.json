@@ -1,5 +1,5 @@
 {
-  "version": "world-runtime-v04",
+  "version": "world-runtime-v05",
   "origin": "Original assets generated for Aurevane with OpenAI imagegen; not third-party game assets",
   "assets": {
     "terrain-v02.webp": {
@@ -99,6 +99,67 @@
         "luminous mushrooms and ferns",
         "meadow wildflowers"
       ]
+    },
+    "regional-ground-v02.webp": {
+      "columns": 4,
+      "rows": 2,
+      "width": 1024,
+      "height": 512,
+      "bytes": 221956,
+      "sha256": "7a8d46c9dc03bb98cbbba453ea8a19bc285007c30822f666ef1beefe6e910d43",
+      "requestId": "ART-WORLD-ENVIRONMENT-20261112",
+      "cells": [
+        "Crown meadow",
+        "Verdant meadow",
+        "Frostmere snow",
+        "Highland meadow",
+        "Ember living volcanic ground",
+        "Glasswind sand",
+        "Hollow Coast saltgrass",
+        "Umbral moss"
+      ]
+    },
+    "living-trees-v01.webp": {
+      "columns": 4,
+      "rows": 2,
+      "width": 1536,
+      "height": 1024,
+      "bytes": 719180,
+      "sha256": "30614b3278d5b3ec65fe6f2e77784406ea75936a7b7cfd45e87b767067b31a11",
+      "requestId": "ART-WORLD-ENVIRONMENT-20261112",
+      "cells": [
+        "Crown oak",
+        "Verdant elm",
+        "Frostmere snow fir",
+        "Highland pine",
+        "Ember living rowan",
+        "Glasswind acacia",
+        "Hollow Coast willow",
+        "Umbral alder"
+      ],
+      "anchor": [192, 488],
+      "cellWidth": 384,
+      "cellHeight": 512
+    },
+    "water-materials-v01.webp": {
+      "columns": 2,
+      "rows": 2,
+      "width": 768,
+      "height": 768,
+      "bytes": 64848,
+      "sha256": "75222437badb8b2b36dbcee70bc178d684345dbe9a85fab38a7294eeaf07ce3d",
+      "requestId": "ART-WORLD-ENVIRONMENT-20261112",
+      "cells": ["clear shallows", "river teal", "deep blue-green", "Void amethyst"]
+    },
+    "void-ground-v01.webp": {
+      "columns": 3,
+      "rows": 2,
+      "width": 768,
+      "height": 512,
+      "bytes": 167528,
+      "sha256": "1f1c8d089233bc5dccab8d428bcde52771e12d0ffb86a56937671fd2d3d014bd",
+      "requestId": "ART-WORLD-ENVIRONMENT-20261112",
+      "cells": ["haven", "ashen", "fracture", "wayfarer", "amber", "amethyst"]
     }
   }
 }

@@ -1,5 +1,7 @@
 # AUREVANE — Art Bible
 
+**Owner environment correction — November12,2026:** The winter lakeside village and lush river-valley references govern the overall World graphics direction: richly painted ground, clear water with visible depth, living varied foliage, tactile inhabited settlement surfaces and restrained environmental motion. Peripheral decals alone do not meet this request. Preserve regional identity, including living copper/green growth in Embervale/Emberreach and distinct strange Void materials; quieter wilderness paths contrast with built-up paving. Performance and terrain-loading continuity are part of this art work, not later optional polish. Current scope/design: [environment overhaul](superpowers/specs/2026-11-12-world-environment-overhaul-design.md). Earlier reference-fidelity claims remain subject to actual native/human review.
+
 **Status:** Authoritative visual specification
 
 This document governs AUREVANE's visual identity. The Master Game Plan defines what the game is; this Art Bible defines how it should look and how visual assets are produced, reviewed, named, stored, and presented.
