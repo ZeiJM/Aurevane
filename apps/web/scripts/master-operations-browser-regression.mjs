@@ -301,6 +301,7 @@ try {
           'Skills',
           'Support',
           'Encounter',
+          'Teleport Player',
         ])
         await sections.getByRole('button', { name: 'Skills', exact: true }).click()
         const equipped = reader.getByRole('checkbox', {
