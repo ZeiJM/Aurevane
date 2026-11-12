@@ -1106,7 +1106,7 @@ export function createMapRenderer(
             ? 'rgba(195,178,146,.15)'
             : (pavement?.glaze ?? 'rgba(192,180,146,.35)')
         if (!naturalTrail) c.fillRect(x, y, tile + 1, tile + 1)
-        if (winterPath && !naturalTrail)
+        if (sector.regionId === WINTER_ART && !naturalTrail && !waterAdjacent)
           paintSnowRoadShoulders(
             c,
             cell,
@@ -1114,6 +1114,7 @@ export function createMapRenderer(
             localTerrain,
             sector.id,
             sector.townId ? 0.34 : 0.51,
+            pavedCells,
           )
       }
       if (cell.terrain === '~' || cell.terrain === 'l') {

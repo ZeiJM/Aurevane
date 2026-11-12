@@ -3655,3 +3655,37 @@ it('renders different woodland growth sizes while keeping town trees authored', 
   expect(run().size).toBeGreaterThan(5)
   expect(run(root.id).size).toBe(1)
 })
+
+it('softens the winter marketplace pavement perimeter, not just roads outside the square', () => {
+  const state = newWorldState()
+  state.position = { sectorId: 'frostmere', x: 6, y: 4 }
+  const view = projectWorld(state, [], 1000)
+  const sector = view.sectors.find(({ id }) => id === 'frostmere')!
+  const s = scene(true, {
+    ...view,
+    sectors: [
+      {
+        ...sector,
+        regionId: 'frostmere',
+        buildings: [],
+        landmarks: [{ id: 'square', kind: 'marketplace', name: 'Square', x: 6, y: 4 }],
+        cells: [
+          { x: 6, y: 4, terrain: 's', safe: true, walkable: true },
+          { x: 6, y: 3, terrain: '.', safe: false, walkable: true },
+        ],
+      },
+    ],
+    scenery: undefined,
+  })
+  try {
+    s.frame(40)
+    expect(
+      s.gradients.some(({ stops }) =>
+        stops.some(([, colour]) => colour === 'rgba(211,220,224,.72)'),
+      ),
+    ).toBe(true)
+  } finally {
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+})
