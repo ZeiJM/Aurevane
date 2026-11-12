@@ -418,12 +418,12 @@ export function projectWorld(
       if (onWarpedContinent) {
         return Boolean(
           isWarpedContinentSector(sector.id) &&
-            currentSector.sceneColumn !== undefined &&
-            currentSector.sceneRow !== undefined &&
-            sector.sceneColumn !== undefined &&
-            sector.sceneRow !== undefined &&
-            Math.abs(sector.sceneColumn - currentSector.sceneColumn) <= 2 &&
-            Math.abs(sector.sceneRow - currentSector.sceneRow) <= 2,
+          currentSector.sceneColumn !== undefined &&
+          currentSector.sceneRow !== undefined &&
+          sector.sceneColumn !== undefined &&
+          sector.sceneRow !== undefined &&
+          Math.abs(sector.sceneColumn - currentSector.sceneColumn) <= 2 &&
+          Math.abs(sector.sceneRow - currentSector.sceneRow) <= 2,
         )
       }
       if (currentVoidAddress) {

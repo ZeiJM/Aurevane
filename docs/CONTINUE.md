@@ -26,6 +26,11 @@ Read this first; open detailed sources only for the task being worked on. This i
 - Whole-branch review found one Important scene selection defect: when all 13 legacy Uncharted districts and a local 5×5 supercontinent neighborhood were discovered, distant districts consumed the 25-sector scene budget and withdrew nearby surveyed ground. A new saturation regression failed on the original source, then the private scene filter/distance were corrected using `sceneColumn`/`sceneRow`. Focused World/continent/renderer tests pass 275/275. A targeted review found no further Important side effect; current/route priority and private cell masking remain intact.
 - Final combined local quality and exact-head CI are pending on this source correction. Next action: finish the combined gate, commit/push this reviewed fix, verify the new remote SHA and review native desktop/phone Atlas captures and timings. No migration or deployment has occurred. Hourly checks remain paused.
 
+## Formatted source quality — November 12, 18:10 Trinidad
+
+- The ground correction was formatted without changing its behavior. The complete local `pnpm check` passed on the formatted tree: format, lint, typecheck, 17,629 Vitest tests across seven packages, seven Node tests and the production build. The saturated Uncharted case and all 52 World service tests passed; adjacent World/continent/renderer focused suites passed 275/275.
+- Next action: push the formatted source as the new exact PR head, verify remote SHA/tree, then use only that head's CI and native Atlas screenshots/timings for release decisions. Earlier PR runs are superseded. Production remains on the PR1038 release; no corrective migration or deployment has occurred.
+
 ## Preserve the requested result
 
 Retain the receipt/ground-loading fix; remove rock shadows/floating art; measure map performance; provide organic rivers/lakes/sea/lava with depth/weather motion, authoritative town-water walking and shallow footsteps, eight distinct towns/Crown walls/moat, coherent relief, grand remote ruins/bridges/towns, larger-than-town waterfall valley/open colosseum, occasional large HQ ocean discoveries, crisp globe and real private64×48 Uncharted supercontinents. Verify artwork at actual gameplay zoom.

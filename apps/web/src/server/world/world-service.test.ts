@@ -65,8 +65,9 @@ describe('world authority and spoiler projection', () => {
     expect(JSON.stringify(projectWorld(mainland, [], 1000))).not.toContain(interior.id)
   })
   it('keeps nearby surveyed Uncharted ground when legacy districts fill the scene budget', () => {
-    const nearby = Array.from({ length: 25 }, (_, index) =>
-      `uncharted-expanse:${32 + (index % 5) - 2}:${24 + Math.floor(index / 5) - 2}`,
+    const nearby = Array.from(
+      { length: 25 },
+      (_, index) => `uncharted-expanse:${32 + (index % 5) - 2}:${24 + Math.floor(index / 5) - 2}`,
     )
     const state = {
       ...newWorldState(),
@@ -79,8 +80,9 @@ describe('world authority and spoiler projection', () => {
     expect(view.sectors).toHaveLength(25)
     expect(new Set(view.sectors.map((sector) => sector.id))).toEqual(new Set(nearby))
     expect(view.scenery).toEqual([])
-    expect(JSON.stringify(projectWorld({ ...state, position: newWorldState().position }, [], 1000)))
-      .not.toContain('uncharted-expanse:32:24')
+    expect(
+      JSON.stringify(projectWorld({ ...state, position: newWorldState().position }, [], 1000)),
+    ).not.toContain('uncharted-expanse:32:24')
   })
   it('retains authored deadlines and private approved peer routes when held replacements arrive late', () => {
     const walk = (state: ReturnType<typeof newWorldState>, x: number, now: number) =>
