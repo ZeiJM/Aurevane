@@ -273,7 +273,8 @@ export function registerWorldLandscapeCases(helpers: Helpers) {
       const cell = initial.atlas!.find((c) => c.id === sector.id)!
       expect(cell.townId).toBe(sector.townId)
       for (const tile of sector.cells) {
-        const liquid = tile.terrain === '~' || tile.terrain === 'l' ? tile.terrain : '.'
+        const liquid =
+          tile.terrain === '~' || tile.terrain === 'l' || tile.terrain === 'w' ? tile.terrain : '.'
         expect(cell.waterTiles?.[tile.y * GRID_WIDTH + tile.x] ?? '.').toBe(liquid)
       }
     }

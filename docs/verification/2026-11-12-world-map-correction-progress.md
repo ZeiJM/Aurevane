@@ -1,5 +1,13 @@
 # Corrective map update progress
 
+## Final Atlas contract diagnosis — November 12, 19:58 UTC
+
+The preserved `fd1668c` native Atlas run completed far enough to retain all split art evidence, then failed five strict contracts. Exact logs show two desktop/mobile stage-coverage failures (`frames.length` was zero), two desktop/mobile globe water mismatches (`w` versus the stale expected `.`), and one Verdant water-review scene whose 104 shallow cells were entirely bridge-connected and therefore had no visible bank. These were deterministic source/test-contract defects, not a runner retry case.
+
+Two new unit regressions failed before the correction: the coverage installer did not register a frame observer, and the Verdant selector returned a bankless water field. The minimum correction observes the stage's `data-frame-now` mutation after completed paints, retains the strict no-hole checks, selects only a water field with an actual bank, and recognizes the already-authoritative `w` overview symbol. All six focused helper tests and 277 combined World/server/renderer tests pass. Web TypeScript, scoped zero-warning ESLint, formatting and diff checks pass. Runtime geography, rendering, assets, authority, migrations and thresholds are unchanged.
+
+The digest-verified split native artifact was reviewed at normal size on desktop and phone. It contains the globe's Uncharted supercontinent, the Owner-selected elemental waterfall valley, open colosseum interior/minimum view, fortress, abandoned town, grand bridge, lava cascade, ocean arch/coast, snowy relief and private/Void scenes. The artifacts also preserve a limitation: lake, river and moat outlines still visibly follow their supplied tile geometry, with several narrow channels. Source tests and contact sheets do not close full reference fidelity, human motion, physical-handset or live-load acceptance.
+
 Plan: `docs/superpowers/plans/2026-11-12-world-map-correction.md`
 Base/main: `2c3c73d13f4c0cf1eb4ac5824deb8ae7b8b4760b` (PR1038 live).
 Branch/workspace: `agent/world-map-correction-20261112`, `/workspace/scratch/aurevane-map-correction-20261112`.

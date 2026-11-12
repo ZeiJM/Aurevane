@@ -15,35 +15,29 @@ export type GroundCoverageFrame = {
 /** Serialized by Playwright; inspect the completed paint, rather than polling receipts. */
 export function installWorldGroundCoverage(element: HTMLElement | SVGElement) {
   const canvas = element as HTMLCanvasElement
-  const identity = document.querySelector<HTMLCanvasElement>('canvas[data-world-identity]')!
-  const context = identity.getContext('2d')!
-  const original = context.fillText.bind(context)
   const records: GroundCoverageFrame[] = []
-  let queued = false
-  canvas.dataset.renderDiagnostics = 'timing'
+  canvas.dataset.renderDiagnostics = 'coverage'
   canvas.dataset.testGroundCoverage = '[]'
-  context.fillText = (text, x, y, maxWidth) => {
-    if (maxWidth === undefined) original(text, x, y)
-    else original(text, x, y, maxWidth)
-    if (queued || canvas.dataset.testGroundCoverageStopped) return
-    queued = true
-    queueMicrotask(() => {
-      queued = false
-      const at = Number(canvas.dataset.frameNow)
-      if (records.at(-1)?.at === at || !canvas.dataset.paintedGroundIds) return
-      records.push({
-        at,
-        x: Number(canvas.dataset.cameraX),
-        y: Number(canvas.dataset.cameraY),
-        width: canvas.clientWidth,
-        height: canvas.clientHeight,
-        tile: Number(canvas.dataset.tileSize),
-        painted: JSON.parse(canvas.dataset.paintedGroundIds),
-      })
-      if (records.length > 1200) records.shift()
-      canvas.dataset.testGroundCoverage = JSON.stringify(records)
+  const observer = new MutationObserver(() => {
+    if (canvas.dataset.testGroundCoverageStopped) {
+      observer.disconnect()
+      return
+    }
+    const at = Number(canvas.dataset.frameNow)
+    if (records.at(-1)?.at === at || !canvas.dataset.paintedGroundIds) return
+    records.push({
+      at,
+      x: Number(canvas.dataset.cameraX),
+      y: Number(canvas.dataset.cameraY),
+      width: canvas.clientWidth,
+      height: canvas.clientHeight,
+      tile: Number(canvas.dataset.tileSize),
+      painted: JSON.parse(canvas.dataset.paintedGroundIds),
     })
-  }
+    if (records.length > 1200) records.shift()
+    canvas.dataset.testGroundCoverage = JSON.stringify(records)
+  })
+  observer.observe(canvas, { attributes: true, attributeFilter: ['data-frame-now'] })
 }
 
 /** Only already supplied complete public ground can be expected at this camera. */
