@@ -314,7 +314,7 @@ export function PlayersWorkspace({
                       {review.destination.map === 'mainland'
                         ? 'Mainland'
                         : 'Current Void (selected at save time)'}{' '}
-                      · Sector{review.destination.sectorNumber} · X:{review.destination.x} · Y:
+                      · Sector {review.destination.sectorNumber} · X:{review.destination.x} · Y:
                       {review.destination.y}. Their current path will be cancelled.
                     </p>
                     <p>Staff reason: {review.reason}</p>

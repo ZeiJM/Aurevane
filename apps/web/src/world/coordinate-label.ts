@@ -45,7 +45,7 @@ export function sectorDisplayNumber(sector: DisplaySector | undefined): number |
 }
 
 export function sectorLabel(sector: DisplaySector | undefined): string {
-  return `Sector${sectorDisplayNumber(sector) ?? '?'}`
+  return `Sector ${sectorDisplayNumber(sector) ?? '?'}`
 }
 
 export function positionLabel(

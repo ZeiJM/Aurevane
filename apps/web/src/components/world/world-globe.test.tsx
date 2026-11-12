@@ -86,14 +86,14 @@ describe('globe geographic labels', () => {
     const north = atlasCell(85, 1, 'North town')
     const view = viewFor([south, north])
     const markup = render(view)
-    expect(markup).toContain('Sector214 · North town')
-    expect(markup).toContain('North town · Sector214')
-    expect(markup).toContain('Sector257 · South town')
+    expect(markup).toContain('Sector 214 · North town')
+    expect(markup).toContain('North town · Sector 214')
+    expect(markup).toContain('Sector 257 · South town')
     expect(markup).not.toContain('S86-02')
-    expect(markup.indexOf('Sector214 · North town')).toBeLessThan(
-      markup.indexOf('Sector257 · South town'),
+    expect(markup.indexOf('Sector 214 · North town')).toBeLessThan(
+      markup.indexOf('Sector 257 · South town'),
     )
-    expect(render(viewFor([north]))).toContain('Sector214 · North town')
+    expect(render(viewFor([north]))).toContain('Sector 214 · North town')
     expect(view.atlas).toEqual([south, north])
   })
   it('retains raw globe coordinates and persisted sector IDs for location selection', () => {

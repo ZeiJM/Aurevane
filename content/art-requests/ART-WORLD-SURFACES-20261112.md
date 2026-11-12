@@ -1,18 +1,18 @@
 # ART-WORLD-SURFACES-20261112
 
-Original generated masters and compressed runtime sheets are retained together in the repository. Generation used the built-in image tool with actual transparency on isolated scenic sheets. Deterministic extraction/downsampling only is performed by tools/pack-world-surfaces.mjs; original art is not replaced by code.
+Original generated masters and compressed runtime sheets are retained together in the repository. Generation used the built-in image tool with actual transparency on isolated scenic sheets. Deterministic extraction/downsampling is performed by tools/pack-world-surfaces.mjs; it also clears only the effectively invisible alpha tail and saturated low-alpha matte residue before/after resampling so generated red/yellow/blue fringe cannot become visible at runtime. Original source masters are retained unchanged.
 
 ## Atlas layouts
 
 | Sheet                 | Layout | Cell  | Runtime bytes |
 | --------------------- | ------ | ----- | ------------- |
 | settlement-floors-v01 | 4×3    | 384px | 575804        |
-| grand-bridges-v01     | 3×1    | 512px | 184310        |
-| waterfalls-v01        | 3×1    | 512px | 299492        |
-| lavafalls-v01         | 2×1    | 512px | 196638        |
-| impact-basins-v01     | 3×1    | 512px | 317840        |
+| grand-bridges-v01     | 3×1    | 512px | 170900        |
+| waterfalls-v01        | 3×1    | 512px | 285612        |
+| lavafalls-v01         | 2×1    | 512px | 192836        |
+| impact-basins-v01     | 3×1    | 512px | 301364        |
 
-Total runtime1,574,084bytes. First floors have no inset and opaque ground; all remaining sprite cells preserve original composition with16px transparent inset. Packer validates each alpha/cell and emits SHA256 source/runtime receipts. Source directory apps/web/public/media/art/world/sources; runtime directory apps/web/public/media/art/world/runtime.
+Total runtime1,526,516bytes. First floors have no inset and opaque ground; all remaining sprite cells preserve original composition with16px transparent inset. Packer validates each alpha/cell, records both fringe-cleanup counts and emits SHA256 source/runtime receipts. Current runtime SHA256 values: floors `2357c0614043ee10490808b397626b37ae93b4224ea952c7796d8734772c23b2`; bridges `fd838b585306f7cba8ebe9f36725c9983e1922a286eb6e8cb73f76107f431725`; waterfalls `1f1d881cb9a259f7a447a6b964dd89744315aa7ce173e4272206b4a4e68ede5a`; lavafalls `fb2bce477bd1fe181a99c3707258464c4b4772466eec9d5717191d6f7998fa9b`; impact basins `43354ce58f007025ef7773c611c28eb0565dc6cef7439716643f47359aa102a6`. Source directory apps/web/public/media/art/world/sources; runtime directory apps/web/public/media/art/world/runtime.
 
 Grandbridge pivots after packing: near(.218,.876), far(.848,.500), midpoint(.533,.688), bank span(.630,.376); old source-specific inner arch mask remains only for legacy fallback. Generated art requires native normal-zoom placement review. Cascade sources use upper(.50,.20–.40), lower(.49,.50–.78), receivingpool(.49,.90). New motion follows those fixed features; spray/sparks are separate wind-driven particles. Impact stamps preserve fully painted bowl interiors and feathered transparent rims, grounded only on proved dry known cells.
 

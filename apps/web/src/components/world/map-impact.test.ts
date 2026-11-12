@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
 import { atlasSectors } from '@/world/atlas'
@@ -28,6 +29,11 @@ const context = () =>
       get: (target, key) => (key in target ? target[key as keyof typeof target] : vi.fn()),
     },
   ) as unknown as CanvasRenderingContext2D
+
+it('keeps private impact geography out of production browser source', () => {
+  const source = readFileSync(new URL('./map-impact.ts', import.meta.url), 'utf8')
+  expect(source).not.toMatch(/void:|uncharted-pale|starfall-basin/)
+})
 
 it('actually paints all three fixed variants on canonical projected natural footprints', () => {
   for (const [id, x, y, index] of fixtures) {
@@ -62,12 +68,14 @@ it('waits for the complete fixed private footprint without relocation as cells a
     source.id,
     footprint.slice(0, 8).map((c) => c.y * 13 + c.x),
   )
+  expect(partial.impactSite).toBeUndefined()
   expect(impactSite(partial)).toBeUndefined()
   expect(paintImpactGround(context(), partial, 64, image)).toBe(false)
   const revealed = projected(
     source.id,
     footprint.map((c) => c.y * 13 + c.x),
   )
+  expect(revealed.impactSite).toEqual(site)
   expect(impactSite(revealed)).toEqual(site)
   expect(paintImpactGround(context(), revealed, 64, image)).toBe(true)
   expect(impactSite({ ...source, cells: [...source.cells].reverse() })).toEqual(site)
@@ -90,7 +98,7 @@ it('never stamps unknown, liquid, paved, safe or occupied ground or unrelated se
       cells: source.cells.map((c) => (c.x === 2 && c.y === 2 ? { ...c, safe: true } : c)),
     },
     { ...source, townId: 'town' },
-    { ...source, id: 'another-sector' },
+    { ...source, id: 'another-sector', impactSite: undefined },
     { ...source, charted: false },
     { ...source, buildings: [{ id: 'building', x: 2, y: 2, width: 1, height: 1, artIndex: 0 }] },
     { ...source, landmarks: [{ id: 'focal', name: 'Focal', kind: 'ruin', x: 2, y: 2 }] },

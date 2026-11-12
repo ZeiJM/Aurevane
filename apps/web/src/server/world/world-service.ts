@@ -17,6 +17,7 @@ import {
 import type {
   TravelStep,
   WorldIntent,
+  WorldImpactSite,
   WorldObjective,
   WorldPlayer,
   WorldPosition,
@@ -57,6 +58,12 @@ import {
 
 const invalid = (message: string): never => {
   throw new AurevaneError('INVALID_REQUEST', message)
+}
+const impactSites: Readonly<Record<string, WorldImpactSite>> = {
+  'atlas:45:9': { x: 9.5, y: 6.5, index: 0, size: 3 },
+  'atlas:65:21': { x: 2.5, y: 2.5, index: 1, size: 3 },
+  'void:starfall-basin:16:10': { x: 6.5, y: 4.5, index: 2, size: 3 },
+  'uncharted-pale': { x: 3.5, y: 3.5, index: 2, size: 3 },
 }
 const isKnown = isKnownCell
 // Public sector terrain is immutable. Avoid scanning every charted cell on each
@@ -285,7 +292,7 @@ export function projectWorldPlayers(
 export function projectWorldSector(state: WorldState, sector: WorldSector): WorldSectorView {
   sector = applyWarpedContinentPhase(state, sector)
   const { rows, roads, ...publicSector } = sector
-  const cells = []
+  const cells: WorldSectorView['cells'] = []
   for (let y = 0; y < GRID_HEIGHT; y++)
     for (let x = 0; x < GRID_WIDTH; x++)
       if (isKnown(state, { sectorId: sector.id, x, y }))
@@ -304,9 +311,33 @@ export function projectWorldSector(state: WorldState, sector: WorldSector): Worl
   const revealedScenery =
     warpedScenery &&
     cells.some(({ x, y, walkable }) => walkable && x === warpedScenery.x && y === warpedScenery.y)
+  const impactSite = impactSites[sector.id]
+  const impactLeft = impactSite ? impactSite.x - impactSite.size / 2 : 0
+  const impactTop = impactSite ? impactSite.y - impactSite.size / 2 : 0
+  const impactRight = impactSite ? impactLeft + impactSite.size : 0
+  const impactBottom = impactSite ? impactTop + impactSite.size : 0
+  const overlapsImpact = (x: number, y: number, width = 1, height = 1) =>
+    x < impactRight && x + width > impactLeft && y < impactBottom && y + height > impactTop
+  const projectedImpact =
+    impactSite &&
+    !sector.townId &&
+    (sector.charted || sector.warpedTheme) &&
+    !sector.buildings?.some((building) =>
+      overlapsImpact(building.x, building.y, building.width, building.height),
+    ) &&
+    !sector.landmarks.some((landmark) => overlapsImpact(landmark.x - 1, landmark.y - 1, 3, 3)) &&
+    !(warpedScenery && overlapsImpact(warpedScenery.x - 1, warpedScenery.y - 1, 3, 3)) &&
+    Array.from({ length: impactSite.size * impactSite.size }, (_, index) => ({
+      x: impactLeft + (index % impactSite.size),
+      y: impactTop + Math.floor(index / impactSite.size),
+    })).every(({ x, y }) => {
+      const cell = cells.find((candidate) => candidate.x === x && candidate.y === y)
+      return cell && !cell.safe && cell.walkable && (cell.terrain === '.' || cell.terrain === 't')
+    })
   const legacyTrail = /^trail:.*:(\d+)$/.exec(sector.id)
   return {
     ...publicSector,
+    ...(projectedImpact ? { impactSite } : {}),
     ...(revealedScenery ? { warpedScenery } : {}),
     ...(legacyTrail ? { atlasColumn: Number(legacyTrail[1]), atlasRow: 0 } : {}),
     cells,

@@ -76,7 +76,7 @@ describe('World page', () => {
       markup.match(/<div class="[^"]*panelFoot[^"]*"[^>]*>([\s\S]*?)<\/div>/)?.[1] ?? ''
     const initial = foot(render())
     expect(initial).toContain('data-world-coordinates')
-    expect(initial).toContain('Sector3643 · X:6 · Y:4')
+    expect(initial).toContain('Sector 3643 · X:6 · Y:4')
     expect(initial).not.toContain('S59-29')
     expect(initial).not.toContain('N320')
     expect(initial).not.toContain('E760')
@@ -84,7 +84,7 @@ describe('World page', () => {
     expect(initial).toContain('aria-label="Map settings"')
     view.position = { sectorId: 'atlas:58:28', x: 7, y: 3 }
     const moved = foot(render())
-    expect(moved).toContain('Sector3643 · X:7 · Y:3')
+    expect(moved).toContain('Sector 3643 · X:7 · Y:3')
     expect(moved).not.toContain('X:6')
   })
   it('masks Void local X/Y while preserving its geographic sector number', () => {
@@ -98,7 +98,7 @@ describe('World page', () => {
         character: { name: 'Traveller', portrait: '/portrait.webp' },
       }),
     )
-    expect(markup).toContain('Sector6 · X:? · Y:?')
+    expect(markup).toContain('Sector 6 · X:? · Y:?')
     expect(markup).not.toContain('X:6')
     expect(markup).not.toContain('Y:4')
     expect(markup).not.toContain('Beyond the charts')
@@ -115,7 +115,7 @@ describe('World page', () => {
       }),
     )
     expect(markup).toContain(`${VOID_REALMS[0].name} · `)
-    expect(markup).toContain('Sector214 · X:? · Y:?')
+    expect(markup).toContain('Sector 214 · X:? · Y:?')
     expect(markup).not.toContain('X:6')
     expect(markup).not.toContain('Y:4')
     for (const realm of VOID_REALMS.slice(1)) expect(markup).not.toContain(realm.name)

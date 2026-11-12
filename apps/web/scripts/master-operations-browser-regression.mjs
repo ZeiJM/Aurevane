@@ -404,7 +404,7 @@ try {
         assert.deepEqual(teleport.destination, { map: 'currentVoid', sectorNumber: 34, x: 6, y: 4 })
         assert.equal(teleport.reason, 'Reviewed location repair')
         assert.equal(teleport.confirmed, true)
-        await expect(reader.getByText('Sector34 · X:6 · Y:4', { exact: true })).toBeVisible()
+        await expect(reader.getByText('Sector 34 · X:6 · Y:4', { exact: true })).toBeVisible()
         await page.screenshot({
           path: resolve(output, `players-teleport-${viewport.width}-${viewport.zoom}.png`),
         })

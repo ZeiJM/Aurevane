@@ -21,6 +21,8 @@ for (const [name, columns, rows, size, inset] of [
   const bytes = await readFile(source),
     meta = await sharp(bytes).metadata(),
     composites = []
+  let fringePixelsRemoved = 0
+  let packedFringePixelsRemoved = 0
   if (inset && !meta.hasAlpha) throw new Error(`${name} requires true transparency`)
   for (let i = 0; i < columns * rows; i++) {
     const col = i % columns,
@@ -40,15 +42,50 @@ for (const [name, columns, rows, size, inset] of [
     for (let p = 3; p < data.length; p += 4) {
       if (data[p] === 0) clear++
       if (data[p] > 240) opaque++
+      // Generated transparent masters can retain fully saturated RGB in
+      // effectively invisible alpha (typically alpha 1). Resampling those
+      // pixels produces red/yellow/blue matte blocks around the runtime art.
+      // Normalize only the imperceptible tail before resizing; source masters
+      // remain untouched and meaningful translucent foam/spray stays intact.
+      if (data[p] <= 8) {
+        if (data[p] > 0) fringePixelsRemoved++
+        data[p - 3] = 0
+        data[p - 2] = 0
+        data[p - 1] = 0
+        data[p] = 0
+      }
     }
     if (
       opaque < info.width * info.height * 0.1 ||
       (inset && clear < info.width * info.height * 0.15)
     )
       throw new Error(`Invalid alpha ${name}:${i}`)
+    const packed = await sharp(data, {
+      raw: { width: info.width, height: info.height, channels: 4 },
+    })
+      .resize(size - inset * 2, size - inset * 2)
+      .raw()
+      .toBuffer({ resolveWithObject: true })
+    for (let p = 0; p < packed.data.length; p += 4) {
+      const alpha = packed.data[p + 3],
+        brightest = Math.max(packed.data[p], packed.data[p + 1], packed.data[p + 2]),
+        darkest = Math.min(packed.data[p], packed.data[p + 1], packed.data[p + 2])
+      if (alpha <= 32 && brightest > 190 && brightest - darkest > 130) {
+        packedFringePixelsRemoved++
+        packed.data[p] = 0
+        packed.data[p + 1] = 0
+        packed.data[p + 2] = 0
+        packed.data[p + 3] = 0
+      }
+    }
     composites.push({
-      input: await cell
-        .resize(size - inset * 2, size - inset * 2)
+      input: await sharp(packed.data, {
+        raw: {
+          width: packed.info.width,
+          height: packed.info.height,
+          channels: 4,
+        },
+      })
         .png()
         .toBuffer(),
       left: col * size + inset,
@@ -78,6 +115,8 @@ for (const [name, columns, rows, size, inset] of [
       columns,
       rows,
       inset,
+      fringePixelsRemoved,
+      packedFringePixelsRemoved,
     }),
   )
 }

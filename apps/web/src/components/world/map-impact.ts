@@ -1,17 +1,7 @@
 import type { WorldSectorView } from '@/world/types'
 
-type ImpactSite = { x: number; y: number; index: 0 | 1 | 2; size: number }
-
-// Presentation placements are fixed, never selected from the currently revealed cells.
-const sites: Readonly<Record<string, ImpactSite>> = {
-  'atlas:45:9': { x: 9.5, y: 6.5, index: 0, size: 3 },
-  'atlas:65:21': { x: 2.5, y: 2.5, index: 1, size: 3 },
-  'void:starfall-basin:16:10': { x: 6.5, y: 4.5, index: 2, size: 3 },
-  'uncharted-pale': { x: 3.5, y: 3.5, index: 2, size: 3 },
-}
-
-export function impactSite(sector: WorldSectorView): ImpactSite | undefined {
-  const site = sites[sector.id]
+export function impactSite(sector: WorldSectorView): WorldSectorView['impactSite'] {
+  const site = sector.impactSite
   if (!site || sector.townId || (!sector.charted && !sector.warpedTheme)) return
   const left = site.x - site.size / 2,
     top = site.y - site.size / 2,

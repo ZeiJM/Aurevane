@@ -63,5 +63,5 @@ it('returns a server-resolved row-major location label with exact privileged coo
     error: null,
   })
   const player = await createServerMasterPlayersService().read('owner', 'target')
-  expect(player.world?.locationLabel).toBe('Sector34 · X:6 · Y:4')
+  expect(player.world?.locationLabel).toBe('Sector 34 · X:6 · Y:4')
 })

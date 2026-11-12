@@ -203,7 +203,7 @@ window.fetch = async (input, options) => {
         world: {
           version: body.expectedVersion + 1,
           position: { sectorId: map === 'mainland' ? 'atlas:62:28' : 'void:ivory-veil:1:1', x, y },
-          locationLabel: `Sector${sectorNumber} · X:${x} · Y:${y}`,
+          locationLabel: `Sector ${sectorNumber} · X:${x} · Y:${y}`,
         },
       }
       return Response.json({ player })
