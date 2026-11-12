@@ -403,7 +403,13 @@ try {
         await expect(reader.getByRole('status')).toContainText('Player teleported')
         const teleport = await page.evaluate(() => window.__operationsRequests.at(-1).body)
         assert.equal(teleport.operation, 'teleport')
-        assert.deepEqual(teleport.destination, { map: 'currentVoid', sectorNumber: 34, x: 6, y: 4 })
+        assert.deepEqual(teleport.destination, {
+          map: 'currentVoid',
+          sectorNumber: 34,
+          x: 6,
+          y: 4,
+          geometryVersion: '2026-11-12-v2',
+        })
         assert.equal(teleport.reason, 'Reviewed location repair')
         assert.equal(teleport.confirmed, true)
         await expect(reader.getByText('Sector 34 · X:6 · Y:4', { exact: true })).toBeVisible()

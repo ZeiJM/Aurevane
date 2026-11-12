@@ -30,6 +30,10 @@ on:
         description: 'Verify the production migration plan without applying it'
         type: boolean
         default: false
+      production_world_map_apply:
+        description: 'Apply the single reviewed World map geometry migration to production'
+        type: boolean
+        default: false
       expected_candidate:
         description: 'Exact candidate commit SHA for the migration plan or apply'
         type: string
@@ -39,12 +43,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: living-atlas-browser-${{ github.ref }}-${{ inputs.staging_dry_run || inputs.staging_apply || inputs.production_dry_run || false }}
-  cancel-in-progress: ${{ !inputs.staging_dry_run && !inputs.staging_apply && !inputs.production_dry_run }}
+  group: living-atlas-browser-${{ github.ref }}-${{ inputs.staging_dry_run || inputs.staging_apply || inputs.production_dry_run || inputs.production_world_map_apply || false }}
+  cancel-in-progress: ${{ !inputs.staging_dry_run && !inputs.staging_apply && !inputs.production_dry_run && !inputs.production_world_map_apply }}
 
 jobs:
   verify:
-    if: ${{ !inputs.staging_dry_run && !inputs.staging_apply && !inputs.production_dry_run }}
+    if: ${{ !inputs.staging_dry_run && !inputs.staging_apply && !inputs.production_dry_run && !inputs.production_world_map_apply }}
     runs-on: ubuntu-latest
     # The authenticated Atlas suite covers many full-route journeys; the previous
     # 20-minute cap cancelled an otherwise progressing run at scenario 39.
@@ -250,7 +254,7 @@ jobs:
 
   staging-migration-plan:
     if: >-
-      ${{ github.event_name == 'workflow_dispatch' && !inputs.production_dry_run &&
+      ${{ github.event_name == 'workflow_dispatch' && !inputs.production_dry_run && !inputs.production_world_map_apply &&
         (inputs.staging_dry_run || inputs.staging_apply) &&
         github.repository == 'ZeiJM/Aurevane' &&
         github.ref == 'refs/heads/agent/unified-release-candidate-20261107' }}
@@ -417,7 +421,7 @@ jobs:
 
   production-migration-plan:
     if: >-
-      ${{ github.event_name == 'workflow_dispatch' && inputs.production_dry_run &&
+      ${{ github.event_name == 'workflow_dispatch' && inputs.production_dry_run && !inputs.production_world_map_apply &&
         !inputs.staging_dry_run && !inputs.staging_apply &&
         github.repository == 'ZeiJM/Aurevane' &&
         github.ref == 'refs/heads/agent/unified-release-candidate-20261107' }}
@@ -443,3 +447,29 @@ jobs:
         run: |
           git rev-parse HEAD 'HEAD^{tree}'
           python3 .github/scripts/plan-aurevane-production-migrations.py "$RUNNER_TEMP/aurevane-production-cli/node_modules/.bin/supabase"
+
+  production-world-map-geometry:
+    if: >-
+      ${{ github.event_name == 'workflow_dispatch' && inputs.production_world_map_apply &&
+        !inputs.staging_dry_run && !inputs.staging_apply && !inputs.production_dry_run &&
+        github.repository == 'ZeiJM/Aurevane' && github.ref == 'refs/heads/main' }}
+    environment: Production
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Verify the requested production commit
+        env:
+          EXPECTED_CANDIDATE: ${{ inputs.expected_candidate }}
+        run: test -n "$EXPECTED_CANDIDATE" && test "$GITHUB_SHA" = "$EXPECTED_CANDIDATE"
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install pinned migration CLI
+        run: npm install --prefix "$RUNNER_TEMP/aurevane-world-map-cli" --no-save supabase@2.114.0
+      - name: Verify ledger, dry-run, apply and postflight one geometry migration
+        env:
+          AUREVANE_PRODUCTION_DB_URL: ${{ secrets.AUREVANE_PRODUCTION_DB_URL }}
+        run: python3 .github/scripts/apply-aurevane-world-map-geometry.py "$RUNNER_TEMP/aurevane-world-map-cli/node_modules/.bin/supabase"

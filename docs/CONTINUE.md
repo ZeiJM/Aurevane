@@ -31,6 +31,12 @@ Read this first; open detailed sources only for the task being worked on. This i
 - The ground correction was formatted without changing its behavior. The complete local `pnpm check` passed on the formatted tree: format, lint, typecheck, 17,629 Vitest tests across seven packages, seven Node tests and the production build. The saturated Uncharted case and all 52 World service tests passed; adjacent World/continent/renderer focused suites passed 275/275.
 - Next action: push the formatted source as the new exact PR head, verify remote SHA/tree, then use only that head's CI and native Atlas screenshots/timings for release decisions. Earlier PR runs are superseded. Production remains on the PR1038 release; no corrective migration or deployment has occurred.
 
+## Exact-head release gate — November 12, 18:30 Trinidad
+
+- Source `59e334f` passed local complete quality and main CI, representative buildcraft, the security/battle/discipline/wayfarer database checks, attribute allocation and combat/mobile regressions. The authenticated Atlas story step passed; the Atlas map/multiplayer step was still running at this checkpoint.
+- Browser smoke found the remaining obsolete teleport request shape: the v2 destination now includes `geometryVersion`. The assertion is corrected. A guarded production migration job is added to the existing dispatch workflow, pinned to main, an exact SHA, the 258-entry production ledger, the reviewed single SQL file, a CLI dry run and a v1 preservation postflight. It has not been invoked. The prior Atlas run is superseded by the next pushed candidate.
+- Next: push this small correction/release tooling, verify exact remote tree, run all new-head CI and inspect actual desktop/phone screenshots and performance. No production migration or deployment yet.
+
 ## Preserve the requested result
 
 Retain the receipt/ground-loading fix; remove rock shadows/floating art; measure map performance; provide organic rivers/lakes/sea/lava with depth/weather motion, authoritative town-water walking and shallow footsteps, eight distinct towns/Crown walls/moat, coherent relief, grand remote ruins/bridges/towns, larger-than-town waterfall valley/open colosseum, occasional large HQ ocean discoveries, crisp globe and real private64×48 Uncharted supercontinents. Verify artwork at actual gameplay zoom.
