@@ -216,10 +216,23 @@ export function registerWorldLandscapeCases(helpers: Helpers) {
         offset = (pixelY * raster.width + pixelX) * raster.channels
       return [...data.subarray(offset, offset + 3)] as number[]
     })
-    // The approved broad relief overlays this fixed corner with approximately
-    // rgba(30,43,38,52/255). Compositing the original [119,131,109] palette
-    // produces [101,113,95]; retain the original seam and colour tolerances.
-    const expectedColour = [101, 113, 95]
+    // Independent material reference: the equal mean of #557748, #384e48,
+    // #a5b1b5 and #ab956e. The approved coherent relief may darken it toward
+    // [30,43,38] by at most112/255, or lighten toward [251,244,210] by66/255.
+    // This replaces the old fixed-strength plate golden, not native acceptance.
+    const materialMean = [119.25, 130.75, 108.75]
+    const shadow = [30, 43, 38],
+      light = [251, 244, 210]
+    const colourBounds = materialMean.map((value, channel) => ({
+      minimum: Math.floor(value * (1 - 112 / 255) + (shadow[channel]! * 112) / 255) - 5,
+      maximum: Math.ceil(value * (1 - 66 / 255) + (light[channel]! * 66) / 255) + 5,
+    }))
+    expect(
+      [40, 75, 87].some(
+        (channel, index) =>
+          channel < colourBounds[index]!.minimum || channel > colourBounds[index]!.maximum,
+      ),
+    ).toBe(true)
     writeFileSync(
       info.outputPath('world-art-review.json'),
       JSON.stringify(
@@ -227,7 +240,10 @@ export function registerWorldLandscapeCases(helpers: Helpers) {
           scope: 'four-biome fallback palette with static relief',
           projection,
           colours,
-          expectedColour,
+          materialMean,
+          colourBounds,
+          nativeReview:
+            'New coherent-relief pixels must be inspected in this exact-source CI artifact; bounds are analytical, not a captured golden.',
         },
         null,
         2,
@@ -238,8 +254,10 @@ export function registerWorldLandscapeCases(helpers: Helpers) {
     for (let channel = 0; channel < 3; channel++) {
       const samples = colours.map((colour) => colour[channel]!)
       expect(Math.max(...samples) - Math.min(...samples)).toBeLessThanOrEqual(7)
-      for (const sample of samples)
-        expect(Math.abs(sample - expectedColour[channel]!)).toBeLessThanOrEqual(5)
+      for (const sample of samples) {
+        expect(sample).toBeGreaterThanOrEqual(colourBounds[channel]!.minimum)
+        expect(sample).toBeLessThanOrEqual(colourBounds[channel]!.maximum)
+      }
     }
     expect((await world(page)).position).toEqual({ sectorId: 'atlas:58:28', x: 11, y: 7 })
   })

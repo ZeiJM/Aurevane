@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
-import baseline from '../../../../docs/verification/unified-upgrade/map-baseline.json'
+import historical from '../../../../docs/verification/unified-upgrade/map-baseline.json'
+import baseline from '../../../../docs/verification/2026-11-12-map-correction-baseline.json'
 import { expect, it, vi } from 'vitest'
 import { isKnownCell, visibleSectors, WORLD_SECTORS } from '@/server/world/world-content'
 import { isWarpedContinentSector } from '@/server/world/warped-continent'
@@ -10,7 +11,17 @@ import { findWorldRoute, isSafe, isWalkable, newWorldState } from './travel'
 
 vi.mock('server-only', () => ({}))
 
-it('preserves the unified upgrade baseline for world coordinates, crossings, landmarks and travel', () => {
+it('preserves world addresses and historic routes through the authorized map geometry successor', () => {
+  // Keep the historical record immutable. Only authorized terrain/prop geometry changes.
+  for (const key of [
+    'atlas',
+    'addressSpaceTiles',
+    'atlasSectors',
+    'resolvedServerSectors',
+    'regions',
+    'routes',
+  ] as const)
+    expect(baseline[key], key).toEqual(historical[key])
   const sectors = atlasSectors()
   const originalSectors = WORLD_SECTORS.filter(({ id }) => !isWarpedContinentSector(id))
   const landmarkRows = originalSectors.flatMap((sector) =>

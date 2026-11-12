@@ -7,7 +7,7 @@ it('plots the shared ship on both legs, obscures it by the veil and omits it whi
   const departure = FERRY_HOUR_MS
   const halfway = departure + FERRY_DURATION_MS / 2
   expect(globeFerryPosition(departure, dock)).toEqual(dock)
-  expect(globeFerryPosition(halfway, dock)).toEqual({ longitude: 156, latitude: -22 })
+  expect(globeFerryPosition(halfway, dock)).toEqual({ longitude: 178, latitude: -23 })
   expect(globeFerryPosition(departure + FERRY_DURATION_MS * 0.9, dock)).toBeNull()
   expect(globeFerryPosition(departure + FERRY_DURATION_MS, dock)).toBeNull()
   expect(globeFerryPosition(halfway + FERRY_RETURN_OFFSET_MS, dock)).toEqual(

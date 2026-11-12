@@ -312,6 +312,7 @@ export class WorldController {
         ...this.view,
         sectors: incoming.sectors,
         scenery: incoming.scenery,
+        publicGrandDiscoveries: incoming.publicGrandDiscoveries,
         atlas: incoming.atlas,
         atlasToken: incoming.atlasToken,
         players,

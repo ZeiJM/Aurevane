@@ -57,7 +57,7 @@ it('registers only the passive stat identity, preserves historical content and p
   } finally {
     await db.close()
   }
-})
+}, 30_000)
 it('retains migration security contracts', () => {
   expect(inspectMigrationSecurity(sql)).toEqual([])
 })

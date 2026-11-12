@@ -1,6 +1,22 @@
 import { hashString } from '@/world/terrain-gen'
 import type { WorldBuilding, WorldSectorView } from '@/world/types'
 
+// Measured opaque floor contacts in the original runtime sheets. Cells whose
+// artwork reaches the crop edge keep their existing pivot; empty padding in the
+// remaining cells must not lift the object above its authored ground point.
+const legacyContacts: Record<string, Partial<Record<number, readonly [number, number]>>> = {
+  buildings: { 1: [0.508, 0.935], 6: [0.541, 0.907], 7: [0.593, 0.9], 8: [0.625, 0.895] },
+  props: {
+    1: [0.597, 0.899],
+    4: [0.56, 0.898],
+    5: [0.556, 0.837],
+    6: [0.667, 0.894],
+    7: [0.632, 0.912],
+  },
+}
+export const legacyStructureContact = (sheet: 'buildings' | 'props', index: number) =>
+  legacyContacts[sheet]![index]
+
 const settlementArt: Readonly<Record<string, number>> = {
   'aureth-crown': 0,
   'verdant-expanse': 1,

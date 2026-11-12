@@ -1,7 +1,15 @@
 import { describe, expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
-import { advanceWorldRoute, isCurrentWorldRoute, newWorldState, revealNearby } from '@/world/travel'
-import { isKnownCell, visibleSectors } from './world-content'
+import {
+  advanceWorldRoute,
+  isCurrentWorldRoute,
+  isWalkable,
+  newWorldState,
+  revealNearby,
+} from '@/world/travel'
+import { isKnownCell, resolveSector, visibleSectors } from './world-content'
+import { resolveWarpedContinentSector } from './warped-continent'
+import { GRAND_DISCOVERY_SITES } from '@/world/discovery-sites'
 import { FRONTIER_APPROACH, STEP_MS } from '@/world/catalog'
 import { wrapAtlasColumn } from '@/world/topology'
 import {
@@ -21,6 +29,41 @@ import {
 } from './world-objectives'
 
 describe('world authority and spoiler projection', () => {
+  it('supplies cached full public discovery footprint proof without adding private geography', () => {
+    const first = projectWorld(newWorldState(), [], 1000)
+    expect(first.publicGrandDiscoveries).toEqual(GRAND_DISCOVERY_SITES.map((site) => site.id))
+    const next = projectWorld(
+      { ...newWorldState(), position: { sectorId: 'frostmere', x: 6, y: 4 } },
+      [],
+      1000,
+    )
+    expect(next.publicGrandDiscoveries).toBe(first.publicGrandDiscoveries)
+    const privateView = projectWorld(
+      { ...newWorldState(), position: { sectorId: 'survey-01', x: 6, y: 8 } },
+      [],
+      1000,
+    )
+    expect(privateView.publicGrandDiscoveries).toBeUndefined()
+    expect(JSON.stringify(privateView)).not.toContain('publicGrandDiscoveries')
+  })
+  it('resolves only discovered Uncharted extension ground while the character is there', () => {
+    const interior = resolveWarpedContinentSector('uncharted-expanse:32:24')!
+    expect(resolveSector(interior.id)).toBe(interior)
+    const state = {
+      ...newWorldState(),
+      position: { sectorId: interior.id, x: 6, y: 4 },
+      discoveries: { [interior.id]: [58] },
+    }
+    expect(
+      visibleSectors(state, { sceneOnly: true }).some((sector) => sector.id === interior.id),
+    ).toBe(true)
+    const view = projectWorld(state, [], 1000)
+    expect(view.sectors.find((sector) => sector.id === interior.id)?.cells).toHaveLength(1)
+    expect(view.scenery).toEqual([])
+    const mainland = { ...state, position: newWorldState().position }
+    expect(visibleSectors(mainland).some((sector) => sector.id === interior.id)).toBe(false)
+    expect(JSON.stringify(projectWorld(mainland, [], 1000))).not.toContain(interior.id)
+  })
   it('retains authored deadlines and private approved peer routes when held replacements arrive late', () => {
     const walk = (state: ReturnType<typeof newWorldState>, x: number, now: number) =>
       resolveWorldIntent(
@@ -171,16 +214,36 @@ describe('world authority and spoiler projection', () => {
     },
   )
   it('projects actual public water and town footprints without exposing private terrain', () => {
-    const view = projectWorld(newWorldState(), [], 1000),
-      local = view.sectors.find((sector) => sector.id === view.position.sectorId)!,
+    const waterDistrict = visibleSectors(newWorldState()).find(
+      (sector) => sector.townId && sector.rows.some((row) => /[~lw]/.test(row)),
+    )!
+    expect(waterDistrict).toBeDefined()
+    const view = projectWorld(
+        {
+          ...newWorldState(),
+          position: { sectorId: waterDistrict.id, x: 6, y: 4 },
+        },
+        [],
+        1000,
+      ),
+      local = view.sectors.find(
+        (sector) =>
+          sector.townId &&
+          sector.cells.some(
+            (cell) => cell.terrain === '~' || cell.terrain === 'l' || cell.terrain === 'w',
+          ),
+      )!,
       overview = view.atlas!.find((cell) => cell.id === local.id)!
     expect(overview.townId).toBe(local.townId)
     expect(overview.waterTiles).toHaveLength(117)
     for (const cell of local.cells)
       expect(overview.waterTiles![cell.y * 13 + cell.x]).toBe(
-        cell.terrain === '~' || cell.terrain === 'l' ? cell.terrain : '.',
+        cell.terrain === '~' || cell.terrain === 'l' || cell.terrain === 'w' ? cell.terrain : '.',
       )
-    const dry = view.atlas!.find((cell) => cell.id === 'atlas:58:28')!
+    const drySector = visibleSectors(newWorldState()).find(
+      (sector) => !sector.rows.some((row) => /[~lw]/.test(row)),
+    )!
+    const dry = view.atlas!.find((cell) => cell.id === drySector.id)!
     expect(dry.waterTiles).toBeUndefined()
     const privateView = projectWorld(
       revealNearby({ ...newWorldState(), position: { sectorId: 'survey-01', x: 6, y: 8 } }),
@@ -800,19 +863,41 @@ describe('review regressions for authoritative walking', () => {
     expect(resolveWorldIntent(state, { kind: 'tick' }, 1200).position.x).toBe(6)
   })
   it('cancels an obsolete saved route before a walk can advance into a new building', () => {
+    const sector = resolveSector('verdant-expanse')!
+    const blocked = sector
+      .buildings!.flatMap((building) =>
+        Array.from({ length: building.width * building.height }, (_, index) => ({
+          x: building.x + (index % building.width),
+          y: building.y + Math.floor(index / building.width),
+        })),
+      )
+      .map((target) => ({
+        target,
+        origin: [
+          { x: target.x - 1, y: target.y },
+          { x: target.x + 1, y: target.y },
+          { x: target.x, y: target.y - 1 },
+          { x: target.x, y: target.y + 1 },
+        ].find(
+          (point) =>
+            point.x >= 0 &&
+            point.x < 13 &&
+            point.y >= 0 &&
+            point.y < 9 &&
+            isWalkable(sector, point),
+        ),
+      }))
+      .find(({ origin, target }) => origin && !isWalkable(sector, target))!
+    expect(blocked).toBeDefined()
     const state = {
       ...newWorldState(),
-      position: { sectorId: 'verdant-expanse', x: 12, y: 3 },
-      route: [{ position: { sectorId: 'verdant-expanse', x: 12, y: 2 }, durationMs: 200 }],
+      position: { sectorId: sector.id, ...blocked.origin! },
+      route: [{ position: { sectorId: sector.id, ...blocked.target }, durationMs: 200 }],
       nextStepAt: 1000,
     }
-    const replanned = resolveWorldIntent(
-      state,
-      { kind: 'walk', destination: { sectorId: 'verdant-expanse', x: 12, y: 4 } },
-      1100,
-    )
+    const replanned = resolveWorldIntent(state, { kind: 'walk', destination: state.position }, 1100)
     expect(replanned.position).toEqual(state.position)
-    expect(replanned.route.every((s) => !(s.position.x === 12 && s.position.y === 2))).toBe(true)
+    expect(replanned.route).toEqual([])
   })
 })
 

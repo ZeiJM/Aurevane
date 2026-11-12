@@ -7,6 +7,11 @@ import {
   WORLD_REGIONS,
 } from './catalog'
 import { generateSectorTerrain, seeded } from './terrain-gen'
+import {
+  GRAND_DISCOVERY_SITES,
+  REMOTE_GRAND_CROSSING,
+  remoteCrossingWaterAt,
+} from './discovery-sites'
 import { terrainWalkable } from './terrain'
 import { trimRoadShorelines } from './road-shorelines'
 import type { WorldBuilding, WorldLandmark, WorldRoad, WorldSector } from './types'
@@ -31,6 +36,15 @@ const originalAddress = (coordinate: string) => {
 }
 const roots = WORLD_REGIONS.map((region) => ({ ...region, ...originalAddress(region.sector)! }))
 const addressKey = (column: number, row: number) => `${column}:${row}`
+const inDiscoveryGrounds = (x: number, y: number) =>
+  GRAND_DISCOVERY_SITES.some(
+    (site) =>
+      x >= site.left &&
+      x < site.left + site.width &&
+      y >= site.top &&
+      y < site.top + site.height + 2,
+  )
+
 // Public countryside destinations span several sectors, with quiet open ground
 // between them. They decorate the existing atlas without moving saved positions.
 const scenicZones = [
@@ -98,40 +112,132 @@ const buildingArt: Record<string, number> = {
   'starfall-highlands': 6,
   'umbral-march': 7,
 }
-const districtBlocks: readonly (readonly [number, number, number, number])[][] = [
+// Each entry is one authored district block in west-to-east, north-to-south order.
+// Long facades stay two cells deep: an old saved position always has a nearby exit.
+const townDistricts: readonly (readonly [number, number, number, number])[][] = [
   [
-    [0, 0, 3, 2],
-    [9, 6, 3, 2],
-  ],
-  [
-    [0, 0, 3, 3],
-    [9, 0, 3, 3],
-  ],
-  [
-    [1, 0, 3, 2],
+    [1, 1, 4, 2],
+    [8, 0, 4, 2],
+    [2, 6, 3, 2],
+    [0, 6, 5, 2],
+    [7, 1, 5, 2],
     [8, 6, 4, 2],
+    [1, 0, 3, 2],
+    [7, 6, 5, 2],
+    [1, 6, 4, 2],
   ],
   [
-    [0, 0, 3, 2],
-    [0, 6, 3, 2],
+    [1, 6, 4, 2],
+    [8, 1, 4, 2],
+    [1, 1, 4, 2],
+    [1, 0, 3, 2],
+    [7, 0, 5, 2],
+    [8, 6, 3, 2],
+    [2, 6, 3, 2],
+    [0, 6, 5, 2],
+    [8, 1, 3, 2],
   ],
   [
     [1, 0, 3, 2],
+    [8, 6, 3, 2],
+    [0, 6, 4, 2],
+    [8, 0, 4, 2],
+    [1, 1, 5, 2],
+    [7, 6, 5, 2],
+    [1, 6, 2, 3],
+    [8, 1, 2, 3],
+    [1, 0, 4, 2],
+  ],
+  [
+    [1, 1, 2, 3],
+    [8, 0, 4, 2],
+    [1, 6, 5, 2],
+    [7, 6, 4, 2],
+    [0, 0, 5, 2],
+    [1, 0, 3, 2],
+    [8, 1, 3, 2],
+    [0, 6, 4, 2],
+    [7, 0, 5, 2],
+  ],
+  [
+    [0, 6, 4, 2],
+    [1, 0, 3, 2],
+    [8, 1, 2, 3],
+    [7, 6, 5, 2],
+    [8, 0, 4, 2],
+    [1, 6, 2, 3],
+    [8, 6, 3, 2],
+    [0, 0, 5, 2],
+    [2, 1, 3, 2],
+  ],
+  [
     [8, 0, 3, 2],
+    [0, 6, 5, 2],
+    [1, 1, 2, 3],
+    [8, 6, 4, 2],
+    [1, 0, 4, 2],
+    [7, 0, 5, 2],
+    [1, 6, 4, 2],
+    [7, 1, 2, 3],
+    [0, 1, 5, 2],
   ],
   [
+    [7, 6, 5, 2],
+    [1, 1, 3, 2],
+    [8, 0, 4, 2],
     [0, 0, 4, 2],
-    [9, 6, 3, 3],
+    [8, 6, 4, 2],
+    [1, 6, 5, 2],
+    [8, 1, 2, 3],
+    [1, 0, 5, 2],
+    [7, 0, 3, 2],
   ],
   [
-    [0, 6, 3, 2],
-    [9, 0, 3, 3],
-  ],
-  [
+    [8, 1, 3, 2],
+    [1, 6, 5, 2],
     [0, 0, 3, 2],
-    [9, 7, 3, 2],
+    [8, 6, 2, 3],
+    [7, 1, 4, 2],
+    [1, 0, 5, 2],
+    [0, 6, 4, 2],
+    [8, 0, 3, 2],
+    [1, 1, 4, 2],
   ],
 ]
+const townGrandBuildings: readonly (readonly [number, number, number, number])[] = [
+  [7, 1, 5, 2],
+  [7, 6, 5, 2],
+  [8, 1, 2, 3],
+  [7, 1, 4, 2],
+  [7, 6, 4, 2],
+  [1, 6, 4, 2],
+  [8, 1, 3, 2],
+  [8, 6, 3, 2],
+]
+function townWater(index: number, x: number, y: number) {
+  const ellipse = (cx: number, cy: number, rx: number, ry: number) =>
+    ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2
+  switch (index) {
+    case 0:
+      return Math.abs(x - (28 + 2.6 * Math.sin(y / 4) + Math.sin(y / 2))) < 1.7
+    case 1:
+      return ellipse(29, 7, 4.4, 2.5) < 1 + Math.sin(y * 1.4) * 0.12
+    case 2:
+      return ellipse(8, 18, 6.4, 5.2) < 1 + Math.sin(x * 0.8 + y) * 0.14
+    case 3:
+      return x > 32 + 2.2 * Math.sin(y / 4) && y > 2
+    case 4:
+      return ellipse(25, 7, 5.3, 3.6) < 1 + Math.sin(x + y) * 0.12
+    case 5:
+      return ellipse(30, 19, 5.5, 4) < 1 + Math.sin(x * 0.7 + y) * 0.16
+    case 6:
+      return ellipse(8, 7, 4.5, 3) < 1 || ellipse(29, 20, 5.2, 3.3) < 1
+    default: {
+      const radius = ellipse(19, 13, 16.5, 10.8)
+      return radius > 0.67 && radius < 1.05 + Math.sin(x * 0.8 + y * 0.6) * 0.035
+    }
+  }
+}
 function townStreet(index: number, x: number, y: number) {
   const dx = x - 19,
     dy = y - 13
@@ -213,19 +319,19 @@ export function atlasSectors(): readonly WorldSector[] {
       const isRoot = town?.id === id
       const grid = Array.from({ length: GRID_HEIGHT }, (_, y) =>
         Array.from({ length: GRID_WIDTH }, (_, x) => {
-          if ((authored && !town) || isRoot) {
-            const value = authored!.rows[y]![x]!
-            return value === '#'
-              ? town
-                ? random() < 0.08
-                  ? 't'
-                  : '.'
-                : random() < 0.3
-                  ? 't'
-                  : '.'
-              : value
+          if (authored && !town) {
+            const value = authored.rows[y]![x]!
+            return value === '#' ? (random() < 0.3 ? 't' : '.') : value
           }
-          if (town) return random() < 0.06 ? 't' : '.'
+          if (town) {
+            const tx = (column - town.column + 1) * GRID_WIDTH + x,
+              ty = (row - town.row + 1) * GRID_HEIGHT + y
+            return townWater(buildingArt[regionId] ?? 0, tx, ty)
+              ? 'w'
+              : random() < 0.025
+                ? 't'
+                : '.'
+          }
           const roll = random()
           if (['emberreach', 'starfall-highlands', 'frostmere'].includes(regionId) && roll < 0.04)
             return '#'
@@ -252,20 +358,20 @@ export function atlasSectors(): readonly WorldSector[] {
                 )
               : y === 4 || (column % 4 === 0 && x === 6)) &&
             grid[y]![x] !== '~' &&
-            grid[y]![x] !== 'l'
+            grid[y]![x] !== 'l' &&
+            grid[y]![x] !== 'w'
           )
             grid[y]![x] = town && (!isRoot || x < 10) ? 's' : '='
       // A continuous river along the forest/coastal meridian; bridges follow the avenues.
       const forest = roots.find((root) => root.id === 'verdant-expanse')!
       if (
+        !town &&
         authored?.id !== 'coastal-road' &&
         column === forest.column &&
         row >= forest.row - 3 &&
         row <= forest.row + 8
       )
         for (let y = 0; y < GRID_HEIGHT; y++) grid[y]![10] = y >= 3 && y <= 5 ? '=' : '~'
-      if (isRoot && regionId === 'emberreach')
-        for (let y = 0; y < GRID_HEIGHT; y++) if (grid[y]![10] === '~') grid[y]![10] = 'l'
       const scenicCenter = scenic?.column === column && scenic.row === row
       if (scenicCenter && scenic.landscape === 'willow') grid[2]![9] = '~'
       if (!existingLand) {
@@ -287,6 +393,41 @@ export function atlasSectors(): readonly WorldSector[] {
             }
         }
       }
+      if (!town)
+        for (let y = 0; y < GRID_HEIGHT; y++)
+          for (let x = 0; x < GRID_WIDTH; x++) {
+            if (
+              grid[y]![x] === 't' &&
+              inDiscoveryGrounds(column * GRID_WIDTH + x, row * GRID_HEIGHT + y)
+            )
+              grid[y]![x] = '.'
+          }
+      // Scenic cascade shallows share the public terrain authority. The existing
+      // avenue crosses between its pools; no saved dry position becomes blocked.
+      if (!town)
+        for (const site of GRAND_DISCOVERY_SITES) {
+          if (!('water' in site)) continue
+          for (const cell of site.water) {
+            const x = site.left + cell.x - column * GRID_WIDTH,
+              y = site.top + cell.y - row * GRID_HEIGHT
+            if (
+              x >= 0 &&
+              x < GRID_WIDTH &&
+              y >= 0 &&
+              y < GRID_HEIGHT &&
+              grid[y]![x] !== '=' &&
+              grid[y]![x] !== '~' &&
+              grid[y]![x] !== 'l'
+            )
+              grid[y]![x] = 'w'
+          }
+        }
+      // A real broad remote crossing preserves every historic avenue and walkable position.
+      if (!town && column === REMOTE_GRAND_CROSSING.column && row >= 31 && row <= 33)
+        for (let y = 0; y < GRID_HEIGHT; y++)
+          for (let x = 0; x < GRID_WIDTH; x++)
+            if (remoteCrossingWaterAt(column, row, x, y) && !['=', '~', 'l'].includes(grid[y]![x]!))
+              grid[y]![x] = 'w'
       const buildings: WorldBuilding[] = []
       const addBuilding = (x: number, y: number, width: number, height: number, index: number) => {
         if (
@@ -294,9 +435,44 @@ export function atlasSectors(): readonly WorldSector[] {
             Array.from({ length: width }, (_, dx) => grid[y + dy]?.[x + dx]),
           )
             .flat()
-            .some((t) => t === '~' || t === 'l')
+            .some((t) => t === '~' || t === 'l' || t === 'w')
         )
           return
+        const blocked = (cx: number, cy: number) =>
+          (cx >= x && cx < x + width && cy >= y && cy < y + height) ||
+          !terrainWalkable(grid[cy]?.[cx] ?? '#')
+        // Reject overlaps and facades without an exit instead of painting walkable
+        // holes beneath a supposedly solid building sprite.
+        if (index !== 9) {
+          if (
+            (authored?.landmarks ?? []).some(
+              (l) => l.x >= x && l.x < x + width && l.y >= y && l.y < y + height,
+            ) ||
+            (isRoot && x <= 2 && x + width > 2 && y <= 1 && y + height > 1)
+          )
+            return
+          if (
+            Array.from({ length: height }, (_, dy) =>
+              Array.from({ length: width }, (_, dx) => grid[y + dy]?.[x + dx]),
+            )
+              .flat()
+              .some((t) => t === 'b')
+          )
+            return
+          for (let cy = 0; cy < GRID_HEIGHT; cy++)
+            for (let cx = 0; cx < GRID_WIDTH; cx++) {
+              if (!blocked(cx, cy)) continue
+              if (
+                ![
+                  [1, 0],
+                  [-1, 0],
+                  [0, 1],
+                  [0, -1],
+                ].some(([dx, dy]) => !blocked(cx + dx!, cy + dy!))
+              )
+                return
+            }
+        }
         buildings.push({
           id: `${id}:building${buildings.length}`,
           x,
@@ -310,21 +486,82 @@ export function atlasSectors(): readonly WorldSector[] {
       }
       if (town) {
         const index = buildingArt[regionId] ?? 0
-        if (isRoot) {
-          addBuilding(4, 1, 2, 2, index)
-          addBuilding(8, 1, 2, 2, index)
-          addBuilding(11, 1, 2, 2, 8)
-          addBuilding(2, 3, 1, 1, -1)
-          buildings.at(-1)!.propIndex = 1
-          addBuilding(1, 0, 3, 1, -1)
-          buildings.at(-1)!.propIndex = 0
-        } else {
-          // Different block footprints and massing per district, with large clear intervals.
-          for (const [x, y, width, height] of districtBlocks[index] ?? districtBlocks[0]!)
-            addBuilding(x, y, width, height, index)
+        const dc = column - town.column + 1,
+          dr = row - town.row + 1
+        const district = dr * 3 + dc
+        const [x, y, width, height] = isRoot
+          ? townGrandBuildings[index]!
+          : townDistricts[index]![district]!
+        // The Crown's one-cell perimeter has broad four-cardinal gates.
+        if (index === 1) {
+          const wallAt = (cx: number, cy: number) => {
+            const tx = dc * GRID_WIDTH + cx,
+              ty = dr * GRID_HEIGHT + cy
+            return (
+              Math.abs(tx - 19) > 1 &&
+              Math.abs(ty - 13) > 1 &&
+              (((tx === 2 || tx === 36) && ty >= 2 && ty <= 24) ||
+                ((ty === 2 || ty === 24) && tx >= 2 && tx <= 36))
+            )
+          }
+          for (let cy = 0; cy < GRID_HEIGHT; cy++)
+            for (let cx = 0; cx < GRID_WIDTH; cx++) {
+              const ty = dr * GRID_HEIGHT + cy
+              if (!wallAt(cx, cy)) continue
+              const horizontal = ty === 2 || ty === 24
+              let length = 1
+              while (
+                horizontal
+                  ? cx + length < GRID_WIDTH && wallAt(cx + length, cy)
+                  : cy + length < GRID_HEIGHT && wallAt(cx, cy + length)
+              )
+                length++
+              if (!horizontal && cy > 0 && ty - 1 !== 2 && ty - 1 !== 24 && wallAt(cx, cy - 1))
+                continue
+              addBuilding(cx, cy, horizontal ? length : 1, horizontal ? 1 : length, 9)
+              buildings.at(-1)!.wallFacing = horizontal ? 'south' : 'east'
+              if (horizontal) cx += length - 1
+            }
         }
+        // A building is one coherent district footprint, not the repeated old root stamp.
+        const candidates = [
+          [Math.max(1, Math.min(x, 12 - width)), Math.max(1, y)],
+          [1, 6],
+          [7, 1],
+          [7, 6],
+          [1, 1],
+          [2, 6],
+          [8, 1],
+          [8, 6],
+          [2, 1],
+        ]
+        for (const [cx, cy] of candidates) {
+          if (cx! + width > 12 || cy! + height > 9) continue
+          const count = buildings.length
+          addBuilding(cx!, cy!, width, height, isRoot ? 10 + index : index)
+          if (buildings.length > count) break
+        }
+        // Clear shared cardinal avenues preserve historic coordinates and cross-town access.
+        for (let cy = 0; cy < GRID_HEIGHT; cy++)
+          for (let cx = 0; cx < GRID_WIDTH; cx++) {
+            const tx = dc * GRID_WIDTH + cx,
+              ty = dr * GRID_HEIGHT + cy
+            if (ty === 13 || tx === 19) grid[cy]![cx] = isRoot && cx >= 10 ? '=' : 's'
+          }
       }
+      // Retain the original blocked volcanic rift and its legal crossing. The
+      // new thermal shallows are a separate basin, not a replacement for lava.
+      if (isRoot && regionId === 'emberreach')
+        for (let y = 0; y < GRID_HEIGHT; y++) grid[y]![10] = y === 4 ? '=' : 'l'
       const landmarks: WorldLandmark[] = (authored?.landmarks ?? []).map((l) => ({ ...l }))
+      if (!town && column === REMOTE_GRAND_CROSSING.column && row >= 31 && row <= 33)
+        landmarks.push({
+          id: `${id}:${row === REMOTE_GRAND_CROSSING.row ? 'grand-crossing' : 'stream-crossing'}`,
+          name: row === REMOTE_GRAND_CROSSING.row ? 'Longwater Crossing' : 'River Crossing',
+          kind: 'bridge',
+          x: 6,
+          y: 4,
+        })
       if (scenicCenter) {
         landmarks.push({
           id: `${id}:scenic`,
@@ -348,8 +585,17 @@ export function atlasSectors(): readonly WorldSector[] {
           x: 2,
           y: 1,
         })
-        if (grid[4]![10] === '=')
-          landmarks.push({ id: `${id}:bridge`, name: 'Bridge', kind: 'bridge', x: 10, y: 4 })
+      }
+      if (isRoot && regionId === 'emberreach')
+        landmarks.push({ id: `${id}:bridge`, name: 'Bridge', kind: 'bridge', x: 10, y: 4 })
+      if (town?.id === 'umbral-march' && row === town.row && Math.abs(column - town.column) === 1) {
+        landmarks.push({
+          id: `${id}:moat-bridge`,
+          name: column < town.column ? 'West Moat Bridge' : 'East Moat Bridge',
+          kind: 'bridge',
+          x: column < town.column ? 3 : 9,
+          y: 4,
+        })
       } else if (!town && !scenicCenter && random() < 0.32) {
         // Reuse the existing wilderness content vocabulary; no rewards, NPCs or hidden lore.
         const candidates = generateSectorTerrain({
@@ -357,7 +603,11 @@ export function atlasSectors(): readonly WorldSector[] {
           arms: { w: 4, e: 4, n: true, s: true },
         }).landmarks
         for (const landmark of candidates.slice(0, 1))
-          if (terrainWalkable(grid[landmark.y]![landmark.x]!)) landmarks.push(landmark)
+          if (
+            terrainWalkable(grid[landmark.y]![landmark.x]!) &&
+            !inDiscoveryGrounds(column * GRID_WIDTH + landmark.x, row * GRID_HEIGHT + landmark.y)
+          )
+            landmarks.push(landmark)
       }
       // An authored interaction or POI is an approach tile, not a building footprint.
       for (const landmark of landmarks) {

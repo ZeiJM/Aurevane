@@ -80,9 +80,10 @@ it('retains scene hydration and peer clocks accepted during a pending compact co
     scenery: [],
     players: [],
   } as unknown as WorldView
-  const scene = {
+  let scene: WorldView = {
     ...initial,
     atlasToken: 'a'.repeat(64),
+    publicGrandDiscoveries: ['elemental-valley'] as const,
     scenery: [['new']] as unknown as WorldView['scenery'],
     players: [
       { characterId: 'peer', attackable: true, movement: { version: 4 } },
@@ -101,6 +102,7 @@ it('retains scene hydration and peer clocks accepted during a pending compact co
   await controller.hydrate()
   expect(controller.view.scenery).toBe(scene.scenery)
   expect(controller.view.atlasToken).toBe(scene.atlasToken)
+  expect(controller.view.publicGrandDiscoveries).toBe(scene.publicGrandDiscoveries)
   held.resolve({
     kind: 'movement',
     characterId: 'owner',
@@ -118,6 +120,10 @@ it('retains scene hydration and peer clocks accepted during a pending compact co
   expect(controller.view.atlasToken).toBe(scene.atlasToken)
   expect(controller.view.players[0]?.movement).toEqual({ version: 4 })
   expect(controller.view.players[0]?.attackable).toBe(false)
+  expect(controller.view.publicGrandDiscoveries).toBe(scene.publicGrandDiscoveries)
+  scene = { ...scene, version: 2, serverNow: 300, publicGrandDiscoveries: undefined }
+  await controller.hydrate()
+  expect(controller.view.publicGrandDiscoveries).toBeUndefined()
   controller.dispose()
 })
 it.each([

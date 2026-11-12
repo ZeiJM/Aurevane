@@ -89,19 +89,50 @@ export function SphericalView({
     const canvas = fallbackCanvas.current,
       ctx = canvas?.getContext('2d')
     if (!ctx || !detail || !canvas) return
-    const size = 420
-    canvas.width = size
-    canvas.height = size
-    ctx.putImageData(
-      new ImageData(
-        globeFallbackPixels(detail, camera, zoom, gridColumns, gridRows, size),
-        size,
-        size,
-      ),
-      0,
-      0,
-    )
-  }, [detail, camera, zoom, gridColumns, gridRows])
+    const render = (size: number) => {
+      canvas.width = size
+      canvas.height = size
+      ctx.putImageData(
+        new ImageData(
+          globeFallbackPixels(detail, camera, zoom, gridColumns, gridRows, size, grid),
+          size,
+          size,
+        ),
+        0,
+        0,
+      )
+    }
+    const resolution = () =>
+      Math.max(
+        420,
+        Math.min(
+          768,
+          Math.ceil((canvas.clientWidth || 420) * Math.min(window.devicePixelRatio || 1, 1.5)),
+        ),
+      )
+    let settled = resolution()
+    let refine: ReturnType<typeof setTimeout>
+    const draw = () => {
+      clearTimeout(refine)
+      // A cheap moving preview prevents a large software sphere from blocking
+      // every drag frame. Refine the final camera after input has settled.
+      render(320)
+      refine = setTimeout(() => render(settled), 120)
+    }
+    draw()
+    const observer = new ResizeObserver(() => {
+      const size = resolution()
+      if (size !== settled) {
+        settled = size
+        draw()
+      }
+    })
+    observer.observe(canvas)
+    return () => {
+      clearTimeout(refine)
+      observer.disconnect()
+    }
+  }, [detail, camera, zoom, gridColumns, gridRows, grid])
   useEffect(() => {
     if (!canvas.current) return
     renderer.current = createSphericalRenderer(canvas.current, src, () => setFailed(true), {

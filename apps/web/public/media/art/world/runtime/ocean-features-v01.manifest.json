@@ -1,0 +1,161 @@
+{
+  "requestId": "ART-WORLD-CORRECTION-20261112",
+  "promptSpec": "content/art-requests/ART-WORLD-CORRECTION-20261112.md",
+  "provider": "OpenAI image generation",
+  "selection": "Original generated sheet selected for runtime integration",
+  "name": "ocean-features",
+  "source": {
+    "path": "sources/ocean-features-v01.png",
+    "sha256": "d4026c3813c0b520eaaf290c5a729f7eb1f24a84c1b3ee6f1665a346fd3ad681",
+    "width": 1536,
+    "height": 1024
+  },
+  "runtime": {
+    "path": "runtime/ocean-features-v01.webp",
+    "sha256": "d0168da8e5f46eeec7460270583dc248dadc70c5660489f32e967ecfba3d4845",
+    "bytes": 293702,
+    "width": 1152,
+    "height": 768,
+    "columns": 3,
+    "rows": 2,
+    "cellWidth": 384,
+    "cellHeight": 384,
+    "encoding": "Sharp WebP quality88 alphaQuality100; alpha-tail normalization; visible-bounds crop; aspect-preserving fit; 24px floor inset"
+  },
+  "fringePixelsRemoved": 365490,
+  "packedFringePixelsRemoved": 496,
+  "sprites": [
+    {
+      "index": 0,
+      "sourceCell": {
+        "left": 0,
+        "top": 0,
+        "width": 512,
+        "height": 512
+      },
+      "crop": {
+        "left": 11,
+        "top": 43,
+        "width": 491,
+        "height": 425
+      },
+      "runtimeBounds": {
+        "left": 16,
+        "top": 55,
+        "width": 352,
+        "height": 305
+      },
+      "floorY": 0.9375
+    },
+    {
+      "index": 1,
+      "sourceCell": {
+        "left": 512,
+        "top": 0,
+        "width": 512,
+        "height": 512
+      },
+      "crop": {
+        "left": 7,
+        "top": 31,
+        "width": 498,
+        "height": 439
+      },
+      "runtimeBounds": {
+        "left": 16,
+        "top": 50,
+        "width": 352,
+        "height": 310
+      },
+      "floorY": 0.9375
+    },
+    {
+      "index": 2,
+      "sourceCell": {
+        "left": 1024,
+        "top": 0,
+        "width": 512,
+        "height": 512
+      },
+      "crop": {
+        "left": 12,
+        "top": 86,
+        "width": 488,
+        "height": 372
+      },
+      "runtimeBounds": {
+        "left": 16,
+        "top": 92,
+        "width": 352,
+        "height": 268
+      },
+      "floorY": 0.9375
+    },
+    {
+      "index": 3,
+      "sourceCell": {
+        "left": 0,
+        "top": 512,
+        "width": 512,
+        "height": 512
+      },
+      "crop": {
+        "left": 13,
+        "top": 92,
+        "width": 499,
+        "height": 363
+      },
+      "runtimeBounds": {
+        "left": 16,
+        "top": 104,
+        "width": 352,
+        "height": 256
+      },
+      "floorY": 0.9375
+    },
+    {
+      "index": 4,
+      "sourceCell": {
+        "left": 512,
+        "top": 512,
+        "width": 512,
+        "height": 512
+      },
+      "crop": {
+        "left": 0,
+        "top": 65,
+        "width": 506,
+        "height": 392
+      },
+      "runtimeBounds": {
+        "left": 16,
+        "top": 87,
+        "width": 352,
+        "height": 273
+      },
+      "floorY": 0.9375
+    },
+    {
+      "index": 5,
+      "sourceCell": {
+        "left": 1024,
+        "top": 512,
+        "width": 512,
+        "height": 512
+      },
+      "crop": {
+        "left": 11,
+        "top": 53,
+        "width": 490,
+        "height": 411
+      },
+      "runtimeBounds": {
+        "left": 16,
+        "top": 65,
+        "width": 352,
+        "height": 295
+      },
+      "floorY": 0.9375
+    }
+  ]
+}

@@ -3,7 +3,13 @@ vi.mock('server-only', () => ({}))
 import { projectWorld } from '@/server/world/world-service'
 import { newWorldState } from '@/world/travel'
 import type { WorldView } from '@/world/types'
-import { buildPublicCoasts, coastPoint, paintCoastLand, paintCoastSea } from './map-coast'
+import {
+  buildPublicCoasts,
+  coastPoint,
+  paintCoastLand,
+  paintCoastSea,
+  paintOpenSea,
+} from './map-coast'
 
 describe('public shoreline presentation', () => {
   const view = (): WorldView => projectWorld(newWorldState(), [], 1000)
@@ -399,4 +405,138 @@ it('rolls occasional shoreward breakers through gentle surf, stronger in storms 
   const start = sample(1000, 0)[0]!.points[7]![1]!
   const later = sample(1500, 0)[0]!.points[7]![1]!
   expect(later).toBeGreaterThan(start)
+})
+
+it('treats shallow water and explicit unknown cells as non-land at a public sea edge', () => {
+  const root = projectWorld(newWorldState(), [], 1000).sectors[0]!
+  for (const terrain of ['w', '?']) {
+    const wet = { ...root, cells: root.cells.map((c) => ({ ...c, terrain })) }
+    expect(buildPublicCoasts({ sectors: [wet], atlas: [] }).get(root.id)).toEqual([])
+  }
+})
+it('does not let a private neighbour change a public coastline', () => {
+  const root = projectWorld(newWorldState(), [], 1000).sectors[0]!,
+    publicLand = { ...root, cells: root.cells.map((c) => ({ ...c, terrain: '.' })) }
+  const foreign = {
+    ...publicLand,
+    id: 'private-overlap',
+    charted: false,
+    atlasColumn: root.atlasColumn! + 1,
+  }
+  expect(buildPublicCoasts({ sectors: [publicLand, foreign], atlas: [] }).get(root.id)).toEqual(
+    buildPublicCoasts({ sectors: [publicLand], atlas: [] }).get(root.id),
+  )
+})
+
+function oceanCanvas() {
+  return {
+    save: vi.fn(),
+    restore: vi.fn(),
+    fillRect: vi.fn(),
+    beginPath: vi.fn(),
+    moveTo: vi.fn(),
+    bezierCurveTo: vi.fn(),
+    ellipse: vi.fn(),
+    stroke: vi.fn(),
+    createLinearGradient: vi.fn(() => ({ addColorStop: vi.fn() })),
+  }
+}
+it('paints a bounded ocean field beyond coastal aprons without requiring any geography', () => {
+  const context = oceanCanvas()
+  const count = paintOpenSea(
+    context as unknown as CanvasRenderingContext2D,
+    900,
+    600,
+    48,
+    { x: 70, y: 30 },
+    1200,
+    true,
+    { rain: 0.8, windSpeed: 0.05 },
+    24,
+  )
+  expect(context.fillRect).toHaveBeenCalledWith(0, 0, 900, 600)
+  expect(context.createLinearGradient).toHaveBeenCalled()
+  expect(count).toBeGreaterThan(0)
+  expect(count).toBeLessThanOrEqual(24)
+  expect(context.stroke).toHaveBeenCalledTimes(count)
+  expect(context.bezierCurveTo).toHaveBeenCalledTimes(count)
+  expect(context.bezierCurveTo.mock.calls.flat().every(Number.isFinite)).toBe(true)
+})
+it('keeps ocean detail world anchored through camera translation and freezes ambient motion', () => {
+  const a = oceanCanvas(),
+    b = oceanCanvas(),
+    later = oceanCanvas()
+  paintOpenSea(
+    a as unknown as CanvasRenderingContext2D,
+    900,
+    600,
+    48,
+    { x: 70, y: 30 },
+    1000,
+    false,
+    { rain: 0, windSpeed: 0 },
+    24,
+  )
+  paintOpenSea(
+    b as unknown as CanvasRenderingContext2D,
+    900,
+    600,
+    48,
+    { x: 70.1, y: 30 },
+    1000,
+    false,
+    { rain: 0, windSpeed: 0 },
+    24,
+  )
+  paintOpenSea(
+    later as unknown as CanvasRenderingContext2D,
+    900,
+    600,
+    48,
+    { x: 70, y: 30 },
+    9000,
+    false,
+    { rain: 1, windSpeed: 0.06 },
+    24,
+  )
+  expect(a.moveTo.mock.calls.length).toBeGreaterThan(0)
+  expect(a.moveTo.mock.calls.length).toBe(b.moveTo.mock.calls.length)
+  for (let i = 0; i < a.moveTo.mock.calls.length; i++) {
+    expect(b.moveTo.mock.calls[i]![0] - a.moveTo.mock.calls[i]![0]).toBeCloseTo(-0.1 * 48 * 0.85, 9)
+    expect(b.moveTo.mock.calls[i]![1] - a.moveTo.mock.calls[i]![1]).toBeCloseTo(-0.1 * 48 * 0.44, 9)
+  }
+  expect(a.bezierCurveTo.mock.calls).toEqual(later.bezierCurveTo.mock.calls)
+  expect(a.ellipse.mock.calls).toEqual(later.ellipse.mock.calls)
+  expect(a.stroke.mock.calls.length).toBe(later.stroke.mock.calls.length)
+})
+it('keeps ocean work bounded at extreme zoom and never increases crest count with wind or rain', () => {
+  for (const tile of [2, 12, 128]) {
+    const calm = oceanCanvas(),
+      storm = oceanCanvas()
+    const a = paintOpenSea(
+      calm as unknown as CanvasRenderingContext2D,
+      1600,
+      1000,
+      tile,
+      { x: 70, y: 30 },
+      1000,
+      true,
+      { rain: 0, windSpeed: 0 },
+      16,
+    )
+    const b = paintOpenSea(
+      storm as unknown as CanvasRenderingContext2D,
+      1600,
+      1000,
+      tile,
+      { x: 70, y: 30 },
+      1000,
+      true,
+      { rain: 1, windSpeed: 0.06 },
+      16,
+    )
+    expect(a).toBeGreaterThan(0)
+    expect(a).toBeLessThanOrEqual(16)
+    expect(b).toBe(a)
+  }
 })

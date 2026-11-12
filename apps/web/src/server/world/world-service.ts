@@ -38,7 +38,9 @@ import {
 } from './world-content'
 import { worldArchiveEntries } from './world-archive'
 import { projectWorldFerry } from './world-ferry'
-import { atlasAddress } from '@/world/atlas'
+import { atlasAddress, atlasSectors } from '@/world/atlas'
+import { GRAND_DISCOVERY_SITES, type GrandDiscoveryId } from '@/world/discovery-sites'
+import { grandDiscoveryPlacements } from '@/components/world/map-grand-discoveries'
 import { wrappedColumnDistance, wrappedMapX } from '@/world/topology'
 import { parseVoidSectorId, isVoidRealmSectorId } from '@/world/void-realms'
 import { voidRealmScenery } from './void-realms'
@@ -69,14 +71,56 @@ const isKnown = isKnownCell
 // Public sector terrain is immutable. Avoid scanning every charted cell on each
 // 200ms walking confirmation just to build the small globe water overlay.
 const atlasSurfaceCache = new WeakMap<object, { townId?: string; waterTiles?: string }>()
+let provedPublicGrandDiscoveries: readonly GrandDiscoveryId[] | undefined
+function publicGrandDiscoveryProof(): readonly GrandDiscoveryId[] {
+  if (provedPublicGrandDiscoveries) return provedPublicGrandDiscoveries
+  // Immutable canonical public sites can exceed a loaded camera. Prove their
+  // whole ground/approach once; never substitute client or private geography.
+  const neighborhoods = atlasSectors()
+    .filter((sector) => {
+      const address = atlasAddress(sector)
+      return (
+        sector.charted &&
+        address &&
+        GRAND_DISCOVERY_SITES.some(
+          (site) =>
+            address.column * GRID_WIDTH < site.left + site.width &&
+            address.column * GRID_WIDTH + GRID_WIDTH > site.left &&
+            address.row * GRID_HEIGHT < site.top + site.height + 2 &&
+            address.row * GRID_HEIGHT + GRID_HEIGHT > site.top,
+        )
+      )
+    })
+    .map((sector): WorldSectorView => {
+      const { rows, roads: _roads, ...publicSector } = sector
+      void _roads
+      return {
+        ...publicSector,
+        cells: Array.from({ length: GRID_WIDTH * GRID_HEIGHT }, (_, index) => {
+          const position = { x: index % GRID_WIDTH, y: Math.floor(index / GRID_WIDTH) }
+          return {
+            ...position,
+            terrain: rows[position.y]![position.x]!,
+            walkable: isWalkable(sector, position),
+            safe: isSafe(sector, position),
+          }
+        }),
+        exits: [],
+      }
+    })
+  provedPublicGrandDiscoveries = Object.freeze(
+    grandDiscoveryPlacements(neighborhoods).map((site) => site.id),
+  )
+  return provedPublicGrandDiscoveries
+}
 function publicAtlasSurface(sector: ReturnType<typeof visibleSectors>[number]) {
   if (!sector.charted) return {}
   let surface = atlasSurfaceCache.get(sector)
   if (!surface) {
     surface = {
       ...(sector.townId ? { townId: sector.townId } : {}),
-      ...(sector.rows.some((row) => /[~l]/.test(row))
-        ? { waterTiles: sector.rows.join('').replace(/[^~l]/g, '.') }
+      ...(sector.rows.some((row) => /[~lw]/.test(row))
+        ? { waterTiles: sector.rows.join('').replace(/[^~lw]/g, '.') }
         : {}),
     }
     atlasSurfaceCache.set(sector, surface)
@@ -519,6 +563,7 @@ export function projectWorld(
         : null,
     sectors,
     scenery,
+    ...(currentSector.charted ? { publicGrandDiscoveries: publicGrandDiscoveryProof() } : {}),
     atlas: visible.flatMap((sector) => {
       const address = atlasAddress(sector)
       return address

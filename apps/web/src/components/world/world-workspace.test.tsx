@@ -98,7 +98,7 @@ describe('World page', () => {
         character: { name: 'Traveller', portrait: '/portrait.webp' },
       }),
     )
-    expect(markup).toContain('Sector 6 · X:? · Y:?')
+    expect(markup).toContain('Sector 66 · X:? · Y:?')
     expect(markup).not.toContain('X:6')
     expect(markup).not.toContain('Y:4')
     expect(markup).not.toContain('Beyond the charts')
@@ -115,7 +115,7 @@ describe('World page', () => {
       }),
     )
     expect(markup).toContain(`${VOID_REALMS[0].name} · `)
-    expect(markup).toContain('Sector 214 · X:? · Y:?')
+    expect(markup).toContain('Sector 406 · X:? · Y:?')
     expect(markup).not.toContain('X:6')
     expect(markup).not.toContain('Y:4')
     for (const realm of VOID_REALMS.slice(1)) expect(markup).not.toContain(realm.name)

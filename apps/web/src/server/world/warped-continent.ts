@@ -1,5 +1,8 @@
 import 'server-only'
 
+import { terrainWalkable } from '@/world/terrain'
+import { supercontinentTerrain } from './supercontinent-terrain'
+
 import { GRID_HEIGHT, GRID_WIDTH, STEP_MS } from '@/world/catalog'
 import type {
   WorldArchiveEntry,
@@ -114,6 +117,43 @@ const themes = [
 const coord = (x: number, y: number) => `${x}:${y}`
 const districtId = (key: string) => `uncharted-${key}`
 const byAddress = new Map(districts.map((district) => [coord(district[1], district[2]), district]))
+const expanseAddress = (id: string) => {
+  const match = /^uncharted-expanse:(0|[1-9][0-9]?):(0|[1-9][0-9]?)$/.exec(id)
+  if (!match || match[0] !== id) return null
+  const column = Number(match[1]),
+    row = Number(match[2])
+  if (column >= 64 || row >= 48 || byAddress.has(coord(column, row))) return null
+  return { column, row }
+}
+const sectorAt = (column: number, row: number) =>
+  byAddress.get(coord(column, row))?.[0]
+    ? districtId(byAddress.get(coord(column, row))![0])
+    : column >= 0 && column < 64 && row >= 0 && row < 48
+      ? `uncharted-expanse:${column}:${row}`
+      : null
+const legacyCrossing = (
+  column: number,
+  row: number,
+  dx: number,
+  dy: number,
+  x: number,
+  y: number,
+) => {
+  const id = sectorAt(column + dx, row + dy)
+  return id &&
+    (privateLegacyId(id) ||
+      terrainWalkable(
+        supercontinentTerrain(
+          (column + dx) * GRID_WIDTH + x,
+          (row + dy) * GRID_HEIGHT + y,
+          0,
+          true,
+        ),
+      ))
+    ? id
+    : null
+}
+const privateLegacyId = (id: string) => districts.some(([key]) => districtId(key) === id)
 const directions = [
   [-1, 0, 0, 4, 12, 4],
   [1, 0, 12, 4, 0, 4],
@@ -125,10 +165,10 @@ function districtTerrain(key: string, column: number, row: number, style: number
   return Array.from({ length: GRID_HEIGHT }, (_, y) =>
     Array.from({ length: GRID_WIDTH }, (_, x) => {
       if (key === 'landing' && x >= 4 && x <= 8 && y >= 3 && y <= 5) return 's'
-      if (x === 0) return y === 4 && byAddress.has(coord(column - 1, row)) ? '=' : '#'
-      if (x === 12) return y === 4 && byAddress.has(coord(column + 1, row)) ? '=' : '#'
-      if (y === 0) return x === 6 && byAddress.has(coord(column, row - 1)) ? '=' : '#'
-      if (y === 8) return x === 6 && byAddress.has(coord(column, row + 1)) ? '=' : '#'
+      if (x === 0) return y === 4 && legacyCrossing(column, row, -1, 0, 12, y) ? '=' : '#'
+      if (x === 12) return y === 4 && legacyCrossing(column, row, 1, 0, 0, y) ? '=' : '#'
+      if (y === 0) return x === 6 && legacyCrossing(column, row, 0, -1, x, 8) ? '=' : '#'
+      if (y === 8) return x === 6 && legacyCrossing(column, row, 0, 1, x, 0) ? '=' : '#'
       // A shared central approach keeps every exit and point of interest reachable.
       if (x === 6 || y === 4) return '.'
       if ((y === 3 && x >= 4 && x <= 6) || (y === 5 && x >= 6 && x <= 8)) return '.'
@@ -158,12 +198,12 @@ export const warpedContinentSectors: readonly WorldSector[] = districts.map(
     rows: districtTerrain(key, column, row, style),
     landmarks: [],
     roads: directions.flatMap(([dx, dy, x, y, targetX, targetY]) => {
-      const neighbor = byAddress.get(coord(column + dx, row + dy))
+      const neighbor = legacyCrossing(column, row, dx, dy, targetX, targetY)
       return neighbor
         ? [
             {
               from: { sectorId: districtId(key), x, y },
-              to: { sectorId: districtId(neighbor[0]), x: targetX, y: targetY },
+              to: { sectorId: neighbor, x: targetX, y: targetY },
               durationMs: STEP_MS,
               name: 'Follow the passage',
             },
@@ -174,7 +214,98 @@ export const warpedContinentSectors: readonly WorldSector[] = districts.map(
 )
 
 const privateIds = new Set(warpedContinentSectors.map((sector) => sector.id))
-export const isWarpedContinentSector = (id: string) => privateIds.has(id)
+export const isWarpedContinentSector = (id: string) =>
+  privateIds.has(id) || expanseAddress(id) !== null
+
+/** Cheap local IDs, never a continent scan or terrain generation. */
+export function warpedContinentSceneIds(id: string): string[] {
+  const legacy = warpedContinentSectors.find((sector) => sector.id === id)
+  const address = legacy ? { column: legacy.east, row: legacy.north } : expanseAddress(id)
+  if (!address) return []
+  return Array.from({ length: 25 }, (_, index) => {
+    const candidate = sectorAt(
+      address.column + (index % 5) - 2,
+      address.row + Math.floor(index / 5) - 2,
+    )
+    return candidate ? [candidate] : []
+  }).flat()
+}
+
+const expanseCache = new Map<string, WorldSector>()
+export function resolveWarpedContinentSector(id: string): WorldSector | null {
+  const legacy = warpedContinentSectors.find((sector) => sector.id === id)
+  if (legacy) return legacy
+  const address = expanseAddress(id)
+  if (!address) return null
+  const cached = expanseCache.get(id)
+  if (cached) {
+    expanseCache.delete(id)
+    expanseCache.set(id, cached)
+    return cached
+  }
+  const { column, row } = address
+  const rows = Array.from({ length: GRID_HEIGHT }, (_, y) =>
+    Array.from({ length: GRID_WIDTH }, (_, x) =>
+      supercontinentTerrain(column * GRID_WIDTH + x, row * GRID_HEIGHT + y, 0, true),
+    ).join(''),
+  )
+  const roads: WorldSector['roads'][number][] = []
+  const cross = (
+    x: number,
+    y: number,
+    dx: number,
+    dy: number,
+    targetX: number,
+    targetY: number,
+  ) => {
+    const targetId = sectorAt(column + dx, row + dy)
+    if (!targetId || !terrainWalkable(rows[y]![x]!)) return
+    const old = warpedContinentSectors.find((sector) => sector.id === targetId)
+    const target =
+      old?.rows[targetY]?.[targetX] ??
+      supercontinentTerrain(
+        (column + dx) * GRID_WIDTH + targetX,
+        (row + dy) * GRID_HEIGHT + targetY,
+        0,
+        true,
+      )
+    if (!terrainWalkable(target)) return
+    roads.push({
+      from: { sectorId: id, x, y },
+      to: { sectorId: targetId, x: targetX, y: targetY },
+      durationMs: STEP_MS,
+      name: 'Follow the passage',
+    })
+  }
+  for (let y = 0; y < GRID_HEIGHT; y++) {
+    cross(0, y, -1, 0, 12, y)
+    cross(12, y, 1, 0, 0, y)
+  }
+  for (let x = 0; x < GRID_WIDTH; x++) {
+    cross(x, 0, 0, -1, x, 8)
+    cross(x, 8, 0, 1, x, 0)
+  }
+  const sector: WorldSector = {
+    id,
+    name: 'Uncharted interior',
+    coordinate: 'Beyond the charts',
+    regionId: 'umbral-march',
+    art: null,
+    east: column,
+    north: row,
+    sceneColumn: column,
+    sceneRow: row,
+    charted: false,
+    warpedTheme: row > 25 ? 'haven' : column > 36 ? 'amber' : 'fracture',
+    landscape: row > 25 ? 'wildflowers' : undefined,
+    rows,
+    landmarks: [],
+    roads,
+  }
+  expanseCache.set(id, sector)
+  if (expanseCache.size > 192) expanseCache.delete(expanseCache.keys().next().value!)
+  return sector
+}
 
 const districtNames = {
   glass: 'Glassfall',
@@ -300,7 +431,8 @@ export function applyWarpedContinentPhase(state: WorldState, sector: WorldSector
   const phase =
     Number.isSafeInteger(state.warpedPhase) && state.warpedPhase! >= 0 ? state.warpedPhase! : 0
   const fixed = sector.id === WARPED_CONTINENT_LANDING.sectorId
-  const district = byAddress.get(coord(sector.east, sector.north))!
+  const district = byAddress.get(coord(sector.east, sector.north))
+  if (!district) return sector
   const key = district[0]
   const rareLake = (key === 'tarn' && phase % 11 === 7) || (key === 'mirrors' && phase % 19 === 12)
   // Purple water is deliberately rare; the lake footprint and all walkability stay fixed.

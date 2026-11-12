@@ -33,6 +33,10 @@ export function paintTerrainRelief(
   context.save()
   for (const cell of sector.cells) {
     if (cell.terrain !== '#') continue
+    // A solitary blocked cell carries a small rock sprite, not a raised tile.
+    // Drawing cliff strips around it makes a dark, square plinth under the rock.
+    if (!sides.some(([dx, dy]) => known.get(`${cell.x + dx}:${cell.y + dy}`)?.terrain === '#'))
+      continue
     if (sector.landmarks.some((site) => Math.abs(site.x - cell.x) + Math.abs(site.y - cell.y) < 2))
       continue
     if (
@@ -181,7 +185,7 @@ export function paintTerrainContours(
       pixels[i] = colour[0]!
       pixels[i + 1] = colour[1]!
       pixels[i + 2] = colour[2]!
-      pixels[i + 3] = Math.round(Math.abs(shade) * (shade < 0 ? 76 : 52))
+      pixels[i + 3] = Math.round(Math.abs(shade) * (shade < 0 ? 112 : 66))
     }
   raster.context.putImageData(raster.pixels, 0, 0)
   for (const cell of cells)

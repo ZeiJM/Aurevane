@@ -16,6 +16,8 @@ import {
 import { atlasSectors } from '../src/world/atlas'
 import { GRID_HEIGHT, GRID_WIDTH, WORLD_REGIONS } from '../src/world/catalog'
 import type { WorldPosition, WorldView } from '../src/world/types'
+import { REMOTE_GRAND_CROSSING } from '../src/world/discovery-sites'
+import { canonicalOcclusionWalks } from './world-map-correction-scenes'
 
 export function registerWorldArtReviewCases({
   enter,
@@ -129,9 +131,19 @@ export function registerWorldArtReviewCases({
     )
     const shrine = shrineSector?.landmarks.find((site) => site.kind === 'shrine')
     expect(shrine).toBeDefined()
+    const moatSector = atlasSectors().find(
+      (sector) =>
+        sector.townId === 'umbral-march' && sector.landmarks.some((site) => site.kind === 'bridge'),
+    )!
+    const moat = moatSector.landmarks.find((site) => site.kind === 'bridge')!
     const cases = [
-      ['woodland-bridge', 'verdant-expanse', 9, 4],
-      ['crown-bridge', 'aureth-crown', 9, 4],
+      [
+        'woodland-grand-bridge',
+        REMOTE_GRAND_CROSSING.sectorId,
+        REMOTE_GRAND_CROSSING.x,
+        REMOTE_GRAND_CROSSING.y,
+      ],
+      ['town-moat-bridge', moatSector.id, moat.x, moat.y],
       ['lavafall', 'emberreach', 9, 7],
       ['willow-cascade', 'atlas:69:36', 8, 3],
       ['alpine-impact', 'atlas:45:9', 9, 6],
@@ -318,12 +330,7 @@ export function registerWorldArtReviewCases({
     test.setTimeout(120_000)
     await enter(page)
     const { characterId } = await world(page)
-    const result = await scene(page, characterId, { sectorId: 'frostmere', x: 6, y: 4 })
-    const sector = result.sector
-    const cases = [
-      { label: 'roof', from: { x: 3, y: 1 }, to: { x: 3, y: 2 } },
-      { label: 'tree', from: { x: 1, y: 6 }, to: { x: 1, y: 7 } },
-    ]
+    const cases = canonicalOcclusionWalks()
     const identity = page.locator('canvas[data-world-identity]')
     const sample = async () =>
       identity.evaluate((el) => {
@@ -337,11 +344,11 @@ export function registerWorldArtReviewCases({
         }
       })
     const evidence = []
-    for (const { label, from, to: preferred } of cases) {
+    for (const { label, sectorId, from, to: preferred } of cases) {
+      const { sector } = await scene(page, characterId, { sectorId, ...from })
       const start = sector.cells.find((c) => c.x === from.x && c.y === from.y)!
       expect(start.walkable).toBe(true)
       if (label === 'tree') expect(start.terrain).toBe('t')
-      await scene(page, characterId, { sectorId: sector.id, ...from })
       const fresh = await world(page)
       const destination = unoccupiedArtStep(sector, from, preferred, [
         ...fresh.players,

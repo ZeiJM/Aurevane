@@ -18,8 +18,13 @@ vi.mock('@/server/master/npc-design-store', () => ({
 }))
 
 import { GET } from './route'
+import { resolveSector } from '@/server/world/world-content'
 
 const sectorId = 'verdant-expanse'
+// Use an actual solid building in the current layout; the old 10:0 cell is now open.
+const blocked = resolveSector(sectorId)!.rows.flatMap((row, y) =>
+  [...row].flatMap((terrain, x) => (terrain === 'b' ? [{ x, y }] : [])),
+)[0]!
 const sentinel = {
   id: '39076058-5dba-457a-899c-d57b958540ca',
   name: 'Forge Sentinel',
@@ -38,11 +43,13 @@ function request(sector = sectorId) {
 
 beforeEach(() => {
   vi.resetAllMocks()
+  expect(blocked).toBeDefined()
+  expect(resolveSector(sectorId)!.rows[blocked.y]![blocked.x]).toBe('b')
   mocks.getActor.mockResolvedValue({ userId: 'verified-author' })
   mocks.readPublishedWorldNpcs.mockResolvedValue([
     sentinel,
     { ...sentinel, id: 'ec9f4cb3-d9f7-4d34-a9d8-a1f1a7c6d0f9', encounter: null },
-    { ...sentinel, id: 'dca0a5cc-282d-4fbb-aec8-5b57726fc29e', x: 10, y: 0 },
+    { ...sentinel, id: 'dca0a5cc-282d-4fbb-aec8-5b57726fc29e', ...blocked },
   ])
 })
 
@@ -61,7 +68,7 @@ it('lists unique tags from eligible encounters in the selected World sector', as
     { ...sentinel, encounter: tags(['wolf', 'ashbound-raider']) },
     { ...sentinel, encounter: tags(['wolf']) },
     { ...sentinel, encounter: null },
-    { ...sentinel, x: 10, y: 0, encounter: tags(['unreachable']) },
+    { ...sentinel, ...blocked, encounter: tags(['unreachable']) },
   ])
   const response = await GET(new Request(`${request().url}&view=tags`))
   expect(response.status).toBe(200)
@@ -126,7 +133,7 @@ it('restores a saved encounter by ID with its committed sector and minimal ident
   expect(mocks.readPublishedWorldNpcs).not.toHaveBeenCalled()
 })
 
-it.each([null, { ...sentinel, x: 10, y: 0 }])(
+it.each([null, { ...sentinel, ...blocked }])(
   'returns no eligible identity for a retired or unwalkable saved encounter',
   async (npc) => {
     mocks.readPublishedRestorationTrialNpc.mockResolvedValue(npc)

@@ -13,11 +13,17 @@ it('validates row-major destinations and refuses raw sector IDs, terrain, other 
     parseMasterTeleportDestination({ map: 'mainland', sectorNumber: 8192, x: 12, y: 8 }),
   ).toEqual({ map: 'mainland', sectorNumber: 8192, x: 12, y: 8 })
   expect(
-    parseMasterTeleportDestination({ map: 'currentVoid', sectorNumber: 768, x: 0, y: 0 }).map,
+    parseMasterTeleportDestination({
+      map: 'currentVoid',
+      sectorNumber: 768,
+      x: 0,
+      y: 0,
+      geometryVersion: '2026-11-12-v2',
+    }).map,
   ).toBe('currentVoid')
   for (const invalid of [
     { map: 'mainland', sectorNumber: 0, x: 0, y: 0 },
-    { map: 'currentVoid', sectorNumber: 769, x: 0, y: 0 },
+    { map: 'currentVoid', sectorNumber: 3073, x: 0, y: 0 },
     { map: 'ivory-veil', sectorNumber: 1, x: 0, y: 0 },
     { map: 'mainland', sectorNumber: 1, x: 0.5, y: 0 },
     { map: 'mainland', sectorNumber: 1, x: 13, y: 0 },
@@ -36,7 +42,7 @@ it('prepares every possible current Void sector so a forced roll selects geometr
     sector as never,
   )
   expect(geometry).toHaveLength(8)
-  expect(geometry.map((entry) => entry.sectorId)).toContain('void:ivory-veil:1:1')
+  expect(geometry.map((entry) => entry.sectorId)).toContain('void:ivory-veil:33:0')
   expect(geometry.every((entry) => entry.sectorNumber === 34)).toBe(true)
   expect(geometry[0]!.rows).toHaveLength(9)
 })
@@ -75,7 +81,7 @@ it('checks staff access before preparing geometry and sends only typed destinati
   }
   const result = await service.teleport('owner', input)
   expect(result.world).toEqual(raw.world)
-  expect(rpc).toHaveBeenCalledWith('teleport_master_player_v1', {
+  expect(rpc).toHaveBeenCalledWith('teleport_master_player_v2', {
     p_actor_user_id: 'owner',
     p_character_id: 'target',
     p_expected_version: 6,
@@ -102,4 +108,83 @@ it('requires a trimmed staff reason of 3 to 240 characters', async () => {
   expect(parseMasterTeleportReason('  Reviewed recovery  ')).toBe('Reviewed recovery')
   for (const value of [undefined, null, '', '  ', 'ab', 'x'.repeat(241)])
     expect(() => parseMasterTeleportReason(value)).toThrow()
+})
+
+it('uses a new immutable geometry release and covers the expanded private continent', async () => {
+  const {
+    MASTER_TELEPORT_GEOMETRY_VERSION,
+    masterTeleportGeometry,
+    parseMasterTeleportDestination,
+  } = await import('./player-teleport')
+  expect(MASTER_TELEPORT_GEOMETRY_VERSION).toBe('2026-11-12-v2')
+  expect(
+    parseMasterTeleportDestination({
+      map: 'currentVoid',
+      sectorNumber: 3072,
+      x: 12,
+      y: 8,
+      geometryVersion: '2026-11-12-v2',
+    }).sectorNumber,
+  ).toBe(3072)
+  const geometry = masterTeleportGeometry(
+    { map: 'currentVoid', sectorNumber: 3072, x: 12, y: 8 },
+    ((id: string) => ({ id, rows: Array(9).fill('.............') })) as never,
+  )
+  expect(geometry.map((s) => s.sectorId)).toContain('void:ivory-veil:63:47')
+})
+
+it.each([undefined, '2026-11-12-v1', 'unrecognized'])(
+  'refuses stale Void coordinate version %s before preparation or commit',
+  async (geometryVersion) => {
+    const prepare = vi.fn(async () => {}),
+      rpc = vi.fn(),
+      access = { requireCapability: vi.fn() }
+    const service = createMasterPlayersService(access, rpc, undefined, prepare)
+    const destination = {
+      map: 'currentVoid',
+      sectorNumber: 34,
+      x: 6,
+      y: 4,
+      ...(geometryVersion === undefined ? {} : { geometryVersion }),
+    }
+    await expect(
+      service.teleport('owner', {
+        characterId: 'target',
+        expectedVersion: 1,
+        requestKey: 'request',
+        reason: 'Reviewed recovery',
+        destination,
+      }),
+    ).rejects.toMatchObject({
+      code: 'INVALID_REQUEST',
+      message: expect.stringMatching(/refresh.*review/i),
+    })
+    expect(prepare).not.toHaveBeenCalled()
+    expect(rpc).not.toHaveBeenCalled()
+  },
+)
+it('binds accepted Void numbering to the shared browser geometry version and still rejects unknown fields', async () => {
+  const {
+    parseMasterTeleportDestination,
+    masterTeleportGeometry,
+    MASTER_TELEPORT_GEOMETRY_VERSION,
+  } = await import('./player-teleport')
+  const shared = await import('@/master/players')
+  expect(shared.MASTER_TELEPORT_GEOMETRY_VERSION).toBe(MASTER_TELEPORT_GEOMETRY_VERSION)
+  const input = {
+    map: 'currentVoid',
+    sectorNumber: 34,
+    x: 6,
+    y: 4,
+    geometryVersion: '2026-11-12-v2',
+  }
+  const destination = parseMasterTeleportDestination(input)
+  expect(destination).toEqual(input)
+  const rows = masterTeleportGeometry(destination, ((id: string) => ({
+    id,
+    rows: Array(9).fill('.............'),
+  })) as never)
+  expect(rows.some((row) => row.sectorId === 'void:ivory-veil:33:0')).toBe(true)
+  expect(() => parseMasterTeleportDestination({ ...input, rows: [] })).toThrow()
+  expect(() => parseMasterTeleportDestination({ ...input, realmId: 'ivory-veil' })).toThrow()
 })

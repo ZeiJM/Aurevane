@@ -1,0 +1,30 @@
+{
+  "requestId": "ART-WORLD-CORRECTION-20261112",
+  "promptSpec": "content/art-requests/ART-WORLD-CORRECTION-20261112.md",
+  "name": "colosseum-arena-grain",
+  "source": {
+    "path": "sources/remote-colosseum-v03.png",
+    "sha256": "c25798d30e50bcd8273fff95ea9b6c375e24a36b361805ce552d5ff5d2e2e829",
+    "width": 1536,
+    "height": 1024,
+    "crop": {
+      "left": 640,
+      "top": 440,
+      "width": 256,
+      "height": 256
+    }
+  },
+  "runtime": {
+    "path": "runtime/colosseum-arena-grain-v01.webp",
+    "sha256": "3b7f1138e1d02099e3724aaeb24f53f5896b76c10be8e28e805779d37b56f547",
+    "bytes": 25016,
+    "width": 256,
+    "height": 256,
+    "columns": 1,
+    "rows": 1,
+    "cellWidth": 256,
+    "cellHeight": 256,
+    "encoding": "Native256px opaque arena-ground crop; no resampling; Sharp WebP quality92"
+  },
+  "groundTexture": true
+}

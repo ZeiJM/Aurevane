@@ -58,12 +58,12 @@ describe('geographic sector display aliases', () => {
       sceneColumn: 21,
       sceneRow: 6,
     }
-    expect(positionLabel(sector, { x: 6, y: 4 })).toBe('Sector 214 · X:? · Y:?')
+    expect(positionLabel(sector, { x: 6, y: 4 })).toBe('Sector 406 · X:? · Y:?')
     expect(positionLabel({ ...sector, charted: true }, { x: 12, y: 8 })).toBe(
-      'Sector 214 · X:? · Y:?',
+      'Sector 406 · X:? · Y:?',
     )
   })
-  it('keeps the legacy private Void four-column numbering and masks its positions', () => {
+  it('numbers the preserved legacy landing on the expanded geographic grid and masks its positions', () => {
     const sector = {
       id: 'uncharted-landing',
       coordinate: 'Beyond the charts',
@@ -72,10 +72,21 @@ describe('geographic sector display aliases', () => {
       sceneRow: 1,
       warpedTheme: 'haven' as const,
     }
-    expect(positionLabel(sector, { x: 6, y: 4 })).toBe('Sector 6 · X:? · Y:?')
+    expect(positionLabel(sector, { x: 6, y: 4 })).toBe('Sector 66 · X:? · Y:?')
     expect(sectorLabel({ ...sector, id: 'uncharted-pale', sceneColumn: 3, sceneRow: 0 })).toBe(
       'Sector 4',
     )
+  })
+  it('numbers distant private continental addresses while retaining coordinate masking', () => {
+    const sector = {
+      id: 'uncharted-expanse:60:36',
+      coordinate: 'Beyond the charts',
+      charted: false,
+      sceneColumn: 60,
+      sceneRow: 36,
+    }
+    expect(positionLabel(sector, { x: 6, y: 4 })).toBe('Sector 2365 · X:? · Y:?')
+    expect(sectorLabel({ ...sector, sceneColumn: 64 })).toBe('Sector ?')
   })
   it('keeps Void X/Y masked when its current sector projection is temporarily unavailable', () => {
     expect(positionLabel(undefined, { sectorId: 'void:ivory-veil:21:6', x: 6, y: 4 })).toBe(

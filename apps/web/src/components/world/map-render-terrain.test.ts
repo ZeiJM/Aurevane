@@ -1,10 +1,66 @@
 import { expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
-import { newWorldState } from '@/world/travel'
-import { projectWorld, projectWorldSector } from '@/server/world/world-service'
+import { advanceWorldRoute, newWorldState } from '@/world/travel'
+import { projectWorld, projectWorldSector, resolveWorldIntent } from '@/server/world/world-service'
 import { resolveSector } from '@/server/world/world-content'
 import { retainWorldSceneReferences } from '@/world/presence'
+import { mergeWorldMovement } from '@/world/movement-receipt'
 import { worldRenderTerrain } from './map-render-terrain'
+
+it('preserves canonical Frostmere ground while a real approved route leaves the initial authority scene', () => {
+  const state = { ...newWorldState(), position: { sectorId: 'frostmere', x: 6, y: 4 } }
+  const initial = projectWorld(state, [], 1000)
+  const before = worldRenderTerrain(initial)
+  const authorityIds = new Set(initial.sectors.map((sector) => sector.id))
+  const displaced = initial.sectors[24]!
+  const destination = before
+    .filter(
+      (sector) =>
+        !authorityIds.has(sector.id) &&
+        sector.cells.some((cell) => cell.x === 6 && cell.y === 4 && cell.walkable),
+    )
+    .sort(
+      (a, b) =>
+        (a.atlasColumn! - displaced.atlasColumn!) ** 2 +
+        (a.atlasRow! - displaced.atlasRow!) ** 2 -
+        ((b.atlasColumn! - displaced.atlasColumn!) ** 2 + (b.atlasRow! - displaced.atlasRow!) ** 2),
+    )[0]!
+  expect(destination).toBeDefined()
+  const walking = resolveWorldIntent(
+    state,
+    {
+      kind: 'walk',
+      destination: { sectorId: destination.id, x: 6, y: 4 },
+    },
+    1000,
+  )
+  let deadline = 1000
+  let arrived = walking
+  for (const step of walking.route) {
+    deadline += step.durationMs
+    arrived = advanceWorldRoute(walking, deadline)
+    if (!authorityIds.has(arrived.position.sectorId)) break
+  }
+  expect(authorityIds.has(arrived.position.sectorId)).toBe(false)
+  const currentSector = projectWorldSector(arrived, resolveSector(arrived.position.sectorId)!)
+  const next = mergeWorldMovement(initial, {
+    kind: 'movement',
+    characterId: initial.characterId,
+    version: initial.version + 1,
+    serverNow: deadline,
+    position: arrived.position,
+    route: arrived.route,
+    nextStepAt: arrived.nextStepAt,
+    movementBlocked: null,
+    battleSessionId: null,
+    currentSector,
+  })
+  expect(next.sectors).toHaveLength(25)
+  expect(next.sectors.some((sector) => sector.id === displaced.id)).toBe(false)
+  const after = worldRenderTerrain(next, before)
+  expect(after.map((sector) => sector.id).sort()).toEqual(before.map((sector) => sector.id).sort())
+  expect(after.find((sector) => sector.id === displaced.id)?.cells).toEqual(displaced.cells)
+})
 
 it('renders exact canonical public ground without expanding the authority or presence scene', () => {
   const state = { ...newWorldState(), position: { sectorId: 'atlas:62:28', x: 6, y: 4 } }

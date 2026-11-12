@@ -662,7 +662,7 @@ it('every legacy mutation overload checks actual authority before its precise re
     await denied(() => db.query(sql, values), /OPERATOR_REQUIRED/)
   }
 })
-it('retains all 48 legacy, 31 workspace and 4 Owner actor contracts with private helpers inaccessible', async () => {
+it('retains all 48 legacy, 32 workspace and 4 Owner actor contracts with private helpers inaccessible', async () => {
   const workspaceSignatures = [
     'public.grant_master_test_item_v1(uuid,uuid,text,integer,bigint,text,uuid)',
     'public.read_master_panel_navigation_v1(uuid,uuid)',
@@ -674,6 +674,7 @@ it('retains all 48 legacy, 31 workspace and 4 Owner actor contracts with private
     // New selected-page teleport APIs have no account-only predecessor.
     'public.install_master_teleport_geometry_v1(uuid,text,jsonb,uuid)',
     'public.teleport_master_player_v1(uuid,uuid,bigint,uuid,text,integer,integer,integer,text,boolean,uuid)',
+    'public.teleport_master_player_v2(uuid,uuid,bigint,uuid,text,integer,integer,integer,text,boolean,uuid)',
     'public.publish_battlefield_elevation_policy_v2(uuid,integer,jsonb,uuid)',
     'public.publish_battlefield_elevation_policy_v3(uuid,integer,jsonb,uuid)',
     'public.publish_combat_effect_timing_policy_v2(uuid,integer,jsonb,text,uuid)',
@@ -730,7 +731,7 @@ it('retains all 48 legacy, 31 workspace and 4 Owner actor contracts with private
     )
   ).rows
   expect(legacyActorSignatures).toHaveLength(48)
-  expect(workspaceContracts).toHaveLength(31)
+  expect(workspaceContracts).toHaveLength(32)
   expect(ownerContracts).toHaveLength(4)
   expect(await actorSignatures()).toEqual(
     [

@@ -1,6 +1,7 @@
 import type { AppearanceExpression } from '@/appearance/appearance-manifest'
 import type { WorldEnvironment } from './environment'
 import type { FerryPassage, WorldFerryView } from './ferry'
+import type { GrandDiscoveryId } from './discovery-sites'
 
 export interface WorldPosition {
   sectorId: string
@@ -78,6 +79,8 @@ export interface WorldBuilding {
   width: number
   height: number
   artIndex: number
+  /** Thin Crown wall runs; orientation selects the matching modular facade. */
+  wallFacing?: 'east' | 'south'
   propIndex?: number
 }
 export interface WorldAtlasCell {
@@ -264,6 +267,8 @@ export interface WorldView {
   sectors: WorldSectorView[]
   /** Compact public terrain buffer, independent of the authorized presence scene. */
   scenery?: WorldScenerySector[]
+  /** Full canonical public ground/approach proof for world-scale scenic art. No private sites. */
+  publicGrandDiscoveries?: readonly GrandDiscoveryId[]
   /** Compact overview; private terrain and undiscovered landmarks never enter this list. */
   atlas?: WorldAtlasCell[]
   /** Opt-in scene transport receipt for this character's exact atlas projection. */

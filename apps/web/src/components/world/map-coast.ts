@@ -1,7 +1,10 @@
 import { GRID_HEIGHT, GRID_WIDTH } from '@/world/catalog'
 import { hashString } from '@/world/terrain-gen'
 import type { WorldView } from '@/world/types'
-import { atlasNeighbor } from '@/world/topology'
+import { atlasNeighbor, WORLD_MAP_WIDTH } from '@/world/topology'
+import { MAP_Y, projectMapPoint, unprojectMapPoint } from './map-projection'
+import type { MapPoint } from './world-motion'
+import type { SurfaceWeather } from './map-water'
 
 export interface CoastEdge {
   side: 0 | 1 | 2 | 3
@@ -21,9 +24,11 @@ const offsets = [
 /** A missing loaded chunk is never an ocean: consult the complete public overview. */
 export function buildPublicCoasts(view: Pick<WorldView, 'sectors' | 'atlas'>) {
   const occupied = new Set([
-    ...(view.atlas ?? []).map((cell) => `${cell.column}:${cell.row}`),
+    ...(view.atlas ?? [])
+      .filter((cell) => cell.charted)
+      .map((cell) => `${cell.column}:${cell.row}`),
     ...view.sectors
-      .filter((s) => s.atlasColumn !== undefined && s.atlasRow !== undefined)
+      .filter((s) => s.charted && s.atlasColumn !== undefined && s.atlasRow !== undefined)
       .map((s) => `${s.atlasColumn}:${s.atlasRow}`),
   ])
   const field = new Map<string, CoastEdge[]>()
@@ -48,7 +53,12 @@ export function buildPublicCoasts(view: Pick<WorldView, 'sectors' | 'atlas'>) {
         const x = side === 1 ? GRID_WIDTH - 1 : side === 3 ? 0 : i,
           y = side === 0 ? 0 : side === 2 ? GRID_HEIGHT - 1 : i,
           terrain = i < length ? known.get(`${x}:${y}`) : undefined,
-          land = terrain !== undefined && terrain !== '~' && terrain !== 'l'
+          land =
+            terrain !== undefined &&
+            terrain !== '~' &&
+            terrain !== 'w' &&
+            terrain !== 'l' &&
+            terrain !== '?'
         if (land && start === null) start = i
         if (!land && start !== null) {
           edges.push({
@@ -430,4 +440,109 @@ export function paintCoastSea(
   }
   context.restore()
   return visibleEdges.length
+}
+
+/** Screen-space ocean background, drawn before land; no geography is consulted.
+ * `camera` is the effective camera + pan centre in world tiles.
+ */
+export function paintOpenSea(
+  context: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  tile: number,
+  camera: MapPoint,
+  now: number,
+  animate: boolean,
+  weather?: SurfaceWeather,
+  budget = 48,
+) {
+  if (
+    ![width, height, tile, camera.x, camera.y].every(Number.isFinite) ||
+    width <= 0 ||
+    height <= 0 ||
+    tile <= 0
+  )
+    return 0
+  const origin = { x: 0, y: 0 }
+  const project = (point: MapPoint) => projectMapPoint(point, camera, origin, tile, width, height)
+  const bands = Math.min(20, Math.max(2, Math.ceil(height / (tile * MAP_Y * 64)) + 2))
+  const band = Math.floor((camera.x + camera.y) / 64) - Math.floor(bands / 2)
+  const a = project({ x: band * 32, y: band * 32 }),
+    b = project({ x: (band + bands) * 32, y: (band + bands) * 32 })
+  context.save()
+  // Broad repeating depth bands retain their world phase during camera motion.
+  const depth = context.createLinearGradient(a.x, a.y, b.x, b.y)
+  for (let i = 0; i < bands; i++) {
+    depth.addColorStop(i / bands, '#173f53')
+    depth.addColorStop((i + 0.5) / bands, '#285e70')
+  }
+  depth.addColorStop(1, '#173f53')
+  context.fillStyle = depth
+  context.fillRect(0, 0, width, height)
+  const limit = Number.isFinite(budget) ? Math.max(0, Math.min(48, Math.floor(budget))) : 0
+  if (!limit) {
+    context.restore()
+    return 0
+  }
+  const corners = [
+    [0, 0],
+    [width, 0],
+    [width, height],
+    [0, height],
+  ].map(([x, y]) => unprojectMapPoint({ x: x!, y: y! }, camera, origin, tile, width, height))
+  const left = Math.min(...corners.map((p) => p.x)),
+    right = Math.max(...corners.map((p) => p.x))
+  const top = Math.min(...corners.map((p) => p.y)),
+    bottom = Math.max(...corners.map((p) => p.y))
+  const required = Math.sqrt(((right - left) * (bottom - top)) / Math.max(1, limit * 0.8))
+  const spacing = 4 * 2 ** Math.max(0, Math.ceil(Math.log2(required / 4)))
+  const roughness = animate ? Math.min(1, Math.abs(weather?.windSpeed ?? 0) / 0.06) : 0
+  const rain = animate ? Math.max(0, Math.min(1, weather?.rain ?? 0)) : 0
+  const clock = animate && Number.isFinite(now) ? now : 0
+  let count = 0,
+    attempts = 0
+  context.lineCap = 'round'
+  for (let y = Math.floor(top / spacing); y <= Math.ceil(bottom / spacing) && count < limit; y++) {
+    for (
+      let x = Math.floor(left / spacing);
+      x <= Math.ceil(right / spacing) && count < limit;
+      x++
+    ) {
+      if (++attempts > 128) break
+      const wx = x * spacing,
+        wy = y * spacing
+      const canonicalX = ((wx % WORLD_MAP_WIDTH) + WORLD_MAP_WIDTH) % WORLD_MAP_WIDTH
+      const seed = hashString(`${canonicalX}:${wy}:open-sea`)
+      const centre = {
+        x: wx + spacing * (0.15 + (seed % 127) / 181),
+        y: wy + spacing * (0.15 + ((seed >>> 8) % 127) / 181),
+      }
+      const p = project(centre)
+      if (p.x < -tile * 2 || p.x > width + tile * 2 || p.y < -tile * 2 || p.y > height + tile * 2)
+        continue
+      const phase = (clock / (10000 + (seed % 7000)) + (seed % 997) / 997) % 1
+      const length = 0.65 + (seed % 191) / 100
+      const bend = Math.sin(phase * Math.PI * 2) * (0.025 + roughness * 0.06)
+      const start = project({ x: centre.x - length / 2, y: centre.y + length / 2 })
+      const c1 = project({ x: centre.x - length / 6 + bend, y: centre.y + length / 6 + bend })
+      const c2 = project({ x: centre.x + length / 6 + bend, y: centre.y - length / 6 + bend })
+      const end = project({ x: centre.x + length / 2, y: centre.y - length / 2 })
+      context.globalAlpha = (0.08 + roughness * 0.14) * (0.45 + Math.sin(phase * Math.PI) * 0.55)
+      context.strokeStyle = seed % 3 ? '#a6cbd0' : '#6fa9b9'
+      context.lineWidth = Math.max(0.45, tile * 0.008) * (1 + roughness * 0.8)
+      context.beginPath()
+      context.moveTo(start.x, start.y)
+      context.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, end.x, end.y)
+      // Sparse rain rings share the same fixed crest budget.
+      if (rain > 0.015 && seed % 3 === 0 && phase < 0.35) {
+        const radius = tile * (0.015 + phase * 0.25)
+        context.ellipse(p.x, p.y, radius, radius * 0.52, 0, 0, Math.PI * 2)
+      }
+      context.stroke()
+      count++
+    }
+    if (attempts > 128) break
+  }
+  context.restore()
+  return count
 }

@@ -1,0 +1,155 @@
+{
+  "requestId": "ART-WORLD-CORRECTION-20261112",
+  "promptSpec": "content/art-requests/ART-WORLD-CORRECTION-20261112.md",
+  "provider": "OpenAI image generation",
+  "selection": "Original generated sheet selected for runtime integration",
+  "name": "crown-wall-kit",
+  "source": {
+    "path": "sources/crown-wall-kit-v01.png",
+    "sha256": "762faef83a83fc4723d62e7fa62b113d2d1e2dacbd82c399b036bdd24ae91ad3",
+    "width": 1536,
+    "height": 1024
+  },
+  "runtime": {
+    "path": "runtime/crown-wall-kit-v01.webp",
+    "sha256": "687d5d3f7e06e3b5efb0e5f9c36427cbc9139f175fa1e2596668b06fcfdb0127",
+    "bytes": 233958,
+    "width": 1024,
+    "height": 1024,
+    "columns": 2,
+    "rows": 2,
+    "cellWidth": 512,
+    "cellHeight": 512,
+    "encoding": "Sharp WebP quality88 alphaQuality100; alpha-tail normalization; visible-bounds crop; aspect-preserving fit; 24px floor inset"
+  },
+  "fringePixelsRemoved": 0,
+  "packedFringePixelsRemoved": 532,
+  "sprites": [
+    {
+      "index": 0,
+      "anchorX": 0.5,
+      "anchorY": 0.759765625,
+      "baseContacts": [
+        {
+          "x": 0.90625,
+          "y": 0.5703125
+        },
+        {
+          "x": 0.09375,
+          "y": 0.94921875
+        }
+      ],
+      "contactMeasurement": "Selected512px runtime masonry base endpoints; excludes parapet and image background",
+      "isolation": "dominant-alpha-component",
+      "componentArea": 117437,
+      "sourceCell": {
+        "left": 81,
+        "top": 16,
+        "width": 605,
+        "height": 471
+      },
+      "crop": {
+        "left": 2,
+        "top": 2,
+        "width": 601,
+        "height": 467
+      },
+      "runtimeBounds": {
+        "left": 16,
+        "top": 115,
+        "width": 480,
+        "height": 373
+      },
+      "floorY": 0.953125
+    },
+    {
+      "index": 1,
+      "anchorX": 0.5,
+      "anchorY": 0.7607421875,
+      "baseContacts": [
+        {
+          "x": 0.09375,
+          "y": 0.572265625
+        },
+        {
+          "x": 0.90625,
+          "y": 0.94921875
+        }
+      ],
+      "contactMeasurement": "Selected512px runtime masonry base endpoints; excludes parapet and image background",
+      "isolation": "dominant-alpha-component",
+      "componentArea": 116553,
+      "sourceCell": {
+        "left": 852,
+        "top": 20,
+        "width": 603,
+        "height": 466
+      },
+      "crop": {
+        "left": 2,
+        "top": 2,
+        "width": 599,
+        "height": 462
+      },
+      "runtimeBounds": {
+        "left": 16,
+        "top": 118,
+        "width": 480,
+        "height": 370
+      },
+      "floorY": 0.953125
+    },
+    {
+      "index": 2,
+      "anchorX": 0.503037,
+      "anchorY": 0.953125,
+      "isolation": "dominant-alpha-component",
+      "componentArea": 158644,
+      "sourceCell": {
+        "left": 122,
+        "top": 528,
+        "width": 524,
+        "height": 485
+      },
+      "crop": {
+        "left": 2,
+        "top": 2,
+        "width": 520,
+        "height": 481
+      },
+      "runtimeBounds": {
+        "left": 16,
+        "top": 44,
+        "width": 480,
+        "height": 444
+      },
+      "floorY": 0.953125
+    },
+    {
+      "index": 3,
+      "anchorX": 0.495787,
+      "anchorY": 0.953125,
+      "isolation": "dominant-alpha-component",
+      "componentArea": 200755,
+      "sourceCell": {
+        "left": 830,
+        "top": 521,
+        "width": 643,
+        "height": 483
+      },
+      "crop": {
+        "left": 2,
+        "top": 2,
+        "width": 639,
+        "height": 479
+      },
+      "runtimeBounds": {
+        "left": 16,
+        "top": 128,
+        "width": 480,
+        "height": 360
+      },
+      "floorY": 0.953125
+    }
+  ]
+}

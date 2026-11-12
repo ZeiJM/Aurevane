@@ -1,17 +1,51 @@
 import type { GlobeLocation } from '@/world/globe-math'
 import { globeVeilTexture } from './globe-veil'
 
+type Texture = {
+  pixels: Uint8Array
+  width: number
+  height: number
+  veil?: ReturnType<typeof globeVeilTexture>
+  ocean?: { pixels: Uint8Array; width: number; height: number }
+}
+
+// Match WebGL LINEAR sampling, including alpha at reconstructed coasts and the
+// longitude seam. RGB is normalized by coverage to avoid dark coastal fringes.
+function sample(texture: Texture, u: number, v: number, out: number[]) {
+  const x = u * texture.width - 0.5,
+    y = v * texture.height - 0.5
+  const left = Math.floor(x),
+    top = Math.floor(y),
+    fx = x - left,
+    fy = y - top
+  out.fill(0)
+  for (let dy = 0; dy <= 1; dy++)
+    for (let dx = 0; dx <= 1; dx++) {
+      const tx = (((left + dx) % texture.width) + texture.width) % texture.width
+      const ty = Math.max(0, Math.min(texture.height - 1, top + dy))
+      const index = (ty * texture.width + tx) * 4
+      const weight = ((dx ? fx : 1 - fx) * (dy ? fy : 1 - fy) * texture.pixels[index + 3]!) / 255
+      for (let c = 0; c < 3; c++) out[c]! += texture.pixels[index + c]! * weight
+      out[3]! += weight
+    }
+  if (out[3]) for (let c = 0; c < 3; c++) out[c]! /= out[3]!
+}
+
 /** Bounded software sphere for devices without WebGL; same projection/picking. */
 export function globeFallbackPixels(
-  texture: { pixels: Uint8Array; width: number; height: number },
+  texture: Texture,
   camera: GlobeLocation,
   zoom: number,
   columns: number,
   rows: number,
   size = 420,
+  grid = false,
 ) {
   const pixels = new Uint8ClampedArray(size * size * 4)
-  const veil = globeVeilTexture()
+  const veil = texture.veil ?? globeVeilTexture()
+  const terrainSample = [0, 0, 0, 0],
+    veilSample = [0, 0, 0, 0],
+    oceanSample = [0, 0, 0, 0]
   const radians = Math.PI / 180,
     tilt = camera.latitude * radians
   const ct = Math.cos(tilt),
@@ -31,25 +65,16 @@ export function globeFallbackPixels(
       const lon = Math.atan2(px, z * ct - py * st) + longitude
       const u = (((0.5 + lon / (Math.PI * 2)) % 1) + 1) % 1,
         v = 0.5 - lat / Math.PI
-      const tx = Math.min(texture.width - 1, Math.floor(u * texture.width)),
-        ty = Math.min(texture.height - 1, Math.floor(v * texture.height))
-      const source = (ty * texture.width + tx) * 4,
-        index = (y * size + x) * 4
-      const land = texture.pixels[source + 3]! / 255
-      const fogPixel =
-        (Math.min(veil.height - 1, Math.floor(v * veil.height)) * veil.width +
-          Math.min(veil.width - 1, Math.floor(u * veil.width))) *
-        4
-      const fog = (veil.pixels[fogPixel + 3]! / 255) * (1 - land)
+      const index = (y * size + x) * 4
+      sample(texture, u, v, terrainSample)
+      sample(veil, u, v, veilSample)
+      if (texture.ocean) sample(texture.ocean, u, v, oceanSample)
+      const land = terrainSample[3]!
+      const fog = veilSample[3]! * (1 - land)
       const light = 0.7 + z * 0.3,
         rim = Math.pow(1 - z, 4) * 0.24
-      const wave = Math.sin(u * 197 + Math.sin(v * 59)) * Math.sin(v * 131)
-      const contour = Math.pow(0.5 + 0.5 * Math.sin((u * 26 + v * 11 + wave * 0.12) * 6.28318), 14)
-      const ocean = [
-        14 + wave * 3 + contour * 5,
-        38 + wave * 5 + contour * 8,
-        50 + wave * 6 + contour * 9,
-      ]
+      const wave = Math.sin(u * 21 + Math.sin(v * 13) * 1.6) * Math.cos(v * 17 - u * 9)
+      const ocean = [11 + wave * 2, 33 + wave * 4, 48 + wave * 5]
       const edge = Math.min(
         (u * columns) % 1,
         1 - ((u * columns) % 1),
@@ -57,12 +82,13 @@ export function globeFallbackPixels(
         1 - ((v * rows) % 1),
       )
       for (let c = 0; c < 3; c++) {
-        const surface = texture.pixels[source + c]! * land + ocean[c]! * (1 - land)
-        const value = surface * (1 - fog) + veil.pixels[fogPixel + c]! * fog
+        const sea = ocean[c]! * (1 - oceanSample[3]!) + oceanSample[c]! * oceanSample[3]!
+        const surface = terrainSample[c]! * land + sea * (1 - land)
+        const value = surface * (1 - fog) + veilSample[c]! * fog
         pixels[index + c] =
           value * light * (1 - rim) +
           [61, 134, 149][c]! * rim +
-          (edge < 0.016 ? (land ? 11 : 3) : 0)
+          (grid && edge < 0.016 ? (land ? 11 : 3) : 0)
       }
       pixels[index + 3] = 255
     }

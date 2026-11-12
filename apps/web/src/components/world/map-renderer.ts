@@ -37,6 +37,8 @@ import {
 } from './map-ambient'
 import {
   buildWaterField,
+  clipWaterSurface,
+  isWaterTerrain,
   liquidMaterial,
   paintLavaMotion,
   paintLavaGround,
@@ -45,7 +47,7 @@ import {
   paintWaterMotion,
   paintWaterfallMotion,
 } from './map-water'
-import { buildPublicCoasts, paintCoastLand, paintCoastSea } from './map-coast'
+import { buildPublicCoasts, paintCoastLand, paintCoastSea, paintOpenSea } from './map-coast'
 import {
   advanceSurfaceRain,
   advanceWorldWind,
@@ -78,7 +80,17 @@ import { buildTrailGround, naturalTrailWear, paintNaturalTrail } from './map-tra
 import { paintSnowRoadShoulders } from './map-snow-road'
 import { paintTerrainRelief, paintTerrainContours } from './map-relief'
 import { impactSite, paintImpactGround } from './map-impact'
-import { grandBridgeArt, landmarkArtSize, lavaFallSite, waterfallArt } from './map-surface-art'
+import {
+  grandBridgeArt,
+  grandBridgeDiscoveryArt,
+  landmarkArtSize,
+  lavaFallSite,
+  waterfallArt,
+} from './map-surface-art'
+import { grandDiscoveryPlacements, oceanFeaturePlacements } from './map-grand-discoveries'
+import { ShallowWaterRipples } from './map-shallow-ripples'
+import { colosseumArenaMaterial, valleyDetailArt } from './map-grand-detail-art'
+import { townArchitectureArt, crownWallArt, crownWallSegments } from './map-town-architecture'
 import { settlementFloorIndex } from './map-settlement-floor'
 import {
   ferryWaterFrame,
@@ -95,6 +107,7 @@ import {
 } from './map-warped-fog'
 import {
   regionalBuildingIndex,
+  legacyStructureContact,
   settlementChimneys,
   townPaving,
   warpedChimneys,
@@ -119,6 +132,7 @@ function winterBuildingIndex(sector: WorldSectorView, building: WorldBuilding) {
   if (sector.id === 'frostmere' && building.x === 4) return 0
   if (sector.id === 'frostmere' && building.x === 8) return 1
   if (hashString(building.id) % 4 === 0) return 2
+  if (hashString(building.id) % 4 === 1) return 1
 }
 const MAX_EMBODIED_ACTORS = 32
 const MAX_VISIBLE_IMAGE_REQUESTS = 108
@@ -235,6 +249,9 @@ interface Scenery {
   voidGlimmer?: string
   townLight?: 'town-centres-north' | 'town-centres-south'
   windFlex?: number
+  grandFeature?: boolean
+  arenaFloor?: { cx: number; cy: number; rx: number; ry: number }
+  oceanFeature?: boolean
 }
 interface SceneryBatch {
   layer: HTMLCanvasElement
@@ -244,7 +261,7 @@ interface SceneryBatch {
 const STATIONARY_SCENERY_PIXEL_LIMIT = 800_000
 
 function usesCompactScenery(item: Scenery) {
-  return !item.underpass && !item.mirror && !item.ferryMast
+  return !item.underpass && !item.mirror && !item.ferryMast && !item.waterfall && !item.oceanFeature
 }
 // Inspected biomes-v02 floor contacts, excluding empty cell padding. Preserve
 // the original painted scale; anchor the rubble floor rather than the cell edge.
@@ -329,7 +346,8 @@ function indexFeaturePlacements(sectors: readonly WorldSectorView[]) {
   const address = (sector: WorldSectorView, x: number, y: number) =>
     `${namespace(sector)}:${namespace(sector) === 'atlas' ? ((x % WORLD_MAP_WIDTH) + WORLD_MAP_WIDTH) % WORLD_MAP_WIDTH : x}:${y}`
   const at = (sector: WorldSectorView, x: number, y: number) => known.get(address(sector, x, y))
-  const liquid = (cell: WorldCell | undefined) => cell?.terrain === '~' || cell?.terrain === 'l'
+  const liquid = (cell: WorldCell | undefined) =>
+    isWaterTerrain(cell?.terrain) || cell?.terrain === 'l'
   for (const sector of sectors) {
     const origin = sectorMapOrigin(sector)
     for (const cell of sector.cells)
@@ -344,18 +362,20 @@ function indexFeaturePlacements(sectors: readonly WorldSectorView[]) {
         y = origin.y + landmark.y
       if (landmark.kind === 'bridge') {
         placements.set(landmark.id, null)
-        if (at(sector, x, y)?.terrain !== '=' || !at(sector, x, y)?.walkable) continue
+        if (!['=', 's'].includes(at(sector, x, y)?.terrain ?? '') || !at(sector, x, y)?.walkable)
+          continue
         for (const axis of [0, 1]) {
           const dx = axis === 0 ? 1 : 0,
             dy = axis === 1 ? 1 : 0
           const crossing = (cx: number, cy: number) => {
             const cell = at(sector, cx, cy)
-            if (cell?.terrain !== '=' || !cell.walkable) return null
+            if (!['=', 's'].includes(cell?.terrain ?? '') || !cell?.walkable) return null
             const waterSide = (sign: number) => {
               for (let i = 1; i <= 4; i++) {
                 const next = at(sector, cx + dy * sign * i, cy + dx * sign * i)
-                if (liquid(next)) return { terrain: next!.terrain, distance: i }
-                if (next?.terrain !== '=' || !next.walkable) break
+                if (liquid(next))
+                  return { terrain: isWaterTerrain(next!.terrain) ? '~' : 'l', distance: i }
+                if (!['=', 's'].includes(next?.terrain ?? '') || !next?.walkable) break
               }
               return null
             }
@@ -422,7 +442,8 @@ function indexFeaturePlacements(sectors: readonly WorldSectorView[]) {
           const o = sectorMapOrigin(candidate, namespace(sector) === 'atlas' ? x : undefined)
           for (const cell of candidate.cells) {
             if (
-              (cell.terrain !== '~' && !(landmark.sceneryIndex === 4 && cell.terrain === 'l')) ||
+              (!isWaterTerrain(cell.terrain) &&
+                !(landmark.sceneryIndex === 4 && cell.terrain === 'l')) ||
               cell.walkable
             )
               continue
@@ -659,6 +680,9 @@ export function createMapRenderer(
   let coastField = buildPublicCoasts({ ...view, sectors: renderSectors })
   let warpedFog = buildWarpedFogField(renderSectors)
   let heatEmitters = terrainHeatEmitters(renderSectors)
+  let grandDiscoveries = grandDiscoveryPlacements(renderSectors, view.publicGrandDiscoveries)
+  let oceanDiscoveries = oceanFeaturePlacements(renderSectors, coastField, view.atlas)
+  const shallowRipples = new ShallowWaterRipples()
   const clouds = [0, 1, 2].map((i) => createCloudTexture('world-cloud:' + i))
   let cachedPixels = 0
   let visibleGroundIds = new Set<string>()
@@ -675,6 +699,8 @@ export function createMapRenderer(
     settlementGround = buildSettlementGround(renderSectors, coastField)
     warpedFog = buildWarpedFogField(renderSectors)
     heatEmitters = terrainHeatEmitters(renderSectors)
+    grandDiscoveries = grandDiscoveryPlacements(renderSectors, view.publicGrandDiscoveries)
+    oceanDiscoveries = oceanFeaturePlacements(renderSectors, coastField, view.atlas)
     terrainKeys.clear()
     featureKeys.clear()
     for (const sector of renderSectors) {
@@ -726,6 +752,7 @@ export function createMapRenderer(
         name === 'terrain' ||
         name === 'regional-ground' ||
         name === 'water-materials' ||
+        name === 'natural-lakes' ||
         name === 'void-ground' ||
         name === 'settlement-floors' ||
         name === 'impact-basins'
@@ -743,6 +770,30 @@ export function createMapRenderer(
   load('living-trees', 'v01')
   load('water-materials', 'v01')
   const loadRegionalArt = () => {
+    for (const discovery of [...grandDiscoveries, ...oceanDiscoveries])
+      if (!images.has(discovery.sheet)) load(discovery.sheet, 'v01')
+    if (
+      !images.has('grand-discoveries') &&
+      renderSectors.some((sector) =>
+        [...(featurePlacements.get(sector.id)?.values() ?? [])].some(
+          (placement) =>
+            placement?.underpass && grandBridgeDiscoveryArt(sector, placement.span ?? 0),
+        ),
+      )
+    )
+      load('grand-discoveries', 'v01')
+    for (const sector of renderSectors)
+      for (const building of sector.buildings ?? []) {
+        const art = crownWallArt(building) ?? townArchitectureArt(sector, building)
+        if (art && !images.has(art.sheet)) load(art.sheet, 'v01')
+      }
+    if (
+      !images.has('natural-lakes') &&
+      [...waterField.values()].some((sector) =>
+        [...sector.cells.values()].some((cell) => cell.basin),
+      )
+    )
+      load('natural-lakes', 'v01')
     if (
       !images.has('settlement-floors') &&
       renderSectors.some((s) => settlementFloorIndex(s) !== undefined)
@@ -1106,7 +1157,7 @@ export function createMapRenderer(
     for (const cell of sector.cells) {
       const x = cell.x * tile,
         y = cell.y * tile
-      if (warped && cell.terrain !== '~' && cell.terrain !== 'l') {
+      if (warped && !isWaterTerrain(cell.terrain) && cell.terrain !== 'l') {
         c.fillStyle = warped
         c.globalAlpha = 0.68
         c.fillRect(x, y, tile + 1, tile + 1)
@@ -1121,10 +1172,10 @@ export function createMapRenderer(
           (landmark) => Math.abs(landmark.x - cell.x) + Math.abs(landmark.y - cell.y) <= 3,
         )
         const waterAdjacent =
-          localTerrain.get(`${cell.x + 1}:${cell.y}`)?.terrain === '~' ||
-          localTerrain.get(`${cell.x - 1}:${cell.y}`)?.terrain === '~' ||
-          localTerrain.get(`${cell.x}:${cell.y + 1}`)?.terrain === '~' ||
-          localTerrain.get(`${cell.x}:${cell.y - 1}`)?.terrain === '~'
+          isWaterTerrain(localTerrain.get(`${cell.x + 1}:${cell.y}`)?.terrain) ||
+          isWaterTerrain(localTerrain.get(`${cell.x - 1}:${cell.y}`)?.terrain) ||
+          isWaterTerrain(localTerrain.get(`${cell.x}:${cell.y + 1}`)?.terrain) ||
+          isWaterTerrain(localTerrain.get(`${cell.x}:${cell.y - 1}`)?.terrain)
         const winterPath = sector.regionId === WINTER_ART && !square && !waterAdjacent
         const naturalTrail =
           !pavedCells?.has(`${cell.x}:${cell.y}`) &&
@@ -1192,8 +1243,17 @@ export function createMapRenderer(
             pavedCells,
           )
       }
-      if (cell.terrain === '~' || cell.terrain === 'l') {
-        const water = cell.terrain === '~'
+      if (isWaterTerrain(cell.terrain) || cell.terrain === 'l') {
+        const water = isWaterTerrain(cell.terrain)
+        const surfaceProfile = (water ? waterField : lavaField)
+          .get(sector.id)
+          ?.cells.get(`${cell.x}:${cell.y}`)
+        c.save()
+        if (surfaceProfile) {
+          c.translate(x, y)
+          clipWaterSurface(c, surfaceProfile, tile)
+          c.translate(-x, -y)
+        }
         c.fillStyle = water ? waterMaterial : lavaMaterial
         c.fillRect(x, y, tile, tile)
         if (water) {
@@ -1207,25 +1267,17 @@ export function createMapRenderer(
               images.get('water-materials'),
               (sector.atlasColumn ?? sector.sceneColumn ?? 0) * GRID_WIDTH + cell.x,
               (sector.atlasRow ?? sector.sceneRow ?? 0) * GRID_HEIGHT + cell.y,
+              images.get('natural-lakes'),
             )
         } else {
           const profile = lavaField.get(sector.id)?.cells.get(`${cell.x}:${cell.y}`)
           if (profile) paintLavaGround(c, profile, tile)
         }
       }
+      if (isWaterTerrain(cell.terrain) || cell.terrain === 'l') c.restore()
       if (cell.terrain === '#') {
-        const shade = c.createRadialGradient(
-          x + tile / 2,
-          y + tile / 2,
-          tile * 0.14,
-          x + tile / 2,
-          y + tile / 2,
-          tile * 0.58,
-        )
-        shade.addColorStop(0, 'rgba(51,56,53,.18)')
-        shade.addColorStop(1, 'rgba(51,56,53,0)')
-        c.fillStyle = shade
-        c.fillRect(x, y, tile, tile)
+        // Rock contact shadows belong to the grounded sprite pass. A radial
+        // shade clipped to this square still leaves visible diamond corners.
         if (warped) paintWarpedScree(c, cell, tile, sector.id)
       }
       const fogMask = fogCells?.get(`${cell.x}:${cell.y}`)
@@ -1258,7 +1310,7 @@ export function createMapRenderer(
           const cell = sector.cells.find(
             (cell) => cell.x === wx - origin.x && cell.y === wy - origin.y,
           )
-          if (cell?.terrain !== '~' && cell?.terrain !== 'l') continue
+          if (!isWaterTerrain(cell?.terrain) && cell?.terrain !== 'l') continue
           const mx = (wx - origin.x) * tile,
             my = (wy - origin.y) * tile
           const nearX = mx + (strip.axis === 1 ? (end < 0 ? tile : 0) : tile / 2)
@@ -1311,6 +1363,7 @@ export function createMapRenderer(
                 images.get('water-materials'),
                 x,
                 y,
+                images.get('natural-lakes'),
               )
             cells.push({ x, y, profile })
           }
@@ -1438,7 +1491,7 @@ export function createMapRenderer(
         (ambient &&
           sector.cells.some(
             ({ terrain, x, y }) =>
-              (terrain === '~' || terrain === 'l') &&
+              (isWaterTerrain(terrain) || terrain === 'l') &&
               liquidVisible(screen({ x: origin.x + x, y: origin.y + y })),
           ))
       )
@@ -1535,6 +1588,16 @@ export function createMapRenderer(
     const budget = mapQualityBudgets[quality]
     const richAtmosphere = budget.clouds && (width >= 600 || quality === 'high')
     const ambient = animate && !reduced
+    const valley = grandDiscoveries.find((site) => site.id === 'elemental-valley')
+    if (valley)
+      for (const detail of valleyDetailArt)
+        if (valley.widthTiles * tile > detail.minProjectedMacroWidth && !images.has(detail.sheet))
+          load(detail.sheet, 'v01')
+    if (
+      grandDiscoveries.some((site) => site.arenaFloor) &&
+      !images.has(colosseumArenaMaterial.sheet)
+    )
+      load(colosseumArenaMaterial.sheet, 'v01')
     const ferryFrame = current?.id.startsWith('ferry:')
       ? ferryWaterFrame(
           view.ferry?.passage,
@@ -1565,7 +1628,21 @@ export function createMapRenderer(
         ? '#284b57'
         : '#233d3c'
     if (ferryFrame) paintFerrySea(ctx, width, height, ferryFrame, quality === 'low')
-    else ctx.fillRect(0, 0, width, height)
+    else {
+      ctx.fillRect(0, 0, width, height)
+      if (current?.charted)
+        paintOpenSea(
+          ctx,
+          width,
+          height,
+          tile,
+          { x: camera.x + pan.x, y: camera.y + pan.y },
+          now,
+          ambient,
+          surfaceWeather,
+          quality === 'low' ? 18 : 48,
+        )
+    }
     const visible = renderSectors.filter((sector) => {
       const p = screen(sectorOrigin(sector))
       return (
@@ -1652,6 +1729,31 @@ export function createMapRenderer(
       wildlifeCount = 0,
       coastEdges = 0,
       wildlifeWalking = 0
+    if (!cachedScenery) {
+      for (const discovery of [...grandDiscoveries, ...oceanDiscoveries]) {
+        const image = images.get(discovery.sheet)
+        if (!image?.complete || !image.naturalWidth) continue
+        addScenery({
+          x: wrappedMapX(discovery.worldx, camera.x),
+          y: discovery.worldy,
+          width: discovery.widthTiles * tile,
+          height: discovery.heightTiles * tile,
+          image,
+          index: discovery.index,
+          columns: discovery.columns,
+          rows: discovery.rows,
+          anchorX: discovery.anchorX,
+          anchorY: discovery.anchorY,
+          tree: false,
+          grandFeature: !('coastSide' in discovery),
+          oceanFeature: 'coastSide' in discovery,
+          ...('arenaFloor' in discovery ? { arenaFloor: discovery.arenaFloor } : {}),
+          ...('waterfall' in discovery
+            ? { waterfall: discovery.waterfall, waterfallStyle: 'grand' as const }
+            : {}),
+        })
+      }
+    }
     for (const [index, sector] of visible.entries()) {
       const origin = sectorOrigin(sector),
         p = screen(origin)
@@ -1840,6 +1942,27 @@ export function createMapRenderer(
         }
       }
       for (const building of cachedScenery ? [] : (sector.buildings ?? [])) {
+        const wall = crownWallArt(building)
+        if (wall) {
+          const image = images.get(wall.sheet)
+          if (!image?.complete || !image.naturalWidth) continue
+          for (const segment of crownWallSegments(building)) {
+            addScenery({
+              x: origin.x + segment.x,
+              y: origin.y + segment.y,
+              width: tile * segment.widthTiles,
+              height: tile * segment.heightTiles,
+              image,
+              index: wall.index,
+              columns: wall.columns,
+              rows: wall.rows,
+              anchorX: wall.anchorX,
+              anchorY: wall.anchorY,
+              tree: false,
+            })
+          }
+          continue
+        }
         const winterIndex =
           winterArt?.complete && winterArt.naturalWidth
             ? winterBuildingIndex(sector, building)
@@ -1866,6 +1989,27 @@ export function createMapRenderer(
           })
           continue
         }
+        const architecture = townArchitectureArt(sector, building)
+        if (architecture) {
+          const image = images.get(architecture.sheet)
+          if (image?.complete && image.naturalWidth) {
+            const size = width * (building.artIndex >= 10 ? 1.25 : 1.08)
+            addScenery({
+              ...point,
+              width: size,
+              height: size * architecture.aspect,
+              image,
+              index: architecture.index,
+              columns: architecture.columns,
+              rows: architecture.rows,
+              anchorX: architecture.anchorX,
+              anchorY: architecture.anchorY,
+              tree: false,
+            })
+            continue
+          }
+          if (building.artIndex >= 10) continue
+        }
         const regionalIndex =
           settlementArt?.complete && settlementArt.naturalWidth
             ? regionalBuildingIndex(sector, building)
@@ -1890,6 +2034,10 @@ export function createMapRenderer(
         }
         const asset = building.propIndex === undefined ? buildings : props
         if (!asset?.complete || !asset.naturalWidth) continue
+        const contact = legacyStructureContact(
+          building.propIndex === undefined ? 'buildings' : 'props',
+          building.propIndex ?? building.artIndex,
+        )
         addScenery({
           ...point,
           width,
@@ -1901,6 +2049,7 @@ export function createMapRenderer(
           index: building.propIndex ?? building.artIndex,
           columns: building.propIndex === undefined ? 3 : 4,
           rows: building.propIndex === undefined ? 3 : 2,
+          ...(contact ? { anchorX: contact[0], anchorY: contact[1] } : {}),
           tree: false,
         })
       }
@@ -2022,50 +2171,83 @@ export function createMapRenderer(
             : undefined
           const grand = images.get('grand-bridges')
           const grandReady = grandIndex !== undefined && grand?.complete && grand.naturalWidth
+          const discoveryBridge = placement?.underpass
+            ? grandBridgeDiscoveryArt(sector, placement.span ?? 0)
+            : undefined
+          const discoveryImage = discoveryBridge && images.get(discoveryBridge.sheet)
+          const discoveryReady =
+            discoveryBridge && discoveryImage?.complete && discoveryImage.naturalWidth
           const lavaFalls = placement?.fallMaterial === 'lava'
           const falls = images.get(lavaFalls ? 'lavafalls' : 'waterfalls')
           const fallsReady =
             landmark.sceneryIndex === 4 && placement && falls?.complete && falls.naturalWidth
-          const asset = grandReady ? grand! : fallsReady ? falls! : scenic ? beauties! : props
-          const index = grandReady
-            ? grandIndex!
-            : fallsReady
-              ? lavaFalls
-                ? 0
-                : waterfallArt(sector.regionId)
-              : scenic
-                ? landmark.sceneryIndex
-                : landmarkProps[landmark.kind]
+          const asset = discoveryReady
+            ? discoveryImage!
+            : grandReady
+              ? grand!
+              : fallsReady
+                ? falls!
+                : scenic
+                  ? beauties!
+                  : props
+          const index = discoveryReady
+            ? discoveryBridge.index
+            : grandReady
+              ? grandIndex!
+              : fallsReady
+                ? lavaFalls
+                  ? 0
+                  : waterfallArt(sector.regionId)
+                : scenic
+                  ? landmark.sceneryIndex
+                  : landmarkProps[landmark.kind]
           if (index === undefined) continue
           const ordinarySize = landmark.kind === 'bridge' ? 2.7 : scenic ? 2.4 : 1.55
           const size = tile * landmarkArtSize(sector, landmark, ordinarySize)
           const adjusted =
-            placement && grandReady
+            placement && discoveryReady
               ? {
                   ...placement,
-                  width: ((placement.span ?? 2) * MAP_X) / 0.63,
-                  height: ((placement.span ?? 2) * MAP_Y) / 0.376,
-                  anchorX: 0.533,
-                  anchorY: 0.688,
+                  width:
+                    ((placement.span ?? 2) * MAP_X) /
+                    Math.abs(discoveryBridge.baseContacts[1].x - discoveryBridge.baseContacts[0].x),
+                  height:
+                    ((placement.span ?? 2) * MAP_Y) /
+                    (discoveryBridge.baseContacts[1].y - discoveryBridge.baseContacts[0].y),
+                  anchorX: discoveryBridge.anchorX,
+                  anchorY: discoveryBridge.anchorY,
                   source: undefined,
                 }
-              : placement && fallsReady
+              : placement && grandReady
                 ? {
                     ...placement,
-                    width: 2.65,
-                    height: 2.65,
-                    anchorX: 0.49,
-                    anchorY: 0.9,
+                    width: ((placement.span ?? 2) * MAP_X) / 0.63,
+                    height: ((placement.span ?? 2) * MAP_Y) / 0.376,
+                    anchorX: 0.533,
+                    anchorY: 0.688,
                     source: undefined,
                   }
-                : placement
+                : placement && fallsReady
+                  ? {
+                      ...placement,
+                      width: 2.65,
+                      height: 2.65,
+                      anchorX: 0.49,
+                      anchorY: 0.9,
+                      source: undefined,
+                    }
+                  : placement
+          const contact =
+            !adjusted && asset === props ? legacyStructureContact('props', index) : undefined
           addScenery({
             x: adjusted
               ? sector.charted
                 ? wrappedMapX(adjusted.point.x, camera.x)
                 : adjusted.point.x
               : origin.x + landmark.x + 0.5,
-            y: adjusted?.point.y ?? origin.y + landmark.y + 0.5 + ordinarySize * 0.25,
+            y:
+              adjusted?.point.y ??
+              origin.y + landmark.y + 0.5 + (contact ? 0 : ordinarySize * 0.25),
             width: adjusted ? adjusted.width * tile : size,
             height: adjusted ? adjusted.height * tile : size,
             ...(adjusted
@@ -2078,15 +2260,23 @@ export function createMapRenderer(
                   underpassSurface: cache.get(sector.id)?.surfaces.get(landmark.id),
                   bridgeStrips: adjusted.bridgeStrips,
                 }
-              : {}),
+              : contact
+                ? { anchorX: contact[0], anchorY: contact[1] }
+                : {}),
             image: asset,
             index,
-            columns: fallsReady && lavaFalls ? 2 : grandReady || fallsReady ? 3 : 4,
-            rows: grandReady || fallsReady ? 1 : 2,
+            columns: discoveryReady
+              ? 2
+              : fallsReady && lavaFalls
+                ? 2
+                : grandReady || fallsReady
+                  ? 3
+                  : 4,
+            rows: discoveryReady ? 2 : grandReady || fallsReady ? 1 : 2,
             tree: false,
             waterfall: landmark.sceneryIndex === 4,
             waterfallStyle: fallsReady ? (lavaFalls ? 'lava' : 'grand') : 'water',
-            grandBridge: Boolean(grandReady),
+            grandBridge: Boolean(grandReady || discoveryReady),
           })
         }
       if (!cachedScenery) {
@@ -2111,14 +2301,14 @@ export function createMapRenderer(
       }
       if (ambient && !sector.id.startsWith('ferry:'))
         for (const cell of sector.cells)
-          if ((cell.terrain === '~' || cell.terrain === 'l') && waterCells < budget.water) {
+          if ((isWaterTerrain(cell.terrain) || cell.terrain === 'l') && waterCells < budget.water) {
             const point = screen({ x: origin.x + cell.x, y: origin.y + cell.y })
             if (!liquidVisible(point)) continue
             waterCells++
             const liquidWorldX = origin.x + cell.x
             ctx.save()
             ctx.transform(MAP_X, MAP_Y, -MAP_X, MAP_Y, point.x, point.y)
-            if (cell.terrain === '~') {
+            if (isWaterTerrain(cell.terrain)) {
               const profile = waterField.get(sector.id)?.cells.get(`${cell.x}:${cell.y}`)
               if (profile)
                 paintWaterMotion(
@@ -2603,7 +2793,7 @@ export function createMapRenderer(
         ctx.ellipse(0, 0, 1, 1, 0, 0, Math.PI * 2)
         ctx.fill()
         ctx.restore()
-      } else {
+      } else if (!item.grandFeature && !item.oceanFeature) {
         ctx.fillStyle = 'rgba(20,32,25,.2)'
         ctx.beginPath()
         ctx.ellipse(p.x, p.y - 4, item.width * 0.36, 10, 0, 0, Math.PI * 2)
@@ -2712,6 +2902,21 @@ export function createMapRenderer(
       }
       const spriteX = (movingTree || anchored ? 0 : p.x) - item.width * (item.anchorX ?? 0.5)
       const spriteY = (movingTree || anchored ? 0 : p.y) - item.height * (item.anchorY ?? 1)
+      if (item.arenaFloor) {
+        const floor = item.arenaFloor
+        ctx.beginPath()
+        ctx.rect(spriteX, spriteY, item.width, item.height)
+        ctx.ellipse(
+          spriteX + floor.cx * item.width,
+          spriteY + floor.cy * item.height,
+          floor.rx * item.width,
+          floor.ry * item.height,
+          0,
+          0,
+          Math.PI * 2,
+        )
+        ctx.clip('evenodd')
+      }
       sprite(
         ctx,
         item.image,
@@ -2724,6 +2929,56 @@ export function createMapRenderer(
         item.height,
         item.source,
       )
+      if (item.image === images.get('elemental-waterfall-valley')) {
+        for (const detail of valleyDetailArt) {
+          if (item.width <= detail.minProjectedMacroWidth) continue
+          const image = images.get(detail.sheet)
+          if (!image?.complete || !image.naturalWidth) continue
+          const [sx, sy, sw, sh] = detail.source,
+            [x, y, width, height] = detail.target
+          // Each feathered frame retains the selected master's surrounding
+          // rocks/water, so no isolated silhouette mask can shift an avatar.
+          ctx.save()
+          ctx.globalAlpha = Math.min(1, (item.width - detail.minProjectedMacroWidth) / 768)
+          ctx.drawImage(
+            image,
+            sx * image.width,
+            sy * image.height,
+            sw * image.width,
+            sh * image.height,
+            spriteX + x * item.width,
+            spriteY + y * item.height,
+            width * item.width,
+            height * item.height,
+          )
+          ctx.restore()
+        }
+      }
+      if (item.oceanFeature && ambient) {
+        const roughness = Math.min(1, Math.abs(wind.speed) / 0.06)
+        const seed = hashString(`${item.x}:${item.y}:offshore-swell`)
+        ctx.save()
+        ctx.strokeStyle = '#c4e7df'
+        ctx.lineWidth = Math.max(0.6, tile * 0.012)
+        for (let crest = 0; crest < 3; crest++) {
+          const phase = (now / (7300 - roughness * 2200) + crest / 3 + (seed % 997) / 997) % 1
+          const x = spriteX + item.width * (0.23 + crest * 0.18)
+          const y = spriteY + item.height * (0.83 + phase * 0.065)
+          ctx.globalAlpha = Math.sin(phase * Math.PI) * (0.17 + roughness * 0.19)
+          ctx.beginPath()
+          ctx.moveTo(x, y)
+          ctx.bezierCurveTo(
+            x + item.width * 0.035,
+            y - item.height * 0.014,
+            x + item.width * 0.075,
+            y + item.height * 0.012,
+            x + item.width * 0.11,
+            y,
+          )
+          ctx.stroke()
+        }
+        ctx.restore()
+      }
       if (item.ferryMast && ferryFrame)
         paintFerryRig(
           ctx,
@@ -2801,6 +3056,68 @@ export function createMapRenderer(
       ctx.restore()
     }
     if (nextBatches) sceneryBatches = nextBatches
+    for (const ripple of shallowRipples.sample({
+      point: sample.point,
+      moving: sample.moving,
+      now,
+      enabled: ambient,
+      sectors: renderSectors,
+      currentSectorId: sample.position.sectorId,
+    })) {
+      const point = screen({ x: ripple.worldx, y: ripple.worldy })
+      ctx.save()
+      ctx.transform(MAP_X, MAP_Y, -MAP_X, MAP_Y, point.x, point.y)
+      ctx.globalAlpha = ripple.alpha
+      ctx.strokeStyle = '#d5ece2'
+      ctx.lineWidth = Math.max(0.65, tile * 0.012)
+      ctx.beginPath()
+      ctx.ellipse(0, 0, ripple.radius * tile, ripple.radius * tile, 0, 0, Math.PI * 2)
+      ctx.stroke()
+      ctx.restore()
+    }
+    for (const item of scenery) {
+      if (!item.arenaFloor) continue
+      const p = screen(item)
+      const x = p.x - item.width * (item.anchorX ?? 0.5)
+      const y = p.y - item.height * (item.anchorY ?? 1)
+      const floor = item.arenaFloor
+      ctx.save()
+      ctx.beginPath()
+      ctx.ellipse(
+        x + floor.cx * item.width,
+        y + floor.cy * item.height,
+        floor.rx * item.width,
+        floor.ry * item.height,
+        0,
+        0,
+        Math.PI * 2,
+      )
+      ctx.clip()
+      sprite(
+        ctx,
+        item.image,
+        item.index,
+        item.columns,
+        item.rows,
+        x,
+        y,
+        item.width,
+        item.height,
+        item.source,
+      )
+      const grain = images.get(colosseumArenaMaterial.sheet)
+      const pattern =
+        grain?.complete && grain.naturalWidth ? ctx.createPattern(grain, 'repeat') : null
+      if (pattern) {
+        const scale = (tile * colosseumArenaMaterial.worldTileSize) / colosseumArenaMaterial.width
+        ctx.translate(x, y)
+        ctx.scale(scale, scale)
+        ctx.globalAlpha = colosseumArenaMaterial.opacity
+        ctx.fillStyle = pattern
+        ctx.fillRect(0, 0, item.width / scale, item.height / scale)
+      }
+      ctx.restore()
+    }
     const labelBounds: { x: number; y: number; width: number; height: number }[] = []
     for (const sector of visible) {
       const origin = sectorOrigin(sector)
@@ -3009,7 +3326,15 @@ export function createMapRenderer(
               p.x > s.x - item.width * 0.35 &&
               p.x < s.x + item.width * 0.35 &&
               p.y > s.y - item.height * (item.anchorY ?? 0.8) &&
-              p.y < s.y + item.height * (1 - (item.anchorY ?? 1)),
+              p.y < s.y + item.height * (1 - (item.anchorY ?? 1)) &&
+              (!item.arenaFloor ||
+                ((p.x - (s.x + (item.arenaFloor.cx - (item.anchorX ?? 0.5)) * item.width)) /
+                  (item.arenaFloor.rx * item.width)) **
+                  2 +
+                  ((p.y - (s.y + (item.arenaFloor.cy - (item.anchorY ?? 1)) * item.height)) /
+                    (item.arenaFloor.ry * item.height)) **
+                    2 >
+                  1),
           )
         const actor = visibleActor(person.image, person.id, stack.point, person.self)
         const image = actor ? null : visibleImage(compactPortraitSource(person.image))
@@ -3098,6 +3423,9 @@ export function createMapRenderer(
       timing.completedAt = ended
       canvas.dataset.renderTiming = JSON.stringify(timing)
     }
+    if (timing || canvas.dataset.renderDiagnostics === 'coverage')
+      canvas.dataset.paintedGroundIds = JSON.stringify(visible.map((sector) => sector.id))
+    else if (canvas.dataset.paintedGroundIds !== undefined) delete canvas.dataset.paintedGroundIds
     frameTimes.push(ended - start)
     if (frameTimes.length > 120) frameTimes.shift()
     if (++drawn % 60 === 0) {
@@ -3379,6 +3707,9 @@ export function createMapRenderer(
       const started = profiling ? performance.now() : 0
       const terrain = worldRenderTerrain(next, renderSectors)
       const terrainChanged = terrain !== renderSectors || next.atlas !== view.atlas
+      const discoveryProofChanged =
+        (next.publicGrandDiscoveries ?? []).join(':') !==
+        (view.publicGrandDiscoveries ?? []).join(':')
       renderSectors = terrain
       const peerStarted = performance.now()
       if (next.serverNow !== view.serverNow) ferryClockAt = peerStarted
@@ -3387,6 +3718,10 @@ export function createMapRenderer(
       const indexStarted = profiling ? performance.now() : 0
       if (terrainChanged) {
         indexTerrain()
+        loadRegionalArt()
+      } else if (discoveryProofChanged) {
+        grandDiscoveries = grandDiscoveryPlacements(renderSectors, view.publicGrandDiscoveries)
+        clearStationaryScenery()
         loadRegionalArt()
       }
       if (profiling) {

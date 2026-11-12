@@ -11,6 +11,12 @@ import {
 import { settlementComposition } from '../src/components/world/map-settlement-composition'
 import { worldRenderTerrain } from '../src/components/world/map-render-terrain'
 import type { WorldView } from '../src/world/types'
+import { townArchitectureArt, crownWallArt } from '../src/components/world/map-town-architecture'
+import {
+  grandDiscoveryPlacements,
+  oceanFeaturePlacements,
+} from '../src/components/world/map-grand-discoveries'
+import { buildPublicCoasts } from '../src/components/world/map-coast'
 
 /** Decode every sheet used by supplied visible/neighbor ground, not only the current sector. */
 export async function waitForWorldArt(page: Page, view: WorldView) {
@@ -25,7 +31,21 @@ export async function waitForWorldArt(page: Page, view: WorldView) {
     'living-trees-v01',
     'water-materials-v01',
   ])
-  for (const sector of worldRenderTerrain(view)) {
+  const terrain = worldRenderTerrain(view)
+  for (const placement of [
+    ...grandDiscoveryPlacements(terrain, view.publicGrandDiscoveries),
+    ...oceanFeaturePlacements(
+      terrain,
+      buildPublicCoasts({ sectors: terrain, atlas: view.atlas }),
+      view.atlas,
+    ),
+  ])
+    sheets.add(`${placement.sheet}-v01`)
+  for (const sector of terrain) {
+    for (const building of sector.buildings ?? []) {
+      const art = crownWallArt(building) ?? townArchitectureArt(sector, building)
+      if (art) sheets.add(`${art.sheet}-v01`)
+    }
     if (settlementFloorIndex(sector) !== undefined) sheets.add('settlement-floors-v01')
     if (sector.warpedTheme) sheets.add('void-ground-v01')
     if (impactSite(sector)) sheets.add('impact-basins-v01')

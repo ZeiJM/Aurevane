@@ -108,6 +108,11 @@ describe('globe geographic labels', () => {
     capture.sphere?.onActivate?.(globeSectorCenter('S01-01', 128, 64)!)
     expect(onSelect).toHaveBeenLastCalledWith(null)
   })
+  it('names the veiled landmass as the Uncharted supercontinent', () => {
+    const markup = render(viewFor([atlasCell(85, 1, 'North town')]))
+    expect(markup).toContain('Uncharted supercontinent')
+    expect(markup).not.toMatch(/Uncharted waters/i)
+  })
   it('does not add private Void destinations to the charted pickers', () => {
     const privateCell = {
       ...atlasCell(21, 6, 'Unknown Void'),
