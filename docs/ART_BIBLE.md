@@ -1,4 +1,8 @@
+November12 living-world continuation: Owner requests twelve ordinary regional scenic pieces (50% above the original eight), plus four rare celestial/time-warped ruins, weighted toward Void; larger pieces span about three tiles. Yellow/spectral-white Void ground and purple/orange water join richer ground/water/foliage, simulated cliff/valley relief, detailed banks and occasional weather-driven surf. The two reference scenes remain the whole-world graphics target. Production release is explicitly authorized after quality/native smoke gates, with hourly action through verified live completion. No new reward mechanics, topology/collision, private reveal or data/content mutation. Current implementation/evidence: docs/verification/2026-11-12-world-environment-overhaul.md.
+
 # AUREVANE — Art Bible
+
+**Owner environment correction — November12,2026:** The winter lakeside village and lush river-valley references govern the overall World graphics direction: richly painted ground, clear water with visible depth, living varied foliage, tactile inhabited settlement surfaces and restrained environmental motion. Peripheral decals alone do not meet this request. Preserve regional identity, including living copper/green growth in Embervale/Emberreach and distinct strange Void materials; quieter wilderness paths contrast with built-up paving. Performance and terrain-loading continuity are part of this art work, not later optional polish. Current scope/design: [environment overhaul](superpowers/specs/2026-11-12-world-environment-overhaul-design.md). Earlier reference-fidelity claims remain subject to actual native/human review.
 
 **Status:** Authoritative visual specification
 

@@ -58,7 +58,17 @@ export async function handleMasterPlayersRequest(
                   'requestKey',
                   'confirmed',
                 ]
-              : []
+              : operation === 'teleport'
+                ? [
+                    'operation',
+                    'characterId',
+                    'requestKey',
+                    'expectedVersion',
+                    'destination',
+                    'reason',
+                    'confirmed',
+                  ]
+                : []
     if (Object.keys(input).some((key) => !allowed.includes(key)) || !allowed.length) invalid()
     const service = dependencies.createService()
     let result: unknown
@@ -82,6 +92,22 @@ export async function handleMasterPlayersRequest(
             requestKey,
             input.command,
           ),
+        }
+      } else if (operation === 'teleport') {
+        if (
+          typeof input.expectedVersion !== 'number' ||
+          !Number.isSafeInteger(input.expectedVersion) ||
+          input.expectedVersion < 0
+        )
+          invalid()
+        result = {
+          player: await service.teleport(actor.userId, {
+            characterId,
+            requestKey,
+            expectedVersion: input.expectedVersion,
+            destination: input.destination,
+            reason: input.reason,
+          }),
         }
       } else {
         if (

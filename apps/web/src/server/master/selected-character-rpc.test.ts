@@ -66,6 +66,8 @@ it.each([
   'read_master_player_v1',
   'edit_master_player_v1',
   'recover_master_player_battle_v1',
+  'teleport_master_player_v1',
+  'install_master_teleport_geometry_v1',
 ])('Players %s uses fresh trusted selected actor', async (name) => {
   const call = vi.fn(async (_name: string, parameters: Record<string, unknown>) => ({
     data: parameters,

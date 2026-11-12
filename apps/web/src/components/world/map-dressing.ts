@@ -1,6 +1,7 @@
 import type { WorldCell, WorldSectorView } from '@/world/types'
 import type { WorldWeather } from '@/world/environment'
 import { hashString } from '@/world/terrain-gen'
+import { GRID_HEIGHT, GRID_WIDTH } from '@/world/catalog'
 
 export type DressingSheet =
   | 'settlement-dressing'
@@ -11,6 +12,9 @@ export type DressingSheet =
   | 'void-frontier'
   | 'wild-verges'
   | 'hamlet-dressing'
+  | 'regional-scenery'
+  | 'regional-scenery-extra'
+  | 'rare-scenery'
 export interface ScenicDressing {
   x: number
   y: number
@@ -174,6 +178,105 @@ export function naturalDressing(sector: WorldSectorView): ScenicDressing[] {
     if (result.length === 2) break
   }
   return result
+}
+
+const regionalScenicIndex: Readonly<Partial<Record<string, number>>> = {
+  'aureth-crown': 0,
+  'verdant-expanse': 0,
+  frostmere: 1,
+  emberreach: 2,
+  'glasswind-desert': 3,
+  'hollow-coast': 4,
+  'starfall-highlands': 5,
+  'umbral-march': 6,
+}
+
+/** Scenic points, not new interactions: one complete known footprint, clear of routes/sites. */
+export function regionalScenery(sector: WorldSectorView): ScenicDressing[] {
+  if (sector.townId || sector.id.startsWith('ferry:') || (!sector.charted && !sector.warpedTheme))
+    return []
+  const seed = hashString(`${sector.id}:regional-scenery`)
+  const rare = sector.warpedTheme ? (seed ^ hashString(sector.warpedTheme)) >>> 0 : seed
+  const rareScene = sector.warpedTheme ? rare % 7 === 0 : rare % 37 === 0
+  if (!rareScene && seed % 3 !== 0) return []
+  const extra = (seed >>> 7) % 2 === 0
+  const extraIndex = sector.warpedTheme
+    ? 3
+    : sector.regionId === 'frostmere'
+      ? 1
+      : sector.regionId === 'emberreach'
+        ? 2
+        : sector.regionId === 'aureth-crown' || sector.regionId === 'verdant-expanse'
+          ? 0
+          : undefined
+  const sheet: DressingSheet = rareScene
+    ? 'rare-scenery'
+    : extra && extraIndex !== undefined
+      ? 'regional-scenery-extra'
+      : 'regional-scenery'
+  const index = rareScene
+    ? sector.warpedTheme
+      ? 1 + ((rare >>> 12) % 3)
+      : 0
+    : sheet === 'regional-scenery-extra'
+      ? extraIndex
+      : sector.warpedTheme
+        ? 7
+        : regionalScenicIndex[sector.regionId]
+  if (index === undefined) return []
+  const ground = new Map(sector.cells.map((cell) => [`${cell.x}:${cell.y}`, cell]))
+  // Private terrain is progressive. Wait for the complete supplied district before
+  // selecting its optional extra set piece; its existing authored focal art remains.
+  // Choosing among incomplete private candidates would move art as more cells arrive.
+  if (sector.warpedTheme)
+    for (let y = 0; y < GRID_HEIGHT; y++)
+      for (let x = 0; x < GRID_WIDTH; x++) if (!ground.has(`${x}:${y}`)) return []
+  const points = Array.from({ length: (GRID_WIDTH - 4) * (GRID_HEIGHT - 4) }, (_, i) => ({
+    x: 2 + (i % (GRID_WIDTH - 4)),
+    y: 2 + Math.floor(i / (GRID_WIDTH - 4)),
+  }))
+  const score = (point: Point) =>
+    hashString(`${sector.id}:${sector.warpedTheme ?? ''}:${point.x}:${point.y}:scenic`)
+  const eligible = (anchor: Point) => {
+    for (let dy = -1; dy <= 1; dy++)
+      for (let dx = -1; dx <= 1; dx++) {
+        const cell = ground.get(`${anchor.x + dx}:${anchor.y + dy}`)
+        if (!cell || cell.terrain !== '.' || !cell.walkable || cell.safe) return false
+      }
+    if (sector.landmarks.some((site) => distance(site, anchor) < 3)) return false
+    if (sector.warpedScenery && distance(sector.warpedScenery, anchor) < 3) return false
+    if (
+      sector.buildings?.some(
+        (b) =>
+          anchor.x >= b.x - 2 &&
+          anchor.x <= b.x + b.width + 1 &&
+          anchor.y >= b.y - 2 &&
+          anchor.y <= b.y + b.height + 1,
+      )
+    )
+      return false
+    return true
+  }
+  const ranked = points.sort((a, b) => score(a) - score(b))
+  const anchor = sector.warpedTheme ? ranked.find(eligible) : ranked[0]
+  if (!anchor || !eligible(anchor)) return []
+  const point = ground.get(`${anchor.x}:${anchor.y}`)
+  return point
+    ? [
+        {
+          x: point.x,
+          y: point.y,
+          sheet,
+          index,
+          scale: rareScene ? 2.15 : 1.15,
+          ...(sector.warpedTheme
+            ? { glow: voidGlow[sector.warpedTheme] }
+            : index === 2
+              ? { glow: '#f3af62' }
+              : {}),
+        },
+      ]
+    : []
 }
 
 const northLights = [

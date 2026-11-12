@@ -409,15 +409,21 @@ export function paintCoastSea(
     lip.addColorStop(0.45, `rgb(${palette.dry})`)
     lip.addColorStop(1, palette.wet)
     paintBand(context, edge, tile, -0.3, 0, lip)
-    for (let wave = 0; wave < waves; wave++) {
+    // Long swell groups occasionally break; gusts strengthen them, never add crests.
+    const swellPhase = animate
+      ? (now / (23000 + (edge.seed % 7000)) + (edge.seed % 131) / 131) % 1
+      : 0
+    const breaker = animate ? Math.max(0, Math.sin(swellPhase * Math.PI * 2)) ** 8 : 0
+    for (let wave = 0; wave < Math.max(0, Math.min(3, waves)); wave++) {
       const phase = animate
         ? (now / (9600 + (edge.seed % 2000)) + wave / waves + (edge.seed % 97) / 97) % 1
         : (wave + 1) / (waves + 1)
-      context.globalAlpha = Math.sin(phase * Math.PI) * (0.22 + roughness * 0.17)
+      context.globalAlpha =
+        Math.sin(phase * Math.PI) * (0.22 + roughness * 0.17 + breaker * (0.16 + roughness * 0.12))
       context.strokeStyle = '#d1e3cd'
-      context.lineWidth = tile * (0.013 + roughness * 0.01)
+      context.lineWidth = tile * (0.013 + roughness * 0.01 + breaker * (0.022 + roughness * 0.026))
       context.beginPath()
-      trace(context, edge, tile, 0.08 + phase * (1.15 + roughness * 0.62))
+      trace(context, edge, tile, 0.08 + (1 - phase) * (1.15 + roughness * 0.62))
       context.stroke()
     }
     context.globalAlpha = 1

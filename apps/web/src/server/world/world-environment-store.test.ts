@@ -25,6 +25,8 @@ it('reads stored settings', async () => {
     dayLengthMinutes: 1440,
     weatherRollMinutes: 360,
     warpedShiftMinutes: 1440,
+    voidRealmOverride: null,
+    voidRealmOverrideUntil: null,
     timeOffsetMinutes: -30,
     frozenMinuteOfDay: 600,
     weatherOverride: 'fog',
@@ -73,4 +75,22 @@ it('reads the expedition cadence separately from the world clock and rejects inv
   ).toMatchObject({ dayLengthMinutes: 120, warpedShiftMinutes: 30 })
   for (const warpedShiftMinutes of [0, 1.5, 10081, '5', null])
     expect(parseWorldEnvironmentSettings({ ...base, warpedShiftMinutes })).toBeNull()
+})
+
+it('parses persisted Void selections and rejects invalid ids or unpaired expiry', () => {
+  const base = { version: 1, timeOffsetMinutes: 0 }
+  expect(
+    parseWorldEnvironmentSettings({
+      ...base,
+      voidRealmOverride: 'glass-tides',
+      voidRealmOverrideUntilMs: 600_000,
+    }),
+  ).toMatchObject({ voidRealmOverride: 'glass-tides', voidRealmOverrideUntil: 600_000 })
+  for (const extra of [
+    { voidRealmOverride: 'unknown', voidRealmOverrideUntilMs: 600_000 },
+    { voidRealmOverride: 'glass-tides', voidRealmOverrideUntilMs: null },
+    { voidRealmOverride: null, voidRealmOverrideUntilMs: 600_000 },
+    { voidRealmOverride: 'glass-tides', voidRealmOverrideUntilMs: 1.5 },
+  ])
+    expect(parseWorldEnvironmentSettings({ ...base, ...extra })).toBeNull()
 })

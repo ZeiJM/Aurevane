@@ -662,7 +662,7 @@ it('every legacy mutation overload checks actual authority before its precise re
     await denied(() => db.query(sql, values), /OPERATOR_REQUIRED/)
   }
 })
-it('retains all 48 legacy, 29 workspace and 4 Owner actor contracts with private helpers inaccessible', async () => {
+it('retains all 48 legacy, 31 workspace and 4 Owner actor contracts with private helpers inaccessible', async () => {
   const workspaceSignatures = [
     'public.grant_master_test_item_v1(uuid,uuid,text,integer,bigint,text,uuid)',
     'public.read_master_panel_navigation_v1(uuid,uuid)',
@@ -671,6 +671,9 @@ it('retains all 48 legacy, 29 workspace and 4 Owner actor contracts with private
     'public.delete_discipline_v1(uuid,uuid,text,text)',
     'public.read_master_panel_activity_v1(uuid,integer,bigint,uuid)',
     'public.set_world_environment_v2(uuid,integer,jsonb,uuid)',
+    // New selected-page teleport APIs have no account-only predecessor.
+    'public.install_master_teleport_geometry_v1(uuid,text,jsonb,uuid)',
+    'public.teleport_master_player_v1(uuid,uuid,bigint,uuid,text,integer,integer,integer,text,boolean,uuid)',
     'public.publish_battlefield_elevation_policy_v2(uuid,integer,jsonb,uuid)',
     'public.publish_battlefield_elevation_policy_v3(uuid,integer,jsonb,uuid)',
     'public.publish_combat_effect_timing_policy_v2(uuid,integer,jsonb,text,uuid)',
@@ -727,7 +730,7 @@ it('retains all 48 legacy, 29 workspace and 4 Owner actor contracts with private
     )
   ).rows
   expect(legacyActorSignatures).toHaveLength(48)
-  expect(workspaceContracts).toHaveLength(29)
+  expect(workspaceContracts).toHaveLength(31)
   expect(ownerContracts).toHaveLength(4)
   expect(await actorSignatures()).toEqual(
     [
@@ -773,6 +776,8 @@ it('retains all 48 legacy, 29 workspace and 4 Owner actor contracts with private
     'app_private.discipline_deletion_impact_v1(text)',
     'app_private.master_page_capabilities_v1(text[])',
     'app_private.assert_master_page_v1(uuid,uuid,text)',
+    'app_private.world_void_realm_at_phase_v1(bigint)',
+    'app_private.world_void_rotation_v1(bigint)',
     'app_private.prevent_moderation_history_change_v1()',
     'app_private.discipline_grant_only_v1(text)',
     'app_private.discipline_unlocked_before_player_grants_v1(uuid,text)',

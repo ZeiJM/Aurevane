@@ -57,11 +57,12 @@ export const townPaving: Readonly<Record<string, { color: string; glaze: string 
   'umbral-march': { color: '#657067', glaze: 'rgba(53,73,66,.41)' },
 }
 
+// Strong material glazes make private ground visibly alien, including white and yellow.
 export const warpedPalette = {
-  haven: 'rgba(120,153,104,.20)',
-  ashen: 'rgba(56,45,60,.38)',
-  fracture: 'rgba(109,88,165,.29)',
-  wayfarer: 'rgba(135,127,90,.15)',
-  amber: 'rgba(159,80,61,.25)',
-  amethyst: 'rgba(143,93,163,.29)',
+  haven: '#e5f1cb',
+  ashen: '#eeeaf5',
+  fracture: '#e6d451',
+  wayfarer: '#a8dfd4',
+  amber: '#e9bc48',
+  amethyst: '#b184d6',
 } satisfies Record<NonNullable<WorldSectorView['warpedTheme']>, string>

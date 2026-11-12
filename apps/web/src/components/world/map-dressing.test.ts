@@ -4,7 +4,7 @@ import { projectWorld } from '@/server/world/world-service'
 import { warpedContinentSectors } from '@/server/world/warped-continent'
 import { newWorldState, revealNearby } from '@/world/travel'
 import type { WorldSectorView } from '@/world/types'
-import { naturalDressing, sceneryDressing } from './map-dressing'
+import { naturalDressing, regionalScenery, sceneryDressing } from './map-dressing'
 
 vi.mock('server-only', () => ({}))
 
@@ -138,4 +138,128 @@ it('reveals a fixed district prop only after its own ground is surveyed', () => 
   expect(marker(1)).toBeUndefined()
   expect(marker(3)).toMatchObject({ x: 5, y: 6 })
   expect(marker(6)).toEqual(marker(3))
+})
+
+it('fills regional wilderness with stable local points of interest while leaving movement and private reveal intact', () => {
+  const natural = {
+    ...winter,
+    id: 'scenic-field',
+    townId: undefined,
+    landmarks: [],
+    buildings: [],
+    cells: cells.map((c) => ({ ...c, safe: false, terrain: '.', walkable: true })),
+  }
+  while (regionalScenery(natural).length === 0) natural.id += 'x'
+  const entries = [
+    'verdant-expanse',
+    'frostmere',
+    'emberreach',
+    'glasswind-desert',
+    'hollow-coast',
+    'starfall-highlands',
+    'umbral-march',
+  ].map((regionId) => {
+    const sector = { ...natural, regionId }
+    const props = regionalScenery(sector)
+    expect(props).toHaveLength(1)
+    expect(regionalScenery(sector)).toEqual(props)
+    const prop = props[0]!
+    expect(['regional-scenery', 'regional-scenery-extra']).toContain(prop.sheet)
+    for (let dy = -1; dy <= 1; dy++)
+      for (let dx = -1; dx <= 1; dx++)
+        expect(
+          sector.cells.some((c) => c.x === prop.x + dx && c.y === prop.y + dy && c.terrain === '.'),
+        ).toBe(true)
+    expect(regionalScenery({ ...sector, townId: 'town' })).toEqual([])
+    expect(
+      regionalScenery({
+        ...sector,
+        cells: sector.cells.map((c) => ({ ...c, terrain: '=', safe: true })),
+      }),
+    ).toEqual([])
+    expect(regionalScenery({ ...sector, charted: false })).toEqual([])
+    return `${prop.sheet}:${prop.index}`
+  })
+  expect(new Set(entries).size).toBe(7)
+  const privateSector = { ...natural, charted: false, warpedTheme: 'ashen' as const }
+  expect(regionalScenery(privateSector)[0]).toBeDefined()
+  expect(regionalScenery({ ...privateSector, cells: [] })).toEqual([])
+  expect(regionalScenery({ ...privateSector, cells: [natural.cells[0]!] })).toEqual([])
+})
+
+it('uses all twelve ordinary assets and sparse multi-tile celestial/time ruins, weighted toward the Void', () => {
+  const natural = {
+    ...winter,
+    townId: undefined,
+    landmarks: [],
+    buildings: [],
+    cells: cells.map((c) => ({ ...c, safe: false, terrain: '.', walkable: true })),
+  }
+  const ordinary = new Set<string>()
+  const rare = new Set<number>()
+  let voidRare = 0,
+    ordinaryVoid = 0
+  for (let i = 0; i < 160; i++) {
+    for (const regionId of WORLD_REGIONS.map((r) => r.id)) {
+      const prop = regionalScenery({ ...natural, id: `field-${i}-${i * 137}`, regionId })[0]
+      if (!prop) continue
+      if (prop.sheet === 'rare-scenery') {
+        expect(prop.scale).toBeGreaterThan(2)
+        rare.add(prop.index)
+      } else ordinary.add(`${prop.sheet}:${prop.index}`)
+    }
+    const source = { ...natural, id: `private-${i}`, charted: false, warpedTheme: 'ashen' as const }
+    const prop = regionalScenery(source)[0]
+    if (!prop) continue
+    expect(regionalScenery(source)).toEqual([prop])
+    if (prop.sheet === 'rare-scenery') {
+      voidRare++
+      rare.add(prop.index)
+      expect(prop.scale).toBeGreaterThan(2)
+    } else {
+      ordinaryVoid++
+      ordinary.add(`${prop.sheet}:${prop.index}`)
+    }
+    expect(
+      regionalScenery({
+        ...source,
+        cells: source.cells.filter((c) => c.x !== prop.x - 1 || c.y !== prop.y),
+      }),
+    ).not.toEqual([prop])
+  }
+  expect(ordinary.size).toBe(12)
+  expect([...rare].sort()).toEqual([0, 1, 2, 3])
+  expect(voidRare).toBeGreaterThan(0)
+  expect(voidRare).toBeLessThan(ordinaryVoid)
+})
+
+it('never relocates already visible scenery as additional private ground is revealed', () => {
+  const source = {
+    ...winter,
+    id: 'stable-scenery',
+    charted: false,
+    warpedTheme: 'ashen' as const,
+    townId: undefined,
+    landmarks: [],
+    buildings: [],
+    cells: cells.map((c) => ({ ...c, safe: false, terrain: '.', walkable: true })),
+  }
+  while (regionalScenery(source).length === 0) source.id += 'x'
+  const complete = regionalScenery(source)
+  let visible = 0
+  for (let y = 2; y <= 6; y++)
+    for (let x = 2; x <= 10; x++) {
+      const partial = {
+        ...source,
+        cells: source.cells.filter((c) => Math.abs(c.x - x) <= 2 && Math.abs(c.y - y) <= 2),
+      }
+      const painted = regionalScenery(partial)
+      for (const prop of painted) {
+        expect(complete).toContainEqual(prop)
+        visible++
+      }
+    }
+  expect(visible).toBe(0)
+  expect(regionalScenery(source)).toEqual(complete)
+  expect(complete).toHaveLength(1)
 })

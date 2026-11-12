@@ -1,10 +1,18 @@
+import { sceneryReviewCandidates, VOID_SCENERY_VIEWS } from './world-art-scenery'
+import { waterReviewCandidate } from './world-art-water'
 import { unoccupiedArtStep } from './world-art-step'
 import { waitForWorldArt } from './world-art-readiness'
 import { createHash } from 'node:crypto'
 import { writeFileSync } from 'node:fs'
 import { expect, test, type Page, type TestInfo } from '@playwright/test'
 import { settlementComposition } from '../src/components/world/map-settlement-composition'
-import { naturalDressing, sceneryDressing } from '../src/components/world/map-dressing'
+import { buildWaterField } from '../src/components/world/map-water'
+import { landmarkArtSize } from '../src/components/world/map-surface-art'
+import {
+  naturalDressing,
+  regionalScenery,
+  sceneryDressing,
+} from '../src/components/world/map-dressing'
 import { atlasSectors } from '../src/world/atlas'
 import { GRID_HEIGHT, GRID_WIDTH, WORLD_REGIONS } from '../src/world/catalog'
 import type { WorldPosition, WorldView } from '../src/world/types'
@@ -50,6 +58,7 @@ export function registerWorldArtReviewCases({
     const dressing = [
       ...sceneryDressing(sector),
       ...naturalDressing(sector),
+      ...regionalScenery(sector),
       ...settlementComposition(sector),
     ]
     await waitForWorldArt(page, view)
@@ -57,6 +66,130 @@ export function registerWorldArtReviewCases({
   }
 
   type ArtScene = Awaited<ReturnType<typeof scene>>
+
+  test('regional water materials have image-ready bank and depth review views', async ({
+    page,
+  }, info) => {
+    test.skip(info.project.name !== 'desktop-chromium', 'Review actual water surfaces once.')
+    test.setTimeout(120_000)
+    await enter(page)
+    const { characterId } = await world(page)
+    const evidence: unknown[] = []
+    for (const regionId of ['verdant-expanse', 'hollow-coast', 'frostmere']) {
+      const candidate = waterReviewCandidate(atlasSectors(), regionId)
+      expect(candidate).toBeDefined()
+      const { sector } = await scene(page, characterId, {
+        sectorId: candidate!.sector.id,
+        ...candidate!.ground[0]!,
+      })
+      const profiles = [...buildWaterField([sector]).get(sector.id)!.cells.values()]
+      expect(profiles.length).toBeGreaterThan(0)
+      expect(profiles.some(({ banks }) => banks.length > 0)).toBe(true)
+      await capture(page, info, `art-water-depth-${regionId}`)
+      evidence.push({
+        regionId,
+        sector,
+        observedDepths: [...new Set(profiles.map(({ depth }) => depth))],
+        waterCells: profiles.length,
+      })
+    }
+    writeFileSync(info.outputPath('world-art-review.json'), JSON.stringify(evidence, null, 2))
+  })
+
+  test('new mainland surfaces and grand crossings have normal-zoom review views', async ({
+    page,
+  }, info) => {
+    test.skip(info.project.name === 'laptop-chromium', 'Desktop and phone surface review.')
+    test.setTimeout(150_000)
+    await enter(page)
+    const { characterId } = await world(page)
+    const evidence = []
+    const shrineSector = atlasSectors().find((sector) =>
+      sector.landmarks.some(
+        (site) =>
+          site.kind === 'shrine' &&
+          landmarkArtSize(
+            {
+              ...sector,
+              exits: [...sector.roads],
+              cells: sector.rows.flatMap((row, y) =>
+                [...row].map((terrain, x) => ({
+                  x,
+                  y,
+                  terrain,
+                  safe: false,
+                  walkable: '.st='.includes(terrain),
+                })),
+              ),
+            },
+            site,
+            1.55,
+          ) === 3.2,
+      ),
+    )
+    const shrine = shrineSector?.landmarks.find((site) => site.kind === 'shrine')
+    expect(shrine).toBeDefined()
+    const cases = [
+      ['woodland-bridge', 'verdant-expanse', 9, 4],
+      ['crown-bridge', 'aureth-crown', 9, 4],
+      ['lavafall', 'emberreach', 9, 7],
+      ['willow-cascade', 'atlas:69:36', 8, 3],
+      ['alpine-impact', 'atlas:45:9', 9, 6],
+      ['meadow-impact', 'atlas:65:21', 2, 2],
+      ['grand-shrine', shrineSector!.id, shrine!.x, shrine!.y],
+    ] as const
+    for (const [key, sectorId, x, y] of cases) {
+      const result = await scene(page, characterId, { sectorId, x, y })
+      expect(
+        result.sector.cells.some((cell) => cell.x === x && cell.y === y && cell.walkable),
+      ).toBe(true)
+      if (key === 'grand-shrine') {
+        const site = result.sector.landmarks.find((landmark) => landmark.kind === 'shrine')!
+        expect(landmarkArtSize(result.sector, site, 1.55)).toBe(3.2)
+      }
+      await capture(page, info, `art-surfaces-${key}`)
+      evidence.push({ key, ...result })
+    }
+    writeFileSync(info.outputPath('world-art-review.json'), JSON.stringify(evidence, null, 2))
+  })
+
+  test('all new mainland scenic assets and fallen star have normal-zoom native views', async ({
+    page,
+  }, info) => {
+    test.skip(info.project.name === 'laptop-chromium', 'Desktop and phone scenery review.')
+    test.setTimeout(180_000)
+    const candidates = sceneryReviewCandidates(atlasSectors())
+    expect(candidates.size).toBe(11)
+    await enter(page)
+    const { characterId } = await world(page)
+    const evidence = []
+    for (const [key, position] of candidates) {
+      const result = await scene(page, characterId, position)
+      expect(result.dressing.some((p) => `${p.sheet}-${p.index}` === key)).toBe(true)
+      await capture(page, info, `art-scenery-${key}`)
+      evidence.push({ key, ...result })
+    }
+    writeFileSync(info.outputPath('world-art-review.json'), JSON.stringify(evidence, null, 2))
+  })
+
+  test('large rare Void time ruins and strange vegetation have normal-zoom native views', async ({
+    page,
+  }, info) => {
+    test.skip(info.project.name === 'laptop-chromium', 'Desktop and phone rare scenery review.')
+    test.setTimeout(120_000)
+    await enter(page)
+    const { characterId } = await world(page)
+    const evidence = []
+    for (const { key, phase, ...position } of VOID_SCENERY_VIEWS) {
+      const result = await scene(page, characterId, position, phase)
+      const prop = result.dressing.find((p) => `${p.sheet}-${p.index}` === key)
+      expect(prop).toBeDefined()
+      if (key.startsWith('rare-')) expect(prop!.scale).toBeGreaterThan(2)
+      await capture(page, info, `art-void-scenery-${key}`)
+      evidence.push({ key, phase, ...result })
+    }
+    writeFileSync(info.outputPath('world-art-review.json'), JSON.stringify(evidence, null, 2))
+  })
 
   for (const region of WORLD_REGIONS) {
     test(`all ${region.name} hamlets have working scenery at normal zoom`, async ({
@@ -334,7 +467,12 @@ export function registerWorldArtReviewCases({
         const result = await scene(page, characterId, { sectorId, x: 6, y: 4 }, phase)
         expect(result.sector.charted).toBe(false)
         expect(result.sector.warpedScenery).toBeDefined()
-        expect(result.dressing).toHaveLength(1)
+        expect(
+          result.dressing.filter(
+            (p) =>
+              !['regional-scenery', 'regional-scenery-extra', 'rare-scenery'].includes(p.sheet),
+          ),
+        ).toHaveLength(1)
         if (landmark) expect(result.sector.landmarks.map(({ name }) => name)).toContain(landmark)
         await capture(page, info, `art-void-${key}-phase-${phase}`)
         evidence.push({ phase, ...result })

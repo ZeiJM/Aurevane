@@ -17,6 +17,7 @@ import {
 import type {
   TravelStep,
   WorldIntent,
+  WorldImpactSite,
   WorldObjective,
   WorldPlayer,
   WorldPosition,
@@ -39,6 +40,8 @@ import { worldArchiveEntries } from './world-archive'
 import { projectWorldFerry } from './world-ferry'
 import { atlasAddress } from '@/world/atlas'
 import { wrappedColumnDistance, wrappedMapX } from '@/world/topology'
+import { parseVoidSectorId, isVoidRealmSectorId } from '@/world/void-realms'
+import { voidRealmScenery } from './void-realms'
 import {
   applyWarpedContinentPhase,
   isWarpedContinentSector,
@@ -55,6 +58,12 @@ import {
 
 const invalid = (message: string): never => {
   throw new AurevaneError('INVALID_REQUEST', message)
+}
+const impactSites: Readonly<Record<string, WorldImpactSite>> = {
+  'atlas:45:9': { x: 9.5, y: 6.5, index: 0, size: 3 },
+  'atlas:65:21': { x: 2.5, y: 2.5, index: 1, size: 3 },
+  'void:starfall-basin:16:10': { x: 6.5, y: 4.5, index: 2, size: 3 },
+  'uncharted-pale': { x: 3.5, y: 3.5, index: 2, size: 3 },
 }
 const isKnown = isKnownCell
 // Public sector terrain is immutable. Avoid scanning every charted cell on each
@@ -201,7 +210,7 @@ export function projectWorldPlayers(
   const ids = new Set(sceneSectorIds)
   const sector = resolveSector(state.position.sectorId)!
   const supplied = players.some((player) => player.movement !== undefined)
-    ? visibleSectors(state).filter((sector) => ids.has(sector.id))
+    ? visibleSectors(state, { sceneOnly: true }).filter((sector) => ids.has(sector.id))
     : []
   const object = (value: unknown): value is Record<string, unknown> =>
     value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -283,7 +292,7 @@ export function projectWorldPlayers(
 export function projectWorldSector(state: WorldState, sector: WorldSector): WorldSectorView {
   sector = applyWarpedContinentPhase(state, sector)
   const { rows, roads, ...publicSector } = sector
-  const cells = []
+  const cells: WorldSectorView['cells'] = []
   for (let y = 0; y < GRID_HEIGHT; y++)
     for (let x = 0; x < GRID_WIDTH; x++)
       if (isKnown(state, { sectorId: sector.id, x, y }))
@@ -294,13 +303,41 @@ export function projectWorldSector(state: WorldState, sector: WorldSector): Worl
           walkable: isWalkable(sector, { x, y }),
           safe: isSafe(sector, { x, y }),
         })
-  const warpedScenery = sector.warpedTheme ? warpedDistrictScenery(sector.id) : undefined
+  const warpedScenery = isVoidRealmSectorId(sector.id)
+    ? voidRealmScenery(sector.id)
+    : sector.warpedTheme
+      ? warpedDistrictScenery(sector.id)
+      : undefined
   const revealedScenery =
     warpedScenery &&
     cells.some(({ x, y, walkable }) => walkable && x === warpedScenery.x && y === warpedScenery.y)
+  const impactSite = impactSites[sector.id]
+  const impactLeft = impactSite ? impactSite.x - impactSite.size / 2 : 0
+  const impactTop = impactSite ? impactSite.y - impactSite.size / 2 : 0
+  const impactRight = impactSite ? impactLeft + impactSite.size : 0
+  const impactBottom = impactSite ? impactTop + impactSite.size : 0
+  const overlapsImpact = (x: number, y: number, width = 1, height = 1) =>
+    x < impactRight && x + width > impactLeft && y < impactBottom && y + height > impactTop
+  const projectedImpact =
+    impactSite &&
+    !sector.townId &&
+    (sector.charted || sector.warpedTheme) &&
+    !sector.buildings?.some((building) =>
+      overlapsImpact(building.x, building.y, building.width, building.height),
+    ) &&
+    !sector.landmarks.some((landmark) => overlapsImpact(landmark.x - 1, landmark.y - 1, 3, 3)) &&
+    !(warpedScenery && overlapsImpact(warpedScenery.x - 1, warpedScenery.y - 1, 3, 3)) &&
+    Array.from({ length: impactSite.size * impactSite.size }, (_, index) => ({
+      x: impactLeft + (index % impactSite.size),
+      y: impactTop + Math.floor(index / impactSite.size),
+    })).every(({ x, y }) => {
+      const cell = cells.find((candidate) => candidate.x === x && candidate.y === y)
+      return cell && !cell.safe && cell.walkable && (cell.terrain === '.' || cell.terrain === 't')
+    })
   const legacyTrail = /^trail:.*:(\d+)$/.exec(sector.id)
   return {
     ...publicSector,
+    ...(projectedImpact ? { impactSite } : {}),
     ...(revealedScenery ? { warpedScenery } : {}),
     ...(legacyTrail ? { atlasColumn: Number(legacyTrail[1]), atlasRow: 0 } : {}),
     cells,
@@ -317,9 +354,10 @@ export function projectWorld(
   environment: WorldEnvironment = resolveWorldEnvironment(now),
   viewport?: WorldSceneViewport,
 ): WorldView {
-  const visible = visibleSectors(state)
+  const visible = visibleSectors(state, { sceneOnly: true })
   const currentSector = resolveSector(state.position.sectorId)!
   const onWarpedContinent = isWarpedContinentSector(currentSector.id)
+  const currentVoidAddress = parseVoidSectorId(currentSector.id)
   const currentAddress = atlasAddress(currentSector)
   const arrivingIds = new Set(state.route.slice(0, 8).map((step) => step.position.sectorId))
   const exitIds = new Set(currentSector.roads.map((road) => road.to.sectorId))
@@ -334,6 +372,15 @@ export function projectWorld(
           exitIds.has(sector.id))
       )
         return true
+      if (currentVoidAddress) {
+        const address = parseVoidSectorId(sector.id)
+        return Boolean(
+          address &&
+          address.realmId === currentVoidAddress.realmId &&
+          Math.abs(address.column - currentVoidAddress.column) <= 2 &&
+          Math.abs(address.row - currentVoidAddress.row) <= 2,
+        )
+      }
       const address = atlasAddress(sector)
       return Boolean(
         sector.charted === currentSector.charted &&
@@ -353,6 +400,13 @@ export function projectWorld(
               ? 2
               : 3
       const sceneDistance = (sector: typeof a) => {
+        if (currentVoidAddress) {
+          const address = parseVoidSectorId(sector.id)
+          return address
+            ? (address.column - currentVoidAddress.column) ** 2 +
+                (address.row - currentVoidAddress.row) ** 2
+            : Infinity
+        }
         const address = atlasAddress(sector)
         if (!address || !currentAddress) return Infinity
         const currentX = currentAddress.column * GRID_WIDTH
@@ -449,16 +503,20 @@ export function projectWorld(
       })),
   )
   const ferry = projectWorldFerry(state, now)
+  const route = state.route.filter((step) => isKnown(state, step.position))
   return {
     characterId: '',
     ...(ferry ? { ferry } : {}),
     version: state.version,
     serverNow: now,
     position: state.position,
-    route: state.route.filter((s) => isKnown(state, s.position)),
-    nextStepAt: state.nextStepAt,
-    routeObjectiveId: state.route.length ? (state.routeObjectiveId ?? null) : null,
-    routeDestination: state.route.length ? (state.routeDestination ?? null) : null,
+    route,
+    nextStepAt: route.length ? state.nextStepAt : null,
+    routeObjectiveId: route.length ? (state.routeObjectiveId ?? null) : null,
+    routeDestination:
+      route.length && state.routeDestination && isKnown(state, state.routeDestination)
+        ? state.routeDestination
+        : null,
     sectors,
     scenery,
     atlas: visible.flatMap((sector) => {

@@ -3,6 +3,7 @@ import {
   DEFAULT_WORLD_ENVIRONMENT_SETTINGS as base,
   WORLD_WEATHER,
   resolveWorldEnvironment,
+  resolveVoidRotation,
   weatherAtHour,
 } from './environment'
 
@@ -130,4 +131,59 @@ it('uses a separate real-minute weather roll interval and preserves historical s
   }
   expect(resolveWorldEnvironment(899_999, settings).weatherSource).toBe('master')
   expect(resolveWorldEnvironment(900_000, settings).weather).toBe(weatherAtHour(3))
+})
+
+describe('shared Void rotation', () => {
+  it('rolls a shared seeded choice over eight maps with repeats, independent of world time', () => {
+    const ids = new Set<string>()
+    let repeats = 0
+    for (let phase = 20_000; phase < 20_100; phase++) {
+      const now = phase * DAY
+      const current = resolveVoidRotation(now, base)
+      ids.add(current.realmId)
+      expect(current).toEqual(resolveVoidRotation(now + DAY - 1, base))
+      expect(current).toEqual(
+        resolveVoidRotation(now, {
+          ...base,
+          frozenMinuteOfDay: 40,
+          timeOffsetMinutes: 300,
+          dayLengthMinutes: 1,
+        }),
+      )
+      expect(current.nextRollAt).toBe(now + DAY)
+      if (current.realmId === resolveVoidRotation(now + DAY, base).realmId) repeats++
+    }
+    expect(ids.size).toBe(8)
+    expect(repeats).toBeGreaterThan(0)
+    for (const [phase, realmId] of [
+      [1, 'glass-tides'],
+      [20_000, 'starfall-basin'],
+      [20_001, 'amber-drowned'],
+      [-1, 'hollow-orchard'],
+    ] as const)
+      expect(resolveVoidRotation(phase * DAY, base).realmId).toBe(realmId)
+    expect(resolveVoidRotation(0, base)).toEqual({
+      realmId: 'amber-drowned',
+      source: 'live',
+      nextRollAt: DAY,
+    })
+  })
+  it('forces immediately until the next shared boundary, then returns to the automatic choice', () => {
+    const settings = {
+      ...base,
+      warpedShiftMinutes: 5,
+      voidRealmOverride: 'glass-tides' as const,
+      voidRealmOverrideUntil: 600_000,
+    }
+    expect(resolveVoidRotation(599_999, settings)).toEqual({
+      realmId: 'glass-tides',
+      source: 'master',
+      nextRollAt: 600_000,
+    })
+    expect(resolveVoidRotation(600_000, settings)).toEqual(
+      resolveVoidRotation(600_000, { ...base, warpedShiftMinutes: 5 }),
+    )
+    expect(resolveVoidRotation(900_000, settings).source).toBe('live')
+    expect(resolveVoidRotation(0, { ...base, warpedShiftMinutes: undefined }).nextRollAt).toBe(DAY)
+  })
 })

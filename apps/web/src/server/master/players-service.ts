@@ -15,9 +15,11 @@ import type {
   MasterPlayerView,
   PlayerCorrection,
   PlayerRecoveryResult,
+  PlayerTeleportDestination,
 } from '@/master/players'
 import type { MasterPanelStaffAccessService } from './staff-access'
 import { resolveMasterBattleRecovery } from './player-battle-recovery'
+import { parseMasterTeleportDestination, parseMasterTeleportReason } from './player-teleport'
 
 export type PlayersRpc = (name: string, parameters: Record<string, unknown>) => Promise<unknown>
 export function playerRecord(value: unknown): value is Record<string, unknown> {
@@ -211,7 +213,12 @@ function projectPlayer(raw: unknown): MasterPlayerView {
       ? (raw.savedLoadouts as MasterPlayerView['savedLoadouts'])
       : [],
     world: playerRecord(raw.world)
-      ? { position: raw.world.position as NonNullable<MasterPlayerView['world']>['position'] }
+      ? {
+          version: whole(raw.world.version) ? raw.world.version : undefined,
+          locationLabel:
+            typeof raw.world.locationLabel === 'string' ? raw.world.locationLabel : undefined,
+          position: raw.world.position as NonNullable<MasterPlayerView['world']>['position'],
+        }
       : null,
     training: playerRecord(raw.training)
       ? (raw.training as unknown as MasterPlayerView['training'])
@@ -223,6 +230,7 @@ export function createMasterPlayersService(
   access: Pick<MasterPanelStaffAccessService, 'requireCapability'>,
   rpc: PlayersRpc,
   readContentNames?: (player: MasterPlayerView) => Promise<Readonly<Record<string, string>>>,
+  prepareTeleport?: (userId: string, destination: PlayerTeleportDestination) => Promise<void>,
 ) {
   const call = async (userId: string, name: string, parameters: Record<string, unknown>) => {
     await access.requireCapability(userId, 'players.manage')
@@ -260,6 +268,35 @@ export function createMasterPlayersService(
         p_confirmed: true,
       })
       return project(await readRaw(userId, characterId))
+    },
+    async teleport(
+      userId: string,
+      input: {
+        characterId: string
+        expectedVersion: number
+        requestKey: string
+        destination: unknown
+        reason: unknown
+      },
+    ) {
+      const destination = parseMasterTeleportDestination(input.destination)
+      const reason = parseMasterTeleportReason(input.reason)
+      if (!whole(input.expectedVersion)) invalid()
+      await access.requireCapability(userId, 'players.manage')
+      if (!prepareTeleport) unavailable()
+      await prepareTeleport(userId, destination)
+      await call(userId, 'teleport_master_player_v1', {
+        p_character_id: input.characterId,
+        p_expected_version: input.expectedVersion,
+        p_request_key: input.requestKey,
+        p_map: destination.map,
+        p_sector_number: destination.sectorNumber,
+        p_x: destination.x,
+        p_y: destination.y,
+        p_reason: reason,
+        p_confirmed: true,
+      })
+      return project(await readRaw(userId, input.characterId))
     },
     async recover(
       userId: string,

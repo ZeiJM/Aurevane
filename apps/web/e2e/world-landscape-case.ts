@@ -1,6 +1,7 @@
 import { waitForWorldArt } from './world-art-readiness'
 import { openMapSettings, closeMapSettings } from './world-map-settings-helpers'
 import { createRequire } from 'node:module'
+import { writeFileSync } from 'node:fs'
 import { expect, test, type Page, type TestInfo } from '@playwright/test'
 import { atlasSectors, ATLAS_COLUMNS } from '../src/world/atlas'
 import { GRID_WIDTH, GRID_HEIGHT } from '../src/world/catalog'
@@ -215,15 +216,32 @@ export function registerWorldLandscapeCases(helpers: Helpers) {
         offset = (pixelY * raster.width + pixelX) * raster.channels
       return [...data.subarray(offset, offset + 3)] as number[]
     })
+    // The approved broad relief overlays this fixed corner with approximately
+    // rgba(30,43,38,52/255). Compositing the original [119,131,109] palette
+    // produces [101,113,95]; retain the original seam and colour tolerances.
+    const expectedColour = [101, 113, 95]
+    writeFileSync(
+      info.outputPath('world-art-review.json'),
+      JSON.stringify(
+        {
+          scope: 'four-biome fallback palette with static relief',
+          projection,
+          colours,
+          expectedColour,
+        },
+        null,
+        2,
+      ),
+    )
+    // Capture before asserting so a future raster failure retains its actual pixels.
+    await capture(page, info, 'four-biome-corner-palette-raster-regression')
     for (let channel = 0; channel < 3; channel++) {
       const samples = colours.map((colour) => colour[channel]!)
       expect(Math.max(...samples) - Math.min(...samples)).toBeLessThanOrEqual(7)
       for (const sample of samples)
-        expect(Math.abs(sample - [119, 131, 109][channel]!)).toBeLessThanOrEqual(5)
+        expect(Math.abs(sample - expectedColour[channel]!)).toBeLessThanOrEqual(5)
     }
     expect((await world(page)).position).toEqual({ sectorId: 'atlas:58:28', x: 11, y: 7 })
-    // This palette-only fixture deliberately aborts runtime art and disables ambient motion.
-    await capture(page, info, 'four-biome-corner-palette-raster-regression')
   })
 
   test('globe towns and water agree with local terrain and town selection exposes legal travel', async ({

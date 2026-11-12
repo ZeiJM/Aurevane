@@ -16,8 +16,10 @@ export function paintSnowRoadShoulders(
   terrain: ReadonlyMap<string, WorldCell>,
   seed: string,
   depth: number,
+  pavedCells?: ReadonlySet<string>,
 ) {
   for (const { dx, dy, x, y, tx, ty } of edges) {
+    if (pavedCells?.has(`${cell.x + dx}:${cell.y + dy}`)) continue
     const neighbor = terrain.get(`${cell.x + dx}:${cell.y + dy}`)
     if (!neighbor?.walkable || (neighbor.terrain !== '.' && neighbor.terrain !== 't')) continue
     const startX = (cell.x + x) * tile

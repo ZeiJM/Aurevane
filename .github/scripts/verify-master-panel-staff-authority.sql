@@ -75,6 +75,23 @@ begin
       exception when insufficient_privilege then assert sqlerrm='MASTER_ITEM_GRANT_OWNER_REQUIRED'; end;
     end loop;
   end if;
+  -- New teleport entrypoints require the Players page on the actual selected
+  -- character; active Content access does not grant that page implicitly.
+  if to_regprocedure('public.install_master_teleport_geometry_v1(uuid,text,jsonb,uuid)') is not null then
+    foreach command in array array[
+      'select public.install_master_teleport_geometry_v1($1,''2026-11-12-v1'',''[]''::jsonb,$2)',
+      'select public.teleport_master_player_v1($1,$3,0,gen_random_uuid(),''mainland'',1,1,1,''Native authority proof'',true,$2)'
+    ] loop
+      begin execute command using staff_id,character_id,alternate_id; raise exception 'EXPECTED active wrong-page teleport denial';
+      exception when insufficient_privilege then assert sqlerrm='MASTER_PANEL_PAGE_ACCESS_REQUIRED'; end;
+      begin execute command using staff_id,null::uuid,alternate_id; raise exception 'EXPECTED missing teleport selected actor denial';
+      exception when insufficient_privilege then assert sqlerrm='MASTER_PANEL_PAGE_ACCESS_REQUIRED'; end;
+      begin execute command using staff_id,alternate_id,character_id; raise exception 'EXPECTED alternate teleport actor denial';
+      exception when insufficient_privilege then assert sqlerrm='MASTER_PANEL_PAGE_ACCESS_REQUIRED'; end;
+      begin execute command using other_id,character_id,alternate_id; raise exception 'EXPECTED unowned teleport actor denial';
+      exception when insufficient_privilege then assert sqlerrm='MASTER_PANEL_PAGE_ACCESS_REQUIRED'; end;
+    end loop;
+  end if;
   begin
     perform public.set_master_panel_character_access_v2(staff_id,other_id,alternate_id,array['event-staff'],array[]::text[],null,0,true);
     raise exception 'EXPECTED delegated management denial';
@@ -194,6 +211,18 @@ begin
   end if;
   if to_regprocedure('public.read_master_restoration_trial_npc_v1(uuid,uuid,uuid)') is not null then
     new_actor_signatures := new_actor_signatures || array['public.read_master_restoration_trial_npc_v1(uuid,uuid,uuid)']::text[];
+  end if;
+  -- Teleport adds two service-only selected-page APIs, with no legacy
+  -- account-only overload. The private table marker requires the whole module.
+  if to_regclass('app_private.master_teleport_geometry') is not null then
+    new_actor_signatures := new_actor_signatures || array[
+      'public.install_master_teleport_geometry_v1(uuid,text,jsonb,uuid)',
+      'public.teleport_master_player_v1(uuid,uuid,bigint,uuid,text,integer,integer,integer,text,boolean,uuid)'
+    ]::text[];
+    assert (select relrowsecurity from pg_class where oid='app_private.master_teleport_geometry'::regclass), 'Teleport geometry private RLS';
+    foreach signature in array array['anon','authenticated','service_role'] loop
+      assert not has_table_privilege(signature,'app_private.master_teleport_geometry','select,insert,update,delete'), 'Teleport geometry private table ACL: '||signature;
+    end loop;
   end if;
   -- Owner-only targeted Item APIs have no legacy overload and must not inherit
   -- delegated page permissions. The private marker requires the entire module.

@@ -42,14 +42,16 @@ export function PlayerCorrectionForm({
   disabled,
   navigationDisabled = disabled,
   encounter,
+  teleport,
 }: {
   player: MasterPlayerView
   onReview(command: PlayerCorrection): void
   disabled: boolean
   navigationDisabled?: boolean
   encounter?: ReactNode
+  teleport?: ReactNode
 }) {
-  const [kind, setKind] = useState<PlayerCorrection['kind'] | 'encounter'>('source')
+  const [kind, setKind] = useState<PlayerCorrection['kind'] | 'encounter' | 'teleport'>('source')
   const [error, setError] = useState<string | null>(null)
   const [attributeText, setAttributeText] = useState(
     () =>
@@ -96,7 +98,7 @@ export function PlayerCorrectionForm({
   )
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (kind === 'encounter' || disabled) return
+    if (kind === 'encounter' || kind === 'teleport' || disabled) return
     setError(null)
     const data = new FormData(event.currentTarget)
     let command: PlayerCorrection
@@ -174,6 +176,7 @@ export function PlayerCorrectionForm({
             ['skills', 'Skills'],
             ['support', 'Support'],
             ...(encounter ? ([['encounter', 'Encounter']] as const) : []),
+            ...(teleport ? ([['teleport', 'Teleport Player']] as const) : []),
           ] as const
         ).map(([value, label]) => (
           <button
@@ -193,7 +196,10 @@ export function PlayerCorrectionForm({
       <div hidden={kind !== 'encounter'} data-player-encounter-panel>
         {encounter}
       </div>
-      <fieldset disabled={disabled} key={kind} hidden={kind === 'encounter'}>
+      <div hidden={kind !== 'teleport'} data-player-teleport-panel>
+        {kind === 'teleport' ? teleport : null}
+      </div>
+      <fieldset disabled={disabled} key={kind} hidden={kind === 'encounter' || kind === 'teleport'}>
         <legend>
           {kind === 'source'
             ? 'Stats & Progression'
@@ -445,7 +451,11 @@ export function PlayerCorrectionForm({
         )}
       </fieldset>
       {error ? <p role="alert">{error}</p> : null}
-      <button disabled={disabled} type="submit" hidden={kind === 'encounter'}>
+      <button
+        disabled={disabled}
+        type="submit"
+        hidden={kind === 'encounter' || kind === 'teleport'}
+      >
         Review correction
       </button>
     </form>

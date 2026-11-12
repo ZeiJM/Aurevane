@@ -13,7 +13,7 @@ export default async function MasterWorldEnvironmentPage() {
       access={access}
       activeSection="world-environment"
       title="World Environment"
-      description="Owner-controlled server time and weather for the World page"
+      description="Shared World time, weather and Void map rotation"
     >
       <WorldEnvironmentEditor initialSettings={settings} />
     </MasterPanelShell>

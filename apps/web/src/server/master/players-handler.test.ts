@@ -89,3 +89,47 @@ it.each([
   expect(response.status).toBe(400)
   expect(f.rpc).not.toHaveBeenCalled()
 })
+
+it.each([
+  {
+    operation: 'teleport',
+    characterId: id,
+    requestKey: id,
+    expectedVersion: 1,
+    destination: { map: 'mainland', sectorNumber: 1, x: 0, y: 0 },
+    confirmed: false,
+  },
+  {
+    operation: 'teleport',
+    characterId: id,
+    requestKey: id,
+    expectedVersion: 1,
+    destination: { map: 'mainland', sectorNumber: 1, x: 0, y: 0 },
+    confirmed: true,
+    actorCharacterId: id,
+  },
+  {
+    operation: 'teleport',
+    characterId: id,
+    requestKey: id,
+    expectedVersion: 1.2,
+    destination: { map: 'mainland', sectorNumber: 1, x: 0, y: 0 },
+    confirmed: true,
+  },
+  {
+    operation: 'teleport',
+    characterId: id,
+    requestKey: id,
+    expectedVersion: 1,
+    destination: { map: 'currentVoid', sectorNumber: 1, x: 0, y: 0, realmId: 'ivory-veil' },
+    confirmed: true,
+  },
+])(
+  'refuses unconfirmed or forged teleport authority and client-selected realm geography',
+  async (body) => {
+    const f = fixture()
+    const response = await handleMasterPlayersRequest(post(body), f.dependencies)
+    expect(response.status).toBe(400)
+    expect(f.rpc).not.toHaveBeenCalled()
+  },
+)

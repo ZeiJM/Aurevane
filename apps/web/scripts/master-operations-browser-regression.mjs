@@ -301,6 +301,7 @@ try {
           'Skills',
           'Support',
           'Encounter',
+          'Teleport Player',
         ])
         await sections.getByRole('button', { name: 'Skills', exact: true }).click()
         const equipped = reader.getByRole('checkbox', {
@@ -371,6 +372,44 @@ try {
         )
         assert.equal(await protectedPlayerReader(page).count(), 1)
         await expect(playerHeading).toBeFocused()
+        await sections.getByRole('button', { name: 'Teleport Player', exact: true }).click()
+        await reader.getByRole('button', { name: 'Review teleport', exact: true }).click()
+        await expect(reader.getByRole('alert')).toContainText('staff reason')
+        await reader
+          .getByRole('combobox', { name: 'Destination map', exact: true })
+          .selectOption('currentVoid')
+        await expect(reader.getByLabel('Sector number', { exact: true })).toHaveAttribute(
+          'max',
+          '768',
+        )
+        await reader.getByLabel('Sector number', { exact: true }).fill('34')
+        await reader.getByLabel('X coordinate', { exact: true }).fill('6')
+        await reader.getByLabel('Y coordinate', { exact: true }).fill('4')
+        await reader.getByLabel('Staff reason', { exact: true }).fill('Reviewed location repair')
+        await reader.getByRole('button', { name: 'Review teleport', exact: true }).click()
+        await expect(
+          reader.getByRole('heading', { name: 'Review teleport', exact: true }),
+        ).toBeFocused()
+        await expect(
+          reader.getByRole('button', { name: 'Teleport player', exact: true }),
+        ).toBeDisabled()
+        await reader
+          .getByRole('checkbox', {
+            name: 'I confirm teleporting Reader Target to this destination.',
+            exact: true,
+          })
+          .check()
+        await reader.getByRole('button', { name: 'Teleport player', exact: true }).click()
+        await expect(reader.getByRole('status')).toContainText('Player teleported')
+        const teleport = await page.evaluate(() => window.__operationsRequests.at(-1).body)
+        assert.equal(teleport.operation, 'teleport')
+        assert.deepEqual(teleport.destination, { map: 'currentVoid', sectorNumber: 34, x: 6, y: 4 })
+        assert.equal(teleport.reason, 'Reviewed location repair')
+        assert.equal(teleport.confirmed, true)
+        await expect(reader.getByText('Sector 34 · X:6 · Y:4', { exact: true })).toBeVisible()
+        await page.screenshot({
+          path: resolve(output, `players-teleport-${viewport.width}-${viewport.zoom}.png`),
+        })
         await page.evaluate(() => {
           window.requestAnimationFrame = window.__playersNativeAnimationFrame
         })
@@ -522,11 +561,24 @@ try {
         await page
           .getByLabel('Automatic weather roll interval (real minutes)', { exact: true })
           .fill(worldEnvironmentOnly ? '1' : '37')
+        await page
+          .getByRole('combobox', { name: 'Map selection', exact: true })
+          .selectOption('ivory-veil')
+        await page
+          .getByLabel('Automatic map roll interval (real minutes)', { exact: true })
+          .fill('1440')
         await page.getByRole('button', { name: 'Save Changes', exact: true }).click()
         await page.getByRole('status').filter({ hasText: 'saved' }).waitFor()
         const body = await page.evaluate(() => window.__operationsRequests.at(-1).body)
         assert.equal(body.change.dayLengthMinutes, worldEnvironmentOnly ? 1 : 120)
         assert.equal(body.change.weatherRollMinutes, worldEnvironmentOnly ? 1 : 37)
+        assert.equal(body.change.voidRealm, 'ivory-veil')
+        await expect(page.getByTestId('void-rotation-current')).toContainText(
+          'The Inverted Reach (forced)',
+        )
+        await expect(
+          page.getByRole('combobox', { name: 'Map selection', exact: true }),
+        ).toHaveValue('unchanged')
         assert.equal('durationMinutes' in body.change, false)
         assert.equal('reason' in body, false)
         await page.getByTestId('world-environment-current').filter({ hasText: 'forced' }).waitFor()

@@ -215,9 +215,17 @@ export interface WorldWarpedScenery {
   sheet: 'void-dressing' | 'void-relics' | 'void-frontier'
   index: number
 }
+export interface WorldImpactSite {
+  x: number
+  y: number
+  index: 0 | 1 | 2
+  size: number
+}
 export interface WorldSectorView extends Omit<WorldSector, 'rows' | 'roads'> {
   cells: WorldCell[]
   exits: WorldRoad[]
+  /** Server-authored presentation marker, supplied only after its full private footprint is known. */
+  impactSite?: WorldImpactSite
   /** Private focal art, supplied only for surveyed ground. */
   warpedScenery?: WorldWarpedScenery
 }

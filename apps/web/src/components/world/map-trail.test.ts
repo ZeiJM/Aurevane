@@ -1,5 +1,5 @@
 import { expect, it, vi } from 'vitest'
-import { buildTrailGround, paintNaturalTrail, trailPorts } from './map-trail'
+import { buildTrailGround, naturalTrailWear, paintNaturalTrail, trailPorts } from './map-trail'
 import type { WorldCell, WorldSectorView } from '@/world/types'
 const cell = (x: number, y: number, terrain = '='): WorldCell => ({
   x,
@@ -55,6 +55,56 @@ it('paints soft worn strokes without replacing a whole ground square and never p
   vi.mocked(ctx.stroke).mockClear()
   expect(paintNaturalTrail(ctx, cell(4, 4, '~'), 64, terrain, '#97866b', 'public', false)).toBe(0)
   expect(ctx.stroke).not.toHaveBeenCalled()
+})
+
+it('keeps the wilderness trail narrow and low contrast against living ground', () => {
+  const widths: number[] = [],
+    alphas: number[] = []
+  const ctx = new Proxy(
+    {
+      globalAlpha: 1,
+      lineWidth: 0,
+      stroke() {
+        widths.push(this.lineWidth)
+        alphas.push(this.globalAlpha)
+      },
+    },
+    { get: (target, key) => (key in target ? target[key as keyof typeof target] : () => {}) },
+  ) as unknown as CanvasRenderingContext2D
+  const c = cell(4, 4),
+    terrain = new Map([
+      ['4:4', c],
+      ['4:3', cell(4, 3)],
+      ['4:5', cell(4, 5)],
+    ])
+  paintNaturalTrail(ctx, c, 64, terrain, '#97866b', 'remote', false)
+  expect(Math.max(...widths)).toBeLessThanOrEqual(64 * 0.48)
+  expect(Math.max(...alphas)).toBeLessThanOrEqual(0.17)
+})
+
+it('leaves most remote road marks absent while retaining actual settlement and landmark approaches', () => {
+  const remote = {
+    id: 'remote',
+    charted: true,
+    atlasColumn: 40,
+    atlasRow: 30,
+    landmarks: [],
+  } as unknown as WorldSectorView
+  const marks = Array.from({ length: 117 }, (_, i) =>
+    naturalTrailWear(remote, cell(i % 13, Math.floor(i / 13))),
+  )
+  expect(marks.filter((wear) => wear === 0).length).toBeGreaterThan(58)
+  expect(marks.some((wear) => wear > 0)).toBe(true)
+  expect(naturalTrailWear({ ...remote, townId: 'town' }, cell(6, 4))).toBe(1)
+  expect(
+    naturalTrailWear(
+      { ...remote, landmarks: [{ id: 'bridge', name: 'bridge', kind: 'bridge', x: 6, y: 4 }] },
+      cell(6, 5),
+    ),
+  ).toBe(1)
+  expect(naturalTrailWear(remote, cell(6, 4))).toBe(
+    naturalTrailWear({ ...remote, atlasColumn: 168 }, cell(6, 4)),
+  )
 })
 
 it('joins a loaded public neighbor through the wrapped longitude edge without inventing unknown roads', () => {

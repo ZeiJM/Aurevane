@@ -36,6 +36,23 @@ function builtTown(id: string, cells: WorldCell[], column = 1, buildingX = 3) {
 }
 
 describe('settlement ground edges', () => {
+  it('paves built-up dry yards and hamlet approaches while preserving gardens, shore and wilderness', () => {
+    const town = builtTown('town', [
+      cell(4, 3, true, '.'),
+      cell(5, 3, true),
+      cell(9, 3, true, '.'),
+      cell(4, 4, true, 't'),
+      cell(3, 4, true, '~', false),
+    ])
+    const hamlet = {
+      ...sector('hamlet', [cell(6, 4, false), cell(6, 5, false, '.'), cell(0, 0, false, '.')], 2),
+      landmarks: [{ id: 'hamlet', name: 'Northgate', kind: 'hamlet' as const, x: 6, y: 4 }],
+    }
+    const result = buildSettlementGround([town, hamlet])
+    expect(result.pavedCells?.get('town')).toEqual(new Set(['5:3']))
+    expect(result.pavedCells?.get('hamlet')).toEqual(new Set(['6:4', '6:5']))
+    expect(buildSettlementGround([sector('wild', [cell(6, 4, false)], 3)]).pavedCells?.size).toBe(0)
+  })
   it('paves dry road entrances close to buildings and leaves adjacent dirt and blocked ground alone', () => {
     const town = builtTown('town', [
       cell(5, 4, true),

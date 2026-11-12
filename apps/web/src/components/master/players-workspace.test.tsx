@@ -87,6 +87,11 @@ it('reads calculated and protected facts, actual AP and every human affected by 
   expect(html).toContain('Calculated maximum resources')
   expect(html).not.toContain('Identity and account access are protected')
   expect(html).toContain('Review encounter recovery')
+  expect(html).toMatch(
+    /Encounter<\/button><button type="button" aria-pressed="false">Teleport Player<\/button>/,
+  )
+  expect(html).toContain('data-player-teleport-panel')
+  expect(html).not.toContain('Staff reason')
   expect(html).toMatch(/<div hidden="" data-player-encounter-panel="true">/)
   expect(html).toMatch(/<button type="button" aria-pressed="false">Encounter<\/button>/)
   expect(html).toMatch(/<fieldset disabled=""/)
