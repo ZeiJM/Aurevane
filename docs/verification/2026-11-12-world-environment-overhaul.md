@@ -37,3 +37,27 @@ The full local `pnpm check` did not pass: format/lint/package types passed on it
 Review image delivery is split into hamlets, northern towns, southern towns and Void/water/occlusion artifacts; metadata/timing remains in living-atlas-evidence and the original full screenshot/trace artifact is retained. This avoids relying on a single near512MiB archive after adding richer textures. YAML parses, artifact names are unique and all12filename categories are covered exactly once. The new water review case intends three additional desktop bank/depth views; expected art still count247must be checked against actual execution, not discovery.
 
 Native reference fidelity, paving readability, bridge/depth compositing, continuous motion, physical-handset performance and complete resolution of blue gaps remain required evidence, not waived by the source review. New assets/runtime hashes and exact tree will be recorded in the draft PR. No deployment was made.
+
+## First hosted result and water fixture correction
+
+Exact source fd98b5f2/tree62592aaa passed CI43147177747, establishing the configured full quality gate. Atlas43147177951 attempt1 recorded83passed/116intentional project skips/2failed. Browser43147177927 attempt1 also failed the new water-review case. Neither is a demonstrated transient setup failure and no unchanged-source retry was used.
+
+Water selection excluded all town sectors. The actual atlas has no Frostmere wilderness bank satisfying the fixture, so its third intended capture failed at candidate existence. Extracting the real selector and asserting all three regions reproduced Frostmere RED (two regions passed). The fixture now prefers wilderness but may use an existing settlement bank; shared terrainWalkable retains legal positions. All three regions pass, with an additional wilderness-preference/unknown-region guard. No runtime terrain or water rules change. Fresh native execution must establish the missing Frostmere view.
+
+The independent Atlas mutual-attack case failed its existing10second lock-waiter assertion: expected2, observed0. Full Browser execution passed that case. Cause is unconfirmed; no speculative runtime fix, timeout change or blind retry. The existing helper now records only transport rejection/status/error code after releasing its gate, and always restores original SQL definitions in finally. A bounded artifact retains mutual-attack and water-case traces/error context; the prior full758696004byte archive exceeds the connected downloader536870912byte cap. These diagnostics do not claim to fix intermittent contention.
+
+## First native image review
+
+Downloaded exact-head/attempt1 metadata13914065743 and all four split image archives. Each digest matched the API and archive integrity passed:
+
+| Artifact                        |     Bytes | SHA256                                                           |
+| ------------------------------- | --------: | ---------------------------------------------------------------- |
+| Metadata13914065743             |  58496279 | 2d79ced388f6fef8d2ec2e2c2760a1b73925569956304626b2b75fb3a5ce3695 |
+| North13914236049                | 154921037 | 793a817af38d035aef105fb0a798dbd39a90e7c2e4617efd975c2c4d7a7a4ac2 |
+| South13913726813                | 150614228 | 82afa689b31030a0dc31cd7922e17fe41f9dee3efd79b4b60074fd84f8c2e006 |
+| Hamlets13913507000              | 119271560 | db88deefaf8155ecf9565fdc2d88fe75e146b14f8f5852b71034661b105318b5 |
+| Void/water/occlusion13913701710 |  43787520 | f30f2ca56db29558049f15123869c93460cebb98a09eef637dcebcceab0393fd |
+
+Actual246art PNGs:244previously intended views plus Verdant/Hollow water views; Frostmere water view and final water JSON are missing.27other scene JSONs are present. Contact sheets covering all246views were inspected, with native-resolution Frostmere town and Hollow water samples. Eight towns/weather/phone views,72hamlets and20Void/rare/refuge views are present. Broader ground replacement, regional living foliage, snowy trees, paving and quiet wilderness are visibly integrated; bridge and player remain readable in sampled views. This is contact-sheet/sample review, not247-view completion or continuous-motion/handset acceptance.
+
+Further visual refinement remains supported: Frostmere has conspicuous straight diamond snow/paving borders and repetitive snow texture; public banks remain long/angular; water still reads as a relatively uniform turquoise strip/pool rather than the reference's deep natural lake; settlements retain repeated functional arrangements and hamlets four shared families. Void materials/landmarks vary, but geometric overall silhouettes/pools remain. Do not call reference transformation complete. Loading continuity under real delayed delivery and crowded frame timing remain open; new green code/metadata would not close them. Continue review/corrections after the fixture successor's native evidence, preserving topology/reveal and all existing thresholds.

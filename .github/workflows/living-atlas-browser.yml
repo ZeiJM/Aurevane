@@ -162,6 +162,7 @@ jobs:
             apps/web/test-results/**/world-multiplayer-hotspot.png
             apps/web/test-results/**/world-art-review.json
             apps/web/test-results/**/world-ambient-pause.json
+            apps/web/test-results/**/world-contention-responses.json
             apps/web/test-results/**/biome-boundary-*.png
             apps/web/test-results/**/coastal-road-*.png
             apps/web/test-results/**/four-biome-*.png
@@ -222,6 +223,15 @@ jobs:
         with:
           name: living-atlas-ambient-pause-failure
           path: apps/web/test-results/*ambient*/
+          retention-days: 7
+      - name: Save bounded mutual attack and water review failure evidence
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: living-atlas-contention-water-failure
+          path: |
+            apps/web/test-results/*simultan*/
+            apps/web/test-results/*bank-and-depth*/
           retention-days: 7
       - name: Save Atlas screenshots and traces
         if: always()

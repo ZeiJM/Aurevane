@@ -101,6 +101,7 @@ async function contend(
   send: () => Promise<APIResponse>[],
   whileBlocked?: () => Promise<void>,
   afterPreparation = false,
+  diagnosticPath?: string,
 ) {
   for (const id of characterIds) expect(id).toMatch(/^[0-9a-f-]{36}$/)
   const application = `atlas-gate-${randomUUID()}`
@@ -172,11 +173,25 @@ async function contend(
     sql(
       `select pg_terminate_backend(pid) from pg_stat_activity where application_name='${application}'`,
     )
-    await Promise.allSettled(pending)
+    const outcomes = await Promise.allSettled(pending)
     try {
-      for (const definition of originalDefinitions) sql(definition)
+      if (diagnosticPath) {
+        const responses = await Promise.all(
+          outcomes.map(async (outcome) => {
+            if (outcome.status === 'rejected') return { transportRejected: true }
+            const response = outcome.value
+            const body = await response.json().catch(() => null)
+            return { status: response.status(), errorCode: body?.error?.code ?? null }
+          }),
+        )
+        writeFileSync(diagnosticPath, JSON.stringify({ afterPreparation, responses }, null, 2))
+      }
     } finally {
-      await closed
+      try {
+        for (const definition of originalDefinitions) sql(definition)
+      } finally {
+        await closed
+      }
     }
   }
 }
@@ -1076,6 +1091,7 @@ test('simultaneous mutual attacks create one shared active encounter', async ({
       ],
       undefined,
       true,
+      info.outputPath('world-contention-responses.json'),
     )
     expect(responses.map((response) => response.status()).sort()).toEqual([200, 409])
     expect((await responses.find((response) => response.status() === 409)!.json()).error.code).toBe(

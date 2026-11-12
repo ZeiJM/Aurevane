@@ -1,3 +1,4 @@
+import { waterReviewCandidate } from './world-art-water'
 import { unoccupiedArtStep } from './world-art-step'
 import { waitForWorldArt } from './world-art-readiness'
 import { createHash } from 'node:crypto'
@@ -68,26 +69,7 @@ export function registerWorldArtReviewCases({
     const { characterId } = await world(page)
     const evidence: unknown[] = []
     for (const regionId of ['verdant-expanse', 'hollow-coast', 'frostmere']) {
-      const candidate = atlasSectors()
-        .filter((sector) => sector.regionId === regionId && !sector.townId)
-        .map((sector) => {
-          const ground = sector.rows.flatMap((row, y) =>
-            [...row].flatMap((terrain, x) =>
-              ['.', '=', 's'].includes(terrain) &&
-              [
-                [0, 1],
-                [1, 0],
-                [0, -1],
-                [-1, 0],
-              ].some(([dx, dy]) => sector.rows[y + dy!]?.[x + dx!] === '~')
-                ? [{ x, y }]
-                : [],
-            ),
-          )
-          return { sector, ground, water: sector.rows.join('').split('~').length - 1 }
-        })
-        .filter(({ ground, water }) => ground.length && water > 0)
-        .sort((a, b) => b.water - a.water)[0]
+      const candidate = waterReviewCandidate(atlasSectors(), regionId)
       expect(candidate).toBeDefined()
       const { sector } = await scene(page, characterId, {
         sectorId: candidate!.sector.id,
