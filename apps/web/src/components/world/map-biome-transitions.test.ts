@@ -33,10 +33,10 @@ describe('known public biome boundary transitions', () => {
       const other = sector('other', 10 + dx, 10 + dy, 'umbral-march')
       const transitions = buildBiomeTransitions([own, other])
       expect(transitions.get(own.id)?.edges).toEqual([
-        { regionId: other.regionId, side, from: 0, to: length, width: 3 },
+        { regionId: other.regionId, side, from: 0, to: length, width: 4 },
       ])
       expect(transitions.get(other.id)?.edges).toEqual([
-        { regionId: own.regionId, side: opposite, from: 0, to: length, width: 3 },
+        { regionId: own.regionId, side: opposite, from: 0, to: length, width: 4 },
       ])
     },
   )
@@ -72,10 +72,10 @@ describe('known public biome boundary transitions', () => {
       { from: 7, to: GRID_HEIGHT },
     ]
     expect(transitions.get(own.id)?.edges).toEqual(
-      runs.map((run) => ({ regionId: other.regionId, side: 1, width: 3, ...run })),
+      runs.map((run) => ({ regionId: other.regionId, side: 1, width: 4, ...run })),
     )
     expect(transitions.get(other.id)?.edges).toEqual(
-      runs.map((run) => ({ regionId: own.regionId, side: 3, width: 3, ...run })),
+      runs.map((run) => ({ regionId: own.regionId, side: 3, width: 4, ...run })),
     )
   })
 
@@ -89,7 +89,7 @@ describe('known public biome boundary transitions', () => {
       const other = sector('other', neighbor, 12, 'umbral-march')
       const transitions = buildBiomeTransitions([own, other])
       expect(transitions.get(own.id)?.edges).toEqual([
-        { regionId: other.regionId, side, from: 0, to: GRID_HEIGHT, width: 3 },
+        { regionId: other.regionId, side, from: 0, to: GRID_HEIGHT, width: 4 },
       ])
       expect(transitions.get(other.id)?.edges[0]?.side).toBe(opposite)
     },
@@ -148,7 +148,7 @@ describe('four-sector biome corners', () => {
           horizontalRegionId,
           verticalRegionId,
           diagonalRegionId,
-          width: 3,
+          width: 4,
         },
       ])
   })
@@ -166,7 +166,7 @@ describe('four-sector biome corners', () => {
         horizontalRegionId: 'verdant-expanse',
         verticalRegionId: 'verdant-expanse',
         diagonalRegionId: 'emberreach',
-        width: 3,
+        width: 4,
       },
     ])
   })
@@ -281,4 +281,12 @@ describe('Frostmere–Starfall vegetation', () => {
     }
     expect(mixedTrees(frost(), [frost(), high])).toEqual([])
   })
+})
+
+it('uses a four-cell ecotone on both sides and corners instead of a narrow material stripe', () => {
+  const own = sector('own', 10, 10),
+    other = sector('other', 11, 10, 'emberreach')
+  const field = buildBiomeTransitions([own, other])
+  expect(field.get('own')!.edges[0]!.width).toBe(4)
+  expect(field.get('other')!.edges[0]!.width).toBe(4)
 })

@@ -267,3 +267,65 @@ describe('world-connected water presentation', () => {
     expect(buildWaterField([crossing]).get(crossing.id)!.cells.has('10:3')).toBe(false)
   })
 })
+
+it('gives isolated inland and private pools visibly irregular banks without hiding a one-cell channel', () => {
+  const pool = sector('pool', 0, [
+    [5, 5, '~'],
+    [5, 4, '.'],
+    [6, 5, '.'],
+    [5, 6, '.'],
+    [4, 5, '.'],
+  ])
+  const privatePool = { ...pool, id: 'private-pool', charted: false }
+  const publicBanks = buildWaterField([pool]).get(pool.id)!.cells.get('5:5')!.banks
+  const privateBanks = buildWaterField([privatePool]).get(privatePool.id)!.cells.get('5:5')!.banks
+  expect(privateBanks).not.toEqual(publicBanks)
+  for (const bank of [...publicBanks, ...privateBanks]) {
+    const inset = (p: readonly [number, number]) =>
+      bank.side === 0 ? p[1] : bank.side === 1 ? 1 - p[0] : bank.side === 2 ? 1 - p[1] : p[0]
+    const samples = bank.edge.flatMap((curve) =>
+      Array.from({ length: 11 }, (_, i) => {
+        const t = i / 10,
+          u = 1 - t
+        return inset([
+          u ** 3 * curve[0][0] +
+            3 * u * u * t * curve[1][0] +
+            3 * u * t * t * curve[2][0] +
+            t ** 3 * curve[3][0],
+          u ** 3 * curve[0][1] +
+            3 * u * u * t * curve[1][1] +
+            3 * u * t * t * curve[2][1] +
+            t ** 3 * curve[3][1],
+        ])
+      }),
+    )
+    expect(Math.max(...samples) - Math.min(...samples)).toBeGreaterThan(0.06)
+    expect(samples.every((depth) => depth > 0 && depth < 0.2)).toBe(true)
+    // Even opposed shallow contours leave the middle third of legal water clear.
+    for (const curve of bank.shallow)
+      for (const point of curve) expect(inset(point)).toBeLessThan(1 / 3)
+  }
+})
+
+it('keeps horizontal bank positions and tangents coherent across loaded chunk joins', () => {
+  const west = sector('west', 0, [
+    [12, 5, '~'],
+    [12, 4, '.'],
+  ])
+  const east = {
+    ...sector('east', 0, [
+      [0, 5, '~'],
+      [0, 4, '.'],
+    ]),
+    atlasColumn: 1,
+  }
+  const field = buildWaterField([west, east])
+  const a = field.get(west.id)!.cells.get('12:5')!.banks[0]!
+  const b = field.get(east.id)!.cells.get('0:5')!.banks[0]!
+  for (const material of ['edge', 'shallow'] as const) {
+    const end = a[material].at(-1)!,
+      start = b[material][0]!
+    expect(end[3][1]).toBeCloseTo(start[0][1], 14)
+    expect(end[3][1] - end[2][1]).toBeCloseTo(start[1][1] - start[0][1], 14)
+  }
+})

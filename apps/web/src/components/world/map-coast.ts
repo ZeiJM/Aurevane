@@ -224,6 +224,50 @@ function paintBand(
   context.fill()
 }
 
+/** Inland texture must not inherit the sea apron: the raster clips at legal ground. */
+function landPoint(edge: CoastEdge, t: number, depth: number): readonly [number, number] {
+  const along = edge.from + (edge.to - edge.from) * t
+  const inland =
+    depth *
+    (0.89 + Math.sin(along * 4.3 + edge.seed) * 0.22 + Math.sin(along * 8.1 + edge.seed) * 0.11)
+  return edge.side === 0
+    ? [along, inland]
+    : edge.side === 1
+      ? [GRID_WIDTH - inland, along]
+      : edge.side === 2
+        ? [along, GRID_HEIGHT - inland]
+        : [inland, along]
+}
+
+function paintLandBand(
+  context: CanvasRenderingContext2D,
+  edge: CoastEdge,
+  tile: number,
+  width: number,
+  colour: CanvasGradient,
+  from = 0,
+  to = 1,
+  broken = false,
+) {
+  const steps = Math.max(8, Math.ceil((edge.to - edge.from) * (to - from) * 8))
+  context.beginPath()
+  for (let side = 0; side < 2; side++) {
+    for (let i = 0; i <= steps; i++) {
+      const fraction = side ? 1 - i / steps : i / steps
+      const t = from + (to - from) * fraction
+      // Taper each wrack patch to an inland tip; leave clear sediment gaps.
+      const taper = broken ? Math.sin(fraction * Math.PI) : 1
+      const depth = side ? 0.04 + width * taper : broken ? 0.04 * Math.max(0, 1 - taper * 2) : 0
+      const [x, y] = landPoint(edge, t, depth)
+      if (side === 0 && i === 0) context.moveTo(x * tile, y * tile)
+      else context.lineTo(x * tile, y * tile)
+    }
+  }
+  context.closePath()
+  context.fillStyle = colour
+  context.fill()
+}
+
 /** Cache dry sediment and stone details with the land raster. */
 export function paintCoastLand(
   context: CanvasRenderingContext2D,
@@ -235,27 +279,42 @@ export function paintCoastLand(
   context.save()
   for (const edge of edges) {
     const gradient = colourBand(context, edge, tile, 0, -palette.width)
-    gradient.addColorStop(0, palette.wet)
+    gradient.addColorStop(0, `rgba(${palette.dry},.96)`)
     gradient.addColorStop(0.24, `rgba(${palette.dry},.9)`)
     gradient.addColorStop(0.68, `rgba(${palette.dry},.28)`)
     gradient.addColorStop(1, 'transparent')
-    paintBand(context, edge, tile, 0, -palette.width, gradient)
-    const wrack = colourBand(context, edge, tile, 0, -0.18)
+    paintLandBand(context, edge, tile, palette.width, gradient)
+    // Dark wet-sediment tongues reach into legal ground in short, separated
+    // patches. They change only the cached surface material: the authored
+    // border, walkability and sea apron remain exactly where they were.
+    const wash = colourBand(context, edge, tile, 0, -0.72)
+    wash.addColorStop(0, palette.wet)
+    wash.addColorStop(0.38, `rgba(${palette.dry},.58)`)
+    wash.addColorStop(1, 'transparent')
+    const washPatches = Math.max(3, Math.ceil((edge.to - edge.from) / 1.7))
+    for (let i = 0; i < washPatches; i++) {
+      const seed = hashString(`${edge.seed}:${edge.from}:${i}:wash`)
+      const from = (i + 0.04 + (seed % 11) / 100) / washPatches
+      const to = Math.min(1, (i + 0.5 + ((seed >>> 7) % 19) / 100) / washPatches)
+      paintLandBand(context, edge, tile, 0.34 + ((seed >>> 15) % 15) / 100, wash, from, to, true)
+    }
+    const wrack = colourBand(context, edge, tile, 0, -0.36)
     wrack.addColorStop(0, 'rgba(48,49,44,.72)')
+    wrack.addColorStop(0.42, `rgba(${palette.dry},.51)`)
     wrack.addColorStop(1, 'rgba(48,49,44,0)')
-    paintBand(context, edge, tile, 0, -0.22, wrack)
-    // A narrow irregular face gives the dry bank relief where it meets the water.
-    const face = colourBand(context, edge, tile, 0, -0.15)
-    face.addColorStop(0, 'rgba(37,38,32,.55)')
-    face.addColorStop(0.43, `rgba(${palette.dry},.51)`)
-    face.addColorStop(1, 'transparent')
-    paintBand(context, edge, tile, 0, -0.18, face)
+    const patches = Math.ceil((edge.to - edge.from) * 1.6)
+    for (let i = 0; i < patches; i++) {
+      const seed = hashString(`${edge.seed}:${edge.from}:${i}:wrack`)
+      const from = (i + 0.06 + (seed % 13) / 100) / patches
+      const to = (i + 0.62 + ((seed >>> 8) % 21) / 100) / patches
+      paintLandBand(context, edge, tile, 0.12 + (seed % 19) / 100, wrack, from, to, true)
+    }
     context.fillStyle = palette.stone
     const count = (edge.to - edge.from) * 5
     for (let i = 0; i < count; i++) {
       const seed = hashString(`${edge.seed}:${edge.from}:${i}:gravel`)
       const fraction = (i + (seed % 79) / 79) / count
-      const [x, y] = coastPoint(edge, fraction, -0.09 - ((seed >>> 8) % 47) / 100)
+      const [x, y] = landPoint(edge, fraction, 0.09 + ((seed >>> 8) % 47) / 100)
       const size = tile * (0.015 + ((seed >>> 16) % 42) / 1000)
       context.globalAlpha = 0.15 + (seed % 23) / 100
       context.fillRect(x * tile, y * tile, size * 1.6, size)
@@ -278,7 +337,7 @@ export function paintCoastLand(
         const seed = hashString(`${edge.seed}:${edge.from + i}:reeds`)
         if (seed % 5 < 2) continue
         const t = (i + 0.24 + (seed % 47) / 100) / (edge.to - edge.from)
-        const [x, y] = coastPoint(edge, t, -0.25 - (seed % 19) / 100)
+        const [x, y] = landPoint(edge, t, 0.25 + (seed % 19) / 100)
         for (let blade = -1; blade <= 1; blade++) {
           context.moveTo((x + blade * 0.025) * tile, y * tile)
           context.lineTo((x + blade * 0.062) * tile, (y - 0.09 - (seed % 7) / 100) * tile)
@@ -345,7 +404,11 @@ export function paintCoastSea(
     // The cached dry raster ends at the rectangular sector border. Back the
     // curved wet lip before that raster is drawn, so the border cannot show
     // through as a straight gap between land and the displaced shallows.
-    paintBand(context, edge, tile, -0.3, 0, palette.wet)
+    const lip = colourBand(context, edge, tile, -0.3, 0.3)
+    lip.addColorStop(0, `rgb(${palette.dry})`)
+    lip.addColorStop(0.45, `rgb(${palette.dry})`)
+    lip.addColorStop(1, palette.wet)
+    paintBand(context, edge, tile, -0.3, 0, lip)
     for (let wave = 0; wave < waves; wave++) {
       const phase = animate
         ? (now / (9600 + (edge.seed % 2000)) + wave / waves + (edge.seed % 97) / 97) % 1

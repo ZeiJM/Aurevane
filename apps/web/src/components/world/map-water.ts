@@ -112,29 +112,39 @@ const bankPoint = (side: Side, along: number, inset: number): Point =>
         ? [along, 1 - inset]
         : [inset, along]
 
-function bankCurves(side: Side, worldX: number, worldY: number, shallow: boolean): Curve[] {
+function bankCurves(
+  side: Side,
+  worldX: number,
+  worldY: number,
+  shallow: boolean,
+  namespace: string,
+): Curve[] {
   const vertical = side === 1 || side === 3
   const along = vertical ? worldY : worldX
   const across = vertical ? worldX + Number(side === 1) : worldY + Number(side === 2)
+  const salt = ((hashString(`${namespace}:${across}:bank`) % 997) / 997) * Math.PI * 2
+  // World-space phases keep both position and tangent coherent between cells.
+  // The face has a visible scallop; the shallow contour leaves a clear channel core.
   const inset = (t: number) => {
-    const phase = (along + t) * 1.7 + across * 0.43
+    const phase = (along + t) * Math.PI * 2 + salt
     return (
-      (shallow ? 0.22 : 0.025) +
-      Math.sin(phase) * (shallow ? 0.035 : 0.013) +
-      Math.sin(phase * 2.3) * 0.008
+      (shallow ? 0.22 : 0.08) +
+      Math.sin(phase) * (shallow ? 0.04 : 0.044) +
+      Math.sin((along + t) * 11.1 + across * 0.43 + salt) * (shallow ? 0.014 : 0.016)
     )
   }
   const derivative = (t: number) => {
-    const phase = (along + t) * 1.7 + across * 0.43
+    const phase = (along + t) * Math.PI * 2 + salt
     return (
-      Math.cos(phase) * 1.7 * (shallow ? 0.035 : 0.013) + Math.cos(phase * 2.3) * 1.7 * 2.3 * 0.008
+      Math.cos(phase) * Math.PI * 2 * (shallow ? 0.04 : 0.044) +
+      Math.cos((along + t) * 11.1 + across * 0.43 + salt) * 11.1 * (shallow ? 0.014 : 0.016)
     )
   }
-  return [0, 0.5].map((t) => [
+  return [0, 0.25, 0.5, 0.75].map((t) => [
     bankPoint(side, t, inset(t)),
-    bankPoint(side, t + 1 / 6, inset(t) + derivative(t) / 6),
-    bankPoint(side, t + 1 / 3, inset(t + 0.5) - derivative(t + 0.5) / 6),
-    bankPoint(side, t + 0.5, inset(t + 0.5)),
+    bankPoint(side, t + 1 / 12, inset(t) + derivative(t) / 12),
+    bankPoint(side, t + 1 / 6, inset(t + 0.25) - derivative(t + 0.25) / 12),
+    bankPoint(side, t + 0.25, inset(t + 0.25)),
   ])
 }
 
@@ -221,8 +231,8 @@ export function buildWaterField(sectors: readonly WorldSectorView[]): Map<string
         if (material === undefined || material === '~') return
         banks.push({
           side: side as Side,
-          edge: bankCurves(side as Side, wx, wy, false),
-          shallow: bankCurves(side as Side, wx, wy, true),
+          edge: bankCurves(side as Side, wx, wy, false, namespace(sector)),
+          shallow: bankCurves(side as Side, wx, wy, true, namespace(sector)),
         })
       })
       const connected = neighbours.map((material) => material === '~')

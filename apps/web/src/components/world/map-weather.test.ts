@@ -110,3 +110,14 @@ it('adds soft fog without making clear or windy skies look overcast', () => {
   expect(drawing.createRadialGradient).toHaveBeenCalledTimes(3)
   expect(gradient.addColorStop).toHaveBeenCalledWith(1, 'transparent')
 })
+
+it('keeps airborne pollen and leaves out of wet/foggy skies and within the existing quality budget', async () => {
+  const { airborneMoteProfile } = await import('./map-weather')
+  for (const weather of ['rain', 'storm', 'fog'] as const)
+    expect(airborneMoteProfile(weather, false)).toBeNull()
+  const calm = airborneMoteProfile('clear', false)!,
+    wind = airborneMoteProfile('wind', false)!
+  expect(wind.drift).toBeGreaterThan(calm.drift)
+  expect(wind.width).toBeGreaterThan(calm.width)
+  expect(airborneMoteProfile('clear', true)!.colour).not.toBe(calm.colour)
+})

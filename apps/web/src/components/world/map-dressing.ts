@@ -17,6 +17,7 @@ export interface ScenicDressing {
   sheet: DressingSheet
   index: number
   glow?: string
+  scale?: number
 }
 
 type SetPiece = readonly [DressingSheet, number, number, number]
@@ -82,6 +83,7 @@ export function sceneryDressing(sector: WorldSectorView): ScenicDressing[] {
       shoreOnly?: boolean
       sideGround?: boolean
       glow?: string
+      scale?: number
     } = {},
   ) => {
     let point: WorldCell | undefined

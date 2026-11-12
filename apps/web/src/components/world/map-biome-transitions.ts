@@ -9,7 +9,7 @@ export interface BiomeTransitionEdge {
   /** Half-open tile indices along the shared boundary: [from, to). */
   from: number
   to: number
-  width: 3
+  width: 4
 }
 
 export interface BiomeTransitionCorner {
@@ -18,7 +18,7 @@ export interface BiomeTransitionCorner {
   horizontalRegionId: string
   verticalRegionId: string
   diagonalRegionId: string
-  width: 3
+  width: 4
 }
 
 function isSnowline(own: WorldSectorView, other: WorldSectorView) {
@@ -138,7 +138,7 @@ export function buildBiomeTransitions(sectors: readonly WorldSectorView[]) {
                   side,
                   from,
                   to: index,
-                  width: 3,
+                  width: 4,
                 } as const
                 edges.push(edge)
                 if (mixTrees) snowlineEdges.push(edge)
@@ -187,7 +187,7 @@ export function buildBiomeTransitions(sectors: readonly WorldSectorView[]) {
               horizontalRegionId: horizontal.regionId,
               verticalRegionId: vertical.regionId,
               diagonalRegionId: diagonal.regionId,
-              width: 3,
+              width: 4,
             })
           }
       }

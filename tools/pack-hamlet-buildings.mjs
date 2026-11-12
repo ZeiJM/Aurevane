@@ -6,25 +6,25 @@ const require = createRequire(new URL('../apps/web/package.json', import.meta.ur
 const sharp = require('sharp')
 const source = process.argv[2]
 if (!source) throw new Error('Pass the original transparent 2 x 2 hamlet atlas PNG.')
-const output = new URL(
-  '../apps/web/public/media/art/world/runtime/hamlet-buildings-v01.webp',
-  import.meta.url,
-)
+const output = process.argv[3]
+  ? new URL(process.argv[3], `file://${process.cwd()}/`)
+  : new URL('../apps/web/public/media/art/world/runtime/hamlet-buildings-v01.webp', import.meta.url)
 const bytes = await readFile(source)
 const { data, info } = await sharp(bytes).ensureAlpha().raw().toBuffer({ resolveWithObject: true })
-if (info.width % 2 || info.height % 2) throw new Error('The source must have equal quadrants.')
+const halfWidth = Math.floor(info.width / 2),
+  halfHeight = Math.floor(info.height / 2)
 const composites = []
 for (let i = 0; i < 4; i++) {
-  const left = (i % 2) * (info.width / 2)
-  const top = Math.floor(i / 2) * (info.height / 2)
-  let x0 = info.width / 2,
-    y0 = info.height / 2,
+  const left = (i % 2) * halfWidth
+  const top = Math.floor(i / 2) * halfHeight
+  let x0 = halfWidth,
+    y0 = halfHeight,
     x1 = -1,
     y1 = -1
   // Ignore near-transparent generation noise when locating the sprite bounds;
   // preserve the original alpha within the selected crop.
-  for (let y = 0; y < info.height / 2; y++) {
-    for (let x = 0; x < info.width / 2; x++) {
+  for (let y = 0; y < halfHeight; y++) {
+    for (let x = 0; x < halfWidth; x++) {
       if (data[((top + y) * info.width + left + x) * 4 + 3] <= 20) continue
       x0 = Math.min(x0, x)
       y0 = Math.min(y0, y)

@@ -1,3 +1,4 @@
+import { waitForWorldArt } from './world-art-readiness'
 import { openMapSettings, closeMapSettings } from './world-map-settings-helpers'
 import { createRequire } from 'node:module'
 import { expect, test, type Page, type TestInfo } from '@playwright/test'
@@ -98,11 +99,13 @@ export function registerWorldLandscapeCases(helpers: Helpers) {
     expect((await world(page)).sectors.some((sector) => sector.id === boundary.neighbor.id)).toBe(
       true,
     )
+    await waitForWorldArt(page, await world(page))
     await capture(page, info, 'biome-boundary-cached-material')
     await stageWalk(page, boundary.road.to)
     await expect
       .poll(async () => (await world(page)).position, { timeout: 12000 })
       .toEqual(boundary.road.to)
+    await waitForWorldArt(page, await world(page))
     await capture(page, info, 'biome-boundary-after-continuous-crossing')
     const coast = sectors.find((sector) => {
       const address = atlasNeighbor(sector.atlasColumn!, sector.atlasRow!, 1, 0)
@@ -128,6 +131,7 @@ export function registerWorldLandscapeCases(helpers: Helpers) {
       walkable: true,
     })
     expect(shore.exits.some((exit) => exit.from.x === 12 && exit.from.y === 4)).toBe(false)
+    await waitForWorldArt(page, await world(page))
     await capture(page, info, 'coastal-road-setback-real-shoreline')
   })
 
@@ -218,6 +222,7 @@ export function registerWorldLandscapeCases(helpers: Helpers) {
         expect(Math.abs(sample - [119, 131, 109][channel]!)).toBeLessThanOrEqual(5)
     }
     expect((await world(page)).position).toEqual({ sectorId: 'atlas:58:28', x: 11, y: 7 })
+    // This palette-only fixture deliberately aborts runtime art and disables ambient motion.
     await capture(page, info, 'four-biome-corner-palette-raster-regression')
   })
 
