@@ -37,6 +37,13 @@ Read this first; open detailed sources only for the task being worked on. This i
 - Browser smoke found the remaining obsolete teleport request shape: the v2 destination now includes `geometryVersion`. The assertion is corrected. A guarded production migration job is added to the existing dispatch workflow, pinned to main, an exact SHA, the 258-entry production ledger, the reviewed single SQL file, a CLI dry run and a v1 preservation postflight. It has not been invoked. The prior Atlas run is superseded by the next pushed candidate.
 - Next: push this small correction/release tooling, verify exact remote tree, run all new-head CI and inspect actual desktop/phone screenshots and performance. No production migration or deployment yet.
 
+## Pending CI continuation — November 12, 19:06 Trinidad
+
+- PR #1039 remote source is `fd1668c2e92dc12a867ef21a10f0ebffb49716cf` / tree `eb140cf3356f78897c2e0246d39476d4f4e32fd7`. Production/main remain PR1038. No corrective migration or deployment has occurred.
+- At this source, all database/security/attribute/combat-mobile and representative buildcraft workflows pass. Browser smoke `43320262686` passed the complete Master flow and is still in final desktop/mobile shell. Atlas `43320262682` passed authenticated story and is still in authenticated map/multiplayer. Let these runs finish before updating the PR branch so their captures survive.
+- Main CI `43320262797` failed only the exhaustive eight-realm crater/scenery test's five-second default timeout; 9,515 other web tests passed. Its assertions remain unchanged; its explicit budget is now 30 seconds, and the entire 14-test Void realm file passes locally in 44.63 seconds. Preserve this repair on remote side branch `agent/world-map-validation-20261112`, then fast-forward the PR branch to it after current browser evidence is collected, followed by final CI.
+- Nick requested hourly checks again. The single task `Automation_a05a9603607c8191bbeed63e8531a28d` is enabled on an exact hourly schedule at minute 47, America/Port_of_Spain. All other watchers remain paused. It must avoid concurrent foreground mutations and continue the authorized release after native image/performance acceptance and final CI.
+
 ## Preserve the requested result
 
 Retain the receipt/ground-loading fix; remove rock shadows/floating art; measure map performance; provide organic rivers/lakes/sea/lava with depth/weather motion, authoritative town-water walking and shallow footsteps, eight distinct towns/Crown walls/moat, coherent relief, grand remote ruins/bridges/towns, larger-than-town waterfall valley/open colosseum, occasional large HQ ocean discoveries, crisp globe and real private64×48 Uncharted supercontinents. Verify artwork at actual gameplay zoom.

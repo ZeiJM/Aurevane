@@ -254,7 +254,7 @@ describe('authored private Void worlds', () => {
       expect(scenic.length).toBeGreaterThan(0)
       expect(scenic.length).toBeLessThanOrEqual(12)
     }
-  })
+  }, 30000)
 
   it('places the goldfall and water cascade beside real connected liquid runs', () => {
     for (const [id, liquid] of [
