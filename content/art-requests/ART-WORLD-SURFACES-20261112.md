@@ -4,13 +4,13 @@ Original generated masters and compressed runtime sheets are retained together i
 
 ## Atlas layouts
 
-| Sheet | Layout | Cell | Runtime bytes |
-|---|---|---|---|
-| settlement-floors-v01 | 4×3 | 384px |575804|
-| grand-bridges-v01 |3×1|512px|184310|
-| waterfalls-v01 |3×1|512px|299492|
-| lavafalls-v01 |2×1|512px|196638|
-| impact-basins-v01 |3×1|512px|317840|
+| Sheet                 | Layout | Cell  | Runtime bytes |
+| --------------------- | ------ | ----- | ------------- |
+| settlement-floors-v01 | 4×3    | 384px | 575804        |
+| grand-bridges-v01     | 3×1    | 512px | 184310        |
+| waterfalls-v01        | 3×1    | 512px | 299492        |
+| lavafalls-v01         | 2×1    | 512px | 196638        |
+| impact-basins-v01     | 3×1    | 512px | 317840        |
 
 Total runtime1,574,084bytes. First floors have no inset and opaque ground; all remaining sprite cells preserve original composition with16px transparent inset. Packer validates each alpha/cell and emits SHA256 source/runtime receipts. Source directory apps/web/public/media/art/world/sources; runtime directory apps/web/public/media/art/world/runtime.
 
