@@ -66,6 +66,7 @@ import { buildSettlementGround, paintSettlementEdges } from './map-settlement-ed
 import {
   hamletFamilyIndex,
   naturalDressing,
+  regionalScenery,
   paintTownLight,
   paintVoidGlimmer,
   sceneryDressing,
@@ -73,6 +74,7 @@ import {
 import { DEFAULT_MAP_QUALITY, mapQualityBudgets, type MapQuality } from './map-quality'
 import { buildTrailGround, naturalTrailWear, paintNaturalTrail } from './map-trail'
 import { paintSnowRoadShoulders } from './map-snow-road'
+import { paintTerrainRelief } from './map-relief'
 import {
   ferryWaterFrame,
   paintFerryDeck,
@@ -184,6 +186,7 @@ interface BridgeStrip {
 }
 interface LiquidSurface {
   canvas: HTMLCanvasElement
+  tint?: WorldSectorView['warpedTheme']
   x: number
   y: number
   width: number
@@ -487,7 +490,7 @@ function indexBridgeWater(
               relevant.push(profiles.get(address(sector, x, y)))
     keys.set(sector.id, JSON.stringify(relevant))
   }
-  return { profiles, address, keys }
+  return { profiles, address, keys, field }
 }
 function sprite(
   context: CanvasRenderingContext2D,
@@ -634,11 +637,11 @@ export function createMapRenderer(
   const wildlife = new WeakMap<WorldSectorView, Wildlife[]>()
   const dressing = new WeakMap<WorldSectorView, ReturnType<typeof sceneryDressing>>()
   let renderSectors = worldRenderTerrain(view)
-  let waterField = buildWaterField(renderSectors)
   let biomeField = buildBiomeTransitions(renderSectors)
   let settlementGround: ReturnType<typeof buildSettlementGround>
   let featurePlacements = indexFeaturePlacements(renderSectors)
   let bridgeWater = indexBridgeWater(renderSectors, featurePlacements)
+  let waterField = bridgeWater.field
   let coastField = buildPublicCoasts({ ...view, sectors: renderSectors })
   let warpedFog = buildWarpedFogField(renderSectors)
   let heatEmitters = terrainHeatEmitters(renderSectors)
@@ -648,10 +651,10 @@ export function createMapRenderer(
   function indexTerrain() {
     stationaryGround = null
     clearStationaryScenery()
-    waterField = buildWaterField(renderSectors)
     biomeField = buildBiomeTransitions(renderSectors)
     featurePlacements = indexFeaturePlacements(renderSectors)
     bridgeWater = indexBridgeWater(renderSectors, featurePlacements)
+    waterField = bridgeWater.field
     coastField = buildPublicCoasts({ ...view, sectors: renderSectors })
     settlementGround = buildSettlementGround(renderSectors, coastField)
     warpedFog = buildWarpedFogField(renderSectors)
@@ -686,6 +689,7 @@ export function createMapRenderer(
         dressing.set(sector, [
           ...sceneryDressing(sector),
           ...naturalDressing(sector),
+          ...regionalScenery(sector),
           ...settlementComposition(sector),
         ])
     }
@@ -870,7 +874,7 @@ export function createMapRenderer(
       tile,
       (sector.atlasColumn ?? 0) * GRID_WIDTH,
       (sector.atlasRow ?? 0) * GRID_HEIGHT,
-      sector.warpedTheme === 'amethyst',
+      sector.warpedTheme ?? false,
     )
     const lavaMaterial = liquidMaterial(
       c,
@@ -1041,7 +1045,7 @@ export function createMapRenderer(
         y = cell.y * tile
       if (warped && cell.terrain !== '~' && cell.terrain !== 'l') {
         c.fillStyle = warped
-        c.globalAlpha = 0.54
+        c.globalAlpha = 0.68
         c.fillRect(x, y, tile + 1, tile + 1)
         c.globalAlpha = 1
       }
@@ -1128,7 +1132,7 @@ export function createMapRenderer(
               c,
               profile,
               tile,
-              sector.warpedTheme === 'amethyst',
+              sector.warpedTheme ?? false,
               images.get('water-materials'),
               (sector.atlasColumn ?? sector.sceneColumn ?? 0) * GRID_WIDTH + cell.x,
               (sector.atlasRow ?? sector.sceneRow ?? 0) * GRID_HEIGHT + cell.y,
@@ -1172,6 +1176,7 @@ export function createMapRenderer(
       const fogMask = fogCells?.get(`${cell.x}:${cell.y}`)
       if (fogMask) paintWarpedFogEdge(c, cell, tile, fogMask)
     }
+    paintTerrainRelief(c, sector, tile)
     const edges = settlementGround.edges.get(sector.id)
     if (edges)
       paintSettlementEdges(
@@ -1223,7 +1228,14 @@ export function createMapRenderer(
       surface.height = Math.ceil(bounds.height * tile * groundScale)
       const liquid = surface.getContext('2d')!
       liquid.scale(groundScale, groundScale)
-      liquid.fillStyle = liquidMaterial(liquid, placement.underpass, tile, bounds.x, bounds.y)
+      liquid.fillStyle = liquidMaterial(
+        liquid,
+        placement.underpass,
+        tile,
+        bounds.x,
+        bounds.y,
+        sector.warpedTheme ?? false,
+      )
       liquid.fillRect(0, 0, bounds.width * tile, bounds.height * tile)
       const cells: LiquidSurface['cells'] = []
       for (const strip of placement.bridgeStrips)
@@ -1238,14 +1250,14 @@ export function createMapRenderer(
                 liquid,
                 { ...profile, x: x - bounds.x, y: y - bounds.y },
                 tile,
-                false,
+                sector.warpedTheme ?? false,
                 images.get('water-materials'),
                 x,
                 y,
               )
             cells.push({ x, y, profile })
           }
-      surfaces.set(id, { canvas: surface, ...bounds, cells })
+      surfaces.set(id, { canvas: surface, tint: sector.warpedTheme, ...bounds, cells })
     }
     const stale = cache.get(sector.id)
     if (stale) {
@@ -1855,7 +1867,7 @@ export function createMapRenderer(
             height: size,
             image,
             index: prop.index,
-            columns: 2,
+            columns: prop.sheet === 'regional-scenery' ? 4 : 2,
             rows: 2,
             anchorY: 0.94,
             tree: false,
@@ -1992,7 +2004,7 @@ export function createMapRenderer(
                   profile,
                   tile,
                   now,
-                  sector.warpedTheme === 'amethyst',
+                  sector.warpedTheme ?? false,
                   surfaceWeather,
                 )
               ctx.restore()
@@ -2553,7 +2565,14 @@ export function createMapRenderer(
               ctx.save()
               ctx.translate((wrappedMapX(cell.x, item.x) - item.x) * tile, (cell.y - item.y) * tile)
               if (cell.profile)
-                paintWaterMotion(ctx, cell.profile, tile, now, false, surfaceWeather)
+                paintWaterMotion(
+                  ctx,
+                  cell.profile,
+                  tile,
+                  now,
+                  surface.tint ?? false,
+                  surfaceWeather,
+                )
               else paintLavaMotion(ctx, tile, now, cell.x, cell.y)
               ctx.restore()
             }

@@ -10,6 +10,7 @@ import { createMapRenderer } from './map-renderer'
 import { MAP_X, MAP_Y, projectMapPoint, unprojectMapPoint } from './map-projection'
 import type { WorldView } from '@/world/types'
 import * as biomes from './map-biome-transitions'
+import * as waterPainting from './map-water'
 import { worldWindTarget } from './map-weather'
 import { worldRenderTerrain } from './map-render-terrain'
 
@@ -3515,6 +3516,40 @@ it('replaces ordinary Ember trees with living foliage and keeps decoded old-art 
   }
 })
 
+it.each([
+  ['fracture', '#e6d451', '#665176'],
+  ['ashen', '#eeeaf5', '#736b91'],
+  ['amber', '#e9bc48', '#793d27'],
+] as const)(
+  'paints %s Void ground and water without mainland colouring',
+  (theme, ground, water) => {
+    const view = projectWorld(newWorldState(), [], 1000)
+    const sector = {
+      ...view.sectors[0]!,
+      charted: false,
+      warpedTheme: theme,
+      landmarks: [],
+      buildings: [],
+      cells: [
+        { x: 6, y: 4, terrain: '.', walkable: true, safe: false },
+        { x: 7, y: 4, terrain: '~', walkable: false, safe: false },
+      ],
+    }
+    const s = scene(true, { ...view, sectors: [sector], scenery: undefined })
+    try {
+      s.frame(40)
+      expect(s.rectangles.some(({ colour }) => colour === ground)).toBe(true)
+      expect(s.gradients.some(({ stops }) => stops.some(([, colour]) => colour === water))).toBe(
+        true,
+      )
+      expect(s.draws.some(({ src }) => src.endsWith('void-ground-v01.webp'))).toBe(true)
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  },
+)
+
 it('uses dedicated Void ground only for supplied private scenery', () => {
   const view = projectWorld(newWorldState(), [], 1000)
   const sector = {
@@ -3686,6 +3721,82 @@ it('softens the winter marketplace pavement perimeter, not just roads outside th
     ).toBe(true)
   } finally {
     s.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+})
+
+it('keeps all sixteen packed scenic sprites isolated with complete opaque artwork and transparent margins', async () => {
+  for (const [name, columns, size] of [
+    ['regional-scenery', 4, 384],
+    ['regional-scenery-extra', 2, 384],
+    ['rare-scenery', 2, 512],
+  ] as const) {
+    const { data, info } = await sharp(
+      await readFile(
+        new URL(`../../../public/media/art/world/runtime/${name}-v01.webp`, import.meta.url),
+      ),
+    )
+      .ensureAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true })
+    expect(info.width).toBe(columns * size)
+    expect(info.height).toBe(2 * size)
+    for (let cell = 0; cell < columns * 2; cell++) {
+      const ox = (cell % columns) * size,
+        oy = Math.floor(cell / columns) * size
+      let opaque = 0,
+        clear = 0,
+        edgeInk = 0
+      for (let y = 0; y < size; y++)
+        for (let x = 0; x < size; x++) {
+          const alpha = data[((oy + y) * info.width + ox + x) * 4 + 3]!
+          if (alpha > 240) opaque++
+          if (alpha === 0) clear++
+          if ((x < 8 || y < 8 || x >= size - 8 || y >= size - 8) && alpha > 20) edgeInk++
+        }
+      expect(opaque).toBeGreaterThan(size * size * 0.1)
+      expect(clear).toBeGreaterThan(size * size * 0.15)
+      expect(edgeInk).toBe(0)
+    }
+  }
+})
+
+it('joins depth colours between supplied open water and a proven bridge underpass', () => {
+  const base = projectWorld(newWorldState(), [], 1000)
+  const sector = base.sectors[0]!
+  const cells = Array.from({ length: 49 }, (_, i) => {
+    const x = i % 7,
+      y = Math.floor(i / 7)
+    const terrain = x === 0 || y === 0 || x === 6 || y === 6 ? '.' : x === 3 ? '=' : '~'
+    return { x, y, terrain, safe: false, walkable: terrain !== '~' }
+  })
+  const before = JSON.stringify(cells)
+  const paint = vi.spyOn(waterPainting, 'paintWaterGround')
+  const s = scene(true, {
+    ...base,
+    scenery: undefined,
+    sectors: [
+      {
+        ...sector,
+        atlasColumn: 0,
+        atlasRow: 0,
+        cells,
+        townId: undefined,
+        buildings: [],
+        landmarks: [{ id: 'pond-bridge', kind: 'bridge', name: 'Bridge', x: 3, y: 3 }],
+      },
+    ],
+  })
+  try {
+    s.frame(40)
+    const ordinary = paint.mock.calls.find((c) => c[5] === 2 && c[6] === 3)![1]
+    const beneath = paint.mock.calls.find((c) => c[5] === 3 && c[6] === 3)![1]
+    expect(ordinary.cornerDepths![1]).toBe(beneath.cornerDepths![0])
+    expect(ordinary.cornerDepths![2]).toBe(beneath.cornerDepths![3])
+    expect(JSON.stringify(cells)).toBe(before)
+  } finally {
+    s.renderer.dispose()
+    paint.mockRestore()
     vi.unstubAllGlobals()
   }
 })

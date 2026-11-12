@@ -99,6 +99,56 @@ interface WaterSector {
   key: string
   cells: Map<string, WaterCell>
 }
+type WaterTint = NonNullable<WorldSectorView['warpedTheme']> | boolean
+interface VoidWaterPalette {
+  base: readonly [string, string, string]
+  shallow: readonly [number, number, number]
+  deep: readonly [number, number, number]
+  glint: string
+}
+// Shared by cached depths, bridge undersides and animated reflections.
+const voidWater: Record<NonNullable<WorldSectorView['warpedTheme']>, VoidWaterPalette> = {
+  haven: {
+    base: ['#71679a', '#b8a1d6', '#49466f'],
+    shallow: [204, 189, 232],
+    deep: [65, 54, 107],
+    glint: '#ede0ff',
+  },
+  ashen: {
+    base: ['#736b91', '#c6bfd9', '#514b70'],
+    shallow: [223, 218, 238],
+    deep: [91, 80, 126],
+    glint: '#f4efff',
+  },
+  fracture: {
+    base: ['#665176', '#ae83b6', '#43365e'],
+    shallow: [208, 174, 218],
+    deep: [68, 45, 96],
+    glint: '#efd3fa',
+  },
+  wayfarer: {
+    base: ['#6d4269', '#b86f9b', '#493b6c'],
+    shallow: [224, 168, 204],
+    deep: [73, 46, 103],
+    glint: '#f7d2ee',
+  },
+  amber: {
+    base: ['#793d27', '#d78545', '#572942'],
+    shallow: [233, 164, 99],
+    deep: [104, 45, 62],
+    glint: '#fce0bd',
+  },
+  amethyst: {
+    base: ['#563786', '#8e61c5', '#4b3476'],
+    shallow: [159, 128, 193],
+    deep: [56, 40, 94],
+    glint: '#e0c5f1',
+  },
+}
+const waterPalette = (tint: WaterTint) =>
+  tint ? voidWater[tint === true ? 'amethyst' : tint] : undefined
+const rgba = (colour: readonly number[], alpha: number) => `rgba(${colour.join(',')},${alpha})`
+
 const depthRasters = new WeakMap<
   CanvasRenderingContext2D,
   {
@@ -381,11 +431,12 @@ export function paintWaterGround(
   context: CanvasRenderingContext2D,
   cell: WaterCell,
   tile: number,
-  amethyst = false,
+  tint: WaterTint = false,
   material?: HTMLImageElement,
   worldX = cell.x,
   worldY = cell.y,
 ) {
+  const palette = waterPalette(tint)
   context.save()
   context.translate(cell.x * tile, cell.y * tile)
   clipCell(context, tile)
@@ -423,8 +474,8 @@ export function paintWaterGround(
     ]
     const depthColour = (depth: number) => {
       const t = Math.max(0, Math.min(1, depth / 3))
-      const shallow = amethyst ? [159, 128, 193] : [111, 190, 171]
-      const deep = amethyst ? [56, 40, 94] : [20, 74, 100]
+      const shallow = palette?.shallow ?? [111, 190, 171]
+      const deep = palette?.deep ?? [20, 74, 100]
       return shallow.map((value, i) => Math.round(value + (deep[i]! - value) * t))
     }
     let raster = depthRasters.get(context)
@@ -447,15 +498,15 @@ export function paintWaterGround(
       context.imageSmoothingEnabled = true
       context.drawImage(raster.layer, -tile / 2, -tile / 2, tile * 2, tile * 2)
     }
-    paintTexture(amethyst ? 3 : 1, amethyst ? 0.32 : 0.2)
-    if (!amethyst) paintTexture(2, 0.12)
+    paintTexture(palette ? 3 : 1, palette ? 0.12 : 0.2)
+    if (!palette) paintTexture(2, 0.12)
   }
   if (cell.channel) {
     for (const width of [0.76, 0.58, 0.36]) {
       context.beginPath()
       trace(context, cell.flow, tile)
       context.lineWidth = tile * width
-      context.strokeStyle = amethyst ? 'rgba(36,18,73,.17)' : 'rgba(9,47,58,.09)'
+      context.strokeStyle = palette ? rgba(palette.deep, 0.17) : 'rgba(9,47,58,.09)'
       context.stroke()
     }
   }
@@ -469,11 +520,11 @@ export function paintWaterGround(
       end[0] * tile,
       end[1] * tile,
     )
-    gradient.addColorStop(0, amethyst ? 'rgba(37,27,49,.9)' : 'rgba(40,51,35,.85)')
-    gradient.addColorStop(0.16, amethyst ? 'rgba(146,115,143,.64)' : 'rgba(125,133,79,.63)')
-    gradient.addColorStop(0.38, amethyst ? 'rgba(183,118,217,.66)' : 'rgba(93,157,124,.54)')
-    gradient.addColorStop(0.72, amethyst ? 'rgba(166,111,218,.34)' : 'rgba(101,174,155,.31)')
-    gradient.addColorStop(1, amethyst ? 'rgba(148,103,186,0)' : 'rgba(97,174,161,0)')
+    gradient.addColorStop(0, palette ? rgba(palette.deep, 0.9) : 'rgba(40,51,35,.85)')
+    gradient.addColorStop(0.16, palette ? rgba(palette.shallow, 0.64) : 'rgba(125,133,79,.63)')
+    gradient.addColorStop(0.38, palette ? rgba(palette.shallow, 0.66) : 'rgba(93,157,124,.54)')
+    gradient.addColorStop(0.72, palette ? rgba(palette.shallow, 0.34) : 'rgba(101,174,155,.31)')
+    gradient.addColorStop(1, palette ? rgba(palette.shallow, 0) : 'rgba(97,174,161,0)')
     context.beginPath()
     const a = bankPoint(bank.side, 0, 0),
       b = bankPoint(bank.side, 1, 0)
@@ -486,7 +537,7 @@ export function paintWaterGround(
     context.closePath()
     context.fillStyle = gradient
     context.fill()
-    if (!amethyst) {
+    if (!palette) {
       context.save()
       context.clip()
       paintTexture(0, 0.24)
@@ -494,19 +545,19 @@ export function paintWaterGround(
     }
     context.beginPath()
     bank.edge.forEach((curve, i) => trace(context, curve, tile, i === 0))
-    context.strokeStyle = amethyst
-      ? 'rgba(233,197,236,.46)'
+    context.strokeStyle = palette
+      ? palette.glint
       : vertical
         ? 'rgba(195,195,130,.48)'
         : 'rgba(181,199,147,.37)'
     context.lineWidth = tile * 0.022
     context.stroke()
     // A wide transparent rim adds bank depth without a hard straight outline.
-    context.strokeStyle = amethyst ? 'rgba(60,34,105,.24)' : 'rgba(12,55,54,.21)'
+    context.strokeStyle = palette ? rgba(palette.deep, 0.24) : 'rgba(12,55,54,.21)'
     context.lineWidth = tile * 0.065
     context.stroke()
     // Small submerged gravel stays within the legal water cell.
-    context.fillStyle = amethyst ? 'rgba(199,161,232,.32)' : 'rgba(186,182,137,.29)'
+    context.fillStyle = palette ? rgba(palette.shallow, 0.32) : 'rgba(186,182,137,.29)'
     for (let grain = 0; grain < 4; grain++) {
       const seed = hashString(`${cell.seed}:${bank.side}:${grain}:gravel`)
       const [x, y] = bankPoint(bank.side, 0.12 + grain * 0.23, 0.055 + (seed % 10) / 100)
@@ -514,12 +565,12 @@ export function paintWaterGround(
       context.fillRect(x * tile, y * tile, size * 1.45, size)
     }
   }
-  const colours = amethyst
+  const colours = palette
     ? [
-        'rgba(191,152,236,.33)',
-        'rgba(215,174,221,.22)',
-        'rgba(67,32,114,.25)',
-        'rgba(236,201,247,.33)',
+        rgba(palette.shallow, 0.33),
+        rgba(palette.shallow, 0.22),
+        rgba(palette.deep, 0.25),
+        rgba(palette.shallow, 0.33),
       ]
     : [
         'rgba(137,199,180,.20)',
@@ -555,7 +606,7 @@ function paintRainImpact(
   tile: number,
   now: number,
   rain: number,
-  amethyst: boolean,
+  glint: string,
 ) {
   if (rain < 0.015) return
   const phase = (now / (1400 + (cell.seed % 800)) + (cell.seed % 997) / 997) % 1
@@ -566,7 +617,7 @@ function paintRainImpact(
   const y = (0.29 + ((cell.seed >>> 17) % 83) / 200) * tile
   const radius = tile * (0.025 + age * 0.19)
   context.globalAlpha = Math.sin(age * Math.PI) * (1 - age * 0.5) * rain * 0.49
-  context.strokeStyle = amethyst ? '#f1d5fa' : '#d4efe9'
+  context.strokeStyle = glint
   context.lineWidth = Math.max(0.65, tile * 0.02)
   context.beginPath()
   context.ellipse(x, y, radius, radius * 0.89, 0, 0, Math.PI * 2)
@@ -579,16 +630,17 @@ export function paintWaterMotion(
   cell: WaterCell,
   tile: number,
   now: number,
-  amethyst = false,
+  tint: WaterTint = false,
   weather?: SurfaceWeather,
 ) {
+  const palette = waterPalette(tint)
   context.save()
   clipCell(context, tile)
   const roughness = Math.min(1, Math.abs(weather?.windSpeed ?? 0) / 0.06)
   if (!cell.channel) {
     const phase = (now / (4200 + (cell.seed % 1800)) + (cell.seed % 997) / 997) % 1
     const radius = tile * (0.13 + phase * 0.29)
-    context.strokeStyle = amethyst ? '#e0c5f1' : '#bbded0'
+    context.strokeStyle = palette?.glint ?? '#bbded0'
     context.globalAlpha = Math.sin(phase * Math.PI) * (0.16 + roughness * 0.14)
     context.lineWidth = tile * 0.012
     context.beginPath()
@@ -610,10 +662,10 @@ export function paintWaterMotion(
         offset = (i - 1.5) * 0.13
       context.globalAlpha =
         Math.sin(phase * Math.PI) * (i === 1 ? 0.54 : 0.3) * (1 + roughness * 0.18)
-      context.strokeStyle = amethyst
+      context.strokeStyle = palette
         ? i % 2
-          ? '#e0c5f1'
-          : '#b685ee'
+          ? palette.glint
+          : `rgb(${palette.shallow.join(',')})`
         : i % 2
           ? '#bbded0'
           : '#82c6c7'
@@ -623,7 +675,7 @@ export function paintWaterMotion(
       context.stroke()
     }
   }
-  if (weather) paintRainImpact(context, cell, tile, now, weather.rain, amethyst)
+  if (weather) paintRainImpact(context, cell, tile, now, weather.rain, palette?.glint ?? '#d4efe9')
   context.restore()
 }
 
@@ -634,19 +686,18 @@ export function liquidMaterial(
   tile: number,
   originX: number,
   originY: number,
-  amethyst = false,
+  tint: WaterTint = false,
 ) {
+  const palette = waterPalette(tint)
   const gradient = context.createLinearGradient(
-    amethyst ? tile : -originX * tile,
-    amethyst ? tile * 4 : -originY * tile,
-    (amethyst ? 8 : ATLAS_COLUMNS * GRID_WIDTH - originX) * tile,
-    (amethyst ? 7 : ATLAS_ROWS * GRID_HEIGHT - originY) * tile,
+    -originX * tile,
+    -originY * tile,
+    (ATLAS_COLUMNS * GRID_WIDTH - originX) * tile,
+    (ATLAS_ROWS * GRID_HEIGHT - originY) * tile,
   )
   const colours =
     material === 'water'
-      ? amethyst
-        ? ['#563786', '#8e61c5', '#4b3476']
-        : ['#245e67', '#3e7b82', '#244e60']
+      ? (palette?.base ?? ['#245e67', '#3e7b82', '#244e60'])
       : ['#702f25', '#bd5b2e', '#4d2526']
   colours.forEach((colour, i) => gradient.addColorStop(i / (colours.length - 1), colour))
   return gradient

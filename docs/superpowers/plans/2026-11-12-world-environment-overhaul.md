@@ -68,3 +68,13 @@ Files: original Void material/scenery where necessary, map-renderer, atlas-world
 ## Verification map
 
 During editing: affected pure helpers and renderer, adjacent World/controller/scene/projection/motion/server suites; TypeScript and scoped zero-warning ESLint/format/diff. Unchanged combat/catalogue/database suites excluded from short development loops because no rules/schema/content changes; full configured CI, Living Atlas and Browser smoke still required on final candidate. Broad final source needs pnpm check. Discovery is not native execution. No unchanged broad reruns without new evidence or a changed tree.
+
+
+### Task6: Continuation — alien palettes, scenic density, relief and surf
+
+- [ ] Reproduce the missing district water/ground palettes and carry them through static depth, banks, bridges and animated reflections. Retain ordinary water/lava.
+- [ ] Generate original regional scenic atlas, correct/verify transparency, normalize complete isolated crops, compress and record provenance/hashes. Add stable known-footprint placement with route/site/reveal exclusions and bounded density; wire native readiness and ordinary depth/identity rendering.
+- [ ] Add cached rock/valley relief using supplied natural terrain boundaries; no invented cliff against unknown/private neighbors, no new collision/height mechanic or route obstruction.
+- [ ] Make surf shoreward with a slow intermittent breaker envelope amplified by shared wind while retaining edge/crest budgets and frozen motion-off state. Retain rooted foliage, water/rain/bridge/weather paths.
+- [ ] Run failing-to-passing regressions, all World suites, web types/scoped zero-warning lint/format/diff and fresh whole-branch review. Final configured CI/Atlas/Browser and native mainland/Void/weather/occlusion/loading review remain mandatory.
+- [ ] After passing final exact-tree gates, verify current-main compatibility, expected-head merge and one explicit production deployment; verify canonical source/health/smoke/runtime errors. Hourly follow-through stays enabled until verified completion. No preview deployment or data/content mutation.

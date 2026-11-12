@@ -1,3 +1,4 @@
+import { sceneryReviewCandidates, VOID_SCENERY_VIEWS } from './world-art-scenery'
 import { waterReviewCandidate } from './world-art-water'
 import { unoccupiedArtStep } from './world-art-step'
 import { waitForWorldArt } from './world-art-readiness'
@@ -6,7 +7,11 @@ import { writeFileSync } from 'node:fs'
 import { expect, test, type Page, type TestInfo } from '@playwright/test'
 import { settlementComposition } from '../src/components/world/map-settlement-composition'
 import { buildWaterField } from '../src/components/world/map-water'
-import { naturalDressing, sceneryDressing } from '../src/components/world/map-dressing'
+import {
+  naturalDressing,
+  regionalScenery,
+  sceneryDressing,
+} from '../src/components/world/map-dressing'
 import { atlasSectors } from '../src/world/atlas'
 import { GRID_HEIGHT, GRID_WIDTH, WORLD_REGIONS } from '../src/world/catalog'
 import type { WorldPosition, WorldView } from '../src/world/types'
@@ -52,6 +57,7 @@ export function registerWorldArtReviewCases({
     const dressing = [
       ...sceneryDressing(sector),
       ...naturalDressing(sector),
+      ...regionalScenery(sector),
       ...settlementComposition(sector),
     ]
     await waitForWorldArt(page, view)
@@ -85,6 +91,44 @@ export function registerWorldArtReviewCases({
         observedDepths: [...new Set(profiles.map(({ depth }) => depth))],
         waterCells: profiles.length,
       })
+    }
+    writeFileSync(info.outputPath('world-art-review.json'), JSON.stringify(evidence, null, 2))
+  })
+
+  test('all new mainland scenic assets and fallen star have normal-zoom native views', async ({
+    page,
+  }, info) => {
+    test.skip(info.project.name === 'laptop-chromium', 'Desktop and phone scenery review.')
+    test.setTimeout(180_000)
+    const candidates = sceneryReviewCandidates(atlasSectors())
+    expect(candidates.size).toBe(11)
+    await enter(page)
+    const { characterId } = await world(page)
+    const evidence = []
+    for (const [key, position] of candidates) {
+      const result = await scene(page, characterId, position)
+      expect(result.dressing.some((p) => `${p.sheet}-${p.index}` === key)).toBe(true)
+      await capture(page, info, `art-scenery-${key}`)
+      evidence.push({ key, ...result })
+    }
+    writeFileSync(info.outputPath('world-art-review.json'), JSON.stringify(evidence, null, 2))
+  })
+
+  test('large rare Void time ruins and strange vegetation have normal-zoom native views', async ({
+    page,
+  }, info) => {
+    test.skip(info.project.name === 'laptop-chromium', 'Desktop and phone rare scenery review.')
+    test.setTimeout(120_000)
+    await enter(page)
+    const { characterId } = await world(page)
+    const evidence = []
+    for (const { key, phase, ...position } of VOID_SCENERY_VIEWS) {
+      const result = await scene(page, characterId, position, phase)
+      const prop = result.dressing.find((p) => `${p.sheet}-${p.index}` === key)
+      expect(prop).toBeDefined()
+      if (key.startsWith('rare-')) expect(prop!.scale).toBeGreaterThan(2)
+      await capture(page, info, `art-void-scenery-${key}`)
+      evidence.push({ key, phase, ...result })
     }
     writeFileSync(info.outputPath('world-art-review.json'), JSON.stringify(evidence, null, 2))
   })
@@ -365,7 +409,12 @@ export function registerWorldArtReviewCases({
         const result = await scene(page, characterId, { sectorId, x: 6, y: 4 }, phase)
         expect(result.sector.charted).toBe(false)
         expect(result.sector.warpedScenery).toBeDefined()
-        expect(result.dressing).toHaveLength(1)
+        expect(
+          result.dressing.filter(
+            (p) =>
+              !['regional-scenery', 'regional-scenery-extra', 'rare-scenery'].includes(p.sheet),
+          ),
+        ).toHaveLength(1)
         if (landmark) expect(result.sector.landmarks.map(({ name }) => name)).toContain(landmark)
         await capture(page, info, `art-void-${key}-phase-${phase}`)
         evidence.push({ phase, ...result })

@@ -4,6 +4,7 @@ import { terrainWalkable } from '@/world/terrain'
 import type { WorldSectorView } from '@/world/types'
 import {
   buildWaterField,
+  liquidMaterial,
   paintWaterfallMotion,
   paintWaterMotion,
   paintWaterGround,
@@ -51,6 +52,87 @@ function sector(id: string, atlasRow = 0, cells: [number, number, string][] = []
 }
 
 describe('world-connected water presentation', () => {
+  it('gives Void water district colours while preserving ordinary water and lava', () => {
+    const sample = (
+      theme: Parameters<typeof liquidMaterial>[5],
+      material: 'water' | 'lava' = 'water',
+    ) => {
+      const stops: string[] = []
+      const ctx = {
+        createLinearGradient: () => ({
+          addColorStop: (_at: number, colour: string) => stops.push(colour),
+        }),
+      } as unknown as CanvasRenderingContext2D
+      liquidMaterial(ctx, material, 64, 0, 0, theme)
+      return stops
+    }
+    expect(sample('amber')).toEqual(['#793d27', '#d78545', '#572942'])
+    expect(sample('amethyst')).toEqual(['#563786', '#8e61c5', '#4b3476'])
+    expect(sample('ashen')).toEqual(['#736b91', '#c6bfd9', '#514b70'])
+    expect(sample(false)).toEqual(['#245e67', '#3e7b82', '#244e60'])
+    expect(sample('amber', 'lava')).toEqual(sample(false, 'lava'))
+  })
+  it.each([
+    ['amber', [233, 164, 99], [104, 45, 62], '#fce0bd'],
+    ['ashen', [223, 218, 238], [91, 80, 126], '#f4efff'],
+    ['amethyst', [159, 128, 193], [56, 40, 94], '#e0c5f1'],
+  ] as const)(
+    'keeps %s water depth and moving reflections in the same colour family',
+    (theme, shallow, deep, glint) => {
+      const pixels: number[][] = []
+      const raster = {
+        getContext: () => ({
+          createImageData: () => ({ data: new Uint8ClampedArray(16) }),
+          putImageData: (image: { data: Uint8ClampedArray }) =>
+            pixels.push([...image.data.slice(0, 3)]),
+        }),
+      }
+      vi.stubGlobal('document', { createElement: () => raster })
+      const colours: string[] = []
+      const ctx = new Proxy(
+        {
+          strokeStyle: '',
+          stroke() {
+            colours.push(this.strokeStyle)
+          },
+          createLinearGradient: () => ({ addColorStop() {} }),
+        },
+        { get: (target, key) => (key in target ? target[key as keyof typeof target] : () => {}) },
+      ) as unknown as CanvasRenderingContext2D
+      const profile = buildWaterField([sector('private', 0, [[0, 0, '~']])])
+        .get('private')!
+        .cells.get('0:0')!
+      const material = {
+        complete: true,
+        naturalWidth: 768,
+        width: 768,
+        height: 768,
+      } as HTMLImageElement
+      try {
+        paintWaterGround(
+          ctx,
+          { ...profile, depth: 0, cornerDepths: [0, 0, 0, 0] },
+          64,
+          theme,
+          material,
+        )
+        paintWaterGround(
+          ctx,
+          { ...profile, depth: 3, cornerDepths: [3, 3, 3, 3] },
+          64,
+          theme,
+          material,
+        )
+        expect(pixels).toEqual([[...shallow], [...deep]])
+        colours.length = 0
+        paintWaterMotion(ctx, profile, 64, 1200, theme)
+        expect(colours).toContain(glint)
+      } finally {
+        vi.unstubAllGlobals()
+      }
+    },
+  )
+
   it('uses the clear sand-bottom texture only inside a supplied bank mask', () => {
     vi.stubGlobal('document', {
       createElement: () => ({

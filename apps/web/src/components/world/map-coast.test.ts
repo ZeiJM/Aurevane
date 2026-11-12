@@ -349,3 +349,54 @@ it('carries regional dry sediment across the curved wet lip instead of a constan
   expect(typeof fills[1]).toBe('object')
   expect(stops.some((s) => s[0]?.includes('165,150,125') && s.at(-1) === '#575b54')).toBe(true)
 })
+
+it('rolls occasional shoreward breakers through gentle surf, stronger in storms and frozen when motion is off', () => {
+  const sample = (time: number, wind: number, animate = true) => {
+    const strokes: { width: number; alpha: number; points: number[][] }[] = []
+    let points: number[][] = []
+    const ctx = {
+      lineWidth: 0,
+      globalAlpha: 1,
+      save() {},
+      restore() {},
+      beginPath() {
+        points = []
+      },
+      closePath() {},
+      fill() {},
+      moveTo(x: number, y: number) {
+        points.push([x, y])
+      },
+      lineTo(x: number, y: number) {
+        points.push([x, y])
+      },
+      createLinearGradient: () => ({ addColorStop() {} }),
+      stroke() {
+        strokes.push({ width: this.lineWidth, alpha: this.globalAlpha, points: [...points] })
+      },
+    }
+    paintCoastSea(
+      ctx as unknown as CanvasRenderingContext2D,
+      [{ side: 0, from: 1, to: 8, seed: 53, openStart: false, openEnd: false }],
+      48,
+      time,
+      animate,
+      1,
+      'hollow-coast',
+      3,
+      wind,
+    )
+    return strokes
+  }
+  const samples = Array.from({ length: 60 }, (_, i) => sample(i * 500, 0.007))
+  const widths = samples.map((s) => s[0]!.width)
+  expect(Math.max(...widths)).toBeGreaterThan(Math.min(...widths) * 1.5)
+  expect(samples.every((s) => s.length === 3)).toBe(true)
+  expect(Math.max(...sample(9000, 0.055).map((s) => s.width))).toBeGreaterThan(
+    Math.max(...sample(9000, 0.007).map((s) => s.width)),
+  )
+  expect(sample(100, 0.055, false)).toEqual(sample(20000, 0.055, false))
+  const start = sample(1000, 0)[0]!.points[7]![1]!
+  const later = sample(1500, 0)[0]!.points[7]![1]!
+  expect(later).toBeGreaterThan(start)
+})

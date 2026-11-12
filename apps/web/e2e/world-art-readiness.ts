@@ -2,6 +2,7 @@ import { expect, type Page } from '@playwright/test'
 import {
   hamletFamilyIndex,
   naturalDressing,
+  regionalScenery,
   sceneryDressing,
 } from '../src/components/world/map-dressing'
 import { settlementComposition } from '../src/components/world/map-settlement-composition'
@@ -26,6 +27,7 @@ export async function waitForWorldArt(page: Page, view: WorldView) {
     for (const prop of [
       ...sceneryDressing(sector),
       ...naturalDressing(sector),
+      ...regionalScenery(sector),
       ...settlementComposition(sector),
     ])
       sheets.add(`${prop.sheet}-v01`)
