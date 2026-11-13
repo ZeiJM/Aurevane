@@ -32,6 +32,7 @@ test('enables producer-owned completed-frame collection without overriding rende
     clientWidth: 800,
     clientHeight: 600,
     dataset: {
+      renderDiagnostics: 'timing',
       cameraX: '20',
       cameraY: '10',
       tileSize: '32',
@@ -41,7 +42,7 @@ test('enables producer-owned completed-frame collection without overriding rende
   }
 
   installWorldGroundCoverage(canvas as unknown as HTMLElement)
-  expect(canvas.dataset.renderDiagnostics).toBeUndefined()
+  expect(canvas.dataset.renderDiagnostics).toBe('timing')
   expect(canvas.dataset.testGroundCoverage).toBe('[]')
   expect(canvas.dataset.testGroundCoverageStopped).toBeUndefined()
 })
