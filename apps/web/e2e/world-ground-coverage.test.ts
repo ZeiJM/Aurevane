@@ -69,10 +69,10 @@ test('re-arms coverage after globe travel replaces the World canvas, without res
     }
     const before = {
       parentElement: host,
-      dataset: { renderDiagnostics: 'timing', testGroundCoverageStopped: 'true' } as Record<
-        string,
-        string
-      >,
+      dataset: {
+        renderDiagnostics: 'timing',
+        testGroundCoverageStopped: 'true',
+      } as Record<string, string>,
     }
     mounted = before
     installWorldGroundCoverage(before as unknown as HTMLElement)
@@ -84,10 +84,10 @@ test('re-arms coverage after globe travel replaces the World canvas, without res
     mounted = null
     changed?.()
     const after = {
-      dataset: { renderDiagnostics: 'timing', testGroundCoverageStopped: 'true' } as Record<
-        string,
-        string
-      >,
+      dataset: {
+        renderDiagnostics: 'timing',
+        testGroundCoverageStopped: 'true',
+      } as Record<string, string>,
     }
     mounted = after
     changed?.()
