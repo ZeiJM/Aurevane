@@ -26,8 +26,7 @@ export function installWorldGroundCoverage(element: HTMLElement | SVGElement) {
   // survives, but its canvas and renderer are replaced. Re-arm the new canvas
   // before its first paint; otherwise every completed-frame assertion sees [].
   const host = canvas.parentElement as
-    | (HTMLElement & { __worldGroundCoverageObserver?: MutationObserver })
-    | null
+    (HTMLElement & { __worldGroundCoverageObserver?: MutationObserver }) | null
   if (!host || typeof MutationObserver === 'undefined') return
   host.__worldGroundCoverageObserver?.disconnect()
   let active = canvas
