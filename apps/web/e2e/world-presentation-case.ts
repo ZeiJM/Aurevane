@@ -441,6 +441,9 @@ export function registerWorldInputCases({
           response.request().postDataJSON()?.intent?.kind === 'walk',
       )
       await stageWalk(page, destination)
+      // Globe-based travel replaces the map canvas. Its new paint recorder must
+      // be enabled before inspecting the fully approved movement across sectors.
+      await expect(canvas).toHaveAttribute('data-render-diagnostics', 'coverage')
       expect((await accepted).status()).toBe(200)
       await expect
         .poll(async () => (await world(page)).position, { timeout: 30000 })
