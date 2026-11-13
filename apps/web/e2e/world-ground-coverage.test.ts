@@ -33,16 +33,13 @@ test('detects withdrawn supplied ground from the actual isometric body and exclu
   expect(missingPublicGround([sector], { ...frame, x: 50, y: 50 })).toEqual([])
 })
 
-test('records completed paint frames without requiring an identity-layer repaint', async () => {
-  let observer: { notify: () => void } | undefined
-  class FakeMutationObserver {
-    constructor(private readonly callback: () => void) {
-      observer = { notify: () => this.callback() }
-    }
-    observe() {}
-    disconnect() {}
-  }
-  vi.stubGlobal('MutationObserver', FakeMutationObserver)
+test('records completed paint frames on the browser frame clock until collection stops', async () => {
+  let frame: FrameRequestCallback | undefined
+  const requestAnimationFrame = vi.fn((callback: FrameRequestCallback) => {
+    frame = callback
+    return 1
+  })
+  vi.stubGlobal('requestAnimationFrame', requestAnimationFrame)
   const canvas = {
     clientWidth: 800,
     clientHeight: 600,
@@ -56,12 +53,8 @@ test('records completed paint frames without requiring an identity-layer repaint
   }
 
   installWorldGroundCoverage(canvas as unknown as HTMLElement)
-  expect(observer).toBeDefined()
-  expect(
-    (canvas as typeof canvas & { __testGroundCoverageObserver?: unknown })
-      .__testGroundCoverageObserver,
-  ).toBeInstanceOf(FakeMutationObserver)
-  observer!.notify()
+  expect(frame).toBeDefined()
+  frame!(101)
   await Promise.resolve()
 
   const frames = JSON.parse(canvas.dataset.testGroundCoverage!) as GroundCoverageFrame[]
@@ -76,4 +69,7 @@ test('records completed paint frames without requiring an identity-layer repaint
       painted: ['atlas:1:1'],
     },
   ])
+  canvas.dataset.testGroundCoverageStopped = 'true'
+  frame!(102)
+  expect(requestAnimationFrame).toHaveBeenCalledTimes(2)
 })

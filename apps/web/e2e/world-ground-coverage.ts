@@ -15,36 +15,36 @@ export type GroundCoverageFrame = {
 /** Serialized by Playwright; inspect the completed paint, rather than polling receipts. */
 export function installWorldGroundCoverage(element: HTMLElement | SVGElement) {
   const canvas = element as HTMLCanvasElement & {
-    __testGroundCoverageObserver?: MutationObserver
+    __testGroundCoverageFrame?: number
   }
-  canvas.__testGroundCoverageObserver?.disconnect()
+  if (canvas.__testGroundCoverageFrame !== undefined)
+    cancelAnimationFrame(canvas.__testGroundCoverageFrame)
   const records: GroundCoverageFrame[] = []
   canvas.dataset.renderDiagnostics = 'coverage'
   canvas.dataset.testGroundCoverage = '[]'
-  const observer = new MutationObserver(() => {
+  delete canvas.dataset.testGroundCoverageStopped
+  const collect = () => {
     if (canvas.dataset.testGroundCoverageStopped) {
-      observer.disconnect()
-      delete canvas.__testGroundCoverageObserver
+      delete canvas.__testGroundCoverageFrame
       return
     }
     const at = Number(canvas.dataset.frameNow)
-    if (records.at(-1)?.at === at || !canvas.dataset.paintedGroundIds) return
-    records.push({
-      at,
-      x: Number(canvas.dataset.cameraX),
-      y: Number(canvas.dataset.cameraY),
-      width: canvas.clientWidth,
-      height: canvas.clientHeight,
-      tile: Number(canvas.dataset.tileSize),
-      painted: JSON.parse(canvas.dataset.paintedGroundIds),
-    })
-    if (records.length > 1200) records.shift()
-    canvas.dataset.testGroundCoverage = JSON.stringify(records)
-  })
-  // MutationObserver registrations are weak references. Retain this observer
-  // across Playwright's serialized evaluate call until collection stops.
-  canvas.__testGroundCoverageObserver = observer
-  observer.observe(canvas, { attributes: true, attributeFilter: ['data-frame-now'] })
+    if (records.at(-1)?.at !== at && canvas.dataset.paintedGroundIds) {
+      records.push({
+        at,
+        x: Number(canvas.dataset.cameraX),
+        y: Number(canvas.dataset.cameraY),
+        width: canvas.clientWidth,
+        height: canvas.clientHeight,
+        tile: Number(canvas.dataset.tileSize),
+        painted: JSON.parse(canvas.dataset.paintedGroundIds),
+      })
+      if (records.length > 1200) records.shift()
+      canvas.dataset.testGroundCoverage = JSON.stringify(records)
+    }
+    canvas.__testGroundCoverageFrame = requestAnimationFrame(collect)
+  }
+  canvas.__testGroundCoverageFrame = requestAnimationFrame(collect)
 }
 
 /** Only already supplied complete public ground can be expected at this camera. */
