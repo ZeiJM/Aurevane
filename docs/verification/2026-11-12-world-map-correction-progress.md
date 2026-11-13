@@ -1,5 +1,11 @@
 # Corrective map update progress
 
+## Composable native diagnostics correction — November 13
+
+The exact `1c97dee1` Atlas run disproved the producer-boundary-only hypothesis: the strict desktop and phone coverage cases still received zero frames, while proximity attacks, mutual attacks, moving peers, ambient pause, the 100-player mobile budget and 97 other executed Atlas cases passed. Source tracing found that the coverage helper and the already-installed render-timing helper both owned the single-valued `data-render-diagnostics` attribute. The test intentionally collects timing and coverage together, so either helper could silently disable the other diagnostic.
+
+A renderer regression now requests the real coverage ledger while timing mode remains active. It failed before the correction with an empty ledger, then passed after coverage opt-in was made independent and keyed to the presence of its own test ledger. The timing mode remains untouched; normal gameplay has neither opt-in and performs no coverage serialization. The helper no longer overwrites timing. The renderer/helper pair passes 221 tests across two files with the original strict frame-count, no-hole, authority and displaced-sector assertions unchanged. Authenticated native GREEN is not yet claimed. Browser `43396594962` remains undisturbed on the predecessor while this successor is prepared off the PR ref.
+
 ## Producer-bound ground coverage correction — November 13
 
 The exact `51cf477f` Atlas run disproved the second external-collector hypothesis: both desktop and phone again recorded zero coverage frames, while the previously intermittent peer-motion and legal-attack cases passed. The renderer canvas is stable through the tested movement path. Both the earlier `MutationObserver` and replacement `requestAnimationFrame` helper were still consumers outside the completed paint that publishes `data-painted-ground-ids`; neither is a reliable frame ledger under the authenticated native run.

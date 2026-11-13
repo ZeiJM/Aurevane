@@ -3432,7 +3432,10 @@ export function createMapRenderer(
       timing.completedAt = ended
       canvas.dataset.renderTiming = JSON.stringify(timing)
     }
-    const coverageEnabled = canvas.dataset.renderDiagnostics === 'coverage'
+    // Coverage and timing are collected together by the native replacement
+    // check. Keep coverage opt-in independent from the single timing mode so
+    // enabling one diagnostic cannot silently disable the other.
+    const coverageEnabled = canvas.dataset.testGroundCoverage !== undefined
     if (timing || coverageEnabled) {
       const painted = visible.map((sector) => sector.id)
       canvas.dataset.paintedGroundIds = JSON.stringify(painted)

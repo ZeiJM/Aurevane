@@ -458,10 +458,10 @@ describe('native map input and bounded lifecycle', () => {
       vi.unstubAllGlobals()
     }
   })
-  it('reports actually painted ground only when coverage diagnostics are requested', () => {
+  it('reports painted ground alongside timing diagnostics when coverage collection is requested', () => {
     const s = scene(true)
     try {
-      s.canvas.dataset.renderDiagnostics = 'coverage'
+      s.canvas.dataset.renderDiagnostics = 'timing'
       s.canvas.dataset.testGroundCoverage = '[]'
       s.frame(40)
       const ids: string[] = JSON.parse(s.canvas.dataset.paintedGroundIds ?? '[]')
@@ -483,6 +483,7 @@ describe('native map input and bounded lifecycle', () => {
       s.renderer.update(s.view)
       s.frame(60)
       expect(s.canvas.dataset.testGroundCoverage).toBe(stopped)
+      delete s.canvas.dataset.testGroundCoverage
       delete s.canvas.dataset.renderDiagnostics
       s.renderer.update(s.view)
       s.frame(80)

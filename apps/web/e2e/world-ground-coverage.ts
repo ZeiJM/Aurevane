@@ -15,7 +15,6 @@ export type GroundCoverageFrame = {
 /** Serialized by Playwright; enable producer-owned completed-frame diagnostics. */
 export function installWorldGroundCoverage(element: HTMLElement | SVGElement) {
   const canvas = element as HTMLCanvasElement
-  canvas.dataset.renderDiagnostics = 'coverage'
   canvas.dataset.testGroundCoverage = '[]'
   delete canvas.dataset.testGroundCoverageStopped
 }
