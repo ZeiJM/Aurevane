@@ -10,6 +10,7 @@ import {
   paintWaterGround,
   paintLavaGround,
   paintLavaMotion,
+  clipWaterSurface,
   waterfallHighlights,
   type WaterCell,
 } from './map-water'
@@ -22,6 +23,7 @@ function waterCanvas() {
     save: vi.fn(),
     restore: vi.fn(),
     beginPath: vi.fn(),
+    closePath: vi.fn(),
     clip: vi.fn(),
     moveTo: vi.fn(),
     lineTo: vi.fn(),
@@ -55,6 +57,45 @@ function sector(id: string, atlasRow = 0, cells: [number, number, string][] = []
 }
 
 describe('world-connected water presentation', () => {
+  it('rounds a small pool using known dry banks, while leaving unknown edges unclaimed', () => {
+    const pool = sector('pool', 0, [
+      [3, 3, '~'],
+      [2, 3, '.'],
+      [4, 3, '.'],
+      [3, 2, '.'],
+      [3, 4, '.'],
+    ])
+    const cell = buildWaterField([pool]).get('pool')!.cells.get('3:3')!
+    const context = waterCanvas() as unknown as CanvasRenderingContext2D
+    clipWaterSurface(context, cell, 64)
+    expect(vi.mocked(context.bezierCurveTo).mock.calls.length).toBeGreaterThan(4)
+    expect(context.clip).toHaveBeenCalledOnce()
+    const withheld = buildWaterField([sector('pool', 0, [[3, 3, '~']])])
+      .get('pool')!
+      .cells.get('3:3')!
+    vi.mocked(context.bezierCurveTo).mockClear()
+    clipWaterSurface(context, withheld, 64)
+    expect(context.bezierCurveTo).not.toHaveBeenCalled()
+  })
+  it('joins walkable shallows to deep water without creating a bank between them', () => {
+    const field = buildWaterField([
+      sector('town', 0, [
+        [3, 3, 'w'],
+        [4, 3, '~'],
+        [3, 2, '.'],
+      ]),
+    ])
+    const shallow = field.get('town')!.cells.get('3:3')!
+    expect(shallow).toBeDefined()
+    expect(shallow.banks.some((bank) => bank.side === 1)).toBe(false)
+    expect(shallow.depth).toBeLessThan(1)
+    expect(
+      field
+        .get('town')!
+        .cells.get('4:3')!
+        .banks.some((bank) => bank.side === 3),
+    ).toBe(false)
+  })
   it('gives Void water district colours while preserving ordinary water and lava', () => {
     const sample = (
       theme: Parameters<typeof liquidMaterial>[5],
@@ -384,12 +425,18 @@ describe('world-connected water presentation', () => {
       beginPath: vi.fn(),
       clip: vi.fn(),
       moveTo: vi.fn(),
+      lineTo: vi.fn(),
+      closePath: vi.fn(),
       stroke: vi.fn(),
     }
     paintWaterMotion(canvas as unknown as CanvasRenderingContext2D, receivingPool, 48, 1200)
     expect(rect).toHaveBeenCalledWith(0, 0, 48, 48)
     expect(ellipse).toHaveBeenCalledOnce()
-    expect(bezierCurveTo).not.toHaveBeenCalled()
+    // The receiving pool traces its curved known shore, with no extra channel
+    // filament curves beyond the ground's exact clipping outline.
+    const outline = waterCanvas()
+    clipWaterSurface(outline as unknown as CanvasRenderingContext2D, receivingPool, 48)
+    expect(bezierCurveTo.mock.calls).toEqual(outline.bezierCurveTo.mock.calls)
   })
 
   it('moves waterfall highlights down its fixed painted channels without moving the rocks', () => {
@@ -693,6 +740,8 @@ it('paints deterministic irregular cooling crust and hot seams only within its s
     translate: vi.fn(),
     closePath: vi.fn(),
     fillRect: vi.fn(),
+    createLinearGradient: () => ({ addColorStop: vi.fn() }),
+    drawImage: vi.fn(),
   })
   const first = canvas(),
     second = canvas()
@@ -700,7 +749,7 @@ it('paints deterministic irregular cooling crust and hot seams only within its s
   paintLavaGround(second as unknown as CanvasRenderingContext2D, profile, 48)
   expect(first.translate).toHaveBeenCalledWith(240, 240)
   expect(first.rect).toHaveBeenCalledWith(0, 0, 48, 48)
-  expect(first.clip).toHaveBeenCalledOnce()
+  expect(first.clip).toHaveBeenCalledTimes(2)
   expect(first.clip.mock.invocationCallOrder[0]).toBeLessThan(
     first.fill.mock.invocationCallOrder[0]!,
   )
@@ -734,7 +783,7 @@ it('moves three clipped lava filaments along the supplied curved profile and pre
   paintLavaMotion(fixed as unknown as CanvasRenderingContext2D, 48, 1000, 5, 5, profile)
   paintLavaMotion(fallback as unknown as CanvasRenderingContext2D, 48, 1000, 5, 5)
   expect(first.rect).toHaveBeenCalledWith(0, 0, 48, 48)
-  expect(first.clip).toHaveBeenCalledOnce()
+  expect(first.clip).toHaveBeenCalledTimes(2)
   expect(first.clip.mock.invocationCallOrder[0]).toBeLessThan(
     first.stroke.mock.invocationCallOrder[0]!,
   )
@@ -924,4 +973,306 @@ it('joins supplied adjacent Void water cells without inventing banks or mixing o
   expect(joined.get(a.id)!.cells.get('12:4')!.channel).toBe(true)
   expect(joined.get(b.id)!.cells.get('0:4')!.channel).toBe(true)
   expect(joined.get(a.id)!.cells.get('12:4')!.banks).toEqual([])
+})
+
+function closedLake() {
+  return sector(
+    'closed-lake',
+    0,
+    Array.from(
+      { length: 117 },
+      (_, index) =>
+        [
+          index % 13,
+          Math.floor(index / 13),
+          index % 13 >= 2 &&
+          index % 13 <= 4 &&
+          Math.floor(index / 13) >= 2 &&
+          Math.floor(index / 13) <= 4
+            ? '~'
+            : '.',
+        ] as [number, number, string],
+    ),
+  )
+}
+function surfaceCanvas() {
+  return {
+    ...waterCanvas(),
+    translate: vi.fn(),
+    scale: vi.fn(),
+    drawImage: vi.fn(),
+    fillRect: vi.fn(),
+    createLinearGradient: vi.fn(() => ({ addColorStop: vi.fn() })),
+    createRadialGradient: vi.fn(() => ({ addColorStop: vi.fn() })),
+  }
+}
+it('registers one closed fully known basin across its cells and refuses withheld or foreign banks', () => {
+  const lake = closedLake(),
+    cells = buildWaterField([lake]).get(lake.id)!.cells
+  expect(cells.get('2:2')!.basin).toMatchObject({ left: 2, top: 2, width: 3, height: 3 })
+  expect(cells.get('4:4')!.basin).toBe(cells.get('2:2')!.basin)
+  const missing = { ...lake, cells: lake.cells.filter((c) => !(c.x === 1 && c.y === 2)) }
+  expect(buildWaterField([missing]).get(lake.id)!.cells.get('2:2')!.basin).toBeUndefined()
+  const foreign = {
+    ...lake,
+    id: 'private-bank',
+    charted: false,
+    cells: lake.cells.filter((c) => c.x === 1 && c.y === 2),
+  }
+  expect(buildWaterField([missing, foreign]).get(lake.id)!.cells.get('2:2')!.basin).toBeUndefined()
+  const unknown = {
+    ...lake,
+    cells: lake.cells.map((c) =>
+      c.x === 1 && c.y === 2 ? { ...c, terrain: '?', walkable: false } : c,
+    ),
+  }
+  const profile = buildWaterField([unknown]).get(lake.id)!.cells.get('2:2')!
+  expect(profile.basin).toBeUndefined()
+  expect(profile.banks.some((b) => b.side === 3)).toBe(false)
+})
+it('samples generated lake water continuously across its basin without drawing a whole bank or tree sprite', () => {
+  vi.stubGlobal('document', { createElement: () => ({ getContext: () => null }) })
+  try {
+    const lake = closedLake(),
+      cells = buildWaterField([lake]).get(lake.id)!.cells
+    const art = {
+      complete: true,
+      naturalWidth: 1024,
+      width: 1024,
+      height: 1024,
+    } as HTMLImageElement
+    const first = surfaceCanvas(),
+      second = surfaceCanvas()
+    paintWaterGround(
+      first as unknown as CanvasRenderingContext2D,
+      cells.get('2:3')!,
+      64,
+      false,
+      undefined,
+      2,
+      3,
+      art,
+    )
+    paintWaterGround(
+      second as unknown as CanvasRenderingContext2D,
+      cells.get('3:3')!,
+      64,
+      false,
+      undefined,
+      3,
+      3,
+      art,
+    )
+    const a = first.drawImage.mock.calls.find(([image]) => image === art)!,
+      b = second.drawImage.mock.calls.find(([image]) => image === art)!
+    expect(a).toBeDefined()
+    expect(b).toBeDefined()
+    expect(a[1] + a[3]).toBeCloseTo(b[1], 9)
+    expect(a[2]).toBe(b[2])
+    expect(a[3]).toBeLessThan(100)
+    expect(a[4]).toBeLessThan(100)
+    expect(a[1] % 512).toBeGreaterThan(150)
+    expect(a[2] % 512).toBeGreaterThan(150)
+    const partial = buildWaterField([sector('partial', 0, [[2, 3, '~']])])
+        .get('partial')!
+        .cells.get('2:3')!,
+      masked = surfaceCanvas()
+    paintWaterGround(
+      masked as unknown as CanvasRenderingContext2D,
+      partial,
+      64,
+      false,
+      undefined,
+      2,
+      3,
+      art,
+    )
+    expect(masked.drawImage.mock.calls.some(([image]) => image === art)).toBe(false)
+    const warped = surfaceCanvas()
+    paintWaterGround(
+      warped as unknown as CanvasRenderingContext2D,
+      cells.get('2:3')!,
+      64,
+      'amethyst',
+      undefined,
+      2,
+      3,
+      art,
+    )
+    expect(warped.drawImage.mock.calls.some(([image]) => image === art)).toBe(false)
+  } finally {
+    vi.unstubAllGlobals()
+  }
+})
+it('retains contrasting shallow/deep colour without textures or a secondary raster context', () => {
+  vi.stubGlobal('document', { createElement: () => ({ getContext: () => null }) })
+  try {
+    const base = buildWaterField([sector('fallback', 0, [[2, 3, '~']])])
+      .get('fallback')!
+      .cells.get('2:3')!
+    const shallow = surfaceCanvas(),
+      deep = surfaceCanvas()
+    paintWaterGround(
+      shallow as unknown as CanvasRenderingContext2D,
+      { ...base, cornerDepths: [0, 0, 0, 0] },
+      64,
+    )
+    paintWaterGround(
+      deep as unknown as CanvasRenderingContext2D,
+      { ...base, cornerDepths: [3, 3, 3, 3] },
+      64,
+    )
+    expect(shallow.fillRect).toHaveBeenCalled()
+    expect(deep.fillRect).toHaveBeenCalled()
+    const a = shallow.createLinearGradient.mock.results[0]!.value.addColorStop.mock.calls
+    const b = deep.createLinearGradient.mock.results[0]!.value.addColorStop.mock.calls
+    expect(a).not.toEqual(b)
+  } finally {
+    vi.unstubAllGlobals()
+  }
+})
+it('rounds lava pools in ground and motion while painting a smooth thermal gradient beneath cooling crust', () => {
+  const source = closedLake()
+  source.cells = source.cells.map((c) => ({ ...c, terrain: c.terrain === '~' ? 'l' : c.terrain }))
+  const profile = buildWaterField([source], 'lava').get(source.id)!.cells.get('2:2')!,
+    ground = surfaceCanvas(),
+    motion = surfaceCanvas()
+  paintLavaGround(ground as unknown as CanvasRenderingContext2D, profile, 64)
+  paintLavaMotion(motion as unknown as CanvasRenderingContext2D, 64, 1200, 2, 2, profile)
+  expect(ground.clip).toHaveBeenCalledTimes(2)
+  expect(motion.clip).toHaveBeenCalledTimes(2)
+  expect(
+    ground.createLinearGradient.mock.calls.length + ground.createRadialGradient.mock.calls.length,
+  ).toBeGreaterThan(0)
+  expect(ground.fillRect).toHaveBeenCalled()
+  expect(ground.bezierCurveTo.mock.calls.length).toBeGreaterThan(1)
+  expect(ground.clip.mock.invocationCallOrder[1]).toBeLessThan(
+    ground.fillRect.mock.invocationCallOrder[0]!,
+  )
+})
+
+it('keeps basin texture registration stable across public longitude wrap and input order', () => {
+  const west = closedLake(),
+    east = closedLake()
+  west.id = 'lake-west'
+  west.atlasColumn = 127
+  east.id = 'lake-east'
+  west.cells = west.cells.map((c) => ({
+    ...c,
+    terrain: c.x === 12 && c.y >= 2 && c.y <= 4 ? '~' : '.',
+  }))
+  east.cells = east.cells.map((c) => ({
+    ...c,
+    terrain: c.x <= 1 && c.y >= 2 && c.y <= 4 ? '~' : '.',
+  }))
+  const a = buildWaterField([west, east]),
+    b = buildWaterField([east, west])
+  const basin = a.get(west.id)!.cells.get('12:3')!.basin
+  expect(basin).toMatchObject({ left: 1663, top: 2, width: 3, height: 3 })
+  expect(b.get(west.id)!.cells.get('12:3')!.basin).toEqual(basin)
+  expect(a.get(east.id)!.cells.get('0:3')!.basin).toBe(basin)
+})
+it('keeps a broad luminous molten core beneath narrow lava-stream crust instead of a flat dark strip', () => {
+  const profile = buildWaterField(
+    [
+      sector('fire-stream', 0, [
+        [5, 3, 'l'],
+        [5, 4, 'l'],
+      ]),
+    ],
+    'lava',
+  )
+    .get('fire-stream')!
+    .cells.get('5:3')!
+  const context = surfaceCanvas(),
+    widths: number[] = []
+  Object.defineProperty(context, 'lineWidth', {
+    set(value: number) {
+      widths.push(value)
+    },
+  })
+  paintLavaGround(context as unknown as CanvasRenderingContext2D, profile, 64)
+  expect(widths.some((width) => width >= 64 * 0.5)).toBe(true)
+  expect(widths.some((width) => width >= 64 * 0.25 && width < 64 * 0.5)).toBe(true)
+})
+
+it('clips long opposed river banks to actual meanders and shares the clipped bank at each cell boundary', () => {
+  const source = sector(
+    'long-stream',
+    0,
+    Array.from(
+      { length: 9 },
+      (_, y) =>
+        [
+          [4, y, '.'],
+          [5, y, '~'],
+          [6, y, '.'],
+        ] as [number, number, string][],
+    ).flat(),
+  )
+  const profiles = buildWaterField([source]).get(source.id)!.cells
+  const a = waterCanvas(),
+    b = waterCanvas()
+  clipWaterSurface(a as unknown as CanvasRenderingContext2D, profiles.get('5:4')!, 64)
+  clipWaterSurface(b as unknown as CanvasRenderingContext2D, profiles.get('5:5')!, 64)
+  expect(a.bezierCurveTo.mock.calls.length).toBeGreaterThanOrEqual(8)
+  const right = a.bezierCurveTo.mock.calls.filter((c) => c[0] > 32 && c[2] > 32 && c[4] > 32)
+  expect(right.length).toBeGreaterThan(0)
+  const end = right.at(-1)!
+  const nextStart = b.lineTo.mock.calls.find(([x, y]) => y === 0 && x > 32 && x < 64)!
+  expect(nextStart).toBeDefined()
+  expect(end[4]).toBeCloseTo(nextStart[0], 12)
+  expect(end[5]).toBe(64)
+  expect(right.some((c) => c[0] !== c[2] || c[2] !== c[4])).toBe(true)
+  // Control handles may extend beyond a curve's visible bounds; measure the
+  // actual clipped outline rather than mistaking those handles for water.
+  const commands = [
+    ...a.moveTo.mock.calls.map((args, i) => ({
+      args,
+      curve: false,
+      at: a.moveTo.mock.invocationCallOrder[i]!,
+    })),
+    ...a.lineTo.mock.calls.map((args, i) => ({
+      args,
+      curve: false,
+      at: a.lineTo.mock.invocationCallOrder[i]!,
+    })),
+    ...a.bezierCurveTo.mock.calls.map((args, i) => ({
+      args,
+      curve: true,
+      at: a.bezierCurveTo.mock.invocationCallOrder[i]!,
+    })),
+  ].sort((a, b) => a.at - b.at)
+  let previous = [0, 0]
+  for (const command of commands) {
+    if (command.curve)
+      for (let i = 0; i <= 32; i++) {
+        const t = i / 32,
+          u = 1 - t
+        for (const axis of [0, 1]) {
+          const value =
+            u ** 3 * previous[axis]! +
+            3 * u * u * t * command.args[axis]! +
+            3 * u * t * t * command.args[axis + 2]! +
+            t ** 3 * command.args[axis + 4]!
+          expect(value).toBeGreaterThanOrEqual(0)
+          expect(value).toBeLessThanOrEqual(64)
+        }
+      }
+    previous = command.args.slice(-2)
+  }
+  const partial = buildWaterField([
+      sector('partial-stream', 0, [
+        [5, 4, '~'],
+        [4, 4, '.'],
+      ]),
+    ])
+      .get('partial-stream')!
+      .cells.get('5:4')!,
+    knownOnly = waterCanvas()
+  clipWaterSurface(knownOnly as unknown as CanvasRenderingContext2D, partial, 64)
+  expect(knownOnly.bezierCurveTo.mock.calls.length).toBeGreaterThan(0)
+  expect(
+    knownOnly.bezierCurveTo.mock.calls.every((c) => [c[0], c[2], c[4]].every((x) => x < 32)),
+  ).toBe(true)
 })

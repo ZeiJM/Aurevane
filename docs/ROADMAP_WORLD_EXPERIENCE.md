@@ -1,3 +1,5 @@
+**November12 corrective continuation:** The current map drop is governed by docs/superpowers/specs/2026-11-12-world-map-correction-design.md: geographic/visual/performance corrections, eight distinct towns,64×48 private supercontinents, richer animated surfaces, giant remote areas and HQ ocean discoveries/globe. Source implementation and acceptance are tracked independently. Nick authorizes one tested live corrective release, with ferry and inherited82-row backlog afterward; no phase-wide completion is implied.
+
 # World experience — reference review delivery contract
 
 **Status:** Owner-authorized roadmap scope, 2026-09-25. Implementation and acceptance remain open.

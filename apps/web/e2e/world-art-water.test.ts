@@ -2,6 +2,7 @@ import { expect, test } from 'vitest'
 import { atlasSectors } from '../src/world/atlas'
 import { terrainWalkable } from '../src/world/terrain'
 import { waterReviewCandidate } from './world-art-water'
+import { buildWaterField, isWaterTerrain } from '../src/components/world/map-water'
 
 for (const region of ['verdant-expanse', 'hollow-coast', 'frostmere']) {
   test(`selects real bank-adjacent legal ground for ${region}`, () => {
@@ -9,8 +10,32 @@ for (const region of ['verdant-expanse', 'hollow-coast', 'frostmere']) {
     expect(candidate).toBeDefined()
     expect(candidate!.sector.regionId).toBe(region)
     expect(candidate!.water).toBeGreaterThan(0)
+    const cells = candidate!.sector.rows.flatMap((row, y) =>
+      [...row].map((terrain, x) => ({
+        x,
+        y,
+        terrain,
+        walkable: terrainWalkable(terrain),
+        safe: false,
+      })),
+    )
+    const profiles = [
+      ...buildWaterField([{ ...candidate!.sector, cells, exits: [] }])
+        .get(candidate!.sector.id)!
+        .cells.values(),
+    ]
+    expect(profiles.some(({ banks }) => banks.length > 0)).toBe(true)
     for (const { x, y } of candidate!.ground) {
       expect(terrainWalkable(candidate!.sector.rows[y]![x]!)).toBe(true)
+      expect(isWaterTerrain(candidate!.sector.rows[y]![x]!)).toBe(false)
+      expect(
+        [
+          [0, 1],
+          [1, 0],
+          [0, -1],
+          [-1, 0],
+        ].some(([dx, dy]) => isWaterTerrain(candidate!.sector.rows[y + dy!]?.[x + dx!])),
+      ).toBe(true)
     }
   })
 }

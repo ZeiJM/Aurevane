@@ -1,0 +1,51 @@
+{
+  "requestId": "ART-WORLD-CORRECTION-20261112",
+  "promptSpec": "content/art-requests/ART-WORLD-CORRECTION-20261112.md",
+  "provider": "OpenAI image generation",
+  "selection": "Version3 higher camera, vast open arena and low front wall",
+  "name": "remote-colosseum",
+  "source": {
+    "path": "sources/remote-colosseum-v03.png",
+    "sha256": "c25798d30e50bcd8273fff95ea9b6c375e24a36b361805ce552d5ff5d2e2e829",
+    "width": 1536,
+    "height": 1024
+  },
+  "runtime": {
+    "path": "runtime/remote-colosseum-v01.webp",
+    "sha256": "1729d35fee9ef6625c936461b35eb1e0caacd40764fcf77dc8d87def3f77220c",
+    "bytes": 625906,
+    "width": 1536,
+    "height": 1024,
+    "columns": 1,
+    "rows": 1,
+    "cellWidth": 1536,
+    "cellHeight": 1024,
+    "encoding": "Sharp WebP quality88 alphaQuality100; alpha-tail normalization; visible-bounds crop; aspect-preserving fit; 24px floor inset"
+  },
+  "fringePixelsRemoved": 22838,
+  "packedFringePixelsRemoved": 882,
+  "sprites": [
+    {
+      "index": 0,
+      "sourceCell": {
+        "left": 0,
+        "top": 0,
+        "width": 1536,
+        "height": 1024
+      },
+      "crop": {
+        "left": 3,
+        "top": 2,
+        "width": 1529,
+        "height": 1021
+      },
+      "runtimeBounds": {
+        "left": 31,
+        "top": 16,
+        "width": 1474,
+        "height": 984
+      },
+      "floorY": 0.9765625
+    }
+  ]
+}

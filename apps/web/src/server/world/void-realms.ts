@@ -1,5 +1,7 @@
 import 'server-only'
 
+import { supercontinentTerrain } from './supercontinent-terrain'
+
 import { GRID_HEIGHT, GRID_WIDTH, STEP_MS } from '@/world/catalog'
 import { terrainWalkable } from '@/world/terrain'
 import {
@@ -938,12 +940,18 @@ const paths = Object.fromEntries(
 
 function macroTerrain(realmId: VoidRealmId, x: number, y: number): string {
   const definition = definitions[realmId]
+  const seed = VOID_REALMS.findIndex((realm) => realm.id === realmId)
+  if (x >= 416 || y >= 216) return supercontinentTerrain(x, y, seed)
   const scallop = 1 + Math.sin(x * 0.047 + y * 0.019) * 0.035 + Math.sin(y * 0.089) * 0.021
   if (
     !definition.coast.some((ellipse) => ellipseDistance(x, y, ellipse) < scallop) ||
     definition.bays?.some((ellipse) => ellipseDistance(x, y, ellipse) < 1)
-  )
+  ) {
+    // Add continental joins in the former outer sea only. Existing dry ground,
+    // lakes, paths, sites and every saved legal cell retain their old terrain.
+    if (x >= 378 || y >= 194) return supercontinentTerrain(x, y, seed)
     return '~'
+  }
   if (definition.lava?.some((ellipse) => ellipseDistance(x, y, ellipse) < scallop)) return 'l'
   if (definition.lakes.some((ellipse) => ellipseDistance(x, y, ellipse) < scallop)) return '~'
   for (const channel of definition.channels)
@@ -1028,7 +1036,7 @@ export function voidRealmScenery(sectorId: string): WorldWarpedScenery | undefin
   const index = definitions[address.realmId].sites.findIndex(
     (site) => site[1] === address.column && site[2] === address.row,
   )
-  // Six ordinary focal accents and one rare site per768sector world. The
+  // Six ordinary focal accents and one rare site per3072sector world. The
   // celestial/time accent is confined to its authored location, never scattered.
   if (index < 0 || index % 2 !== 0) return
   return index === 10

@@ -76,8 +76,13 @@ export interface PlayerRecoveryResult {
   replayed: boolean
 }
 
+/** Shared browser/server contract for the immutable teleport geometry and coordinate grid. */
+export const MASTER_TELEPORT_GEOMETRY_VERSION = '2026-11-12-v2'
+
 export interface PlayerTeleportDestination {
   map: 'mainland' | 'currentVoid'
+  /** Required by server parsing for Void destinations; legacy mainland numbers are unchanged. */
+  geometryVersion?: typeof MASTER_TELEPORT_GEOMETRY_VERSION
   sectorNumber: number
   x: number
   y: number

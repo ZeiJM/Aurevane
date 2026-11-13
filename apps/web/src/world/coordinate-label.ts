@@ -32,7 +32,7 @@ export function sectorDisplayNumber(sector: DisplaySector | undefined): number |
   const address = parseVoidSectorId(sector.id)
   if (address) return gridNumber(address.column, address.row, VOID_REALM_COLUMNS, VOID_REALM_ROWS)
   if (sector.id.startsWith('uncharted-'))
-    return gridNumber(sector.sceneColumn, sector.sceneRow, 4, 4)
+    return gridNumber(sector.sceneColumn, sector.sceneRow, VOID_REALM_COLUMNS, VOID_REALM_ROWS)
   if (!sector.charted || sector.warpedTheme) return null
   if (sector.atlasColumn !== undefined || sector.atlasRow !== undefined)
     return gridNumber(sector.atlasColumn, sector.atlasRow, ATLAS_COLUMNS, ATLAS_ROWS)

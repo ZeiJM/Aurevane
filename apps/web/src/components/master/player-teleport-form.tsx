@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import type { PlayerTeleportDestination } from '@/master/players'
+import { MASTER_TELEPORT_GEOMETRY_VERSION, type PlayerTeleportDestination } from '@/master/players'
 
 export function PlayerTeleportForm({
   disabled,
@@ -15,7 +15,7 @@ export function PlayerTeleportForm({
   const [y, setY] = useState('4')
   const [reason, setReason] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const maximum = map === 'mainland' ? 8192 : 768
+  const maximum = map === 'mainland' ? 8192 : 3072
   function review() {
     const sectorNumber = Number(sector),
       nextX = Number(x),
@@ -42,7 +42,10 @@ export function PlayerTeleportForm({
       return
     }
     setError(null)
-    onReview({ map, sectorNumber, x: nextX, y: nextY }, reason.trim())
+    onReview(
+      { map, sectorNumber, x: nextX, y: nextY, geometryVersion: MASTER_TELEPORT_GEOMETRY_VERSION },
+      reason.trim(),
+    )
   }
   return (
     <fieldset disabled={disabled}>
@@ -67,7 +70,7 @@ export function PlayerTeleportForm({
       <p>
         {map === 'mainland'
           ? 'Sector numbers run across each row of the 128 × 64 mainland grid.'
-          : 'Sector numbers run across each row of the 32 × 24 Void grid. The active map is selected when you save.'}
+          : 'Sector numbers run across each row of the 64 × 48 Void grid. The active map is selected when you save.'}
       </p>
       <label>
         Sector number

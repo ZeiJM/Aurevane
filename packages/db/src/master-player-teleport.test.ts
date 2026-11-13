@@ -442,3 +442,104 @@ it('requires a bounded staff reason and binds it into request replay identity', 
     ).rows[0]!.reason,
   ).toBe('Reviewed location repair')
 })
+
+it('installs v2 shallow geometry additively, selects it over v1 and keeps both releases immutable', async () => {
+  await seed()
+  const successor = [
+    {
+      ...geometry[0],
+      rows: geometry[0]!.rows.map((row, y) => (y === 0 ? '#wlw.........' : row)),
+      safeCells: [1, 3, 58],
+    },
+  ]
+  await db.query('select public.install_master_teleport_geometry_v1($1,$2,$3,null)', [
+    owner,
+    '2026-11-12-v2',
+    successor,
+  ])
+  await denied(() => teleport(5, 1, 0), /DESTINATION/)
+  const moved = await db.query<{ result: { position: unknown } }>(
+    "select public.teleport_master_player_v2($1,$2,5,$3,'mainland',$4,1,0,'Reviewed recovery',true,null) result",
+    [owner, character, request, sectorNumber],
+  )
+  expect(moved.rows[0]!.result.position).toEqual({ sectorId, x: 1, y: 0 })
+  const versions = await db.query<{ geometry_version: string }>(
+    'select geometry_version from app_private.master_teleport_geometry where sector_id=$1 order by geometry_version',
+    [sectorId],
+  )
+  expect(versions.rows.map((r) => r.geometry_version)).toEqual(['2026-11-12-v1', '2026-11-12-v2'])
+  await denied(
+    () =>
+      db.query('select public.install_master_teleport_geometry_v1($1,$2,$3,null)', [
+        owner,
+        '2026-11-12-v2',
+        geometry,
+      ]),
+    /GEOMETRY_CONFLICT/,
+  )
+  await denied(
+    () =>
+      db.query('select public.install_master_teleport_geometry_v1($1,$2,$3,null)', [
+        owner,
+        '2026-11-12-v1',
+        successor,
+      ]),
+    /GEOMETRY_CONFLICT/,
+  )
+})
+it('validates successor Void numbering against 64 by 48 geography while preserving v1 bounds', async () => {
+  const entry = {
+    ...geometry[0],
+    sectorId: 'void:ivory-veil:63:47',
+    realmId: 'ivory-veil',
+    sectorNumber: 3072,
+  }
+  await db.query('select public.install_master_teleport_geometry_v1($1,$2,$3,null)', [
+    owner,
+    '2026-11-12-v2',
+    [entry],
+  ])
+  await denied(
+    () =>
+      db.query('select public.install_master_teleport_geometry_v1($1,$2,$3,null)', [
+        owner,
+        '2026-11-12-v1',
+        [entry],
+      ]),
+    /GEOMETRY_INVALID/,
+  )
+  await db.exec(
+    "update app_private.world_environment_settings set void_realm_override='ivory-veil',void_realm_override_until_ms=9999999999999",
+  )
+  await denied(() => teleport(0, 6, 4, owner, request, 'currentVoid', 3072), /DESTINATION/)
+  const moved = await db.query<{ result: { position: unknown } }>(
+    "select public.teleport_master_player_v2($1,$2,0,$3,'currentVoid',3072,6,4,'Reviewed recovery',true,null) result",
+    [owner, character, request],
+  )
+  expect(moved.rows[0]!.result.position).toEqual({ sectorId: entry.sectorId, x: 6, y: 4 })
+
+  await denied(
+    () =>
+      db.query('select public.install_master_teleport_geometry_v1($1,$2,$3,null)', [
+        owner,
+        '2026-11-12-v2',
+        [{ ...entry, sectorId: 'void:ivory-veil:31:95' }],
+      ]),
+    /GEOMETRY_INVALID/,
+  )
+})
+
+it('keeps successor teleport service-only and subject to the same page authorization', async () => {
+  const privileges = await db.query<{ allowed: boolean; client: boolean }>(
+    "select has_function_privilege('service_role','public.teleport_master_player_v2(uuid,uuid,bigint,uuid,text,integer,integer,integer,text,boolean,uuid)','execute') allowed,has_function_privilege('authenticated','public.teleport_master_player_v2(uuid,uuid,bigint,uuid,text,integer,integer,integer,text,boolean,uuid)','execute') client",
+  )
+  expect(privileges.rows[0]).toEqual({ allowed: true, client: false })
+  await denied(
+    () =>
+      db.query(
+        "select public.teleport_master_player_v2($1,$2,0,$3,'mainland',$4,6,4,'Reviewed recovery',true,null)",
+        [other, character, request, sectorNumber],
+      ),
+    /PAGE_ACCESS_REQUIRED/,
+  )
+})

@@ -1,0 +1,51 @@
+{
+  "requestId": "ART-WORLD-CORRECTION-20261112",
+  "promptSpec": "content/art-requests/ART-WORLD-CORRECTION-20261112.md",
+  "provider": "OpenAI image generation",
+  "selection": "Exact Owner re-uploaded and selected original elemental pair; revised figure variants rejected",
+  "name": "elemental-waterfall-valley",
+  "source": {
+    "path": "sources/elemental-waterfall-valley-owner-selected-v01.png",
+    "sha256": "3970d259fd7aae25e2c75be3b8220bffcff4660b9236cd444fb39d37539da32a",
+    "width": 1536,
+    "height": 1024
+  },
+  "runtime": {
+    "path": "runtime/elemental-waterfall-valley-v01.webp",
+    "sha256": "245c15674dfffc5b95da20a123da4fc89bdc202511252f9d32e8b15778d03c1f",
+    "bytes": 617744,
+    "width": 1536,
+    "height": 1024,
+    "columns": 1,
+    "rows": 1,
+    "cellWidth": 1536,
+    "cellHeight": 1024,
+    "encoding": "Sharp WebP quality88 alphaQuality100; alpha-tail normalization; visible-bounds crop; aspect-preserving fit; 24px floor inset"
+  },
+  "fringePixelsRemoved": 36205,
+  "packedFringePixelsRemoved": 263,
+  "sprites": [
+    {
+      "index": 0,
+      "sourceCell": {
+        "left": 0,
+        "top": 0,
+        "width": 1536,
+        "height": 1024
+      },
+      "crop": {
+        "left": 10,
+        "top": 5,
+        "width": 1518,
+        "height": 993
+      },
+      "runtimeBounds": {
+        "left": 16,
+        "top": 16,
+        "width": 1504,
+        "height": 984
+      },
+      "floorY": 0.9765625
+    }
+  ]
+}

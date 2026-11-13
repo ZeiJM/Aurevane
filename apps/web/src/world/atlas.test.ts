@@ -1,3 +1,4 @@
+import { gzipSync } from 'node:zlib'
 import { describe, expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
 const shorelineCapture = vi.hoisted(() => ({ before: [] as WorldSector[] }))
@@ -19,6 +20,7 @@ import { CHARTED_SECTORS } from './catalog'
 import { terrainWalkable } from './terrain'
 import { findWorldRoute, isSafe, isWalkable, newWorldState, positionKey } from './travel'
 import { projectWorld } from '@/server/world/world-service'
+import { worldAtlasReceipt } from '@/server/world/world-atlas-receipt'
 import { isKnownCell, resolveSector, visibleSectors } from '@/server/world/world-content'
 import { resolveWorldIntent } from '@/server/world/world-service'
 import { atlasNeighbor, wrappedColumnDistance } from './topology'
@@ -43,14 +45,18 @@ describe('one traversable world atlas', () => {
         }
     expect(changed).toEqual([])
   })
-  it('keeps the authored Emberreach channel lava through both bridge mouths without changing collision', () => {
-    const sector = atlasSectors().find((sector) => sector.id === 'emberreach')!
-    const authored = CHARTED_SECTORS.find((sector) => sector.id === 'emberreach')!
-    for (let y = 0; y < 9; y++) {
-      expect(sector.rows[y]![10]).toBe(y === 4 ? '=' : 'l')
-      expect(terrainWalkable(sector.rows[y]![10]!)).toBe(terrainWalkable(authored.rows[y]![10]!))
-    }
-    expect(sector.landmarks.some((landmark) => landmark.kind === 'bridge')).toBe(true)
+  it('retains the original Emberreach lava rift beside a new irregular walkable thermal basin', () => {
+    const districts = atlasSectors().filter((s) => s.townId === 'emberreach')
+    const root = districts.find((s) => s.id === 'emberreach')!
+    expect(root.rows[4]).not.toMatch(/[~lb]/)
+    for (let y = 0; y < 9; y++) expect(root.rows[y]![10]).toBe(y === 4 ? '=' : 'l')
+    expect(root.landmarks.some((l) => l.kind === 'bridge' && l.x === 10 && l.y === 4)).toBe(true)
+    expect(districts.some((s) => s.rows.join('').includes('w'))).toBe(true)
+    expect(districts.every((s) => !s.rows.join('').includes('~'))).toBe(true)
+    const water = districts.flatMap((s) =>
+      s.rows.flatMap((row, y) => [...row].flatMap((t, x) => (t === 'w' ? [{ s, x, y }] : []))),
+    )
+    for (const { s, x, y } of water) expect(isWalkable(s, { x, y })).toBe(true)
   })
 
   it('ends paved coastal approaches before unavailable ocean chunks', () => {
@@ -444,7 +450,14 @@ describe('one traversable world atlas', () => {
     expect(view.sectors.length).toBeLessThanOrEqual(25)
     expect(view.atlas!.length).toBeGreaterThan(150)
     expect(view.atlas!.length).toBeLessThan(2000)
-    expect(JSON.stringify(view).length).toBeLessThan(600000)
+    // The prior 599,914-byte baseline had only 86 bytes of headroom. Authored
+    // town water/roads add 2.55%; retain explicit raw and transport budgets.
+    expect(JSON.stringify(view).length).toBeLessThan(640000)
+    expect(gzipSync(JSON.stringify(view)).length).toBeLessThan(38000)
+    const full = worldAtlasReceipt(view, `${view.characterId}:full`)
+    const compact = worldAtlasReceipt(view, `${view.characterId}:${full.atlasToken}`)
+    expect('kind' in compact && compact.kind).toBe('scene')
+    expect(gzipSync(JSON.stringify(compact)).length).toBeLessThan(18000)
     expect(JSON.stringify(view)).not.toContain('Weathered Observatory')
     expect(resolveSector('trail:aureth-crown:crown-road:1')).toBeTruthy()
     expect(resolveSector('survey-01')).toBeTruthy()

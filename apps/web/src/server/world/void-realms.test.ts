@@ -34,7 +34,8 @@ function supportedBridge(
     const address = parseVoidSectorId(sector.id)!
     const column = address.column + Math.floor(cx / 13),
       row = address.row + Math.floor(cy / 9)
-    if (column < 0 || column >= 32 || row < 0 || row >= 24) return undefined
+    if (column < 0 || column >= VOID_REALM_COLUMNS || row < 0 || row >= VOID_REALM_ROWS)
+      return undefined
     return lookup.get(voidSectorId(address.realmId, column, row))?.rows[((cy % 9) + 9) % 9]?.[
       ((cx % 13) + 13) % 13
     ]
@@ -76,15 +77,15 @@ describe('authored private Void worlds', () => {
     expect(new Set(VOID_REALMS.map((realm) => realm.id)).size).toBe(8)
     for (const realm of VOID_REALMS)
       expect(Object.keys(realm).sort()).toEqual(['id', 'name', 'summary'])
-    expect(VOID_REALM_COLUMNS * VOID_REALM_ROWS * 13 * 9).toBe(89856)
+    expect(VOID_REALM_COLUMNS * VOID_REALM_ROWS * 13 * 9).toBe(359424)
     expect(parseVoidSectorId('void:ivory-veil:31:23')).toEqual({
       realmId: 'ivory-veil',
       column: 31,
       row: 23,
     })
     for (const id of [
-      'void:ivory-veil:32:1',
-      'void:ivory-veil:0:24',
+      'void:ivory-veil:64:1',
+      'void:ivory-veil:0:48',
       'void:ivory-veil:-1:0',
       'void:ivory-veil:01:0',
       'void:ivory-veil:0:0:more',
@@ -97,12 +98,12 @@ describe('authored private Void worlds', () => {
       expect(isVoidRealmSectorId(id)).toBe(false)
       expect(resolveVoidSector(id)).toBeNull()
     }
-    expect(() => voidSectorId('ivory-veil', 32, 0)).toThrow(RangeError)
+    expect(() => voidSectorId('ivory-veil', 64, 0)).toThrow(RangeError)
     const source = readFileSync(new URL('../../world/void-realms.ts', import.meta.url), 'utf8')
     expect(source).not.toMatch(/server\/|landmarks|warpedArt|void-relics/)
   })
 
-  it('resolves deterministically and evicts rather than retaining all 6144 sectors', () => {
+  it('resolves deterministically and evicts rather than retaining all 24576 sectors', () => {
     const first = resolveVoidSector('void:ivory-veil:0:0')!
     expect(resolveVoidSector(first.id)).toBe(first)
     for (let n = 1; n <= 300; n++)
@@ -167,15 +168,15 @@ describe('authored private Void worlds', () => {
           ).toBe(true)
         }
       }
-      expect(walkable).toBeGreaterThan(32000)
-      expect(walkable).toBeLessThan(82000)
+      expect(walkable).toBeGreaterThan(218790)
+      expect(walkable).toBeLessThan(350000)
       expect(water).toBeGreaterThan(5000)
       expect(rock).toBeGreaterThan(100)
 
       // Flood the finite tile plane once, then check every authored location. Roads
       // above prove every cardinal seam matches this geometry in the real engine.
-      const width = 32 * 13,
-        height = 24 * 9
+      const width = VOID_REALM_COLUMNS * 13,
+        height = VOID_REALM_ROWS * 9
       const cells = new Uint8Array(width * height)
       for (const sector of sectors)
         for (let y = 0; y < 9; y++)
@@ -253,7 +254,7 @@ describe('authored private Void worlds', () => {
       expect(scenic.length).toBeGreaterThan(0)
       expect(scenic.length).toBeLessThanOrEqual(12)
     }
-  })
+  }, 30000)
 
   it('places the goldfall and water cascade beside real connected liquid runs', () => {
     for (const [id, liquid] of [
@@ -325,5 +326,5 @@ describe('authored private Void worlds', () => {
         ).length
         expect(difference).toBeGreaterThan(8000)
       }
-  })
+  }, 30_000)
 })

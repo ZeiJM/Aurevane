@@ -43,8 +43,8 @@ export const VOID_REALMS = [
 ] as const
 
 export type VoidRealmId = (typeof VOID_REALMS)[number]['id']
-export const VOID_REALM_COLUMNS = 32
-export const VOID_REALM_ROWS = 24
+export const VOID_REALM_COLUMNS = 64
+export const VOID_REALM_ROWS = 48
 export interface VoidSectorAddress {
   realmId: VoidRealmId
   column: number

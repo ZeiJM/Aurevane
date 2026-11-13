@@ -62,7 +62,9 @@ it('keeps new working yards clear of existing props in every public town and ham
   const sectors = atlasSectors().filter(
     (s) => s.id === s.townId || s.landmarks.some((l) => l.kind === 'hamlet'),
   )
-  expect(sectors.length).toBe(80)
+  // The grand discovery footprint replaces one overlapping generated hamlet.
+  expect(sectors.filter((s) => s.id === s.townId)).toHaveLength(8)
+  expect(sectors.length).toBe(79)
   for (const original of sectors) {
     const state = { ...newWorldState(), position: { sectorId: original.id, x: 6, y: 4 } }
     const sector = projectWorld(state, [], 1000).sectors.find((s) => s.id === original.id)!

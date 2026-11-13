@@ -1,5 +1,7 @@
 import { retainWorldSceneReferences } from './presence'
 import { samePosition } from './travel'
+import { GRID_HEIGHT, GRID_WIDTH } from './catalog'
+import { encodeTerrainRows } from './terrain'
 import type { WorldView } from './types'
 export type WorldMovementReceipt = Pick<
   WorldView,
@@ -33,6 +35,7 @@ export function mergeWorldMovement(view: WorldView, receipt: WorldMovementReceip
   )
     throw new Error('The world changed. Refresh your position and try again.')
   let sectors = view.sectors
+  let scenery = view.scenery
   if (currentSector) {
     if (
       currentSector.id !== receipt.position.sectorId ||
@@ -41,9 +44,43 @@ export function mergeWorldMovement(view: WorldView, receipt: WorldMovementReceip
       )
     )
       throw new Error('Movement terrain could not be loaded safely.')
-    sectors = sectors.some((sector) => sector.id === currentSector.id)
-      ? sectors.map((sector) => (sector.id === currentSector.id ? currentSector : sector))
-      : [...sectors.slice(0, 24), currentSector]
+    if (sectors.some((sector) => sector.id === currentSector.id))
+      sectors = sectors.map((sector) => (sector.id === currentSector.id ? currentSector : sector))
+    else {
+      // Presence is capped at25 sectors, but replacing its last slot must not
+      // punch a hole in already supplied public ground while scene loading waits.
+      const displaced = sectors
+        .slice(24)
+        .filter(
+          (sector) =>
+            sector.charted &&
+            sector.cells.length === GRID_WIDTH * GRID_HEIGHT &&
+            view.atlas?.some((metadata) => metadata.id === sector.id && metadata.charted),
+        )
+      if (displaced.length) {
+        const demotedIds = new Set(displaced.map((sector) => sector.id))
+        scenery = [
+          ...displaced.map((sector): NonNullable<WorldView['scenery']>[number] => {
+            const ground = Array<string>(GRID_WIDTH * GRID_HEIGHT)
+            for (const cell of sector.cells) ground[cell.y * GRID_WIDTH + cell.x] = cell.terrain
+            const rows = Array.from({ length: GRID_HEIGHT }, (_, y) =>
+              ground.slice(y * GRID_WIDTH, (y + 1) * GRID_WIDTH).join(''),
+            )
+            return [
+              sector.id,
+              encodeTerrainRows(rows),
+              sector.landscape ?? null,
+              sector.buildings ?? [],
+              sector.landmarks,
+            ]
+          }),
+          ...(scenery ?? []).filter(
+            (sector) => sector[0] !== currentSector.id && !demotedIds.has(sector[0]),
+          ),
+        ].slice(0, 512)
+      }
+      sectors = [...sectors.slice(0, 24), currentSector]
+    }
   }
   const players = view.players
     .filter(
@@ -63,6 +100,7 @@ export function mergeWorldMovement(view: WorldView, receipt: WorldMovementReceip
     ...owned,
     ferry: receipt.ferry,
     sectors,
+    scenery,
     players,
     npcs: npcs ?? view.npcs?.filter((npc) => npc.position.sectorId === receipt.position.sectorId),
     interactions:

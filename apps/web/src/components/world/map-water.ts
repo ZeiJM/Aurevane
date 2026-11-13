@@ -97,6 +97,13 @@ interface Bank {
   edge: Curve[]
   shallow: Curve[]
 }
+export interface WaterBasin {
+  left: number
+  top: number
+  width: number
+  height: number
+  seed: number
+}
 export interface WaterCell {
   x: number
   y: number
@@ -107,7 +114,11 @@ export interface WaterCell {
   /** Cosmetic distance from a supplied dry bank, capped at three water cells. */
   depth?: number
   cornerDepths?: readonly [number, number, number, number]
+  shallow?: boolean
+  /** Shared registration only after the complete body and its banks are supplied. */
+  basin?: WaterBasin
 }
+export const isWaterTerrain = (terrain: string | undefined) => terrain === '~' || terrain === 'w'
 interface WaterSector {
   key: string
   cells: Map<string, WaterCell>
@@ -272,6 +283,8 @@ export function buildWaterField(
   material: 'water' | 'lava' = 'water',
 ): Map<string, WaterSector> {
   const liquid = material === 'lava' ? 'l' : '~'
+  const matches = (terrain: string | undefined) =>
+    material === 'water' ? isWaterTerrain(terrain) : terrain === liquid
   const terrain = new Map<string, TerrainCell>()
   const namespace = mapSceneDomain
   const address = (sector: WorldSectorView, x: number, y: number) =>
@@ -286,7 +299,7 @@ export function buildWaterField(
     const cells = new Map<string, WaterCell>()
     const { x: ox, y: oy } = sectorMapOrigin(sector)
     for (const cell of sector.cells) {
-      if (cell.terrain !== liquid) continue
+      if (!matches(cell.terrain)) continue
       const wx = ox + cell.x,
         wy = oy + cell.y
       const neighbours = directions.map(([dx, dy]) => {
@@ -298,22 +311,22 @@ export function buildWaterField(
             const next = at(distance)
             // The dry bridge remains dry and legal. Only a supplied matching
             // liquid endpoint proves that this bank continues beneath its deck.
-            if (next?.terrain === liquid) return liquid
+            if (matches(next?.terrain)) return liquid
             if (next?.terrain !== '=' || !next.walkable) break
           }
-        return neighbour?.terrain
+        return neighbour?.terrain === '?' ? undefined : neighbour?.terrain
       })
       const banks: Bank[] = []
       neighbours.forEach((material, side) => {
         // Unknown cells are neither invented land nor an exposed shoreline.
-        if (material === undefined || material === liquid) return
+        if (material === undefined || matches(material)) return
         banks.push({
           side: side as Side,
           edge: bankCurves(side as Side, wx, wy, false, namespace(sector)),
           shallow: bankCurves(side as Side, wx, wy, true, namespace(sector)),
         })
       })
-      const connected = neighbours.map((material) => material === liquid)
+      const connected = neighbours.map((material) => matches(material))
       const connectionCount = connected.filter(Boolean).length
       const profile: WaterCell = {
         x: cell.x,
@@ -322,7 +335,8 @@ export function buildWaterField(
         channel: connectionCount > 0 && connectionCount <= 2,
         banks,
         flow: currentCurve(wx, wy, connected, namespace(sector) === 'atlas'),
-        depth: banks.length ? 0 : 3,
+        depth: banks.length || cell.terrain === 'w' ? 0 : 3,
+        shallow: cell.terrain === 'w',
       }
       cells.set(cellKey(cell.x, cell.y), profile)
       water.set(address(sector, wx, wy), profile)
@@ -355,6 +369,67 @@ export function buildWaterField(
     }
     frontier = next
   }
+  // A fully supplied closed body may share one generated surface registration.
+  // Missing cells and other scene domains can never complete its perimeter.
+  const visited = new Set<string>()
+  for (const first of water.keys()) {
+    if (visited.has(first)) continue
+    const split = first.lastIndexOf(':'),
+      before = first.lastIndexOf(':', split - 1)
+    const space = first.slice(0, before)
+    const queue = [
+      { key: first, x: Number(first.slice(before + 1, split)), y: Number(first.slice(split + 1)) },
+    ]
+    const body: WaterCell[] = []
+    let closed = true,
+      left = Infinity,
+      top = Infinity,
+      right = -Infinity,
+      bottom = -Infinity
+    visited.add(first)
+    for (let i = 0; i < queue.length; i++) {
+      const at = queue[i]!,
+        cell = water.get(at.key)!
+      body.push(cell)
+      left = Math.min(left, at.x)
+      right = Math.max(right, at.x)
+      top = Math.min(top, at.y)
+      bottom = Math.max(bottom, at.y)
+      for (const [dx, dy] of directions) {
+        const x = at.x + dx,
+          y = at.y + dy
+        const key = `${space}:${cellKey(space === 'atlas' ? wrapX(x) : x, y)}`
+        const known = terrain.get(key)
+        if (!known || known.terrain === '?') {
+          closed = false
+          continue
+        }
+        if (!water.has(key) || visited.has(key)) continue
+        visited.add(key)
+        queue.push({ key, x, y })
+      }
+    }
+    const width = right - left + 1,
+      height = bottom - top + 1
+    if (
+      !closed ||
+      body.length < 6 ||
+      width < 3 ||
+      height < 3 ||
+      body.length / (width * height) < 0.42 ||
+      Math.max(width / height, height / width) > 3
+    )
+      continue
+    const canonicalLeft = space === 'atlas' ? wrapX(left) : left
+    const basin = {
+      left: canonicalLeft,
+      top,
+      width,
+      height,
+      seed: hashString(`${space}:${canonicalLeft}:${top}:${width}:${height}:basin`),
+    }
+    for (const cell of body) cell.basin = basin
+  }
   for (const sector of sectors) {
     const part = field.get(sector.id)!
     const { x: ox, y: oy } = sectorMapOrigin(sector)
@@ -373,7 +448,8 @@ export function buildWaterField(
             return neighbor ? [neighbor.depth!] : []
           }),
         )
-        return depths.reduce((sum, depth) => sum + depth, 0) / depths.length
+        const depth = depths.reduce((sum, depth) => sum + depth, 0) / depths.length
+        return cell.shallow ? Math.min(0.45, depth) : depth
       }) as [number, number, number, number]
     }
     part.key = JSON.stringify([...part.cells.values()])
@@ -440,6 +516,156 @@ function clipCell(context: CanvasRenderingContext2D, tile: number) {
   context.lineJoin = 'round'
 }
 
+/** Clip only supplied shore curves; unknown/liquid edges stay open to their neighbours. */
+export function clipWaterSurface(context: CanvasRenderingContext2D, cell: WaterCell, tile: number) {
+  const banks = new Map(cell.banks.map((bank) => [bank.side, bank]))
+  const sides = ([0, 1, 2, 3] as const).map((side) => {
+    const bank = banks.get(side)
+    const a = bankPoint(side, side < 2 ? 0 : 1, 0),
+      b = bankPoint(side, side < 2 ? 1 : 0, 0)
+    const flat: Curve = [
+      a,
+      [a[0] + (b[0] - a[0]) / 3, a[1] + (b[1] - a[1]) / 3],
+      [a[0] + ((b[0] - a[0]) * 2) / 3, a[1] + ((b[1] - a[1]) * 2) / 3],
+      b,
+    ]
+    const curves = bank
+      ? side < 2
+        ? bank.edge
+        : [...bank.edge].reverse().map(([a, b, c, d]): Curve => [d, c, b, a])
+      : [flat]
+    const from = bank && banks.has(((side + 3) % 4) as Side) ? 0.42 : 0
+    const to = bank && banks.has(((side + 1) % 4) as Side) ? 0.58 : 1
+    const pieces: Curve[] = []
+    for (let i = 0; i < curves.length; i++) {
+      const low = Math.max(from, i / curves.length),
+        high = Math.min(to, (i + 1) / curves.length)
+      if (high <= low) continue
+      pieces.push(stream(curves[i]!, low * curves.length - i, high * curves.length - i, 0))
+    }
+    return { bank: Boolean(bank), pieces }
+  })
+  context.beginPath()
+  const start = sides[0]!.pieces[0]![0]
+  context.moveTo(start[0] * tile, start[1] * tile)
+  for (let side = 0; side < 4; side++) {
+    const current = sides[side]!,
+      next = sides[(side + 1) % 4]!
+    for (const curve of current.pieces) {
+      if (current.bank) trace(context, curve, tile, false)
+      else context.lineTo(curve[3][0] * tile, curve[3][1] * tile)
+    }
+    const end = current.pieces.at(-1)!,
+      following = next.pieces[0]!
+    const p = end[3],
+      q = following[0]
+    if (current.bank && next.bank) {
+      // Tangent-aligned corner joins connect the same shared bank curves;
+      // straight rectangular sides cannot reappear between rounded corners.
+      const incoming = [p[0] - end[2][0], p[1] - end[2][1]]
+      const outgoing = [following[1][0] - q[0], following[1][1] - q[1]]
+      const handle = Math.hypot(q[0] - p[0], q[1] - p[1]) * 0.55
+      const a = handle / (Math.hypot(...incoming) || 1),
+        b = handle / (Math.hypot(...outgoing) || 1)
+      context.bezierCurveTo(
+        (p[0] + incoming[0]! * a) * tile,
+        (p[1] + incoming[1]! * a) * tile,
+        (q[0] - outgoing[0]! * b) * tile,
+        (q[1] - outgoing[1]! * b) * tile,
+        q[0] * tile,
+        q[1] * tile,
+      )
+    } else context.lineTo(q[0] * tile, q[1] * tile)
+  }
+  context.closePath()
+  context.clip()
+}
+
+function paintDepth(
+  context: CanvasRenderingContext2D,
+  cell: WaterCell,
+  tile: number,
+  shallow: readonly number[],
+  deep: readonly number[],
+) {
+  const corners = cell.cornerDepths ?? [
+    cell.depth ?? 2,
+    cell.depth ?? 2,
+    cell.depth ?? 2,
+    cell.depth ?? 2,
+  ]
+  const colour = (depth: number) => {
+    const t = Math.max(0, Math.min(1, depth / 3))
+    return shallow.map((v, i) => Math.round(v + (deep[i]! - v) * t))
+  }
+  let raster = depthRasters.get(context)
+  if (!raster && typeof document !== 'undefined') {
+    const layer = document.createElement('canvas')
+    layer.width = layer.height = 2
+    const target = layer.getContext('2d')
+    if (target) {
+      raster = { layer, context: target, pixels: target.createImageData(2, 2) }
+      depthRasters.set(context, raster)
+    }
+  }
+  if (raster) {
+    // Shared corner colours align to vertices, avoiding diagonal per-cell depth steps.
+    for (const [pixel, corner] of [0, 1, 3, 2].entries())
+      raster.pixels.data.set([...colour(corners[corner]!), 255], pixel * 4)
+    raster.context.putImageData(raster.pixels, 0, 0)
+    context.imageSmoothingEnabled = true
+    context.drawImage(raster.layer, -tile / 2, -tile / 2, tile * 2, tile * 2)
+  } else {
+    // A failed secondary canvas must not erase material-free depth contrast.
+    const gradient = context.createLinearGradient(0, 0, tile, tile)
+    gradient.addColorStop(0, `rgb(${colour(corners[0]!).join(',')})`)
+    gradient.addColorStop(0.5, `rgb(${colour(corners.reduce((a, b) => a + b, 0) / 4).join(',')})`)
+    gradient.addColorStop(1, `rgb(${colour(corners[2]!).join(',')})`)
+    context.fillStyle = gradient
+    context.fillRect(0, 0, tile, tile)
+  }
+}
+// Inspected water-only rectangles in the 2x2 natural-lakes sheet. Bank foliage,
+// rocks above water and transparent sprite margins stay outside these crops.
+const lakeWaterCrops = [
+  [0.34, 0.35, 0.3, 0.28],
+  [0.55, 0.36, 0.22, 0.3],
+  [0.35, 0.39, 0.26, 0.27],
+  [0.43, 0.36, 0.26, 0.25],
+] as const
+function paintLakeSurface(
+  context: CanvasRenderingContext2D,
+  cell: WaterCell,
+  tile: number,
+  worldX: number,
+  worldY: number,
+  art?: HTMLImageElement,
+) {
+  const basin = cell.basin
+  if (!basin || !art?.complete || !art.naturalWidth) return
+  const index = basin.seed % 4,
+    [x, y, width, height] = lakeWaterCrops[index]!
+  const sw = art.width / 2,
+    sh = art.height / 2
+  const dx = wrapX(worldX - basin.left),
+    dy = worldY - basin.top
+  if (dx >= basin.width || dy < 0 || dy >= basin.height) return
+  context.save()
+  context.globalAlpha = cell.shallow ? 0.22 : 0.42
+  context.drawImage(
+    art,
+    ((index % 2) + x + (dx / basin.width) * width) * sw,
+    (Math.floor(index / 2) + y + (dy / basin.height) * height) * sh,
+    (width * sw) / basin.width,
+    (height * sh) / basin.height,
+    0,
+    0,
+    tile,
+    tile,
+  )
+  context.restore()
+}
+
 /** Static depth, reflected colour and broken filaments belong in the ground cache. */
 export function paintWaterGround(
   context: CanvasRenderingContext2D,
@@ -449,11 +675,13 @@ export function paintWaterGround(
   material?: HTMLImageElement,
   worldX = cell.x,
   worldY = cell.y,
+  lakeArt?: HTMLImageElement,
 ) {
   const palette = waterPalette(tint)
   context.save()
   context.translate(cell.x * tile, cell.y * tile)
   clipCell(context, tile)
+  clipWaterSurface(context, cell, tile)
   const paintTexture = (index: number, alpha: number) => {
     if (!material?.complete || !material.naturalWidth) return
     const sw = material.width / 2,
@@ -479,41 +707,17 @@ export function paintWaterGround(
     )
     context.restore()
   }
-  if (material?.complete && material.naturalWidth) {
-    const corners = cell.cornerDepths ?? [
-      cell.depth ?? 2,
-      cell.depth ?? 2,
-      cell.depth ?? 2,
-      cell.depth ?? 2,
-    ]
-    const depthColour = (depth: number) => {
-      const t = Math.max(0, Math.min(1, depth / 3))
-      const shallow = palette?.shallow ?? [111, 190, 171]
-      const deep = palette?.deep ?? [20, 74, 100]
-      return shallow.map((value, i) => Math.round(value + (deep[i]! - value) * t))
-    }
-    let raster = depthRasters.get(context)
-    if (!raster) {
-      const layer = document.createElement('canvas')
-      layer.width = layer.height = 2
-      const target = layer.getContext('2d')
-      if (target) {
-        raster = { layer, context: target, pixels: target.createImageData(2, 2) }
-        depthRasters.set(context, raster)
-      }
-    }
-    if (raster) {
-      // Row-major pixels are TL,TR,BL,BR. Align pixel centres with the cell
-      // vertices, not its centre quadrants: the scaled raster interpolates all
-      // four shared colours without the previous per-tile diagonal steps.
-      for (const [pixel, corner] of [0, 1, 3, 2].entries())
-        raster.pixels.data.set([...depthColour(corners[corner]!), 255], pixel * 4)
-      raster.context.putImageData(raster.pixels, 0, 0)
-      context.imageSmoothingEnabled = true
-      context.drawImage(raster.layer, -tile / 2, -tile / 2, tile * 2, tile * 2)
-    }
-    paintTexture(palette ? 3 : 1, palette ? 0.12 : 0.2)
-    if (!palette) paintTexture(2, 0.12)
+  paintDepth(
+    context,
+    cell,
+    tile,
+    palette?.shallow ?? [111, 190, 171],
+    palette?.deep ?? [20, 74, 100],
+  )
+  paintTexture(palette ? 3 : 1, palette ? 0.12 : 0.2)
+  if (!palette) {
+    paintTexture(2, 0.12)
+    paintLakeSurface(context, cell, tile, worldX, worldY, lakeArt)
   }
   if (cell.channel) {
     for (const width of [0.76, 0.58, 0.36]) {
@@ -650,6 +854,7 @@ export function paintWaterMotion(
   const palette = waterPalette(tint)
   context.save()
   clipCell(context, tile)
+  clipWaterSurface(context, cell, tile)
   const roughness = Math.min(1, Math.abs(weather?.windSpeed ?? 0) / 0.06)
   if (!cell.channel) {
     const phase = (now / (4200 + (cell.seed % 1800)) + (cell.seed % 997) / 997) % 1
@@ -722,6 +927,23 @@ export function paintLavaGround(context: CanvasRenderingContext2D, cell: WaterCe
   context.save()
   context.translate(cell.x * tile, cell.y * tile)
   clipCell(context, tile)
+  clipWaterSurface(context, cell, tile)
+  paintDepth(context, cell, tile, [72, 37, 38], [235, 109, 39])
+  if (cell.channel) {
+    // Molten flow stays broad and luminous beneath its irregular cooling crust.
+    for (const [width, colour] of [
+      [0.68, 'rgba(241,106,27,.46)'],
+      [0.34, 'rgba(255,171,51,.56)'],
+      [0.11, 'rgba(255,217,125,.42)'],
+    ] as const) {
+      context.beginPath()
+      trace(context, cell.flow, tile)
+      context.lineWidth = tile * width
+      context.strokeStyle = colour
+      context.stroke()
+    }
+  }
+
   // Broken, irregular cooling plates expose the warmer material beneath.
   // This deterministic detail runs only when the caller rebuilds its ground cache.
   for (let i = 0; i < 7; i++) {
@@ -788,6 +1010,7 @@ export function paintLavaMotion(
 ) {
   context.save()
   clipCell(context, tile)
+  if (profile) clipWaterSurface(context, profile, tile)
   context.strokeStyle = 'rgba(255,196,95,.44)'
   context.lineWidth = 1.8
   for (let i = 0; i < 3; i++) {

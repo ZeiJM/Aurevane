@@ -14,33 +14,75 @@ import {
 
 const WORLD = [...CHARTED_SECTORS, ...TRAIL_SECTORS]
 describe('world travel', () => {
-  it('keeps the wrapped heuristic admissible for historical cells faster than the current ordinary pace', () => {
-    const rows = Array.from({ length: 9 }, (_, y) =>
-      y === 3 || y === 4 ? '.'.repeat(13) : '#'.repeat(13),
-    )
-    const west: WorldSector = {
+  it.each(['wrapped atlas', 'private scene'] as const)(
+    'keeps the %s heuristic admissible for historical cells faster than the current ordinary pace',
+    (geometry) => {
+      const rows = Array.from({ length: 9 }, (_, y) =>
+        y === 3 || y === 4 ? '.'.repeat(13) : '#'.repeat(13),
+      )
+      const west: WorldSector = {
+        ...WORLD[0]!,
+        id: 'west',
+        atlasColumn: geometry === 'wrapped atlas' ? 127 : undefined,
+        atlasRow: geometry === 'wrapped atlas' ? 32 : undefined,
+        sceneColumn: geometry === 'private scene' ? 0 : undefined,
+        sceneRow: geometry === 'private scene' ? 0 : undefined,
+        rows,
+        stepMs: 50,
+        roads: [],
+      }
+      const east: WorldSector = {
+        ...west,
+        id: 'east',
+        atlasColumn: geometry === 'wrapped atlas' ? 0 : undefined,
+        sceneColumn: geometry === 'private scene' ? 1 : undefined,
+      }
+      west.roads = [3, 4].map((y) => ({
+        from: { sectorId: 'west', x: 12, y },
+        to: { sectorId: 'east', x: 0, y },
+        durationMs: y === 3 ? 200 : 400,
+        name: 'Historical crossing',
+      }))
+      const route = findWorldRoute(
+        { sectorId: 'west', x: 12, y: 4 },
+        { sectorId: 'east', x: 0, y: 4 },
+        [west, east],
+      )!
+      expect(route).toHaveLength(3)
+      expect(route.reduce((ms, step) => ms + step.durationMs, 0)).toBe(300)
+    },
+  )
+  it('preserves the shortest private portal route and excludes unknown portal ground', () => {
+    const origin: WorldSector = {
       ...WORLD[0]!,
-      id: 'west',
-      atlasColumn: 127,
-      atlasRow: 32,
-      rows,
-      stepMs: 50,
+      id: 'private-origin',
+      charted: false,
+      atlasColumn: undefined,
+      atlasRow: undefined,
+      sceneColumn: 0,
+      sceneRow: 0,
+      rows: Array(9).fill('.'.repeat(13)),
       roads: [],
     }
-    const east: WorldSector = { ...west, id: 'east', atlasColumn: 0 }
-    west.roads = [3, 4].map((y) => ({
-      from: { sectorId: 'west', x: 12, y },
-      to: { sectorId: 'east', x: 0, y },
-      durationMs: y === 3 ? 200 : 400,
-      name: 'Historical crossing',
-    }))
-    const route = findWorldRoute(
-      { sectorId: 'west', x: 12, y: 4 },
-      { sectorId: 'east', x: 0, y: 4 },
-      [west, east],
+    const remote: WorldSector = { ...origin, id: 'private-remote', sceneColumn: 100, roads: [] }
+    const from = { sectorId: origin.id, x: 0, y: 4 }
+    const to = { sectorId: origin.id, x: 12, y: 4 }
+    origin.roads = [
+      { from, to: { sectorId: remote.id, x: 0, y: 4 }, durationMs: 200, name: 'Historical portal' },
+    ]
+    remote.roads = [{ from: origin.roads[0]!.to, to, durationMs: 200, name: 'Return portal' }]
+    const route = findWorldRoute(from, to, [origin, remote])!
+    expect(route).toHaveLength(2)
+    expect(route.reduce((ms, step) => ms + step.durationMs, 0)).toBe(400)
+    const known = findWorldRoute(
+      from,
+      to,
+      [origin, remote],
+      (point) => point.sectorId === origin.id,
     )!
-    expect(route).toHaveLength(3)
-    expect(route.reduce((ms, step) => ms + step.durationMs, 0)).toBe(300)
+    expect(known).toHaveLength(12)
+    expect(known.reduce((ms, step) => ms + step.durationMs, 0)).toBe(2400)
+    expect(known.every((step) => step.position.sectorId === origin.id)).toBe(true)
   })
   it('keeps representative local and road travel on the canonical ordinary pace', () => {
     const local = findWorldRoute(

@@ -6,6 +6,13 @@ import { worldRenderTerrain } from '../src/components/world/map-render-terrain'
 import { mapPoint } from '../src/components/world/world-motion'
 import { projectMapPoint } from '../src/components/world/map-projection'
 import { worldSceneCoversViewport } from '../src/components/world/world-scene-coverage'
+import {
+  installWorldGroundCoverage,
+  missingPublicGround,
+  type GroundCoverageFrame,
+} from './world-ground-coverage'
+import { installWorldRenderTiming } from './world-render-diagnostics'
+import { wrappedMapX } from '../src/world/topology'
 
 export async function verifyWorldPresentation(
   page: Page,
@@ -364,6 +371,127 @@ export function registerWorldInputCases({
     await canvas.press('Escape')
     expect((await stopped).status()).toBe(200)
     expect((await world(page)).route).toHaveLength(0)
+  })
+  test('snowy supplied ground survives a 25-sector movement replacement while scene loading waits', async ({
+    page,
+  }, info) => {
+    test.skip(
+      info.project.name === 'laptop-chromium',
+      'Desktop and phone exercise the same receipt boundary.',
+    )
+    test.setTimeout(90000)
+    await enter(page)
+    const initial = await world(page)
+    place(initial.characterId, 'frostmere', 6, 4)
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const reads: Promise<void>[] = []
+    const requests: { method: string; at: number }[] = []
+    const recordRequest = (request: import('@playwright/test').Request) => {
+      if (new URL(request.url()).pathname === '/api/world')
+        requests.push({ method: request.method(), at: Date.now() })
+    }
+    page.on('request', recordRequest)
+    const holdScenes = (route: import('@playwright/test').Route) => {
+      if (route.request().method() !== 'GET') return route.continue()
+      const pending = gate.then(() => route.continue())
+      reads.push(pending)
+      return pending
+    }
+    await page.route('**/api/world*', holdScenes)
+    try {
+      // The server-rendered initial view supplies the canonical baseline. Only
+      // subsequent scene reads wait; every movement command remains real.
+      await page.reload()
+      const canvas = page.locator('canvas[data-world-stage]')
+      await expect(canvas).toHaveAttribute('data-camera-x', /\d/)
+      const baseline = await world(page)
+      const supplied = worldRenderTerrain(baseline)
+      const displaced = baseline.sectors[24]!
+      expect(displaced.charted).toBe(true)
+      const destinationSector = supplied
+        .filter(
+          (sector) =>
+            !baseline.sectors.some((known) => known.id === sector.id) &&
+            sector.cells.some((cell) => cell.x === 6 && cell.y === 4 && cell.walkable),
+        )
+        .sort((a, b) => {
+          const distance = (sector: typeof a) =>
+            (sector.atlasColumn! - displaced.atlasColumn!) ** 2 +
+            (sector.atlasRow! - displaced.atlasRow!) ** 2
+          return distance(a) - distance(b)
+        })[0]!
+      expect(destinationSector).toBeDefined()
+      const destination = { sectorId: destinationSector.id, x: 6, y: 4 }
+      await openMapSettings(page)
+      const zoom = page.getByRole('slider', { name: 'Zoom level', exact: true })
+      await zoom.focus()
+      await zoom.press('Home')
+      await expect(zoom).toHaveValue('35')
+      await closeMapSettings(page)
+      await canvas.evaluate(installWorldRenderTiming)
+      await canvas.evaluate(installWorldGroundCoverage)
+      await expect.poll(() => canvas.getAttribute('data-painted-ground-ids')).not.toBeNull()
+      const accepted = page.waitForResponse(
+        (response) =>
+          response.request().method() === 'POST' &&
+          new URL(response.url()).pathname === '/api/world' &&
+          response.request().postDataJSON()?.intent?.kind === 'walk',
+      )
+      await stageWalk(page, destination)
+      // Globe-based travel replaces the map canvas. Its new paint recorder must
+      // be enabled before inspecting the fully approved movement across sectors.
+      await expect(canvas).toHaveAttribute('data-test-ground-coverage', /^\[/)
+      expect((await accepted).status()).toBe(200)
+      await expect
+        .poll(async () => (await world(page)).position, { timeout: 30000 })
+        .toEqual(destination)
+      const targetX = destinationSector.atlasColumn! * GRID_WIDTH + 6.5
+      const targetY = destinationSector.atlasRow! * GRID_HEIGHT + 4.5
+      await expect
+        .poll(() =>
+          canvas.evaluate((element) => ({
+            x: Number(element.dataset.cameraX),
+            y: Number(element.dataset.cameraY),
+          })),
+        )
+        .toMatchObject({ x: expect.closeTo(targetX, 1), y: expect.closeTo(targetY, 1) })
+      const frames = await canvas.evaluate((element) => {
+        element.dataset.testGroundCoverageStopped = 'true'
+        return JSON.parse(element.dataset.testGroundCoverage ?? '[]') as GroundCoverageFrame[]
+      })
+      expect(frames.length).toBeGreaterThan(20)
+      const holes = frames.flatMap((frame) =>
+        missingPublicGround(supplied, frame).map((id) => ({ at: frame.at, id })),
+      )
+      expect(
+        holes,
+        'Previously supplied canonical public ground must remain painted each frame.',
+      ).toEqual([])
+      const witnesses = frames.filter(
+        (frame) =>
+          Math.hypot(wrappedMapX(targetX, frame.x) - frame.x, targetY - frame.y) < 3 &&
+          missingPublicGround([displaced], { ...frame, painted: [] }).length,
+      )
+      expect(
+        witnesses.length,
+        'The displaced 25th sector body must be on screen after the real crossing.',
+      ).toBeGreaterThan(0)
+      await capture(page, info, 'snowy-ground-after-authority-replacement')
+      const timings = await canvas.getAttribute('data-test-render-timings')
+      await info.attach('snowy-ground-coverage-and-timing.json', {
+        body: JSON.stringify({ frames, timings: JSON.parse(timings ?? '[]'), requests }),
+        contentType: 'application/json',
+      })
+    } finally {
+      release()
+      await Promise.allSettled(reads)
+      await page.unroute('**/api/world*', holdScenes)
+      page.off('request', recordRequest)
+      place(initial.characterId, initial.position.sectorId, initial.position.x, initial.position.y)
+    }
   })
   test('minimum-zoom public scenery stays painted while walking with delayed scene hydration', async ({
     page,

@@ -1,4 +1,5 @@
 import type { WorldLandmark, WorldSectorView } from '@/world/types'
+import { REMOTE_GRAND_CROSSING } from '@/world/discovery-sites'
 
 /** Give major sites a broader visual base only where all nine ground cells are supplied. */
 export function landmarkArtSize(
@@ -30,6 +31,7 @@ export function landmarkArtSize(
 /** Art identities never grant a crossing or change collision. */
 export function grandBridgeArt(sector: WorldSectorView, span: number): number | undefined {
   if (!sector.townId && span < 4) return
+  if (grandBridgeDiscoveryArt(sector, span)) return 0
   if (
     sector.warpedTheme ||
     sector.regionId === 'frostmere' ||
@@ -61,4 +63,40 @@ export function lavaFallSite(
   if (sector.buildings?.some((b) => b.x < 12 && b.x + b.width > 9 && b.y < 8 && b.y + b.height > 5))
     return
   return { x: 10.5, y: 7.5, index: 1 }
+}
+
+/** Measured deck-to-bank contacts of the complete isolated grand bridge, in its512px cell. */
+export const GRAND_BRIDGE_BASE_CONTACTS = [
+  { x: 441 / 512, y: 131 / 512 },
+  { x: 74 / 512, y: 393 / 512 },
+] as const
+export function grandBridgeDiscoveryArt(sector: WorldSectorView, span: number) {
+  if (
+    !sector.charted ||
+    sector.warpedTheme ||
+    sector.townId ||
+    sector.id !== REMOTE_GRAND_CROSSING.sectorId ||
+    span < 4
+  )
+    return
+  if (
+    !sector.landmarks.some(
+      (l) =>
+        l.id === REMOTE_GRAND_CROSSING.landmarkId && l.kind === 'bridge' && l.x === 6 && l.y === 4,
+    )
+  )
+    return
+  const at = (x: number, y: number) => sector.cells.find((cell) => cell.x === x && cell.y === y)
+  for (let x = 3; x <= 9; x++) if (at(x, 4)?.terrain !== '=' || !at(x, 4)?.walkable) return
+  for (const y of [3, 5])
+    for (let x = 4; x <= 8; x++) if (at(x, y)?.terrain !== 'w' || !at(x, y)?.walkable) return
+  return {
+    sheet: 'grand-discoveries' as const,
+    index: 0,
+    columns: 2,
+    rows: 2,
+    baseContacts: GRAND_BRIDGE_BASE_CONTACTS,
+    anchorX: (GRAND_BRIDGE_BASE_CONTACTS[0].x + GRAND_BRIDGE_BASE_CONTACTS[1].x) / 2,
+    anchorY: (GRAND_BRIDGE_BASE_CONTACTS[0].y + GRAND_BRIDGE_BASE_CONTACTS[1].y) / 2,
+  }
 }

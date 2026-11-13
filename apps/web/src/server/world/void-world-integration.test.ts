@@ -15,14 +15,14 @@ function ashore(): WorldState {
 
 describe('lazy private Void world integration', () => {
   it('resolves remote generated ground without adding any realm to the public world catalog', () => {
-    expect(resolveSector('void:ivory-veil:31:23')).toMatchObject({
-      id: 'void:ivory-veil:31:23',
+    expect(resolveSector('void:ivory-veil:63:47')).toMatchObject({
+      id: 'void:ivory-veil:63:47',
       charted: false,
-      sceneColumn: 31,
-      sceneRow: 23,
+      sceneColumn: 63,
+      sceneRow: 47,
     })
     expect(WORLD_SECTORS.some((sector) => sector.id.startsWith('void:'))).toBe(false)
-    expect(resolveSector('void:ivory-veil:32:23')).toBeNull()
+    expect(resolveSector('void:ivory-veil:64:47')).toBeNull()
   })
 
   it('keeps saved private discoveries and stale route metadata hidden away from their realm', () => {
@@ -127,8 +127,8 @@ describe('lazy private Void world integration', () => {
 
   it('bounds repeated scene payloads even after an entire realm has been explored', () => {
     const discoveries: WorldState['discoveries'] = {}
-    for (let row = 0; row < 24; row++)
-      for (let column = 0; column < 32; column++)
+    for (let row = 0; row < 48; row++)
+      for (let column = 0; column < 64; column++)
         discoveries[`void:ivory-veil:${column}:${row}`] = allCells
     // A walking scene must use coordinate lookups, never enumerate every saved discovery.
     const state = {

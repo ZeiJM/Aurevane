@@ -1,0 +1,237 @@
+{
+  "requestId": "ART-WORLD-CORRECTION-20261112",
+  "promptSpec": "content/art-requests/ART-WORLD-CORRECTION-20261112.md",
+  "provider": "OpenAI image generation",
+  "selection": "Original generated sheet selected for runtime integration",
+  "name": "town-ordinary-architecture",
+  "source": {
+    "path": "sources/town-ordinary-architecture-v01.png",
+    "sha256": "9f36fe0d667ee286f6a9a51f3c86aeba104c06ae07ca7b995782875be4eaca02",
+    "width": 1774,
+    "height": 887
+  },
+  "runtime": {
+    "path": "runtime/town-ordinary-architecture-v01.webp",
+    "sha256": "3ebf3b00f5863fc347bc83fdac3784808b7a8622fd606ab1b614e21b8f7deb86",
+    "bytes": 601238,
+    "width": 2048,
+    "height": 1024,
+    "columns": 4,
+    "rows": 2,
+    "cellWidth": 512,
+    "cellHeight": 512,
+    "encoding": "Sharp WebP quality88 alphaQuality100; alpha-tail normalization; visible-bounds crop; aspect-preserving fit; 24px floor inset"
+  },
+  "fringePixelsRemoved": 2343,
+  "packedFringePixelsRemoved": 369,
+  "sprites": [
+    {
+      "index": 0,
+      "anchorX": 0.46985,
+      "anchorY": 0.951172,
+      "isolation": "dominant-alpha-component",
+      "componentArea": 103536,
+      "sourceCell": {
+        "left": 15,
+        "top": 13,
+        "width": 394,
+        "height": 410
+      },
+      "crop": {
+        "left": 3,
+        "top": 3,
+        "width": 388,
+        "height": 404
+      },
+      "runtimeBounds": {
+        "left": 29,
+        "top": 16,
+        "width": 453,
+        "height": 472
+      },
+      "floorY": 0.953125
+    },
+    {
+      "index": 1,
+      "anchorX": 0.482202,
+      "anchorY": 0.951172,
+      "isolation": "dominant-alpha-component",
+      "componentArea": 107240,
+      "sourceCell": {
+        "left": 497,
+        "top": 5,
+        "width": 330,
+        "height": 426
+      },
+      "crop": {
+        "left": 3,
+        "top": 2,
+        "width": 324,
+        "height": 421
+      },
+      "runtimeBounds": {
+        "left": 74,
+        "top": 16,
+        "width": 363,
+        "height": 472
+      },
+      "floorY": 0.953125
+    },
+    {
+      "index": 2,
+      "anchorX": 0.529731,
+      "anchorY": 0.949219,
+      "isolation": "dominant-alpha-component",
+      "componentArea": 110089,
+      "sourceCell": {
+        "left": 893,
+        "top": 20,
+        "width": 417,
+        "height": 399
+      },
+      "crop": {
+        "left": 3,
+        "top": 3,
+        "width": 412,
+        "height": 394
+      },
+      "runtimeBounds": {
+        "left": 16,
+        "top": 29,
+        "width": 480,
+        "height": 459
+      },
+      "floorY": 0.953125
+    },
+    {
+      "index": 3,
+      "anchorX": 0.643632,
+      "anchorY": 0.951172,
+      "isolation": "dominant-alpha-component",
+      "componentArea": 106139,
+      "sourceCell": {
+        "left": 1351,
+        "top": 16,
+        "width": 407,
+        "height": 414
+      },
+      "crop": {
+        "left": 2,
+        "top": 2,
+        "width": 402,
+        "height": 410
+      },
+      "runtimeBounds": {
+        "left": 24,
+        "top": 16,
+        "width": 463,
+        "height": 472
+      },
+      "floorY": 0.953125
+    },
+    {
+      "index": 4,
+      "anchorX": 0.624136,
+      "anchorY": 0.951172,
+      "isolation": "dominant-alpha-component",
+      "componentArea": 116051,
+      "sourceCell": {
+        "left": 11,
+        "top": 453,
+        "width": 397,
+        "height": 410
+      },
+      "crop": {
+        "left": 2,
+        "top": 2,
+        "width": 392,
+        "height": 406
+      },
+      "runtimeBounds": {
+        "left": 28,
+        "top": 16,
+        "width": 456,
+        "height": 472
+      },
+      "floorY": 0.953125
+    },
+    {
+      "index": 5,
+      "anchorX": 0.630429,
+      "anchorY": 0.951172,
+      "isolation": "dominant-alpha-component",
+      "componentArea": 123996,
+      "sourceCell": {
+        "left": 448,
+        "top": 452,
+        "width": 419,
+        "height": 422
+      },
+      "crop": {
+        "left": 3,
+        "top": 3,
+        "width": 413,
+        "height": 417
+      },
+      "runtimeBounds": {
+        "left": 22,
+        "top": 16,
+        "width": 467,
+        "height": 472
+      },
+      "floorY": 0.953125
+    },
+    {
+      "index": 6,
+      "anchorX": 0.588375,
+      "anchorY": 0.951172,
+      "isolation": "dominant-alpha-component",
+      "componentArea": 101974,
+      "sourceCell": {
+        "left": 886,
+        "top": 509,
+        "width": 440,
+        "height": 323
+      },
+      "crop": {
+        "left": 2,
+        "top": 2,
+        "width": 436,
+        "height": 318
+      },
+      "runtimeBounds": {
+        "left": 16,
+        "top": 138,
+        "width": 480,
+        "height": 350
+      },
+      "floorY": 0.953125
+    },
+    {
+      "index": 7,
+      "anchorX": 0.489095,
+      "anchorY": 0.951172,
+      "isolation": "dominant-alpha-component",
+      "componentArea": 101999,
+      "sourceCell": {
+        "left": 1333,
+        "top": 458,
+        "width": 437,
+        "height": 387
+      },
+      "crop": {
+        "left": 3,
+        "top": 3,
+        "width": 432,
+        "height": 382
+      },
+      "runtimeBounds": {
+        "left": 16,
+        "top": 64,
+        "width": 480,
+        "height": 424
+      },
+      "floorY": 0.953125
+    }
+  ]
+}

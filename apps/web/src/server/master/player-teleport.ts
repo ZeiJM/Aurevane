@@ -1,13 +1,12 @@
 import 'server-only'
 import { AurevaneError } from '@aurevane/game-core/errors'
-import type { PlayerTeleportDestination } from '@/master/players'
-import { VOID_REALMS, voidSectorId } from '@/world/void-realms'
+import { MASTER_TELEPORT_GEOMETRY_VERSION, type PlayerTeleportDestination } from '@/master/players'
+import { VOID_REALMS, VOID_REALM_COLUMNS, VOID_REALM_ROWS, voidSectorId } from '@/world/void-realms'
 import { atlasSectors } from '@/world/atlas'
 import { isSafe } from '@/world/travel'
 import type { WorldSector } from '@/world/types'
 
-/** Increment with any collision/safety change; an installed release is immutable. */
-export const MASTER_TELEPORT_GEOMETRY_VERSION = '2026-11-12-v1'
+export { MASTER_TELEPORT_GEOMETRY_VERSION }
 export interface MasterTeleportGeometry {
   sectorId: string
   realmId: string | null
@@ -30,12 +29,26 @@ export function parseMasterTeleportDestination(value: unknown): PlayerTeleportDe
   if (!value || typeof value !== 'object' || Array.isArray(value)) invalid()
   const source = value as Record<string, unknown>
   if (
-    Object.keys(source).length !== 4 ||
-    Object.keys(source).some((key) => !['map', 'sectorNumber', 'x', 'y'].includes(key))
+    Object.keys(source).length < 4 ||
+    Object.keys(source).length > 5 ||
+    Object.keys(source).some(
+      (key) => !['map', 'sectorNumber', 'x', 'y', 'geometryVersion'].includes(key),
+    )
   )
     invalid()
   if (source.map !== 'mainland' && source.map !== 'currentVoid') invalid()
-  const maximum = source.map === 'mainland' ? 8192 : 768
+  // An old browser's 32-column Void number cannot be reinterpreted by this
+  // server's 64-column grid. The token binds numbering, never client geometry.
+  if (
+    (source.map === 'currentVoid' || Object.hasOwn(source, 'geometryVersion')) &&
+    source.geometryVersion !== MASTER_TELEPORT_GEOMETRY_VERSION
+  )
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Map coordinates changed. Refresh this page and review the teleport destination again.',
+    )
+
+  const maximum = source.map === 'mainland' ? 8192 : VOID_REALM_COLUMNS * VOID_REALM_ROWS
   if (
     !Number.isSafeInteger(source.sectorNumber) ||
     Number(source.sectorNumber) < 1 ||
@@ -66,7 +79,11 @@ export function masterTeleportGeometry(
         )
       : VOID_REALMS.map((realm) =>
           resolve(
-            voidSectorId(realm.id, (sectorNumber - 1) % 32, Math.floor((sectorNumber - 1) / 32)),
+            voidSectorId(
+              realm.id,
+              (sectorNumber - 1) % VOID_REALM_COLUMNS,
+              Math.floor((sectorNumber - 1) / VOID_REALM_COLUMNS),
+            ),
           ),
         )
   if (!sectors.length || sectors.some((sector) => !sector)) invalid()

@@ -1,0 +1,53 @@
+{
+  "requestId": "ART-WORLD-CORRECTION-20261112",
+  "promptSpec": "content/art-requests/ART-WORLD-CORRECTION-20261112.md",
+  "provider": "OpenAI image generation",
+  "selection": "Original generated sheet selected for runtime integration",
+  "name": "ocean-grand-islet",
+  "source": {
+    "path": "sources/ocean-grand-islet-v01.png",
+    "sha256": "a298ea3f6d6ad8f2f4b3fdd0f892a41b6de5360364e561ee3fea2484e13b15de",
+    "width": 1536,
+    "height": 1024
+  },
+  "runtime": {
+    "path": "runtime/ocean-grand-islet-v01.webp",
+    "sha256": "f39c1f17b7655a118324487ecc744db5158571e7f4dc0fb25aae308bb0273b7a",
+    "bytes": 536742,
+    "width": 1536,
+    "height": 1024,
+    "columns": 1,
+    "rows": 1,
+    "cellWidth": 1536,
+    "cellHeight": 1024,
+    "encoding": "Sharp WebP quality88 alphaQuality100; alpha-tail normalization; visible-bounds crop; aspect-preserving fit; 24px floor inset"
+  },
+  "fringePixelsRemoved": 99757,
+  "packedFringePixelsRemoved": 310,
+  "sprites": [
+    {
+      "index": 0,
+      "anchorX": 0.460402,
+      "anchorY": 0.975586,
+      "sourceCell": {
+        "left": 0,
+        "top": 0,
+        "width": 1536,
+        "height": 1024
+      },
+      "crop": {
+        "left": 39,
+        "top": 22,
+        "width": 1458,
+        "height": 979
+      },
+      "runtimeBounds": {
+        "left": 35,
+        "top": 16,
+        "width": 1465,
+        "height": 984
+      },
+      "floorY": 0.9765625
+    }
+  ]
+}

@@ -111,12 +111,13 @@ export function WorldGlobe({
       </div>
       <div className={styles.globeFrame}>
         <SphericalView
-          src="/media/art/world/globe-v01.webp"
+          src="/media/art/world/runtime/globe-materials-v02.webp"
           camera={camera}
           zoom={zoom}
           onCamera={setCamera}
           onZoom={onZoom}
           zoomLocked={zoomLocked}
+          grid={false}
           gridColumns={ATLAS_COLUMNS}
           gridRows={ATLAS_ROWS}
           atlas={view.atlas}
@@ -167,7 +168,7 @@ export function WorldGlobe({
               style={{ left: `${(veilX + 1) * 50}%`, top: `${(1 - veilY) * 50}%` }}
             >
               <i aria-hidden="true">◇</i>
-              Uncharted waters
+              Uncharted supercontinent
             </span>
           ) : null}
           {ferry?.visible &&
@@ -211,7 +212,7 @@ export function WorldGlobe({
               setCamera(UNCHARTED_VEIL_FOCUS)
             }}
           >
-            Uncharted waters
+            Uncharted supercontinent
           </button>
         </div>
         <label className={styles.townPicker}>
@@ -249,7 +250,7 @@ export function WorldGlobe({
           <i aria-hidden="true" /> Charted ground
         </span>
         <span>
-          <i aria-hidden="true" /> Uncharted waters
+          <i aria-hidden="true" /> Uncharted supercontinent
         </span>
       </div>
     </div>

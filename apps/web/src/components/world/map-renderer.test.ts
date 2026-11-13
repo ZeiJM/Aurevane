@@ -3,7 +3,13 @@ import { createRequire } from 'node:module'
 import { readFile } from 'node:fs/promises'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
-import { projectWorld } from '@/server/world/world-service'
+import { projectWorld, projectWorldSector } from '@/server/world/world-service'
+import { atlasSectors } from '@/world/atlas'
+import { CHARTED_SECTORS } from '@/world/catalog'
+import { GRAND_DISCOVERY_SITES } from '@/world/discovery-sites'
+import { WORLD_MAP_WIDTH } from '@/world/topology'
+import legacyTownTopology from '@/world/town-topology.legacy.json'
+import townGrandManifest from '../../../public/media/art/world/runtime/town-grand-architecture-v01.manifest.json'
 import { newWorldState, revealNearby } from '@/world/travel'
 import { localRoute, mapPoint, WorldMotion } from './world-motion'
 import { createMapRenderer } from './map-renderer'
@@ -13,10 +19,49 @@ import * as biomes from './map-biome-transitions'
 import * as waterPainting from './map-water'
 import { worldWindTarget } from './map-weather'
 import { worldRenderTerrain } from './map-render-terrain'
+import { grandDiscoveryPlacements } from './map-grand-discoveries'
+import { valleyDetailArt } from './map-grand-detail-art'
 
-type RecordedPath = { operation: 'M' | 'L' | 'C' | 'Z'; points: number[] }[]
+type RecordedPath = { operation: 'M' | 'L' | 'C' | 'E' | 'Z'; points: number[] }[]
 const imageRuntime = createRequire(import.meta.url)
 const sharp = imageRuntime(imageRuntime.resolve('sharp', { paths: [imageRuntime.resolve('next')] }))
+
+/** PR1038's captured rows and exact root footprints isolate old-art compatibility.
+ * Current town topology is asserted independently, including the shallow moat below. */
+function legacyTownView(sectorId: string, x = 6, y = 4): WorldView {
+  const state = { ...newWorldState(), position: { sectorId, x, y } }
+  const base = projectWorld(state, [], 1000)
+  const canonical = atlasSectors().find((sector) => sector.id === sectorId)!
+  const rows = legacyTownTopology.find((sector) => sector.id === sectorId)!.rows
+  const artIndex = [
+    'verdant-expanse',
+    'aureth-crown',
+    'frostmere',
+    'hollow-coast',
+    'glasswind-desert',
+    'emberreach',
+    'starfall-highlands',
+    'umbral-march',
+  ].indexOf(sectorId)
+  const sector = projectWorldSector(state, {
+    ...canonical,
+    rows,
+    buildings: [
+      { id: `${sectorId}:building0`, x: 4, y: 1, width: 2, height: 2, artIndex },
+      { id: `${sectorId}:building1`, x: 8, y: 1, width: 2, height: 2, artIndex },
+      { id: `${sectorId}:building2`, x: 11, y: 1, width: 2, height: 2, artIndex: 8 },
+      { id: `${sectorId}:building3`, x: 2, y: 3, width: 1, height: 1, artIndex: -1, propIndex: 1 },
+      { id: `${sectorId}:building4`, x: 1, y: 0, width: 3, height: 1, artIndex: -1, propIndex: 0 },
+    ],
+    landmarks: [
+      ...CHARTED_SECTORS.find((sector) => sector.id === sectorId)!.landmarks,
+      { id: `${sectorId}:marketplace`, name: 'Marketplace', kind: 'marketplace', x: 2, y: 1 },
+      { id: `${sectorId}:bridge`, name: 'Bridge', kind: 'bridge', x: 10, y: 4 },
+    ],
+    roads: [],
+  })
+  return { ...base, sectors: [sector], scenery: [], players: [] }
+}
 
 function scene(reduced = false, initial?: WorldView) {
   const images: { onload: (() => void) | null }[] = []
@@ -29,6 +74,7 @@ function scene(reduced = false, initial?: WorldView) {
     order: number
     args: number[]
     matrix: number[]
+    filter: string
   }[] = []
   const texts: {
     text: string
@@ -47,6 +93,7 @@ function scene(reduced = false, initial?: WorldView) {
   let recordedPath: RecordedPath = []
   let drawOrder = 0
   let createdLayers = 0
+  const composites = new Map<object, object[]>()
   let resizeCallback!: () => void
   let matrix = [1, 0, 0, 1, 0, 0]
   const matrices: number[][] = []
@@ -71,6 +118,7 @@ function scene(reduced = false, initial?: WorldView) {
       putImageData() {},
       measureText: (text: string) => ({ width: text.length * 7 }),
       globalAlpha: 1,
+      filter: 'none',
       fillStyle: '',
       fill() {
         fills.push({
@@ -91,7 +139,8 @@ function scene(reduced = false, initial?: WorldView) {
       fillRect() {
         rectangles.push({ colour: this.fillStyle, order: ++drawOrder })
       },
-      ellipse(x: number, y: number) {
+      ellipse(x: number, y: number, ...parameters: number[]) {
+        recordedPath.push({ operation: 'E', points: [x, y, ...parameters] })
         ellipses.push({
           point: {
             x: matrix[0]! * x + matrix[2]! * y + matrix[4]!,
@@ -101,7 +150,14 @@ function scene(reduced = false, initial?: WorldView) {
         })
       },
       drawImage(image: HTMLImageElement, ...args: number[]) {
-        draws.push({ src: image.src ?? '', image, order: ++drawOrder, args, matrix: [...matrix] })
+        draws.push({
+          src: image.src ?? '',
+          image,
+          order: ++drawOrder,
+          args,
+          matrix: [...matrix],
+          filter: this.filter,
+        })
       },
       fillText(text: string, x: number, y: number, maxWidth?: number) {
         const state = this as unknown as { font: string; textAlign: string }
@@ -219,13 +275,20 @@ function scene(reduced = false, initial?: WorldView) {
     },
     createElement: () => {
       createdLayers++
+      const layer = { width: 0, height: 0, getContext: () => layerContext }
+      composites.set(layer, [])
       const layerContext = new Proxy(context, {
         get(target, key) {
           if (key === 'bezierCurveTo') return (...args: number[]) => groundCurves.push(args)
+          if (key === 'drawImage')
+            return (image: HTMLImageElement, ...args: number[]) => {
+              composites.get(layer)!.push(image)
+              target.drawImage(image, ...args)
+            }
           return Reflect.get(target, key)
         },
       })
-      return { width: 0, height: 0, getContext: () => layerContext }
+      return layer
     },
     addEventListener: (name: string, callback: EventListener) =>
       listeners.set('document:' + name, callback),
@@ -288,6 +351,7 @@ function scene(reduced = false, initial?: WorldView) {
     texts,
     transforms,
     groundCurves,
+    composites,
     gradients,
     clips,
     strokes,
@@ -387,9 +451,45 @@ describe('native map input and bounded lifecycle', () => {
       expect(clock).toHaveBeenCalledTimes(3)
       expect(s.canvas.dataset.renderTiming).toBeUndefined()
       expect(s.canvas.dataset.renderDiagnostics).toBeUndefined()
+      expect(s.canvas.dataset.paintedGroundIds).toBeUndefined()
     } finally {
       s.renderer.dispose()
       clock.mockRestore()
+      vi.unstubAllGlobals()
+    }
+  })
+  it('reports painted ground alongside timing diagnostics when coverage collection is requested', () => {
+    const s = scene(true)
+    try {
+      s.canvas.dataset.renderDiagnostics = 'timing'
+      s.canvas.dataset.testGroundCoverage = '[]'
+      s.frame(40)
+      const ids: string[] = JSON.parse(s.canvas.dataset.paintedGroundIds ?? '[]')
+      expect(ids).toContain(s.view.position.sectorId)
+      expect(new Set(ids).size).toBe(ids.length)
+      expect(JSON.parse(s.canvas.dataset.testGroundCoverage ?? '[]')).toEqual([
+        expect.objectContaining({
+          at: expect.any(Number),
+          x: expect.any(Number),
+          y: expect.any(Number),
+          width: 800,
+          height: 600,
+          tile: expect.any(Number),
+          painted: ids,
+        }),
+      ])
+      s.canvas.dataset.testGroundCoverageStopped = 'true'
+      const stopped = s.canvas.dataset.testGroundCoverage
+      s.renderer.update(s.view)
+      s.frame(60)
+      expect(s.canvas.dataset.testGroundCoverage).toBe(stopped)
+      delete s.canvas.dataset.testGroundCoverage
+      delete s.canvas.dataset.renderDiagnostics
+      s.renderer.update(s.view)
+      s.frame(80)
+      expect(s.canvas.dataset.paintedGroundIds).toBeUndefined()
+    } finally {
+      s.renderer.dispose()
       vi.unstubAllGlobals()
     }
   })
@@ -762,6 +862,13 @@ describe('native map input and bounded lifecycle', () => {
         ),
       ).toBe(true)
       expect(s.rectangles.some((rectangle) => rectangle.colour === '#4f5350')).toBe(false)
+      // A circular falloff clipped to an entire terrain cell still projects as
+      // a visible square/diamond when its radius reaches the cell boundary.
+      expect(
+        s.gradients.some((gradient) =>
+          gradient.stops.some(([, colour]) => colour === 'rgba(51,56,53,.18)'),
+        ),
+      ).toBe(false)
       expect(
         s.view.sectors[0]!.cells.find(
           (cell) => cell.x === rockPosition.x && cell.y === rockPosition.y,
@@ -1376,7 +1483,7 @@ describe('native map input and bounded lifecycle', () => {
     vi.unstubAllGlobals()
   })
   it('anchors the painted bridge footprint on its legal crossing and aligns its span with the road', () => {
-    const s = scene(true)
+    const s = scene(true, legacyTownView('verdant-expanse'))
     for (const image of s.images as HTMLImageElement[])
       if (image.src.endsWith('grand-bridges-v01.webp')) Object.assign(image, { complete: false })
     const props = s.images.find((image) =>
@@ -1429,7 +1536,7 @@ describe('native map input and bounded lifecycle', () => {
     (sectorId, from, to) => {
       const state = newWorldState()
       state.position = { ...state.position, sectorId }
-      const s = scene(true, projectWorld(state, [], 1000))
+      const s = scene(true, legacyTownView(sectorId))
       for (const image of s.images as HTMLImageElement[])
         if (image.src.endsWith('grand-bridges-v01.webp')) Object.assign(image, { complete: false })
       s.frame(40)
@@ -1620,7 +1727,7 @@ describe('native map input and bounded lifecycle', () => {
     (material, sectorId, mode) => {
       const state = newWorldState()
       state.position = { sectorId, x: 9, y: 4 }
-      const view = projectWorld(state, [], 1000)
+      const view = legacyTownView(sectorId, 9, 4)
       const own = view.sectors.find((sector) => sector.id === sectorId)!
       const s = scene(mode === 'reduced', { ...view, players: [], sectors: [own] })
       try {
@@ -2484,7 +2591,7 @@ describe('native map input and bounded lifecycle', () => {
     vi.unstubAllGlobals()
   })
   it('keeps a traveller visible above a bridge or landmark prop', () => {
-    const s = scene()
+    const s = scene(false, legacyTownView('verdant-expanse'))
     const sector = s.view.sectors.find((sector) => sector.id === s.view.position.sectorId)!
     const bridge = sector.landmarks.find((landmark) => landmark.kind === 'bridge')!
     s.renderer.update({
@@ -3282,7 +3389,9 @@ it('reuses cropped scenery rasters across zoomed-out phone frames', () => {
     s.draws.length = 0
     s.frame(100)
     expect(s.draws.some(({ src }) => src.endsWith('living-trees-v01.webp'))).toBe(false)
-    expect(s.draws.some(({ image }) => image === cachedDraw!.image)).toBe(true)
+    const reusesRaster = (image: object): boolean =>
+      image === cachedDraw!.image || (s.composites.get(image) ?? []).some(reusesRaster)
+    expect(s.draws.some(({ image }) => reusesRaster(image))).toBe(true)
   } finally {
     s.renderer.dispose()
     vi.unstubAllGlobals()
@@ -3374,10 +3483,10 @@ it.each([
   }
 })
 
-it('uses distinct Frostmere building art at the existing public footprint anchors', () => {
+it('keeps distinct Frostmere legacy art at its captured public footprint anchors', () => {
   const state = newWorldState()
   state.position = { sectorId: 'frostmere', x: 6, y: 4 }
-  const initial = projectWorld(state, [], 1000)
+  const initial = legacyTownView('frostmere')
   const s = scene(false, initial)
   try {
     const atlas = s.images.find((image) =>
@@ -3435,7 +3544,7 @@ it.each([
 it('carries smoke from the painted Frostmere forge flue without removing the building in Low quality', () => {
   const state = newWorldState()
   state.position = { sectorId: 'frostmere', x: 6, y: 4 }
-  const initial = projectWorld(state, [], 1000)
+  const initial = legacyTownView('frostmere')
   const s = scene(false, { ...initial, environment: { ...initial.environment, weather: 'storm' } })
   try {
     const atlas = s.images.find((image) =>
@@ -3811,6 +3920,57 @@ it('joins depth colours between supplied open water and a proven bridge underpas
   }
 })
 
+it('clips the base lava material to its rounded bank before painting an isolated lava cell', () => {
+  const base = projectWorld(newWorldState(), [], 1000)
+  const original = base.sectors.find((sector) => sector.id === base.position.sectorId)!
+  const material = vi.spyOn(waterPainting, 'liquidMaterial')
+  const s = scene(true, {
+    ...base,
+    scenery: [],
+    atlas: [],
+    publicGrandDiscoveries: [],
+    sectors: [
+      {
+        ...original,
+        atlasColumn: 0,
+        atlasRow: 0,
+        townId: undefined,
+        buildings: [],
+        landmarks: [],
+        cells: Array.from({ length: 9 }, (_, index) => ({
+          x: index % 3,
+          y: Math.floor(index / 3),
+          terrain: index === 4 ? 'l' : '.',
+          walkable: index !== 4,
+          safe: false,
+        })),
+      },
+    ],
+  })
+  try {
+    s.frame(40)
+    const lavaIndex = material.mock.calls.findIndex((call) => call[1] === 'lava')
+    expect(lavaIndex).toBeGreaterThanOrEqual(0)
+    const lavaMaterial = material.mock.results[lavaIndex]!.value
+    const baseFill = s.rectangles.find((rectangle) => rectangle.colour === lavaMaterial)!
+    expect(baseFill).toBeDefined()
+    expect(s.groundCurves.length).toBeGreaterThan(0)
+    expect(
+      s.clips.some(
+        (clip) =>
+          clip.order < baseFill.order &&
+          clip.path.some(
+            (part) => part.operation === 'M' && part.points[0]! > 0 && part.points[0]! < 64,
+          ),
+      ),
+    ).toBe(true)
+  } finally {
+    s.renderer.dispose()
+    material.mockRestore()
+    vi.unstubAllGlobals()
+  }
+})
+
 it('keeps private lava colours continuous across sector edges and beneath the Blackglass Span', () => {
   const sectorId = 'void:cinder-choir:8:8'
   const neighborId = 'void:cinder-choir:9:8'
@@ -3931,7 +4091,7 @@ it('retains paving fallback until dedicated floors decode, then rebuilds cached 
 })
 
 it('uses decoded grand art for town crossings while preserving original-art fallback', () => {
-  const s = scene(true)
+  const s = scene(true, legacyTownView('verdant-expanse'))
   try {
     const art = (s.images as HTMLImageElement[]).find((i) =>
       i.src.endsWith('grand-bridges-v01.webp'),
@@ -4087,8 +4247,9 @@ it('enlarges a clear-ground shrine without moving its visual foot as nearby grou
       expect(shrine).toBeDefined()
       return {
         width: shrine.args[6]!,
-        footX: shrine.args[4]! + shrine.args[6]! / 2,
-        footY: shrine.args[5]! + shrine.args[7]!,
+        // The painted shrine's opaque floor lies inside its source padding.
+        footX: shrine.args[4]! + shrine.args[6]! * 0.56,
+        footY: shrine.args[5]! + shrine.args[7]! * 0.898,
       }
     } finally {
       s.renderer.dispose()
@@ -4100,4 +4261,433 @@ it('enlarges a clear-ground shrine without moving its visual foot as nearby grou
   expect(grand.width).toBeGreaterThan(ordinary.width * 1.9)
   expect(grand.footX).toBeCloseTo(ordinary.footX, 5)
   expect(grand.footY).toBeCloseTo(ordinary.footY, 5)
+})
+
+it('renders the actual canonical shallow moat crossing without inventing a deep-water route', () => {
+  const canonical = atlasSectors().find(
+    (sector) =>
+      sector.townId === 'umbral-march' &&
+      sector.landmarks.some((landmark) => landmark.kind === 'bridge'),
+  )!
+  expect(canonical).toBeDefined()
+  const bridge = canonical.landmarks.find((landmark) => landmark.kind === 'bridge')!
+  const view = projectWorld(
+    { ...newWorldState(), position: { sectorId: canonical.id, x: bridge.x, y: bridge.y } },
+    [],
+    1000,
+  )
+  const own = view.sectors.find((sector) => sector.id === canonical.id)!
+  expect(own.cells.some((cell) => cell.terrain === 'w' && cell.walkable)).toBe(true)
+  expect(own.cells.find((cell) => cell.x === bridge.x && cell.y === bridge.y)).toMatchObject({
+    walkable: true,
+  })
+  expect(['=', 's']).toContain(
+    own.cells.find((cell) => cell.x === bridge.x && cell.y === bridge.y)!.terrain,
+  )
+  const s = scene(true, view)
+  try {
+    s.frame(40)
+    expect(s.draws.some((draw) => draw.src.endsWith('grand-bridges-v01.webp'))).toBe(true)
+    expect(view.sectors.find((sector) => sector.id === canonical.id)!.cells).toEqual(own.cells)
+  } finally {
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+})
+
+it('retains at least one working canonical Frostmere forge across its nine reconfigured districts', () => {
+  let forgeDraws = 0,
+    workingFlues = 0
+  const districts = atlasSectors().filter((sector) => sector.townId === 'frostmere')
+  expect(districts).toHaveLength(9)
+  for (const sector of districts) {
+    const state = { ...newWorldState(), position: { sectorId: sector.id, x: 6, y: 4 } }
+    const view = projectWorld(state, [], 1000)
+    const own = view.sectors.find((s) => s.id === sector.id)!
+    const s = scene(false, {
+      ...view,
+      sectors: [own],
+      scenery: [],
+      players: [],
+      environment: { ...view.environment, weather: 'storm' },
+    })
+    try {
+      const atlas = s.images.find((image) =>
+        (image as HTMLImageElement).src.endsWith('frostmere-v01.webp'),
+      )!
+      Object.assign(atlas, { width: 1536, height: 336, naturalWidth: 1536 })
+      s.frame(40)
+      const forge = s.draws.find((draw) => draw.image === atlas && draw.args[0] === 384)
+      if (forge) {
+        forgeDraws++
+        if (
+          s.draws.some(
+            (draw) =>
+              draw.order > forge.order &&
+              draw.image.width === 64 &&
+              draw.image.height === 64 &&
+              draw.args.length === 4,
+          )
+        )
+          workingFlues++
+      }
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  }
+  expect(
+    forgeDraws,
+    'New town topology must retain a real forge, rather than only a compatibility fixture.',
+  ).toBeGreaterThan(0)
+  expect(workingFlues).toBeGreaterThan(0)
+})
+
+it.each(
+  (['elemental-valley', 'remote-colosseum'] as const).flatMap((id) =>
+    [-1, 0, 1].map((laps) => ({ id, laps })),
+  ),
+)(
+  'draws the giant canonical $id inside its public footprint after $laps longitude wraps',
+  ({ id, laps }) => {
+    const site = GRAND_DISCOVERY_SITES.find((site) => site.id === id)!
+    const gx = Math.floor(site.left + site.width / 2),
+      gy = Math.floor(site.top + site.height / 2)
+    const sector = atlasSectors().find(
+      (s) => s.atlasColumn === Math.floor(gx / 13) && s.atlasRow === Math.floor(gy / 9),
+    )!
+    const view = projectWorld(
+      { ...newWorldState(), position: { sectorId: sector.id, x: gx % 13, y: gy % 9 } },
+      [],
+      1000,
+    )
+    expect(view.publicGrandDiscoveries).toContain(id)
+    // Continuous seam travel retains an unwrapped camera while geography stays canonical.
+    const sample = WorldMotion.prototype.sample
+    const sampling = vi.spyOn(WorldMotion.prototype, 'sample').mockImplementation(function (
+      this: WorldMotion,
+      now,
+    ) {
+      const current = sample.call(this, now)
+      return {
+        ...current,
+        point: { ...current.point, x: current.point.x + laps * WORLD_MAP_WIDTH },
+      }
+    })
+    const s = scene(false, view)
+    try {
+      const sheet = id === 'elemental-valley' ? 'elemental-waterfall-valley' : 'remote-colosseum'
+      const art = s.images.find((image) =>
+        (image as HTMLImageElement).src.endsWith(`${sheet}-v01.webp`),
+      )!
+      expect(art).toBeDefined()
+      s.frame(40)
+      const drawn = s.draws.find((draw) => draw.image === art)
+      expect(drawn).toBeDefined()
+      expect(drawn!.args[6]).toBeGreaterThan(64 * 40)
+      expect(drawn!.args[4]).toBeLessThan(800)
+      expect(drawn!.args[4]! + drawn!.args[6]!).toBeGreaterThan(0)
+    } finally {
+      s.renderer.dispose()
+      sampling.mockRestore()
+      vi.unstubAllGlobals()
+    }
+  },
+)
+
+it.each(['animated', 'off', 'reduced'] as const)(
+  'links giant valley waterfall motion to the %s ambient setting',
+  (mode) => {
+    const site = GRAND_DISCOVERY_SITES.find((site) => site.id === 'elemental-valley')!
+    const gx = Math.floor(site.left + site.width / 2),
+      gy = Math.floor(site.top + site.height / 2)
+    const sector = atlasSectors().find(
+      (s) => s.atlasColumn === Math.floor(gx / 13) && s.atlasRow === Math.floor(gy / 9),
+    )!
+    const view = projectWorld(
+      { ...newWorldState(), position: { sectorId: sector.id, x: gx % 13, y: gy % 9 } },
+      [],
+      1000,
+    )
+    const motion = vi.spyOn(waterPainting, 'paintWaterfallMotion')
+    const s = scene(mode === 'reduced', view)
+    try {
+      s.renderer.settings({ animate: mode !== 'off', zoom: 1 })
+      s.frame(40)
+      expect(s.draws.some((draw) => draw.src.endsWith('elemental-waterfall-valley-v01.webp'))).toBe(
+        true,
+      )
+      expect(motion.mock.calls.some((call) => call[8] === 'grand')).toBe(mode === 'animated')
+    } finally {
+      motion.mockRestore()
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  },
+)
+
+it.each(['floor', 'wall'] as const)(
+  'composes colosseum ground before identity and treats an actor on its %s correctly',
+  (where) => {
+    const site = GRAND_DISCOVERY_SITES.find((site) => site.id === 'remote-colosseum')!
+    const geometry = grandDiscoveryPlacements(
+      atlasSectors()
+        .filter(
+          (s) =>
+            s.atlasColumn! * 13 < site.left + site.width &&
+            s.atlasColumn! * 13 + 13 > site.left &&
+            s.atlasRow! * 9 < site.top + site.height + 2 &&
+            s.atlasRow! * 9 + 9 > site.top,
+        )
+        .map((s) => projectWorldSector(newWorldState(), s)),
+    )[0]!
+    expect(geometry.id).toBe(site.id)
+    const floor = geometry.arenaFloor!
+    const sx = (floor.cx - geometry.anchorX) * geometry.widthTiles
+    // The front wall lies inside the ordinary occluder body, beyond the floor ellipse.
+    const sy =
+      ((where === 'floor' ? floor.cy : floor.cy + floor.ry + 0.035) - geometry.anchorY) *
+      geometry.heightTiles
+    const gx = Math.floor(geometry.worldx + (sx / MAP_X + sy / MAP_Y) / 2)
+    const gy = Math.floor(geometry.worldy + (sy / MAP_Y - sx / MAP_X) / 2)
+    const sector = atlasSectors().find(
+      (s) => s.atlasColumn === Math.floor(gx / 13) && s.atlasRow === Math.floor(gy / 9),
+    )!
+    expect(sector).toBeDefined()
+    const position = { sectorId: sector.id, x: gx % 13, y: gy % 9 }
+    const view = projectWorld(
+      { ...newWorldState(), position: { ...position, x: position.x === 12 ? 11 : position.x + 1 } },
+      [],
+      1000,
+    )
+    const s = scene(false, {
+      ...view,
+      players: [
+        {
+          characterId: 'arena-traveller',
+          name: 'Arena traveller',
+          level: 1,
+          portraitRef: '',
+          imageUrl: '/arena-traveller.png',
+          online: true,
+          attackable: false,
+          position,
+        },
+      ],
+    })
+    try {
+      s.frame(40)
+      const arena = s.draws.filter((draw) => draw.src.endsWith('remote-colosseum-v01.webp'))
+      expect(arena.length).toBeGreaterThanOrEqual(2)
+      const actors = s.identityDraws.filter((draw) => draw.src === '/arena-traveller.png')
+      expect(actors.length).toBeGreaterThan(0)
+      expect(arena.every((draw) => draw.order < actors[0]!.order)).toBe(true)
+      expect(actors.some((actor) => actor.filter === 'grayscale(1)')).toBe(where === 'wall')
+      expect(
+        s.clips.some((clip) =>
+          clip.path.some(
+            (part) => part.operation === 'E' && part.points[2]! > 0 && part.points[3]! > 0,
+          ),
+        ),
+      ).toBe(true)
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  },
+)
+
+it.each([
+  'verdant-expanse',
+  'aureth-crown',
+  'frostmere',
+  'hollow-coast',
+  'glasswind-desert',
+  'emberreach',
+  'starfall-highlands',
+  'umbral-march',
+])('grounds the new canonical %s architecture using its regional source cell', (sectorId) => {
+  const state = { ...newWorldState(), position: { sectorId, x: 6, y: 4 } }
+  const view = projectWorld(state, [], 1000)
+  const sector = view.sectors.find((sector) => sector.id === sectorId)!
+  const building = sector.buildings!.find(
+    (building) => building.artIndex >= 10 && building.artIndex <= 17,
+  )!
+  expect(building).toBeDefined()
+  const index = building.artIndex - 10
+  const source = townGrandManifest.sprites[index]!
+  const s = scene(true, view)
+  try {
+    const art = s.images.find((image) =>
+      (image as HTMLImageElement).src.endsWith('town-grand-architecture-v01.webp'),
+    )!
+    expect(art).toBeDefined()
+    Object.assign(art, { width: 2048, height: 1024, naturalWidth: 2048 })
+    s.frame(40)
+    const draw = s.draws.find(
+      (draw) =>
+        draw.image === art &&
+        draw.args[0] === (index % 4) * 512 &&
+        draw.args[1] === Math.floor(index / 4) * 512,
+    )!
+    expect(draw).toBeDefined()
+    const foot = projectMapPoint(
+      {
+        x: sector.atlasColumn! * 13 + building.x + building.width / 2,
+        y: sector.atlasRow! * 9 + building.y + building.height,
+      },
+      mapPoint(view.position, view.sectors),
+      { x: 0, y: 0 },
+      64,
+      800,
+      600,
+    )
+    const localX = draw.args[4]! + source.anchorX * draw.args[6]!
+    const localY = draw.args[5]! + source.anchorY * draw.args[7]!
+    expect(draw.matrix[0]! * localX + draw.matrix[2]! * localY + draw.matrix[4]!).toBeCloseTo(
+      foot.x * 1.5,
+      1,
+    )
+    expect(draw.matrix[1]! * localX + draw.matrix[3]! * localY + draw.matrix[5]!).toBeCloseTo(
+      foot.y * 1.5,
+      1,
+    )
+    expect(draw.args[0]! + draw.args[2]!).toBeLessThanOrEqual(2048)
+    expect(draw.args[1]! + draw.args[3]!).toBeLessThanOrEqual(1024)
+  } finally {
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+})
+
+it.each([
+  ['shrine', 4, 0.56, 0.898],
+  ['camp', 5, 0.556, 0.837],
+  ['waystone', 7, 0.632, 0.912],
+] as const)(
+  'grounds the actual legacy %s artwork at its supplied tile rather than its empty padding',
+  (kind, index, floorX, floorY) => {
+    const base = projectWorld(newWorldState(), [], 1000)
+    const own = base.sectors.find((sector) => sector.id === base.position.sectorId)!
+    const position = { ...base.position, x: base.position.x + 1 }
+    const view = {
+      ...base,
+      scenery: [],
+      sectors: [
+        {
+          ...own,
+          townId: undefined,
+          buildings: [],
+          cells: own.cells.map((cell) => ({ ...cell, terrain: '.', walkable: true, safe: false })),
+          landmarks: [{ id: 'grounded-site', kind, name: 'Site', x: position.x, y: position.y }],
+        },
+      ],
+    }
+    const s = scene(true, view)
+    try {
+      s.frame(40)
+      const draw = s.draws.find(
+        (d) =>
+          d.src.endsWith('props-v02.webp') &&
+          Math.abs(d.args[0]! - (index % 4) * 300) < 1 &&
+          d.args[1] === Math.floor(index / 4) * 600,
+      )!
+      expect(draw).toBeDefined()
+      const a = draw.args,
+        m = draw.matrix
+      const x = a[4]! + floorX * a[6]!,
+        y = a[5]! + floorY * a[7]!
+      const contact = { x: m[0]! * x + m[2]! * y + m[4]!, y: m[1]! * x + m[3]! * y + m[5]! }
+      const expected = projectMapPoint(
+        mapPoint(position, view.sectors),
+        mapPoint(view.position, view.sectors),
+        { x: 0, y: 0 },
+        64,
+        800,
+        600,
+      )
+      expect(contact.x).toBeCloseTo(expected.x * 1.5, 1)
+      expect(contact.y).toBeCloseTo(expected.y * 1.5, 1)
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  },
+)
+
+it('renders the remote grand crossing with its measured new bridge art rather than a reused town bridge', () => {
+  const state = { ...newWorldState(), position: { sectorId: 'atlas:71:32', x: 6, y: 4 } }
+  const view = projectWorld(state, [], 1000)
+  const s = scene(true, view)
+  try {
+    s.frame(40)
+    const draw = s.draws.find(
+      (d) => d.src.endsWith('grand-discoveries-v01.webp') && d.args[0] === 0 && d.args[1] === 0,
+    )
+    expect(draw).toBeDefined()
+    expect(
+      s.view.sectors
+        .find((sector) => sector.id === state.position.sectorId)!
+        .cells.find((cell) => cell.x === 6 && cell.y === 4)?.walkable,
+    ).toBe(true)
+  } finally {
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+})
+
+it('loads close-view valley details and arena ground material only for their own grand sites', () => {
+  for (const [sectorId, required] of [
+    ['atlas:70:24', ['valley-fire-detail', 'valley-ice-detail', 'valley-cascade-detail']],
+    ['atlas:44:37', ['colosseum-arena-grain']],
+  ] as const) {
+    const view = projectWorld({ ...newWorldState(), position: { sectorId, x: 6, y: 4 } }, [], 1000)
+    const s = scene(true, view)
+    try {
+      s.frame(40)
+      for (const sheet of required)
+        expect(
+          s.images.some((image) => (image as HTMLImageElement).src.endsWith(sheet + '-v01.webp')),
+        ).toBe(true)
+      const unrelated =
+        sectorId === 'atlas:70:24' ? ['colosseum-arena-grain'] : valleyDetailArt.map((d) => d.sheet)
+      for (const sheet of unrelated)
+        expect(
+          s.images.some((image) => (image as HTMLImageElement).src.endsWith(sheet + '-v01.webp')),
+        ).toBe(false)
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  }
+})
+
+it('paints context-preserving valley detail frames in the exact selected master coordinates', () => {
+  const view = projectWorld(
+    { ...newWorldState(), position: { sectorId: 'atlas:70:24', x: 6, y: 4 } },
+    [],
+    1000,
+  )
+  const s = scene(true, view)
+  try {
+    s.frame(40)
+    const master = s.draws.find((draw) => draw.src.endsWith('elemental-waterfall-valley-v01.webp'))!
+    expect(master).toBeDefined()
+    for (const detail of valleyDetailArt) {
+      const draw = s.draws.find((candidate) => candidate.src.endsWith(detail.sheet + '-v01.webp'))
+      expect(draw, detail.sheet).toBeDefined()
+      const [x, y, width, height] = detail.target
+      expect(draw!.args.slice(4)).toEqual([
+        master.args[4]! + x * master.args[6]!,
+        master.args[5]! + y * master.args[7]!,
+        width * master.args[6]!,
+        height * master.args[7]!,
+      ])
+      expect(draw!.matrix).toEqual(master.matrix)
+      expect(draw!.order).toBeGreaterThan(master.order)
+    }
+  } finally {
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
 })

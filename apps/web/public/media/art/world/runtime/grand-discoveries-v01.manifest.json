@@ -1,0 +1,125 @@
+{
+  "requestId": "ART-WORLD-CORRECTION-20261112",
+  "promptSpec": "content/art-requests/ART-WORLD-CORRECTION-20261112.md",
+  "provider": "OpenAI image generation",
+  "selection": "Original generated sheet selected for runtime integration",
+  "name": "grand-discoveries",
+  "source": {
+    "path": "sources/grand-discoveries-v01.png",
+    "sha256": "eee85e097a96f2f128fc3a7c81b9c884338d26c587d1b7fd427066465ad4e4b3",
+    "width": 1278,
+    "height": 1230
+  },
+  "runtime": {
+    "path": "runtime/grand-discoveries-v01.webp",
+    "sha256": "06eb20e08d34c40b084b264eefd9f1555a602e9aea908ce7b8a7292ada4356cf",
+    "bytes": 351322,
+    "width": 1024,
+    "height": 1024,
+    "columns": 2,
+    "rows": 2,
+    "cellWidth": 512,
+    "cellHeight": 512,
+    "encoding": "Sharp WebP quality88 alphaQuality100; alpha-tail normalization; visible-bounds crop; aspect-preserving fit; 24px floor inset"
+  },
+  "fringePixelsRemoved": 4859,
+  "packedFringePixelsRemoved": 935,
+  "sprites": [
+    {
+      "index": 0,
+      "isolation": "dominant-alpha-component",
+      "componentArea": 154769,
+      "sourceCell": {
+        "left": 2,
+        "top": 39,
+        "width": 663,
+        "height": 539
+      },
+      "crop": {
+        "left": 3,
+        "top": 3,
+        "width": 657,
+        "height": 533
+      },
+      "runtimeBounds": {
+        "left": 16,
+        "top": 99,
+        "width": 480,
+        "height": 389
+      },
+      "floorY": 0.953125
+    },
+    {
+      "index": 1,
+      "isolation": "dominant-alpha-component",
+      "componentArea": 266161,
+      "sourceCell": {
+        "left": 607,
+        "top": 16,
+        "width": 671,
+        "height": 586
+      },
+      "crop": {
+        "left": 3,
+        "top": 3,
+        "width": 667,
+        "height": 580
+      },
+      "runtimeBounds": {
+        "left": 16,
+        "top": 71,
+        "width": 480,
+        "height": 417
+      },
+      "floorY": 0.953125
+    },
+    {
+      "index": 2,
+      "isolation": "dominant-alpha-component",
+      "componentArea": 296914,
+      "sourceCell": {
+        "left": 0,
+        "top": 615,
+        "width": 639,
+        "height": 600
+      },
+      "crop": {
+        "left": 1,
+        "top": 3,
+        "width": 635,
+        "height": 594
+      },
+      "runtimeBounds": {
+        "left": 16,
+        "top": 39,
+        "width": 480,
+        "height": 449
+      },
+      "floorY": 0.953125
+    },
+    {
+      "index": 3,
+      "isolation": "dominant-alpha-component",
+      "componentArea": 220582,
+      "sourceCell": {
+        "left": 621,
+        "top": 658,
+        "width": 657,
+        "height": 513
+      },
+      "crop": {
+        "left": 3,
+        "top": 3,
+        "width": 653,
+        "height": 507
+      },
+      "runtimeBounds": {
+        "left": 16,
+        "top": 115,
+        "width": 480,
+        "height": 373
+      },
+      "floorY": 0.953125
+    }
+  ]
+}

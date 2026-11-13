@@ -22,6 +22,26 @@ const sector = (cells: [number, number, string][]): WorldSectorView => ({
   })),
 })
 
+it('does not turn an isolated rock into a square raised plateau on open ground', () => {
+  const ctx = new Proxy(
+    { createLinearGradient: () => ({ addColorStop: vi.fn() }) },
+    { get: (target, key) => (key in target ? target[key as keyof typeof target] : vi.fn()) },
+  ) as unknown as CanvasRenderingContext2D
+  expect(
+    paintTerrainRelief(
+      ctx,
+      sector([
+        [3, 3, '#'],
+        [2, 3, '.'],
+        [4, 3, '.'],
+        [3, 2, '.'],
+        [3, 4, '.'],
+      ]),
+      64,
+    ),
+  ).toBe(0)
+})
+
 it('paints layered cliff faces toward known natural valley ground, never unknown cells or roads', () => {
   const lines: number[][] = []
   const colours: string[] = []
@@ -37,6 +57,7 @@ it('paints layered cliff faces toward known natural valley ground, never unknown
   ) as unknown as CanvasRenderingContext2D
   const source = sector([
     [3, 3, '#'],
+    [3, 2, '#'],
     [4, 3, '.'],
   ])
   const before = JSON.stringify(source)
@@ -81,6 +102,7 @@ it('limits private relief to supplied adjacent cells and keeps cold and Void roc
   ) as unknown as CanvasRenderingContext2D
   const source = sector([
     [3, 3, '#'],
+    [2, 3, '#'],
     [3, 4, '.'],
   ])
   paintTerrainRelief(ctx, { ...source, regionId: 'frostmere' }, 64)
@@ -225,4 +247,19 @@ it('keeps broad field pixels stationary, continuous at tile/sector corners and p
   )
   expect(Array.from(rasters[6]!).filter((_, i) => i % 4 === 3)).toEqual(alphas)
   expect(rasters[6]).not.toEqual(rasters[0])
+})
+
+it('gives broad ridges and basins enough light-and-shadow range to read above detailed ground', () => {
+  const { ctx, rasters } = contourContext()
+  const shadowAlpha: number[] = []
+  const lightAlpha: number[] = []
+  for (const atlasColumn of [0, 32, 64, 96])
+    for (const atlasRow of [8, 24, 40, 56]) {
+      paintTerrainContours(ctx, { ...sector([[0, 0, '.']]), atlasColumn, atlasRow }, 64)
+      const pixels = rasters.at(-1)!
+      for (let i = 0; i < pixels.length; i += 4)
+        (pixels[i]! < 100 ? shadowAlpha : lightAlpha).push(pixels[i + 3]!)
+    }
+  expect(shadowAlpha.reduce((max, value) => Math.max(max, value), 0)).toBeGreaterThan(90)
+  expect(lightAlpha.reduce((max, value) => Math.max(max, value), 0)).toBeGreaterThan(45)
 })

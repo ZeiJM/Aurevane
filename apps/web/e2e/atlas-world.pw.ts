@@ -19,6 +19,7 @@ import { projectMapPoint } from '../src/components/world/map-projection'
 import { worldRenderTerrain } from '../src/components/world/map-render-terrain'
 import { registerWorldLandscapeCases } from './world-landscape-case'
 import { registerWorldArtReviewCases } from './world-art-review-case'
+import { registerWorldMapCorrectionCases } from './world-map-correction-case'
 import { registerWorldMultiplayerLoadCase } from './world-multiplayer-load-case'
 import type { CharacterBuildContext } from '../src/server/character/character-build-service'
 
@@ -1772,6 +1773,7 @@ test('charted globe travel survives unrelated frontier discoveries and retains b
 registerWorldInputCases({ enter, world, place, stageWalk, capture, openJournal })
 registerWorldLandscapeCases({ enter, world, place, stageWalk, capture })
 registerWorldArtReviewCases({ enter, world, sql, capture, stageWalk })
+registerWorldMapCorrectionCases({ enter, world, sql, stageWalk })
 registerWorldMultiplayerLoadCase({ enter, world, place, sql })
 
 test('known neighbouring players follow the visible viewport with service-only presence authority', async ({

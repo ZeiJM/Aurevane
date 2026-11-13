@@ -1,0 +1,97 @@
+# Aurevane continuation checkpoint
+
+Read this first; open detailed sources only for the task being worked on. This is an index, not a replacement for the requirements.
+
+## Active candidate
+
+- Repository `ZeiJM/Aurevane`, branch `agent/world-map-correction-20261112`.
+- Fresh main: `2c3c73d13f4c0cf1eb4ac5824deb8ae7b8b4760b` (PR1038, earlier release recorded live). Do not replay it.
+- Current map corrections are **not live**. Nick already authorized this corrective production release for testing after quality, review, actual desktop/phone acceptance and controlled migration/postflight.
+- Preserve stable IDs/positions/progress, private discovery, drafts/publications/history and the disabled automatic Git deployments.
+- Exact 12-outcome authority: `docs/superpowers/specs/2026-11-12-world-map-correction-design.md`.
+- Plan: `docs/superpowers/plans/2026-11-12-world-map-correction.md`.
+- Detailed evidence/open gates: `docs/verification/2026-11-12-world-map-correction-progress.md`.
+
+## Current remote and quality checkpoint — November 12, 17:55 Trinidad
+
+- The recovered candidate is preserved on the non-deploying remote branch `agent/world-map-correction-20261112`; draft PR #1039 points at `b1d2514c42bec3c1f495048bd5a9056f934b5683`. Main was still `2c3c73d1` at the last refresh. The recovery archive's immutable map baseline is tracked; the remote source is not live.
+- The first local combined gate passed format/lint, then exposed the omitted baseline import. After restoring it, typecheck and production build passed. The full test run passed 9,514/9,515 web tests; one old Void row-major label assertion expected sector 34 instead of 66. Focused teleport tests passed 11/11 after repair.
+- The second combined gate passed format/lint/typecheck and 9,514/9,515 web tests; its sole failure was the exhaustive eight-realm geometry test exceeding the default five-second timeout under full-suite load. The same 14-test realm file passed alone in 42 seconds overall; the geography case previously passed in 4.56 seconds. Its threshold is unchanged and its per-case budget is now 30 seconds. The combined focused realm/teleport recheck passed 25/25; a final combined gate remains pending.
+- PR CI at the earlier head found one obsolete browser expectation of 768 instead of the actual 64×48 = 3,072 Void sectors; the browser assertion has been repaired. Local Chromium cannot launch because sandbox socket creation returns EPERM. The Living Atlas authenticated browser workflow is still running; exact-head CI must rerun after the repairs are pushed.
+- Next action: commit/push these three test-only repairs, verify the new remote SHA, then complete exact-head local/CI and native image/performance review before migration or release. Hourly checks remain paused.
+
+## Follow-up source review — November 12, 18:02 Trinidad
+
+- Test-only repairs were pushed as `5edad1a53c6fe1e3bdcc29fa0ed30859dc34b179`, with remote SHA verified. The earlier PR runs are superseded; fresh CI at this head started.
+- Whole-branch review found one Important scene selection defect: when all 13 legacy Uncharted districts and a local 5×5 supercontinent neighborhood were discovered, distant districts consumed the 25-sector scene budget and withdrew nearby surveyed ground. A new saturation regression failed on the original source, then the private scene filter/distance were corrected using `sceneColumn`/`sceneRow`. Focused World/continent/renderer tests pass 275/275. A targeted review found no further Important side effect; current/route priority and private cell masking remain intact.
+- Final combined local quality and exact-head CI are pending on this source correction. Next action: finish the combined gate, commit/push this reviewed fix, verify the new remote SHA and review native desktop/phone Atlas captures and timings. No migration or deployment has occurred. Hourly checks remain paused.
+
+## Formatted source quality — November 12, 18:10 Trinidad
+
+- The ground correction was formatted without changing its behavior. The complete local `pnpm check` passed on the formatted tree: format, lint, typecheck, 17,629 Vitest tests across seven packages, seven Node tests and the production build. The saturated Uncharted case and all 52 World service tests passed; adjacent World/continent/renderer focused suites passed 275/275.
+- Next action: push the formatted source as the new exact PR head, verify remote SHA/tree, then use only that head's CI and native Atlas screenshots/timings for release decisions. Earlier PR runs are superseded. Production remains on the PR1038 release; no corrective migration or deployment has occurred.
+
+## Exact-head release gate — November 12, 18:30 Trinidad
+
+- Source `59e334f` passed local complete quality and main CI, representative buildcraft, the security/battle/discipline/wayfarer database checks, attribute allocation and combat/mobile regressions. The authenticated Atlas story step passed; the Atlas map/multiplayer step was still running at this checkpoint.
+- Browser smoke found the remaining obsolete teleport request shape: the v2 destination now includes `geometryVersion`. The assertion is corrected. A guarded production migration job is added to the existing dispatch workflow, pinned to main, an exact SHA, the 258-entry production ledger, the reviewed single SQL file, a CLI dry run and a v1 preservation postflight. It has not been invoked. The prior Atlas run is superseded by the next pushed candidate.
+- Next: push this small correction/release tooling, verify exact remote tree, run all new-head CI and inspect actual desktop/phone screenshots and performance. No production migration or deployment yet.
+
+## Pending CI continuation — November 12, 19:06 Trinidad
+
+- PR #1039 remote source is `fd1668c2e92dc12a867ef21a10f0ebffb49716cf` / tree `eb140cf3356f78897c2e0246d39476d4f4e32fd7`. Production/main remain PR1038. No corrective migration or deployment has occurred.
+- At this source, all database/security/attribute/combat-mobile and representative buildcraft workflows pass. Browser smoke `43320262686` passed the complete Master flow and is still in final desktop/mobile shell. Atlas `43320262682` passed authenticated story and is still in authenticated map/multiplayer. Let these runs finish before updating the PR branch so their captures survive.
+- Main CI `43320262797` failed only the exhaustive eight-realm crater/scenery test's five-second default timeout; 9,515 other web tests passed. Its assertions remain unchanged; its explicit budget is now 30 seconds, and the entire 14-test Void realm file passes locally in 44.63 seconds. Preserve this repair on remote side branch `agent/world-map-validation-20261112`, then fast-forward the PR branch to it after current browser evidence is collected, followed by final CI.
+- Nick requested hourly checks again. The single task `Automation_a05a9603607c8191bbeed63e8531a28d` is enabled on an exact hourly schedule at minute 47, America/Port_of_Spain. All other watchers remain paused. It must avoid concurrent foreground mutations and continue the authorized release after native image/performance acceptance and final CI.
+
+## Atlas failure diagnosis and prepared exact-contract repair — November 12, 19:58 UTC
+
+- The preserved `fd1668c` Atlas run `43320262682` completed with 94 passed, 123 intentional project skips and five failures. None was runner transience: desktop/mobile ground-coverage diagnostics recorded zero frames because the helper waited for an identity-label repaint that cached identities no longer require; desktop/mobile globe parity omitted the established walkable-shallow `w` terrain already emitted by the server; and the Verdant review selector chose a 104-cell shallow bridge field with no visible bank. The exact log and bounded failure artifact were inspected before changes.
+- The correction keeps every authority, hole, bank, timing and exact-water assertion. Coverage now observes completed stage frame stamps instead of altering Canvas identity methods; globe parity compares all three server liquid symbols (`~`, `l`, `w`); and the water review selector proves a real rendered bank before selecting a scene. New RED regressions reproduced the missing observer and bankless Verdant selection, then passed. Focused World/server/renderer verification passes 277 tests across four files; web TypeScript, scoped zero-warning ESLint, formatting and diff checks pass.
+- Exact artifact receipts from the failed source are preserved: compact evidence `13993680690`, SHA256 `0f6ccf99bf3c53b54e579f318bd7b96d01f1d827327c8e9c66e319996421d8c6`; correction/Void/water/occlusion `13993646346`, SHA256 `96ec478f3a47bdd3a267ca006837b3ddddc210919be0110447e4a0a0a6b41875`; bounded water failure `13993830467`, SHA256 `4591f2252bac45745cc998c7df1d597b099014b673d6d3cd556835ff145df546`. ZIP integrity passes.
+- Actual desktop/phone correction captures show the selected valley, open colosseum, fortress/abandoned town, grand bridge, lava cascade, coastline/ocean feature, snowy relief, globe and private scenes. The current lake/river/moat silhouettes remain visibly tile-derived and some channels narrow; these are honest reference-fidelity limits, not hidden by green source tests. Human continuous motion, physical handset and complete live-loading acceptance remain open.
+- Browser run `43320262686` was still in its original final desktop/mobile shell step when this checkpoint was written, with Master and every prior step successful. Do not update the PR ref until that original job completes and its artifacts/logs are secured. The follow-up is currently local on top of validation commit `4788a466`; publish one protected successor only after fresh head/main verification, then require all configured exact-head workflows and corrected native GREEN evidence. No migration, merge or deployment has occurred.
+
+## Preserve the requested result
+
+Retain the receipt/ground-loading fix; remove rock shadows/floating art; measure map performance; provide organic rivers/lakes/sea/lava with depth/weather motion, authoritative town-water walking and shallow footsteps, eight distinct towns/Crown walls/moat, coherent relief, grand remote ruins/bridges/towns, larger-than-town waterfall valley/open colosseum, occasional large HQ ocean discoveries, crisp globe and real private64×48 Uncharted supercontinents. Verify artwork at actual gameplay zoom.
+
+The exact valley selection is `sources/elemental-waterfall-valley-owner-selected-v01.png`, from `image(20261112-175551)`. Rejected muscular/robed variants are not selections. Keep falls/spray/basin animation and the registered rectangular detail frames; do not restore rejected silhouette overlays or regenerate completed artwork.
+
+## Latest recovery — November12, implementation first
+
+Read linked Old8 (`6af61ac5-60d8-83e9-80c2-63e19444e1ca`) directly. The worktree and selected artwork are intact. Nick now requests implementation first, a combined quality pass afterward, and paused hourly checks. Disabled the sole enabled Aurevane automation (`Automation_a05a9603607c8191bbeed63e8531a28d`); the other24were already paused. Do not restart them without a new request.
+
+Old8 repaired obsolete town fixtures in five test files and restored a tracked audio file omitted by the partial checkout. Its six focused suites passed30/30. The resumed broad check stopped after lint/start of typecheck with no final result; it is not running now and must not be described as passing. No newer implementation gap has been established. Preserve the integrated candidate before the next combined validation; do not regenerate art, replay completed repairs or repeatedly rerun the broad suite during development.
+
+### Earlier review repairs, retained
+
+Read Old5 directly in the signed-in browser; recovered Old4's corrective mandate and final refinements; checked Old6's intervening lava repair checkpoint. Source and artwork are intact. No repeat reconstruction is necessary.
+
+Independent whole-branch review found two Important issues, now repaired:
+
+- Ambiguous globe browser text selector: target the unique orientation button. Existing globe/scene checks: **7/7 pass**.
+- Giant land/ocean discoveries vanished after wrapped-longitude journeys. Use the camera's nearest longitude copy. Four actual renderer cases failed before repair; all six canonical/west/east cases passed after repair. Full renderer and land/ocean placement check: **229/229 pass**.
+
+Reviewer separately passed **36/36** terrain/privacy/placement/matrix checks and found no other verified Critical/Important issue. Native visual/performance acceptance remains required.
+
+The earlier `.local-validation/continuation-quality.log` contains failures subsequently repaired in Old8. Its successor `.local-validation/continuation-quality-resumed.log` has no terminal result. Use both as historical diagnostics, not current passing evidence.
+
+## Next actions
+
+1. Preserve/publish the complete implementation candidate on its own branch; verify the exact remote tree and refresh main. A source checkpoint is not release acceptance.
+2. Once implementation is settled, run the combined quality gate, fix genuine failures without weakening tests, and prepare the draft PR.
+3. Run configured exact-candidate workflows, including the Atlas matrix:8towns,6landscapes,4discoveries,2globe backends on desktop/phone. Earlier local Docker/native browser evidence was unavailable; source tests/older release captures are not substitutes.
+4. Review actual images/art loading/movement/zoom/resize/performance. After all gates, perform controlled geometry-v2 migration/release/postflight, preserving v1 and user state. Record the release receipt and open human/device acceptance.
+
+## Separate next update — never silently close
+
+Authority: `docs/verification/2026-11-12-recovery-and-release-split.md`. Revalidate `docs/verification/unified-upgrade/requirements.csv`:82rows retaining all70original IDs. Historical statuses are not a current completion percentage.
+
+Next update: ferry integration/access to the selected Void world and deferred Void gameplay tests; genuine unmet appearance/creator/animation, NPC, Events, accessibility and broader performance criteria. Preserve hourly free five-minute ferry/shared-deck/public-ship contracts. Do not restore rejected names/chicken fixtures. Map release completion does not close this backlog.
+
+## Context discipline
+
+Keep detailed logs/evidence outside chat; report changed status, verified results, blockers and next action. Update this checkpoint and detailed progress after milestones. Retrieve old conversations only for missing/conflicting requirements. Never promise unlimited conversation capacity or imply unverified completion.
+
+Recovery checkpoint verification:305/305 tests pass across seven affected integration suites (water/coast/renderer/settlement/compatibility/privileged NPC route/audio). Full combined quality, browser/native performance and release gates remain pending. Log: `.local-validation/recovery-implementation-checkpoint.log`.

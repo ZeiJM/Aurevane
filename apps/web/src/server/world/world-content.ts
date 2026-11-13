@@ -12,7 +12,12 @@ import {
   VOID_REALM_ROWS,
 } from '@/world/void-realms'
 import { atlasSectors } from '@/world/atlas'
-import { isWarpedContinentSector, warpedContinentSectors } from './warped-continent'
+import {
+  isWarpedContinentSector,
+  resolveWarpedContinentSector,
+  warpedContinentSceneIds,
+  warpedContinentSectors,
+} from './warped-continent'
 import { ferryDeckSector } from './world-ferry'
 import { resolveVoidSector } from './void-realms'
 
@@ -98,6 +103,7 @@ const AUTHORED_BY_ID = new Map(WORLD_SECTORS.map((sector) => [sector.id, sector]
 export function resolveSector(id: string): WorldSector | null {
   return (
     AUTHORED_BY_ID.get(id) ??
+    resolveWarpedContinentSector(id) ??
     resolveVoidSector(id) ??
     ferryDeckSector(id) ??
     sealedRealmSector(id) ??
@@ -169,6 +175,24 @@ export function visibleSectors(
       const sector = isWildSectorId(id) ? resolveSector(id) : null
       if (sector) visible.set(id, sector)
     }
+  if (onWarpedContinent) {
+    const candidates = new Set([
+      state.position.sectorId,
+      ...(sceneOnly
+        ? warpedContinentSceneIds(state.position.sectorId).filter(
+            (id) => state.discoveries[id]?.length,
+          )
+        : Object.keys(state.discoveries)),
+      ...(sceneOnly ? state.route.slice(0, 8) : state.route)
+        .filter((step) => isKnownCell(state, step.position))
+        .map((step) => step.position.sectorId),
+    ])
+    for (const id of candidates) {
+      if (!isWarpedContinentSector(id)) continue
+      const sector = resolveSector(id)
+      if (sector) visible.set(id, sector)
+    }
+  }
   if (voidRealm) {
     const candidates = sceneOnly
       ? Array.from({ length: 25 }, (_, index) => {

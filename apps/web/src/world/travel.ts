@@ -124,7 +124,7 @@ class MinHeap<T> {
     return top
   }
 }
-/** Bounded Dijkstra search: ordinary cells plus explicitly authored regional roads. */
+/** Bounded A* search with Dijkstra fallback for non-geographic or faster historical roads. */
 export function findWorldRoute(
   from: WorldPosition,
   to: WorldPosition,
@@ -150,9 +150,10 @@ export function findWorldRoute(
   const connected = sectors.filter((sector) => reachable.has(sector.id))
   const target = lookup.get(to.sectorId)
   if (!target || !isWalkable(target, to) || (known && !known(to))) return null
-  // Atlas-only routes have adjacent geometry and uniform 200ms costs; the Manhattan lower
-  // bound cuts distant journeys from a world-wide flood to a narrow corridor. Historical
-  // portal/trail graphs fall back to Dijkstra rather than assuming geometry they don't have.
+  // Atlas and private-realm routes both have adjacent geometry and uniform lower-bounded costs;
+  // their Manhattan estimates keep a continental journey from becoming a world-wide flood.
+  // Historical portal/trail graphs fall back to Dijkstra rather than assuming geometry they
+  // don't have. Private scene coordinates stay server-side and are never projected by this.
   const atlasOnly = connected.every(
     (s) =>
       s.atlasColumn !== undefined &&
@@ -176,17 +177,50 @@ export function findWorldRoute(
   )
   const targetX = (target.atlasColumn ?? 0) * GRID_WIDTH + to.x,
     targetY = (target.atlasRow ?? 0) * GRID_HEIGHT + to.y
+  const sceneOnly = connected.every(
+    (s) =>
+      s.sceneColumn !== undefined &&
+      s.sceneRow !== undefined &&
+      (s.stepMs ?? STEP_MS) >= STEP_MS &&
+      s.roads.every((road) => {
+        const next = lookup.get(road.to.sectorId)
+        return (
+          !next ||
+          (next.sceneColumn !== undefined &&
+            next.sceneRow !== undefined &&
+            Math.abs(
+              s.sceneColumn! * GRID_WIDTH +
+                road.from.x -
+                (next.sceneColumn * GRID_WIDTH + road.to.x),
+            ) +
+              Math.abs(
+                s.sceneRow! * GRID_HEIGHT + road.from.y - (next.sceneRow * GRID_HEIGHT + road.to.y),
+              ) ===
+              1 &&
+            road.durationMs >= STEP_MS)
+        )
+      }),
+  )
+  const sceneTargetX = (target.sceneColumn ?? 0) * GRID_WIDTH + to.x,
+    sceneTargetY = (target.sceneRow ?? 0) * GRID_HEIGHT + to.y
   const estimate = (p: WorldPosition) => {
-    if (!atlasOnly) return 0
     const sector = lookup.get(p.sectorId)!
-    return (
-      wrappedMapDistance(
-        sector.atlasColumn! * GRID_WIDTH + p.x,
-        sector.atlasRow! * GRID_HEIGHT + p.y,
-        targetX,
-        targetY,
-      ) * STEP_MS
-    )
+    if (atlasOnly)
+      return (
+        wrappedMapDistance(
+          sector.atlasColumn! * GRID_WIDTH + p.x,
+          sector.atlasRow! * GRID_HEIGHT + p.y,
+          targetX,
+          targetY,
+        ) * STEP_MS
+      )
+    if (sceneOnly)
+      return (
+        (Math.abs(sector.sceneColumn! * GRID_WIDTH + p.x - sceneTargetX) +
+          Math.abs(sector.sceneRow! * GRID_HEIGHT + p.y - sceneTargetY)) *
+        STEP_MS
+      )
+    return 0
   }
   const queue = new MinHeap<{ position: WorldPosition; cost: number; score: number }>(
     (a, b) => a.score - b.score || b.cost - a.cost,
