@@ -15,8 +15,28 @@ export type GroundCoverageFrame = {
 /** Serialized by Playwright; enable producer-owned completed-frame diagnostics. */
 export function installWorldGroundCoverage(element: HTMLElement | SVGElement) {
   const canvas = element as HTMLCanvasElement
-  canvas.dataset.testGroundCoverage = '[]'
-  delete canvas.dataset.testGroundCoverageStopped
+  const enable = (stage: HTMLCanvasElement) => {
+    stage.dataset.testGroundCoverage = '[]'
+    delete stage.dataset.testGroundCoverageStopped
+  }
+  enable(canvas)
+
+  // Atlas travel temporarily replaces the map with the globe. The stage host
+  // survives, but its canvas and renderer are replaced. Re-arm the new canvas
+  // before its first paint; otherwise every completed-frame assertion sees [].
+  const host = canvas.parentElement as
+    (HTMLElement & { __worldGroundCoverageObserver?: MutationObserver }) | null
+  if (!host || typeof MutationObserver === 'undefined') return
+  host.__worldGroundCoverageObserver?.disconnect()
+  let active = canvas
+  const observer = new MutationObserver(() => {
+    const next = host.querySelector<HTMLCanvasElement>('canvas[data-world-stage]')
+    if (!next || next === active) return
+    active = next
+    enable(next)
+  })
+  host.__worldGroundCoverageObserver = observer
+  observer.observe(host, { childList: true, subtree: true })
 }
 
 /** Only already supplied complete public ground can be expected at this camera. */
