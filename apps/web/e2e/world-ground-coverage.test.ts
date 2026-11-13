@@ -37,7 +37,7 @@ test('records completed paint frames without requiring an identity-layer repaint
   let observer: { notify: () => void } | undefined
   class FakeMutationObserver {
     constructor(private readonly callback: () => void) {
-      observer = { notify: callback }
+      observer = { notify: () => this.callback() }
     }
     observe() {}
     disconnect() {}
@@ -57,6 +57,10 @@ test('records completed paint frames without requiring an identity-layer repaint
 
   installWorldGroundCoverage(canvas as unknown as HTMLElement)
   expect(observer).toBeDefined()
+  expect(
+    (canvas as typeof canvas & { __testGroundCoverageObserver?: unknown })
+      .__testGroundCoverageObserver,
+  ).toBeInstanceOf(FakeMutationObserver)
   observer!.notify()
   await Promise.resolve()
 

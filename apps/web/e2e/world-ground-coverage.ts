@@ -14,13 +14,17 @@ export type GroundCoverageFrame = {
 
 /** Serialized by Playwright; inspect the completed paint, rather than polling receipts. */
 export function installWorldGroundCoverage(element: HTMLElement | SVGElement) {
-  const canvas = element as HTMLCanvasElement
+  const canvas = element as HTMLCanvasElement & {
+    __testGroundCoverageObserver?: MutationObserver
+  }
+  canvas.__testGroundCoverageObserver?.disconnect()
   const records: GroundCoverageFrame[] = []
   canvas.dataset.renderDiagnostics = 'coverage'
   canvas.dataset.testGroundCoverage = '[]'
   const observer = new MutationObserver(() => {
     if (canvas.dataset.testGroundCoverageStopped) {
       observer.disconnect()
+      delete canvas.__testGroundCoverageObserver
       return
     }
     const at = Number(canvas.dataset.frameNow)
@@ -37,6 +41,9 @@ export function installWorldGroundCoverage(element: HTMLElement | SVGElement) {
     if (records.length > 1200) records.shift()
     canvas.dataset.testGroundCoverage = JSON.stringify(records)
   })
+  // MutationObserver registrations are weak references. Retain this observer
+  // across Playwright's serialized evaluate call until collection stops.
+  canvas.__testGroundCoverageObserver = observer
   observer.observe(canvas, { attributes: true, attributeFilter: ['data-frame-now'] })
 }
 
