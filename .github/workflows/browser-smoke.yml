@@ -41,8 +41,9 @@ jobs:
     if: ${{ needs.verification-plan.outputs.execute == 'true' }}
     name: Execute Responsive browser smoke
     runs-on: ubuntu-latest
-    # The serial full suite needs headroom for Edge and evidence after Chromium.
-    timeout-minutes: 150
+    # The serial full suite reached the 150-minute job cap after 747/783 Chromium cases;
+    # retain every Chromium/Edge assertion and allow time for remaining cases and evidence.
+    timeout-minutes: 210
     env:
       TURBO_TELEMETRY_DISABLED: 1
       NEXT_TELEMETRY_DISABLED: 1
