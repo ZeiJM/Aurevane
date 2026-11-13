@@ -1,4 +1,4 @@
-import { expect, test } from 'vitest'
+import { expect, test, vi } from 'vitest'
 
 import { installWorldGroundCoverage, missingPublicGround } from './world-ground-coverage'
 import type { WorldSectorView } from '../src/world/types'
@@ -44,4 +44,57 @@ test('enables producer-owned completed-frame collection without an external obse
   expect(canvas.dataset.renderDiagnostics).toBe('coverage')
   expect(canvas.dataset.testGroundCoverage).toBe('[]')
   expect(canvas.dataset.testGroundCoverageStopped).toBeUndefined()
+})
+
+test('re-arms coverage after globe travel replaces the World canvas, without resetting live frames', () => {
+  let mounted: { dataset: Record<string, string> } | null = null
+  let changed: (() => void) | undefined
+  const observed: unknown[] = []
+  const disconnected: number[] = []
+  class Observer {
+    constructor(callback: MutationCallback) {
+      changed = () => callback([], this as unknown as MutationObserver)
+    }
+    observe(target: unknown, options: unknown) {
+      observed.push([target, options])
+    }
+    disconnect() {
+      disconnected.push(1)
+    }
+  }
+  vi.stubGlobal('MutationObserver', Observer)
+  try {
+    const host = {
+      querySelector: () => mounted,
+    }
+    const before = {
+      parentElement: host,
+      dataset: { renderDiagnostics: 'timing', testGroundCoverageStopped: 'true' },
+    }
+    mounted = before
+    installWorldGroundCoverage(before as unknown as HTMLElement)
+    expect(before.dataset.renderDiagnostics).toBe('coverage')
+    expect(before.dataset.testGroundCoverageStopped).toBeUndefined()
+    expect(observed).toEqual([[host, { childList: true, subtree: true }]])
+
+    // Globe presentation has no local stage; its return mounts a fresh one.
+    mounted = null
+    changed?.()
+    const after = {
+      dataset: { renderDiagnostics: 'timing', testGroundCoverageStopped: 'true' },
+    }
+    mounted = after
+    changed?.()
+    expect(after.dataset.renderDiagnostics).toBe('coverage')
+    expect(after.dataset.testGroundCoverage).toBe('[]')
+    expect(after.dataset.testGroundCoverageStopped).toBeUndefined()
+
+    // Unrelated DOM mutations must not erase completed samples on that stage.
+    after.dataset.testGroundCoverage = '[{"at":100}]'
+    changed?.()
+    expect(after.dataset.testGroundCoverage).toBe('[{"at":100}]')
+    expect(disconnected).toEqual([])
+  } finally {
+    vi.unstubAllGlobals()
+  }
 })
