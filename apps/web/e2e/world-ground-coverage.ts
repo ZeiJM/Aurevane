@@ -12,39 +12,12 @@ export type GroundCoverageFrame = {
   painted: string[]
 }
 
-/** Serialized by Playwright; inspect the completed paint, rather than polling receipts. */
+/** Serialized by Playwright; enable producer-owned completed-frame diagnostics. */
 export function installWorldGroundCoverage(element: HTMLElement | SVGElement) {
-  const canvas = element as HTMLCanvasElement & {
-    __testGroundCoverageFrame?: number
-  }
-  if (canvas.__testGroundCoverageFrame !== undefined)
-    cancelAnimationFrame(canvas.__testGroundCoverageFrame)
-  const records: GroundCoverageFrame[] = []
+  const canvas = element as HTMLCanvasElement
   canvas.dataset.renderDiagnostics = 'coverage'
   canvas.dataset.testGroundCoverage = '[]'
   delete canvas.dataset.testGroundCoverageStopped
-  const collect = () => {
-    if (canvas.dataset.testGroundCoverageStopped) {
-      delete canvas.__testGroundCoverageFrame
-      return
-    }
-    const at = Number(canvas.dataset.frameNow)
-    if (records.at(-1)?.at !== at && canvas.dataset.paintedGroundIds) {
-      records.push({
-        at,
-        x: Number(canvas.dataset.cameraX),
-        y: Number(canvas.dataset.cameraY),
-        width: canvas.clientWidth,
-        height: canvas.clientHeight,
-        tile: Number(canvas.dataset.tileSize),
-        painted: JSON.parse(canvas.dataset.paintedGroundIds),
-      })
-      if (records.length > 1200) records.shift()
-      canvas.dataset.testGroundCoverage = JSON.stringify(records)
-    }
-    canvas.__testGroundCoverageFrame = requestAnimationFrame(collect)
-  }
-  canvas.__testGroundCoverageFrame = requestAnimationFrame(collect)
 }
 
 /** Only already supplied complete public ground can be expected at this camera. */

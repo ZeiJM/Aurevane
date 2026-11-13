@@ -572,6 +572,15 @@ export function createMapRenderer(
   let timing: Record<string, number> | null = null
   let pendingTiming: Record<string, number> | null = null
   let callbackStarted = 0
+  const coverageFrames: {
+    at: number
+    x: number
+    y: number
+    width: number
+    height: number
+    tile: number
+    painted: string[]
+  }[] = []
   const timingEnabled = () => canvas.dataset.renderDiagnostics === 'timing'
   let paintedIdentity: (string | number | boolean | null)[] | null = null
   let view: WorldRenderView = initial,
@@ -3423,9 +3432,31 @@ export function createMapRenderer(
       timing.completedAt = ended
       canvas.dataset.renderTiming = JSON.stringify(timing)
     }
-    if (timing || canvas.dataset.renderDiagnostics === 'coverage')
-      canvas.dataset.paintedGroundIds = JSON.stringify(visible.map((sector) => sector.id))
-    else if (canvas.dataset.paintedGroundIds !== undefined) delete canvas.dataset.paintedGroundIds
+    const coverageEnabled = canvas.dataset.renderDiagnostics === 'coverage'
+    if (timing || coverageEnabled) {
+      const painted = visible.map((sector) => sector.id)
+      canvas.dataset.paintedGroundIds = JSON.stringify(painted)
+      // Record coverage at the producer boundary after this frame has finished.
+      // External observers and RAF loops can miss the renderer's final mutation
+      // under native load; this opt-in diagnostic has no normal-game cost.
+      if (coverageEnabled && !canvas.dataset.testGroundCoverageStopped) {
+        if (canvas.dataset.testGroundCoverage === '[]' && coverageFrames.length)
+          coverageFrames.length = 0
+        if (coverageFrames.at(-1)?.at !== now) {
+          coverageFrames.push({
+            at: now,
+            x: camera.x + pan.x,
+            y: camera.y + pan.y,
+            width: canvas.clientWidth,
+            height: canvas.clientHeight,
+            tile,
+            painted,
+          })
+          if (coverageFrames.length > 1200) coverageFrames.shift()
+          canvas.dataset.testGroundCoverage = JSON.stringify(coverageFrames)
+        }
+      }
+    } else if (canvas.dataset.paintedGroundIds !== undefined) delete canvas.dataset.paintedGroundIds
     frameTimes.push(ended - start)
     if (frameTimes.length > 120) frameTimes.shift()
     if (++drawn % 60 === 0) {

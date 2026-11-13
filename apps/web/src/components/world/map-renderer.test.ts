@@ -462,10 +462,27 @@ describe('native map input and bounded lifecycle', () => {
     const s = scene(true)
     try {
       s.canvas.dataset.renderDiagnostics = 'coverage'
+      s.canvas.dataset.testGroundCoverage = '[]'
       s.frame(40)
       const ids: string[] = JSON.parse(s.canvas.dataset.paintedGroundIds ?? '[]')
       expect(ids).toContain(s.view.position.sectorId)
       expect(new Set(ids).size).toBe(ids.length)
+      expect(JSON.parse(s.canvas.dataset.testGroundCoverage ?? '[]')).toEqual([
+        expect.objectContaining({
+          at: expect.any(Number),
+          x: expect.any(Number),
+          y: expect.any(Number),
+          width: 800,
+          height: 600,
+          tile: expect.any(Number),
+          painted: ids,
+        }),
+      ])
+      s.canvas.dataset.testGroundCoverageStopped = 'true'
+      const stopped = s.canvas.dataset.testGroundCoverage
+      s.renderer.update(s.view)
+      s.frame(60)
+      expect(s.canvas.dataset.testGroundCoverage).toBe(stopped)
       delete s.canvas.dataset.renderDiagnostics
       s.renderer.update(s.view)
       s.frame(80)

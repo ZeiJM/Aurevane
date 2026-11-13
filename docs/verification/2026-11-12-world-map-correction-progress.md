@@ -1,5 +1,11 @@
 # Corrective map update progress
 
+## Producer-bound ground coverage correction — November 13
+
+The exact `51cf477f` Atlas run disproved the second external-collector hypothesis: both desktop and phone again recorded zero coverage frames, while the previously intermittent peer-motion and legal-attack cases passed. The renderer canvas is stable through the tested movement path. Both the earlier `MutationObserver` and replacement `requestAnimationFrame` helper were still consumers outside the completed paint that publishes `data-painted-ground-ids`; neither is a reliable frame ledger under the authenticated native run.
+
+The smallest correction moves only the opt-in coverage history to the renderer's existing `renderDiagnostics=coverage` producer boundary, after identity and ground painting complete. Normal gameplay does not populate or serialize the ledger. The helper now only enables and resets that producer-owned diagnostic; the existing strict `>20` frame, no-missing-public-ground, authority and displaced-sector assertions are unchanged. A renderer regression failed before the producer ledger existed, then the renderer/helper pair passed 221 tests across two files. Web TypeScript, scoped zero-warning ESLint, formatting and diff checks pass. Authenticated native GREEN is not yet claimed; the original exact-head Browser run remains undisturbed while the successor is preserved off the PR ref.
+
 ## Final Atlas contract diagnosis — November 12, 19:58 UTC
 
 The preserved `fd1668c` native Atlas run completed far enough to retain all split art evidence, then failed five strict contracts. Exact logs show two desktop/mobile stage-coverage failures (`frames.length` was zero), two desktop/mobile globe water mismatches (`w` versus the stale expected `.`), and one Verdant water-review scene whose 104 shallow cells were entirely bridge-connected and therefore had no visible bank. These were deterministic source/test-contract defects, not a runner retry case.

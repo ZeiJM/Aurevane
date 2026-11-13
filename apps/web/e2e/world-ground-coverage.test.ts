@@ -1,13 +1,7 @@
-import { afterEach, expect, test, vi } from 'vitest'
+import { expect, test } from 'vitest'
 
-import {
-  installWorldGroundCoverage,
-  missingPublicGround,
-  type GroundCoverageFrame,
-} from './world-ground-coverage'
+import { installWorldGroundCoverage, missingPublicGround } from './world-ground-coverage'
 import type { WorldSectorView } from '../src/world/types'
-
-afterEach(() => vi.unstubAllGlobals())
 
 test('detects withdrawn supplied ground from the actual isometric body and excludes unknown/private cells', () => {
   const sector = {
@@ -17,7 +11,7 @@ test('detects withdrawn supplied ground from the actual isometric body and exclu
     atlasRow: 0,
     cells: Array.from({ length: 117 }, (_, i) => ({ x: i % 13, y: Math.floor(i / 13) })),
   } as WorldSectorView
-  const frame: GroundCoverageFrame = {
+  const frame = {
     at: 100,
     x: 6.5,
     y: 4.5,
@@ -33,13 +27,7 @@ test('detects withdrawn supplied ground from the actual isometric body and exclu
   expect(missingPublicGround([sector], { ...frame, x: 50, y: 50 })).toEqual([])
 })
 
-test('records completed paint frames on the browser frame clock until collection stops', async () => {
-  let frame: FrameRequestCallback | undefined
-  const requestAnimationFrame = vi.fn((callback: FrameRequestCallback) => {
-    frame = callback
-    return 1
-  })
-  vi.stubGlobal('requestAnimationFrame', requestAnimationFrame)
+test('enables producer-owned completed-frame collection without an external observer', () => {
   const canvas = {
     clientWidth: 800,
     clientHeight: 600,
@@ -53,23 +41,7 @@ test('records completed paint frames on the browser frame clock until collection
   }
 
   installWorldGroundCoverage(canvas as unknown as HTMLElement)
-  expect(frame).toBeDefined()
-  frame!(101)
-  await Promise.resolve()
-
-  const frames = JSON.parse(canvas.dataset.testGroundCoverage!) as GroundCoverageFrame[]
-  expect(frames).toEqual([
-    {
-      at: 100,
-      x: 20,
-      y: 10,
-      width: 800,
-      height: 600,
-      tile: 32,
-      painted: ['atlas:1:1'],
-    },
-  ])
-  canvas.dataset.testGroundCoverageStopped = 'true'
-  frame!(102)
-  expect(requestAnimationFrame).toHaveBeenCalledTimes(2)
+  expect(canvas.dataset.renderDiagnostics).toBe('coverage')
+  expect(canvas.dataset.testGroundCoverage).toBe('[]')
+  expect(canvas.dataset.testGroundCoverageStopped).toBeUndefined()
 })
