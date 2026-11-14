@@ -37,12 +37,14 @@ export function grandDiscoveryBarrier(id: GrandDiscoveryId, x: number, y: number
   return false
 }
 
-/** Only the previously walkable dry floor may become structural wall. Roads
- * and water keep their canonical traffic and drainage contracts. */
+/** Every defended ring cell is solid, including old roads and shallow pools.
+ * Only the explicit authored gate in grandDiscoveryBarrier permits entry.
+ * Deep rivers/lava remain their original nonwalkable terrain. Historic
+ * saved origins affected by this change are repaired by world-geometry-recovery. */
 export function structuralTerrainAt(worldX: number, worldY: number, terrain: string): string {
-  if (terrain !== '.' && terrain !== 't') return terrain
   for (const site of GRAND_DISCOVERY_SITES) {
-    if (grandDiscoveryBarrier(site.id, worldX - site.left, worldY - site.top)) return '#'
+    if (!grandDiscoveryBarrier(site.id, worldX - site.left, worldY - site.top)) continue
+    if (terrain === '.' || terrain === 't' || terrain === '=' || terrain === 'w') return '#'
   }
   return terrain
 }
