@@ -147,7 +147,7 @@ async function readWorldData(
   if (recovery && !data.blocked && !data.battleSessionId) {
     if (recoveryRetry >= 2)
       throw new AurevaneError('STALE_VERSION', 'Your location changed. Refresh the world map.')
-    const arrival = resolveSector(recovery)
+    const arrival = resolveSector(recovery.sectorId)
     if (!arrival)
       throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'Safe recovery terrain is unavailable.')
     const repair = await createSupabaseAdminClient().rpc('recover_world_saved_geometry_v1', {

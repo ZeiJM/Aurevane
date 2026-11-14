@@ -89,10 +89,11 @@ export function savedWorldGeometryRecovery(
     position.y >= GRID_HEIGHT
   )
     return null
-  const { sectors, index, connected } = publicComponent()
-  const si = index.get(position.sectorId)
-  if (si === undefined) return null
-  const sector = sectors[si]!
+  // Avoid building a 200k-cell reachability map on ordinary world reads.
+  if (position.sectorId.startsWith('void:') || position.sectorId.startsWith('uncharted-'))
+    return null
+  const sector = atlasSectors().find((item) => item.id === position.sectorId)
+  if (!sector) return null
   const at = sector.rows[position.y]?.[position.x] ?? '#'
   if (terrainWalkable(at)) return null
   const globalX = sector.atlasColumn! * GRID_WIDTH + position.x
@@ -105,6 +106,7 @@ export function savedWorldGeometryRecovery(
   )
     return null
 
+  const { sectors, connected } = publicComponent()
   // Pick the nearest legal cell in the same public connected component, with
   // geographic wrapping. Deterministic ordering makes repeated reads idempotent.
   let best: WorldPosition | null = null
