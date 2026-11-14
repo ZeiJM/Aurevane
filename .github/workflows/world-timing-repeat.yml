@@ -3,6 +3,9 @@ name: World timing repeat validation
 on:
   pull_request:
     paths:
+      - 'apps/web/src/components/world/map-renderer.ts'
+      - 'apps/web/src/components/world/map-biome-transitions.ts'
+      - 'apps/web/src/components/world/map-settlement-edge.ts'
       - 'apps/web/e2e/world-presence-case.ts'
       - 'apps/web/e2e/world-presence-diagnostics.ts'
       - 'apps/web/e2e/world-presence-diagnostics.test.ts'

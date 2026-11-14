@@ -953,6 +953,33 @@ describe('native map input and bounded lifecycle', () => {
     build.mockRestore()
     vi.unstubAllGlobals()
   })
+  it('retains visible ground rasters when movement only changes distant supplied neighbours', () => {
+    const state = { ...newWorldState(), position: { sectorId: 'atlas:58:28', x: 12, y: 4 } }
+    const initial = projectWorld(state, [], 1000)
+    const next = projectWorld(
+      { ...state, position: { sectorId: 'atlas:59:28', x: 3, y: 4 } },
+      [],
+      1200,
+    )
+    const s = scene(true, initial)
+    try {
+      Object.assign(s.canvas, { clientWidth: 1296, clientHeight: 944 })
+      s.resize()
+      s.canvas.dataset.renderDiagnostics = 'timing'
+      s.frame(40)
+      expect(JSON.parse(s.canvas.dataset.renderTiming!).groundBuilds).toBeGreaterThan(0)
+      // Hold the camera still to isolate receipt invalidation from newly visible ground.
+      s.renderer.update(next)
+      s.frame(80)
+      expect(JSON.parse(s.canvas.dataset.renderTiming!)).toMatchObject({
+        groundBuilds: 0,
+        groundResamples: 0,
+      })
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  })
   it.each(['effects off', 'reduced motion'])(
     'interpolates a confirmed remote traveller at 60fps with %s and paints the terminal frame',
     (mode) => {

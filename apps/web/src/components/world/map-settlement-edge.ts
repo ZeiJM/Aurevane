@@ -95,16 +95,19 @@ export function buildSettlementGround(sectors: readonly WorldSectorView[], coast
     if (sector.charted && !sector.warpedTheme && !sector.id.startsWith('ferry:'))
       for (const cell of sector.cells) {
         if (!cell.walkable || !['.', '=', 's'].includes(cell.terrain)) continue
-        if (nearShore(sector, cell.x, cell.y)) continue
-        const nearGarden = sector.landmarks.some(
-          (l) => l.kind === 'grove' && Math.abs(l.x - cell.x) + Math.abs(l.y - cell.y) <= 2,
-        )
-        if (nearGarden) continue
+        // Wilderness cannot receive paving; avoid nine neighbour lookups for
+        // every ordinary ground cell when a supplied scene window changes.
         const builtYard = sector.townId && cell.safe && nearBuildings(sector, cell)
         const hamletYard = sector.landmarks.some(
           (l) => l.kind === 'hamlet' && Math.abs(l.x - cell.x) + Math.abs(l.y - cell.y) <= 2,
         )
-        if (builtYard || hamletYard) paved.add(address(cell.x, cell.y))
+        if (!builtYard && !hamletYard) continue
+        const nearGarden = sector.landmarks.some(
+          (l) => l.kind === 'grove' && Math.abs(l.x - cell.x) + Math.abs(l.y - cell.y) <= 2,
+        )
+        if (nearGarden) continue
+        if (nearShore(sector, cell.x, cell.y)) continue
+        paved.add(address(cell.x, cell.y))
       }
     if (paved.size) pavedCells.set(sector.id, paved)
     if (!sector.townId) continue
