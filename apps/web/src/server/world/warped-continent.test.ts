@@ -17,7 +17,9 @@ describe('private uncharted continent', () => {
       warpedPhase: 7,
     }
     const view = projectWorld(mainland, [], 0)
-    expect(view.atlas?.filter((sector) => sector.charted)).toHaveLength(1870)
+    // Authorized mountain frontier and Frostmere–Emberreach land corridor add
+    // 55 charted public sectors without exposing private Uncharted geography.
+    expect(view.atlas?.filter((sector) => sector.charted)).toHaveLength(1925)
     expect(JSON.stringify(view)).not.toContain('uncharted-landing')
     expect(JSON.stringify(view)).not.toContain('The Violet Mirror')
     expect(isKnownCell(mainland, WARPED_CONTINENT_LANDING)).toBe(false)
