@@ -40,7 +40,7 @@ import { WorldLivePresence } from './world-live-presence'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { localRoute, mapPoint, prepareLocalRoute, WorldMotion } from './world-motion'
 import { WorldMap } from './world-map'
-import { WorldGlobe } from './world-globe'
+import { GLOBE_FOCUS_EVENT, WorldGlobe } from './world-globe'
 import { WorldMissions } from './world-missions'
 import { dialogueSpeakerId, WorldDialogue } from './world-dialogue'
 import {
@@ -54,6 +54,17 @@ import dialogueStyles from './world-dialogue.module.css'
 import { clampWorldZoom, WORLD_MIN_ZOOM, WORLD_MAX_ZOOM } from './world-zoom'
 import { battleSessionHref } from '@/components/battle/battle-return-navigation'
 import styles from './workspace.module.css'
+
+const WORLD_FAVORITE_EVENT = 'aurevane-world-favorite'
+const subscribeWorldFavorite = (changed: () => void) => {
+  window.addEventListener('storage', changed)
+  window.addEventListener(WORLD_FAVORITE_EVENT, changed)
+  return () => {
+    window.removeEventListener('storage', changed)
+    window.removeEventListener(WORLD_FAVORITE_EVENT, changed)
+  }
+}
+const noWorldFavorite = () => null
 
 function SettingsButton({
   open,
@@ -131,7 +142,6 @@ export function WorldWorkspace({
     [visiblePlayerIds, setVisiblePlayerIds] = useState<string[] | null>(null),
     [destinationId, setDestinationId] = useState<string | null>(null),
     [confirmDestinationId, setConfirmDestinationId] = useState<string | null>(null),
-    [favoriteSectorId, setFavoriteSectorId] = useState<string | null>(null),
     [travelPointCursor, setTravelPointCursor] = useState(-1)
   const [animate, setAnimate] = useState(true),
     [zoom, setZoom] = useState(1),
@@ -556,17 +566,28 @@ export function WorldWorkspace({
     })
   const destination = view.atlas?.find((cell) => cell.id === destinationId && cell.charted)
   const favoriteKey = 'aurevane.worldFavorite.' + view.characterId
-  useEffect(() => {
+  const readWorldFavorite = useCallback(() => {
     try {
-      setFavoriteSectorId(localStorage.getItem(favoriteKey))
-    } catch {}
+      return localStorage.getItem(favoriteKey)
+    } catch {
+      return null
+    }
   }, [favoriteKey])
+  const favoriteSectorId = useSyncExternalStore(
+    subscribeWorldFavorite,
+    readWorldFavorite,
+    noWorldFavorite,
+  )
   const assignFavorite = (id: string | null) => {
-    setFavoriteSectorId(id)
     try {
       if (id) localStorage.setItem(favoriteKey, id)
       else localStorage.removeItem(favoriteKey)
+      window.dispatchEvent(new Event(WORLD_FAVORITE_EVENT))
     } catch {}
+  }
+  const focusGlobalSector = (id: string | null) => {
+    setDestinationId(id)
+    if (id) window.dispatchEvent(new CustomEvent<string>(GLOBE_FOCUS_EVENT, { detail: id }))
   }
   const keyLocations = useMemo(() => {
     const knownAnchors = new Set(view.anchors.map((anchor) => anchor.sectorId))
@@ -761,7 +782,7 @@ export function WorldWorkspace({
                   value={
                     keyLocations.some((cell) => cell.id === destinationId) ? destinationId! : ''
                   }
-                  onChange={(event) => setDestinationId(event.target.value || null)}
+                  onChange={(event) => focusGlobalSector(event.target.value || null)}
                   onKeyDown={(event) => {
                     if (event.key === 'Enter' && destinationId)
                       setConfirmDestinationId(destinationId)
@@ -776,7 +797,7 @@ export function WorldWorkspace({
                 </select>
               </label>
               <div className={styles.atlasActions}>
-                <button type="button" onClick={() => setDestinationId(view.position.sectorId)}>
+                <button type="button" onClick={() => focusGlobalSector(view.position.sectorId)}>
                   ◉ You are here
                 </button>
                 <button
@@ -785,7 +806,7 @@ export function WorldWorkspace({
                   onClick={() => {
                     const next = (travelPointCursor + 1) % travelPoints.length
                     setTravelPointCursor(next)
-                    setDestinationId(travelPoints[next]!.id)
+                    focusGlobalSector(travelPoints[next]!.id)
                   }}
                 >
                   ◈ Travel point {travelPoints.length > 1 ? '(' + travelPoints.length + ')' : ''}
@@ -813,7 +834,7 @@ export function WorldWorkspace({
                   type="button"
                   disabled={!favoriteSectorId}
                   onClick={() => {
-                    if (favoriteSectorId) setDestinationId(favoriteSectorId)
+                    if (favoriteSectorId) focusGlobalSector(favoriteSectorId)
                   }}
                 >
                   ★ My favorite

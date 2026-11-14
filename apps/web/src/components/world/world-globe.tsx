@@ -4,12 +4,14 @@ import { ATLAS_COLUMNS, ATLAS_ROWS } from '@/world/atlas'
 import { GRID_HEIGHT, GRID_WIDTH } from '@/world/catalog'
 import { FERRY_MAINLAND_DOCK } from '@/world/ferry'
 import { globeSectorCenter, globeSectorCoordinate, projectGlobePoint } from '@/world/globe-math'
-import type { WorldAtlasCell, WorldView } from '@/world/types'
+import type { WorldView } from '@/world/types'
 import { SphericalView } from './spherical-view'
 import { projectGlobeTowns } from './globe-atlas'
 import { UNCHARTED_VEIL_FOCUS } from './globe-veil'
 import { globeFerryPosition } from './globe-ferry'
 import styles from './workspace.module.css'
+
+export const GLOBE_FOCUS_EVENT = 'aurevane-world-globe-focus'
 export function WorldGlobe({
   view,
   selected,
@@ -72,10 +74,17 @@ export function WorldGlobe({
     if (target) setCamera(target)
   }
   useEffect(() => {
-    const sector = view.atlas?.find((cell) => cell.id === selected && cell.charted)
-    const target = sector && globeSectorCenter(sector.coordinate, ATLAS_COLUMNS, ATLAS_ROWS)
-    if (target) setCamera(target)
-  }, [selected, view.atlas])
+    // A user-driven selection from the side panel focuses without synchronously
+    // deriving state in an effect or remounting the expensive globe canvas.
+    const focus = (event: Event) => {
+      const id = (event as CustomEvent<string>).detail
+      const sector = view.atlas?.find((cell) => cell.id === id && cell.charted)
+      const point = sector && globeSectorCenter(sector.coordinate, ATLAS_COLUMNS, ATLAS_ROWS)
+      if (point) setCamera(point)
+    }
+    window.addEventListener(GLOBE_FOCUS_EVENT, focus)
+    return () => window.removeEventListener(GLOBE_FOCUS_EVENT, focus)
+  }, [view.atlas])
   const pin = projectGlobePoint(location, camera)
   const labels = projectGlobeTowns(view.atlas ?? [], camera, zoom)
   const veil = projectGlobePoint(UNCHARTED_VEIL_FOCUS, camera)
@@ -124,7 +133,7 @@ export function WorldGlobe({
             const sector = view.atlas?.find(
               (cell) => cell.coordinate === coordinate && cell.charted,
             )
-            activateSector(sector?.id ?? null)
+            selectSector(sector?.id ?? null)
           }}
         >
           {labels.map(({ sector, left, top }) => (

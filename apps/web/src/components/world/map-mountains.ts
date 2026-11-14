@@ -1,4 +1,5 @@
 import { hashString } from '@/world/terrain-gen'
+import { mountainFrontierAt } from '@/world/mountain-frontier'
 import type { WorldSectorView } from '@/world/types'
 
 export interface MountainPlacement {
@@ -29,13 +30,27 @@ type MountainSector = Pick<
 const mountainRegions = new Set(['starfall-highlands', 'frostmere', 'emberreach', 'umbral-march'])
 const worldKey = (x: number, y: number) => x + ':' + y
 
+/** Dense new alpine terrain is carried by large peaks. Render only a quarter
+ * of individual scree sprites there, reducing draw calls without changing
+ * canonical collision or deleting any blocked ground. */
+export function denseMountainRidge(sector: MountainSector): boolean {
+  return Boolean(
+    sector.charted &&
+    mountainFrontierAt(sector.atlasColumn ?? -1, sector.atlasRow ?? -1) &&
+    sector.cells.filter((cell) => cell.terrain === '#').length >= 32,
+  )
+}
+export function drawMountainScree(id: string, x: number, y: number): boolean {
+  return hashString('scree:' + id + ':' + x + ':' + y) % 4 === 0
+}
+
 /** A long exposed ridge away from Starfall's town core and established sites. */
 export function isMajorMountainRangeSector(sector: MountainSector): boolean {
   if (sector.townId || sector.regionId !== 'starfall-highlands') return false
   const c = sector.atlasColumn,
     r = sector.atlasRow
   if (c === undefined || r === undefined || c < 41 || c > 55) return false
-  return Math.abs(r - (19 + (c - 47) * 0.32)) < 3.5
+  return mountainFrontierAt(c, r) || Math.abs(r - (19 + (c - 47) * 0.32)) < 3.5
 }
 export function mountainPlacements(sector: MountainSector): MountainPlacement[] {
   if (sector.townId || (!sector.charted && !sector.warpedTheme)) return []
@@ -55,7 +70,7 @@ export function mountainPlacements(sector: MountainSector): MountainPlacement[] 
     }))
     .sort((a, b) => a.seed - b.seed)
   const placements: MountainPlacement[] = []
-  const maximum = range ? 3 : eligible ? 2 : 1
+  const maximum = range ? 4 : eligible ? 2 : 1
   for (const { cell, seed } of sources) {
     if (placements.length >= maximum) break
     if (
@@ -76,6 +91,11 @@ export function mountainPlacements(sector: MountainSector): MountainPlacement[] 
       return cellAt?.terrain === 's'
     })
     if (nearbyRoad) continue
+    if (
+      mountainFrontierAt(sector.atlasColumn ?? -1, sector.atlasRow ?? -1) &&
+      (Math.abs(cell.x - 6) < 2 || Math.abs(cell.y - 4) < 2)
+    )
+      continue
     const row = sector.warpedTheme
       ? 2
       : sector.regionId === 'frostmere'

@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { atlasSectors } from '@/world/atlas'
-import { isMajorMountainRangeSector, mountainPlacements } from './map-mountains'
+import {
+  isMajorMountainRangeSector,
+  mountainPlacements,
+  denseMountainRidge,
+  drawMountainScree,
+} from './map-mountains'
 
 describe('authored mountain scenery on authoritative terrain', () => {
   it('forms a substantial Starfall ridge with alpine and rocky peaks, tall spires, hills and open passes', () => {
@@ -76,4 +81,40 @@ describe('authored mountain scenery on authoritative terrain', () => {
     )
     expect(mountainPlacements({ ...sector, townId: 'aureth-crown', charted: true })).toEqual([])
   })
+})
+
+it('thins individual scree only where large rocky mountain scenes replace it', () => {
+  const sector = atlasSectors().find((s) => s.atlasColumn === 48 && s.atlasRow === 7)!
+  const view = {
+    ...sector,
+    cells: sector.rows.flatMap((row, y) =>
+      [...row].map((terrain, x) => ({
+        x,
+        y,
+        terrain,
+        walkable: terrain !== '#',
+        safe: false,
+      })),
+    ),
+  }
+  expect(denseMountainRidge(view)).toBe(true)
+  const rock = view.cells.filter((cell) => cell.terrain === '#')
+  const scattered = rock.filter((cell) => drawMountainScree(sector.id, cell.x, cell.y))
+  expect(scattered.length).toBeGreaterThan(8)
+  expect(scattered.length).toBeLessThan(rock.length * 0.42)
+  const town = atlasSectors().find((s) => s.id === 'starfall-highlands')!
+  expect(
+    denseMountainRidge({
+      ...town,
+      cells: town.rows.flatMap((row, y) =>
+        [...row].map((terrain, x) => ({
+          x,
+          y,
+          terrain,
+          walkable: terrain !== '#',
+          safe: false,
+        })),
+      ),
+    }),
+  ).toBe(false)
 })

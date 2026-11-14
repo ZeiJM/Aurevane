@@ -1,6 +1,11 @@
 import { mapSceneDomain } from './map-scene-domain'
 import { vegetationPose, treeFlex, treeWindBend } from './map-vegetation'
-import { mountainPlacements, isMajorMountainRangeSector } from './map-mountains'
+import {
+  mountainPlacements,
+  isMajorMountainRangeSector,
+  denseMountainRidge,
+  drawMountainScree,
+} from './map-mountains'
 import { worldDayPhase } from '@/world/environment'
 import { paintWorldLighting } from './map-daylight'
 import {
@@ -917,6 +922,11 @@ export function createMapRenderer(
     ratio = Math.min(window.devicePixelRatio || 1, quality === 'low' ? 1 : 1.5)
     canvas.width = Math.round(width * ratio)
     canvas.height = Math.round(height * ratio)
+    // The canvas clears smoothing flags on backing-store resize. Restore the
+    // best interpolation for painted architecture, rare sites and HD mountains;
+    // keep Low's lighter sampling path and unchanged raster/frame budgets.
+    ctx.imageSmoothingEnabled = true
+    ctx.imageSmoothingQuality = quality === 'low' ? 'medium' : 'high'
     // Interface detail keeps native display density without multiplying scenery cost.
     identityRatio = identityContext ? window.devicePixelRatio || 1 : ratio
     if (identityCanvas && identityContext) {
@@ -1827,6 +1837,7 @@ export function createMapRenderer(
       ) {
         const mixedTreeRegions = biomeField.get(sector.id)?.treeRegions
         const fogCells = warpedFog.get(sector.id)?.cells
+        const denseRidge = denseMountainRidge(sector)
         for (const cell of sector.cells) {
           if (
             sector.landscape === 'wildflowers' &&
@@ -1848,6 +1859,8 @@ export function createMapRenderer(
             })
           }
           if (cell.terrain !== 't' && cell.terrain !== '#') continue
+          if (denseRidge && cell.terrain === '#' && !drawMountainScree(sector.id, cell.x, cell.y))
+            continue
           // Keep the viewing side of surveyed private landmarks clear of
           // canopy. Ground and walkability retain their authoritative terrain.
           if (
