@@ -6,6 +6,9 @@ on:
       - 'apps/web/src/components/world/map-renderer.ts'
       - 'apps/web/src/components/world/map-biome-transitions.ts'
       - 'apps/web/src/components/world/map-settlement-edge.ts'
+      - 'apps/web/e2e/atlas-world.pw.ts'
+      - 'apps/web/e2e/world-read-observation.ts'
+      - 'apps/web/e2e/world-read-observation.test.ts'
       - 'apps/web/e2e/world-presence-case.ts'
       - 'apps/web/e2e/world-presence-diagnostics.ts'
       - 'apps/web/e2e/world-presence-diagnostics.test.ts'
@@ -34,7 +37,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @aurevane/web exec playwright install --with-deps chromium
       - run: pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
-      - name: Repeat both World timing tests twenty times
+      - name: Repeat World timing and seam-crossing cases twenty times
         shell: bash
         run: |
           set -euo pipefail
@@ -54,7 +57,7 @@ jobs:
           "
           pnpm --filter @aurevane/web exec playwright test e2e/atlas-world.pw.ts \
             --project=desktop-chromium --workers=1 --repeat-each=20 --retries=0 \
-            --grep 'known neighbouring players follow the visible viewport|holding WASD walks repeatedly' \
+            --grep 'known neighbouring players follow the visible viewport|holding WASD walks repeatedly|rapid ground clicks settle at the last legal tile' \
             --reporter=list,github
       - name: Save compact repeat boundary and motion evidence
         if: always()

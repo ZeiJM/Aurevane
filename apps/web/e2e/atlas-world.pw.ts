@@ -1,4 +1,5 @@
 import { openMapSettings, closeMapSettings } from './world-map-settings-helpers'
+import { observeWorldRead, readWorldSnapshot } from './world-read-observation'
 import { createHash, randomUUID } from 'node:crypto'
 import {
   gateWorldMutationDefinition,
@@ -10,7 +11,7 @@ import { expect, test, type APIResponse, type Page, type TestInfo } from '@playw
 import type { SetPracticePlanRequest } from '@aurevane/validation/player/wayfarers-practice'
 import { provisionAccountAndEnterCharacter, openOfflineTraining } from './pv1f-test-helpers'
 import { GRID_WIDTH, GRID_HEIGHT, STEP_MS, WORLD_REGIONS } from '../src/world/catalog'
-import { newWorldState } from '../src/world/travel'
+import { newWorldState, samePosition } from '../src/world/travel'
 import type { WorldView } from '../src/world/types'
 import { verifyWorldPresentation, registerWorldInputCases } from './world-presentation-case'
 import { verifyWorldScenePresence, verifyWorldInstantActions } from './world-presence-case'
@@ -219,9 +220,7 @@ async function enter(page: Page) {
   return name
 }
 async function world(page: Page): Promise<WorldView> {
-  const response = await page.request.get('/api/world')
-  expect(response.ok()).toBe(true)
-  return response.json()
+  return readWorldSnapshot(await page.request.get('/api/world'))
 }
 function place(characterId: string, sectorId: string, x: number, y: number, safe = false) {
   // Fixture setup only; all exercised commands still pass through real auth and server authority.
@@ -1319,22 +1318,24 @@ test('rapid ground clicks settle at the last legal tile and keyboard movement cr
   await stageWalk(page, { sectorId: 'atlas:58:28', x: 5, y: 4 })
   const final = { sectorId: 'atlas:58:28', x: 10, y: 4 }
   await stageWalk(page, final)
+  const observe = (ready: (view: WorldView) => boolean) =>
+    observeWorldRead(() => page.request.get('/api/world'), ready)
   await expect
-    .poll(
-      async () => ({
-        position: (await world(page)).position,
-        remaining: (await world(page)).route.length,
-      }),
-      { timeout: 12000 },
-    )
-    .toEqual({ position: final, remaining: 0 })
+    .poll(() => observe((view) => samePosition(view.position, final) && view.route.length === 0), {
+      timeout: 12000,
+    })
+    .toBe(true)
   const canvas = page.locator('canvas[data-world-stage]')
   await canvas.press('ArrowRight')
-  await expect.poll(async () => (await world(page)).position).toEqual({ ...final, x: 11 })
+  await expect
+    .poll(() => observe((view) => samePosition(view.position, { ...final, x: 11 })))
+    .toBe(true)
   await canvas.press('ArrowRight')
-  await expect.poll(async () => (await world(page)).position).toEqual({ ...final, x: 12 })
+  await expect
+    .poll(() => observe((view) => samePosition(view.position, { ...final, x: 12 })))
+    .toBe(true)
   await canvas.press('ArrowRight')
-  await expect.poll(async () => (await world(page)).position.sectorId).not.toBe('atlas:58:28')
+  await expect.poll(() => observe((view) => view.position.sectorId !== 'atlas:58:28')).toBe(true)
   await capture(page, info, 'seamless-edge-crossing')
   await page.reload()
   await expect(canvas).toBeVisible()
