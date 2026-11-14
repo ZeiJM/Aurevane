@@ -35,10 +35,9 @@ describe('authoritative release-specific saved world position recovery', () => {
     expect(affected).toBeGreaterThan(250)
   })
   it('also repairs a blocked historic public cell outside the two grand sites', () => {
-    const sector = atlasSectors().find((item) =>
-      item.charted &&
-      item.id !== 'umbral-march' &&
-      item.rows.some((row) => row.includes('#')),
+    const sector = atlasSectors().find(
+      (item) =>
+        item.charted && item.id !== 'umbral-march' && item.rows.some((row) => row.includes('#')),
     )!
     const y = sector.rows.findIndex((row) => row.includes('#'))
     const x = sector.rows[y]!.indexOf('#')

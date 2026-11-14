@@ -30,10 +30,8 @@ describe('world-size discovery collision', () => {
     const site = GRAND_DISCOVERY_SITES.find((s) => s.id === 'remote-colosseum')!
     const x = site.left + Math.floor(site.width * 0.92),
       y = site.top + Math.floor(site.height * 0.5)
-    for (const t of ['.', 't', '=', 'w'])
-      expect(structuralTerrainAt(x, y, t)).toBe('#')
-    for (const t of ['s', '~', 'l', '#', 'b'])
-      expect(structuralTerrainAt(x, y, t)).toBe(t)
+    for (const t of ['.', 't', '=', 'w']) expect(structuralTerrainAt(x, y, t)).toBe('#')
+    for (const t of ['s', '~', 'l', '#', 'b']) expect(structuralTerrainAt(x, y, t)).toBe(t)
   })
   it('prohibits traversing every solid colosseum wall, including historic road intersections', () => {
     const site = GRAND_DISCOVERY_SITES.find((s) => s.id === 'remote-colosseum')!
@@ -46,9 +44,7 @@ describe('world-size discovery collision', () => {
         if (!grandDiscoveryBarrier(site.id, x, y)) continue
         const globalX = site.left + x
         const globalY = site.top + y
-        const sector = sectorByAddress.get(
-          Math.floor(globalX / 13) + ':' + Math.floor(globalY / 9),
-        )
+        const sector = sectorByAddress.get(Math.floor(globalX / 13) + ':' + Math.floor(globalY / 9))
         if (!sector) continue
         const terrain = sector.rows[globalY % 9]?.[globalX % 13] ?? '#'
         expect(terrainWalkable(terrain)).toBe(false)

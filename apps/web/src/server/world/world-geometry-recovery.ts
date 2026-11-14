@@ -7,7 +7,7 @@ import { ATLAS_COLUMNS } from '@/world/topology'
 
 const CELLS = GRID_WIDTH * GRID_HEIGHT
 type PublicComponent = {
-  sectors: WorldSector[]
+  sectors: readonly WorldSector[]
   index: Map<string, number>
   connected: Map<string, WorldPosition[]>
 }
@@ -18,8 +18,7 @@ type PublicComponent = {
 let componentCache: PublicComponent | null = null
 let atlasById: Map<string, WorldSector> | null = null
 function chartedSector(id: string) {
-  if (!atlasById)
-    atlasById = new Map(atlasSectors().map((sector) => [sector.id, sector]))
+  if (!atlasById) atlasById = new Map(atlasSectors().map((sector) => [sector.id, sector]))
   return atlasById.get(id)
 }
 function publicComponent(): PublicComponent {
@@ -82,9 +81,7 @@ function publicComponent(): PublicComponent {
  * connected component. This catches old arena/cliff walls AND any historical
  * city/terrain cell that a subsequent art release made solid. No browser may
  * choose this destination. */
-export function savedWorldGeometryRecovery(
-  position: WorldPosition,
-): WorldPosition | null {
+export function savedWorldGeometryRecovery(position: WorldPosition): WorldPosition | null {
   if (
     !position ||
     !Number.isInteger(position.x) ||
@@ -118,8 +115,8 @@ export function savedWorldGeometryRecovery(
     if (
       distance < bestDistance ||
       (distance === bestDistance &&
-        (target.sectorId + ':' + target.y + ':' + target.x) <
-          ((best?.sectorId ?? '~') + ':' + (best?.y ?? 0) + ':' + (best?.x ?? 0)))
+        target.sectorId + ':' + target.y + ':' + target.x <
+          (best?.sectorId ?? '~') + ':' + (best?.y ?? 0) + ':' + (best?.x ?? 0))
     ) {
       best = target
       bestDistance = distance
@@ -130,8 +127,7 @@ export function savedWorldGeometryRecovery(
     if (!candidates?.length) continue
     const deltaX = Math.abs(targetSector.atlasColumn! - sector.atlasColumn!)
     const sectorDistance =
-      Math.min(deltaX, ATLAS_COLUMNS - deltaX) +
-      Math.abs(targetSector.atlasRow! - sector.atlasRow!)
+      Math.min(deltaX, ATLAS_COLUMNS - deltaX) + Math.abs(targetSector.atlasRow! - sector.atlasRow!)
     if (sectorDistance > 4) continue
     for (const candidate of candidates) choose(candidate, targetSector)
   }

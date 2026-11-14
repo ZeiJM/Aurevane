@@ -202,11 +202,20 @@ window.fetch = async (input, options) => {
         ...player,
         world: {
           version: body.expectedVersion + 1,
-          position: { sectorId: map === 'mainland' ? 'atlas:62:28' : 'void:ivory-veil:1:1', x, y },
+          position: { sectorId: map === 'mainland' ? 'atlas:62:28' : 'void:ivory-veil:33:0', x, y },
           locationLabel: `Sector ${sectorNumber} · X:${x} · Y:${y}`,
         },
       }
-      return Response.json({ player })
+      return Response.json({
+        player: {
+          ...player,
+          teleportReceipt: {
+            position: player.world.position,
+            version: player.world.version,
+            replayed: false,
+          },
+        },
+      })
     }
     // Controlled transport response for the post-save focus proof. Authority
     // and persistence are covered by the authenticated recovery workflow.
