@@ -1,7 +1,5 @@
 import 'server-only'
 import { atlasSectors } from '@/world/atlas'
-import { GRAND_DISCOVERY_SITES } from '@/world/discovery-sites'
-import { grandDiscoveryBarrier } from '@/world/discovery-collision'
 import { terrainWalkable } from '@/world/terrain'
 import type { WorldPosition, WorldSector } from '@/world/types'
 import { GRID_HEIGHT, GRID_WIDTH } from '@/world/catalog'
@@ -18,6 +16,12 @@ type PublicComponent = {
  * origin needs repair. The cached map is based on the same sector rows and
  * cross-sector roads as the normal server pathfinder. */
 let componentCache: PublicComponent | null = null
+let atlasById: Map<string, WorldSector> | null = null
+function chartedSector(id: string) {
+  if (!atlasById)
+    atlasById = new Map(atlasSectors().map((sector) => [sector.id, sector]))
+  return atlasById.get(id)
+}
 function publicComponent(): PublicComponent {
   if (componentCache) return componentCache
   const sectors = atlasSectors()
@@ -73,9 +77,11 @@ function publicComponent(): PublicComponent {
   return componentCache
 }
 
-/** Return null for ordinary locations and all private worlds. A blocked former
- * arena/valley position is moved only to a cell in the connected legal mainland.
- * The application never accepts a destination supplied by the browser. */
+/** Return null for ordinary legal locations and all private worlds. Only a
+ * genuinely impassable persisted mainland origin is repaired into the canonical
+ * connected component. This catches old arena/cliff walls AND any historical
+ * city/terrain cell that a subsequent art release made solid. No browser may
+ * choose this destination. */
 export function savedWorldGeometryRecovery(
   position: WorldPosition,
 ): WorldPosition | null {
@@ -92,20 +98,12 @@ export function savedWorldGeometryRecovery(
   // Avoid building a 200k-cell reachability map on ordinary world reads.
   if (position.sectorId.startsWith('void:') || position.sectorId.startsWith('uncharted-'))
     return null
-  const sector = atlasSectors().find((item) => item.id === position.sectorId)
+  const sector = chartedSector(position.sectorId)
   if (!sector) return null
   const at = sector.rows[position.y]?.[position.x] ?? '#'
   if (terrainWalkable(at)) return null
   const globalX = sector.atlasColumn! * GRID_WIDTH + position.x
   const globalY = sector.atlasRow! * GRID_HEIGHT + position.y
-  if (
-    !GRAND_DISCOVERY_SITES.some(
-      (site) =>
-        grandDiscoveryBarrier(site.id, globalX - site.left, globalY - site.top),
-    )
-  )
-    return null
-
   const { sectors, connected } = publicComponent()
   // Pick the nearest legal cell in the same public connected component, with
   // geographic wrapping. Deterministic ordering makes repeated reads idempotent.

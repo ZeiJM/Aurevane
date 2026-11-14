@@ -34,6 +34,18 @@ describe('authoritative release-specific saved world position recovery', () => {
         }
     expect(affected).toBeGreaterThan(250)
   })
+  it('also repairs a blocked historic public cell outside the two grand sites', () => {
+    const sector = atlasSectors().find((item) =>
+      item.charted &&
+      item.id !== 'umbral-march' &&
+      item.rows.some((row) => row.includes('#')),
+    )!
+    const y = sector.rows.findIndex((row) => row.includes('#'))
+    const x = sector.rows[y]!.indexOf('#')
+    const target = savedWorldGeometryRecovery({ sectorId: sector.id, x, y })
+    expect(target).not.toBeNull()
+    expect(target?.sectorId.startsWith('void:')).toBe(false)
+  })
   it('never relocates normal map cells or private realm positions', () => {
     expect(savedWorldGeometryRecovery({ sectorId: 'umbral-march', x: 6, y: 4 })).toBeNull()
     expect(savedWorldGeometryRecovery({ sectorId: 'void:ivory-veil:0:0', x: 6, y: 4 })).toBeNull()
