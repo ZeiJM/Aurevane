@@ -266,6 +266,7 @@ interface SceneryBatch {
   top: number
 }
 const STATIONARY_SCENERY_PIXEL_LIMIT = 800_000
+const BIOME_RASTER_PIXEL_LIMIT = 4_000_000
 
 function usesCompactScenery(item: Scenery) {
   return !item.underpass && !item.mirror && !item.ferryMast && !item.waterfall && !item.oceanFeature
@@ -662,6 +663,7 @@ export function createMapRenderer(
     }
   >()
   const biomeRasters = new Map<string, HTMLCanvasElement>()
+  let biomeRasterPixels = 0
   let stationaryScenery: Scenery[] | null = null
   let sceneryBatches = new Map<string, SceneryBatch>()
   const clearStationaryScenery = () => {
@@ -946,6 +948,7 @@ export function createMapRenderer(
     rasterZoomAt = null
     clearCache()
     biomeRasters.clear()
+    biomeRasterPixels = 0
     requestDraw()
   }
   const observer = new ResizeObserver(resize)
@@ -1426,19 +1429,31 @@ export function createMapRenderer(
   }
   function biomeRaster(item: Scenery) {
     if (!item.source) return null
-    const pixelWidth = Math.ceil(item.width * ratio)
-    const pixelHeight = Math.ceil(item.height * ratio)
+    // Individual tree growth changes CSS sizes continuously. Round only the
+    // backing resolution upward so nearby sizes share a sharp, bounded crop;
+    // the supplied width, height, root anchor and canopy transform stay exact.
+    const bucket = tile >= 32 ? 32 : 1
+    const pixelWidth = Math.ceil((item.width * ratio) / bucket) * bucket
+    const pixelHeight = Math.ceil((item.height * ratio) / bucket) * bucket
+    const pixels = pixelWidth * pixelHeight
+    if (pixels > BIOME_RASTER_PIXEL_LIMIT) return null
     const key = `${item.image.src}:${item.source.join(',')}:${pixelWidth}:${pixelHeight}`
     const cached = biomeRasters.get(key)
-    if (cached) return cached
+    if (cached) {
+      biomeRasters.delete(key)
+      biomeRasters.set(key, cached)
+      return cached
+    }
 
     // Pre-scale atlas crops that otherwise repeatedly resample large source
-    // images on zoomed-out phone views. Keep the original CSS size and anchor.
+    // images for each canopy shear, including native desktop movement.
     const layer = document.createElement('canvas')
     layer.width = pixelWidth
     layer.height = pixelHeight
     const context = layer.getContext('2d')
     if (!context) return null
+    context.imageSmoothingEnabled = true
+    context.imageSmoothingQuality = 'high'
     sprite(
       context,
       item.image,
@@ -1451,8 +1466,18 @@ export function createMapRenderer(
       pixelHeight,
       item.source,
     )
-    if (biomeRasters.size >= 64) biomeRasters.delete(biomeRasters.keys().next().value!)
+    while (
+      biomeRasters.size &&
+      (biomeRasters.size >= 64 || biomeRasterPixels + pixels > BIOME_RASTER_PIXEL_LIMIT)
+    ) {
+      const oldest = biomeRasters.keys().next().value!
+      const evicted = biomeRasters.get(oldest)!
+      biomeRasterPixels -= evicted.width * evicted.height
+      biomeRasters.delete(oldest)
+    }
     biomeRasters.set(key, layer)
+    biomeRasterPixels += pixels
+    if (timing) timing.biomeRasterBuilds!++
     return layer
   }
   function fitCachedGround() {
@@ -1591,6 +1616,7 @@ export function createMapRenderer(
           groundBuilds: 0,
           groundBuildMs: 0,
           groundResamples: 0,
+          biomeRasterBuilds: 0,
           groundResampleMs: 0,
         }
       : null
@@ -2732,7 +2758,7 @@ export function createMapRenderer(
         Math.round((top + fontSize + 2) * identityRatio) / identityRatio,
       )
     }
-    const cacheBiomeRasters = width < 600 && tile < 32 && ratio > 1 && rasterZoomAt === null
+    const cacheBiomeRasters = rasterZoomAt === null && (tile >= 32 || (width < 600 && ratio > 1))
     const paintCompact = (
       target: CanvasRenderingContext2D,
       item: Scenery,
@@ -2980,18 +3006,7 @@ export function createMapRenderer(
         )
         ctx.clip('evenodd')
       }
-      sprite(
-        ctx,
-        item.image,
-        item.index,
-        item.columns,
-        item.rows,
-        spriteX,
-        spriteY,
-        item.width,
-        item.height,
-        item.source,
-      )
+      paintCompact(ctx, item, spriteX, spriteY)
       if (item.image === images.get('elemental-waterfall-valley')) {
         for (const detail of valleyDetailArt) {
           if (item.width <= detail.minProjectedMacroWidth) continue
@@ -3483,6 +3498,8 @@ export function createMapRenderer(
     if (timing) {
       timing.identityMs = ended - phaseAt
       timing.completedAt = ended
+      timing.biomeRasters = biomeRasters.size
+      timing.biomeRasterPixels = biomeRasterPixels
       canvas.dataset.renderTiming = JSON.stringify(timing)
     }
     // Coverage and timing are collected together by the native replacement
@@ -3885,6 +3902,7 @@ export function createMapRenderer(
       pointers.clear()
       cache.clear()
       biomeRasters.clear()
+      biomeRasterPixels = 0
       portraits.clear()
       actorAssets.clear()
       actorPositions.clear()

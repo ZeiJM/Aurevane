@@ -94,6 +94,8 @@ function scene(reduced = false, initial?: WorldView) {
   let drawOrder = 0
   let createdLayers = 0
   const composites = new Map<object, object[]>()
+  const layerDraws = new Map<object, typeof draws>()
+  const offscreenDraws = new WeakSet<object>()
   let resizeCallback!: () => void
   let matrix = [1, 0, 0, 1, 0, 0]
   const matrices: number[][] = []
@@ -277,6 +279,7 @@ function scene(reduced = false, initial?: WorldView) {
       createdLayers++
       const layer = { width: 0, height: 0, getContext: () => layerContext }
       composites.set(layer, [])
+      layerDraws.set(layer, [])
       const layerContext = new Proxy(context, {
         get(target, key) {
           if (key === 'bezierCurveTo') return (...args: number[]) => groundCurves.push(args)
@@ -284,6 +287,9 @@ function scene(reduced = false, initial?: WorldView) {
             return (image: HTMLImageElement, ...args: number[]) => {
               composites.get(layer)!.push(image)
               target.drawImage(image, ...args)
+              const recorded = draws.at(-1)!
+              layerDraws.get(layer)!.push(recorded)
+              offscreenDraws.add(recorded)
             }
           return Reflect.get(target, key)
         },
@@ -348,6 +354,32 @@ function scene(reduced = false, initial?: WorldView) {
     rectangles,
     ellipses,
     draws,
+    // Follow a single pre-scaled atlas crop through its final canvas draw.
+    // Anchor, silhouette and growth checks concern the painted CSS geometry,
+    // while raw draws remain available for resampling/work-count assertions.
+    get spriteDraws() {
+      return draws
+        .filter((draw) => !offscreenDraws.has(draw))
+        .map((draw) => {
+          const contents = layerDraws.get(draw.image)
+          const source = contents?.length === 1 ? contents[0] : undefined
+          if (
+            source?.args.length !== 8 ||
+            draw.args.length !== 4 ||
+            source.args[4] !== 0 ||
+            source.args[5] !== 0 ||
+            source.args[6] !== draw.image.width ||
+            source.args[7] !== draw.image.height
+          )
+            return draw
+          return {
+            ...draw,
+            src: source.src,
+            image: source.image,
+            args: [...source.args.slice(0, 4), ...draw.args],
+          }
+        })
+    },
     texts,
     transforms,
     groundCurves,
@@ -726,7 +758,7 @@ describe('native map input and bounded lifecycle', () => {
           Object.assign(image, { complete: false, naturalWidth: 0 })
       }
       s.frame(40)
-      const tree = s.draws.find(
+      const tree = s.spriteDraws.find(
           (draw) =>
             draw.src.includes(`${family}-v`) && (family !== 'nature' || draw.args[1]! < 300),
         )!,
@@ -787,7 +819,7 @@ describe('native map input and bounded lifecycle', () => {
       for (const now of [40, 440, 840]) {
         s.renderer.settings({ animate: mode !== 'effects off', zoom: 1 })
         s.frame(now)
-        const tree = s.draws
+        const tree = s.spriteDraws
             .filter((draw) => draw.src.endsWith('living-trees-v01.webp') && draw.args[1]! < 300)
             .at(-1)!,
           a = tree.args,
@@ -838,7 +870,7 @@ describe('native map input and bounded lifecycle', () => {
       )!
       Object.assign(sheet, { width: 1774, height: 887, naturalWidth: 1774 })
       s.frame(40)
-      const rock = s.draws.find((draw) => draw.src.endsWith('biomes-v02.webp'))!,
+      const rock = s.spriteDraws.find((draw) => draw.src.endsWith('biomes-v02.webp'))!,
         a = rock.args,
         m = rock.matrix,
         x = a[4]! + ((contactX - a[0]!) / a[2]!) * a[6]!,
@@ -2046,7 +2078,7 @@ describe('native map input and bounded lifecycle', () => {
           600,
         )
         expect(
-          s.draws.some(({ src, args, matrix: m }) => {
+          s.spriteDraws.some(({ src, args, matrix: m }) => {
             if (
               !src.endsWith(`${sheet}-v01.webp`) ||
               args.length !== 8 ||
@@ -3392,6 +3424,58 @@ it('reduces phone cloud compositing by default and keeps Low identity sharp', ()
   }
 })
 
+it.each([1, 3])(
+  'reuses native desktop tree crops at DPR %s while retaining canopy motion',
+  (dpr) => {
+    const clock = vi.spyOn(performance, 'now').mockReturnValue(0)
+    const state = newWorldState()
+    state.position = { sectorId: 'atlas:59:28', x: 4, y: 4 }
+    const s = scene(false, projectWorld(state, [], 1000))
+    try {
+      Object.assign(s.canvas, { clientWidth: 1280, clientHeight: 720 })
+      window.devicePixelRatio = dpr
+      s.resize()
+      s.renderer.settings({ animate: true, zoom: 1 })
+      s.canvas.dataset.renderDiagnostics = 'timing'
+      s.frame(40)
+      const treeSource = (src: string) => src.endsWith('living-trees-v01.webp')
+      const crops = s.draws.filter(
+        ({ src, args }) => treeSource(src) && args[4] === 0 && args[5] === 0,
+      )
+      expect(crops.length).toBeGreaterThan(0)
+      const cached = new Set(
+        crops.flatMap((crop) =>
+          s.draws
+            .filter(({ image }) => image.width === crop.args[6] && image.height === crop.args[7])
+            .map(({ image }) => image),
+        ),
+      )
+      expect(cached.size).toBeGreaterThan(0)
+      const cold = JSON.parse(s.canvas.dataset.renderTiming!)
+      expect(cold.biomeRasters).toBeLessThanOrEqual(64)
+      expect(cold.biomeRasterPixels).toBeLessThanOrEqual(4_000_000)
+      const before = s.draws.filter(({ image }) => cached.has(image))
+      s.draws.length = 0
+      s.frame(100)
+      // The high-resolution source must not be resampled for every swaying tree.
+      expect(s.draws.filter(({ src }) => treeSource(src))).toHaveLength(0)
+      expect(JSON.parse(s.canvas.dataset.renderTiming!).biomeRasterBuilds).toBe(0)
+      const after = s.draws.filter(({ image }) => cached.has(image))
+      expect(after.length).toBe(before.length)
+      expect(after.map(({ args }) => args)).toEqual(before.map(({ args }) => args))
+      expect(after.some((draw, index) => draw.matrix[2] !== before[index]!.matrix[2])).toBe(true)
+      for (const draw of after) {
+        expect(draw.image.width).toBeGreaterThanOrEqual(draw.args[2]! * Math.min(dpr, 1.5))
+        expect(draw.image.height).toBeGreaterThanOrEqual(draw.args[3]! * Math.min(dpr, 1.5))
+      }
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+      clock.mockRestore()
+    }
+  },
+)
+
 it('reuses cropped scenery rasters across zoomed-out phone frames', () => {
   const clock = vi.spyOn(performance, 'now').mockReturnValue(0)
   const state = newWorldState()
@@ -3758,7 +3842,7 @@ it.each([
     try {
       s.frame(40)
       expect(
-        s.draws.filter(({ src }) =>
+        s.spriteDraws.filter(({ src }) =>
           src.endsWith(privateScene ? 'biomes-v02.webp' : 'living-trees-v01.webp'),
         ),
       ).toHaveLength(expectedTrees)
@@ -3830,7 +3914,7 @@ it('renders different woodland growth sizes while keeping town trees authored', 
     try {
       s.frame(40)
       return new Set(
-        s.draws
+        s.spriteDraws
           .filter((d) => d.src.endsWith('living-trees-v01.webp') && d.args.length === 8)
           .map((d) => Number(d.args[6]!.toFixed(3))),
       )

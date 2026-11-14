@@ -14,6 +14,8 @@ on:
       - 'apps/web/e2e/world-presence-diagnostics.test.ts'
       - 'apps/web/e2e/world-timing-metrics.ts'
       - 'apps/web/e2e/world-timing-metrics.test.ts'
+      - 'apps/web/e2e/world-render-diagnostics.ts'
+      - 'apps/web/e2e/world-render-diagnostics.test.ts'
       - '.github/workflows/world-timing-repeat.yml'
   workflow_dispatch:
 
