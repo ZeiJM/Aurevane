@@ -5,7 +5,8 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import { useRouter } from 'next/navigation'
 import { WORLD_LAND_NAME } from '@/world/atlas'
 import { WORLD_REGIONS } from '@/world/catalog'
-import { positionLabel } from '@/world/coordinate-label'
+import { FERRY_MAINLAND_DOCK } from '@/world/ferry'
+import { positionLabel, sectorLabel } from '@/world/coordinate-label'
 import { parseVoidSectorId, VOID_REALMS } from '@/world/void-realms'
 import { regionalWeatherLabel } from './map-weather'
 import {
@@ -128,7 +129,10 @@ export function WorldWorkspace({
     [approachingPlayer, setApproachingPlayer] = useState<string | null>(null),
     [settings, setSettings] = useState(false),
     [visiblePlayerIds, setVisiblePlayerIds] = useState<string[] | null>(null),
-    [destinationId, setDestinationId] = useState<string | null>(null)
+    [destinationId, setDestinationId] = useState<string | null>(null),
+    [confirmDestinationId, setConfirmDestinationId] = useState<string | null>(null),
+    [favoriteSectorId, setFavoriteSectorId] = useState<string | null>(null),
+    [travelPointCursor, setTravelPointCursor] = useState(-1)
   const [animate, setAnimate] = useState(true),
     [zoom, setZoom] = useState(1),
     [globeZoom, setGlobeZoom] = useState(0.94)
@@ -551,6 +555,59 @@ export function WorldWorkspace({
       )
     })
   const destination = view.atlas?.find((cell) => cell.id === destinationId && cell.charted)
+  const favoriteKey = 'aurevane.worldFavorite.' + view.characterId
+  useEffect(() => {
+    try {
+      setFavoriteSectorId(localStorage.getItem(favoriteKey))
+    } catch {}
+  }, [favoriteKey])
+  const assignFavorite = (id: string | null) => {
+    setFavoriteSectorId(id)
+    try {
+      if (id) localStorage.setItem(favoriteKey, id)
+      else localStorage.removeItem(favoriteKey)
+    } catch {}
+  }
+  const keyLocations = useMemo(() => {
+    const knownAnchors = new Set(view.anchors.map((anchor) => anchor.sectorId))
+    return (view.atlas ?? [])
+      .filter(
+        (cell) =>
+          cell.charted &&
+          (cell.townId === cell.id ||
+            knownAnchors.has(cell.id) ||
+            cell.id === FERRY_MAINLAND_DOCK.sectorId),
+      )
+      .sort((a, b) => a.row - b.row || a.column - b.column)
+  }, [view.atlas, view.anchors])
+  const travelPoints = useMemo(() => {
+    const ids = new Set<string>()
+    const candidates = [
+      { id: FERRY_MAINLAND_DOCK.sectorId, name: 'Ferry dock' },
+      ...view.anchors.map((anchor) => ({ id: anchor.sectorId, name: anchor.name })),
+    ]
+    return candidates.filter((point) => {
+      if (
+        ids.has(point.id) ||
+        !view.atlas?.some((sector) => sector.id === point.id && sector.charted)
+      )
+        return false
+      ids.add(point.id)
+      return true
+    })
+  }, [view.atlas, view.anchors])
+  const confirmDestination = view.atlas?.find(
+    (cell) => cell.id === confirmDestinationId && cell.charted,
+  )
+  useEffect(() => {
+    if (!confirmDestinationId) return
+    const cancel = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setConfirmDestinationId(null)
+    }
+    document.addEventListener('keydown', cancel)
+    return () => document.removeEventListener('keydown', cancel)
+  }, [confirmDestinationId])
+
   const approach = useCallback(
     (position: WorldPosition) => {
       const current = controller.current?.view
@@ -663,6 +720,13 @@ export function WorldWorkspace({
                 setDestinationId(id)
                 if (id) setPanelOpen(true)
               }}
+              onTravelRequest={(id) => {
+                if (view.atlas?.some((cell) => cell.id === id && cell.charted)) {
+                  setDestinationId(id)
+                  setConfirmDestinationId(id)
+                  setPanelOpen(true)
+                }
+              }}
             />
           )}
           {ferryVisible && ferry ? (
@@ -685,6 +749,91 @@ export function WorldWorkspace({
             {time} · {worldDayPhase(view.environment.minuteOfDay)} · {weatherLabel}
             {view.environment.frozen ? ' · Frozen' : ''}
           </p>
+          {mode === 'global' ? (
+            <section className={styles.atlasTools} aria-label="World Atlas controls">
+              <small>EXPLORATION</small>
+              <h2>World Atlas</h2>
+              <p>Choose a known location. Selection alone never starts travel.</p>
+              <label>
+                Key locations
+                <select
+                  aria-label="Key locations"
+                  value={
+                    keyLocations.some((cell) => cell.id === destinationId) ? destinationId! : ''
+                  }
+                  onChange={(event) => setDestinationId(event.target.value || null)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && destinationId)
+                      setConfirmDestinationId(destinationId)
+                  }}
+                >
+                  <option value="">Select a key location</option>
+                  {keyLocations.map((cell) => (
+                    <option key={cell.id} value={cell.id}>
+                      {sectorLabel(cell)} · {cell.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className={styles.atlasActions}>
+                <button type="button" onClick={() => setDestinationId(view.position.sectorId)}>
+                  ◉ You are here
+                </button>
+                <button
+                  type="button"
+                  disabled={!travelPoints.length}
+                  onClick={() => {
+                    const next = (travelPointCursor + 1) % travelPoints.length
+                    setTravelPointCursor(next)
+                    setDestinationId(travelPoints[next]!.id)
+                  }}
+                >
+                  ◈ Travel point {travelPoints.length > 1 ? '(' + travelPoints.length + ')' : ''}
+                </button>
+              </div>
+              {travelPoints.length > 0 && travelPointCursor >= 0 ? (
+                <small>
+                  Travel point: {travelPoints[travelPointCursor % travelPoints.length]?.name}
+                </small>
+              ) : null}
+              <div className={styles.atlasActions}>
+                <button
+                  type="button"
+                  disabled={!destinationId}
+                  onClick={() => {
+                    if (destinationId) assignFavorite(destinationId)
+                  }}
+                >
+                  ☆{' '}
+                  {favoriteSectorId && favoriteSectorId === destinationId
+                    ? 'Favorite saved'
+                    : 'Set favorite'}
+                </button>
+                <button
+                  type="button"
+                  disabled={!favoriteSectorId}
+                  onClick={() => {
+                    if (favoriteSectorId) setDestinationId(favoriteSectorId)
+                  }}
+                >
+                  ★ My favorite
+                </button>
+                {favoriteSectorId ? (
+                  <button
+                    type="button"
+                    aria-label="Remove favorite"
+                    onClick={() => assignFavorite(null)}
+                  >
+                    Remove favorite
+                  </button>
+                ) : null}
+              </div>
+              <p>
+                Click a known sector to select it. Double-click a town marker or choose Travel here
+                to review travel.
+              </p>
+            </section>
+          ) : null}
           {mode === 'local' ? (
             <div className={styles.tabs} role="tablist" aria-label="World details">
               <button
@@ -806,12 +955,7 @@ export function WorldWorkspace({
                     <button
                       className={styles.primary}
                       disabled={disabled}
-                      onClick={() => {
-                        walk({ sectorId: destination.id, x: 6, y: 4 })
-                        setMode('local')
-                        setDestinationId(null)
-                        setPanelOpen(false)
-                      }}
+                      onClick={() => setConfirmDestinationId(destination.id)}
                     >
                       Travel here
                     </button>
@@ -889,6 +1033,43 @@ export function WorldWorkspace({
               ×
             </button>
           ) : null}
+        </div>
+      ) : null}
+      {mode === 'global' && confirmDestination ? (
+        <div className={styles.atlasConfirmShade} onClick={() => setConfirmDestinationId(null)}>
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-label="Confirm world travel"
+            className={styles.atlasConfirmDialog}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <small>TRAVEL CONFIRMATION</small>
+            <h2>Travel to {confirmDestination.name}?</h2>
+            <p>
+              Only surveyed, walkable routes can be used. The world server validates the destination
+              and may reject an unreachable journey.
+            </p>
+            <div className={styles.atlasActions}>
+              <button type="button" onClick={() => setConfirmDestinationId(null)}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={styles.primary}
+                disabled={disabled}
+                onClick={() => {
+                  walk({ sectorId: confirmDestination.id, x: 6, y: 4 })
+                  setConfirmDestinationId(null)
+                  setMode('local')
+                  setDestinationId(null)
+                  setPanelOpen(false)
+                }}
+              >
+                Confirm travel
+              </button>
+            </div>
+          </section>
         </div>
       ) : null}
       {conversation ? (

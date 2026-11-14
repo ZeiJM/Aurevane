@@ -13,6 +13,7 @@ import {
   remoteCrossingWaterAt,
 } from './discovery-sites'
 import { terrainWalkable } from './terrain'
+import { structuralTerrainAt } from './discovery-collision'
 import { trimRoadShorelines } from './road-shorelines'
 import type { WorldBuilding, WorldLandmark, WorldRoad, WorldSector } from './types'
 import { ATLAS_COLUMNS, ATLAS_ROWS, atlasNeighbor, wrappedColumnDistance } from './topology'
@@ -66,6 +67,8 @@ const rootLinks = [
   ['aureth-crown', 'glasswind-desert'],
   ['aureth-crown', 'starfall-highlands'],
   ['starfall-highlands', 'frostmere'],
+  // The elemental valley sits on a real traversable mountain corridor, not ocean.
+  ['frostmere', 'emberreach'],
   ['verdant-expanse', 'emberreach'],
   ['verdant-expanse', 'hollow-coast'],
   ['emberreach', 'umbral-march'],
@@ -397,7 +400,7 @@ export function atlasSectors(): readonly WorldSector[] {
         for (let y = 0; y < GRID_HEIGHT; y++)
           for (let x = 0; x < GRID_WIDTH; x++) {
             if (
-              grid[y]![x] === 't' &&
+              (grid[y]![x] === 't' || grid[y]![x] === '#') &&
               inDiscoveryGrounds(column * GRID_WIDTH + x, row * GRID_HEIGHT + y)
             )
               grid[y]![x] = '.'
@@ -428,6 +431,16 @@ export function atlasSectors(): readonly WorldSector[] {
           for (let x = 0; x < GRID_WIDTH; x++)
             if (remoteCrossingWaterAt(column, row, x, y) && !['=', '~', 'l'].includes(grid[y]![x]!))
               grid[y]![x] = 'w'
+      // Permanent structural walls use canonical movement terrain. Authored
+      // roads and shallow/deep water retain their original collision rules.
+      if (!town)
+        for (let y = 0; y < GRID_HEIGHT; y++)
+          for (let x = 0; x < GRID_WIDTH; x++)
+            grid[y]![x] = structuralTerrainAt(
+              column * GRID_WIDTH + x,
+              row * GRID_HEIGHT + y,
+              grid[y]![x]!,
+            )
       const buildings: WorldBuilding[] = []
       const addBuilding = (x: number, y: number, width: number, height: number, index: number) => {
         if (

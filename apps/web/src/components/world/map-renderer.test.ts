@@ -4644,7 +4644,7 @@ it('renders the remote grand crossing with its measured new bridge art rather th
 
 it('loads close-view valley details and arena ground material only for their own grand sites', () => {
   for (const [sectorId, required] of [
-    ['atlas:70:24', ['valley-fire-detail', 'valley-ice-detail', 'valley-cascade-detail']],
+    ['atlas:71:17', ['valley-fire-detail', 'valley-ice-detail', 'valley-cascade-detail']],
     ['atlas:44:37', ['colosseum-arena-grain']],
   ] as const) {
     const view = projectWorld({ ...newWorldState(), position: { sectorId, x: 6, y: 4 } }, [], 1000)
@@ -4656,7 +4656,7 @@ it('loads close-view valley details and arena ground material only for their own
           s.images.some((image) => (image as HTMLImageElement).src.endsWith(sheet + '-v01.webp')),
         ).toBe(true)
       const unrelated =
-        sectorId === 'atlas:70:24' ? ['colosseum-arena-grain'] : valleyDetailArt.map((d) => d.sheet)
+        sectorId === 'atlas:71:17' ? ['colosseum-arena-grain'] : valleyDetailArt.map((d) => d.sheet)
       for (const sheet of unrelated)
         expect(
           s.images.some((image) => (image as HTMLImageElement).src.endsWith(sheet + '-v01.webp')),
@@ -4670,7 +4670,7 @@ it('loads close-view valley details and arena ground material only for their own
 
 it('paints context-preserving valley detail frames in the exact selected master coordinates', () => {
   const view = projectWorld(
-    { ...newWorldState(), position: { sectorId: 'atlas:70:24', x: 6, y: 4 } },
+    { ...newWorldState(), position: { sectorId: 'atlas:71:17', x: 6, y: 4 } },
     [],
     1000,
   )

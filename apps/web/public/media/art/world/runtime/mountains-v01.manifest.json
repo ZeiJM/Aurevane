@@ -4,26 +4,11 @@
   "columns": 4,
   "rows": 3,
   "pixelSizes": {
-    "normal": [
-      1536,
-      1152
-    ],
-    "hd": [
-      3072,
-      2304
-    ]
+    "normal": [1536, 1152],
+    "hd": [3072, 2304]
   },
-  "styles": [
-    "rugged highland",
-    "snowbound alpine",
-    "Void riftstone"
-  ],
-  "cellsPerStyle": [
-    "clustered foothills",
-    "major spire",
-    "rounded hills",
-    "open traversable pass"
-  ],
+  "styles": ["rugged highland", "snowbound alpine", "Void riftstone"],
+  "cellsPerStyle": ["clustered foothills", "major spire", "rounded hills", "open traversable pass"],
   "collision": "only preexisting nonwalkable rock terrain; pass imagery only on existing walkable road",
   "quality": "normal-resolution sheet always; high-resolution sheet only on demand at increased zoom"
 }
