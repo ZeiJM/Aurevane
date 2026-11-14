@@ -441,8 +441,8 @@ export function atlasSectors(): readonly WorldSector[] {
           for (let x = 0; x < GRID_WIDTH; x++)
             if (remoteCrossingWaterAt(column, row, x, y) && !['=', '~', 'l'].includes(grid[y]![x]!))
               grid[y]![x] = 'w'
-      // Permanent structural walls use canonical movement terrain. Authored
-      // roads and shallow/deep water retain their original collision rules.
+      // Permanent walls override old roads and shallows outside authored gates.
+      // Deep water and lava keep their original nonwalkable collision rules.
       if (!town)
         for (let y = 0; y < GRID_HEIGHT; y++)
           for (let x = 0; x < GRID_WIDTH; x++)

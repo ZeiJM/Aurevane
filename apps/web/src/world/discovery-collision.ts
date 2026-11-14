@@ -2,9 +2,9 @@ import { GRAND_DISCOVERY_SITES, type GrandDiscoveryId } from './discovery-sites'
 
 /**
  * Static public movement geometry matching the art's defended wall/cliff silhouette.
- * This never changes roads, existing water, town squares, or saved IDs. Explicit
- * openings lead into the arena and its scenic valley instead of allowing players
- * to walk through solid surrounding cliffs.
+ * Solid walls supersede old roads and shallows while preserving deep water,
+ * town squares and saved IDs. Explicit openings lead into the arena and valley
+ * instead of allowing players to walk through solid surrounding cliffs.
  */
 export function grandDiscoveryBarrier(id: GrandDiscoveryId, x: number, y: number): boolean {
   const site = GRAND_DISCOVERY_SITES.find((item) => item.id === id)

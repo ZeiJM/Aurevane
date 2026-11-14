@@ -3,7 +3,7 @@ import { atlasSectors } from './atlas'
 import { GRAND_DISCOVERY_SITES } from './discovery-sites'
 import { grandDiscoveryBarrier } from './discovery-collision'
 import { isWalkable } from './travel'
-it('authors the valley water mask as traversable shallows while preserving the avenue and saved dry positions', () => {
+it('keeps valley shallows and open avenues traversable while solid cliffs block old roads', () => {
   const site = GRAND_DISCOVERY_SITES.find((s) => s.id === 'elemental-valley')!,
     sectors = atlasSectors()
   for (const cell of site.water) {
@@ -16,13 +16,21 @@ it('authors the valley water mask as traversable shallows while preserving the a
     expect(sector.rows[p.y]![p.x], `${gx}:${gy}`).toBe('w')
     expect(isWalkable(sector, p)).toBe(true)
   }
+  let blocked = 0
+  let open = 0
   for (let x = site.left; x < site.left + site.width; x++) {
     const y = site.top + ((4 - (site.top % 9) + 9) % 9),
       s = sectors.find(
         (s) => s.atlasColumn === Math.floor(x / 13) && s.atlasRow === Math.floor(y / 9),
       )!
-    expect(s.rows[y % 9]![x % 13]).toBe('=')
+    const barrier = grandDiscoveryBarrier(site.id, x - site.left, y - site.top)
+    expect(s.rows[y % 9]![x % 13], `${x}:${y}`).toBe(barrier ? '#' : '=')
+    expect(isWalkable(s, { x: x % 13, y: y % 9 })).toBe(!barrier)
+    if (barrier) blocked++
+    else open++
   }
+  expect(blocked).toBe(site.width - 9)
+  expect(open).toBe(9)
 })
 it('reserves the entire discovery grounds and southern approach without dense trees or generated POI overlaps', () => {
   const sectors = atlasSectors()
