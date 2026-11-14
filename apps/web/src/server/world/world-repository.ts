@@ -44,7 +44,12 @@ export function worldRpcError(error: { message?: string; code?: string }): never
   const message = error.message ?? ''
   if (message.includes('WORLD_NOT_OWNED') || message === 'ITEM_OWNERSHIP')
     throw new AurevaneError('FORBIDDEN', 'That character is unavailable.')
-  if (message.includes('WORLD_STALE') || error.code === 'PT409' || error.code === '40001')
+  if (
+    message.includes('WORLD_STALE') ||
+    message.includes('WORLD_VOID_RETURN_DUE') ||
+    error.code === 'PT409' ||
+    error.code === '40001'
+  )
     throw new AurevaneError(
       'STALE_VERSION',
       'The world changed. Refresh your position and try again.',
