@@ -149,6 +149,31 @@ function trace(
   }
 }
 
+export const AUTHORED_BEACHES = [
+  { id: 'Southstrand', regionId: 'hollow-coast', column: 68, row: 51, radius: 3, major: true },
+  {
+    id: 'Sunlit Strand',
+    regionId: 'verdant-expanse',
+    column: 68,
+    row: 21,
+    radius: 2,
+    major: false,
+  },
+  { id: 'Golden Inlet', regionId: 'aureth-crown', column: 56, row: 34, radius: 2, major: false },
+] as const
+
+/** Exactly three named sandy coast clusters; missing/private coast never becomes land. */
+export function authoredBeach(regionId: string, column?: number, row?: number) {
+  if (column === undefined || row === undefined) return null
+  return (
+    AUTHORED_BEACHES.find(
+      (beach) =>
+        beach.regionId === regionId &&
+        Math.hypot(column - beach.column, row - beach.row) <= beach.radius,
+    ) ?? null
+  )
+}
+
 type CoastPalette = {
   dry: string
   wet: string
@@ -284,10 +309,31 @@ export function paintCoastLand(
   edges: readonly CoastEdge[],
   tile: number,
   regionId: string,
+  address?: { atlasColumn?: number; atlasRow?: number },
 ) {
-  const palette = regionalCoasts[regionId] ?? commonCoast
+  const beach = edges.length
+    ? authoredBeach(regionId, address?.atlasColumn, address?.atlasRow)
+    : null
+  const palette = beach
+    ? {
+        dry: beach.major ? '229,204,145' : '217,193,139',
+        wet: '#a38b68',
+        shelf: '#7caeaa',
+        stone: '#bba47c',
+        width: beach.major ? 2.55 : 1.36,
+      }
+    : (regionalCoasts[regionId] ?? commonCoast)
   context.save()
   for (const edge of edges) {
+    if (beach) {
+      // A soft rock-to-sand elevation drop backs the legal beach shelf, never
+      // placing traversable terrain or fabricating land in unrevealed ocean.
+      const slope = colourBand(context, edge, tile, -palette.width - 0.65, -palette.width)
+      slope.addColorStop(0, 'rgba(61,66,59,0)')
+      slope.addColorStop(0.6, 'rgba(93,93,76,.34)')
+      slope.addColorStop(1, 'rgba(159,138,104,.20)')
+      paintLandBand(context, edge, tile, palette.width + 0.65, slope)
+    }
     const gradient = colourBand(context, edge, tile, 0, -palette.width)
     gradient.addColorStop(0, `rgba(${palette.dry},.96)`)
     gradient.addColorStop(0.24, `rgba(${palette.dry},.9)`)
@@ -335,9 +381,8 @@ export function paintCoastLand(
     // Rooted tufts interrupt long grassy or marshy banks while rocky and cold
     // shores keep their more exposed silhouettes.
     if (
-      regionId === 'verdant-expanse' ||
-      regionId === 'hollow-coast' ||
-      regionId === 'umbral-march'
+      !beach &&
+      (regionId === 'verdant-expanse' || regionId === 'hollow-coast' || regionId === 'umbral-march')
     ) {
       context.beginPath()
       context.strokeStyle =
@@ -397,10 +442,16 @@ export function paintCoastSea(
   regionId = '',
   waves = 3,
   windSpeed = 0,
+  address?: { atlasColumn?: number; atlasRow?: number },
 ) {
   const roughness = animate ? Math.min(1, Math.abs(windSpeed) / 0.055) : 0
   const visibleEdges = edges.slice(0, Math.max(0, Math.min(16, budget)))
-  const palette = regionalCoasts[regionId] ?? commonCoast
+  const beach = visibleEdges.length
+    ? authoredBeach(regionId, address?.atlasColumn, address?.atlasRow)
+    : null
+  const palette = beach
+    ? { ...commonCoast, dry: '229,204,145', wet: '#a38b68', shelf: '#77adae', width: 1.4 }
+    : (regionalCoasts[regionId] ?? commonCoast)
   context.save()
   context.lineCap = 'butt'
   for (const edge of visibleEdges) {
@@ -473,10 +524,10 @@ export function paintOpenSea(
   // Broad repeating depth bands retain their world phase during camera motion.
   const depth = context.createLinearGradient(a.x, a.y, b.x, b.y)
   for (let i = 0; i < bands; i++) {
-    depth.addColorStop(i / bands, '#173f53')
-    depth.addColorStop((i + 0.5) / bands, '#285e70')
+    depth.addColorStop(i / bands, '#14384d')
+    depth.addColorStop((i + 0.5) / bands, '#2f6875')
   }
-  depth.addColorStop(1, '#173f53')
+  depth.addColorStop(1, '#14384d')
   context.fillStyle = depth
   context.fillRect(0, 0, width, height)
   const limit = Number.isFinite(budget) ? Math.max(0, Math.min(48, Math.floor(budget))) : 0
@@ -527,7 +578,7 @@ export function paintOpenSea(
       const c1 = project({ x: centre.x - length / 6 + bend, y: centre.y + length / 6 + bend })
       const c2 = project({ x: centre.x + length / 6 + bend, y: centre.y - length / 6 + bend })
       const end = project({ x: centre.x + length / 2, y: centre.y - length / 2 })
-      context.globalAlpha = (0.08 + roughness * 0.14) * (0.45 + Math.sin(phase * Math.PI) * 0.55)
+      context.globalAlpha = (0.15 + roughness * 0.16) * (0.5 + Math.sin(phase * Math.PI) * 0.5)
       context.strokeStyle = seed % 3 ? '#a6cbd0' : '#6fa9b9'
       context.lineWidth = Math.max(0.45, tile * 0.008) * (1 + roughness * 0.8)
       context.beginPath()
