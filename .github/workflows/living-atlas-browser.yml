@@ -167,6 +167,9 @@ jobs:
             apps/web/test-results/**/world-art-review.json
             apps/web/test-results/**/world-ambient-pause.json
             apps/web/test-results/**/world-contention-responses.json
+            apps/web/test-results/**/world-both-moving-peer-*.json
+            apps/web/test-results/**/world-instant-action-boundaries.json
+            apps/web/test-results/**/error-context.md
             apps/web/test-results/**/biome-boundary-*.png
             apps/web/test-results/**/coastal-road-*.png
             apps/web/test-results/**/four-biome-*.png

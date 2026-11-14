@@ -18,6 +18,39 @@ export function matchesWorldWalk(body: unknown, destination: WorldPosition): boo
   )
 }
 
+/** Select real supplied terrain so held eastward travel cannot leave attack reach. */
+export function findWorldHeldAttackCorridor(view: Pick<WorldView, 'sectors'>): {
+  start: WorldPosition
+  approach: WorldPosition
+  target: WorldPosition
+} | null {
+  const sectors = [...view.sectors].sort(
+    (a, b) => Number(b.id === 'verdant-expanse') - Number(a.id === 'verdant-expanse'),
+  )
+  for (const sector of sectors) {
+    if (!sector.charted) continue
+    for (const target of sector.cells) {
+      const cell = (x: number) => sector.cells.find((cell) => cell.x === x && cell.y === target.y)
+      if (
+        ![target.x - 2, target.x - 1, target.x].every((x) => {
+          const supplied = cell(x)
+          return supplied?.walkable === true && supplied.safe === false
+        }) ||
+        cell(target.x + 1)?.walkable !== false ||
+        sector.exits.some((exit) => exit.from.x === target.x && exit.from.y === target.y)
+      )
+        continue
+      const position = (x: number) => ({ sectorId: sector.id, x, y: target.y })
+      return {
+        start: position(target.x - 2),
+        approach: position(target.x - 1),
+        target: position(target.x),
+      }
+    }
+  }
+  return null
+}
+
 const worldTopicPrefix = 'realtime:world-scene:'
 
 /** Used to correlate joins and invalidations in memory. Use the summary for artifacts. */

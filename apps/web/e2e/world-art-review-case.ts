@@ -1,3 +1,4 @@
+import { worldArtCadenceSql, worldArtPhasePeriod } from './world-art-phase'
 import { sceneryReviewCandidates, VOID_SCENERY_VIEWS } from './world-art-scenery'
 import { waterReviewCandidate } from './world-art-water'
 import { unoccupiedArtStep } from './world-art-step'
@@ -42,14 +43,38 @@ export function registerWorldArtReviewCases({
       routeDestination: null,
       nextStepAt: null,
       routeObjectiveId: null,
-      warpedPhase: phase,
       discoveries: {
         [position.sectorId]: Array.from({ length: GRID_WIDTH * GRID_HEIGHT }, (_, i) => i),
       },
     }
-    sql(
-      `update app_private.character_world_state set state = state || '${JSON.stringify(state)}'::jsonb where character_id='${characterId}'::uuid;`,
+    const privateScene = position.sectorId.startsWith('uncharted-')
+    // Start a fresh disposable expedition before changing its real cadence;
+    // private-to-private writes deliberately retain their original deadline.
+    const actualPhase = sql(
+      `begin;
+      ${
+        privateScene
+          ? `update app_private.character_world_state set state = state || '{"position":{"sectorId":"umbral-march","x":6,"y":4}}'::jsonb where character_id='${characterId}'::uuid;
+      ${worldArtCadenceSql(position.sectorId, phase)}`
+          : ''
+      }
+      update app_private.character_world_state set state = state || '${JSON.stringify(state)}'::jsonb
+        ${privateScene ? `|| jsonb_build_object('warpedPhase', app_private.world_warped_phase_v1(floor(extract(epoch from clock_timestamp()) * 1000)::bigint))` : ''}
+      where character_id='${characterId}'::uuid
+      returning jsonb_build_object(
+        'phase', state->'warpedPhase',
+        'returnDue', app_private.world_void_return_due_v1(state, floor(extract(epoch from clock_timestamp()) * 1000)::bigint)
+      );
+      commit;`,
     )
+    const staged = JSON.parse(actualPhase) as { phase: number | null; returnDue: boolean }
+    if (privateScene) {
+      expect(Number.isSafeInteger(staged.phase)).toBe(true)
+      expect(staged.phase! % worldArtPhasePeriod(position.sectorId)).toBe(
+        phase % worldArtPhasePeriod(position.sectorId),
+      )
+      expect(staged.returnDue).toBe(false)
+    }
     await page.reload()
     const canvas = page.locator('canvas[data-world-stage]')
     await expect(canvas).toHaveAttribute('data-tile-size', /\d/)
@@ -64,7 +89,27 @@ export function registerWorldArtReviewCases({
       ...settlementComposition(sector),
     ]
     await waitForWorldArt(page, view)
-    return { sector, dressing, environment: view.environment }
+    return {
+      sector,
+      dressing,
+      environment: view.environment,
+      actualPhase: privateScene ? staged.phase : null,
+    }
+  }
+
+  async function withPrivateArtCadence(review: () => Promise<void>) {
+    const original = Number(
+      sql(
+        'select warped_shift_minutes from app_private.world_environment_settings where singleton;',
+      ),
+    )
+    try {
+      await review()
+    } finally {
+      sql(
+        `update app_private.world_environment_settings set warped_shift_minutes = ${original} where singleton;`,
+      )
+    }
   }
 
   type ArtScene = Awaited<ReturnType<typeof scene>>
@@ -191,16 +236,18 @@ export function registerWorldArtReviewCases({
     test.setTimeout(120_000)
     await enter(page)
     const { characterId } = await world(page)
-    const evidence = []
-    for (const { key, phase, ...position } of VOID_SCENERY_VIEWS) {
-      const result = await scene(page, characterId, position, phase)
-      const prop = result.dressing.find((p) => `${p.sheet}-${p.index}` === key)
-      expect(prop).toBeDefined()
-      if (key.startsWith('rare-')) expect(prop!.scale).toBeGreaterThan(2)
-      await capture(page, info, `art-void-scenery-${key}`)
-      evidence.push({ key, phase, ...result })
-    }
-    writeFileSync(info.outputPath('world-art-review.json'), JSON.stringify(evidence, null, 2))
+    await withPrivateArtCadence(async () => {
+      const evidence = []
+      for (const { key, phase, ...position } of VOID_SCENERY_VIEWS) {
+        const result = await scene(page, characterId, position, phase)
+        const prop = result.dressing.find((p) => `${p.sheet}-${p.index}` === key)
+        expect(prop).toBeDefined()
+        if (key.startsWith('rare-')) expect(prop!.scale).toBeGreaterThan(2)
+        await capture(page, info, `art-void-scenery-${key}`)
+        evidence.push({ key, phase, ...result })
+      }
+      writeFileSync(info.outputPath('world-art-review.json'), JSON.stringify(evidence, null, 2))
+    })
   })
 
   for (const region of WORLD_REGIONS) {
@@ -467,24 +514,26 @@ export function registerWorldArtReviewCases({
       ]),
       ...variants,
     ]
-    const evidence: (ArtScene & { phase: number })[] = []
-    for (const [key, phase, landmark] of cases) {
-      await test.step(`${key} phase ${phase}`, async () => {
-        const sectorId = `uncharted-${key}`
-        const result = await scene(page, characterId, { sectorId, x: 6, y: 4 }, phase)
-        expect(result.sector.charted).toBe(false)
-        expect(result.sector.warpedScenery).toBeDefined()
-        expect(
-          result.dressing.filter(
-            (p) =>
-              !['regional-scenery', 'regional-scenery-extra', 'rare-scenery'].includes(p.sheet),
-          ),
-        ).toHaveLength(1)
-        if (landmark) expect(result.sector.landmarks.map(({ name }) => name)).toContain(landmark)
-        await capture(page, info, `art-void-${key}-phase-${phase}`)
-        evidence.push({ phase, ...result })
-      })
-    }
-    writeFileSync(info.outputPath('world-art-review.json'), JSON.stringify(evidence, null, 2))
+    await withPrivateArtCadence(async () => {
+      const evidence: (ArtScene & { phase: number })[] = []
+      for (const [key, phase, landmark] of cases) {
+        await test.step(`${key} phase ${phase}`, async () => {
+          const sectorId = `uncharted-${key}`
+          const result = await scene(page, characterId, { sectorId, x: 6, y: 4 }, phase)
+          expect(result.sector.charted).toBe(false)
+          expect(result.sector.warpedScenery).toBeDefined()
+          expect(
+            result.dressing.filter(
+              (p) =>
+                !['regional-scenery', 'regional-scenery-extra', 'rare-scenery'].includes(p.sheet),
+            ),
+          ).toHaveLength(1)
+          if (landmark) expect(result.sector.landmarks.map(({ name }) => name)).toContain(landmark)
+          await capture(page, info, `art-void-${key}-phase-${phase}`)
+          evidence.push({ phase, ...result })
+        })
+      }
+      writeFileSync(info.outputPath('world-art-review.json'), JSON.stringify(evidence, null, 2))
+    })
   })
 }

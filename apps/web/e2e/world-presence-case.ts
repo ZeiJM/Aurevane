@@ -7,6 +7,7 @@ import {
 } from './world-timing-metrics'
 import {
   cleanupWorldPresenceFixtures,
+  findWorldHeldAttackCorridor,
   matchesWorldWalk,
   worldPresenceDiagnostics,
 } from './world-presence-diagnostics'
@@ -17,6 +18,7 @@ import {
   type Frame,
   type Page,
   type Request,
+  type Response,
   type Route,
   type TestInfo,
 } from '@playwright/test'
@@ -865,17 +867,24 @@ export async function verifyWorldInstantActions(
       if (failure?.status === 'rejected') throw failure.reason
     }
     // Move the fixture away; a completed approach must be available again.
-    helpers.place(owner.characterId, 'verdant-expanse', 10, 4)
-    helpers.place(target.characterId, 'verdant-expanse', 12, 4)
-    const legal = await helpers.world(page)
-    const cells = legal.sectors.find((sector) => sector.id === 'verdant-expanse')!.cells
-    for (const x of [10, 11, 12])
-      expect(cells.find((cell) => cell.x === x && cell.y === 4)?.safe).toBe(false)
+    // Use an actual unsafe dead end: every eastward held-key destination stays
+    // at the target instead of crossing the sector boundary during a slow click.
+    const corridor = findWorldHeldAttackCorridor(await helpers.world(page))
+    expect(corridor, 'supplied public terrain has a bounded unsafe approach').not.toBeNull()
+    if (!corridor) throw new Error('No supplied public held-attack corridor is available.')
+    helpers.place(owner.characterId, corridor.start.sectorId, corridor.start.x, corridor.start.y)
+    helpers.place(
+      target.characterId,
+      corridor.target.sectorId,
+      corridor.target.x,
+      corridor.target.y,
+    )
     await page.reload()
     await expect(primary).toHaveText('Approach')
     await primary.click()
     await expect(primary).toHaveText('Attack')
     await expect(primary).toBeEnabled({ timeout: 12000 })
+    await expect.poll(async () => (await helpers.world(page)).position).toEqual(corridor.approach)
     await expect(page.locator('[data-world-zone]')).toHaveText('PvP Zone')
     await page.mouse.move(0, 0)
     await expect(primary).toHaveCSS('background-color', 'rgb(116, 35, 40)')
@@ -883,26 +892,101 @@ export async function verifyWorldInstantActions(
     // It must supersede queued walking without a release retarget ahead of it.
     const canvas = page.locator('canvas[data-world-stage]')
     const commands: string[] = []
-    page.on('request', (request) => {
-      if (new URL(request.url()).pathname === '/api/world' && request.method() === 'POST')
-        commands.push(request.postDataJSON()?.intent?.kind)
-    })
-    const walkStarted = page.waitForRequest(
-      (request) =>
-        new URL(request.url()).pathname === '/api/world' &&
-        request.method() === 'POST' &&
-        request.postDataJSON()?.intent?.kind === 'walk',
-    )
-    await canvas.focus()
-    await page.keyboard.down('d')
-    await walkStarted
-    await primary.click()
-    await page.keyboard.up('d')
-    await expect(page).toHaveURL(/\/game\/battle\//, { timeout: 20000 })
-    expect(commands).toContain('attack')
-    expect(commands.at(-1)).toBe('attack')
-    await Promise.all(movementReceipts)
-    await helpers.capture(page, info, 'instant-approach-legal-encounter')
+    const attackReceipts: { status: number; errorCode: string | null; battleOpened: boolean }[] = []
+    const receiptReads: Promise<void>[] = []
+    const snapshots: Record<string, unknown>[] = []
+    const snapshot = (phase: string, view: WorldView) => {
+      if (snapshots.length >= 4) return
+      const peer = view.players.find((player) => player.characterId === target.characterId)
+      snapshots.push({
+        phase,
+        version: view.version,
+        serverNow: view.serverNow,
+        position: view.position,
+        targetPosition: peer?.position ?? null,
+        targetAttackable: peer?.attackable ?? false,
+        route: view.route.slice(0, 8),
+        nextStepAt: view.nextStepAt,
+        battleOpened: Boolean(view.battleSessionId),
+      })
+    }
+    const request = (request: Request) => {
+      if (new URL(request.url()).pathname !== '/api/world' || request.method() !== 'POST') return
+      const kind = request.postDataJSON()?.intent?.kind
+      if (commands.length < 100 && ['walk', 'autopath', 'tick', 'stop', 'attack'].includes(kind))
+        commands.push(kind)
+    }
+    const response = (response: Response) => {
+      if (
+        receiptReads.length >= 10 ||
+        new URL(response.url()).pathname !== '/api/world' ||
+        response.request().method() !== 'POST' ||
+        response.request().postDataJSON()?.intent?.kind !== 'attack'
+      )
+        return
+      const read = response
+        .json()
+        .then((body) => {
+          const code = body?.error?.code
+          attackReceipts.push({
+            status: response.status(),
+            errorCode: typeof code === 'string' && /^[A-Z_]{1,64}$/.test(code) ? code : null,
+            battleOpened: typeof body?.battleSessionId === 'string',
+          })
+        })
+        .catch(() => {
+          attackReceipts.push({
+            status: response.status(),
+            errorCode: 'BODY_UNAVAILABLE',
+            battleOpened: false,
+          })
+        })
+      receiptReads.push(read)
+    }
+    page.on('request', request)
+    page.on('response', response)
+    try {
+      snapshot('before-held-input', await helpers.world(page))
+      const walkStarted = page.waitForRequest(
+        (request) =>
+          new URL(request.url()).pathname === '/api/world' &&
+          request.method() === 'POST' &&
+          request.postDataJSON()?.intent?.kind === 'walk',
+      )
+      await canvas.focus()
+      await page.keyboard.down('d')
+      await walkStarted
+      await primary.click()
+      await page.keyboard.up('d')
+      await expect(page).toHaveURL(/\/game\/battle\//, { timeout: 20000 })
+      expect(commands).toContain('attack')
+      expect(commands.at(-1)).toBe('attack')
+      await Promise.all(movementReceipts)
+      await helpers.capture(page, info, 'instant-approach-legal-encounter')
+    } finally {
+      page.off('request', request)
+      page.off('response', response)
+      await Promise.allSettled(receiptReads)
+      let finalReadAvailable = false
+      try {
+        const final = await page.request.get('/api/world', { timeout: 2000 })
+        if (final.ok()) {
+          snapshot('after-held-attack', await final.json())
+          finalReadAvailable = true
+        }
+      } catch {
+        // Failure evidence must preserve the native assertion that failed first.
+      }
+      const path = info.outputPath('world-instant-action-boundaries.json')
+      await writeFile(
+        path,
+        JSON.stringify({ corridor, commands, attackReceipts, snapshots, finalReadAvailable }),
+      )
+      await info.attach('world-instant-action-boundaries', {
+        path,
+        contentType: 'application/json',
+      })
+    }
   } finally {
     await context.close()
   }

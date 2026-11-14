@@ -258,9 +258,11 @@ async function reviewSectorTravel(page: Page, sectorId: string) {
   const charted = (await world(page)).atlas?.find((cell) => cell.id === sectorId && cell.charted)
   expect(charted).toBeDefined()
   const sectorNumber = charted!.row * 128 + charted!.column + 1
-  await page
-    .getByRole('spinbutton', { name: 'Sector number', exact: true })
-    .fill(String(sectorNumber))
+  const field = page.getByRole('spinbutton', { name: 'Sector number', exact: true })
+  if (!(await field.isVisible()))
+    await page.getByRole('button', { name: 'Details', exact: true }).click()
+  await expect(field).toBeVisible()
+  await field.fill(String(sectorNumber))
   await page.getByRole('button', { name: 'Review sector', exact: true }).click()
   await expect(page.getByRole('dialog', { name: 'Confirm world travel' })).toBeVisible()
   await page.getByRole('button', { name: 'Confirm travel', exact: true }).click()

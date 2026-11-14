@@ -4,8 +4,12 @@ import { EventEmitter } from 'node:events'
 import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+vi.mock('server-only', () => ({}))
+import { projectWorld } from '../src/server/world/world-service'
+import { newWorldState } from '../src/world/travel'
 import {
   cleanupWorldPresenceFixtures,
+  findWorldHeldAttackCorridor,
   inspectWorldSocketFrame,
   matchesWorldWalk,
   summarizeWorldSocketFrame,
@@ -15,6 +19,74 @@ import {
 const owner = '00000000-0000-4000-8000-000000000001'
 const peer = '00000000-0000-4000-8000-000000000002'
 const unrelated = '00000000-0000-4000-8000-000000000003'
+
+describe('held-key attack fixture geometry', () => {
+  it('finds canonical supplied open territory whose eastward held route stays in attack range', () => {
+    const view = projectWorld(newWorldState(), [], 1000)
+    const corridor = findWorldHeldAttackCorridor(view)
+    expect(corridor).not.toBeNull()
+    if (!corridor) return
+    const sector = view.sectors.find((candidate) => candidate.id === corridor.target.sectorId)!
+    expect(sector.charted).toBe(true)
+    for (const position of [corridor.start, corridor.approach, corridor.target])
+      expect(
+        sector.cells.find((cell) => cell.x === position.x && cell.y === position.y),
+      ).toMatchObject({
+        walkable: true,
+        safe: false,
+      })
+    // The held planner can land only on the target; it cannot plan past the wall.
+    for (const position of [corridor.approach, corridor.target]) {
+      expect(position.sectorId).toBe(corridor.target.sectorId)
+      expect(
+        Math.abs(position.x - corridor.target.x) + Math.abs(position.y - corridor.target.y),
+      ).toBeLessThanOrEqual(1)
+    }
+    expect(
+      sector.cells.find((cell) => cell.x === corridor.target.x + 1 && cell.y === corridor.target.y),
+    ).toMatchObject({ walkable: false })
+    expect(
+      sector.exits.some(
+        (exit) => exit.from.x === corridor.target.x && exit.from.y === corridor.target.y,
+      ),
+    ).toBe(false)
+  })
+
+  it.each(['private', 'safe', 'missing-wall', 'blocked-approach', 'exit'] as const)(
+    'rejects a %s corridor instead of changing its authoritative terrain',
+    (reason) => {
+      const view = projectWorld(newWorldState(), [], 1000)
+      const sector = view.sectors[0]!
+      const position = (x: number) => ({ sectorId: sector.id, x, y: 4 })
+      const cells = [2, 3, 4, 5].map((x) => ({
+        x,
+        y: 4,
+        terrain: x === 5 ? '#' : '.',
+        walkable: x !== 5,
+        safe: false,
+      }))
+      if (reason === 'safe') cells[1]!.safe = true
+      if (reason === 'missing-wall') cells.pop()
+      if (reason === 'blocked-approach') cells[1]!.walkable = false
+      const exits =
+        reason === 'exit'
+          ? [
+              {
+                from: position(4),
+                to: { ...position(0), sectorId: 'elsewhere' },
+                durationMs: 200,
+                name: 'Exit',
+              },
+            ]
+          : []
+      expect(
+        findWorldHeldAttackCorridor({
+          sectors: [{ ...sector, charted: reason !== 'private', cells, exits }],
+        }),
+      ).toBeNull()
+    },
+  )
+})
 
 describe('World failure boundary diagnostics', () => {
   const destination = { sectorId: 'atlas:59:28', x: 4, y: 4 }

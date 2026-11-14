@@ -1,10 +1,39 @@
 import { describe, expect, it, vi } from 'vitest'
 import { installWorldRenderTiming, installWorldPeerDrawCapture } from './world-render-diagnostics'
 
+function observedDataset() {
+  const observers: { callback: () => void; attributes: string[] }[] = []
+  vi.stubGlobal(
+    'MutationObserver',
+    class {
+      constructor(private callback: () => void) {}
+      observe(_target: unknown, options: MutationObserverInit) {
+        observers.push({ callback: this.callback, attributes: options.attributeFilter ?? [] })
+      }
+    },
+  )
+  const queued = new Set<() => void>()
+  return new Proxy({} as Record<string, string>, {
+    set(target, key: string, value: string) {
+      target[key] = value
+      const attribute = `data-${key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}`
+      for (const observer of observers) {
+        if (!observer.attributes.includes(attribute) || queued.has(observer.callback)) continue
+        queued.add(observer.callback)
+        queueMicrotask(() => {
+          queued.delete(observer.callback)
+          observer.callback()
+        })
+      }
+      return true
+    },
+  })
+}
+
 function capture() {
   const draw = vi.fn()
   const context = { fillText: draw }
-  const canvas = { dataset: {} as Record<string, string> } as HTMLCanvasElement
+  const canvas = { dataset: observedDataset() } as HTMLCanvasElement
   vi.stubGlobal('document', { querySelector: () => ({ getContext: () => context }) })
   installWorldRenderTiming(canvas)
   return { canvas, context, draw }
@@ -33,6 +62,18 @@ const frame = (frameAt: number) => ({
 })
 
 describe('native renderer timing capture', () => {
+  it('captures completed frames while the identity surface is retained without fillText', async () => {
+    const { canvas } = capture()
+    try {
+      canvas.dataset.renderTiming = JSON.stringify(frame(10))
+      await Promise.resolve()
+      canvas.dataset.renderTiming = JSON.stringify(frame(20))
+      await Promise.resolve()
+      expect(JSON.parse(canvas.dataset.testRenderTimings ?? '[]')).toEqual([frame(10), frame(20)])
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
   it('captures completed frame work after the original identity draw and omits raw fields', async () => {
     const { canvas, context, draw } = capture()
     try {
@@ -91,18 +132,59 @@ describe('native renderer timing capture', () => {
 })
 
 describe('native peer draw capture', () => {
+  it('samples a retained real nameplate as its moving camera advances, then drops cleared labels', async () => {
+    const context = { fillText: vi.fn(), clearRect: vi.fn() }
+    const identity = { clientWidth: 800, clientHeight: 600, width: 800, getContext: () => context }
+    const canvas = { dataset: observedDataset() } as HTMLCanvasElement
+    Object.assign(canvas.dataset, {
+      tileSize: '64',
+      frameNow: '100',
+      frameStarted: '100',
+      cameraX: '10',
+      cameraY: '20',
+    })
+    vi.stubGlobal('document', { querySelector: () => identity })
+    const clock = vi.spyOn(performance, 'now').mockReturnValue(110)
+    try {
+      installWorldPeerDrawCapture(canvas, { name: 'Peer', sampleKey: 'testRemoteDraws', limit: 20 })
+      context.fillText('Peer', 454.4, 328.16)
+      await Promise.resolve()
+      // Identical relative positions retain the actual painted label. World x
+      // still advances with the camera, even though fillText is never repeated.
+      clock.mockReturnValue(130)
+      canvas.dataset.cameraX = '10.1'
+      canvas.dataset.frameNow = '120'
+      await Promise.resolve()
+      const samples = JSON.parse(canvas.dataset.testRemoteDraws ?? '[]')
+      expect(samples).toHaveLength(2)
+      expect(samples[1].x - samples[0].x).toBeCloseTo(0.1)
+      expect(samples[1].screenX).toBe(samples[0].screenX)
+      expect(samples.map((sample: { frameAt: number }) => sample.frameAt)).toEqual([100, 120])
+      canvas.dataset.frameNow = '120'
+      await Promise.resolve()
+      expect(JSON.parse(canvas.dataset.testRemoteDraws!)).toEqual(samples)
+      // A frame that removes or occludes the peer must not reuse its old label.
+      context.clearRect(0, 0, 800, 600)
+      canvas.dataset.frameNow = '140'
+      await Promise.resolve()
+      expect(JSON.parse(canvas.dataset.testRemoteDraws!)).toEqual(samples)
+    } finally {
+      clock.mockRestore()
+      vi.unstubAllGlobals()
+    }
+  })
   it('removes camera settling from a stationary peer while retaining actual frame/paint clocks', () => {
     const draw = vi.fn()
-    const context = { fillText: draw }
+    const context = { fillText: draw, clearRect: vi.fn() }
     const identity = { clientWidth: 800, clientHeight: 600, width: 800, getContext: () => context }
     const canvas = {
-      dataset: {
+      dataset: Object.assign(observedDataset(), {
         tileSize: '64',
         frameNow: '100',
         frameStarted: '190',
         cameraX: '10',
         cameraY: '20',
-      },
+      }),
     } as unknown as HTMLCanvasElement
     vi.stubGlobal('document', { querySelector: () => identity })
     const clock = vi.spyOn(performance, 'now').mockReturnValue(200)
