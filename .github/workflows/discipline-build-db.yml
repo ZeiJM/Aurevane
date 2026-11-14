@@ -5,6 +5,7 @@ on:
     paths:
       - 'supabase/migrations/**'
       - '.github/scripts/verify-p31-discipline-build-authority.sh'
+      - '.github/scripts/configure-discipline-test-mail*'
       - '.github/scripts/verify-p32-secondary-attunement.sh'
       - '.github/scripts/verify-p34-skill-loadout.sh'
       - '.github/scripts/verify-p35-resonance.sh'
@@ -29,6 +30,7 @@ on:
     paths:
       - 'supabase/migrations/**'
       - '.github/scripts/verify-p31-discipline-build-authority.sh'
+      - '.github/scripts/configure-discipline-test-mail*'
       - '.github/scripts/verify-p32-secondary-attunement.sh'
       - '.github/scripts/verify-p34-skill-loadout.sh'
       - '.github/scripts/verify-p35-resonance.sh'
@@ -79,8 +81,12 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Start local Supabase stack
-        # SQL authority probes do not send email; avoid an unused mail port.
-        run: pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime,mailpit
+        # Sign-up fixtures send confirmation email. Keep the mail service, with
+        # an available web port instead of the conflicting default 54324.
+        run: |
+          python .github/scripts/configure-discipline-test-mail.test.py
+          python .github/scripts/configure-discipline-test-mail.py
+          pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
 
       - name: Rebuild database from migrations
         run: pnpm exec supabase db reset --local
