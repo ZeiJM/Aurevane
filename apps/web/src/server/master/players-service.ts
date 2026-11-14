@@ -285,7 +285,7 @@ export function createMasterPlayersService(
       await access.requireCapability(userId, 'players.manage')
       if (!prepareTeleport) unavailable()
       await prepareTeleport(userId, destination)
-      const receipt = await call(userId, 'teleport_master_player_v3', {
+      const receipt = await call(userId, 'teleport_master_player_v4', {
         p_character_id: input.characterId,
         p_expected_version: input.expectedVersion,
         p_request_key: input.requestKey,
