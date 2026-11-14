@@ -65,7 +65,9 @@ describe('lazy private Void world integration', () => {
         resolveWorldIntent(state, { kind: 'walk', destination: { sectorId, x: 6, y: 4 } }, 0),
       ).toThrow('Survey')
     }
-    expect(view.atlas?.filter((sector) => sector.charted)).toHaveLength(1870)
+    // The PR1040 alpine/corridor extension is public land, not a leaked
+    // private Void sector. The original 1,870 public sectors remain present.
+    expect(view.atlas?.filter((sector) => sector.charted)).toHaveLength(1925)
     expect(view.atlas?.some((sector) => sector.id.startsWith('void:'))).toBe(false)
     expect(view.scenery).toEqual([])
   })

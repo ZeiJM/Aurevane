@@ -1,6 +1,7 @@
 import { GRID_HEIGHT, GRID_WIDTH } from '@/world/catalog'
 import { hashString } from '@/world/terrain-gen'
 import { GRAND_DISCOVERY_SITES, type GrandDiscoveryId } from '@/world/discovery-sites'
+import { grandDiscoveryBarrier } from '@/world/discovery-collision'
 import type { WorldAtlasCell, WorldCell, WorldSectorView } from '@/world/types'
 import { ATLAS_ROWS, wrapAtlasColumn } from '@/world/topology'
 import { MAP_X, MAP_Y } from './map-projection'
@@ -164,12 +165,15 @@ export function grandDiscoveryPlacements(
         const { cell, sector } = entry
         const wet = y < site.height && water.has(`${x}:${y}`)
         const deep = y < site.height && deepWater.has(`${x}:${y}`)
+        const barrier = grandDiscoveryBarrier(site.id, x, y)
         if (
           deep
             ? cell.terrain !== '~' || cell.walkable
             : wet
               ? cell.terrain !== 'w' || !cell.walkable
-              : !cell.walkable || !['.', 't', '='].includes(cell.terrain)
+              : barrier && cell.terrain === '#' && !cell.walkable
+                ? false
+                : !cell.walkable || !['.', 't', '='].includes(cell.terrain)
         ) {
           valid = false
           break

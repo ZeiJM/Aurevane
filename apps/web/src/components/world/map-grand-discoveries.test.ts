@@ -169,7 +169,7 @@ describe('grand discovery placement', () => {
     const origin = { x: 0, y: 0 }
     for (const [id, cx, cy, targetX, targetY] of [
       ['remote-colosseum', 0.5, 0.52, 584, 334],
-      ['elemental-valley', 0.5, 0.75, 915, 219],
+      ['elemental-valley', 0.5, 0.75, 929, 158],
     ] as const) {
       const p = placements.find((p) => p.id === id)!
       const anchor = projectMapPoint({ x: p.worldx, y: p.worldy }, origin, origin, 1, 0, 0)

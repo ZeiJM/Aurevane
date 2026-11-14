@@ -1227,3 +1227,173 @@
   place-items: center;
   line-height: 1;
 }
+
+/* World Atlas: an uncluttered cosmic stage with the tools inside the actual
+   details panel. No decorative longitude grid or circular measuring ring. */
+.workspace[data-world-view='globe'] .body {
+  grid-template-columns: minmax(0, 1.85fr) minmax(290px, 1fr);
+}
+.workspace[data-world-view='globe'] .sidebar {
+  background:
+    radial-gradient(ellipse at 75% 15%, #2d375b66, transparent 65%),
+    linear-gradient(155deg, #0a172b, #080e20 68%, #101b2b);
+}
+.globeScene {
+  background:
+    radial-gradient(ellipse at 50% 55%, #26305c7a, transparent 70%),
+    radial-gradient(circle at 12% 17%, #c3d9e9a8 0 1px, transparent 2px),
+    radial-gradient(circle at 82% 75%, #dae3ff77 0 1px, transparent 2px),
+    radial-gradient(circle at 41% 81%, #b2c0ebbb 0 1px, transparent 2px),
+    radial-gradient(circle at 72% 15%, #d9c5e288 0 1px, transparent 2px), #070d21;
+}
+.globeFrame::before {
+  display: none;
+}
+.globeTitle {
+  display: none;
+}
+.workspace .globeTravelPoint {
+  position: absolute;
+  z-index: 5;
+  min-width: 25px;
+  min-height: 25px;
+  transform: translate(-50%, -50%);
+  padding: 1px;
+  border: 1px solid #f5d399;
+  border-radius: 50%;
+  background: #1c415bdf;
+  color: #ffe3a2;
+  font-size: 18px;
+  box-shadow: 0 0 10px #eccd8c77;
+}
+.workspace .globeTravelPoint:hover {
+  background: #47657a;
+}
+.atlasTools {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  border-bottom: 1px solid #ad946b3b;
+  color: #e2e8e5;
+}
+.atlasTools > small,
+.atlasConfirmDialog > small {
+  font:
+    650 10px/1.3 system-ui,
+    sans-serif;
+  letter-spacing: 0.14em;
+  color: #e6c98c;
+}
+.atlasTools h2 {
+  margin: 0;
+  font:
+    500 26px/1.25 Georgia,
+    serif;
+  color: #f2e4c2;
+}
+.atlasTools p {
+  margin: 0;
+  font:
+    12px/1.5 system-ui,
+    sans-serif;
+  color: #b9c5d0;
+}
+.atlasTools label {
+  display: grid;
+  gap: 7px;
+  font-size: 12px;
+}
+.atlasTools select {
+  min-height: 37px;
+  width: 100%;
+  color: #f3e8d2;
+  border: 1px solid #a7977166;
+  background: #122d3b;
+  border-radius: 5px;
+  padding: 0 9px;
+}
+.atlasActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.atlasActions button {
+  min-height: 35px;
+  flex: 1 0 auto;
+  color: #eedfc4;
+  background: #233b4a;
+  border: 1px solid #af956d70;
+  border-radius: 5px;
+  font:
+    12px/1.3 system-ui,
+    sans-serif;
+}
+.atlasActions button:hover:not(:disabled) {
+  background: #3e5365;
+}
+.atlasConfirmShade {
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  background: #030b16ce;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+.atlasConfirmDialog {
+  width: min(440px, 100%);
+  display: grid;
+  gap: 14px;
+  padding: 22px;
+  background: linear-gradient(160deg, #152d3e, #0a1c2c);
+  border: 1px solid #d1b789;
+  border-radius: 8px;
+  box-shadow: 0 20px 90px #000b;
+  color: #e8e7e1;
+}
+.atlasConfirmDialog h2 {
+  margin: 0;
+  font:
+    500 22px/1.2 Georgia,
+    serif;
+}
+.atlasConfirmDialog p {
+  margin: 0;
+  font:
+    13px/1.6 system-ui,
+    sans-serif;
+}
+@media (max-width: 860px) {
+  .workspace[data-world-view='globe'] .body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .workspace[data-world-view='globe'] .sidebar {
+    max-height: 40vh;
+  }
+  .atlasTools {
+    padding: 10px 14px;
+    gap: 8px;
+  }
+  .atlasTools h2 {
+    font-size: 18px;
+  }
+}
+
+.workspace .globeFocusUncharted {
+  position: absolute;
+  bottom: 14px;
+  left: 14px;
+  z-index: 5;
+  min-height: 32px;
+  padding: 4px 11px;
+  color: #dcc9e9;
+  font:
+    12px/1.3 Georgia,
+    serif;
+  border: 1px solid #a48ab462;
+  border-radius: 5px;
+  background: #14192dce;
+}
+.workspace .globeFocusUncharted:hover {
+  background: #253051;
+}

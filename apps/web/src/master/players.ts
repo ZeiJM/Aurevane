@@ -77,7 +77,7 @@ export interface PlayerRecoveryResult {
 }
 
 /** Shared browser/server contract for the immutable teleport geometry and coordinate grid. */
-export const MASTER_TELEPORT_GEOMETRY_VERSION = '2026-11-12-v2'
+export const MASTER_TELEPORT_GEOMETRY_VERSION = '2026-11-14-v3'
 
 export interface PlayerTeleportDestination {
   map: 'mainland' | 'currentVoid'

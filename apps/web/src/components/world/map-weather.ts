@@ -106,6 +106,17 @@ export function precipitationParticle(
   return { x, y, radius: 0.9 + depth * 0.6, length: 7 + depth * 4, alpha: 0.16 + depth * 0.1 }
 }
 /** Fixed particle count, no textures/filters or retained per-frame objects. */
+export function precipitationBudget(
+  weather: WorldWeather,
+  kind: Precipitation | null,
+  density = 1,
+) {
+  if (!kind) return 0
+  // Snowflakes occupy more screen area; scale snowfall independently from rain.
+  const base = kind === 'snow' ? (weather === 'storm' ? 116 : 46) : weather === 'storm' ? 160 : 68
+  return Math.min(192, Math.ceil(base * Math.max(0, density)))
+}
+
 export function paintPrecipitation(
   context: CanvasRenderingContext2D,
   width: number,
@@ -119,7 +130,7 @@ export function paintPrecipitation(
   const kind = precipitationKind(weather, regionId)
   if (!kind || width <= 0 || height <= 0) return 0
   const spindrift = kind === 'snow' && weather === 'storm'
-  const count = Math.ceil((kind === 'snow' ? 64 : weather === 'storm' ? 128 : 88) * density)
+  const count = precipitationBudget(weather, kind, density)
   context.save()
   context.lineCap = 'round'
   context.lineWidth = 1
@@ -210,31 +221,38 @@ export function paintTerrainAtmosphere(
   return count
 }
 
-/** Screen-space weather light stays soft and below names and actor markers. */
+/**
+ * Low-cost screen-space fog banks remain visible on low-quality and reduced-motion
+ * settings. Background names and interaction markers paint on a separate layer.
+ */
 export function paintWeatherVeil(
   context: CanvasRenderingContext2D,
   width: number,
   height: number,
   weather: WorldWeather,
   windOffset: number,
+  quality = 1,
 ) {
   if (weather !== 'fog' && weather !== 'overcast' && weather !== 'storm') return
   const fog = weather === 'fog'
+  const count = Math.max(2, Math.min(5, Math.ceil((fog ? 4 : 3) * quality)))
   context.save()
-  for (let i = 0; i < 3; i++) {
-    const radius = width * (0.42 + i * 0.1)
-    const x = wrap(windOffset * (fog ? 0.22 : 0.44) + (i * width) / 2, width + 2 * radius) - radius
-    const y = height * (0.18 + i * 0.31)
+  for (let i = 0; i < count; i++) {
+    const radius = width * (0.34 + (i % 3) * 0.13)
+    const x =
+      wrap(windOffset * (fog ? 0.17 : 0.38) + (i * width) / 2.4, width + 2 * radius) - radius
+    const y = height * (0.14 + (i % 4) * 0.24)
     const bank = context.createRadialGradient(x, y, 0, x, y, radius)
     bank.addColorStop(
       0,
       fog
-        ? 'rgba(197,213,206,.19)'
+        ? 'rgba(194,214,213,.46)'
         : weather === 'storm'
-          ? 'rgba(28,42,64,.21)'
-          : 'rgba(48,61,71,.13)',
+          ? 'rgba(26,36,56,.28)'
+          : 'rgba(38,46,62,.27)',
     )
-    bank.addColorStop(1, 'transparent')
+    bank.addColorStop(0.46, fog ? 'rgba(171,197,198,.25)' : 'rgba(40,48,60,.13)')
+    bank.addColorStop(1, 'rgba(20,34,42,0)')
     context.fillStyle = bank
     context.fillRect(x - radius, y - radius, radius * 2, radius * 2)
   }

@@ -84,5 +84,35 @@ it('preserves world addresses and historic routes through the authorized map geo
     authorityDigest: digest(terrainRows),
     landmarkDigest: digest(landmarkRows),
     routes,
-  }).toEqual(baseline)
+  }).toEqual({
+    ...baseline,
+    // Keep the original, archived PR1039 baseline immutable. PR1040 adds
+    // exactly 55 charted mainland sectors: 39 Starfall alpine frontier cells
+    // and 16 traversable Frostmere/Emberreach corridor cells. The prior
+    // routes, dimensions, safe zones, water and lava stay identical.
+    atlasSectors: baseline.atlasSectors + 55,
+    resolvedServerSectors: baseline.resolvedServerSectors + 55,
+    counts: {
+      ...baseline.counts,
+      walkable: baseline.counts.walkable + 2316,
+      roads: baseline.counts.roads + 624,
+    },
+    regions: baseline.regions.map((region) => ({
+      ...region,
+      sectors:
+        region.sectors +
+        (region.id === 'starfall-highlands'
+          ? 39
+          : region.id === 'frostmere'
+            ? 11
+            : region.id === 'emberreach'
+              ? 5
+              : 0),
+    })),
+    landmarks: baseline.landmarks + 3,
+    // These are exact digests of PR1040 terrain and landmark authority,
+    // including original saved identities, collision and legal entrances.
+    authorityDigest: '6bbdd6a94ac81b5c8a0d83e18fd92b98ae8396af3d26bddc17cfb0021cf2f4e9',
+    landmarkDigest: '375de635dd3948c664452cfe6a945a71a0a76f38b74d08ceb4ebb9588159be40',
+  })
 })

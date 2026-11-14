@@ -540,3 +540,32 @@ it('keeps ocean work bounded at extreme zoom and never increases crest count wit
     expect(b).toBe(a)
   }
 })
+
+it('keeps three geographically distinct sandy beach clusters on actual public coast edges', async () => {
+  const { AUTHORED_BEACHES, authoredBeach } = await import('./map-coast')
+  const { atlasSectors } = await import('@/world/atlas')
+  const { atlasNeighbor } = await import('@/world/topology')
+  const sectors = atlasSectors()
+  const present = new Set(sectors.map((s) => s.atlasColumn + ':' + s.atlasRow))
+  expect(AUTHORED_BEACHES).toHaveLength(3)
+  expect(AUTHORED_BEACHES.filter((b) => b.major)).toHaveLength(1)
+  for (const beach of AUTHORED_BEACHES) {
+    const matching = sectors.filter(
+      (sector) =>
+        sector.regionId === beach.regionId &&
+        authoredBeach(sector.regionId, sector.atlasColumn, sector.atlasRow)?.id === beach.id &&
+        [
+          [1, 0],
+          [-1, 0],
+          [0, 1],
+          [0, -1],
+        ].some(([dx, dy]) => {
+          const next = atlasNeighbor(sector.atlasColumn!, sector.atlasRow!, dx, dy)
+          return next && !present.has(next.column + ':' + next.row)
+        }),
+    )
+    expect(matching.length).toBeGreaterThan(beach.major ? 3 : 1)
+  }
+  expect(authoredBeach('hollow-coast', 68, 42)).toBeNull()
+  expect(authoredBeach('hollow-coast')).toBeNull()
+})

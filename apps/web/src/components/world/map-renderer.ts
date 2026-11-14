@@ -1,6 +1,13 @@
 import { mapSceneDomain } from './map-scene-domain'
-import { vegetationPose } from './map-vegetation'
+import { vegetationPose, treeFlex, treeWindBend } from './map-vegetation'
+import {
+  mountainPlacements,
+  isMajorMountainRangeSector,
+  denseMountainRidge,
+  drawMountainScree,
+} from './map-mountains'
 import { worldDayPhase } from '@/world/environment'
+import { paintWorldLighting } from './map-daylight'
 import {
   APPEARANCE_ASSET_PREFIX,
   APPEARANCE_FRAME,
@@ -811,6 +818,14 @@ export function createMapRenderer(
     if (!images.has('impact-basins') && renderSectors.some((s) => impactSite(s)))
       load('impact-basins', 'v01')
     if (
+      !images.has('mountains') &&
+      renderSectors.some(
+        (sector) =>
+          isMajorMountainRangeSector(sector) || sector.cells.some((cell) => cell.terrain === '#'),
+      )
+    )
+      load('mountains', 'v01')
+    if (
       !images.has('grand-bridges') &&
       renderSectors.some((s) =>
         [...(featurePlacements.get(s.id)?.values() ?? [])].some(
@@ -907,6 +922,11 @@ export function createMapRenderer(
     ratio = Math.min(window.devicePixelRatio || 1, quality === 'low' ? 1 : 1.5)
     canvas.width = Math.round(width * ratio)
     canvas.height = Math.round(height * ratio)
+    // The canvas clears smoothing flags on backing-store resize. Restore the
+    // best interpolation for painted architecture, rare sites and HD mountains;
+    // keep Low's lighter sampling path and unchanged raster/frame budgets.
+    ctx.imageSmoothingEnabled = true
+    ctx.imageSmoothingQuality = quality === 'low' ? 'medium' : 'high'
     // Interface detail keeps native display density without multiplying scenery cost.
     identityRatio = identityContext ? window.devicePixelRatio || 1 : ratio
     if (identityCanvas && identityContext) {
@@ -1303,7 +1323,7 @@ export function createMapRenderer(
         tile,
         pavement?.color ?? (sector.regionId === WINTER_ART ? '#a4aaa4' : '#95856a'),
       )
-    paintCoastLand(c, coastField.get(sector.id) ?? [], tile, sector.regionId)
+    paintCoastLand(c, coastField.get(sector.id) ?? [], tile, sector.regionId, sector)
     // A crossing is a continuous stone support, not a blue pond stamped on
     // the avenue. Shade only its supplied liquid mouths and its legal deck.
     const origin = sectorMapOrigin(sector)
@@ -1722,6 +1742,15 @@ export function createMapRenderer(
       )
         scenery.push(item)
     }
+    if (zoom > 1.32 && quality !== 'low' && images.has('mountains') && !images.has('mountains-hd'))
+      load('mountains-hd', 'v01')
+    const mountainSheet =
+      zoom > 1.32 &&
+      quality !== 'low' &&
+      images.get('mountains-hd')?.complete &&
+      images.get('mountains-hd')?.naturalWidth
+        ? images.get('mountains-hd')
+        : images.get('mountains')
     const nature = images.get('nature'),
       livingTrees = images.get('living-trees'),
       buildings = images.get('buildings'),
@@ -1795,6 +1824,7 @@ export function createMapRenderer(
           sector.regionId,
           budget.surf,
           wind.speed,
+          sector,
         )
         ctx.drawImage(ground(sector), 0, 0, GRID_WIDTH * tile, GRID_HEIGHT * tile)
         ctx.restore()
@@ -1807,6 +1837,7 @@ export function createMapRenderer(
       ) {
         const mixedTreeRegions = biomeField.get(sector.id)?.treeRegions
         const fogCells = warpedFog.get(sector.id)?.cells
+        const denseRidge = denseMountainRidge(sector)
         for (const cell of sector.cells) {
           if (
             sector.landscape === 'wildflowers' &&
@@ -1828,6 +1859,8 @@ export function createMapRenderer(
             })
           }
           if (cell.terrain !== 't' && cell.terrain !== '#') continue
+          if (denseRidge && cell.terrain === '#' && !drawMountainScree(sector.id, cell.x, cell.y))
+            continue
           // Keep the viewing side of surveyed private landmarks clear of
           // canopy. Ground and walkability retain their authoritative terrain.
           if (
@@ -1940,6 +1973,9 @@ export function createMapRenderer(
             rows: 2,
             tree: !rock,
             rock,
+            windFlex: rock
+              ? undefined
+              : treeFlex(sector.id, origin.x + cell.x, origin.y + cell.y, index) || undefined,
             ...(artPlacement
               ? {
                   anchorX: artPlacement.anchorX,
@@ -1947,6 +1983,27 @@ export function createMapRenderer(
                   source: artPlacement.source,
                 }
               : {}),
+          })
+        }
+      }
+      // Mountain silhouettes are big vertical artwork anchored on real,
+      // already-blocked rock. Only pre-existing roads can carry the pass sprite.
+      // They do not alter server collision, saved coordinates or discoveries.
+      if (!cachedScenery && mountainSheet?.complete && mountainSheet.naturalWidth) {
+        for (const feature of mountainPlacements(sector)) {
+          addScenery({
+            x: origin.x + feature.x,
+            y: origin.y + feature.y,
+            width: tile * feature.widthTiles,
+            height: tile * feature.heightTiles,
+            image: mountainSheet,
+            index: feature.index,
+            columns: 4,
+            rows: 3,
+            anchorX: 0.5,
+            anchorY: 0.94,
+            tree: false,
+            grandFeature: true,
           })
         }
       }
@@ -2760,7 +2817,13 @@ export function createMapRenderer(
         runEnd = index
         while (runEnd < objects.length) {
           const next = objects[runEnd]!
-          if (next.type !== 'scenery' || !usesCompactScenery(next.item)) break
+          if (
+            next.type !== 'scenery' ||
+            !usesCompactScenery(next.item) ||
+            // Moving canopies stay individual only at useful pixel sizes.
+            (ambient && budget.foliage > 0 && tile >= 32 && next.item.windFlex !== undefined)
+          )
+            break
           items.push(next.item)
           ordinals.push(next.ordinal)
           runEnd++
@@ -2810,22 +2873,13 @@ export function createMapRenderer(
       }
       // Stable individual phase, pace, strength and sheltered pauses. The base
       // stays fixed while the canopy bends, rather than sliding the whole tree.
-      const movingTree = ambient && budget.foliage > 0 && (item.tree || item.windFlex !== undefined)
+      // Animate a deterministic subset; stationary trees remain batchable.
+      // Only the upper canopy shears; the trunk's foot stays fixed.
+      const movingTree = detailed && ambient && budget.foliage > 0 && item.windFlex !== undefined
       if (movingTree) {
-        const seed = hashString(`${item.x}:${item.y}`),
-          phase = (seed % 6283) / 1000,
-          period = 1700 + (seed % 2600),
-          exposure = seed % 7 === 0 ? 0.1 : 0.45 + (seed % 61) / 100,
-          gust = 0.65 + 0.35 * Math.sin(now / 7500 + phase * 0.7),
-          sway =
-            wind.speed *
-            150 *
-            (0.58 + 0.42 * Math.sin(now / period + phase)) *
-            exposure *
-            gust *
-            budget.foliage *
-            (item.windFlex ?? 1)
-        ctx.transform(1, 0, -sway / item.height, 1, p.x, p.y)
+        const seed = hashString(String(item.x) + ':' + item.y + ':' + item.index)
+        const bend = treeWindBend(seed, now, wind.speed, item.windFlex!, budget.foliage)
+        ctx.transform(1, 0, -bend, 1, p.x, p.y)
       }
       const anchored = item.anchorY !== undefined
       if (anchored) {
@@ -3169,10 +3223,7 @@ export function createMapRenderer(
       phaseAt = ended
     }
     // Time changes light gradually. Night never removes the ability to read terrain.
-    const hour = view.environment.minuteOfDay / 60,
-      night = Math.max(0, Math.cos(((hour - 1) * Math.PI) / 12)) * 0.24
-    ctx.fillStyle = `rgba(16,28,50,${night})`
-    ctx.fillRect(0, 0, width, height)
+    paintWorldLighting(ctx, width, height, view.environment.minuteOfDay, weather)
     let cloudCount = 0
     canvas.dataset.precipitation = precipitationKind(weather, regionId) ?? 'none'
     canvas.dataset.mapQuality = quality
@@ -3226,7 +3277,7 @@ export function createMapRenderer(
           budget.weather,
         ),
       )
-      if (richAtmosphere) paintWeatherVeil(ctx, width, height, weather, wind.offset)
+      paintWeatherVeil(ctx, width, height, weather, wind.offset, richAtmosphere ? 1 : 0.55)
       const petals = current?.landscape === 'sakura' || current?.landscape === 'wisteria'
       const temperate = !['glasswind-desert', 'emberreach', 'frostmere'].includes(regionId)
       const motes = airborneMoteProfile(weather, petals)
@@ -3262,6 +3313,8 @@ export function createMapRenderer(
         ctx.globalAlpha = 1
       }
     }
+    if (!ambient && (weather === 'fog' || weather === 'overcast' || weather === 'storm'))
+      paintWeatherVeil(ctx, width, height, weather, wind.offset, quality === 'low' ? 0.5 : 1)
     if (preview && authorityOverlay) {
       const visibleIds = new Set(visible.map((sector) => sector.id))
       for (const sector of view.sectors) {

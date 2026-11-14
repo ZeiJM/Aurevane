@@ -1,20 +1,17 @@
 'use client'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ATLAS_COLUMNS, ATLAS_ROWS } from '@/world/atlas'
 import { GRID_HEIGHT, GRID_WIDTH } from '@/world/catalog'
-import { sectorDisplayNumber, sectorLabel } from '@/world/coordinate-label'
 import { FERRY_MAINLAND_DOCK } from '@/world/ferry'
 import { globeSectorCenter, globeSectorCoordinate, projectGlobePoint } from '@/world/globe-math'
-import type { WorldAtlasCell, WorldView } from '@/world/types'
+import type { WorldView } from '@/world/types'
 import { SphericalView } from './spherical-view'
-import { globeTowns, projectGlobeTowns } from './globe-atlas'
+import { projectGlobeTowns } from './globe-atlas'
 import { UNCHARTED_VEIL_FOCUS } from './globe-veil'
 import { globeFerryPosition } from './globe-ferry'
 import styles from './workspace.module.css'
-const sectorOrder = new Intl.Collator('en', { numeric: true })
-const geographicOrder = (a: WorldAtlasCell, b: WorldAtlasCell) =>
-  (sectorDisplayNumber(a) ?? Infinity) - (sectorDisplayNumber(b) ?? Infinity) ||
-  sectorOrder.compare(a.coordinate, b.coordinate)
+
+export const GLOBE_FOCUS_EVENT = 'aurevane-world-globe-focus'
 export function WorldGlobe({
   view,
   selected,
@@ -65,28 +62,26 @@ export function WorldGlobe({
     )
     return () => clearInterval(timer)
   }, [view.serverNow])
-  const towns = useMemo(
-    () => globeTowns(view.atlas ?? []).sort((a, b) => geographicOrder(a.sector, b.sector)),
-    [view.atlas],
-  )
+  // Selecting a charted sector never initiates travel; the side panel owns confirmation.
+  const activateSector = (id: string | null) => onSelect(id)
   const selectSector = (id: string | null) => {
-    onSelect(id)
+    activateSector(id)
     const sector = view.atlas?.find((cell) => cell.id === id && cell.charted)
-    const location = sector && globeSectorCenter(sector.coordinate, ATLAS_COLUMNS, ATLAS_ROWS)
-    if (location) setCamera(location)
+    const target = sector && globeSectorCenter(sector.coordinate, ATLAS_COLUMNS, ATLAS_ROWS)
+    if (target) setCamera(target)
   }
-  const options = useMemo(
-    () =>
-      view.atlas
-        ?.filter((s) => s.charted)
-        .sort(geographicOrder)
-        .map((sector) => (
-          <option key={sector.id} value={sector.id}>
-            {sectorLabel(sector)} · {sector.name}
-          </option>
-        )),
-    [view.atlas],
-  )
+  useEffect(() => {
+    // A user-driven selection from the side panel focuses without synchronously
+    // deriving state in an effect or remounting the expensive globe canvas.
+    const focus = (event: Event) => {
+      const id = (event as CustomEvent<string>).detail
+      const sector = view.atlas?.find((cell) => cell.id === id && cell.charted)
+      const point = sector && globeSectorCenter(sector.coordinate, ATLAS_COLUMNS, ATLAS_ROWS)
+      if (point) setCamera(point)
+    }
+    window.addEventListener(GLOBE_FOCUS_EVENT, focus)
+    return () => window.removeEventListener(GLOBE_FOCUS_EVENT, focus)
+  }, [view.atlas])
   const pin = projectGlobePoint(location, camera)
   const labels = projectGlobeTowns(view.atlas ?? [], camera, zoom)
   const veil = projectGlobePoint(UNCHARTED_VEIL_FOCUS, camera)
@@ -103,12 +98,21 @@ export function WorldGlobe({
       dockLocation,
     )
   const ferry = vessel && projectGlobePoint(vessel, camera)
+  const dockPoint = dockLocation ? projectGlobePoint(dockLocation, camera) : null
   return (
     <div className={styles.globeScene}>
       <div className={styles.globeTitle}>
         <span>Surveyor’s collection</span>
         <h2>World Atlas</h2>
       </div>
+      <button
+        type="button"
+        className={styles.globeFocusUncharted}
+        aria-label="Focus Uncharted Lands"
+        onClick={() => setCamera(UNCHARTED_VEIL_FOCUS)}
+      >
+        ◇ Uncharted Lands
+      </button>
       <div className={styles.globeFrame}>
         <SphericalView
           src="/media/art/world/runtime/globe-materials-v02.webp"
@@ -122,9 +126,11 @@ export function WorldGlobe({
           gridRows={ATLAS_ROWS}
           atlas={view.atlas}
           onActivate={(point) => {
-            const coordinate = globeSectorCoordinate(point, ATLAS_COLUMNS, ATLAS_ROWS),
-              sector = view.atlas?.find((cell) => cell.coordinate === coordinate && cell.charted)
-            onSelect(sector?.id ?? null)
+            const coordinate = globeSectorCoordinate(point, ATLAS_COLUMNS, ATLAS_ROWS)
+            const sector = view.atlas?.find(
+              (cell) => cell.coordinate === coordinate && cell.charted,
+            )
+            selectSector(sector?.id ?? null)
           }}
         >
           {labels.map(({ sector, left, top }) => (
@@ -168,7 +174,7 @@ export function WorldGlobe({
               style={{ left: `${(veilX + 1) * 50}%`, top: `${(1 - veilY) * 50}%` }}
             >
               <i aria-hidden="true">◇</i>
-              Uncharted supercontinent
+              Uncharted Lands
             </span>
           ) : null}
           {ferry?.visible &&
@@ -193,65 +199,24 @@ export function WorldGlobe({
               </svg>
             </span>
           ) : null}
-        </SphericalView>
-      </div>
-      <div className={styles.sectorPicker}>
-        <div className={styles.globeOrientation} aria-label="Globe orientation">
-          <button type="button" onClick={() => setCamera(location)}>
-            My position
-          </button>
-          {port ? (
-            <button type="button" onClick={() => selectSector(port.id)}>
-              Ferry dock
+          {port && dockPoint?.visible ? (
+            <button
+              type="button"
+              data-globe-travel-point
+              data-globe-town
+              className={styles.globeTravelPoint}
+              aria-label="Travel point: Ferry dock"
+              title="Travel point: Ferry dock"
+              onClick={() => selectSector(port.id)}
+              style={{
+                left: (dockPoint.x * zoom + 1) * 50 + '%',
+                top: (1 - dockPoint.y * zoom) * 50 + '%',
+              }}
+            >
+              ◈
             </button>
           ) : null}
-          <button
-            type="button"
-            onClick={() => {
-              onSelect(null)
-              setCamera(UNCHARTED_VEIL_FOCUS)
-            }}
-          >
-            Uncharted supercontinent
-          </button>
-        </div>
-        <label className={styles.townPicker}>
-          Main towns
-          <select
-            aria-label="Main town"
-            value={towns.some((town) => town.sector.id === selected) ? selected! : ''}
-            onChange={(event) => selectSector(event.target.value || null)}
-          >
-            <option value="">Find a town</option>
-            {towns.map(({ sector }) => (
-              <option key={sector.id} value={sector.id}>
-                {sector.name} · {sectorLabel(sector)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <details>
-          <summary>Known Lands</summary>
-          <label>
-            Choose a destination
-            <select
-              aria-label="Charted sector"
-              value={selected ?? ''}
-              onChange={(event) => selectSector(event.target.value || null)}
-            >
-              <option value="">Select a sector</option>
-              {options}
-            </select>
-          </label>
-        </details>
-      </div>
-      <div className={styles.globeCaption}>
-        <span>
-          <i aria-hidden="true" /> Charted ground
-        </span>
-        <span>
-          <i aria-hidden="true" /> Uncharted supercontinent
-        </span>
+        </SphericalView>
       </div>
     </div>
   )

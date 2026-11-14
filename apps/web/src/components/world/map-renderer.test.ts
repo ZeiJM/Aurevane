@@ -1403,17 +1403,23 @@ describe('native map input and bounded lifecycle', () => {
     const s = scene()
     const settings = { ...DEFAULT_WORLD_ENVIRONMENT_SETTINGS, dayLengthMinutes: 120 }
     const time = Date.UTC(2026, 9, 10)
-    const tint = (now: number) => {
+    const nightOpacity = (now: number) => {
       s.rectangles.length = 0
       s.renderer.update({ ...s.view, environment: resolveWorldEnvironment(now, settings) })
       s.frame(40)
-      return s.rectangles.find(
-        (fill) => typeof fill.colour === 'string' && fill.colour.startsWith('rgba(16,28,50,'),
+      const colour = s.rectangles.find(
+        (fill) => typeof fill.colour === 'string' && fill.colour.startsWith('rgba(12,27,65,'),
       )?.colour
+      return colour ? Number(colour.slice('rgba(12,27,65,'.length, -1)) : null
     }
-    expect(tint(time)).toMatch(/^rgba\(16,28,50,0\.[1-9]/)
-    expect(tint(time + 60 * 60_000)).toBe('rgba(16,28,50,0)')
-    expect(tint(time + 120 * 60_000)).toMatch(/^rgba\(16,28,50,0\.[1-9]/)
+    const firstNight = nightOpacity(time)
+    const noon = nightOpacity(time + 60 * 60_000)
+    const nextNight = nightOpacity(time + 120 * 60_000)
+    expect(firstNight).not.toBeNull()
+    expect(noon).not.toBeNull()
+    expect(nextNight).not.toBeNull()
+    expect(firstNight!).toBeGreaterThan(noon!)
+    expect(nextNight).toBeCloseTo(firstNight!, 3)
     s.renderer.dispose()
     vi.unstubAllGlobals()
   })
@@ -3319,7 +3325,7 @@ it('reduces cosmetic storm work in the Low tier while retaining movement input',
   const s = scene(false, { ...initial, environment: { ...initial.environment, weather: 'storm' } })
   try {
     s.frame(40)
-    expect(s.canvas.dataset.precipitationParticles).toBe('128')
+    expect(s.canvas.dataset.precipitationParticles).toBe('160')
     s.renderer.settings({ animate: true, zoom: 1, quality: 'low' })
     s.frame(100)
     expect(Number(s.canvas.dataset.precipitationParticles)).toBeLessThan(64)
@@ -4638,7 +4644,7 @@ it('renders the remote grand crossing with its measured new bridge art rather th
 
 it('loads close-view valley details and arena ground material only for their own grand sites', () => {
   for (const [sectorId, required] of [
-    ['atlas:70:24', ['valley-fire-detail', 'valley-ice-detail', 'valley-cascade-detail']],
+    ['atlas:71:17', ['valley-fire-detail', 'valley-ice-detail', 'valley-cascade-detail']],
     ['atlas:44:37', ['colosseum-arena-grain']],
   ] as const) {
     const view = projectWorld({ ...newWorldState(), position: { sectorId, x: 6, y: 4 } }, [], 1000)
@@ -4650,7 +4656,7 @@ it('loads close-view valley details and arena ground material only for their own
           s.images.some((image) => (image as HTMLImageElement).src.endsWith(sheet + '-v01.webp')),
         ).toBe(true)
       const unrelated =
-        sectorId === 'atlas:70:24' ? ['colosseum-arena-grain'] : valleyDetailArt.map((d) => d.sheet)
+        sectorId === 'atlas:71:17' ? ['colosseum-arena-grain'] : valleyDetailArt.map((d) => d.sheet)
       for (const sheet of unrelated)
         expect(
           s.images.some((image) => (image as HTMLImageElement).src.endsWith(sheet + '-v01.webp')),
@@ -4664,7 +4670,7 @@ it('loads close-view valley details and arena ground material only for their own
 
 it('paints context-preserving valley detail frames in the exact selected master coordinates', () => {
   const view = projectWorld(
-    { ...newWorldState(), position: { sectorId: 'atlas:70:24', x: 6, y: 4 } },
+    { ...newWorldState(), position: { sectorId: 'atlas:71:17', x: 6, y: 4 } },
     [],
     1000,
   )

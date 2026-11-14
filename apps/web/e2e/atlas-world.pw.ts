@@ -253,15 +253,25 @@ async function expectLocation(page: Page, name: string) {
     timeout: 15000,
   })
 }
+// The quick sector field reviews the same server-validated travel path as the side panel.
+async function reviewSectorTravel(page: Page, sectorId: string) {
+  const charted = (await world(page)).atlas?.find((cell) => cell.id === sectorId && cell.charted)
+  expect(charted).toBeDefined()
+  const sectorNumber = charted!.row * 128 + charted!.column + 1
+  await page
+    .getByRole('spinbutton', { name: 'Sector number', exact: true })
+    .fill(String(sectorNumber))
+  await page.getByRole('button', { name: 'Review sector', exact: true }).click()
+  await expect(page.getByRole('dialog', { name: 'Confirm world travel' })).toBeVisible()
+  await page.getByRole('button', { name: 'Confirm travel', exact: true }).click()
+}
 // Exercise actual canvas picking or the globe's charted-destination controls.
 async function stageWalk(page: Page, destination: { sectorId: string; x: number; y: number }) {
   const current = await world(page)
   const sector = current.sectors.find((s) => s.id === destination.sectorId)
   if (!sector) {
     await page.getByRole('button', { name: /Open world atlas/ }).click()
-    await page.getByText('Known Lands', { exact: true }).click()
-    await page.getByLabel('Charted sector', { exact: true }).selectOption(destination.sectorId)
-    await page.getByRole('button', { name: 'Travel here', exact: true }).click()
+    await reviewSectorTravel(page, destination.sectorId)
     return
   }
   const canvas = page.locator('canvas[data-world-stage]')
@@ -279,9 +289,7 @@ async function stageWalk(page: Page, destination: { sectorId: string; x: number;
   const y = box.height / 2 + (dx + dy) * metrics.tile * 0.44
   if (x <= 0 || x >= box.width || y <= 0 || y >= box.height) {
     await page.getByRole('button', { name: /Open world atlas/ }).click()
-    await page.getByText('Known Lands', { exact: true }).click()
-    await page.getByLabel('Charted sector', { exact: true }).selectOption(destination.sectorId)
-    await page.getByRole('button', { name: 'Travel here', exact: true }).click()
+    await reviewSectorTravel(page, destination.sectorId)
     return
   }
   expect(x).toBeGreaterThan(0)
@@ -1608,9 +1616,7 @@ test('the globe rotates by dragging and has a usable charted fallback without We
   await globe.press('ArrowRight')
   await expect.poll(async () => (await fallback.screenshot()).equals(beforeRotation)).toBe(false)
   await capture(page, info, 'detailed-fallback-globe')
-  await page.getByText('Known Lands', { exact: true }).click()
-  await page.getByLabel('Charted sector', { exact: true }).selectOption('frostmere')
-  await page.getByRole('button', { name: 'Travel here', exact: true }).click()
+  await reviewSectorTravel(page, 'frostmere')
   await expect.poll(async () => (await world(page)).route.length).toBeGreaterThan(0)
   await page.locator('canvas[data-world-stage]').press('Escape')
   await expect.poll(async () => (await world(page)).route.length).toBe(0)
