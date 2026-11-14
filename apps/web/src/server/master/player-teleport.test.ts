@@ -70,7 +70,13 @@ it('checks staff access before preparing geometry and sends only typed destinati
     },
     world: { version: 7, position: { sectorId: 'atlas:62:28', x: 6, y: 4 } },
   }
-  const rpc = vi.fn(async (name: string) => (name === 'read_master_player_v1' ? raw : {}))
+  const rpc = vi.fn(async (name: string) =>
+    name === 'read_master_player_v1'
+      ? raw
+      : name === 'teleport_master_player_v3'
+        ? { position: { sectorId: 'atlas:28:28', x: 6, y: 4 }, version: 7, replayed: false }
+        : {},
+  )
   const service = createMasterPlayersService(access, rpc, undefined, prepare)
   const input = {
     characterId: 'target',
@@ -81,6 +87,11 @@ it('checks staff access before preparing geometry and sends only typed destinati
   }
   const result = await service.teleport('owner', input)
   expect(result.world).toEqual(raw.world)
+  expect(result.teleportReceipt).toEqual({
+    position: { sectorId: 'atlas:28:28', x: 6, y: 4 },
+    version: 7,
+    replayed: false,
+  })
   expect(rpc).toHaveBeenCalledWith('teleport_master_player_v3', {
     p_actor_user_id: 'owner',
     p_character_id: 'target',

@@ -125,7 +125,19 @@ export function PlayersWorkspace({
           confirmed: true,
         })
         setPlayer(result.player)
-        setNotice('Player teleported. Their previous path has been cancelled.')
+        const receipt = result.player.teleportReceipt
+        const current = result.player.world?.position
+        const changed =
+          receipt &&
+          current &&
+          (current.sectorId !== receipt.position.sectorId ||
+            current.x !== receipt.position.x ||
+            current.y !== receipt.position.y)
+        setNotice(
+          receipt
+            ? `Teleport ${receipt.replayed ? 'replayed' : 'committed'} to ${receipt.position.sectorId}, X:${receipt.position.x}, Y:${receipt.position.y} (version ${receipt.version}).${changed ? ' The player moved again before refresh; the displayed position is newer.' : ' The previous route was cancelled.'}`
+            : 'Player teleport response is unavailable.',
+        )
       } else if (player.battle) {
         const result = await request<PlayerRecoveryResult>({
           operation: 'recover',

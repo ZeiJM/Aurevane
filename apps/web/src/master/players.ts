@@ -35,6 +35,12 @@ export interface MasterPlayerFacts {
   }
 }
 export interface MasterPlayerView {
+  /** Server-committed teleport receipt, distinct from a later refreshed position. */
+  teleportReceipt?: {
+    position: { sectorId: string; x: number; y: number }
+    version: number
+    replayed: boolean
+  }
   characterId: string
   name: string
   portraitRef: string
