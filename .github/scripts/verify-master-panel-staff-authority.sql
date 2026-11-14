@@ -81,7 +81,8 @@ begin
     foreach command in array array[
       'select public.install_master_teleport_geometry_v1($1,''2026-11-12-v1'',''[]''::jsonb,$2)',
       'select public.teleport_master_player_v1($1,$3,0,gen_random_uuid(),''mainland'',1,1,1,''Native authority proof'',true,$2)'
-    ] || case when to_regprocedure('public.teleport_master_player_v2(uuid,uuid,bigint,uuid,text,integer,integer,integer,text,boolean,uuid)') is not null then array['select public.teleport_master_player_v2($1,$3,0,gen_random_uuid(),''currentVoid'',3072,1,1,''Native authority proof'',true,$2)'] else array[]::text[] end loop
+    ] || case when to_regprocedure('public.teleport_master_player_v2(uuid,uuid,bigint,uuid,text,integer,integer,integer,text,boolean,uuid)') is not null then array['select public.teleport_master_player_v2($1,$3,0,gen_random_uuid(),''currentVoid'',3072,1,1,''Native authority proof'',true,$2)'] else array[]::text[] end
+      || case when to_regprocedure('public.teleport_master_player_v3(uuid,uuid,bigint,uuid,text,integer,integer,integer,text,boolean,uuid)') is not null then array['select public.teleport_master_player_v3($1,$3,0,gen_random_uuid(),''currentVoid'',3072,1,1,''Native authority proof'',true,$2)'] else array[]::text[] end loop
       begin execute command using staff_id,character_id,alternate_id; raise exception 'EXPECTED active wrong-page teleport denial';
       exception when insufficient_privilege then assert sqlerrm='MASTER_PANEL_PAGE_ACCESS_REQUIRED'; end;
       begin execute command using staff_id,null::uuid,alternate_id; raise exception 'EXPECTED missing teleport selected actor denial';
@@ -221,6 +222,9 @@ begin
     ]::text[];
     if to_regprocedure('public.teleport_master_player_v2(uuid,uuid,bigint,uuid,text,integer,integer,integer,text,boolean,uuid)') is not null then
       new_actor_signatures := new_actor_signatures || array['public.teleport_master_player_v2(uuid,uuid,bigint,uuid,text,integer,integer,integer,text,boolean,uuid)']::text[];
+    end if;
+    if to_regprocedure('public.teleport_master_player_v3(uuid,uuid,bigint,uuid,text,integer,integer,integer,text,boolean,uuid)') is not null then
+      new_actor_signatures := new_actor_signatures || array['public.teleport_master_player_v3(uuid,uuid,bigint,uuid,text,integer,integer,integer,text,boolean,uuid)']::text[];
     end if;
     assert (select relrowsecurity from pg_class where oid='app_private.master_teleport_geometry'::regclass), 'Teleport geometry private RLS';
     foreach signature in array array['anon','authenticated','service_role'] loop

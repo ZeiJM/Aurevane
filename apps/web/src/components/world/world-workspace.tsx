@@ -808,9 +808,12 @@ export function WorldWorkspace({
                   type="button"
                   onClick={() => {
                     const number = Number(sectorJump)
-                    const sector = /^\d+$/.test(sectorJump.trim()) && number > 0
-                      ? view.atlas?.find((cell) => cell.charted && sectorDisplayNumber(cell) === number)
-                      : null
+                    const sector =
+                      /^\d+$/.test(sectorJump.trim()) && number > 0
+                        ? view.atlas?.find(
+                            (cell) => cell.charted && sectorDisplayNumber(cell) === number,
+                          )
+                        : null
                     if (!sector) {
                       setMessage('Enter a known charted sector number to review travel.')
                       return
@@ -876,7 +879,8 @@ export function WorldWorkspace({
                 ) : null}
               </div>
               <p>
-                Select a known sector, enter its number or choose Travel here to review and confirm travel.
+                Select a known sector, enter its number or choose Travel here to review and confirm
+                travel.
               </p>
             </section>
           ) : null}
