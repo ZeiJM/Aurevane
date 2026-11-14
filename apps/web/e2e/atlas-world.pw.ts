@@ -1,5 +1,6 @@
 import { openMapSettings, closeMapSettings } from './world-map-settings-helpers'
 import { observeWorldRead, readWorldSnapshot } from './world-read-observation'
+import { cleanupWorldPresenceFixtures } from './world-presence-diagnostics'
 import { createHash, randomUUID } from 'node:crypto'
 import {
   gateWorldMutationDefinition,
@@ -25,13 +26,35 @@ import { registerWorldMultiplayerLoadCase } from './world-multiplayer-load-case'
 import type { CharacterBuildContext } from '../src/server/character/character-build-service'
 
 const runtimeErrors = new WeakMap<Page, string[]>()
-test.beforeEach(({ page }) => {
+const caseFixtures = new WeakMap<TestInfo, Map<string, Page>>()
+test.beforeEach(({ page }, info) => {
   const errors: string[] = []
   runtimeErrors.set(page, errors)
+  caseFixtures.set(info, new Map())
   page.on('pageerror', (error) => errors.push(error.message))
 })
-test.afterEach(({ page }) => {
+test.afterEach(async ({ page }, info) => {
+  const fixtures = [...(caseFixtures.get(info) ?? new Map<string, Page>())]
+  // Closing a browser alone leaves its offline character selectable for ten
+  // minutes. Retire only this case's fixtures after their heartbeats stop.
+  const cleanupErrors: string[] = []
+  for (let i = 0; i < fixtures.length; i += 2) {
+    const pair = fixtures.slice(i, i + 2)
+    cleanupErrors.push(
+      ...(await cleanupWorldPresenceFixtures(
+        pair.map(([characterId]) => characterId),
+        pair.map(
+          ([, fixturePage]) =>
+            () =>
+              fixturePage.close(),
+        ),
+        sql,
+      )),
+    )
+  }
+  caseFixtures.delete(info)
   expect(runtimeErrors.get(page) ?? []).toEqual([])
+  expect(cleanupErrors, 'Atlas case must retire its own presence fixtures').toEqual([])
 })
 
 async function verifyPlacePortraits(page: Page) {
@@ -209,9 +232,12 @@ async function enter(page: Page) {
     password: 'Atlas-browser-2026!',
     characterName: name,
   })
-  sql(
-    `select public.read_world_state_v1(c.user_id,c.id,'${JSON.stringify({ ...newWorldState(), safe: false })}'::jsonb) from public.characters c where c.name='${name}';`,
+  const fixture = JSON.parse(
+    sql(
+      `select jsonb_build_object('characterId',c.id,'state',public.read_world_state_v1(c.user_id,c.id,'${JSON.stringify({ ...newWorldState(), safe: false })}'::jsonb)) from public.characters c where c.name='${name}';`,
+    ),
   )
+  caseFixtures.get(test.info())!.set(fixture.characterId, page)
   await page
     .getByRole('navigation', { name: 'Primary game navigation', exact: true })
     .getByRole('link', { name: /World/ })

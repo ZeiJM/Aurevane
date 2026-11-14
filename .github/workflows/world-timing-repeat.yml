@@ -72,6 +72,8 @@ jobs:
             apps/web/test-results/**/world-presence-boundaries.json
             apps/web/test-results/**/world-presence-cleanup.json
             apps/web/test-results/**/attachments/held-walk-approval-timings-*.json
+            apps/web/test-results/**/error-context.md
+            apps/web/test-results/atlas-world.pw.ts-rapid-*/trace.zip
           if-no-files-found: error
           retention-days: 7
       - name: Stop disposable database
