@@ -18,7 +18,7 @@ it('validates row-major destinations and refuses raw sector IDs, terrain, other 
       sectorNumber: 768,
       x: 0,
       y: 0,
-      geometryVersion: '2026-11-12-v2',
+      geometryVersion: '2026-11-14-v3',
     }).map,
   ).toBe('currentVoid')
   for (const invalid of [
@@ -81,7 +81,7 @@ it('checks staff access before preparing geometry and sends only typed destinati
   }
   const result = await service.teleport('owner', input)
   expect(result.world).toEqual(raw.world)
-  expect(rpc).toHaveBeenCalledWith('teleport_master_player_v2', {
+  expect(rpc).toHaveBeenCalledWith('teleport_master_player_v3', {
     p_actor_user_id: 'owner',
     p_character_id: 'target',
     p_expected_version: 6,
@@ -116,14 +116,14 @@ it('uses a new immutable geometry release and covers the expanded private contin
     masterTeleportGeometry,
     parseMasterTeleportDestination,
   } = await import('./player-teleport')
-  expect(MASTER_TELEPORT_GEOMETRY_VERSION).toBe('2026-11-12-v2')
+  expect(MASTER_TELEPORT_GEOMETRY_VERSION).toBe('2026-11-14-v3')
   expect(
     parseMasterTeleportDestination({
       map: 'currentVoid',
       sectorNumber: 3072,
       x: 12,
       y: 8,
-      geometryVersion: '2026-11-12-v2',
+      geometryVersion: '2026-11-14-v3',
     }).sectorNumber,
   ).toBe(3072)
   const geometry = masterTeleportGeometry(
@@ -133,7 +133,7 @@ it('uses a new immutable geometry release and covers the expanded private contin
   expect(geometry.map((s) => s.sectorId)).toContain('void:ivory-veil:63:47')
 })
 
-it.each([undefined, '2026-11-12-v1', 'unrecognized'])(
+it.each([undefined, '2026-11-12-v1', '2026-11-12-v2', 'unrecognized'])(
   'refuses stale Void coordinate version %s before preparation or commit',
   async (geometryVersion) => {
     const prepare = vi.fn(async () => {}),
@@ -176,7 +176,7 @@ it('binds accepted Void numbering to the shared browser geometry version and sti
     sectorNumber: 34,
     x: 6,
     y: 4,
-    geometryVersion: '2026-11-12-v2',
+    geometryVersion: '2026-11-14-v3',
   }
   const destination = parseMasterTeleportDestination(input)
   expect(destination).toEqual(input)
