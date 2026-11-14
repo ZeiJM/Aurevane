@@ -58,7 +58,7 @@ test('saved short World cycle and weather expiry reach the live refresh, map and
   await page.addInitScript(() => {
     const original = CanvasRenderingContext2D.prototype.fillRect
     CanvasRenderingContext2D.prototype.fillRect = function (...args) {
-      if (typeof this.fillStyle === 'string' && /^rgba\(16, 28, 50,/.test(this.fillStyle))
+      if (typeof this.fillStyle === 'string' && /^rgba\(12,\s*27,\s*65,/.test(this.fillStyle))
         this.canvas.dataset.observedNightPaint = this.fillStyle
       return original.apply(this, args)
     }

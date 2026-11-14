@@ -511,7 +511,7 @@ export function registerWorldMapCorrectionCases(harness: Harness) {
             .toBeGreaterThanOrEqual(420)
         }
         await expect(
-          page.getByRole('button', { name: 'Uncharted supercontinent', exact: true }),
+          page.getByRole('button', { name: 'Focus Uncharted Lands', exact: true }),
         ).toBeVisible()
         await expect(page.getByText('Uncharted Waters', { exact: true })).toHaveCount(0)
         await expect(page.getByRole('button', { name: 'Travel here', exact: true })).toHaveCount(0)

@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { WORLD_LAND_NAME } from '@/world/atlas'
 import { WORLD_REGIONS } from '@/world/catalog'
 import { FERRY_MAINLAND_DOCK } from '@/world/ferry'
-import { positionLabel, sectorLabel } from '@/world/coordinate-label'
+import { positionLabel, sectorDisplayNumber, sectorLabel } from '@/world/coordinate-label'
 import { parseVoidSectorId, VOID_REALMS } from '@/world/void-realms'
 import { regionalWeatherLabel } from './map-weather'
 import {
@@ -142,7 +142,8 @@ export function WorldWorkspace({
     [visiblePlayerIds, setVisiblePlayerIds] = useState<string[] | null>(null),
     [destinationId, setDestinationId] = useState<string | null>(null),
     [confirmDestinationId, setConfirmDestinationId] = useState<string | null>(null),
-    [travelPointCursor, setTravelPointCursor] = useState(-1)
+    [travelPointCursor, setTravelPointCursor] = useState(-1),
+    [sectorJump, setSectorJump] = useState('')
   const [animate, setAnimate] = useState(true),
     [zoom, setZoom] = useState(1),
     [globeZoom, setGlobeZoom] = useState(0.94)
@@ -741,13 +742,6 @@ export function WorldWorkspace({
                 setDestinationId(id)
                 if (id) setPanelOpen(true)
               }}
-              onTravelRequest={(id) => {
-                if (view.atlas?.some((cell) => cell.id === id && cell.charted)) {
-                  setDestinationId(id)
-                  setConfirmDestinationId(id)
-                  setPanelOpen(true)
-                }
-              }}
             />
           )}
           {ferryVisible && ferry ? (
@@ -796,6 +790,38 @@ export function WorldWorkspace({
                   ))}
                 </select>
               </label>
+              <div className={styles.atlasActions}>
+                <label>
+                  Sector number
+                  <input
+                    type="number"
+                    min={1}
+                    max={8192}
+                    step={1}
+                    inputMode="numeric"
+                    aria-label="Sector number"
+                    value={sectorJump}
+                    onChange={(event) => setSectorJump(event.target.value)}
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const number = Number(sectorJump)
+                    const sector = /^\d+$/.test(sectorJump.trim()) && number > 0
+                      ? view.atlas?.find((cell) => cell.charted && sectorDisplayNumber(cell) === number)
+                      : null
+                    if (!sector) {
+                      setMessage('Enter a known charted sector number to review travel.')
+                      return
+                    }
+                    focusGlobalSector(sector.id)
+                    setConfirmDestinationId(sector.id)
+                  }}
+                >
+                  Review sector
+                </button>
+              </div>
               <div className={styles.atlasActions}>
                 <button type="button" onClick={() => focusGlobalSector(view.position.sectorId)}>
                   ◉ You are here
@@ -850,8 +876,7 @@ export function WorldWorkspace({
                 ) : null}
               </div>
               <p>
-                Click a known sector to select it. Double-click a town marker or choose Travel here
-                to review travel.
+                Select a known sector, enter its number or choose Travel here to review and confirm travel.
               </p>
             </section>
           ) : null}

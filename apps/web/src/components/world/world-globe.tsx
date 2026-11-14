@@ -19,7 +19,6 @@ export function WorldGlobe({
   zoom,
   zoomLocked,
   onZoom,
-  onTravelRequest,
 }: {
   view: WorldView
   selected: string | null
@@ -27,7 +26,6 @@ export function WorldGlobe({
   zoom: number
   zoomLocked: boolean
   onZoom: (zoom: number) => void
-  onTravelRequest?: (sectorId: string) => void
 }) {
   const current = view.sectors.find((sector) => sector.id === view.position.sectorId)!
   const sectorCenter = globeSectorCenter(current.coordinate, ATLAS_COLUMNS, ATLAS_ROWS)
@@ -64,8 +62,7 @@ export function WorldGlobe({
     )
     return () => clearInterval(timer)
   }, [view.serverNow])
-  // A single click selects a charted sector. A deliberate double-click on
-  // a town marker can separately open the confirmation, never initiate travel.
+  // Selecting a charted sector never initiates travel; the side panel owns confirmation.
   const activateSector = (id: string | null) => onSelect(id)
   const selectSector = (id: string | null) => {
     activateSector(id)
@@ -144,7 +141,6 @@ export function WorldGlobe({
               aria-label={`Select ${sector.name} town`}
               aria-pressed={selected === sector.id}
               onClick={() => selectSector(sector.id)}
-              onDoubleClick={() => onTravelRequest?.(sector.id)}
               style={{
                 left: `${left}%`,
                 top: `${top}%`,
