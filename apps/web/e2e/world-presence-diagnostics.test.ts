@@ -240,6 +240,49 @@ describe('World failure boundary diagnostics', () => {
       }
     },
   )
+
+  it('stops duplicating response-body parsing before native motion timing', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'world-boundaries-'))
+    try {
+      const emitter = new EventEmitter()
+      const page = Object.assign(emitter, {
+        locator: () => ({ evaluate: async () => Promise.reject(new Error('missing canvas')) }),
+      }) as unknown as Page
+      const diagnostics = worldPresenceDiagnostics()
+      diagnostics.observe(page, 'owner')
+      const firstBody = vi.fn(async () => ({ characterId: owner, players: [] }))
+      emitter.emit('response', {
+        url: () => 'http://localhost/api/world',
+        status: () => 200,
+        json: firstBody,
+      })
+      await diagnostics.suspendResponseBodyInspection()
+      expect(firstBody).toHaveBeenCalledOnce()
+
+      const timedBody = vi.fn(async () => ({ characterId: owner, players: [] }))
+      emitter.emit('response', {
+        url: () => 'http://localhost/api/world',
+        status: () => 200,
+        json: timedBody,
+      })
+      await diagnostics.save({
+        outputPath: (name: string) => join(directory, name),
+        attach: async () => {},
+      } as unknown as TestInfo)
+      expect(timedBody).not.toHaveBeenCalled()
+      const result = JSON.parse(
+        await readFile(join(directory, 'world-presence-boundaries.json'), 'utf8'),
+      ) as { events: { phase: string; status?: number }[] }
+      expect(result.events).toContainEqual(
+        expect.objectContaining({ phase: 'response', status: 200 }),
+      )
+      expect(result.events).toContainEqual(
+        expect.objectContaining({ phase: 'response-body-inspection-suspended' }),
+      )
+    } finally {
+      await rm(directory, { recursive: true, force: true })
+    }
+  })
 })
 
 describe('World presence fixture retirement', () => {

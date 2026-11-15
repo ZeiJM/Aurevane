@@ -129,6 +129,7 @@ export function worldPresenceDiagnostics() {
   const started = Date.now()
   const events: Record<string, string | number | boolean>[] = []
   const pending = new Set<Promise<void>>()
+  let inspectResponseBodies = true
   const detach: (() => void)[] = []
   const ids = new Map<Observer, string>()
   const pages = new Map<Observer, Page>()
@@ -184,8 +185,9 @@ export function worldPresenceDiagnostics() {
       const response = (response: Response) => {
         const route = endpoint(response.url())
         if (!route) return
+        record({ observer, phase: 'response', endpoint: route, status: response.status() })
+        if (!inspectResponseBodies) return
         const task = (async () => {
-          record({ observer, phase: 'response', endpoint: route, status: response.status() })
           const body = object(await response.json())
           const players = Array.isArray(body.players) ? (body.players as WorldView['players']) : []
           const peer = players.find(
@@ -246,6 +248,11 @@ export function worldPresenceDiagnostics() {
         page.off('websocket', socket)
         page.off('pageerror', pageerror)
       })
+    },
+    async suspendResponseBodyInspection() {
+      inspectResponseBodies = false
+      await Promise.allSettled([...pending])
+      record({ phase: 'response-body-inspection-suspended' })
     },
     async captureMotion() {
       for (const [observer, page] of pages) {

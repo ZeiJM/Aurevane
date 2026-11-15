@@ -519,7 +519,10 @@ export async function verifyWorldScenePresence(
 
     // Both observers now move across the scene boundary. Compensate each
     // nameplate for its own moving camera so camera motion cannot masquerade
-    // as a smoothly moving peer.
+    // as a smoothly moving peer. Earlier boundary coverage has already parsed
+    // full response bodies. Do not make Playwright duplicate every large scene
+    // parse while this interval measures the two native renderer main threads.
+    await diagnostics.suspendResponseBodyInspection()
     const movingObservers = [
       { page, peerId: id, distance: 3 },
       { page: other, peerId: owner.characterId, distance: 4 },
