@@ -184,6 +184,7 @@ jobs:
             apps/web/test-results/**/world-ambient-pause.json
             apps/web/test-results/**/world-contention-responses.json
             apps/web/test-results/**/world-both-moving-peer-*.json
+            apps/web/test-results/**/world-moving-cpu-*.cpuprofile
             apps/web/test-results/**/world-instant-action-boundaries.json
             apps/web/test-results/**/error-context.md
             apps/web/test-results/**/biome-boundary-*.png
