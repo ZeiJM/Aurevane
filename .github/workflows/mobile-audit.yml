@@ -34,6 +34,8 @@ jobs:
           pnpm --filter @aurevane/web exec playwright install --with-deps chromium
       - name: Start disposable local database
         run: |
+          python .github/scripts/configure-discipline-test-mail.test.py
+          python .github/scripts/configure-discipline-test-mail.py
           pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
           pnpm exec supabase db reset --local
       - name: Build and audit every page at phone width

@@ -55,14 +55,19 @@ class DisciplineMailConfigurationTests(unittest.TestCase):
             configure_mail(self.path)
         self.assertEqual(self.path.read_text(), original)
 
-    def test_wayfarer_authority_selects_mail_port_before_supabase_start(self):
-        workflow = (
-            Path(__file__).parents[1] / "workflows" / "wayfarers-practice-db.yml"
-        ).read_text()
+    def test_every_supabase_workflow_selects_mail_port_before_startup(self):
+        workflows = Path(__file__).parents[1] / "workflows"
         configure = "python .github/scripts/configure-discipline-test-mail.py"
         start = "pnpm exec supabase start"
-        self.assertIn(configure, workflow)
-        self.assertLess(workflow.index(configure), workflow.index(start))
+        checked = []
+        for path in sorted(workflows.glob("*.yml")):
+            workflow = path.read_text()
+            if start not in workflow:
+                continue
+            checked.append(path.name)
+            self.assertIn(configure, workflow, path.name)
+            self.assertLess(workflow.index(configure), workflow.index(start), path.name)
+        self.assertGreaterEqual(len(checked), 14)
 
 
 if __name__ == "__main__":

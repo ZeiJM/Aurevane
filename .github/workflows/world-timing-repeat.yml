@@ -45,7 +45,10 @@ jobs:
       - run: corepack enable && corepack prepare pnpm@11.17.0 --activate
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @aurevane/web exec playwright install --with-deps chromium
-      - run: pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
+      - run: |
+          python .github/scripts/configure-discipline-test-mail.test.py
+          python .github/scripts/configure-discipline-test-mail.py
+          pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
       - name: Validate mobile crowd and repeat World movement twenty times
         shell: bash
         run: |

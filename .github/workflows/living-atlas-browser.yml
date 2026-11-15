@@ -72,7 +72,10 @@ jobs:
       - run: corepack enable && corepack prepare pnpm@11.17.0 --activate
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @aurevane/web exec playwright install --with-deps chromium
-      - run: pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
+      - run: |
+          python .github/scripts/configure-discipline-test-mail.test.py
+          python .github/scripts/configure-discipline-test-mail.py
+          pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
       - name: Verify atomic World release rollback and success on disposable PG17
         timeout-minutes: 8
         run: |

@@ -51,7 +51,10 @@ jobs:
           # the job budget before the 75 unchanged browser cases could finish.
           printf '%s\n' 'https://archive.ubuntu.com/ubuntu/' | sudo tee /etc/apt/apt-mirrors.txt >/dev/null
           pnpm --filter @aurevane/web exec playwright install --with-deps chromium
-      - run: pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
+      - run: |
+          python .github/scripts/configure-discipline-test-mail.test.py
+          python .github/scripts/configure-discipline-test-mail.py
+          pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
       - name: Verify rendered desktop and phone interactions
         shell: bash
         run: |
