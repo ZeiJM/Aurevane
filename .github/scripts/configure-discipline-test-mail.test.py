@@ -55,6 +55,15 @@ class DisciplineMailConfigurationTests(unittest.TestCase):
             configure_mail(self.path)
         self.assertEqual(self.path.read_text(), original)
 
+    def test_wayfarer_authority_selects_mail_port_before_supabase_start(self):
+        workflow = (
+            Path(__file__).parents[1] / "workflows" / "wayfarers-practice-db.yml"
+        ).read_text()
+        configure = "python .github/scripts/configure-discipline-test-mail.py"
+        start = "pnpm exec supabase start"
+        self.assertIn(configure, workflow)
+        self.assertLess(workflow.index(configure), workflow.index(start))
+
 
 if __name__ == "__main__":
     unittest.main()
