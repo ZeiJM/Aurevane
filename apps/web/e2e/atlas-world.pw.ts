@@ -2,6 +2,7 @@ import { openMapSettings, closeMapSettings } from './world-map-settings-helpers'
 import { observeWorldRead, readWorldSnapshot } from './world-read-observation'
 import { cleanupWorldPresenceFixtures } from './world-presence-diagnostics'
 import { startWorldFrameCounting } from './world-render-diagnostics'
+import { clickWorldGroundSequence } from './world-ground-click-sequence'
 import { createHash, randomUUID } from 'node:crypto'
 import {
   gateWorldMutationDefinition,
@@ -9,7 +10,14 @@ import {
 } from './world-contention-gate'
 import { writeFileSync } from 'node:fs'
 import { execFileSync, spawn } from 'node:child_process'
-import { expect, test, type APIResponse, type Page, type TestInfo } from '@playwright/test'
+import {
+  expect,
+  test,
+  type APIResponse,
+  type Page,
+  type Response as BrowserResponse,
+  type TestInfo,
+} from '@playwright/test'
 import type { SetPracticePlanRequest } from '@aurevane/validation/player/wayfarers-practice'
 import { provisionAccountAndEnterCharacter, openOfflineTraining } from './pv1f-test-helpers'
 import { GRID_WIDTH, GRID_HEIGHT, STEP_MS, WORLD_REGIONS } from '../src/world/catalog'
@@ -1340,19 +1348,58 @@ test('rapid ground clicks settle at the last legal tile and keyboard movement cr
   const initial = await world(page)
   place(initial.characterId, 'atlas:58:28', 6, 4)
   await page.reload()
-  await expect(page.locator('canvas[data-world-stage]')).toBeVisible()
-  await stageWalk(page, { sectorId: 'atlas:58:28', x: 7, y: 4 })
-  await stageWalk(page, { sectorId: 'atlas:58:28', x: 5, y: 4 })
+  const canvas = page.locator('canvas[data-world-stage]')
+  await expect(canvas).toHaveAttribute('data-camera-x', /\d/)
+  const sector = (await world(page)).sectors.find((entry) => entry.id === 'atlas:58:28')
+  expect(sector).toBeDefined()
   const final = { sectorId: 'atlas:58:28', x: 10, y: 4 }
-  await stageWalk(page, final)
+  const intended = [{ ...final, x: 7 }, { ...final, x: 5 }, final]
+  const receipts: { destination: WorldView['position']; status: number }[] = []
+  const recordWalk = (response: BrowserResponse) => {
+    const request = response.request()
+    if (new URL(response.url()).pathname !== '/api/world' || request.method() !== 'POST') return
+    const intent = request.postDataJSON()?.intent
+    if (intent?.kind === 'walk')
+      receipts.push({ destination: intent.destination, status: response.status() })
+  }
+  page.on('response', recordWalk)
+  const projections: Awaited<ReturnType<typeof clickWorldGroundSequence>> = []
   const observe = (ready: (view: WorldView) => boolean) =>
     observeWorldRead(() => page.request.get('/api/world'), ready)
-  await expect
-    .poll(() => observe((view) => samePosition(view.position, final) && view.route.length === 0), {
-      timeout: 12000,
+  try {
+    projections.push(...(await clickWorldGroundSequence(page, sector!, intended)))
+    await expect
+      .poll(
+        () => observe((view) => samePosition(view.position, final) && view.route.length === 0),
+        {
+          timeout: 12000,
+          message: 'Native rapid clicks must submit and arrive at the exact final requested tile',
+        },
+      )
+      .toBe(true)
+    // Unsent movement may coalesce, but every submitted walk must preserve the
+    // requested order and the final exact target must receive server approval.
+    let previousIndex = -1
+    for (const receipt of receipts) {
+      const index = intended.findIndex((target) => samePosition(target, receipt.destination))
+      expect(
+        index,
+        'Native canvas picking must preserve each submitted requested tile',
+      ).toBeGreaterThanOrEqual(0)
+      expect(
+        index,
+        'Submitted walks must preserve requested order, including stale-version retries',
+      ).toBeGreaterThanOrEqual(previousIndex)
+      previousIndex = index
+    }
+    expect(receipts.at(-1)).toEqual({ destination: final, status: 200 })
+  } finally {
+    page.off('response', recordWalk)
+    await info.attach('rapid-ground-click-intents', {
+      body: JSON.stringify({ intended, projections, receipts }, null, 2),
+      contentType: 'application/json',
     })
-    .toBe(true)
-  const canvas = page.locator('canvas[data-world-stage]')
+  }
   await canvas.press('ArrowRight')
   await expect
     .poll(() => observe((view) => samePosition(view.position, { ...final, x: 11 })))

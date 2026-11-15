@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { atlasSectors } from '@/world/atlas'
 import { terrainWalkable } from '@/world/terrain'
 import type { WorldSectorView } from '@/world/types'
+import * as sceneDomains from './map-scene-domain'
 import {
   buildWaterField,
   liquidMaterial,
@@ -57,6 +58,37 @@ function sector(id: string, atlasRow = 0, cells: [number, number, string][] = []
 }
 
 describe('world-connected water presentation', () => {
+  it('does not index dry ground when the requested liquid is absent', () => {
+    const dry = sector('dry', 0, [
+      [1, 1, '.'],
+      [2, 1, 't'],
+    ])
+    const domain = vi.spyOn(sceneDomains, 'mapSceneDomain')
+    try {
+      const result = buildWaterField([dry], 'lava')
+      expect([...result]).toEqual([['dry', { key: '[]', cells: new Map() }]])
+      expect(domain).not.toHaveBeenCalled()
+    } finally {
+      domain.mockRestore()
+    }
+  })
+  it('resolves scene identity once per supplied sector, rather than once per indexed cell', () => {
+    const pool = sector('pool', 0, [
+      [3, 3, '~'],
+      [2, 3, '.'],
+      [4, 3, '.'],
+    ])
+    const remote = { ...sector('private', 0, [[3, 3, 'l']]), charted: false }
+    const domain = vi.spyOn(sceneDomains, 'mapSceneDomain')
+    try {
+      const field = buildWaterField([pool, remote])
+      expect(field.get('pool')!.cells.size).toBe(1)
+      expect(field.get('private')!.cells.size).toBe(0)
+      expect(domain).toHaveBeenCalledTimes(2)
+    } finally {
+      domain.mockRestore()
+    }
+  })
   it('rounds a small pool using known dry banks, while leaving unknown edges unclaimed', () => {
     const pool = sector('pool', 0, [
       [3, 3, '~'],

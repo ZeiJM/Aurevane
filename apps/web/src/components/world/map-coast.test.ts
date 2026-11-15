@@ -13,6 +13,19 @@ import {
 
 describe('public shoreline presentation', () => {
   const view = (): WorldView => projectWorld(newWorldState(), [], 1000)
+  it('does not index ground cells when the overview proves all four sides are inland', () => {
+    const world = view(),
+      root = world.sectors.find((s) => s.id === world.position.sectorId)!
+    const cells = vi.fn(() => root.cells)
+    const supplied = {
+      ...root,
+      get cells() {
+        return cells()
+      },
+    }
+    expect(buildPublicCoasts({ sectors: [supplied], atlas: world.atlas }).get(root.id)).toEqual([])
+    expect(cells).not.toHaveBeenCalled()
+  })
   it('does not paint an ocean between loaded land and a mapped but unloaded neighbour', () => {
     const world = view(),
       root = world.sectors.find((s) => s.id === world.position.sectorId)!

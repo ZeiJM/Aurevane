@@ -493,6 +493,29 @@ describe('native map input and bounded lifecycle', () => {
       vi.unstubAllGlobals()
     }
   })
+  it('reuses supplied terrain for a liquid field without authored bridge decks', () => {
+    const base = projectWorld(newWorldState(), [], 1000)
+    const root = base.sectors.find((sector) => sector.id === base.position.sectorId)!
+    const supplied = {
+      ...root,
+      buildings: [],
+      landmarks: [],
+      cells: root.cells.map((cell) => ({ ...cell, terrain: '.', walkable: true })),
+    }
+    const build = vi.spyOn(waterPainting, 'buildWaterField')
+    const s = scene(true, { ...base, sectors: [supplied], scenery: undefined })
+    try {
+      expect(build).toHaveBeenCalled()
+      for (const [sectors] of build.mock.calls) {
+        expect(sectors).toHaveLength(1)
+        expect(sectors[0]).toBe(supplied)
+      }
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+      build.mockRestore()
+    }
+  })
   it('does not collect timing records or query stage clocks without diagnostic opt-in', () => {
     const clock = vi.spyOn(performance, 'now').mockReturnValue(0)
     const s = scene(true)

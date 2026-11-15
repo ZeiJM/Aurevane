@@ -285,13 +285,33 @@ export function buildWaterField(
   const liquid = material === 'lava' ? 'l' : '~'
   const matches = (terrain: string | undefined) =>
     material === 'water' ? isWaterTerrain(terrain) : terrain === liquid
-  const terrain = new Map<string, TerrainCell>()
-  const namespace = mapSceneDomain
+  // Most movement windows contain no lava. Keep their empty entries without
+  // constructing an address for every dry cell or resolving private domains.
+  if (!sectors.some((sector) => sector.cells.some((cell) => matches(cell.terrain))))
+    return new Map(sectors.map((sector) => [sector.id, { key: '[]', cells: new Map() }]))
+  const domains = new Map(sectors.map((sector) => [sector, mapSceneDomain(sector)]))
+  const namespace = (sector: WorldSectorView) => domains.get(sector)!
+  // Numeric columns/rows avoid allocating thousands of repeated namespace
+  // strings. Last supplied cells still win at coincident addresses.
+  const terrain = new Map<string, Map<number, Map<number, TerrainCell>>>()
+  const terrainAt = (space: string, x: number, y: number) =>
+    terrain
+      .get(space)
+      ?.get(space === 'atlas' ? wrapX(x) : x)
+      ?.get(y)
   const address = (sector: WorldSectorView, x: number, y: number) =>
     `${namespace(sector)}:${cellKey(namespace(sector) === 'atlas' ? ((x % (ATLAS_COLUMNS * GRID_WIDTH)) + ATLAS_COLUMNS * GRID_WIDTH) % (ATLAS_COLUMNS * GRID_WIDTH) : x, y)}`
   for (const sector of sectors) {
     const { x: ox, y: oy } = sectorMapOrigin(sector)
-    for (const cell of sector.cells) terrain.set(address(sector, ox + cell.x, oy + cell.y), cell)
+    const space = namespace(sector)
+    let columns = terrain.get(space)
+    if (!columns) terrain.set(space, (columns = new Map()))
+    for (const cell of sector.cells) {
+      const x = space === 'atlas' ? wrapX(ox + cell.x) : ox + cell.x
+      let rows = columns.get(x)
+      if (!rows) columns.set(x, (rows = new Map()))
+      rows.set(oy + cell.y, cell)
+    }
   }
   const field = new Map<string, WaterSector>()
   const water = new Map<string, WaterCell>()
@@ -304,7 +324,7 @@ export function buildWaterField(
         wy = oy + cell.y
       const neighbours = directions.map(([dx, dy]) => {
         const at = (distance: number) =>
-          terrain.get(address(sector, wx + dx * distance, wy + dy * distance))
+          terrainAt(namespace(sector), wx + dx * distance, wy + dy * distance)
         const neighbour = at(1)
         if (neighbour?.terrain === '=' && neighbour.walkable)
           for (let distance = 2; distance <= 4; distance++) {
@@ -399,7 +419,7 @@ export function buildWaterField(
         const x = at.x + dx,
           y = at.y + dy
         const key = `${space}:${cellKey(space === 'atlas' ? wrapX(x) : x, y)}`
-        const known = terrain.get(key)
+        const known = terrainAt(space, x, y)
         if (!known || known.terrain === '?') {
           closed = false
           continue

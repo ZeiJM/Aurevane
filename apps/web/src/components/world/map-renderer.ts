@@ -498,19 +498,21 @@ function indexBridgeWater(
         for (const strip of placement.bridgeStrips ?? [])
           for (let y = strip.y; y < strip.y + strip.height; y++)
             for (let x = strip.x; x < strip.x + strip.width; x++) decks.add(address(sector, x, y))
-  const presentation = sectors.map((sector) => {
-    const origin = sectorMapOrigin(sector)
-    return {
-      ...sector,
-      cells: sector.cells.map((cell) =>
-        cell.terrain === '=' &&
-        cell.walkable &&
-        decks.has(address(sector, origin.x + cell.x, origin.y + cell.y))
-          ? { ...cell, terrain: material === 'water' ? '~' : 'l', walkable: false }
-          : cell,
-      ),
-    }
-  })
+  const presentation = decks.size
+    ? sectors.map((sector) => {
+        const origin = sectorMapOrigin(sector)
+        return {
+          ...sector,
+          cells: sector.cells.map((cell) =>
+            cell.terrain === '=' &&
+            cell.walkable &&
+            decks.has(address(sector, origin.x + cell.x, origin.y + cell.y))
+              ? { ...cell, terrain: material === 'water' ? '~' : 'l', walkable: false }
+              : cell,
+          ),
+        }
+      })
+    : sectors
   const field = buildWaterField(presentation, material)
   const profiles = new Map<string, WaterCell>()
   for (const sector of presentation) {

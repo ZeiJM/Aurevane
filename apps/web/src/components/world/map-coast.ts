@@ -42,6 +42,14 @@ export function buildPublicCoasts(view: Pick<WorldView, 'sectors' | 'atlas'>) {
       sector.atlasRow === undefined
     )
       continue
+    // Interior chunks cannot expose a coast. Avoid indexing all their cells.
+    if (
+      offsets.every(([dx, dy]) => {
+        const neighbor = atlasNeighbor(sector.atlasColumn!, sector.atlasRow!, dx, dy)
+        return neighbor && occupied.has(`${neighbor.column}:${neighbor.row}`)
+      })
+    )
+      continue
     const known = new Map(sector.cells.map((cell) => [`${cell.x}:${cell.y}`, cell.terrain]))
     for (let side = 0; side < 4; side++) {
       const [dx, dy] = offsets[side]!

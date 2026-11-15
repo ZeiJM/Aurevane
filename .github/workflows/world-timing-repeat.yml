@@ -6,9 +6,16 @@ on:
       - 'apps/web/src/components/world/map-renderer.ts'
       - 'apps/web/src/components/world/map-biome-transitions.ts'
       - 'apps/web/src/components/world/map-settlement-edge.ts'
+      - 'apps/web/src/components/world/map-coast.ts'
+      - 'apps/web/src/components/world/map-coast.test.ts'
+      - 'apps/web/src/components/world/map-water.ts'
+      - 'apps/web/src/components/world/map-water.test.ts'
+      - 'apps/web/src/components/world/map-settlement-edge.test.ts'
       - 'apps/web/e2e/atlas-world.pw.ts'
       - 'apps/web/e2e/world-read-observation.ts'
       - 'apps/web/e2e/world-read-observation.test.ts'
+      - 'apps/web/e2e/world-ground-click-sequence.ts'
+      - 'apps/web/e2e/world-ground-click-sequence.test.ts'
       - 'apps/web/e2e/world-presence-case.ts'
       - 'apps/web/e2e/world-presence-diagnostics.ts'
       - 'apps/web/e2e/world-presence-diagnostics.test.ts'
@@ -80,6 +87,7 @@ jobs:
             apps/web/test-results/**/world-presence-boundaries.json
             apps/web/test-results/**/world-presence-cleanup.json
             apps/web/test-results/**/attachments/held-walk-approval-timings-*.json
+            apps/web/test-results/**/attachments/rapid-ground-click-intents-*.json
             apps/web/test-results/**/synthetic-world-render-cost.json
             apps/web/test-results/**/attachments/synthetic-world-render-cost-*.json
             apps/web/test-results/**/error-context.md
