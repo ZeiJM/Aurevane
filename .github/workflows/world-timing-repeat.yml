@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - 'apps/web/src/components/world/map-renderer.ts'
+      - 'apps/web/src/components/world/map-ground-projection.ts'
+      - 'apps/web/src/components/world/map-ground-projection.test.ts'
       - 'apps/web/src/components/world/map-biome-transitions.ts'
       - 'apps/web/src/components/world/map-settlement-edge.ts'
       - 'apps/web/src/components/world/map-coast.ts'

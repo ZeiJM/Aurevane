@@ -646,11 +646,12 @@ describe('native map input and bounded lifecycle', () => {
         groundResamples: 0,
         groundResampleMs: 0,
         prepareMs: 0,
-        terrainMs: 7,
+        // Cold ground plus its once-only projected raster each allocate a layer.
+        terrainMs: 14,
         sceneryMs: 0,
         atmosphereMs: 0,
         identityMs: 11,
-        completedAt: 118,
+        completedAt: 125,
         updates: 0,
         updateMs: 0,
         terrainIndexes: 0,
@@ -2117,8 +2118,8 @@ describe('native map input and bounded lifecycle', () => {
       sectors: [sectors[0]!, { ...sectors[1]!, cells: [cell(10, 0, '.')] }],
     })
     s.frame(80)
-    // Two rebuilt ground layers plus one reusable 2x2 depth scratch raster.
-    expect(s.layerCount() - layers).toBe(3)
+    // Two rebuilt grounds and their projections, plus one 2x2 depth scratch raster.
+    expect(s.layerCount() - layers).toBe(5)
     const warmed = s.layerCount()
     s.frame(120)
     expect(s.layerCount()).toBe(warmed)
@@ -2306,6 +2307,7 @@ describe('native map input and bounded lifecycle', () => {
         s.frame(now)
         if (s.canvas.dataset.cachedPixels)
           expect(Number(s.canvas.dataset.cachedPixels)).toBeLessThanOrEqual(8_000_000)
+        expect(Number(s.canvas.dataset.cachedGroundProjectionPixels)).toBeLessThanOrEqual(8_000_000)
       }
     } finally {
       s.renderer.dispose()
@@ -3038,6 +3040,52 @@ describe('native map input and bounded lifecycle', () => {
       }
     },
   )
+  it('reuses projected ground during movement with native-density translations instead of repeated affine draws', () => {
+    const base = projectWorld(newWorldState(), [], 1000)
+    const view = {
+      ...base,
+      scenery: [],
+      sectors: [
+        {
+          ...base.sectors.find((sector) => sector.id === base.position.sectorId)!,
+          buildings: [],
+          landmarks: [],
+          cells: base.sectors
+            .find((sector) => sector.id === base.position.sectorId)!
+            .cells.map((cell) => ({ ...cell, terrain: '.', walkable: true })),
+        },
+      ],
+    }
+    const s = scene(true, view)
+    try {
+      s.renderer.settings({ animate: false, zoom: 1 })
+      s.frame(40)
+      const projection = s.draws.find(
+        ({ src, args, matrix }) => !src && args.length === 2 && matrix.join(',') === '1,0,0,1,0,0',
+      )!
+      expect(projection).toBeDefined()
+      const layers = s.layerCount()
+      s.motion.plan(
+        [{ position: { ...view.position, x: view.position.x + 1 }, durationMs: 200 }],
+        view.sectors,
+        40,
+      )
+      s.renderer.update(view)
+      s.draws.length = 0
+      s.frame(80)
+      s.frame(120)
+      const blits = s.draws.filter(({ image }) => image === projection.image)
+      expect(blits.length).toBeGreaterThan(0)
+      expect(
+        blits.every(({ matrix, args }) => matrix.join(',') === '1,0,0,1,0,0' && args.length === 2),
+      ).toBe(true)
+      expect(blits.at(-1)!.args).not.toEqual(projection.args)
+      expect(s.layerCount()).toBe(layers)
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  })
   it('caps high-DPI resolution and reports bounded terrain memory', () => {
     const s = scene()
     expect(s.canvas.width).toBe(1200)

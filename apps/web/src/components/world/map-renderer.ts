@@ -1,3 +1,4 @@
+import { createGroundProjectionCache } from './map-ground-projection'
 import { mapSceneDomain } from './map-scene-domain'
 import { vegetationPose, treeFlex, treeWindBend } from './map-vegetation'
 import {
@@ -685,6 +686,7 @@ export function createMapRenderer(
       pixels: number
     }
   >()
+  const groundProjections = createGroundProjectionCache()
   const biomeRasters = new Map<string, HTMLCanvasElement>()
   let biomeRasterPixels = 0
   let stationaryScenery: Scenery[] | null = null
@@ -800,6 +802,7 @@ export function createMapRenderer(
   }
   indexTerrain()
   const clearCache = () => {
+    groundProjections.clear()
     cache.clear()
     cachedPixels = 0
     stationaryGround = null
@@ -1647,6 +1650,7 @@ export function createMapRenderer(
   }
   function draw(now: number, rafAt: number) {
     hitTargets = []
+    groundProjections.beginFrame()
     const start = performance.now(),
       sample = motion.sample(now),
       previousFrame = last,
@@ -1917,7 +1921,22 @@ export function createMapRenderer(
           wind.speed,
           sector,
         )
-        ctx.drawImage(ground(sector), 0, 0, GRID_WIDTH * tile, GRID_HEIGHT * tile)
+        const surface = ground(sector)
+        // Cache only settled scale. Gestures retain the direct path until the
+        // authored zoom raster is ready, preventing per-wheel projection churn.
+        const groundOnScreen =
+          p.x + GRID_WIDTH * tile * MAP_X > 0 &&
+          p.x - GRID_HEIGHT * tile * MAP_X < width &&
+          p.y + (GRID_WIDTH + GRID_HEIGHT) * tile * MAP_Y > 0 &&
+          p.y < height
+        const projected =
+          rasterZoomAt === null && tile >= 32 && groundOnScreen
+            ? groundProjections.get(surface, GRID_WIDTH * tile, GRID_HEIGHT * tile, ratio)
+            : null
+        if (projected) {
+          ctx.setTransform(1, 0, 0, 1, 0, 0)
+          ctx.drawImage(projected.canvas, p.x * ratio + projected.left, p.y * ratio + projected.top)
+        } else ctx.drawImage(surface, 0, 0, GRID_WIDTH * tile, GRID_HEIGHT * tile)
         ctx.restore()
       }
       if (
@@ -3617,6 +3636,7 @@ export function createMapRenderer(
       canvas.dataset.frameP95 = String(Math.round(sorted[Math.floor(sorted.length * 0.95)] ?? 0))
       canvas.dataset.cachedSectors = String(cache.size)
       canvas.dataset.cachedPixels = String(cachedPixels)
+      canvas.dataset.cachedGroundProjectionPixels = String(groundProjections.pixels)
       canvas.dataset.visibleScenery = String(scenery.length)
       canvas.dataset.detailedScenery = String(detailedScenery)
       canvas.dataset.waterCells = String(waterCells)
