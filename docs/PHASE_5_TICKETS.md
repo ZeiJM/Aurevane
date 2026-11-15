@@ -1,5 +1,7 @@
 # Phase 5 — Living World, Story & Supernatural Identity
 
+> **15 November 2026 reconciliation:** Phase 5 remains **ACTIVE / not formally accepted**. The original unchecked tickets below preserve Owner acceptance scope and must not be marked complete merely because their platform merged. Since this handover, World/NPC/Story/Events/ferry/Void implementation advanced through [unified PR #1035](https://github.com/ZeiJM/Aurevane/pull/1035) and World releases [#1038](https://github.com/ZeiJM/Aurevane/pull/1038) and [#1039](https://github.com/ZeiJM/Aurevane/pull/1039). See the [current phase reality matrix](ROADMAP_STATUS_2026-11-15.md) and [draft #1040](https://github.com/ZeiJM/Aurevane/pull/1040) for the unreleased map update. Checkboxes below are acceptance gates, not proof those platforms are absent.
+
 **Status:** AUTHORIZED / IN PROGRESS — Owner authorized Phase 5 in parallel with Phase 4 on 2026-09-22. Initial Strategic Atlas implementation is complete; release evidence and live-testing handover are in `PHASE_5_HANDOVER.md`. Full Phase 5 and Owner Atlas acceptance remain open.
 
 Phase 5 remains the player-facing world phase defined by the Owner. Staff authority, persistent-event infrastructure, Event Builder and live-event operations were reclassified into Phase 4 on 2026-09-19 and do not count as Phase 5 progress.
