@@ -133,6 +133,26 @@ const frame = (frameAt: number) => ({
 })
 
 describe('native renderer timing capture', () => {
+  it('reuses one timing observer when a later movement phase resets capture', () => {
+    let observers = 0
+    vi.stubGlobal(
+      'MutationObserver',
+      class {
+        constructor() {}
+        observe() {
+          observers++
+        }
+      },
+    )
+    const canvas = { dataset: {} } as HTMLCanvasElement
+    try {
+      installWorldRenderTiming(canvas)
+      installWorldRenderTiming(canvas)
+      expect(observers).toBe(1)
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
   it('captures completed frames while the identity surface is retained without fillText', async () => {
     const { canvas } = capture()
     try {

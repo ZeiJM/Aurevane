@@ -2333,6 +2333,30 @@ describe('native map input and bounded lifecycle', () => {
       }
     }
   })
+  it('finishes the first legal held-key step when keyup beats the movement receipt', () => {
+    const s = scene()
+    const view = {
+      ...s.view,
+      sectors: s.view.sectors.map((sector) => ({
+        ...sector,
+        cells: sector.cells.map((cell) => ({ ...cell, terrain: '.', walkable: true })),
+      })),
+    }
+    s.renderer.update(view)
+    try {
+      const origin = view.position
+      s.listeners.get('keydown')!({ key: 'ArrowRight', preventDefault() {} } as unknown as Event)
+      expect(s.select).toHaveBeenCalledWith({ ...origin, x: origin.x + 3 })
+
+      // The controller applies the server receipt asynchronously. Keyup must not
+      // overwrite the approved route with the still-current origin meanwhile.
+      s.listeners.get('keyup')!({ key: 'ArrowRight' } as unknown as Event)
+      expect(s.select).toHaveBeenLastCalledWith({ ...origin, x: origin.x + 1 })
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  })
   it('starts smoothly after a long idle and a small pointer slip without shifting the camera', () => {
     const s = scene()
     s.renderer.settings({ animate: false, zoom: 1 })

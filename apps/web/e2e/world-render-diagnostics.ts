@@ -16,8 +16,10 @@ export function startWorldFrameCounting(element: HTMLElement | SVGElement): Prom
 
 /** Installed only by the native timing investigation. Serialized by Playwright. */
 export function installWorldRenderTiming(element: HTMLElement | SVGElement) {
-  const canvas = element as HTMLCanvasElement
-  const records: Record<string, number>[] = []
+  const canvas = element as HTMLCanvasElement & {
+    __worldRenderTimingObserver?: MutationObserver
+    __worldRenderTimingRecords?: Record<string, number>[]
+  }
   const fields = [
     'frameAt',
     'rafAt',
@@ -43,14 +45,18 @@ export function installWorldRenderTiming(element: HTMLElement | SVGElement) {
     'atmosphereMs',
     'identityMs',
   ]
+  canvas.__worldRenderTimingRecords = []
+  delete canvas.dataset.testRenderTimings
   canvas.dataset.renderDiagnostics = 'timing'
+  if (canvas.__worldRenderTimingObserver) return
   // The renderer publishes timing after completing the frame, including frames
   // that retain their identity surface and therefore never call fillText.
-  new MutationObserver(() => {
+  canvas.__worldRenderTimingObserver = new MutationObserver(() => {
     try {
       const raw = JSON.parse(canvas.dataset.renderTiming ?? 'null')
       if (!raw || !fields.every((key) => typeof raw[key] === 'number' && Number.isFinite(raw[key])))
         return
+      const records = canvas.__worldRenderTimingRecords ?? []
       if (records.at(-1)?.frameAt === raw.frameAt) return
       records.push(Object.fromEntries(fields.map((key) => [key, raw[key] as number])))
       if (records.length > 1500) records.shift()
@@ -58,7 +64,11 @@ export function installWorldRenderTiming(element: HTMLElement | SVGElement) {
     } catch {
       // Missing or incomplete diagnostics must never interrupt real painting.
     }
-  }).observe(canvas, { attributes: true, attributeFilter: ['data-render-timing'] })
+  })
+  canvas.__worldRenderTimingObserver.observe(canvas, {
+    attributes: true,
+    attributeFilter: ['data-render-timing'],
+  })
 }
 
 /** Serialized by Playwright; all samples use this frame's camera and projection. */

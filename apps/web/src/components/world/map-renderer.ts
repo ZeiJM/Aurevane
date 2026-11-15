@@ -616,16 +616,26 @@ export function createMapRenderer(
   const heldKeys = new Map<string, MapPoint>()
   let keyTimer: ReturnType<typeof setTimeout> | null = null
   let heldDestination: WorldPosition | null = null
+  let heldReleaseOrigin: WorldPosition | null = null
+  let heldFirstDestination: WorldPosition | null = null
   function releaseHeldKeys(finishStep = true) {
     const destination = heldDestination
+    const origin = heldReleaseOrigin
+    const first = heldFirstDestination
     heldDestination = null
+    heldReleaseOrigin = null
+    heldFirstDestination = null
     heldKeys.clear()
     if (keyTimer !== null) clearTimeout(keyTimer)
     keyTimer = null
     if (finishStep && destination && !view.movementBlocked && !view.battleSessionId) {
       const landing = motion.nextLanding(performance.now())
-      if (!samePosition(landing, destination)) {
-        select(landing)
+      // The movement receipt can arrive after an immediate keyup. In that gap
+      // WorldMotion still reports the old origin, which must not overwrite the
+      // already-approved route. Finish its first legal step instead.
+      const released = origin && first && samePosition(landing, origin) ? first : landing
+      if (!samePosition(released, destination)) {
+        select(released)
         requestDraw()
       }
     }
@@ -3794,6 +3804,8 @@ export function createMapRenderer(
       )
       cadence = Math.max(STEP_MS, crossing?.durationMs ?? sector?.stepMs ?? STEP_MS)
       heldDestination = position
+      heldReleaseOrigin = sample.position
+      heldFirstDestination = first
       select(position)
       requestDraw()
     }

@@ -1750,8 +1750,20 @@ test('ambient clouds, water and wildlife remain alive with bounded effects and c
       ),
     }
   }
+  const pixelHash = () =>
+    canvas.evaluate(async (node) => {
+      const bitmap = node as HTMLCanvasElement
+      const context = bitmap.getContext('2d')
+      if (!context) throw new Error('World canvas has no 2D context')
+      const pixels = context.getImageData(0, 0, bitmap.width, bitmap.height).data
+      const digest = await crypto.subtle.digest('SHA-256', new Uint8Array(pixels))
+      return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join(
+        '',
+      )
+    })
   const beforePauseState = await pauseState()
-  const pausedFrame = await canvas.screenshot({
+  const beforePausePixelHash = await pixelHash()
+  await canvas.screenshot({
     path: info.outputPath('terrain-motion-paused-before.png'),
   })
   await page.waitForTimeout(1200)
@@ -1761,14 +1773,19 @@ test('ambient clouds, water and wildlife remain alive with bounded effects and c
     wildlifeWalking: await canvas.getAttribute('data-wildlife-walking'),
   }).toEqual(ambientState)
   const afterPauseState = await pauseState()
-  const afterPauseFrame = await canvas.screenshot({
+  const afterPausePixelHash = await pixelHash()
+  await canvas.screenshot({
     path: info.outputPath('terrain-motion-paused-after.png'),
   })
   writeFileSync(
     info.outputPath('world-ambient-pause.json'),
-    JSON.stringify({ before: beforePauseState, after: afterPauseState }),
+    JSON.stringify({
+      before: beforePauseState,
+      after: afterPauseState,
+      pixelHashes: { before: beforePausePixelHash, after: afterPausePixelHash },
+    }),
   )
-  expect(afterPauseFrame.equals(pausedFrame)).toBe(true)
+  expect(afterPausePixelHash).toBe(beforePausePixelHash)
   await openMapSettings(page)
   await page.getByRole('checkbox', { name: 'Ambient animation', exact: true }).check()
   await closeMapSettings(page)
