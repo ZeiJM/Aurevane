@@ -3,7 +3,7 @@
   "expected_tree": "73f683979266ffeb20e342498a9b0521a406a572",
   "main_baseline": "d32cabd7f626b650df5c5eacf6a85a4457fc1f85",
   "date": "2026-11-15",
-  "release_status": "Blocked by pending Living Atlas/native visual review and full Browser Smoke Chromium/final Edge. No production mutation.",
+  "release_status": "Pending full Browser Smoke Chromium/final Edge. Current-head timing and Living Atlas/PG17 pass; sampled native visual review finds no release-blocking defect. No production mutation.",
   "timing": {
     "run_id": 43750672066,
     "job_id": 132923689026,
@@ -78,25 +78,113 @@
     }
   },
   "checks_snapshot": {
-    "successful_workflows": 13,
+    "successful_workflows": 14,
     "total_workflows": 15,
-    "pending": [
-      {
-        "run_id": 43750672009,
-        "name": "Living Atlas browser",
-        "phase": "Verify authenticated Atlas and multiplayer"
-      },
+    "workflows": [
       {
         "run_id": 43750672188,
         "name": "Browser smoke",
-        "phase": "Start local Supabase stack; full shell/Edge acceptance not complete"
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "run_id": 43750672009,
+        "name": "Living Atlas browser",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 43750672066,
+        "name": "World timing repeat validation",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 43750672111,
+        "name": "Wayfarer's Practice DB",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 43750672057,
+        "name": "Battle Session DB",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 43750672105,
+        "name": "Combat and mobile layout regressions",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 43750672071,
+        "name": "Foundation Security DB",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 43750672033,
+        "name": "Attribute Allocation",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 43750672035,
+        "name": "Desktop page fit",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 43750672179,
+        "name": "CI",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 43750672097,
+        "name": "Representative Buildcraft",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 43750672076,
+        "name": "UI layout review",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 43750672133,
+        "name": "Discipline Build DB",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 43750672058,
+        "name": "Mobile audit",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 43750672062,
+        "name": "Desktop experience",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ],
+    "pending": [
+      {
+        "run_id": 43750672188,
+        "name": "Browser smoke",
+        "job_id": 132924350792,
+        "phase": "Verify desktop and mobile shell; complete Chromium and final Edge not yet verified."
       }
     ]
   },
   "acceptance_limits": [
-    "Actual current-head wildlife antialiasing/motion and gameplay-scale painted mountain evidence remain unreviewed until Atlas artifacts finish.",
-    "All configured exact-head checks and final tested-tree attestation remain required.",
+    "Full Browser Smoke Chromium/final Edge and final exact-head release attestation remain required.",
     "Physical-handset and human continuous-motion playtesting remain open.",
+    "Sampled fox/mountain/town evidence was reviewed; isolated bird/deer close-up sequences were unavailable in the smaller bundles.",
     "This receipt is evidence only: never merge its branch or deploy its commit; release only the verified PR source under the checked-in runbook."
   ],
   "production": {
@@ -105,5 +193,94 @@
     "deployment": null,
     "promotion": null,
     "cron_activation": null
+  },
+  "verified_at_utc": "2026-11-15 21:14:02 UTC",
+  "tested_checkout": {
+    "sha": "360ab1b23be5e4c9ec6f40da6b920b7e93aa37d5",
+    "tree": "73f683979266ffeb20e342498a9b0521a406a572",
+    "basis": "Atlas checkout and git rev-parse HEAD^{tree} logged together; synthetic merge of candidate into unchanged main."
+  },
+  "living_atlas": {
+    "run_id": 43750672009,
+    "job_id": 132923689001,
+    "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43750672009",
+    "conclusion": "success",
+    "story": {
+      "passed": 15,
+      "configured_project_skips": 7
+    },
+    "atlas": {
+      "discovered": 222,
+      "passed": 99,
+      "configured_project_skips": 123
+    },
+    "pg17": {
+      "conclusion": "success",
+      "atomic_rollback_contention_and_success": true,
+      "postflight_log": "Verified PG17 atomic success, exact four source-history rows, RPC ACLs, preserved v1/v2 and saved progress; cron remains inactive. Candidate schema retained.",
+      "production_database": false
+    },
+    "paused_backing": {
+      "weather": "rain",
+      "before_sha256": "3faa2cda710d6b4246cd4f11d4adefc328cc57d110928f24af0e3da0d666b562",
+      "after_sha256": "3faa2cda710d6b4246cd4f11d4adefc328cc57d110928f24af0e3da0d666b562",
+      "presence_digest_changed": true
+    },
+    "artifacts": [
+      {
+        "id": 14177532967,
+        "name": "compact evidence",
+        "sha256": "0c76683e46ad0d68f74d517810efd97964b702b600df77295ab0a2794f711eff",
+        "download_hash_verified": true
+      },
+      {
+        "id": 14176964658,
+        "name": "hamlets",
+        "sha256": "ff7ac7ed491cec3fdaae5c5ec60f58ad53e78571835fc7983bffac0479b79b31",
+        "download_hash_verified": true
+      },
+      {
+        "id": 14177818988,
+        "name": "surfaces, Void and occlusion",
+        "sha256": "064ee294ab8880217dfcab43e657d4307f7b449f28b2502489e81f5a6a2ce304",
+        "download_hash_verified": true
+      },
+      {
+        "id": 14178071926,
+        "name": "north towns",
+        "sha256": "f158ecaedc32d7fe97109bb32210e208adc7f9504d40bc1f611ae01ffb0ea03f",
+        "download_hash_verified": true
+      },
+      {
+        "id": 14177782588,
+        "name": "south towns",
+        "sha256": "e08732b728945257b15121b911ada876ad82dee52bae51087d15da58f8fec11d",
+        "download_hash_verified": true
+      },
+      {
+        "id": 14178013493,
+        "name": "full Living Atlas archive",
+        "bytes": 1050233083,
+        "download_hash_verified": false,
+        "limitation": "Connector rejects artifacts larger than536870912 bytes. Review uses the five hash-verified smaller bundles; full traces/ambient frame sequence not downloaded."
+      }
+    ]
+  },
+  "native_visual_review": {
+    "candidate": "367689eafd65802ee68394a7635ca8027ae01347",
+    "method": "Direct inspection of retained native screenshots and paired frames, plus independent read-only review.",
+    "reviewed": [
+      "All eight towns: desktop/mobile clear, storm and reduced-motion paired captures; advancing frame times and distinct paired hashes in receipts.",
+      "Desktop/mobile roof and tree before/after occlusion pairs: fox body/legs attached, clean sampled silhouette edges, changed pose/location, visible occlusion cue and player label.",
+      "Hamlet atlas49:19 gameplay-scale Dusk/rain: painted mountain strata, grounded bases and readable hamlet foreground; no old flat-polygon mismatch.",
+      "Snowy peaks and relief, organic lake depth, coast/ocean storm/reduced views, elemental valley normal/minimum, remote colosseum approach and shrine/globe samples."
+    ],
+    "finding": "No release-blocking visual defect observed in the sampled current-head screenshots.",
+    "limitations": [
+      "Town weather fixtures freeze local noon and exclude wildlife; they cannot establish cached animal gait.",
+      "Visible fox samples cover retained poses/edges. Extracts lack isolated deer/bird close-up sequences; continuous gait is not claimed.",
+      "No physical-handset or human signed-in playtest acceptance is claimed.",
+      "A passing native motion assertion and sampled screenshots do not prove universal FPS or exhaustive visual acceptance."
+    ]
   }
 }
