@@ -75,4 +75,4 @@ Vercel should use the Next.js framework preset. Keep secrets in Vercel environme
 
 ## Current state
 
-Phase 0 is active. The discarded prototype has not been imported. See `TASKS.md` for the one currently allowed implementation ticket.
+AUREVANE has a substantial live character/buildcraft/combat/world foundation. **Phase 5 is active and not formally closed**; Phases 2–4 were Owner-closed, and later roadmap systems remain partly delivered or planned. See the [current phase-by-phase roadmap reality](docs/ROADMAP_STATUS_2026-11-15.md), the [roadmap status index](docs/ROADMAP.md), and [active task ledger](TASKS.md). Merged code and passing source tests do not by themselves prove production rollout or Owner acceptance.
