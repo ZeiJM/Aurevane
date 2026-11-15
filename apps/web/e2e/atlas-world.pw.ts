@@ -1,7 +1,7 @@
 import { openMapSettings, closeMapSettings } from './world-map-settings-helpers'
 import { observeWorldRead, readWorldSnapshot } from './world-read-observation'
 import { cleanupWorldPresenceFixtures } from './world-presence-diagnostics'
-import { startWorldFrameCounting } from './world-render-diagnostics'
+import { hashWorldBackingPixels, startWorldFrameCounting } from './world-render-diagnostics'
 import { clickWorldGroundSequence } from './world-ground-click-sequence'
 import { createHash, randomUUID } from 'node:crypto'
 import {
@@ -1750,17 +1750,7 @@ test('ambient clouds, water and wildlife remain alive with bounded effects and c
       ),
     }
   }
-  const pixelHash = () =>
-    canvas.evaluate(async (node) => {
-      const bitmap = node as HTMLCanvasElement
-      const context = bitmap.getContext('2d')
-      if (!context) throw new Error('World canvas has no 2D context')
-      const pixels = context.getImageData(0, 0, bitmap.width, bitmap.height).data
-      const digest = await crypto.subtle.digest('SHA-256', new Uint8Array(pixels))
-      return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join(
-        '',
-      )
-    })
+  const pixelHash = () => canvas.evaluate(hashWorldBackingPixels)
   const beforePauseState = await pauseState()
   const beforePausePixelHash = await pixelHash()
   await canvas.screenshot({

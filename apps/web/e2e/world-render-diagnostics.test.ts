@@ -1,5 +1,7 @@
+import { createHash } from 'node:crypto'
 import { describe, expect, it, vi } from 'vitest'
 import {
+  hashWorldBackingPixels,
   installWorldRenderTiming,
   installWorldPeerDrawCapture,
   readWorldPeerDrawCapture,
@@ -347,6 +349,40 @@ describe('native peer draw capture', () => {
       expect(JSON.stringify(readWorldPeerDrawCapture(canvas))).not.toContain('Peer')
     } finally {
       clock.mockRestore()
+      vi.unstubAllGlobals()
+    }
+  })
+})
+
+describe('non-destructive exact backing pixel hashing', () => {
+  it('hashes every native pixel through a readback-only copy without reading the live drawing context', async () => {
+    const pixels = new Uint8ClampedArray([10, 20, 30, 255, 40, 50, 60, 255])
+    const getLiveContext = vi.fn(() => {
+      throw new Error('Live canvas readback changes its rendering backend')
+    })
+    const bitmap = {
+      width: 2,
+      height: 1,
+      clientWidth: 800,
+      getContext: getLiveContext,
+    } as unknown as HTMLCanvasElement
+    const drawImage = vi.fn()
+    const getImageData = vi.fn(() => ({ data: pixels }))
+    const getContext = vi.fn(() => ({ drawImage, getImageData, globalCompositeOperation: '' }))
+    const copy = { width: 0, height: 0, getContext }
+    vi.stubGlobal('document', { createElement: () => copy })
+    try {
+      const first = await hashWorldBackingPixels(bitmap)
+      expect(first).toBe(createHash('sha256').update(pixels).digest('hex'))
+      expect(copy.width).toBe(2)
+      expect(copy.height).toBe(1)
+      expect(getContext).toHaveBeenCalledWith('2d', { alpha: false, willReadFrequently: true })
+      expect(drawImage).toHaveBeenCalledWith(bitmap, 0, 0)
+      expect(getImageData).toHaveBeenCalledWith(0, 0, 2, 1)
+      expect(getLiveContext).not.toHaveBeenCalled()
+      pixels[0]++
+      expect(await hashWorldBackingPixels(bitmap)).not.toBe(first)
+    } finally {
       vi.unstubAllGlobals()
     }
   })

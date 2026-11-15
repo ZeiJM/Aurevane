@@ -8,8 +8,37 @@ export async function traceWorldBrowserTasks(
 ) {
   const events: Record<string, string | number>[] = []
   let droppedEvents = 0
+  let excludedEvents = 0
+  // Retain the complete duration records needed to attribute renderer work.
+  // Generic scheduler and IPC traffic cannot displace canvas/layout evidence.
+  const relevant = new Set([
+    'Canvas2DResourceProviderSharedImage::ProduceCanvasResource',
+    'Canvas2DResourceProviderSharedImage::Snapshot',
+    'LayerTreeHost::DoUpdateLayers',
+    'ProxyMain::BeginMainFrame',
+    'FireAnimationFrame',
+    'FunctionCall',
+    'Document::UpdateStyleAndLayout',
+    'UpdateLayoutTree',
+    'Layout',
+    'PrePaint',
+    'Paint',
+    'PaintImage',
+    'CompositeLayers',
+    'DecodingImageGenerator::getPixels',
+    'ImageFrameGenerator::decodeAndScale',
+    'ImageFrameGenerator::decode',
+    'ImageDecoder::DecodeFrameBufferAtIndex',
+    'BlinkScheduler_PerformMicrotaskCheckpoint',
+    'MajorGC',
+    'MinorGC',
+  ])
   const collect = ({ value }: { value: Record<string, unknown>[] }) => {
     for (const event of value) {
+      if (event.ph !== 'X' || !relevant.has(String(event.name))) {
+        excludedEvents++
+        continue
+      }
       if (events.length >= 100_000) {
         droppedEvents++
         continue
@@ -30,7 +59,7 @@ export async function traceWorldBrowserTasks(
   try {
     try {
       await session.send('Tracing.start', {
-        categories: 'devtools.timeline,toplevel,blink,cc',
+        categories: 'devtools.timeline,blink,cc',
         options: 'record-continuously',
         transferMode: 'ReportEvents',
       })
@@ -50,7 +79,7 @@ export async function traceWorldBrowserTasks(
       })
       try {
         await Promise.all([session.send('Tracing.end'), done])
-        await save({ traceEvents: events, droppedEvents })
+        await save({ traceEvents: events, droppedEvents, excludedEvents })
         if (droppedEvents) throw new Error('Native task trace exceeded its bounded event capture.')
       } finally {
         clearTimeout(timeout)

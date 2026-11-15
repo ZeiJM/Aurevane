@@ -177,3 +177,19 @@ export function readWorldPeerDrawCapture(element: HTMLElement | SVGElement) {
   }
   return (canvas.__worldPeerDrawCapture?.samples ?? []).map((sample) => ({ ...sample }))
 }
+
+export async function hashWorldBackingPixels(element: HTMLElement | SVGElement) {
+  const bitmap = element as HTMLCanvasElement
+  // Never call getImageData on the live renderer: repeated reads can migrate
+  // its backing store between GPU/CPU raster paths and change rounding.
+  const copy = document.createElement('canvas')
+  copy.width = bitmap.width
+  copy.height = bitmap.height
+  const context = copy.getContext('2d', { alpha: false, willReadFrequently: true })
+  if (!context) throw new Error('Backing pixel capture has no 2D context')
+  context.globalCompositeOperation = 'copy'
+  context.drawImage(bitmap, 0, 0)
+  const pixels = context.getImageData(0, 0, copy.width, copy.height).data
+  const digest = await crypto.subtle.digest('SHA-256', new Uint8Array(pixels))
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
+}
