@@ -12,6 +12,7 @@ import legacyTownTopology from '@/world/town-topology.legacy.json'
 import townGrandManifest from '../../../public/media/art/world/runtime/town-grand-architecture-v01.manifest.json'
 import { newWorldState, revealNearby } from '@/world/travel'
 import { localRoute, mapPoint, WorldMotion } from './world-motion'
+import * as navigation from './world-motion'
 import { createMapRenderer } from './map-renderer'
 import { MAP_X, MAP_Y, projectMapPoint, unprojectMapPoint } from './map-projection'
 import type { WorldView } from '@/world/types'
@@ -426,6 +427,31 @@ describe('native map input and bounded lifecycle', () => {
   })
   afterEach(() => {
     vi.restoreAllMocks()
+  })
+
+  it('reuses remote navigation for an equivalent serialized scene receipt', () => {
+    const prepare = vi.spyOn(navigation, 'prepareLocalRoute')
+    const s = scene()
+    const prepared = prepare.mock.calls.length
+    try {
+      s.renderer.update(JSON.parse(JSON.stringify(s.view)) as WorldView)
+      expect(prepare).toHaveBeenCalledTimes(prepared)
+      const changed = JSON.parse(JSON.stringify(s.view)) as WorldView
+      changed.sectors[0]!.exits = [
+        ...changed.sectors[0]!.exits,
+        {
+          from: { sectorId: changed.sectors[0]!.id, x: 0, y: 0 },
+          to: { sectorId: changed.sectors[0]!.id, x: 1, y: 0 },
+          durationMs: 200,
+          name: 'Changed route',
+        },
+      ]
+      s.renderer.update(changed)
+      expect(prepare).toHaveBeenCalledTimes(prepared + 1)
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
   })
 
   it('submits clicks on visible public ground beyond the peer scene without inventing a preview route', () => {

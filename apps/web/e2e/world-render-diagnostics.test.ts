@@ -223,6 +223,41 @@ describe('native renderer timing capture', () => {
 })
 
 describe('native peer draw capture', () => {
+  it('reuses one patched identity context and observer when a later phase resets capture', () => {
+    let observers = 0
+    vi.stubGlobal(
+      'MutationObserver',
+      class {
+        constructor() {}
+        observe() {
+          observers++
+        }
+      },
+    )
+    const context = { fillText: vi.fn(), clearRect: vi.fn() }
+    const identity = { getContext: () => context }
+    const canvas = { dataset: {} } as HTMLCanvasElement
+    vi.stubGlobal('document', { querySelector: () => identity })
+    try {
+      installWorldPeerDrawCapture(canvas, {
+        name: 'First peer',
+        sampleKey: 'testRemoteDraws',
+        limit: 20,
+      })
+      const fillText = context.fillText
+      const clearRect = context.clearRect
+      installWorldPeerDrawCapture(canvas, {
+        name: 'Second peer',
+        sampleKey: 'testMovingObserverDraws',
+        limit: 20,
+      })
+      expect(observers).toBe(1)
+      expect(context.fillText).toBe(fillText)
+      expect(context.clearRect).toBe(clearRect)
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
   it('samples a retained real nameplate as its moving camera advances, then drops cleared labels', async () => {
     const context = { fillText: vi.fn(), clearRect: vi.fn() }
     const identity = { clientWidth: 800, clientHeight: 600, width: 800, getContext: () => context }

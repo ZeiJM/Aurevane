@@ -80,21 +80,42 @@ export function installWorldPeerDrawCapture(
     limit: number
   },
 ) {
-  const canvas = element as HTMLCanvasElement
+  const canvas = element as HTMLCanvasElement & {
+    __worldPeerDrawCapture?: {
+      options: typeof options
+      samples: Record<string, number>[]
+      paintedLabel?: { x: number; y: number }
+      observer: MutationObserver
+    }
+  }
+  const active = canvas.__worldPeerDrawCapture
+  if (active) {
+    delete canvas.dataset[active.options.sampleKey]
+    active.options = options
+    active.samples = []
+    active.paintedLabel = undefined
+    delete canvas.dataset[options.sampleKey]
+    return
+  }
   const identity = document.querySelector<HTMLCanvasElement>('canvas[data-world-identity]')!
   const context = identity.getContext('2d')!
   const original = context.fillText.bind(context)
   const originalClear = context.clearRect.bind(context)
-  const samples: Record<string, number>[] = []
-  let paintedLabel: { x: number; y: number } | undefined
+  const state = {
+    options,
+    samples: [] as Record<string, number>[],
+    paintedLabel: undefined as { x: number; y: number } | undefined,
+    observer: null as unknown as MutationObserver,
+  }
+  canvas.__worldPeerDrawCapture = state
   const sample = () => {
-    if (paintedLabel && samples.at(-1)?.frameAt !== Number(canvas.dataset.frameNow)) {
-      const { x, y } = paintedLabel
+    if (state.paintedLabel && state.samples.at(-1)?.frameAt !== Number(canvas.dataset.frameNow)) {
+      const { x, y } = state.paintedLabel
       const tile = Number(canvas.dataset.tileSize)
       const east = (x - identity.clientWidth / 2) / (tile * 0.85)
       const north = (y - identity.clientHeight / 2) / (tile * 0.44)
       // The nameplate offset is fixed; it cancels between same-projection draws.
-      samples.push({
+      state.samples.push({
         at: performance.now(),
         frameAt: Number(canvas.dataset.frameNow),
         paintingMs: performance.now() - Number(canvas.dataset.frameStarted),
@@ -105,26 +126,27 @@ export function installWorldPeerDrawCapture(
         x: Number(canvas.dataset.cameraX) + (east + north) / 2,
         y: Number(canvas.dataset.cameraY) + (north - east) / 2,
       })
-      if (samples.length > options.limit) samples.shift()
-      canvas.dataset[options.sampleKey] = JSON.stringify(samples)
+      if (state.samples.length > state.options.limit) state.samples.shift()
+      canvas.dataset[state.options.sampleKey] = JSON.stringify(state.samples)
     }
   }
   context.fillText = (text, x, y, maxWidth) => {
-    if (text === options.name) {
-      paintedLabel = { x, y }
+    if (text === state.options.name) {
+      state.paintedLabel = { x, y }
       sample()
     }
     if (maxWidth === undefined) original(text, x, y)
     else original(text, x, y, maxWidth)
   }
   context.clearRect = (x, y, width, height) => {
-    paintedLabel = undefined
+    state.paintedLabel = undefined
     originalClear(x, y, width, height)
   }
   // A retained screen-space label still changes world position with its camera.
   // Observe completed renderer frames, reusing only coordinates actually painted;
   // clearing the identity surface invalidates a label that is no longer visible.
-  new MutationObserver(sample).observe(canvas, {
+  state.observer = new MutationObserver(sample)
+  state.observer.observe(canvas, {
     attributes: true,
     attributeFilter: ['data-frame-now'],
   })

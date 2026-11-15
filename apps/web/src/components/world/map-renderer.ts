@@ -34,6 +34,7 @@ import { mapPoint, type MapPoint, WorldMotion } from './world-motion'
 import { WorldPlayerMotion } from './map-player-motion'
 import { clampWorldZoom } from './world-zoom'
 import { samePosition } from '@/world/travel'
+import { retainWorldSceneReferences } from '@/world/presence'
 import {
   createCloudTexture,
   createWildlife,
@@ -3861,6 +3862,7 @@ export function createMapRenderer(
     update(next: WorldView) {
       const profiling = timingEnabled()
       const started = profiling ? performance.now() : 0
+      next = retainWorldSceneReferences(view, next)
       const terrain = worldRenderTerrain(next, renderSectors)
       const terrainChanged = terrain !== renderSectors
       const atlasChanged = atlasTerrainKey(next.atlas) !== indexedAtlasKey
@@ -3871,6 +3873,10 @@ export function createMapRenderer(
       const peerStarted = performance.now()
       if (next.serverNow !== view.serverNow) ferryClockAt = peerStarted
       view = next
+      // Network refreshes deserialize a new object graph. Retain the exact
+      // authority array only when all topology is equivalent, so ordinary
+      // presence receipts avoid rebuilding remote navigation while real exits,
+      // cadence and collision changes remain live.
       remoteMotion.update(next, peerStarted, camera)
       const indexStarted = profiling ? performance.now() : 0
       const nextDependencies = new Set(visibleGroundIds)
