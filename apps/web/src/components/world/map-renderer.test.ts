@@ -3738,6 +3738,44 @@ it.each(
   },
 )
 
+it('reuses articulated deer artwork during dusk without replaying live clipping', () => {
+  const state = newWorldState()
+  state.position = { sectorId: 'atlas:59:28', x: 4, y: 4 }
+  const initial = projectWorld(state, [], 1000)
+  const s = scene(false, {
+    ...initial,
+    environment: { ...initial.environment, minuteOfDay: 1100, weather: 'rain' },
+  })
+  try {
+    s.renderer.settings({ animate: true, zoom: 1 })
+    s.canvas.dataset.renderDiagnostics = 'timing'
+    s.frame(40)
+    const deerBodyClips = () =>
+      s.clips.filter(({ points }) => points[0]?.[0] === 29 && points[0]?.[1] === 237)
+    expect(deerBodyClips().length).toBeGreaterThan(0)
+    const animals = Number(s.canvas.dataset.wildlife)
+    expect(animals).toBeGreaterThan(0)
+    s.clips.length = 0
+    const layers = s.layerCount()
+    s.frame(140)
+    expect(Number(s.canvas.dataset.wildlife)).toBe(animals)
+    expect(deerBodyClips()).toEqual([])
+    expect(s.layerCount()).toBe(layers)
+    const costs = JSON.parse(s.canvas.dataset.renderTiming!)
+    expect(costs.wildlifePartBuilds).toBe(0)
+    expect(costs.wildlifePartPixels).toBeGreaterThan(0)
+    expect(costs.wildlifePartPixels).toBeLessThanOrEqual(512_000)
+    s.images.find((image) => (image as HTMLImageElement).src.endsWith('nature-v02.webp'))!.onload!()
+    s.frame(240)
+    expect(JSON.parse(s.canvas.dataset.renderTiming!).wildlifePartBuilds).toBeGreaterThan(0)
+    s.frame(340)
+    expect(JSON.parse(s.canvas.dataset.renderTiming!).wildlifePartBuilds).toBe(0)
+  } finally {
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+})
+
 it('reuses cropped scenery rasters across zoomed-out phone frames', () => {
   const clock = vi.spyOn(performance, 'now').mockReturnValue(0)
   const state = newWorldState()

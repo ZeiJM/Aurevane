@@ -132,6 +132,8 @@ const frame = (frameAt: number) => ({
   prepareMs: 0,
   terrainMs: 7,
   sceneryMs: 22,
+  wildlifePartBuilds: 5,
+  wildlifePartPixels: 120_000,
   atmosphereMs: 0,
   identityMs: 11,
 })

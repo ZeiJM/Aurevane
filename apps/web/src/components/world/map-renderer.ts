@@ -70,7 +70,7 @@ import {
   worldWindTarget,
   type WorldWind,
 } from './map-weather'
-import { drawWildlife } from './map-wildlife'
+import { createWildlifePartCache, drawWildlife } from './map-wildlife'
 import { buildBiomeTransitions } from './map-biome-transitions'
 
 import { worldRenderTerrain } from './map-render-terrain'
@@ -687,6 +687,7 @@ export function createMapRenderer(
     }
   >()
   const groundProjections = createGroundProjectionCache()
+  const wildlifeParts = createWildlifePartCache()
   const biomeRasters = new Map<string, HTMLCanvasElement>()
   let biomeRasterPixels = 0
   let stationaryScenery: Scenery[] | null = null
@@ -811,6 +812,7 @@ export function createMapRenderer(
   const load = (name: string, version = 'v02', format = 'webp') => {
     const image = new Image()
     image.onload = () => {
+      if (name === 'nature') wildlifeParts.clear()
       // Only the terrain sheet is baked into ground layers. Scenery sheets
       // paint separately; loading them must not rebuild every visible tile.
       if (
@@ -1651,6 +1653,7 @@ export function createMapRenderer(
   function draw(now: number, rafAt: number) {
     hitTargets = []
     groundProjections.beginFrame()
+    wildlifeParts.beginFrame()
     const start = performance.now(),
       sample = motion.sample(now),
       previousFrame = last,
@@ -2946,7 +2949,16 @@ export function createMapRenderer(
       }
       if (object.type === 'animal') {
         const p = screen(object.point)
-        drawWildlife(ctx, nature!, object.animal, object.pose, p.x, p.y, tile)
+        drawWildlife(
+          ctx,
+          nature!,
+          object.animal,
+          object.pose,
+          p.x,
+          p.y,
+          tile,
+          ambient ? wildlifeParts : undefined,
+        )
         continue
       }
       const item = object.item,
@@ -3320,6 +3332,8 @@ export function createMapRenderer(
     if (timing) {
       const ended = performance.now()
       timing.sceneryMs = ended - phaseAt
+      timing.wildlifePartBuilds = wildlifeParts.builds
+      timing.wildlifePartPixels = wildlifeParts.pixels
       phaseAt = ended
     }
     // Time changes light gradually. Night never removes the ability to read terrain.
@@ -4003,6 +4017,7 @@ export function createMapRenderer(
       releaseHeldKeys()
       disposed = true
       remoteMotion.dispose()
+      wildlifeParts.clear()
       unsubscribeClassicTokens()
       cancelAnimationFrame(frame)
       observer.disconnect()

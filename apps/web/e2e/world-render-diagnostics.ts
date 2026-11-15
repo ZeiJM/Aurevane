@@ -42,6 +42,8 @@ export function installWorldRenderTiming(element: HTMLElement | SVGElement) {
     'prepareMs',
     'terrainMs',
     'sceneryMs',
+    'wildlifePartBuilds',
+    'wildlifePartPixels',
     'atmosphereMs',
     'identityMs',
   ]
