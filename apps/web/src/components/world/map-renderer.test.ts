@@ -405,8 +405,13 @@ function scene(reduced = false, initial?: WorldView) {
     frames,
     layerCount: () => createdLayers,
     listeners,
-    event(name: string, x: number, y: number) {
-      listeners.get(name)!({ clientX: x, clientY: y, pointerId: 1 } as unknown as Event)
+    event(name: string, x: number, y: number, timeStamp?: number) {
+      listeners.get(name)!({
+        clientX: x,
+        clientY: y,
+        pointerId: 1,
+        ...(timeStamp === undefined ? {} : { timeStamp }),
+      } as unknown as Event)
     },
     visibility(value: string) {
       visibility = value
@@ -1607,6 +1612,19 @@ describe('native map input and bounded lifecycle', () => {
     for (let now = 56; now <= 200; now += 16) s.frame(now)
     s.event('pointerup', 563.2, 384.48)
     expect(s.select).toHaveBeenCalledExactlyOnceWith(destination)
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  })
+  it('uses the painted projection when native click delivery follows a newer frame', () => {
+    const s = scene()
+    s.renderer.settings({ animate: false, zoom: 1 })
+    s.frame(40)
+    s.renderer.settings({ animate: false, zoom: 0.5 })
+    s.frame(80)
+    expect(Number(s.canvas.dataset.tileSize)).toBe(32)
+    s.event('pointerdown', 563.2, 384.48, 40)
+    s.event('pointerup', 563.2, 384.48, 40)
+    expect(s.select).toHaveBeenCalledExactlyOnceWith({ sectorId: 'verdant-expanse', x: 8, y: 4 })
     s.renderer.dispose()
     vi.unstubAllGlobals()
   })
@@ -3426,6 +3444,29 @@ describe('native map input and bounded lifecycle', () => {
     expect(s.frames.size).toBe(0)
     s.frame(80)
     expect(s.frames.size).toBe(0)
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  })
+  it('freezes gradual world lighting across redraws while ambient effects are disabled', () => {
+    const s = scene()
+    const lighting = () =>
+      s.rectangles.find(
+        ({ colour }) => typeof colour === 'string' && colour.startsWith('rgba(12,27,65,'),
+      )?.colour
+    s.renderer.settings({ animate: false, zoom: 1 })
+    s.frame(40)
+    const frozen = lighting()
+    s.rectangles.length = 0
+    s.renderer.update({
+      ...s.view,
+      environment: { ...s.view.environment, minuteOfDay: s.view.environment.minuteOfDay + 600 },
+    })
+    s.frame(80)
+    expect(lighting()).toBe(frozen)
+    s.rectangles.length = 0
+    s.renderer.settings({ animate: true, zoom: 1 })
+    s.frame(120)
+    expect(lighting()).not.toBe(frozen)
     s.renderer.dispose()
     vi.unstubAllGlobals()
   })

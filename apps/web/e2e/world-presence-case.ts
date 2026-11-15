@@ -1,4 +1,9 @@
-import { installWorldRenderTiming, installWorldPeerDrawCapture } from './world-render-diagnostics'
+import {
+  installWorldRenderTiming,
+  installWorldPeerDrawCapture,
+  readWorldPeerDrawCapture,
+  readWorldRenderTiming,
+} from './world-render-diagnostics'
 import { openMapSettings, closeMapSettings } from './world-map-settings-helpers'
 import {
   measurePeerMotionStep,
@@ -462,9 +467,10 @@ export async function verifyWorldScenePresence(
       await expect
         .poll(
           async () => {
-            const samples = JSON.parse(
-              (await canvas.getAttribute('data-test-remote-draws')) ?? '[]',
-            ) as { x: number; y: number }[]
+            const samples = (await canvas.evaluate(readWorldPeerDrawCapture)) as {
+              x: number
+              y: number
+            }[]
             return new Set(samples.map((sample) => `${sample.x}:${sample.y}`)).size
           },
           { timeout: 4000 },
@@ -482,17 +488,13 @@ export async function verifyWorldScenePresence(
       await expect
         .poll(
           async () => {
-            const draws = JSON.parse(
-              (await canvas.getAttribute('data-test-remote-draws')) ?? '[]',
-            ) as { x: number }[]
+            const draws = (await canvas.evaluate(readWorldPeerDrawCapture)) as { x: number }[]
             return draws.length ? draws.at(-1)!.x - draws[0]!.x : 0
           },
           { timeout: 5000 },
         )
         .toBeGreaterThan(3.4)
-      const remoteSamples = JSON.parse(
-        (await canvas.getAttribute('data-test-remote-draws')) ?? '[]',
-      ) as PeerMotionSample[]
+      const remoteSamples: PeerMotionSample[] = await canvas.evaluate(readWorldPeerDrawCapture)
       const remoteDeltas = remoteSamples
         .slice(1)
         .map((sample, index) => measurePeerMotionStep(remoteSamples[index]!, sample))
@@ -528,12 +530,15 @@ export async function verifyWorldScenePresence(
         (peer) => peer.characterId === observer.peerId,
       )!.name
       await observer.page.locator('canvas[data-world-stage]').evaluate((el) => {
+        const canvas = el as HTMLCanvasElement & {
+          __worldMovingObserverLongTasks?: { at: number; durationMs: number }[]
+        }
         const longTasks: { at: number; durationMs: number }[] = []
+        canvas.__worldMovingObserverLongTasks = longTasks
         const tasks = new PerformanceObserver((entries) => {
           for (const entry of entries.getEntries())
             longTasks.push({ at: entry.startTime, durationMs: entry.duration })
           if (longTasks.length > 100) longTasks.splice(0, longTasks.length - 100)
-          el.dataset.testMovingObserverLongTasks = JSON.stringify(longTasks)
         })
         tasks.observe({ type: 'longtask' })
       })
@@ -558,39 +563,30 @@ export async function verifyWorldScenePresence(
         await expect
           .poll(
             async () => {
-              const draws = JSON.parse(
-                (await observer.page
-                  .locator('canvas[data-world-stage]')
-                  .getAttribute('data-test-moving-observer-draws')) ?? '[]',
-              ) as { x: number }[]
+              const draws = (await observer.page
+                .locator('canvas[data-world-stage]')
+                .evaluate(readWorldPeerDrawCapture)) as { x: number }[]
               return draws.length ? draws.at(-1)!.x - draws[0]!.x : 0
             },
             { timeout: 5000 },
           )
           .toBeGreaterThan(observer.distance - 0.6)
-        const samples = JSON.parse(
-          (await observer.page
-            .locator('canvas[data-world-stage]')
-            .getAttribute('data-test-moving-observer-draws')) ?? '[]',
-        ) as PeerMotionSample[]
+        const stage = observer.page.locator('canvas[data-world-stage]')
+        const samples: PeerMotionSample[] = await stage.evaluate(readWorldPeerDrawCapture)
         const motionSteps = samples
           .slice(1)
           .map((sample, i) => measurePeerMotionStep(samples[i]!, sample))
         const deltas = motionSteps.map((step) => step.deltaX)
         const path = info.outputPath(`world-both-moving-peer-${index}.json`)
-        const { longTasks, renderTimings } = await observer.page
-          .locator('canvas[data-world-stage]')
-          .evaluate((el) => ({
-            longTasks: JSON.parse(
-              el.getAttribute('data-test-moving-observer-long-tasks') ?? '[]',
-            ) as {
-              at: number
-              durationMs: number
-            }[],
-            renderTimings: JSON.parse(
-              el.getAttribute('data-test-render-timings') ?? '[]',
-            ) as Record<string, number>[],
-          }))
+        const [longTasks, renderTimings] = await Promise.all([
+          stage.evaluate((el) => {
+            const canvas = el as HTMLCanvasElement & {
+              __worldMovingObserverLongTasks?: { at: number; durationMs: number }[]
+            }
+            return (canvas.__worldMovingObserverLongTasks ?? []).map((task) => ({ ...task }))
+          }),
+          stage.evaluate(readWorldRenderTiming),
+        ])
         await writeFile(
           path,
           JSON.stringify({

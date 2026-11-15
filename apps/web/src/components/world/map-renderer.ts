@@ -642,8 +642,18 @@ export function createMapRenderer(
     }
   }
   let camera = motion.sample(performance.now()).point
+  type PaintedProjection = {
+    at: number
+    camera: MapPoint
+    pan: MapPoint
+    tile: number
+    width: number
+    height: number
+  }
+  const paintedProjections: PaintedProjection[] = []
   const remoteMotion = new WorldPlayerMotion(initial, performance.now(), camera)
   let animate = true,
+    visualMinuteOfDay = view.environment.minuteOfDay,
     quality: MapQuality = DEFAULT_MAP_QUALITY,
     zoomLocked = false,
     paused = false,
@@ -989,16 +999,23 @@ export function createMapRenderer(
   observer.observe(canvas)
   resize()
   const screen = (point: MapPoint) => projectMapPoint(point, camera, pan, tile, width, height)
-  const world = (x: number, y: number) =>
-    unprojectMapPoint({ x, y }, camera, pan, tile, width, height)
+  const world = (x: number, y: number, projection?: PaintedProjection) =>
+    unprojectMapPoint(
+      { x, y },
+      projection?.camera ?? camera,
+      projection?.pan ?? pan,
+      projection?.tile ?? tile,
+      projection?.width ?? width,
+      projection?.height ?? height,
+    )
   const sectorOrigin = (sector: WorldSectorView) => sectorMapOrigin(sector, camera.x)
-  const pick = (point: MapPoint, sectors = view.sectors) => {
+  const pick = (point: MapPoint, sectors = view.sectors, referenceX = camera.x) => {
     // Prefer the current legacy/private sector over a public sector at the same address.
     const ordered = [...sectors].sort(
       (a, b) => Number(b.id === view.position.sectorId) - Number(a.id === view.position.sectorId),
     )
     for (const sector of ordered) {
-      const origin = sectorOrigin(sector),
+      const origin = sectorMapOrigin(sector, referenceX),
         x = Math.floor(point.x - origin.x),
         y = Math.floor(point.y - origin.y)
       const cell = sector.cells.find((c) => c.x === x && c.y === y)
@@ -1668,6 +1685,7 @@ export function createMapRenderer(
     const current = view.sectors.find((sector) => sector.id === view.position.sectorId)
     const regionId = current?.regionId ?? 'verdant-expanse'
     const weather = view.environment.weather
+    if (animate) visualMinuteOfDay = view.environment.minuteOfDay
     const windTarget = worldWindTarget(weather, regionId)
     const windElapsed = wind ? Math.min(250, Math.max(0, now - previousFrame)) : 0
     wind = advanceWorldWind(wind ?? { speed: windTarget, offset: 0 }, windTarget, windElapsed)
@@ -2488,7 +2506,7 @@ export function createMapRenderer(
       facing: number
       pose: WildlifePose
     }[] = []
-    const daylight = worldDayPhase(view.environment.minuteOfDay)
+    const daylight = worldDayPhase(visualMinuteOfDay)
     if (nature?.complete && nature.naturalWidth)
       for (const sector of visible) {
         const origin = sectorOrigin(sector)
@@ -3285,7 +3303,7 @@ export function createMapRenderer(
       phaseAt = ended
     }
     // Time changes light gradually. Night never removes the ability to read terrain.
-    paintWorldLighting(ctx, width, height, view.environment.minuteOfDay, weather)
+    paintWorldLighting(ctx, width, height, visualMinuteOfDay, weather)
     let cloudCount = 0
     canvas.dataset.precipitation = precipitationKind(weather, regionId) ?? 'none'
     canvas.dataset.mapQuality = quality
@@ -3542,6 +3560,15 @@ export function createMapRenderer(
       paintedIdentity = identity
     }
     const ended = performance.now()
+    paintedProjections.push({
+      at: now,
+      camera: { ...camera },
+      pan: { ...pan },
+      tile,
+      width,
+      height,
+    })
+    if (paintedProjections.length > 64) paintedProjections.shift()
     if (timing) {
       timing.identityMs = ended - phaseAt
       timing.completedAt = ended
@@ -3702,14 +3729,20 @@ export function createMapRenderer(
     }
     const bounds = canvas.getBoundingClientRect(),
       x = event.clientX - bounds.left,
-      y = event.clientY - bounds.top
+      y = event.clientY - bounds.top,
+      eventAt = Number(event.timeStamp),
+      projection =
+        Number.isFinite(eventAt) && eventAt > 0
+          ? paintedProjections.findLast((frame) => frame.at <= eventAt)
+          : undefined,
+      ground = world(x, y, projection)
     drag = {
       x: event.clientX,
       y: event.clientY,
       // Public scenery may extend beyond the navigation/peer snapshot. A click
       // submits intent there; only supplied navigation can preview the route,
       // and the server still validates the destination and every traversed cell.
-      position: pick(world(x, y), renderSectors),
+      position: pick(ground, renderSectors, projection?.camera.x ?? camera.x),
       player:
         hitTargets.find((target) => Math.hypot(target.x - x, target.y - y) < target.radius) ?? null,
     }

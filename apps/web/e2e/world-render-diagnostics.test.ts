@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   installWorldRenderTiming,
   installWorldPeerDrawCapture,
+  readWorldPeerDrawCapture,
+  readWorldRenderTiming,
   startWorldFrameCounting,
 } from './world-render-diagnostics'
 
@@ -160,7 +162,8 @@ describe('native renderer timing capture', () => {
       await Promise.resolve()
       canvas.dataset.renderTiming = JSON.stringify(frame(20))
       await Promise.resolve()
-      expect(JSON.parse(canvas.dataset.testRenderTimings ?? '[]')).toEqual([frame(10), frame(20)])
+      expect(readWorldRenderTiming(canvas)).toEqual([frame(10), frame(20)])
+      expect(canvas.dataset.testRenderTimings).toBeUndefined()
     } finally {
       vi.unstubAllGlobals()
     }
@@ -184,8 +187,9 @@ describe('native renderer timing capture', () => {
         url: 'secret-url',
       })
       await Promise.resolve()
-      const raw = canvas.dataset.testRenderTimings!
-      expect(JSON.parse(raw)).toEqual([frame(20)])
+      const rows = readWorldRenderTiming(canvas)
+      expect(rows).toEqual([frame(20)])
+      const raw = JSON.stringify(rows)
       for (const forbidden of ['private-name', 'private-id', 'secret-url'])
         expect(raw).not.toContain(forbidden)
     } finally {
@@ -201,8 +205,8 @@ describe('native renderer timing capture', () => {
         canvas.dataset.renderTiming = JSON.stringify(frame(i))
         await Promise.resolve()
       }
-      expect(canvas.dataset.testRenderTimings).toBeDefined()
-      const rows = JSON.parse(canvas.dataset.testRenderTimings!)
+      expect(canvas.dataset.testRenderTimings).toBeUndefined()
+      const rows = readWorldRenderTiming(canvas)
       expect(rows).toHaveLength(1500)
       expect(rows[0]).toEqual(frame(2))
       expect(rows.at(-1)).toEqual(frame(1501))
@@ -215,7 +219,7 @@ describe('native renderer timing capture', () => {
         context.fillText('peer', 4, 5)
         await Promise.resolve()
       }
-      expect(JSON.parse(canvas.dataset.testRenderTimings!)).toEqual(rows)
+      expect(readWorldRenderTiming(canvas)).toEqual(rows)
     } finally {
       vi.unstubAllGlobals()
     }
@@ -281,19 +285,20 @@ describe('native peer draw capture', () => {
       canvas.dataset.cameraX = '10.1'
       canvas.dataset.frameNow = '120'
       await Promise.resolve()
-      const samples = JSON.parse(canvas.dataset.testRemoteDraws ?? '[]')
+      const samples = readWorldPeerDrawCapture(canvas)
+      expect(canvas.dataset.testRemoteDraws).toBeUndefined()
       expect(samples).toHaveLength(2)
       expect(samples[1].x - samples[0].x).toBeCloseTo(0.1)
       expect(samples[1].screenX).toBe(samples[0].screenX)
-      expect(samples.map((sample: { frameAt: number }) => sample.frameAt)).toEqual([100, 120])
+      expect(samples.map((sample) => sample.frameAt)).toEqual([100, 120])
       canvas.dataset.frameNow = '120'
       await Promise.resolve()
-      expect(JSON.parse(canvas.dataset.testRemoteDraws!)).toEqual(samples)
+      expect(readWorldPeerDrawCapture(canvas)).toEqual(samples)
       // A frame that removes or occludes the peer must not reuse its old label.
       context.clearRect(0, 0, 800, 600)
       canvas.dataset.frameNow = '140'
       await Promise.resolve()
-      expect(JSON.parse(canvas.dataset.testRemoteDraws!)).toEqual(samples)
+      expect(readWorldPeerDrawCapture(canvas)).toEqual(samples)
     } finally {
       clock.mockRestore()
       vi.unstubAllGlobals()
@@ -321,7 +326,7 @@ describe('native peer draw capture', () => {
       canvas.dataset.cameraX = '10.5'
       clock.mockReturnValue(210)
       context.fillText('Peer', 427.2, 314.08, 100)
-      const samples = JSON.parse(canvas.dataset.testRemoteDraws!)
+      const samples = readWorldPeerDrawCapture(canvas)
       expect(samples).toHaveLength(2)
       for (const sample of samples) {
         expect(sample.x).toBeCloseTo(11)
@@ -329,17 +334,17 @@ describe('native peer draw capture', () => {
         expect(sample.tileSize).toBe(64)
         expect(sample.identityRatio).toBe(1)
       }
-      expect(samples.map((sample: { frameAt: number }) => sample.frameAt)).toEqual([100, 116.7])
-      expect(samples.map((sample: { at: number }) => sample.at)).toEqual([200, 210])
+      expect(samples.map((sample) => sample.frameAt)).toEqual([100, 116.7])
+      expect(samples.map((sample) => sample.at)).toEqual([200, 210])
       expect(draw.mock.calls).toEqual([
         ['Peer', 454.4, 328.16],
         ['Peer', 427.2, 314.08, 100],
       ])
       context.fillText('Other', 1, 2)
-      expect(JSON.parse(canvas.dataset.testRemoteDraws!)).toHaveLength(2)
+      expect(readWorldPeerDrawCapture(canvas)).toHaveLength(2)
       context.fillText('Peer', 427.2, 314.08)
-      expect(JSON.parse(canvas.dataset.testRemoteDraws!)).toHaveLength(2)
-      expect(canvas.dataset.testRemoteDraws).not.toContain('Peer')
+      expect(readWorldPeerDrawCapture(canvas)).toHaveLength(2)
+      expect(JSON.stringify(readWorldPeerDrawCapture(canvas))).not.toContain('Peer')
     } finally {
       clock.mockRestore()
       vi.unstubAllGlobals()

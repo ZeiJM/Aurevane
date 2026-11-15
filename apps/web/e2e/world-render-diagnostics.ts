@@ -60,7 +60,6 @@ export function installWorldRenderTiming(element: HTMLElement | SVGElement) {
       if (records.at(-1)?.frameAt === raw.frameAt) return
       records.push(Object.fromEntries(fields.map((key) => [key, raw[key] as number])))
       if (records.length > 1500) records.shift()
-      canvas.dataset.testRenderTimings = JSON.stringify(records)
     } catch {
       // Missing or incomplete diagnostics must never interrupt real painting.
     }
@@ -71,7 +70,27 @@ export function installWorldRenderTiming(element: HTMLElement | SVGElement) {
   })
 }
 
+/** Read captured timing without serializing an ever-growing DOM attribute after every frame. */
+export function readWorldRenderTiming(element: HTMLElement | SVGElement) {
+  const canvas = element as HTMLCanvasElement & {
+    __worldRenderTimingRecords?: Record<string, number>[]
+  }
+  return (canvas.__worldRenderTimingRecords ?? []).map((record) => ({ ...record }))
+}
+
 /** Serialized by Playwright; all samples use this frame's camera and projection. */
+export interface WorldPeerDrawSample {
+  at: number
+  frameAt: number
+  paintingMs: number
+  tileSize: number
+  identityRatio: number
+  screenX: number
+  screenY: number
+  x: number
+  y: number
+}
+
 export function installWorldPeerDrawCapture(
   element: HTMLElement | SVGElement,
   options: {
@@ -83,7 +102,7 @@ export function installWorldPeerDrawCapture(
   const canvas = element as HTMLCanvasElement & {
     __worldPeerDrawCapture?: {
       options: typeof options
-      samples: Record<string, number>[]
+      samples: WorldPeerDrawSample[]
       paintedLabel?: { x: number; y: number }
       observer: MutationObserver
     }
@@ -103,7 +122,7 @@ export function installWorldPeerDrawCapture(
   const originalClear = context.clearRect.bind(context)
   const state = {
     options,
-    samples: [] as Record<string, number>[],
+    samples: [] as WorldPeerDrawSample[],
     paintedLabel: undefined as { x: number; y: number } | undefined,
     observer: null as unknown as MutationObserver,
   }
@@ -127,7 +146,6 @@ export function installWorldPeerDrawCapture(
         y: Number(canvas.dataset.cameraY) + (north - east) / 2,
       })
       if (state.samples.length > state.options.limit) state.samples.shift()
-      canvas.dataset[state.options.sampleKey] = JSON.stringify(state.samples)
     }
   }
   context.fillText = (text, x, y, maxWidth) => {
@@ -150,4 +168,12 @@ export function installWorldPeerDrawCapture(
     attributes: true,
     attributeFilter: ['data-frame-now'],
   })
+}
+
+/** Read exact native draw samples without adding observer work to every animation frame. */
+export function readWorldPeerDrawCapture(element: HTMLElement | SVGElement) {
+  const canvas = element as HTMLCanvasElement & {
+    __worldPeerDrawCapture?: { samples: WorldPeerDrawSample[] }
+  }
+  return (canvas.__worldPeerDrawCapture?.samples ?? []).map((sample) => ({ ...sample }))
 }
