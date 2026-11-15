@@ -1,6 +1,7 @@
 """Keep local confirmation email enabled on an available test-runner web port."""
 
 from pathlib import Path
+import os
 import socket
 import tomllib
 
@@ -25,4 +26,9 @@ def configure_mail(config_path: Path) -> int:
 
 
 if __name__ == "__main__":
-    configure_mail(Path("supabase/config.toml"))
+    port = configure_mail(Path("supabase/config.toml"))
+    # The CLI's local_smtp port replaces the default mail-capture web port.
+    # Later Actions steps must use that same endpoint for recovery email reads.
+    if environment_path := os.environ.get("GITHUB_ENV"):
+        with Path(environment_path).open("a") as environment:
+            environment.write(f"INBUCKET_URL=http://127.0.0.1:{port}\n")
