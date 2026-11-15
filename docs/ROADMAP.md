@@ -1,3 +1,26 @@
+# AUREVANE — Roadmap status index
+
+**Latest reconciled evidence:** [15 November 2026 status and release gates](ROADMAP_STATUS_2026-11-15.md). This is the current **status** entry point; the [master plan](GAME_MASTER_PLAN.md), [historical detailed roadmap](ROADMAP_DETAILED_2026-10-13.md), [product-validation gates](ROADMAP_PRODUCT_VALIDATION.md), and domain specifications retain the approved game vision and rules. See [November 14 independent PR #1040 audit](https://github.com/ZeiJM/Aurevane/issues/1041) for older-SHA findings, not an unqualified current acceptance claim.
+
+| Scope | Current reality | Next evidence boundary |
+| --- | --- | --- |
+| **Phases 0–1** | Engineering, character and persistence foundations delivered; historical owner closeout evidence is not fully reconciled | Real first-session/return workflow |
+| **Phases 2–4** | Owner-closed combat, buildcraft and first 17-Discipline content platform | Regression preservation as later systems advance |
+| **Phase 5** | **Active and substantially implemented**, including merged World, NPC, quest/event, ferry/Void and map work; not phase-closed | Exact-head #1040 release checks, player-facing PV-3 validation |
+| **Phases 6–10** | Early solo traversal, PvP, supernatural engine and social foundations exist; mature co-op, expeditions, competitive, roster and guild/social goals remain open | Phase-specific gameplay validation |
+| **Phases 11–12** | Items/equipment are live but not a complete crafting/trade economy; nations are not delivered | Profession/market and nation design + acceptance |
+| **Phases 13–15** | Extensive Master Panel, art/audio and CI/security foundation; overall operations/polish/Closed Alpha gates open | Whole-product, concurrency, visual, security and human playtest evidence |
+
+**Live-source boundary:** `main` / production = `d32cabd7` (PR #1039); [World Atlas PR #1040](https://github.com/ZeiJM/Aurevane/pull/1040) is a separate draft candidate at `367689e` as of the 15 November snapshot. Do not infer current PR readiness from this dated header: recheck exact-head CI, canonical Vercel alias and production migration ledger before release. Neither a roadmap update nor green source tests constitute game completion, phase acceptance or deployment authorization.
+
+The full [November status matrix](ROADMAP_STATUS_2026-11-15.md) distinguishes **implemented**, **merged**, **live**, **technically verified** and **Owner accepted**, and records open gates. Do not use an ungrounded global completion percentage.
+
+---
+
+## Historical release notes and earlier roadmap checkpoints
+
+**Archive notice:** The timestamped entries below are preserved historical context. When an older `not live`, `active` or `pending` note conflicts with a later verified release, the newer exact-SHA release record and current status matrix control **execution status** (not canonical mechanic design).
+
 November12 living-world continuation: Owner requests twelve ordinary regional scenic pieces (50% above the original eight), plus four rare celestial/time-warped ruins, weighted toward Void; larger pieces span about three tiles. Yellow/spectral-white Void ground and purple/orange water join richer ground/water/foliage, simulated cliff/valley relief, detailed banks and occasional weather-driven surf. The two reference scenes remain the whole-world graphics target. Production release is explicitly authorized after quality/native smoke gates, with hourly action through verified live completion. No new reward mechanics, topology/collision, private reveal or data/content mutation. Current implementation/evidence: docs/verification/2026-11-12-world-environment-overhaul.md.
 
 November 5 Items — **LIVE for Owner testing** at https://aurevane-rpg.com: compact authoring, Class/Position/Type, optional weapon Imbued Techniques, equip requirements, automatic inventory actions and actual consumable stock settlement are released. All 19 source workflows pass; four guarded migrations and three exact v5 Item publications preserve prior versions, drafts, inventory and frozen encounters. Production `dpl_D79wgdgrFWWjf3kom6sfypujPk6F`, source `0fd6cb6144da1624e88d3c58a24f224693f541b2`; admission/authoring hold removed, nine retirement guards retained. This supersedes source-only Items checkpoints below. [Release receipt](verification/2026-11-05-items-production-release.md); Owner acceptance remains open.
