@@ -19,6 +19,7 @@ import type { WorldView } from '@/world/types'
 import * as biomes from './map-biome-transitions'
 import * as waterPainting from './map-water'
 import { worldWindTarget } from './map-weather'
+import * as weatherPainting from './map-weather'
 import { worldRenderTerrain } from './map-render-terrain'
 import { grandDiscoveryPlacements } from './map-grand-discoveries'
 import { valleyDetailArt } from './map-grand-detail-art'
@@ -3534,6 +3535,39 @@ describe('native map input and bounded lifecycle', () => {
     s.renderer.dispose()
     vi.unstubAllGlobals()
   })
+  it.each(['effects off', 'reduced motion'])(
+    'freezes weather drift on presence redraws with %s and resumes only when enabled',
+    (mode) => {
+      const veil = vi.spyOn(weatherPainting, 'paintWeatherVeil')
+      const s = scene(mode === 'reduced motion')
+      try {
+        s.renderer.update({
+          ...s.view,
+          environment: { ...s.view.environment, weather: 'overcast' },
+        })
+        s.frame(40)
+        s.frame(80)
+        const frozen = veil.mock.calls.at(-1)![4]
+        if (mode === 'effects off') s.renderer.settings({ animate: false, zoom: 1 })
+        s.frame(120)
+        expect(veil.mock.calls.at(-1)![4]).toBe(frozen)
+        // A real receipt still changes weather while its visual drift remains paused.
+        s.renderer.update({ ...s.view, environment: { ...s.view.environment, weather: 'fog' } })
+        s.frame(160)
+        expect(veil.mock.calls.at(-1)![3]).toBe('fog')
+        expect(veil.mock.calls.at(-1)![4]).toBe(frozen)
+        if (mode === 'effects off') {
+          s.renderer.settings({ animate: true, zoom: 1 })
+          s.frame(200)
+          expect(veil.mock.calls.at(-1)![4]).not.toBe(frozen)
+        }
+      } finally {
+        s.renderer.dispose()
+        veil.mockRestore()
+        vi.unstubAllGlobals()
+      }
+    },
+  )
   it('keeps the idle paint cadence when a previous animation callback entered late', () => {
     const s = scene()
     const clock = vi.mocked(performance.now)
@@ -3632,30 +3666,48 @@ it('reduces phone cloud compositing by default and keeps Low identity sharp', ()
   }
 })
 
-it.each([1, 3])(
-  'reuses native desktop tree crops at DPR %s while retaining canopy motion',
-  (dpr) => {
+it.each(
+  [1, 3].flatMap((dpr) =>
+    ['living-trees-v01.webp', 'beauties-v03.webp'].map((sheet) => ({ dpr, sheet })),
+  ),
+)(
+  'reuses native desktop $sheet crops at DPR $dpr while retaining canopy motion',
+  ({ dpr, sheet }) => {
     const clock = vi.spyOn(performance, 'now').mockReturnValue(0)
     const state = newWorldState()
     state.position = { sectorId: 'atlas:59:28', x: 4, y: 4 }
     const s = scene(false, projectWorld(state, [], 1000))
     try {
+      for (const image of s.images)
+        if ((image as HTMLImageElement).src.endsWith('beauties-v03.webp'))
+          Object.assign(image, { width: 1774, height: 887, naturalWidth: 1774 })
       Object.assign(s.canvas, { clientWidth: 1280, clientHeight: 720 })
       window.devicePixelRatio = dpr
       s.resize()
       s.renderer.settings({ animate: true, zoom: 1 })
       s.canvas.dataset.renderDiagnostics = 'timing'
       s.frame(40)
-      const treeSource = (src: string) => src.endsWith('living-trees-v01.webp')
+      const treeSource = (src: string) => src.endsWith(sheet)
       const crops = s.draws.filter(
         ({ src, args }) => treeSource(src) && args[4] === 0 && args[5] === 0,
       )
       expect(crops.length).toBeGreaterThan(0)
+      if (sheet === 'beauties-v03.webp')
+        for (const crop of crops)
+          expect(crop.args.slice(0, 4)).toEqual([(893 / 1774) * 1774, 29, 430, 426])
       const cached = new Set(
         crops.flatMap((crop) =>
-          s.draws
-            .filter(({ image }) => image.width === crop.args[6] && image.height === crop.args[7])
-            .map(({ image }) => image),
+          [...s.composites.entries()]
+            .filter(([layer, contents]) => {
+              const canvas = layer as HTMLCanvasElement
+              return (
+                contents.length === 1 &&
+                contents[0] === crop.image &&
+                canvas.width === crop.args[6] &&
+                canvas.height === crop.args[7]
+              )
+            })
+            .map(([layer]) => layer),
         ),
       )
       expect(cached.size).toBeGreaterThan(0)
@@ -3663,11 +3715,13 @@ it.each([1, 3])(
       expect(cold.biomeRasters).toBeLessThanOrEqual(64)
       expect(cold.biomeRasterPixels).toBeLessThanOrEqual(4_000_000)
       const before = s.draws.filter(({ image }) => cached.has(image))
+      const layers = s.layerCount()
       s.draws.length = 0
       s.frame(100)
       // The high-resolution source must not be resampled for every swaying tree.
       expect(s.draws.filter(({ src }) => treeSource(src))).toHaveLength(0)
       expect(JSON.parse(s.canvas.dataset.renderTiming!).biomeRasterBuilds).toBe(0)
+      expect(s.layerCount()).toBe(layers)
       const after = s.draws.filter(({ image }) => cached.has(image))
       expect(after.length).toBe(before.length)
       expect(after.map(({ args }) => args)).toEqual(before.map(({ args }) => args))

@@ -1500,7 +1500,7 @@ export function createMapRenderer(
     }
 
     // Pre-scale atlas crops that otherwise repeatedly resample large source
-    // images for each canopy shear, including native desktop movement.
+    // images for each canopy shear, including seasonal desktop foliage.
     const layer = document.createElement('canvas')
     layer.width = pixelWidth
     layer.height = pixelHeight
@@ -1691,14 +1691,14 @@ export function createMapRenderer(
     const weather = view.environment.weather
     if (animate) visualMinuteOfDay = view.environment.minuteOfDay
     const windTarget = worldWindTarget(weather, regionId)
-    const windElapsed = wind ? Math.min(250, Math.max(0, now - previousFrame)) : 0
+    const ambient = animate && !reduced
+    const windElapsed = ambient && wind ? Math.min(250, Math.max(0, now - previousFrame)) : 0
     wind = advanceWorldWind(wind ?? { speed: windTarget, offset: 0 }, windTarget, windElapsed)
     const rainTarget = surfaceRainTarget(weather, regionId)
     surfaceRain = advanceSurfaceRain(surfaceRain ?? rainTarget, rainTarget, windElapsed)
     const surfaceWeather = { rain: surfaceRain, windSpeed: wind.speed }
     const budget = mapQualityBudgets[quality]
     const richAtmosphere = budget.clouds && (width >= 600 || quality === 'high')
-    const ambient = animate && !reduced
     const valley = grandDiscoveries.find((site) => site.id === 'elemental-valley')
     if (valley)
       for (const detail of valleyDetailArt)
@@ -2850,7 +2850,8 @@ export function createMapRenderer(
       y: number,
     ) => {
       const raster =
-        cacheBiomeRasters && (item.image === biomes || item.image === livingTrees)
+        cacheBiomeRasters &&
+        (item.image === biomes || item.image === livingTrees || item.image === beauties)
           ? biomeRaster(item)
           : null
       if (raster) target.drawImage(raster, x, y, item.width, item.height)
