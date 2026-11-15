@@ -1,5 +1,73 @@
 import { describe, expect, it, vi } from 'vitest'
-import { installWorldRenderTiming, installWorldPeerDrawCapture } from './world-render-diagnostics'
+import {
+  installWorldRenderTiming,
+  installWorldPeerDrawCapture,
+  startWorldFrameCounting,
+} from './world-render-diagnostics'
+
+describe('precise native frame count startup', () => {
+  it('waits for a newly completed count instead of returning the old statistics batch', async () => {
+    let notify!: () => void
+    const disconnect = vi.fn()
+    const observe = vi.fn()
+    vi.stubGlobal(
+      'MutationObserver',
+      class {
+        constructor(callback: () => void) {
+          notify = callback
+        }
+        observe = observe
+        disconnect = disconnect
+      },
+    )
+    try {
+      const canvas = { dataset: { renderFrames: '120' } } as unknown as HTMLCanvasElement
+      const ready = startWorldFrameCounting(canvas)
+      let resolved = false
+      void ready.then(() => {
+        resolved = true
+      })
+      await Promise.resolve()
+      expect(resolved).toBe(false)
+      expect(canvas.dataset.renderDiagnostics).toBe('frames')
+      expect(observe).toHaveBeenCalledWith(canvas, {
+        attributes: true,
+        attributeFilter: ['data-render-frames'],
+      })
+      canvas.dataset.renderFrames = '137'
+      notify()
+      await expect(ready).resolves.toBe(137)
+      expect(disconnect).toHaveBeenCalledOnce()
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it.each(['0', '-1', 'NaN', '1.5'])('rejects malformed completed counts (%s)', async (value) => {
+    let notify!: () => void
+    const disconnect = vi.fn()
+    vi.stubGlobal(
+      'MutationObserver',
+      class {
+        constructor(callback: () => void) {
+          notify = callback
+        }
+        observe() {}
+        disconnect = disconnect
+      },
+    )
+    try {
+      const canvas = { dataset: {} } as HTMLCanvasElement
+      const ready = startWorldFrameCounting(canvas)
+      canvas.dataset.renderFrames = value
+      notify()
+      await expect(ready).rejects.toThrow('Invalid completed frame count')
+      expect(disconnect).toHaveBeenCalledOnce()
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+})
 
 function observedDataset() {
   const observers: { callback: () => void; attributes: string[] }[] = []

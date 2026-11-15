@@ -3532,7 +3532,11 @@ export function createMapRenderer(
     } else if (canvas.dataset.paintedGroundIds !== undefined) delete canvas.dataset.paintedGroundIds
     frameTimes.push(ended - start)
     if (frameTimes.length > 120) frameTimes.shift()
-    if (++drawn % 60 === 0) {
+    drawn++
+    // Native throughput checks need completed frames, not the rounded batch
+    // used by the ordinary low-frequency statistics. Timing remains opt-in.
+    if (canvas.dataset.renderDiagnostics === 'frames') canvas.dataset.renderFrames = String(drawn)
+    if (drawn % 60 === 0) {
       const sorted = [...frameTimes].sort((a, b) => a - b)
       canvas.dataset.frameP95 = String(Math.round(sorted[Math.floor(sorted.length * 0.95)] ?? 0))
       canvas.dataset.cachedSectors = String(cache.size)

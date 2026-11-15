@@ -1,3 +1,19 @@
+/** Start before applying CPU slowdown; resolve on the first completed live count. */
+export function startWorldFrameCounting(element: HTMLElement | SVGElement): Promise<number> {
+  const canvas = element as HTMLCanvasElement
+  return new Promise((resolve, reject) => {
+    const observer = new MutationObserver(() => {
+      observer.disconnect()
+      const count = Number(canvas.dataset.renderFrames)
+      if (!Number.isSafeInteger(count) || count < 1)
+        reject(new Error('Invalid completed frame count'))
+      else resolve(count)
+    })
+    observer.observe(canvas, { attributes: true, attributeFilter: ['data-render-frames'] })
+    canvas.dataset.renderDiagnostics = 'frames'
+  })
+}
+
 /** Installed only by the native timing investigation. Serialized by Playwright. */
 export function installWorldRenderTiming(element: HTMLElement | SVGElement) {
   const canvas = element as HTMLCanvasElement

@@ -473,6 +473,26 @@ describe('native map input and bounded lifecycle', () => {
     s.renderer.dispose()
     vi.unstubAllGlobals()
   })
+  it('publishes each completed frame only when precise frame counting is requested', () => {
+    const s = scene()
+    try {
+      s.frame(40)
+      expect(s.canvas.dataset.renderFrames).toBeUndefined()
+      s.canvas.dataset.renderDiagnostics = 'frames'
+      s.frame(80)
+      expect(s.canvas.dataset.renderFrames).toBe('2')
+      expect(s.canvas.dataset.renderTiming).toBeUndefined()
+      expect(s.canvas.dataset.paintedGroundIds).toBeUndefined()
+      s.frame(120)
+      expect(s.canvas.dataset.renderFrames).toBe('3')
+      delete s.canvas.dataset.renderDiagnostics
+      s.frame(160)
+      expect(s.canvas.dataset.renderFrames).toBe('3')
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  })
   it('does not collect timing records or query stage clocks without diagnostic opt-in', () => {
     const clock = vi.spyOn(performance, 'now').mockReturnValue(0)
     const s = scene(true)

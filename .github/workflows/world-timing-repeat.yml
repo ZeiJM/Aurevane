@@ -39,7 +39,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @aurevane/web exec playwright install --with-deps chromium
       - run: pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
-      - name: Repeat World timing and seam-crossing cases twenty times
+      - name: Validate mobile crowd and repeat World movement twenty times
         shell: bash
         run: |
           set -euo pipefail
@@ -58,7 +58,13 @@ jobs:
             select public.activate_phase4_discipline_rebalance_v1();
           "
           pnpm --filter @aurevane/web exec playwright test e2e/atlas-world.pw.ts \
+            --project=mobile-chromium --workers=1 --repeat-each=3 --retries=0 \
+            --output=test-results/mobile-crowd \
+            --grep 'a synthetic population of 100 has bounded rendering' \
+            --reporter=list,github
+          pnpm --filter @aurevane/web exec playwright test e2e/atlas-world.pw.ts \
             --project=desktop-chromium --workers=1 --repeat-each=20 --retries=0 \
+            --output=test-results/desktop-movement \
             --grep 'known neighbouring players follow the visible viewport|holding WASD walks repeatedly|rapid ground clicks settle at the last legal tile' \
             --reporter=list,github
       - name: Save compact repeat boundary and motion evidence
@@ -74,8 +80,11 @@ jobs:
             apps/web/test-results/**/world-presence-boundaries.json
             apps/web/test-results/**/world-presence-cleanup.json
             apps/web/test-results/**/attachments/held-walk-approval-timings-*.json
+            apps/web/test-results/**/synthetic-world-render-cost.json
+            apps/web/test-results/**/attachments/synthetic-world-render-cost-*.json
             apps/web/test-results/**/error-context.md
-            apps/web/test-results/atlas-world.pw.ts-rapid-*/trace.zip
+            apps/web/test-results/**/atlas-world.pw.ts-rapid-*/trace.zip
+            apps/web/test-results/**/atlas-world.pw.ts-a-synthe-*/trace.zip
           if-no-files-found: error
           retention-days: 7
       - name: Stop disposable database

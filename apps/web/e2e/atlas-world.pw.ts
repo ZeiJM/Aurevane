@@ -1,6 +1,7 @@
 import { openMapSettings, closeMapSettings } from './world-map-settings-helpers'
 import { observeWorldRead, readWorldSnapshot } from './world-read-observation'
 import { cleanupWorldPresenceFixtures } from './world-presence-diagnostics'
+import { startWorldFrameCounting } from './world-render-diagnostics'
 import { createHash, randomUUID } from 'node:crypto'
 import {
   gateWorldMutationDefinition,
@@ -1465,9 +1466,9 @@ test('a synthetic population of 100 has bounded rendering at high DPI and lower 
   }))
   expect(density.width).toBe(density.expectedWidth)
   expect(density.height).toBe(density.expectedHeight)
+  await canvas.evaluate(startWorldFrameCounting)
   const session = await page.context().newCDPSession(page)
   await session.send('Emulation.setCPUThrottlingRate', { rate: 4 })
-  const before = Number(await canvas.getAttribute('data-render-frames'))
   const readMetrics = () =>
     canvas.evaluate((el) => ({
       sampledAt: performance.now(),
@@ -1491,6 +1492,7 @@ test('a synthetic population of 100 has bounded rendering at high DPI and lower 
       deviceRatio: window.devicePixelRatio,
     }))
   const baseline = await readMetrics()
+  const before = baseline.renderFrames
   const costPath = info.outputPath('synthetic-world-render-cost.json')
   writeFileSync(costPath, JSON.stringify({ baseline }, null, 2))
   let metrics = baseline
