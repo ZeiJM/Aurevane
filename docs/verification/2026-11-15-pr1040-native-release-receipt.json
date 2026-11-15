@@ -1,0 +1,109 @@
+{
+  "candidate": "367689eafd65802ee68394a7635ca8027ae01347",
+  "expected_tree": "73f683979266ffeb20e342498a9b0521a406a572",
+  "main_baseline": "d32cabd7f626b650df5c5eacf6a85a4457fc1f85",
+  "date": "2026-11-15",
+  "release_status": "Blocked by pending Living Atlas/native visual review and full Browser Smoke Chromium/final Edge. No production mutation.",
+  "timing": {
+    "run_id": 43750672066,
+    "job_id": 132923689026,
+    "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43750672066",
+    "checkout": "360ab1b (synthetic merge of candidate into unchanged main, from job log)",
+    "mobile_passed": 3,
+    "desktop_passed": 60,
+    "retries": 0,
+    "desktop_interval_utc": [
+      "2026-11-15T19:12:57Z",
+      "2026-11-15T19:32:06Z"
+    ],
+    "environment": "Dusk/rain, derived from unchanged authoritative UTC rules; no time/weather override added",
+    "artifact_id": 14177280924,
+    "artifact_sha256": "47fa8276cf525537a6d374ea4b41ef2f27af180604541883f2c2d15efed1765b",
+    "download_sha256_verified": true,
+    "observer1_positive_delta_counts": [
+      17,
+      16,
+      16,
+      15,
+      17,
+      15,
+      16,
+      18,
+      18,
+      17,
+      17,
+      17,
+      17,
+      16,
+      16,
+      15,
+      16,
+      17,
+      16,
+      18
+    ],
+    "predicate": "deltaX > 0.002; required count > 8, unchanged",
+    "capture": {
+      "mask_build_records": {
+        "0": 831,
+        "5": 20
+      },
+      "mask_pixel_records": {
+        "130899": 370,
+        "240586": 481
+      },
+      "explanation": "Newly visible animal masks build once; warmed records build none. Both observed working sets are under512000 pixels.",
+      "dropped_native_events": 0
+    },
+    "cpu_profile": {
+      "observer1_profiles": 20,
+      "previous_ed5": {
+        "samples": 10053,
+        "restore_hits": 1371,
+        "negative_time_deltas": 946
+      },
+      "candidate": {
+        "samples": 9176,
+        "restore_hits": 2,
+        "negative_time_deltas": 946
+      },
+      "limitation": "V8 timeDeltas contain negative entries, so sample-hit counts are used for this comparison instead of summing sampled milliseconds. This is diagnostic attribution, not a benchmark or native appearance acceptance."
+    },
+    "canvas_resource_duration_ms": {
+      "median": 9.9155,
+      "p95": 38.5,
+      "previous_ed5_median": 7.61,
+      "previous_ed5_p95": 65.6,
+      "limitation": "Median rises while the tail falls. Different frame counts/load prevent treating raw nested duration totals as controlled performance measurements."
+    }
+  },
+  "checks_snapshot": {
+    "successful_workflows": 13,
+    "total_workflows": 15,
+    "pending": [
+      {
+        "run_id": 43750672009,
+        "name": "Living Atlas browser",
+        "phase": "Verify authenticated Atlas and multiplayer"
+      },
+      {
+        "run_id": 43750672188,
+        "name": "Browser smoke",
+        "phase": "Start local Supabase stack; full shell/Edge acceptance not complete"
+      }
+    ]
+  },
+  "acceptance_limits": [
+    "Actual current-head wildlife antialiasing/motion and gameplay-scale painted mountain evidence remain unreviewed until Atlas artifacts finish.",
+    "All configured exact-head checks and final tested-tree attestation remain required.",
+    "Physical-handset and human continuous-motion playtesting remain open.",
+    "This receipt is evidence only: never merge its branch or deploy its commit; release only the verified PR source under the checked-in runbook."
+  ],
+  "production": {
+    "merge": null,
+    "migration_apply": null,
+    "deployment": null,
+    "promotion": null,
+    "cron_activation": null
+  }
+}
