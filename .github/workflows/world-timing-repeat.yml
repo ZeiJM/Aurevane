@@ -17,6 +17,8 @@ on:
       - 'apps/web/e2e/world-ground-click-sequence.ts'
       - 'apps/web/e2e/world-ground-click-sequence.test.ts'
       - 'apps/web/e2e/world-presence-case.ts'
+      - 'apps/web/e2e/world-browser-task-trace.ts'
+      - 'apps/web/e2e/world-browser-task-trace.test.ts'
       - 'apps/web/e2e/world-movement-profile.ts'
       - 'apps/web/e2e/world-movement-profile.test.ts'
       - 'apps/web/e2e/world-presence-diagnostics.ts'
@@ -90,6 +92,7 @@ jobs:
             apps/web/test-results/**/world-live-peer-interpolation.json
             apps/web/test-results/**/world-both-moving-peer-*.json
             apps/web/test-results/**/world-moving-cpu-*.cpuprofile
+            apps/web/test-results/**/world-browser-tasks.json
             apps/web/test-results/**/world-presence-boundaries.json
             apps/web/test-results/**/world-presence-cleanup.json
             apps/web/test-results/**/attachments/held-walk-approval-timings-*.json
