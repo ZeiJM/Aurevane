@@ -1,0 +1,32 @@
+# Mountain source-art correction — PR1040
+
+The retained native screenshots on candidate `9fa747e1b0f571d2b12dbe4e2919b7618a92b610` show flat polygon spikes beside detailed painted trees, villages and rocks (for example `art-hamlet-atlas-49-19.png` in Living Atlas artifact14171209990). The decoded runtime mountain sheet itself contains those polygons; this is an art-source mismatch, not a missing image or failed browser decode. Native tests passed but did not establish visual acceptance. Nick's existing authorization covers correcting this in-scope quality finding before the single release.
+
+Replace only the mountain artwork. Retain four columns/three geographic rows, clustered foothills, a major spire, low hills and an open pass in each row. Keep normal1536×1152 and on-demand HD3072×2304, alpha transparency and the existing less-than500,000-byte limit per runtime file. Logical sizes, foot anchors, mountain placements, legal road/pass geometry, collisions and all renderer quality/motion limits remain unchanged.
+
+Approach: use six original AI-assisted two-cell painted source pairs, each1774×887 with native887-pixel cells. The earlier complete-sheet draft had only362-pixel cells, insufficient to supply genuine HD detail; it is not shipped. The selected pairs provide higher native detail than both output cell sizes. The existing hamlet packing approach supplies deterministic crop bounds, transparent gutters and a shared bottom baseline. Editing the procedural polygons would retain the mismatched style; hiding them would remove requested mountain scenery. Neither alternative meets the existing visual target.
+
+Built-in image generation used the earlier detailed mountain draft as a style reference only. No named artist or third-party artwork was requested. Source pairs are retained as high-quality95 WebP with full alpha in `sources/mountains/`; exact dimensions and SHA256 hashes are in the runtime manifest. The source PNGs were encoded without resizing. Normal and HD derivatives are rebuilt by:
+
+`node tools/pack-mountain-art.mjs`
+
+The packer follows the existing hamlet alpha-bounds convention (ignore alpha≤20 only when finding bounds, retain cleaned alpha within the crop), fits each sprite without enlargement into736×700 within768-square cells, and bottom-centres at y722 (the existing0.94 logical foot anchor). The normal atlas is downsampled from the actual detailed HD composition. Generated alpha is mostly251–253 even inside solid rock. The derivative snaps near-opaque alpha≥240 to255 and near-transparent alpha≤20 to0, retaining the genuine intermediate antialiased edge ramp. This removes unintended translucency/faint matte speckles and compresses redundant interior alpha without reducing source detail. Archived source pairs remain untouched; runtime WebP uses alphaQuality100. RGB encoding selects the highest of the documented quality levels that fits the unchanged500k byte cap, failing if none fits. The manifest records output dimensions, sizes and hashes. This is atlas packaging, not a new renderer or gameplay authority.
+
+## Generation prompt
+
+Common prompt: “Create a NEW high-detail production sprite pair for Aurevane, using the reference ONLY for the naturalistic painted mountain style. Wide2:1 canvas, TWO EQUAL SQUARE CELLS side by side. Each cell contains exactly ONE complete isolated ground-rooted scenery sprite, with a full transparent margin at least6% of cell width on ALL FOUR SIDES. No crossing the center divider, no clipping at canvas edges. Transparent background with genuine alpha. Camera: elevated oblique isometric RPG scenery, not flat frontal icon. Premium hand-painted naturalistic fantasy art, finely eroded rock strata, irregular weathered silhouettes, layered ridges, fine scree at foot, subtle moss/snow/minerals as specified, neutral upper-left daylight. The foot of each sprite is bottom-centered, with depth and grounded contact; no opaque ground rectangle or flat square slab. Mountains look like large natural mountains, not geometric crystal spikes. Left/right subjects independently usable as atlas cells. No labels, text, trees obscuring peaks, architecture, characters, sky, border, checkerboard or background scene. Do not copy the complete reference sheet or its4×3 layout; deliver exactly this TWO-cell2:1 pair. Render at full available native detail, intended for768-pixel production cells.”
+
+| Source pair         | Material                                                 | Left / right subjects                                     |
+| ------------------- | -------------------------------------------------------- | --------------------------------------------------------- |
+| highland-peaks      | moss-green/grey highland rock                            | clustered crags / monumental layered main peak            |
+| highland-hills-pass | moss-green/grey highland rock                            | low rounded hills / two shoulders with an open earth pass |
+| alpine-peaks        | blue-grey alpine stone, natural snowcaps and pockets     | clustered crags / monumental layered main peak            |
+| alpine-hills-pass   | blue-grey alpine stone, natural snowcaps and pockets     | low rounded hills / two shoulders with an open snow pass  |
+| void-peaks          | violet-grey riftstone, restrained lavender mineral veins | clustered crags / monumental layered main peak            |
+| void-hills-pass     | violet-grey riftstone, restrained lavender mineral veins | low rounded hills / two shoulders with an open stone pass |
+
+## Acceptance
+
+Both new atlas-isolation regressions fail on the former sheets: alpha reaches crop boundaries, including fully opaque HD pixels. They require every outer cell edge to remain fully transparent and every cell to contain artwork. Existing dimensions, styles, alpha, minimum/maximum byte-size checks remain intact. These assertions guard crop integrity; they do not automate aesthetic judgement.
+
+The six sources and packed derivatives must be inspected for natural texture, geographic variety, pass openness and HD detail. Fresh exact-head hosted checks, real native image readiness, World art at gameplay scale, all63 zero-retry timing cases, full Browser Smoke Chromium/final Edge, Living Atlas/PG17 and every configured gate remain mandatory. Human continuous-motion and physical-handset acceptance stay open for live testing. No production change is authorized around a pending or red gate.

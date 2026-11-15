@@ -35,4 +35,25 @@ describe('mountain atlas fidelity and loading budget', () => {
       expect(bytes.length).toBeGreaterThan(30_000)
     },
   )
+  it.each(['mountains-v01.webp', 'mountains-hd-v01.webp'])(
+    '%s keeps every complete sprite isolated from neighbouring atlas cells',
+    async (name) => {
+      const { data, info } = await sharp(await readFile(new URL(name, art)))
+        .ensureAlpha()
+        .raw()
+        .toBuffer({ resolveWithObject: true })
+      const cell = info.width / 4
+      for (let row = 0; row < 3; row++)
+        for (let column = 0; column < 4; column++) {
+          let opaque = 0
+          for (let y = 0; y < cell; y++)
+            for (let x = 0; x < cell; x++) {
+              const alpha = data[((row * cell + y) * info.width + column * cell + x) * 4 + 3]
+              if (x === 0 || y === 0 || x === cell - 1 || y === cell - 1) expect(alpha).toBe(0)
+              if (alpha > 0) opaque++
+            }
+          expect(opaque).toBeGreaterThan(0)
+        }
+    },
+  )
 })
