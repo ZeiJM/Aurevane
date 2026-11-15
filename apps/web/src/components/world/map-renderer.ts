@@ -706,6 +706,25 @@ export function createMapRenderer(
   const clouds = [0, 1, 2].map((i) => createCloudTexture('world-cloud:' + i))
   let cachedPixels = 0
   let visibleGroundIds = new Set<string>()
+  let activeVisibleTerrainIds = new Set<string>()
+  let terrainSources = new Map<string, WorldSectorView>()
+  const atlasTerrainKey = (atlas: WorldView['atlas']) =>
+    JSON.stringify(
+      atlas?.map(({ id, charted, column, row, regionId, townId }) => [
+        id,
+        charted,
+        column,
+        row,
+        regionId,
+        townId,
+      ]) ?? [],
+    )
+  let indexedAtlasKey = atlasTerrainKey(view.atlas)
+  const terrainDependenciesChanged = (dependencies: ReadonlySet<string>) => {
+    const current = new Map(renderSectors.map((sector) => [sector.id, sector]))
+    for (const id of dependencies) if (terrainSources.get(id) !== current.get(id)) return true
+    return false
+  }
   function indexTerrain() {
     stationaryGround = null
     clearStationaryScenery()
@@ -755,6 +774,8 @@ export function createMapRenderer(
           ...settlementComposition(sector),
         ])
     }
+    terrainSources = new Map(renderSectors.map((sector) => [sector.id, sector]))
+    indexedAtlasKey = atlasTerrainKey(view.atlas)
   }
   indexTerrain()
   const clearCache = () => {
@@ -1709,6 +1730,19 @@ export function createMapRenderer(
         p.y + (GRID_WIDTH + GRID_HEIGHT) * tile * MAP_Y > -tile * 4
       )
     })
+    // Scene receipts slide a much larger supplied terrain window around the
+    // camera. Re-index when a visible sector actually changed or a newly
+    // supplied sector first enters the camera; distant window additions are
+    // not an input to any ground layer currently being painted.
+    const nextVisibleTerrainIds = new Set(visible.map((sector) => sector.id))
+    const visibleTerrainChanged =
+      nextVisibleTerrainIds.size !== activeVisibleTerrainIds.size ||
+      [...nextVisibleTerrainIds].some((id) => !activeVisibleTerrainIds.has(id))
+    if (visibleTerrainChanged && terrainDependenciesChanged(nextVisibleTerrainIds)) {
+      indexTerrain()
+      loadRegionalArt()
+    }
+    activeVisibleTerrainIds = nextVisibleTerrainIds
     // All visible layers must fit together. Otherwise higher-resolution terrain
     // evicts the next visible layer and rebuilds the entire scene every frame.
     const budgetScale = Math.sqrt(
@@ -3816,7 +3850,8 @@ export function createMapRenderer(
       const profiling = timingEnabled()
       const started = profiling ? performance.now() : 0
       const terrain = worldRenderTerrain(next, renderSectors)
-      const terrainChanged = terrain !== renderSectors || next.atlas !== view.atlas
+      const terrainChanged = terrain !== renderSectors
+      const atlasChanged = atlasTerrainKey(next.atlas) !== indexedAtlasKey
       const discoveryProofChanged =
         (next.publicGrandDiscoveries ?? []).join(':') !==
         (view.publicGrandDiscoveries ?? []).join(':')
@@ -3826,7 +3861,13 @@ export function createMapRenderer(
       view = next
       remoteMotion.update(next, peerStarted, camera)
       const indexStarted = profiling ? performance.now() : 0
-      if (terrainChanged) {
+      const nextDependencies = new Set(visibleGroundIds)
+      const relevantDependencies = new Set([...activeVisibleTerrainIds, ...nextDependencies])
+      const indexRequired =
+        atlasChanged ||
+        (terrainChanged &&
+          (!activeVisibleTerrainIds.size || terrainDependenciesChanged(relevantDependencies)))
+      if (indexRequired) {
         indexTerrain()
         loadRegionalArt()
       } else if (discoveryProofChanged) {
@@ -3848,7 +3889,7 @@ export function createMapRenderer(
         pendingTiming.updateMs! += ended - started
         pendingTiming.peerUpdateMs! += indexStarted - peerStarted
         pendingTiming.lastPeerUpdateAt = peerStarted
-        if (terrainChanged) {
+        if (indexRequired) {
           pendingTiming.terrainIndexes!++
           pendingTiming.terrainIndexMs! += ended - indexStarted
         }

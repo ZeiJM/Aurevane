@@ -1022,13 +1022,20 @@ describe('native map input and bounded lifecycle', () => {
       ),
     })
     expect(build).toHaveBeenCalledTimes(initialCalls + 1)
-    s.renderer.update({ ...s.view, sectors: [...s.view.sectors], atlas: [...(s.view.atlas ?? [])] })
+    s.renderer.update({
+      ...s.view,
+      sectors: [...s.view.sectors],
+      atlas: (s.view.atlas ?? []).map((sector, index) =>
+        index ? sector : { ...sector, charted: !sector.charted },
+      ),
+    })
     expect(build).toHaveBeenCalledTimes(initialCalls + 2)
     s.renderer.dispose()
     build.mockRestore()
     vi.unstubAllGlobals()
   })
   it('retains visible ground rasters when movement only changes distant supplied neighbours', () => {
+    const build = vi.spyOn(biomes, 'buildBiomeTransitions')
     const state = { ...newWorldState(), position: { sectorId: 'atlas:58:28', x: 12, y: 4 } }
     const initial = projectWorld(state, [], 1000)
     const next = projectWorld(
@@ -1043,8 +1050,10 @@ describe('native map input and bounded lifecycle', () => {
       s.canvas.dataset.renderDiagnostics = 'timing'
       s.frame(40)
       expect(JSON.parse(s.canvas.dataset.renderTiming!).groundBuilds).toBeGreaterThan(0)
+      const indexed = build.mock.calls.length
       // Hold the camera still to isolate receipt invalidation from newly visible ground.
       s.renderer.update(next)
+      expect(build).toHaveBeenCalledTimes(indexed)
       s.frame(80)
       expect(JSON.parse(s.canvas.dataset.renderTiming!)).toMatchObject({
         groundBuilds: 0,
@@ -1052,6 +1061,7 @@ describe('native map input and bounded lifecycle', () => {
       })
     } finally {
       s.renderer.dispose()
+      build.mockRestore()
       vi.unstubAllGlobals()
     }
   })
