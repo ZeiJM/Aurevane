@@ -3561,7 +3561,9 @@ export function createMapRenderer(
     }
     const ended = performance.now()
     paintedProjections.push({
-      at: now,
+      // Native input queued during this paint still refers to the preceding
+      // completed frame. The callback's start time can predate that input.
+      at: Math.max(now, ended),
       camera: { ...camera },
       pan: { ...pan },
       tile,

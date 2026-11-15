@@ -256,6 +256,10 @@ describe('World failure boundary diagnostics', () => {
         status: () => 200,
         json: firstBody,
       })
+      emitter.emit('requestfinished', {
+        url: () => 'http://localhost/api/world',
+        response: async () => ({ json: firstBody }),
+      })
       await diagnostics.suspendResponseBodyInspection()
       expect(firstBody).toHaveBeenCalledOnce()
 
@@ -264,6 +268,10 @@ describe('World failure boundary diagnostics', () => {
         url: () => 'http://localhost/api/world',
         status: () => 200,
         json: timedBody,
+      })
+      emitter.emit('requestfinished', {
+        url: () => 'http://localhost/api/world',
+        response: async () => ({ json: timedBody }),
       })
       await diagnostics.save({
         outputPath: (name: string) => join(directory, name),
@@ -282,6 +290,25 @@ describe('World failure boundary diagnostics', () => {
     } finally {
       await rm(directory, { recursive: true, force: true })
     }
+  })
+
+  it('does not wait for an unfinished body when a response is aborted after headers', async () => {
+    const emitter = new EventEmitter()
+    const page = emitter as unknown as Page
+    const diagnostics = worldPresenceDiagnostics()
+    diagnostics.observe(page, 'peer')
+    const body = vi.fn(() => new Promise<unknown>(() => {}))
+    emitter.emit('response', {
+      url: () => 'http://localhost/api/world',
+      status: () => 200,
+      json: body,
+    })
+    emitter.emit('requestfailed', {
+      url: () => 'http://localhost/api/world',
+      failure: () => ({ errorText: 'net::ERR_ABORTED' }),
+    })
+    expect(body).not.toHaveBeenCalled()
+    await diagnostics.suspendResponseBodyInspection()
   })
 })
 

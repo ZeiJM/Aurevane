@@ -186,8 +186,17 @@ export function worldPresenceDiagnostics() {
         const route = endpoint(response.url())
         if (!route) return
         record({ observer, phase: 'response', endpoint: route, status: response.status() })
+      }
+      const finished = (request: Request) => {
+        const route = endpoint(request.url())
+        if (!route) return
         if (!inspectResponseBodies) return
         const task = (async () => {
+          // A headers-only response may be cancelled by the app's replacement
+          // read. Playwright can leave its body promise pending until the page
+          // closes; start diagnostic body reads only after network completion.
+          const response = await request.response()
+          if (!response) return
           const body = object(await response.json())
           const players = Array.isArray(body.players) ? (body.players as WorldView['players']) : []
           const peer = players.find(
@@ -239,12 +248,14 @@ export function worldPresenceDiagnostics() {
       page.on('request', request)
       page.on('requestfailed', failed)
       page.on('response', response)
+      page.on('requestfinished', finished)
       page.on('websocket', socket)
       page.on('pageerror', pageerror)
       detach.push(() => {
         page.off('request', request)
         page.off('requestfailed', failed)
         page.off('response', response)
+        page.off('requestfinished', finished)
         page.off('websocket', socket)
         page.off('pageerror', pageerror)
       })

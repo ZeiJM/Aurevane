@@ -1628,6 +1628,22 @@ describe('native map input and bounded lifecycle', () => {
     s.renderer.dispose()
     vi.unstubAllGlobals()
   })
+  it('does not pick a frame that was still painting when the native click was issued', () => {
+    const s = scene()
+    s.renderer.settings({ animate: false, zoom: 1 })
+    vi.mocked(performance.now).mockReturnValue(40)
+    s.frame(40)
+    s.renderer.settings({ animate: false, zoom: 0.5 })
+    // The second frame starts at 80 but cannot be seen until 160. Input
+    // issued at 100 still refers to the completed full-scale frame at 40.
+    vi.mocked(performance.now).mockReturnValue(160).mockReturnValueOnce(80)
+    s.frame(80)
+    s.event('pointerdown', 563.2, 384.48, 100)
+    s.event('pointerup', 563.2, 384.48, 100)
+    expect(s.select).toHaveBeenCalledExactlyOnceWith({ sectorId: 'verdant-expanse', x: 8, y: 4 })
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  })
   it('remounts after a longitude crossing in the retained motion frame without a world-wide camera sweep', () => {
     const state = { ...newWorldState(), position: { sectorId: 'atlas:127:32', x: 12, y: 4 } },
       view = projectWorld(state, [], 1000),
