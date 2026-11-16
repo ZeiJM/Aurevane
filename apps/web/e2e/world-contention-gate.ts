@@ -84,11 +84,11 @@ export function parseWorldEquipmentErrors(logs: string, application: string) {
 export function parseWorldEquipmentLockHolders(logs: string, application: string) {
   if (!/^atlas-gate-[a-f0-9-]+$/u.test(application))
     throw new Error('Invalid disposable World diagnostic identity.')
-  const marker = `AUREVANE_ATLAS_LOCK ${application} `
+  const pattern = new RegExp(`\\bLOG:\\s+AUREVANE_ATLAS_LOCK ${application} (.*)$`)
   return logs.split(/\r?\n/).flatMap((line) => {
-    const start = line.indexOf(marker)
-    if (start < 0) return []
-    const rows: unknown = JSON.parse(line.slice(start + marker.length))
+    const match = pattern.exec(line)
+    if (!match) return []
+    const rows: unknown = JSON.parse(match[1]!)
     if (
       !Array.isArray(rows) ||
       rows.some(

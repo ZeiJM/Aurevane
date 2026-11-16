@@ -63,3 +63,16 @@ it('retains only lock identity and trusted public RPC names, rejecting raw query
   ).toThrow('Invalid disposable World lock diagnostic.')
   expect(parseWorldEquipmentLockHolders('LOG: another fixture []', application)).toEqual([])
 })
+
+it('ignores echoed SQL definitions and parses only emitted PostgreSQL LOG records', () => {
+  const logs = `2026-11-16 [123] LOG:  statement: create function example()
+ raise log 'AUREVANE_ATLAS_LOCK ${application} %', (
+2026-11-16 [123] LOG:  AUREVANE_ATLAS_LOCK ${application} [{"lock":"account1","rpc":"commit_world_state_v1"}]
+2026-11-16 [123] STATEMENT: select 'AUREVANE_ATLAS_LOCK ${application} invalid';`
+  expect(parseWorldEquipmentLockHolders(logs, application)).toEqual([
+    [{ lock: 'account1', rpc: 'commit_world_state_v1' }],
+  ])
+  expect(() =>
+    parseWorldEquipmentLockHolders(`LOG: AUREVANE_ATLAS_LOCK ${application} invalid`, application),
+  ).toThrow()
+})

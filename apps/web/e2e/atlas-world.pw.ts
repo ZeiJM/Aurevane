@@ -237,23 +237,21 @@ async function contend(
           `${logs.stdout ?? ''}\n${logs.stderr ?? ''}`,
           application,
         )
+        const diagnostic = {
+          afterPreparation,
+          responses,
+          databaseLogCapture: logs.status === 0,
+          equipmentErrors,
+        }
+        // Keep the original response/error evidence even if holder decoding fails.
+        writeFileSync(diagnosticPath, JSON.stringify(diagnostic, null, 2))
         const equipmentLockHolders = parseWorldEquipmentLockHolders(
           `${logs.stdout ?? ''}\n${logs.stderr ?? ''}`,
           application,
         )
         writeFileSync(
           diagnosticPath,
-          JSON.stringify(
-            {
-              afterPreparation,
-              responses,
-              databaseLogCapture: logs.status === 0,
-              equipmentErrors,
-              equipmentLockHolders,
-            },
-            null,
-            2,
-          ),
+          JSON.stringify({ ...diagnostic, equipmentLockHolders }, null, 2),
         )
       }
     } finally {
