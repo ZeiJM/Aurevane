@@ -14,13 +14,14 @@ test.use({ trace: 'on' })
 test('earns Mastery through a UI victory, claims once, reloads and retries without duplicate XP', async ({
   page,
 }, testInfo) => {
+  const localSupabaseUrl = process.env.SUPABASE_TEST_API_URL ?? 'http://127.0.0.1:54321'
   test.skip(
     testInfo.project.name !== 'desktop-chromium',
     'One complete acquisition run; responsive roster/media flows run on all viewports.',
   )
   test.skip(
     process.env.AUREVANE_ENV !== 'local' ||
-      process.env.NEXT_PUBLIC_SUPABASE_URL !== 'http://127.0.0.1:54321',
+      process.env.NEXT_PUBLIC_SUPABASE_URL !== localSupabaseUrl,
     'The acquisition fixture is strictly local CI; production testing grants are preserved.',
   )
   test.setTimeout(300000)

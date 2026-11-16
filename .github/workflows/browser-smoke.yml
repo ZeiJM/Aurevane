@@ -218,6 +218,8 @@ jobs:
 
       - name: Start local Supabase stack
         run: |
+          python .github/scripts/configure-supabase-test-ports.test.py
+          python .github/scripts/configure-supabase-test-ports.py
           python .github/scripts/configure-discipline-test-mail.test.py
           python .github/scripts/configure-discipline-test-mail.py
           pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
@@ -233,7 +235,7 @@ jobs:
           server_key="${SECRET_KEY:-${SERVICE_ROLE_KEY:-}}"
           test -n "$server_key"
 
-          api_url='http://127.0.0.1:54321'
+          api_url="${SUPABASE_TEST_API_URL:-http://127.0.0.1:54321}"
 
           AUREVANE_ENV=local \
           NEXT_PUBLIC_AUREVANE_ENV=local \

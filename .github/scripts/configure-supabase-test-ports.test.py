@@ -105,6 +105,24 @@ class SupabaseTestPortConfigurationTests(unittest.TestCase):
                 f"both push and pull_request path filters must include {path}",
             )
 
+    def test_browser_smoke_configures_service_ports_and_keeps_local_mastery_enabled(self):
+        workflow = Path(__file__).parents[1] / "workflows/browser-smoke.yml"
+        source = workflow.read_text()
+        configure = "python .github/scripts/configure-supabase-test-ports.py"
+        start = "pnpm exec supabase start"
+        self.assertIn(configure, source)
+        self.assertLess(source.index(configure), source.index(start))
+        self.assertIn(
+            'api_url="${SUPABASE_TEST_API_URL:-http://127.0.0.1:54321}"',
+            source,
+        )
+
+        mastery = (
+            Path(__file__).parents[2] / "apps/web/e2e/phase4-mastery.pw.ts"
+        ).read_text()
+        self.assertIn("process.env.SUPABASE_TEST_API_URL", mastery)
+        self.assertIn("NEXT_PUBLIC_SUPABASE_URL !== localSupabaseUrl", mastery)
+
     def test_auth_helper_uses_the_exported_api_endpoint(self):
         helper = Path(__file__).with_name("auth-test-helpers.sh")
         command = f"""
