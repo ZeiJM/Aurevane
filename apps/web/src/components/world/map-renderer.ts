@@ -705,8 +705,13 @@ export function createMapRenderer(
   }
   const wildlifeParts = createWildlifePartCache()
   const weatherVeil = createWeatherVeilCache()
-  const biomeRasters = new Map<string, HTMLCanvasElement>()
+  const biomeRasters = new Map<string, StaticMapRaster>()
   let biomeRasterPixels = 0
+  const clearBiomeRasters = () => {
+    for (const raster of biomeRasters.values()) releaseStaticRaster(raster)
+    biomeRasters.clear()
+    biomeRasterPixels = 0
+  }
   let stationaryScenery: Scenery[] | null = null
   let sceneryBatches = new Map<string, SceneryBatch>()
   const clearStationaryScenery = () => {
@@ -1024,8 +1029,7 @@ export function createMapRenderer(
     rasterTile = tile
     rasterZoomAt = null
     clearCache()
-    biomeRasters.clear()
-    biomeRasterPixels = 0
+    clearBiomeRasters()
     requestDraw()
   }
   const observer = new ResizeObserver(resize)
@@ -1568,11 +1572,13 @@ export function createMapRenderer(
       const evicted = biomeRasters.get(oldest)!
       biomeRasterPixels -= evicted.width * evicted.height
       biomeRasters.delete(oldest)
+      releaseStaticRaster(evicted)
     }
-    biomeRasters.set(key, layer)
+    const raster = snapshot(layer)
+    biomeRasters.set(key, raster)
     biomeRasterPixels += pixels
     if (timing) timing.biomeRasterBuilds!++
-    return layer
+    return raster
   }
   function fitCachedGround() {
     // Density may fall when more terrain enters the camera. Reuse the painted
@@ -3770,7 +3776,8 @@ export function createMapRenderer(
         ) +
         [...sceneryBatches.values()].filter(({ layer }) => 'close' in layer).length +
         Number(Boolean(stationaryGround?.layer && 'close' in stationaryGround.layer)) +
-        groundProjections.immutableImages
+        groundProjections.immutableImages +
+        [...biomeRasters.values()].filter((raster) => 'close' in raster).length
       timing.completedAt = ended
       timing.biomeRasters = biomeRasters.size
       timing.biomeRasterPixels = biomeRasterPixels
@@ -4202,8 +4209,7 @@ export function createMapRenderer(
       canvas.removeEventListener('wheel', wheel)
       pointers.clear()
       cache.clear()
-      biomeRasters.clear()
-      biomeRasterPixels = 0
+      clearBiomeRasters()
       portraits.clear()
       actorAssets.clear()
       actorPositions.clear()
