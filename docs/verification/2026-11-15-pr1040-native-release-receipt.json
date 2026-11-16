@@ -3,7 +3,7 @@
   "expected_tree": "73f683979266ffeb20e342498a9b0521a406a572",
   "main_baseline": "d32cabd7f626b650df5c5eacf6a85a4457fc1f85",
   "date": "2026-11-15",
-  "release_status": "Pending full Browser Smoke Chromium/final Edge. Current-head timing and Living Atlas/PG17 pass; sampled native visual review finds no release-blocking defect. No production mutation.",
+  "release_status": "Blocked: PR candidate367689e still has failed full Browser Smoke. Diagnostic-only manual Smoke43781111933 is running on WIP38eb7c6 with mail correction and scoped database error/lock evidence; no production mutation.",
   "timing": {
     "run_id": 43750672066,
     "job_id": 132923689026,
@@ -84,8 +84,8 @@
       {
         "run_id": 43750672188,
         "name": "Browser smoke",
-        "status": "in_progress",
-        "conclusion": null
+        "status": "completed",
+        "conclusion": "failure"
       },
       {
         "run_id": 43750672009,
@@ -172,12 +172,14 @@
         "conclusion": "success"
       }
     ],
-    "pending": [
+    "pending": [],
+    "failed": [
       {
         "run_id": 43750672188,
         "name": "Browser smoke",
         "job_id": 132924350792,
-        "phase": "Verify desktop and mobile shell; complete Chromium and final Edge not yet verified."
+        "chromium_failures": 7,
+        "final_edge_executed": false
       }
     ]
   },
@@ -281,6 +283,56 @@
       "Visible fox samples cover retained poses/edges. Extracts lack isolated deer/bird close-up sequences; continuous gait is not claimed.",
       "No physical-handset or human signed-in playtest acceptance is claimed.",
       "A passing native motion assertion and sampled screenshots do not prove universal FPS or exhaustive visual acceptance."
+    ]
+  },
+  "diagnostic_followup": {
+    "purpose": "Identify actual Item equipment preparation rejection; not release acceptance or proof of a cure.",
+    "branch": "agent/pr1040-smoke-repair-367689e",
+    "source": "38eb7c6a7f5b89821275c729178c04aaedb9b532",
+    "tree": "25ec7aae78699d070a581311b05f9d71264393db",
+    "parent": "d2abcb506176139deb485def8262dbb2db830dad",
+    "run_id": 43781111933,
+    "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43781111933",
+    "event": "workflow_dispatch",
+    "status": "in_progress",
+    "run_source_independently_verified": true,
+    "dispatched_once": true,
+    "failed_pr_artifact": {
+      "id": 14181608056,
+      "sha256": "ed2087d8b41a265df11c719975a292d935b0b864bbe27470311962a09615e623",
+      "download_hash_verified": true
+    },
+    "known_failures": {
+      "mail": "Six password-recovery cases used54324 after dynamic allocation; saved correction exports matchingINBUCKET_URL throughGITHUB_ENV.",
+      "attack": "First attack returned Item preparation409 after425ms; second returned503 after8505ms while gate awaitedtwo. Underlying original SQLSTATE/category and holder are not in old trace."
+    },
+    "changes": "Test-only equipment RPC handler for fixture characters logs SQLSTATE/allowlisted category and competing exclusive catalogue/account0/account1 holders as trusted public RPC identifiers; bare rethrow and original function restore retained. Compact responseJSON now uploaded. No production code, authority, migrations, gates, thresholds, retries or coverage changed.",
+    "validation": {
+      "helper_and_adjacent_item_tests": 332,
+      "files": 27,
+      "mail_tests": 5,
+      "verification_runner_tests": 56,
+      "types": true,
+      "scoped_lint_format": true,
+      "independent_review": "No important findings; privacy and restoration checked.",
+      "postgres": {
+        "version": "17.7",
+        "cold_paired_captures": 30,
+        "cold_pair_failures": 0,
+        "forced_failure_categories_preserved": [
+          "40001/ITEM_ADMISSION_RETRY",
+          "40001/ITEM_CATALOGUE_RETRY"
+        ],
+        "exclusive_lock_holder_retained": true,
+        "probe": ".github/scripts/probe-world-equipment-diagnostics.py",
+        "scope": "Dedicated disposable localhost database; extracts source lock/read/admission bodies, stubs unrelated definitions/capture. Not full Supabase acceptance."
+      }
+    },
+    "limits": [
+      "Holder sampling occurs after exception unwinding and may miss a released holder.",
+      "Public RPC name is inferred from quoted identifiers in outer query, with other fallback.",
+      "No claim that the original attack fault is fixed; even a passing diagnostic run does not resolve its prior unexplained failure.",
+      "Never merge/deploy WIP or evidence-only commits. Resolve actual cause, publish final combined PR correction with expected parent, then require all configured exact-head gates."
     ]
   }
 }
