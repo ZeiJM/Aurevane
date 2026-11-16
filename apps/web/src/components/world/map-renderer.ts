@@ -64,6 +64,7 @@ import {
   paintPrecipitation,
   paintTerrainAtmosphere,
   paintWeatherVeil,
+  createWeatherVeilCache,
   precipitationKind,
   surfaceRainTarget,
   terrainHeatEmitters,
@@ -688,6 +689,7 @@ export function createMapRenderer(
   >()
   const groundProjections = createGroundProjectionCache()
   const wildlifeParts = createWildlifePartCache()
+  const weatherVeil = createWeatherVeilCache()
   const biomeRasters = new Map<string, HTMLCanvasElement>()
   let biomeRasterPixels = 0
   let stationaryScenery: Scenery[] | null = null
@@ -968,6 +970,7 @@ export function createMapRenderer(
   }
   loadRegionalArt()
   const resize = () => {
+    weatherVeil.clear()
     width = canvas.clientWidth
     height = canvas.clientHeight
     ratio = Math.min(window.devicePixelRatio || 1, quality === 'low' ? 1 : 1.5)
@@ -1654,6 +1657,7 @@ export function createMapRenderer(
     hitTargets = []
     groundProjections.beginFrame()
     wildlifeParts.beginFrame()
+    weatherVeil.beginFrame()
     const start = performance.now(),
       sample = motion.sample(now),
       previousFrame = last,
@@ -3391,7 +3395,16 @@ export function createMapRenderer(
           budget.weather,
         ),
       )
-      paintWeatherVeil(ctx, width, height, weather, wind.offset, richAtmosphere ? 1 : 0.55)
+      paintWeatherVeil(
+        ctx,
+        width,
+        height,
+        weather,
+        wind.offset,
+        richAtmosphere ? 1 : 0.55,
+        weatherVeil,
+        ratio,
+      )
       const petals = current?.landscape === 'sakura' || current?.landscape === 'wisteria'
       const temperate = !['glasswind-desert', 'emberreach', 'frostmere'].includes(regionId)
       const motes = airborneMoteProfile(weather, petals)
@@ -3464,6 +3477,8 @@ export function createMapRenderer(
     if (timing) {
       const ended = performance.now()
       timing.atmosphereMs = ended - phaseAt
+      timing.weatherVeilBuilds = weatherVeil.builds
+      timing.weatherVeilPixels = weatherVeil.pixels
       phaseAt = ended
     }
     // Identity is interface: weather and nighttime tint scenery, not portraits
@@ -4018,6 +4033,7 @@ export function createMapRenderer(
       disposed = true
       remoteMotion.dispose()
       wildlifeParts.clear()
+      weatherVeil.clear()
       unsubscribeClassicTokens()
       cancelAnimationFrame(frame)
       observer.disconnect()

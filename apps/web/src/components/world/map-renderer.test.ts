@@ -122,6 +122,7 @@ function scene(reduced = false, initial?: WorldView) {
       putImageData() {},
       measureText: (text: string) => ({ width: text.length * 7 }),
       globalAlpha: 1,
+      globalCompositeOperation: 'source-over',
       filter: 'none',
       fillStyle: '',
       fill() {
@@ -3495,6 +3496,72 @@ describe('native map input and bounded lifecycle', () => {
       s.frame(160)
       expect(batches()).toEqual([])
       expect(s.draws.some(({ src }) => src.endsWith('nature-v02.webp'))).toBe(true)
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  })
+  it('reuses immutable fog pixels on moving Night redraws without changing paused painting', () => {
+    const s = scene()
+    // The shared recorder retains transforms only. This compositing regression
+    // also needs the native alpha save/restore contract.
+    const context = s.canvas.getContext('2d')!
+    const save = context.save.bind(context),
+      restore = context.restore.bind(context)
+    const alphas: number[] = []
+    context.save = () => {
+      alphas.push(context.globalAlpha)
+      save()
+    }
+    context.restore = () => {
+      restore()
+      context.globalAlpha = alphas.pop() ?? 1
+    }
+    const close = vi.fn()
+    const transfer = vi.fn(function (this: { width: number; height: number }) {
+      return { src: 'immutable-weather-veil', width: this.width, height: this.height, close }
+    })
+    vi.stubGlobal(
+      'OffscreenCanvas',
+      class {
+        constructor(
+          public width: number,
+          public height: number,
+        ) {}
+        getContext() {
+          return {
+            setTransform: vi.fn(),
+            fillStyle: '',
+            fillRect: vi.fn(),
+            createRadialGradient: () => ({ addColorStop: vi.fn() }),
+          }
+        }
+        transferToImageBitmap = transfer
+      },
+    )
+    try {
+      s.renderer.update({
+        ...s.view,
+        environment: { ...s.view.environment, minuteOfDay: 116.65333333333334, weather: 'fog' },
+      })
+      s.frame(40)
+      const fog = () => s.draws.filter(({ src }) => src === 'immutable-weather-veil')
+      expect(fog()).toHaveLength(1)
+      const image = fog()[0]!.image
+      s.motion.plan(
+        [{ position: { ...s.view.position, x: s.view.position.x + 1 }, durationMs: 1000 }],
+        s.view.sectors,
+        40,
+      )
+      for (let i = 1; i <= 12; i++) s.frame(40 + i * 40)
+      expect(transfer).toHaveBeenCalledOnce()
+      expect(fog().every((draw) => draw.image === image)).toBe(true)
+      s.draws.length = 0
+      s.renderer.settings({ animate: false, zoom: 1 })
+      s.frame(600)
+      expect(fog()).toHaveLength(0)
+      s.renderer.dispose()
+      expect(close).toHaveBeenCalledOnce()
     } finally {
       s.renderer.dispose()
       vi.unstubAllGlobals()

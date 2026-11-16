@@ -6,10 +6,13 @@ import { clickWorldGroundSequence } from './world-ground-click-sequence'
 import { createHash, randomUUID } from 'node:crypto'
 import {
   gateWorldMutationDefinition,
+  diagnoseWorldEquipmentDefinition,
+  parseWorldEquipmentErrors,
+  parseWorldEquipmentLockHolders,
   WORLD_MUTATION_GATE_SIGNATURES,
 } from './world-contention-gate'
 import { writeFileSync } from 'node:fs'
-import { execFileSync, spawn } from 'node:child_process'
+import { execFileSync, spawn, spawnSync } from 'node:child_process'
 import {
   expect,
   test,
@@ -166,7 +169,15 @@ async function contend(
   })
   let pending: Promise<APIResponse>[] = []
   const originalDefinitions: string[] = []
+  const diagnosticsSince = new Date().toISOString()
   try {
+    if (afterPreparation && diagnosticPath) {
+      const definition = sql(
+        "select pg_get_functiondef('public.read_character_battle_equipment_v1(uuid,uuid)'::regprocedure)",
+      )
+      originalDefinitions.push(definition)
+      sql(diagnoseWorldEquipmentDefinition(definition, application, characterIds))
+    }
     if (afterPreparation)
       for (const signature of WORLD_MUTATION_GATE_SIGNATURES) {
         const definition = sql(`select pg_get_functiondef('${signature}'::regprocedure)`)
@@ -218,7 +229,30 @@ async function contend(
             return { status: response.status(), errorCode: body?.error?.code ?? null }
           }),
         )
-        writeFileSync(diagnosticPath, JSON.stringify({ afterPreparation, responses }, null, 2))
+        const logs = spawnSync('docker', ['logs', '--since', diagnosticsSince, localDatabase()], {
+          encoding: 'utf8',
+          maxBuffer: 8 * 1024 * 1024,
+        })
+        const equipmentErrors = parseWorldEquipmentErrors(
+          `${logs.stdout ?? ''}\n${logs.stderr ?? ''}`,
+          application,
+        )
+        const diagnostic = {
+          afterPreparation,
+          responses,
+          databaseLogCapture: logs.status === 0,
+          equipmentErrors,
+        }
+        // Keep the original response/error evidence even if holder decoding fails.
+        writeFileSync(diagnosticPath, JSON.stringify(diagnostic, null, 2))
+        const equipmentLockHolders = parseWorldEquipmentLockHolders(
+          `${logs.stdout ?? ''}\n${logs.stderr ?? ''}`,
+          application,
+        )
+        writeFileSync(
+          diagnosticPath,
+          JSON.stringify({ ...diagnostic, equipmentLockHolders }, null, 2),
+        )
       }
     } finally {
       try {

@@ -221,10 +221,134 @@ export function paintTerrainAtmosphere(
   return count
 }
 
-/**
- * Low-cost screen-space fog banks remain visible on low-quality and reduced-motion
- * settings. Background names and interaction markers paint on a separate layer.
- */
+const WEATHER_VEIL_PIXEL_LIMIT = 4_000_000
+
+function weatherVeilGradient(
+  context: Pick<CanvasRenderingContext2D, 'createRadialGradient'>,
+  weather: WorldWeather,
+  x: number,
+  y: number,
+  radius: number,
+) {
+  const bank = context.createRadialGradient(x, y, 0, x, y, radius)
+  bank.addColorStop(
+    0,
+    weather === 'fog'
+      ? 'rgba(194,214,213,.46)'
+      : weather === 'storm'
+        ? 'rgba(26,36,56,.28)'
+        : 'rgba(38,46,62,.27)',
+  )
+  bank.addColorStop(0.46, weather === 'fog' ? 'rgba(171,197,198,.25)' : 'rgba(40,48,60,.13)')
+  bank.addColorStop(1, 'rgba(20,34,42,0)')
+  return bank
+}
+
+const WEATHER_VEIL_MARGIN = 64
+
+function paintWeatherBanks(
+  context: Pick<CanvasRenderingContext2D, 'createRadialGradient' | 'fillStyle' | 'fillRect'>,
+  width: number,
+  height: number,
+  weather: WorldWeather,
+  windOffset: number,
+  quality: number,
+  margin = 0,
+) {
+  const fog = weather === 'fog'
+  const count = Math.max(2, Math.min(5, Math.ceil((fog ? 4 : 3) * quality)))
+  for (let i = 0; i < count; i++) {
+    const radius = width * (0.34 + (i % 3) * 0.13)
+    const period = width + 2 * radius
+    const x = wrap(windOffset * (fog ? 0.17 : 0.38) + (i * width) / 2.4, period) - radius
+    const y = height * (0.14 + (i % 4) * 0.24)
+    // Neighbouring copies are invisible in the original viewport. Include their
+    // padded edges so translating the bitmap preserves each bank's own wrap.
+    for (const shift of margin ? [-period, 0, period] : [0]) {
+      const centre = x + shift
+      if (margin && (centre + radius < -margin || centre - radius > width + margin)) continue
+      context.fillStyle = weatherVeilGradient(context, weather, centre, y, radius)
+      context.fillRect(centre - radius, y - radius, radius * 2, radius * 2)
+    }
+  }
+}
+
+/** Composite the moving banks once, then crop at their unchanged shared drift.
+ * Native-density padding covers wrap edges; one owned bitmap stays under4M pixels. */
+export function createWeatherVeilCache() {
+  let key = ''
+  let veil: { image: ImageBitmap; phase: number } | null = null
+  let pixels = 0
+  let builds = 0
+  const clear = () => {
+    veil?.image.close()
+    veil = null
+    pixels = 0
+    key = ''
+  }
+  return {
+    get pixels() {
+      return pixels
+    },
+    get builds() {
+      return builds
+    },
+    beginFrame() {
+      builds = 0
+    },
+    clear,
+    get(
+      width: number,
+      height: number,
+      weather: WorldWeather,
+      windOffset: number,
+      quality: number,
+      pixelRatio: number,
+    ) {
+      const nextKey = `${width}:${height}:${weather}:${quality}:${pixelRatio}`
+      const phase = windOffset * (weather === 'fog' ? 0.17 : 0.38)
+      if (key === nextKey && (!veil || Math.abs(phase - veil.phase) <= WEATHER_VEIL_MARGIN))
+        return veil
+      clear()
+      // Remember unsupported/failed keys too: no per-frame allocation retry.
+      key = nextKey
+      const nativeWidth = Math.ceil((width + 2 * WEATHER_VEIL_MARGIN) * pixelRatio) + 2
+      const nativeHeight = Math.ceil(height * pixelRatio) + 2
+      const allocatedPixels = nativeWidth * nativeHeight
+      if (
+        !Number.isFinite(allocatedPixels) ||
+        width < WEATHER_VEIL_MARGIN ||
+        height <= 0 ||
+        pixelRatio <= 0 ||
+        allocatedPixels > WEATHER_VEIL_PIXEL_LIMIT ||
+        typeof OffscreenCanvas === 'undefined'
+      )
+        return null
+      let layer: OffscreenCanvas | undefined
+      try {
+        layer = new OffscreenCanvas(nativeWidth, nativeHeight)
+        const context = layer.getContext('2d')
+        if (!context) return null
+        context.setTransform(pixelRatio, 0, 0, pixelRatio, 1 + WEATHER_VEIL_MARGIN * pixelRatio, 1)
+        paintWeatherBanks(context, width, height, weather, windOffset, quality, WEATHER_VEIL_MARGIN)
+        veil = { image: layer.transferToImageBitmap(), phase }
+        pixels = allocatedPixels
+        builds++
+        return veil
+      } catch {
+        return null
+      } finally {
+        // transfer leaves a new blank backing on the temporary canvas.
+        if (layer) {
+          layer.width = 0
+          layer.height = 0
+        }
+      }
+    },
+  }
+}
+
+/** Paused/reduced-motion calls retain the original direct bank painter. */
 export function paintWeatherVeil(
   context: CanvasRenderingContext2D,
   width: number,
@@ -232,31 +356,32 @@ export function paintWeatherVeil(
   weather: WorldWeather,
   windOffset: number,
   quality = 1,
+  cache?: ReturnType<typeof createWeatherVeilCache>,
+  pixelRatio = 1,
 ) {
   if (weather !== 'fog' && weather !== 'overcast' && weather !== 'storm') return
-  const fog = weather === 'fog'
-  const count = Math.max(2, Math.min(5, Math.ceil((fog ? 4 : 3) * quality)))
-  context.save()
-  for (let i = 0; i < count; i++) {
-    const radius = width * (0.34 + (i % 3) * 0.13)
-    const x =
-      wrap(windOffset * (fog ? 0.17 : 0.38) + (i * width) / 2.4, width + 2 * radius) - radius
-    const y = height * (0.14 + (i % 4) * 0.24)
-    const bank = context.createRadialGradient(x, y, 0, x, y, radius)
-    bank.addColorStop(
+  const veil =
+    context.globalAlpha === 1 && context.globalCompositeOperation === 'source-over'
+      ? cache?.get(width, height, weather, windOffset, quality, pixelRatio)
+      : null
+  if (veil) {
+    const shift = windOffset * (weather === 'fog' ? 0.17 : 0.38) - veil.phase
+    context.drawImage(
+      veil.image,
+      1 + (WEATHER_VEIL_MARGIN - shift) * pixelRatio,
+      1,
+      width * pixelRatio,
+      height * pixelRatio,
       0,
-      fog
-        ? 'rgba(194,214,213,.46)'
-        : weather === 'storm'
-          ? 'rgba(26,36,56,.28)'
-          : 'rgba(38,46,62,.27)',
+      0,
+      width,
+      height,
     )
-    bank.addColorStop(0.46, fog ? 'rgba(171,197,198,.25)' : 'rgba(40,48,60,.13)')
-    bank.addColorStop(1, 'rgba(20,34,42,0)')
-    context.fillStyle = bank
-    context.fillRect(x - radius, y - radius, radius * 2, radius * 2)
+  } else {
+    context.save()
+    paintWeatherBanks(context, width, height, weather, windOffset, quality)
+    context.restore()
   }
-  context.restore()
 }
 
 export function regionalWeatherLabel(weather: WorldWeather, regionId: string): string {

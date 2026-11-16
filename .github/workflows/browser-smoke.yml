@@ -437,6 +437,7 @@ jobs:
           path: |
             apps/web/test-results/atlas-world.pw.ts-*/trace.zip
             apps/web/test-results/atlas-world.pw.ts-*/error-context.md
+            apps/web/test-results/atlas-world.pw.ts-*/world-contention-responses.json
             apps/web/test-results/atlas-world.pw.ts-*/test-failed-*.png
             apps/web/test-results/atlas-world.pw.ts-*/attachments/world-*.json
           retention-days: 7

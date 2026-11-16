@@ -1,7 +1,10 @@
 import errno
+import os
 from pathlib import Path
 from runpy import run_path
 import socket
+import subprocess
+import sys
 import tempfile
 import tomllib
 import unittest
@@ -22,6 +25,25 @@ class DisciplineMailConfigurationTests(unittest.TestCase):
             '[auth.email]\nenable_confirmations = true\n'
         )
         self.path.write_text(self.original)
+
+    def test_cli_exports_selected_mail_endpoint_to_later_browser_steps(self):
+        root = Path(self.directory.name)
+        (root / "supabase").mkdir()
+        config_path = root / "supabase/config.toml"
+        config_path.write_text(self.original)
+        environment_path = root / "github-env"
+        environment_path.write_text("EXISTING=value\n")
+        script = Path(__file__).with_name("configure-discipline-test-mail.py").resolve()
+        subprocess.run(
+            [sys.executable, str(script)], cwd=root, check=True,
+            env={**os.environ, "GITHUB_ENV": str(environment_path)},
+        )
+        port = tomllib.loads(config_path.read_text())["local_smtp"]["port"]
+        self.assertEqual(
+            environment_path.read_text(),
+            f"EXISTING=value\nINBUCKET_URL=http://127.0.0.1:{port}\n",
+        )
+        self.assertNotEqual(port, 54324)
 
     def test_occupied_default_port_does_not_disable_confirmation_email(self):
         with socket.socket() as occupied:

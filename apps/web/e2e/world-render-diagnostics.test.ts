@@ -134,6 +134,8 @@ const frame = (frameAt: number) => ({
   sceneryMs: 22,
   wildlifePartBuilds: 5,
   wildlifePartPixels: 120_000,
+  weatherVeilBuilds: 1,
+  weatherVeilPixels: 1_175_056,
   atmosphereMs: 0,
   identityMs: 11,
 })
