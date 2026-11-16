@@ -2421,6 +2421,51 @@ describe('native map input and bounded lifecycle', () => {
       vi.unstubAllGlobals()
     }
   })
+  it('does not cancel a held-key route when the approved tile leads its visual landing', () => {
+    const clock = vi.spyOn(performance, 'now').mockReturnValue(0)
+    const s = scene()
+    const view = {
+      ...s.view,
+      sectors: s.view.sectors.map((sector) => ({
+        ...sector,
+        cells: sector.cells.map((cell) => ({ ...cell, terrain: '.', walkable: true })),
+      })),
+    }
+    const origin = view.position
+    const approved = { ...origin, x: origin.x + 3 }
+    const route = localRoute(view, origin, approved)!
+    s.renderer.update(view)
+    s.motion.plan(route, view.sectors, 0)
+    try {
+      // A rapid click route is already approved at x+3 while its canvas is
+      // still crossing from x+2. The held key must extend from the approved
+      // tile instead of submitting that tile again and cancelling the route.
+      clock.mockReturnValue(550)
+      expect(s.motion.sample(550).position).toEqual({ ...origin, x: origin.x + 2 })
+      expect(s.motion.nextLanding(550)).toEqual(approved)
+      const authoritative = {
+        ...view,
+        position: approved,
+        route: [],
+        version: view.version + 1,
+      }
+      s.motion.approveReceipt(authoritative, 550)
+      s.renderer.update(authoritative)
+
+      s.listeners.get('keydown')!({
+        key: 'ArrowRight',
+        preventDefault() {},
+      } as unknown as Event)
+      expect(s.select).toHaveBeenCalledWith({ ...approved, x: approved.x + 3 })
+      s.listeners.get('keyup')!({ key: 'ArrowRight' } as unknown as Event)
+      expect(s.select).toHaveBeenLastCalledWith({ ...approved, x: approved.x + 1 })
+      expect(s.select).not.toHaveBeenCalledWith(approved)
+    } finally {
+      s.renderer.dispose()
+      clock.mockRestore()
+      vi.unstubAllGlobals()
+    }
+  })
   it('starts smoothly after a long idle and a small pointer slip without shifting the camera', () => {
     const s = scene()
     s.renderer.settings({ animate: false, zoom: 1 })
@@ -3156,6 +3201,33 @@ describe('native map input and bounded lifecycle', () => {
       vi.unstubAllGlobals()
     }
   })
+  it('indexes scenery occlusion instead of comparing every traveller with every body', () => {
+    const s = scene()
+    try {
+      const sector = s.view.sectors.find(({ id }) => id === s.view.position.sectorId)!
+      const players = sector.cells.slice(0, 80).map(({ x, y }, index) => ({
+        characterId: `indexed-${index}`,
+        name: `Indexed ${index}`,
+        level: 1,
+        portraitRef: '',
+        imageUrl: '/indexed.webp',
+        online: true,
+        attackable: false,
+        position: { sectorId: sector.id, x, y },
+      }))
+      s.renderer.update({ ...s.view, players })
+      s.renderer.settings({ animate: true, zoom: 0.35 })
+      s.canvas.dataset.renderDiagnostics = 'timing'
+      s.frame(40)
+      const timing = JSON.parse(s.canvas.dataset.renderTiming!)
+      expect(timing.identityOccluderChecks).toBeLessThan(
+        timing.identityOccluders * (players.length + 1),
+      )
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  })
   it('keeps dense nameplates readable without removing visible players', () => {
     const s = scene()
     const players = Array.from({ length: 25 }, (_, index) => ({
@@ -3296,6 +3368,34 @@ describe('native map input and bounded lifecycle', () => {
     expect(s.select).not.toHaveBeenCalled()
     s.renderer.dispose()
     vi.unstubAllGlobals()
+  })
+  it('clears only the prior native identity footprint while travellers move', () => {
+    const s = scene()
+    try {
+      s.canvas.dataset.portrait = '/moving-native.webp'
+      s.frame(40)
+      const portrait = s.identityDraws.find((entry) => entry.src === '/moving-native.webp')!
+      const [portraitX, portraitY, portraitWidth, portraitHeight] = portrait.args.slice(-4)
+      const priorLabel = s.texts.findLast(({ text }) => text === 'You')!
+      const destination = { ...s.view.position, x: s.view.position.x + 1 }
+      s.identityClear.mockClear()
+      s.motion.plan([{ position: destination, durationMs: 200 }], s.view.sectors, 40)
+      s.frame(80)
+
+      expect(s.identityClear).toHaveBeenCalledTimes(1)
+      const [left, top, clearWidth, clearHeight] = s.identityClear.mock.calls[0]!
+      expect(clearWidth).toBeLessThan(800)
+      expect(clearHeight).toBeLessThan(600)
+      expect(left).toBeLessThanOrEqual(portraitX)
+      expect(top).toBeLessThanOrEqual(portraitY)
+      expect(left + clearWidth).toBeGreaterThanOrEqual(portraitX + portraitWidth)
+      expect(top + clearHeight).toBeGreaterThanOrEqual(portraitY + portraitHeight)
+      expect(left).toBeLessThanOrEqual(priorLabel.x - 6)
+      expect(top + clearHeight).toBeGreaterThan(priorLabel.y)
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
   })
   it.each([0.35, 1, 1.4])(
     'sizes identities in proportion to terrain and matches their picking area at %s zoom',

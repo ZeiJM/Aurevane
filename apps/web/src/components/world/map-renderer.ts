@@ -596,6 +596,8 @@ export function createMapRenderer(
   }[] = []
   const timingEnabled = () => canvas.dataset.renderDiagnostics === 'timing'
   let paintedIdentity: (string | number | boolean | null)[] | null = null
+  let paintedIdentityBounds: { left: number; top: number; right: number; bottom: number } | null =
+    null
   let view: WorldRenderView = initial,
     width = 0,
     height = 0,
@@ -994,6 +996,7 @@ export function createMapRenderer(
       const offsetY = Math.round(bounds.top * identityRatio) / identityRatio - bounds.top
       identityCanvas.style.transform = `translate(${offsetX}px, ${offsetY}px)`
       paintedIdentity = null
+      paintedIdentityBounds = null
     }
     tile = (width < 600 ? 48 : 64) * zoom
     rasterTile = tile
@@ -2672,6 +2675,23 @@ export function createMapRenderer(
     }
     type Nameplate = { point: MapPoint; person: (typeof selfStack.people)[number] }
     const nameplates: Nameplate[] = []
+    let identityBounds: { left: number; top: number; right: number; bottom: number } | null = null
+    const includeIdentityBounds = (left: number, top: number, right: number, bottom: number) => {
+      const padding = Math.max(2 / identityRatio, 1)
+      const bounds = {
+        left: left - padding,
+        top: top - padding,
+        right: right + padding,
+        bottom: bottom + padding,
+      }
+      if (!identityBounds) identityBounds = bounds
+      else {
+        identityBounds.left = Math.min(identityBounds.left, bounds.left)
+        identityBounds.top = Math.min(identityBounds.top, bounds.top)
+        identityBounds.right = Math.max(identityBounds.right, bounds.right)
+        identityBounds.bottom = Math.max(identityBounds.bottom, bounds.bottom)
+      }
+    }
     const drawPerson = (
       stack: typeof selfStack,
       ghost: boolean,
@@ -2711,6 +2731,12 @@ export function createMapRenderer(
           ctx.lineWidth = Math.max(1, scale)
           ctx.stroke()
         }
+        includeIdentityBounds(
+          point.x - Math.max(anchorX * scale, 12 * scale),
+          point.y - anchorY * scale,
+          point.x + Math.max((width - anchorX) * scale, 12 * scale),
+          point.y + Math.max((height - anchorY) * scale, 4 * scale),
+        )
         ctx.drawImage(
           actor.atlas,
           actor.column * width,
@@ -2723,6 +2749,13 @@ export function createMapRenderer(
           height * scale,
         )
       } else {
+        const shadow = 10 * tokenScale
+        includeIdentityBounds(
+          point.x - radius - shadow,
+          point.y - radius * 2 - shadow,
+          point.x + radius + shadow,
+          point.y + shadow + 5 * tokenScale,
+        )
         ctx.fillStyle = ghost ? '#a6b1b0' : '#182e32'
         ctx.strokeStyle = person.self ? '#ead399' : '#c6cbc0'
         ctx.lineWidth = Math.max(1 / identityRatio, Math.min(1, tokenScale))
@@ -2783,6 +2816,14 @@ export function createMapRenderer(
         ctx.font = `bold ${Math.max(7, 10 * tokenScale)}px sans-serif`
         ctx.textAlign = 'center'
         ctx.fillText(String(people.length), point.x + 19 * tokenScale, point.y - 26 * tokenScale)
+        const countWidth = ctx.measureText(String(people.length)).width
+        const countHeight = Math.max(7, 10 * tokenScale)
+        includeIdentityBounds(
+          point.x + 19 * tokenScale - countWidth / 2,
+          point.y - 26 * tokenScale - countHeight,
+          point.x + 19 * tokenScale + countWidth / 2,
+          point.y - 26 * tokenScale + 2,
+        )
       }
       if (!ghost || actor) nameplates.push({ point, person })
     }
@@ -2835,6 +2876,7 @@ export function createMapRenderer(
       )
         return
       occupied.push(bounds)
+      includeIdentityBounds(bounds.left, bounds.top, bounds.right, bounds.bottom)
       ctx.fillStyle = 'rgba(6,28,35,.96)'
       ctx.strokeStyle = person.self ? '#d0ac66' : 'rgba(176,192,186,.7)'
       ctx.lineWidth = Math.max(1 / identityRatio, 0.7 * Math.min(1, tokenScale))
@@ -3490,7 +3532,33 @@ export function createMapRenderer(
       tokenScale,
       radius,
     ]
-    const occluders = scenery.map((item) => ({ item, point: screen({ x: item.x, y: item.y }) }))
+    const occluderCell = 96
+    const occluders = scenery.map((item) => {
+      const point = screen({ x: item.x, y: item.y })
+      return {
+        item,
+        point,
+        left: point.x - item.width * 0.35,
+        right: point.x + item.width * 0.35,
+        top: point.y - item.height * (item.anchorY ?? 0.8),
+        bottom: point.y + item.height * (1 - (item.anchorY ?? 1)),
+      }
+    })
+    const occluderIndex = new Map<string, typeof occluders>()
+    for (const occluder of occluders) {
+      const left = Math.floor(occluder.left / occluderCell),
+        right = Math.floor(occluder.right / occluderCell),
+        top = Math.floor(occluder.top / occluderCell),
+        bottom = Math.floor(occluder.bottom / occluderCell)
+      for (let y = top; y <= bottom; y++)
+        for (let x = left; x <= right; x++) {
+          const key = `${x}:${y}`,
+            candidates = occluderIndex.get(key) ?? []
+          candidates.push(occluder)
+          occluderIndex.set(key, candidates)
+        }
+    }
+    let identityOccluderChecks = 0
     const identities = Array.from(stacks.values())
       .sort((a, b) => a.point.x + a.point.y - b.point.x - b.point.y)
       .flatMap((stack) => {
@@ -3511,13 +3579,18 @@ export function createMapRenderer(
             selfIndex < 0 && people.length > 1 && animate && !reduced
               ? Math.min(1, (now % 3600) / 500)
               : 1,
-          ghost = occluders.some(
-            ({ item, point: s }) =>
+          ghost = (
+            occluderIndex.get(
+              `${Math.floor(p.x / occluderCell)}:${Math.floor(p.y / occluderCell)}`,
+            ) ?? []
+          ).some(({ item, point: s, left, right, top, bottom }) => {
+            identityOccluderChecks++
+            return (
               stack.point.x + stack.point.y < item.x + item.y &&
-              p.x > s.x - item.width * 0.35 &&
-              p.x < s.x + item.width * 0.35 &&
-              p.y > s.y - item.height * (item.anchorY ?? 0.8) &&
-              p.y < s.y + item.height * (1 - (item.anchorY ?? 1)) &&
+              p.x > left &&
+              p.x < right &&
+              p.y > top &&
+              p.y < bottom &&
               (!item.arenaFloor ||
                 ((p.x - (s.x + (item.arenaFloor.cx - (item.anchorX ?? 0.5)) * item.width)) /
                   (item.arenaFloor.rx * item.width)) **
@@ -3525,8 +3598,9 @@ export function createMapRenderer(
                   ((p.y - (s.y + (item.arenaFloor.cy - (item.anchorY ?? 1)) * item.height)) /
                     (item.arenaFloor.ry * item.height)) **
                     2 >
-                  1),
-          )
+                  1)
+            )
+          })
         const actor = visibleActor(person.image, person.id, stack.point, person.self)
         const image = actor ? null : visibleImage(compactPortraitSource(person.image))
         const previous =
@@ -3583,7 +3657,25 @@ export function createMapRenderer(
     if (repaintIdentity) {
       if (identityContext) {
         identityContext.setTransform(identityRatio, 0, 0, identityRatio, 0, 0)
-        identityContext.clearRect(0, 0, width, height)
+        if (paintedIdentityBounds) {
+          const left = Math.max(
+            0,
+            Math.floor(paintedIdentityBounds.left * identityRatio) / identityRatio,
+          )
+          const top = Math.max(
+            0,
+            Math.floor(paintedIdentityBounds.top * identityRatio) / identityRatio,
+          )
+          const right = Math.min(
+            width,
+            Math.ceil(paintedIdentityBounds.right * identityRatio) / identityRatio,
+          )
+          const bottom = Math.min(
+            height,
+            Math.ceil(paintedIdentityBounds.bottom * identityRatio) / identityRatio,
+          )
+          identityContext.clearRect(left, top, right - left, bottom - top)
+        } else identityContext.clearRect(0, 0, width, height)
       }
       for (const { stack, ghost, actor, image, previous } of identities) {
         drawPerson(stack, ghost && Boolean(actor), actor, image, previous)
@@ -3607,6 +3699,7 @@ export function createMapRenderer(
         paintNameplate(nameplate, occupied, dense)
       }
       paintedIdentity = identity
+      paintedIdentityBounds = identityBounds
     }
     const ended = performance.now()
     paintedProjections.push({
@@ -3622,6 +3715,8 @@ export function createMapRenderer(
     if (paintedProjections.length > 64) paintedProjections.shift()
     if (timing) {
       timing.identityMs = ended - phaseAt
+      timing.identityOccluders = occluders.length
+      timing.identityOccluderChecks = identityOccluderChecks
       timing.completedAt = ended
       timing.biomeRasters = biomeRasters.size
       timing.biomeRasterPixels = biomeRasterPixels
@@ -3890,7 +3985,7 @@ export function createMapRenderer(
       )
       cadence = Math.max(STEP_MS, crossing?.durationMs ?? sector?.stepMs ?? STEP_MS)
       heldDestination = position
-      heldReleaseOrigin = sample.position
+      heldReleaseOrigin = motion.nextLanding(now)
       heldFirstDestination = first
       select(position)
       requestDraw()
@@ -4059,6 +4154,7 @@ export function createMapRenderer(
       actorAssets.clear()
       actorPositions.clear()
       paintedIdentity = null
+      paintedIdentityBounds = null
       if (identityCanvas && identityContext) {
         identityCanvas.width = 0
         identityCanvas.height = 0
