@@ -3905,6 +3905,71 @@ it('reduces phone cloud compositing by default and keeps Low identity sharp', ()
   }
 })
 
+it('transfers reusable native canopy crops and closes them when density changes', () => {
+  const position = { sectorId: 'atlas:59:28', x: 4, y: 4 }
+  const s = scene(false, projectWorld({ ...newWorldState(), position }, [], 1000))
+  const transferred: {
+    src: string
+    width: number
+    height: number
+    close: ReturnType<typeof vi.fn>
+  }[] = []
+  vi.stubGlobal(
+    'OffscreenCanvas',
+    class {
+      private source?: object
+      constructor(
+        public width: number,
+        public height: number,
+      ) {}
+      getContext() {
+        return { drawImage: (source: object) => (this.source = source) }
+      }
+      transferToImageBitmap() {
+        const contents = this.source ? s.composites.get(this.source) : undefined
+        const canopy =
+          contents?.length === 1 &&
+          String((contents[0] as HTMLImageElement | undefined)?.src).endsWith('beauties-v03.webp')
+        const image = {
+          src: canopy ? 'immutable-biome-canopy' : 'immutable-static-raster',
+          width: this.width,
+          height: this.height,
+          close: vi.fn(),
+        }
+        transferred.push(image)
+        return image
+      }
+    },
+  )
+  try {
+    for (const image of s.images)
+      if ((image as HTMLImageElement).src.endsWith('beauties-v03.webp'))
+        Object.assign(image, { width: 1774, height: 887, naturalWidth: 1774 })
+    Object.assign(s.canvas, { clientWidth: 1280, clientHeight: 720 })
+    window.devicePixelRatio = 3
+    s.resize()
+    s.renderer.settings({ animate: true, zoom: 1 })
+    s.frame(40)
+    const canopies = transferred.filter(({ src }) => src === 'immutable-biome-canopy')
+    expect(canopies.length).toBeGreaterThan(0)
+
+    s.motion.plan(
+      [{ position: { ...position, x: position.x + 1 }, durationMs: 200 }],
+      s.view.sectors,
+      40,
+    )
+    s.draws.length = 0
+    s.frame(80)
+    expect(s.draws.some(({ src }) => src === 'immutable-biome-canopy')).toBe(true)
+
+    s.resize()
+    expect(canopies.every(({ close }) => close.mock.calls.length === 1)).toBe(true)
+  } finally {
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+})
+
 it.each(
   [1, 3].flatMap((dpr) =>
     ['living-trees-v01.webp', 'beauties-v03.webp'].map((sheet) => ({ dpr, sheet })),
