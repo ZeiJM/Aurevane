@@ -1,432 +1,599 @@
 {
-  "candidate": "367689eafd65802ee68394a7635ca8027ae01347",
-  "expected_tree": "73f683979266ffeb20e342498a9b0521a406a572",
+  "schema_version": 2,
+  "evidence_only": "Never merge or deploy this receipt branch or its commits.",
+  "candidate": "fccac74bc6255619cac01a67ea1c4330782e2ab2",
+  "expected_tree": "301f94d0976b4cc1540bcc3de4fd54f85eecf2e4",
+  "expected_parent": "367689eafd65802ee68394a7635ca8027ae01347",
   "main_baseline": "d32cabd7f626b650df5c5eacf6a85a4457fc1f85",
-  "date": "2026-11-15",
-  "release_status": "Blocked: diagnostic Smoke43781111933 completed failure on38eb7c6. Full Chromium440 passed,341 configured skips,2 failures; Edge not executed. Six password-recovery cases pass. Parser correctionbb3b55e is saved but not yet run natively. Original historical Item rejection remains unresolved; peer motion fails during live Night/fog. No production action.",
-  "timing": {
-    "run_id": 43750672066,
-    "job_id": 132923689026,
-    "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43750672066",
-    "checkout": "360ab1b (synthetic merge of candidate into unchanged main, from job log)",
-    "mobile_passed": 3,
-    "desktop_passed": 60,
-    "retries": 0,
-    "desktop_interval_utc": [
-      "2026-11-15T19:12:57Z",
-      "2026-11-15T19:32:06Z"
-    ],
-    "environment": "Dusk/rain, derived from unchanged authoritative UTC rules; no time/weather override added",
-    "artifact_id": 14177280924,
-    "artifact_sha256": "47fa8276cf525537a6d374ea4b41ef2f27af180604541883f2c2d15efed1765b",
-    "download_sha256_verified": true,
-    "observer1_positive_delta_counts": [
-      17,
-      16,
-      16,
-      15,
-      17,
-      15,
-      16,
-      18,
-      18,
-      17,
-      17,
-      17,
-      17,
-      16,
-      16,
-      15,
-      16,
-      17,
-      16,
-      18
-    ],
-    "predicate": "deltaX > 0.002; required count > 8, unchanged",
-    "capture": {
-      "mask_build_records": {
-        "0": 831,
-        "5": 20
-      },
-      "mask_pixel_records": {
-        "130899": 370,
-        "240586": 481
-      },
-      "explanation": "Newly visible animal masks build once; warmed records build none. Both observed working sets are under512000 pixels.",
-      "dropped_native_events": 0
-    },
-    "cpu_profile": {
-      "observer1_profiles": 20,
-      "previous_ed5": {
-        "samples": 10053,
-        "restore_hits": 1371,
-        "negative_time_deltas": 946
-      },
-      "candidate": {
-        "samples": 9176,
-        "restore_hits": 2,
-        "negative_time_deltas": 946
-      },
-      "limitation": "V8 timeDeltas contain negative entries, so sample-hit counts are used for this comparison instead of summing sampled milliseconds. This is diagnostic attribution, not a benchmark or native appearance acceptance."
-    },
-    "canvas_resource_duration_ms": {
-      "median": 9.9155,
-      "p95": 38.5,
-      "previous_ed5_median": 7.61,
-      "previous_ed5_p95": 65.6,
-      "limitation": "Median rises while the tail falls. Different frame counts/load prevent treating raw nested duration totals as controlled performance measurements."
-    }
-  },
+  "release_status": "Awaiting all fresh exact-head configured checks and native acceptance; no production action",
+  "observed_after_pr_update_at_utc": "2026-11-16T04:19:09Z",
   "checks_snapshot": {
-    "successful_workflows": 14,
-    "total_workflows": 15,
+    "candidate": "fccac74bc6255619cac01a67ea1c4330782e2ab2",
+    "all_15_started_automatically": true,
     "workflows": [
       {
-        "run_id": 43750672188,
-        "name": "Browser smoke",
-        "status": "completed",
-        "conclusion": "failure"
-      },
-      {
-        "run_id": 43750672009,
-        "name": "Living Atlas browser",
-        "status": "completed",
-        "conclusion": "success"
-      },
-      {
-        "run_id": 43750672066,
-        "name": "World timing repeat validation",
-        "status": "completed",
-        "conclusion": "success"
-      },
-      {
-        "run_id": 43750672111,
-        "name": "Wayfarer's Practice DB",
-        "status": "completed",
-        "conclusion": "success"
-      },
-      {
-        "run_id": 43750672057,
-        "name": "Battle Session DB",
-        "status": "completed",
-        "conclusion": "success"
-      },
-      {
-        "run_id": 43750672105,
-        "name": "Combat and mobile layout regressions",
-        "status": "completed",
-        "conclusion": "success"
-      },
-      {
-        "run_id": 43750672071,
-        "name": "Foundation Security DB",
-        "status": "completed",
-        "conclusion": "success"
-      },
-      {
-        "run_id": 43750672033,
-        "name": "Attribute Allocation",
-        "status": "completed",
-        "conclusion": "success"
-      },
-      {
-        "run_id": 43750672035,
-        "name": "Desktop page fit",
-        "status": "completed",
-        "conclusion": "success"
-      },
-      {
-        "run_id": 43750672179,
+        "id": 43803308603,
         "name": "CI",
-        "status": "completed",
-        "conclusion": "success"
+        "status": "in_progress",
+        "conclusion": null,
+        "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43803308603"
       },
       {
-        "run_id": 43750672097,
-        "name": "Representative Buildcraft",
-        "status": "completed",
-        "conclusion": "success"
-      },
-      {
-        "run_id": 43750672076,
-        "name": "UI layout review",
-        "status": "completed",
-        "conclusion": "success"
-      },
-      {
-        "run_id": 43750672133,
-        "name": "Discipline Build DB",
-        "status": "completed",
-        "conclusion": "success"
-      },
-      {
-        "run_id": 43750672058,
+        "id": 43803308605,
         "name": "Mobile audit",
-        "status": "completed",
-        "conclusion": "success"
+        "status": "in_progress",
+        "conclusion": null,
+        "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43803308605"
       },
       {
-        "run_id": 43750672062,
-        "name": "Desktop experience",
-        "status": "completed",
-        "conclusion": "success"
-      }
-    ],
-    "pending": [],
-    "failed": [
+        "id": 43803308589,
+        "name": "Living Atlas browser",
+        "status": "in_progress",
+        "conclusion": null,
+        "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43803308589"
+      },
       {
-        "run_id": 43750672188,
+        "id": 43803308526,
+        "name": "Representative Buildcraft",
+        "status": "in_progress",
+        "conclusion": null,
+        "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43803308526"
+      },
+      {
+        "id": 43803308524,
+        "name": "Attribute Allocation",
+        "status": "in_progress",
+        "conclusion": null,
+        "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43803308524"
+      },
+      {
+        "id": 43803308398,
+        "name": "Battle Session DB",
+        "status": "in_progress",
+        "conclusion": null,
+        "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43803308398"
+      },
+      {
+        "id": 43803308527,
+        "name": "Wayfarer's Practice DB",
+        "status": "in_progress",
+        "conclusion": null,
+        "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43803308527"
+      },
+      {
+        "id": 43803308271,
+        "name": "Desktop experience",
+        "status": "in_progress",
+        "conclusion": null,
+        "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43803308271"
+      },
+      {
+        "id": 43803308465,
+        "name": "Discipline Build DB",
+        "status": "in_progress",
+        "conclusion": null,
+        "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43803308465"
+      },
+      {
+        "id": 43803308511,
+        "name": "Foundation Security DB",
+        "status": "in_progress",
+        "conclusion": null,
+        "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43803308511"
+      },
+      {
+        "id": 43803308534,
+        "name": "Desktop page fit",
+        "status": "in_progress",
+        "conclusion": null,
+        "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43803308534"
+      },
+      {
+        "id": 43803308462,
+        "name": "Combat and mobile layout regressions",
+        "status": "in_progress",
+        "conclusion": null,
+        "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43803308462"
+      },
+      {
+        "id": 43803308440,
+        "name": "World timing repeat validation",
+        "status": "in_progress",
+        "conclusion": null,
+        "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43803308440"
+      },
+      {
+        "id": 43803308554,
+        "name": "UI layout review",
+        "status": "in_progress",
+        "conclusion": null,
+        "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43803308554"
+      },
+      {
+        "id": 43803308459,
         "name": "Browser smoke",
-        "job_id": 132924350792,
-        "chromium_failures": 7,
-        "final_edge_executed": false
+        "status": "in_progress",
+        "conclusion": null,
+        "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43803308459"
       }
     ]
+  },
+  "local_validation": {
+    "focused": {
+      "files": 5,
+      "passed": 274
+    },
+    "mail_passed": 5,
+    "verification_runner_passed": 56,
+    "atlas_discovery": 222,
+    "typescript": "pass",
+    "scoped_lint_format": "pass",
+    "production_build": "pass",
+    "broad_run": {
+      "status": "failed; not a full-suite pass",
+      "web": {
+        "files": 694,
+        "passed": 9632,
+        "failed": 15
+      },
+      "other_packages": "6 pass, including7211 game-core and768 DB tests",
+      "failures": "14 deadline expirations in4 unchanged combat test files, plus old loaded tiny-width cache implementation during source edits",
+      "isolated_diagnosis": "87 cases in3 combat files plus final cache helper pass;9 selected admission cases pass under unchanged deadlines; no configured runner changes"
+    }
+  },
+  "repair": {
+    "mail": "Propagate selected INBUCKET_URL via GITHUB_ENV; all6 native password cases passed diagnostic source38",
+    "parser": "Require actual PostgreSQL LOG prefix; retain responses before parsing; original Item preparation SQL rejection not claimed cured",
+    "raster": "One4M-pixel-bounded native-density immutable composite with64CSSpx padded drift/window wraps; direct ambient-off/reduced path; original gameplay/authority/migrations and all thresholds/deadlines/zero retries/63 timing executions unchanged",
+    "native_probe": "Exact-source component report committed in candidate docs/verification/2026-11-16-pr1040-weather-raster-probe.json;60 comparisons max2 channel difference;78 images closed; noisy component tail does not establish hosted performance"
   },
   "acceptance_limits": [
-    "Full Browser Smoke Chromium/final Edge and final exact-head release attestation remain required.",
-    "Physical-handset and human continuous-motion playtesting remain open.",
-    "Sampled fox/mountain/town evidence was reviewed; isolated bird/deer close-up sequences were unavailable in the smaller bundles.",
-    "This receipt is evidence only: never merge its branch or deploy its commit; release only the verified PR source under the checked-in runbook."
+    "Fresh complete Chromium and final Edge remain required.",
+    "Fresh Living Atlas/PG17 atomic rollback/contention/success and every DB specialist remain required.",
+    "All63 native timing executions and actual fog/motion/art review remain required.",
+    "No physical-handset, signed-in human or continuous-gait acceptance inferred from automated evidence."
   ],
   "production": {
-    "merge": null,
-    "migration_apply": null,
-    "deployment": null,
-    "promotion": null,
-    "cron_activation": null
+    "agent_actions": "No merge/migration/deployment/promotion/cron action",
+    "baseline_requires_read_only_refresh_before_release": true,
+    "previous_record": {
+      "merge": null,
+      "migration_apply": null,
+      "deployment": null,
+      "promotion": null,
+      "cron_activation": null
+    }
   },
-  "verified_at_utc": "2026-11-15 21:14:02 UTC",
-  "tested_checkout": {
-    "sha": "360ab1b23be5e4c9ec6f40da6b920b7e93aa37d5",
-    "tree": "73f683979266ffeb20e342498a9b0521a406a572",
-    "basis": "Atlas checkout and git rev-parse HEAD^{tree} logged together; synthetic merge of candidate into unchanged main."
-  },
-  "living_atlas": {
-    "run_id": 43750672009,
-    "job_id": 132923689001,
-    "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43750672009",
-    "conclusion": "success",
-    "story": {
-      "passed": 15,
-      "configured_project_skips": 7
-    },
-    "atlas": {
-      "discovered": 222,
-      "passed": 99,
-      "configured_project_skips": 123
-    },
-    "pg17": {
-      "conclusion": "success",
-      "atomic_rollback_contention_and_success": true,
-      "postflight_log": "Verified PG17 atomic success, exact four source-history rows, RPC ACLs, preserved v1/v2 and saved progress; cron remains inactive. Candidate schema retained.",
-      "production_database": false
-    },
-    "paused_backing": {
-      "weather": "rain",
-      "before_sha256": "3faa2cda710d6b4246cd4f11d4adefc328cc57d110928f24af0e3da0d666b562",
-      "after_sha256": "3faa2cda710d6b4246cd4f11d4adefc328cc57d110928f24af0e3da0d666b562",
-      "presence_digest_changed": true
-    },
-    "artifacts": [
-      {
-        "id": 14177532967,
-        "name": "compact evidence",
-        "sha256": "0c76683e46ad0d68f74d517810efd97964b702b600df77295ab0a2794f711eff",
-        "download_hash_verified": true
-      },
-      {
-        "id": 14176964658,
-        "name": "hamlets",
-        "sha256": "ff7ac7ed491cec3fdaae5c5ec60f58ad53e78571835fc7983bffac0479b79b31",
-        "download_hash_verified": true
-      },
-      {
-        "id": 14177818988,
-        "name": "surfaces, Void and occlusion",
-        "sha256": "064ee294ab8880217dfcab43e657d4307f7b449f28b2502489e81f5a6a2ce304",
-        "download_hash_verified": true
-      },
-      {
-        "id": 14178071926,
-        "name": "north towns",
-        "sha256": "f158ecaedc32d7fe97109bb32210e208adc7f9504d40bc1f611ae01ffb0ea03f",
-        "download_hash_verified": true
-      },
-      {
-        "id": 14177782588,
-        "name": "south towns",
-        "sha256": "e08732b728945257b15121b911ada876ad82dee52bae51087d15da58f8fec11d",
-        "download_hash_verified": true
-      },
-      {
-        "id": 14178013493,
-        "name": "full Living Atlas archive",
-        "bytes": 1050233083,
-        "download_hash_verified": false,
-        "limitation": "Connector rejects artifacts larger than536870912 bytes. Review uses the five hash-verified smaller bundles; full traces/ambient frame sequence not downloaded."
-      }
-    ]
-  },
-  "native_visual_review": {
+  "previous_candidate_evidence": {
     "candidate": "367689eafd65802ee68394a7635ca8027ae01347",
-    "method": "Direct inspection of retained native screenshots and paired frames, plus independent read-only review.",
-    "reviewed": [
-      "All eight towns: desktop/mobile clear, storm and reduced-motion paired captures; advancing frame times and distinct paired hashes in receipts.",
-      "Desktop/mobile roof and tree before/after occlusion pairs: fox body/legs attached, clean sampled silhouette edges, changed pose/location, visible occlusion cue and player label.",
-      "Hamlet atlas49:19 gameplay-scale Dusk/rain: painted mountain strata, grounded bases and readable hamlet foreground; no old flat-polygon mismatch.",
-      "Snowy peaks and relief, organic lake depth, coast/ocean storm/reduced views, elemental valley normal/minimum, remote colosseum approach and shrine/globe samples."
-    ],
-    "finding": "No release-blocking visual defect observed in the sampled current-head screenshots.",
-    "limitations": [
-      "Town weather fixtures freeze local noon and exclude wildlife; they cannot establish cached animal gait.",
-      "Visible fox samples cover retained poses/edges. Extracts lack isolated deer/bird close-up sequences; continuous gait is not claimed.",
-      "No physical-handset or human signed-in playtest acceptance is claimed.",
-      "A passing native motion assertion and sampled screenshots do not prove universal FPS or exhaustive visual acceptance."
-    ]
-  },
-  "diagnostic_followup": {
-    "purpose": "Identify actual Item equipment preparation rejection; not release acceptance or proof of a cure.",
-    "branch": "agent/pr1040-smoke-repair-367689e",
-    "source": "38eb7c6a7f5b89821275c729178c04aaedb9b532",
-    "tree": "25ec7aae78699d070a581311b05f9d71264393db",
-    "parent": "d2abcb506176139deb485def8262dbb2db830dad",
-    "run_id": 43781111933,
-    "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43781111933",
-    "event": "workflow_dispatch",
-    "status": "completed",
-    "run_source_independently_verified": true,
-    "dispatched_once": true,
-    "failed_pr_artifact": {
-      "id": 14181608056,
-      "sha256": "ed2087d8b41a265df11c719975a292d935b0b864bbe27470311962a09615e623",
-      "download_hash_verified": true
-    },
-    "known_failures": {
-      "mail": "Six password-recovery cases used54324 after dynamic allocation; saved correction exports matchingINBUCKET_URL throughGITHUB_ENV.",
-      "attack": "First attack returned Item preparation409 after425ms; second returned503 after8505ms while gate awaitedtwo. Underlying original SQLSTATE/category and holder are not in old trace."
-    },
-    "changes": "Test-only equipment RPC handler for fixture characters logs SQLSTATE/allowlisted category and competing exclusive catalogue/account0/account1 holders as trusted public RPC identifiers; bare rethrow and original function restore retained. Compact responseJSON now uploaded. No production code, authority, migrations, gates, thresholds, retries or coverage changed.",
-    "validation": {
-      "helper_and_adjacent_item_tests": 332,
-      "files": 27,
-      "mail_tests": 5,
-      "verification_runner_tests": 56,
-      "types": true,
-      "scoped_lint_format": true,
-      "independent_review": "No important findings; privacy and restoration checked.",
-      "postgres": {
-        "version": "17.7",
-        "cold_paired_captures": 30,
-        "cold_pair_failures": 0,
-        "forced_failure_categories_preserved": [
-          "40001/ITEM_ADMISSION_RETRY",
-          "40001/ITEM_CATALOGUE_RETRY"
-        ],
-        "exclusive_lock_holder_retained": true,
-        "probe": ".github/scripts/probe-world-equipment-diagnostics.py",
-        "scope": "Dedicated disposable localhost database; extracts source lock/read/admission bodies, stubs unrelated definitions/capture. Not full Supabase acceptance."
+    "expected_tree": "73f683979266ffeb20e342498a9b0521a406a572",
+    "main_baseline": "d32cabd7f626b650df5c5eacf6a85a4457fc1f85",
+    "date": "2026-11-15",
+    "release_status": "Blocked: diagnostic Smoke43781111933 completed failure on38eb7c6. Full Chromium440 passed,341 configured skips,2 failures; Edge not executed. Six password-recovery cases pass. Parser correctionbb3b55e is saved but not yet run natively. Original historical Item rejection remains unresolved; peer motion fails during live Night/fog. No production action.",
+    "timing": {
+      "run_id": 43750672066,
+      "job_id": 132923689026,
+      "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43750672066",
+      "checkout": "360ab1b (synthetic merge of candidate into unchanged main, from job log)",
+      "mobile_passed": 3,
+      "desktop_passed": 60,
+      "retries": 0,
+      "desktop_interval_utc": [
+        "2026-11-15T19:12:57Z",
+        "2026-11-15T19:32:06Z"
+      ],
+      "environment": "Dusk/rain, derived from unchanged authoritative UTC rules; no time/weather override added",
+      "artifact_id": 14177280924,
+      "artifact_sha256": "47fa8276cf525537a6d374ea4b41ef2f27af180604541883f2c2d15efed1765b",
+      "download_sha256_verified": true,
+      "observer1_positive_delta_counts": [
+        17,
+        16,
+        16,
+        15,
+        17,
+        15,
+        16,
+        18,
+        18,
+        17,
+        17,
+        17,
+        17,
+        16,
+        16,
+        15,
+        16,
+        17,
+        16,
+        18
+      ],
+      "predicate": "deltaX > 0.002; required count > 8, unchanged",
+      "capture": {
+        "mask_build_records": {
+          "0": 831,
+          "5": 20
+        },
+        "mask_pixel_records": {
+          "130899": 370,
+          "240586": 481
+        },
+        "explanation": "Newly visible animal masks build once; warmed records build none. Both observed working sets are under512000 pixels.",
+        "dropped_native_events": 0
+      },
+      "cpu_profile": {
+        "observer1_profiles": 20,
+        "previous_ed5": {
+          "samples": 10053,
+          "restore_hits": 1371,
+          "negative_time_deltas": 946
+        },
+        "candidate": {
+          "samples": 9176,
+          "restore_hits": 2,
+          "negative_time_deltas": 946
+        },
+        "limitation": "V8 timeDeltas contain negative entries, so sample-hit counts are used for this comparison instead of summing sampled milliseconds. This is diagnostic attribution, not a benchmark or native appearance acceptance."
+      },
+      "canvas_resource_duration_ms": {
+        "median": 9.9155,
+        "p95": 38.5,
+        "previous_ed5_median": 7.61,
+        "previous_ed5_p95": 65.6,
+        "limitation": "Median rises while the tail falls. Different frame counts/load prevent treating raw nested duration totals as controlled performance measurements."
       }
     },
-    "limits": [
-      "Holder sampling occurs after exception unwinding and may miss a released holder.",
-      "Public RPC name is inferred from quoted identifiers in outer query, with other fallback.",
-      "No claim that the original attack fault is fixed; even a passing diagnostic run does not resolve its prior unexplained failure.",
-      "Never merge/deploy WIP or evidence-only commits. Resolve actual cause, publish final combined PR correction with expected parent, then require all configured exact-head gates."
-    ],
-    "observed_live_failure": {
-      "job_id": 133018408202,
-      "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43781111933/job/133018408202",
-      "case": "simultaneous mutual attacks create one shared active encounter",
-      "error": "SyntaxError: Unexpected token '%', \"%', (\" is not valid JSON",
-      "location": "world-contention-gate.ts:91",
-      "cause": "Substring marker matching treated an echoed SQL raise-log template as emitted JSON; this new diagnostic defect can mask the original case outcome."
-    },
-    "parser_correction": {
-      "source": "bb3b55e8ff566e07fcbc341d66e1f635e0b6270c",
-      "tree": "ec398f8cbd008e37949a6a118a036cdae6dd1aa8",
-      "expected_parent": "38eb7c6a7f5b89821275c729178c04aaedb9b532",
-      "branch": "agent/pr1040-smoke-repair-367689e",
-      "change": "Require PostgreSQL LOG severity immediately before the marker; ignore echoed SQL but retain strict validation of actual records. Save original response/error JSON before holder decoding.",
-      "failing_before_regression_observed": true,
-      "parser_tests": 5,
-      "types": true,
-      "scoped_lint_format": true,
-      "dispatched_new_run": false,
-      "next": "Let43781111933 complete and inspect exact final logs/artifacts/request outcomes before deciding further diagnosis. Do not claim original attack fixed or release any WIP."
-    },
-    "conclusion": "failure",
-    "final_result": {
-      "chromium": {
-        "passed": 440,
-        "configured_skips": 341,
-        "failed": 2,
-        "final_edge_executed": false
-      },
-      "failures": [
-        "Mutual-attack case is interrupted by diagnostic collector JSON parsing of echoed SQL; corrected on WIPbb3b55e, not on this run's source38eb7c6.",
-        "Known-neighbour peer-motion check: observer0 positive deltas9, observer1 positive deltas7, unchanged requirement>8 at deltaX>0.002."
+    "checks_snapshot": {
+      "successful_workflows": 14,
+      "total_workflows": 15,
+      "workflows": [
+        {
+          "run_id": 43750672188,
+          "name": "Browser smoke",
+          "status": "completed",
+          "conclusion": "failure"
+        },
+        {
+          "run_id": 43750672009,
+          "name": "Living Atlas browser",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "run_id": 43750672066,
+          "name": "World timing repeat validation",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "run_id": 43750672111,
+          "name": "Wayfarer's Practice DB",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "run_id": 43750672057,
+          "name": "Battle Session DB",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "run_id": 43750672105,
+          "name": "Combat and mobile layout regressions",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "run_id": 43750672071,
+          "name": "Foundation Security DB",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "run_id": 43750672033,
+          "name": "Attribute Allocation",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "run_id": 43750672035,
+          "name": "Desktop page fit",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "run_id": 43750672179,
+          "name": "CI",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "run_id": 43750672097,
+          "name": "Representative Buildcraft",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "run_id": 43750672076,
+          "name": "UI layout review",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "run_id": 43750672133,
+          "name": "Discipline Build DB",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "run_id": 43750672058,
+          "name": "Mobile audit",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "run_id": 43750672062,
+          "name": "Desktop experience",
+          "status": "completed",
+          "conclusion": "success"
+        }
       ],
-      "password_recovery": "All six desktop/laptop/mobile cases ran; none failed. No ECONNREFUSED in final failure list.",
-      "artifact": {
-        "id": 14194178987,
-        "name": "browser-world-failure-diagnostics",
-        "bytes": 125676091,
-        "sha256": "1d4fd4db40e83a6a60cddc0fa69b78d4063d64a92143829cdc8c1577253008f7",
+      "pending": [],
+      "failed": [
+        {
+          "run_id": 43750672188,
+          "name": "Browser smoke",
+          "job_id": 132924350792,
+          "chromium_failures": 7,
+          "final_edge_executed": false
+        }
+      ]
+    },
+    "acceptance_limits": [
+      "Full Browser Smoke Chromium/final Edge and final exact-head release attestation remain required.",
+      "Physical-handset and human continuous-motion playtesting remain open.",
+      "Sampled fox/mountain/town evidence was reviewed; isolated bird/deer close-up sequences were unavailable in the smaller bundles.",
+      "This receipt is evidence only: never merge its branch or deploy its commit; release only the verified PR source under the checked-in runbook."
+    ],
+    "production": {
+      "merge": null,
+      "migration_apply": null,
+      "deployment": null,
+      "promotion": null,
+      "cron_activation": null
+    },
+    "verified_at_utc": "2026-11-15 21:14:02 UTC",
+    "tested_checkout": {
+      "sha": "360ab1b23be5e4c9ec6f40da6b920b7e93aa37d5",
+      "tree": "73f683979266ffeb20e342498a9b0521a406a572",
+      "basis": "Atlas checkout and git rev-parse HEAD^{tree} logged together; synthetic merge of candidate into unchanged main."
+    },
+    "living_atlas": {
+      "run_id": 43750672009,
+      "job_id": 132923689001,
+      "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43750672009",
+      "conclusion": "success",
+      "story": {
+        "passed": 15,
+        "configured_project_skips": 7
+      },
+      "atlas": {
+        "discovered": 222,
+        "passed": 99,
+        "configured_project_skips": 123
+      },
+      "pg17": {
+        "conclusion": "success",
+        "atomic_rollback_contention_and_success": true,
+        "postflight_log": "Verified PG17 atomic success, exact four source-history rows, RPC ACLs, preserved v1/v2 and saved progress; cron remains inactive. Candidate schema retained.",
+        "production_database": false
+      },
+      "paused_backing": {
+        "weather": "rain",
+        "before_sha256": "3faa2cda710d6b4246cd4f11d4adefc328cc57d110928f24af0e3da0d666b562",
+        "after_sha256": "3faa2cda710d6b4246cd4f11d4adefc328cc57d110928f24af0e3da0d666b562",
+        "presence_digest_changed": true
+      },
+      "artifacts": [
+        {
+          "id": 14177532967,
+          "name": "compact evidence",
+          "sha256": "0c76683e46ad0d68f74d517810efd97964b702b600df77295ab0a2794f711eff",
+          "download_hash_verified": true
+        },
+        {
+          "id": 14176964658,
+          "name": "hamlets",
+          "sha256": "ff7ac7ed491cec3fdaae5c5ec60f58ad53e78571835fc7983bffac0479b79b31",
+          "download_hash_verified": true
+        },
+        {
+          "id": 14177818988,
+          "name": "surfaces, Void and occlusion",
+          "sha256": "064ee294ab8880217dfcab43e657d4307f7b449f28b2502489e81f5a6a2ce304",
+          "download_hash_verified": true
+        },
+        {
+          "id": 14178071926,
+          "name": "north towns",
+          "sha256": "f158ecaedc32d7fe97109bb32210e208adc7f9504d40bc1f611ae01ffb0ea03f",
+          "download_hash_verified": true
+        },
+        {
+          "id": 14177782588,
+          "name": "south towns",
+          "sha256": "e08732b728945257b15121b911ada876ad82dee52bae51087d15da58f8fec11d",
+          "download_hash_verified": true
+        },
+        {
+          "id": 14178013493,
+          "name": "full Living Atlas archive",
+          "bytes": 1050233083,
+          "download_hash_verified": false,
+          "limitation": "Connector rejects artifacts larger than536870912 bytes. Review uses the five hash-verified smaller bundles; full traces/ambient frame sequence not downloaded."
+        }
+      ]
+    },
+    "native_visual_review": {
+      "candidate": "367689eafd65802ee68394a7635ca8027ae01347",
+      "method": "Direct inspection of retained native screenshots and paired frames, plus independent read-only review.",
+      "reviewed": [
+        "All eight towns: desktop/mobile clear, storm and reduced-motion paired captures; advancing frame times and distinct paired hashes in receipts.",
+        "Desktop/mobile roof and tree before/after occlusion pairs: fox body/legs attached, clean sampled silhouette edges, changed pose/location, visible occlusion cue and player label.",
+        "Hamlet atlas49:19 gameplay-scale Dusk/rain: painted mountain strata, grounded bases and readable hamlet foreground; no old flat-polygon mismatch.",
+        "Snowy peaks and relief, organic lake depth, coast/ocean storm/reduced views, elemental valley normal/minimum, remote colosseum approach and shrine/globe samples."
+      ],
+      "finding": "No release-blocking visual defect observed in the sampled current-head screenshots.",
+      "limitations": [
+        "Town weather fixtures freeze local noon and exclude wildlife; they cannot establish cached animal gait.",
+        "Visible fox samples cover retained poses/edges. Extracts lack isolated deer/bird close-up sequences; continuous gait is not claimed.",
+        "No physical-handset or human signed-in playtest acceptance is claimed.",
+        "A passing native motion assertion and sampled screenshots do not prove universal FPS or exhaustive visual acceptance."
+      ]
+    },
+    "diagnostic_followup": {
+      "purpose": "Identify actual Item equipment preparation rejection; not release acceptance or proof of a cure.",
+      "branch": "agent/pr1040-smoke-repair-367689e",
+      "source": "38eb7c6a7f5b89821275c729178c04aaedb9b532",
+      "tree": "25ec7aae78699d070a581311b05f9d71264393db",
+      "parent": "d2abcb506176139deb485def8262dbb2db830dad",
+      "run_id": 43781111933,
+      "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43781111933",
+      "event": "workflow_dispatch",
+      "status": "completed",
+      "run_source_independently_verified": true,
+      "dispatched_once": true,
+      "failed_pr_artifact": {
+        "id": 14181608056,
+        "sha256": "ed2087d8b41a265df11c719975a292d935b0b864bbe27470311962a09615e623",
         "download_hash_verified": true
       },
-      "mutual_trace": {
-        "barrier": "Top-level poll expecting2 waiters completes without error after initial unsuccessful polls.",
-        "request_statuses": [
-          200,
-          409
-        ],
-        "stale_error_code": "STALE_VERSION",
-        "stale_message": "The world changed. Refresh your position and try again.",
-        "limitation": "No Item preparation rejection reproduced in this attempt. The collector throws before outer test assertions complete, so this is not a passing mutual-attack acceptance result or a cure for the historical failure."
+      "known_failures": {
+        "mail": "Six password-recovery cases used54324 after dynamic allocation; saved correction exports matchingINBUCKET_URL throughGITHUB_ENV.",
+        "attack": "First attack returned Item preparation409 after425ms; second returned503 after8505ms while gate awaitedtwo. Underlying original SQLSTATE/category and holder are not in old trace."
       },
-      "motion_trace": {
-        "environment": {
-          "frozen": false,
-          "weather": "fog",
-          "weatherSource": "live",
-          "minuteOfDay": 116.65333333333334,
-          "settingsVersion": 4
+      "changes": "Test-only equipment RPC handler for fixture characters logs SQLSTATE/allowlisted category and competing exclusive catalogue/account0/account1 holders as trusted public RPC identifiers; bare rethrow and original function restore retained. Compact responseJSON now uploaded. No production code, authority, migrations, gates, thresholds, retries or coverage changed.",
+      "validation": {
+        "helper_and_adjacent_item_tests": 332,
+        "files": 27,
+        "mail_tests": 5,
+        "verification_runner_tests": 56,
+        "types": true,
+        "scoped_lint_format": true,
+        "independent_review": "No important findings; privacy and restoration checked.",
+        "postgres": {
+          "version": "17.7",
+          "cold_paired_captures": 30,
+          "cold_pair_failures": 0,
+          "forced_failure_categories_preserved": [
+            "40001/ITEM_ADMISSION_RETRY",
+            "40001/ITEM_CATALOGUE_RETRY"
+          ],
+          "exclusive_lock_holder_retained": true,
+          "probe": ".github/scripts/probe-world-equipment-diagnostics.py",
+          "scope": "Dedicated disposable localhost database; extracts source lock/read/admission bodies, stubs unrelated definitions/capture. Not full Supabase acceptance."
+        }
+      },
+      "limits": [
+        "Holder sampling occurs after exception unwinding and may miss a released holder.",
+        "Public RPC name is inferred from quoted identifiers in outer query, with other fallback.",
+        "No claim that the original attack fault is fixed; even a passing diagnostic run does not resolve its prior unexplained failure.",
+        "Never merge/deploy WIP or evidence-only commits. Resolve actual cause, publish final combined PR correction with expected parent, then require all configured exact-head gates."
+      ],
+      "observed_live_failure": {
+        "job_id": 133018408202,
+        "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43781111933/job/133018408202",
+        "case": "simultaneous mutual attacks create one shared active encounter",
+        "error": "SyntaxError: Unexpected token '%', \"%', (\" is not valid JSON",
+        "location": "world-contention-gate.ts:91",
+        "cause": "Substring marker matching treated an echoed SQL raise-log template as emitted JSON; this new diagnostic defect can mask the original case outcome."
+      },
+      "parser_correction": {
+        "source": "bb3b55e8ff566e07fcbc341d66e1f635e0b6270c",
+        "tree": "ec398f8cbd008e37949a6a118a036cdae6dd1aa8",
+        "expected_parent": "38eb7c6a7f5b89821275c729178c04aaedb9b532",
+        "branch": "agent/pr1040-smoke-repair-367689e",
+        "change": "Require PostgreSQL LOG severity immediately before the marker; ignore echoed SQL but retain strict validation of actual records. Save original response/error JSON before holder decoding.",
+        "failing_before_regression_observed": true,
+        "parser_tests": 5,
+        "types": true,
+        "scoped_lint_format": true,
+        "dispatched_new_run": false,
+        "next": "Let43781111933 complete and inspect exact final logs/artifacts/request outcomes before deciding further diagnosis. Do not claim original attack fixed or release any WIP."
+      },
+      "conclusion": "failure",
+      "final_result": {
+        "chromium": {
+          "passed": 440,
+          "configured_skips": 341,
+          "failed": 2,
+          "final_edge_executed": false
         },
-        "samples_per_observer": [
-          14,
-          14
+        "failures": [
+          "Mutual-attack case is interrupted by diagnostic collector JSON parsing of echoed SQL; corrected on WIPbb3b55e, not on this run's source38eb7c6.",
+          "Known-neighbour peer-motion check: observer0 positive deltas9, observer1 positive deltas7, unchanged requirement>8 at deltaX>0.002."
         ],
-        "positive_deltas": [
-          9,
-          7
-        ],
-        "wildlifePartPixels": 0,
-        "wildlifePartBuilds": 0,
-        "selected_trace_dropped_events": 0,
-        "canvas_resource": {
-          "events": 89,
-          "summed_duration_ms": 3467.9,
-          "median_ms": 14.84,
-          "max_ms": 146.6,
-          "limitation": "Selected native duration records across both pages, not an individual-frame or controlled-hardware benchmark; nested event totals must not be summed."
+        "password_recovery": "All six desktop/laptop/mobile cases ran; none failed. No ECONNREFUSED in final failure list.",
+        "artifact": {
+          "id": 14194178987,
+          "name": "browser-world-failure-diagnostics",
+          "bytes": 125676091,
+          "sha256": "1d4fd4db40e83a6a60cddc0fa69b78d4063d64a92143829cdc8c1577253008f7",
+          "download_hash_verified": true
         },
-        "cpu_profiles": [
-          {
-            "trace_resource": "7400fcca0ce5bcb083e6044abecc52b891bc6478",
-            "samples": 602,
-            "program_hits": 461
+        "mutual_trace": {
+          "barrier": "Top-level poll expecting2 waiters completes without error after initial unsuccessful polls.",
+          "request_statuses": [
+            200,
+            409
+          ],
+          "stale_error_code": "STALE_VERSION",
+          "stale_message": "The world changed. Refresh your position and try again.",
+          "limitation": "No Item preparation rejection reproduced in this attempt. The collector throws before outer test assertions complete, so this is not a passing mutual-attack acceptance result or a cure for the historical failure."
+        },
+        "motion_trace": {
+          "environment": {
+            "frozen": false,
+            "weather": "fog",
+            "weatherSource": "live",
+            "minuteOfDay": 116.65333333333334,
+            "settingsVersion": 4
           },
-          {
-            "trace_resource": "9bd1d051de48b74adcb4fa13602204250ac15639",
-            "samples": 488,
-            "program_hits": 406
-          }
-        ],
-        "interpretation": "Native canvas-resource production dominates recorded work; wildlife is absent. Fog is the observed environment, not yet a proven causal paint operation. Do not reuse the old deer hotspot explanation or relax motion acceptance.",
-        "profile_retrieval": "Both cpuprofiles are retained as resources in the failed known-neighbour trace.zip even though compact artifact's direct pattern includes only JSON files."
-      },
-      "next": "Inspect exact render/raster work under Night/fog and retain a failing regression before changing source. Inspect completed attack trace/diagnostics before choosing a further diagnostic run. No blind rerun or release."
+          "samples_per_observer": [
+            14,
+            14
+          ],
+          "positive_deltas": [
+            9,
+            7
+          ],
+          "wildlifePartPixels": 0,
+          "wildlifePartBuilds": 0,
+          "selected_trace_dropped_events": 0,
+          "canvas_resource": {
+            "events": 89,
+            "summed_duration_ms": 3467.9,
+            "median_ms": 14.84,
+            "max_ms": 146.6,
+            "limitation": "Selected native duration records across both pages, not an individual-frame or controlled-hardware benchmark; nested event totals must not be summed."
+          },
+          "cpu_profiles": [
+            {
+              "trace_resource": "7400fcca0ce5bcb083e6044abecc52b891bc6478",
+              "samples": 602,
+              "program_hits": 461
+            },
+            {
+              "trace_resource": "9bd1d051de48b74adcb4fa13602204250ac15639",
+              "samples": 488,
+              "program_hits": 406
+            }
+          ],
+          "interpretation": "Native canvas-resource production dominates recorded work; wildlife is absent. Fog is the observed environment, not yet a proven causal paint operation. Do not reuse the old deer hotspot explanation or relax motion acceptance.",
+          "profile_retrieval": "Both cpuprofiles are retained as resources in the failed known-neighbour trace.zip even though compact artifact's direct pattern includes only JSON files."
+        },
+        "next": "Inspect exact render/raster work under Night/fog and retain a failing regression before changing source. Inspect completed attack trace/diagnostics before choosing a further diagnostic run. No blind rerun or release."
+      }
     }
   }
 }
