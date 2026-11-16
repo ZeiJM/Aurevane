@@ -1,120 +1,120 @@
 {
   "schema_version": 2,
   "evidence_only": "Never merge or deploy this receipt branch or its commits.",
-  "candidate": "fccac74bc6255619cac01a67ea1c4330782e2ab2",
-  "expected_tree": "301f94d0976b4cc1540bcc3de4fd54f85eecf2e4",
-  "expected_parent": "367689eafd65802ee68394a7635ca8027ae01347",
+  "candidate": "37ff53bffef0aac928258f6622eb875e659feac3",
+  "expected_tree": "9b2ead047a88dd5699562cf04882cd527215c3b3",
+  "expected_parent": "fccac74bc6255619cac01a67ea1c4330782e2ab2",
   "main_baseline": "d32cabd7f626b650df5c5eacf6a85a4457fc1f85",
   "release_status": "Awaiting all fresh exact-head configured checks and native acceptance; no production action",
-  "observed_after_pr_update_at_utc": "2026-11-16T04:19:09Z",
+  "observed_after_pr_update_at_utc": "2026-11-16T04:49:17Z",
   "checks_snapshot": {
-    "candidate": "fccac74bc6255619cac01a67ea1c4330782e2ab2",
+    "candidate": "37ff53bffef0aac928258f6622eb875e659feac3",
     "all_15_started_automatically": true,
     "workflows": [
       {
-        "id": 43803308603,
-        "name": "CI",
-        "status": "in_progress",
-        "conclusion": null,
-        "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43803308603"
-      },
-      {
-        "id": 43803308605,
-        "name": "Mobile audit",
-        "status": "in_progress",
-        "conclusion": null,
-        "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43803308605"
-      },
-      {
-        "id": 43803308589,
+        "id": 43806325182,
         "name": "Living Atlas browser",
-        "status": "in_progress",
+        "status": "pending",
         "conclusion": null,
-        "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43803308589"
+        "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43806325182"
       },
       {
-        "id": 43803308526,
-        "name": "Representative Buildcraft",
-        "status": "in_progress",
+        "id": 43806325246,
+        "name": "Browser smoke",
+        "status": "pending",
         "conclusion": null,
-        "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43803308526"
+        "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43806325246"
       },
       {
-        "id": 43803308524,
-        "name": "Attribute Allocation",
-        "status": "in_progress",
-        "conclusion": null,
-        "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43803308524"
-      },
-      {
-        "id": 43803308398,
-        "name": "Battle Session DB",
-        "status": "in_progress",
-        "conclusion": null,
-        "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43803308398"
-      },
-      {
-        "id": 43803308527,
-        "name": "Wayfarer's Practice DB",
-        "status": "in_progress",
-        "conclusion": null,
-        "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43803308527"
-      },
-      {
-        "id": 43803308271,
-        "name": "Desktop experience",
-        "status": "in_progress",
-        "conclusion": null,
-        "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43803308271"
-      },
-      {
-        "id": 43803308465,
-        "name": "Discipline Build DB",
-        "status": "in_progress",
-        "conclusion": null,
-        "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43803308465"
-      },
-      {
-        "id": 43803308511,
-        "name": "Foundation Security DB",
-        "status": "in_progress",
-        "conclusion": null,
-        "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43803308511"
-      },
-      {
-        "id": 43803308534,
-        "name": "Desktop page fit",
-        "status": "in_progress",
-        "conclusion": null,
-        "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43803308534"
-      },
-      {
-        "id": 43803308462,
-        "name": "Combat and mobile layout regressions",
-        "status": "in_progress",
-        "conclusion": null,
-        "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43803308462"
-      },
-      {
-        "id": 43803308440,
+        "id": 43806325202,
         "name": "World timing repeat validation",
         "status": "in_progress",
         "conclusion": null,
-        "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43803308440"
+        "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43806325202"
       },
       {
-        "id": 43803308554,
+        "id": 43806325317,
+        "name": "CI",
+        "status": "in_progress",
+        "conclusion": null,
+        "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43806325317"
+      },
+      {
+        "id": 43806325214,
+        "name": "Mobile audit",
+        "status": "in_progress",
+        "conclusion": null,
+        "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43806325214"
+      },
+      {
+        "id": 43806325336,
+        "name": "Representative Buildcraft",
+        "status": "in_progress",
+        "conclusion": null,
+        "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43806325336"
+      },
+      {
+        "id": 43806325200,
+        "name": "Desktop experience",
+        "status": "in_progress",
+        "conclusion": null,
+        "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43806325200"
+      },
+      {
+        "id": 43806325218,
+        "name": "Foundation Security DB",
+        "status": "in_progress",
+        "conclusion": null,
+        "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43806325218"
+      },
+      {
+        "id": 43806325221,
+        "name": "Attribute Allocation",
+        "status": "in_progress",
+        "conclusion": null,
+        "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43806325221"
+      },
+      {
+        "id": 43806325249,
+        "name": "Combat and mobile layout regressions",
+        "status": "in_progress",
+        "conclusion": null,
+        "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43806325249"
+      },
+      {
+        "id": 43806325197,
+        "name": "Battle Session DB",
+        "status": "in_progress",
+        "conclusion": null,
+        "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43806325197"
+      },
+      {
+        "id": 43806325264,
+        "name": "Wayfarer's Practice DB",
+        "status": "in_progress",
+        "conclusion": null,
+        "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43806325264"
+      },
+      {
+        "id": 43806325321,
+        "name": "Desktop page fit",
+        "status": "in_progress",
+        "conclusion": null,
+        "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43806325321"
+      },
+      {
+        "id": 43806325297,
         "name": "UI layout review",
         "status": "in_progress",
         "conclusion": null,
-        "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43803308554"
+        "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43806325297"
       },
       {
-        "id": 43803308459,
-        "name": "Browser smoke",
+        "id": 43806325204,
+        "name": "Discipline Build DB",
         "status": "in_progress",
         "conclusion": null,
-        "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43803308459"
+        "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43806325204"
       }
     ]
   },
@@ -139,13 +139,16 @@
       "other_packages": "6 pass, including7211 game-core and768 DB tests",
       "failures": "14 deadline expirations in4 unchanged combat test files, plus old loaded tiny-width cache implementation during source edits",
       "isolated_diagnosis": "87 cases in3 combat files plus final cache helper pass;9 selected admission cases pass under unchanged deadlines; no configured runner changes"
-    }
+    },
+    "layout_supabase_port_tests_passed": 6,
+    "layout_supabase_port_test_red_before_fix": true
   },
   "repair": {
     "mail": "Propagate selected INBUCKET_URL via GITHUB_ENV; all6 native password cases passed diagnostic source38",
     "parser": "Require actual PostgreSQL LOG prefix; retain responses before parsing; original Item preparation SQL rejection not claimed cured",
     "raster": "One4M-pixel-bounded native-density immutable composite with64CSSpx padded drift/window wraps; direct ambient-off/reduced path; original gameplay/authority/migrations and all thresholds/deadlines/zero retries/63 timing executions unchanged",
-    "native_probe": "Exact-source component report committed in candidate docs/verification/2026-11-16-pr1040-weather-raster-probe.json;60 comparisons max2 channel difference;78 images closed; noisy component tail does not establish hosted performance"
+    "native_probe": "Exact-source component report committed in candidate docs/verification/2026-11-16-pr1040-weather-raster-probe.json;60 comparisons max2 channel difference;78 images closed; noisy component tail does not establish hosted performance",
+    "ui_layout_ports": "Run43803308554/job133088284367 failed before Playwright because host54322 was occupied. Candidate37ff53b selects distinct disposable API/database/shadow ports only for UI layout, exports the API endpoint to existing authenticated build, and preserves all cases/deadlines/coverage."
   },
   "acceptance_limits": [
     "Fresh complete Chromium and final Edge remain required.",
@@ -595,5 +598,36 @@
         "next": "Inspect exact render/raster work under Night/fog and retain a failing regression before changing source. Inspect completed attack trace/diagnostics before choosing a further diagnostic run. No blind rerun or release."
       }
     }
+  },
+  "previous_candidate_snapshot": {
+    "candidate": "fccac74bc6255619cac01a67ea1c4330782e2ab2",
+    "tree": "301f94d0976b4cc1540bcc3de4fd54f85eecf2e4",
+    "main_baseline": "d32cabd7f626b650df5c5eacf6a85a4457fc1f85",
+    "world_timing": {
+      "run_id": 43803308440,
+      "conclusion": "success",
+      "executions": 63,
+      "retries": 0
+    },
+    "ui_layout": {
+      "run_id": 43803308554,
+      "job_id": 133088284367,
+      "conclusion": "failure",
+      "stage": "disposable database startup",
+      "error": "host port54322 already in use; no Playwright cases or layout evidence artifacts ran"
+    },
+    "superseded_pending": [
+      {
+        "run_id": 43803308589,
+        "name": "Living Atlas browser",
+        "status": "in_progress"
+      },
+      {
+        "run_id": 43803308459,
+        "name": "Browser smoke",
+        "status": "in_progress"
+      }
+    ],
+    "production": "No merge/migration/deployment/promotion/cron action"
   }
 }
