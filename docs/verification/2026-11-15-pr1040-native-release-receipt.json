@@ -5,83 +5,37 @@
   "expected_tree": "6f65664a208a57e927a0531fb0b731729c7c0867",
   "expected_parent": "994b2ef0fa156c18ef33b59b8a4c503f5654f3ed",
   "main_baseline": "d32cabd7f626b650df5c5eacf6a85a4457fc1f85",
-  "release_status": "All15 exact-head workflows started automatically; native acceptance pending; no production action",
-  "observed_after_pr_update_at_utc": "2026-11-16T10:44:43.456Z",
+  "release_status": "13/15 exact-head workflows successful; Living Atlas and full Browser Smoke still running; no production action",
+  "observed_after_pr_update_at_utc": "2026-11-16T11:16:39.218Z",
   "checks_snapshot": {
     "candidate": "76673cb3213baa52b0779bb8fbd6f4523cd70484",
     "all_15_started_automatically": true,
+    "successful_count": 13,
+    "running_count": 2,
     "workflows": [
       {
-        "run_id": 43851280098,
-        "name": "CI",
-        "status": "in_progress",
-        "conclusion": null
-      },
-      {
-        "run_id": 43851280181,
-        "name": "Desktop page fit",
-        "status": "in_progress",
-        "conclusion": null
-      },
-      {
-        "run_id": 43851280154,
-        "name": "Representative Buildcraft",
-        "status": "in_progress",
-        "conclusion": null
+        "run_id": 43851279914,
+        "name": "Discipline Build DB",
+        "status": "completed",
+        "conclusion": "success"
       },
       {
         "run_id": 43851280062,
         "name": "Attribute Allocation",
-        "status": "in_progress",
-        "conclusion": null
-      },
-      {
-        "run_id": 43851280072,
-        "name": "UI layout review",
-        "status": "in_progress",
-        "conclusion": null
-      },
-      {
-        "run_id": 43851280143,
-        "name": "Mobile audit",
-        "status": "in_progress",
-        "conclusion": null
-      },
-      {
-        "run_id": 43851279914,
-        "name": "Discipline Build DB",
-        "status": "in_progress",
-        "conclusion": null
-      },
-      {
-        "run_id": 43851280045,
-        "name": "World timing repeat validation",
-        "status": "in_progress",
-        "conclusion": null
-      },
-      {
-        "run_id": 43851279938,
-        "name": "Browser smoke",
-        "status": "pending",
-        "conclusion": null
+        "status": "completed",
+        "conclusion": "success"
       },
       {
         "run_id": 43851280220,
         "name": "Wayfarer's Practice DB",
-        "status": "in_progress",
-        "conclusion": null
+        "status": "completed",
+        "conclusion": "success"
       },
       {
-        "run_id": 43851279947,
-        "name": "Battle Session DB",
-        "status": "in_progress",
-        "conclusion": null
-      },
-      {
-        "run_id": 43851279979,
-        "name": "Combat and mobile layout regressions",
-        "status": "in_progress",
-        "conclusion": null
+        "run_id": 43851280143,
+        "name": "Mobile audit",
+        "status": "completed",
+        "conclusion": "success"
       },
       {
         "run_id": 43851279828,
@@ -90,16 +44,64 @@
         "conclusion": null
       },
       {
+        "run_id": 43851279979,
+        "name": "Combat and mobile layout regressions",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
         "run_id": 43851280138,
         "name": "Foundation Security DB",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 43851279947,
+        "name": "Battle Session DB",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 43851279938,
+        "name": "Browser smoke",
         "status": "in_progress",
         "conclusion": null
       },
       {
+        "run_id": 43851280181,
+        "name": "Desktop page fit",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
         "run_id": 43851279960,
         "name": "Desktop experience",
-        "status": "in_progress",
-        "conclusion": null
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 43851280154,
+        "name": "Representative Buildcraft",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 43851280098,
+        "name": "CI",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 43851280045,
+        "name": "World timing repeat validation",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 43851280072,
+        "name": "UI layout review",
+        "status": "completed",
+        "conclusion": "success"
       }
     ]
   },
@@ -754,5 +756,52 @@
       "full_archive_reviewed": false,
       "review_limit_bytes": 536870912
     }
+  },
+  "current_candidate_timing": {
+    "candidate": "76673cb3213baa52b0779bb8fbd6f4523cd70484",
+    "run_id": 43851280045,
+    "job_id": 133244169605,
+    "conclusion": "success",
+    "mobile_cases": {
+      "passed": 3,
+      "repeat_each": 3,
+      "retries": 0,
+      "workers": 1
+    },
+    "desktop_cases": {
+      "passed": 60,
+      "repeat_each": 20,
+      "retries": 0,
+      "workers": 1
+    },
+    "total_cases_passed": 63,
+    "artifact": {
+      "id": 14220586833,
+      "name": "world-timing-repeat-evidence",
+      "size_bytes": 3963009,
+      "sha256": "1ac7a64c70abbb51be6a762949a1e8b8864a83cdbcd35ca1b554c147990f69a4",
+      "downloaded_and_hash_verified": true
+    },
+    "mobile_crowd_render_frames": {
+      "repeat0": {
+        "baseline": 135,
+        "final": 269,
+        "delta": 134,
+        "frame_p95_ms": 11
+      },
+      "repeat1": {
+        "baseline": 70,
+        "final": 217,
+        "delta": 147,
+        "frame_p95_ms": 10
+      },
+      "repeat2": {
+        "baseline": 78,
+        "final": 227,
+        "delta": 149,
+        "frame_p95_ms": 9
+      }
+    },
+    "qualification": "One hosted exact-head run passed all 63 original zero-retry cases; this is required acceptance evidence, not a universal stability or physical-handset claim."
   }
 }
