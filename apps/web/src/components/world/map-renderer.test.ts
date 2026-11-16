@@ -12,12 +12,14 @@ import legacyTownTopology from '@/world/town-topology.legacy.json'
 import townGrandManifest from '../../../public/media/art/world/runtime/town-grand-architecture-v01.manifest.json'
 import { newWorldState, revealNearby } from '@/world/travel'
 import { localRoute, mapPoint, WorldMotion } from './world-motion'
+import * as navigation from './world-motion'
 import { createMapRenderer } from './map-renderer'
 import { MAP_X, MAP_Y, projectMapPoint, unprojectMapPoint } from './map-projection'
 import type { WorldView } from '@/world/types'
 import * as biomes from './map-biome-transitions'
 import * as waterPainting from './map-water'
 import { worldWindTarget } from './map-weather'
+import * as weatherPainting from './map-weather'
 import { worldRenderTerrain } from './map-render-terrain'
 import { grandDiscoveryPlacements } from './map-grand-discoveries'
 import { valleyDetailArt } from './map-grand-detail-art'
@@ -94,6 +96,8 @@ function scene(reduced = false, initial?: WorldView) {
   let drawOrder = 0
   let createdLayers = 0
   const composites = new Map<object, object[]>()
+  const layerDraws = new Map<object, typeof draws>()
+  const offscreenDraws = new WeakSet<object>()
   let resizeCallback!: () => void
   let matrix = [1, 0, 0, 1, 0, 0]
   const matrices: number[][] = []
@@ -118,6 +122,7 @@ function scene(reduced = false, initial?: WorldView) {
       putImageData() {},
       measureText: (text: string) => ({ width: text.length * 7 }),
       globalAlpha: 1,
+      globalCompositeOperation: 'source-over',
       filter: 'none',
       fillStyle: '',
       fill() {
@@ -277,6 +282,7 @@ function scene(reduced = false, initial?: WorldView) {
       createdLayers++
       const layer = { width: 0, height: 0, getContext: () => layerContext }
       composites.set(layer, [])
+      layerDraws.set(layer, [])
       const layerContext = new Proxy(context, {
         get(target, key) {
           if (key === 'bezierCurveTo') return (...args: number[]) => groundCurves.push(args)
@@ -284,6 +290,9 @@ function scene(reduced = false, initial?: WorldView) {
             return (image: HTMLImageElement, ...args: number[]) => {
               composites.get(layer)!.push(image)
               target.drawImage(image, ...args)
+              const recorded = draws.at(-1)!
+              layerDraws.get(layer)!.push(recorded)
+              offscreenDraws.add(recorded)
             }
           return Reflect.get(target, key)
         },
@@ -348,6 +357,32 @@ function scene(reduced = false, initial?: WorldView) {
     rectangles,
     ellipses,
     draws,
+    // Follow a single pre-scaled atlas crop through its final canvas draw.
+    // Anchor, silhouette and growth checks concern the painted CSS geometry,
+    // while raw draws remain available for resampling/work-count assertions.
+    get spriteDraws() {
+      return draws
+        .filter((draw) => !offscreenDraws.has(draw))
+        .map((draw) => {
+          const contents = layerDraws.get(draw.image)
+          const source = contents?.length === 1 ? contents[0] : undefined
+          if (
+            source?.args.length !== 8 ||
+            draw.args.length !== 4 ||
+            source.args[4] !== 0 ||
+            source.args[5] !== 0 ||
+            source.args[6] !== draw.image.width ||
+            source.args[7] !== draw.image.height
+          )
+            return draw
+          return {
+            ...draw,
+            src: source.src,
+            image: source.image,
+            args: [...source.args.slice(0, 4), ...draw.args],
+          }
+        })
+    },
     texts,
     transforms,
     groundCurves,
@@ -372,8 +407,13 @@ function scene(reduced = false, initial?: WorldView) {
     frames,
     layerCount: () => createdLayers,
     listeners,
-    event(name: string, x: number, y: number) {
-      listeners.get(name)!({ clientX: x, clientY: y, pointerId: 1 } as unknown as Event)
+    event(name: string, x: number, y: number, timeStamp?: number) {
+      listeners.get(name)!({
+        clientX: x,
+        clientY: y,
+        pointerId: 1,
+        ...(timeStamp === undefined ? {} : { timeStamp }),
+      } as unknown as Event)
     },
     visibility(value: string) {
       visibility = value
@@ -394,6 +434,31 @@ describe('native map input and bounded lifecycle', () => {
   })
   afterEach(() => {
     vi.restoreAllMocks()
+  })
+
+  it('reuses remote navigation for an equivalent serialized scene receipt', () => {
+    const prepare = vi.spyOn(navigation, 'prepareLocalRoute')
+    const s = scene()
+    const prepared = prepare.mock.calls.length
+    try {
+      s.renderer.update(JSON.parse(JSON.stringify(s.view)) as WorldView)
+      expect(prepare).toHaveBeenCalledTimes(prepared)
+      const changed = JSON.parse(JSON.stringify(s.view)) as WorldView
+      changed.sectors[0]!.exits = [
+        ...changed.sectors[0]!.exits,
+        {
+          from: { sectorId: changed.sectors[0]!.id, x: 0, y: 0 },
+          to: { sectorId: changed.sectors[0]!.id, x: 1, y: 0 },
+          durationMs: 200,
+          name: 'Changed route',
+        },
+      ]
+      s.renderer.update(changed)
+      expect(prepare).toHaveBeenCalledTimes(prepared + 1)
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
   })
 
   it('submits clicks on visible public ground beyond the peer scene without inventing a preview route', () => {
@@ -440,6 +505,49 @@ describe('native map input and bounded lifecycle', () => {
     expect(s.select).toHaveBeenCalledTimes(1)
     s.renderer.dispose()
     vi.unstubAllGlobals()
+  })
+  it('publishes each completed frame only when precise frame counting is requested', () => {
+    const s = scene()
+    try {
+      s.frame(40)
+      expect(s.canvas.dataset.renderFrames).toBeUndefined()
+      s.canvas.dataset.renderDiagnostics = 'frames'
+      s.frame(80)
+      expect(s.canvas.dataset.renderFrames).toBe('2')
+      expect(s.canvas.dataset.renderTiming).toBeUndefined()
+      expect(s.canvas.dataset.paintedGroundIds).toBeUndefined()
+      s.frame(120)
+      expect(s.canvas.dataset.renderFrames).toBe('3')
+      delete s.canvas.dataset.renderDiagnostics
+      s.frame(160)
+      expect(s.canvas.dataset.renderFrames).toBe('3')
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  })
+  it('reuses supplied terrain for a liquid field without authored bridge decks', () => {
+    const base = projectWorld(newWorldState(), [], 1000)
+    const root = base.sectors.find((sector) => sector.id === base.position.sectorId)!
+    const supplied = {
+      ...root,
+      buildings: [],
+      landmarks: [],
+      cells: root.cells.map((cell) => ({ ...cell, terrain: '.', walkable: true })),
+    }
+    const build = vi.spyOn(waterPainting, 'buildWaterField')
+    const s = scene(true, { ...base, sectors: [supplied], scenery: undefined })
+    try {
+      expect(build).toHaveBeenCalled()
+      for (const [sectors] of build.mock.calls) {
+        expect(sectors).toHaveLength(1)
+        expect(sectors[0]).toBe(supplied)
+      }
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+      build.mockRestore()
+    }
   })
   it('does not collect timing records or query stage clocks without diagnostic opt-in', () => {
     const clock = vi.spyOn(performance, 'now').mockReturnValue(0)
@@ -540,11 +648,12 @@ describe('native map input and bounded lifecycle', () => {
         groundResamples: 0,
         groundResampleMs: 0,
         prepareMs: 0,
-        terrainMs: 7,
+        // Cold ground plus its once-only projected raster each allocate a layer.
+        terrainMs: 14,
         sceneryMs: 0,
         atmosphereMs: 0,
         identityMs: 11,
-        completedAt: 118,
+        completedAt: 125,
         updates: 0,
         updateMs: 0,
         terrainIndexes: 0,
@@ -726,7 +835,7 @@ describe('native map input and bounded lifecycle', () => {
           Object.assign(image, { complete: false, naturalWidth: 0 })
       }
       s.frame(40)
-      const tree = s.draws.find(
+      const tree = s.spriteDraws.find(
           (draw) =>
             draw.src.includes(`${family}-v`) && (family !== 'nature' || draw.args[1]! < 300),
         )!,
@@ -787,7 +896,7 @@ describe('native map input and bounded lifecycle', () => {
       for (const now of [40, 440, 840]) {
         s.renderer.settings({ animate: mode !== 'effects off', zoom: 1 })
         s.frame(now)
-        const tree = s.draws
+        const tree = s.spriteDraws
             .filter((draw) => draw.src.endsWith('living-trees-v01.webp') && draw.args[1]! < 300)
             .at(-1)!,
           a = tree.args,
@@ -838,7 +947,7 @@ describe('native map input and bounded lifecycle', () => {
       )!
       Object.assign(sheet, { width: 1774, height: 887, naturalWidth: 1774 })
       s.frame(40)
-      const rock = s.draws.find((draw) => draw.src.endsWith('biomes-v02.webp'))!,
+      const rock = s.spriteDraws.find((draw) => draw.src.endsWith('biomes-v02.webp'))!,
         a = rock.args,
         m = rock.matrix,
         x = a[4]! + ((contactX - a[0]!) / a[2]!) * a[6]!,
@@ -947,11 +1056,48 @@ describe('native map input and bounded lifecycle', () => {
       ),
     })
     expect(build).toHaveBeenCalledTimes(initialCalls + 1)
-    s.renderer.update({ ...s.view, sectors: [...s.view.sectors], atlas: [...(s.view.atlas ?? [])] })
+    s.renderer.update({
+      ...s.view,
+      sectors: [...s.view.sectors],
+      atlas: (s.view.atlas ?? []).map((sector, index) =>
+        index ? sector : { ...sector, charted: !sector.charted },
+      ),
+    })
     expect(build).toHaveBeenCalledTimes(initialCalls + 2)
     s.renderer.dispose()
     build.mockRestore()
     vi.unstubAllGlobals()
+  })
+  it('retains visible ground rasters when movement only changes distant supplied neighbours', () => {
+    const build = vi.spyOn(biomes, 'buildBiomeTransitions')
+    const state = { ...newWorldState(), position: { sectorId: 'atlas:58:28', x: 12, y: 4 } }
+    const initial = projectWorld(state, [], 1000)
+    const next = projectWorld(
+      { ...state, position: { sectorId: 'atlas:59:28', x: 3, y: 4 } },
+      [],
+      1200,
+    )
+    const s = scene(true, initial)
+    try {
+      Object.assign(s.canvas, { clientWidth: 1296, clientHeight: 944 })
+      s.resize()
+      s.canvas.dataset.renderDiagnostics = 'timing'
+      s.frame(40)
+      expect(JSON.parse(s.canvas.dataset.renderTiming!).groundBuilds).toBeGreaterThan(0)
+      const indexed = build.mock.calls.length
+      // Hold the camera still to isolate receipt invalidation from newly visible ground.
+      s.renderer.update(next)
+      expect(build).toHaveBeenCalledTimes(indexed)
+      s.frame(80)
+      expect(JSON.parse(s.canvas.dataset.renderTiming!)).toMatchObject({
+        groundBuilds: 0,
+        groundResamples: 0,
+      })
+    } finally {
+      s.renderer.dispose()
+      build.mockRestore()
+      vi.unstubAllGlobals()
+    }
   })
   it.each(['effects off', 'reduced motion'])(
     'interpolates a confirmed remote traveller at 60fps with %s and paints the terminal frame',
@@ -1403,17 +1549,23 @@ describe('native map input and bounded lifecycle', () => {
     const s = scene()
     const settings = { ...DEFAULT_WORLD_ENVIRONMENT_SETTINGS, dayLengthMinutes: 120 }
     const time = Date.UTC(2026, 9, 10)
-    const tint = (now: number) => {
+    const nightOpacity = (now: number) => {
       s.rectangles.length = 0
       s.renderer.update({ ...s.view, environment: resolveWorldEnvironment(now, settings) })
       s.frame(40)
-      return s.rectangles.find(
-        (fill) => typeof fill.colour === 'string' && fill.colour.startsWith('rgba(16,28,50,'),
+      const colour = s.rectangles.find(
+        (fill) => typeof fill.colour === 'string' && fill.colour.startsWith('rgba(12,27,65,'),
       )?.colour
+      return colour ? Number(colour.slice('rgba(12,27,65,'.length, -1)) : null
     }
-    expect(tint(time)).toMatch(/^rgba\(16,28,50,0\.[1-9]/)
-    expect(tint(time + 60 * 60_000)).toBe('rgba(16,28,50,0)')
-    expect(tint(time + 120 * 60_000)).toMatch(/^rgba\(16,28,50,0\.[1-9]/)
+    const firstNight = nightOpacity(time)
+    const noon = nightOpacity(time + 60 * 60_000)
+    const nextNight = nightOpacity(time + 120 * 60_000)
+    expect(firstNight).not.toBeNull()
+    expect(noon).not.toBeNull()
+    expect(nextNight).not.toBeNull()
+    expect(firstNight!).toBeGreaterThan(noon!)
+    expect(nextNight).toBeCloseTo(firstNight!, 3)
     s.renderer.dispose()
     vi.unstubAllGlobals()
   })
@@ -1463,6 +1615,35 @@ describe('native map input and bounded lifecycle', () => {
     for (let now = 56; now <= 200; now += 16) s.frame(now)
     s.event('pointerup', 563.2, 384.48)
     expect(s.select).toHaveBeenCalledExactlyOnceWith(destination)
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  })
+  it('uses the painted projection when native click delivery follows a newer frame', () => {
+    const s = scene()
+    s.renderer.settings({ animate: false, zoom: 1 })
+    s.frame(40)
+    s.renderer.settings({ animate: false, zoom: 0.5 })
+    s.frame(80)
+    expect(Number(s.canvas.dataset.tileSize)).toBe(32)
+    s.event('pointerdown', 563.2, 384.48, 40)
+    s.event('pointerup', 563.2, 384.48, 40)
+    expect(s.select).toHaveBeenCalledExactlyOnceWith({ sectorId: 'verdant-expanse', x: 8, y: 4 })
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  })
+  it('does not pick a frame that was still painting when the native click was issued', () => {
+    const s = scene()
+    s.renderer.settings({ animate: false, zoom: 1 })
+    vi.mocked(performance.now).mockReturnValue(40)
+    s.frame(40)
+    s.renderer.settings({ animate: false, zoom: 0.5 })
+    // The second frame starts at 80 but cannot be seen until 160. Input
+    // issued at 100 still refers to the completed full-scale frame at 40.
+    vi.mocked(performance.now).mockReturnValue(160).mockReturnValueOnce(80)
+    s.frame(80)
+    s.event('pointerdown', 563.2, 384.48, 100)
+    s.event('pointerup', 563.2, 384.48, 100)
+    expect(s.select).toHaveBeenCalledExactlyOnceWith({ sectorId: 'verdant-expanse', x: 8, y: 4 })
     s.renderer.dispose()
     vi.unstubAllGlobals()
   })
@@ -1939,8 +2120,8 @@ describe('native map input and bounded lifecycle', () => {
       sectors: [sectors[0]!, { ...sectors[1]!, cells: [cell(10, 0, '.')] }],
     })
     s.frame(80)
-    // Two rebuilt ground layers plus one reusable 2x2 depth scratch raster.
-    expect(s.layerCount() - layers).toBe(3)
+    // Two rebuilt grounds and their projections, plus one 2x2 depth scratch raster.
+    expect(s.layerCount() - layers).toBe(5)
     const warmed = s.layerCount()
     s.frame(120)
     expect(s.layerCount()).toBe(warmed)
@@ -2013,7 +2194,7 @@ describe('native map input and bounded lifecycle', () => {
           600,
         )
         expect(
-          s.draws.some(({ src, args, matrix: m }) => {
+          s.spriteDraws.some(({ src, args, matrix: m }) => {
             if (
               !src.endsWith(`${sheet}-v01.webp`) ||
               args.length !== 8 ||
@@ -2128,6 +2309,7 @@ describe('native map input and bounded lifecycle', () => {
         s.frame(now)
         if (s.canvas.dataset.cachedPixels)
           expect(Number(s.canvas.dataset.cachedPixels)).toBeLessThanOrEqual(8_000_000)
+        expect(Number(s.canvas.dataset.cachedGroundProjectionPixels)).toBeLessThanOrEqual(8_000_000)
       }
     } finally {
       s.renderer.dispose()
@@ -2213,6 +2395,75 @@ describe('native map input and bounded lifecycle', () => {
         clock.mockRestore()
         vi.unstubAllGlobals()
       }
+    }
+  })
+  it('finishes the first legal held-key step when keyup beats the movement receipt', () => {
+    const s = scene()
+    const view = {
+      ...s.view,
+      sectors: s.view.sectors.map((sector) => ({
+        ...sector,
+        cells: sector.cells.map((cell) => ({ ...cell, terrain: '.', walkable: true })),
+      })),
+    }
+    s.renderer.update(view)
+    try {
+      const origin = view.position
+      s.listeners.get('keydown')!({ key: 'ArrowRight', preventDefault() {} } as unknown as Event)
+      expect(s.select).toHaveBeenCalledWith({ ...origin, x: origin.x + 3 })
+
+      // The controller applies the server receipt asynchronously. Keyup must not
+      // overwrite the approved route with the still-current origin meanwhile.
+      s.listeners.get('keyup')!({ key: 'ArrowRight' } as unknown as Event)
+      expect(s.select).toHaveBeenLastCalledWith({ ...origin, x: origin.x + 1 })
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  })
+  it('does not cancel a held-key route when the approved tile leads its visual landing', () => {
+    const clock = vi.spyOn(performance, 'now').mockReturnValue(0)
+    const s = scene()
+    const view = {
+      ...s.view,
+      sectors: s.view.sectors.map((sector) => ({
+        ...sector,
+        cells: sector.cells.map((cell) => ({ ...cell, terrain: '.', walkable: true })),
+      })),
+    }
+    const origin = view.position
+    const approved = { ...origin, x: origin.x + 3 }
+    const route = localRoute(view, origin, approved)!
+    s.renderer.update(view)
+    s.motion.plan(route, view.sectors, 0)
+    try {
+      // A rapid click route is already approved at x+3 while its canvas is
+      // still crossing from x+2. The held key must extend from the approved
+      // tile instead of submitting that tile again and cancelling the route.
+      clock.mockReturnValue(550)
+      expect(s.motion.sample(550).position).toEqual({ ...origin, x: origin.x + 2 })
+      expect(s.motion.nextLanding(550)).toEqual(approved)
+      const authoritative = {
+        ...view,
+        position: approved,
+        route: [],
+        version: view.version + 1,
+      }
+      s.motion.approveReceipt(authoritative, 550)
+      s.renderer.update(authoritative)
+
+      s.listeners.get('keydown')!({
+        key: 'ArrowRight',
+        preventDefault() {},
+      } as unknown as Event)
+      expect(s.select).toHaveBeenCalledWith({ ...approved, x: approved.x + 3 })
+      s.listeners.get('keyup')!({ key: 'ArrowRight' } as unknown as Event)
+      expect(s.select).toHaveBeenLastCalledWith({ ...approved, x: approved.x + 1 })
+      expect(s.select).not.toHaveBeenCalledWith(approved)
+    } finally {
+      s.renderer.dispose()
+      clock.mockRestore()
+      vi.unstubAllGlobals()
     }
   })
   it('starts smoothly after a long idle and a small pointer slip without shifting the camera', () => {
@@ -2836,6 +3087,52 @@ describe('native map input and bounded lifecycle', () => {
       }
     },
   )
+  it('reuses projected ground during movement with native-density translations instead of repeated affine draws', () => {
+    const base = projectWorld(newWorldState(), [], 1000)
+    const view = {
+      ...base,
+      scenery: [],
+      sectors: [
+        {
+          ...base.sectors.find((sector) => sector.id === base.position.sectorId)!,
+          buildings: [],
+          landmarks: [],
+          cells: base.sectors
+            .find((sector) => sector.id === base.position.sectorId)!
+            .cells.map((cell) => ({ ...cell, terrain: '.', walkable: true })),
+        },
+      ],
+    }
+    const s = scene(true, view)
+    try {
+      s.renderer.settings({ animate: false, zoom: 1 })
+      s.frame(40)
+      const projection = s.draws.find(
+        ({ src, args, matrix }) => !src && args.length === 2 && matrix.join(',') === '1,0,0,1,0,0',
+      )!
+      expect(projection).toBeDefined()
+      const layers = s.layerCount()
+      s.motion.plan(
+        [{ position: { ...view.position, x: view.position.x + 1 }, durationMs: 200 }],
+        view.sectors,
+        40,
+      )
+      s.renderer.update(view)
+      s.draws.length = 0
+      s.frame(80)
+      s.frame(120)
+      const blits = s.draws.filter(({ image }) => image === projection.image)
+      expect(blits.length).toBeGreaterThan(0)
+      expect(
+        blits.every(({ matrix, args }) => matrix.join(',') === '1,0,0,1,0,0' && args.length === 2),
+      ).toBe(true)
+      expect(blits.at(-1)!.args).not.toEqual(projection.args)
+      expect(s.layerCount()).toBe(layers)
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  })
   it('caps high-DPI resolution and reports bounded terrain memory', () => {
     const s = scene()
     expect(s.canvas.width).toBe(1200)
@@ -2898,6 +3195,33 @@ describe('native map input and bounded lifecycle', () => {
       expect(s.images.length).toBe(requests)
       expect(s.identityDraws.filter(({ src }) => src.startsWith('/crowd-')).length).toBeGreaterThan(
         100,
+      )
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  })
+  it('indexes scenery occlusion instead of comparing every traveller with every body', () => {
+    const s = scene()
+    try {
+      const sector = s.view.sectors.find(({ id }) => id === s.view.position.sectorId)!
+      const players = sector.cells.slice(0, 80).map(({ x, y }, index) => ({
+        characterId: `indexed-${index}`,
+        name: `Indexed ${index}`,
+        level: 1,
+        portraitRef: '',
+        imageUrl: '/indexed.webp',
+        online: true,
+        attackable: false,
+        position: { sectorId: sector.id, x, y },
+      }))
+      s.renderer.update({ ...s.view, players })
+      s.renderer.settings({ animate: true, zoom: 0.35 })
+      s.canvas.dataset.renderDiagnostics = 'timing'
+      s.frame(40)
+      const timing = JSON.parse(s.canvas.dataset.renderTiming!)
+      expect(timing.identityOccluderChecks).toBeLessThan(
+        timing.identityOccluders * (players.length + 1),
       )
     } finally {
       s.renderer.dispose()
@@ -3044,6 +3368,34 @@ describe('native map input and bounded lifecycle', () => {
     expect(s.select).not.toHaveBeenCalled()
     s.renderer.dispose()
     vi.unstubAllGlobals()
+  })
+  it('clears only the prior native identity footprint while travellers move', () => {
+    const s = scene()
+    try {
+      s.canvas.dataset.portrait = '/moving-native.webp'
+      s.frame(40)
+      const portrait = s.identityDraws.find((entry) => entry.src === '/moving-native.webp')!
+      const [portraitX, portraitY, portraitWidth, portraitHeight] = portrait.args.slice(-4)
+      const priorLabel = s.texts.findLast(({ text }) => text === 'You')!
+      const destination = { ...s.view.position, x: s.view.position.x + 1 }
+      s.identityClear.mockClear()
+      s.motion.plan([{ position: destination, durationMs: 200 }], s.view.sectors, 40)
+      s.frame(80)
+
+      expect(s.identityClear).toHaveBeenCalledTimes(1)
+      const [left, top, clearWidth, clearHeight] = s.identityClear.mock.calls[0]!
+      expect(clearWidth).toBeLessThan(800)
+      expect(clearHeight).toBeLessThan(600)
+      expect(left).toBeLessThanOrEqual(portraitX)
+      expect(top).toBeLessThanOrEqual(portraitY)
+      expect(left + clearWidth).toBeGreaterThanOrEqual(portraitX + portraitWidth)
+      expect(top + clearHeight).toBeGreaterThanOrEqual(portraitY + portraitHeight)
+      expect(left).toBeLessThanOrEqual(priorLabel.x - 6)
+      expect(top + clearHeight).toBeGreaterThan(priorLabel.y)
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
   })
   it.each([0.35, 1, 1.4])(
     'sizes identities in proportion to terrain and matches their picking area at %s zoom',
@@ -3201,6 +3553,78 @@ describe('native map input and bounded lifecycle', () => {
       vi.unstubAllGlobals()
     }
   })
+  it('reuses finished native terrain snapshots and closes every owned image on disposal', () => {
+    const position = { sectorId: 'verdant-expanse', x: 5, y: 4 }
+    const s = scene(false, projectWorld({ ...newWorldState(), position }, [], 1000))
+    const snapshots: {
+      src: string
+      width: number
+      height: number
+      close: ReturnType<typeof vi.fn>
+    }[] = []
+    vi.stubGlobal(
+      'OffscreenCanvas',
+      class {
+        constructor(
+          public width: number,
+          public height: number,
+        ) {}
+        getContext() {
+          return { drawImage() {} }
+        }
+        transferToImageBitmap() {
+          const image = {
+            src: 'immutable-static-terrain',
+            width: this.width,
+            height: this.height,
+            close: vi.fn(),
+          }
+          snapshots.push(image)
+          return image
+        }
+      },
+    )
+    try {
+      Object.assign(s.canvas, { clientWidth: 389, clientHeight: 669 })
+      window.devicePixelRatio = 2.625
+      s.resize()
+      s.renderer.settings({ animate: true, zoom: 0.35 })
+      s.canvas.dataset.renderDiagnostics = 'timing'
+      s.frame(40)
+      const painted = () => s.draws.filter(({ src }) => src === 'immutable-static-terrain')
+      const initial = painted().map(({ image }) => image)
+      expect(initial.length).toBeGreaterThan(0)
+      const water = s.strokes.filter(({ colour }) => colour === '#bbded0' || colour === '#82c6c7')
+      expect(water.length).toBeGreaterThan(0)
+      const layers = s.layerCount()
+      s.draws.length = 0
+      s.strokes.length = 0
+      s.frame(100)
+      expect(painted().every(({ image }) => initial.includes(image))).toBe(true)
+      expect(s.layerCount()).toBe(layers)
+      const movingWater = s.strokes.filter(
+        ({ colour }) => colour === '#bbded0' || colour === '#82c6c7',
+      )
+      expect(movingWater).toHaveLength(water.length)
+      expect(movingWater).not.toEqual(water)
+      expect(JSON.parse(s.canvas.dataset.renderTiming!).groundBuilds).toBe(0)
+      expect(JSON.parse(s.canvas.dataset.renderTiming!)).toMatchObject({
+        staticRasterBuilds: 0,
+        staticRasterTransfers: 0,
+        immutableStaticImages: expect.any(Number),
+      })
+      const resized = [...snapshots]
+      s.resize()
+      expect(resized.every(({ close }) => close.mock.calls.length === 1)).toBe(true)
+      s.frame(160)
+      expect(snapshots.length).toBeGreaterThan(resized.length)
+    } finally {
+      s.renderer.dispose()
+      expect(snapshots.length).toBeGreaterThan(0)
+      expect(snapshots.every(({ close }) => close.mock.calls.length === 1)).toBe(true)
+      vi.unstubAllGlobals()
+    }
+  })
   it('reuses compact scenery at rest and discards its pixels after art or camera changes', () => {
     const position = { sectorId: 'aureth-crown', x: 6, y: 4 }
     const view = projectWorld({ ...newWorldState(), position }, [], 1000)
@@ -3249,6 +3673,72 @@ describe('native map input and bounded lifecycle', () => {
       vi.unstubAllGlobals()
     }
   })
+  it('reuses immutable fog pixels on moving Night redraws without changing paused painting', () => {
+    const s = scene()
+    // The shared recorder retains transforms only. This compositing regression
+    // also needs the native alpha save/restore contract.
+    const context = s.canvas.getContext('2d')!
+    const save = context.save.bind(context),
+      restore = context.restore.bind(context)
+    const alphas: number[] = []
+    context.save = () => {
+      alphas.push(context.globalAlpha)
+      save()
+    }
+    context.restore = () => {
+      restore()
+      context.globalAlpha = alphas.pop() ?? 1
+    }
+    const close = vi.fn()
+    const transfer = vi.fn(function (this: { width: number; height: number }) {
+      return { src: 'immutable-weather-veil', width: this.width, height: this.height, close }
+    })
+    vi.stubGlobal(
+      'OffscreenCanvas',
+      class {
+        constructor(
+          public width: number,
+          public height: number,
+        ) {}
+        getContext() {
+          return {
+            setTransform: vi.fn(),
+            fillStyle: '',
+            fillRect: vi.fn(),
+            createRadialGradient: () => ({ addColorStop: vi.fn() }),
+          }
+        }
+        transferToImageBitmap = transfer
+      },
+    )
+    try {
+      s.renderer.update({
+        ...s.view,
+        environment: { ...s.view.environment, minuteOfDay: 116.65333333333334, weather: 'fog' },
+      })
+      s.frame(40)
+      const fog = () => s.draws.filter(({ src }) => src === 'immutable-weather-veil')
+      expect(fog()).toHaveLength(1)
+      const image = fog()[0]!.image
+      s.motion.plan(
+        [{ position: { ...s.view.position, x: s.view.position.x + 1 }, durationMs: 1000 }],
+        s.view.sectors,
+        40,
+      )
+      for (let i = 1; i <= 12; i++) s.frame(40 + i * 40)
+      expect(transfer).toHaveBeenCalledOnce()
+      expect(fog().every((draw) => draw.image === image)).toBe(true)
+      s.draws.length = 0
+      s.renderer.settings({ animate: false, zoom: 1 })
+      s.frame(600)
+      expect(fog()).toHaveLength(0)
+      s.renderer.dispose()
+      expect(close).toHaveBeenCalledOnce()
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  })
   it('does not keep an idle animation loop when ambient effects are disabled', () => {
     const s = scene()
     s.renderer.settings({ animate: false, zoom: 1 })
@@ -3261,6 +3751,62 @@ describe('native map input and bounded lifecycle', () => {
     s.renderer.dispose()
     vi.unstubAllGlobals()
   })
+  it('freezes gradual world lighting across redraws while ambient effects are disabled', () => {
+    const s = scene()
+    const lighting = () =>
+      s.rectangles.find(
+        ({ colour }) => typeof colour === 'string' && colour.startsWith('rgba(12,27,65,'),
+      )?.colour
+    s.renderer.settings({ animate: false, zoom: 1 })
+    s.frame(40)
+    const frozen = lighting()
+    s.rectangles.length = 0
+    s.renderer.update({
+      ...s.view,
+      environment: { ...s.view.environment, minuteOfDay: s.view.environment.minuteOfDay + 600 },
+    })
+    s.frame(80)
+    expect(lighting()).toBe(frozen)
+    s.rectangles.length = 0
+    s.renderer.settings({ animate: true, zoom: 1 })
+    s.frame(120)
+    expect(lighting()).not.toBe(frozen)
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  })
+  it.each(['effects off', 'reduced motion'])(
+    'freezes weather drift on presence redraws with %s and resumes only when enabled',
+    (mode) => {
+      const veil = vi.spyOn(weatherPainting, 'paintWeatherVeil')
+      const s = scene(mode === 'reduced motion')
+      try {
+        s.renderer.update({
+          ...s.view,
+          environment: { ...s.view.environment, weather: 'overcast' },
+        })
+        s.frame(40)
+        s.frame(80)
+        const frozen = veil.mock.calls.at(-1)![4]
+        if (mode === 'effects off') s.renderer.settings({ animate: false, zoom: 1 })
+        s.frame(120)
+        expect(veil.mock.calls.at(-1)![4]).toBe(frozen)
+        // A real receipt still changes weather while its visual drift remains paused.
+        s.renderer.update({ ...s.view, environment: { ...s.view.environment, weather: 'fog' } })
+        s.frame(160)
+        expect(veil.mock.calls.at(-1)![3]).toBe('fog')
+        expect(veil.mock.calls.at(-1)![4]).toBe(frozen)
+        if (mode === 'effects off') {
+          s.renderer.settings({ animate: true, zoom: 1 })
+          s.frame(200)
+          expect(veil.mock.calls.at(-1)![4]).not.toBe(frozen)
+        }
+      } finally {
+        s.renderer.dispose()
+        veil.mockRestore()
+        vi.unstubAllGlobals()
+      }
+    },
+  )
   it('keeps the idle paint cadence when a previous animation callback entered late', () => {
     const s = scene()
     const clock = vi.mocked(performance.now)
@@ -3319,7 +3865,7 @@ it('reduces cosmetic storm work in the Low tier while retaining movement input',
   const s = scene(false, { ...initial, environment: { ...initial.environment, weather: 'storm' } })
   try {
     s.frame(40)
-    expect(s.canvas.dataset.precipitationParticles).toBe('128')
+    expect(s.canvas.dataset.precipitationParticles).toBe('160')
     s.renderer.settings({ animate: true, zoom: 1, quality: 'low' })
     s.frame(100)
     expect(Number(s.canvas.dataset.precipitationParticles)).toBeLessThan(64)
@@ -3353,6 +3899,181 @@ it('reduces phone cloud compositing by default and keeps Low identity sharp', ()
     expect(s.canvas.width).toBe(393)
     expect(s.identityCanvas.width).toBe(Math.round(393 * 2.75))
     expect(s.canvas.dataset.clouds).toBe('0')
+  } finally {
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+})
+
+it('transfers reusable native canopy crops and closes them when density changes', () => {
+  const position = { sectorId: 'atlas:59:28', x: 4, y: 4 }
+  const s = scene(false, projectWorld({ ...newWorldState(), position }, [], 1000))
+  const transferred: {
+    src: string
+    width: number
+    height: number
+    close: ReturnType<typeof vi.fn>
+  }[] = []
+  vi.stubGlobal(
+    'OffscreenCanvas',
+    class {
+      private source?: object
+      constructor(
+        public width: number,
+        public height: number,
+      ) {}
+      getContext() {
+        return { drawImage: (source: object) => (this.source = source) }
+      }
+      transferToImageBitmap() {
+        const contents = this.source ? s.composites.get(this.source) : undefined
+        const canopy =
+          contents?.length === 1 &&
+          String((contents[0] as HTMLImageElement | undefined)?.src).endsWith('beauties-v03.webp')
+        const image = {
+          src: canopy ? 'immutable-biome-canopy' : 'immutable-static-raster',
+          width: this.width,
+          height: this.height,
+          close: vi.fn(),
+        }
+        transferred.push(image)
+        return image
+      }
+    },
+  )
+  try {
+    for (const image of s.images)
+      if ((image as HTMLImageElement).src.endsWith('beauties-v03.webp'))
+        Object.assign(image, { width: 1774, height: 887, naturalWidth: 1774 })
+    Object.assign(s.canvas, { clientWidth: 1280, clientHeight: 720 })
+    window.devicePixelRatio = 3
+    s.resize()
+    s.renderer.settings({ animate: true, zoom: 1 })
+    s.frame(40)
+    const canopies = transferred.filter(({ src }) => src === 'immutable-biome-canopy')
+    expect(canopies.length).toBeGreaterThan(0)
+
+    s.motion.plan(
+      [{ position: { ...position, x: position.x + 1 }, durationMs: 200 }],
+      s.view.sectors,
+      40,
+    )
+    s.draws.length = 0
+    s.frame(80)
+    expect(s.draws.some(({ src }) => src === 'immutable-biome-canopy')).toBe(true)
+
+    s.resize()
+    expect(canopies.every(({ close }) => close.mock.calls.length === 1)).toBe(true)
+  } finally {
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+})
+
+it.each(
+  [1, 3].flatMap((dpr) =>
+    ['living-trees-v01.webp', 'beauties-v03.webp'].map((sheet) => ({ dpr, sheet })),
+  ),
+)(
+  'reuses native desktop $sheet crops at DPR $dpr while retaining canopy motion',
+  ({ dpr, sheet }) => {
+    const clock = vi.spyOn(performance, 'now').mockReturnValue(0)
+    const state = newWorldState()
+    state.position = { sectorId: 'atlas:59:28', x: 4, y: 4 }
+    const s = scene(false, projectWorld(state, [], 1000))
+    try {
+      for (const image of s.images)
+        if ((image as HTMLImageElement).src.endsWith('beauties-v03.webp'))
+          Object.assign(image, { width: 1774, height: 887, naturalWidth: 1774 })
+      Object.assign(s.canvas, { clientWidth: 1280, clientHeight: 720 })
+      window.devicePixelRatio = dpr
+      s.resize()
+      s.renderer.settings({ animate: true, zoom: 1 })
+      s.canvas.dataset.renderDiagnostics = 'timing'
+      s.frame(40)
+      const treeSource = (src: string) => src.endsWith(sheet)
+      const crops = s.draws.filter(
+        ({ src, args }) => treeSource(src) && args[4] === 0 && args[5] === 0,
+      )
+      expect(crops.length).toBeGreaterThan(0)
+      if (sheet === 'beauties-v03.webp')
+        for (const crop of crops)
+          expect(crop.args.slice(0, 4)).toEqual([(893 / 1774) * 1774, 29, 430, 426])
+      const cached = new Set(
+        crops.flatMap((crop) =>
+          [...s.composites.entries()]
+            .filter(([layer, contents]) => {
+              const canvas = layer as HTMLCanvasElement
+              return (
+                contents.length === 1 &&
+                contents[0] === crop.image &&
+                canvas.width === crop.args[6] &&
+                canvas.height === crop.args[7]
+              )
+            })
+            .map(([layer]) => layer),
+        ),
+      )
+      expect(cached.size).toBeGreaterThan(0)
+      const cold = JSON.parse(s.canvas.dataset.renderTiming!)
+      expect(cold.biomeRasters).toBeLessThanOrEqual(64)
+      expect(cold.biomeRasterPixels).toBeLessThanOrEqual(4_000_000)
+      const before = s.draws.filter(({ image }) => cached.has(image))
+      const layers = s.layerCount()
+      s.draws.length = 0
+      s.frame(100)
+      // The high-resolution source must not be resampled for every swaying tree.
+      expect(s.draws.filter(({ src }) => treeSource(src))).toHaveLength(0)
+      expect(JSON.parse(s.canvas.dataset.renderTiming!).biomeRasterBuilds).toBe(0)
+      expect(s.layerCount()).toBe(layers)
+      const after = s.draws.filter(({ image }) => cached.has(image))
+      expect(after.length).toBe(before.length)
+      expect(after.map(({ args }) => args)).toEqual(before.map(({ args }) => args))
+      expect(after.some((draw, index) => draw.matrix[2] !== before[index]!.matrix[2])).toBe(true)
+      for (const draw of after) {
+        expect(draw.image.width).toBeGreaterThanOrEqual(draw.args[2]! * Math.min(dpr, 1.5))
+        expect(draw.image.height).toBeGreaterThanOrEqual(draw.args[3]! * Math.min(dpr, 1.5))
+      }
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+      clock.mockRestore()
+    }
+  },
+)
+
+it('reuses articulated deer artwork during dusk without replaying live clipping', () => {
+  const state = newWorldState()
+  state.position = { sectorId: 'atlas:59:28', x: 4, y: 4 }
+  const initial = projectWorld(state, [], 1000)
+  const s = scene(false, {
+    ...initial,
+    environment: { ...initial.environment, minuteOfDay: 1100, weather: 'rain' },
+  })
+  try {
+    s.renderer.settings({ animate: true, zoom: 1 })
+    s.canvas.dataset.renderDiagnostics = 'timing'
+    s.frame(40)
+    const deerBodyClips = () =>
+      s.clips.filter(({ points }) => points[0]?.[0] === 29 && points[0]?.[1] === 237)
+    expect(deerBodyClips().length).toBeGreaterThan(0)
+    const animals = Number(s.canvas.dataset.wildlife)
+    expect(animals).toBeGreaterThan(0)
+    s.clips.length = 0
+    const layers = s.layerCount()
+    s.frame(140)
+    expect(Number(s.canvas.dataset.wildlife)).toBe(animals)
+    expect(deerBodyClips()).toEqual([])
+    expect(s.layerCount()).toBe(layers)
+    const costs = JSON.parse(s.canvas.dataset.renderTiming!)
+    expect(costs.wildlifePartBuilds).toBe(0)
+    expect(costs.wildlifePartPixels).toBeGreaterThan(0)
+    expect(costs.wildlifePartPixels).toBeLessThanOrEqual(512_000)
+    s.images.find((image) => (image as HTMLImageElement).src.endsWith('nature-v02.webp'))!.onload!()
+    s.frame(240)
+    expect(JSON.parse(s.canvas.dataset.renderTiming!).wildlifePartBuilds).toBeGreaterThan(0)
+    s.frame(340)
+    expect(JSON.parse(s.canvas.dataset.renderTiming!).wildlifePartBuilds).toBe(0)
   } finally {
     s.renderer.dispose()
     vi.unstubAllGlobals()
@@ -3725,7 +4446,7 @@ it.each([
     try {
       s.frame(40)
       expect(
-        s.draws.filter(({ src }) =>
+        s.spriteDraws.filter(({ src }) =>
           src.endsWith(privateScene ? 'biomes-v02.webp' : 'living-trees-v01.webp'),
         ),
       ).toHaveLength(expectedTrees)
@@ -3797,7 +4518,7 @@ it('renders different woodland growth sizes while keeping town trees authored', 
     try {
       s.frame(40)
       return new Set(
-        s.draws
+        s.spriteDraws
           .filter((d) => d.src.endsWith('living-trees-v01.webp') && d.args.length === 8)
           .map((d) => Number(d.args[6]!.toFixed(3))),
       )
@@ -4638,7 +5359,7 @@ it('renders the remote grand crossing with its measured new bridge art rather th
 
 it('loads close-view valley details and arena ground material only for their own grand sites', () => {
   for (const [sectorId, required] of [
-    ['atlas:70:24', ['valley-fire-detail', 'valley-ice-detail', 'valley-cascade-detail']],
+    ['atlas:71:17', ['valley-fire-detail', 'valley-ice-detail', 'valley-cascade-detail']],
     ['atlas:44:37', ['colosseum-arena-grain']],
   ] as const) {
     const view = projectWorld({ ...newWorldState(), position: { sectorId, x: 6, y: 4 } }, [], 1000)
@@ -4650,7 +5371,7 @@ it('loads close-view valley details and arena ground material only for their own
           s.images.some((image) => (image as HTMLImageElement).src.endsWith(sheet + '-v01.webp')),
         ).toBe(true)
       const unrelated =
-        sectorId === 'atlas:70:24' ? ['colosseum-arena-grain'] : valleyDetailArt.map((d) => d.sheet)
+        sectorId === 'atlas:71:17' ? ['colosseum-arena-grain'] : valleyDetailArt.map((d) => d.sheet)
       for (const sheet of unrelated)
         expect(
           s.images.some((image) => (image as HTMLImageElement).src.endsWith(sheet + '-v01.webp')),
@@ -4664,7 +5385,7 @@ it('loads close-view valley details and arena ground material only for their own
 
 it('paints context-preserving valley detail frames in the exact selected master coordinates', () => {
   const view = projectWorld(
-    { ...newWorldState(), position: { sectorId: 'atlas:70:24', x: 6, y: 4 } },
+    { ...newWorldState(), position: { sectorId: 'atlas:71:17', x: 6, y: 4 } },
     [],
     1000,
   )

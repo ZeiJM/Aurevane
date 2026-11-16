@@ -1,16 +1,30 @@
 import { openMapSettings, closeMapSettings } from './world-map-settings-helpers'
+import { observeWorldRead, readWorldSnapshot } from './world-read-observation'
+import { cleanupWorldPresenceFixtures } from './world-presence-diagnostics'
+import { hashWorldBackingPixels, startWorldFrameCounting } from './world-render-diagnostics'
+import { clickWorldGroundSequence } from './world-ground-click-sequence'
 import { createHash, randomUUID } from 'node:crypto'
 import {
   gateWorldMutationDefinition,
+  diagnoseWorldEquipmentDefinition,
+  parseWorldEquipmentErrors,
+  parseWorldEquipmentLockHolders,
   WORLD_MUTATION_GATE_SIGNATURES,
 } from './world-contention-gate'
 import { writeFileSync } from 'node:fs'
-import { execFileSync, spawn } from 'node:child_process'
-import { expect, test, type APIResponse, type Page, type TestInfo } from '@playwright/test'
+import { execFileSync, spawn, spawnSync } from 'node:child_process'
+import {
+  expect,
+  test,
+  type APIResponse,
+  type Page,
+  type Response as BrowserResponse,
+  type TestInfo,
+} from '@playwright/test'
 import type { SetPracticePlanRequest } from '@aurevane/validation/player/wayfarers-practice'
 import { provisionAccountAndEnterCharacter, openOfflineTraining } from './pv1f-test-helpers'
 import { GRID_WIDTH, GRID_HEIGHT, STEP_MS, WORLD_REGIONS } from '../src/world/catalog'
-import { newWorldState } from '../src/world/travel'
+import { newWorldState, samePosition } from '../src/world/travel'
 import type { WorldView } from '../src/world/types'
 import { verifyWorldPresentation, registerWorldInputCases } from './world-presentation-case'
 import { verifyWorldScenePresence, verifyWorldInstantActions } from './world-presence-case'
@@ -24,13 +38,35 @@ import { registerWorldMultiplayerLoadCase } from './world-multiplayer-load-case'
 import type { CharacterBuildContext } from '../src/server/character/character-build-service'
 
 const runtimeErrors = new WeakMap<Page, string[]>()
-test.beforeEach(({ page }) => {
+const caseFixtures = new WeakMap<TestInfo, Map<string, Page>>()
+test.beforeEach(({ page }, info) => {
   const errors: string[] = []
   runtimeErrors.set(page, errors)
+  caseFixtures.set(info, new Map())
   page.on('pageerror', (error) => errors.push(error.message))
 })
-test.afterEach(({ page }) => {
+test.afterEach(async ({ page }, info) => {
+  const fixtures = [...(caseFixtures.get(info) ?? new Map<string, Page>())]
+  // Closing a browser alone leaves its offline character selectable for ten
+  // minutes. Retire only this case's fixtures after their heartbeats stop.
+  const cleanupErrors: string[] = []
+  for (let i = 0; i < fixtures.length; i += 2) {
+    const pair = fixtures.slice(i, i + 2)
+    cleanupErrors.push(
+      ...(await cleanupWorldPresenceFixtures(
+        pair.map(([characterId]) => characterId),
+        pair.map(
+          ([, fixturePage]) =>
+            () =>
+              fixturePage.close(),
+        ),
+        sql,
+      )),
+    )
+  }
+  caseFixtures.delete(info)
   expect(runtimeErrors.get(page) ?? []).toEqual([])
+  expect(cleanupErrors, 'Atlas case must retire its own presence fixtures').toEqual([])
 })
 
 async function verifyPlacePortraits(page: Page) {
@@ -133,7 +169,15 @@ async function contend(
   })
   let pending: Promise<APIResponse>[] = []
   const originalDefinitions: string[] = []
+  const diagnosticsSince = new Date().toISOString()
   try {
+    if (afterPreparation && diagnosticPath) {
+      const definition = sql(
+        "select pg_get_functiondef('public.read_character_battle_equipment_v1(uuid,uuid)'::regprocedure)",
+      )
+      originalDefinitions.push(definition)
+      sql(diagnoseWorldEquipmentDefinition(definition, application, characterIds))
+    }
     if (afterPreparation)
       for (const signature of WORLD_MUTATION_GATE_SIGNATURES) {
         const definition = sql(`select pg_get_functiondef('${signature}'::regprocedure)`)
@@ -185,7 +229,30 @@ async function contend(
             return { status: response.status(), errorCode: body?.error?.code ?? null }
           }),
         )
-        writeFileSync(diagnosticPath, JSON.stringify({ afterPreparation, responses }, null, 2))
+        const logs = spawnSync('docker', ['logs', '--since', diagnosticsSince, localDatabase()], {
+          encoding: 'utf8',
+          maxBuffer: 8 * 1024 * 1024,
+        })
+        const equipmentErrors = parseWorldEquipmentErrors(
+          `${logs.stdout ?? ''}\n${logs.stderr ?? ''}`,
+          application,
+        )
+        const diagnostic = {
+          afterPreparation,
+          responses,
+          databaseLogCapture: logs.status === 0,
+          equipmentErrors,
+        }
+        // Keep the original response/error evidence even if holder decoding fails.
+        writeFileSync(diagnosticPath, JSON.stringify(diagnostic, null, 2))
+        const equipmentLockHolders = parseWorldEquipmentLockHolders(
+          `${logs.stdout ?? ''}\n${logs.stderr ?? ''}`,
+          application,
+        )
+        writeFileSync(
+          diagnosticPath,
+          JSON.stringify({ ...diagnostic, equipmentLockHolders }, null, 2),
+        )
       }
     } finally {
       try {
@@ -208,9 +275,12 @@ async function enter(page: Page) {
     password: 'Atlas-browser-2026!',
     characterName: name,
   })
-  sql(
-    `select public.read_world_state_v1(c.user_id,c.id,'${JSON.stringify({ ...newWorldState(), safe: false })}'::jsonb) from public.characters c where c.name='${name}';`,
+  const fixture = JSON.parse(
+    sql(
+      `select jsonb_build_object('characterId',c.id,'state',public.read_world_state_v1(c.user_id,c.id,'${JSON.stringify({ ...newWorldState(), safe: false })}'::jsonb)) from public.characters c where c.name='${name}';`,
+    ),
   )
+  caseFixtures.get(test.info())!.set(fixture.characterId, page)
   await page
     .getByRole('navigation', { name: 'Primary game navigation', exact: true })
     .getByRole('link', { name: /World/ })
@@ -219,9 +289,7 @@ async function enter(page: Page) {
   return name
 }
 async function world(page: Page): Promise<WorldView> {
-  const response = await page.request.get('/api/world')
-  expect(response.ok()).toBe(true)
-  return response.json()
+  return readWorldSnapshot(await page.request.get('/api/world'))
 }
 function place(characterId: string, sectorId: string, x: number, y: number, safe = false) {
   // Fixture setup only; all exercised commands still pass through real auth and server authority.
@@ -253,15 +321,27 @@ async function expectLocation(page: Page, name: string) {
     timeout: 15000,
   })
 }
+// The quick sector field reviews the same server-validated travel path as the side panel.
+async function reviewSectorTravel(page: Page, sectorId: string) {
+  const charted = (await world(page)).atlas?.find((cell) => cell.id === sectorId && cell.charted)
+  expect(charted).toBeDefined()
+  const sectorNumber = charted!.row * 128 + charted!.column + 1
+  const field = page.getByRole('spinbutton', { name: 'Sector number', exact: true })
+  if (!(await field.isVisible()))
+    await page.getByRole('button', { name: 'Details', exact: true }).click()
+  await expect(field).toBeVisible()
+  await field.fill(String(sectorNumber))
+  await page.getByRole('button', { name: 'Review sector', exact: true }).click()
+  await expect(page.getByRole('dialog', { name: 'Confirm world travel' })).toBeVisible()
+  await page.getByRole('button', { name: 'Confirm travel', exact: true }).click()
+}
 // Exercise actual canvas picking or the globe's charted-destination controls.
 async function stageWalk(page: Page, destination: { sectorId: string; x: number; y: number }) {
   const current = await world(page)
   const sector = current.sectors.find((s) => s.id === destination.sectorId)
   if (!sector) {
     await page.getByRole('button', { name: /Open world atlas/ }).click()
-    await page.getByText('Known Lands', { exact: true }).click()
-    await page.getByLabel('Charted sector', { exact: true }).selectOption(destination.sectorId)
-    await page.getByRole('button', { name: 'Travel here', exact: true }).click()
+    await reviewSectorTravel(page, destination.sectorId)
     return
   }
   const canvas = page.locator('canvas[data-world-stage]')
@@ -279,9 +359,7 @@ async function stageWalk(page: Page, destination: { sectorId: string; x: number;
   const y = box.height / 2 + (dx + dy) * metrics.tile * 0.44
   if (x <= 0 || x >= box.width || y <= 0 || y >= box.height) {
     await page.getByRole('button', { name: /Open world atlas/ }).click()
-    await page.getByText('Known Lands', { exact: true }).click()
-    await page.getByLabel('Charted sector', { exact: true }).selectOption(destination.sectorId)
-    await page.getByRole('button', { name: 'Travel here', exact: true }).click()
+    await reviewSectorTravel(page, destination.sectorId)
     return
   }
   expect(x).toBeGreaterThan(0)
@@ -1304,27 +1382,68 @@ test('rapid ground clicks settle at the last legal tile and keyboard movement cr
   const initial = await world(page)
   place(initial.characterId, 'atlas:58:28', 6, 4)
   await page.reload()
-  await expect(page.locator('canvas[data-world-stage]')).toBeVisible()
-  await stageWalk(page, { sectorId: 'atlas:58:28', x: 7, y: 4 })
-  await stageWalk(page, { sectorId: 'atlas:58:28', x: 5, y: 4 })
-  const final = { sectorId: 'atlas:58:28', x: 10, y: 4 }
-  await stageWalk(page, final)
-  await expect
-    .poll(
-      async () => ({
-        position: (await world(page)).position,
-        remaining: (await world(page)).route.length,
-      }),
-      { timeout: 12000 },
-    )
-    .toEqual({ position: final, remaining: 0 })
   const canvas = page.locator('canvas[data-world-stage]')
+  await expect(canvas).toHaveAttribute('data-camera-x', /\d/)
+  const sector = (await world(page)).sectors.find((entry) => entry.id === 'atlas:58:28')
+  expect(sector).toBeDefined()
+  const final = { sectorId: 'atlas:58:28', x: 10, y: 4 }
+  const intended = [{ ...final, x: 7 }, { ...final, x: 5 }, final]
+  const receipts: { destination: WorldView['position']; status: number }[] = []
+  const recordWalk = (response: BrowserResponse) => {
+    const request = response.request()
+    if (new URL(response.url()).pathname !== '/api/world' || request.method() !== 'POST') return
+    const intent = request.postDataJSON()?.intent
+    if (intent?.kind === 'walk')
+      receipts.push({ destination: intent.destination, status: response.status() })
+  }
+  page.on('response', recordWalk)
+  const projections: Awaited<ReturnType<typeof clickWorldGroundSequence>> = []
+  const observe = (ready: (view: WorldView) => boolean) =>
+    observeWorldRead(() => page.request.get('/api/world'), ready)
+  try {
+    projections.push(...(await clickWorldGroundSequence(page, sector!, intended)))
+    await expect
+      .poll(
+        () => observe((view) => samePosition(view.position, final) && view.route.length === 0),
+        {
+          timeout: 12000,
+          message: 'Native rapid clicks must submit and arrive at the exact final requested tile',
+        },
+      )
+      .toBe(true)
+    // Unsent movement may coalesce, but every submitted walk must preserve the
+    // requested order and the final exact target must receive server approval.
+    let previousIndex = -1
+    for (const receipt of receipts) {
+      const index = intended.findIndex((target) => samePosition(target, receipt.destination))
+      expect(
+        index,
+        'Native canvas picking must preserve each submitted requested tile',
+      ).toBeGreaterThanOrEqual(0)
+      expect(
+        index,
+        'Submitted walks must preserve requested order, including stale-version retries',
+      ).toBeGreaterThanOrEqual(previousIndex)
+      previousIndex = index
+    }
+    expect(receipts.at(-1)).toEqual({ destination: final, status: 200 })
+  } finally {
+    page.off('response', recordWalk)
+    await info.attach('rapid-ground-click-intents', {
+      body: JSON.stringify({ intended, projections, receipts }, null, 2),
+      contentType: 'application/json',
+    })
+  }
   await canvas.press('ArrowRight')
-  await expect.poll(async () => (await world(page)).position).toEqual({ ...final, x: 11 })
+  await expect
+    .poll(() => observe((view) => samePosition(view.position, { ...final, x: 11 })))
+    .toBe(true)
   await canvas.press('ArrowRight')
-  await expect.poll(async () => (await world(page)).position).toEqual({ ...final, x: 12 })
+  await expect
+    .poll(() => observe((view) => samePosition(view.position, { ...final, x: 12 })))
+    .toBe(true)
   await canvas.press('ArrowRight')
-  await expect.poll(async () => (await world(page)).position.sectorId).not.toBe('atlas:58:28')
+  await expect.poll(() => observe((view) => view.position.sectorId !== 'atlas:58:28')).toBe(true)
   await capture(page, info, 'seamless-edge-crossing')
   await page.reload()
   await expect(canvas).toBeVisible()
@@ -1428,9 +1547,9 @@ test('a synthetic population of 100 has bounded rendering at high DPI and lower 
   }))
   expect(density.width).toBe(density.expectedWidth)
   expect(density.height).toBe(density.expectedHeight)
+  await canvas.evaluate(startWorldFrameCounting)
   const session = await page.context().newCDPSession(page)
   await session.send('Emulation.setCPUThrottlingRate', { rate: 4 })
-  const before = Number(await canvas.getAttribute('data-render-frames'))
   const readMetrics = () =>
     canvas.evaluate((el) => ({
       sampledAt: performance.now(),
@@ -1454,6 +1573,7 @@ test('a synthetic population of 100 has bounded rendering at high DPI and lower 
       deviceRatio: window.devicePixelRatio,
     }))
   const baseline = await readMetrics()
+  const before = baseline.renderFrames
   const costPath = info.outputPath('synthetic-world-render-cost.json')
   writeFileSync(costPath, JSON.stringify({ baseline }, null, 2))
   let metrics = baseline
@@ -1608,9 +1728,7 @@ test('the globe rotates by dragging and has a usable charted fallback without We
   await globe.press('ArrowRight')
   await expect.poll(async () => (await fallback.screenshot()).equals(beforeRotation)).toBe(false)
   await capture(page, info, 'detailed-fallback-globe')
-  await page.getByText('Known Lands', { exact: true }).click()
-  await page.getByLabel('Charted sector', { exact: true }).selectOption('frostmere')
-  await page.getByRole('button', { name: 'Travel here', exact: true }).click()
+  await reviewSectorTravel(page, 'frostmere')
   await expect.poll(async () => (await world(page)).route.length).toBeGreaterThan(0)
   await page.locator('canvas[data-world-stage]').press('Escape')
   await expect.poll(async () => (await world(page)).route.length).toBe(0)
@@ -1666,8 +1784,10 @@ test('ambient clouds, water and wildlife remain alive with bounded effects and c
       ),
     }
   }
+  const pixelHash = () => canvas.evaluate(hashWorldBackingPixels)
   const beforePauseState = await pauseState()
-  const pausedFrame = await canvas.screenshot({
+  const beforePausePixelHash = await pixelHash()
+  await canvas.screenshot({
     path: info.outputPath('terrain-motion-paused-before.png'),
   })
   await page.waitForTimeout(1200)
@@ -1677,14 +1797,19 @@ test('ambient clouds, water and wildlife remain alive with bounded effects and c
     wildlifeWalking: await canvas.getAttribute('data-wildlife-walking'),
   }).toEqual(ambientState)
   const afterPauseState = await pauseState()
-  const afterPauseFrame = await canvas.screenshot({
+  const afterPausePixelHash = await pixelHash()
+  await canvas.screenshot({
     path: info.outputPath('terrain-motion-paused-after.png'),
   })
   writeFileSync(
     info.outputPath('world-ambient-pause.json'),
-    JSON.stringify({ before: beforePauseState, after: afterPauseState }),
+    JSON.stringify({
+      before: beforePauseState,
+      after: afterPauseState,
+      pixelHashes: { before: beforePausePixelHash, after: afterPausePixelHash },
+    }),
   )
-  expect(afterPauseFrame.equals(pausedFrame)).toBe(true)
+  expect(afterPausePixelHash).toBe(beforePausePixelHash)
   await openMapSettings(page)
   await page.getByRole('checkbox', { name: 'Ambient animation', exact: true }).check()
   await closeMapSettings(page)

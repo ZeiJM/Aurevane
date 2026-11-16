@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   advanceWorldWind,
   paintPrecipitation,
+  precipitationBudget,
   paintWeatherVeil,
   precipitationKind,
   precipitationParticle,
@@ -72,7 +73,7 @@ describe('bounded weather motion', () => {
     expect(laterSnow.x).not.toBe(snow.x)
     expect(precipitationParticle('snow', 5, 800, 600, 1000).radius).not.toBe(snow.radius)
   })
-  it('renders storm snow as directional spindrift within the normal snow particle budget', () => {
+  it('renders storms with denser directional spindrift than normal snowfall', () => {
     const drawing = {
       save: vi.fn(),
       restore: vi.fn(),
@@ -87,7 +88,7 @@ describe('bounded weather motion', () => {
     const wind = { speed: -0.05, offset: -40 }
     const flakes = paintPrecipitation(canvas, 800, 600, 1000, 'rain', 'frostmere', wind)
     const storm = paintPrecipitation(canvas, 800, 600, 1000, 'storm', 'frostmere', wind)
-    expect(storm).toBe(flakes)
+    expect(storm).toBeGreaterThan(flakes)
     expect(drawing.stroke).toHaveBeenCalledTimes(storm)
     expect(drawing.arc).toHaveBeenCalledTimes(flakes)
     expect(drawing.lineTo.mock.calls[0]![0]).toBeLessThan(drawing.moveTo.mock.calls[0]![0])
@@ -107,8 +108,8 @@ it('adds soft fog without making clear or windy skies look overcast', () => {
   paintWeatherVeil(canvas, 800, 600, 'wind', -100)
   expect(drawing.fillRect).not.toHaveBeenCalled()
   paintWeatherVeil(canvas, 800, 600, 'fog', -100)
-  expect(drawing.createRadialGradient).toHaveBeenCalledTimes(3)
-  expect(gradient.addColorStop).toHaveBeenCalledWith(1, 'transparent')
+  expect(drawing.createRadialGradient).toHaveBeenCalledTimes(4)
+  expect(gradient.addColorStop).toHaveBeenCalledWith(1, 'rgba(20,34,42,0)')
 })
 
 it('keeps airborne pollen and leaves out of wet/foggy skies and within the existing quality budget', async () => {
@@ -120,4 +121,14 @@ it('keeps airborne pollen and leaves out of wet/foggy skies and within the exist
   expect(wind.drift).toBeGreaterThan(calm.drift)
   expect(wind.width).toBeGreaterThan(calm.width)
   expect(airborneMoteProfile('clear', true)!.colour).not.toBe(calm.colour)
+})
+
+it('makes normal rain and snowfall visibly sparser than storms without exceeding particle budgets', () => {
+  expect(precipitationBudget('rain', 'rain')).toBeLessThan(precipitationBudget('storm', 'rain'))
+  expect(precipitationBudget('rain', 'snow')).toBeLessThan(precipitationBudget('storm', 'snow'))
+  expect(precipitationBudget('storm', 'snow', 0.35)).toBeLessThan(
+    precipitationBudget('storm', 'snow'),
+  )
+  expect(precipitationBudget('storm', 'rain', 10)).toBeLessThanOrEqual(192)
+  expect(precipitationBudget('clear', null)).toBe(0)
 })

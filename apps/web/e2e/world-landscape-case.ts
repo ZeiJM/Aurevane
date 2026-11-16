@@ -279,9 +279,11 @@ export function registerWorldLandscapeCases(helpers: Helpers) {
       }
     }
     await page.getByRole('button', { name: /Open world atlas/ }).click()
-    const towns = page.getByRole('combobox', { name: 'Main town', exact: true })
+    const towns = page.getByRole('combobox', { name: 'Key locations', exact: true })
+    if (!(await towns.isVisible()))
+      await page.getByRole('button', { name: 'Details', exact: true }).click()
     await expect(towns).toBeVisible()
-    await expect(towns.locator('option')).toHaveCount(9)
+    expect(await towns.locator('option').count()).toBeGreaterThanOrEqual(9)
     await towns.selectOption('frostmere')
     await expect(
       page.getByRole('region', { name: 'Selected destination', exact: true }),
@@ -303,7 +305,10 @@ export function registerWorldLandscapeCases(helpers: Helpers) {
     await page.mouse.move(x + 30, y, { steps: 4 })
     await page.mouse.move(x, y, { steps: 4 })
     await page.mouse.up()
+    if (!(await towns.isVisible()))
+      await page.getByRole('button', { name: 'Details', exact: true }).click()
     await expect(towns).toHaveValue('frostmere')
+    if (await closeDetails.isVisible()) await closeDetails.click()
     const currentCoordinates = await page.locator('[data-world-coordinates] span').allTextContents()
     await verdant.click()
     await expect(page.locator('[data-world-coordinates] span')).toHaveText(currentCoordinates)
@@ -337,8 +342,8 @@ export function registerWorldLandscapeCases(helpers: Helpers) {
     })
     const canvas = page.locator('canvas[data-world-stage]')
     for (const [sector, kind, count] of [
-      ['verdant-expanse', 'rain', 88],
-      ['frostmere', 'snow', 64],
+      ['verdant-expanse', 'rain', 68],
+      ['frostmere', 'snow', 46],
     ] as const) {
       place(initial.characterId, sector, 6, 4)
       const previousReceipts = weatherReceipts

@@ -18,6 +18,39 @@ export function matchesWorldWalk(body: unknown, destination: WorldPosition): boo
   )
 }
 
+/** Select real supplied terrain so held eastward travel cannot leave attack reach. */
+export function findWorldHeldAttackCorridor(view: Pick<WorldView, 'sectors'>): {
+  start: WorldPosition
+  approach: WorldPosition
+  target: WorldPosition
+} | null {
+  const sectors = [...view.sectors].sort(
+    (a, b) => Number(b.id === 'verdant-expanse') - Number(a.id === 'verdant-expanse'),
+  )
+  for (const sector of sectors) {
+    if (!sector.charted) continue
+    for (const target of sector.cells) {
+      const cell = (x: number) => sector.cells.find((cell) => cell.x === x && cell.y === target.y)
+      if (
+        ![target.x - 2, target.x - 1, target.x].every((x) => {
+          const supplied = cell(x)
+          return supplied?.walkable === true && supplied.safe === false
+        }) ||
+        cell(target.x + 1)?.walkable !== false ||
+        sector.exits.some((exit) => exit.from.x === target.x && exit.from.y === target.y)
+      )
+        continue
+      const position = (x: number) => ({ sectorId: sector.id, x, y: target.y })
+      return {
+        start: position(target.x - 2),
+        approach: position(target.x - 1),
+        target: position(target.x),
+      }
+    }
+  }
+  return null
+}
+
 const worldTopicPrefix = 'realtime:world-scene:'
 
 /** Used to correlate joins and invalidations in memory. Use the summary for artifacts. */
@@ -96,6 +129,7 @@ export function worldPresenceDiagnostics() {
   const started = Date.now()
   const events: Record<string, string | number | boolean>[] = []
   const pending = new Set<Promise<void>>()
+  let inspectResponseBodies = true
   const detach: (() => void)[] = []
   const ids = new Map<Observer, string>()
   const pages = new Map<Observer, Page>()
@@ -151,8 +185,18 @@ export function worldPresenceDiagnostics() {
       const response = (response: Response) => {
         const route = endpoint(response.url())
         if (!route) return
+        record({ observer, phase: 'response', endpoint: route, status: response.status() })
+      }
+      const finished = (request: Request) => {
+        const route = endpoint(request.url())
+        if (!route) return
+        if (!inspectResponseBodies) return
         const task = (async () => {
-          record({ observer, phase: 'response', endpoint: route, status: response.status() })
+          // A headers-only response may be cancelled by the app's replacement
+          // read. Playwright can leave its body promise pending until the page
+          // closes; start diagnostic body reads only after network completion.
+          const response = await request.response()
+          if (!response) return
           const body = object(await response.json())
           const players = Array.isArray(body.players) ? (body.players as WorldView['players']) : []
           const peer = players.find(
@@ -204,15 +248,22 @@ export function worldPresenceDiagnostics() {
       page.on('request', request)
       page.on('requestfailed', failed)
       page.on('response', response)
+      page.on('requestfinished', finished)
       page.on('websocket', socket)
       page.on('pageerror', pageerror)
       detach.push(() => {
         page.off('request', request)
         page.off('requestfailed', failed)
         page.off('response', response)
+        page.off('requestfinished', finished)
         page.off('websocket', socket)
         page.off('pageerror', pageerror)
       })
+    },
+    async suspendResponseBodyInspection() {
+      inspectResponseBodies = false
+      await Promise.allSettled([...pending])
+      record({ phase: 'response-body-inspection-suspended' })
     },
     async captureMotion() {
       for (const [observer, page] of pages) {

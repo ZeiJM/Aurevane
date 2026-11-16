@@ -88,21 +88,15 @@ export function buildBiomeTransitions(sectors: readonly WorldSectorView[]) {
       const edges: BiomeTransitionEdge[] = []
       const corners: BiomeTransitionCorner[] = []
       const snowlineEdges: BiomeTransitionEdge[] = []
-      const neighbors: unknown[] = []
-      const diagonals: unknown[] = []
       if (boundaries.has(sector.id)) {
         for (const [sideIndex, [dx, dy]] of offsets.entries()) {
           const side = sideIndex as BiomeTransitionEdge['side']
           const address = atlasNeighbor(sector.atlasColumn!, sector.atlasRow!, dx, dy)
           const neighbor = address && byAddress.get(`${address.column}:${address.row}`)
-          if (!neighbor) {
-            neighbors.push(null)
-            continue
-          }
+          if (!neighbor) continue
           const ownCells = boundaries.get(sector.id)!
           const otherCells = boundaries.get(neighbor.id)!
           const mixTrees = isSnowline(sector, neighbor)
-          const pairedTerrain: (string | undefined)[][] = []
           const length = side % 2 === 0 ? GRID_WIDTH : GRID_HEIGHT
           let from: number | null = null
           for (let index = 0; index <= length; index++) {
@@ -125,7 +119,6 @@ export function buildBiomeTransitions(sectors: readonly WorldSectorView[]) {
                       ? `${index}:0`
                       : `${GRID_WIDTH - 1}:${index}`
               const pair = [ownCells.get(ownKey), otherCells.get(otherKey)]
-              pairedTerrain.push(pair)
               dry = pair.every(
                 (terrain) => terrain !== undefined && terrain !== '~' && terrain !== 'l',
               )
@@ -146,7 +139,6 @@ export function buildBiomeTransitions(sectors: readonly WorldSectorView[]) {
               from = null
             }
           }
-          neighbors.push([neighbor.id, neighbor.regionId, pairedTerrain])
         }
         for (const horizontalSide of [0, 2] as const)
           for (const verticalSide of [1, 3] as const) {
@@ -165,7 +157,6 @@ export function buildBiomeTransitions(sectors: readonly WorldSectorView[]) {
             const otherY = dy < 0 ? GRID_HEIGHT - 1 : 0
             const diagonalTerrain =
               diagonal && boundaries.get(diagonal.id)!.get(`${otherX}:${otherY}`)
-            diagonals.push(diagonal ? [diagonal.id, diagonal.regionId, diagonalTerrain] : null)
             if (!horizontal || !vertical || !diagonal) continue
             const meeting = [
               boundaries.get(sector.id)!.get(`${ownX}:${ownY}`),
@@ -191,13 +182,21 @@ export function buildBiomeTransitions(sectors: readonly WorldSectorView[]) {
             })
           }
       }
+      const treeRegions = snowlineEdges.length ? mixSnowlineTrees(sector, snowlineEdges) : undefined
       return [
         sector.id,
         {
-          key: JSON.stringify([sector.regionId, neighbors, edges, diagonals, corners]),
+          // Supplied neighbors still prove every transition, but an unchanged
+          // painted result must retain its raster as the loaded scene advances.
+          key: JSON.stringify([
+            sector.regionId,
+            edges,
+            corners,
+            [...(treeRegions ?? [])].map(([cell, regionId]) => [cell.x, cell.y, regionId]),
+          ]),
           edges,
           corners,
-          treeRegions: snowlineEdges.length ? mixSnowlineTrees(sector, snowlineEdges) : undefined,
+          treeRegions,
         },
       ] as const
     }),

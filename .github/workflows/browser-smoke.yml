@@ -217,7 +217,12 @@ jobs:
         run: pnpm --filter @aurevane/web exec node scripts/battle-command-feedback-browser-regression.mjs
 
       - name: Start local Supabase stack
-        run: pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
+        run: |
+          python .github/scripts/configure-supabase-test-ports.test.py
+          python .github/scripts/configure-supabase-test-ports.py
+          python .github/scripts/configure-discipline-test-mail.test.py
+          python .github/scripts/configure-discipline-test-mail.py
+          pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
 
       - name: Verify desktop and mobile shell
         shell: bash
@@ -230,7 +235,7 @@ jobs:
           server_key="${SECRET_KEY:-${SERVICE_ROLE_KEY:-}}"
           test -n "$server_key"
 
-          api_url='http://127.0.0.1:54321'
+          api_url="${SUPABASE_TEST_API_URL:-http://127.0.0.1:54321}"
 
           AUREVANE_ENV=local \
           NEXT_PUBLIC_AUREVANE_ENV=local \
@@ -434,6 +439,7 @@ jobs:
           path: |
             apps/web/test-results/atlas-world.pw.ts-*/trace.zip
             apps/web/test-results/atlas-world.pw.ts-*/error-context.md
+            apps/web/test-results/atlas-world.pw.ts-*/world-contention-responses.json
             apps/web/test-results/atlas-world.pw.ts-*/test-failed-*.png
             apps/web/test-results/atlas-world.pw.ts-*/attachments/world-*.json
           retention-days: 7

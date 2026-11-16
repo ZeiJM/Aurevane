@@ -41,6 +41,19 @@ beforeEach(() => {
   readWorld.mockReset().mockResolvedValue({ view })
   commitWorldCommand.mockReset().mockResolvedValue(view)
 })
+it('keeps a racing scene read as a conflict and requires a new successful World read', async () => {
+  readWorld.mockRejectedValueOnce(new AurevaneError('STALE_VERSION', 'The scene changed.'))
+  const conflict = await GET(new Request('https://example.test/api/world'))
+  expect(conflict.status).toBe(409)
+  expect(await conflict.json()).toEqual({
+    error: { code: 'STALE_VERSION', message: 'The scene changed.' },
+  })
+  const fresh = await GET(new Request('https://example.test/api/world'))
+  expect(fresh.status).toBe(200)
+  expect(await fresh.json()).toEqual(view)
+  expect(readWorld).toHaveBeenCalledTimes(2)
+  expect(commitWorldCommand).not.toHaveBeenCalled()
+})
 it('uses bounded viewport dimensions only to request public scenery, never scene authority', async () => {
   const response = await GET(
     new Request(

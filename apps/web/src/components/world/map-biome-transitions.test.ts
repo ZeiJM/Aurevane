@@ -1,7 +1,11 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+vi.mock('server-only', () => ({}))
+import { projectWorld } from '@/server/world/world-service'
 import { GRID_HEIGHT, GRID_WIDTH } from '@/world/catalog'
+import { newWorldState } from '@/world/travel'
 import type { WorldSectorView } from '@/world/types'
 import { buildBiomeTransitions } from './map-biome-transitions'
+import { worldRenderTerrain } from './map-render-terrain'
 
 function sector(id: string, column: number, row: number, regionId = 'verdant-expanse') {
   return {
@@ -46,6 +50,40 @@ describe('known public biome boundary transitions', () => {
     const other = sector('other', 11, 10)
     expect(buildBiomeTransitions([own, other]).get(own.id)?.edges).toEqual([])
     expect(buildBiomeTransitions([own, other]).get(other.id)?.edges).toEqual([])
+  })
+
+  it('retains material keys when a same-biome neighbor arrives or becomes withheld', () => {
+    const own = sector('own', 10, 10)
+    const other = sector('other', 11, 10)
+    const unloaded = buildBiomeTransitions([own]).get(own.id)!
+    for (const neighbor of [other, { ...other, charted: false }]) {
+      const loaded = buildBiomeTransitions([own, neighbor]).get(own.id)!
+      expect(loaded.edges).toEqual(unloaded.edges)
+      expect(loaded.corners).toEqual(unloaded.corners)
+      expect(loaded.treeRegions).toEqual(unloaded.treeRegions)
+      expect(loaded.key).toBe(unloaded.key)
+    }
+  })
+
+  it('retains every unchanged biome raster while the canonical 49-sector scene advances', () => {
+    const view = (sectorId: string, x: number) =>
+      projectWorld({ ...newWorldState(), position: { sectorId, x, y: 4 } }, [], 1000)
+    const before = worldRenderTerrain(view('atlas:58:28', 12))
+    const after = worldRenderTerrain(view('atlas:59:28', 3), before)
+    expect(before).toHaveLength(49)
+    expect(after).toHaveLength(49)
+    const old = buildBiomeTransitions(before)
+    const next = buildBiomeTransitions(after)
+    const shared = after.filter((entry) => old.has(entry.id))
+    expect(shared).toHaveLength(46)
+    for (const entry of shared) {
+      const previous = old.get(entry.id)!
+      const current = next.get(entry.id)!
+      expect(current.edges).toEqual(previous.edges)
+      expect(current.corners).toEqual(previous.corners)
+      expect(current.treeRegions).toEqual(previous.treeRegions)
+      expect(current.key, entry.id).toBe(previous.key)
+    }
   })
 
   it('does not blend into absent, private, unpositioned, or nonadjacent sectors', () => {
@@ -280,6 +318,23 @@ describe('Frostmere–Starfall vegetation', () => {
       expect(mixedTrees(snowy, [snowy, ...neighbors])).toEqual([])
     }
     expect(mixedTrees(frost(), [frost(), high])).toEqual([])
+  })
+
+  it('invalidates mixed-tree material when a supplied neighbor becomes a town or authored grove', () => {
+    const snowy = withTrees(frost())
+    const high = highlands()
+    const original = buildBiomeTransitions([snowy, high]).get(snowy.id)!
+    expect(original.treeRegions?.size).toBeGreaterThan(0)
+    for (const neighbor of [
+      { ...high, townId: high.regionId },
+      { ...high, landscape: 'autumn' as const },
+    ]) {
+      const changed = buildBiomeTransitions([snowy, neighbor]).get(snowy.id)!
+      expect(changed.edges).toEqual(original.edges)
+      expect(changed.corners).toEqual(original.corners)
+      expect(changed.treeRegions).toBeUndefined()
+      expect(changed.key).not.toBe(original.key)
+    }
   })
 })
 

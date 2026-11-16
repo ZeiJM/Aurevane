@@ -1,10 +1,111 @@
+import { createHash } from 'node:crypto'
 import { describe, expect, it, vi } from 'vitest'
-import { installWorldRenderTiming, installWorldPeerDrawCapture } from './world-render-diagnostics'
+import {
+  hashWorldBackingPixels,
+  installWorldRenderTiming,
+  installWorldPeerDrawCapture,
+  readWorldPeerDrawCapture,
+  readWorldRenderTiming,
+  startWorldFrameCounting,
+} from './world-render-diagnostics'
+
+describe('precise native frame count startup', () => {
+  it('waits for a newly completed count instead of returning the old statistics batch', async () => {
+    let notify!: () => void
+    const disconnect = vi.fn()
+    const observe = vi.fn()
+    vi.stubGlobal(
+      'MutationObserver',
+      class {
+        constructor(callback: () => void) {
+          notify = callback
+        }
+        observe = observe
+        disconnect = disconnect
+      },
+    )
+    try {
+      const canvas = { dataset: { renderFrames: '120' } } as unknown as HTMLCanvasElement
+      const ready = startWorldFrameCounting(canvas)
+      let resolved = false
+      void ready.then(() => {
+        resolved = true
+      })
+      await Promise.resolve()
+      expect(resolved).toBe(false)
+      expect(canvas.dataset.renderDiagnostics).toBe('frames')
+      expect(observe).toHaveBeenCalledWith(canvas, {
+        attributes: true,
+        attributeFilter: ['data-render-frames'],
+      })
+      canvas.dataset.renderFrames = '137'
+      notify()
+      await expect(ready).resolves.toBe(137)
+      expect(disconnect).toHaveBeenCalledOnce()
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it.each(['0', '-1', 'NaN', '1.5'])('rejects malformed completed counts (%s)', async (value) => {
+    let notify!: () => void
+    const disconnect = vi.fn()
+    vi.stubGlobal(
+      'MutationObserver',
+      class {
+        constructor(callback: () => void) {
+          notify = callback
+        }
+        observe() {}
+        disconnect = disconnect
+      },
+    )
+    try {
+      const canvas = { dataset: {} } as HTMLCanvasElement
+      const ready = startWorldFrameCounting(canvas)
+      canvas.dataset.renderFrames = value
+      notify()
+      await expect(ready).rejects.toThrow('Invalid completed frame count')
+      expect(disconnect).toHaveBeenCalledOnce()
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+})
+
+function observedDataset() {
+  const observers: { callback: () => void; attributes: string[] }[] = []
+  vi.stubGlobal(
+    'MutationObserver',
+    class {
+      constructor(private callback: () => void) {}
+      observe(_target: unknown, options: MutationObserverInit) {
+        observers.push({ callback: this.callback, attributes: options.attributeFilter ?? [] })
+      }
+    },
+  )
+  const queued = new Set<() => void>()
+  return new Proxy({} as Record<string, string>, {
+    set(target, key: string, value: string) {
+      target[key] = value
+      const attribute = `data-${key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}`
+      for (const observer of observers) {
+        if (!observer.attributes.includes(attribute) || queued.has(observer.callback)) continue
+        queued.add(observer.callback)
+        queueMicrotask(() => {
+          queued.delete(observer.callback)
+          observer.callback()
+        })
+      }
+      return true
+    },
+  })
+}
 
 function capture() {
   const draw = vi.fn()
   const context = { fillText: draw }
-  const canvas = { dataset: {} as Record<string, string> } as HTMLCanvasElement
+  const canvas = { dataset: observedDataset() } as HTMLCanvasElement
   vi.stubGlobal('document', { querySelector: () => ({ getContext: () => context }) })
   installWorldRenderTiming(canvas)
   return { canvas, context, draw }
@@ -25,14 +126,54 @@ const frame = (frameAt: number) => ({
   groundBuildMs: 7,
   groundResamples: 0,
   groundResampleMs: 0,
+  biomeRasterBuilds: 3,
+  biomeRasters: 12,
+  biomeRasterPixels: 600_000,
   prepareMs: 0,
   terrainMs: 7,
   sceneryMs: 22,
+  wildlifePartBuilds: 5,
+  wildlifePartPixels: 120_000,
+  weatherVeilBuilds: 1,
+  weatherVeilPixels: 1_175_056,
   atmosphereMs: 0,
   identityMs: 11,
 })
 
 describe('native renderer timing capture', () => {
+  it('reuses one timing observer when a later movement phase resets capture', () => {
+    let observers = 0
+    vi.stubGlobal(
+      'MutationObserver',
+      class {
+        constructor() {}
+        observe() {
+          observers++
+        }
+      },
+    )
+    const canvas = { dataset: {} } as HTMLCanvasElement
+    try {
+      installWorldRenderTiming(canvas)
+      installWorldRenderTiming(canvas)
+      expect(observers).toBe(1)
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+  it('captures completed frames while the identity surface is retained without fillText', async () => {
+    const { canvas } = capture()
+    try {
+      canvas.dataset.renderTiming = JSON.stringify(frame(10))
+      await Promise.resolve()
+      canvas.dataset.renderTiming = JSON.stringify(frame(20))
+      await Promise.resolve()
+      expect(readWorldRenderTiming(canvas)).toEqual([frame(10), frame(20)])
+      expect(canvas.dataset.testRenderTimings).toBeUndefined()
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
   it('captures completed frame work after the original identity draw and omits raw fields', async () => {
     const { canvas, context, draw } = capture()
     try {
@@ -52,8 +193,9 @@ describe('native renderer timing capture', () => {
         url: 'secret-url',
       })
       await Promise.resolve()
-      const raw = canvas.dataset.testRenderTimings!
-      expect(JSON.parse(raw)).toEqual([frame(20)])
+      const rows = readWorldRenderTiming(canvas)
+      expect(rows).toEqual([frame(20)])
+      const raw = JSON.stringify(rows)
       for (const forbidden of ['private-name', 'private-id', 'secret-url'])
         expect(raw).not.toContain(forbidden)
     } finally {
@@ -69,8 +211,8 @@ describe('native renderer timing capture', () => {
         canvas.dataset.renderTiming = JSON.stringify(frame(i))
         await Promise.resolve()
       }
-      expect(canvas.dataset.testRenderTimings).toBeDefined()
-      const rows = JSON.parse(canvas.dataset.testRenderTimings!)
+      expect(canvas.dataset.testRenderTimings).toBeUndefined()
+      const rows = readWorldRenderTiming(canvas)
       expect(rows).toHaveLength(1500)
       expect(rows[0]).toEqual(frame(2))
       expect(rows.at(-1)).toEqual(frame(1501))
@@ -83,7 +225,7 @@ describe('native renderer timing capture', () => {
         context.fillText('peer', 4, 5)
         await Promise.resolve()
       }
-      expect(JSON.parse(canvas.dataset.testRenderTimings!)).toEqual(rows)
+      expect(readWorldRenderTiming(canvas)).toEqual(rows)
     } finally {
       vi.unstubAllGlobals()
     }
@@ -91,18 +233,95 @@ describe('native renderer timing capture', () => {
 })
 
 describe('native peer draw capture', () => {
+  it('reuses one patched identity context and observer when a later phase resets capture', () => {
+    let observers = 0
+    vi.stubGlobal(
+      'MutationObserver',
+      class {
+        constructor() {}
+        observe() {
+          observers++
+        }
+      },
+    )
+    const context = { fillText: vi.fn(), clearRect: vi.fn() }
+    const identity = { getContext: () => context }
+    const canvas = { dataset: {} } as HTMLCanvasElement
+    vi.stubGlobal('document', { querySelector: () => identity })
+    try {
+      installWorldPeerDrawCapture(canvas, {
+        name: 'First peer',
+        sampleKey: 'testRemoteDraws',
+        limit: 20,
+      })
+      const fillText = context.fillText
+      const clearRect = context.clearRect
+      installWorldPeerDrawCapture(canvas, {
+        name: 'Second peer',
+        sampleKey: 'testMovingObserverDraws',
+        limit: 20,
+      })
+      expect(observers).toBe(1)
+      expect(context.fillText).toBe(fillText)
+      expect(context.clearRect).toBe(clearRect)
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+  it('samples a retained real nameplate as its moving camera advances, then drops cleared labels', async () => {
+    const context = { fillText: vi.fn(), clearRect: vi.fn() }
+    const identity = { clientWidth: 800, clientHeight: 600, width: 800, getContext: () => context }
+    const canvas = { dataset: observedDataset() } as HTMLCanvasElement
+    Object.assign(canvas.dataset, {
+      tileSize: '64',
+      frameNow: '100',
+      frameStarted: '100',
+      cameraX: '10',
+      cameraY: '20',
+    })
+    vi.stubGlobal('document', { querySelector: () => identity })
+    const clock = vi.spyOn(performance, 'now').mockReturnValue(110)
+    try {
+      installWorldPeerDrawCapture(canvas, { name: 'Peer', sampleKey: 'testRemoteDraws', limit: 20 })
+      context.fillText('Peer', 454.4, 328.16)
+      await Promise.resolve()
+      // Identical relative positions retain the actual painted label. World x
+      // still advances with the camera, even though fillText is never repeated.
+      clock.mockReturnValue(130)
+      canvas.dataset.cameraX = '10.1'
+      canvas.dataset.frameNow = '120'
+      await Promise.resolve()
+      const samples = readWorldPeerDrawCapture(canvas)
+      expect(canvas.dataset.testRemoteDraws).toBeUndefined()
+      expect(samples).toHaveLength(2)
+      expect(samples[1].x - samples[0].x).toBeCloseTo(0.1)
+      expect(samples[1].screenX).toBe(samples[0].screenX)
+      expect(samples.map((sample) => sample.frameAt)).toEqual([100, 120])
+      canvas.dataset.frameNow = '120'
+      await Promise.resolve()
+      expect(readWorldPeerDrawCapture(canvas)).toEqual(samples)
+      // A frame that removes or occludes the peer must not reuse its old label.
+      context.clearRect(0, 0, 800, 600)
+      canvas.dataset.frameNow = '140'
+      await Promise.resolve()
+      expect(readWorldPeerDrawCapture(canvas)).toEqual(samples)
+    } finally {
+      clock.mockRestore()
+      vi.unstubAllGlobals()
+    }
+  })
   it('removes camera settling from a stationary peer while retaining actual frame/paint clocks', () => {
     const draw = vi.fn()
-    const context = { fillText: draw }
+    const context = { fillText: draw, clearRect: vi.fn() }
     const identity = { clientWidth: 800, clientHeight: 600, width: 800, getContext: () => context }
     const canvas = {
-      dataset: {
+      dataset: Object.assign(observedDataset(), {
         tileSize: '64',
         frameNow: '100',
         frameStarted: '190',
         cameraX: '10',
         cameraY: '20',
-      },
+      }),
     } as unknown as HTMLCanvasElement
     vi.stubGlobal('document', { querySelector: () => identity })
     const clock = vi.spyOn(performance, 'now').mockReturnValue(200)
@@ -113,7 +332,7 @@ describe('native peer draw capture', () => {
       canvas.dataset.cameraX = '10.5'
       clock.mockReturnValue(210)
       context.fillText('Peer', 427.2, 314.08, 100)
-      const samples = JSON.parse(canvas.dataset.testRemoteDraws!)
+      const samples = readWorldPeerDrawCapture(canvas)
       expect(samples).toHaveLength(2)
       for (const sample of samples) {
         expect(sample.x).toBeCloseTo(11)
@@ -121,19 +340,53 @@ describe('native peer draw capture', () => {
         expect(sample.tileSize).toBe(64)
         expect(sample.identityRatio).toBe(1)
       }
-      expect(samples.map((sample: { frameAt: number }) => sample.frameAt)).toEqual([100, 116.7])
-      expect(samples.map((sample: { at: number }) => sample.at)).toEqual([200, 210])
+      expect(samples.map((sample) => sample.frameAt)).toEqual([100, 116.7])
+      expect(samples.map((sample) => sample.at)).toEqual([200, 210])
       expect(draw.mock.calls).toEqual([
         ['Peer', 454.4, 328.16],
         ['Peer', 427.2, 314.08, 100],
       ])
       context.fillText('Other', 1, 2)
-      expect(JSON.parse(canvas.dataset.testRemoteDraws!)).toHaveLength(2)
+      expect(readWorldPeerDrawCapture(canvas)).toHaveLength(2)
       context.fillText('Peer', 427.2, 314.08)
-      expect(JSON.parse(canvas.dataset.testRemoteDraws!)).toHaveLength(2)
-      expect(canvas.dataset.testRemoteDraws).not.toContain('Peer')
+      expect(readWorldPeerDrawCapture(canvas)).toHaveLength(2)
+      expect(JSON.stringify(readWorldPeerDrawCapture(canvas))).not.toContain('Peer')
     } finally {
       clock.mockRestore()
+      vi.unstubAllGlobals()
+    }
+  })
+})
+
+describe('non-destructive exact backing pixel hashing', () => {
+  it('hashes every native pixel through a readback-only copy without reading the live drawing context', async () => {
+    const pixels = new Uint8ClampedArray([10, 20, 30, 255, 40, 50, 60, 255])
+    const getLiveContext = vi.fn(() => {
+      throw new Error('Live canvas readback changes its rendering backend')
+    })
+    const bitmap = {
+      width: 2,
+      height: 1,
+      clientWidth: 800,
+      getContext: getLiveContext,
+    } as unknown as HTMLCanvasElement
+    const drawImage = vi.fn()
+    const getImageData = vi.fn(() => ({ data: pixels }))
+    const getContext = vi.fn(() => ({ drawImage, getImageData, globalCompositeOperation: '' }))
+    const copy = { width: 0, height: 0, getContext }
+    vi.stubGlobal('document', { createElement: () => copy })
+    try {
+      const first = await hashWorldBackingPixels(bitmap)
+      expect(first).toBe(createHash('sha256').update(pixels).digest('hex'))
+      expect(copy.width).toBe(2)
+      expect(copy.height).toBe(1)
+      expect(getContext).toHaveBeenCalledWith('2d', { alpha: false, willReadFrequently: true })
+      expect(drawImage).toHaveBeenCalledWith(bitmap, 0, 0)
+      expect(getImageData).toHaveBeenCalledWith(0, 0, 2, 1)
+      expect(getLiveContext).not.toHaveBeenCalled()
+      pixels[0]++
+      expect(await hashWorldBackingPixels(bitmap)).not.toBe(first)
+    } finally {
       vi.unstubAllGlobals()
     }
   })

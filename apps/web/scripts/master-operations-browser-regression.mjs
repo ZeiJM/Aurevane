@@ -400,7 +400,9 @@ try {
           })
           .check()
         await reader.getByRole('button', { name: 'Teleport player', exact: true }).click()
-        await expect(reader.getByRole('status')).toContainText('Player teleported')
+        await expect(reader.getByRole('status')).toHaveText(
+          'Teleport committed to void:ivory-veil:33:0, X:6, Y:4 (version 1). The previous route was cancelled.',
+        )
         const teleport = await page.evaluate(() => window.__operationsRequests.at(-1).body)
         assert.equal(teleport.operation, 'teleport')
         assert.deepEqual(teleport.destination, {
@@ -408,7 +410,7 @@ try {
           sectorNumber: 34,
           x: 6,
           y: 4,
-          geometryVersion: '2026-11-12-v2',
+          geometryVersion: '2026-11-14-v4',
         })
         assert.equal(teleport.reason, 'Reviewed location repair')
         assert.equal(teleport.confirmed, true)

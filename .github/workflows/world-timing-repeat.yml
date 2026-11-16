@@ -3,11 +3,32 @@ name: World timing repeat validation
 on:
   pull_request:
     paths:
+      - 'apps/web/src/components/world/map-renderer.ts'
+      - 'apps/web/src/components/world/map-ground-projection.ts'
+      - 'apps/web/src/components/world/map-ground-projection.test.ts'
+      - 'apps/web/src/components/world/map-biome-transitions.ts'
+      - 'apps/web/src/components/world/map-settlement-edge.ts'
+      - 'apps/web/src/components/world/map-coast.ts'
+      - 'apps/web/src/components/world/map-coast.test.ts'
+      - 'apps/web/src/components/world/map-water.ts'
+      - 'apps/web/src/components/world/map-water.test.ts'
+      - 'apps/web/src/components/world/map-settlement-edge.test.ts'
+      - 'apps/web/e2e/atlas-world.pw.ts'
+      - 'apps/web/e2e/world-read-observation.ts'
+      - 'apps/web/e2e/world-read-observation.test.ts'
+      - 'apps/web/e2e/world-ground-click-sequence.ts'
+      - 'apps/web/e2e/world-ground-click-sequence.test.ts'
       - 'apps/web/e2e/world-presence-case.ts'
+      - 'apps/web/e2e/world-browser-task-trace.ts'
+      - 'apps/web/e2e/world-browser-task-trace.test.ts'
+      - 'apps/web/e2e/world-movement-profile.ts'
+      - 'apps/web/e2e/world-movement-profile.test.ts'
       - 'apps/web/e2e/world-presence-diagnostics.ts'
       - 'apps/web/e2e/world-presence-diagnostics.test.ts'
       - 'apps/web/e2e/world-timing-metrics.ts'
       - 'apps/web/e2e/world-timing-metrics.test.ts'
+      - 'apps/web/e2e/world-render-diagnostics.ts'
+      - 'apps/web/e2e/world-render-diagnostics.test.ts'
       - '.github/workflows/world-timing-repeat.yml'
   workflow_dispatch:
 
@@ -30,8 +51,11 @@ jobs:
       - run: corepack enable && corepack prepare pnpm@11.17.0 --activate
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @aurevane/web exec playwright install --with-deps chromium
-      - run: pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
-      - name: Repeat both World timing tests twenty times
+      - run: |
+          python .github/scripts/configure-discipline-test-mail.test.py
+          python .github/scripts/configure-discipline-test-mail.py
+          pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
+      - name: Validate mobile crowd and repeat World movement twenty times
         shell: bash
         run: |
           set -euo pipefail
@@ -50,8 +74,14 @@ jobs:
             select public.activate_phase4_discipline_rebalance_v1();
           "
           pnpm --filter @aurevane/web exec playwright test e2e/atlas-world.pw.ts \
+            --project=mobile-chromium --workers=1 --repeat-each=3 --retries=0 \
+            --output=test-results/mobile-crowd \
+            --grep 'a synthetic population of 100 has bounded rendering' \
+            --reporter=list,github
+          pnpm --filter @aurevane/web exec playwright test e2e/atlas-world.pw.ts \
             --project=desktop-chromium --workers=1 --repeat-each=20 --retries=0 \
-            --grep 'known neighbouring players follow the visible viewport|holding WASD walks repeatedly' \
+            --output=test-results/desktop-movement \
+            --grep 'known neighbouring players follow the visible viewport|holding WASD walks repeatedly|rapid ground clicks settle at the last legal tile' \
             --reporter=list,github
       - name: Save compact repeat boundary and motion evidence
         if: always()
@@ -63,9 +93,17 @@ jobs:
             apps/web/test-results/**/world-live-peer-delivery.json
             apps/web/test-results/**/world-live-peer-interpolation.json
             apps/web/test-results/**/world-both-moving-peer-*.json
+            apps/web/test-results/**/world-moving-cpu-*.cpuprofile
+            apps/web/test-results/**/world-browser-tasks.json
             apps/web/test-results/**/world-presence-boundaries.json
             apps/web/test-results/**/world-presence-cleanup.json
             apps/web/test-results/**/attachments/held-walk-approval-timings-*.json
+            apps/web/test-results/**/attachments/rapid-ground-click-intents-*.json
+            apps/web/test-results/**/synthetic-world-render-cost.json
+            apps/web/test-results/**/attachments/synthetic-world-render-cost-*.json
+            apps/web/test-results/**/error-context.md
+            apps/web/test-results/**/atlas-world.pw.ts-rapid-*/trace.zip
+            apps/web/test-results/**/atlas-world.pw.ts-a-synthe-*/trace.zip
           if-no-files-found: error
           retention-days: 7
       - name: Stop disposable database

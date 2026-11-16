@@ -81,19 +81,16 @@ beforeEach(() => {
 })
 
 describe('globe geographic labels', () => {
-  it('uses stable sector numbers in both pickers, ordered by geographic row', () => {
+  it('shows named locations on the globe without cluttering the view with duplicate pickers', () => {
     const south = atlasCell(0, 2, 'South town')
     const north = atlasCell(85, 1, 'North town')
     const view = viewFor([south, north])
     const markup = render(view)
-    expect(markup).toContain('Sector 214 · North town')
-    expect(markup).toContain('North town · Sector 214')
-    expect(markup).toContain('Sector 257 · South town')
+    expect(markup).toContain('World Atlas')
+    expect(markup).toContain('South town')
+    expect(markup).not.toContain('Find a town')
+    expect(markup).not.toContain('Known Lands')
     expect(markup).not.toContain('S86-02')
-    expect(markup.indexOf('Sector 214 · North town')).toBeLessThan(
-      markup.indexOf('Sector 257 · South town'),
-    )
-    expect(render(viewFor([north]))).toContain('Sector 214 · North town')
     expect(view.atlas).toEqual([south, north])
   })
   it('retains raw globe coordinates and persisted sector IDs for location selection', () => {
@@ -108,9 +105,9 @@ describe('globe geographic labels', () => {
     capture.sphere?.onActivate?.(globeSectorCenter('S01-01', 128, 64)!)
     expect(onSelect).toHaveBeenLastCalledWith(null)
   })
-  it('names the veiled landmass as the Uncharted supercontinent', () => {
+  it('names the private landmass as Uncharted Lands without revealing its coordinates', () => {
     const markup = render(viewFor([atlasCell(85, 1, 'North town')]))
-    expect(markup).toContain('Uncharted supercontinent')
+    expect(markup).toContain('Focus Uncharted Lands')
     expect(markup).not.toMatch(/Uncharted waters/i)
   })
   it('does not add private Void destinations to the charted pickers', () => {
