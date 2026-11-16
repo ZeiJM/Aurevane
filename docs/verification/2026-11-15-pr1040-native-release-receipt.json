@@ -1,171 +1,125 @@
 {
   "schema_version": 2,
   "evidence_only": "Never merge or deploy this receipt branch or its commits.",
-  "candidate": "76673cb3213baa52b0779bb8fbd6f4523cd70484",
-  "expected_tree": "6f65664a208a57e927a0531fb0b731729c7c0867",
-  "expected_parent": "994b2ef0fa156c18ef33b59b8a4c503f5654f3ed",
+  "candidate": "5cd4140878ba41b7dc78a79f2580f2c99c4e03d2",
+  "expected_tree": "24308f36a0445c7ab998953a414094c1049e60d4",
+  "expected_parent": "76673cb3213baa52b0779bb8fbd6f4523cd70484",
   "main_baseline": "d32cabd7f626b650df5c5eacf6a85a4457fc1f85",
-  "release_status": "13 exact-head workflows successful; Living Atlas failed/cancelled after two demonstrated native assertions; Browser Smoke still running; repair preserved on WIP branch; no production action",
-  "observed_after_pr_update_at_utc": "2026-11-16T12:31:46.810Z",
+  "release_status": "All 15 fresh exact-head workflows started automatically for the immutable canopy candidate; acceptance pending; no production action",
+  "observed_after_pr_update_at_utc": "2026-11-16T12:50:41.480Z",
   "checks_snapshot": {
-    "candidate": "76673cb3213baa52b0779bb8fbd6f4523cd70484",
+    "candidate": "5cd4140878ba41b7dc78a79f2580f2c99c4e03d2",
     "all_15_started_automatically": true,
-    "successful_count": 13,
-    "running_count": 1,
+    "successful_count": 0,
+    "running_count": 15,
     "workflows": [
       {
-        "run_id": 43851279914,
-        "name": "Discipline Build DB",
-        "status": "completed",
-        "conclusion": "success"
-      },
-      {
-        "run_id": 43851280062,
-        "name": "Attribute Allocation",
-        "status": "completed",
-        "conclusion": "success"
-      },
-      {
-        "run_id": 43851280220,
-        "name": "Wayfarer's Practice DB",
-        "status": "completed",
-        "conclusion": "success"
-      },
-      {
-        "run_id": 43851280143,
-        "name": "Mobile audit",
-        "status": "completed",
-        "conclusion": "success"
-      },
-      {
-        "run_id": 43851279828,
-        "name": "Living Atlas browser",
-        "status": "completed",
-        "conclusion": "cancelled"
-      },
-      {
-        "run_id": 43851279979,
-        "name": "Combat and mobile layout regressions",
-        "status": "completed",
-        "conclusion": "success"
-      },
-      {
-        "run_id": 43851280138,
-        "name": "Foundation Security DB",
-        "status": "completed",
-        "conclusion": "success"
-      },
-      {
-        "run_id": 43851279947,
-        "name": "Battle Session DB",
-        "status": "completed",
-        "conclusion": "success"
-      },
-      {
-        "run_id": 43851279938,
-        "name": "Browser smoke",
+        "run_id": 43870081833,
+        "name": "World timing repeat validation",
         "status": "in_progress",
         "conclusion": null
       },
       {
-        "run_id": 43851280181,
-        "name": "Desktop page fit",
-        "status": "completed",
-        "conclusion": "success"
+        "run_id": 43870081760,
+        "name": "Browser smoke",
+        "status": "pending",
+        "conclusion": null
       },
       {
-        "run_id": 43851279960,
+        "run_id": 43870081869,
         "name": "Desktop experience",
-        "status": "completed",
-        "conclusion": "success"
+        "status": "in_progress",
+        "conclusion": null
       },
       {
-        "run_id": 43851280154,
+        "run_id": 43870081763,
+        "name": "Mobile audit",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "run_id": 43870081748,
+        "name": "Wayfarer's Practice DB",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "run_id": 43870081850,
         "name": "Representative Buildcraft",
-        "status": "completed",
-        "conclusion": "success"
+        "status": "in_progress",
+        "conclusion": null
       },
       {
-        "run_id": 43851280098,
+        "run_id": 43870081778,
+        "name": "Battle Session DB",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "run_id": 43870081612,
+        "name": "Combat and mobile layout regressions",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "run_id": 43870081709,
+        "name": "Discipline Build DB",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "run_id": 43870081634,
+        "name": "Foundation Security DB",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "run_id": 43870081715,
+        "name": "Living Atlas browser",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "run_id": 43870081625,
+        "name": "Desktop page fit",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "run_id": 43870081684,
+        "name": "Attribute Allocation",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "run_id": 43870081645,
         "name": "CI",
-        "status": "completed",
-        "conclusion": "success"
+        "status": "in_progress",
+        "conclusion": null
       },
       {
-        "run_id": 43851280045,
-        "name": "World timing repeat validation",
-        "status": "completed",
-        "conclusion": "success"
-      },
-      {
-        "run_id": 43851280072,
+        "run_id": 43870081710,
         "name": "UI layout review",
-        "status": "completed",
-        "conclusion": "success"
+        "status": "in_progress",
+        "conclusion": null
       }
-    ],
-    "failed_or_cancelled_count": 1
+    ]
   },
   "local_validation": {
-    "focused": {
-      "files": 4,
-      "passed": 365
-    },
-    "mail_passed": 5,
-    "verification_runner_passed": 56,
-    "atlas_discovery": 222,
-    "typescript": "pass",
-    "scoped_lint_format": "pass",
-    "production_build": "pass",
-    "broad_run": {
-      "status": "failed; not a full-suite pass",
-      "web": {
-        "files": 694,
-        "passed": 9632,
-        "failed": 15
-      },
-      "other_packages": "6 pass, including7211 game-core and768 DB tests",
-      "failures": "14 deadline expirations in4 unchanged combat test files, plus old loaded tiny-width cache implementation during source edits",
-      "isolated_diagnosis": "87 cases in3 combat files plus final cache helper pass;9 selected admission cases pass under unchanged deadlines; no configured runner changes"
-    },
-    "layout_supabase_port_tests_passed": 6,
-    "layout_supabase_port_test_red_before_fix": true,
-    "supabase_service_port_tests_passed": 7,
-    "phase4_mastery_discovery": "desktop/laptop/mobile discovered; desktop executes by existing project guard",
-    "world_and_e2e_helper_tests": {
-      "files": 80,
-      "passed": 1094
-    },
-    "static_raster_tests_passed": 4,
-    "focused_resize_disposal": "pass after full source suite",
-    "water_and_renderer_tests": {
-      "files": 2,
-      "passed": 286
-    },
-    "timing_desktop_discovery": 60,
-    "diff_check": "pass",
-    "native_water_probe": {
-      "source_artifact_id": 14209972630,
-      "source_artifact_sha256": "b8e7552d9b33e0f29987be365a60993cae629aeb3eba8ee3e6769f93579dd4a2",
-      "old_median_of_medians_ms": 45.76720999999998,
-      "corrected_median_of_medians_ms": 43.57090900000003,
-      "old_terrain_median_ms": 6.715624999999818,
-      "corrected_terrain_median_ms": 4.823381000000154,
-      "old_water_60_frame_ms": 341.2579300000243,
-      "corrected_water_60_frame_ms": 226.7990730000256,
-      "old_median_p95_ms": 57.764185,
-      "corrected_median_p95_ms": 60.36241599999994,
-      "limitation": "Native Skia component model; tails noisy; not Chromium, 4x throttle or hosted acceptance"
-    }
+    "renderer_tests": "241 passed",
+    "typecheck": "passed",
+    "scoped_lint_format": "passed",
+    "optimized_production_build": "passed",
+    "broad_web_vitest": "9,655 passed; four unchanged 5-second summon-persistence cases expired under the parallel 695-file run",
+    "serialized_diagnosis": "same file passes all 16 cases with original deadlines and one worker",
+    "native_probe": "32 additional immutable crop transfers consistently created and closed; timings noisy and not Chromium acceptance"
   },
   "repair": {
-    "summary": "Cache immutable WaterCell shoreline Path2D by current tile size, reuse the renderer-owned transformed canvas state, and keep the Atlas ground observer representation-aware.",
-    "production_scope": "Water motion geometry allocation and native test observation only; dynamic phases, count, cadence, art, native density, gameplay, migrations and acceptance unchanged.",
-    "failing_before": [
-      "Repeated same-cell clip regression constructed no retained Path2D.",
-      "Renderer-owned water motion performed a redundant inner save/restore.",
-      "Living Atlas observer ignored ImageBitmap ground sources and produced NaN."
-    ]
+    "summary": "Transfer 32 bounded reusable native-density biome crop canvases to immutable ImageBitmap resources.",
+    "demonstrated_cause": "The failed Atlas trace recorded 3,448 mutable-canvas snapshots and 3.659 seconds of final resource production across 47 two-page renderer frames while median renderer paint work remained 7.6/9.2ms.",
+    "preserved": "Crop coordinates, CSS geometry, native density, tree motion/shear, smoothing, 64-entry/four-million-pixel bounds, direct fallback, thresholds, deadlines, retries, gameplay, authority and migrations.",
+    "lifecycle": "Resize, LRU eviction and disposal close owned images.",
+    "red_green": "The exact canopy transfer/reuse/closure regression failed before the correction and passes after it."
   },
   "acceptance_limits": [
     "All configured checks on candidate994b2ef0 remain required, including complete Chromium/final Edge, Living Atlas/PG17 and all63 timing cases.",
@@ -758,117 +712,104 @@
       "review_limit_bytes": 536870912
     }
   },
-  "current_candidate_timing": {
+  "previous_candidate_766": {
     "candidate": "76673cb3213baa52b0779bb8fbd6f4523cd70484",
-    "run_id": 43851280045,
-    "job_id": 133244169605,
-    "conclusion": "success",
-    "mobile_cases": {
-      "passed": 3,
-      "repeat_each": 3,
-      "retries": 0,
-      "workers": 1
-    },
-    "desktop_cases": {
-      "passed": 60,
-      "repeat_each": 20,
-      "retries": 0,
-      "workers": 1
-    },
-    "total_cases_passed": 63,
-    "artifact": {
-      "id": 14220586833,
-      "name": "world-timing-repeat-evidence",
-      "size_bytes": 3963009,
-      "sha256": "1ac7a64c70abbb51be6a762949a1e8b8864a83cdbcd35ca1b554c147990f69a4",
-      "downloaded_and_hash_verified": true
-    },
-    "mobile_crowd_render_frames": {
-      "repeat0": {
-        "baseline": 135,
-        "final": 269,
-        "delta": 134,
-        "frame_p95_ms": 11
+    "expected_tree": "6f65664a208a57e927a0531fb0b731729c7c0867",
+    "timing": {
+      "candidate": "76673cb3213baa52b0779bb8fbd6f4523cd70484",
+      "run_id": 43851280045,
+      "job_id": 133244169605,
+      "conclusion": "success",
+      "mobile_cases": {
+        "passed": 3,
+        "repeat_each": 3,
+        "retries": 0,
+        "workers": 1
       },
-      "repeat1": {
-        "baseline": 70,
-        "final": 217,
-        "delta": 147,
-        "frame_p95_ms": 10
+      "desktop_cases": {
+        "passed": 60,
+        "repeat_each": 20,
+        "retries": 0,
+        "workers": 1
       },
-      "repeat2": {
-        "baseline": 78,
-        "final": 227,
-        "delta": 149,
-        "frame_p95_ms": 9
-      }
-    },
-    "qualification": "One hosted exact-head run passed all 63 original zero-retry cases; this is required acceptance evidence, not a universal stability or physical-handset claim."
-  },
-  "current_candidate_atlas": {
-    "candidate": "76673cb3213baa52b0779bb8fbd6f4523cd70484",
-    "run_id": 43851279828,
-    "job_id": 133244168470,
-    "conclusion": "cancelled",
-    "completed_before_cancellation": {
-      "pg17_atomic_release_transaction": "success",
-      "authenticated_story_cases_passed": 15
-    },
-    "demonstrated_failures": [
-      {
-        "case": "known neighbouring players follow the visible viewport with service-only presence authority",
-        "expected_positive_deltas": ">8",
-        "observed_positive_deltas": 7
+      "total_cases_passed": 63,
+      "artifact": {
+        "id": 14220586833,
+        "name": "world-timing-repeat-evidence",
+        "size_bytes": 3963009,
+        "sha256": "1ac7a64c70abbb51be6a762949a1e8b8864a83cdbcd35ca1b554c147990f69a4",
+        "downloaded_and_hash_verified": true
       },
-      {
-        "case": "a synthetic population of 100 has bounded rendering at high DPI and lower CPU speed",
-        "expected_completed_frames": ">274",
-        "observed_at_deadline": 274,
-        "finally_recorded": 292
-      }
-    ],
-    "compact_artifact": {
-      "id": 14222718157,
-      "name": "living-atlas-evidence",
-      "size_bytes": 55563085,
-      "sha256": "b6777161baf530e80853750c87d8c9f990ac9b6cc0d44e88f0acad63f45d9522",
-      "downloaded_and_hash_verified": true
+      "mobile_crowd_render_frames": {
+        "repeat0": {
+          "baseline": 135,
+          "final": 269,
+          "delta": 134,
+          "frame_p95_ms": 11
+        },
+        "repeat1": {
+          "baseline": 70,
+          "final": 217,
+          "delta": 147,
+          "frame_p95_ms": 10
+        },
+        "repeat2": {
+          "baseline": 78,
+          "final": 227,
+          "delta": 149,
+          "frame_p95_ms": 9
+        }
+      },
+      "qualification": "One hosted exact-head run passed all 63 original zero-retry cases; this is required acceptance evidence, not a universal stability or physical-handset claim."
     },
-    "full_artifact": {
-      "id": 14222408959,
-      "size_bytes": 921584818,
-      "sha256": "9a3081f9c2a328f84a209adcb119d561eabfa653753526fd45f8116ee675ab1e",
-      "reviewed": false,
-      "limitation": "Exceeds the 512 MB connector download bound."
-    },
-    "trace_diagnosis": {
-      "completed_renderer_frames_across_two_pages": 47,
-      "canvas_resource_productions": 92,
-      "canvas_resource_production_total_ms": 3659.168,
-      "mutable_canvas_snapshots": 3448,
-      "peer_paint_median_ms": [
-        7.6,
-        9.2
+    "atlas": {
+      "candidate": "76673cb3213baa52b0779bb8fbd6f4523cd70484",
+      "run_id": 43851279828,
+      "job_id": 133244168470,
+      "conclusion": "cancelled",
+      "completed_before_cancellation": {
+        "pg17_atomic_release_transaction": "success",
+        "authenticated_story_cases_passed": 15
+      },
+      "demonstrated_failures": [
+        {
+          "case": "known neighbouring players follow the visible viewport with service-only presence authority",
+          "expected_positive_deltas": ">8",
+          "observed_positive_deltas": 7
+        },
+        {
+          "case": "a synthetic population of 100 has bounded rendering at high DPI and lower CPU speed",
+          "expected_completed_frames": ">274",
+          "observed_at_deadline": 274,
+          "finally_recorded": 292
+        }
       ],
-      "cause": "Repeated native-density biome crop canvases are snapshotted before final stage/identity resource production."
-    }
-  },
-  "current_atlas_repair_wip": {
-    "branch": "agent/pr1040-atlas-repair-76673c",
-    "commit": "46d86e168f073b4270ac48ac6589367abe3cfdf3",
-    "tree": "5641741269eada4b362bdd545b5ac8a2edf95707",
-    "parent": "76673cb3213baa52b0779bb8fbd6f4523cd70484",
-    "pr_head_updated": false,
-    "change": "Transfer 32 reusable native-density biome crop canvases to immutable ImageBitmap resources; retain exact crop/geometry/motion/cache bounds and direct fallback; close on resize, eviction and disposal.",
-    "red_green": "The canopy transfer/lifecycle regression failed before the change and passes after it.",
-    "local_validation": {
-      "renderer_tests": "241 passed",
-      "types": "passed",
-      "scoped_lint_format": "passed",
-      "optimized_build": "passed",
-      "broad_web_vitest": "9655 passed, 4 unchanged 5-second summon-persistence deadlines failed under the parallel 695-file run",
-      "serialized_diagnosis": "same roster-legal-summon-services file passed all 16 cases with original deadlines and one worker",
-      "native_probe_limit": "32 additional immutable transfers consistently created/closed; timing pairs noisy and not a Chromium acceptance claim"
-    }
+      "compact_artifact": {
+        "id": 14222718157,
+        "name": "living-atlas-evidence",
+        "size_bytes": 55563085,
+        "sha256": "b6777161baf530e80853750c87d8c9f990ac9b6cc0d44e88f0acad63f45d9522",
+        "downloaded_and_hash_verified": true
+      },
+      "full_artifact": {
+        "id": 14222408959,
+        "size_bytes": 921584818,
+        "sha256": "9a3081f9c2a328f84a209adcb119d561eabfa653753526fd45f8116ee675ab1e",
+        "reviewed": false,
+        "limitation": "Exceeds the 512 MB connector download bound."
+      },
+      "trace_diagnosis": {
+        "completed_renderer_frames_across_two_pages": 47,
+        "canvas_resource_productions": 92,
+        "canvas_resource_production_total_ms": 3659.168,
+        "mutable_canvas_snapshots": 3448,
+        "peer_paint_median_ms": [
+          7.6,
+          9.2
+        ],
+        "cause": "Repeated native-density biome crop canvases are snapshotted before final stage/identity resource production."
+      }
+    },
+    "conclusion": "Timing passed all 63 zero-retry cases; Atlas failed two native assertions before its 60-minute limit."
   }
 }
