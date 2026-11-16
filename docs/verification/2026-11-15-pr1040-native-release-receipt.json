@@ -1,103 +1,103 @@
 {
   "schema_version": 2,
   "evidence_only": "Never merge or deploy this receipt branch or its commits.",
-  "candidate": "994b2ef0fa156c18ef33b59b8a4c503f5654f3ed",
-  "expected_tree": "2145b16ab92fb9565e33a3412bc732ef7a9b9d67",
-  "expected_parent": "ac9d6e3d80dea5f728be9c2e09f1a2c0eb7b8acc",
+  "candidate": "76673cb3213baa52b0779bb8fbd6f4523cd70484",
+  "expected_tree": "6f65664a208a57e927a0531fb0b731729c7c0867",
+  "expected_parent": "994b2ef0fa156c18ef33b59b8a4c503f5654f3ed",
   "main_baseline": "d32cabd7f626b650df5c5eacf6a85a4457fc1f85",
-  "release_status": "Fresh configured workflows triggered automatically; native acceptance pending; no production action",
-  "observed_after_pr_update_at_utc": "2026-11-16T08:46:20.063Z",
+  "release_status": "All15 exact-head workflows started automatically; native acceptance pending; no production action",
+  "observed_after_pr_update_at_utc": "2026-11-16T10:44:43.456Z",
   "checks_snapshot": {
-    "candidate": "994b2ef0fa156c18ef33b59b8a4c503f5654f3ed",
+    "candidate": "76673cb3213baa52b0779bb8fbd6f4523cd70484",
     "all_15_started_automatically": true,
     "workflows": [
       {
-        "run_id": 43833836129,
-        "name": "Browser smoke",
-        "status": "pending",
-        "conclusion": null
-      },
-      {
-        "run_id": 43833835704,
-        "name": "Attribute Allocation",
-        "status": "in_progress",
-        "conclusion": null
-      },
-      {
-        "run_id": 43833835726,
-        "name": "Discipline Build DB",
-        "status": "in_progress",
-        "conclusion": null
-      },
-      {
-        "run_id": 43833835734,
-        "name": "World timing repeat validation",
-        "status": "in_progress",
-        "conclusion": null
-      },
-      {
-        "run_id": 43833835999,
-        "name": "Foundation Security DB",
-        "status": "in_progress",
-        "conclusion": null
-      },
-      {
-        "run_id": 43833835837,
-        "name": "Battle Session DB",
-        "status": "in_progress",
-        "conclusion": null
-      },
-      {
-        "run_id": 43833835946,
+        "run_id": 43851280098,
         "name": "CI",
         "status": "in_progress",
         "conclusion": null
       },
       {
-        "run_id": 43833835894,
-        "name": "Desktop experience",
-        "status": "in_progress",
-        "conclusion": null
-      },
-      {
-        "run_id": 43833835984,
-        "name": "Representative Buildcraft",
-        "status": "in_progress",
-        "conclusion": null
-      },
-      {
-        "run_id": 43833835714,
+        "run_id": 43851280181,
         "name": "Desktop page fit",
         "status": "in_progress",
         "conclusion": null
       },
       {
-        "run_id": 43833835987,
+        "run_id": 43851280154,
+        "name": "Representative Buildcraft",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "run_id": 43851280062,
+        "name": "Attribute Allocation",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "run_id": 43851280072,
         "name": "UI layout review",
         "status": "in_progress",
         "conclusion": null
       },
       {
-        "run_id": 43833836281,
+        "run_id": 43851280143,
         "name": "Mobile audit",
         "status": "in_progress",
         "conclusion": null
       },
       {
-        "run_id": 43833835844,
-        "name": "Living Atlas browser",
+        "run_id": 43851279914,
+        "name": "Discipline Build DB",
         "status": "in_progress",
         "conclusion": null
       },
       {
-        "run_id": 43833836009,
+        "run_id": 43851280045,
+        "name": "World timing repeat validation",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "run_id": 43851279938,
+        "name": "Browser smoke",
+        "status": "pending",
+        "conclusion": null
+      },
+      {
+        "run_id": 43851280220,
         "name": "Wayfarer's Practice DB",
         "status": "in_progress",
         "conclusion": null
       },
       {
-        "run_id": 43833835891,
+        "run_id": 43851279947,
+        "name": "Battle Session DB",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "run_id": 43851279979,
         "name": "Combat and mobile layout regressions",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "run_id": 43851279828,
+        "name": "Living Atlas browser",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "run_id": 43851280138,
+        "name": "Foundation Security DB",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "run_id": 43851279960,
+        "name": "Desktop experience",
         "status": "in_progress",
         "conclusion": null
       }
@@ -131,24 +131,38 @@
     "phase4_mastery_discovery": "desktop/laptop/mobile discovered; desktop executes by existing project guard",
     "world_and_e2e_helper_tests": {
       "files": 80,
-      "passed": 1092
+      "passed": 1094
     },
     "static_raster_tests_passed": 4,
-    "focused_resize_disposal": "pass after full source suite"
+    "focused_resize_disposal": "pass after full source suite",
+    "water_and_renderer_tests": {
+      "files": 2,
+      "passed": 286
+    },
+    "timing_desktop_discovery": 60,
+    "diff_check": "pass",
+    "native_water_probe": {
+      "source_artifact_id": 14209972630,
+      "source_artifact_sha256": "b8e7552d9b33e0f29987be365a60993cae629aeb3eba8ee3e6769f93579dd4a2",
+      "old_median_of_medians_ms": 45.76720999999998,
+      "corrected_median_of_medians_ms": 43.57090900000003,
+      "old_terrain_median_ms": 6.715624999999818,
+      "corrected_terrain_median_ms": 4.823381000000154,
+      "old_water_60_frame_ms": 341.2579300000243,
+      "corrected_water_60_frame_ms": 226.7990730000256,
+      "old_median_p95_ms": 57.764185,
+      "corrected_median_p95_ms": 60.36241599999994,
+      "limitation": "Native Skia component model; tails noisy; not Chromium, 4x throttle or hosted acceptance"
+    }
   },
   "repair": {
-    "mail": "Propagate selected INBUCKET_URL via GITHUB_ENV; all6 native password cases passed diagnostic source38",
-    "parser": "Require actual PostgreSQL LOG prefix; retain responses before parsing; original Item preparation SQL rejection not claimed cured",
-    "raster": "One4M-pixel-bounded native-density immutable composite with64CSSpx padded drift/window wraps; direct ambient-off/reduced path; original gameplay/authority/migrations and all thresholds/deadlines/zero retries/63 timing executions unchanged",
-    "native_probe": "Exact-source component report committed in candidate docs/verification/2026-11-16-pr1040-weather-raster-probe.json;60 comparisons max2 channel difference;78 images closed; noisy component tail does not establish hosted performance",
-    "ui_layout_ports": "Run43803308554/job133088284367 failed before Playwright because host54322 was occupied. Candidate37ff53b selects distinct disposable API/database/shadow ports only for UI layout, exports the API endpoint to existing authenticated build, and preserves all cases/deadlines/coverage.",
-    "approved_key_release": "Held-key release selects the latest approved WorldMotion landing instead of the lagging visual sample; route/cadence/authority unchanged.",
-    "reciprocal_preparation": "Exact participant preparation is shared only while in flight across reciprocal attacks; final version/equipment database recheck remains authoritative; no retry or completed cache.",
-    "native_identity_damage": "Native-DPR identity surface clears only the conservative prior actor/portrait/shadow/stack/nameplate footprint after initial/resize full clear; DPR and art unchanged.",
-    "identity_occlusion_index": "Screen-space candidates replace all-pairs traveller/scenery comparisons while retaining the exact final depth/bounds/arena predicates; population/coverage/quality unchanged.",
-    "browser_smoke_ports": "Run existing disposable API/database/shadow port selector before Mailpit and startup; build/Playwright consume exported endpoint; local-only Mastery guard retains exact endpoint match and production safety. No retry/timeout/skip/assertion change.",
-    "immutable_native_rasters": "Finished ground/bridge-underlay/projected-ground/static-scenery canvases snapshot once to native ImageBitmap under existing cache limits; unsupported/context/transfer fallback retains original canvas. Replacement/resize/resample/eviction/camera/disposal close ownership. Original transforms, density, art and motion unchanged.",
-    "component_evidence": "docs/verification/2026-11-16-pr1040-mobile-static-raster-probe.json: three median reductions with noisy P95; no Chromium/compositor/4x-throttle acceptance inferred. Corrected native model closes34/34 images; 33 warm static images and zero warm snapshot builds/transfers. Pixel comparison mean0.01127/255/max54, no acceptance tolerance change."
+    "summary": "Cache immutable WaterCell shoreline Path2D by current tile size, reuse the renderer-owned transformed canvas state, and keep the Atlas ground observer representation-aware.",
+    "production_scope": "Water motion geometry allocation and native test observation only; dynamic phases, count, cadence, art, native density, gameplay, migrations and acceptance unchanged.",
+    "failing_before": [
+      "Repeated same-cell clip regression constructed no retained Path2D.",
+      "Renderer-owned water motion performed a redundant inner save/restore.",
+      "Living Atlas observer ignored ImageBitmap ground sources and produced NaN."
+    ]
   },
   "acceptance_limits": [
     "All configured checks on candidate994b2ef0 remain required, including complete Chromium/final Edge, Living Atlas/PG17 and all63 timing cases.",
@@ -718,5 +732,27 @@
       ]
     },
     "production": "No merge/migration/deployment/promotion/cron action"
+  },
+  "superseded_candidate_994": {
+    "candidate": "994b2ef0fa156c18ef33b59b8a4c503f5654f3ed",
+    "tree": "2145b16ab92fb9565e33a3412bc732ef7a9b9d67",
+    "status": "12 workflows successful, World timing and Living Atlas failed, Browser Smoke still running when superseded",
+    "timing": {
+      "run_id": 43833835734,
+      "job_id": 133185405842,
+      "artifact_id": 14209972630,
+      "artifact_sha256": "b8e7552d9b33e0f29987be365a60993cae629aeb3eba8ee3e6769f93579dd4a2",
+      "result": "all3 mobile predicates failed before desktop command; observed268/199/263 vs required>271/206/271; finally277/208/272"
+    },
+    "atlas": {
+      "run_id": 43833835844,
+      "job_id": 133185406910,
+      "compact_artifact_id": 14213095895,
+      "compact_artifact_sha256": "506be1a685f729016c8969547416d21eaef90c24474f6f897abf685b00b49550",
+      "result": "PG17 release transaction and story phase pass; desktop/mobile delayed-hydration observer reads NaN because it excluded ImageBitmap ground sources",
+      "full_archive_bytes": 1162831551,
+      "full_archive_reviewed": false,
+      "review_limit_bytes": 536870912
+    }
   }
 }
