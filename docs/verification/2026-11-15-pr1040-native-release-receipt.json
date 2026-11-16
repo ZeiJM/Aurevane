@@ -5,105 +5,113 @@
   "expected_tree": "24308f36a0445c7ab998953a414094c1049e60d4",
   "expected_parent": "76673cb3213baa52b0779bb8fbd6f4523cd70484",
   "main_baseline": "d32cabd7f626b650df5c5eacf6a85a4457fc1f85",
-  "release_status": "All 15 fresh exact-head workflows started automatically for the immutable canopy candidate; acceptance pending; no production action",
-  "observed_after_pr_update_at_utc": "2026-11-16T12:50:41.480Z",
+  "release_status": "14 of 15 exact-head workflows successful; full Browser Smoke Chromium is still running and final Edge has not yet completed; no production action",
+  "observed_after_pr_update_at_utc": "2026-11-16T14:02:39.329Z",
   "checks_snapshot": {
     "candidate": "5cd4140878ba41b7dc78a79f2580f2c99c4e03d2",
     "all_15_started_automatically": true,
-    "successful_count": 0,
-    "running_count": 15,
+    "successful_count": 14,
+    "running_count": 1,
     "workflows": [
       {
         "run_id": 43870081833,
         "name": "World timing repeat validation",
-        "status": "in_progress",
-        "conclusion": null
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 43870081763,
+        "name": "Mobile audit",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 43870081748,
+        "name": "Wayfarer's Practice DB",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 43870081778,
+        "name": "Battle Session DB",
+        "status": "completed",
+        "conclusion": "success"
       },
       {
         "run_id": 43870081760,
         "name": "Browser smoke",
-        "status": "pending",
+        "status": "in_progress",
         "conclusion": null
       },
       {
         "run_id": 43870081869,
         "name": "Desktop experience",
-        "status": "in_progress",
-        "conclusion": null
-      },
-      {
-        "run_id": 43870081763,
-        "name": "Mobile audit",
-        "status": "in_progress",
-        "conclusion": null
-      },
-      {
-        "run_id": 43870081748,
-        "name": "Wayfarer's Practice DB",
-        "status": "in_progress",
-        "conclusion": null
+        "status": "completed",
+        "conclusion": "success"
       },
       {
         "run_id": 43870081850,
         "name": "Representative Buildcraft",
-        "status": "in_progress",
-        "conclusion": null
-      },
-      {
-        "run_id": 43870081778,
-        "name": "Battle Session DB",
-        "status": "in_progress",
-        "conclusion": null
-      },
-      {
-        "run_id": 43870081612,
-        "name": "Combat and mobile layout regressions",
-        "status": "in_progress",
-        "conclusion": null
-      },
-      {
-        "run_id": 43870081709,
-        "name": "Discipline Build DB",
-        "status": "in_progress",
-        "conclusion": null
+        "status": "completed",
+        "conclusion": "success"
       },
       {
         "run_id": 43870081634,
         "name": "Foundation Security DB",
-        "status": "in_progress",
-        "conclusion": null
-      },
-      {
-        "run_id": 43870081715,
-        "name": "Living Atlas browser",
-        "status": "in_progress",
-        "conclusion": null
-      },
-      {
-        "run_id": 43870081625,
-        "name": "Desktop page fit",
-        "status": "in_progress",
-        "conclusion": null
+        "status": "completed",
+        "conclusion": "success"
       },
       {
         "run_id": 43870081684,
         "name": "Attribute Allocation",
-        "status": "in_progress",
-        "conclusion": null
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 43870081612,
+        "name": "Combat and mobile layout regressions",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 43870081709,
+        "name": "Discipline Build DB",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 43870081625,
+        "name": "Desktop page fit",
+        "status": "completed",
+        "conclusion": "success"
       },
       {
         "run_id": 43870081645,
         "name": "CI",
-        "status": "in_progress",
-        "conclusion": null
+        "status": "completed",
+        "conclusion": "success"
       },
       {
         "run_id": 43870081710,
         "name": "UI layout review",
-        "status": "in_progress",
-        "conclusion": null
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 43870081715,
+        "name": "Living Atlas browser",
+        "status": "completed",
+        "conclusion": "success"
       }
-    ]
+    ],
+    "pending": [
+      {
+        "run_id": 43870081760,
+        "name": "Browser smoke",
+        "stage": "Verify desktop and mobile shell (Chromium); final Edge not yet completed"
+      }
+    ],
+    "failed": []
   },
   "local_validation": {
     "renderer_tests": "241 passed",
@@ -122,8 +130,8 @@
     "red_green": "The exact canopy transfer/reuse/closure regression failed before the correction and passes after it."
   },
   "acceptance_limits": [
-    "All configured checks on candidate994b2ef0 remain required, including complete Chromium/final Edge, Living Atlas/PG17 and all63 timing cases.",
-    "Local native Skia probe and still comparison do not establish Chromium compositor performance, continuous gait, physical-handset or human acceptance.",
+    "Full Browser Smoke Chromium and final Edge remain required on this exact candidate before merge.",
+    "Physical-handset, human continuous-motion and isolated wildlife close-up acceptance remain open for live testing.",
     "Original thresholds, deadlines, retries, skips, coverage and gameplay authority are preserved."
   ],
   "production": {
@@ -811,5 +819,155 @@
       }
     },
     "conclusion": "Timing passed all 63 zero-retry cases; Atlas failed two native assertions before its 60-minute limit."
+  },
+  "current_candidate_timing": {
+    "run_id": 43870081833,
+    "job_id": 133308628310,
+    "conclusion": "success",
+    "mobile": {
+      "passed": 3,
+      "repeat_each": 3,
+      "retries": 0
+    },
+    "desktop": {
+      "passed": 60,
+      "repeat_each": 20,
+      "retries": 0
+    },
+    "total_cases_passed": 63,
+    "artifact": {
+      "id": 14228798489,
+      "size_bytes": 2859327,
+      "sha256": "007df9e5d2317b63a3c0fb611d79a2b4fbeff995cd7917936f552762a7e8193f",
+      "downloaded_and_hash_verified": true
+    },
+    "mobile_crowd": [
+      {
+        "baseline": 137,
+        "final": 283,
+        "delta": 146,
+        "frame_p95_ms": 8,
+        "identity_paints": 6
+      },
+      {
+        "baseline": 85,
+        "final": 226,
+        "delta": 141,
+        "frame_p95_ms": 8,
+        "identity_paints": 6
+      },
+      {
+        "baseline": 137,
+        "final": 275,
+        "delta": 138,
+        "frame_p95_ms": 10,
+        "identity_paints": 6
+      }
+    ],
+    "peer1_positive_delta_counts": [
+      10,
+      11,
+      11,
+      12,
+      12,
+      13,
+      13,
+      13,
+      13,
+      13,
+      13,
+      13,
+      13,
+      14,
+      14,
+      14,
+      14,
+      14,
+      14,
+      15
+    ],
+    "qualification": "One exact-hosted zero-retry pass of every original timing case; not universal performance or physical-handset acceptance."
+  },
+  "current_candidate_atlas": {
+    "run_id": 43870081715,
+    "job_id": 133308627694,
+    "conclusion": "success",
+    "checkout_tree": "24308f36a0445c7ab998953a414094c1049e60d4",
+    "story": {
+      "passed": 15,
+      "configured_project_skips": 7
+    },
+    "atlas": {
+      "passed": 99,
+      "configured_project_skips": 123
+    },
+    "pg17": {
+      "postflight_rollback": "Verified real postflight failure rolls all four migrations and fixture state back.",
+      "atomic_success": "Verified PG17 atomic success, exact four source-history rows, RPC ACLs, preserved v1/v2 and saved progress; cron remains inactive. Candidate schema retained.",
+      "production_database": false
+    },
+    "artifacts": [
+      {
+        "id": 14230847974,
+        "name": "compact evidence",
+        "size_bytes": 55025649,
+        "sha256": "ef7a9c66e090f8987c71e1b4a7f0fc854660cc3c97dfeeca3ae2f8ba2039151d",
+        "downloaded_and_hash_verified": true
+      },
+      {
+        "id": 14231500840,
+        "name": "hamlets",
+        "size_bytes": 107099906,
+        "sha256": "d8351f167b1043fd61f664622c9c6e325f71b6072dc4505c328d8fbdff11734d",
+        "downloaded_and_hash_verified": true
+      },
+      {
+        "id": 14231396539,
+        "name": "north towns",
+        "size_bytes": 244499610,
+        "sha256": "4679cf7cedf1cafa1191dd51a9d1005d0311589caf24dbd5a877354e4f0e4f2f",
+        "downloaded_and_hash_verified": false
+      },
+      {
+        "id": 14231137062,
+        "name": "south towns",
+        "size_bytes": 247288475,
+        "sha256": "489123f1a5f981b69aa6227bb1915017b8042e2e3f4db052f663d9ae8d5c1e1b",
+        "downloaded_and_hash_verified": false
+      },
+      {
+        "id": 14230887228,
+        "name": "surfaces, Void and occlusion",
+        "size_bytes": 272599299,
+        "sha256": "ce87b309836b4631e47d593c10de9d7b9af1b9718c78f93627fa58c4eadfc768",
+        "downloaded_and_hash_verified": false
+      },
+      {
+        "id": 14230488955,
+        "name": "full Living Atlas archive",
+        "size_bytes": 1078930308,
+        "sha256": "39461be0347fede9a5f8f889a3230ec1f125e08dbd6002c42b4a30a3513c2cc5",
+        "downloaded_and_hash_verified": false,
+        "limitation": "Exceeds the 512 MB connector review cap."
+      }
+    ]
+  },
+  "native_visual_review": {
+    "candidate": "5cd4140878ba41b7dc78a79f2580f2c99c4e03d2",
+    "method": "Direct inspection of current-source compact evidence and the hash-verified current-source hamlet bundle.",
+    "reviewed": [
+      "Starfall Highlands hamlet atlas49:19 at gameplay scale: painterly mountain strata and grounded bases remain coherent; the earlier flat polygon-spike mismatch is absent.",
+      "Frostmere atlas66:6: snowy peaks, rocks, settlement, tree roots and native-density edges remain legible at normal gameplay scale.",
+      "Umbral March atlas89:40: dense canopy layering, fog veil and building/player occlusion remain coherent.",
+      "Emberreach and Glasswind retained motion stills: fog/weather overlays, water/lava/bridge surfaces and landmark scale remain readable.",
+      "Current compact evidence retains roof/tree walk occlusion receipts and exact paused ambient before/after frames."
+    ],
+    "finding": "No release-blocking visual defect observed in the sampled current-source still evidence.",
+    "limitations": [
+      "Still captures and numeric motion receipts do not establish human continuous-motion acceptance.",
+      "No physical-handset or signed-in human playtest acceptance is claimed.",
+      "No isolated current-source deer/bird close-up sequence was available in the reviewed compact/hamlet bundles; wildlife gait and AA are not claimed from these samples.",
+      "The 1.08 GB full archive exceeds the 512 MB connector cap and was not reviewed."
+    ]
   }
 }
