@@ -3,7 +3,7 @@
   "expected_tree": "73f683979266ffeb20e342498a9b0521a406a572",
   "main_baseline": "d32cabd7f626b650df5c5eacf6a85a4457fc1f85",
   "date": "2026-11-15",
-  "release_status": "Blocked: PR candidate367689e still has failed full Browser Smoke. Diagnostic-only manual Smoke43781111933 is running on WIP38eb7c6 with mail correction and scoped database error/lock evidence; no production mutation.",
+  "release_status": "Blocked: PR367689e full Smoke failed. Diagnostic43781111933 on38eb7c6 remains running but live logs show a diagnostic parser failure. Correction bb3b55e is saved on WIP only; original Item preparation cause remains unresolved. No production mutation.",
   "timing": {
     "run_id": 43750672066,
     "job_id": 132923689026,
@@ -333,6 +333,27 @@
       "Public RPC name is inferred from quoted identifiers in outer query, with other fallback.",
       "No claim that the original attack fault is fixed; even a passing diagnostic run does not resolve its prior unexplained failure.",
       "Never merge/deploy WIP or evidence-only commits. Resolve actual cause, publish final combined PR correction with expected parent, then require all configured exact-head gates."
-    ]
+    ],
+    "observed_live_failure": {
+      "job_id": 133018408202,
+      "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43781111933/job/133018408202",
+      "case": "simultaneous mutual attacks create one shared active encounter",
+      "error": "SyntaxError: Unexpected token '%', \"%', (\" is not valid JSON",
+      "location": "world-contention-gate.ts:91",
+      "cause": "Substring marker matching treated an echoed SQL raise-log template as emitted JSON; this new diagnostic defect can mask the original case outcome."
+    },
+    "parser_correction": {
+      "source": "bb3b55e8ff566e07fcbc341d66e1f635e0b6270c",
+      "tree": "ec398f8cbd008e37949a6a118a036cdae6dd1aa8",
+      "expected_parent": "38eb7c6a7f5b89821275c729178c04aaedb9b532",
+      "branch": "agent/pr1040-smoke-repair-367689e",
+      "change": "Require PostgreSQL LOG severity immediately before the marker; ignore echoed SQL but retain strict validation of actual records. Save original response/error JSON before holder decoding.",
+      "failing_before_regression_observed": true,
+      "parser_tests": 5,
+      "types": true,
+      "scoped_lint_format": true,
+      "dispatched_new_run": false,
+      "next": "Let43781111933 complete and inspect exact final logs/artifacts/request outcomes before deciding further diagnosis. Do not claim original attack fixed or release any WIP."
+    }
   }
 }
