@@ -1,4 +1,9 @@
 import { createGroundProjectionCache } from './map-ground-projection'
+import {
+  releaseStaticRaster,
+  snapshotStaticRaster,
+  type StaticMapRaster,
+} from './map-static-raster'
 import { mapSceneDomain } from './map-scene-domain'
 import { vegetationPose, treeFlex, treeWindBend } from './map-vegetation'
 import {
@@ -214,7 +219,7 @@ interface BridgeStrip {
   axis: number
 }
 interface LiquidSurface {
-  canvas: HTMLCanvasElement
+  canvas: StaticMapRaster
   tint?: WorldSectorView['warpedTheme']
   x: number
   y: number
@@ -264,7 +269,7 @@ interface Scenery {
   oceanFeature?: boolean
 }
 interface SceneryBatch {
-  layer: HTMLCanvasElement
+  layer: StaticMapRaster
   left: number
   top: number
 }
@@ -684,12 +689,20 @@ export function createMapRenderer(
     {
       key: string
       scale: number
-      ground: HTMLCanvasElement
+      ground: StaticMapRaster
       surfaces: Map<string, LiquidSurface>
       pixels: number
     }
   >()
   const groundProjections = createGroundProjectionCache()
+  const snapshot = (source: HTMLCanvasElement) => {
+    const image = snapshotStaticRaster(source)
+    if (timing) {
+      timing.staticRasterBuilds!++
+      if ('close' in image) timing.staticRasterTransfers!++
+    }
+    return image
+  }
   const wildlifeParts = createWildlifePartCache()
   const weatherVeil = createWeatherVeilCache()
   const biomeRasters = new Map<string, HTMLCanvasElement>()
@@ -698,15 +711,20 @@ export function createMapRenderer(
   let sceneryBatches = new Map<string, SceneryBatch>()
   const clearStationaryScenery = () => {
     stationaryScenery = null
+    for (const batch of sceneryBatches.values()) releaseStaticRaster(batch.layer)
     sceneryBatches.clear()
   }
   let stationaryGround: {
     camera: MapPoint
     ambient: boolean
-    layer: HTMLCanvasElement | null
+    layer: StaticMapRaster | null
     start: number
     end: number
   } | null = null
+  const clearStationaryGround = () => {
+    if (stationaryGround?.layer) releaseStaticRaster(stationaryGround.layer)
+    stationaryGround = null
+  }
   let wind: WorldWind | undefined
   let surfaceRain: number | undefined
   let chimneyPuff: HTMLCanvasElement | undefined
@@ -754,7 +772,7 @@ export function createMapRenderer(
     return false
   }
   function indexTerrain() {
-    stationaryGround = null
+    clearStationaryGround()
     clearStationaryScenery()
     biomeField = buildBiomeTransitions(renderSectors)
     featurePlacements = indexFeaturePlacements(renderSectors)
@@ -808,9 +826,13 @@ export function createMapRenderer(
   indexTerrain()
   const clearCache = () => {
     groundProjections.clear()
+    for (const entry of cache.values()) {
+      releaseStaticRaster(entry.ground)
+      for (const surface of entry.surfaces.values()) releaseStaticRaster(surface.canvas)
+    }
     cache.clear()
     cachedPixels = 0
-    stationaryGround = null
+    clearStationaryGround()
     clearStationaryScenery()
   }
   const load = (name: string, version = 'v02', format = 'webp') => {
@@ -1461,11 +1483,18 @@ export function createMapRenderer(
               )
             cells.push({ x, y, profile })
           }
-      surfaces.set(id, { canvas: surface, tint: sector.warpedTheme, ...bounds, cells })
+      surfaces.set(id, {
+        canvas: snapshot(surface),
+        tint: sector.warpedTheme,
+        ...bounds,
+        cells,
+      })
     }
     const stale = cache.get(sector.id)
     if (stale) {
       cachedPixels -= stale.pixels
+      releaseStaticRaster(stale.ground)
+      for (const surface of stale.surfaces.values()) releaseStaticRaster(surface.canvas)
       cache.delete(sector.id)
     }
     const pixels =
@@ -1479,15 +1508,18 @@ export function createMapRenderer(
         [...cache.keys()].find((id) => !visibleGroundIds.has(id)) ?? cache.keys().next().value!
       const entry = cache.get(oldest)!
       cachedPixels -= entry.pixels
+      releaseStaticRaster(entry.ground)
+      for (const surface of entry.surfaces.values()) releaseStaticRaster(surface.canvas)
       cache.delete(oldest)
     }
-    cache.set(sector.id, { key, scale: groundScale, ground: layer, surfaces, pixels })
+    const image = snapshot(layer)
+    cache.set(sector.id, { key, scale: groundScale, ground: image, surfaces, pixels })
     cachedPixels += pixels
     if (timing) {
       timing.groundBuilds!++
       timing.groundBuildMs! += performance.now() - buildStarted
     }
-    return layer
+    return image
   }
   function biomeRaster(item: Scenery) {
     if (!item.source) return null
@@ -1549,7 +1581,7 @@ export function createMapRenderer(
     // Zoom settles once; resize, loaded art and terrain changes still rebuild.
     for (const entry of cache.values()) {
       if (entry.scale <= groundScale) continue
-      const resample = (source: HTMLCanvasElement, width: number, height: number) => {
+      const resample = (source: StaticMapRaster, width: number, height: number) => {
         const resampleStarted = timing ? performance.now() : 0
         const target = document.createElement('canvas')
         target.width = Math.ceil(width * groundScale)
@@ -1562,15 +1594,18 @@ export function createMapRenderer(
           timing.groundResamples!++
           timing.groundResampleMs! += performance.now() - resampleStarted
         }
-        return target
+        return snapshot(target)
       }
       const ground = resample(entry.ground, GRID_WIDTH * rasterTile, GRID_HEIGHT * rasterTile)
+      releaseStaticRaster(entry.ground)
       const surfaces = new Map<string, LiquidSurface>()
-      for (const [id, surface] of entry.surfaces)
+      for (const [id, surface] of entry.surfaces) {
         surfaces.set(id, {
           ...surface,
           canvas: resample(surface.canvas, surface.width * rasterTile, surface.height * rasterTile),
         })
+        releaseStaticRaster(surface.canvas)
+      }
       const pixels =
         ground.width * ground.height +
         [...surfaces.values()].reduce(
@@ -1620,7 +1655,8 @@ export function createMapRenderer(
 
     // One backing-size bitmap replaces several transformed draws; keep the
     // existing sector path when there is little ground to combine.
-    const projection = { camera, ambient, layer: null as HTMLCanvasElement | null, start, end }
+    clearStationaryGround()
+    const projection = { camera, ambient, layer: null as StaticMapRaster | null, start, end }
     stationaryGround = projection
     clearStationaryScenery()
     if (end - start < 4) return projection
@@ -1641,7 +1677,7 @@ export function createMapRenderer(
       )
       target.drawImage(ground(sector), 0, 0, GRID_WIDTH * tile, GRID_HEIGHT * tile)
     }
-    projection.layer = layer
+    projection.layer = snapshot(layer)
     return projection
   }
   const portrait = (src: string | null) => {
@@ -1683,6 +1719,8 @@ export function createMapRenderer(
           groundResamples: 0,
           biomeRasterBuilds: 0,
           groundResampleMs: 0,
+          staticRasterBuilds: 0,
+          staticRasterTransfers: 0,
         }
       : null
     pendingTiming = null
@@ -1822,7 +1860,7 @@ export function createMapRenderer(
       camera.x === sample.point.x &&
       camera.y === sample.point.y
     if (!cacheStationaryGround) {
-      stationaryGround = null
+      clearStationaryGround()
       clearStationaryScenery()
     }
     const projection = cacheStationaryGround ? stationaryGroundLayer(visible, ambient) : null
@@ -2951,7 +2989,7 @@ export function createMapRenderer(
         if (!target) return false
         target.setTransform(ratio, 0, 0, ratio, -left, -top)
         for (const { item, x, y } of points) paintCompact(target, item, x, y)
-        batch = { layer, left, top }
+        batch = { layer: snapshot(layer), left, top }
       }
       const pixels = batch.layer.width * batch.layer.height
       if (pixels > remainingBatchPixels) return false
@@ -3276,7 +3314,11 @@ export function createMapRenderer(
         )
       ctx.restore()
     }
-    if (nextBatches) sceneryBatches = nextBatches
+    if (nextBatches) {
+      for (const [key, batch] of sceneryBatches)
+        if (!nextBatches.has(key)) releaseStaticRaster(batch.layer)
+      sceneryBatches = nextBatches
+    }
     for (const ripple of shallowRipples.sample({
       point: sample.point,
       moving: sample.moving,
@@ -3717,6 +3759,17 @@ export function createMapRenderer(
       timing.identityMs = ended - phaseAt
       timing.identityOccluders = occluders.length
       timing.identityOccluderChecks = identityOccluderChecks
+      timing.immutableStaticImages =
+        [...cache.values()].reduce(
+          (total, entry) =>
+            total +
+            Number('close' in entry.ground) +
+            [...entry.surfaces.values()].filter(({ canvas }) => 'close' in canvas).length,
+          0,
+        ) +
+        [...sceneryBatches.values()].filter(({ layer }) => 'close' in layer).length +
+        Number(Boolean(stationaryGround?.layer && 'close' in stationaryGround.layer)) +
+        groundProjections.immutableImages
       timing.completedAt = ended
       timing.biomeRasters = biomeRasters.size
       timing.biomeRasterPixels = biomeRasterPixels

@@ -1,7 +1,12 @@
 import { MAP_X, MAP_Y } from './map-projection'
+import {
+  releaseStaticRaster,
+  snapshotStaticRaster,
+  type StaticMapRaster,
+} from './map-static-raster'
 
 interface GroundProjection {
-  canvas: HTMLCanvasElement
+  canvas: StaticMapRaster
   left: number
   top: number
   width: number
@@ -12,22 +17,26 @@ interface GroundProjection {
 
 /** Reuse the costly affine ground raster; camera movement needs only a native-density translation. */
 export function createGroundProjectionCache(pixelLimit = 8_000_000) {
-  const entries = new Map<HTMLCanvasElement, GroundProjection>()
+  const entries = new Map<StaticMapRaster, GroundProjection>()
   let pixels = 0
   let frame = 0
-  const remove = (source: HTMLCanvasElement) => {
+  const remove = (source: StaticMapRaster) => {
     const entry = entries.get(source)!
     pixels -= entry.canvas.width * entry.canvas.height
+    releaseStaticRaster(entry.canvas)
     entries.delete(source)
   }
   return {
     get pixels() {
       return pixels
     },
+    get immutableImages() {
+      return [...entries.values()].filter(({ canvas }) => 'close' in canvas).length
+    },
     beginFrame() {
       frame++
     },
-    get(source: HTMLCanvasElement, width: number, height: number, ratio: number) {
+    get(source: StaticMapRaster, width: number, height: number, ratio: number) {
       if (![width, height, ratio].every((value) => Number.isFinite(value) && value > 0)) return null
       const cached = entries.get(source)
       if (cached?.width === width && cached.height === height && cached.ratio === ratio) {
@@ -62,12 +71,14 @@ export function createGroundProjectionCache(pixelLimit = 8_000_000) {
       context.setTransform(ratio * MAP_X, ratio * MAP_Y, -ratio * MAP_X, ratio * MAP_Y, -left, -top)
       context.drawImage(source, 0, 0, width, height)
       context.restore()
-      const entry = { canvas, left, top, width, height, ratio, frame }
+      const image = snapshotStaticRaster(canvas)
+      const entry = { canvas: image, left, top, width, height, ratio, frame }
       entries.set(source, entry)
       pixels += area
       return entry
     },
     clear() {
+      for (const entry of entries.values()) releaseStaticRaster(entry.canvas)
       entries.clear()
       pixels = 0
     },

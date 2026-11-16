@@ -3553,6 +3553,78 @@ describe('native map input and bounded lifecycle', () => {
       vi.unstubAllGlobals()
     }
   })
+  it('reuses finished native terrain snapshots and closes every owned image on disposal', () => {
+    const position = { sectorId: 'verdant-expanse', x: 5, y: 4 }
+    const s = scene(false, projectWorld({ ...newWorldState(), position }, [], 1000))
+    const snapshots: {
+      src: string
+      width: number
+      height: number
+      close: ReturnType<typeof vi.fn>
+    }[] = []
+    vi.stubGlobal(
+      'OffscreenCanvas',
+      class {
+        constructor(
+          public width: number,
+          public height: number,
+        ) {}
+        getContext() {
+          return { drawImage() {} }
+        }
+        transferToImageBitmap() {
+          const image = {
+            src: 'immutable-static-terrain',
+            width: this.width,
+            height: this.height,
+            close: vi.fn(),
+          }
+          snapshots.push(image)
+          return image
+        }
+      },
+    )
+    try {
+      Object.assign(s.canvas, { clientWidth: 389, clientHeight: 669 })
+      window.devicePixelRatio = 2.625
+      s.resize()
+      s.renderer.settings({ animate: true, zoom: 0.35 })
+      s.canvas.dataset.renderDiagnostics = 'timing'
+      s.frame(40)
+      const painted = () => s.draws.filter(({ src }) => src === 'immutable-static-terrain')
+      const initial = painted().map(({ image }) => image)
+      expect(initial.length).toBeGreaterThan(0)
+      const water = s.strokes.filter(({ colour }) => colour === '#bbded0' || colour === '#82c6c7')
+      expect(water.length).toBeGreaterThan(0)
+      const layers = s.layerCount()
+      s.draws.length = 0
+      s.strokes.length = 0
+      s.frame(100)
+      expect(painted().every(({ image }) => initial.includes(image))).toBe(true)
+      expect(s.layerCount()).toBe(layers)
+      const movingWater = s.strokes.filter(
+        ({ colour }) => colour === '#bbded0' || colour === '#82c6c7',
+      )
+      expect(movingWater).toHaveLength(water.length)
+      expect(movingWater).not.toEqual(water)
+      expect(JSON.parse(s.canvas.dataset.renderTiming!).groundBuilds).toBe(0)
+      expect(JSON.parse(s.canvas.dataset.renderTiming!)).toMatchObject({
+        staticRasterBuilds: 0,
+        staticRasterTransfers: 0,
+        immutableStaticImages: expect.any(Number),
+      })
+      const resized = [...snapshots]
+      s.resize()
+      expect(resized.every(({ close }) => close.mock.calls.length === 1)).toBe(true)
+      s.frame(160)
+      expect(snapshots.length).toBeGreaterThan(resized.length)
+    } finally {
+      s.renderer.dispose()
+      expect(snapshots.length).toBeGreaterThan(0)
+      expect(snapshots.every(({ close }) => close.mock.calls.length === 1)).toBe(true)
+      vi.unstubAllGlobals()
+    }
+  })
   it('reuses compact scenery at rest and discards its pixels after art or camera changes', () => {
     const position = { sectorId: 'aureth-crown', x: 6, y: 4 }
     const view = projectWorld({ ...newWorldState(), position }, [], 1000)
