@@ -3,7 +3,7 @@
   "expected_tree": "73f683979266ffeb20e342498a9b0521a406a572",
   "main_baseline": "d32cabd7f626b650df5c5eacf6a85a4457fc1f85",
   "date": "2026-11-15",
-  "release_status": "Blocked: PR367689e full Smoke failed. Diagnostic43781111933 on38eb7c6 remains running but live logs show a diagnostic parser failure. Correction bb3b55e is saved on WIP only; original Item preparation cause remains unresolved. No production mutation.",
+  "release_status": "Blocked: diagnostic Smoke43781111933 completed failure on38eb7c6. Full Chromium440 passed,341 configured skips,2 failures; Edge not executed. Six password-recovery cases pass. Parser correctionbb3b55e is saved but not yet run natively. Original historical Item rejection remains unresolved; peer motion fails during live Night/fog. No production action.",
   "timing": {
     "run_id": 43750672066,
     "job_id": 132923689026,
@@ -294,7 +294,7 @@
     "run_id": 43781111933,
     "url": "https://github.com/ZeiJM/Aurevane/actions/runs/43781111933",
     "event": "workflow_dispatch",
-    "status": "in_progress",
+    "status": "completed",
     "run_source_independently_verified": true,
     "dispatched_once": true,
     "failed_pr_artifact": {
@@ -354,6 +354,79 @@
       "scoped_lint_format": true,
       "dispatched_new_run": false,
       "next": "Let43781111933 complete and inspect exact final logs/artifacts/request outcomes before deciding further diagnosis. Do not claim original attack fixed or release any WIP."
+    },
+    "conclusion": "failure",
+    "final_result": {
+      "chromium": {
+        "passed": 440,
+        "configured_skips": 341,
+        "failed": 2,
+        "final_edge_executed": false
+      },
+      "failures": [
+        "Mutual-attack case is interrupted by diagnostic collector JSON parsing of echoed SQL; corrected on WIPbb3b55e, not on this run's source38eb7c6.",
+        "Known-neighbour peer-motion check: observer0 positive deltas9, observer1 positive deltas7, unchanged requirement>8 at deltaX>0.002."
+      ],
+      "password_recovery": "All six desktop/laptop/mobile cases ran; none failed. No ECONNREFUSED in final failure list.",
+      "artifact": {
+        "id": 14194178987,
+        "name": "browser-world-failure-diagnostics",
+        "bytes": 125676091,
+        "sha256": "1d4fd4db40e83a6a60cddc0fa69b78d4063d64a92143829cdc8c1577253008f7",
+        "download_hash_verified": true
+      },
+      "mutual_trace": {
+        "barrier": "Top-level poll expecting2 waiters completes without error after initial unsuccessful polls.",
+        "request_statuses": [
+          200,
+          409
+        ],
+        "stale_error_code": "STALE_VERSION",
+        "stale_message": "The world changed. Refresh your position and try again.",
+        "limitation": "No Item preparation rejection reproduced in this attempt. The collector throws before outer test assertions complete, so this is not a passing mutual-attack acceptance result or a cure for the historical failure."
+      },
+      "motion_trace": {
+        "environment": {
+          "frozen": false,
+          "weather": "fog",
+          "weatherSource": "live",
+          "minuteOfDay": 116.65333333333334,
+          "settingsVersion": 4
+        },
+        "samples_per_observer": [
+          14,
+          14
+        ],
+        "positive_deltas": [
+          9,
+          7
+        ],
+        "wildlifePartPixels": 0,
+        "wildlifePartBuilds": 0,
+        "selected_trace_dropped_events": 0,
+        "canvas_resource": {
+          "events": 89,
+          "summed_duration_ms": 3467.9,
+          "median_ms": 14.84,
+          "max_ms": 146.6,
+          "limitation": "Selected native duration records across both pages, not an individual-frame or controlled-hardware benchmark; nested event totals must not be summed."
+        },
+        "cpu_profiles": [
+          {
+            "trace_resource": "7400fcca0ce5bcb083e6044abecc52b891bc6478",
+            "samples": 602,
+            "program_hits": 461
+          },
+          {
+            "trace_resource": "9bd1d051de48b74adcb4fa13602204250ac15639",
+            "samples": 488,
+            "program_hits": 406
+          }
+        ],
+        "interpretation": "Native canvas-resource production dominates recorded work; wildlife is absent. Fog is the observed environment, not yet a proven causal paint operation. Do not reuse the old deer hotspot explanation or relax motion acceptance.",
+        "profile_retrieval": "Both cpuprofiles are retained as resources in the failed known-neighbour trace.zip even though compact artifact's direct pattern includes only JSON files."
+      },
+      "next": "Inspect exact render/raster work under Night/fog and retain a failing regression before changing source. Inspect completed attack trace/diagnostics before choosing a further diagnostic run. No blind rerun or release."
     }
   }
 }
