@@ -5,13 +5,13 @@
   "expected_tree": "6f65664a208a57e927a0531fb0b731729c7c0867",
   "expected_parent": "994b2ef0fa156c18ef33b59b8a4c503f5654f3ed",
   "main_baseline": "d32cabd7f626b650df5c5eacf6a85a4457fc1f85",
-  "release_status": "13/15 exact-head workflows successful; Living Atlas and full Browser Smoke still running; no production action",
-  "observed_after_pr_update_at_utc": "2026-11-16T11:16:39.218Z",
+  "release_status": "13 exact-head workflows successful; Living Atlas failed/cancelled after two demonstrated native assertions; Browser Smoke still running; repair preserved on WIP branch; no production action",
+  "observed_after_pr_update_at_utc": "2026-11-16T12:31:46.810Z",
   "checks_snapshot": {
     "candidate": "76673cb3213baa52b0779bb8fbd6f4523cd70484",
     "all_15_started_automatically": true,
     "successful_count": 13,
-    "running_count": 2,
+    "running_count": 1,
     "workflows": [
       {
         "run_id": 43851279914,
@@ -40,8 +40,8 @@
       {
         "run_id": 43851279828,
         "name": "Living Atlas browser",
-        "status": "in_progress",
-        "conclusion": null
+        "status": "completed",
+        "conclusion": "cancelled"
       },
       {
         "run_id": 43851279979,
@@ -103,7 +103,8 @@
         "status": "completed",
         "conclusion": "success"
       }
-    ]
+    ],
+    "failed_or_cancelled_count": 1
   },
   "local_validation": {
     "focused": {
@@ -803,5 +804,71 @@
       }
     },
     "qualification": "One hosted exact-head run passed all 63 original zero-retry cases; this is required acceptance evidence, not a universal stability or physical-handset claim."
+  },
+  "current_candidate_atlas": {
+    "candidate": "76673cb3213baa52b0779bb8fbd6f4523cd70484",
+    "run_id": 43851279828,
+    "job_id": 133244168470,
+    "conclusion": "cancelled",
+    "completed_before_cancellation": {
+      "pg17_atomic_release_transaction": "success",
+      "authenticated_story_cases_passed": 15
+    },
+    "demonstrated_failures": [
+      {
+        "case": "known neighbouring players follow the visible viewport with service-only presence authority",
+        "expected_positive_deltas": ">8",
+        "observed_positive_deltas": 7
+      },
+      {
+        "case": "a synthetic population of 100 has bounded rendering at high DPI and lower CPU speed",
+        "expected_completed_frames": ">274",
+        "observed_at_deadline": 274,
+        "finally_recorded": 292
+      }
+    ],
+    "compact_artifact": {
+      "id": 14222718157,
+      "name": "living-atlas-evidence",
+      "size_bytes": 55563085,
+      "sha256": "b6777161baf530e80853750c87d8c9f990ac9b6cc0d44e88f0acad63f45d9522",
+      "downloaded_and_hash_verified": true
+    },
+    "full_artifact": {
+      "id": 14222408959,
+      "size_bytes": 921584818,
+      "sha256": "9a3081f9c2a328f84a209adcb119d561eabfa653753526fd45f8116ee675ab1e",
+      "reviewed": false,
+      "limitation": "Exceeds the 512 MB connector download bound."
+    },
+    "trace_diagnosis": {
+      "completed_renderer_frames_across_two_pages": 47,
+      "canvas_resource_productions": 92,
+      "canvas_resource_production_total_ms": 3659.168,
+      "mutable_canvas_snapshots": 3448,
+      "peer_paint_median_ms": [
+        7.6,
+        9.2
+      ],
+      "cause": "Repeated native-density biome crop canvases are snapshotted before final stage/identity resource production."
+    }
+  },
+  "current_atlas_repair_wip": {
+    "branch": "agent/pr1040-atlas-repair-76673c",
+    "commit": "46d86e168f073b4270ac48ac6589367abe3cfdf3",
+    "tree": "5641741269eada4b362bdd545b5ac8a2edf95707",
+    "parent": "76673cb3213baa52b0779bb8fbd6f4523cd70484",
+    "pr_head_updated": false,
+    "change": "Transfer 32 reusable native-density biome crop canvases to immutable ImageBitmap resources; retain exact crop/geometry/motion/cache bounds and direct fallback; close on resize, eviction and disposal.",
+    "red_green": "The canopy transfer/lifecycle regression failed before the change and passes after it.",
+    "local_validation": {
+      "renderer_tests": "241 passed",
+      "types": "passed",
+      "scoped_lint_format": "passed",
+      "optimized_build": "passed",
+      "broad_web_vitest": "9655 passed, 4 unchanged 5-second summon-persistence deadlines failed under the parallel 695-file run",
+      "serialized_diagnosis": "same roster-legal-summon-services file passed all 16 cases with original deadlines and one worker",
+      "native_probe_limit": "32 additional immutable transfers consistently created/closed; timing pairs noisy and not a Chromium acceptance claim"
+    }
   }
 }
