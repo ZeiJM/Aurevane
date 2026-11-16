@@ -109,6 +109,81 @@ describe('world-connected water presentation', () => {
     clipWaterSurface(context, withheld, 64)
     expect(context.bezierCurveTo).not.toHaveBeenCalled()
   })
+  it('reuses the immutable shoreline clip at one rendered tile size', () => {
+    const paths: {
+      moveTo: ReturnType<typeof vi.fn>
+      lineTo: ReturnType<typeof vi.fn>
+      bezierCurveTo: ReturnType<typeof vi.fn>
+      closePath: ReturnType<typeof vi.fn>
+    }[] = []
+    vi.stubGlobal(
+      'Path2D',
+      class {
+        moveTo = vi.fn()
+        lineTo = vi.fn()
+        bezierCurveTo = vi.fn()
+        closePath = vi.fn()
+        constructor() {
+          paths.push(this)
+        }
+      },
+    )
+    try {
+      const pool = sector('cached-pool', 0, [
+        [3, 3, '~'],
+        [2, 3, '.'],
+        [4, 3, '.'],
+        [3, 2, '.'],
+        [3, 4, '.'],
+      ])
+      const cell = buildWaterField([pool]).get('cached-pool')!.cells.get('3:3')!
+      const context = waterCanvas() as unknown as CanvasRenderingContext2D
+
+      clipWaterSurface(context, cell, 64)
+      clipWaterSurface(context, cell, 64)
+
+      expect(paths).toHaveLength(1)
+      expect(context.clip).toHaveBeenNthCalledWith(1, paths[0])
+      expect(context.clip).toHaveBeenNthCalledWith(2, paths[0])
+      expect(context.bezierCurveTo).not.toHaveBeenCalled()
+
+      clipWaterSurface(context, cell, 48)
+      expect(paths).toHaveLength(2)
+      expect(context.clip).toHaveBeenLastCalledWith(paths[1])
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+  it('reuses a caller-owned canvas state for a transformed water cell', () => {
+    const context = waterCanvas()
+    const cell: WaterCell = {
+      x: 0,
+      y: 0,
+      seed: 17,
+      channel: false,
+      banks: [],
+      flow: [
+        [0, 0.5],
+        [0.33, 0.5],
+        [0.66, 0.5],
+        [1, 0.5],
+      ],
+    }
+
+    paintWaterMotion(
+      context as unknown as CanvasRenderingContext2D,
+      cell,
+      48,
+      1200,
+      false,
+      undefined,
+      false,
+    )
+
+    expect(context.save).not.toHaveBeenCalled()
+    expect(context.restore).not.toHaveBeenCalled()
+    expect(context.clip).toHaveBeenCalled()
+  })
   it('joins walkable shallows to deep water without creating a bank between them', () => {
     const field = buildWaterField([
       sector('town', 0, [

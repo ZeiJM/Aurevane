@@ -137,6 +137,7 @@ const sandbox = {
   WeakSet,
   JSON,
   Uint8ClampedArray,
+  Path2D: native.Path2D,
   performance: process.env.AUREVANE_PROBE_FIXED_TIME ? { now: () => visualNow } : performance,
   Image: NativeImage,
   OffscreenCanvas: Offscreen,
@@ -232,7 +233,9 @@ function load(filename) {
     module.exports[name] = (...args) => {
       const start = performance.now()
       const value = original(...args)
-      const row = (functionCosts[name] ??= { calls: 0, elapsed: 0 })
+      const key =
+        name === 'paintWaterMotion' ? `${name}:${args[1]?.channel ? 'channel' : 'pool'}` : name
+      const row = (functionCosts[key] ??= { calls: 0, elapsed: 0 })
       row.calls++
       row.elapsed += performance.now() - start
       return value

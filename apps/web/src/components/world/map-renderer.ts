@@ -2542,6 +2542,7 @@ export function createMapRenderer(
                   now,
                   sector.warpedTheme ?? false,
                   surfaceWeather,
+                  false,
                 )
               ctx.restore()
               continue

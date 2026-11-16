@@ -523,8 +523,11 @@ export function registerWorldInputCases({
       }
       context.drawImage = ((image: CanvasImageSource, ...args: number[]) => {
         const tile = Number(stage.dataset.tileSize)
+        const isGroundRaster =
+          image instanceof HTMLCanvasElement ||
+          (typeof ImageBitmap !== 'undefined' && image instanceof ImageBitmap)
         if (
-          image instanceof HTMLCanvasElement &&
+          isGroundRaster &&
           args.length === 4 &&
           args[0] === 0 &&
           args[1] === 0 &&
