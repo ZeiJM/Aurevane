@@ -705,7 +705,7 @@
 }
 .globePin > span {
   position: absolute;
-  top: 22px;
+  top: 34px;
   left: 6px;
   transform: translateX(-50%);
   width: max-content;
@@ -738,7 +738,7 @@
 }
 .globeTown > span {
   position: absolute;
-  bottom: 34px;
+  bottom: calc(100% + 4px);
   padding: 2px 5px;
   background: #071c24ca;
   border-radius: 3px;

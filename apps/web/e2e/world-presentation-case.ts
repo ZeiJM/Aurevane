@@ -151,6 +151,35 @@ export async function verifyWorldPresentation(
   await expect(labelsToggle).toHaveAttribute('aria-pressed', 'false')
   const townMarkers = workspace.locator('[data-globe-town]:not([data-globe-travel-point])')
   await expect(townMarkers.first()).toBeVisible()
+  const townIcons = await townMarkers.evaluateAll((markers) =>
+    markers.map((marker) => {
+      const svg = marker.querySelector('svg')!
+      return {
+        symbol: svg.querySelector('path')!.getAttribute('d'),
+        width: svg.getBoundingClientRect().width,
+      }
+    }),
+  )
+  expect(new Set(townIcons.map((icon) => icon.symbol)).size).toBeGreaterThan(1)
+  expect(new Set(townIcons.map((icon) => icon.width)).size).toBeGreaterThan(1)
+  for (const icon of townIcons) {
+    expect(icon.width).toBeGreaterThanOrEqual(24)
+    expect(icon.width).toBeLessThanOrEqual(34)
+  }
+  const townPointGaps = await workspace.locator('[data-globe-travel-point]').evaluateAll((points) =>
+    points.flatMap((point) => {
+      const symbol = document.querySelector(
+        `svg[data-globe-town-symbol="${point.getAttribute('data-globe-travel-point')}"]`,
+      )
+      if (!symbol) return []
+      return [
+        point.getBoundingClientRect().left - symbol.parentElement!.getBoundingClientRect().right,
+      ]
+    }),
+  )
+  expect(townPointGaps.length).toBeGreaterThan(0)
+  for (const gap of townPointGaps) expect(gap).toBeGreaterThanOrEqual(3)
+
   await expect(townMarkers.locator('span')).toHaveCount(0)
   await labelsToggle.click()
   await expect(townMarkers.locator('span').first()).toBeVisible()

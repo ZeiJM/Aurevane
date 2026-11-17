@@ -19,6 +19,34 @@ them. Keep automatic Vercel Git deployments disabled and older watchers paused.
 - A scheduled run before lease expiry inspects only. Release or renew this lease
   at each safe checkpoint; after expiry a fresh worker may resume from the branch.
 
+## Global settlement-marker correction — November17
+
+- Actual #812 desktop full-page globe uses the same20px castle for every town;
+  current source confirms neither regional icon identity nor varied icon scale.
+  Replaced that repeated glyph with8 distinct regional silhouettes: alpine
+  Frostmere houses, Crown fortress, coastal beacon, desert dome and the other
+  authored public settlement identities. Icon sizes24–34px now follow the same
+  public9–14-district visible extents, with bounded scale and unchanged anchors.
+- Larger town badges reserve a real gap to adjacent cycling Travel Points.
+  Labels clear the variable badge height; current-position caption sits below
+  the largest marker. Exact town/pin/Travel Point geography, labels toggle,
+  selection-only behavior, confirmation authority and private omission remain.
+- New existing-component regression fails on the prior fixed20px source and
+  passes with all8 regional paths,6 extent-based sizes, exact town anchors,
+  nonoverlapping Travel Point offsets and unchanged position/route/selection.
+  **44 tests/7 globe/workspace/ferry/material/veil files pass**; scoped zero-warning
+  lint, types, format and801-entry native discovery pass. Discovery is not execution.
+- Inspected an actual-size SVG source contact sheet rendered from these exact
+  component paths and public extent counts. Regional silhouettes and scale are
+  legible there. This is source review only, not full-page/browser acceptance.
+  Existing native presentation case now checks real symbol/size variation and
+  Travel Point gaps. Active814 predates these changes; native full desktop/mobile
+  layout, glyph/pin overlap, rotation and visual acceptance remain OPEN.
+- Scope is global presentation; no public/private geometry, server/RPC/migration,
+  selected master artwork, account data, progress/history or deployment changes.
+  All corrections remain one combined update. Continue material seams/art and
+  the existing native gate, then full final-candidate/configured verification.
+
 ## Continuing source diagnosis — November17 raster joins and art registration
 
 - Native814 remains active on2c8cd8e (not the newer coast source5def45b).
