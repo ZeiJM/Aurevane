@@ -12,8 +12,8 @@ them. Keep automatic Vercel Git deployments disabled and older watchers paused.
 
 ## Active worker lease
 
-- Status: active combined verification; source remains stable while native/quality runs finish.
-- Expires at: `2026-11-17T14:30:00Z`.
+- Status: released at passing local quality checkpoint; existing hosted native run continues.
+- Expires at: `2026-11-17T13:35:36Z`.
 - Hourly continuation: enabled by Nick on November 17; one recurring task,
   **Finish Aurevane map corrections**. Older watchers remain paused.
 - A scheduled run before lease expiry inspects only. Release or renew this lease
@@ -70,6 +70,31 @@ and human-playtesting limitations. Main remains2893076856e20bc64f00e94e132d26dd0
   format check pass. No acceptance threshold or application source changed.
 - Continue existing native run; do not duplicate dispatch. Final configured PR
   workflows and inspected native/physical-handset limits remain outstanding.
+
+### Passing local component gate — November17 13:35UTC
+
+- Restored missing checked-in artwork; all23 tests in the two affected web files
+  pass without source or timeout changes. The battle failure was an explicit
+  5000ms timeout during concurrent build/type work; retain that observed failure.
+  A focused pass alone was not accepted as closing it. Repeated the full web
+  suite after asset restoration, with the competing build completed: **9691
+  tests/699 files pass**, followed by all7 standalone Node checks. Log:
+  `combined-web-tests-restored.log` (zero failures, no skips/retries added).
+- All package coverage now passes: web9691, game-core7211, DB768 (765 in the full
+  run plus the3 formerly missing-script failures resolved by all27 focused
+  cases), validation110, audio19, realtime3, worker2: **17804 Vitest tests plus7
+  Node tests**. DB768 is combined unchanged-source evidence across the original
+  run and recovered files, not a falsely claimed new single full-DB invocation.
+- Formatting, lint, all8 package typechecks and full worker/web build pass in
+  staged runs after restoring checkout/dependency omissions. Initial `pnpm
+check` failures are preserved above; do not rewrite them into a claimed clean
+  original command. Final exact-candidate configured CI remains required.
+- Main remains2893076856e20bc64f00e94e132d26dd0d76b26d. Application source still
+  matches the existing native run's dcec8f98 tree except later documentation.
+  Native Atlas run44088314266 remains the next gate; inspect it and bounded
+  screenshots/runtime evidence before artwork or coast fixes and combined PR.
+  Do not replay or duplicate active native/Production operations. Lease released
+  so the next continuation can inspect the existing run without a stale lock.
 
 ## Piece 6 — major-art source review and dense-display detail correction
 
