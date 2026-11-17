@@ -59,7 +59,8 @@
     "atlas": 44182605668,
     "browserSmoke": 44182605636,
     "timing": 44182605532,
-    "status": "Timing68 failure (all3 mobile; desktop not reached), other eb8 gates running; release held"
+    "status": "Timing68 failure (all3 mobile; desktop not reached), other eb8 gates running; release held",
+    "uiLayoutResult": "success on eb8"
   },
   "localValidation": {
     "currentCheckout": "Clean complete checkout at candidate SHA",
@@ -127,7 +128,7 @@
     "No human continuous-motion or physical-handset acceptance.",
     "No full1.29GB archive download/review claimed; only named hash-verified compact bundles."
   ],
-  "updatedAt": "2026-11-17T21:55:00.989Z",
+  "updatedAt": "2026-11-17T21:58:11.339Z",
   "previousRuns": {
     "atlas": 44143478767,
     "atlasVerifyJob": 134252202191,
@@ -233,7 +234,7 @@
     "sha": "101e63f5a760ab0a6c5498ff2f4e18e37e2933a3",
     "run": 44180738240,
     "job": 134384067556,
-    "status": "running",
+    "status": "success:3mobile+60desktop on app source6aac; diagnostic catch does not execute in passing cases",
     "scope": "Evidence-only; NEVER merge/deploy. Captures8sec native browser tasks and Canvas timings only after unchanged acceptance window fails; original failure rethrown.",
     "additionalCapture": {
       "branch": "agent/world-crowd-profile-complete-20261117",
@@ -280,6 +281,12 @@
         "afterWindowGroundBuildMs": 0,
         "native": "Canvas resource production dominates:6.86–7.02sec aggregate in about8sec task captures. Native events overlap; do not add nested durations. No candidate performance change inferred from runner variation."
       }
+    },
+    "artifact": {
+      "id": 14372904094,
+      "sha256": "6ca6d4784f0f9f9fe25e31e91793b2acb6f26ff728e611e6ff7ebe2be383abf8",
+      "bytes": 2463227,
+      "verified": true
     }
   },
   "currentSourceCI": {
