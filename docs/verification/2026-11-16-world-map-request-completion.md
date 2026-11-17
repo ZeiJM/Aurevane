@@ -12,12 +12,28 @@ them. Keep automatic Vercel Git deployments disabled and older watchers paused.
 
 ## Active worker lease
 
-- Status: active coastline correction and native failure repair, owned by the November17 15:00UTC continuation.
-- Expires at: `2026-11-17T16:30:00Z`.
+- Status: released at the durable November17 15:14UTC source/native-dispatch checkpoint.
+- Expires at: `2026-11-17T15:14:00Z`.
 - Hourly continuation: enabled by Nick on November 17; one recurring task,
   **Finish Aurevane map corrections**. Older watchers remain paused.
 - A scheduled run before lease expiry inspects only. Release or renew this lease
   at each safe checkpoint; after expiry a fresh worker may resume from the branch.
+
+## Active native verification — corrected candidate #813
+
+Source candidate `adc7d42af27a68b49c59768411985b39af7bebd7`, tree
+`40f2f925145820d50475db21a39baf00b188b0f9`, is published on the one task branch.
+Living Atlas [#813](https://github.com/ZeiJM/Aurevane/actions/runs/44111749720),
+verify job134138931990, is now running. The UI confirmed the requested branch,
+exact `expected_candidate` above, blank `deployment_ready_sha` and all five
+staging/Production flags false. Independent job API confirms checkout/source-tree
+recording/frozen installation passed, Chromium installation running, protected
+staging/Production jobs skipped. Logs are not yet downloadable; recheck recorded
+source before accepting completed results. No overall or native visual pass yet.
+Do NOT dispatch another run while this one is active. Next continuation: inspect
+this existing run and bounded art/runtime evidence; further irregular-coast
+correction, pin prominence, large-art registration/detail, sea/seams/grounding and
+all final configured gates remain open. Lease released at this durable boundary.
 
 ## Current continuation — November17 coastline and native failure repair
 
