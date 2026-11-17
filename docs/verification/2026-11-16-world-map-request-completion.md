@@ -12,12 +12,26 @@ them. Keep automatic Vercel Git deployments disabled and older watchers paused.
 
 ## Active worker lease
 
-- Status: active water repair/native-fixture correction and remaining art/coast work, owned by this same November17 coding session.
-- Expires at: `2026-11-17T18:30:00Z`.
-- Hourly continuation: enabled by Nick on November 17; one recurring task,
-  **Finish Aurevane map corrections**. Older watchers remain paused.
-- A scheduled run before lease expiry inspects only. Release or renew this lease
-  at each safe checkpoint; after expiry a fresh worker may resume from the branch.
+- Status: Nick explicitly transferred all work to this November17 interactive
+  conversation. This worker owns continuation from source `128e27d33d835513133c413b0af23cb11451e1f9`.
+- Expires at: `2026-11-17T20:00:00Z`; renew at the next safe checkpoint.
+- Nick requested cancellation of the other continuation. Recurring task
+  `Automation_661d7a3712ec8191939d0104f5c5a773` is confirmed disabled.
+  Older watchers remain paused; do not resume them or duplicate this worker.
+
+## Native814 completion and interactive takeover — November17
+
+- Fresh GitHub head is `128e27d33d835513133c413b0af23cb11451e1f9`, tree
+  `4004c9e284e8a20ca9e676be193030edd50aee91`; main remains `2893076856e20bc64f00e94e132d26dd0d76b26d`.
+- Native814 on older source `2c8cd8e0741988c9534433189626dbf1436c0061`
+  completed FAILED: 109 Atlas cases pass, 129 configured skips, two detail-view
+  failures (desktop/mobile `selfGhostPaints` expected0, observed1). Story15 pass,
+  seven configured skips; real PG17 release transaction gate passes.
+- Exact job134206735390 logs inspected. Compact artifact14353791270 downloaded
+  and SHA256 verified `72c6fbe39c2088f35ce88d311d53bbf1b3b395e581a8d6cb6038cadd1b606fef`.
+  Diagnose the identity observation/render path before a new native run. This
+  older run excludes latest coast/border/marker work and is not current acceptance.
+- No merge, deployment, migration, content publication or cron mutation occurred.
 
 ## Global settlement-marker correction — November17
 
