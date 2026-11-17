@@ -427,6 +427,72 @@ function scene(reduced = false, initial?: WorldView) {
   }
 }
 describe('native map input and bounded lifecycle', () => {
+  it('does not paint exploration fog over private terrain, including partial movement scenes', () => {
+    const state = revealNearby({
+      ...newWorldState(),
+      position: { sectorId: 'uncharted-landing', x: 6, y: 4 },
+    })
+    const s = scene(true, { ...projectWorld(state, [], 1000), unchartedTerrain: undefined })
+    try {
+      s.frame(40)
+      expect(
+        s.gradients.some(({ stops }) =>
+          stops.some(([, colour]) => colour === 'rgba(37,44,61,.71)'),
+        ),
+      ).toBe(false)
+      expect(s.draws.some(({ src }) => src.endsWith('void-ground-v01.webp'))).toBe(true)
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  })
+  it('does not submit a walk from unsurveyed render-only Uncharted ground', () => {
+    const state = revealNearby({
+      ...newWorldState(),
+      position: { sectorId: 'uncharted-expanse:32:24', x: 6, y: 4 },
+    })
+    const view = projectWorld(state, [], 1000)
+    const s = scene(true, view)
+    try {
+      s.frame(40)
+      const camera = mapPoint(view.position, view.sectors)
+      const candidate = worldRenderTerrain(view)
+        .flatMap((sector) =>
+          sector.cells
+            .filter(
+              (cell) =>
+                cell.walkable &&
+                !view.sectors.some(
+                  (known) =>
+                    known.id === sector.id &&
+                    known.cells.some((p) => p.x === cell.x && p.y === cell.y),
+                ),
+            )
+            .map((cell) => {
+              const position = { sectorId: sector.id, x: cell.x, y: cell.y }
+              return {
+                position,
+                point: projectMapPoint(
+                  mapPoint(position, [sector], camera),
+                  camera,
+                  { x: 0, y: 0 },
+                  64,
+                  800,
+                  600,
+                ),
+              }
+            }),
+        )
+        .find(({ point }) => point.x > 30 && point.x < 770 && point.y > 30 && point.y < 570)
+      expect(candidate).toBeDefined()
+      s.event('pointerdown', candidate!.point.x, candidate!.point.y)
+      s.event('pointerup', candidate!.point.x, candidate!.point.y)
+      expect(s.select).not.toHaveBeenCalled()
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  })
   it('toggles location names without hiding player identities or disabling map input', () => {
     const s = scene(true)
     try {
@@ -4471,6 +4537,8 @@ it.each([
     const sector = view.sectors.find(({ id }) => id === state.position.sectorId)!
     const initial = {
       ...view,
+      // This case authors exactly three trees; canonical landscape is tested separately.
+      unchartedTerrain: undefined,
       sectors: [
         {
           ...sector,

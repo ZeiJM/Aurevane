@@ -3,6 +3,7 @@ import { decodeTerrainRows } from '@/world/terrain'
 import { ATLAS_ROWS } from '@/world/topology'
 import { isSafe, isWalkable } from '@/world/travel'
 import type { WorldScenerySector, WorldSectorView, WorldView } from '@/world/types'
+import { unchartedRenderTerrain } from './map-uncharted-terrain'
 
 const expandedScenery = new WeakMap<WorldScenerySector, { key: string; sector: WorldSectorView }>()
 const contentKeys = new WeakMap<WorldSectorView, string>()
@@ -59,6 +60,14 @@ const cache = new WeakMap<
 >()
 /** Expand only server-supplied public scenery; authority/presence stays intact. */
 export function worldRenderTerrain(
+  view: Pick<WorldView, 'sectors' | 'scenery' | 'atlas' | 'unchartedTerrain'> &
+    Partial<Pick<WorldView, 'position'>>,
+  retained?: WorldSectorView[],
+): WorldSectorView[] {
+  return unchartedRenderTerrain(view, publicRenderTerrain(view, retained))
+}
+
+function publicRenderTerrain(
   view: Pick<WorldView, 'sectors' | 'scenery' | 'atlas'>,
   retained?: WorldSectorView[],
 ): WorldSectorView[] {

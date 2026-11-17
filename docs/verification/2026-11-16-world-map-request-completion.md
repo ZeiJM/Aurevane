@@ -19,7 +19,7 @@ them. Keep automatic Vercel Git deployments disabled and older watchers paused.
 - A scheduled run before lease expiry inspects only. Release or renew this lease
   at each safe checkpoint; after expiry a fresh worker may resume from the branch.
 
-## Piece 3 — Uncharted terrain without exploration fog (in progress)
+## Piece 3 — Uncharted terrain without exploration fog (source implemented)
 
 Implementation boundary: expose a compact, bounded rendering buffer for the
 current entered Uncharted landscape, including legacy and selected Void worlds.
@@ -37,6 +37,40 @@ Before closing this piece, prove canonical terrain painting, viewport coverage,
 no hidden-name/foreign-realm leakage, unchanged navigation and saved progress,
 cache/reference stability, reduced motion and weather behavior. Native acceptance
 and the full combined release gate remain pending until actually executed.
+
+Piece3 implementation and evidence (November17):
+
+- Added `unchartedTerrain`, a compact geometry/style buffer for the entered
+  legacy/current Void world. Viewport culling runs before terrain generation;
+  the payload and expansion are bounded, with no whole-world construction.
+- Navigation/presence scenes, surveyed landmark names, exits and stored progress
+  are unchanged. The render buffer cannot submit private walk intents and is
+  withdrawn on realm/mainland transitions, including retained movement scenes.
+- Removed the exploration-fringe fog painter and its obsolete fog-paint tests.
+  Kept the terrain-edge index and grounded scree in `map-warped-ground`.
+  The new regression rejects the old fog gradients; existing weather fog tests
+  remain and pass. This does not remove atmospheric weather fog.
+- **1,252 tests across98 World/client/server files pass**, including all eight
+  Void worlds, legacy phase geometry, viewport corners, renderer input,
+  private identity isolation and progress/reference preservation. The initial
+  broad run found14 missing-source-art failures from the sparse checkout and
+  one conflicting three-tree fixture. Restoring unchanged checked-in source
+  artwork and isolating that authored fixture resolved these without relaxing
+  its tree counts or any quality threshold.
+- TypeScript, scoped zero-warning ESLint, formatting and diff checks pass.
+  Playwright discovers the added native case (desktop/mobile applicable,
+  duplicate laptop omitted). Native execution remains pending because the local
+  Chromium startup socket is denied; discovery is not native acceptance.
+- The native case seeds only a disposable character's25 surveyed cells, then
+  checks full117-cell landscape, minimum zoom/reduced motion, absence of
+  exploration fog, unchanged progress/position and zero World mutation commands.
+- A local five-repeat projection profile across all eight entered Void worlds
+  measured78–82 buffered sectors,7,844–13,255 extra JSON bytes, cold projection
+  15.70–64.81ms and warm medians3.92–8.97ms. This measures local projection only,
+  not network latency, frame timing or physical-device acceptance.
+- No migration, collision topology, account state, reward, content publication,
+  privileged RPC or production deployment changed. The active map specification
+  now distinguishes entered-world visual geometry from private identities.
 
 ## Piece 1 — location labels and map-switch affordance
 
@@ -109,15 +143,15 @@ Implemented in source, pending native acceptance and the combined release:
 
 ## Checklist
 
-| Request                                                                   | Current status / required evidence                                                                                                                                                           |
-| ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Travel Point cycling on the globe and complete display-name cleanup       | Implemented in Piece 2; native acceptance and combined release pending.                                                                                                                      |
-| Remove the redundant Uncharted focus/selection control                    | Implemented in Piece 2; native acceptance and combined release pending.                                                                                                                      |
-| Remove Uncharted fog of war                                               | Pending execution-path review and implementation; distinguish requested visibility from weather fog, preserve discoveries/history, isolate other private realms and retain server authority. |
-| Remove lakes from fire/ice towns                                          | Pending; inspect rendered liquid composition and saved-position/route/teleport compatibility before changing canonical terrain.                                                              |
-| Natural territory and town-size variation                                 | Pending; separate territorial boundaries from equal town-district footprints and verify actual rendered variation.                                                                           |
-| Crisp older major artwork at gameplay zoom                                | Open visual acceptance; inspect native sources and rendered minimum/ordinary/maximum zoom. Upscaling alone does not establish new detail.                                                    |
-| Water/coast blending, tile seams, grounded assets and handset performance | Open representative visual/runtime acceptance. Do not classify uninspected scenes as passing or missing solely from source tests.                                                            |
+| Request                                                                   | Current status / required evidence                                                                                                        |
+| ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Travel Point cycling on the globe and complete display-name cleanup       | Implemented in Piece 2; native acceptance and combined release pending.                                                                   |
+| Remove the redundant Uncharted focus/selection control                    | Implemented in Piece 2; native acceptance and combined release pending.                                                                   |
+| Remove Uncharted fog of war                                               | Implemented visually in Piece 3; navigation/discovery rules retained. Native acceptance and combined release pending.                     |
+| Remove lakes from fire/ice towns                                          | Pending; inspect rendered liquid composition and saved-position/route/teleport compatibility before changing canonical terrain.           |
+| Natural territory and town-size variation                                 | Pending; separate territorial boundaries from equal town-district footprints and verify actual rendered variation.                        |
+| Crisp older major artwork at gameplay zoom                                | Open visual acceptance; inspect native sources and rendered minimum/ordinary/maximum zoom. Upscaling alone does not establish new detail. |
+| Water/coast blending, tile seams, grounded assets and handset performance | Open representative visual/runtime acceptance. Do not classify uninspected scenes as passing or missing solely from source tests.         |
 
 The recovered latest wording about replacing travel popups/location information
 was incomplete. The current travel-confirmation dialog was not established as a

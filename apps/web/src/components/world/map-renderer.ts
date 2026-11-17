@@ -114,12 +114,7 @@ import {
   paintFerryRig,
   paintFerrySea,
 } from './map-ferry-deck'
-import {
-  buildWarpedFogField,
-  paintWarpedFogEdge,
-  paintWarpedScree,
-  WARPED_FOG_COLOR,
-} from './map-warped-fog'
+import { buildWarpedTerrainEdges, paintWarpedScree, WARPED_GROUND_COLOR } from './map-warped-ground'
 import {
   regionalBuildingIndex,
   legacyStructureContact,
@@ -750,7 +745,7 @@ export function createMapRenderer(
   let bridgeLava = indexBridgeWater(renderSectors, featurePlacements, 'lava')
   let lavaField = bridgeLava.field
   let coastField = buildPublicCoasts({ ...view, sectors: renderSectors })
-  let warpedFog = buildWarpedFogField(renderSectors)
+  let warpedEdges = buildWarpedTerrainEdges(renderSectors)
   let heatEmitters = terrainHeatEmitters(renderSectors)
   let grandDiscoveries = grandDiscoveryPlacements(renderSectors, view.publicGrandDiscoveries)
   let oceanDiscoveries = oceanFeaturePlacements(renderSectors, coastField, view.atlas)
@@ -788,7 +783,7 @@ export function createMapRenderer(
     lavaField = bridgeLava.field
     coastField = buildPublicCoasts({ ...view, sectors: renderSectors })
     settlementGround = buildSettlementGround(renderSectors, coastField)
-    warpedFog = buildWarpedFogField(renderSectors)
+    warpedEdges = buildWarpedTerrainEdges(renderSectors)
     heatEmitters = terrainHeatEmitters(renderSectors)
     grandDiscoveries = grandDiscoveryPlacements(renderSectors, view.publicGrandDiscoveries)
     oceanDiscoveries = oceanFeaturePlacements(renderSectors, coastField, view.atlas)
@@ -810,7 +805,7 @@ export function createMapRenderer(
           settlementGround.edges.get(sector.id),
           Array.from(settlementGround.shoreRoads.get(sector.id) ?? []),
           Array.from(settlementGround.pavedCells.get(sector.id) ?? []),
-          warpedFog.get(sector.id)?.key,
+          warpedEdges.get(sector.id)?.key,
         ]),
       )
       featureKeys.set(
@@ -1272,7 +1267,6 @@ export function createMapRenderer(
       floorIndex !== undefined && floorImage?.complete && floorImage.naturalWidth
         ? floorImage
         : undefined
-    const fogCells = warpedFog.get(sector.id)?.cells
     const shoreRoads = settlementGround.shoreRoads.get(sector.id)
     const pavedCells = settlementGround.pavedCells.get(sector.id)
     for (const cell of sector.cells) {
@@ -1401,8 +1395,6 @@ export function createMapRenderer(
         // shade clipped to this square still leaves visible diamond corners.
         if (warped) paintWarpedScree(c, cell, tile, sector.id)
       }
-      const fogMask = fogCells?.get(`${cell.x}:${cell.y}`)
-      if (fogMask) paintWarpedFogEdge(c, cell, tile, fogMask)
     }
     paintTerrainContours(c, sector, tile)
     paintTerrainRelief(c, sector, tile)
@@ -1789,7 +1781,7 @@ export function createMapRenderer(
     }
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0)
     ctx.fillStyle = current?.warpedTheme
-      ? WARPED_FOG_COLOR
+      ? WARPED_GROUND_COLOR
       : current?.charted
         ? '#284b57'
         : '#233d3c'
@@ -2001,7 +1993,7 @@ export function createMapRenderer(
         nature.naturalWidth
       ) {
         const mixedTreeRegions = biomeField.get(sector.id)?.treeRegions
-        const fogCells = warpedFog.get(sector.id)?.cells
+        const edgeCells = warpedEdges.get(sector.id)?.cells
         const denseRidge = denseMountainRidge(sector)
         for (const cell of sector.cells) {
           if (
@@ -2058,8 +2050,9 @@ export function createMapRenderer(
           const treeRegion = mixedTreeRegion ?? sector.regionId
           const warpedRock =
             rock && sector.warpedTheme ? hashString(`${sector.id}:${cell.x}:${cell.y}:rock`) : null
-          const fogMask = warpedRock === null ? 0 : fogCells?.get(`${cell.x}:${cell.y}`)
-          if (warpedRock !== null && (fogMask ? warpedRock % 5 !== 0 : warpedRock % 5 > 2)) continue
+          const edgeMask = warpedRock === null ? 0 : edgeCells?.get(`${cell.x}:${cell.y}`)
+          if (warpedRock !== null && (edgeMask ? warpedRock % 5 !== 0 : warpedRock % 5 > 2))
+            continue
           // Fringe trees are younger, but still use their supplied foot anchors.
           const scale = mixedTreeRegion
             ? 0.84
@@ -3951,7 +3944,24 @@ export function createMapRenderer(
       // Public scenery may extend beyond the navigation/peer snapshot. A click
       // submits intent there; only supplied navigation can preview the route,
       // and the server still validates the destination and every traversed cell.
-      position: pick(ground, renderSectors, projection?.camera.x ?? camera.x),
+      position: (() => {
+        const position = pick(ground, renderSectors, projection?.camera.x ?? camera.x)
+        if (
+          !position ||
+          (!position.sectorId.startsWith('void:') && !position.sectorId.startsWith('uncharted-'))
+        )
+          return position
+        // Visible landscape is not a survey or navigation grant.
+        return view.sectors.some(
+          (sector) =>
+            sector.id === position.sectorId &&
+            sector.cells.some(
+              (cell) => cell.x === position.x && cell.y === position.y && cell.walkable,
+            ),
+        )
+          ? position
+          : null
+      })(),
       player:
         hitTargets.find((target) => Math.hypot(target.x - x, target.y - y) < target.radius) ?? null,
     }

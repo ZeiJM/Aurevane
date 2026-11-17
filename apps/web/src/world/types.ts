@@ -240,6 +240,16 @@ export type WorldScenerySector = readonly [
   buildings: readonly WorldBuilding[],
   landmarks: readonly WorldLandmark[],
 ]
+/** Entered Uncharted landscape for painting only: no identities, exits, peers or discoveries. */
+export type WorldUnchartedTerrain = readonly [
+  sectorId: string,
+  terrain: string,
+  regionId: string,
+  column: number,
+  row: number,
+  theme: NonNullable<WorldSector['warpedTheme']>,
+  landscape: WorldSector['landscape'] | null,
+]
 /** Presentation extent only; it never widens owned navigation or peer visibility. */
 export interface WorldSceneViewport {
   width: number
@@ -267,6 +277,8 @@ export interface WorldView {
   sectors: WorldSectorView[]
   /** Compact public terrain buffer, independent of the authorized presence scene. */
   scenery?: WorldScenerySector[]
+  /** Bounded scenery of the current entered Uncharted world; never navigation authority. */
+  unchartedTerrain?: WorldUnchartedTerrain[]
   /** Full canonical public ground/approach proof for world-scale scenic art. No private sites. */
   publicGrandDiscoveries?: readonly GrandDiscoveryId[]
   /** Compact overview; private terrain and undiscovered landmarks never enter this list. */

@@ -44,6 +44,7 @@ import { grandDiscoveryPlacements } from '@/components/world/map-grand-discoveri
 import { wrappedColumnDistance, wrappedMapX } from '@/world/topology'
 import { parseVoidSectorId, isVoidRealmSectorId } from '@/world/void-realms'
 import { voidRealmScenery } from './void-realms'
+import { projectUnchartedTerrain } from './uncharted-terrain'
 import {
   applyWarpedContinentPhase,
   isWarpedContinentSector,
@@ -582,6 +583,9 @@ export function projectWorld(
         : null,
     sectors,
     scenery,
+    ...(currentSector.warpedTheme
+      ? { unchartedTerrain: projectUnchartedTerrain(state, viewport) }
+      : {}),
     ...(currentSector.charted ? { publicGrandDiscoveries: publicGrandDiscoveryProof() } : {}),
     atlas: visible.flatMap((sector) => {
       const address = atlasAddress(sector)
