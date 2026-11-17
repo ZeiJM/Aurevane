@@ -59,12 +59,12 @@
     "atlas": 44177401056,
     "browserSmoke": 44177400916,
     "timing": 44177400951,
-    "status": "fresh exact-source gates running/pending"
+    "status": "CI and UI layout success on6aac; Atlas818 and Browser Smoke running; Timing65 failure."
   },
   "localValidation": {
     "currentCheckout": "Clean complete checkout at candidate SHA",
     "pnpmInstall": "frozen lockfile succeeded",
-    "finalPnpmCheck": "Predecessor9906e0d completed successfully:17824 Vitest+7 Node, full quality/build. Fresh6aac62d final pnpm check running.",
+    "finalPnpmCheck": "9906 predecessor local full check passed;6aac local log stopped at web test startup with no final result. Fresh6aac remote CI full quality/build succeeds:17825 Vitest+7Node. Do not claim current local full pass.",
     "previousValidation": {
       "rendererAndSceneTests": 252,
       "typescript": "pass",
@@ -117,17 +117,17 @@
     }
   },
   "remaining": [
-    "Complete exact-source Atlas817, Browser Smoke full Chromium/final Edge and Timing64 all63 unchanged zero-retry executions.",
-    "Inspect native current-source colosseum center/lateral, valley, globe WebGL/fallback coasts, dry towns, water/seams/grounding and actual responsive controls.",
-    "Finish current full local pnpm check.",
-    "Refresh main and merge only passing reviewed candidate with tested-tree equality. One staged Production build, smoke and same-build promotion; preserve9 retirement rules and Git deployment lock.",
-    "No Preview; never replay PR1040 migrations/cron/release; no content republication or player reset."
+    "Diagnose native mobile crowd failure without weakening acceptance; verify keyboard repair in60 desktop repetitions.",
+    "Close visible snow texture seams, preserve all collision/position/private-state authority.",
+    "Finish exact-source Atlas and full Browser Smoke; review megastructure centre/lateral, valley, globe, water, responsive controls.",
+    "Freeze passing reviewed candidate, verify tested-tree equality, merge and perform ONE staged Production build, smoke and same-build promotion; preserve9 retirement guards and Git deployment lock.",
+    "No Preview; never replay PR1040 migrations/cron/release; no content republication, player resets or resumed hourly tasks."
   ],
   "limitations": [
     "No human continuous-motion or physical-handset acceptance.",
     "No full1.29GB archive download/review claimed; only named hash-verified compact bundles."
   ],
-  "updatedAt": "2026-11-17T21:13:31.397Z",
+  "updatedAt": "2026-11-17T21:34:04.590Z",
   "previousRuns": {
     "atlas": 44143478767,
     "atlasVerifyJob": 134252202191,
@@ -194,7 +194,7 @@
       "failed": []
     }
   },
-  "nativeVisualReview": "Pending exact-source817 screenshot bundles; do not treat current CI/layout or offline18% experiment as native gameplay/handset performance acceptance.",
+  "nativeVisualReview": "Atlas817 canceled when6aac published. Hash-verified57MB art bundle reviewed: native dry-town snow seams remain open; globe and water views inspected, final source visual acceptance pending. No colosseum final detail bundle yet.",
   "predecessorSourceCI": {
     "vitest": 17824,
     "nodeTests": 7,
@@ -217,5 +217,39 @@
     "sha256": "2a58cb13acf2e10893b594668f1d4e0b6dae37e197433164a0be3513dd727db9",
     "cause": "Rapid-click destination X10 arrived; visual catch-up trailed it. Keydown X12 then release X10 cancelled the next step.",
     "repair": "Continuing input chooses farther approved point along its direction. Added450ms deterministic regression fails before, passes after; renderer/motion/controller362, types, lint and format pass."
+  },
+  "timing65": {
+    "run": 44177400951,
+    "job": 134372321625,
+    "result": "failure",
+    "mobileCrowdFailed": 3,
+    "desktopMovementReached": false,
+    "artifact": 14369609350,
+    "sha256": "36e7d917a8f8a913c27e741fcc27b3671f9c45187889eb81a2870431942a7288",
+    "cause": "All3 mobile4xCPU crowd cases missed >120 completed frames within15sec. Same crowd passed Timing64; no thresholds/retries/deadlines changed. Source idle performance cause not yet established."
+  },
+  "crowdDiagnostic": {
+    "branch": "agent/world-crowd-profile-20261117",
+    "sha": "101e63f5a760ab0a6c5498ff2f4e18e37e2933a3",
+    "run": 44180738240,
+    "job": 134384067556,
+    "status": "running",
+    "scope": "Evidence-only; NEVER merge/deploy. Captures8sec native browser tasks and Canvas timings only after unchanged acceptance window fails; original failure rethrown."
+  },
+  "currentSourceCI": {
+    "vitest": 17825,
+    "nodeTests": 7,
+    "format": "pass",
+    "lint": "pass",
+    "typecheck": "pass",
+    "build": "pass",
+    "databaseFoundation": "pass",
+    "dependencyAudit": "pass",
+    "workerBoot": "pass",
+    "run": 44177400906
+  },
+  "snowSeams": {
+    "status": "open",
+    "evidence": "Exact-source offline raw cached ground includes1px dark borders at mirrored texture boundaries. Numeric stroke suppression and atlas isolation experiments ruled out those causes. Testing bounded source-rectangle inset hypothesis; no production seam code changes."
   }
 }
