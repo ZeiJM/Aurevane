@@ -63,7 +63,7 @@ function viewFor(atlas: WorldAtlasCell[]): WorldView {
     environment: resolveWorldEnvironment(1000),
   }
 }
-function render(view: WorldView, onSelect = vi.fn()) {
+function render(view: WorldView, onSelect = vi.fn(), showLocationLabels = true) {
   return renderToStaticMarkup(
     createElement(WorldGlobe, {
       view,
@@ -72,6 +72,7 @@ function render(view: WorldView, onSelect = vi.fn()) {
       zoom: 0.94,
       zoomLocked: false,
       onZoom: vi.fn(),
+      showLocationLabels,
     }),
   )
 }
@@ -81,6 +82,16 @@ beforeEach(() => {
 })
 
 describe('globe geographic labels', () => {
+  it('hides town names while preserving selectable town icons and the current-position pin', () => {
+    const view = viewFor([atlasCell(0, 2, 'South town')])
+    expect(render(view)).toContain('<span>South town</span>')
+    const hidden = render(view, vi.fn(), false)
+    expect(hidden).not.toContain('<span>South town</span>')
+    expect(hidden).toContain('aria-label="Select South town town"')
+    expect(hidden).toContain('data-globe-town')
+    expect(hidden).toContain('Your current position')
+    expect(hidden).toContain('You are here')
+  })
   it('shows named locations on the globe without cluttering the view with duplicate pickers', () => {
     const south = atlasCell(0, 2, 'South town')
     const north = atlasCell(85, 1, 'North town')

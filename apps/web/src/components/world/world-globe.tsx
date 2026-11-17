@@ -18,6 +18,7 @@ export function WorldGlobe({
   onSelect,
   zoom,
   zoomLocked,
+  showLocationLabels = true,
   onZoom,
 }: {
   view: WorldView
@@ -25,6 +26,7 @@ export function WorldGlobe({
   onSelect: (id: string | null) => void
   zoom: number
   zoomLocked: boolean
+  showLocationLabels?: boolean
   onZoom: (zoom: number) => void
 }) {
   const current = view.sectors.find((sector) => sector.id === view.position.sectorId)!
@@ -146,7 +148,7 @@ export function WorldGlobe({
                 top: `${top}%`,
               }}
             >
-              <span>{sector.name}</span>
+              {showLocationLabels ? <span>{sector.name}</span> : null}
               <svg
                 viewBox="0 0 24 24"
                 width="20"
@@ -168,7 +170,9 @@ export function WorldGlobe({
               You are here
             </span>
           ) : null}
-          {veil.visible && Math.hypot(veilX, veilY) < Math.min(0.72, zoom * 0.8) ? (
+          {showLocationLabels &&
+          veil.visible &&
+          Math.hypot(veilX, veilY) < Math.min(0.72, zoom * 0.8) ? (
             <span
               className={styles.globeVeilLabel}
               style={{ left: `${(veilX + 1) * 50}%`, top: `${(1 - veilY) * 50}%` }}

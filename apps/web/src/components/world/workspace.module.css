@@ -100,9 +100,16 @@
   min-height: 32px;
   text-align: left;
 }
-.location span {
-  font-size: 18px;
-  color: #7e806b;
+.location .locationName {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font: inherit;
+  color: inherit;
+}
+.location svg {
+  flex-shrink: 0;
 }
 .environment {
   display: flex;
@@ -407,6 +414,10 @@
   display: grid;
   place-items: center;
   flex-shrink: 0;
+}
+.panelFoot .locationLabels[aria-pressed='true'] {
+  color: var(--map-gold);
+  border-color: #a1844b;
 }
 .currentCoordinates {
   margin: 0 auto 0 0;
@@ -1025,7 +1036,7 @@
     overflow: hidden;
   }
   .header .location {
-    display: block;
+    display: flex;
     max-width: 100%;
     overflow: hidden;
     white-space: nowrap;

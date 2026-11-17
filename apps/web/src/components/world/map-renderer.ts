@@ -662,6 +662,7 @@ export function createMapRenderer(
   const paintedProjections: PaintedProjection[] = []
   const remoteMotion = new WorldPlayerMotion(initial, performance.now(), camera)
   let animate = true,
+    showLocationLabels = true,
     visualMinuteOfDay = view.environment.minuteOfDay,
     quality: MapQuality = DEFAULT_MAP_QUALITY,
     zoomLocked = false,
@@ -3389,7 +3390,7 @@ export function createMapRenderer(
       ctx.restore()
     }
     const labelBounds: { x: number; y: number; width: number; height: number }[] = []
-    for (const sector of visible) {
+    for (const sector of showLocationLabels ? visible : []) {
       const origin = sectorOrigin(sector)
       for (const landmark of sector.landmarks) {
         const p = screen({ x: origin.x + landmark.x + 0.5, y: origin.y + landmark.y + 0.5 })
@@ -4163,8 +4164,10 @@ export function createMapRenderer(
       quality?: MapQuality
       preview?: boolean
       authorityOverlay?: boolean
+      showLocationLabels?: boolean
     }) {
       animate = value.animate
+      showLocationLabels = value.showLocationLabels ?? true
       const nextQuality = value.quality ?? DEFAULT_MAP_QUALITY
       const terrainResolutionChanged = (quality === 'low') !== (nextQuality === 'low')
       quality = nextQuality

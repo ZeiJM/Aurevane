@@ -427,6 +427,53 @@ function scene(reduced = false, initial?: WorldView) {
   }
 }
 describe('native map input and bounded lifecycle', () => {
+  it('toggles location names without hiding player identities or disabling map input', () => {
+    const s = scene(true)
+    try {
+      s.frame(40)
+      expect(s.texts.some(({ text }) => text === 'Town Square')).toBe(true)
+      s.texts.length = 0
+      s.renderer.settings({ animate: false, zoom: 1, showLocationLabels: false })
+      s.renderer.update({
+        ...s.view,
+        players: [
+          {
+            characterId: 'labels-peer',
+            name: 'Label peer',
+            level: 1,
+            portraitRef: '',
+            imageUrl: '/peer.webp',
+            online: true,
+            attackable: false,
+            position: { ...s.view.position, x: s.view.position.x + 2 },
+          },
+        ],
+      })
+      s.frame(80)
+      expect(s.texts.some(({ text }) => text === 'Town Square')).toBe(false)
+      expect(s.texts.some(({ text }) => text === 'You')).toBe(true)
+      const camera = mapPoint(s.view.position, s.view.sectors)
+      const target = { ...s.view.position, x: s.view.position.x + 1 }
+      const point = projectMapPoint(
+        mapPoint(target, s.view.sectors),
+        camera,
+        { x: 0, y: 0 },
+        64,
+        800,
+        600,
+      )
+      s.event('pointerdown', point.x, point.y)
+      s.event('pointerup', point.x, point.y)
+      expect(s.select).toHaveBeenCalledExactlyOnceWith(target)
+      s.texts.length = 0
+      s.renderer.settings({ animate: false, zoom: 1, showLocationLabels: true })
+      s.frame(120)
+      expect(s.texts.some(({ text }) => text === 'Town Square')).toBe(true)
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  })
   // The fake RAF timestamps use a zero epoch. Keep the ordinary callback clock
   // on that epoch; tests for delayed callbacks explicitly advance this clock.
   beforeEach(() => {

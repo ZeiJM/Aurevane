@@ -102,6 +102,38 @@ export async function verifyWorldPresentation(
   await expect(coordinates).toContainText('Sector 3643')
   await expect(coordinates).toContainText('X:6 · Y:4')
   await expect(page.getByRole('button', { name: 'View Town', exact: true })).toHaveCount(0)
+  const labelsToggle = panel.getByRole('button', { name: 'Map location labels', exact: true })
+  const ensureDetails = async () => {
+    if (!(await labelsToggle.isVisible()))
+      await page.getByRole('button', { name: 'Details', exact: true }).click()
+  }
+  await expect(labelsToggle).toHaveAttribute('aria-pressed', 'true')
+  const labelsBox = (await labelsToggle.boundingBox())!
+  const settingsBox = (await panel
+    .getByRole('button', { name: 'Map settings', exact: true })
+    .boundingBox())!
+  expect(labelsBox.x + labelsBox.width).toBeLessThanOrEqual(settingsBox.x)
+  expect(Math.abs(labelsBox.y - settingsBox.y)).toBeLessThan(2)
+  await labelsToggle.click()
+  await expect(labelsToggle).toHaveAttribute('aria-pressed', 'false')
+  const mapSwitch = page.getByRole('button', { name: /Open world atlas/ })
+  await expect(mapSwitch.locator('[data-world-map-switch]')).toBeVisible()
+  await mapSwitch.click()
+  await expect(workspace).toHaveAttribute('data-world-view', 'globe')
+  await ensureDetails()
+  await expect(labelsToggle).toHaveAttribute('aria-pressed', 'false')
+  const townMarkers = workspace.locator('[data-globe-town]:not([data-globe-travel-point])')
+  await expect(townMarkers.first()).toBeVisible()
+  await expect(townMarkers.locator('span')).toHaveCount(0)
+  await labelsToggle.click()
+  await expect(townMarkers.locator('span').first()).toBeVisible()
+  const returnSwitch = page.getByRole('button', { name: /Return to local map/ })
+  await expect(returnSwitch.locator('[data-world-map-switch]')).toBeVisible()
+  await returnSwitch.click()
+  await expect(workspace).toHaveAttribute('data-world-view', 'sector')
+  await ensureDetails()
+  await expect(labelsToggle).toHaveAttribute('aria-pressed', 'true')
+  expect((await world(page)).position).toEqual({ sectorId: 'atlas:58:28', x: 6, y: 4 })
   const verifyPlayerRows = async () => {
     // Presence can change between awaited locator calls. Measure the currently
     // rendered rows and their children in one DOM snapshot instead of retaining

@@ -11,6 +11,28 @@ import { VOID_REALMS } from '@/world/void-realms'
 import { WorldWorkspace } from './world-workspace'
 
 describe('World page', () => {
+  it('offers a pressed location-label toggle immediately beside map settings', () => {
+    const markup = renderToStaticMarkup(
+      <WorldWorkspace
+        initialView={projectWorld(newWorldState(), [], 1000)}
+        character={{ name: 'Traveller', portrait: '/portrait.webp' }}
+      />,
+    )
+    const actions = markup.match(/<div class="[^"]*panelFootActions[^"]*">([\s\S]*?)<\/div>/)?.[1]
+    expect(actions).toMatch(/aria-label="Map location labels"[^>]*aria-pressed="true"/)
+    expect(actions).toMatch(/<\/button><button[^>]*aria-label="Map settings"/)
+  })
+  it('shows a visible map-switch arrow inside the location title button', () => {
+    const markup = renderToStaticMarkup(
+      <WorldWorkspace
+        initialView={projectWorld(newWorldState(), [], 1000)}
+        character={{ name: 'Traveller', portrait: '/portrait.webp' }}
+      />,
+    )
+    const button = markup.match(/<button[^>]*title="Open world atlas"[\s\S]*?<\/button>/)?.[0]
+    expect(button).toContain('data-world-map-switch')
+    expect(button).toMatch(/<svg[^>]*aria-hidden="true"/)
+  })
   it('labels the current tile safe or PvP without using a future route destination', () => {
     const state = newWorldState()
     state.route = [{ position: { ...state.position, x: 10 }, durationMs: 200 }]

@@ -145,6 +145,7 @@ export function WorldWorkspace({
     [travelPointCursor, setTravelPointCursor] = useState(-1),
     [sectorJump, setSectorJump] = useState('')
   const [animate, setAnimate] = useState(true),
+    [showLocationLabels, setShowLocationLabels] = useState(true),
     [zoom, setZoom] = useState(1),
     [globeZoom, setGlobeZoom] = useState(0.94)
   const [motion] = useState(() => new WorldMotion(initialView, performance.now()))
@@ -689,7 +690,22 @@ export function WorldWorkspace({
             }
             onClick={() => setMode(mode === 'local' ? 'global' : 'local')}
           >
-            {mode === 'local' ? localName : WORLD_LAND_NAME}
+            <span className={styles.locationName}>
+              {mode === 'local' ? localName : WORLD_LAND_NAME}
+            </span>
+            <svg
+              data-world-map-switch
+              viewBox="0 0 24 24"
+              width="20"
+              height="20"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path d="M20 7a9 9 0 1 0 1 9M20 3v5h-5" />
+            </svg>
           </button>
         </div>
         <div className={styles.environment}>
@@ -717,6 +733,7 @@ export function WorldWorkspace({
               motion={motion}
               portrait={character.portrait}
               animate={animate}
+              showLocationLabels={showLocationLabels}
               quality={mapQuality}
               paused={false}
               zoom={zoom}
@@ -734,6 +751,7 @@ export function WorldWorkspace({
           ) : (
             <WorldGlobe
               view={view}
+              showLocationLabels={showLocationLabels}
               zoom={globeZoom}
               zoomLocked={zoomLocked}
               onZoom={setGlobeZoom}
@@ -1070,6 +1088,16 @@ export function WorldWorkspace({
               </span>
             </p>
             <div className={styles.panelFootActions}>
+              <button
+                type="button"
+                className={styles.locationLabels}
+                aria-label="Map location labels"
+                aria-pressed={showLocationLabels}
+                title={showLocationLabels ? 'Hide map location labels' : 'Show map location labels'}
+                onClick={() => setShowLocationLabels(!showLocationLabels)}
+              >
+                Labels
+              </button>
               <SettingsButton open={settings} onClick={() => setSettings(!settings)} />
             </div>
           </div>
