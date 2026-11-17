@@ -129,7 +129,7 @@
     "No human continuous-motion or physical-handset acceptance.",
     "No full1.29GB archive download/review claimed; only named hash-verified compact bundles."
   ],
-  "updatedAt": "2026-11-17T22:12:21.604Z",
+  "updatedAt": "2026-11-17T22:23:08.865Z",
   "previousRuns": {
     "atlas": 44143478767,
     "atlasVerifyJob": 134252202191,
@@ -377,5 +377,27 @@
       },
       "interpretation": "Low-latency mode removes resource-production stall but only modest throughput gain. Software mode gives no consistent material improvement. Neither mode is integrated in production source. Investigating settled phone low-zoom projection reuse to reduce actual affine raster work without changing resolution, sprites or cadence."
     }
+  },
+  "phoneProjection": {
+    "sourceBranch": "agent/world-phone-projection-candidate-20261117",
+    "sourceCommit": "1426587a7edaf492cfbdc1374ea39aadc3238701",
+    "tree": "5e46617bf52d901fe7a313a95493a3a69082287e",
+    "publishedToPR": false,
+    "nativeAB": {
+      "branch": "agent/world-phone-projection-profile-20261117",
+      "sha": "6069565e3b227bffa9ecb384c18e531450560232",
+      "run": 44188832522,
+      "job": 134412471663,
+      "status": "running"
+    },
+    "focused": {
+      "tests": 338,
+      "result": "pass",
+      "standingBefore": "no native-density ground blit (undefined)",
+      "movingBefore": "no retained projection blits after walking",
+      "after": "reuse verified standing and walking; no warm allocations across60draws; terrain and full-DPR identity unchanged;8Mpx limit retained"
+    },
+    "fullLocal": "running; format/lint pass, types executing",
+    "notes": "Application context flags remain unchanged; new code permits existing projection cache at settled phone wide zoom, including walking. Native A/B uses a dataset flag only in the separate diagnostic branch."
   }
 }
