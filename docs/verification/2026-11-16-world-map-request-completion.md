@@ -10,6 +10,34 @@ Branch: `agent/world-map-request-completion`.
 PR #1040 and its production migrations/cron are already released. Do not replay
 them. Keep automatic Vercel Git deployments disabled and older watchers paused.
 
+## Active worker lease
+
+- Status: active implementation, owned by the current coding session.
+- Expires at: `2026-11-17T10:30:00Z`.
+- Hourly continuation: enabled by Nick on November 17; one recurring task,
+  **Finish Aurevane map corrections**. Older watchers remain paused.
+- A scheduled run before lease expiry inspects only. Release or renew this lease
+  at each safe checkpoint; after expiry a fresh worker may resume from the branch.
+
+## Piece 3 — Uncharted terrain without exploration fog (in progress)
+
+Implementation boundary: expose a compact, bounded rendering buffer for the
+current entered Uncharted landscape, including legacy and selected Void worlds.
+The buffer contains terrain/style/scene offsets only, without private location
+names, encounters, objectives, exits or peer identities. It is separate from the
+navigation/presence scene and saved discoveries. The client expands this buffer
+for painting; it must never feed optimistic navigation, rewards or presence.
+Remove the exploration-fringe fog pass while preserving weather fog, warped
+terrain detail and already-authorized scenery. Mainland/other realms cannot
+receive or render the private buffer. Frame the buffer for the supported viewport
+at minimum zoom, with a bounded halo for movement; do not scan a whole world.
+
+Keep current server movement/discovery rules and stored exploration history.
+Before closing this piece, prove canonical terrain painting, viewport coverage,
+no hidden-name/foreign-realm leakage, unchanged navigation and saved progress,
+cache/reference stability, reduced motion and weather behavior. Native acceptance
+and the full combined release gate remain pending until actually executed.
+
 ## Piece 1 — location labels and map-switch affordance
 
 Implemented in source, pending combined release:
