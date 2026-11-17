@@ -2,6 +2,37 @@ import { expect, it } from 'vitest'
 import { atlasSectors, ATLAS_COLUMNS, ATLAS_ROWS } from '@/world/atlas'
 import { globeSectorCenter, globeSectorCoordinate } from '@/world/globe-math'
 import { globeAtlasPixels, globeAtlasDetailPixels } from './globe-atlas'
+it('renders continuous public settlement fabric without changing coast alpha or liquid identity', () => {
+  const plain = Array.from({ length: 9 }, (_, i) => ({
+    id: `land-${i}`,
+    name: 'Land',
+    coordinate: '',
+    regionId: 'aureth-crown',
+    column: (i % 3) + 1,
+    row: Math.floor(i / 3) + 1,
+    charted: true,
+  }))
+  const original = globeAtlasDetailPixels(plain, 5, 5)
+  const built: import('@/world/types').WorldAtlasCell[] = plain.map((cell, i) =>
+    i === 4 ? { ...cell, settlementOutskirtsOf: 'aureth-crown' } : cell,
+  )
+  const urban = globeAtlasDetailPixels(built, 5, 5)
+  expect(urban).not.toBe(original)
+  expect(urban.pixels).not.toEqual(original.pixels)
+  expect(urban.pixels.filter((_, i) => i % 4 === 3)).toEqual(
+    original.pixels.filter((_, i) => i % 4 === 3),
+  )
+  expect(globeAtlasDetailPixels(JSON.parse(JSON.stringify(built)), 5, 5)).toBe(urban)
+  const wet = built.map((cell) => ({ ...cell, waterTiles: 'w'.repeat(117) }))
+  const wetPlain = globeAtlasDetailPixels(
+    wet.map((cell) => ({ ...cell, settlementOutskirtsOf: undefined })),
+    5,
+    5,
+  )
+  expect(globeAtlasDetailPixels(wet, 5, 5).pixels).toEqual(wetPlain.pixels)
+  const hidden = built.map((cell) => ({ ...cell, charted: false }))
+  expect(globeAtlasDetailPixels(hidden, 5, 5).pixels.every((value) => value === 0)).toBe(true)
+})
 it('gives charted land regional relief and coastal detail without leaking private cells', () => {
   const cell = {
     id: 'frostmere',
@@ -120,7 +151,7 @@ it('renders authoritative water and lava while leaving a bridge as dry ground', 
   ).toBe(true)
 })
 
-it('projects only canonical charted towns and their actual nine-sector footprints', async () => {
+it('projects only canonical charted towns and their public built-up extents', async () => {
   const { globeTowns, projectGlobeTowns } = await import('./globe-atlas')
   const atlas = atlasSectors().map((s) => ({
     id: s.id,
@@ -131,10 +162,16 @@ it('projects only canonical charted towns and their actual nine-sector footprint
     row: s.atlasRow!,
     charted: s.charted,
     townId: s.townId,
+    settlementOutskirtsOf: s.settlementOutskirtsOf,
   }))
   const towns = globeTowns(atlas)
   expect(towns).toHaveLength(8)
-  expect(towns.every((t) => t.districts.length === 9 && t.sector.id === t.sector.townId)).toBe(true)
+  expect(
+    towns.every(
+      (t) => t.districts.length >= 9 && t.districts.length <= 14 && t.sector.id === t.sector.townId,
+    ),
+  ).toBe(true)
+  expect(new Set(towns.map((t) => t.districts.length)).size).toBe(6)
   const town = towns.find((t) => t.sector.id === 'verdant-expanse')!
   const camera = globeSectorCenter(town.sector.coordinate, ATLAS_COLUMNS, ATLAS_ROWS)!
   const projected = projectGlobeTowns(atlas, camera, 1)

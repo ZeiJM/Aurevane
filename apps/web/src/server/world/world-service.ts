@@ -71,7 +71,10 @@ const impactSites: Readonly<Record<string, WorldImpactSite>> = {
 const isKnown = isKnownCell
 // Public sector terrain is immutable. Avoid scanning every charted cell on each
 // 200ms walking confirmation just to build the small globe water overlay.
-const atlasSurfaceCache = new WeakMap<object, { townId?: string; waterTiles?: string }>()
+const atlasSurfaceCache = new WeakMap<
+  object,
+  { townId?: string; settlementOutskirtsOf?: string; waterTiles?: string }
+>()
 let provedPublicGrandDiscoveries: readonly GrandDiscoveryId[] | undefined
 function publicGrandDiscoveryProof(): readonly GrandDiscoveryId[] {
   if (provedPublicGrandDiscoveries) return provedPublicGrandDiscoveries
@@ -121,6 +124,9 @@ function publicAtlasSurface(sector: ReturnType<typeof visibleSectors>[number]) {
     const rows = worldSurfaceRows(sector)
     surface = {
       ...(sector.townId ? { townId: sector.townId } : {}),
+      ...(sector.settlementOutskirtsOf
+        ? { settlementOutskirtsOf: sector.settlementOutskirtsOf }
+        : {}),
       ...(rows.some((row) => /[~lw]/.test(row))
         ? { waterTiles: rows.join('').replace(/[^~lw]/g, '.') }
         : {}),

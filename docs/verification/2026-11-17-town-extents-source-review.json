@@ -1,0 +1,162 @@
+{
+  "scope": "Actual shared globe texture generated offline from current public geometry/materials; not browser acceptance.",
+  "sources": {
+    "apps/web/src/world/atlas.ts": "0fa2e7525ce67e6c55bb3927bf3571b8ed66372027e61d39db0ee5547bdb80d8",
+    "apps/web/src/world/town-extents.ts": "939ba232dd59d19c656503c66e6620a68abf18ea134345532c1d5cc336709100",
+    "apps/web/src/components/world/globe-atlas.ts": "53d9d64f7543d1c6bc4bd8e325c919ced28dd23adbcbc1fda63cf57449d7f8c5"
+  },
+  "towns": [
+    {
+      "id": "frostmere",
+      "safeCoreDistricts": 9,
+      "visibleDistricts": 9,
+      "offsets": [
+        [-1, -1],
+        [0, -1],
+        [1, -1],
+        [-1, 0],
+        [0, 0],
+        [1, 0],
+        [-1, 1],
+        [0, 1],
+        [1, 1]
+      ]
+    },
+    {
+      "id": "starfall-highlands",
+      "safeCoreDistricts": 9,
+      "visibleDistricts": 10,
+      "offsets": [
+        [-1, -2],
+        [-1, -1],
+        [0, -1],
+        [1, -1],
+        [-1, 0],
+        [0, 0],
+        [1, 0],
+        [-1, 1],
+        [0, 1],
+        [1, 1]
+      ]
+    },
+    {
+      "id": "emberreach",
+      "safeCoreDistricts": 9,
+      "visibleDistricts": 10,
+      "offsets": [
+        [-1, -1],
+        [0, -1],
+        [1, -1],
+        [-1, 0],
+        [0, 0],
+        [1, 0],
+        [-1, 1],
+        [0, 1],
+        [1, 1],
+        [2, 1]
+      ]
+    },
+    {
+      "id": "aureth-crown",
+      "safeCoreDistricts": 9,
+      "visibleDistricts": 14,
+      "offsets": [
+        [-2, -1],
+        [-1, -1],
+        [0, -1],
+        [1, -1],
+        [-2, 0],
+        [-1, 0],
+        [0, 0],
+        [1, 0],
+        [2, 0],
+        [-2, 1],
+        [-1, 1],
+        [0, 1],
+        [1, 1],
+        [2, 1]
+      ]
+    },
+    {
+      "id": "verdant-expanse",
+      "safeCoreDistricts": 9,
+      "visibleDistricts": 12,
+      "offsets": [
+        [-2, -1],
+        [-1, -1],
+        [0, -1],
+        [1, -1],
+        [-2, 0],
+        [-1, 0],
+        [0, 0],
+        [1, 0],
+        [-2, 1],
+        [-1, 1],
+        [0, 1],
+        [1, 1]
+      ]
+    },
+    {
+      "id": "umbral-march",
+      "safeCoreDistricts": 9,
+      "visibleDistricts": 12,
+      "offsets": [
+        [-1, -1],
+        [0, -1],
+        [1, -1],
+        [-1, 0],
+        [0, 0],
+        [1, 0],
+        [-1, 1],
+        [0, 1],
+        [1, 1],
+        [-1, 2],
+        [0, 2],
+        [1, 2]
+      ]
+    },
+    {
+      "id": "glasswind-desert",
+      "safeCoreDistricts": 9,
+      "visibleDistricts": 11,
+      "offsets": [
+        [0, -2],
+        [1, -2],
+        [-1, -1],
+        [0, -1],
+        [1, -1],
+        [-1, 0],
+        [0, 0],
+        [1, 0],
+        [-1, 1],
+        [0, 1],
+        [1, 1]
+      ]
+    },
+    {
+      "id": "hollow-coast",
+      "safeCoreDistricts": 9,
+      "visibleDistricts": 13,
+      "offsets": [
+        [-1, -1],
+        [0, -1],
+        [1, -1],
+        [2, -1],
+        [-1, 0],
+        [0, 0],
+        [1, 0],
+        [2, 0],
+        [-1, 1],
+        [0, 1],
+        [1, 1],
+        [2, 1],
+        [1, 2]
+      ]
+    }
+  ],
+  "image": {
+    "width": 2048,
+    "height": 1024,
+    "sha256": "2534b74767919f54a2a66cca39039227a63ea03a06a0502dee3dbe5277960ea1"
+  }
+}

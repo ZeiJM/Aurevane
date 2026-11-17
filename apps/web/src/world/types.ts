@@ -93,6 +93,8 @@ export interface WorldAtlasCell {
   charted: boolean
   /** Public district identity; absent for private or non-town terrain. */
   townId?: string
+  /** Public built-up outskirts only; never a safe-zone or navigation grant. */
+  settlementOutskirtsOf?: string
   /** Public water/lava only: row-major 13x9 '~', 'l' or '.'; omitted when dry. */
   waterTiles?: string
 }
@@ -117,6 +119,8 @@ export interface WorldSector {
   sceneRow?: number
   warpedTheme?: 'haven' | 'ashen' | 'fracture' | 'wayfarer' | 'amber' | 'amethyst'
   townId?: string
+  /** Presentation extent; authoritative town safety still uses townId only. */
+  settlementOutskirtsOf?: string
   landscape?: 'sakura' | 'autumn' | 'wisteria' | 'willow' | 'wildflowers'
   buildings?: readonly WorldBuilding[]
   landmarks: readonly WorldLandmark[]

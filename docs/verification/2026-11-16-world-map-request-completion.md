@@ -12,8 +12,8 @@ them. Keep automatic Vercel Git deployments disabled and older watchers paused.
 
 ## Active worker lease
 
-- Status: active implementation, owned by the November17 town-extent coding session.
-- Expires at: `2026-11-17T13:30:00Z`.
+- Status: released at the verified Piece5 source checkpoint; next worker may resume after fresh main/branch checks.
+- Expires at: `2026-11-17T11:50:00Z` (released, not an active exclusion).
 - Hourly continuation: enabled by Nick on November 17; one recurring task,
   **Finish Aurevane map corrections**. Older watchers remain paused.
 - A scheduled run before lease expiry inspects only. Release or renew this lease
@@ -96,7 +96,58 @@ not silently claimed resolved by this targeted framework correction.
   No PR merge, migration, cron change, content publication or deployment occurred.
   The next work is the town-size/art review below, on this same combined branch.
 
-## Next piece — natural territory and town-size variation
+## Piece 5 — varied built-up settlement extents (source implemented)
+
+The approved delta is visible settlement size and composition, not expanding safe
+zones. Investigation first considered a geometry successor, then showed it was
+unnecessary: a distinct public presentation field can extend working outskirts
+while leaving the existing nine-district safe cores and v4 registration exact.
+No migration, new RPC or production database operation is included.
+
+- Nineteen already-charted countryside districts receive `settlementOutskirtsOf`.
+  Visible extents now have eight distinct connected shapes, from9 to14 districts:
+  Crown14, Verdant12, Emberreach10, Frostmere9, Glasswind11, Hollow Coast13,
+  Starfall10 and Umbral12. The largest union is1638 cells, below the colosseum's
+  existing1728-cell reserved footprint. Existing territorial geography is intact.
+- The existing bounded working-yard composer now uses these outskirts and keeps
+  natural dressing, dry-ground legality, landmark clearance, prop separation and
+  existing hamlet counts. There are no new solid buildings or collision holes.
+  Outskirts retain their ordinary countryside/PvP rules; they are not safe-zone
+  grants. Actual rendered appearance remains subject to native review.
+- Public atlas metadata, normal scenes, movement/scenery retention and cache
+  identity carry the same field. Private realm projections omit it. Globe texture
+  blending uses a continuous supplied-public-neighbour field, so WebGL and
+  fallback share the same built-up fabric. Water/lava colors and coast alpha are
+  unchanged; changed metadata invalidates the cached texture.
+- The extent regressions first fail against the old nine-district presentation;
+  the texture regression first fails because metadata did not invalidate pixels.
+  **1340 tests across110 World/auth/adjacent files pass**, including exact archived
+  authority/safety/route digests and staff-teleport row preservation. TypeScript,
+  scoped zero-warning ESLint/Prettier and the optimized production build pass.
+- Native desktop/mobile review is wired for large Crown outskirts and compact
+  Frostmere at normal/maximum/minimum zoom, reduced motion and globe. It retains
+  saved state and zero-command assertions. Three project entries are discovered
+  (desktop/mobile applicable; duplicate laptop omitted); execution is pending.
+- Offline source review uses `.github/scripts/report-town-extents.cjs`; its
+  source hashes, exact extent offsets and generated2048×1024 globe texture hash
+  are retained in `2026-11-17-town-extents-source-review.json`. The generated
+  texture was inspected directly. This is shared texture output, not browser,
+  gameplay-scale silhouette, continuous-motion or physical-handset acceptance.
+  The inherited land/coast mask still shows conspicuous sector steps and the
+  narrow longitude corridor in this flat texture. Inspect the native globe
+  before deciding its corrective rendering boundary; this observation is not
+  silently accepted as satisfying the natural-coast request.
+- Main refreshed unchanged at `2893076856e20bc64f00e94e132d26dd0d76b26d`.
+  One combined release remains pending; no merge, deployment, content publication
+  or PR1040 migration/cron replay occurred.
+
+Next: native-resolution source and gameplay-zoom review of older major artwork,
+the actual globe/coast presentation, representative water/seams/grounding and
+runtime evidence. Prepare the combined PR and full `pnpm check`/configured native
+gates once that source review identifies and repairs demonstrated defects. Do
+not mark naturalness or major-art quality accepted from the source counts alone.
+
+### Original measurement before Piece5
 
 Fresh source measurement at `acd7172` (unchanged by Piece4) separates the two
 issues: territories already contain199–326 sectors, while every town still has
@@ -247,7 +298,7 @@ Implemented in source, pending native acceptance and the combined release:
 | Remove the redundant Uncharted focus/selection control                    | Implemented in Piece 2; native acceptance and combined release pending.                                                                   |
 | Remove Uncharted fog of war                                               | Implemented visually in Piece 3; navigation/discovery rules retained. Native acceptance and combined release pending.                     |
 | Remove lakes from fire/ice towns                                          | Implemented in Piece4 as shared dry surfaces with unchanged saved/teleport geometry; native acceptance and combined release pending.      |
-| Natural territory and town-size variation                                 | Pending; separate territorial boundaries from equal town-district footprints and verify actual rendered variation.                        |
+| Natural territory and town-size variation                                 | Piece5 adds distinct9–14-district built-up extents with unchanged safe cores/geography; native naturalness/coast review remains pending.  |
 | Crisp older major artwork at gameplay zoom                                | Open visual acceptance; inspect native sources and rendered minimum/ordinary/maximum zoom. Upscaling alone does not establish new detail. |
 | Water/coast blending, tile seams, grounded assets and handset performance | Open representative visual/runtime acceptance. Do not classify uninspected scenes as passing or missing solely from source tests.         |
 

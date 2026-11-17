@@ -21,6 +21,7 @@ import { REMOTE_GRAND_CROSSING } from '../src/world/discovery-sites'
 import { canonicalOcclusionWalks } from './world-map-correction-scenes'
 import { worldRenderTerrain } from '../src/components/world/map-render-terrain'
 import { openMapSettings, closeMapSettings } from './world-map-settings-helpers'
+import { globeTowns } from '../src/components/world/globe-atlas'
 
 export function registerWorldArtReviewCases({
   enter,
@@ -126,6 +127,62 @@ export function registerWorldArtReviewCases({
   }
 
   type ArtScene = Awaited<ReturnType<typeof scene>>
+
+  test('settlement outskirts have asymmetric extents without changing safe cores or saved state', async ({
+    page,
+  }, info) => {
+    test.skip(info.project.name === 'laptop-chromium', 'Review desktop and touch once each.')
+    test.setTimeout(120_000)
+    await enter(page)
+    const { characterId } = await world(page)
+    const commands: string[] = []
+    page.on('request', (request) => {
+      if (new URL(request.url()).pathname === '/api/world' && request.method() === 'POST')
+        commands.push(request.postDataJSON()?.intent?.kind)
+    })
+    for (const [townId, count] of [
+      ['aureth-crown', 14],
+      ['frostmere', 9],
+    ] as const) {
+      const district =
+        atlasSectors().find((sector) => sector.settlementOutskirtsOf === townId) ??
+        atlasSectors().find((sector) => sector.id === townId)!
+      const position = { sectorId: district.id, x: 6, y: 4 }
+      await scene(page, characterId, position)
+      const state = () =>
+        sql(
+          `select state from app_private.character_world_state where character_id='${characterId}'::uuid`,
+        )
+      const saved = state()
+      const view = await world(page)
+      const extent = globeTowns(view.atlas!).find((town) => town.sector.id === townId)!
+      expect(extent.districts).toHaveLength(count)
+      expect(extent.districts.filter((sector) => sector.townId === townId)).toHaveLength(9)
+      if (district.settlementOutskirtsOf) {
+        const sector = view.sectors.find((sector) => sector.id === district.id)!
+        expect(sector.townId).toBeUndefined()
+        expect(sector.cells.some((cell) => cell.walkable && !cell.safe)).toBe(true)
+        expect(settlementComposition(sector).length).toBeGreaterThan(0)
+      }
+      await capture(page, info, `art-surfaces-town-extent-${townId}-normal`)
+      for (const zoom of ['maximum', 'minimum']) {
+        await openMapSettings(page)
+        await page
+          .getByRole('slider', { name: 'Zoom level', exact: true })
+          .press(zoom === 'minimum' ? 'Home' : 'End')
+        await closeMapSettings(page)
+        if (zoom === 'minimum') await page.emulateMedia({ reducedMotion: 'reduce' })
+        await capture(page, info, `art-surfaces-town-extent-${townId}-${zoom}`)
+      }
+      await page.getByRole('button', { name: /Open world atlas/ }).click()
+      await expect(page.getByRole('group', { name: /World globe/ })).toBeVisible()
+      await capture(page, info, `art-surfaces-town-extent-${townId}-globe`)
+      expect(state()).toBe(saved)
+      expect((await world(page)).position).toEqual(position)
+      await page.emulateMedia({ reducedMotion: 'no-preference' })
+    }
+    expect(commands).toEqual([])
+  })
 
   for (const townId of ['frostmere', 'emberreach']) {
     test(`${townId} town lake is dry regional ground at every map zoom`, async ({ page }, info) => {

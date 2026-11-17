@@ -40,13 +40,16 @@ export function globeAtlasPixels(atlas: readonly WorldAtlasCell[], columns: numb
 }
 
 export const GLOBE_DETAIL_SCALE = 16
-/** Towns are the projected authored anchor and its actual charted districts. */
+/** Visible settlement extent includes public outskirts, independently of safety. */
 export function globeTowns(atlas: readonly WorldAtlasCell[]) {
   return atlas
     .filter((cell) => cell.charted && cell.townId === cell.id)
     .map((sector) => ({
       sector,
-      districts: atlas.filter((cell) => cell.charted && cell.townId === sector.id),
+      districts: atlas.filter(
+        (cell) =>
+          cell.charted && (cell.townId === sector.id || cell.settlementOutskirtsOf === sector.id),
+      ),
     }))
 }
 export function projectGlobeTowns(
@@ -112,7 +115,8 @@ export function globeAtlasDetailPixels(
     atlas
       .filter((cell) => cell.charted)
       .map(
-        (cell) => `${cell.id}:${cell.column}:${cell.row}:${cell.regionId}:${cell.waterTiles ?? ''}`,
+        (cell) =>
+          `${cell.id}:${cell.column}:${cell.row}:${cell.regionId}:${cell.waterTiles ?? ''}:${cell.townId ?? ''}:${cell.settlementOutskirtsOf ?? ''}`,
       )
       .join('|')
   if (detailCache?.key === key && detailCache.painting === painting) return detailCache.image
@@ -173,7 +177,8 @@ export function globeAtlasDetailPixels(
     let coverage = 0,
       mountain = 0,
       forest = 0,
-      snow = 0
+      snow = 0,
+      settlement = 0
     const rgb = [0, 0, 0]
     for (let dy = 0; dy <= 1; dy++)
       for (let dx = 0; dx <= 1; dx++) {
@@ -185,6 +190,7 @@ export function globeAtlasDetailPixels(
           mountain += weight
         if (['verdant-expanse', 'umbral-march'].includes(neighbor.regionId)) forest += weight
         if (neighbor.regionId === 'frostmere') snow += weight
+        settlement += weight * (neighbor.townId ? 1 : neighbor.settlementOutskirtsOf ? 0.45 : 0)
         const color = colors[neighbor.regionId] ?? fallback
         const anchor = anchors.get(neighbor.regionId)
         if (material) {
@@ -218,6 +224,7 @@ export function globeAtlasDetailPixels(
       mountain: mountain / (coverage || 1),
       forest: forest / (coverage || 1),
       snow: snow / (coverage || 1),
+      settlement: settlement / (coverage || 1),
     }
   }
   for (const cell of atlas) {
@@ -263,6 +270,8 @@ export function globeAtlasDetailPixels(
             : '.'
         const water = terrain === '~' || terrain === 'w',
           lava = terrain === 'l'
+        const fabric = (hash(Math.floor(x / 2), Math.floor(y / 2)) - 0.5) * 22
+        const builtUp = surface.settlement * 0.42 * (1 - beach)
         for (let channel = 0; channel < 3; channel++)
           pixels[index + channel] = Math.max(
             0,
@@ -272,8 +281,10 @@ export function globeAtlasDetailPixels(
                 ? [43, 105, 130][channel]! * (0.92 + grain * 0.05)
                 : lava
                   ? [192, 70, 32][channel]! * (0.95 + grain * 0.08)
-                  : (surface.rgb[channel]! * shade + snow) * (1 - beach * 0.65) +
-                    [200, 181, 137][channel]! * beach * 0.65,
+                  : ((surface.rgb[channel]! * shade + snow) * (1 - beach * 0.65) +
+                      [200, 181, 137][channel]! * beach * 0.65) *
+                      (1 - builtUp) +
+                    ([168, 154, 132][channel]! + fabric) * builtUp,
             ),
           )
         // Coast antialiasing changes depiction only; movement/picking keep their canonical addresses.
