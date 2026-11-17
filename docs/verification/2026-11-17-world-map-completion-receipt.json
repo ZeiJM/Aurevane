@@ -59,7 +59,7 @@
     "atlas": 44182605668,
     "browserSmoke": 44182605636,
     "timing": 44182605532,
-    "status": "Fresh exact-source gates running/pending; no completed pass claimed."
+    "status": "Timing68 failure (all3 mobile; desktop not reached), other eb8 gates running; release held"
   },
   "localValidation": {
     "currentCheckout": "Clean complete checkout at candidate SHA",
@@ -117,7 +117,7 @@
     }
   },
   "remaining": [
-    "Diagnose native mobile crowd failure without weakening acceptance; verify keyboard repair in60 desktop repetitions.",
+    "Repair native mobile canvas presentation cost; compare bounded baseline/software/desynchronized context arms in isolated diagnostic branch before selecting production change. No unchanged acceptance reruns or relaxed thresholds.",
     "Close visible snow texture seams, preserve all collision/position/private-state authority.",
     "Finish exact-source Atlas and full Browser Smoke; review megastructure centre/lateral, valley, globe, water, responsive controls.",
     "Freeze passing reviewed candidate, verify tested-tree equality, merge and perform ONE staged Production build, smoke and same-build promotion; preserve9 retirement guards and Git deployment lock.",
@@ -127,7 +127,7 @@
     "No human continuous-motion or physical-handset acceptance.",
     "No full1.29GB archive download/review claimed; only named hash-verified compact bundles."
   ],
-  "updatedAt": "2026-11-17T21:47:59.994Z",
+  "updatedAt": "2026-11-17T21:51:32.541Z",
   "previousRuns": {
     "atlas": 44143478767,
     "atlasVerifyJob": 134252202191,
@@ -295,7 +295,7 @@
     "run": 44177400906
   },
   "snowSeams": {
-    "status": "source corrected; native acceptance pending",
+    "status": "source corrected, full local quality passes; native acceptance pending",
     "cause": "Compressed regional texture border repeated by reflection; confirmed in raw cached ground before projection",
     "correction": "2px clean interior, contiguous mirrored quarters for public regional ground only",
     "oldContrast": [
@@ -309,5 +309,16 @@
     "regression": "Fails before, passes after;284 focused renderer/projection/biome tests, types and scoped lint pass",
     "assetBytesUnchanged": true,
     "offlineIsNativeAcceptance": false
+  },
+  "timing68": {
+    "run": 44182605532,
+    "job": 134390604418,
+    "result": "failure",
+    "mobileFailed": 3,
+    "desktopReached": false,
+    "artifact": 14373820672,
+    "sha256": "815c8dca4c1f11855d4f8ad7f1985c81ca23efab629bd1932b94f041bf12cf51",
+    "verified": true,
+    "scene": "Same101 visible players, full-DPR identity1792876px, terrain586336px,31ground caches2308136px and99visible scenery retained. About123–126frames in16.4sec;15sec >120 gate missed."
   }
 }
