@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "scope": "Evidence only. NEVER merge or deploy this branch/receipt commit.",
   "candidate": {
-    "sha": "1426587a7edaf492cfbdc1374ea39aadc3238701",
-    "tree": "5e46617bf52d901fe7a313a95493a3a69082287e",
+    "sha": "ec2610274bed3c9e0a2acbfdef7aebc2e7ebe806",
+    "tree": "e597414badcfee81085bfe773c053f3a6708ff6d",
     "branch": "agent/world-map-request-completion",
     "pullRequest": 1043,
     "draft": true
@@ -54,17 +54,17 @@
     "correction": "Existing disposable-port configurator in Atlas; selected API propagation; local PG17 guard verifies config/URI/actual Docker binding agreement."
   },
   "currentRuns": {
-    "ci": 44190925178,
-    "uiLayout": 44190925322,
-    "atlas": 44190925183,
-    "browserSmoke": 44190925172,
-    "timing": 44190925451,
-    "status": "Fresh exact1426587 gates running/pending; all final results required"
+    "ci": 44193533741,
+    "uiLayout": 44193534099,
+    "atlas": 44193533938,
+    "browserSmoke": 44193533726,
+    "timing": 44193533758,
+    "status": "Fresh exact ec26102 configured gates pending/running"
   },
   "localValidation": {
     "currentCheckout": "Clean complete checkout at candidate SHA",
     "pnpmInstall": "frozen lockfile succeeded",
-    "finalPnpmCheck": "PASS on frozen eb8 working tree:17826 Vitest+7Node; formatting, full lint, all package types and production builds. Exit0 verified.",
+    "finalPnpmCheck": "PASS142:17828 Vitest+7Node; fresh ec26102 full check running",
     "previousValidation": {
       "rendererAndSceneTests": 252,
       "typescript": "pass",
@@ -117,17 +117,16 @@
     }
   },
   "remaining": [
-    "Repair native mobile canvas presentation cost; compare bounded baseline/software/desynchronized context arms in isolated diagnostic branch before selecting production change. No unchanged acceptance reruns or relaxed thresholds.",
-    "Close visible snow texture seams, preserve all collision/position/private-state authority.",
-    "Finish exact-source Atlas and full Browser Smoke; review megastructure centre/lateral, valley, globe, water, responsive controls.",
-    "Freeze passing reviewed candidate, verify tested-tree equality, merge and perform ONE staged Production build, smoke and same-build promotion; preserve9 retirement guards and Git deployment lock.",
-    "No Preview; never replay PR1040 migrations/cron/release; no content republication, player resets or resumed hourly tasks."
+    "Complete ec26102 full local quality and all five configured native/CI gates without changing thresholds/retries.",
+    "Review final native megastructure center/lateral, valley, globe both render paths, dry towns, water, controls and seams.",
+    "Refresh main, merge reviewed passing tested tree and perform one staged Production build, smoke and same-build promotion with all9 guards retained.",
+    "No Preview, PR1040 replay, DB migration/cron/content replay, player reset or resumed hourly task."
   ],
   "limitations": [
     "No human continuous-motion or physical-handset acceptance.",
     "No full1.29GB archive download/review claimed; only named hash-verified compact bundles."
   ],
-  "updatedAt": "2026-11-17T22:32:42.016Z",
+  "updatedAt": "2026-11-17T22:49:52.954Z",
   "previousRuns": {
     "atlas": 44143478767,
     "atlasVerifyJob": 134252202191,
@@ -436,10 +435,47 @@
     }
   },
   "previousCandidate": {
-    "sha": "eb8a655540ea843a30976e06397dc34f6b28b222",
-    "tree": "dad6478925110974f87b521d83b3ba748492b349",
+    "sha": "1426587a7edaf492cfbdc1374ea39aadc3238701",
+    "tree": "5e46617bf52d901fe7a313a95493a3a69082287e",
     "branch": "agent/world-map-request-completion",
     "pullRequest": 1043,
     "draft": true
+  },
+  "fixtureCorrections": {
+    "source": "ec2610274bed3c9e0a2acbfdef7aebc2e7ebe806",
+    "rendererSceneTests": 263,
+    "types": "pass",
+    "scopedLint": "pass",
+    "format": "pass",
+    "leftIdentity": "occluded",
+    "rightIdentity": "clear floor; ellipse radius squared0.8334",
+    "mobileDetails": "Reopen existing Details after map-switch outside-click dismissal; exact card/no-footer assertions retained",
+    "applicationChanges": false,
+    "thresholdOrRetryChanges": false,
+    "independentReview": "Approved source and fixture corrections subject to final exact-source gates and native visual acceptance"
+  },
+  "ui2351": {
+    "run": 44190925322,
+    "result": "failure",
+    "cause": "battle setup API request socket hang up",
+    "source": "1426587"
+  },
+  "timing71": {
+    "run": 44190925451,
+    "result": "Cancellation requested through GitHub UI because ec26102 supersedes142; not accepted as pass"
+  },
+  "native819": {
+    "run": 44182605668,
+    "result": "canceled; two real fixture failures corrected in ec26102",
+    "art": {
+      "id": 14376207779,
+      "sha256": "2ae1ae981a162e7f83a03e1e85a3421a16c8e8f3b4a8a1aa5516e42ff9a4c0a8",
+      "verified": true
+    },
+    "evidence": {
+      "id": 14377575279,
+      "sha256": "072bd88d3d2a05997dcbc5e0aedafe991eef581ff2dce0b2b620f1d46da3817f",
+      "verified": true
+    }
   }
 }
