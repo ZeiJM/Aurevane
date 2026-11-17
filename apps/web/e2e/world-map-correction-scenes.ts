@@ -12,10 +12,12 @@ import {
 import { lavaFallSite } from '../src/components/world/map-surface-art'
 import { townArchitectureArt } from '../src/components/world/map-town-architecture'
 import { valleyDetailArt } from '../src/components/world/map-grand-detail-art'
+import { MAP_X, MAP_Y } from '../src/components/world/map-projection'
 
 export interface CorrectionScene {
   id: string
   position: WorldPosition
+  detailPosition?: WorldPosition
   assets: string[]
   normalAssets?: string[]
   zoom?: number
@@ -171,9 +173,25 @@ export function correctionScenes() {
     const sector = sectors.find(
       (s) => s.atlasColumn === Math.floor(gx / 13) && s.atlasRow === Math.floor(gy / 9),
     )!
+    let detailPosition: WorldPosition | undefined
+    if (site.id === 'remote-colosseum' || site.id === 'elemental-valley') {
+      // Review the rear masonry / statue-side cascade instead of enlarging only
+      // the arena floor or central basin. Resolve to real nearby legal ground.
+      const focus = site.id === 'remote-colosseum' ? { u: 0.5, v: 0.3 } : { u: 0.63, v: 0.58 }
+      const dx = ((focus.u - geometry.anchorX) * geometry.widthTiles) / MAP_X
+      const dy = ((focus.v - geometry.anchorY) * geometry.heightTiles) / MAP_Y
+      const x = Math.floor(geometry.worldx + (dx + dy) / 2)
+      const y = Math.floor(geometry.worldy + (dy - dx) / 2)
+      const detailSector = sectors.find(
+        (s) => s.atlasColumn === Math.floor(x / 13) && s.atlasRow === Math.floor(y / 9),
+      )
+      if (!detailSector) throw new Error(`No public detail review sector for ${site.id}`)
+      detailPosition = point(detailSector, { x: x % 13, y: y % 9 })
+    }
     return {
       id: site.id,
       position: point(sector, { x: gx % 13, y: gy % 9 }),
+      detailPosition,
       assets: [`${geometry.sheet}-v01.webp`],
       normalAssets:
         site.id === 'elemental-valley'

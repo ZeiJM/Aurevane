@@ -169,8 +169,8 @@ export function WorldGlobe({
               style={{ left: `${(pin.x * zoom + 1) * 50}%`, top: `${(1 - pin.y * zoom) * 50}%` }}
               aria-label="Your current position"
             >
-              <i />
-              You are here
+              <i aria-hidden="true" />
+              <span>You are here</span>
             </span>
           ) : null}
           {showLocationLabels &&

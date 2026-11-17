@@ -398,6 +398,27 @@ describe('world-connected water presentation', () => {
       vi.unstubAllGlobals()
     }
   })
+  it('shares depth colours where a walkable shallow tile meets deep water', () => {
+    const cells: [number, number, string][] = Array.from({ length: 49 }, (_, n) => [
+      n % 7,
+      Math.floor(n / 7),
+      n === 24 ? 'w' : '~',
+    ])
+    const field = buildWaterField([sector('shallow-edge', 0, cells)]).get('shallow-edge')!.cells
+    const shallow = field.get('3:3')!
+    const east = field.get('4:3')!
+    const south = field.get('3:4')!
+    expect(shallow.shallow).toBe(true)
+    expect(east.shallow).toBe(false)
+    expect(shallow.cornerDepths![1]).toBe(east.cornerDepths![0])
+    expect(shallow.cornerDepths![2]).toBe(east.cornerDepths![3])
+    expect(shallow.cornerDepths![3]).toBe(south.cornerDepths![0])
+    expect(shallow.cornerDepths![2]).toBe(south.cornerDepths![1])
+    // This is presentation continuity, never permission to walk on deep water.
+    expect(terrainWalkable('~')).toBe(false)
+    expect(terrainWalkable('w')).toBe(true)
+  })
+
   it('derives increasing depth from supplied banks and shares corner depths across sector edges', () => {
     const a = sector(
       'a',

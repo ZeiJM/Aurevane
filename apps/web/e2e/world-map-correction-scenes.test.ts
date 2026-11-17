@@ -3,6 +3,24 @@ import { existsSync } from 'node:fs'
 import { atlasSectors } from '../src/world/atlas'
 import { isWalkable } from '../src/world/travel'
 import { canonicalOcclusionWalks, correctionScenes } from './world-map-correction-scenes'
+
+it('reviews giant landmark detail from a distinct legal viewpoint instead of only the arena floor', () => {
+  const sectors = new Map(atlasSectors().map((sector) => [sector.id, sector]))
+  for (const id of ['elemental-valley', 'remote-colosseum']) {
+    const scene = correctionScenes().discoveries.find((item) => item.id === id)!
+    expect(scene.detailPosition).toBeDefined()
+    expect(scene.detailPosition).not.toEqual(scene.position)
+    const position = scene.detailPosition!
+    const sector = sectors.get(position.sectorId)!
+    expect(isWalkable(sector, position)).toBe(true)
+    const x = sector.atlasColumn! * 13 + position.x
+    const y = sector.atlasRow! * 9 + position.y
+    expect(x).toBeGreaterThanOrEqual(scene.footprint!.left)
+    expect(x).toBeLessThan(scene.footprint!.left + scene.footprint!.width)
+    expect(y).toBeGreaterThanOrEqual(scene.footprint!.top)
+    expect(y).toBeLessThan(scene.footprint!.top + scene.footprint!.height)
+  }
+})
 it('selects the bounded correction matrix from actual public terrain and legal review positions', () => {
   const matrix = correctionScenes(),
     sectors = atlasSectors()

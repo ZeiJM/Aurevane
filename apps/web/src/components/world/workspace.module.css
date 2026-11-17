@@ -689,16 +689,30 @@
 }
 .globePin {
   position: absolute;
+  z-index: 2;
   display: flex;
-  height: 8px;
+  height: 12px;
   align-items: center;
   gap: 6px;
-  transform: translate(-4px, -4px);
-  font: 10px Georgia;
-  color: #f2e3ba;
+  transform: translate(-6px, -6px);
+  font:
+    600 12px Georgia,
+    serif;
+  color: #fff0c7;
   text-shadow: 0 1px 3px #051c22;
   white-space: nowrap;
   pointer-events: none;
+}
+.globePin > span {
+  position: absolute;
+  top: 22px;
+  left: 6px;
+  transform: translateX(-50%);
+  width: max-content;
+  padding: 4px 6px;
+  border: 1px solid #d0ac6680;
+  border-radius: 4px;
+  background: #071c24ed;
 }
 .workspace .globeTown {
   position: absolute;
@@ -739,12 +753,16 @@
 }
 .globePin i {
   display: block;
-  background: #f3d490;
-  width: 8px;
-  height: 8px;
-  border: 2px solid #355e60;
+  box-sizing: border-box;
+  flex: 0 0 12px;
+  background: #ffe2a1;
+  width: 12px;
+  height: 12px;
+  border: 2px solid #071c24;
   border-radius: 50%;
-  box-shadow: 0 0 8px #ffe5b180;
+  box-shadow:
+    0 0 0 2px #ffe2a1b3,
+    0 0 10px #ffe5b180;
 }
 .globeCaption {
   position: absolute;
@@ -1022,9 +1040,6 @@
     gap: 6px;
     white-space: normal;
   }
-  .globePin {
-    font-size: 9px;
-  }
 }
 @media (max-height: 500px) and (max-width: 760px), (max-height: 500px) and (pointer: coarse) {
   .header {
@@ -1200,7 +1215,6 @@
   .stageBar button,
   .landmarks button small,
   .globeCaption,
-  .globePin,
   .position p,
   .protected,
   .settings p,

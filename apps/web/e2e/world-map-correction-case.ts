@@ -14,6 +14,7 @@ import {
 } from './world-map-correction-observer'
 import { waitForWorldArt } from './world-art-readiness'
 import { openMapSettings, closeMapSettings } from './world-map-settings-helpers'
+import { WORLD_MAX_ZOOM } from '../src/components/world/world-zoom'
 
 interface Harness {
   enter: (page: Page) => Promise<string>
@@ -330,6 +331,38 @@ export function registerWorldMapCorrectionCases(harness: Harness) {
             .size,
         ).toBeGreaterThan(1)
         await run.record(spec.id, view, { pairOrder: 'normal above minimum', zooms: [1, 0.35] })
+      }
+    } finally {
+      await run.finish(info)
+    }
+  })
+
+  test('@map-correction major artwork has legal detail viewpoints at normal and maximum zoom', async ({
+    page,
+  }, info) => {
+    test.skip(info.project.name === 'laptop-chromium', 'Review detail once per desktop and phone.')
+    test.setTimeout(120000)
+    const scenes = correctionScenes().discoveries.filter((scene) => scene.detailPosition)
+    expect(scenes).toHaveLength(2)
+    const run = await setup(page)
+    try {
+      for (const spec of scenes) {
+        const view = await run.load({ ...spec, position: spec.detailPosition!, zoom: 1 })
+        const normal = await page
+          .locator('[data-world-workspace]')
+          .screenshot({ animations: 'disabled' })
+        await zoom(page, WORLD_MAX_ZOOM)
+        await expect.poll(async () => (await observation(page)).selfPaints).toBeGreaterThan(0)
+        const maximum = await page
+          .locator('[data-world-workspace]')
+          .screenshot({ animations: 'disabled' })
+        await savePair(info, `art-surfaces-${spec.id}-detail-normal-maximum`, normal, maximum)
+        expect((await harness.world(page)).position).toEqual(view.position)
+        if (spec.expect === 'arena') expect((await observation(page)).selfGhostPaints).toBe(0)
+        await run.record(`${spec.id}-legal-detail-view`, view, {
+          pairOrder: 'normal above maximum',
+          zooms: [1, WORLD_MAX_ZOOM],
+        })
       }
     } finally {
       await run.finish(info)

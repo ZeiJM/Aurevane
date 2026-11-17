@@ -12,12 +12,64 @@ them. Keep automatic Vercel Git deployments disabled and older watchers paused.
 
 ## Active worker lease
 
-- Status: active current-position prominence and coast review, owned by the November17 15:18UTC coding continuation.
-- Expires at: `2026-11-17T16:45:00Z`.
+- Status: released at the durable November17 15:40UTC marker/water/native-detail checkpoint.
+- Expires at: `2026-11-17T15:40:00Z`.
 - Hourly continuation: enabled by Nick on November 17; one recurring task,
   **Finish Aurevane map corrections**. Older watchers remain paused.
 - A scheduled run before lease expiry inspects only. Release or renew this lease
   at each safe checkpoint; after expiry a fresh worker may resume from the branch.
+
+## Current repairs — November17 position marker and water continuity
+
+- Actual desktop/native and dense-mobile #812 globe captures show a tiny current
+  position dot and text overlapping a town icon. Enlarged the dot8→12px and text
+  to12px, added a dark backed label below the exact dot, and kept its geographic
+  centre and pointer transparency unchanged. Removed the mobile9/11px overrides
+  for this marker only. Location-label hiding still retains current position.
+- Existing globe markup regression failed before the new label span and passed
+  after it. Added native computed-size/viewport guards plus unobscured desktop/
+  mobile screenshot `art-surfaces-world-current-position-globe.png` to the
+  existing presentation case. The compact art bundle already includes this name.
+  **Native execution of this newer change remains pending**, not covered by #813.
+- Inspected #812 native valley normal/minimum and mobile Crown globe images.
+  Valley shows the selected statue-side waterfall/rock detail and basin; this is
+  not maximum-zoom/registration acceptance. The native colosseum centre showed
+  mostly floor. Added distinct legal viewpoints derived from actual artwork
+  projection for statue-side cascade/rear masonry, with canonical walkability
+  and footprint guards. The new source guard failed before adding those poses,
+  then passed. Added one bounded desktop/mobile native normal/maximum capture
+  case; full discovery is801 entries/102 files, not a claim of native execution.
+- Native #812 Verdant water frame shows tile-shaped colour patterns; Frostmere
+  normal frame shows dry snow surface, with faint ground joins still requiring
+  review. Traced water depth/material/cache painting. Reproduced a separate shared
+  vertex bug: a shallow cell caps a shared depth at0.45 while its deep neighbour
+  uses1. Removed that per-cell corner cap; the shallow cell still seeds zero
+  depth, shared vertices now agree, and collision/footsteps/geometry are unchanged.
+  The new regression failed0.45 versus1 before repair and passes afterward.
+- **Important diagnostic limit:** analytic probes of all canonical public views
+  and the three actual regional-water fixture sectors found no mixed-corner
+  discontinuity under the old cap. Thus this general supported-input repair is
+  NOT established as the cause of the photographed Verdant pattern. Keep the
+  native water/material/seam requirement OPEN; obtain actual newer native frames
+  and trace remaining material/compositing causes rather than claiming it solved.
+- A stronger inward globe-inlet experiment failed settlement-fabric coverage and
+  looked rounder in source projection. Investigated small-island headroom and
+  rejected the experiment after review. **No experimental coast code remains**;
+  retained adc7d42's first contour correction. Owner coast acceptance stays open.
+- **466 tests across9 renderer/water/coast/motion/travel/workspace/fixture files
+  pass**, including shared-depth/private-boundary and unchanged legal movement
+  regressions. A separate focused fixture/art/globe run passed30 tests/4 files.
+  These counts overlap and must not be added together. Web TypeScript, scoped
+  zero-warning ESLint, Prettier and diff checks pass. Original full quality below
+  remains historical; full final-candidate/configured/native gates are still due.
+- Local Chromium exists but still fails its startup singleton socket with
+  `Operation not permitted`; no local native pass, escalation or bypass claimed.
+- Existing #813/job134138931990 is still running on adc7d42: PG17 rollback/success,
+  production build and authenticated story/NPC checks pass; Atlas is running.
+  Protected jobs remain skipped. Do not cancel or duplicate it. New pin, shared
+  water vertex and detail-view capture changes require their own later native
+  verification after this existing run completes. Continue inspection/repairs
+  on the one branch; one combined final PR/release only, no Production replay.
 
 ## Active native verification — corrected candidate #813
 

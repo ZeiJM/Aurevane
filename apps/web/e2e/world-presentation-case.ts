@@ -120,6 +120,33 @@ export async function verifyWorldPresentation(
   await expect(mapSwitch.locator('[data-world-map-switch]')).toBeVisible()
   await mapSwitch.click()
   await expect(workspace).toHaveAttribute('data-world-view', 'globe')
+  const closeDetails = page.getByRole('button', { name: 'Close details', exact: true })
+  if (await closeDetails.isVisible()) await closeDetails.click()
+  const currentPin = page.getByLabel('Your current position', { exact: true })
+  await expect(currentPin).toBeVisible()
+  const pinMetrics = await currentPin.evaluate((pin) => {
+    const marker = pin.querySelector('i')!.getBoundingClientRect()
+    const label = pin.querySelector('span')!
+    const style = getComputedStyle(label)
+    const bounds = label.getBoundingClientRect()
+    return {
+      markerWidth: marker.width,
+      markerHeight: marker.height,
+      fontSize: parseFloat(style.fontSize),
+      background: style.backgroundColor,
+      insideViewport:
+        bounds.left >= 0 &&
+        bounds.top >= 0 &&
+        bounds.right <= innerWidth &&
+        bounds.bottom <= innerHeight,
+    }
+  })
+  expect(pinMetrics.markerWidth).toBeGreaterThanOrEqual(12)
+  expect(pinMetrics.markerHeight).toBeGreaterThanOrEqual(12)
+  expect(pinMetrics.fontSize).toBeGreaterThanOrEqual(12)
+  expect(pinMetrics.background).not.toMatch(/^(transparent|rgba\(0, 0, 0, 0\))$/)
+  expect(pinMetrics.insideViewport).toBe(true)
+  await capture(page, info, 'art-surfaces-world-current-position-globe')
   await ensureDetails()
   await expect(labelsToggle).toHaveAttribute('aria-pressed', 'false')
   const townMarkers = workspace.locator('[data-globe-town]:not([data-globe-travel-point])')

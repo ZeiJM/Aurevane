@@ -129,7 +129,7 @@ describe('globe geographic labels', () => {
     expect(hidden).toContain('aria-label="Select South town town"')
     expect(hidden).toContain('data-globe-town')
     expect(hidden).toContain('Your current position')
-    expect(hidden).toContain('You are here')
+    expect(hidden).toContain('<span>You are here</span>')
   })
   it('shows named locations on the globe without cluttering the view with duplicate pickers', () => {
     const south = atlasCell(0, 2, 'South town')

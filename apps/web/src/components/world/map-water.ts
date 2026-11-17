@@ -468,8 +468,10 @@ export function buildWaterField(
             return neighbor ? [neighbor.depth!] : []
           }),
         )
-        const depth = depths.reduce((sum, depth) => sum + depth, 0) / depths.length
-        return cell.shallow ? Math.min(0.45, depth) : depth
+        // Shallow cells already seed zero depth before propagation. A second
+        // per-cell cap gives the same shared vertex two different colours and
+        // exposes tile diamonds where a ford meets deeper water.
+        return depths.reduce((sum, depth) => sum + depth, 0) / depths.length
       }) as [number, number, number, number]
     }
     part.key = JSON.stringify([...part.cells.values()])
