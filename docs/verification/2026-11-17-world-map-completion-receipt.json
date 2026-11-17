@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "scope": "Evidence only. NEVER merge or deploy this branch/receipt commit.",
   "candidate": {
-    "sha": "eb8a655540ea843a30976e06397dc34f6b28b222",
-    "tree": "dad6478925110974f87b521d83b3ba748492b349",
+    "sha": "1426587a7edaf492cfbdc1374ea39aadc3238701",
+    "tree": "5e46617bf52d901fe7a313a95493a3a69082287e",
     "branch": "agent/world-map-request-completion",
     "pullRequest": 1043,
     "draft": true
@@ -54,14 +54,7 @@
     "correction": "Existing disposable-port configurator in Atlas; selected API propagation; local PG17 guard verifies config/URI/actual Docker binding agreement."
   },
   "currentRuns": {
-    "ci": 44182605851,
-    "uiLayout": 44182605512,
-    "atlas": 44182605668,
-    "browserSmoke": 44182605636,
-    "timing": 44182605532,
-    "status": "Timing68 failure (all3 mobile; desktop not reached), other eb8 gates running; release held",
-    "uiLayoutResult": "success on eb8",
-    "ciResult": "success on eb8"
+    "status": "Fresh1426587 final gates triggering; predecessor eb8 CI/UI pass, timing68 fails and Atlas/Smoke superseded"
   },
   "localValidation": {
     "currentCheckout": "Clean complete checkout at candidate SHA",
@@ -129,7 +122,7 @@
     "No human continuous-motion or physical-handset acceptance.",
     "No full1.29GB archive download/review claimed; only named hash-verified compact bundles."
   ],
-  "updatedAt": "2026-11-17T22:28:55.299Z",
+  "updatedAt": "2026-11-17T22:31:39.474Z",
   "previousRuns": {
     "atlas": 44143478767,
     "atlasVerifyJob": 134252202191,
@@ -382,13 +375,46 @@
     "sourceBranch": "agent/world-phone-projection-candidate-20261117",
     "sourceCommit": "1426587a7edaf492cfbdc1374ea39aadc3238701",
     "tree": "5e46617bf52d901fe7a313a95493a3a69082287e",
-    "publishedToPR": false,
+    "publishedToPR": true,
     "nativeAB": {
       "branch": "agent/world-phone-projection-profile-20261117",
       "sha": "6069565e3b227bffa9ecb384c18e531450560232",
       "run": 44188832522,
       "job": 134412471663,
-      "status": "running"
+      "status": "success6/6;3baseline+3cached-ground",
+      "artifact": {
+        "id": 14376381713,
+        "bytes": 614832,
+        "sha256": "426a780410d70643cd760e61c2af23b63c185a5f81a23c2564024f823f6a7ed4",
+        "verified": true
+      },
+      "results": {
+        "baselineTargetMs": [
+          11199.7,
+          11433.6,
+          11332.7
+        ],
+        "cachedTargetMs": [
+          9876.6,
+          9715.9,
+          10748.6
+        ],
+        "baselineFps": [
+          10.8,
+          10.58,
+          10.68
+        ],
+        "cachedFps": [
+          12.25,
+          12.45,
+          11.26
+        ],
+        "baselineProjectionPixels": 0,
+        "cachedProjectionPixels": 1399248,
+        "unchangedFrameWindow": true,
+        "unchangedPortraitDensity": true,
+        "unchangedContextAttributes": true
+      }
     },
     "focused": {
       "tests": 338,
@@ -401,7 +427,14 @@
     "notes": "Application context flags remain unchanged; new code permits existing projection cache at settled phone wide zoom, including walking. Native A/B uses a dataset flag only in the separate diagnostic branch.",
     "offlineVisual": {
       "snow": "Unchanged output byte/pixel-for-pixel at mobile0.35; composite-covered view does not exercise new individual projections.",
-      "coast": "70-frame offline baseline exited137 while full tests ran concurrently; not a browser/app acceptance failure. Retrying bounded12-frame comparison sequentially."
+      "coast": "Bounded12-frame animated offline comparison completed sequentially: active projection pixels0→699624;188scenery and54water retained; meanRGBdifference0.2771,p952,372/586845pixels differ>16. Original runtime images and resolution retained. Native/physical acceptance still required."
     }
+  },
+  "previousCandidate": {
+    "sha": "eb8a655540ea843a30976e06397dc34f6b28b222",
+    "tree": "dad6478925110974f87b521d83b3ba748492b349",
+    "branch": "agent/world-map-request-completion",
+    "pullRequest": 1043,
+    "draft": true
   }
 }
