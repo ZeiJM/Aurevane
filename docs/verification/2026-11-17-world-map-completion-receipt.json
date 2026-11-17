@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "scope": "Evidence only. NEVER merge or deploy this branch/receipt commit.",
   "candidate": {
-    "sha": "ec2610274bed3c9e0a2acbfdef7aebc2e7ebe806",
-    "tree": "e597414badcfee81085bfe773c053f3a6708ff6d",
+    "sha": "854f3aee150d29ba893c7b8d4a7200d9dfbc4482",
+    "tree": "04b435f9eefbfd0db8485d55e1f164212c56004d",
     "branch": "agent/world-map-request-completion",
     "pullRequest": 1043,
     "draft": true
@@ -54,17 +54,17 @@
     "correction": "Existing disposable-port configurator in Atlas; selected API propagation; local PG17 guard verifies config/URI/actual Docker binding agreement."
   },
   "currentRuns": {
-    "ci": 44193533741,
-    "uiLayout": 44193534099,
-    "atlas": 44193533938,
-    "browserSmoke": 44193533726,
-    "timing": 44193533758,
-    "status": "Fresh exact ec26102 configured gates pending/running"
+    "ci": 44195169226,
+    "uiLayout": 44195169259,
+    "atlas": 44195169451,
+    "browserSmoke": 44195169254,
+    "timing": 44195169198,
+    "status": "Fresh exact854f3ae gates starting"
   },
   "localValidation": {
     "currentCheckout": "Clean complete checkout at candidate SHA",
     "pnpmInstall": "frozen lockfile succeeded",
-    "finalPnpmCheck": "PASS142:17828 Vitest+7Node; fresh ec26102 full check running",
+    "finalPnpmCheck": "PASSec26102:17830 Vitest+7Node, format/lint/types/build; final854f3ae full check running",
     "previousValidation": {
       "rendererAndSceneTests": 252,
       "typescript": "pass",
@@ -117,8 +117,8 @@
     }
   },
   "remaining": [
-    "Complete ec26102 full local quality and all five configured native/CI gates without changing thresholds/retries.",
-    "Review final native megastructure center/lateral, valley, globe both render paths, dry towns, water, controls and seams.",
+    "Complete854f3ae full local quality and all five configured CI/native gates without changing thresholds/retries.",
+    "Review final rotated native globe, megastructure center/both lateral, valley, drytown/water/seam/controls evidence.",
     "Refresh main, merge reviewed passing tested tree and perform one staged Production build, smoke and same-build promotion with all9 guards retained.",
     "No Preview, PR1040 replay, DB migration/cron/content replay, player reset or resumed hourly task."
   ],
@@ -126,7 +126,7 @@
     "No human continuous-motion or physical-handset acceptance.",
     "No full1.29GB archive download/review claimed; only named hash-verified compact bundles."
   ],
-  "updatedAt": "2026-11-17T22:49:52.954Z",
+  "updatedAt": "2026-11-17T22:59:59.711Z",
   "previousRuns": {
     "atlas": 44143478767,
     "atlasVerifyJob": 134252202191,
@@ -435,8 +435,8 @@
     }
   },
   "previousCandidate": {
-    "sha": "1426587a7edaf492cfbdc1374ea39aadc3238701",
-    "tree": "5e46617bf52d901fe7a313a95493a3a69082287e",
+    "sha": "ec2610274bed3c9e0a2acbfdef7aebc2e7ebe806",
+    "tree": "e597414badcfee81085bfe773c053f3a6708ff6d",
     "branch": "agent/world-map-request-completion",
     "pullRequest": 1043,
     "draft": true
@@ -477,5 +477,20 @@
       "sha256": "072bd88d3d2a05997dcbc5e0aedafe991eef581ff2dce0b2b620f1d46da3817f",
       "verified": true
     }
+  },
+  "islandEdges": {
+    "cause": "Bilinear coast field but nearest-sector threshold/broadness creates internal vertical cap steps",
+    "fix": "Bilinear threshold/broadness sampling; strict public-sector clipping and original geography retained",
+    "red": "New exact regression loses shore support at an internal boundary on ec26102",
+    "green": "44 focused checks pass including unchanged solid-strip,8town and private-alpha assertions",
+    "sourceReview": "Approved increment; no findings; native rotated review required",
+    "scope": "No allocation/cache-bound/geometry/artwork/private projection changes; one cached texture build only"
+  },
+  "releasePreflight": {
+    "productionDeployment": "dpl_2Et3UkKAWbsLf6TsABzxoxPg5gpJ",
+    "source": "2893076856e20bc64f00e94e132d26dd0d76b26d",
+    "liveRoutesVersion": "dd604b9c-e5a1-4641-b28b-710a520f7290",
+    "enabledGuards": 9,
+    "productionMutated": false
   }
 }
