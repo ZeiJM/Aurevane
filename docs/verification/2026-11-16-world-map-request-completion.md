@@ -19,6 +19,39 @@ them. Keep automatic Vercel Git deployments disabled and older watchers paused.
 - A scheduled run before lease expiry inspects only. Release or renew this lease
   at each safe checkpoint; after expiry a fresh worker may resume from the branch.
 
+## Native combined-candidate run — November17
+
+Dispatched Living Atlas browser once on the one task branch, source
+`dcec8f98e539246aa767ea99740e68db21905983`, tree
+`4f443578d504204a6336983bb7784ce7f28bf7cf`.
+Run: <https://github.com/ZeiJM/Aurevane/actions/runs/44088314266> (#812).
+Verify job134056564087; all five staging/production flags false,
+`deployment_ready_sha` blank, `expected_candidate` set to the source above.
+The UI confirms verify running and every staging/Production job skipped.
+Independent job-step read confirms checkout, source-tree recording, frozen
+installation and hosted Chromium installation succeeded; disposable-stack setup
+completed. A subsequent job-step read confirms the real PG17 rollback/success
+gate, disposable-service configuration and optimized build all passed.
+Authenticated story checks are running. This run has NOT yet passed; native screenshots, traces and
+runtime evidence must be inspected after completion. Do not dispatch a duplicate
+while it is queued/running, or count this dispatch as native acceptance.
+
+Full local `pnpm check` reached passing formatting/lint, then stopped because
+the sparse checkout had omitted the worker workspace dependency links (TS2688,
+missing Node types). Restored the unchanged checked-in worker directory and
+ran frozen installation across all9 workspace projects; lockfile remains exact.
+Resumed typecheck/test/build without repeating unaffected lint; all8 package
+typechecks pass and tests are running. The original log is
+`/workspace/scratch/fe85b46db5f8/combined-quality-20261117.log`; build output from
+the resumed command is `combined-quality-resume-20261117.log`. Package Turbo
+test logs retain individual results. Tool session90725 is the resumed command.
+Its final outcome must be inspected; no whole-gate pass is yet claimed. No application source, deployment,
+Production database, cron, content publication or acceptance criteria changed.
+Next worker: inspect this existing run, download bounded art/timing artifacts,
+review actual native colosseum/valley/globe/water/seams/grounding, and repair any
+real failures before rerunning affected gates. Retain separate physical-handset
+and human-playtesting limitations. Main remains2893076856e20bc64f00e94e132d26dd0d76b26d.
+
 ## Piece 6 — major-art source review and dense-display detail correction
 
 - Inspected the actual Owner-selected1536×1024 valley master, selected1536×1024
