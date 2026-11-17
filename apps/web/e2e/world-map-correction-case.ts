@@ -180,7 +180,7 @@ export function registerWorldMapCorrectionCases(harness: Harness) {
       await waitForWorldArt(page, view)
       return view
     }
-    const load = async (spec: CorrectionScene) => {
+    const load = async (spec: CorrectionScene, identityMode: 'clear' | 'occluded' = 'clear') => {
       weather = spec.storm ? 'storm' : 'clear'
       const view = await place(spec.position)
       await zoom(page, spec.zoom ?? 1)
@@ -243,7 +243,8 @@ export function registerWorldMapCorrectionCases(harness: Harness) {
       if (spec.expect === 'arena') {
         const identity = await observation(page)
         expect(identity.selfPaints).toBeGreaterThan(0)
-        expect(identity.selfGhostPaints).toBe(0)
+        if (identityMode === 'occluded') expect(identity.selfGhostPaints).toBeGreaterThan(0)
+        else expect(identity.selfGhostPaints).toBe(0)
         expect(
           await page.locator('canvas[data-world-identity]').evaluate((canvas) => ({
             opacity: getComputedStyle(canvas).opacity,
@@ -347,7 +348,12 @@ export function registerWorldMapCorrectionCases(harness: Harness) {
     const run = await setup(page)
     try {
       for (const spec of scenes) {
-        const view = await run.load({ ...spec, position: spec.detailPosition!, zoom: 1 })
+        // This legal rear-wall viewpoint deliberately differs from the open
+        // arena floor. The player remains readable through normal occlusion.
+        const view = await run.load(
+          { ...spec, position: spec.detailPosition!, zoom: 1 },
+          spec.detailIdentity ?? 'clear',
+        )
         const normal = await page
           .locator('[data-world-workspace]')
           .screenshot({ animations: 'disabled' })
@@ -358,7 +364,12 @@ export function registerWorldMapCorrectionCases(harness: Harness) {
           .screenshot({ animations: 'disabled' })
         await savePair(info, `art-surfaces-${spec.id}-detail-normal-maximum`, normal, maximum)
         expect((await harness.world(page)).position).toEqual(view.position)
-        if (spec.expect === 'arena') expect((await observation(page)).selfGhostPaints).toBe(0)
+        if (spec.expect === 'arena') {
+          const identity = await observation(page)
+          if (spec.detailIdentity === 'occluded')
+            expect(identity.selfGhostPaints).toBeGreaterThan(0)
+          else expect(identity.selfGhostPaints).toBe(0)
+        }
         await run.record(`${spec.id}-legal-detail-view`, view, {
           pairOrder: 'normal above maximum',
           zooms: [1, WORLD_MAX_ZOOM],

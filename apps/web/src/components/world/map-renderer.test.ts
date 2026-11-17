@@ -23,6 +23,7 @@ import * as weatherPainting from './map-weather'
 import { worldRenderTerrain } from './map-render-terrain'
 import { grandDiscoveryPlacements } from './map-grand-discoveries'
 import { valleyDetailArt } from './map-grand-detail-art'
+import { correctionScenes } from '../../../e2e/world-map-correction-scenes'
 
 type RecordedPath = { operation: 'M' | 'L' | 'C' | 'E' | 'Z'; points: number[] }[]
 const imageRuntime = createRequire(import.meta.url)
@@ -5261,6 +5262,28 @@ it.each(['animated', 'off', 'reduced'] as const)(
     }
   },
 )
+
+it('matches the native arena viewpoint identity expectations to the actual floor and rear wall', () => {
+  const arena = correctionScenes().discoveries.find((site) => site.id === 'remote-colosseum')!
+  for (const detail of [false, true]) {
+    const position = detail ? arena.detailPosition! : arena.position
+    const s = scene(true, projectWorld({ ...newWorldState(), position }, [], 1000))
+    try {
+      s.canvas.dataset.portrait = '/viewpoint-self.png'
+      s.renderer.settings({ animate: false, zoom: 1 })
+      s.frame(40)
+      const identity = s.identityDraws.filter((draw) => draw.src === '/viewpoint-self.png')
+      expect(identity.length).toBeGreaterThan(0)
+      expect(
+        identity.some((draw) => draw.filter === 'grayscale(1)'),
+        detail ? 'rear wall' : 'arena floor',
+      ).toBe(detail && arena.detailIdentity === 'occluded')
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  }
+})
 
 it.each(['floor', 'wall'] as const)(
   'composes colosseum ground before identity and treats an actor on its %s correctly',

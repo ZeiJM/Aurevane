@@ -18,6 +18,7 @@ export interface CorrectionScene {
   id: string
   position: WorldPosition
   detailPosition?: WorldPosition
+  detailIdentity?: 'occluded'
   assets: string[]
   normalAssets?: string[]
   zoom?: number
@@ -192,6 +193,7 @@ export function correctionScenes() {
       id: site.id,
       position: point(sector, { x: gx % 13, y: gy % 9 }),
       detailPosition,
+      detailIdentity: site.id === 'remote-colosseum' ? ('occluded' as const) : undefined,
       assets: [`${geometry.sheet}-v01.webp`],
       normalAssets:
         site.id === 'elemental-valley'

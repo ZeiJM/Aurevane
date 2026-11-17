@@ -33,6 +33,35 @@ them. Keep automatic Vercel Git deployments disabled and older watchers paused.
   older run excludes latest coast/border/marker work and is not current acceptance.
 - No merge, deployment, migration, content publication or cron mutation occurred.
 
+## Native814 detail-view diagnosis and repair — November17
+
+- The two failures are the same obsolete fixture expectation, not evidence of
+  failed server movement or a newly broken player renderer. The legal detail
+  viewpoint is `atlas:44:35` (0,6), deliberately behind the colosseum rear wall.
+  The open arena-floor viewpoint remains clear. A new regression uses both exact
+  native fixture positions through the real renderer and reproduces the wall's
+  grayscale identity before correction (`rear wall: expected true to be false`).
+- Mark the rear-wall detail expectation explicitly `occluded`. Native normal AND
+  maximum detail checks now require a visible player and positive ghost paints;
+  the existing floor checks still require zero ghost paints. Existing opacity,
+  backing size, legal coordinates, actual decoded artwork and saved-position
+  checks remain. No application/authority/art/migration code, case count, timeout,
+  retry, color/frame threshold or skip changed.
+- 252 renderer/fixture tests pass, including the failing-before exact-viewpoint
+  regression and existing separate floor/wall composition guards. A missing
+  `animate` option in the new test was caught by TypeScript and corrected;
+  sparse-checkout provenance omissions are recovery issues, not product patches.
+- Artifact14353801342 downloaded and SHA256 verified
+  `0dfeaa4fa0cdec3633a87431a33e7502736ca74034534c8ff2c533d60c166791`.
+  Directly inspected actual814 desktop valley normal/maximum and colosseum
+  floor normal/minimum captures. The failed wall case had not reached its saved
+  colosseum pair; do not claim that absent native view was reviewed. Offline
+  exact-source rear-wall rendering confirms the legal viewpoint/ghost, but is
+  not browser acceptance. Existing wall/detail fidelity limitation remains open.
+- Restart configured checks on the corrected published source. Preserve one
+  combined draft PR and release hold until the full final gate and remaining
+  visual requirements pass. No old PR1040 migrations/cron/release replay.
+
 ## Global settlement-marker correction — November17
 
 - Actual #812 desktop full-page globe uses the same20px castle for every town;
