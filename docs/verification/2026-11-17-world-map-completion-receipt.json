@@ -15,8 +15,8 @@
     "owner": "Nick-directed takeover into this interactive conversation",
     "oldAutomation": "Automation_661d7a3712ec8191939d0104f5c5a773",
     "oldAutomationEnabled": false,
-    "leaseExpires": "2026-11-17T18:25:00Z",
-    "status": "interactive source work complete; same-conversation scheduled continuation owns the next safe iteration",
+    "leaseExpires": "2026-11-17T20:00:00Z",
+    "status": "active interactive source/visual review in this same conversation; scheduled continuation inspect-only while lease active",
     "replacementAutomation": "Automation_9dd57abfa004819195b30acab8a54150",
     "replacementEnabled": true,
     "replacementConversation": "6af92530-a2cc-83e9-b358-44c2af4fba0f",
@@ -86,14 +86,14 @@
         "conclusion": null
       },
       {
-        "id": 44143478487,
-        "name": "CI",
-        "status": "in_progress",
-        "conclusion": null
-      },
-      {
         "id": 44143478523,
         "name": "UI layout review",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 44143478487,
+        "name": "CI",
         "status": "completed",
         "conclusion": "success"
       }
@@ -178,5 +178,5 @@
     "No human continuous-motion or physical-handset acceptance.",
     "No full1.29GB archive download/review claimed; only named hash-verified compact bundles."
   ],
-  "updatedAt": "2026-11-17T18:17:00Z"
+  "updatedAt": "2026-11-17T18:23:00Z"
 }
