@@ -95,6 +95,7 @@ jobs:
             apps/web/test-results/**/world-both-moving-peer-*.json
             apps/web/test-results/**/world-moving-cpu-*.cpuprofile
             apps/web/test-results/**/world-browser-tasks.json
+            apps/web/test-results/**/world-crowd-render-timings.json
             apps/web/test-results/**/world-presence-boundaries.json
             apps/web/test-results/**/world-presence-cleanup.json
             apps/web/test-results/**/attachments/held-walk-approval-timings-*.json
