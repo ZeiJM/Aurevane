@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "scope": "Evidence only. NEVER merge or deploy this branch/receipt commit.",
   "candidate": {
-    "sha": "93fe885205f304aa0135961b5ea5318ba4c834fe",
-    "tree": "68f6d2e733feb581524cc9ecf7d976e88a652272",
+    "sha": "9906e0dd396a8fbd8fb82212fd7af8b2cbbadd0d",
+    "tree": "c0083f8e8a818f129f1092335a85ad26cfa81354",
     "branch": "agent/world-map-request-completion",
     "pullRequest": 1043,
     "draft": true
@@ -12,16 +12,14 @@
   "productionMutationOccurred": false,
   "releaseHold": true,
   "ownership": {
-    "owner": "Nick-directed takeover into this interactive conversation",
+    "owner": "Nick-directed continuation after previous conversation exhausted context",
+    "status": "Active interactive continuation; hourly checks paused",
     "oldAutomation": "Automation_661d7a3712ec8191939d0104f5c5a773",
     "oldAutomationEnabled": false,
-    "leaseExpires": "2026-11-17T20:00:00Z",
-    "status": "active interactive source/visual review in this same conversation; scheduled continuation inspect-only while lease active",
     "replacementAutomation": "Automation_9dd57abfa004819195b30acab8a54150",
-    "replacementEnabled": true,
-    "replacementConversation": "6af92530-a2cc-83e9-b358-44c2af4fba0f",
-    "nextCheck": "2026-11-17T14:30:00-04:00",
-    "olderAurevaneTasks": "all confirmed disabled by private task lookup"
+    "replacementEnabled": false,
+    "leaseExpires": "2026-11-17T23:00:00Z",
+    "source": "Current candidate AGENTS.md and checked-in active-worker lease"
   },
   "native814": {
     "run": 44130723106,
@@ -56,6 +54,88 @@
     "correction": "Existing disposable-port configurator in Atlas; selected API propagation; local PG17 guard verifies config/URI/actual Docker binding agreement."
   },
   "currentRuns": {
+    "ci": 44170722161,
+    "ciStatus": "success",
+    "uiLayout": 44170722079,
+    "uiLayoutStatus": "success",
+    "atlas": 44170721930,
+    "atlasVerifyJob": 134348760072,
+    "atlasRealPG17Gate": "success",
+    "atlasStory": "success",
+    "atlasStatus": "in_progress",
+    "browserSmoke": 44170722158,
+    "browserSmokeStatus": "in_progress",
+    "timing": 44170722223,
+    "timingStatus": "in_progress"
+  },
+  "localValidation": {
+    "currentCheckout": "Clean complete checkout at candidate SHA",
+    "pnpmInstall": "frozen lockfile succeeded",
+    "finalPnpmCheck": "running: formatting, lint and types passed; package tests executing",
+    "previousValidation": {
+      "rendererAndSceneTests": 252,
+      "typescript": "pass",
+      "scopedLint": "pass",
+      "scopedFormat": "pass",
+      "atlasDiscovery": 240,
+      "discoveryIsExecution": false,
+      "portTests": 8,
+      "releaseSafetyTests": 12,
+      "mailTests": 5,
+      "verificationRunnerTests": 56,
+      "firstFullCheck": "interrupted after identifying sparse-checkout omitted root scripts; missing-file failure reproduced, not an application repair",
+      "completeCheckout": "restored with git sparse-checkout disable",
+      "previouslyFailingPublicationCase": "passes unchanged after restoring missing scripts",
+      "freshFullCheck": "Running on complete clean checkout; DB768 plus game-core7211 and small packages pass, web tests executing. Final pnpm check NOT yet complete."
+    }
+  },
+  "artwork": {
+    "originalMasterAndRuntimeUnchanged": true,
+    "currentSource": "Three registered masonry crops integrated with complementary arena/wall clipping; actual normal/max/lateral browser acceptance pending",
+    "historicalProbes": {
+      "acceptedNewArtwork": false,
+      "originalMasterAndRuntimeUnchanged": true,
+      "fullFrameProbe": {
+        "file": "generated_images/exec-c60481d1-c6d0-4c94-b315-430d0146d1e2.png",
+        "sha256": "1cc74aa2805768bb842691b1d54b4d9b374102a45e57ba0d4bd153db3f324c74",
+        "resolution": [
+          1536,
+          1024
+        ],
+        "result": "Rejected as resolution remedy; requested larger output still returned original dimensions."
+      },
+      "croppedProbe": {
+        "file": "generated_images/exec-1f64d5b4-9df7-4e5b-aaaf-93d8ee07077e.png",
+        "sha256": "9576621837b77124f0a5964496676449da8c3726c1d52511a9772f0aec6d2f83",
+        "referenceMasterBounds": [
+          448,
+          0,
+          640,
+          426
+        ],
+        "nativePixels": [
+          1536,
+          1024
+        ],
+        "result": "UNACCEPTED. Normal/maximum/minimum exact-source offline prototypes and +/-5-tile lateral pans reviewed. Both clipped passes remove the blurred band, but lateral edge views demonstrate displaced/doubled arch and stair registration and sharp/soft frequency transitions. Runtime/master bytes unchanged; no source integration.",
+        "layerDiagnosis": "Painting detail only in wall pass leaves an abrupt blurred band when the original floor pass redraws its ellipse. Applying matching detail in both complementary clipped passes removes that band in the offline prototype, without changing the ellipse. No production renderer change made."
+      },
+      "inspection": "Actual814 desktop valley normal/max and arena floor normal/min reviewed; failed rear-wall pair was absent. Offline exact-source prototype at0.35/1/1.4 and lateral pans is not hosted or handset acceptance."
+    }
+  },
+  "remaining": [
+    "Complete exact-source Atlas817, Browser Smoke full Chromium/final Edge and Timing64 all63 unchanged zero-retry executions.",
+    "Inspect native current-source colosseum center/lateral, valley, globe WebGL/fallback coasts, dry towns, water/seams/grounding and actual responsive controls.",
+    "Finish current full local pnpm check.",
+    "Refresh main and merge only passing reviewed candidate with tested-tree equality. One staged Production build, smoke and same-build promotion; preserve9 retirement rules and Git deployment lock.",
+    "No Preview; never replay PR1040 migrations/cron/release; no content republication or player reset."
+  ],
+  "limitations": [
+    "No human continuous-motion or physical-handset acceptance.",
+    "No full1.29GB archive download/review claimed; only named hash-verified compact bundles."
+  ],
+  "updatedAt": "2026-11-17T20:59:13.423Z",
+  "previousRuns": {
     "atlas": 44143478767,
     "atlasVerifyJob": 134252202191,
     "atlasRealPG17Gate": "independently observed success",
@@ -121,62 +201,16 @@
       "failed": []
     }
   },
-  "localValidation": {
-    "rendererAndSceneTests": 252,
-    "typescript": "pass",
-    "scopedLint": "pass",
-    "scopedFormat": "pass",
-    "atlasDiscovery": 240,
-    "discoveryIsExecution": false,
-    "portTests": 8,
-    "releaseSafetyTests": 12,
-    "mailTests": 5,
-    "verificationRunnerTests": 56,
-    "firstFullCheck": "interrupted after identifying sparse-checkout omitted root scripts; missing-file failure reproduced, not an application repair",
-    "completeCheckout": "restored with git sparse-checkout disable",
-    "previouslyFailingPublicationCase": "passes unchanged after restoring missing scripts",
-    "freshFullCheck": "Running on complete clean checkout; DB768 plus game-core7211 and small packages pass, web tests executing. Final pnpm check NOT yet complete."
+  "exactSourceCI": {
+    "vitest": 17824,
+    "nodeTests": 7,
+    "format": "pass",
+    "lint": "pass",
+    "typecheck": "pass",
+    "build": "pass",
+    "databaseFoundation": "pass",
+    "dependencyAudit": "pass",
+    "workerBoot": "pass"
   },
-  "artwork": {
-    "acceptedNewArtwork": false,
-    "originalMasterAndRuntimeUnchanged": true,
-    "fullFrameProbe": {
-      "file": "generated_images/exec-c60481d1-c6d0-4c94-b315-430d0146d1e2.png",
-      "sha256": "1cc74aa2805768bb842691b1d54b4d9b374102a45e57ba0d4bd153db3f324c74",
-      "resolution": [
-        1536,
-        1024
-      ],
-      "result": "Rejected as resolution remedy; requested larger output still returned original dimensions."
-    },
-    "croppedProbe": {
-      "file": "generated_images/exec-1f64d5b4-9df7-4e5b-aaaf-93d8ee07077e.png",
-      "sha256": "9576621837b77124f0a5964496676449da8c3726c1d52511a9772f0aec6d2f83",
-      "referenceMasterBounds": [
-        448,
-        0,
-        640,
-        426
-      ],
-      "nativePixels": [
-        1536,
-        1024
-      ],
-      "result": "UNACCEPTED. Normal/maximum/minimum exact-source offline prototypes and +/-5-tile lateral pans reviewed. Both clipped passes remove the blurred band, but lateral edge views demonstrate displaced/doubled arch and stair registration and sharp/soft frequency transitions. Runtime/master bytes unchanged; no source integration.",
-      "layerDiagnosis": "Painting detail only in wall pass leaves an abrupt blurred band when the original floor pass redraws its ellipse. Applying matching detail in both complementary clipped passes removes that band in the offline prototype, without changing the ellipse. No production renderer change made."
-    },
-    "inspection": "Actual814 desktop valley normal/max and arena floor normal/min reviewed; failed rear-wall pair was absent. Offline exact-source prototype at0.35/1/1.4 and lateral pans is not hosted or handset acceptance."
-  },
-  "remaining": [
-    "Finish final exact-source configured checks including full Chromium and final Edge, timing63 and Atlas realPG17/native cases.",
-    "Review newer coast/border/marker source from actual native artifacts.",
-    "Resolve major-art fidelity and seam/registration requirements without accepting rejected overlays, upscaling claims or shrinking gameplay geometry.",
-    "Full current checkout quality must pass.",
-    "One combined release after all gates; PR1040 already live: NEVER replay its migrations, cron activation or release. No Preview/content publication/progress reset."
-  ],
-  "limitations": [
-    "No human continuous-motion or physical-handset acceptance.",
-    "No full1.29GB archive download/review claimed; only named hash-verified compact bundles."
-  ],
-  "updatedAt": "2026-11-17T18:23:00Z"
+  "nativeVisualReview": "Pending exact-source817 screenshot bundles; do not treat current CI/layout or offline18% experiment as native gameplay/handset performance acceptance."
 }
