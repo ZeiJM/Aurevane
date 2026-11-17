@@ -127,7 +127,7 @@
     "No human continuous-motion or physical-handset acceptance.",
     "No full1.29GB archive download/review claimed; only named hash-verified compact bundles."
   ],
-  "updatedAt": "2026-11-17T21:51:32.541Z",
+  "updatedAt": "2026-11-17T21:53:59.334Z",
   "previousRuns": {
     "atlas": 44143478767,
     "atlasVerifyJob": 134252202191,
@@ -320,5 +320,11 @@
     "sha256": "815c8dca4c1f11855d4f8ad7f1985c81ca23efab629bd1932b94f041bf12cf51",
     "verified": true,
     "scene": "Same101 visible players, full-DPR identity1792876px, terrain586336px,31ground caches2308136px and99visible scenery retained. About123–126frames in16.4sec;15sec >120 gate missed."
+  },
+  "canvasContextComparison": {
+    "branch": "agent/world-canvas-context-profile-20261117",
+    "sha": "160c2d3f3130e1b1f51000fbfde7d5b080ee57c5",
+    "scope": "Evidence-only never merge/deploy. Baseline, main-canvas willReadFrequently:true, main-canvas desynchronized:true; each3 repeated mobile cases plus post-window8sec native/Canvas trace. Original density, bodies, frame window and zero retries preserved.",
+    "status": "dispatching"
   }
 }
