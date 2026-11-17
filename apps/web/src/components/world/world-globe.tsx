@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ATLAS_COLUMNS, ATLAS_ROWS } from '@/world/atlas'
 import { GRID_HEIGHT, GRID_WIDTH } from '@/world/catalog'
 import { FERRY_MAINLAND_DOCK } from '@/world/ferry'
@@ -9,6 +9,7 @@ import { SphericalView } from './spherical-view'
 import { projectGlobeTowns } from './globe-atlas'
 import { UNCHARTED_VEIL_FOCUS } from './globe-veil'
 import { globeFerryPosition } from './globe-ferry'
+import { nextWorldTravelPoint, worldTravelPoints } from './world-travel-points'
 import styles from './workspace.module.css'
 
 export const GLOBE_FOCUS_EVENT = 'aurevane-world-globe-focus'
@@ -100,21 +101,23 @@ export function WorldGlobe({
       dockLocation,
     )
   const ferry = vessel && projectGlobePoint(vessel, camera)
-  const dockPoint = dockLocation ? projectGlobePoint(dockLocation, camera) : null
+  const travelPoints = useMemo(
+    () => worldTravelPoints({ atlas: view.atlas, anchors: view.anchors }),
+    [view.atlas, view.anchors],
+  )
+  const travelPointMarkers = travelPoints.flatMap((point) => {
+    const location = globeSectorCenter(point.coordinate, ATLAS_COLUMNS, ATLAS_ROWS)!
+    const projected = projectGlobePoint(location, camera)
+    return projected.visible
+      ? [{ ...point, left: (projected.x * zoom + 1) * 50, top: (1 - projected.y * zoom) * 50 }]
+      : []
+  })
   return (
     <div className={styles.globeScene}>
       <div className={styles.globeTitle}>
         <span>Surveyor’s collection</span>
         <h2>World Atlas</h2>
       </div>
-      <button
-        type="button"
-        className={styles.globeFocusUncharted}
-        aria-label="Focus Uncharted Lands"
-        onClick={() => setCamera(UNCHARTED_VEIL_FOCUS)}
-      >
-        ◇ Uncharted Lands
-      </button>
       <div className={styles.globeFrame}>
         <SphericalView
           src="/media/art/world/runtime/globe-materials-v02.webp"
@@ -203,23 +206,29 @@ export function WorldGlobe({
               </svg>
             </span>
           ) : null}
-          {port && dockPoint?.visible ? (
+          {travelPointMarkers.map((point) => (
             <button
+              key={point.id}
               type="button"
-              data-globe-travel-point
+              data-globe-travel-point={point.id}
               data-globe-town
               className={styles.globeTravelPoint}
-              aria-label="Travel point: Ferry dock"
-              title="Travel point: Ferry dock"
-              onClick={() => selectSector(port.id)}
+              aria-label={`Travel point: ${point.name}. Show next travel point`}
+              aria-pressed={selected === point.id}
+              title={`${point.name} · Show next travel point`}
+              onClick={() => {
+                const next = nextWorldTravelPoint(travelPoints, selected ?? point.id)
+                if (next) selectSector(next.id)
+              }}
               style={{
-                left: (dockPoint.x * zoom + 1) * 50 + '%',
-                top: (1 - dockPoint.y * zoom) * 50 + '%',
+                left: `${point.left}%`,
+                top: `${point.top}%`,
+                marginLeft: labels.some(({ sector }) => sector.id === point.id) ? 24 : undefined,
               }}
             >
               ◈
             </button>
-          ) : null}
+          ))}
         </SphericalView>
       </div>
     </div>

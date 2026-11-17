@@ -41,6 +41,7 @@ import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { localRoute, mapPoint, prepareLocalRoute, WorldMotion } from './world-motion'
 import { WorldMap } from './world-map'
 import { GLOBE_FOCUS_EVENT, WorldGlobe } from './world-globe'
+import { nextWorldTravelPoint, worldTravelPoints } from './world-travel-points'
 import { WorldMissions } from './world-missions'
 import { dialogueSpeakerId, WorldDialogue } from './world-dialogue'
 import {
@@ -142,7 +143,6 @@ export function WorldWorkspace({
     [visiblePlayerIds, setVisiblePlayerIds] = useState<string[] | null>(null),
     [destinationId, setDestinationId] = useState<string | null>(null),
     [confirmDestinationId, setConfirmDestinationId] = useState<string | null>(null),
-    [travelPointCursor, setTravelPointCursor] = useState(-1),
     [sectorJump, setSectorJump] = useState('')
   const [animate, setAnimate] = useState(true),
     [showLocationLabels, setShowLocationLabels] = useState(true),
@@ -603,22 +603,11 @@ export function WorldWorkspace({
       )
       .sort((a, b) => a.row - b.row || a.column - b.column)
   }, [view.atlas, view.anchors])
-  const travelPoints = useMemo(() => {
-    const ids = new Set<string>()
-    const candidates = [
-      { id: FERRY_MAINLAND_DOCK.sectorId, name: 'Ferry dock' },
-      ...view.anchors.map((anchor) => ({ id: anchor.sectorId, name: anchor.name })),
-    ]
-    return candidates.filter((point) => {
-      if (
-        ids.has(point.id) ||
-        !view.atlas?.some((sector) => sector.id === point.id && sector.charted)
-      )
-        return false
-      ids.add(point.id)
-      return true
-    })
-  }, [view.atlas, view.anchors])
+  const travelPoints = useMemo(
+    () => worldTravelPoints({ atlas: view.atlas, anchors: view.anchors }),
+    [view.atlas, view.anchors],
+  )
+  const activeTravelPoint = travelPoints.find((point) => point.id === destinationId)
   const confirmDestination = view.atlas?.find(
     (cell) => cell.id === confirmDestinationId && cell.charted,
   )
@@ -851,19 +840,14 @@ export function WorldWorkspace({
                   type="button"
                   disabled={!travelPoints.length}
                   onClick={() => {
-                    const next = (travelPointCursor + 1) % travelPoints.length
-                    setTravelPointCursor(next)
-                    focusGlobalSector(travelPoints[next]!.id)
+                    const next = nextWorldTravelPoint(travelPoints, destinationId)
+                    if (next) focusGlobalSector(next.id)
                   }}
                 >
                   ◈ Travel point {travelPoints.length > 1 ? '(' + travelPoints.length + ')' : ''}
                 </button>
               </div>
-              {travelPoints.length > 0 && travelPointCursor >= 0 ? (
-                <small>
-                  Travel point: {travelPoints[travelPointCursor % travelPoints.length]?.name}
-                </small>
-              ) : null}
+              {activeTravelPoint ? <small>Travel point: {activeTravelPoint.name}</small> : null}
               <div className={styles.atlasActions}>
                 <button
                   type="button"

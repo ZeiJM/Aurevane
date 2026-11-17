@@ -9,8 +9,23 @@ import { projectWorld } from '@/server/world/world-service'
 import { newWorldState, revealNearby } from '@/world/travel'
 import { VOID_REALMS } from '@/world/void-realms'
 import { WorldWorkspace } from './world-workspace'
+import { worldTravelPoints } from './world-travel-points'
 
 describe('World page', () => {
+  it('offers existing public town destinations before a character discovers any private survey anchor', () => {
+    const view = projectWorld(newWorldState(), [], 1000)
+    expect(view.anchors).toEqual([])
+    const points = worldTravelPoints(view)
+    expect(points).toHaveLength(9)
+    expect(points.map(({ id }) => id)).toEqual(
+      expect.arrayContaining(['atlas:126:32', 'aureth-crown', 'verdant-expanse']),
+    )
+    expect(
+      points.every((point) =>
+        view.atlas!.some((sector) => sector.id === point.id && sector.charted),
+      ),
+    ).toBe(true)
+  })
   it('offers a pressed location-label toggle immediately beside map settings', () => {
     const markup = renderToStaticMarkup(
       <WorldWorkspace

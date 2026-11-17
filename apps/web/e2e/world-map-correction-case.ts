@@ -512,7 +512,8 @@ export function registerWorldMapCorrectionCases(harness: Harness) {
         }
         await expect(
           page.getByRole('button', { name: 'Focus Uncharted Lands', exact: true }),
-        ).toBeVisible()
+        ).toHaveCount(0)
+        await expect(page.getByText('Uncharted Lands', { exact: true })).toBeVisible()
         await expect(page.getByText('Uncharted Waters', { exact: true })).toHaveCount(0)
         await expect(page.getByRole('button', { name: 'Travel here', exact: true })).toHaveCount(0)
         await saveScene(page, info, `art-surfaces-correction-globe-${backend}-supercontinent`)

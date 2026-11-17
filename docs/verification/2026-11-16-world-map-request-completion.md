@@ -45,12 +45,46 @@ Verification map:
   Full applicable quality and configured checks remain required for the combined
   candidate; a passing piece is not a passing release.
 
-## Remaining pieces
+## Piece 2 — shared Travel Points and Uncharted control cleanup
+
+Implemented in source, pending native acceptance and the combined release:
+
+- Both sidebar and globe derive the same ordered, deduplicated map-destination
+  list and cycle from the selected destination, including wraparound.
+- The original list had only the mainland stop in a real new-character view:
+  its survey anchors were not charted public destinations. The cycle now also
+  includes the eight already-charted towns, so the feature works on actual
+  server projections, not only synthetic fixtures.
+- Known public anchors remain eligible; private, absent and unmapped entries
+  stay excluded. These are map selection targets, with ordinary server-approved
+  confirmed travel. No new ferry route, teleport grant or private access exists.
+- All visible Travel Point copy drops the old Ferry dock name. Shared selection
+  owns the sidebar caption, removing the independent stale cursor. Town icons
+  retain their ordinary selection behavior; adjacent Travel Point icons cycle.
+- Removed the redundant Uncharted focus button and its unused styles. The globe
+  still names Uncharted Lands when visible and location labels are enabled.
+- Regression tests first demonstrated the one-marker bug, retained focus button,
+  missing list/cycle behavior and missing real public-town destinations. **353
+  tests across nine focused/adjacent files pass**, including the prior renderer
+  and map-motion coverage, globe/fallback input and unchanged ferry timing.
+- TypeScript, scoped ESLint with zero warnings and formatting pass. Playwright
+  successfully discovers the new case across the configured projects; it runs
+  on desktop/mobile and explicitly omits the duplicate laptop project. Discovery
+  is not execution. Native checks remain pending because of the recorded local
+  Chromium startup restriction.
+- The new native case cycles through the real public towns, wraps to Mainland,
+  continues through the other control, checks unchanged position/route and
+  asserts that no World mutation was submitted. The existing art review now
+  requires the removed button to be absent while retaining the landmass label.
+- No database schema/state, generated terrain, content publication, transport
+  authority, migration ledger or release workflow is changed by this piece.
+
+## Checklist
 
 | Request                                                                   | Current status / required evidence                                                                                                                                                           |
 | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Travel Point cycling on the globe and complete display-name cleanup       | Pending; share the existing authoritative known-point list and keep selection separate from travel.                                                                                          |
-| Remove the redundant Uncharted focus/selection control                    | Pending.                                                                                                                                                                                     |
+| Travel Point cycling on the globe and complete display-name cleanup       | Implemented in Piece 2; native acceptance and combined release pending.                                                                                                                      |
+| Remove the redundant Uncharted focus/selection control                    | Implemented in Piece 2; native acceptance and combined release pending.                                                                                                                      |
 | Remove Uncharted fog of war                                               | Pending execution-path review and implementation; distinguish requested visibility from weather fog, preserve discoveries/history, isolate other private realms and retain server authority. |
 | Remove lakes from fire/ice towns                                          | Pending; inspect rendered liquid composition and saved-position/route/teleport compatibility before changing canonical terrain.                                                              |
 | Natural territory and town-size variation                                 | Pending; separate territorial boundaries from equal town-district footprints and verify actual rendered variation.                                                                           |

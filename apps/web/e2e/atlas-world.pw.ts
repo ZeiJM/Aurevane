@@ -25,6 +25,7 @@ import type { SetPracticePlanRequest } from '@aurevane/validation/player/wayfare
 import { provisionAccountAndEnterCharacter, openOfflineTraining } from './pv1f-test-helpers'
 import { GRID_WIDTH, GRID_HEIGHT, STEP_MS, WORLD_REGIONS } from '../src/world/catalog'
 import { newWorldState, samePosition } from '../src/world/travel'
+import { FERRY_MAINLAND_DOCK } from '../src/world/ferry'
 import type { WorldView } from '../src/world/types'
 import { verifyWorldPresentation, registerWorldInputCases } from './world-presentation-case'
 import { verifyWorldScenePresence, verifyWorldInstantActions } from './world-presence-case'
@@ -1733,6 +1734,61 @@ test('the globe rotates by dragging and has a usable charted fallback without We
   await page.locator('canvas[data-world-stage]').press('Escape')
   await expect.poll(async () => (await world(page)).route.length).toBe(0)
   await capture(page, info, 'fallback-route-return')
+})
+
+test('globe and sidebar Travel Points share a cycle without submitting travel', async ({
+  page,
+}, info) => {
+  test.skip(info.project.name === 'laptop-chromium', 'Exercise mouse and touch once each.')
+  test.setTimeout(90000)
+  await enter(page)
+  const before = await world(page)
+  const known = (before.atlas ?? [])
+    .filter((sector) => sector.charted && sector.townId === sector.id)
+    .slice(0, 2)
+  expect(known).toHaveLength(2)
+  expect(before.anchors).toEqual([])
+  await page.getByRole('button', { name: /Open world atlas/ }).click()
+  const sidebar = page.getByRole('button', { name: /^◈ Travel point/ })
+  if (!(await sidebar.isVisible()))
+    await page.getByRole('button', { name: 'Details', exact: true }).click()
+  const commands: string[] = []
+  page.on('request', (request) => {
+    if (new URL(request.url()).pathname === '/api/world' && request.method() === 'POST')
+      commands.push(request.postDataJSON()?.intent?.kind)
+  })
+  await sidebar.click()
+  const selected = (id: string) =>
+    page.locator(`[data-globe-travel-point="${id}"][aria-pressed="true"]`)
+  await expect(selected(FERRY_MAINLAND_DOCK.sectorId)).toBeVisible()
+  for (const [from, to] of [
+    [FERRY_MAINLAND_DOCK.sectorId, known[0]!.id],
+    [known[0]!.id, known[1]!.id],
+  ]) {
+    await selected(from!).click()
+    await expect(selected(to!)).toBeVisible()
+  }
+  // Continue through the rest of the public towns and wrap to the mainland stop.
+  const rest = (before.atlas ?? [])
+    .filter((sector) => sector.charted && sector.townId === sector.id)
+    .slice(2)
+  let current = known[1]!.id
+  for (const destination of [...rest.map((sector) => sector.id), FERRY_MAINLAND_DOCK.sectorId]) {
+    await selected(current).click()
+    await expect(selected(destination)).toBeVisible()
+    current = destination
+  }
+  await sidebar.click()
+  await expect(selected(known[0]!.id)).toBeVisible()
+  await expect(page.getByText(`Travel point: ${known[0]!.name}`, { exact: true })).toBeVisible()
+  await expect(page.getByRole('dialog', { name: 'Confirm world travel' })).toHaveCount(0)
+  await expect(
+    page.getByRole('button', { name: 'Focus Uncharted Lands', exact: true }),
+  ).toHaveCount(0)
+  expect((await world(page)).position).toEqual(before.position)
+  expect((await world(page)).route).toEqual(before.route)
+  expect(commands).toEqual([])
+  await capture(page, info, 'shared-travel-point-cycle')
 })
 
 test('ambient clouds, water and wildlife remain alive with bounded effects and can be paused', async ({

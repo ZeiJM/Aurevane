@@ -1,4 +1,4 @@
-import { createElement, type ComponentProps } from 'react'
+import { Children, createElement, isValidElement, type ComponentProps } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { WorldAtlasCell, WorldView } from '@/world/types'
@@ -63,11 +63,16 @@ function viewFor(atlas: WorldAtlasCell[]): WorldView {
     environment: resolveWorldEnvironment(1000),
   }
 }
-function render(view: WorldView, onSelect = vi.fn(), showLocationLabels = true) {
+function render(
+  view: WorldView,
+  onSelect = vi.fn(),
+  showLocationLabels = true,
+  selected: string | null = null,
+) {
   return renderToStaticMarkup(
     createElement(WorldGlobe, {
       view,
-      selected: null,
+      selected,
       onSelect,
       zoom: 0.94,
       zoomLocked: false,
@@ -82,6 +87,40 @@ beforeEach(() => {
 })
 
 describe('globe geographic labels', () => {
+  it('cycles globe Travel Point markers through known destinations without moving the character', () => {
+    const mainland = atlasCell(126, 32, 'Mainland coast')
+    const west = atlasCell(125, 32, 'West approach')
+    const north = atlasCell(124, 32, 'North approach')
+    const hidden = { ...atlasCell(123, 32, 'Hidden landmark'), charted: false }
+    const view = viewFor([mainland, west, north, hidden])
+    view.anchors = [
+      { id: 'west-anchor', name: 'West Waystone', sectorId: west.id },
+      { id: 'north-anchor', name: 'North Waystone', sectorId: north.id },
+      { id: 'hidden-anchor', name: 'Secret Waystone', sectorId: hidden.id },
+    ]
+    const onSelect = vi.fn()
+    const markup = render(view, onSelect)
+    const markers = Children.toArray(capture.sphere?.children)
+      .filter(isValidElement<{ 'data-globe-travel-point'?: string; onClick: () => void }>)
+      .filter((child) => child.props['data-globe-travel-point'] !== undefined)
+    expect(markers).toHaveLength(3)
+    expect(markup).toContain('Travel point: Mainland')
+    expect(markup).toContain('Travel point: West Waystone')
+    expect(markup).not.toContain('Ferry dock')
+    expect(markup).not.toContain('Secret Waystone')
+    for (const [index, next] of [west.id, north.id, mainland.id].entries()) {
+      markers[index]!.props.onClick()
+      expect(onSelect).toHaveBeenLastCalledWith(next)
+    }
+    expect(view.position).toEqual({ sectorId: mainland.id, x: 6, y: 4 })
+    expect(view.route).toEqual([])
+    render(view, onSelect, true, west.id)
+    const mainlandMarker = Children.toArray(capture.sphere?.children)
+      .filter(isValidElement<{ 'data-globe-travel-point'?: string; onClick: () => void }>)
+      .find((child) => child.props['data-globe-travel-point'] === mainland.id)
+    mainlandMarker!.props.onClick()
+    expect(onSelect).toHaveBeenLastCalledWith(north.id)
+  })
   it('hides town names while preserving selectable town icons and the current-position pin', () => {
     const view = viewFor([atlasCell(0, 2, 'South town')])
     expect(render(view)).toContain('<span>South town</span>')
@@ -117,8 +156,9 @@ describe('globe geographic labels', () => {
     expect(onSelect).toHaveBeenLastCalledWith(null)
   })
   it('names the private landmass as Uncharted Lands without revealing its coordinates', () => {
-    const markup = render(viewFor([atlasCell(85, 1, 'North town')]))
-    expect(markup).toContain('Focus Uncharted Lands')
+    const markup = render(viewFor([atlasCell(0, 48, 'South town')]))
+    expect(markup).toContain('Uncharted Lands')
+    expect(markup).not.toContain('Focus Uncharted Lands')
     expect(markup).not.toMatch(/Uncharted waters/i)
   })
   it('does not add private Void destinations to the charted pickers', () => {

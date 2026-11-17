@@ -1389,22 +1389,3 @@
     font-size: 18px;
   }
 }
-
-.workspace .globeFocusUncharted {
-  position: absolute;
-  bottom: 14px;
-  left: 14px;
-  z-index: 5;
-  min-height: 32px;
-  padding: 4px 11px;
-  color: #dcc9e9;
-  font:
-    12px/1.3 Georgia,
-    serif;
-  border: 1px solid #a48ab462;
-  border-radius: 5px;
-  background: #14192dce;
-}
-.workspace .globeFocusUncharted:hover {
-  background: #253051;
-}
