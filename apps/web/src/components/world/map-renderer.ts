@@ -2077,7 +2077,12 @@ export function createMapRenderer(
           p.y + (GRID_WIDTH + GRID_HEIGHT) * tile * MAP_Y > 0 &&
           p.y < height
         const projected =
-          rasterZoomAt === null && tile >= 32 && groundOnScreen
+          // The phone overview also retains its individual wet/coastal rasters;
+          // translated bitmaps avoid affine work while walking or standing still.
+          rasterZoomAt === null &&
+          (tile >= 32 ||
+            (width < 600 && ratio > 1 && canvas.dataset.testLowZoomGroundCache === 'true')) &&
+          groundOnScreen
             ? groundProjections.get(surface, GRID_WIDTH * tile, GRID_HEIGHT * tile, ratio)
             : null
         if (projected) {
@@ -3030,7 +3035,9 @@ export function createMapRenderer(
         Math.round((top + fontSize + 2) * identityRatio) / identityRatio,
       )
     }
-    const cacheBiomeRasters = rasterZoomAt === null && (tile >= 32 || (width < 600 && ratio > 1))
+    const cacheBiomeRasters =
+      rasterZoomAt === null &&
+      (tile >= 32 || (width < 600 && ratio > 1 && canvas.dataset.testLowZoomGroundCache === 'true'))
     const paintCompact = (
       target: CanvasRenderingContext2D,
       item: Scenery,

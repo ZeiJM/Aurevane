@@ -73,16 +73,16 @@ jobs:
             select public.activate_phase4_combat_interactions_v2();
             select public.activate_phase4_discipline_rebalance_v1();
           "
-          pnpm --filter @aurevane/web exec playwright test e2e/atlas-world.pw.ts \
-            --project=mobile-chromium --workers=1 --repeat-each=3 --retries=0 \
-            --output=test-results/mobile-crowd \
-            --grep 'a synthetic population of 100 has bounded rendering' \
-            --reporter=list,github
-          pnpm --filter @aurevane/web exec playwright test e2e/atlas-world.pw.ts \
-            --project=desktop-chromium --workers=1 --repeat-each=20 --retries=0 \
-            --output=test-results/desktop-movement \
-            --grep 'known neighbouring players follow the visible viewport|holding WASD walks repeatedly|rapid ground clicks settle at the last legal tile' \
-            --reporter=list,github
+          result=0
+          for context_arm in baseline cached-ground; do
+            WORLD_CROWD_CONTEXT_ARM="$context_arm" \
+              pnpm --filter @aurevane/web exec playwright test e2e/atlas-world.pw.ts \
+                --project=mobile-chromium --workers=1 --repeat-each=3 --retries=0 \
+                --output="test-results/mobile-crowd-$context_arm" \
+                --grep 'a synthetic population of 100 has bounded rendering' \
+                --reporter=list,github || result=1
+          done
+          exit "$result"
       - name: Save compact repeat boundary and motion evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -95,6 +95,7 @@ jobs:
             apps/web/test-results/**/world-both-moving-peer-*.json
             apps/web/test-results/**/world-moving-cpu-*.cpuprofile
             apps/web/test-results/**/world-browser-tasks.json
+            apps/web/test-results/**/world-crowd-render-timings.json
             apps/web/test-results/**/world-presence-boundaries.json
             apps/web/test-results/**/world-presence-cleanup.json
             apps/web/test-results/**/attachments/held-walk-approval-timings-*.json
