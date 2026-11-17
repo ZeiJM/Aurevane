@@ -157,7 +157,7 @@ describe('globe geographic labels', () => {
   })
   it('names the private landmass as Uncharted Lands without revealing its coordinates', () => {
     const markup = render(viewFor([atlasCell(0, 48, 'South town')]))
-    expect(markup).toContain('Uncharted Lands')
+    expect(markup).toContain('<span>Uncharted Lands</span>')
     expect(markup).not.toContain('Focus Uncharted Lands')
     expect(markup).not.toMatch(/Uncharted waters/i)
   })

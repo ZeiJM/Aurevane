@@ -271,6 +271,53 @@ it('rounds a broad rectangular inlet over several known coastal pixels while wit
   expect(alpha(40, 70)).toBe(255)
 })
 
+it('breaks a broad public shore into unequal headlands and bays without revealing missing sectors', () => {
+  const atlas = Array.from({ length: 16 * 12 }, (_, n) => ({
+    id: `shore-${n}`,
+    name: 'Shore',
+    coordinate: '',
+    regionId: 'verdant-expanse',
+    column: n % 16,
+    row: Math.floor(n / 16),
+    charted: true,
+  })).filter((cell) => cell.column < 8)
+  const image = globeAtlasDetailPixels(atlas, 16, 12)
+  const alpha = (x: number, y: number) => image.pixels[(y * image.width + x) * 4 + 3]!
+  const shore = Array.from({ length: 128 }, (_, n) => {
+    const y = n + 32
+    for (let x = 127; x >= 64; x--) if (alpha(x, y) >= 128) return x
+    throw new Error('Lost public land support')
+  })
+  // Broad smoothing alone gives an almost straight wall. Actual contour relief,
+  // rather than interior colour noise, must make differently sized inlets.
+  expect(Math.max(...shore) - Math.min(...shore)).toBeGreaterThan(4)
+  expect(new Set(shore).size).toBeGreaterThan(5)
+  for (let y = 0; y < image.height; y++)
+    for (let x = 128; x < image.width; x++) expect(alpha(x, y)).toBe(0)
+  for (let y = 32; y < 160; y++) expect(alpha(64, y)).toBe(255)
+})
+
+it('retains thin public land across longitude zero and keeps hidden neighbours transparent', () => {
+  const atlas = Array.from({ length: 16 }, (_, column) => ({
+    id: `strip-${column}`,
+    name: 'Strip',
+    coordinate: '',
+    regionId: 'verdant-expanse',
+    column,
+    row: 4,
+    charted: true,
+  }))
+  const image = globeAtlasDetailPixels(atlas, 16, 12)
+  const alpha = (x: number, y: number) => image.pixels[(y * image.width + x) * 4 + 3]!
+  for (let x = 0; x < image.width; x++) {
+    expect(alpha(x, 72)).toBe(255)
+    expect(alpha(x, 63)).toBe(0)
+    expect(alpha(x, 80)).toBe(0)
+  }
+  for (let y = 64; y < 80; y++)
+    expect(Math.abs(alpha(0, y) - alpha(image.width - 1, y))).toBeLessThan(32)
+})
+
 it('forms coherent mountain ranges with stronger relief across the range than along it', () => {
   const atlas = Array.from({ length: 400 }, (_, n) => ({
     id: n === 210 ? 'frostmere' : `mountain-${n}`,

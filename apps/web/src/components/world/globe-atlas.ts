@@ -164,9 +164,18 @@ export function globeAtlasDetailPixels(
     }
   const material = painting ? globeMaterials(painting) : undefined
   const materialColor = [0, 0, 0]
+  // Periodic contour noise keeps the same inlet on either side of longitude 0.
+  // Use unequal scales: a single octave makes a repeated scalloped shoreline.
+  const coastalNoise = (x: number, y: number, frequency: number) => {
+    const blend = smooth(0, 1, x / width)
+    return (
+      noise(x * frequency, y * frequency) * (1 - blend) +
+      noise((x - width) * frequency, y * frequency) * blend
+    )
+  }
   // Reconstruct a continuous coastline from public neighbours. The contour is
-  // clipped inward to supplied charted sectors. Broader reconstruction rounds bays
-  // and never generates land in a missing or private sector.
+  // clipped inward to supplied charted sectors; contour relief breaks up broad
+  // rounded lobes without generating land in a missing or private sector.
   const surfaceAt = (x: number, y: number, fallback: readonly number[]) => {
     const gx = x / scale - 0.5,
       gy = y / scale - 0.5
@@ -215,7 +224,15 @@ export function globeAtlasDetailPixels(
     const column = Math.max(0, Math.min(columns - 1, Math.floor(x / scale))),
       row = Math.max(0, Math.min(rows - 1, Math.floor(y / scale)))
     const threshold = thresholds[row * columns + column]!
-    const coastDistance = blurred - threshold + (noise(x * 0.028, y * 0.028) - 0.5) * 0.025
+    // Broad coasts can support bays/headlands. Thin islands and corridors keep
+    // their existing support rather than being severed by the same displacement.
+    const relief = smooth(0.25, 0.75, threshold)
+    const coastDistance =
+      blurred -
+      threshold +
+      (coastalNoise(x, y, 0.028) - 0.5) * 0.025 +
+      relief *
+        ((coastalNoise(x, y + 31, 0.035) - 0.5) * 0.24 + (coastalNoise(x, y, 0.13) - 0.5) * 0.08)
     return {
       rgb,
       alpha: Math.round(smooth(-0.018, 0.018, coastDistance) * 255),

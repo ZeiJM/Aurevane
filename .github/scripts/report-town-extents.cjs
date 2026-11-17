@@ -70,6 +70,35 @@ async function main() {
   })
     .png()
     .toFile(filename)
+  // Execute the real software globe projector as an offline visual aid. These
+  // are source renders, not native browser or physical-device acceptance.
+  const { globeFallbackPixels } = require(
+    path.join(root, 'apps/web/src/components/world/globe-fallback.ts'),
+  )
+  const globes = []
+  for (const size of [320, 600])
+    for (const longitude of [-45, 0, 45]) {
+      const name = `globe-source-${size}-${longitude}.png`
+      const globe = globeFallbackPixels(
+        image,
+        { longitude, latitude: 0 },
+        1,
+        ATLAS_COLUMNS,
+        ATLAS_ROWS,
+        size,
+      )
+      await sharp(Buffer.from(globe), { raw: { width: size, height: size, channels: 4 } })
+        .png()
+        .toFile(path.join(output, name))
+      globes.push({
+        name,
+        size,
+        longitude,
+        sha256: createHash('sha256')
+          .update(fs.readFileSync(path.join(output, name)))
+          .digest('hex'),
+      })
+    }
   const report = {
     scope:
       'Actual shared globe texture generated offline from current public geometry/materials; not browser acceptance.',
@@ -99,6 +128,7 @@ async function main() {
       height: image.height,
       sha256: createHash('sha256').update(fs.readFileSync(filename)).digest('hex'),
     },
+    globes,
   }
   fs.writeFileSync(
     path.join(output, 'town-extents-source-review.json'),

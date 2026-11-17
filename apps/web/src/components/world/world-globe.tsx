@@ -181,7 +181,7 @@ export function WorldGlobe({
               style={{ left: `${(veilX + 1) * 50}%`, top: `${(1 - veilY) * 50}%` }}
             >
               <i aria-hidden="true">◇</i>
-              Uncharted Lands
+              <span>Uncharted Lands</span>
             </span>
           ) : null}
           {ferry?.visible &&

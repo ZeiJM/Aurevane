@@ -1761,11 +1761,18 @@ test('globe and sidebar Travel Points share a cycle without submitting travel', 
   const selected = (id: string) =>
     page.locator(`[data-globe-travel-point="${id}"][aria-pressed="true"]`)
   await expect(selected(FERRY_MAINLAND_DOCK.sectorId)).toBeVisible()
+  // Mobile details is an overlay. Dismiss it before a real globe tap, then
+  // reopen it only when testing the sidebar; never force input through the drawer.
+  const clickGlobePoint = async (id: string) => {
+    const close = page.getByRole('button', { name: 'Close details', exact: true })
+    if (await close.isVisible()) await close.click()
+    await selected(id).click()
+  }
   for (const [from, to] of [
     [FERRY_MAINLAND_DOCK.sectorId, known[0]!.id],
     [known[0]!.id, known[1]!.id],
   ]) {
-    await selected(from!).click()
+    await clickGlobePoint(from!)
     await expect(selected(to!)).toBeVisible()
   }
   // Continue through the rest of the public towns and wrap to the mainland stop.
@@ -1774,10 +1781,12 @@ test('globe and sidebar Travel Points share a cycle without submitting travel', 
     .slice(2)
   let current = known[1]!.id
   for (const destination of [...rest.map((sector) => sector.id), FERRY_MAINLAND_DOCK.sectorId]) {
-    await selected(current).click()
+    await clickGlobePoint(current)
     await expect(selected(destination)).toBeVisible()
     current = destination
   }
+  if (!(await sidebar.isVisible()))
+    await page.getByRole('button', { name: 'Details', exact: true }).click()
   await sidebar.click()
   await expect(selected(known[0]!.id)).toBeVisible()
   await expect(page.getByText(`Travel point: ${known[0]!.name}`, { exact: true })).toBeVisible()

@@ -19,6 +19,60 @@ them. Keep automatic Vercel Git deployments disabled and older watchers paused.
 - A scheduled run before lease expiry inspects only. Release or renew this lease
   at each safe checkpoint; after expiry a fresh worker may resume from the branch.
 
+## Current continuation — November17 coastline and native failure repair
+
+This section supersedes the earlier running-status notes below. Living Atlas
+[#812](https://github.com/ZeiJM/Aurevane/actions/runs/44088314266) completed on
+application source `dcec8f98e539246aa767ea99740e68db21905983`: **106 Atlas passes,
+3 failures**, plus15 authenticated story/NPC passes. No overall native pass.
+Real disposable PG17 rollback/locking/success preservation and build passed;
+all Production modes were disabled and protected jobs skipped.
+
+- Both desktop/mobile Uncharted-label failures came from exact text matching a
+  parent containing a decorative diamond. The visible name now has its own text
+  span; the original native assertion is retained. Strengthened source regression
+  failed before correction and now passes. No private geography is exposed.
+- Mobile Travel Point failure was real pointer interception by the open Details
+  drawer. The native case now closes that actual drawer before globe taps and
+  reopens it for sidebar interaction. Complete nine-stop wrap/shared cursor,
+  unchanged position/route and zero mutation checks remain. No forced click,
+  increased timeout, skip, retry or product travel-rule change.
+- Nick reviewed the actual native desktop globe and rejected the rounded land
+  edges. Added multi-scale periodic contour relief to the shared globe atlas,
+  affecting WebGL and software geography together. Thin public strips retain
+  their contour support; unknown/private cells remain transparent. Canonical
+  sector geometry, movement, saved progress and selected fire/ice art are intact.
+- New broad-shore regression failed before the repair (only3px contour variation)
+  and passes after it; added narrow-strip/longitude-boundary support regression.
+  **40 tests across6 globe/material/fallback/veil/workspace files pass**. Web
+  TypeScript, scoped zero-warning ESLint and Prettier pass after formatting.
+  Existing full local quality evidence below is historical, not a new final-head
+  or native pass. Database/combat/catalogue suites are excluded from this small
+  presentation loop: no server authority/schema/content changes. All final
+  configured/full quality/native gates remain mandatory for the combined patch.
+- Extended the existing source recipe: `node .github/scripts/report-town-extents.cjs
+<output-directory>` now emits real software-projector renders at320/600px and
+  longitudes -45/0/45 as well as the flat2048x1024 texture. Inspected the actual
+  flat texture, 600px front/east and320px west outputs. The contour now has uneven
+  small inlets; inherited coarse large-scale lobes and the narrow longitude land
+  strip remain visible. **Owner-requested natural-coast visual acceptance stays
+  OPEN** until native desktop/mobile WebGL/fallback review and any further repair.
+  Receipt: `2026-11-17-globe-coast-source-review.json`. These are source renders,
+  never described as native browser/physical-handset acceptance.
+- Inspected native artifact14334087287's desktop colosseum normal/minimum pair:
+  normal view shows floor around the player, minimum view shows stands and entry.
+  This does not establish close masonry fidelity. Keep edge-camera/native detail,
+  valley registration, global pin prominence, sea/seams/grounding/runtime and
+  actual handset acceptance open. Do not generate/upscale and claim fidelity.
+
+Native artifact archives were SHA256 verified: evidence14332968666,
+`7230f816e52c20c525451a9636dd7c948bc76e9d3e88dbaee0ac34e1e63473b1`;
+art14334087287,
+`655cf9da32ad0463ce1dbee5af9a5d6a189ab9be5f716a6a21cf1f03ab1ecd04`.
+Next: native verification of this corrected candidate, inspect actual desktop/mobile
+coasts at rotation and other outstanding visual rows, then repair demonstrated
+remaining defects. No partial PR merge/deployment; no PR1040 migration/cron replay.
+
 ## Native combined-candidate run — November17
 
 Dispatched Living Atlas browser once on the one task branch, source
