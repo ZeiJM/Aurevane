@@ -21,6 +21,34 @@ them. Keep automatic Vercel Git deployments disabled and older watchers paused.
 
 ## Continuous interactive work — November17
 
+### Final native fixture corrections — November17
+
+Atlas819/run44182605668 exposed two acceptance-fixture errors before it was
+superseded. The lateral Colosseum fixture required both viewpoints to be behind
+artwork. Its legally snapped right viewpoint is on clear arena floor (ellipse
+radius squared0.8334), whereas the left is behind the wall (1.1023). The real
+renderer independently confirms these outcomes. The scene now states the expected
+identity treatment per viewpoint, and two renderer regressions verify both.
+The right regression fails under the former shared occluded expectation.
+
+On phones, the map-switch header correctly dismisses the open Details panel via
+its existing outside-click handler. The presentation case now reopens Details
+before checking its visible globe position card. Exact one-card/no-footer-copy
+assertions and the remaining controls, selection and mutation checks stay intact.
+No application rendering, artwork, geography, authority, timing threshold, retry
+or artifact requirement changes in this fixture correction. Independent source
+review approves these corrections subject to the final exact-source gates and
+native visual review. The263 focused renderer/scene tests pass; scoped types,
+ESLint and formatting pass. Full local quality and new native runs remain open.
+
+Source1426587 passes full local quality (17,828 Vitest plus seven Node tests).
+Its UI2351 run fails during a battle setup API request with a socket disconnect;
+that is recorded as a failure, not a layout pass. Fresh final-source checks are
+required. Timing70's same-runner comparison passes all six unchanged cases:
+baseline frame-window durations11199.7/11433.6/11332.7ms versus cached-ground
+9876.6/9715.9/10748.6ms. This controlled result does not replace final native
+performance acceptance or physical-handset review.
+
 ### Phone overview projection reuse — source correction under native comparison
 
 The exact-source eb8 candidate passes full local quality, CI/database foundation

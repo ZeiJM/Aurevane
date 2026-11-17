@@ -18,7 +18,12 @@ export interface CorrectionScene {
   id: string
   position: WorldPosition
   detailPosition?: WorldPosition
-  detailSides?: { id: string; position: WorldPosition; asset: string }[]
+  detailSides?: {
+    id: string
+    position: WorldPosition
+    asset: string
+    identity: 'clear' | 'occluded'
+  }[]
   detailIdentity?: 'occluded'
   assets: string[]
   normalAssets?: string[]
@@ -203,6 +208,9 @@ export function correctionScenes() {
             id,
             position: point(sector, { x: wx % 13, y: wy % 9 }),
             asset: `colosseum-${id}-detail-v01.webp`,
+            // Legal-ground snapping places the right viewpoint inside the open
+            // floor ellipse; the left viewpoint remains behind the rear wall.
+            identity: id === 'left' ? ('occluded' as const) : ('clear' as const),
           }
         })
     }

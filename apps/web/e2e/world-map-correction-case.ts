@@ -405,7 +405,7 @@ export function registerWorldMapCorrectionCases(harness: Harness) {
             zoom: WORLD_MAX_ZOOM,
             assets: [...spec.assets, side.asset],
           },
-          'occluded',
+          side.identity,
         )
         await saveScene(page, info, `art-surfaces-${spec.id}-${side.id}-detail-maximum`)
         expect((await harness.world(page)).position).toEqual(sideView.position)

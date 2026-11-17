@@ -121,6 +121,8 @@ export async function verifyWorldPresentation(
   await expect(mapSwitch.locator('[data-world-map-switch]')).toBeVisible()
   await mapSwitch.click()
   await expect(workspace).toHaveAttribute('data-world-view', 'globe')
+  // Opening the atlas uses the normal outside-click dismissal on phones.
+  await ensureDetails()
   await expect(panel.locator('[data-world-position] [data-world-coordinates]')).toHaveCount(1)
   await expect(panel.locator('[data-world-panel-foot] [data-world-coordinates]')).toHaveCount(0)
   const closeDetails = page.getByRole('button', { name: 'Close details', exact: true })

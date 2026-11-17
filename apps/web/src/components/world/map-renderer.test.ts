@@ -5387,6 +5387,28 @@ it('matches the native arena viewpoint identity expectations to the actual floor
   }
 })
 
+it.each(['left', 'right'] as const)(
+  'matches the native %s colosseum detail viewpoint to its actual floor or occluder',
+  (id) => {
+    const arena = correctionScenes().discoveries.find((site) => site.id === 'remote-colosseum')!
+    const side = arena.detailSides!.find((side) => side.id === id)!
+    const s = scene(true, projectWorld({ ...newWorldState(), position: side.position }, [], 1000))
+    try {
+      s.canvas.dataset.portrait = '/lateral-viewpoint-self.png'
+      s.renderer.settings({ animate: false, zoom: 1.4 })
+      s.frame(40)
+      const identity = s.identityDraws.filter((draw) => draw.src === '/lateral-viewpoint-self.png')
+      expect(identity.length).toBeGreaterThan(0)
+      expect(identity.some((draw) => draw.filter === 'grayscale(1)')).toBe(
+        side.identity === 'occluded',
+      )
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  },
+)
+
 it.each(['floor', 'wall'] as const)(
   'composes colosseum ground before identity and treats an actor on its %s correctly',
   (where) => {
