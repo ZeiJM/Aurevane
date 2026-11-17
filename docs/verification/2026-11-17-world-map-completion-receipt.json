@@ -129,7 +129,7 @@
     "No human continuous-motion or physical-handset acceptance.",
     "No full1.29GB archive download/review claimed; only named hash-verified compact bundles."
   ],
-  "updatedAt": "2026-11-17T22:23:08.865Z",
+  "updatedAt": "2026-11-17T22:28:55.299Z",
   "previousRuns": {
     "atlas": 44143478767,
     "atlasVerifyJob": 134252202191,
@@ -397,7 +397,11 @@
       "movingBefore": "no retained projection blits after walking",
       "after": "reuse verified standing and walking; no warm allocations across60draws; terrain and full-DPR identity unchanged;8Mpx limit retained"
     },
-    "fullLocal": "running; format/lint pass, types executing",
-    "notes": "Application context flags remain unchanged; new code permits existing projection cache at settled phone wide zoom, including walking. Native A/B uses a dataset flag only in the separate diagnostic branch."
+    "fullLocal": "PASS17828 Vitest+7Node, format/full lint/all types/production builds. Exit0 independently observed on exact prospective1426587 working files.",
+    "notes": "Application context flags remain unchanged; new code permits existing projection cache at settled phone wide zoom, including walking. Native A/B uses a dataset flag only in the separate diagnostic branch.",
+    "offlineVisual": {
+      "snow": "Unchanged output byte/pixel-for-pixel at mobile0.35; composite-covered view does not exercise new individual projections.",
+      "coast": "70-frame offline baseline exited137 while full tests ran concurrently; not a browser/app acceptance failure. Retrying bounded12-frame comparison sequentially."
+    }
   }
 }
