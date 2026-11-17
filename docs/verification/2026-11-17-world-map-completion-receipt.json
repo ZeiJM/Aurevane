@@ -54,7 +54,12 @@
     "correction": "Existing disposable-port configurator in Atlas; selected API propagation; local PG17 guard verifies config/URI/actual Docker binding agreement."
   },
   "currentRuns": {
-    "status": "Fresh1426587 final gates triggering; predecessor eb8 CI/UI pass, timing68 fails and Atlas/Smoke superseded"
+    "ci": 44190925178,
+    "uiLayout": 44190925322,
+    "atlas": 44190925183,
+    "browserSmoke": 44190925172,
+    "timing": 44190925451,
+    "status": "Fresh exact1426587 gates running/pending; all final results required"
   },
   "localValidation": {
     "currentCheckout": "Clean complete checkout at candidate SHA",
@@ -122,7 +127,7 @@
     "No human continuous-motion or physical-handset acceptance.",
     "No full1.29GB archive download/review claimed; only named hash-verified compact bundles."
   ],
-  "updatedAt": "2026-11-17T22:31:39.474Z",
+  "updatedAt": "2026-11-17T22:32:42.016Z",
   "previousRuns": {
     "atlas": 44143478767,
     "atlasVerifyJob": 134252202191,
@@ -423,7 +428,7 @@
       "movingBefore": "no retained projection blits after walking",
       "after": "reuse verified standing and walking; no warm allocations across60draws; terrain and full-DPR identity unchanged;8Mpx limit retained"
     },
-    "fullLocal": "PASS17828 Vitest+7Node, format/full lint/all types/production builds. Exit0 independently observed on exact prospective1426587 working files.",
+    "fullLocal": "PASS17828 Vitest+7Node, format/full lint/all types/production builds. Exit0; clean1426587 checkout matches tested working files.",
     "notes": "Application context flags remain unchanged; new code permits existing projection cache at settled phone wide zoom, including walking. Native A/B uses a dataset flag only in the separate diagnostic branch.",
     "offlineVisual": {
       "snow": "Unchanged output byte/pixel-for-pixel at mobile0.35; composite-covered view does not exercise new individual projections.",
