@@ -5992,7 +5992,8 @@ it('retains whole-cell backing pixels when visible terrain lowers cached density
         return Reflect.get(context, key)
       },
     })
-    layer.getContext = (() => context) as typeof layer.getContext
+    // This canvas test double supplies only the 2D context used by the renderer.
+    layer.getContext = (() => context) as unknown as typeof layer.getContext
     return layer
   })
   try {
