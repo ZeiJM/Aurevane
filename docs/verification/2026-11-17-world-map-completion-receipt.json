@@ -127,7 +127,7 @@
     "No human continuous-motion or physical-handset acceptance.",
     "No full1.29GB archive download/review claimed; only named hash-verified compact bundles."
   ],
-  "updatedAt": "2026-11-17T21:53:59.334Z",
+  "updatedAt": "2026-11-17T21:55:00.989Z",
   "previousRuns": {
     "atlas": 44143478767,
     "atlasVerifyJob": 134252202191,
@@ -325,6 +325,8 @@
     "branch": "agent/world-canvas-context-profile-20261117",
     "sha": "160c2d3f3130e1b1f51000fbfde7d5b080ee57c5",
     "scope": "Evidence-only never merge/deploy. Baseline, main-canvas willReadFrequently:true, main-canvas desynchronized:true; each3 repeated mobile cases plus post-window8sec native/Canvas trace. Original density, bodies, frame window and zero retries preserved.",
-    "status": "dispatching"
+    "status": "running",
+    "run": 44184619640,
+    "job": 134397705839
   }
 }
