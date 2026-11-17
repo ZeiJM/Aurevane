@@ -43,3 +43,26 @@ Total selected runtime payload:2,233,844bytes. The two large special images must
 ### Asset and placement verification
 
 The focused placement/ocean/art suites cover canonical sites and scale, footprint/approach withholding, private/warped exclusions, partial giant-site proof, supplied-cell rejection, exact shallow/deep water identity, stable order and no invented bridge crossing. Asset tests verify retained-source/runtime hashes, bounded sizes,1536px special images, true-alpha margins, low-alpha chromatic matte and one complete connected grand silhouette per cell. A detached-neighbor-fragment regression was observed failing and passed after component isolation. All five selected runtime sheets were composited against opaque forest/sea backgrounds and inspected: complete silhouettes and heads, clean water/shore alpha, no red/yellow matte blocks and no stray neighboring pieces. This does not replace actual gameplay-scale native scene, player/entrance/road readability or animation acceptance, which remain part of the main release verification.
+
+### November17 close-view colosseum masonry
+
+Three retained1536×1024 native generated detail crops cover selected-master
+bounds [0,0,640,426], [448,0,640,426] and [896,0,640,426]. The left/right edit
+brief explicitly keeps every arch, stair, bench, entrance, silhouette and exact
+crop/perspective, adding only fine pores, mortar, hairline cracks and weathering.
+The central generation supplies the texture-style reference; it does not supply
+replacement side architecture. No original selected master/runtime is replaced.
+
+`tools/pack-colosseum-details.mjs` reads the retained generated sources, applies
+measured affine registration from `tools/colosseum-detail-registration.json`,
+clips alpha to the exact selected master and adds a96-native-pixel smooth edge
+feather. It removes saturated low-alpha matte under the existing alpha≤32 rule.
+The three quality90/alpha100 WebPs retain1:1 native crop frames, with source,
+master, runtime hashes and exact normalized registration in adjacent manifests.
+This is newly generated detail, not an enlargement represented as added detail.
+
+Only public, currently visible patches above1536 projected backing pixels load.
+Both complementary arena-floor/wall passes use the same registered texture;
+canonical floor ellipse, physical footprint, entries and actor occlusion stay
+unchanged. Center/lateral source comparisons pass review; native desktop/mobile
+normal/maximum and left/right review remain required on the final candidate.

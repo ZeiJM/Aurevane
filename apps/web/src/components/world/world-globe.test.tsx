@@ -195,6 +195,7 @@ describe('globe geographic labels', () => {
     const view = viewFor([south, north])
     const markup = render(view)
     expect(markup).toContain('World Atlas')
+    expect(markup).not.toContain('Surveyor’s collection')
     expect(markup).toContain('South town')
     expect(markup).not.toContain('Find a town')
     expect(markup).not.toContain('Known Lands')

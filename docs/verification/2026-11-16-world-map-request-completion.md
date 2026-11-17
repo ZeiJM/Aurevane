@@ -14,10 +14,79 @@ them. Keep automatic Vercel Git deployments disabled and older watchers paused.
 
 - Status: Nick explicitly transferred all work to this November17 interactive
   conversation. This worker owns continuation from source `128e27d33d835513133c413b0af23cb11451e1f9`.
-- Expires at: `2026-11-17T20:00:00Z`; renew at the next safe checkpoint.
+- Expires at: `2026-11-17T23:00:00Z`; renew at the next safe checkpoint.
 - Nick requested cancellation of the other continuation. Recurring task
   `Automation_661d7a3712ec8191939d0104f5c5a773` is confirmed disabled.
   Older watchers remain paused; do not resume them or duplicate this worker.
+
+## Continuous interactive work — November17
+
+Nick explicitly stopped hourly continuation. Automation_9dd57abfa004819195b30acab8a54150
+is confirmed disabled, as is the older Automation_661d7a3712ec8191939d0104f5c5a773.
+Continue in this conversation through remaining scope and configured quality gates;
+do not recreate/resume scheduled work. This supersedes older scheduled-continuation
+wording. Same interactive worker retains branch ownership.
+
+Current93fe885: Living Atlas816 PASSED real PG17, story and full configured Atlas
+cases; CI, UI layout and Browser Smoke also pass on that older source. Timing63 passed
+three mobile crowd executions and59/60 desktop cases; repeat4 peer0 recorded
+7 positive deltas against unchanged >8. Its retained native trace shows expensive
+canvas resource production with low JavaScript paint cost. Compact timing artifact
+14359852488 SHA256670b42f18d30943a6c09e843caafcac0ccc1f2cc1fce68b40f7690091c723e70
+and Atlas816 evidence/art bundles were hash verified. Release remains held.
+
+Development verification map: reuse immutable cloud silhouettes and a padded,
+translated consecutive dry-terrain composite while camera motion stays within
+its128px halo. Preserve all liquid/coast ordering, the original minimum-phone
+idle path, source geometry, shadows, foliage and animation cadence. The added
+composite is capped4M pixels; existing8M sector and8M projection budgets stay.
+Regressions fail against93fe885 for dry-composite reuse and Old Waystone marker,
+then pass on the correction. Ground-art reload invalidates the composite.
+
+The initial native Image shim could capture a source before its asynchronous
+decode: those earlier whole-scene timings/pixel comparisons are rejected.
+The corrected native Skia shim uses synchronous raw pixels until decode settles.
+Three alternating, isolated movement comparisons measure median whole-stage
+reductions15.8–17.9% (median17.7%); terrain drops roughly19–20ms to10ms.
+The moving comparison has mean0.252/channel difference, maximum19 and86 channels
+over8 in the whole904×754 frame, reflecting fractional bitmap filtering.
+These are controlled native Skia results with stage readbacks, not Chromium,
+GPU/physical-handset, network latency or frame-cadence acceptance. The clean
+reproducer and exact measured-source hashes are retained in
+`2026-11-17-map-lag-and-colosseum-review.json` and
+`.github/scripts/probe-world-dry-translation.cjs`. A lighting-composite experiment
+lacked reliable whole-scene benefit and was removed, not published.
+
+Three registered native1536×1024 masonry crops now cover the colosseum rear and
+both sides. Original selected master/runtime, floor ellipse, collision, saved
+positions and actor-occlusion authority remain unchanged. Visible patches load
+only above1536 backing pixels and use both complementary floor/wall clips.
+Generated sources, fitted matrices and deterministic packer/manifests are retained.
+Actual source normal/maximum/minimum and both lateral previews inspected; native
+center and new independent lateral desktop/mobile120s cases remain mandatory.
+Asset tests retain their existing hash/byte/alpha/matte thresholds. First source
+asset validation failed saturated low-alpha matte, which the existing alpha≤32
+normalization fixes. The manifest formatter was also corrected after the first
+full check stopped at formatting; no later phase of that failed run is claimed.
+
+The minimum source review also exposed Old Waystone artwork beneath the grand
+rear wall. Keep a small gold map marker at each already-supplied occluded location,
+even with labels off; no location is moved and no hidden identity is introduced.
+A focused regression proves the exact Old Waystone coordinate and no ordinary
+unobscured marker. The marker is UI presentation only; normal ground travel and
+physical assets retain their authority. Final full local quality is required on the frozen combined candidate. Native timing still requires all63 executions unchanged.
+
+Actual816 east/west globe captures expose a circular gold outline after native
+keyboard rotation: it is the sphere group's50% border-radius focus outline,
+not geography or a measuring overlay. Give the control a small rectangular focus
+boundary while preserving its visible2px keyboard focus. Existing native globe
+rotation case now checks focus visibility and shape on WebGL/software and both
+viewports. Globe pixels, mask, public geometry and controls are unaffected.
+
+Focused renderer, ambient, static-raster, spherical input and globe coverage,
+scoped types/lint/format and fullpnpmcheck are required after this correction.
+No DB/combat/content tests are needed during this rendering-only development
+loop; configured final CI, Smoke/Edge, timing and Atlas remain mandatory.
 
 ## Native814 completion and interactive takeover — November17
 
@@ -806,9 +875,20 @@ or repair it before closing that row. No partial global/local deployment.
 | Crisp older major artwork at gameplay zoom                                | Open visual acceptance; inspect native sources and rendered minimum/ordinary/maximum zoom. Upscaling alone does not establish new detail. |
 | Water/coast blending, tile seams, grounded assets and handset performance | Open representative visual/runtime acceptance. Do not classify uninspected scenes as passing or missing solely from source tests.         |
 
-The recovered latest wording about replacing travel popups/location information
-was incomplete. The current travel-confirmation dialog was not established as a
-confirmed omission; reconcile original user instructions before changing it.
+Recovered original November13 instructions and November17 safeguard refinement:
+remove Surveyor’s Collection; move the globe footer facts into its existing Your
+position card; replace the travel confirmation popup with nicer inline destination
+review/close controls, preserving separate confirmation before travel. Implemented
+by WorldDestinationCard and the shared confirmed-position facts. Local sector
+footer/nearby presentation is retained; the globe owns the moved position card.
+Selecting a town/sector does not travel or arm confirmation. Travel here opens
+inline review; only Confirm travel submits the existing authoritative walk intent.
+Cancel, Escape and changing destination disarm review. Native selection/review
+coverage requires zero mutation commands before explicit confirmation, while
+actual confirmed routes still use the original World service. Native presentation
+checks verify the facts move into the globe card, not duplicate at the footer.
+No modal shade or aria-modal dialog remains. Header has one World Atlas title in
+the sidebar, with an accessible Atlas region around the globe itself.
 
 ## Final combined gate
 
@@ -817,3 +897,21 @@ and configured affected native/workflow gates on the final candidate. Record
 each requirement's implementation and actual evidence. Keep one combined PR and
 release; no Preview or partial Production deployment, migration replay, account
 reset, content republication or invented human/physical-handset acceptance.
+
+## Frozen continuous-work candidate — November17
+
+All hourly tasks remain disabled. The active interactive worker retains the lease.
+Final scoped ESLint and Prettier checks pass, TypeScript passes, and destination,
+workspace and globe tests pass23 cases. Focused renderer/asset/scene guards also
+pass. Earlier full checks are not final evidence: attempt1 stopped on manifest
+formatting (fixed); attempt2 has no completed result; attempt3 was interrupted
+before the recovered destination UI changes to avoid mixed-source evidence.
+The new final full check will run against the frozen combined source.
+
+The material lag correction follows the failed unchanged Timing63 run; no
+unchanged retry, timing threshold reduction or authority bypass is requested.
+Fresh configured CI, Smoke/Edge, Atlas, UI layout and timing results are required
+on the new candidate before integration. Native lateral colosseum coverage adds
+a separate120s case without changing the existing central case deadline.
+Local measurements remain controlled source experiments and do not substitute
+for actual Chromium performance or final rendered visual inspection.

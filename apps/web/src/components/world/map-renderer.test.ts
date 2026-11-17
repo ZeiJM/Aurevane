@@ -23,6 +23,7 @@ import * as weatherPainting from './map-weather'
 import { worldRenderTerrain } from './map-render-terrain'
 import { grandDiscoveryPlacements } from './map-grand-discoveries'
 import { valleyDetailArt } from './map-grand-detail-art'
+import { colosseumDetailArt } from './map-colosseum-detail-art'
 import { correctionScenes } from '../../../e2e/world-map-correction-scenes'
 
 type RecordedPath = { operation: 'M' | 'L' | 'C' | 'E' | 'Z'; points: number[] }[]
@@ -5584,3 +5585,196 @@ it.each([
     }
   },
 )
+
+it('keeps three immutable cloud silhouettes across moving frames and releases them on disposal', () => {
+  const images: { src: string; width: number; height: number; close: ReturnType<typeof vi.fn> }[] =
+    []
+  vi.stubGlobal(
+    'OffscreenCanvas',
+    class {
+      constructor(
+        public width: number,
+        public height: number,
+      ) {}
+      getContext() {
+        return { drawImage() {} }
+      }
+      transferToImageBitmap() {
+        const image = {
+          src: 'immutable-cloud-probe',
+          width: this.width,
+          height: this.height,
+          close: vi.fn(),
+        }
+        images.push(image)
+        return image
+      }
+    },
+  )
+  const s = scene(false)
+  try {
+    const clouds = images.filter(({ width, height }) => width === 384 && height === 192)
+    expect(clouds).toHaveLength(3)
+    s.renderer.settings({ animate: true, zoom: 1 })
+    s.frame(50)
+    const before = s.draws.filter(({ image }) =>
+      clouds.includes(image as unknown as (typeof clouds)[number]),
+    )
+    expect(before.length).toBeGreaterThan(0)
+    s.draws.length = 0
+    s.frame(150)
+    const after = s.draws.filter(({ image }) =>
+      clouds.includes(image as unknown as (typeof clouds)[number]),
+    )
+    expect(after.length).toBeGreaterThan(0)
+    expect(after.map(({ args }) => args)).not.toEqual(before.map(({ args }) => args))
+    expect(images.filter(({ width, height }) => width === 384 && height === 192)).toHaveLength(3)
+    expect(clouds.every(({ close }) => close.mock.calls.length === 0)).toBe(true)
+    s.renderer.dispose()
+    expect(clouds.every(({ close }) => close.mock.calls.length === 1)).toBe(true)
+  } finally {
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+})
+
+it('translates a bounded dry terrain composite through short desktop movement without rerasterizing', () => {
+  const base = projectWorld(newWorldState(), [], 1000)
+  const view: WorldView = {
+    ...base,
+    scenery: [],
+    sectors: base.sectors.map((sector) => ({
+      ...sector,
+      buildings: [],
+      landmarks: [],
+      cells: sector.cells.map((cell) => ({ ...cell, terrain: '.', walkable: true })),
+    })),
+  }
+  const s = scene(true, view)
+  try {
+    s.renderer.settings({ animate: false, zoom: 1 })
+    s.canvas.dataset.renderDiagnostics = 'timing'
+    s.frame(40)
+    const timing = JSON.parse(s.canvas.dataset.renderTiming!)
+    expect(timing.projectedGroundSectors).toBeGreaterThanOrEqual(4)
+    expect(timing.projectedGroundPixels).toBeGreaterThan(s.canvas.width * s.canvas.height)
+    expect(timing.projectedGroundPixels).toBeLessThanOrEqual(4_000_000)
+    const initial = s.draws.find(
+      ({ image, args, matrix }) =>
+        image.width > s.canvas.width && args.length === 2 && matrix.join(',') === '1,0,0,1,0,0',
+    )!
+    expect(initial).toBeDefined()
+    const before = s.layerCount()
+    s.motion.plan(
+      [{ position: { ...view.position, x: view.position.x + 1 }, durationMs: 200 }],
+      view.sectors,
+      40,
+    )
+    s.renderer.update(view)
+    s.draws.length = 0
+    s.frame(80)
+    s.frame(120)
+    const moved = s.draws.filter(({ image }) => image === initial.image)
+    expect(moved.length).toBeGreaterThan(0)
+    expect(moved.at(-1)!.args).not.toEqual(initial.args)
+    expect(s.layerCount()).toBe(before)
+    expect(JSON.parse(s.canvas.dataset.renderTiming!).groundBuilds).toBe(0)
+    s.images.find((image) => (image as HTMLImageElement).src.endsWith('regional-ground-v02.webp'))!
+      .onload!()
+    s.draws.length = 0
+    s.frame(160)
+    expect(
+      s.draws.some(
+        ({ image, args }) =>
+          image !== initial.image && image.width > s.canvas.width && args.length === 2,
+      ),
+    ).toBe(true)
+  } finally {
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+})
+
+it('loads registered colosseum detail only at useful backing density and paints it through both floor/wall clips', () => {
+  const site = correctionScenes().discoveries.find((site) => site.id === 'remote-colosseum')!
+  const state = { ...newWorldState(), position: site.detailPosition! }
+  const s = scene(true, projectWorld(state, [], 1000))
+  const isDetail = (src: string) =>
+    colosseumDetailArt.some(({ sheet }) => src.endsWith(sheet + '-v01.webp'))
+  try {
+    s.renderer.settings({ animate: false, zoom: 0.35, quality: 'low' })
+    s.frame(40)
+    expect(s.images.filter((image) => isDetail((image as HTMLImageElement).src))).toHaveLength(0)
+    s.renderer.settings({ animate: false, zoom: 1, quality: 'balanced' })
+    s.frame(240)
+    const detailImages = s.images.filter((image) => isDetail((image as HTMLImageElement).src))
+    expect(detailImages.length).toBeGreaterThan(0)
+    const details = s.draws.filter(({ src }) => isDetail(src))
+    expect(details.length).toBeGreaterThanOrEqual(detailImages.length * 2)
+    const floorClip = s.clips.filter(({ path }) => path.some((part) => part.operation === 'E'))
+    expect(floorClip.length).toBeGreaterThanOrEqual(2)
+    for (const image of detailImages) {
+      const draws = details.filter((draw) => draw.image === image)
+      expect(draws).toHaveLength(2)
+      expect(draws.every(({ args }) => args.length === 4)).toBe(true)
+      expect(draws[0]!.args.slice(-2)).toEqual(draws[1]!.args.slice(-2))
+    }
+  } finally {
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+  const ordinary = scene(true)
+  try {
+    ordinary.frame(40)
+    expect(ordinary.images.some((image) => isDetail((image as HTMLImageElement).src))).toBe(false)
+  } finally {
+    ordinary.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+})
+
+it('keeps an obscured Old Waystone marker visible above major artwork when location labels are hidden', () => {
+  const site = correctionScenes().discoveries.find(({ id }) => id === 'remote-colosseum')!
+  const state = { ...newWorldState(), position: site.detailPosition! }
+  const s = scene(true, projectWorld(state, [], 1000))
+  try {
+    s.renderer.settings({ animate: false, zoom: 0.35, showLocationLabels: false })
+    s.frame(40)
+    const source = worldRenderTerrain(s.view)
+      .flatMap((sector) => sector.landmarks.map((landmark) => ({ sector, landmark })))
+      .find(({ landmark }) => landmark.name === 'Old Waystone')!
+    expect(source).toBeDefined()
+    const origin = { x: source.sector.atlasColumn! * 13, y: source.sector.atlasRow! * 9 }
+    const camera = mapPoint(s.view.position, s.view.sectors)
+    const p = projectMapPoint(
+      { x: origin.x + source.landmark.x + 0.5, y: origin.y + source.landmark.y + 0.5 },
+      camera,
+      { x: 0, y: 0 },
+      64 * 0.35,
+      800,
+      600,
+    )
+    const markers = s.strokes.filter(({ colour }) => colour === '#ffe2a1')
+    expect(
+      markers.some(
+        ({ path }) =>
+          path[0]?.operation === 'M' &&
+          Math.abs(path[0].points[0]! - p.x) < 0.01 &&
+          Math.abs(path[0].points[1]! - (p.y - 9)) < 0.01,
+      ),
+    ).toBe(true)
+    expect(s.texts.some(({ text }) => text === 'Old Waystone')).toBe(false)
+    expect(s.view.position).toEqual(state.position)
+  } finally {
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+  const ordinary = scene(true)
+  try {
+    ordinary.frame(40)
+    expect(ordinary.strokes.some(({ colour }) => colour === '#ffe2a1')).toBe(false)
+  } finally {
+    ordinary.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+})

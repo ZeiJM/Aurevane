@@ -351,7 +351,15 @@ export function registerWorldMapCorrectionCases(harness: Harness) {
         // This legal rear-wall viewpoint deliberately differs from the open
         // arena floor. The player remains readable through normal occlusion.
         const view = await run.load(
-          { ...spec, position: spec.detailPosition!, zoom: 1 },
+          {
+            ...spec,
+            position: spec.detailPosition!,
+            zoom: 1,
+            assets: [
+              ...spec.assets,
+              ...(spec.id === 'remote-colosseum' ? ['colosseum-rear-detail-v01.webp'] : []),
+            ],
+          },
           spec.detailIdentity ?? 'clear',
         )
         const normal = await page
@@ -373,6 +381,36 @@ export function registerWorldMapCorrectionCases(harness: Harness) {
         await run.record(`${spec.id}-legal-detail-view`, view, {
           pairOrder: 'normal above maximum',
           zooms: [1, WORLD_MAX_ZOOM],
+        })
+      }
+    } finally {
+      await run.finish(info)
+    }
+  })
+
+  test('@map-correction colosseum lateral masonry stays registered at maximum zoom', async ({
+    page,
+  }, info) => {
+    test.skip(info.project.name === 'laptop-chromium', 'Review detail once per desktop and phone.')
+    test.setTimeout(120000)
+    const spec = correctionScenes().discoveries.find((scene) => scene.id === 'remote-colosseum')!
+    expect(spec.detailSides).toHaveLength(2)
+    const run = await setup(page)
+    try {
+      for (const side of spec.detailSides ?? []) {
+        const sideView = await run.load(
+          {
+            ...spec,
+            position: side.position,
+            zoom: WORLD_MAX_ZOOM,
+            assets: [...spec.assets, side.asset],
+          },
+          'occluded',
+        )
+        await saveScene(page, info, `art-surfaces-${spec.id}-${side.id}-detail-maximum`)
+        expect((await harness.world(page)).position).toEqual(sideView.position)
+        await run.record(`${spec.id}-${side.id}-legal-detail-view`, sideView, {
+          zoom: WORLD_MAX_ZOOM,
         })
       }
     } finally {
@@ -543,6 +581,15 @@ export function registerWorldMapCorrectionCases(harness: Harness) {
           { name: 'west', steps: -8 },
         ]) {
           await rotate(view.steps)
+          if (view.steps) {
+            await expect(globe).toBeFocused()
+            const focus = await globe.evaluate((element) => {
+              const style = getComputedStyle(element)
+              return { outline: parseFloat(style.outlineWidth), radius: style.borderTopLeftRadius }
+            })
+            expect(focus.outline).toBeGreaterThanOrEqual(2)
+            expect(focus.radius).toBe('6px')
+          }
           await saveScene(page, info, `art-surfaces-correction-globe-${backend}-coast-${view.name}`)
         }
         await rotate(4) // Restore the original geographic camera before veil checks.

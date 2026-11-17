@@ -145,11 +145,7 @@ export function WorldGlobe({
       : []
   })
   return (
-    <div className={styles.globeScene}>
-      <div className={styles.globeTitle}>
-        <span>Surveyor’s collection</span>
-        <h2>World Atlas</h2>
-      </div>
+    <div className={styles.globeScene} role="region" aria-label="World Atlas">
       <div className={styles.globeFrame}>
         <SphericalView
           src="/media/art/world/runtime/globe-materials-v02.webp"

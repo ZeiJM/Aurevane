@@ -1,3 +1,4 @@
+import { colosseumDetailArt } from './map-colosseum-detail-art'
 import { createGroundProjectionCache, drawGroundSurface } from './map-ground-projection'
 import {
   releaseStaticRaster,
@@ -721,6 +722,8 @@ export function createMapRenderer(
     layer: StaticMapRaster | null
     start: number
     end: number
+    ids: string
+    padding: number
   } | null = null
   const clearStationaryGround = () => {
     if (stationaryGround?.layer) releaseStaticRaster(stationaryGround.layer)
@@ -750,7 +753,7 @@ export function createMapRenderer(
   let grandDiscoveries = grandDiscoveryPlacements(renderSectors, view.publicGrandDiscoveries)
   let oceanDiscoveries = oceanFeaturePlacements(renderSectors, coastField, view.atlas)
   const shallowRipples = new ShallowWaterRipples()
-  const clouds = [0, 1, 2].map((i) => createCloudTexture('world-cloud:' + i))
+  const clouds = [0, 1, 2].map((i) => snapshot(createCloudTexture('world-cloud:' + i)))
   let cachedPixels = 0
   let visibleGroundIds = new Set<string>()
   let activeVisibleTerrainIds = new Set<string>()
@@ -1621,16 +1624,41 @@ export function createMapRenderer(
     point.y >= -tile &&
     point.y <= height + tile
 
+  function colosseumDetailVisible(
+    item: Pick<Scenery, 'x' | 'y' | 'width' | 'height' | 'anchorX' | 'anchorY'>,
+    target: readonly number[],
+  ) {
+    const p = screen(item)
+    const [x, y, w, h] = target
+    const left = p.x + (x! - (item.anchorX ?? 0.5)) * item.width
+    const top = p.y + (y! - (item.anchorY ?? 1)) * item.height
+    return left < width && left + w! * item.width > 0 && top < height && top + h! * item.height > 0
+  }
+  function paintColosseumDetails(item: Scenery, x: number, y: number) {
+    if (item.image !== images.get('remote-colosseum')) return
+    for (const detail of colosseumDetailArt) {
+      if (
+        item.width * ratio <= detail.minProjectedMacroWidth ||
+        !colosseumDetailVisible(item, detail.target)
+      )
+        continue
+      const image = images.get(detail.sheet)
+      if (!image?.complete || !image.naturalWidth) continue
+      const [dx, dy, w, h] = detail.target
+      ctx.save()
+      ctx.globalAlpha = Math.min(1, (item.width * ratio - detail.minProjectedMacroWidth) / 768)
+      ctx.drawImage(
+        image,
+        x + dx * item.width,
+        y + dy * item.height,
+        w * item.width,
+        h * item.height,
+      )
+      ctx.restore()
+    }
+  }
   function stationaryGroundLayer(visible: readonly WorldSectorView[], ambient: boolean) {
-    if (
-      stationaryGround?.camera.x === camera.x &&
-      stationaryGround.camera.y === camera.y &&
-      stationaryGround.ambient === ambient
-    )
-      return stationaryGround
-
-    // Only combine a consecutive run. Animated water and shore must remain in
-    // their original order against neighboring ground, including at subpixel seams.
+    // Only combine a consecutive dry run. Liquid/coast ordering is unchanged.
     let start = 0,
       end = 0,
       runStart = 0
@@ -1651,19 +1679,47 @@ export function createMapRenderer(
         end = index + 1
       }
     })
-
-    // One backing-size bitmap replaces several transformed draws; keep the
-    // existing sector path when there is little ground to combine.
+    const effective = { x: camera.x + pan.x, y: camera.y + pan.y }
+    const ids = visible
+      .slice(start, end)
+      .map(({ id }) => id)
+      .join(':')
+    const previous = stationaryGround
+    const shift = previous && projectMapPoint(previous.camera, camera, pan, tile, width, height)
+    const left = shift ? (shift.x - width / 2) * ratio : 0
+    const top = shift ? (shift.y - height / 2) * ratio : 0
+    if (
+      previous?.ambient === ambient &&
+      previous.ids === ids &&
+      (previous.padding
+        ? Math.abs(left) <= previous.padding - 2 && Math.abs(top) <= previous.padding - 2
+        : !left && !top)
+    ) {
+      // Only the terrain bitmap follows this translation. Scenery includes
+      // moving canopies and screen culling, so it keeps its original frame path.
+      if (left || top) clearStationaryScenery()
+      return {
+        ...previous,
+        start,
+        end,
+        left: left - previous.padding,
+        top: top - previous.padding,
+        stationary: !left && !top,
+      }
+    }
     clearStationaryGround()
-    const projection = { camera, ambient, layer: null as StaticMapRaster | null, start, end }
-    stationaryGround = projection
     clearStationaryScenery()
-    if (end - start < 4) return projection
+    if (end - start < 4) return null
+    const padding = tile >= 32 ? Math.ceil(128 * ratio) : 0
+    const layerWidth = canvas.width + 2 * padding
+    const layerHeight = canvas.height + 2 * padding
+    if (layerWidth * layerHeight > 4_000_000) return null
     const layer = document.createElement('canvas')
-    layer.width = canvas.width
-    layer.height = canvas.height
+    layer.width = layerWidth
+    layer.height = layerHeight
     const target = layer.getContext('2d')
-    if (!target) return projection
+    if (!target) return null
+    target.save()
     for (const sector of visible.slice(start, end)) {
       const p = screen(sectorOrigin(sector))
       target.setTransform(
@@ -1671,13 +1727,22 @@ export function createMapRenderer(
         ratio * MAP_Y,
         -ratio * MAP_X,
         ratio * MAP_Y,
-        p.x * ratio,
-        p.y * ratio,
+        p.x * ratio + padding,
+        p.y * ratio + padding,
       )
       drawGroundSurface(target, ground(sector), GRID_WIDTH * tile, GRID_HEIGHT * tile, ratio)
     }
-    projection.layer = snapshot(layer)
-    return projection
+    target.restore()
+    stationaryGround = {
+      camera: effective,
+      ambient,
+      layer: snapshot(layer),
+      start,
+      end,
+      ids,
+      padding,
+    }
+    return { ...stationaryGround, left: -padding, top: -padding, stationary: true }
   }
   const portrait = (src: string | null) => {
     if (!src) return null
@@ -1746,6 +1811,24 @@ export function createMapRenderer(
     const surfaceWeather = { rain: surfaceRain, windSpeed: wind.speed }
     const budget = mapQualityBudgets[quality]
     const richAtmosphere = budget.clouds && (width >= 600 || quality === 'high')
+    const colosseum = grandDiscoveries.find((site) => site.id === 'remote-colosseum')
+    if (colosseum) {
+      const item = {
+        x: wrappedMapX(colosseum.worldx, camera.x),
+        y: colosseum.worldy,
+        width: colosseum.widthTiles * tile,
+        height: colosseum.heightTiles * tile,
+        anchorX: colosseum.anchorX,
+        anchorY: colosseum.anchorY,
+      }
+      for (const detail of colosseumDetailArt)
+        if (
+          item.width * ratio > detail.minProjectedMacroWidth &&
+          colosseumDetailVisible(item, detail.target) &&
+          !images.has(detail.sheet)
+        )
+          load(detail.sheet, 'v01')
+    }
     const valley = grandDiscoveries.find((site) => site.id === 'elemental-valley')
     if (valley)
       for (const detail of valleyDetailArt)
@@ -1852,15 +1935,15 @@ export function createMapRenderer(
     fitCachedGround()
     const backingPixels = canvas.width * canvas.height
     const cacheStationaryGround =
-      width < 600 &&
-      tile < 32 &&
-      ratio > 1 &&
       backingPixels > 0 &&
-      backingPixels <= 1_000_000 &&
+      backingPixels <= 4_000_000 &&
       rasterZoomAt === null &&
-      !sample.moving &&
-      camera.x === sample.point.x &&
-      camera.y === sample.point.y
+      (tile >= 32 ||
+        (width < 600 &&
+          ratio > 1 &&
+          !sample.moving &&
+          camera.x === sample.point.x &&
+          camera.y === sample.point.y))
     if (!cacheStationaryGround) {
       clearStationaryGround()
       clearStationaryScenery()
@@ -1868,14 +1951,23 @@ export function createMapRenderer(
     const projection = cacheStationaryGround ? stationaryGroundLayer(visible, ambient) : null
     if (timing) {
       timing.projectedGroundSectors = projection?.layer ? projection.end - projection.start : 0
-      timing.projectedGroundPixels = projection?.layer ? backingPixels : 0
+      timing.projectedGroundPixels = projection?.layer
+        ? projection.layer.width * projection.layer.height
+        : 0
     }
     if (timing) {
       const ended = performance.now()
       timing.prepareMs = ended - phaseAt
       phaseAt = ended
     }
-    const cachedScenery = projection?.layer ? stationaryScenery : null
+    const cacheScenery =
+      width < 600 &&
+      tile < 32 &&
+      ratio > 1 &&
+      projection?.layer &&
+      projection.stationary &&
+      !sample.moving
+    const cachedScenery = cacheScenery ? stationaryScenery : null
     const scenery = cachedScenery ?? []
     const addScenery = (item: Scenery) => {
       const p = screen(item)
@@ -1953,7 +2045,7 @@ export function createMapRenderer(
         if (index === projection.start) {
           ctx.save()
           ctx.setTransform(1, 0, 0, 1, 0, 0)
-          ctx.drawImage(projection.layer, 0, 0)
+          ctx.drawImage(projection.layer, projection.left, projection.top)
           ctx.restore()
         }
       } else {
@@ -2561,7 +2653,7 @@ export function createMapRenderer(
             ctx.restore()
           }
     }
-    if (projection?.layer && !cachedScenery) stationaryScenery = scenery
+    if (cacheScenery && !cachedScenery) stationaryScenery = scenery
     if (timing) {
       const ended = performance.now()
       timing.terrainMs = ended - phaseAt
@@ -2960,7 +3052,7 @@ export function createMapRenderer(
           item.source,
         )
     }
-    const nextBatches = projection?.layer ? new Map<string, SceneryBatch>() : null
+    const nextBatches = cacheScenery ? new Map<string, SceneryBatch>() : null
     let remainingBatchPixels = STATIONARY_SCENERY_PIXEL_LIMIT
     const paintBatch = (items: Scenery[], key: string) => {
       if (!nextBatches || items.length < 8) return false
@@ -3192,6 +3284,7 @@ export function createMapRenderer(
         ctx.clip('evenodd')
       }
       paintCompact(ctx, item, spriteX, spriteY)
+      paintColosseumDetails(item, spriteX, spriteY)
       if (item.image === images.get('elemental-waterfall-valley')) {
         for (const detail of valleyDetailArt) {
           if (item.width * ratio <= detail.minProjectedMacroWidth) continue
@@ -3372,6 +3465,7 @@ export function createMapRenderer(
         item.height,
         item.source,
       )
+      paintColosseumDetails(item, x, y)
       const grain = images.get(colosseumArenaMaterial.sheet)
       const pattern =
         grain?.complete && grain.naturalWidth ? ctx.createPattern(grain, 'repeat') : null
@@ -3385,12 +3479,45 @@ export function createMapRenderer(
       }
       ctx.restore()
     }
+    const majorScenery = scenery.filter((item) => item.grandFeature)
     const labelBounds: { x: number; y: number; width: number; height: number }[] = []
-    for (const sector of showLocationLabels ? visible : []) {
+    for (const sector of visible) {
       const origin = sectorOrigin(sector)
       for (const landmark of sector.landmarks) {
         const p = screen({ x: origin.x + landmark.x + 0.5, y: origin.y + landmark.y + 0.5 })
         if (p.x < 20 || p.x > width - 20 || p.y < 20 || p.y > height - 20) continue
+        // Major artwork must not conceal a supplied location when labels are
+        // hidden. Keep a small map marker at its exact saved ground coordinate.
+        const occludedByMajor = majorScenery.some((item) => {
+          const anchor = screen(item)
+          const left = anchor.x - item.width * (item.anchorX ?? 0.5)
+          const top = anchor.y - item.height * (item.anchorY ?? 1)
+          return (
+            p.x > left &&
+            p.x < left + item.width &&
+            p.y > top &&
+            p.y < top + item.height &&
+            origin.x + landmark.x + origin.y + landmark.y + 1 < item.x + item.y
+          )
+        })
+        if (occludedByMajor) {
+          ctx.save()
+          ctx.fillStyle = 'rgba(6,28,35,.96)'
+          ctx.strokeStyle = '#ffe2a1'
+          ctx.lineWidth = 1.5
+          ctx.beginPath()
+          ctx.moveTo(p.x, p.y - 9)
+          ctx.lineTo(p.x + 7, p.y)
+          ctx.lineTo(p.x, p.y + 9)
+          ctx.lineTo(p.x - 7, p.y)
+          ctx.closePath()
+          ctx.fill()
+          ctx.stroke()
+          ctx.fillStyle = '#ffe2a1'
+          ctx.fillRect(p.x - 1.5, p.y - 3, 3, 6)
+          ctx.restore()
+        }
+        if (!showLocationLabels) continue
         ctx.font = '13px Georgia'
         ctx.textAlign = 'center'
         const bounds = {
@@ -4206,6 +4333,7 @@ export function createMapRenderer(
       remoteMotion.dispose()
       wildlifeParts.clear()
       weatherVeil.clear()
+      for (const cloud of clouds) releaseStaticRaster(cloud)
       unsubscribeClassicTokens()
       cancelAnimationFrame(frame)
       observer.disconnect()

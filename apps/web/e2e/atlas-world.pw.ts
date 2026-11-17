@@ -333,7 +333,9 @@ async function reviewSectorTravel(page: Page, sectorId: string) {
   await expect(field).toBeVisible()
   await field.fill(String(sectorNumber))
   await page.getByRole('button', { name: 'Review sector', exact: true }).click()
-  await expect(page.getByRole('dialog', { name: 'Confirm world travel' })).toBeVisible()
+  await expect(page.getByRole('dialog', { name: 'Confirm world travel' })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Travel here', exact: true }).click()
+  await expect(page.getByRole('group', { name: 'Confirm world travel' })).toBeVisible()
   await page.getByRole('button', { name: 'Confirm travel', exact: true }).click()
 }
 // Exercise actual canvas picking or the globe's charted-destination controls.
@@ -1804,6 +1806,18 @@ test('globe and sidebar Travel Points share a cycle without submitting travel', 
   await expect(
     page.getByRole('button', { name: 'Focus Uncharted Lands', exact: true }),
   ).toHaveCount(0)
+  expect((await world(page)).position).toEqual(before.position)
+  expect((await world(page)).route).toEqual(before.route)
+  expect(commands).toEqual([])
+  const destinationCard = page.getByRole('region', { name: 'Selected destination' })
+  await destinationCard.getByRole('button', { name: 'Travel here', exact: true }).click()
+  await expect(page.getByRole('group', { name: 'Confirm world travel' })).toBeVisible()
+  await expect(page.getByRole('dialog', { name: 'Confirm world travel' })).toHaveCount(0)
+  await destinationCard.getByRole('button', { name: 'Cancel', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Confirm travel', exact: true })).toHaveCount(0)
+  await destinationCard.getByRole('button', { name: 'Travel here', exact: true }).click()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('button', { name: 'Confirm travel', exact: true })).toHaveCount(0)
   expect((await world(page)).position).toEqual(before.position)
   expect((await world(page)).route).toEqual(before.route)
   expect(commands).toEqual([])

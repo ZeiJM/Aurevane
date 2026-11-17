@@ -1,4 +1,5 @@
 'use client'
+import { WorldDestinationCard } from './world-destination-card'
 import { worldTimeLabel, worldDayPhase, WORLD_DAY_REAL_MS } from '@/world/environment'
 import { ChatPanel } from '@/components/social/chat/chat-panel'
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
@@ -588,6 +589,7 @@ export function WorldWorkspace({
     } catch {}
   }
   const focusGlobalSector = (id: string | null) => {
+    setConfirmDestinationId(null)
     setDestinationId(id)
     if (id) window.dispatchEvent(new CustomEvent<string>(GLOBE_FOCUS_EVENT, { detail: id }))
   }
@@ -655,6 +657,20 @@ export function WorldWorkspace({
   )
   const time = worldTimeLabel(view.environment.minuteOfDay)
   const weatherLabel = regionalWeatherLabel(view.environment.weather, local.regionId)
+  const currentPositionFacts = (
+    <p
+      className={styles.currentCoordinates}
+      data-world-coordinates
+      aria-label="Current sector and coordinates"
+    >
+      <span className={styles.coordinateHeader}>
+        <span>{positionLabel(currentSector, approvedPosition)}</span>
+        <span className={styles.zoneStatus} data-world-zone={zone} role="status">
+          {zone === 'safe' ? 'Safe Zone' : zone === 'pvp' ? 'PvP Zone' : 'Zone unavailable'}
+        </span>
+      </span>
+    </p>
+  )
   return (
     <section
       className={styles.workspace}
@@ -746,6 +762,7 @@ export function WorldWorkspace({
               onZoom={setGlobeZoom}
               selected={destinationId}
               onSelect={(id) => {
+                setConfirmDestinationId(null)
                 setDestinationId(id)
                 if (id) setPanelOpen(true)
               }}
@@ -784,10 +801,6 @@ export function WorldWorkspace({
                     keyLocations.some((cell) => cell.id === destinationId) ? destinationId! : ''
                   }
                   onChange={(event) => focusGlobalSector(event.target.value || null)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' && destinationId)
-                      setConfirmDestinationId(destinationId)
-                  }}
                 >
                   <option value="">Select a key location</option>
                   {keyLocations.map((cell) => (
@@ -826,7 +839,6 @@ export function WorldWorkspace({
                       return
                     }
                     focusGlobalSector(sector.id)
-                    setConfirmDestinationId(sector.id)
                   }}
                 >
                   Review sector
@@ -930,6 +942,13 @@ export function WorldWorkspace({
             </div>
           ) : null}
           <div className={styles.panelScroll}>
+            {mode === 'global' ? (
+              <section className={styles.position} data-world-position aria-label="Your position">
+                <small>YOUR POSITION</small>
+                <h2>{localName}</h2>
+                {currentPositionFacts}
+              </section>
+            ) : null}
             {mode === 'local' && tab === 'chat' ? (
               <div
                 id="chat-content"
@@ -994,27 +1013,27 @@ export function WorldWorkspace({
                 aria-labelledby={mode === 'local' ? 'nearby-tab' : undefined}
                 aria-label={mode === 'global' ? 'World overview' : undefined}
               >
-                {mode === 'global' ? (
-                  <section className={styles.position}>
-                    <small>YOUR POSITION</small>
-                    <h2>{localName}</h2>
-                  </section>
-                ) : null}
                 {mode === 'global' && destination ? (
-                  <section className={styles.destination} aria-label="Selected destination">
-                    <small>{positionLabel(destination, { x: 6, y: 4 })}</small>
-                    <h2>{destination.name}</h2>
-                    <button
-                      className={styles.primary}
-                      disabled={disabled}
-                      onClick={() => setConfirmDestinationId(destination.id)}
-                    >
-                      Travel here
-                    </button>
-                    <button aria-label="Clear destination" onClick={() => setDestinationId(null)}>
-                      ×
-                    </button>
-                  </section>
+                  <WorldDestinationCard
+                    destination={destination}
+                    disabled={disabled}
+                    reviewing={confirmDestination?.id === destination.id}
+                    replacesRoute={view.route.length > 0}
+                    onReview={() => setConfirmDestinationId(destination.id)}
+                    onCancel={() => setConfirmDestinationId(null)}
+                    onClear={() => {
+                      setConfirmDestinationId(null)
+                      setDestinationId(null)
+                    }}
+                    onConfirm={() => {
+                      if (confirmDestination?.id !== destination.id) return
+                      walk({ sectorId: destination.id, x: 6, y: 4 })
+                      setConfirmDestinationId(null)
+                      setMode('local')
+                      setDestinationId(null)
+                      setPanelOpen(false)
+                    }}
+                  />
                 ) : null}
                 {mode === 'local' ? (
                   <section className={styles.characters}>
@@ -1059,18 +1078,7 @@ export function WorldWorkspace({
             )}
           </div>
           <div className={styles.panelFoot} data-world-panel-foot>
-            <p
-              className={styles.currentCoordinates}
-              data-world-coordinates
-              aria-label="Current sector and coordinates"
-            >
-              <span className={styles.coordinateHeader}>
-                <span>{positionLabel(currentSector, approvedPosition)}</span>
-                <span className={styles.zoneStatus} data-world-zone={zone} role="status">
-                  {zone === 'safe' ? 'Safe Zone' : zone === 'pvp' ? 'PvP Zone' : 'Zone unavailable'}
-                </span>
-              </span>
-            </p>
+            {mode === 'local' ? currentPositionFacts : null}
             <div className={styles.panelFootActions}>
               <button
                 type="button"
@@ -1095,43 +1103,6 @@ export function WorldWorkspace({
               ×
             </button>
           ) : null}
-        </div>
-      ) : null}
-      {mode === 'global' && confirmDestination ? (
-        <div className={styles.atlasConfirmShade} onClick={() => setConfirmDestinationId(null)}>
-          <section
-            role="dialog"
-            aria-modal="true"
-            aria-label="Confirm world travel"
-            className={styles.atlasConfirmDialog}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <small>TRAVEL CONFIRMATION</small>
-            <h2>Travel to {confirmDestination.name}?</h2>
-            <p>
-              Only surveyed, walkable routes can be used. The world server validates the destination
-              and may reject an unreachable journey.
-            </p>
-            <div className={styles.atlasActions}>
-              <button type="button" onClick={() => setConfirmDestinationId(null)}>
-                Cancel
-              </button>
-              <button
-                type="button"
-                className={styles.primary}
-                disabled={disabled}
-                onClick={() => {
-                  walk({ sectorId: confirmDestination.id, x: 6, y: 4 })
-                  setConfirmDestinationId(null)
-                  setMode('local')
-                  setDestinationId(null)
-                  setPanelOpen(false)
-                }}
-              >
-                Confirm travel
-              </button>
-            </div>
-          </section>
         </div>
       ) : null}
       {conversation ? (

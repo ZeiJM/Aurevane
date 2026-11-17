@@ -74,3 +74,17 @@ it('requires painted close-view valley layers before accepting normal-scale scen
     'valley-ice-detail-v01.webp',
   ])
 })
+
+it('keeps both colosseum seam-review positions on distinct legal public ground with retained detail assets', () => {
+  const scene = correctionScenes().discoveries.find(({ id }) => id === 'remote-colosseum')!
+  expect(scene.detailSides?.map(({ id }) => id)).toEqual(['left', 'right'])
+  for (const side of scene.detailSides!) {
+    const sector = atlasSectors().find(({ id }) => id === side.position.sectorId)!
+    expect(sector.charted).toBe(true)
+    expect(isWalkable(sector, side.position)).toBe(true)
+    expect(side.position).not.toEqual(scene.detailPosition)
+    expect(
+      existsSync(new URL(`../public/media/art/world/runtime/${side.asset}`, import.meta.url)),
+    ).toBe(true)
+  }
+})

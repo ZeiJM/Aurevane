@@ -18,6 +18,7 @@ export interface CorrectionScene {
   id: string
   position: WorldPosition
   detailPosition?: WorldPosition
+  detailSides?: { id: string; position: WorldPosition; asset: string }[]
   detailIdentity?: 'occluded'
   assets: string[]
   normalAssets?: string[]
@@ -175,6 +176,7 @@ export function correctionScenes() {
       (s) => s.atlasColumn === Math.floor(gx / 13) && s.atlasRow === Math.floor(gy / 9),
     )!
     let detailPosition: WorldPosition | undefined
+    let detailSides: CorrectionScene['detailSides']
     if (site.id === 'remote-colosseum' || site.id === 'elemental-valley') {
       // Review the rear masonry / statue-side cascade instead of enlarging only
       // the arena floor or central basin. Resolve to real nearby legal ground.
@@ -188,11 +190,27 @@ export function correctionScenes() {
       )
       if (!detailSector) throw new Error(`No public detail review sector for ${site.id}`)
       detailPosition = point(detailSector, { x: x % 13, y: y % 9 })
+      if (site.id === 'remote-colosseum')
+        detailSides = [-5, 5].map((offset) => {
+          const wx = x + offset,
+            wy = y - offset
+          const sector = sectors.find(
+            (s) => s.atlasColumn === Math.floor(wx / 13) && s.atlasRow === Math.floor(wy / 9),
+          )
+          if (!sector) throw new Error('Missing public colosseum side viewpoint')
+          const id = offset < 0 ? 'left' : 'right'
+          return {
+            id,
+            position: point(sector, { x: wx % 13, y: wy % 9 }),
+            asset: `colosseum-${id}-detail-v01.webp`,
+          }
+        })
     }
     return {
       id: site.id,
       position: point(sector, { x: gx % 13, y: gy % 9 }),
       detailPosition,
+      detailSides,
       detailIdentity: site.id === 'remote-colosseum' ? ('occluded' as const) : undefined,
       assets: [`${geometry.sheet}-v01.webp`],
       normalAssets:
