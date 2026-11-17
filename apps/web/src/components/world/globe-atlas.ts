@@ -164,6 +164,16 @@ export function globeAtlasDetailPixels(
         Math.min(0.75, maximum - (maximum < 0.3 ? 0.02 : 0.08)),
       )
     }
+  const sampleField = (field: Float32Array, left: number, top: number, fx: number, fy: number) => {
+    const at = (dx: number, dy: number) =>
+      field[
+        Math.max(0, Math.min(rows - 1, top + dy)) * columns +
+          ((((left + dx) % columns) + columns) % columns)
+      ]!
+    return (
+      (at(0, 0) * (1 - fx) + at(1, 0) * fx) * (1 - fy) + (at(0, 1) * (1 - fx) + at(1, 1) * fx) * fy
+    )
+  }
   const material = painting ? globeMaterials(painting) : undefined
   const materialColor = [0, 0, 0]
   // Periodic contour noise keeps the same inlet on either side of longitude 0.
@@ -223,9 +233,9 @@ export function globeAtlasDetailPixels(
     const blurred =
       (coastAt(left, top) * (1 - fx) + coastAt(left + 1, top) * fx) * (1 - fy) +
       (coastAt(left, top + 1) * (1 - fx) + coastAt(left + 1, top + 1) * fx) * fy
-    const column = Math.max(0, Math.min(columns - 1, Math.floor(x / scale))),
-      row = Math.max(0, Math.min(rows - 1, Math.floor(y / scale)))
-    const threshold = thresholds[row * columns + column]!
+    // The contour and its threshold must vary in the same continuous space.
+    // Nearest-sector thresholds cut vertical steps through narrow island ends.
+    const threshold = sampleField(thresholds, left, top, fx, fy)
     // Broad coasts can support bays/headlands. Thin islands and corridors keep
     // their existing support rather than being severed by the same displacement.
     const relief = smooth(0.25, 0.75, threshold)
@@ -233,7 +243,7 @@ export function globeAtlasDetailPixels(
     // Narrow, domain-warped cuts form unequal inlets rather than a repeated
     // row of rounded scallops. Stop inland and spare small islands/corridors.
     let inlet = 0
-    const broad = broadCoasts[row * columns + column]!
+    const broad = sampleField(broadCoasts, left, top, fx, fy)
     if (broad > 0 && baseDistance < 0.22) {
       const warp = coastalNoise(x, y + 97, 0.009) * 18
       inlet =

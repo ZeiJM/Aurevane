@@ -21,6 +21,31 @@ them. Keep automatic Vercel Git deployments disabled and older watchers paused.
 
 ## Continuous interactive work — November17
 
+### Native island-edge correction — November17
+
+Atlas819 rotated WebGL/fallback and Uncharted-facing views reveal vertical cuts
+at narrow island ends. An actual public-atlas offline reproduction isolates the
+cause: the coast field is bilinear but its threshold and broad-coast strength
+jump at nearest-sector boundaries. Bilinearly sampling those two precomputed
+fields removes the cap steps in the same original scene. An alternative support
+fade did not remove them and is NOT integrated.
+
+The narrow-island boundary regression fails on ec26102 with lost shore support
+at an internal district edge, then passes with continuous field sampling.
+All44 focused globe/material/fallback/veil/workspace checks pass, retaining the
+existing full-opacity thin wraparound strip, all8 town markers and transparent
+private-neighbour checks. No canonical geography, picking, movement, private
+projection, artwork source, texture dimensions or cache bounds change. Extra
+sampling occurs only during existing cached texture construction. Independent
+source review finds no defects; final native rotated views and final-source
+quality gates remain required before release. This correction does not claim
+new physical-handset or human gameplay acceptance.
+
+The preceding ec26102 complete local quality gate passes:17,830 Vitest plus
+seven Node tests, format, full lint, all types and production builds. Its native
+runs are historical once this source is published; they do not establish the
+new candidate's acceptance.
+
 ### Final native fixture corrections — November17
 
 Atlas819/run44182605668 exposed two acceptance-fixture errors before it was

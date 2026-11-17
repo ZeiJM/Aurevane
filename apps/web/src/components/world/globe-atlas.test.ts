@@ -387,3 +387,25 @@ it('forms coherent mountain ranges with stronger relief across the range than al
     }
   expect(across / along).toBeGreaterThan(1.35)
 })
+
+it('keeps narrow public island shores continuous across internal district boundaries', () => {
+  const atlas = Array.from({ length: 8 }, (_, n) => ({
+    id: `islet-${n}`,
+    name: 'Islet',
+    coordinate: '',
+    regionId: 'verdant-expanse',
+    column: n < 6 ? n + 2 : n - 4,
+    row: n < 6 ? 4 : 5,
+    charted: true,
+  }))
+  const image = globeAtlasDetailPixels(atlas, 12, 10)
+  const edge = (x: number) => {
+    for (let y = 64; y < 96; y++) if (image.pixels[(y * image.width + x) * 4 + 3]! >= 128) return y
+    throw new Error(`Lost narrow public island support at ${x}`)
+  }
+  const jumps = [3, 4, 5, 6, 7].map((column) => Math.abs(edge(column * 16) - edge(column * 16 - 1)))
+  expect(Math.max(...jumps)).toBeLessThanOrEqual(2)
+  for (const x of [72, 88, 104])
+    expect(image.pixels[(72 * image.width + x) * 4 + 3]!).toBeGreaterThan(128)
+  for (let x = 0; x < image.width; x++) expect(image.pixels[(63 * image.width + x) * 4 + 3]).toBe(0)
+})
