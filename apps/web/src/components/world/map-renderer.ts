@@ -1749,7 +1749,10 @@ export function createMapRenderer(
     const valley = grandDiscoveries.find((site) => site.id === 'elemental-valley')
     if (valley)
       for (const detail of valleyDetailArt)
-        if (valley.widthTiles * tile > detail.minProjectedMacroWidth && !images.has(detail.sheet))
+        if (
+          valley.widthTiles * tile * ratio > detail.minProjectedMacroWidth &&
+          !images.has(detail.sheet)
+        )
           load(detail.sheet, 'v01')
     if (
       grandDiscoveries.some((site) => site.arenaFloor) &&
@@ -3191,7 +3194,7 @@ export function createMapRenderer(
       paintCompact(ctx, item, spriteX, spriteY)
       if (item.image === images.get('elemental-waterfall-valley')) {
         for (const detail of valleyDetailArt) {
-          if (item.width <= detail.minProjectedMacroWidth) continue
+          if (item.width * ratio <= detail.minProjectedMacroWidth) continue
           const image = images.get(detail.sheet)
           if (!image?.complete || !image.naturalWidth) continue
           const [sx, sy, sw, sh] = detail.source,
@@ -3199,7 +3202,7 @@ export function createMapRenderer(
           // Each feathered frame retains the selected master's surrounding
           // rocks/water, so no isolated silhouette mask can shift an avatar.
           ctx.save()
-          ctx.globalAlpha = Math.min(1, (item.width - detail.minProjectedMacroWidth) / 768)
+          ctx.globalAlpha = Math.min(1, (item.width * ratio - detail.minProjectedMacroWidth) / 768)
           ctx.drawImage(
             image,
             sx * image.width,

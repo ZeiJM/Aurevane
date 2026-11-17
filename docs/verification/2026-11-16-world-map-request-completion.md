@@ -12,12 +12,48 @@ them. Keep automatic Vercel Git deployments disabled and older watchers paused.
 
 ## Active worker lease
 
-- Status: active source-art review, owned by November17 12UTC continuation.
-- Expires at: `2026-11-17T13:30:00Z`.
+- Status: released after source-art review and density-aware valley detail correction.
+- Expires at: `2026-11-17T12:03:52Z`.
 - Hourly continuation: enabled by Nick on November 17; one recurring task,
   **Finish Aurevane map corrections**. Older watchers remain paused.
 - A scheduled run before lease expiry inspects only. Release or renew this lease
   at each safe checkpoint; after expiry a fresh worker may resume from the branch.
+
+## Piece 6 — major-art source review and dense-display detail correction
+
+- Inspected the actual Owner-selected1536×1024 valley master, selected1536×1024
+  colosseum v03 master and registered generated valley detail sources. Kept all
+  artwork bytes, source selection and geometry unchanged. The superseded local
+  canonical-lake/v5 experiment was archived, not restored over Pieces4–5.
+- Added `.github/scripts/report-major-art.cjs`; it decodes/hashes originals and
+  runtime images, checks both canonical placements and records supported
+  desktop/mobile minimum/normal/maximum sizes. Reproduce with
+  `node .github/scripts/report-major-art.cjs <receipt.json>`.
+  Receipt: `2026-11-17-major-art-source-review.json`.
+- At desktop normal zoom the valley macro spans4736 CSS pixels and the colosseum
+  4096; their backing widths at the capped1.5 density are4.625× and4× their
+  1536-pixel masters. At maximum those scales rise to6.475× and5.6×. Existing
+  valley detail frames improve selected regions but do not establish unlimited
+  fidelity. Colosseum floor grain does not add detail to its masonry walls.
+  This is a demonstrated source-resolution limitation, not native acceptance.
+- Found and repaired a separate density bug: detail loading/blending compared
+  CSS width with the1536-pixel macro threshold, ignoring the actual backing
+  store. Minimum-zoom mobile could therefore enlarge the macro to1865 backing
+  pixels while withholding the available detail. Both loading and blending now
+  use the actual capped canvas ratio. Low quality retains its1× path; no larger
+  backing canvas, new image, frame budget, source transform or network endpoint.
+- The three DPR/quality regressions cover1× balanced (no unnecessary detail),
+  dense balanced (detail loaded AND painted), and dense Low (lighter path).
+  The dense-balanced case failed before the fix. All268 renderer/asset/placement
+  tests pass; scoped ESLint, Prettier and TypeScript pass. These are source/mock
+  renderer tests, not native browser or physical-handset execution.
+- Open next: native gameplay-scale review of the exact selected originals and
+  detail registrations; generate/register genuinely new masonry close-detail
+  patches if the colosseum wall deficit remains visible. Never upscale the same
+  1536 master and label it new detail, shrink reserved gameplay geometry, replace
+  the selected elemental figures or claim floor texture fixes all architecture.
+  Native coast/flat-mask steps, water/seams/grounding and runtime acceptance also
+  remain open. No PR merge, Production operation or migration/cron replay.
 
 ## Piece 4 — dry fire and ice town surfaces (source implemented)
 

@@ -5527,3 +5527,37 @@ it('paints context-preserving valley detail frames in the exact selected master 
     vi.unstubAllGlobals()
   }
 })
+
+it.each([
+  [1, 'balanced', false],
+  [3, 'balanced', true],
+  [3, 'low', false],
+] as const)(
+  'selects close valley detail by backing pixels at mobile minimum zoom (%s DPR, %s)',
+  (density, quality, expected) => {
+    const view = projectWorld(
+      { ...newWorldState(), position: { sectorId: 'atlas:71:17', x: 6, y: 4 } },
+      [],
+      1000,
+    )
+    const s = scene(true, view)
+    try {
+      window.devicePixelRatio = density
+      Object.assign(s.canvas, { clientWidth: 390 })
+      s.renderer.settings({ animate: false, zoom: 0.35, quality })
+      s.resize()
+      s.frame(40)
+      for (const detail of valleyDetailArt) {
+        expect(
+          s.images.some((image) =>
+            (image as HTMLImageElement).src.endsWith(detail.sheet + '-v01.webp'),
+          ),
+        ).toBe(expected)
+        expect(s.draws.some((draw) => draw.src.endsWith(detail.sheet + '-v01.webp'))).toBe(expected)
+      }
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  },
+)
