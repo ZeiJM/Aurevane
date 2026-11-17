@@ -1,7 +1,13 @@
 import { openMapSettings, closeMapSettings } from './world-map-settings-helpers'
 import { observeWorldRead, readWorldSnapshot } from './world-read-observation'
 import { cleanupWorldPresenceFixtures } from './world-presence-diagnostics'
-import { hashWorldBackingPixels, startWorldFrameCounting } from './world-render-diagnostics'
+import {
+  hashWorldBackingPixels,
+  startWorldFrameCounting,
+  installWorldRenderTiming,
+  readWorldRenderTiming,
+} from './world-render-diagnostics'
+import { traceWorldBrowserTasks } from './world-browser-task-trace'
 import { clickWorldGroundSequence } from './world-ground-click-sequence'
 import { createHash, randomUUID } from 'node:crypto'
 import {
@@ -1458,6 +1464,28 @@ test('a synthetic population of 100 has bounded rendering at high DPI and lower 
 }, info) => {
   test.skip(info.project.name !== 'mobile-chromium', 'Exercise constrained mobile rendering once.')
   test.setTimeout(90000)
+  // Isolated diagnostic branch: vary only the main canvas presentation backend.
+  // The acceptance workload, frame count, density and deadline stay unchanged.
+  const contextArm = process.env.WORLD_CROWD_CONTEXT_ARM ?? 'baseline'
+  await page.addInitScript((arm) => {
+    const original = HTMLCanvasElement.prototype.getContext
+    HTMLCanvasElement.prototype.getContext = function (
+      this: HTMLCanvasElement,
+      kind: string,
+      options?: unknown,
+    ) {
+      const settings = options as CanvasRenderingContext2DSettings | undefined
+      const main = kind === '2d' && settings?.alpha === false
+      return Reflect.apply(original, this, [
+        kind,
+        main && arm === 'software'
+          ? { ...settings, willReadFrequently: true }
+          : main && arm === 'desynchronized'
+            ? { ...settings, desynchronized: true }
+            : options,
+      ])
+    } as typeof HTMLCanvasElement.prototype.getContext
+  }, contextArm)
   await enter(page)
   const initial = await world(page)
   const canvas = page.locator('canvas[data-world-stage]')
@@ -1556,6 +1584,7 @@ test('a synthetic population of 100 has bounded rendering at high DPI and lower 
   const readMetrics = () =>
     canvas.evaluate((el) => ({
       sampledAt: performance.now(),
+      contextAttributes: (el as HTMLCanvasElement).getContext('2d')!.getContextAttributes(),
       renderFrames: Number(el.dataset.renderFrames),
       frameP95Ms: Number(el.dataset.frameP95),
       cachedSectors: Number(el.dataset.cachedSectors),
@@ -1595,6 +1624,30 @@ test('a synthetic population of 100 has bounded rendering at high DPI and lower 
     )
     reached = await progress.jsonValue()
   } finally {
+    // Diagnostic branch only: retain the unchanged acceptance window, then measure
+    // an additional bounded sample to attribute native versus JavaScript work.
+    // This sample never replaces or extends the unchanged acceptance deadline.
+    try {
+      await canvas.evaluate(installWorldRenderTiming)
+      await traceWorldBrowserTasks(
+        await page.context().newCDPSession(page),
+        async (trace) => {
+          writeFileSync(info.outputPath('world-browser-tasks.json'), JSON.stringify(trace))
+        },
+        async () => {
+          await page.waitForTimeout(8000)
+          writeFileSync(
+            info.outputPath('world-crowd-render-timings.json'),
+            JSON.stringify(await canvas.evaluate(readWorldRenderTiming)),
+          )
+        },
+      )
+    } catch (diagnosticFailure) {
+      await info.attach('crowd-profile-capture-failure', {
+        body: String(diagnosticFailure),
+        contentType: 'text/plain',
+      })
+    }
     metrics = await readMetrics()
     writeFileSync(costPath, JSON.stringify({ ...metrics, baseline, reached }, null, 2))
     await info.attach('synthetic-world-render-cost', {
