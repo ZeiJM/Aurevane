@@ -64,7 +64,7 @@
   "localValidation": {
     "currentCheckout": "Clean complete checkout at candidate SHA",
     "pnpmInstall": "frozen lockfile succeeded",
-    "finalPnpmCheck": "eb8 current full pnpm check running: format/lint/types completed, cached package tests pass; web tests executing. No final pass claimed.",
+    "finalPnpmCheck": "PASS on frozen eb8 working tree:17826 Vitest+7Node; formatting, full lint, all package types and production builds. Exit0 verified.",
     "previousValidation": {
       "rendererAndSceneTests": 252,
       "typescript": "pass",
@@ -127,7 +127,7 @@
     "No human continuous-motion or physical-handset acceptance.",
     "No full1.29GB archive download/review claimed; only named hash-verified compact bundles."
   ],
-  "updatedAt": "2026-11-17T21:43:10.156Z",
+  "updatedAt": "2026-11-17T21:47:59.994Z",
   "previousRuns": {
     "atlas": 44143478767,
     "atlasVerifyJob": 134252202191,
@@ -240,8 +240,46 @@
       "sha": "e3005a9ee2bbf842576953d4645e8bec10ab37c7",
       "run": 44181973799,
       "job": 134388394784,
-      "status": "running",
-      "scope": "Evidence-only NEVER merge/deploy. Same3mobile acceptance runs, then8sec task/Canvas sample regardless of success. Desktop repeats omitted only on this separate diagnostic branch."
+      "status": "success;3/3 mobile",
+      "scope": "Evidence-only NEVER merge/deploy. Same3mobile acceptance runs, then8sec task/Canvas sample regardless of success. Desktop repeats omitted only on this separate diagnostic branch.",
+      "artifact": {
+        "id": 14371399612,
+        "sha256": "64aa42277c180688f21142c5898566ad0a766bcb6c85842b11145cf5d886f171",
+        "bytes": 238117,
+        "verified": true
+      },
+      "measurements": {
+        "acceptanceWindowSeconds": [
+          9.524,
+          9.278,
+          9.517
+        ],
+        "framesEach": 121,
+        "acceptanceFps": [
+          12.7,
+          13.04,
+          12.71
+        ],
+        "cpuRate": 4,
+        "taskTraceDropped": 0,
+        "afterWindowMeanPrepareMs": [
+          1.8,
+          1.46,
+          1.83
+        ],
+        "afterWindowMeanTerrainMs": [
+          4.41,
+          4.15,
+          4.42
+        ],
+        "afterWindowMeanSceneryMs": [
+          3.04,
+          2.89,
+          2.92
+        ],
+        "afterWindowGroundBuildMs": 0,
+        "native": "Canvas resource production dominates:6.86–7.02sec aggregate in about8sec task captures. Native events overlap; do not add nested durations. No candidate performance change inferred from runner variation."
+      }
     }
   },
   "currentSourceCI": {
