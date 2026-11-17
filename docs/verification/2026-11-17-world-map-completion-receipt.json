@@ -33,7 +33,7 @@
   },
   "local": {
     "checkout": "Clean4e1f094 checkout; source tree equals0e63d1637dbdf413177458bb7f32e165f36ff7ad",
-    "fullQuality": "Final check active: formatting/full lint and all8 package typechecks pass; full unit suite executing, build pending",
+    "fullQuality": "PASS4e1f094 exact clean tree:17838 Vitest+7Node, formatting, full lint, all8 package types and production builds; exit0 observed",
     "focused": "393 renderer/projection/water/motion/static-raster tests pass;44 globe/material/fallback/veil/workspace tests pass"
   },
   "review": {
@@ -174,14 +174,20 @@
       "player reset",
       "diagnostic/evidence branch merge or deployment",
       "resumed hourly tasks"
-    ]
+    ],
+    "domains": [
+      "aurevane-rpg.com",
+      "www.aurevane-rpg.com",
+      "aurevane.vercel.app"
+    ],
+    "currentCanonicalVerified": true
   },
   "remaining": [
     "Finish4e1f094 full local quality and all five configured exact-source workflows; inspect any failure causally.",
     "Review final native centre/both lateral Colosseum, valley, rotated globe, water, snow, towns and responsive controls.",
     "Perform authorized one-build release and canonical postflight only after passing gates."
   ],
-  "updatedAt": "2026-11-17T23:28:30.448Z",
+  "updatedAt": "2026-11-17T23:31:28.689Z",
   "previousCandidate": {
     "sha": "9b76647e206ec9a426804a13bd53ee33cc6df941",
     "tree": "d7256c6b8cf558b4e9b92400a412eb5052a2682e",
