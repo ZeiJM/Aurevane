@@ -4445,6 +4445,42 @@ it('draws the new regional material and focal asset at normal zoom', () => {
   }
 })
 
+it('keeps mirrored snow material inside the clean atlas interior without gaps between quarters', () => {
+  const state = { ...newWorldState(), position: { sectorId: 'frostmere', x: 6, y: 4 } }
+  const view = projectWorld(state, [], 1000)
+  const sector = view.sectors.find((candidate) => candidate.id === 'frostmere')!
+  const s = scene(true, { ...view, sectors: [sector], scenery: [], players: [] })
+  try {
+    const atlas = s.images.find((image) =>
+      (image as HTMLImageElement).src.endsWith('regional-ground-v02.webp'),
+    )!
+    Object.assign(atlas, { width: 1024, height: 512, naturalWidth: 1024 })
+    s.frame(40)
+    const samples = s.draws.filter(({ image }) => image === atlas).map(({ args }) => args)
+    expect(samples.length).toBeGreaterThan(0)
+    // The decoded sheet has discoloured compression pixels at biome borders.
+    // Reflection repeats that single border into a long visible grid line.
+    for (const [x, y, width, height] of samples) {
+      expect(x).toBeGreaterThanOrEqual(514)
+      expect(y).toBeGreaterThanOrEqual(2)
+      expect(x! + width!).toBeLessThanOrEqual(766)
+      expect(y! + height!).toBeLessThanOrEqual(254)
+    }
+    for (const axis of [0, 1]) {
+      const intervals = [
+        ...new Map(samples.map((args) => [args[axis]!, args[axis + 2]!])).entries(),
+      ].sort(([a], [b]) => a - b)
+      expect(intervals).toHaveLength(4)
+      for (let i = 1; i < intervals.length; i++)
+        expect(intervals[i]![0]).toBe(intervals[i - 1]![0] + intervals[i - 1]![1])
+    }
+    expect(s.draws.some(({ image, matrix }) => image === atlas && matrix[0]! < 0)).toBe(true)
+  } finally {
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+})
+
 it('replaces ordinary Ember trees with living foliage and keeps decoded old-art fallback', () => {
   const state = { ...newWorldState(), position: { sectorId: 'emberreach', x: 6, y: 4 } }
   const view = projectWorld(state, [], 1000)

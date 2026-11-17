@@ -1154,12 +1154,17 @@ export function createMapRenderer(
         }
         const sx = flipX ? 3 - (wx % 4) : wx % 4
         const sy = flipY ? 3 - (wy % 4) : wy % 4
+        // The public sheet's compressed biome borders carry neighbouring colour.
+        // Mirroring that border repeats it into a grid; reflect the clean interior.
+        const inset = painted && privateIndex === undefined ? 2 : 0
+        const sampleWidth = sw - inset * 2,
+          sampleHeight = sh - inset * 2
         target.drawImage(
           source,
-          (index % columns) * sw + (sx * sw) / 4,
-          Math.floor(index / columns) * sh + (sy * sh) / 4,
-          sw / 4,
-          sh / 4,
+          (index % columns) * sw + inset + (sx * sampleWidth) / 4,
+          Math.floor(index / columns) * sh + inset + (sy * sampleHeight) / 4,
+          sampleWidth / 4,
+          sampleHeight / 4,
           flipped ? 0 : x,
           flipped ? 0 : y,
           tile + 1,

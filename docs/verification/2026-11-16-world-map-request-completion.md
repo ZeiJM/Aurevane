@@ -14,12 +14,44 @@ them. Keep automatic Vercel Git deployments disabled and older watchers paused.
 
 - Status: Nick explicitly transferred all work to this November17 interactive
   conversation. This worker owns continuation from source `128e27d33d835513133c413b0af23cb11451e1f9`.
-- Expires at: `2026-11-17T23:00:00Z`; renew at the next safe checkpoint.
+- Expires at: `2026-11-18T02:00:00Z`; renewed during the same interactive continuation.
 - Nick requested cancellation of the other continuation. Recurring task
   `Automation_661d7a3712ec8191939d0104f5c5a773` is confirmed disabled.
   Older watchers remain paused; do not resume them or duplicate this worker.
 
 ## Continuous interactive work — November17
+
+### Snow texture seam correction and current native evidence
+
+Source `6aac62d3fcbc9f19c136fde1b5f3f6376eeedf2d` passes CI quality,
+database foundation and UI layout:17,825 Vitest plus seven Node tests, formatting,
+lint, types, production builds, dependency audit and worker boot. Atlas818 and
+Browser Smoke remain in progress. Timing65 fails all three mobile crowd cases at
+the unchanged >120 completed frames in15seconds threshold; desktop repetitions
+are not reached. The3 cases had passed on Timing64. Do not interpret runner
+variation or an unchanged diagnostic run as a new performance repair.
+
+Isolated diagnostic branches `agent/world-crowd-profile-20261117` and
+`agent/world-crowd-profile-complete-20261117` retain native task/Canvas timings
+after the unchanged acceptance window. They must NEVER be merged or deployed.
+Timing66 and67 provide diagnosis only; release acceptance still requires the
+final candidate's own configured gates with unchanged thresholds and zero retries.
+
+Native Atlas817 Frostmere captures retain a faint texture grid. Exact-source
+offline Skia inspection locates it inside cached ground, before projection.
+Stroke suppression, projection bleed and separate biome-canvas sampling do not
+remove it. The decoded regional sheet has discoloured compressed border pixels;
+mirroring those pixels repeats the border across snow. Sampling the two-pixel
+clean interior reduces measured second-difference contrast at representative
+mirrored joins from41.733 to3.368 and13.429 to1.479 pixel levels. This offline
+comparison is not native browser or physical-handset acceptance.
+
+The renderer now samples that interior for public regional material only, with
+contiguous reflected quarters. Original asset bytes, private ground, fallback
+material, canonical terrain and movement remain unchanged. The snow regression
+fails before this correction (source512 enters the contaminated border), then
+passes;284 renderer/projection/biome checks, TypeScript and scoped ESLint pass.
+Full quality and native visual/performance gates on this new source remain open.
 
 ### Recovered candidate and Timing64 input correction
 
@@ -137,7 +169,7 @@ loop; configured final CI, Smoke/Edge, timing and Atlas remain mandatory.
   Browser Smoke44142508956, timing44142508698, CI44142508835.
 - Atlas44142508679/job134248815715 fails BEFORE browser/PG cases: mail tests5
   pass, then Docker reports `failed to bind host port 0.0.0.0:54322/tcp:
-  address already in use`. The step name is not evidence of a mail-test failure.
+address already in use`. The step name is not evidence of a mail-test failure.
   No unchanged retry or passed acceptance is claimed.
 - Reuse the existing disposable API/database/shadow port configurator in Atlas
   and export its selected API to the authenticated build. The real local PG17
