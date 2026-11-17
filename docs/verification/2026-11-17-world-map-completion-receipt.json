@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "scope": "Evidence only. NEVER merge or deploy this branch/receipt commit.",
+  "candidate": {
+    "sha": "93fe885205f304aa0135961b5ea5318ba4c834fe",
+    "tree": "68f6d2e733feb581524cc9ecf7d976e88a652272",
+    "branch": "agent/world-map-request-completion",
+    "pullRequest": 1043,
+    "draft": true
+  },
+  "main": "2893076856e20bc64f00e94e132d26dd0d76b26d",
+  "productionMutationOccurred": false,
+  "releaseHold": true,
+  "ownership": {
+    "owner": "Nick-directed takeover into this interactive conversation",
+    "oldAutomation": "Automation_661d7a3712ec8191939d0104f5c5a773",
+    "oldAutomationEnabled": false,
+    "leaseExpires": "2026-11-17T20:00:00Z"
+  },
+  "native814": {
+    "run": 44130723106,
+    "job": 134206735390,
+    "source": "2c8cd8e0741988c9534433189626dbf1436c0061",
+    "result": "failure",
+    "atlasPassed": 109,
+    "atlasFailed": 2,
+    "configuredSkips": 129,
+    "storyPassed": 15,
+    "storyConfiguredSkips": 7,
+    "realPG17Gate": "passed",
+    "cause": "Rear-wall detail fixture reused the clear arena-floor identity expectation; exact renderer reproduction confirmed the legal wall is occluded. Corrected in b21fa9f9c368a043e17cc03d1f37a0c92f80f5dd.",
+    "verifiedArtifacts": [
+      {
+        "id": 14353791270,
+        "sha256": "72c6fbe39c2088f35ce88d311d53bbf1b3b395e581a8d6cb6038cadd1b606fef"
+      },
+      {
+        "id": 14353801342,
+        "sha256": "0dfeaa4fa0cdec3633a87431a33e7502736ca74034534c8ff2c533d60c166791"
+      }
+    ]
+  },
+  "supersededStartupFailure": {
+    "run": 44142508679,
+    "job": 134248815715,
+    "source": "b21fa9f9c368a043e17cc03d1f37a0c92f80f5dd",
+    "mailTests": "5 pass",
+    "exactCause": "Docker failed to bind host port 0.0.0.0:54322/tcp: address already in use",
+    "browserAndPGExecution": "not reached",
+    "correction": "Existing disposable-port configurator in Atlas; selected API propagation; local PG17 guard verifies config/URI/actual Docker binding agreement."
+  },
+  "currentRuns": {
+    "atlas": 44143478767,
+    "atlasVerifyJob": 134252202191,
+    "atlasRealPG17Gate": "independently observed success",
+    "atlasBuild": "success",
+    "atlasBrowser": "not yet completed",
+    "browserSmoke": 44143478631,
+    "timing": 44143478524,
+    "ci": 44143478487,
+    "uiLayout": 44143478523,
+    "allFinalResults": "pending; refresh actual GitHub before acting"
+  },
+  "localValidation": {
+    "rendererAndSceneTests": 252,
+    "typescript": "pass",
+    "scopedLint": "pass",
+    "scopedFormat": "pass",
+    "atlasDiscovery": 240,
+    "discoveryIsExecution": false,
+    "portTests": 8,
+    "releaseSafetyTests": 12,
+    "mailTests": 5,
+    "verificationRunnerTests": 56,
+    "firstFullCheck": "interrupted after identifying sparse-checkout omitted root scripts; missing-file failure reproduced, not an application repair",
+    "completeCheckout": "restored with git sparse-checkout disable",
+    "previouslyFailingPublicationCase": "passes unchanged after restoring missing scripts",
+    "freshFullCheck": "in progress; /tmp/aurevane-takeover-complete-check.log; do not claim pass"
+  },
+  "artwork": {
+    "acceptedNewArtwork": false,
+    "originalMasterAndRuntimeUnchanged": true,
+    "fullFrameProbe": {
+      "file": "generated_images/exec-c60481d1-c6d0-4c94-b315-430d0146d1e2.png",
+      "sha256": "1cc74aa2805768bb842691b1d54b4d9b374102a45e57ba0d4bd153db3f324c74",
+      "resolution": [
+        1536,
+        1024
+      ],
+      "result": "Rejected as resolution remedy; requested larger output still returned original dimensions."
+    },
+    "croppedProbe": {
+      "file": "generated_images/exec-1f64d5b4-9df7-4e5b-aaaf-93d8ee07077e.png",
+      "sha256": "9576621837b77124f0a5964496676449da8c3726c1d52511a9772f0aec6d2f83",
+      "referenceMasterBounds": [
+        448,
+        0,
+        640,
+        426
+      ],
+      "nativePixels": [
+        1536,
+        1024
+      ],
+      "result": "New fine detail is real but UNACCEPTED: lateral edge inspection shows differing arch/stair registration and contrast/frequency transitions. Do not integrate this prototype blindly.",
+      "layerDiagnosis": "Painting detail only in wall pass leaves an abrupt blurred band when the original floor pass redraws its ellipse. Applying matching detail in both complementary clipped passes removes that band in the offline prototype, without changing the ellipse. No production renderer change made."
+    },
+    "inspection": "Actual814 desktop valley normal/max and arena floor normal/min reviewed; failed rear-wall pair was absent. Offline exact-source prototype at0.35/1/1.4 and lateral pans is not hosted or handset acceptance."
+  },
+  "remaining": [
+    "Finish final exact-source configured checks including full Chromium and final Edge, timing63 and Atlas realPG17/native cases.",
+    "Review newer coast/border/marker source from actual native artifacts.",
+    "Resolve major-art fidelity and seam/registration requirements without accepting rejected overlays, upscaling claims or shrinking gameplay geometry.",
+    "Full current checkout quality must pass.",
+    "One combined release after all gates; PR1040 already live: NEVER replay its migrations, cron activation or release. No Preview/content publication/progress reset."
+  ],
+  "limitations": [
+    "No human continuous-motion or physical-handset acceptance.",
+    "No full1.29GB archive download/review claimed; only named hash-verified compact bundles."
+  ]
+}
