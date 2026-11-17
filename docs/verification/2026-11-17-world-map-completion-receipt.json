@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "scope": "Evidence only. NEVER merge or deploy this branch/receipt commit.",
   "candidate": {
-    "sha": "6aac62d3fcbc9f19c136fde1b5f3f6376eeedf2d",
-    "tree": "ad1510f5a99de5cd2a4797405aec250adde8ada4",
+    "sha": "eb8a655540ea843a30976e06397dc34f6b28b222",
+    "tree": "dad6478925110974f87b521d83b3ba748492b349",
     "branch": "agent/world-map-request-completion",
     "pullRequest": 1043,
     "draft": true
@@ -18,7 +18,7 @@
     "oldAutomationEnabled": false,
     "replacementAutomation": "Automation_9dd57abfa004819195b30acab8a54150",
     "replacementEnabled": false,
-    "leaseExpires": "2026-11-17T23:00:00Z",
+    "leaseExpires": "2026-11-18T02:00:00Z",
     "source": "Current candidate AGENTS.md and checked-in active-worker lease"
   },
   "native814": {
@@ -54,17 +54,17 @@
     "correction": "Existing disposable-port configurator in Atlas; selected API propagation; local PG17 guard verifies config/URI/actual Docker binding agreement."
   },
   "currentRuns": {
-    "ci": 44177400906,
-    "uiLayout": 44177401179,
-    "atlas": 44177401056,
-    "browserSmoke": 44177400916,
-    "timing": 44177400951,
-    "status": "CI and UI layout success on6aac; Atlas818 and Browser Smoke running; Timing65 failure."
+    "ci": 44182605851,
+    "uiLayout": 44182605512,
+    "atlas": 44182605668,
+    "browserSmoke": 44182605636,
+    "timing": 44182605532,
+    "status": "Fresh exact-source gates running/pending; no completed pass claimed."
   },
   "localValidation": {
     "currentCheckout": "Clean complete checkout at candidate SHA",
     "pnpmInstall": "frozen lockfile succeeded",
-    "finalPnpmCheck": "9906 predecessor local full check passed;6aac local log stopped at web test startup with no final result. Fresh6aac remote CI full quality/build succeeds:17825 Vitest+7Node. Do not claim current local full pass.",
+    "finalPnpmCheck": "eb8 current full pnpm check running: format/lint/types completed, cached package tests pass; web tests executing. No final pass claimed.",
     "previousValidation": {
       "rendererAndSceneTests": 252,
       "typescript": "pass",
@@ -127,7 +127,7 @@
     "No human continuous-motion or physical-handset acceptance.",
     "No full1.29GB archive download/review claimed; only named hash-verified compact bundles."
   ],
-  "updatedAt": "2026-11-17T21:34:04.590Z",
+  "updatedAt": "2026-11-17T21:43:10.156Z",
   "previousRuns": {
     "atlas": 44143478767,
     "atlasVerifyJob": 134252202191,
@@ -194,7 +194,7 @@
       "failed": []
     }
   },
-  "nativeVisualReview": "Atlas817 canceled when6aac published. Hash-verified57MB art bundle reviewed: native dry-town snow seams remain open; globe and water views inspected, final source visual acceptance pending. No colosseum final detail bundle yet.",
+  "nativeVisualReview": "Source6aac Atlas818 superseded by eb8; final native art acceptance remains open. Review819 final screenshots when available.",
   "predecessorSourceCI": {
     "vitest": 17824,
     "nodeTests": 7,
@@ -234,7 +234,15 @@
     "run": 44180738240,
     "job": 134384067556,
     "status": "running",
-    "scope": "Evidence-only; NEVER merge/deploy. Captures8sec native browser tasks and Canvas timings only after unchanged acceptance window fails; original failure rethrown."
+    "scope": "Evidence-only; NEVER merge/deploy. Captures8sec native browser tasks and Canvas timings only after unchanged acceptance window fails; original failure rethrown.",
+    "additionalCapture": {
+      "branch": "agent/world-crowd-profile-complete-20261117",
+      "sha": "e3005a9ee2bbf842576953d4645e8bec10ab37c7",
+      "run": 44181973799,
+      "job": 134388394784,
+      "status": "running",
+      "scope": "Evidence-only NEVER merge/deploy. Same3mobile acceptance runs, then8sec task/Canvas sample regardless of success. Desktop repeats omitted only on this separate diagnostic branch."
+    }
   },
   "currentSourceCI": {
     "vitest": 17825,
@@ -249,7 +257,19 @@
     "run": 44177400906
   },
   "snowSeams": {
-    "status": "open",
-    "evidence": "Exact-source offline raw cached ground includes1px dark borders at mirrored texture boundaries. Numeric stroke suppression and atlas isolation experiments ruled out those causes. Testing bounded source-rectangle inset hypothesis; no production seam code changes."
+    "status": "source corrected; native acceptance pending",
+    "cause": "Compressed regional texture border repeated by reflection; confirmed in raw cached ground before projection",
+    "correction": "2px clean interior, contiguous mirrored quarters for public regional ground only",
+    "oldContrast": [
+      41.733,
+      13.429
+    ],
+    "newContrast": [
+      3.368,
+      1.479
+    ],
+    "regression": "Fails before, passes after;284 focused renderer/projection/biome tests, types and scoped lint pass",
+    "assetBytesUnchanged": true,
+    "offlineIsNativeAcceptance": false
   }
 }
