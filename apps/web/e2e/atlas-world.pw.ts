@@ -1,7 +1,13 @@
 import { openMapSettings, closeMapSettings } from './world-map-settings-helpers'
 import { observeWorldRead, readWorldSnapshot } from './world-read-observation'
 import { cleanupWorldPresenceFixtures } from './world-presence-diagnostics'
-import { hashWorldBackingPixels, startWorldFrameCounting } from './world-render-diagnostics'
+import {
+  hashWorldBackingPixels,
+  startWorldFrameCounting,
+  installWorldRenderTiming,
+  readWorldRenderTiming,
+} from './world-render-diagnostics'
+import { traceWorldBrowserTasks } from './world-browser-task-trace'
 import { clickWorldGroundSequence } from './world-ground-click-sequence'
 import { createHash, randomUUID } from 'node:crypto'
 import {
@@ -1595,6 +1601,30 @@ test('a synthetic population of 100 has bounded rendering at high DPI and lower 
     )
     reached = await progress.jsonValue()
   } finally {
+    // Diagnostic branch only: retain the unchanged acceptance window, then measure
+    // an additional bounded sample to attribute native versus JavaScript work.
+    // This sample never replaces or extends the unchanged acceptance deadline.
+    try {
+      await canvas.evaluate(installWorldRenderTiming)
+      await traceWorldBrowserTasks(
+        await page.context().newCDPSession(page),
+        async (trace) => {
+          writeFileSync(info.outputPath('world-browser-tasks.json'), JSON.stringify(trace))
+        },
+        async () => {
+          await page.waitForTimeout(8000)
+          writeFileSync(
+            info.outputPath('world-crowd-render-timings.json'),
+            JSON.stringify(await canvas.evaluate(readWorldRenderTiming)),
+          )
+        },
+      )
+    } catch (diagnosticFailure) {
+      await info.attach('crowd-profile-capture-failure', {
+        body: String(diagnosticFailure),
+        contentType: 'text/plain',
+      })
+    }
     metrics = await readMetrics()
     writeFileSync(costPath, JSON.stringify({ ...metrics, baseline, reached }, null, 2))
     await info.attach('synthetic-world-render-cost', {
