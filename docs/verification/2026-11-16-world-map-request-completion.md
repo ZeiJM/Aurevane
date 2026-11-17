@@ -12,8 +12,8 @@ them. Keep automatic Vercel Git deployments disabled and older watchers paused.
 
 ## Active worker lease
 
-- Status: released at the durable November17 15:14UTC source/native-dispatch checkpoint.
-- Expires at: `2026-11-17T15:14:00Z`.
+- Status: active current-position prominence and coast review, owned by the November17 15:18UTC coding continuation.
+- Expires at: `2026-11-17T16:45:00Z`.
 - Hourly continuation: enabled by Nick on November 17; one recurring task,
   **Finish Aurevane map corrections**. Older watchers remain paused.
 - A scheduled run before lease expiry inspects only. Release or renew this lease
