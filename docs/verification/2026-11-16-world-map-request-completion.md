@@ -12,8 +12,8 @@ them. Keep automatic Vercel Git deployments disabled and older watchers paused.
 
 ## Active worker lease
 
-- Status: released after source-art review and density-aware valley detail correction.
-- Expires at: `2026-11-17T12:03:52Z`.
+- Status: active combined verification; source remains stable while native/quality runs finish.
+- Expires at: `2026-11-17T14:30:00Z`.
 - Hourly continuation: enabled by Nick on November 17; one recurring task,
   **Finish Aurevane map corrections**. Older watchers remain paused.
 - A scheduled run before lease expiry inspects only. Release or renew this lease
@@ -51,6 +51,25 @@ Next worker: inspect this existing run, download bounded art/timing artifacts,
 review actual native colosseum/valley/globe/water/seams/grounding, and repair any
 real failures before rerunning affected gates. Retain separate physical-handset
 and human-playtesting limitations. Main remains2893076856e20bc64f00e94e132d26dd0d76b26d.
+
+### Continuing verification — November17
+
+- Authenticated story/World NPC admission passed in native run44088314266;
+  Atlas/multiplayer is still running. Original source remains unchanged.
+- The local DB suite passed765/768 cases; the remaining three failures were
+  missing checked-in Python scripts, not SQL assertions. Restored `scripts` and
+  `content` from the same commit, then all27 tests in those three files passed.
+  Together this supplies passing coverage for all768 DB cases on unchanged code.
+- The local web suite found four missing-artwork assertions and one battle case
+  requiring inspection. Restored all checked-in `apps/web/public` assets; await
+  full failure detail and focused reruns. Do not classify the battle failure or
+  claim full web acceptance until its cause is resolved. Current log
+  `combined-web-tests.log`, tool session56897, in the scoped scratch directory.
+- Full `pnpm build` passes both worker and optimized Next16.4.5 web build, logged
+  in `combined-build.log`. All8 workspace typechecks and scoped recovered-worker
+  format check pass. No acceptance threshold or application source changed.
+- Continue existing native run; do not duplicate dispatch. Final configured PR
+  workflows and inspected native/physical-handset limits remain outstanding.
 
 ## Piece 6 — major-art source review and dense-display detail correction
 
