@@ -21,6 +21,40 @@ them. Keep automatic Vercel Git deployments disabled and older watchers paused.
 
 ## Continuous interactive work — November17
 
+### Phone overview projection reuse — source correction under native comparison
+
+The exact-source eb8 candidate passes full local quality, CI/database foundation
+and UI layout. Timing68 still fails all3 mobile crowd frame windows. Its
+hash-verified artifact14373820672 is
+`815c8dca4c1f11855d4f8ad7f1985c81ca23efab629bd1932b94f041bf12cf51`.
+The earlier input correction separately passes3 mobile and60 desktop executions
+in diagnostic Timing66; that is not a final eb8 performance pass.
+
+Timing69 compares baseline, software and low-latency canvas modes on one runner,
+with the same3 repeated crowd workloads per mode, unchanged frame windows,
+native context attributes and bounded post-window profiles. All9 pass on that
+runner. The low-latency hint removes most Canvas resource-production stall but
+only modestly improves throughput; software gives no consistent material gain.
+Neither hint is integrated in the application. Artifact14375396272 is verified
+`63209b9a07bd69aa64cd150a5458bf2d138692ae5663ad762a263eafc20ecbbb`.
+
+The phone overview previously bypassed individual projected-ground reuse below
+tile32, including interleaved wet/coastal ground outside its dry composite.
+The correction permits the existing bounded projection cache at settled mobile
+high-DPI scales while standing or walking. It preserves terrain and identity
+resolution, image sources, water/coast animation, gesture handling, ordering and
+the8-million-pixel/16-entry projection-cache bounds. No extra redraw deadline or
+frame threshold is introduced. The standing and moving regressions fail before
+their respective correction, then pass. All338 renderer/projection/water/coast
+checks pass, including warm-cache reuse, eviction, motion and full-DPR identity.
+
+Diagnostic Timing70/run44188832522 compares baseline against this cache change on
+the same runner,3 mobile cases per arm with unchanged acceptance plus8-second
+numeric profiles. Its branch `agent/world-phone-projection-profile-20261117`
+is evidence only and must NEVER merge or deploy. Native comparison and the
+final combined candidate's own gates remain required; no throughput improvement
+or physical-handset acceptance is claimed before those results exist.
+
 ### Snow texture seam correction and current native evidence
 
 Source `6aac62d3fcbc9f19c136fde1b5f3f6376eeedf2d` passes CI quality,

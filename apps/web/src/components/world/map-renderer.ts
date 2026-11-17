@@ -2077,7 +2077,9 @@ export function createMapRenderer(
           p.y + (GRID_WIDTH + GRID_HEIGHT) * tile * MAP_Y > 0 &&
           p.y < height
         const projected =
-          rasterZoomAt === null && tile >= 32 && groundOnScreen
+          // The phone overview also retains its individual wet/coastal rasters;
+          // translated bitmaps avoid affine work while walking or standing still.
+          rasterZoomAt === null && (tile >= 32 || (width < 600 && ratio > 1)) && groundOnScreen
             ? groundProjections.get(surface, GRID_WIDTH * tile, GRID_HEIGHT * tile, ratio)
             : null
         if (projected) {

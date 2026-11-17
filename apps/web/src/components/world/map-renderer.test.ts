@@ -3205,47 +3205,97 @@ describe('native map input and bounded lifecycle', () => {
       }
     },
   )
-  it('reuses projected ground during movement with native-density translations instead of repeated affine draws', () => {
+  it.each([
+    ['desktop', 800, 1],
+    ['phone overview', 414, 0.35],
+  ] as const)(
+    'reuses %s projected ground during movement with native-density translations',
+    (_label, width, zoom) => {
+      const base = projectWorld(newWorldState(), [], 1000)
+      const view = {
+        ...base,
+        scenery: [],
+        sectors: [
+          {
+            ...base.sectors.find((sector) => sector.id === base.position.sectorId)!,
+            buildings: [],
+            landmarks: [],
+            cells: base.sectors
+              .find((sector) => sector.id === base.position.sectorId)!
+              .cells.map((cell) => ({ ...cell, terrain: '.', walkable: true })),
+          },
+        ],
+      }
+      const s = scene(true, view)
+      try {
+        Object.assign(s.canvas, { clientWidth: width })
+        s.resize()
+        s.renderer.settings({ animate: false, zoom })
+        s.frame(40)
+        const projection = s.draws.find(
+          ({ src, args, matrix }) =>
+            !src && args.length === 2 && matrix.join(',') === '1,0,0,1,0,0',
+        )!
+        expect(projection).toBeDefined()
+        const layers = s.layerCount()
+        s.motion.plan(
+          [{ position: { ...view.position, x: view.position.x + 1 }, durationMs: 200 }],
+          view.sectors,
+          40,
+        )
+        s.renderer.update(view)
+        s.draws.length = 0
+        s.frame(80)
+        s.frame(120)
+        const blits = s.draws.filter(({ image }) => image === projection.image)
+        expect(blits.length).toBeGreaterThan(0)
+        expect(
+          blits.every(
+            ({ matrix, args }) => matrix.join(',') === '1,0,0,1,0,0' && args.length === 2,
+          ),
+        ).toBe(true)
+        expect(blits.at(-1)!.args).not.toEqual(projection.args)
+        expect(s.layerCount()).toBe(layers)
+      } finally {
+        s.renderer.dispose()
+        vi.unstubAllGlobals()
+      }
+    },
+  )
+  it('reuses the settled wide-zoom phone terrain projection without repainting its affine border', () => {
     const base = projectWorld(newWorldState(), [], 1000)
+    const sector = base.sectors.find((candidate) => candidate.id === base.position.sectorId)!
     const view = {
       ...base,
       scenery: [],
-      sectors: [
-        {
-          ...base.sectors.find((sector) => sector.id === base.position.sectorId)!,
-          buildings: [],
-          landmarks: [],
-          cells: base.sectors
-            .find((sector) => sector.id === base.position.sectorId)!
-            .cells.map((cell) => ({ ...cell, terrain: '.', walkable: true })),
-        },
-      ],
+      players: [],
+      sectors: [{ ...sector, buildings: [], landmarks: [] }],
     }
     const s = scene(true, view)
     try {
-      s.renderer.settings({ animate: false, zoom: 1 })
+      Object.assign(s.canvas, { clientWidth: 414, clientHeight: 630 })
+      window.devicePixelRatio = 2.625
+      s.canvas.dataset.renderDiagnostics = 'timing'
+      s.resize()
+      s.renderer.settings({ animate: false, zoom: 0.35, quality: 'balanced' })
       s.frame(40)
       const projection = s.draws.find(
         ({ src, args, matrix }) => !src && args.length === 2 && matrix.join(',') === '1,0,0,1,0,0',
-      )!
+      )
       expect(projection).toBeDefined()
       const layers = s.layerCount()
-      s.motion.plan(
-        [{ position: { ...view.position, x: view.position.x + 1 }, durationMs: 200 }],
-        view.sectors,
-        40,
-      )
-      s.renderer.update(view)
       s.draws.length = 0
-      s.frame(80)
-      s.frame(120)
-      const blits = s.draws.filter(({ image }) => image === projection.image)
-      expect(blits.length).toBeGreaterThan(0)
-      expect(
-        blits.every(({ matrix, args }) => matrix.join(',') === '1,0,0,1,0,0' && args.length === 2),
-      ).toBe(true)
-      expect(blits.at(-1)!.args).not.toEqual(projection.args)
+      for (let n = 1; n <= 60; n++) {
+        s.renderer.update(view)
+        s.frame(40 + n * 40)
+      }
+      expect(s.draws.some(({ image }) => image === projection!.image)).toBe(true)
       expect(s.layerCount()).toBe(layers)
+      expect(s.canvas.width).toBe(Math.round(414 * 1.5))
+      expect(s.identityCanvas.width).toBe(Math.round(414 * 2.625))
+      expect(Number(s.canvas.dataset.cachedPixels)).toBeLessThanOrEqual(8_000_000)
+      expect(Number(s.canvas.dataset.cachedGroundProjectionPixels)).toBeGreaterThan(0)
+      expect(Number(s.canvas.dataset.cachedGroundProjectionPixels)).toBeLessThanOrEqual(8_000_000)
     } finally {
       s.renderer.dispose()
       vi.unstubAllGlobals()
@@ -3752,13 +3802,25 @@ describe('native map input and bounded lifecycle', () => {
       s.resize()
       const settings = { animate: false, zoom: 0.35 }
       s.renderer.settings(settings)
-      const batches = () =>
-        s.draws.filter(
+      const batches = () => {
+        const ground = new Set(
+          [...s.composites]
+            .filter(([, sources]) =>
+              sources.some((source) =>
+                (source as HTMLImageElement).src?.endsWith('regional-ground-v02.webp'),
+              ),
+            )
+            .map(([layer]) => layer),
+        )
+        return s.draws.filter(
           ({ image, args, matrix }) =>
             args.length === 2 &&
             matrix[0] === 1 &&
+            // A terrain projection can also be a compact translated bitmap.
+            !s.composites.get(image)?.some((source) => ground.has(source)) &&
             (image.width < s.canvas.width || image.height < s.canvas.height),
         )
+      }
       s.frame(40)
       const first = batches().map(({ image }) => image)
       expect(first.length).toBeGreaterThan(0)
