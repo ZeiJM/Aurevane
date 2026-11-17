@@ -13,11 +13,49 @@ them. Keep automatic Vercel Git deployments disabled and older watchers paused.
 ## Active worker lease
 
 - Status: active water repair/native-fixture correction and remaining art/coast work, owned by this same November17 coding session.
-- Expires at: `2026-11-17T17:30:00Z`.
+- Expires at: `2026-11-17T18:30:00Z`.
 - Hourly continuation: enabled by Nick on November 17; one recurring task,
   **Finish Aurevane map corrections**. Older watchers remain paused.
 - A scheduled run before lease expiry inspects only. Release or renew this lease
   at each safe checkpoint; after expiry a fresh worker may resume from the branch.
+
+## Continuing source diagnosis — November17 raster joins and art registration
+
+- Native814 remains active on2c8cd8e (not the newer coast source5def45b).
+  PG17 rollback/locking/success, optimized build and authenticated story steps
+  pass; Atlas/multiplayer remains running. Do not duplicate/cancel the run.
+- Independently opened #813 job134138931990's actual GitHub annotation table:
+  **`The job has exceeded the maximum execution time of 1h0m0s`**.
+  This is now explicit cancellation evidence, superseding the earlier timing-only
+  inference. Its two native test failures are retained. The90-minute envelope
+  lets the full unchanged per-test gates finish; it does not excuse those failures.
+- Reproduced the inspected Frostmere dark sector joins in the actual source
+  renderer at the native dry-town former-lake position. Disabling projected-cache
+  reuse reduced but did not remove the lines; a boundary-coverage ablation
+  removed the dark join. Current implementation copies only the outermost source
+  texels into the filtered half-device-pixel fringe, then paints the original
+  interior at its exact unchanged coordinates. Cached projection, direct ground
+  and stationary-mobile paths share this coverage; no texture/grid scaling.
+  All pixel/cache budgets stay fixed; cached projection is still built only once.
+  Native performance and seam acceptance remain OPEN pending the affected gate.
+  Actual normal/maximum/minimum source outputs inspected; faint material/tile
+  joins remain open. Receipt:`2026-11-17-ground-border-source-review.json`.
+  Existing-cache API regression fails on the prior source, then all5 projection
+  cases pass. Across the focused/adjacent runs438 tests/8 renderer/projection/
+  water/coast/surface/motion files pass; scoped zero-warning lint, types, format
+  and diff pass. Final native frame/cache budgets remain mandatory.
+- Added the exact saved former-lake dry-town positions to the existing offline
+  source renderer (`frostmere-dry-town`, `emberreach-dry-town`). No live SQL, API,
+  dependencies or runtime image bytes changed. Compare actual normal/min/max
+  source output; these are not browser or handset acceptance.
+- Generated colosseum rear-wall detail improved isolated maximum-zoom masonry,
+  but real minimum/normal source renders exposed rectangular contrast and
+  shifted architectural registration. Rejected context overlays; a frequency-
+  separation prototype preserved structure but still exposed unequal contrast.
+  No candidate or enlarged master is in runtime. Upsampled preview backgrounds
+  are diagnostic context only and NEVER claimed as new fidelity. Selected
+  colosseum and elemental master bytes, geometry, IDs and saved state are intact.
+  Further artwork work is required rather than closing the fidelity row.
 
 ## Native814 and continuing coastline source correction — November17 16:52UTC
 

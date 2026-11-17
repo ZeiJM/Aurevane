@@ -1,4 +1,4 @@
-import { createGroundProjectionCache } from './map-ground-projection'
+import { createGroundProjectionCache, drawGroundSurface } from './map-ground-projection'
 import {
   releaseStaticRaster,
   snapshotStaticRaster,
@@ -1674,7 +1674,7 @@ export function createMapRenderer(
         p.x * ratio,
         p.y * ratio,
       )
-      target.drawImage(ground(sector), 0, 0, GRID_WIDTH * tile, GRID_HEIGHT * tile)
+      drawGroundSurface(target, ground(sector), GRID_WIDTH * tile, GRID_HEIGHT * tile, ratio)
     }
     projection.layer = snapshot(layer)
     return projection
@@ -1986,7 +1986,7 @@ export function createMapRenderer(
         if (projected) {
           ctx.setTransform(1, 0, 0, 1, 0, 0)
           ctx.drawImage(projected.canvas, p.x * ratio + projected.left, p.y * ratio + projected.top)
-        } else ctx.drawImage(surface, 0, 0, GRID_WIDTH * tile, GRID_HEIGHT * tile)
+        } else drawGroundSurface(ctx, surface, GRID_WIDTH * tile, GRID_HEIGHT * tile, ratio)
         ctx.restore()
       }
       if (

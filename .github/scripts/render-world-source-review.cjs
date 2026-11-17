@@ -118,7 +118,7 @@ async function main() {
   const output = process.argv[2]
   if (!output)
     throw new Error(
-      'Usage: node render-world-source-review.cjs <output-dir> [region|landmark-detail] [zoom]',
+      'Usage: node render-world-source-review.cjs <output-dir> [region|landmark-detail|town-dry-town] [zoom]',
     )
   const scene = process.argv[3] || 'verdant-expanse',
     zoom = Number(process.argv[4] || 1)
@@ -139,7 +139,15 @@ async function main() {
     },
   })
   const state = newWorldState()
-  if (scene.endsWith('-detail')) {
+  if (scene.endsWith('-dry-town')) {
+    const townId = scene.slice(0, -9)
+    const sector = atlasSectors().find(
+      (candidate) => candidate.townId === townId && candidate.rows.some((row) => row.includes('w')),
+    )
+    if (!sector) throw new Error('No saved former-lake town position for ' + townId)
+    const y = sector.rows.findIndex((row) => row.includes('w'))
+    state.position = { sectorId: sector.id, x: sector.rows[y].indexOf('w'), y }
+  } else if (scene.endsWith('-detail')) {
     const { correctionScenes } = require(root + '/apps/web/e2e/world-map-correction-scenes.ts')
     const candidate = correctionScenes().discoveries.find((item) => item.id === scene.slice(0, -7))
     if (!candidate?.detailPosition) throw new Error('No legal detail viewpoint for ' + scene)
