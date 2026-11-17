@@ -6,8 +6,8 @@
     "path": "docs/verification/2026-11-17-world-map-completion-receipt.json"
   },
   "candidate": {
-    "sha": "9b76647e206ec9a426804a13bd53ee33cc6df941",
-    "tree": "d7256c6b8cf558b4e9b92400a412eb5052a2682e",
+    "sha": "4e1f094c8a25a384f06b882127864ae4d534791c",
+    "tree": "0e63d1637dbdf413177458bb7f32e165f36ff7ad",
     "branch": "agent/world-map-request-completion",
     "pr": 1043,
     "draft": true
@@ -24,16 +24,16 @@
     ]
   },
   "currentRuns": {
-    "ci": 44198844014,
-    "uiLayout": 44198844040,
-    "atlas": 44198843964,
-    "browserSmoke": 44198844011,
-    "timing": 44198844015,
-    "status": "Running/pending; current9b contains a test-helper type assertion corrected locally, next final source must be checked"
+    "ci": 44199406222,
+    "uiLayout": 44199406180,
+    "atlas": 44199406249,
+    "browserSmoke": 44199406377,
+    "timing": 44199406372,
+    "status": "Fresh exact4e1f094 gates running/pending; no further app changes planned"
   },
   "local": {
-    "checkout": "One test-only typing correction uncommitted atop9b; application source matches9b",
-    "fullQuality": "854f3ae passes17831 Vitest+7Node, format/lint/types/build;9b check failed TS2352 at test canvas getContext overload; corrected2D mock assertion locally, fresh full check running water-grid-full-check-typed.log",
+    "checkout": "Clean4e1f094 checkout; source tree equals0e63d1637dbdf413177458bb7f32e165f36ff7ad",
+    "fullQuality": "Final check active: formatting/full lint and all8 package typechecks pass; full unit suite executing, build pending",
     "focused": "393 renderer/projection/water/motion/static-raster tests pass;44 globe/material/fallback/veil/workspace tests pass"
   },
   "review": {
@@ -177,9 +177,24 @@
     ]
   },
   "remaining": [
-    "Complete test-helper typing/fullquality, publish final tested candidate and finish its five configured gates.",
+    "Finish4e1f094 full local quality and all five configured exact-source workflows; inspect any failure causally.",
     "Review final native centre/both lateral Colosseum, valley, rotated globe, water, snow, towns and responsive controls.",
     "Perform authorized one-build release and canonical postflight only after passing gates."
   ],
-  "updatedAt": "2026-11-17T23:25:24.911Z"
+  "updatedAt": "2026-11-17T23:28:30.448Z",
+  "previousCandidate": {
+    "sha": "9b76647e206ec9a426804a13bd53ee33cc6df941",
+    "tree": "d7256c6b8cf558b4e9b92400a412eb5052a2682e",
+    "branch": "agent/world-map-request-completion",
+    "pr": 1043,
+    "draft": true
+  },
+  "timing74": {
+    "run": 44198844015,
+    "job": 134447336775,
+    "result": "failure",
+    "cause": "Build TS2352 on test canvas getContext overload; no mobile/desktop executions reached",
+    "correctedIn": "4e1f094c8a25a384f06b882127864ae4d534791c",
+    "applicationSourceUnchangedByTypingCommit": true
+  }
 }
