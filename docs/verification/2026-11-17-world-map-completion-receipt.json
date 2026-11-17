@@ -60,7 +60,8 @@
     "browserSmoke": 44182605636,
     "timing": 44182605532,
     "status": "Timing68 failure (all3 mobile; desktop not reached), other eb8 gates running; release held",
-    "uiLayoutResult": "success on eb8"
+    "uiLayoutResult": "success on eb8",
+    "ciResult": "success on eb8"
   },
   "localValidation": {
     "currentCheckout": "Clean complete checkout at candidate SHA",
@@ -128,7 +129,7 @@
     "No human continuous-motion or physical-handset acceptance.",
     "No full1.29GB archive download/review claimed; only named hash-verified compact bundles."
   ],
-  "updatedAt": "2026-11-17T21:58:11.339Z",
+  "updatedAt": "2026-11-17T22:12:21.604Z",
   "previousRuns": {
     "atlas": 44143478767,
     "atlasVerifyJob": 134252202191,
@@ -332,8 +333,49 @@
     "branch": "agent/world-canvas-context-profile-20261117",
     "sha": "160c2d3f3130e1b1f51000fbfde7d5b080ee57c5",
     "scope": "Evidence-only never merge/deploy. Baseline, main-canvas willReadFrequently:true, main-canvas desynchronized:true; each3 repeated mobile cases plus post-window8sec native/Canvas trace. Original density, bodies, frame window and zero retries preserved.",
-    "status": "running",
+    "status": "completed success9/9; flags verified by native context attributes",
     "run": 44184619640,
-    "job": 134397705839
+    "job": 134397705839,
+    "artifact": {
+      "id": 14375396272,
+      "sha256": "63209b9a07bd69aa64cd150a5458bf2d138692ae5663ad762a263eafc20ecbbb",
+      "bytes": 875029,
+      "verified": true
+    },
+    "results": {
+      "baselineTargetMs": [
+        12031.9,
+        11564.1,
+        11541
+      ],
+      "softwareTargetMs": [
+        10993.1,
+        11462.1,
+        11609
+      ],
+      "desynchronizedTargetMs": [
+        11303.8,
+        11092.2,
+        11283.1
+      ],
+      "canvasResourceTotalMs": {
+        "baseline": [
+          7509.2,
+          7440.84,
+          7416.64
+        ],
+        "software": [
+          7373.02,
+          7586.43,
+          7448.6
+        ],
+        "desynchronized": [
+          50.73,
+          81.73,
+          72.74
+        ]
+      },
+      "interpretation": "Low-latency mode removes resource-production stall but only modest throughput gain. Software mode gives no consistent material improvement. Neither mode is integrated in production source. Investigating settled phone low-zoom projection reuse to reduce actual affine raster work without changing resolution, sprites or cadence."
+    }
   }
 }
