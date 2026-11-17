@@ -1,472 +1,134 @@
 {
-  "schemaVersion": 1,
-  "scope": "Evidence only. NEVER merge or deploy this branch/receipt commit.",
+  "schemaVersion": 2,
+  "scope": "Evidence only; NEVER merge or deploy this branch.",
+  "previousFullReceipt": {
+    "commit": "90056300e3213e721ca8217c99b6027bbea6a579",
+    "path": "docs/verification/2026-11-17-world-map-completion-receipt.json"
+  },
   "candidate": {
-    "sha": "854f3aee150d29ba893c7b8d4a7200d9dfbc4482",
-    "tree": "04b435f9eefbfd0db8485d55e1f164212c56004d",
+    "sha": "9b76647e206ec9a426804a13bd53ee33cc6df941",
+    "tree": "d7256c6b8cf558b4e9b92400a412eb5052a2682e",
     "branch": "agent/world-map-request-completion",
-    "pullRequest": 1043,
+    "pr": 1043,
     "draft": true
   },
   "main": "2893076856e20bc64f00e94e132d26dd0d76b26d",
   "productionMutationOccurred": false,
   "releaseHold": true,
   "ownership": {
-    "owner": "Nick-directed continuation after previous conversation exhausted context",
-    "status": "Active interactive continuation; hourly checks paused",
-    "oldAutomation": "Automation_661d7a3712ec8191939d0104f5c5a773",
-    "oldAutomationEnabled": false,
-    "replacementAutomation": "Automation_9dd57abfa004819195b30acab8a54150",
-    "replacementEnabled": false,
+    "interactiveOwner": "Nick-directed continuation",
     "leaseExpires": "2026-11-18T02:00:00Z",
-    "source": "Current candidate AGENTS.md and checked-in active-worker lease"
-  },
-  "native814": {
-    "run": 44130723106,
-    "job": 134206735390,
-    "source": "2c8cd8e0741988c9534433189626dbf1436c0061",
-    "result": "failure",
-    "atlasPassed": 109,
-    "atlasFailed": 2,
-    "configuredSkips": 129,
-    "storyPassed": 15,
-    "storyConfiguredSkips": 7,
-    "realPG17Gate": "passed",
-    "cause": "Rear-wall detail fixture reused the clear arena-floor identity expectation; exact renderer reproduction confirmed the legal wall is occluded. Corrected in b21fa9f9c368a043e17cc03d1f37a0c92f80f5dd.",
-    "verifiedArtifacts": [
-      {
-        "id": 14353791270,
-        "sha256": "72c6fbe39c2088f35ce88d311d53bbf1b3b395e581a8d6cb6038cadd1b606fef"
-      },
-      {
-        "id": 14353801342,
-        "sha256": "0dfeaa4fa0cdec3633a87431a33e7502736ca74034534c8ff2c533d60c166791"
-      }
+    "hourlyTasksDisabled": [
+      "Automation_661d7a3712ec8191939d0104f5c5a773",
+      "Automation_9dd57abfa004819195b30acab8a54150"
     ]
   },
-  "supersededStartupFailure": {
-    "run": 44142508679,
-    "job": 134248815715,
-    "source": "b21fa9f9c368a043e17cc03d1f37a0c92f80f5dd",
-    "mailTests": "5 pass",
-    "exactCause": "Docker failed to bind host port 0.0.0.0:54322/tcp: address already in use",
-    "browserAndPGExecution": "not reached",
-    "correction": "Existing disposable-port configurator in Atlas; selected API propagation; local PG17 guard verifies config/URI/actual Docker binding agreement."
-  },
   "currentRuns": {
-    "ci": 44195169226,
-    "uiLayout": 44195169259,
-    "atlas": 44195169451,
-    "browserSmoke": 44195169254,
-    "timing": 44195169198,
-    "status": "Fresh exact854f3ae gates starting"
+    "ci": 44198844014,
+    "uiLayout": 44198844040,
+    "atlas": 44198843964,
+    "browserSmoke": 44198844011,
+    "timing": 44198844015,
+    "status": "Running/pending; current9b contains a test-helper type assertion corrected locally, next final source must be checked"
   },
-  "localValidation": {
-    "currentCheckout": "Clean complete checkout at candidate SHA",
-    "pnpmInstall": "frozen lockfile succeeded",
-    "finalPnpmCheck": "PASSec26102:17830 Vitest+7Node, format/lint/types/build; final854f3ae full check running",
-    "previousValidation": {
-      "rendererAndSceneTests": 252,
-      "typescript": "pass",
-      "scopedLint": "pass",
-      "scopedFormat": "pass",
-      "atlasDiscovery": 240,
-      "discoveryIsExecution": false,
-      "portTests": 8,
-      "releaseSafetyTests": 12,
-      "mailTests": 5,
-      "verificationRunnerTests": 56,
-      "firstFullCheck": "interrupted after identifying sparse-checkout omitted root scripts; missing-file failure reproduced, not an application repair",
-      "completeCheckout": "restored with git sparse-checkout disable",
-      "previouslyFailingPublicationCase": "passes unchanged after restoring missing scripts",
-      "freshFullCheck": "Running on complete clean checkout; DB768 plus game-core7211 and small packages pass, web tests executing. Final pnpm check NOT yet complete."
-    }
+  "local": {
+    "checkout": "One test-only typing correction uncommitted atop9b; application source matches9b",
+    "fullQuality": "854f3ae passes17831 Vitest+7Node, format/lint/types/build;9b check failed TS2352 at test canvas getContext overload; corrected2D mock assertion locally, fresh full check running water-grid-full-check-typed.log",
+    "focused": "393 renderer/projection/water/motion/static-raster tests pass;44 globe/material/fallback/veil/workspace tests pass"
   },
-  "artwork": {
-    "originalMasterAndRuntimeUnchanged": true,
-    "currentSource": "Three registered masonry crops integrated with complementary arena/wall clipping; actual normal/max/lateral browser acceptance pending",
-    "historicalProbes": {
-      "acceptedNewArtwork": false,
-      "originalMasterAndRuntimeUnchanged": true,
-      "fullFrameProbe": {
-        "file": "generated_images/exec-c60481d1-c6d0-4c94-b315-430d0146d1e2.png",
-        "sha256": "1cc74aa2805768bb842691b1d54b4d9b374102a45e57ba0d4bd153db3f324c74",
-        "resolution": [
-          1536,
-          1024
-        ],
-        "result": "Rejected as resolution remedy; requested larger output still returned original dimensions."
-      },
-      "croppedProbe": {
-        "file": "generated_images/exec-1f64d5b4-9df7-4e5b-aaaf-93d8ee07077e.png",
-        "sha256": "9576621837b77124f0a5964496676449da8c3726c1d52511a9772f0aec6d2f83",
-        "referenceMasterBounds": [
-          448,
-          0,
-          640,
-          426
-        ],
-        "nativePixels": [
-          1536,
-          1024
-        ],
-        "result": "UNACCEPTED. Normal/maximum/minimum exact-source offline prototypes and +/-5-tile lateral pans reviewed. Both clipped passes remove the blurred band, but lateral edge views demonstrate displaced/doubled arch and stair registration and sharp/soft frequency transitions. Runtime/master bytes unchanged; no source integration.",
-        "layerDiagnosis": "Painting detail only in wall pass leaves an abrupt blurred band when the original floor pass redraws its ellipse. Applying matching detail in both complementary clipped passes removes that band in the offline prototype, without changing the ellipse. No production renderer change made."
-      },
-      "inspection": "Actual814 desktop valley normal/max and arena floor normal/min reviewed; failed rear-wall pair was absent. Offline exact-source prototype at0.35/1/1.4 and lateral pans is not hosted or handset acceptance."
-    }
+  "review": {
+    "status": "Independent source review approved all source increments, subject to final exact-head gates and native visual review",
+    "resolved": "Reviewer resample path finding fixed; actual renderer regression reproduced689x478 vs689x477 before correction",
+    "limitations": "No physical-handset/human continuous-motion acceptance"
   },
-  "remaining": [
-    "Complete854f3ae full local quality and all five configured CI/native gates without changing thresholds/retries.",
-    "Review final rotated native globe, megastructure center/both lateral, valley, drytown/water/seam/controls evidence.",
-    "Refresh main, merge reviewed passing tested tree and perform one staged Production build, smoke and same-build promotion with all9 guards retained.",
-    "No Preview, PR1040 replay, DB migration/cron/content replay, player reset or resumed hourly task."
-  ],
-  "limitations": [
-    "No human continuous-motion or physical-handset acceptance.",
-    "No full1.29GB archive download/review claimed; only named hash-verified compact bundles."
-  ],
-  "updatedAt": "2026-11-17T22:59:59.711Z",
-  "previousRuns": {
-    "atlas": 44143478767,
-    "atlasVerifyJob": 134252202191,
-    "atlasRealPG17Gate": "independently observed success",
-    "atlasBuild": "success",
-    "atlasBrowser": "not yet completed",
-    "browserSmoke": 44143478631,
-    "timing": 44143478524,
-    "ci": 44143478487,
-    "uiLayout": 44143478523,
-    "allFinalResults": "pending; refresh actual GitHub before acting",
-    "snapshot": [
-      {
-        "id": 44143478524,
-        "name": "World timing repeat validation",
-        "status": "pending",
-        "conclusion": null
-      },
-      {
-        "id": 44143478767,
-        "name": "Living Atlas browser",
-        "status": "in_progress",
-        "conclusion": null
-      },
-      {
-        "id": 44143478631,
-        "name": "Browser smoke",
-        "status": "in_progress",
-        "conclusion": null
-      },
-      {
-        "id": 44143478523,
-        "name": "UI layout review",
-        "status": "completed",
-        "conclusion": "success"
-      },
-      {
-        "id": 44143478487,
-        "name": "CI",
-        "status": "completed",
-        "conclusion": "success"
-      }
+  "waterGrid": {
+    "cause": "Fractional cached pixels per cell multiply clip antialiasing and expose dark ground",
+    "fix": "Integer cached backing pixels per cell, capped by existing7.8M visible budget; whole13x9 sector dimensions on first build and density resampling",
+    "unchanged": [
+      "artwork",
+      "palette",
+      "water geometry",
+      "collision",
+      "private projection",
+      "full-DPR identities",
+      "8M cached bound"
     ],
-    "atlasSnapshot": {
-      "status": "in_progress",
-      "conclusion": null,
-      "passed": [
-        "Set up job",
-        "Run actions/checkout@v4",
-        "Record the tested source tree",
-        "Run actions/setup-node@v4",
-        "Run corepack enable && corepack prepare pnpm@11.17.0 --activate",
-        "Run pnpm install --frozen-lockfile",
-        "Run pnpm --filter @aurevane/web exec playwright install --with-deps chromium",
-        "Run python .github/scripts/configure-supabase-test-ports.test.py",
-        "Verify atomic World release rollback and success on disposable PG17",
-        "Configure disposable World services",
-        "Build the production web bundle",
-        "Verify authenticated quests and World NPC admission"
+    "red": "5/6 exact zoom/DPR variants fail prior source; integral variant passes. Separate density-fall renderer case fails before resample correction.",
+    "green": 393,
+    "offline": {
+      "meanContrastBefore": 19.7521,
+      "meanContrastAfter": 0.7792,
+      "p95Before": 35.1833,
+      "p95After": 1.8417,
+      "beforePixels": [
+        874,
+        605
       ],
-      "active": [
-        "Verify authenticated Atlas and multiplayer"
+      "afterPixels": [
+        884,
+        612
       ],
-      "failed": []
+      "isNativeAcceptance": false
     }
   },
-  "nativeVisualReview": "Source6aac Atlas818 superseded by eb8; final native art acceptance remains open. Review819 final screenshots when available.",
-  "predecessorSourceCI": {
-    "vitest": 17824,
-    "nodeTests": 7,
-    "format": "pass",
-    "lint": "pass",
-    "typecheck": "pass",
-    "build": "pass",
-    "databaseFoundation": "pass",
-    "dependencyAudit": "pass",
-    "workerBoot": "pass"
-  },
-  "timing64": {
-    "run": 44170722223,
-    "result": "failure",
-    "mobileCrowdPassed": 3,
-    "desktopPassed": 59,
-    "desktopFailed": 1,
-    "case": "rapid ground clicks, repeat11 first subsequent arrow tap",
-    "artifact": 14368943195,
-    "sha256": "2a58cb13acf2e10893b594668f1d4e0b6dae37e197433164a0be3513dd727db9",
-    "cause": "Rapid-click destination X10 arrived; visual catch-up trailed it. Keydown X12 then release X10 cancelled the next step.",
-    "repair": "Continuing input chooses farther approved point along its direction. Added450ms deterministic regression fails before, passes after; renderer/motion/controller362, types, lint and format pass."
-  },
-  "timing65": {
-    "run": 44177400951,
-    "job": 134372321625,
-    "result": "failure",
-    "mobileCrowdFailed": 3,
-    "desktopMovementReached": false,
-    "artifact": 14369609350,
-    "sha256": "36e7d917a8f8a913c27e741fcc27b3671f9c45187889eb81a2870431942a7288",
-    "cause": "All3 mobile4xCPU crowd cases missed >120 completed frames within15sec. Same crowd passed Timing64; no thresholds/retries/deadlines changed. Source idle performance cause not yet established."
-  },
-  "crowdDiagnostic": {
-    "branch": "agent/world-crowd-profile-20261117",
-    "sha": "101e63f5a760ab0a6c5498ff2f4e18e37e2933a3",
-    "run": 44180738240,
-    "job": 134384067556,
-    "status": "success:3mobile+60desktop on app source6aac; diagnostic catch does not execute in passing cases",
-    "scope": "Evidence-only; NEVER merge/deploy. Captures8sec native browser tasks and Canvas timings only after unchanged acceptance window fails; original failure rethrown.",
-    "additionalCapture": {
-      "branch": "agent/world-crowd-profile-complete-20261117",
-      "sha": "e3005a9ee2bbf842576953d4645e8bec10ab37c7",
-      "run": 44181973799,
-      "job": 134388394784,
-      "status": "success;3/3 mobile",
-      "scope": "Evidence-only NEVER merge/deploy. Same3mobile acceptance runs, then8sec task/Canvas sample regardless of success. Desktop repeats omitted only on this separate diagnostic branch.",
-      "artifact": {
-        "id": 14371399612,
-        "sha256": "64aa42277c180688f21142c5898566ad0a766bcb6c85842b11145cf5d886f171",
-        "bytes": 238117,
-        "verified": true
-      },
-      "measurements": {
-        "acceptanceWindowSeconds": [
-          9.524,
-          9.278,
-          9.517
-        ],
-        "framesEach": 121,
-        "acceptanceFps": [
-          12.7,
-          13.04,
-          12.71
-        ],
-        "cpuRate": 4,
-        "taskTraceDropped": 0,
-        "afterWindowMeanPrepareMs": [
-          1.8,
-          1.46,
-          1.83
-        ],
-        "afterWindowMeanTerrainMs": [
-          4.41,
-          4.15,
-          4.42
-        ],
-        "afterWindowMeanSceneryMs": [
-          3.04,
-          2.89,
-          2.92
-        ],
-        "afterWindowGroundBuildMs": 0,
-        "native": "Canvas resource production dominates:6.86–7.02sec aggregate in about8sec task captures. Native events overlap; do not add nested durations. No candidate performance change inferred from runner variation."
-      }
-    },
-    "artifact": {
-      "id": 14372904094,
-      "sha256": "6ca6d4784f0f9f9fe25e31e91793b2acb6f26ff728e611e6ff7ebe2be383abf8",
-      "bytes": 2463227,
-      "verified": true
-    }
-  },
-  "currentSourceCI": {
-    "vitest": 17825,
-    "nodeTests": 7,
-    "format": "pass",
-    "lint": "pass",
-    "typecheck": "pass",
-    "build": "pass",
-    "databaseFoundation": "pass",
-    "dependencyAudit": "pass",
-    "workerBoot": "pass",
-    "run": 44177400906
-  },
-  "snowSeams": {
-    "status": "source corrected, full local quality passes; native acceptance pending",
-    "cause": "Compressed regional texture border repeated by reflection; confirmed in raw cached ground before projection",
-    "correction": "2px clean interior, contiguous mirrored quarters for public regional ground only",
-    "oldContrast": [
-      41.733,
-      13.429
-    ],
-    "newContrast": [
-      3.368,
-      1.479
-    ],
-    "regression": "Fails before, passes after;284 focused renderer/projection/biome tests, types and scoped lint pass",
-    "assetBytesUnchanged": true,
-    "offlineIsNativeAcceptance": false
-  },
-  "timing68": {
-    "run": 44182605532,
-    "job": 134390604418,
-    "result": "failure",
-    "mobileFailed": 3,
-    "desktopReached": false,
-    "artifact": 14373820672,
-    "sha256": "815c8dca4c1f11855d4f8ad7f1985c81ca23efab629bd1932b94f041bf12cf51",
-    "verified": true,
-    "scene": "Same101 visible players, full-DPR identity1792876px, terrain586336px,31ground caches2308136px and99visible scenery retained. About123–126frames in16.4sec;15sec >120 gate missed."
-  },
-  "canvasContextComparison": {
-    "branch": "agent/world-canvas-context-profile-20261117",
-    "sha": "160c2d3f3130e1b1f51000fbfde7d5b080ee57c5",
-    "scope": "Evidence-only never merge/deploy. Baseline, main-canvas willReadFrequently:true, main-canvas desynchronized:true; each3 repeated mobile cases plus post-window8sec native/Canvas trace. Original density, bodies, frame window and zero retries preserved.",
-    "status": "completed success9/9; flags verified by native context attributes",
-    "run": 44184619640,
-    "job": 134397705839,
-    "artifact": {
-      "id": 14375396272,
-      "sha256": "63209b9a07bd69aa64cd150a5458bf2d138692ae5663ad762a263eafc20ecbbb",
-      "bytes": 875029,
-      "verified": true
-    },
-    "results": {
-      "baselineTargetMs": [
-        12031.9,
-        11564.1,
-        11541
-      ],
-      "softwareTargetMs": [
-        10993.1,
-        11462.1,
-        11609
-      ],
-      "desynchronizedTargetMs": [
-        11303.8,
-        11092.2,
-        11283.1
-      ],
-      "canvasResourceTotalMs": {
-        "baseline": [
-          7509.2,
-          7440.84,
-          7416.64
-        ],
-        "software": [
-          7373.02,
-          7586.43,
-          7448.6
-        ],
-        "desynchronized": [
-          50.73,
-          81.73,
-          72.74
-        ]
-      },
-      "interpretation": "Low-latency mode removes resource-production stall but only modest throughput gain. Software mode gives no consistent material improvement. Neither mode is integrated in production source. Investigating settled phone low-zoom projection reuse to reduce actual affine raster work without changing resolution, sprites or cadence."
-    }
-  },
-  "phoneProjection": {
-    "sourceBranch": "agent/world-phone-projection-candidate-20261117",
-    "sourceCommit": "1426587a7edaf492cfbdc1374ea39aadc3238701",
-    "tree": "5e46617bf52d901fe7a313a95493a3a69082287e",
-    "publishedToPR": true,
-    "nativeAB": {
-      "branch": "agent/world-phone-projection-profile-20261117",
-      "sha": "6069565e3b227bffa9ecb384c18e531450560232",
-      "run": 44188832522,
-      "job": 134412471663,
-      "status": "success6/6;3baseline+3cached-ground",
-      "artifact": {
-        "id": 14376381713,
-        "bytes": 614832,
-        "sha256": "426a780410d70643cd760e61c2af23b63c185a5f81a23c2564024f823f6a7ed4",
-        "verified": true
-      },
-      "results": {
-        "baselineTargetMs": [
-          11199.7,
-          11433.6,
-          11332.7
-        ],
-        "cachedTargetMs": [
-          9876.6,
-          9715.9,
-          10748.6
-        ],
-        "baselineFps": [
-          10.8,
-          10.58,
-          10.68
-        ],
-        "cachedFps": [
-          12.25,
-          12.45,
-          11.26
-        ],
-        "baselineProjectionPixels": 0,
-        "cachedProjectionPixels": 1399248,
-        "unchangedFrameWindow": true,
-        "unchangedPortraitDensity": true,
-        "unchangedContextAttributes": true
-      }
-    },
-    "focused": {
-      "tests": 338,
-      "result": "pass",
-      "standingBefore": "no native-density ground blit (undefined)",
-      "movingBefore": "no retained projection blits after walking",
-      "after": "reuse verified standing and walking; no warm allocations across60draws; terrain and full-DPR identity unchanged;8Mpx limit retained"
-    },
-    "fullLocal": "PASS17828 Vitest+7Node, format/full lint/all types/production builds. Exit0; clean1426587 checkout matches tested working files.",
-    "notes": "Application context flags remain unchanged; new code permits existing projection cache at settled phone wide zoom, including walking. Native A/B uses a dataset flag only in the separate diagnostic branch.",
-    "offlineVisual": {
-      "snow": "Unchanged output byte/pixel-for-pixel at mobile0.35; composite-covered view does not exercise new individual projections.",
-      "coast": "Bounded12-frame animated offline comparison completed sequentially: active projection pixels0→699624;188scenery and54water retained; meanRGBdifference0.2771,p952,372/586845pixels differ>16. Original runtime images and resolution retained. Native/physical acceptance still required."
-    }
-  },
-  "previousCandidate": {
-    "sha": "ec2610274bed3c9e0a2acbfdef7aebc2e7ebe806",
-    "tree": "e597414badcfee81085bfe773c053f3a6708ff6d",
-    "branch": "agent/world-map-request-completion",
-    "pullRequest": 1043,
-    "draft": true
+  "islandEdges": {
+    "source": "854f3aee150d29ba893c7b8d4a7200d9dfbc4482",
+    "fix": "Bilinear coast threshold and broadness fields remove nearest-sector cap cuts",
+    "red": "Thin island shore support lost at internal boundary before correction",
+    "green": 44,
+    "privateAlphaAndTownAndThinSupport": "Existing checks retained and pass",
+    "nativeRotatedAcceptance": "pending"
   },
   "fixtureCorrections": {
     "source": "ec2610274bed3c9e0a2acbfdef7aebc2e7ebe806",
-    "rendererSceneTests": 263,
-    "types": "pass",
-    "scopedLint": "pass",
-    "format": "pass",
-    "leftIdentity": "occluded",
-    "rightIdentity": "clear floor; ellipse radius squared0.8334",
-    "mobileDetails": "Reopen existing Details after map-switch outside-click dismissal; exact card/no-footer assertions retained",
-    "applicationChanges": false,
-    "thresholdOrRetryChanges": false,
-    "independentReview": "Approved source and fixture corrections subject to final exact-source gates and native visual acceptance"
+    "leftArenaIdentity": "occluded",
+    "rightArenaIdentity": "clear floor",
+    "mobileDetails": "Reopen existing drawer after header map switch outside-click dismissal",
+    "assertionsAndThresholdsPreserved": true
   },
-  "ui2351": {
-    "run": 44190925322,
-    "result": "failure",
-    "cause": "battle setup API request socket hang up",
-    "source": "1426587"
+  "timing73": {
+    "source": "854f3aee150d29ba893c7b8d4a7200d9dfbc4482",
+    "run": 44195169198,
+    "job": 134434936544,
+    "result": "success",
+    "mobilePassed": 3,
+    "desktopPassed": 60,
+    "retries": 0,
+    "artifact": {
+      "id": 14381025168,
+      "sha256": "b9a9507b2b43b08014470e2fdf975a036850d1253da02df4993903354f1d0d5e",
+      "verified": true,
+      "bytes": 3056859
+    },
+    "mobileTargetMs": [
+      7297.8,
+      6694.8,
+      6617.9
+    ],
+    "players": 101,
+    "identityPixels": 1792876,
+    "terrainPixels": 586336,
+    "final9bAcceptance": false
   },
-  "timing71": {
-    "run": 44190925451,
-    "result": "Cancellation requested through GitHub UI because ec26102 supersedes142; not accepted as pass"
+  "pairedProjection70": {
+    "run": 44188832522,
+    "result": "6/6 pass, same-runner3baseline/3cached; unchanged gates",
+    "baselineMs": [
+      11199.7,
+      11433.6,
+      11332.7
+    ],
+    "cachedMs": [
+      9876.6,
+      9715.9,
+      10748.6
+    ],
+    "artifact": 14376381713,
+    "sha256": "426a780410d70643cd760e61c2af23b63c185a5f81a23c2564024f823f6a7ed4"
   },
-  "native819": {
+  "priorNative819": {
     "run": 44182605668,
-    "result": "canceled; two real fixture failures corrected in ec26102",
+    "result": "Superseded/canceled; two fixture defects fixed in ec26102",
     "art": {
       "id": 14376207779,
       "sha256": "2ae1ae981a162e7f83a03e1e85a3421a16c8e8f3b4a8a1aa5516e42ff9a4c0a8",
@@ -476,21 +138,48 @@
       "id": 14377575279,
       "sha256": "072bd88d3d2a05997dcbc5e0aedafe991eef581ff2dce0b2b620f1d46da3817f",
       "verified": true
-    }
+    },
+    "reviewed": [
+      "Colosseum centre normal/max and left lateral",
+      "selected valley normal/max",
+      "globe WebGL/fallback centre/east/west/Uncharted",
+      "dry Frostmere/Emberreach normal",
+      "water/bridge; found and corrected dark liquid grid"
+    ]
   },
-  "islandEdges": {
-    "cause": "Bilinear coast field but nearest-sector threshold/broadness creates internal vertical cap steps",
-    "fix": "Bilinear threshold/broadness sampling; strict public-sector clipping and original geography retained",
-    "red": "New exact regression loses shore support at an internal boundary on ec26102",
-    "green": "44 focused checks pass including unchanged solid-strip,8town and private-alpha assertions",
-    "sourceReview": "Approved increment; no findings; native rotated review required",
-    "scope": "No allocation/cache-bound/geometry/artwork/private projection changes; one cached texture build only"
+  "precedingGates": {
+    "source": "854f3ae",
+    "ci": 44195169226,
+    "ciResult": "success",
+    "ui": 44195169259,
+    "uiResult": "success",
+    "timing": 44195169198,
+    "timingResult": "success",
+    "atlasAndSmoke": "Superseded when water correction published; no pass claimed"
   },
-  "releasePreflight": {
-    "productionDeployment": "dpl_2Et3UkKAWbsLf6TsABzxoxPg5gpJ",
-    "source": "2893076856e20bc64f00e94e132d26dd0d76b26d",
+  "release": {
+    "project": "prj_ZmH66I1zyOARUt8OXdTl7CN9r18d",
+    "team": "team_oZRrN2ckoy5ge7NgZfp1B6de",
+    "currentProduction": "dpl_2Et3UkKAWbsLf6TsABzxoxPg5gpJ",
+    "host": "aurevane-gsi1a8028-zeijms-projects.vercel.app",
+    "canonical": "https://aurevane-rpg.com",
     "liveRoutesVersion": "dd604b9c-e5a1-4641-b28b-710a520f7290",
-    "enabledGuards": 9,
-    "productionMutated": false
-  }
+    "enabledRetirementGuards": 9,
+    "gitDeploymentsDisabled": true,
+    "required": "All final source gates + native visual review; refreshmain, merge equal tested tree, ONE staged Production build, smoke and promote SAME build",
+    "forbidden": [
+      "Preview",
+      "PR1040 migrations/cron replay",
+      "content republication",
+      "player reset",
+      "diagnostic/evidence branch merge or deployment",
+      "resumed hourly tasks"
+    ]
+  },
+  "remaining": [
+    "Complete test-helper typing/fullquality, publish final tested candidate and finish its five configured gates.",
+    "Review final native centre/both lateral Colosseum, valley, rotated globe, water, snow, towns and responsive controls.",
+    "Perform authorized one-build release and canonical postflight only after passing gates."
+  ],
+  "updatedAt": "2026-11-17T23:25:24.911Z"
 }
