@@ -2536,51 +2536,54 @@ describe('native map input and bounded lifecycle', () => {
       vi.unstubAllGlobals()
     }
   })
-  it('does not cancel a held-key route when the approved tile leads its visual landing', () => {
-    const clock = vi.spyOn(performance, 'now').mockReturnValue(0)
-    const s = scene()
-    const view = {
-      ...s.view,
-      sectors: s.view.sectors.map((sector) => ({
-        ...sector,
-        cells: sector.cells.map((cell) => ({ ...cell, terrain: '.', walkable: true })),
-      })),
-    }
-    const origin = view.position
-    const approved = { ...origin, x: origin.x + 3 }
-    const route = localRoute(view, origin, approved)!
-    s.renderer.update(view)
-    s.motion.plan(route, view.sectors, 0)
-    try {
-      // A rapid click route is already approved at x+3 while its canvas is
-      // still crossing from x+2. The held key must extend from the approved
-      // tile instead of submitting that tile again and cancelling the route.
-      clock.mockReturnValue(550)
-      expect(s.motion.sample(550).position).toEqual({ ...origin, x: origin.x + 2 })
-      expect(s.motion.nextLanding(550)).toEqual(approved)
-      const authoritative = {
-        ...view,
-        position: approved,
-        route: [],
-        version: view.version + 1,
+  it.each([450, 550])(
+    'does not cancel a held-key route when approval leads its %ims visual landing',
+    (now) => {
+      const clock = vi.spyOn(performance, 'now').mockReturnValue(0)
+      const s = scene()
+      const view = {
+        ...s.view,
+        sectors: s.view.sectors.map((sector) => ({
+          ...sector,
+          cells: sector.cells.map((cell) => ({ ...cell, terrain: '.', walkable: true })),
+        })),
       }
-      s.motion.approveReceipt(authoritative, 550)
-      s.renderer.update(authoritative)
+      const origin = view.position
+      const approved = { ...origin, x: origin.x + 3 }
+      const route = localRoute(view, origin, approved)!
+      s.renderer.update(view)
+      s.motion.plan(route, view.sectors, 0)
+      try {
+        // A rapid click route is already approved at x+3 while its canvas is
+        // still crossing from x+2. The held key must extend from the approved
+        // tile instead of submitting that tile again and cancelling the route.
+        clock.mockReturnValue(now)
+        expect(s.motion.sample(now).position).toEqual({ ...origin, x: origin.x + 2 })
+        expect(s.motion.nextLanding(now)).toEqual(approved)
+        const authoritative = {
+          ...view,
+          position: approved,
+          route: [],
+          version: view.version + 1,
+        }
+        s.motion.approveReceipt(authoritative, now)
+        s.renderer.update(authoritative)
 
-      s.listeners.get('keydown')!({
-        key: 'ArrowRight',
-        preventDefault() {},
-      } as unknown as Event)
-      expect(s.select).toHaveBeenCalledWith({ ...approved, x: approved.x + 3 })
-      s.listeners.get('keyup')!({ key: 'ArrowRight' } as unknown as Event)
-      expect(s.select).toHaveBeenLastCalledWith({ ...approved, x: approved.x + 1 })
-      expect(s.select).not.toHaveBeenCalledWith(approved)
-    } finally {
-      s.renderer.dispose()
-      clock.mockRestore()
-      vi.unstubAllGlobals()
-    }
-  })
+        s.listeners.get('keydown')!({
+          key: 'ArrowRight',
+          preventDefault() {},
+        } as unknown as Event)
+        expect(s.select).toHaveBeenCalledWith({ ...approved, x: approved.x + 3 })
+        s.listeners.get('keyup')!({ key: 'ArrowRight' } as unknown as Event)
+        expect(s.select).toHaveBeenLastCalledWith({ ...approved, x: approved.x + 1 })
+        expect(s.select).not.toHaveBeenCalledWith(approved)
+      } finally {
+        s.renderer.dispose()
+        clock.mockRestore()
+        vi.unstubAllGlobals()
+      }
+    },
+  )
   it('starts smoothly after a long idle and a small pointer slip without shifting the camera', () => {
     const s = scene()
     s.renderer.settings({ animate: false, zoom: 1 })

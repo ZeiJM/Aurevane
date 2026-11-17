@@ -4154,7 +4154,14 @@ export function createMapRenderer(
     }
     const now = performance.now(),
       sample = motion.sample(now),
-      p = sample.point,
+      approved = mapPoint(motion.approvedPosition(now), view.sectors, sample.point),
+      // An arrival receipt can lead the visual catch-up. Continuing that same
+      // direction must start beyond the approved tile, or a tap's release can
+      // select the old landing and cancel the new step.
+      p =
+        (approved.x - sample.point.x) * offset.x + (approved.y - sample.point.y) * offset.y > 0
+          ? approved
+          : sample.point,
       base = { x: Math.floor(p.x) + 0.5, y: Math.floor(p.y) + 0.5 }
     let from = pick(base) ?? sample.position,
       position: WorldPosition | null = null,

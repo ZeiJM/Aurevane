@@ -21,6 +21,33 @@ them. Keep automatic Vercel Git deployments disabled and older watchers paused.
 
 ## Continuous interactive work — November17
 
+### Recovered candidate and Timing64 input correction
+
+Continuation recovered frozen source `9906e0dd396a8fbd8fb82212fd7af8b2cbbadd0d`,
+tree `c0083f8e8a818f129f1092335a85ad26cfa81354`. Its CI/database foundation,
+UI layout and complete local `pnpm check` pass: 17,824 Vitest tests plus seven
+Node tests, formatting, lint, all package types and production builds. This is
+evidence for that exact source, not a pass for later corrections.
+
+Timing64/run44170722223 passes all three mobile crowd cases and59/60 desktop
+executions. Rapid-click repeat11 fails its first subsequent arrow tap at1443;
+the exact requested rapid-click destination had already arrived successfully.
+Artifact14368943195 is hash verified
+`2a58cb13acf2e10893b594668f1d4e0b6dae37e197433164a0be3513dd727db9`.
+Its trace records owned position X10 while visual catch-up trails that tile;
+keydown sends X12 and release sends X10, cancelling the new step. This is an
+input-origin defect, not evidence that the original peer-interpolation failure
+recurred or that the renderer passes all performance requirements.
+
+The existing regression covered the late550ms visual phase only. Its added450ms
+phase fails on the frozen source (lookahead X10 instead of expected X11), then
+passes when continuing input uses the farther approved point along its direction.
+Visual interpolation, legal terrain/exits, cadence, command queue, server
+validation, native assertions, deadlines, zero retries and all63 timing executions
+remain unchanged. Renderer/motion/controller coverage passes362 cases. The
+correction still requires final full quality and fresh exact-source native gates.
+The obsolete candidate must not be merged or deployed; hourly tasks stay paused.
+
 Nick explicitly stopped hourly continuation. Automation_9dd57abfa004819195b30acab8a54150
 is confirmed disabled, as is the older Automation_661d7a3712ec8191939d0104f5c5a773.
 Continue in this conversation through remaining scope and configured quality gates;
