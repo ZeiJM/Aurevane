@@ -16,6 +16,10 @@ on:
       - 'supabase/migrations/*personal*'
       - 'supabase/migrations/*world*'
       - '.github/workflows/living-atlas-browser.yml'
+      - '.github/scripts/configure-supabase-test-ports.py'
+      - '.github/scripts/configure-supabase-test-ports.test.py'
+      - '.github/scripts/verify-world-map-release-transaction.py'
+      - '.github/scripts/apply-aurevane-world-map-geometry.test.py'
   workflow_dispatch:
     inputs:
       staging_dry_run:
@@ -72,6 +76,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @aurevane/web exec playwright install --with-deps chromium
       - run: |
+          python .github/scripts/configure-supabase-test-ports.test.py
+          python .github/scripts/configure-supabase-test-ports.py
           python .github/scripts/configure-discipline-test-mail.test.py
           python .github/scripts/configure-discipline-test-mail.py
           pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
@@ -92,7 +98,7 @@ jobs:
           printf '::add-mask::%s\n' "$ANON_KEY" "$local_secret"
           {
             printf '%s\n' AUREVANE_ENV=local NEXT_PUBLIC_AUREVANE_ENV=local
-            printf '%s\n' NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+            printf 'NEXT_PUBLIC_SUPABASE_URL=%s\n' "$SUPABASE_TEST_API_URL"
             printf 'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=%s\n' "$ANON_KEY"
             printf 'SUPABASE_SECRET_KEY=%s\n' "$local_secret"
           } >> "$GITHUB_ENV"

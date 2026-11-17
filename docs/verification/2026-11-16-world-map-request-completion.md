@@ -33,6 +33,32 @@ them. Keep automatic Vercel Git deployments disabled and older watchers paused.
   older run excludes latest coast/border/marker work and is not current acceptance.
 - No merge, deployment, migration, content publication or cron mutation occurred.
 
+## Native815 startup diagnosis — November17
+
+- Corrected source `b21fa9f9c368a043e17cc03d1f37a0c92f80f5dd`, tree
+  `15aeca03fb13eab3f70f3eb186cc7de1343f618c`, is draft PR1043.
+  Four affected workflows started automatically: Atlas44142508679,
+  Browser Smoke44142508956, timing44142508698, CI44142508835.
+- Atlas44142508679/job134248815715 fails BEFORE browser/PG cases: mail tests5
+  pass, then Docker reports `failed to bind host port 0.0.0.0:54322/tcp:
+  address already in use`. The step name is not evidence of a mail-test failure.
+  No unchanged retry or passed acceptance is claimed.
+- Reuse the existing disposable API/database/shadow port configurator in Atlas
+  and export its selected API to the authenticated build. The real local PG17
+  transaction verifier now requires config, loopback URI and the inspected
+  running Aurevane container's actual5432 binding to agree. Missing/mismatched
+  bindings, remote hosts, different containers and non-PG17 targets still reject.
+  Production apply code, protected modes, migrations, rollback/locking/postflight
+  SQL, individual deadlines/retries and all browser cases are unchanged.
+- Failing-before workflow/selected-PG-binding regressions now pass:8 port tests,
+  12 release-safety tests,5 mail tests and56 verification-runner tests. Fresh
+  hosted execution must still prove the real PG17 and browser acceptance.
+- Local full `pnpm check` is running separately; do not report its result early.
+  The generated full-frame colosseum detail experiment returned1536x1024 again,
+  so it does not resolve the backing-resolution deficit. It is NOT integrated;
+  original selected runtime/master bytes remain intact. Continue exact native
+  wall review rather than treating a generated thumbnail as final fidelity.
+
 ## Native814 detail-view diagnosis and repair — November17
 
 - The two failures are the same obsolete fixture expectation, not evidence of

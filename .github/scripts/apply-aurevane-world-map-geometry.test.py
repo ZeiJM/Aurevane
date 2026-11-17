@@ -20,7 +20,9 @@ class ProductionReleaseTests(unittest.TestCase):
         verifier = self.local_verifier()
         config = {"project_id": "aurevane", "db": {"port": 54322, "major_version": 17}}
         container = {"Name": "/supabase_db_aurevane", "State": {"Running": True},
-                     "Config": {"Image": "public.ecr.aws/supabase/postgres:17.6.1.155"}}
+                     "Config": {"Image": "public.ecr.aws/supabase/postgres:17.6.1.155"},
+                     "NetworkSettings": {"Ports": {"5432/tcp": [
+                         {"HostIp": "0.0.0.0", "HostPort": "54322"}]}}}
         uri = "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
         verifier["validate_local_target"](config, uri, container)
         for invalid in (uri.replace("127.0.0.1", "db.example.com"),
@@ -31,6 +33,24 @@ class ProductionReleaseTests(unittest.TestCase):
         wrong["Name"] = "/supabase_db_production"
         with self.assertRaises(SystemExit):
             verifier["validate_local_target"](config, uri, wrong)
+
+    def test_disposable_verifier_requires_config_uri_and_actual_pg17_binding_to_agree(self):
+        verifier = self.local_verifier()
+        config = {"project_id": "aurevane", "db": {"port": 61234, "major_version": 17}}
+        uri = "postgresql://postgres:postgres@127.0.0.1:61234/postgres"
+        container = {"Name": "/supabase_db_aurevane", "State": {"Running": True},
+                     "Config": {"Image": "public.ecr.aws/supabase/postgres:17.6.1.155"},
+                     "NetworkSettings": {"Ports": {"5432/tcp": [
+                         {"HostIp": "0.0.0.0", "HostPort": "61234"}]}}}
+        verifier["validate_local_target"](config, uri, container)
+        for binding in (None, [], [{"HostIp": "0.0.0.0", "HostPort": "54322"}],
+                        [{"HostIp": "192.0.2.1", "HostPort": "61234"}]):
+            wrong = deepcopy(container)
+            wrong["NetworkSettings"]["Ports"]["5432/tcp"] = binding
+            with self.subTest(binding=binding), self.assertRaises(SystemExit):
+                verifier["validate_local_target"](config, uri, wrong)
+        with self.assertRaises(SystemExit):
+            verifier["validate_local_target"](config, uri.replace("61234", "54322"), container)
 
     def test_disposable_baseline_excludes_exactly_four_new_migrations(self):
         verifier = self.local_verifier()

@@ -140,6 +140,15 @@ printf '%s' "$TEST_AUTH_API_URL"
         )
         self.assertEqual(result.stdout, "http://127.0.0.1:61234")
 
+    def test_atlas_selects_ports_before_startup_and_builds_with_the_selected_api(self):
+        source = (Path(__file__).parents[1] / "workflows/living-atlas-browser.yml").read_text()
+        configure = "python .github/scripts/configure-supabase-test-ports.py"
+        self.assertIn(configure, source)
+        self.assertLess(source.index(configure), source.index("pnpm exec supabase start"))
+        self.assertIn('NEXT_PUBLIC_SUPABASE_URL=%s\\n\' "$SUPABASE_TEST_API_URL"', source)
+        for path in (SCRIPT.name, Path(__file__).name, "verify-world-map-release-transaction.py"):
+            self.assertIn(f"      - '.github/scripts/{path}'", source)
+
 
 if __name__ == "__main__":
     unittest.main()
