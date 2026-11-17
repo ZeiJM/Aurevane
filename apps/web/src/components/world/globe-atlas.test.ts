@@ -297,6 +297,54 @@ it('breaks a broad public shore into unequal headlands and bays without revealin
   for (let y = 32; y < 160; y++) expect(alpha(64, y)).toBe(255)
 })
 
+it('cuts visible unequal bays into broad coastlines at globe scale', () => {
+  const atlas = Array.from({ length: 32 * 24 }, (_, n) => ({
+    id: `coast-${n}`,
+    name: 'Coast',
+    coordinate: '',
+    regionId: 'verdant-expanse',
+    column: n % 32,
+    row: Math.floor(n / 32),
+    charted: true,
+  })).filter((cell) => cell.column < 16)
+  const image = globeAtlasDetailPixels(atlas, 32, 24)
+  const edge = Array.from({ length: 256 }, (_, n) => {
+    const y = n + 64
+    for (let x = 255; x >= 160; x--)
+      if (image.pixels[(y * image.width + x) * 4 + 3]! >= 128) return x
+    throw new Error('Lost broad public land support')
+  })
+  // One coarse district spans16 texels. Sub-district ripples alone leave the
+  // same bulbous silhouette at the real320px mobile globe size.
+  expect(Math.max(...edge) - Math.min(...edge)).toBeGreaterThan(16)
+  for (let y = 64; y < 320; y++) {
+    expect(image.pixels[(y * image.width + 160) * 4 + 3]).toBe(255)
+    expect(image.pixels[(y * image.width + 256) * 4 + 3]).toBe(0)
+  }
+})
+
+it('retains solid land under all canonical public town markers after coastal inlets', () => {
+  const atlas = atlasSectors().map((sector) => ({
+    id: sector.id,
+    name: sector.name,
+    coordinate: sector.coordinate,
+    regionId: sector.regionId,
+    column: sector.atlasColumn!,
+    row: sector.atlasRow!,
+    charted: sector.charted,
+    townId: sector.townId,
+    settlementOutskirtsOf: sector.settlementOutskirtsOf,
+  }))
+  const image = globeAtlasDetailPixels(atlas, ATLAS_COLUMNS, ATLAS_ROWS)
+  const towns = atlas.filter((cell) => cell.charted && cell.id === cell.townId)
+  expect(towns).toHaveLength(8)
+  for (const town of towns) {
+    const x = town.column * 16 + 8,
+      y = town.row * 16 + 8
+    expect(image.pixels[(y * image.width + x) * 4 + 3], town.name).toBe(255)
+  }
+})
+
 it('retains thin public land across longitude zero and keeps hidden neighbours transparent', () => {
   const atlas = Array.from({ length: 16 }, (_, column) => ({
     id: `strip-${column}`,

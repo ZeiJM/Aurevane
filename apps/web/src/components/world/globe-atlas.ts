@@ -150,12 +150,14 @@ export function globeAtlasDetailPixels(
     row >= 0 && row < rows
       ? coastField[row * columns + (((column % columns) + columns) % columns)]!
       : 0
-  const thresholds = new Float32Array(mask.length)
+  const thresholds = new Float32Array(mask.length),
+    broadCoasts = new Float32Array(mask.length)
   for (let row = 0; row < rows; row++)
     for (let column = 0; column < columns; column++) {
       let maximum = 0
       for (let dy = -1; dy <= 1; dy++)
         for (let dx = -1; dx <= 1; dx++) maximum = Math.max(maximum, coastAt(column + dx, row + dy))
+      broadCoasts[row * columns + column] = smooth(0.8, 0.98, maximum)
       // Thin known islands/circumnavigation land retain a narrow continuous body.
       thresholds[row * columns + column] = Math.max(
         0.035,
@@ -227,9 +229,21 @@ export function globeAtlasDetailPixels(
     // Broad coasts can support bays/headlands. Thin islands and corridors keep
     // their existing support rather than being severed by the same displacement.
     const relief = smooth(0.25, 0.75, threshold)
+    const baseDistance = blurred - threshold
+    // Narrow, domain-warped cuts form unequal inlets rather than a repeated
+    // row of rounded scallops. Stop inland and spare small islands/corridors.
+    let inlet = 0
+    const broad = broadCoasts[row * columns + column]!
+    if (broad > 0 && baseDistance < 0.22) {
+      const warp = coastalNoise(x, y + 97, 0.009) * 18
+      inlet =
+        (1 - smooth(0.02, 0.14, Math.abs(coastalNoise(x + warp, y - warp, 0.011) - 0.5))) *
+        broad *
+        (1 - smooth(0.16, 0.22, baseDistance))
+    }
     const coastDistance =
-      blurred -
-      threshold +
+      baseDistance -
+      inlet * 0.8 +
       (coastalNoise(x, y, 0.028) - 0.5) * 0.025 +
       relief *
         ((coastalNoise(x, y + 31, 0.035) - 0.5) * 0.24 + (coastalNoise(x, y, 0.13) - 0.5) * 0.08)

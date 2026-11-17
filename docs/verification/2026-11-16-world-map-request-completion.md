@@ -19,6 +19,49 @@ them. Keep automatic Vercel Git deployments disabled and older watchers paused.
 - A scheduled run before lease expiry inspects only. Release or renew this lease
   at each safe checkpoint; after expiry a fresh worker may resume from the branch.
 
+## Native814 and continuing coastline source correction — November17 16:52UTC
+
+- Dispatched exactly one fresh Living Atlas run on source
+  `2c8cd8e0741988c9534433189626dbf1436c0061`, tree
+  `a8f03c212f11fbca4b35d00382ad2829ad98fd7d`:
+  <https://github.com/ZeiJM/Aurevane/actions/runs/44130723106> (#814),
+  verify job134206735390. UI independently confirms that SHA, verify running,
+  staging/production jobs skipped. All5 protected flags false, deployment SHA
+  blank, expected candidate exactly the source above. No duplicate while active.
+  This run includes water-slab repair, current-position/detail cases and native
+  fixture/frame observation corrections. It does NOT include later coastline
+  source work or newly generated artwork. Dispatch is never passing evidence.
+- Broad-coast regression proves previous contour variation only8 texels, less
+  than one16-texel public district. Added a stricter independent broad-shore case
+  requiring >16 texels while preserving deep public support and transparent
+  unknown ground. It failed before and passes after unequal domain-warped inlets.
+  Deep cuts fade inland; small-island/corridor gating preserves existing support.
+  All original island/settlement/liquid/privacy/shore/longitude assertions retained.
+  Stronger erosion and narrower blur prototypes were rejected after support
+  failures, without weakening those guards.
+- Inspected actual shared600px center and320px east source projections: more
+  unequal inlets are visible, but inherited macro topology/longitude corridor
+  remain. Owner-requested natural-coast acceptance is still OPEN; source metrics
+  and projections cannot close native visual rows. Added center/east/west captures
+  to the existing native WebGL/software case on desktop/mobile, restoring the
+  original geographic camera before existing veil/privacy assertions.
+  Receipt: `2026-11-17-globe-inlet-source-review.json`; recipe unchanged.
+- Scope: shared globe presentation only; no server/schema/authoritative geometry,
+  content publication, positions/progress or selected master artwork changes.
+  Development checks: globe-atlas/fallback/materials/veil, globe/workspace/Travel
+  Point UI, scoped lint/format/types and native discovery. Full quality/configured
+  exact-head/native gates remain due on the final combined candidate. Database/
+  combat suites excluded from this small loop because their sources are unchanged.
+- Two generated colosseum detail candidates remain unaccepted: architecture
+  shifts cannot be registered cleanly over the chosen master. Continuing exact
+  source-framing detail generation/review; no generated candidate is in runtime.
+- Development evidence:43 tests/7 globe/material/fallback/veil/workspace/Travel
+  Point files pass, including all8 canonical town-marker land supports. Scoped
+  zero-warning ESLint/format, web TypeScript and801-entry native discovery pass.
+  Discovery is not execution. A root-cwd lint invocation ignored web paths; it
+  was rerun from the web package with the proper configuration.
+  Original colosseum and selected fire/ice master bytes remain unchanged.
+
 ## Native job envelope — November17
 
 The complete #813 source log spans15:13:06–16:13:17 and stopped partway through

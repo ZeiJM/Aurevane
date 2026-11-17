@@ -519,6 +519,22 @@ export function registerWorldMapCorrectionCases(harness: Harness) {
           await expect.poll(async () => (await observation(page)).globeDraws).toBeGreaterThan(0)
           await expect(page.locator('canvas[data-globe-fallback]')).toHaveCount(0)
         } else await expect(page.locator('canvas[data-globe-fallback]')).toBeVisible()
+        // Record the real shared coastline at three orientations on both native
+        // backends and both applicable viewports. A screenshot is evidence for
+        // visual review, never an automatic natural-coast acceptance result.
+        const rotate = async (steps: number) => {
+          for (let turn = 0; turn < Math.abs(steps); turn++)
+            await globe.press(steps < 0 ? 'ArrowLeft' : 'ArrowRight')
+        }
+        for (const view of [
+          { name: 'center', steps: 0 },
+          { name: 'east', steps: 4 },
+          { name: 'west', steps: -8 },
+        ]) {
+          await rotate(view.steps)
+          await saveScene(page, info, `art-surfaces-correction-globe-${backend}-coast-${view.name}`)
+        }
+        await rotate(4) // Restore the original geographic camera before veil checks.
         // Centre the deliberate public veil using native keyboard rotation.
         // These are illustrative globe angles, not hidden sector coordinates.
         const current = globeView.sectors.find(
