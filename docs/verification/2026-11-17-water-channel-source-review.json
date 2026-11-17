@@ -1,0 +1,93 @@
+{
+  "scope": "Offline real map renderer on installed Skia Canvas2D. Not browser/auth/handset/performance acceptance.",
+  "baselineSource": "934cf0fb17b843e23820701a8716e7ebe172407a",
+  "baselineMethod": "Load exact baseline map-water.ts in the isolated CLI process through a read override, retaining all other renderer/asset bytes. No branch or reference switch.",
+  "scene": "Canonical native Verdant water review fixture",
+  "baseline": {
+    "scope": "Real source renderer/assets on offline Skia Canvas2D; not native browser, auth, physical-device or timing acceptance",
+    "scene": "verdant-expanse",
+    "zoom": 1,
+    "position": {
+      "sectorId": "atlas:71:32",
+      "x": 5,
+      "y": 0
+    },
+    "width": 904,
+    "height": 754,
+    "loaded": 20,
+    "missed": [],
+    "imageHash": "0393063af29e57d1a997f2d268147b424bff47580cd9671b8f3793a478a94a30",
+    "sources": {
+      "apps/web/src/components/world/map-renderer.ts": "26d4babcceab97e8cc5ef6127a5b443405cfd03190e649100acc9d38d7e27b42",
+      "apps/web/src/components/world/map-water.ts": "76fe99505b40a9e93545ab55c774e5d376dd7a22dfc3c31481ec76c08ba3c98e",
+      "apps/web/e2e/world-map-correction-scenes.ts": "afae2523ed9318a361112b8b68744c2a10785ef0ed73e300c5d2114c72fd957e"
+    },
+    "assets": {
+      "apps/web/public/media/art/world/runtime/terrain-v02.webp": "2f10ff7e77d096643a47614b92330dbd357c68d3df32de4b6b22038b81fdf17d",
+      "apps/web/public/media/art/world/runtime/buildings-v02.webp": "d7b92e19a1f804b07d274fafd36c6663a73bcf67f416e1da9d74c3d183228029",
+      "apps/web/public/media/art/world/runtime/nature-v02.webp": "f9a10a465050e399d86dd49b6914af7f3cbb3eb8966009f1650b1b73c91d82e2",
+      "apps/web/public/media/art/world/runtime/props-v02.webp": "aaa9b4cc7c35ce37baec82fb5c7bbfa06772a0bfc3ee212bf65e2d81cf03db3f",
+      "apps/web/public/media/art/world/runtime/biomes-v02.webp": "73fa2c77076ff57de05f98a3f5ec38065faf5b18feb91cb22b12086d3173cc01",
+      "apps/web/public/media/art/world/runtime/beauties-v03.webp": "fbfd6121d3c864532e144fff9eaf0873144b0e1bd45836e2ec9db17a4e88f0b4",
+      "apps/web/public/media/art/world/runtime/regional-ground-v02.webp": "7a8d46c9dc03bb98cbbba453ea8a19bc285007c30822f666ef1beefe6e910d43",
+      "apps/web/public/media/art/world/runtime/living-trees-v01.webp": "30614b3278d5b3ec65fe6f2e77784406ea75936a7b7cfd45e87b767067b31a11",
+      "apps/web/public/media/art/world/runtime/water-materials-v01.webp": "75222437badb8b2b36dbcee70bc178d684345dbe9a85fab38a7294eeaf07ce3d",
+      "apps/web/public/media/art/world/runtime/ocean-grand-islet-v01.webp": "f39c1f17b7655a118324487ecc744db5158571e7f4dc0fb25aae308bb0273b7a",
+      "apps/web/public/media/art/world/runtime/grand-discoveries-v01.webp": "06eb20e08d34c40b084b264eefd9f1555a602e9aea908ce7b8a7292ada4356cf",
+      "apps/web/public/media/art/world/runtime/town-ordinary-architecture-v01.webp": "3ebf3b00f5863fc347bc83fdac3784808b7a8622fd606ab1b614e21b8f7deb86",
+      "apps/web/public/media/art/world/runtime/settlement-floors-v01.webp": "2357c0614043ee10490808b397626b37ae93b4224ea952c7796d8734772c23b2",
+      "apps/web/public/media/art/world/runtime/grand-bridges-v01.webp": "fd838b585306f7cba8ebe9f36725c9983e1922a286eb6e8cb73f76107f431725",
+      "apps/web/public/media/art/world/runtime/wild-verges-v01.webp": "7c7898bab34c3206a396c82e489a9fbe1c9c78996b28ff4c46df979bb507cdeb",
+      "apps/web/public/media/art/world/runtime/settlement-dressing-v01.webp": "456dee895fe622aa6de3fa763a3104dd3d52b6ff8de766af3ef22ae6710f6514",
+      "apps/web/public/media/art/world/runtime/hamlet-dressing-v01.webp": "e81932d429a5055c7c0c3d17a8fc7eee8c3fe55f3ca7fe2a0f92c694cfc8a510",
+      "apps/web/public/media/art/world/runtime/regional-scenery-extra-v01.webp": "56971cab932b88f27f2d4ef4a92d7f7f4f381ddb4735c98d73708936ead5721c",
+      "apps/web/public/media/art/world/runtime/regional-scenery-v01.webp": "69d414da26b67b5a653053dfdc8ca13bafa9623d7fcee6152073b040bb236ee5",
+      "apps/web/public/media/art/world/runtime/hamlet-buildings-v01.webp": "2ecdb70bf03d8480ed52e675786d731672c44d4224a314381bf2319dc9e8ab6c"
+    }
+  },
+  "candidate": {
+    "scope": "Real source renderer/assets on offline Skia Canvas2D; not native browser, auth, physical-device or timing acceptance",
+    "scene": "verdant-expanse",
+    "zoom": 1,
+    "position": {
+      "sectorId": "atlas:71:32",
+      "x": 5,
+      "y": 0
+    },
+    "width": 904,
+    "height": 754,
+    "loaded": 20,
+    "missed": [],
+    "imageHash": "b64a0cc73f0fc6fca2e665ba6c7c94fd42a6927fde4094c4dad441cd96f90ea8",
+    "sources": {
+      "apps/web/src/components/world/map-renderer.ts": "26d4babcceab97e8cc5ef6127a5b443405cfd03190e649100acc9d38d7e27b42",
+      "apps/web/src/components/world/map-water.ts": "5bcd797cf8090838c8500b44895447484409299c7fab7d7aa1a84bdd04442fd4",
+      "apps/web/e2e/world-map-correction-scenes.ts": "afae2523ed9318a361112b8b68744c2a10785ef0ed73e300c5d2114c72fd957e"
+    },
+    "assets": {
+      "apps/web/public/media/art/world/runtime/terrain-v02.webp": "2f10ff7e77d096643a47614b92330dbd357c68d3df32de4b6b22038b81fdf17d",
+      "apps/web/public/media/art/world/runtime/buildings-v02.webp": "d7b92e19a1f804b07d274fafd36c6663a73bcf67f416e1da9d74c3d183228029",
+      "apps/web/public/media/art/world/runtime/nature-v02.webp": "f9a10a465050e399d86dd49b6914af7f3cbb3eb8966009f1650b1b73c91d82e2",
+      "apps/web/public/media/art/world/runtime/props-v02.webp": "aaa9b4cc7c35ce37baec82fb5c7bbfa06772a0bfc3ee212bf65e2d81cf03db3f",
+      "apps/web/public/media/art/world/runtime/biomes-v02.webp": "73fa2c77076ff57de05f98a3f5ec38065faf5b18feb91cb22b12086d3173cc01",
+      "apps/web/public/media/art/world/runtime/beauties-v03.webp": "fbfd6121d3c864532e144fff9eaf0873144b0e1bd45836e2ec9db17a4e88f0b4",
+      "apps/web/public/media/art/world/runtime/regional-ground-v02.webp": "7a8d46c9dc03bb98cbbba453ea8a19bc285007c30822f666ef1beefe6e910d43",
+      "apps/web/public/media/art/world/runtime/living-trees-v01.webp": "30614b3278d5b3ec65fe6f2e77784406ea75936a7b7cfd45e87b767067b31a11",
+      "apps/web/public/media/art/world/runtime/water-materials-v01.webp": "75222437badb8b2b36dbcee70bc178d684345dbe9a85fab38a7294eeaf07ce3d",
+      "apps/web/public/media/art/world/runtime/ocean-grand-islet-v01.webp": "f39c1f17b7655a118324487ecc744db5158571e7f4dc0fb25aae308bb0273b7a",
+      "apps/web/public/media/art/world/runtime/grand-discoveries-v01.webp": "06eb20e08d34c40b084b264eefd9f1555a602e9aea908ce7b8a7292ada4356cf",
+      "apps/web/public/media/art/world/runtime/town-ordinary-architecture-v01.webp": "3ebf3b00f5863fc347bc83fdac3784808b7a8622fd606ab1b614e21b8f7deb86",
+      "apps/web/public/media/art/world/runtime/settlement-floors-v01.webp": "2357c0614043ee10490808b397626b37ae93b4224ea952c7796d8734772c23b2",
+      "apps/web/public/media/art/world/runtime/grand-bridges-v01.webp": "fd838b585306f7cba8ebe9f36725c9983e1922a286eb6e8cb73f76107f431725",
+      "apps/web/public/media/art/world/runtime/wild-verges-v01.webp": "7c7898bab34c3206a396c82e489a9fbe1c9c78996b28ff4c46df979bb507cdeb",
+      "apps/web/public/media/art/world/runtime/settlement-dressing-v01.webp": "456dee895fe622aa6de3fa763a3104dd3d52b6ff8de766af3ef22ae6710f6514",
+      "apps/web/public/media/art/world/runtime/hamlet-dressing-v01.webp": "e81932d429a5055c7c0c3d17a8fc7eee8c3fe55f3ca7fe2a0f92c694cfc8a510",
+      "apps/web/public/media/art/world/runtime/regional-scenery-extra-v01.webp": "56971cab932b88f27f2d4ef4a92d7f7f4f381ddb4735c98d73708936ead5721c",
+      "apps/web/public/media/art/world/runtime/regional-scenery-v01.webp": "69d414da26b67b5a653053dfdc8ca13bafa9623d7fcee6152073b040bb236ee5",
+      "apps/web/public/media/art/world/runtime/hamlet-buildings-v01.webp": "2ecdb70bf03d8480ed52e675786d731672c44d4224a314381bf2319dc9e8ab6c"
+    }
+  },
+  "diagnosis": "Texture removal and flat-depth ablations retain slabs; disabling only wide per-cell channel strokes removes them. Product repair deletes those three clipped strokes, retains shared depth/texture/banks/19 filaments/animated flow.",
+  "regression": "New channel regression failed before repair with 3 broad strokes and passes after; 443 tests/6 adjacent files pass.",
+  "remaining": "Native verification and broader water/coast visual acceptance remain open."
+}

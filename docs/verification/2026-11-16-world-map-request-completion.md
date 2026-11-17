@@ -12,12 +12,67 @@ them. Keep automatic Vercel Git deployments disabled and older watchers paused.
 
 ## Active worker lease
 
-- Status: active raster coastline/water diagnosis, owned by the November17 15:48UTC continuation.
-- Expires at: `2026-11-17T17:00:00Z`.
+- Status: active water repair/native-fixture correction and remaining art/coast work, owned by this same November17 coding session.
+- Expires at: `2026-11-17T17:30:00Z`.
 - Hourly continuation: enabled by Nick on November 17; one recurring task,
   **Finish Aurevane map corrections**. Older watchers remain paused.
 - A scheduled run before lease expiry inspects only. Release or renew this lease
   at each safe checkpoint; after expiry a fresh worker may resume from the branch.
+
+## Continuing source repair — November17 water slabs and native fixture failures
+
+- **Implemented the photographed water-slab repair.** Used an existing installed
+  Skia Canvas2D binding to execute the real `createMapRenderer`, public projection
+  and unchanged local source assets at the exact Verdant native-review position.
+  Reproduced the photographed dark diamonds. Flat-depth and texture-removal
+  ablations retained them; disabling only the broad per-cell channel strokes
+  removed them. Removed those three clipped dark strokes from `paintWaterGround`.
+  Shared depth, bank/texture detail, all19 fine filaments and animated flow remain.
+  This is separate from the earlier mixed shallow-corner bug, which was NOT the
+  cause in this fixture. No geometry, motion/step timing or saved state changed.
+- Regression failed before repair with three broad clipped strokes, then passed.
+  **443 tests/6 water/renderer/surface/coast/motion/travel files pass**; scoped
+  formatting/lint, web TypeScript and diff checks pass. All native gates still due.
+- Added `.github/scripts/render-world-source-review.cjs`, a no-network/no-DB
+  source-render recipe using an existing optional canvas binding. It loads actual
+  local image bytes and records hashes. Example: `node .github/scripts/render-world-source-review.cjs
+<output-directory> verdant-expanse 1`; supported detail scenes are
+  `remote-colosseum-detail` and `elemental-valley-detail`, zoom0.35–1.4.
+  `WORLD_SOURCE_REVIEW_CANVAS` can point at the installed binding; the managed
+  runtime binding is detected automatically. No application dependency added.
+  Scope is offline source review, NEVER browser/auth/handset/performance acceptance.
+- Fair before/after renders use the exact934cf0 baseline water module through an
+  isolated read override, same viewport, position and identical loaded asset
+  hashes, with zero missing assets. Actual reviewed output removes the dark slabs.
+  Receipt: `2026-11-17-water-channel-source-review.json`. Native confirmation stays
+  open. Software maximum-zoom legal detail views show remaining blurry masonry
+  and waterfall/stone detail; do not call older-art fidelity accepted.
+- #813 is **completed CANCELLED**, sourceadc7d42/tree40f2f925 independently bound
+  in checkout/source logs. PG17/build/story15 passed; Atlas had two failures before
+  cancellation: four-biome colour minimum75 received65 and synthetic mobile frame
+  progress expected>199 received199 at the final poll. Final metrics reached217
+  frames from79 in15.939s; that out-of-window sample is NOT passing evidence.
+  Elapsed15:13→16:13 matches the configured60-minute job envelope, but logs do not
+  explicitly prove the cancellation initiator. Retain all observed failures.
+- Downloaded compact artifact14346107615 (54,867,870bytes), verified SHA256
+  `5563766731c98d6bf0ddf9683bf362bb1667d9f7939a6ea87a4b3c710b645256`.
+  Its four-biome image still displays real15:42 Overcast, contradicting intended
+  clear12:00 fixture. Source route also intercepts `/api/world/presence`; a counted
+  receipt is not proof that a scene was applied. Narrowed to actual World pathname,
+  requested normal visibility scene refresh, set the fixture frozen and required
+  visible12:00/Day/Clear/Frozen BEFORE pausing the light and sampling pixels.
+  Independent colour/material/order bounds are unchanged. Offline exact scene
+  at noon samples[88–91,101,85–87], inside existing bounds. Native proof is pending.
+- Changed the mobile frame condition to in-page RAF observation with the SAME
+  > 120 additional frames,15,000ms timeout,4xCPU, DPI and existing budget assertions.
+  > Cross-process polling can miss its final one-second interval; new artifact
+  > records the actual in-page crossing time. This is a measurement repair pending
+  > native verification, NOT a claim that mobile performance now passes. No added
+  > retry, skip, sleep or relaxed limit. Discovery/types/lint/format pass.
+- Existing immutable #813 contains neither this repair nor the newer934cf marker,
+  water-corner and detail-view additions. The next native candidate must include
+  them, resolve any recurring failures, and complete every applicable gate.
+  Do not replay any PR1040 database, cron, publication or Production operation.
 
 ## Current repairs — November17 position marker and water continuity
 

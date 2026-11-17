@@ -328,6 +328,36 @@ describe('world-connected water presentation', () => {
       vi.unstubAllGlobals()
     }
   })
+  it('uses shared depth instead of broad channel shadows clipped into tile-shaped slabs', () => {
+    const profile = buildWaterField([
+      sector('river', 0, [
+        [3, 2, '~'],
+        [3, 3, '~'],
+        [3, 4, '~'],
+      ]),
+    ])
+      .get('river')!
+      .cells.get('3:3')!
+    expect(profile.channel).toBe(true)
+    const widths: number[] = []
+    const context = new Proxy(
+      {
+        lineWidth: 1,
+        stroke() {
+          widths.push(this.lineWidth)
+        },
+        createLinearGradient() {
+          return { addColorStop() {} }
+        },
+      },
+      { get: (target, key) => (key in target ? target[key as keyof typeof target] : () => {}) },
+    )
+    paintWaterGround(context as unknown as CanvasRenderingContext2D, profile, 64)
+    expect(widths.filter((width) => width > 64 * 0.1)).toEqual([])
+    // Flow filaments remain; removing every water detail is not the repair.
+    expect(widths).toHaveLength(19)
+  })
+
   it('paints equal depth colours on a shared edge instead of diagonal per-tile steps', () => {
     const sample = (corners: readonly [number, number, number, number], px: number) => {
       let result: number[] = []

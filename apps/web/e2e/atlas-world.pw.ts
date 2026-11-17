@@ -1578,13 +1578,23 @@ test('a synthetic population of 100 has bounded rendering at high DPI and lower 
   const costPath = info.outputPath('synthetic-world-render-cost.json')
   writeFileSync(costPath, JSON.stringify({ baseline }, null, 2))
   let metrics = baseline
+  let reached: { renderFrames: number; sampledAt: number } | null = null
   try {
-    await expect
-      .poll(async () => Number(await canvas.getAttribute('data-render-frames')), { timeout: 15000 })
-      .toBeGreaterThan(before + 120)
+    // Observe in the rendering page: a one-second cross-process polling gap can
+    // miss the last part of this unchanged 15-second, >120-frame window.
+    const progress = await page.waitForFunction(
+      (minimum) => {
+        const canvas = document.querySelector<HTMLCanvasElement>('canvas[data-world-stage]')!
+        const renderFrames = Number(canvas.dataset.renderFrames)
+        return renderFrames > minimum ? { renderFrames, sampledAt: performance.now() } : null
+      },
+      before + 120,
+      { timeout: 15000, polling: 'raf' },
+    )
+    reached = await progress.jsonValue()
   } finally {
     metrics = await readMetrics()
-    writeFileSync(costPath, JSON.stringify({ ...metrics, baseline }, null, 2))
+    writeFileSync(costPath, JSON.stringify({ ...metrics, baseline, reached }, null, 2))
     await info.attach('synthetic-world-render-cost', {
       path: costPath,
       contentType: 'application/json',
