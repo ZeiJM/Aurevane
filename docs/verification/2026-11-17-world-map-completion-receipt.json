@@ -15,7 +15,13 @@
     "owner": "Nick-directed takeover into this interactive conversation",
     "oldAutomation": "Automation_661d7a3712ec8191939d0104f5c5a773",
     "oldAutomationEnabled": false,
-    "leaseExpires": "2026-11-17T20:00:00Z"
+    "leaseExpires": "2026-11-17T18:25:00Z",
+    "status": "interactive source work complete; same-conversation scheduled continuation owns the next safe iteration",
+    "replacementAutomation": "Automation_9dd57abfa004819195b30acab8a54150",
+    "replacementEnabled": true,
+    "replacementConversation": "6af92530-a2cc-83e9-b358-44c2af4fba0f",
+    "nextCheck": "2026-11-17T14:30:00-04:00",
+    "olderAurevaneTasks": "all confirmed disabled by private task lookup"
   },
   "native814": {
     "run": 44130723106,
@@ -59,7 +65,61 @@
     "timing": 44143478524,
     "ci": 44143478487,
     "uiLayout": 44143478523,
-    "allFinalResults": "pending; refresh actual GitHub before acting"
+    "allFinalResults": "pending; refresh actual GitHub before acting",
+    "snapshot": [
+      {
+        "id": 44143478524,
+        "name": "World timing repeat validation",
+        "status": "pending",
+        "conclusion": null
+      },
+      {
+        "id": 44143478767,
+        "name": "Living Atlas browser",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "id": 44143478631,
+        "name": "Browser smoke",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "id": 44143478487,
+        "name": "CI",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "id": 44143478523,
+        "name": "UI layout review",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ],
+    "atlasSnapshot": {
+      "status": "in_progress",
+      "conclusion": null,
+      "passed": [
+        "Set up job",
+        "Run actions/checkout@v4",
+        "Record the tested source tree",
+        "Run actions/setup-node@v4",
+        "Run corepack enable && corepack prepare pnpm@11.17.0 --activate",
+        "Run pnpm install --frozen-lockfile",
+        "Run pnpm --filter @aurevane/web exec playwright install --with-deps chromium",
+        "Run python .github/scripts/configure-supabase-test-ports.test.py",
+        "Verify atomic World release rollback and success on disposable PG17",
+        "Configure disposable World services",
+        "Build the production web bundle",
+        "Verify authenticated quests and World NPC admission"
+      ],
+      "active": [
+        "Verify authenticated Atlas and multiplayer"
+      ],
+      "failed": []
+    }
   },
   "localValidation": {
     "rendererAndSceneTests": 252,
@@ -75,7 +135,7 @@
     "firstFullCheck": "interrupted after identifying sparse-checkout omitted root scripts; missing-file failure reproduced, not an application repair",
     "completeCheckout": "restored with git sparse-checkout disable",
     "previouslyFailingPublicationCase": "passes unchanged after restoring missing scripts",
-    "freshFullCheck": "in progress; /tmp/aurevane-takeover-complete-check.log; do not claim pass"
+    "freshFullCheck": "Running on complete clean checkout; DB768 plus game-core7211 and small packages pass, web tests executing. Final pnpm check NOT yet complete."
   },
   "artwork": {
     "acceptedNewArtwork": false,
@@ -102,7 +162,7 @@
         1536,
         1024
       ],
-      "result": "New fine detail is real but UNACCEPTED: lateral edge inspection shows differing arch/stair registration and contrast/frequency transitions. Do not integrate this prototype blindly.",
+      "result": "UNACCEPTED. Normal/maximum/minimum exact-source offline prototypes and +/-5-tile lateral pans reviewed. Both clipped passes remove the blurred band, but lateral edge views demonstrate displaced/doubled arch and stair registration and sharp/soft frequency transitions. Runtime/master bytes unchanged; no source integration.",
       "layerDiagnosis": "Painting detail only in wall pass leaves an abrupt blurred band when the original floor pass redraws its ellipse. Applying matching detail in both complementary clipped passes removes that band in the offline prototype, without changing the ellipse. No production renderer change made."
     },
     "inspection": "Actual814 desktop valley normal/max and arena floor normal/min reviewed; failed rear-wall pair was absent. Offline exact-source prototype at0.35/1/1.4 and lateral pans is not hosted or handset acceptance."
@@ -117,5 +177,6 @@
   "limitations": [
     "No human continuous-motion or physical-handset acceptance.",
     "No full1.29GB archive download/review claimed; only named hash-verified compact bundles."
-  ]
+  ],
+  "updatedAt": "2026-11-17T18:17:00Z"
 }
