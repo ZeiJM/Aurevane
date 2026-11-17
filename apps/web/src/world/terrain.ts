@@ -3,6 +3,26 @@ export function terrainWalkable(terrain: string): boolean {
   return terrain === '.' || terrain === '=' || terrain === 's' || terrain === 't' || terrain === 'w'
 }
 
+const dryTownSurfaces = new WeakMap<readonly string[], readonly string[]>()
+/** Replace the two retired town lakes with regional dry ground for painting.
+ * Canonical rows remain pinned by staff teleport; both surfaces have identical
+ * walkability and town safety, so no saved position or route needs migration. */
+export function worldSurfaceRows(sector: {
+  rows: readonly string[]
+  charted: boolean
+  townId?: string
+}): readonly string[] {
+  if (!sector.charted || (sector.townId !== 'frostmere' && sector.townId !== 'emberreach'))
+    return sector.rows
+  const cached = dryTownSurfaces.get(sector.rows)
+  if (cached) return cached
+  const surface = sector.rows.some((row) => row.includes('w'))
+    ? sector.rows.map((row) => row.replaceAll('w', '.'))
+    : sector.rows
+  dryTownSurfaces.set(sector.rows, surface)
+  return surface
+}
+
 /** Lossless public presentation encoding; collision still uses canonical rows. */
 export function encodeTerrainRows(rows: readonly string[]): string {
   const ground = rows.join('')

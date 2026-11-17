@@ -12,12 +12,110 @@ them. Keep automatic Vercel Git deployments disabled and older watchers paused.
 
 ## Active worker lease
 
-- Status: active implementation, owned by the November17 continued coding session (lake correction).
-- Expires at: `2026-11-17T12:30:00Z`.
+- Status: released at the verified Piece4 source checkpoint; next worker may take ownership after refreshing main/branch.
+- Expires at: `2026-11-17T11:25:00Z` (released, not an active exclusion).
 - Hourly continuation: enabled by Nick on November 17; one recurring task,
   **Finish Aurevane map corrections**. Older watchers remain paused.
 - A scheduled run before lease expiry inspects only. Release or renew this lease
   at each safe checkpoint; after expiry a fresh worker may resume from the branch.
+
+## Piece 4 — dry fire and ice town surfaces (source implemented)
+
+The unwanted lakes come from the nine-district Frostmere and Emberreach shallow
+basins in `atlas.ts`. Those rows also form the immutable v4 staff-teleport
+registration, and shallow cells are already walkable. Replacing their canonical
+rows would change the registration hash even though navigation is equivalent.
+Instead, one cached `worldSurfaceRows` projection renders those public town
+shallows as ordinary regional dry ground. Local scenes, movement receipts,
+minimum-zoom scenery and globe water masks all use that same projection.
+
+- Frostmere and Emberreach lake surfaces are removed across all nine districts.
+  Emberreach's eight lava-rift cells, its bridge, every building, landmark,
+  canonical row, route, step time, safety cell and saved position are retained.
+  Other towns, wilderness rivers, private worlds and selected source art are
+  unaffected. This is a surface change; no geometry migration or history rewrite.
+- The two new lake regressions fail against the old projection. Both now pass,
+  including exact cell-by-cell walkability/safety, unchanged saved progress,
+  ordinary read/tick position, staff-teleport rows/safety and distant scenery.
+  The unchanged world compatibility digest also passes.
+- **1,272 tests across101 World/client/server/adjacent files pass**, including
+  water rendering, movement, recovery, privacy and staff teleport. TypeScript,
+  scoped zero-warning ESLint, Prettier and diff checks pass. The original build
+  compiled, completed TypeScript/static generation, then exited with
+  `SecurityFatalError` for Next.js16.4.1. See the dependency correction below.
+- Added actual desktop/mobile dry-town review cases at ordinary/maximum/minimum
+  zoom, with reduced motion, saved state and zero-mutation assertions. All six
+  project entries are discovered (two applicable desktop, two mobile, two
+  duplicate-laptop skips); they have not run natively. Regional water-bank review
+  now uses the still-existing Glasswind oasis in place of the deliberately removed
+  Frostmere lake. Negative fire/ice lake coverage is added rather than silently
+  dropping those towns from review.
+- The compact art bundle now includes dry-town and Piece3 no-fog screenshots,
+  avoiding dependence on the oversized full trace archive. This changes artifact
+  inclusion only, not workflow assertions, timeouts, retries or timing gates.
+- Local browser installation failed with a truncated Chromium ZIP response. The
+  source checks and discovery above are not rendered acceptance. Required native
+  checks will run on the combined candidate; no partial deployment occurred.
+
+Verification selection: develop against the focused surface/projection/teleport
+tests and adjacent World suites; omit combat/economy/catalogue database runs from
+this local loop because their source, schema and authority are untouched. The
+final combined `pnpm check`, required database specialists and native workflows
+remain mandatory.
+
+### Build-discovered framework security correction
+
+The official Next.js advisory
+[GHSA-mfr8-8qww-v76h](https://github.com/vercel/next.js/security/advisories/GHSA-mfr8-8qww-v76h)
+affects16.3.0–16.4.4 and is patched in16.4.5. It concerns root-parameter cache
+disclosure when a `use cache` function is called through `unstable_cache()`.
+The application source does not use that combination; this is not evidence of
+an observed disclosure. The installed vulnerable version nevertheless stopped
+the build. Next.js and eslint-config-next are pinned to16.4.5, with only their
+own matching packages/integrities changed in the lockfile. Worker and unrelated
+dependency importers are retained. No security-warning bypass or retry is used.
+The post-patch build, adjacent World/auth tests and production-dependency audit
+are recorded in the final checkpoint. Other development-tool audit findings are
+not silently claimed resolved by this targeted framework correction.
+
+### Verified Piece4 safe checkpoint — November17
+
+- Next.js16.4.5 optimized production build **passes**, including TypeScript and
+  all83 static pages. No warning bypass, upgrade-nudge retry or configuration
+  suppression was used.
+- Post-patch World/auth/proxy/Next configuration/teleport tests: **1,336 passed
+  across109 files**. The earlier1272 World/adjacent cases are included. Scoped
+  ESLint/Prettier and diff checks pass; the generated lockfile retains all nine
+  workspace importers and frozen installation succeeds.
+- `pnpm audit --prod --json`: zero reported production dependency advisories.
+  This does not claim a clean development-tool audit or prove live exploit
+  absence. No production dependency was otherwise upgraded.
+- Main was refreshed and remains `2893076856e20bc64f00e94e132d26dd0d76b26d`.
+  Publication must use the refreshed expected parent on the one task branch.
+- Native dry-town/Uncharted review and final combined gates are still pending.
+  No PR merge, migration, cron change, content publication or deployment occurred.
+  The next work is the town-size/art review below, on this same combined branch.
+
+## Next piece — natural territory and town-size variation
+
+Fresh source measurement at `acd7172` (unchanged by Piece4) separates the two
+issues: territories already contain199–326 sectors, while every town still has
+exactly nine districts. Equal administrative footprints should not be confused
+with differing road/building arrangements. The next worker should inspect real
+rendered extents and choose authored, non-uniform settlement extents while
+preserving saved origins, public approaches and immutable teleport registration.
+Do not mark visual naturalness accepted from the following counts alone.
+
+| Region             | Territory sectors | Town districts | Paved cells | Building area (cells, excluding Crown walls) |
+| ------------------ | ----------------: | -------------: | ----------: | -------------------------------------------: |
+| Aureth Crown       |               199 |              9 |         296 |                                           60 |
+| Verdant Expanse    |               207 |              9 |         232 |                                           74 |
+| Emberreach         |               214 |              9 |         262 |                                           72 |
+| Frostmere          |               222 |              9 |         261 |                                           64 |
+| Glasswind Desert   |               303 |              9 |         258 |                                           66 |
+| Hollow Coast       |               216 |              9 |         200 |                                           70 |
+| Starfall Highlands |               238 |              9 |         155 |                                           70 |
+| Umbral March       |               326 |              9 |         180 |                                           66 |
 
 ## Piece 3 — Uncharted terrain without exploration fog (source implemented)
 
@@ -148,7 +246,7 @@ Implemented in source, pending native acceptance and the combined release:
 | Travel Point cycling on the globe and complete display-name cleanup       | Implemented in Piece 2; native acceptance and combined release pending.                                                                   |
 | Remove the redundant Uncharted focus/selection control                    | Implemented in Piece 2; native acceptance and combined release pending.                                                                   |
 | Remove Uncharted fog of war                                               | Implemented visually in Piece 3; navigation/discovery rules retained. Native acceptance and combined release pending.                     |
-| Remove lakes from fire/ice towns                                          | Pending; inspect rendered liquid composition and saved-position/route/teleport compatibility before changing canonical terrain.           |
+| Remove lakes from fire/ice towns                                          | Implemented in Piece4 as shared dry surfaces with unchanged saved/teleport geometry; native acceptance and combined release pending.      |
 | Natural territory and town-size variation                                 | Pending; separate territorial boundaries from equal town-district footprints and verify actual rendered variation.                        |
 | Crisp older major artwork at gameplay zoom                                | Open visual acceptance; inspect native sources and rendered minimum/ordinary/maximum zoom. Upscaling alone does not establish new detail. |
 | Water/coast blending, tile seams, grounded assets and handset performance | Open representative visual/runtime acceptance. Do not classify uninspected scenes as passing or missing solely from source tests.         |

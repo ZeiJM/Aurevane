@@ -1,4 +1,4 @@
-import { terrainWalkable } from '../src/world/terrain'
+import { terrainWalkable, worldSurfaceRows } from '../src/world/terrain'
 import type { WorldSector } from '../src/world/types'
 import { buildWaterField, isWaterTerrain } from '../src/components/world/map-water'
 
@@ -22,6 +22,7 @@ function hasVisibleBank(sector: WorldSector) {
 export function waterReviewCandidate(sectors: readonly WorldSector[], regionId: string) {
   return sectors
     .filter((sector) => sector.regionId === regionId)
+    .map((sector) => ({ ...sector, rows: worldSurfaceRows(sector) }))
     .map((sector) => {
       const ground = sector.rows.flatMap((row, y) =>
         [...row].flatMap((terrain, x) =>

@@ -26,6 +26,14 @@ Extend the existing Canvas renderer, canonical terrain authoring and compressed 
 
 Nick's town-layout and walkable-town-water requests explicitly supersede older no-topology-change restrictions. Preserve sector IDs, coordinate addresses, player progress, Owner drafts, publications and history. New obstacles require reachable gates and compatible saved positions/routes. Immutable teleport geometry must receive a new version rather than overwriting prior hashes. Existing ferry/legacy expeditions remain safe; the broader ferry redesign remains separately tracked.
 
+November17 request completion: remove the Frostmere and Emberreach town lakes.
+The existing shallow cells and dry regional ground have identical traversal and
+town safety. Use one shared dry-surface projection for local scenes, movement
+receipts, distant scenery and globe masks while retaining canonical rows for
+immutable teleport registration and saved routes. Keep Emberreach's lava rift
+and bridge, other towns' water, wilderness liquids and the selected fire/ice
+landmark art. Source verification is separate from actual native visual review.
+
 ## Acceptance
 
 Use actual rendered scenes at ordinary/minimum zoom: all eight towns, snowy rocks, floating-asset examples, rounded lakes, extended rivers, coastal depths, major ruins/bridge, shallow footsteps, calm/rain/storm and reduced motion, mainland/Uncharted globe. Cover desktop/mobile and movement/loading. Record what was measured and what still needs human/physical-device acceptance. Final branch review, configured workflows, exact-source production deployment and postflight are mandatory. Do not describe this update as complete while any requirement above lacks implementation and evidence.

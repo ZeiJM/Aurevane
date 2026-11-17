@@ -127,6 +127,60 @@ export function registerWorldArtReviewCases({
 
   type ArtScene = Awaited<ReturnType<typeof scene>>
 
+  for (const townId of ['frostmere', 'emberreach']) {
+    test(`${townId} town lake is dry regional ground at every map zoom`, async ({ page }, info) => {
+      test.skip(info.project.name === 'laptop-chromium', 'Review mouse and touch once each.')
+      test.setTimeout(120_000)
+      await enter(page)
+      const { characterId } = await world(page)
+      const district = atlasSectors().find(
+        (sector) => sector.townId === townId && sector.rows.some((row) => row.includes('w')),
+      )!
+      const y = district.rows.findIndex((row) => row.includes('w'))
+      const x = district.rows[y]!.indexOf('w')
+      const position = { sectorId: district.id, x, y }
+      await scene(page, characterId, position)
+      const saved = () =>
+        sql(
+          `select state from app_private.character_world_state where character_id='${characterId}'::uuid`,
+        )
+      const before = saved()
+      const commands: string[] = []
+      page.on('request', (request) => {
+        if (new URL(request.url()).pathname === '/api/world' && request.method() === 'POST')
+          commands.push(request.postDataJSON()?.intent?.kind)
+      })
+      const view = await world(page)
+      for (const sector of worldRenderTerrain(view).filter((sector) => sector.townId === townId)) {
+        expect(sector.cells.some((cell) => cell.terrain === 'w' || cell.terrain === '~')).toBe(
+          false,
+        )
+        expect(buildWaterField([sector]).get(sector.id)!.cells.size).toBe(0)
+      }
+      expect(view.position).toEqual(position)
+      const pool = view.sectors.find((sector) => sector.id === district.id)!
+      expect(pool.cells.find((cell) => cell.x === x && cell.y === y)).toMatchObject({
+        terrain: '.',
+        walkable: true,
+        safe: true,
+      })
+      for (const zoom of ['normal', 'maximum', 'minimum']) {
+        if (zoom !== 'normal') {
+          await openMapSettings(page)
+          await page
+            .getByRole('slider', { name: 'Zoom level', exact: true })
+            .press(zoom === 'minimum' ? 'Home' : 'End')
+          await closeMapSettings(page)
+        }
+        if (zoom === 'minimum') await page.emulateMedia({ reducedMotion: 'reduce' })
+        await capture(page, info, `art-dry-town-${townId}-${zoom}`)
+      }
+      expect(saved()).toBe(before)
+      expect(commands).toEqual([])
+      await page.emulateMedia({ reducedMotion: 'no-preference' })
+    })
+  }
+
   test('Uncharted landscape stays visible without exploration fog or survey progress changes', async ({
     page,
   }, info) => {
@@ -195,7 +249,7 @@ export function registerWorldArtReviewCases({
     await enter(page)
     const { characterId } = await world(page)
     const evidence: unknown[] = []
-    for (const regionId of ['verdant-expanse', 'hollow-coast', 'frostmere']) {
+    for (const regionId of ['verdant-expanse', 'hollow-coast', 'glasswind-desert']) {
       const candidate = waterReviewCandidate(atlasSectors(), regionId)
       expect(candidate).toBeDefined()
       const { sector } = await scene(page, characterId, {

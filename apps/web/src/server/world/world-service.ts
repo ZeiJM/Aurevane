@@ -1,5 +1,5 @@
 import 'server-only'
-import { encodeTerrainRows } from '@/world/terrain'
+import { encodeTerrainRows, worldSurfaceRows } from '@/world/terrain'
 import { AurevaneError } from '@aurevane/game-core/errors'
 import { FRONTIER_APPROACH, GRID_HEIGHT, GRID_WIDTH, STEP_MS } from '@/world/catalog'
 import { resolveWorldEnvironment, type WorldEnvironment } from '@/world/environment'
@@ -118,10 +118,11 @@ function publicAtlasSurface(sector: ReturnType<typeof visibleSectors>[number]) {
   if (!sector.charted) return {}
   let surface = atlasSurfaceCache.get(sector)
   if (!surface) {
+    const rows = worldSurfaceRows(sector)
     surface = {
       ...(sector.townId ? { townId: sector.townId } : {}),
-      ...(sector.rows.some((row) => /[~lw]/.test(row))
-        ? { waterTiles: sector.rows.join('').replace(/[^~lw]/g, '.') }
+      ...(rows.some((row) => /[~lw]/.test(row))
+        ? { waterTiles: rows.join('').replace(/[^~lw]/g, '.') }
         : {}),
     }
     atlasSurfaceCache.set(sector, surface)
@@ -336,7 +337,9 @@ export function projectWorldPlayers(
 /** Shared private-filtered sector projection; movement receipts need only their origin. */
 export function projectWorldSector(state: WorldState, sector: WorldSector): WorldSectorView {
   sector = applyWarpedContinentPhase(state, sector)
-  const { rows, roads, ...publicSector } = sector
+  const { rows: _rows, roads, ...publicSector } = sector
+  void _rows
+  const rows = worldSurfaceRows(sector)
   const cells: WorldSectorView['cells'] = []
   for (let y = 0; y < GRID_HEIGHT; y++)
     for (let x = 0; x < GRID_WIDTH; x++)
@@ -543,7 +546,7 @@ export function projectWorld(
           .slice(0, 512)
           .map((sector): WorldScenerySector => [
             sector.id,
-            encodeTerrainRows(sector.rows),
+            encodeTerrainRows(worldSurfaceRows(sector)),
             sector.landscape ?? null,
             sector.buildings ?? [],
             sector.landmarks,
