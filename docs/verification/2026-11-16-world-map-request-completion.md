@@ -403,6 +403,28 @@ Implemented in source, pending native acceptance and the combined release:
 - No database schema/state, generated terrain, content publication, transport
   authority, migration ledger or release workflow is changed by this piece.
 
+## Global World Atlas — explicit acceptance scope
+
+Nick reaffirmed on November17 that the global map belongs in this SAME combined
+update. Local map passes must not silently close global requirements. Review the
+full page on desktop and mobile, not just a cropped terrain canvas.
+
+| Global requirement                                     | Source/review boundary and remaining evidence                                                                                                                                                                                          |
+| ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Atlas placement and responsive layout                  | `world-workspace.tsx` and `workspace.module.css` globe body/sidebar layout; verify the right-hand area, useful sizing and mobile containment.                                                                                          |
+| Cosmic backdrop, no measuring ring or bottom legend    | Review the actual globe scene and WebGL/fallback presentation; absence of a longitude grid in source alone is not visual acceptance. Keep obsolete Known Lands/Uncharted Supercontinent controls absent.                               |
+| Strong current position and distinct settlement icons  | `world-globe.tsx` current-position pin, actual public town coordinates/icons and `globe-atlas.ts` shared extents; verify contrast, overlap, orientation, readable scale and zoom.                                                      |
+| Map-switch arrow and shared Labels control             | Piece1 native presentation case switches to globe, hides/shows town names, retains icons and returns with state intact; inspect actual desktop/mobile layout.                                                                          |
+| Travel Points and Uncharted naming/control cleanup     | Piece2 shared cycling/selection and globe markers; test the complete real public-town cycle, wraparound, ordinary confirmed travel authority and removal of the redundant Uncharted focus control.                                     |
+| Natural territory/coast shapes and crisp terrain/ocean | Piece5 extents vary; the underlying flat shared texture still exposes inherited sector steps/corridor. Inspect native globe before deciding the correction; do not claim the natural-coast request passed from counts or source tests. |
+| WebGL/fallback, seams, zoom and privacy                | Both globe render paths must agree on public geography/water/style, remain aligned while rotating/zooming, preserve selection and withhold foreign private identities. Physical-handset acceptance remains separately open.            |
+
+The existing native run includes global control checks and
+`art-surfaces-town-extent-*-globe` images. Its compact art bundle includes these
+via `art-surfaces-*.png`. Use those actual images plus the broader globe/native
+cases for review. If they do not prove a row above, obtain the missing evidence
+or repair it before closing that row. No partial global/local deployment.
+
 ## Checklist
 
 | Request                                                                   | Current status / required evidence                                                                                                        |
