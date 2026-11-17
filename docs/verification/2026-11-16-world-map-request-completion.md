@@ -12,8 +12,8 @@ them. Keep automatic Vercel Git deployments disabled and older watchers paused.
 
 ## Active worker lease
 
-- Status: active global native failure repair, owned by the November17 coding session.
-- Expires at: `2026-11-17T15:00:00Z`.
+- Status: active coastline correction and native failure repair, owned by the November17 15:00UTC continuation.
+- Expires at: `2026-11-17T16:30:00Z`.
 - Hourly continuation: enabled by Nick on November 17; one recurring task,
   **Finish Aurevane map corrections**. Older watchers remain paused.
 - A scheduled run before lease expiry inspects only. Release or renew this lease
