@@ -19,6 +19,20 @@ them. Keep automatic Vercel Git deployments disabled and older watchers paused.
 - A scheduled run before lease expiry inspects only. Release or renew this lease
   at each safe checkpoint; after expiry a fresh worker may resume from the branch.
 
+## Native job envelope — November17
+
+The complete #813 source log spans15:13:06–16:13:17 and stopped partway through
+mobile coverage, after setup/build,7.9minutes of authenticated story checks and
+about48.5minutes of serial Atlas. Its two failed cases account for seconds rather
+than the missing several-minute tail. The current matrix also adds legal
+normal/maximum large-art views. Raised ONLY the verify job's overall envelope
+60→90minutes to allow that full serial matrix to finish and retain evidence.
+No test assertion, colour bound, FPS/frame-count target,15-second performance
+window, per-test timeout, retry, project skip, worker count, production job,
+protected release implementation or acceptance requirement changed. A completed
+run still must pass all cases; this budget adjustment never converts #813 into a
+pass. Final combined-candidate configured checks remain mandatory.
+
 ## Continuing source repair — November17 water slabs and native fixture failures
 
 - **Implemented the photographed water-slab repair.** Used an existing installed

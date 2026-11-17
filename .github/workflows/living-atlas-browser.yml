@@ -58,10 +58,9 @@ jobs:
   verify:
     if: ${{ !inputs.staging_dry_run && !inputs.staging_apply && !inputs.production_dry_run && !inputs.production_world_map_apply && !inputs.production_void_cron_activate }}
     runs-on: ubuntu-latest
-    # The authenticated Atlas suite covers many full-route journeys; the previous
-    # 20-minute cap cancelled an otherwise progressing run at scenario 39.
-    # Retain the entire test suite and allow the real run to finish.
-    timeout-minutes: 60
+    # Build, story checks and the full serial Atlas matrix outgrew60 minutes.
+    # Retain every case and all individual test/performance budgets.
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
       - name: Record the tested source tree
