@@ -2775,8 +2775,8 @@ describe('native map input and bounded lifecycle', () => {
               Math.abs(draw.args[2]! - 13 * tile) < 1e-6,
           )
           .at(-1)!
-        expect(finalGround.image.width).toBe(Math.ceil(13 * tile * 1.5))
-        expect(finalGround.image.height).toBe(Math.ceil(9 * tile * 1.5))
+        expect(finalGround.image.width).toBe(13 * Math.ceil(tile * 1.5))
+        expect(finalGround.image.height).toBe(9 * Math.ceil(tile * 1.5))
         expect([s.canvas.dataset.cameraX, s.canvas.dataset.cameraY]).toEqual(camera)
         expect(s.select).not.toHaveBeenCalled()
         expect(s.frames.size).toBe(0)
@@ -5898,6 +5898,117 @@ it('keeps an obscured Old Waystone marker visible above major artwork when locat
     expect(ordinary.strokes.some(({ colour }) => colour === '#ffe2a1')).toBe(false)
   } finally {
     ordinary.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+})
+
+it.each([1, 2.625].flatMap((density) => [0.35, 1, 1.4].map((zoom) => ({ density, zoom }))))(
+  'aligns cached liquid tile boundaries to backing pixels at $zoom zoom/$density DPR',
+  ({ density, zoom }) => {
+    const state = { ...newWorldState(), position: { sectorId: 'atlas:71:32', x: 6, y: 4 } }
+    const s = scene(true, projectWorld(state, [], 1000))
+    try {
+      Object.assign(s.canvas, { clientWidth: 414, clientHeight: 630 })
+      window.devicePixelRatio = density
+      s.resize()
+      s.renderer.settings({ animate: false, zoom })
+      s.frame(40)
+      s.frame(240)
+      const grounds = [...s.composites.entries()].filter(
+        ([layer, sources]) =>
+          (layer as HTMLCanvasElement).width > 100 &&
+          sources.some((source) =>
+            (source as HTMLImageElement).src?.endsWith('water-materials-v01.webp'),
+          ) &&
+          sources.some((source) =>
+            (source as HTMLImageElement).src?.endsWith('regional-ground-v02.webp'),
+          ),
+      )
+      expect(grounds.length).toBeGreaterThan(0)
+      for (const [layer] of grounds) {
+        expect((layer as HTMLCanvasElement).width % 13).toBe(0)
+        expect((layer as HTMLCanvasElement).height % 9).toBe(0)
+      }
+      for (let frame = 0; frame < 60; frame++) {
+        s.renderer.update(s.view)
+        s.frame(280 + frame * 40)
+      }
+      expect(Number(s.canvas.dataset.cachedPixels)).toBeGreaterThan(0)
+      expect(Number(s.canvas.dataset.cachedPixels)).toBeLessThanOrEqual(8_000_000)
+      expect(s.identityCanvas.width).toBe(Math.round(414 * density))
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  },
+)
+
+it('retains whole-cell backing pixels when visible terrain lowers cached density', () => {
+  const state = newWorldState()
+  const view = projectWorld(state, [], 1000)
+  const root = atlasSectors().find((sector) => sector.id === state.position.sectorId)!
+  const sectors = atlasSectors()
+    .filter(
+      (sector) =>
+        sector.charted &&
+        Math.abs(sector.atlasColumn! - root.atlasColumn!) <= 2 &&
+        Math.abs(sector.atlasRow! - root.atlasRow!) <= 2,
+    )
+    .slice(0, 22)
+    .map((sector) => ({
+      ...projectWorldSector(state, sector),
+      landmarks: [],
+      buildings: [],
+    }))
+  expect(sectors).toHaveLength(22)
+  const initial = {
+    ...view,
+    sectors: sectors.filter((sector) => sector.id === root.id),
+    scenery: [],
+    atlas: [],
+  }
+  const s = scene(true, initial)
+  const resamples: { width: number; height: number }[] = []
+  const create = document.createElement.bind(document)
+  vi.spyOn(document, 'createElement').mockImplementation((...args) => {
+    const layer = create(...args) as HTMLCanvasElement
+    const target = layer.getContext('2d')!
+    const draw = target.drawImage.bind(target)
+    const context = new Proxy(target, {
+      get(context, key) {
+        if (key === 'drawImage')
+          return (source: HTMLCanvasElement, ...args: number[]) => {
+            if (
+              source.width > 100 &&
+              source.width / 13 === source.height / 9 &&
+              args.length === 4 &&
+              args[2] === layer.width &&
+              args[3] === layer.height &&
+              Math.abs(layer.width / layer.height - 13 / 9) < 0.01
+            )
+              resamples.push({ width: layer.width, height: layer.height })
+            return draw(source, ...(args as [number, number, number, number]))
+          }
+        return Reflect.get(context, key)
+      },
+    })
+    layer.getContext = (() => context) as typeof layer.getContext
+    return layer
+  })
+  try {
+    Object.assign(s.canvas, { clientWidth: 5000, clientHeight: 3000 })
+    s.resize()
+    s.renderer.settings({ animate: false, zoom: 0.75 })
+    s.frame(40)
+    s.renderer.update({ ...initial, sectors })
+    s.frame(80)
+    expect(resamples.length).toBeGreaterThan(0)
+    for (const raster of resamples) {
+      expect(raster.width % 13).toBe(0)
+      expect(raster.height % 9).toBe(0)
+    }
+  } finally {
+    s.renderer.dispose()
     vi.unstubAllGlobals()
   }
 })

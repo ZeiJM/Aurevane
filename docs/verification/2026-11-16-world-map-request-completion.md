@@ -21,6 +21,43 @@ them. Keep automatic Vercel Git deployments disabled and older watchers paused.
 
 ## Continuous interactive work — November17
 
+### Native liquid-grid correction — November17
+
+Atlas819's mobile Longwater Crossing capture shows dark tile lines through the
+water. The actual source renderer reproduces them in both the projected scene
+and raw cached ground. Removing water material images does not remove the grid.
+Fractional cached backing pixels (48 world pixels times density1.4 =67.2) cause
+repeated cell clipping to expose the darker underlying ground at each join.
+
+Cached terrain now uses an integer backing-pixel count per cell. It retains the
+existing coarse density request, rounds that request upward when budget permits,
+and caps it by the existing7.8M visible-pixel budget. Base sector dimensions are
+whole13-by9 cell counts. Existing full-DPR identities, image bytes, water colours,
+clipping geometry, motion, collision and public/private authority are unchanged.
+The source remains subject to the8M cached-pixel bound and its ordinary eviction.
+
+The same actual-scene source comparison changes the ground raster from874x605
+to884x612 and reduces sampled mean dark-edge contrast19.7521 to0.7792 (95th
+percentile35.1833 to1.8417). This is an offline raster comparison, not native
+throughput or physical-handset acceptance. Both source scenes retain the same
+bridge, trees, water artwork and labels. No extra animation deadline or retry
+is introduced, and no resolution reduction is used in this inspected scene.
+
+Review found that density-driven resampling could undo the alignment through
+floating-point ceiling (689x478 instead of689x477). Its own actual renderer
+regression fails on that path, then passes when base-ground resampling also uses
+whole-cell backing dimensions. Underpass surfaces retain their separate bounds.
+Five of the six exact final zoom/DPR regression variants fail on854f3ae; the
+already-integral variant passes. All six pass after the fix. Six existing zoom
+checks now expect the corresponding aligned final dimensions while retaining
+all cache reuse, camera, input and lifecycle assertions.
+
+All393 focused renderer/projection/water/motion/static-raster cases pass. The
+preceding854f3ae full local check passes17,831 Vitest plus seven Node tests;
+its hosted CI/database foundation and UI layout also pass. The new combined
+source still requires full quality, independent review and fresh configured
+native gates, including movement and representative visual acceptance.
+
 ### Native island-edge correction — November17
 
 Atlas819 rotated WebGL/fallback and Uncharted-facing views reveal vertical cuts

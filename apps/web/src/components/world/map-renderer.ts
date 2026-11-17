@@ -1083,8 +1083,8 @@ export function createMapRenderer(
     if (previous?.key === key) return previous.ground
     const buildStarted = timing ? performance.now() : 0
     const layer = document.createElement('canvas')
-    layer.width = Math.ceil(GRID_WIDTH * tile * groundScale)
-    layer.height = Math.ceil(GRID_HEIGHT * tile * groundScale)
+    layer.width = GRID_WIDTH * Math.round(tile * groundScale)
+    layer.height = GRID_HEIGHT * Math.round(tile * groundScale)
     const c = layer.getContext('2d')!
     c.scale(groundScale, groundScale)
     c.imageSmoothingEnabled = true
@@ -1588,11 +1588,11 @@ export function createMapRenderer(
     // Zoom settles once; resize, loaded art and terrain changes still rebuild.
     for (const entry of cache.values()) {
       if (entry.scale <= groundScale) continue
-      const resample = (source: StaticMapRaster, width: number, height: number) => {
+      const resample = (source: StaticMapRaster, pixelWidth: number, pixelHeight: number) => {
         const resampleStarted = timing ? performance.now() : 0
         const target = document.createElement('canvas')
-        target.width = Math.ceil(width * groundScale)
-        target.height = Math.ceil(height * groundScale)
+        target.width = pixelWidth
+        target.height = pixelHeight
         const context = target.getContext('2d')!
         context.imageSmoothingEnabled = true
         context.imageSmoothingQuality = 'high'
@@ -1603,13 +1603,18 @@ export function createMapRenderer(
         }
         return snapshot(target)
       }
-      const ground = resample(entry.ground, GRID_WIDTH * rasterTile, GRID_HEIGHT * rasterTile)
+      const cellPixels = Math.round(rasterTile * groundScale)
+      const ground = resample(entry.ground, GRID_WIDTH * cellPixels, GRID_HEIGHT * cellPixels)
       releaseStaticRaster(entry.ground)
       const surfaces = new Map<string, LiquidSurface>()
       for (const [id, surface] of entry.surfaces) {
         surfaces.set(id, {
           ...surface,
-          canvas: resample(surface.canvas, surface.width * rasterTile, surface.height * rasterTile),
+          canvas: resample(
+            surface.canvas,
+            Math.ceil(surface.width * rasterTile * groundScale),
+            Math.ceil(surface.height * rasterTile * groundScale),
+          ),
         })
         releaseStaticRaster(surface.canvas)
       }
@@ -1935,7 +1940,15 @@ export function createMapRenderer(
           rasterTile *
           rasterTile),
     )
-    groundScale = Math.min(ratio, Math.floor(budgetScale * 10) / 10)
+    const requestedScale = Math.min(ratio, Math.floor(budgetScale * 10) / 10)
+    // Fractional backing pixels multiply antialiasing at each liquid-cell clip,
+    // exposing dark ground as a grid. Keep each cached cell pixel-aligned while
+    // retaining the existing coarse density steps and total visible-pixel budget.
+    groundScale =
+      Math.max(
+        1,
+        Math.min(Math.ceil(rasterTile * requestedScale), Math.floor(rasterTile * budgetScale)),
+      ) / rasterTile
     visibleGroundIds = new Set(visible.map((sector) => sector.id))
     fitCachedGround()
     const backingPixels = canvas.width * canvas.height
