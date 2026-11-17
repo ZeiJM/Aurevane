@@ -12,8 +12,8 @@ them. Keep automatic Vercel Git deployments disabled and older watchers paused.
 
 ## Active worker lease
 
-- Status: released at the durable November17 15:40UTC marker/water/native-detail checkpoint.
-- Expires at: `2026-11-17T15:40:00Z`.
+- Status: active raster coastline/water diagnosis, owned by the November17 15:48UTC continuation.
+- Expires at: `2026-11-17T17:00:00Z`.
 - Hourly continuation: enabled by Nick on November 17; one recurring task,
   **Finish Aurevane map corrections**. Older watchers remain paused.
 - A scheduled run before lease expiry inspects only. Release or renew this lease
