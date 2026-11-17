@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "scope": "Evidence only. NEVER merge or deploy this branch/receipt commit.",
   "candidate": {
-    "sha": "9906e0dd396a8fbd8fb82212fd7af8b2cbbadd0d",
-    "tree": "c0083f8e8a818f129f1092335a85ad26cfa81354",
+    "sha": "6aac62d3fcbc9f19c136fde1b5f3f6376eeedf2d",
+    "tree": "ad1510f5a99de5cd2a4797405aec250adde8ada4",
     "branch": "agent/world-map-request-completion",
     "pullRequest": 1043,
     "draft": true
@@ -54,24 +54,17 @@
     "correction": "Existing disposable-port configurator in Atlas; selected API propagation; local PG17 guard verifies config/URI/actual Docker binding agreement."
   },
   "currentRuns": {
-    "ci": 44170722161,
-    "ciStatus": "success",
-    "uiLayout": 44170722079,
-    "uiLayoutStatus": "success",
-    "atlas": 44170721930,
-    "atlasVerifyJob": 134348760072,
-    "atlasRealPG17Gate": "success",
-    "atlasStory": "success",
-    "atlasStatus": "in_progress",
-    "browserSmoke": 44170722158,
-    "browserSmokeStatus": "in_progress",
-    "timing": 44170722223,
-    "timingStatus": "in_progress"
+    "ci": 44177400906,
+    "uiLayout": 44177401179,
+    "atlas": 44177401056,
+    "browserSmoke": 44177400916,
+    "timing": 44177400951,
+    "status": "fresh exact-source gates running/pending"
   },
   "localValidation": {
     "currentCheckout": "Clean complete checkout at candidate SHA",
     "pnpmInstall": "frozen lockfile succeeded",
-    "finalPnpmCheck": "running: formatting, lint and types passed; package tests executing",
+    "finalPnpmCheck": "Predecessor9906e0d completed successfully:17824 Vitest+7 Node, full quality/build. Fresh6aac62d final pnpm check running.",
     "previousValidation": {
       "rendererAndSceneTests": 252,
       "typescript": "pass",
@@ -134,7 +127,7 @@
     "No human continuous-motion or physical-handset acceptance.",
     "No full1.29GB archive download/review claimed; only named hash-verified compact bundles."
   ],
-  "updatedAt": "2026-11-17T20:59:13.423Z",
+  "updatedAt": "2026-11-17T21:13:31.397Z",
   "previousRuns": {
     "atlas": 44143478767,
     "atlasVerifyJob": 134252202191,
@@ -201,7 +194,8 @@
       "failed": []
     }
   },
-  "exactSourceCI": {
+  "nativeVisualReview": "Pending exact-source817 screenshot bundles; do not treat current CI/layout or offline18% experiment as native gameplay/handset performance acceptance.",
+  "predecessorSourceCI": {
     "vitest": 17824,
     "nodeTests": 7,
     "format": "pass",
@@ -212,5 +206,16 @@
     "dependencyAudit": "pass",
     "workerBoot": "pass"
   },
-  "nativeVisualReview": "Pending exact-source817 screenshot bundles; do not treat current CI/layout or offline18% experiment as native gameplay/handset performance acceptance."
+  "timing64": {
+    "run": 44170722223,
+    "result": "failure",
+    "mobileCrowdPassed": 3,
+    "desktopPassed": 59,
+    "desktopFailed": 1,
+    "case": "rapid ground clicks, repeat11 first subsequent arrow tap",
+    "artifact": 14368943195,
+    "sha256": "2a58cb13acf2e10893b594668f1d4e0b6dae37e197433164a0be3513dd727db9",
+    "cause": "Rapid-click destination X10 arrived; visual catch-up trailed it. Keydown X12 then release X10 cancelled the next step.",
+    "repair": "Continuing input chooses farther approved point along its direction. Added450ms deterministic regression fails before, passes after; renderer/motion/controller362, types, lint and format pass."
+  }
 }
