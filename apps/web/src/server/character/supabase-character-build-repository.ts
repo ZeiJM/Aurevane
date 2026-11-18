@@ -1,3 +1,4 @@
+import { setTimeout as delay } from 'node:timers/promises'
 import { throwItemRpcError } from './supabase-character-items-repository'
 import { parseBattleEquipmentCapture } from '@aurevane/game-core/combat/combat-equipment'
 import { isFinalizedContentMedia } from '@aurevane/game-core/combat/content-media'
@@ -483,7 +484,9 @@ function parseCommittedSnapshot(value: unknown): CharacterCommittedBuildSnapshot
   }
 }
 
-export function createSupabaseCharacterBuildRepository(): CharacterBuildRepository {
+export function createSupabaseCharacterBuildRepository({
+  retryBattleEquipmentAdmission = false,
+}: { retryBattleEquipmentAdmission?: boolean } = {}): CharacterBuildRepository {
   return {
     contentResolver: createServerCombatContentResolver(),
     async findActiveBuild(userId, characterId) {
@@ -540,10 +543,22 @@ export function createSupabaseCharacterBuildRepository(): CharacterBuildReposito
     },
 
     async loadBattleEquipment(userId, characterId) {
-      const { data, error } = await createSupabaseAdminClient().rpc(
-        'read_character_battle_equipment_v1',
-        { p_user_id: userId, p_character_id: characterId },
-      )
+      const supabase = createSupabaseAdminClient()
+      const readEquipment = () =>
+        supabase.rpc('read_character_battle_equipment_v1', {
+          p_user_id: userId,
+          p_character_id: characterId,
+        })
+      let result = await readEquipment()
+      if (retryBattleEquipmentAdmission) {
+        // A simultaneous World read can briefly hold the account lock needed for this capture.
+        for (const backoff of [25, 75]) {
+          if (result.error?.message !== 'ITEM_ADMISSION_RETRY') break
+          await delay(backoff)
+          result = await readEquipment()
+        }
+      }
+      const { data, error } = result
       if (error?.message === 'ITEM_BATTLE_ACTIVE')
         throw new AurevaneError('STALE_VERSION', 'Battle admission changed. Refresh and try again.')
       if (error) throwItemRpcError(error)

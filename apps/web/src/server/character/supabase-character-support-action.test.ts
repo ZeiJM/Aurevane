@@ -74,3 +74,52 @@ it.each(['ITEM_ADMISSION_RETRY', 'ITEM_BATTLE_ACTIVE'])(
     ).rejects.toMatchObject({ code: 'STALE_VERSION' })
   },
 )
+
+describe('World battle equipment capture under contention', () => {
+  const capture = {
+    schemaVersion: 2,
+    inventoryRevision: 8,
+    selectedSupport: { kind: 'basic', actionId: command.supportActionId },
+    equipment: [],
+  }
+  const busy = { data: null, error: { message: 'ITEM_ADMISSION_RETRY', code: 'PT409' } }
+
+  it('captures equipment after a concurrent World read releases the account lock', async () => {
+    rpc
+      .mockReset()
+      .mockResolvedValueOnce(busy)
+      .mockResolvedValueOnce({ data: capture, error: null })
+    const repository = createSupabaseCharacterBuildRepository({
+      retryBattleEquipmentAdmission: true,
+    })
+    await expect(
+      repository.loadBattleEquipment!(command.userId, command.characterId),
+    ).resolves.toEqual(capture)
+    expect(rpc.mock.calls).toEqual(
+      Array.from({ length: 2 }, () => [
+        'read_character_battle_equipment_v1',
+        { p_user_id: command.userId, p_character_id: command.characterId },
+      ]),
+    )
+  })
+
+  it.each([
+    ['ITEM_ADMISSION_RETRY', 3],
+    ['ITEM_STALE_REVISION', 1],
+    ['ITEM_BATTLE_ACTIVE', 1],
+  ] as const)(
+    'keeps the existing stale response for %s after %i attempts',
+    async (message, attempts) => {
+      rpc.mockReset().mockResolvedValue({ data: null, error: { message, code: 'PT409' } })
+      const repository = createSupabaseCharacterBuildRepository({
+        retryBattleEquipmentAdmission: true,
+      })
+      await expect(
+        repository.loadBattleEquipment!(command.userId, command.characterId),
+      ).rejects.toMatchObject({
+        code: 'STALE_VERSION',
+      })
+      expect(rpc).toHaveBeenCalledTimes(attempts)
+    },
+  )
+})
