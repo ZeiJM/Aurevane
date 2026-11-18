@@ -2,6 +2,30 @@
 
 The November 5 unified handover is the controlling product specification. Its 70 requirement IDs are preserved in [requirements.csv](requirements.csv). UI-01 and UI-02 track Nick's two November 7 additions. Mark a row verified only when its stated acceptance evidence is attached. A source change, fixture screenshot, or passing unit test can support a partial row.
 
+## November 18 ferry candidate review
+
+[Draft PR #1044](https://github.com/ZeiJM/Aurevane/pull/1044) carries the map band, Explore layout and exact travel target fixes, the two named megastructures, and the active Uncharted ferry. New sailings use the active refuge at arrival. Expired arrivals disembark in Umbral March. A passenger can walk back to the refuge and board the free reverse crossing. Existing booked trips retain their shared passage mode.
+
+Willow Cascades now has a feeder, receiving pool, footbridge and downstream water across a sector boundary. Emberreach keeps its existing bridge over the lava rift and gains a connected receiving basin below the lavafall. The Farwater Span connects the remote mainland to Lanternward Isle and its scenic tower. The two additional public sectors and the widened lava basin use an additive staff geometry version. Saved positions on newly blocked lava recover to legal connected ground. The archived mainland routes retain their lengths and travel time.
+
+All 82 inherited IDs remain in the matrix. The table records the evidence reviewed for each group and remaining acceptance work. The candidate's database and renderer results support the updated rows. Desktop and phone runs cover arrival at the active refuge and travel to the island. Candidate workflow completion and physical-device acceptance are recorded separately.
+
+| Requirements | Evidence and remaining acceptance |
+| --- | --- |
+| GOV-01–02 | The candidate builds on the reviewed main and remains in draft. The established deployment approval gate still applies. |
+| ARC-01–02 | Current appearance, World NPC and Event authoring reuse published identities in supported paths. The shared end-to-end contract and live Event cast overrides are still open. |
+| WRL-01–15 | Current Atlas authority, hydrology, renderer and movement suites cover the added sectors, blocked lava, connected water, wind variation, legal paths and station controls. Full regional scene, world load and physical device acceptance remain open. |
+| CHR-01–16 | Existing manifest, catalog, directional actor and captured identity suites support the scoped rows. Manual and generated authoring parity, unsupported reference input handling, job quotas and complete device coverage remain open. |
+| NPC-01–08 | Current NPC publication, World interaction and admission suites support Arena and World behavior. Per-surface overrides, nested NPC-only variants and complete scenario coverage remain open. |
+| EVT-01–17 | Existing authoring, lifecycle, dialogue, reward and encounter suites exercise released paths. The generic condition engine, extended campaign recurrence and all outcome and claim combinations still need acceptance. |
+| OPS-01–04 | Existing privileged role, event operations and private presence checks support the partial rows. Full cleanup, scoped diagnostic and shared-world acceptance remain open. |
+| PERF-01–02 | Existing native World timing and authenticated multiplayer tests measure selected travel and presence paths. The physical-phone target and broader event evaluation performance remain open. |
+| A11Y-01 | Explore control grouping and confirmation fit have targeted browser assertions. A full keyboard, touch, screen-reader and reduced-motion audit remains open. |
+| ASSET-01 | The ferry candidate uses checked-in waterfall, bridge and tower art and renderer tests. Consistent game-wide production provenance and native presentation remain open. |
+| QA-01–03 | The candidate adds isolated migration and browser cases to the existing authenticated suites. The full set of inherited NPC, Event, appearance and operations scenarios still needs acceptance. |
+| UI-01–02 | The existing focused component evidence stays attached to both scoped UI requirements. |
+| VOID-01–09 | Private map projection, scheduled rotation, settlement, return access, deck sharing and rotation cutoff have isolated database and web regression coverage. The deferred browser cases cover refuge exploration and reconnect. Rare phenomenon and settlement gameplay remains partial. |
+
 ## Current source and review boundaries
 
 - Starting main is `b219eb1464e19b265a57ff57e8bd7f2aa12ea245` (PR #1024). The Vercel connector reported production build `dpl_CBPxHC4kMSnbSmRYsGNfKFTTexJT` on source `3efadd14ff7bb17d9b4dc4beb1990e8e7040dad2` (PR #1023), so current main includes a subsequent release-receipt commit. There are no production edits in this work.

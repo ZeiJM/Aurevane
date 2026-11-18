@@ -7,6 +7,7 @@ import {
 } from './map-static-raster'
 import { mapSceneDomain } from './map-scene-domain'
 import { vegetationPose, treeFlex, treeWindBend } from './map-vegetation'
+import { OFFSHORE_DISCOVERY } from '@/world/discovery-sites'
 import {
   mountainPlacements,
   isMajorMountainRangeSector,
@@ -2473,6 +2474,25 @@ export function createMapRenderer(
               })
               continue
             }
+          }
+          if (landmark.id === OFFSHORE_DISCOVERY.towerLandmarkId) {
+            if (!buildings?.complete || !buildings.naturalWidth) continue
+            const size = tile * landmarkArtSize(sector, landmark, 1.55)
+            const contact = legacyStructureContact('buildings', 8)
+            addScenery({
+              x: origin.x + landmark.x + 0.5,
+              y: origin.y + landmark.y + 0.5,
+              width: size,
+              height: size,
+              image: buildings,
+              index: 8,
+              columns: 3,
+              rows: 3,
+              anchorX: contact?.[0] ?? 0.5,
+              anchorY: contact?.[1] ?? WORLD_STRUCTURE_FLOOR,
+              tree: false,
+            })
+            continue
           }
           const hamlet =
             sector.charted && landmark.kind === 'hamlet'

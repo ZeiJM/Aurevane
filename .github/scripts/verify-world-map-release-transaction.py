@@ -53,8 +53,10 @@ def validate_local_target(config, uri, container):
 def stage_baseline(root, workdir, release):
     release["verify_migrations"](root)
     source = sorted((root / "supabase/migrations").glob("*.sql"))
-    if [p.name for p in source if p.name[:14] >= "20261114110000"] != list(release["MIGRATIONS"]):
-        raise SystemExit("The candidate must contain exactly the reviewed four Nov14 additions.")
+    names = list(release["MIGRATIONS"])
+    first, last = names[0][:14], names[-1][:14]
+    if [p.name for p in source if first <= p.name[:14] <= last] != names:
+        raise SystemExit("The historical release window must contain exactly the reviewed four Nov14 additions.")
     for name in ("supabase/config.toml", "supabase/templates/recovery.html"):
         target = workdir / name
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -62,8 +64,9 @@ def stage_baseline(root, workdir, release):
     staged = workdir / "supabase/migrations"
     staged.mkdir(parents=True)
     for path in source:
-        if path.name not in release["MIGRATIONS"]:
+        if path.name[:14] < first:
             shutil.copyfile(path, staged / path.name)
+    return [p.name for p in source if p.name[:14] > last]
 
 
 def force_postflight_failure(sql):
@@ -152,7 +155,7 @@ def main():
         raise SystemExit("Disposable transaction acceptance requires PostgreSQL 17.")
     with tempfile.TemporaryDirectory() as directory:
         workdir = Path(directory)
-        stage_baseline(root, workdir, release)
+        successors = stage_baseline(root, workdir, release)
         # --local only, fixed configured project identity; no remote URL enters
         # this command. Existing services keep the same local ports and keys.
         command(["pnpm", "exec", "supabase", "db", "reset", "--local", "--no-seed",
@@ -212,7 +215,13 @@ def main():
     cleanup = "delete from auth.users where id in (" + ",".join(quote(user) + "::uuid" for user in users) + ");"
     cleanup += "delete from app_private.master_teleport_geometry where sector_id in ('release-fixture-8189','release-fixture-8190');"
     command(psql + ["--single-transaction"], sql=cleanup)
-    print("Verified PG17 atomic success, exact four source-history rows, RPC ACLs, preserved v1/v2 and saved progress; cron remains inactive. Candidate schema retained.")
+    print("Verified PG17 atomic success, exact four source-history rows, RPC ACLs, preserved v1/v2 and saved progress; cron remains inactive.")
+    if successors:
+        # The historical release test deliberately excluded later migrations.
+        # Apply them only to this guarded local stack for the candidate browser cases.
+        validate_local_target(config, values["DB_URL"], json.loads(command(["docker", "inspect", CONTAINER]))[0])
+        command(["pnpm", "exec", "supabase", "migration", "up", "--local"], timeout=120)
+        print(f"Applied {len(successors)} successor migrations to the disposable browser database.")
 
 
 if __name__ == "__main__":

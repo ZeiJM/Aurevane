@@ -1,5 +1,5 @@
 import type { WorldLandmark, WorldSectorView } from '@/world/types'
-import { REMOTE_GRAND_CROSSING } from '@/world/discovery-sites'
+import { OFFSHORE_DISCOVERY, REMOTE_GRAND_CROSSING } from '@/world/discovery-sites'
 
 /** Give major sites a broader visual base only where all nine ground cells are supplied. */
 export function landmarkArtSize(
@@ -25,7 +25,10 @@ export function landmarkArtSize(
       const cell = sector.cells.find((c) => c.x === x && c.y === y)
       if (!cell?.walkable || !['.', 's', 't'].includes(cell.terrain)) return ordinarySize
     }
-  return Math.max(ordinarySize, 3.2)
+  const grandTower =
+    sector.id === OFFSHORE_DISCOVERY.islandSectorId &&
+    landmark.id === OFFSHORE_DISCOVERY.towerLandmarkId
+  return Math.max(ordinarySize, grandTower ? 5.2 : 3.2)
 }
 
 /** Art identities never grant a crossing or change collision. */
@@ -53,6 +56,7 @@ export function lavaFallSite(
 ): { x: number; y: number; index: number } | undefined {
   if (sector.id !== 'emberreach' || !sector.charted) return
   const at = (x: number, y: number) => sector.cells.find((c) => c.x === x && c.y === y)
+  for (const x of [9, 10, 11]) if (at(x, 8)?.terrain !== 'l' || at(x, 8)?.walkable) return
   for (const y of [5, 6, 7]) {
     if (at(10, y)?.terrain !== 'l' || at(10, y)?.walkable) return
     for (const x of [9, 11]) {
@@ -71,25 +75,22 @@ export const GRAND_BRIDGE_BASE_CONTACTS = [
   { x: 74 / 512, y: 393 / 512 },
 ] as const
 export function grandBridgeDiscoveryArt(sector: WorldSectorView, span: number) {
-  if (
-    !sector.charted ||
-    sector.warpedTheme ||
-    sector.townId ||
-    sector.id !== REMOTE_GRAND_CROSSING.sectorId ||
-    span < 4
-  )
-    return
+  if (!sector.charted || sector.warpedTheme || sector.townId || span < 4) return
+  const offshore = sector.id === OFFSHORE_DISCOVERY.bridgeSectorId
+  if (!offshore && sector.id !== REMOTE_GRAND_CROSSING.sectorId) return
+  const id = offshore ? OFFSHORE_DISCOVERY.bridgeLandmarkId : REMOTE_GRAND_CROSSING.landmarkId
   if (
     !sector.landmarks.some(
-      (l) =>
-        l.id === REMOTE_GRAND_CROSSING.landmarkId && l.kind === 'bridge' && l.x === 6 && l.y === 4,
+      (l) => l.id === id && l.kind === 'bridge' && l.x === (offshore ? 5 : 6) && l.y === 4,
     )
   )
     return
   const at = (x: number, y: number) => sector.cells.find((cell) => cell.x === x && cell.y === y)
-  for (let x = 3; x <= 9; x++) if (at(x, 4)?.terrain !== '=' || !at(x, 4)?.walkable) return
+  for (let x = offshore ? 2 : 3; x <= (offshore ? 8 : 9); x++)
+    if (at(x, 4)?.terrain !== '=' || !at(x, 4)?.walkable) return
   for (const y of [3, 5])
-    for (let x = 4; x <= 8; x++) if (at(x, y)?.terrain !== 'w' || !at(x, y)?.walkable) return
+    for (let x = offshore ? 2 : 4; x <= 8; x++)
+      if (at(x, y)?.terrain !== (offshore ? '~' : 'w') || at(x, y)?.walkable === offshore) return
   return {
     sheet: 'grand-discoveries' as const,
     index: 0,

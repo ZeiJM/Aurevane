@@ -6,7 +6,7 @@ vi.mock('server-only', () => ({}))
 import { projectWorld, projectWorldSector } from '@/server/world/world-service'
 import { atlasSectors } from '@/world/atlas'
 import { CHARTED_SECTORS } from '@/world/catalog'
-import { GRAND_DISCOVERY_SITES } from '@/world/discovery-sites'
+import { GRAND_DISCOVERY_SITES, OFFSHORE_DISCOVERY } from '@/world/discovery-sites'
 import { WORLD_MAP_WIDTH } from '@/world/topology'
 import legacyTownTopology from '@/world/town-topology.legacy.json'
 import townGrandManifest from '../../../public/media/art/world/runtime/town-grand-architecture-v01.manifest.json'
@@ -5066,6 +5066,35 @@ it('draws an anchored animated lava cascade only on the real Emberreach lava cha
     expect(motion).not.toHaveBeenCalled()
   } finally {
     motion.mockRestore()
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+})
+
+it('draws the approved grand bridge over the offshore channel', () => {
+  const position = { sectorId: OFFSHORE_DISCOVERY.bridgeSectorId, x: 4, y: 4 }
+  const s = scene(true, projectWorld({ ...newWorldState(), position }, [], 1000))
+  try {
+    s.frame(40)
+    expect(
+      s.draws.some(
+        (draw) => draw.src.endsWith('grand-discoveries-v01.webp') && draw.args[6] > 64 * 7,
+      ),
+    ).toBe(true)
+  } finally {
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+})
+it('draws the grounded tower at a grand scale on Lanternward Isle', () => {
+  const position = { sectorId: OFFSHORE_DISCOVERY.islandSectorId, x: 6, y: 4 }
+  const s = scene(true, projectWorld({ ...newWorldState(), position }, [], 1000))
+  try {
+    s.frame(40)
+    expect(
+      s.draws.some((draw) => draw.src.endsWith('buildings-v02.webp') && draw.args[6] >= 64 * 5),
+    ).toBe(true)
+  } finally {
     s.renderer.dispose()
     vi.unstubAllGlobals()
   }

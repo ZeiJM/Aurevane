@@ -61,8 +61,8 @@ it('adds the current coordinate version to reviewed Void destinations without di
   const button = find(render(), (node) => node.type === 'button')!
   ;(button.props.onClick as () => void)()
   expect(onReview).toHaveBeenCalledWith(
-    { map: 'currentVoid', sectorNumber: 34, x: 6, y: 4, geometryVersion: '2026-11-14-v4' },
+    { map: 'currentVoid', sectorNumber: 34, x: 6, y: 4, geometryVersion: '2026-11-18-v5' },
     'Reviewed recovery',
   )
-  expect(renderToStaticMarkup(render())).not.toContain('2026-11-14-v4')
+  expect(renderToStaticMarkup(render())).not.toContain('2026-11-18-v5')
 })

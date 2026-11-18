@@ -26,6 +26,7 @@ import { provisionAccountAndEnterCharacter, openOfflineTraining } from './pv1f-t
 import { GRID_WIDTH, GRID_HEIGHT, STEP_MS, WORLD_REGIONS } from '../src/world/catalog'
 import { newWorldState, samePosition } from '../src/world/travel'
 import { FERRY_MAINLAND_DOCK } from '../src/world/ferry'
+import { OFFSHORE_DISCOVERY } from '../src/world/discovery-sites'
 import type { WorldView } from '../src/world/types'
 import { verifyWorldPresentation, registerWorldInputCases } from './world-presentation-case'
 import { verifyWorldScenePresence, verifyWorldInstantActions } from './world-presence-case'
@@ -1942,6 +1943,80 @@ test('scenic countryside has real blossom woodland, ruins, pools and open meadow
       expect(sector.cells.some((c) => c.terrain === '~' && !c.walkable)).toBe(true)
     await capture(page, info, `countryside-${landscape}`)
   }
+})
+
+test('settles an arrived ferry at the active private refuge and lets the passenger explore and return to the dock', async ({
+  page,
+}, info) => {
+  test.skip(info.project.name === 'laptop-chromium', 'Exercise desktop and phone travel.')
+  test.setTimeout(90000)
+  await enter(page)
+  const { characterId } = await world(page)
+  const passage = JSON.parse(
+    sql(`
+    with clock as (select app_private.world_ferry_now_v1() t),
+    rotation as (select t, app_private.world_void_rotation_v1(t) active from clock)
+    select jsonb_build_object('now', t, 'next', active->'nextRollAt',
+      'dock', app_private.world_void_ferry_dock_v1(active->>'realmId')) from rotation;
+  `),
+  ) as { now: number; next: number; dock: WorldView['position'] }
+  test.skip(passage.next - passage.now < 120_000, 'A production-style evacuation is imminent.')
+  const arrivalAt = passage.now - 2_000
+  const departureAt = arrivalAt - 300_000
+  const { dock } = passage
+  const boarded = {
+    position: { sectorId: 'ferry:outbound:' + departureAt, x: 6, y: 4 },
+    route: [],
+    routeDestination: null,
+    nextStepAt: null,
+    ferry: {
+      direction: 'outbound',
+      departureAt,
+      arrivalAt,
+      activeVoid: true,
+      origin: FERRY_MAINLAND_DOCK,
+    },
+  }
+  sql(
+    `update app_private.character_world_state set state = state || '${JSON.stringify(boarded)}'::jsonb where character_id='${characterId}'::uuid`,
+  )
+  await page.reload()
+  const scene = await world(page)
+  expect(scene.position).toEqual(dock)
+  expect(scene.ferry?.port).toBe('uncharted')
+  expect(scene.atlas!.every((cell) => !cell.id.startsWith('void:'))).toBe(true)
+  const station = page.getByRole('region', { name: 'Ferry station' })
+  await expect(station.getByRole('button', { name: 'Talk to Ferryman' })).toBeVisible()
+  const walk = { ...dock, x: dock.x + 2 }
+  await stageWalk(page, walk)
+  await expect.poll(async () => (await world(page)).position).toEqual(walk)
+  expect((await world(page)).ferry).toBeUndefined()
+  await stageWalk(page, dock)
+  await expect.poll(async () => (await world(page)).position).toEqual(dock)
+  await expect(station).toBeVisible()
+  await capture(page, info, 'active-uncharted-ferry-refuge')
+})
+
+test('walks the offshore bridge and resumes at the scenic tower after reload', async ({
+  page,
+}, info) => {
+  test.skip(info.project.name === 'laptop-chromium', 'Exercise desktop and phone travel.')
+  test.setTimeout(90000)
+  await enter(page)
+  const { characterId } = await world(page)
+  place(characterId, OFFSHORE_DISCOVERY.mainlandSectorId, 2, 4)
+  await page.reload()
+  await page.getByRole('button', { name: /Open world atlas/ }).click()
+  await reviewSectorTravel(page, OFFSHORE_DISCOVERY.islandSectorId)
+  const target = { sectorId: OFFSHORE_DISCOVERY.islandSectorId, x: 6, y: 4 }
+  await expect.poll(async () => (await world(page)).position, { timeout: 20000 }).toEqual(target)
+  await page.reload()
+  const scene = await world(page)
+  expect(scene.position).toEqual(target)
+  const tower = scene.sectors.find((sector) => sector.id === target.sectorId)!.landmarks[0]!
+  expect(tower.name).toBe('The Lanternward Tower')
+  expect(scene.interactions.some((interaction) => interaction.objectiveId === tower.id)).toBe(false)
+  await capture(page, info, 'lanternward-isle-tower')
 })
 
 test('charted globe travel survives unrelated frontier discoveries and retains bounded authoritative continuation', async ({

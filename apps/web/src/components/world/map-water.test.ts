@@ -545,56 +545,45 @@ describe('world-connected water presentation', () => {
     expect(low.ellipse.mock.calls).toEqual(east.ellipse.mock.calls.slice(0, 1))
   })
 
-  it('keeps Willow Cascades’ closed receiving pool free of channel glints', () => {
-    const { rows, roads, landmarks, ...willow } = atlasSectors().find(
-      ({ id }) => id === 'atlas:69:36',
-    )!
-    const view: WorldSectorView = {
-      ...willow,
-      exits: [...roads],
-      landmarks: [...landmarks],
-      cells: rows.flatMap((row, y) =>
-        [...row].map((terrain, x) => ({
-          x,
-          y,
-          terrain,
-          walkable: terrainWalkable(terrain),
-          safe: false,
-        })),
-      ),
-    }
-    const receivingPool = buildWaterField([view]).get(view.id)!.cells.get('9:2')!
-    expect(view.cells.find(({ x, y }) => x === 9 && y === 2)).toMatchObject({
+  it('links the Willow Falls receiving pool to a channel under the footbridge and across sectors', () => {
+    const views = atlasSectors()
+      .filter(({ id }) => id === 'atlas:69:36' || id === 'atlas:69:37')
+      .map(({ rows, roads, landmarks, ...sector }): WorldSectorView => ({
+        ...sector,
+        exits: [...roads],
+        landmarks: [...landmarks],
+        cells: rows.flatMap((row, y) =>
+          [...row].map((terrain, x) => ({
+            x,
+            y,
+            terrain,
+            walkable: terrainWalkable(terrain),
+            safe: false,
+          })),
+        ),
+      }))
+    const [willow] = views
+    const fields = buildWaterField(views)
+    const upper = fields.get('atlas:69:36')!.cells
+    const lower = fields.get('atlas:69:37')!.cells
+    const receivingPool = upper.get('9:2')!
+    expect(willow!.cells.find(({ x, y }) => x === 9 && y === 2)).toMatchObject({
       terrain: '~',
       walkable: false,
     })
-    expect(receivingPool.banks.map(({ side }) => side)).toEqual([0, 1, 2, 3])
     expect(receivingPool.channel).toBe(false)
-
-    const ellipse = vi.fn(),
-      bezierCurveTo = vi.fn(),
-      rect = vi.fn()
-    const canvas = {
-      ellipse,
-      bezierCurveTo,
-      rect,
-      save: vi.fn(),
-      restore: vi.fn(),
-      beginPath: vi.fn(),
-      clip: vi.fn(),
-      moveTo: vi.fn(),
-      lineTo: vi.fn(),
-      closePath: vi.fn(),
-      stroke: vi.fn(),
-    }
+    expect(receivingPool.banks).toEqual([])
+    expect(willow!.cells.find(({ x, y }) => x === 10 && y === 4)).toMatchObject({
+      terrain: '=',
+      walkable: true,
+    })
+    expect(upper.get('10:3')!.banks.map(({ side }) => side)).not.toContain(2)
+    expect(upper.get('10:5')!.banks.map(({ side }) => side)).not.toContain(0)
+    expect(upper.get('11:8')!.banks.map(({ side }) => side)).not.toContain(2)
+    expect(lower.get('11:0')!.banks.map(({ side }) => side)).not.toContain(0)
+    const canvas = waterCanvas()
     paintWaterMotion(canvas as unknown as CanvasRenderingContext2D, receivingPool, 48, 1200)
-    expect(rect).toHaveBeenCalledWith(0, 0, 48, 48)
-    expect(ellipse).toHaveBeenCalledOnce()
-    // The receiving pool traces its curved known shore, with no extra channel
-    // filament curves beyond the ground's exact clipping outline.
-    const outline = waterCanvas()
-    clipWaterSurface(outline as unknown as CanvasRenderingContext2D, receivingPool, 48)
-    expect(bezierCurveTo.mock.calls).toEqual(outline.bezierCurveTo.mock.calls)
+    expect(canvas.ellipse).toHaveBeenCalledOnce()
   })
 
   it('moves waterfall highlights down its fixed painted channels without moving the rocks', () => {

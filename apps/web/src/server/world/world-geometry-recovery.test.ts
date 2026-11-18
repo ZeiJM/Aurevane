@@ -45,6 +45,16 @@ describe('authoritative release-specific saved world position recovery', () => {
     expect(target).not.toBeNull()
     expect(target?.sectorId.startsWith('void:')).toBe(false)
   })
+  it('moves saved Emberreach origins out of the new lava basin', () => {
+    for (const position of [
+      { sectorId: 'emberreach', x: 9, y: 8 },
+      { sectorId: 'atlas:80:21', x: 11, y: 1 },
+    ]) {
+      const repaired = savedWorldGeometryRecovery(position)
+      expect(repaired).not.toBeNull()
+      expect(savedWorldGeometryRecovery(repaired!)).toBeNull()
+    }
+  })
   it('never relocates normal map cells or private realm positions', () => {
     expect(savedWorldGeometryRecovery({ sectorId: 'umbral-march', x: 6, y: 4 })).toBeNull()
     expect(savedWorldGeometryRecovery({ sectorId: 'void:ivory-veil:0:0', x: 6, y: 4 })).toBeNull()

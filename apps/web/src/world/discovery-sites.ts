@@ -59,6 +59,53 @@ export const REMOTE_GRAND_CROSSING = {
   x: 6,
   y: 4,
 } as const
+
+export const OFFSHORE_DISCOVERY = {
+  mainlandSectorId: 'atlas:103:29',
+  bridgeSectorId: 'atlas:102:29',
+  bridgeLandmarkId: 'atlas:102:29:bridge',
+  islandSectorId: 'atlas:101:29',
+  towerLandmarkId: 'atlas:101:29:tower',
+  row: 29,
+} as const
+
+/** The sea channel opens onto the ocean on either side of the deck. */
+export const OFFSHORE_SECTORS = [
+  {
+    id: OFFSHORE_DISCOVERY.bridgeSectorId,
+    column: 102,
+    name: 'The Farwater Span',
+    rows: [
+      '~~~~~~~~~~~~~',
+      '~~~~~~~~~~~~~',
+      '.~~~~~~~~~~~~',
+      '..~~~~~~~~~..',
+      '..=======....',
+      '..~~~~~~~....',
+      '.~~~~~~~~~~..',
+      '~~~~~~~~~~~~.',
+      '~~~~~~~~~~~~~',
+    ],
+    landmark: { id: OFFSHORE_DISCOVERY.bridgeLandmarkId, x: 5, y: 4, kind: 'bridge' },
+  },
+  {
+    id: OFFSHORE_DISCOVERY.islandSectorId,
+    column: 101,
+    name: 'Lanternward Isle',
+    rows: [
+      '~~~~~~~~~~~~~',
+      '~~~~....~~~~~',
+      '~~..t.....~~~',
+      '~............',
+      '~...........=',
+      '~............',
+      '~~...t...t...',
+      '~~~~......~~~',
+      '~~~~~~~~~~~~~',
+    ],
+    landmark: { id: OFFSHORE_DISCOVERY.towerLandmarkId, x: 6, y: 4, kind: 'watchtower' },
+  },
+] as const
 /** A narrow three-sector watercourse widens naturally beneath the grand central avenue. */
 export function remoteCrossingWaterAt(column: number, row: number, x: number, y: number) {
   if (column !== REMOTE_GRAND_CROSSING.column || row < 31 || row > 33 || y === 4) return false
