@@ -229,7 +229,10 @@
           "200 image/webp"
         ]
       ],
-      "warningsErrorsFatal": "none in initial 15m window"
+      "warningsErrorsFatal": "none in initial 15m window",
+      "routingAfterPromotionReady": "3e9595b7-901b-4bd6-8e83-36840655ff34",
+      "routingStagePreservedNine": true,
+      "invalidPinAndRetiredHostChecks": "503 expected"
     },
     "canonicalBeforePromotionChecked": "200 old deployment dpl_2Et3UkKAWbsLf6TsABzxoxPg5gpJ"
   },
@@ -238,7 +241,7 @@
     "Promote the single staged build; verify canonical identity, retire the prior host/pins with all nine rules intact, and check runtime follow-up.",
     "Refresh and merge docs-only PR #1042 after the game release."
   ],
-  "updatedAt": "2026-11-18T02:35:56.192Z",
+  "updatedAt": "2026-11-18T02:41:16.698Z",
   "previousCandidate": {
     "sha": "9b76647e206ec9a426804a13bd53ee33cc6df941",
     "tree": "d7256c6b8cf558b4e9b92400a412eb5052a2682e",
