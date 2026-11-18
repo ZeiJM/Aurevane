@@ -13,15 +13,15 @@
     "draft": true
   },
   "main": "2893076856e20bc64f00e94e132d26dd0d76b26d",
-  "productionMutationOccurred": false,
-  "releaseHold": true,
+  "productionMutationOccurred": true,
+  "releaseHold": false,
   "ownership": {
     "interactiveOwner": "Nick requested release readiness; interactive production continuation",
-    "leaseExpires": "2026-11-18T03:04:59.261Z",
+    "leaseExpires": "2026-11-18T02:44:17.411Z",
     "hourlyTasksDisabled": [
       "Automation_661d7a3712ec8191939d0104f5c5a773"
     ],
-    "handoff": "Interactive continuation owns guarded release. Scheduled checks inspect only while this lease remains active. Do not create a competing deployment."
+    "handoff": "Verified live. Release lease relinquished to the designated monitor for docs-only PR #1042 follow-through. This game release is complete; do not create, merge or promote another gameplay build for it."
   },
   "currentRuns": {
     "ci": 44199406222,
@@ -29,7 +29,7 @@
     "atlas": 44199406249,
     "browserSmoke": 44199406377,
     "timing": 44199406372,
-    "status": "All five configured workflows pass on 4e1f094; current-source native visual review complete. Interactive release verification is ongoing."
+    "status": "All five configured PR checks and native visual review pass. All three new main checks pass. Production promotion and public postflight verified."
   },
   "local": {
     "checkout": "Clean4e1f094 checkout; source tree equals0e63d1637dbdf413177458bb7f32e165f36ff7ad",
@@ -160,10 +160,10 @@
   "release": {
     "project": "prj_ZmH66I1zyOARUt8OXdTl7CN9r18d",
     "team": "team_oZRrN2ckoy5ge7NgZfp1B6de",
-    "currentProduction": "dpl_2Et3UkKAWbsLf6TsABzxoxPg5gpJ",
-    "host": "aurevane-gsi1a8028-zeijms-projects.vercel.app",
+    "currentProduction": "dpl_7wFcLjXVCagiAvH5jLwV8oc7MaZ5",
+    "host": "aurevane-6vh76j1er-zeijms-projects.vercel.app",
     "canonical": "https://aurevane-rpg.com",
-    "liveRoutesVersion": "dd604b9c-e5a1-4641-b28b-710a520f7290",
+    "liveRoutesVersion": "3e9595b7-901b-4bd6-8e83-36840655ff34",
     "enabledRetirementGuards": 9,
     "gitDeploymentsDisabled": true,
     "required": "All final source gates + native visual review; refreshmain, merge equal tested tree, ONE staged Production build, smoke and promote SAME build",
@@ -198,7 +198,7 @@
       "autoAssignCustomDomains": false,
       "supabaseInstalledMigrations": 263,
       "latestMigration": "20261114114000",
-      "promoted": false,
+      "promoted": true,
       "routingStageVersion": "fd4c880c-a8b5-42c0-a536-0c03acecfe2d",
       "routingPreviousVersion": "dd604b9c-e5a1-4641-b28b-710a520f7290",
       "retirementRoutes": 9,
@@ -232,16 +232,31 @@
       "warningsErrorsFatal": "none in initial 15m window",
       "routingAfterPromotionReady": "3e9595b7-901b-4bd6-8e83-36840655ff34",
       "routingStagePreservedNine": true,
-      "invalidPinAndRetiredHostChecks": "503 expected"
+      "invalidPinAndRetiredHostChecks": "503 expected",
+      "promotedSameBuild": true
     },
-    "canonicalBeforePromotionChecked": "200 old deployment dpl_2Et3UkKAWbsLf6TsABzxoxPg5gpJ"
+    "canonicalBeforePromotionChecked": "200 old deployment dpl_2Et3UkKAWbsLf6TsABzxoxPg5gpJ",
+    "previousProduction": "dpl_2Et3UkKAWbsLf6TsABzxoxPg5gpJ",
+    "canonicalVerifiedAt": "2026-11-18T02:44:17.411Z",
+    "canonicalVerifiedSha": "6216bff7a8c1ab6432d223159eabbfd91278e2b1",
+    "postflight": {
+      "canonicalHome": "200 exact deployment",
+      "worldPage": "200 exact deployment, signed-out shell",
+      "worldAPI": "401 expected signed-out",
+      "colosseumImage": "200 image/webp",
+      "wwwDomain": "308 redirect",
+      "primaryVercelAlias": "200 exact deployment",
+      "retiredHostAndInvalidPin": "503 expected",
+      "installedMigrations": 263,
+      "lastMigration": "20261114114000",
+      "warningErrorFatal": "none in initial deployment-scoped scan",
+      "productionPlaytest": "Signed-in manual playtesting remains for Nick."
+    }
   },
   "remaining": [
-    "Finish merged-main UI layout review.",
-    "Promote the single staged build; verify canonical identity, retire the prior host/pins with all nine rules intact, and check runtime follow-up.",
-    "Refresh and merge docs-only PR #1042 after the game release."
+    "Refresh and merge docs-only PR #1042 after its own checks. Do not redeploy PR #1043."
   ],
-  "updatedAt": "2026-11-18T02:41:16.698Z",
+  "updatedAt": "2026-11-18T02:44:17.411Z",
   "previousCandidate": {
     "sha": "9b76647e206ec9a426804a13bd53ee33cc6df941",
     "tree": "d7256c6b8cf558b4e9b92400a412eb5052a2682e",
@@ -375,7 +390,7 @@
     "currentChecks": {
       "ci": "success",
       "browserSmoke": "success",
-      "uiLayout": "in_progress"
+      "uiLayout": "success"
     }
   }
 }
