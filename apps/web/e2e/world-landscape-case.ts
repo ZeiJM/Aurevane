@@ -293,10 +293,17 @@ export function registerWorldLandscapeCases(helpers: Helpers) {
       await page.getByRole('button', { name: 'Details', exact: true }).click()
     await expect(towns).toBeVisible()
     expect(await towns.locator('option').count()).toBeGreaterThanOrEqual(9)
+    const destination = page.getByRole('region', { name: 'Selected destination', exact: true })
+    for (const [sector, name] of [
+      ['atlas:71:16', 'The Shadows’ Vigil'],
+      ['atlas:44:37', 'The Thousand Steps'],
+    ] as const) {
+      await towns.selectOption(sector)
+      await expect(destination).toContainText(name)
+      await expect(destination.getByRole('button', { name: 'Travel here' })).toBeEnabled()
+    }
     await towns.selectOption('frostmere')
-    await expect(
-      page.getByRole('region', { name: 'Selected destination', exact: true }),
-    ).toContainText('Frostmere')
+    await expect(destination).toContainText('Frostmere')
     await expect(
       page.getByRole('button', { name: 'Select Frostmere town', exact: true }),
     ).toBeVisible()

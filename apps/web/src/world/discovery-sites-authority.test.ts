@@ -3,6 +3,16 @@ import { atlasSectors } from './atlas'
 import { GRAND_DISCOVERY_SITES } from './discovery-sites'
 import { grandDiscoveryBarrier } from './discovery-collision'
 import { isWalkable } from './travel'
+
+it.each([
+  ['atlas:71:16', 'The Shadows’ Vigil'],
+  ['atlas:44:37', 'The Thousand Steps'],
+])('names the existing public sector %s and keeps the Atlas travel target walkable', (id, name) => {
+  const sector = atlasSectors().find((s) => s.id === id)!
+  expect(sector).toMatchObject({ name, charted: true })
+  expect(isWalkable(sector, { x: 6, y: 4 })).toBe(true)
+})
+
 it('keeps valley shallows and open avenues traversable while solid cliffs block old roads', () => {
   const site = GRAND_DISCOVERY_SITES.find((s) => s.id === 'elemental-valley')!,
     sectors = atlasSectors()

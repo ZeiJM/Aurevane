@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import { useRouter } from 'next/navigation'
 import { WORLD_LAND_NAME } from '@/world/atlas'
 import { WORLD_REGIONS } from '@/world/catalog'
+import { grandDiscoverySectorName } from '@/world/discovery-sites'
 import { FERRY_MAINLAND_DOCK } from '@/world/ferry'
 import { positionLabel, sectorDisplayNumber, sectorLabel } from '@/world/coordinate-label'
 import { parseVoidSectorId, VOID_REALMS } from '@/world/void-realms'
@@ -605,6 +606,7 @@ export function WorldWorkspace({
           cell.charted &&
           (cell.townId === cell.id ||
             knownAnchors.has(cell.id) ||
+            grandDiscoverySectorName(cell.id) !== undefined ||
             cell.id === FERRY_MAINLAND_DOCK.sectorId),
       )
       .sort((a, b) => a.row - b.row || a.column - b.column)

@@ -10,6 +10,7 @@ import { generateSectorTerrain, seeded } from './terrain-gen'
 import {
   GRAND_DISCOVERY_SITES,
   REMOTE_GRAND_CROSSING,
+  grandDiscoverySectorName,
   remoteCrossingWaterAt,
 } from './discovery-sites'
 import { terrainWalkable } from './terrain'
@@ -658,6 +659,7 @@ export function atlasSectors(): readonly WorldSector[] {
         id,
         name:
           authored?.name ??
+          grandDiscoverySectorName(id) ??
           (scenicCenter
             ? scenic.name
             : town

@@ -19,6 +19,8 @@ export const GRAND_DISCOVERY_SITES = [
   { id: 'abandoned-town', left: 872, top: 334, width: 12, height: 6, regionId: 'hollow-coast' },
   {
     id: 'elemental-valley',
+    name: 'The Shadows’ Vigil',
+    sectorId: 'atlas:71:16',
     left: valleyLeft,
     top: valleyTop,
     width: 60,
@@ -31,6 +33,8 @@ export const GRAND_DISCOVERY_SITES = [
   },
   {
     id: 'remote-colosseum',
+    name: 'The Thousand Steps',
+    sectorId: 'atlas:44:37',
     left: 560,
     top: 316,
     width: 48,
@@ -39,6 +43,13 @@ export const GRAND_DISCOVERY_SITES = [
   },
 ] as const
 export type GrandDiscoveryId = (typeof GRAND_DISCOVERY_SITES)[number]['id']
+
+export function grandDiscoverySectorName(sectorId: string) {
+  const site = GRAND_DISCOVERY_SITES.find(
+    (site) => 'sectorId' in site && site.sectorId === sectorId,
+  )
+  return site && 'name' in site ? site.name : undefined
+}
 
 export const REMOTE_GRAND_CROSSING = {
   sectorId: 'atlas:71:32',
