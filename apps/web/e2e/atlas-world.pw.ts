@@ -23,14 +23,14 @@ import {
 } from '@playwright/test'
 import type { SetPracticePlanRequest } from '@aurevane/validation/player/wayfarers-practice'
 import { provisionAccountAndEnterCharacter, openOfflineTraining } from './pv1f-test-helpers'
-import { GRID_WIDTH, GRID_HEIGHT, STEP_MS, WORLD_REGIONS } from '../src/world/catalog'
+import { STEP_MS, WORLD_REGIONS } from '../src/world/catalog'
 import { newWorldState, samePosition } from '../src/world/travel'
 import { FERRY_MAINLAND_DOCK } from '../src/world/ferry'
 import { OFFSHORE_DISCOVERY } from '../src/world/discovery-sites'
 import type { WorldView } from '../src/world/types'
 import { verifyWorldPresentation, registerWorldInputCases } from './world-presentation-case'
 import { verifyWorldScenePresence, verifyWorldInstantActions } from './world-presence-case'
-import { sectorMapOrigin, wrappedMapX } from '../src/world/topology'
+import { sectorMapOrigin } from '../src/world/topology'
 import { projectMapPoint } from '../src/components/world/map-projection'
 import { worldRenderTerrain } from '../src/components/world/map-render-terrain'
 import { registerWorldLandscapeCases } from './world-landscape-case'
@@ -356,9 +356,9 @@ async function stageWalk(page: Page, destination: { sectorId: string; x: number;
     y: Number(el.dataset.cameraY),
     tile: Number(el.dataset.tileSize),
   }))
-  const dx =
-    wrappedMapX((sector.atlasColumn ?? 0) * GRID_WIDTH + destination.x + 0.5, metrics.x) - metrics.x
-  const dy = (sector.atlasRow ?? 0) * GRID_HEIGHT + destination.y + 0.5 - metrics.y
+  const origin = sectorMapOrigin(sector, metrics.x)
+  const dx = origin.x + destination.x + 0.5 - metrics.x
+  const dy = origin.y + destination.y + 0.5 - metrics.y
   const x = box.width / 2 + (dx - dy) * metrics.tile * 0.85
   const y = box.height / 2 + (dx + dy) * metrics.tile * 0.44
   if (x <= 0 || x >= box.width || y <= 0 || y >= box.height) {
@@ -1991,8 +1991,9 @@ test('settles an arrived ferry at the active private refuge and lets the passeng
   await stageWalk(page, walk)
   await expect.poll(async () => (await world(page)).position).toEqual(walk)
   expect((await world(page)).ferry).toBeUndefined()
-  await stageWalk(page, dock)
-  await expect.poll(async () => (await world(page)).position).toEqual(dock)
+  const approach = { ...dock, x: dock.x + 1 }
+  await stageWalk(page, approach)
+  await expect.poll(async () => (await world(page)).position).toEqual(approach)
   await expect(station).toBeVisible()
   await capture(page, info, 'active-uncharted-ferry-refuge')
 })
