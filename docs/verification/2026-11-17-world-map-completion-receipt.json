@@ -16,12 +16,12 @@
   "productionMutationOccurred": true,
   "releaseHold": false,
   "ownership": {
-    "interactiveOwner": "Nick requested release readiness; interactive production continuation",
-    "leaseExpires": "2026-11-18T02:44:17.411Z",
+    "interactiveOwner": "Automation_9dd57abfa004819195b30acab8a54150 docs-only follow-through",
+    "leaseExpires": "2026-11-18T04:16:55.282Z",
     "hourlyTasksDisabled": [
       "Automation_661d7a3712ec8191939d0104f5c5a773"
     ],
-    "handoff": "Verified live. Release lease relinquished to the designated monitor for docs-only PR #1042 follow-through. This game release is complete; do not create, merge or promote another gameplay build for it."
+    "handoff": "Designated continuation owns docs-only PR1042 refresh. Gameplay release is complete; no new game deployment."
   },
   "currentRuns": {
     "ci": 44199406222,
@@ -256,7 +256,7 @@
   "remaining": [
     "Refresh and merge docs-only PR #1042 after its own checks. Do not redeploy PR #1043."
   ],
-  "updatedAt": "2026-11-18T02:44:17.411Z",
+  "updatedAt": "2026-11-18T03:26:55.282Z",
   "previousCandidate": {
     "sha": "9b76647e206ec9a426804a13bd53ee33cc6df941",
     "tree": "d7256c6b8cf558b4e9b92400a412eb5052a2682e",
