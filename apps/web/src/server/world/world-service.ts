@@ -169,6 +169,24 @@ export function resolveWorldIntent(
       )
         ? { ...state, route: [], routeObjectiveId: null, routeDestination: null, nextStepAt: null }
         : advanceWorldRoute(state, now)
+    if (state.route.length && !next.route.length && next.routeDestination) {
+      // A saved window can end before the browser asks to extend it. Resume
+      // from the last approved tile and charge the next step its full duration.
+      const route = findWorldRoute(
+        next.position,
+        next.routeDestination,
+        visibleSectors(next),
+        (p) => isKnown(next, p),
+      )
+      next = {
+        ...next,
+        route: route?.slice(0, MAX_PERSISTED_ROUTE_STEPS) ?? [],
+        routeObjectiveId: route?.length ? next.routeObjectiveId : null,
+        routeDestination:
+          route && route.length > MAX_PERSISTED_ROUTE_STEPS ? next.routeDestination : null,
+        nextStepAt: route?.length ? now + route[0]!.durationMs : null,
+      }
+    }
   } else if (intent.kind === 'cross') {
     if (!samePosition(state.position, FRONTIER_APPROACH) || state.route.length)
       invalid('Walk to the last reliable survey and stop before crossing.')

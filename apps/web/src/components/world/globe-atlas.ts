@@ -7,7 +7,7 @@ import {
   globeMaterials,
 } from './globe-terrain'
 import type { WorldAtlasCell } from '@/world/types'
-import { ATLAS_COLUMNS, ATLAS_ROWS } from '@/world/atlas'
+import { ATLAS_COLUMNS, ATLAS_ROWS, longitudeCountrysideLatitude } from '@/world/atlas'
 import { globeSectorCenter, projectGlobePoint, type GlobeLocation } from '@/world/globe-math'
 
 const colors: Record<string, readonly number[]> = {
@@ -123,6 +123,12 @@ export function globeAtlasDetailPixels(
   const scale = GLOBE_DETAIL_SCALE,
     width = columns * scale,
     height = rows * scale
+  const bandLatitude =
+    columns === ATLAS_COLUMNS && rows === ATLAS_ROWS
+      ? Float32Array.from({ length: width }, (_, x) =>
+          longitudeCountrysideLatitude((x + 0.5) / scale - 0.5),
+        )
+      : null
   const pixels = new Uint8Array(width * height * 4)
   const cells = new Map(atlas.filter((c) => c.charted).map((c) => [`${c.column}:${c.row}`, c]))
   const anchors = new Map(
@@ -251,12 +257,17 @@ export function globeAtlasDetailPixels(
         broad *
         (1 - smooth(0.16, 0.22, baseDistance))
     }
-    const coastDistance =
+    const shapedCoast =
       baseDistance -
       inlet * 0.8 +
       (coastalNoise(x, y, 0.028) - 0.5) * 0.025 +
       relief *
         ((coastalNoise(x, y + 31, 0.035) - 0.5) * 0.24 + (coastalNoise(x, y, 0.13) - 0.5) * 0.08)
+    // Keep a land core along the authored wraparound band. The caller paints
+    // only charted cells, so the core cannot join islands outside that band or reveal hidden land.
+    const band = bandLatitude?.[Math.floor(x)]
+    const coastDistance =
+      band === undefined ? shapedCoast : Math.max(shapedCoast, (0.58 - Math.abs(gy - band)) * 0.2)
     return {
       rgb,
       alpha: Math.round(smooth(-0.018, 0.018, coastDistance) * 255),

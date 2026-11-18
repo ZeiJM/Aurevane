@@ -68,6 +68,10 @@ const subscribeWorldFavorite = (changed: () => void) => {
 }
 const noWorldFavorite = () => null
 
+function centerGlobeOn(id: string) {
+  window.dispatchEvent(new CustomEvent<string>(GLOBE_FOCUS_EVENT, { detail: id }))
+}
+
 function SettingsButton({
   open,
   onClick,
@@ -591,7 +595,7 @@ export function WorldWorkspace({
   const focusGlobalSector = (id: string | null) => {
     setConfirmDestinationId(null)
     setDestinationId(id)
-    if (id) window.dispatchEvent(new CustomEvent<string>(GLOBE_FOCUS_EVENT, { detail: id }))
+    if (id) centerGlobeOn(id)
   }
   const keyLocations = useMemo(() => {
     const knownAnchors = new Set(view.anchors.map((anchor) => anchor.sectorId))
@@ -784,119 +788,11 @@ export function WorldWorkspace({
           className={`${styles.sidebar} ${panelOpen ? styles.open : ''} ${conversation ? dialogueStyles.mapObstruction : ''}`}
           aria-label="World details"
         >
-          <p className={styles.conditions} aria-label="World conditions">
-            {time} · {worldDayPhase(view.environment.minuteOfDay)} · {weatherLabel}
-            {view.environment.frozen ? ' · Frozen' : ''}
-          </p>
-          {mode === 'global' ? (
-            <section className={styles.atlasTools} aria-label="World Atlas controls">
-              <small>EXPLORATION</small>
-              <h2>World Atlas</h2>
-              <p>Choose a known location. Selection alone never starts travel.</p>
-              <label>
-                Key locations
-                <select
-                  aria-label="Key locations"
-                  value={
-                    keyLocations.some((cell) => cell.id === destinationId) ? destinationId! : ''
-                  }
-                  onChange={(event) => focusGlobalSector(event.target.value || null)}
-                >
-                  <option value="">Select a key location</option>
-                  {keyLocations.map((cell) => (
-                    <option key={cell.id} value={cell.id}>
-                      {sectorLabel(cell)} · {cell.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <div className={styles.atlasActions}>
-                <label>
-                  Sector number
-                  <input
-                    type="number"
-                    min={1}
-                    max={8192}
-                    step={1}
-                    inputMode="numeric"
-                    aria-label="Sector number"
-                    value={sectorJump}
-                    onChange={(event) => setSectorJump(event.target.value)}
-                  />
-                </label>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const number = Number(sectorJump)
-                    const sector =
-                      /^\d+$/.test(sectorJump.trim()) && number > 0
-                        ? view.atlas?.find(
-                            (cell) => cell.charted && sectorDisplayNumber(cell) === number,
-                          )
-                        : null
-                    if (!sector) {
-                      setMessage('Enter a known charted sector number to review travel.')
-                      return
-                    }
-                    focusGlobalSector(sector.id)
-                  }}
-                >
-                  Review sector
-                </button>
-              </div>
-              <div className={styles.atlasActions}>
-                <button type="button" onClick={() => focusGlobalSector(view.position.sectorId)}>
-                  ◉ You are here
-                </button>
-                <button
-                  type="button"
-                  disabled={!travelPoints.length}
-                  onClick={() => {
-                    const next = nextWorldTravelPoint(travelPoints, destinationId)
-                    if (next) focusGlobalSector(next.id)
-                  }}
-                >
-                  ◈ Travel point {travelPoints.length > 1 ? '(' + travelPoints.length + ')' : ''}
-                </button>
-              </div>
-              {activeTravelPoint ? <small>Travel point: {activeTravelPoint.name}</small> : null}
-              <div className={styles.atlasActions}>
-                <button
-                  type="button"
-                  disabled={!destinationId}
-                  onClick={() => {
-                    if (destinationId) assignFavorite(destinationId)
-                  }}
-                >
-                  ☆{' '}
-                  {favoriteSectorId && favoriteSectorId === destinationId
-                    ? 'Favorite saved'
-                    : 'Set favorite'}
-                </button>
-                <button
-                  type="button"
-                  disabled={!favoriteSectorId}
-                  onClick={() => {
-                    if (favoriteSectorId) focusGlobalSector(favoriteSectorId)
-                  }}
-                >
-                  ★ My favorite
-                </button>
-                {favoriteSectorId ? (
-                  <button
-                    type="button"
-                    aria-label="Remove favorite"
-                    onClick={() => assignFavorite(null)}
-                  >
-                    Remove favorite
-                  </button>
-                ) : null}
-              </div>
-              <p>
-                Select a known sector, enter its number or choose Travel here to review and confirm
-                travel.
-              </p>
-            </section>
+          {mode === 'local' ? (
+            <p className={styles.conditions} aria-label="World conditions">
+              {time} · {worldDayPhase(view.environment.minuteOfDay)} · {weatherLabel}
+              {view.environment.frozen ? ' · Frozen' : ''}
+            </p>
           ) : null}
           {mode === 'local' ? (
             <div className={styles.tabs} role="tablist" aria-label="World details">
@@ -943,11 +839,87 @@ export function WorldWorkspace({
           ) : null}
           <div className={styles.panelScroll}>
             {mode === 'global' ? (
-              <section className={styles.position} data-world-position aria-label="Your position">
-                <small>YOUR POSITION</small>
-                <h2>{localName}</h2>
-                {currentPositionFacts}
-              </section>
+              <>
+                <section className={styles.atlasTools} aria-label="World Atlas controls">
+                  <h2>World Atlas</h2>
+                  <select
+                    aria-label="Key locations"
+                    value={
+                      keyLocations.some((cell) => cell.id === destinationId) ? destinationId! : ''
+                    }
+                    onChange={(event) => focusGlobalSector(event.target.value || null)}
+                  >
+                    <option value="">Key locations</option>
+                    {keyLocations.map((cell) => (
+                      <option key={cell.id} value={cell.id}>
+                        {sectorLabel(cell)} · {cell.name}
+                      </option>
+                    ))}
+                  </select>
+                  <form
+                    className={styles.atlasActions}
+                    onSubmit={(event) => {
+                      event.preventDefault()
+                      const number = Number(sectorJump)
+                      const sector =
+                        /^\d+$/.test(sectorJump.trim()) && number > 0
+                          ? view.atlas?.find(
+                              (cell) => cell.charted && sectorDisplayNumber(cell) === number,
+                            )
+                          : null
+                      if (!sector) {
+                        setMessage('Enter a known charted sector number to review travel.')
+                        return
+                      }
+                      setMessage('')
+                      focusGlobalSector(sector.id)
+                    }}
+                  >
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      aria-label="Sector number"
+                      placeholder="Sector number"
+                      value={sectorJump}
+                      onChange={(event) => setSectorJump(event.target.value)}
+                    />
+                    <button type="submit">Review sector</button>
+                  </form>
+                  <div className={styles.atlasActions}>
+                    <button
+                      type="button"
+                      disabled={!travelPoints.length}
+                      title={activeTravelPoint ? `Selected: ${activeTravelPoint.name}` : undefined}
+                      onClick={() => {
+                        const next = nextWorldTravelPoint(travelPoints, destinationId)
+                        if (next) focusGlobalSector(next.id)
+                      }}
+                    >
+                      {activeTravelPoint ? 'Next Travel Point' : 'Travel Points'}
+                    </button>
+                    {favoriteSectorId ? (
+                      <button type="button" onClick={() => focusGlobalSector(favoriteSectorId)}>
+                        My favorite
+                      </button>
+                    ) : null}
+                  </div>
+                </section>
+                <section className={styles.position} data-world-position aria-label="Your position">
+                  <div>
+                    <h2>{localName}</h2>
+                    {currentPositionFacts}
+                  </div>
+                  <button
+                    type="button"
+                    className={styles.positionFocus}
+                    aria-label="Center on your position"
+                    title="Center on your position"
+                    onClick={() => centerGlobeOn(view.position.sectorId)}
+                  >
+                    <span aria-hidden="true">◉</span>
+                  </button>
+                </section>
+              </>
             ) : null}
             {mode === 'local' && tab === 'chat' ? (
               <div
@@ -1019,6 +991,10 @@ export function WorldWorkspace({
                     disabled={disabled}
                     reviewing={confirmDestination?.id === destination.id}
                     replacesRoute={view.route.length > 0}
+                    favorite={favoriteSectorId === destination.id}
+                    onToggleFavorite={() =>
+                      assignFavorite(favoriteSectorId === destination.id ? null : destination.id)
+                    }
                     onReview={() => setConfirmDestinationId(destination.id)}
                     onCancel={() => setConfirmDestinationId(null)}
                     onClear={() => {

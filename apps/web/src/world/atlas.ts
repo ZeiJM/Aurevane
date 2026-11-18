@@ -108,11 +108,14 @@ function originalLandAt(column: number, row: number) {
     )
   )
 }
+export function longitudeCountrysideLatitude(column: number) {
+  const longitude = (column * Math.PI * 2) / ATLAS_COLUMNS
+  return 32 + Math.sin(longitude) * 1.5 + Math.sin(longitude * 2) * 0.7
+}
 function longitudeCountrysideAt(column: number, row: number) {
   const longitude = (column * Math.PI * 2) / ATLAS_COLUMNS
-  const latitude = 32 + Math.sin(longitude) * 1.5 + Math.sin(longitude * 2) * 0.7
   const width = 1.15 + Math.max(0, Math.cos(longitude)) ** 16 * 0.65
-  return Math.abs(row - latitude) <= width
+  return Math.abs(row - longitudeCountrysideLatitude(column)) <= width
 }
 const buildingArt: Record<string, number> = {
   'verdant-expanse': 0,

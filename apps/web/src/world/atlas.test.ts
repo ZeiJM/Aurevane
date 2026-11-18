@@ -267,6 +267,28 @@ describe('one traversable world atlas', () => {
     expect(projectWorld(travelling, [], 1000).routeDestination).toBeNull()
     expect(resolveWorldIntent(planned, { kind: 'stop' }, 1000).routeDestination).toBeNull()
   })
+  it('reaches the clicked mainland tile through ordinary ticks when client replenishment is missed', () => {
+    const state = newWorldState()
+    const destination = { sectorId: 'atlas:0:32', x: 7, y: 4 }
+    let travelling = resolveWorldIntent(state, { kind: 'walk', destination }, 1000)
+    expect(travelling.routeDestination).toEqual(destination)
+    expect(travelling.route).toHaveLength(256)
+    let continued = false
+    for (let i = 0; travelling.route.length && i < 40; i++) {
+      const now = travelling.nextStepAt! + 39 * 200
+      const before = travelling.route.length
+      travelling = resolveWorldIntent(travelling, { kind: 'tick' }, now)
+      expect(travelling.route.length).toBeLessThanOrEqual(256)
+      if (travelling.route.length > before) {
+        expect(travelling.nextStepAt).toBe(now + travelling.route[0]!.durationMs)
+        continued = true
+      }
+    }
+    expect(continued).toBe(true)
+    expect(travelling.position).toEqual(destination)
+    expect(travelling.route).toEqual([])
+    expect(travelling.routeDestination).toBeNull()
+  })
   it('provides unique sectors at one address with room for a population of 100', () => {
     const sectors = atlasSectors()
     expect(ATLAS_COLUMNS).toBe(128)

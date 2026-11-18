@@ -174,6 +174,39 @@ it('keeps a first-click route moving when a follow-up read is slower than its pr
   }
 })
 
+it('commits a replenished window as a replan without advancing into its new steps', async () => {
+  const endOfWindow = { sectorId: 'verdant-expanse', x: 6, y: 4 }
+  const destination = { ...endOfWindow, x: 8 }
+  const state = {
+    ...newWorldState(),
+    position: { ...endOfWindow, x: 5 },
+    route: [{ position: endOfWindow, durationMs: 200 }],
+    routeDestination: destination,
+    nextStepAt: 5000,
+  }
+  rpc.mockImplementation(
+    async (name: string, args: { p_kind?: string; p_next_state?: WorldState }) => {
+      if (name === 'commit_world_state_v1') {
+        // A plain tick is only allowed to retain a suffix of the old route.
+        if (args.p_kind === 'tick' && args.p_next_state?.route.length)
+          return { error: { message: 'WORLD_INVALID_STEP' } }
+        return { data: { ...args.p_next_state, version: 2 } }
+      }
+      return { data: { ...payload(), state } }
+    },
+  )
+  const receipt = await commitWorldCommand(
+    'owner',
+    characterId,
+    { ...command, intent: { kind: 'tick' } },
+    true,
+  )
+  expect(rpc.mock.calls[1]?.[1]).toMatchObject({ p_kind: 'walk' })
+  expect(receipt.position).toEqual(endOfWindow)
+  expect(receipt.nextStepAt).toBe(5200)
+  expect(receipt.route.at(-1)?.position).toEqual(destination)
+})
+
 it('uses the normalized committed snapshot and database-anchored elapsed display time', async () => {
   const initial = payload()
   let committed: WorldState | undefined

@@ -7,6 +7,8 @@ interface Props {
   disabled: boolean
   reviewing: boolean
   replacesRoute: boolean
+  favorite?: boolean
+  onToggleFavorite?: () => void
   onReview: () => void
   onConfirm: () => void
   onCancel: () => void
@@ -18,6 +20,8 @@ export function WorldDestinationCard({
   disabled,
   reviewing,
   replacesRoute,
+  favorite,
+  onToggleFavorite,
   onReview,
   onConfirm,
   onCancel,
@@ -27,55 +31,66 @@ export function WorldDestinationCard({
     <section className={styles.destination} aria-label="Selected destination">
       <header className={styles.destinationHeader}>
         <div>
-          <small>DESTINATION</small>
           <h2>{destination.name}</h2>
         </div>
-        <button
-          type="button"
-          className={styles.destinationClose}
-          aria-label="Clear destination"
-          onClick={onClear}
-        >
-          <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">
-            <path
-              d="m5 5 10 10M15 5 5 15"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.7"
-              strokeLinecap="round"
-            />
-          </svg>
-        </button>
+        <div className={styles.destinationTools}>
+          {onToggleFavorite ? (
+            <button
+              type="button"
+              className={styles.destinationClose}
+              aria-label="Favorite sector"
+              aria-pressed={favorite ?? false}
+              title={favorite ? 'Remove favorite' : 'Set favorite'}
+              onClick={onToggleFavorite}
+            >
+              <span aria-hidden="true">{favorite ? '★' : '☆'}</span>
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className={styles.destinationClose}
+            aria-label="Clear destination"
+            onClick={onClear}
+          >
+            <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">
+              <path
+                d="m5 5 10 10M15 5 5 15"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+              />
+            </svg>
+          </button>
+        </div>
       </header>
       <p className={styles.destinationCoordinates}>{positionLabel(destination, { x: 6, y: 4 })}</p>
-      {reviewing ? (
-        <div
-          className={styles.travelReview}
-          role="group"
-          aria-label="Confirm world travel"
-          id="world-travel-review"
-        >
+      <div
+        className={styles.destinationActions}
+        role={reviewing ? 'group' : undefined}
+        aria-label={reviewing ? 'Confirm world travel' : undefined}
+      >
+        {reviewing && replacesRoute ? (
           <p id="world-travel-review-copy" role="status">
-            {replacesRoute
-              ? 'This journey will replace your current route.'
-              : 'Ready to travel to this destination?'}
+            This journey will replace your current route.
           </p>
+        ) : null}
+        <button
+          type="button"
+          className={styles.primary}
+          disabled={disabled}
+          aria-expanded={reviewing}
+          aria-describedby={reviewing && replacesRoute ? 'world-travel-review-copy' : undefined}
+          onClick={reviewing ? onConfirm : onReview}
+        >
+          {reviewing ? 'Confirm travel' : 'Travel here'}
+        </button>
+        {reviewing ? (
           <button type="button" onClick={onCancel}>
             Cancel
           </button>
-        </div>
-      ) : null}
-      <button
-        type="button"
-        className={styles.primary}
-        disabled={disabled}
-        aria-expanded={reviewing}
-        aria-controls={reviewing ? 'world-travel-review' : undefined}
-        aria-describedby={reviewing ? 'world-travel-review-copy' : undefined}
-        onClick={reviewing ? onConfirm : onReview}
-      >
-        {reviewing ? 'Confirm travel' : 'Travel here'}
-      </button>
+        ) : null}
+      </div>
     </section>
   )
 }

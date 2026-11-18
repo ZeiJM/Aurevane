@@ -327,7 +327,7 @@ async function reviewSectorTravel(page: Page, sectorId: string) {
   const charted = (await world(page)).atlas?.find((cell) => cell.id === sectorId && cell.charted)
   expect(charted).toBeDefined()
   const sectorNumber = charted!.row * 128 + charted!.column + 1
-  const field = page.getByRole('spinbutton', { name: 'Sector number', exact: true })
+  const field = page.getByRole('textbox', { name: 'Sector number', exact: true })
   if (!(await field.isVisible()))
     await page.getByRole('button', { name: 'Details', exact: true }).click()
   await expect(field).toBeVisible()
@@ -1761,7 +1761,7 @@ test('globe and sidebar Travel Points share a cycle without submitting travel', 
   expect(known).toHaveLength(2)
   expect(before.anchors).toEqual([])
   await page.getByRole('button', { name: /Open world atlas/ }).click()
-  const sidebar = page.getByRole('button', { name: /^◈ Travel point/ })
+  const sidebar = page.getByRole('button', { name: /^(?:Next )?Travel Points?$/ })
   if (!(await sidebar.isVisible()))
     await page.getByRole('button', { name: 'Details', exact: true }).click()
   const commands: string[] = []
@@ -1801,7 +1801,7 @@ test('globe and sidebar Travel Points share a cycle without submitting travel', 
     await page.getByRole('button', { name: 'Details', exact: true }).click()
   await sidebar.click()
   await expect(selected(known[0]!.id)).toBeVisible()
-  await expect(page.getByText(`Travel point: ${known[0]!.name}`, { exact: true })).toBeVisible()
+  await expect(sidebar).toHaveAttribute('title', `Selected: ${known[0]!.name}`)
   await expect(page.getByRole('dialog', { name: 'Confirm world travel' })).toHaveCount(0)
   await expect(
     page.getByRole('button', { name: 'Focus Uncharted Lands', exact: true }),
@@ -1812,6 +1812,10 @@ test('globe and sidebar Travel Points share a cycle without submitting travel', 
   const destinationCard = page.getByRole('region', { name: 'Selected destination' })
   await destinationCard.getByRole('button', { name: 'Travel here', exact: true }).click()
   await expect(page.getByRole('group', { name: 'Confirm world travel' })).toBeVisible()
+  const confirm = destinationCard.getByRole('button', { name: 'Confirm travel', exact: true })
+  const confirmBox = (await confirm.boundingBox())!
+  const footer = (await page.locator('[data-world-panel-foot]').boundingBox())!
+  expect(confirmBox.y + confirmBox.height).toBeLessThanOrEqual(footer.y + 1)
   await expect(page.getByRole('dialog', { name: 'Confirm world travel' })).toHaveCount(0)
   await destinationCard.getByRole('button', { name: 'Cancel', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Confirm travel', exact: true })).toHaveCount(0)
