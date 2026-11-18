@@ -193,20 +193,52 @@
       "id": "dpl_7wFcLjXVCagiAvH5jLwV8oc7MaZ5",
       "url": "https://aurevane-6vh76j1er-zeijms-projects.vercel.app",
       "sha": "6216bff7a8c1ab6432d223159eabbfd91278e2b1",
-      "status": "INITIALIZING",
+      "status": "READY",
       "target": "production",
       "autoAssignCustomDomains": false,
       "supabaseInstalledMigrations": 263,
       "latestMigration": "20261114114000",
-      "promoted": false
-    }
+      "promoted": false,
+      "routingStageVersion": "fd4c880c-a8b5-42c0-a536-0c03acecfe2d",
+      "routingPreviousVersion": "dd604b9c-e5a1-4641-b28b-710a520f7290",
+      "retirementRoutes": 9,
+      "staging503Cause": "Previous compatible host and pin allowlist",
+      "publicSmoke": [
+        [
+          "/",
+          "200 verified deployment"
+        ],
+        [
+          "/game/world",
+          "200 verified deployment, signed-out shell"
+        ],
+        [
+          "/api/foundation/auth-status",
+          "200 authenticated false"
+        ],
+        [
+          "/api/world",
+          "401 expected signed-out"
+        ],
+        [
+          "colosseum-rear-detail-v01.manifest.json",
+          "200 matching manifest"
+        ],
+        [
+          "colosseum-rear-detail-v01.webp",
+          "200 image/webp"
+        ]
+      ],
+      "warningsErrorsFatal": "none in initial 15m window"
+    },
+    "canonicalBeforePromotionChecked": "200 old deployment dpl_2Et3UkKAWbsLf6TsABzxoxPg5gpJ"
   },
   "remaining": [
-    "Confirm UI layout review on merged main and staged Production READY.",
-    "Smoke-test the exact-source staged deployment. Promote the same build only after smoke and checks pass. Verify canonical and record receipt.",
+    "Finish merged-main UI layout review.",
+    "Promote the single staged build; verify canonical identity, retire the prior host/pins with all nine rules intact, and check runtime follow-up.",
     "Refresh and merge docs-only PR #1042 after the game release."
   ],
-  "updatedAt": "2026-11-18T02:28:44.778Z",
+  "updatedAt": "2026-11-18T02:35:56.192Z",
   "previousCandidate": {
     "sha": "9b76647e206ec9a426804a13bd53ee33cc6df941",
     "tree": "d7256c6b8cf558b4e9b92400a412eb5052a2682e",
@@ -336,6 +368,11 @@
       "ci": 44223260477,
       "browserSmoke": 44223260465,
       "uiLayout": 44223260481
+    },
+    "currentChecks": {
+      "ci": "success",
+      "browserSmoke": "success",
+      "uiLayout": "in_progress"
     }
   }
 }
