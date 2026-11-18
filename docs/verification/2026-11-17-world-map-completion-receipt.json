@@ -307,7 +307,34 @@
     ],
     "currentReleaseBoundary": "PR #1043 retains its existing water and lava artwork and rendering fixes. The authored connections and terrain layout, player-facing names, vegetation follow-up and new bridge belong to the subsequent ferry update.",
     "recordedAt": "2026-11-18T00:20:44.004Z",
-    "latestOwnerScopeAt": "2026-11-18T08:34:57.438Z"
+    "latestOwnerScopeAt": "2026-11-18T08:34:57.438Z",
+    "workingDraft": {
+      "number": 1044,
+      "branch": "agent/ferry-uncharted-world-followup",
+      "head": "43775b7842425fd20646868a099b63644afcdcac",
+      "tree": "e4b0919a0c1f13865b9615cf8859e2e066e51e30",
+      "base": "d214507b9a2f09cd415c239c4f6d2eef4be35b6b",
+      "status": "First three follow-up fixes implemented; draft checks running.",
+      "localEvidence": "497 focused tests, web typecheck, scoped ESLint, Prettier and git diff checks passed. Reproduced the land-band gap and wrong route arrival on the old code. Chromium could not start in this workspace; use the draft's native browser checks for layout and end-to-end verification.",
+      "checks": [
+        {
+          "name": "CI",
+          "id": 44271796960
+        },
+        {
+          "name": "Living Atlas browser",
+          "id": 44271796789
+        },
+        {
+          "name": "World timing repeat validation",
+          "id": 44271796811
+        },
+        {
+          "name": "Browser smoke",
+          "id": 44271796989
+        }
+      ]
+    }
   },
   "timing75": {
     "source": "4e1f094c8a25a384f06b882127864ae4d534791c",
