@@ -4,7 +4,7 @@ import { terrainWalkable } from '../src/world/terrain'
 import { waterReviewCandidate } from './world-art-water'
 import { buildWaterField, isWaterTerrain } from '../src/components/world/map-water'
 
-for (const region of ['verdant-expanse', 'hollow-coast', 'frostmere']) {
+for (const region of ['verdant-expanse', 'hollow-coast', 'glasswind-desert']) {
   test(`selects real bank-adjacent legal ground for ${region}`, () => {
     const candidate = waterReviewCandidate(atlasSectors(), region)
     expect(candidate).toBeDefined()
@@ -39,6 +39,12 @@ for (const region of ['verdant-expanse', 'hollow-coast', 'frostmere']) {
     }
   })
 }
+
+test('does not select the retired fire or ice town lakes for water review', () => {
+  const towns = atlasSectors().filter((sector) => sector.townId)
+  expect(waterReviewCandidate(towns, 'frostmere')).toBeUndefined()
+  expect(waterReviewCandidate(towns, 'emberreach')).toBeUndefined()
+})
 
 test('prefers wilderness banks when a built-up bank is also available', () => {
   const sectors = atlasSectors()

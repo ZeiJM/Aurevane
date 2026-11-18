@@ -1,0 +1,53 @@
+{
+  "requestId": "ART-WORLD-CORRECTION-20261112",
+  "promptSpec": "content/art-requests/ART-WORLD-CORRECTION-20261112.md",
+  "provider": "OpenAI image generation",
+  "name": "colosseum-right-detail",
+  "source": {
+    "path": "sources/colosseum-right-detail-v01.png",
+    "sha256": "e5750af2ce1e3956da7795063391834531bafb0914ddd491c8181b39f60c4489",
+    "width": 1536,
+    "height": 1024
+  },
+  "master": {
+    "path": "sources/remote-colosseum-v03.png",
+    "sha256": "c25798d30e50bcd8273fff95ea9b6c375e24a36b361805ce552d5ff5d2e2e829",
+    "bounds": [896, 0, 640, 426]
+  },
+  "registration": {
+    "name": "right",
+    "x": 896,
+    "matrix": [
+      [1.0023768729734757, 0.008160379379793341, -2.0496100501361223],
+      [0.0010290021535050476, 0.9962414916401505, -4.4914327821716595]
+    ],
+    "inliers": 22,
+    "maxResidualMasterPixels": 1.85727039649496
+  },
+  "featherNativePixels": 96,
+  "runtime": {
+    "path": "runtime/colosseum-right-detail-v01.webp",
+    "sha256": "e2af43c25b4fee21c101766bb1f0c9fc4cc8c970ba13c8cb226811e552fcf11a",
+    "bytes": 519100,
+    "width": 1536,
+    "height": 1024,
+    "columns": 1,
+    "rows": 1,
+    "preserveFrame": true,
+    "cellWidth": 1536,
+    "cellHeight": 1024,
+    "encoding": "Bilinear affine registration; selected-master alpha; 96px smooth feather; WebP quality90 alpha100"
+  },
+  "sprites": [
+    {
+      "index": 0,
+      "runtimeBounds": {
+        "left": 0,
+        "top": 0,
+        "width": 1536,
+        "height": 1024
+      }
+    }
+  ],
+  "target": [0.5806495428657075, 0.013742654260528894, 0.4016786570743405, 0.40093964250734576]
+}

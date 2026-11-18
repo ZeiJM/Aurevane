@@ -16,6 +16,10 @@ on:
       - 'supabase/migrations/*personal*'
       - 'supabase/migrations/*world*'
       - '.github/workflows/living-atlas-browser.yml'
+      - '.github/scripts/configure-supabase-test-ports.py'
+      - '.github/scripts/configure-supabase-test-ports.test.py'
+      - '.github/scripts/verify-world-map-release-transaction.py'
+      - '.github/scripts/apply-aurevane-world-map-geometry.test.py'
   workflow_dispatch:
     inputs:
       staging_dry_run:
@@ -58,10 +62,9 @@ jobs:
   verify:
     if: ${{ !inputs.staging_dry_run && !inputs.staging_apply && !inputs.production_dry_run && !inputs.production_world_map_apply && !inputs.production_void_cron_activate }}
     runs-on: ubuntu-latest
-    # The authenticated Atlas suite covers many full-route journeys; the previous
-    # 20-minute cap cancelled an otherwise progressing run at scenario 39.
-    # Retain the entire test suite and allow the real run to finish.
-    timeout-minutes: 60
+    # Build, story checks and the full serial Atlas matrix outgrew60 minutes.
+    # Retain every case and all individual test/performance budgets.
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
       - name: Record the tested source tree
@@ -73,6 +76,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @aurevane/web exec playwright install --with-deps chromium
       - run: |
+          python .github/scripts/configure-supabase-test-ports.test.py
+          python .github/scripts/configure-supabase-test-ports.py
           python .github/scripts/configure-discipline-test-mail.test.py
           python .github/scripts/configure-discipline-test-mail.py
           pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
@@ -93,7 +98,7 @@ jobs:
           printf '::add-mask::%s\n' "$ANON_KEY" "$local_secret"
           {
             printf '%s\n' AUREVANE_ENV=local NEXT_PUBLIC_AUREVANE_ENV=local
-            printf '%s\n' NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+            printf 'NEXT_PUBLIC_SUPABASE_URL=%s\n' "$SUPABASE_TEST_API_URL"
             printf 'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=%s\n' "$ANON_KEY"
             printf 'SUPABASE_SECRET_KEY=%s\n' "$local_secret"
           } >> "$GITHUB_ENV"
@@ -242,6 +247,8 @@ jobs:
             apps/web/test-results/**/art-water-*.png
             apps/web/test-results/**/art-scenery-*.png
             apps/web/test-results/**/art-surfaces-*.png
+            apps/web/test-results/**/art-dry-town-*.png
+            apps/web/test-results/**/uncharted-no-fog-*.png
             apps/web/test-results/**/art-occlusion-*.png
           retention-days: 7
       - name: Save bounded ambient pause failure evidence

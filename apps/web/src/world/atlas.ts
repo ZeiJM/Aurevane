@@ -16,6 +16,7 @@ import { terrainWalkable } from './terrain'
 import { structuralTerrainAt } from './discovery-collision'
 import { mountainFrontierAt, mountainFrontierPass } from './mountain-frontier'
 import { trimRoadShorelines } from './road-shorelines'
+import { TOWN_OUTSKIRTS } from './town-extents'
 import type { WorldBuilding, WorldLandmark, WorldRoad, WorldSector } from './types'
 import { ATLAS_COLUMNS, ATLAS_ROWS, atlasNeighbor, wrappedColumnDistance } from './topology'
 
@@ -38,6 +39,13 @@ const originalAddress = (coordinate: string) => {
 }
 const roots = WORLD_REGIONS.map((region) => ({ ...region, ...originalAddress(region.sector)! }))
 const addressKey = (column: number, row: number) => `${column}:${row}`
+const townOutskirts = new Map(
+  roots.flatMap((root) =>
+    (TOWN_OUTSKIRTS[root.id] ?? []).map(
+      ([dx, dy]) => [addressKey(root.column + dx, root.row + dy), root.id] as const,
+    ),
+  ),
+)
 const inDiscoveryGrounds = (x: number, y: number) =>
   GRAND_DISCOVERY_SITES.some(
     (site) =>
@@ -659,6 +667,9 @@ export function atlasSectors(): readonly WorldSector[] {
         atlasColumn: column,
         atlasRow: row,
         townId: town?.id,
+        ...(townOutskirts.has(addressKey(column, row))
+          ? { settlementOutskirtsOf: townOutskirts.get(addressKey(column, row)) }
+          : {}),
         ...(scenic ? { landscape: scenic.landscape } : {}),
         buildings,
         east: column * GRID_WIDTH,

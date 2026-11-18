@@ -5,6 +5,32 @@ import {
   type StaticMapRaster,
 } from './map-static-raster'
 
+/** Cover only the filtered half-device-pixel border between adjacent rasters.
+ * Interior pixels keep their exact projection; no grid or texture rescaling. */
+export function drawGroundSurface(
+  context: CanvasRenderingContext2D,
+  source: StaticMapRaster,
+  width: number,
+  height: number,
+  ratio: number,
+) {
+  const bleed = 0.5 / ratio,
+    sw = source.width,
+    sh = source.height
+  for (const [sx, sy, sourceWidth, sourceHeight, x, y, w, h] of [
+    [0, 0, sw, 1, 0, -bleed, width, bleed],
+    [0, sh - 1, sw, 1, 0, height, width, bleed],
+    [0, 0, 1, sh, -bleed, 0, bleed, height],
+    [sw - 1, 0, 1, sh, width, 0, bleed, height],
+    [0, 0, 1, 1, -bleed, -bleed, bleed, bleed],
+    [sw - 1, 0, 1, 1, width, -bleed, bleed, bleed],
+    [0, sh - 1, 1, 1, -bleed, height, bleed, bleed],
+    [sw - 1, sh - 1, 1, 1, width, height, bleed, bleed],
+  ])
+    context.drawImage(source, sx!, sy!, sourceWidth!, sourceHeight!, x!, y!, w!, h!)
+  context.drawImage(source, 0, 0, width, height)
+}
+
 interface GroundProjection {
   canvas: StaticMapRaster
   left: number
@@ -69,7 +95,7 @@ export function createGroundProjectionCache(pixelLimit = 8_000_000) {
       context.imageSmoothingEnabled = true
       context.imageSmoothingQuality = 'high'
       context.setTransform(ratio * MAP_X, ratio * MAP_Y, -ratio * MAP_X, ratio * MAP_Y, -left, -top)
-      context.drawImage(source, 0, 0, width, height)
+      drawGroundSurface(context, source, width, height, ratio)
       context.restore()
       const image = snapshotStaticRaster(canvas)
       const entry = { canvas: image, left, top, width, height, ratio, frame }

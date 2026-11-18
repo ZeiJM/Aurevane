@@ -10,6 +10,7 @@ export function WorldMap({
   motion,
   portrait,
   animate,
+  showLocationLabels = true,
   quality,
   paused,
   zoom,
@@ -24,6 +25,7 @@ export function WorldMap({
   motion: WorldMotion
   portrait: string
   animate: boolean
+  showLocationLabels?: boolean
   quality?: MapQuality
   paused: boolean
   zoom: number
@@ -61,8 +63,8 @@ export function WorldMap({
     renderer.current?.update(view)
   }, [view])
   useEffect(() => {
-    renderer.current?.settings({ animate, quality, zoom, paused, zoomLocked })
-  }, [animate, quality, zoom, paused, zoomLocked])
+    renderer.current?.settings({ animate, quality, zoom, paused, zoomLocked, showLocationLabels })
+  }, [animate, quality, zoom, paused, zoomLocked, showLocationLabels])
   return (
     <>
       <canvas

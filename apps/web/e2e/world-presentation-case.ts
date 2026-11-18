@@ -99,9 +99,102 @@ export async function verifyWorldPresentation(
     await page.getByRole('button', { name: /Details/ }).click()
   const coordinates = workspace.locator('[data-world-coordinates]')
   await expect(coordinates).toHaveCount(1)
+  await expect(panel.locator('[data-world-panel-foot] [data-world-coordinates]')).toHaveCount(1)
   await expect(coordinates).toContainText('Sector 3643')
   await expect(coordinates).toContainText('X:6 · Y:4')
   await expect(page.getByRole('button', { name: 'View Town', exact: true })).toHaveCount(0)
+  const labelsToggle = panel.getByRole('button', { name: 'Map location labels', exact: true })
+  const ensureDetails = async () => {
+    if (!(await labelsToggle.isVisible()))
+      await page.getByRole('button', { name: 'Details', exact: true }).click()
+  }
+  await expect(labelsToggle).toHaveAttribute('aria-pressed', 'true')
+  const labelsBox = (await labelsToggle.boundingBox())!
+  const settingsBox = (await panel
+    .getByRole('button', { name: 'Map settings', exact: true })
+    .boundingBox())!
+  expect(labelsBox.x + labelsBox.width).toBeLessThanOrEqual(settingsBox.x)
+  expect(Math.abs(labelsBox.y - settingsBox.y)).toBeLessThan(2)
+  await labelsToggle.click()
+  await expect(labelsToggle).toHaveAttribute('aria-pressed', 'false')
+  const mapSwitch = page.getByRole('button', { name: /Open world atlas/ })
+  await expect(mapSwitch.locator('[data-world-map-switch]')).toBeVisible()
+  await mapSwitch.click()
+  await expect(workspace).toHaveAttribute('data-world-view', 'globe')
+  // Opening the atlas uses the normal outside-click dismissal on phones.
+  await ensureDetails()
+  await expect(panel.locator('[data-world-position] [data-world-coordinates]')).toHaveCount(1)
+  await expect(panel.locator('[data-world-panel-foot] [data-world-coordinates]')).toHaveCount(0)
+  const closeDetails = page.getByRole('button', { name: 'Close details', exact: true })
+  if (await closeDetails.isVisible()) await closeDetails.click()
+  const currentPin = page.getByLabel('Your current position', { exact: true })
+  await expect(currentPin).toBeVisible()
+  const pinMetrics = await currentPin.evaluate((pin) => {
+    const marker = pin.querySelector('i')!.getBoundingClientRect()
+    const label = pin.querySelector('span')!
+    const style = getComputedStyle(label)
+    const bounds = label.getBoundingClientRect()
+    return {
+      markerWidth: marker.width,
+      markerHeight: marker.height,
+      fontSize: parseFloat(style.fontSize),
+      background: style.backgroundColor,
+      insideViewport:
+        bounds.left >= 0 &&
+        bounds.top >= 0 &&
+        bounds.right <= innerWidth &&
+        bounds.bottom <= innerHeight,
+    }
+  })
+  expect(pinMetrics.markerWidth).toBeGreaterThanOrEqual(12)
+  expect(pinMetrics.markerHeight).toBeGreaterThanOrEqual(12)
+  expect(pinMetrics.fontSize).toBeGreaterThanOrEqual(12)
+  expect(pinMetrics.background).not.toMatch(/^(transparent|rgba\(0, 0, 0, 0\))$/)
+  expect(pinMetrics.insideViewport).toBe(true)
+  await capture(page, info, 'art-surfaces-world-current-position-globe')
+  await ensureDetails()
+  await expect(labelsToggle).toHaveAttribute('aria-pressed', 'false')
+  const townMarkers = workspace.locator('[data-globe-town]:not([data-globe-travel-point])')
+  await expect(townMarkers.first()).toBeVisible()
+  const townIcons = await townMarkers.evaluateAll((markers) =>
+    markers.map((marker) => {
+      const svg = marker.querySelector('svg')!
+      return {
+        symbol: svg.querySelector('path')!.getAttribute('d'),
+        width: svg.getBoundingClientRect().width,
+      }
+    }),
+  )
+  expect(new Set(townIcons.map((icon) => icon.symbol)).size).toBeGreaterThan(1)
+  expect(new Set(townIcons.map((icon) => icon.width)).size).toBeGreaterThan(1)
+  for (const icon of townIcons) {
+    expect(icon.width).toBeGreaterThanOrEqual(24)
+    expect(icon.width).toBeLessThanOrEqual(34)
+  }
+  const townPointGaps = await workspace.locator('[data-globe-travel-point]').evaluateAll((points) =>
+    points.flatMap((point) => {
+      const symbol = document.querySelector(
+        `svg[data-globe-town-symbol="${point.getAttribute('data-globe-travel-point')}"]`,
+      )
+      if (!symbol) return []
+      return [
+        point.getBoundingClientRect().left - symbol.parentElement!.getBoundingClientRect().right,
+      ]
+    }),
+  )
+  expect(townPointGaps.length).toBeGreaterThan(0)
+  for (const gap of townPointGaps) expect(gap).toBeGreaterThanOrEqual(3)
+
+  await expect(townMarkers.locator('span')).toHaveCount(0)
+  await labelsToggle.click()
+  await expect(townMarkers.locator('span').first()).toBeVisible()
+  const returnSwitch = page.getByRole('button', { name: /Return to local map/ })
+  await expect(returnSwitch.locator('[data-world-map-switch]')).toBeVisible()
+  await returnSwitch.click()
+  await expect(workspace).toHaveAttribute('data-world-view', 'sector')
+  await ensureDetails()
+  await expect(labelsToggle).toHaveAttribute('aria-pressed', 'true')
+  expect((await world(page)).position).toEqual({ sectorId: 'atlas:58:28', x: 6, y: 4 })
   const verifyPlayerRows = async () => {
     // Presence can change between awaited locator calls. Measure the currently
     // rendered rows and their children in one DOM snapshot instead of retaining

@@ -93,6 +93,8 @@ export interface WorldAtlasCell {
   charted: boolean
   /** Public district identity; absent for private or non-town terrain. */
   townId?: string
+  /** Public built-up outskirts only; never a safe-zone or navigation grant. */
+  settlementOutskirtsOf?: string
   /** Public water/lava only: row-major 13x9 '~', 'l' or '.'; omitted when dry. */
   waterTiles?: string
 }
@@ -117,6 +119,8 @@ export interface WorldSector {
   sceneRow?: number
   warpedTheme?: 'haven' | 'ashen' | 'fracture' | 'wayfarer' | 'amber' | 'amethyst'
   townId?: string
+  /** Presentation extent; authoritative town safety still uses townId only. */
+  settlementOutskirtsOf?: string
   landscape?: 'sakura' | 'autumn' | 'wisteria' | 'willow' | 'wildflowers'
   buildings?: readonly WorldBuilding[]
   landmarks: readonly WorldLandmark[]
@@ -240,6 +244,16 @@ export type WorldScenerySector = readonly [
   buildings: readonly WorldBuilding[],
   landmarks: readonly WorldLandmark[],
 ]
+/** Entered Uncharted landscape for painting only: no identities, exits, peers or discoveries. */
+export type WorldUnchartedTerrain = readonly [
+  sectorId: string,
+  terrain: string,
+  regionId: string,
+  column: number,
+  row: number,
+  theme: NonNullable<WorldSector['warpedTheme']>,
+  landscape: WorldSector['landscape'] | null,
+]
 /** Presentation extent only; it never widens owned navigation or peer visibility. */
 export interface WorldSceneViewport {
   width: number
@@ -267,6 +281,8 @@ export interface WorldView {
   sectors: WorldSectorView[]
   /** Compact public terrain buffer, independent of the authorized presence scene. */
   scenery?: WorldScenerySector[]
+  /** Bounded scenery of the current entered Uncharted world; never navigation authority. */
+  unchartedTerrain?: WorldUnchartedTerrain[]
   /** Full canonical public ground/approach proof for world-scale scenic art. No private sites. */
   publicGrandDiscoveries?: readonly GrandDiscoveryId[]
   /** Compact overview; private terrain and undiscovered landmarks never enter this list. */

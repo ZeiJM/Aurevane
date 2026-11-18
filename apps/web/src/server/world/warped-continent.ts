@@ -218,14 +218,16 @@ export const isWarpedContinentSector = (id: string) =>
   privateIds.has(id) || expanseAddress(id) !== null
 
 /** Cheap local IDs, never a continent scan or terrain generation. */
-export function warpedContinentSceneIds(id: string): string[] {
+export function warpedContinentSceneIds(id: string, radius = 2): string[] {
   const legacy = warpedContinentSectors.find((sector) => sector.id === id)
   const address = legacy ? { column: legacy.east, row: legacy.north } : expanseAddress(id)
   if (!address) return []
-  return Array.from({ length: 25 }, (_, index) => {
+  if (!Number.isInteger(radius) || radius < 0 || radius > 16) return []
+  const width = radius * 2 + 1
+  return Array.from({ length: width * width }, (_, index) => {
     const candidate = sectorAt(
-      address.column + (index % 5) - 2,
-      address.row + Math.floor(index / 5) - 2,
+      address.column + (index % width) - radius,
+      address.row + Math.floor(index / width) - radius,
     )
     return candidate ? [candidate] : []
   }).flat()

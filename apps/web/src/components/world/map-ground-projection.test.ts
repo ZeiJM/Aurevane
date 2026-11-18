@@ -35,7 +35,8 @@ it('reuses the projected bitmap across camera changes without replaying its affi
   expect(transforms).toEqual([
     [1.5 * MAP_X, 1.5 * MAP_Y, -1.5 * MAP_X, 1.5 * MAP_Y, -first.left, -first.top],
   ])
-  expect(draws).toEqual([[ground, 0, 0, 832, 576]])
+  expect(draws).toHaveLength(9)
+  expect(draws.at(-1)).toEqual([ground, 0, 0, 832, 576])
   expect(first.left).toBeLessThanOrEqual(-576 * MAP_X * 1.5 - 1)
   expect(first.top).toBe(-1)
   expect(first.canvas.width + first.left).toBeGreaterThanOrEqual(832 * MAP_X * 1.5 + 1)
@@ -81,5 +82,24 @@ it('retains a warmed visible subset instead of rebuilding every frame when groun
     expect(cache.get(grounds[2]!, 10, 10, 1)).toBeNull()
     expect(cache.pixels).toBeLessThanOrEqual(500)
   }
-  expect(draws).toHaveLength(2)
+  // Two cached projections, each built once with8 border copies and its interior.
+  expect(draws).toHaveLength(18)
+})
+
+it('extends only source border texels through the filtered half-pixel seam without scaling ground', () => {
+  const { cache, draws } = fixture()
+  const ground = source()
+  cache.get(ground, 832, 576, 2)
+  expect(draws).toHaveLength(9)
+  expect(draws.at(-1)).toEqual([ground, 0, 0, 832, 576])
+  const borders = draws.slice(0, -1)
+  expect(borders).toContainEqual([ground, 0, 0, 100, 1, 0, -0.25, 832, 0.25])
+  expect(borders).toContainEqual([ground, 0, 99, 100, 1, 0, 576, 832, 0.25])
+  expect(borders).toContainEqual([ground, 0, 0, 1, 100, -0.25, 0, 0.25, 576])
+  expect(borders).toContainEqual([ground, 99, 0, 1, 100, 832, 0, 0.25, 576])
+  for (const draw of borders) {
+    expect(draw.slice(1, 5).every((value) => typeof value === 'number' && value >= 0)).toBe(true)
+    expect(Number(draw[1]) + Number(draw[3])).toBeLessThanOrEqual(100)
+    expect(Number(draw[2]) + Number(draw[4])).toBeLessThanOrEqual(100)
+  }
 })

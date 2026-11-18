@@ -26,17 +26,23 @@ CONTAINER = "supabase_db_aurevane"
 def validate_local_target(config, uri, container):
     try:
         parsed = urlsplit(uri)
+        port = config["db"]["port"]
+        bindings = container["NetworkSettings"]["Ports"]["5432/tcp"]
         allowed = (
             config["project_id"] == "aurevane"
             and config["db"]["major_version"] == 17
-            and config["db"]["port"] == 54322
+            and type(port) is int and 1 <= port <= 65535
             and parsed.scheme in ("postgres", "postgresql")
             and parsed.hostname in ("127.0.0.1", "localhost", "::1")
-            and parsed.port == 54322 and parsed.username == "postgres"
+            and parsed.port == port and parsed.username == "postgres"
             and parsed.path == "/postgres" and not parsed.query and not parsed.fragment
             and container["Name"] == "/" + CONTAINER
             and container["State"]["Running"] is True
             and re.search(r"(?:^|/)postgres:17[.-]", container["Config"]["Image"])
+            and isinstance(bindings, list) and bool(bindings)
+            and all(binding["HostPort"] == str(port)
+                    and binding["HostIp"] in ("0.0.0.0", "127.0.0.1", "::", "::1")
+                    for binding in bindings)
         )
     except (ValueError, KeyError, TypeError):
         allowed = False

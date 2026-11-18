@@ -468,8 +468,10 @@ export function buildWaterField(
             return neighbor ? [neighbor.depth!] : []
           }),
         )
-        const depth = depths.reduce((sum, depth) => sum + depth, 0) / depths.length
-        return cell.shallow ? Math.min(0.45, depth) : depth
+        // Shallow cells already seed zero depth before propagation. A second
+        // per-cell cap gives the same shared vertex two different colours and
+        // exposes tile diamonds where a ford meets deeper water.
+        return depths.reduce((sum, depth) => sum + depth, 0) / depths.length
       }) as [number, number, number, number]
     }
     part.key = JSON.stringify([...part.cells.values()])
@@ -787,15 +789,9 @@ export function paintWaterGround(
     paintTexture(2, 0.12)
     paintLakeSurface(context, cell, tile, worldX, worldY, lakeArt)
   }
-  if (cell.channel) {
-    for (const width of [0.76, 0.58, 0.36]) {
-      context.beginPath()
-      trace(context, cell.flow, tile)
-      context.lineWidth = tile * width
-      context.strokeStyle = palette ? rgba(palette.deep, 0.17) : 'rgba(9,47,58,.09)'
-      context.stroke()
-    }
-  }
+  // Shared corner depth already shades the river bed. Broad per-cell flow
+  // strokes end at the clip boundary and stamp dark tile-shaped slabs where
+  // a narrow channel joins a pool. Keep the finer flow filaments below.
   for (const bank of cell.banks) {
     const vertical = bank.side === 1 || bank.side === 3
     const start = bankPoint(bank.side, 0.5, 0),

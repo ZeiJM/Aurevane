@@ -23,6 +23,8 @@ import * as weatherPainting from './map-weather'
 import { worldRenderTerrain } from './map-render-terrain'
 import { grandDiscoveryPlacements } from './map-grand-discoveries'
 import { valleyDetailArt } from './map-grand-detail-art'
+import { colosseumDetailArt } from './map-colosseum-detail-art'
+import { correctionScenes } from '../../../e2e/world-map-correction-scenes'
 
 type RecordedPath = { operation: 'M' | 'L' | 'C' | 'E' | 'Z'; points: number[] }[]
 const imageRuntime = createRequire(import.meta.url)
@@ -427,6 +429,119 @@ function scene(reduced = false, initial?: WorldView) {
   }
 }
 describe('native map input and bounded lifecycle', () => {
+  it('does not paint exploration fog over private terrain, including partial movement scenes', () => {
+    const state = revealNearby({
+      ...newWorldState(),
+      position: { sectorId: 'uncharted-landing', x: 6, y: 4 },
+    })
+    const s = scene(true, { ...projectWorld(state, [], 1000), unchartedTerrain: undefined })
+    try {
+      s.frame(40)
+      expect(
+        s.gradients.some(({ stops }) =>
+          stops.some(([, colour]) => colour === 'rgba(37,44,61,.71)'),
+        ),
+      ).toBe(false)
+      expect(s.draws.some(({ src }) => src.endsWith('void-ground-v01.webp'))).toBe(true)
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  })
+  it('does not submit a walk from unsurveyed render-only Uncharted ground', () => {
+    const state = revealNearby({
+      ...newWorldState(),
+      position: { sectorId: 'uncharted-expanse:32:24', x: 6, y: 4 },
+    })
+    const view = projectWorld(state, [], 1000)
+    const s = scene(true, view)
+    try {
+      s.frame(40)
+      const camera = mapPoint(view.position, view.sectors)
+      const candidate = worldRenderTerrain(view)
+        .flatMap((sector) =>
+          sector.cells
+            .filter(
+              (cell) =>
+                cell.walkable &&
+                !view.sectors.some(
+                  (known) =>
+                    known.id === sector.id &&
+                    known.cells.some((p) => p.x === cell.x && p.y === cell.y),
+                ),
+            )
+            .map((cell) => {
+              const position = { sectorId: sector.id, x: cell.x, y: cell.y }
+              return {
+                position,
+                point: projectMapPoint(
+                  mapPoint(position, [sector], camera),
+                  camera,
+                  { x: 0, y: 0 },
+                  64,
+                  800,
+                  600,
+                ),
+              }
+            }),
+        )
+        .find(({ point }) => point.x > 30 && point.x < 770 && point.y > 30 && point.y < 570)
+      expect(candidate).toBeDefined()
+      s.event('pointerdown', candidate!.point.x, candidate!.point.y)
+      s.event('pointerup', candidate!.point.x, candidate!.point.y)
+      expect(s.select).not.toHaveBeenCalled()
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  })
+  it('toggles location names without hiding player identities or disabling map input', () => {
+    const s = scene(true)
+    try {
+      s.frame(40)
+      expect(s.texts.some(({ text }) => text === 'Town Square')).toBe(true)
+      s.texts.length = 0
+      s.renderer.settings({ animate: false, zoom: 1, showLocationLabels: false })
+      s.renderer.update({
+        ...s.view,
+        players: [
+          {
+            characterId: 'labels-peer',
+            name: 'Label peer',
+            level: 1,
+            portraitRef: '',
+            imageUrl: '/peer.webp',
+            online: true,
+            attackable: false,
+            position: { ...s.view.position, x: s.view.position.x + 2 },
+          },
+        ],
+      })
+      s.frame(80)
+      expect(s.texts.some(({ text }) => text === 'Town Square')).toBe(false)
+      expect(s.texts.some(({ text }) => text === 'You')).toBe(true)
+      const camera = mapPoint(s.view.position, s.view.sectors)
+      const target = { ...s.view.position, x: s.view.position.x + 1 }
+      const point = projectMapPoint(
+        mapPoint(target, s.view.sectors),
+        camera,
+        { x: 0, y: 0 },
+        64,
+        800,
+        600,
+      )
+      s.event('pointerdown', point.x, point.y)
+      s.event('pointerup', point.x, point.y)
+      expect(s.select).toHaveBeenCalledExactlyOnceWith(target)
+      s.texts.length = 0
+      s.renderer.settings({ animate: false, zoom: 1, showLocationLabels: true })
+      s.frame(120)
+      expect(s.texts.some(({ text }) => text === 'Town Square')).toBe(true)
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  })
   // The fake RAF timestamps use a zero epoch. Keep the ordinary callback clock
   // on that epoch; tests for delayed callbacks explicitly advance this clock.
   beforeEach(() => {
@@ -2421,51 +2536,54 @@ describe('native map input and bounded lifecycle', () => {
       vi.unstubAllGlobals()
     }
   })
-  it('does not cancel a held-key route when the approved tile leads its visual landing', () => {
-    const clock = vi.spyOn(performance, 'now').mockReturnValue(0)
-    const s = scene()
-    const view = {
-      ...s.view,
-      sectors: s.view.sectors.map((sector) => ({
-        ...sector,
-        cells: sector.cells.map((cell) => ({ ...cell, terrain: '.', walkable: true })),
-      })),
-    }
-    const origin = view.position
-    const approved = { ...origin, x: origin.x + 3 }
-    const route = localRoute(view, origin, approved)!
-    s.renderer.update(view)
-    s.motion.plan(route, view.sectors, 0)
-    try {
-      // A rapid click route is already approved at x+3 while its canvas is
-      // still crossing from x+2. The held key must extend from the approved
-      // tile instead of submitting that tile again and cancelling the route.
-      clock.mockReturnValue(550)
-      expect(s.motion.sample(550).position).toEqual({ ...origin, x: origin.x + 2 })
-      expect(s.motion.nextLanding(550)).toEqual(approved)
-      const authoritative = {
-        ...view,
-        position: approved,
-        route: [],
-        version: view.version + 1,
+  it.each([450, 550])(
+    'does not cancel a held-key route when approval leads its %ims visual landing',
+    (now) => {
+      const clock = vi.spyOn(performance, 'now').mockReturnValue(0)
+      const s = scene()
+      const view = {
+        ...s.view,
+        sectors: s.view.sectors.map((sector) => ({
+          ...sector,
+          cells: sector.cells.map((cell) => ({ ...cell, terrain: '.', walkable: true })),
+        })),
       }
-      s.motion.approveReceipt(authoritative, 550)
-      s.renderer.update(authoritative)
+      const origin = view.position
+      const approved = { ...origin, x: origin.x + 3 }
+      const route = localRoute(view, origin, approved)!
+      s.renderer.update(view)
+      s.motion.plan(route, view.sectors, 0)
+      try {
+        // A rapid click route is already approved at x+3 while its canvas is
+        // still crossing from x+2. The held key must extend from the approved
+        // tile instead of submitting that tile again and cancelling the route.
+        clock.mockReturnValue(now)
+        expect(s.motion.sample(now).position).toEqual({ ...origin, x: origin.x + 2 })
+        expect(s.motion.nextLanding(now)).toEqual(approved)
+        const authoritative = {
+          ...view,
+          position: approved,
+          route: [],
+          version: view.version + 1,
+        }
+        s.motion.approveReceipt(authoritative, now)
+        s.renderer.update(authoritative)
 
-      s.listeners.get('keydown')!({
-        key: 'ArrowRight',
-        preventDefault() {},
-      } as unknown as Event)
-      expect(s.select).toHaveBeenCalledWith({ ...approved, x: approved.x + 3 })
-      s.listeners.get('keyup')!({ key: 'ArrowRight' } as unknown as Event)
-      expect(s.select).toHaveBeenLastCalledWith({ ...approved, x: approved.x + 1 })
-      expect(s.select).not.toHaveBeenCalledWith(approved)
-    } finally {
-      s.renderer.dispose()
-      clock.mockRestore()
-      vi.unstubAllGlobals()
-    }
-  })
+        s.listeners.get('keydown')!({
+          key: 'ArrowRight',
+          preventDefault() {},
+        } as unknown as Event)
+        expect(s.select).toHaveBeenCalledWith({ ...approved, x: approved.x + 3 })
+        s.listeners.get('keyup')!({ key: 'ArrowRight' } as unknown as Event)
+        expect(s.select).toHaveBeenLastCalledWith({ ...approved, x: approved.x + 1 })
+        expect(s.select).not.toHaveBeenCalledWith(approved)
+      } finally {
+        s.renderer.dispose()
+        clock.mockRestore()
+        vi.unstubAllGlobals()
+      }
+    },
+  )
   it('starts smoothly after a long idle and a small pointer slip without shifting the camera', () => {
     const s = scene()
     s.renderer.settings({ animate: false, zoom: 1 })
@@ -2657,8 +2775,8 @@ describe('native map input and bounded lifecycle', () => {
               Math.abs(draw.args[2]! - 13 * tile) < 1e-6,
           )
           .at(-1)!
-        expect(finalGround.image.width).toBe(Math.ceil(13 * tile * 1.5))
-        expect(finalGround.image.height).toBe(Math.ceil(9 * tile * 1.5))
+        expect(finalGround.image.width).toBe(13 * Math.ceil(tile * 1.5))
+        expect(finalGround.image.height).toBe(9 * Math.ceil(tile * 1.5))
         expect([s.canvas.dataset.cameraX, s.canvas.dataset.cameraY]).toEqual(camera)
         expect(s.select).not.toHaveBeenCalled()
         expect(s.frames.size).toBe(0)
@@ -3087,47 +3205,97 @@ describe('native map input and bounded lifecycle', () => {
       }
     },
   )
-  it('reuses projected ground during movement with native-density translations instead of repeated affine draws', () => {
+  it.each([
+    ['desktop', 800, 1],
+    ['phone overview', 414, 0.35],
+  ] as const)(
+    'reuses %s projected ground during movement with native-density translations',
+    (_label, width, zoom) => {
+      const base = projectWorld(newWorldState(), [], 1000)
+      const view = {
+        ...base,
+        scenery: [],
+        sectors: [
+          {
+            ...base.sectors.find((sector) => sector.id === base.position.sectorId)!,
+            buildings: [],
+            landmarks: [],
+            cells: base.sectors
+              .find((sector) => sector.id === base.position.sectorId)!
+              .cells.map((cell) => ({ ...cell, terrain: '.', walkable: true })),
+          },
+        ],
+      }
+      const s = scene(true, view)
+      try {
+        Object.assign(s.canvas, { clientWidth: width })
+        s.resize()
+        s.renderer.settings({ animate: false, zoom })
+        s.frame(40)
+        const projection = s.draws.find(
+          ({ src, args, matrix }) =>
+            !src && args.length === 2 && matrix.join(',') === '1,0,0,1,0,0',
+        )!
+        expect(projection).toBeDefined()
+        const layers = s.layerCount()
+        s.motion.plan(
+          [{ position: { ...view.position, x: view.position.x + 1 }, durationMs: 200 }],
+          view.sectors,
+          40,
+        )
+        s.renderer.update(view)
+        s.draws.length = 0
+        s.frame(80)
+        s.frame(120)
+        const blits = s.draws.filter(({ image }) => image === projection.image)
+        expect(blits.length).toBeGreaterThan(0)
+        expect(
+          blits.every(
+            ({ matrix, args }) => matrix.join(',') === '1,0,0,1,0,0' && args.length === 2,
+          ),
+        ).toBe(true)
+        expect(blits.at(-1)!.args).not.toEqual(projection.args)
+        expect(s.layerCount()).toBe(layers)
+      } finally {
+        s.renderer.dispose()
+        vi.unstubAllGlobals()
+      }
+    },
+  )
+  it('reuses the settled wide-zoom phone terrain projection without repainting its affine border', () => {
     const base = projectWorld(newWorldState(), [], 1000)
+    const sector = base.sectors.find((candidate) => candidate.id === base.position.sectorId)!
     const view = {
       ...base,
       scenery: [],
-      sectors: [
-        {
-          ...base.sectors.find((sector) => sector.id === base.position.sectorId)!,
-          buildings: [],
-          landmarks: [],
-          cells: base.sectors
-            .find((sector) => sector.id === base.position.sectorId)!
-            .cells.map((cell) => ({ ...cell, terrain: '.', walkable: true })),
-        },
-      ],
+      players: [],
+      sectors: [{ ...sector, buildings: [], landmarks: [] }],
     }
     const s = scene(true, view)
     try {
-      s.renderer.settings({ animate: false, zoom: 1 })
+      Object.assign(s.canvas, { clientWidth: 414, clientHeight: 630 })
+      window.devicePixelRatio = 2.625
+      s.canvas.dataset.renderDiagnostics = 'timing'
+      s.resize()
+      s.renderer.settings({ animate: false, zoom: 0.35, quality: 'balanced' })
       s.frame(40)
       const projection = s.draws.find(
         ({ src, args, matrix }) => !src && args.length === 2 && matrix.join(',') === '1,0,0,1,0,0',
-      )!
+      )
       expect(projection).toBeDefined()
       const layers = s.layerCount()
-      s.motion.plan(
-        [{ position: { ...view.position, x: view.position.x + 1 }, durationMs: 200 }],
-        view.sectors,
-        40,
-      )
-      s.renderer.update(view)
       s.draws.length = 0
-      s.frame(80)
-      s.frame(120)
-      const blits = s.draws.filter(({ image }) => image === projection.image)
-      expect(blits.length).toBeGreaterThan(0)
-      expect(
-        blits.every(({ matrix, args }) => matrix.join(',') === '1,0,0,1,0,0' && args.length === 2),
-      ).toBe(true)
-      expect(blits.at(-1)!.args).not.toEqual(projection.args)
+      for (let n = 1; n <= 60; n++) {
+        s.renderer.update(view)
+        s.frame(40 + n * 40)
+      }
+      expect(s.draws.some(({ image }) => image === projection!.image)).toBe(true)
       expect(s.layerCount()).toBe(layers)
+      expect(s.canvas.width).toBe(Math.round(414 * 1.5))
+      expect(s.identityCanvas.width).toBe(Math.round(414 * 2.625))
+      expect(Number(s.canvas.dataset.cachedPixels)).toBeLessThanOrEqual(8_000_000)
+      expect(Number(s.canvas.dataset.cachedGroundProjectionPixels)).toBeGreaterThan(0)
+      expect(Number(s.canvas.dataset.cachedGroundProjectionPixels)).toBeLessThanOrEqual(8_000_000)
     } finally {
       s.renderer.dispose()
       vi.unstubAllGlobals()
@@ -3634,13 +3802,25 @@ describe('native map input and bounded lifecycle', () => {
       s.resize()
       const settings = { animate: false, zoom: 0.35 }
       s.renderer.settings(settings)
-      const batches = () =>
-        s.draws.filter(
+      const batches = () => {
+        const ground = new Set(
+          [...s.composites]
+            .filter(([, sources]) =>
+              sources.some((source) =>
+                (source as HTMLImageElement).src?.endsWith('regional-ground-v02.webp'),
+              ),
+            )
+            .map(([layer]) => layer),
+        )
+        return s.draws.filter(
           ({ image, args, matrix }) =>
             args.length === 2 &&
             matrix[0] === 1 &&
+            // A terrain projection can also be a compact translated bitmap.
+            !s.composites.get(image)?.some((source) => ground.has(source)) &&
             (image.width < s.canvas.width || image.height < s.canvas.height),
         )
+      }
       s.frame(40)
       const first = batches().map(({ image }) => image)
       expect(first.length).toBeGreaterThan(0)
@@ -4327,6 +4507,42 @@ it('draws the new regional material and focal asset at normal zoom', () => {
   }
 })
 
+it('keeps mirrored snow material inside the clean atlas interior without gaps between quarters', () => {
+  const state = { ...newWorldState(), position: { sectorId: 'frostmere', x: 6, y: 4 } }
+  const view = projectWorld(state, [], 1000)
+  const sector = view.sectors.find((candidate) => candidate.id === 'frostmere')!
+  const s = scene(true, { ...view, sectors: [sector], scenery: [], players: [] })
+  try {
+    const atlas = s.images.find((image) =>
+      (image as HTMLImageElement).src.endsWith('regional-ground-v02.webp'),
+    )!
+    Object.assign(atlas, { width: 1024, height: 512, naturalWidth: 1024 })
+    s.frame(40)
+    const samples = s.draws.filter(({ image }) => image === atlas).map(({ args }) => args)
+    expect(samples.length).toBeGreaterThan(0)
+    // The decoded sheet has discoloured compression pixels at biome borders.
+    // Reflection repeats that single border into a long visible grid line.
+    for (const [x, y, width, height] of samples) {
+      expect(x).toBeGreaterThanOrEqual(514)
+      expect(y).toBeGreaterThanOrEqual(2)
+      expect(x! + width!).toBeLessThanOrEqual(766)
+      expect(y! + height!).toBeLessThanOrEqual(254)
+    }
+    for (const axis of [0, 1]) {
+      const intervals = [
+        ...new Map(samples.map((args) => [args[axis]!, args[axis + 2]!])).entries(),
+      ].sort(([a], [b]) => a - b)
+      expect(intervals).toHaveLength(4)
+      for (let i = 1; i < intervals.length; i++)
+        expect(intervals[i]![0]).toBe(intervals[i - 1]![0] + intervals[i - 1]![1])
+    }
+    expect(s.draws.some(({ image, matrix }) => image === atlas && matrix[0]! < 0)).toBe(true)
+  } finally {
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+})
+
 it('replaces ordinary Ember trees with living foliage and keeps decoded old-art fallback', () => {
   const state = { ...newWorldState(), position: { sectorId: 'emberreach', x: 6, y: 4 } }
   const view = projectWorld(state, [], 1000)
@@ -4424,6 +4640,8 @@ it.each([
     const sector = view.sectors.find(({ id }) => id === state.position.sectorId)!
     const initial = {
       ...view,
+      // This case authors exactly three trees; canonical landscape is tested separately.
+      unchartedTerrain: undefined,
       sectors: [
         {
           ...sector,
@@ -5147,6 +5365,50 @@ it.each(['animated', 'off', 'reduced'] as const)(
   },
 )
 
+it('matches the native arena viewpoint identity expectations to the actual floor and rear wall', () => {
+  const arena = correctionScenes().discoveries.find((site) => site.id === 'remote-colosseum')!
+  for (const detail of [false, true]) {
+    const position = detail ? arena.detailPosition! : arena.position
+    const s = scene(true, projectWorld({ ...newWorldState(), position }, [], 1000))
+    try {
+      s.canvas.dataset.portrait = '/viewpoint-self.png'
+      s.renderer.settings({ animate: false, zoom: 1 })
+      s.frame(40)
+      const identity = s.identityDraws.filter((draw) => draw.src === '/viewpoint-self.png')
+      expect(identity.length).toBeGreaterThan(0)
+      expect(
+        identity.some((draw) => draw.filter === 'grayscale(1)'),
+        detail ? 'rear wall' : 'arena floor',
+      ).toBe(detail && arena.detailIdentity === 'occluded')
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  }
+})
+
+it.each(['left', 'right'] as const)(
+  'matches the native %s colosseum detail viewpoint to its actual floor or occluder',
+  (id) => {
+    const arena = correctionScenes().discoveries.find((site) => site.id === 'remote-colosseum')!
+    const side = arena.detailSides!.find((side) => side.id === id)!
+    const s = scene(true, projectWorld({ ...newWorldState(), position: side.position }, [], 1000))
+    try {
+      s.canvas.dataset.portrait = '/lateral-viewpoint-self.png'
+      s.renderer.settings({ animate: false, zoom: 1.4 })
+      s.frame(40)
+      const identity = s.identityDraws.filter((draw) => draw.src === '/lateral-viewpoint-self.png')
+      expect(identity.length).toBeGreaterThan(0)
+      expect(identity.some((draw) => draw.filter === 'grayscale(1)')).toBe(
+        side.identity === 'occluded',
+      )
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  },
+)
+
 it.each(['floor', 'wall'] as const)(
   'composes colosseum ground before identity and treats an actor on its %s correctly',
   (where) => {
@@ -5406,6 +5668,345 @@ it('paints context-preserving valley detail frames in the exact selected master 
       ])
       expect(draw!.matrix).toEqual(master.matrix)
       expect(draw!.order).toBeGreaterThan(master.order)
+    }
+  } finally {
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+})
+
+it.each([
+  [1, 'balanced', false],
+  [3, 'balanced', true],
+  [3, 'low', false],
+] as const)(
+  'selects close valley detail by backing pixels at mobile minimum zoom (%s DPR, %s)',
+  (density, quality, expected) => {
+    const view = projectWorld(
+      { ...newWorldState(), position: { sectorId: 'atlas:71:17', x: 6, y: 4 } },
+      [],
+      1000,
+    )
+    const s = scene(true, view)
+    try {
+      window.devicePixelRatio = density
+      Object.assign(s.canvas, { clientWidth: 390 })
+      s.renderer.settings({ animate: false, zoom: 0.35, quality })
+      s.resize()
+      s.frame(40)
+      for (const detail of valleyDetailArt) {
+        expect(
+          s.images.some((image) =>
+            (image as HTMLImageElement).src.endsWith(detail.sheet + '-v01.webp'),
+          ),
+        ).toBe(expected)
+        expect(s.draws.some((draw) => draw.src.endsWith(detail.sheet + '-v01.webp'))).toBe(expected)
+      }
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  },
+)
+
+it('keeps three immutable cloud silhouettes across moving frames and releases them on disposal', () => {
+  const images: { src: string; width: number; height: number; close: ReturnType<typeof vi.fn> }[] =
+    []
+  vi.stubGlobal(
+    'OffscreenCanvas',
+    class {
+      constructor(
+        public width: number,
+        public height: number,
+      ) {}
+      getContext() {
+        return { drawImage() {} }
+      }
+      transferToImageBitmap() {
+        const image = {
+          src: 'immutable-cloud-probe',
+          width: this.width,
+          height: this.height,
+          close: vi.fn(),
+        }
+        images.push(image)
+        return image
+      }
+    },
+  )
+  const s = scene(false)
+  try {
+    const clouds = images.filter(({ width, height }) => width === 384 && height === 192)
+    expect(clouds).toHaveLength(3)
+    s.renderer.settings({ animate: true, zoom: 1 })
+    s.frame(50)
+    const before = s.draws.filter(({ image }) =>
+      clouds.includes(image as unknown as (typeof clouds)[number]),
+    )
+    expect(before.length).toBeGreaterThan(0)
+    s.draws.length = 0
+    s.frame(150)
+    const after = s.draws.filter(({ image }) =>
+      clouds.includes(image as unknown as (typeof clouds)[number]),
+    )
+    expect(after.length).toBeGreaterThan(0)
+    expect(after.map(({ args }) => args)).not.toEqual(before.map(({ args }) => args))
+    expect(images.filter(({ width, height }) => width === 384 && height === 192)).toHaveLength(3)
+    expect(clouds.every(({ close }) => close.mock.calls.length === 0)).toBe(true)
+    s.renderer.dispose()
+    expect(clouds.every(({ close }) => close.mock.calls.length === 1)).toBe(true)
+  } finally {
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+})
+
+it('translates a bounded dry terrain composite through short desktop movement without rerasterizing', () => {
+  const base = projectWorld(newWorldState(), [], 1000)
+  const view: WorldView = {
+    ...base,
+    scenery: [],
+    sectors: base.sectors.map((sector) => ({
+      ...sector,
+      buildings: [],
+      landmarks: [],
+      cells: sector.cells.map((cell) => ({ ...cell, terrain: '.', walkable: true })),
+    })),
+  }
+  const s = scene(true, view)
+  try {
+    s.renderer.settings({ animate: false, zoom: 1 })
+    s.canvas.dataset.renderDiagnostics = 'timing'
+    s.frame(40)
+    const timing = JSON.parse(s.canvas.dataset.renderTiming!)
+    expect(timing.projectedGroundSectors).toBeGreaterThanOrEqual(4)
+    expect(timing.projectedGroundPixels).toBeGreaterThan(s.canvas.width * s.canvas.height)
+    expect(timing.projectedGroundPixels).toBeLessThanOrEqual(4_000_000)
+    const initial = s.draws.find(
+      ({ image, args, matrix }) =>
+        image.width > s.canvas.width && args.length === 2 && matrix.join(',') === '1,0,0,1,0,0',
+    )!
+    expect(initial).toBeDefined()
+    const before = s.layerCount()
+    s.motion.plan(
+      [{ position: { ...view.position, x: view.position.x + 1 }, durationMs: 200 }],
+      view.sectors,
+      40,
+    )
+    s.renderer.update(view)
+    s.draws.length = 0
+    s.frame(80)
+    s.frame(120)
+    const moved = s.draws.filter(({ image }) => image === initial.image)
+    expect(moved.length).toBeGreaterThan(0)
+    expect(moved.at(-1)!.args).not.toEqual(initial.args)
+    expect(s.layerCount()).toBe(before)
+    expect(JSON.parse(s.canvas.dataset.renderTiming!).groundBuilds).toBe(0)
+    s.images.find((image) => (image as HTMLImageElement).src.endsWith('regional-ground-v02.webp'))!
+      .onload!()
+    s.draws.length = 0
+    s.frame(160)
+    expect(
+      s.draws.some(
+        ({ image, args }) =>
+          image !== initial.image && image.width > s.canvas.width && args.length === 2,
+      ),
+    ).toBe(true)
+  } finally {
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+})
+
+it('loads registered colosseum detail only at useful backing density and paints it through both floor/wall clips', () => {
+  const site = correctionScenes().discoveries.find((site) => site.id === 'remote-colosseum')!
+  const state = { ...newWorldState(), position: site.detailPosition! }
+  const s = scene(true, projectWorld(state, [], 1000))
+  const isDetail = (src: string) =>
+    colosseumDetailArt.some(({ sheet }) => src.endsWith(sheet + '-v01.webp'))
+  try {
+    s.renderer.settings({ animate: false, zoom: 0.35, quality: 'low' })
+    s.frame(40)
+    expect(s.images.filter((image) => isDetail((image as HTMLImageElement).src))).toHaveLength(0)
+    s.renderer.settings({ animate: false, zoom: 1, quality: 'balanced' })
+    s.frame(240)
+    const detailImages = s.images.filter((image) => isDetail((image as HTMLImageElement).src))
+    expect(detailImages.length).toBeGreaterThan(0)
+    const details = s.draws.filter(({ src }) => isDetail(src))
+    expect(details.length).toBeGreaterThanOrEqual(detailImages.length * 2)
+    const floorClip = s.clips.filter(({ path }) => path.some((part) => part.operation === 'E'))
+    expect(floorClip.length).toBeGreaterThanOrEqual(2)
+    for (const image of detailImages) {
+      const draws = details.filter((draw) => draw.image === image)
+      expect(draws).toHaveLength(2)
+      expect(draws.every(({ args }) => args.length === 4)).toBe(true)
+      expect(draws[0]!.args.slice(-2)).toEqual(draws[1]!.args.slice(-2))
+    }
+  } finally {
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+  const ordinary = scene(true)
+  try {
+    ordinary.frame(40)
+    expect(ordinary.images.some((image) => isDetail((image as HTMLImageElement).src))).toBe(false)
+  } finally {
+    ordinary.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+})
+
+it('keeps an obscured Old Waystone marker visible above major artwork when location labels are hidden', () => {
+  const site = correctionScenes().discoveries.find(({ id }) => id === 'remote-colosseum')!
+  const state = { ...newWorldState(), position: site.detailPosition! }
+  const s = scene(true, projectWorld(state, [], 1000))
+  try {
+    s.renderer.settings({ animate: false, zoom: 0.35, showLocationLabels: false })
+    s.frame(40)
+    const source = worldRenderTerrain(s.view)
+      .flatMap((sector) => sector.landmarks.map((landmark) => ({ sector, landmark })))
+      .find(({ landmark }) => landmark.name === 'Old Waystone')!
+    expect(source).toBeDefined()
+    const origin = { x: source.sector.atlasColumn! * 13, y: source.sector.atlasRow! * 9 }
+    const camera = mapPoint(s.view.position, s.view.sectors)
+    const p = projectMapPoint(
+      { x: origin.x + source.landmark.x + 0.5, y: origin.y + source.landmark.y + 0.5 },
+      camera,
+      { x: 0, y: 0 },
+      64 * 0.35,
+      800,
+      600,
+    )
+    const markers = s.strokes.filter(({ colour }) => colour === '#ffe2a1')
+    expect(
+      markers.some(
+        ({ path }) =>
+          path[0]?.operation === 'M' &&
+          Math.abs(path[0].points[0]! - p.x) < 0.01 &&
+          Math.abs(path[0].points[1]! - (p.y - 9)) < 0.01,
+      ),
+    ).toBe(true)
+    expect(s.texts.some(({ text }) => text === 'Old Waystone')).toBe(false)
+    expect(s.view.position).toEqual(state.position)
+  } finally {
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+  const ordinary = scene(true)
+  try {
+    ordinary.frame(40)
+    expect(ordinary.strokes.some(({ colour }) => colour === '#ffe2a1')).toBe(false)
+  } finally {
+    ordinary.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+})
+
+it.each([1, 2.625].flatMap((density) => [0.35, 1, 1.4].map((zoom) => ({ density, zoom }))))(
+  'aligns cached liquid tile boundaries to backing pixels at $zoom zoom/$density DPR',
+  ({ density, zoom }) => {
+    const state = { ...newWorldState(), position: { sectorId: 'atlas:71:32', x: 6, y: 4 } }
+    const s = scene(true, projectWorld(state, [], 1000))
+    try {
+      Object.assign(s.canvas, { clientWidth: 414, clientHeight: 630 })
+      window.devicePixelRatio = density
+      s.resize()
+      s.renderer.settings({ animate: false, zoom })
+      s.frame(40)
+      s.frame(240)
+      const grounds = [...s.composites.entries()].filter(
+        ([layer, sources]) =>
+          (layer as HTMLCanvasElement).width > 100 &&
+          sources.some((source) =>
+            (source as HTMLImageElement).src?.endsWith('water-materials-v01.webp'),
+          ) &&
+          sources.some((source) =>
+            (source as HTMLImageElement).src?.endsWith('regional-ground-v02.webp'),
+          ),
+      )
+      expect(grounds.length).toBeGreaterThan(0)
+      for (const [layer] of grounds) {
+        expect((layer as HTMLCanvasElement).width % 13).toBe(0)
+        expect((layer as HTMLCanvasElement).height % 9).toBe(0)
+      }
+      for (let frame = 0; frame < 60; frame++) {
+        s.renderer.update(s.view)
+        s.frame(280 + frame * 40)
+      }
+      expect(Number(s.canvas.dataset.cachedPixels)).toBeGreaterThan(0)
+      expect(Number(s.canvas.dataset.cachedPixels)).toBeLessThanOrEqual(8_000_000)
+      expect(s.identityCanvas.width).toBe(Math.round(414 * density))
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  },
+)
+
+it('retains whole-cell backing pixels when visible terrain lowers cached density', () => {
+  const state = newWorldState()
+  const view = projectWorld(state, [], 1000)
+  const root = atlasSectors().find((sector) => sector.id === state.position.sectorId)!
+  const sectors = atlasSectors()
+    .filter(
+      (sector) =>
+        sector.charted &&
+        Math.abs(sector.atlasColumn! - root.atlasColumn!) <= 2 &&
+        Math.abs(sector.atlasRow! - root.atlasRow!) <= 2,
+    )
+    .slice(0, 22)
+    .map((sector) => ({
+      ...projectWorldSector(state, sector),
+      landmarks: [],
+      buildings: [],
+    }))
+  expect(sectors).toHaveLength(22)
+  const initial = {
+    ...view,
+    sectors: sectors.filter((sector) => sector.id === root.id),
+    scenery: [],
+    atlas: [],
+  }
+  const s = scene(true, initial)
+  const resamples: { width: number; height: number }[] = []
+  const create = document.createElement.bind(document)
+  vi.spyOn(document, 'createElement').mockImplementation((...args) => {
+    const layer = create(...args) as HTMLCanvasElement
+    const target = layer.getContext('2d')!
+    const draw = target.drawImage.bind(target)
+    const context = new Proxy(target, {
+      get(context, key) {
+        if (key === 'drawImage')
+          return (source: HTMLCanvasElement, ...args: number[]) => {
+            if (
+              source.width > 100 &&
+              source.width / 13 === source.height / 9 &&
+              args.length === 4 &&
+              args[2] === layer.width &&
+              args[3] === layer.height &&
+              Math.abs(layer.width / layer.height - 13 / 9) < 0.01
+            )
+              resamples.push({ width: layer.width, height: layer.height })
+            return draw(source, ...(args as [number, number, number, number]))
+          }
+        return Reflect.get(context, key)
+      },
+    })
+    // This canvas test double supplies only the 2D context used by the renderer.
+    layer.getContext = (() => context) as unknown as typeof layer.getContext
+    return layer
+  })
+  try {
+    Object.assign(s.canvas, { clientWidth: 5000, clientHeight: 3000 })
+    s.resize()
+    s.renderer.settings({ animate: false, zoom: 0.75 })
+    s.frame(40)
+    s.renderer.update({ ...initial, sectors })
+    s.frame(80)
+    expect(resamples.length).toBeGreaterThan(0)
+    for (const raster of resamples) {
+      expect(raster.width % 13).toBe(0)
+      expect(raster.height % 9).toBe(0)
     }
   } finally {
     s.renderer.dispose()
