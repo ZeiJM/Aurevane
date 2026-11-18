@@ -12,7 +12,7 @@
     "pr": 1043,
     "draft": true
   },
-  "main": "2893076856e20bc64f00e94e132d26dd0d76b26d",
+  "main": "d214507b9a2f09cd415c239c4f6d2eef4be35b6b",
   "productionMutationOccurred": true,
   "releaseHold": false,
   "ownership": {
@@ -254,9 +254,9 @@
     }
   },
   "remaining": [
-    "Merge docs-only PR1042 after its current documentation checks pass, verify merged tree and main checks, pause completion monitor. No new gameplay build."
+    "Verify final main docs checks then pause completion monitor; gameplay release and docs merge complete."
   ],
-  "updatedAt": "2026-11-18T03:32:59.715Z",
+  "updatedAt": "2026-11-18T03:34:54.574Z",
   "previousCandidate": {
     "sha": "9b76647e206ec9a426804a13bd53ee33cc6df941",
     "tree": "d7256c6b8cf558b4e9b92400a412eb5052a2682e",
@@ -411,7 +411,10 @@
     "checks": {
       "ci": 44231098230,
       "browserSmoke": 44231098182,
-      "status": "documentation-only plans; result wrappers pending"
+      "result": "success; explicit documentation-only plans",
+      "mainCi": 44231292990,
+      "mainBrowserSmoke": 44231292892,
+      "mainStatus": "pending"
     },
     "verification": "35 new local links resolve; diff contains eight Markdown files only. All runtime/configuration/migration blobs inherited unchanged from released main. Original November15 status snapshot and latest main history preserved.",
     "liveReadOnlyRecheck": {
@@ -420,6 +423,8 @@
       "worldPage": "200 exact data-dpl-id",
       "authStatus": "200 authenticated:false",
       "checkedAt": "2026-11-18T03:32:59.715Z"
-    }
+    },
+    "merge": "d214507b9a2f09cd415c239c4f6d2eef4be35b6b",
+    "testedTreeMatches": true
   }
 }
