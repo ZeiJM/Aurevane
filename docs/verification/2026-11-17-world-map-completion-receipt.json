@@ -188,14 +188,25 @@
       "candidateDeploymentCount": 0,
       "productionMutationOccurred": false,
       "ledgerRefresh": "Not attempted: final native gates remain pending. Must refresh installed ledger before guarded release."
+    },
+    "staged": {
+      "id": "dpl_7wFcLjXVCagiAvH5jLwV8oc7MaZ5",
+      "url": "https://aurevane-6vh76j1er-zeijms-projects.vercel.app",
+      "sha": "6216bff7a8c1ab6432d223159eabbfd91278e2b1",
+      "status": "INITIALIZING",
+      "target": "production",
+      "autoAssignCustomDomains": false,
+      "supabaseInstalledMigrations": 263,
+      "latestMigration": "20261114114000",
+      "promoted": false
     }
   },
   "remaining": [
-    "Finish complete current-source Browser Smoke/Chromium/Edge and inspect logs/artifacts; do not duplicate active run.",
-    "After every gate passes, refresh main and tested merge tree, merge PR1043, verify merged tree/main checks, refresh Production and installed ledger read-only, stage/smoke/promote same Production build.",
-    "Pin verified canonical release/postflight and refresh/merge docs-only PR1042 with its own checks."
+    "Confirm UI layout review on merged main and staged Production READY.",
+    "Smoke-test the exact-source staged deployment. Promote the same build only after smoke and checks pass. Verify canonical and record receipt.",
+    "Refresh and merge docs-only PR #1042 after the game release."
   ],
-  "updatedAt": "2026-11-18T02:19:59.261Z",
+  "updatedAt": "2026-11-18T02:28:44.778Z",
   "previousCandidate": {
     "sha": "9b76647e206ec9a426804a13bd53ee33cc6df941",
     "tree": "d7256c6b8cf558b4e9b92400a412eb5052a2682e",
@@ -315,6 +326,16 @@
       ],
       "durableEvidenceDirectory": "docs/verification/world-map-final-native-20261118/",
       "notes": "Contact sheets are labelled derivatives of current native screenshots, not offline renderer reproductions. Full-size major detail, water/bridge, snow and lava captures also inspected. Current waterfall/lava artwork remains separate from next-update authored connections. No physical handset or human continuous-motion acceptance claimed."
+    }
+  },
+  "merge": {
+    "sha": "6216bff7a8c1ab6432d223159eabbfd91278e2b1",
+    "tree": "0e63d1637dbdf413177458bb7f32e165f36ff7ad",
+    "testedTreeMatches": true,
+    "mainRuns": {
+      "ci": 44223260477,
+      "browserSmoke": 44223260465,
+      "uiLayout": 44223260481
     }
   }
 }
