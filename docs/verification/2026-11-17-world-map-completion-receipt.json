@@ -222,8 +222,8 @@
         "details": "Weather-responsive, individually varied tree sway already exists. Verify the existing behaviour across representative regions, vegetation and wind conditions, and fix remaining gaps while respecting animation settings and the map performance budget."
       },
       {
-        "item": "New grand bridge",
-        "details": "Find a remote wilderness location on a truly wide river. Design a distinct new megastructure, separate from Longwater Crossing, with a walkable deck and natural approaches from both banks. Validate placement, access and scale before freezing the ferry release candidate."
+        "item": "Grand bridge, offshore island and tower",
+        "details": "Use a remote stretch of underused ocean to add a modest offshore island. Span a broad sea channel with a distinct grand bridge from the mainland to the island, with a walkable deck and natural approaches at both ends. Choose a site that preserves ferry navigation and enough open sea around the island. Build a grand tower on the island as a scenic landmark for the first release, with no tower entry, quest, reward or gameplay function. Preserve the separate existing Longwater Crossing. Validate the dock and ferry routes, public walking access and the scale of the bridge, island and tower on the local map and World Atlas."
       }
     ],
     "currentReleaseBoundary": "PR #1043 retains its existing water and lava artwork and rendering fixes. The authored connections and terrain layout, player-facing names, vegetation follow-up and new bridge belong to the subsequent ferry update.",
