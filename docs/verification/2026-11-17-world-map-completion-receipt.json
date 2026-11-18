@@ -272,7 +272,7 @@
   },
   "nextGameplayUpdate": {
     "title": "Ferry and Uncharted Lands",
-    "status": "Owner-approved scope; implementation pending",
+    "status": "Owner-approved scope; implementation started in the follow-up workstream",
     "after": "PR #1043 World Map completion",
     "existingScope": "Connect the existing ferry to the active Uncharted Lands map and complete the deferred gameplay playtest. Preserve the free hourly crossing and shared deck. Revalidate the inherited backlog.",
     "requirements": [
@@ -291,10 +291,23 @@
       {
         "item": "Grand bridge, offshore island and tower",
         "details": "Use a remote stretch of underused ocean to add a modest offshore island. Span a broad sea channel with a distinct grand bridge from the mainland to the island, with a walkable deck and natural approaches at both ends. Choose a site that preserves ferry navigation and enough open sea around the island. Build a grand tower on the island as a scenic landmark for the first release, with no tower entry, quest, reward or gameplay function. Preserve the separate existing Longwater Crossing. Validate the dock and ferry routes, public walking access and the scale of the bridge, island and tower on the local map and World Atlas."
+      },
+      {
+        "item": "Continuous wraparound land band",
+        "details": "The existing continuous band of land joining the two sides of the world must read as one connected landmass on the World Atlas. Fix the islet-like gaps in both globe rendering paths and at the wrap seam; preserve authored geography and nearby real islands."
+      },
+      {
+        "item": "Compact Explore pane",
+        "details": "Fit the pane within the available screen height in common desktop and phone layouts. Prioritize the destination and travel action, simplify redundant controls and use compact grouping so players do not have to scroll the page just to reach primary actions. Keep accessible names, tap targets and access to any extra content."
+      },
+      {
+        "item": "Travel to the exact clicked destination",
+        "details": "A confirmed click on a reachable map tile should move the character all the way there, including over loaded-sector boundaries and multi-batch routes. Diagnose early stops; preserve authority and collision, and surface any unreachable destination clearly."
       }
     ],
     "currentReleaseBoundary": "PR #1043 retains its existing water and lava artwork and rendering fixes. The authored connections and terrain layout, player-facing names, vegetation follow-up and new bridge belong to the subsequent ferry update.",
-    "recordedAt": "2026-11-18T00:20:44.004Z"
+    "recordedAt": "2026-11-18T00:20:44.004Z",
+    "latestOwnerScopeAt": "2026-11-18T08:34:57.438Z"
   },
   "timing75": {
     "source": "4e1f094c8a25a384f06b882127864ae4d534791c",
