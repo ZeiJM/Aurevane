@@ -185,9 +185,9 @@
     "Finish Browser Smoke and Living Atlas on the current candidate; inspect failures and address their causes.",
     "Review final native centre/both lateral Colosseum, valley, rotated globe, water, snow, towns and responsive controls.",
     "Perform the authorized one-build release and canonical postflight only after passing gates.",
-    "Reconcile docs-only PR #1042 with verified release status and record the approved names The Shadows’ Vigil and The Thousand Steps."
+    "Reconcile docs-only PR #1042 with verified release status."
   ],
-  "updatedAt": "2026-11-18T00:02:37.495Z",
+  "updatedAt": "2026-11-18T00:20:44.005Z",
   "previousCandidate": {
     "sha": "9b76647e206ec9a426804a13bd53ee33cc6df941",
     "tree": "d7256c6b8cf558b4e9b92400a412eb5052a2682e",
@@ -202,5 +202,31 @@
     "cause": "Build TS2352 on test canvas getContext overload; no mobile/desktop executions reached",
     "correctedIn": "4e1f094c8a25a384f06b882127864ae4d534791c",
     "applicationSourceUnchangedByTypingCommit": true
+  },
+  "nextGameplayUpdate": {
+    "title": "Ferry and Uncharted Lands",
+    "status": "Owner-approved scope; implementation pending",
+    "after": "PR #1043 World Map completion",
+    "existingScope": "Connect the existing ferry to the active Uncharted Lands map and complete the deferred gameplay playtest. Preserve the free hourly crossing and shared deck. Revalidate the inherited backlog.",
+    "requirements": [
+      {
+        "item": "Megastructure names",
+        "details": "Show The Shadows’ Vigil for the waterfall gorge of Frost Shadow and Flame Shadow and The Thousand Steps for the Glasswind colosseum in their player-facing map presentation. Carry the approved names into world lore and retain existing site IDs."
+      },
+      {
+        "item": "Connected water features",
+        "details": "Use the existing approved river, pond, waterfall and lavafall artwork. Shape natural bends and connect streams, rivers, pools and basins to waterfalls or lavafalls where appropriate. Review Willow Cascades and the Emberreach lava channel specifically. Verify visible flow and alignment at normal and close zoom, with correct bridge crossings and terrain access."
+      },
+      {
+        "item": "Vegetation motion where needed",
+        "details": "Weather-responsive, individually varied tree sway already exists. Verify the existing behaviour across representative regions, vegetation and wind conditions, and fix remaining gaps while respecting animation settings and the map performance budget."
+      },
+      {
+        "item": "New grand bridge",
+        "details": "Find a remote wilderness location on a truly wide river. Design a distinct new megastructure, separate from Longwater Crossing, with a walkable deck and natural approaches from both banks. Validate placement, access and scale before freezing the ferry release candidate."
+      }
+    ],
+    "currentReleaseBoundary": "PR #1043 retains its existing water and lava artwork and rendering fixes. The authored connections and terrain layout, player-facing names, vegetation follow-up and new bridge belong to the subsequent ferry update.",
+    "recordedAt": "2026-11-18T00:20:44.004Z"
   }
 }
