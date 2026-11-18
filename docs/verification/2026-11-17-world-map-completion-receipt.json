@@ -254,9 +254,9 @@
     }
   },
   "remaining": [
-    "Refresh and merge docs-only PR #1042 after its own checks. Do not redeploy PR #1043."
+    "Merge docs-only PR1042 after its current documentation checks pass, verify merged tree and main checks, pause completion monitor. No new gameplay build."
   ],
-  "updatedAt": "2026-11-18T03:26:55.282Z",
+  "updatedAt": "2026-11-18T03:32:59.715Z",
   "previousCandidate": {
     "sha": "9b76647e206ec9a426804a13bd53ee33cc6df941",
     "tree": "d7256c6b8cf558b4e9b92400a412eb5052a2682e",
@@ -391,6 +391,35 @@
       "ci": "success",
       "browserSmoke": "success",
       "uiLayout": "success"
+    }
+  },
+  "docsFollowThrough": {
+    "pr": 1042,
+    "head": "f9a53377516e656fb48e7cdaff333fdda42e1693",
+    "tree": "1f3e6f0c10727254b5ae45aa6f7d76a2e2108b51",
+    "basedOnMain": "6216bff7a8c1ab6432d223159eabbfd91278e2b1",
+    "files": [
+      "README.md",
+      "TASKS.md",
+      "docs/ROADMAP.md",
+      "docs/ROADMAP_STATUS_2026-11-15.md",
+      "docs/ROADMAP_DETAILED_2026-10-13.md",
+      "docs/PHASE_5_TICKETS.md",
+      "AGENTS.md",
+      "docs/verification/2026-11-16-world-map-request-completion.md"
+    ],
+    "checks": {
+      "ci": 44231098230,
+      "browserSmoke": 44231098182,
+      "status": "documentation-only plans; result wrappers pending"
+    },
+    "verification": "35 new local links resolve; diff contains eight Markdown files only. All runtime/configuration/migration blobs inherited unchanged from released main. Original November15 status snapshot and latest main history preserved.",
+    "liveReadOnlyRecheck": {
+      "canonicalDeploy": "dpl_7wFcLjXVCagiAvH5jLwV8oc7MaZ5",
+      "source": "6216bff7a8c1ab6432d223159eabbfd91278e2b1",
+      "worldPage": "200 exact data-dpl-id",
+      "authStatus": "200 authenticated:false",
+      "checkedAt": "2026-11-18T03:32:59.715Z"
     }
   }
 }
