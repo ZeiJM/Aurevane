@@ -17,11 +17,11 @@
   "releaseHold": true,
   "ownership": {
     "interactiveOwner": "Automation_9dd57abfa004819195b30acab8a54150",
-    "leaseExpires": "2026-11-18T00:32:32.209Z",
+    "leaseExpires": "2026-11-18T02:24:21.602Z",
     "hourlyTasksDisabled": [
       "Automation_661d7a3712ec8191939d0104f5c5a773"
     ],
-    "handoff": "Designated automation checked exact-source gates and verified Timing75 artifact. Lease released while existing Smoke7391 and Atlas824 finish; next designated continuation may claim unless a newer active lease exists. Do not duplicate active runs. Source unchanged; native images unavailable until Atlas artifact upload. Keep release held."
+    "handoff": "Designated continuation reviewing newly completed Atlas824 native evidence; source frozen. Avoid overlap with this active lease."
   },
   "currentRuns": {
     "ci": 44199406222,
@@ -196,7 +196,7 @@
     "Perform the authorized one-build release and canonical postflight only after passing gates.",
     "Reconcile docs-only PR #1042 with verified release status."
   ],
-  "updatedAt": "2026-11-18T00:32:32.209Z",
+  "updatedAt": "2026-11-18T01:34:21.602Z",
   "previousCandidate": {
     "sha": "9b76647e206ec9a426804a13bd53ee33cc6df941",
     "tree": "d7256c6b8cf558b4e9b92400a412eb5052a2682e",
