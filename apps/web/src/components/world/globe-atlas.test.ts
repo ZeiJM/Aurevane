@@ -2,6 +2,37 @@ import { expect, it } from 'vitest'
 import { atlasSectors, ATLAS_COLUMNS, ATLAS_ROWS } from '@/world/atlas'
 import { globeSectorCenter, globeSectorCoordinate } from '@/world/globe-math'
 import { globeAtlasPixels, globeAtlasDetailPixels } from './globe-atlas'
+it('renders continuous public settlement fabric without changing coast alpha or liquid identity', () => {
+  const plain = Array.from({ length: 9 }, (_, i) => ({
+    id: `land-${i}`,
+    name: 'Land',
+    coordinate: '',
+    regionId: 'aureth-crown',
+    column: (i % 3) + 1,
+    row: Math.floor(i / 3) + 1,
+    charted: true,
+  }))
+  const original = globeAtlasDetailPixels(plain, 5, 5)
+  const built: import('@/world/types').WorldAtlasCell[] = plain.map((cell, i) =>
+    i === 4 ? { ...cell, settlementOutskirtsOf: 'aureth-crown' } : cell,
+  )
+  const urban = globeAtlasDetailPixels(built, 5, 5)
+  expect(urban).not.toBe(original)
+  expect(urban.pixels).not.toEqual(original.pixels)
+  expect(urban.pixels.filter((_, i) => i % 4 === 3)).toEqual(
+    original.pixels.filter((_, i) => i % 4 === 3),
+  )
+  expect(globeAtlasDetailPixels(JSON.parse(JSON.stringify(built)), 5, 5)).toBe(urban)
+  const wet = built.map((cell) => ({ ...cell, waterTiles: 'w'.repeat(117) }))
+  const wetPlain = globeAtlasDetailPixels(
+    wet.map((cell) => ({ ...cell, settlementOutskirtsOf: undefined })),
+    5,
+    5,
+  )
+  expect(globeAtlasDetailPixels(wet, 5, 5).pixels).toEqual(wetPlain.pixels)
+  const hidden = built.map((cell) => ({ ...cell, charted: false }))
+  expect(globeAtlasDetailPixels(hidden, 5, 5).pixels.every((value) => value === 0)).toBe(true)
+})
 it('gives charted land regional relief and coastal detail without leaking private cells', () => {
   const cell = {
     id: 'frostmere',
@@ -120,7 +151,7 @@ it('renders authoritative water and lava while leaving a bridge as dry ground', 
   ).toBe(true)
 })
 
-it('projects only canonical charted towns and their actual nine-sector footprints', async () => {
+it('projects only canonical charted towns and their public built-up extents', async () => {
   const { globeTowns, projectGlobeTowns } = await import('./globe-atlas')
   const atlas = atlasSectors().map((s) => ({
     id: s.id,
@@ -131,10 +162,16 @@ it('projects only canonical charted towns and their actual nine-sector footprint
     row: s.atlasRow!,
     charted: s.charted,
     townId: s.townId,
+    settlementOutskirtsOf: s.settlementOutskirtsOf,
   }))
   const towns = globeTowns(atlas)
   expect(towns).toHaveLength(8)
-  expect(towns.every((t) => t.districts.length === 9 && t.sector.id === t.sector.townId)).toBe(true)
+  expect(
+    towns.every(
+      (t) => t.districts.length >= 9 && t.districts.length <= 14 && t.sector.id === t.sector.townId,
+    ),
+  ).toBe(true)
+  expect(new Set(towns.map((t) => t.districts.length)).size).toBe(6)
   const town = towns.find((t) => t.sector.id === 'verdant-expanse')!
   const camera = globeSectorCenter(town.sector.coordinate, ATLAS_COLUMNS, ATLAS_ROWS)!
   const projected = projectGlobeTowns(atlas, camera, 1)
@@ -234,6 +271,101 @@ it('rounds a broad rectangular inlet over several known coastal pixels while wit
   expect(alpha(40, 70)).toBe(255)
 })
 
+it('breaks a broad public shore into unequal headlands and bays without revealing missing sectors', () => {
+  const atlas = Array.from({ length: 16 * 12 }, (_, n) => ({
+    id: `shore-${n}`,
+    name: 'Shore',
+    coordinate: '',
+    regionId: 'verdant-expanse',
+    column: n % 16,
+    row: Math.floor(n / 16),
+    charted: true,
+  })).filter((cell) => cell.column < 8)
+  const image = globeAtlasDetailPixels(atlas, 16, 12)
+  const alpha = (x: number, y: number) => image.pixels[(y * image.width + x) * 4 + 3]!
+  const shore = Array.from({ length: 128 }, (_, n) => {
+    const y = n + 32
+    for (let x = 127; x >= 64; x--) if (alpha(x, y) >= 128) return x
+    throw new Error('Lost public land support')
+  })
+  // Broad smoothing alone gives an almost straight wall. Actual contour relief,
+  // rather than interior colour noise, must make differently sized inlets.
+  expect(Math.max(...shore) - Math.min(...shore)).toBeGreaterThan(4)
+  expect(new Set(shore).size).toBeGreaterThan(5)
+  for (let y = 0; y < image.height; y++)
+    for (let x = 128; x < image.width; x++) expect(alpha(x, y)).toBe(0)
+  for (let y = 32; y < 160; y++) expect(alpha(64, y)).toBe(255)
+})
+
+it('cuts visible unequal bays into broad coastlines at globe scale', () => {
+  const atlas = Array.from({ length: 32 * 24 }, (_, n) => ({
+    id: `coast-${n}`,
+    name: 'Coast',
+    coordinate: '',
+    regionId: 'verdant-expanse',
+    column: n % 32,
+    row: Math.floor(n / 32),
+    charted: true,
+  })).filter((cell) => cell.column < 16)
+  const image = globeAtlasDetailPixels(atlas, 32, 24)
+  const edge = Array.from({ length: 256 }, (_, n) => {
+    const y = n + 64
+    for (let x = 255; x >= 160; x--)
+      if (image.pixels[(y * image.width + x) * 4 + 3]! >= 128) return x
+    throw new Error('Lost broad public land support')
+  })
+  // One coarse district spans16 texels. Sub-district ripples alone leave the
+  // same bulbous silhouette at the real320px mobile globe size.
+  expect(Math.max(...edge) - Math.min(...edge)).toBeGreaterThan(16)
+  for (let y = 64; y < 320; y++) {
+    expect(image.pixels[(y * image.width + 160) * 4 + 3]).toBe(255)
+    expect(image.pixels[(y * image.width + 256) * 4 + 3]).toBe(0)
+  }
+})
+
+it('retains solid land under all canonical public town markers after coastal inlets', () => {
+  const atlas = atlasSectors().map((sector) => ({
+    id: sector.id,
+    name: sector.name,
+    coordinate: sector.coordinate,
+    regionId: sector.regionId,
+    column: sector.atlasColumn!,
+    row: sector.atlasRow!,
+    charted: sector.charted,
+    townId: sector.townId,
+    settlementOutskirtsOf: sector.settlementOutskirtsOf,
+  }))
+  const image = globeAtlasDetailPixels(atlas, ATLAS_COLUMNS, ATLAS_ROWS)
+  const towns = atlas.filter((cell) => cell.charted && cell.id === cell.townId)
+  expect(towns).toHaveLength(8)
+  for (const town of towns) {
+    const x = town.column * 16 + 8,
+      y = town.row * 16 + 8
+    expect(image.pixels[(y * image.width + x) * 4 + 3], town.name).toBe(255)
+  }
+})
+
+it('retains thin public land across longitude zero and keeps hidden neighbours transparent', () => {
+  const atlas = Array.from({ length: 16 }, (_, column) => ({
+    id: `strip-${column}`,
+    name: 'Strip',
+    coordinate: '',
+    regionId: 'verdant-expanse',
+    column,
+    row: 4,
+    charted: true,
+  }))
+  const image = globeAtlasDetailPixels(atlas, 16, 12)
+  const alpha = (x: number, y: number) => image.pixels[(y * image.width + x) * 4 + 3]!
+  for (let x = 0; x < image.width; x++) {
+    expect(alpha(x, 72)).toBe(255)
+    expect(alpha(x, 63)).toBe(0)
+    expect(alpha(x, 80)).toBe(0)
+  }
+  for (let y = 64; y < 80; y++)
+    expect(Math.abs(alpha(0, y) - alpha(image.width - 1, y))).toBeLessThan(32)
+})
+
 it('forms coherent mountain ranges with stronger relief across the range than along it', () => {
   const atlas = Array.from({ length: 400 }, (_, n) => ({
     id: n === 210 ? 'frostmere' : `mountain-${n}`,
@@ -254,4 +386,26 @@ it('forms coherent mountain ranges with stronger relief across the range than al
       along += Math.abs(light(x + 3, y - 2) - light(x - 3, y + 2))
     }
   expect(across / along).toBeGreaterThan(1.35)
+})
+
+it('keeps narrow public island shores continuous across internal district boundaries', () => {
+  const atlas = Array.from({ length: 8 }, (_, n) => ({
+    id: `islet-${n}`,
+    name: 'Islet',
+    coordinate: '',
+    regionId: 'verdant-expanse',
+    column: n < 6 ? n + 2 : n - 4,
+    row: n < 6 ? 4 : 5,
+    charted: true,
+  }))
+  const image = globeAtlasDetailPixels(atlas, 12, 10)
+  const edge = (x: number) => {
+    for (let y = 64; y < 96; y++) if (image.pixels[(y * image.width + x) * 4 + 3]! >= 128) return y
+    throw new Error(`Lost narrow public island support at ${x}`)
+  }
+  const jumps = [3, 4, 5, 6, 7].map((column) => Math.abs(edge(column * 16) - edge(column * 16 - 1)))
+  expect(Math.max(...jumps)).toBeLessThanOrEqual(2)
+  for (const x of [72, 88, 104])
+    expect(image.pixels[(72 * image.width + x) * 4 + 3]!).toBeGreaterThan(128)
+  for (let x = 0; x < image.width; x++) expect(image.pixels[(63 * image.width + x) * 4 + 3]).toBe(0)
 })

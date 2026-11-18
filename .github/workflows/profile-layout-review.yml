@@ -6,6 +6,9 @@ on:
       - main
     paths:
       - .github/workflows/profile-layout-review.yml
+      - .github/scripts/configure-supabase-test-ports.py
+      - .github/scripts/configure-supabase-test-ports.test.py
+      - .github/scripts/auth-test-helpers.sh
       - apps/web/e2e/*layout-regression.pw.ts
       - apps/web/e2e/creation-subject-reconciliation.pw.ts
       - apps/web/e2e/pv1f-test-helpers.ts
@@ -35,6 +38,9 @@ on:
   pull_request:
     paths:
       - .github/workflows/profile-layout-review.yml
+      - .github/scripts/configure-supabase-test-ports.py
+      - .github/scripts/configure-supabase-test-ports.test.py
+      - .github/scripts/auth-test-helpers.sh
       - apps/web/e2e/*layout-regression.pw.ts
       - apps/web/e2e/creation-subject-reconciliation.pw.ts
       - apps/web/e2e/pv1f-test-helpers.ts
@@ -90,6 +96,10 @@ jobs:
           pnpm --filter @aurevane/web exec playwright install --with-deps chromium
       - name: Start disposable local database
         run: |
+          python .github/scripts/configure-supabase-test-ports.test.py
+          python .github/scripts/configure-supabase-test-ports.py
+          python .github/scripts/configure-discipline-test-mail.test.py
+          python .github/scripts/configure-discipline-test-mail.py
           pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
           pnpm exec supabase db reset --local
       - name: Build and inspect real authenticated pages

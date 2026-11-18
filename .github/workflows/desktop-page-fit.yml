@@ -46,7 +46,10 @@ jobs:
         run: pnpm test
       - run: pnpm --filter @aurevane/web exec playwright install --with-deps chromium
         if: ${{ !cancelled() }}
-      - run: pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
+      - run: |
+          python .github/scripts/configure-discipline-test-mail.test.py
+          python .github/scripts/configure-discipline-test-mail.py
+          pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
         if: ${{ !cancelled() }}
       - name: Build and verify page interactions
         if: ${{ !cancelled() }}

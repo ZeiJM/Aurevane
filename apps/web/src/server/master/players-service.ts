@@ -285,7 +285,7 @@ export function createMasterPlayersService(
       await access.requireCapability(userId, 'players.manage')
       if (!prepareTeleport) unavailable()
       await prepareTeleport(userId, destination)
-      await call(userId, 'teleport_master_player_v2', {
+      const receipt = await call(userId, 'teleport_master_player_v4', {
         p_character_id: input.characterId,
         p_expected_version: input.expectedVersion,
         p_request_key: input.requestKey,
@@ -296,7 +296,25 @@ export function createMasterPlayersService(
         p_reason: reason,
         p_confirmed: true,
       })
-      return project(await readRaw(userId, input.characterId))
+      if (
+        !playerRecord(receipt) ||
+        !playerRecord(receipt.position) ||
+        typeof receipt.position.sectorId !== 'string' ||
+        !Number.isSafeInteger(receipt.position.x) ||
+        !Number.isSafeInteger(receipt.position.y) ||
+        !Number.isSafeInteger(receipt.version) ||
+        typeof receipt.replayed !== 'boolean'
+      )
+        unavailable()
+      const player = await project(await readRaw(userId, input.characterId))
+      return {
+        ...player,
+        teleportReceipt: {
+          position: receipt.position as { sectorId: string; x: number; y: number },
+          version: receipt.version as number,
+          replayed: receipt.replayed,
+        },
+      }
     },
     async recover(
       userId: string,

@@ -8,7 +8,7 @@ load_test_auth() {
   test -n "${ANON_KEY:-}"
   TEST_AUTH_ADMIN_KEY="${SECRET_KEY:-${SERVICE_ROLE_KEY:-}}"
   test -n "$TEST_AUTH_ADMIN_KEY"
-  TEST_AUTH_API_URL='http://127.0.0.1:54321'
+  TEST_AUTH_API_URL="${SUPABASE_TEST_API_URL:-http://127.0.0.1:54321}"
 }
 
 signup_test_user() {

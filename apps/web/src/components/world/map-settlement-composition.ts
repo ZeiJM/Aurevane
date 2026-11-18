@@ -59,7 +59,7 @@ export function settlementComposition(sector: WorldSectorView): ScenicDressing[]
   const hamlet = sector.landmarks.find(
     (l) => l.kind === 'hamlet' && hamletFamilyIndex(l.name) !== undefined,
   )
-  if (!sector.townId && !hamlet) return []
+  if (!sector.townId && !sector.settlementOutskirtsOf && !hamlet) return []
   const kit = kits[sector.regionId]
   if (!kit) return []
   const anchor = hamlet ?? sector.landmarks.find((l) => l.kind === 'marketplace') ?? { x: 6, y: 4 }

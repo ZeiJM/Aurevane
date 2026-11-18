@@ -235,7 +235,8 @@ describe('world authority and spoiler projection', () => {
   )
   it('projects actual public water and town footprints without exposing private terrain', () => {
     const waterDistrict = visibleSectors(newWorldState()).find(
-      (sector) => sector.townId && sector.rows.some((row) => /[~lw]/.test(row)),
+      (sector) =>
+        sector.townId === 'verdant-expanse' && sector.rows.some((row) => /[~lw]/.test(row)),
     )!
     expect(waterDistrict).toBeDefined()
     const view = projectWorld(

@@ -1,5 +1,5 @@
 import 'server-only'
-import { encodeTerrainRows } from '@/world/terrain'
+import { encodeTerrainRows, worldSurfaceRows } from '@/world/terrain'
 import { AurevaneError } from '@aurevane/game-core/errors'
 import { FRONTIER_APPROACH, GRID_HEIGHT, GRID_WIDTH, STEP_MS } from '@/world/catalog'
 import { resolveWorldEnvironment, type WorldEnvironment } from '@/world/environment'
@@ -44,6 +44,7 @@ import { grandDiscoveryPlacements } from '@/components/world/map-grand-discoveri
 import { wrappedColumnDistance, wrappedMapX } from '@/world/topology'
 import { parseVoidSectorId, isVoidRealmSectorId } from '@/world/void-realms'
 import { voidRealmScenery } from './void-realms'
+import { projectUnchartedTerrain } from './uncharted-terrain'
 import {
   applyWarpedContinentPhase,
   isWarpedContinentSector,
@@ -70,7 +71,10 @@ const impactSites: Readonly<Record<string, WorldImpactSite>> = {
 const isKnown = isKnownCell
 // Public sector terrain is immutable. Avoid scanning every charted cell on each
 // 200ms walking confirmation just to build the small globe water overlay.
-const atlasSurfaceCache = new WeakMap<object, { townId?: string; waterTiles?: string }>()
+const atlasSurfaceCache = new WeakMap<
+  object,
+  { townId?: string; settlementOutskirtsOf?: string; waterTiles?: string }
+>()
 let provedPublicGrandDiscoveries: readonly GrandDiscoveryId[] | undefined
 function publicGrandDiscoveryProof(): readonly GrandDiscoveryId[] {
   if (provedPublicGrandDiscoveries) return provedPublicGrandDiscoveries
@@ -117,10 +121,14 @@ function publicAtlasSurface(sector: ReturnType<typeof visibleSectors>[number]) {
   if (!sector.charted) return {}
   let surface = atlasSurfaceCache.get(sector)
   if (!surface) {
+    const rows = worldSurfaceRows(sector)
     surface = {
       ...(sector.townId ? { townId: sector.townId } : {}),
-      ...(sector.rows.some((row) => /[~lw]/.test(row))
-        ? { waterTiles: sector.rows.join('').replace(/[^~lw]/g, '.') }
+      ...(sector.settlementOutskirtsOf
+        ? { settlementOutskirtsOf: sector.settlementOutskirtsOf }
+        : {}),
+      ...(rows.some((row) => /[~lw]/.test(row))
+        ? { waterTiles: rows.join('').replace(/[^~lw]/g, '.') }
         : {}),
     }
     atlasSurfaceCache.set(sector, surface)
@@ -335,7 +343,9 @@ export function projectWorldPlayers(
 /** Shared private-filtered sector projection; movement receipts need only their origin. */
 export function projectWorldSector(state: WorldState, sector: WorldSector): WorldSectorView {
   sector = applyWarpedContinentPhase(state, sector)
-  const { rows, roads, ...publicSector } = sector
+  const { rows: _rows, roads, ...publicSector } = sector
+  void _rows
+  const rows = worldSurfaceRows(sector)
   const cells: WorldSectorView['cells'] = []
   for (let y = 0; y < GRID_HEIGHT; y++)
     for (let x = 0; x < GRID_WIDTH; x++)
@@ -542,7 +552,7 @@ export function projectWorld(
           .slice(0, 512)
           .map((sector): WorldScenerySector => [
             sector.id,
-            encodeTerrainRows(sector.rows),
+            encodeTerrainRows(worldSurfaceRows(sector)),
             sector.landscape ?? null,
             sector.buildings ?? [],
             sector.landmarks,
@@ -582,6 +592,9 @@ export function projectWorld(
         : null,
     sectors,
     scenery,
+    ...(currentSector.warpedTheme
+      ? { unchartedTerrain: projectUnchartedTerrain(state, viewport) }
+      : {}),
     ...(currentSector.charted ? { publicGrandDiscoveries: publicGrandDiscoveryProof() } : {}),
     atlas: visible.flatMap((sector) => {
       const address = atlasAddress(sector)

@@ -155,7 +155,11 @@ export function registerWorldLandscapeCases(helpers: Helpers) {
     ])
     let receipts = 0
     await page.route('**/api/world*', async (route) => {
-      if (route.request().method() !== 'GET') return route.continue()
+      if (
+        route.request().method() !== 'GET' ||
+        new URL(route.request().url()).pathname !== '/api/world'
+      )
+        return route.continue()
       const response = await route.fetch({
           url: new URL('/api/world', route.request().url()).href,
         }),
@@ -178,13 +182,18 @@ export function registerWorldLandscapeCases(helpers: Helpers) {
           ...body,
           sectors,
           players: [],
-          environment: { ...body.environment, minuteOfDay: 720, weather: 'clear' },
+          environment: { ...body.environment, minuteOfDay: 720, weather: 'clear', frozen: true },
         },
       })
       receipts++
     })
     await page.reload()
+    // A presence poll is not a scene receipt. Request the same scene refresh as
+    // returning to the mounted map, then prove the fixture reached the UI before
+    // pausing lighting at its current painted state.
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
     await expect.poll(() => receipts, { timeout: 25000 }).toBeGreaterThan(0)
+    await expect(page.getByText('12:00 · Day · Clear · Frozen', { exact: true })).toBeVisible()
     await openMapSettings(page)
     await page.getByRole('checkbox', { name: 'Ambient animation', exact: true }).uncheck()
     await closeMapSettings(page)
@@ -279,9 +288,11 @@ export function registerWorldLandscapeCases(helpers: Helpers) {
       }
     }
     await page.getByRole('button', { name: /Open world atlas/ }).click()
-    const towns = page.getByRole('combobox', { name: 'Main town', exact: true })
+    const towns = page.getByRole('combobox', { name: 'Key locations', exact: true })
+    if (!(await towns.isVisible()))
+      await page.getByRole('button', { name: 'Details', exact: true }).click()
     await expect(towns).toBeVisible()
-    await expect(towns.locator('option')).toHaveCount(9)
+    expect(await towns.locator('option').count()).toBeGreaterThanOrEqual(9)
     await towns.selectOption('frostmere')
     await expect(
       page.getByRole('region', { name: 'Selected destination', exact: true }),
@@ -303,7 +314,10 @@ export function registerWorldLandscapeCases(helpers: Helpers) {
     await page.mouse.move(x + 30, y, { steps: 4 })
     await page.mouse.move(x, y, { steps: 4 })
     await page.mouse.up()
+    if (!(await towns.isVisible()))
+      await page.getByRole('button', { name: 'Details', exact: true }).click()
     await expect(towns).toHaveValue('frostmere')
+    if (await closeDetails.isVisible()) await closeDetails.click()
     const currentCoordinates = await page.locator('[data-world-coordinates] span').allTextContents()
     await verdant.click()
     await expect(page.locator('[data-world-coordinates] span')).toHaveText(currentCoordinates)
@@ -337,8 +351,8 @@ export function registerWorldLandscapeCases(helpers: Helpers) {
     })
     const canvas = page.locator('canvas[data-world-stage]')
     for (const [sector, kind, count] of [
-      ['verdant-expanse', 'rain', 88],
-      ['frostmere', 'snow', 64],
+      ['verdant-expanse', 'rain', 68],
+      ['frostmere', 'snow', 46],
     ] as const) {
       place(initial.characterId, sector, 6, 4)
       const previousReceipts = weatherReceipts

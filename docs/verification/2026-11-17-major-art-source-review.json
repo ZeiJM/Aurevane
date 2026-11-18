@@ -1,0 +1,112 @@
+{
+  "method": "Decoded original-source identity and exact renderer placement scale; not native browser acceptance",
+  "source": "3b14784e725021fe3d45dc7deb978030e2db4780",
+  "sites": [
+    {
+      "id": "elemental-valley",
+      "source": "sources/elemental-waterfall-valley-owner-selected-v01.png",
+      "sourceHash": "3970d259fd7aae25e2c75be3b8220bffcff4660b9236cd444fb39d37539da32a",
+      "runtimeHash": "245c15674dfffc5b95da20a123da4fc89bdc202511252f9d32e8b15778d03c1f",
+      "sourcePixels": [1536, 1024],
+      "runtimePixels": [1536, 1024],
+      "runtimeBytes": 617744,
+      "display": [
+        {
+          "tile": 48,
+          "zoom": 0.35,
+          "cssWidth": 1243.1999999999998,
+          "cssHeight": 940.8,
+          "sourceToBackingScaleAt1_5": 1.2140624999999998
+        },
+        {
+          "tile": 48,
+          "zoom": 1,
+          "cssWidth": 3552,
+          "cssHeight": 2688,
+          "sourceToBackingScaleAt1_5": 3.46875
+        },
+        {
+          "tile": 48,
+          "zoom": 1.4,
+          "cssWidth": 4972.799999999999,
+          "cssHeight": 3763.2,
+          "sourceToBackingScaleAt1_5": 4.856249999999999
+        },
+        {
+          "tile": 64,
+          "zoom": 0.35,
+          "cssWidth": 1657.6,
+          "cssHeight": 1254.3999999999999,
+          "sourceToBackingScaleAt1_5": 1.6187499999999997
+        },
+        {
+          "tile": 64,
+          "zoom": 1,
+          "cssWidth": 4736,
+          "cssHeight": 3584,
+          "sourceToBackingScaleAt1_5": 4.625
+        },
+        {
+          "tile": 64,
+          "zoom": 1.4,
+          "cssWidth": 6630.4,
+          "cssHeight": 5017.599999999999,
+          "sourceToBackingScaleAt1_5": 6.474999999999999
+        }
+      ]
+    },
+    {
+      "id": "remote-colosseum",
+      "source": "sources/remote-colosseum-v03.png",
+      "sourceHash": "c25798d30e50bcd8273fff95ea9b6c375e24a36b361805ce552d5ff5d2e2e829",
+      "runtimeHash": "1729d35fee9ef6625c936461b35eb1e0caacd40764fcf77dc8d87def3f77220c",
+      "sourcePixels": [1536, 1024],
+      "runtimePixels": [1536, 1024],
+      "runtimeBytes": 625906,
+      "display": [
+        {
+          "tile": 48,
+          "zoom": 0.35,
+          "cssWidth": 1075.1999999999998,
+          "cssHeight": 806.4,
+          "sourceToBackingScaleAt1_5": 1.0499999999999998
+        },
+        {
+          "tile": 48,
+          "zoom": 1,
+          "cssWidth": 3072,
+          "cssHeight": 2304,
+          "sourceToBackingScaleAt1_5": 3
+        },
+        {
+          "tile": 48,
+          "zoom": 1.4,
+          "cssWidth": 4300.799999999999,
+          "cssHeight": 3225.6,
+          "sourceToBackingScaleAt1_5": 4.199999999999999
+        },
+        {
+          "tile": 64,
+          "zoom": 0.35,
+          "cssWidth": 1433.6,
+          "cssHeight": 1075.1999999999998,
+          "sourceToBackingScaleAt1_5": 1.3999999999999997
+        },
+        {
+          "tile": 64,
+          "zoom": 1,
+          "cssWidth": 4096,
+          "cssHeight": 3072,
+          "sourceToBackingScaleAt1_5": 4
+        },
+        {
+          "tile": 64,
+          "zoom": 1.4,
+          "cssWidth": 5734.4,
+          "cssHeight": 4300.799999999999,
+          "sourceToBackingScaleAt1_5": 5.599999999999999
+        }
+      ]
+    }
+  ]
+}

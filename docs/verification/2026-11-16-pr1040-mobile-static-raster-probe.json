@@ -1,0 +1,345 @@
+{
+  "schema_version": 1,
+  "artifact": {
+    "id": 14207090359,
+    "run_id": 43825471691,
+    "job_id": 133158167479,
+    "sha256": "39d825161a38c36b9a650b6ea5248870b7dd8f321c9de48417d40004c590bf3c",
+    "download_verified": true
+  },
+  "baseline": {
+    "candidate": "ac9d6e3d80dea5f728be9c2e09f1a2c0eb7b8acc",
+    "tree": "57097fe7ccd27dc20d24cdd44e7595d841587556",
+    "local_equivalent": "db413072baa0a29a244f763efda50358c9c3f5fb"
+  },
+  "fixture": {
+    "position": {
+      "sectorId": "verdant-expanse",
+      "x": 5,
+      "y": 4
+    },
+    "weather": "fog",
+    "minute": 463.9877333333333,
+    "css_width": 389,
+    "css_height": 669,
+    "backing_width": 584,
+    "backing_height": 1004,
+    "dpr": 2.625,
+    "players": 101,
+    "distinct_visible_synthetic_players": 100,
+    "frames": 60,
+    "warm_frames": 50
+  },
+  "source_hashes": {
+    "apps/web/src/components/world/map-renderer.ts": "9862ebf83930e6a79de3f4d87c17c79f5f007d573f4b005264995ed91ef6ddef",
+    "apps/web/src/components/world/map-ground-projection.ts": "531fddc60d8b83e5e1e4c2ad078aebbd4a44eb2d2b0d485a56a9803d7d6f7552",
+    "apps/web/src/components/world/map-static-raster.ts": "438623e48d14ebd4d34492bd6333abab3c40b5bb0f109d170aaf223563595a2c",
+    ".github/scripts/probe-world-mobile-render.cjs": "9f4161ec59f1ff1a93bad7658b2dac37e7db1bd33ecb1a219c92e53107f1a9c4"
+  },
+  "measurements": [
+    {
+      "before": {
+        "elapsed": {
+          "median": 87.40330300000096,
+          "p95": 97.31129900000087
+        },
+        "transfers": 1,
+        "closes": 1,
+        "final": {
+          "elapsed": 80.3832480000001,
+          "updates": 0,
+          "updateMs": 0,
+          "peerUpdateMs": 0,
+          "lastPeerUpdateAt": 0,
+          "terrainIndexes": 0,
+          "terrainIndexMs": 0,
+          "frameAt": 12950,
+          "rafAt": 12950,
+          "startedAt": 12950,
+          "callbackDelayMs": 0,
+          "groundBuilds": 0,
+          "groundBuildMs": 0,
+          "groundResamples": 0,
+          "biomeRasterBuilds": 0,
+          "groundResampleMs": 0,
+          "projectedGroundSectors": 19,
+          "projectedGroundPixels": 586336,
+          "prepareMs": 0,
+          "terrainMs": 0,
+          "sceneryMs": 0,
+          "wildlifePartBuilds": 0,
+          "wildlifePartPixels": 0,
+          "atmosphereMs": 0,
+          "weatherVeilBuilds": 0,
+          "weatherVeilPixels": 782668,
+          "identityMs": 0,
+          "identityOccluders": 99,
+          "identityOccluderChecks": 259,
+          "completedAt": 12950,
+          "biomeRasters": 32,
+          "biomeRasterPixels": 108792
+        },
+        "source_hashes": {
+          "apps/web/src/components/world/map-renderer.ts": "3569a106efae5f0bd52b3c565db8aed5a52354ebb8a4a2345758b6d90cb7afb3",
+          "apps/web/src/components/world/map-ground-projection.ts": "b9f5ef371bae483fb0be78b5300ed33671e2f0fc96460d9544ff69abe8f40eb8"
+        }
+      },
+      "after": {
+        "elapsed": {
+          "median": 53.614174000000276,
+          "p95": 178.74524799999926
+        },
+        "transfers": 34,
+        "closes": 34,
+        "final": {
+          "elapsed": 50.26700600000004,
+          "updates": 0,
+          "updateMs": 0,
+          "peerUpdateMs": 0,
+          "lastPeerUpdateAt": 0,
+          "terrainIndexes": 0,
+          "terrainIndexMs": 0,
+          "frameAt": 12950,
+          "rafAt": 12950,
+          "startedAt": 12950,
+          "callbackDelayMs": 0,
+          "groundBuilds": 0,
+          "groundBuildMs": 0,
+          "groundResamples": 0,
+          "biomeRasterBuilds": 0,
+          "groundResampleMs": 0,
+          "projectedGroundSectors": 19,
+          "projectedGroundPixels": 586336,
+          "prepareMs": 0,
+          "terrainMs": 0,
+          "sceneryMs": 0,
+          "wildlifePartBuilds": 0,
+          "wildlifePartPixels": 0,
+          "atmosphereMs": 0,
+          "weatherVeilBuilds": 0,
+          "weatherVeilPixels": 782668,
+          "identityMs": 0,
+          "identityOccluders": 99,
+          "identityOccluderChecks": 259,
+          "completedAt": 12950,
+          "biomeRasters": 32,
+          "biomeRasterPixels": 108792
+        },
+        "source_hashes": {
+          "apps/web/src/components/world/map-renderer.ts": "54a38d2b59ac6ef54d53f2bd13a314affa484b4c6b3238c5b6d8d51b252a0ce8",
+          "apps/web/src/components/world/map-ground-projection.ts": "1b7a079e5d46b5074423d6c8c38d240c0aff42c0fee30a243d1ce3f02f07d130",
+          "apps/web/src/components/world/map-static-raster.ts": "438623e48d14ebd4d34492bd6333abab3c40b5bb0f109d170aaf223563595a2c"
+        }
+      }
+    },
+    {
+      "before": {
+        "elapsed": {
+          "median": 89.8294619999997,
+          "p95": 119.47507700000097
+        },
+        "transfers": 1,
+        "closes": 1,
+        "final": {
+          "elapsed": 88.06089599999905,
+          "updates": 0,
+          "updateMs": 0,
+          "peerUpdateMs": 0,
+          "lastPeerUpdateAt": 0,
+          "terrainIndexes": 0,
+          "terrainIndexMs": 0,
+          "frameAt": 12950,
+          "rafAt": 12950,
+          "startedAt": 12950,
+          "callbackDelayMs": 0,
+          "groundBuilds": 0,
+          "groundBuildMs": 0,
+          "groundResamples": 0,
+          "biomeRasterBuilds": 0,
+          "groundResampleMs": 0,
+          "projectedGroundSectors": 19,
+          "projectedGroundPixels": 586336,
+          "prepareMs": 0,
+          "terrainMs": 0,
+          "sceneryMs": 0,
+          "wildlifePartBuilds": 0,
+          "wildlifePartPixels": 0,
+          "atmosphereMs": 0,
+          "weatherVeilBuilds": 0,
+          "weatherVeilPixels": 782668,
+          "identityMs": 0,
+          "identityOccluders": 99,
+          "identityOccluderChecks": 259,
+          "completedAt": 12950,
+          "biomeRasters": 32,
+          "biomeRasterPixels": 108792
+        },
+        "source_hashes": {
+          "apps/web/src/components/world/map-renderer.ts": "3569a106efae5f0bd52b3c565db8aed5a52354ebb8a4a2345758b6d90cb7afb3",
+          "apps/web/src/components/world/map-ground-projection.ts": "b9f5ef371bae483fb0be78b5300ed33671e2f0fc96460d9544ff69abe8f40eb8"
+        }
+      },
+      "after": {
+        "elapsed": {
+          "median": 49.035063000000264,
+          "p95": 62.06951900000058
+        },
+        "transfers": 34,
+        "closes": 34,
+        "final": {
+          "elapsed": 44.22162000000026,
+          "updates": 0,
+          "updateMs": 0,
+          "peerUpdateMs": 0,
+          "lastPeerUpdateAt": 0,
+          "terrainIndexes": 0,
+          "terrainIndexMs": 0,
+          "frameAt": 12950,
+          "rafAt": 12950,
+          "startedAt": 12950,
+          "callbackDelayMs": 0,
+          "groundBuilds": 0,
+          "groundBuildMs": 0,
+          "groundResamples": 0,
+          "biomeRasterBuilds": 0,
+          "groundResampleMs": 0,
+          "staticRasterBuilds": 0,
+          "staticRasterTransfers": 0,
+          "projectedGroundSectors": 19,
+          "projectedGroundPixels": 586336,
+          "prepareMs": 0,
+          "terrainMs": 0,
+          "sceneryMs": 0,
+          "wildlifePartBuilds": 0,
+          "wildlifePartPixels": 0,
+          "atmosphereMs": 0,
+          "weatherVeilBuilds": 0,
+          "weatherVeilPixels": 782668,
+          "identityMs": 0,
+          "identityOccluders": 99,
+          "identityOccluderChecks": 259,
+          "immutableStaticImages": 33,
+          "completedAt": 12950,
+          "biomeRasters": 32,
+          "biomeRasterPixels": 108792
+        },
+        "source_hashes": {
+          "apps/web/src/components/world/map-renderer.ts": "9862ebf83930e6a79de3f4d87c17c79f5f007d573f4b005264995ed91ef6ddef",
+          "apps/web/src/components/world/map-ground-projection.ts": "531fddc60d8b83e5e1e4c2ad078aebbd4a44eb2d2b0d485a56a9803d7d6f7552",
+          "apps/web/src/components/world/map-static-raster.ts": "438623e48d14ebd4d34492bd6333abab3c40b5bb0f109d170aaf223563595a2c"
+        }
+      }
+    },
+    {
+      "before": {
+        "elapsed": {
+          "median": 85.43544699999984,
+          "p95": 151.26419999999962
+        },
+        "transfers": 1,
+        "closes": 1,
+        "final": {
+          "elapsed": 90.9891889999999,
+          "updates": 0,
+          "updateMs": 0,
+          "peerUpdateMs": 0,
+          "lastPeerUpdateAt": 0,
+          "terrainIndexes": 0,
+          "terrainIndexMs": 0,
+          "frameAt": 12950,
+          "rafAt": 12950,
+          "startedAt": 12950,
+          "callbackDelayMs": 0,
+          "groundBuilds": 0,
+          "groundBuildMs": 0,
+          "groundResamples": 0,
+          "biomeRasterBuilds": 0,
+          "groundResampleMs": 0,
+          "projectedGroundSectors": 19,
+          "projectedGroundPixels": 586336,
+          "prepareMs": 0,
+          "terrainMs": 0,
+          "sceneryMs": 0,
+          "wildlifePartBuilds": 0,
+          "wildlifePartPixels": 0,
+          "atmosphereMs": 0,
+          "weatherVeilBuilds": 0,
+          "weatherVeilPixels": 782668,
+          "identityMs": 0,
+          "identityOccluders": 99,
+          "identityOccluderChecks": 259,
+          "completedAt": 12950,
+          "biomeRasters": 32,
+          "biomeRasterPixels": 108792
+        },
+        "source_hashes": {
+          "apps/web/src/components/world/map-renderer.ts": "3569a106efae5f0bd52b3c565db8aed5a52354ebb8a4a2345758b6d90cb7afb3",
+          "apps/web/src/components/world/map-ground-projection.ts": "b9f5ef371bae483fb0be78b5300ed33671e2f0fc96460d9544ff69abe8f40eb8"
+        }
+      },
+      "after": {
+        "elapsed": {
+          "median": 71.13798300000053,
+          "p95": 187.2544600000001
+        },
+        "transfers": 34,
+        "closes": 34,
+        "final": {
+          "elapsed": 66.91984700000103,
+          "updates": 0,
+          "updateMs": 0,
+          "peerUpdateMs": 0,
+          "lastPeerUpdateAt": 0,
+          "terrainIndexes": 0,
+          "terrainIndexMs": 0,
+          "frameAt": 12950,
+          "rafAt": 12950,
+          "startedAt": 12950,
+          "callbackDelayMs": 0,
+          "groundBuilds": 0,
+          "groundBuildMs": 0,
+          "groundResamples": 0,
+          "biomeRasterBuilds": 0,
+          "groundResampleMs": 0,
+          "staticRasterBuilds": 0,
+          "staticRasterTransfers": 0,
+          "projectedGroundSectors": 19,
+          "projectedGroundPixels": 586336,
+          "prepareMs": 0,
+          "terrainMs": 0,
+          "sceneryMs": 0,
+          "wildlifePartBuilds": 0,
+          "wildlifePartPixels": 0,
+          "atmosphereMs": 0,
+          "weatherVeilBuilds": 0,
+          "weatherVeilPixels": 782668,
+          "identityMs": 0,
+          "identityOccluders": 99,
+          "identityOccluderChecks": 259,
+          "immutableStaticImages": 33,
+          "completedAt": 12950,
+          "biomeRasters": 32,
+          "biomeRasterPixels": 108792
+        },
+        "source_hashes": {
+          "apps/web/src/components/world/map-renderer.ts": "9862ebf83930e6a79de3f4d87c17c79f5f007d573f4b005264995ed91ef6ddef",
+          "apps/web/src/components/world/map-ground-projection.ts": "531fddc60d8b83e5e1e4c2ad078aebbd4a44eb2d2b0d485a56a9803d7d6f7552",
+          "apps/web/src/components/world/map-static-raster.ts": "438623e48d14ebd4d34492bd6333abab3c40b5bb0f109d170aaf223563595a2c"
+        }
+      }
+    }
+  ],
+  "pixel_comparison": {
+    "channels": 2345344,
+    "changed_channels": 7800,
+    "max_channel_difference": 54,
+    "mean_channel_difference": 0.011270841292364787
+  },
+  "limitations": [
+    "Native Skia component/frame probe; no Chromium compositor or 4x CPU throttle.",
+    "Serial measurements have noisy tails; both median and P95 are retained, with no universal stability claim.",
+    "The OffscreenCanvas transfer is modeled with lossless decoded native Image and exact same-frame raw-pixel fallback until decode.",
+    "Readback flushes both canvases and portraits are neutral400px fixtures; no human or physical-handset acceptance.",
+    "No hosted pixel threshold, motion threshold, deadline, retry, skip or coverage change."
+  ]
+}

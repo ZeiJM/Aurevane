@@ -1,6 +1,6 @@
 # Phase 5 — Living World, Story & Supernatural Identity
 
-> **15 November 2026 reconciliation:** Phase 5 remains **ACTIVE / not formally accepted**. The original unchecked tickets below preserve Owner acceptance scope and must not be marked complete merely because their platform merged. Since this handover, World/NPC/Story/Events/ferry/Void implementation advanced through [unified PR #1035](https://github.com/ZeiJM/Aurevane/pull/1035) and World releases [#1038](https://github.com/ZeiJM/Aurevane/pull/1038) and [#1039](https://github.com/ZeiJM/Aurevane/pull/1039). See the [current phase reality matrix](ROADMAP_STATUS_2026-11-15.md) and [draft #1040](https://github.com/ZeiJM/Aurevane/pull/1040) for the unreleased map update. Checkboxes below are acceptance gates, not proof those platforms are absent.
+> **17 November 2026 reconciliation:** Phase 5 remains **ACTIVE / not formally accepted**. World/NPC/Story/Events/ferry/Void platforms have merged; #1040 and #1043 are released for Owner testing. The original unchecked tickets below preserve acceptance scope and must not be marked complete merely because a platform shipped. See the [current roadmap](ROADMAP_STATUS_2026-11-15.md) and [verified map release](verification/2026-11-16-world-map-request-completion.md). Signed-in/physical-phone acceptance, ferry follow-through and PV-3 remain open.
 
 **Status:** AUTHORIZED / IN PROGRESS — Owner authorized Phase 5 in parallel with Phase 4 on 2026-09-22. Initial Strategic Atlas implementation is complete; release evidence and live-testing handover are in `PHASE_5_HANDOVER.md`. Full Phase 5 and Owner Atlas acceptance remain open.
 
@@ -87,3 +87,4 @@ Detailed scope, acceptance and two-chat ownership: `ROADMAP_WORLD_EXPERIENCE.md`
 Players must understand the living-world loop, supernatural choice and frontier mystery without procedural-filler feeling.
 
 The Owner explicitly authorized parallel Phase-5 work on 2026-09-22. Phase 4 was subsequently closed by explicit Owner decision on 2026-09-23; its closeout does not itself authorize an Atlas deployment. See `LIVING_ATLAS_DELIVERY.md` for implemented scope, verification and remaining content.
+

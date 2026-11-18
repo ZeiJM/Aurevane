@@ -221,6 +221,55 @@ it('refreshes each participant before capturing its build while preparing both p
   )
 })
 
+it('shares in-flight participant preparation across simultaneous reciprocal attacks', async () => {
+  function deferred<T>() {
+    let resolve!: (value: T) => void
+    const promise = new Promise<T>((accept) => {
+      resolve = accept
+    })
+    return { promise, resolve }
+  }
+  const builds = new Map([
+    ['actor', deferred<CharacterCommittedBuildSnapshotRecord>()],
+    ['target', deferred<CharacterCommittedBuildSnapshotRecord>()],
+  ])
+  attackAuthority.mockImplementation(async (_userId, characterId) => ({
+    state: { version: 2 },
+    players: [{ characterId: characterId === 'actor' ? 'target' : 'actor', attackable: true }],
+  }))
+  loadBuildSnapshot.mockImplementation(async (_userId, id) => builds.get(id)!.promise)
+  rpc.mockImplementation(async (name: string, args: Record<string, unknown>) => {
+    if (name === 'read_world_encounter_pair_v1') {
+      const actor = args.p_character_id as string
+      return {
+        data: {
+          attacker: {},
+          target: { version: 3 },
+          targetUserId: actor === 'actor' ? 'opponent' : 'owner',
+        },
+        error: null,
+      }
+    }
+    return successfulAttackRpc(name)
+  })
+  const first = attackWorldPlayer('owner', 'actor', 'target', 2)
+  const second = attackWorldPlayer('opponent', 'target', 'actor', 2)
+  const attacks = Promise.all([first, second])
+  try {
+    await vi.waitFor(() => expect(loadBuildSnapshot).toHaveBeenCalledTimes(2))
+    expect(new Set(loadBuildSnapshot.mock.calls.map(([, id]) => id))).toEqual(
+      new Set(['actor', 'target']),
+    )
+  } finally {
+    builds.get('actor')!.resolve(pureSnapshot())
+    builds.get('target')!.resolve(pureSnapshot())
+  }
+  await expect(attacks).resolves.toEqual([
+    { characterId: 'actor', battleSessionId: 'world-battle' },
+    { characterId: 'target', battleSessionId: 'world-battle' },
+  ])
+})
+
 it.each([undefined, 'independent-highest'] as const)(
   'persists current combat policies and configured heights (%s) for a new world encounter',
   async (model) => {

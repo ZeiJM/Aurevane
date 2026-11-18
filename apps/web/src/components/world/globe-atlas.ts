@@ -40,13 +40,16 @@ export function globeAtlasPixels(atlas: readonly WorldAtlasCell[], columns: numb
 }
 
 export const GLOBE_DETAIL_SCALE = 16
-/** Towns are the projected authored anchor and its actual charted districts. */
+/** Visible settlement extent includes public outskirts, independently of safety. */
 export function globeTowns(atlas: readonly WorldAtlasCell[]) {
   return atlas
     .filter((cell) => cell.charted && cell.townId === cell.id)
     .map((sector) => ({
       sector,
-      districts: atlas.filter((cell) => cell.charted && cell.townId === sector.id),
+      districts: atlas.filter(
+        (cell) =>
+          cell.charted && (cell.townId === sector.id || cell.settlementOutskirtsOf === sector.id),
+      ),
     }))
 }
 export function projectGlobeTowns(
@@ -112,7 +115,8 @@ export function globeAtlasDetailPixels(
     atlas
       .filter((cell) => cell.charted)
       .map(
-        (cell) => `${cell.id}:${cell.column}:${cell.row}:${cell.regionId}:${cell.waterTiles ?? ''}`,
+        (cell) =>
+          `${cell.id}:${cell.column}:${cell.row}:${cell.regionId}:${cell.waterTiles ?? ''}:${cell.townId ?? ''}:${cell.settlementOutskirtsOf ?? ''}`,
       )
       .join('|')
   if (detailCache?.key === key && detailCache.painting === painting) return detailCache.image
@@ -146,23 +150,44 @@ export function globeAtlasDetailPixels(
     row >= 0 && row < rows
       ? coastField[row * columns + (((column % columns) + columns) % columns)]!
       : 0
-  const thresholds = new Float32Array(mask.length)
+  const thresholds = new Float32Array(mask.length),
+    broadCoasts = new Float32Array(mask.length)
   for (let row = 0; row < rows; row++)
     for (let column = 0; column < columns; column++) {
       let maximum = 0
       for (let dy = -1; dy <= 1; dy++)
         for (let dx = -1; dx <= 1; dx++) maximum = Math.max(maximum, coastAt(column + dx, row + dy))
+      broadCoasts[row * columns + column] = smooth(0.8, 0.98, maximum)
       // Thin known islands/circumnavigation land retain a narrow continuous body.
       thresholds[row * columns + column] = Math.max(
         0.035,
         Math.min(0.75, maximum - (maximum < 0.3 ? 0.02 : 0.08)),
       )
     }
+  const sampleField = (field: Float32Array, left: number, top: number, fx: number, fy: number) => {
+    const at = (dx: number, dy: number) =>
+      field[
+        Math.max(0, Math.min(rows - 1, top + dy)) * columns +
+          ((((left + dx) % columns) + columns) % columns)
+      ]!
+    return (
+      (at(0, 0) * (1 - fx) + at(1, 0) * fx) * (1 - fy) + (at(0, 1) * (1 - fx) + at(1, 1) * fx) * fy
+    )
+  }
   const material = painting ? globeMaterials(painting) : undefined
   const materialColor = [0, 0, 0]
+  // Periodic contour noise keeps the same inlet on either side of longitude 0.
+  // Use unequal scales: a single octave makes a repeated scalloped shoreline.
+  const coastalNoise = (x: number, y: number, frequency: number) => {
+    const blend = smooth(0, 1, x / width)
+    return (
+      noise(x * frequency, y * frequency) * (1 - blend) +
+      noise((x - width) * frequency, y * frequency) * blend
+    )
+  }
   // Reconstruct a continuous coastline from public neighbours. The contour is
-  // clipped inward to supplied charted sectors. Broader reconstruction rounds bays
-  // and never generates land in a missing or private sector.
+  // clipped inward to supplied charted sectors; contour relief breaks up broad
+  // rounded lobes without generating land in a missing or private sector.
   const surfaceAt = (x: number, y: number, fallback: readonly number[]) => {
     const gx = x / scale - 0.5,
       gy = y / scale - 0.5
@@ -173,7 +198,8 @@ export function globeAtlasDetailPixels(
     let coverage = 0,
       mountain = 0,
       forest = 0,
-      snow = 0
+      snow = 0,
+      settlement = 0
     const rgb = [0, 0, 0]
     for (let dy = 0; dy <= 1; dy++)
       for (let dx = 0; dx <= 1; dx++) {
@@ -185,6 +211,7 @@ export function globeAtlasDetailPixels(
           mountain += weight
         if (['verdant-expanse', 'umbral-march'].includes(neighbor.regionId)) forest += weight
         if (neighbor.regionId === 'frostmere') snow += weight
+        settlement += weight * (neighbor.townId ? 1 : neighbor.settlementOutskirtsOf ? 0.45 : 0)
         const color = colors[neighbor.regionId] ?? fallback
         const anchor = anchors.get(neighbor.regionId)
         if (material) {
@@ -206,10 +233,30 @@ export function globeAtlasDetailPixels(
     const blurred =
       (coastAt(left, top) * (1 - fx) + coastAt(left + 1, top) * fx) * (1 - fy) +
       (coastAt(left, top + 1) * (1 - fx) + coastAt(left + 1, top + 1) * fx) * fy
-    const column = Math.max(0, Math.min(columns - 1, Math.floor(x / scale))),
-      row = Math.max(0, Math.min(rows - 1, Math.floor(y / scale)))
-    const threshold = thresholds[row * columns + column]!
-    const coastDistance = blurred - threshold + (noise(x * 0.028, y * 0.028) - 0.5) * 0.025
+    // The contour and its threshold must vary in the same continuous space.
+    // Nearest-sector thresholds cut vertical steps through narrow island ends.
+    const threshold = sampleField(thresholds, left, top, fx, fy)
+    // Broad coasts can support bays/headlands. Thin islands and corridors keep
+    // their existing support rather than being severed by the same displacement.
+    const relief = smooth(0.25, 0.75, threshold)
+    const baseDistance = blurred - threshold
+    // Narrow, domain-warped cuts form unequal inlets rather than a repeated
+    // row of rounded scallops. Stop inland and spare small islands/corridors.
+    let inlet = 0
+    const broad = sampleField(broadCoasts, left, top, fx, fy)
+    if (broad > 0 && baseDistance < 0.22) {
+      const warp = coastalNoise(x, y + 97, 0.009) * 18
+      inlet =
+        (1 - smooth(0.02, 0.14, Math.abs(coastalNoise(x + warp, y - warp, 0.011) - 0.5))) *
+        broad *
+        (1 - smooth(0.16, 0.22, baseDistance))
+    }
+    const coastDistance =
+      baseDistance -
+      inlet * 0.8 +
+      (coastalNoise(x, y, 0.028) - 0.5) * 0.025 +
+      relief *
+        ((coastalNoise(x, y + 31, 0.035) - 0.5) * 0.24 + (coastalNoise(x, y, 0.13) - 0.5) * 0.08)
     return {
       rgb,
       alpha: Math.round(smooth(-0.018, 0.018, coastDistance) * 255),
@@ -218,6 +265,7 @@ export function globeAtlasDetailPixels(
       mountain: mountain / (coverage || 1),
       forest: forest / (coverage || 1),
       snow: snow / (coverage || 1),
+      settlement: settlement / (coverage || 1),
     }
   }
   for (const cell of atlas) {
@@ -263,6 +311,8 @@ export function globeAtlasDetailPixels(
             : '.'
         const water = terrain === '~' || terrain === 'w',
           lava = terrain === 'l'
+        const fabric = (hash(Math.floor(x / 2), Math.floor(y / 2)) - 0.5) * 22
+        const builtUp = surface.settlement * 0.42 * (1 - beach)
         for (let channel = 0; channel < 3; channel++)
           pixels[index + channel] = Math.max(
             0,
@@ -272,8 +322,10 @@ export function globeAtlasDetailPixels(
                 ? [43, 105, 130][channel]! * (0.92 + grain * 0.05)
                 : lava
                   ? [192, 70, 32][channel]! * (0.95 + grain * 0.08)
-                  : (surface.rgb[channel]! * shade + snow) * (1 - beach * 0.65) +
-                    [200, 181, 137][channel]! * beach * 0.65,
+                  : ((surface.rgb[channel]! * shade + snow) * (1 - beach * 0.65) +
+                      [200, 181, 137][channel]! * beach * 0.65) *
+                      (1 - builtUp) +
+                    ([168, 154, 132][channel]! + fabric) * builtUp,
             ),
           )
         // Coast antialiasing changes depiction only; movement/picking keep their canonical addresses.

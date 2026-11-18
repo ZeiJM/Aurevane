@@ -5,6 +5,7 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { loadPublicCharacterProfileImageMap } from '@/server/character/character-profile-display-service'
 import { resolvePublicCharacterImageUrl } from '@/media/public-character-portrait'
 import { isSafe, newWorldState, validCell, MAX_PERSISTED_ROUTE_STEPS } from '@/world/travel'
+import { savedWorldGeometryRecovery } from './world-geometry-recovery'
 import { STEP_MS } from '@/world/catalog'
 import type { WorldMovementReceipt } from '@/world/movement-receipt'
 import type {
@@ -43,7 +44,12 @@ export function worldRpcError(error: { message?: string; code?: string }): never
   const message = error.message ?? ''
   if (message.includes('WORLD_NOT_OWNED') || message === 'ITEM_OWNERSHIP')
     throw new AurevaneError('FORBIDDEN', 'That character is unavailable.')
-  if (message.includes('WORLD_STALE') || error.code === 'PT409' || error.code === '40001')
+  if (
+    message.includes('WORLD_STALE') ||
+    message.includes('WORLD_VOID_RETURN_DUE') ||
+    error.code === 'PT409' ||
+    error.code === '40001'
+  )
     throw new AurevaneError(
       'STALE_VERSION',
       'The world changed. Refresh your position and try again.',
@@ -113,6 +119,7 @@ async function readWorldData(
   userId: string,
   characterId: string,
   materializeExpired = true,
+  recoveryRetry = 0,
 ): Promise<{
   state: unknown
   players: WorldPlayer[]
@@ -140,6 +147,32 @@ async function readWorldData(
     typeof data.serverNow !== 'number'
   )
     throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'World state could not be loaded.')
+  const persisted = data.state as WorldState
+  const recovery = savedWorldGeometryRecovery(persisted.position)
+  if (recovery && !data.blocked && !data.battleSessionId) {
+    if (recoveryRetry >= 2)
+      throw new AurevaneError('STALE_VERSION', 'Your location changed. Refresh the world map.')
+    const arrival = resolveSector(recovery.sectorId)
+    if (!arrival)
+      throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'Safe recovery terrain is unavailable.')
+    const repair = await createSupabaseAdminClient().rpc('recover_world_saved_geometry_v1', {
+      p_user_id: userId,
+      p_character_id: characterId,
+      p_expected_version: persisted.version,
+      p_from_sector_id: persisted.position.sectorId,
+      p_from_x: persisted.position.x,
+      p_from_y: persisted.position.y,
+      p_to_sector_id: recovery.sectorId,
+      p_to_x: recovery.x,
+      p_to_y: recovery.y,
+      p_to_safe: isSafe(arrival, recovery),
+    })
+    if (repair.error && !['PT409', '40001', '55P03'].includes(repair.error.code ?? ''))
+      worldRpcError(repair.error)
+    // An overlapping movement/teleport is authoritative; re-read, never
+    // overwrite its version or return a made-up recovery acknowledgement.
+    return readWorldData(userId, characterId, materializeExpired, recoveryRetry + 1)
+  }
   // Materialize through the existing training authority in a separate transaction,
   // before re-reading world state. Never invert its character -> training lock order.
   if (materializeExpired && data.trainingExpired === true) {

@@ -13,7 +13,10 @@ import {
   remoteCrossingWaterAt,
 } from './discovery-sites'
 import { terrainWalkable } from './terrain'
+import { structuralTerrainAt } from './discovery-collision'
+import { mountainFrontierAt, mountainFrontierPass } from './mountain-frontier'
 import { trimRoadShorelines } from './road-shorelines'
+import { TOWN_OUTSKIRTS } from './town-extents'
 import type { WorldBuilding, WorldLandmark, WorldRoad, WorldSector } from './types'
 import { ATLAS_COLUMNS, ATLAS_ROWS, atlasNeighbor, wrappedColumnDistance } from './topology'
 
@@ -36,6 +39,13 @@ const originalAddress = (coordinate: string) => {
 }
 const roots = WORLD_REGIONS.map((region) => ({ ...region, ...originalAddress(region.sector)! }))
 const addressKey = (column: number, row: number) => `${column}:${row}`
+const townOutskirts = new Map(
+  roots.flatMap((root) =>
+    (TOWN_OUTSKIRTS[root.id] ?? []).map(
+      ([dx, dy]) => [addressKey(root.column + dx, root.row + dy), root.id] as const,
+    ),
+  ),
+)
 const inDiscoveryGrounds = (x: number, y: number) =>
   GRAND_DISCOVERY_SITES.some(
     (site) =>
@@ -66,6 +76,8 @@ const rootLinks = [
   ['aureth-crown', 'glasswind-desert'],
   ['aureth-crown', 'starfall-highlands'],
   ['starfall-highlands', 'frostmere'],
+  // The elemental valley sits on a real traversable mountain corridor, not ocean.
+  ['frostmere', 'emberreach'],
   ['verdant-expanse', 'emberreach'],
   ['verdant-expanse', 'hollow-coast'],
   ['emberreach', 'umbral-march'],
@@ -298,7 +310,10 @@ export function atlasSectors(): readonly WorldSector[] {
     for (let column = 0; column < ATLAS_COLUMNS; column++) {
       const authored = authoredByAddress.get(addressKey(column, row))
       const existingLand = Boolean(authored || originalLandAt(column, row))
-      if (!existingLand && !longitudeCountrysideAt(column, row)) continue
+      // Expand into formerly empty sea coordinates without rewriting a single
+      // existing sector. The alpine spur is actual terrain, not an overlay.
+      const newMountainLand = !existingLand && mountainFrontierAt(column, row)
+      if (!existingLand && !longitudeCountrysideAt(column, row) && !newMountainLand) continue
       const nearest = [...roots].sort(
         (a, b) =>
           Math.hypot(wrappedColumnDistance(column, a.column), row - a.row) -
@@ -333,6 +348,7 @@ export function atlasSectors(): readonly WorldSector[] {
                 : '.'
           }
           const roll = random()
+          if (newMountainLand) return roll < 0.76 ? '#' : '.'
           if (['emberreach', 'starfall-highlands', 'frostmere'].includes(regionId) && roll < 0.04)
             return '#'
           return roll <
@@ -362,6 +378,11 @@ export function atlasSectors(): readonly WorldSector[] {
             grid[y]![x] !== 'w'
           )
             grid[y]![x] = town && (!isRoot || x < 10) ? 's' : '='
+      // A true ridge cannot be crossed by walking through the peaks. Deliberate
+      // cross-sector dry passes join navigable plateaus and the southern foothills.
+      if (newMountainLand)
+        for (let y = 0; y < GRID_HEIGHT; y++)
+          for (let x = 0; x < GRID_WIDTH; x++) if (mountainFrontierPass(x, y)) grid[y]![x] = '='
       // A continuous river along the forest/coastal meridian; bridges follow the avenues.
       const forest = roots.find((root) => root.id === 'verdant-expanse')!
       if (
@@ -374,7 +395,7 @@ export function atlasSectors(): readonly WorldSector[] {
         for (let y = 0; y < GRID_HEIGHT; y++) grid[y]![10] = y >= 3 && y <= 5 ? '=' : '~'
       const scenicCenter = scenic?.column === column && scenic.row === row
       if (scenicCenter && scenic.landscape === 'willow') grid[2]![9] = '~'
-      if (!existingLand) {
+      if (!existingLand && !newMountainLand) {
         const pondRandom = seeded(id + ':pond')
         if (pondRandom() < 0.15) {
           const centerX = pondRandom() < 0.5 ? 3 : 9
@@ -397,7 +418,7 @@ export function atlasSectors(): readonly WorldSector[] {
         for (let y = 0; y < GRID_HEIGHT; y++)
           for (let x = 0; x < GRID_WIDTH; x++) {
             if (
-              grid[y]![x] === 't' &&
+              (grid[y]![x] === 't' || grid[y]![x] === '#') &&
               inDiscoveryGrounds(column * GRID_WIDTH + x, row * GRID_HEIGHT + y)
             )
               grid[y]![x] = '.'
@@ -428,6 +449,16 @@ export function atlasSectors(): readonly WorldSector[] {
           for (let x = 0; x < GRID_WIDTH; x++)
             if (remoteCrossingWaterAt(column, row, x, y) && !['=', '~', 'l'].includes(grid[y]![x]!))
               grid[y]![x] = 'w'
+      // Permanent walls override old roads and shallows outside authored gates.
+      // Deep water and lava keep their original nonwalkable collision rules.
+      if (!town)
+        for (let y = 0; y < GRID_HEIGHT; y++)
+          for (let x = 0; x < GRID_WIDTH; x++)
+            grid[y]![x] = structuralTerrainAt(
+              column * GRID_WIDTH + x,
+              row * GRID_HEIGHT + y,
+              grid[y]![x]!,
+            )
       const buildings: WorldBuilding[] = []
       const addBuilding = (x: number, y: number, width: number, height: number, index: number) => {
         if (
@@ -636,6 +667,9 @@ export function atlasSectors(): readonly WorldSector[] {
         atlasColumn: column,
         atlasRow: row,
         townId: town?.id,
+        ...(townOutskirts.has(addressKey(column, row))
+          ? { settlementOutskirtsOf: townOutskirts.get(addressKey(column, row)) }
+          : {}),
         ...(scenic ? { landscape: scenic.landscape } : {}),
         buildings,
         east: column * GRID_WIDTH,

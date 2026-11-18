@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { atlasSectors } from '@/world/atlas'
 import { terrainWalkable } from '@/world/terrain'
 import type { WorldSectorView } from '@/world/types'
+import * as sceneDomains from './map-scene-domain'
 import {
   buildWaterField,
   liquidMaterial,
@@ -57,6 +58,37 @@ function sector(id: string, atlasRow = 0, cells: [number, number, string][] = []
 }
 
 describe('world-connected water presentation', () => {
+  it('does not index dry ground when the requested liquid is absent', () => {
+    const dry = sector('dry', 0, [
+      [1, 1, '.'],
+      [2, 1, 't'],
+    ])
+    const domain = vi.spyOn(sceneDomains, 'mapSceneDomain')
+    try {
+      const result = buildWaterField([dry], 'lava')
+      expect([...result]).toEqual([['dry', { key: '[]', cells: new Map() }]])
+      expect(domain).not.toHaveBeenCalled()
+    } finally {
+      domain.mockRestore()
+    }
+  })
+  it('resolves scene identity once per supplied sector, rather than once per indexed cell', () => {
+    const pool = sector('pool', 0, [
+      [3, 3, '~'],
+      [2, 3, '.'],
+      [4, 3, '.'],
+    ])
+    const remote = { ...sector('private', 0, [[3, 3, 'l']]), charted: false }
+    const domain = vi.spyOn(sceneDomains, 'mapSceneDomain')
+    try {
+      const field = buildWaterField([pool, remote])
+      expect(field.get('pool')!.cells.size).toBe(1)
+      expect(field.get('private')!.cells.size).toBe(0)
+      expect(domain).toHaveBeenCalledTimes(2)
+    } finally {
+      domain.mockRestore()
+    }
+  })
   it('rounds a small pool using known dry banks, while leaving unknown edges unclaimed', () => {
     const pool = sector('pool', 0, [
       [3, 3, '~'],
@@ -76,6 +108,81 @@ describe('world-connected water presentation', () => {
     vi.mocked(context.bezierCurveTo).mockClear()
     clipWaterSurface(context, withheld, 64)
     expect(context.bezierCurveTo).not.toHaveBeenCalled()
+  })
+  it('reuses the immutable shoreline clip at one rendered tile size', () => {
+    const paths: {
+      moveTo: ReturnType<typeof vi.fn>
+      lineTo: ReturnType<typeof vi.fn>
+      bezierCurveTo: ReturnType<typeof vi.fn>
+      closePath: ReturnType<typeof vi.fn>
+    }[] = []
+    vi.stubGlobal(
+      'Path2D',
+      class {
+        moveTo = vi.fn()
+        lineTo = vi.fn()
+        bezierCurveTo = vi.fn()
+        closePath = vi.fn()
+        constructor() {
+          paths.push(this)
+        }
+      },
+    )
+    try {
+      const pool = sector('cached-pool', 0, [
+        [3, 3, '~'],
+        [2, 3, '.'],
+        [4, 3, '.'],
+        [3, 2, '.'],
+        [3, 4, '.'],
+      ])
+      const cell = buildWaterField([pool]).get('cached-pool')!.cells.get('3:3')!
+      const context = waterCanvas() as unknown as CanvasRenderingContext2D
+
+      clipWaterSurface(context, cell, 64)
+      clipWaterSurface(context, cell, 64)
+
+      expect(paths).toHaveLength(1)
+      expect(context.clip).toHaveBeenNthCalledWith(1, paths[0])
+      expect(context.clip).toHaveBeenNthCalledWith(2, paths[0])
+      expect(context.bezierCurveTo).not.toHaveBeenCalled()
+
+      clipWaterSurface(context, cell, 48)
+      expect(paths).toHaveLength(2)
+      expect(context.clip).toHaveBeenLastCalledWith(paths[1])
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+  it('reuses a caller-owned canvas state for a transformed water cell', () => {
+    const context = waterCanvas()
+    const cell: WaterCell = {
+      x: 0,
+      y: 0,
+      seed: 17,
+      channel: false,
+      banks: [],
+      flow: [
+        [0, 0.5],
+        [0.33, 0.5],
+        [0.66, 0.5],
+        [1, 0.5],
+      ],
+    }
+
+    paintWaterMotion(
+      context as unknown as CanvasRenderingContext2D,
+      cell,
+      48,
+      1200,
+      false,
+      undefined,
+      false,
+    )
+
+    expect(context.save).not.toHaveBeenCalled()
+    expect(context.restore).not.toHaveBeenCalled()
+    expect(context.clip).toHaveBeenCalled()
   })
   it('joins walkable shallows to deep water without creating a bank between them', () => {
     const field = buildWaterField([
@@ -221,6 +328,36 @@ describe('world-connected water presentation', () => {
       vi.unstubAllGlobals()
     }
   })
+  it('uses shared depth instead of broad channel shadows clipped into tile-shaped slabs', () => {
+    const profile = buildWaterField([
+      sector('river', 0, [
+        [3, 2, '~'],
+        [3, 3, '~'],
+        [3, 4, '~'],
+      ]),
+    ])
+      .get('river')!
+      .cells.get('3:3')!
+    expect(profile.channel).toBe(true)
+    const widths: number[] = []
+    const context = new Proxy(
+      {
+        lineWidth: 1,
+        stroke() {
+          widths.push(this.lineWidth)
+        },
+        createLinearGradient() {
+          return { addColorStop() {} }
+        },
+      },
+      { get: (target, key) => (key in target ? target[key as keyof typeof target] : () => {}) },
+    )
+    paintWaterGround(context as unknown as CanvasRenderingContext2D, profile, 64)
+    expect(widths.filter((width) => width > 64 * 0.1)).toEqual([])
+    // Flow filaments remain; removing every water detail is not the repair.
+    expect(widths).toHaveLength(19)
+  })
+
   it('paints equal depth colours on a shared edge instead of diagonal per-tile steps', () => {
     const sample = (corners: readonly [number, number, number, number], px: number) => {
       let result: number[] = []
@@ -291,6 +428,27 @@ describe('world-connected water presentation', () => {
       vi.unstubAllGlobals()
     }
   })
+  it('shares depth colours where a walkable shallow tile meets deep water', () => {
+    const cells: [number, number, string][] = Array.from({ length: 49 }, (_, n) => [
+      n % 7,
+      Math.floor(n / 7),
+      n === 24 ? 'w' : '~',
+    ])
+    const field = buildWaterField([sector('shallow-edge', 0, cells)]).get('shallow-edge')!.cells
+    const shallow = field.get('3:3')!
+    const east = field.get('4:3')!
+    const south = field.get('3:4')!
+    expect(shallow.shallow).toBe(true)
+    expect(east.shallow).toBe(false)
+    expect(shallow.cornerDepths![1]).toBe(east.cornerDepths![0])
+    expect(shallow.cornerDepths![2]).toBe(east.cornerDepths![3])
+    expect(shallow.cornerDepths![3]).toBe(south.cornerDepths![0])
+    expect(shallow.cornerDepths![2]).toBe(south.cornerDepths![1])
+    // This is presentation continuity, never permission to walk on deep water.
+    expect(terrainWalkable('~')).toBe(false)
+    expect(terrainWalkable('w')).toBe(true)
+  })
+
   it('derives increasing depth from supplied banks and shares corner depths across sector edges', () => {
     const a = sector(
       'a',

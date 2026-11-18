@@ -1,7 +1,7 @@
 import { GRID_WIDTH } from '@/world/catalog'
 import { ATLAS_COLUMNS } from '@/world/topology'
 import type { WorldCell, WorldSectorView } from '@/world/types'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { buildPublicCoasts } from './map-coast'
 import { buildSettlementGround } from './map-settlement-edge'
 
@@ -36,6 +36,21 @@ function builtTown(id: string, cells: WorldCell[], column = 1, buildingX = 3) {
 }
 
 describe('settlement ground edges', () => {
+  it('does not index wilderness cells when no settlement surface can use them', () => {
+    const cells = vi.fn(() => [cell(6, 4, false)])
+    const wilderness = {
+      ...sector('wild', [], 3),
+      get cells() {
+        return cells()
+      },
+    }
+    expect(buildSettlementGround([wilderness])).toEqual({
+      edges: new Map(),
+      shoreRoads: new Map(),
+      pavedCells: new Map(),
+    })
+    expect(cells).not.toHaveBeenCalled()
+  })
   it('paves built-up dry yards and hamlet approaches while preserving gardens, shore and wilderness', () => {
     const town = builtTown('town', [
       cell(4, 3, true, '.'),

@@ -1,0 +1,207 @@
+{
+  "scope": "Offline actual shared atlas and software projection source review; native visual acceptance remains OPEN.",
+  "sources": {
+    "apps/web/src/world/atlas.ts": "0fa2e7525ce67e6c55bb3927bf3571b8ed66372027e61d39db0ee5547bdb80d8",
+    "apps/web/src/world/town-extents.ts": "939ba232dd59d19c656503c66e6620a68abf18ea134345532c1d5cc336709100",
+    "apps/web/src/components/world/globe-atlas.ts": "fb26795efedc39e459db5ecfd1a5e8b29b074929c6435f299546ecf6e2771c9b",
+    ".github/scripts/report-town-extents.cjs": "febfd9abb4253a83cc9864616edb09fbe20737318d0e27fe56c16cab13a43b4e"
+  },
+  "towns": [
+    {
+      "id": "frostmere",
+      "safeCoreDistricts": 9,
+      "visibleDistricts": 9,
+      "offsets": [
+        [-1, -1],
+        [0, -1],
+        [1, -1],
+        [-1, 0],
+        [0, 0],
+        [1, 0],
+        [-1, 1],
+        [0, 1],
+        [1, 1]
+      ]
+    },
+    {
+      "id": "starfall-highlands",
+      "safeCoreDistricts": 9,
+      "visibleDistricts": 10,
+      "offsets": [
+        [-1, -2],
+        [-1, -1],
+        [0, -1],
+        [1, -1],
+        [-1, 0],
+        [0, 0],
+        [1, 0],
+        [-1, 1],
+        [0, 1],
+        [1, 1]
+      ]
+    },
+    {
+      "id": "emberreach",
+      "safeCoreDistricts": 9,
+      "visibleDistricts": 10,
+      "offsets": [
+        [-1, -1],
+        [0, -1],
+        [1, -1],
+        [-1, 0],
+        [0, 0],
+        [1, 0],
+        [-1, 1],
+        [0, 1],
+        [1, 1],
+        [2, 1]
+      ]
+    },
+    {
+      "id": "aureth-crown",
+      "safeCoreDistricts": 9,
+      "visibleDistricts": 14,
+      "offsets": [
+        [-2, -1],
+        [-1, -1],
+        [0, -1],
+        [1, -1],
+        [-2, 0],
+        [-1, 0],
+        [0, 0],
+        [1, 0],
+        [2, 0],
+        [-2, 1],
+        [-1, 1],
+        [0, 1],
+        [1, 1],
+        [2, 1]
+      ]
+    },
+    {
+      "id": "verdant-expanse",
+      "safeCoreDistricts": 9,
+      "visibleDistricts": 12,
+      "offsets": [
+        [-2, -1],
+        [-1, -1],
+        [0, -1],
+        [1, -1],
+        [-2, 0],
+        [-1, 0],
+        [0, 0],
+        [1, 0],
+        [-2, 1],
+        [-1, 1],
+        [0, 1],
+        [1, 1]
+      ]
+    },
+    {
+      "id": "umbral-march",
+      "safeCoreDistricts": 9,
+      "visibleDistricts": 12,
+      "offsets": [
+        [-1, -1],
+        [0, -1],
+        [1, -1],
+        [-1, 0],
+        [0, 0],
+        [1, 0],
+        [-1, 1],
+        [0, 1],
+        [1, 1],
+        [-1, 2],
+        [0, 2],
+        [1, 2]
+      ]
+    },
+    {
+      "id": "glasswind-desert",
+      "safeCoreDistricts": 9,
+      "visibleDistricts": 11,
+      "offsets": [
+        [0, -2],
+        [1, -2],
+        [-1, -1],
+        [0, -1],
+        [1, -1],
+        [-1, 0],
+        [0, 0],
+        [1, 0],
+        [-1, 1],
+        [0, 1],
+        [1, 1]
+      ]
+    },
+    {
+      "id": "hollow-coast",
+      "safeCoreDistricts": 9,
+      "visibleDistricts": 13,
+      "offsets": [
+        [-1, -1],
+        [0, -1],
+        [1, -1],
+        [2, -1],
+        [-1, 0],
+        [0, 0],
+        [1, 0],
+        [2, 0],
+        [-1, 1],
+        [0, 1],
+        [1, 1],
+        [2, 1],
+        [1, 2]
+      ]
+    }
+  ],
+  "image": {
+    "width": 2048,
+    "height": 1024,
+    "sha256": "2feaf0684ecf5f7539ba498f7c1c0b846796f81701929b778f1350bdd516cf28"
+  },
+  "globes": [
+    {
+      "name": "globe-source-320--45.png",
+      "size": 320,
+      "longitude": -45,
+      "sha256": "c17369040ec223b48c8225cba5235fd8d3d62d6f0a34eeccd989c3cf3f611b09"
+    },
+    {
+      "name": "globe-source-320-0.png",
+      "size": 320,
+      "longitude": 0,
+      "sha256": "150d4f2252ad4dfec169f099d7195b5943b41b58c65775014a1845c496d641ae"
+    },
+    {
+      "name": "globe-source-320-45.png",
+      "size": 320,
+      "longitude": 45,
+      "sha256": "9087fdfaf35801632396d356440e78fd68554d3cde28b420202620a5c2e93ae9"
+    },
+    {
+      "name": "globe-source-600--45.png",
+      "size": 600,
+      "longitude": -45,
+      "sha256": "cbca52b5f6eef090778767d101ba7ac4582d90ab2ba09ea6f784ea64fd325c36"
+    },
+    {
+      "name": "globe-source-600-0.png",
+      "size": 600,
+      "longitude": 0,
+      "sha256": "a4f93e7b724cac3ca6d296aa5611d16aa37b741b3e2f3371b6ac97842d9f02a4"
+    },
+    {
+      "name": "globe-source-600-45.png",
+      "size": 600,
+      "longitude": 45,
+      "sha256": "cd9253941247b62acdcffe42e935d9d2980e6178750ecdb38cdf9feee2e608bd"
+    }
+  ],
+  "baseline_application_sha": "dcec8f98e539246aa767ea99740e68db21905983",
+  "owner_request": "Remove rounded bulbous globe landmass edges; natural unequal bays/headlands, no geometry or private reveal change.",
+  "inspection": [
+    "2048x1024 flat: inherited sector steps/corridor remain",
+    "600px front and east, 320px west: uneven small inlets; large-scale lobes/corridor still require native review"
+  ]
+}

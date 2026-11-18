@@ -1,4 +1,11 @@
-import { installWorldRenderTiming, installWorldPeerDrawCapture } from './world-render-diagnostics'
+import { traceWorldBrowserTasks } from './world-browser-task-trace'
+import { profileWorldMovement } from './world-movement-profile'
+import {
+  installWorldRenderTiming,
+  installWorldPeerDrawCapture,
+  readWorldPeerDrawCapture,
+  readWorldRenderTiming,
+} from './world-render-diagnostics'
 import { openMapSettings, closeMapSettings } from './world-map-settings-helpers'
 import {
   measurePeerMotionStep,
@@ -7,6 +14,7 @@ import {
 } from './world-timing-metrics'
 import {
   cleanupWorldPresenceFixtures,
+  findWorldHeldAttackCorridor,
   matchesWorldWalk,
   worldPresenceDiagnostics,
 } from './world-presence-diagnostics'
@@ -17,6 +25,7 @@ import {
   type Frame,
   type Page,
   type Request,
+  type Response,
   type Route,
   type TestInfo,
 } from '@playwright/test'
@@ -460,9 +469,10 @@ export async function verifyWorldScenePresence(
       await expect
         .poll(
           async () => {
-            const samples = JSON.parse(
-              (await canvas.getAttribute('data-test-remote-draws')) ?? '[]',
-            ) as { x: number; y: number }[]
+            const samples = (await canvas.evaluate(readWorldPeerDrawCapture)) as {
+              x: number
+              y: number
+            }[]
             return new Set(samples.map((sample) => `${sample.x}:${sample.y}`)).size
           },
           { timeout: 4000 },
@@ -480,17 +490,13 @@ export async function verifyWorldScenePresence(
       await expect
         .poll(
           async () => {
-            const draws = JSON.parse(
-              (await canvas.getAttribute('data-test-remote-draws')) ?? '[]',
-            ) as { x: number }[]
+            const draws = (await canvas.evaluate(readWorldPeerDrawCapture)) as { x: number }[]
             return draws.length ? draws.at(-1)!.x - draws[0]!.x : 0
           },
           { timeout: 5000 },
         )
         .toBeGreaterThan(3.4)
-      const remoteSamples = JSON.parse(
-        (await canvas.getAttribute('data-test-remote-draws')) ?? '[]',
-      ) as PeerMotionSample[]
+      const remoteSamples: PeerMotionSample[] = await canvas.evaluate(readWorldPeerDrawCapture)
       const remoteDeltas = remoteSamples
         .slice(1)
         .map((sample, index) => measurePeerMotionStep(remoteSamples[index]!, sample))
@@ -515,7 +521,10 @@ export async function verifyWorldScenePresence(
 
     // Both observers now move across the scene boundary. Compensate each
     // nameplate for its own moving camera so camera motion cannot masquerade
-    // as a smoothly moving peer.
+    // as a smoothly moving peer. Earlier boundary coverage has already parsed
+    // full response bodies. Do not make Playwright duplicate every large scene
+    // parse while this interval measures the two native renderer main threads.
+    await diagnostics.suspendResponseBodyInspection()
     const movingObservers = [
       { page, peerId: id, distance: 3 },
       { page: other, peerId: owner.characterId, distance: 4 },
@@ -526,12 +535,15 @@ export async function verifyWorldScenePresence(
         (peer) => peer.characterId === observer.peerId,
       )!.name
       await observer.page.locator('canvas[data-world-stage]').evaluate((el) => {
+        const canvas = el as HTMLCanvasElement & {
+          __worldMovingObserverLongTasks?: { at: number; durationMs: number }[]
+        }
         const longTasks: { at: number; durationMs: number }[] = []
+        canvas.__worldMovingObserverLongTasks = longTasks
         const tasks = new PerformanceObserver((entries) => {
           for (const entry of entries.getEntries())
             longTasks.push({ at: entry.startTime, durationMs: entry.duration })
           if (longTasks.length > 100) longTasks.splice(0, longTasks.length - 100)
-          el.dataset.testMovingObserverLongTasks = JSON.stringify(longTasks)
         })
         tasks.observe({ type: 'longtask' })
       })
@@ -545,88 +557,107 @@ export async function verifyWorldScenePresence(
     }
     const ownerDestination = { sectorId: 'atlas:59:28', x: 3, y: 4 },
       peerDestination = { sectorId: 'atlas:59:28', x: 7, y: 4 }
-    const walks = [checkedWalk(page, ownerDestination), checkedWalk(other, peerDestination)]
-    await observeWorldMovement(walks, async () => {
-      await Promise.all(walks.map((walk) => walk.click))
-      await Promise.all([
-        expect.poll(async () => (await world(page)).position).toEqual(ownerDestination),
-        expect.poll(async () => (await world(other)).position).toEqual(peerDestination),
-      ])
-      for (const [index, observer] of movingObservers.entries()) {
-        await expect
-          .poll(
-            async () => {
-              const draws = JSON.parse(
-                (await observer.page
-                  .locator('canvas[data-world-stage]')
-                  .getAttribute('data-test-moving-observer-draws')) ?? '[]',
-              ) as { x: number }[]
-              return draws.length ? draws.at(-1)!.x - draws[0]!.x : 0
-            },
-            { timeout: 5000 },
-          )
-          .toBeGreaterThan(observer.distance - 0.6)
-        const samples = JSON.parse(
-          (await observer.page
-            .locator('canvas[data-world-stage]')
-            .getAttribute('data-test-moving-observer-draws')) ?? '[]',
-        ) as PeerMotionSample[]
-        const motionSteps = samples
-          .slice(1)
-          .map((sample, i) => measurePeerMotionStep(samples[i]!, sample))
-        const deltas = motionSteps.map((step) => step.deltaX)
-        const path = info.outputPath(`world-both-moving-peer-${index}.json`)
-        const { longTasks, renderTimings } = await observer.page
-          .locator('canvas[data-world-stage]')
-          .evaluate((el) => ({
-            longTasks: JSON.parse(
-              el.getAttribute('data-test-moving-observer-long-tasks') ?? '[]',
-            ) as {
-              at: number
-              durationMs: number
-            }[],
-            renderTimings: JSON.parse(
-              el.getAttribute('data-test-render-timings') ?? '[]',
-            ) as Record<string, number>[],
-          }))
-        await writeFile(
-          path,
-          JSON.stringify({
-            samples,
-            deltas,
-            motionSteps,
-            longTasks,
-            renderTimings,
-            distance: observer.distance,
-          }),
+    await traceWorldBrowserTasks(
+      await browser.newBrowserCDPSession(),
+      async (trace) => {
+        const path = info.outputPath('world-browser-tasks.json')
+        await writeFile(path, JSON.stringify(trace))
+        await info.attach('world-browser-tasks', { path, contentType: 'application/json' })
+      },
+      async () => {
+        const profiles = await Promise.all(
+          movingObservers.map(({ page }) => page.context().newCDPSession(page)),
         )
-        await info.attach(`world-both-moving-peer-${index}`, {
-          path,
-          contentType: 'application/json',
-        })
-        expect(deltas.filter((delta) => delta > 0.002).length).toBeGreaterThan(8)
-        expect(samples.at(-1)!.x - samples[0]!.x).toBeGreaterThan(observer.distance - 0.6)
-        expect(samples.at(-1)!.x - samples[0]!.x).toBeLessThan(observer.distance + 0.6)
-        for (const [stepIndex, step] of motionSteps.entries()) {
-          expect(
-            step.elapsedMs,
-            `peer ${index}, step ${stepIndex}: increasing sample time`,
-          ).toBeGreaterThan(0)
-          expect(
-            step.deltaX,
-            `peer ${index}, step ${stepIndex}: no backwards jump`,
-          ).toBeGreaterThan(-0.1)
-          expect(
-            step.deltaX,
-            `peer ${index}, step ${stepIndex}: ${step.elapsedMs.toFixed(1)}ms animation / ${step.paintElapsedMs.toFixed(1)}ms paint gap; ${longTasks.length} observed long tasks`,
-          ).toBeLessThan(step.maximumDeltaX)
-          expect(
-            Math.abs(step.deltaY),
-            `peer ${index}, step ${stepIndex}: eastward approved route stays on its row`,
-          ).toBeLessThanOrEqual(step.projectionError)
-        }
-      }
-    })
+        await profileWorldMovement(
+          profiles,
+          async (index, profile) => {
+            const path = info.outputPath(`world-moving-cpu-${index}.cpuprofile`)
+            await writeFile(path, JSON.stringify(profile))
+            await info.attach(`world-moving-cpu-${index}`, {
+              path,
+              contentType: 'application/json',
+            })
+          },
+          async () => {
+            const walks = [checkedWalk(page, ownerDestination), checkedWalk(other, peerDestination)]
+            await observeWorldMovement(walks, async () => {
+              await Promise.all(walks.map((walk) => walk.click))
+              await Promise.all([
+                expect.poll(async () => (await world(page)).position).toEqual(ownerDestination),
+                expect.poll(async () => (await world(other)).position).toEqual(peerDestination),
+              ])
+              for (const [index, observer] of movingObservers.entries()) {
+                await expect
+                  .poll(
+                    async () => {
+                      const draws = (await observer.page
+                        .locator('canvas[data-world-stage]')
+                        .evaluate(readWorldPeerDrawCapture)) as { x: number }[]
+                      return draws.length ? draws.at(-1)!.x - draws[0]!.x : 0
+                    },
+                    { timeout: 5000 },
+                  )
+                  .toBeGreaterThan(observer.distance - 0.6)
+                const stage = observer.page.locator('canvas[data-world-stage]')
+                const samples: PeerMotionSample[] = await stage.evaluate(readWorldPeerDrawCapture)
+                const motionSteps = samples
+                  .slice(1)
+                  .map((sample, i) => measurePeerMotionStep(samples[i]!, sample))
+                const deltas = motionSteps.map((step) => step.deltaX)
+                const path = info.outputPath(`world-both-moving-peer-${index}.json`)
+                const [longTasks, renderTimings] = await Promise.all([
+                  stage.evaluate((el) => {
+                    const canvas = el as HTMLCanvasElement & {
+                      __worldMovingObserverLongTasks?: { at: number; durationMs: number }[]
+                    }
+                    return (canvas.__worldMovingObserverLongTasks ?? []).map((task) => ({
+                      ...task,
+                    }))
+                  }),
+                  stage.evaluate(readWorldRenderTiming),
+                ])
+                await writeFile(
+                  path,
+                  JSON.stringify({
+                    samples,
+                    deltas,
+                    motionSteps,
+                    longTasks,
+                    renderTimings,
+                    distance: observer.distance,
+                  }),
+                )
+                await info.attach(`world-both-moving-peer-${index}`, {
+                  path,
+                  contentType: 'application/json',
+                })
+                expect(deltas.filter((delta) => delta > 0.002).length).toBeGreaterThan(8)
+                expect(samples.at(-1)!.x - samples[0]!.x).toBeGreaterThan(observer.distance - 0.6)
+                expect(samples.at(-1)!.x - samples[0]!.x).toBeLessThan(observer.distance + 0.6)
+                for (const [stepIndex, step] of motionSteps.entries()) {
+                  expect(
+                    step.elapsedMs,
+                    `peer ${index}, step ${stepIndex}: increasing sample time`,
+                  ).toBeGreaterThan(0)
+                  expect(
+                    step.deltaX,
+                    `peer ${index}, step ${stepIndex}: no backwards jump`,
+                  ).toBeGreaterThan(-0.1)
+                  expect(
+                    step.deltaX,
+                    `peer ${index}, step ${stepIndex}: ${step.elapsedMs.toFixed(1)}ms animation / ${step.paintElapsedMs.toFixed(1)}ms paint gap; ${longTasks.length} observed long tasks`,
+                  ).toBeLessThan(step.maximumDeltaX)
+                  expect(
+                    Math.abs(step.deltaY),
+                    `peer ${index}, step ${stepIndex}: eastward approved route stays on its row`,
+                  ).toBeLessThanOrEqual(step.projectionError)
+                }
+              }
+            })
+          },
+        )
+      },
+    )
     await capture(page, info, 'both-walking-smooth-remote-arrival')
     await other.goto('about:blank')
     // Restore the initial neighbouring placement before the viewport/privacy cases.
@@ -865,17 +896,24 @@ export async function verifyWorldInstantActions(
       if (failure?.status === 'rejected') throw failure.reason
     }
     // Move the fixture away; a completed approach must be available again.
-    helpers.place(owner.characterId, 'verdant-expanse', 10, 4)
-    helpers.place(target.characterId, 'verdant-expanse', 12, 4)
-    const legal = await helpers.world(page)
-    const cells = legal.sectors.find((sector) => sector.id === 'verdant-expanse')!.cells
-    for (const x of [10, 11, 12])
-      expect(cells.find((cell) => cell.x === x && cell.y === 4)?.safe).toBe(false)
+    // Use an actual unsafe dead end: every eastward held-key destination stays
+    // at the target instead of crossing the sector boundary during a slow click.
+    const corridor = findWorldHeldAttackCorridor(await helpers.world(page))
+    expect(corridor, 'supplied public terrain has a bounded unsafe approach').not.toBeNull()
+    if (!corridor) throw new Error('No supplied public held-attack corridor is available.')
+    helpers.place(owner.characterId, corridor.start.sectorId, corridor.start.x, corridor.start.y)
+    helpers.place(
+      target.characterId,
+      corridor.target.sectorId,
+      corridor.target.x,
+      corridor.target.y,
+    )
     await page.reload()
     await expect(primary).toHaveText('Approach')
     await primary.click()
     await expect(primary).toHaveText('Attack')
     await expect(primary).toBeEnabled({ timeout: 12000 })
+    await expect.poll(async () => (await helpers.world(page)).position).toEqual(corridor.approach)
     await expect(page.locator('[data-world-zone]')).toHaveText('PvP Zone')
     await page.mouse.move(0, 0)
     await expect(primary).toHaveCSS('background-color', 'rgb(116, 35, 40)')
@@ -883,26 +921,101 @@ export async function verifyWorldInstantActions(
     // It must supersede queued walking without a release retarget ahead of it.
     const canvas = page.locator('canvas[data-world-stage]')
     const commands: string[] = []
-    page.on('request', (request) => {
-      if (new URL(request.url()).pathname === '/api/world' && request.method() === 'POST')
-        commands.push(request.postDataJSON()?.intent?.kind)
-    })
-    const walkStarted = page.waitForRequest(
-      (request) =>
-        new URL(request.url()).pathname === '/api/world' &&
-        request.method() === 'POST' &&
-        request.postDataJSON()?.intent?.kind === 'walk',
-    )
-    await canvas.focus()
-    await page.keyboard.down('d')
-    await walkStarted
-    await primary.click()
-    await page.keyboard.up('d')
-    await expect(page).toHaveURL(/\/game\/battle\//, { timeout: 20000 })
-    expect(commands).toContain('attack')
-    expect(commands.at(-1)).toBe('attack')
-    await Promise.all(movementReceipts)
-    await helpers.capture(page, info, 'instant-approach-legal-encounter')
+    const attackReceipts: { status: number; errorCode: string | null; battleOpened: boolean }[] = []
+    const receiptReads: Promise<void>[] = []
+    const snapshots: Record<string, unknown>[] = []
+    const snapshot = (phase: string, view: WorldView) => {
+      if (snapshots.length >= 4) return
+      const peer = view.players.find((player) => player.characterId === target.characterId)
+      snapshots.push({
+        phase,
+        version: view.version,
+        serverNow: view.serverNow,
+        position: view.position,
+        targetPosition: peer?.position ?? null,
+        targetAttackable: peer?.attackable ?? false,
+        route: view.route.slice(0, 8),
+        nextStepAt: view.nextStepAt,
+        battleOpened: Boolean(view.battleSessionId),
+      })
+    }
+    const request = (request: Request) => {
+      if (new URL(request.url()).pathname !== '/api/world' || request.method() !== 'POST') return
+      const kind = request.postDataJSON()?.intent?.kind
+      if (commands.length < 100 && ['walk', 'autopath', 'tick', 'stop', 'attack'].includes(kind))
+        commands.push(kind)
+    }
+    const response = (response: Response) => {
+      if (
+        receiptReads.length >= 10 ||
+        new URL(response.url()).pathname !== '/api/world' ||
+        response.request().method() !== 'POST' ||
+        response.request().postDataJSON()?.intent?.kind !== 'attack'
+      )
+        return
+      const read = response
+        .json()
+        .then((body) => {
+          const code = body?.error?.code
+          attackReceipts.push({
+            status: response.status(),
+            errorCode: typeof code === 'string' && /^[A-Z_]{1,64}$/.test(code) ? code : null,
+            battleOpened: typeof body?.battleSessionId === 'string',
+          })
+        })
+        .catch(() => {
+          attackReceipts.push({
+            status: response.status(),
+            errorCode: 'BODY_UNAVAILABLE',
+            battleOpened: false,
+          })
+        })
+      receiptReads.push(read)
+    }
+    page.on('request', request)
+    page.on('response', response)
+    try {
+      snapshot('before-held-input', await helpers.world(page))
+      const walkStarted = page.waitForRequest(
+        (request) =>
+          new URL(request.url()).pathname === '/api/world' &&
+          request.method() === 'POST' &&
+          request.postDataJSON()?.intent?.kind === 'walk',
+      )
+      await canvas.focus()
+      await page.keyboard.down('d')
+      await walkStarted
+      await primary.click()
+      await page.keyboard.up('d')
+      await expect(page).toHaveURL(/\/game\/battle\//, { timeout: 20000 })
+      expect(commands).toContain('attack')
+      expect(commands.at(-1)).toBe('attack')
+      await Promise.all(movementReceipts)
+      await helpers.capture(page, info, 'instant-approach-legal-encounter')
+    } finally {
+      page.off('request', request)
+      page.off('response', response)
+      await Promise.allSettled(receiptReads)
+      let finalReadAvailable = false
+      try {
+        const final = await page.request.get('/api/world', { timeout: 2000 })
+        if (final.ok()) {
+          snapshot('after-held-attack', await final.json())
+          finalReadAvailable = true
+        }
+      } catch {
+        // Failure evidence must preserve the native assertion that failed first.
+      }
+      const path = info.outputPath('world-instant-action-boundaries.json')
+      await writeFile(
+        path,
+        JSON.stringify({ corridor, commands, attackReceipts, snapshots, finalReadAvailable }),
+      )
+      await info.attach('world-instant-action-boundaries', {
+        path,
+        contentType: 'application/json',
+      })
+    }
   } finally {
     await context.close()
   }

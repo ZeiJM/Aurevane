@@ -42,12 +42,7 @@ function nearBuildings(sector: WorldSectorView, { x, y }: WorldCell) {
 /** Stone is reserved for built-up road entrances with dry ground on both sides. */
 export function buildSettlementGround(sectors: readonly WorldSectorView[], coasts?: CoastField) {
   const byAtlas = new Map<string, WorldSectorView>()
-  const terrain = new Map(
-    sectors.map((sector) => [
-      sector,
-      new Map(sector.cells.map((cell) => [address(cell.x, cell.y), cell])),
-    ]),
-  )
+  const terrain = new Map<WorldSectorView, Map<string, WorldCell>>()
   for (const sector of sectors) {
     if (sector.charted && sector.atlasColumn !== undefined && sector.atlasRow !== undefined)
       byAtlas.set(address(sector.atlasColumn, sector.atlasRow), sector)
@@ -67,7 +62,12 @@ export function buildSettlementGround(sectors: readonly WorldSectorView[], coast
       x = (x + GRID_WIDTH) % GRID_WIDTH
       y = (y + GRID_HEIGHT) % GRID_HEIGHT
     }
-    return { cell: terrain.get(neighbor)?.get(address(x, y)), sector: neighbor, x, y }
+    let cells = terrain.get(neighbor)
+    if (!cells) {
+      cells = new Map(neighbor.cells.map((cell) => [address(cell.x, cell.y), cell]))
+      terrain.set(neighbor, cells)
+    }
+    return { cell: cells.get(address(x, y)), sector: neighbor, x, y }
   }
 
   function nearShore(sector: WorldSectorView, x: number, y: number) {
@@ -92,19 +92,29 @@ export function buildSettlementGround(sectors: readonly WorldSectorView[], coast
     // The built surface is presentation only. Gardens/trees, liquid and remote
     // ground retain their supplied material and every cell retains its authority.
     const paved = new Set<string>()
-    if (sector.charted && !sector.warpedTheme && !sector.id.startsWith('ferry:'))
+    if (
+      sector.charted &&
+      !sector.warpedTheme &&
+      !sector.id.startsWith('ferry:') &&
+      (sector.townId ||
+        sector.buildings?.length ||
+        sector.landmarks.some((l) => l.kind === 'hamlet'))
+    )
       for (const cell of sector.cells) {
         if (!cell.walkable || !['.', '=', 's'].includes(cell.terrain)) continue
-        if (nearShore(sector, cell.x, cell.y)) continue
-        const nearGarden = sector.landmarks.some(
-          (l) => l.kind === 'grove' && Math.abs(l.x - cell.x) + Math.abs(l.y - cell.y) <= 2,
-        )
-        if (nearGarden) continue
+        // Wilderness cannot receive paving; avoid nine neighbour lookups for
+        // every ordinary ground cell when a supplied scene window changes.
         const builtYard = sector.townId && cell.safe && nearBuildings(sector, cell)
         const hamletYard = sector.landmarks.some(
           (l) => l.kind === 'hamlet' && Math.abs(l.x - cell.x) + Math.abs(l.y - cell.y) <= 2,
         )
-        if (builtYard || hamletYard) paved.add(address(cell.x, cell.y))
+        if (!builtYard && !hamletYard) continue
+        const nearGarden = sector.landmarks.some(
+          (l) => l.kind === 'grove' && Math.abs(l.x - cell.x) + Math.abs(l.y - cell.y) <= 2,
+        )
+        if (nearGarden) continue
+        if (nearShore(sector, cell.x, cell.y)) continue
+        paved.add(address(cell.x, cell.y))
       }
     if (paved.size) pavedCells.set(sector.id, paved)
     if (!sector.townId) continue

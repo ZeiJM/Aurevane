@@ -14,6 +14,7 @@ import {
 } from './world-map-correction-observer'
 import { waitForWorldArt } from './world-art-readiness'
 import { openMapSettings, closeMapSettings } from './world-map-settings-helpers'
+import { WORLD_MAX_ZOOM } from '../src/components/world/world-zoom'
 
 interface Harness {
   enter: (page: Page) => Promise<string>
@@ -179,7 +180,7 @@ export function registerWorldMapCorrectionCases(harness: Harness) {
       await waitForWorldArt(page, view)
       return view
     }
-    const load = async (spec: CorrectionScene) => {
+    const load = async (spec: CorrectionScene, identityMode: 'clear' | 'occluded' = 'clear') => {
       weather = spec.storm ? 'storm' : 'clear'
       const view = await place(spec.position)
       await zoom(page, spec.zoom ?? 1)
@@ -242,7 +243,8 @@ export function registerWorldMapCorrectionCases(harness: Harness) {
       if (spec.expect === 'arena') {
         const identity = await observation(page)
         expect(identity.selfPaints).toBeGreaterThan(0)
-        expect(identity.selfGhostPaints).toBe(0)
+        if (identityMode === 'occluded') expect(identity.selfGhostPaints).toBeGreaterThan(0)
+        else expect(identity.selfGhostPaints).toBe(0)
         expect(
           await page.locator('canvas[data-world-identity]').evaluate((canvas) => ({
             opacity: getComputedStyle(canvas).opacity,
@@ -330,6 +332,86 @@ export function registerWorldMapCorrectionCases(harness: Harness) {
             .size,
         ).toBeGreaterThan(1)
         await run.record(spec.id, view, { pairOrder: 'normal above minimum', zooms: [1, 0.35] })
+      }
+    } finally {
+      await run.finish(info)
+    }
+  })
+
+  test('@map-correction major artwork has legal detail viewpoints at normal and maximum zoom', async ({
+    page,
+  }, info) => {
+    test.skip(info.project.name === 'laptop-chromium', 'Review detail once per desktop and phone.')
+    test.setTimeout(120000)
+    const scenes = correctionScenes().discoveries.filter((scene) => scene.detailPosition)
+    expect(scenes).toHaveLength(2)
+    const run = await setup(page)
+    try {
+      for (const spec of scenes) {
+        // This legal rear-wall viewpoint deliberately differs from the open
+        // arena floor. The player remains readable through normal occlusion.
+        const view = await run.load(
+          {
+            ...spec,
+            position: spec.detailPosition!,
+            zoom: 1,
+            assets: [
+              ...spec.assets,
+              ...(spec.id === 'remote-colosseum' ? ['colosseum-rear-detail-v01.webp'] : []),
+            ],
+          },
+          spec.detailIdentity ?? 'clear',
+        )
+        const normal = await page
+          .locator('[data-world-workspace]')
+          .screenshot({ animations: 'disabled' })
+        await zoom(page, WORLD_MAX_ZOOM)
+        await expect.poll(async () => (await observation(page)).selfPaints).toBeGreaterThan(0)
+        const maximum = await page
+          .locator('[data-world-workspace]')
+          .screenshot({ animations: 'disabled' })
+        await savePair(info, `art-surfaces-${spec.id}-detail-normal-maximum`, normal, maximum)
+        expect((await harness.world(page)).position).toEqual(view.position)
+        if (spec.expect === 'arena') {
+          const identity = await observation(page)
+          if (spec.detailIdentity === 'occluded')
+            expect(identity.selfGhostPaints).toBeGreaterThan(0)
+          else expect(identity.selfGhostPaints).toBe(0)
+        }
+        await run.record(`${spec.id}-legal-detail-view`, view, {
+          pairOrder: 'normal above maximum',
+          zooms: [1, WORLD_MAX_ZOOM],
+        })
+      }
+    } finally {
+      await run.finish(info)
+    }
+  })
+
+  test('@map-correction colosseum lateral masonry stays registered at maximum zoom', async ({
+    page,
+  }, info) => {
+    test.skip(info.project.name === 'laptop-chromium', 'Review detail once per desktop and phone.')
+    test.setTimeout(120000)
+    const spec = correctionScenes().discoveries.find((scene) => scene.id === 'remote-colosseum')!
+    expect(spec.detailSides).toHaveLength(2)
+    const run = await setup(page)
+    try {
+      for (const side of spec.detailSides ?? []) {
+        const sideView = await run.load(
+          {
+            ...spec,
+            position: side.position,
+            zoom: WORLD_MAX_ZOOM,
+            assets: [...spec.assets, side.asset],
+          },
+          side.identity,
+        )
+        await saveScene(page, info, `art-surfaces-${spec.id}-${side.id}-detail-maximum`)
+        expect((await harness.world(page)).position).toEqual(sideView.position)
+        await run.record(`${spec.id}-${side.id}-legal-detail-view`, sideView, {
+          zoom: WORLD_MAX_ZOOM,
+        })
       }
     } finally {
       await run.finish(info)
@@ -486,6 +568,31 @@ export function registerWorldMapCorrectionCases(harness: Harness) {
           await expect.poll(async () => (await observation(page)).globeDraws).toBeGreaterThan(0)
           await expect(page.locator('canvas[data-globe-fallback]')).toHaveCount(0)
         } else await expect(page.locator('canvas[data-globe-fallback]')).toBeVisible()
+        // Record the real shared coastline at three orientations on both native
+        // backends and both applicable viewports. A screenshot is evidence for
+        // visual review, never an automatic natural-coast acceptance result.
+        const rotate = async (steps: number) => {
+          for (let turn = 0; turn < Math.abs(steps); turn++)
+            await globe.press(steps < 0 ? 'ArrowLeft' : 'ArrowRight')
+        }
+        for (const view of [
+          { name: 'center', steps: 0 },
+          { name: 'east', steps: 4 },
+          { name: 'west', steps: -8 },
+        ]) {
+          await rotate(view.steps)
+          if (view.steps) {
+            await expect(globe).toBeFocused()
+            const focus = await globe.evaluate((element) => {
+              const style = getComputedStyle(element)
+              return { outline: parseFloat(style.outlineWidth), radius: style.borderTopLeftRadius }
+            })
+            expect(focus.outline).toBeGreaterThanOrEqual(2)
+            expect(focus.radius).toBe('6px')
+          }
+          await saveScene(page, info, `art-surfaces-correction-globe-${backend}-coast-${view.name}`)
+        }
+        await rotate(4) // Restore the original geographic camera before veil checks.
         // Centre the deliberate public veil using native keyboard rotation.
         // These are illustrative globe angles, not hidden sector coordinates.
         const current = globeView.sectors.find(
@@ -511,8 +618,9 @@ export function registerWorldMapCorrectionCases(harness: Harness) {
             .toBeGreaterThanOrEqual(420)
         }
         await expect(
-          page.getByRole('button', { name: 'Uncharted supercontinent', exact: true }),
-        ).toBeVisible()
+          page.getByRole('button', { name: 'Focus Uncharted Lands', exact: true }),
+        ).toHaveCount(0)
+        await expect(page.getByText('Uncharted Lands', { exact: true })).toBeVisible()
         await expect(page.getByText('Uncharted Waters', { exact: true })).toHaveCount(0)
         await expect(page.getByRole('button', { name: 'Travel here', exact: true })).toHaveCount(0)
         await saveScene(page, info, `art-surfaces-correction-globe-${backend}-supercontinent`)

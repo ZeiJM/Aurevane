@@ -1,4 +1,5 @@
 import { assertPreparedBattleSource } from '@/server/battle/battle-source-authority'
+import type { CharacterRecord, CharacterRepository } from '@aurevane/db/character'
 import { readBattlefieldElevationPolicy } from '@/server/master/battlefield-elevation-policy-store'
 import { readCombatEffectTimingPolicy } from '@/server/master/combat-effect-timing-policy-store'
 import 'server-only'
@@ -7,7 +8,11 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createPvpEncounter, type PvpLobbyMemberView } from '@/server/battle/pvp-lobby-service'
 import { createResolvedBattleBuildAuthoritySnapshot } from '@/server/battle/battle-build-authority'
 import { prepareBattleAbilityStartup } from '@/server/battle/battle-ability-startup'
-import { loadCharacterCommittedBuildSnapshot } from '@/server/character/character-build-service'
+import {
+  loadCharacterCommittedBuildSnapshot,
+  type CharacterBuildRepository,
+  type CharacterCommittedBuildSnapshotRecord,
+} from '@/server/character/character-build-service'
 import { createSupabaseCharacterBuildRepository } from '@/server/character/supabase-character-build-repository'
 import { createSupabaseCharacterRepository } from '@/server/character/supabase-character-repository'
 import { createServerCombatContentResolver } from '@/server/combat/combat-content-resolver'
@@ -15,6 +20,38 @@ import type { WorldState } from '@/world/types'
 import type { WorldAttackReceipt } from '@/world/attack-receipt'
 import { assertEncounterRange } from './world-service'
 import { settleWorldAttackAuthority, worldRpcError } from './world-repository'
+
+type PreparedWorldParticipant = {
+  character: CharacterRecord
+  buildSnapshot: CharacterCommittedBuildSnapshotRecord
+}
+const participantPreparations = new Map<string, Promise<PreparedWorldParticipant>>()
+function prepareWorldParticipant(
+  userId: string,
+  characterId: string,
+  characters: CharacterRepository,
+  builds: CharacterBuildRepository,
+) {
+  const key = `${userId}:${characterId}`
+  const existing = participantPreparations.get(key)
+  if (existing) return existing
+  const pending = (async () => {
+    const character = await characters.findByOwnerId?.(userId, characterId)
+    if (!character) throw new AurevaneError('INVALID_REQUEST', 'That character is unavailable.')
+    const buildSnapshot = await loadCharacterCommittedBuildSnapshot(
+      userId,
+      characterId,
+      builds,
+      true,
+    )
+    return { character, buildSnapshot }
+  })()
+  const tracked = pending.finally(() => {
+    if (participantPreparations.get(key) === tracked) participantPreparations.delete(key)
+  })
+  participantPreparations.set(key, tracked)
+  return tracked
+}
 
 export async function attackWorldPlayer(
   userId: string,
@@ -43,13 +80,11 @@ export async function attackWorldPlayer(
       { userId, characterId },
       { userId: pair.targetUserId as string, characterId: targetId },
     ].map(async (entry, index) => {
-      const character = await characters.findByOwnerId?.(entry.userId, entry.characterId)
-      if (!character) throw new AurevaneError('INVALID_REQUEST', 'That character is unavailable.')
-      const buildSnapshot = await loadCharacterCommittedBuildSnapshot(
+      const { character, buildSnapshot } = await prepareWorldParticipant(
         entry.userId,
         entry.characterId,
+        characters,
         builds,
-        true,
       )
       const member: PvpLobbyMemberView = {
         ...entry,

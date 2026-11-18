@@ -1,0 +1,53 @@
+{
+  "requestId": "ART-WORLD-CORRECTION-20261112",
+  "promptSpec": "content/art-requests/ART-WORLD-CORRECTION-20261112.md",
+  "provider": "OpenAI image generation",
+  "name": "colosseum-rear-detail",
+  "source": {
+    "path": "sources/colosseum-rear-detail-v01.png",
+    "sha256": "9576621837b77124f0a5964496676449da8c3726c1d52511a9772f0aec6d2f83",
+    "width": 1536,
+    "height": 1024
+  },
+  "master": {
+    "path": "sources/remote-colosseum-v03.png",
+    "sha256": "c25798d30e50bcd8273fff95ea9b6c375e24a36b361805ce552d5ff5d2e2e829",
+    "bounds": [448, 0, 640, 426]
+  },
+  "registration": {
+    "name": "rear",
+    "x": 448,
+    "matrix": [
+      [0.9998309457839613, -0.00039144019336192413, 0.08516732496210859],
+      [0.0008367387844128562, 1.00325791428403, -1.5485171255084687]
+    ],
+    "inliers": 30,
+    "maxResidualMasterPixels": 1.1345716272837996
+  },
+  "featherNativePixels": 96,
+  "runtime": {
+    "path": "runtime/colosseum-rear-detail-v01.webp",
+    "sha256": "50833bf9ce1e252bfda980f0c0508d187750935110ca7fbff45d97d641813f9e",
+    "bytes": 586622,
+    "width": 1536,
+    "height": 1024,
+    "columns": 1,
+    "rows": 1,
+    "preserveFrame": true,
+    "cellWidth": 1536,
+    "cellHeight": 1024,
+    "encoding": "Bilinear affine registration; selected-master alpha; 96px smooth feather; WebP quality90 alpha100"
+  },
+  "sprites": [
+    {
+      "index": 0,
+      "runtimeBounds": {
+        "left": 0,
+        "top": 0,
+        "width": 1536,
+        "height": 1024
+      }
+    }
+  ],
+  "target": [0.29947448291366907, 0.013742654260528894, 0.4016786570743406, 0.40093964250734576]
+}

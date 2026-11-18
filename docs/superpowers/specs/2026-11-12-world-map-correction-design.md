@@ -12,7 +12,7 @@ Nick requests a separate corrective release after PR1038 and explicitly authoriz
 6. Make elevations, dips and valleys visible through coherent contouring, gradients and grounded relief rather than square shadow plates.
 7. Place occasional world-scale discoveries: grand bridges, ruined fortresses and abandoned towns. Sites need generous clear footprints, readable approaches and coherent regional materials. Scenic discovery does not invent rewards, quests or story canon.
 8. Link vegetation, water, spray and other environmental motion to actual weather, with bounded work and reduced-motion behavior.
-9. Correct Uncharted as a SUPERCONTINENT in its real geography, globe scale/silhouette and naming, replacing the small 'Uncharted Waters' fog patch. Preserve private discovery and the existing navigation/access contracts. Do not reveal private cells, coordinates, names or encounter identities through globe texture or payloads.
+9. Correct Uncharted as a SUPERCONTINENT in its real geography, globe scale/silhouette and naming, replacing the small 'Uncharted Waters' fog patch. Preserve private discovery and the existing navigation/access contracts. Do not expose private geography through the public globe, or reveal other realms, undiscovered location names or encounter identities. **November13 Owner followup, continued November17:** remove Uncharted exploration fog while retaining its strange artwork. A bounded geometry-only rendering buffer may show the currently entered landscape, separately from navigation, surveyed locations, presence and saved discoveries. This supersedes the earlier blanket payload restriction only for that current-world visual buffer; it grants no travel, discovery, reward or foreign-realm access. Weather fog remains distinct.
 10. Generate two special remote discoveries: a monumental waterfall valley with original fire and ice stone avatars, and a grand colosseum. Both have genuinely large footprints and readable approaches. Preserve the abstract elemental-statue/waterfall intent without copying franchise characters or a distinctive existing composition.
 11. Generate comparably detailed ocean assets and compose islets, reefs, shoals, sea stacks/arches and other occasional water features, richer sea depths and weather-driven surf. Keep broad sea readable; illustrative features do not grant new maritime traversal.
 12. Rebuild the entire globe's visual presentation: remove blurry, blocky, pixelated patchwork; use smooth organic coastlines, rich crisp terrain/sea detail and accurate town locations/known geography. This applies to both WebGL and fallback rendering.
@@ -25,6 +25,14 @@ The colosseum must emphasize a vast open arena floor where visible players can s
 Extend the existing Canvas renderer, canonical terrain authoring and compressed sprite pipeline. No new rendering engine or dependency is warranted. Static shore/depth/relief belongs in ground caches; bounded live weather/footstep effects belong in motion passes. Use organic connected liquid contours shared across known cell/sector boundaries, not an unrelated decorative lake that contradicts collision. Generated bitmap details complement geometry; they do not determine authority.
 
 Nick's town-layout and walkable-town-water requests explicitly supersede older no-topology-change restrictions. Preserve sector IDs, coordinate addresses, player progress, Owner drafts, publications and history. New obstacles require reachable gates and compatible saved positions/routes. Immutable teleport geometry must receive a new version rather than overwriting prior hashes. Existing ferry/legacy expeditions remain safe; the broader ferry redesign remains separately tracked.
+
+November17 request completion: remove the Frostmere and Emberreach town lakes.
+The existing shallow cells and dry regional ground have identical traversal and
+town safety. Use one shared dry-surface projection for local scenes, movement
+receipts, distant scenery and globe masks while retaining canonical rows for
+immutable teleport registration and saved routes. Keep Emberreach's lava rift
+and bridge, other towns' water, wilderness liquids and the selected fire/ice
+landmark art. Source verification is separate from actual native visual review.
 
 ## Acceptance
 

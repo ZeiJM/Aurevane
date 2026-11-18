@@ -168,7 +168,123 @@ const birdWings: readonly Limb[] = [
   },
 ]
 
+interface WildlifePart {
+  canvas: HTMLCanvasElement
+  left: number
+  top: number
+  width: number
+  height: number
+  index: number
+  mask: readonly number[]
+  bird: boolean
+}
+
+/** Retain immutable masks, never animation poses, at the source's native density. */
+export function createWildlifePartCache(pixelLimit = 512_000) {
+  let source: HTMLImageElement | null = null
+  let sourceUrl = ''
+  let sourceWidth = 0,
+    sourceHeight = 0,
+    pixels = 0,
+    builds = 0
+  const parts: WildlifePart[] = []
+  let unavailable = false
+  const clear = () => {
+    parts.length = 0
+    unavailable = false
+    source = null
+    sourceUrl = ''
+    sourceWidth = sourceHeight = pixels = builds = 0
+  }
+  return {
+    get pixels() {
+      return pixels
+    },
+    get builds() {
+      return builds
+    },
+    clear,
+    beginFrame() {
+      builds = 0
+    },
+    get(image: HTMLImageElement, index: number, mask: readonly number[], bird: boolean) {
+      if (
+        source !== image ||
+        sourceUrl !== image.src ||
+        sourceWidth !== image.width ||
+        sourceHeight !== image.height
+      ) {
+        clear()
+        source = image
+        sourceUrl = image.src
+        sourceWidth = image.width
+        sourceHeight = image.height
+      }
+      const cached = parts.find(
+        (part) => part.mask === mask && part.index === index && part.bird === bird,
+      )
+      if (cached) return cached
+      if (
+        unavailable ||
+        ![image.width, image.height].every((value) => Number.isFinite(value) && value > 0)
+      )
+        return null
+      const sx = image.width / 1536,
+        sy = image.height / 1024
+      const xs = mask.filter((_, i) => i % 2 === 0),
+        ys = mask.filter((_, i) => i % 2 === 1)
+      const left = Math.floor(Math.min(...xs) * sx) - 1,
+        top = Math.floor(Math.min(...ys) * sy) - 1
+      const width = Math.ceil(Math.max(...xs) * sx) + 1 - left
+      const height = Math.ceil(Math.max(...ys) * sy) + 1 - top
+      const area = width * height
+      // Keep the warmed subset if oversized source art exceeds the budget.
+      // Repeated frames must not evict and reconstruct each other's masks.
+      if (parts.length >= 18 || area <= 0 || pixels + area > pixelLimit) return null
+      const canvas = document.createElement('canvas')
+      canvas.width = width
+      canvas.height = height
+      const context = canvas.getContext('2d')
+      if (!context) {
+        unavailable = true
+        return null
+      }
+      context.imageSmoothingEnabled = true
+      context.imageSmoothingQuality = 'high'
+      context.setTransform(sx, 0, 0, sy, -left, -top)
+      paintMaskedPart(context, image, index, mask, bird)
+      const part = {
+        canvas,
+        left: left / sx,
+        top: top / sy,
+        width: width / sx,
+        height: height / sy,
+        index,
+        mask,
+        bird,
+      }
+      parts.push(part)
+      pixels += area
+      builds++
+      return part
+    },
+  }
+}
+
 function paintPart(
+  ctx: CanvasRenderingContext2D,
+  image: HTMLImageElement,
+  index: number,
+  mask: readonly number[],
+  bird: boolean,
+  cache?: ReturnType<typeof createWildlifePartCache>,
+) {
+  const part = cache?.get(image, index, mask, bird)
+  if (part) ctx.drawImage(part.canvas, part.left, part.top, part.width, part.height)
+  else paintMaskedPart(ctx, image, index, mask, bird)
+}
+
+function paintMaskedPart(
   ctx: CanvasRenderingContext2D,
   image: HTMLImageElement,
   index: number,
@@ -208,6 +324,7 @@ export function drawWildlife(
   x: number,
   y: number,
   tile: number,
+  cache?: ReturnType<typeof createWildlifePartCache>,
 ) {
   ctx.save()
   if (animal.flying) {
@@ -227,10 +344,10 @@ export function drawWildlife(
         0,
       )
       ctx.translate(-wing.hipX, -wing.hipY)
-      paintPart(ctx, image, 7, wing.mask, true)
+      paintPart(ctx, image, 7, wing.mask, true, cache)
       ctx.restore()
     }
-    paintPart(ctx, image, 7, birdBody, true)
+    paintPart(ctx, image, 7, birdBody, true, cache)
   } else {
     const art = groundArt[animal.index] ?? groundArt[4]!
     const scale = (tile * art.width) / 384
@@ -251,13 +368,13 @@ export function drawWildlife(
       // shear around the hip makes the original leg swing visibly fore/aft.
       ctx.transform(1, 0, wave * pose.step * 0.3, (art.ground - leg.hipY - lift) / length, 0, 0)
       ctx.translate(-leg.hipX, -leg.hipY)
-      paintPart(ctx, image, animal.index, leg.mask)
+      paintPart(ctx, image, animal.index, leg.mask, false, cache)
       ctx.restore()
     }
     ctx.translate(0, art.ground)
     ctx.scale(1, 1 - pose.crouch * 0.12)
     ctx.translate(0, -art.ground)
-    paintPart(ctx, image, animal.index, art.body)
+    paintPart(ctx, image, animal.index, art.body, false, cache)
   }
   ctx.restore()
 }

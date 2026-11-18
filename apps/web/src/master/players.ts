@@ -35,6 +35,12 @@ export interface MasterPlayerFacts {
   }
 }
 export interface MasterPlayerView {
+  /** Server-committed teleport receipt, distinct from a later refreshed position. */
+  teleportReceipt?: {
+    position: { sectorId: string; x: number; y: number }
+    version: number
+    replayed: boolean
+  }
   characterId: string
   name: string
   portraitRef: string
@@ -77,7 +83,7 @@ export interface PlayerRecoveryResult {
 }
 
 /** Shared browser/server contract for the immutable teleport geometry and coordinate grid. */
-export const MASTER_TELEPORT_GEOMETRY_VERSION = '2026-11-12-v2'
+export const MASTER_TELEPORT_GEOMETRY_VERSION = '2026-11-14-v4'
 
 export interface PlayerTeleportDestination {
   map: 'mainland' | 'currentVoid'

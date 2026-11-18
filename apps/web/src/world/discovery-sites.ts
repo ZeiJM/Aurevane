@@ -1,5 +1,6 @@
-const valleyLeft = 885,
-  valleyTop = 190
+// Between Frostmere and Emberreach, on the authored public land corridor.
+const valleyLeft = 899,
+  valleyTop = 129
 const valleyWater = Array.from({ length: 40 }, (_, y) =>
   Array.from({ length: 60 }, (_, x) => ({ x, y })),
 )
@@ -24,12 +25,9 @@ export const GRAND_DISCOVERY_SITES = [
     height: 40,
     regionId: 'verdant-expanse',
     water: valleyWater,
-    // Retain the original blocked river identity; the scenic shallows never grant a crossing.
-    deepWater: [
-      { x: 9, y: 35 },
-      { x: 9, y: 36 },
-      { x: 9, y: 37 },
-    ],
+    // The new public corridor has no pre-existing deep-river cells; never
+    // turn a historic walking tile into an impassable pond for scenic art.
+    deepWater: [] as { x: number; y: number }[],
   },
   {
     id: 'remote-colosseum',

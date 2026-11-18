@@ -1,8 +1,9 @@
 import { expect, it } from 'vitest'
 import { atlasSectors } from './atlas'
 import { GRAND_DISCOVERY_SITES } from './discovery-sites'
+import { grandDiscoveryBarrier } from './discovery-collision'
 import { isWalkable } from './travel'
-it('authors the valley water mask as traversable shallows while preserving the avenue and saved dry positions', () => {
+it('keeps valley shallows and open avenues traversable while solid cliffs block old roads', () => {
   const site = GRAND_DISCOVERY_SITES.find((s) => s.id === 'elemental-valley')!,
     sectors = atlasSectors()
   for (const cell of site.water) {
@@ -15,13 +16,21 @@ it('authors the valley water mask as traversable shallows while preserving the a
     expect(sector.rows[p.y]![p.x], `${gx}:${gy}`).toBe('w')
     expect(isWalkable(sector, p)).toBe(true)
   }
+  let blocked = 0
+  let open = 0
   for (let x = site.left; x < site.left + site.width; x++) {
-    const y = site.top + 3,
+    const y = site.top + ((4 - (site.top % 9) + 9) % 9),
       s = sectors.find(
         (s) => s.atlasColumn === Math.floor(x / 13) && s.atlasRow === Math.floor(y / 9),
       )!
-    expect(s.rows[y % 9]![x % 13]).toBe('=')
+    const barrier = grandDiscoveryBarrier(site.id, x - site.left, y - site.top)
+    expect(s.rows[y % 9]![x % 13], `${x}:${y}`).toBe(barrier ? '#' : '=')
+    expect(isWalkable(s, { x: x % 13, y: y % 9 })).toBe(!barrier)
+    if (barrier) blocked++
+    else open++
   }
+  expect(blocked).toBe(site.width - 9)
+  expect(open).toBe(9)
 })
 it('reserves the entire discovery grounds and southern approach without dense trees or generated POI overlaps', () => {
   const sectors = atlasSectors()
@@ -33,8 +42,20 @@ it('reserves the entire discovery grounds and southern approach without dense tr
           (s) => s.atlasColumn === Math.floor(gx / 13) && s.atlasRow === Math.floor(gy / 9),
         )
         expect(s, `${site.id} ${gx}:${gy}`).toBeDefined()
-        if (site.id === 'remote-colosseum')
-          expect(isWalkable(s!, { x: gx % 13, y: gy % 9 })).toBe(true)
+        if (site.id === 'remote-colosseum') {
+          const barrier = grandDiscoveryBarrier(site.id, gx - site.left, gy - site.top)
+          const terrain = s!.rows[gy % 9]![gx % 13]
+          if (barrier && terrain === '#')
+            expect(
+              isWalkable(s!, { x: gx % 13, y: gy % 9 }),
+              'colosseum perimeter blocks movement',
+            ).toBe(false)
+          else
+            expect(
+              isWalkable(s!, { x: gx % 13, y: gy % 9 }),
+              'arena floor and roads remain reachable',
+            ).toBe(true)
+        }
         if (s!.rows[gy % 9]![gx % 13] === 't') overlaps.push(`${gx}:${gy}:tree`)
         for (const l of s!.landmarks)
           if (s!.atlasColumn! * 13 + l.x === gx && s!.atlasRow! * 9 + l.y === gy)

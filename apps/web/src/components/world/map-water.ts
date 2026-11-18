@@ -285,13 +285,33 @@ export function buildWaterField(
   const liquid = material === 'lava' ? 'l' : '~'
   const matches = (terrain: string | undefined) =>
     material === 'water' ? isWaterTerrain(terrain) : terrain === liquid
-  const terrain = new Map<string, TerrainCell>()
-  const namespace = mapSceneDomain
+  // Most movement windows contain no lava. Keep their empty entries without
+  // constructing an address for every dry cell or resolving private domains.
+  if (!sectors.some((sector) => sector.cells.some((cell) => matches(cell.terrain))))
+    return new Map(sectors.map((sector) => [sector.id, { key: '[]', cells: new Map() }]))
+  const domains = new Map(sectors.map((sector) => [sector, mapSceneDomain(sector)]))
+  const namespace = (sector: WorldSectorView) => domains.get(sector)!
+  // Numeric columns/rows avoid allocating thousands of repeated namespace
+  // strings. Last supplied cells still win at coincident addresses.
+  const terrain = new Map<string, Map<number, Map<number, TerrainCell>>>()
+  const terrainAt = (space: string, x: number, y: number) =>
+    terrain
+      .get(space)
+      ?.get(space === 'atlas' ? wrapX(x) : x)
+      ?.get(y)
   const address = (sector: WorldSectorView, x: number, y: number) =>
     `${namespace(sector)}:${cellKey(namespace(sector) === 'atlas' ? ((x % (ATLAS_COLUMNS * GRID_WIDTH)) + ATLAS_COLUMNS * GRID_WIDTH) % (ATLAS_COLUMNS * GRID_WIDTH) : x, y)}`
   for (const sector of sectors) {
     const { x: ox, y: oy } = sectorMapOrigin(sector)
-    for (const cell of sector.cells) terrain.set(address(sector, ox + cell.x, oy + cell.y), cell)
+    const space = namespace(sector)
+    let columns = terrain.get(space)
+    if (!columns) terrain.set(space, (columns = new Map()))
+    for (const cell of sector.cells) {
+      const x = space === 'atlas' ? wrapX(ox + cell.x) : ox + cell.x
+      let rows = columns.get(x)
+      if (!rows) columns.set(x, (rows = new Map()))
+      rows.set(oy + cell.y, cell)
+    }
   }
   const field = new Map<string, WaterSector>()
   const water = new Map<string, WaterCell>()
@@ -304,7 +324,7 @@ export function buildWaterField(
         wy = oy + cell.y
       const neighbours = directions.map(([dx, dy]) => {
         const at = (distance: number) =>
-          terrain.get(address(sector, wx + dx * distance, wy + dy * distance))
+          terrainAt(namespace(sector), wx + dx * distance, wy + dy * distance)
         const neighbour = at(1)
         if (neighbour?.terrain === '=' && neighbour.walkable)
           for (let distance = 2; distance <= 4; distance++) {
@@ -399,7 +419,7 @@ export function buildWaterField(
         const x = at.x + dx,
           y = at.y + dy
         const key = `${space}:${cellKey(space === 'atlas' ? wrapX(x) : x, y)}`
-        const known = terrain.get(key)
+        const known = terrainAt(space, x, y)
         if (!known || known.terrain === '?') {
           closed = false
           continue
@@ -448,8 +468,10 @@ export function buildWaterField(
             return neighbor ? [neighbor.depth!] : []
           }),
         )
-        const depth = depths.reduce((sum, depth) => sum + depth, 0) / depths.length
-        return cell.shallow ? Math.min(0.45, depth) : depth
+        // Shallow cells already seed zero depth before propagation. A second
+        // per-cell cap gives the same shared vertex two different colours and
+        // exposes tile diamonds where a ford meets deeper water.
+        return depths.reduce((sum, depth) => sum + depth, 0) / depths.length
       }) as [number, number, number, number]
     }
     part.key = JSON.stringify([...part.cells.values()])
@@ -457,7 +479,9 @@ export function buildWaterField(
   return field
 }
 
-function trace(context: CanvasRenderingContext2D, curve: Curve, tile: number, move = true) {
+type WaterPath = Pick<CanvasRenderingContext2D, 'moveTo' | 'lineTo' | 'bezierCurveTo' | 'closePath'>
+
+function trace(context: WaterPath, curve: Curve, tile: number, move = true) {
   if (move) context.moveTo(curve[0][0] * tile, curve[0][1] * tile)
   context.bezierCurveTo(
     curve[1][0] * tile,
@@ -467,6 +491,70 @@ function trace(context: CanvasRenderingContext2D, curve: Curve, tile: number, mo
     curve[3][0] * tile,
     curve[3][1] * tile,
   )
+}
+
+const surfaceClipPaths = new WeakMap<WaterCell, { tile: number; path: Path2D }>()
+
+function traceWaterSurface(context: WaterPath, cell: WaterCell, tile: number) {
+  const banks = new Map(cell.banks.map((bank) => [bank.side, bank]))
+  const sides = ([0, 1, 2, 3] as const).map((side) => {
+    const bank = banks.get(side)
+    const a = bankPoint(side, side < 2 ? 0 : 1, 0),
+      b = bankPoint(side, side < 2 ? 1 : 0, 0)
+    const flat: Curve = [
+      a,
+      [a[0] + (b[0] - a[0]) / 3, a[1] + (b[1] - a[1]) / 3],
+      [a[0] + ((b[0] - a[0]) * 2) / 3, a[1] + ((b[1] - a[1]) * 2) / 3],
+      b,
+    ]
+    const curves = bank
+      ? side < 2
+        ? bank.edge
+        : [...bank.edge].reverse().map(([a, b, c, d]): Curve => [d, c, b, a])
+      : [flat]
+    const from = bank && banks.has(((side + 3) % 4) as Side) ? 0.42 : 0
+    const to = bank && banks.has(((side + 1) % 4) as Side) ? 0.58 : 1
+    const pieces: Curve[] = []
+    for (let i = 0; i < curves.length; i++) {
+      const low = Math.max(from, i / curves.length),
+        high = Math.min(to, (i + 1) / curves.length)
+      if (high <= low) continue
+      pieces.push(stream(curves[i]!, low * curves.length - i, high * curves.length - i, 0))
+    }
+    return { bank: Boolean(bank), pieces }
+  })
+  const start = sides[0]!.pieces[0]![0]
+  context.moveTo(start[0] * tile, start[1] * tile)
+  for (let side = 0; side < 4; side++) {
+    const current = sides[side]!,
+      next = sides[(side + 1) % 4]!
+    for (const curve of current.pieces) {
+      if (current.bank) trace(context, curve, tile, false)
+      else context.lineTo(curve[3][0] * tile, curve[3][1] * tile)
+    }
+    const end = current.pieces.at(-1)!,
+      following = next.pieces[0]!
+    const p = end[3],
+      q = following[0]
+    if (current.bank && next.bank) {
+      // Tangent-aligned corner joins connect the same shared bank curves;
+      // straight rectangular sides cannot reappear between rounded corners.
+      const incoming = [p[0] - end[2][0], p[1] - end[2][1]]
+      const outgoing = [following[1][0] - q[0], following[1][1] - q[1]]
+      const handle = Math.hypot(q[0] - p[0], q[1] - p[1]) * 0.55
+      const a = handle / (Math.hypot(...incoming) || 1),
+        b = handle / (Math.hypot(...outgoing) || 1)
+      context.bezierCurveTo(
+        (p[0] + incoming[0]! * a) * tile,
+        (p[1] + incoming[1]! * a) * tile,
+        (q[0] - outgoing[0]! * b) * tile,
+        (q[1] - outgoing[1]! * b) * tile,
+        q[0] * tile,
+        q[1] * tile,
+      )
+    } else context.lineTo(q[0] * tile, q[1] * tile)
+  }
+  context.closePath()
 }
 function sample(curve: Curve, t: number) {
   const u = 1 - t
@@ -508,6 +596,35 @@ function stream(curve: Curve, from: number, to: number, offset: number): Curve {
     q,
   ]
 }
+
+/** Trace a moving sub-curve without allocating the temporary nested Curve arrays. */
+function traceStream(
+  context: WaterPath,
+  curve: Curve,
+  from: number,
+  to: number,
+  offset: number,
+  tile: number,
+) {
+  const a = sample(curve, from),
+    b = sample(curve, to),
+    interval = (to - from) / 3,
+    aLength = Math.hypot(a.dx, a.dy) || 1,
+    bLength = Math.hypot(b.dx, b.dy) || 1,
+    px = a.x - (a.dy / aLength) * offset,
+    py = a.y + (a.dx / aLength) * offset,
+    qx = b.x - (b.dy / bLength) * offset,
+    qy = b.y + (b.dx / bLength) * offset
+  context.moveTo(px * tile, py * tile)
+  context.bezierCurveTo(
+    (px + a.dx * interval) * tile,
+    (py + a.dy * interval) * tile,
+    (qx - b.dx * interval) * tile,
+    (qy - b.dy * interval) * tile,
+    qx * tile,
+    qy * tile,
+  )
+}
 function clipCell(context: CanvasRenderingContext2D, tile: number) {
   context.beginPath()
   context.rect(0, 0, tile, tile)
@@ -518,66 +635,19 @@ function clipCell(context: CanvasRenderingContext2D, tile: number) {
 
 /** Clip only supplied shore curves; unknown/liquid edges stay open to their neighbours. */
 export function clipWaterSurface(context: CanvasRenderingContext2D, cell: WaterCell, tile: number) {
-  const banks = new Map(cell.banks.map((bank) => [bank.side, bank]))
-  const sides = ([0, 1, 2, 3] as const).map((side) => {
-    const bank = banks.get(side)
-    const a = bankPoint(side, side < 2 ? 0 : 1, 0),
-      b = bankPoint(side, side < 2 ? 1 : 0, 0)
-    const flat: Curve = [
-      a,
-      [a[0] + (b[0] - a[0]) / 3, a[1] + (b[1] - a[1]) / 3],
-      [a[0] + ((b[0] - a[0]) * 2) / 3, a[1] + ((b[1] - a[1]) * 2) / 3],
-      b,
-    ]
-    const curves = bank
-      ? side < 2
-        ? bank.edge
-        : [...bank.edge].reverse().map(([a, b, c, d]): Curve => [d, c, b, a])
-      : [flat]
-    const from = bank && banks.has(((side + 3) % 4) as Side) ? 0.42 : 0
-    const to = bank && banks.has(((side + 1) % 4) as Side) ? 0.58 : 1
-    const pieces: Curve[] = []
-    for (let i = 0; i < curves.length; i++) {
-      const low = Math.max(from, i / curves.length),
-        high = Math.min(to, (i + 1) / curves.length)
-      if (high <= low) continue
-      pieces.push(stream(curves[i]!, low * curves.length - i, high * curves.length - i, 0))
+  if (typeof Path2D !== 'undefined') {
+    let cached = surfaceClipPaths.get(cell)
+    if (!cached || cached.tile !== tile) {
+      const path = new Path2D()
+      traceWaterSurface(path, cell, tile)
+      cached = { tile, path }
+      surfaceClipPaths.set(cell, cached)
     }
-    return { bank: Boolean(bank), pieces }
-  })
-  context.beginPath()
-  const start = sides[0]!.pieces[0]![0]
-  context.moveTo(start[0] * tile, start[1] * tile)
-  for (let side = 0; side < 4; side++) {
-    const current = sides[side]!,
-      next = sides[(side + 1) % 4]!
-    for (const curve of current.pieces) {
-      if (current.bank) trace(context, curve, tile, false)
-      else context.lineTo(curve[3][0] * tile, curve[3][1] * tile)
-    }
-    const end = current.pieces.at(-1)!,
-      following = next.pieces[0]!
-    const p = end[3],
-      q = following[0]
-    if (current.bank && next.bank) {
-      // Tangent-aligned corner joins connect the same shared bank curves;
-      // straight rectangular sides cannot reappear between rounded corners.
-      const incoming = [p[0] - end[2][0], p[1] - end[2][1]]
-      const outgoing = [following[1][0] - q[0], following[1][1] - q[1]]
-      const handle = Math.hypot(q[0] - p[0], q[1] - p[1]) * 0.55
-      const a = handle / (Math.hypot(...incoming) || 1),
-        b = handle / (Math.hypot(...outgoing) || 1)
-      context.bezierCurveTo(
-        (p[0] + incoming[0]! * a) * tile,
-        (p[1] + incoming[1]! * a) * tile,
-        (q[0] - outgoing[0]! * b) * tile,
-        (q[1] - outgoing[1]! * b) * tile,
-        q[0] * tile,
-        q[1] * tile,
-      )
-    } else context.lineTo(q[0] * tile, q[1] * tile)
+    context.clip(cached.path)
+    return
   }
-  context.closePath()
+  context.beginPath()
+  traceWaterSurface(context, cell, tile)
   context.clip()
 }
 
@@ -719,15 +789,9 @@ export function paintWaterGround(
     paintTexture(2, 0.12)
     paintLakeSurface(context, cell, tile, worldX, worldY, lakeArt)
   }
-  if (cell.channel) {
-    for (const width of [0.76, 0.58, 0.36]) {
-      context.beginPath()
-      trace(context, cell.flow, tile)
-      context.lineWidth = tile * width
-      context.strokeStyle = palette ? rgba(palette.deep, 0.17) : 'rgba(9,47,58,.09)'
-      context.stroke()
-    }
-  }
+  // Shared corner depth already shades the river bed. Broad per-cell flow
+  // strokes end at the clip boundary and stamp dark tile-shaped slabs where
+  // a narrow channel joins a pool. Keep the finer flow filaments below.
   for (const bank of cell.banks) {
     const vertical = bank.side === 1 || bank.side === 3
     const start = bankPoint(bank.side, 0.5, 0),
@@ -850,9 +914,10 @@ export function paintWaterMotion(
   now: number,
   tint: WaterTint = false,
   weather?: SurfaceWeather,
+  isolate = true,
 ) {
   const palette = waterPalette(tint)
-  context.save()
+  if (isolate) context.save()
   clipCell(context, tile)
   clipWaterSurface(context, cell, tile)
   const roughness = Math.min(1, Math.abs(weather?.windSpeed ?? 0) / 0.06)
@@ -890,12 +955,12 @@ export function paintWaterMotion(
           : '#82c6c7'
       context.lineWidth = tile * (i === 1 ? 0.014 : 0.009)
       context.beginPath()
-      trace(context, stream(cell.flow, from, from + 0.09, offset), tile)
+      traceStream(context, cell.flow, from, from + 0.09, offset, tile)
       context.stroke()
     }
   }
   if (weather) paintRainImpact(context, cell, tile, now, weather.rain, palette?.glint ?? '#d4efe9')
-  context.restore()
+  if (isolate) context.restore()
 }
 
 /** Ground and bridge undersides share the same world-anchored liquid colours. */
@@ -1020,7 +1085,7 @@ export function paintLavaMotion(
     context.beginPath()
     if (profile) {
       const from = phase * 0.83
-      trace(context, stream(profile.flow, from, from + 0.14, (i - 1) * 0.16), tile)
+      traceStream(context, profile.flow, from, from + 0.14, (i - 1) * 0.16, tile)
     } else {
       context.moveTo(-12 + shift, tile * (0.23 + i * 0.27))
       context.quadraticCurveTo(

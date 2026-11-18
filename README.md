@@ -75,4 +75,5 @@ Vercel should use the Next.js framework preset. Keep secrets in Vercel environme
 
 ## Current state
 
-AUREVANE has a substantial live character/buildcraft/combat/world foundation. **Phase 5 is active and not formally closed**; Phases 2–4 were Owner-closed, and later roadmap systems remain partly delivered or planned. See the [current phase-by-phase roadmap reality](docs/ROADMAP_STATUS_2026-11-15.md), the [roadmap status index](docs/ROADMAP.md), and [active task ledger](TASKS.md). Merged code and passing source tests do not by themselves prove production rollout or Owner acceptance.
+AUREVANE has a substantial live character/buildcraft/combat/world foundation. **Phase 5 is active and not formally closed**; Phases 2–4 were Owner-closed, and later roadmap systems remain partly delivered or planned. See the [current phase-by-phase roadmap reality](docs/ROADMAP_STATUS_2026-11-15.md), the [roadmap status index](docs/ROADMAP.md), and [active task ledger](TASKS.md). The World Map update in [PR #1043](https://github.com/ZeiJM/Aurevane/pull/1043) is live for Owner testing at [aurevane-rpg.com](https://aurevane-rpg.com). Signed-in gameplay acceptance and the subsequent ferry update remain open.
+

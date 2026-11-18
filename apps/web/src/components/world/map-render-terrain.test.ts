@@ -1,11 +1,118 @@
 import { expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
-import { advanceWorldRoute, newWorldState } from '@/world/travel'
+import { advanceWorldRoute, newWorldState, revealNearby } from '@/world/travel'
 import { projectWorld, projectWorldSector, resolveWorldIntent } from '@/server/world/world-service'
-import { resolveSector } from '@/server/world/world-content'
+import { isKnownCell, resolveSector } from '@/server/world/world-content'
+import { localRoute, mapPoint } from './world-motion'
+import { unprojectMapPoint } from './map-projection'
+import { decodeTerrainRows } from '@/world/terrain'
 import { retainWorldSceneReferences } from '@/world/presence'
 import { mergeWorldMovement } from '@/world/movement-receipt'
 import { worldRenderTerrain } from './map-render-terrain'
+
+it.each(['void:ivory-veil:16:12', 'uncharted-expanse:32:24'])(
+  'paints unsurveyed Uncharted landscape in %s without expanding navigation or changing progress',
+  (sectorId) => {
+    const state = revealNearby({ ...newWorldState(), position: { sectorId, x: 6, y: 4 } })
+    const saved = structuredClone(state)
+    const view = projectWorld(state, [], 1000)
+    const known = view.sectors.find((sector) => sector.id === sectorId)!
+    expect(known.cells).toHaveLength(25)
+    expect((view.unchartedTerrain ?? []).length).toBeGreaterThan(25)
+    expect(view.unchartedTerrain!.length).toBeLessThanOrEqual(512)
+    const terrain = worldRenderTerrain(view)
+    const painted = terrain.find((sector) => sector.id === sectorId)!
+    expect(painted.cells).toHaveLength(117)
+    expect(painted.landmarks).toEqual(known.landmarks)
+    expect(painted.exits).toEqual(known.exits)
+    const unseen = painted.cells.find(
+      (cell) => cell.walkable && !isKnownCell(state, { sectorId, ...cell }),
+    )!
+    expect(unseen).toBeDefined()
+    expect(localRoute(view, state.position, { sectorId, x: unseen.x, y: unseen.y })).toBeNull()
+    expect(view.sectors.find((sector) => sector.id === sectorId)).toBe(known)
+    expect(state).toEqual(saved)
+    expect(worldRenderTerrain(view)).toBe(terrain)
+    const cloned = retainWorldSceneReferences(view, JSON.parse(JSON.stringify(view)))
+    expect(cloned.unchartedTerrain).toBe(view.unchartedTerrain)
+    expect(worldRenderTerrain(cloned)).toBe(terrain)
+  },
+)
+
+it('covers the minimum-zoom private viewport with canonical terrain and no private location names', () => {
+  const state = revealNearby({
+    ...newWorldState(),
+    position: { sectorId: 'void:ivory-veil:32:24', x: 6, y: 4 },
+  })
+  for (const [width, height] of [
+    [390, 844],
+    [1296, 944],
+    [1920, 1080],
+  ]) {
+    const view = projectWorld(state, [], 1000, undefined, undefined, {
+      width: width!,
+      height: height!,
+    })
+    const terrain = worldRenderTerrain(view)
+    const camera = mapPoint(state.position, view.sectors)
+    const tile = (width! < 600 ? 48 : 64) * 0.35
+    for (const [x, y] of [
+      [0, 0],
+      [width!, 0],
+      [0, height!],
+      [width!, height!],
+    ]) {
+      const ground = unprojectMapPoint(
+        { x: x!, y: y! },
+        camera,
+        { x: 0, y: 0 },
+        tile,
+        width!,
+        height!,
+      )
+      const id = `void:ivory-veil:${Math.floor(ground.x / 13)}:${Math.floor(ground.y / 9)}`
+      expect(
+        terrain.some((sector) => sector.id === id),
+        `${width}x${height} corner ${x},${y}`,
+      ).toBe(true)
+    }
+    for (const chunk of view.unchartedTerrain!) {
+      expect(chunk).toHaveLength(7)
+      expect(decodeTerrainRows(chunk[1], 117)).toBe(resolveSector(chunk[0])!.rows.join(''))
+      expect(chunk[0]).toMatch(/^void:ivory-veil:/)
+    }
+    expect(view.atlas?.some((sector) => sector.id.startsWith('void:'))).toBe(false)
+  }
+})
+
+it('withdraws private terrain on leaving Uncharted and rejects retained geometry from another realm', () => {
+  const state = revealNearby({
+    ...newWorldState(),
+    position: { sectorId: 'void:ivory-veil:32:24', x: 6, y: 4 },
+  })
+  const privateView = projectWorld(state, [], 1000)
+  expect((privateView.unchartedTerrain ?? []).length).toBeGreaterThan(0)
+  const returned = { ...state, position: newWorldState().position }
+  const retainedScene = {
+    ...privateView,
+    position: returned.position,
+    sectors: [
+      ...privateView.sectors,
+      projectWorldSector(returned, resolveSector(returned.position.sectorId)!),
+    ],
+  }
+  expect(worldRenderTerrain(retainedScene).some((sector) => sector.id.startsWith('void:'))).toBe(
+    false,
+  )
+  for (const sectorId of ['verdant-expanse', 'survey-01', 'void:amber-drowned:32:24']) {
+    const next = projectWorld({ ...state, position: { sectorId, x: 6, y: 4 } }, [], 1000)
+    if (!sectorId.startsWith('void:')) expect(next.unchartedTerrain).toBeUndefined()
+    const stale = { ...next, unchartedTerrain: privateView.unchartedTerrain }
+    expect(
+      worldRenderTerrain(stale).some((sector) => sector.id.startsWith('void:ivory-veil:')),
+    ).toBe(false)
+  }
+})
 
 it('preserves canonical Frostmere ground while a real approved route leaves the initial authority scene', () => {
   const state = { ...newWorldState(), position: { sectorId: 'frostmere', x: 6, y: 4 } }

@@ -1,23 +1,29 @@
 # AUREVANE — Roadmap status index
 
-**Latest reconciled evidence:** [15 November 2026 status and release gates](ROADMAP_STATUS_2026-11-15.md). This is the current **status** entry point; the [master plan](GAME_MASTER_PLAN.md), [historical detailed roadmap](ROADMAP_DETAILED_2026-10-13.md), [product-validation gates](ROADMAP_PRODUCT_VALIDATION.md), and domain specifications retain the approved game vision and rules. See [November 14 independent PR #1040 audit](https://github.com/ZeiJM/Aurevane/issues/1041) for older-SHA findings, not an unqualified current acceptance claim.
+**Latest reconciled evidence:** [17 November 2026 verified release and status](ROADMAP_STATUS_2026-11-15.md). This is the current **status** entry point; the [master plan](GAME_MASTER_PLAN.md), [historical detailed roadmap](ROADMAP_DETAILED_2026-10-13.md), [product-validation gates](ROADMAP_PRODUCT_VALIDATION.md), and domain specifications retain the approved game vision and rules. See [November 14 independent PR #1040 audit](https://github.com/ZeiJM/Aurevane/issues/1041) for older-SHA findings, not an unqualified current acceptance claim.
 
 | Scope | Current reality | Next evidence boundary |
 | --- | --- | --- |
 | **Phases 0–1** | Engineering, character and persistence foundations delivered; historical owner closeout evidence is not fully reconciled | Real first-session/return workflow |
 | **Phases 2–4** | Owner-closed combat, buildcraft and first 17-Discipline content platform | Regression preservation as later systems advance |
-| **Phase 5** | **Active and substantially implemented**, including merged World, NPC, quest/event, ferry/Void and map work; not phase-closed | Exact-head #1040 release checks, player-facing PV-3 validation |
+| **Phase 5** | **Active and substantially implemented**, including merged World, NPC, quest/event, ferry/Void and map work; not phase-closed | Signed-in/physical-phone acceptance of live #1043, ferry follow-through and player-facing PV-3 validation |
 | **Phases 6–10** | Early solo traversal, PvP, supernatural engine and social foundations exist; mature co-op, expeditions, competitive, roster and guild/social goals remain open | Phase-specific gameplay validation |
 | **Phases 11–12** | Items/equipment are live but not a complete crafting/trade economy; nations are not delivered | Profession/market and nation design + acceptance |
 | **Phases 13–15** | Extensive Master Panel, art/audio and CI/security foundation; overall operations/polish/Closed Alpha gates open | Whole-product, concurrency, visual, security and human playtest evidence |
 
-**Live-source boundary:** `main` / production = `d32cabd7` (PR #1039); [World Atlas PR #1040](https://github.com/ZeiJM/Aurevane/pull/1040) is a separate draft candidate at `367689e` as of the 15 November snapshot. Do not infer current PR readiness from this dated header: recheck exact-head CI, canonical Vercel alias and production migration ledger before release. Neither a roadmap update nor green source tests constitute game completion, phase acceptance or deployment authorization.
+**Live-source boundary:** [PR #1043](https://github.com/ZeiJM/Aurevane/pull/1043) is **LIVE for Owner testing** at [aurevane-rpg.com](https://aurevane-rpg.com), verified November 17, 2026 at 22:44 AST (November 18, 02:44 UTC). Source `6216bff7a8c1ab6432d223159eabbfd91278e2b1`, tested tree `0e63d1637dbdf413177458bb7f32e165f36ff7ad`, Production `dpl_7wFcLjXVCagiAvH5jLwV8oc7MaZ5`. The staged build was smoked and the same build promoted. All five candidate workflows and applicable merged-main checks pass. The recorded read-only production ledger has 263 migrations through `20261114114000`; this release applied no migration and replayed no cron or content publication. Human signed-in and physical-phone gameplay acceptance remains open.
+
+The next **Ferry and Uncharted Lands** update connects the existing ferry to the active Uncharted map, preserves the free hourly crossing/shared deck, completes deferred gameplay testing and revalidates the inherited 82-row backlog. It also carries the player-facing names **The Shadows’ Vigil** (waterfall valley) and **The Thousand Steps** (colosseum), retaining existing IDs and approved lore; authored stream/river/pond/basin bends and natural waterfall/lavafall connections using approved artwork (especially Willow Cascades and Emberreach); verification of existing weather-responsive, individually varied vegetation motion with gap fixes only; and a new grand walkable bridge across a broad sea channel from a remote mainland coast to a modest offshore island with a grand scenic tower. Preserve ferry navigation, natural walking approaches and the separate Longwater Crossing. The tower is scenery only for now, without entry, quests, rewards or gameplay function. This is approved subsequent scope, not part of the completed #1043 release or authorization to deploy another build through its completion monitor.
+
+See [World Map completion and release evidence](verification/2026-11-16-world-map-request-completion.md) and the [immutable evidence receipt](https://github.com/ZeiJM/Aurevane/blob/agent/world-map-completion-evidence/docs/verification/2026-11-17-world-map-completion-receipt.json). The evidence branch and diagnostic branches must never merge or deploy.
 
 The full [November status matrix](ROADMAP_STATUS_2026-11-15.md) distinguishes **implemented**, **merged**, **live**, **technically verified** and **Owner accepted**, and records open gates. Do not use an ungrounded global completion percentage.
 
 ---
 
 ## Historical release notes and earlier roadmap checkpoints
+
+November17 World Map request completion — source Pieces1–5, one combined update: controls/Travel Points, Uncharted fog cleanup, dry fire/ice town surfaces and9–14-district public built-up extents are implemented with saved authority and existing safe cores preserved. Native major-art/zoom, coast/naturalness and runtime review plus final combined gates remain pending. Use agent/world-map-request-completion and [the current checklist/worker lease](verification/2026-11-16-world-map-request-completion.md). Keep the single hourly continuation active, older watchers paused and Git deployments disabled. PR1040 is already released; no replay or partial deployment.
 
 **Archive notice:** The timestamped entries below are preserved historical context. When an older `not live`, `active` or `pending` note conflicts with a later verified release, the newer exact-SHA release record and current status matrix control **execution status** (not canonical mechanic design).
 
@@ -105,3 +111,4 @@ Owner modular correction — October18: **LIVE for testing** through PR #936, me
 📚 [Full plan](ROADMAP_DETAILED_2026-10-13.md) · [Audit](ROADMAP_AUDIT_2026-10-13.md)
 
 UI audit continuation remains pending release; scope and validation: [UI audit refinements](verification/2026-10-24-ui-audit-refinements.md). No phase closure or gameplay-rule changes.
+

@@ -1,4 +1,4 @@
-> **15 November 2026 current-status reconciliation:** This is an October 13 historical roadmap and execution snapshot. The newer [current roadmap reality matrix](ROADMAP_STATUS_2026-11-15.md) incorporates November's merged NPC, Event, Quest, ferry, World and artwork work, and separates branch-only PR #1040 from production. All the approved long-form phase requirements below remain in force; historical `pending` statements do not override verified later releases.
+> **17 November 2026 current-status reconciliation:** This is an October 13 historical roadmap and execution snapshot. The [current roadmap reality matrix](ROADMAP_STATUS_2026-11-15.md) records subsequent releases through live #1043 and separates technical release from Owner acceptance. All approved long-form phase requirements below remain in force; historical pending statements do not override verified later releases.
 
 > Archived pre-audit implementation roadmap as of main 0bf7958f37dba19092ce435b9e963b39e5facb95. Historical status statements may be superseded; see [current roadmap](ROADMAP.md) and [audit](ROADMAP_AUDIT_2026-10-13.md). All long-form phase requirements remain available for reference.
 
@@ -941,3 +941,4 @@ Automatic performance/scaling checkpoints continue at the defined future boundar
 The frontier, Rekindling replay systems and Owner-created Anomalies remain approved long-horizon direction, outside this closeout scope.
 
 Owner-approved 2026-10-03 combat refinement: Copy now transfers active beneficial effect tags from target to user in newly created, policy-pinned encounters; historical encounters preserve temporary-Skill Copy. See `docs/COMBAT.md` and the active task ledger for validation/release status.
+

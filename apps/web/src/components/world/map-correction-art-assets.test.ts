@@ -16,6 +16,9 @@ const sheets = [
   'valley-fire-detail',
   'valley-ice-detail',
   'valley-cascade-detail',
+  'colosseum-left-detail',
+  'colosseum-rear-detail',
+  'colosseum-right-detail',
 ] as const
 const base = new URL('../../../public/media/art/world/', import.meta.url)
 const sha256 = (bytes: Buffer) => createHash('sha256').update(bytes).digest('hex')
