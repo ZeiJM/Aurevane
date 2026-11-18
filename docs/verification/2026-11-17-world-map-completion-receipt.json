@@ -16,12 +16,12 @@
   "productionMutationOccurred": false,
   "releaseHold": true,
   "ownership": {
-    "interactiveOwner": "Hourly continuation requested by Nick; Automation_9dd57abfa004819195b30acab8a54150",
-    "leaseExpires": "2026-11-18T00:02:37.495Z",
+    "interactiveOwner": "Automation_9dd57abfa004819195b30acab8a54150",
+    "leaseExpires": "2026-11-18T01:15:36.670Z",
     "hourlyTasksDisabled": [
       "Automation_661d7a3712ec8191939d0104f5c5a773"
     ],
-    "handoff": "The previous interactive source lease is released. The designated hourly continuation may claim the next lease. Treat only a newer active lease as concurrent work."
+    "handoff": "Designated automation claimed released lease; source candidate remains frozen. Do not overlap while this lease is active."
   },
   "currentRuns": {
     "ci": 44199406222,
@@ -187,7 +187,7 @@
     "Perform the authorized one-build release and canonical postflight only after passing gates.",
     "Reconcile docs-only PR #1042 with verified release status."
   ],
-  "updatedAt": "2026-11-18T00:20:44.005Z",
+  "updatedAt": "2026-11-18T00:30:36.670Z",
   "previousCandidate": {
     "sha": "9b76647e206ec9a426804a13bd53ee33cc6df941",
     "tree": "d7256c6b8cf558b4e9b92400a412eb5052a2682e",
