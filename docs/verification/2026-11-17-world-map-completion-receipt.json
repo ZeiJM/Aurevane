@@ -16,12 +16,12 @@
   "productionMutationOccurred": false,
   "releaseHold": true,
   "ownership": {
-    "interactiveOwner": "Nick-directed continuation",
-    "leaseExpires": "2026-11-18T02:00:00Z",
+    "interactiveOwner": "Hourly continuation requested by Nick; Automation_9dd57abfa004819195b30acab8a54150",
+    "leaseExpires": "2026-11-18T00:02:37.495Z",
     "hourlyTasksDisabled": [
-      "Automation_661d7a3712ec8191939d0104f5c5a773",
-      "Automation_9dd57abfa004819195b30acab8a54150"
-    ]
+      "Automation_661d7a3712ec8191939d0104f5c5a773"
+    ],
+    "handoff": "The previous interactive source lease is released. The designated hourly continuation may claim the next lease. Treat only a newer active lease as concurrent work."
   },
   "currentRuns": {
     "ci": 44199406222,
@@ -29,7 +29,7 @@
     "atlas": 44199406249,
     "browserSmoke": 44199406377,
     "timing": 44199406372,
-    "status": "Fresh exact4e1f094 gates running/pending; no further app changes planned"
+    "status": "CI, UI layout and World timing repeat validation passed on 4e1f094. Browser Smoke and Living Atlas are in progress. Final native visual review remains."
   },
   "local": {
     "checkout": "Clean4e1f094 checkout; source tree equals0e63d1637dbdf413177458bb7f32e165f36ff7ad",
@@ -172,8 +172,7 @@
       "PR1040 migrations/cron replay",
       "content republication",
       "player reset",
-      "diagnostic/evidence branch merge or deployment",
-      "resumed hourly tasks"
+      "diagnostic/evidence branch merge or deployment"
     ],
     "domains": [
       "aurevane-rpg.com",
@@ -183,11 +182,12 @@
     "currentCanonicalVerified": true
   },
   "remaining": [
-    "Finish4e1f094 full local quality and all five configured exact-source workflows; inspect any failure causally.",
+    "Finish Browser Smoke and Living Atlas on the current candidate; inspect failures and address their causes.",
     "Review final native centre/both lateral Colosseum, valley, rotated globe, water, snow, towns and responsive controls.",
-    "Perform authorized one-build release and canonical postflight only after passing gates."
+    "Perform the authorized one-build release and canonical postflight only after passing gates.",
+    "Reconcile docs-only PR #1042 with verified release status and record the approved names The Shadows’ Vigil and The Thousand Steps."
   ],
-  "updatedAt": "2026-11-17T23:31:28.689Z",
+  "updatedAt": "2026-11-18T00:02:37.495Z",
   "previousCandidate": {
     "sha": "9b76647e206ec9a426804a13bd53ee33cc6df941",
     "tree": "d7256c6b8cf558b4e9b92400a412eb5052a2682e",
