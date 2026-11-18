@@ -17,11 +17,11 @@
   "releaseHold": true,
   "ownership": {
     "interactiveOwner": "Automation_9dd57abfa004819195b30acab8a54150",
-    "leaseExpires": "2026-11-18T01:15:36.670Z",
+    "leaseExpires": "2026-11-18T00:32:32.209Z",
     "hourlyTasksDisabled": [
       "Automation_661d7a3712ec8191939d0104f5c5a773"
     ],
-    "handoff": "Designated automation claimed released lease; source candidate remains frozen. Do not overlap while this lease is active."
+    "handoff": "Designated automation checked exact-source gates and verified Timing75 artifact. Lease released while existing Smoke7391 and Atlas824 finish; next designated continuation may claim unless a newer active lease exists. Do not duplicate active runs. Source unchanged; native images unavailable until Atlas artifact upload. Keep release held."
   },
   "currentRuns": {
     "ci": 44199406222,
@@ -29,7 +29,7 @@
     "atlas": 44199406249,
     "browserSmoke": 44199406377,
     "timing": 44199406372,
-    "status": "CI, UI layout and World timing repeat validation passed on 4e1f094. Browser Smoke and Living Atlas are in progress. Final native visual review remains."
+    "status": "Freshly verified CI, UI layout and all 63 timing executions pass on exact candidate 4e1f094. Browser Smoke still running desktop/mobile shell step; Living Atlas still running authenticated Atlas/multiplayer. No duplicate runs started. Final native visual acceptance pending artifact publication."
   },
   "local": {
     "checkout": "Clean4e1f094 checkout; source tree equals0e63d1637dbdf413177458bb7f32e165f36ff7ad",
@@ -179,7 +179,16 @@
       "www.aurevane-rpg.com",
       "aurevane.vercel.app"
     ],
-    "currentCanonicalVerified": true
+    "currentCanonicalVerified": true,
+    "readOnlyRefresh": {
+      "checkedAt": "2026-11-18T00:32:32.209Z",
+      "canonicalDeployment": "dpl_2Et3UkKAWbsLf6TsABzxoxPg5gpJ",
+      "canonicalHost": "aurevane-gsi1a8028-zeijms-projects.vercel.app",
+      "projectLatestDeploymentMatches": true,
+      "candidateDeploymentCount": 0,
+      "productionMutationOccurred": false,
+      "ledgerRefresh": "Not attempted: final native gates remain pending. Must refresh installed ledger before guarded release."
+    }
   },
   "remaining": [
     "Finish Browser Smoke and Living Atlas on the current candidate; inspect failures and address their causes.",
@@ -187,7 +196,7 @@
     "Perform the authorized one-build release and canonical postflight only after passing gates.",
     "Reconcile docs-only PR #1042 with verified release status."
   ],
-  "updatedAt": "2026-11-18T00:30:36.670Z",
+  "updatedAt": "2026-11-18T00:32:32.209Z",
   "previousCandidate": {
     "sha": "9b76647e206ec9a426804a13bd53ee33cc6df941",
     "tree": "d7256c6b8cf558b4e9b92400a412eb5052a2682e",
@@ -228,5 +237,38 @@
     ],
     "currentReleaseBoundary": "PR #1043 retains its existing water and lava artwork and rendering fixes. The authored connections and terrain layout, player-facing names, vegetation follow-up and new bridge belong to the subsequent ferry update.",
     "recordedAt": "2026-11-18T00:20:44.004Z"
+  },
+  "timing75": {
+    "source": "4e1f094c8a25a384f06b882127864ae4d534791c",
+    "tree": "0e63d1637dbdf413177458bb7f32e165f36ff7ad",
+    "run": 44199406372,
+    "job": 134449287331,
+    "result": "success",
+    "mobilePassed": 3,
+    "desktopPassed": 60,
+    "retries": 0,
+    "logVerified": true,
+    "artifact": {
+      "id": 14380669889,
+      "sha256": "324414ed488e3506cf457f5037609b4fac486adadecf0cacba9d5bbb8bee72ae",
+      "verified": true,
+      "bytes": 3140962,
+      "files": 286
+    },
+    "mobileTargetMs": [
+      7227.6,
+      7044,
+      7037.8
+    ],
+    "mobileAdditionalFrames": [
+      121,
+      121,
+      121
+    ],
+    "players": 101,
+    "identityPixels": 1792876,
+    "terrainPixels": 586336,
+    "cachedPixels": 2451852,
+    "physicalHandsetAcceptance": false
   }
 }
