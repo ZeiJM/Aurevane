@@ -17,11 +17,11 @@
   "releaseHold": true,
   "ownership": {
     "interactiveOwner": "Automation_9dd57abfa004819195b30acab8a54150",
-    "leaseExpires": "2026-11-18T02:24:21.602Z",
+    "leaseExpires": "2026-11-18T01:39:43.664Z",
     "hourlyTasksDisabled": [
       "Automation_661d7a3712ec8191939d0104f5c5a773"
     ],
-    "handoff": "Designated continuation reviewing newly completed Atlas824 native evidence; source frozen. Avoid overlap with this active lease."
+    "handoff": "Final Atlas824 native review completed; no source mutation. Lease released while original Smoke7391 remains active. Next designated continuation may claim unless a newer active lease exists. Do not duplicate active Smoke. Release still held until complete Chromium/Edge proof, fresh-main tested-tree merge and guarded same-build promotion."
   },
   "currentRuns": {
     "ci": 44199406222,
@@ -29,7 +29,7 @@
     "atlas": 44199406249,
     "browserSmoke": 44199406377,
     "timing": 44199406372,
-    "status": "Freshly verified CI, UI layout and all 63 timing executions pass on exact candidate 4e1f094. Browser Smoke still running desktop/mobile shell step; Living Atlas still running authenticated Atlas/multiplayer. No duplicate runs started. Final native visual acceptance pending artifact publication."
+    "status": "CI, UI layout, Timing75 all63 zero-retry cases and Living Atlas824 pass on 4e1f094 exact tested tree. Final native representative review completed. Browser Smoke7391 job134449845067 remains in_progress at desktop/mobile shell. No duplicate workflow or release created."
   },
   "local": {
     "checkout": "Clean4e1f094 checkout; source tree equals0e63d1637dbdf413177458bb7f32e165f36ff7ad",
@@ -77,7 +77,7 @@
     "red": "Thin island shore support lost at internal boundary before correction",
     "green": 44,
     "privateAlphaAndTownAndThinSupport": "Existing checks retained and pass",
-    "nativeRotatedAcceptance": "pending"
+    "nativeRotatedAcceptance": "Representative current Atlas824 rotated WebGL/fallback views reviewed on desktop/mobile; no recurrence of prior island-cap defect observed."
   },
   "fixtureCorrections": {
     "source": "ec2610274bed3c9e0a2acbfdef7aebc2e7ebe806",
@@ -191,12 +191,11 @@
     }
   },
   "remaining": [
-    "Finish Browser Smoke and Living Atlas on the current candidate; inspect failures and address their causes.",
-    "Review final native centre/both lateral Colosseum, valley, rotated globe, water, snow, towns and responsive controls.",
-    "Perform the authorized one-build release and canonical postflight only after passing gates.",
-    "Reconcile docs-only PR #1042 with verified release status."
+    "Finish complete current-source Browser Smoke/Chromium/Edge and inspect logs/artifacts; do not duplicate active run.",
+    "After every gate passes, refresh main and tested merge tree, merge PR1043, verify merged tree/main checks, refresh Production and installed ledger read-only, stage/smoke/promote same Production build.",
+    "Pin verified canonical release/postflight and refresh/merge docs-only PR1042 with its own checks."
   ],
-  "updatedAt": "2026-11-18T01:34:21.602Z",
+  "updatedAt": "2026-11-18T01:39:43.664Z",
   "previousCandidate": {
     "sha": "9b76647e206ec9a426804a13bd53ee33cc6df941",
     "tree": "d7256c6b8cf558b4e9b92400a412eb5052a2682e",
@@ -270,5 +269,52 @@
     "terrainPixels": 586336,
     "cachedPixels": 2451852,
     "physicalHandsetAcceptance": false
+  },
+  "atlas824": {
+    "source": "4e1f094c8a25a384f06b882127864ae4d534791c",
+    "testedMerge": "dfd0a58c67d8c29a84788be9d020bb133913779c",
+    "tree": "0e63d1637dbdf413177458bb7f32e165f36ff7ad",
+    "run": 44199406249,
+    "job": 134449572416,
+    "result": "success",
+    "story": {
+      "passed": 15,
+      "skipped": 7
+    },
+    "atlas": {
+      "passed": 113,
+      "skipped": 130
+    },
+    "pg17": "PASS real disposable PG17 atomic success/rollback, source-history rows, RPC ACLs, preserved versions and saved progress; no hosted migration executed",
+    "artifacts": [
+      {
+        "id": 14385521033,
+        "sha256": "30a27292d8b940a2114b10ea40c74bcf88b8cac9bb5c57b64427798142238813",
+        "bytes": 415980712,
+        "files": 197,
+        "verified": true
+      },
+      {
+        "id": 14384737820,
+        "sha256": "be60dff78dd2e723ca101f531b3a99fbc23ea71281751fae0d05ab41b0e2ab38",
+        "bytes": 51621367,
+        "files": 94,
+        "verified": true
+      }
+    ],
+    "nativeReview": {
+      "status": "Representative exact-source native screenshots reviewed; no new demonstrated regression requiring source change found.",
+      "scope": [
+        "Colosseum center normal/maximum and both lateral maximum details, desktop and mobile",
+        "Selected original valley normal/maximum and overview",
+        "WebGL/fallback globe center/east/west/Uncharted, desktop and mobile",
+        "Longwater Crossing water joins, moat/shallow pairs, lake/ocean/storm views",
+        "Snowy rock grounding and Frostmere/Emberreach dry town surfaces at representative zooms",
+        "Willow Cascades and Emberreach existing lavafall/channel artwork",
+        "Desktop and phone controls and current-position globe"
+      ],
+      "durableEvidenceDirectory": "docs/verification/world-map-final-native-20261118/",
+      "notes": "Contact sheets are labelled derivatives of current native screenshots, not offline renderer reproductions. Full-size major detail, water/bridge, snow and lava captures also inspected. Current waterfall/lava artwork remains separate from next-update authored connections. No physical handset or human continuous-motion acceptance claimed."
+    }
   }
 }

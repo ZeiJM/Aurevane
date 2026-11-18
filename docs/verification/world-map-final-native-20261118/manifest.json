@@ -1,0 +1,1386 @@
+{
+  "source": "4e1f094c8a25a384f06b882127864ae4d534791c",
+  "tree": "0e63d1637dbdf413177458bb7f32e165f36ff7ad",
+  "run": 44199406249,
+  "artifact": 14385521033,
+  "description": "Original PNG hashes and dimensions. Sheet labels refer to index. Contact sheets preserve visual evidence as bounded JPEG derivatives; original ZIP hash verified separately.",
+  "images": [
+    {
+      "index": 0,
+      "path": "atlas-world.pw.ts-settleme-af484-g-safe-cores-or-saved-state-mobile-chromium/art-surfaces-town-extent-frostmere-normal.png",
+      "sha256": "0ee2b9cdd78b749956e3ba8ef9403af03e1112953dbc29bfb48c49c5dd6abe92",
+      "dimensions": [
+        1082,
+        2202
+      ]
+    },
+    {
+      "index": 1,
+      "path": "atlas-world.pw.ts-settleme-af484-g-safe-cores-or-saved-state-mobile-chromium/art-surfaces-town-extent-frostmere-minimum.png",
+      "sha256": "9c8147e714e583fe6b5ffa239d133dc8f15c0053863e1169a07070170f1f11a1",
+      "dimensions": [
+        1082,
+        2202
+      ]
+    },
+    {
+      "index": 2,
+      "path": "atlas-world.pw.ts-settleme-af484-g-safe-cores-or-saved-state-mobile-chromium/art-surfaces-town-extent-frostmere-maximum.png",
+      "sha256": "6e161e03c79799fe03e705b584de9bc617e9f42c7b2dd84c034ed85f0e4ed1a1",
+      "dimensions": [
+        1082,
+        2202
+      ]
+    },
+    {
+      "index": 3,
+      "path": "atlas-world.pw.ts-settleme-af484-g-safe-cores-or-saved-state-mobile-chromium/art-surfaces-town-extent-frostmere-globe.png",
+      "sha256": "2b52afee17c5c557ebbf3493b357b9ded028c8c2ffaa9a202336f736d215bc04",
+      "dimensions": [
+        1082,
+        2202
+      ]
+    },
+    {
+      "index": 4,
+      "path": "atlas-world.pw.ts-settleme-af484-g-safe-cores-or-saved-state-mobile-chromium/art-surfaces-town-extent-aureth-crown-normal.png",
+      "sha256": "c2aa6243dadcf277143d2389cb12bd50798713b7cdf83975ed832978f8e9291c",
+      "dimensions": [
+        1082,
+        2202
+      ]
+    },
+    {
+      "index": 5,
+      "path": "atlas-world.pw.ts-settleme-af484-g-safe-cores-or-saved-state-mobile-chromium/art-surfaces-town-extent-aureth-crown-minimum.png",
+      "sha256": "dee59e84f627553a421ff2b8d17900467dc7063e03ec1f3e4f519dedd487616b",
+      "dimensions": [
+        1082,
+        2202
+      ]
+    },
+    {
+      "index": 6,
+      "path": "atlas-world.pw.ts-settleme-af484-g-safe-cores-or-saved-state-mobile-chromium/art-surfaces-town-extent-aureth-crown-maximum.png",
+      "sha256": "3e86f0aedd52cf49f4be0eaf018b1417d98da2f078ec0fccdc4d1c854d17fb0d",
+      "dimensions": [
+        1082,
+        2202
+      ]
+    },
+    {
+      "index": 7,
+      "path": "atlas-world.pw.ts-settleme-af484-g-safe-cores-or-saved-state-mobile-chromium/art-surfaces-town-extent-aureth-crown-globe.png",
+      "sha256": "5a38285ea70346be7306d1410111b99224747596cc677747122918fa94ee3141",
+      "dimensions": [
+        1082,
+        2202
+      ]
+    },
+    {
+      "index": 8,
+      "path": "atlas-world.pw.ts-settleme-af484-g-safe-cores-or-saved-state-desktop-chromium/art-surfaces-town-extent-frostmere-normal.png",
+      "sha256": "7ea7f2cba6850bcf01ed4e039109fb5779bbc9db81666c08615f582b5b2359e6",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 9,
+      "path": "atlas-world.pw.ts-settleme-af484-g-safe-cores-or-saved-state-desktop-chromium/art-surfaces-town-extent-frostmere-minimum.png",
+      "sha256": "f1246d2a5d01c636e1cee11f098ae7409d83681b9c3fef9e51abcc13780b2165",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 10,
+      "path": "atlas-world.pw.ts-settleme-af484-g-safe-cores-or-saved-state-desktop-chromium/art-surfaces-town-extent-frostmere-maximum.png",
+      "sha256": "9073f70c8db888597184919be3142659e50251ce129736acf5cbba7c96d2688e",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 11,
+      "path": "atlas-world.pw.ts-settleme-af484-g-safe-cores-or-saved-state-desktop-chromium/art-surfaces-town-extent-frostmere-globe.png",
+      "sha256": "986844bedd389f442f05b6e89eaea0b9d9b491b3140c7b83efb832647e7125fc",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 12,
+      "path": "atlas-world.pw.ts-settleme-af484-g-safe-cores-or-saved-state-desktop-chromium/art-surfaces-town-extent-aureth-crown-normal.png",
+      "sha256": "14c12309fd8b2ff51aa1b11190c1acac975b3b61b726f0eab8acbd10b0c27990",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 13,
+      "path": "atlas-world.pw.ts-settleme-af484-g-safe-cores-or-saved-state-desktop-chromium/art-surfaces-town-extent-aureth-crown-minimum.png",
+      "sha256": "1304e1aaf7d5b7a0e5e766220d17724dd4db4ddde87fba78b3f47882c29c44b3",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 14,
+      "path": "atlas-world.pw.ts-settleme-af484-g-safe-cores-or-saved-state-desktop-chromium/art-surfaces-town-extent-aureth-crown-maximum.png",
+      "sha256": "0a67e32ff12e71a9a6c36dc6b62b8e3889d3278e7629aa8f75f72d0fb5e9ecf4",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 15,
+      "path": "atlas-world.pw.ts-settleme-af484-g-safe-cores-or-saved-state-desktop-chromium/art-surfaces-town-extent-aureth-crown-globe.png",
+      "sha256": "637c3f8a07e324a6e0ef89d66dacd9f4a352c1e58226922917edeccfb97c8df8",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 16,
+      "path": "atlas-world.pw.ts-regional-8bf9b-bank-and-depth-review-views-desktop-chromium/art-water-depth-verdant-expanse.png",
+      "sha256": "d0da8850d369d57a1a6592358263a0ebd3eed77a343978f9fce6513785267f29",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 17,
+      "path": "atlas-world.pw.ts-regional-8bf9b-bank-and-depth-review-views-desktop-chromium/art-water-depth-hollow-coast.png",
+      "sha256": "809fa5b1c25ddbba3842d059076b939d47e97dabb1ab9d4955f1ecb536d2e7bc",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 18,
+      "path": "atlas-world.pw.ts-regional-8bf9b-bank-and-depth-review-views-desktop-chromium/art-water-depth-glasswind-desert.png",
+      "sha256": "21d365bfb6e9b8a2636d1a370731ddf9c0e338b4530b99ed3c55c28270b51624",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 19,
+      "path": "atlas-world.pw.ts-new-main-9ec3d-ve-normal-zoom-review-views-mobile-chromium/art-surfaces-woodland-grand-bridge.png",
+      "sha256": "d76bd28a9966482282e096ddc3086a5e8d43ff8436f52a19c90bb16e0d45eaf3",
+      "dimensions": [
+        1082,
+        2202
+      ]
+    },
+    {
+      "index": 20,
+      "path": "atlas-world.pw.ts-new-main-9ec3d-ve-normal-zoom-review-views-mobile-chromium/art-surfaces-willow-cascade.png",
+      "sha256": "e663ba2927b24ce8bd363f99dcca60e1ea003a64b64f47c467508eef5cbc6e24",
+      "dimensions": [
+        1082,
+        2202
+      ]
+    },
+    {
+      "index": 21,
+      "path": "atlas-world.pw.ts-new-main-9ec3d-ve-normal-zoom-review-views-mobile-chromium/art-surfaces-town-moat-bridge.png",
+      "sha256": "ebdc0b4d0311bc04cbb0e22b0991439d368d9f01449c9645a6b089e4189e16be",
+      "dimensions": [
+        1082,
+        2202
+      ]
+    },
+    {
+      "index": 22,
+      "path": "atlas-world.pw.ts-new-main-9ec3d-ve-normal-zoom-review-views-mobile-chromium/art-surfaces-meadow-impact.png",
+      "sha256": "4b2c4c454f4f05d01bbb8f17a014e2e30a729ddf6cbc31fbea4ba1adcc34ab4c",
+      "dimensions": [
+        1082,
+        2202
+      ]
+    },
+    {
+      "index": 23,
+      "path": "atlas-world.pw.ts-new-main-9ec3d-ve-normal-zoom-review-views-mobile-chromium/art-surfaces-lavafall.png",
+      "sha256": "ffb0626d0d1c9d43daff337b6092d8ef4f8e68bdc6291b1e192adbb190778d1b",
+      "dimensions": [
+        1082,
+        2202
+      ]
+    },
+    {
+      "index": 24,
+      "path": "atlas-world.pw.ts-new-main-9ec3d-ve-normal-zoom-review-views-mobile-chromium/art-surfaces-grand-shrine.png",
+      "sha256": "419d093a709751abaccceb5ec9233f046efae57ccfba526912df8e882e2b1a1a",
+      "dimensions": [
+        1082,
+        2202
+      ]
+    },
+    {
+      "index": 25,
+      "path": "atlas-world.pw.ts-new-main-9ec3d-ve-normal-zoom-review-views-mobile-chromium/art-surfaces-alpine-impact.png",
+      "sha256": "8ef21a910ffab0c91e67c230bdb7ff3735b58167026a715ff1a82578d389ceb4",
+      "dimensions": [
+        1082,
+        2202
+      ]
+    },
+    {
+      "index": 26,
+      "path": "atlas-world.pw.ts-new-main-9ec3d-ve-normal-zoom-review-views-desktop-chromium/art-surfaces-town-moat-bridge.png",
+      "sha256": "0c34623b78d345812cd613e9cefb5a289a51a8107588da6684a51825b2a8badb",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 27,
+      "path": "atlas-world.pw.ts-new-main-9ec3d-ve-normal-zoom-review-views-desktop-chromium/art-surfaces-woodland-grand-bridge.png",
+      "sha256": "2d6af9f9a2147ad1bca8e170c8a69c956d650e82d2b2241fa28074d52a7f1ea7",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 28,
+      "path": "atlas-world.pw.ts-new-main-9ec3d-ve-normal-zoom-review-views-desktop-chromium/art-surfaces-willow-cascade.png",
+      "sha256": "c19b76c71d8e25b894875a1d6b9cba1e97d18a8762481af50496522fde5134db",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 29,
+      "path": "atlas-world.pw.ts-new-main-9ec3d-ve-normal-zoom-review-views-desktop-chromium/art-surfaces-meadow-impact.png",
+      "sha256": "3622fff912bd9c70aa14236fe51974502d8dcb69582b52e71dc7aa4284ff50c8",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 30,
+      "path": "atlas-world.pw.ts-new-main-9ec3d-ve-normal-zoom-review-views-desktop-chromium/art-surfaces-lavafall.png",
+      "sha256": "5b2afc23b84828d24cebf923f6726ee9152c49ffc0b01f985fe116b830ba2326",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 31,
+      "path": "atlas-world.pw.ts-new-main-9ec3d-ve-normal-zoom-review-views-desktop-chromium/art-surfaces-grand-shrine.png",
+      "sha256": "03b4bb90ee559d9704bb736fd7aebf123b106262464c47fd470bf876bc4fb4de",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 32,
+      "path": "atlas-world.pw.ts-new-main-9ec3d-ve-normal-zoom-review-views-desktop-chromium/art-surfaces-alpine-impact.png",
+      "sha256": "c94d1f5227bf2c2a7fa2274c16e8629493aa5531d9a3d979a0828cf16e4b2cd2",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 33,
+      "path": "atlas-world.pw.ts-moving-t-38538--settlement-roofs-and-trees-mobile-chromium/art-occlusion-tree-before.png",
+      "sha256": "ec312391ff46832a05dbc192e3823ad486f6b256a1ccfaa77e090536a0b1b24e",
+      "dimensions": [
+        1082,
+        2197
+      ]
+    },
+    {
+      "index": 34,
+      "path": "atlas-world.pw.ts-moving-t-38538--settlement-roofs-and-trees-mobile-chromium/art-occlusion-tree-after.png",
+      "sha256": "08e65e682702d9480635d1203f9c6d107683bc8e3e3d451734164762f9d31680",
+      "dimensions": [
+        1082,
+        2197
+      ]
+    },
+    {
+      "index": 35,
+      "path": "atlas-world.pw.ts-moving-t-38538--settlement-roofs-and-trees-mobile-chromium/art-occlusion-roof-before.png",
+      "sha256": "544878f19b9d96598d30cba572563cdb1dbc0ac77b5c7819d96df33a15a974b3",
+      "dimensions": [
+        1082,
+        2200
+      ]
+    },
+    {
+      "index": 36,
+      "path": "atlas-world.pw.ts-moving-t-38538--settlement-roofs-and-trees-mobile-chromium/art-occlusion-roof-after.png",
+      "sha256": "2c8eea6ffb16aa9ec7dbdc28118b3d938975aa427c86629f2f04fcb6c5e996f6",
+      "dimensions": [
+        1082,
+        2200
+      ]
+    },
+    {
+      "index": 37,
+      "path": "atlas-world.pw.ts-moving-t-38538--settlement-roofs-and-trees-desktop-chromium/art-occlusion-tree-before.png",
+      "sha256": "b5174ea2710c71a551f5eb0faf9377f2b1118a70fabd653440b4053f9f242d94",
+      "dimensions": [
+        1440,
+        898
+      ]
+    },
+    {
+      "index": 38,
+      "path": "atlas-world.pw.ts-moving-t-38538--settlement-roofs-and-trees-desktop-chromium/art-occlusion-tree-after.png",
+      "sha256": "f5f2c63e6e2d9dbce5945ca97c59d3f966de7cc32b6809f7cd5f53c19052c030",
+      "dimensions": [
+        1440,
+        898
+      ]
+    },
+    {
+      "index": 39,
+      "path": "atlas-world.pw.ts-moving-t-38538--settlement-roofs-and-trees-desktop-chromium/art-occlusion-roof-before.png",
+      "sha256": "d3455021c77686bc9e81b7999f86313db757f5279408485e50ac82a07224c149",
+      "dimensions": [
+        1440,
+        899
+      ]
+    },
+    {
+      "index": 40,
+      "path": "atlas-world.pw.ts-moving-t-38538--settlement-roofs-and-trees-desktop-chromium/art-occlusion-roof-after.png",
+      "sha256": "d687d95a4dc62be3b1e8d4991d8db5622b17f9bf79009b556d3d2c0a288cbe0b",
+      "dimensions": [
+        1440,
+        899
+      ]
+    },
+    {
+      "index": 41,
+      "path": "atlas-world.pw.ts-large-ra-88e83-ve-normal-zoom-native-views-mobile-chromium/art-void-scenery-regional-scenery-extra-3.png",
+      "sha256": "a54289b4088cdd2ce136e4e5da217a71cde92eee1c23095a9a6a12f3cc6621b0",
+      "dimensions": [
+        1082,
+        2202
+      ]
+    },
+    {
+      "index": 42,
+      "path": "atlas-world.pw.ts-large-ra-88e83-ve-normal-zoom-native-views-mobile-chromium/art-void-scenery-regional-scenery-7.png",
+      "sha256": "971beea9874a6b19f04935f913bfa6ababb4afd7da137d534b4e19e36193bdee",
+      "dimensions": [
+        1082,
+        2202
+      ]
+    },
+    {
+      "index": 43,
+      "path": "atlas-world.pw.ts-large-ra-88e83-ve-normal-zoom-native-views-mobile-chromium/art-void-scenery-rare-scenery-3.png",
+      "sha256": "44c972cb1a6011f23f6827ab46654decb57c71ded1b8503744073161e87d4594",
+      "dimensions": [
+        1082,
+        2202
+      ]
+    },
+    {
+      "index": 44,
+      "path": "atlas-world.pw.ts-large-ra-88e83-ve-normal-zoom-native-views-mobile-chromium/art-void-scenery-rare-scenery-2.png",
+      "sha256": "d2940c8fd876f8df375e8a47658bc18e9e06ab80ed3961997df9f1fe2f7ab60a",
+      "dimensions": [
+        1082,
+        2202
+      ]
+    },
+    {
+      "index": 45,
+      "path": "atlas-world.pw.ts-large-ra-88e83-ve-normal-zoom-native-views-mobile-chromium/art-void-scenery-rare-scenery-1.png",
+      "sha256": "6d6c5ec406b2e42233dbf78675b20e9b5d6e1a11ad888b578d0476464faa4350",
+      "dimensions": [
+        1082,
+        2202
+      ]
+    },
+    {
+      "index": 46,
+      "path": "atlas-world.pw.ts-large-ra-88e83-ve-normal-zoom-native-views-desktop-chromium/art-void-scenery-regional-scenery-extra-3.png",
+      "sha256": "a545674bc7c518b9c774a7c8fb483f1290d4ce9dd5cf2e954c0ebb9f1d3b64a5",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 47,
+      "path": "atlas-world.pw.ts-large-ra-88e83-ve-normal-zoom-native-views-desktop-chromium/art-void-scenery-regional-scenery-7.png",
+      "sha256": "1dea8cbae7d9c2a2375791d10f210331030cca2a9253bee2666a70ca7cb2ae85",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 48,
+      "path": "atlas-world.pw.ts-large-ra-88e83-ve-normal-zoom-native-views-desktop-chromium/art-void-scenery-rare-scenery-3.png",
+      "sha256": "66b6f7bb60674a0898b42b636dc823ca04e37100d653d0fd86fa3bb00917bf29",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 49,
+      "path": "atlas-world.pw.ts-large-ra-88e83-ve-normal-zoom-native-views-desktop-chromium/art-void-scenery-rare-scenery-2.png",
+      "sha256": "a6963fb7d0cdb0a7fb61620110cc901abd83b36f0858d71d1380c1d880e6e447",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 50,
+      "path": "atlas-world.pw.ts-large-ra-88e83-ve-normal-zoom-native-views-desktop-chromium/art-void-scenery-rare-scenery-1.png",
+      "sha256": "e560f3c97e0f239f1d7b4cf1e347db4d44c9234dcfa4d10f8e0185210a4539ae",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 51,
+      "path": "atlas-world.pw.ts-frostmer-ced54-al-ground-at-every-map-zoom-mobile-chromium/art-dry-town-frostmere-normal.png",
+      "sha256": "70b4259dfb01ae2cba7b9c660ae0cac78158fb15970d72cc67947080f97d7595",
+      "dimensions": [
+        1082,
+        2202
+      ]
+    },
+    {
+      "index": 52,
+      "path": "atlas-world.pw.ts-frostmer-ced54-al-ground-at-every-map-zoom-mobile-chromium/art-dry-town-frostmere-minimum.png",
+      "sha256": "baee394602ac8f23c97ce1c041c75c9c33a9e8caaa6879ff8995c8c4fd1a9cff",
+      "dimensions": [
+        1082,
+        2202
+      ]
+    },
+    {
+      "index": 53,
+      "path": "atlas-world.pw.ts-frostmer-ced54-al-ground-at-every-map-zoom-mobile-chromium/art-dry-town-frostmere-maximum.png",
+      "sha256": "18b27910b87fdc6b3ec43bce05db8aefa8541aa1b84fbffeedf8b7efdae73ad2",
+      "dimensions": [
+        1082,
+        2202
+      ]
+    },
+    {
+      "index": 54,
+      "path": "atlas-world.pw.ts-frostmer-ced54-al-ground-at-every-map-zoom-desktop-chromium/art-dry-town-frostmere-normal.png",
+      "sha256": "4088b868c4484dae2eb25457fe6eff8696e7595d2c909fd079a545851fd34b9b",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 55,
+      "path": "atlas-world.pw.ts-frostmer-ced54-al-ground-at-every-map-zoom-desktop-chromium/art-dry-town-frostmere-minimum.png",
+      "sha256": "7a0c12a082bdc0158e7ab9f57f58cfcd29c1046503df5688b2660abc6afc2d53",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 56,
+      "path": "atlas-world.pw.ts-frostmer-ced54-al-ground-at-every-map-zoom-desktop-chromium/art-dry-town-frostmere-maximum.png",
+      "sha256": "bb5a82cd6ea7d6988bcd60ff395dfa2c50a512215ca88d7102c2845d5511d592",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 57,
+      "path": "atlas-world.pw.ts-emberrea-37477-al-ground-at-every-map-zoom-mobile-chromium/art-dry-town-emberreach-normal.png",
+      "sha256": "b72ad23ed5842a5a6e37b1e215aab33b47885fd76df5c51bede064c02de0d75f",
+      "dimensions": [
+        1082,
+        2202
+      ]
+    },
+    {
+      "index": 58,
+      "path": "atlas-world.pw.ts-emberrea-37477-al-ground-at-every-map-zoom-mobile-chromium/art-dry-town-emberreach-minimum.png",
+      "sha256": "f1d552368f0b4b034db4c64e5a4a47b9b752bd4e4831279102bccdda1a262315",
+      "dimensions": [
+        1082,
+        2202
+      ]
+    },
+    {
+      "index": 59,
+      "path": "atlas-world.pw.ts-emberrea-37477-al-ground-at-every-map-zoom-mobile-chromium/art-dry-town-emberreach-maximum.png",
+      "sha256": "13b68b56615f625eff23c6a845fb6ddad4cfb5bd56626e0cf5745b17fde462c0",
+      "dimensions": [
+        1082,
+        2202
+      ]
+    },
+    {
+      "index": 60,
+      "path": "atlas-world.pw.ts-emberrea-37477-al-ground-at-every-map-zoom-desktop-chromium/art-dry-town-emberreach-normal.png",
+      "sha256": "4fb53b9a7ec37608081e91cecfda14e9cf03ba7dbae830d97e5e390ae4351c43",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 61,
+      "path": "atlas-world.pw.ts-emberrea-37477-al-ground-at-every-map-zoom-desktop-chromium/art-dry-town-emberreach-minimum.png",
+      "sha256": "7d800b3af4cf42a36ad9c7353e983e4c29473c2cea4e072bd65ae443bd48f692",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 62,
+      "path": "atlas-world.pw.ts-emberrea-37477-al-ground-at-every-map-zoom-desktop-chromium/art-dry-town-emberreach-maximum.png",
+      "sha256": "8e7175617b24a92bdec3f2b17f89a7a6cd4d175eb6d02c597586d6e52aac67ef",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 63,
+      "path": "atlas-world.pw.ts-all-new--2e206-ve-normal-zoom-native-views-mobile-chromium/art-scenery-regional-scenery-extra-2.png",
+      "sha256": "5f06228e29a39d7039d585a12075e8ee992a89c664ce3c168398433db6ccb37f",
+      "dimensions": [
+        1082,
+        2202
+      ]
+    },
+    {
+      "index": 64,
+      "path": "atlas-world.pw.ts-all-new--2e206-ve-normal-zoom-native-views-mobile-chromium/art-scenery-regional-scenery-extra-1.png",
+      "sha256": "c32ffd2a43e183b8fd309b55ca5a51dfe586c9a2f82660ffd77191559cf662c5",
+      "dimensions": [
+        1082,
+        2202
+      ]
+    },
+    {
+      "index": 65,
+      "path": "atlas-world.pw.ts-all-new--2e206-ve-normal-zoom-native-views-mobile-chromium/art-scenery-regional-scenery-extra-0.png",
+      "sha256": "ede16d75e58b782539fbc3b84ef9fcc0abb370b0d27800966f273262e06279b8",
+      "dimensions": [
+        1082,
+        2202
+      ]
+    },
+    {
+      "index": 66,
+      "path": "atlas-world.pw.ts-all-new--2e206-ve-normal-zoom-native-views-mobile-chromium/art-scenery-regional-scenery-6.png",
+      "sha256": "16299cdd522b1d77ede67d5c6e4789550b7ab64bc5d3735bc266e51120fe92f3",
+      "dimensions": [
+        1082,
+        2202
+      ]
+    },
+    {
+      "index": 67,
+      "path": "atlas-world.pw.ts-all-new--2e206-ve-normal-zoom-native-views-mobile-chromium/art-scenery-regional-scenery-5.png",
+      "sha256": "0e118a433bc0333d3acfc87e4b76845df1293953da30212c40d5f4eff1cd474d",
+      "dimensions": [
+        1082,
+        2202
+      ]
+    },
+    {
+      "index": 68,
+      "path": "atlas-world.pw.ts-all-new--2e206-ve-normal-zoom-native-views-mobile-chromium/art-scenery-regional-scenery-4.png",
+      "sha256": "3663857523b35dfc382146fd2c0602d2b6c70742af2b9482778045899aa709c4",
+      "dimensions": [
+        1082,
+        2202
+      ]
+    },
+    {
+      "index": 69,
+      "path": "atlas-world.pw.ts-all-new--2e206-ve-normal-zoom-native-views-mobile-chromium/art-scenery-regional-scenery-3.png",
+      "sha256": "9be927a2fc4858e2dfffe02cd17fffbc2c0833843a6aa3155a81239bcc00f981",
+      "dimensions": [
+        1082,
+        2202
+      ]
+    },
+    {
+      "index": 70,
+      "path": "atlas-world.pw.ts-all-new--2e206-ve-normal-zoom-native-views-mobile-chromium/art-scenery-regional-scenery-2.png",
+      "sha256": "9a96c82994d1e469405f4156516470f519ebd550637e9c90a7b012587df779d6",
+      "dimensions": [
+        1082,
+        2202
+      ]
+    },
+    {
+      "index": 71,
+      "path": "atlas-world.pw.ts-all-new--2e206-ve-normal-zoom-native-views-mobile-chromium/art-scenery-regional-scenery-1.png",
+      "sha256": "0244452d6b298d627e9e51d32170b7869cef06c2bf42bf69a0a17469ed21c1d5",
+      "dimensions": [
+        1082,
+        2202
+      ]
+    },
+    {
+      "index": 72,
+      "path": "atlas-world.pw.ts-all-new--2e206-ve-normal-zoom-native-views-mobile-chromium/art-scenery-regional-scenery-0.png",
+      "sha256": "d5eb11a3ad8155d3bf1ba1b49b998bb3f35c9dbbc352d656addb12320857b27a",
+      "dimensions": [
+        1082,
+        2202
+      ]
+    },
+    {
+      "index": 73,
+      "path": "atlas-world.pw.ts-all-new--2e206-ve-normal-zoom-native-views-mobile-chromium/art-scenery-rare-scenery-0.png",
+      "sha256": "f084d6f43f9c56784d378c5199b7a02e40775f4f73c4f56ff5b86a58ff5ed5b4",
+      "dimensions": [
+        1082,
+        2202
+      ]
+    },
+    {
+      "index": 74,
+      "path": "atlas-world.pw.ts-all-new--2e206-ve-normal-zoom-native-views-desktop-chromium/art-scenery-regional-scenery-extra-2.png",
+      "sha256": "69a8b219bc064822d5ad5d5bfc65c70b6d9ba3f2350ad9e52742903d92390817",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 75,
+      "path": "atlas-world.pw.ts-all-new--2e206-ve-normal-zoom-native-views-desktop-chromium/art-scenery-regional-scenery-extra-1.png",
+      "sha256": "3e415d8628b890ec49631e0003a6b9d90d56b0834617c172baa1c4060c43d37d",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 76,
+      "path": "atlas-world.pw.ts-all-new--2e206-ve-normal-zoom-native-views-desktop-chromium/art-scenery-regional-scenery-extra-0.png",
+      "sha256": "23475dea7df695899909f64623c7ed3b328c94c2bf85f5e50cf7f7227834a6b0",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 77,
+      "path": "atlas-world.pw.ts-all-new--2e206-ve-normal-zoom-native-views-desktop-chromium/art-scenery-regional-scenery-6.png",
+      "sha256": "d432330f6b746a6ad81e2a0fa271c4cb153f96dccea20cee523b3fe895ee358b",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 78,
+      "path": "atlas-world.pw.ts-all-new--2e206-ve-normal-zoom-native-views-desktop-chromium/art-scenery-regional-scenery-5.png",
+      "sha256": "6b7eb1aed5eefa17fd277eb61c200b027604d63fd164b46f69ec85664fe0e46c",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 79,
+      "path": "atlas-world.pw.ts-all-new--2e206-ve-normal-zoom-native-views-desktop-chromium/art-scenery-regional-scenery-4.png",
+      "sha256": "6af46a202571b5b849628fb92b0adedda8ee26396ab496e8c940d217b1fc3ae5",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 80,
+      "path": "atlas-world.pw.ts-all-new--2e206-ve-normal-zoom-native-views-desktop-chromium/art-scenery-regional-scenery-3.png",
+      "sha256": "46d4c85c820d2d6d6e22f79be120ce92375e5bf08676235e34a7b3db7ea2a24b",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 81,
+      "path": "atlas-world.pw.ts-all-new--2e206-ve-normal-zoom-native-views-desktop-chromium/art-scenery-regional-scenery-2.png",
+      "sha256": "e3738433045e095348772b9b75120dc70bf16095dc17342d0481538b806ab5e2",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 82,
+      "path": "atlas-world.pw.ts-all-new--2e206-ve-normal-zoom-native-views-desktop-chromium/art-scenery-regional-scenery-1.png",
+      "sha256": "ef465bc16f2d6f26bf9afb3945a0126d841bfbd41fbbaa2b4316fc97daffc97a",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 83,
+      "path": "atlas-world.pw.ts-all-new--2e206-ve-normal-zoom-native-views-desktop-chromium/art-scenery-regional-scenery-0.png",
+      "sha256": "417e5a10fc51d317ff6d4e79a9f5595646d1d8d089de7f2291a1a35ac70eef4e",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 84,
+      "path": "atlas-world.pw.ts-all-new--2e206-ve-normal-zoom-native-views-desktop-chromium/art-scenery-rare-scenery-0.png",
+      "sha256": "2c1ad338eec6a5556cc20f5391550d77246aad1b9f138a98defc95542ed00329",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 85,
+      "path": "atlas-world.pw.ts-all-Void-a580f-ve-surveyed-scenic-captures-desktop-chromium/art-void-verge-phase-0.png",
+      "sha256": "22d3c5d1d3fbda271a69b1b391633be31955800672dfe9effd682cc42b9b22db",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 86,
+      "path": "atlas-world.pw.ts-all-Void-a580f-ve-surveyed-scenic-captures-desktop-chromium/art-void-tarn-phase-7.png",
+      "sha256": "994123871d822e05bee84b3eb8ac9d8bf3bb21630aae0d317094514edf2322b1",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 87,
+      "path": "atlas-world.pw.ts-all-Void-a580f-ve-surveyed-scenic-captures-desktop-chromium/art-void-tarn-phase-0.png",
+      "sha256": "4e1439afc6105943383e09a9843fb2fe09e4e305dfc2bce0fe5a454f3c18ddc0",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 88,
+      "path": "atlas-world.pw.ts-all-Void-a580f-ve-surveyed-scenic-captures-desktop-chromium/art-void-spiral-phase-0.png",
+      "sha256": "c5bdaa72f2636489a66a04127def210259643dfcc159d6dc111d51cbc178d6f9",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 89,
+      "path": "atlas-world.pw.ts-all-Void-a580f-ve-surveyed-scenic-captures-desktop-chromium/art-void-shale-phase-0.png",
+      "sha256": "42695b21cc643ac4df51e3015aa1a44c902f33531366b3fb21204889a37f1378",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 90,
+      "path": "atlas-world.pw.ts-all-Void-a580f-ve-surveyed-scenic-captures-desktop-chromium/art-void-relic-phase-3.png",
+      "sha256": "7aa057ac0f55c0a51d9c45b3f53435358a15373c9ae362ec7173d822e402ad3c",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 91,
+      "path": "atlas-world.pw.ts-all-Void-a580f-ve-surveyed-scenic-captures-desktop-chromium/art-void-relic-phase-0.png",
+      "sha256": "884191fe2f29970c69aa391ade4c5cf3ca709f3c0ded1be993cd9fd3949befe3",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 92,
+      "path": "atlas-world.pw.ts-all-Void-a580f-ve-surveyed-scenic-captures-desktop-chromium/art-void-pale-phase-3.png",
+      "sha256": "eb0636e3ce15e54d29bdd921776e71698dc1cde2e4347bebbbb299070201ad4a",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 93,
+      "path": "atlas-world.pw.ts-all-Void-a580f-ve-surveyed-scenic-captures-desktop-chromium/art-void-pale-phase-0.png",
+      "sha256": "073e2c2046d9690f02d107fd864ae420716e2e42a5e380150320ff2f419d3bbf",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 94,
+      "path": "atlas-world.pw.ts-all-Void-a580f-ve-surveyed-scenic-captures-desktop-chromium/art-void-orchard-phase-8.png",
+      "sha256": "e9a5452cfa7d1698abd102f7145b91b1654e5aba5dd494d789882b386e502ae5",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 95,
+      "path": "atlas-world.pw.ts-all-Void-a580f-ve-surveyed-scenic-captures-desktop-chromium/art-void-orchard-phase-0.png",
+      "sha256": "f98b1669daa8b460c5d6b395a2b8d7cadb3cbb860ebc53af384f2cebefd04e4b",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 96,
+      "path": "atlas-world.pw.ts-all-Void-a580f-ve-surveyed-scenic-captures-desktop-chromium/art-void-mirrors-phase-12.png",
+      "sha256": "1267a1b213ec003df21487db1358ba3483aaf34d5da0ecdab5add6d0e7bcab58",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 97,
+      "path": "atlas-world.pw.ts-all-Void-a580f-ve-surveyed-scenic-captures-desktop-chromium/art-void-mirrors-phase-0.png",
+      "sha256": "a7f2d76a75716916ff6183704202fbadc3754b4c4c7ff135662292338f1e1c77",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 98,
+      "path": "atlas-world.pw.ts-all-Void-a580f-ve-surveyed-scenic-captures-desktop-chromium/art-void-landing-phase-0.png",
+      "sha256": "763656e0ba773c21ba58c310126ad94a2f0db2e60d70d5b29b4b6b0ef3845ef2",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 99,
+      "path": "atlas-world.pw.ts-all-Void-a580f-ve-surveyed-scenic-captures-desktop-chromium/art-void-glass-phase-0.png",
+      "sha256": "01624d6f78f9118a95cc3ae0e1085ac5d1015c5e70f34fc264cd2f0d1115be4f",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 100,
+      "path": "atlas-world.pw.ts-all-Void-a580f-ve-surveyed-scenic-captures-desktop-chromium/art-void-geodes-phase-3.png",
+      "sha256": "9bb8620b3bba4b5a26056d0c18171b0bbfc82ed58d6b2a53fe66317627f524ab",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 101,
+      "path": "atlas-world.pw.ts-all-Void-a580f-ve-surveyed-scenic-captures-desktop-chromium/art-void-geodes-phase-0.png",
+      "sha256": "c5557033480bd9b051f200be18935a0c88ed6df947fc05d8c11f37fbb54897a5",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 102,
+      "path": "atlas-world.pw.ts-all-Void-a580f-ve-surveyed-scenic-captures-desktop-chromium/art-void-cinders-phase-1.png",
+      "sha256": "53f3d915c52af2de276ef8b32446e85baf70d50dec222e7638ee5a59d94f38fe",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 103,
+      "path": "atlas-world.pw.ts-all-Void-a580f-ve-surveyed-scenic-captures-desktop-chromium/art-void-cinders-phase-0.png",
+      "sha256": "473937aee84a8a2abb8b6ed3dfb72295db7a7c22ffa9d092a1853ff898b33d25",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 104,
+      "path": "atlas-world.pw.ts-all-Void-a580f-ve-surveyed-scenic-captures-desktop-chromium/art-void-belfry-phase-0.png",
+      "sha256": "7d9ce97e5c99974fccbda011f1392f95a1b792f7fdab828d53d8fa8cac258ee2",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 105,
+      "path": "atlas-world.pw.ts-World-co-b7e0b-s-fitted-and-errors-visible-mobile-chromium/art-surfaces-world-current-position-globe.png",
+      "sha256": "1309f31b0e389fce539789c61c669ad6a47c7663639bdb380bb67ddbda516ec2",
+      "dimensions": [
+        1082,
+        2202
+      ]
+    },
+    {
+      "index": 106,
+      "path": "atlas-world.pw.ts-World-co-b7e0b-s-fitted-and-errors-visible-desktop-chromium/art-surfaces-world-current-position-globe.png",
+      "sha256": "49aca4e1bf95fdf44ebf4bec311fbfbf4126e7a3aecfe900fc02f583151fa564",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 107,
+      "path": "atlas-world.pw.ts-Uncharte-0dbe8--or-survey-progress-changes-mobile-chromium/uncharted-no-fog-minimum-zoom.png",
+      "sha256": "b8e0be66b6bfd5c21b2e64c52f7ec6d38d0380e192faef4603cb38274864a743",
+      "dimensions": [
+        1082,
+        2202
+      ]
+    },
+    {
+      "index": 108,
+      "path": "atlas-world.pw.ts-Uncharte-0dbe8--or-survey-progress-changes-desktop-chromium/uncharted-no-fog-minimum-zoom.png",
+      "sha256": "6cf9c88659ee7776e7437c7c1b81e4d95e3b69fcdcb0c517677b3868e8e1e2b5",
+      "dimensions": [
+        1440,
+        900
+      ]
+    },
+    {
+      "index": 109,
+      "path": "atlas-world.pw.ts--map-cor-a0452--registered-at-maximum-zoom-mobile-chromium/art-surfaces-remote-colosseum-right-detail-maximum.png",
+      "sha256": "9f241ff95daf01e95b3e669700c3888abd08eb72b186902638d4ff81fd564bb7",
+      "dimensions": [
+        1029,
+        1882
+      ]
+    },
+    {
+      "index": 110,
+      "path": "atlas-world.pw.ts--map-cor-a0452--registered-at-maximum-zoom-mobile-chromium/art-surfaces-remote-colosseum-left-detail-maximum.png",
+      "sha256": "a828822704b0675c21da8a5f4c037272cb3a1e2d835865e3de1d1e39fd9a9eb4",
+      "dimensions": [
+        1029,
+        1882
+      ]
+    },
+    {
+      "index": 111,
+      "path": "atlas-world.pw.ts--map-cor-a0452--registered-at-maximum-zoom-desktop-chromium/art-surfaces-remote-colosseum-right-detail-maximum.png",
+      "sha256": "a79350acb71818f4b4d961bb93f53e354d49716018560d279c1a0549dd865c30",
+      "dimensions": [
+        1207,
+        808
+      ]
+    },
+    {
+      "index": 112,
+      "path": "atlas-world.pw.ts--map-cor-a0452--registered-at-maximum-zoom-desktop-chromium/art-surfaces-remote-colosseum-left-detail-maximum.png",
+      "sha256": "b38927ef5dd821edb202dc095069aa2d20bc7d7333abde1763cc13234fb30208",
+      "dimensions": [
+        1207,
+        808
+      ]
+    },
+    {
+      "index": 113,
+      "path": "atlas-world.pw.ts--map-cor-4b597-ave-native-acceptance-views-mobile-chromium/art-surfaces-correction-walkable-moat-shallows-moving-reduced.png",
+      "sha256": "b5bf5faf6b6ea7e7ac2ab809dd4547912c0b5e92777768559bf9f4e4003365d3",
+      "dimensions": [
+        1029,
+        3764
+      ]
+    },
+    {
+      "index": 114,
+      "path": "atlas-world.pw.ts--map-cor-4b597-ave-native-acceptance-views-mobile-chromium/art-surfaces-correction-snowy-rock-grounding-relief.png",
+      "sha256": "56ca10e4358a121ecb1141bae2c7d1a12acd62e535a99a8be1065a160942f054",
+      "dimensions": [
+        1029,
+        1882
+      ]
+    },
+    {
+      "index": 115,
+      "path": "atlas-world.pw.ts--map-cor-4b597-ave-native-acceptance-views-mobile-chromium/art-surfaces-correction-remote-fortress.png",
+      "sha256": "38f8ba83faaf0df730c00a36f59c82a708ab6bf6b10c9a2ef5c38546acaf63e3",
+      "dimensions": [
+        1029,
+        1882
+      ]
+    },
+    {
+      "index": 116,
+      "path": "atlas-world.pw.ts--map-cor-4b597-ave-native-acceptance-views-mobile-chromium/art-surfaces-correction-remote-colosseum-normal-minimum.png",
+      "sha256": "ad27381f40960f371da2cf8dbb131492b2f5ca75c492007af5129615c289a886",
+      "dimensions": [
+        1029,
+        3764
+      ]
+    },
+    {
+      "index": 117,
+      "path": "atlas-world.pw.ts--map-cor-4b597-ave-native-acceptance-views-mobile-chromium/art-surfaces-correction-organic-lake-depth.png",
+      "sha256": "e5eda560a53116ef21984965cc54d1e93962657231df67c71158e747bdaa79d7",
+      "dimensions": [
+        1029,
+        1882
+      ]
+    },
+    {
+      "index": 118,
+      "path": "atlas-world.pw.ts--map-cor-4b597-ave-native-acceptance-views-mobile-chromium/art-surfaces-correction-lava-channel-cascade.png",
+      "sha256": "a6f4f8d691ccdc2c8172680ac581ecee44889c9625fc665fa4445564524f1873",
+      "dimensions": [
+        1029,
+        1882
+      ]
+    },
+    {
+      "index": 119,
+      "path": "atlas-world.pw.ts--map-cor-4b597-ave-native-acceptance-views-mobile-chromium/art-surfaces-correction-extended-river-grand-bridge.png",
+      "sha256": "3e0b011ad90528e059e2aaff8640a112cf1801c0c184a1f9f72339b4beaf196e",
+      "dimensions": [
+        1029,
+        1882
+      ]
+    },
+    {
+      "index": 120,
+      "path": "atlas-world.pw.ts--map-cor-4b597-ave-native-acceptance-views-mobile-chromium/art-surfaces-correction-elemental-valley-normal-minimum.png",
+      "sha256": "c453f287b7048218ae15240f26c168a9f6637ef63a6d2bfcba88003c3ef62461",
+      "dimensions": [
+        1029,
+        3764
+      ]
+    },
+    {
+      "index": 121,
+      "path": "atlas-world.pw.ts--map-cor-4b597-ave-native-acceptance-views-mobile-chromium/art-surfaces-correction-coast-ocean-depth-storm-reduced.png",
+      "sha256": "bdd827e21fca0334657a81c5517634e40fcdc65778e47ecb6aed7abede58e8b3",
+      "dimensions": [
+        1029,
+        3764
+      ]
+    },
+    {
+      "index": 122,
+      "path": "atlas-world.pw.ts--map-cor-4b597-ave-native-acceptance-views-mobile-chromium/art-surfaces-correction-abandoned-town.png",
+      "sha256": "41feb54c8c06d4e321792ae113bb6403ee7cc875d83397dafeaa44c034886d42",
+      "dimensions": [
+        1029,
+        1882
+      ]
+    },
+    {
+      "index": 123,
+      "path": "atlas-world.pw.ts--map-cor-4b597-ave-native-acceptance-views-desktop-chromium/art-surfaces-correction-walkable-moat-shallows-moving-reduced.png",
+      "sha256": "2f9c3ec27f96a051036ba8c34bb06cce54113a8369d4c54f5e44a7d46901186c",
+      "dimensions": [
+        1207,
+        1616
+      ]
+    },
+    {
+      "index": 124,
+      "path": "atlas-world.pw.ts--map-cor-4b597-ave-native-acceptance-views-desktop-chromium/art-surfaces-correction-snowy-rock-grounding-relief.png",
+      "sha256": "5a7ab87d9eae84351cbef2b7dcb0e2f5d460d2f2bab3b31bf955f717c6834d96",
+      "dimensions": [
+        1207,
+        808
+      ]
+    },
+    {
+      "index": 125,
+      "path": "atlas-world.pw.ts--map-cor-4b597-ave-native-acceptance-views-desktop-chromium/art-surfaces-correction-remote-fortress.png",
+      "sha256": "e8adbee1f6752ad7df1fd2ec5b62b6677f9655fe48b64cc9fe2de8a321c75a95",
+      "dimensions": [
+        1207,
+        808
+      ]
+    },
+    {
+      "index": 126,
+      "path": "atlas-world.pw.ts--map-cor-4b597-ave-native-acceptance-views-desktop-chromium/art-surfaces-correction-remote-colosseum-normal-minimum.png",
+      "sha256": "aff8dc157cc8ffbee9640364a01af3df344226ea5e6f9e701efbaa8f17ef5d25",
+      "dimensions": [
+        1207,
+        1616
+      ]
+    },
+    {
+      "index": 127,
+      "path": "atlas-world.pw.ts--map-cor-4b597-ave-native-acceptance-views-desktop-chromium/art-surfaces-correction-organic-lake-depth.png",
+      "sha256": "6c7270ce434145885f6f546162b9d14c9eddb0f5bc2814918f18b2599a52798d",
+      "dimensions": [
+        1207,
+        808
+      ]
+    },
+    {
+      "index": 128,
+      "path": "atlas-world.pw.ts--map-cor-4b597-ave-native-acceptance-views-desktop-chromium/art-surfaces-correction-lava-channel-cascade.png",
+      "sha256": "ecb23c46ffa24e508b19f6e1b37e2f31740e7f0432129f2353da35989b6f8472",
+      "dimensions": [
+        1207,
+        808
+      ]
+    },
+    {
+      "index": 129,
+      "path": "atlas-world.pw.ts--map-cor-4b597-ave-native-acceptance-views-desktop-chromium/art-surfaces-correction-extended-river-grand-bridge.png",
+      "sha256": "ee65cccb4edfe709bf98911f3195883f54a6bb2b78010d18d31b12580eb23b3d",
+      "dimensions": [
+        1207,
+        808
+      ]
+    },
+    {
+      "index": 130,
+      "path": "atlas-world.pw.ts--map-cor-4b597-ave-native-acceptance-views-desktop-chromium/art-surfaces-correction-elemental-valley-normal-minimum.png",
+      "sha256": "fc606e18760cd6a5d1971f16beea8d1ee38d7130affbbb6d4e7b0eb70faa80c8",
+      "dimensions": [
+        1207,
+        1616
+      ]
+    },
+    {
+      "index": 131,
+      "path": "atlas-world.pw.ts--map-cor-4b597-ave-native-acceptance-views-desktop-chromium/art-surfaces-correction-coast-ocean-depth-storm-reduced.png",
+      "sha256": "0cdb8c92903b65377bcf3201f0001329a657e48cfbfe9928a067377ef5a733ec",
+      "dimensions": [
+        1207,
+        1616
+      ]
+    },
+    {
+      "index": 132,
+      "path": "atlas-world.pw.ts--map-cor-4b597-ave-native-acceptance-views-desktop-chromium/art-surfaces-correction-abandoned-town.png",
+      "sha256": "6b2c35b0724f893e9aeb3b74549d5163f12afcf6af6d17a5fabee6c5829db443",
+      "dimensions": [
+        1207,
+        808
+      ]
+    },
+    {
+      "index": 133,
+      "path": "atlas-world.pw.ts--map-cor-22c8a-he-Uncharted-supercontinent-mobile-chromium/art-surfaces-correction-globe-webgl-supercontinent.png",
+      "sha256": "c5e3e313f47e34ea651d72a530f44596de23a22a2b2dcf482865476bba19c120",
+      "dimensions": [
+        1029,
+        1882
+      ]
+    },
+    {
+      "index": 134,
+      "path": "atlas-world.pw.ts--map-cor-22c8a-he-Uncharted-supercontinent-mobile-chromium/art-surfaces-correction-globe-webgl-coast-west.png",
+      "sha256": "c32780902f480046acf86339f1023f151f9dc1f3422a0152e75289920011f164",
+      "dimensions": [
+        1029,
+        1882
+      ]
+    },
+    {
+      "index": 135,
+      "path": "atlas-world.pw.ts--map-cor-22c8a-he-Uncharted-supercontinent-mobile-chromium/art-surfaces-correction-globe-webgl-coast-east.png",
+      "sha256": "c875be748a34b7c27ed51d6dd7602c045a98891488afd4c99dd1ed634960c2bf",
+      "dimensions": [
+        1029,
+        1882
+      ]
+    },
+    {
+      "index": 136,
+      "path": "atlas-world.pw.ts--map-cor-22c8a-he-Uncharted-supercontinent-mobile-chromium/art-surfaces-correction-globe-webgl-coast-center.png",
+      "sha256": "bbcda6d00d0b6153d03d7fadf500e926b07af52279166bc1cb8df872fb860617",
+      "dimensions": [
+        1029,
+        1882
+      ]
+    },
+    {
+      "index": 137,
+      "path": "atlas-world.pw.ts--map-cor-22c8a-he-Uncharted-supercontinent-mobile-chromium/art-surfaces-correction-globe-fallback-supercontinent.png",
+      "sha256": "3fe3baf9136a76ecf9b89b5b12c685aad5eb53e5099a1c2ca778cd80fa76d61f",
+      "dimensions": [
+        1029,
+        1882
+      ]
+    },
+    {
+      "index": 138,
+      "path": "atlas-world.pw.ts--map-cor-22c8a-he-Uncharted-supercontinent-mobile-chromium/art-surfaces-correction-globe-fallback-coast-west.png",
+      "sha256": "83a9c785a0468a507ec95339c78d91bd4651bdd872fa4b4f1921d71e45388e75",
+      "dimensions": [
+        1029,
+        1882
+      ]
+    },
+    {
+      "index": 139,
+      "path": "atlas-world.pw.ts--map-cor-22c8a-he-Uncharted-supercontinent-mobile-chromium/art-surfaces-correction-globe-fallback-coast-east.png",
+      "sha256": "d98bd4cc6e43cf737894fd29fba682373d5c5c7ecfe081197f2a8ffe8aa92abf",
+      "dimensions": [
+        1029,
+        1882
+      ]
+    },
+    {
+      "index": 140,
+      "path": "atlas-world.pw.ts--map-cor-22c8a-he-Uncharted-supercontinent-mobile-chromium/art-surfaces-correction-globe-fallback-coast-center.png",
+      "sha256": "837f250f63fb34670cccda3c2d7085ebba952496f814ad08d17e4c7d768c5fae",
+      "dimensions": [
+        1029,
+        1882
+      ]
+    },
+    {
+      "index": 141,
+      "path": "atlas-world.pw.ts--map-cor-22c8a-he-Uncharted-supercontinent-desktop-chromium/art-surfaces-correction-globe-webgl-supercontinent.png",
+      "sha256": "62cac640f6aefdfc6f277d8b1f53d8f05e5dee6a15825a947733cc4efd5c5672",
+      "dimensions": [
+        1207,
+        808
+      ]
+    },
+    {
+      "index": 142,
+      "path": "atlas-world.pw.ts--map-cor-22c8a-he-Uncharted-supercontinent-desktop-chromium/art-surfaces-correction-globe-webgl-coast-west.png",
+      "sha256": "c2cebb7f89c0006701b44cb38fffc47eb8c54f0ffce1c5eb175ebc0a09c6d7ab",
+      "dimensions": [
+        1207,
+        808
+      ]
+    },
+    {
+      "index": 143,
+      "path": "atlas-world.pw.ts--map-cor-22c8a-he-Uncharted-supercontinent-desktop-chromium/art-surfaces-correction-globe-webgl-coast-east.png",
+      "sha256": "b6b83f768215c805b2d549380e0eb57182ec2bd46cb8a4b6ad4bde5ae1e020f6",
+      "dimensions": [
+        1207,
+        808
+      ]
+    },
+    {
+      "index": 144,
+      "path": "atlas-world.pw.ts--map-cor-22c8a-he-Uncharted-supercontinent-desktop-chromium/art-surfaces-correction-globe-webgl-coast-center.png",
+      "sha256": "99f800b6b38506732a0b5a71d2e21caa7b95d440af119f396e43234b7eea927a",
+      "dimensions": [
+        1207,
+        808
+      ]
+    },
+    {
+      "index": 145,
+      "path": "atlas-world.pw.ts--map-cor-22c8a-he-Uncharted-supercontinent-desktop-chromium/art-surfaces-correction-globe-fallback-supercontinent.png",
+      "sha256": "278b57fa15f74fb1d139acbc195ae59a833a63c29d47edfbbfb08b5de5c513ba",
+      "dimensions": [
+        1207,
+        808
+      ]
+    },
+    {
+      "index": 146,
+      "path": "atlas-world.pw.ts--map-cor-22c8a-he-Uncharted-supercontinent-desktop-chromium/art-surfaces-correction-globe-fallback-coast-west.png",
+      "sha256": "eb24b9c811955ebfa18293c6d00777daa42da51b72d359e09a882262d8141fbf",
+      "dimensions": [
+        1207,
+        808
+      ]
+    },
+    {
+      "index": 147,
+      "path": "atlas-world.pw.ts--map-cor-22c8a-he-Uncharted-supercontinent-desktop-chromium/art-surfaces-correction-globe-fallback-coast-east.png",
+      "sha256": "16d10200f0e42f001235edbc86ba13cbd8e8ba9241b655d14cbfb9f9197a7499",
+      "dimensions": [
+        1207,
+        808
+      ]
+    },
+    {
+      "index": 148,
+      "path": "atlas-world.pw.ts--map-cor-22c8a-he-Uncharted-supercontinent-desktop-chromium/art-surfaces-correction-globe-fallback-coast-center.png",
+      "sha256": "ec4958b0a395b97e78fba5968489d0d0e7f6d668ef8b053d639889abd3861878",
+      "dimensions": [
+        1207,
+        808
+      ]
+    },
+    {
+      "index": 149,
+      "path": "atlas-world.pw.ts--map-cor-0b4a0--at-normal-and-maximum-zoom-mobile-chromium/art-surfaces-remote-colosseum-detail-normal-maximum.png",
+      "sha256": "4f49115c40c164c1366cf79acad1af9da04fbb6c897f9b38c1843eed273223f1",
+      "dimensions": [
+        1029,
+        3764
+      ]
+    },
+    {
+      "index": 150,
+      "path": "atlas-world.pw.ts--map-cor-0b4a0--at-normal-and-maximum-zoom-mobile-chromium/art-surfaces-elemental-valley-detail-normal-maximum.png",
+      "sha256": "fa1e4026928e11d1ea73cbf9d681d0c1133d79ecbb7af216ae8ea7ba1019c520",
+      "dimensions": [
+        1029,
+        3764
+      ]
+    },
+    {
+      "index": 151,
+      "path": "atlas-world.pw.ts--map-cor-0b4a0--at-normal-and-maximum-zoom-desktop-chromium/art-surfaces-remote-colosseum-detail-normal-maximum.png",
+      "sha256": "f4bb2d96256077593b78add9301d4676961d04bf1cd3a45b8c0aae8b6a409278",
+      "dimensions": [
+        1207,
+        1616
+      ]
+    },
+    {
+      "index": 152,
+      "path": "atlas-world.pw.ts--map-cor-0b4a0--at-normal-and-maximum-zoom-desktop-chromium/art-surfaces-elemental-valley-detail-normal-maximum.png",
+      "sha256": "8869fb1f3151097d0167530c848ec0fd7805d7bed5b1cc4b7811b15c63476780",
+      "dimensions": [
+        1207,
+        1616
+      ]
+    }
+  ]
+}
