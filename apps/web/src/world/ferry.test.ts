@@ -1,9 +1,12 @@
 import { describe, expect, it, vi } from 'vitest'
 import { parseWorldCommand } from './command'
 import { FERRY_MAINLAND_DOCK, nextFerryDeparture, projectWorldFerries } from './ferry'
-import { findWorldRoute, newWorldState } from './travel'
+import { findWorldRoute, isSafe, newWorldState, revealNearby } from './travel'
 import { isKnownCell, resolveSector, visibleSectors } from '@/server/world/world-content'
 import { projectWorld } from '@/server/world/world-service'
+import { voidRealmLanding } from '@/server/world/void-realms'
+import { projectWorldFerry } from '@/server/world/world-ferry'
+import { VOID_REALMS } from './void-realms'
 
 vi.mock('server-only', () => ({}))
 
@@ -105,5 +108,21 @@ describe('public ferry timetable', () => {
       intent: { kind: 'board-ferry', fare: 1000, destination: 'somewhere else' },
     }
     expect(parseWorldCommand(body)?.intent).toEqual({ kind: 'board-ferry' })
+  })
+
+  it.each(VOID_REALMS)('offers the private return ferry at the $name refuge', ({ id }) => {
+    const position = voidRealmLanding(id)
+    const state = revealNearby({ ...newWorldState(), position })
+    expect(isSafe(resolveSector(position.sectorId)!, position)).toBe(true)
+    const view = projectWorld(state, [], arrivalAt)
+    expect(view.ferry).toEqual({
+      port: 'uncharted',
+      fareCrowns: 0,
+      nextDepartureAt: departureAt + 1_800_000,
+    })
+    expect(view.atlas?.some((cell) => cell.id === position.sectorId)).toBe(false)
+    expect(
+      projectWorldFerry({ ...state, position: { ...position, x: 8 } }, arrivalAt),
+    ).toBeUndefined()
   })
 })
