@@ -111,4 +111,3 @@ Owner modular correction — October18: **LIVE for testing** through PR #936, me
 📚 [Full plan](ROADMAP_DETAILED_2026-10-13.md) · [Audit](ROADMAP_AUDIT_2026-10-13.md)
 
 UI audit continuation remains pending release; scope and validation: [UI audit refinements](verification/2026-10-24-ui-audit-refinements.md). No phase closure or gameplay-rule changes.
-

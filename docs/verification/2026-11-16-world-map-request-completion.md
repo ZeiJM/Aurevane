@@ -1100,4 +1100,3 @@ on the new candidate before integration. Native lateral colosseum coverage adds
 a separate120s case without changing the existing central case deadline.
 Local measurements remain controlled source experiments and do not substitute
 for actual Chromium performance or final rendered visual inspection.
-

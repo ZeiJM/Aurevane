@@ -150,4 +150,3 @@ The advisor also reported 112 informational `rls_enabled_no_policy` findings (mo
 - Put the canonical **current execution** pointer at the top of [ROADMAP.md](ROADMAP.md) and [TASKS.md](../TASKS.md), retaining historical context below. The October 13 detailed roadmap stays intact as history/specification, not rewritten to erase the earlier evidence.
 - When a phase or gate is claimed complete, record *which* source was tested, *what* persisted/migrated, *which* deployment is live, and *who* accepted the gameplay. If any is missing, say which.
 - Roadmap/documentation edits are not authorization to push World changes, merge PR #1040, activate production schedules, or modify live player state.
-
