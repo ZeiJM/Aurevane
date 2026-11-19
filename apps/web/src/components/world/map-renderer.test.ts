@@ -3348,6 +3348,35 @@ describe('native map input and bounded lifecycle', () => {
       vi.unstubAllGlobals()
     }
   })
+  it('retains padded scenery without building a ground raster clipped by the viewport', () => {
+    const base = projectWorld(newWorldState(), [], 1000)
+    const sector = base.sectors.find(({ id }) => id === base.position.sectorId)!
+    const dry = {
+      ...sector,
+      buildings: [],
+      landmarks: [],
+      cells: sector.cells.map((cell) => ({ ...cell, terrain: '.' as const, walkable: true })),
+    }
+    const s = scene(true, {
+      ...base,
+      position: { sectorId: 'centre', x: 6, y: 4 },
+      atlas: undefined,
+      scenery: [],
+      sectors: [
+        { ...dry, id: 'centre', atlasColumn: 1, atlasRow: 1 },
+        { ...dry, id: 'outside', atlasColumn: 2, atlasRow: 0 },
+      ],
+    })
+    try {
+      s.canvas.dataset.renderDiagnostics = 'timing'
+      s.frame(40)
+      expect(JSON.parse(s.canvas.dataset.paintedGroundIds!)).toContain('outside')
+      expect(JSON.parse(s.canvas.dataset.renderTiming!).groundBuilds).toBe(1)
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  })
   it('reuses the settled wide-zoom phone terrain projection without repainting its affine border', () => {
     const base = projectWorld(newWorldState(), [], 1000)
     const sector = base.sectors.find((candidate) => candidate.id === base.position.sectorId)!

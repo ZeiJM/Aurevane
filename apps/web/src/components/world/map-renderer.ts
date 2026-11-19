@@ -1999,6 +1999,10 @@ export function createMapRenderer(
     }
     const movementActive =
       sample.moving || remoteMoving || sample.point.x !== camera.x || sample.point.y !== camera.y
+    // The compositor rasterizes these draws after the callback. Use the
+    // lighter sampler while animating the viewport; source crops and cached
+    // terrain are still prepared at high quality and labels keep native density.
+    ctx.imageSmoothingQuality = movementActive || quality === 'low' ? 'medium' : 'high'
     const projection = cacheStationaryGround
       ? stationaryGroundLayer(visible, ambient, movementActive)
       : null
@@ -2117,24 +2121,32 @@ export function createMapRenderer(
           wind.speed,
           sector,
         )
-        const surface = ground(sector)
-        // Cache only settled scale. Gestures retain the direct path until the
-        // authored zoom raster is ready, preventing per-wheel projection churn.
+        // Visibility has extra room for tall scenery, overhanging shore art
+        // and animation. Do not build or submit its fully clipped ground plane.
+        // Include the projected raster's filtered edges in this tighter test.
+        const groundBleed = 2 / ratio
         const groundOnScreen =
-          p.x + GRID_WIDTH * tile * MAP_X > 0 &&
-          p.x - GRID_HEIGHT * tile * MAP_X < width &&
-          p.y + (GRID_WIDTH + GRID_HEIGHT) * tile * MAP_Y > 0 &&
-          p.y < height
-        const projected =
-          // The phone overview also retains its individual wet/coastal rasters;
-          // translated bitmaps avoid affine work while walking or standing still.
-          rasterZoomAt === null && (tile >= 32 || (width < 600 && ratio > 1)) && groundOnScreen
-            ? groundProjections.get(surface, GRID_WIDTH * tile, GRID_HEIGHT * tile, ratio)
-            : null
-        if (projected) {
-          ctx.setTransform(1, 0, 0, 1, 0, 0)
-          ctx.drawImage(projected.canvas, p.x * ratio + projected.left, p.y * ratio + projected.top)
-        } else drawGroundSurface(ctx, surface, GRID_WIDTH * tile, GRID_HEIGHT * tile, ratio)
+          p.x + GRID_WIDTH * tile * MAP_X > -groundBleed &&
+          p.x - GRID_HEIGHT * tile * MAP_X < width + groundBleed &&
+          p.y + (GRID_WIDTH + GRID_HEIGHT) * tile * MAP_Y > -groundBleed &&
+          p.y < height + groundBleed
+        if (groundOnScreen) {
+          const surface = ground(sector)
+          // Cache at settled scale, including the phone overview. While zooming
+          // draw existing surfaces directly until the new raster size is ready.
+          const projected =
+            rasterZoomAt === null && (tile >= 32 || (width < 600 && ratio > 1))
+              ? groundProjections.get(surface, GRID_WIDTH * tile, GRID_HEIGHT * tile, ratio)
+              : null
+          if (projected) {
+            ctx.setTransform(1, 0, 0, 1, 0, 0)
+            ctx.drawImage(
+              projected.canvas,
+              p.x * ratio + projected.left,
+              p.y * ratio + projected.top,
+            )
+          } else drawGroundSurface(ctx, surface, GRID_WIDTH * tile, GRID_HEIGHT * tile, ratio)
+        }
         ctx.restore()
       }
       const dock =

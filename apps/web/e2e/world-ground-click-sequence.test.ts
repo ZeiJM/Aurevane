@@ -15,6 +15,7 @@ function nativePage() {
     { cameraX: 760.1, left: 201.75, top: 130.5, width: 907, height: 756 },
   ]
   const clicks: { x: number; y: number }[] = []
+  const pointerTimes: number[] = []
   const operations: string[] = []
   const canvas = () => {
     const current = frames[frame]!
@@ -48,29 +49,52 @@ function nativePage() {
         return read(canvas(), arg)
       },
     }),
-    mouse: {
-      click: async (x: number, y: number) => {
-        operations.push('native click')
-        clicks.push({ x, y })
-        frame++
-      },
-    },
-  } as unknown as Pick<Page, 'locator' | 'mouse'>
-  return { page, frames, clicks, operations }
+    context: () => ({
+      newCDPSession: async () => ({
+        send: async (
+          method: string,
+          event: { x: number; y: number; timestamp: number; type: string; buttons: number },
+        ) => {
+          expect(method).toBe('Input.dispatchMouseEvent')
+          operations.push(event.type)
+          pointerTimes.push(event.timestamp)
+          if (event.type === 'mousePressed') {
+            expect(event.buttons).toBe(1)
+            clicks.push({ x: event.x, y: event.y })
+          } else {
+            expect(event.buttons).toBe(0)
+            frame++
+          }
+        },
+        detach: async () => operations.push('detach'),
+      }),
+    }),
+  } as unknown as Page
+  return { page, frames, clicks, pointerTimes, operations }
 }
 
 describe('rapid native ground input', () => {
   it('uses each coherent camera/bounds read and the renderer CSS dimensions for the exact requested tile', async () => {
-    const { page, frames, clicks, operations } = nativePage()
-    await clickWorldGroundSequence(page, sector, destinations)
+    const { page, frames, clicks, pointerTimes, operations } = nativePage()
+    const projections = await clickWorldGroundSequence(page, sector, destinations)
     expect(operations).toEqual([
       'frame',
-      'native click',
+      'mousePressed',
+      'mouseReleased',
       'frame',
-      'native click',
+      'mousePressed',
+      'mouseReleased',
       'frame',
-      'native click',
+      'mousePressed',
+      'mouseReleased',
+      'detach',
     ])
+    expect(pointerTimes).toEqual(
+      projections.flatMap(({ measuredAt }) => {
+        const timestamp = (performance.timeOrigin + measuredAt) / 1000
+        return [timestamp, timestamp]
+      }),
+    )
     expect(clicks).toEqual(
       destinations.map((destination, index) => {
         const frame = frames[index]!
@@ -88,10 +112,11 @@ describe('rapid native ground input', () => {
   })
 
   it('rejects an offscreen destination before sending native input', async () => {
-    const { page, clicks } = nativePage()
+    const { page, clicks, operations } = nativePage()
     await expect(
       clickWorldGroundSequence(page, sector, [{ ...destinations[0]!, x: 1000 }]),
     ).rejects.toThrow('must be visible')
     expect(clicks).toEqual([])
+    expect(operations).toEqual(['frame', 'detach'])
   })
 })

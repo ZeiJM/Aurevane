@@ -163,3 +163,15 @@ and follows ordinary draft, publication and scheduling controls.
   regression now verifies that newly decoded terrain can invalidate the cache mid-step
   without building a replacement viewport composite until motion settles. The full native
   repeat and its original assertion remain the acceptance gate.
+
+- The [4cb60e0 timing retry](https://github.com/ZeiJM/Aurevane/actions/runs/44560786638)
+  passed all three mobile crowd cases and 41 of 60 desktop cases. Eighteen peer runs
+  fell short of nine visible steps. In the repeat-six trace, generating canvas resources
+  used 1.94 seconds of CPU across both clients. The renderer now skips fully clipped
+  ground planes and uses lighter sampling during movement. It retains the existing
+  raster sizes, terrain and scenery order, and high-quality source art and idle sampling.
+  The single rapid-click failure reached the neighboring tile after the camera moved
+  between the test's coordinate read and input delivery. The Chromium test now binds
+  the trusted pointer event to the time of the measured frame. It still checks that the
+  exact intended destination receives server approval and settles. The successor needs
+  the same authenticated desktop and mobile coverage and unchanged timing thresholds.
