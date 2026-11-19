@@ -20,6 +20,8 @@ on:
       - '.github/scripts/configure-supabase-test-ports.test.py'
       - '.github/scripts/verify-world-map-release-transaction.py'
       - '.github/scripts/apply-aurevane-world-map-geometry.test.py'
+      - '.github/scripts/apply-aurevane-pr1044.py'
+      - '.github/workflows/pr1044-production-migrations.yml'
   workflow_dispatch:
     inputs:
       staging_dry_run:
@@ -207,6 +209,9 @@ jobs:
             apps/web/test-results/**/world-realtime-diagnostics.json
             apps/web/test-results/**/portrait-zoom-*.png
             apps/web/test-results/**/world-refined-controls.png
+            apps/web/test-results/**/active-uncharted-ferry-refuge.png
+            apps/web/test-results/**/lanternward-isle-tower.png
+            apps/web/test-results/**/distant-globe-route-approved.png
           retention-days: 7
       - name: Save hamlet art review images
         if: always()

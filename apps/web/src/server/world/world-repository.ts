@@ -4,7 +4,13 @@ import { AurevaneError } from '@aurevane/game-core/errors'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { loadPublicCharacterProfileImageMap } from '@/server/character/character-profile-display-service'
 import { resolvePublicCharacterImageUrl } from '@/media/public-character-portrait'
-import { isSafe, newWorldState, validCell, MAX_PERSISTED_ROUTE_STEPS } from '@/world/travel'
+import {
+  isSafe,
+  newWorldState,
+  samePosition,
+  validCell,
+  MAX_PERSISTED_ROUTE_STEPS,
+} from '@/world/travel'
 import { savedWorldGeometryRecovery } from './world-geometry-recovery'
 import { STEP_MS } from '@/world/catalog'
 import type { WorldMovementReceipt } from '@/world/movement-receipt'
@@ -114,6 +120,24 @@ function storedState(state: WorldState) {
   if (!sector)
     throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'This location cannot be loaded safely.')
   return { ...state, safe: isSafe(sector, state.position) }
+}
+function movementCommitKind<T extends WorldCommand['intent']['kind']>(
+  kind: T,
+  previous: WorldState,
+  next: WorldState,
+) {
+  const last = previous.route.at(-1)?.position
+  // The database validates every advanced step on the old window. Once that
+  // window is exhausted, a replacement route must commit as a replan, not a tick.
+  if (
+    kind === 'tick' &&
+    previous.routeDestination &&
+    last &&
+    samePosition(last, next.position) &&
+    next.route.length
+  )
+    return previous.routeObjectiveId ? 'autopath' : 'walk'
+  return kind
 }
 async function readWorldData(
   userId: string,
@@ -282,7 +306,7 @@ export async function settleWorldAttackAuthority(
     p_character_id: characterId,
     p_expected_version: expectedVersion,
     p_command_id: randomUUID(),
-    p_kind: intent.kind,
+    p_kind: movementCommitKind(intent.kind, state, next),
     p_next_state: storedState(next),
     p_request_fingerprint: fingerprint,
   })
@@ -615,7 +639,7 @@ export async function commitWorldCommand(
       p_character_id: characterId,
       p_expected_version: command.expectedVersion,
       p_command_id: command.commandId,
-      p_kind: command.intent.kind,
+      p_kind: movementCommitKind(command.intent.kind, state, next),
       p_next_state: storedState(next),
       p_request_fingerprint: fingerprint,
     },

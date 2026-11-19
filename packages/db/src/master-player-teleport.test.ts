@@ -543,3 +543,23 @@ it('keeps successor teleport service-only and subject to the same page authoriza
     /PAGE_ACCESS_REQUIRED/,
   )
 })
+
+it('installs v5 offshore geometry and limits teleport to the authored bridge deck', async () => {
+  await seed()
+  const bridge = 'atlas:102:29'
+  const number = 29 * 128 + 102 + 1
+  const rows = Array(9).fill('~~~~~~~~~~~~~')
+  rows[4] = '..=======....'
+  await db.query('select public.install_master_teleport_geometry_v1($1,$2,$3,null)', [
+    owner,
+    '2026-11-18-v5',
+    [{ sectorId: bridge, realmId: null, sectorNumber: number, rows, safeCells: [] }],
+  ])
+  const call = (y: number) =>
+    db.query<{ result: { position: unknown } }>(
+      "select public.teleport_master_player_v5($1,$2,5,$3,'mainland',$4,5,$5,'Reviewed recovery',true,null) result",
+      [owner, character, request, number, y],
+    )
+  await denied(() => call(3), /DESTINATION_BLOCKED/)
+  expect((await call(4)).rows[0]!.result.position).toEqual({ sectorId: bridge, x: 5, y: 4 })
+})

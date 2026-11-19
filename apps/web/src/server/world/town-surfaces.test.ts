@@ -93,7 +93,7 @@ it.each(['frostmere', 'emberreach'])(
     }
     const root = painted.find((sector) => sector.id === townId)!
     expect(root.cells.filter((cell) => cell.terrain === 'l')).toHaveLength(
-      townId === 'emberreach' ? 8 : 0,
+      townId === 'emberreach' ? 10 : 0,
     )
   },
 )

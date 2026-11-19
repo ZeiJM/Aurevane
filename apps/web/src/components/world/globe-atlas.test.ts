@@ -1,7 +1,12 @@
 import { expect, it } from 'vitest'
-import { atlasSectors, ATLAS_COLUMNS, ATLAS_ROWS } from '@/world/atlas'
+import {
+  atlasSectors,
+  ATLAS_COLUMNS,
+  ATLAS_ROWS,
+  longitudeCountrysideLatitude,
+} from '@/world/atlas'
 import { globeSectorCenter, globeSectorCoordinate } from '@/world/globe-math'
-import { globeAtlasPixels, globeAtlasDetailPixels } from './globe-atlas'
+import { globeAtlasPixels, globeAtlasDetailPixels, GLOBE_DETAIL_SCALE } from './globe-atlas'
 it('renders continuous public settlement fabric without changing coast alpha or liquid identity', () => {
   const plain = Array.from({ length: 9 }, (_, i) => ({
     id: `land-${i}`,
@@ -364,6 +369,27 @@ it('retains thin public land across longitude zero and keeps hidden neighbours t
   }
   for (let y = 64; y < 80; y++)
     expect(Math.abs(alpha(0, y) - alpha(image.width - 1, y))).toBeLessThan(32)
+})
+
+it('keeps the authored land band connected across every longitude on the actual atlas', () => {
+  const atlas = atlasSectors().map((sector) => ({
+    id: sector.id,
+    name: sector.name,
+    coordinate: sector.coordinate,
+    regionId: sector.regionId,
+    column: sector.atlasColumn!,
+    row: sector.atlasRow!,
+    charted: sector.charted,
+  }))
+  const image = globeAtlasDetailPixels(atlas, ATLAS_COLUMNS, ATLAS_ROWS)
+  const holes: number[] = []
+  for (let x = 0; x < image.width; x++) {
+    const latitude = longitudeCountrysideLatitude((x + 0.5) / GLOBE_DETAIL_SCALE - 0.5)
+    const y = Math.floor((latitude + 0.5) * GLOBE_DETAIL_SCALE)
+    if ([y - 4, y, y + 4].some((row) => image.pixels[(row * image.width + x) * 4 + 3] !== 255))
+      holes.push(x)
+  }
+  expect(holes).toEqual([])
 })
 
 it('forms coherent mountain ranges with stronger relief across the range than along it', () => {

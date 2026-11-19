@@ -19,6 +19,8 @@ export const GRAND_DISCOVERY_SITES = [
   { id: 'abandoned-town', left: 872, top: 334, width: 12, height: 6, regionId: 'hollow-coast' },
   {
     id: 'elemental-valley',
+    name: 'The Shadows’ Vigil',
+    sectorId: 'atlas:71:16',
     left: valleyLeft,
     top: valleyTop,
     width: 60,
@@ -31,6 +33,8 @@ export const GRAND_DISCOVERY_SITES = [
   },
   {
     id: 'remote-colosseum',
+    name: 'The Thousand Steps',
+    sectorId: 'atlas:44:37',
     left: 560,
     top: 316,
     width: 48,
@@ -40,6 +44,13 @@ export const GRAND_DISCOVERY_SITES = [
 ] as const
 export type GrandDiscoveryId = (typeof GRAND_DISCOVERY_SITES)[number]['id']
 
+export function grandDiscoverySectorName(sectorId: string) {
+  const site = GRAND_DISCOVERY_SITES.find(
+    (site) => 'sectorId' in site && site.sectorId === sectorId,
+  )
+  return site && 'name' in site ? site.name : undefined
+}
+
 export const REMOTE_GRAND_CROSSING = {
   sectorId: 'atlas:71:32',
   landmarkId: 'atlas:71:32:grand-crossing',
@@ -48,6 +59,53 @@ export const REMOTE_GRAND_CROSSING = {
   x: 6,
   y: 4,
 } as const
+
+export const OFFSHORE_DISCOVERY = {
+  mainlandSectorId: 'atlas:103:29',
+  bridgeSectorId: 'atlas:102:29',
+  bridgeLandmarkId: 'atlas:102:29:bridge',
+  islandSectorId: 'atlas:101:29',
+  towerLandmarkId: 'atlas:101:29:tower',
+  row: 29,
+} as const
+
+/** The sea channel opens onto the ocean on either side of the deck. */
+export const OFFSHORE_SECTORS = [
+  {
+    id: OFFSHORE_DISCOVERY.bridgeSectorId,
+    column: 102,
+    name: 'The Farwater Span',
+    rows: [
+      '~~~~~~~~~~~~~',
+      '~~~~~~~~~~~~~',
+      '.~~~~~~~~~~~~',
+      '..~~~~~~~~~..',
+      '..=======....',
+      '..~~~~~~~....',
+      '.~~~~~~~~~~..',
+      '~~~~~~~~~~~~.',
+      '~~~~~~~~~~~~~',
+    ],
+    landmark: { id: OFFSHORE_DISCOVERY.bridgeLandmarkId, x: 5, y: 4, kind: 'bridge' },
+  },
+  {
+    id: OFFSHORE_DISCOVERY.islandSectorId,
+    column: 101,
+    name: 'Lanternward Isle',
+    rows: [
+      '~~~~~~~~~~~~~',
+      '~~~~....~~~~~',
+      '~~..t.....~~~',
+      '~............',
+      '~...........=',
+      '~............',
+      '~~...t...t...',
+      '~~~~......~~~',
+      '~~~~~~~~~~~~~',
+    ],
+    landmark: { id: OFFSHORE_DISCOVERY.towerLandmarkId, x: 6, y: 4, kind: 'watchtower' },
+  },
+] as const
 /** A narrow three-sector watercourse widens naturally beneath the grand central avenue. */
 export function remoteCrossingWaterAt(column: number, row: number, x: number, y: number) {
   if (column !== REMOTE_GRAND_CROSSING.column || row < 31 || row > 33 || y === 4) return false

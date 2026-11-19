@@ -73,7 +73,7 @@ export async function attackWorldPlayer(
     throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'The encounter could not be prepared.')
   assertEncounterRange(pair.attacker as WorldState, pair.target as WorldState)
   const characters = createSupabaseCharacterRepository(),
-    builds = createSupabaseCharacterBuildRepository()
+    builds = createSupabaseCharacterBuildRepository({ retryBattleEquipmentAdmission: true })
   const combatContentResolver = createServerCombatContentResolver()
   const preparation = Promise.all(
     [

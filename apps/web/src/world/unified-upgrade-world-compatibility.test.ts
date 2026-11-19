@@ -86,18 +86,18 @@ it('preserves world addresses and historic routes through the authorized map geo
     routes,
   }).toEqual({
     ...baseline,
-    // Keep the original, archived PR1039 baseline immutable. PR1040 adds
-    // exactly 55 charted mainland sectors: 39 Starfall alpine frontier cells
-    // and 16 traversable Frostmere/Emberreach corridor cells. The prior
-    // routes, dimensions, safe zones, water and lava stay identical. The
-    // authored walls close 166 former road cells and remove 20 road links;
-    // blocked saved origins use the separately tested canonical recovery.
-    atlasSectors: baseline.atlasSectors + 55,
-    resolvedServerSectors: baseline.resolvedServerSectors + 55,
+    // Preserve the archived baseline and its routes. Beyond the earlier alpine
+    // and mountain corridor, the ferry update adds two offshore sectors and
+    // replaces seven dry Emberreach cells with the authored lavafall basin.
+    atlasSectors: baseline.atlasSectors + 57,
+    resolvedServerSectors: baseline.resolvedServerSectors + 57,
     counts: {
       ...baseline.counts,
-      walkable: baseline.counts.walkable + 2316 - 166,
-      roads: baseline.counts.roads + 624 - 20,
+      walkable: baseline.counts.walkable + 2316 - 166 + 93 - 7,
+      roads: baseline.counts.roads + 624 - 20 + 14,
+      safe: baseline.counts.safe - 6,
+      water: baseline.counts.water + 141,
+      lava: baseline.counts.lava + 7,
     },
     regions: baseline.regions.map((region) => ({
       ...region,
@@ -109,12 +109,12 @@ it('preserves world addresses and historic routes through the authorized map geo
             ? 11
             : region.id === 'emberreach'
               ? 5
-              : 0),
+              : region.id === 'umbral-march'
+                ? 2
+                : 0),
     })),
-    landmarks: baseline.landmarks + 3,
-    // These are exact digests of PR1040 terrain and landmark authority,
-    // including original saved identities, collision and legal entrances.
-    authorityDigest: '1c3fe5378b016fbf088e7043f73e26e8e7397663a3c60b25df3a2914fb13c36e',
-    landmarkDigest: '375de635dd3948c664452cfe6a945a71a0a76f38b74d08ceb4ebb9588159be40',
+    landmarks: baseline.landmarks + 6,
+    authorityDigest: 'ffd45064a616d9a9afcafba186fd95bb3ce9d81bb5473945c7143ff32e8adc9a',
+    landmarkDigest: '02872cf0f27a2d8590f84c8727e7e04c49011bc6f28dfe8c7a3716a4e1132b4c',
   })
 })

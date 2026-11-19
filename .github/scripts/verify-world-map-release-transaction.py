@@ -53,8 +53,10 @@ def validate_local_target(config, uri, container):
 def stage_baseline(root, workdir, release):
     release["verify_migrations"](root)
     source = sorted((root / "supabase/migrations").glob("*.sql"))
-    if [p.name for p in source if p.name[:14] >= "20261114110000"] != list(release["MIGRATIONS"]):
-        raise SystemExit("The candidate must contain exactly the reviewed four Nov14 additions.")
+    names = list(release["MIGRATIONS"])
+    first, last = names[0][:14], names[-1][:14]
+    if [p.name for p in source if first <= p.name[:14] <= last] != names:
+        raise SystemExit("The historical release window must contain exactly the reviewed four Nov14 additions.")
     for name in ("supabase/config.toml", "supabase/templates/recovery.html"):
         target = workdir / name
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -62,8 +64,9 @@ def stage_baseline(root, workdir, release):
     staged = workdir / "supabase/migrations"
     staged.mkdir(parents=True)
     for path in source:
-        if path.name not in release["MIGRATIONS"]:
+        if path.name[:14] < first:
             shutil.copyfile(path, staged / path.name)
+    return [p.name for p in source if p.name[:14] > last]
 
 
 def force_postflight_failure(sql):
@@ -152,7 +155,7 @@ def main():
         raise SystemExit("Disposable transaction acceptance requires PostgreSQL 17.")
     with tempfile.TemporaryDirectory() as directory:
         workdir = Path(directory)
-        stage_baseline(root, workdir, release)
+        successors = stage_baseline(root, workdir, release)
         # --local only, fixed configured project identity; no remote URL enters
         # this command. Existing services keep the same local ports and keys.
         command(["pnpm", "exec", "supabase", "db", "reset", "--local", "--no-seed",
@@ -207,12 +210,45 @@ def main():
     release["verify_preservation"](before, after)
     if not after["backfill_valid"] or after["cron"] or after["other_cron"] != before["other_cron"]:
         raise SystemExit("Successful atomic transaction did not preserve inactive cron and valid private metadata.")
+    ferry = run_path(str(Path(__file__).with_name("apply-aurevane-pr1044.py")))
+    ferry_names = list(ferry["MIGRATIONS"])
+    if successors[:len(ferry_names)] == ferry_names:
+        validate_local_target(config, values["DB_URL"], json.loads(command(["docker", "inspect", CONTAINER]))[0])
+        command(psql + ["--single-transaction"], sql="""
+          insert into app_private.world_ferry_trips(direction,departure_at,warped_phase)
+          values ('outbound',3600000,0);
+        """)
+        before_ferry = query(ferry["state_sql"](include_player_state=True) + ";")
+        ferry_sql = ferry["atomic_apply_sql"](
+            ferry["read_sources"](root), baseline_count=len(before_ferry["ledger"]),
+            baseline_digest=before_ferry["baseline_digest"],
+        )
+        command(psql + ["--single-transaction"], sql=force_postflight_failure(ferry_sql),
+                timeout=75, failure="PRESERVATION_POSTFLIGHT")
+        if query(ferry["state_sql"](include_player_state=True) + ";") != before_ferry:
+            raise SystemExit("Forced PR1044 postflight failure did not roll back exactly.")
+        command(psql + ["--single-transaction"], sql=ferry_sql, timeout=75)
+        ferry_after = query(ferry["state_sql"](include_player_state=True, installed=True) + ";")
+        if ferry_after["sources"] != ferry["source_hashes"]() or ferry_after["unpreserved_trips"] != 0:
+            raise SystemExit("PR1044 ledger hashes or preexisting ferry modes differ after commit.")
+        command(psql + ["--single-transaction"], sql="""
+          delete from app_private.world_ferry_trips
+          where direction='outbound' and departure_at=3600000;
+        """)
+        successors = successors[len(ferry_names):]
+        print("Verified real PG17 PR1044 atomic rollback and success: two exact migration files, saved state, legacy ferry booking, geometry, permissions and cron.")
     # Remove only these disposable fixtures; leave all four candidate migrations
     # installed for the existing browser/native cases which follow this step.
     cleanup = "delete from auth.users where id in (" + ",".join(quote(user) + "::uuid" for user in users) + ");"
     cleanup += "delete from app_private.master_teleport_geometry where sector_id in ('release-fixture-8189','release-fixture-8190');"
     command(psql + ["--single-transaction"], sql=cleanup)
-    print("Verified PG17 atomic success, exact four source-history rows, RPC ACLs, preserved v1/v2 and saved progress; cron remains inactive. Candidate schema retained.")
+    print("Verified PG17 atomic success, exact four source-history rows, RPC ACLs, preserved v1/v2 and saved progress; cron remains inactive.")
+    if successors:
+        # The historical release test deliberately excluded later migrations.
+        # Apply them only to this guarded local stack for the candidate browser cases.
+        validate_local_target(config, values["DB_URL"], json.loads(command(["docker", "inspect", CONTAINER]))[0])
+        command(["pnpm", "exec", "supabase", "migration", "up", "--local"], timeout=120)
+        print(f"Applied {len(successors)} successor migrations to the disposable browser database.")
 
 
 if __name__ == "__main__":

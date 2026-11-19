@@ -9,7 +9,10 @@ import {
 import { generateSectorTerrain, seeded } from './terrain-gen'
 import {
   GRAND_DISCOVERY_SITES,
+  OFFSHORE_DISCOVERY,
+  OFFSHORE_SECTORS,
   REMOTE_GRAND_CROSSING,
+  grandDiscoverySectorName,
   remoteCrossingWaterAt,
 } from './discovery-sites'
 import { terrainWalkable } from './terrain'
@@ -71,6 +74,12 @@ const scenicZones = [
     art: 7,
   },
 ] as const
+// Shallow feeders split around the receiving pool, then widen downstream of
+// the existing public road. The far bank spills across the next sector seam.
+const willowWater: Readonly<Record<number, readonly (readonly number[])[]>> = {
+  36: [[9], [9], [8, 9, 10], [9, 10], [], [10], [10, 11], [10, 11, 12], [10, 11]],
+  37: [[10, 11], [11, 12], [11]],
+}
 const rootLinks = [
   ['aureth-crown', 'verdant-expanse'],
   ['aureth-crown', 'glasswind-desert'],
@@ -108,11 +117,14 @@ function originalLandAt(column: number, row: number) {
     )
   )
 }
+export function longitudeCountrysideLatitude(column: number) {
+  const longitude = (column * Math.PI * 2) / ATLAS_COLUMNS
+  return 32 + Math.sin(longitude) * 1.5 + Math.sin(longitude * 2) * 0.7
+}
 function longitudeCountrysideAt(column: number, row: number) {
   const longitude = (column * Math.PI * 2) / ATLAS_COLUMNS
-  const latitude = 32 + Math.sin(longitude) * 1.5 + Math.sin(longitude * 2) * 0.7
   const width = 1.15 + Math.max(0, Math.cos(longitude)) ** 16 * 0.65
-  return Math.abs(row - latitude) <= width
+  return Math.abs(row - longitudeCountrysideLatitude(column)) <= width
 }
 const buildingArt: Record<string, number> = {
   'verdant-expanse': 0,
@@ -394,7 +406,11 @@ export function atlasSectors(): readonly WorldSector[] {
       )
         for (let y = 0; y < GRID_HEIGHT; y++) grid[y]![10] = y >= 3 && y <= 5 ? '=' : '~'
       const scenicCenter = scenic?.column === column && scenic.row === row
-      if (scenicCenter && scenic.landscape === 'willow') grid[2]![9] = '~'
+      if (scenic?.landscape === 'willow' && column === scenic.column) {
+        for (const [y, xs] of (willowWater[row] ?? []).entries())
+          for (const x of xs) if (grid[y]![x] !== '=') grid[y]![x] = 'w'
+        if (scenicCenter) grid[2]![9] = '~'
+      }
       if (!existingLand && !newMountainLand) {
         const pondRandom = seeded(id + ':pond')
         if (pondRandom() < 0.15) {
@@ -582,8 +598,20 @@ export function atlasSectors(): readonly WorldSector[] {
       }
       // Retain the original blocked volcanic rift and its legal crossing. The
       // new thermal shallows are a separate basin, not a replacement for lava.
-      if (isRoot && regionId === 'emberreach')
+      if (isRoot && regionId === 'emberreach') {
         for (let y = 0; y < GRID_HEIGHT; y++) grid[y]![10] = y === 4 ? '=' : 'l'
+        grid[8]![9] = 'l'
+        grid[8]![11] = 'l'
+      } else if (town?.id === 'emberreach' && column === town.column && row === town.row + 1) {
+        for (const [x, y] of [
+          [10, 0],
+          [11, 0],
+          [10, 1],
+          [11, 1],
+          [11, 2],
+        ] as const)
+          grid[y]![x] = 'l'
+      }
       const landmarks: WorldLandmark[] = (authored?.landmarks ?? []).map((l) => ({ ...l }))
       if (!town && column === REMOTE_GRAND_CROSSING.column && row >= 31 && row <= 33)
         landmarks.push({
@@ -605,6 +633,14 @@ export function atlasSectors(): readonly WorldSector[] {
         // A real walkable approach connects the destination to the travelling path.
         const target = landmarks.at(-1)!
         for (let y = target.y; y <= 4; y++) grid[y]![target.x] = '.'
+        if (scenic.landscape === 'willow')
+          landmarks.push({
+            id: `${id}:water-bridge`,
+            name: 'Willow Footbridge',
+            kind: 'bridge',
+            x: 10,
+            y: 4,
+          })
       }
       if (isRoot) {
         const settlement = landmarks.find((l) => l.kind === 'settlement')
@@ -655,6 +691,7 @@ export function atlasSectors(): readonly WorldSector[] {
         id,
         name:
           authored?.name ??
+          grandDiscoverySectorName(id) ??
           (scenicCenter
             ? scenic.name
             : town
@@ -682,6 +719,28 @@ export function atlasSectors(): readonly WorldSector[] {
       })
     }
   trimRoadShorelines(sectors)
+  const coast = sectors.find((sector) => sector.id === OFFSHORE_DISCOVERY.mainlandSectorId)!
+  const offshoreNames = { bridge: 'The Farwater Span', watchtower: 'The Lanternward Tower' }
+  for (const site of OFFSHORE_SECTORS) {
+    const row = OFFSHORE_DISCOVERY.row
+    sectors.push({
+      id: site.id,
+      name: site.name,
+      coordinate: `S${site.column + 1}-${row + 1}`,
+      regionId: coast.regionId,
+      atlasColumn: site.column,
+      atlasRow: row,
+      east: site.column * GRID_WIDTH,
+      north: (ATLAS_ROWS - row) * GRID_HEIGHT,
+      art: null,
+      charted: true,
+      generated: true,
+      rows: site.rows,
+      landmarks: [{ ...site.landmark, name: offshoreNames[site.landmark.kind] }],
+      roads: [],
+    })
+  }
+  sectors.sort((a, b) => a.atlasRow! - b.atlasRow! || a.atlasColumn! - b.atlasColumn!)
   const byAddress = new Map(sectors.map((s) => [addressKey(s.atlasColumn!, s.atlasRow!), s]))
   // Cross any walkable pair on a shared edge: no invisible gate or decorative-only ground.
   for (const sector of sectors) {

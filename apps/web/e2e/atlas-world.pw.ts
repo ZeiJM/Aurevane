@@ -23,13 +23,14 @@ import {
 } from '@playwright/test'
 import type { SetPracticePlanRequest } from '@aurevane/validation/player/wayfarers-practice'
 import { provisionAccountAndEnterCharacter, openOfflineTraining } from './pv1f-test-helpers'
-import { GRID_WIDTH, GRID_HEIGHT, STEP_MS, WORLD_REGIONS } from '../src/world/catalog'
+import { STEP_MS, WORLD_REGIONS } from '../src/world/catalog'
 import { newWorldState, samePosition } from '../src/world/travel'
 import { FERRY_MAINLAND_DOCK } from '../src/world/ferry'
+import { OFFSHORE_DISCOVERY } from '../src/world/discovery-sites'
 import type { WorldView } from '../src/world/types'
 import { verifyWorldPresentation, registerWorldInputCases } from './world-presentation-case'
 import { verifyWorldScenePresence, verifyWorldInstantActions } from './world-presence-case'
-import { sectorMapOrigin, wrappedMapX } from '../src/world/topology'
+import { sectorMapOrigin } from '../src/world/topology'
 import { projectMapPoint } from '../src/components/world/map-projection'
 import { worldRenderTerrain } from '../src/components/world/map-render-terrain'
 import { registerWorldLandscapeCases } from './world-landscape-case'
@@ -327,7 +328,7 @@ async function reviewSectorTravel(page: Page, sectorId: string) {
   const charted = (await world(page)).atlas?.find((cell) => cell.id === sectorId && cell.charted)
   expect(charted).toBeDefined()
   const sectorNumber = charted!.row * 128 + charted!.column + 1
-  const field = page.getByRole('spinbutton', { name: 'Sector number', exact: true })
+  const field = page.getByRole('textbox', { name: 'Sector number', exact: true })
   if (!(await field.isVisible()))
     await page.getByRole('button', { name: 'Details', exact: true }).click()
   await expect(field).toBeVisible()
@@ -355,9 +356,9 @@ async function stageWalk(page: Page, destination: { sectorId: string; x: number;
     y: Number(el.dataset.cameraY),
     tile: Number(el.dataset.tileSize),
   }))
-  const dx =
-    wrappedMapX((sector.atlasColumn ?? 0) * GRID_WIDTH + destination.x + 0.5, metrics.x) - metrics.x
-  const dy = (sector.atlasRow ?? 0) * GRID_HEIGHT + destination.y + 0.5 - metrics.y
+  const origin = sectorMapOrigin(sector, metrics.x)
+  const dx = origin.x + destination.x + 0.5 - metrics.x
+  const dy = origin.y + destination.y + 0.5 - metrics.y
   const x = box.width / 2 + (dx - dy) * metrics.tile * 0.85
   const y = box.height / 2 + (dx + dy) * metrics.tile * 0.44
   if (x <= 0 || x >= box.width || y <= 0 || y >= box.height) {
@@ -1761,7 +1762,7 @@ test('globe and sidebar Travel Points share a cycle without submitting travel', 
   expect(known).toHaveLength(2)
   expect(before.anchors).toEqual([])
   await page.getByRole('button', { name: /Open world atlas/ }).click()
-  const sidebar = page.getByRole('button', { name: /^◈ Travel point/ })
+  const sidebar = page.getByRole('button', { name: /^(?:Next )?Travel Points?$/ })
   if (!(await sidebar.isVisible()))
     await page.getByRole('button', { name: 'Details', exact: true }).click()
   const commands: string[] = []
@@ -1801,7 +1802,7 @@ test('globe and sidebar Travel Points share a cycle without submitting travel', 
     await page.getByRole('button', { name: 'Details', exact: true }).click()
   await sidebar.click()
   await expect(selected(known[0]!.id)).toBeVisible()
-  await expect(page.getByText(`Travel point: ${known[0]!.name}`, { exact: true })).toBeVisible()
+  await expect(sidebar).toHaveAttribute('title', `Selected: ${known[0]!.name}`)
   await expect(page.getByRole('dialog', { name: 'Confirm world travel' })).toHaveCount(0)
   await expect(
     page.getByRole('button', { name: 'Focus Uncharted Lands', exact: true }),
@@ -1812,6 +1813,10 @@ test('globe and sidebar Travel Points share a cycle without submitting travel', 
   const destinationCard = page.getByRole('region', { name: 'Selected destination' })
   await destinationCard.getByRole('button', { name: 'Travel here', exact: true }).click()
   await expect(page.getByRole('group', { name: 'Confirm world travel' })).toBeVisible()
+  const confirm = destinationCard.getByRole('button', { name: 'Confirm travel', exact: true })
+  const confirmBox = (await confirm.boundingBox())!
+  const footer = (await page.locator('[data-world-panel-foot]').boundingBox())!
+  expect(confirmBox.y + confirmBox.height).toBeLessThanOrEqual(footer.y + 1)
   await expect(page.getByRole('dialog', { name: 'Confirm world travel' })).toHaveCount(0)
   await destinationCard.getByRole('button', { name: 'Cancel', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Confirm travel', exact: true })).toHaveCount(0)
@@ -1938,6 +1943,81 @@ test('scenic countryside has real blossom woodland, ruins, pools and open meadow
       expect(sector.cells.some((c) => c.terrain === '~' && !c.walkable)).toBe(true)
     await capture(page, info, `countryside-${landscape}`)
   }
+})
+
+test('settles an arrived ferry at the active private refuge and lets the passenger explore and return to the dock', async ({
+  page,
+}, info) => {
+  test.skip(info.project.name === 'laptop-chromium', 'Exercise desktop and phone travel.')
+  test.setTimeout(90000)
+  await enter(page)
+  const { characterId } = await world(page)
+  const passage = JSON.parse(
+    sql(`
+    with clock as (select app_private.world_ferry_now_v1() t),
+    rotation as (select t, app_private.world_void_rotation_v1(t) active from clock)
+    select jsonb_build_object('now', t, 'next', active->'nextRollAt',
+      'dock', app_private.world_void_ferry_dock_v1(active->>'realmId')) from rotation;
+  `),
+  ) as { now: number; next: number; dock: WorldView['position'] }
+  test.skip(passage.next - passage.now < 120_000, 'A production-style evacuation is imminent.')
+  const arrivalAt = passage.now - 2_000
+  const departureAt = arrivalAt - 300_000
+  const { dock } = passage
+  const boarded = {
+    position: { sectorId: 'ferry:outbound:' + departureAt, x: 6, y: 4 },
+    route: [],
+    routeDestination: null,
+    nextStepAt: null,
+    ferry: {
+      direction: 'outbound',
+      departureAt,
+      arrivalAt,
+      activeVoid: true,
+      origin: FERRY_MAINLAND_DOCK,
+    },
+  }
+  sql(
+    `update app_private.character_world_state set state = state || '${JSON.stringify(boarded)}'::jsonb where character_id='${characterId}'::uuid`,
+  )
+  await page.reload()
+  const scene = await world(page)
+  expect(scene.position).toEqual(dock)
+  expect(scene.ferry?.port).toBe('uncharted')
+  expect(scene.atlas!.every((cell) => !cell.id.startsWith('void:'))).toBe(true)
+  const station = page.getByRole('region', { name: 'Ferry station' })
+  await expect(station.getByRole('button', { name: 'Talk to Ferryman' })).toBeVisible()
+  const walk = { ...dock, x: dock.x + 2 }
+  await stageWalk(page, walk)
+  await expect.poll(async () => (await world(page)).position).toEqual(walk)
+  expect((await world(page)).ferry).toBeUndefined()
+  const approach = { ...dock, x: dock.x + 1 }
+  await stageWalk(page, approach)
+  await expect.poll(async () => (await world(page)).position).toEqual(approach)
+  await expect(station).toBeVisible()
+  await capture(page, info, 'active-uncharted-ferry-refuge')
+})
+
+test('walks the offshore bridge and resumes at the scenic tower after reload', async ({
+  page,
+}, info) => {
+  test.skip(info.project.name === 'laptop-chromium', 'Exercise desktop and phone travel.')
+  test.setTimeout(90000)
+  await enter(page)
+  const { characterId } = await world(page)
+  place(characterId, OFFSHORE_DISCOVERY.mainlandSectorId, 2, 4)
+  await page.reload()
+  await page.getByRole('button', { name: /Open world atlas/ }).click()
+  await reviewSectorTravel(page, OFFSHORE_DISCOVERY.islandSectorId)
+  const target = { sectorId: OFFSHORE_DISCOVERY.islandSectorId, x: 6, y: 4 }
+  await expect.poll(async () => (await world(page)).position, { timeout: 20000 }).toEqual(target)
+  await page.reload()
+  const scene = await world(page)
+  expect(scene.position).toEqual(target)
+  const tower = scene.sectors.find((sector) => sector.id === target.sectorId)!.landmarks[0]!
+  expect(tower.name).toBe('The Lanternward Tower')
+  expect(scene.interactions.some((interaction) => interaction.objectiveId === tower.id)).toBe(false)
+  await capture(page, info, 'lanternward-isle-tower')
 })
 
 test('charted globe travel survives unrelated frontier discoveries and retains bounded authoritative continuation', async ({

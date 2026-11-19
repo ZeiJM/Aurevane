@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
 import { newWorldState, revealNearby, findWorldRoute } from '@/world/travel'
+import { atlasSectors } from '@/world/atlas'
 import type { WorldState } from '@/world/types'
 import { isKnownCell, resolveSector, visibleSectors, WORLD_SECTORS } from './world-content'
 import { projectWorld, projectWorldSector, resolveWorldIntent } from './world-service'
@@ -65,9 +66,7 @@ describe('lazy private Void world integration', () => {
         resolveWorldIntent(state, { kind: 'walk', destination: { sectorId, x: 6, y: 4 } }, 0),
       ).toThrow('Survey')
     }
-    // The PR1040 alpine/corridor extension is public land, not a leaked
-    // private Void sector. The original 1,870 public sectors remain present.
-    expect(view.atlas?.filter((sector) => sector.charted)).toHaveLength(1925)
+    expect(view.atlas?.filter((sector) => sector.charted)).toHaveLength(atlasSectors().length)
     expect(view.atlas?.some((sector) => sector.id.startsWith('void:'))).toBe(false)
     expect(view.scenery).toEqual([])
   })

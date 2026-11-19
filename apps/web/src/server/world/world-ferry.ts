@@ -7,8 +7,10 @@ import {
 } from '@/world/ferry'
 import { STEP_MS } from '@/world/catalog'
 import type { WorldSector, WorldState } from '@/world/types'
+import { parseVoidSectorId } from '@/world/void-realms'
+import { voidRealmLanding } from './void-realms'
+import { WARPED_CONTINENT_LANDING } from './warped-continent'
 
-const arrival = { sectorId: 'uncharted-landing', x: 6, y: 4 } as const
 const shipRows = [
   '~~~~~~~~~~~~~',
   '~~~~~~s~~~~~~',
@@ -53,9 +55,13 @@ export function projectWorldFerry(state: WorldState, now: number): WorldFerryVie
     }
   }
   if (state.route.length) return
+  const privateRealm = parseVoidSectorId(state.position.sectorId)
+  const unchartedDock = privateRealm
+    ? voidRealmLanding(privateRealm.realmId)
+    : WARPED_CONTINENT_LANDING
   const port = nearFerryDock(state.position, FERRY_MAINLAND_DOCK)
     ? 'mainland'
-    : nearFerryDock(state.position, arrival)
+    : nearFerryDock(state.position, unchartedDock)
       ? 'uncharted'
       : null
   if (!port) return

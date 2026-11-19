@@ -17,6 +17,7 @@ vi.mock('./road-shorelines', async (importOriginal) => {
 })
 import { atlasAddress, atlasSectors, ATLAS_COLUMNS, ATLAS_ROWS } from './atlas'
 import { CHARTED_SECTORS } from './catalog'
+import { OFFSHORE_DISCOVERY, OFFSHORE_SECTORS } from './discovery-sites'
 import { terrainWalkable } from './terrain'
 import { findWorldRoute, isSafe, isWalkable, newWorldState, positionKey } from './travel'
 import { projectWorld } from '@/server/world/world-service'
@@ -30,10 +31,10 @@ import type { WorldSector } from './types'
 describe('one traversable world atlas', () => {
   it('preserves saved walkability and PvP safety at every public atlas cell', () => {
     const sectors = atlasSectors()
-    expect(shorelineCapture.before).toHaveLength(sectors.length)
+    expect(shorelineCapture.before).toHaveLength(sectors.length - OFFSHORE_SECTORS.length)
     const previous = new Map(shorelineCapture.before.map((sector) => [sector.id, sector]))
     const changed: string[] = []
-    for (const sector of sectors)
+    for (const sector of sectors.filter((sector) => previous.has(sector.id)))
       for (let y = 0; y < 9; y++)
         for (let x = 0; x < 13; x++) {
           const before = previous.get(sector.id)!
@@ -45,11 +46,15 @@ describe('one traversable world atlas', () => {
         }
     expect(changed).toEqual([])
   })
-  it('retains the original Emberreach lava rift beside a new irregular walkable thermal basin', () => {
+  it('widens the Emberreach lavafall basin through the southern seam and retains the bridge', () => {
     const districts = atlasSectors().filter((s) => s.townId === 'emberreach')
     const root = districts.find((s) => s.id === 'emberreach')!
     expect(root.rows[4]).not.toMatch(/[~lb]/)
     for (let y = 0; y < 9; y++) expect(root.rows[y]![10]).toBe(y === 4 ? '=' : 'l')
+    const south = districts.find((s) => s.id === 'atlas:80:21')!
+    expect(root.rows[8]!.slice(9, 12)).toBe('lll')
+    expect(south.rows[0]!.slice(10, 12)).toBe('ll')
+    expect(isWalkable(south, { x: 11, y: 2 })).toBe(false)
     expect(root.landmarks.some((l) => l.kind === 'bridge' && l.x === 10 && l.y === 4)).toBe(true)
     expect(districts.some((s) => s.rows.join('').includes('w'))).toBe(true)
     expect(districts.every((s) => !s.rows.join('').includes('~'))).toBe(true)
@@ -57,6 +62,33 @@ describe('one traversable world atlas', () => {
       s.rows.flatMap((row, y) => [...row].flatMap((t, x) => (t === 'w' ? [{ s, x, y }] : []))),
     )
     for (const { s, x, y } of water) expect(isWalkable(s, { x, y })).toBe(true)
+  })
+
+  it('walks across the channel in both directions with deep sea outside the bridge deck', () => {
+    const sectors = atlasSectors()
+    const { bridgeSectorId, islandSectorId, mainlandSectorId } = OFFSHORE_DISCOVERY
+    const mainland = { sectorId: mainlandSectorId, x: 2, y: 4 }
+    const target = { sectorId: islandSectorId, x: 6, y: 4 }
+    for (const [from, to] of [
+      [mainland, target],
+      [target, mainland],
+    ] as const) {
+      const route = findWorldRoute(from, to, sectors)!
+      expect(route.at(-1)?.position).toEqual(to)
+      const crossing = route.filter(({ position }) => position.sectorId === bridgeSectorId)
+      expect(crossing).toHaveLength(13)
+      expect(
+        crossing
+          .filter(({ position }) => position.x >= 2 && position.x <= 8)
+          .every(({ position }) => position.y === 4),
+      ).toBe(true)
+    }
+    const bridge = sectors.find((sector) => sector.id === bridgeSectorId)!
+    for (const y of [3, 5])
+      for (let x = 2; x <= 8; x++) expect(isWalkable(bridge, { x, y })).toBe(false)
+    const island = sectors.find((sector) => sector.id === islandSectorId)!
+    expect(new Set(island.roads.map(({ to }) => to.sectorId))).toEqual(new Set([bridgeSectorId]))
+    expect(island.landmarks.map(({ id }) => id)).toEqual([OFFSHORE_DISCOVERY.towerLandmarkId])
   })
 
   it('ends paved coastal approaches before unavailable ocean chunks', () => {
@@ -162,7 +194,9 @@ describe('one traversable world atlas', () => {
   })
   it('adds sparse interior lakes to new countryside without blocking its road approaches', () => {
     const newCountryside = atlasSectors().filter(
-      (sector) => sector.atlasColumn! < 38 || sector.atlasColumn! > 96,
+      (sector) =>
+        (sector.atlasColumn! < 38 || sector.atlasColumn! > 96) &&
+        !OFFSHORE_SECTORS.some(({ id }) => id === sector.id),
     )
     const ponds = newCountryside.filter((sector) => sector.rows.some((row) => row.includes('~')))
     expect(ponds.length).toBeGreaterThan(5)
@@ -266,6 +300,28 @@ describe('one traversable world atlas', () => {
     expect(travelling.position).toEqual({ sectorId: 'umbral-march', x: 6, y: 0 })
     expect(projectWorld(travelling, [], 1000).routeDestination).toBeNull()
     expect(resolveWorldIntent(planned, { kind: 'stop' }, 1000).routeDestination).toBeNull()
+  })
+  it('reaches the clicked mainland tile through ordinary ticks when client replenishment is missed', () => {
+    const state = newWorldState()
+    const destination = { sectorId: 'atlas:0:32', x: 7, y: 4 }
+    let travelling = resolveWorldIntent(state, { kind: 'walk', destination }, 1000)
+    expect(travelling.routeDestination).toEqual(destination)
+    expect(travelling.route).toHaveLength(256)
+    let continued = false
+    for (let i = 0; travelling.route.length && i < 40; i++) {
+      const now = travelling.nextStepAt! + 39 * 200
+      const before = travelling.route.length
+      travelling = resolveWorldIntent(travelling, { kind: 'tick' }, now)
+      expect(travelling.route.length).toBeLessThanOrEqual(256)
+      if (travelling.route.length > before) {
+        expect(travelling.nextStepAt).toBe(now + travelling.route[0]!.durationMs)
+        continued = true
+      }
+    }
+    expect(continued).toBe(true)
+    expect(travelling.position).toEqual(destination)
+    expect(travelling.route).toEqual([])
+    expect(travelling.routeDestination).toBeNull()
   })
   it('provides unique sectors at one address with room for a population of 100', () => {
     const sectors = atlasSectors()

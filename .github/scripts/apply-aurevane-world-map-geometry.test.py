@@ -55,10 +55,11 @@ class ProductionReleaseTests(unittest.TestCase):
     def test_disposable_baseline_excludes_exactly_four_new_migrations(self):
         verifier = self.local_verifier()
         with tempfile.TemporaryDirectory() as directory:
-            verifier["stage_baseline"](Path.cwd(), Path(directory), release)
+            successors = verifier["stage_baseline"](Path.cwd(), Path(directory), release)
             staged = sorted(p.name for p in (Path(directory) / "supabase/migrations").glob("*.sql"))
             source = sorted(p.name for p in Path("supabase/migrations").glob("*.sql"))
-            self.assertEqual([name for name in source if name not in staged], list(release["MIGRATIONS"]))
+            self.assertEqual([name for name in source if name not in staged], list(release["MIGRATIONS"]) + successors)
+            self.assertEqual(successors, [name for name in source if name[:14] > "20261114114000"])
             self.assertEqual(staged[-1], "20261112183130_town_and_continent_teleport_geometry.sql")
 
     def test_forced_failure_changes_real_state_before_postflight_snapshot(self):

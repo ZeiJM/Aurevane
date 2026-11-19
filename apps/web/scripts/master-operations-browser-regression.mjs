@@ -6,6 +6,7 @@ import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
+import { MASTER_TELEPORT_GEOMETRY_VERSION } from '../src/master/players.ts'
 const require = createRequire(import.meta.url)
 const { createServer, build } = await import(
   pathToFileURL(require.resolve('vite', { paths: [require.resolve('vitest')] }))
@@ -410,7 +411,7 @@ try {
           sectorNumber: 34,
           x: 6,
           y: 4,
-          geometryVersion: '2026-11-14-v4',
+          geometryVersion: MASTER_TELEPORT_GEOMETRY_VERSION,
         })
         assert.equal(teleport.reason, 'Reviewed location repair')
         assert.equal(teleport.confirmed, true)
