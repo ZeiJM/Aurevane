@@ -123,13 +123,17 @@ export async function loadWorldNpcs(state: WorldState) {
     if (!lookup && pending.size < NPC_CACHE_SECTORS) {
       lookup = readPublishedWorldNpcs(sectorId)
         .then((received) => {
+          // A read started before publication or retirement may finish after the reset.
+          if (pending.get(sectorId) !== lookup) return received
           cache.delete(sectorId)
           cache.set(sectorId, { expires: Date.now() + NPC_CACHE_MS, rows: received })
           if (cache.size > NPC_CACHE_SECTORS) cache.delete(cache.keys().next().value!)
           return received
         })
         .catch(() => [])
-        .finally(() => pending.delete(sectorId))
+        .finally(() => {
+          if (pending.get(sectorId) === lookup) pending.delete(sectorId)
+        })
       pending.set(sectorId, lookup)
     }
     rows = await (lookup ?? [])

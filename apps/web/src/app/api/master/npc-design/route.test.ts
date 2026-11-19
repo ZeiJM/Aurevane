@@ -4,6 +4,7 @@ import { beforeEach, expect, it, vi } from 'vitest'
 const mocks = vi.hoisted(() => ({
   requireCapability: vi.fn(),
   writeNpcDesign: vi.fn(),
+  resetWorldNpcReadCache: vi.fn(),
 }))
 vi.mock('server-only', () => ({}))
 vi.mock('@/server/auth/actor', () => ({
@@ -13,6 +14,9 @@ vi.mock('@/server/master/staff-access-server', () => ({
   createServerMasterPanelStaffAccessService: () => mocks,
 }))
 vi.mock('@/server/master/npc-design-store', () => ({ writeNpcDesign: mocks.writeNpcDesign }))
+vi.mock('@/server/world/world-npcs', () => ({
+  resetWorldNpcReadCache: mocks.resetWorldNpcReadCache,
+}))
 
 import { POST } from './route'
 
@@ -43,6 +47,7 @@ it('allows the verified NPC Design actor to save an arena-only NPC', async () =>
   expect(response.headers.get('cache-control')).toBe('private, no-store')
   expect(mocks.requireCapability).toHaveBeenCalledWith('verified', 'npc.manage')
   expect(mocks.writeNpcDesign).toHaveBeenCalledWith('verified', body)
+  expect(mocks.resetWorldNpcReadCache).not.toHaveBeenCalled()
 })
 it('denies direct requests from actors without NPC Design access', async () => {
   mocks.requireCapability.mockRejectedValue(new AurevaneError('FORBIDDEN', 'No NPC Design access'))
@@ -72,3 +77,17 @@ it('requires explicit approval from the Game Owner to publish an exact copy', as
   expect((await POST(request(command))).status).toBe(200)
   expect(mocks.writeNpcDesign).toHaveBeenCalledExactlyOnceWith('verified', command)
 })
+
+it.each(['commit-world', 'retire-world'])(
+  'invalidates cached World scenes after a successful %s',
+  async (kind) => {
+    const command = { kind, id: body.id, revision: 1 }
+    mocks.writeNpcDesign.mockRejectedValueOnce(
+      new AurevaneError('STALE_VERSION', 'Stale NPC revision'),
+    )
+    expect((await POST(request(command))).status).toBe(409)
+    expect(mocks.resetWorldNpcReadCache).not.toHaveBeenCalled()
+    expect((await POST(request(command))).status).toBe(200)
+    expect(mocks.resetWorldNpcReadCache).toHaveBeenCalledTimes(1)
+  },
+)

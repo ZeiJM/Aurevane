@@ -113,6 +113,7 @@ function PaintedOutfitFields({
           <label key={field}>
             {paintedLabels[field]}
             <select
+              aria-label={paintedLabels[field]}
               value={value[field]}
               disabled={
                 (field === 'clothColor' && value.outerwear === 'none') ||

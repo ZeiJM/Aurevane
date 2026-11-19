@@ -62,8 +62,9 @@ conversation window and history without publishing the draft.
 
 The scene carries the greeting and its first choice labels. The protected reply endpoint
 rechecks the selected character, movement, battle, NPC range and current publication revision.
-It returns the selected response and its immediate choices. Published lines remain separate
-from later draft edits. These narrative replies are read-only. Existing quest, battle and
+It returns the selected response and its immediate choices. World publication and retirement
+invalidate cached NPC scenes, and reads started before the change cannot refill that cache.
+Published lines remain separate from later draft edits. These narrative replies are read-only. Existing quest, battle and
 reward commands keep their own authority paths.
 
 For public World Events, authors can select at least two supported Reach a location objectives

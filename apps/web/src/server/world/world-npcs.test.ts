@@ -7,7 +7,13 @@ vi.mock('@/server/master/npc-design-store', () => ({
   readPublishedWorldNpcs: readPublishedNpcRows,
 }))
 import { newWorldState } from '@/world/travel'
-import { projectLocalWorldNpcs, readLocalNpcDialogue } from './world-npcs'
+import {
+  loadWorldNpcs,
+  peekWorldNpcs,
+  projectLocalWorldNpcs,
+  readLocalNpcDialogue,
+  resetWorldNpcReadCache,
+} from './world-npcs'
 
 const npc: PublishedWorldNpc = {
   id: '50bcf54b-d667-4e03-af93-3457b0055a95',
@@ -123,4 +129,27 @@ it('projects only available reply labels and reads one current narrative turn in
   ).resolves.toBeNull()
   readPublishedNpcRows.mockResolvedValue([])
   await expect(readLocalNpcDialogue(state, request)).resolves.toBeNull()
+})
+
+it('keeps the new World publication after an older in-flight snapshot finishes', async () => {
+  resetWorldNpcReadCache()
+  const state = newWorldState()
+  let resolveOld!: (rows: PublishedWorldNpc[]) => void
+  readPublishedNpcRows.mockImplementationOnce(
+    () => new Promise<PublishedWorldNpc[]>((resolve) => (resolveOld = resolve)),
+  )
+  const previousRequest = loadWorldNpcs(state)
+  resetWorldNpcReadCache()
+  const published = {
+    ...npc,
+    dialogue: [{ label: 'Ask about the tide', body: 'The tide has turned.', replies: [] }],
+  }
+  readPublishedNpcRows.mockResolvedValueOnce([published])
+  await expect(loadWorldNpcs(state)).resolves.toMatchObject({
+    interactions: [{ narrative: { revision: npc.revision, replies: ['Ask about the tide'] } }],
+  })
+  resolveOld([])
+  await previousRequest
+  expect(peekWorldNpcs(state)?.interactions[0]?.narrative?.replies).toEqual(['Ask about the tide'])
+  resetWorldNpcReadCache()
 })

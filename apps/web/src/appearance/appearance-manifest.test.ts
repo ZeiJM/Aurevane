@@ -307,11 +307,17 @@ it('round-trips painted styles and independently colors clothing and accessories
     const atlas = await response.text()
     expect(atlas).toContain('id="painted-body"')
     expect(atlas).toContain('viewBox="384 0 128 176"')
-    const idle = await sharp(Buffer.from(atlas))
-      .extract({ left: 0, top: 0, width: 48, height: 64 })
+    // Render only the initial idle cell instead of decoding off-screen action frames
+    // for every recipe in this color and silhouette comparison.
+    const cell = atlas.replace(
+      'width="576" height="384" viewBox="0 0 576 384"',
+      'width="48" height="64" viewBox="0 0 48 64"',
+    )
+    const { data: idle, info } = await sharp(Buffer.from(cell))
       .ensureAlpha()
       .raw()
-      .toBuffer()
+      .toBuffer({ resolveWithObject: true })
+    expect([info.width, info.height]).toEqual([48, 64])
     expect(idle.filter((alpha, index) => index % 4 === 3 && alpha > 200).length).toBeGreaterThan(
       220,
     )
