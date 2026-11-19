@@ -321,6 +321,7 @@ it.each(['WORLD_TRAINING_ACTIVE', 'WORLD_SPECTATING', 'WORLD_ACTIVE_BATTLE'])(
     const initial = payload()
     const view = { ...projectWorld(initial.state, [], initial.serverNow), characterId }
     let committed: WorldState | undefined
+    let approvedAt = initial.serverNow
     rpc.mockImplementation(async (name: string, args: { p_next_state?: WorldState }) => {
       if (name === 'commit_world_state_v1') {
         committed = { ...args.p_next_state!, version: 2 }
@@ -334,23 +335,25 @@ it.each(['WORLD_TRAINING_ACTIVE', 'WORLD_SPECTATING', 'WORLD_ACTIVE_BATTLE'])(
           state: battle ? { ...committed, version: 3, route: [], nextStepAt: null } : committed,
           blocked,
           battleSessionId: battle ? 'committed-world-battle' : null,
-          serverNow: 5500,
+          // This read represents a block created after the movement approval.
+          // Fixture time must follow that receipt even when route planning runs slowly.
+          serverNow: approvedAt + 500,
         },
       }
     })
     const motion = new WorldMotion(view, 0)
     const accepts: boolean[] = []
     const controller = new WorldController(view, {
-      command: async (intent, source) =>
-        mergeWorldMovement(
-          source,
-          await commitWorldCommand(
-            'owner',
-            characterId,
-            { ...command, expectedVersion: source.version, intent },
-            true,
-          ),
-        ),
+      command: async (intent, source) => {
+        const receipt = await commitWorldCommand(
+          'owner',
+          characterId,
+          { ...command, expectedVersion: source.version, intent },
+          true,
+        )
+        approvedAt = receipt.serverNow
+        return mergeWorldMovement(source, receipt)
+      },
       refresh: async () => (await readWorld('owner', characterId)).view,
       accept: (next, reconcile) => {
         accepts.push(reconcile)

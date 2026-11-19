@@ -113,6 +113,9 @@ Void tint is now composited once across touching dry cells. Both public and Void
 ground sheets use the clean interior when mirroring textures. Movement dispatch
 begins before the local path preview, and the compact approval includes one nearby
 known route sector to avoid waiting for the next scene at the sector boundary.
+During local movement, peer movement and camera settling, a matching ground
+projection can be translated. A miss paints the individual terrain layers and
+defers combining them until movement settles.
 
 The unified matrix tracks broader authoring capabilities, signed-in desktop and mobile checks,
 physical-device review and Owner playtesting. The Lanternward Watch is an authoring starter
@@ -151,3 +154,11 @@ and follows ordinary draft, publication and scheduling controls.
 - The historic route fingerprint still covers terrain and crossing geometry. The public
   Ferry Terminal is asserted as one additional landmark, together with the updated names
   of crossing routes into the terminal.
+
+- The [previous timing repeat](https://github.com/ZeiJM/Aurevane/actions/runs/44536399502)
+  passed 52 of 60 desktop movement cases. Eight multiplayer traces reached the
+  destination with only six to eight intermediate peer steps. The worst captured
+  frame included 160 ms of preparation and 99 ms of scenery drawing. The projection
+  regression now verifies that newly decoded terrain can invalidate the cache mid-step
+  without building a replacement viewport composite until motion settles. The full native
+  repeat and its original assertion remain the acceptance gate.

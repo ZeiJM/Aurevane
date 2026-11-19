@@ -3302,6 +3302,52 @@ describe('native map input and bounded lifecycle', () => {
       }
     },
   )
+  it('defers a new desktop terrain projection while a route is being painted', () => {
+    const base = projectWorld(newWorldState(), [], 1000)
+    const position = { sectorId: 'dry-4', x: 6, y: 4 }
+    const sector = base.sectors.find(({ id }) => id === base.position.sectorId)!
+    const view = {
+      ...base,
+      position,
+      atlas: undefined,
+      scenery: [],
+      sectors: Array.from({ length: 9 }, (_, index) => ({
+        ...sector,
+        id: `dry-${index}`,
+        atlasColumn: index % 3,
+        atlasRow: Math.floor(index / 3),
+        buildings: [],
+        landmarks: [],
+        cells: sector.cells.map((cell) => ({ ...cell, terrain: '.', walkable: true })),
+      })),
+    }
+    const s = scene(true, view)
+    try {
+      Object.assign(s.canvas, { clientWidth: 800 })
+      s.resize()
+      s.renderer.settings({ animate: false, zoom: 1 })
+      s.canvas.dataset.renderDiagnostics = 'timing'
+      s.frame(40)
+      expect(JSON.parse(s.canvas.dataset.renderTiming!).projectedGroundSectors).toBeGreaterThan(0)
+
+      s.motion.plan(
+        [{ position: { ...view.position, x: view.position.x + 1 }, durationMs: 200 }],
+        view.sectors,
+        40,
+      )
+      // A decoded image invalidates existing raster layers while a route is active.
+      s.images[0]!.onload?.()
+      s.draws.length = 0
+      s.frame(80)
+      expect(JSON.parse(s.canvas.dataset.renderTiming!).projectedGroundSectors).toBe(0)
+      expect(s.draws.some(({ matrix }) => matrix[1] === 1.5 * MAP_Y)).toBe(true)
+      for (let at = 120; at <= 1800; at += 40) s.frame(at)
+      expect(JSON.parse(s.canvas.dataset.renderTiming!).projectedGroundSectors).toBeGreaterThan(0)
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  })
   it('reuses the settled wide-zoom phone terrain projection without repainting its affine border', () => {
     const base = projectWorld(newWorldState(), [], 1000)
     const sector = base.sectors.find((candidate) => candidate.id === base.position.sectorId)!

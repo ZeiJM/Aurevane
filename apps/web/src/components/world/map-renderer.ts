@@ -1691,7 +1691,11 @@ export function createMapRenderer(
       ctx.restore()
     }
   }
-  function stationaryGroundLayer(visible: readonly WorldSectorView[], ambient: boolean) {
+  function stationaryGroundLayer(
+    visible: readonly WorldSectorView[],
+    ambient: boolean,
+    moving: boolean,
+  ) {
     // Only combine a consecutive dry run. Liquid/coast ordering is unchanged.
     let start = 0,
       end = 0,
@@ -1741,6 +1745,9 @@ export function createMapRenderer(
         stationary: !left && !top,
       }
     }
+    // During motion a cache miss can draw the individual sector surfaces.
+    // Compositing a new viewport-sized bitmap competes with the actor frames.
+    if (moving) return null
     clearStationaryGround()
     clearStationaryScenery()
     if (end - start < 4) return null
@@ -1790,7 +1797,7 @@ export function createMapRenderer(
     }
     return image.complete && image.naturalWidth ? image : null
   }
-  function draw(now: number, rafAt: number) {
+  function draw(now: number, rafAt: number, remoteMoving: boolean) {
     hitTargets = []
     groundProjections.beginFrame()
     wildlifeParts.beginFrame()
@@ -1990,7 +1997,11 @@ export function createMapRenderer(
       clearStationaryGround()
       clearStationaryScenery()
     }
-    const projection = cacheStationaryGround ? stationaryGroundLayer(visible, ambient) : null
+    const movementActive =
+      sample.moving || remoteMoving || sample.point.x !== camera.x || sample.point.y !== camera.y
+    const projection = cacheStationaryGround
+      ? stationaryGroundLayer(visible, ambient, movementActive)
+      : null
     if (timing) {
       timing.projectedGroundSectors = projection?.layer ? projection.end - projection.start : 0
       timing.projectedGroundPixels = projection?.layer
@@ -4175,7 +4186,7 @@ export function createMapRenderer(
       (wasRemoteMoving && !remoteMoving) ||
       rafAt - lastPaintRaf >= interval - 1
     ) {
-      draw(now, rafAt)
+      draw(now, rafAt, remoteMoving)
       dirty = false
     }
     wasMoving = sample.moving
