@@ -1,7 +1,12 @@
 import { renderToStaticMarkup } from 'react-dom/server'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import { validatePersistentEventDefinition } from '@aurevane/game-core/events/persistent-event'
+import { resolveSector } from '@/server/world/world-content'
+import { isWalkable } from '@/world/travel'
 import { createEventStarter, EventPhasePath } from './event-authoring-assists'
 import { EventBuilderClient } from './event-builder-client'
+
+vi.mock('server-only', () => ({}))
 
 describe('Event starter controls', () => {
   it('offers working starters on a fresh World Event and a fresh Story Campaign', () => {
@@ -10,6 +15,7 @@ describe('Event starter controls', () => {
     const story = renderToStaticMarkup(<EventBuilderClient {...props} category="story-campaigns" />)
     expect(world).toContain('Timed World Event')
     expect(world).toContain('World arrival')
+    expect(world).toContain('Lanternward Watch')
     expect(world).not.toContain('Travel and report</option>')
     expect(story).toContain('Travel and report</option>')
     expect(story).not.toContain('Timed World Event')
@@ -47,4 +53,24 @@ describe('Event phase path', () => {
     expect(rendered).not.toContain('open Wrap-up')
     expect(rendered).toContain('Staff resolve the run from this phase.')
   })
+})
+
+it('authors two Lanternward Watch routes with walkable checkpoints and a shared resolution', () => {
+  const definition = createEventStarter('lanternward-watch', 'event.lanternward-watch')
+  expect(() => validatePersistentEventDefinition(definition)).not.toThrow()
+  expect(definition.phases[0]?.transition).toEqual({
+    type: 'objective-branch',
+    routes: [
+      { objectiveId: 'farwater-signal', nextPhaseId: 'relight-tower' },
+      { objectiveId: 'harbor-signal', nextPhaseId: 'reach-terminal' },
+    ],
+  })
+  expect(definition.phases[1]?.nextPhaseId).toBe('close-watch')
+  expect(definition.phases[3]?.id).toBe('close-watch')
+  for (const objective of definition.phases.flatMap((phase) => phase.objectives)) {
+    const target = objective.worldNavigation!
+    const sector = resolveSector(target.sectorId)
+    expect(sector, objective.id).not.toBeNull()
+    expect(isWalkable(sector!, target), objective.id).toBe(true)
+  }
 })

@@ -614,14 +614,6 @@ export function atlasSectors(): readonly WorldSector[] {
           grid[y]![x] = 'l'
       }
       const landmarks: WorldLandmark[] = (authored?.landmarks ?? []).map((l) => ({ ...l }))
-      if (id === FERRY_MAINLAND_DOCK.sectorId)
-        landmarks.push({
-          id: FERRY_TERMINAL_LANDMARK,
-          name: FERRY_TERMINAL_NAME,
-          kind: 'waystone',
-          x: FERRY_MAINLAND_DOCK.x,
-          y: FERRY_MAINLAND_DOCK.y,
-        })
       if (!town && column === REMOTE_GRAND_CROSSING.column && row >= 31 && row <= 33)
         landmarks.push({
           id: `${id}:${row === REMOTE_GRAND_CROSSING.row ? 'grand-crossing' : 'stream-crossing'}`,
@@ -695,6 +687,15 @@ export function atlasSectors(): readonly WorldSector[] {
               if (grid[landmark.y + dy]?.[landmark.x + dx] === 't')
                 grid[landmark.y + dy]![landmark.x + dx] = '.'
       }
+      // The dock is already walkable. Its art and map label leave coast crossings intact.
+      if (id === FERRY_MAINLAND_DOCK.sectorId)
+        landmarks.push({
+          id: FERRY_TERMINAL_LANDMARK,
+          name: FERRY_TERMINAL_NAME,
+          kind: 'waystone',
+          x: FERRY_MAINLAND_DOCK.x,
+          y: FERRY_MAINLAND_DOCK.y,
+        })
       sectors.push({
         ...authored,
         id,

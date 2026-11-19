@@ -112,7 +112,11 @@ export interface EventWorldNavigation {
 
 export interface EventObjectiveDefinition {
   readonly worldNavigation?: EventWorldNavigation | null
-  readonly completion?: 'world-arrival'
+  readonly completion?: 'world-arrival' | 'world-npc-result'
+  readonly battleResult?: {
+    readonly npcId: string
+    readonly outcome: 'victory' | 'defeat'
+  }
   readonly requiredWeather?: WorldWeather
   readonly id: string
   readonly type: EventObjectiveType
@@ -120,15 +124,31 @@ export interface EventObjectiveDefinition {
   readonly target: number
 }
 
+export function hasConfirmedEventProducer(objective: EventObjectiveDefinition): boolean {
+  return objective.completion === 'world-arrival' || objective.completion === 'world-npc-result'
+}
+
+export interface EventObjectiveBranchRoute {
+  readonly objectiveId: string
+  readonly nextPhaseId: string
+}
+
 export type EventPhaseTransition =
   | { readonly type: 'manual' }
   | { readonly type: 'elapsed'; readonly afterSeconds: number }
   | { readonly type: 'scheduled'; readonly at: string }
   | { readonly type: 'objective-threshold'; readonly objectiveId: string }
+  | {
+      readonly type: 'objective-quorum'
+      readonly objectiveIds: readonly string[]
+      readonly required: number
+    }
+  | { readonly type: 'objective-branch'; readonly routes: readonly EventObjectiveBranchRoute[] }
 
 export interface PersistentEventPhaseDefinition {
   readonly id: string
   readonly name: string
+  readonly nextPhaseId?: string
   readonly objectives: readonly EventObjectiveDefinition[]
   readonly effects: readonly EventEffectReference[]
   readonly cleanupEffects: readonly EventEffectReference[]
@@ -536,7 +556,8 @@ export function validatePersistentEventDefinition(definition: PersistentEventDef
   }
   const phaseIds = new Set<string>()
   const objectiveIds = new Set<string>()
-  for (const phase of definition.phases) {
+  const phaseOrdinals = new Map(definition.phases.map((phase, index) => [phase.id, index]))
+  for (const [phaseIndex, phase] of definition.phases.entries()) {
     identity(phase.id, 'Phase id')
     shortText(phase.name, 'Phase name', 100)
     if (phaseIds.has(phase.id)) throw new TypeError(`Duplicate event phase ${phase.id}.`)
@@ -571,6 +592,8 @@ export function validatePersistentEventDefinition(definition: PersistentEventDef
       ) {
         throw new TypeError('Choose a supported World weather condition for a confirmed arrival.')
       }
+      if (objective.battleResult !== undefined && objective.completion !== 'world-npc-result')
+        throw new TypeError('A battle result must be attached to a World NPC battle objective.')
       if (objective.completion !== undefined) {
         const sectorId = objective.worldNavigation?.sectorId
         const scope = definition.scope
@@ -578,16 +601,31 @@ export function validatePersistentEventDefinition(definition: PersistentEventDef
           scope.type === 'global' ||
           (scope.type === 'region' &&
             (scope.key === sectorId || scope.key === `region.${sectorId}`))
+        const supportedAudience =
+          sectorId && publicScope && resolveEventCategory(definition) === 'world-events'
         if (
-          objective.completion !== 'world-arrival' ||
-          objective.type !== 'discover' ||
-          !sectorId ||
-          !publicScope ||
-          resolveEventCategory(definition) !== 'world-events'
-        ) {
+          objective.completion === 'world-arrival' &&
+          (objective.type !== 'discover' || !supportedAudience)
+        )
           throw new TypeError(
             'Reach a location needs a map destination inside a public World Event audience.',
           )
+        if (objective.completion === 'world-npc-result') {
+          const result = objective.battleResult
+          if (
+            !supportedAudience ||
+            objective.type !== 'defeat' ||
+            !result ||
+            Object.keys(result).some((key) => key !== 'npcId' && key !== 'outcome') ||
+            !isPersonalJourneyNpcId(result.npcId) ||
+            (result.outcome !== 'victory' && result.outcome !== 'defeat')
+          ) {
+            throw new TypeError(
+              'Select a published World NPC, a confirmed result, and a destination in the event audience.',
+            )
+          }
+        } else if (objective.completion !== 'world-arrival') {
+          throw new TypeError('Choose a supported event objective producer.')
         }
       }
       identity(objective.id, 'Objective id')
@@ -613,6 +651,13 @@ export function validatePersistentEventDefinition(definition: PersistentEventDef
       }
     }
 
+    const isLaterPhase = (id: string): boolean => (phaseOrdinals.get(id) ?? -1) > phaseIndex
+    if (
+      phase.nextPhaseId !== undefined &&
+      (phase.transition.type === 'objective-branch' || !isLaterPhase(phase.nextPhaseId))
+    ) {
+      throw new TypeError('A phase destination must be a later phase.')
+    }
     if (phase.transition.type === 'elapsed') {
       positiveSafeInteger(phase.transition.afterSeconds, 'Elapsed phase transition seconds')
     } else if (phase.transition.type === 'scheduled') {
@@ -622,6 +667,38 @@ export function validatePersistentEventDefinition(definition: PersistentEventDef
       if (!phaseObjectiveIds.has(phase.transition.objectiveId)) {
         throw new TypeError(
           'Objective-threshold transition must reference an objective in the same phase.',
+        )
+      }
+    } else if (phase.transition.type === 'objective-quorum') {
+      const { objectiveIds, required } = phase.transition
+      if (
+        !Array.isArray(objectiveIds) ||
+        objectiveIds.length < 2 ||
+        objectiveIds.length > 48 ||
+        new Set(objectiveIds).size !== objectiveIds.length ||
+        !objectiveIds.every((id) => phaseObjectiveIds.has(id)) ||
+        !Number.isSafeInteger(required) ||
+        required < 1 ||
+        required > objectiveIds.length
+      ) {
+        throw new TypeError(
+          'Select at least two different objectives in the same phase and a valid required count.',
+        )
+      }
+    } else if (phase.transition.type === 'objective-branch') {
+      const { routes } = phase.transition
+      if (
+        !Array.isArray(routes) ||
+        routes.length < 2 ||
+        routes.length > 48 ||
+        routes.some(
+          (route) =>
+            !route || !phaseObjectiveIds.has(route.objectiveId) || !isLaterPhase(route.nextPhaseId),
+        ) ||
+        new Set(routes.map(({ objectiveId }) => objectiveId)).size !== routes.length
+      ) {
+        throw new TypeError(
+          'An objective branch needs at least two different objectives in this phase. Every route must lead to a later phase.',
         )
       }
     }

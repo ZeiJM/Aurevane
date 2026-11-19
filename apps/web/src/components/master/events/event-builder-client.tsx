@@ -16,6 +16,7 @@ import {
   initialDefinition,
 } from './event-authoring-assists'
 import { PersonalJourneyFields } from './personal-journey-fields'
+import { WorldEncounterPicker } from './world-encounter-picker'
 import { MentorChallengeFields } from './mentor-challenge-fields'
 import { RepeatableTravelFields } from './repeatable-travel-fields'
 import { InventoryRestorationFields } from './inventory-restoration-fields'
@@ -32,6 +33,7 @@ import {
   EVENT_OBJECTIVE_TYPES,
   PERSONAL_QUEST_GIVERS,
   isPersonalQuestGiver,
+  hasConfirmedEventProducer,
   resolveEventCategory,
   type EventCategory,
   type EventEffectReference,
@@ -99,7 +101,10 @@ async function post(body: Record<string, unknown>): Promise<Record<string, unkno
   return payload
 }
 
-function transitionFor(type: EventPhaseTransition['type']): EventPhaseTransition {
+function transitionFor(
+  type: EventPhaseTransition['type'],
+  objectives: readonly EventObjectiveDefinition[],
+): EventPhaseTransition {
   switch (type) {
     case 'manual':
       return { type: 'manual' }
@@ -109,7 +114,126 @@ function transitionFor(type: EventPhaseTransition['type']): EventPhaseTransition
       return { type: 'scheduled', at: new Date(Date.now() + 3_600_000).toISOString() }
     case 'objective-threshold':
       return { type: 'objective-threshold', objectiveId: 'objective-1' }
+    case 'objective-branch':
+      return { type, routes: [] }
+    case 'objective-quorum': {
+      const objectiveIds = objectives.filter(hasConfirmedEventProducer).map(({ id }) => id)
+      return { type, objectiveIds, required: objectiveIds.length || 1 }
+    }
   }
+}
+
+function ObjectiveQuorumFields({
+  transition,
+  objectives,
+  onChange,
+}: {
+  transition: Extract<EventPhaseTransition, { type: 'objective-quorum' }>
+  objectives: readonly EventObjectiveDefinition[]
+  onChange: (next: Extract<EventPhaseTransition, { type: 'objective-quorum' }>) => void
+}) {
+  const arrivals = objectives.filter(hasConfirmedEventProducer)
+  return (
+    <fieldset>
+      <legend>Objective requirements</legend>
+      {arrivals.length < 2 ? (
+        <p>Add at least two objectives with confirmed World arrivals or NPC battle results.</p>
+      ) : null}
+      {arrivals.map(({ id }) => (
+        <label key={id}>
+          <input
+            type="checkbox"
+            checked={transition.objectiveIds.includes(id)}
+            onChange={(event) => {
+              const objectiveIds = event.target.checked
+                ? [...transition.objectiveIds, id]
+                : transition.objectiveIds.filter((candidate) => candidate !== id)
+              onChange({
+                ...transition,
+                objectiveIds,
+                required: Math.min(transition.required, objectiveIds.length || 1),
+              })
+            }}
+          />
+          {id}
+        </label>
+      ))}
+      <label>
+        Objectives required
+        <input
+          type="number"
+          min={1}
+          max={transition.objectiveIds.length || 1}
+          value={transition.required}
+          onChange={(event) => onChange({ ...transition, required: Number(event.target.value) })}
+        />
+      </label>
+    </fieldset>
+  )
+}
+
+function ObjectiveBranchFields({
+  transition,
+  objectives,
+  destinations,
+  onChange,
+}: {
+  transition: Extract<EventPhaseTransition, { type: 'objective-branch' }>
+  objectives: readonly EventObjectiveDefinition[]
+  destinations: readonly PersistentEventPhaseDefinition[]
+  onChange: (next: Extract<EventPhaseTransition, { type: 'objective-branch' }>) => void
+}) {
+  const arrivals = objectives.filter(hasConfirmedEventProducer)
+  return (
+    <fieldset>
+      <legend>Objective destinations</legend>
+      {destinations.length ? (
+        <p>The first confirmed completion chooses the next phase. Routes listed first win a tie.</p>
+      ) : (
+        <p>Add a later phase before assigning destinations.</p>
+      )}
+      {arrivals.length < 2 ? (
+        <p>Add at least two objectives with confirmed World arrivals or NPC battle results.</p>
+      ) : null}
+      {arrivals.map(({ id }) => (
+        <label key={id}>
+          When {id} completes
+          <select
+            value={
+              transition.routes.find(({ objectiveId }) => objectiveId === id)?.nextPhaseId ?? ''
+            }
+            onChange={(event) => {
+              const nextPhaseId = event.target.value
+              const routes = transition.routes.filter(({ objectiveId }) => objectiveId !== id)
+              if (nextPhaseId) routes.push({ objectiveId: id, nextPhaseId })
+              onChange({ ...transition, routes })
+            }}
+          >
+            <option value="">Do not use this objective for routing</option>
+            {destinations.map((phase) => (
+              <option key={phase.id} value={phase.id}>
+                {phase.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      ))}
+    </fieldset>
+  )
+}
+
+function updatePhaseDestination(
+  phase: PersistentEventPhaseDefinition,
+  previous: string,
+  next?: string,
+): PersistentEventPhaseDefinition {
+  if (phase.transition.type === 'objective-branch') {
+    const routes = phase.transition.routes.flatMap((route) =>
+      route.nextPhaseId !== previous ? [route] : next ? [{ ...route, nextPhaseId: next }] : [],
+    )
+    return { ...phase, transition: { ...phase.transition, routes } }
+  }
+  return phase.nextPhaseId === previous ? { ...phase, nextPhaseId: next } : phase
 }
 
 function effect(): EventEffectReference {
@@ -246,10 +370,34 @@ export function EventBuilderClient({
   }
 
   function patchPhase(index: number, patch: Partial<PersistentEventPhaseDefinition>) {
+    const current = definition.phases[index]!
+    const replacementId = patch.id
     patchDefinition({
-      phases: definition.phases.map((phase, candidate) =>
-        candidate === index ? { ...phase, ...patch } : phase,
-      ),
+      phases: definition.phases.map((phase, candidate) => {
+        if (candidate !== index)
+          return replacementId === undefined || current.id === replacementId
+            ? phase
+            : updatePhaseDestination(phase, current.id, replacementId)
+        const updated = { ...phase, ...patch }
+        if (!patch.objectives) return updated
+        const ids = new Set(
+          updated.objectives.filter(hasConfirmedEventProducer).map(({ id }) => id),
+        )
+        if (updated.transition.type === 'objective-branch') {
+          const routes = updated.transition.routes.filter(({ objectiveId }) => ids.has(objectiveId))
+          return { ...updated, transition: { ...updated.transition, routes } }
+        }
+        if (updated.transition.type !== 'objective-quorum') return updated
+        const objectiveIds = updated.transition.objectiveIds.filter((id) => ids.has(id))
+        return {
+          ...updated,
+          transition: {
+            ...updated.transition,
+            objectiveIds,
+            required: Math.min(updated.transition.required, objectiveIds.length || 1),
+          },
+        }
+      }),
     })
   }
 
@@ -259,7 +407,25 @@ export function EventBuilderClient({
     patch: Partial<EventObjectiveDefinition>,
   ) {
     const phase = definition.phases[phaseIndex]!
+    const previousId = phase.objectives[objectiveIndex]?.id
+    const nextId = patch.id
+    let transition = phase.transition
+    if (previousId && nextId !== undefined && nextId !== previousId) {
+      if (transition.type === 'objective-quorum')
+        transition = {
+          ...transition,
+          objectiveIds: transition.objectiveIds.map((id) => (id === previousId ? nextId : id)),
+        }
+      if (transition.type === 'objective-branch')
+        transition = {
+          ...transition,
+          routes: transition.routes.map((route) =>
+            route.objectiveId === previousId ? { ...route, objectiveId: nextId } : route,
+          ),
+        }
+    }
     patchPhase(phaseIndex, {
+      transition,
       objectives: phase.objectives.map((entry, candidate) =>
         candidate === objectiveIndex ? { ...entry, ...patch } : entry,
       ),
@@ -1012,7 +1178,9 @@ export function EventBuilderClient({
                     type="button"
                     disabled={definition.phases.length === 1}
                     onClick={() => {
-                      const remaining = definition.phases.filter((_, index) => index !== phaseIndex)
+                      const remaining = definition.phases
+                        .filter((_, index) => index !== phaseIndex)
+                        .map((candidate) => updatePhaseDestination(candidate, phase.id))
                       patchDefinition({ phases: remaining })
                       setSelectedPhaseId(remaining[0]!.id)
                     }}
@@ -1040,18 +1208,20 @@ export function EventBuilderClient({
                     Transition
                     <select
                       value={phase.transition.type}
-                      onChange={(event) =>
+                      onChange={(event) => {
+                        const type = event.target.value as EventPhaseTransition['type']
                         patchPhase(phaseIndex, {
-                          transition: transitionFor(
-                            event.target.value as EventPhaseTransition['type'],
-                          ),
+                          transition: transitionFor(type, phase.objectives),
+                          ...(type === 'objective-branch' ? { nextPhaseId: undefined } : {}),
                         })
-                      }
+                      }}
                     >
                       <option value="manual">manual</option>
                       <option value="elapsed">elapsed</option>
                       <option value="scheduled">scheduled</option>
                       <option value="objective-threshold">objective-threshold</option>
+                      <option value="objective-quorum">Multiple objectives</option>
+                      <option value="objective-branch">Branch by objective</option>
                     </select>
                   </label>
                   {phase.transition.type === 'elapsed' ? (
@@ -1101,6 +1271,38 @@ export function EventBuilderClient({
                       />
                     </label>
                   ) : null}
+                  {phase.transition.type === 'objective-quorum' ? (
+                    <ObjectiveQuorumFields
+                      transition={phase.transition}
+                      objectives={phase.objectives}
+                      onChange={(transition) => patchPhase(phaseIndex, { transition })}
+                    />
+                  ) : null}
+                  {phase.transition.type === 'objective-branch' ? (
+                    <ObjectiveBranchFields
+                      transition={phase.transition}
+                      objectives={phase.objectives}
+                      destinations={definition.phases.slice(phaseIndex + 1)}
+                      onChange={(transition) => patchPhase(phaseIndex, { transition })}
+                    />
+                  ) : phaseIndex + 1 < definition.phases.length ? (
+                    <label>
+                      Next phase
+                      <select
+                        value={phase.nextPhaseId ?? ''}
+                        onChange={(event) =>
+                          patchPhase(phaseIndex, { nextPhaseId: event.target.value || undefined })
+                        }
+                      >
+                        <option value="">Follow phase order</option>
+                        {definition.phases.slice(phaseIndex + 1).map((destination) => (
+                          <option key={destination.id} value={destination.id}>
+                            {destination.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  ) : null}
                 </div>
 
                 <div className={styles.compositionGroup}>
@@ -1134,6 +1336,7 @@ export function EventBuilderClient({
                             patchObjective(phaseIndex, objectiveIndex, {
                               type: 'discover',
                               completion: 'world-arrival',
+                              battleResult: undefined,
                               worldNavigation: entry.worldNavigation ?? {
                                 sectorId:
                                   definition.scope.type === 'region'
@@ -1145,9 +1348,27 @@ export function EventBuilderClient({
                                 autoPath: true,
                               },
                             })
+                          } else if (selection === 'world-npc-result') {
+                            patchObjective(phaseIndex, objectiveIndex, {
+                              type: 'defeat',
+                              completion: 'world-npc-result',
+                              requiredWeather: undefined,
+                              battleResult: { npcId: '', outcome: 'victory' },
+                              worldNavigation: entry.worldNavigation ?? {
+                                sectorId:
+                                  definition.scope.type === 'region'
+                                    ? definition.scope.key.replace(/^region\./, '')
+                                    : 'verdant-expanse',
+                                x: 5,
+                                y: 4,
+                                guidance: 'exact',
+                                autoPath: true,
+                              },
+                            })
                           } else {
                             patchObjective(phaseIndex, objectiveIndex, {
                               type: selection as EventObjectiveDefinition['type'],
+                              battleResult: undefined,
                               completion: undefined,
                               requiredWeather: undefined,
                             })
@@ -1158,6 +1379,10 @@ export function EventBuilderClient({
                         {eventCategory === 'world-events' ||
                         entry.completion === 'world-arrival' ? (
                           <option value="world-arrival">Reach a location</option>
+                        ) : null}
+                        {eventCategory === 'world-events' ||
+                        entry.completion === 'world-npc-result' ? (
+                          <option value="world-npc-result">Complete a World NPC battle</option>
                         ) : null}
                         {EVENT_OBJECTIVE_TYPES.map((type) => (
                           <option key={type}>{type}</option>
@@ -1210,6 +1435,43 @@ export function EventBuilderClient({
                             number of distinct arrivals needed.
                           </small>
                         </>
+                      ) : null}
+                      {entry.completion === 'world-npc-result' && entry.battleResult ? (
+                        <fieldset>
+                          <legend>Required battle result</legend>
+                          <WorldEncounterPicker
+                            npcId={entry.battleResult.npcId}
+                            fallbackSectorId={entry.worldNavigation?.sectorId}
+                            sectorLabel="Encounter sector"
+                            npcLabel="Encounter NPC"
+                            unavailableLabel="Unavailable World NPC"
+                            onChange={(npcId) =>
+                              patchObjective(phaseIndex, objectiveIndex, {
+                                battleResult: { ...entry.battleResult!, npcId },
+                              })
+                            }
+                          />
+                          <label>
+                            Outcome
+                            <select
+                              value={entry.battleResult.outcome}
+                              onChange={(event) =>
+                                patchObjective(phaseIndex, objectiveIndex, {
+                                  battleResult: {
+                                    ...entry.battleResult!,
+                                    outcome: event.target.value === 'defeat' ? 'defeat' : 'victory',
+                                  },
+                                })
+                              }
+                            >
+                              <option value="victory">Victory</option>
+                              <option value="defeat">Defeat</option>
+                            </select>
+                          </label>
+                          <small>
+                            Set the map guidance in the same sector as the published encounter.
+                          </small>
+                        </fieldset>
                       ) : null}
                       <EventNavigationFields
                         value={entry.worldNavigation}

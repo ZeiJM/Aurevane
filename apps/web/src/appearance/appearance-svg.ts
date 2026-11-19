@@ -9,7 +9,21 @@ import {
   type AppearanceExpression,
   type AppearanceFacing,
   type AppearancePose,
+  type PaintedAppearanceBlueprint,
 } from './appearance-manifest'
+import {
+  PAINTED_ACTORS,
+  PAINTED_ACTOR_PORTRAITS,
+  PAINTED_OUTER_LAYERS,
+  PAINTED_ACCESSORY_LAYERS,
+} from './appearance-painted-catalog.generated'
+import type { PaintedLook } from './appearance-painted-catalog'
+import {
+  paintedDyeFilter,
+  paintedEquipmentDyes,
+  paintedFieldEquipment,
+  paintedPortraitEquipment,
+} from './appearance-painted-equipment'
 import { renderLowerGarment } from './appearance-lower-art'
 import { PAINTED_PRESET_PORTRAITS } from './appearance-painted-portraits.generated'
 import { PAINTED_PRESET_SPRITES } from './appearance-painted-sprites.generated'
@@ -82,7 +96,12 @@ function paintedPortrait(index: number, expression: AppearanceExpression, icon: 
     : svg(256, 256, `<image href="${source}" width="256" height="256"/>`)
 }
 
-function paintedSprite(facing: AppearanceFacing, pose: AppearancePose, frame: number) {
+function paintedSprite(
+  facing: AppearanceFacing,
+  pose: AppearancePose,
+  frame: number,
+  art = `<use href="#body-${facing}"/>`,
+) {
   const direction = facing === 'west' ? -1 : 1
   const step = pose === 'walk' ? [0, 1.8, -1.8][frame]! : 0
   const rise = pose === 'walk' && frame !== 0 ? 1.5 : 0
@@ -95,7 +114,6 @@ function paintedSprite(facing: AppearanceFacing, pose: AppearancePose, frame: nu
           ? -68 * direction
           : 0
   const lunge = pose === 'attack' ? [0, -1, 4][frame]! * direction : 0
-  const art = `<use href="#body-${facing}"/>`
   return `
     <ellipse cx="24" cy="58" rx="${pose === 'down' ? 16 : 11}" ry="2.5" fill="#171d23" fill-opacity=".4"/>
     <g transform="translate(${pose === 'down' ? 12 * direction : lunge} ${-rise}) rotate(${angle} 24 52)${pose === 'down' ? ' translate(24 52) scale(.72) translate(-24 -52)' : ''}">
@@ -155,7 +173,7 @@ function portrait(blueprint: AppearanceBlueprint, mood: AppearanceExpression, ic
 }
 
 function sprite(
-  blueprint: AppearanceBlueprint,
+  blueprint: Exclude<AppearanceBlueprint, PaintedAppearanceBlueprint>,
   facing: AppearanceFacing,
   pose: AppearancePose,
   frame: number,
@@ -243,10 +261,119 @@ function sprite(
     </g>`
 }
 
+const paintedFrameClips =
+  '<clipPath id="upper-body"><path d="M0 0h48v46H0z"/></clipPath><clipPath id="lower-body"><path d="M0 45h48v19H0z"/></clipPath>'
+
+function paintedCharacterPortrait(
+  blueprint: PaintedAppearanceBlueprint,
+  expression: AppearanceExpression,
+  icon: boolean,
+) {
+  const source = PAINTED_ACTOR_PORTRAITS[blueprint.identity][expression]
+  const size = icon ? 64 : 256
+  const art = `<image href="${source}" width="256" height="256"/>${paintedPortraitEquipment(blueprint)}`
+  const framed =
+    blueprint.headwear === 'arcanist'
+      ? `<g transform="translate(31 76) scale(.76)">${art}</g>`
+      : art
+  const portrait = icon ? `<g transform="translate(-14 0) scale(.359375)">${framed}</g>` : framed
+  return svg(
+    size,
+    size,
+    `
+    <defs><radialGradient id="paper"><stop stop-color="#8d8069"/><stop offset="1" stop-color="#29282d"/></radialGradient>
+    ${paintedEquipmentDyes(blueprint)}</defs>
+    <rect width="${size}" height="${size}" fill="url(#paper)"/>${portrait}`,
+  )
+}
+
+function paintedLayer(facing: AppearanceFacing, layer: string, color?: PaintedLook['clothColor']) {
+  const column = APPEARANCE_FACINGS.indexOf(facing)
+  const art = `<use href="#painted-${layer}"/>`
+  const filtered = color && color !== 'natural' ? `<g filter="url(#dye-${layer})">${art}</g>` : art
+  return `<svg x="3.52" y="7.44" width="40.96" height="56.32" viewBox="${column * 128} 0 128 176" overflow="hidden">${filtered}</svg>`
+}
+
+function paintedLayerDefinition(layer: string, source: string, color?: PaintedLook['clothColor']) {
+  return `<image id="painted-${layer}" href="${source}" width="512" height="176"/>${paintedDyeFilter(`dye-${layer}`, color)}`
+}
+
+function renderSpriteAtlas(
+  definitions: string,
+  draw: (facing: AppearanceFacing, pose: AppearancePose, frame: number) => string,
+) {
+  const { width, height, frames, columns, rows } = APPEARANCE_FRAME
+  const drawings = APPEARANCE_POSES.flatMap((pose) =>
+    APPEARANCE_FACINGS.flatMap((facing) =>
+      Array.from({ length: frames }, (_, frame) => {
+        const { column, row } = appearanceFrameIndex(facing, pose, frame)
+        return `<svg x="${column * width}" y="${row * height}" width="${width}" height="${height}" overflow="hidden">${draw(facing, pose, frame)}</svg>`
+      }),
+    ),
+  )
+  return svg(columns * width, rows * height, definitions + drawings.join(''))
+}
+
+const paintedWalkClips = `
+  <clipPath id="painted-torso"><rect width="48" height="46"/></clipPath>
+  <clipPath id="painted-left-leg"><path d="M0 45h24v19H0z"/></clipPath>
+  <clipPath id="painted-right-leg"><path d="M24 45h24v19H24z"/></clipPath>`
+
+function paintedCharacterWalk(facing: AppearanceFacing, frame: number) {
+  const body = `<use href="#painted-body-${facing}"/>`
+  const gear = `<use href="#painted-gear-${facing}"/>`
+  const head = `<use href="#painted-equipment-${facing}"/>`
+  const clothing = `<use href="#painted-clothing-${facing}"/>`
+  if (!frame)
+    return paintedSprite(facing, 'walk', frame, `<use href="#painted-character-${facing}"/>`)
+  const step = frame === 1 ? 1 : -1
+  const profile = facing === 'east' || facing === 'west'
+  const direction = facing === 'west' ? -1 : 1
+  const x = step * (profile ? 1.9 * direction : 0.65)
+  const y = step * (profile ? 0.65 : 1.15)
+  return `
+    <ellipse cx="24" cy="58" rx="11" ry="2.5" fill="#171d23" fill-opacity=".4"/>
+    <g clip-path="url(#painted-torso)" transform="translate(0 -.6)">${body}</g>
+    <g transform="translate(${x} ${y})"><g clip-path="url(#painted-left-leg)">${body}</g></g>
+    <g transform="translate(${-x} ${-y})"><g clip-path="url(#painted-right-leg)">${body}</g></g>
+    <g transform="rotate(${step * 1.4} 24 25) translate(0 -.6)">${clothing}</g>
+    <g transform="translate(0 -.6)">${gear}${head}</g>`
+}
+
+function renderPaintedCharacterAtlas(blueprint: PaintedAppearanceBlueprint) {
+  const { identity, outerwear, clothColor, gear, gearColor } = blueprint
+  const layers = [paintedLayerDefinition('body', PAINTED_ACTORS[identity])]
+  if (outerwear !== 'none')
+    layers.push(paintedLayerDefinition('clothing', PAINTED_OUTER_LAYERS[outerwear], clothColor))
+  if (gear !== 'none')
+    layers.push(paintedLayerDefinition('gear', PAINTED_ACCESSORY_LAYERS[gear], gearColor))
+  const parts = APPEARANCE_FACINGS.map((facing) => {
+    const body = paintedLayer(facing, 'body')
+    const clothing = outerwear === 'none' ? '' : paintedLayer(facing, 'clothing', clothColor)
+    const accessory = gear === 'none' ? '' : paintedLayer(facing, 'gear', gearColor)
+    return `<g id="painted-body-${facing}">${body}</g>
+      <g id="painted-clothing-${facing}">${clothing}</g><g id="painted-gear-${facing}">${accessory}</g>
+      <g id="painted-equipment-${facing}">${paintedFieldEquipment(blueprint, facing)}</g>
+      <g id="painted-character-${facing}"><use href="#painted-body-${facing}"/>
+        <use href="#painted-clothing-${facing}"/><use href="#painted-gear-${facing}"/>
+        <use href="#painted-equipment-${facing}"/></g>`
+  }).join('')
+  const definitions = `<defs>${paintedWalkClips}${paintedEquipmentDyes(blueprint)}${layers.join('')}${parts}</defs>`
+  return renderSpriteAtlas(definitions, (facing, pose, frame) =>
+    pose === 'walk'
+      ? paintedCharacterWalk(facing, frame)
+      : paintedSprite(facing, pose, frame, `<use href="#painted-character-${facing}"/>`),
+  )
+}
+
 export function renderAppearanceAsset(
   blueprint: AppearanceBlueprint,
   asset: AppearanceAsset,
 ): string {
+  if (blueprint.v === 4)
+    return asset === 'atlas'
+      ? renderPaintedCharacterAtlas(blueprint)
+      : paintedCharacterPortrait(blueprint, asset === 'icon' ? 'neutral' : asset, asset === 'icon')
   const preset = matchingPresetIndex(blueprint)
   if (asset !== 'atlas') {
     const expression = asset === 'icon' ? 'neutral' : asset
@@ -255,21 +382,12 @@ export function renderAppearanceAsset(
       portrait(blueprint, expression, asset === 'icon')
     )
   }
-  const { width, height, frames, columns, rows } = APPEARANCE_FRAME
+  const { width } = APPEARANCE_FRAME
   const painted = PAINTED_PRESET_SPRITES[preset]
   const definitions = painted
-    ? `<defs><clipPath id="upper-body"><path d="M0 0h48v46H0z"/></clipPath><clipPath id="lower-body"><path d="M0 45h48v19H0z"/></clipPath>${painted.map((part, index) => `<image id="body-${APPEARANCE_FACINGS[index]}" href="${part.uri}" x="${(width - part.width) / 2}" y="6" width="${part.width}" height="52"/>`).join('')}</defs>`
+    ? `<defs>${paintedFrameClips}${painted.map((part, index) => `<image id="body-${APPEARANCE_FACINGS[index]}" href="${part.uri}" x="${(width - part.width) / 2}" y="6" width="${part.width}" height="52"/>`).join('')}</defs>`
     : ''
-  const drawings = APPEARANCE_POSES.flatMap((pose) =>
-    APPEARANCE_FACINGS.flatMap((facing) =>
-      Array.from({ length: frames }, (_, frame) => {
-        const { column, row } = appearanceFrameIndex(facing, pose, frame)
-        const drawing = painted
-          ? paintedSprite(facing, pose, frame)
-          : sprite(blueprint, facing, pose, frame)
-        return `<svg x="${column * width}" y="${row * height}" width="${width}" height="${height}" overflow="hidden">${drawing}</svg>`
-      }),
-    ),
+  return renderSpriteAtlas(definitions, (facing, pose, frame) =>
+    painted ? paintedSprite(facing, pose, frame) : sprite(blueprint, facing, pose, frame),
   )
-  return svg(columns * width, rows * height, definitions + drawings.join(''))
 }

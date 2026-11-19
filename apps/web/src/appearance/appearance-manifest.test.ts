@@ -1,8 +1,14 @@
 import { createHash } from 'node:crypto'
+import sharp from 'sharp'
 
 import { describe, expect, it } from 'vitest'
 
 import * as appearance from './appearance-manifest'
+import {
+  DEFAULT_PAINTED_LOOK,
+  PAINTED_CLOTHING,
+  type PaintedLook,
+} from './appearance-painted-catalog'
 import { renderAppearanceAsset } from './appearance-svg'
 import { GET } from '@/app/api/media/appearance/[version]/[blueprint]/[asset]/route'
 
@@ -259,4 +265,121 @@ describe('independent sleeve cuffs', () => {
       )
     }
   })
+})
+
+it('round-trips painted styles and independently colors clothing and accessories', async () => {
+  const rendered = new Set<string>()
+  const looks: PaintedLook[] = [
+    ...Object.keys(PAINTED_CLOTHING).map((outerwear) => ({
+      ...DEFAULT_PAINTED_LOOK,
+      outerwear: outerwear as PaintedLook['outerwear'],
+    })),
+    { ...DEFAULT_PAINTED_LOOK, identity: 'guard', gear: 'mapcase', gearColor: 'crimson' },
+    { ...DEFAULT_PAINTED_LOOK, identity: 'guard', gear: 'mapcase', gearColor: 'teal' },
+    {
+      ...DEFAULT_PAINTED_LOOK,
+      identity: 'guard',
+      clothColor: 'ember',
+      gear: 'mapcase',
+      gearColor: 'teal',
+    },
+    { ...DEFAULT_PAINTED_LOOK, identity: 'ranger', gear: 'potions' },
+    { ...DEFAULT_PAINTED_LOOK, identity: 'elder', gear: 'bedroll' },
+    { ...DEFAULT_PAINTED_LOOK, headwear: 'arcanist', headColor: 'cobalt' },
+    { ...DEFAULT_PAINTED_LOOK, headwear: 'bandana' },
+    { ...DEFAULT_PAINTED_LOOK, facewear: 'eyepatch' },
+    { ...DEFAULT_PAINTED_LOOK, facewear: 'goggles', faceColor: 'amber' },
+  ]
+  for (const look of looks) {
+    const blueprint = appearance.paintedAppearanceBlueprint(look)
+    const manifest = appearance.compileAppearanceManifest(blueprint)
+    expect(
+      appearance.appearanceManifestFromImageUrl(manifest.portraits.neutral)?.blueprint,
+    ).toEqual(blueprint)
+    const response = await GET(new Request('https://aurevane.invalid'), {
+      params: Promise.resolve({
+        version: '4',
+        blueprint: manifest.id.slice(2),
+        asset: 'atlas.svg',
+      }),
+    })
+    expect(response.ok).toBe(true)
+    const atlas = await response.text()
+    expect(atlas).toContain('id="painted-body"')
+    expect(atlas).toContain('viewBox="384 0 128 176"')
+    const idle = await sharp(Buffer.from(atlas))
+      .extract({ left: 0, top: 0, width: 48, height: 64 })
+      .ensureAlpha()
+      .raw()
+      .toBuffer()
+    expect(idle.filter((alpha, index) => index % 4 === 3 && alpha > 200).length).toBeGreaterThan(
+      220,
+    )
+    rendered.add(createHash('sha256').update(idle).digest('hex'))
+  }
+  expect(rendered.size).toBe(looks.length)
+  expect(
+    appearance.appearanceBlueprintFromId(
+      'scout.none.ember.none.natural.none.natural.none.natural',
+      '4',
+    ),
+  ).toBeNull()
+  expect(
+    appearance.appearanceBlueprintFromId(
+      'scout.compass.ocean.none.ember.none.natural.none.natural',
+      '4',
+    ),
+  ).toBeNull()
+  expect(
+    appearance.parseAppearanceBlueprint({
+      ...appearance.paintedAppearanceBlueprint(DEFAULT_PAINTED_LOOK),
+      hair: 'curls',
+    }),
+  ).toBeNull()
+})
+
+it('paints all expressions and keeps an equipped head and face accessory on each walk frame', async () => {
+  const base = appearance.paintedAppearanceBlueprint({
+    ...DEFAULT_PAINTED_LOOK,
+    identity: 'ranger',
+    headwear: 'arcanist',
+    headColor: 'pine',
+  })
+  const dressed = appearance.paintedAppearanceBlueprint({
+    ...base,
+    facewear: 'eyepatch',
+    faceColor: 'charcoal',
+  })
+  const portraits = new Set<string>()
+  for (const expression of appearance.APPEARANCE_EXPRESSIONS) {
+    const portrait = await sharp(Buffer.from(renderAppearanceAsset(dressed, expression)))
+      .png()
+      .toBuffer()
+    portraits.add(createHash('sha256').update(portrait).digest('hex'))
+  }
+  expect(portraits.size).toBe(5)
+  const baselinePortrait = await sharp(Buffer.from(renderAppearanceAsset(base, 'neutral')))
+    .png()
+    .toBuffer()
+  expect(portraits.has(createHash('sha256').update(baselinePortrait).digest('hex'))).toBe(false)
+
+  const [dressedAtlas, baseAtlas] = await Promise.all(
+    [dressed, base].map((blueprint) =>
+      sharp(Buffer.from(renderAppearanceAsset(blueprint, 'atlas')))
+        .png()
+        .toBuffer(),
+    ),
+  )
+  for (const facing of appearance.APPEARANCE_FACINGS) {
+    const frames = new Set<string>()
+    for (const frame of [0, 1, 2]) {
+      const { column, row } = appearance.appearanceFrameIndex(facing, 'walk', frame)
+      const bounds = { left: column * 48, top: row * 64, width: 48, height: 64 }
+      const equipped = await sharp(dressedAtlas).extract(bounds).ensureAlpha().raw().toBuffer()
+      const plain = await sharp(baseAtlas).extract(bounds).ensureAlpha().raw().toBuffer()
+      expect(equipped.equals(plain), `${facing} walk ${frame}`).toBe(false)
+      frames.add(createHash('sha256').update(equipped).digest('hex'))
+    }
+    expect(frames.size).toBe(3)
+  }
 })

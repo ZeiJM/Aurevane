@@ -9,6 +9,13 @@ export const NPC_VARIANT_BATCH_MAX = 8
 export const NPC_VARIANT_POOL_LIMIT = 64
 export type NpcVariantField = keyof typeof APPEARANCE_CATALOG
 export const NPC_VARIANT_FIELDS = Object.keys(APPEARANCE_CATALOG) as NpcVariantField[]
+export const NPC_PAINTED_VARIANT_FIELDS: NpcVariantField[] = [
+  'body',
+  'coat',
+  'palette',
+  'accessory',
+  'hairColor',
+]
 
 export type NpcVariantRequest = {
   base: AppearanceBlueprint
@@ -35,6 +42,8 @@ export function parseNpcVariantRequest(input: unknown): NpcVariantRequest | null
     (mode !== 'distinct' && mode !== 'uniform') ||
     (mode === 'distinct' ? vary.length === 0 : vary.length !== 0)
   )
+    return null
+  if (blueprint.v === 4 && vary.some((field) => !NPC_PAINTED_VARIANT_FIELDS.includes(field)))
     return null
   return { base: blueprint, count, vary, mode }
 }

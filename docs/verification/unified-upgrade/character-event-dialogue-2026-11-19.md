@@ -29,10 +29,21 @@ in four directions in the shared builder.
 
 [Trail Scout turnaround](sprite-art/trail-scout-four-facings.webp) is an original four-direction
 idle art candidate based on that reference. It establishes one silhouette and material treatment.
-The companion portrait, separate painted art layers, animated frames and equivalent variation
-across the catalog remain to be developed. The earlier
-[wardrobe verification](appearance-wardrobe.md) measures existing recipe variety at gameplay
-scale. The same distinction threshold still applies to the new art.
+The [Scout layer sheet](sprite-art/trail-scout-layers-v01.webp) establishes shared foot and
+shoulder alignment. The playable painted catalog adds three more base identities, five outer
+garments, four carried accessories, two headwear styles and two face accessories. Players
+can combine an Arcanist hat or bandana with a leather eyepatch or brass goggles. Outerwear,
+carried accessories, headwear and face accessories have independent color controls. Each
+slot has its original finish and fourteen additional colors. The builder composes the
+selected layers in all four facings and carries head and face accessories into portraits.
+The field walk
+articulates each leg separately and moves the outer layer at the shoulders. The catalog is
+available through creation, Account and NPC Design. The older appearance formats stay available
+under their original versioned URLs. Each painted identity has five matching
+portrait expressions for dialogue and preview.
+
+The earlier [wardrobe verification](appearance-wardrobe.md) measures existing recipe variation at
+gameplay scale. The painted catalog has its own raster checks at gameplay size and native wardrobe scenario.
 
 ## Dialogue and Events
 
@@ -54,6 +65,16 @@ rechecks the selected character, movement, battle, NPC range and current publica
 It returns the selected response and its immediate choices. Published lines remain separate
 from later draft edits. These narrative replies are read-only. Existing quest, battle and
 reward commands keep their own authority paths.
+
+For public World Events, authors can select at least two supported Reach a location objectives
+in a phase and set how many must finish. Event recovery counts completed objectives from the
+pinned run and phase. Authored arrival and weather rules continue to own the contribution
+that marks an objective complete. Authors can also route a phase to different later phases
+using its first confirmed objective. Phase transitions and staff advances record untaken
+intermediate phases as skipped. Published World NPC victories and genuine defeats are separate
+objective producers. Event recovery reads the canonical battle receipt, excludes practice and
+inactive event windows, and records one contribution per eligible battle and objective. The
+Lanternward Watch starter demonstrates two authored routes at Farwater Span and Ferry Terminal.
 
 ## Ferry Terminal and the World map
 
@@ -93,10 +114,9 @@ ground sheets use the clean interior when mirroring textures. Movement dispatch
 begins before the local path preview, and the compact approval includes one nearby
 known route sector to avoid waiting for the next scene at the sector boundary.
 
-The remaining scope includes Event branches driven by quest and battle outcomes, expanded
-Character and NPC authoring, more layered painted sprite assets and live cast integration,
-a major Event and signed-in desktop and mobile acceptance. The unified matrix remains the
-verification ledger.
+The unified matrix tracks broader authoring capabilities, signed-in desktop and mobile checks,
+physical-device review and Owner playtesting. The Lanternward Watch is an authoring starter
+and follows ordinary draft, publication and scheduling controls.
 
 ## Verification
 
@@ -123,3 +143,11 @@ verification ledger.
   isolation, current-revision and range checks, and character ownership at the reply endpoint.
   The signed-in browser scenario authors and rehearses a conversation, publishes it,
   follows two routes from Nearby, and checks that it changes neither position nor progress.
+- The wardrobe browser scenario saves a painted look during Creation, adds independently
+  dyed layers in Account, decodes the exact field atlas and verifies the permanent lock.
+- The Event regression covers the independent objective quorum and both World NPC outcomes.
+  It asserts that the unused phase is skipped and that replay grants no extra credit. The
+  Lanternward Watch starter uses walkable coastal checkpoints and a shared ending.
+- The historic route fingerprint still covers terrain and crossing geometry. The public
+  Ferry Terminal is asserted as one additional landmark, together with the updated names
+  of crossing routes into the terminal.

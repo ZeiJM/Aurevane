@@ -4,10 +4,12 @@ import { randomInt } from 'node:crypto'
 import { AurevaneError } from '@aurevane/game-core/errors'
 import {
   APPEARANCE_CATALOG,
+  paintedAppearanceBlueprint,
   compileAppearanceManifest,
   parseAppearanceBlueprint,
   type AppearanceBlueprint,
 } from '@/appearance/appearance-manifest'
+import { PAINTED_FIELDS, type PaintedLook } from '@/appearance/appearance-painted-catalog'
 import {
   NPC_VARIANT_POOL_LIMIT,
   type NpcVariantField,
@@ -28,9 +30,28 @@ function greatestCommonDivisor(a: number, b: number): number {
   return b === 0 ? a : greatestCommonDivisor(b, a % b)
 }
 
+const paintedVariationFields: Partial<Record<NpcVariantField, keyof PaintedLook>> = {
+  body: 'identity',
+  coat: 'outerwear',
+  palette: 'clothColor',
+  accessory: 'gear',
+  hairColor: 'gearColor',
+}
+
+function variationValue(blueprint: AppearanceBlueprint, field: NpcVariantField) {
+  const paintedField = paintedVariationFields[field]
+  return blueprint.v === 4 && paintedField ? blueprint[paintedField] : blueprint[field]
+}
+
 function variationPool({ base, vary }: NpcVariantRequest) {
   const seen = new Set([compileAppearanceManifest(base).portraits.neutral])
-  const combinations = vary.reduce((size, field) => size * APPEARANCE_CATALOG[field].length, 1)
+  const parts = vary.map((field) => {
+    const paintedField = paintedVariationFields[field]
+    return base.v === 4 && paintedField
+      ? { field: paintedField, options: Object.keys(PAINTED_FIELDS[paintedField]) }
+      : { field, options: APPEARANCE_CATALOG[field] }
+  })
+  const combinations = parts.reduce((size, { options }) => size * options.length, 1)
   const start = randomInt(combinations)
   // Visit unique combinations without walking an arbitrarily large catalog. Small sets are
   // exhausted; a co-prime stride spreads larger samples across the selected features.
@@ -40,12 +61,14 @@ function variationPool({ base, vary }: NpcVariantRequest) {
   for (let i = 0; i < Math.min(combinations, SEARCH_LIMIT); i++) {
     let position = (start + i * stride) % combinations
     const draft: Record<string, unknown> = { ...base }
-    for (const field of vary) {
-      const options = APPEARANCE_CATALOG[field]
+    for (const { field, options } of parts) {
       draft[field] = options[position % options.length]
       position = Math.floor(position / options.length)
     }
-    const blueprint = parseAppearanceBlueprint(draft)
+    const blueprint =
+      base.v === 4
+        ? paintedAppearanceBlueprint(draft as PaintedLook)
+        : parseAppearanceBlueprint(draft)
     if (!blueprint) continue
     const url = compileAppearanceManifest(blueprint).portraits.neutral
     if (seen.has(url)) continue
@@ -90,7 +113,11 @@ export async function previewNpcAppearanceVariants(actorUserId: string, input: N
           input.vary.reduce(
             (weight, field) =>
               weight +
-              (blueprint[field] === reference[field] ? 0 : HIGH_IMPACT_FIELDS.has(field) ? 3 : 1),
+              (variationValue(blueprint, field) === variationValue(reference, field)
+                ? 0
+                : HIGH_IMPACT_FIELDS.has(field)
+                  ? 3
+                  : 1),
             0,
           ),
         ),

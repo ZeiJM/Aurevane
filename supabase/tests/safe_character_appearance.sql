@@ -46,6 +46,7 @@ declare
   v_first text := '/api/media/appearance/1/slight.tan.braid.copper.tunic.open.split.lacing.pointed.linen.satchel.pine/neutral.svg';
   v_next text := '/api/media/appearance/2/broad.deep.crop.onyx.cuirass.fur.close.clasps.split.quilt.brooch.indigo.greaves/neutral.svg';
   v_cuffed text := '/api/media/appearance/3/broad.deep.crop.onyx.cuirass.fur.close.clasps.split.quilt.brooch.indigo.greaves.braced/neutral.svg';
+  v_painted text := '/api/media/appearance/4/scout.pine.natural.none.natural.arcanist.cobalt.eyepatch.charcoal/neutral.svg';
   v_cuff text;
   v_receipt jsonb;
   v_snapshot jsonb;
@@ -166,6 +167,11 @@ begin
   )->0;
   assert (select confirmed_sprite_designs=1 and appearance_revision=1 and appearance_image_url=replace(v_first,'.pine/','.garnet/')
     from public.character_profile_display where character_id=(v_creation->>'id')::uuid), 'a custom starting design spends exactly one use';
+  assert app_private.valid_npc_appearance_v1(to_jsonb(v_painted)), 'NPC accepts a painted layered outfit';
+  assert not app_private.valid_npc_appearance_v1(to_jsonb(replace(v_painted,'.pine.','.invented.'))), 'painted outfit names are exact';
+  assert not app_private.valid_npc_appearance_v1(to_jsonb(replace(v_painted,'.eyepatch.','.none.'))), 'an absent face accessory cannot carry a dye';
+  v_receipt := public.commit_character_appearance_v3(v_new_user,(v_creation->>'id')::uuid,1,v_painted);
+  assert v_receipt = jsonb_build_object('revision',2,'imageUrl',v_painted,'pendingImageUrl',null,'remainingDesigns',0), 'painted outfits use the ordinary confirmation allowance';
 end;
 $$;
 rollback;

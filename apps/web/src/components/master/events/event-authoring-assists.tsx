@@ -1,14 +1,18 @@
 import { useState } from 'react'
 import {
   type EventCategory,
+  hasConfirmedEventProducer,
   type PersistentEventDefinition,
   type PersistentEventPhaseDefinition,
 } from '@aurevane/game-core/events/persistent-event'
+import { OFFSHORE_DISCOVERY } from '@/world/discovery-sites'
+import { FERRY_MAINLAND_DOCK } from '@/world/ferry'
 import styles from './event-builder.module.css'
 
 const starters = [
   { id: 'timed-world', label: 'Timed World Event', category: 'world-events' },
   { id: 'world-arrival', label: 'World arrival', category: 'world-events' },
+  { id: 'lanternward-watch', label: 'Lanternward Watch', category: 'world-events' },
   { id: 'travel-and-report', label: 'Travel and report', category: 'story-campaigns' },
 ] as const
 
@@ -100,6 +104,74 @@ export function createEventStarter(
           { ...blankPhase(1), id: 'wrap-up', name: 'Wrap-up' },
         ],
       }
+    case 'lanternward-watch': {
+      const checkpoint = (id: string, place: { sectorId: string; x: number; y: number }) => ({
+        id,
+        type: 'discover' as const,
+        referenceKey: `objective.${id}`,
+        target: 1,
+        completion: 'world-arrival' as const,
+        worldNavigation: { ...place, autoPath: true, guidance: 'exact' as const },
+      })
+      return {
+        ...base,
+        category: 'world-events',
+        family: 'world-crisis',
+        scope: { type: 'global' },
+        title: 'The Lanternward Watch',
+        summary:
+          'Riders carry reports of dark sails. Reach Farwater Span or the Ferry Terminal to choose where the Watch sends aid.',
+        phases: [
+          {
+            ...blankPhase(0),
+            id: 'answer-call',
+            name: 'Answer the coastal call',
+            objectives: [
+              checkpoint('farwater-signal', {
+                sectorId: OFFSHORE_DISCOVERY.bridgeSectorId,
+                x: 5,
+                y: 4,
+              }),
+              checkpoint('harbor-signal', FERRY_MAINLAND_DOCK),
+            ],
+            transition: {
+              type: 'objective-branch',
+              routes: [
+                { objectiveId: 'farwater-signal', nextPhaseId: 'relight-tower' },
+                { objectiveId: 'harbor-signal', nextPhaseId: 'reach-terminal' },
+              ],
+            },
+          },
+          {
+            ...blankPhase(1),
+            id: 'relight-tower',
+            name: 'Relight Lanternward Tower',
+            objectives: [
+              checkpoint('reach-lanternward', {
+                sectorId: OFFSHORE_DISCOVERY.islandSectorId,
+                x: 6,
+                y: 4,
+              }),
+            ],
+            transition: { type: 'objective-threshold', objectiveId: 'reach-lanternward' },
+            nextPhaseId: 'close-watch',
+          },
+          {
+            ...blankPhase(2),
+            id: 'reach-terminal',
+            name: 'Secure the harbor approaches',
+            objectives: [
+              checkpoint('approach-ferry', {
+                ...FERRY_MAINLAND_DOCK,
+                y: FERRY_MAINLAND_DOCK.y - 1,
+              }),
+            ],
+            transition: { type: 'objective-threshold', objectiveId: 'approach-ferry' },
+          },
+          { ...blankPhase(3), id: 'close-watch', name: 'Report to the Watch' },
+        ],
+      }
+    }
     case 'travel-and-report':
       return {
         ...base,
@@ -179,15 +251,42 @@ function phaseCondition(phase: PersistentEventPhaseDefinition): string | undefin
           .replace(/(?:\.000)?Z$/, ' UTC')}`
       return undefined
     }
+    case 'objective-branch':
+      return undefined
+    case 'objective-quorum': {
+      const { objectiveIds, required } = transition
+      if (
+        objectiveIds.length < 2 ||
+        !Number.isSafeInteger(required) ||
+        required < 1 ||
+        required > objectiveIds.length ||
+        objectiveIds.some(
+          (id) =>
+            !phase.objectives.some(
+              (objective) =>
+                objective.id === id &&
+                hasConfirmedEventProducer(objective) &&
+                objective.worldNavigation,
+            ),
+        )
+      )
+        return undefined
+      return required === objectiveIds.length
+        ? `After all ${required} selected objectives are complete`
+        : `After any ${required} of the ${objectiveIds.length} selected objectives are complete`
+    }
     case 'objective-threshold': {
       const objective = phase.objectives.find(({ id }) => id === transition.objectiveId)
       if (
-        objective?.completion !== 'world-arrival' ||
+        !objective ||
+        !hasConfirmedEventProducer(objective) ||
         !objective.worldNavigation ||
         !Number.isSafeInteger(objective.target) ||
         objective.target < 1
       )
         return undefined
+      if (objective.completion === 'world-npc-result' && objective.battleResult)
+        return `After ${objective.target} confirmed NPC ${objective.battleResult.outcome === 'victory' ? 'wins' : 'losses'}`
       const arrivals =
         objective.target === 1 ? '1 confirmed arrival' : `${objective.target} confirmed arrivals`
       return `After ${arrivals}${objective.requiredWeather ? ` in ${objective.requiredWeather}` : ''}`
@@ -209,13 +308,36 @@ export function EventPhasePath({ phases }: { phases: readonly PersistentEventPha
       <summary>Phase path</summary>
       <ol>
         {phases.map((phase, index) => {
-          const next = phases[index + 1]
+          const nextIndex = phase.nextPhaseId
+            ? phases.findIndex(({ id }) => id === phase.nextPhaseId)
+            : index + 1
+          const next = phases[nextIndex]
           return (
             <li key={index}>
               <strong>{phaseName(phase, index)}</strong>
-              <div>
-                {phasePathDescription(phase, next ? phaseName(next, index + 1) : undefined)}
-              </div>
+              {phase.transition.type === 'objective-branch' ? (
+                phase.transition.routes.length ? (
+                  <ol>
+                    {phase.transition.routes.map(({ objectiveId, nextPhaseId }) => {
+                      const destinationIndex = phases.findIndex(({ id }) => id === nextPhaseId)
+                      const destination = phases[destinationIndex]
+                      return (
+                        <li key={objectiveId}>
+                          When {objectiveId} completes, open{' '}
+                          {destination ? phaseName(destination, destinationIndex) : 'a later phase'}
+                          .
+                        </li>
+                      )
+                    })}
+                  </ol>
+                ) : (
+                  <p>Assign at least two objectives to later phases.</p>
+                )
+              ) : (
+                <div>
+                  {phasePathDescription(phase, next ? phaseName(next, nextIndex + 1) : undefined)}
+                </div>
+              )}
             </li>
           )
         })}

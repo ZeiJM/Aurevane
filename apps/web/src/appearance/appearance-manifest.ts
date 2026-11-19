@@ -1,3 +1,10 @@
+import {
+  PAINTED_CLOTHING,
+  PAINTED_FIELDS,
+  paintedRecipe,
+  readPaintedLook,
+  type PaintedLook,
+} from './appearance-painted-catalog'
 import { CUFFS, supportsCuff, type Cuff, type CuffChoice } from './appearance-cuff-catalog'
 import {
   LOWER_GARMENTS,
@@ -32,11 +39,64 @@ type SharedAppearanceParts = {
   readonly [Field in AppearanceField]: Catalog[Field][number]
 }
 
+const scoutBase = {
+  body: 'average',
+  complexion: 'tan',
+  hair: 'swept',
+  hairColor: 'onyx',
+  coat: 'tunic',
+  collar: 'standing',
+  sleeves: 'close',
+  closure: 'clasps',
+  hem: 'plain',
+  textile: 'quilt',
+  accessory: 'satchel',
+  palette: 'slate',
+} as const satisfies SharedAppearanceParts
+
+const paintedIdentityParts = {
+  scout: {},
+  ranger: { body: 'slight', complexion: 'brown', hair: 'braid' },
+  guard: { body: 'broad', complexion: 'deep', hair: 'crop' },
+  elder: { complexion: 'light', hair: 'swept', hairColor: 'silver' },
+} as const satisfies Record<PaintedLook['identity'], Partial<SharedAppearanceParts>>
+
+export type PaintedAppearanceBlueprint = SharedAppearanceParts & PaintedLook & { readonly v: 4 }
+
+export function paintedAppearanceBlueprint(look: PaintedLook): PaintedAppearanceBlueprint {
+  const [
+    identity,
+    outerwear,
+    clothColor,
+    gear,
+    gearColor,
+    headwear,
+    headColor,
+    facewear,
+    faceColor,
+  ] = paintedRecipe(look)
+  return Object.freeze({
+    ...scoutBase,
+    ...paintedIdentityParts[identity],
+    identity,
+    outerwear,
+    clothColor,
+    gear,
+    gearColor,
+    headwear,
+    headColor,
+    facewear,
+    faceColor,
+    v: 4,
+  })
+}
+
 export type AppearanceBlueprint = SharedAppearanceParts &
   (
     | { readonly v: 1 }
     | { readonly v: 2; readonly lower: LowerGarment }
     | { readonly v: 3; readonly lower: LowerGarmentChoice; readonly cuff: Cuff }
+    | PaintedAppearanceBlueprint
   )
 
 export type AppearanceExpression = (typeof APPEARANCE_EXPRESSIONS)[number]
@@ -117,6 +177,14 @@ export const APPEARANCE_PRESETS = [
 export function parseAppearanceBlueprint(input: unknown): AppearanceBlueprint | null {
   if (typeof input !== 'object' || input === null || Array.isArray(input)) return null
   const values = input as Record<string, unknown>
+  if (values.v === 4) {
+    const paintedFields = Object.keys(PAINTED_FIELDS)
+    const look = readPaintedLook(paintedFields.map((field) => values[field]))
+    if (!look || Object.keys(values).length !== fields.length + paintedFields.length + 1)
+      return null
+    const blueprint = paintedAppearanceBlueprint(look)
+    return fields.every((field) => values[field] === blueprint[field]) ? blueprint : null
+  }
   if (values.v !== 1 && values.v !== 2 && values.v !== 3) return null
   if (Object.keys(values).length !== fields.length + values.v) return null
   if (
@@ -130,7 +198,7 @@ export function parseAppearanceBlueprint(input: unknown): AppearanceBlueprint | 
     const choices: readonly unknown[] = APPEARANCE_CATALOG[field]
     if (!choices.includes(values[field])) return null
   }
-  const blueprint = values as AppearanceBlueprint
+  const blueprint = values as Exclude<AppearanceBlueprint, PaintedAppearanceBlueprint>
   if (
     appearanceClothingConflict(blueprint) ||
     (blueprint.v !== 1 &&
@@ -146,6 +214,7 @@ export function withLowerGarment(
   blueprint: AppearanceBlueprint,
   choice: LowerGarmentChoice,
 ): AppearanceBlueprint | null {
+  if (blueprint.v === 4) return choice === 'original' ? blueprint : null
   if (blueprint.v === 3) return parseAppearanceBlueprint({ ...blueprint, lower: choice })
   if (choice !== 'original') return parseAppearanceBlueprint({ ...blueprint, v: 2, lower: choice })
   if (blueprint.v === 1) return blueprint
@@ -159,6 +228,7 @@ export function withCuff(
   blueprint: AppearanceBlueprint,
   choice: CuffChoice,
 ): AppearanceBlueprint | null {
+  if (blueprint.v === 4) return choice === 'original' ? blueprint : null
   if (choice !== 'original') {
     return parseAppearanceBlueprint({
       ...blueprint,
@@ -176,6 +246,14 @@ export function withCuff(
 }
 
 export function varyAppearanceOutfit(blueprint: AppearanceBlueprint): AppearanceBlueprint {
+  if (blueprint.v === 4) {
+    const outerwear = Object.keys(PAINTED_CLOTHING) as PaintedLook['outerwear'][]
+    const index = outerwear.indexOf(blueprint.outerwear)
+    return paintedAppearanceBlueprint({
+      ...blueprint,
+      outerwear: outerwear[(index + 1) % outerwear.length]!,
+    })
+  }
   const cuts = APPEARANCE_CATALOG.coat
   const index = cuts.indexOf(blueprint.coat)
   for (let offset = 1; offset < cuts.length; offset++) {
@@ -189,8 +267,9 @@ export function varyAppearanceOutfit(blueprint: AppearanceBlueprint): Appearance
 export function compileAppearanceManifest(input: AppearanceBlueprint) {
   const blueprint = parseAppearanceBlueprint(input)
   if (!blueprint) throw new TypeError('Incompatible appearance')
-  const parts: string[] = fields.map((field) => blueprint[field])
-  if (blueprint.v !== 1) parts.push(blueprint.lower)
+  const parts: string[] =
+    blueprint.v === 4 ? [...paintedRecipe(blueprint)] : fields.map((field) => blueprint[field])
+  if (blueprint.v === 2 || blueprint.v === 3) parts.push(blueprint.lower)
   if (blueprint.v === 3) parts.push(blueprint.cuff)
   const id = `${blueprint.v}/${parts.join('.')}`
   const base = `${APPEARANCE_ASSET_PREFIX}${id}`
@@ -215,6 +294,10 @@ export function appearanceBlueprintFromId(
   id: string,
   assetVersion: AppearanceBlueprint['v'] | string = 1,
 ): AppearanceBlueprint | null {
+  if (assetVersion === 4 || assetVersion === '4') {
+    const look = readPaintedLook(id.split('.'))
+    return look ? paintedAppearanceBlueprint(look) : null
+  }
   const version =
     assetVersion === 1 || assetVersion === '1'
       ? 1

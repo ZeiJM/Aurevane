@@ -103,11 +103,38 @@ const portraitRef = z
   .regex(/^portrait\.[a-z0-9.-]{1,90}$/u)
   .nullable()
 const name = z.string().trim().max(60)
+const dye =
+  '(?:natural|charcoal|ocean|teal|ice|cobalt|plum|rose|crimson|ember|amber|ochre|pine|sage|ivory)'
+const paintedRecipe = [
+  '(?:scout|ranger|guard|elder)',
+  '(?:none|compass|pine|hawkmantle|shearling|scarf)',
+  dye,
+  '(?:none|utility|mapcase|potions|bedroll)',
+  dye,
+  '(?:none|arcanist|bandana)',
+  dye,
+  '(?:none|eyepatch|goggles)',
+  dye,
+].join('\\.')
 const imageUrl = z
   .string()
   .regex(
-    /^\/api\/media\/appearance\/(?:1\/[a-z0-9.]{1,140}|2\/[a-z]+(?:\.[a-z]+){12}|3\/[a-z]+(?:\.[a-z]+){13})\/neutral\.svg$/u,
+    new RegExp(
+      String.raw`^/api/media/appearance/(?:1/[a-z0-9.]{1,140}|2/[a-z]+(?:\.[a-z]+){12}|3/[a-z]+(?:\.[a-z]+){13}|4/${paintedRecipe})/neutral\.svg$`,
+      'u',
+    ),
   )
+  .refine((url) => {
+    if (!url.startsWith('/api/media/appearance/4/')) return true
+    const [, clothing, clothColor, accessory, gearColor, headwear, headColor, facewear, faceColor] =
+      url.split('/')[5]!.split('.')
+    return (
+      (clothing !== 'none' || clothColor === 'natural') &&
+      (accessory !== 'none' || gearColor === 'natural') &&
+      (headwear !== 'none' || headColor === 'natural') &&
+      (facewear !== 'none' || faceColor === 'natural')
+    )
+  })
   .nullable()
   .optional()
 const worldEncounter = z
