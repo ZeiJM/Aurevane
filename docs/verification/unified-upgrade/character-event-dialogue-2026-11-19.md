@@ -175,3 +175,13 @@ and follows ordinary draft, publication and scheduling controls.
   the trusted pointer event to the time of the measured frame. It still checks that the
   exact intended destination receives server approval and settles. The successor needs
   the same authenticated desktop and mobile coverage and unchanged timing thresholds.
+
+- Revision `2bc3ad0` passed [60 desktop timing cases and three mobile crowd cases](https://github.com/ZeiJM/Aurevane/actions/runs/44577616194).
+  All forty simultaneous movement traces recorded at least nine visible steps.
+  The longer [Living Atlas run](https://github.com/ZeiJM/Aurevane/actions/runs/44577616082)
+  passed the simultaneous-attack check and 118 Atlas cases. Its remaining movement case
+  recorded seven visible peer steps. The captured Chromium trace attributed 2.02 seconds
+  of CPU across the two clients to producing canvas resources. The successor skips
+  open-sea painting during movement when loaded opaque public ground covers the viewport.
+  The regression checks the exact crossing, an unloaded sector gap and longitude wrap.
+  The shoreline and all native timing assertions keep their existing behavior.

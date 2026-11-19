@@ -64,7 +64,13 @@ import {
   paintWaterMotion,
   paintWaterfallMotion,
 } from './map-water'
-import { buildPublicCoasts, paintCoastLand, paintCoastSea, paintOpenSea } from './map-coast'
+import {
+  buildPublicCoasts,
+  paintCoastLand,
+  paintCoastSea,
+  paintOpenSea,
+  publicGroundCoversViewport,
+} from './map-coast'
 import {
   advanceSurfaceRain,
   advanceWorldWind,
@@ -1906,28 +1912,6 @@ export function createMapRenderer(
       visiblePlayerKey = nextPlayerKey
       onVisiblePlayers(visibleIds)
     }
-    ctx.setTransform(ratio, 0, 0, ratio, 0, 0)
-    ctx.fillStyle = current?.warpedTheme
-      ? WARPED_GROUND_COLOR
-      : current?.charted
-        ? '#284b57'
-        : '#233d3c'
-    if (ferryFrame) paintFerrySea(ctx, width, height, ferryFrame, quality === 'low')
-    else {
-      ctx.fillRect(0, 0, width, height)
-      if (current?.charted)
-        paintOpenSea(
-          ctx,
-          width,
-          height,
-          tile,
-          { x: camera.x + pan.x, y: camera.y + pan.y },
-          now,
-          ambient,
-          surfaceWeather,
-          quality === 'low' ? 18 : 48,
-        )
-    }
     const visible = renderSectors.filter((sector) => {
       const p = screen(sectorOrigin(sector))
       return (
@@ -1999,6 +1983,35 @@ export function createMapRenderer(
     }
     const movementActive =
       sample.moving || remoteMoving || sample.point.x !== camera.x || sample.point.y !== camera.y
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0)
+    if (ferryFrame) paintFerrySea(ctx, width, height, ferryFrame, quality === 'low')
+    else {
+      ctx.fillStyle = current?.warpedTheme
+        ? WARPED_GROUND_COLOR
+        : current?.charted
+          ? '#284b57'
+          : '#233d3c'
+      ctx.fillRect(0, 0, width, height)
+      const seaCamera = { x: camera.x + pan.x, y: camera.y + pan.y }
+      if (
+        current?.charted &&
+        !(
+          movementActive &&
+          publicGroundCoversViewport(visible, coastField, seaCamera, tile, width, height)
+        )
+      )
+        paintOpenSea(
+          ctx,
+          width,
+          height,
+          tile,
+          seaCamera,
+          now,
+          ambient,
+          surfaceWeather,
+          quality === 'low' ? 18 : 48,
+        )
+    }
     // The compositor rasterizes these draws after the callback. Use the
     // lighter sampler while animating the viewport; source crops and cached
     // terrain are still prepared at high quality and labels keep native density.
