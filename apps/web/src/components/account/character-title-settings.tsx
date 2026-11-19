@@ -394,102 +394,107 @@ export function CharacterTitleSettings({
           )}
         </dialog>
 
-        <section className={styles.profileImage} aria-labelledby="character-appearance-heading">
-          <div>
-            <span>Character image and sprites</span>
-            <h2 id="character-appearance-heading">Character appearance</h2>
-            <p>Build a look and review its expressions, field sprite and battle sprite.</p>
-          </div>
-          <CharacterAppearanceSettings
-            key={characterId}
-            characterId={characterId}
-            initialRemainingDesigns={remainingSpriteDesigns}
-            initialPending={pendingSpriteDesign}
-          />
-        </section>
-
-        <section className={styles.profileImage} aria-labelledby="profile-image-heading">
-          <div>
-            <span>Character image</span>
-            <h2 id="profile-image-heading">Portrait URL</h2>
-            <p>
-              Direct JPG, PNG, WebP or GIF link; square-cropped. Use 128–4096 px artwork, up to 8 MB
-              static or 12 MB GIF.
-            </p>
-            <p>Used when the character does not have a shared appearance.</p>
-          </div>
-          {imageDraft.trim() && !imagePreviewFailed && !currentHostMessage ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={imageDraft.trim()}
-              alt={`${characterName} profile preview`}
-              referrerPolicy="no-referrer"
-              onError={() => {
-                setImagePreviewFailed(true)
-                setImageMessage(
-                  'That URL did not load as an image. Copy the direct image link from your host, then try again.',
-                )
-              }}
-            />
-          ) : (
-            <div className={styles.imagePlaceholder}>
-              {imagePreviewFailed || currentHostMessage
-                ? 'Direct image required'
-                : 'No custom image'}
+        <div className={styles.imageSettings}>
+          <section
+            className={`${styles.profileImage} ${styles.appearance}`}
+            aria-labelledby="character-appearance-heading"
+          >
+            <div>
+              <span>Character image and sprites</span>
+              <h2 id="character-appearance-heading">Character appearance</h2>
+              <p>Build a look and review its expressions, field sprite and battle sprite.</p>
             </div>
-          )}
-          <label className={styles.field}>
-            <span>Direct image URL</span>
-            <input
-              value={imageDraft}
-              onChange={(event) => {
-                setImageDraft(event.target.value)
-                setImagePreviewFailed(false)
-                setImageMessage(null)
-              }}
-              maxLength={2048}
-              inputMode="url"
-              autoComplete="url"
-              placeholder="https://i.ibb.co/.../portrait.png"
-              disabled={imagePending}
-              aria-invalid={currentHostMessage ? true : undefined}
+            <CharacterAppearanceSettings
+              key={characterId}
+              characterId={characterId}
+              initialRemainingDesigns={remainingSpriteDesigns}
+              initialPending={pendingSpriteDesign}
             />
-            <small>
-              ImgBB: use “Direct link” (i.ibb.co). Leave blank and save to restore the built-in
-              portrait fallback.
-            </small>
-          </label>
-          <div className={styles.portraitActions}>
-            <button
-              type="button"
-              className={styles.reviewButton}
-              onClick={() => void saveImage()}
-              disabled={imagePending || Boolean(currentHostMessage)}
-            >
-              {imagePending ? 'Saving…' : 'Save Profile Image'}
-            </button>
-            {portraitChoiceAvailable ? (
+          </section>
+
+          <section className={styles.profileImage} aria-labelledby="profile-image-heading">
+            <div>
+              <span>Character image</span>
+              <h2 id="profile-image-heading">Portrait URL</h2>
+              <p>
+                Direct JPG, PNG, WebP or GIF link; square-cropped. Use 128–4096 px artwork, up to 8
+                MB static or 12 MB GIF.
+              </p>
+              <p>Used when the character does not have a shared appearance.</p>
+            </div>
+            {imageDraft.trim() && !imagePreviewFailed && !currentHostMessage ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={imageDraft.trim()}
+                alt={`${characterName} profile preview`}
+                referrerPolicy="no-referrer"
+                onError={() => {
+                  setImagePreviewFailed(true)
+                  setImageMessage(
+                    'That URL did not load as an image. Copy the direct image link from your host, then try again.',
+                  )
+                }}
+              />
+            ) : (
+              <div className={styles.imagePlaceholder}>
+                {imagePreviewFailed || currentHostMessage
+                  ? 'Direct image required'
+                  : 'No custom image'}
+              </div>
+            )}
+            <label className={styles.field}>
+              <span>Direct image URL</span>
+              <input
+                value={imageDraft}
+                onChange={(event) => {
+                  setImageDraft(event.target.value)
+                  setImagePreviewFailed(false)
+                  setImageMessage(null)
+                }}
+                maxLength={2048}
+                inputMode="url"
+                autoComplete="url"
+                placeholder="https://i.ibb.co/.../portrait.png"
+                disabled={imagePending}
+                aria-invalid={currentHostMessage ? true : undefined}
+              />
+              <small>
+                ImgBB: use “Direct link” (i.ibb.co). Leave blank and save to restore the built-in
+                portrait fallback.
+              </small>
+            </label>
+            <div className={styles.portraitActions}>
               <button
                 type="button"
-                className={styles.quietButton}
-                aria-haspopup="dialog"
-                onClick={() => {
-                  setPortraitDraft(null)
-                  setPortraitMessage(null)
-                  portraitDialog.current?.showModal()
-                }}
+                className={styles.reviewButton}
+                onClick={() => void saveImage()}
+                disabled={imagePending || Boolean(currentHostMessage)}
               >
-                Choose Default Portrait
+                {imagePending ? 'Saving…' : 'Save Profile Image'}
               </button>
+              {portraitChoiceAvailable ? (
+                <button
+                  type="button"
+                  className={styles.quietButton}
+                  aria-haspopup="dialog"
+                  onClick={() => {
+                    setPortraitDraft(null)
+                    setPortraitMessage(null)
+                    portraitDialog.current?.showModal()
+                  }}
+                >
+                  Choose Default Portrait
+                </button>
+              ) : null}
+            </div>
+            {currentHostMessage ? <p className={styles.message}>{currentHostMessage}</p> : null}
+            {imageMessage && imageMessage !== currentHostMessage ? (
+              <p className={styles.message} role="status" aria-live="polite">
+                {imageMessage}
+              </p>
             ) : null}
-          </div>
-          {currentHostMessage ? <p className={styles.message}>{currentHostMessage}</p> : null}
-          {imageMessage && imageMessage !== currentHostMessage ? (
-            <p className={styles.message} role="status" aria-live="polite">
-              {imageMessage}
-            </p>
-          ) : null}
-        </section>
+          </section>
+        </div>
 
         <section className={styles.future}>
           <span>Distinctions &amp; prestige titles</span>
