@@ -10,7 +10,13 @@ test('@painted-wardrobe saves independently styled clothing and accessories, the
     .toString()
     .slice(-8)
     .replace(/\d/g, (digit) => String.fromCharCode(65 + Number(digit)))
-  const identity = isMobile ? 'ranger' : 'guard'
+  // Browser Smoke shares one database across projects and reserves saved recipes
+  // across characters. Give the laptop project its own initial and final look.
+  const identity = isMobile
+    ? 'ranger'
+    : testInfo.project.name === 'laptop-chromium'
+      ? 'scout'
+      : 'guard'
   const characterName = `Warden ${suffix}`
   await createVerifiedAccountAndSignIn({
     page,
@@ -25,6 +31,7 @@ test('@painted-wardrobe saves independently styled clothing and accessories, the
   const outfit = dialog.getByRole('group', { name: 'Painted outfit' })
   const control = (name: string) => outfit.getByRole('combobox', { name, exact: true })
   await control('Character').selectOption(identity)
+  await expect(control('Character')).toHaveValue(identity)
   await control('Clothing style').selectOption('shearling')
   await control('Clothing color').selectOption('pine')
   await dialog.getByRole('button', { name: 'Use this appearance' }).click()

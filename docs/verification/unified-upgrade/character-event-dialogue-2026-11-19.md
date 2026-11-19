@@ -185,3 +185,11 @@ and follows ordinary draft, publication and scheduling controls.
   open-sea painting during movement when loaded opaque public ground covers the viewport.
   The regression checks the exact crossing, an unloaded sector gap and longitude wrap.
   The shoreline and all native timing assertions keep their existing behavior.
+
+- Revision `bf3b076` passed Living Atlas, World timing, CI and the real PostgreSQL checks.
+  [Browser Smoke](https://github.com/ZeiJM/Aurevane/actions/runs/44592156277) passed 466
+  cases and failed the laptop wardrobe confirmation. The desktop and laptop scenarios
+  saved the same final recipe on different characters in the same database. The appearance
+  writer reserves each recipe across current and pending looks, so the second character
+  could not confirm it. The laptop scenario now selects the Trail scout and retains the
+  independent dyes, exact saved-recipe check, and permanent lock assertions.
