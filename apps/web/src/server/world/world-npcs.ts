@@ -1,6 +1,10 @@
 import 'server-only'
 
-import type { PublishedWorldNpc } from '@aurevane/validation/combat/npc-design'
+import {
+  npcDialogueReplyPage,
+  type NpcDialogueRequest,
+  type PublishedWorldNpc,
+} from '@aurevane/validation/combat/npc-design'
 import { resolvePublicCharacterImageUrl } from '@/media/public-character-portrait'
 import { readPublishedWorldNpcs } from '@/server/master/npc-design-store'
 import { isWalkable } from '@/world/travel'
@@ -12,6 +16,36 @@ const NPC_CACHE_SECTORS = 64
 const cache = new Map<string, { expires: number; rows: PublishedWorldNpc[] }>()
 const pending = new Map<string, Promise<PublishedWorldNpc[]>>()
 
+function knownNpcPosition(
+  state: WorldState,
+  row: PublishedWorldNpc,
+  sector: ReturnType<typeof resolveSector>,
+) {
+  const position = { sectorId: row.sectorId, x: row.x, y: row.y }
+  return sector?.charted &&
+    row.sectorId === sector.id &&
+    isWalkable(sector, position) &&
+    isKnownCell(state, position)
+    ? position
+    : null
+}
+
+function withinNpcReach(state: WorldState, row: PublishedWorldNpc) {
+  return Math.abs(state.position.x - row.x) + Math.abs(state.position.y - row.y) <= row.radius
+}
+
+export async function readLocalNpcDialogue(state: WorldState, request: NpcDialogueRequest) {
+  const sector = resolveSector(state.position.sectorId)
+  if (!sector?.charted || state.route.length) return null
+  // A turn uses the current published revision. Do not replay a path against a
+  // changed tree or use the presentation cache after an NPC has been retired.
+  const rows = await readPublishedWorldNpcs(sector.id)
+  const npc = rows.find((row) => row.id === request.npcId && row.revision === request.revision)
+  return npc && knownNpcPosition(state, npc, sector) && withinNpcReach(state, npc)
+    ? npcDialogueReplyPage(npc.dialogue ?? [], request.path)
+    : null
+}
+
 export function projectLocalWorldNpcs(state: WorldState, rows: readonly PublishedWorldNpc[]) {
   const npcs: WorldNpcPresentation[] = []
   const interactions: WorldInteraction[] = []
@@ -19,20 +53,14 @@ export function projectLocalWorldNpcs(state: WorldState, rows: readonly Publishe
   if (!sector?.charted) return { npcs, interactions }
 
   for (const row of rows) {
-    const position = { sectorId: row.sectorId, x: row.x, y: row.y }
-    if (
-      row.sectorId !== sector.id ||
-      !isWalkable(sector, position) ||
-      !isKnownCell(state, position)
-    )
-      continue
+    const position = knownNpcPosition(state, row, sector)
+    if (!position) continue
     const imageUrl = resolvePublicCharacterImageUrl(
       row.imageUrl,
       row.portraitRef ?? 'portrait.starter.wayfarer-01',
     )
     npcs.push({ id: row.id, name: row.name, position, imageUrl })
-    if (Math.abs(state.position.x - row.x) + Math.abs(state.position.y - row.y) > row.radius)
-      continue
+    if (!withinNpcReach(state, row)) continue
     interactions.push({
       id: `npc-greeting:${row.id}`,
       objectiveId: `npc-greeting:${row.id}`,
@@ -40,6 +68,11 @@ export function projectLocalWorldNpcs(state: WorldState, rows: readonly Publishe
       speaker: row.name,
       title: 'Greeting',
       body: row.greeting,
+      ...(row.dialogue?.length
+        ? {
+            narrative: { revision: row.revision, replies: row.dialogue.map(({ label }) => label) },
+          }
+        : {}),
       ...(row.greetingExpression ? { expression: row.greetingExpression } : {}),
       ...(imageUrl ? { portraitUrl: imageUrl } : {}),
       actionLabel: null,

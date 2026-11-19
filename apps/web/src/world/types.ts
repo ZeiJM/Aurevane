@@ -170,6 +170,7 @@ export interface WorldInteraction {
   actionLabel: string | null
   confirmation?: { prompt: string; label: string; cancelLabel: string }
   alternative?: { actionId: WorldInteractionActionId; label: string }
+  narrative?: { revision: number; replies: string[] }
   lore?: string
   declineLabel?: string
   lastReply?: string

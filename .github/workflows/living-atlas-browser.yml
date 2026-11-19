@@ -117,7 +117,7 @@ jobs:
         run: |
           pnpm --filter @aurevane/web exec playwright test e2e/master-event-builder.pw.ts \
             --project=desktop-chromium --project=mobile-chromium \
-            --grep 'an authored (Story Campaign|item exchange|World NPC|Alder Venn wolf hunt|Ashen Sentinel|Mentor challenge|Cinderwake (recovery|combat trial))|@sealed-realm' \
+            --grep 'an authored (Story Campaign|item exchange|World NPC|Alder Venn wolf hunt|Ashen Sentinel|Mentor challenge|Cinderwake (recovery|combat trial))|@sealed-realm|@npc-dialogue' \
             --output=test-results-story --reporter=list,github
       - name: Save authenticated story failure context
         if: ${{ failure() && steps.story.outcome == 'failure' }}
@@ -203,6 +203,7 @@ jobs:
             apps/web/test-results-story/**/authored-watch-*-complete.png
             apps/web/test-results-story/**/sealed-realm-challenge.png
             apps/web/test-results-story/**/authored-world-npc-challenge.png
+            apps/web/test-results-story/**/npc-branching-dialogue.png
             apps/web/test-results-story/**/cinderwake-*.png
             apps/web/test-results-story/**/venn-hunt-*.png
             apps/web/test-results-story/**/ashen-sentinel-*.png

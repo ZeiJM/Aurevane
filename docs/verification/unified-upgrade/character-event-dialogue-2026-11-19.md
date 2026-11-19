@@ -44,9 +44,16 @@ Live settlement, private state and reward authority stay on the original server 
 
 NPC Design now accepts the shared cuffed sprite recipe. The application and database also
 check that the requested combination is valid before returning or saving the design.
-Authors can choose a portrait expression and rehearse a draft greeting in the same window
-as the Event Builder. Players see the greeting and expression from the published World
-identity, with the existing portrait fallback for identities without expression art.
+Authors can choose a portrait expression and build up to four layers of replies for a World
+greeting. Each reply has a player choice, an NPC response, an optional expression and optional
+follow-ups. Drafts can be saved before all the lines are written. Rehearsal uses the World
+conversation window and history without publishing the draft.
+
+The scene carries the greeting and its first choice labels. The protected reply endpoint
+rechecks the selected character, movement, battle, NPC range and current publication revision.
+It returns the selected response and its immediate choices. Published lines remain separate
+from later draft edits. These narrative replies are read-only. Existing quest, battle and
+reward commands keep their own authority paths.
 
 ## Ferry Terminal and the World map
 
@@ -86,9 +93,10 @@ ground sheets use the clean interior when mirroring textures. Movement dispatch
 begins before the local path preview, and the compact approval includes one nearby
 known route sector to avoid waiting for the next scene at the sector boundary.
 
-The next scope is the general-purpose conversation authoring and Event branch engine,
-broader Character and NPC authoring and live cast integration, followed by a major Event
-and signed-in desktop and mobile acceptance. The unified matrix remains the verification ledger.
+The remaining scope includes Event branches driven by quest and battle outcomes, expanded
+Character and NPC authoring, more layered painted sprite assets and live cast integration,
+a major Event and signed-in desktop and mobile acceptance. The unified matrix remains the
+verification ledger.
 
 ## Verification
 
@@ -111,3 +119,7 @@ and signed-in desktop and mobile acceptance. The unified matrix remains the veri
   themes and sample sustained wind at the balanced frame cadence to check for sharp
   jumps. The crossing receipt regression checks movement can animate into a known
   destination sector before full scene hydration.
+- Dialogue coverage exercises incomplete draft saves, invalid tree limits, publication
+  isolation, current-revision and range checks, and character ownership at the reply endpoint.
+  The signed-in browser scenario authors and rehearses a conversation, publishes it,
+  follows two routes from Nearby, and checks that it changes neither position nor progress.

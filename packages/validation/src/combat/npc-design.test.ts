@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   parseNpcDesignCommand,
+  parseNpcDialogueRequest,
+  type NpcDialogueReply,
   parseArenaNpc,
   parsePublishedStoryNpc,
   parsePublishedWorldNpc,
@@ -84,4 +86,45 @@ describe('NPC Design request boundary', () => {
     ).toBeNull()
     expect(parseNpcDesignCommand({ kind: 'commit-arena', id })).toBeNull()
   })
+})
+
+it('bounds dialogue drafts and prohibits publishing unfinished or over-deep replies', () => {
+  const leaf = { label: 'Listen', body: 'A distant bell is ringing.', replies: [] }
+  const world = { sectorId: 'verdant-expanse', x: 5, y: 4, radius: 2, greeting: 'Welcome.' }
+  const publish = (dialogue: unknown) =>
+    parsePublishedWorldNpc({
+      ...world,
+      id,
+      name: 'Tamsin',
+      portraitRef: null,
+      revision: 1,
+      dialogue,
+    })
+  expect(publish([{ ...leaf, replies: [leaf] }])).not.toBeNull()
+  expect(publish([{ ...leaf, body: '  ' }])).toBeNull()
+  expect(publish([{ ...leaf, reward: 200 }])).toBeNull()
+  expect(publish(Array(5).fill(leaf))).toBeNull()
+  const wide = { ...leaf, replies: Array(4).fill(leaf) }
+  expect(publish(Array(4).fill(wide))).toBeNull()
+  let tall: NpcDialogueReply = leaf
+  for (let depth = 1; depth <= 4; depth++) tall = { ...leaf, replies: [tall] }
+  expect(publish([tall])).toBeNull()
+  expect(
+    parseNpcDesignCommand({
+      kind: 'save',
+      id,
+      revision: 0,
+      draft: {
+        ...draft,
+        uses: ['world'],
+        arena: null,
+        world: { ...world, dialogue: [{ ...leaf, body: '' }] },
+      },
+    }),
+  ).not.toBeNull()
+  const request = { characterId: id, npcId: id, revision: 1, path: [0] }
+  expect(parseNpcDialogueRequest(request)).toEqual(request)
+  expect(parseNpcDialogueRequest({ ...request, path: [0, 0, 0, 0, 0] })).toBeNull()
+  expect(parseNpcDialogueRequest({ ...request, path: [4] })).toBeNull()
+  expect(parseNpcDialogueRequest({ ...request, body: 'Forged response' })).toBeNull()
 })

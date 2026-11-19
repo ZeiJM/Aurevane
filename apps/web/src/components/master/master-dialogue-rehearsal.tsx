@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, type ReactNode } from 'react'
-import { WorldDialogue } from '@/components/world/world-dialogue'
+import { WorldDialogue, type NarrativeReply } from '@/components/world/world-dialogue'
 import type { WorldInteraction, WorldInteractionActionId } from '@/world/types'
 
 export function MasterDialogueRehearsal({
@@ -10,6 +10,7 @@ export function MasterDialogueRehearsal({
   disabled,
   onOpen,
   onReply,
+  onNarrativeReply,
   extraResponses,
 }: {
   topic: WorldInteraction
@@ -17,6 +18,7 @@ export function MasterDialogueRehearsal({
   disabled?: boolean
   onOpen?: () => void
   onReply?: (id: string, action: WorldInteractionActionId) => Promise<boolean>
+  onNarrativeReply?: NarrativeReply
   extraResponses?: ReactNode
 }) {
   const [opener, setOpener] = useState<HTMLButtonElement | null>(null)
@@ -45,7 +47,8 @@ export function MasterDialogueRehearsal({
           onClose={() => setOpener(null)}
           onReply={onReply ?? (async () => false)}
           extraResponses={extraResponses}
-          showHistory={Boolean(onReply)}
+          onNarrativeReply={onNarrativeReply}
+          showHistory={Boolean(onReply || onNarrativeReply)}
         />
       ) : null}
     </>

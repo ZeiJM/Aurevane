@@ -125,6 +125,57 @@ it('publishes an explicit greeting expression and keeps later draft edits privat
   expect(await published()).toEqual([expect.objectContaining({ greetingExpression: 'happy' })])
 })
 
+it('keeps authored dialogue private until publication and rejects invalid trees in PostgreSQL', async () => {
+  const reply = { label: 'What can I hear?', body: 'The watch bell at dawn.', replies: [] }
+  const save = (revision: number, dialogue: unknown) =>
+    db.query("select public.write_master_npc_design_v1($1,null,$2,$3,'save',$4)", [
+      owner,
+      npc,
+      revision,
+      {
+        name: 'Harbor watch',
+        portraitRef: null,
+        uses: ['world'],
+        arena: null,
+        world: { ...world, dialogue },
+      },
+    ])
+  const publish = (revision: number) =>
+    db.query("select public.write_master_npc_design_v1($1,null,$2,$3,'commit-world',null)", [
+      owner,
+      npc,
+      revision,
+    ])
+  const published = async () =>
+    (
+      await db.query<{ value: { dialogue: (typeof reply)[] }[] }>(
+        'select public.read_published_world_npcs_v1($1) value',
+        [position.sectorId],
+      )
+    ).rows[0]!.value
+  await rejected(() => save(0, {}), 'NPC_DESIGN_INVALID')
+  await rejected(() => save(0, [{ ...reply, replies: 'bogus' }]), 'NPC_DESIGN_INVALID')
+  await rejected(
+    () => save(0, Array(4).fill({ ...reply, replies: Array(4).fill(reply) })),
+    'NPC_DESIGN_INVALID',
+  )
+  await save(0, [{ ...reply, body: '' }])
+  await rejected(() => publish(1), 'npc_designs_world_valid')
+  expect(await published()).toEqual([])
+  await save(1, [reply])
+  await publish(2)
+  expect(await published()).toEqual([expect.objectContaining({ dialogue: [reply] })])
+  await save(3, [{ ...reply, body: 'An unfinished draft.' }])
+  expect(await published()).toEqual([expect.objectContaining({ dialogue: [reply] })])
+  expect(
+    (
+      await db.query(`select has_function_privilege(
+    'authenticated','public.read_published_world_npcs_v1(text)','execute'
+  ) as "directAccess"`)
+    ).rows,
+  ).toEqual([{ directAccess: false }])
+})
+
 it('admits one World-only published NPC and captures provenance for the exact replay', async () => {
   const save = (revision: number, placement: unknown) =>
     db.query("select public.write_master_npc_design_v1($1,null,$2,$3,'save',$4)", [

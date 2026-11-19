@@ -93,6 +93,17 @@
   }
 }
 
+.editor .dialogueTree fieldset {
+  border-inline-end: 0;
+  padding-inline: 0.5rem 0;
+  padding-block: 0.4rem;
+}
+
+.dialogueTree button {
+  justify-self: start;
+  text-align: start;
+}
+
 .rehearsal {
   display: grid;
   gap: 0.35rem;

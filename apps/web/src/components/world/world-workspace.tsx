@@ -50,7 +50,7 @@ import {
 } from './world-travel-points'
 import { WorldNearbyNpc } from './world-nearby-npc'
 import { WorldMissions } from './world-missions'
-import { dialogueSpeakerId, WorldDialogue } from './world-dialogue'
+import { dialogueSpeakerId, WorldDialogue, type NarrativeReply } from './world-dialogue'
 import {
   FERRY_CONVERSATION_ID,
   FerryDialogueAction,
@@ -543,6 +543,24 @@ export function WorldWorkspace({
     setMessage('')
     const receipt = await controller.current?.send({ kind: 'interact', interactionId, actionId })
     return receipt?.applied === true
+  }
+  const replyToNarrative: NarrativeReply = async (topic, path) => {
+    const instance = controller.current
+    if (!instance || !topic.speakerId || !topic.narrative) return null
+    const response = await fetch('/api/world/conversation', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        characterId: instance.view.characterId,
+        npcId: topic.speakerId,
+        revision: topic.narrative.revision,
+        path,
+      }),
+    })
+    const body = await response.json()
+    if (!response.ok) throw new Error(body.error?.message ?? 'The speaker could not reply.')
+    const { parseNpcDialoguePage } = await import('@aurevane/validation/combat/npc-design')
+    return parseNpcDialoguePage(body)
   }
   const mapView = useMemo(() => worldViewWithFerryman(view), [view])
   const ferry = view.ferry
@@ -1145,6 +1163,7 @@ export function WorldWorkspace({
           error={message}
           busy={active?.kind === 'interact' || ferryBusy}
           onReply={replyToConversation}
+          onNarrativeReply={replyToNarrative}
           extraResponses={
             isFerryConversation && ferry ? (
               <FerryDialogueAction

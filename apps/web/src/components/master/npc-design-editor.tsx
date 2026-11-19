@@ -10,6 +10,8 @@ import {
   NPC_GREETING_LIMIT,
   NPC_UNIFORM_REASON_LIMIT,
   NPC_USES,
+  npcDialogueReady,
+  npcDialogueReplyPage,
   type NpcDesignCommand,
   type NpcDesignDraft,
   type NpcDesignRecord,
@@ -24,6 +26,7 @@ import { AppearanceBuilderDialog } from '@/components/character/appearance-build
 import { ArenaNpcCard } from '@/components/battle/arena-npc-card'
 import { resolvePublicCharacterImageUrl } from '@/media/public-character-portrait'
 import type { NpcArenaRehearsal } from '@/server/master/npc-arena-rehearsal'
+import { NpcDialogueEditor } from './npc-dialogue-editor'
 import { NpcAppearanceBatch } from './npc-appearance-batch'
 import { MasterDialogueRehearsal } from './master-dialogue-rehearsal'
 import styles from './npc-design-editor.module.css'
@@ -86,7 +89,9 @@ export function NpcDesignEditor({
   const [worldEncounterTags, setWorldEncounterTags] = useState<string | null>(null)
   const ready = {
     arena: Boolean(arena && draft.name.trim()),
-    world: Boolean(world?.greeting.trim() && draft.name.trim()),
+    world: Boolean(
+      world?.greeting.trim() && draft.name.trim() && npcDialogueReady(world.dialogue ?? []),
+    ),
     story: Boolean(story && draft.name.trim()),
   }
   const cleanQuery = query.trim().toLocaleLowerCase()
@@ -476,8 +481,22 @@ export function NpcDesignEditor({
                 ))}
               </select>
             </label>
+            <NpcDialogueEditor
+              replies={world.dialogue ?? []}
+              onChange={(dialogue) => setDraft({ ...draft, world: { ...world, dialogue } })}
+            />
+            {world.dialogue?.length && !npcDialogueReady(world.dialogue) ? (
+              <p className={styles.hint}>
+                Enter a player choice and an NPC response for each reply before publishing.
+              </p>
+            ) : null}
             <MasterDialogueRehearsal
               label="Rehearse greeting"
+              onNarrativeReply={
+                world.dialogue?.length
+                  ? async (_topic, path) => npcDialogueReplyPage(world.dialogue ?? [], path)
+                  : undefined
+              }
               disabled={!ready.world}
               topic={{
                 id: 'npc-greeting-rehearsal',
@@ -491,6 +510,14 @@ export function NpcDesignEditor({
                     draft.portraitRef ?? 'portrait.starter.wayfarer-01',
                   ) ?? undefined,
                 expression: world.greetingExpression,
+                ...(world.dialogue?.length
+                  ? {
+                      narrative: {
+                        revision: current?.revision ?? 1,
+                        replies: world.dialogue.map(({ label }) => label),
+                      },
+                    }
+                  : {}),
                 progress: 'completed',
                 actionId: null,
                 actionLabel: null,

@@ -1,6 +1,7 @@
 import 'server-only'
 import { createHash, randomUUID } from 'node:crypto'
 import { AurevaneError } from '@aurevane/game-core/errors'
+import type { NpcDialogueRequest } from '@aurevane/validation/combat/npc-design'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { loadPublicCharacterProfileImageMap } from '@/server/character/character-profile-display-service'
 import { resolvePublicCharacterImageUrl } from '@/media/public-character-portrait'
@@ -23,7 +24,12 @@ import type {
   WorldView,
 } from '@/world/types'
 import { eventWorldObjectives } from './world-events'
-import { loadWorldNpcs, peekWorldNpcs, resetWorldNpcReadCache } from './world-npcs'
+import {
+  loadWorldNpcs,
+  peekWorldNpcs,
+  readLocalNpcDialogue,
+  resetWorldNpcReadCache,
+} from './world-npcs'
 import { projectPersonalQuests, projectRepeatableTravel } from './world-personal-quests'
 import { localWorldInteractions } from './world-objectives'
 import { WORLD_OBJECTIVES, isKnownCell, resolveSector } from './world-content'
@@ -250,6 +256,16 @@ export function resetWorldReadCaches() {
   portraitCache = null
   environmentCache = null
 }
+export async function readWorldDialogue(userId: string, request: NpcDialogueRequest) {
+  const data = await readWorldData(userId, request.characterId, false)
+  const page =
+    !data.blocked &&
+    !data.battleSessionId &&
+    (await readLocalNpcDialogue(data.state as WorldState, request))
+  if (!page) throw new AurevaneError('INVALID_REQUEST', 'That reply is no longer available here.')
+  return page
+}
+
 export async function readWorld(
   userId: string,
   characterId: string,
