@@ -1,5 +1,15 @@
-import { expect, it } from 'vitest'
-import { ferrymanTopic, ferryStatus, formatFerryCountdown } from './world-ferry'
+import { expect, it, vi } from 'vitest'
+import { FERRY_MAINLAND_DOCK, FERRYMAN_SPRITE } from '@/world/ferry'
+import { newWorldState } from '@/world/travel'
+import { projectWorld } from '@/server/world/world-service'
+import {
+  ferrymanTopic,
+  ferryStatus,
+  formatFerryCountdown,
+  worldViewWithFerryman,
+} from './world-ferry'
+
+vi.mock('server-only', () => ({}))
 
 const dock = { port: 'mainland', nextDepartureAt: 300_000, fareCrowns: 0 } as const
 const waiting = {
@@ -30,4 +40,20 @@ it('offers disembark only while waiting and distinguishes underway from arrival'
   })
   expect(formatFerryCountdown(600_000, 300_000)).toBe('5:00')
   expect(formatFerryCountdown(600_000, 599_999)).toBe('0:01')
+})
+
+it('keeps the Ferryman at the same surveyed dock when movement clears boarding eligibility', () => {
+  const position = { ...FERRY_MAINLAND_DOCK, y: FERRY_MAINLAND_DOCK.y - 2 }
+  const view = projectWorld({ ...newWorldState(), position }, [], 60_000)
+  expect(view.ferry).toBeUndefined()
+  const npc = {
+    name: 'Ferryman',
+    spriteUrl: FERRYMAN_SPRITE,
+    position: { ...FERRY_MAINLAND_DOCK, x: FERRY_MAINLAND_DOCK.x - 1 },
+  }
+  expect(worldViewWithFerryman(view).npcs).toEqual([expect.objectContaining(npc)])
+  expect(worldViewWithFerryman({ ...view, ferry: dock }).npcs).toEqual([
+    expect.objectContaining(npc),
+  ])
+  expect(worldViewWithFerryman({ ...view, sectors: [] }).npcs).toBeUndefined()
 })

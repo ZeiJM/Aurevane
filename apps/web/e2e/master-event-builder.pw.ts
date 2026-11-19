@@ -976,6 +976,9 @@ async function completeCinderwakeRestoration(
   await coordinates.getByLabel('Cell X', { exact: true }).fill(String(checkpoint.x))
   await coordinates.getByLabel('Cell Y', { exact: true }).fill(String(checkpoint.y))
   await page.getByLabel('Recovery offer', { exact: true }).fill('Visit the forge checkpoint.')
+  const recoveryReply = 'I will search the old road.'
+  const trialReply = 'I will face the sentinel.'
+  await page.getByLabel('Recovery reply', { exact: true }).fill(recoveryReply)
   await page
     .getByLabel('Recovery guidance', { exact: true })
     .fill('Reach the checkpoint and return.')
@@ -993,6 +996,7 @@ async function completeCinderwakeRestoration(
     .selectOption(recoveryReward)
   await page.getByLabel('Trial Character XP package', { exact: true }).selectOption(trialReward)
   await page.getByLabel('Trial offer', { exact: true }).fill('Or choose the combat trial.')
+  await page.getByLabel('Trial reply', { exact: true }).fill(trialReply)
   await page
     .getByLabel('Trial guidance', { exact: true })
     .fill('Defeat the challenger in the World.')
@@ -1003,9 +1007,9 @@ async function completeCinderwakeRestoration(
   await rehearse.click()
   const rehearsal = page.getByRole('dialog', { name: smith })
   const routes = rehearsal.getByRole('group', { name: 'Choose a route' })
-  await expect(routes.getByRole('button', { name: 'Choose recovery route' })).toBeVisible()
-  await expect(routes.getByRole('button', { name: 'Choose trial route' })).toBeVisible()
-  await routes.getByRole('button', { name: 'Choose trial route' }).click()
+  await expect(routes.getByRole('button', { name: recoveryReply, exact: true })).toBeVisible()
+  await expect(routes.getByRole('button', { name: trialReply, exact: true })).toBeVisible()
+  await routes.getByRole('button', { name: trialReply, exact: true }).click()
   await expect(rehearsal.getByText('Defeat the challenger in the World.')).toBeVisible()
   await rehearsal.getByRole('button', { name: 'Rehearse winning the trial' }).click()
   await expect(
@@ -1083,7 +1087,7 @@ async function completeCinderwakeRestoration(
   await move(position)
   await talk()
   await expect(dialogue.getByText('Or choose the combat trial.').first()).toBeVisible()
-  const chosenLabel = route === 'trial' ? 'Choose trial route' : 'Choose recovery route'
+  const chosenLabel = route === 'trial' ? trialReply : recoveryReply
   await dialogue
     .getByRole('group', { name: 'Choose a route' })
     .getByRole('button', { name: chosenLabel, exact: true })
@@ -1096,9 +1100,7 @@ async function completeCinderwakeRestoration(
     await expect(
       dialogue.getByRole('button', { name: `Restore ${sword.name}`, exact: true }),
     ).toHaveCount(0)
-    await expect(
-      dialogue.getByRole('button', { name: 'Choose recovery route', exact: true }),
-    ).toHaveCount(0)
+    await expect(dialogue.getByRole('button', { name: recoveryReply, exact: true })).toHaveCount(0)
     await page.goto('/game/loadout/items')
     await page.getByRole('button', { name: /Slot \d+: Trial fixture blade/ }).click()
     await page

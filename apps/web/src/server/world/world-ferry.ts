@@ -44,6 +44,15 @@ export function ferryDeckSector(id: string): WorldSector | null {
   }
 }
 
+export function worldFerryDock(sectorId: string) {
+  if (sectorId === FERRY_MAINLAND_DOCK.sectorId) return FERRY_MAINLAND_DOCK
+  if (sectorId === WARPED_CONTINENT_LANDING.sectorId) return WARPED_CONTINENT_LANDING
+  const realm = parseVoidSectorId(sectorId)
+  if (!realm) return null
+  const dock = voidRealmLanding(realm.realmId)
+  return dock.sectorId === sectorId ? dock : null
+}
+
 export function projectWorldFerry(state: WorldState, now: number): WorldFerryView | undefined {
   if (state.ferry) {
     const { direction, departureAt, arrivalAt } = state.ferry
@@ -55,15 +64,8 @@ export function projectWorldFerry(state: WorldState, now: number): WorldFerryVie
     }
   }
   if (state.route.length) return
-  const privateRealm = parseVoidSectorId(state.position.sectorId)
-  const unchartedDock = privateRealm
-    ? voidRealmLanding(privateRealm.realmId)
-    : WARPED_CONTINENT_LANDING
-  const port = nearFerryDock(state.position, FERRY_MAINLAND_DOCK)
-    ? 'mainland'
-    : nearFerryDock(state.position, unchartedDock)
-      ? 'uncharted'
-      : null
-  if (!port) return
+  const dock = worldFerryDock(state.position.sectorId)
+  if (!dock || !nearFerryDock(state.position, dock)) return
+  const port = dock.sectorId === FERRY_MAINLAND_DOCK.sectorId ? 'mainland' : 'uncharted'
   return { port, nextDepartureAt: nextFerryDeparture(port, now), fareCrowns: 0 }
 }

@@ -43,7 +43,12 @@ import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { localRoute, mapPoint, prepareLocalRoute, WorldMotion } from './world-motion'
 import { WorldMap } from './world-map'
 import { GLOBE_FOCUS_EVENT, WorldGlobe } from './world-globe'
-import { nextWorldTravelPoint, worldTravelPoints } from './world-travel-points'
+import {
+  nextWorldTravelPoint,
+  worldTravelDestination,
+  worldTravelPoints,
+} from './world-travel-points'
+import { WorldNearbyNpc } from './world-nearby-npc'
 import { WorldMissions } from './world-missions'
 import { dialogueSpeakerId, WorldDialogue } from './world-dialogue'
 import {
@@ -572,6 +577,8 @@ export function WorldWorkspace({
         Math.hypot(aa.x - origin.x, aa.y - origin.y) - Math.hypot(bb.x - origin.x, bb.y - origin.y)
       )
     })
+  const nearbyNpcs = mapView.npcs ?? []
+  const nearbyCount = nearby.length + nearbyNpcs.length
   const destination = view.atlas?.find((cell) => cell.id === destinationId && cell.charted)
   const favoriteKey = 'aurevane.worldFavorite.' + view.characterId
   const readWorldFavorite = useCallback(() => {
@@ -805,7 +812,7 @@ export function WorldWorkspace({
                 aria-controls="nearby-content"
                 onClick={() => setTab('nearby')}
               >
-                Nearby <i aria-label={`${nearby.length} visible players`}>{nearby.length}</i>
+                Nearby <i aria-label={`${nearbyCount} visible characters`}>{nearbyCount}</i>
               </button>
               <button
                 id="places-tab"
@@ -953,7 +960,7 @@ export function WorldWorkspace({
                 {view.sectors
                   .flatMap((sector) =>
                     sector.landmarks
-                      .filter((p) => p.kind !== 'frontier')
+                      .filter((p) => p.kind !== 'frontier' && !sector.id.startsWith('ferry:'))
                       .map((p) => ({ p, sector })),
                   )
                   .sort((a, b) => {
@@ -1005,7 +1012,7 @@ export function WorldWorkspace({
                     }}
                     onConfirm={() => {
                       if (confirmDestination?.id !== destination.id) return
-                      walk({ sectorId: destination.id, x: 6, y: 4 })
+                      walk(worldTravelDestination(destination.id))
                       setConfirmDestinationId(null)
                       setMode('local')
                       setDestinationId(null)
@@ -1015,6 +1022,29 @@ export function WorldWorkspace({
                 ) : null}
                 {mode === 'local' ? (
                   <section className={styles.characters}>
+                    {nearbyNpcs.map((npc) => {
+                      const topic =
+                        npc.id === FERRY_CONVERSATION_ID
+                          ? ferryman
+                          : view.interactions.find((entry) => dialogueSpeakerId(entry) === npc.id)
+                      return (
+                        <WorldNearbyNpc
+                          key={npc.id}
+                          npc={npc}
+                          disabled={disabled}
+                          onTalk={
+                            topic ? (opener) => void openConversation(topic, opener) : undefined
+                          }
+                          onApproach={() => {
+                            if (npc.id === FERRY_CONVERSATION_ID) {
+                              walk(worldTravelDestination(npc.position.sectorId))
+                            } else {
+                              approach(npc.position)
+                            }
+                          }}
+                        />
+                      )
+                    })}
                     {nearby.length
                       ? nearby.map((player) => {
                           const targetCell = view.sectors

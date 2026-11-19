@@ -76,8 +76,10 @@ export interface PersonalInventoryRestorationTrial {
   readonly active: string
   readonly ready: string
   readonly rewardPackageRef: string
+  readonly reply?: string
 }
 
+export const RESTORATION_REPLY_LIMIT = 80
 export const RESTORATION_ROUTE_LABELS = {
   'choose-restoration': 'Choose recovery route',
   'choose-restoration-trial': 'Choose trial route',
@@ -91,6 +93,7 @@ export interface PersonalInventoryRestoration {
   readonly travel: string
   readonly ready: string
   readonly completed: string
+  readonly recoveryReply?: string
   readonly trial?: PersonalInventoryRestorationTrial
   readonly recoveryRewardPackageRef?: string
 }

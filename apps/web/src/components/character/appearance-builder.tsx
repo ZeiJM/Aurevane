@@ -316,7 +316,7 @@ export function AppearanceBuilder({
             disabled={disabled}
             onClick={() => update(randomizeOutfit(value, fields))}
           >
-            Randomize all
+            Generate random sprite
           </button>
           <button
             type="button"

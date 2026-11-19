@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ATLAS_COLUMNS, ATLAS_ROWS } from '@/world/atlas'
 import { GRID_HEIGHT, GRID_WIDTH } from '@/world/catalog'
 import { FERRY_MAINLAND_DOCK } from '@/world/ferry'
@@ -9,7 +9,7 @@ import { SphericalView } from './spherical-view'
 import { projectGlobeTowns } from './globe-atlas'
 import { UNCHARTED_VEIL_FOCUS } from './globe-veil'
 import { globeFerryPosition } from './globe-ferry'
-import { nextWorldTravelPoint, worldTravelPoints } from './world-travel-points'
+import { worldTravelDestination } from './world-travel-points'
 import styles from './workspace.module.css'
 
 // Regional silhouettes are presentation only; every marker keeps its public
@@ -125,25 +125,19 @@ export function WorldGlobe({
       dockLocation,
     )
   const ferry = vessel && projectGlobePoint(vessel, camera)
-  const travelPoints = useMemo(
-    () => worldTravelPoints({ atlas: view.atlas, anchors: view.anchors }),
-    [view.atlas, view.anchors],
-  )
-  const travelPointMarkers = travelPoints.flatMap((point) => {
-    const location = globeSectorCenter(point.coordinate, ATLAS_COLUMNS, ATLAS_ROWS)!
-    const projected = projectGlobePoint(location, camera)
-    const town = labels.find(({ sector }) => sector.id === point.id)
-    return projected.visible
-      ? [
-          {
-            ...point,
-            left: (projected.x * zoom + 1) * 50,
-            top: (1 - projected.y * zoom) * 50,
-            townOffset: town ? (town.iconSize + 12) / 2 + 19 : undefined,
-          },
-        ]
-      : []
-  })
+  const target = view.atlas?.find((cell) => cell.charted && cell.id === selected)
+  const targetCell = target && worldTravelDestination(target.id)
+  const targetPin =
+    target &&
+    targetCell &&
+    projectGlobePoint(
+      {
+        longitude:
+          ((target.column + (targetCell.x + 0.5) / GRID_WIDTH) * 360) / ATLAS_COLUMNS - 180,
+        latitude: 90 - ((target.row + (targetCell.y + 0.5) / GRID_HEIGHT) * 180) / ATLAS_ROWS,
+      },
+      camera,
+    )
   return (
     <div className={styles.globeScene} role="region" aria-label="World Atlas">
       <div className={styles.globeFrame}>
@@ -214,7 +208,6 @@ export function WorldGlobe({
               className={styles.globeVeilLabel}
               style={{ left: `${(veilX + 1) * 50}%`, top: `${(1 - veilY) * 50}%` }}
             >
-              <i aria-hidden="true">◇</i>
               <span>Uncharted Lands</span>
             </span>
           ) : null}
@@ -240,29 +233,20 @@ export function WorldGlobe({
               </svg>
             </span>
           ) : null}
-          {travelPointMarkers.map((point) => (
-            <button
-              key={point.id}
-              type="button"
-              data-globe-travel-point={point.id}
-              data-globe-town
-              className={styles.globeTravelPoint}
-              aria-label={`Travel point: ${point.name}. Show next travel point`}
-              aria-pressed={selected === point.id}
-              title={`${point.name} · Show next travel point`}
-              onClick={() => {
-                const next = nextWorldTravelPoint(travelPoints, selected ?? point.id)
-                if (next) selectSector(next.id)
-              }}
+          {target &&
+          targetPin?.visible &&
+          Math.hypot(targetPin.x * zoom, targetPin.y * zoom) < 0.97 ? (
+            <span
+              className={styles.globeDestinationPin}
+              data-globe-destination={target.id}
+              role="img"
+              aria-label={`Selected destination: ${target.name}`}
               style={{
-                left: `${point.left}%`,
-                top: `${point.top}%`,
-                marginLeft: point.townOffset,
+                left: `${(targetPin.x * zoom + 1) * 50}%`,
+                top: `${(1 - targetPin.y * zoom) * 50}%`,
               }}
-            >
-              ◈
-            </button>
-          ))}
+            />
+          ) : null}
         </SphericalView>
       </div>
     </div>

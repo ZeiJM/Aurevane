@@ -48,7 +48,7 @@ export function RestorationDialogueRehearsal({
     progress: ready ? 'ready' : stage === 'completed' ? 'completed' : 'active',
     actionId,
     actionLabel: offer
-      ? RESTORATION_ROUTE_LABELS['choose-restoration']
+      ? restoration.recoveryReply?.trim() || RESTORATION_ROUTE_LABELS['choose-restoration']
       : ready
         ? 'Restore weapon'
         : null,
@@ -56,7 +56,7 @@ export function RestorationDialogueRehearsal({
       ? {
           alternative: {
             actionId: 'choose-restoration-trial',
-            label: RESTORATION_ROUTE_LABELS['choose-restoration-trial'],
+            label: trial.reply?.trim() || RESTORATION_ROUTE_LABELS['choose-restoration-trial'],
           },
         }
       : {}),

@@ -28,6 +28,7 @@ import {
   subscribeClassicPortraitTokens,
 } from '@/appearance/appearance-preferences'
 import { GRID_HEIGHT, GRID_WIDTH, STEP_MS } from '@/world/catalog'
+import { FERRY_MAINLAND_DOCK, FERRY_TERMINAL_LANDMARK, ferryAtMainland } from '@/world/ferry'
 import { hashString } from '@/world/terrain-gen'
 import type {
   WorldBuilding,
@@ -853,7 +854,8 @@ export function createMapRenderer(
         name === 'natural-lakes' ||
         name === 'void-ground' ||
         name === 'settlement-floors' ||
-        name === 'impact-basins'
+        name === 'impact-basins' ||
+        name === 'ferry-deck-planks'
       )
         clearCache()
       else clearStationaryScenery()
@@ -967,8 +969,19 @@ export function createMapRenderer(
       )
     )
       load('hamlet-buildings-winter', 'v01')
-    if (!images.has('ferry-fittings') && renderSectors.some(({ id }) => id.startsWith('ferry:')))
+    if (!images.has('ferry-fittings') && renderSectors.some(({ id }) => id.startsWith('ferry:'))) {
       load('ferry-fittings', 'v02', 'svg')
+      load('ferry-cabin', 'v01')
+      load('ferry-sails', 'v01')
+      load('ferry-deck-planks', 'v01')
+    }
+    if (
+      !images.has('ferry-terminal') &&
+      renderSectors.some(({ id }) => id === FERRY_MAINLAND_DOCK.sectorId)
+    ) {
+      load('ferry-terminal', 'v01')
+      load('ferry-vessel', 'v01')
+    }
     if (!images.has(WINTER_ART) && renderSectors.some((sector) => sector.regionId === WINTER_ART))
       load(WINTER_ART, 'v01')
     if (
@@ -1263,6 +1276,8 @@ export function createMapRenderer(
           sector.cells.filter(({ terrain }) => terrain !== '~').map(({ x, y }) => `${x}:${y}`),
         )
       : null
+    const deckTexture = ferryDeck ? images.get('ferry-deck-planks') : undefined
+    const paintedDeck = deckTexture?.complete && deckTexture.naturalWidth ? deckTexture : undefined
     const localTerrain = new Map(sector.cells.map((cell) => [`${cell.x}:${cell.y}`, cell]))
     const trailTerrain = buildTrailGround(sector, renderSectors)
     const winterMarket =
@@ -1288,7 +1303,7 @@ export function createMapRenderer(
         c.globalAlpha = 1
       }
       if (ferryDeck) {
-        if (cell.terrain !== '~') paintFerryDeck(c, cell, tile, ferryDeck)
+        if (cell.terrain !== '~') paintFerryDeck(c, cell, tile, ferryDeck, paintedDeck)
         continue
       }
       if (cell.terrain === '=' || cell.terrain === 's' || pavedCells?.has(`${cell.x}:${cell.y}`)) {
@@ -2102,6 +2117,28 @@ export function createMapRenderer(
         } else drawGroundSurface(ctx, surface, GRID_WIDTH * tile, GRID_HEIGHT * tile, ratio)
         ctx.restore()
       }
+      if (sector.id === FERRY_MAINLAND_DOCK.sectorId) {
+        const vessel = images.get('ferry-vessel')
+        if (
+          vessel?.complete &&
+          vessel.naturalWidth &&
+          ferryAtMainland(view.serverNow + Math.max(0, now - ferryClockAt))
+        ) {
+          const mooring = screen({
+            x: origin.x + FERRY_MAINLAND_DOCK.x + 2.9,
+            y: origin.y + FERRY_MAINLAND_DOCK.y + 3.2,
+          })
+          const vesselWidth = tile * 4.6
+          const vesselHeight = vesselWidth * (vessel.naturalHeight / vessel.naturalWidth)
+          ctx.drawImage(
+            vessel,
+            mooring.x - vesselWidth * 0.4,
+            mooring.y - vesselHeight * 0.75,
+            vesselWidth,
+            vesselHeight,
+          )
+        }
+      }
       if (
         !cachedScenery &&
         !sector.id.startsWith('ferry:') &&
@@ -2426,23 +2463,46 @@ export function createMapRenderer(
       // Painting them after the character pass would hide someone on a bridge/anchor.
       if (!cachedScenery && props?.complete && props.naturalWidth)
         for (const landmark of sector.landmarks) {
+          if (landmark.id === FERRY_TERMINAL_LANDMARK) {
+            const terminal = images.get('ferry-terminal')
+            if (terminal?.complete && terminal.naturalWidth)
+              addScenery({
+                x: origin.x + landmark.x - 0.7,
+                y: origin.y + landmark.y - 0.25,
+                width: tile * 3.2,
+                height: tile * 3.2 * (terminal.naturalHeight / terminal.naturalWidth),
+                image: terminal,
+                index: 0,
+                columns: 1,
+                rows: 1,
+                anchorX: 0.58,
+                anchorY: 0.62,
+                tree: false,
+              })
+            continue
+          }
           if (sector.id.startsWith('ferry:')) {
-            const fittings = images.get('ferry-fittings')
+            const mast = landmark.id === 'ferry-mast'
+            const painted = images.get(mast ? 'ferry-sails' : 'ferry-cabin')
+            const paintedReady = Boolean(painted?.complete && painted.naturalWidth)
+            const fittings = paintedReady ? painted : images.get('ferry-fittings')
             if (fittings?.complete && fittings.naturalWidth) {
-              const size = tile * (landmark.id === 'ferry-mast' ? 3.25 : 2.4)
+              const size = tile * (mast ? 4 : 2.55)
               addScenery({
                 x: origin.x + landmark.x + 0.5,
                 y: origin.y + landmark.y + 0.6,
                 width: size,
-                height: size,
+                height: paintedReady
+                  ? (size * fittings.naturalHeight) / fittings.naturalWidth
+                  : size,
                 image: fittings,
-                index: landmark.id === 'ferry-stern' ? 0 : 1,
-                columns: 2,
+                index: paintedReady || !mast ? 0 : 1,
+                columns: paintedReady ? 1 : 2,
                 rows: 1,
-                anchorX: 0.5,
-                anchorY: 0.83,
+                anchorX: paintedReady && mast ? 0.55 : 0.5,
+                anchorY: paintedReady ? 0.95 : 0.83,
                 tree: false,
-                ferryMast: landmark.id === 'ferry-mast',
+                ferryMast: mast && !paintedReady,
               })
             }
             continue
@@ -2743,7 +2803,14 @@ export function createMapRenderer(
       string,
       {
         point: MapPoint
-        people: { id: string; name: string; image: string | null; self: boolean; npc?: boolean }[]
+        people: {
+          id: string
+          name: string
+          image: string | null
+          self: boolean
+          npc?: boolean
+          spriteUrl?: string
+        }[]
       }
     >()
     for (const player of view.players) {
@@ -2765,7 +2832,14 @@ export function createMapRenderer(
       stacks.set(`npc:${npc.id}`, {
         point,
         people: [
-          { id: `npc:${npc.id}`, name: npc.name, image: npc.imageUrl, self: false, npc: true },
+          {
+            id: `npc:${npc.id}`,
+            name: npc.name,
+            image: npc.imageUrl,
+            self: false,
+            npc: true,
+            spriteUrl: npc.spriteUrl,
+          },
         ],
       })
     }
@@ -2821,9 +2895,22 @@ export function createMapRenderer(
       requestedImages.add(source)
       return portrait(source)
     }
-    const visibleActor = (image: string | null, id: string, point: MapPoint, self: boolean) => {
+    const visibleActor = (
+      image: string | null,
+      id: string,
+      point: MapPoint,
+      self: boolean,
+      spriteUrl?: string,
+    ) => {
       if (classicTokens || tile < 42 || (!self && requestedActors >= MAX_EMBODIED_ACTORS - 1))
         return null
+      if (spriteUrl) {
+        requestedActors++
+        const sprite = visibleImage(spriteUrl)
+        if (!sprite) return null
+        embodiedActors++
+        return { atlas: sprite, column: 0, row: 0, still: true }
+      }
       const asset = manifestFor(image)
       if (!asset) return null
       requestedActors++
@@ -2845,7 +2932,11 @@ export function createMapRenderer(
         : (previous?.facing ?? 'south')
       actorPositions.set(id, { point, facing })
       const frame = !reduced && animate && moving ? [0, 1, 0, 2][Math.floor(now / 100) % 4]! : 0
-      return { atlas, ...appearanceFrameIndex(facing, moving ? 'walk' : 'idle', frame) }
+      return {
+        atlas,
+        ...appearanceFrameIndex(facing, moving ? 'walk' : 'idle', frame),
+        still: false,
+      }
     }
     type Nameplate = { point: MapPoint; person: (typeof selfStack.people)[number] }
     const nameplates: Nameplate[] = []
@@ -2915,8 +3006,8 @@ export function createMapRenderer(
           actor.atlas,
           actor.column * width,
           actor.row * height,
-          width,
-          height,
+          actor.still ? actor.atlas.naturalWidth : width,
+          actor.still ? actor.atlas.naturalHeight : height,
           point.x - anchorX * scale,
           point.y - anchorY * scale,
           width * scale,
@@ -3522,6 +3613,7 @@ export function createMapRenderer(
     const majorScenery = scenery.filter((item) => item.grandFeature)
     const labelBounds: { x: number; y: number; width: number; height: number }[] = []
     for (const sector of visible) {
+      if (sector.id.startsWith('ferry:')) continue
       const origin = sectorOrigin(sector)
       for (const landmark of sector.landmarks) {
         const p = screen({ x: origin.x + landmark.x + 0.5, y: origin.y + landmark.y + 0.5 })
@@ -3814,7 +3906,13 @@ export function createMapRenderer(
                   1)
             )
           })
-        const actor = visibleActor(person.image, person.id, stack.point, person.self)
+        const actor = visibleActor(
+          person.image,
+          person.id,
+          stack.point,
+          person.self,
+          person.spriteUrl,
+        )
         const image = actor ? null : visibleImage(compactPortraitSource(person.image))
         const previous =
           !actor && fade < 1

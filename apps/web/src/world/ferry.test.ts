@@ -1,7 +1,13 @@
 import { describe, expect, it, vi } from 'vitest'
 import { parseWorldCommand } from './command'
-import { FERRY_MAINLAND_DOCK, nextFerryDeparture, projectWorldFerries } from './ferry'
-import { findWorldRoute, isSafe, newWorldState, revealNearby } from './travel'
+import {
+  FERRY_MAINLAND_DOCK,
+  FERRY_TERMINAL_LANDMARK,
+  ferryAtMainland,
+  nextFerryDeparture,
+  projectWorldFerries,
+} from './ferry'
+import { findWorldRoute, isSafe, isWalkable, newWorldState, revealNearby } from './travel'
 import { isKnownCell, resolveSector, visibleSectors } from '@/server/world/world-content'
 import { projectWorld } from '@/server/world/world-service'
 import { voidRealmLanding } from '@/server/world/void-realms'
@@ -24,6 +30,10 @@ describe('public ferry timetable', () => {
     ])
     expect(projectWorldFerries(arrivalAt)).toEqual([])
     expect(projectWorldFerries(departureAt + 1_800_001)).toMatchObject([{ direction: 'return' }])
+    expect(ferryAtMainland(departureAt - 1)).toBe(true)
+    expect(ferryAtMainland(departureAt)).toBe(false)
+    expect(ferryAtMainland(departureAt + 2_099_999)).toBe(false)
+    expect(ferryAtMainland(departureAt + 2_100_000)).toBe(true)
   })
 
   it('shares the passenger deck for the same passage without opening a mainland route', () => {
@@ -59,9 +69,28 @@ describe('public ferry timetable', () => {
     expect(
       dockView.sectors
         .find(({ id }) => id === FERRY_MAINLAND_DOCK.sectorId)
-        ?.cells.find(({ x, y }) => x === 6 && y === 4)?.walkable,
+        ?.cells.find(({ x, y }) => x === FERRY_MAINLAND_DOCK.x && y === FERRY_MAINLAND_DOCK.y)
+        ?.walkable,
     ).toBe(true)
     expect(projectWorld(newWorldState(), [], departureAt).ferry).toBeUndefined()
+  })
+
+  it('connects the named terminal on the south shore to the mainland road', () => {
+    const terminal = resolveSector(FERRY_MAINLAND_DOCK.sectorId)!
+    const previous = { sectorId: 'atlas:126:32', x: 6, y: 4 }
+    expect(terminal.name).toBe('Ferry Terminal')
+    expect(terminal.landmarks).toContainEqual(
+      expect.objectContaining({ id: FERRY_TERMINAL_LANDMARK }),
+    )
+    expect(isWalkable(terminal, FERRY_MAINLAND_DOCK)).toBe(true)
+    expect(resolveSector('atlas:126:34')).toBeNull()
+    expect(
+      findWorldRoute(
+        previous,
+        FERRY_MAINLAND_DOCK,
+        visibleSectors({ ...newWorldState(), position: previous }),
+      ),
+    ).not.toBeNull()
   })
 
   it('shows peers on the same sailing without revealing riders on another trip or at the dock', () => {

@@ -1,6 +1,7 @@
 import { isWorldWeather, type WorldWeather } from '../world/weather'
 import {
   PERSONAL_QUEST_GIVERS,
+  RESTORATION_REPLY_LIMIT,
   isPersonalQuestGiver,
   isPersonalJourneyNpcId,
   type PersonalCombatDiscovery,
@@ -238,6 +239,7 @@ function validateInventoryRestoration(discovery: PersonalInventoryDiscovery): vo
     'outputItemId',
     'trial',
     'recoveryRewardPackageRef',
+    'recoveryReply',
     ...dialogueFields,
   ]
   if (
@@ -277,6 +279,8 @@ function validateInventoryRestoration(discovery: PersonalInventoryDiscovery): vo
   for (const field of dialogueFields) {
     shortText(restoration[field], `Restoration ${field} dialogue`, 800)
   }
+  if (restoration.recoveryReply !== undefined)
+    shortText(restoration.recoveryReply, 'Restoration recovery reply', RESTORATION_REPLY_LIMIT)
 
   const { trial, recoveryRewardPackageRef } = restoration
   if (trial === undefined && recoveryRewardPackageRef === undefined) return
@@ -286,7 +290,7 @@ function validateInventoryRestoration(discovery: PersonalInventoryDiscovery): vo
     )
   }
   const trialDialogueFields = ['offer', 'active', 'ready'] as const
-  const trialFields = ['npcId', 'rewardPackageRef', ...trialDialogueFields]
+  const trialFields = ['npcId', 'rewardPackageRef', 'reply', ...trialDialogueFields]
   if (
     !trial ||
     typeof trial !== 'object' ||
@@ -301,6 +305,8 @@ function validateInventoryRestoration(discovery: PersonalInventoryDiscovery): vo
   for (const field of trialDialogueFields) {
     shortText(trial[field], `Restoration trial ${field} dialogue`, 800)
   }
+  if (trial.reply !== undefined)
+    shortText(trial.reply, 'Restoration trial reply', RESTORATION_REPLY_LIMIT)
   identity(recoveryRewardPackageRef, 'Restoration recovery reward package')
   identity(trial.rewardPackageRef, 'Restoration trial reward package')
   if (recoveryRewardPackageRef === trial.rewardPackageRef) {

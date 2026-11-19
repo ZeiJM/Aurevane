@@ -18,7 +18,7 @@ describe('World page', () => {
     const points = worldTravelPoints(view)
     expect(points).toHaveLength(9)
     expect(points.map(({ id }) => id)).toEqual(
-      expect.arrayContaining(['atlas:126:32', 'aureth-crown', 'verdant-expanse']),
+      expect.arrayContaining(['atlas:126:33', 'aureth-crown', 'verdant-expanse']),
     )
     expect(
       points.every((point) =>
@@ -219,7 +219,7 @@ describe('World page', () => {
     expect(markup).toContain('<canvas')
     expect(markup).not.toContain('<iframe')
     expect(markup).toContain('World map. Click ground')
-    expect(markup).toContain('0 visible players')
+    expect(markup).toContain('0 visible characters')
     expect(markup).not.toContain('Nearby characters')
     expect(markup).not.toContain('YOUR POSITION')
     expect(markup).not.toContain('LOCAL MAP')

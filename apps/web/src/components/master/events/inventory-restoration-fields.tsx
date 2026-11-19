@@ -1,8 +1,10 @@
 'use client'
 
-import type {
-  PersonalInventoryRestoration,
-  PersonalInventoryRestorationTrial,
+import {
+  RESTORATION_REPLY_LIMIT,
+  RESTORATION_ROUTE_LABELS,
+  type PersonalInventoryRestoration,
+  type PersonalInventoryRestorationTrial,
 } from '@aurevane/game-core/events/persistent-event'
 import type { EventWorkspaceCatalogue } from '@/server/master/event-authoring-service'
 import { CHARTED_SECTORS, GRID_HEIGHT, GRID_WIDTH } from '@/world/catalog'
@@ -44,6 +46,9 @@ export function InventoryRestorationFields({
 }) {
   const npcs = Array.isArray(storyNpcs) ? storyNpcs : []
   const giver = npcs.find((npc) => npc.id === value?.giverNpcId)
+  const trial = value?.trial
+  const rewardLabel = (key: string | undefined) =>
+    rewards.find((reward) => reward.key === key)?.label ?? 'Choose a Character XP package'
 
   return (
     <>
@@ -149,6 +154,17 @@ export function InventoryRestorationFields({
             ))}
           </fieldset>
           <div className={styles.grid}>
+            <label>
+              Recovery reply
+              <input
+                maxLength={RESTORATION_REPLY_LIMIT}
+                placeholder={RESTORATION_ROUTE_LABELS['choose-restoration']}
+                value={value.recoveryReply ?? ''}
+                onChange={(event) =>
+                  change({ ...value, recoveryReply: event.target.value || undefined })
+                }
+              />
+            </label>
             {(
               [
                 ['offer', 'Recovery offer'],
@@ -183,9 +199,9 @@ export function InventoryRestorationFields({
             />
             Enable a combat trial
           </label>
-          {value.trial ? (
+          {trial ? (
             <InventoryRestorationTrialFields
-              trial={value.trial}
+              trial={trial}
               recoveryReward={value.recoveryRewardPackageRef ?? ''}
               recoverySectorId={value.checkpoint.sectorId}
               rewards={rewards}
@@ -194,6 +210,28 @@ export function InventoryRestorationFields({
                 change({ ...value, recoveryRewardPackageRef })
               }
             />
+          ) : null}
+          {trial ? (
+            <details className={styles.restorationBranches}>
+              <summary>Dialogue paths</summary>
+              <div className={styles.grid}>
+                <section>
+                  <h3>
+                    {value.recoveryReply?.trim() || RESTORATION_ROUTE_LABELS['choose-restoration']}
+                  </h3>
+                  <p>Reach the checkpoint and return to the giver.</p>
+                  <p>{rewardLabel(value.recoveryRewardPackageRef)}</p>
+                </section>
+                <section>
+                  <h3>
+                    {trial.reply?.trim() || RESTORATION_ROUTE_LABELS['choose-restoration-trial']}
+                  </h3>
+                  <p>Win the trial and return to the giver.</p>
+                  <p>{rewardLabel(trial.rewardPackageRef)}</p>
+                </section>
+              </div>
+              <p>Both paths end with a confirmed fragment exchange for the same weapon.</p>
+            </details>
           ) : null}
           {giver ? <RestorationDialogueRehearsal restoration={value} giver={giver} /> : null}
         </fieldset>

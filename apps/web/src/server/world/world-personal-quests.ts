@@ -3,6 +3,7 @@ import 'server-only'
 import {
   isPersonalQuestGiver,
   PERSONAL_QUEST_GIVERS,
+  RESTORATION_REPLY_LIMIT,
   RESTORATION_ROUTE_LABELS,
 } from '@aurevane/game-core/events/persistent-event'
 import { isStarterCharacterPortraitRef } from '@aurevane/game-core/character/starter-options'
@@ -23,6 +24,11 @@ export function projectRepeatableTravel(rows: unknown) {
 
 function object(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
+}
+
+function restorationReply(value: unknown, fallback: string) {
+  const label = typeof value === 'string' ? value.trim() : ''
+  return label.length > 0 && label.length <= RESTORATION_REPLY_LIMIT ? label : fallback
 }
 
 function position(value: unknown): WorldPosition | null {
@@ -240,7 +246,14 @@ export function projectPersonalQuests(
       'challenge-mentor': 'Challenge the mentor',
       'train-mentor': 'Train with the mentor',
       'claim-mentor-reward': 'Collect Character XP',
-      ...RESTORATION_ROUTE_LABELS,
+      'choose-restoration': restorationReply(
+        row.recoveryReply,
+        RESTORATION_ROUTE_LABELS['choose-restoration'],
+      ),
+      'choose-restoration-trial': restorationReply(
+        row.trialReply,
+        RESTORATION_ROUTE_LABELS['choose-restoration-trial'],
+      ),
       'restore-item': restoration ? `Restore ${restoration.outputName}` : null,
       'claim-restoration': restoration ? `Collect ${restoration.outputName}` : null,
     }

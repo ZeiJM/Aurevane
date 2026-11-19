@@ -255,6 +255,7 @@ function scene(reduced = false, initial?: WorldView) {
       }
       complete = true
       naturalWidth = 1200
+      naturalHeight = 1200
       width = 1200
       height = 1200
       src = ''
@@ -429,6 +430,38 @@ function scene(reduced = false, initial?: WorldView) {
   }
 }
 describe('native map input and bounded lifecycle', () => {
+  it('paints the real deck art while keeping fixtures out of the map labels', () => {
+    const departureAt = 1_800_000_000_000
+    const state = {
+      ...newWorldState(),
+      position: { sectorId: `ferry:outbound:${departureAt}`, x: 6, y: 4 },
+      ferry: {
+        direction: 'outbound' as const,
+        departureAt,
+        arrivalAt: departureAt + 300_000,
+        warpedPhase: null,
+      },
+    }
+    const view = projectWorld(state, [], departureAt + 61_000)
+    const s = scene(true, view)
+    try {
+      s.frame(40)
+      expect(s.draws.map(({ src }) => src)).toEqual(
+        expect.arrayContaining([
+          '/media/art/world/runtime/ferry-deck-planks-v01.webp',
+          '/media/art/world/runtime/ferry-cabin-v01.webp',
+          '/media/art/world/runtime/ferry-sails-v01.webp',
+        ]),
+      )
+      expect(s.texts.map(({ text }) => text)).not.toContain('Stern cabin')
+      expect(s.texts.map(({ text }) => text)).not.toContain('Foremast')
+      expect(view.sectors[0]?.cells.find(({ x, y }) => x === 8 && y === 6)?.walkable).toBe(false)
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  })
+
   it('does not paint exploration fog over private terrain, including partial movement scenes', () => {
     const state = revealNearby({
       ...newWorldState(),

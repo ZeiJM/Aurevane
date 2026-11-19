@@ -4,7 +4,11 @@ export const FERRY_HOUR_MS = 60 * 60 * 1000
 export const FERRY_DURATION_MS = 5 * 60 * 1000
 export const FERRY_BOARDING_MS = FERRY_DURATION_MS
 export const FERRY_RETURN_OFFSET_MS = 30 * 60 * 1000
-export const FERRY_MAINLAND_DOCK = { sectorId: 'atlas:126:32', x: 6, y: 4 } as const
+export const FERRY_MAINLAND_DOCK = { sectorId: 'atlas:126:33', x: 6, y: 8 } as const
+export const FERRY_TERMINAL_NAME = 'Ferry Terminal'
+export const FERRY_TERMINAL_LANDMARK = 'mainland-ferry-terminal'
+export const FERRYMAN_PORTRAIT = '/media/art/world/runtime/ferryman-portrait-v01.webp'
+export const FERRYMAN_SPRITE = '/media/art/world/runtime/ferryman-sprite-v01.webp'
 
 export type FerryPort = 'mainland' | 'uncharted'
 export type FerryDirection = 'outbound' | 'return'
@@ -39,6 +43,13 @@ export function projectWorldFerries(now: number): readonly FerryPassage[] {
     const arrivalAt = departureAt + FERRY_DURATION_MS
     return now < arrivalAt ? [{ direction, departureAt, arrivalAt }] : []
   })
+}
+
+export function ferryAtMainland(now: number) {
+  return (
+    now >=
+    nextFerryDeparture('mainland', now) - FERRY_HOUR_MS + FERRY_RETURN_OFFSET_MS + FERRY_DURATION_MS
+  )
 }
 
 export function nearFerryDock(position: WorldPosition, dock: WorldPosition): boolean {

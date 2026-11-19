@@ -23,6 +23,19 @@ it('keeps the crossing readable without advancing cosmetic motion when reduced',
   expect(ferryWaterFrame(passage, 10_000, 750, { speed: 0.01, offset: 90 }, false)).toEqual(fixed)
 })
 
+it('moves even in still weather, leaves the departure shore and approaches the destination shore', () => {
+  const calm = { speed: 0, offset: 0 }
+  const frame = (serverNow: number) => ferryWaterFrame(passage, serverNow, 500, calm, true)
+  expect(frame(9_999)).toMatchObject({ advance: 0, shore: { arriving: false, offset: 0 } })
+  expect(frame(21_000)).toMatchObject({ advance: 264, shore: { arriving: false, offset: 0.5 } })
+  expect(frame(32_000)).toMatchObject({ advance: 528, shore: null })
+  expect(frame(298_000).shore).toEqual({ arriving: true, offset: 0.5 })
+  expect(ferryWaterFrame(passage, 298_000, 500, calm, false)).toMatchObject({
+    advance: 0,
+    shore: { arriving: true, offset: 0 },
+  })
+})
+
 it('builds the visible hull only below existing deck edges, including blocked fittings', () => {
   const cell = (x: number, y: number, terrain: '~' | 's' | '#') => ({
     x,

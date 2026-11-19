@@ -37,7 +37,7 @@ import {
   visibleSectors,
 } from './world-content'
 import { worldArchiveEntries } from './world-archive'
-import { projectWorldFerry } from './world-ferry'
+import { projectWorldFerry, worldFerryDock } from './world-ferry'
 import { atlasAddress, atlasSectors } from '@/world/atlas'
 import { GRAND_DISCOVERY_SITES, type GrandDiscoveryId } from '@/world/discovery-sites'
 import { grandDiscoveryPlacements } from '@/components/world/map-grand-discoveries'
@@ -407,11 +407,15 @@ export function projectWorldSector(state: WorldState, sector: WorldSector): Worl
       return cell && !cell.safe && cell.walkable && (cell.terrain === '.' || cell.terrain === 't')
     })
   const legacyTrail = /^trail:.*:(\d+)$/.exec(sector.id)
+  const ferryDock = worldFerryDock(sector.id)
   return {
     ...publicSector,
     ...(projectedImpact ? { impactSite } : {}),
     ...(revealedScenery ? { warpedScenery } : {}),
     ...(legacyTrail ? { atlasColumn: Number(legacyTrail[1]), atlasRow: 0 } : {}),
+    ...(ferryDock && cells.some(({ x, y }) => x === ferryDock.x && y === ferryDock.y)
+      ? { ferryDock: { x: ferryDock.x, y: ferryDock.y } }
+      : {}),
     cells,
     landmarks: sector.landmarks.filter((p) => isKnown(state, { ...p, sectorId: sector.id })),
     exits: roads.filter((road) => isKnown(state, road.from) && isKnown(state, road.to)),

@@ -231,6 +231,8 @@ export interface WorldImpactSite {
 export interface WorldSectorView extends Omit<WorldSector, 'rows' | 'roads'> {
   cells: WorldCell[]
   exits: WorldRoad[]
+  /** A projected boarding point independent of the local boarding action. */
+  ferryDock?: { x: number; y: number }
   /** Server-authored presentation marker, supplied only after its full private footprint is known. */
   impactSite?: WorldImpactSite
   /** Private focal art, supplied only for surveyed ground. */
@@ -264,6 +266,7 @@ export interface WorldNpcPresentation {
   name: string
   position: WorldPosition
   imageUrl: string | null
+  spriteUrl?: string
 }
 
 export interface WorldView {

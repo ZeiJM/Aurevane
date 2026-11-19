@@ -83,6 +83,7 @@ describe('inventory restoration authoring', () => {
       <InventoryRestorationFields
         value={{
           ...restoration,
+          recoveryReply: 'I will search the old road.',
           recoveryRewardPackageRef: 'reward.recovery',
           trial: {
             npcId,
@@ -90,6 +91,7 @@ describe('inventory restoration authoring', () => {
             active: 'Win the fight and return.',
             ready: 'The forge is ready for you.',
             rewardPackageRef: 'reward.trial',
+            reply: 'I will face the sentinel.',
           },
         }}
         canUseGlobalScope
@@ -108,6 +110,9 @@ describe('inventory restoration authoring', () => {
     expect(html).toContain('Challenge the forge sentinel.')
     expect(html).toContain('Win the fight and return.')
     expect(html).toContain('The forge is ready for you.')
+    expect(html).toContain('Dialogue paths')
+    expect(html).toContain('<h3>I will search the old road.</h3>')
+    expect(html).toContain('<h3>I will face the sentinel.</h3>')
   })
 
   it('preserves an existing giver reference when the NPC catalogue is unavailable', () => {

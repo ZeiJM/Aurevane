@@ -20,6 +20,7 @@ import { structuralTerrainAt } from './discovery-collision'
 import { mountainFrontierAt, mountainFrontierPass } from './mountain-frontier'
 import { trimRoadShorelines } from './road-shorelines'
 import { TOWN_OUTSKIRTS } from './town-extents'
+import { FERRY_MAINLAND_DOCK, FERRY_TERMINAL_LANDMARK, FERRY_TERMINAL_NAME } from './ferry'
 import type { WorldBuilding, WorldLandmark, WorldRoad, WorldSector } from './types'
 import { ATLAS_COLUMNS, ATLAS_ROWS, atlasNeighbor, wrappedColumnDistance } from './topology'
 
@@ -613,6 +614,14 @@ export function atlasSectors(): readonly WorldSector[] {
           grid[y]![x] = 'l'
       }
       const landmarks: WorldLandmark[] = (authored?.landmarks ?? []).map((l) => ({ ...l }))
+      if (id === FERRY_MAINLAND_DOCK.sectorId)
+        landmarks.push({
+          id: FERRY_TERMINAL_LANDMARK,
+          name: FERRY_TERMINAL_NAME,
+          kind: 'waystone',
+          x: FERRY_MAINLAND_DOCK.x,
+          y: FERRY_MAINLAND_DOCK.y,
+        })
       if (!town && column === REMOTE_GRAND_CROSSING.column && row >= 31 && row <= 33)
         landmarks.push({
           id: `${id}:${row === REMOTE_GRAND_CROSSING.row ? 'grand-crossing' : 'stream-crossing'}`,
@@ -691,6 +700,7 @@ export function atlasSectors(): readonly WorldSector[] {
         id,
         name:
           authored?.name ??
+          (id === FERRY_MAINLAND_DOCK.sectorId ? FERRY_TERMINAL_NAME : undefined) ??
           grandDiscoverySectorName(id) ??
           (scenicCenter
             ? scenic.name

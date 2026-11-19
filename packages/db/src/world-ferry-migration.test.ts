@@ -8,7 +8,8 @@ const second = '33333333-3333-4333-8333-333333333333'
 const command = '44444444-4444-4444-8444-444444444444'
 const disembark = '55555555-5555-4555-8555-555555555555'
 const departure = 1_800_000_000_000
-const dock = { sectorId: 'atlas:126:32', x: 5, y: 4 }
+const terminal = { sectorId: 'atlas:126:33', x: 6, y: 8 }
+const dock = { ...terminal, x: 5 }
 const state = { position: dock, version: 1, route: [], nextStepAt: null }
 const migration = (name: string) =>
   readFileSync(new URL(`../../../supabase/migrations/${name}.sql`, import.meta.url), 'utf8')
@@ -57,6 +58,7 @@ beforeAll(async () => {
       ),
   )
   await db.exec(migration(embarkationSql))
+  await db.exec(migration('20261119101500_mainland_ferry_terminal'))
 }, 30_000)
 beforeEach(async () => {
   await db.exec(`
@@ -123,10 +125,15 @@ describe('durable world ferry authority', () => {
       [player],
     )
     await expect(passage()).rejects.toThrow('WORLD_FERRY_PORT')
+    await db.query(
+      "update app_private.character_world_state set state=jsonb_set(state,'{position}',$2::jsonb) where character_id=$1",
+      [player, JSON.stringify({ sectorId: 'atlas:126:32', x: 6, y: 4 })],
+    )
+    await expect(passage()).rejects.toThrow('WORLD_FERRY_PORT')
     await clock(departure)
     await db.query(
-      "update app_private.character_world_state set state=jsonb_set(state,'{position,x}','5') where character_id=$1",
-      [player],
+      "update app_private.character_world_state set state=jsonb_set(state,'{position}',$2::jsonb) where character_id=$1",
+      [player, JSON.stringify(dock)],
     )
     await expect(passage()).rejects.toThrow('WORLD_FERRY_WINDOW')
     await expect(read()).resolves.toMatchObject(state)
@@ -182,7 +189,7 @@ describe('durable world ferry authority', () => {
     const returned = await read()
     expect(returned).toMatchObject({
       version: 5,
-      position: { sectorId: 'atlas:126:32', x: 6, y: 4 },
+      position: terminal,
     })
     expect(returned).not.toHaveProperty('ferry')
     expect(returned).not.toHaveProperty('warpedPhase')

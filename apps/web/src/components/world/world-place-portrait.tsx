@@ -1,4 +1,5 @@
 import type { WorldLandmark } from '@/world/types'
+import { FERRY_TERMINAL_LANDMARK } from '@/world/ferry'
 import styles from './workspace.module.css'
 
 // Cells from the existing original World runtime sheets (see runtime/manifest.json).
@@ -19,6 +20,19 @@ const placeArt: Record<WorldLandmark['kind'], readonly [string, number, number, 
 }
 
 export function WorldPlacePortrait({ place }: { place: WorldLandmark }) {
+  if (place.id === FERRY_TERMINAL_LANDMARK) {
+    return (
+      <span
+        className={styles.placePortrait}
+        aria-hidden="true"
+        style={{
+          backgroundImage: 'url(/media/art/world/runtime/ferry-terminal-v01.webp)',
+          backgroundPosition: 'center',
+          backgroundSize: 'cover',
+        }}
+      />
+    )
+  }
   const [sheet, index, columns, rows] =
     place.sceneryIndex !== undefined &&
     Number.isInteger(place.sceneryIndex) &&

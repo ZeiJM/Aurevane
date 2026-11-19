@@ -17,7 +17,7 @@ const name = z.string().trim().max(60)
 const imageUrl = z
   .string()
   .regex(
-    /^\/api\/media\/appearance\/(?:1\/[a-z0-9.]{1,140}|2\/[a-z]+(?:\.[a-z]+){12})\/neutral\.svg$/u,
+    /^\/api\/media\/appearance\/(?:1\/[a-z0-9.]{1,140}|2\/[a-z]+(?:\.[a-z]+){12}|3\/[a-z]+(?:\.[a-z]+){13})\/neutral\.svg$/u,
   )
   .nullable()
   .optional()

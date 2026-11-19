@@ -811,11 +811,19 @@
     0 0 5px #120d1e;
   pointer-events: none;
 }
-.globeVeilLabel i {
-  color: #e3c9e9;
-  font:
-    normal 1.35rem/1 Georgia,
-    serif;
+.globeDestinationPin {
+  position: absolute;
+  z-index: 6;
+  width: 12px;
+  height: 12px;
+  transform: translate(-50%, -50%);
+  border: 2px solid #fff0df;
+  border-radius: 50%;
+  background: #c93e40;
+  box-shadow:
+    0 0 0 2px #260f17c9,
+    0 0 9px #ef5c5aa3;
+  pointer-events: none;
 }
 .globeFerry {
   position: absolute;
@@ -1270,23 +1278,6 @@
 .globeTitle {
   display: none;
 }
-.workspace .globeTravelPoint {
-  position: absolute;
-  z-index: 5;
-  min-width: 25px;
-  min-height: 25px;
-  transform: translate(-50%, -50%);
-  padding: 1px;
-  border: 1px solid #f5d399;
-  border-radius: 50%;
-  background: #1c415bdf;
-  color: #ffe3a2;
-  font-size: 18px;
-  box-shadow: 0 0 10px #eccd8c77;
-}
-.workspace .globeTravelPoint:hover {
-  background: #47657a;
-}
 .atlasTools {
   display: grid;
   gap: 8px;
@@ -1417,4 +1408,14 @@
 .destinationActions > .primary {
   margin: 0;
   font-size: 12px !important;
+}
+
+.workspace .destinationActions > .confirmTravel {
+  background: #286248;
+  border-color: #6dad8c;
+  color: #f6fbf5;
+}
+
+.workspace .destinationActions > .confirmTravel:hover:not(:disabled) {
+  background: #337857;
 }

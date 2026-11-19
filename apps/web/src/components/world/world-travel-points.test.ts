@@ -35,7 +35,7 @@ describe('known World Travel Points', () => {
       ],
     }
     expect(worldTravelPoints(view)).toEqual([
-      { id: FERRY_MAINLAND_DOCK.sectorId, name: 'Mainland', coordinate: 'S01-01' },
+      { id: FERRY_MAINLAND_DOCK.sectorId, name: 'Ferry Terminal', coordinate: 'S01-01' },
       { id: 'west', name: 'West Waystone', coordinate: 'S01-01' },
       { id: 'north', name: 'North Waystone', coordinate: 'S01-01' },
       { id: 'town', name: 'Public town', coordinate: 'S04-01' },

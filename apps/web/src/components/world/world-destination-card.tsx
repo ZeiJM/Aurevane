@@ -1,5 +1,6 @@
 import type { WorldAtlasCell } from '@/world/types'
 import { positionLabel } from '@/world/coordinate-label'
+import { worldTravelDestination } from './world-travel-points'
 import styles from './workspace.module.css'
 
 interface Props {
@@ -64,7 +65,9 @@ export function WorldDestinationCard({
           </button>
         </div>
       </header>
-      <p className={styles.destinationCoordinates}>{positionLabel(destination, { x: 6, y: 4 })}</p>
+      <p className={styles.destinationCoordinates}>
+        {positionLabel(destination, worldTravelDestination(destination.id))}
+      </p>
       <div
         className={styles.destinationActions}
         role={reviewing ? 'group' : undefined}
@@ -77,7 +80,7 @@ export function WorldDestinationCard({
         ) : null}
         <button
           type="button"
-          className={styles.primary}
+          className={`${styles.primary} ${reviewing ? styles.confirmTravel : ''}`}
           disabled={disabled}
           aria-expanded={reviewing}
           aria-describedby={reviewing && replacesRoute ? 'world-travel-review-copy' : undefined}

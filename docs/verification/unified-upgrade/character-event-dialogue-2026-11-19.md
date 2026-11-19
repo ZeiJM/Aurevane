@@ -37,9 +37,35 @@ scale. The same distinction threshold still applies to the new art.
 ## Dialogue and Events
 
 The existing World dialogue presents the recovery and trial replies together as two explicit
-paths. The Event Builder can rehearse each route using the draft's published Story NPC, draft
-lines and the same conversation window. Rehearsal changes only the preview. Live settlement,
-private state and reward authority stay on the original server paths.
+paths. The Event Builder can author the replies, inspect the two paths, and rehearse each route
+using the published Story NPC, draft lines and the same conversation window. Live runs use
+captured reply labels only while the action is available. Rehearsal changes only the preview.
+Live settlement, private state and reward authority stay on the original server paths.
+
+NPC Design now accepts the shared cuffed sprite recipe. The application and database also
+check that the requested combination is valid before returning or saving the design.
+
+## Ferry Terminal and the World map
+
+The mainland terminal moves one sector south to the water's edge. Its public Key Location,
+walking destination and boarding range share the new coordinates. A new terminal building and
+moored vessel use original painted cutouts. The Ferryman has his own mariner's hat, green coat,
+rope belt, portrait and anchored field sprite. The server projects his dock separately from
+boarding eligibility, so ordinary movement around the dock retains his map and Nearby entry.
+Talk still uses current server-projected interactions. Nearby also shows authored NPCs.
+
+The globe retains the Uncharted Lands label and omits its purple diamond. The sidebar
+still cycles Travel Points. On the map, a red dot shows the prospective destination and
+the green confirmation button commits the existing World walking command.
+
+The terminal migration changes the boarding location and return landing for the public ferry.
+Existing ferry trip origins and saved World positions are preserved.
+
+The passenger deck uses painted timber, cabin and rigging with a shaded navy hull and a
+raised rail. The setting keeps the existing walkable deck and shared passenger positions.
+Relative ocean and wake movement follows the crossing clock in calm weather as well as
+wind. The departure shoreline recedes and the arrival shoreline comes into view. The
+display respects reduced motion. Cabin and mast map labels are removed.
 
 The next scope is the general-purpose conversation authoring and Event branch engine,
 broader Character and NPC authoring and live cast integration, followed by a major Event
@@ -56,3 +82,5 @@ and signed-in desktop and mobile acceptance. The unified matrix remains the veri
 - Browser Smoke exercises rehearsal and the real, authenticated branches with their existing
   distinct XP and one-time weapon settlement. Physical-device and Owner visual acceptance
   require their own evidence.
+- World coverage checks the walkable shoreline connection, ferry schedule and relocation,
+  stable NPC projection, Nearby actions, list and globe selection, and the travel review flow.
