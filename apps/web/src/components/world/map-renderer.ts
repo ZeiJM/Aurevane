@@ -1769,6 +1769,23 @@ export function createMapRenderer(
     target.save()
     for (const sector of visible.slice(start, end)) {
       const p = screen(sectorOrigin(sector))
+      const surface = ground(sector)
+      // Reuse projected rasters at native density so a walk that outgrows the
+      // composite does not repeat the affine paint. At higher densities, keep
+      // the direct composite path to avoid preloading overscan into the cache.
+      const projected =
+        tile >= 32 && ratio === 1
+          ? groundProjections.get(surface, GRID_WIDTH * tile, GRID_HEIGHT * tile, ratio)
+          : null
+      if (projected) {
+        target.setTransform(1, 0, 0, 1, 0, 0)
+        target.drawImage(
+          projected.canvas,
+          p.x * ratio + padding + projected.left,
+          p.y * ratio + padding + projected.top,
+        )
+        continue
+      }
       target.setTransform(
         ratio * MAP_X,
         ratio * MAP_Y,
@@ -1777,7 +1794,7 @@ export function createMapRenderer(
         p.x * ratio + padding,
         p.y * ratio + padding,
       )
-      drawGroundSurface(target, ground(sector), GRID_WIDTH * tile, GRID_HEIGHT * tile, ratio)
+      drawGroundSurface(target, surface, GRID_WIDTH * tile, GRID_HEIGHT * tile, ratio)
     }
     target.restore()
     stationaryGround = {

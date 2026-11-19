@@ -193,3 +193,12 @@ and follows ordinary draft, publication and scheduling controls.
   writer reserves each recipe across current and pending looks, so the second character
   could not confirm it. The laptop scenario now selects the Trail scout and retains the
   independent dyes, exact saved-recipe check, and permanent lock assertions.
+
+- The wardrobe-only successor `343a712` passed Living Atlas and CI. Its
+  [World timing run](https://github.com/ZeiJM/Aurevane/actions/runs/44629323735) passed all
+  three mobile crowd cases and 50 of 60 desktop cases. Ten peer traces recorded eight
+  visible steps. Several of those frames spent 116–155 ms in terrain rendering
+  without rebuilding the source ground texture. Settled standard-density composites now
+  use the same output-density sector bitmaps as moving frames. The local regression
+  verifies the camera can outgrow the composite and reuse those bitmaps without
+  allocating replacements during the route. The native nine-step minimum still applies.

@@ -3377,6 +3377,54 @@ describe('native map input and bounded lifecycle', () => {
       vi.unstubAllGlobals()
     }
   })
+  it('reuses the settled desktop sector bitmaps when movement outgrows the viewport composite', () => {
+    const base = projectWorld(newWorldState(), [], 1000)
+    const position = { sectorId: 'dry-4', x: 6, y: 4 }
+    const sector = base.sectors.find(({ id }) => id === base.position.sectorId)!
+    const view = {
+      ...base,
+      position,
+      atlas: undefined,
+      scenery: [],
+      sectors: Array.from({ length: 9 }, (_, index) => ({
+        ...sector,
+        id: `dry-${index}`,
+        atlasColumn: index % 3,
+        atlasRow: Math.floor(index / 3),
+        buildings: [],
+        landmarks: [],
+        cells: sector.cells.map((cell) => ({ ...cell, terrain: '.', walkable: true })),
+      })),
+    }
+    const s = scene(true, view)
+    try {
+      window.devicePixelRatio = 1
+      s.resize()
+      s.renderer.settings({ animate: false, zoom: 1 })
+      s.canvas.dataset.renderDiagnostics = 'timing'
+      s.frame(40)
+      expect(JSON.parse(s.canvas.dataset.renderTiming!).projectedGroundSectors).toBeGreaterThan(0)
+      const layers = s.layerCount()
+      s.motion.plan(
+        [7, 8, 9, 10].map((x) => ({ position: { ...position, x }, durationMs: 200 })),
+        view.sectors,
+        40,
+      )
+      s.renderer.update(view)
+      let usedSectorBitmaps = false
+      for (let at = 80; at <= 920; at += 40) {
+        s.frame(at)
+        if (JSON.parse(s.canvas.dataset.renderTiming!).projectedGroundSectors === 0) {
+          expect(s.layerCount()).toBe(layers)
+          usedSectorBitmaps = true
+        }
+      }
+      expect(usedSectorBitmaps).toBe(true)
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  })
   it('reuses the settled wide-zoom phone terrain projection without repainting its affine border', () => {
     const base = projectWorld(newWorldState(), [], 1000)
     const sector = base.sectors.find((candidate) => candidate.id === base.position.sectorId)!
