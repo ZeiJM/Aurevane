@@ -47,10 +47,6 @@
   padding-top: 0.55rem;
 }
 
-.appearance > h2 {
-  margin: 0;
-}
-
 .appearance > p {
   margin: 0;
   color: var(--av-text-muted);
@@ -112,11 +108,16 @@
   text-transform: uppercase;
 }
 
-.personal h2,
-.profileImage h2 {
+.personal > header h2,
+.profileImage > div:first-child h2,
+.appearance > h2 {
   margin: 0.25rem 0 0;
   color: #29372e;
   font: 550 1.25rem/1.15 var(--av-font-display);
+}
+
+.appearance > h2 {
+  margin: 0;
 }
 
 .explanation,

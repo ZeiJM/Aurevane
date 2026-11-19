@@ -256,7 +256,12 @@ test('Titles keeps the scenic account workspace and its side-by-side editing con
   await page.getByRole('button', { name: 'Review Title' }).click()
   await expect(personal.getByRole('textbox', { name: /^Personal title/ })).toHaveCount(0)
   await expect(personal.getByText('Dawn Keeper', { exact: true })).toBeVisible()
-  await expect(personal.getByRole('checkbox')).toBeVisible()
+  await expect(
+    personal.getByRole('checkbox', {
+      name: "I understand this is this character's one personal-title choice and cannot be repeatedly edited.",
+      exact: true,
+    }),
+  ).toBeVisible()
   await expect(profileImage.getByRole('textbox', { name: /^Direct image URL/ })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Confirm Final Title' })).toBeDisabled()
   await expect(page.getByRole('button', { name: 'Edit', exact: true })).toBeVisible()

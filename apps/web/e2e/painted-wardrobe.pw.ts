@@ -46,6 +46,9 @@ test('@painted-wardrobe saves independently styled clothing and accessories, the
   })
   await expect(appearanceSettings.getByText('1 sprite design save remaining.')).toBeVisible()
   await designSprite.click()
+  await expect(
+    dialog.getByRole('heading', { name: 'Character appearance', exact: true }),
+  ).toHaveCSS('color', 'rgb(244, 236, 218)')
   await expect(control('Clothing color')).toHaveValue('pine')
   await expect(control('Accessory color')).toBeDisabled()
   await control('Clothing style').selectOption('hawkmantle')

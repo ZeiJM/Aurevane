@@ -25,7 +25,7 @@ export const PAINTED_ACCESSORIES = {
 export const PAINTED_HEADWEAR = {
   none: 'None',
   arcanist: 'Arcanist hat',
-  bandana: 'Wayfarer bandana',
+  bandana: 'Trail bandana',
 } as const
 
 export const PAINTED_FACEWEAR = {
