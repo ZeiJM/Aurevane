@@ -34,7 +34,10 @@ describe('Portrait & Title settings', () => {
     )
     expect(markup).toContain('A shared appearance takes precedence over your default portrait.')
     expect(markup).not.toContain('only once')
-    const portraitDialog = markup.slice(markup.indexOf('<dialog'), markup.indexOf('</dialog>'))
+    const portraitDialog = markup.match(
+      /<dialog\b[^>]*aria-labelledby="default-portrait-heading"[^>]*>[\s\S]*?<\/dialog>/u,
+    )?.[0]
+    expect(portraitDialog).toBeDefined()
     expect(portraitDialog).not.toContain('type="checkbox"')
     expect(portraitDialog).toContain('aria-label="Portrait selection"')
     expect(markup.match(/name="default-portrait"/gu)).toHaveLength(64)
