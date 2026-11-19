@@ -333,6 +333,9 @@ test('Creation exposes 24 portraits per gender and preserves the complete authen
   expect(requests[1].intent.pronounPresetId).toBe('she_her')
   expect(requests[1].intent.attributeBonuses).toMatchObject({ might: 5 })
   await expect(page).toHaveURL(/\/game\/haven$/)
+  const appearance = await page.request.get('/api/account/appearance')
+  expect(appearance.ok()).toBe(true)
+  expect(await appearance.json()).toMatchObject({ appearance: { remainingDesigns: 1 } })
   await page.goto('/game/character')
   const railIdentity = page
     .getByTestId('authenticated-shell')

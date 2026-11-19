@@ -78,6 +78,11 @@ export interface PersonalInventoryRestorationTrial {
   readonly rewardPackageRef: string
 }
 
+export const RESTORATION_ROUTE_LABELS = {
+  'choose-restoration': 'Choose recovery route',
+  'choose-restoration-trial': 'Choose trial route',
+} as const
+
 export interface PersonalInventoryRestoration {
   readonly giverNpcId: string
   readonly checkpoint: PersonalJourneyPosition

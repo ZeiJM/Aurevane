@@ -241,12 +241,10 @@ export async function createCharacterInSlot(command: {
     p_bonus_resolve: command.intent.attributeBonuses.resolve,
     p_expected_profile_version: command.expectedProfileVersion ?? null,
   }
-  const { data, error } = appearanceUrl
-    ? await supabase.rpc('create_character_with_appearance_v1', {
-        ...args,
-        p_appearance_url: appearanceUrl,
-      })
-    : await supabase.rpc('create_character_v4', args)
+  const { data, error } = await supabase.rpc('create_character_with_appearance_v1', {
+    ...args,
+    p_appearance_url: appearanceUrl,
+  })
 
   if (error) {
     if (error.message.includes('CHARACTER_APPEARANCE_DUPLICATE')) {

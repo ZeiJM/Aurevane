@@ -999,6 +999,21 @@ async function completeCinderwakeRestoration(
   await page
     .getByLabel('Trial ready to restore', { exact: true })
     .fill('The trial is won. Bring both fragments to the forge.')
+  const rehearse = page.getByRole('button', { name: 'Rehearse dialogue', exact: true })
+  await rehearse.click()
+  const rehearsal = page.getByRole('dialog', { name: smith })
+  const routes = rehearsal.getByRole('group', { name: 'Choose a route' })
+  await expect(routes.getByRole('button', { name: 'Choose recovery route' })).toBeVisible()
+  await expect(routes.getByRole('button', { name: 'Choose trial route' })).toBeVisible()
+  await routes.getByRole('button', { name: 'Choose trial route' }).click()
+  await expect(rehearsal.getByText('Defeat the challenger in the World.')).toBeVisible()
+  await rehearsal.getByRole('button', { name: 'Rehearse winning the trial' }).click()
+  await expect(
+    rehearsal.getByText('The trial is won. Bring both fragments to the forge.'),
+  ).toBeVisible()
+  await rehearsal.getByRole('button', { name: 'End conversation' }).click()
+  await expect(rehearse).toBeFocused()
+  expect(stock()).toEqual({ fragments: 2, swords: 0, gear: 40 })
   await page.screenshot({
     path: info.outputPath(`cinderwake-${route}-authoring.png`),
     animations: 'disabled',
@@ -1069,7 +1084,10 @@ async function completeCinderwakeRestoration(
   await talk()
   await expect(dialogue.getByText('Or choose the combat trial.').first()).toBeVisible()
   const chosenLabel = route === 'trial' ? 'Choose trial route' : 'Choose recovery route'
-  await dialogue.getByRole('button', { name: chosenLabel, exact: true }).click()
+  await dialogue
+    .getByRole('group', { name: 'Choose a route' })
+    .getByRole('button', { name: chosenLabel, exact: true })
+    .click()
   await dialogue.getByRole('button', { name: 'End conversation' }).click()
   await move(checkpoint)
   await move(position)

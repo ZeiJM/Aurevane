@@ -4,7 +4,9 @@ import { useId, useMemo, useState, type CSSProperties } from 'react'
 import {
   APPEARANCE_CATALOG,
   APPEARANCE_EXPRESSIONS,
+  APPEARANCE_FACINGS,
   APPEARANCE_FRAME,
+  APPEARANCE_POSES,
   APPEARANCE_PRESETS,
   appearanceFrameIndex,
   compileAppearanceManifest,
@@ -14,7 +16,9 @@ import {
   withLowerGarment,
   type AppearanceBlueprint,
   type AppearanceExpression,
+  type AppearanceFacing,
   type AppearanceManifest,
+  type AppearancePose,
 } from '@/appearance/appearance-manifest'
 import {
   appearanceClothingConflict,
@@ -89,6 +93,8 @@ export function AppearanceBuilder({
   const lower = value.v === 1 ? 'original' : value.lower
   const cuff = value.v === 3 ? value.cuff : 'original'
   const [expression, setExpression] = useState<AppearanceExpression>('neutral')
+  const [facing, setFacing] = useState<AppearanceFacing>('south')
+  const [battlePose, setBattlePose] = useState<AppearancePose>('idle')
   const [initial] = useState(value)
   const [history, setHistory] = useState<AppearanceBlueprint[]>([])
   const [favorites, setFavorites] = useState<AppearanceBlueprint[]>([])
@@ -125,6 +131,34 @@ export function AppearanceBuilder({
             ))}
           </select>
         </label>
+        <div className={styles.previewControls}>
+          <label>
+            Facing
+            <select
+              value={facing}
+              onChange={(event) => setFacing(event.target.value as AppearanceFacing)}
+            >
+              {APPEARANCE_FACINGS.map((direction) => (
+                <option key={direction} value={direction}>
+                  {title(direction)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Battle pose
+            <select
+              value={battlePose}
+              onChange={(event) => setBattlePose(event.target.value as AppearancePose)}
+            >
+              {APPEARANCE_POSES.map((pose) => (
+                <option key={pose} value={pose}>
+                  {title(pose)}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
         <div className={styles.poses} aria-label="Appearance at gameplay sizes">
           <figure>
             <span className={styles.icon}>
@@ -133,8 +167,20 @@ export function AppearanceBuilder({
             </span>
             <figcaption>Icon</figcaption>
           </figure>
-          <PosePreview manifest={manifest} size={44} walk label="Field walk" />
-          <PosePreview manifest={manifest} size={55} label="Battle" />
+          <PosePreview
+            manifest={manifest}
+            size={44}
+            facing={facing}
+            pose="walk"
+            label="Field walk"
+          />
+          <PosePreview
+            manifest={manifest}
+            size={55}
+            facing={facing}
+            pose={battlePose}
+            label="Battle"
+          />
         </div>
       </div>
       <div className={styles.controls}>
@@ -335,22 +381,24 @@ export function AppearancePortraitPreview({
 function PosePreview({
   manifest,
   size,
-  walk = false,
+  facing,
+  pose,
   label,
 }: {
   manifest: AppearanceManifest
   size: number
-  walk?: boolean
+  facing: AppearanceFacing
+  pose: AppearancePose
   label: string
 }) {
   const { columns, rows } = APPEARANCE_FRAME
-  const { column, row } = appearanceFrameIndex(walk ? 'east' : 'south', walk ? 'walk' : 'idle', 0)
+  const { column, row } = appearanceFrameIndex(facing, pose, 0)
   return (
     <figure>
       <span
         aria-hidden="true"
         className={styles.sprite}
-        data-walk={walk || undefined}
+        data-preview-motion={pose !== 'idle' && pose !== 'down' ? pose : undefined}
         style={
           {
             width: size,

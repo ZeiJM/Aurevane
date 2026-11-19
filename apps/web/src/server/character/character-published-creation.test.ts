@@ -30,13 +30,14 @@ it('sends the five chosen bonuses and displayed Core version to atomic creation'
     }),
   ).rejects.toThrow('Core changed')
   expect(rpc).toHaveBeenCalledWith(
-    'create_character_v4',
+    'create_character_with_appearance_v1',
     expect.objectContaining({
       p_foundation_discipline_id: 'discipline.authored-foundation',
       p_bonus_might: 2,
       p_bonus_vitality: 2,
       p_bonus_resolve: 1,
       p_expected_profile_version: 9,
+      p_appearance_url: null,
     }),
   )
   expect(rpc.mock.calls[0][1]).not.toHaveProperty('p_might')

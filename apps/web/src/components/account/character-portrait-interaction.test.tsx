@@ -50,6 +50,8 @@ function fixture() {
       portraitRef: 'portrait.adventure.male-01',
       portraitChoiceAvailable: true,
       portraitChoiceUsedAt: '2026-10-03T00:00:00Z',
+      remainingSpriteDesigns: 2,
+      pendingSpriteDesign: false,
     })
   }
   const control = (label: string) =>

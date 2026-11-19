@@ -67,6 +67,9 @@ export function WorldDialogue({
     interruption ?? (!topics.length ? 'This speaker is no longer within reach.' : null)
   if (interrupted && !ended) setEnded(interrupted)
   const showReplies = !ended && !historyOpen && !confirmation
+  const routeChoice =
+    topic?.actionId === 'choose-restoration' &&
+    topic.alternative?.actionId === 'choose-restoration-trial'
 
   useEffect(() => {
     const element = dialog.current
@@ -169,7 +172,6 @@ export function WorldDialogue({
       </div>
       <header className={styles.header}>
         <div>
-          <p>Conversation</p>
           <h2 id="world-dialogue-speaker">{speaker.speaker}</h2>
         </div>
         <button
@@ -270,7 +272,26 @@ export function WorldDialogue({
           </>
         ) : null}
         {showReplies ? extraResponses : null}
-        {showReplies && topic?.actionId && topic.actionLabel ? (
+        {showReplies && routeChoice && topic?.actionLabel && topic.alternative ? (
+          <div className={styles.branchReplies} role="group" aria-label="Choose a route">
+            <button
+              ref={primaryReply}
+              type="button"
+              disabled={busy}
+              onClick={() => void reply('choose-restoration', topic.actionLabel!)}
+            >
+              {topic.actionLabel}
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void reply('choose-restoration-trial', topic.alternative!.label)}
+            >
+              {topic.alternative.label}
+            </button>
+          </div>
+        ) : null}
+        {showReplies && !routeChoice && topic?.actionId && topic.actionLabel ? (
           <button
             ref={primaryReply}
             type="button"
@@ -285,7 +306,7 @@ export function WorldDialogue({
             {busy ? 'Sending reply…' : topic.actionLabel}
           </button>
         ) : null}
-        {showReplies && topic?.alternative ? (
+        {showReplies && !routeChoice && topic?.alternative ? (
           <button
             type="button"
             disabled={busy}

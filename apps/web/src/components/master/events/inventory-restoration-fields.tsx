@@ -8,6 +8,7 @@ import type { EventWorkspaceCatalogue } from '@/server/master/event-authoring-se
 import { CHARTED_SECTORS, GRID_HEIGHT, GRID_WIDTH } from '@/world/catalog'
 import type { StoryNpcCatalogue } from './event-phase-cast'
 import { InventoryRestorationTrialFields } from './inventory-restoration-trial-fields'
+import { RestorationDialogueRehearsal } from './restoration-dialogue-rehearsal'
 import styles from './event-builder.module.css'
 
 const initialRestoration: PersonalInventoryRestoration = {
@@ -42,6 +43,7 @@ export function InventoryRestorationFields({
   change: (next: PersonalInventoryRestoration | undefined) => void
 }) {
   const npcs = Array.isArray(storyNpcs) ? storyNpcs : []
+  const giver = npcs.find((npc) => npc.id === value?.giverNpcId)
 
   return (
     <>
@@ -193,6 +195,7 @@ export function InventoryRestorationFields({
               }
             />
           ) : null}
+          {giver ? <RestorationDialogueRehearsal restoration={value} giver={giver} /> : null}
         </fieldset>
       )}
     </>

@@ -13,6 +13,8 @@ const character = {
   personalTitle: null,
   personalTitleSetAt: null,
   imageUrl: null,
+  remainingSpriteDesigns: 2,
+  pendingSpriteDesign: false,
 }
 
 describe('Portrait & Title settings', () => {
@@ -61,6 +63,23 @@ describe('Portrait & Title settings', () => {
     expect(markup).toContain('Review Title')
     expect(markup).toContain('Direct image URL')
     expect(markup).toContain('Save Profile Image')
+  })
+
+  it('shows the sprite allowance and locks only the sprite editor at zero', () => {
+    const open = renderToStaticMarkup(createElement(CharacterTitleSettings, character))
+    expect(open).toContain('2 sprite design saves remaining.')
+    const locked = renderToStaticMarkup(
+      createElement(CharacterTitleSettings, {
+        ...character,
+        remainingSpriteDesigns: 0,
+        pendingSpriteDesign: true,
+        portraitChoiceAvailable: true,
+      }),
+    )
+    expect(locked).toContain('Your sprite design is permanently locked.')
+    expect(locked).toContain('aria-disabled="true">Design sprite')
+    expect(locked).toContain('Ready — applies after this battle.')
+    expect(locked).toContain('Choose Default Portrait')
   })
 
   it('keeps the confirmed personal title locked while portrait editing remains available', () => {

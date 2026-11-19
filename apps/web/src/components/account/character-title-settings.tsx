@@ -21,6 +21,8 @@ interface CharacterTitleSettingsProps {
   portraitRef?: CharacterPortraitRef
   portraitChoiceAvailable?: boolean
   portraitChoiceUsedAt?: string | null
+  remainingSpriteDesigns: number
+  pendingSpriteDesign: boolean
 }
 
 const TITLE_PATTERN = /^[A-Za-z0-9 ]+$/
@@ -48,6 +50,8 @@ export function CharacterTitleSettings({
   imageUrl,
   portraitRef,
   portraitChoiceAvailable = false,
+  remainingSpriteDesigns,
+  pendingSpriteDesign,
 }: CharacterTitleSettingsProps) {
   const router = useRouter()
   const [draft, setDraft] = useState('')
@@ -396,7 +400,12 @@ export function CharacterTitleSettings({
             <h2 id="character-appearance-heading">Character appearance</h2>
             <p>Build a look and review its expressions, field sprite and battle sprite.</p>
           </div>
-          <CharacterAppearanceSettings characterId={characterId} />
+          <CharacterAppearanceSettings
+            key={characterId}
+            characterId={characterId}
+            initialRemainingDesigns={remainingSpriteDesigns}
+            initialPending={pendingSpriteDesign}
+          />
         </section>
 
         <section className={styles.profileImage} aria-labelledby="profile-image-heading">

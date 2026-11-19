@@ -3,6 +3,7 @@ import 'server-only'
 import {
   isPersonalQuestGiver,
   PERSONAL_QUEST_GIVERS,
+  RESTORATION_ROUTE_LABELS,
 } from '@aurevane/game-core/events/persistent-event'
 import { isStarterCharacterPortraitRef } from '@aurevane/game-core/character/starter-options'
 import { resolvePublicCharacterImageUrl } from '@/media/public-character-portrait'
@@ -239,8 +240,7 @@ export function projectPersonalQuests(
       'challenge-mentor': 'Challenge the mentor',
       'train-mentor': 'Train with the mentor',
       'claim-mentor-reward': 'Collect Character XP',
-      'choose-restoration': 'Choose recovery route',
-      'choose-restoration-trial': 'Choose trial route',
+      ...RESTORATION_ROUTE_LABELS,
       'restore-item': restoration ? `Restore ${restoration.outputName}` : null,
       'claim-restoration': restoration ? `Collect ${restoration.outputName}` : null,
     }

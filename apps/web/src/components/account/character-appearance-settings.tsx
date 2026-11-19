@@ -14,16 +14,31 @@ import {
 import { AppearanceBuilderDialog } from '@/components/character/appearance-builder-dialog'
 
 interface AppearanceResponse {
-  appearance?: { imageUrl: string | null; pendingImageUrl: string | null; revision: number }
+  appearance?: {
+    imageUrl: string | null
+    pendingImageUrl: string | null
+    revision: number
+    remainingDesigns: number
+  }
   error?: { message?: string }
 }
 
 const queuedStatus = 'Ready — applies after this battle.'
+const lockedStatus = 'Your sprite design is permanently locked.'
 
-export function CharacterAppearanceSettings({ characterId }: { characterId: string }) {
+export function CharacterAppearanceSettings({
+  characterId,
+  initialRemainingDesigns,
+  initialPending,
+}: {
+  characterId: string
+  initialRemainingDesigns: number
+  initialPending: boolean
+}) {
   const router = useRouter()
   const revision = useRef<number | null>(null)
   const [status, setStatus] = useState('')
+  const [remainingDesigns, setRemainingDesigns] = useState(initialRemainingDesigns)
   const classic = useSyncExternalStore(
     subscribeClassicPortraitTokens,
     readClassicPortraitTokens,
@@ -38,6 +53,8 @@ export function CharacterAppearanceSettings({ characterId }: { characterId: stri
       throw new Error(error?.message ?? 'The active look could not be loaded.')
     }
     revision.current = appearance.revision
+    setRemainingDesigns(appearance.remainingDesigns)
+    if (appearance.remainingDesigns === 0) throw new Error(lockedStatus)
     if (appearance.pendingImageUrl) setStatus(queuedStatus)
     return (
       appearanceManifestFromImageUrl(appearance.pendingImageUrl ?? appearance.imageUrl)
@@ -56,15 +73,27 @@ export function CharacterAppearanceSettings({ characterId }: { characterId: stri
       throw new Error(error?.message ?? 'The new look could not be confirmed.')
     }
     revision.current = appearance.revision
+    setRemainingDesigns(appearance.remainingDesigns)
     setStatus(appearance.pendingImageUrl ? queuedStatus : 'Your appearance is now active.')
     if (!appearance.pendingImageUrl) router.refresh()
   }
 
   return (
     <>
+      <p role="status">
+        {remainingDesigns === 0
+          ? lockedStatus
+          : `${remainingDesigns} sprite design ${remainingDesigns === 1 ? 'save' : 'saves'} remaining.`}
+      </p>
       <AppearanceBuilderDialog
-        label="Regenerate look"
-        confirmLabel="Confirm new look"
+        label="Design sprite"
+        confirmLabel="Confirm sprite design"
+        locked={remainingDesigns === 0}
+        confirmationHint={
+          remainingDesigns === 1
+            ? 'This is your final save. A different design will permanently lock your sprite.'
+            : 'Saving a different design uses one of your two lifetime saves.'
+        }
         prepare={prepare}
         onConfirm={confirm}
       />
@@ -76,7 +105,7 @@ export function CharacterAppearanceSettings({ characterId }: { characterId: stri
         />
         Classic portrait tokens on this device
       </label>
-      <p role="status">{status}</p>
+      <p role="status">{status || (initialPending ? queuedStatus : '')}</p>
     </>
   )
 }
