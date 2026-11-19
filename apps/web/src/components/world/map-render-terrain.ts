@@ -30,6 +30,7 @@ function contentKey(sector: WorldSectorView): string {
     sector.sceneRow,
     sector.warpedTheme,
     sector.warpedScenery,
+    sector.ferryDock,
     sector.townId,
     sector.settlementOutskirtsOf,
     sector.landscape,

@@ -19,12 +19,13 @@ export type WorldMovementReceipt = Pick<
 > & {
   kind: 'movement'
   currentSector?: WorldView['sectors'][number]
+  upcomingSector?: WorldView['sectors'][number]
   interactions?: WorldView['interactions']
   npcs?: WorldView['npcs']
 }
 /** Supply the confirmed origin; retain the rest of the scene and public peer clocks. */
 export function mergeWorldMovement(view: WorldView, receipt: WorldMovementReceipt): WorldView {
-  const { kind, currentSector, interactions, npcs, ...owned } = receipt
+  const { kind, currentSector, upcomingSector, interactions, npcs, ...owned } = receipt
   if (
     kind !== 'movement' ||
     receipt.characterId !== view.characterId ||
@@ -36,21 +37,33 @@ export function mergeWorldMovement(view: WorldView, receipt: WorldMovementReceip
     throw new Error('The world changed. Refresh your position and try again.')
   let sectors = view.sectors
   let scenery = view.scenery
-  if (currentSector) {
-    if (
-      currentSector.id !== receipt.position.sectorId ||
-      !currentSector.cells.some(
-        (cell) => cell.x === receipt.position.x && cell.y === receipt.position.y && cell.walkable,
+  const hasCell = (sector: WorldView['sectors'][number], position: WorldView['position']) =>
+    sector.id === position.sectorId &&
+    sector.cells.some((cell) => cell.x === position.x && cell.y === position.y && cell.walkable)
+  if (currentSector && !hasCell(currentSector, receipt.position))
+    throw new Error('Movement terrain could not be loaded safely.')
+  const boundary = receipt.route
+    .slice(0, 6)
+    .find(({ position }) => position.sectorId !== receipt.position.sectorId)
+  if (upcomingSector && (!boundary || !hasCell(upcomingSector, boundary.position)))
+    throw new Error('Movement terrain could not be loaded safely.')
+  // Insert the active boundary first so the confirmed sector always keeps its
+  // slot when the command arrives before the full scene has moved.
+  for (const supplied of [upcomingSector, currentSector]) {
+    if (!supplied) continue
+    if (sectors.some((sector) => sector.id === supplied.id)) {
+      sectors = sectors.map((sector) => (sector.id === supplied.id ? supplied : sector))
+    } else {
+      const keep = sectors.filter(
+        (sector) => sector.id === upcomingSector?.id || sector.id === currentSector?.id,
       )
-    )
-      throw new Error('Movement terrain could not be loaded safely.')
-    if (sectors.some((sector) => sector.id === currentSector.id))
-      sectors = sectors.map((sector) => (sector.id === currentSector.id ? currentSector : sector))
-    else {
+      const retained = sectors.filter((sector) => !keep.includes(sector)).slice(0, 24 - keep.length)
+      retained.push(...keep)
+      const retainedIds = new Set(retained.map((sector) => sector.id))
       // Presence is capped at25 sectors, but replacing its last slot must not
       // punch a hole in already supplied public ground while scene loading waits.
       const displaced = sectors
-        .slice(24)
+        .filter((sector) => !retainedIds.has(sector.id))
         .filter(
           (sector) =>
             sector.charted &&
@@ -75,17 +88,17 @@ export function mergeWorldMovement(view: WorldView, receipt: WorldMovementReceip
             ]
           }),
           ...(scenery ?? []).filter(
-            (sector) => sector[0] !== currentSector.id && !demotedIds.has(sector[0]),
+            (sector) => sector[0] !== supplied.id && !demotedIds.has(sector[0]),
           ),
         ].slice(0, 512)
       }
-      sectors = [...sectors.slice(0, 24), currentSector]
+      sectors = [...retained, supplied]
     }
   }
   const players = view.players
     .filter(
       (player) =>
-        !currentSector ||
+        (!currentSector && !upcomingSector) ||
         sectors.some(
           (sector) =>
             sector.id === player.position.sectorId &&

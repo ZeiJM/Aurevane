@@ -28,6 +28,7 @@ export function WorldDialogue({
   onReply,
   onClose,
   extraResponses,
+  showHistory = true,
 }: {
   opener: HTMLButtonElement
   initialTopic: WorldInteraction
@@ -39,6 +40,7 @@ export function WorldDialogue({
   onReply: (id: string, actionId: WorldInteractionActionId) => Promise<boolean>
   onClose: () => void
   extraResponses?: ReactNode
+  showHistory?: boolean
 }) {
   const dialog = useRef<HTMLDialogElement>(null)
   const close = useRef<HTMLButtonElement>(null)
@@ -344,7 +346,7 @@ export function WorldDialogue({
             Topics
           </button>
         ) : null}
-        {!confirmation || ended ? (
+        {showHistory && (!confirmation || ended) ? (
           <button
             type="button"
             onClick={() => setHistoryOpen(!historyOpen)}

@@ -1,5 +1,5 @@
 import type { WorldLandmark } from '@/world/types'
-import { FERRY_TERMINAL_LANDMARK } from '@/world/ferry'
+import { isFerryTerminalLandmark } from '@/world/ferry'
 import styles from './workspace.module.css'
 
 // Cells from the existing original World runtime sheets (see runtime/manifest.json).
@@ -20,7 +20,7 @@ const placeArt: Record<WorldLandmark['kind'], readonly [string, number, number, 
 }
 
 export function WorldPlacePortrait({ place }: { place: WorldLandmark }) {
-  if (place.id === FERRY_TERMINAL_LANDMARK) {
+  if (isFerryTerminalLandmark(place.id)) {
     return (
       <span
         className={styles.placePortrait}

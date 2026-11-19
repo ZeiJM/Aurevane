@@ -8,7 +8,7 @@ import {
 import { STEP_MS } from '@/world/catalog'
 import type { WorldSector, WorldState } from '@/world/types'
 import { parseVoidSectorId } from '@/world/void-realms'
-import { voidRealmLanding } from './void-realms'
+import { voidRealmFerryDock } from './void-realms'
 import { WARPED_CONTINENT_LANDING } from './warped-continent'
 
 const shipRows = [
@@ -45,11 +45,13 @@ export function ferryDeckSector(id: string): WorldSector | null {
 }
 
 export function worldFerryDock(sectorId: string) {
-  if (sectorId === FERRY_MAINLAND_DOCK.sectorId) return FERRY_MAINLAND_DOCK
-  if (sectorId === WARPED_CONTINENT_LANDING.sectorId) return WARPED_CONTINENT_LANDING
+  if (sectorId === FERRY_MAINLAND_DOCK.sectorId)
+    return { ...FERRY_MAINLAND_DOCK, shoreSide: 'south' } as const
+  if (sectorId === WARPED_CONTINENT_LANDING.sectorId)
+    return { ...WARPED_CONTINENT_LANDING, shoreSide: 'south' } as const
   const realm = parseVoidSectorId(sectorId)
   if (!realm) return null
-  const dock = voidRealmLanding(realm.realmId)
+  const dock = voidRealmFerryDock(realm.realmId)
   return dock.sectorId === sectorId ? dock : null
 }
 

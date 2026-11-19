@@ -6,9 +6,9 @@ import {
   type PersonalInventoryRestoration,
 } from '@aurevane/game-core/events/persistent-event'
 import type { PublishedStoryNpc } from '@aurevane/validation/combat/npc-design'
-import { WorldDialogue } from '@/components/world/world-dialogue'
 import { resolvePublicCharacterImageUrl } from '@/media/public-character-portrait'
 import type { WorldInteraction } from '@/world/types'
+import { MasterDialogueRehearsal } from '../master-dialogue-rehearsal'
 
 type Stage = 'offer' | 'recovery' | 'trial' | 'recovery-ready' | 'trial-ready' | 'completed'
 
@@ -19,7 +19,6 @@ export function RestorationDialogueRehearsal({
   restoration: PersonalInventoryRestoration
   giver: PublishedStoryNpc
 }) {
-  const [opener, setOpener] = useState<HTMLButtonElement | null>(null)
   const [stage, setStage] = useState<Stage>('offer')
   const { trial } = restoration
   const bodies: Record<Stage, string> = {
@@ -73,48 +72,31 @@ export function RestorationDialogueRehearsal({
 
   return (
     <>
-      <button
-        type="button"
-        aria-haspopup="dialog"
-        onClick={(event) => {
-          setStage('offer')
-          setOpener(event.currentTarget)
+      <MasterDialogueRehearsal
+        topic={topic}
+        label="Rehearse dialogue"
+        onOpen={() => setStage('offer')}
+        onReply={async (_id, action) => {
+          if (offer && action === 'choose-restoration') setStage('recovery')
+          else if (offer && action === 'choose-restoration-trial' && trial) setStage('trial')
+          else if (ready && action === 'restore-item') setStage('completed')
+          else return false
+          return true
         }}
-      >
-        Rehearse dialogue
-      </button>
+        extraResponses={
+          progressing ? (
+            <button
+              type="button"
+              onClick={() => setStage(stage === 'recovery' ? 'recovery-ready' : 'trial-ready')}
+            >
+              {stage === 'recovery'
+                ? 'Rehearse reaching the checkpoint'
+                : 'Rehearse winning the trial'}
+            </button>
+          ) : null
+        }
+      />
       <p>Preview both paths without publishing, spending Items, or granting rewards.</p>
-      {opener ? (
-        <WorldDialogue
-          initialTopic={topic}
-          opener={opener}
-          topics={[topic]}
-          objectives={[]}
-          interruption={null}
-          error=""
-          busy={false}
-          onClose={() => setOpener(null)}
-          onReply={async (_id, action) => {
-            if (offer && action === 'choose-restoration') setStage('recovery')
-            else if (offer && action === 'choose-restoration-trial' && trial) setStage('trial')
-            else if (ready && action === 'restore-item') setStage('completed')
-            else return false
-            return true
-          }}
-          extraResponses={
-            progressing ? (
-              <button
-                type="button"
-                onClick={() => setStage(stage === 'recovery' ? 'recovery-ready' : 'trial-ready')}
-              >
-                {stage === 'recovery'
-                  ? 'Rehearse reaching the checkpoint'
-                  : 'Rehearse winning the trial'}
-              </button>
-            ) : null
-          }
-        />
-      ) : null}
     </>
   )
 }

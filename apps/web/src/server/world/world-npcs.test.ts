@@ -15,6 +15,7 @@ const npc: PublishedWorldNpc = {
   y: 4,
   radius: 2,
   greeting: 'Safe travels.',
+  greetingExpression: 'happy',
 }
 
 it('projects an authoritative local World greeting without any quest or combat action', () => {
@@ -25,6 +26,7 @@ it('projects an authoritative local World greeting without any quest or combat a
     expect.objectContaining({
       speakerId: npc.id,
       body: npc.greeting,
+      expression: 'happy',
       actionId: null,
       actionLabel: null,
     }),

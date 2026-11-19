@@ -3,14 +3,14 @@ import { parseWorldCommand } from './command'
 import {
   FERRY_MAINLAND_DOCK,
   FERRY_TERMINAL_LANDMARK,
-  ferryAtMainland,
+  ferryAtPort,
   nextFerryDeparture,
   projectWorldFerries,
 } from './ferry'
 import { findWorldRoute, isSafe, isWalkable, newWorldState, revealNearby } from './travel'
 import { isKnownCell, resolveSector, visibleSectors } from '@/server/world/world-content'
 import { projectWorld } from '@/server/world/world-service'
-import { voidRealmLanding } from '@/server/world/void-realms'
+import { voidRealmFerryDock, voidRealmLanding } from '@/server/world/void-realms'
 import { projectWorldFerry } from '@/server/world/world-ferry'
 import { VOID_REALMS } from './void-realms'
 
@@ -30,10 +30,13 @@ describe('public ferry timetable', () => {
     ])
     expect(projectWorldFerries(arrivalAt)).toEqual([])
     expect(projectWorldFerries(departureAt + 1_800_001)).toMatchObject([{ direction: 'return' }])
-    expect(ferryAtMainland(departureAt - 1)).toBe(true)
-    expect(ferryAtMainland(departureAt)).toBe(false)
-    expect(ferryAtMainland(departureAt + 2_099_999)).toBe(false)
-    expect(ferryAtMainland(departureAt + 2_100_000)).toBe(true)
+    expect(ferryAtPort('mainland', departureAt - 1)).toBe(true)
+    expect(ferryAtPort('mainland', departureAt)).toBe(false)
+    expect(ferryAtPort('mainland', departureAt + 2_099_999)).toBe(false)
+    expect(ferryAtPort('mainland', departureAt + 2_100_000)).toBe(true)
+    expect(ferryAtPort('uncharted', arrivalAt - 1)).toBe(false)
+    expect(ferryAtPort('uncharted', arrivalAt)).toBe(true)
+    expect(ferryAtPort('uncharted', departureAt + 1_800_000)).toBe(false)
   })
 
   it('shares the passenger deck for the same passage without opening a mainland route', () => {
@@ -139,8 +142,8 @@ describe('public ferry timetable', () => {
     expect(parseWorldCommand(body)?.intent).toEqual({ kind: 'board-ferry' })
   })
 
-  it.each(VOID_REALMS)('offers the private return ferry at the $name refuge', ({ id }) => {
-    const position = voidRealmLanding(id)
+  it.each(VOID_REALMS)('offers the private return ferry on the $name coast', ({ id }) => {
+    const { shoreSide, ...position } = voidRealmFerryDock(id)
     const state = revealNearby({ ...newWorldState(), position })
     expect(isSafe(resolveSector(position.sectorId)!, position)).toBe(true)
     const view = projectWorld(state, [], arrivalAt)
@@ -150,8 +153,14 @@ describe('public ferry timetable', () => {
       nextDepartureAt: departureAt + 1_800_000,
     })
     expect(view.atlas?.some((cell) => cell.id === position.sectorId)).toBe(false)
+    const terminal = view.sectors.find(({ id }) => id === position.sectorId)
+    expect(terminal?.ferryDock).toEqual({ x: position.x, y: position.y, shoreSide })
+    expect(terminal?.landmarks).toContainEqual(expect.objectContaining({ name: 'Ferry Terminal' }))
     expect(
-      projectWorldFerry({ ...state, position: { ...position, x: 8 } }, arrivalAt),
+      projectWorldFerry({ ...state, position: voidRealmLanding(id) }, arrivalAt),
+    ).toBeUndefined()
+    expect(
+      projectWorldFerry({ ...state, position: { ...position, y: position.y + 2 } }, arrivalAt),
     ).toBeUndefined()
   })
 })

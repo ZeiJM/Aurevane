@@ -6,6 +6,7 @@ import { getTacticalHallArena } from '@aurevane/game-core/combat/tactical-hall-a
 import {
   NPC_ARENA_IDS,
   NPC_ARENA_LORE_LIMIT,
+  NPC_GREETING_EXPRESSIONS,
   NPC_GREETING_LIMIT,
   NPC_UNIFORM_REASON_LIMIT,
   NPC_USES,
@@ -21,8 +22,10 @@ import {
 } from '@/appearance/appearance-manifest'
 import { AppearanceBuilderDialog } from '@/components/character/appearance-builder-dialog'
 import { ArenaNpcCard } from '@/components/battle/arena-npc-card'
+import { resolvePublicCharacterImageUrl } from '@/media/public-character-portrait'
 import type { NpcArenaRehearsal } from '@/server/master/npc-arena-rehearsal'
 import { NpcAppearanceBatch } from './npc-appearance-batch'
+import { MasterDialogueRehearsal } from './master-dialogue-rehearsal'
 import styles from './npc-design-editor.module.css'
 
 const DEFAULT_ARENA = { arenaId: 'duel-yard', aiDifficulty: 'high', lore: '' } as const
@@ -454,6 +457,45 @@ export function NpcDesignEditor({
             <p className={styles.hint}>
               Players can speak to this NPC from the selected distance on charted ground.
             </p>
+            <label>
+              Greeting expression
+              <select
+                value={world.greetingExpression ?? 'neutral'}
+                onChange={(event) => {
+                  const expression = NPC_GREETING_EXPRESSIONS.find(
+                    (value) => value === event.target.value,
+                  )
+                  if (expression)
+                    setDraft({ ...draft, world: { ...world, greetingExpression: expression } })
+                }}
+              >
+                {NPC_GREETING_EXPRESSIONS.map((expression) => (
+                  <option value={expression} key={expression}>
+                    {expression[0]!.toUpperCase() + expression.slice(1)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <MasterDialogueRehearsal
+              label="Rehearse greeting"
+              disabled={!ready.world}
+              topic={{
+                id: 'npc-greeting-rehearsal',
+                objectiveId: 'npc-greeting-rehearsal',
+                speaker: draft.name.trim(),
+                title: 'Greeting',
+                body: world.greeting.trim(),
+                portraitUrl:
+                  resolvePublicCharacterImageUrl(
+                    draft.imageUrl,
+                    draft.portraitRef ?? 'portrait.starter.wayfarer-01',
+                  ) ?? undefined,
+                expression: world.greetingExpression,
+                progress: 'completed',
+                actionId: null,
+                actionLabel: null,
+              }}
+            />
             <label>
               <input
                 type="checkbox"

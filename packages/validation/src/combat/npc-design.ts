@@ -6,6 +6,7 @@ export const NPC_GREETING_LIMIT = 900
 export const NPC_UNIFORM_REASON_LIMIT = 240
 export const NPC_ARENA_IDS = ['duel-yard', 'crossroads-court', 'terraced-yard'] as const
 export const NPC_USES = ['arena', 'world', 'story'] as const
+export const NPC_GREETING_EXPRESSIONS = ['neutral', 'happy', 'angry', 'sad', 'surprised'] as const
 
 const npcId = z.uuid()
 const revision = z.number().int().min(1).max(Number.MAX_SAFE_INTEGER)
@@ -38,6 +39,7 @@ const world = z
     y: z.number().int().min(0).max(8),
     radius: z.number().int().min(1).max(3),
     greeting: z.string().trim().max(NPC_GREETING_LIMIT),
+    greetingExpression: z.enum(NPC_GREETING_EXPRESSIONS).optional(),
     encounter: worldEncounter.nullable().optional(),
   })
   .strict()

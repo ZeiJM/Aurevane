@@ -1,6 +1,6 @@
 import type { AppearanceExpression } from '@/appearance/appearance-manifest'
 import type { WorldEnvironment } from './environment'
-import type { FerryPassage, WorldFerryView } from './ferry'
+import type { FerryPassage, FerryShoreSide, WorldFerryView } from './ferry'
 import type { GrandDiscoveryId } from './discovery-sites'
 
 export interface WorldPosition {
@@ -232,7 +232,7 @@ export interface WorldSectorView extends Omit<WorldSector, 'rows' | 'roads'> {
   cells: WorldCell[]
   exits: WorldRoad[]
   /** A projected boarding point independent of the local boarding action. */
-  ferryDock?: { x: number; y: number }
+  ferryDock?: { x: number; y: number; shoreSide: FerryShoreSide }
   /** Server-authored presentation marker, supplied only after its full private footprint is known. */
   impactSite?: WorldImpactSite
   /** Private focal art, supplied only for surveyed ground. */

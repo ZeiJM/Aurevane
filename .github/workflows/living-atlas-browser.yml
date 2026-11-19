@@ -209,7 +209,7 @@ jobs:
             apps/web/test-results/**/world-realtime-diagnostics.json
             apps/web/test-results/**/portrait-zoom-*.png
             apps/web/test-results/**/world-refined-controls.png
-            apps/web/test-results/**/active-uncharted-ferry-refuge.png
+            apps/web/test-results/**/active-uncharted-ferry-terminal.png
             apps/web/test-results/**/lanternward-isle-tower.png
             apps/web/test-results/**/distant-globe-route-approved.png
           retention-days: 7

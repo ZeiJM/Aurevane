@@ -6,7 +6,7 @@ import {
   type StaticMapRaster,
 } from './map-static-raster'
 import { mapSceneDomain } from './map-scene-domain'
-import { vegetationPose, treeFlex, treeWindBend } from './map-vegetation'
+import { forestCanopy, vegetationPose, treeFlex, treeWindBend } from './map-vegetation'
 import { OFFSHORE_DISCOVERY } from '@/world/discovery-sites'
 import {
   mountainPlacements,
@@ -28,7 +28,7 @@ import {
   subscribeClassicPortraitTokens,
 } from '@/appearance/appearance-preferences'
 import { GRID_HEIGHT, GRID_WIDTH, STEP_MS } from '@/world/catalog'
-import { FERRY_MAINLAND_DOCK, FERRY_TERMINAL_LANDMARK, ferryAtMainland } from '@/world/ferry'
+import { FERRY_MAINLAND_DOCK, ferryAtPort, isFerryTerminalLandmark } from '@/world/ferry'
 import { hashString } from '@/world/terrain-gen'
 import type {
   WorldBuilding,
@@ -977,11 +977,13 @@ export function createMapRenderer(
     }
     if (
       !images.has('ferry-terminal') &&
-      renderSectors.some(({ id }) => id === FERRY_MAINLAND_DOCK.sectorId)
+      renderSectors.some((sector) => sector.landmarks.some(({ id }) => isFerryTerminalLandmark(id)))
     ) {
       load('ferry-terminal', 'v01')
       load('ferry-vessel', 'v01')
     }
+    if (!images.has('forest-variety') && renderSectors.some((sector) => sector.warpedTheme))
+      load('forest-variety', 'v01')
     if (!images.has(WINTER_ART) && renderSectors.some((sector) => sector.regionId === WINTER_ART))
       load(WINTER_ART, 'v01')
     if (
@@ -1168,9 +1170,9 @@ export function createMapRenderer(
         }
         const sx = flipX ? 3 - (wx % 4) : wx % 4
         const sy = flipY ? 3 - (wy % 4) : wy % 4
-        // The public sheet's compressed biome borders carry neighbouring colour.
-        // Mirroring that border repeats it into a grid; reflect the clean interior.
-        const inset = painted && privateIndex === undefined ? 2 : 0
+        // Compressed atlas borders can carry neighbouring colour on both
+        // public and private sheets. Reflect the clean interior.
+        const inset = painted ? 2 : 0
         const sampleWidth = sw - inset * 2,
           sampleHeight = sh - inset * 2
         target.drawImage(
@@ -1293,15 +1295,21 @@ export function createMapRenderer(
         : undefined
     const shoreRoads = settlementGround.shoreRoads.get(sector.id)
     const pavedCells = settlementGround.pavedCells.get(sector.id)
+    if (warped) {
+      // Composite the translucent tint once so touching dry cells cannot create
+      // darker overlaps or antialiased seams under isometric projection.
+      c.beginPath()
+      for (const cell of sector.cells)
+        if (!isWaterTerrain(cell.terrain) && cell.terrain !== 'l')
+          c.rect(cell.x * tile, cell.y * tile, tile, tile)
+      c.fillStyle = warped
+      c.globalAlpha = 0.68
+      c.fill()
+      c.globalAlpha = 1
+    }
     for (const cell of sector.cells) {
       const x = cell.x * tile,
         y = cell.y * tile
-      if (warped && !isWaterTerrain(cell.terrain) && cell.terrain !== 'l') {
-        c.fillStyle = warped
-        c.globalAlpha = 0.68
-        c.fillRect(x, y, tile + 1, tile + 1)
-        c.globalAlpha = 1
-      }
       if (ferryDeck) {
         if (cell.terrain !== '~') paintFerryDeck(c, cell, tile, ferryDeck, paintedDeck)
         continue
@@ -2024,6 +2032,7 @@ export function createMapRenderer(
         : images.get('mountains')
     const nature = images.get('nature'),
       livingTrees = images.get('living-trees'),
+      forestTrees = images.get('forest-variety'),
       buildings = images.get('buildings'),
       props = images.get('props'),
       biomes = images.get('biomes'),
@@ -2117,16 +2126,24 @@ export function createMapRenderer(
         } else drawGroundSurface(ctx, surface, GRID_WIDTH * tile, GRID_HEIGHT * tile, ratio)
         ctx.restore()
       }
-      if (sector.id === FERRY_MAINLAND_DOCK.sectorId) {
+      const dock =
+        sector.ferryDock ??
+        (sector.id === FERRY_MAINLAND_DOCK.sectorId
+          ? { ...FERRY_MAINLAND_DOCK, shoreSide: 'south' as const }
+          : undefined)
+      if (dock && sector.landmarks.some(({ id }) => isFerryTerminalLandmark(id))) {
         const vessel = images.get('ferry-vessel')
         if (
           vessel?.complete &&
           vessel.naturalWidth &&
-          ferryAtMainland(view.serverNow + Math.max(0, now - ferryClockAt))
+          ferryAtPort(
+            sector.charted ? 'mainland' : 'uncharted',
+            view.serverNow + Math.max(0, now - ferryClockAt),
+          )
         ) {
           const mooring = screen({
-            x: origin.x + FERRY_MAINLAND_DOCK.x + 2.9,
-            y: origin.y + FERRY_MAINLAND_DOCK.y + 3.2,
+            x: origin.x + dock.x + (dock.shoreSide === 'west' ? -2.1 : 2.9),
+            y: origin.y + dock.y + (dock.shoreSide === 'west' ? 0.7 : 3.2),
           })
           const vesselWidth = tile * 4.6
           const vesselHeight = vesselWidth * (vessel.naturalHeight / vessel.naturalWidth)
@@ -2148,6 +2165,8 @@ export function createMapRenderer(
         const mixedTreeRegions = biomeField.get(sector.id)?.treeRegions
         const edgeCells = warpedEdges.get(sector.id)?.cells
         const denseRidge = denseMountainRidge(sector)
+        const denseCanopy =
+          sector.warpedTheme && sector.cells.filter(({ terrain }) => terrain === 't').length >= 14
         for (const cell of sector.cells) {
           if (
             sector.landscape === 'wildflowers' &&
@@ -2189,6 +2208,24 @@ export function createMapRenderer(
           )
             continue
           const rock = cell.terrain === '#'
+          const canopy =
+            !rock &&
+            sector.warpedTheme &&
+            sector.landscape !== 'willow' &&
+            !['sakura', 'autumn', 'wisteria'].includes(sector.landscape ?? '')
+              ? forestCanopy(sector.id, cell.x, cell.y, sector.warpedTheme)
+              : undefined
+          if (
+            canopy &&
+            ((denseCanopy && !canopy.visible) ||
+              sector.landmarks.some(
+                ({ id, x, y }) =>
+                  isFerryTerminalLandmark(id) && Math.abs(x - cell.x) + Math.abs(y - cell.y) <= 2,
+              ))
+          )
+            continue
+          const variedTree =
+            canopy && forestTrees?.complete && forestTrees.naturalWidth ? canopy : undefined
           const pose = vegetationPose(
             sector.warpedTheme ? sector.id : 'public',
             origin.x + cell.x,
@@ -2247,13 +2284,16 @@ export function createMapRenderer(
               ? livingTrees!
               : scenicTree !== undefined
                 ? beauties!
-                : special !== undefined && biomes?.complete && biomes.naturalWidth
-                  ? biomes
-                  : nature
+                : variedTree
+                  ? forestTrees!
+                  : special !== undefined && biomes?.complete && biomes.naturalWidth
+                    ? biomes
+                    : nature
           const rockPlacement = rock && asset === biomes ? rockArt[special!] : undefined
           const index =
             livingIndex ??
             scenicTree ??
+            variedTree?.index ??
             (asset === biomes
               ? special!
               : (palettes[treeRegion] ?? palettes['verdant-expanse']!)[2])
@@ -2272,12 +2312,24 @@ export function createMapRenderer(
                     1 / 2,
                   ] as const,
                 }
-              : (rockPlacement ?? (!rock ? treeArt[family]?.[index] : undefined))
+              : (variedTree?.placement ??
+                rockPlacement ??
+                (!rock ? treeArt[family]?.[index] : undefined))
           addScenery({
-            x: origin.x + cell.x + 0.5 + pose.x,
-            y: origin.y + cell.y + (rock ? 0.5 : 0.75) + pose.y,
-            width: tile * (artPlacement?.width ?? (rock ? 1.8 : 1.65)) * scale * pose.scale,
-            height: tile * (artPlacement?.height ?? (rock ? 1.7 : 2.55)) * scale * pose.scale,
+            x: origin.x + cell.x + 0.5 + pose.x + (canopy?.x ?? 0),
+            y: origin.y + cell.y + (rock ? 0.5 : 0.75) + pose.y + (canopy?.y ?? 0),
+            width:
+              tile *
+              (artPlacement?.width ?? (rock ? 1.8 : 1.65)) *
+              scale *
+              pose.scale *
+              (canopy?.scale ?? 1),
+            height:
+              tile *
+              (artPlacement?.height ?? (rock ? 1.7 : 2.55)) *
+              scale *
+              pose.scale *
+              (canopy?.scale ?? 1),
             image: asset,
             index,
             columns: 4,
@@ -2463,11 +2515,11 @@ export function createMapRenderer(
       // Painting them after the character pass would hide someone on a bridge/anchor.
       if (!cachedScenery && props?.complete && props.naturalWidth)
         for (const landmark of sector.landmarks) {
-          if (landmark.id === FERRY_TERMINAL_LANDMARK) {
+          if (isFerryTerminalLandmark(landmark.id)) {
             const terminal = images.get('ferry-terminal')
             if (terminal?.complete && terminal.naturalWidth)
               addScenery({
-                x: origin.x + landmark.x - 0.7,
+                x: origin.x + landmark.x + (sector.ferryDock?.shoreSide === 'west' ? 1.1 : -0.7),
                 y: origin.y + landmark.y - 0.25,
                 width: tile * 3.2,
                 height: tile * 3.2 * (terminal.naturalHeight / terminal.naturalWidth),
@@ -3927,7 +3979,7 @@ export function createMapRenderer(
             self: person.self,
             x,
             y: y - radius,
-            radius: radius + 4 * tokenScale,
+            radius: person.self ? radius * 0.85 : radius + 4 * tokenScale,
           })
         }
         identity.push(

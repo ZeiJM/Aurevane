@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { vegetationPose, treeFlex, treeWindBend } from './map-vegetation'
+import { forestCanopy, vegetationPose, treeFlex, treeWindBend } from './map-vegetation'
 it('breaks regular woodland rows with deterministic in-cell feet and varied growth', () => {
   const poses = Array.from({ length: 80 }, (_, i) =>
     vegetationPose('public', i % 10, Math.floor(i / 10), false),
@@ -54,4 +54,32 @@ it('gives trees distinct wind strengths and phases, including sheltered still on
     expect(Math.abs(storm)).toBeLessThanOrEqual(0.11)
     expect(treeWindBend(tree.seed, 7300, 0.054, tree.flex, 0)).toBe(0)
   }
+})
+
+it('eases into and out of sheltered moments without visible snapping between idle frames', () => {
+  for (const seed of [197, 571, 5391, 19937, 89121, 706219]) {
+    const samples = Array.from({ length: 1800 }, (_, frame) =>
+      treeWindBend(seed, frame * 34, 0.065, 1.28, 1.2),
+    )
+    expect(Math.max(...samples) - Math.min(...samples)).toBeGreaterThan(0.025)
+    for (let frame = 1; frame < samples.length; frame++)
+      expect(Math.abs(samples[frame]! - samples[frame - 1]!)).toBeLessThan(0.0025)
+  }
+})
+
+it('thins crowded Void groves deterministically and uses different silhouettes', () => {
+  const sample = (theme: 'haven' | 'amethyst') =>
+    Array.from({ length: 117 }, (_, i) =>
+      forestCanopy('void:violet-estuary:1:13', i % 13, Math.floor(i / 13), theme),
+    )
+  const grove = sample('amethyst')
+  const visible = grove.filter(({ visible }) => visible)
+  expect(grove).toEqual(sample('amethyst'))
+  expect(visible.length).toBeGreaterThan(58)
+  expect(visible.length).toBeLessThan(94)
+  expect(new Set(visible.map(({ index }) => index)).size).toBe(4)
+  expect(sample('haven').some(({ index }) => index === 4)).toBe(true)
+  expect(
+    grove.every(({ x, y, scale }) => Math.abs(x) <= 0.23 && Math.abs(y) <= 0.19 && scale < 1.03),
+  ).toBe(true)
 })

@@ -1967,7 +1967,7 @@ test('shows the coast terminal and keeps its Ferryman in Nearby outside boarding
   await capture(page, info, 'coastal-ferryman-dialogue')
 })
 
-test('settles an arrived ferry at the active private refuge and lets the passenger explore and return to the dock', async ({
+test('settles an arrived ferry at the active Uncharted coast and lets the passenger explore and return to the terminal', async ({
   page,
 }, info) => {
   test.skip(info.project.name === 'laptop-chromium', 'Exercise desktop and phone travel.')
@@ -2006,6 +2006,17 @@ test('settles an arrived ferry at the active private refuge and lets the passeng
   const scene = await world(page)
   expect(scene.position).toEqual(dock)
   expect(scene.ferry?.port).toBe('uncharted')
+  const terminal = scene.sectors.find(({ id }) => id === dock.sectorId)!
+  expect(terminal.landmarks).toContainEqual(expect.objectContaining({ name: 'Ferry Terminal' }))
+  const west = terminal.ferryDock?.shoreSide === 'west'
+  expect(terminal.cells).toContainEqual(
+    expect.objectContaining({
+      x: dock.x - (west ? 1 : 0),
+      y: dock.y + (west ? 0 : 1),
+      terrain: '~',
+      walkable: false,
+    }),
+  )
   expect(scene.atlas!.every((cell) => !cell.id.startsWith('void:'))).toBe(true)
   const station = page.getByRole('region', { name: 'Ferry station' })
   await expect(station.getByRole('button', { name: 'Talk to Ferryman' })).toBeVisible()
@@ -2017,7 +2028,7 @@ test('settles an arrived ferry at the active private refuge and lets the passeng
   await stageWalk(page, approach)
   await expect.poll(async () => (await world(page)).position).toEqual(approach)
   await expect(station).toBeVisible()
-  await capture(page, info, 'active-uncharted-ferry-refuge')
+  await capture(page, info, 'active-uncharted-ferry-terminal')
 })
 
 test('walks the offshore bridge and resumes at the scenic tower after reload', async ({

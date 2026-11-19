@@ -494,10 +494,11 @@ export function WorldWorkspace({
       )
         return
       setApproachingPlayer(null)
-      const now = performance.now(),
-        route = localRoute(current, motion.sample(now).position, destination)
-      if (route) motion.plan(route, current.sectors, now)
+      const now = performance.now()
+      const origin = motion.sample(now).position
       send({ kind: 'walk', destination })
+      const route = localRoute(current, origin, destination)
+      if (route) motion.plan(route, current.sectors, now)
     },
     [send, motion],
   )
@@ -1037,7 +1038,11 @@ export function WorldWorkspace({
                           }
                           onApproach={() => {
                             if (npc.id === FERRY_CONVERSATION_ID) {
-                              walk(worldTravelDestination(npc.position.sectorId))
+                              const sectorId = npc.position.sectorId
+                              const dock = view.sectors.find(
+                                (sector) => sector.id === sectorId,
+                              )?.ferryDock
+                              if (dock) walk({ sectorId, x: dock.x, y: dock.y })
                             } else {
                               approach(npc.position)
                             }

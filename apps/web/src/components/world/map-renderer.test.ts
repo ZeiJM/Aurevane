@@ -69,7 +69,13 @@ function legacyTownView(sectorId: string, x = 6, y = 4): WorldView {
 
 function scene(reduced = false, initial?: WorldView) {
   const images: { onload: (() => void) | null }[] = []
-  const fills: { colour: string; alpha: number; order: number; path: RecordedPath }[] = []
+  const fills: {
+    colour: string
+    alpha: number
+    order: number
+    path: RecordedPath
+    points: number[][]
+  }[] = []
   const rectangles: { colour: string; order: number }[] = []
   const ellipses: { point: { x: number; y: number }; order: number }[] = []
   const draws: {
@@ -130,6 +136,7 @@ function scene(reduced = false, initial?: WorldView) {
       fill() {
         fills.push({
           colour: this.fillStyle,
+          points: path.map((point) => [...point]),
           alpha: this.globalAlpha,
           order: ++drawOrder,
           path: recordedPath.map((part) => ({ ...part, points: [...part.points] })),
@@ -4621,13 +4628,21 @@ it.each([
       buildings: [],
       cells: [
         { x: 6, y: 4, terrain: '.', walkable: true, safe: false },
-        { x: 7, y: 4, terrain: '~', walkable: false, safe: false },
+        { x: 7, y: 4, terrain: '.', walkable: true, safe: false },
+        { x: 8, y: 4, terrain: '~', walkable: false, safe: false },
       ],
     }
     const s = scene(true, { ...view, sectors: [sector], scenery: undefined })
     try {
       s.frame(40)
-      expect(s.rectangles.some(({ colour }) => colour === ground)).toBe(true)
+      const groundTint = s.fills.filter(({ colour }) => colour === ground)
+      expect(groundTint).toHaveLength(1)
+      expect(groundTint[0]).toMatchObject({ alpha: 0.68 })
+      const points = groundTint[0]!.points
+      expect(points).toHaveLength(8)
+      expect(points[1]).toEqual(points[4])
+      expect(points[2]).toEqual(points[7])
+      expect(s.rectangles.some(({ colour }) => colour === ground)).toBe(false)
       expect(s.gradients.some(({ stops }) => stops.some(([, colour]) => colour === water))).toBe(
         true,
       )
@@ -4698,7 +4713,7 @@ it.each([
       s.frame(40)
       expect(
         s.spriteDraws.filter(({ src }) =>
-          src.endsWith(privateScene ? 'biomes-v02.webp' : 'living-trees-v01.webp'),
+          src.endsWith(privateScene ? 'forest-variety-v01.webp' : 'living-trees-v01.webp'),
         ),
       ).toHaveLength(expectedTrees)
       expect(s.draws.some(({ src }) => src.endsWith('warped-landmarks-v01.webp'))).toBe(true)

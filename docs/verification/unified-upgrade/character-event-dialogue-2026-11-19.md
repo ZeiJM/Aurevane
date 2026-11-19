@@ -44,6 +44,9 @@ Live settlement, private state and reward authority stay on the original server 
 
 NPC Design now accepts the shared cuffed sprite recipe. The application and database also
 check that the requested combination is valid before returning or saving the design.
+Authors can choose a portrait expression and rehearse a draft greeting in the same window
+as the Event Builder. Players see the greeting and expression from the published World
+identity, with the existing portrait fallback for identities without expression art.
 
 ## Ferry Terminal and the World map
 
@@ -67,6 +70,22 @@ Relative ocean and wake movement follows the crossing clock in calm weather as w
 wind. The departure shoreline recedes and the arrival shoreline comes into view. The
 display respects reduced motion. Cabin and mast map labels are removed.
 
+The active ferry now lands at a dry coastal terminal in each of the eight rotating
+Uncharted realms. Each terminal connects inland to the existing refuge. Private
+discovery stays local to the landing, and the normal return timetable, rotation
+evacuation and legacy passage behavior are preserved.
+
+Dense Uncharted groves use six painted tree silhouettes, deterministic clearings and
+individual growth. Tree wind now eases through sheltered moments instead of stepping
+between two strengths. Roots remain fixed as the upper canopy moves. Both changes are
+visual. Deep water, lava and solid terrain keep their route restrictions, with bridges
+and previously authored walkable crossings preserved.
+
+Void tint is now composited once across touching dry cells. Both public and Void
+ground sheets use the clean interior when mirroring textures. Movement dispatch
+begins before the local path preview, and the compact approval includes one nearby
+known route sector to avoid waiting for the next scene at the sector boundary.
+
 The next scope is the general-purpose conversation authoring and Event branch engine,
 broader Character and NPC authoring and live cast integration, followed by a major Event
 and signed-in desktop and mobile acceptance. The unified matrix remains the verification ledger.
@@ -84,3 +103,11 @@ and signed-in desktop and mobile acceptance. The unified matrix remains the veri
   require their own evidence.
 - World coverage checks the walkable shoreline connection, ferry schedule and relocation,
   stable NPC projection, Nearby actions, list and globe selection, and the travel review flow.
+- The added coastal coverage verifies a safe dock beside water and a dry route to the
+  inland refuge in all eight realms. The migration-chain shared ferry test uses the
+  mainland terminal's current boarding coordinates. Browser evidence for the
+  revised flow is captured as `active-uncharted-ferry-terminal.png`.
+- Renderer regressions cover a single translucent ground pass for multiple private
+  themes and sample sustained wind at the balanced frame cadence to check for sharp
+  jumps. The crossing receipt regression checks movement can animate into a known
+  destination sector before full scene hydration.

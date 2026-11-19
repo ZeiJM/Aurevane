@@ -1,4 +1,5 @@
 import { WORLD_MAP_WIDTH } from '@/world/topology'
+import type { WorldSector } from '@/world/types'
 import { hashString } from '@/world/terrain-gen'
 
 /** Cosmetic growth only; offsets stay within the supplied tree cell. */
@@ -38,13 +39,59 @@ export function treeFlex(region: string, x: number, y: number, species: number) 
 export function treeWindBend(seed: number, now: number, speed: number, flex: number, quality = 1) {
   if (flex <= 0 || speed === 0 || quality <= 0) return 0
   const phase = (seed % 6283) / 1000
-  const period = 1700 + ((seed >>> 9) % 3800)
-  const gustPeriod = 3300 + ((seed >>> 15) % 4200)
-  const oscillation =
-    0.68 + 0.22 * Math.sin(now / period + phase) + 0.1 * Math.sin(now / gustPeriod + phase * 2.1)
-  const pause = Math.sin(now / (period * 2.9) + phase * 0.71) > 0.86 ? 0.18 : 1
+  const sway = (now * Math.PI * 2) / (6200 + ((seed >>> 9) % 4200))
+  const gust = (now * Math.PI * 2) / (11_000 + ((seed >>> 15) % 5800))
+  const pulse = 0.5 + 0.5 * Math.cos(gust + phase * 0.71)
+  const shelter = 0.5 + 0.5 * pulse * pulse
+  const oscillation = 0.51 + 0.29 * Math.sin(sway + phase) + 0.13 * Math.sin(gust + phase * 2.1)
   return Math.max(
     -0.11,
-    Math.min(0.11, (speed / 0.065) * 0.085 * flex * oscillation * pause * quality),
+    Math.min(0.11, (speed / 0.065) * 0.076 * flex * oscillation * shelter * quality),
   )
+}
+
+const forestSpecies = {
+  haven: [0, 1, 2, 4],
+  ashen: [2, 3, 4],
+  fracture: [2, 4, 5],
+  wayfarer: [0, 1, 4, 5],
+  amber: [0, 2, 3, 4],
+  amethyst: [0, 1, 2, 5],
+} satisfies Record<NonNullable<WorldSector['warpedTheme']>, number[]>
+
+const canopySizes = [
+  [2.15, 2.4],
+  [2.25, 2.45],
+  [1.85, 2.6],
+  [2.2, 2.45],
+  [1.8, 2.65],
+  [1.9, 2.65],
+] as const
+
+/** Authored foliage tiles remain walkable, including in visual clearings. */
+export function forestCanopy(
+  sectorId: string,
+  x: number,
+  y: number,
+  theme: NonNullable<WorldSector['warpedTheme']>,
+) {
+  const seed = hashString(`${sectorId}:${x}:${y}:canopy`)
+  const clearing = hashString(`${sectorId}:${Math.floor(x / 3)}:${Math.floor(y / 3)}:clearing`)
+  const species = forestSpecies[theme]
+  const index = species[(seed >>> 8) % species.length]!
+  const [width, height] = canopySizes[index]!
+  return {
+    visible: seed % 100 < (clearing % 5 === 0 ? 47 : 74),
+    index,
+    x: (((seed >>> 13) % 85) / 84 - 0.5) * 0.46,
+    y: (((seed >>> 20) % 91) / 90 - 0.5) * 0.38,
+    scale: 0.73 + ((seed >>> 17) % 100) * 0.003,
+    placement: {
+      width,
+      height,
+      anchorX: 0.5,
+      anchorY: 306 / 320,
+      source: [(index % 3) / 3, Math.floor(index / 3) / 2, 1 / 3, 1 / 2] as const,
+    },
+  }
 }

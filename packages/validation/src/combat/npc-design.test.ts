@@ -28,6 +28,7 @@ describe('NPC Design request boundary', () => {
         y: 4,
         radius: 1,
         greeting: 'Welcome.',
+        greetingExpression: 'happy',
       }),
     ).not.toBeNull()
     expect(

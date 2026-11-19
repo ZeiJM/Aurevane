@@ -91,6 +91,40 @@ async function rejected(run: () => Promise<unknown>, message: string) {
   }
 }
 
+it('publishes an explicit greeting expression and keeps later draft edits private', async () => {
+  const draft = {
+    name: 'Field opponent',
+    portraitRef: null,
+    uses: ['world'],
+    arena: null,
+    world: { ...world, greetingExpression: 'happy' },
+  }
+  const save = (revision: number, expression: string) =>
+    db.query("select public.write_master_npc_design_v1($1,null,$2,$3,'save',$4)", [
+      owner,
+      npc,
+      revision,
+      { ...draft, world: { ...draft.world, greetingExpression: expression } },
+    ])
+  const published = async () =>
+    (
+      await db.query<{ value: { greetingExpression?: string }[] }>(
+        'select public.read_published_world_npcs_v1($1) value',
+        [position.sectorId],
+      )
+    ).rows[0]!.value
+  await rejected(() => save(0, 'unknown'), 'NPC_DESIGN_INVALID')
+  await save(0, 'happy')
+  expect(await published()).toEqual([])
+  await db.query("select public.write_master_npc_design_v1($1,null,$2,1,'commit-world',null)", [
+    owner,
+    npc,
+  ])
+  expect(await published()).toEqual([expect.objectContaining({ greetingExpression: 'happy' })])
+  await save(2, 'sad')
+  expect(await published()).toEqual([expect.objectContaining({ greetingExpression: 'happy' })])
+})
+
 it('admits one World-only published NPC and captures provenance for the exact replay', async () => {
   const save = (revision: number, placement: unknown) =>
     db.query("select public.write_master_npc_design_v1($1,null,$2,$3,'save',$4)", [

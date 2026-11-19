@@ -77,8 +77,8 @@ export function worldViewWithFerryman(view: WorldView): WorldView {
         id: FERRY_CONVERSATION_ID,
         name: 'Ferryman',
         position: {
-          ...sector.ferryDock,
-          x: sector.ferryDock.x - (sector.id === FERRY_MAINLAND_DOCK.sectorId ? 1 : 0),
+          x: sector.ferryDock.x + (sector.id === FERRY_MAINLAND_DOCK.sectorId ? -1 : 1),
+          y: sector.ferryDock.y,
           sectorId: sector.id,
         },
         imageUrl: FERRYMAN_PORTRAIT,

@@ -11,6 +11,7 @@ export const FERRYMAN_PORTRAIT = '/media/art/world/runtime/ferryman-portrait-v01
 export const FERRYMAN_SPRITE = '/media/art/world/runtime/ferryman-sprite-v01.webp'
 
 export type FerryPort = 'mainland' | 'uncharted'
+export type FerryShoreSide = 'south' | 'west'
 export type FerryDirection = 'outbound' | 'return'
 
 export interface FerryPassage {
@@ -45,11 +46,16 @@ export function projectWorldFerries(now: number): readonly FerryPassage[] {
   })
 }
 
-export function ferryAtMainland(now: number) {
-  return (
-    now >=
-    nextFerryDeparture('mainland', now) - FERRY_HOUR_MS + FERRY_RETURN_OFFSET_MS + FERRY_DURATION_MS
-  )
+export function ferryAtPort(port: FerryPort, now: number) {
+  const cycleStart = nextFerryDeparture('mainland', now) - FERRY_HOUR_MS
+  const elapsed = now - cycleStart
+  return port === 'mainland'
+    ? elapsed >= FERRY_RETURN_OFFSET_MS + FERRY_DURATION_MS
+    : elapsed >= FERRY_DURATION_MS && elapsed < FERRY_RETURN_OFFSET_MS
+}
+
+export function isFerryTerminalLandmark(id: string) {
+  return id === FERRY_TERMINAL_LANDMARK || id.endsWith(':ferry-terminal')
 }
 
 export function nearFerryDock(position: WorldPosition, dock: WorldPosition): boolean {
