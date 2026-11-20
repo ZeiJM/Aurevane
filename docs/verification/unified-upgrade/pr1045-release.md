@@ -134,3 +134,7 @@ timed Events and retain the migrated ferry behavior. This recovery evidence is
 source-level. Signed-in Production gameplay and physical-device playtesting
 remain open. The previous production deployment is incompatible with newly
 saved character designs and must stay retired.
+
+## Post-promotion stability note
+
+After the initial quiet window, live World traffic exposed a short persistence-contention burst. Between 12:34 and 12:37 p.m. Trinidad time, Vercel logged `PERSISTENCE_UNAVAILABLE` for `GET` and `POST /api/world` and `GET /api/world/presence`. Supabase recorded row-lock waits in `app_private.character_world_state`, 11 statement-timeout cancellations through 12:38:06 p.m., and 35 PostgREST timeout-manager messages through 12:39:01 p.m. A final isolated PostgREST timeout-manager message appeared at 12:40:51 p.m. No migration replay or rollback was attempted. At 12:43:30 p.m. the database reported zero lock waiters and zero active PostgREST sessions, while the canonical root, account entry, CSS and sampled v3/v4/v5 media remained healthy. Keep the release watch active until a later window confirms that World persistence errors have not resumed.
