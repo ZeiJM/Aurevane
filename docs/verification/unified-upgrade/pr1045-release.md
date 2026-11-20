@@ -56,5 +56,39 @@ particular, the new SQL moves ferry admission and landing coordinates. Check
 existing trips, the old and new boarding projections, and return travel on any
 recovery source. Preserve the migration ledger and all saved designs.
 
-Production remains pending. Record the full recovery rehearsal, main verification,
-staged build, protected migration receipt, canonical promotion and health here.
+## Combined release with PR #1046
+
+Nick authorized one rollout of the merged PR #1045 and draft PR #1046 together.
+The live predecessor and the 265-entry migration baseline above were confirmed
+again before preparing the combined candidate. The rollout candidate is the
+reviewed merge of PR #1046. The earlier staged deployment
+`dpl_7UThh6RBxbWNt7n4ZepmJ321PJpa` was built from an earlier source. Both earlier
+stages are recorded in the [Vercel support case](https://vercel.com/zeijms-projects/~/support/cases/CSE_01HYtwwN5tqH0g85).
+
+The existing protected workflow is now **PR 1045 and 1046 Production
+migrations**. It verifies the full source delta back to the live predecessor,
+the existing migration ledger fingerprint and all twelve ordered file hashes.
+The ten original hashes remain pinned. The additional files are
+`20261120100000_event_objective_deadlines.sql` and
+`20261120101000_expanded_painted_wardrobe.sql`. The guarded transaction checks
+the additional private function grants and preserves event drafts and published
+definitions alongside the original player, World, event, ferry and cron state.
+The apply dispatch attests the exact staged deployment ID and its merged source.
+
+Before applying, verify successful current-candidate and applicable merged-main
+checks. Review native authenticated wardrobe, Event, NPC dialogue, ferry and
+World evidence. Check the exact combined staged Production URL serves normal
+responses on the home page, static assets, World entry and v3, v4 and v5
+appearance media. Reconfirm the canonical deployment and current ledger and
+run the protected read-only plan for the same merged SHA.
+
+The canonical predecessor's media reader supports v1–v3. The earlier staged
+PR #1045 reader supports through v4. Recovery after new designs or timed
+events have been saved requires application source compatible with v5,
+persisted Event deadlines, and the migrated ferry schema. Rehearse that
+recovery on a disposable migrated database before promotion. Retain the data
+and migration ledger in a recovery, including active and pending sprite designs.
+
+Production remains pending. Record the final source and tree, applicable
+workflow runs, recovery evidence, staged deployment, migration receipt and
+post-promotion canonical verification here.

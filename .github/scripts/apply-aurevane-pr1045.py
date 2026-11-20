@@ -1,4 +1,4 @@
-"""Plan or atomically apply the exact ten reviewed PR1045 migrations."""
+"""Plan or atomically apply the twelve reviewed PR #1045 and #1046 migrations."""
 
 import argparse
 import hashlib
@@ -30,6 +30,8 @@ MIGRATIONS = {
     "20261119121000_event_objective_quorum.sql": "056e438547ba810b0457877f6bd4e28f1ca9e2b0f00b99b14f3ba34a7099ff8e",
     "20261119122000_event_objective_branches.sql": "7f99961174955b01a52bbf5722c00f51200a90c87ce800e46bbca8118c205e54",
     "20261119123000_world_event_battle_results.sql": "192861b4cf8e4bacd69e9bf940d8bd861d4e045d46a507c00cf1b7c790f59837",
+    "20261120100000_event_objective_deadlines.sql": "2c98abab0bbac699158257a55f5a0b3e3c882397d83049101e90f154b1a5f424",
+    "20261120101000_expanded_painted_wardrobe.sql": "fe425c73e60f9322a1e1087143592bb8d475e3266fd91575da799536be879724",
 }
 NEW_FUNCTIONS = {
     "public.commit_character_appearance_v3(uuid,uuid,integer,text)": True,
@@ -39,6 +41,8 @@ NEW_FUNCTIONS = {
     "app_private.pinned_world_event_battle_result_v1(jsonb,jsonb)": False,
     "app_private.capture_event_battle_result_v1()": False,
     "app_private.record_event_battle_results_v1(app_private.event_runs,app_private.event_run_phases,timestamptz)": False,
+    "app_private.event_quorum_deadline_v1(jsonb,timestamptz)": False,
+    "app_private.valid_painted_wardrobe_url_v1(text)": False,
 }
 PRESERVED_TABLES = {
     "public.characters": None,
@@ -48,6 +52,8 @@ PRESERVED_TABLES = {
     "app_private.world_ferry_receipts": None,
     "app_private.npc_designs": None,
     "app_private.world_npc_battles": None,
+    "app_private.event_definition_versions": None,
+    "app_private.event_definition_drafts": None,
     "app_private.event_runs": None,
     "app_private.event_run_phases": None,
     "app_private.event_run_objectives": "battle_result",
@@ -71,7 +77,7 @@ def verify_candidate_delta():
     delta = run(["git", "diff", "--name-status", BASE_SOURCE, "HEAD", "--", "supabase/migrations"],
                 "Candidate migration inventory").splitlines()
     if delta != [f"A\tsupabase/migrations/{name}" for name in MIGRATIONS]:
-        raise SystemExit("The candidate changes migrations outside the exact PR1045 inventory.")
+        raise SystemExit("The candidate changes migrations outside the reviewed combined inventory.")
 
 
 def read_sources(root):
@@ -126,7 +132,7 @@ def verify_ledger(state, *, installed):
             or ledger[BASE_COUNT:] != tail
             or state["sources"] != (expected_hashes() if installed else {})
             or state["functions"] != (expected_acl() if installed else dict.fromkeys(NEW_FUNCTIONS))):
-        raise SystemExit("Production history or function permissions differ from verified PR1045 state.")
+        raise SystemExit("Production history or function permissions differ from the verified combined release state.")
 
 
 def atomic_apply_sql(sources, baseline_count=BASE_COUNT, baseline_digest=BASE_DIGEST):
@@ -196,9 +202,9 @@ def verify_plan(root, cli, uri, ledger):
         for name in MIGRATIONS:
             shutil.copyfile(root / "supabase/migrations" / name, staged / name)
         output = run([cli, "db", "push", "--workdir", tmp, "--db-url", uri,
-                      "--include-all", "--dry-run"], "PR1045 ordered dry run")
+                      "--include-all", "--dry-run"], "Combined ordered dry run")
         if re.findall(r"\b\d{14}_[A-Za-z0-9_-]+\.sql\b", output) != list(MIGRATIONS):
-            raise SystemExit("The CLI did not select exactly the ten reviewed migrations in order.")
+            raise SystemExit("The CLI did not select all twelve reviewed migrations in order.")
 
 
 def main():
@@ -207,11 +213,13 @@ def main():
     parser.add_argument("--expected-source", required=True)
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--staged-source")
+    parser.add_argument("--staged-deployment")
     args = parser.parse_args()
     if not re.fullmatch(r"[0-9a-f]{40}", args.expected_source):
         raise SystemExit("Supply the full reviewed merged source SHA.")
-    if args.apply and args.staged_source != args.expected_source:
-        raise SystemExit("Apply requires the operator-verified READY staged Production source.")
+    if args.apply and (args.staged_source != args.expected_source
+                       or not re.fullmatch(r"dpl_[A-Za-z0-9]+", args.staged_deployment or "")):
+        raise SystemExit("Apply requires the operator-verified staged Production deployment and source.")
     if run(["git", "rev-parse", "HEAD"], "Source identity").strip() != args.expected_source:
         raise SystemExit("The checkout differs from the reviewed source.")
     run(["git", "diff", "--exit-code", "HEAD", "--", "."], "Clean tracked-source check")
@@ -227,7 +235,7 @@ def main():
     installed = len(before["ledger"]) == BASE_COUNT + len(sources)
     verify_ledger(before, installed=installed)
     if installed:
-        print("PR1045 is fully installed and matches the reviewed hashes. No migration replay.")
+        print("The combined batch is fully installed and matches the reviewed hashes. No migration replay.")
         return
     verify_plan(root, args.cli, uri, before["ledger"])
     if query(connection, state_sql() + ";") != before:
@@ -235,8 +243,9 @@ def main():
     for name, digest in MIGRATIONS.items():
         print(f"{name} {digest}", flush=True)
     if not args.apply:
-        print("Read-only PR1045 migration plan verified.")
+        print("Read-only plan for all twelve combined migrations verified.")
         return
+    print(f"Operator attested serving smoke for {args.staged_deployment} at {args.staged_source}.", flush=True)
     with tempfile.TemporaryDirectory() as tmp:
         path = Path(tmp) / "pr1045.sql"
         path.write_text(atomic_apply_sql(sources))
@@ -250,7 +259,7 @@ def main():
     verify_ledger(after, installed=True)
     if after["cron"] != before["cron"]:
         raise SystemExit("Production cron changed across application. Inspect before promotion.")
-    print("Exactly ten PR1045 migrations recorded, with preserved player state, existing recipes and cron.")
+    print("Exactly twelve combined migrations recorded, with preserved player state, existing recipes and cron.")
 
 
 if __name__ == "__main__":

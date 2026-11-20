@@ -20,7 +20,7 @@ import { GET } from '@/app/api/media/appearance/[version]/[blueprint]/[asset]/ro
 
 const sha256 = (data: string) => createHash('sha256').update(data).digest('hex')
 
-it('renders expanded body builds, skin tones and garments distinctly with immutable URLs', async () => {
+it('round trips expanded recipes and serves every asset with immutable URLs', async () => {
   const base = wardrobeLook()
   const build = appearance.wardrobeAppearanceBlueprint
   const manifest = appearance.compileAppearanceManifest(
@@ -58,37 +58,6 @@ it('renders expanded body builds, skin tones and garments distinctly with immuta
     expect(response.headers.get('Cache-Control')).toContain('immutable')
   }
 
-  const rasterHash = async (look: Parameters<typeof build>[0], isPortrait: boolean) => {
-    const svg = renderAppearanceAsset(build(look), isPortrait ? 'neutral' : 'atlas')
-    const cell = isPortrait
-      ? svg
-      : svg.replace(
-          'width="576" height="384" viewBox="0 0 576 384"',
-          'width="48" height="64" viewBox="0 0 48 64"',
-        )
-    const data = await sharp(Buffer.from(cell)).ensureAlpha().raw().toBuffer()
-    return createHash('sha256').update(data).digest('hex')
-  }
-  const axis = async (
-    field: 'bodyFrame' | 'skinTone' | 'outerwear' | 'gear' | 'headwear' | 'facewear',
-    portrait = false,
-  ) => {
-    const values = Object.keys(PAINTED_WARDROBE_FIELDS[field])
-    const hashes = await Promise.all(
-      values.map((choice) => rasterHash({ ...base, [field]: choice }, portrait)),
-    )
-    expect(new Set(hashes).size, `${field} ${portrait ? 'portrait' : 'field'}`).toBe(values.length)
-  }
-  await axis('skinTone', true)
-  for (const field of [
-    'bodyFrame',
-    'skinTone',
-    'outerwear',
-    'gear',
-    'headwear',
-    'facewear',
-  ] as const)
-    await axis(field)
   expect(appearance.appearanceBlueprintFromId(manifest.id.slice(2), '4')).toBeNull()
   expect(
     appearance.appearanceBlueprintFromId(manifest.id.slice(2).replace('.honey', '.invalid'), '5'),
@@ -97,6 +66,35 @@ it('renders expanded body builds, skin tones and garments distinctly with immuta
     const blueprint = build(randomWardrobeLook())
     expect(appearance.parseAppearanceBlueprint(blueprint)).toEqual(blueprint)
   }
+})
+
+it.each([
+  ['skinTone', 'neutral'],
+  ['bodyFrame', 'atlas'],
+  ['skinTone', 'atlas'],
+  ['outerwear', 'atlas'],
+  ['gear', 'atlas'],
+  ['headwear', 'atlas'],
+  ['facewear', 'atlas'],
+] as const)('renders distinct %s choices in the %s asset', async (field, asset) => {
+  const base = wardrobeLook()
+  const build = appearance.wardrobeAppearanceBlueprint
+  const values = Object.keys(PAINTED_WARDROBE_FIELDS[field])
+  const hashes = await Promise.all(
+    values.map(async (choice) => {
+      const svg = renderAppearanceAsset(build({ ...base, [field]: choice }), asset)
+      const cell =
+        asset === 'neutral'
+          ? svg
+          : svg.replace(
+              'width="576" height="384" viewBox="0 0 576 384"',
+              'width="48" height="64" viewBox="0 0 48 64"',
+            )
+      const data = await sharp(Buffer.from(cell)).ensureAlpha().raw().toBuffer()
+      return createHash('sha256').update(data).digest('hex')
+    }),
+  )
+  expect(new Set(hashes).size).toBe(values.length)
 })
 
 it('keeps old painted recipes stable and renders each new feature independently', async () => {
@@ -167,11 +165,10 @@ it.each(
         'height="384" viewBox="0 0 576 384"',
         'height="64" viewBox="0 0 576 64"',
       )
-      const image = sharp(Buffer.from(atlas))
+      const raster = await sharp(Buffer.from(atlas)).png().toBuffer()
       await Promise.all(
         fieldLooks.map(async (looks, column) => {
-          const pixels = await image
-            .clone()
+          const pixels = await sharp(raster)
             .extract({
               left: column * frames * width,
               top: 0,
