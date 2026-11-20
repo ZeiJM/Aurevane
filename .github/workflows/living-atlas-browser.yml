@@ -10,6 +10,9 @@ on:
       - 'apps/web/src/app/api/world/**'
       - 'apps/web/e2e/atlas-world.pw.ts'
       - 'apps/web/e2e/master-event-builder.pw.ts'
+      - 'apps/web/e2e/painted-wardrobe.pw.ts'
+      - 'apps/web/src/appearance/**'
+      - 'apps/web/src/components/character/appearance-builder*'
       - 'apps/web/e2e/world-*.ts'
       - 'supabase/migrations/*living_atlas*'
       - 'supabase/migrations/*combat_discovery*'
@@ -112,12 +115,12 @@ jobs:
           "
       - name: Build the production web bundle
         run: pnpm --filter @aurevane/web build
-      - name: Verify authenticated quests and World NPC admission
+      - name: Verify authenticated quests, NPC admission and painted wardrobe
         id: story
         run: |
-          pnpm --filter @aurevane/web exec playwright test e2e/master-event-builder.pw.ts \
+          pnpm --filter @aurevane/web exec playwright test e2e/master-event-builder.pw.ts e2e/painted-wardrobe.pw.ts \
             --project=desktop-chromium --project=mobile-chromium \
-            --grep 'an authored (Story Campaign|item exchange|World NPC|Alder Venn wolf hunt|Ashen Sentinel|Mentor challenge|Cinderwake (recovery|combat trial))|@sealed-realm' \
+            --grep 'an authored (Story Campaign|item exchange|World NPC|Alder Venn wolf hunt|Ashen Sentinel|Mentor challenge|Cinderwake (recovery|combat trial))|@sealed-realm|@npc-dialogue|@painted-wardrobe' \
             --output=test-results-story --reporter=list,github
       - name: Save authenticated story failure context
         if: ${{ failure() && steps.story.outcome == 'failure' }}
@@ -203,13 +206,15 @@ jobs:
             apps/web/test-results-story/**/authored-watch-*-complete.png
             apps/web/test-results-story/**/sealed-realm-challenge.png
             apps/web/test-results-story/**/authored-world-npc-challenge.png
+            apps/web/test-results-story/**/npc-branching-dialogue.png
+            apps/web/test-results-story/**/painted-wardrobe.png
             apps/web/test-results-story/**/cinderwake-*.png
             apps/web/test-results-story/**/venn-hunt-*.png
             apps/web/test-results-story/**/ashen-sentinel-*.png
             apps/web/test-results/**/world-realtime-diagnostics.json
             apps/web/test-results/**/portrait-zoom-*.png
             apps/web/test-results/**/world-refined-controls.png
-            apps/web/test-results/**/active-uncharted-ferry-refuge.png
+            apps/web/test-results/**/active-uncharted-ferry-terminal.png
             apps/web/test-results/**/lanternward-isle-tower.png
             apps/web/test-results/**/distant-globe-route-approved.png
           retention-days: 7

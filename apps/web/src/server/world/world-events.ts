@@ -46,7 +46,9 @@ export function eventWorldObjectives(rows: unknown): WorldObjective[] {
           name: row.title.slice(0, 120),
           description: isWorldWeather(row.requiredWeather)
             ? `${row.phaseName.slice(0, 100)} · Arrive during ${weatherDescriptions[row.requiredWeather]} weather`
-            : row.phaseName.slice(0, 100),
+            : row.requiredBattleOutcome === 'victory' || row.requiredBattleOutcome === 'defeat'
+              ? `${row.phaseName.slice(0, 100)} · Confirm an NPC battle ${row.requiredBattleOutcome}`
+              : row.phaseName.slice(0, 100),
           kind: 'event' as const,
           autoPath: n.autoPath,
           guidance: n.guidance as 'exact' | 'clue',

@@ -6,6 +6,7 @@ import { isKnownCell, visibleSectors, WORLD_SECTORS } from '@/server/world/world
 import { isWarpedContinentSector } from '@/server/world/warped-continent'
 import { atlasSectors } from './atlas'
 import { GRID_HEIGHT, GRID_WIDTH, WORLD_REGIONS } from './catalog'
+import { FERRY_MAINLAND_DOCK, FERRY_TERMINAL_LANDMARK, FERRY_TERMINAL_NAME } from './ferry'
 import { ATLAS_COLUMNS, ATLAS_ROWS } from './topology'
 import { findWorldRoute, isSafe, isWalkable, newWorldState } from './travel'
 
@@ -24,8 +25,23 @@ it('preserves world addresses and historic routes through the authorized map geo
     expect(baseline[key], key).toEqual(historical[key])
   const sectors = atlasSectors()
   const originalSectors = WORLD_SECTORS.filter(({ id }) => !isWarpedContinentSector(id))
+  const terminals = originalSectors.flatMap(({ id: sectorId, landmarks }) =>
+    landmarks
+      .filter(({ id }) => id === FERRY_TERMINAL_LANDMARK)
+      .map((landmark) => ({ ...landmark, sectorId })),
+  )
+  expect(terminals).toEqual([
+    {
+      ...FERRY_MAINLAND_DOCK,
+      id: FERRY_TERMINAL_LANDMARK,
+      name: FERRY_TERMINAL_NAME,
+      kind: 'waystone',
+    },
+  ])
   const landmarkRows = originalSectors.flatMap((sector) =>
-    sector.landmarks.map(({ id, kind, x, y }) => [sector.id, id, kind, x, y]),
+    sector.landmarks
+      .filter(({ id }) => id !== FERRY_TERMINAL_LANDMARK)
+      .map(({ id, kind, x, y }) => [sector.id, id, kind, x, y]),
   )
   const terrainRows = originalSectors.map((sector) => [
     sector.id,
@@ -36,7 +52,12 @@ it('preserves world addresses and historic routes through the authorized map geo
     sector.charted,
     sector.stepMs,
     sector.rows,
-    sector.roads,
+    sector.roads.map((road) => {
+      if (road.to.sectorId !== FERRY_MAINLAND_DOCK.sectorId) return road
+      expect(road.name).toBe(FERRY_TERMINAL_NAME)
+      // Keep comparing the same geometry and routing authority with the archived name.
+      return { ...road, name: 'Umbral March Countryside' }
+    }),
   ])
   const digest = (value: unknown) =>
     createHash('sha256').update(JSON.stringify(value)).digest('hex')
@@ -80,7 +101,7 @@ it('preserves world addresses and historic routes through the authorized map geo
       name,
       sectors: sectors.filter((sector) => sector.regionId === id).length,
     })),
-    landmarks: landmarkRows.length,
+    landmarks: landmarkRows.length + terminals.length,
     authorityDigest: digest(terrainRows),
     landmarkDigest: digest(landmarkRows),
     routes,
@@ -113,7 +134,7 @@ it('preserves world addresses and historic routes through the authorized map geo
                 ? 2
                 : 0),
     })),
-    landmarks: baseline.landmarks + 6,
+    landmarks: baseline.landmarks + 7,
     authorityDigest: 'ffd45064a616d9a9afcafba186fd95bb3ce9d81bb5473945c7143ff32e8adc9a',
     landmarkDigest: '02872cf0f27a2d8590f84c8727e7e04c49011bc6f28dfe8c7a3716a4e1132b4c',
   })

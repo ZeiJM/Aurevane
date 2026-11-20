@@ -1,5 +1,6 @@
 import {
   resolveEventCategory,
+  hasConfirmedEventProducer,
   type PersistentEventDefinition,
 } from '@aurevane/game-core/events/persistent-event'
 
@@ -26,9 +27,13 @@ export function eventRuntimeBlockers(definition: PersistentEventDefinition): str
         )
       }
       if (
-        objective.completion !== 'world-arrival' &&
-        phase.transition.type === 'objective-threshold' &&
-        phase.transition.objectiveId === objective.id
+        !hasConfirmedEventProducer(objective) &&
+        ((phase.transition.type === 'objective-threshold' &&
+          phase.transition.objectiveId === objective.id) ||
+          (phase.transition.type === 'objective-quorum' &&
+            phase.transition.objectiveIds.includes(objective.id)) ||
+          (phase.transition.type === 'objective-branch' &&
+            phase.transition.routes.some(({ objectiveId }) => objectiveId === objective.id)))
       ) {
         blockers.push(
           `${phase.name}: World navigation does not complete objectives. Choose a manual or clock transition.`,

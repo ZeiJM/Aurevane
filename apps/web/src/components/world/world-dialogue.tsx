@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import type { NpcDialoguePage } from '@aurevane/validation/combat/npc-design'
 import { appearanceManifestFromImageUrl } from '@/appearance/appearance-manifest'
 import type { WorldInteraction, WorldInteractionActionId, WorldObjective } from '@/world/types'
 import styles from './world-dialogue.module.css'
@@ -17,6 +18,11 @@ export function dialogueSpeakerId(topic: WorldInteraction) {
   return topic.speakerId ?? topic.id
 }
 
+export type NarrativeReply = (
+  topic: WorldInteraction,
+  path: readonly number[],
+) => Promise<NpcDialoguePage | null>
+
 export function WorldDialogue({
   opener,
   initialTopic,
@@ -24,10 +30,12 @@ export function WorldDialogue({
   objectives,
   interruption,
   error,
-  busy,
+  busy: commandBusy,
   onReply,
+  onNarrativeReply,
   onClose,
   extraResponses,
+  showHistory = true,
 }: {
   opener: HTMLButtonElement
   initialTopic: WorldInteraction
@@ -37,8 +45,10 @@ export function WorldDialogue({
   error: string
   busy: boolean
   onReply: (id: string, actionId: WorldInteractionActionId) => Promise<boolean>
+  onNarrativeReply?: NarrativeReply
   onClose: () => void
   extraResponses?: ReactNode
+  showHistory?: boolean
 }) {
   const dialog = useRef<HTMLDialogElement>(null)
   const close = useRef<HTMLButtonElement>(null)
@@ -52,21 +62,53 @@ export function WorldDialogue({
   const [history, setHistory] = useState<{ speaker: string; body: string }[]>([])
   const [failedPortraits, setFailedPortraits] = useState(() => new Set<string>())
   const [ended, setEnded] = useState<string | null>(null)
+  const [narrative, setNarrative] = useState<{
+    topicId: string
+    revision: number
+    path: readonly number[]
+    page: NpcDialoguePage
+  } | null>(null)
+  const [narrativeBusy, setNarrativeBusy] = useState(false)
+  const [narrativeError, setNarrativeError] = useState('')
+  const busy = commandBusy || narrativeBusy
   const topic = topics.find((entry) => entry.id === topicId)
+  const currentNarrative =
+    narrative && narrative.topicId === topic?.id && narrative.revision === topic.narrative?.revision
+      ? narrative
+      : null
+  const choices = currentNarrative?.page.replies ?? topic?.narrative?.replies
+  const speech = currentNarrative?.page.body ?? topic?.body ?? ''
   const confirmation = topic && topic.id === confirmingTopic ? topic.confirmation : undefined
   const confirmationOpen = Boolean(confirmation)
   const speaker = topic ?? topics[0] ?? initialTopic
   const neutralPortrait = speaker.portraitUrl
+  const expression = currentNarrative ? currentNarrative.page.expression : speaker.expression
   const expressionPortrait =
-    appearanceManifestFromImageUrl(neutralPortrait)?.portraits[speaker.expression ?? 'neutral']
+    appearanceManifestFromImageUrl(neutralPortrait)?.portraits[expression ?? 'neutral']
   const portrait = [expressionPortrait, neutralPortrait].find(
     (asset) => asset && !failedPortraits.has(asset),
   )
   const objective = objectives.find((entry) => entry.id === topic?.objectiveId)
+  const originalNarrative = initialTopic.narrative
+  const narrativeWithdrawn =
+    originalNarrative &&
+    !topics.some(
+      (candidate) =>
+        candidate.id === initialTopic.id &&
+        candidate.narrative?.revision === originalNarrative.revision,
+    )
   const interrupted =
-    interruption ?? (!topics.length ? 'This speaker is no longer within reach.' : null)
+    interruption ??
+    (!topics.length
+      ? 'This speaker is no longer within reach.'
+      : narrativeWithdrawn
+        ? 'This conversation changed. Speak to them again.'
+        : null)
   if (interrupted && !ended) setEnded(interrupted)
   const showReplies = !ended && !historyOpen && !confirmation
+  const routeChoice =
+    topic?.actionId === 'choose-restoration' &&
+    topic.alternative?.actionId === 'choose-restoration-trial'
 
   useEffect(() => {
     const element = dialog.current
@@ -92,6 +134,35 @@ export function WorldDialogue({
     requestAnimationFrame(() => primaryReply.current?.focus({ preventScroll: true }))
   }
 
+  const recordReply = (speaker: string, body: string, label: string) => {
+    setHistory((entries) =>
+      [...entries, { speaker, body }, { speaker: 'You', body: label }].slice(-MAX_HISTORY),
+    )
+  }
+
+  const chooseNarrative = async (choice: number, label: string) => {
+    if (!topic?.narrative || !onNarrativeReply || busy || ended || responding.current) return
+    responding.current = true
+    setNarrativeBusy(true)
+    setNarrativeError('')
+    const path = [...(currentNarrative?.path ?? []), choice]
+    try {
+      const page = await onNarrativeReply(topic, path)
+      if (!page) {
+        setNarrativeError('That reply is no longer available.')
+        return
+      }
+      setNarrative({ topicId: topic.id, revision: topic.narrative.revision, path, page })
+      recordReply(topic.speaker, speech, label)
+    } catch (failure) {
+      setNarrativeError(failure instanceof Error ? failure.message : 'The speaker could not reply.')
+    } finally {
+      responding.current = false
+      setNarrativeBusy(false)
+      requestAnimationFrame(() => close.current?.focus({ preventScroll: true }))
+    }
+  }
+
   const reply = async (actionId: WorldInteractionActionId, label: string) => {
     if (!topic || busy || responding.current) return
     responding.current = true
@@ -100,13 +171,7 @@ export function WorldDialogue({
       if (await onReply(topic.id, actionId)) {
         setLoreTopic(null)
         if (actionId === 'travel-realm' || actionId === 'leave-realm') onClose()
-        setHistory((entries) =>
-          [
-            ...entries,
-            { speaker: topic.speaker, body: topic.body },
-            { speaker: 'You', body: label },
-          ].slice(-MAX_HISTORY),
-        )
+        recordReply(topic.speaker, topic.body, label)
       }
     } finally {
       responding.current = false
@@ -169,7 +234,6 @@ export function WorldDialogue({
       </div>
       <header className={styles.header}>
         <div>
-          <p>Conversation</p>
           <h2 id="world-dialogue-speaker">{speaker.speaker}</h2>
         </div>
         <button
@@ -212,7 +276,7 @@ export function WorldDialogue({
         ) : topic ? (
           <>
             <p className={styles.speech} aria-live="polite">
-              {loreTopic === topic.id ? topic.lore : topic.body}
+              {loreTopic === topic.id ? topic.lore : speech}
             </p>
             {objective ? (
               <section className={styles.context} aria-label="Quest details">
@@ -240,9 +304,9 @@ export function WorldDialogue({
             ))}
           </section>
         )}
-        {error ? (
+        {error || narrativeError ? (
           <p className={styles.error} role="alert">
-            {error}
+            {error || narrativeError}
           </p>
         ) : null}
       </div>
@@ -269,8 +333,41 @@ export function WorldDialogue({
             </button>
           </>
         ) : null}
+        {showReplies && onNarrativeReply && choices?.length ? (
+          <div className={styles.branchReplies} role="group" aria-label="Choose a reply">
+            {choices.map((label, choice) => (
+              <button
+                key={choice}
+                type="button"
+                disabled={busy}
+                onClick={() => void chooseNarrative(choice, label)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        ) : null}
         {showReplies ? extraResponses : null}
-        {showReplies && topic?.actionId && topic.actionLabel ? (
+        {showReplies && routeChoice && topic?.actionLabel && topic.alternative ? (
+          <div className={styles.branchReplies} role="group" aria-label="Choose a route">
+            <button
+              ref={primaryReply}
+              type="button"
+              disabled={busy}
+              onClick={() => void reply('choose-restoration', topic.actionLabel!)}
+            >
+              {topic.actionLabel}
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void reply('choose-restoration-trial', topic.alternative!.label)}
+            >
+              {topic.alternative.label}
+            </button>
+          </div>
+        ) : null}
+        {showReplies && !routeChoice && topic?.actionId && topic.actionLabel ? (
           <button
             ref={primaryReply}
             type="button"
@@ -285,7 +382,7 @@ export function WorldDialogue({
             {busy ? 'Sending reply…' : topic.actionLabel}
           </button>
         ) : null}
-        {showReplies && topic?.alternative ? (
+        {showReplies && !routeChoice && topic?.alternative ? (
           <button
             type="button"
             disabled={busy}
@@ -323,7 +420,7 @@ export function WorldDialogue({
             Topics
           </button>
         ) : null}
-        {!confirmation || ended ? (
+        {showHistory && (!confirmation || ended) ? (
           <button
             type="button"
             onClick={() => setHistoryOpen(!historyOpen)}

@@ -5,6 +5,7 @@ import { getAuthenticatedActor } from '@/server/auth/actor'
 import { toServerErrorResponse } from '@/server/http/error-response'
 import { writeNpcDesign } from '@/server/master/npc-design-store'
 import { createServerMasterPanelStaffAccessService } from '@/server/master/staff-access-server'
+import { resetWorldNpcReadCache } from '@/server/world/world-npcs'
 
 export async function POST(request: Request) {
   try {
@@ -21,6 +22,12 @@ export async function POST(request: Request) {
         'Only the Game Owner may approve an exact NPC appearance copy.',
       )
     const record = await writeNpcDesign(actor.userId, command)
+    if (
+      command.kind === 'commit-world' ||
+      command.kind === 'retire-world' ||
+      (command.kind === 'commit-uniform' && command.use === 'world')
+    )
+      resetWorldNpcReadCache()
     return Response.json({ record }, { headers: { 'Cache-Control': 'private, no-store' } })
   } catch (error) {
     return toServerErrorResponse(error)

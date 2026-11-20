@@ -1749,7 +1749,7 @@ test('the globe rotates by dragging and has a usable charted fallback without We
   await capture(page, info, 'fallback-route-return')
 })
 
-test('globe and sidebar Travel Points share a cycle without submitting travel', async ({
+test('sidebar Travel Points and Key Locations select a destination dot without submitting travel', async ({
   page,
 }, info) => {
   test.skip(info.project.name === 'laptop-chromium', 'Exercise mouse and touch once each.')
@@ -1770,36 +1770,26 @@ test('globe and sidebar Travel Points share a cycle without submitting travel', 
     if (new URL(request.url()).pathname === '/api/world' && request.method() === 'POST')
       commands.push(request.postDataJSON()?.intent?.kind)
   })
-  await sidebar.click()
-  const selected = (id: string) =>
-    page.locator(`[data-globe-travel-point="${id}"][aria-pressed="true"]`)
+  const selected = (id: string) => page.locator(`[data-globe-destination="${id}"]`)
+  await expect(page.locator('[data-globe-travel-point]')).toHaveCount(0)
+  const locationPicker = page.getByRole('combobox', { name: 'Key locations' })
+  await expect(
+    locationPicker.locator(`option[value="${FERRY_MAINLAND_DOCK.sectorId}"]`),
+  ).toContainText('Ferry Terminal')
+  await locationPicker.selectOption(FERRY_MAINLAND_DOCK.sectorId)
   await expect(selected(FERRY_MAINLAND_DOCK.sectorId)).toBeVisible()
-  // Mobile details is an overlay. Dismiss it before a real globe tap, then
-  // reopen it only when testing the sidebar; never force input through the drawer.
-  const clickGlobePoint = async (id: string) => {
-    const close = page.getByRole('button', { name: 'Close details', exact: true })
-    if (await close.isVisible()) await close.click()
-    await selected(id).click()
-  }
-  for (const [from, to] of [
-    [FERRY_MAINLAND_DOCK.sectorId, known[0]!.id],
-    [known[0]!.id, known[1]!.id],
-  ]) {
-    await clickGlobePoint(from!)
-    await expect(selected(to!)).toBeVisible()
-  }
-  // Continue through the rest of the public towns and wrap to the mainland stop.
-  const rest = (before.atlas ?? [])
-    .filter((sector) => sector.charted && sector.townId === sector.id)
-    .slice(2)
-  let current = known[1]!.id
-  for (const destination of [...rest.map((sector) => sector.id), FERRY_MAINLAND_DOCK.sectorId]) {
-    await clickGlobePoint(current)
+  await expect(selected(FERRY_MAINLAND_DOCK.sectorId)).toHaveCSS(
+    'background-color',
+    'rgb(201, 62, 64)',
+  )
+  await expect(page.getByRole('region', { name: 'Selected destination' })).toContainText('Y:8')
+  const towns = (before.atlas ?? []).filter(
+    (sector) => sector.charted && sector.townId === sector.id,
+  )
+  for (const destination of [...towns.map((sector) => sector.id), FERRY_MAINLAND_DOCK.sectorId]) {
+    await sidebar.click()
     await expect(selected(destination)).toBeVisible()
-    current = destination
   }
-  if (!(await sidebar.isVisible()))
-    await page.getByRole('button', { name: 'Details', exact: true }).click()
   await sidebar.click()
   await expect(selected(known[0]!.id)).toBeVisible()
   await expect(sidebar).toHaveAttribute('title', `Selected: ${known[0]!.name}`)
@@ -1945,7 +1935,39 @@ test('scenic countryside has real blossom woodland, ruins, pools and open meadow
   }
 })
 
-test('settles an arrived ferry at the active private refuge and lets the passenger explore and return to the dock', async ({
+test('shows the coast terminal and keeps its Ferryman in Nearby outside boarding range', async ({
+  page,
+}, info) => {
+  test.skip(info.project.name === 'laptop-chromium', 'Exercise desktop and phone travel.')
+  await enter(page)
+  const { characterId } = await world(page)
+  const showNearby = async () => {
+    const details = page.getByRole('button', { name: 'Details', exact: true })
+    if (await details.isVisible()) await details.click()
+    await page.getByRole('tab', { name: /Nearby/ }).click()
+    return page.locator('[data-world-nearby-npc="world-ferryman"]')
+  }
+  place(characterId, FERRY_MAINLAND_DOCK.sectorId, FERRY_MAINLAND_DOCK.x, FERRY_MAINLAND_DOCK.y - 2)
+  await reloadWorld(page)
+  expect((await world(page)).ferry).toBeUndefined()
+  const outside = await showNearby()
+  await expect(outside.getByRole('button', { name: 'Approach Ferryman' })).toBeVisible()
+  place(characterId, FERRY_MAINLAND_DOCK.sectorId, FERRY_MAINLAND_DOCK.x, FERRY_MAINLAND_DOCK.y)
+  await reloadWorld(page)
+  expect((await world(page)).ferry?.port).toBe('mainland')
+  const onDock = await showNearby()
+  await expect(onDock.getByRole('button', { name: 'Talk to Ferryman' })).toBeVisible()
+  await capture(page, info, 'coastal-ferry-terminal')
+  await onDock.getByRole('button', { name: 'Talk to Ferryman' }).click()
+  const dialogue = page.getByRole('dialog', { name: 'Ferryman' })
+  await expect(dialogue.locator('img')).toHaveAttribute('src', /ferryman-portrait-v01\.webp$/)
+  await expect
+    .poll(() => dialogue.locator('img').evaluate((img: HTMLImageElement) => img.naturalWidth))
+    .toBeGreaterThan(0)
+  await capture(page, info, 'coastal-ferryman-dialogue')
+})
+
+test('settles an arrived ferry at the active Uncharted coast and lets the passenger explore and return to the terminal', async ({
   page,
 }, info) => {
   test.skip(info.project.name === 'laptop-chromium', 'Exercise desktop and phone travel.')
@@ -1984,6 +2006,17 @@ test('settles an arrived ferry at the active private refuge and lets the passeng
   const scene = await world(page)
   expect(scene.position).toEqual(dock)
   expect(scene.ferry?.port).toBe('uncharted')
+  const terminal = scene.sectors.find(({ id }) => id === dock.sectorId)!
+  expect(terminal.landmarks).toContainEqual(expect.objectContaining({ name: 'Ferry Terminal' }))
+  const west = terminal.ferryDock?.shoreSide === 'west'
+  expect(terminal.cells).toContainEqual(
+    expect.objectContaining({
+      x: dock.x - (west ? 1 : 0),
+      y: dock.y + (west ? 0 : 1),
+      terrain: '~',
+      walkable: false,
+    }),
+  )
   expect(scene.atlas!.every((cell) => !cell.id.startsWith('void:'))).toBe(true)
   const station = page.getByRole('region', { name: 'Ferry station' })
   await expect(station.getByRole('button', { name: 'Talk to Ferryman' })).toBeVisible()
@@ -1995,7 +2028,7 @@ test('settles an arrived ferry at the active private refuge and lets the passeng
   await stageWalk(page, approach)
   await expect.poll(async () => (await world(page)).position).toEqual(approach)
   await expect(station).toBeVisible()
-  await capture(page, info, 'active-uncharted-ferry-refuge')
+  await capture(page, info, 'active-uncharted-ferry-terminal')
 })
 
 test('walks the offshore bridge and resumes at the scenic tower after reload', async ({

@@ -164,20 +164,22 @@ it('shows the projected recovery choice only at the giver and follows the select
   expect(travelling.interactions).toEqual([])
 })
 
-it('offers the trial as a distinct private choice while keeping recovery as the primary reply', () => {
+it('projects only the local, eligible choices with their authored reply labels', () => {
   const trialOffer = 'You may also prove your skill against the forge champion.'
   const authored = {
     ...restoration,
     trialOffer,
     alternativeAction: 'choose-restoration-trial',
     trialNpcRevisionId: 'private revision',
+    recoveryReply: 'I will search the old road.',
+    trialReply: 'I will face the sentinel.',
   }
   const local = projectPersonalQuests([authored])
   expect(local.interactions).toEqual([
     expect.objectContaining({
       actionId: 'choose-restoration',
-      actionLabel: 'Choose recovery route',
-      alternative: { actionId: 'choose-restoration-trial', label: 'Choose trial route' },
+      actionLabel: authored.recoveryReply,
+      alternative: { actionId: 'choose-restoration-trial', label: authored.trialReply },
     }),
   ])
   expect(local.objectives[0]?.description).toContain(trialOffer)
@@ -186,12 +188,14 @@ it('offers the trial as a distinct private choice while keeping recovery as the 
   const away = projectPersonalQuests([{ ...authored, local: false, action: null }])
   expect(away.objectives[0]?.description).toContain(trialOffer)
   expect(away.interactions).toEqual([])
+  expect(JSON.stringify(away)).not.toContain(authored.trialReply)
   for (const unqualified of [
     projectPersonalQuests([{ ...authored, discovery: false }]),
     projectRepeatableTravel([authored]),
   ]) {
     expect(JSON.stringify(unqualified)).not.toContain(trialOffer)
     expect(JSON.stringify(unqualified)).not.toContain('choose-restoration-trial')
+    expect(JSON.stringify(unqualified)).not.toContain(authored.trialReply)
   }
 })
 

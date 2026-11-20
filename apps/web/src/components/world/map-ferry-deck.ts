@@ -1,4 +1,5 @@
 import type { FerryPassage } from '@/world/ferry'
+import { GRID_HEIGHT, GRID_WIDTH } from '@/world/catalog'
 import { hashString } from '@/world/terrain-gen'
 import type { WorldSectorView } from '@/world/types'
 import type { WorldWind } from './map-weather'
@@ -14,8 +15,21 @@ export function ferryWaterFrame(
   wind: WorldWind,
   animate: boolean,
 ) {
+  const underway = Boolean(
+    passage && serverNow >= passage.departureAt && serverNow < passage.arrivalAt,
+  )
+  const elapsed = passage ? Math.max(0, serverNow - passage.departureAt) / 1_000 : 0
+  const remaining = passage ? Math.max(0, passage.arrivalAt - serverNow) / 1_000 : Infinity
+  const shore =
+    passage && elapsed < 22
+      ? { arriving: false, offset: animate ? elapsed / 22 : 0 }
+      : underway && remaining < 24
+        ? { arriving: true, offset: animate ? remaining / 24 : 0 }
+        : null
   return {
-    underway: Boolean(passage && serverNow >= passage.departureAt && serverNow < passage.arrivalAt),
+    underway,
+    advance: underway && animate ? elapsed * 24 : 0,
+    shore,
     chop: Math.min(1, Math.abs(wind.speed) / 0.055),
     phase: animate ? now / 1_000 : 0,
     drift: animate ? wind.offset : 0,
@@ -54,14 +68,40 @@ export function paintFerrySea(
   context.fillStyle = depth
   context.fillRect(0, 0, width, height)
 
-  // The open sea is screen-space scenery. The ferry's deck never drifts with it.
+  if (frame.shore) {
+    const { arriving, offset } = frame.shore
+    const edge = height * (0.29 - offset * 0.37) - 12
+    context.save()
+    if (arriving) {
+      context.translate(width, 0)
+      context.scale(-1, 1)
+    }
+    context.beginPath()
+    context.moveTo(0, 0)
+    context.lineTo(width, 0)
+    context.lineTo(width, edge - height * 0.19)
+    context.bezierCurveTo(width * 0.62, edge + 12, width * 0.34, edge - 16, 0, edge + height * 0.1)
+    context.closePath()
+    const land = context.createLinearGradient(0, 0, width * 0.1, Math.max(1, edge + height * 0.16))
+    land.addColorStop(0, '#324851')
+    land.addColorStop(0.7, '#687172')
+    land.addColorStop(1, '#8f8c79')
+    context.fillStyle = land
+    context.fill()
+    context.strokeStyle = '#a7c3ac74'
+    context.lineWidth = 3
+    context.stroke()
+    context.restore()
+  }
+  // Relative motion follows the passage clock even when weather is completely calm.
   const waveCount = lowDetail ? 18 : 42
   const wrap = (value: number, span: number) => ((value % span) + span) % span
   context.lineWidth = 0.8
   for (let i = 0; i < waveCount; i++) {
     const depth = ((i * 43) % 97) / 97
-    const x = wrap(i * 173.17 + frame.drift * (0.17 + depth * 0.16), width + 72) - 36
-    const y = wrap(i * 103.63, height + 20) - 10
+    const speed = 0.42 + depth * 0.58
+    const x = wrap(i * 173.17 + frame.drift * 0.2 - frame.advance * speed, width + 72) - 36
+    const y = wrap(i * 103.63 - frame.advance * speed * 0.24, height + 20) - 10
     const length = 12 + depth * 48
     const lift = Math.sin(frame.phase * (1.4 + depth) + i) * (2 + frame.chop * 3)
     const alpha = (0.11 + depth * 0.1) * (0.65 + frame.chop * 0.65)
@@ -115,6 +155,45 @@ export function paintFerryHull(
   }
   context.restore()
 
+  // A continuous painted-style underbody rounds the stepped collision perimeter.
+  const sternSide = project(0, 4.5)
+  const bowSide = project(13.3, 4.5)
+  const farRail = project(6.5, 0.7)
+  const nearRail = project(6.5, 8.3)
+  const navy = context.createLinearGradient(
+    sternSide.x,
+    farRail.y,
+    bowSide.x,
+    nearRail.y + hullDepth,
+  )
+  navy.addColorStop(0, '#45585d')
+  navy.addColorStop(0.58, '#22363c')
+  navy.addColorStop(1, '#111e29')
+  context.fillStyle = navy
+  context.strokeStyle = '#a1875e'
+  context.lineWidth = Math.max(1, tile * 0.035)
+  context.beginPath()
+  context.moveTo(sternSide.x, sternSide.y + hullDepth * 0.5)
+  context.bezierCurveTo(
+    farRail.x - tile * 3,
+    farRail.y,
+    farRail.x + tile * 3,
+    farRail.y,
+    bowSide.x,
+    bowSide.y + hullDepth * 0.45,
+  )
+  context.bezierCurveTo(
+    nearRail.x + tile * 2.9,
+    nearRail.y + hullDepth,
+    nearRail.x - tile * 3.2,
+    nearRail.y + hullDepth,
+    sternSide.x,
+    sternSide.y + hullDepth * 0.5,
+  )
+  context.closePath()
+  context.fill()
+  context.stroke()
+
   let edges = hullEdges.get(cells)
   if (!edges) {
     edges = ferryHullEdges(cells)
@@ -124,9 +203,10 @@ export function paintFerryHull(
     const a = project(x1, y1)
     const b = project(x2, y2)
     const finish = context.createLinearGradient(0, a.y, 0, a.y + hullDepth)
-    finish.addColorStop(0, x1 === x2 ? '#75543a' : '#926a46')
-    finish.addColorStop(0.6, '#4b3330')
-    finish.addColorStop(1, '#292a2c')
+    finish.addColorStop(0, x1 === x2 ? '#71604a' : '#877350')
+    finish.addColorStop(0.32, '#475b60')
+    finish.addColorStop(0.68, '#2a414a')
+    finish.addColorStop(1, '#17252d')
     context.fillStyle = finish
     context.beginPath()
     context.moveTo(a.x, a.y - 1)
@@ -135,13 +215,28 @@ export function paintFerryHull(
     context.lineTo(a.x, a.y + hullDepth)
     context.closePath()
     context.fill()
-    context.strokeStyle = '#342d2d'
+    context.strokeStyle = '#ac8855'
     context.lineWidth = Math.max(1, hullDepth * 0.14)
     context.beginPath()
     context.moveTo(a.x, a.y + hullDepth * 0.36)
     context.lineTo(b.x, b.y + hullDepth * 0.36)
     context.moveTo(a.x, a.y + hullDepth * 0.79)
     context.lineTo(b.x, b.y + hullDepth * 0.79)
+    context.stroke()
+    const railHeight = tile * 0.15
+    context.strokeStyle = '#3b3028'
+    context.lineWidth = Math.max(1.1, tile * 0.037)
+    context.beginPath()
+    context.moveTo(a.x, a.y)
+    context.lineTo(a.x, a.y - railHeight)
+    context.lineTo(b.x, b.y - railHeight)
+    context.lineTo(b.x, b.y)
+    context.stroke()
+    context.strokeStyle = '#c2a06d'
+    context.lineWidth = Math.max(0.6, tile * 0.018)
+    context.beginPath()
+    context.moveTo(a.x, a.y - railHeight - 0.35)
+    context.lineTo(b.x, b.y - railHeight - 0.35)
     context.stroke()
   }
 }
@@ -213,19 +308,36 @@ export function paintFerryDeck(
   cell: DeckCell,
   tile: number,
   deck: ReadonlySet<string>,
+  texture?: HTMLImageElement,
 ) {
   const x = cell.x * tile
   const y = cell.y * tile
   const wood = ['#846044', '#8e6849', '#9a7651', '#90654a']
   const plank = tile / 7
-  for (let row = 0; row < 7; row++) {
-    const seed = hashString(`deck:${cell.x}:${cell.y}:${row}`)
-    context.fillStyle = wood[seed % wood.length]!
-    context.fillRect(x, y + row * plank, tile + 0.5, plank + 0.5)
-    context.fillStyle = 'rgba(46,29,23,.35)'
-    context.fillRect(x, y + (row + 1) * plank - 0.7, tile, 0.7)
-    context.fillStyle = 'rgba(224,184,126,.28)'
-    context.fillRect(x + ((seed >>> 8) % 13) * (tile / 24), y + row * plank + 2, tile * 0.38, 0.7)
+  if (texture) {
+    const width = texture.naturalWidth / GRID_WIDTH
+    const height = texture.naturalHeight / GRID_HEIGHT
+    context.drawImage(
+      texture,
+      cell.x * width,
+      cell.y * height,
+      width,
+      height,
+      x,
+      y,
+      tile + 0.25,
+      tile + 0.25,
+    )
+  } else {
+    for (let row = 0; row < 7; row++) {
+      const seed = hashString(`deck:${cell.x}:${cell.y}:${row}`)
+      context.fillStyle = wood[seed % wood.length]!
+      context.fillRect(x, y + row * plank, tile + 0.5, plank + 0.5)
+      context.fillStyle = 'rgba(46,29,23,.35)'
+      context.fillRect(x, y + (row + 1) * plank - 0.7, tile, 0.7)
+      context.fillStyle = 'rgba(224,184,126,.28)'
+      context.fillRect(x + ((seed >>> 8) % 13) * (tile / 24), y + row * plank + 2, tile * 0.38, 0.7)
+    }
   }
   const rim = Math.max(2, tile * 0.07)
   const edge = (left: number, top: number, width: number, height: number) => {

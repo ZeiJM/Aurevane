@@ -536,8 +536,8 @@ export function CharacterCreationExperience({
               Seal this beginning.
             </h1>
             <p className={styles.intro}>
-              In Slot {slotIndex + 1}, this name, visage, Discipline, and chosen strengths are ready
-              to enter AUREVANE.
+              Creation uses your first sprite design. One redesign remains in Account before it
+              locks.
             </p>
             <div className={styles.reviewWorkspace}>
               <div className={styles.reviewPortrait} data-testid="creation-confirm-portrait">

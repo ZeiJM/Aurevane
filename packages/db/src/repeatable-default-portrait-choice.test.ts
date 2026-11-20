@@ -8,6 +8,7 @@ const regression = readFileSync(
   resolve(root, 'tests/repeatable_default_portrait_choice.sql'),
   'utf8',
 )
+const spriteRegression = readFileSync(resolve(root, 'tests/safe_character_appearance.sql'), 'utf8')
 async function preservedState(db: PGlite) {
   const tables = (
     await db.query<{ name: string }>(`
@@ -79,14 +80,56 @@ it('keeps repeatable portrait authority after every canonical migration', async 
             insert into public.character_profile_display(character_id,user_id,image_url) values('83000000-0000-4000-8000-000000000011','83000000-0000-4000-8000-000000000001','https://example.test/preserved.png');`)
           before = await preservedState(db)
         }
+        const spriteAllowance = name.endsWith('_character_sprite_design_allowance.sql')
+        if (spriteAllowance) {
+          await db.exec(
+            spriteRegression
+              .split('do $$')[0]!
+              .replace('begin;', '')
+              .replaceAll('84000000-', '85000000-')
+              .replaceAll('Look Regression', 'Existing Sprite')
+              .replaceAll('look regression', 'existing sprite')
+              .replaceAll('Cuff Regression', 'Existing Queued Sprite')
+              .replaceAll('cuff regression', 'existing queued sprite'),
+          )
+          await db.exec(`
+            insert into public.character_profile_display
+              (character_id,user_id,appearance_image_url,pending_appearance_image_url)
+            values ('85000000-0000-4000-8000-000000000011','85000000-0000-4000-8000-000000000001','/saved-first',null),
+              ('85000000-0000-4000-8000-000000000012','85000000-0000-4000-8000-000000000001','/saved-next','/queued')
+          `)
+        }
         await db.exec(sql)
         if (before) expect(await preservedState(db)).toEqual(before)
+        if (spriteAllowance) {
+          expect(
+            (
+              await db.query(`
+              select appearance_revision, confirmed_sprite_designs, appearance_image_url, pending_appearance_image_url
+              from public.character_profile_display where user_id='85000000-0000-4000-8000-000000000001'
+              order by character_id`)
+            ).rows,
+          ).toEqual([
+            {
+              appearance_revision: 1,
+              confirmed_sprite_designs: 1,
+              appearance_image_url: '/saved-first',
+              pending_appearance_image_url: null,
+            },
+            {
+              appearance_revision: 1,
+              confirmed_sprite_designs: 2,
+              appearance_image_url: '/saved-next',
+              pending_appearance_image_url: '/queued',
+            },
+          ])
+        }
       } catch (error) {
         throw new Error(`Migration ${name}: ${String(error)}`, { cause: error })
       }
     }
     await db.exec(regression)
-    await db.exec(readFileSync(resolve(root, 'tests/safe_character_appearance.sql'), 'utf8'))
+    await db.exec(spriteRegression)
     expect(
       (
         await db.query(

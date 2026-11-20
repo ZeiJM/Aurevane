@@ -11,12 +11,16 @@ export function AppearanceBuilderDialog({
   value,
   prepare,
   onConfirm,
+  confirmationHint,
+  locked = false,
 }: {
   label: string
   confirmLabel: string
   value?: AppearanceBlueprint | null
   prepare?: () => Promise<AppearanceBlueprint | null>
   onConfirm: (blueprint: AppearanceBlueprint) => void | Promise<void>
+  confirmationHint?: string
+  locked?: boolean
 }) {
   const id = useId()
   const dialog = useRef<HTMLDialogElement>(null)
@@ -26,6 +30,7 @@ export function AppearanceBuilderDialog({
   const [pending, setPending] = useState(false)
 
   async function open() {
+    if (locked) return
     setCandidate(null)
     setError(null)
     dialog.current?.showModal()
@@ -59,7 +64,13 @@ export function AppearanceBuilderDialog({
 
   return (
     <>
-      <button ref={trigger} type="button" aria-haspopup="dialog" onClick={() => void open()}>
+      <button
+        ref={trigger}
+        type="button"
+        aria-haspopup="dialog"
+        aria-disabled={locked || undefined}
+        onClick={() => void open()}
+      >
         {label}
       </button>
       <dialog
@@ -85,6 +96,9 @@ export function AppearanceBuilderDialog({
         ) : null}
         {error ? <p role="alert">{error}</p> : null}
         <footer className={styles.dialogFooter}>
+          {candidate && confirmationHint ? (
+            <p className={styles.confirmationHint}>{confirmationHint}</p>
+          ) : null}
           <button type="button" disabled={!candidate || pending} onClick={() => void confirm()}>
             {pending ? 'Preparing…' : confirmLabel}
           </button>

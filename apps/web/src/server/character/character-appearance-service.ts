@@ -9,6 +9,8 @@ import {
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { findPlayableOwnedCharacterById } from './character-slot-service'
 
+const spriteDesignLimit = 2
+
 function unavailable() {
   return new AurevaneError(
     'PERSISTENCE_UNAVAILABLE',
@@ -20,7 +22,9 @@ export async function loadCharacterAppearance(userId: string, characterId: strin
   await assertOwnedCharacter(userId, characterId)
   const { data, error } = await createSupabaseAdminClient()
     .from('character_profile_display')
-    .select('appearance_image_url, pending_appearance_image_url, appearance_revision')
+    .select(
+      'appearance_image_url, pending_appearance_image_url, appearance_revision, confirmed_sprite_designs',
+    )
     .eq('user_id', userId)
     .eq('character_id', characterId)
     .maybeSingle()
@@ -32,6 +36,7 @@ export async function loadCharacterAppearance(userId: string, characterId: strin
         ? data.pending_appearance_image_url
         : null,
     revision: typeof data?.appearance_revision === 'number' ? data.appearance_revision : 0,
+    remainingDesigns: spriteDesignLimit - (data?.confirmed_sprite_designs ?? 0),
   }
 }
 
@@ -44,7 +49,7 @@ export async function commitCharacterAppearance(input: {
   const blueprint = parseAppearanceBlueprint(input.blueprint)
   if (!blueprint) throw new AurevaneError('INVALID_REQUEST', 'Choose compatible appearance parts.')
   const imageUrl = compileAppearanceManifest(blueprint).portraits.neutral
-  const { data, error } = await createSupabaseAdminClient().rpc('commit_character_appearance_v2', {
+  const { data, error } = await createSupabaseAdminClient().rpc('commit_character_appearance_v3', {
     p_user_id: input.userId,
     p_character_id: input.characterId,
     p_expected_revision: input.expectedRevision,
@@ -62,6 +67,9 @@ export async function commitCharacterAppearance(input: {
       'Your active appearance changed. Reopen the editor before confirming.',
     )
   }
+  if (error?.message.includes('CHARACTER_APPEARANCE_LOCKED')) {
+    throw new AurevaneError('FORBIDDEN', 'This character’s sprite design is permanently locked.')
+  }
   if (error?.message.includes('CHARACTER_NOT_PLAYABLE')) {
     throw new AurevaneError('FORBIDDEN', 'That character is not available to this account.')
   }
@@ -69,11 +77,19 @@ export async function commitCharacterAppearance(input: {
     error ||
     !data ||
     typeof data.revision !== 'number' ||
+    !Number.isInteger(data.remainingDesigns) ||
+    data.remainingDesigns < 0 ||
+    data.remainingDesigns > spriteDesignLimit ||
     (data.imageUrl !== null && typeof data.imageUrl !== 'string') ||
     (data.pendingImageUrl !== null && typeof data.pendingImageUrl !== 'string')
   )
     throw unavailable()
-  return { imageUrl: data.imageUrl, pendingImageUrl: data.pendingImageUrl, revision: data.revision }
+  return {
+    imageUrl: data.imageUrl,
+    pendingImageUrl: data.pendingImageUrl,
+    revision: data.revision,
+    remainingDesigns: data.remainingDesigns,
+  }
 }
 
 async function assertOwnedCharacter(userId: string, characterId: string) {

@@ -91,6 +91,91 @@ async function rejected(run: () => Promise<unknown>, message: string) {
   }
 }
 
+it('publishes an explicit greeting expression and keeps later draft edits private', async () => {
+  const draft = {
+    name: 'Field opponent',
+    portraitRef: null,
+    uses: ['world'],
+    arena: null,
+    world: { ...world, greetingExpression: 'happy' },
+  }
+  const save = (revision: number, expression: string) =>
+    db.query("select public.write_master_npc_design_v1($1,null,$2,$3,'save',$4)", [
+      owner,
+      npc,
+      revision,
+      { ...draft, world: { ...draft.world, greetingExpression: expression } },
+    ])
+  const published = async () =>
+    (
+      await db.query<{ value: { greetingExpression?: string }[] }>(
+        'select public.read_published_world_npcs_v1($1) value',
+        [position.sectorId],
+      )
+    ).rows[0]!.value
+  await rejected(() => save(0, 'unknown'), 'NPC_DESIGN_INVALID')
+  await save(0, 'happy')
+  expect(await published()).toEqual([])
+  await db.query("select public.write_master_npc_design_v1($1,null,$2,1,'commit-world',null)", [
+    owner,
+    npc,
+  ])
+  expect(await published()).toEqual([expect.objectContaining({ greetingExpression: 'happy' })])
+  await save(2, 'sad')
+  expect(await published()).toEqual([expect.objectContaining({ greetingExpression: 'happy' })])
+})
+
+it('keeps authored dialogue private until publication and rejects invalid trees in PostgreSQL', async () => {
+  const reply = { label: 'What can I hear?', body: 'The watch bell at dawn.', replies: [] }
+  const save = (revision: number, dialogue: unknown) =>
+    db.query("select public.write_master_npc_design_v1($1,null,$2,$3,'save',$4)", [
+      owner,
+      npc,
+      revision,
+      {
+        name: 'Harbor watch',
+        portraitRef: null,
+        uses: ['world'],
+        arena: null,
+        world: { ...world, dialogue },
+      },
+    ])
+  const publish = (revision: number) =>
+    db.query("select public.write_master_npc_design_v1($1,null,$2,$3,'commit-world',null)", [
+      owner,
+      npc,
+      revision,
+    ])
+  const published = async () =>
+    (
+      await db.query<{ value: { dialogue: (typeof reply)[] }[] }>(
+        'select public.read_published_world_npcs_v1($1) value',
+        [position.sectorId],
+      )
+    ).rows[0]!.value
+  await rejected(() => save(0, {}), 'NPC_DESIGN_INVALID')
+  await rejected(() => save(0, [{ ...reply, replies: 'bogus' }]), 'NPC_DESIGN_INVALID')
+  await rejected(
+    () => save(0, Array(4).fill({ ...reply, replies: Array(4).fill(reply) })),
+    'NPC_DESIGN_INVALID',
+  )
+  await save(0, [{ ...reply, body: '' }])
+  await rejected(() => publish(1), 'npc_designs_world_valid')
+  expect(await published()).toEqual([])
+  await save(1, [reply])
+  await publish(2)
+  expect(await published()).toEqual([expect.objectContaining({ dialogue: [reply] })])
+  await save(3, [{ ...reply, body: 'An unfinished draft.' }])
+  expect(await published()).toEqual([expect.objectContaining({ dialogue: [reply] })])
+  expect(
+    (
+      await db.query(`select has_function_privilege(
+    'authenticated','public.read_published_world_npcs_v1(text)','execute'
+  ) as "directAccess"`)
+    ).rows,
+  ).toEqual([{ directAccess: false }])
+})
+
 it('admits one World-only published NPC and captures provenance for the exact replay', async () => {
   const save = (revision: number, placement: unknown) =>
     db.query("select public.write_master_npc_design_v1($1,null,$2,$3,'save',$4)", [
@@ -269,6 +354,7 @@ async function admitEvidenceFixture(
   playerActs = true,
   atStartup = false,
   mentor?: { runId: string; training?: boolean; ordinary?: boolean },
+  publishOpponent = true,
 ) {
   const id = mentor
     ? `mentor-${crypto.randomUUID()}`
@@ -276,7 +362,7 @@ async function admitEvidenceFixture(
       ? 'fixture-world-evidence'
       : 'fixture-practice-evidence'
   const request = mentor ? crypto.randomUUID() : command
-  if (linked && !mentor) await publishEvidenceOpponent()
+  if (linked && !mentor && publishOpponent) await publishEvidenceOpponent()
   const combatants = [combatant.player, combatant.opponent].map((id, index) => ({
     id,
     teamId: index === 0 ? 'players' : 'opponents',
@@ -495,6 +581,121 @@ it('records genuine player defeat separately from qualifying opponent defeat', a
   expect(await terminal(fight.session)).toEqual([{ outcome: 'defeat', battle_version: 2 }])
   expect(await defeats(fight.session)).toEqual([])
 })
+
+it.each(['victory', 'defeat'] as const)(
+  'routes a live Event from a genuine World NPC %s receipt without charging twice',
+  async (outcome) => {
+    await publishEvidenceOpponent()
+    const eventKey = 'event.authored-battle-fork'
+    const run = '90000000-0000-4000-8000-000000000004'
+    const version = '90000000-0000-4000-8000-000000000005'
+    const objectives = ['victory', 'defeat'].map((result) => ({
+      id: `battle-${result}`,
+      type: 'defeat',
+      completion: 'world-npc-result',
+      referenceKey: `objective.battle-${result}`,
+      battleResult: { npcId: npc, outcome: result },
+      worldNavigation: { ...position, autoPath: true, guidance: 'exact' },
+      target: 1,
+    }))
+    const phases = [
+      {
+        id: 'challenge',
+        name: 'Challenge',
+        objectives,
+        effects: [],
+        cleanupEffects: [],
+        transition: {
+          type: 'objective-branch',
+          routes: [
+            { objectiveId: 'battle-victory', nextPhaseId: 'celebrate' },
+            { objectiveId: 'battle-defeat', nextPhaseId: 'regroup' },
+          ],
+        },
+      },
+      ...['celebrate', 'regroup'].map((id) => ({
+        id,
+        name: id,
+        objectives: [],
+        effects: [],
+        cleanupEffects: [],
+        transition: { type: 'manual' },
+      })),
+    ]
+    const def = {
+      schemaVersion: 1,
+      eventKey,
+      templateKey: 'template.battle-fork',
+      contentVersion: 1,
+      title: 'Hold the watch',
+      summary: 'Meet the challenger and report the result.',
+      internalNotes: '',
+      family: 'regional-event',
+      category: 'world-events',
+      scope: { type: 'global' },
+      phases,
+      rewardPackageRefs: [],
+      aftermathRefs: [],
+    }
+    await db.query('select app_private.assert_event_definition_shape_v1($1,$2)', [eventKey, def])
+    await db.query('select app_private.assert_event_runtime_supported_v1($1)', [def])
+    await db.query("insert into app_private.event_templates values($1,'regional-event',$2,now())", [
+      eventKey,
+      owner,
+    ])
+    await db.query(
+      'insert into app_private.event_definition_versions(id,event_key,definition_version,definition,published_by) values($1,$2,1,$3,$4)',
+      [version, eventKey, def, owner],
+    )
+    await db.query(
+      "insert into app_private.event_runs(id,event_key,definition_version_id,run_mode,lifecycle_status,scope_type,current_phase_id,started_at,created_by) values($1,$2,$3,'production','live','global','challenge',clock_timestamp(),$4)",
+      [run, eventKey, version, owner],
+    )
+    await db.query(
+      `insert into app_private.event_run_phases(run_id,phase_id,ordinal,phase_status,started_at)
+      values($1,'challenge',0,'live',clock_timestamp()),($1,'celebrate',1,'pending',null),($1,'regroup',2,'pending',null)`,
+      [run],
+    )
+    await db.query(
+      `insert into app_private.event_run_objectives(run_id,phase_id,objective_id,objective_status,target)
+      values($1,'challenge','battle-victory','active',1),($1,'challenge','battle-defeat','active',1)`,
+      [run],
+    )
+    const forge = (source: string) =>
+      db.query(
+        `select * from public.record_event_contribution_v1(
+      'actor:fixture',gen_random_uuid(),'forged-event-battle',$1,$2,$2,'challenge','battle-victory',$3,
+      'forged-evidence',1,'{"forged":true}'
+    )`,
+        [run, owner, source],
+      )
+    await rejected(() => forge('world-npc-result'), 'EVENT_WORLD_BATTLE_SOURCE_RESERVED')
+    await rejected(() => forge('community'), 'EVENT_CONTRIBUTION_REQUIRES_CONFIRMED_WORLD_BATTLE')
+    const recover = () =>
+      db.query('select app_private.recover_event_phase_transition_v1($1,1) status', [run])
+    await expect(recover()).resolves.toMatchObject({ rows: [{ status: 'noop' }] })
+    const fight = await admitEvidenceFixture(true, outcome === 'victory', false, undefined, false)
+    await fight.commit(
+      lethalStrike(fight.state, outcome === 'victory' ? combatant.opponent : combatant.player),
+    )
+    expect(await terminal(fight.session)).toEqual([{ outcome, battle_version: 2 }])
+    await expect(recover()).resolves.toMatchObject({ rows: [{ status: 'advanced' }] })
+    await expect(recover()).resolves.toMatchObject({ rows: [{ status: 'noop' }] })
+    expect(
+      await db.query('select current_phase_id from app_private.event_runs where id=$1', [run]),
+    ).toMatchObject({
+      rows: [{ current_phase_id: outcome === 'victory' ? 'celebrate' : 'regroup' }],
+    })
+    expect(
+      await db.query(
+        'select objective_id,source_system from app_private.event_contributions where run_id=$1',
+        [run],
+      ),
+    ).toMatchObject({
+      rows: [{ objective_id: `battle-${outcome}`, source_system: 'world-npc-result' }],
+    })
+  },
+)
 
 it('records a draw when one action defeats both admitted sides', async () => {
   const fight = await admitEvidenceFixture()

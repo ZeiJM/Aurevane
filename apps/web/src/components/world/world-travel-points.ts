@@ -1,12 +1,16 @@
-import type { WorldView } from '@/world/types'
+import type { WorldPosition, WorldView } from '@/world/types'
 import { ATLAS_COLUMNS, ATLAS_ROWS } from '@/world/atlas'
-import { FERRY_MAINLAND_DOCK } from '@/world/ferry'
+import { FERRY_MAINLAND_DOCK, FERRY_TERMINAL_NAME } from '@/world/ferry'
 import { globeSectorCenter } from '@/world/globe-math'
 
 export interface WorldTravelPoint {
   id: string
   name: string
   coordinate: string
+}
+
+export function worldTravelDestination(sectorId: string): WorldPosition {
+  return sectorId === FERRY_MAINLAND_DOCK.sectorId ? FERRY_MAINLAND_DOCK : { sectorId, x: 6, y: 4 }
 }
 
 /** Map selection targets only; this list grants no ferry route or fast-travel permission. */
@@ -16,7 +20,7 @@ export function worldTravelPoints(view: Pick<WorldView, 'atlas' | 'anchors'>): W
   )
   const seen = new Set<string>()
   const candidates = [
-    { id: FERRY_MAINLAND_DOCK.sectorId, name: 'Mainland' },
+    { id: FERRY_MAINLAND_DOCK.sectorId, name: FERRY_TERMINAL_NAME },
     ...view.anchors.map((anchor) => ({ id: anchor.sectorId, name: anchor.name })),
     ...(view.atlas ?? [])
       .filter((sector) => sector.charted && sector.townId === sector.id)

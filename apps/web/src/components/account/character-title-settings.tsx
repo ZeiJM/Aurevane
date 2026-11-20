@@ -21,6 +21,8 @@ interface CharacterTitleSettingsProps {
   portraitRef?: CharacterPortraitRef
   portraitChoiceAvailable?: boolean
   portraitChoiceUsedAt?: string | null
+  remainingSpriteDesigns: number
+  pendingSpriteDesign: boolean
 }
 
 const TITLE_PATTERN = /^[A-Za-z0-9 ]+$/
@@ -48,6 +50,8 @@ export function CharacterTitleSettings({
   imageUrl,
   portraitRef,
   portraitChoiceAvailable = false,
+  remainingSpriteDesigns,
+  pendingSpriteDesign,
 }: CharacterTitleSettingsProps) {
   const router = useRouter()
   const [draft, setDraft] = useState('')
@@ -280,6 +284,16 @@ export function CharacterTitleSettings({
               {message}
             </p>
           ) : null}
+
+          <section className={styles.appearance} aria-labelledby="character-appearance-heading">
+            <h2 id="character-appearance-heading">Character appearance</h2>
+            <CharacterAppearanceSettings
+              key={characterId}
+              characterId={characterId}
+              initialRemainingDesigns={remainingSpriteDesigns}
+              initialPending={pendingSpriteDesign}
+            />
+          </section>
         </section>
 
         <dialog
@@ -389,15 +403,6 @@ export function CharacterTitleSettings({
             </>
           )}
         </dialog>
-
-        <section className={styles.profileImage} aria-labelledby="character-appearance-heading">
-          <div>
-            <span>Character image and sprites</span>
-            <h2 id="character-appearance-heading">Character appearance</h2>
-            <p>Build a look and review its expressions, field sprite and battle sprite.</p>
-          </div>
-          <CharacterAppearanceSettings characterId={characterId} />
-        </section>
 
         <section className={styles.profileImage} aria-labelledby="profile-image-heading">
           <div>

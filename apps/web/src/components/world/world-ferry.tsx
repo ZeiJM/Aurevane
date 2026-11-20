@@ -1,18 +1,16 @@
 'use client'
 
 import { useEffect, useState, type MouseEventHandler } from 'react'
-import { APPEARANCE_PRESETS, compileAppearanceManifest } from '@/appearance/appearance-manifest'
-import { FERRY_BOARDING_MS, FERRY_MAINLAND_DOCK, type WorldFerryView } from '@/world/ferry'
+import {
+  FERRY_BOARDING_MS,
+  FERRY_MAINLAND_DOCK,
+  FERRYMAN_PORTRAIT,
+  FERRYMAN_SPRITE,
+  FERRY_TERMINAL_NAME,
+  type WorldFerryView,
+} from '@/world/ferry'
 import type { WorldInteraction, WorldView } from '@/world/types'
 import styles from './world-ferry.module.css'
-
-const portraitUrl = compileAppearanceManifest({
-  ...APPEARANCE_PRESETS[1].blueprint,
-  coat: 'longcoat',
-  collar: 'standing',
-  accessory: 'satchel',
-  palette: 'slate',
-}).portraits.neutral
 
 export const FERRY_CONVERSATION_ID = 'world-ferryman'
 
@@ -27,11 +25,11 @@ export function ferrymanTopic(
     objectiveId: FERRY_CONVERSATION_ID,
     speakerId: FERRY_CONVERSATION_ID,
     speaker: 'Ferryman',
-    title: 'Ferry station',
+    title: FERRY_TERMINAL_NAME,
     body: ferry.passage
       ? 'You’re aboard. You can step back onto the dock until we leave.'
       : 'There’s room aboard. The crossing takes five minutes and the fare is free.',
-    portraitUrl,
+    portraitUrl: FERRYMAN_PORTRAIT,
     actionId: null,
     actionLabel: null,
     progress: 'completed',
@@ -66,7 +64,11 @@ export function ferryStatus(ferry: WorldFerryView, now: number) {
 }
 
 export function worldViewWithFerryman(view: WorldView): WorldView {
-  if (!view.ferry?.port) return view
+  const sector =
+    view.sectors.find(
+      (candidate) => candidate.id === view.position.sectorId && candidate.ferryDock,
+    ) ?? view.sectors.find((candidate) => candidate.ferryDock)
+  if (!sector?.ferryDock) return view
   return {
     ...view,
     npcs: [
@@ -74,8 +76,13 @@ export function worldViewWithFerryman(view: WorldView): WorldView {
       {
         id: FERRY_CONVERSATION_ID,
         name: 'Ferryman',
-        position: { ...FERRY_MAINLAND_DOCK, sectorId: view.position.sectorId },
-        imageUrl: portraitUrl,
+        position: {
+          x: sector.ferryDock.x + (sector.id === FERRY_MAINLAND_DOCK.sectorId ? -1 : 1),
+          y: sector.ferryDock.y,
+          sectorId: sector.id,
+        },
+        imageUrl: FERRYMAN_PORTRAIT,
+        spriteUrl: FERRYMAN_SPRITE,
       },
     ],
   }
@@ -115,7 +122,7 @@ export function WorldFerryStation({
   return (
     <section className={styles.station} aria-label="Ferry station">
       <div>
-        <strong>Ferry station</strong>
+        <strong>{ferry.passage ? 'Ferry crossing' : FERRY_TERMINAL_NAME}</strong>
         <span>
           {status.label}{' '}
           {status.at !== null ? <time>{formatFerryCountdown(status.at, now)}</time> : null}

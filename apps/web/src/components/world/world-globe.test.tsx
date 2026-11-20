@@ -129,13 +129,6 @@ describe('globe geographic labels', () => {
       expect(size).toBeGreaterThanOrEqual(24)
       expect(size).toBeLessThanOrEqual(34)
       expect(marker.props.style).toMatchObject({ left: '50%', top: '50%' })
-      const point = Children.toArray(capture.sphere?.children)
-        .filter(
-          isValidElement<{ 'data-globe-travel-point'?: string; style: { marginLeft?: number } }>,
-        )
-        .find((child) => child.props['data-globe-travel-point'] === town.id)!
-      expect(point.props.style.marginLeft).toBeGreaterThan(marker.props.style.width / 2 + 15)
-
       marker.props.onClick()
       expect(onSelect).toHaveBeenLastCalledWith(town.id)
       expect(view.route).toEqual([])
@@ -145,39 +138,21 @@ describe('globe geographic labels', () => {
     expect(symbols.size).toBe(8)
     expect(sizes.size).toBe(6)
   })
-  it('cycles globe Travel Point markers through known destinations without moving the character', () => {
-    const mainland = atlasCell(126, 32, 'Mainland coast')
-    const west = atlasCell(125, 32, 'West approach')
-    const north = atlasCell(124, 32, 'North approach')
-    const hidden = { ...atlasCell(123, 32, 'Hidden landmark'), charted: false }
-    const view = viewFor([mainland, west, north, hidden])
-    view.anchors = [
-      { id: 'west-anchor', name: 'West Waystone', sectorId: west.id },
-      { id: 'north-anchor', name: 'North Waystone', sectorId: north.id },
-      { id: 'hidden-anchor', name: 'Secret Waystone', sectorId: hidden.id },
-    ]
+  it('shows a distinct destination dot and keeps Travel Point cycle controls off the globe', () => {
+    const mainland = atlasCell(126, 33, 'Ferry Terminal')
+    const west = atlasCell(125, 33, 'West approach')
+    const hidden = { ...atlasCell(123, 33, 'Hidden landmark'), charted: false }
+    const view = viewFor([mainland, west, hidden])
     const onSelect = vi.fn()
-    const markup = render(view, onSelect)
-    const markers = Children.toArray(capture.sphere?.children)
-      .filter(isValidElement<{ 'data-globe-travel-point'?: string; onClick: () => void }>)
-      .filter((child) => child.props['data-globe-travel-point'] !== undefined)
-    expect(markers).toHaveLength(3)
-    expect(markup).toContain('Travel point: Mainland')
-    expect(markup).toContain('Travel point: West Waystone')
-    expect(markup).not.toContain('Ferry dock')
-    expect(markup).not.toContain('Secret Waystone')
-    for (const [index, next] of [west.id, north.id, mainland.id].entries()) {
-      markers[index]!.props.onClick()
-      expect(onSelect).toHaveBeenLastCalledWith(next)
-    }
+    const markup = render(view, onSelect, true, mainland.id)
+    expect(markup).not.toContain('data-globe-travel-point')
+    expect(markup).toContain('aria-label="Selected destination: Ferry Terminal"')
+    expect(markup).toContain(`data-globe-destination="${mainland.id}"`)
+    expect(markup).toContain('aria-label="Your current position"')
+    expect(onSelect).not.toHaveBeenCalled()
+    expect(render(view, onSelect, true, hidden.id)).not.toContain('data-globe-destination')
     expect(view.position).toEqual({ sectorId: mainland.id, x: 6, y: 4 })
     expect(view.route).toEqual([])
-    render(view, onSelect, true, west.id)
-    const mainlandMarker = Children.toArray(capture.sphere?.children)
-      .filter(isValidElement<{ 'data-globe-travel-point'?: string; onClick: () => void }>)
-      .find((child) => child.props['data-globe-travel-point'] === mainland.id)
-    mainlandMarker!.props.onClick()
-    expect(onSelect).toHaveBeenLastCalledWith(north.id)
   })
   it('hides town names while preserving selectable town icons and the current-position pin', () => {
     const view = viewFor([atlasCell(0, 2, 'South town')])
@@ -217,6 +192,7 @@ describe('globe geographic labels', () => {
   it('names the private landmass as Uncharted Lands without revealing its coordinates', () => {
     const markup = render(viewFor([atlasCell(0, 48, 'South town')]))
     expect(markup).toContain('<span>Uncharted Lands</span>')
+    expect(markup).not.toContain('◇')
     expect(markup).not.toContain('Focus Uncharted Lands')
     expect(markup).not.toMatch(/Uncharted waters/i)
   })

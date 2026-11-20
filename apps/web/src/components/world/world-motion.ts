@@ -42,21 +42,21 @@ const navigationCache = new WeakMap<readonly WorldSectorView[], LocalNavigator>(
 export function prepareLocalRoute(view: Pick<WorldView, 'sectors'>) {
   const cached = navigationCache.get(view.sectors)
   if (cached) return cached
-  const sectors = view.sectors.map((sector) => ({
-    ...sector,
-    rows: Array.from({ length: GRID_HEIGHT }, (_, y) =>
-      Array.from(
-        { length: GRID_WIDTH },
-        (_, x) => sector.cells.find((cell) => cell.x === x && cell.y === y)?.terrain ?? '#',
-      ).join(''),
-    ),
-    roads: sector.exits,
-  }))
-  const known = new Set(
-    view.sectors.flatMap((sector) =>
-      sector.cells.map((cell) => positionKey({ sectorId: sector.id, ...cell })),
-    ),
-  )
+  const known = new Set<string>()
+  const sectors = view.sectors.map((sector) => {
+    const terrain = Array<string>(GRID_WIDTH * GRID_HEIGHT).fill('#')
+    for (const cell of sector.cells) {
+      known.add(positionKey({ sectorId: sector.id, x: cell.x, y: cell.y }))
+      terrain[cell.y * GRID_WIDTH + cell.x] = cell.walkable ? cell.terrain : '#'
+    }
+    return {
+      ...sector,
+      rows: Array.from({ length: GRID_HEIGHT }, (_, y) =>
+        terrain.slice(y * GRID_WIDTH, (y + 1) * GRID_WIDTH).join(''),
+      ),
+      roads: sector.exits,
+    }
+  })
   const navigate: LocalNavigator = (from, to) =>
     findWorldRoute(from, to, sectors, (position) => known.has(positionKey(position)))
   navigationCache.set(view.sectors, navigate)

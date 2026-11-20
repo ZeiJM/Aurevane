@@ -49,6 +49,12 @@
   justify-content: end;
 }
 
+.confirmationHint {
+  flex: 1 1 15rem;
+  margin: 0;
+  color: #f1d5a2;
+}
+
 .builder {
   display: grid;
   grid-template-columns: minmax(9rem, 1fr) minmax(14rem, 2fr);
@@ -71,6 +77,19 @@
   height: auto;
   margin-inline: auto;
   border-radius: 0.35rem;
+}
+
+.previewControls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.previewControls label {
+  display: grid;
+  gap: 0.2rem;
+  font-size: 0.8rem;
 }
 
 .poses {
@@ -99,11 +118,15 @@
   background-position: var(--x0) var(--y);
 }
 
-.sprite[data-walk] {
-  animation: walk-preview 0.65s step-end infinite;
+.sprite[data-preview-motion] {
+  animation: pose-preview 0.9s step-end infinite;
 }
 
-@keyframes walk-preview {
+.sprite[data-preview-motion='walk'] {
+  animation-duration: 0.65s;
+}
+
+@keyframes pose-preview {
   0%,
   50% {
     background-position: var(--x0) var(--y);
@@ -170,7 +193,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sprite[data-walk] {
+  .sprite[data-preview-motion] {
     animation: none;
   }
 }

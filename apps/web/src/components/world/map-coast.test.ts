@@ -2,17 +2,60 @@ import { describe, expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
 import { projectWorld } from '@/server/world/world-service'
 import { newWorldState } from '@/world/travel'
+import { GRID_HEIGHT } from '@/world/catalog'
+import { WORLD_MAP_WIDTH } from '@/world/topology'
 import type { WorldView } from '@/world/types'
+import { worldRenderTerrain } from './map-render-terrain'
+import { mapPoint } from './world-motion'
 import {
   buildPublicCoasts,
   coastPoint,
   paintCoastLand,
   paintCoastSea,
   paintOpenSea,
+  publicGroundCoversViewport,
 } from './map-coast'
 
 describe('public shoreline presentation', () => {
   const view = (): WorldView => projectWorld(newWorldState(), [], 1000)
+  it('hides open sea only behind uninterrupted supplied public ground, including across longitude wrap', () => {
+    const world = view()
+    const root = world.sectors.find((s) => s.id === world.position.sectorId)!
+    const land = [27, 28, 29].flatMap((row) =>
+      [126, 127, 0, 1].map((column) => ({
+        ...root,
+        id: `atlas:${column}:${row}`,
+        atlasColumn: column,
+        atlasRow: row,
+      })),
+    )
+    const coasts = new Map(land.map(({ id }) => [id, []]))
+    const camera = { x: WORLD_MAP_WIDTH, y: 28 * GRID_HEIGHT + 4.5 }
+    const covers = (sectors: typeof land) =>
+      publicGroundCoversViewport(sectors, coasts, camera, 64, 1024, 600)
+    expect(covers(land)).toBe(true)
+    expect(covers(land.filter(({ id }) => id !== 'atlas:0:28'))).toBe(false)
+    expect(covers(land.map((sector) => ({ ...sector, charted: sector.id !== 'atlas:0:28' })))).toBe(
+      false,
+    )
+    coasts.delete('atlas:127:28')
+    expect(covers(land)).toBe(false)
+  })
+  it('obscures the ocean throughout the authenticated multiplayer crossing', () => {
+    for (const [sectorId, x] of [
+      ['atlas:58:28', 12],
+      ['atlas:59:28', 0],
+      ['atlas:59:28', 7],
+    ] as const) {
+      const position = { sectorId, x, y: 4 }
+      const world = projectWorld({ ...newWorldState(), position }, [], 1000)
+      const sectors = worldRenderTerrain(world)
+      const coasts = buildPublicCoasts({ ...world, sectors })
+      expect(
+        publicGroundCoversViewport(sectors, coasts, mapPoint(position, sectors), 64, 1200, 800),
+      ).toBe(true)
+    }
+  })
   it('does not index ground cells when the overview proves all four sides are inland', () => {
     const world = view(),
       root = world.sectors.find((s) => s.id === world.position.sectorId)!

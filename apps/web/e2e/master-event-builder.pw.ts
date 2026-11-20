@@ -976,6 +976,9 @@ async function completeCinderwakeRestoration(
   await coordinates.getByLabel('Cell X', { exact: true }).fill(String(checkpoint.x))
   await coordinates.getByLabel('Cell Y', { exact: true }).fill(String(checkpoint.y))
   await page.getByLabel('Recovery offer', { exact: true }).fill('Visit the forge checkpoint.')
+  const recoveryReply = 'I will search the old road.'
+  const trialReply = 'I will face the sentinel.'
+  await page.getByLabel('Recovery reply', { exact: true }).fill(recoveryReply)
   await page
     .getByLabel('Recovery guidance', { exact: true })
     .fill('Reach the checkpoint and return.')
@@ -993,12 +996,28 @@ async function completeCinderwakeRestoration(
     .selectOption(recoveryReward)
   await page.getByLabel('Trial Character XP package', { exact: true }).selectOption(trialReward)
   await page.getByLabel('Trial offer', { exact: true }).fill('Or choose the combat trial.')
+  await page.getByLabel('Trial reply', { exact: true }).fill(trialReply)
   await page
     .getByLabel('Trial guidance', { exact: true })
     .fill('Defeat the challenger in the World.')
   await page
     .getByLabel('Trial ready to restore', { exact: true })
     .fill('The trial is won. Bring both fragments to the forge.')
+  const rehearse = page.getByRole('button', { name: 'Rehearse dialogue', exact: true })
+  await rehearse.click()
+  const rehearsal = page.getByRole('dialog', { name: smith })
+  const routes = rehearsal.getByRole('group', { name: 'Choose a route' })
+  await expect(routes.getByRole('button', { name: recoveryReply, exact: true })).toBeVisible()
+  await expect(routes.getByRole('button', { name: trialReply, exact: true })).toBeVisible()
+  await routes.getByRole('button', { name: trialReply, exact: true }).click()
+  await expect(rehearsal.getByText('Defeat the challenger in the World.')).toBeVisible()
+  await rehearsal.getByRole('button', { name: 'Rehearse winning the trial' }).click()
+  await expect(
+    rehearsal.getByText('The trial is won. Bring both fragments to the forge.'),
+  ).toBeVisible()
+  await rehearsal.getByRole('button', { name: 'End conversation' }).click()
+  await expect(rehearse).toBeFocused()
+  expect(stock()).toEqual({ fragments: 2, swords: 0, gear: 40 })
   await page.screenshot({
     path: info.outputPath(`cinderwake-${route}-authoring.png`),
     animations: 'disabled',
@@ -1068,8 +1087,11 @@ async function completeCinderwakeRestoration(
   await move(position)
   await talk()
   await expect(dialogue.getByText('Or choose the combat trial.').first()).toBeVisible()
-  const chosenLabel = route === 'trial' ? 'Choose trial route' : 'Choose recovery route'
-  await dialogue.getByRole('button', { name: chosenLabel, exact: true }).click()
+  const chosenLabel = route === 'trial' ? trialReply : recoveryReply
+  await dialogue
+    .getByRole('group', { name: 'Choose a route' })
+    .getByRole('button', { name: chosenLabel, exact: true })
+    .click()
   await dialogue.getByRole('button', { name: 'End conversation' }).click()
   await move(checkpoint)
   await move(position)
@@ -1078,9 +1100,7 @@ async function completeCinderwakeRestoration(
     await expect(
       dialogue.getByRole('button', { name: `Restore ${sword.name}`, exact: true }),
     ).toHaveCount(0)
-    await expect(
-      dialogue.getByRole('button', { name: 'Choose recovery route', exact: true }),
-    ).toHaveCount(0)
+    await expect(dialogue.getByRole('button', { name: recoveryReply, exact: true })).toHaveCount(0)
     await page.goto('/game/loadout/items')
     await page.getByRole('button', { name: /Slot \d+: Trial fixture blade/ }).click()
     await page
@@ -2021,3 +2041,119 @@ test('an authored Mentor challenge grants defeat XP and unlocks reward-free prac
 test('an authored Mentor challenge gives no reward or practice after surrender', async ({
   page,
 }, info) => completeMentorChallenge(page, info, 'Surrender'))
+
+test('@npc-dialogue rehearses and publishes branching NPC dialogue, then follows selected replies from Nearby', async ({
+  page,
+}, info) => {
+  test.skip(info.project.name === 'laptop-chromium', 'Exercise desktop and phone dialogue.')
+  test.setTimeout(90_000)
+  const host = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://invalid').hostname
+  if (!['127.0.0.1', 'localhost'].includes(host))
+    throw new Error('The branching dialogue browser fixture requires disposable Supabase.')
+
+  const npcId = randomUUID()
+  const token = npcId.replaceAll('-', '')
+  const email = `dialogue-owner-${token}@example.test`
+  const name = `Harbor watch ${token.slice(0, 6)}`
+  await createAccountAndEnterCharacter({
+    page,
+    email,
+    password: 'Dialogue-rehearsal-2026!',
+    characterName: `Watch ${token.slice(0, 12).replace(/\d/g, (digit) => String.fromCharCode(65 + Number(digit)))}`,
+  })
+  const userId = localUserId(email)
+  fixtureEventOwner = userId
+  fixtureWorldNpc = npcId
+  const readWorld = async (): Promise<WorldView> => {
+    const response = await page.request.get('/api/world')
+    expect(response.ok()).toBe(true)
+    return response.json()
+  }
+  const { position } = await readWorld()
+  const draft = {
+    name,
+    portraitRef: null,
+    uses: ['world'],
+    arena: null,
+    world: { ...position, radius: 2, greeting: 'What brings you to the watch?' },
+  }
+  queryLocalDatabase(`
+    begin;
+    insert into app_private.master_panel_role_assignments(user_id,role)
+      values('${userId}','game-owner');
+    select public.write_master_npc_design_v1('${userId}',null,'${npcId}',0,'save',
+      '${escapeSqlLiteral(JSON.stringify(draft))}'::jsonb);
+    commit;
+  `)
+  await page.goto(`/master/npc-design?npc=${npcId}`)
+  const author = page.getByRole('group', { name: 'Conversation replies', exact: true })
+  const edit = async (reply: string, choice: string, speech: string) => {
+    const group = author.getByRole('group', { name: `Reply ${reply}`, exact: true })
+    await group.getByLabel('Player choice', { exact: true }).first().fill(choice)
+    await group.getByLabel('NPC response', { exact: true }).first().fill(speech)
+  }
+  const watchReport = 'A ship sounded its bell at dawn.'
+  const tideReport = 'The water is falling past the breakwater.'
+  const trailReport = 'Look for the lantern below the ridge.'
+  await author.getByRole('button', { name: 'Add greeting reply' }).click()
+  await edit('1', 'Ask about the watch', watchReport)
+  await author.getByRole('button', { name: 'Add follow-up to reply 1', exact: true }).click()
+  await edit('1.1', 'Ask where to look', trailReport)
+  await author.getByRole('button', { name: 'Add greeting reply' }).click()
+  await edit('2', 'Ask about the tide', tideReport)
+
+  await page.getByRole('button', { name: 'Rehearse greeting' }).click()
+  const dialogue = page.getByRole('dialog', { name })
+  await dialogue.getByRole('button', { name: 'Ask about the watch' }).click()
+  await expect(dialogue.getByText(watchReport)).toBeVisible()
+  await dialogue.getByRole('button', { name: 'Ask where to look' }).click()
+  await expect(dialogue.getByText(trailReport)).toBeVisible()
+  await dialogue.getByRole('button', { name: 'History' }).click()
+  await expect(dialogue.getByRole('region', { name: 'Dialogue content' })).toContainText(
+    watchReport,
+  )
+  await dialogue.getByRole('button', { name: 'End conversation' }).click()
+  expect((await readWorld()).interactions.some(({ speakerId }) => speakerId === npcId)).toBe(false)
+  await page.getByRole('button', { name: 'Save draft', exact: true }).click()
+  await expect(page.getByText('Draft saved.', { exact: true })).toBeVisible()
+  await page
+    .getByRole('region', { name: 'World character', exact: true })
+    .getByRole('button', { name: 'Commit now' })
+    .click()
+  await expect(page.getByText('World character committed.', { exact: true })).toBeVisible()
+
+  await expect
+    .poll(
+      async () =>
+        (await readWorld()).interactions.find(({ speakerId }) => speakerId === npcId)?.narrative
+          ?.replies,
+    )
+    .toEqual(['Ask about the watch', 'Ask about the tide'])
+  const start = await readWorld()
+  expect(JSON.stringify(start)).not.toContain(watchReport)
+  expect(JSON.stringify(start)).not.toContain(trailReport)
+  await page.goto('/game/world')
+  const details = page.getByRole('button', { name: 'Details', exact: true })
+  if (await details.isVisible()) await details.click()
+  await page.getByRole('tab', { name: /^Nearby/ }).click()
+  const talk = page
+    .locator(`[data-world-nearby-npc="${npcId}"]`)
+    .getByRole('button', { name: `Talk to ${name}` })
+  await talk.click()
+  await dialogue.getByRole('button', { name: 'Ask about the tide' }).click()
+  await expect(dialogue.getByText(tideReport)).toBeVisible()
+  await expect(dialogue.getByText(watchReport)).toHaveCount(0)
+  await dialogue.getByRole('button', { name: 'End conversation' }).click()
+  await expect(talk).toBeFocused()
+  await talk.click()
+  await dialogue.getByRole('button', { name: 'Ask about the watch' }).click()
+  await dialogue.getByRole('button', { name: 'Ask where to look' }).click()
+  await expect(dialogue.getByText(trailReport)).toBeVisible()
+  await page.screenshot({
+    path: info.outputPath('npc-branching-dialogue.png'),
+    animations: 'disabled',
+  })
+  const end = await readWorld()
+  expect(end.position).toEqual(start.position)
+  expect(end.version).toBe(start.version)
+})

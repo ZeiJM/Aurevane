@@ -32,6 +32,9 @@ vi.mock('@/server/character/character-profile-display-service', () => ({
 vi.mock('@/server/character/character-portrait-choice-service', () => ({
   loadCharacterPortraitChoice: async () => ({ available: true, changedAt: null }),
 }))
+vi.mock('@/server/character/character-appearance-service', () => ({
+  loadCharacterAppearance: async () => ({ remainingDesigns: 1, pendingImageUrl: null }),
+}))
 vi.mock('@/server/character/supabase-character-build-repository', () => ({
   createSupabaseCharacterBuildRepository: () => ({
     findActiveBuild: async () => ({
@@ -43,4 +46,5 @@ import CharacterTitlesPage from './page'
 it('shows the current programmed active Discipline instead of the original static foundation', async () => {
   const page = await CharacterTitlesPage()
   expect(page.props.disciplineName).toBe('Super Saiyan')
+  expect(page.props.remainingSpriteDesigns).toBe(1)
 })

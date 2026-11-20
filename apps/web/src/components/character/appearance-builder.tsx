@@ -4,8 +4,12 @@ import { useId, useMemo, useState, type CSSProperties } from 'react'
 import {
   APPEARANCE_CATALOG,
   APPEARANCE_EXPRESSIONS,
+  APPEARANCE_FACINGS,
   APPEARANCE_FRAME,
+  APPEARANCE_POSES,
   APPEARANCE_PRESETS,
+  paintedAppearanceBlueprint,
+  type PaintedAppearanceBlueprint,
   appearanceFrameIndex,
   compileAppearanceManifest,
   parseAppearanceBlueprint,
@@ -14,8 +18,16 @@ import {
   withLowerGarment,
   type AppearanceBlueprint,
   type AppearanceExpression,
+  type AppearanceFacing,
   type AppearanceManifest,
+  type AppearancePose,
 } from '@/appearance/appearance-manifest'
+import {
+  DEFAULT_PAINTED_LOOK,
+  PAINTED_FIELDS,
+  randomPaintedLook,
+  type PaintedLook,
+} from '@/appearance/appearance-painted-catalog'
 import {
   appearanceClothingConflict,
   WARDROBE_CUT_LABELS,
@@ -72,6 +84,61 @@ function randomizeOutfit(value: AppearanceBlueprint, parts: readonly Field[]) {
   return withCuff(withLower, cuff) ?? withLower
 }
 
+const paintedLabels = {
+  identity: 'Character',
+  outerwear: 'Clothing style',
+  clothColor: 'Clothing color',
+  gear: 'Accessory style',
+  gearColor: 'Accessory color',
+  headwear: 'Headwear style',
+  headColor: 'Headwear color',
+  facewear: 'Face accessory style',
+  faceColor: 'Face accessory color',
+} satisfies Record<keyof PaintedLook, string>
+
+function PaintedOutfitFields({
+  value,
+  disabled,
+  onChange,
+}: {
+  value: PaintedAppearanceBlueprint
+  disabled: boolean
+  onChange: (next: PaintedAppearanceBlueprint) => void
+}) {
+  return (
+    <fieldset disabled={disabled}>
+      <legend>Painted outfit</legend>
+      <div className={styles.fields}>
+        {(Object.keys(PAINTED_FIELDS) as (keyof PaintedLook)[]).map((field) => (
+          <label key={field}>
+            {paintedLabels[field]}
+            <select
+              aria-label={paintedLabels[field]}
+              value={value[field]}
+              disabled={
+                (field === 'clothColor' && value.outerwear === 'none') ||
+                (field === 'gearColor' && value.gear === 'none') ||
+                (field === 'headColor' && value.headwear === 'none') ||
+                (field === 'faceColor' && value.facewear === 'none')
+              }
+              onChange={(event) => {
+                if (!Object.hasOwn(PAINTED_FIELDS[field], event.target.value)) return
+                onChange(paintedAppearanceBlueprint({ ...value, [field]: event.target.value }))
+              }}
+            >
+              {Object.entries(PAINTED_FIELDS[field]).map(([id, option]) => (
+                <option key={id} value={id}>
+                  {typeof option === 'string' ? option : option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  )
+}
+
 export function AppearanceBuilder({
   value,
   onChange,
@@ -86,9 +153,13 @@ export function AppearanceBuilder({
   const cuffHint = useId()
   const hasSeparateLowerLayer = supportsLowerGarment(value.coat)
   const hasCuffs = supportsCuff(value.coat)
-  const lower = value.v === 1 ? 'original' : value.lower
+  const lower = value.v === 2 || value.v === 3 ? value.lower : 'original'
   const cuff = value.v === 3 ? value.cuff : 'original'
+  const painted = value.v === 4 ? value : null
+  const editableGroups = painted ? [] : groups
   const [expression, setExpression] = useState<AppearanceExpression>('neutral')
+  const [facing, setFacing] = useState<AppearanceFacing>('south')
+  const [battlePose, setBattlePose] = useState<AppearancePose>('idle')
   const [initial] = useState(value)
   const [history, setHistory] = useState<AppearanceBlueprint[]>([])
   const [favorites, setFavorites] = useState<AppearanceBlueprint[]>([])
@@ -125,6 +196,34 @@ export function AppearanceBuilder({
             ))}
           </select>
         </label>
+        <div className={styles.previewControls}>
+          <label>
+            Facing
+            <select
+              value={facing}
+              onChange={(event) => setFacing(event.target.value as AppearanceFacing)}
+            >
+              {APPEARANCE_FACINGS.map((direction) => (
+                <option key={direction} value={direction}>
+                  {title(direction)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Battle pose
+            <select
+              value={battlePose}
+              onChange={(event) => setBattlePose(event.target.value as AppearancePose)}
+            >
+              {APPEARANCE_POSES.map((pose) => (
+                <option key={pose} value={pose}>
+                  {title(pose)}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
         <div className={styles.poses} aria-label="Appearance at gameplay sizes">
           <figure>
             <span className={styles.icon}>
@@ -133,8 +232,20 @@ export function AppearanceBuilder({
             </span>
             <figcaption>Icon</figcaption>
           </figure>
-          <PosePreview manifest={manifest} size={44} walk label="Field walk" />
-          <PosePreview manifest={manifest} size={55} label="Battle" />
+          <PosePreview
+            manifest={manifest}
+            size={44}
+            facing={facing}
+            pose="walk"
+            label="Field walk"
+          />
+          <PosePreview
+            manifest={manifest}
+            size={55}
+            facing={facing}
+            pose={battlePose}
+            label="Battle"
+          />
         </div>
       </div>
       <div className={styles.controls}>
@@ -146,9 +257,18 @@ export function AppearanceBuilder({
                 {preset.name}
               </button>
             ))}
+            <button
+              type="button"
+              onClick={() => update(paintedAppearanceBlueprint(DEFAULT_PAINTED_LOOK))}
+            >
+              Painted characters
+            </button>
           </div>
         </fieldset>
-        {groups.map(({ name, fields: parts }) => (
+        {painted ? (
+          <PaintedOutfitFields value={painted} disabled={disabled} onChange={update} />
+        ) : null}
+        {editableGroups.map(({ name, fields: parts }) => (
           <fieldset key={name} disabled={disabled}>
             <legend>{name}</legend>
             <div className={styles.fields}>
@@ -268,9 +388,15 @@ export function AppearanceBuilder({
           <button
             type="button"
             disabled={disabled}
-            onClick={() => update(randomizeOutfit(value, fields))}
+            onClick={() => {
+              if (!painted) {
+                update(randomizeOutfit(value, fields))
+                return
+              }
+              update(paintedAppearanceBlueprint(randomPaintedLook()))
+            }}
           >
-            Randomize all
+            Generate random sprite
           </button>
           <button
             type="button"
@@ -335,22 +461,24 @@ export function AppearancePortraitPreview({
 function PosePreview({
   manifest,
   size,
-  walk = false,
+  facing,
+  pose,
   label,
 }: {
   manifest: AppearanceManifest
   size: number
-  walk?: boolean
+  facing: AppearanceFacing
+  pose: AppearancePose
   label: string
 }) {
   const { columns, rows } = APPEARANCE_FRAME
-  const { column, row } = appearanceFrameIndex(walk ? 'east' : 'south', walk ? 'walk' : 'idle', 0)
+  const { column, row } = appearanceFrameIndex(facing, pose, 0)
   return (
     <figure>
       <span
         aria-hidden="true"
         className={styles.sprite}
-        data-walk={walk || undefined}
+        data-preview-motion={pose !== 'idle' && pose !== 'down' ? pose : undefined}
         style={
           {
             width: size,
@@ -371,7 +499,7 @@ function PosePreview({
 export async function loadAppearanceCandidate(blueprint: AppearanceBlueprint) {
   const manifest = compileAppearanceManifest(blueprint)
   await Promise.all(
-    [...Object.values(manifest.portraits), manifest.icon, manifest.atlas].map(
+    [...new Set([...Object.values(manifest.portraits), manifest.icon, manifest.atlas])].map(
       (src) =>
         new Promise<void>((resolve, reject) => {
           const image = new Image()

@@ -1,6 +1,10 @@
 'use client'
 
-import type { PersonalInventoryRestorationTrial } from '@aurevane/game-core/events/persistent-event'
+import {
+  RESTORATION_REPLY_LIMIT,
+  RESTORATION_ROUTE_LABELS,
+  type PersonalInventoryRestorationTrial,
+} from '@aurevane/game-core/events/persistent-event'
 import type { EventWorkspaceCatalogue } from '@/server/master/event-authoring-service'
 import { EventXpPackageField } from './event-xp-package-field'
 import { WorldEncounterPicker } from './world-encounter-picker'
@@ -54,6 +58,15 @@ export function InventoryRestorationTrialFields({
         />
       </div>
       <div className={`${styles.grid} ${styles.restorationTrialDialogue}`}>
+        <label>
+          Trial reply
+          <input
+            maxLength={RESTORATION_REPLY_LIMIT}
+            placeholder={RESTORATION_ROUTE_LABELS['choose-restoration-trial']}
+            value={trial.reply ?? ''}
+            onChange={(event) => changeTrial({ ...trial, reply: event.target.value || undefined })}
+          />
+        </label>
         {(
           [
             ['offer', 'Trial offer'],

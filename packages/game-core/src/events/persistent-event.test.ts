@@ -444,6 +444,15 @@ function restorationWith(restoration: unknown): PersistentEventDefinition {
 
 it('accepts a private combat trial with separate recovery and trial XP references', () => {
   expect(() => validatePersistentEventDefinition(restorationWith(trialRestoration))).not.toThrow()
+  expect(() =>
+    validatePersistentEventDefinition(
+      restorationWith({
+        ...trialRestoration,
+        recoveryReply: 'I will search the old road.',
+        trial: { ...trial, reply: 'I will face the sentinel.' },
+      }),
+    ),
+  ).not.toThrow()
 })
 
 it.each([
@@ -460,6 +469,7 @@ it.each([
   ['untrimmed trial guidance', { ...trialRestoration, trial: { ...trial, active: ' Return ' } }],
   ['missing trial ready dialogue', { ...trialRestoration, trial: { ...trial, ready: undefined } }],
   ['overlong trial offer', { ...trialRestoration, trial: { ...trial, offer: 'x'.repeat(801) } }],
+  ['overlong trial reply', { ...trialRestoration, trial: { ...trial, reply: 'x'.repeat(81) } }],
   [
     'missing trial reward',
     { ...trialRestoration, trial: { ...trial, rewardPackageRef: undefined } },

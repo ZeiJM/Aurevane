@@ -1,3 +1,4 @@
+import { FERRY_TERMINAL_NAME } from '@/world/ferry'
 import 'server-only'
 
 import { supercontinentTerrain } from './supercontinent-terrain'
@@ -876,6 +877,22 @@ const definitions: Record<VoidRealmId, RealmDefinition> = {
   },
 }
 
+const coastalFerryDocks = {
+  'ivory-veil': [1, 12, 1, 4, 'west'],
+  'amber-drowned': [1, 11, 8, 4, 'west'],
+  'cinder-choir': [6, 12, 4, 6, 'south'],
+  'glass-tides': [1, 11, 1, 4, 'west'],
+  'hollow-orchard': [1, 12, 3, 6, 'west'],
+  'starfall-basin': [1, 12, 4, 4, 'west'],
+  'violet-estuary': [1, 13, 6, 2, 'west'],
+  'clockwound-waste': [1, 12, 4, 4, 'west'],
+} as const
+
+export function voidRealmFerryDock(realmId: VoidRealmId) {
+  const [column, row, x, y, shoreSide] = coastalFerryDocks[realmId]
+  return { sectorId: voidSectorId(realmId, column, row), x, y, shoreSide }
+}
+
 const ellipseDistance = (x: number, y: number, [cx, cy, rx, ry]: Ellipse) =>
   ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2
 
@@ -976,6 +993,12 @@ function terrainAt(realmId: VoidRealmId, x: number, y: number): string {
     if (Math.abs(x - point[0]) <= 2 && Math.abs(y - point[1]) <= 1) return index === 0 ? 's' : '.'
   }
   const terrain = macroTerrain(realmId, x, y)
+  const [column, row, dockX, dockY] = coastalFerryDocks[realmId]
+  if (
+    Math.abs(x - (column * GRID_WIDTH + dockX)) + Math.abs(y - (row * GRID_HEIGHT + dockY)) <= 1 &&
+    terrainWalkable(terrain)
+  )
+    return 's'
   if (
     paths[realmId].some((path) => nearChannel(x, y, path)) ||
     definition.passages?.some((path) => nearChannel(x, y, path))
@@ -1095,6 +1118,15 @@ export function resolveVoidSector(id: string): WorldSector | null {
       kind: 'bridge',
       x: bridge[3],
       y: bridge[4],
+    })
+  const dock = voidRealmFerryDock(realmId)
+  if (dock.sectorId === id)
+    landmarks.push({
+      id: `${id}:ferry-terminal`,
+      name: FERRY_TERMINAL_NAME,
+      kind: 'waystone',
+      x: dock.x,
+      y: dock.y,
     })
   const roads: WorldSector['roads'][number][] = []
   const addCrossing = (

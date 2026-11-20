@@ -35,12 +35,14 @@ const trialDefinition = (key = 'event.fixture-restoration-trial') => ({
     restoration: {
       ...definition.inventoryDiscovery.restoration,
       recoveryRewardPackageRef: recoveryPackage,
+      recoveryReply: 'I will search the old road.',
       trial: {
         npcId: challenger,
         offer: 'Choose the trial to prove yourself.',
         active: 'Challenge the field guardian.',
         ready: 'Return to the forge after your victory.',
         rewardPackageRef: trialPackage,
+        reply: 'I will face the sentinel.',
       },
     },
   },
@@ -815,6 +817,9 @@ it('validates different budgeted XP rewards and a committed World encounter for 
   const noEncounter = trialDefinition()
   noEncounter.inventoryDiscovery.restoration.trial.npcId = giver
   await rejected(() => publish(noEncounter), 'EVENT_INVENTORY_RESTORATION_TRIAL_NPC_UNAVAILABLE')
+  const invalidReply = trialDefinition()
+  invalidReply.inventoryDiscovery.restoration.trial.reply = ' x'
+  await rejected(() => publish(invalidReply), 'EVENT_INVENTORY_RESTORATION_REPLY_INVALID')
   await publish(trialDefinition())
 })
 
@@ -825,6 +830,8 @@ it('requires a fresh owned World trial victory, uses one route, and grants only 
       action: 'choose-restoration',
       alternativeAction: 'choose-restoration-trial',
       trialOffer: 'Choose the trial to prove yourself.',
+      recoveryReply: 'I will search the old road.',
+      trialReply: 'I will face the sentinel.',
     }),
   ])
   expect((await read(owner, sibling)).personalQuests).toEqual([])
@@ -853,6 +860,8 @@ it('requires a fresh owned World trial victory, uses one route, and grants only 
     }),
   ])
   expect((await read()).personalQuests[0]).not.toHaveProperty('trialOffer')
+  expect((await read()).personalQuests[0]).not.toHaveProperty('trialReply')
+  expect((await read()).personalQuests[0]).not.toHaveProperty('recoveryReply')
   await (await challenge(1, { character: sibling })).finish()
   await (await challenge((await read()).state.version, { npc: otherChallenger })).finish()
   const conceded = await challenge((await read()).state.version)

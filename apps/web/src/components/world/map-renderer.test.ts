@@ -69,7 +69,13 @@ function legacyTownView(sectorId: string, x = 6, y = 4): WorldView {
 
 function scene(reduced = false, initial?: WorldView) {
   const images: { onload: (() => void) | null }[] = []
-  const fills: { colour: string; alpha: number; order: number; path: RecordedPath }[] = []
+  const fills: {
+    colour: string
+    alpha: number
+    order: number
+    path: RecordedPath
+    points: number[][]
+  }[] = []
   const rectangles: { colour: string; order: number }[] = []
   const ellipses: { point: { x: number; y: number }; order: number }[] = []
   const draws: {
@@ -130,6 +136,7 @@ function scene(reduced = false, initial?: WorldView) {
       fill() {
         fills.push({
           colour: this.fillStyle,
+          points: path.map((point) => [...point]),
           alpha: this.globalAlpha,
           order: ++drawOrder,
           path: recordedPath.map((part) => ({ ...part, points: [...part.points] })),
@@ -255,6 +262,7 @@ function scene(reduced = false, initial?: WorldView) {
       }
       complete = true
       naturalWidth = 1200
+      naturalHeight = 1200
       width = 1200
       height = 1200
       src = ''
@@ -429,6 +437,38 @@ function scene(reduced = false, initial?: WorldView) {
   }
 }
 describe('native map input and bounded lifecycle', () => {
+  it('paints the real deck art while keeping fixtures out of the map labels', () => {
+    const departureAt = 1_800_000_000_000
+    const state = {
+      ...newWorldState(),
+      position: { sectorId: `ferry:outbound:${departureAt}`, x: 6, y: 4 },
+      ferry: {
+        direction: 'outbound' as const,
+        departureAt,
+        arrivalAt: departureAt + 300_000,
+        warpedPhase: null,
+      },
+    }
+    const view = projectWorld(state, [], departureAt + 61_000)
+    const s = scene(true, view)
+    try {
+      s.frame(40)
+      expect(s.draws.map(({ src }) => src)).toEqual(
+        expect.arrayContaining([
+          '/media/art/world/runtime/ferry-deck-planks-v01.webp',
+          '/media/art/world/runtime/ferry-cabin-v01.webp',
+          '/media/art/world/runtime/ferry-sails-v01.webp',
+        ]),
+      )
+      expect(s.texts.map(({ text }) => text)).not.toContain('Stern cabin')
+      expect(s.texts.map(({ text }) => text)).not.toContain('Foremast')
+      expect(view.sectors[0]?.cells.find(({ x, y }) => x === 8 && y === 6)?.walkable).toBe(false)
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  })
+
   it('does not paint exploration fog over private terrain, including partial movement scenes', () => {
     const state = revealNearby({
       ...newWorldState(),
@@ -3262,6 +3302,129 @@ describe('native map input and bounded lifecycle', () => {
       }
     },
   )
+  it('defers a new desktop terrain projection while a route is being painted', () => {
+    const base = projectWorld(newWorldState(), [], 1000)
+    const position = { sectorId: 'dry-4', x: 6, y: 4 }
+    const sector = base.sectors.find(({ id }) => id === base.position.sectorId)!
+    const view = {
+      ...base,
+      position,
+      atlas: undefined,
+      scenery: [],
+      sectors: Array.from({ length: 9 }, (_, index) => ({
+        ...sector,
+        id: `dry-${index}`,
+        atlasColumn: index % 3,
+        atlasRow: Math.floor(index / 3),
+        buildings: [],
+        landmarks: [],
+        cells: sector.cells.map((cell) => ({ ...cell, terrain: '.', walkable: true })),
+      })),
+    }
+    const s = scene(true, view)
+    try {
+      Object.assign(s.canvas, { clientWidth: 800 })
+      s.resize()
+      s.renderer.settings({ animate: false, zoom: 1 })
+      s.canvas.dataset.renderDiagnostics = 'timing'
+      s.frame(40)
+      expect(JSON.parse(s.canvas.dataset.renderTiming!).projectedGroundSectors).toBeGreaterThan(0)
+
+      s.motion.plan(
+        [{ position: { ...view.position, x: view.position.x + 1 }, durationMs: 200 }],
+        view.sectors,
+        40,
+      )
+      // A decoded image invalidates existing raster layers while a route is active.
+      s.images[0]!.onload?.()
+      s.draws.length = 0
+      s.frame(80)
+      expect(JSON.parse(s.canvas.dataset.renderTiming!).projectedGroundSectors).toBe(0)
+      expect(s.draws.some(({ matrix }) => matrix[1] === 1.5 * MAP_Y)).toBe(true)
+      for (let at = 120; at <= 1800; at += 40) s.frame(at)
+      expect(JSON.parse(s.canvas.dataset.renderTiming!).projectedGroundSectors).toBeGreaterThan(0)
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  })
+  it('retains padded scenery without building a ground raster clipped by the viewport', () => {
+    const base = projectWorld(newWorldState(), [], 1000)
+    const sector = base.sectors.find(({ id }) => id === base.position.sectorId)!
+    const dry = {
+      ...sector,
+      buildings: [],
+      landmarks: [],
+      cells: sector.cells.map((cell) => ({ ...cell, terrain: '.' as const, walkable: true })),
+    }
+    const s = scene(true, {
+      ...base,
+      position: { sectorId: 'centre', x: 6, y: 4 },
+      atlas: undefined,
+      scenery: [],
+      sectors: [
+        { ...dry, id: 'centre', atlasColumn: 1, atlasRow: 1 },
+        { ...dry, id: 'outside', atlasColumn: 2, atlasRow: 0 },
+      ],
+    })
+    try {
+      s.canvas.dataset.renderDiagnostics = 'timing'
+      s.frame(40)
+      expect(JSON.parse(s.canvas.dataset.paintedGroundIds!)).toContain('outside')
+      expect(JSON.parse(s.canvas.dataset.renderTiming!).groundBuilds).toBe(1)
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  })
+  it('reuses the settled desktop sector bitmaps when movement outgrows the viewport composite', () => {
+    const base = projectWorld(newWorldState(), [], 1000)
+    const position = { sectorId: 'dry-4', x: 6, y: 4 }
+    const sector = base.sectors.find(({ id }) => id === base.position.sectorId)!
+    const view = {
+      ...base,
+      position,
+      atlas: undefined,
+      scenery: [],
+      sectors: Array.from({ length: 9 }, (_, index) => ({
+        ...sector,
+        id: `dry-${index}`,
+        atlasColumn: index % 3,
+        atlasRow: Math.floor(index / 3),
+        buildings: [],
+        landmarks: [],
+        cells: sector.cells.map((cell) => ({ ...cell, terrain: '.', walkable: true })),
+      })),
+    }
+    const s = scene(true, view)
+    try {
+      window.devicePixelRatio = 1
+      s.resize()
+      s.renderer.settings({ animate: false, zoom: 1 })
+      s.canvas.dataset.renderDiagnostics = 'timing'
+      s.frame(40)
+      expect(JSON.parse(s.canvas.dataset.renderTiming!).projectedGroundSectors).toBeGreaterThan(0)
+      const layers = s.layerCount()
+      s.motion.plan(
+        [7, 8, 9, 10].map((x) => ({ position: { ...position, x }, durationMs: 200 })),
+        view.sectors,
+        40,
+      )
+      s.renderer.update(view)
+      let usedSectorBitmaps = false
+      for (let at = 80; at <= 920; at += 40) {
+        s.frame(at)
+        if (JSON.parse(s.canvas.dataset.renderTiming!).projectedGroundSectors === 0) {
+          expect(s.layerCount()).toBe(layers)
+          usedSectorBitmaps = true
+        }
+      }
+      expect(usedSectorBitmaps).toBe(true)
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  })
   it('reuses the settled wide-zoom phone terrain projection without repainting its affine border', () => {
     const base = projectWorld(newWorldState(), [], 1000)
     const sector = base.sectors.find((candidate) => candidate.id === base.position.sectorId)!
@@ -4588,13 +4751,21 @@ it.each([
       buildings: [],
       cells: [
         { x: 6, y: 4, terrain: '.', walkable: true, safe: false },
-        { x: 7, y: 4, terrain: '~', walkable: false, safe: false },
+        { x: 7, y: 4, terrain: '.', walkable: true, safe: false },
+        { x: 8, y: 4, terrain: '~', walkable: false, safe: false },
       ],
     }
     const s = scene(true, { ...view, sectors: [sector], scenery: undefined })
     try {
       s.frame(40)
-      expect(s.rectangles.some(({ colour }) => colour === ground)).toBe(true)
+      const groundTint = s.fills.filter(({ colour }) => colour === ground)
+      expect(groundTint).toHaveLength(1)
+      expect(groundTint[0]).toMatchObject({ alpha: 0.68 })
+      const points = groundTint[0]!.points
+      expect(points).toHaveLength(8)
+      expect(points[1]).toEqual(points[4])
+      expect(points[2]).toEqual(points[7])
+      expect(s.rectangles.some(({ colour }) => colour === ground)).toBe(false)
       expect(s.gradients.some(({ stops }) => stops.some(([, colour]) => colour === water))).toBe(
         true,
       )
@@ -4665,7 +4836,7 @@ it.each([
       s.frame(40)
       expect(
         s.spriteDraws.filter(({ src }) =>
-          src.endsWith(privateScene ? 'biomes-v02.webp' : 'living-trees-v01.webp'),
+          src.endsWith(privateScene ? 'forest-variety-v01.webp' : 'living-trees-v01.webp'),
         ),
       ).toHaveLength(expectedTrees)
       expect(s.draws.some(({ src }) => src.endsWith('warped-landmarks-v01.webp'))).toBe(true)

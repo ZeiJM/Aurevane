@@ -7,11 +7,13 @@ import {
   appearanceManifestFromImageUrl,
   type AppearanceBlueprint,
 } from '@/appearance/appearance-manifest'
+import { PAINTED_IDENTITIES, PAINTED_CLOTHING } from '@/appearance/appearance-painted-catalog'
 import { AppearanceBuilderDialog } from '@/components/character/appearance-builder-dialog'
 import {
   NPC_VARIANT_BATCH_MAX,
   NPC_VARIANT_BATCH_MIN,
   NPC_VARIANT_FIELDS,
+  NPC_PAINTED_VARIANT_FIELDS,
   type NpcVariantField,
   type NpcVariantRequest,
 } from '@/lib/npc-appearance-variants'
@@ -45,6 +47,17 @@ export function NpcAppearanceBatch({
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
 
+  const painted = base.v === 4 ? base : null
+  const fields = painted ? NPC_PAINTED_VARIANT_FIELDS : NPC_VARIANT_FIELDS
+  const allowed = vary.filter((field) => fields.includes(field))
+  const paintedLabels: Partial<Record<NpcVariantField, string>> = {
+    body: 'Character',
+    coat: 'Clothing style',
+    palette: 'Clothing color',
+    accessory: 'Accessory style',
+    hairColor: 'Accessory color',
+  }
+
   async function generate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (pending) return
@@ -59,7 +72,7 @@ export function NpcAppearanceBatch({
         body: JSON.stringify({
           base,
           count,
-          vary: uniform ? [] : vary,
+          vary: uniform ? [] : allowed,
           mode,
         } satisfies NpcVariantRequest),
       })
@@ -103,7 +116,9 @@ export function NpcAppearanceBatch({
             </label>
           </div>
           <p className={styles.hint}>
-            Palette: {base.palette}. Accessory: {base.accessory}.
+            {painted
+              ? `${PAINTED_IDENTITIES[painted.identity]} · ${PAINTED_CLOTHING[painted.outerwear]}`
+              : `Palette: ${base.palette}. Accessory: ${base.accessory}.`}
           </p>
           {canApproveUniforms ? (
             <label>
@@ -126,7 +141,7 @@ export function NpcAppearanceBatch({
             <legend>Features allowed to vary</legend>
             <p className={styles.hint}>Unchecked features stay the same for every candidate.</p>
             <div className={styles.variantFields}>
-              {NPC_VARIANT_FIELDS.map((field) => (
+              {fields.map((field) => (
                 <label key={field}>
                   <input
                     type="checkbox"
@@ -139,13 +154,13 @@ export function NpcAppearanceBatch({
                       )
                     }
                   />{' '}
-                  {fieldLabel(field)}
+                  {painted ? (paintedLabels[field] ?? fieldLabel(field)) : fieldLabel(field)}
                 </label>
               ))}
             </div>
           </fieldset>
         )}
-        <button type="submit" disabled={pending || (!uniform && vary.length === 0)}>
+        <button type="submit" disabled={pending || (!uniform && allowed.length === 0)}>
           {pending ? 'Generating…' : 'Generate previews'}
         </button>
         {error ? <p role="alert">{error}</p> : null}

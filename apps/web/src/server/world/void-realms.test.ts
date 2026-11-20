@@ -11,7 +11,12 @@ import {
 } from '@/world/void-realms'
 import { findWorldRoute, isSafe, isWalkable } from '@/world/travel'
 import type { WorldSector } from '@/world/types'
-import { resolveVoidSector, voidRealmLanding, voidRealmScenery } from './void-realms'
+import {
+  resolveVoidSector,
+  voidRealmFerryDock,
+  voidRealmLanding,
+  voidRealmScenery,
+} from './void-realms'
 
 const sectorsFor = (id: (typeof VOID_REALMS)[number]['id']) =>
   Array.from({ length: VOID_REALM_ROWS }, (_, row) =>
@@ -123,14 +128,24 @@ describe('authored private Void worlds', () => {
           sectorId: sector.id,
         })),
       )
-      expect(focal).toHaveLength(13)
-      expect(new Set(focal.map((landmark) => landmark.name)).size).toBe(13)
+      expect(focal).toHaveLength(14)
+      expect(new Set(focal.map((landmark) => landmark.name)).size).toBe(14)
       expect(focal.some((landmark) => landmark.kind === 'hamlet')).toBe(true)
       expect(focal.some((landmark) => landmark.sceneryIndex !== undefined)).toBe(true)
       expect(focal.some((landmark) => landmark.warpedArt !== undefined)).toBe(true)
       const landing = voidRealmLanding(realm.id)
       expect(landing).toMatchObject({ x: 6, y: 4 })
       expect(isSafe(lookup.get(landing.sectorId)!, landing)).toBe(true)
+      const dock = voidRealmFerryDock(realm.id)
+      const terminal = lookup.get(dock.sectorId)!
+      expect(isSafe(terminal, dock)).toBe(true)
+      expect(
+        terminal.rows[dock.y + (dock.shoreSide === 'south' ? 1 : 0)]?.[
+          dock.x - (dock.shoreSide === 'west' ? 1 : 0)
+        ],
+      ).toBe('~')
+      expect(findWorldRoute(dock, landing, sectors)).not.toBeNull()
+      expect(findWorldRoute(dock, { ...dock, x: dock.x + 2 }, [terminal])).toHaveLength(2)
       let walkable = 0,
         water = 0,
         rock = 0

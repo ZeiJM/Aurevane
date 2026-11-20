@@ -37,7 +37,7 @@ import {
   visibleSectors,
 } from './world-content'
 import { worldArchiveEntries } from './world-archive'
-import { projectWorldFerry } from './world-ferry'
+import { projectWorldFerry, worldFerryDock } from './world-ferry'
 import { atlasAddress, atlasSectors } from '@/world/atlas'
 import { GRAND_DISCOVERY_SITES, type GrandDiscoveryId } from '@/world/discovery-sites'
 import { grandDiscoveryPlacements } from '@/components/world/map-grand-discoveries'
@@ -214,8 +214,8 @@ export function resolveWorldIntent(
     // applied first, so a new click never pulls a walking character back to a stale tile.
     const walking = advanceWorldRoute(state, now)
     const origin = walking.position
-    const sectors = visibleSectors(state)
-    const route = findWorldRoute(origin, destination, sectors, (p) => isKnown(state, p))
+    const sectors = visibleSectors(walking)
+    const route = findWorldRoute(origin, destination, sectors, (p) => isKnown(walking, p))
     if (!route) invalid('There is no known walkable route to that location.')
     // Replanning never accelerates movement: a step already under way keeps its schedule,
     // otherwise the first new step waits a full interval.
@@ -224,8 +224,7 @@ export function resolveWorldIntent(
     // A step under way keeps its deadline. Every new authoritative step costs its full
     // interval; the immediate client preview does not grant an instant server step.
     next = {
-      ...state,
-      position: origin,
+      ...walking,
       route: route!.slice(0, MAX_PERSISTED_ROUTE_STEPS),
       routeDestination: route!.length > MAX_PERSISTED_ROUTE_STEPS ? destination : null,
       routeObjectiveId: intent.kind === 'autopath' ? intent.objectiveId : null,
@@ -407,11 +406,15 @@ export function projectWorldSector(state: WorldState, sector: WorldSector): Worl
       return cell && !cell.safe && cell.walkable && (cell.terrain === '.' || cell.terrain === 't')
     })
   const legacyTrail = /^trail:.*:(\d+)$/.exec(sector.id)
+  const ferryDock = worldFerryDock(sector.id)
   return {
     ...publicSector,
     ...(projectedImpact ? { impactSite } : {}),
     ...(revealedScenery ? { warpedScenery } : {}),
     ...(legacyTrail ? { atlasColumn: Number(legacyTrail[1]), atlasRow: 0 } : {}),
+    ...(ferryDock && cells.some(({ x, y }) => x === ferryDock.x && y === ferryDock.y)
+      ? { ferryDock: { x: ferryDock.x, y: ferryDock.y, shoreSide: ferryDock.shoreSide } }
+      : {}),
     cells,
     landmarks: sector.landmarks.filter((p) => isKnown(state, { ...p, sectorId: sector.id })),
     exits: roads.filter((road) => isKnown(state, road.from) && isKnown(state, road.to)),

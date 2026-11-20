@@ -257,7 +257,11 @@ function validateDefinition(definition: unknown): EventDefinitionValidationResul
       }
       typed.phases.forEach((phase, phaseIndex) => {
         phase.objectives.forEach((objective, objectiveIndex) => {
-          if (objective.completion !== 'world-arrival') return
+          if (
+            objective.completion !== 'world-arrival' &&
+            objective.completion !== 'world-npc-result'
+          )
+            return
           if (!isWalkableEventDestination(objective.worldNavigation!)) {
             issues.push({
               path: `phases[${phaseIndex}].objectives[${objectiveIndex}].worldNavigation`,

@@ -20,6 +20,7 @@ import { structuralTerrainAt } from './discovery-collision'
 import { mountainFrontierAt, mountainFrontierPass } from './mountain-frontier'
 import { trimRoadShorelines } from './road-shorelines'
 import { TOWN_OUTSKIRTS } from './town-extents'
+import { FERRY_MAINLAND_DOCK, FERRY_TERMINAL_LANDMARK, FERRY_TERMINAL_NAME } from './ferry'
 import type { WorldBuilding, WorldLandmark, WorldRoad, WorldSector } from './types'
 import { ATLAS_COLUMNS, ATLAS_ROWS, atlasNeighbor, wrappedColumnDistance } from './topology'
 
@@ -686,11 +687,21 @@ export function atlasSectors(): readonly WorldSector[] {
               if (grid[landmark.y + dy]?.[landmark.x + dx] === 't')
                 grid[landmark.y + dy]![landmark.x + dx] = '.'
       }
+      // The dock is already walkable. Its art and map label leave coast crossings intact.
+      if (id === FERRY_MAINLAND_DOCK.sectorId)
+        landmarks.push({
+          id: FERRY_TERMINAL_LANDMARK,
+          name: FERRY_TERMINAL_NAME,
+          kind: 'waystone',
+          x: FERRY_MAINLAND_DOCK.x,
+          y: FERRY_MAINLAND_DOCK.y,
+        })
       sectors.push({
         ...authored,
         id,
         name:
           authored?.name ??
+          (id === FERRY_MAINLAND_DOCK.sectorId ? FERRY_TERMINAL_NAME : undefined) ??
           grandDiscoverySectorName(id) ??
           (scenicCenter
             ? scenic.name

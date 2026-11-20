@@ -40,6 +40,7 @@ import { loadPublicCharacterProfileImageMap } from '@/server/character/character
 import { projectWorld } from './world-service'
 import { localRoute, WorldMotion } from '@/components/world/world-motion'
 import { mergeWorldMovement } from '@/world/movement-receipt'
+import { resolveSector } from './world-content'
 import { WorldController } from '@/components/world/world-controller'
 
 const characterId = '00000000-0000-4000-8000-000000000011'
@@ -249,6 +250,32 @@ it('uses the normalized committed snapshot and database-anchored elapsed display
   }
 })
 
+it('supplies the approaching sector so an approved crossing can animate before scene hydration', async () => {
+  const boundary = resolveSector('atlas:126:32')!.roads.find(
+    (road) => road.to.sectorId === 'atlas:126:33',
+  )!
+  const initial = { ...payload(), state: { ...newWorldState(), position: boundary.from } }
+  rpc.mockImplementation(async (name: string, args: { p_next_state?: WorldState }) => ({
+    data: name === 'commit_world_state_v1' ? { ...args.p_next_state, version: 2 } : initial,
+  }))
+  const receipt = await commitWorldCommand(
+    'owner',
+    characterId,
+    { ...command, intent: { kind: 'walk', destination: boundary.to } },
+    true,
+  )
+  const view = { ...projectWorld(initial.state, [], initial.serverNow), characterId }
+  const before = { ...view, sectors: view.sectors.filter(({ id }) => id !== boundary.to.sectorId) }
+  expect(receipt.upcomingSector?.id).toBe(boundary.to.sectorId)
+  const approved = mergeWorldMovement(before, receipt)
+  const motion = new WorldMotion(approved)
+  expect(motion.sample(receipt.route[0]!.durationMs + 1).position).toEqual(boundary.to)
+  expect(rpc.mock.calls.map(([name]) => name)).toEqual([
+    'read_world_state_v1',
+    'commit_world_state_v1',
+  ])
+})
+
 it.each(['stop', 'partial receipt', 'advanced version', 'existing block'] as const)(
   'retains the fresh authority read for %s',
   async (caseName) => {
@@ -294,6 +321,7 @@ it.each(['WORLD_TRAINING_ACTIVE', 'WORLD_SPECTATING', 'WORLD_ACTIVE_BATTLE'])(
     const initial = payload()
     const view = { ...projectWorld(initial.state, [], initial.serverNow), characterId }
     let committed: WorldState | undefined
+    let approvedAt = initial.serverNow
     rpc.mockImplementation(async (name: string, args: { p_next_state?: WorldState }) => {
       if (name === 'commit_world_state_v1') {
         committed = { ...args.p_next_state!, version: 2 }
@@ -307,23 +335,25 @@ it.each(['WORLD_TRAINING_ACTIVE', 'WORLD_SPECTATING', 'WORLD_ACTIVE_BATTLE'])(
           state: battle ? { ...committed, version: 3, route: [], nextStepAt: null } : committed,
           blocked,
           battleSessionId: battle ? 'committed-world-battle' : null,
-          serverNow: 5500,
+          // This read represents a block created after the movement approval.
+          // Fixture time must follow that receipt even when route planning runs slowly.
+          serverNow: approvedAt + 500,
         },
       }
     })
     const motion = new WorldMotion(view, 0)
     const accepts: boolean[] = []
     const controller = new WorldController(view, {
-      command: async (intent, source) =>
-        mergeWorldMovement(
-          source,
-          await commitWorldCommand(
-            'owner',
-            characterId,
-            { ...command, expectedVersion: source.version, intent },
-            true,
-          ),
-        ),
+      command: async (intent, source) => {
+        const receipt = await commitWorldCommand(
+          'owner',
+          characterId,
+          { ...command, expectedVersion: source.version, intent },
+          true,
+        )
+        approvedAt = receipt.serverNow
+        return mergeWorldMovement(source, receipt)
+      },
       refresh: async () => (await readWorld('owner', characterId)).view,
       accept: (next, reconcile) => {
         accepts.push(reconcile)

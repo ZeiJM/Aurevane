@@ -43,7 +43,7 @@ join app_private.discipline_primary_profiles profile on profile.discipline_id=de
   and profile.profile_version=definition.primary_profile_version;
 
 insert into app_private.character_world_state(character_id,state,last_seen_at)
-select c.id,'{"version":1,"position":{"sectorId":"atlas:126:32","x":6,"y":4},"safe":true,"route":[],"nextStepAt":null,"discoveries":{},"completedObjectives":[]}'::jsonb,clock_timestamp()
+select c.id,'{"version":1,"position":{"sectorId":"atlas:126:33","x":6,"y":8},"safe":true,"route":[],"nextStepAt":null,"discoveries":{},"completedObjectives":[]}'::jsonb,clock_timestamp()
 from public.characters c where c.id in (
   '85000000-0000-4000-8000-000000000011',
   '85000000-0000-4000-8000-000000000012',
@@ -59,7 +59,7 @@ declare
   observer uuid := '85000000-0000-4000-8000-000000000003';
   observer_character uuid := '85000000-0000-4000-8000-000000000013';
   deck text := 'ferry:outbound:1800000000000';
-  dock jsonb := '{"sectorId":"atlas:126:32","x":6,"y":4}';
+  dock jsonb := '{"sectorId":"atlas:126:33","x":6,"y":8}';
   captain_state jsonb;
   companion_state jsonb;
   payload jsonb;
@@ -75,7 +75,7 @@ begin
   payload := public.read_world_live_players_v1(captain,captain_character,2);
   assert payload->>'registered' = 'true';
   assert payload#>>'{players,0,characterId}' = companion_character::text;
-  payload := public.read_world_scene_players_v2(observer,observer_character,1,array['atlas:126:32'],dock);
+  payload := public.read_world_scene_players_v2(observer,observer_character,1,array['atlas:126:33'],dock);
   assert jsonb_array_length(payload->'players') = 0;
 end;
 $$;

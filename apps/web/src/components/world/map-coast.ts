@@ -1,8 +1,8 @@
 import { GRID_HEIGHT, GRID_WIDTH } from '@/world/catalog'
 import { hashString } from '@/world/terrain-gen'
-import type { WorldView } from '@/world/types'
-import { atlasNeighbor, WORLD_MAP_WIDTH } from '@/world/topology'
-import { MAP_Y, projectMapPoint, unprojectMapPoint } from './map-projection'
+import type { WorldSectorView, WorldView } from '@/world/types'
+import { atlasNeighbor, WORLD_MAP_WIDTH, wrapAtlasColumn } from '@/world/topology'
+import { MAP_X, MAP_Y, projectMapPoint, unprojectMapPoint } from './map-projection'
 import type { MapPoint } from './world-motion'
 import type { SurfaceWeather } from './map-water'
 
@@ -13,6 +13,49 @@ export interface CoastEdge {
   seed: number
   openStart: boolean
   openEnd: boolean
+}
+
+/** A conservative proof that supplied opaque public ground hides the open sea. */
+export function publicGroundCoversViewport(
+  sectors: readonly WorldSectorView[],
+  coasts: ReadonlyMap<string, readonly CoastEdge[]>,
+  camera: MapPoint,
+  tile: number,
+  width: number,
+  height: number,
+) {
+  if (
+    ![width, height, tile, camera.x, camera.y].every(Number.isFinite) ||
+    tile <= 0 ||
+    width <= 0 ||
+    height <= 0
+  )
+    return false
+  const ground = new Set<string>()
+  for (const sector of sectors) {
+    if (
+      sector.charted &&
+      sector.atlasColumn !== undefined &&
+      sector.atlasRow !== undefined &&
+      !sector.warpedTheme &&
+      coasts.get(sector.id)?.length === 0
+    )
+      ground.add(`${sector.atlasColumn}:${sector.atlasRow}`)
+  }
+  // The enclosing world rectangle deliberately includes more than the rotated
+  // viewport. Leave room for the filtered edge of the last backing pixel.
+  const horizontal = (width / 2 + 2) / (tile * MAP_X)
+  const vertical = (height / 2 + 2) / (tile * MAP_Y)
+  const extent = (horizontal + vertical) / 2
+  const left = Math.floor((camera.x - extent) / GRID_WIDTH)
+  const right = Math.floor((camera.x + extent) / GRID_WIDTH)
+  const top = Math.floor((camera.y - extent) / GRID_HEIGHT)
+  const bottom = Math.floor((camera.y + extent) / GRID_HEIGHT)
+  if ((right - left + 1) * (bottom - top + 1) > ground.size) return false
+  for (let row = top; row <= bottom; row++)
+    for (let column = left; column <= right; column++)
+      if (!ground.has(`${wrapAtlasColumn(column)}:${row}`)) return false
+  return true
 }
 const offsets = [
   [0, -1],

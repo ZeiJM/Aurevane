@@ -16,6 +16,7 @@ import {
   getActiveSpectatingForUser,
 } from '@/server/account/active-game-session'
 import { getAuthenticatedActor } from '@/server/auth/actor'
+import { loadCharacterAppearance } from '@/server/character/character-appearance-service'
 import { loadCharacterPortraitChoice } from '@/server/character/character-portrait-choice-service'
 import { loadCharacterProfileDisplay } from '@/server/character/character-profile-display-service'
 import { loadCharacterTitleState } from '@/server/character/character-title-service'
@@ -62,13 +63,19 @@ export default async function CharacterTitlesPage() {
   const character = selectedCharacterResult.value
   if (activeBattle) {
     if (!character) redirect(`/game/battle/${activeBattle.battleSessionId}`)
+    const appearance = await loadCharacterAppearance(actor.userId, character.id)
     return (
       <SettingsScene
         title="Character appearance"
         description="You can preview a new look now. It will activate after your battle ends."
       >
         <Link href={`/game/battle/${activeBattle.battleSessionId}`}>Return to battle</Link>
-        <CharacterAppearanceSettings characterId={character.id} />
+        <CharacterAppearanceSettings
+          key={character.id}
+          characterId={character.id}
+          initialRemainingDesigns={appearance.remainingDesigns}
+          initialPending={Boolean(appearance.pendingImageUrl)}
+        />
       </SettingsScene>
     )
   }
@@ -77,13 +84,15 @@ export default async function CharacterTitlesPage() {
   let portraitChoice
   let displayState
   let activeBuild
+  let appearance
   try {
     if (!character) redirect('/game')
-    ;[titleState, displayState, portraitChoice, activeBuild] = await Promise.all([
+    ;[titleState, displayState, portraitChoice, activeBuild, appearance] = await Promise.all([
       loadCharacterTitleState(actor.userId, character.id),
       loadCharacterProfileDisplay(actor.userId, character.id),
       loadCharacterPortraitChoice(actor.userId, character.id),
       createSupabaseCharacterBuildRepository().findActiveBuild(actor.userId, character.id),
+      loadCharacterAppearance(actor.userId, character.id),
     ])
   } catch (error) {
     if (isAurevaneError(error) && error.code === 'PERSISTENCE_UNAVAILABLE') {
@@ -107,6 +116,8 @@ export default async function CharacterTitlesPage() {
       portraitRef={character.portraitRef}
       portraitChoiceAvailable={portraitChoice.available}
       portraitChoiceUsedAt={portraitChoice.changedAt}
+      remainingSpriteDesigns={appearance.remainingDesigns}
+      pendingSpriteDesign={Boolean(appearance.pendingImageUrl)}
     />
   )
 }
