@@ -19,15 +19,17 @@ a shared debrief.
 
 ## Player and NPC design
 
-The expanded wardrobe has 232 entries across its controls. These include
+The expanded wardrobe has 253 entries across its controls. These include
 four painted identities, six builds, thirteen skin tones, nine clothing
 styles, eight carried accessories, four headwear styles, four face accessories,
 and the options to leave each wearable slot empty. Each wearable slot has its
-own original finish and forty-four dyes. Twelve of the wearable styles use
-newly painted four-facing cutouts. The skin masks preserve shading and leave
-the hair and clothing outside the recoloring regions.
+own original finish and forty-four dyes. The wardrobe also offers three alternate
+hairstyles, eight hair colors, and seven iris colors with an original option for
+each. Twelve of the wearable styles use
+newly painted four-facing cutouts. The skin masks preserve shading. Hair and iris dyes have their own regions
+in each painted portrait expression and on the field sprite.
 
-The new recipes use immutable version 5 media URLs and retain the five portrait
+The optional feature suffix keeps earlier version 5 URLs valid and retains the five portrait
 expressions and four-facing field and battle atlas. NPC Design previews its
 draft portrait and applicable actors. The shared builder supports random
 designs, and NPC batches can vary selected fields while keeping the others.
@@ -44,5 +46,8 @@ media assets per recipe. All 35 legacy responses matched byte for byte.
 The Chromium fixture uses the real authoring components and asset routes with
 local HTTP and session fixtures. It covers phase navigation, route priority,
 timed draft changes, and the expanded NPC builder at desktop and phone widths.
-It also covers the authoring layout at 200% zoom. Physical handset and hosted
-signed-in acceptance remain open.
+It also covers the authoring layout at 200% zoom. The local feature follow-up
+passed the Chromium fixture at 1366×768 and 390×844, 25 focused application
+tests, and the disposable database save-and-lock test. The updated signed-in
+Browser Smoke scenario exercises final Account save of a new painted recipe.
+Hosted signed-in verification and physical handset acceptance remain open.

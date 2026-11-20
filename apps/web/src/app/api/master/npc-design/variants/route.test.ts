@@ -5,7 +5,7 @@ import {
   appearanceManifestFromImageUrl,
   wardrobeAppearanceBlueprint,
 } from '@/appearance/appearance-manifest'
-import { wardrobeLook } from '@/appearance/appearance-painted-wardrobe'
+import { PAINTED_WARDROBE_FIELDS, wardrobeLook } from '@/appearance/appearance-painted-wardrobe'
 
 const mocks = vi.hoisted(() => ({
   requireCapability: vi.fn(),
@@ -88,6 +88,27 @@ it('builds NPC variants with independent body, skin and accessories while keepin
       gearColor: 'gold',
     })
   expect((await route.POST(request({ ...body, vary: ['skinTone'] }))).status).toBe(400)
+})
+
+it('supports NPC variations by hairstyle and eye color and across the full wardrobe', async () => {
+  const look = wardrobeAppearanceBlueprint({ ...wardrobeLook(), hairDye: 'auburn' })
+  const response = await route.POST(
+    request({ ...body, base: look, vary: ['hairstyle', 'eyeColor'] }),
+  )
+  expect(response.status).toBe(200)
+  const { candidates } = (await response.json()) as { candidates: string[] }
+  expect(new Set(candidates).size).toBe(4)
+  for (const candidate of candidates)
+    expect(appearanceManifestFromImageUrl(candidate)?.blueprint).toMatchObject({
+      hairDye: 'auburn',
+    })
+
+  const fullWardrobe = await route.POST(
+    request({ ...body, base: look, count: 8, vary: Object.keys(PAINTED_WARDROBE_FIELDS) }),
+  )
+  expect(fullWardrobe.status).toBe(200)
+  const variants = (await fullWardrobe.json()) as { candidates: string[] }
+  expect(new Set(variants.candidates).size).toBe(8)
 })
 
 it('rejects oversized and forged requests before checking any active looks', async () => {

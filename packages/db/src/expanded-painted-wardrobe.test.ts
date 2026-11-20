@@ -6,7 +6,7 @@ it('uses the existing Creation, Account and NPC authority for expanded painted d
   const actor = 'a8450000-0000-4000-8000-000000000001'
   const recipe =
     '/api/media/appearance/5/scout.brigandine.ink.journal.cedar.furcap.walnut.mask.pewter.strong.honey/neutral.svg'
-  const final = recipe.replace('.strong.honey', '.stocky.espresso')
+  const final = recipe.replace('.strong.honey', '.stocky.espresso.topknot.silver.green')
   try {
     await db.query('insert into auth.users(id,email,email_confirmed_at) values($1,$2,now())', [
       actor,
@@ -32,9 +32,15 @@ it('uses the existing Creation, Account and NPC authority for expanded painted d
       db.query('select app_private.valid_npc_appearance_v1(to_jsonb($1::text)) as valid', [
         candidate,
       ])
-    await expect(verifyNpc(recipe)).resolves.toMatchObject({ rows: [{ valid: true }] })
+    for (const valid of [recipe, final]) {
+      await expect(verifyNpc(valid)).resolves.toMatchObject({ rows: [{ valid: true }] })
+    }
     for (const invalid of [
       recipe.replace('.honey/', '.invalid/'),
+      recipe.replace('.honey/', '.honey.natural.natural.natural/'),
+      final.replace('.topknot.', '.invented.'),
+      final.replace('.silver.', '.red.'),
+      final.replace('.green/', '.ultraviolet/'),
       recipe.replace('.strong.', '.invalid.'),
       recipe.replace('.mask.', '.none.'),
       recipe.replace('.brigandine.', '.invented.'),

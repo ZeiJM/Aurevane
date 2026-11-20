@@ -25,6 +25,11 @@ import {
   paintedPortraitEquipment,
 } from './appearance-painted-equipment'
 import {
+  paintedFeatureComposite,
+  paintedFeatureDyes,
+  paintedHairSilhouette,
+} from './appearance-painted-features'
+import {
   WARDROBE_FRAMES,
   WARDROBE_SKIN_TONES,
   type PaintedWardrobeLook,
@@ -324,10 +329,16 @@ function paintedCharacterPortrait(
           256,
         )
       : ''
+  const featureDyes = blueprint.v === 5 ? paintedFeatureDyes(blueprint, expression) : ''
+  const featureComposite =
+    blueprint.v === 5 ? paintedFeatureComposite(blueprint, 'wardrobe-portrait') : ''
+  const hair = blueprint.v === 5 ? paintedHairSilhouette(blueprint) : ''
   const body = skin
     ? paintedSkinComposite('wardrobe-portrait')
-    : `<image href="${source}" width="256" height="256"/>`
-  const art = body + paintedPortraitEquipment(blueprint)
+    : featureDyes
+      ? '<use href="#wardrobe-portrait"/>'
+      : `<image href="${source}" width="256" height="256"/>`
+  const art = hair + body + featureComposite + paintedPortraitEquipment(blueprint)
   const framed =
     blueprint.headwear === 'arcanist'
       ? `<g transform="translate(31 76) scale(.76)">${art}</g>`
@@ -340,7 +351,7 @@ function paintedCharacterPortrait(
     size,
     `
     <defs><radialGradient id="paper"><stop stop-color="#8d8069"/><stop offset="1" stop-color="#29282d"/></radialGradient>
-    ${paintedEquipmentDyes(blueprint)}${skin ? `<image id="wardrobe-portrait" href="${source}" width="256" height="256"/>${skin}` : ''}</defs>
+    ${paintedEquipmentDyes(blueprint)}${skin || featureDyes ? `<image id="wardrobe-portrait" href="${source}" width="256" height="256"/>${skin}${featureDyes}` : ''}</defs>
     <rect width="${size}" height="${size}" fill="url(#paper)"/>${portrait}`,
   )
 }
@@ -411,11 +422,14 @@ function renderPaintedCharacterAtlas(blueprint: AnyPaintedAppearanceBlueprint) {
     blueprint.v === 5
       ? wardrobeSkinDye(blueprint, PAINTED_FIELD_SKIN_MASKS[identity], 512, 176)
       : ''
+  const featureDyes = blueprint.v === 5 ? paintedFeatureDyes(blueprint) : ''
+  const featureComposite =
+    blueprint.v === 5 ? paintedFeatureComposite(blueprint, 'wardrobe-body') : ''
   const scaling = blueprint.v === 5 ? WARDROBE_FRAMES[blueprint.bodyFrame].torsoScale : 1
   const hood = outerwear === 'hooded'
   const layers = [
-    skin
-      ? `<image id="wardrobe-body" href="${PAINTED_ACTORS[identity]}" width="512" height="176"/>${skin}<g id="painted-body">${paintedSkinComposite('wardrobe-body')}</g>`
+    skin || featureDyes
+      ? `<image id="wardrobe-body" href="${PAINTED_ACTORS[identity]}" width="512" height="176"/>${skin}${featureDyes}<g id="painted-body">${skin ? paintedSkinComposite('wardrobe-body') : '<use href="#wardrobe-body"/>'}${featureComposite}</g>`
       : paintedLayerDefinition('body', PAINTED_ACTORS[identity]),
   ]
   if (outerwear !== 'none')
@@ -427,7 +441,8 @@ function renderPaintedCharacterAtlas(blueprint: AnyPaintedAppearanceBlueprint) {
       ? art
       : `<g transform="translate(24) scale(${scaling} 1) translate(-24)">${art}</g>`
   const parts = APPEARANCE_FACINGS.map((facing) => {
-    const naturalBody = paintedLayer(facing, 'body')
+    const hair = blueprint.v === 5 ? paintedHairSilhouette(blueprint, facing) : ''
+    const naturalBody = hair + paintedLayer(facing, 'body')
     const head = `<g clip-path="url(#wardrobe-head)">${naturalBody}</g>`
     const body =
       scaling === 1

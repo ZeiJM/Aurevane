@@ -94,6 +94,36 @@ export const WARDROBE_SKIN_TONES = {
   espresso: { label: 'Espresso', rgb: [67, 45, 40] },
 } as const
 
+export const WARDROBE_HAIRSTYLES = {
+  natural: 'Original hairstyle',
+  topknot: 'High topknot',
+  braid: 'Shoulder braid',
+  waves: 'Long waves',
+} as const
+
+export const WARDROBE_HAIR_COLORS = {
+  natural: { label: 'Original hair color', rgb: null },
+  onyx: { label: 'Soft black', rgb: [58, 52, 55] },
+  chestnut: { label: 'Chestnut', rgb: [118, 75, 53] },
+  auburn: { label: 'Auburn', rgb: [152, 75, 50] },
+  honey: { label: 'Honey blond', rgb: [176, 137, 80] },
+  ash: { label: 'Ash blond', rgb: [177, 161, 135] },
+  silver: { label: 'Moon silver', rgb: [181, 182, 192] },
+  plum: { label: 'Black plum', rgb: [96, 67, 108] },
+  teal: { label: 'Sea glass', rgb: [75, 118, 109] },
+} as const
+
+export const WARDROBE_EYE_COLORS = {
+  natural: { label: 'Original eye color', rgb: null },
+  brown: { label: 'Warm brown', rgb: [134, 84, 50] },
+  amber: { label: 'Amber', rgb: [181, 125, 53] },
+  hazel: { label: 'Hazel', rgb: [140, 132, 74] },
+  green: { label: 'Moss green', rgb: [82, 132, 84] },
+  blue: { label: 'Glacier blue', rgb: [82, 133, 174] },
+  gray: { label: 'Storm gray', rgb: [131, 147, 156] },
+  violet: { label: 'Violet', rgb: [132, 99, 168] },
+} as const
+
 export const PAINTED_WARDROBE_FIELDS = {
   ...PAINTED_FIELDS,
   outerwear: WARDROBE_OUTERWEAR,
@@ -106,6 +136,9 @@ export const PAINTED_WARDROBE_FIELDS = {
   faceColor: WARDROBE_DYES,
   bodyFrame: WARDROBE_FRAMES,
   skinTone: WARDROBE_SKIN_TONES,
+  hairstyle: WARDROBE_HAIRSTYLES,
+  hairDye: WARDROBE_HAIR_COLORS,
+  eyeColor: WARDROBE_EYE_COLORS,
 } as const
 
 export type PaintedWardrobeLook = Readonly<{
@@ -124,13 +157,23 @@ export const PAINTED_WARDROBE_LABELS = {
   faceColor: 'Face accessory color',
   bodyFrame: 'Body build',
   skinTone: 'Skin tone',
+  hairstyle: 'Hairstyle',
+  hairDye: 'Hair color',
+  eyeColor: 'Eye color',
 } satisfies Record<keyof PaintedWardrobeLook, string>
 
+export const originalWardrobeFeatures = {
+  hairstyle: 'natural',
+  hairDye: 'natural',
+  eyeColor: 'natural',
+} as const
+
 export function wardrobeLook(look: PaintedLook = DEFAULT_PAINTED_LOOK): PaintedWardrobeLook {
-  return { bodyFrame: 'natural', skinTone: 'natural', ...look }
+  return { bodyFrame: 'natural', skinTone: 'natural', ...originalWardrobeFeatures, ...look }
 }
 
 export function wardrobeRecipe(look: PaintedWardrobeLook) {
+  const features = [look.hairstyle, look.hairDye, look.eyeColor] as const
   return [
     look.identity,
     look.outerwear,
@@ -143,22 +186,29 @@ export function wardrobeRecipe(look: PaintedWardrobeLook) {
     look.facewear === 'none' ? 'natural' : look.faceColor,
     look.bodyFrame,
     look.skinTone,
+    ...(features.some((feature) => feature !== 'natural') ? features : []),
   ] as const
 }
 
 const wardrobeFields = Object.keys(PAINTED_WARDROBE_FIELDS) as (keyof PaintedWardrobeLook)[]
+const originalFieldCount = wardrobeFields.length - Object.keys(originalWardrobeFeatures).length
 
 export function readWardrobeLook(values: readonly unknown[]): PaintedWardrobeLook | null {
-  if (values.length !== wardrobeFields.length) return null
-  for (const [index, field] of wardrobeFields.entries()) {
+  if (values.length !== originalFieldCount && values.length !== wardrobeFields.length) return null
+  const fields = wardrobeFields.slice(0, values.length)
+  for (const [index, field] of fields.entries()) {
     const value = values[index]
     if (typeof value !== 'string' || !Object.hasOwn(PAINTED_WARDROBE_FIELDS[field], value))
       return null
   }
-  const look = Object.fromEntries(
-    wardrobeFields.map((field, index) => [field, values[index]]),
-  ) as PaintedWardrobeLook
-  return wardrobeRecipe(look).every((value, index) => value === values[index]) ? look : null
+  const look = {
+    ...originalWardrobeFeatures,
+    ...Object.fromEntries(fields.map((field, index) => [field, values[index]])),
+  } as PaintedWardrobeLook
+  const recipe = wardrobeRecipe(look)
+  return recipe.length === values.length && recipe.every((value, index) => value === values[index])
+    ? look
+    : null
 }
 
 export function randomWardrobeLook(): PaintedWardrobeLook {

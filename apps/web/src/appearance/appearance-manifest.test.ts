@@ -12,6 +12,7 @@ import {
 import { renderAppearanceAsset } from './appearance-svg'
 import {
   PAINTED_WARDROBE_FIELDS,
+  WARDROBE_DYES,
   randomWardrobeLook,
   wardrobeLook,
 } from './appearance-painted-wardrobe'
@@ -42,7 +43,8 @@ it('renders expanded body builds, skin tones and garments distinctly with immuta
       (sum, field) => sum + Object.keys(field).length,
       0,
     ),
-  ).toBe(232)
+  ).toBe(253)
+  expect(Object.keys(WARDROBE_DYES)).toHaveLength(45)
   expect(appearance.appearanceManifestFromImageUrl(manifest.portraits.neutral)).toEqual(manifest)
   for (const asset of ['atlas', 'icon', ...appearance.APPEARANCE_EXPRESSIONS]) {
     const response = await GET(new Request('https://aurevane.invalid'), {
@@ -96,6 +98,44 @@ it('renders expanded body builds, skin tones and garments distinctly with immuta
     expect(appearance.parseAppearanceBlueprint(blueprint)).toEqual(blueprint)
   }
 })
+
+it('keeps old painted recipes stable and renders each new feature independently', async () => {
+  const make = appearance.wardrobeAppearanceBlueprint
+  const base = wardrobeLook()
+  const original = appearance.compileAppearanceManifest(make(base))
+  const { hairstyle, hairDye, eyeColor, ...oldBlueprint } = original.blueprint as ReturnType<
+    typeof make
+  >
+  expect([hairstyle, hairDye, eyeColor]).toEqual(['natural', 'natural', 'natural'])
+  expect(appearance.parseAppearanceBlueprint(oldBlueprint)).toEqual(original.blueprint)
+  expect(appearance.parseAppearanceBlueprint({ ...oldBlueprint, hairstyle: 'topknot' })).toBeNull()
+  expect(appearance.appearanceManifestFromImageUrl(original.portraits.neutral)).toEqual(original)
+  expect(
+    appearance.appearanceBlueprintFromId(original.id.slice(2) + '.natural.natural.natural', '5'),
+  ).toBeNull()
+
+  const changed = appearance.compileAppearanceManifest(
+    make({ ...base, hairstyle: 'braid', hairDye: 'auburn', eyeColor: 'green' }),
+  )
+  expect(changed.id).toBe(original.id + '.braid.auburn.green')
+  expect(appearance.appearanceManifestFromImageUrl(changed.portraits.neutral)).toEqual(changed)
+  expect(
+    appearance.appearanceBlueprintFromId(changed.id.slice(2).replace('.green', '.opaque'), '5'),
+  ).toBeNull()
+
+  for (const field of ['hairstyle', 'hairDye', 'eyeColor'] as const) {
+    for (const asset of ['neutral', 'atlas'] as const) {
+      const hashes = await Promise.all(
+        Object.keys(PAINTED_WARDROBE_FIELDS[field]).map(async (option) => {
+          const source = renderAppearanceAsset(make({ ...base, [field]: option }), asset)
+          const pixels = await sharp(Buffer.from(source)).ensureAlpha().raw().toBuffer()
+          return createHash('sha256').update(pixels).digest('hex')
+        }),
+      )
+      expect(new Set(hashes).size, `distinct ${field} in ${asset}`).toBe(hashes.length)
+    }
+  }
+}, 30_000)
 
 describe('manual appearance manifests', () => {
   it('compiles a portable manifest with exactly five expressions and stable immutable paths', () => {

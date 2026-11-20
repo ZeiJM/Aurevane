@@ -790,13 +790,16 @@ try {
       const wardrobe = page.getByRole('dialog', { name: 'Character appearance' })
       await wardrobe.getByLabel('Body build').selectOption('stocky')
       await wardrobe.getByLabel('Skin tone').selectOption('espresso')
+      await wardrobe.getByLabel('Hairstyle').selectOption('waves')
+      await wardrobe.getByLabel('Hair color').selectOption('auburn')
+      await wardrobe.getByLabel('Eye color').selectOption('violet')
       await wardrobe.getByLabel('Clothing style').selectOption('quilted')
       await wardrobe.getByLabel('Accessory style', { exact: true }).selectOption('rope')
       await wardrobe.getByLabel('Face accessory style').selectOption('mask')
       const portrait = wardrobe.getByRole('img', { name: 'Neutral appearance portrait' })
       await expect(portrait).toHaveAttribute(
         'src',
-        /\/5\/scout\.quilted\.midnight\.rope\..+\.mask\.ice\.stocky\.espresso\/neutral\.svg$/,
+        /\/5\/scout\.quilted\.midnight\.rope\..+\.mask\.ice\.stocky\.espresso\.waves\.auburn\.violet\/neutral\.svg$/,
       )
       await expect
         .poll(() => portrait.evaluate((element) => element.naturalWidth))
@@ -804,7 +807,10 @@ try {
       await page.screenshot({ path: resolve(output, `wardrobe-${viewport.width}.png`) })
       await wardrobe.getByRole('button', { name: 'Use this appearance' }).click()
       await expect(wardrobe).toBeHidden()
-      await expect(greeting).toHaveAttribute('src', /\.stocky\.espresso\/happy\.svg$/)
+      await expect(greeting).toHaveAttribute(
+        'src',
+        /\.stocky\.espresso\.waves\.auburn\.violet\/happy\.svg$/,
+      )
       await expect(page.getByText('Draft saved.', { exact: true })).toHaveCount(0)
     }
     assert.deepEqual(errors, [])

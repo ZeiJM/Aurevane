@@ -107,6 +107,9 @@ function PaintedOutfitFields({
     'identity',
     'bodyFrame',
     'skinTone',
+    'hairstyle',
+    'hairDye',
+    'eyeColor',
     'outerwear',
     'clothColor',
     'gear',
@@ -140,8 +143,11 @@ function PaintedOutfitFields({
                   if (value.v === 5) {
                     if (!Object.hasOwn(PAINTED_WARDROBE_FIELDS[field], event.target.value)) return
                     onChange(wardrobeAppearanceBlueprint({ ...value, [field]: event.target.value }))
-                  } else if (field !== 'bodyFrame' && field !== 'skinTone') {
-                    if (!Object.hasOwn(PAINTED_FIELDS[field], event.target.value)) return
+                  } else if (Object.hasOwn(PAINTED_FIELDS, field)) {
+                    if (
+                      !Object.hasOwn(PAINTED_FIELDS[field as keyof PaintedLook], event.target.value)
+                    )
+                      return
                     onChange(paintedAppearanceBlueprint({ ...value, [field]: event.target.value }))
                   }
                 }}

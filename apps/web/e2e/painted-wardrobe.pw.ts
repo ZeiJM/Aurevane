@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { allocateCreationPoints, createVerifiedAccountAndSignIn } from './pv1f-test-helpers'
 
-test('@painted-wardrobe saves independently styled clothing and accessories, then locks the final sprite', async ({
+test('@painted-wardrobe saves independent painted features and accessories, then locks the final sprite', async ({
   page,
   isMobile,
 }, testInfo) => {
@@ -30,6 +30,8 @@ test('@painted-wardrobe saves independently styled clothing and accessories, the
   await dialog.getByRole('button', { name: 'Painted characters' }).click()
   const outfit = dialog.getByRole('group', { name: 'Painted outfit' })
   const control = (name: string) => outfit.getByRole('combobox', { name, exact: true })
+  const expanded = dialog.getByRole('group', { name: 'Painted appearance' })
+  const expandedControl = (name: string) => expanded.getByRole('combobox', { name, exact: true })
   await control('Character').selectOption(identity)
   await expect(control('Character')).toHaveValue(identity)
   await control('Clothing style').selectOption('shearling')
@@ -68,8 +70,15 @@ test('@painted-wardrobe saves independently styled clothing and accessories, the
   await control('Headwear color').selectOption('amber')
   await control('Face accessory style').selectOption('eyepatch')
   await control('Face accessory color').selectOption('charcoal')
+  await dialog.getByRole('button', { name: 'Expanded painted wardrobe' }).click()
+  await expect(expandedControl('Accessory color')).toHaveValue('crimson')
+  await expect(expandedControl('Headwear color')).toHaveValue('amber')
+  await expect(expandedControl('Face accessory color')).toHaveValue('charcoal')
+  await expandedControl('Hairstyle').selectOption('topknot')
+  await expandedControl('Hair color').selectOption('silver')
+  await expandedControl('Eye color').selectOption('green')
   await expect(dialog.getByText(/This is your final save/)).toBeVisible()
-  const path = `/api/media/appearance/4/${identity}.hawkmantle.cobalt.mapcase.crimson.${isMobile ? 'bandana' : 'arcanist'}.amber.eyepatch.charcoal`
+  const path = `/api/media/appearance/5/${identity}.hawkmantle.cobalt.mapcase.crimson.${isMobile ? 'bandana' : 'arcanist'}.amber.eyepatch.charcoal.natural.natural.topknot.silver.green`
   const atlasWidth = await page.evaluate(async (imagePath) => {
     const image = new Image()
     image.src = imagePath

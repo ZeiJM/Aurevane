@@ -3,7 +3,7 @@ begin;
 create function app_private.valid_painted_wardrobe_url_v1(p_url text)
 returns boolean language sql immutable set search_path = '' as $$
   select coalesce(
-    p_url ~ '^/api/media/appearance/5/[a-z]+(\.[a-z]+){10}/neutral\.svg$'
+    p_url ~ '^/api/media/appearance/5/[a-z]+(\.[a-z]+){10}((\.[a-z]+){3})?/neutral\.svg$'
     and length(split_part(p_url, '/', 6)) <= 140
     and parts[1] in ('scout','ranger','guard','elder')
     and parts[2] in ('none','compass','pine','hawkmantle','shearling','scarf','brigandine','brocade','hooded','quilted')
@@ -22,7 +22,13 @@ returns boolean language sql immutable set search_path = '' as $$
     and (parts[8] <> 'none' or parts[9] = 'natural')
     and parts[10] in ('natural','slight','lean','strong','broad','stocky')
     and parts[11] in ('natural','alabaster','porcelain','peach','sand','olive','bronze','honey',
-      'copper','umber','mahogany','cacao','espresso'), false)
+      'copper','umber','mahogany','cacao','espresso')
+    and (cardinality(parts) = 11 or (
+      parts[12] in ('natural','topknot','braid','waves')
+      and parts[13] in ('natural','onyx','chestnut','auburn','honey','ash','silver','plum','teal')
+      and parts[14] in ('natural','brown','amber','hazel','green','blue','gray','violet')
+      and array[parts[12],parts[13],parts[14]] <> array['natural','natural','natural']
+    )), false)
   from (select string_to_array(split_part(p_url, '/', 6), '.') parts) recipe;
 $$;
 revoke all on function app_private.valid_painted_wardrobe_url_v1(text)

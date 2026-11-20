@@ -7,6 +7,7 @@ import {
 } from './appearance-painted-catalog'
 import {
   PAINTED_WARDROBE_FIELDS,
+  originalWardrobeFeatures,
   WARDROBE_OUTERWEAR,
   readWardrobeLook,
   wardrobeRecipe,
@@ -201,8 +202,16 @@ export function parseAppearanceBlueprint(input: unknown): AppearanceBlueprint | 
   if (typeof input !== 'object' || input === null || Array.isArray(input)) return null
   const values = input as Record<string, unknown>
   if (values.v === 5) {
-    const wardrobeFields = Object.keys(PAINTED_WARDROBE_FIELDS)
-    const look = readWardrobeLook(wardrobeFields.map((field) => values[field]))
+    const featureFields = Object.keys(originalWardrobeFeatures)
+    const hasFeatures = featureFields.some((field) => Object.hasOwn(values, field))
+    const wardrobeFields = Object.keys(PAINTED_WARDROBE_FIELDS).filter(
+      (field) => hasFeatures || !featureFields.includes(field),
+    )
+    const recipe = wardrobeFields.map((field) => values[field])
+    const originalFeatures = featureFields.every((field) => values[field] === 'natural')
+    const look = readWardrobeLook(
+      originalFeatures ? recipe.slice(0, -featureFields.length) : recipe,
+    )
     if (!look || Object.keys(values).length !== fields.length + wardrobeFields.length + 1)
       return null
     const blueprint = wardrobeAppearanceBlueprint(look)
