@@ -36,15 +36,37 @@ export function worldLightProfile(minuteOfDay: number, weather: WorldWeather) {
   }
 }
 
-/** One color overlay and a bounded atmospheric glow, never a per-tile lighting loop. */
+/** Apply the screen-space tint over terrain and before weather and identity. */
 export function paintWorldLighting(
   context: CanvasRenderingContext2D,
   width: number,
   height: number,
   minuteOfDay: number,
   weather: WorldWeather,
+  cache?: ReturnType<typeof createWorldLightingCache>,
 ) {
   const light = worldLightProfile(minuteOfDay, weather)
+  const image =
+    context.globalAlpha === 1 && context.globalCompositeOperation === 'source-over'
+      ? cache?.get(width, height, light)
+      : null
+  if (image) {
+    context.save()
+    context.imageSmoothingEnabled = true
+    context.imageSmoothingQuality = 'low'
+    context.drawImage(image, 0, 0, width, height)
+    context.restore()
+    return
+  }
+  paintLightLayers(context, width, height, light)
+}
+
+function paintLightLayers(
+  context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
+  width: number,
+  height: number,
+  light: ReturnType<typeof worldLightProfile>,
+) {
   context.save()
   context.fillStyle = 'rgba(12,27,65,' + light.nightAlpha.toFixed(4) + ')'
   context.fillRect(0, 0, width, height)
@@ -75,4 +97,57 @@ export function paintWorldLighting(
     context.fillRect(0, 0, width, height)
   }
   context.restore()
+}
+
+/** Reuse the combined tint when the light profile is steady. The broad,
+ * screen-space gradients don't need a full-resolution copy per moving camera. */
+export function createWorldLightingCache() {
+  let key = ''
+  let image: ImageBitmap | null = null
+  const clear = () => {
+    image?.close()
+    image = null
+    key = ''
+  }
+  return {
+    clear,
+    get(width: number, height: number, light: ReturnType<typeof worldLightProfile>) {
+      // At dawn or dusk, paint the continuously changing profile directly.
+      // A clear or windy day already needs only one full-screen fill.
+      const multiLayer = light.moonlight === 1 || (light.daylight === 1 && light.cloudAlpha > 0)
+      if (
+        !multiLayer ||
+        light.dawn !== 0 ||
+        light.dusk !== 0 ||
+        !(width > 0 && height > 0 && Number.isFinite(width) && Number.isFinite(height)) ||
+        typeof OffscreenCanvas === 'undefined'
+      )
+        return null
+      const nextKey = `${width}:${height}:${light.nightAlpha}:${light.cloudAlpha}:${light.moonlight}`
+      if (nextKey === key) return image
+      clear()
+      key = nextKey
+      const scale = Math.min(1, 384 / Math.max(width, height))
+      let raster: OffscreenCanvas | undefined
+      try {
+        raster = new OffscreenCanvas(
+          Math.max(1, Math.round(width * scale)),
+          Math.max(1, Math.round(height * scale)),
+        )
+        const target = raster.getContext('2d')
+        if (!target) return null
+        target.setTransform(raster.width / width, 0, 0, raster.height / height, 0, 0)
+        paintLightLayers(target, width, height, light)
+        image = raster.transferToImageBitmap()
+        return image
+      } catch {
+        return null
+      } finally {
+        if (raster) {
+          raster.width = 0
+          raster.height = 0
+        }
+      }
+    },
+  }
 }

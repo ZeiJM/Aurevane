@@ -15,7 +15,7 @@ import {
   drawMountainScree,
 } from './map-mountains'
 import { worldDayPhase } from '@/world/environment'
-import { paintWorldLighting } from './map-daylight'
+import { createWorldLightingCache, paintWorldLighting } from './map-daylight'
 import {
   APPEARANCE_ASSET_PREFIX,
   APPEARANCE_FRAME,
@@ -710,6 +710,7 @@ export function createMapRenderer(
   }
   const wildlifeParts = createWildlifePartCache()
   const weatherVeil = createWeatherVeilCache()
+  const lighting = createWorldLightingCache()
   const biomeRasters = new Map<string, StaticMapRaster>()
   let biomeRasterPixels = 0
   const clearBiomeRasters = () => {
@@ -1021,6 +1022,7 @@ export function createMapRenderer(
   loadRegionalArt()
   const resize = () => {
     weatherVeil.clear()
+    lighting.clear()
     width = canvas.clientWidth
     height = canvas.clientHeight
     ratio = Math.min(window.devicePixelRatio || 1, quality === 'low' ? 1 : 1.5)
@@ -3793,7 +3795,7 @@ export function createMapRenderer(
       phaseAt = ended
     }
     // Time changes light gradually. Night never removes the ability to read terrain.
-    paintWorldLighting(ctx, width, height, visualMinuteOfDay, weather)
+    paintWorldLighting(ctx, width, height, visualMinuteOfDay, weather, lighting)
     let cloudCount = 0
     canvas.dataset.precipitation = precipitationKind(weather, regionId) ?? 'none'
     canvas.dataset.mapQuality = quality
@@ -4583,6 +4585,7 @@ export function createMapRenderer(
       remoteMotion.dispose()
       wildlifeParts.clear()
       weatherVeil.clear()
+      lighting.clear()
       for (const cloud of clouds) releaseStaticRaster(cloud)
       unsubscribeClassicTokens()
       cancelAnimationFrame(frame)

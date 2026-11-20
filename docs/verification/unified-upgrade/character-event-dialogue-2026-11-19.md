@@ -202,3 +202,13 @@ and follows ordinary draft, publication and scheduling controls.
   use the same output-density sector bitmaps as moving frames. The local regression
   verifies the camera can outgrow the composite and reuse those bitmaps without
   allocating replacements during the route. The native nine-step minimum still applies.
+
+- The [8953153 timing run](https://github.com/ZeiJM/Aurevane/actions/runs/44638010199)
+  passed 45 of 60 desktop cases and all three mobile crowd cases. Fifteen simultaneous
+  walks recorded fewer than nine visible peer steps. The repeat-six trace attributed
+  2.29 seconds of CPU across both clients to producing canvas resources. Most frames
+  in the sampled walk rebuilt no ground textures. The renderer now combines steady
+  moonlight and cloud tint in a bounded bitmap so a night frame blends the scene once.
+  Dawn and dusk still use the continuous light profile. Local regression covers
+  reuse across consecutive frames, weather changes, and bitmap cleanup. The same
+  authenticated desktop and mobile timing gates verify the successor.
