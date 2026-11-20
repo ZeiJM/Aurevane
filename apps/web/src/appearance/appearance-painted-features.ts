@@ -246,6 +246,13 @@ const portraitHairAnchors = {
   elder: [80, 37, 1],
 } as const
 
+const portraitFringeAnchors = {
+  scout: [123, 62, 1.15],
+  ranger: [124, 52, 1.07],
+  guard: [119, 43, 1.02],
+  elder: [120, 55, 1.15],
+} as const
+
 const fieldHairAnchors = {
   scout: [
     [56, 23],
@@ -273,7 +280,63 @@ const fieldHairAnchors = {
   ],
 } as const satisfies Record<Identity, readonly Point[]>
 
-const hairSilhouettes = {
+type HairSilhouette = {
+  body: string
+  highlights: string
+  front?: boolean
+  strands?: string
+}
+
+const hairSilhouettes: Record<
+  Exclude<PaintedWardrobeLook['hairstyle'], 'natural'>,
+  HairSilhouette
+> = {
+  feather: {
+    front: true,
+    body: 'M-45 23Q-47-13-20-25Q0-35 22-25Q38-22 44-4Q27-16 18-10Q30-1 34 14Q18 1 6 2L14 24Q0 10-14 10L-8 29Q-25 19-31 13Z',
+    highlights:
+      'M-40 15Q-29-17 5-23M-30 11Q-15-12 19-17M-19 12Q-5-7 18-8M-7 14Q2 1 17 1M22-14q13 3 17 9',
+    strands:
+      'M-42 3Q-29-24-4-26M-37 7Q-20-16 3-22M-33 18Q-15-11 16-19M-24 16Q-11-4 8-10M-19 19Q-10 5 0 1M-3 19Q3 7 14 5M8-25q21 1 28 13',
+  },
+  quiff: {
+    front: true,
+    body: 'M-43 24Q-49 0-33-15Q-22-27-7-26Q21-43 44-28Q24-25 17-12Q33-14 43-5Q24-7 13 5Q-9 11-18 25L-24 18L-35 29Z',
+    highlights:
+      'M-39 19Q-34-13-4-20Q15-32 31-29M-32 17Q-24-7 0-13Q10-22 23-24M-22 15Q-11-4 16-7M-9 14Q6 2 23 0',
+    strands:
+      'M-39 10Q-29-14-10-18Q17-35 35-30M-35 19Q-24-3-2-11Q14-25 29-26M-29 21Q-16 1 7-8M-14 16Q1 2 25-2M4 11Q13 3 30 0',
+  },
+  curls: {
+    front: true,
+    body: 'M-45 18Q-52 10-46 2Q-53-13-39-17Q-36-30-22-25Q-13-38-1-30Q12-38 21-29Q36-32 38-20Q51-17 45-4Q52 8 41 13Q34 22 25 12Q18 23 8 16Q0 29-13 19Q-24 32-34 20Q-42 28-45 18Z',
+    highlights:
+      'M-44 8q9-7 11 2q-1 5-6 5M-39-10q12-8 14 4q0 6-5 7M-23-18q10-8 15 2q1 7-6 9M-7-20q13-10 18 2q2 6-6 10M16-20q11-6 15 3q1 7-5 9M31-5q13-2 9 9M-15 7q12-9 15 4M7 5q10-9 14 2',
+    strands:
+      'M-42-5q8-7 11 0M-27 3q7-11 15-6M-24-18q9-6 13 1M-11-25q8-5 14 0M-2-15q7-6 10 0M11-8q8-7 13-2M20-23q7-3 11 3M29 8q6-8 11-4M-9 10q5-6 10-2M9 9q7-7 12-3',
+  },
+  crown: {
+    front: true,
+    body: 'M-48 9Q-47-7-32-11Q-27-24-12-20Q-3-28 7-24Q20-29 28-19Q42-19 47-7Q46 2 39 4Q28-4 20-1Q12-6 3-2Q-8-6-15 1Q-27-1-31 10Q-44 20-48 9Z',
+    highlights:
+      'M-45 8q4-9 13-12m-5 15q6-13 15-18m-5 10q7-15 17-17m-6 13q9-14 17-15m-6 12q12-11 20-10M8-4q11-10 20-6M22-4q13-7 21-2',
+    strands:
+      'M-43 5q5-8 13-10M-30 4q6-10 14-13M-18-3q6-11 16-14M-5-10q8-9 16-9M7-12q10-7 17-5M20-11q9-3 16 0M31-8q7-1 12 3',
+  },
+  layers: {
+    body: 'M-9-9Q-42-10-47 31Q-55 55-54 77Q-54 92-66 106Q-49 103-36 88Q-43 107-43 123Q-24 109-17 89L-24 119Q-2 104 8 79Q14 104 26 115L26 92Q37 106 57 108Q45 83 46 60Q53 24 31 3Q13-12-9-9Z',
+    highlights:
+      'M-39 26Q-50 68-48 88M-31 21Q-38 48-32 61Q-33 84-45 98M-18 23Q-31 57-24 69Q-24 88-30 97M29 18Q43 38 38 61Q37 87 47 98',
+    strands:
+      'M-43 38Q-47 60-51 75M-36 46Q-41 67-40 80M-35 77Q-38 92-44 99M-26 61Q-25 79-35 98M34 37q5 14 3 27M40 67q-2 19 11 33',
+  },
+  bun: {
+    body: 'M-13 16Q-31 25-38 41Q-58 38-63 53Q-72 75-55 85Q-40 95-27 83Q-18 78-26 65Q-16 58-10 43Z',
+    highlights:
+      'M-20 29Q-34 36-40 49M-34 49Q-52 40-58 54Q-62 64-57 73M-31 60Q-43 47-53 57Q-59 69-48 77M-32 69Q-41 59-46 64Q-48 69-42 74',
+    strands:
+      'M-29 45Q-45 44-52 52M-58 53Q-65 66-54 77M-54 57Q-59 68-48 75M-51 60Q-55 70-46 74M-42 70Q-42 76-34 80M-55 78q10 7 20 3',
+  },
   topknot: {
     body: 'M-21 15C-28 8-26-4-18-9c-8-12 3-24 19-22 13-3 22 9 16 19-2 7-9 12-18 13l8 17Z',
     highlights: 'M-16-10c-8-7-1-17 8-18m1 18c-6-7 1-15 9-16m0 18c10-7 12-12 8-15M-20 9q2-11 14-14',
@@ -283,6 +346,20 @@ const hairSilhouettes = {
     highlights:
       'M-27 32q-1 16 10 25m-19-3q-4 12 18 25m-21-4q-4 11 20 19m-24-3q-3 10 21 20m-23 1q-2 10 18 17m-20 1 17 13',
   },
+  pony: {
+    body: 'M-9 12Q-24 5-37 13Q-59 9-69 28Q-82 47-70 66Q-63 82-77 96Q-88 108-82 124Q-77 111-68 108Q-51 105-43 90Q-34 72-43 51Q-46 35-28 36Q-14 40-9 31Z',
+    highlights:
+      'M-35 18Q-64 13-70 38Q-77 52-65 70Q-55 92-76 108M-39 22Q-61 21-64 40Q-69 50-58 66Q-46 90-65 101M-47 30Q-58 35-57 44Q-58 54-50 63M-28 14Q-37 23-29 35',
+    strands:
+      'M-43 17Q-56 17-66 27M-69 30Q-80 46-70 63M-64 32Q-73 49-63 61M-61 38Q-67 48-57 62M-63 73Q-59 92-76 111M-57 73Q-54 91-69 104M-52 70Q-47 81-56 95',
+  },
+  twins: {
+    body: 'M-13 13Q-50 8-51 40Q-61 48-53 63Q-61 77-54 93Q-61 105-54 122Q-55 138-46 153Q-36 143-40 122Q-31 110-39 94Q-28 83-35 67Q-26 54-34 43Q-19 39-13 13ZM69 13Q100 4 104 32Q115 43 106 60Q115 74 108 90Q115 104 109 119Q112 136 103 149Q93 139 95 123Q84 110 92 95Q81 80 91 65Q80 52 88 37Q73 37 69 13Z',
+    highlights:
+      'M-49 43Q-46 55-36 59M-52 65Q-48 78-38 81M-52 88Q-47 100-41 105M-51 113l11 9M105 35Q103 47 91 55M108 59Q103 74 93 78M107 88Q103 100 93 106M107 113l-12 11',
+    strands:
+      'M-46 46q1 6 8 11m-10 12q3 7 9 10m-9 13q2 7 7 10m-8 13 8 6M102 39q-4 9-10 13m12 12q-2 8-10 12m11 15q-4 9-10 13m10 12-8 7',
+  },
   waves: {
     body: 'M-13-6c-23 3-32 23-31 47-12 17 1 33-9 50-8 12-5 24 0 30-5 14-2 22 6 28-4-18 11-26 13-39 6 11-1 23 9 30-6-20 13-27 11-48 11 9-2 26 11 31-3-16 13-28 7-49C-6 48 18 16-13-6Z',
     highlights:
@@ -290,19 +367,37 @@ const hairSilhouettes = {
   },
 } as const
 
-export function paintedHairSilhouette(look: PaintedWardrobeLook, facing?: AppearanceFacing) {
-  if (look.hairstyle === 'natural') return ''
-  const { body, highlights } = hairSilhouettes[look.hairstyle]
-  const portrait = !facing
-  const [x, y, scale] = portrait
-    ? portraitHairAnchors[look.identity]
-    : [...fieldHairAnchors[look.identity][APPEARANCE_FACINGS.indexOf(facing)]!, 0.26]
+export function paintedHairLayers(look: PaintedWardrobeLook, facing?: AppearanceFacing) {
+  if (look.hairstyle === 'natural') return ['', ''] as const
+  const { body, highlights, front, strands } = hairSilhouettes[look.hairstyle]
+  const fieldAnchor = facing && fieldHairAnchors[look.identity][APPEARANCE_FACINGS.indexOf(facing)]
+  const [x, y, scale] = fieldAnchor
+    ? front
+      ? [64, fieldAnchor[1] + 3, 0.31]
+      : [...fieldAnchor, 0.26]
+    : (front ? portraitFringeAnchors : portraitHairAnchors)[look.identity]
   const rgb = WARDROBE_HAIR_COLORS[look.hairDye].rgb ?? sourceHair[look.identity]
   const tone = (factor: number) =>
     `rgb(${rgb.map((channel) => Math.round(channel * factor)).join(',')})`
   const depth = `hair-depth-${facing ?? 'portrait'}`
-  const fieldTransform = portrait ? '' : 'translate(3.52 7.44) scale(.32)'
-  return `<g transform="${fieldTransform} translate(${x} ${y}) scale(${facing === 'west' ? -scale : scale} ${scale})">
+  const fieldTransform = facing ? 'translate(3.52 7.44) scale(.32)' : ''
+  if (strands) {
+    const art = `<g transform="${fieldTransform} translate(${x} ${y}) scale(${facing === 'west' ? -scale : scale} ${scale})">
+      <defs><radialGradient id="${depth}" cx="32%" cy="22%" r="85%">
+        <stop stop-color="${tone(1.25)}"/>
+        <stop offset=".44" stop-color="${tone(0.98)}"/>
+        <stop offset="1" stop-color="${tone(0.66)}"/>
+      </radialGradient></defs>
+      <path d="${body}" fill="url(#${depth})" stroke="${tone(0.62)}" stroke-width="1.6" stroke-linejoin="round"/>
+      <g fill="none" stroke-linecap="round">
+        <path d="${highlights}" stroke="${tone(0.62)}" stroke-width="3.2" opacity=".49" transform="translate(.6 1.2)"/>
+        <path d="${highlights}" stroke="${tone(1.34)}" stroke-width="1.55" opacity=".56"/>
+        ${facing ? '' : `<path d="${strands}" stroke="${tone(1.52)}" stroke-width=".72" opacity=".31"/>`}
+      </g>
+    </g>`
+    return front ? (['', art] as const) : ([art, ''] as const)
+  }
+  const art = `<g transform="${fieldTransform} translate(${x} ${y}) scale(${facing === 'west' ? -scale : scale} ${scale})">
     <defs><linearGradient id="${depth}" x2="80%" y2="90%">
       <stop stop-color="${tone(1.18)}"/><stop offset="1" stop-color="${tone(0.64)}"/>
     </linearGradient></defs>
@@ -311,4 +406,5 @@ export function paintedHairSilhouette(look: PaintedWardrobeLook, facing?: Appear
     <path d="${highlights}" fill="none" stroke="${tone(1.29)}" stroke-width="1.35" opacity=".76"/>
     ${look.hairstyle === 'braid' ? '<path d="M-44 140q7 4 16 2" stroke="#9e7850" stroke-width="4"/>' : ''}
   </g>`
+  return [art, ''] as const
 }

@@ -43,7 +43,7 @@ it('renders expanded body builds, skin tones and garments distinctly with immuta
       (sum, field) => sum + Object.keys(field).length,
       0,
     ),
-  ).toBe(253)
+  ).toBe(273)
   expect(Object.keys(WARDROBE_DYES)).toHaveLength(45)
   expect(appearance.appearanceManifestFromImageUrl(manifest.portraits.neutral)).toEqual(manifest)
   for (const asset of ['atlas', 'icon', ...appearance.APPEARANCE_EXPRESSIONS]) {
@@ -136,6 +136,62 @@ it('keeps old painted recipes stable and renders each new feature independently'
     }
   }
 }, 30_000)
+
+it.each(
+  Object.keys(PAINTED_WARDROBE_FIELDS.identity) as Array<
+    ReturnType<typeof wardrobeLook>['identity']
+  >,
+)(
+  'renders every hairstyle distinctly on the %s base from each field direction',
+  async (identity) => {
+    const hairstyles = Object.keys(PAINTED_WARDROBE_FIELDS.hairstyle) as Array<
+      ReturnType<typeof wardrobeLook>['hairstyle']
+    >
+    const portraits = new Set<string>()
+    const fieldLooks = appearance.APPEARANCE_FACINGS.map(() => new Set<string>())
+    const { width, height, frames } = appearance.APPEARANCE_FRAME
+    for (const hairstyle of hairstyles) {
+      const blueprint = appearance.wardrobeAppearanceBlueprint({
+        ...wardrobeLook(),
+        identity,
+        hairstyle,
+        hairDye: 'copper',
+      })
+      const portrait = await sharp(Buffer.from(renderAppearanceAsset(blueprint, 'neutral')))
+        .ensureAlpha()
+        .raw()
+        .toBuffer()
+      portraits.add(createHash('sha256').update(portrait).digest('hex'))
+
+      const atlas = renderAppearanceAsset(blueprint, 'atlas').replace(
+        'height="384" viewBox="0 0 576 384"',
+        'height="64" viewBox="0 0 576 64"',
+      )
+      const image = sharp(Buffer.from(atlas))
+      await Promise.all(
+        fieldLooks.map(async (looks, column) => {
+          const pixels = await image
+            .clone()
+            .extract({
+              left: column * frames * width,
+              top: 0,
+              width,
+              height,
+            })
+            .ensureAlpha()
+            .raw()
+            .toBuffer()
+          looks.add(createHash('sha256').update(pixels).digest('hex'))
+        }),
+      )
+    }
+    expect(portraits.size).toBe(hairstyles.length)
+    fieldLooks.forEach((looks, index) =>
+      expect(looks.size, appearance.APPEARANCE_FACINGS[index]).toBe(hairstyles.length),
+    )
+  },
+  30_000,
+)
 
 describe('manual appearance manifests', () => {
   it('compiles a portable manifest with exactly five expressions and stable immutable paths', () => {

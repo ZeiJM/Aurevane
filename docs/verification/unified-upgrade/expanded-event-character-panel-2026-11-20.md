@@ -19,15 +19,18 @@ a shared debrief.
 
 ## Player and NPC design
 
-The expanded wardrobe has 253 entries across its controls. These include
+The expanded wardrobe has 273 entries across its controls. These include
 four painted identities, six builds, thirteen skin tones, nine clothing
 styles, eight carried accessories, four headwear styles, four face accessories,
 and the options to leave each wearable slot empty. Each wearable slot has its
-own original finish and forty-four dyes. The wardrobe also offers three alternate
-hairstyles, eight hair colors, and seven iris colors with an original option for
-each. Twelve of the wearable styles use
-newly painted four-facing cutouts. The skin masks preserve shading. Hair and iris dyes have their own regions
-in each painted portrait expression and on the field sprite.
+own original finish and forty-four dyes. All four painted bases share eleven
+alternate hairstyles and twenty hair dyes, with the base's original style and
+color also available. Feathered fringe, swept quiff, soft curls, and crown braid
+add art over the head. Layered locks, low bun, wrapped ponytail, and twin braids
+extend the silhouette. Hair color is independent of style, eye color, and
+equipment dyes. Twelve wearable styles use newly painted four-facing cutouts.
+Hair and iris dyes have their own regions in each portrait expression and on
+the field sprite.
 
 The optional feature suffix keeps earlier version 5 URLs valid and retains the five portrait
 expressions and four-facing field and battle atlas. NPC Design previews its
@@ -47,7 +50,11 @@ The Chromium fixture uses the real authoring components and asset routes with
 local HTTP and session fixtures. It covers phase navigation, route priority,
 timed draft changes, and the expanded NPC builder at desktop and phone widths.
 It also covers the authoring layout at 200% zoom. The local feature follow-up
-passed the Chromium fixture at 1366×768 and 390×844, 25 focused application
-tests, and the disposable database save-and-lock test. The updated signed-in
-Browser Smoke scenario exercises final Account save of a new painted recipe.
+passed the Chromium fixture at 1366×768 and 390×844, 29 focused application
+tests, and the disposable database save-and-lock test. The application tests
+compare all hairstyle silhouettes across each of the four portraits and all
+four field directions. All 32 sampled portrait and atlas responses for the
+prior painted hairstyles matched the previous revision byte for byte. The
+updated signed-in Browser Smoke scenario exercises
+final Account save with twin braids and a lilac dye.
 Hosted signed-in verification and physical handset acceptance remain open.

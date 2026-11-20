@@ -96,21 +96,41 @@ export const WARDROBE_SKIN_TONES = {
 
 export const WARDROBE_HAIRSTYLES = {
   natural: 'Original hairstyle',
+  feather: 'Feathered fringe',
+  quiff: 'Swept quiff',
+  curls: 'Soft curls',
+  crown: 'Crown braid',
+  layers: 'Layered locks',
+  bun: 'Low bun',
   topknot: 'High topknot',
+  pony: 'Wrapped ponytail',
   braid: 'Shoulder braid',
+  twins: 'Twin braids',
   waves: 'Long waves',
 } as const
 
 export const WARDROBE_HAIR_COLORS = {
   natural: { label: 'Original hair color', rgb: null },
   onyx: { label: 'Soft black', rgb: [58, 52, 55] },
+  charcoal: { label: 'Blue-black', rgb: [53, 62, 79] },
+  espresso: { label: 'Espresso', rgb: [71, 49, 41] },
+  walnut: { label: 'Dark walnut', rgb: [91, 68, 54] },
   chestnut: { label: 'Chestnut', rgb: [118, 75, 53] },
+  copper: { label: 'Polished copper', rgb: [183, 103, 59] },
   auburn: { label: 'Auburn', rgb: [152, 75, 50] },
+  ginger: { label: 'Golden ginger', rgb: [201, 124, 75] },
+  rosewood: { label: 'Rosewood', rgb: [128, 77, 76] },
   honey: { label: 'Honey blond', rgb: [176, 137, 80] },
   ash: { label: 'Ash blond', rgb: [177, 161, 135] },
+  flax: { label: 'Flax blond', rgb: [205, 181, 122] },
   silver: { label: 'Moon silver', rgb: [181, 182, 192] },
+  platinum: { label: 'Ivory platinum', rgb: [219, 212, 195] },
   plum: { label: 'Black plum', rgb: [96, 67, 108] },
+  wine: { label: 'Mulled wine', rgb: [119, 54, 77] },
+  lilac: { label: 'Dusty lilac', rgb: [154, 123, 171] },
+  ocean: { label: 'Storm blue', rgb: [72, 106, 153] },
   teal: { label: 'Sea glass', rgb: [75, 118, 109] },
+  moss: { label: 'Forest green', rgb: [83, 113, 71] },
 } as const
 
 export const WARDROBE_EYE_COLORS = {

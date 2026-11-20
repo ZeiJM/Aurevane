@@ -27,7 +27,7 @@ import {
 import {
   paintedFeatureComposite,
   paintedFeatureDyes,
-  paintedHairSilhouette,
+  paintedHairLayers,
 } from './appearance-painted-features'
 import {
   WARDROBE_FRAMES,
@@ -332,13 +332,13 @@ function paintedCharacterPortrait(
   const featureDyes = blueprint.v === 5 ? paintedFeatureDyes(blueprint, expression) : ''
   const featureComposite =
     blueprint.v === 5 ? paintedFeatureComposite(blueprint, 'wardrobe-portrait') : ''
-  const hair = blueprint.v === 5 ? paintedHairSilhouette(blueprint) : ''
+  const [backHair, frontHair] = blueprint.v === 5 ? paintedHairLayers(blueprint) : ['', '']
   const body = skin
     ? paintedSkinComposite('wardrobe-portrait')
     : featureDyes
       ? '<use href="#wardrobe-portrait"/>'
       : `<image href="${source}" width="256" height="256"/>`
-  const art = hair + body + featureComposite + paintedPortraitEquipment(blueprint)
+  const art = backHair + body + featureComposite + frontHair + paintedPortraitEquipment(blueprint)
   const framed =
     blueprint.headwear === 'arcanist'
       ? `<g transform="translate(31 76) scale(.76)">${art}</g>`
@@ -441,8 +441,9 @@ function renderPaintedCharacterAtlas(blueprint: AnyPaintedAppearanceBlueprint) {
       ? art
       : `<g transform="translate(24) scale(${scaling} 1) translate(-24)">${art}</g>`
   const parts = APPEARANCE_FACINGS.map((facing) => {
-    const hair = blueprint.v === 5 ? paintedHairSilhouette(blueprint, facing) : ''
-    const naturalBody = hair + paintedLayer(facing, 'body')
+    const [backHair, frontHair] =
+      blueprint.v === 5 ? paintedHairLayers(blueprint, facing) : ['', '']
+    const naturalBody = backHair + paintedLayer(facing, 'body') + frontHair
     const head = `<g clip-path="url(#wardrobe-head)">${naturalBody}</g>`
     const body =
       scaling === 1

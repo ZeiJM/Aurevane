@@ -24,8 +24,11 @@ returns boolean language sql immutable set search_path = '' as $$
     and parts[11] in ('natural','alabaster','porcelain','peach','sand','olive','bronze','honey',
       'copper','umber','mahogany','cacao','espresso')
     and (cardinality(parts) = 11 or (
-      parts[12] in ('natural','topknot','braid','waves')
-      and parts[13] in ('natural','onyx','chestnut','auburn','honey','ash','silver','plum','teal')
+      parts[12] in ('natural','feather','quiff','curls','crown','layers','bun','topknot','pony',
+        'braid','twins','waves')
+      and parts[13] in ('natural','onyx','charcoal','espresso','walnut','chestnut','copper',
+        'auburn','ginger','rosewood','honey','ash','flax','silver','platinum','plum','wine',
+        'lilac','ocean','teal','moss')
       and parts[14] in ('natural','brown','amber','hazel','green','blue','gray','violet')
       and array[parts[12],parts[13],parts[14]] <> array['natural','natural','natural']
     )), false)

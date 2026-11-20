@@ -74,11 +74,11 @@ test('@painted-wardrobe saves independent painted features and accessories, then
   await expect(expandedControl('Accessory color')).toHaveValue('crimson')
   await expect(expandedControl('Headwear color')).toHaveValue('amber')
   await expect(expandedControl('Face accessory color')).toHaveValue('charcoal')
-  await expandedControl('Hairstyle').selectOption('topknot')
-  await expandedControl('Hair color').selectOption('silver')
+  await expandedControl('Hairstyle').selectOption('twins')
+  await expandedControl('Hair color').selectOption('lilac')
   await expandedControl('Eye color').selectOption('green')
   await expect(dialog.getByText(/This is your final save/)).toBeVisible()
-  const path = `/api/media/appearance/5/${identity}.hawkmantle.cobalt.mapcase.crimson.${isMobile ? 'bandana' : 'arcanist'}.amber.eyepatch.charcoal.natural.natural.topknot.silver.green`
+  const path = `/api/media/appearance/5/${identity}.hawkmantle.cobalt.mapcase.crimson.${isMobile ? 'bandana' : 'arcanist'}.amber.eyepatch.charcoal.natural.natural.twins.lilac.green`
   const atlasWidth = await page.evaluate(async (imagePath) => {
     const image = new Image()
     image.src = imagePath
