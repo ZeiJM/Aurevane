@@ -89,6 +89,48 @@ persisted Event deadlines, and the migrated ferry schema. Rehearse that
 recovery on a disposable migrated database before promotion. Retain the data
 and migration ledger in a recovery, including active and pending sprite designs.
 
-Production remains pending. Record the final source and tree, applicable
-workflow runs, recovery evidence, staged deployment, migration receipt and
-post-promotion canonical verification here.
+## Verified Production release on November 20, 2026
+
+PRs #1045 and #1046 went live together at 12:29 p.m. Trinidad time. The
+deployed source is `834b011a8e8788064b47f892427bd364d524cbe8`, with tested
+tree `811a2ad0e9d31983f9e6d1c9628a80d64c12eb2a`. All 14 PR workflows and
+eight applicable main workflows passed. Hosted automated tests exercised the
+signed-in wardrobe, NPC dialogue and World/ferry flows on desktop Chromium and
+mobile emulation. [Living Atlas](https://github.com/ZeiJM/Aurevane/actions/runs/44732393858)
+and [Browser Smoke](https://github.com/ZeiJM/Aurevane/actions/runs/44732393959)
+retain the candidate evidence.
+
+A project-level Vercel rule returned 503 for the exact staging hostname
+because the hostname was absent from the retirement allowlist. Routing version
+`f40213c6-2121-43e1-b029-90e07d2828b8` added the exact candidate hostname
+while the canonical aliases still served #1044. The staged root, favicon, World,
+CSS and representative v3, v4 and v5 media returned HTTP 200 afterward. Include
+the next verified exact staging hostname in this rule before testing future
+production builds. Retain the existing host and pin restrictions and verify the
+canonical alias before publishing the retirement rules for a cutover.
+
+The [read-only plan](https://github.com/ZeiJM/Aurevane/actions/runs/44753445712)
+verified the exact combined hashes. The [guarded apply](https://github.com/ZeiJM/Aurevane/actions/runs/44773508783)
+recorded all 12 migrations atomically and verified preservation of player
+state, established recipes and cron. The Production ledger moved from 265
+entries through `20261118171500` to 277 through `20261120101000`.
+The production-read smoke repeated successfully after the migration and before
+promotion.
+
+Vercel promoted the same build, `dpl_4U6SWTGVmGxMWedu7H7KQJgFghB9`.
+The [deployment](https://vercel.com/zeijms-projects/aurevane/4U6SWTGVmGxMWedu7H7KQJgFghB9)
+serves the canonical World and Account routes and the legacy site alias. Home,
+favicon, CSS and sampled v3, v4 and v5 media returned HTTP 200 after cutover.
+Routing version `d2356e41-a5ca-4e64-a094-5bd4ee385bfd` preserved all nine
+rules and rotated the exact host and pin allowlists. Both #1044 direct hosts
+returned the intended retirement response. No error or fatal logs matched the
+initial post-promotion window. The existing Vercel support case was closed at
+12:31 p.m. after verification.
+
+The disposable PostgreSQL rehearsal preserved 169 table snapshots, rejected
+replay, rolled back an injected player XP change and verified that recovery
+source tree `f2545af05f7623cbca4105055dc5cbdef5671368` can read v5 designs and
+timed Events and retain the migrated ferry behavior. This recovery evidence is
+source-level. Signed-in Production gameplay and physical-device playtesting
+remain open. The previous production deployment is incompatible with newly
+saved character designs and must stay retired.
