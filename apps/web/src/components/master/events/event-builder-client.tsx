@@ -126,20 +126,28 @@ function transitionFor(
 function ObjectiveQuorumFields({
   transition,
   objectives,
+  destinations,
+  successPhaseId,
   onChange,
 }: {
   transition: Extract<EventPhaseTransition, { type: 'objective-quorum' }>
   objectives: readonly EventObjectiveDefinition[]
+  destinations: readonly PersistentEventPhaseDefinition[]
+  successPhaseId: string | undefined
   onChange: (next: Extract<EventPhaseTransition, { type: 'objective-quorum' }>) => void
 }) {
-  const arrivals = objectives.filter(hasConfirmedEventProducer)
+  const eligible = objectives.filter(hasConfirmedEventProducer)
+  const { deadline } = transition
+  const fallbacks = destinations.filter(({ id }) => id !== successPhaseId)
+  const supportsDeadline =
+    eligible.length >= 2 && objectives.every(({ completion }) => completion === 'world-arrival')
   return (
     <fieldset>
       <legend>Objective requirements</legend>
-      {arrivals.length < 2 ? (
+      {eligible.length < 2 ? (
         <p>Add at least two objectives with confirmed World arrivals or NPC battle results.</p>
       ) : null}
-      {arrivals.map(({ id }) => (
+      {eligible.map(({ id }) => (
         <label key={id}>
           <input
             type="checkbox"
@@ -168,6 +176,69 @@ function ObjectiveQuorumFields({
           onChange={(event) => onChange({ ...transition, required: Number(event.target.value) })}
         />
       </label>
+      {supportsDeadline || deadline ? (
+        <label>
+          <input
+            type="checkbox"
+            checked={Boolean(deadline)}
+            disabled={!deadline && !fallbacks.length}
+            onChange={(event) =>
+              onChange({
+                ...transition,
+                deadline: event.target.checked ? { afterSeconds: 600, nextPhaseId: '' } : undefined,
+              })
+            }
+          />
+          Take a fallback path if time runs out
+        </label>
+      ) : null}
+      {deadline ? (
+        <>
+          <label>
+            Time limit in seconds
+            <input
+              type="number"
+              min={1}
+              max={2_147_483_647}
+              value={deadline.afterSeconds}
+              onChange={(event) =>
+                onChange({
+                  ...transition,
+                  deadline: { ...deadline, afterSeconds: Number(event.target.value) },
+                })
+              }
+            />
+          </label>
+          <label>
+            Fallback phase
+            <select
+              value={
+                fallbacks.some(({ id }) => id === deadline.nextPhaseId) ? deadline.nextPhaseId : ''
+              }
+              onChange={(event) =>
+                onChange({
+                  ...transition,
+                  deadline: { ...deadline, nextPhaseId: event.target.value },
+                })
+              }
+            >
+              <option value="">Choose a different later phase</option>
+              {fallbacks.map(({ id, name }) => (
+                <option key={id} value={id}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <p>
+            Only arrivals confirmed before the time limit count. The clock starts when this phase
+            opens.
+          </p>
+        </>
+      ) : null}
+      {supportsDeadline && !deadline && !fallbacks.length ? (
+        <p>Add a later phase distinct from the success phase to set a timed fallback.</p>
+      ) : null}
     </fieldset>
   )
 }
@@ -183,7 +254,16 @@ function ObjectiveBranchFields({
   destinations: readonly PersistentEventPhaseDefinition[]
   onChange: (next: Extract<EventPhaseTransition, { type: 'objective-branch' }>) => void
 }) {
-  const arrivals = objectives.filter(hasConfirmedEventProducer)
+  const eligible = objectives.filter(hasConfirmedEventProducer)
+  const { routes } = transition
+
+  function moveRoute(index: number, offset: -1 | 1) {
+    const reordered = [...routes]
+    const [route] = reordered.splice(index, 1)
+    reordered.splice(index + offset, 0, route!)
+    onChange({ ...transition, routes: reordered })
+  }
+
   return (
     <fieldset>
       <legend>Objective destinations</legend>
@@ -192,21 +272,22 @@ function ObjectiveBranchFields({
       ) : (
         <p>Add a later phase before assigning destinations.</p>
       )}
-      {arrivals.length < 2 ? (
+      {eligible.length < 2 ? (
         <p>Add at least two objectives with confirmed World arrivals or NPC battle results.</p>
       ) : null}
-      {arrivals.map(({ id }) => (
+      {eligible.map(({ id }) => (
         <label key={id}>
           When {id} completes
           <select
-            value={
-              transition.routes.find(({ objectiveId }) => objectiveId === id)?.nextPhaseId ?? ''
-            }
+            value={routes.find(({ objectiveId }) => objectiveId === id)?.nextPhaseId ?? ''}
             onChange={(event) => {
               const nextPhaseId = event.target.value
-              const routes = transition.routes.filter(({ objectiveId }) => objectiveId !== id)
-              if (nextPhaseId) routes.push({ objectiveId: id, nextPhaseId })
-              onChange({ ...transition, routes })
+              const updated = routes.flatMap((route) =>
+                route.objectiveId !== id ? [route] : nextPhaseId ? [{ ...route, nextPhaseId }] : [],
+              )
+              if (nextPhaseId && !routes.some(({ objectiveId }) => objectiveId === id))
+                updated.push({ objectiveId: id, nextPhaseId })
+              onChange({ ...transition, routes: updated })
             }}
           >
             <option value="">Do not use this objective for routing</option>
@@ -218,6 +299,31 @@ function ObjectiveBranchFields({
           </select>
         </label>
       ))}
+      {routes.length > 1 ? (
+        <ol aria-label="Priority for simultaneous completions">
+          {routes.map(({ objectiveId }, index) => (
+            <li key={objectiveId} className={styles.branchPriority}>
+              <span>{objectiveId}</span>
+              <button
+                type="button"
+                disabled={index === 0}
+                aria-label={`Raise priority for ${objectiveId}`}
+                onClick={() => moveRoute(index, -1)}
+              >
+                Move up
+              </button>
+              <button
+                type="button"
+                disabled={index === routes.length - 1}
+                aria-label={`Lower priority for ${objectiveId}`}
+                onClick={() => moveRoute(index, 1)}
+              >
+                Move down
+              </button>
+            </li>
+          ))}
+        </ol>
+      ) : null}
     </fieldset>
   )
 }
@@ -233,7 +339,16 @@ function updatePhaseDestination(
     )
     return { ...phase, transition: { ...phase.transition, routes } }
   }
-  return phase.nextPhaseId === previous ? { ...phase, nextPhaseId: next } : phase
+  const nextPhaseId = phase.nextPhaseId === previous ? next : phase.nextPhaseId
+  const { transition } = phase
+  if (transition.type === 'objective-quorum' && transition.deadline?.nextPhaseId === previous) {
+    return {
+      ...phase,
+      nextPhaseId,
+      transition: { ...transition, deadline: { ...transition.deadline, nextPhaseId: next ?? '' } },
+    }
+  }
+  return nextPhaseId === phase.nextPhaseId ? phase : { ...phase, nextPhaseId }
 }
 
 function effect(): EventEffectReference {
@@ -1165,10 +1280,22 @@ export function EventBuilderClient({
               </button>
             </div>
 
-            <EventPhasePath phases={definition.phases} />
+            <EventPhasePath
+              phases={definition.phases}
+              onOpenPhase={(phaseIndex) => {
+                setSelectedPhaseId(definition.phases[phaseIndex]!.id)
+                document.getElementById(`event-phase-editor-${phaseIndex}`)?.focus()
+              }}
+            />
 
             {definition.phases.map((phase, phaseIndex) => (
-              <article className={styles.phaseCard} key={phaseIndex}>
+              <article
+                aria-label={phase.name || `Phase ${phaseIndex + 1}`}
+                className={styles.phaseCard}
+                id={`event-phase-editor-${phaseIndex}`}
+                key={phaseIndex}
+                tabIndex={-1}
+              >
                 <div className={styles.phaseHeader}>
                   <div>
                     <span>Phase {phaseIndex + 1}</span>
@@ -1275,6 +1402,8 @@ export function EventBuilderClient({
                     <ObjectiveQuorumFields
                       transition={phase.transition}
                       objectives={phase.objectives}
+                      destinations={definition.phases.slice(phaseIndex + 1)}
+                      successPhaseId={phase.nextPhaseId ?? definition.phases[phaseIndex + 1]?.id}
                       onChange={(transition) => patchPhase(phaseIndex, { transition })}
                     />
                   ) : null}

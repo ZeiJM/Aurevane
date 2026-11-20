@@ -10,9 +10,92 @@ import {
   type PaintedLook,
 } from './appearance-painted-catalog'
 import { renderAppearanceAsset } from './appearance-svg'
+import {
+  PAINTED_WARDROBE_FIELDS,
+  randomWardrobeLook,
+  wardrobeLook,
+} from './appearance-painted-wardrobe'
 import { GET } from '@/app/api/media/appearance/[version]/[blueprint]/[asset]/route'
 
 const sha256 = (data: string) => createHash('sha256').update(data).digest('hex')
+
+it('renders expanded body builds, skin tones and garments distinctly with immutable URLs', async () => {
+  const base = wardrobeLook()
+  const build = appearance.wardrobeAppearanceBlueprint
+  const manifest = appearance.compileAppearanceManifest(
+    build({
+      ...base,
+      skinTone: 'honey',
+      bodyFrame: 'strong',
+      outerwear: 'brigandine',
+      clothColor: 'ink',
+      gear: 'journal',
+      gearColor: 'cedar',
+      headwear: 'furcap',
+      headColor: 'walnut',
+      facewear: 'mask',
+      faceColor: 'pewter',
+    }),
+  )
+  expect(
+    Object.values(PAINTED_WARDROBE_FIELDS).reduce(
+      (sum, field) => sum + Object.keys(field).length,
+      0,
+    ),
+  ).toBe(232)
+  expect(appearance.appearanceManifestFromImageUrl(manifest.portraits.neutral)).toEqual(manifest)
+  for (const asset of ['atlas', 'icon', ...appearance.APPEARANCE_EXPRESSIONS]) {
+    const response = await GET(new Request('https://aurevane.invalid'), {
+      params: Promise.resolve({
+        version: '5',
+        blueprint: manifest.id.slice(2),
+        asset: `${asset}.svg`,
+      }),
+    })
+    expect(response.status).toBe(200)
+    expect(response.headers.get('Cache-Control')).toContain('immutable')
+  }
+
+  const rasterHash = async (look: Parameters<typeof build>[0], isPortrait: boolean) => {
+    const svg = renderAppearanceAsset(build(look), isPortrait ? 'neutral' : 'atlas')
+    const cell = isPortrait
+      ? svg
+      : svg.replace(
+          'width="576" height="384" viewBox="0 0 576 384"',
+          'width="48" height="64" viewBox="0 0 48 64"',
+        )
+    const data = await sharp(Buffer.from(cell)).ensureAlpha().raw().toBuffer()
+    return createHash('sha256').update(data).digest('hex')
+  }
+  const axis = async (
+    field: 'bodyFrame' | 'skinTone' | 'outerwear' | 'gear' | 'headwear' | 'facewear',
+    portrait = false,
+  ) => {
+    const values = Object.keys(PAINTED_WARDROBE_FIELDS[field])
+    const hashes = await Promise.all(
+      values.map((choice) => rasterHash({ ...base, [field]: choice }, portrait)),
+    )
+    expect(new Set(hashes).size, `${field} ${portrait ? 'portrait' : 'field'}`).toBe(values.length)
+  }
+  await axis('skinTone', true)
+  for (const field of [
+    'bodyFrame',
+    'skinTone',
+    'outerwear',
+    'gear',
+    'headwear',
+    'facewear',
+  ] as const)
+    await axis(field)
+  expect(appearance.appearanceBlueprintFromId(manifest.id.slice(2), '4')).toBeNull()
+  expect(
+    appearance.appearanceBlueprintFromId(manifest.id.slice(2).replace('.honey', '.invalid'), '5'),
+  ).toBeNull()
+  for (let i = 0; i < 50; i++) {
+    const blueprint = build(randomWardrobeLook())
+    expect(appearance.parseAppearanceBlueprint(blueprint)).toEqual(blueprint)
+  }
+})
 
 describe('manual appearance manifests', () => {
   it('compiles a portable manifest with exactly five expressions and stable immutable paths', () => {

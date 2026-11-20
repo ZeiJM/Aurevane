@@ -120,12 +120,13 @@ const imageUrl = z
   .string()
   .regex(
     new RegExp(
-      String.raw`^/api/media/appearance/(?:1/[a-z0-9.]{1,140}|2/[a-z]+(?:\.[a-z]+){12}|3/[a-z]+(?:\.[a-z]+){13}|4/${paintedRecipe})/neutral\.svg$`,
+      String.raw`^/api/media/appearance/(?:1/[a-z0-9.]{1,140}|2/[a-z]+(?:\.[a-z]+){12}|3/[a-z]+(?:\.[a-z]+){13}|4/${paintedRecipe}|5/[a-z]+(?:\.[a-z]+){10})/neutral\.svg$`,
       'u',
     ),
   )
   .refine((url) => {
-    if (!url.startsWith('/api/media/appearance/4/')) return true
+    if (!/^\/api\/media\/appearance\/[45]\//.test(url)) return true
+    if (url.split('/')[5]!.length > 140) return false
     const [, clothing, clothColor, accessory, gearColor, headwear, headColor, facewear, faceColor] =
       url.split('/')[5]!.split('.')
     return (

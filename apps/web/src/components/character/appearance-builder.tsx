@@ -9,7 +9,8 @@ import {
   APPEARANCE_POSES,
   APPEARANCE_PRESETS,
   paintedAppearanceBlueprint,
-  type PaintedAppearanceBlueprint,
+  wardrobeAppearanceBlueprint,
+  type AnyPaintedAppearanceBlueprint,
   appearanceFrameIndex,
   compileAppearanceManifest,
   parseAppearanceBlueprint,
@@ -28,6 +29,13 @@ import {
   randomPaintedLook,
   type PaintedLook,
 } from '@/appearance/appearance-painted-catalog'
+import {
+  PAINTED_WARDROBE_FIELDS,
+  PAINTED_WARDROBE_LABELS,
+  randomWardrobeLook,
+  wardrobeLook,
+  type PaintedWardrobeLook,
+} from '@/appearance/appearance-painted-wardrobe'
 import {
   appearanceClothingConflict,
   WARDROBE_CUT_LABELS,
@@ -84,56 +92,72 @@ function randomizeOutfit(value: AppearanceBlueprint, parts: readonly Field[]) {
   return withCuff(withLower, cuff) ?? withLower
 }
 
-const paintedLabels = {
-  identity: 'Character',
-  outerwear: 'Clothing style',
-  clothColor: 'Clothing color',
-  gear: 'Accessory style',
-  gearColor: 'Accessory color',
-  headwear: 'Headwear style',
-  headColor: 'Headwear color',
-  facewear: 'Face accessory style',
-  faceColor: 'Face accessory color',
-} satisfies Record<keyof PaintedLook, string>
-
 function PaintedOutfitFields({
   value,
   disabled,
   onChange,
 }: {
-  value: PaintedAppearanceBlueprint
+  value: AnyPaintedAppearanceBlueprint
   disabled: boolean
-  onChange: (next: PaintedAppearanceBlueprint) => void
+  onChange: (next: AnyPaintedAppearanceBlueprint) => void
 }) {
+  const catalog = value.v === 5 ? PAINTED_WARDROBE_FIELDS : PAINTED_FIELDS
+  const worn = value.v === 5 ? value : wardrobeLook(value)
+  const order: (keyof PaintedWardrobeLook)[] = [
+    'identity',
+    'bodyFrame',
+    'skinTone',
+    'outerwear',
+    'clothColor',
+    'gear',
+    'gearColor',
+    'headwear',
+    'headColor',
+    'facewear',
+    'faceColor',
+  ]
   return (
     <fieldset disabled={disabled}>
-      <legend>Painted outfit</legend>
-      <div className={styles.fields}>
-        {(Object.keys(PAINTED_FIELDS) as (keyof PaintedLook)[]).map((field) => (
-          <label key={field}>
-            {paintedLabels[field]}
-            <select
-              aria-label={paintedLabels[field]}
-              value={value[field]}
-              disabled={
-                (field === 'clothColor' && value.outerwear === 'none') ||
-                (field === 'gearColor' && value.gear === 'none') ||
-                (field === 'headColor' && value.headwear === 'none') ||
-                (field === 'faceColor' && value.facewear === 'none')
-              }
-              onChange={(event) => {
-                if (!Object.hasOwn(PAINTED_FIELDS[field], event.target.value)) return
-                onChange(paintedAppearanceBlueprint({ ...value, [field]: event.target.value }))
-              }}
-            >
-              {Object.entries(PAINTED_FIELDS[field]).map(([id, option]) => (
-                <option key={id} value={id}>
-                  {typeof option === 'string' ? option : option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-        ))}
+      <legend>{value.v === 5 ? 'Painted appearance' : 'Painted outfit'}</legend>
+      <div
+        className={value.v === 5 ? `${styles.fields} ${styles.expandedWardrobe}` : styles.fields}
+      >
+        {order
+          .filter((field) => Object.hasOwn(catalog, field))
+          .map((field) => (
+            <label key={field}>
+              {PAINTED_WARDROBE_LABELS[field]}
+              <select
+                aria-label={PAINTED_WARDROBE_LABELS[field]}
+                value={worn[field]}
+                disabled={
+                  (field === 'clothColor' && value.outerwear === 'none') ||
+                  (field === 'gearColor' && value.gear === 'none') ||
+                  (field === 'headColor' && value.headwear === 'none') ||
+                  (field === 'faceColor' && value.facewear === 'none')
+                }
+                onChange={(event) => {
+                  if (value.v === 5) {
+                    if (!Object.hasOwn(PAINTED_WARDROBE_FIELDS[field], event.target.value)) return
+                    onChange(wardrobeAppearanceBlueprint({ ...value, [field]: event.target.value }))
+                  } else if (field !== 'bodyFrame' && field !== 'skinTone') {
+                    if (!Object.hasOwn(PAINTED_FIELDS[field], event.target.value)) return
+                    onChange(paintedAppearanceBlueprint({ ...value, [field]: event.target.value }))
+                  }
+                }}
+              >
+                {Object.entries(
+                  value.v === 5
+                    ? PAINTED_WARDROBE_FIELDS[field]
+                    : PAINTED_FIELDS[field as keyof PaintedLook],
+                ).map(([id, option]) => (
+                  <option key={id} value={id}>
+                    {typeof option === 'string' ? option : option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ))}
       </div>
     </fieldset>
   )
@@ -155,7 +179,7 @@ export function AppearanceBuilder({
   const hasCuffs = supportsCuff(value.coat)
   const lower = value.v === 2 || value.v === 3 ? value.lower : 'original'
   const cuff = value.v === 3 ? value.cuff : 'original'
-  const painted = value.v === 4 ? value : null
+  const painted = value.v === 4 || value.v === 5 ? value : null
   const editableGroups = painted ? [] : groups
   const [expression, setExpression] = useState<AppearanceExpression>('neutral')
   const [facing, setFacing] = useState<AppearanceFacing>('south')
@@ -262,6 +286,16 @@ export function AppearanceBuilder({
               onClick={() => update(paintedAppearanceBlueprint(DEFAULT_PAINTED_LOOK))}
             >
               Painted characters
+            </button>
+            <button
+              type="button"
+              disabled={painted?.v === 5}
+              onClick={() => {
+                if (painted?.v !== 5)
+                  update(wardrobeAppearanceBlueprint(wardrobeLook(painted ?? undefined)))
+              }}
+            >
+              Expanded painted wardrobe
             </button>
           </div>
         </fieldset>
@@ -393,7 +427,11 @@ export function AppearanceBuilder({
                 update(randomizeOutfit(value, fields))
                 return
               }
-              update(paintedAppearanceBlueprint(randomPaintedLook()))
+              update(
+                painted.v === 5
+                  ? wardrobeAppearanceBlueprint(randomWardrobeLook())
+                  : paintedAppearanceBlueprint(randomPaintedLook()),
+              )
             }}
           >
             Generate random sprite
@@ -458,7 +496,7 @@ export function AppearancePortraitPreview({
   )
 }
 
-function PosePreview({
+export function PosePreview({
   manifest,
   size,
   facing,

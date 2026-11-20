@@ -1276,3 +1276,14 @@
   height: 72px;
   object-fit: cover;
 }
+.branchPriority {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.55rem;
+  margin-block-start: 0.4rem;
+}
+
+.branchPriority span {
+  overflow-wrap: anywhere;
+}

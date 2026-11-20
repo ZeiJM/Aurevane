@@ -1,9 +1,12 @@
 import type { AppearanceFacing } from './appearance-manifest'
-import { PAINTED_COLORS, type PaintedLook } from './appearance-painted-catalog'
+import { type PaintedLook } from './appearance-painted-catalog'
+import { WARDROBE_DYES, type PaintedWardrobeLook } from './appearance-painted-wardrobe'
 import { PAINTED_HEAD_PARTS } from './appearance-painted-headwear.generated'
+import { WARDROBE_HEAD_LAYERS } from './appearance-painted-wardrobe.generated'
 
-type Dye = PaintedLook['clothColor']
-type Equipment = keyof typeof PAINTED_HEAD_PARTS
+type Dye = PaintedWardrobeLook['clothColor']
+const equipment = { ...PAINTED_HEAD_PARTS, ...WARDROBE_HEAD_LAYERS }
+type Equipment = keyof typeof equipment
 type HeadAnchor = readonly [x: number, scalp: number, width: number]
 type PortraitAnchor = readonly [x: number, scalp: number, width: number, eyeX: number, eyeY: number]
 
@@ -22,7 +25,7 @@ const portraitHeads = {
 } as const satisfies Record<PaintedLook['identity'], PortraitAnchor>
 
 export function paintedDyeFilter(id: string, color?: Dye) {
-  const pigment = color ? PAINTED_COLORS[color].rgb : null
+  const pigment = color ? WARDROBE_DYES[color].rgb : null
   if (!pigment) return ''
   const matrix = pigment
     .map((channel) => {
@@ -41,15 +44,24 @@ function equipmentImage(
   dye: Dye,
 ) {
   const filter = dye === 'natural' ? '' : ` filter="url(#${id})"`
-  return `<image href="${PAINTED_HEAD_PARTS[style][facing]}" x="${x}" y="${y}" width="${width}" height="${height}" preserveAspectRatio="none"${filter}/>`
+  return `<image href="${equipment[style][facing]}" x="${x}" y="${y}" width="${width}" height="${height}" preserveAspectRatio="none"${filter}/>`
 }
 
-function headwearImage(look: PaintedLook, facing: AppearanceFacing, [x, scalp, width]: HeadAnchor) {
+function headwearImage(
+  look: PaintedWardrobeLook | PaintedLook,
+  facing: AppearanceFacing,
+  [x, scalp, width]: HeadAnchor,
+) {
   if (look.headwear === 'none') return ''
   const wizard = look.headwear === 'arcanist'
-  const artWidth = width * (wizard ? 1.47 : 1.13)
-  const artHeight = width * (wizard ? 1.01 : 0.56)
-  const top = scalp + width * (wizard ? 0.52 : -0.02) - (wizard ? artHeight : 0)
+  const cap = look.headwear === 'furcap'
+  const circlet = look.headwear === 'circlet'
+  const artWidth = width * (wizard ? 1.47 : cap ? 1.16 : circlet ? 0.92 : 1.13)
+  const artHeight = width * (wizard ? 1.01 : cap ? 1.02 : circlet ? 0.24 : 0.56)
+  const top =
+    scalp +
+    width * (wizard ? 0.52 : cap ? 0.65 : circlet ? 0.28 : -0.02) -
+    (wizard || cap ? artHeight : 0)
   return equipmentImage(
     look.headwear,
     facing,
@@ -59,15 +71,19 @@ function headwearImage(look: PaintedLook, facing: AppearanceFacing, [x, scalp, w
   )
 }
 
-export function paintedEquipmentDyes(look: PaintedLook) {
+export function paintedEquipmentDyes(look: PaintedWardrobeLook | PaintedLook) {
   return (
     paintedDyeFilter('dye-headwear', look.headColor) +
     paintedDyeFilter('dye-facewear', look.faceColor)
   )
 }
 
-export function paintedFieldEquipment(look: PaintedLook, facing: AppearanceFacing) {
+export function paintedFieldEquipment(
+  look: PaintedWardrobeLook | PaintedLook,
+  facing: AppearanceFacing,
+) {
   const [x, scalp, width] = fieldHeads[look.identity][facing]
+  const lowerFace = look.facewear === 'veil' || look.facewear === 'mask'
   const facewear =
     look.facewear === 'none'
       ? ''
@@ -76,30 +92,32 @@ export function paintedFieldEquipment(look: PaintedLook, facing: AppearanceFacin
           facing,
           'dye-facewear',
           [
-            x - width * (facing === 'west' ? 0.59 : 0.39),
-            scalp + width * (look.facewear === 'eyepatch' ? 0.36 : 0.32),
-            width * (facing === 'west' ? 0.92 : 0.84),
-            width * (facing === 'west' && look.facewear === 'eyepatch' ? 0.12 : 0.27),
+            x - width * (lowerFace ? 0.48 : facing === 'west' ? 0.59 : 0.39),
+            scalp + width * (lowerFace ? 0.64 : look.facewear === 'eyepatch' ? 0.36 : 0.32),
+            width * (lowerFace ? 0.94 : facing === 'west' ? 0.92 : 0.84),
+            width *
+              (lowerFace ? 0.52 : facing === 'west' && look.facewear === 'eyepatch' ? 0.12 : 0.27),
           ],
           look.faceColor,
         )
   return `<g transform="translate(3.52 7.44) scale(.32)">${headwearImage(look, facing, [x, scalp, width])}${facewear}</g>`
 }
 
-export function paintedPortraitEquipment(look: PaintedLook) {
+export function paintedPortraitEquipment(look: PaintedWardrobeLook | PaintedLook) {
   const [x, scalp, width, eyeX, eyeY] = portraitHeads[look.identity]
+  const lowerFace = look.facewear === 'veil' || look.facewear === 'mask'
   const facewear =
     look.facewear === 'none'
       ? ''
       : equipmentImage(
           look.facewear,
-          look.facewear === 'eyepatch' ? 'south' : 'east',
+          look.facewear === 'eyepatch' || lowerFace ? 'south' : 'east',
           'dye-facewear',
           [
-            eyeX - width * (look.facewear === 'eyepatch' ? 0.23 : 0.53),
-            eyeY - width * (look.facewear === 'eyepatch' ? 0.18 : 0.14),
-            width * 0.62,
-            width * (look.facewear === 'eyepatch' ? 0.3 : 0.26),
+            eyeX - width * (lowerFace ? 0.42 : look.facewear === 'eyepatch' ? 0.23 : 0.53),
+            eyeY + width * (lowerFace ? 0.13 : look.facewear === 'eyepatch' ? -0.18 : -0.14),
+            width * (lowerFace ? 0.53 : 0.62),
+            width * (lowerFace ? 0.35 : look.facewear === 'eyepatch' ? 0.3 : 0.26),
           ],
           look.faceColor,
         )

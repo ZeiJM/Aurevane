@@ -2,6 +2,7 @@ import React from 'react'
 import { createRoot } from 'react-dom/client'
 import { MasterPanelShell } from '@/components/master/master-panel-shell'
 import { EventWorkspaceClient } from '@/components/master/events/event-workspace-client'
+import { NpcDesignEditor } from '@/components/master/npc-design-editor'
 import './production-styles'
 
 // Actual production components/styles. HTTP/session are explicit local fixtures;
@@ -297,6 +298,27 @@ window.fetch = async (input, options) => {
   }
   throw new Error(`Unexpected fixture request: ${input} ${body.operation}`)
 }
+const npcMode = window.location.pathname === '/npc-preview'
+const scout = {
+  id: 'ea82f11d-41df-4c5d-bba6-727904e95de8',
+  revision: 1,
+  draft: {
+    name: 'Scout fixture',
+    portraitRef: null,
+    imageUrl:
+      '/api/media/appearance/5/scout.brocade.midnight.journal.cedar.circlet.natural.veil.ice.lean.olive/neutral.svg',
+    uses: ['world', 'arena'],
+    arena: { arenaId: 'duel-yard', aiDifficulty: 'standard', lore: '' },
+    world: {
+      sectorId: 'verdant-expanse',
+      x: 6,
+      y: 4,
+      radius: 2,
+      greeting: 'The road is clear.',
+      greetingExpression: 'happy',
+    },
+  },
+}
 createRoot(document.getElementById('root')).render(
   <MasterPanelShell
     access={{
@@ -306,10 +328,18 @@ createRoot(document.getElementById('root')).render(
       specialCapabilities: [],
       effectiveCapabilities: ['master.access', 'events.author', 'events.operate'],
     }}
-    activeSection="events"
-    title="Events & Live Ops"
+    activeSection={npcMode ? 'npc-design' : 'events'}
+    title={npcMode ? 'NPC Design' : 'Events & Live Ops'}
     description="Local production-component verification"
   >
-    <EventWorkspaceClient canPublish canUseGlobalScope canEmergencyStop canManageNpcs />
+    {npcMode ? (
+      <NpcDesignEditor
+        initialRecords={[scout]}
+        initialNpcId={scout.id}
+        sectors={[{ id: 'verdant-expanse', name: 'Verdant Expanse' }]}
+      />
+    ) : (
+      <EventWorkspaceClient canPublish canUseGlobalScope canEmergencyStop canManageNpcs />
+    )}
   </MasterPanelShell>,
 )

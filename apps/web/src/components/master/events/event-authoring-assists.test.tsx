@@ -53,6 +53,35 @@ describe('Event phase path', () => {
     expect(rendered).not.toContain('open Wrap-up')
     expect(rendered).toContain('Staff resolve the run from this phase.')
   })
+
+  it('shows a timed fallback using the same draft as validation', () => {
+    const timed = createEventStarter('timed-patrol', 'event.timed-patrol')
+    expect(() => validatePersistentEventDefinition(timed)).not.toThrow()
+    const path = renderToStaticMarkup(<EventPhasePath phases={timed.phases} />)
+    expect(path).toContain('After all 2 selected objectives are complete, open Crossing secure.')
+    expect(path).toContain('If the requirement is unmet after 600 seconds, open Send relief.')
+    for (const { worldNavigation } of timed.phases[0]!.objectives) {
+      const sector = resolveSector(worldNavigation!.sectorId)
+      expect(sector && isWalkable(sector, worldNavigation!)).toBe(true)
+    }
+    const [first, ...rest] = timed.phases
+    if (first?.transition.type !== 'objective-quorum') throw new Error('Timed patrol has no quorum')
+    for (const deadline of [
+      { afterSeconds: 0, nextPhaseId: 'send-relief' },
+      { afterSeconds: 600, nextPhaseId: 'check-crossing' },
+      { afterSeconds: 600, nextPhaseId: 'crossing-secure' },
+      { afterSeconds: 600, nextPhaseId: 'missing' },
+    ]) {
+      const invalid = {
+        ...timed,
+        phases: [{ ...first, transition: { ...first.transition, deadline } }, ...rest],
+      }
+      expect(() => validatePersistentEventDefinition(invalid)).toThrow(/deadline/)
+      expect(renderToStaticMarkup(<EventPhasePath phases={invalid.phases} />)).toContain(
+        'Set a valid arrival deadline',
+      )
+    }
+  })
 })
 
 it('authors two Lanternward Watch routes with walkable checkpoints and a shared resolution', () => {

@@ -3,7 +3,9 @@ import { beforeEach, expect, it, vi } from 'vitest'
 import {
   APPEARANCE_PRESETS,
   appearanceManifestFromImageUrl,
+  wardrobeAppearanceBlueprint,
 } from '@/appearance/appearance-manifest'
+import { wardrobeLook } from '@/appearance/appearance-painted-wardrobe'
 
 const mocks = vi.hoisted(() => ({
   requireCapability: vi.fn(),
@@ -59,6 +61,33 @@ it('excludes already published looks and refuses an incomplete batch', async () 
   const response = await route.POST(request({ ...body, count: 3, vary: ['hairColor'] }))
   expect(response.status).toBe(400)
   expect(await response.json()).not.toHaveProperty('candidates')
+})
+
+it('builds NPC variants with independent body, skin and accessories while keeping selected gear', async () => {
+  const look = wardrobeAppearanceBlueprint({
+    ...wardrobeLook(),
+    gear: 'girdle',
+    gearColor: 'gold',
+    outerwear: 'brocade',
+  })
+  const result = await route.POST(
+    request({
+      ...body,
+      base: look,
+      vary: ['bodyFrame', 'skinTone', 'headwear', 'facewear'],
+    }),
+  )
+  expect(result.status).toBe(200)
+  const { candidates } = (await result.json()) as { candidates: string[] }
+  expect(new Set(candidates).size).toBe(4)
+  for (const candidate of candidates)
+    expect(appearanceManifestFromImageUrl(candidate)?.blueprint).toMatchObject({
+      v: 5,
+      outerwear: 'brocade',
+      gear: 'girdle',
+      gearColor: 'gold',
+    })
+  expect((await route.POST(request({ ...body, vary: ['skinTone'] }))).status).toBe(400)
 })
 
 it('rejects oversized and forged requests before checking any active looks', async () => {

@@ -78,6 +78,40 @@
   line-height: 1.4;
 }
 
+.lookPreview summary {
+  cursor: pointer;
+  width: fit-content;
+  padding-block: 0.4rem;
+}
+
+.lookSurfaces {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.55rem 0.9rem;
+  padding-block: 0.35rem;
+}
+
+.lookSurfaces figure {
+  display: grid;
+  justify-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0.4rem;
+  min-width: 5.75rem;
+}
+
+.lookSurfaces figure img {
+  width: 5.75rem;
+  height: 5.75rem;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.previewFacing {
+  width: min(100%, 12rem);
+}
+
 @media (max-width: 720px) {
   .workspace {
     grid-template-columns: 1fr;
