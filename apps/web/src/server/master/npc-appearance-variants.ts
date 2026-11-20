@@ -7,11 +7,17 @@ import {
   paintedAppearanceBlueprint,
   compileAppearanceManifest,
   parseAppearanceBlueprint,
+  wardrobeAppearanceBlueprint,
   type AppearanceBlueprint,
 } from '@/appearance/appearance-manifest'
 import { PAINTED_FIELDS, type PaintedLook } from '@/appearance/appearance-painted-catalog'
 import {
+  PAINTED_WARDROBE_FIELDS,
+  type PaintedWardrobeLook,
+} from '@/appearance/appearance-painted-wardrobe'
+import {
   NPC_VARIANT_POOL_LIMIT,
+  type LegacyNpcVariantField,
   type NpcVariantField,
   type NpcVariantRequest,
 } from '@/lib/npc-appearance-variants'
@@ -24,10 +30,18 @@ const HIGH_IMPACT_FIELDS = new Set<NpcVariantField>([
   'hair',
   'coat',
   'accessory',
+  'identity',
+  'hairstyle',
+  'bodyFrame',
+  'skinTone',
+  'outerwear',
+  'gear',
+  'headwear',
+  'facewear',
 ])
 
-function greatestCommonDivisor(a: number, b: number): number {
-  return b === 0 ? a : greatestCommonDivisor(b, a % b)
+function greatestCommonDivisor(a: bigint, b: bigint): bigint {
+  return b === 0n ? a : greatestCommonDivisor(b, a % b)
 }
 
 const paintedVariationFields: Partial<Record<NpcVariantField, keyof PaintedLook>> = {
@@ -39,36 +53,52 @@ const paintedVariationFields: Partial<Record<NpcVariantField, keyof PaintedLook>
 }
 
 function variationValue(blueprint: AppearanceBlueprint, field: NpcVariantField) {
+  if (blueprint.v === 5) return blueprint[field as keyof PaintedWardrobeLook]
   const paintedField = paintedVariationFields[field]
-  return blueprint.v === 4 && paintedField ? blueprint[paintedField] : blueprint[field]
+  return blueprint.v === 4 && paintedField
+    ? blueprint[paintedField]
+    : blueprint[field as LegacyNpcVariantField]
 }
 
 function variationPool({ base, vary }: NpcVariantRequest) {
   const seen = new Set([compileAppearanceManifest(base).portraits.neutral])
   const parts = vary.map((field) => {
+    if (base.v === 5)
+      return {
+        field,
+        options: Object.keys(PAINTED_WARDROBE_FIELDS[field as keyof PaintedWardrobeLook]),
+      }
     const paintedField = paintedVariationFields[field]
     return base.v === 4 && paintedField
       ? { field: paintedField, options: Object.keys(PAINTED_FIELDS[paintedField]) }
-      : { field, options: APPEARANCE_CATALOG[field] }
+      : { field, options: APPEARANCE_CATALOG[field as LegacyNpcVariantField] }
   })
-  const combinations = parts.reduce((size, { options }) => size * options.length, 1)
-  const start = randomInt(combinations)
+  const combinations = parts.reduce((size, { options }) => size * BigInt(options.length), 1n)
+  const start = parts.reduce(
+    (position, { options }) =>
+      position * BigInt(options.length) + BigInt(randomInt(options.length)),
+    0n,
+  )
   // Visit unique combinations without walking an arbitrarily large catalog. Small sets are
   // exhausted; a co-prime stride spreads larger samples across the selected features.
-  let stride = Math.max(1, Math.floor(combinations / SEARCH_LIMIT))
-  while (greatestCommonDivisor(stride, combinations) !== 1) stride++
+  const limit = BigInt(SEARCH_LIMIT)
+  let stride = combinations >= limit ? combinations / limit : 1n
+  while (greatestCommonDivisor(stride, combinations) !== 1n) stride++
   const candidates: { blueprint: AppearanceBlueprint; url: string }[] = []
-  for (let i = 0; i < Math.min(combinations, SEARCH_LIMIT); i++) {
+  for (let i = 0n; i < combinations && i < limit; i++) {
     let position = (start + i * stride) % combinations
     const draft: Record<string, unknown> = { ...base }
     for (const { field, options } of parts) {
-      draft[field] = options[position % options.length]
-      position = Math.floor(position / options.length)
+      const radix = BigInt(options.length)
+      draft[field] = options[Number(position % radix)]
+      position /= radix
     }
     const blueprint =
-      base.v === 4
-        ? paintedAppearanceBlueprint(draft as PaintedLook)
-        : parseAppearanceBlueprint(draft)
+      base.v === 5
+        ? wardrobeAppearanceBlueprint(draft as PaintedWardrobeLook)
+        : base.v === 4
+          ? paintedAppearanceBlueprint(draft as PaintedLook)
+          : parseAppearanceBlueprint(draft)
     if (!blueprint) continue
     const url = compileAppearanceManifest(blueprint).portraits.neutral
     if (seen.has(url)) continue

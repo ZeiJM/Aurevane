@@ -1,10 +1,10 @@
-name: PR 1045 Production migrations
+name: PR 1045 and 1046 Production migrations
 
 on:
   workflow_dispatch:
     inputs:
       operation:
-        description: Plan or atomically apply the verified PR 1045 batch
+        description: Plan or atomically apply the verified combined batch
         required: true
         type: choice
         options:
@@ -15,7 +15,11 @@ on:
         required: true
         type: string
       staged_source:
-        description: Verified READY staged Production commit SHA (required for apply)
+        description: Staged Production commit SHA after serving smoke (required for apply)
+        required: false
+        type: string
+      staged_deployment:
+        description: Staged Production deployment ID after serving smoke (required for apply)
         required: false
         type: string
 
@@ -56,6 +60,7 @@ jobs:
           OPERATION: ${{ inputs.operation }}
           EXPECTED_SOURCE: ${{ inputs.expected_source }}
           STAGED_SOURCE: ${{ inputs.staged_source }}
+          STAGED_DEPLOYMENT: ${{ inputs.staged_deployment }}
         run: |
           set -euo pipefail
           git rev-parse HEAD 'HEAD^{tree}'
@@ -63,7 +68,7 @@ jobs:
           args=(--expected-source "$EXPECTED_SOURCE")
           case "$OPERATION" in
             plan) ;;
-            apply) args+=(--apply --staged-source "$STAGED_SOURCE");;
+            apply) args+=(--apply --staged-source "$STAGED_SOURCE" --staged-deployment "$STAGED_DEPLOYMENT");;
             *) exit 1;;
           esac
           python3 .github/scripts/apply-aurevane-pr1045.py "$RUNNER_TEMP/aurevane-pr1045-cli/node_modules/.bin/supabase" "${args[@]}"

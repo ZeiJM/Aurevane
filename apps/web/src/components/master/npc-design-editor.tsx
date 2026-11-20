@@ -1,7 +1,10 @@
 'use client'
 
 import { useRef, useState, type FormEvent } from 'react'
-import { STARTER_CHARACTER_PORTRAITS } from '@aurevane/game-core/character/starter-options'
+import {
+  isStarterCharacterPortraitRef,
+  STARTER_CHARACTER_PORTRAITS,
+} from '@aurevane/game-core/character/starter-options'
 import { getTacticalHallArena } from '@aurevane/game-core/combat/tactical-hall-arenas'
 import {
   NPC_ARENA_IDS,
@@ -19,11 +22,16 @@ import {
 } from '@aurevane/validation/combat/npc-design'
 
 import {
+  APPEARANCE_FACINGS,
   appearanceManifestFromImageUrl,
   compileAppearanceManifest,
+  type AppearanceFacing,
 } from '@/appearance/appearance-manifest'
+import { AppearancePortraitPreview, PosePreview } from '@/components/character/appearance-builder'
 import { AppearanceBuilderDialog } from '@/components/character/appearance-builder-dialog'
+import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
 import { ArenaNpcCard } from '@/components/battle/arena-npc-card'
+import { getStarterPortraitImageAssetId } from '@/media/character'
 import { resolvePublicCharacterImageUrl } from '@/media/public-character-portrait'
 import type { NpcArenaRehearsal } from '@/server/master/npc-arena-rehearsal'
 import { NpcDialogueEditor } from './npc-dialogue-editor'
@@ -54,6 +62,78 @@ const INITIAL_DRAFT: NpcDesignDraft = {
   portraitRef: null,
   uses: ['arena'],
   arena: DEFAULT_ARENA,
+}
+
+function NpcAppearancePreview({ draft }: { draft: NpcDesignDraft }) {
+  const [facing, setFacing] = useState<AppearanceFacing>('south')
+  const manifest = appearanceManifestFromImageUrl(draft.imageUrl)
+  const world = draft.uses.includes('world') ? draft.world : undefined
+  const showBattle = draft.uses.includes('arena') || Boolean(world?.encounter)
+  const portrait =
+    draft.portraitRef && isStarterCharacterPortraitRef(draft.portraitRef)
+      ? draft.portraitRef
+      : 'portrait.starter.wayfarer-01'
+
+  return (
+    <details className={styles.lookPreview}>
+      <summary>Preview draft appearance</summary>
+      <div className={styles.lookSurfaces}>
+        <figure>
+          {manifest ? (
+            <AppearancePortraitPreview manifest={manifest} expression={world?.greetingExpression} />
+          ) : (
+            <CharacterPortraitImage
+              imageUrl={draft.imageUrl}
+              fallbackAssetId={getStarterPortraitImageAssetId(portrait)}
+              alt=""
+              sizes="96px"
+            />
+          )}
+          <figcaption>
+            {world?.greetingExpression ? 'Greeting portrait' : 'Identity portrait'}
+          </figcaption>
+        </figure>
+        {manifest && world ? (
+          <PosePreview
+            manifest={manifest}
+            size={44}
+            facing={facing}
+            pose="idle"
+            label="World actor"
+          />
+        ) : null}
+        {manifest && showBattle ? (
+          <PosePreview
+            manifest={manifest}
+            size={72}
+            facing={facing}
+            pose="idle"
+            label="Battle actor"
+          />
+        ) : null}
+        {!manifest && (world || showBattle) ? (
+          <p className={styles.hint}>
+            This draft uses a portrait. Build an appearance to preview its field sprite.
+          </p>
+        ) : null}
+      </div>
+      {manifest && (world || showBattle) ? (
+        <label className={styles.previewFacing}>
+          Actor facing
+          <select
+            value={facing}
+            onChange={(event) => setFacing(event.target.value as AppearanceFacing)}
+          >
+            {APPEARANCE_FACINGS.map((direction) => (
+              <option key={direction} value={direction}>
+                {direction}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
+    </details>
+  )
 }
 
 export function NpcDesignEditor({
@@ -301,6 +381,7 @@ export function NpcDesignEditor({
               </button>
             ) : null}
           </div>
+          <NpcAppearancePreview key={selectedId ?? 'new'} draft={draft} />
           {draft.imageUrl ? (
             <p className={styles.hint}>
               Generated look applies to the card, dialogue and compatible world and battle actors.

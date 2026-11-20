@@ -3,19 +3,30 @@ import {
   parseAppearanceBlueprint,
   type AppearanceBlueprint,
 } from '@/appearance/appearance-manifest'
+import {
+  PAINTED_WARDROBE_FIELDS,
+  type PaintedWardrobeLook,
+} from '@/appearance/appearance-painted-wardrobe'
 
 export const NPC_VARIANT_BATCH_MIN = 2
 export const NPC_VARIANT_BATCH_MAX = 8
 export const NPC_VARIANT_POOL_LIMIT = 64
-export type NpcVariantField = keyof typeof APPEARANCE_CATALOG
-export const NPC_VARIANT_FIELDS = Object.keys(APPEARANCE_CATALOG) as NpcVariantField[]
-export const NPC_PAINTED_VARIANT_FIELDS: NpcVariantField[] = [
+export type LegacyNpcVariantField = keyof typeof APPEARANCE_CATALOG
+export type NpcVariantField = LegacyNpcVariantField | keyof PaintedWardrobeLook
+export const NPC_VARIANT_FIELDS = Object.keys(APPEARANCE_CATALOG) as LegacyNpcVariantField[]
+export const NPC_PAINTED_VARIANT_FIELDS: LegacyNpcVariantField[] = [
   'body',
   'coat',
   'palette',
   'accessory',
   'hairColor',
 ]
+
+export function npcVariantFields(blueprint: AppearanceBlueprint): readonly NpcVariantField[] {
+  if (blueprint.v === 5)
+    return Object.keys(PAINTED_WARDROBE_FIELDS) as (keyof PaintedWardrobeLook)[]
+  return blueprint.v === 4 ? NPC_PAINTED_VARIANT_FIELDS : NPC_VARIANT_FIELDS
+}
 
 export type NpcVariantRequest = {
   base: AppearanceBlueprint
@@ -36,14 +47,11 @@ export function parseNpcVariantRequest(input: unknown): NpcVariantRequest | null
     count < NPC_VARIANT_BATCH_MIN ||
     count > NPC_VARIANT_BATCH_MAX ||
     !Array.isArray(vary) ||
-    vary.length > NPC_VARIANT_FIELDS.length ||
-    !vary.every((field): field is NpcVariantField => NPC_VARIANT_FIELDS.includes(field)) ||
+    !vary.every((field): field is NpcVariantField => npcVariantFields(blueprint).includes(field)) ||
     new Set(vary).size !== vary.length ||
     (mode !== 'distinct' && mode !== 'uniform') ||
     (mode === 'distinct' ? vary.length === 0 : vary.length !== 0)
   )
-    return null
-  if (blueprint.v === 4 && vary.some((field) => !NPC_PAINTED_VARIANT_FIELDS.includes(field)))
     return null
   return { base: blueprint, count, vary, mode }
 }

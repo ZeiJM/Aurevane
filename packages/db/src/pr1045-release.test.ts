@@ -28,7 +28,7 @@ function releasePython(expression: string, args: string[] = []) {
   )
 }
 
-it('applies only the exact PR1045 batch, aborts a preservation failure, and rejects replay', async () => {
+it('applies the exact combined batch, aborts a preservation failure, and rejects replay', async () => {
   const db = await createCombatContentTestDatabase(undefined, predecessor)
   try {
     await db.exec(`create schema supabase_migrations;
@@ -96,8 +96,12 @@ it('applies only the exact PR1045 batch, aborts a preservation failure, and reje
     expect(after.baseline_digest).toBe(before.baseline_digest)
     expect(after.preserved).toEqual(before.preserved)
     expect(after.ledger.slice(0, installed.length)).toEqual(before.ledger)
-    expect(after.ledger).toHaveLength(installed.length + 10)
-    expect(Object.keys(after.sources)).toHaveLength(10)
+    expect(after.ledger).toHaveLength(installed.length + 12)
+    expect(Object.keys(after.sources)).toHaveLength(12)
+    expect(after.ledger.slice(-2).map(([version]) => version)).toEqual([
+      '20261120100000',
+      '20261120101000',
+    ])
     expect(
       (
         await db.query(`select appearance_image_url, confirmed_sprite_designs
@@ -108,6 +112,30 @@ it('applies only the exact PR1045 batch, aborts a preservation failure, and reje
     await db.exec(appearanceTest)
     await expect(db.transaction((tx) => tx.exec(sql))).rejects.toThrow('RELEASE_BASELINE_CHANGED')
     expect(await snapshot()).toEqual(after)
+    const version5 =
+      '/api/media/appearance/5/scout.brigandine.ink.journal.cedar.furcap.walnut.mask.pewter.stocky.espresso.twins.lilac.green/neutral.svg'
+    const current = await db.query<{ appearance_revision: number }>(
+      `select appearance_revision from public.character_profile_display
+       where character_id='85000000-0000-4000-8000-000000000011'`,
+    )
+    const expectedRevision = current.rows[0]!.appearance_revision
+    const saved = await db.query(
+      `select public.commit_character_appearance_v3(
+        '85000000-0000-4000-8000-000000000001', '85000000-0000-4000-8000-000000000011',
+        $1, $2
+      ) as receipt`,
+      [expectedRevision, version5],
+    )
+    expect(saved.rows).toEqual([
+      {
+        receipt: {
+          revision: expectedRevision + 1,
+          imageUrl: version5,
+          pendingImageUrl: null,
+          remainingDesigns: 0,
+        },
+      },
+    ])
   } finally {
     await db.close()
   }

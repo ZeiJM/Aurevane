@@ -142,6 +142,10 @@ export type EventPhaseTransition =
       readonly type: 'objective-quorum'
       readonly objectiveIds: readonly string[]
       readonly required: number
+      readonly deadline?: {
+        readonly afterSeconds: number
+        readonly nextPhaseId: string
+      }
     }
   | { readonly type: 'objective-branch'; readonly routes: readonly EventObjectiveBranchRoute[] }
 
@@ -670,7 +674,7 @@ export function validatePersistentEventDefinition(definition: PersistentEventDef
         )
       }
     } else if (phase.transition.type === 'objective-quorum') {
-      const { objectiveIds, required } = phase.transition
+      const { deadline, objectiveIds, required } = phase.transition
       if (
         !Array.isArray(objectiveIds) ||
         objectiveIds.length < 2 ||
@@ -684,6 +688,24 @@ export function validatePersistentEventDefinition(definition: PersistentEventDef
         throw new TypeError(
           'Select at least two different objectives in the same phase and a valid required count.',
         )
+      }
+      if (deadline !== undefined) {
+        const successPhaseId = phase.nextPhaseId ?? definition.phases[phaseIndex + 1]?.id
+        if (
+          !deadline ||
+          typeof deadline !== 'object' ||
+          Object.keys(deadline).some((key) => key !== 'afterSeconds' && key !== 'nextPhaseId') ||
+          !Number.isSafeInteger(deadline.afterSeconds) ||
+          deadline.afterSeconds < 1 ||
+          deadline.afterSeconds > 2_147_483_647 ||
+          !isLaterPhase(deadline.nextPhaseId) ||
+          deadline.nextPhaseId === successPhaseId ||
+          phase.objectives.some((objective) => objective.completion !== 'world-arrival')
+        ) {
+          throw new TypeError(
+            'An objective deadline requires confirmed World arrivals, a positive duration, and a later fallback phase different from the success phase.',
+          )
+        }
       }
     } else if (phase.transition.type === 'objective-branch') {
       const { routes } = phase.transition

@@ -67,6 +67,30 @@ await fs.writeFile(
 const config = {
   configFile: false,
   root: fixture,
+  plugins: [
+    {
+      name: 'fixture-appearance-routes',
+      configureServer(server) {
+        let route
+        server.middlewares.use(async (request, response, next) => {
+          const match = request.url?.match(/^\/api\/media\/appearance\/(\d)\/([a-z.]+)\/([a-z.]+)$/)
+          if (!match) return next()
+          try {
+            const { GET } = await (route ??= server.ssrLoadModule(
+              resolve(web, 'src/app/api/media/appearance/[version]/[blueprint]/[asset]/route.ts'),
+            ))
+            const result = await GET(new Request(`http://localhost${request.url}`), {
+              params: Promise.resolve({ version: match[1], blueprint: match[2], asset: match[3] }),
+            })
+            response.writeHead(result.status, Object.fromEntries(result.headers))
+            response.end(await result.text())
+          } catch (error) {
+            next(error)
+          }
+        })
+      },
+    },
+  ],
   publicDir: resolve(web, 'public'),
   resolve: {
     alias: {
@@ -154,6 +178,36 @@ try {
       path: resolve(output, `event-starter-${viewport.width}-${viewport.zoom}.png`),
       fullPage: true,
     })
+    await page.getByRole('button', { name: 'New Event', exact: true }).click()
+    await starter.selectOption('timed-patrol')
+    await page.getByRole('button', { name: 'Start from template' }).click()
+    await choose('Phases')
+    const path = page.getByText('Phase path', { exact: true })
+    if (!(await path.evaluate((summary) => summary.parentElement.open))) await path.click()
+    await expect(
+      page.getByText('After all 2 selected objectives are complete, open Crossing secure.'),
+    ).toBeVisible()
+    await expect(
+      page.getByText('If the requirement is unmet after 600 seconds, open Send relief.'),
+    ).toBeVisible()
+    await page.getByRole('button', { name: 'Send relief', exact: true }).click()
+    await expect(page.getByRole('article', { name: 'Send relief', exact: true })).toBeFocused()
+    await page.getByRole('spinbutton', { name: 'Time limit in seconds' }).fill('900')
+    await expect(
+      page.getByText('If the requirement is unmet after 900 seconds, open Send relief.'),
+    ).toBeVisible()
+    await page.getByRole('checkbox', { name: 'Take a fallback path if time runs out' }).uncheck()
+    await expect(page.getByText('If the requirement is unmet', { exact: false })).toHaveCount(0)
+    await page.getByRole('button', { name: 'New Event', exact: true }).click()
+    await starter.selectOption('lanternward-watch')
+    await page.getByRole('button', { name: 'Start from template' }).click()
+    await choose('Phases')
+    const priority = page.getByRole('list', { name: 'Priority for simultaneous completions' })
+    await expect(priority.getByRole('listitem').first()).toContainText('farwater-signal')
+    await page.getByLabel('When farwater-signal completes').selectOption('close-watch')
+    await expect(priority.getByRole('listitem').first()).toContainText('farwater-signal')
+    await page.getByRole('button', { name: 'Raise priority for harbor-signal' }).click()
+    await expect(priority.getByRole('listitem').first()).toContainText('harbor-signal')
     await page.reload()
     await page.locator('body').evaluate((body, zoom) => {
       body.style.zoom = zoom
@@ -719,6 +773,47 @@ try {
       path: resolve(output, `rewards-${viewport.width}-${viewport.zoom}.png`),
       fullPage: true,
     })
+    await page.goto(new URL('/npc-preview', server.resolvedUrls.local[0]).href)
+    await page.locator('body').evaluate((body, zoom) => {
+      body.style.zoom = zoom
+    }, viewport.zoom)
+    await page.getByText('Preview draft appearance', { exact: true }).click()
+    const preview = page.locator('details').filter({ hasText: 'Preview draft appearance' })
+    await expect(preview.getByText('World actor', { exact: true })).toBeVisible()
+    await expect(preview.getByText('Battle actor', { exact: true })).toBeVisible()
+    const greeting = preview.getByRole('img', { name: 'Happy appearance portrait' })
+    await expect.poll(() => greeting.evaluate((element) => element.naturalWidth)).toBeGreaterThan(0)
+    await preview.getByLabel('Actor facing').selectOption('west')
+    await expect(preview.getByLabel('Actor facing')).toHaveValue('west')
+    if (viewport.zoom === 1) {
+      await page.getByRole('button', { name: 'Build appearance', exact: true }).click()
+      const wardrobe = page.getByRole('dialog', { name: 'Character appearance' })
+      await wardrobe.getByLabel('Body build').selectOption('stocky')
+      await wardrobe.getByLabel('Skin tone').selectOption('espresso')
+      await wardrobe.getByLabel('Hairstyle').selectOption('quiff')
+      await wardrobe.getByLabel('Hair color').selectOption('platinum')
+      await wardrobe.getByLabel('Eye color').selectOption('violet')
+      await wardrobe.getByLabel('Clothing style').selectOption('quilted')
+      await wardrobe.getByLabel('Accessory style', { exact: true }).selectOption('rope')
+      await wardrobe.getByLabel('Face accessory style').selectOption('mask')
+      const portrait = wardrobe.getByRole('img', { name: 'Neutral appearance portrait' })
+      await expect(portrait).toHaveAttribute(
+        'src',
+        /\/5\/scout\.quilted\.midnight\.rope\..+\.mask\.ice\.stocky\.espresso\.quiff\.platinum\.violet\/neutral\.svg$/,
+      )
+      await expect
+        .poll(() => portrait.evaluate((element) => element.naturalWidth))
+        .toBeGreaterThan(0)
+      await page.screenshot({ path: resolve(output, `wardrobe-${viewport.width}.png`) })
+      await wardrobe.getByRole('button', { name: 'Use this appearance' }).click()
+      await expect(wardrobe).toBeHidden()
+      await expect(greeting).toHaveAttribute(
+        'src',
+        /\.stocky\.espresso\.quiff\.platinum\.violet\/happy\.svg$/,
+      )
+      await expect(page.getByText('Draft saved.', { exact: true })).toHaveCount(0)
+    }
+    assert.deepEqual(errors, [])
     console.log(
       `Passed Events actual components: ${viewport.width}x${viewport.height}, CSS zoom ${viewport.zoom}; identity/approval/preview/run isolation, fresh B cancel CAS, readable regions/custom scopes, published Story cast search/preview/draft restore, private trial and daily combat discovery draft round trips, keyboard/live CAS payload, navigation-only blockers, draft base preserved, reason-free requests.`,
     )

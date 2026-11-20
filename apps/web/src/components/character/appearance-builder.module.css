@@ -197,3 +197,9 @@
     animation: none;
   }
 }
+
+@media (max-width: 27rem) {
+  .expandedWardrobe {
+    grid-template-columns: 1fr;
+  }
+}

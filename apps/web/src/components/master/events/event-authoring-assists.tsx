@@ -12,6 +12,7 @@ import styles from './event-builder.module.css'
 const starters = [
   { id: 'timed-world', label: 'Timed World Event', category: 'world-events' },
   { id: 'world-arrival', label: 'World arrival', category: 'world-events' },
+  { id: 'timed-patrol', label: 'Timed patrol', category: 'world-events' },
   { id: 'lanternward-watch', label: 'Lanternward Watch', category: 'world-events' },
   { id: 'travel-and-report', label: 'Travel and report', category: 'story-campaigns' },
 ] as const
@@ -55,6 +56,14 @@ export function createEventStarter(
   }
   const destination = { sectorId: 'verdant-expanse', x: 12, y: 4 }
   const verdantScope = { type: 'region', key: destination.sectorId } as const
+  const checkpoint = (id: string, place: { sectorId: string; x: number; y: number }) => ({
+    id,
+    type: 'discover' as const,
+    referenceKey: `objective.${id}`,
+    target: 1,
+    completion: 'world-arrival' as const,
+    worldNavigation: { ...place, autoPath: true, guidance: 'exact' as const },
+  })
   switch (starter) {
     case 'timed-world':
       return {
@@ -104,15 +113,40 @@ export function createEventStarter(
           { ...blankPhase(1), id: 'wrap-up', name: 'Wrap-up' },
         ],
       }
-    case 'lanternward-watch': {
-      const checkpoint = (id: string, place: { sectorId: string; x: number; y: number }) => ({
-        id,
-        type: 'discover' as const,
-        referenceKey: `objective.${id}`,
-        target: 1,
-        completion: 'world-arrival' as const,
-        worldNavigation: { ...place, autoPath: true, guidance: 'exact' as const },
-      })
+    case 'timed-patrol':
+      return {
+        ...base,
+        category: 'world-events',
+        title: 'Timed patrol',
+        summary: 'Check both approaches to the eastern crossing before the relief party is sent.',
+        scope: verdantScope,
+        phases: [
+          {
+            ...blankPhase(0),
+            id: 'check-crossing',
+            name: 'Check the eastern crossing',
+            objectives: [
+              checkpoint('inner-approach', { ...destination, x: 11 }),
+              checkpoint('outer-approach', destination),
+            ],
+            transition: {
+              type: 'objective-quorum',
+              objectiveIds: ['inner-approach', 'outer-approach'],
+              required: 2,
+              deadline: { afterSeconds: 600, nextPhaseId: 'send-relief' },
+            },
+          },
+          {
+            ...blankPhase(1),
+            id: 'crossing-secure',
+            name: 'Crossing secure',
+            nextPhaseId: 'debrief',
+          },
+          { ...blankPhase(2), id: 'send-relief', name: 'Send relief' },
+          { ...blankPhase(3), id: 'debrief', name: 'Debrief' },
+        ],
+      }
+    case 'lanternward-watch':
       return {
         ...base,
         category: 'world-events',
@@ -171,7 +205,6 @@ export function createEventStarter(
           { ...blankPhase(3), id: 'close-watch', name: 'Report to the Watch' },
         ],
       }
-    }
     case 'travel-and-report':
       return {
         ...base,
@@ -302,7 +335,13 @@ function phasePathDescription(phase: PersistentEventPhaseDefinition, nextName?: 
   return nextName ? `${condition}, open ${nextName}.` : `${condition}, move the run to resolution.`
 }
 
-export function EventPhasePath({ phases }: { phases: readonly PersistentEventPhaseDefinition[] }) {
+export function EventPhasePath({
+  phases,
+  onOpenPhase,
+}: {
+  phases: readonly PersistentEventPhaseDefinition[]
+  onOpenPhase?: (index: number) => void
+}) {
   return (
     <details className={styles.notice}>
       <summary>Phase path</summary>
@@ -312,9 +351,23 @@ export function EventPhasePath({ phases }: { phases: readonly PersistentEventPha
             ? phases.findIndex(({ id }) => id === phase.nextPhaseId)
             : index + 1
           const next = phases[nextIndex]
+          const deadline =
+            phase.transition.type === 'objective-quorum' ? phase.transition.deadline : undefined
+          const fallbackIndex = deadline
+            ? phases.findIndex(
+                ({ id }, candidate) => candidate > index && id === deadline.nextPhaseId,
+              )
+            : -1
+          const fallback = phases[fallbackIndex]
           return (
             <li key={index}>
-              <strong>{phaseName(phase, index)}</strong>
+              {onOpenPhase ? (
+                <button type="button" onClick={() => onOpenPhase(index)}>
+                  {phaseName(phase, index)}
+                </button>
+              ) : (
+                <strong>{phaseName(phase, index)}</strong>
+              )}
               {phase.transition.type === 'objective-branch' ? (
                 phase.transition.routes.length ? (
                   <ol>
@@ -334,9 +387,26 @@ export function EventPhasePath({ phases }: { phases: readonly PersistentEventPha
                   <p>Assign at least two objectives to later phases.</p>
                 )
               ) : (
-                <div>
-                  {phasePathDescription(phase, next ? phaseName(next, nextIndex + 1) : undefined)}
-                </div>
+                <>
+                  <div>
+                    {phasePathDescription(phase, next ? phaseName(next, nextIndex) : undefined)}
+                  </div>
+                  {deadline ? (
+                    fallback &&
+                    fallbackIndex !== nextIndex &&
+                    Number.isSafeInteger(deadline.afterSeconds) &&
+                    deadline.afterSeconds > 0 &&
+                    deadline.afterSeconds <= 2_147_483_647 &&
+                    phase.objectives.every(({ completion }) => completion === 'world-arrival') ? (
+                      <div>
+                        If the requirement is unmet after {deadline.afterSeconds} seconds, open{' '}
+                        {phaseName(fallback, fallbackIndex)}.
+                      </div>
+                    ) : (
+                      <div>Set a valid arrival deadline and a different later fallback phase.</div>
+                    )
+                  ) : null}
+                </>
               )}
             </li>
           )

@@ -9,7 +9,8 @@ import {
   type AppearanceExpression,
   type AppearanceFacing,
   type AppearancePose,
-  type PaintedAppearanceBlueprint,
+  type AnyPaintedAppearanceBlueprint,
+  type WardrobeAppearanceBlueprint,
 } from './appearance-manifest'
 import {
   PAINTED_ACTORS,
@@ -17,13 +18,30 @@ import {
   PAINTED_OUTER_LAYERS,
   PAINTED_ACCESSORY_LAYERS,
 } from './appearance-painted-catalog.generated'
-import type { PaintedLook } from './appearance-painted-catalog'
 import {
   paintedDyeFilter,
   paintedEquipmentDyes,
   paintedFieldEquipment,
   paintedPortraitEquipment,
 } from './appearance-painted-equipment'
+import {
+  paintedFeatureComposite,
+  paintedFeatureDyes,
+  paintedHairLayers,
+} from './appearance-painted-features'
+import {
+  WARDROBE_FRAMES,
+  WARDROBE_SKIN_TONES,
+  type PaintedWardrobeLook,
+} from './appearance-painted-wardrobe'
+import {
+  WARDROBE_GEAR_LAYERS,
+  WARDROBE_OUTER_LAYERS,
+} from './appearance-painted-wardrobe.generated'
+import {
+  PAINTED_FIELD_SKIN_MASKS,
+  PAINTED_PORTRAIT_SKIN_MASKS,
+} from './appearance-painted-masks.generated'
 import { renderLowerGarment } from './appearance-lower-art'
 import { PAINTED_PRESET_PORTRAITS } from './appearance-painted-portraits.generated'
 import { PAINTED_PRESET_SPRITES } from './appearance-painted-sprites.generated'
@@ -173,7 +191,7 @@ function portrait(blueprint: AppearanceBlueprint, mood: AppearanceExpression, ic
 }
 
 function sprite(
-  blueprint: Exclude<AppearanceBlueprint, PaintedAppearanceBlueprint>,
+  blueprint: Exclude<AppearanceBlueprint, AnyPaintedAppearanceBlueprint>,
   facing: AppearanceFacing,
   pose: AppearancePose,
   frame: number,
@@ -264,37 +282,90 @@ function sprite(
 const paintedFrameClips =
   '<clipPath id="upper-body"><path d="M0 0h48v46H0z"/></clipPath><clipPath id="lower-body"><path d="M0 45h48v19H0z"/></clipPath>'
 
+const originalSkinMidtones = {
+  scout: [180, 127, 95],
+  ranger: [170, 122, 92],
+  guard: [120, 84, 62],
+  elder: [180, 132, 100],
+} as const
+
+function wardrobeSkinDye(
+  blueprint: WardrobeAppearanceBlueprint,
+  mask: string,
+  width: number,
+  height: number,
+) {
+  const color = WARDROBE_SKIN_TONES[blueprint.skinTone].rgb
+  if (!color) return ''
+  const midpoint = originalSkinMidtones[blueprint.identity]
+  const matrix = color
+    .map((channel, i) =>
+      [...[0, 1, 2].map((n) => (n === i ? 0.9 : 0)), 0, (channel - midpoint[i]! * 0.9) / 255].join(
+        ' ',
+      ),
+    )
+    .join(' ')
+  return `<mask id="wardrobe-skin" maskUnits="userSpaceOnUse" x="0" y="0" width="${width}" height="${height}"><image href="${mask}" width="${width}" height="${height}"/></mask>
+    <filter id="wardrobe-skin-dye" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="${matrix} 0 0 0 1 0"/></filter>`
+}
+
+function paintedSkinComposite(id: string) {
+  return `<use href="#${id}"/><g mask="url(#wardrobe-skin)"><use href="#${id}" filter="url(#wardrobe-skin-dye)"/></g>`
+}
+
 function paintedCharacterPortrait(
-  blueprint: PaintedAppearanceBlueprint,
+  blueprint: AnyPaintedAppearanceBlueprint,
   expression: AppearanceExpression,
   icon: boolean,
 ) {
   const source = PAINTED_ACTOR_PORTRAITS[blueprint.identity][expression]
   const size = icon ? 64 : 256
-  const art = `<image href="${source}" width="256" height="256"/>${paintedPortraitEquipment(blueprint)}`
+  const skin =
+    blueprint.v === 5
+      ? wardrobeSkinDye(
+          blueprint,
+          PAINTED_PORTRAIT_SKIN_MASKS[blueprint.identity][expression],
+          256,
+          256,
+        )
+      : ''
+  const featureDyes = blueprint.v === 5 ? paintedFeatureDyes(blueprint, expression) : ''
+  const featureComposite =
+    blueprint.v === 5 ? paintedFeatureComposite(blueprint, 'wardrobe-portrait') : ''
+  const [backHair, frontHair] = blueprint.v === 5 ? paintedHairLayers(blueprint) : ['', '']
+  const body = skin
+    ? paintedSkinComposite('wardrobe-portrait')
+    : featureDyes
+      ? '<use href="#wardrobe-portrait"/>'
+      : `<image href="${source}" width="256" height="256"/>`
+  const art = backHair + body + featureComposite + frontHair + paintedPortraitEquipment(blueprint)
   const framed =
     blueprint.headwear === 'arcanist'
       ? `<g transform="translate(31 76) scale(.76)">${art}</g>`
-      : art
+      : blueprint.headwear === 'furcap'
+        ? `<g transform="translate(18 44) scale(.86)">${art}</g>`
+        : art
   const portrait = icon ? `<g transform="translate(-14 0) scale(.359375)">${framed}</g>` : framed
   return svg(
     size,
     size,
     `
     <defs><radialGradient id="paper"><stop stop-color="#8d8069"/><stop offset="1" stop-color="#29282d"/></radialGradient>
-    ${paintedEquipmentDyes(blueprint)}</defs>
+    ${paintedEquipmentDyes(blueprint)}${skin || featureDyes ? `<image id="wardrobe-portrait" href="${source}" width="256" height="256"/>${skin}${featureDyes}` : ''}</defs>
     <rect width="${size}" height="${size}" fill="url(#paper)"/>${portrait}`,
   )
 }
 
-function paintedLayer(facing: AppearanceFacing, layer: string, color?: PaintedLook['clothColor']) {
+type PaintedDye = PaintedWardrobeLook['clothColor']
+
+function paintedLayer(facing: AppearanceFacing, layer: string, color?: PaintedDye) {
   const column = APPEARANCE_FACINGS.indexOf(facing)
   const art = `<use href="#painted-${layer}"/>`
   const filtered = color && color !== 'natural' ? `<g filter="url(#dye-${layer})">${art}</g>` : art
   return `<svg x="3.52" y="7.44" width="40.96" height="56.32" viewBox="${column * 128} 0 128 176" overflow="hidden">${filtered}</svg>`
 }
 
-function paintedLayerDefinition(layer: string, source: string, color?: PaintedLook['clothColor']) {
+function paintedLayerDefinition(layer: string, source: string, color?: PaintedDye) {
   return `<image id="painted-${layer}" href="${source}" width="512" height="176"/>${paintedDyeFilter(`dye-${layer}`, color)}`
 }
 
@@ -340,25 +411,54 @@ function paintedCharacterWalk(facing: AppearanceFacing, frame: number) {
     <g transform="translate(0 -.6)">${gear}${head}</g>`
 }
 
-function renderPaintedCharacterAtlas(blueprint: PaintedAppearanceBlueprint) {
+const wardrobeOuterLayers = { ...PAINTED_OUTER_LAYERS, ...WARDROBE_OUTER_LAYERS }
+const wardrobeGearLayers = { ...PAINTED_ACCESSORY_LAYERS, ...WARDROBE_GEAR_LAYERS }
+const wardrobeBodyClips =
+  '<clipPath id="wardrobe-head"><rect width="48" height="26"/></clipPath><clipPath id="wardrobe-torso"><path d="M0 26h48v38H0z"/></clipPath>'
+
+function renderPaintedCharacterAtlas(blueprint: AnyPaintedAppearanceBlueprint) {
   const { identity, outerwear, clothColor, gear, gearColor } = blueprint
-  const layers = [paintedLayerDefinition('body', PAINTED_ACTORS[identity])]
+  const skin =
+    blueprint.v === 5
+      ? wardrobeSkinDye(blueprint, PAINTED_FIELD_SKIN_MASKS[identity], 512, 176)
+      : ''
+  const featureDyes = blueprint.v === 5 ? paintedFeatureDyes(blueprint) : ''
+  const featureComposite =
+    blueprint.v === 5 ? paintedFeatureComposite(blueprint, 'wardrobe-body') : ''
+  const scaling = blueprint.v === 5 ? WARDROBE_FRAMES[blueprint.bodyFrame].torsoScale : 1
+  const hood = outerwear === 'hooded'
+  const layers = [
+    skin || featureDyes
+      ? `<image id="wardrobe-body" href="${PAINTED_ACTORS[identity]}" width="512" height="176"/>${skin}${featureDyes}<g id="painted-body">${skin ? paintedSkinComposite('wardrobe-body') : '<use href="#wardrobe-body"/>'}${featureComposite}</g>`
+      : paintedLayerDefinition('body', PAINTED_ACTORS[identity]),
+  ]
   if (outerwear !== 'none')
-    layers.push(paintedLayerDefinition('clothing', PAINTED_OUTER_LAYERS[outerwear], clothColor))
+    layers.push(paintedLayerDefinition('clothing', wardrobeOuterLayers[outerwear], clothColor))
   if (gear !== 'none')
-    layers.push(paintedLayerDefinition('gear', PAINTED_ACCESSORY_LAYERS[gear], gearColor))
+    layers.push(paintedLayerDefinition('gear', wardrobeGearLayers[gear], gearColor))
+  const fit = (art: string) =>
+    scaling === 1 || !art
+      ? art
+      : `<g transform="translate(24) scale(${scaling} 1) translate(-24)">${art}</g>`
   const parts = APPEARANCE_FACINGS.map((facing) => {
-    const body = paintedLayer(facing, 'body')
-    const clothing = outerwear === 'none' ? '' : paintedLayer(facing, 'clothing', clothColor)
-    const accessory = gear === 'none' ? '' : paintedLayer(facing, 'gear', gearColor)
+    const [backHair, frontHair] =
+      blueprint.v === 5 ? paintedHairLayers(blueprint, facing) : ['', '']
+    const naturalBody = backHair + paintedLayer(facing, 'body') + frontHair
+    const head = `<g clip-path="url(#wardrobe-head)">${naturalBody}</g>`
+    const body =
+      scaling === 1
+        ? naturalBody
+        : `${head}<g clip-path="url(#wardrobe-torso)">${fit(naturalBody)}</g>`
+    const clothing = outerwear === 'none' ? '' : fit(paintedLayer(facing, 'clothing', clothColor))
+    const accessory = gear === 'none' ? '' : fit(paintedLayer(facing, 'gear', gearColor))
     return `<g id="painted-body-${facing}">${body}</g>
       <g id="painted-clothing-${facing}">${clothing}</g><g id="painted-gear-${facing}">${accessory}</g>
-      <g id="painted-equipment-${facing}">${paintedFieldEquipment(blueprint, facing)}</g>
+      <g id="painted-equipment-${facing}">${hood ? head : ''}${paintedFieldEquipment(blueprint, facing)}</g>
       <g id="painted-character-${facing}"><use href="#painted-body-${facing}"/>
         <use href="#painted-clothing-${facing}"/><use href="#painted-gear-${facing}"/>
         <use href="#painted-equipment-${facing}"/></g>`
   }).join('')
-  const definitions = `<defs>${paintedWalkClips}${paintedEquipmentDyes(blueprint)}${layers.join('')}${parts}</defs>`
+  const definitions = `<defs>${paintedWalkClips}${scaling !== 1 || hood ? wardrobeBodyClips : ''}${paintedEquipmentDyes(blueprint)}${layers.join('')}${parts}</defs>`
   return renderSpriteAtlas(definitions, (facing, pose, frame) =>
     pose === 'walk'
       ? paintedCharacterWalk(facing, frame)
@@ -370,7 +470,7 @@ export function renderAppearanceAsset(
   blueprint: AppearanceBlueprint,
   asset: AppearanceAsset,
 ): string {
-  if (blueprint.v === 4)
+  if (blueprint.v === 4 || blueprint.v === 5)
     return asset === 'atlas'
       ? renderPaintedCharacterAtlas(blueprint)
       : paintedCharacterPortrait(blueprint, asset === 'icon' ? 'neutral' : asset, asset === 'icon')
