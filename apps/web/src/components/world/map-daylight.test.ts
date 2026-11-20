@@ -47,7 +47,10 @@ it('composites steady night lighting once and keeps changing light on the live p
   vi.stubGlobal(
     'OffscreenCanvas',
     class {
-      constructor(public width: number, public height: number) {
+      constructor(
+        public width: number,
+        public height: number,
+      ) {
         create(width, height)
       }
       getContext() {
