@@ -45,39 +45,40 @@ it('plays each walk frame once in every cycle', () => {
   expect(appearanceWalkFrame(APPEARANCE_WALK_CYCLE_MS)).toBe(0)
 })
 
-it('renders complete cells for every pose and direction in painted and legacy looks', async () => {
-  const preset = APPEARANCE_PRESETS[0].blueprint
-  const looks = [
-    ...APPEARANCE_PRESETS.map(({ blueprint }) => blueprint),
-    { ...preset, palette: 'ivory' } as const,
-    paintedAppearanceBlueprint({
-      ...DEFAULT_PAINTED_LOOK,
-      identity: 'ranger',
-      headwear: 'arcanist',
-      gear: 'bedroll',
-    }),
-    wardrobeAppearanceBlueprint({
+const preset = APPEARANCE_PRESETS[0].blueprint
+const looks = [
+  ...APPEARANCE_PRESETS.map(({ blueprint }) => blueprint),
+  { ...preset, palette: 'ivory' } as const,
+  paintedAppearanceBlueprint({
+    ...DEFAULT_PAINTED_LOOK,
+    identity: 'ranger',
+    headwear: 'arcanist',
+    gear: 'bedroll',
+  }),
+  wardrobeAppearanceBlueprint({
+    ...wardrobeLook(),
+    identity: 'guard',
+    bodyFrame: 'stocky',
+    outerwear: 'brigandine',
+    gear: 'sword',
+    headwear: 'arcanist',
+  }),
+  paintedPlayerAppearanceBlueprint(
+    paintedPlayerLook({
       ...wardrobeLook(),
-      identity: 'guard',
+      identity: 'pinescout',
       bodyFrame: 'stocky',
-      outerwear: 'brigandine',
+      outerwear: 'hooded',
       gear: 'sword',
       headwear: 'arcanist',
     }),
-    paintedPlayerAppearanceBlueprint(
-      paintedPlayerLook({
-        ...wardrobeLook(),
-        identity: 'pinescout',
-        bodyFrame: 'stocky',
-        outerwear: 'hooded',
-        gear: 'sword',
-        headwear: 'arcanist',
-      }),
-    ),
-  ]
-  const { width, height, frames } = APPEARANCE_MOTION_FRAME
-  for (const look of looks) {
-    const { id } = compileAppearanceManifest(look)
+  ),
+]
+
+it.each(looks.map((look) => ({ look, id: compileAppearanceManifest(look).id })))(
+  'renders complete cells for every pose and direction in $id',
+  async ({ look, id }) => {
+    const { width, height, frames } = APPEARANCE_MOTION_FRAME
     let atlas = renderAppearanceAsset(look, 'motion')
     // Convert embedded WebP to PNG for the test rasterizer. The browser loads WebP directly.
     for (const uri of atlas.match(/data:image\/webp;base64,[A-Za-z0-9+/=]+/g) ?? []) {
@@ -120,5 +121,5 @@ it('renders complete cells for every pose and direction in painted and legacy lo
         if (loop) expect(poseFrames.size, `v${look.v} ${facing} ${pose}`).toBe(frames)
       }
     }
-  }
-})
+  },
+)
