@@ -140,7 +140,7 @@ it.each([
   ['consumable 1', ['type.c']],
   ['consumable 2', ['type.c']],
   ['materials', ['type.h']],
-  ['general', ['type.i']],
+  ['general', ['item.appearance-token', 'type.i']],
   ['event', ['type.j']],
   ['companion', ['type.k']],
   ['head', ['type.d']],
@@ -168,8 +168,8 @@ it('retains name/identity substring matches and the metadata-only response', asy
   expect(keys(await list(' \tBell\n '))).toEqual(['type.b'])
   expect(await list('unmatched-type')).toEqual({ records: [], nextCursor: null })
   expect(keys(await list('shield'))).toEqual([])
-  expect(keys(await list(null))).toHaveLength(11)
-  expect(keys(await list(' \t\n '))).toHaveLength(11)
+  expect(keys(await list(null))).toHaveLength(12)
+  expect(keys(await list(' \t\n '))).toHaveLength(12)
 })
 
 it('uses the latest source version without searching superseded source slots', async () => {

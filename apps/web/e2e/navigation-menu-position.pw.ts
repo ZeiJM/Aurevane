@@ -45,7 +45,7 @@ test('game navigation stays in the primary rail without a redundant footer trigg
   for (const [name, href] of [
     ['Audio', '/game/settings/audio'],
     ['Controls & Keybinds', '/game/settings/controls'],
-    ['Titles & Profile Display', '/game/account/titles'],
+    ['Appearance & Title', '/game/account/titles'],
   ]) {
     await expect(accountMenu.getByRole('menuitem', { name, exact: true })).toHaveAttribute(
       'href',

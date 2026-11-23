@@ -1,3 +1,5 @@
+import { mainlandSectorNumber } from '@/world/sector-index'
+import { MASTER_TELEPORT_GEOMETRY_VERSION } from '@/master/players'
 import { expect, it, vi } from 'vitest'
 const rpc = vi.hoisted(() => vi.fn())
 vi.mock('server-only', () => ({}))
@@ -42,7 +44,13 @@ it('retains permission denial if selected-character access is revoked during geo
       expectedVersion: 1,
       requestKey: 'request',
       reason: 'Reviewed player recovery',
-      destination: { map: 'mainland', sectorNumber: 28 * 128 + 62 + 1, x: 6, y: 4 },
+      destination: {
+        map: 'mainland',
+        sectorNumber: mainlandSectorNumber(62, 28)!,
+        geometryVersion: MASTER_TELEPORT_GEOMETRY_VERSION,
+        x: 6,
+        y: 4,
+      },
     }),
   ).rejects.toMatchObject({ code: 'FORBIDDEN' })
 })
@@ -63,5 +71,5 @@ it('returns a server-resolved row-major location label with exact privileged coo
     error: null,
   })
   const player = await createServerMasterPlayersService().read('owner', 'target')
-  expect(player.world?.locationLabel).toBe('Sector 66 · X:6 · Y:4')
+  expect(player.world?.locationLabel).toBe('Sector 8258 · X:6 · Y:4')
 })

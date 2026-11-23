@@ -2,81 +2,91 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { expect, test, type Page } from '@playwright/test'
 
+import { grantAppearanceToken } from './appearance-test-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
-import { expectPortraitGalleryLayout } from './portrait-gallery-workflows'
 
-test('default portrait gallery stays compact, cancels safely, and supports repeated persisted choices', async ({
+const workspace = '[data-character-concept="titles"]'
+const titleSection = 'section[aria-labelledby="personal-title-heading"]'
+const appearanceSection = 'section[aria-labelledby="character-appearance-heading"]'
+
+test('Appearance & Title saves repeatable free titles and previews a design before spending one token', async ({
   page,
-}) => {
+}, info) => {
   test.setTimeout(90_000)
   const stamp = Date.now()
   const suffix = String(stamp).replace(/\d/g, (digit) => String.fromCharCode(97 + Number(digit)))
-  await provisionAccountAndEnterCharacter({
+  const { userId } = await provisionAccountAndEnterCharacter({
     page,
-    email: `portrait-choice-${stamp}@example.com`,
+    email: `appearance-choice-${stamp}@example.com`,
     password: 'AurevaneTest!42',
-    characterName: `Portrait ${suffix}`,
+    characterName: `Look ${suffix}`,
   })
   await page.goto('/game/account/titles')
-  const choose = page.getByRole('button', { name: 'Choose Default Portrait', exact: true })
-  const dialog = page.getByRole('dialog', { name: 'Default portrait', exact: true })
-  const confirm = dialog.getByRole('button', { name: 'Confirm Default Portrait', exact: true })
-  await expect(dialog).toBeHidden()
-  await choose.click()
-  await expect(dialog.getByRole('radio')).toHaveCount(64)
-  await expect(dialog.getByRole('checkbox')).toHaveCount(0)
-  await expect(dialog.getByRole('button', { name: 'Close', exact: true })).toBeFocused()
+
+  await expect(page.getByRole('heading', { name: 'Appearance & Title', exact: true })).toBeVisible()
+  const titles = page.locator(titleSection)
+  const appearance = page.locator(appearanceSection)
+  await expect(titles.getByRole('button')).toHaveCount(3)
+  await expect(appearance.getByRole('button')).toHaveText('Design sprite')
+  await expect(page.locator(workspace).getByRole('textbox')).toHaveCount(0)
+  await expect(page.locator(`${workspace} > footer`)).toHaveCount(0)
+
+  for (const title of ['Roadfarer', 'Dawn Seeker', 'Horizon Wanderer', 'Roadfarer']) {
+    const option = titles.getByRole('button', { name: new RegExp(`^${title}`) })
+    await option.click()
+    await expect(option).toHaveAttribute('aria-pressed', 'true')
+    await expect(titles.locator('button[aria-pressed="true"]')).toHaveCount(1)
+    await expect(appearance.getByText('0 Appearance Tokens available.')).toBeVisible()
+  }
+  await page.reload()
+  await expect(titles.getByRole('button', { name: /^Roadfarer/ })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  )
+
+  const design = appearance.getByRole('button', { name: 'Design sprite' })
+  const dialog = page.getByRole('dialog', { name: 'Character appearance' })
+  const confirm = dialog.getByRole('button', { name: 'Confirm appearance' })
+  const clothingStyle = dialog.getByRole('combobox', { name: 'Clothing style', exact: true })
+  const clothingColor = dialog.getByRole('combobox', { name: 'Clothing color', exact: true })
+  const dye =
+    info.project.name === 'desktop-chromium'
+      ? 'garnet'
+      : info.project.name === 'laptop-chromium'
+        ? 'clay'
+        : 'lagoon'
+  await design.click()
+  await expect(dialog).toBeVisible()
+  await expect(clothingStyle).toBeEnabled()
+  await clothingStyle.selectOption('shearling')
+  await clothingColor.selectOption(dye)
+  await expect(clothingColor).toHaveValue(dye)
   await expect(confirm).toBeDisabled()
-  const originalViewport = page.viewportSize()!
-  await expectPortraitGalleryLayout(page)
-  await page.setViewportSize({ width: 320, height: 568 })
-  await expectPortraitGalleryLayout(page)
-  await page.setViewportSize(originalViewport)
-  await page.keyboard.press('Shift+Tab')
-  expect(await dialog.evaluate((element) => element.contains(document.activeElement))).toBe(true)
-  await expect(dialog.getByRole('radio').first()).toBeFocused()
-  await page.keyboard.press('Tab')
-  await expect(dialog.getByRole('button', { name: 'Close', exact: true })).toBeFocused()
-  await dialog.getByRole('radio', { name: 'Female adventurer 02', exact: true }).check()
+  await expect(dialog.getByText('You need an Appearance Token', { exact: false })).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(dialog).toBeHidden()
-  await expect(choose).toBeFocused()
-  await choose.click()
-  await expect(confirm).toBeDisabled()
+  await expect(design).toBeFocused()
 
-  for (const [label, ref] of [
-    ['Female adventurer 02', 'portrait.adventure.female-02'],
-    ['Male adventurer 03', 'portrait.adventure.male-03'],
-  ]) {
-    await dialog.getByRole('radio', { name: label!, exact: true }).check()
-    const card = dialog
-      .getByRole('radio', { name: label!, exact: true })
-      .locator('xpath=ancestor::label[1]')
-    await expect(card).toHaveAttribute('data-selected', 'true')
-    await expect(confirm).toBeEnabled()
-    await confirm.focus()
-    await page.keyboard.press('Tab')
-    await expect(dialog.getByRole('button', { name: 'Close', exact: true })).toBeFocused()
-    await page.keyboard.press('Shift+Tab')
-    await expect(confirm).toBeFocused()
-    const receipt = page.waitForResponse(
-      (response) =>
-        response.url().endsWith('/api/account/default-portrait') && response.status() === 200,
-    )
-    await confirm.click()
-    const body = await (await receipt).json()
-    expect(body.choice.portraitRef).toBe(ref)
-    await expect(dialog.getByText('Default portrait changed.', { exact: true })).toBeVisible()
-    await dialog.getByRole('button', { name: 'Close', exact: true }).click()
-    await expect(choose).toBeFocused()
-    await page.reload()
-    await expect(choose).toBeVisible()
-    await choose.click()
-    await expect(dialog.getByRole('radio', { name: label!, exact: true })).toBeEnabled()
-    await expect(dialog.getByText(`${label} (current)`, { exact: true })).toBeVisible()
-  }
-  await dialog.getByRole('button', { name: 'Close', exact: true }).click()
-  await expect(page.getByRole('button', { name: 'Save Profile Image', exact: true })).toBeVisible()
+  await grantAppearanceToken(userId)
+  await page.reload()
+  await expect(appearance.getByText('1 Appearance Token available.')).toBeVisible()
+  await design.click()
+  await expect(clothingColor).not.toHaveValue(dye)
+  await clothingStyle.selectOption('shearling')
+  await clothingColor.selectOption(dye)
+  await expect(confirm).toBeEnabled()
+  await expect(
+    dialog.getByText('Confirming a different look spends one Appearance Token.'),
+  ).toBeVisible()
+  await confirm.click()
+  await expect(dialog).toBeHidden({ timeout: 20_000 })
+  await expect(appearance.getByText('0 Appearance Tokens available.')).toBeVisible()
+
+  await page.reload()
+  await expect(appearance.getByText('0 Appearance Tokens available.')).toBeVisible()
+  await design.click()
+  await expect(clothingColor).toHaveValue(dye)
+  await expect(confirm).toBeDisabled()
 })
 
 async function settle(page: Page) {
@@ -165,10 +175,30 @@ async function expectDesktopTitlesFitWithoutScroll(page: Page, label: string) {
   }
 }
 
-test('Titles keeps the scenic account workspace and its side-by-side editing controls at normal desktop zoom', async ({
+async function measureLayout(page: Page) {
+  await settle(page)
+  return page.locator(workspace).evaluate(
+    (root, { titleSection, appearanceSection }) => {
+      const title = root.querySelector(titleSection)!
+      const appearance = root.querySelector(appearanceSection)!
+      return {
+        title: title.getBoundingClientRect().toJSON(),
+        appearance: appearance.getBoundingClientRect().toJSON(),
+        titleHeadingColor: getComputedStyle(title.querySelector('h2')!).color,
+        appearanceHeadingColor: getComputedStyle(appearance.querySelector('h2')!).color,
+        surface: (root as HTMLElement).dataset.avSurface ?? null,
+        background: getComputedStyle(root.parentElement!).backgroundImage,
+        overflow: document.documentElement.scrollWidth - innerWidth,
+      }
+    },
+    { titleSection, appearanceSection },
+  )
+}
+
+test('Appearance & Title keeps the scenic workspace and side-by-side controls on desktop', async ({
   page,
 }, info) => {
-  test.skip(info.project.name !== 'desktop-chromium', 'Desktop Titles composition only')
+  test.skip(info.project.name !== 'desktop-chromium', 'Desktop settings layout only')
   test.setTimeout(90_000)
   await page.setViewportSize({ width: 1366, height: 768 })
   await provisionAccountAndEnterCharacter({
@@ -179,135 +209,29 @@ test('Titles keeps the scenic account workspace and its side-by-side editing con
   })
   await page.goto('/game/account/titles')
 
-  const concept = page.locator('[data-character-concept="titles"]')
-  const personal = page.locator('section[aria-labelledby="personal-title-heading"]')
-  const current = page.locator('section[aria-labelledby="current-title-heading"]')
-  const profileImage = page.locator('section[aria-labelledby="profile-image-heading"]')
-  const save = page.getByRole('button', { name: 'Save Profile Image' })
-  await expect(concept).toBeVisible()
-  await expect(personal).toBeVisible()
-  await expect(current).toHaveCount(0)
-  await expect(profileImage).toBeVisible()
-  await expect(save).toBeVisible()
-  await settle(page)
+  await expect(page.locator(workspace)).toBeVisible()
+  const metrics = await measureLayout(page)
+  expect(metrics.overflow).toBeLessThanOrEqual(1)
+  expect(metrics.surface).toBe('moonstone')
+  expect(metrics.background).toContain('linear-gradient')
+  expect(maxRgbChannel(metrics.titleHeadingColor)).toBeLessThan(110)
+  expect(maxRgbChannel(metrics.appearanceHeadingColor)).toBeLessThan(110)
+  expect(metrics.appearance.x).toBeGreaterThanOrEqual(metrics.title.right)
+  expect(Math.abs(metrics.title.y - metrics.appearance.y)).toBeLessThanOrEqual(2)
+  expect(Math.abs(metrics.title.width - metrics.appearance.width)).toBeLessThanOrEqual(2)
   await expectDesktopTitlesFitWithoutScroll(page, '1366x768 initial')
 
-  const metrics = await page.evaluate(() => {
-    const rect = (selector: string) => {
-      const box = document.querySelector(selector)!.getBoundingClientRect()
-      return {
-        x: box.x,
-        y: box.y,
-        width: box.width,
-        height: box.height,
-        right: box.right,
-        bottom: box.bottom,
-      }
-    }
-    const root = document.querySelector<HTMLElement>('[data-character-concept="titles"]')!
-    const viewportBottom = innerHeight
-    const saveButton = Array.from(root.querySelectorAll('button')).find((button) =>
-      button.textContent?.includes('Save Profile Image'),
-    )!
-    const saveBox = saveButton.getBoundingClientRect()
-    return {
-      root: rect('[data-character-concept="titles"]'),
-      personal: rect('section[aria-labelledby="personal-title-heading"]'),
-      profileImage: rect('section[aria-labelledby="profile-image-heading"]'),
-      save: { y: saveBox.y, bottom: saveBox.bottom },
-      viewportBottom,
-      surface: root.dataset.avSurface ?? null,
-      background: getComputedStyle(root.parentElement!).backgroundImage,
-      personalHeadingColor: getComputedStyle(root.querySelector('#personal-title-heading')!).color,
-      profileHeadingColor: getComputedStyle(root.querySelector('#profile-image-heading')!).color,
-      overflow: document.documentElement.scrollWidth - innerWidth,
-    }
-  })
-
-  expect.soft(metrics.overflow, 'no horizontal overflow').toBeLessThanOrEqual(1)
-  expect.soft(metrics.surface, 'Titles uses the stone surface token contract').toBe('moonstone')
-  expect.soft(metrics.background, 'stone Titles workspace').toContain('linear-gradient')
-  expect
-    .soft(maxRgbChannel(metrics.personalHeadingColor), 'personal-title heading remains readable')
-    .toBeLessThan(110)
-  expect
-    .soft(maxRgbChannel(metrics.profileHeadingColor), 'profile-image heading remains readable')
-    .toBeLessThan(110)
-  expect
-    .soft(metrics.profileImage.x, 'portrait editor sits beside the title editor')
-    .toBeGreaterThanOrEqual(metrics.personal.right)
-  expect
-    .soft(Math.abs(metrics.personal.y - metrics.profileImage.y), 'desktop editor headings align')
-    .toBeLessThanOrEqual(2)
-  expect
-    .soft(
-      Math.abs(metrics.personal.width - metrics.profileImage.width),
-      'desktop editors share available width',
-    )
-    .toBeLessThanOrEqual(2)
-  expect
-    .soft(metrics.save.bottom, 'profile image action stays in the viewport')
-    .toBeLessThanOrEqual(metrics.viewportBottom + 1)
-  expect
-    .soft(metrics.root.bottom, 'Titles board stays in the viewport')
-    .toBeLessThanOrEqual(metrics.viewportBottom + 1)
-
-  await page.getByPlaceholder('e.g. Dawn Warden').fill('Dawn Keeper')
-  await page.getByRole('button', { name: 'Review Title' }).click()
-  await expect(personal.getByRole('textbox', { name: /^Personal title/ })).toHaveCount(0)
-  await expect(personal.getByText('Dawn Keeper', { exact: true })).toBeVisible()
-  await expect(
-    personal.getByRole('checkbox', {
-      name: "I understand this is this character's one personal-title choice and cannot be repeatedly edited.",
-      exact: true,
-    }),
-  ).toBeVisible()
-  await expect(profileImage.getByRole('textbox', { name: /^Direct image URL/ })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Confirm Final Title' })).toBeDisabled()
-  await expect(page.getByRole('button', { name: 'Edit', exact: true })).toBeVisible()
-  await expectDesktopTitlesFitWithoutScroll(page, '1366x768 title confirmation')
   await page.setViewportSize({ width: 1536, height: 614 })
-  await expectDesktopTitlesFitWithoutScroll(page, '1536x614 title confirmation')
-  await page.getByRole('button', { name: 'Edit', exact: true }).click()
-  await expect(personal.getByRole('textbox', { name: /^Personal title/ })).toHaveValue(
-    'Dawn Keeper',
-  )
-  await expect(personal.getByRole('button', { name: 'Review Title', exact: true })).toBeVisible()
-  await expectDesktopTitlesFitWithoutScroll(page, '1536x614 title editor')
-  const saveResponse = page.waitForResponse(
-    (response) =>
-      response.request().method() === 'POST' &&
-      new URL(response.url()).pathname === '/api/account/profile-display',
-  )
-  await save.click()
-  const response = await saveResponse
-  const saveResult = { status: response.status(), body: await response.json() }
-  if (process.env.LAYOUT_REVIEW_OUTPUT) {
-    await writeFile(
-      path.join(process.env.LAYOUT_REVIEW_OUTPUT, 'titles-portrait-save-response.json'),
-      JSON.stringify(saveResult, null, 2),
-    )
-  }
-  expect(saveResult.status, JSON.stringify(saveResult.body)).toBe(200)
-  await expect(
-    profileImage.getByText('Custom profile image removed.', { exact: true }),
-  ).toBeVisible()
-  await expectDesktopTitlesFitWithoutScroll(page, '1536x614 portrait save confirmation')
-  await page.setViewportSize({ width: 1366, height: 768 })
-
-  if (process.env.LAYOUT_REVIEW_OUTPUT) {
-    await mkdir(process.env.LAYOUT_REVIEW_OUTPUT, { recursive: true })
-    await page.screenshot({
-      path: path.join(process.env.LAYOUT_REVIEW_OUTPUT, 'titles-desktop-1366x768.png'),
-      fullPage: true,
-    })
-  }
+  const title = page.getByRole('button', { name: /^Horizon Wanderer/ })
+  await title.click()
+  await expect(title).toHaveAttribute('aria-pressed', 'true')
+  await expectDesktopTitlesFitWithoutScroll(page, '1536x614 equipped title')
 })
 
-test('Titles stacks cleanly on phone without inventing desktop-only overflow', async ({
+test('Appearance & Title stacks the controls and keeps them reachable on mobile', async ({
   page,
 }, info) => {
-  test.skip(info.project.name !== 'mobile-chromium', 'Phone Titles composition only')
+  test.skip(info.project.name !== 'mobile-chromium', 'Phone settings layout only')
   test.setTimeout(90_000)
   await page.setViewportSize({ width: 390, height: 844 })
   await provisionAccountAndEnterCharacter({
@@ -318,52 +242,20 @@ test('Titles stacks cleanly on phone without inventing desktop-only overflow', a
   })
   await page.goto('/game/account/titles')
 
-  const concept = page.locator('[data-character-concept="titles"]')
-  await expect(concept).toBeVisible()
-  await expect(page.locator('section[aria-labelledby="current-title-heading"]')).toHaveCount(0)
-  await settle(page)
+  await expect(page.locator(workspace)).toBeVisible()
+  const metrics = await measureLayout(page)
+  expect(metrics.overflow).toBeLessThanOrEqual(1)
+  expect(metrics.surface).toBe('moonstone')
+  expect(metrics.background).toContain('linear-gradient')
+  expect(maxRgbChannel(metrics.titleHeadingColor)).toBeLessThan(110)
+  expect(maxRgbChannel(metrics.appearanceHeadingColor)).toBeLessThan(110)
+  expect(Math.abs(metrics.title.x - metrics.appearance.x)).toBeLessThanOrEqual(2)
+  expect(metrics.appearance.y).toBeGreaterThanOrEqual(metrics.title.bottom)
 
-  const metrics = await page.evaluate(() => {
-    const rect = (selector: string) => {
-      const box = document.querySelector(selector)!.getBoundingClientRect()
-      return {
-        x: box.x,
-        y: box.y,
-        width: box.width,
-        height: box.height,
-        bottom: box.bottom,
-      }
-    }
-    const root = document.querySelector<HTMLElement>('[data-character-concept="titles"]')!
-    return {
-      surface: root.dataset.avSurface ?? null,
-      rootBackground: getComputedStyle(root.parentElement!).backgroundImage,
-      personalHeadingColor: getComputedStyle(root.querySelector('#personal-title-heading')!).color,
-      personal: rect('section[aria-labelledby="personal-title-heading"]'),
-      profileImage: rect('section[aria-labelledby="profile-image-heading"]'),
-      overflow: document.documentElement.scrollWidth - innerWidth,
-    }
-  })
-
-  expect.soft(metrics.overflow, 'phone has no horizontal overflow').toBeLessThanOrEqual(1)
-  expect
-    .soft(metrics.surface, 'phone Titles uses the stone surface token contract')
-    .toBe('moonstone')
-  expect.soft(metrics.rootBackground, 'phone stone workspace').toContain('linear-gradient')
-  expect
-    .soft(maxRgbChannel(metrics.personalHeadingColor), 'phone title heading remains readable')
-    .toBeLessThan(110)
-  expect
-    .soft(Math.abs(metrics.personal.x - metrics.profileImage.x), 'phone editors share one column')
-    .toBeLessThanOrEqual(2)
-  expect
-    .soft(metrics.profileImage.y, 'portrait configuration follows the title editor')
-    .toBeGreaterThanOrEqual(metrics.personal.bottom)
-
-  const save = page.getByRole('button', { name: 'Save Profile Image' })
-  await save.scrollIntoViewIfNeeded()
-  await expect(save).toBeInViewport({ ratio: 1 })
-  await save.click({ trial: true })
+  const design = page.getByRole('button', { name: 'Design sprite' })
+  await design.scrollIntoViewIfNeeded()
+  await expect(design).toBeInViewport({ ratio: 1 })
+  await design.click({ trial: true })
 
   if (process.env.LAYOUT_REVIEW_OUTPUT) {
     await mkdir(process.env.LAYOUT_REVIEW_OUTPUT, { recursive: true })

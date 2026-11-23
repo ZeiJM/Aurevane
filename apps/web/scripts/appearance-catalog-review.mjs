@@ -5,10 +5,10 @@ import { createRequire } from 'node:module'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
-const [, , repository, destination] = process.argv
+const [, , repository, destination, mode] = process.argv
 assert(
-  repository && destination,
-  'Usage: node apps/web/scripts/appearance-catalog-review.mjs REPO OUTPUT',
+  repository && destination && (mode === undefined || mode === '--builder-only'),
+  'Usage: node apps/web/scripts/appearance-catalog-review.mjs REPO OUTPUT [--builder-only]',
 )
 const repo = resolve(repository)
 const output = resolve(destination)
@@ -38,10 +38,14 @@ const server = await createServer({
         return `import { createElement, useState } from 'react'
         import { createRoot } from 'react-dom/client'
         import { AppearanceBuilderDialog } from '/src/components/character/appearance-builder-dialog.tsx'
+        import { APPEARANCE_PRESETS } from '/src/appearance/appearance-manifest.ts'
+        import '/src/app/globals.css'
         function Fixture() {
-          const [value, setValue] = useState(null)
+          const [value, setValue] = useState(() => new URLSearchParams(location.search).has('legacy')
+            ? APPEARANCE_PRESETS[0].blueprint : null)
           return createElement(AppearanceBuilderDialog, {
-            label: 'Open appearance', confirmLabel: 'Confirm outfit', value, onConfirm: setValue,
+            label: 'Open appearance', confirmLabel: 'Confirm appearance', value, onConfirm: setValue,
+            confirmationHint: 'Confirming a different look spends one Appearance Token.',
           })
         }
         createRoot(document.querySelector('#root')).render(createElement(Fixture))`
@@ -200,7 +204,7 @@ server.middlewares.use(async (req, res, next) => {
     if (url.pathname === '/builder') {
       res.setHeader('Content-Type', 'text/html; charset=utf-8')
       res.end(
-        `<!DOCTYPE html><html lang="en"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Appearance builder review</title><div id="root"></div><script type="module" src="${fixtureModule}"></script></html>`,
+        `<!DOCTYPE html><html lang="en"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Appearance builder review</title><style>:root { --av-font-body: system-ui, sans-serif; }</style><div id="root"></div><script type="module" src="${fixtureModule}"></script></html>`,
       )
       return
     }
@@ -450,12 +454,17 @@ async function reviewBuilder(browser, origin) {
   for (const [mode, viewport] of [
     ['desktop', { width: 1280, height: 860 }],
     ['mobile', { width: 390, height: 844 }],
+    ['compact', { width: 320, height: 568 }],
+    ['short-mobile', { width: 360, height: 640 }],
+    ['mid-mobile', { width: 390, height: 700 }],
+    ['landscape', { width: 667, height: 375 }],
+    ['compact-landscape', { width: 568, height: 320 }],
   ]) {
     const page = await browser.newPage({
       viewport,
       deviceScaleFactor: 1,
-      isMobile: mode === 'mobile',
-      hasTouch: mode === 'mobile',
+      isMobile: mode !== 'desktop',
+      hasTouch: mode !== 'desktop',
     })
     const errors = []
     page.on('pageerror', (error) => errors.push(error.message))
@@ -463,108 +472,186 @@ async function reviewBuilder(browser, origin) {
     const open = page.getByRole('button', { name: 'Open appearance' })
     await open.click()
     const dialog = page.getByRole('dialog')
-    const silhouette = dialog.getByLabel('Silhouette')
-    const lower = dialog.getByLabel('Lower garment')
-    const cuffs = dialog.getByRole('combobox', { name: /^Sleeve cuffs/ })
-    const optionDisabled = (select, value) =>
-      select.locator(`option[value="${value}"]`).evaluate((option) => option.disabled)
+    const female = dialog.getByRole('radio', { name: 'Female', exact: true })
+    const male = dialog.getByRole('radio', { name: 'Male', exact: true })
     const portrait = dialog.getByAltText('Neutral appearance portrait')
+    const randomize = dialog.getByRole('button', { name: 'Randomize', exact: true })
+    const reset = dialog.getByRole('button', { name: 'Reset', exact: true })
+    const confirm = dialog.getByRole('button', { name: 'Confirm appearance' })
+    const pose = dialog.getByRole('combobox', { name: 'Battle pose' })
+    const face = dialog.getByRole('combobox', { name: 'Face', exact: true })
+    const setting = dialog.getByRole('combobox', { name: 'Portrait setting' })
     const src = () => portrait.getAttribute('src')
+    const wardrobeOptionIds = () =>
+      dialog.getByRole('group', { name: 'Appearance options' }).evaluate((fields) =>
+        Array.from(fields.querySelectorAll('select'))
+          .slice(1)
+          .map((select) => Array.from(select.options, (option) => option.value)),
+      )
     const initial = await src()
-    assert(await optionDisabled(lower, 'kilt'))
-    assert(
-      await silhouette.locator('option[value="greatcloak"]').evaluate((option) => option.disabled),
-    )
-    await silhouette.selectOption('bolero')
-    assert(await optionDisabled(cuffs, 'flared'))
+    assert(await female.isChecked())
+    assert.equal(await randomize.count(), 1)
+    assert.equal(await dialog.getByRole('combobox', { name: 'Expression' }).count(), 0)
+    assert.equal(await dialog.getByRole('button', { name: 'Undo' }).count(), 0)
+    assert(await dialog.getByText('Movement', { exact: true }).isVisible())
+    const neutralBounds = await portrait.boundingBox()
+    for (const expression of ['Happy', 'Angry', 'Sad', 'Surprised']) {
+      const alt = dialog.getByAltText(expression + ' appearance portrait')
+      const bounds = await alt.boundingBox()
+      assert(bounds && bounds.width < neutralBounds.width)
+    }
+
+    const femaleFaces = await face.locator('option').allTextContents()
+    const sharedOptions = await wardrobeOptionIds()
+    await male.check()
+    const maleFaces = await face.locator('option').allTextContents()
+    assert(maleFaces.every((option) => !femaleFaces.includes(option)))
+    assert.deepEqual(await wardrobeOptionIds(), sharedOptions)
+    await randomize.click()
+    const randomized = await src()
+    await randomize.click()
+    assert(await male.isChecked())
     assert.notEqual(await src(), initial)
-    assert.equal(await optionDisabled(lower, 'kilt'), false)
-    await lower.selectOption('kilt')
-    assert.match(await src(), /appearance\/2\/.+\.kilt\/neutral\.svg$/)
-    assert(await optionDisabled(silhouette, 'gown'))
-    await dialog.getByRole('button', { name: 'Vary silhouette' }).click()
-    assert.equal(await silhouette.inputValue(), 'brigandine')
-    assert.equal(await lower.inputValue(), 'kilt')
-    await lower.selectOption('original')
-    assert.match(await src(), /appearance\/1\//)
-    await silhouette.selectOption('bolero')
-    await dialog.getByRole('button', { name: 'Vary silhouette' }).click()
-    assert.equal(await silhouette.inputValue(), 'gown')
-    await silhouette.selectOption('cuirass')
+    assert.notEqual(await src(), randomized)
     assert(
-      await dialog
-        .getByLabel('Sleeves')
-        .locator('option[value="puffed"]')
-        .evaluate((option) => option.disabled),
+      await face
+        .locator('option:checked')
+        .evaluate((option, faces) => faces.includes(option.textContent), maleFaces),
     )
-    assert(
-      await dialog
-        .getByText('These shoulder guards need close or split sleeves.', { exact: false })
-        .isVisible(),
-    )
-    await dialog.getByLabel('Accessory').selectOption('none')
-    await silhouette.selectOption('greatcloak')
-    await dialog.getByRole('button', { name: 'Undo' }).click()
-    assert.equal(await silhouette.inputValue(), 'cuirass')
-    await silhouette.selectOption('bolero')
-    await lower.selectOption('divided')
-    await silhouette.selectOption('doublet')
-    await cuffs.selectOption('flared')
-    assert.match(await src(), /appearance\/3\/.+\.divided\.flared\/neutral\.svg$/)
-    await cuffs.selectOption('original')
-    assert.match(await src(), /appearance\/2\/.+\.divided\/neutral\.svg$/)
-    await cuffs.selectOption('braced')
+
+    await female.check()
+    const hair = dialog.getByRole('combobox', { name: 'Hair color', exact: true })
+    await hair.selectOption('copper')
+    const gear = dialog.getByRole('combobox', { name: 'Accessory style', exact: true })
+    const gearColor = dialog.getByRole('combobox', { name: 'Accessory color', exact: true })
+    await gear.selectOption('none')
+    assert(await gearColor.isDisabled())
+    await gear.selectOption('mapcase')
+    assert(await gearColor.isEnabled())
+    await gearColor.selectOption('ochre')
+    const facewear = dialog.getByRole('combobox', { name: 'Facewear style', exact: true })
+    const faceColor = dialog.getByRole('combobox', { name: 'Facewear color', exact: true })
+    await facewear.selectOption('none')
+    assert(await faceColor.isDisabled())
+    await facewear.selectOption('eyepatch')
+    await faceColor.selectOption('walnut')
+    assert((await setting.locator('option').count()) >= 51)
+    assert.equal(await setting.locator('optgroup').count(), 3)
+    await setting.selectOption('verdant')
+    assert.equal(await setting.inputValue(), 'verdant')
+    await setting.selectOption('orchard')
+    assert.equal(await setting.inputValue(), 'orchard')
+    assert.equal(await setting.getAttribute('title'), 'The Unremembered Orchard')
+    if (mode === 'desktop') {
+      await setting.press('Home')
+      assert.equal(await setting.inputValue(), 'original')
+    }
+    await reset.click()
+    assert.equal(await src(), initial)
+    assert.equal(await setting.inputValue(), 'original')
+    await setting.selectOption('frost')
     const chosen = await src()
+    assert.notEqual(chosen, initial)
+    if (mode === 'desktop') {
+      const [studio, scenery] = await page.evaluate(
+        async ({ initial, chosen }) => {
+          const canvas = document.createElement('canvas')
+          canvas.width = canvas.height = 256
+          const context = canvas.getContext('2d', { willReadFrequently: true })
+          const sample = async (source) => {
+            const image = new Image()
+            image.src = source
+            await image.decode()
+            context.clearRect(0, 0, 256, 256)
+            context.drawImage(image, 0, 0, 256, 256)
+            return Array.from(context.getImageData(0, 0, 4, 4).data)
+          }
+          return [await sample(initial), await sample(chosen)]
+        },
+        { initial, chosen },
+      )
+      assert.notDeepEqual(studio, scenery)
+      assert.equal(scenery[3], 255)
+    }
+
+    const movement = dialog.locator('[data-preview-motion="walk"]')
+    const idle = dialog.locator('[data-preview-motion="idle"]')
+    for (const preview of [movement, idle]) {
+      const [first, later] = await preview.evaluate((sprite) => {
+        const [animation] = sprite.getAnimations()
+        animation.pause()
+        animation.currentTime = 0
+        const first = getComputedStyle(sprite).backgroundPositionX
+        animation.currentTime = animation.effect.getTiming().duration / 2
+        const later = getComputedStyle(sprite).backgroundPositionX
+        animation.play()
+        return [first, later]
+      })
+      assert.notEqual(first, later)
+    }
+    assert.equal(await pose.locator('option').count(), 6)
+    const standingBounds = await idle.boundingBox()
+    for (const choice of ['walk', 'attack', 'cast', 'hit', 'down']) {
+      await pose.selectOption(choice)
+      const sprite = dialog.getByText('Battle', { exact: true }).locator('..').locator('span')
+      const bounds = await sprite.boundingBox()
+      assert.equal(bounds.height, standingBounds.height)
+      assert.equal(bounds.width, standingBounds.width)
+    }
+    assert.equal(await idle.count(), 0)
+
     const bounds = await dialog.evaluate((element) => {
       const box = element.getBoundingClientRect()
       return {
         left: box.left,
         right: box.right,
-        overflow: element.scrollWidth - element.clientWidth,
+        top: box.top,
+        bottom: box.bottom,
+        horizontalOverflow: element.scrollWidth - element.clientWidth,
+        verticalOverflow: element.scrollHeight - element.clientHeight,
       }
     })
     assert(
-      bounds.left >= 0 && bounds.right <= viewport.width && bounds.overflow <= 1,
-      JSON.stringify(bounds),
-    )
-    const silhouetteBounds = await silhouette.boundingBox()
-    const collarBounds = await dialog.getByLabel('Collar').boundingBox()
-    assert(
-      silhouetteBounds.x + silhouetteBounds.width < collarBounds.x,
-      `Overlapping controls at ${viewport.width}px`,
+      bounds.left >= 0 &&
+        bounds.right <= viewport.width &&
+        bounds.top >= 0 &&
+        bounds.bottom <= viewport.height &&
+        bounds.horizontalOverflow <= 1 &&
+        bounds.verticalOverflow <= 1,
+      JSON.stringify({ mode, viewport, bounds }),
     )
 
     await page.waitForFunction(() =>
       Array.from(document.images).every((image) => image.complete && image.naturalWidth > 0),
     )
-    await page.screenshot({ path: resolve(output, `builder-${mode}.png`) })
-    await dialog.getByRole('button', { name: 'Confirm outfit' }).click()
+    await page.screenshot({ path: resolve(output, 'builder-' + mode + '.png') })
+    await confirm.click()
     await dialog.waitFor({ state: 'hidden' })
     await open.click()
     assert.equal(await src(), chosen)
-    assert.equal(await lower.inputValue(), 'divided')
-    assert.equal(await cuffs.inputValue(), 'braced')
+    assert.equal(await setting.inputValue(), 'frost')
+
+    await page.goto(origin + '/builder?legacy')
+    await open.click()
+    const legacy = await src()
+    assert.match(legacy, /appearance\/1\//)
+    assert(await randomize.isDisabled())
+    await female.check()
+    assert.notEqual(await src(), legacy)
+    await reset.click()
+    assert.equal(await src(), legacy)
+    await confirm.click()
+    await dialog.waitFor({ state: 'hidden' })
+    await open.click()
+    assert.equal(await src(), legacy)
     assert.deepEqual(errors, [])
     await page.close()
-    receipts.push({
-      mode,
-      viewport,
-      rules:
-        'incompatible options, independent lower garments and cuffs, variation, undo, asset validation, confirm and reopen',
-    })
+    receipts.push({ mode, viewport, noScroll: true })
   }
   return receipts
 }
 
-let browser
-try {
-  await mkdir(output, { recursive: true })
-  await server.listen()
-  const origin = `http://127.0.0.1:${server.httpServer.address().port}`
-  browser = await chromium.launch({
-    executablePath: process.env.AV_CHROMIUM_EXECUTABLE,
-    args: ['--no-sandbox'],
-  })
+async function reviewCatalog(browser, origin) {
   const page = await browser.newPage({
     viewport: { width: 1320, height: 1140 },
     deviceScaleFactor: 1,
@@ -638,6 +725,23 @@ try {
   }
   await writeFile(resolve(output, 'catalog-samples.json'), JSON.stringify(report, null, 2) + '\n')
   console.log(JSON.stringify({ ...report, looks: undefined, output }, null, 2))
+}
+
+let browser
+try {
+  await mkdir(output, { recursive: true })
+  await server.listen()
+  const origin = `http://127.0.0.1:${server.httpServer.address().port}`
+  browser = await chromium.launch({
+    executablePath: process.env.AV_CHROMIUM_EXECUTABLE,
+    args: ['--no-sandbox'],
+  })
+  if (mode === '--builder-only') {
+    const builder = await reviewBuilder(browser, origin)
+    console.log(JSON.stringify({ chromium: browser.version(), builder }, null, 2))
+  } else {
+    await reviewCatalog(browser, origin)
+  }
 } finally {
   await browser?.close()
   await server.close()

@@ -85,9 +85,8 @@ function publicRenderTerrain(
   const sectors = [...view.sectors]
   for (const scenery of view.scenery) {
     const [id, encodedGround, landscape, buildings, landmarks] = scenery
-    const ground = decodeTerrainRows(encodedGround, GRID_WIDTH * GRID_HEIGHT)
     const metadata = atlas.get(id)
-    if (!metadata || ids.has(id) || ground === null) continue
+    if (!metadata || ids.has(id)) continue
     const key = sceneryKey(scenery) + JSON.stringify(metadata)
     const cached = expandedScenery.get(scenery)
     const old = retainedById.get(id)
@@ -102,6 +101,8 @@ function publicRenderTerrain(
       ids.add(id)
       continue
     }
+    const ground = decodeTerrainRows(encodedGround, GRID_WIDTH * GRID_HEIGHT)
+    if (ground === null) continue
     const rows = Array.from({ length: GRID_HEIGHT }, (_, y) =>
       ground.slice(y * GRID_WIDTH, (y + 1) * GRID_WIDTH),
     )

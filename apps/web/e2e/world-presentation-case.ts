@@ -14,6 +14,72 @@ import {
 import { installWorldRenderTiming } from './world-render-diagnostics'
 import { wrappedMapX } from '../src/world/topology'
 
+function captureLocalNameplate(el: HTMLElement | SVGElement) {
+  const context = document
+    .querySelector<HTMLCanvasElement>('canvas[data-world-identity]')!
+    .getContext('2d')!
+  const draw = context.fillText.bind(context)
+  context.fillText = (text, x, y, maxWidth) => {
+    if (context.fillStyle === '#ffdb86') {
+      const name = el.dataset.characterName!
+      el.dataset.testNameplateDraw = JSON.stringify({
+        text,
+        fullNameWidth: context.measureText(name).width,
+        textWidth: context.measureText(text).width,
+        tileSize: Number(el.dataset.tileSize),
+        font: context.font,
+        align: context.textAlign,
+        x,
+        y,
+        compressed: maxWidth !== undefined,
+      })
+    }
+    if (maxWidth === undefined) draw(text, x, y)
+    else draw(text, x, y, maxWidth)
+  }
+}
+
+async function readLocalNameplate(
+  canvas: ReturnType<Page['locator']>,
+  name: string,
+  tileSize: number,
+) {
+  await expect
+    .poll(() =>
+      canvas.evaluate((el) => JSON.parse(el.dataset.testNameplateDraw ?? 'null')?.tileSize),
+    )
+    .toBeCloseTo(tileSize)
+  const metrics = await canvas.evaluate((el) => {
+    const identity = document.querySelector<HTMLCanvasElement>('canvas[data-world-identity]')!
+    const bounds = identity.getBoundingClientRect()
+    return {
+      ...JSON.parse(el.dataset.testNameplateDraw!),
+      left: bounds.left,
+      top: bounds.top,
+      width: bounds.width,
+      height: bounds.height,
+      backingWidth: identity.width,
+      backingHeight: identity.height,
+      density: devicePixelRatio || 1,
+    }
+  })
+  const availableWidth = Math.max(112, (180 * metrics.tileSize) / 64) - 12
+  if (metrics.fullNameWidth <= availableWidth) expect(metrics.text).toBe(name)
+  else {
+    expect(metrics.text).toMatch(/.+…$/)
+    expect(name.startsWith(metrics.text.slice(0, -1))).toBe(true)
+  }
+  expect(metrics.textWidth).toBeLessThanOrEqual(availableWidth)
+  expect(metrics.compressed).toBe(false)
+  expect(metrics.align).toBe('left')
+  expect(Number(/(\d+)px/.exec(metrics.font)![1])).toBeGreaterThanOrEqual(11)
+  for (const value of [metrics.left, metrics.top, metrics.x, metrics.y])
+    expect(value * metrics.density).toBeCloseTo(Math.round(value * metrics.density), 4)
+  expect(metrics.width * metrics.density).toBeCloseTo(metrics.backingWidth, 1)
+  expect(metrics.height * metrics.density).toBeCloseTo(metrics.backingHeight, 1)
+  return metrics
+}
+
 export async function verifyWorldPresentation(
   page: Page,
   info: TestInfo,
@@ -100,7 +166,7 @@ export async function verifyWorldPresentation(
   const coordinates = workspace.locator('[data-world-coordinates]')
   await expect(coordinates).toHaveCount(1)
   await expect(panel.locator('[data-world-panel-foot] [data-world-coordinates]')).toHaveCount(1)
-  await expect(coordinates).toContainText('Sector 3643')
+  await expect(coordinates).toContainText('Sector 817')
   await expect(coordinates).toContainText('X:6 · Y:4')
   await expect(page.getByRole('button', { name: 'View Town', exact: true })).toHaveCount(0)
   const labelsToggle = panel.getByRole('button', { name: 'Map location labels', exact: true })
@@ -302,7 +368,7 @@ export async function verifyWorldPresentation(
   await expect
     .poll(async () => Number(await canvas.getAttribute('data-camera-x')), { timeout: 5000 })
     .toBe(58 * GRID_WIDTH + 7.5)
-  await expect(coordinates).toContainText('Sector 3643')
+  await expect(coordinates).toContainText('Sector 817')
   await expect(coordinates).toContainText('X:7 · Y:4')
   const after = (await canvas.boundingBox())!
   expect(after).toEqual(box)
@@ -1046,26 +1112,10 @@ export function registerWorldInputCases({
       info.project.name === 'laptop-chromium',
       'Desktop and high-DPI touch layouts cover density.',
     )
-    await enter(page)
+    const name = await enter(page)
     const canvas = page.locator('canvas[data-world-stage]')
-    await canvas.evaluate((el) => {
-      const context = document
-        .querySelector<HTMLCanvasElement>('canvas[data-world-identity]')!
-        .getContext('2d')!
-      const draw = context.fillText.bind(context)
-      context.fillText = ((text: string, x: number, y: number, maxWidth?: number) => {
-        if (text === 'You')
-          el.dataset.testNameplateDraw = JSON.stringify({
-            font: context.font,
-            align: context.textAlign,
-            x,
-            y,
-            compressed: maxWidth !== undefined,
-          })
-        if (maxWidth === undefined) draw(text, x, y)
-        else draw(text, x, y, maxWidth)
-      }) as typeof context.fillText
-    })
+    await expect(canvas).toHaveAttribute('data-character-name', name)
+    await canvas.evaluate(captureLocalNameplate)
     await openMapSettings(page)
     await page.getByRole('checkbox', { name: 'Ambient animation', exact: true }).uncheck()
     const slider = page.getByRole('slider', { name: 'Zoom level', exact: true })
@@ -1074,33 +1124,8 @@ export function registerWorldInputCases({
       else if (zoom === 140) await slider.press('End')
       else for (let i = 0; i < 40; i++) await slider.press('ArrowLeft')
       await expect(slider).toHaveValue(String(zoom))
-      await expect
-        .poll(() => canvas.evaluate((el) => Number(el.dataset.tileSize)))
-        .toBeCloseTo(
-          ((await canvas.evaluate((el) => (el.clientWidth < 600 ? 48 : 64))) * zoom) / 100,
-        )
-      await expect.poll(() => canvas.getAttribute('data-test-nameplate-draw')).not.toBeNull()
-      const metrics = await canvas.evaluate((el) => {
-        const identity = document.querySelector<HTMLCanvasElement>('canvas[data-world-identity]')!
-        const bounds = identity.getBoundingClientRect()
-        return {
-          ...JSON.parse(el.dataset.testNameplateDraw!),
-          left: bounds.left,
-          top: bounds.top,
-          width: bounds.width,
-          height: bounds.height,
-          backingWidth: identity.width,
-          backingHeight: identity.height,
-          density: devicePixelRatio || 1,
-        }
-      })
-      expect(metrics.compressed).toBe(false)
-      expect(metrics.align).toBe('left')
-      expect(Number(/(\d+)px/.exec(metrics.font)![1])).toBeGreaterThanOrEqual(11)
-      for (const value of [metrics.left, metrics.top, metrics.x, metrics.y])
-        expect(value * metrics.density).toBeCloseTo(Math.round(value * metrics.density), 4)
-      expect(metrics.width * metrics.density).toBeCloseTo(metrics.backingWidth, 1)
-      expect(metrics.height * metrics.density).toBeCloseTo(metrics.backingHeight, 1)
+      const baseTileSize = await canvas.evaluate((el) => (el.clientWidth < 600 ? 48 : 64))
+      const metrics = await readLocalNameplate(canvas, name, (baseTileSize * zoom) / 100)
       await info.attach(`nameplate-native-${zoom}`, {
         body: JSON.stringify({ zoom, ...metrics }, null, 2),
         contentType: 'application/json',
@@ -1115,27 +1140,16 @@ export function registerWorldInputCases({
   }, info) => {
     test.skip(info.project.name !== 'desktop-chromium', 'Exercise mouse/trackpad zoom once.')
     test.setTimeout(90000)
-    await enter(page)
+    const name = await enter(page)
     const canvas = page.locator('canvas[data-world-stage]')
+    await expect(canvas).toHaveAttribute('data-character-name', name)
+    await canvas.evaluate(captureLocalNameplate)
     await canvas.evaluate((el) => {
       const context = document
           .querySelector<HTMLCanvasElement>('canvas[data-world-identity]')!
           .getContext('2d')!,
         draw = context.drawImage.bind(context),
-        fillText = context.fillText.bind(context),
         portrait = new URL(el.dataset.portrait!, location.href).href
-      context.fillText = ((text: string, x: number, y: number, maxWidth?: number) => {
-        if (text === 'You')
-          el.dataset.testNameplateDraw = JSON.stringify({
-            font: context.font,
-            align: context.textAlign,
-            x,
-            y,
-            compressed: maxWidth !== undefined,
-          })
-        if (maxWidth === undefined) fillText(text, x, y)
-        else fillText(text, x, y, maxWidth)
-      }) as typeof context.fillText
       context.drawImage = ((image: CanvasImageSource, ...args: number[]) => {
         if (
           image instanceof HTMLImageElement &&
@@ -1168,34 +1182,13 @@ export function registerWorldInputCases({
           }),
         )
         .toBe(true)
-      const nameplate = await canvas.evaluate((el) => {
-        const identity = document.querySelector<HTMLCanvasElement>('canvas[data-world-identity]')!
-        const bounds = identity.getBoundingClientRect()
-        return {
-          ...JSON.parse(el.dataset.testNameplateDraw!),
-          left: bounds.left,
-          top: bounds.top,
-          width: bounds.width,
-          height: bounds.height,
-          backingWidth: identity.width,
-          backingHeight: identity.height,
-          density: devicePixelRatio || 1,
-        }
-      })
-      expect(nameplate.compressed).toBe(false)
-      expect(nameplate.align).toBe('left')
-      expect(Number(/(\d+)px/.exec(nameplate.font)![1])).toBeGreaterThanOrEqual(11)
-      for (const value of [nameplate.left, nameplate.top, nameplate.x, nameplate.y])
-        expect(value * nameplate.density).toBeCloseTo(Math.round(value * nameplate.density), 4)
-      expect(nameplate.width * nameplate.density).toBeCloseTo(nameplate.backingWidth, 1)
-      expect(nameplate.height * nameplate.density).toBeCloseTo(nameplate.backingHeight, 1)
+      const nameplate = await readLocalNameplate(canvas, name, (64 * zoom) / 100)
       const metrics = await canvas.evaluate((el) => ({
         tileSize: Number(el.dataset.tileSize),
         ...JSON.parse(el.dataset.testPortraitDraw!),
-        nameplate: JSON.parse(el.dataset.testNameplateDraw!),
       }))
       await info.attach(`portrait-zoom-${zoom}`, {
-        body: JSON.stringify({ zoom, ...metrics }, null, 2),
+        body: JSON.stringify({ zoom, ...metrics, nameplate }, null, 2),
         contentType: 'application/json',
       })
       await capture(page, info, `portrait-zoom-${zoom}`)

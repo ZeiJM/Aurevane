@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test'
 
+import { APPEARANCE_PRESETS } from '../src/appearance/appearance-manifest'
+import { saveFixtureAppearance } from './appearance-test-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 test('ordinary desktop shell fits its identity and every navigation control without rail scroll', async ({
@@ -14,24 +16,18 @@ test('ordinary desktop shell fits its identity and every navigation control with
     .split('')
     .map((digit) => String.fromCharCode(65 + Number(digit)))
     .join('')
-  await provisionAccountAndEnterCharacter({
+  const { userId } = await provisionAccountAndEnterCharacter({
     page,
     email: `shell-fit-${seed}-${info.workerIndex}@example.test`,
     password: 'Shell-viewport-fit-2026!',
     characterName: `Frame Explorer ${nameSuffix}`,
   })
 
-  // Save a direct custom portrait through the same account flow as a player.
-  const imageUrl = 'http://127.0.0.1:3100/media/art/adventure/male-01-v01.webp'
-  await page.goto('/game/account/titles')
-  await page.getByLabel('Direct image URL').fill(imageUrl)
-  const saved = page.waitForResponse(
-    (response) =>
-      response.url().endsWith('/api/account/profile-display') &&
-      response.request().method() === 'POST',
-  )
-  await page.getByRole('button', { name: 'Save Profile Image', exact: true }).click()
-  expect((await saved).ok()).toBe(true)
+  const imageUrl = await saveFixtureAppearance(page, userId, {
+    ...APPEARANCE_PRESETS[0].blueprint,
+    palette: 'slate',
+  })
+  await page.goto('/game/character')
   const railImage = page.locator('[data-av-game-rail] [data-character-portrait-frame] img')
   await expect(railImage).toHaveAttribute('src', imageUrl)
   await expect(railImage).toHaveAttribute('loading', 'eager')
@@ -40,15 +36,14 @@ test('ordinary desktop shell fits its identity and every navigation control with
     .poll(() => railImage.evaluate((image) => (image as HTMLImageElement).naturalWidth))
     .toBeGreaterThan(0)
 
-  await page.evaluate(() => {
+  await page.evaluate((expectedImageUrl) => {
     const failures: string[] = []
     const observer = new MutationObserver(() => {
       const rail = document.querySelector('[data-av-game-rail]')
       const image = rail?.querySelector('[data-character-portrait-frame] img')
       if (!image || rail?.querySelector('[data-portrait-pending]'))
         failures.push('missing portrait')
-      else if (!image.getAttribute('src')?.endsWith('/media/art/adventure/male-01-v01.webp'))
-        failures.push('replaced portrait')
+      else if (image.getAttribute('src') !== expectedImageUrl) failures.push('replaced portrait')
     })
     observer.observe(document.body, {
       childList: true,
@@ -57,7 +52,7 @@ test('ordinary desktop shell fits its identity and every navigation control with
       attributeFilter: ['src'],
     })
     Object.assign(window, { avatarNavigationFailures: failures })
-  })
+  }, imageUrl)
   const navigation = page.getByRole('navigation', { name: 'Primary game navigation', exact: true })
   for (const [label, destination] of [
     ['Haven', '/game/haven'],

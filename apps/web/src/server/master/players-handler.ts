@@ -46,29 +46,31 @@ export async function handleMasterPlayersRequest(
         ? ['operation', 'query']
         : operation === 'read'
           ? ['operation', 'characterId']
-          : operation === 'edit'
-            ? ['operation', 'characterId', 'fingerprint', 'requestKey', 'command', 'confirmed']
-            : operation === 'recover'
-              ? [
-                  'operation',
-                  'characterId',
-                  'battleSessionId',
-                  'expectedVersion',
-                  'participantIds',
-                  'requestKey',
-                  'confirmed',
-                ]
-              : operation === 'teleport'
+          : operation === 'validate-teleport'
+            ? ['operation', 'destination']
+            : operation === 'edit'
+              ? ['operation', 'characterId', 'fingerprint', 'requestKey', 'command', 'confirmed']
+              : operation === 'recover'
                 ? [
                     'operation',
                     'characterId',
-                    'requestKey',
+                    'battleSessionId',
                     'expectedVersion',
-                    'destination',
-                    'reason',
+                    'participantIds',
+                    'requestKey',
                     'confirmed',
                   ]
-                : []
+                : operation === 'teleport'
+                  ? [
+                      'operation',
+                      'characterId',
+                      'requestKey',
+                      'expectedVersion',
+                      'destination',
+                      'reason',
+                      'confirmed',
+                    ]
+                  : []
     if (Object.keys(input).some((key) => !allowed.includes(key)) || !allowed.length) invalid()
     const service = dependencies.createService()
     let result: unknown
@@ -77,6 +79,8 @@ export async function handleMasterPlayersRequest(
       result = { players: await service.search(actor.userId, input.query) }
     } else if (operation === 'read')
       result = { player: await service.read(actor.userId, uuid(input.characterId)) }
+    else if (operation === 'validate-teleport')
+      result = { available: await service.validateTeleport(actor.userId, input.destination) }
     else {
       if (input.confirmed !== true) invalid()
       const characterId = uuid(input.characterId),

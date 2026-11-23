@@ -67,7 +67,8 @@ it('makes genuine sources editable in Master before any inventory is opened', as
     user,
   )
   const list = await store.listRecords({ kind: 'item', limit: 100 })
-  expect(list.records).toHaveLength(47)
+  expect(list.records).toHaveLength(48)
+  expect(list.records.some((record) => record.contentKey === 'item.appearance-token')).toBe(true)
   const record = await store.readRecord('iron-shortsword')
   expect(record).toMatchObject({
     builtin: { contentVersion: 6 },

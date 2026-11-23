@@ -187,6 +187,9 @@ describe('current Poison voluntary movement', () => {
     expect(result.state.effectState?.poison[0]?.movementRemainder).toBe(2)
     expect(readPv1fActionEconomy(result.state, 'actor')?.current).toBe(40)
     expect(result.events).toContainEqual(
+      expect.objectContaining({ event: 'combatant_moved', walkPath: PATH }),
+    )
+    expect(result.events).toContainEqual(
       expect.objectContaining({
         event: 'damage_applied',
         actionId: 'status.poison.current.v1',
@@ -212,6 +215,7 @@ describe('current Poison voluntary movement', () => {
         combatantId: 'actor',
         from: { x: 0, y: 0 },
         to: { x: 1, y: 0 },
+        walkPath: PATH.slice(0, 2),
       }),
     )
   })

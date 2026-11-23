@@ -19,7 +19,11 @@ import type {
 } from '@/master/players'
 import type { MasterPanelStaffAccessService } from './staff-access'
 import { resolveMasterBattleRecovery } from './player-battle-recovery'
-import { parseMasterTeleportDestination, parseMasterTeleportReason } from './player-teleport'
+import {
+  parseMasterTeleportDestination,
+  parseMasterTeleportReason,
+  teleportStorageNumber,
+} from './player-teleport'
 
 export type PlayersRpc = (name: string, parameters: Record<string, unknown>) => Promise<unknown>
 export function playerRecord(value: unknown): value is Record<string, unknown> {
@@ -231,6 +235,7 @@ export function createMasterPlayersService(
   rpc: PlayersRpc,
   readContentNames?: (player: MasterPlayerView) => Promise<Readonly<Record<string, string>>>,
   prepareTeleport?: (userId: string, destination: PlayerTeleportDestination) => Promise<void>,
+  checkTeleport?: (destination: PlayerTeleportDestination) => Promise<boolean>,
 ) {
   const call = async (userId: string, name: string, parameters: Record<string, unknown>) => {
     await access.requireCapability(userId, 'players.manage')
@@ -269,6 +274,11 @@ export function createMasterPlayersService(
       })
       return project(await readRaw(userId, characterId))
     },
+    async validateTeleport(userId: string, input: unknown) {
+      await access.requireCapability(userId, 'players.manage')
+      const destination = parseMasterTeleportDestination(input)
+      return checkTeleport ? checkTeleport(destination) : false
+    },
     async teleport(
       userId: string,
       input: {
@@ -285,12 +295,12 @@ export function createMasterPlayersService(
       await access.requireCapability(userId, 'players.manage')
       if (!prepareTeleport) unavailable()
       await prepareTeleport(userId, destination)
-      const receipt = await call(userId, 'teleport_master_player_v5', {
+      const receipt = await call(userId, 'teleport_master_player_v6', {
         p_character_id: input.characterId,
         p_expected_version: input.expectedVersion,
         p_request_key: input.requestKey,
         p_map: destination.map,
-        p_sector_number: destination.sectorNumber,
+        p_sector_number: teleportStorageNumber(destination),
         p_x: destination.x,
         p_y: destination.y,
         p_reason: reason,

@@ -816,69 +816,25 @@ Players cannot type these manually.
 
 One selected title from the player's title collection:
 
-- personal custom title;
+- shared starter title;
 - earned event title;
 - achievement title;
 - profession title where eligible;
 - other approved prestige title.
 
-This separation prevents a custom title from masquerading as staff authority.
+Official badges derive from assigned account authority.
 
-## 35. Personal Custom Title
+## 35. Starter Titles
 
-Each character receives one opportunity to define a **Personal Title** without charge.
+Every character can equip Roadfarer, Dawn Seeker, or Horizon Wanderer from Account → Appearance & Title. The same title is available to multiple characters. Players can switch among the three at no cost through the account title picker. Titles are cosmetic.
 
-The title should feel important because the text becomes locked after final confirmation.
+## 36. Title Authority
 
-Flow:
+The server checks character ownership and accepts only catalogued title names. The title picker uses approved game content. Existing custom text is cleared by the starter-title migration.
 
-```text
-Enter title
-→ validation
-→ exact profile/chat/battle preview
-→ clear warning that the text becomes locked
-→ final confirmation
-→ Personal Title text is permanently set
-```
+## 37. Character Appearance
 
-After confirmation, changing the Personal Title text requires the approved paid **Title Reforge** account service unless an Owner/Support moderation correction is required.
-
-The player may freely **show, hide, or switch away from** the Personal Title to another earned title. The lock applies to changing the custom text, not to forcing it onto every surface forever.
-
-## 36. Personal Title Safety
-
-Custom titles must use server-side validation.
-
-At minimum:
-
-- sensible character limit;
-- Unicode normalization;
-- profanity/harassment filtering;
-- no HTML/markup/script injection;
-- reserved official words/variants protected where needed;
-- no impersonation of Owner/Admin/Moderator/Staff/System/Official roles;
-- no custom icon upload through the title field;
-- no arbitrary CSS/color values.
-
-The exact moderation policy belongs with public rules and moderation systems.
-
-If a title is forcibly removed for a legitimate moderation/support reason, the support workflow should be able to grant a controlled replacement without forcing the player to pay merely because staff changed it.
-
-## 37. Title Reforge Monetization
-
-Title Reforge is an appropriate non-power USD account service under `docs/MONETIZATION.md`.
-
-Requirements:
-
-- USD price is data-driven/Owner-configurable;
-- purchase changes only the Personal Title text entitlement;
-- it grants no gameplay power;
-- it cannot create an official badge;
-- payment/fulfillment uses the normal verified Premium Commerce flow;
-- failed payment cannot change the title;
-- successful title change is audited and the previous title remains explainable for moderation/support history.
-
-Do not sell stronger title colors that could imitate staff authority.
+A different confirmed appearance costs one Appearance Token from the character's general inventory. Preview and initial creation are free. The server commits the appearance and inventory spend in one transaction. A save during battle queues the new look until battle ends. The active encounter keeps its captured appearance.
 
 ## 38. Earned Titles
 
@@ -896,7 +852,6 @@ Players may earn additional titles from:
 
 Earned titles are collectible and may be selected/changed without paying USD.
 
-The paid service changes only the one personal custom title string.
 
 ## 39. Owner and Staff Badges
 
@@ -1133,8 +1088,6 @@ Owner/authorized staff should eventually be able to:
 - set title text/icon/palette from approved assets;
 - define event/achievement eligibility;
 - grant/revoke earned titles through audited commands;
-- configure Personal Title length/reserved-word/moderation policy;
-- configure Title Reforge product link/price through Premium Commerce;
 - inspect title history for support/moderation;
 - suspend a title globally if a rendering/moderation issue exists.
 
@@ -1237,7 +1190,7 @@ These systems succeed when:
 - the Materials inventory and Crafting panel are easy to understand;
 - the Trade House creates player interdependence without duplication/scam-prone handoffs;
 - Vowbond creates social identity and convenience without becoming a mandatory stat bonus;
-- Personal Titles feel consequential, earned titles feel collectible, and official badges cannot be spoofed;
+- starter titles are easy to equip, earned titles feel collectible, and official badges are assigned by authority;
 - Zei can reach the Master Panel easily from the game while Owner authority remains tied to a protected account ID rather than the name `Zei`;
 - the Owner can grant and revoke narrowly scoped staff powers without creating privilege escalation;
 - every privileged action is server-authorized and auditable;

@@ -19,6 +19,8 @@ See [World Map completion and release evidence](verification/2026-11-16-world-ma
 
 The full [November status matrix](ROADMAP_STATUS_2026-11-15.md) distinguishes **implemented**, **merged**, **live**, **technically verified** and **Owner accepted**, and records open gates. Do not use an ungrounded global completion percentage.
 
+**Appearance and identity design.** Appearance & Title offers three shared starter titles with free switches. Earned titles are later progression work. Confirmed redesigns spend one Appearance Token, and character creation is free. The one-time launch grant of 99 tokens per existing character has been verified in Production. The redesigned picker and token spending remain a separate release candidate.
+
 ---
 
 ## Historical release notes and earlier roadmap checkpoints

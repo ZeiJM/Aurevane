@@ -9,6 +9,7 @@ import {
 } from '@/appearance/appearance-manifest'
 import { PAINTED_IDENTITIES, PAINTED_CLOTHING } from '@/appearance/appearance-painted-catalog'
 import {
+  PAINTED_PLAYER_FIELDS,
   PAINTED_WARDROBE_LABELS,
   WARDROBE_OUTERWEAR,
   type PaintedWardrobeLook,
@@ -52,7 +53,8 @@ export function NpcAppearanceBatch({
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
 
-  const painted = base.v === 4 || base.v === 5 ? base : null
+  const painted = base.v === 4 || base.v === 5 || base.v === 6 ? base : null
+  const wardrobe = painted && 'bodyFrame' in painted ? painted : null
   const fields = npcVariantFields(base)
   const allowed = vary.filter((field) => fields.includes(field))
   const paintedLabels: Partial<Record<NpcVariantField, string>> = {
@@ -61,6 +63,7 @@ export function NpcAppearanceBatch({
     palette: 'Clothing color',
     accessory: 'Accessory style',
     hairColor: 'Accessory color',
+    backdrop: 'Portrait setting',
   }
 
   async function generate(event: FormEvent<HTMLFormElement>) {
@@ -107,9 +110,9 @@ export function NpcAppearanceBatch({
               confirmLabel="Use this starting look"
               value={base}
               onConfirm={(next) => {
-                if (next.v === 5 && base.v !== 5)
+                if ('bodyFrame' in next && !wardrobe)
                   setVary(['identity', 'bodyFrame', 'skinTone', 'outerwear', 'gear', 'headwear'])
-                if (base.v === 5 && next.v !== 5) setVary(['body', 'coat'])
+                if (wardrobe && !('bodyFrame' in next)) setVary(['body', 'coat'])
                 setBase(next)
               }}
             />
@@ -126,9 +129,9 @@ export function NpcAppearanceBatch({
             </label>
           </div>
           <p className={styles.hint}>
-            {painted?.v === 5
-              ? `${PAINTED_IDENTITIES[painted.identity]} · ${WARDROBE_OUTERWEAR[painted.outerwear]}`
-              : painted
+            {wardrobe
+              ? `${PAINTED_PLAYER_FIELDS.identity[wardrobe.identity]} · ${WARDROBE_OUTERWEAR[wardrobe.outerwear]}`
+              : painted?.v === 4
                 ? `${PAINTED_IDENTITIES[painted.identity]} · ${PAINTED_CLOTHING[painted.outerwear]}`
                 : `Palette: ${base.palette}. Accessory: ${base.accessory}.`}
           </p>
@@ -166,8 +169,9 @@ export function NpcAppearanceBatch({
                       )
                     }
                   />{' '}
-                  {(painted?.v === 5
-                    ? PAINTED_WARDROBE_LABELS[field as keyof PaintedWardrobeLook]
+                  {(wardrobe
+                    ? (PAINTED_WARDROBE_LABELS[field as keyof PaintedWardrobeLook] ??
+                      paintedLabels[field])
                     : painted
                       ? paintedLabels[field]
                       : undefined) ?? fieldLabel(field)}

@@ -25,6 +25,7 @@ import {
   parseBattleHistoryPrivacyAuthorityRow,
   type BattleHistoryPrivacyRepository,
 } from './battle-history-privacy-authority'
+import { snapshotWithBattleWalks } from './battle-walk-receipts'
 
 function persistenceUnavailable(message: string): AurevaneError {
   return new AurevaneError('PERSISTENCE_UNAVAILABLE', message)
@@ -292,7 +293,7 @@ export function createSupabaseBattleSessionRepository(
         p_user_id: input.userId,
         p_battle_session_id: input.battleSessionId,
         p_expected_battle_version: input.expectedBattleVersion,
-        p_next_snapshot: input.nextSnapshot,
+        p_next_snapshot: snapshotWithBattleWalks(input),
         p_events: input.events,
         p_privacy_journal: input.privacyJournal,
       })

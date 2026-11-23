@@ -168,6 +168,15 @@
   }
 }
 /* Shared board materials and read-only status overlays. Composition belongs to each component. */
+:global(section#battlefield button[data-battle-tile]:has(> [data-battle-token-walking])) {
+  z-index: 6;
+  overflow: visible !important;
+}
+
+:global(section#battlefield [data-battle-token-walking]) {
+  pointer-events: none;
+}
+
 :global(section#battlefield button[aria-label*='occupied by'] > [data-team][data-active]) {
   box-shadow: 0 0.35rem 0.9rem rgba(0, 0, 0, 0.5) !important;
 }

@@ -795,22 +795,19 @@ try {
       await wardrobe.getByLabel('Eye color').selectOption('violet')
       await wardrobe.getByLabel('Clothing style').selectOption('quilted')
       await wardrobe.getByLabel('Accessory style', { exact: true }).selectOption('rope')
-      await wardrobe.getByLabel('Face accessory style').selectOption('mask')
+      await wardrobe.getByLabel('Facewear style').selectOption('mask')
+      await wardrobe.getByLabel('Portrait setting').selectOption('frost')
+      const appearancePath =
+        '/api/media/appearance/6/scout.quilted.midnight.rope.cedar.circlet.natural.mask.ice.stocky.espresso.quiff.platinum.violet.frost'
       const portrait = wardrobe.getByRole('img', { name: 'Neutral appearance portrait' })
-      await expect(portrait).toHaveAttribute(
-        'src',
-        /\/5\/scout\.quilted\.midnight\.rope\..+\.mask\.ice\.stocky\.espresso\.quiff\.platinum\.violet\/neutral\.svg$/,
-      )
+      await expect(portrait).toHaveAttribute('src', `${appearancePath}/neutral.svg`)
       await expect
         .poll(() => portrait.evaluate((element) => element.naturalWidth))
         .toBeGreaterThan(0)
       await page.screenshot({ path: resolve(output, `wardrobe-${viewport.width}.png`) })
       await wardrobe.getByRole('button', { name: 'Use this appearance' }).click()
       await expect(wardrobe).toBeHidden()
-      await expect(greeting).toHaveAttribute(
-        'src',
-        /\.stocky\.espresso\.quiff\.platinum\.violet\/happy\.svg$/,
-      )
+      await expect(greeting).toHaveAttribute('src', `${appearancePath}/happy.svg`)
       await expect(page.getByText('Draft saved.', { exact: true })).toHaveCount(0)
     }
     assert.deepEqual(errors, [])

@@ -1,8 +1,13 @@
 import 'server-only'
 import { AurevaneError } from '@aurevane/game-core/errors'
 import { MASTER_TELEPORT_GEOMETRY_VERSION, type PlayerTeleportDestination } from '@/master/players'
-import { VOID_REALMS, VOID_REALM_COLUMNS, VOID_REALM_ROWS, voidSectorId } from '@/world/void-realms'
-import { atlasSectors } from '@/world/atlas'
+import { VOID_REALMS, VOID_REALM_COLUMNS, voidSectorId } from '@/world/void-realms'
+import {
+  mainlandSectorAtNumber,
+  mainlandSectorCount,
+  MAX_VOID_SECTOR_NUMBER,
+  VOID_SECTOR_NUMBER_OFFSET,
+} from '@/world/sector-index'
 import { isSafe } from '@/world/travel'
 import type { WorldSector } from '@/world/types'
 
@@ -37,21 +42,18 @@ export function parseMasterTeleportDestination(value: unknown): PlayerTeleportDe
   )
     invalid()
   if (source.map !== 'mainland' && source.map !== 'currentVoid') invalid()
-  // An old browser's 32-column Void number cannot be reinterpreted by this
-  // server's 64-column grid. The token binds numbering, never client geometry.
-  if (
-    (source.map === 'currentVoid' || Object.hasOwn(source, 'geometryVersion')) &&
-    source.geometryVersion !== MASTER_TELEPORT_GEOMETRY_VERSION
-  )
+  if (source.geometryVersion !== MASTER_TELEPORT_GEOMETRY_VERSION)
     throw new AurevaneError(
       'INVALID_REQUEST',
       'Map coordinates changed. Refresh this page and review the teleport destination again.',
     )
 
-  const maximum = source.map === 'mainland' ? 8192 : VOID_REALM_COLUMNS * VOID_REALM_ROWS
+  const mainland = source.map === 'mainland'
+  const minimum = mainland ? 1 : VOID_SECTOR_NUMBER_OFFSET + 1
+  const maximum = mainland ? mainlandSectorCount() : MAX_VOID_SECTOR_NUMBER
   if (
     !Number.isSafeInteger(source.sectorNumber) ||
-    Number(source.sectorNumber) < 1 ||
+    Number(source.sectorNumber) < minimum ||
     Number(source.sectorNumber) > maximum ||
     !Number.isSafeInteger(source.x) ||
     Number(source.x) < 0 ||
@@ -64,19 +66,20 @@ export function parseMasterTeleportDestination(value: unknown): PlayerTeleportDe
   return source as unknown as PlayerTeleportDestination
 }
 /** Only the server resolver supplies rows. Prepare all possible current realms before the locked commit. */
+export function teleportStorageNumber(destination: PlayerTeleportDestination) {
+  return destination.map === 'mainland'
+    ? destination.sectorNumber
+    : destination.sectorNumber - VOID_SECTOR_NUMBER_OFFSET
+}
+
 export function masterTeleportGeometry(
   destination: PlayerTeleportDestination,
   resolve: (id: string) => WorldSector | null,
 ): MasterTeleportGeometry[] {
-  const { sectorNumber } = destination
+  const sectorNumber = teleportStorageNumber(destination)
   const sectors =
     destination.map === 'mainland'
-      ? atlasSectors().filter(
-          (sector) =>
-            sector.atlasColumn !== undefined &&
-            sector.atlasRow !== undefined &&
-            sector.atlasRow * 128 + sector.atlasColumn + 1 === sectorNumber,
-        )
+      ? [mainlandSectorAtNumber(sectorNumber)]
       : VOID_REALMS.map((realm) =>
           resolve(
             voidSectorId(

@@ -15,7 +15,10 @@ vi.mock('./road-shorelines', async (importOriginal) => {
     },
   }
 })
-import { atlasAddress, atlasSectors, ATLAS_COLUMNS, ATLAS_ROWS } from './atlas'
+import { ASTERWAKE_REGION_ID, ASTERWAKE_GOLDEN_TREE } from './asterwake'
+import { FERRY_ASTERWAKE_DOCK, FERRY_NORTH_DOCK } from './ferry'
+import { canWalkPublicAtlas, reachableAtlasArrival } from './atlas-walking'
+import { atlasAddress, atlasChartAddresses, atlasSectors, ATLAS_COLUMNS, ATLAS_ROWS } from './atlas'
 import { CHARTED_SECTORS } from './catalog'
 import { OFFSHORE_DISCOVERY, OFFSHORE_SECTORS } from './discovery-sites'
 import { terrainWalkable } from './terrain'
@@ -109,7 +112,12 @@ describe('one traversable world atlas', () => {
         for (let offset = 0; offset < (dx ? 9 : 13); offset++) {
           const x = dx ? (dx > 0 ? 12 : 0) : offset
           const y = dy ? (dy > 0 ? 8 : 0) : offset
-          if (sector.rows[y]![x] === '=' || sector.rows[y]![x] === 's')
+          if (
+            (sector.rows[y]![x] === '=' || sector.rows[y]![x] === 's') &&
+            !sector.landmarks.some(
+              (l) => l.id.endsWith(':ferry-terminal') && l.x === x && l.y === y,
+            )
+          )
             stranded.push(`${sector.id}:${x}:${y}`)
         }
       }
@@ -196,6 +204,7 @@ describe('one traversable world atlas', () => {
     const newCountryside = atlasSectors().filter(
       (sector) =>
         (sector.atlasColumn! < 38 || sector.atlasColumn! > 96) &&
+        sector.regionId !== ASTERWAKE_REGION_ID &&
         !OFFSHORE_SECTORS.some(({ id }) => id === sector.id),
     )
     const ponds = newCountryside.filter((sector) => sector.rows.some((row) => row.includes('~')))
@@ -327,6 +336,11 @@ describe('one traversable world atlas', () => {
     const sectors = atlasSectors()
     expect(ATLAS_COLUMNS).toBe(128)
     expect(ATLAS_ROWS).toBe(64)
+    expect(
+      atlasChartAddresses()
+        .map(({ id }) => id)
+        .sort(),
+    ).toEqual(sectors.map(({ id }) => id).sort())
     expect(new Set(sectors.map((s) => s.id)).size).toBe(sectors.length)
     expect(new Set(sectors.map((s) => JSON.stringify(atlasAddress(s)))).size).toBe(sectors.length)
     expect(
@@ -409,7 +423,7 @@ describe('one traversable world atlas', () => {
     expect(sectors.filter((s) => !s.townId).length).toBeGreaterThan(100)
     const root = sectors.find((s) => s.id === 'verdant-expanse')!
     expect(root.landmarks.some((l) => l.name === 'Marketplace')).toBe(true)
-    expect(root.landmarks.some((l) => l.name === 'Town Square')).toBe(true)
+    expect(root.landmarks.some((l) => l.name === 'Forest Settlement')).toBe(true)
   })
   it('makes scenic countryside destinations real, reachable groves outside towns', () => {
     const sectors = atlasSectors()
@@ -490,7 +504,7 @@ describe('one traversable world atlas', () => {
           queue.push(road.to.sectorId)
         }
       }
-    expect(visited.size).toBe(sectors.length)
+    expect(visited.size).toBe(sectors.filter((s) => s.regionId !== ASTERWAKE_REGION_ID).length)
     for (const target of sectors.filter((s) => s.townId === s.id && s.id !== 'verdant-expanse')) {
       const route = findWorldRoute(
         newWorldState().position,
@@ -501,15 +515,34 @@ describe('one traversable world atlas', () => {
       expect(route!.length).toBeLessThanOrEqual(1500)
     }
   })
+  it('keeps both ferry terminals walkable and the northern coast connected to Gildroot Grove', () => {
+    const grove = { ...ASTERWAKE_GOLDEN_TREE, y: 6 }
+    const start = newWorldState().position
+    expect(canWalkPublicAtlas(start, FERRY_NORTH_DOCK)).toBe(true)
+    expect(canWalkPublicAtlas(start, FERRY_ASTERWAKE_DOCK)).toBe(false)
+    expect(canWalkPublicAtlas(FERRY_ASTERWAKE_DOCK, grove)).toBe(true)
+    expect(canWalkPublicAtlas(FERRY_ASTERWAKE_DOCK, ASTERWAKE_GOLDEN_TREE)).toBe(false)
+    const mainland = atlasSectors().filter((s) => s.regionId === ASTERWAKE_REGION_ID)
+    expect(mainland.some((s) => s.name === 'Morrow Isle')).toBe(true)
+    expect(mainland.some((s) => s.name === 'The Kestrel Skerries')).toBe(true)
+  })
+  it('can enter a reachable sector whose preferred tile is water without connecting islands', () => {
+    const preferred = { ...FERRY_ASTERWAKE_DOCK, x: 0 }
+    expect(canWalkPublicAtlas(FERRY_ASTERWAKE_DOCK, preferred)).toBe(false)
+    const arrival = reachableAtlasArrival(FERRY_ASTERWAKE_DOCK, preferred)
+    expect(arrival?.sectorId).toBe(preferred.sectorId)
+    expect(canWalkPublicAtlas(FERRY_ASTERWAKE_DOCK, arrival!)).toBe(true)
+    expect(reachableAtlasArrival(newWorldState().position, preferred)).toBeNull()
+  })
   it('bounds scene projection and retains private frontier and legacy parked positions', () => {
     const view = projectWorld(newWorldState(), [], 1000)
     expect(view.sectors.length).toBeLessThanOrEqual(25)
     expect(view.atlas!.length).toBeGreaterThan(150)
-    expect(view.atlas!.length).toBeLessThan(2000)
-    // The prior 599,914-byte baseline had only 86 bytes of headroom. Authored
-    // town water/roads add 2.55%; retain explicit raw and transport budgets.
-    expect(JSON.stringify(view).length).toBeLessThan(640000)
-    expect(gzipSync(JSON.stringify(view)).length).toBeLessThan(38000)
+    expect(view.atlas!.length).toBeLessThan(2250)
+    // The new continent adds initial chart metadata. Repeat scene receipts
+    // retain the previous bound and omit the global chart.
+    expect(JSON.stringify(view).length).toBeLessThan(665000)
+    expect(gzipSync(JSON.stringify(view)).length).toBeLessThan(41000)
     const full = worldAtlasReceipt(view, `${view.characterId}:full`)
     const compact = worldAtlasReceipt(view, `${view.characterId}:${full.atlasToken}`)
     expect('kind' in compact && compact.kind).toBe('scene')

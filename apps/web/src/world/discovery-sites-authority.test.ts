@@ -13,7 +13,7 @@ it.each([
   expect(isWalkable(sector, { x: 6, y: 4 })).toBe(true)
 })
 
-it('keeps valley shallows and open avenues traversable while solid cliffs block old roads', () => {
+it('blocks the valley pools and preserves dry avenues through the cliffs', () => {
   const site = GRAND_DISCOVERY_SITES.find((s) => s.id === 'elemental-valley')!,
     sectors = atlasSectors()
   for (const cell of site.water) {
@@ -23,8 +23,8 @@ it('keeps valley shallows and open avenues traversable while solid cliffs block 
       (s) => s.atlasColumn === Math.floor(gx / 13) && s.atlasRow === Math.floor(gy / 9),
     )!
     const p = { x: gx % 13, y: gy % 9 }
-    expect(sector.rows[p.y]![p.x], `${gx}:${gy}`).toBe('w')
-    expect(isWalkable(sector, p)).toBe(true)
+    expect(sector.rows[p.y]![p.x], `${gx}:${gy}`).toBe('~')
+    expect(isWalkable(sector, p)).toBe(false)
   }
   let blocked = 0
   let open = 0
@@ -34,7 +34,8 @@ it('keeps valley shallows and open avenues traversable while solid cliffs block 
         (s) => s.atlasColumn === Math.floor(x / 13) && s.atlasRow === Math.floor(y / 9),
       )!
     const barrier = grandDiscoveryBarrier(site.id, x - site.left, y - site.top)
-    expect(s.rows[y % 9]![x % 13], `${x}:${y}`).toBe(barrier ? '#' : '=')
+    if (barrier) expect(s.rows[y % 9]![x % 13], `${x}:${y}`).toBe('#')
+    else expect(s.rows[y % 9]![x % 13], `${x}:${y}`).toMatch(/^[.=]$/)
     expect(isWalkable(s, { x: x % 13, y: y % 9 })).toBe(!barrier)
     if (barrier) blocked++
     else open++

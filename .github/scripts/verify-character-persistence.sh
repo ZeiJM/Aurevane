@@ -176,34 +176,39 @@ third_cooldown="$(docker exec "$db_container" psql -U postgres -d postgres -Atqc
   where id = '$third_id'::uuid;")"
 test "$third_cooldown" = 'true'
 
-title_result="$(docker exec "$db_container" psql -U postgres -d postgres -Atqc "
-  set role service_role;
-  select personal_title
-  from public.set_character_personal_title_v1('$user_one'::uuid, '$first_id'::uuid, 'Dawn Warden');")"
-test "$title_result" = 'Dawn Warden'
+equip_title_sql() {
+  local user_id="$1"
+  local character_id="$2"
+  local title="$3"
+  docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+    set role service_role;
+    select personal_title
+    from public.set_character_personal_title_v1('$user_id'::uuid, '$character_id'::uuid, '$title');"
+}
 
-if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
-  set role service_role;
-  select * from public.set_character_personal_title_v1('$user_one'::uuid, '$first_id'::uuid, 'Dawn Keeper');" >/tmp/p13-title-repeat.out 2>/tmp/p13-title-repeat.err; then
-  echo 'Expected a second personal-title choice on one character to fail.' >&2
+test "$(equip_title_sql "$user_one" "$first_id" 'Roadfarer')" = 'Roadfarer'
+test "$(equip_title_sql "$user_two" "$second_id" 'Roadfarer')" = 'Roadfarer'
+test "$(equip_title_sql "$user_one" "$first_id" 'Horizon Wanderer')" = 'Horizon Wanderer'
+test "$(equip_title_sql "$user_one" "$first_id" 'Dawn Seeker')" = 'Dawn Seeker'
+
+if equip_title_sql "$user_one" "$first_id" 'Dawn Warden' >/tmp/p13-title-invalid.out 2>/tmp/p13-title-invalid.err; then
+  echo 'Expected a title outside the starter catalog to fail.' >&2
   exit 1
 fi
-grep -Fq 'PERSONAL_TITLE_ALREADY_SET' /tmp/p13-title-repeat.err
+grep -Fq 'PERSONAL_TITLE_INVALID' /tmp/p13-title-invalid.err
 
-if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
-  set role service_role;
-  select * from public.set_character_personal_title_v1('$user_two'::uuid, '$second_id'::uuid, 'dawnwarden');" >/tmp/p13-title-collision.out 2>/tmp/p13-title-collision.err; then
-  echo 'Expected canonical personal-title collision to fail.' >&2
+if equip_title_sql "$user_two" "$first_id" 'Roadfarer' >/tmp/p13-title-owner.out 2>/tmp/p13-title-owner.err; then
+  echo 'Expected a cross-account title change to fail.' >&2
   exit 1
 fi
-grep -Fq 'PERSONAL_TITLE_UNAVAILABLE' /tmp/p13-title-collision.err
+grep -Fq 'CHARACTER_NOT_PLAYABLE' /tmp/p13-title-owner.err
 
 own_one="$(curl --fail-with-body --silent --show-error \
   "$api_url/rest/v1/characters?select=id,user_id,name,level,xp,slot_index,vitality,agility,personal_title&user_id=eq.$user_one&order=slot_index.asc" \
   --header "apikey: $ANON_KEY" \
   --header "Authorization: Bearer $token_one")"
 printf '%s' "$own_one" | jq -e --arg first "$first_id" --arg third "$third_id" --arg user "$user_one" \
-  'length == 2 and .[0].id == $first and .[0].user_id == $user and .[0].level == 1 and .[0].xp == 0 and .[0].slot_index == 0 and .[0].vitality == 7 and .[0].agility == 4 and .[0].personal_title == "Dawn Warden" and .[1].id == $third and .[1].slot_index == 1' >/dev/null
+  'length == 2 and .[0].id == $first and .[0].user_id == $user and .[0].level == 1 and .[0].xp == 0 and .[0].slot_index == 0 and .[0].vitality == 7 and .[0].agility == 4 and .[0].personal_title == "Dawn Seeker" and .[1].id == $third and .[1].slot_index == 1' >/dev/null
 
 cross_one="$(curl --fail-with-body --silent --show-error \
   "$api_url/rest/v1/characters?select=id&user_id=eq.$user_two" \
@@ -255,8 +260,8 @@ fi
 
 if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   set role authenticated;
-  select * from public.set_character_personal_title_v1('$user_one'::uuid, '$first_id'::uuid, 'Forged Title');"; then
-  echo 'Authenticated browser role unexpectedly executed personal-title RPC.' >&2
+  select * from public.set_character_personal_title_v1('$user_one'::uuid, '$first_id'::uuid, 'Roadfarer');"; then
+  echo 'Authenticated browser role unexpectedly executed the title RPC.' >&2
   exit 1
 fi
 

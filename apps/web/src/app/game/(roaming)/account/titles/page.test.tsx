@@ -26,25 +26,12 @@ vi.mock('@/server/character/selected-character', () => ({
 vi.mock('@/server/character/character-title-service', () => ({
   loadCharacterTitleState: async () => ({ personalTitle: null, personalTitleSetAt: null }),
 }))
-vi.mock('@/server/character/character-profile-display-service', () => ({
-  loadCharacterProfileDisplay: async () => ({ imageUrl: null }),
-}))
-vi.mock('@/server/character/character-portrait-choice-service', () => ({
-  loadCharacterPortraitChoice: async () => ({ available: true, changedAt: null }),
-}))
 vi.mock('@/server/character/character-appearance-service', () => ({
-  loadCharacterAppearance: async () => ({ remainingDesigns: 1, pendingImageUrl: null }),
-}))
-vi.mock('@/server/character/supabase-character-build-repository', () => ({
-  createSupabaseCharacterBuildRepository: () => ({
-    findActiveBuild: async () => ({
-      primaryDefinition: { id: 'discipline.custom', name: 'Super Saiyan' },
-    }),
-  }),
+  loadCharacterAppearance: async () => ({ appearanceTokens: 99, pendingImageUrl: null }),
 }))
 import CharacterTitlesPage from './page'
-it('shows the current programmed active Discipline instead of the original static foundation', async () => {
+it('supplies the current title and inventory token balance to settings', async () => {
   const page = await CharacterTitlesPage()
-  expect(page.props.disciplineName).toBe('Super Saiyan')
-  expect(page.props.remainingSpriteDesigns).toBe(1)
+  expect(page.props.personalTitle).toBeNull()
+  expect(page.props.appearanceTokens).toBe(99)
 })

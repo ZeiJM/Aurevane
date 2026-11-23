@@ -275,21 +275,44 @@ const wildDoorRoads: WorldRoad[] = WILD_DOORS.flatMap(({ root, dir }) => {
   ]
 })
 const roads: WorldRoad[] = [...legacyRoads, ...authoredRoads, ...wildDoorRoads]
+const regionalLandmarkNames: Record<string, readonly [settlement: string, watch: string]> = {
+  'aureth-crown': ['Civic Quarter', 'Road Ward'],
+  'verdant-expanse': ['Forest Settlement', 'Eastern Watchtower'],
+  emberreach: ['Basalt Citadel', 'Forge Watch'],
+  frostmere: ['Mountain Refuge', 'Pass Watch'],
+  'glasswind-desert': ['Oasis Enclave', 'Caravan Watch'],
+  'hollow-coast': ['Harbor Quarter', 'Tide Watch'],
+  'starfall-highlands': ['Observatory Terrace', 'Highland Watch'],
+  'umbral-march': ['Frontier Outpost', 'March Watch'],
+}
+
 export const CHARTED_SECTORS: readonly WorldSector[] = [
   ...WORLD_REGIONS.map((region): WorldSector => ({
     id: region.id,
     name: region.name,
     coordinate: region.sector,
     regionId: region.id,
-    art: `/media/art/world/${region.art}-v01.webp`,
+    art: `/media/art/world/${region.art}-v02.webp`,
     panorama: `/media/art/world/${region.art}-panorama-v01.webp`,
     east: 12,
     north: 28,
     rows: ROWS,
     charted: true,
     landmarks: [
-      { id: `${region.id}-settlement`, name: 'Settlement', kind: 'settlement', x: 2, y: 4 },
-      { id: `${region.id}-watch`, name: 'Watchtower', kind: 'watchtower', x: 12, y: 4 },
+      {
+        id: `${region.id}-settlement`,
+        name: regionalLandmarkNames[region.id]![0],
+        kind: 'settlement',
+        x: 2,
+        y: 4,
+      },
+      {
+        id: `${region.id}-watch`,
+        name: regionalLandmarkNames[region.id]![1],
+        kind: 'watchtower',
+        x: 12,
+        y: 4,
+      },
       ...(region.id === 'umbral-march'
         ? [
             {

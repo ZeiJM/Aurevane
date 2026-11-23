@@ -14,7 +14,7 @@ import {
 } from '@/world/travel'
 import { savedWorldGeometryRecovery } from './world-geometry-recovery'
 import { STEP_MS } from '@/world/catalog'
-import type { WorldMovementReceipt } from '@/world/movement-receipt'
+import { worldMovementReceiptBoundary, type WorldMovementReceipt } from '@/world/movement-receipt'
 import type {
   WorldCommand,
   WorldInteractionActionId,
@@ -32,7 +32,7 @@ import {
 } from './world-npcs'
 import { projectPersonalQuests, projectRepeatableTravel } from './world-personal-quests'
 import { localWorldInteractions } from './world-objectives'
-import { WORLD_OBJECTIVES, isKnownCell, resolveSector } from './world-content'
+import { WORLD_OBJECTIVES, approvedVoidSteps, isKnownCell, resolveSector } from './world-content'
 import { projectWorldFerry } from './world-ferry'
 import {
   avengerTicketReference,
@@ -741,7 +741,8 @@ function movementReceipt(
   // The confirmed origin must be supplied even after a slow reply crosses the
   // previous scene horizon. This is private-filtered terrain, with no scene I/O.
   const sector = resolveSector(state.position.sectorId)
-  const currentSector = sector ? projectWorldSector(state, sector) : undefined
+  const approvedRoute = approvedVoidSteps(state)
+  const currentSector = sector ? projectWorldSector(state, sector, approvedRoute) : undefined
   if (!currentSector)
     throw new AurevaneError(
       'PERSISTENCE_UNAVAILABLE',
@@ -749,14 +750,12 @@ function movementReceipt(
     )
   // A short lookahead keeps the first approaching boundary drawable before
   // scene hydration. Only the currently known part of that sector is supplied.
-  const boundary = state.route.find(
-    (step, index) => index < 6 && step.position.sectorId !== state.position.sectorId,
-  )
+  const boundary = worldMovementReceiptBoundary(state.position, state.route)
   const upcoming =
-    boundary && isKnownCell(state, boundary.position)
+    boundary && (approvedRoute.includes(boundary) || isKnownCell(state, boundary.position))
       ? resolveSector(boundary.position.sectorId)
       : null
-  const upcomingSector = upcoming ? projectWorldSector(state, upcoming) : undefined
+  const upcomingSector = upcoming ? projectWorldSector(state, upcoming, approvedRoute) : undefined
   const npcs = peekWorldNpcs(state)
   return {
     ferry: projectWorldFerry(state, data.serverNow),

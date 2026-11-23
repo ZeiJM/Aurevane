@@ -1,6 +1,7 @@
 'use client'
 
-import { BattlefieldAppearanceToken } from './battlefield-appearance-token'
+import { BattlefieldWalkingToken } from './battlefield-walking-token'
+import { useBattlefieldWalks } from './battlefield-walks'
 import { useBattleAppearanceCues } from './use-battle-appearance-cues'
 
 import { SkillEffectTimingProvider } from '../character/skill-effect-timing-context'
@@ -126,6 +127,7 @@ function PvpSpectatorExperienceContent({
 
   const battle = spectator.battle
   const appearanceCues = useBattleAppearanceCues(battle.battleSessionId, battle.battleVersion)
+  const battlefieldWalks = useBattlefieldWalks(battle)
   const tactical = battle.snapshot.tactical
   const battleState = tactical.battle
   const teamCount = spectator.mode === '1v1v1' ? 3 : 2
@@ -492,6 +494,7 @@ function PvpSpectatorExperienceContent({
                     <button
                       type="button"
                       className={styles.tile}
+                      data-battle-tile={key}
                       data-terrain={terrain}
                       data-terrain-overlay={overlay?.kind}
                       data-elevation={tile.elevation > 0 || undefined}
@@ -529,7 +532,7 @@ function PvpSpectatorExperienceContent({
                         />
                       ) : null}
                       {participant && placement ? (
-                        <span
+                        <BattlefieldWalkingToken
                           className={styles.unit}
                           style={
                             {
@@ -545,18 +548,18 @@ function PvpSpectatorExperienceContent({
                           data-defeated={combatant?.hp === 0 || undefined}
                           data-desktop-inspect-combatant={placement.combatantId}
                           title={`${participant.name} · ${teamName(participant.teamIndex)}`}
-                        >
-                          <BattlefieldAppearanceToken
-                            imageUrl={participant.profileImageUrl}
-                            portraitAssetId={participant.portraitAssetId}
-                            facing={placement.facing}
-                            defeated={combatant?.hp === 0}
-                            cue={appearanceCues.cues?.get(placement.combatantId)}
-                            name={participant.name}
-                            className={styles.unitPortrait}
-                            fallbackClassName={styles.summonPortrait}
-                          />
-                        </span>
+                          walk={battlefieldWalks.get(placement.combatantId)}
+                          appearance={{
+                            imageUrl: participant.profileImageUrl,
+                            portraitAssetId: participant.portraitAssetId,
+                            facing: placement.facing,
+                            defeated: combatant?.hp === 0,
+                            cue: appearanceCues.cues?.get(placement.combatantId),
+                            name: participant.name,
+                            className: styles.unitPortrait,
+                            fallbackClassName: styles.summonPortrait,
+                          }}
+                        />
                       ) : null}
                     </button>
                   )

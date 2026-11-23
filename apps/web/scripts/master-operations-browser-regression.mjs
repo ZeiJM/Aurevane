@@ -120,6 +120,10 @@ try {
   const { protectedPlayerReader } = await server.ssrLoadModule(
     resolve(web, 'e2e/master-zoom-workflows.ts'),
   )
+  const { MAX_VOID_SECTOR_NUMBER, VOID_SECTOR_NUMBER_OFFSET } = await server.ssrLoadModule(
+    resolve(web, 'src/world/sector-index.ts'),
+  )
+  const voidDestinationNumber = VOID_SECTOR_NUMBER_OFFSET + 34
   const playerEvidence = []
   for (const viewport of [
     { width: 1366, height: 768, zoom: 1 },
@@ -379,13 +383,14 @@ try {
         await reader
           .getByRole('combobox', { name: 'Destination map', exact: true })
           .selectOption('currentVoid')
-        await expect(reader.getByLabel('Sector number', { exact: true })).toHaveAttribute(
-          'max',
-          '3072',
-        )
-        await reader.getByLabel('Sector number', { exact: true }).fill('34')
+        const sectorInput = reader.getByLabel('Sector number', { exact: true })
+        await expect(sectorInput).toHaveAttribute('min', String(VOID_SECTOR_NUMBER_OFFSET + 1))
+        await expect(sectorInput).toHaveAttribute('max', String(MAX_VOID_SECTOR_NUMBER))
+        await expect(sectorInput).toHaveAttribute('data-sector-valid', 'false')
+        await sectorInput.fill(String(voidDestinationNumber))
         await reader.getByLabel('X coordinate', { exact: true }).fill('6')
         await reader.getByLabel('Y coordinate', { exact: true }).fill('4')
+        await expect(sectorInput).toHaveAttribute('data-sector-valid', 'true')
         await reader.getByLabel('Staff reason', { exact: true }).fill('Reviewed location repair')
         await reader.getByRole('button', { name: 'Review teleport', exact: true }).click()
         await expect(
@@ -408,14 +413,16 @@ try {
         assert.equal(teleport.operation, 'teleport')
         assert.deepEqual(teleport.destination, {
           map: 'currentVoid',
-          sectorNumber: 34,
+          sectorNumber: voidDestinationNumber,
           x: 6,
           y: 4,
           geometryVersion: MASTER_TELEPORT_GEOMETRY_VERSION,
         })
         assert.equal(teleport.reason, 'Reviewed location repair')
         assert.equal(teleport.confirmed, true)
-        await expect(reader.getByText('Sector 34 · X:6 · Y:4', { exact: true })).toBeVisible()
+        await expect(
+          reader.getByText(`Sector ${voidDestinationNumber} · X:6 · Y:4`, { exact: true }),
+        ).toBeVisible()
         await page.screenshot({
           path: resolve(output, `players-teleport-${viewport.width}-${viewport.zoom}.png`),
         })

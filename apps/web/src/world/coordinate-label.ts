@@ -1,4 +1,4 @@
-import { ATLAS_COLUMNS, ATLAS_ROWS } from './topology'
+import { mainlandSectorNumber, VOID_SECTOR_NUMBER_OFFSET } from './sector-index'
 import type { WorldAtlasCell, WorldPosition, WorldSector } from './types'
 import { parseVoidSectorId, VOID_REALM_COLUMNS, VOID_REALM_ROWS } from './void-realms'
 
@@ -22,11 +22,11 @@ function gridNumber(
     column < columns &&
     row >= 0 &&
     row < rows
-    ? row * columns + column + 1
+    ? VOID_SECTOR_NUMBER_OFFSET + row * columns + column + 1
     : null
 }
 
-/** A display alias over the full geographic grid, never the loaded/known subset. */
+/** A stable chart number independent of the player’s loaded or discovered sectors. */
 export function sectorDisplayNumber(sector: DisplaySector | undefined): number | null {
   if (!sector) return null
   const address = parseVoidSectorId(sector.id)
@@ -35,12 +35,12 @@ export function sectorDisplayNumber(sector: DisplaySector | undefined): number |
     return gridNumber(sector.sceneColumn, sector.sceneRow, VOID_REALM_COLUMNS, VOID_REALM_ROWS)
   if (!sector.charted || sector.warpedTheme) return null
   if (sector.atlasColumn !== undefined || sector.atlasRow !== undefined)
-    return gridNumber(sector.atlasColumn, sector.atlasRow, ATLAS_COLUMNS, ATLAS_ROWS)
+    return mainlandSectorNumber(sector.atlasColumn ?? -1, sector.atlasRow ?? -1)
   if (sector.column !== undefined || sector.row !== undefined)
-    return gridNumber(sector.column, sector.row, ATLAS_COLUMNS, ATLAS_ROWS)
+    return mainlandSectorNumber(sector.column ?? -1, sector.row ?? -1)
   const coordinate = /^S(\d{2,3})-(\d{2,3})$/.exec(sector.coordinate)
   return coordinate
-    ? gridNumber(Number(coordinate[1]) - 1, Number(coordinate[2]) - 1, ATLAS_COLUMNS, ATLAS_ROWS)
+    ? mainlandSectorNumber(Number(coordinate[1]) - 1, Number(coordinate[2]) - 1)
     : null
 }
 

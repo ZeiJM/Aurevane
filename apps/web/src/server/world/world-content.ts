@@ -1,16 +1,16 @@
 import 'server-only'
 import { CHARTED_SECTORS, FRONTIER_APPROACH, GRID_WIDTH, TRAIL_SECTORS } from '@/world/catalog'
-import type { WorldObjective, WorldPosition, WorldSector, WorldState } from '@/world/types'
+import type {
+  TravelStep,
+  WorldObjective,
+  WorldPosition,
+  WorldSector,
+  WorldState,
+} from '@/world/types'
 import { resolveWildSector } from '@/world/wilds'
 import { isWildSectorId } from '@/world/wild-ids'
 import { isCurrentWorldRoute, validCell } from '@/world/travel'
-import {
-  parseVoidSectorId,
-  isVoidRealmSectorId,
-  voidSectorId,
-  VOID_REALM_COLUMNS,
-  VOID_REALM_ROWS,
-} from '@/world/void-realms'
+import { parseVoidSectorId, isVoidRealmSectorId, localVoidSectorIds } from '@/world/void-realms'
 import { atlasSectors } from '@/world/atlas'
 import {
   isWarpedContinentSector,
@@ -143,6 +143,33 @@ export function isKnownCell(state: WorldState, p: WorldPosition) {
     return Boolean(origin && (origin.charted || discovered(state, road.to)))
   })
 }
+
+/** Only contiguous, canonical steps in the active realm can extend the movement view. */
+export function approvedVoidSteps(state: WorldState, limit = state.route.length): TravelStep[] {
+  const realmId = parseVoidSectorId(state.position.sectorId)?.realmId
+  if (!realmId) return []
+  const approved: TravelStep[] = []
+  let previous = state.position
+  let source = resolveVoidSector(previous.sectorId)
+  for (const step of state.route.slice(0, limit)) {
+    const id = step.position.sectorId
+    if (parseVoidSectorId(id)?.realmId !== realmId) break
+    const target = id === previous.sectorId ? source : resolveVoidSector(id)
+    if (
+      !source ||
+      !target ||
+      !isCurrentWorldRoute(previous, [step], [source, target], (position) =>
+        state.routeObjectiveId ? isKnownCell(state, position) : validCell(position),
+      )
+    )
+      break
+    approved.push(step)
+    previous = step.position
+    source = target
+  }
+  return approved
+}
+
 /** Everything a character can see on their map: charted ground plus what they have explored. */
 export function visibleSectors(
   state: WorldState,
@@ -194,33 +221,12 @@ export function visibleSectors(
     }
   }
   if (voidRealm) {
-    const candidates = sceneOnly
-      ? Array.from({ length: 25 }, (_, index) => {
-          const column = voidRealm.column + (index % 5) - 2
-          const row = voidRealm.row + Math.floor(index / 5) - 2
-          return column >= 0 && column < VOID_REALM_COLUMNS && row >= 0 && row < VOID_REALM_ROWS
-            ? [voidSectorId(voidRealm.realmId, column, row)]
-            : []
-        }).flat()
-      : Object.keys(state.discoveries)
+    const candidates = sceneOnly ? localVoidSectorIds(voidRealm) : Object.keys(state.discoveries)
     candidates.push(state.position.sectorId)
     const routeIds = new Set<string>()
-    let previous = state.position
-    for (const step of sceneOnly ? state.route.slice(0, 8) : state.route) {
-      if (!isKnownCell(state, step.position)) break
-      if (sceneOnly) {
-        const source = resolveSector(previous.sectorId)
-        const target = resolveSector(step.position.sectorId)
-        if (
-          !source ||
-          !target ||
-          !isCurrentWorldRoute(previous, [step], [source, target], (p) => isKnownCell(state, p))
-        )
-          break
-      }
+    for (const step of approvedVoidSteps(state, sceneOnly ? 8 : state.route.length)) {
       routeIds.add(step.position.sectorId)
       candidates.push(step.position.sectorId)
-      previous = step.position
     }
     for (const id of candidates) {
       const address = parseVoidSectorId(id)

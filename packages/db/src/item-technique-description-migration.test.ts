@@ -4,6 +4,7 @@ import { createCombatContentTestDatabase } from './test-support/combat-content-t
 import { starterItemDefinitions } from '../../game-core/src/content/starter-items'
 
 const owner = '00000000-0000-4000-8000-000000000001'
+const migration = '20261106143000_item_technique_descriptions.sql'
 let db: PGlite
 let beforeMigration: unknown
 let afterMigration: unknown
@@ -28,7 +29,7 @@ async function persistedBodies(database: PGlite) {
 }
 beforeAll(async () => {
   db = await createCombatContentTestDatabase(async (database, name) => {
-    if (name !== '20261106143000_item_technique_descriptions.sql') return
+    if (name !== migration) return
     await database.exec(
       `insert into auth.users(id,email,email_confirmed_at) values('${owner}','owner@example.test',now()); insert into app_private.master_panel_role_assignments(user_id,role) values('${owner}','game-owner');`,
     )
@@ -75,7 +76,7 @@ beforeAll(async () => {
       },
     ])
     beforeMigration = await persistedBodies(database)
-  })
+  }, migration)
   afterMigration = await persistedBodies(db)
 }, 60000)
 afterAll(async () => {

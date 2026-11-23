@@ -26,15 +26,12 @@ export function battleAppearanceCues(
   const add = (id: string | null, entry: PoseReceipt, pose: AppearancePose) => {
     if (!id) return
     const existing = cues.get(id)
-    if (existing && (pose === 'walk' || (existing.pose === 'attack' && pose === 'cast'))) return
+    if (existing?.pose === 'attack' && pose === 'cast') return
     cues.set(id, { key: `${entry.battleVersion}:${entry.eventIndex}`, pose })
   }
   for (const entry of entries) {
     if (entry.battleVersion !== version) continue
     switch (entry.eventType) {
-      case 'combatant_moved':
-        add(entry.actorCombatantId, entry, 'walk')
-        break
       case 'combat_action_used':
         add(
           entry.actorCombatantId,

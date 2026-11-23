@@ -5,6 +5,7 @@ import { AurevaneError } from '@aurevane/game-core/errors'
 import {
   APPEARANCE_CATALOG,
   paintedAppearanceBlueprint,
+  paintedPlayerAppearanceBlueprint,
   compileAppearanceManifest,
   parseAppearanceBlueprint,
   wardrobeAppearanceBlueprint,
@@ -12,7 +13,9 @@ import {
 } from '@/appearance/appearance-manifest'
 import { PAINTED_FIELDS, type PaintedLook } from '@/appearance/appearance-painted-catalog'
 import {
+  PAINTED_PLAYER_FIELDS,
   PAINTED_WARDROBE_FIELDS,
+  type PaintedPlayerLook,
   type PaintedWardrobeLook,
 } from '@/appearance/appearance-painted-wardrobe'
 import {
@@ -53,6 +56,7 @@ const paintedVariationFields: Partial<Record<NpcVariantField, keyof PaintedLook>
 }
 
 function variationValue(blueprint: AppearanceBlueprint, field: NpcVariantField) {
+  if (blueprint.v === 6) return blueprint[field as keyof PaintedPlayerLook]
   if (blueprint.v === 5) return blueprint[field as keyof PaintedWardrobeLook]
   const paintedField = paintedVariationFields[field]
   return blueprint.v === 4 && paintedField
@@ -63,6 +67,11 @@ function variationValue(blueprint: AppearanceBlueprint, field: NpcVariantField) 
 function variationPool({ base, vary }: NpcVariantRequest) {
   const seen = new Set([compileAppearanceManifest(base).portraits.neutral])
   const parts = vary.map((field) => {
+    if (base.v === 6)
+      return {
+        field,
+        options: Object.keys(PAINTED_PLAYER_FIELDS[field as keyof PaintedPlayerLook]),
+      }
     if (base.v === 5)
       return {
         field,
@@ -94,11 +103,13 @@ function variationPool({ base, vary }: NpcVariantRequest) {
       position /= radix
     }
     const blueprint =
-      base.v === 5
-        ? wardrobeAppearanceBlueprint(draft as PaintedWardrobeLook)
-        : base.v === 4
-          ? paintedAppearanceBlueprint(draft as PaintedLook)
-          : parseAppearanceBlueprint(draft)
+      base.v === 6
+        ? paintedPlayerAppearanceBlueprint(draft as PaintedPlayerLook)
+        : base.v === 5
+          ? wardrobeAppearanceBlueprint(draft as PaintedWardrobeLook)
+          : base.v === 4
+            ? paintedAppearanceBlueprint(draft as PaintedLook)
+            : parseAppearanceBlueprint(draft)
     if (!blueprint) continue
     const url = compileAppearanceManifest(blueprint).portraits.neutral
     if (seen.has(url)) continue

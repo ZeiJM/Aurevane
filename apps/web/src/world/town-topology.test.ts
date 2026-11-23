@@ -1,21 +1,21 @@
 import { expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
+import { canWalkPublicAtlas } from './atlas-walking'
 import { atlasSectors } from './atlas'
-import { terrainWalkable } from './terrain'
+import { savedWorldGeometryRecovery } from '@/server/world/world-geometry-recovery'
+import { terrainWalkable, worldSurfaceRows } from './terrain'
 import { findWorldRoute, isCurrentWorldRoute, isWalkable, newWorldState } from './travel'
 import { resolveWorldIntent } from '@/server/world/world-service'
 import legacy from './town-topology.legacy.json'
 
 const towns = () => atlasSectors().filter((s) => s.townId)
-it('makes town water explicitly walkable while keeping deep wilderness water blocked', () => {
-  expect(terrainWalkable('w')).toBe(true)
-  expect(terrainWalkable('~')).toBe(false)
-  const water = towns().flatMap((s) =>
-    s.rows.flatMap((r, y) => [...r].flatMap((t, x) => (t === 'w' ? [{ s, x, y }] : []))),
-  )
-  expect(water.length).toBeGreaterThan(100)
-  for (const { s, x, y } of water) expect(isWalkable(s, { x, y })).toBe(true)
-  expect(towns().every((s) => !s.rows.join('').includes('~'))).toBe(true)
+it('blocks visible public water and lava while keeping the retired town pools dry', () => {
+  for (const sector of atlasSectors())
+    for (const [y, row] of worldSurfaceRows(sector).entries())
+      for (const [x, terrain] of [...row].entries())
+        if (/[~lw]/.test(terrain)) expect(isWalkable(sector, { x, y })).toBe(false)
+  const retiredPools = towns().filter((s) => s.rows.some((row) => row.includes('w')))
+  expect(new Set(retiredPools.map((s) => s.townId))).toEqual(new Set(['frostmere', 'emberreach']))
 })
 it('authors different building compositions in all eight complete districts rather than repeating the root stamp', () => {
   const ids = [...new Set(towns().map((s) => s.townId))]
@@ -44,7 +44,7 @@ it('authors different building compositions in all eight complete districts rath
     ).toBe(true)
   }
 })
-it('gives every newly blocked saved position a canonical one-step exit without relocating it', () => {
+it('gives newly blocked positions an exit or a nearby canonical dry recovery point', () => {
   const sectors = atlasSectors(),
     byId = new Map(sectors.map((s) => [s.id, s]))
   const trapped: string[] = []
@@ -64,7 +64,9 @@ it('gives every newly blocked saved position a canonical one-step exit without r
           .map(([dx, dy]) => ({ sectorId: after.id, x: x + dx!, y: y + dy! }))
           .find((p) => isWalkable(after, p))
         if (!target) {
-          trapped.push(`${after.id}:${x}:${y}`)
+          const recovered = savedWorldGeometryRecovery({ sectorId: after.id, x, y })
+          if (!recovered || !isWalkable(byId.get(recovered.sectorId)!, recovered))
+            trapped.push(`${after.id}:${x}:${y}`)
           continue
         }
         expect(findWorldRoute({ sectorId: after.id, x, y }, target, [after])).toHaveLength(1)
@@ -87,14 +89,14 @@ it('connects all town landmarks, districts and perimeter gate approaches to thei
     for (const s of towns().filter((s) => s.townId === id)) {
       for (const l of s.landmarks)
         expect(
-          findWorldRoute(from, { sectorId: s.id, x: l.x, y: l.y }, all),
+          canWalkPublicAtlas(from, { sectorId: s.id, x: l.x, y: l.y }),
           `${id} ${l.name}`,
-        ).not.toBeNull()
+        ).toBe(true)
       expect(s.roads.length, s.id).toBeGreaterThan(0)
       expect(
-        findWorldRoute(from, { sectorId: s.id, x: 6, y: 4 }, all),
+        canWalkPublicAtlas(from, { sectorId: s.id, x: 6, y: 4 }),
         `${id} district ${s.id}`,
-      ).not.toBeNull()
+      ).toBe(true)
     }
   }
   const crown = towns().filter((s) => s.townId === 'aureth-crown')
@@ -102,7 +104,7 @@ it('connects all town landmarks, districts and perimeter gate approaches to thei
     crown.flatMap((s) => s.buildings ?? []).filter((b) => b.artIndex === 9).length,
   ).toBeGreaterThan(10)
   const moat = towns().filter((s) => s.townId === 'umbral-march')
-  expect(moat.filter((s) => s.rows.join('').includes('w')).length).toBeGreaterThan(5)
+  expect(moat.filter((s) => s.rows.join('').includes('~')).length).toBeGreaterThan(5)
   expect(
     moat.flatMap((s) => s.landmarks).filter((l) => l.kind === 'bridge').length,
   ).toBeGreaterThanOrEqual(2)

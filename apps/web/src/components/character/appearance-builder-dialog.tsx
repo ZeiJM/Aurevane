@@ -1,7 +1,12 @@
 'use client'
 
 import { useId, useRef, useState } from 'react'
-import { APPEARANCE_PRESETS, type AppearanceBlueprint } from '@/appearance/appearance-manifest'
+import type { AppearanceBlueprint } from '@/appearance/appearance-manifest'
+import {
+  defaultPaintedLookForGender,
+  paintedPlayerAppearanceBlueprint,
+  type AppearanceGender,
+} from '@/appearance/appearance-painted-looks'
 import { AppearanceBuilder, loadAppearanceCandidate } from './appearance-builder'
 import styles from './appearance-builder.module.css'
 
@@ -9,35 +14,41 @@ export function AppearanceBuilderDialog({
   label,
   confirmLabel,
   value,
+  initialGender,
   prepare,
   onConfirm,
   confirmationHint,
-  locked = false,
+  confirmDisabled = false,
 }: {
   label: string
   confirmLabel: string
   value?: AppearanceBlueprint | null
+  initialGender?: AppearanceGender
   prepare?: () => Promise<AppearanceBlueprint | null>
   onConfirm: (blueprint: AppearanceBlueprint) => void | Promise<void>
   confirmationHint?: string
-  locked?: boolean
+  confirmDisabled?: boolean
 }) {
   const id = useId()
   const dialog = useRef<HTMLDialogElement>(null)
   const trigger = useRef<HTMLButtonElement>(null)
+  const initialCandidate = useRef<AppearanceBlueprint | null>(null)
   const [candidate, setCandidate] = useState<AppearanceBlueprint | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
 
   async function open() {
-    if (locked) return
     setCandidate(null)
     setError(null)
     dialog.current?.showModal()
     setPending(true)
     try {
       const active = prepare ? await prepare() : value
-      setCandidate(active ?? APPEARANCE_PRESETS[0].blueprint)
+      const initial =
+        active ??
+        paintedPlayerAppearanceBlueprint(defaultPaintedLookForGender(initialGender ?? 'feminine'))
+      initialCandidate.current = initial
+      setCandidate(initial)
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Appearance settings are unavailable.')
     } finally {
@@ -46,7 +57,7 @@ export function AppearanceBuilderDialog({
   }
 
   async function confirm() {
-    if (!candidate || pending) return
+    if (!candidate || pending || confirmDisabled) return
     setPending(true)
     setError(null)
     try {
@@ -64,13 +75,7 @@ export function AppearanceBuilderDialog({
 
   return (
     <>
-      <button
-        ref={trigger}
-        type="button"
-        aria-haspopup="dialog"
-        aria-disabled={locked || undefined}
-        onClick={() => void open()}
-      >
+      <button ref={trigger} type="button" aria-haspopup="dialog" onClick={() => void open()}>
         {label}
       </button>
       <dialog
@@ -92,16 +97,43 @@ export function AppearanceBuilderDialog({
           </button>
         </header>
         {candidate ? (
-          <AppearanceBuilder value={candidate} onChange={setCandidate} disabled={pending} />
+          <AppearanceBuilder
+            value={candidate}
+            initialGender={initialGender}
+            onChange={setCandidate}
+            disabled={pending}
+          />
         ) : null}
-        {error ? <p role="alert">{error}</p> : null}
+        {error ? (
+          <p className={styles.dialogError} role="alert">
+            {error}
+          </p>
+        ) : null}
         <footer className={styles.dialogFooter}>
           {candidate && confirmationHint ? (
             <p className={styles.confirmationHint}>{confirmationHint}</p>
           ) : null}
-          <button type="button" disabled={!candidate || pending} onClick={() => void confirm()}>
-            {pending ? 'Preparing…' : confirmLabel}
-          </button>
+          <div className={styles.dialogActions}>
+            <button
+              type="button"
+              className={styles.resetButton}
+              disabled={!candidate || pending}
+              onClick={() => {
+                setError(null)
+                setCandidate(initialCandidate.current)
+              }}
+            >
+              Reset
+            </button>
+            <button
+              type="button"
+              className={styles.confirmButton}
+              disabled={!candidate || pending || confirmDisabled}
+              onClick={() => void confirm()}
+            >
+              {pending ? 'Preparing…' : confirmLabel}
+            </button>
+          </div>
         </footer>
       </dialog>
     </>

@@ -1,5 +1,7 @@
+import { mainlandSectorAtNumber, mainlandSectorCount, mainlandSectorNumber } from './sector-index'
+import { FERRY_ASTERWAKE_DOCK } from './ferry'
 import { describe, expect, it } from 'vitest'
-import { positionLabel, sectorDisplayNumber, sectorLabel } from './coordinate-label'
+import { positionLabel, sectorLabel } from './coordinate-label'
 
 const publicSector = (column: number, row: number) => ({
   id: `atlas:${column}:${row}`,
@@ -10,21 +12,24 @@ const publicSector = (column: number, row: number) => ({
 })
 
 describe('geographic sector display aliases', () => {
-  it('numbers the whole atlas west to east, then north to south, including its longitude seam', () => {
-    expect(sectorLabel(publicSector(0, 0))).toBe('Sector 1')
-    expect(sectorLabel(publicSector(127, 0))).toBe('Sector 128')
-    expect(sectorLabel(publicSector(0, 1))).toBe('Sector 129')
-    expect(sectorLabel(publicSector(127, 63))).toBe('Sector 8192')
-    expect(sectorDisplayNumber(publicSector(59, 28))).toBe(
-      sectorDisplayNumber(publicSector(58, 28))! + 1,
-    )
+  it('starts numbering on the familiar mainland and reserves higher numbers for outlying land', () => {
+    const first = mainlandSectorAtNumber(1)!
+    expect(sectorLabel(first)).toBe('Sector 1')
+    expect(sectorLabel(publicSector(0, 0))).toBe('Sector ?')
+    expect(sectorLabel(publicSector(127, 63))).toBe('Sector ?')
+    const contiguous = mainlandSectorNumber(58, 28)!
+    expect(mainlandSectorNumber(59, 28)).toBe(contiguous + 1)
+    const asterwake = mainlandSectorNumber(4, 15)!
+    expect(asterwake).toBeGreaterThan(contiguous)
+    expect(mainlandSectorAtNumber(asterwake)?.id).toBe(FERRY_ASTERWAKE_DOCK.sectorId)
+    expect(mainlandSectorAtNumber(mainlandSectorCount() + 1)).toBeUndefined()
   })
   it('keeps labels stable when loaded sectors are filtered or reordered', () => {
     const west = publicSector(58, 28)
     const east = publicSector(59, 28)
-    expect([west, east].map(sectorLabel)).toEqual(['Sector 3643', 'Sector 3644'])
-    expect([east].map(sectorLabel)).toEqual(['Sector 3644'])
-    expect([east, west].map(sectorLabel)).toEqual(['Sector 3644', 'Sector 3643'])
+    expect([west, east].map(sectorLabel)).toEqual(['Sector 817', 'Sector 818'])
+    expect([east].map(sectorLabel)).toEqual(['Sector 818'])
+    expect([east, west].map(sectorLabel)).toEqual(['Sector 818', 'Sector 817'])
   })
   it('accepts atlas picker addresses and strict public coordinate fallback without changing either', () => {
     const picker = {
@@ -35,8 +40,8 @@ describe('geographic sector display aliases', () => {
       row: 28,
     }
     const legacy = { id: 'old-root', coordinate: 'S59-29', charted: true }
-    expect(sectorLabel(picker)).toBe('Sector 3643')
-    expect(sectorLabel(legacy)).toBe('Sector 3643')
+    expect(sectorLabel(picker)).toBe('Sector 817')
+    expect(sectorLabel(legacy)).toBe('Sector 817')
     expect(picker).toEqual({
       id: 'mainland',
       coordinate: 'S59-29',
@@ -47,8 +52,8 @@ describe('geographic sector display aliases', () => {
   })
   it('shows actual sector-local positions rather than global east/north coordinates', () => {
     const sector = publicSector(58, 28)
-    expect(positionLabel(sector, { x: 6, y: 4 })).toBe('Sector 3643 · X:6 · Y:4')
-    expect(positionLabel(sector, { x: 7, y: 3 })).toBe('Sector 3643 · X:7 · Y:3')
+    expect(positionLabel(sector, { x: 6, y: 4 })).toBe('Sector 817 · X:6 · Y:4')
+    expect(positionLabel(sector, { x: 7, y: 3 })).toBe('Sector 817 · X:7 · Y:3')
   })
   it('numbers the new private Void grid locally while masking X/Y regardless of charted metadata', () => {
     const sector = {
@@ -58,9 +63,9 @@ describe('geographic sector display aliases', () => {
       sceneColumn: 21,
       sceneRow: 6,
     }
-    expect(positionLabel(sector, { x: 6, y: 4 })).toBe('Sector 406 · X:? · Y:?')
+    expect(positionLabel(sector, { x: 6, y: 4 })).toBe('Sector 8598 · X:? · Y:?')
     expect(positionLabel({ ...sector, charted: true }, { x: 12, y: 8 })).toBe(
-      'Sector 406 · X:? · Y:?',
+      'Sector 8598 · X:? · Y:?',
     )
   })
   it('numbers the preserved legacy landing on the expanded geographic grid and masks its positions', () => {
@@ -72,9 +77,9 @@ describe('geographic sector display aliases', () => {
       sceneRow: 1,
       warpedTheme: 'haven' as const,
     }
-    expect(positionLabel(sector, { x: 6, y: 4 })).toBe('Sector 66 · X:? · Y:?')
+    expect(positionLabel(sector, { x: 6, y: 4 })).toBe('Sector 8258 · X:? · Y:?')
     expect(sectorLabel({ ...sector, id: 'uncharted-pale', sceneColumn: 3, sceneRow: 0 })).toBe(
-      'Sector 4',
+      'Sector 8196',
     )
   })
   it('numbers distant private continental addresses while retaining coordinate masking', () => {
@@ -85,7 +90,7 @@ describe('geographic sector display aliases', () => {
       sceneColumn: 60,
       sceneRow: 36,
     }
-    expect(positionLabel(sector, { x: 6, y: 4 })).toBe('Sector 2365 · X:? · Y:?')
+    expect(positionLabel(sector, { x: 6, y: 4 })).toBe('Sector 10557 · X:? · Y:?')
     expect(sectorLabel({ ...sector, sceneColumn: 64 })).toBe('Sector ?')
   })
   it('keeps Void X/Y masked when its current sector projection is temporarily unavailable', () => {

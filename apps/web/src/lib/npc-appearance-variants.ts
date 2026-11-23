@@ -4,15 +4,16 @@ import {
   type AppearanceBlueprint,
 } from '@/appearance/appearance-manifest'
 import {
+  PAINTED_PLAYER_FIELDS,
   PAINTED_WARDROBE_FIELDS,
-  type PaintedWardrobeLook,
+  type PaintedPlayerLook,
 } from '@/appearance/appearance-painted-wardrobe'
 
 export const NPC_VARIANT_BATCH_MIN = 2
 export const NPC_VARIANT_BATCH_MAX = 8
 export const NPC_VARIANT_POOL_LIMIT = 64
 export type LegacyNpcVariantField = keyof typeof APPEARANCE_CATALOG
-export type NpcVariantField = LegacyNpcVariantField | keyof PaintedWardrobeLook
+export type NpcVariantField = LegacyNpcVariantField | keyof PaintedPlayerLook
 export const NPC_VARIANT_FIELDS = Object.keys(APPEARANCE_CATALOG) as LegacyNpcVariantField[]
 export const NPC_PAINTED_VARIANT_FIELDS: LegacyNpcVariantField[] = [
   'body',
@@ -23,8 +24,8 @@ export const NPC_PAINTED_VARIANT_FIELDS: LegacyNpcVariantField[] = [
 ]
 
 export function npcVariantFields(blueprint: AppearanceBlueprint): readonly NpcVariantField[] {
-  if (blueprint.v === 5)
-    return Object.keys(PAINTED_WARDROBE_FIELDS) as (keyof PaintedWardrobeLook)[]
+  if (blueprint.v === 6) return Object.keys(PAINTED_PLAYER_FIELDS) as (keyof PaintedPlayerLook)[]
+  if (blueprint.v === 5) return Object.keys(PAINTED_WARDROBE_FIELDS) as (keyof PaintedPlayerLook)[]
   return blueprint.v === 4 ? NPC_PAINTED_VARIANT_FIELDS : NPC_VARIANT_FIELDS
 }
 

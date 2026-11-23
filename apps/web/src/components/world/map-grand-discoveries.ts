@@ -3,7 +3,7 @@ import { hashString } from '@/world/terrain-gen'
 import { GRAND_DISCOVERY_SITES, type GrandDiscoveryId } from '@/world/discovery-sites'
 import { grandDiscoveryBarrier } from '@/world/discovery-collision'
 import type { WorldAtlasCell, WorldCell, WorldSectorView } from '@/world/types'
-import { ATLAS_ROWS, wrapAtlasColumn } from '@/world/topology'
+import { ATLAS_ROWS, wrapAtlasColumn, wrappedMapX } from '@/world/topology'
 import { MAP_X, MAP_Y } from './map-projection'
 
 export const grandDiscoverySites = GRAND_DISCOVERY_SITES
@@ -170,7 +170,7 @@ export function grandDiscoveryPlacements(
           deep
             ? cell.terrain !== '~' || cell.walkable
             : wet
-              ? cell.terrain !== 'w' || !cell.walkable
+              ? cell.terrain !== '~' || cell.walkable
               : barrier && cell.terrain === '#' && !cell.walkable
                 ? false
                 : !cell.walkable || !['.', 't', '='].includes(cell.terrain)
@@ -293,11 +293,16 @@ export function oceanFeaturePlacements(
     if (!known) continue
     const originX = sector.atlasColumn * GRID_WIDTH,
       originY = sector.atlasRow * GRID_HEIGHT
+    const offshore = (distance: number) => ({
+      worldx:
+        originX +
+        (edge.side === 1 ? GRID_WIDTH + distance : edge.side === 3 ? -distance : along + 0.5),
+      worldy:
+        originY +
+        (edge.side === 0 ? -distance : edge.side === 2 ? GRID_HEIGHT + distance : along + 0.5),
+    })
     if (atlas?.length && seed % 11 === 0 && largeCount < 2) {
-      const worldx =
-        originX + (edge.side === 1 ? GRID_WIDTH + 14 : edge.side === 3 ? -14 : along + 0.5)
-      const worldy =
-        originY + (edge.side === 0 ? -14 : edge.side === 2 ? GRID_HEIGHT + 14 : along + 0.5)
+      const { worldx, worldy } = offshore(18 + (seed % 5))
       const waterFootprint = { left: worldx - 12, top: worldy - 12, width: 24, height: 24 }
       if (
         openWater(
@@ -329,14 +334,22 @@ export function oceanFeaturePlacements(
       }
     }
     if (seed % 7 !== 0) continue
+    const point = offshore(7 + (seed % 5))
+    if (atlas?.length && !openWater(point.worldx - 4, point.worldy - 4, 8, 8)) continue
+    if (
+      placements.some(
+        ({ worldx, worldy }) =>
+          Math.hypot(wrappedMapX(worldx, point.worldx) - point.worldx, worldy - point.worldy) < 7,
+      )
+    )
+      continue
     placements.push({
       sectorId: sector.id,
       sheet: 'ocean-features',
       index: Math.floor(seed / 7) % 6,
       columns: 3,
       rows: 2,
-      worldx: originX + (edge.side === 1 ? GRID_WIDTH + 4 : edge.side === 3 ? -4 : along + 0.5),
-      worldy: originY + (edge.side === 0 ? -4 : edge.side === 2 ? GRID_HEIGHT + 4 : along + 0.5),
+      ...point,
       widthTiles: 5.5,
       heightTiles: 5,
       anchorX: 0.5,

@@ -25,6 +25,7 @@ import {
   type AppearanceBlueprint,
 } from '@/appearance/appearance-manifest'
 import { AppearancePortraitPreview } from './appearance-builder'
+import { appearanceGenderForIdentity } from '@/appearance/appearance-painted-looks'
 import { AppearanceBuilderDialog } from './appearance-builder-dialog'
 import { AurevaneImage } from '@/components/media/aurevane-image'
 import { getStarterPortraitImageAssetId } from '@/media/character'
@@ -268,6 +269,7 @@ export function CharacterCreationExperience({
                           onChange={() => {
                             changed()
                             setPresentationId(option.id)
+                            setManualLook(null)
                             setPortraitRef(
                               CREATION_CHARACTER_PORTRAITS.find(
                                 (portrait) => portrait.presentationId === option.id,
@@ -293,10 +295,20 @@ export function CharacterCreationExperience({
                 <AppearanceBuilderDialog
                   label="Build my character"
                   confirmLabel="Use this appearance"
+                  initialGender={presentationId === 'androgynous' ? undefined : presentationId}
                   value={manualLook}
                   onConfirm={(look) => {
                     changed()
                     setManualLook(look)
+                    if (look.v >= 4 && 'identity' in look) {
+                      const gender = appearanceGenderForIdentity(look.identity)
+                      setPresentationId(gender)
+                      setPortraitRef(
+                        CREATION_CHARACTER_PORTRAITS.find(
+                          (portrait) => portrait.presentationId === gender,
+                        )!.ref,
+                      )
+                    }
                   }}
                 />
                 <div className={styles.portraitGrid} data-portrait-grid="true" key={presentationId}>

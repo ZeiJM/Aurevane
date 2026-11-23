@@ -1,6 +1,8 @@
 import 'server-only'
 import {
   FERRY_MAINLAND_DOCK,
+  FERRY_NORTH_DOCK,
+  FERRY_ASTERWAKE_DOCK,
   nearFerryDock,
   nextFerryDeparture,
   type WorldFerryView,
@@ -24,7 +26,7 @@ const shipRows = [
 ] as const
 
 export function ferryDeckSector(id: string): WorldSector | null {
-  if (!/^ferry:(outbound|return):[1-9]\d{9,15}$/.test(id)) return null
+  if (!/^ferry:((?:asterwake-)?(?:outbound|return)):[1-9]\d{9,15}$/.test(id)) return null
   return {
     id,
     name: 'Ferry Deck',
@@ -47,6 +49,10 @@ export function ferryDeckSector(id: string): WorldSector | null {
 export function worldFerryDock(sectorId: string) {
   if (sectorId === FERRY_MAINLAND_DOCK.sectorId)
     return { ...FERRY_MAINLAND_DOCK, shoreSide: 'south' } as const
+  if (sectorId === FERRY_NORTH_DOCK.sectorId)
+    return { ...FERRY_NORTH_DOCK, shoreSide: 'north' } as const
+  if (sectorId === FERRY_ASTERWAKE_DOCK.sectorId)
+    return { ...FERRY_ASTERWAKE_DOCK, shoreSide: 'south' } as const
   if (sectorId === WARPED_CONTINENT_LANDING.sectorId)
     return { ...WARPED_CONTINENT_LANDING, shoreSide: 'south' } as const
   const realm = parseVoidSectorId(sectorId)
@@ -68,6 +74,13 @@ export function projectWorldFerry(state: WorldState, now: number): WorldFerryVie
   if (state.route.length) return
   const dock = worldFerryDock(state.position.sectorId)
   if (!dock || !nearFerryDock(state.position, dock)) return
-  const port = dock.sectorId === FERRY_MAINLAND_DOCK.sectorId ? 'mainland' : 'uncharted'
+  const port =
+    dock.sectorId === FERRY_MAINLAND_DOCK.sectorId
+      ? 'mainland'
+      : dock.sectorId === FERRY_NORTH_DOCK.sectorId
+        ? 'north-shore'
+        : dock.sectorId === FERRY_ASTERWAKE_DOCK.sectorId
+          ? 'asterwake'
+          : 'uncharted'
   return { port, nextDepartureAt: nextFerryDeparture(port, now), fareCrowns: 0 }
 }

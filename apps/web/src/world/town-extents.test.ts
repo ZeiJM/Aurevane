@@ -1,3 +1,4 @@
+import { mainlandSectorNumber } from '@/world/sector-index'
 import { expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
 import { atlasSectors } from './atlas'
@@ -76,7 +77,12 @@ it('renders distinct connected settlement extents while retaining all nine-distr
         ).toBe(true)
       }
       const geometry = masterTeleportGeometry(
-        { map: 'mainland', sectorNumber: entry.row * 128 + entry.column + 1, x: 6, y: 4 },
+        {
+          map: 'mainland',
+          sectorNumber: mainlandSectorNumber(entry.column, entry.row)!,
+          x: 6,
+          y: 4,
+        },
         resolveSector,
       )[0]!
       expect(geometry.rows).toBe(canonical.rows)

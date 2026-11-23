@@ -33,7 +33,7 @@ export function landmarkArtSize(
 
 /** Art identities never grant a crossing or change collision. */
 export function grandBridgeArt(sector: WorldSectorView, span: number): number | undefined {
-  if (!sector.townId && span < 4) return
+  if (!sector.townId && span < (sector.charted ? 3 : 4)) return
   if (grandBridgeDiscoveryArt(sector, span)) return 0
   if (
     sector.warpedTheme ||
@@ -90,7 +90,7 @@ export function grandBridgeDiscoveryArt(sector: WorldSectorView, span: number) {
     if (at(x, 4)?.terrain !== '=' || !at(x, 4)?.walkable) return
   for (const y of [3, 5])
     for (let x = offshore ? 2 : 4; x <= 8; x++)
-      if (at(x, y)?.terrain !== (offshore ? '~' : 'w') || at(x, y)?.walkable === offshore) return
+      if (at(x, y)?.terrain !== '~' || at(x, y)?.walkable) return
   return {
     sheet: 'grand-discoveries' as const,
     index: 0,

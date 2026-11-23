@@ -37,6 +37,7 @@ const SELECTED_ACTOR_RPCS = new Set([
   'teleport_master_player_v3',
   'teleport_master_player_v4',
   'teleport_master_player_v5',
+  'teleport_master_player_v6',
   'install_master_teleport_geometry_v1',
   'read_master_panel_navigation_v1',
   'save_master_panel_navigation_v1',

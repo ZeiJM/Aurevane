@@ -1,3 +1,9 @@
+import {
+  mainlandSectorNumber,
+  MAX_VOID_SECTOR_NUMBER,
+  VOID_SECTOR_NUMBER_OFFSET,
+} from '@/world/sector-index'
+import { MASTER_TELEPORT_GEOMETRY_VERSION } from '@/master/players'
 import { expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
 import { createMasterPlayersService } from './players-service'
@@ -7,23 +13,35 @@ it('exposes a dedicated teleport operation rather than a generic player patch', 
   expect(service).toHaveProperty('teleport', expect.any(Function))
 })
 
-it('validates row-major destinations and refuses raw sector IDs, terrain, other realms or fractional coordinates', async () => {
+it('validates indexed destinations and refuses raw sector IDs, terrain, other realms or fractional coordinates', async () => {
   const { parseMasterTeleportDestination } = await import('./player-teleport')
   expect(
-    parseMasterTeleportDestination({ map: 'mainland', sectorNumber: 8192, x: 12, y: 8 }),
-  ).toEqual({ map: 'mainland', sectorNumber: 8192, x: 12, y: 8 })
+    parseMasterTeleportDestination({
+      map: 'mainland',
+      sectorNumber: 1,
+      x: 12,
+      y: 8,
+      geometryVersion: MASTER_TELEPORT_GEOMETRY_VERSION,
+    }),
+  ).toEqual({
+    map: 'mainland',
+    sectorNumber: 1,
+    x: 12,
+    y: 8,
+    geometryVersion: MASTER_TELEPORT_GEOMETRY_VERSION,
+  })
   expect(
     parseMasterTeleportDestination({
       map: 'currentVoid',
-      sectorNumber: 768,
+      sectorNumber: VOID_SECTOR_NUMBER_OFFSET + 768,
       x: 0,
       y: 0,
-      geometryVersion: '2026-11-18-v5',
+      geometryVersion: MASTER_TELEPORT_GEOMETRY_VERSION,
     }).map,
   ).toBe('currentVoid')
   for (const invalid of [
     { map: 'mainland', sectorNumber: 0, x: 0, y: 0 },
-    { map: 'currentVoid', sectorNumber: 3073, x: 0, y: 0 },
+    { map: 'currentVoid', sectorNumber: MAX_VOID_SECTOR_NUMBER + 1, x: 0, y: 0 },
     { map: 'ivory-veil', sectorNumber: 1, x: 0, y: 0 },
     { map: 'mainland', sectorNumber: 1, x: 0.5, y: 0 },
     { map: 'mainland', sectorNumber: 1, x: 13, y: 0 },
@@ -38,7 +56,7 @@ it('prepares every possible current Void sector so a forced roll selects geometr
   const { masterTeleportGeometry } = await import('./player-teleport')
   const sector = (id: string) => ({ id, rows: Array(9).fill('.'.repeat(13)), townId: null })
   const geometry = masterTeleportGeometry(
-    { map: 'currentVoid', sectorNumber: 34, x: 2, y: 3 },
+    { map: 'currentVoid', sectorNumber: VOID_SECTOR_NUMBER_OFFSET + 34, x: 2, y: 3 },
     sector as never,
   )
   expect(geometry).toHaveLength(8)
@@ -73,7 +91,7 @@ it('checks staff access before preparing geometry and sends only typed destinati
   const rpc = vi.fn(async (name: string) =>
     name === 'read_master_player_v1'
       ? raw
-      : name === 'teleport_master_player_v5'
+      : name === 'teleport_master_player_v6'
         ? { position: { sectorId: 'atlas:28:28', x: 6, y: 4 }, version: 7, replayed: false }
         : {},
   )
@@ -83,7 +101,13 @@ it('checks staff access before preparing geometry and sends only typed destinati
     expectedVersion: 6,
     requestKey: 'request',
     reason: ' Reviewed player recovery ',
-    destination: { map: 'mainland', sectorNumber: 3647, x: 6, y: 4 },
+    destination: {
+      map: 'mainland',
+      sectorNumber: mainlandSectorNumber(62, 28)!,
+      geometryVersion: MASTER_TELEPORT_GEOMETRY_VERSION,
+      x: 6,
+      y: 4,
+    },
   }
   const result = await service.teleport('owner', input)
   expect(result.world).toEqual(raw.world)
@@ -92,13 +116,13 @@ it('checks staff access before preparing geometry and sends only typed destinati
     version: 7,
     replayed: false,
   })
-  expect(rpc).toHaveBeenCalledWith('teleport_master_player_v5', {
+  expect(rpc).toHaveBeenCalledWith('teleport_master_player_v6', {
     p_actor_user_id: 'owner',
     p_character_id: 'target',
     p_expected_version: 6,
     p_request_key: 'request',
     p_map: 'mainland',
-    p_sector_number: 3647,
+    p_sector_number: mainlandSectorNumber(62, 28)!,
     p_x: 6,
     p_y: 4,
     p_reason: 'Reviewed player recovery',
@@ -127,18 +151,18 @@ it('uses a new immutable geometry release and covers the expanded private contin
     masterTeleportGeometry,
     parseMasterTeleportDestination,
   } = await import('./player-teleport')
-  expect(MASTER_TELEPORT_GEOMETRY_VERSION).toBe('2026-11-18-v5')
+  expect(MASTER_TELEPORT_GEOMETRY_VERSION).toBe('2026-11-23-v6')
   expect(
     parseMasterTeleportDestination({
       map: 'currentVoid',
-      sectorNumber: 3072,
+      sectorNumber: MAX_VOID_SECTOR_NUMBER,
       x: 12,
       y: 8,
-      geometryVersion: '2026-11-18-v5',
+      geometryVersion: MASTER_TELEPORT_GEOMETRY_VERSION,
     }).sectorNumber,
-  ).toBe(3072)
+  ).toBe(MAX_VOID_SECTOR_NUMBER)
   const geometry = masterTeleportGeometry(
-    { map: 'currentVoid', sectorNumber: 3072, x: 12, y: 8 },
+    { map: 'currentVoid', sectorNumber: MAX_VOID_SECTOR_NUMBER, x: 12, y: 8 },
     ((id: string) => ({ id, rows: Array(9).fill('.............') })) as never,
   )
   expect(geometry.map((s) => s.sectorId)).toContain('void:ivory-veil:63:47')
@@ -150,6 +174,7 @@ it.each([
   '2026-11-12-v2',
   '2026-11-14-v3',
   '2026-11-14-v4',
+  '2026-11-18-v5',
   'unrecognized',
 ])(
   'refuses stale Void coordinate version %s before preparation or commit',
@@ -160,7 +185,7 @@ it.each([
     const service = createMasterPlayersService(access, rpc, undefined, prepare)
     const destination = {
       map: 'currentVoid',
-      sectorNumber: 34,
+      sectorNumber: VOID_SECTOR_NUMBER_OFFSET + 34,
       x: 6,
       y: 4,
       ...(geometryVersion === undefined ? {} : { geometryVersion }),
@@ -191,10 +216,10 @@ it('binds accepted Void numbering to the shared browser geometry version and sti
   expect(shared.MASTER_TELEPORT_GEOMETRY_VERSION).toBe(MASTER_TELEPORT_GEOMETRY_VERSION)
   const input = {
     map: 'currentVoid',
-    sectorNumber: 34,
+    sectorNumber: VOID_SECTOR_NUMBER_OFFSET + 34,
     x: 6,
     y: 4,
-    geometryVersion: '2026-11-18-v5',
+    geometryVersion: MASTER_TELEPORT_GEOMETRY_VERSION,
   }
   const destination = parseMasterTeleportDestination(input)
   expect(destination).toEqual(input)

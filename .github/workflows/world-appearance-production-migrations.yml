@@ -1,0 +1,74 @@
+name: World and Appearance Production migrations
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Plan or atomically apply the verified combined batch
+        required: true
+        type: choice
+        options:
+          - plan
+          - apply
+      expected_source:
+        description: Exact verified merged main commit SHA
+        required: true
+        type: string
+      staged_source:
+        description: Staged Production commit SHA after serving smoke (required for apply)
+        required: false
+        type: string
+      staged_deployment:
+        description: Staged Production deployment ID after serving smoke (required for apply)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aurevane-production-world-appearance-migrations
+  cancel-in-progress: false
+
+jobs:
+  guarded-batch:
+    if: ${{ github.repository == 'ZeiJM/Aurevane' && github.ref == 'refs/heads/main' }}
+    environment: Production
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Verify the requested source is current main
+        env:
+          EXPECTED_SOURCE: ${{ inputs.expected_source }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_SHA" = "$EXPECTED_SOURCE"
+          test "$(git ls-remote "https://github.com/$GITHUB_REPOSITORY.git" refs/heads/main | cut -f1)" = "$EXPECTED_SOURCE"
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Fetch the verified predecessor tree for the migration delta
+        run: git fetch --no-tags --depth=1 origin 834b011a8e8788064b47f892427bd364d524cbe8
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install the pinned migration CLI
+        run: npm install --prefix "$RUNNER_TEMP/aurevane-world-appearance-cli" --no-save supabase@2.114.0
+      - name: Verify ordered pending hashes and execute the selected operation
+        env:
+          AUREVANE_PRODUCTION_DB_URL: ${{ secrets.AUREVANE_PRODUCTION_DB_URL }}
+          OPERATION: ${{ inputs.operation }}
+          EXPECTED_SOURCE: ${{ inputs.expected_source }}
+          STAGED_SOURCE: ${{ inputs.staged_source }}
+          STAGED_DEPLOYMENT: ${{ inputs.staged_deployment }}
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD 'HEAD^{tree}'
+          test "$(git ls-remote "https://github.com/$GITHUB_REPOSITORY.git" refs/heads/main | cut -f1)" = "$EXPECTED_SOURCE"
+          args=(--expected-source "$EXPECTED_SOURCE")
+          case "$OPERATION" in
+            plan) ;;
+            apply) args+=(--apply --staged-source "$STAGED_SOURCE" --staged-deployment "$STAGED_DEPLOYMENT");;
+            *) exit 1;;
+          esac
+          python3 .github/scripts/apply-world-appearance.py "$RUNNER_TEMP/aurevane-world-appearance-cli/node_modules/.bin/supabase" "${args[@]}"

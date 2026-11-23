@@ -293,6 +293,9 @@ it('keeps Fleetstep usable after ordinary Movement is exhausted and rejects Root
   expect(used.events.filter((event) => event.event === 'combatant_moved')).toContainEqual(
     expect.objectContaining({ from: path[0], to: path.at(-1), movementCost: 2 }),
   )
+  expect(used.events.find((event) => event.event === 'combatant_moved')).not.toHaveProperty(
+    'walkPath',
+  )
   const rooted = {
     ...exhausted,
     statusState: exhausted.statusState.map((row) =>

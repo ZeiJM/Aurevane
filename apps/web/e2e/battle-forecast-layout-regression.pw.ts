@@ -3,8 +3,10 @@ import { execFileSync } from 'node:child_process'
 import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
+import { APPEARANCE_PRESETS } from '../src/appearance/appearance-manifest'
 import { scheduledEffectPreviewLabel } from '../src/components/battle/battle-preview-content'
 import { gameplayStatusName } from '../src/lib/battle/combat-interaction-presentation'
+import { saveFixtureAppearance } from './appearance-test-helpers'
 import { expectTerrainKey } from './battle-map-key-helpers'
 import { expectNoSkillPreviewMetadata } from './battle-preview-metadata-helpers'
 
@@ -46,31 +48,24 @@ function readAuthoredParameterRows(rows: Element[]): AuthoredParameterRow[] {
   })
 }
 
-async function provision(page: Page, prefix: string) {
+async function provision(page: Page, prefix: 'Forecast' | 'ForeHost' | 'ForeGuest') {
   const seed = `${Date.now()}${Math.floor(Math.random() * 10000)}`
   const name = `${prefix} ${seed
     .slice(-8)
     .split('')
     .map((digit) => String.fromCharCode(97 + Number(digit)))
     .join('')}`
-  await provisionAccountAndEnterCharacter({
+  const { userId } = await provisionAccountAndEnterCharacter({
     page,
     email: `${prefix}-${seed}@example.com`,
     password: 'Forecast-layout-2026!',
     characterName: name,
   })
-  // Exercise the direct-image path, which previously received a second legacy map portrait.
-  await page.goto('/game/account/titles')
-  await page
-    .getByLabel('Direct image URL')
-    .fill('http://127.0.0.1:3100/media/art/adventure/male-01-v01.webp')
-  const saved = page.waitForResponse(
-    (response) =>
-      response.url().endsWith('/api/account/profile-display') &&
-      response.request().method() === 'POST',
-  )
-  await page.getByRole('button', { name: 'Save Profile Image', exact: true }).click()
-  expect((await saved).ok()).toBe(true)
+  const palettes = { Forecast: 'indigo', ForeHost: 'ivory', ForeGuest: 'saffron' } as const
+  await saveFixtureAppearance(page, userId, {
+    ...APPEARANCE_PRESETS[0].blueprint,
+    palette: palettes[prefix],
+  })
   return name
 }
 
@@ -803,12 +798,22 @@ test('AI forecast arming, inline targets and cockpit reading keep the desktop bo
     'Both approved desktop geometries are exercised in one authenticated session',
   )
   test.setTimeout(180_000)
-  await provision(page, 'Forecast')
+  const characterName = await provision(page, 'Forecast')
+  await page.evaluate(() => localStorage.setItem('aurevane:classic-portrait-tokens', 'true'))
+  await page.goto('/game/world')
+  await expect(page.locator('canvas[data-world-stage]')).toHaveAttribute(
+    'data-embodied-actors',
+    /[1-9]\d*/,
+  )
   const nexusRows = await equipForecastSkills(page)
   await page.goto('/game/battle')
   await page.getByLabel('Battle mode').selectOption('recruit-sparring')
   await page.getByRole('button', { name: 'Enter Battle' }).click()
   await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
+  const characterTile = page.getByRole('button', {
+    name: new RegExp(`occupied by ${characterName}`),
+  })
+  await expect(characterTile.locator('[data-battle-appearance-pose]')).toBeVisible()
   await arrangeAdjacentCombatants(page)
   await exerciseForecast(page, testInfo, 'pve', nexusRows)
 })

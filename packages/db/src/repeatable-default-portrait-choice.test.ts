@@ -4,6 +4,7 @@ import { PGlite } from '@electric-sql/pglite'
 import { expect, it } from 'vitest'
 
 const root = resolve(process.cwd(), '../../supabase')
+const lastPortraitChoiceMigration = '20261120101000_expanded_painted_wardrobe.sql'
 const regression = readFileSync(
   resolve(root, 'tests/repeatable_default_portrait_choice.sql'),
   'utf8',
@@ -44,7 +45,7 @@ async function preservedState(db: PGlite) {
   ).rows
   return { data, functions, acl }
 }
-it('keeps repeatable portrait authority after every canonical migration', async () => {
+it('preserved repeatable portrait authority through its last application release', async () => {
   const db = await PGlite.create()
   try {
     await db.exec(`create role anon; create role authenticated; create role service_role;
@@ -58,7 +59,7 @@ it('keeps repeatable portrait authority after every canonical migration', async 
     create function cron.schedule(text,text,text) returns bigint language sql as $$ insert into cron.job(jobname) values($1) returning jobid $$;
     create function cron.unschedule(bigint) returns boolean language sql as $$ delete from cron.job where jobid=$1 returning true $$;`)
     for (const name of readdirSync(resolve(root, 'migrations'))
-      .filter((name) => name.endsWith('.sql'))
+      .filter((name) => name.endsWith('.sql') && name <= lastPortraitChoiceMigration)
       .sort()) {
       // Only unavailable platform cron and storage codec behavior are substituted.
       const sql = readFileSync(resolve(root, 'migrations', name), 'utf8')
@@ -129,7 +130,6 @@ it('keeps repeatable portrait authority after every canonical migration', async 
       }
     }
     await db.exec(regression)
-    await db.exec(spriteRegression)
     expect(
       (
         await db.query(

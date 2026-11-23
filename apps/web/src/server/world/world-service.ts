@@ -10,6 +10,7 @@ import {
   isSafe,
   isCurrentWorldRoute,
   isWalkable,
+  validCell,
   revealNearby,
   samePosition,
   MAX_PERSISTED_ROUTE_STEPS,
@@ -32,6 +33,7 @@ import {
   SURVEY_SECTOR,
   WORLD_OBJECTIVES,
   WORLD_SECTORS,
+  approvedVoidSteps,
   isKnownCell,
   resolveSector,
   visibleSectors,
@@ -42,7 +44,12 @@ import { atlasAddress, atlasSectors } from '@/world/atlas'
 import { GRAND_DISCOVERY_SITES, type GrandDiscoveryId } from '@/world/discovery-sites'
 import { grandDiscoveryPlacements } from '@/components/world/map-grand-discoveries'
 import { wrappedColumnDistance, wrappedMapX } from '@/world/topology'
-import { parseVoidSectorId, isVoidRealmSectorId } from '@/world/void-realms'
+import {
+  parseVoidSectorId,
+  isVoidRealmSectorId,
+  isLocalVoidWalk,
+  localVoidSectorIds,
+} from '@/world/void-realms'
 import { voidRealmScenery } from './void-realms'
 import { projectUnchartedTerrain } from './uncharted-terrain'
 import {
@@ -135,18 +142,49 @@ function publicAtlasSurface(sector: ReturnType<typeof visibleSectors>[number]) {
   }
   return surface
 }
+function routeTo(state: WorldState, destination: WorldPosition, explore: boolean) {
+  const local =
+    explore &&
+    validCell(destination) &&
+    isLocalVoidWalk(state.position.sectorId, destination.sectorId)
+  if (local) {
+    if (destination.sectorId === state.position.sectorId) {
+      const sector = resolveSector(destination.sectorId)
+      if (!sector || !isWalkable(sector, destination)) return null
+      const direct = findWorldRoute(state.position, destination, [sector])
+      if (
+        direct &&
+        direct.length ===
+          Math.abs(destination.x - state.position.x) + Math.abs(destination.y - state.position.y)
+      )
+        return direct
+    }
+    const sectors = localVoidSectorIds(parseVoidSectorId(state.position.sectorId)!)
+      .map(resolveSector)
+      .filter((sector) => sector !== null)
+    const route = findWorldRoute(state.position, destination, sectors)
+    if (route) return route
+  }
+  if (!isKnown(state, destination)) return null
+  return findWorldRoute(state.position, destination, visibleSectors(state), (p) =>
+    isKnown(state, p),
+  )
+}
+
 export function resolveWorldIntent(
   state: WorldState,
   intent: Exclude<WorldIntent, { kind: 'attack' | 'board-ferry' | 'leave-ferry' }>,
   now: number,
   objectives: readonly WorldObjective[] = WORLD_OBJECTIVES,
 ): WorldState {
-  if (
-    state.route.length &&
-    !isCurrentWorldRoute(state.position, state.route, visibleSectors(state), (p) =>
-      isKnown(state, p),
-    )
-  )
+  const validRoute =
+    !state.route.length ||
+    (isVoidRealmSectorId(state.position.sectorId) && !state.routeObjectiveId
+      ? approvedVoidSteps(state).length === state.route.length
+      : isCurrentWorldRoute(state.position, state.route, visibleSectors(state), (p) =>
+          isKnown(state, p),
+        ))
+  if (!validRoute)
     state = {
       ...state,
       route: [],
@@ -163,21 +201,13 @@ export function resolveWorldIntent(
       ? effectiveObjectives.find((o) => o.id === state.routeObjectiveId)
       : null
     next =
-      (state.routeObjectiveId && (!objective || !canAutoPath(objective))) ||
-      !isCurrentWorldRoute(state.position, state.route, visibleSectors(state), (p) =>
-        isKnown(state, p),
-      )
+      state.routeObjectiveId && (!objective || !canAutoPath(objective))
         ? { ...state, route: [], routeObjectiveId: null, routeDestination: null, nextStepAt: null }
         : advanceWorldRoute(state, now)
     if (state.route.length && !next.route.length && next.routeDestination) {
       // A saved window can end before the browser asks to extend it. Resume
       // from the last approved tile and charge the next step its full duration.
-      const route = findWorldRoute(
-        next.position,
-        next.routeDestination,
-        visibleSectors(next),
-        (p) => isKnown(next, p),
-      )
+      const route = routeTo(next, next.routeDestination, !next.routeObjectiveId)
       next = {
         ...next,
         route: route?.slice(0, MAX_PERSISTED_ROUTE_STEPS) ?? [],
@@ -209,13 +239,19 @@ export function resolveWorldIntent(
         invalid('Auto-path is unavailable for this objective.')
       destination = objective!.destination!
     } else destination = intent.destination
-    if (!isKnown(state, destination)) invalid('Survey this ground before plotting a route.')
     // Plan from where the character really is: steps that came due since the last tick are
     // applied first, so a new click never pulls a walking character back to a stale tile.
     const walking = advanceWorldRoute(state, now)
-    const origin = walking.position
-    const sectors = visibleSectors(walking)
-    const route = findWorldRoute(origin, destination, sectors, (p) => isKnown(walking, p))
+    if (
+      !(
+        intent.kind === 'walk' &&
+        validCell(destination) &&
+        isLocalVoidWalk(walking.position.sectorId, destination.sectorId)
+      ) &&
+      !isKnown(walking, destination)
+    )
+      invalid('Survey this ground before plotting a route.')
+    const route = routeTo(walking, destination, intent.kind === 'walk')
     if (!route) invalid('There is no known walkable route to that location.')
     // Replanning never accelerates movement: a step already under way keeps its schedule,
     // otherwise the first new step waits a full interval.
@@ -358,15 +394,35 @@ export function projectWorldPlayers(
 }
 
 /** Shared private-filtered sector projection; movement receipts need only their origin. */
-export function projectWorldSector(state: WorldState, sector: WorldSector): WorldSectorView {
+export function projectWorldSector(
+  state: WorldState,
+  sector: WorldSector,
+  approvedRoute = approvedVoidSteps(state),
+): WorldSectorView {
   sector = applyWarpedContinentPhase(state, sector)
   const { rows: _rows, roads, ...publicSector } = sector
   void _rows
   const rows = worldSurfaceRows(sector)
   const cells: WorldSectorView['cells'] = []
+  const routeCells = new Set(
+    approvedRoute
+      .filter((step) => step.position.sectorId === sector.id)
+      .map(({ position }) => position.y * GRID_WIDTH + position.x),
+  )
+  const routeExits = new Set<WorldSector['roads'][number]>()
+  let previous = state.position
+  for (const step of approvedRoute) {
+    if (previous.sectorId === sector.id && step.position.sectorId !== sector.id) {
+      const road = roads.find(
+        ({ from, to }) => samePosition(from, previous) && samePosition(to, step.position),
+      )
+      if (road) routeExits.add(road)
+    }
+    previous = step.position
+  }
   for (let y = 0; y < GRID_HEIGHT; y++)
     for (let x = 0; x < GRID_WIDTH; x++)
-      if (isKnown(state, { sectorId: sector.id, x, y }))
+      if (routeCells.has(y * GRID_WIDTH + x) || isKnown(state, { sectorId: sector.id, x, y }))
         cells.push({
           x,
           y,
@@ -381,7 +437,8 @@ export function projectWorldSector(state: WorldState, sector: WorldSector): Worl
       : undefined
   const revealedScenery =
     warpedScenery &&
-    cells.some(({ x, y, walkable }) => walkable && x === warpedScenery.x && y === warpedScenery.y)
+    isKnown(state, { sectorId: sector.id, x: warpedScenery.x, y: warpedScenery.y }) &&
+    isWalkable(sector, warpedScenery)
   const impactSite = impactSites[sector.id]
   const impactLeft = impactSite ? impactSite.x - impactSite.size / 2 : 0
   const impactTop = impactSite ? impactSite.y - impactSite.size / 2 : 0
@@ -412,12 +469,14 @@ export function projectWorldSector(state: WorldState, sector: WorldSector): Worl
     ...(projectedImpact ? { impactSite } : {}),
     ...(revealedScenery ? { warpedScenery } : {}),
     ...(legacyTrail ? { atlasColumn: Number(legacyTrail[1]), atlasRow: 0 } : {}),
-    ...(ferryDock && cells.some(({ x, y }) => x === ferryDock.x && y === ferryDock.y)
+    ...(ferryDock && isKnown(state, ferryDock)
       ? { ferryDock: { x: ferryDock.x, y: ferryDock.y, shoreSide: ferryDock.shoreSide } }
       : {}),
     cells,
     landmarks: sector.landmarks.filter((p) => isKnown(state, { ...p, sectorId: sector.id })),
-    exits: roads.filter((road) => isKnown(state, road.from) && isKnown(state, road.to)),
+    exits: roads.filter(
+      (road) => routeExits.has(road) || (isKnown(state, road.from) && isKnown(state, road.to)),
+    ),
   }
 }
 
@@ -520,7 +579,8 @@ export function projectWorld(
       return priority(a) - priority(b) || sceneDistance(a) - sceneDistance(b)
     })
     .slice(0, 25)
-  const sectors = sceneSectors.map((sector) => projectWorldSector(state, sector))
+  const approvedRoute = approvedVoidSteps(state)
+  const sectors = sceneSectors.map((sector) => projectWorldSector(state, sector, approvedRoute))
   const sceneIds = new Set(sceneSectors.map((sector) => sector.id))
   // The smallest allowed zoom needs more public ground than the25-sector peer
   // registration can hold. Send compact canonical rows ahead and beside the
@@ -597,7 +657,9 @@ export function projectWorld(
       })),
   )
   const ferry = projectWorldFerry(state, now)
-  const route = state.route.filter((step) => isKnown(state, step.position))
+  const route = currentVoidAddress
+    ? approvedRoute
+    : state.route.filter((step) => isKnown(state, step.position))
   return {
     characterId: '',
     ...(ferry ? { ferry } : {}),
@@ -608,7 +670,13 @@ export function projectWorld(
     nextStepAt: route.length ? state.nextStepAt : null,
     routeObjectiveId: route.length ? (state.routeObjectiveId ?? null) : null,
     routeDestination:
-      route.length && state.routeDestination && isKnown(state, state.routeDestination)
+      route.length &&
+      state.routeDestination &&
+      (isKnown(state, state.routeDestination) ||
+        (currentVoidAddress &&
+          !state.routeObjectiveId &&
+          validCell(state.routeDestination) &&
+          isLocalVoidWalk(state.position.sectorId, state.routeDestination.sectorId)))
         ? state.routeDestination
         : null,
     sectors,

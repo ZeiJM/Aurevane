@@ -35,7 +35,10 @@ describe('public offshore artwork', () => {
     expect(result.length).toBeGreaterThan(1)
     expect(result.length).toBeLessThanOrEqual(12)
     expect(
-      result.every((p) => p.sheet === 'ocean-features' && p.worldy === 176 && p.widthTiles <= 6),
+      result.every(
+        (p) =>
+          p.sheet === 'ocean-features' && p.worldy >= 169 && p.worldy <= 173 && p.widthTiles <= 6,
+      ),
     ).toBe(true)
     expect(oceanFeaturePlacements([...sectors].reverse(), coasts)).toEqual(result)
     for (const p of result)

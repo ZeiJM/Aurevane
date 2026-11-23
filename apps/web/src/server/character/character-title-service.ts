@@ -3,30 +3,11 @@ import 'server-only'
 import { AurevaneError } from '@aurevane/game-core/errors'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { isStarterTitle } from '@/appearance/starter-titles'
 
 export interface CharacterTitleState {
   personalTitle: string | null
   personalTitleSetAt: string | null
-}
-
-const PERSONAL_TITLE_PATTERN = /^[A-Za-z0-9 ]+$/
-
-export function normalizePersonalTitle(value: string): string {
-  return value.trim().replace(/\s+/g, ' ')
-}
-
-export function validatePersonalTitle(value: unknown): string {
-  if (typeof value !== 'string') {
-    throw new AurevaneError('INVALID_REQUEST', 'Enter a title using letters, numbers, and spaces.')
-  }
-  const normalized = normalizePersonalTitle(value)
-  if (normalized.length < 1 || normalized.length > 20 || !PERSONAL_TITLE_PATTERN.test(normalized)) {
-    throw new AurevaneError(
-      'INVALID_REQUEST',
-      'Personal titles must be 1–20 characters using letters, numbers, and spaces only.',
-    )
-  }
-  return normalized
 }
 
 export async function loadCharacterTitleState(
@@ -50,7 +31,7 @@ export async function loadCharacterTitleState(
   if (!row || typeof row !== 'object') throw unavailable()
 
   return {
-    personalTitle: typeof row.personal_title === 'string' ? row.personal_title : null,
+    personalTitle: isStarterTitle(row.personal_title) ? row.personal_title : null,
     personalTitleSetAt:
       typeof row.personal_title_set_at === 'string' ? row.personal_title_set_at : null,
   }
@@ -61,29 +42,18 @@ export async function setCharacterPersonalTitle(input: {
   characterId: string
   title: unknown
 }): Promise<CharacterTitleState> {
-  const title = validatePersonalTitle(input.title)
+  if (!isStarterTitle(input.title))
+    throw new AurevaneError('INVALID_REQUEST', 'Choose one of the three starter titles.')
   const supabase = createSupabaseAdminClient()
   const { data, error } = await supabase.rpc('set_character_personal_title_v1', {
     p_user_id: input.userId,
     p_character_id: input.characterId,
-    p_title: title,
+    p_title: input.title,
   })
 
   if (error) {
     if (error.message.includes('PERSONAL_TITLE_INVALID')) {
-      throw new AurevaneError(
-        'INVALID_REQUEST',
-        'Personal titles must be 1–20 characters using letters, numbers, and spaces only.',
-      )
-    }
-    if (error.message.includes('PERSONAL_TITLE_UNAVAILABLE')) {
-      throw new AurevaneError('TITLE_UNAVAILABLE', 'That title is already in use. Choose another.')
-    }
-    if (error.message.includes('PERSONAL_TITLE_ALREADY_SET')) {
-      throw new AurevaneError(
-        'TITLE_ALREADY_SET',
-        'This character has already used its one personal-title choice.',
-      )
+      throw new AurevaneError('INVALID_REQUEST', 'Choose one of the three starter titles.')
     }
     if (error.message.includes('CHARACTER_NOT_PLAYABLE')) {
       throw new AurevaneError('FORBIDDEN', 'That character is not available to this account.')
@@ -92,11 +62,7 @@ export async function setCharacterPersonalTitle(input: {
   }
 
   const row = Array.isArray(data) && data.length === 1 ? data[0] : null
-  if (
-    !row ||
-    typeof row.personal_title !== 'string' ||
-    typeof row.personal_title_set_at !== 'string'
-  ) {
+  if (!row || row.personal_title !== input.title || typeof row.personal_title_set_at !== 'string') {
     throw unavailable()
   }
 
