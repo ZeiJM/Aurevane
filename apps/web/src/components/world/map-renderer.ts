@@ -591,6 +591,45 @@ function sprite(
     height,
   )
 }
+type LabelBounds = { left: number; top: number; right: number; bottom: number }
+
+const mapLabelPalette = {
+  self: { text: '#ffdb86', border: '#bd904f', top: '#3b2a1b', bottom: '#211810' },
+  player: { text: '#a5efe2', border: '#5bb4a4', top: '#19383b', bottom: '#102628' },
+  npc: { text: '#ffc2a6', border: '#c28069', top: '#3c2822', bottom: '#261a17' },
+  location: { text: '#dbc8ff', border: '#9279c0', top: '#302641', bottom: '#211a31' },
+} as const
+
+function paintMapLabel(
+  ctx: CanvasRenderingContext2D,
+  label: string,
+  { left, top, right, bottom }: LabelBounds,
+  fontSize: number,
+  kind: keyof typeof mapLabelPalette,
+  ratio: number,
+) {
+  const palette = mapLabelPalette[kind]
+  const background = ctx.createLinearGradient(left, top, left, bottom)
+  background.addColorStop(0, palette.top)
+  background.addColorStop(1, palette.bottom)
+  ctx.fillStyle = background
+  ctx.strokeStyle = palette.border
+  ctx.lineWidth = Math.max(1 / ratio, 0.85)
+  ctx.beginPath()
+  ctx.roundRect(left, top, right - left, bottom - top, 4)
+  ctx.fill()
+  ctx.stroke()
+  ctx.font = `600 ${fontSize}px Arial, sans-serif`
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'alphabetic'
+  ctx.fillStyle = palette.text
+  ctx.fillText(
+    label,
+    Math.round((left + 6) * ratio) / ratio,
+    Math.round((top + fontSize + 2) * ratio) / ratio,
+  )
+}
+
 export function createMapRenderer(
   canvas: HTMLCanvasElement,
   motion: WorldMotion,
@@ -3115,7 +3154,7 @@ export function createMapRenderer(
     if (!preview) {
       selfStack.people.unshift({
         id: view.characterId,
-        name: 'You',
+        name: canvas.dataset.characterName || 'Traveller',
         image: canvas.dataset.portrait ?? null,
         self: true,
       })
@@ -3360,11 +3399,7 @@ export function createMapRenderer(
       }
       if (!ghost || actor) nameplates.push({ point, person })
     }
-    function paintNameplate(
-      { point, person }: Nameplate,
-      occupied: { left: number; top: number; right: number; bottom: number }[],
-      dense: boolean,
-    ) {
+    function paintNameplate({ point, person }: Nameplate, occupied: LabelBounds[], dense: boolean) {
       const ctx = personContext
       // Small serif strokes and Canvas maxWidth condensation soften identity labels.
       // Keep glyphs at a readable whole-pixel size and shorten long names instead.
@@ -3410,18 +3445,13 @@ export function createMapRenderer(
         return
       occupied.push(bounds)
       includeIdentityBounds(bounds.left, bounds.top, bounds.right, bounds.bottom)
-      ctx.fillStyle = 'rgba(6,28,35,.96)'
-      ctx.strokeStyle = person.self ? '#d0ac66' : 'rgba(176,192,186,.7)'
-      ctx.lineWidth = Math.max(1 / identityRatio, 0.7 * Math.min(1, tokenScale))
-      ctx.beginPath()
-      ctx.roundRect(left, top, nameWidth, labelHeight, 3 * tokenScale)
-      ctx.fill()
-      ctx.stroke()
-      ctx.fillStyle = person.self ? '#f5dda5' : '#f1ebda'
-      ctx.fillText(
+      paintMapLabel(
+        ctx,
         label,
-        Math.round((left + 6) * identityRatio) / identityRatio,
-        Math.round((top + fontSize + 2) * identityRatio) / identityRatio,
+        bounds,
+        fontSize,
+        person.self ? 'self' : person.npc ? 'npc' : 'player',
+        identityRatio,
       )
     }
     const cacheBiomeRasters = rasterZoomAt === null && (tile >= 32 || (width < 600 && ratio > 1))
@@ -3879,7 +3909,7 @@ export function createMapRenderer(
       ctx.restore()
     }
     const majorScenery = scenery.filter((item) => item.grandFeature)
-    const labelBounds: { x: number; y: number; width: number; height: number }[] = []
+    const locationLabels: { text: string; x: number; y: number }[] = []
     for (const sector of visible) {
       if (sector.id.startsWith('ferry:')) continue
       const origin = sectorOrigin(sector)
@@ -3918,36 +3948,11 @@ export function createMapRenderer(
           ctx.restore()
         }
         if (!showLocationLabels) continue
-        ctx.font = '13px Georgia'
-        ctx.textAlign = 'center'
-        const terminal = isFerryTerminalLandmark(landmark.id)
-        const labelY = terminal ? p.y - tile * 1.9 - 16 : p.y + 25
-        const bounds = {
-          x: p.x - ctx.measureText(landmark.name).width / 2 - 9,
-          y: labelY,
-          width: ctx.measureText(landmark.name).width + 18,
-          height: 21,
-        }
-        if (
-          labelBounds.some(
-            (b) =>
-              bounds.x < b.x + b.width &&
-              bounds.x + bounds.width > b.x &&
-              bounds.y < b.y + b.height &&
-              bounds.y + bounds.height > b.y,
-          )
-        )
-          continue
-        labelBounds.push(bounds)
-        ctx.fillStyle = 'rgba(6,28,35,.88)'
-        ctx.strokeStyle = 'rgba(208,172,102,.7)'
-        ctx.lineWidth = 0.7
-        ctx.beginPath()
-        ctx.roundRect(bounds.x, bounds.y, bounds.width, bounds.height, 3)
-        ctx.fill()
-        ctx.stroke()
-        ctx.fillStyle = '#f3dca6'
-        ctx.fillText(landmark.name, p.x, labelY + 15)
+        locationLabels.push({
+          text: landmark.name,
+          x: p.x,
+          y: isFerryTerminalLandmark(landmark.id) ? p.y - tile * 1.9 - 16 : p.y + 25,
+        })
       }
     }
     if (timing) {
@@ -4084,6 +4089,30 @@ export function createMapRenderer(
             0.32 * tile,
           )
         ctx.restore()
+      }
+    }
+    if (locationLabels.length) {
+      const fontSize = Math.max(11, Math.min(14, Math.round(12 * tokenScale)))
+      const labelHeight = fontSize + 6
+      const occupied: LabelBounds[] = []
+      ctx.font = `600 ${fontSize}px Arial, sans-serif`
+      for (const { text, x, y } of locationLabels) {
+        const labelWidth = Math.ceil(ctx.measureText(text).width + 12)
+        const left = Math.max(3, Math.min(width - labelWidth - 3, Math.round(x - labelWidth / 2)))
+        const top = Math.max(3, Math.min(height - labelHeight - 3, Math.round(y)))
+        const bounds = { left, top, right: left + labelWidth, bottom: top + labelHeight }
+        if (
+          occupied.some(
+            (other) =>
+              bounds.left < other.right &&
+              bounds.right > other.left &&
+              bounds.top < other.bottom &&
+              bounds.bottom > other.top,
+          )
+        )
+          continue
+        occupied.push(bounds)
+        paintMapLabel(ctx, text, bounds, fontSize, 'location', ratio)
       }
     }
     canvas.dataset.clouds = String(cloudCount)

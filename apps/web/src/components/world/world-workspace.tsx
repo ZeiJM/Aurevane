@@ -773,6 +773,7 @@ export function WorldWorkspace({
               view={mapView}
               motion={motion}
               portrait={character.portrait}
+              characterName={character.name}
               animate={animate}
               showLocationLabels={showLocationLabels}
               quality={mapQuality}

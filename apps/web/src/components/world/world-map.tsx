@@ -9,6 +9,7 @@ export function WorldMap({
   view,
   motion,
   portrait,
+  characterName,
   animate,
   showLocationLabels = true,
   quality,
@@ -24,6 +25,7 @@ export function WorldMap({
   view: WorldView
   motion: WorldMotion
   portrait: string
+  characterName: string
   animate: boolean
   showLocationLabels?: boolean
   quality?: MapQuality
@@ -64,7 +66,7 @@ export function WorldMap({
   }, [view])
   useEffect(() => {
     renderer.current?.settings({ animate, quality, zoom, paused, zoomLocked, showLocationLabels })
-  }, [animate, quality, zoom, paused, zoomLocked, showLocationLabels])
+  }, [animate, quality, zoom, paused, zoomLocked, showLocationLabels, characterName])
   return (
     <>
       <canvas
@@ -72,6 +74,7 @@ export function WorldMap({
         className={styles.canvas}
         data-world-stage
         data-portrait={portrait}
+        data-character-name={characterName}
         tabIndex={0}
         role="application"
         aria-label="World map. Click ground or hold WASD and arrow keys to walk. Press Escape to stop travel. Use the mouse wheel or pinch to zoom."

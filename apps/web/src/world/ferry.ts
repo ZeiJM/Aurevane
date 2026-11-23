@@ -14,7 +14,7 @@ export const PUBLIC_FERRY_TERMINALS = [
 ] as const
 export const FERRY_TERMINAL_NAME = 'Ferry Terminal'
 export const FERRY_TERMINAL_LANDMARK = 'mainland-ferry-terminal'
-export const FERRYMAN_PORTRAIT = '/media/art/world/runtime/ferryman-portrait-v01.webp'
+export const FERRYMAN_PORTRAIT = '/media/art/world/runtime/ferryman-portrait-v02.webp'
 export const FERRYMAN_SPRITE = '/media/art/world/runtime/ferryman-sprite-v01.webp'
 
 export type FerryPort = 'mainland' | 'uncharted' | 'north-shore' | 'asterwake'

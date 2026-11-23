@@ -1054,7 +1054,7 @@ export function registerWorldInputCases({
         .getContext('2d')!
       const draw = context.fillText.bind(context)
       context.fillText = ((text: string, x: number, y: number, maxWidth?: number) => {
-        if (text === 'You')
+        if (text === el.dataset.characterName)
           el.dataset.testNameplateDraw = JSON.stringify({
             font: context.font,
             align: context.textAlign,
@@ -1125,7 +1125,7 @@ export function registerWorldInputCases({
         fillText = context.fillText.bind(context),
         portrait = new URL(el.dataset.portrait!, location.href).href
       context.fillText = ((text: string, x: number, y: number, maxWidth?: number) => {
-        if (text === 'You')
+        if (text === el.dataset.characterName)
           el.dataset.testNameplateDraw = JSON.stringify({
             font: context.font,
             align: context.textAlign,
