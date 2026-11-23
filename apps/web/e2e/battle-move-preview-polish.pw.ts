@@ -76,12 +76,22 @@ test('keeps Move reachable tiles distinct and executes one clicked path through 
     .getAttribute('aria-valuenow')
   const destination = (await reachable.getAttribute('aria-label'))!.split(';')[0]!
   const walkSamples = await page.evaluateHandle((name) => {
-    const samples: number[] = []
+    const samples: { distance: number; facing: { left: number; top: number } | null }[] = []
     const sample = () => {
-      const token = document.querySelector<HTMLElement>('[data-battle-token-walking="true"]')
-      if (token?.parentElement?.getAttribute('aria-label')?.includes(`occupied by ${name}`)) {
+      const token = Array.from(
+        document.querySelectorAll<HTMLElement>('[data-battle-token-walking="true"]'),
+      ).find((actor) => actor.parentElement?.ariaLabel?.includes(`occupied by ${name}`))
+      const tile = token?.parentElement
+      if (token && tile) {
         const [x, y] = token.style.translate.split(' ').map(Number.parseFloat)
-        samples.push(Math.hypot(x!, y!))
+        const corner = tile.getBoundingClientRect()
+        const marker = tile
+          .querySelector(':scope > [data-battle-facing-indicator="true"]')
+          ?.getBoundingClientRect()
+        samples.push({
+          distance: Math.hypot(x!, y!),
+          facing: marker ? { left: marker.left - corner.left, top: marker.top - corner.top } : null,
+        })
       } else if (samples.length > 0) {
         return
       }
@@ -102,12 +112,22 @@ test('keeps Move reachable tiles distinct and executes one clicked path through 
   await expect(occupiedDestination).toBeVisible()
   await expect
     .poll(() =>
-      walkSamples.evaluate((samples) =>
-        samples.some((sample) => sample > 0.5 && sample < Math.max(...samples) - 0.5),
-      ),
+      walkSamples.evaluate((samples) => {
+        const distances = samples.map(({ distance }) => distance)
+        return distances.some(
+          (distance) => distance > 0.5 && distance < Math.max(...distances) - 0.5,
+        )
+      }),
     )
     .toBe(true)
   await expect(occupiedDestination.locator('[data-battle-token-walking]')).toHaveCount(0)
+  for (const { facing } of await walkSamples.jsonValue()) {
+    expect(facing).not.toBeNull()
+    expect(facing!.left).toBeGreaterThanOrEqual(1)
+    expect(facing!.left).toBeLessThanOrEqual(5)
+    expect(facing!.top).toBeGreaterThanOrEqual(1)
+    expect(facing!.top).toBeLessThanOrEqual(5)
+  }
   await walkSamples.dispose()
   await page.reload()
   await expect(

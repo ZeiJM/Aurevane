@@ -66,7 +66,6 @@ export function BattlefieldWalkingToken({
       board.querySelector<HTMLElement>(`[data-battle-tile="${positionKey(point)}"]`),
     )
     if (tiles.some((step) => !step)) return
-    const indicator = tile.querySelector<HTMLElement>(':scope > [data-battle-facing-indicator]')
 
     let centers = tiles.map((step) => center(step!))
     let destination = center(tile)
@@ -81,7 +80,6 @@ export function BattlefieldWalkingToken({
       window.cancelAnimationFrame(frame)
       token.style.removeProperty('translate')
       token.removeAttribute('data-battle-token-walking')
-      indicator?.style.removeProperty('translate')
       resize.disconnect()
       preference.removeEventListener('change', finish)
       if (facing !== null) {
@@ -105,9 +103,8 @@ export function BattlefieldWalkingToken({
       const fraction = position - segment
       const x = from.x + (to.x - from.x) * fraction - destination.x
       const y = from.y + (to.y - from.y) * fraction - destination.y
-      const offset = `${x}px ${y}px`
-      token.style.translate = offset
-      if (indicator) indicator.style.translate = offset
+      // The facing marker stays in the destination tile's corner during sprite playback.
+      token.style.translate = `${x}px ${y}px`
       const nextFacing = stepFacing(path[segment]!, path[segment + 1]!)
       if (facing !== nextFacing) {
         facing = nextFacing
