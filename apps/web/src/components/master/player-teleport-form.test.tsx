@@ -86,3 +86,22 @@ it('updates sector feedback from walkable targets and submits the current chart 
   set(choose, 'currentVoid')
   expect(numberField().props).toMatchObject({ min: 8193, max: 11264, value: '8193' })
 })
+
+it('marks a newly entered Void sector red until the active map validates it', () => {
+  const render = () => {
+    hooks.index = 0
+    return PlayerTeleportForm({
+      disabled: false,
+      validateVoid: async () => true,
+      onReview: () => {},
+    })
+  }
+  const choose = find(render(), (node) => node.type === 'select')!
+  ;(choose.props.onChange as (event: unknown) => void)({ target: { value: 'currentVoid' } })
+  const sector = find(
+    render(),
+    (node) => node.type === 'input' && node.props.className !== undefined,
+  )!
+  expect(sector.props).toMatchObject({ 'data-sector-valid': false, 'aria-busy': true })
+  expect(find(render(), (node) => node.type === 'button')!.props.disabled).toBe(true)
+})

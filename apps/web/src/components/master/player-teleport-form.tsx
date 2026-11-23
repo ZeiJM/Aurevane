@@ -72,7 +72,7 @@ export function PlayerTeleportForm({
     (map === 'mainland'
       ? !!mainland && isWalkable(mainland, { x: nextX, y: nextY })
       : !!voidKey && voidStatus?.key === voidKey && voidStatus.valid)
-  const pending = !!voidKey && voidStatus?.key !== voidKey
+  const pending = !!voidKey && !!validateVoid && !disabled && voidStatus?.key !== voidKey
   function review() {
     if (!valid || sectorNumber === null) {
       setError('Choose a walkable land cell with whole coordinates X 0–12 and Y 0–8.')
@@ -103,6 +103,7 @@ export function PlayerTeleportForm({
             const next = event.target.value as PlayerTeleportDestination['map']
             setMap(next)
             setSector(next === 'mainland' ? '1' : String(VOID_SECTOR_NUMBER_OFFSET + 1))
+            setVoidStatus(undefined)
             setError(null)
           }}
         >
@@ -120,7 +121,8 @@ export function PlayerTeleportForm({
         <input
           type="number"
           className={styles.teleportSector}
-          data-sector-valid={sector && !pending ? valid : undefined}
+          data-sector-valid={sector ? valid : undefined}
+          aria-busy={pending || undefined}
           aria-invalid={!!sector && !pending && !valid}
           title={
             pending
@@ -133,7 +135,10 @@ export function PlayerTeleportForm({
           max={maximum}
           step={1}
           value={sector}
-          onChange={(event) => setSector(event.target.value)}
+          onChange={(event) => {
+            setSector(event.target.value)
+            setVoidStatus(undefined)
+          }}
         />
       </label>
       <label>
@@ -144,7 +149,10 @@ export function PlayerTeleportForm({
           max={12}
           step={1}
           value={x}
-          onChange={(event) => setX(event.target.value)}
+          onChange={(event) => {
+            setX(event.target.value)
+            setVoidStatus(undefined)
+          }}
         />
       </label>
       <label>
@@ -155,7 +163,10 @@ export function PlayerTeleportForm({
           max={8}
           step={1}
           value={y}
-          onChange={(event) => setY(event.target.value)}
+          onChange={(event) => {
+            setY(event.target.value)
+            setVoidStatus(undefined)
+          }}
         />
       </label>
       <label>

@@ -1,4 +1,5 @@
 import { ASTERWAKE_GOLDEN_TREE } from '@/world/asterwake'
+import { canWalkPublicAtlas, reachableAtlasArrival } from '@/world/atlas-walking'
 import { grandDiscoverySectorName } from '@/world/discovery-sites'
 import { PUBLIC_FERRY_TERMINALS } from '@/world/ferry'
 import type { WorldPosition, WorldView } from '@/world/types'
@@ -12,6 +13,17 @@ export function worldTravelDestination(sectorId: string): WorldPosition {
       y: 4,
     }
   )
+}
+
+export function worldReachableTravelDestination(from: WorldPosition, sectorId: string) {
+  const preferred = worldTravelDestination(sectorId)
+  if (
+    sectorId === ASTERWAKE_GOLDEN_TREE.sectorId ||
+    PUBLIC_FERRY_TERMINALS.some(({ dock }) => dock.sectorId === sectorId)
+  ) {
+    return canWalkPublicAtlas(from, preferred) ? preferred : null
+  }
+  return reachableAtlasArrival(from, preferred)
 }
 
 export function worldKeyLocations(

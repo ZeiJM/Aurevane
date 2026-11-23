@@ -17,7 +17,7 @@ vi.mock('./road-shorelines', async (importOriginal) => {
 })
 import { ASTERWAKE_REGION_ID, ASTERWAKE_GOLDEN_TREE } from './asterwake'
 import { FERRY_ASTERWAKE_DOCK, FERRY_NORTH_DOCK } from './ferry'
-import { canWalkPublicAtlas } from './atlas-walking'
+import { canWalkPublicAtlas, reachableAtlasArrival } from './atlas-walking'
 import { atlasAddress, atlasChartAddresses, atlasSectors, ATLAS_COLUMNS, ATLAS_ROWS } from './atlas'
 import { CHARTED_SECTORS } from './catalog'
 import { OFFSHORE_DISCOVERY, OFFSHORE_SECTORS } from './discovery-sites'
@@ -525,6 +525,14 @@ describe('one traversable world atlas', () => {
     const mainland = atlasSectors().filter((s) => s.regionId === ASTERWAKE_REGION_ID)
     expect(mainland.some((s) => s.name === 'Morrow Isle')).toBe(true)
     expect(mainland.some((s) => s.name === 'The Kestrel Skerries')).toBe(true)
+  })
+  it('can enter a reachable sector whose preferred tile is water without connecting islands', () => {
+    const preferred = { ...FERRY_ASTERWAKE_DOCK, x: 0 }
+    expect(canWalkPublicAtlas(FERRY_ASTERWAKE_DOCK, preferred)).toBe(false)
+    const arrival = reachableAtlasArrival(FERRY_ASTERWAKE_DOCK, preferred)
+    expect(arrival?.sectorId).toBe(preferred.sectorId)
+    expect(canWalkPublicAtlas(FERRY_ASTERWAKE_DOCK, arrival!)).toBe(true)
+    expect(reachableAtlasArrival(newWorldState().position, preferred)).toBeNull()
   })
   it('bounds scene projection and retains private frontier and legacy parked positions', () => {
     const view = projectWorld(newWorldState(), [], 1000)

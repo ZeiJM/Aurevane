@@ -10,7 +10,7 @@ import {
 } from '@/world/ferry'
 import { globeSectorCenter, globeSectorCoordinate, projectGlobePoint } from '@/world/globe-math'
 import { ASTERWAKE_GOLDEN_TREE, ASTERWAKE_NAME } from '@/world/asterwake'
-import type { WorldView } from '@/world/types'
+import type { WorldPosition, WorldView } from '@/world/types'
 import { SphericalView } from './spherical-view'
 import { projectGlobeTowns } from './globe-atlas'
 import { UNCHARTED_VEIL_FOCUS } from './globe-veil'
@@ -43,6 +43,7 @@ export const GLOBE_FOCUS_EVENT = 'aurevane-world-globe-focus'
 export function WorldGlobe({
   view,
   selected,
+  selectedArrival,
   onSelect,
   zoom,
   zoomLocked,
@@ -51,6 +52,7 @@ export function WorldGlobe({
 }: {
   view: WorldView
   selected: string | null
+  selectedArrival?: WorldPosition
   onSelect: (id: string | null) => void
   zoom: number
   zoomLocked: boolean
@@ -160,7 +162,7 @@ export function WorldGlobe({
   )
   const asterwakeLabel = asterwake && markerStyle(cellLocation(asterwake, 6, 4))
   const target = view.atlas?.find((cell) => cell.charted && cell.id === selected)
-  const targetCell = target && worldTravelDestination(target.id)
+  const targetCell = target && (selectedArrival ?? worldTravelDestination(target.id))
   const targetPin =
     target &&
     targetCell &&

@@ -7,7 +7,6 @@ import { useRouter } from 'next/navigation'
 import { WORLD_LAND_NAME } from '@/world/atlas'
 import { WORLD_REGIONS } from '@/world/catalog'
 import { mainlandSectorIdAtNumber, readSectorNumber } from '@/world/sector-index'
-import { canWalkPublicAtlas } from '@/world/atlas-walking'
 import { positionLabel, sectorLabel } from '@/world/coordinate-label'
 import { parseVoidSectorId, VOID_REALMS } from '@/world/void-realms'
 import { regionalWeatherLabel } from './map-weather'
@@ -44,7 +43,7 @@ import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { localRoute, mapPoint, prepareLocalRoute, WorldMotion } from './world-motion'
 import { WorldMap } from './world-map'
 import { GLOBE_FOCUS_EVENT, WorldGlobe } from './world-globe'
-import { worldKeyLocations, worldTravelDestination } from './world-travel-points'
+import { worldKeyLocations, worldReachableTravelDestination } from './world-travel-points'
 import { WorldNearbyNpc } from './world-nearby-npc'
 import { WorldMissions } from './world-missions'
 import { dialogueSpeakerId, WorldDialogue, type NarrativeReply } from './world-dialogue'
@@ -646,7 +645,10 @@ export function WorldWorkspace({
   const typedSectorAvailable =
     Boolean(typedSector) &&
     !disabled &&
-    canWalkPublicAtlas(approvedPosition, worldTravelDestination(typedSectorId!))
+    Boolean(worldReachableTravelDestination(approvedPosition, typedSectorId!))
+  const destinationArrival = destination
+    ? worldReachableTravelDestination(approvedPosition, destination.id)
+    : null
   const confirmDestination = view.atlas?.find(
     (cell) => cell.id === confirmDestinationId && cell.charted,
   )
@@ -798,6 +800,7 @@ export function WorldWorkspace({
               zoomLocked={zoomLocked}
               onZoom={setGlobeZoom}
               selected={destinationId}
+              selectedArrival={destinationArrival ?? undefined}
               onSelect={(id) => {
                 setConfirmDestinationId(null)
                 setDestinationId(id)
@@ -1003,10 +1006,8 @@ export function WorldWorkspace({
                 {mode === 'global' && destination ? (
                   <WorldDestinationCard
                     destination={destination}
-                    disabled={
-                      disabled ||
-                      !canWalkPublicAtlas(approvedPosition, worldTravelDestination(destination.id))
-                    }
+                    arrival={destinationArrival ?? undefined}
+                    disabled={disabled || !destinationArrival}
                     reviewing={confirmDestination?.id === destination.id}
                     replacesRoute={view.route.length > 0}
                     favorite={favoriteSectorId === destination.id}
@@ -1020,8 +1021,8 @@ export function WorldWorkspace({
                       setDestinationId(null)
                     }}
                     onConfirm={() => {
-                      if (confirmDestination?.id !== destination.id) return
-                      walk(worldTravelDestination(destination.id))
+                      if (!destinationArrival || confirmDestination?.id !== destination.id) return
+                      walk(destinationArrival)
                       setConfirmDestinationId(null)
                       setMode('local')
                       setDestinationId(null)
