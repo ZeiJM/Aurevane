@@ -3,31 +3,64 @@
   z-index: 2;
   top: 0.65rem;
   left: 0.65rem;
+  max-width: calc(100% - 1.3rem);
+}
+
+.stationCard {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 0.45rem 0.75rem;
-  max-width: calc(100% - 1.3rem);
-  padding: 0.55rem 0.7rem;
-  background: #10272df5;
-  color: #f8e9c9;
-  border: 1px solid #d7b777;
+  justify-content: space-between;
+  gap: clamp(0.65rem, 3vw, 1.25rem);
+  max-width: 100%;
+  min-height: 3.2rem;
+  padding: 0.55rem 0.8rem;
+  background: linear-gradient(125deg, #193b4b, #101f37 85%);
+  color: #f4d69b;
+  border: 1px solid #b59b66;
   border-radius: 0.5rem;
-  box-shadow: 0 3px 12px #07171c66;
+  box-shadow:
+    inset 0 1px 0 #aeceda26,
+    0 4px 12px #09132580;
+  text-align: left;
 }
 
-.station div {
+.station button.stationCard:not(:disabled):hover {
+  background: linear-gradient(125deg, #244e60, #182f4c 85%);
+  border-color: #eed294;
+}
+
+.stationCopy {
   display: grid;
-  gap: 0.2rem;
+  gap: 0.14rem;
+  min-width: 0;
 }
 
-.station span,
+.stationCopy strong {
+  font: 600 1rem / 1.2 var(--av-font-display, Georgia, serif);
+}
+
+.stationStatus {
+  color: #bbdde7;
+}
+
+.stationStatus time {
+  color: #f4d69b;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.stationArrow {
+  flex: none;
+  color: #ffdf9c;
+  font-size: 1.15rem;
+}
+
+.stationStatus,
 .dialogueStatus {
   font-size: 0.8rem;
   font-variant-numeric: tabular-nums;
 }
 
-.station button,
 .primary {
   min-height: 2.5rem;
   padding: 0.4rem 0.65rem;
@@ -37,7 +70,7 @@
   color: #201c15;
 }
 
-.station button:focus-visible,
+.stationCard:focus-visible,
 .primary:focus-visible {
   outline: 2px solid #fff4cb;
   outline-offset: 2px;

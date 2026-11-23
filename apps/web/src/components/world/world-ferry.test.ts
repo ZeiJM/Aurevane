@@ -1,4 +1,6 @@
 import { expect, it, vi } from 'vitest'
+import { createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
 import { FERRY_MAINLAND_DOCK, FERRYMAN_SPRITE } from '@/world/ferry'
 import { newWorldState } from '@/world/travel'
 import { projectWorld } from '@/server/world/world-service'
@@ -7,6 +9,7 @@ import {
   ferryStatus,
   formatFerryCountdown,
   worldViewWithFerryman,
+  WorldFerryStation,
 } from './world-ferry'
 
 vi.mock('server-only', () => ({}))
@@ -16,6 +19,27 @@ const waiting = {
   ...dock,
   passage: { direction: 'outbound', departureAt: 300_000, arrivalAt: 600_000 },
 } as const
+
+it('uses the whole ferry card as the conversation button and keeps underway status readable', () => {
+  const render = (ferry: Parameters<typeof WorldFerryStation>[0]['ferry'], serverNow: number) =>
+    renderToStaticMarkup(
+      createElement(WorldFerryStation, {
+        ferry,
+        serverNow,
+        disabled: false,
+        onTalk: vi.fn(),
+      }),
+    )
+  const station = render({ ...dock, nextDepartureAt: 600_000 }, 0)
+  expect(station.match(/<button\b/g)).toHaveLength(1)
+  expect(station).toMatch(
+    /<button[^>]+aria-label="Ferry Terminal\. Talk to Ferryman"[^>]*>.*Ferry Terminal.*Boarding opens in.*5:00.*<\/button>/,
+  )
+  const underway = render(waiting, 360_000)
+  expect(underway).not.toContain('<button')
+  expect(underway).toContain('Underway')
+  expect(underway).toContain('4:00')
+})
 
 it('exposes boarding only from the server-reported port', () => {
   expect(ferrymanTopic(dock, 1)?.speaker).toBe('Ferryman')

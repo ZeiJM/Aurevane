@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, type MouseEventHandler } from 'react'
+import { useEffect, useId, useState, type MouseEventHandler } from 'react'
 import {
   FERRY_BOARDING_MS,
   FERRY_MAINLAND_DOCK,
@@ -128,21 +128,38 @@ export function WorldFerryStation({
 }) {
   const now = useFerryClock(serverNow)
   const status = ferryStatus(ferry, now)
+  const statusId = useId()
   if (!ferry.port && !ferry.passage) return null
+  const name = ferry.passage ? 'Ferry crossing' : portName(ferry.port)
+  const details = (
+    <span className={styles.stationCopy}>
+      <strong>{name}</strong>
+      <span className={styles.stationStatus} id={statusId}>
+        {status.label}{' '}
+        {status.at !== null ? <time>{formatFerryCountdown(status.at, now)}</time> : null}
+      </span>
+    </span>
+  )
   return (
     <section className={styles.station} aria-label="Ferry station">
-      <div>
-        <strong>{ferry.passage ? 'Ferry crossing' : portName(ferry.port)}</strong>
-        <span>
-          {status.label}{' '}
-          {status.at !== null ? <time>{formatFerryCountdown(status.at, now)}</time> : null}
-        </span>
-      </div>
       {status.action || (ferry.port && !ferry.passage) ? (
-        <button type="button" disabled={disabled} onClick={onTalk}>
-          Talk to Ferryman
+        <button
+          type="button"
+          className={styles.stationCard}
+          aria-label={`${name}. Talk to Ferryman`}
+          aria-haspopup="dialog"
+          aria-describedby={statusId}
+          disabled={disabled}
+          onClick={onTalk}
+        >
+          {details}
+          <span className={styles.stationArrow} aria-hidden="true">
+            →
+          </span>
         </button>
-      ) : null}
+      ) : (
+        <div className={styles.stationCard}>{details}</div>
+      )}
     </section>
   )
 }

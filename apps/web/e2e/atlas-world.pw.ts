@@ -1967,7 +1967,7 @@ test('shows the coast terminal and keeps its Ferryman in Nearby outside boarding
   await capture(page, info, 'coastal-ferry-terminal')
   await onDock.getByRole('button', { name: 'Talk to Ferryman' }).click()
   const dialogue = page.getByRole('dialog', { name: 'Ferryman' })
-  await expect(dialogue.locator('img')).toHaveAttribute('src', /ferryman-portrait-v01\.webp$/)
+  await expect(dialogue.locator('img')).toHaveAttribute('src', /ferryman-portrait-v02\.webp$/)
   await expect
     .poll(() => dialogue.locator('img').evaluate((img: HTMLImageElement) => img.naturalWidth))
     .toBeGreaterThan(0)
