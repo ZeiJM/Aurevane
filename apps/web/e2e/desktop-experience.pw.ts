@@ -272,7 +272,7 @@ test('desktop account, training, controls and public reading surfaces remain usa
   for (const [name, path] of [
     ['Training', '/game/training'],
     ['Controls', '/game/settings/controls'],
-    ['Titles', '/game/account/titles'],
+    ['Appearance & Title', '/game/account/titles'],
     ['Online', '/game/online'],
   ]) {
     await page.goto(path!)
@@ -285,11 +285,11 @@ test('desktop account, training, controls and public reading surfaces remain usa
   await page.setViewportSize({ width: 1366, height: 768 })
   await readable(page.locator('kbd').first(), 12)
   await page.goto('/game/account/titles')
-  await page.getByPlaceholder('e.g. Dawn Warden').fill('Dawn Keeper')
-  await page.getByRole('button', { name: 'Review Title' }).click()
-  await expect(page.getByRole('button', { name: 'Confirm Final Title' })).toBeDisabled()
-  await reachable(page, page.getByRole('button', { name: 'Edit', exact: true }))
-  await page.getByRole('button', { name: 'Edit', exact: true }).click()
+  const title = page.getByRole('button', { name: /^Dawn Seeker/ })
+  await reachable(page, title)
+  await title.click()
+  await expect(title).toHaveAttribute('aria-pressed', 'true')
+  await reachable(page, page.getByRole('button', { name: 'Design sprite', exact: true }))
 
   for (const path of ['/game', '/game/create/1', '/news', '/manual', '/rules']) {
     await page.goto(path)

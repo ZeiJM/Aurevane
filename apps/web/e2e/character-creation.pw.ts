@@ -26,8 +26,7 @@ test('creates a slotted character, persists its profile, and resumes it across s
   const email = `p15-${projectSlug}-${Date.now()}@example.com`
   const password = 'P15-browser-character-2026!'
   const characterName = uniqueCharacterName()
-  const titleProjectToken = projectSlug.replaceAll('-', '').slice(0, 6)
-  const personalTitle = `Warden ${titleProjectToken} ${Date.now().toString().slice(-6)}`
+  const personalTitle = 'Horizon Wanderer'
 
   await createAccountAndEnterCharacter({ page, email, password, characterName })
 
@@ -90,19 +89,18 @@ test('creates a slotted character, persists its profile, and resumes it across s
   await expect(page.getByRole('link', { name: 'Back to Character Select' })).toHaveCount(0)
 
   await page.getByRole('button', { name: 'Account' }).click()
-  await page.getByRole('menuitem', { name: 'Titles & Profile Display' }).click()
+  await page.getByRole('menuitem', { name: 'Appearance & Title' }).click()
   await expect(page).toHaveURL(/\/game\/account\/titles$/)
-  await page.getByRole('textbox', { name: /^Personal title/ }).fill(personalTitle)
-  await page.getByRole('button', { name: 'Review Title' }).click()
-  await page.getByRole('checkbox', { name: /one personal-title choice/ }).check()
-  await page.getByRole('button', { name: 'Confirm Final Title' }).click()
-  await expect(page.getByText('Choice used')).toBeVisible()
-  const titleWorkspace = page.locator('[data-character-concept="titles"]')
-  await expect(titleWorkspace.getByText(personalTitle, { exact: true }).first()).toBeVisible()
-  await expect(page.getByRole('textbox', { name: /^Personal title/ })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Roadfarer' }).click()
+  await expect(page.getByRole('button', { name: /Roadfarer/ })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  )
+  await page.getByRole('button', { name: personalTitle }).click()
+  const equippedTitle = page.getByRole('button', { name: new RegExp(personalTitle) })
+  await expect(equippedTitle).toHaveAttribute('aria-pressed', 'true')
   await page.reload()
-  await expect(page.getByText('Choice used')).toBeVisible()
-  await expect(titleWorkspace.getByText(personalTitle, { exact: true }).first()).toBeVisible()
+  await expect(equippedTitle).toHaveAttribute('aria-pressed', 'true')
   await page
     .getByRole('navigation', { name: 'Primary game navigation', exact: true })
     .getByRole('link', { name: 'Profile', exact: true })

@@ -129,6 +129,7 @@ import {
   deriveParticipantBattleViewerEntitlement,
   type BattleViewerEntitlement,
 } from './battle-viewer-entitlement'
+import type { BattleWalkReceipt } from './battle-walk-receipts'
 
 const PV1F_RULES_VERSION = 3
 const PV1F_CONTENT_VERSION = 2
@@ -145,6 +146,7 @@ const PV1F_RECRUIT_OFFENSIVE_BENCHMARK = calculateDerivedStats({
 })
 
 export type BattleAuthoritativeEncounterState = StatDrivenCombatEncounterState & {
+  recentWalks?: readonly BattleWalkReceipt[]
   buildAuthority?: BattleBuildAuthoritySnapshot
   arenaNpc?: ArenaNpcIdentity
   worldBattleOrigin?: 'npc' | 'realm'

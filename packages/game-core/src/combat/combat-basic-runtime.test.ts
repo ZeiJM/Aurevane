@@ -423,6 +423,9 @@ it('passes a flat Basic Move path through the actual action facade without a sur
   ).toEqual({ x: 1, y: 0 })
   expect(actor(cast.state).hp).toBe(417)
   expect(ap(cast.state)).toBe(77)
+  expect(cast.events).toContainEqual(
+    expect.objectContaining({ event: 'combatant_moved', walkPath: options.movementPath }),
+  )
   expect(
     cast.events.filter(
       (event) =>

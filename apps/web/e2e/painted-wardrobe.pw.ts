@@ -1,7 +1,8 @@
 import { expect, test } from '@playwright/test'
+import { grantAppearanceToken } from './appearance-test-helpers'
 import { allocateCreationPoints, createVerifiedAccountAndSignIn } from './pv1f-test-helpers'
 
-test('@painted-wardrobe saves independent painted features and accessories, then locks the final sprite', async ({
+test('@painted-wardrobe saves independent painted features and accessories using one token', async ({
   page,
   isMobile,
 }, testInfo) => {
@@ -27,13 +28,11 @@ test('@painted-wardrobe saves independent painted features and accessories, then
   await page.getByLabel('Character name').fill(characterName)
   await page.getByRole('button', { name: 'Build my character' }).click()
   const dialog = page.getByRole('dialog', { name: 'Character appearance' })
-  await dialog.getByRole('button', { name: 'Painted characters' }).click()
-  const outfit = dialog.getByRole('group', { name: 'Painted outfit' })
+  await dialog.getByRole('radio', { name: isMobile ? 'Female' : 'Male', exact: true }).check()
+  const outfit = dialog.getByRole('group', { name: 'Appearance options' })
   const control = (name: string) => outfit.getByRole('combobox', { name, exact: true })
-  const expanded = dialog.getByRole('group', { name: 'Painted appearance' })
-  const expandedControl = (name: string) => expanded.getByRole('combobox', { name, exact: true })
-  await control('Character').selectOption(identity)
-  await expect(control('Character')).toHaveValue(identity)
+  await control('Face').selectOption(identity)
+  await expect(control('Face')).toHaveValue(identity)
   await control('Clothing style').selectOption('shearling')
   await control('Clothing color').selectOption('pine')
   await dialog.getByRole('button', { name: 'Use this appearance' }).click()
@@ -44,20 +43,22 @@ test('@painted-wardrobe saves independent painted features and accessories, then
   await expect(review).toBeVisible({ timeout: 15_000 })
   await allocateCreationPoints(page)
   await review.click()
+  const creation = page.waitForResponse(
+    (response) => response.url().endsWith('/api/character') && response.status() === 201,
+  )
   await page.getByRole('button', { name: 'Create character' }).click()
+  const { character } = await (await creation).json()
   await expect(page).toHaveURL(/\/game\/haven$/)
 
+  await grantAppearanceToken(character.userId)
   await page.goto('/game/account/titles')
   const appearanceSettings = page.getByRole('region', { name: 'Character appearance', exact: true })
   const designSprite = appearanceSettings.getByRole('button', {
     name: 'Design sprite',
     exact: true,
   })
-  await expect(appearanceSettings.getByText('1 sprite design save remaining.')).toBeVisible()
+  await expect(appearanceSettings.getByText('1 Appearance Token available.')).toBeVisible()
   await designSprite.click()
-  await expect(
-    dialog.getByRole('heading', { name: 'Character appearance', exact: true }),
-  ).toHaveCSS('color', 'rgb(244, 236, 218)')
   await expect(control('Clothing color')).toHaveValue('pine')
   await expect(control('Accessory color')).toBeDisabled()
   await control('Clothing style').selectOption('hawkmantle')
@@ -70,15 +71,15 @@ test('@painted-wardrobe saves independent painted features and accessories, then
   await control('Headwear color').selectOption('amber')
   await control('Face accessory style').selectOption('eyepatch')
   await control('Face accessory color').selectOption('charcoal')
-  await dialog.getByRole('button', { name: 'Expanded painted wardrobe' }).click()
-  await expect(expandedControl('Accessory color')).toHaveValue('crimson')
-  await expect(expandedControl('Headwear color')).toHaveValue('amber')
-  await expect(expandedControl('Face accessory color')).toHaveValue('charcoal')
-  await expandedControl('Hairstyle').selectOption('twins')
-  await expandedControl('Hair color').selectOption('lilac')
-  await expandedControl('Eye color').selectOption('green')
-  await expect(dialog.getByText(/This is your final save/)).toBeVisible()
-  const path = `/api/media/appearance/5/${identity}.hawkmantle.cobalt.mapcase.crimson.${isMobile ? 'bandana' : 'arcanist'}.amber.eyepatch.charcoal.natural.natural.twins.lilac.green`
+  await expect(control('Accessory color')).toHaveValue('crimson')
+  await expect(control('Headwear color')).toHaveValue('amber')
+  await expect(control('Face accessory color')).toHaveValue('charcoal')
+  await control('Hairstyle').selectOption('twins')
+  await control('Hair color').selectOption('lilac')
+  await control('Eye color').selectOption('green')
+  await control('Portrait setting').selectOption('frost')
+  await expect(dialog.getByText(/spends one Appearance Token/)).toBeVisible()
+  const path = `/api/media/appearance/6/${identity}.hawkmantle.cobalt.mapcase.crimson.${isMobile ? 'bandana' : 'arcanist'}.amber.eyepatch.charcoal.natural.natural.twins.lilac.green.frost`
   const atlasWidth = await page.evaluate(async (imagePath) => {
     const image = new Image()
     image.src = imagePath
@@ -87,16 +88,19 @@ test('@painted-wardrobe saves independent painted features and accessories, then
   }, `${path}/atlas.svg`)
   expect(atlasWidth).toBe(576)
   await page.screenshot({ path: testInfo.outputPath('painted-wardrobe.png') })
-  await dialog.getByRole('button', { name: 'Confirm sprite design' }).click()
+  const confirm = dialog.getByRole('button', { name: 'Confirm appearance' })
+  await confirm.click()
   await expect(dialog).toBeHidden({ timeout: 20_000 })
-  await expect(page.getByText('Your sprite design is permanently locked.')).toBeVisible()
+  await expect(appearanceSettings.getByText('0 Appearance Tokens available.')).toBeVisible()
 
   const saved = await page.request.get('/api/account/appearance')
   expect(saved.ok()).toBe(true)
   expect((await saved.json()).appearance).toMatchObject({
     imageUrl: `${path}/neutral.svg`,
-    remainingDesigns: 0,
+    appearanceTokens: 0,
   })
   await page.reload()
-  await expect(designSprite).toBeDisabled()
+  await designSprite.click()
+  await expect(control('Portrait setting')).toHaveValue('frost')
+  await expect(confirm).toBeDisabled()
 })

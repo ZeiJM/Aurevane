@@ -42,7 +42,7 @@ const overrides: Record<string, ManualArticle> = {
           'Create characters in three roster slots with six core attributes and a starting Discipline.',
           'Configure your Primary and optional Secondary Discipline in Loadout → Nexus, with server-calculated stats and committed Skill choices.',
           `Pure builds select up to ${PURE_DISCIPLINE_SKILL_CAPACITY} learned Discipline Techniques plus Essence. Mixed builds select up to ${MIXED_DISCIPLINE_SKILL_CAPACITY} total Techniques plus an eligible Resonance; a full loadout must use both Disciplines (1+3, 2+2 or 3+1). Each mature Discipline has eight learnable Skills: eight available to a pure build, or 16 across a fully authored pair. The pure-Discipline Essence or matching mixed-Discipline Resonance is separate from those four selections. Signature coverage depends on the authored Disciplines.`,
-          'Set the current character’s one personal title from Account → Titles & Profile Display.',
+          'Choose and freely switch starter titles in Account → Appearance & Title. Confirming a different character look spends one Appearance Token from inventory.',
           'Progress through the versioned Character XP and level foundation.',
           'Explicitly start Short, Medium, or Extended Passive Training and receive a bounded server-timed Character XP reward when that block completes.',
           'Enter Battle Hall for movement, Basic Attack, Support actions, final facing, Recruit AI, combat logs, and practice battles.',
@@ -52,7 +52,7 @@ const overrides: Record<string, ManualArticle> = {
         id: 'navigation',
         title: 'Finding things',
         paragraphs: [
-          'Manual, News, and Rules live in the authenticated header. Account contains audio, Controls & Keybinds, Titles & Profile Display, Switch Character, and sign-out. The compact character rail links Haven, Profile, Loadout, World, Battle and Training. On phones these destinations move to a fixed bottom bar. Items is a Coming Soon destination inside Loadout; Online Users remains in the footer.',
+          'Manual, News, and Rules live in the authenticated header. Account contains audio, Controls & Keybinds, Appearance & Title, Switch Character, and sign-out. The compact character rail links Haven, Profile, Loadout, World, Battle and Training. On phones these destinations move to a fixed bottom bar. Items is a Coming Soon destination inside Loadout; Online Users remains in the footer.',
           'Normal game screens show a small circular portrait beside the green screen-name indicator in the shared header. The AUREVANE A-in-diamond remains the brand crest. Active battle uses its own combat HUD instead of the shared screen header.',
         ],
       },
@@ -285,7 +285,7 @@ const overrides: Record<string, ManualArticle> = {
         id: 'personal-title-term',
         title: 'Personal Title',
         paragraphs: [
-          'A cosmetic per-character identity title. It grants no stats, competencies, powers, or account privileges. The current personal-title opportunity is a definitive one-time choice.',
+          'A cosmetic title equipped by a character. Every character can choose Roadfarer, Dawn Seeker, or Horizon Wanderer and switch at any time outside battle. Titles grant no gameplay bonuses.',
         ],
       },
       {

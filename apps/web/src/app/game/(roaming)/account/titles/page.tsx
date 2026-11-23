@@ -1,5 +1,4 @@
 import { AccountBannedError } from '@aurevane/game-core/errors'
-import { createSupabaseCharacterBuildRepository } from '@/server/character/supabase-character-build-repository'
 import { isAurevaneError } from '@aurevane/game-core/errors'
 import { headers } from 'next/headers'
 import Link from 'next/link'
@@ -17,8 +16,6 @@ import {
 } from '@/server/account/active-game-session'
 import { getAuthenticatedActor } from '@/server/auth/actor'
 import { loadCharacterAppearance } from '@/server/character/character-appearance-service'
-import { loadCharacterPortraitChoice } from '@/server/character/character-portrait-choice-service'
-import { loadCharacterProfileDisplay } from '@/server/character/character-profile-display-service'
 import { loadCharacterTitleState } from '@/server/character/character-title-service'
 import { loadSelectedCharacter } from '@/server/character/selected-character'
 
@@ -61,6 +58,9 @@ export default async function CharacterTitlesPage() {
     throw selectedCharacterResult.reason
   }
   const character = selectedCharacterResult.value
+  const presentation = character?.presentationId
+  const initialGender =
+    presentation === 'masculine' || presentation === 'feminine' ? presentation : undefined
   if (activeBattle) {
     if (!character) redirect(`/game/battle/${activeBattle.battleSessionId}`)
     const appearance = await loadCharacterAppearance(actor.userId, character.id)
@@ -73,25 +73,20 @@ export default async function CharacterTitlesPage() {
         <CharacterAppearanceSettings
           key={character.id}
           characterId={character.id}
-          initialRemainingDesigns={appearance.remainingDesigns}
+          initialAppearanceTokens={appearance.appearanceTokens}
           initialPending={Boolean(appearance.pendingImageUrl)}
+          initialGender={initialGender}
         />
       </SettingsScene>
     )
   }
 
   let titleState
-  let portraitChoice
-  let displayState
-  let activeBuild
   let appearance
   try {
     if (!character) redirect('/game')
-    ;[titleState, displayState, portraitChoice, activeBuild, appearance] = await Promise.all([
+    ;[titleState, appearance] = await Promise.all([
       loadCharacterTitleState(actor.userId, character.id),
-      loadCharacterProfileDisplay(actor.userId, character.id),
-      loadCharacterPortraitChoice(actor.userId, character.id),
-      createSupabaseCharacterBuildRepository().findActiveBuild(actor.userId, character.id),
       loadCharacterAppearance(actor.userId, character.id),
     ])
   } catch (error) {
@@ -104,20 +99,10 @@ export default async function CharacterTitlesPage() {
   return (
     <CharacterTitleSettings
       characterId={character.id}
-      characterName={character.name}
-      disciplineName={activeBuild?.primaryDefinition.name ?? 'Unavailable Discipline'}
       personalTitle={titleState.personalTitle}
-      personalTitleSetAt={titleState.personalTitleSetAt}
-      imageUrl={
-        displayState.legacyImageUrl === undefined
-          ? displayState.imageUrl
-          : displayState.legacyImageUrl
-      }
-      portraitRef={character.portraitRef}
-      portraitChoiceAvailable={portraitChoice.available}
-      portraitChoiceUsedAt={portraitChoice.changedAt}
-      remainingSpriteDesigns={appearance.remainingDesigns}
+      appearanceTokens={appearance.appearanceTokens}
       pendingSpriteDesign={Boolean(appearance.pendingImageUrl)}
+      initialGender={initialGender}
     />
   )
 }

@@ -105,6 +105,8 @@ export type TacticalBattleEvent =
       from: GridPosition
       to: GridPosition
       movementCost: number
+      /** Actual entered tiles, in order, for settled ordinary movement. */
+      walkPath?: readonly GridPosition[]
     }
   | {
       event: 'combatant_facing_changed'

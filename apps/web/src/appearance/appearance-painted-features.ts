@@ -6,16 +6,20 @@ import {
 import {
   WARDROBE_EYE_COLORS,
   WARDROBE_HAIR_COLORS,
+  type PaintedPlayerLook,
   type PaintedWardrobeLook,
 } from './appearance-painted-wardrobe'
+import { PAINTED_HAIRSTYLES } from './appearance-painted-hairstyles.generated'
 
-type Identity = PaintedWardrobeLook['identity']
+type Identity = PaintedPlayerLook['identity']
 type Point = readonly [x: number, y: number]
 type Iris = readonly [x: number, y: number, radius: number]
 
 // Scalp and iris regions follow the four original painted models. The portrait
 // irises move independently in each expression, while field crops use 128×176.
 const portraitScalps = {
+  pinescout:
+    'M46 125L43 70 61 33 95 17 129 6 164 9 195 38 217 70 211 100 187 120 186 88 180 64 172 45 161 32 153 43 144 51 133 59 122 66 112 83 115 94 107 106 103 123 113 148 127 180 139 211 141 240 128 253 96 250 82 228 89 200 71 166 47 153Z',
   scout:
     'M34 117L37 52 79 17 139 10 187 26 204 62 204 107 182 111Q183 88 170 75T150 82Q143 94 133 102L120 104 111 116 110 135 101 149 78 157 52 148Z',
   ranger:
@@ -27,6 +31,12 @@ const portraitScalps = {
 } as const
 
 const fieldScalps = {
+  pinescout: [
+    'M48 17H78V30L71 29 67 25 62 31 58 36 61 48 58 57H51L49 44Z',
+    'M48 17H79V30L73 29 67 27 62 32 62 44 57 53H51Z',
+    'M45 17H83V44L71 53 58 55 50 48Z',
+    'M46 17H78V45L73 54 62 49 65 39 60 30 53 27 49 32Z',
+  ],
   scout: [
     'M41 45V16H79V38L73 42 70 34 66 32 56 39 56 48 49 48Z',
     'M41 49V16H84V35L77 40 73 34 66 39 61 46 54 49Z',
@@ -53,7 +63,29 @@ const fieldScalps = {
   ],
 } as const
 
-const portraitIrises = {
+export const PAINTED_PORTRAIT_IRISES = {
+  pinescout: {
+    neutral: [
+      [132, 74, 2.8],
+      [168, 77, 2.4],
+    ],
+    happy: [
+      [132, 72, 2.7],
+      [169, 76, 2.4],
+    ],
+    angry: [
+      [130, 88, 2.3],
+      [167, 89, 2.3],
+    ],
+    sad: [
+      [132, 89, 2.4],
+      [169, 90, 2.3],
+    ],
+    surprised: [
+      [132, 74, 3.1],
+      [168, 77, 2.8],
+    ],
+  },
   scout: {
     neutral: [
       [141, 122, 2.8],
@@ -145,6 +177,15 @@ const portraitIrises = {
 } as const satisfies Record<Identity, Record<AppearanceExpression, readonly Iris[]>>
 
 const fieldIrises = {
+  pinescout: [
+    [
+      [66, 30, 1],
+      [72, 29, 0.8],
+    ],
+    [[75, 30, 1]],
+    [],
+    [[52, 30, 1]],
+  ],
   scout: [
     [
       [63, 43, 1.1],
@@ -184,6 +225,7 @@ const fieldIrises = {
 } as const satisfies Record<Identity, readonly (readonly Iris[])[]>
 
 const sourceHair = {
+  pinescout: [146, 77, 43],
   scout: [88, 70, 63],
   ranger: [82, 66, 54],
   guard: [69, 56, 49],
@@ -200,7 +242,10 @@ function pigmentFilter(id: string, rgb: readonly number[], midpoint: number, gai
 const irises = (eyes: readonly Iris[], dx = 0) =>
   eyes.map(([x, y, radius]) => `<circle cx="${x + dx}" cy="${y}" r="${radius}"/>`).join('')
 
-export function paintedFeatureDyes(look: PaintedWardrobeLook, expression?: AppearanceExpression) {
+export function paintedFeatureDyes(
+  look: PaintedWardrobeLook | PaintedPlayerLook,
+  expression?: AppearanceExpression,
+) {
   const hair = WARDROBE_HAIR_COLORS[look.hairDye].rgb
   const eyes = WARDROBE_EYE_COLORS[look.eyeColor].rgb
   const { identity } = look
@@ -210,7 +255,7 @@ export function paintedFeatureDyes(look: PaintedWardrobeLook, expression?: Appea
         .map((d, i) => `<path transform="translate(${128 * i})" d="${d}"/>`)
         .join('')
   const irisClip = expression
-    ? irises(portraitIrises[identity][expression])
+    ? irises(PAINTED_PORTRAIT_IRISES[identity][expression])
     : fieldIrises[identity].map((eye, i) => irises(eye, i * 128)).join('')
   return (
     (hair
@@ -224,7 +269,10 @@ export function paintedFeatureDyes(look: PaintedWardrobeLook, expression?: Appea
   )
 }
 
-export function paintedFeatureComposite(look: PaintedWardrobeLook, image: string) {
+export function paintedFeatureComposite(
+  look: PaintedWardrobeLook | PaintedPlayerLook,
+  image: string,
+) {
   return (
     [
       [look.hairDye, 'hair-region', 'hair-tint'],
@@ -240,6 +288,7 @@ export function paintedFeatureComposite(look: PaintedWardrobeLook, image: string
 }
 
 const portraitHairAnchors = {
+  pinescout: [84, 35, 1.05],
   scout: [79, 39, 1.04],
   ranger: [87, 31, 1],
   guard: [92, 34, 1.04],
@@ -247,6 +296,7 @@ const portraitHairAnchors = {
 } as const
 
 const portraitFringeAnchors = {
+  pinescout: [131, 42, 1.06],
   scout: [123, 62, 1.15],
   ranger: [124, 52, 1.07],
   guard: [119, 43, 1.02],
@@ -254,6 +304,12 @@ const portraitFringeAnchors = {
 } as const
 
 const fieldHairAnchors = {
+  pinescout: [
+    [55, 24],
+    [52, 24],
+    [64, 23],
+    [75, 24],
+  ],
   scout: [
     [56, 23],
     [53, 23],
@@ -367,7 +423,50 @@ const hairSilhouettes: Record<
   },
 } as const
 
-export function paintedHairLayers(look: PaintedWardrobeLook, facing?: AppearanceFacing) {
+const paintedHairFits = {
+  feather: { crown: true, front: true, width: 136, x: -4, top: -43 },
+  quiff: { crown: true, front: true, width: 131, x: 2, top: -46 },
+  curls: { crown: true, front: true, width: 133, x: -1, top: -40 },
+  crown: { crown: true, front: true, width: 126, x: 0, top: -22 },
+  layers: { crown: false, front: false, width: 190, x: 43, top: -22 },
+  bun: { crown: false, front: false, width: 78, x: -14, top: 27 },
+  topknot: { crown: true, front: true, width: 84, x: -23, top: -69 },
+  pony: { crown: false, front: false, width: 103, x: -4, top: 32 },
+  braid: { crown: false, front: true, width: 57, x: 5, top: 74 },
+  twins: { crown: false, front: true, width: 122, x: 43, top: 58 },
+  waves: { crown: false, front: false, width: 103, x: -7, top: 56 },
+} as const
+
+function paintedPlayerHairLayers(look: PaintedPlayerLook, facing?: AppearanceFacing) {
+  const { hairstyle, identity, hairDye } = look
+  if (hairstyle === 'natural') return ['', ''] as const
+  const { crown, front, width, x, top } = paintedHairFits[hairstyle]
+  const asset = PAINTED_HAIRSTYLES[hairstyle]
+  const fieldScale = facing ? 0.25 : 1
+  const visualWidth = width * fieldScale
+  const height = (visualWidth * asset.height) / asset.width
+  const [anchorX, anchorY] = facing
+    ? fieldHairAnchors[identity][APPEARANCE_FACINGS.indexOf(facing)]!
+    : (crown ? portraitFringeAnchors : portraitHairAnchors)[identity]
+  const center = facing && crown ? 64 : anchorX
+  const artX = center + x * fieldScale - visualWidth / 2
+  const artY = Math.max(facing ? 2 : 0, anchorY + top * fieldScale)
+  const filter = `painted-hair-dye-${facing ?? 'portrait'}`
+  const pigment = WARDROBE_HAIR_COLORS[hairDye].rgb ?? sourceHair[identity]
+  const transform = facing
+    ? `translate(3.52 7.44) scale(.32)${facing === 'west' ? ` translate(${center * 2} 0) scale(-1 1)` : ''}`
+    : ''
+  const art = `<g transform="${transform}"><defs>${pigmentFilter(filter, pigment, 101, 0.83)}</defs>
+    <image href="${asset.uri}" x="${artX}" y="${artY}" width="${visualWidth}" height="${height}" filter="url(#${filter})"/>
+  </g>`
+  return front ? (['', art] as const) : ([art, ''] as const)
+}
+
+export function paintedHairLayers(
+  look: PaintedWardrobeLook | PaintedPlayerLook,
+  facing?: AppearanceFacing,
+) {
+  if ('backdrop' in look) return paintedPlayerHairLayers(look, facing)
   if (look.hairstyle === 'natural') return ['', ''] as const
   const { body, highlights, front, strands } = hairSilhouettes[look.hairstyle]
   const fieldAnchor = facing && fieldHairAnchors[look.identity][APPEARANCE_FACINGS.indexOf(facing)]

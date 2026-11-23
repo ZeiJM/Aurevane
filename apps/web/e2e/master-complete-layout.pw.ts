@@ -5,7 +5,6 @@ import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { chromium, expect, test } from '@playwright/test'
 import { exerciseMasterAtBrowserZoom } from './master-zoom-workflows'
-import { expectPortraitGalleryLayout } from './portrait-gallery-workflows'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 import {
   acquirePlayersFixtureOwner,
@@ -43,7 +42,7 @@ function sql(query: string) {
   ).trim()
 }
 
-test('complete Master destinations and portrait gallery fit desktop, touch and actual browser zoom', async ({
+test('complete Master destinations and appearance editor fit desktop, touch and actual browser zoom', async ({
   baseURL,
 }, info) => {
   test.setTimeout(180000)
@@ -244,24 +243,32 @@ test('complete Master destinations and portrait gallery fit desktop, touch and a
         await expect
           .poll(async () => Math.abs((await metrics()).innerWidth - baseline.innerWidth / 1.25))
           .toBeLessThanOrEqual(2)
-        const portraitZoom = await metrics()
-        expect(portraitZoom.cssZoom).toBe('1')
-        await page.getByRole('button', { name: 'Choose Default Portrait', exact: true }).click()
-        const portraitLayout = await expectPortraitGalleryLayout(page)
-        await info.attach('actual-portrait-browser-zoom.json', {
+        const appearanceZoom = await metrics()
+        expect(appearanceZoom.cssZoom).toBe('1')
+        await page.getByRole('button', { name: 'Design sprite', exact: true }).click()
+        const dialog = page.getByRole('dialog', { name: 'Character appearance', exact: true })
+        const portraits = dialog.getByRole('group', { name: 'Portrait expressions' })
+        await expect(portraits.getByRole('img')).toHaveCount(5)
+        await expect(dialog).toBeInViewport({ ratio: 1 })
+        const layout = await dialog.evaluate((element) => ({
+          bounds: element.getBoundingClientRect().toJSON(),
+          horizontalOverflow: element.scrollWidth - element.clientWidth,
+        }))
+        expect(layout.horizontalOverflow).toBeLessThanOrEqual(1)
+        const reset = dialog.getByRole('button', { name: 'Reset', exact: true })
+        await reset.scrollIntoViewIfNeeded()
+        await expect(reset).toBeInViewport({ ratio: 1 })
+        await info.attach('actual-appearance-browser-zoom.json', {
           body: JSON.stringify({
             baseline,
-            zoomed: portraitZoom,
+            zoomed: appearanceZoom,
             readback: 1.25,
-            layout: portraitLayout,
+            layout,
           }),
           contentType: 'application/json',
         })
-        await page.screenshot({ path: info.outputPath('portrait-layout-real125.png') })
-        await page
-          .getByRole('dialog', { name: 'Default portrait', exact: true })
-          .getByRole('button', { name: 'Close', exact: true })
-          .click()
+        await page.screenshot({ path: info.outputPath('appearance-layout-real125.png') })
+        await dialog.getByRole('button', { name: 'Close', exact: true }).click()
         expect(await setZoom(1)).toBe(1)
       }
     }

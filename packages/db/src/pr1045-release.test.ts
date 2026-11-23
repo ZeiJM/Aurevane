@@ -43,21 +43,20 @@ it('applies the exact combined batch, aborts a preservation failure, and rejects
         [name.slice(0, 14), name.slice(15, -4), readFileSync(resolve(migrationDir, name), 'utf8')],
       )
     }
-    const appearanceTest = readFileSync(
-      resolve(root, 'supabase/tests/safe_character_appearance.sql'),
-      'utf8',
-    )
-    await db.exec(
-      appearanceTest
-        .split('do $$')[0]!
-        .replace('begin;', '')
-        .replace('set local plpgsql.check_asserts = on;', '')
-        .replaceAll('84000000-', '85000000-')
-        .replaceAll('Look Regression', 'Existing Sprite')
-        .replaceAll('look regression', 'existing sprite')
-        .replaceAll('Cuff Regression', 'Queued Sprite')
-        .replaceAll('cuff regression', 'queued sprite'),
-    )
+    await db.exec(`
+      insert into auth.users(id) values ('85000000-0000-4000-8000-000000000001');
+      insert into public.player_profiles(user_id)
+        values ('85000000-0000-4000-8000-000000000001') on conflict do nothing;
+      insert into public.characters (
+        id,user_id,slot_index,rules_version,name,name_key,presentation_id,pronoun_preset_id,
+        portrait_ref,starter_appearance_ref,foundation_discipline_id,might,finesse,vitality,
+        agility,intellect,resolve,level,xp,progression_cycle,created_at,cycle_started_at,last_active_at
+      ) values (
+        '85000000-0000-4000-8000-000000000011','85000000-0000-4000-8000-000000000001',
+        0,1,'Existing Sprite','existing sprite','default','they','portrait.adventure.male-01',
+        'appearance.test','vanguard',12,4,7,4,3,6,1,0,1,now(),now(),now()
+      );
+    `)
     const version3 =
       '/api/media/appearance/3/slight.tan.braid.copper.doublet.open.split.lacing.pointed.linen.satchel.pine.original.flared/neutral.svg'
     await db.query(
@@ -109,7 +108,6 @@ it('applies the exact combined batch, aborts a preservation failure, and rejects
           where character_id='85000000-0000-4000-8000-000000000011'`)
       ).rows,
     ).toEqual([{ appearance_image_url: version3, confirmed_sprite_designs: 1 }])
-    await db.exec(appearanceTest)
     await expect(db.transaction((tx) => tx.exec(sql))).rejects.toThrow('RELEASE_BASELINE_CHANGED')
     expect(await snapshot()).toEqual(after)
     const version5 =
@@ -119,13 +117,15 @@ it('applies the exact combined batch, aborts a preservation failure, and rejects
        where character_id='85000000-0000-4000-8000-000000000011'`,
     )
     const expectedRevision = current.rows[0]!.appearance_revision
-    const saved = await db.query(
-      `select public.commit_character_appearance_v3(
-        '85000000-0000-4000-8000-000000000001', '85000000-0000-4000-8000-000000000011',
-        $1, $2
-      ) as receipt`,
-      [expectedRevision, version5],
-    )
+    const saveAppearance = (revision: number, imageUrl: string) =>
+      db.query(
+        `select public.commit_character_appearance_v3(
+          '85000000-0000-4000-8000-000000000001', '85000000-0000-4000-8000-000000000011',
+          $1, $2
+        ) as receipt`,
+        [revision, imageUrl],
+      )
+    const saved = await saveAppearance(expectedRevision, version5)
     expect(saved.rows).toEqual([
       {
         receipt: {
@@ -136,6 +136,9 @@ it('applies the exact combined batch, aborts a preservation failure, and rejects
         },
       },
     ])
+    await expect(saveAppearance(expectedRevision + 1, version3)).rejects.toThrow(
+      'CHARACTER_APPEARANCE_LOCKED',
+    )
   } finally {
     await db.close()
   }

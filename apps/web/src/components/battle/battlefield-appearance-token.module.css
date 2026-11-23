@@ -7,18 +7,62 @@
   aspect-ratio: 3 / 4;
   transform: translateX(-50%);
   background-image: var(--atlas);
+  background-repeat: no-repeat;
   background-size: var(--atlas-size);
   background-position: var(--x0) var(--y);
   pointer-events: none;
+  --motion-timing: steps(var(--motion-steps), jump-none);
+  --receipt-duration: 520ms;
+}
+
+:global(
+  main:is(
+      [data-pvp-spectator='true'],
+      [data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind]
+    )
+    section#battlefield
+    button[aria-label*='occupied by']
+    > [data-team]
+):has(> .actor) {
+  border-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.actor[data-battle-appearance-pose='idle'] {
+  animation: actor-ready var(--ready-duration) var(--motion-timing) infinite;
+}
+
+.actor[data-battle-appearance-pose='walk'] {
+  animation: actor-walk var(--walk-duration) var(--motion-timing) infinite;
 }
 
 .actor:is(
   [data-battle-appearance-pose='attack'],
   [data-battle-appearance-pose='cast'],
-  [data-battle-appearance-pose='hit'],
-  [data-battle-appearance-pose='walk']
+  [data-battle-appearance-pose='hit']
 ) {
-  animation: actor-receipt 520ms step-end both;
+  animation:
+    actor-receipt var(--receipt-duration) step-end both,
+    actor-ready var(--ready-duration) var(--motion-timing) var(--receipt-duration) infinite;
+}
+
+@keyframes actor-walk {
+  from {
+    background-position: var(--x0) var(--y);
+  }
+  to {
+    background-position: var(--x-last) var(--y);
+  }
+}
+
+@keyframes actor-ready {
+  from {
+    background-position: var(--x0) var(--idle-y);
+  }
+  to {
+    background-position: var(--x-last) var(--idle-y);
+  }
 }
 
 @keyframes actor-receipt {

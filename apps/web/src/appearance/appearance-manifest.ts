@@ -6,11 +6,15 @@ import {
   type PaintedLook,
 } from './appearance-painted-catalog'
 import {
+  PAINTED_PLAYER_FIELDS,
   PAINTED_WARDROBE_FIELDS,
   originalWardrobeFeatures,
+  paintedPlayerRecipe,
   WARDROBE_OUTERWEAR,
+  readPaintedPlayerLook,
   readWardrobeLook,
   wardrobeRecipe,
+  type PaintedPlayerLook,
   type PaintedWardrobeLook,
 } from './appearance-painted-wardrobe'
 import { CUFFS, supportsCuff, type Cuff, type CuffChoice } from './appearance-cuff-catalog'
@@ -67,12 +71,16 @@ const paintedIdentityParts = {
   ranger: { body: 'slight', complexion: 'brown', hair: 'braid' },
   guard: { body: 'broad', complexion: 'deep', hair: 'crop' },
   elder: { complexion: 'light', hair: 'swept', hairColor: 'silver' },
-} as const satisfies Record<PaintedLook['identity'], Partial<SharedAppearanceParts>>
+  pinescout: { body: 'slight', hair: 'braid', hairColor: 'copper', palette: 'pine' },
+} as const satisfies Record<PaintedPlayerLook['identity'], Partial<SharedAppearanceParts>>
 
 export type PaintedAppearanceBlueprint = SharedAppearanceParts & PaintedLook & { readonly v: 4 }
 export type WardrobeAppearanceBlueprint = SharedAppearanceParts &
   PaintedWardrobeLook & { readonly v: 5 }
-export type AnyPaintedAppearanceBlueprint = PaintedAppearanceBlueprint | WardrobeAppearanceBlueprint
+export type PaintedPlayerAppearanceBlueprint = SharedAppearanceParts &
+  PaintedPlayerLook & { readonly v: 6 }
+export type AnyPaintedAppearanceBlueprint =
+  PaintedAppearanceBlueprint | WardrobeAppearanceBlueprint | PaintedPlayerAppearanceBlueprint
 
 export function paintedAppearanceBlueprint(look: PaintedLook): PaintedAppearanceBlueprint {
   const [
@@ -115,6 +123,19 @@ export function wardrobeAppearanceBlueprint(
   })
 }
 
+export function paintedPlayerAppearanceBlueprint(
+  look: PaintedPlayerLook,
+): PaintedPlayerAppearanceBlueprint {
+  const normalized = readPaintedPlayerLook(paintedPlayerRecipe(look))
+  if (!normalized) throw new TypeError('Incompatible painted appearance')
+  return Object.freeze({
+    ...scoutBase,
+    ...paintedIdentityParts[look.identity],
+    ...normalized,
+    v: 6,
+  })
+}
+
 export type AppearanceBlueprint = SharedAppearanceParts &
   (
     | { readonly v: 1 }
@@ -126,7 +147,7 @@ export type AppearanceBlueprint = SharedAppearanceParts &
 export type AppearanceExpression = (typeof APPEARANCE_EXPRESSIONS)[number]
 export type AppearanceFacing = (typeof APPEARANCE_FACINGS)[number]
 export type AppearancePose = (typeof APPEARANCE_POSES)[number]
-export type AppearanceAsset = AppearanceExpression | 'icon' | 'atlas'
+export type AppearanceAsset = AppearanceExpression | 'icon' | 'atlas' | 'motion'
 
 export const APPEARANCE_FRAME = {
   width: 48,
@@ -137,6 +158,17 @@ export const APPEARANCE_FRAME = {
   columns: APPEARANCE_FACINGS.length * 3,
   rows: APPEARANCE_POSES.length,
 } as const
+
+const motionFrames = 8
+
+export const APPEARANCE_MOTION_FRAME = {
+  ...APPEARANCE_FRAME,
+  frames: motionFrames,
+  columns: APPEARANCE_FACINGS.length * motionFrames,
+} as const
+
+export const APPEARANCE_WALK_CYCLE_MS = 640
+export const APPEARANCE_READY_CYCLE_MS = 2400
 
 export const APPEARANCE_ASSET_PREFIX = '/api/media/appearance/'
 const fields = Object.keys(APPEARANCE_CATALOG) as AppearanceField[]
@@ -201,21 +233,26 @@ export const APPEARANCE_PRESETS = [
 export function parseAppearanceBlueprint(input: unknown): AppearanceBlueprint | null {
   if (typeof input !== 'object' || input === null || Array.isArray(input)) return null
   const values = input as Record<string, unknown>
-  if (values.v === 5) {
+  if (values.v === 5 || values.v === 6) {
     const featureFields = Object.keys(originalWardrobeFeatures)
     const hasFeatures = featureFields.some((field) => Object.hasOwn(values, field))
-    const wardrobeFields = Object.keys(PAINTED_WARDROBE_FIELDS).filter(
+    const catalog = values.v === 6 ? PAINTED_PLAYER_FIELDS : PAINTED_WARDROBE_FIELDS
+    const wardrobeFields = Object.keys(catalog).filter(
       (field) => hasFeatures || !featureFields.includes(field),
     )
     const recipe = wardrobeFields.map((field) => values[field])
     const originalFeatures = featureFields.every((field) => values[field] === 'natural')
-    const look = readWardrobeLook(
-      originalFeatures ? recipe.slice(0, -featureFields.length) : recipe,
-    )
-    if (!look || Object.keys(values).length !== fields.length + wardrobeFields.length + 1)
-      return null
-    const blueprint = wardrobeAppearanceBlueprint(look)
-    return fields.every((field) => values[field] === blueprint[field]) ? blueprint : null
+    if (Object.keys(values).length !== fields.length + wardrobeFields.length + 1) return null
+    const parts = originalFeatures
+      ? wardrobeFields
+          .filter((field) => !featureFields.includes(field))
+          .map((field) => values[field])
+      : recipe
+    const blueprint =
+      values.v === 6 ? playerBlueprintFromParts(parts) : wardrobeBlueprintFromParts(parts)
+    return blueprint && fields.every((field) => values[field] === blueprint[field])
+      ? blueprint
+      : null
   }
   if (values.v === 4) {
     const paintedFields = Object.keys(PAINTED_FIELDS)
@@ -254,7 +291,8 @@ export function withLowerGarment(
   blueprint: AppearanceBlueprint,
   choice: LowerGarmentChoice,
 ): AppearanceBlueprint | null {
-  if (blueprint.v === 4 || blueprint.v === 5) return choice === 'original' ? blueprint : null
+  if (blueprint.v === 4 || blueprint.v === 5 || blueprint.v === 6)
+    return choice === 'original' ? blueprint : null
   if (blueprint.v === 3) return parseAppearanceBlueprint({ ...blueprint, lower: choice })
   if (choice !== 'original') return parseAppearanceBlueprint({ ...blueprint, v: 2, lower: choice })
   if (blueprint.v === 1) return blueprint
@@ -268,7 +306,8 @@ export function withCuff(
   blueprint: AppearanceBlueprint,
   choice: CuffChoice,
 ): AppearanceBlueprint | null {
-  if (blueprint.v === 4 || blueprint.v === 5) return choice === 'original' ? blueprint : null
+  if (blueprint.v === 4 || blueprint.v === 5 || blueprint.v === 6)
+    return choice === 'original' ? blueprint : null
   if (choice !== 'original') {
     return parseAppearanceBlueprint({
       ...blueprint,
@@ -286,13 +325,13 @@ export function withCuff(
 }
 
 export function varyAppearanceOutfit(blueprint: AppearanceBlueprint): AppearanceBlueprint {
-  if (blueprint.v === 5) {
+  if (blueprint.v === 5 || blueprint.v === 6) {
     const outerwear = Object.keys(WARDROBE_OUTERWEAR) as PaintedWardrobeLook['outerwear'][]
     const index = outerwear.indexOf(blueprint.outerwear)
-    return wardrobeAppearanceBlueprint({
-      ...blueprint,
-      outerwear: outerwear[(index + 1) % outerwear.length]!,
-    })
+    const next = outerwear[(index + 1) % outerwear.length]!
+    return blueprint.v === 6
+      ? paintedPlayerAppearanceBlueprint({ ...blueprint, outerwear: next })
+      : wardrobeAppearanceBlueprint({ ...blueprint, outerwear: next })
   }
   if (blueprint.v === 4) {
     const outerwear = Object.keys(PAINTED_CLOTHING) as PaintedLook['outerwear'][]
@@ -316,11 +355,13 @@ export function compileAppearanceManifest(input: AppearanceBlueprint) {
   const blueprint = parseAppearanceBlueprint(input)
   if (!blueprint) throw new TypeError('Incompatible appearance')
   const parts: string[] =
-    blueprint.v === 5
-      ? [...wardrobeRecipe(blueprint)]
-      : blueprint.v === 4
-        ? [...paintedRecipe(blueprint)]
-        : fields.map((field) => blueprint[field])
+    blueprint.v === 6
+      ? [...paintedPlayerRecipe(blueprint)]
+      : blueprint.v === 5
+        ? [...wardrobeRecipe(blueprint)]
+        : blueprint.v === 4
+          ? [...paintedRecipe(blueprint)]
+          : fields.map((field) => blueprint[field])
   if (blueprint.v === 2 || blueprint.v === 3) parts.push(blueprint.lower)
   if (blueprint.v === 3) parts.push(blueprint.cuff)
   const id = `${blueprint.v}/${parts.join('.')}`
@@ -336,20 +377,33 @@ export function compileAppearanceManifest(input: AppearanceBlueprint) {
     portraits,
     icon: `${base}/icon.svg`,
     atlas: `${base}/atlas.svg`,
+    motionAtlas: `${base}/motion.svg`,
     frame: APPEARANCE_FRAME,
   })
 }
 
 export type AppearanceManifest = ReturnType<typeof compileAppearanceManifest>
 
+function wardrobeBlueprintFromParts(parts: readonly unknown[]) {
+  const look = readWardrobeLook(parts)
+  return look ? wardrobeAppearanceBlueprint(look) : null
+}
+
+function playerBlueprintFromParts(parts: readonly unknown[]) {
+  const look = readPaintedPlayerLook(parts)
+  return look ? paintedPlayerAppearanceBlueprint(look) : null
+}
+
 export function appearanceBlueprintFromId(
   id: string,
   assetVersion: AppearanceBlueprint['v'] | string = 1,
 ): AppearanceBlueprint | null {
+  if (assetVersion === 6 || assetVersion === '6') {
+    return id.length <= 140 ? playerBlueprintFromParts(id.split('.')) : null
+  }
   if (assetVersion === 5 || assetVersion === '5') {
     if (id.length > 140) return null
-    const look = readWardrobeLook(id.split('.'))
-    return look ? wardrobeAppearanceBlueprint(look) : null
+    return wardrobeBlueprintFromParts(id.split('.'))
   }
   if (assetVersion === 4 || assetVersion === '4') {
     const look = readPaintedLook(id.split('.'))
@@ -386,7 +440,10 @@ export function appearanceManifestFromImageUrl(url: string | null | undefined) {
 
 export function isAppearanceAsset(value: string): value is AppearanceAsset {
   return (
-    value === 'atlas' || value === 'icon' || APPEARANCE_EXPRESSIONS.some((mood) => mood === value)
+    value === 'atlas' ||
+    value === 'motion' ||
+    value === 'icon' ||
+    APPEARANCE_EXPRESSIONS.some((mood) => mood === value)
   )
 }
 
@@ -399,4 +456,22 @@ export function appearanceFrameIndex(
     column: APPEARANCE_FACINGS.indexOf(facing) * APPEARANCE_FRAME.frames + frame,
     row: APPEARANCE_POSES.indexOf(pose),
   }
+}
+
+export function appearanceMotionFrameIndex(
+  facing: AppearanceFacing,
+  pose: AppearancePose,
+  frame: number,
+) {
+  return {
+    column: APPEARANCE_FACINGS.indexOf(facing) * APPEARANCE_MOTION_FRAME.frames + frame,
+    row: APPEARANCE_POSES.indexOf(pose),
+  }
+}
+
+export function appearanceWalkFrame(elapsedMs: number) {
+  return (
+    Math.floor((elapsedMs * APPEARANCE_MOTION_FRAME.frames) / APPEARANCE_WALK_CYCLE_MS) %
+    APPEARANCE_MOTION_FRAME.frames
+  )
 }

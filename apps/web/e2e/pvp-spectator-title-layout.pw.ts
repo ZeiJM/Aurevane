@@ -15,11 +15,9 @@ async function provision(page: Page, prefix: string, title?: string) {
   })
   if (title) {
     await page.goto('/game/account/titles')
-    await page.getByRole('textbox', { name: /^Personal title/ }).fill(title)
-    await page.getByRole('button', { name: 'Review Title' }).click()
-    await page.getByRole('checkbox', { name: /one personal-title choice/ }).check()
-    await page.getByRole('button', { name: 'Confirm Final Title' }).click()
-    await expect(page.getByText('Choice used')).toBeVisible()
+    const option = page.getByRole('button', { name: new RegExp(title) })
+    await option.click()
+    await expect(option).toHaveAttribute('aria-pressed', 'true')
   }
   return name
 }
@@ -64,8 +62,8 @@ test('keeps the complete acting title clear of VS without resizing spectator art
   )
   const [host, guest, watcher] = await Promise.all(contexts.map((context) => context.newPage()))
   try {
-    const hostTitle = `WWWWWWWWWWWW${randomUUID().replaceAll('-', '').slice(0, 8)}`
-    const guestTitle = `WWWWWWWWWWWW${randomUUID().replaceAll('-', '').slice(0, 8)}`
+    const hostTitle = 'Horizon Wanderer'
+    const guestTitle = 'Dawn Seeker'
     const hostName = await provision(host!, 'TitleHost', hostTitle)
     const guestName = await provision(guest!, 'TitleGuest', guestTitle)
     await provision(watcher!, 'TitleWatcher')
@@ -113,7 +111,6 @@ test('keeps the complete acting title clear of VS without resizing spectator art
     )
     expect([hostName, guestName]).toContain(active.characterName)
     const title = active.characterName === hostName ? hostTitle : guestTitle
-    expect(title).toHaveLength(20)
     const titleNode = watcher!.getByText(title, { exact: true })
     await expect(titleNode).toBeVisible()
     // Titles are immutable during battle. Compare the same rendered frame with only

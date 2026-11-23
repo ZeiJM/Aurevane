@@ -75,6 +75,21 @@ test('keeps Move reachable tiles distinct and executes one clicked path through 
     .getByRole('progressbar', { name: 'Action Economy remaining' })
     .getAttribute('aria-valuenow')
   const destination = (await reachable.getAttribute('aria-label'))!.split(';')[0]!
+  const walkSamples = await page.evaluateHandle((name) => {
+    const samples: number[] = []
+    const sample = () => {
+      const token = document.querySelector<HTMLElement>('[data-battle-token-walking="true"]')
+      if (token?.parentElement?.getAttribute('aria-label')?.includes(`occupied by ${name}`)) {
+        const [x, y] = token.style.translate.split(' ').map(Number.parseFloat)
+        samples.push(Math.hypot(x!, y!))
+      } else if (samples.length > 0) {
+        return
+      }
+      requestAnimationFrame(sample)
+    }
+    requestAnimationFrame(sample)
+    return samples
+  }, identity.characterName)
   const result = await commitGesture(page, reachable)
   expect(result.request().postDataJSON().intent.kind).toBe('move')
   await expect(
@@ -85,10 +100,20 @@ test('keeps Move reachable tiles distinct and executes one clicked path through 
     name: new RegExp(`^${destination};.*occupied by ${identity.characterName}`),
   })
   await expect(occupiedDestination).toBeVisible()
+  await expect
+    .poll(() =>
+      walkSamples.evaluate((samples) =>
+        samples.some((sample) => sample > 0.5 && sample < Math.max(...samples) - 0.5),
+      ),
+    )
+    .toBe(true)
+  await expect(occupiedDestination.locator('[data-battle-token-walking]')).toHaveCount(0)
+  await walkSamples.dispose()
   await page.reload()
   await expect(
     page.getByRole('button', {
       name: new RegExp(`^${destination};.*occupied by ${identity.characterName}`),
     }),
   ).toBeVisible()
+  await expect(battlefield.locator('[data-battle-token-walking]')).toHaveCount(0)
 })

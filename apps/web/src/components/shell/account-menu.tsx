@@ -125,7 +125,7 @@ export function AccountMenu({
               role="menuitem"
               onClick={() => setOpen(false)}
             >
-              {canQueueAppearance ? 'Character appearance' : 'Titles & Profile Display'}
+              {canQueueAppearance ? 'Character appearance' : 'Appearance & Title'}
             </Link>
           ) : null}
           {activeSessionHref ? (

@@ -262,16 +262,16 @@ function polishBattlefieldTokens(
     const combatantName = combatantNameForTile(tile, token, combatantAccents)
     // React resolves every visible summon through its owner. Prefer that pinned identity over
     // the original roster's name lookup, which omits summons and can contain duplicate names.
-    const identityAccent =
+    const tokenAccent =
       token.style.getPropertyValue('--battle-combatant-accent').trim() ||
       (combatantName ? combatantAccents[combatantName] : undefined)
-    const tokenAccent = identityAccent
-    if (tokenAccent) token.style.setProperty('border-color', tokenAccent, 'important')
+    const embodied = token.querySelector(':scope > [data-battle-appearance-pose]') !== null
+    if (!embodied && tokenAccent) token.style.setProperty('border-color', tokenAccent, 'important')
     else token.style.removeProperty('border-color')
 
     const isAiPlayerToken = Boolean(playerName && combatantName === playerName)
     const compactViewport = !desktopPvpScale
-    if (compactViewport || isAiPlayerToken) {
+    if (!embodied && (compactViewport || isAiPlayerToken)) {
       token.style.setProperty('box-shadow', PLAYER_TOKEN_SHADOW, 'important')
     } else {
       token.style.removeProperty('box-shadow')

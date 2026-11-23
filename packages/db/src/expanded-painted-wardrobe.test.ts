@@ -26,11 +26,11 @@ it('uses the existing Creation, Account and NPC authority for expanded painted d
     const charId = result.rows[0]!.id
     const profile = () =>
       db.query(
-        'select confirmed_sprite_designs, appearance_revision, appearance_image_url from public.character_profile_display where character_id=$1',
+        'select appearance_revision, appearance_image_url from public.character_profile_display where character_id=$1',
         [charId],
       )
     expect((await profile()).rows).toEqual([
-      { confirmed_sprite_designs: 1, appearance_revision: 1, appearance_image_url: recipe },
+      { appearance_revision: 1, appearance_image_url: recipe },
     ])
     const verifyNpc = (candidate: string) =>
       db.query('select app_private.valid_npc_appearance_v1(to_jsonb($1::text)) as valid', [
@@ -51,8 +51,15 @@ it('uses the existing Creation, Account and NPC authority for expanded painted d
     ]) {
       await expect(verifyNpc(invalid)).resolves.toMatchObject({ rows: [{ valid: false }] })
     }
+    await db.query(
+      `select public.grant_character_items_v1(
+        $1,$2,(public.read_character_item_inventory_v1($1,$2)->>'revision')::bigint,
+        'expanded-wardrobe-test','[{"itemId":"item.appearance-token","quantity":1}]'::jsonb
+      )`,
+      [actor, charId],
+    )
     const save = (revision: number, next: string) =>
-      db.query('select public.commit_character_appearance_v3($1,$2,$3,$4) as receipt', [
+      db.query('select public.commit_character_appearance_v4($1,$2,$3,$4) as receipt', [
         actor,
         charId,
         revision,
@@ -61,13 +68,13 @@ it('uses the existing Creation, Account and NPC authority for expanded painted d
     const saved = await save(1, final)
     expect(saved.rows).toEqual([
       {
-        receipt: { revision: 2, imageUrl: final, pendingImageUrl: null, remainingDesigns: 0 },
+        receipt: { revision: 2, imageUrl: final, pendingImageUrl: null, appearanceTokens: 0 },
       },
     ])
     expect((await save(1, final)).rows).toEqual(saved.rows)
-    await expect(save(2, recipe)).rejects.toThrow('CHARACTER_APPEARANCE_LOCKED')
+    await expect(save(2, recipe)).rejects.toThrow('APPEARANCE_TOKEN_REQUIRED')
     expect((await profile()).rows).toEqual([
-      { confirmed_sprite_designs: 2, appearance_revision: 2, appearance_image_url: final },
+      { appearance_revision: 2, appearance_image_url: final },
     ])
   } finally {
     await db.close()

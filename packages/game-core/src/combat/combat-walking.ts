@@ -461,6 +461,9 @@ export function executePreparedCombatWalking(
             ...moves[0]!,
             to: moves.at(-1)!.to,
             movementCost: moves.reduce((sum, event) => sum + event.movementCost, 0),
+            ...(!options.committed || options.actionId === 'basic.move'
+              ? { walkPath: [moves[0]!.from, ...moves.map((event) => event.to)] }
+              : {}),
           },
         ]
   const spends = movementEvents.filter(

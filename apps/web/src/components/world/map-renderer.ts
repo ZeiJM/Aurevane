@@ -19,8 +19,9 @@ import { createWorldLightingCache, paintWorldLighting } from './map-daylight'
 import {
   APPEARANCE_ASSET_PREFIX,
   APPEARANCE_FRAME,
-  appearanceFrameIndex,
   appearanceManifestFromImageUrl,
+  appearanceMotionFrameIndex,
+  appearanceWalkFrame,
   type AppearanceFacing,
 } from '@/appearance/appearance-manifest'
 import {
@@ -686,7 +687,10 @@ export function createMapRenderer(
     requestDraw()
   })
   const actorAssets = new Map<string, ReturnType<typeof appearanceManifestFromImageUrl>>()
-  let actorPositions = new Map<string, { point: MapPoint; facing: AppearanceFacing }>()
+  let actorPositions = new Map<
+    string,
+    { point: MapPoint; facing: AppearanceFacing; walkingSince: number | null }
+  >()
   const images = new Map<string, HTMLImageElement>(),
     portraits = new Map<string, HTMLImageElement>()
   const cache = new Map<
@@ -3021,7 +3025,7 @@ export function createMapRenderer(
       const asset = manifestFor(image)
       if (!asset) return null
       requestedActors++
-      const atlas = visibleImage(asset.atlas)
+      const atlas = visibleImage(asset.motionAtlas)
       if (!atlas) return null
       embodiedActors++
       const previous = previousActorPositions.get(id)
@@ -3037,11 +3041,15 @@ export function createMapRenderer(
             ? 'south'
             : 'north'
         : (previous?.facing ?? 'south')
-      actorPositions.set(id, { point, facing })
-      const frame = !reduced && animate && moving ? [0, 1, 0, 2][Math.floor(now / 100) % 4]! : 0
+      const walkingSince = !reduced && animate && moving ? (previous?.walkingSince ?? now) : null
+      actorPositions.set(id, { point, facing, walkingSince })
       return {
         atlas,
-        ...appearanceFrameIndex(facing, moving ? 'walk' : 'idle', frame),
+        ...appearanceMotionFrameIndex(
+          facing,
+          walkingSince === null ? 'idle' : 'walk',
+          walkingSince === null ? 0 : appearanceWalkFrame(now - walkingSince),
+        ),
         still: false,
       }
     }

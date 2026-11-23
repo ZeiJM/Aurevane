@@ -6,6 +6,7 @@ import {
   PAINTED_FIELDS,
   type PaintedLook,
 } from './appearance-painted-catalog'
+import { APPEARANCE_BACKDROPS } from './appearance-backdrop-catalog'
 
 export const WARDROBE_DYES = {
   ...PAINTED_COLORS,
@@ -165,6 +166,23 @@ export type PaintedWardrobeLook = Readonly<{
   [Field in keyof typeof PAINTED_WARDROBE_FIELDS]: keyof (typeof PAINTED_WARDROBE_FIELDS)[Field]
 }>
 
+export const PAINTED_PORTRAIT_SETTINGS = {
+  original: 'Original studio',
+  ...APPEARANCE_BACKDROPS,
+} as const
+
+export const PAINTED_PLAYER_FIELDS = {
+  ...PAINTED_WARDROBE_FIELDS,
+  identity: { pinescout: 'Pine Scout', ...PAINTED_FIELDS.identity },
+  backdrop: PAINTED_PORTRAIT_SETTINGS,
+} as const
+
+export type PaintedPlayerLook = Readonly<{
+  [Field in keyof typeof PAINTED_PLAYER_FIELDS]: keyof (typeof PAINTED_PLAYER_FIELDS)[Field]
+}>
+
+type PaintedWardrobeParts = Omit<PaintedPlayerLook, 'backdrop'>
+
 export const PAINTED_WARDROBE_LABELS = {
   identity: 'Character',
   outerwear: 'Clothing style',
@@ -192,7 +210,7 @@ export function wardrobeLook(look: PaintedLook = DEFAULT_PAINTED_LOOK): PaintedW
   return { bodyFrame: 'natural', skinTone: 'natural', ...originalWardrobeFeatures, ...look }
 }
 
-export function wardrobeRecipe(look: PaintedWardrobeLook) {
+export function wardrobeRecipe(look: PaintedWardrobeParts) {
   const features = [look.hairstyle, look.hairDye, look.eyeColor] as const
   return [
     look.identity,
@@ -210,25 +228,44 @@ export function wardrobeRecipe(look: PaintedWardrobeLook) {
   ] as const
 }
 
+export function paintedPlayerRecipe(look: PaintedPlayerLook) {
+  return [...wardrobeRecipe(look), look.backdrop] as const
+}
+
 const wardrobeFields = Object.keys(PAINTED_WARDROBE_FIELDS) as (keyof PaintedWardrobeLook)[]
 const originalFieldCount = wardrobeFields.length - Object.keys(originalWardrobeFeatures).length
 
-export function readWardrobeLook(values: readonly unknown[]): PaintedWardrobeLook | null {
+function readLook(
+  values: readonly unknown[],
+  catalog: typeof PAINTED_WARDROBE_FIELDS | typeof PAINTED_PLAYER_FIELDS,
+): PaintedWardrobeParts | null {
   if (values.length !== originalFieldCount && values.length !== wardrobeFields.length) return null
   const fields = wardrobeFields.slice(0, values.length)
   for (const [index, field] of fields.entries()) {
     const value = values[index]
-    if (typeof value !== 'string' || !Object.hasOwn(PAINTED_WARDROBE_FIELDS[field], value))
-      return null
+    if (typeof value !== 'string' || !Object.hasOwn(catalog[field], value)) return null
   }
   const look = {
     ...originalWardrobeFeatures,
     ...Object.fromEntries(fields.map((field, index) => [field, values[index]])),
-  } as PaintedWardrobeLook
+  } as PaintedWardrobeParts
   const recipe = wardrobeRecipe(look)
   return recipe.length === values.length && recipe.every((value, index) => value === values[index])
     ? look
     : null
+}
+
+export function readWardrobeLook(values: readonly unknown[]): PaintedWardrobeLook | null {
+  const look = readLook(values, PAINTED_WARDROBE_FIELDS)
+  return look as PaintedWardrobeLook | null
+}
+
+export function readPaintedPlayerLook(values: readonly unknown[]): PaintedPlayerLook | null {
+  const backdrop = values.at(-1)
+  if (typeof backdrop !== 'string' || !Object.hasOwn(PAINTED_PORTRAIT_SETTINGS, backdrop))
+    return null
+  const parts = readLook(values.slice(0, -1), PAINTED_PLAYER_FIELDS)
+  return parts ? { ...parts, backdrop: backdrop as PaintedPlayerLook['backdrop'] } : null
 }
 
 export function randomWardrobeLook(): PaintedWardrobeLook {

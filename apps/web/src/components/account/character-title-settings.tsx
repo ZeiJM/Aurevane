@@ -1,498 +1,100 @@
 'use client'
 
-import { STARTER_CHARACTER_PORTRAITS } from '@aurevane/game-core/character/starter-options'
-import { AurevaneImage } from '@/components/media/aurevane-image'
-import { getStarterPortraitImageAssetId } from '@/media/character'
-import type { CharacterPortraitRef } from '@aurevane/game-core/character/creation'
 import { useRouter } from 'next/navigation'
-import { useMemo, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 
-import { CharacterAppearanceSettings } from './character-appearance-settings'
+import { isStarterTitle, STARTER_TITLES, type StarterTitle } from '@/appearance/starter-titles'
+import type { AppearanceGender } from '@/appearance/appearance-painted-looks'
 import { SettingsScene } from '@/components/settings/settings-scene'
+import { CharacterAppearanceSettings } from './character-appearance-settings'
 import styles from './character-title-settings.module.css'
 
 interface CharacterTitleSettingsProps {
   characterId: string
-  characterName: string
-  disciplineName: string
   personalTitle: string | null
-  personalTitleSetAt: string | null
-  imageUrl: string | null
-  portraitRef?: CharacterPortraitRef
-  portraitChoiceAvailable?: boolean
-  portraitChoiceUsedAt?: string | null
-  remainingSpriteDesigns: number
+  appearanceTokens: number
   pendingSpriteDesign: boolean
-}
-
-const TITLE_PATTERN = /^[A-Za-z0-9 ]+$/
-
-function imageHostPageMessage(value: string): string | null {
-  const trimmed = value.trim()
-  if (!trimmed) return null
-  try {
-    const hostname = new URL(trimmed).hostname.toLowerCase()
-    if (hostname === 'ibb.co' || hostname === 'www.ibb.co' || hostname === 'imgbb.com') {
-      return 'That is an image-host page, not the image itself. On ImgBB, copy the Direct link; it normally begins with https://i.ibb.co/.'
-    }
-  } catch {
-    return null
-  }
-  return null
+  initialGender?: AppearanceGender
 }
 
 export function CharacterTitleSettings({
   characterId,
-  characterName,
-  disciplineName,
   personalTitle,
-  personalTitleSetAt,
-  imageUrl,
-  portraitRef,
-  portraitChoiceAvailable = false,
-  remainingSpriteDesigns,
+  appearanceTokens,
   pendingSpriteDesign,
+  initialGender,
 }: CharacterTitleSettingsProps) {
   const router = useRouter()
-  const [draft, setDraft] = useState('')
-  const [reviewing, setReviewing] = useState(false)
-  const [confirmedPermanent, setConfirmedPermanent] = useState(false)
-  const [pending, setPending] = useState(false)
-  const [message, setMessage] = useState<string | null>(null)
-  const [imageDraft, setImageDraft] = useState(imageUrl ?? '')
-  const [imagePending, setImagePending] = useState(false)
-  const [imageMessage, setImageMessage] = useState<string | null>(null)
-  const [imagePreviewFailed, setImagePreviewFailed] = useState(false)
+  const saving = useRef(false)
+  const [title, setTitle] = useState(isStarterTitle(personalTitle) ? personalTitle : null)
+  const [pending, setPending] = useState<StarterTitle | null>(null)
+  const [message, setMessage] = useState('')
 
-  const normalizedDraft = useMemo(() => draft.trim().replace(/\s+/g, ' '), [draft])
-  const valid =
-    normalizedDraft.length >= 1 &&
-    normalizedDraft.length <= 20 &&
-    TITLE_PATTERN.test(normalizedDraft)
-
-  async function confirmTitle() {
-    if (!valid || !confirmedPermanent || pending || personalTitleSetAt) return
-    setPending(true)
-    setMessage(null)
+  async function equip(next: StarterTitle) {
+    if (saving.current || next === title) return
+    saving.current = true
+    setPending(next)
+    setMessage('')
     try {
       const response = await fetch('/api/account/titles/personal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ characterId, title: normalizedDraft }),
+        body: JSON.stringify({ characterId, title: next }),
       })
       const body = (await response.json()) as {
-        title?: { personalTitle?: string }
+        title?: { personalTitle?: unknown }
         error?: { message?: string }
       }
-      if (!response.ok || !body.title?.personalTitle) {
-        setMessage(body.error?.message ?? 'The title could not be confirmed.')
+      if (!response.ok || body.title?.personalTitle !== next) {
+        setMessage(body.error?.message ?? 'The title could not be equipped.')
         return
       }
-      setMessage(`${body.title.personalTitle} is now ${characterName}'s personal title.`)
+      setTitle(next)
+      setMessage(`Equipped ${next}.`)
       router.refresh()
     } catch {
-      setMessage('The title service could not be reached. Nothing was changed.')
+      setMessage('The title service could not be reached. Try again.')
     } finally {
-      setPending(false)
+      saving.current = false
+      setPending(null)
     }
   }
-
-  async function saveImage() {
-    if (imagePending) return
-    const hostPageMessage = imageHostPageMessage(imageDraft)
-    if (hostPageMessage) {
-      setImageMessage(hostPageMessage)
-      return
-    }
-
-    setImagePending(true)
-    setImageMessage(null)
-    try {
-      const response = await fetch('/api/account/profile-display', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ characterId, imageUrl: imageDraft.trim() || null }),
-      })
-      const body = (await response.json()) as {
-        display?: { imageUrl?: string | null }
-        error?: { message?: string }
-      }
-      if (!response.ok || !body.display) {
-        setImageMessage(body.error?.message ?? 'The profile image could not be saved.')
-        return
-      }
-      setImageDraft(body.display.imageUrl ?? '')
-      setImagePreviewFailed(false)
-      setImageMessage(
-        body.display.imageUrl ? 'Profile image saved.' : 'Custom profile image removed.',
-      )
-      router.refresh()
-    } catch {
-      setImageMessage('The profile display service could not be reached. Nothing was changed.')
-    } finally {
-      setImagePending(false)
-    }
-  }
-
-  const [portraitDraft, setPortraitDraft] = useState<CharacterPortraitRef | null>(null)
-  const [portraitPending, setPortraitPending] = useState(false)
-  const [currentPortrait, setCurrentPortrait] = useState(portraitRef)
-  const [portraitMessage, setPortraitMessage] = useState<string | null>(null)
-  const portraitDialog = useRef<HTMLDialogElement>(null)
-  const portraitSaving = useRef(false)
-  async function saveDefaultPortrait() {
-    if (!portraitDraft || portraitSaving.current || !portraitChoiceAvailable) return
-    portraitSaving.current = true
-    setPortraitPending(true)
-    setPortraitMessage(null)
-    try {
-      const response = await fetch('/api/account/default-portrait', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ characterId, portraitRef: portraitDraft }),
-      })
-      const body = (await response.json()) as {
-        choice?: { portraitRef?: string; changedAt?: string | null }
-        error?: { message?: string }
-      }
-      if (!response.ok || body.choice?.portraitRef !== portraitDraft) {
-        setPortraitMessage(body.error?.message ?? 'The portrait change could not be confirmed.')
-        return
-      }
-      setCurrentPortrait(portraitDraft)
-      setPortraitDraft(null)
-      setImageDraft('')
-      setImagePreviewFailed(false)
-      setPortraitMessage('Default portrait changed.')
-      router.refresh()
-    } catch {
-      setPortraitMessage(
-        'The portrait service could not be reached. Your choice was not confirmed.',
-      )
-    } finally {
-      portraitSaving.current = false
-      setPortraitPending(false)
-    }
-  }
-
-  const currentHostMessage = imageHostPageMessage(imageDraft)
 
   return (
-    <SettingsScene title="Portrait & Title" description="Carry the marks of your journey.">
+    <SettingsScene
+      title="Appearance & Title"
+      description="Shape your character’s look and choose a title."
+    >
       <div className={styles.layout} data-character-concept="titles" data-av-surface="moonstone">
-        <section className={styles.personal} aria-labelledby="personal-title-heading">
-          <header>
-            <div>
-              <span>Personal title</span>
-              <h2 id="personal-title-heading">Choose your personal title.</h2>
-            </div>
-            <strong>{personalTitleSetAt ? 'Choice used' : 'Available'}</strong>
-          </header>
-
-          {personalTitleSetAt && personalTitle ? (
-            <div className={styles.lockedState}>
-              <span>Confirmed title</span>
-              <strong>{personalTitle}</strong>
-              <p>
-                Your one personal-title choice is confirmed. This identity record is permanent;
-                future earned distinctions can use the visible title slot.
-              </p>
-            </div>
-          ) : !reviewing ? (
-            <>
-              <p className={styles.explanation}>
-                Choose 1–20 characters using letters, numbers, and spaces. Review the exact display
-                before confirming your one personal-title choice.
-              </p>
-
-              <label className={styles.field}>
-                <span>Personal title</span>
-                <input
-                  value={draft}
-                  onChange={(event) => {
-                    setDraft(event.target.value)
-                    setReviewing(false)
-                    setConfirmedPermanent(false)
-                    setMessage(null)
-                  }}
-                  maxLength={20}
-                  autoComplete="off"
-                  placeholder="e.g. Dawn Warden"
-                  aria-invalid={draft.length > 0 && !valid ? true : undefined}
-                  disabled={pending}
-                />
-                <small>{normalizedDraft.length}/20 · letters, numbers, spaces</small>
-              </label>
-
+        <section className={styles.panel} aria-labelledby="personal-title-heading">
+          <h2 id="personal-title-heading">Starter titles</h2>
+          <p>Choose a title. You can switch whenever you like.</p>
+          <div className={styles.choices}>
+            {STARTER_TITLES.map((option) => (
               <button
+                key={option}
                 type="button"
-                className={styles.reviewButton}
-                disabled={!valid || pending}
-                onClick={() => setReviewing(true)}
+                aria-pressed={title === option}
+                disabled={pending !== null}
+                onClick={() => void equip(option)}
               >
-                Review Title
+                {option}
+                {title === option && <span>Equipped</span>}
+                {pending === option && <span>Equipping…</span>}
               </button>
-            </>
-          ) : (
-            <div className={styles.confirmation}>
-              <span>Final profile preview</span>
-              <div className={styles.previewName}>
-                <strong>{characterName}</strong>
-                <div className={styles.pills}>
-                  <span className={styles.disciplinePill}>{disciplineName}</span>
-                  <span className={styles.titlePill}>{normalizedDraft}</span>
-                </div>
-              </div>
-              <label className={styles.confirmCheck}>
-                <input
-                  type="checkbox"
-                  checked={confirmedPermanent}
-                  onChange={(event) => setConfirmedPermanent(event.target.checked)}
-                  disabled={pending}
-                />
-                <span>
-                  I understand this is this character&apos;s one personal-title choice and cannot be
-                  repeatedly edited.
-                </span>
-              </label>
-              <div className={styles.actions}>
-                <button
-                  type="button"
-                  className={styles.quietButton}
-                  disabled={pending}
-                  onClick={() => {
-                    setReviewing(false)
-                    setConfirmedPermanent(false)
-                  }}
-                >
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  className={styles.confirmButton}
-                  disabled={!confirmedPermanent || pending}
-                  onClick={() => void confirmTitle()}
-                >
-                  {pending ? 'Confirming…' : 'Confirm Final Title'}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {message ? (
-            <p className={styles.message} role="status" aria-live="polite">
-              {message}
-            </p>
-          ) : null}
-
-          <section className={styles.appearance} aria-labelledby="character-appearance-heading">
-            <h2 id="character-appearance-heading">Character appearance</h2>
-            <CharacterAppearanceSettings
-              key={characterId}
-              characterId={characterId}
-              initialRemainingDesigns={remainingSpriteDesigns}
-              initialPending={pendingSpriteDesign}
-            />
-          </section>
-        </section>
-
-        <dialog
-          ref={portraitDialog}
-          className={styles.defaultPortrait}
-          aria-labelledby="default-portrait-heading"
-          tabIndex={-1}
-          onKeyDown={(event) => {
-            if (event.key !== 'Tab') return
-            const enabled = Array.from(
-              event.currentTarget.querySelectorAll<HTMLInputElement | HTMLButtonElement>(
-                'input:not(:disabled), button:not(:disabled)',
-              ),
-            ).filter((control) => control.tabIndex >= 0 && control.getClientRects().length > 0)
-            // A radio group contributes one tab stop; arrow keys retain native selection.
-            const controls = enabled.filter(
-              (control) =>
-                control.type !== 'radio' ||
-                control ===
-                  (enabled.find(
-                    (candidate) =>
-                      candidate.type === 'radio' && (candidate as HTMLInputElement).checked,
-                  ) ?? enabled.find((candidate) => candidate.type === 'radio')),
-            )
-            const first = controls[0]
-            const last = controls[controls.length - 1]
-            if (!first) {
-              event.preventDefault()
-              event.currentTarget.focus()
-            } else if (event.shiftKey && document.activeElement === first) {
-              event.preventDefault()
-              last?.focus()
-            } else if (!event.shiftKey && document.activeElement === last) {
-              event.preventDefault()
-              first.focus()
-            }
-          }}
-          onCancel={(event) => {
-            if (portraitPending) event.preventDefault()
-          }}
-        >
-          <header className={styles.portraitHeading}>
-            <h2 id="default-portrait-heading">Default portrait</h2>
-            <button
-              type="button"
-              className={styles.quietButton}
-              disabled={portraitPending}
-              autoFocus
-              onClick={() => portraitDialog.current?.close()}
-            >
-              Close
-            </button>
-          </header>
-          {!portraitChoiceAvailable ? (
-            <p>Default portrait choices are temporarily unavailable.</p>
-          ) : (
-            <>
-              <p>
-                Confirming replaces any custom portrait URL with the portrait you choose. A shared
-                appearance takes precedence over your default portrait.
-              </p>
-              <fieldset className={styles.portraitGallery} disabled={portraitPending}>
-                <legend>Choose your default portrait</legend>
-                {STARTER_CHARACTER_PORTRAITS.map((option) => (
-                  <label key={option.ref} data-selected={portraitDraft === option.ref}>
-                    <input
-                      type="radio"
-                      name="default-portrait"
-                      aria-label={option.label}
-                      checked={portraitDraft === option.ref}
-                      onChange={() => {
-                        setPortraitDraft(option.ref)
-                        setPortraitMessage(null)
-                      }}
-                    />
-                    <AurevaneImage
-                      assetId={getStarterPortraitImageAssetId(option.ref)}
-                      sizes="96px"
-                    />
-                    <span>
-                      {option.label}
-                      {option.ref === currentPortrait ? ' (current)' : ''}
-                    </span>
-                  </label>
-                ))}
-              </fieldset>
-              <footer
-                className={styles.portraitFooter}
-                role="group"
-                aria-label="Portrait selection"
-              >
-                <p role="status">
-                  {portraitMessage ??
-                    (portraitDraft
-                      ? `Selected: ${STARTER_CHARACTER_PORTRAITS.find((option) => option.ref === portraitDraft)?.label}`
-                      : 'Choose a portrait to preview your selection.')}
-                </p>
-                <button
-                  type="button"
-                  className={styles.confirmButton}
-                  disabled={!portraitDraft || portraitPending}
-                  onClick={() => void saveDefaultPortrait()}
-                >
-                  {portraitPending ? 'Saving…' : 'Confirm Default Portrait'}
-                </button>
-              </footer>
-            </>
-          )}
-        </dialog>
-
-        <section className={styles.profileImage} aria-labelledby="profile-image-heading">
-          <div>
-            <span>Character image</span>
-            <h2 id="profile-image-heading">Portrait URL</h2>
-            <p>
-              Direct JPG, PNG, WebP or GIF link; square-cropped. Use 128–4096 px artwork, up to 8 MB
-              static or 12 MB GIF.
-            </p>
-            <p>Used when the character does not have a shared appearance.</p>
+            ))}
           </div>
-          {imageDraft.trim() && !imagePreviewFailed && !currentHostMessage ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={imageDraft.trim()}
-              alt={`${characterName} profile preview`}
-              referrerPolicy="no-referrer"
-              onError={() => {
-                setImagePreviewFailed(true)
-                setImageMessage(
-                  'That URL did not load as an image. Copy the direct image link from your host, then try again.',
-                )
-              }}
-            />
-          ) : (
-            <div className={styles.imagePlaceholder}>
-              {imagePreviewFailed || currentHostMessage
-                ? 'Direct image required'
-                : 'No custom image'}
-            </div>
-          )}
-          <label className={styles.field}>
-            <span>Direct image URL</span>
-            <input
-              value={imageDraft}
-              onChange={(event) => {
-                setImageDraft(event.target.value)
-                setImagePreviewFailed(false)
-                setImageMessage(null)
-              }}
-              maxLength={2048}
-              inputMode="url"
-              autoComplete="url"
-              placeholder="https://i.ibb.co/.../portrait.png"
-              disabled={imagePending}
-              aria-invalid={currentHostMessage ? true : undefined}
-            />
-            <small>
-              ImgBB: use “Direct link” (i.ibb.co). Leave blank and save to restore the built-in
-              portrait fallback.
-            </small>
-          </label>
-          <div className={styles.portraitActions}>
-            <button
-              type="button"
-              className={styles.reviewButton}
-              onClick={() => void saveImage()}
-              disabled={imagePending || Boolean(currentHostMessage)}
-            >
-              {imagePending ? 'Saving…' : 'Save Profile Image'}
-            </button>
-            {portraitChoiceAvailable ? (
-              <button
-                type="button"
-                className={styles.quietButton}
-                aria-haspopup="dialog"
-                onClick={() => {
-                  setPortraitDraft(null)
-                  setPortraitMessage(null)
-                  portraitDialog.current?.showModal()
-                }}
-              >
-                Choose Default Portrait
-              </button>
-            ) : null}
-          </div>
-          {currentHostMessage ? <p className={styles.message}>{currentHostMessage}</p> : null}
-          {imageMessage && imageMessage !== currentHostMessage ? (
-            <p className={styles.message} role="status" aria-live="polite">
-              {imageMessage}
-            </p>
-          ) : null}
+          {message && <p role="status">{message}</p>}
         </section>
-
-        <section className={styles.future}>
-          <span>Distinctions &amp; prestige titles</span>
-          <p>
-            Earned titles and distinctions will appear as progression sources unlock. Titles grant
-            no stat bonuses.
-          </p>
+        <section className={styles.panel} aria-labelledby="character-appearance-heading">
+          <h2 id="character-appearance-heading">Character appearance</h2>
+          <CharacterAppearanceSettings
+            key={characterId}
+            characterId={characterId}
+            initialAppearanceTokens={appearanceTokens}
+            initialPending={pendingSpriteDesign}
+            initialGender={initialGender}
+          />
         </section>
       </div>
     </SettingsScene>

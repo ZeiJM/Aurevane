@@ -335,7 +335,7 @@ test('Creation exposes 24 portraits per gender and preserves the complete authen
   await expect(page).toHaveURL(/\/game\/haven$/)
   const appearance = await page.request.get('/api/account/appearance')
   expect(appearance.ok()).toBe(true)
-  expect(await appearance.json()).toMatchObject({ appearance: { remainingDesigns: 1 } })
+  expect(await appearance.json()).toMatchObject({ appearance: { appearanceTokens: 0 } })
   await page.goto('/game/character')
   const railIdentity = page
     .getByTestId('authenticated-shell')

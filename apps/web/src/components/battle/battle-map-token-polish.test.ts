@@ -135,10 +135,12 @@ describe('battlefield semantic target polish', () => {
     expect(playable).not.toContain('token.style.boxShadow')
   })
 
-  it('keeps identity rings distinct from target highlights and fills 85% of each tile', () => {
+  it('keeps the fallback identity ring distinct from targeting and clears it for sprites', () => {
     const source = readLocalFile('battle-map-token-polish.tsx')
     expect(source).toContain('Math.min(cell.width, cell.height) * 0.85')
-    expect(source).toContain('const tokenAccent = identityAccent')
+    expect(source).toContain("token.querySelector(':scope > [data-battle-appearance-pose]')")
+    expect(source).toContain("if (!embodied && tokenAccent) token.style.setProperty('border-color'")
+    expect(source).toContain("else token.style.removeProperty('border-color')")
     expect(source).not.toContain('semanticAccent ?? identityAccent')
   })
 

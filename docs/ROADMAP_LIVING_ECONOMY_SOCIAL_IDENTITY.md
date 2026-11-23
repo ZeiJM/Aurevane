@@ -87,9 +87,9 @@ Out of scope:
 
 ## Ticket: Personal Title data boundary
 
-Do not necessarily expose the final title customization yet, but ensure character identity can later represent:
+Character identity supports:
 
-- one immutable Personal Title text entitlement;
+- shared starter title eligibility;
 - one selected Display Title reference;
 - Official Badge state separately derived from authority;
 - earned title collection.
@@ -248,22 +248,9 @@ As the item/build ecosystem expands:
 
 This is the primary phase for **Vowbond and player identity/title presentation**.
 
-## Ticket: Title Collection & Personal Title
+## Ticket: Title Collection & Display Title
 
-Implement:
-
-- Official Badge + Display Title separation;
-- one Personal Title custom string;
-- server-side validation/normalization/reserved-term protection;
-- exact preview before final lock;
-- clear final confirmation explaining that the text becomes locked;
-- one selected Display Title from eligible personal/earned titles;
-- freely show/hide/switch displayed title without changing Personal Title text;
-- profile/chat/social roster integration;
-- compact battle/party treatment;
-- title history required for moderation/support.
-
-Do not allow custom Personal Titles to imitate official Owner/staff authority.
+Support the three starter titles and free switching. Add earned-title eligibility and collection through future gameplay progression. Keep official badges tied to staff authority and display the equipped title consistently across profile, chat, social roster and battle surfaces.
 
 ## Ticket: Earned/Event Titles
 
@@ -303,10 +290,6 @@ Implement:
 - anniversary/Chronicle/title hooks.
 
 Do not add launch combat/XP/Mastery/profession/loot/tax advantages.
-
-## Ticket: Title Reforge entitlement boundary
-
-Prepare the Personal Title service to consume a verified Premium Commerce `Title Reforge` entitlement. The actual shop publication may arrive with the monetization surface, but Social World owns the safe title-change domain command.
 
 **Gate addition:** players can form visible social identities, collect titles, optionally form a Vowbond, and distinguish official staff/Owner badges from ordinary prestige without creating combat power.
 
@@ -538,10 +521,9 @@ plus:
 
 - earned title editor;
 - icon/palette controls from approved assets/tokens;
-- Personal Title policy;
+- starter and earned title catalog policy;
 - reserved authority terms;
 - support/moderation title correction;
-- Title Reforge product linkage;
 - title history/audit;
 - global disable/repair for a broken title definition.
 
@@ -641,7 +623,7 @@ Test:
 - Unicode normalization/homograph edge cases;
 - reserved official authority terms;
 - injection/markup rejection;
-- title lock/Title Reforge entitlement correctness;
+- repeated starter-title switching and earned-title eligibility;
 - no title purchase can grant an Official Badge;
 - staff badge removal when role revoked;
 - hidden-badge/stealth behavior;
@@ -697,7 +679,7 @@ The earliest Closed Alpha does not need every mature economy feature before comb
 - representative crafted item + enchantment integration;
 - basic Trade House listing flow before economy-scale testing;
 - commission escrow before Enchanter is considered production-ready;
-- Personal Title + earned title architecture;
+- starter and earned title architecture;
 - Owner `WORLDWRIGHT` badge;
 - delegated staff badge/permission foundation;
 - protected `/master` access anchored to stable Owner identity;

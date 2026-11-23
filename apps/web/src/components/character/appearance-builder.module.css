@@ -1,73 +1,243 @@
 .dialog {
-  width: min(52rem, calc(100vw - 1.5rem));
-  max-height: min(48rem, 90dvh);
-  padding: clamp(0.85rem, 3vw, 1.5rem);
-  border: 1px solid #a38758;
-  border-radius: 0.65rem;
-  background: #15242a;
-  color: #f4ecda;
+  --dialog-padding: clamp(0.75rem, 2vw, 1.25rem);
+  --gap: 0.8rem;
+  --control-height: 2.45rem;
+  --alternate-size: clamp(3rem, 8dvh, 4.6rem);
+  --gameplay-sprite-width: 3.65rem;
+
+  width: min(56rem, calc(100vw - 1.25rem));
+  max-width: none;
+  max-height: calc(100dvh - 1.25rem);
+  padding: var(--dialog-padding);
+  overflow: auto;
   overscroll-behavior: contain;
+  border: 1px solid #927955;
+  border-radius: 0.8rem;
+  background: radial-gradient(ellipse at top left, #273537 0%, #19272d 46%, #142127 100%);
+  box-shadow: 0 1rem 3.25rem rgb(1 8 12 / 56%);
+  color: #f2ead9;
+  color-scheme: dark;
 }
 
 .dialog::backdrop {
   background: rgb(7 13 17 / 76%);
 }
 
-.dialog h2 {
-  margin: 0;
-}
-
-.dialog button,
-.dialog select {
-  padding: 0.45rem 0.55rem;
-  border: 1px solid #a38758;
+.dialog :is(button, select) {
+  min-height: var(--control-height);
+  border: 1px solid #67706b;
   border-radius: 0.35rem;
-  background: #24373c;
-  color: #f4ecda;
+  background: #26383c;
+  color: #f5ede0;
   font: inherit;
 }
 
-.dialog button:disabled {
-  opacity: 0.5;
+.dialog button {
+  padding: 0.3rem 0.7rem;
+}
+
+.dialog select {
+  padding: 0.25rem 0.25rem 0.25rem 0.45rem;
+  text-overflow: ellipsis;
+}
+
+.dialog :is(button, select, label):focus-visible,
+.gender label:has(input:focus-visible) span {
+  outline: 2px solid #f1ca87;
+  outline-offset: 2px;
+}
+
+.dialog :is(button, select):disabled {
+  opacity: 0.53;
 }
 
 .dialogHeader,
 .dialogFooter,
-.actions {
+.dialogActions,
+.toolbar {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--gap);
 }
 
-.dialogHeader {
+.dialogHeader,
+.toolbar {
   justify-content: space-between;
 }
 
+.dialogHeader h2 {
+  margin: 0;
+  font-size: clamp(1.05rem, 3vw, 1.35rem);
+  line-height: 1.15;
+}
+
 .dialogFooter {
-  margin-block-start: 1rem;
-  justify-content: end;
+  justify-content: flex-end;
+  padding-block-start: var(--gap);
+  border-top: 1px solid #46534e;
+  font-size: 0.85rem;
+}
+
+.dialogActions {
+  justify-content: flex-end;
+  flex: none;
+}
+
+.confirmationHint,
+.dialogError,
+.legacyHint {
+  margin: 0;
+  color: #e6d6af;
+  font-size: 0.8rem;
+  line-height: 1.3;
 }
 
 .confirmationHint {
-  flex: 1 1 15rem;
-  margin: 0;
-  color: #f1d5a2;
+  flex: 1;
+}
+
+.dialogError {
+  margin-block: var(--gap);
+  color: #ffbcae;
+}
+
+.dialog .resetButton {
+  border-color: #a66057;
+  background: #642d2d;
+  color: #fff2ea;
+}
+
+.dialog .confirmButton {
+  border-color: #709f77;
+  background: #2e5b42;
+  color: #f1fff2;
+}
+
+.dialog .resetButton:enabled:hover {
+  background: #783939;
+}
+
+.dialog .confirmButton:enabled:hover {
+  background: #397451;
 }
 
 .builder {
   display: grid;
-  grid-template-columns: minmax(9rem, 1fr) minmax(14rem, 2fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.55fr);
+  grid-template-areas:
+    'toolbar toolbar'
+    'preview controls';
   align-items: start;
-  gap: 1rem;
-  margin-block: 0.75rem;
+  gap: var(--gap);
+  margin-block: var(--gap);
+}
+
+.toolbar {
+  grid-area: toolbar;
+  padding-block-end: var(--gap);
+  border-bottom: 1px solid #46534e;
+}
+
+.gender {
+  position: relative;
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0 0 0 3.6rem;
+  border: 0;
+}
+
+.gender legend {
+  position: absolute;
+  inset-block: 50% auto;
+  inset-inline-start: 0;
+  padding: 0;
+  color: #e6d6af;
+  font-size: 0.8rem;
+  font-weight: 600;
+  transform: translateY(-50%);
+}
+
+.genderChoices {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid #67706b;
+  border-radius: 0.35rem;
+  background: #1a2a2d;
+}
+
+.genderChoices label {
+  position: relative;
+}
+
+.genderChoices label + label {
+  border-inline-start: 1px solid #67706b;
+}
+
+.genderChoices input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+}
+
+.genderChoices span {
+  display: grid;
+  place-items: center;
+  min-height: calc(var(--control-height) - 2px);
+  padding-inline: clamp(0.5rem, 1.5vw, 0.85rem);
+  border-radius: 0.3rem;
+  font-size: 0.85rem;
+}
+
+.genderChoices input:checked + span {
+  background: #4a5547;
+  color: #fff4d7;
+  font-weight: 700;
+}
+
+.genderChoices input:disabled + span {
+  opacity: 0.53;
+}
+
+.dialog .randomize {
+  border-color: #a58a59;
+  background: #3e3a2c;
+  color: #fff0cd;
+  font-size: 0.85rem;
+  font-weight: 650;
+}
+
+.dialog .randomize:enabled:hover {
+  background: #564b35;
 }
 
 .preview {
   display: grid;
-  gap: 0.45rem;
-  justify-items: stretch;
+  grid-area: preview;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--gap);
   text-align: center;
+}
+
+.preview figure {
+  margin: 0;
+}
+
+.preview figcaption {
+  color: #e9dcc3;
+  font-size: 0.75rem;
+  line-height: 1.25;
+}
+
+.portraits {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  align-items: end;
+  justify-content: center;
+  gap: 0.4rem;
 }
 
 .portrait {
@@ -79,127 +249,320 @@
   border-radius: 0.35rem;
 }
 
-.previewControls {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.4rem;
+.portraits .portrait {
+  aspect-ratio: 1;
+  margin-block-end: 0.24rem;
+  border: 1px solid #74634b;
+  background: #283730;
 }
 
-.previewControls label {
-  display: grid;
-  gap: 0.2rem;
-  font-size: 0.8rem;
-}
-
-.poses {
-  display: flex;
-  align-items: end;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.poses figure {
+.neutralPortrait {
+  align-self: stretch;
   display: grid;
   justify-items: center;
-  margin: 0;
-  font-size: 0.75rem;
+  align-content: center;
+}
+
+.neutralPortrait .portrait {
+  max-width: calc(var(--alternate-size) * 2 + 0.4rem);
+  border-color: #ad9160;
+}
+
+.neutralPortrait figcaption {
+  color: #ffebbf;
+  font-weight: 700;
+}
+
+.alternatePortraits {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, var(--alternate-size)));
+  justify-content: center;
+  gap: 0.3rem 0.4rem;
+}
+
+.alternatePortraits .portrait {
+  max-width: var(--alternate-size);
+}
+
+.alternatePortraits figcaption {
+  font-size: clamp(0.6rem, 2.5vw, 0.75rem);
+}
+
+.gameplay {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.18fr);
+  align-items: end;
+  min-height: 0;
+  padding: 0.4rem;
+  border: 1px solid #44544f;
+  border-radius: 0.5rem;
+  background: radial-gradient(ellipse at center, #334a43, #1a2b30 80%);
+  gap: 0.3rem;
+}
+
+.gameplay figure {
+  display: grid;
+  justify-items: center;
+  align-items: end;
 }
 
 .icon img {
   display: block;
+  width: clamp(1.65rem, 4vw, 2.125rem);
+  height: auto;
+  margin-block-end: 0.16rem;
+  border: 1px solid #97805a;
   border-radius: 50%;
+}
+
+.battle {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.battle select {
+  width: 100%;
+  min-width: 0;
+  min-height: max(1.8rem, calc(var(--control-height) - 0.2rem));
+  font-size: 0.75rem;
 }
 
 .sprite {
   display: block;
+  width: var(--sprite-width);
   aspect-ratio: 3 / 4;
-  background-position: var(--x0) var(--y);
+  background-repeat: no-repeat;
+  background-position: var(--first-frame) var(--sprite-row);
+}
+
+.gameplay .sprite {
+  width: min(var(--sprite-width), var(--gameplay-sprite-width));
 }
 
 .sprite[data-preview-motion] {
-  animation: pose-preview 0.9s step-end infinite;
-}
-
-.sprite[data-preview-motion='walk'] {
-  animation-duration: 0.65s;
+  animation: pose-preview var(--preview-cycle) steps(var(--preview-frames), jump-none) infinite;
 }
 
 @keyframes pose-preview {
-  0%,
-  50% {
-    background-position: var(--x0) var(--y);
-  }
-  25% {
-    background-position: var(--x1) var(--y);
-  }
-  75% {
-    background-position: var(--x2) var(--y);
+  to {
+    background-position: var(--last-frame) var(--sprite-row);
   }
 }
 
 .controls {
-  display: grid;
-  gap: 0.5rem;
-}
-
-.controls fieldset {
-  min-width: 0;
+  grid-area: controls;
+  min-inline-size: 0;
   margin: 0;
-  padding: 0.55rem;
-  border: 1px solid #677470;
-  border-radius: 0.35rem;
-}
-
-.controls legend {
-  padding-inline: 0.25rem;
-  color: #e5c58b;
+  padding: 0;
+  border: 0;
 }
 
 .fields {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.4rem;
-  margin-block-end: 0.45rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem 0.5rem;
 }
 
 .fields label {
   display: grid;
-  gap: 0.15rem;
-  font-size: 0.85rem;
+  align-content: end;
+  gap: 0.18rem;
+  min-width: 0;
+  color: #ebdfc8;
+  font-size: 0.77rem;
+  font-weight: 550;
+  line-height: 1.12;
 }
 
 .fields select {
-  min-width: 0;
   width: 100%;
+  min-width: 0;
+  font-size: 0.85rem;
+  font-weight: 400;
 }
 
-@media (max-width: 38rem) {
+.fields label span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.legacyHint {
+  margin-block-end: 0.45rem;
+}
+
+@media (width < 36rem) {
+  .dialog {
+    --gap: 0.55rem;
+    --alternate-size: clamp(3rem, 7dvh, 4.1rem);
+    --gameplay-sprite-width: clamp(2.6rem, 5dvh, 3rem);
+    --control-height: 2.4rem;
+  }
+
   .builder {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'toolbar'
+      'preview'
+      'controls';
   }
 
   .preview {
-    grid-template-columns: 5rem minmax(0, 1fr);
-    text-align: start;
-    align-items: center;
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  .poses {
-    grid-column: 2;
-    justify-content: start;
+  .portraits {
+    width: min(100%, 22rem);
+    margin-inline: auto;
+  }
+
+  .gameplay {
+    grid-template-columns: 1fr 1fr 1.45fr;
+  }
+
+  .battle {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+  }
+}
+
+@media (min-width: 33rem) and (max-height: 32rem) {
+  .dialog {
+    --alternate-size: 2.25rem;
+    --control-height: 1.95rem;
+    --dialog-padding: 0.55rem;
+    --gap: 0.33rem;
+    --gameplay-sprite-width: 2rem;
+  }
+
+  .builder {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.6fr);
+    grid-template-areas:
+      'toolbar toolbar'
+      'preview controls';
+  }
+
+  .fields {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.35rem 0.4rem;
+  }
+
+  .gameplay {
+    grid-template-columns: 0.75fr 0.85fr 1.65fr;
+    padding: 0.2rem 0.3rem;
+  }
+
+  .battle {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+  }
+}
+
+@media (min-width: 33rem) and (max-height: 22rem) {
+  .dialog {
+    --control-height: 1.7rem;
+    --dialog-padding: 0.33rem;
+    --gap: 0.2rem;
+    max-height: calc(100dvh - 0.375rem);
+  }
+
+  .fields {
+    gap: 0.25rem 0.35rem;
+  }
+
+  .fields label {
+    gap: 0.08rem;
+    font-size: 0.69rem;
+    line-height: 1;
+  }
+
+  .fields select {
+    font-size: 0.75rem;
+  }
+}
+
+@media (width < 36rem) and (max-height: 49rem) and (orientation: portrait) {
+  .dialog {
+    --alternate-size: clamp(2.2rem, 7dvh, 3.35rem);
+    --neutral-size: clamp(4rem, 11dvh, 6rem);
+    --control-height: clamp(1.8rem, 5.05dvh, 2.35rem);
+    --dialog-padding: 0.45rem;
+    --gap: clamp(0.31rem, 0.85dvh, 0.48rem);
+    --gameplay-sprite-width: clamp(1.85rem, 5.2dvh, 2.5rem);
+  }
+
+  .portraits {
+    grid-template-columns: var(--neutral-size) minmax(0, 1fr);
+    gap: 0.35rem;
+  }
+
+  .alternatePortraits {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.2rem;
+  }
+
+  .gameplay {
+    padding: 0.16rem 0.35rem;
+  }
+
+  .portraits .portrait {
+    margin-block-end: 0.15rem;
+  }
+
+  .fields {
+    gap: 0.28rem 0.32rem;
+  }
+
+  .fields label {
+    font-size: 0.72rem;
+  }
+
+  .fields select {
+    font-size: 0.78rem;
+  }
+
+  .confirmationHint {
+    font-size: 0.69rem;
+  }
+}
+
+@media (max-width: 25rem) {
+  .dialogActions {
+    gap: 0.28rem;
+  }
+
+  .dialogActions button {
+    padding-inline: 0.42rem;
+    font-size: 0.78rem;
+  }
+}
+
+@media (max-width: 22rem) and (max-height: 39rem) {
+  .dialog {
+    --dialog-padding: 0.38rem;
+  }
+
+  .dialogFooter {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: end;
+    gap: 0.2rem;
+  }
+
+  .confirmationHint {
+    justify-self: start;
+    line-height: 1.2;
+  }
+
+  .fields label {
+    gap: 0.08rem;
+    line-height: 1;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .sprite[data-preview-motion] {
     animation: none;
-  }
-}
-
-@media (max-width: 27rem) {
-  .expandedWardrobe {
-    grid-template-columns: 1fr;
   }
 }
