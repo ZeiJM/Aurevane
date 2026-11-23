@@ -18,6 +18,7 @@ import { AudioWorkspace } from '@/components/audio/audio-workspace'
 import { createDefaultSiteMusicConfig, parseSiteMusicDraft } from '@/lib/site-music'
 import { DEFAULT_WORLD_ENVIRONMENT_SETTINGS } from '@/world/environment'
 import { defaultCombatEffectTimingPolicy } from '@aurevane/game-core/combat/combat-effect-timing'
+import { VOID_SECTOR_NUMBER_OFFSET } from '@/world/sector-index'
 import './production-styles'
 
 // Player facts are a local transport fixture; both nested sections are real components.
@@ -190,6 +191,16 @@ window.fetch = async (input, options) => {
       })
     if (body.operation === 'read' && body.characterId === player.characterId)
       return Response.json({ player })
+    if (body.operation === 'validate-teleport') {
+      const { sectorNumber, x, y, map } = body.destination
+      return Response.json({
+        available:
+          map === 'currentVoid' &&
+          sectorNumber === VOID_SECTOR_NUMBER_OFFSET + 34 &&
+          x === 6 &&
+          y === 4,
+      })
+    }
     if (
       body.operation === 'teleport' &&
       body.characterId === player.characterId &&
