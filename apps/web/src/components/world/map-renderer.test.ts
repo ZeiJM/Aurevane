@@ -653,7 +653,8 @@ describe('native map input and bounded lifecycle', () => {
     const s = scene(true)
     try {
       s.frame(40)
-      expect(s.texts.some(({ text }) => text === 'Forest Settlement')).toBe(true)
+      s.frame(76)
+      expect(s.texts.filter(({ text }) => text === 'Forest Settlement')).toHaveLength(1)
       s.texts.length = 0
       s.renderer.settings({ animate: false, zoom: 1, showLocationLabels: false })
       s.renderer.update({

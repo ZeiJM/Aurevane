@@ -4091,30 +4091,6 @@ export function createMapRenderer(
         ctx.restore()
       }
     }
-    if (locationLabels.length) {
-      const fontSize = Math.max(11, Math.min(14, Math.round(12 * tokenScale)))
-      const labelHeight = fontSize + 6
-      const occupied: LabelBounds[] = []
-      ctx.font = `600 ${fontSize}px Arial, sans-serif`
-      for (const { text, x, y } of locationLabels) {
-        const labelWidth = Math.ceil(ctx.measureText(text).width + 12)
-        const left = Math.max(3, Math.min(width - labelWidth - 3, Math.round(x - labelWidth / 2)))
-        const top = Math.max(3, Math.min(height - labelHeight - 3, Math.round(y)))
-        const bounds = { left, top, right: left + labelWidth, bottom: top + labelHeight }
-        if (
-          occupied.some(
-            (other) =>
-              bounds.left < other.right &&
-              bounds.right > other.left &&
-              bounds.top < other.bottom &&
-              bounds.bottom > other.top,
-          )
-        )
-          continue
-        occupied.push(bounds)
-        paintMapLabel(ctx, text, bounds, fontSize, 'location', ratio)
-      }
-    }
     canvas.dataset.clouds = String(cloudCount)
     canvas.dataset.cloudPhase = animate && !reduced ? String(Math.round(now / 100)) : '0'
     canvas.dataset.wildlife = String(wildlifeCount)
@@ -4127,15 +4103,16 @@ export function createMapRenderer(
       timing.weatherVeilPixels = weatherVeil.pixels
       phaseAt = ended
     }
-    // Identity is interface: weather and nighttime tint scenery, not portraits
-    // or nameplates. Retain the gray identity cue for travellers behind foliage.
+    // Keep labels and portraits on the retained layer above the weather.
     const identity: (string | number | boolean | null)[] = [
       identityRatio,
       width,
       height,
       tokenScale,
       radius,
+      locationLabels.length,
     ]
+    for (const { text, x, y } of locationLabels) identity.push(text, x, y)
     const occluderCell = 96
     const occluders = scenery.map((item) => {
       const point = screen({ x: item.x, y: item.y })
@@ -4286,6 +4263,31 @@ export function createMapRenderer(
           )
           identityContext.clearRect(left, top, right - left, bottom - top)
         } else identityContext.clearRect(0, 0, width, height)
+      }
+      if (locationLabels.length) {
+        const fontSize = Math.max(11, Math.min(14, Math.round(12 * tokenScale)))
+        const labelHeight = fontSize + 6
+        const occupied: LabelBounds[] = []
+        personContext.font = `600 ${fontSize}px Arial, sans-serif`
+        for (const { text, x, y } of locationLabels) {
+          const labelWidth = Math.ceil(personContext.measureText(text).width + 12)
+          const left = Math.max(3, Math.min(width - labelWidth - 3, Math.round(x - labelWidth / 2)))
+          const top = Math.max(3, Math.min(height - labelHeight - 3, Math.round(y)))
+          const bounds = { left, top, right: left + labelWidth, bottom: top + labelHeight }
+          if (
+            occupied.some(
+              (other) =>
+                bounds.left < other.right &&
+                bounds.right > other.left &&
+                bounds.top < other.bottom &&
+                bounds.bottom > other.top,
+            )
+          )
+            continue
+          occupied.push(bounds)
+          includeIdentityBounds(left, top, bounds.right, bounds.bottom)
+          paintMapLabel(personContext, text, bounds, fontSize, 'location', identityRatio)
+        }
       }
       for (const { stack, ghost, actor, image, previous } of identities) {
         drawPerson(stack, ghost && Boolean(actor), actor, image, previous)

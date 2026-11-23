@@ -89,9 +89,11 @@ describe('bounded weather motion', () => {
     const flakes = paintPrecipitation(canvas, 800, 600, 1000, 'rain', 'frostmere', wind)
     const storm = paintPrecipitation(canvas, 800, 600, 1000, 'storm', 'frostmere', wind)
     expect(storm).toBeGreaterThan(flakes)
-    expect(drawing.stroke).toHaveBeenCalledTimes(storm)
+    expect(drawing.stroke).toHaveBeenCalledTimes(3)
+    expect(drawing.lineTo).toHaveBeenCalledTimes(storm)
+    expect(drawing.fill).toHaveBeenCalledTimes(3)
     expect(drawing.arc).toHaveBeenCalledTimes(flakes)
-    expect(drawing.lineTo.mock.calls[0]![0]).toBeLessThan(drawing.moveTo.mock.calls[0]![0])
+    expect(drawing.lineTo.mock.calls[0]![0]).toBeLessThan(drawing.moveTo.mock.calls[flakes]![0])
   })
 })
 

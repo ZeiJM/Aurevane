@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest'
 import { existsSync } from 'node:fs'
 import { atlasSectors } from '../src/world/atlas'
-import { isWalkable } from '../src/world/travel'
+import { findWorldRoute, isWalkable } from '../src/world/travel'
 import { canonicalOcclusionWalks, correctionScenes } from './world-map-correction-scenes'
 
 it('reviews giant landmark detail from a distinct legal viewpoint instead of only the arena floor', () => {
@@ -20,6 +20,18 @@ it('reviews giant landmark detail from a distinct legal viewpoint instead of onl
     expect(y).toBeGreaterThanOrEqual(scene.footprint!.top)
     expect(y).toBeLessThan(scene.footprint!.top + scene.footprint!.height)
   }
+})
+
+it('selects opposite dry banks of the Umbral moat with an authored bridge through them', () => {
+  const scene = correctionScenes().landscapes.find((item) => item.moatCrossing)!
+  const { arrival, deck, water } = scene.moatCrossing!
+  const sector = atlasSectors().find(({ id }) => id === scene.position.sectorId)!
+  expect(sector.townId).toBe('umbral-march')
+  expect(sector.rows[water.y]?.[water.x]).toBe('~')
+  expect(findWorldRoute(scene.position, water, [sector])).toBeNull()
+  const route = findWorldRoute(scene.position, arrival, [sector])
+  expect(route?.map(({ position }) => position)).toContainEqual(deck)
+  expect(route).toHaveLength(arrival.x - scene.position.x)
 })
 it('selects the bounded correction matrix from actual public terrain and legal review positions', () => {
   const matrix = correctionScenes(),

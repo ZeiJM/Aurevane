@@ -2,7 +2,7 @@ import { retainWorldSceneReferences } from './presence'
 import { samePosition } from './travel'
 import { GRID_HEIGHT, GRID_WIDTH } from './catalog'
 import { encodeTerrainRows } from './terrain'
-import type { WorldView } from './types'
+import type { TravelStep, WorldPosition, WorldView } from './types'
 export type WorldMovementReceipt = Pick<
   WorldView,
   | 'characterId'
@@ -23,6 +23,15 @@ export type WorldMovementReceipt = Pick<
   interactions?: WorldView['interactions']
   npcs?: WorldView['npcs']
 }
+
+/** The same bounded lookahead selects and validates the supplied upcoming sector. */
+export function worldMovementReceiptBoundary(
+  origin: WorldPosition,
+  route: readonly TravelStep[],
+): TravelStep | undefined {
+  return route.slice(0, 8).find(({ position }) => position.sectorId !== origin.sectorId)
+}
+
 /** Supply the confirmed origin; retain the rest of the scene and public peer clocks. */
 export function mergeWorldMovement(view: WorldView, receipt: WorldMovementReceipt): WorldView {
   const { kind, currentSector, upcomingSector, interactions, npcs, ...owned } = receipt
@@ -42,9 +51,7 @@ export function mergeWorldMovement(view: WorldView, receipt: WorldMovementReceip
     sector.cells.some((cell) => cell.x === position.x && cell.y === position.y && cell.walkable)
   if (currentSector && !hasCell(currentSector, receipt.position))
     throw new Error('Movement terrain could not be loaded safely.')
-  const boundary = receipt.route
-    .slice(0, 6)
-    .find(({ position }) => position.sectorId !== receipt.position.sectorId)
+  const boundary = worldMovementReceiptBoundary(receipt.position, receipt.route)
   if (upcomingSector && (!boundary || !hasCell(upcomingSector, boundary.position)))
     throw new Error('Movement terrain could not be loaded safely.')
   // Insert the active boundary first so the confirmed sector always keeps its

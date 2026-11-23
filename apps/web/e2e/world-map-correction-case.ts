@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { writeFileSync } from 'node:fs'
 import sharp from 'sharp'
 import { expect, test, type Page, type TestInfo } from '@playwright/test'
@@ -14,6 +14,7 @@ import {
 } from './world-map-correction-observer'
 import { waitForWorldArt } from './world-art-readiness'
 import { openMapSettings, closeMapSettings } from './world-map-settings-helpers'
+import { matchesWorldWalk } from './world-presence-diagnostics'
 import { WORLD_MAX_ZOOM } from '../src/components/world/world-zoom'
 
 interface Harness {
@@ -229,13 +230,6 @@ export function registerWorldMapCorrectionCases(harness: Harness) {
             (edges) => edges.length,
           ),
         ).toBe(true)
-      if (spec.expect === 'bridge')
-        expect(
-          terrain.some(
-            (s) =>
-              s.townId === 'umbral-march' && s.cells.some((c) => c.terrain === 'w' && c.walkable),
-          ),
-        ).toBe(true)
       if (spec.expect === 'lavafall')
         expect(terrain.some((s) => s.cells.some((c) => c.terrain === 'l' && !c.walkable))).toBe(
           true,
@@ -418,7 +412,7 @@ export function registerWorldMapCorrectionCases(harness: Harness) {
     }
   })
 
-  test('@map-correction landscape, water, discoveries and shallow movement have native acceptance views', async ({
+  test('@map-correction landscape, water, discoveries and moat crossing have native acceptance views', async ({
     page,
   }, info) => {
     test.skip(
@@ -437,43 +431,59 @@ export function registerWorldMapCorrectionCases(harness: Harness) {
           await page.waitForTimeout(350)
           expect(digest(await page.locator(stage).screenshot())).not.toBe(digest(first))
         }
-        if (spec.expect === 'bridge') {
-          const own = view.sectors.find((s) => s.id === view.position.sectorId)!
-          const occupied = [...view.players, ...(view.npcs ?? [])].map((p) => p.position)
-          const target = own.cells
-            .filter(
-              (c) =>
-                c.terrain === 'w' &&
-                c.walkable &&
-                !occupied.some((p) => p.sectorId === own.id && p.x === c.x && p.y === c.y),
-            )
-            .map((to) => ({
-              to,
-              from: own.cells.find(
-                (from) => from.walkable && Math.abs(from.x - to.x) + Math.abs(from.y - to.y) === 1,
-              ),
-            }))
-            .find((pair) => pair.from)!
-          expect(target).toBeDefined()
-          await run.place({ sectorId: own.id, x: target.from!.x, y: target.from!.y })
-          await harness.stageWalk(page, { sectorId: own.id, x: target.to.x, y: target.to.y })
+        if (spec.moatCrossing) {
+          const { deck, water, arrival } = spec.moatCrossing
+          const own = view.sectors.find((sector) => sector.id === deck.sectorId)!
+          expect(own.townId).toBe('umbral-march')
+          expect(own.landmarks).toContainEqual(
+            expect.objectContaining({ kind: 'bridge', x: deck.x, y: deck.y }),
+          )
+          const cellAt = ({ x, y }: WorldPosition) =>
+            own.cells.find((cell) => cell.x === x && cell.y === y)
+          expect(cellAt(water)).toMatchObject({ terrain: '~', walkable: false })
+          expect(cellAt(deck)).toMatchObject({ walkable: true })
+
+          const blocked = await page.request.post('/api/world', {
+            data: {
+              characterId: view.characterId,
+              expectedVersion: view.version,
+              commandId: randomUUID(),
+              intent: { kind: 'walk', destination: water },
+            },
+          })
+          expect(blocked.status()).toBe(400)
+          expect(await blocked.json()).toMatchObject({
+            error: {
+              code: 'INVALID_REQUEST',
+              message: 'There is no known walkable route to that location.',
+            },
+          })
+          expect((await harness.world(page)).position).toEqual(spec.position)
+
+          const approved = page.waitForResponse(
+            (response) =>
+              response.request().method() === 'POST' &&
+              new URL(response.url()).pathname === '/api/world' &&
+              matchesWorldWalk(response.request().postDataJSON(), arrival) &&
+              response.status() !== 409,
+          )
+          await harness.stageWalk(page, arrival)
+          const receipt = await approved
+          expect(receipt.ok()).toBe(true)
+          const { route } = (await receipt.json()) as Pick<WorldView, 'route'>
+          expect(route).toContainEqual(expect.objectContaining({ position: deck }))
+          expect(route.at(-1)?.position).toEqual(arrival)
+          await expect.poll(async () => (await harness.world(page)).position).toEqual(arrival)
           await expect
-            .poll(async () => (await harness.world(page)).position)
-            .toEqual({ sectorId: own.id, x: target.to.x, y: target.to.y })
-          await expect
-            .poll(async () => (await observation(page)).shallowRipplePaints)
+            .poll(async () => profile(await observation(page)).movingFrames)
             .toBeGreaterThan(0)
           await run.record(`${spec.id}-moving-profile`, await harness.world(page))
           const moving = await page
             .locator('[data-world-workspace]')
             .screenshot({ animations: 'disabled' })
           await page.emulateMedia({ reducedMotion: 'reduce' })
-          const before = (await observation(page)).shallowRipplePaints
-          const back = { sectorId: own.id, x: target.from!.x, y: target.from!.y }
-          await harness.stageWalk(page, back)
-          await expect.poll(async () => (await harness.world(page)).position).toEqual(back)
-          await page.waitForTimeout(220)
-          expect((await observation(page)).shallowRipplePaints).toBe(before)
+          await harness.stageWalk(page, spec.position)
+          await expect.poll(async () => (await harness.world(page)).position).toEqual(spec.position)
           const reduced = await page
             .locator('[data-world-workspace]')
             .screenshot({ animations: 'disabled' })

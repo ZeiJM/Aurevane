@@ -30,9 +30,10 @@ export interface CorrectionScene {
   zoom?: number
   storm?: boolean
   reducedPair?: boolean
+  moatCrossing?: { deck: WorldPosition; water: WorldPosition; arrival: WorldPosition }
   footprint?: { left: number; top: number; width: number; height: number }
   artTiles?: { width: number; height: number }
-  expect?: 'rocks' | 'lake' | 'river' | 'coast' | 'bridge' | 'lavafall' | 'arena'
+  expect?: 'rocks' | 'lake' | 'river' | 'coast' | 'lavafall' | 'arena'
 }
 export function canonicalPublicView(sector: WorldSector): WorldSectorView {
   const { rows, roads, ...metadata } = sector
@@ -113,6 +114,20 @@ export function correctionScenes() {
     .map((sector) => ({ sector, fall: lavaFallSite(sector) }))
     .find(({ fall }) => fall)!
   if (!rock || !lava) throw new Error('Missing canonical snowy rock or lava cascade review scene')
+  const moat = sectors.find(
+    (sector) =>
+      sector.townId === 'umbral-march' &&
+      sector.landmarks.some((landmark) => landmark.name === 'West Moat Bridge'),
+  )
+  const bridge = moat?.landmarks.find((landmark) => landmark.name === 'West Moat Bridge')
+  if (!moat || !bridge) throw new Error('Missing the authored West Moat Bridge')
+  const wetColumns = new Set(
+    [bridge.y - 1, bridge.y + 1].flatMap((y) =>
+      [...(moat.rows[y] ?? '')].flatMap((cell, x) => (cell === '~' ? [x] : [])),
+    ),
+  )
+  if (!wetColumns.has(bridge.x)) throw new Error('West Moat Bridge must span water')
+  const onMoat = (x: number, y = bridge.y): WorldPosition => ({ sectorId: moat.id, x, y })
   const landscapes: CorrectionScene[] = [
     {
       id: 'snowy-rock-grounding-relief',
@@ -150,14 +165,15 @@ export function correctionScenes() {
       artTiles: { width: ocean.widthTiles, height: ocean.heightTiles },
     },
     {
-      id: 'walkable-moat-shallows',
-      position: point(
-        sectors.find(
-          (s) => s.townId === 'umbral-march' && s.landmarks.some((l) => l.kind === 'bridge'),
-        )!,
-      ),
+      id: 'umbral-moat-bridge-crossing',
+      position: onMoat(Math.min(...wetColumns) - 1),
       assets: ['grand-bridges-v01.webp'],
-      expect: 'bridge',
+      zoom: 0.65,
+      moatCrossing: {
+        deck: onMoat(bridge.x),
+        water: onMoat(bridge.x, bridge.y - 1),
+        arrival: onMoat(Math.max(...wetColumns) + 1),
+      },
     },
     {
       id: 'lava-channel-cascade',

@@ -14,7 +14,7 @@ import {
 } from '@/world/travel'
 import { savedWorldGeometryRecovery } from './world-geometry-recovery'
 import { STEP_MS } from '@/world/catalog'
-import type { WorldMovementReceipt } from '@/world/movement-receipt'
+import { worldMovementReceiptBoundary, type WorldMovementReceipt } from '@/world/movement-receipt'
 import type {
   WorldCommand,
   WorldInteractionActionId,
@@ -750,9 +750,7 @@ function movementReceipt(
     )
   // A short lookahead keeps the first approaching boundary drawable before
   // scene hydration. Only the currently known part of that sector is supplied.
-  const boundary = state.route.find(
-    (step, index) => index < 8 && step.position.sectorId !== state.position.sectorId,
-  )
+  const boundary = worldMovementReceiptBoundary(state.position, state.route)
   const upcoming =
     boundary && (approvedRoute.includes(boundary) || isKnownCell(state, boundary.position))
       ? resolveSector(boundary.position.sectorId)
