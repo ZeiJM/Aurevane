@@ -4,6 +4,8 @@ import { readFile } from 'node:fs/promises'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
 import { projectWorld, projectWorldSector } from '@/server/world/world-service'
+import { voidRealmFerryDock } from '@/server/world/void-realms'
+import { FERRYMAN_PORTRAIT, FERRYMAN_SPRITE } from '@/world/ferry'
 import { atlasSectors } from '@/world/atlas'
 import { CHARTED_SECTORS } from '@/world/catalog'
 import { GRAND_DISCOVERY_SITES, OFFSHORE_DISCOVERY } from '@/world/discovery-sites'
@@ -530,6 +532,54 @@ describe('native map input and bounded lifecycle', () => {
       s.event('pointerdown', candidate!.point.x, candidate!.point.y)
       s.event('pointerup', candidate!.point.x, candidate!.point.y)
       expect(s.select).not.toHaveBeenCalled()
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  })
+  it('renders the full Orchard ferry with a visible Ferryman and accepts clicks inland', () => {
+    const { sectorId, x, y } = voidRealmFerryDock('hollow-orchard')
+    const position = { sectorId, x, y }
+    const view = projectWorld(revealNearby({ ...newWorldState(), position }), [], 10 * 60_000)
+    const s = scene(true, {
+      ...view,
+      npcs: [
+        {
+          id: 'ferryman',
+          name: 'Ferryman',
+          position: { ...position, x: x + 1 },
+          imageUrl: FERRYMAN_PORTRAIT,
+          spriteUrl: FERRYMAN_SPRITE,
+        },
+      ],
+    })
+    try {
+      s.frame(40)
+      const hull = s.spriteDraws.find(({ src }) => src.endsWith('ferry-vessel-v01.webp'))
+      const sprite = s.spriteDraws.find(({ src }) => src === FERRYMAN_SPRITE)
+      expect(hull?.args).toHaveLength(4)
+      expect(sprite?.args.at(-1)).toBeGreaterThan(64)
+      expect(s.texts.map(({ text }) => text)).toEqual(
+        expect.arrayContaining(['Ferry Terminal', 'Ferryman']),
+      )
+      const destination = { sectorId, x: x + 3, y }
+      expect(
+        view.sectors
+          .find(({ id }) => id === sectorId)
+          ?.cells.some((cell) => cell.x === destination.x && cell.y === y),
+      ).toBe(false)
+      const camera = mapPoint(position, view.sectors)
+      const point = projectMapPoint(
+        mapPoint(destination, view.sectors, camera),
+        camera,
+        { x: 0, y: 0 },
+        64,
+        800,
+        600,
+      )
+      s.event('pointerdown', point.x, point.y)
+      s.event('pointerup', point.x, point.y)
+      expect(s.select).toHaveBeenCalledWith(destination)
     } finally {
       s.renderer.dispose()
       vi.unstubAllGlobals()

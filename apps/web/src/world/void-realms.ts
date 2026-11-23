@@ -66,6 +66,34 @@ export function parseVoidSectorId(id: string): VoidSectorAddress | null {
 
 export const isVoidRealmSectorId = (id: string) => parseVoidSectorId(id) !== null
 
+export function isLocalVoidWalk(originId: string, destinationId: string) {
+  const origin = parseVoidSectorId(originId)
+  const destination = parseVoidSectorId(destinationId)
+  return Boolean(
+    origin &&
+    destination &&
+    origin.realmId === destination.realmId &&
+    Math.abs(origin.column - destination.column) <= 2 &&
+    Math.abs(origin.row - destination.row) <= 2,
+  )
+}
+
+export function localVoidSectorIds(address: VoidSectorAddress) {
+  const ids: string[] = []
+  for (
+    let row = Math.max(0, address.row - 2);
+    row <= Math.min(VOID_REALM_ROWS - 1, address.row + 2);
+    row++
+  )
+    for (
+      let column = Math.max(0, address.column - 2);
+      column <= Math.min(VOID_REALM_COLUMNS - 1, address.column + 2);
+      column++
+    )
+      ids.push(voidSectorId(address.realmId, column, row))
+  return ids
+}
+
 export function voidSectorId(realmId: VoidRealmId, column: number, row: number): string {
   if (
     !isVoidRealmId(realmId) ||

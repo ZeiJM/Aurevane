@@ -35,7 +35,6 @@ import {
 } from '@/appearance/appearance-preferences'
 import { GRID_HEIGHT, GRID_WIDTH, STEP_MS } from '@/world/catalog'
 import {
-  FERRY_MAINLAND_DOCK,
   FERRY_NORTH_DOCK,
   FERRY_ASTERWAKE_DOCK,
   ferryAtPort,
@@ -60,6 +59,7 @@ import { mapPoint, type MapPoint, WorldMotion } from './world-motion'
 import { WorldPlayerMotion } from './map-player-motion'
 import { clampWorldZoom } from './world-zoom'
 import { samePosition } from '@/world/travel'
+import { isLocalVoidWalk, isVoidRealmSectorId } from '@/world/void-realms'
 import { retainWorldSceneReferences } from '@/world/presence'
 import {
   createCloudTexture,
@@ -2133,11 +2133,37 @@ export function createMapRenderer(
       !sample.moving
     const cachedScenery = cacheScenery ? stationaryScenery : null
     const scenery = cachedScenery ?? []
+    const docks = visible.flatMap((sector) => {
+      const landmark = sector.landmarks.find(({ id }) => isFerryTerminalLandmark(id))
+      if (!landmark) return []
+      const north = sector.id === FERRY_NORTH_DOCK.sectorId
+      const asterwake = sector.id === FERRY_ASTERWAKE_DOCK.sectorId
+      const shoreSide = sector.ferryDock?.shoreSide ?? (north ? 'north' : 'south')
+      const origin = sectorOrigin(sector)
+      return [
+        {
+          sectorId: sector.id,
+          x: origin.x + landmark.x + 0.5,
+          y: origin.y + landmark.y + 0.5,
+          shoreSide,
+          port: asterwake
+            ? ('asterwake' as const)
+            : north
+              ? ('north-shore' as const)
+              : sector.charted
+                ? ('mainland' as const)
+                : ('uncharted' as const),
+        },
+      ]
+    })
+    const dockBySector = new Map(docks.map((dock) => [dock.sectorId, dock]))
     const addScenery = (item: Scenery) => {
       const p = screen(item)
+      const anchorX = item.anchorX ?? 0.5
+      const left = p.x - item.width * (item.mirror ? 1 - anchorX : anchorX)
       if (
-        p.x + item.width / 2 > 0 &&
-        p.x - item.width / 2 < width &&
+        left + item.width > 0 &&
+        left < width &&
         p.y + item.height * (1 - (item.anchorY ?? 1)) > 0 &&
         p.y - item.height * (item.anchorY ?? 1) < height
       )
@@ -2257,48 +2283,6 @@ export function createMapRenderer(
         }
         ctx.restore()
       }
-      const dock =
-        sector.ferryDock ??
-        (sector.id === FERRY_MAINLAND_DOCK.sectorId
-          ? { ...FERRY_MAINLAND_DOCK, shoreSide: 'south' as const }
-          : undefined)
-      if (dock && sector.landmarks.some(({ id }) => isFerryTerminalLandmark(id))) {
-        const vessel = images.get('ferry-vessel')
-        if (
-          vessel?.complete &&
-          vessel.naturalWidth &&
-          ferryAtPort(
-            sector.id === FERRY_ASTERWAKE_DOCK.sectorId
-              ? 'asterwake'
-              : sector.id === FERRY_NORTH_DOCK.sectorId
-                ? 'north-shore'
-                : sector.charted
-                  ? 'mainland'
-                  : 'uncharted',
-            view.serverNow + Math.max(0, now - ferryClockAt),
-          )
-        ) {
-          const mooring = screen({
-            x:
-              origin.x +
-              dock.x +
-              (dock.shoreSide === 'west' ? -3.5 : dock.shoreSide === 'north' ? 1.7 : 2.9),
-            y:
-              origin.y +
-              dock.y +
-              (dock.shoreSide === 'west' ? 0.55 : dock.shoreSide === 'north' ? -3.2 : 4.0),
-          })
-          const vesselWidth = tile * 4.6
-          const vesselHeight = vesselWidth * (vessel.naturalHeight / vessel.naturalWidth)
-          ctx.drawImage(
-            vessel,
-            mooring.x - vesselWidth * 0.4,
-            mooring.y - vesselHeight * 0.75,
-            vesselWidth,
-            vesselHeight,
-          )
-        }
-      }
       if (
         !cachedScenery &&
         !sector.id.startsWith('ferry:') &&
@@ -2331,6 +2315,18 @@ export function createMapRenderer(
             })
           }
           if (cell.terrain !== 't' && cell.terrain !== '#') continue
+          // Open the dock itself and its view-side approach across sector seams.
+          if (
+            docks.some((dock) => {
+              const dx = origin.x + cell.x + 0.5 - dock.x
+              const dy = origin.y + cell.y + 0.5 - dock.y
+              return (
+                Math.abs(dx) + Math.abs(dy) <= 3 ||
+                (dx + dy > 0 && dx + dy <= 6 && Math.abs(dx - dy) <= 3)
+              )
+            })
+          )
+            continue
           if (denseRidge && cell.terrain === '#' && !drawMountainScree(sector.id, cell.x, cell.y))
             continue
           // Keep the viewing side of surveyed private landmarks clear of
@@ -2377,22 +2373,16 @@ export function createMapRenderer(
               continue
             }
           }
-          const canopy =
-            !rock &&
-            sector.warpedTheme &&
-            sector.landscape !== 'willow' &&
-            !['sakura', 'autumn', 'wisteria'].includes(sector.landscape ?? '')
+          const woodland =
+            !rock && sector.warpedTheme
               ? forestCanopy(sector.id, cell.x, cell.y, sector.warpedTheme)
               : undefined
-          if (
-            canopy &&
-            ((denseCanopy && !canopy.visible) ||
-              sector.landmarks.some(
-                ({ id, x, y }) =>
-                  isFerryTerminalLandmark(id) && Math.abs(x - cell.x) + Math.abs(y - cell.y) <= 2,
-              ))
-          )
-            continue
+          if (denseCanopy && woodland && !woodland.visible) continue
+          const canopy =
+            sector.landscape !== 'willow' &&
+            !['sakura', 'autumn', 'wisteria'].includes(sector.landscape ?? '')
+              ? woodland
+              : undefined
           const variedTree =
             canopy && forestTrees?.complete && forestTrees.naturalWidth ? canopy : undefined
           const anchored =
@@ -2689,7 +2679,7 @@ export function createMapRenderer(
         }
       // Landmark structures share scenery depth/culling and identity occlusion.
       // Painting them after the character pass would hide someone on a bridge/anchor.
-      if (!cachedScenery && props?.complete && props.naturalWidth)
+      if (!cachedScenery)
         for (const landmark of sector.landmarks) {
           if (landmark.id === ASTERWAKE_GOLDEN_TREE_ID) {
             const oak = images.get('gildroot-oak')
@@ -2711,14 +2701,15 @@ export function createMapRenderer(
             continue
           }
           if (isFerryTerminalLandmark(landmark.id)) {
-            const northReach = sector.id === FERRY_ASTERWAKE_DOCK.sectorId
+            const dock = dockBySector.get(sector.id)!
+            const northReach = dock.port === 'asterwake'
             const terminal =
               (northReach ? images.get('asterwake-ferry-terminal') : undefined) ??
               images.get('ferry-terminal')
             if (terminal?.complete && terminal.naturalWidth)
               addScenery({
-                x: origin.x + landmark.x + (sector.ferryDock?.shoreSide === 'west' ? 1.1 : -0.7),
-                y: origin.y + landmark.y + (sector.ferryDock?.shoreSide === 'north' ? 0.85 : -0.25),
+                x: dock.x + (dock.shoreSide === 'west' ? 0.6 : -0.55),
+                y: dock.y + (dock.shoreSide === 'north' ? 0.35 : -0.25),
                 width: tile * 3.2,
                 height: tile * 3.2 * (terminal.naturalHeight / terminal.naturalWidth),
                 image: terminal,
@@ -2728,9 +2719,11 @@ export function createMapRenderer(
                 anchorX: northReach ? 0.4 : 0.58,
                 anchorY: northReach ? 0.9 : 0.62,
                 tree: false,
+                mirror: !northReach && dock.shoreSide !== 'north',
               })
             continue
           }
+          if (!props?.complete || !props.naturalWidth) continue
           if (sector.id.startsWith('ferry:')) {
             const mast = landmark.id === 'ferry-mast'
             const painted = images.get(mast ? 'ferry-sails' : 'ferry-cabin')
@@ -3007,6 +3000,25 @@ export function createMapRenderer(
             ctx.restore()
           }
     }
+    // The hull is over the finished water plane, including the next sector's
+    // raster. The pier, terminal and other upright art retain their depth pass.
+    const vessel = images.get('ferry-vessel')
+    if (docks.length && vessel?.complete && vessel.naturalWidth) {
+      const ferryTime = view.serverNow + Math.max(0, now - ferryClockAt)
+      const vesselWidth = tile * 4.85
+      const vesselHeight = vesselWidth * (vessel.naturalHeight / vessel.naturalWidth)
+      for (const dock of docks) {
+        if (!ferryAtPort(dock.port, ferryTime)) continue
+        const mooring = screen({
+          x: dock.x + (dock.shoreSide === 'west' ? -3.45 : dock.shoreSide === 'north' ? 1.9 : 0.8),
+          y: dock.y + (dock.shoreSide === 'west' ? 0.75 : dock.shoreSide === 'north' ? -3.3 : 4.5),
+        })
+        const x = mooring.x - vesselWidth * 0.46
+        const y = mooring.y - vesselHeight * 0.76
+        if (x < width && x + vesselWidth > 0 && y < height && y + vesselHeight > 0)
+          ctx.drawImage(vessel, x, y, vesselWidth, vesselHeight)
+      }
+    }
     if (cacheScenery && !cachedScenery) stationaryScenery = scenery
     if (timing) {
       const ended = performance.now()
@@ -3238,11 +3250,13 @@ export function createMapRenderer(
       ctx.globalAlpha = 1
       if (actor) {
         const { width, height, anchorX, anchorY } = APPEARANCE_FRAME
-        const scale = tokenScale * 0.95
-        if (ghost) {
-          ctx.globalAlpha = 0.7
-          ctx.filter = 'grayscale(1)'
-        }
+        const scale = tokenScale * 1.22
+        ctx.imageSmoothingEnabled = true
+        ctx.imageSmoothingQuality = 'high'
+        ctx.globalAlpha = ghost ? 0.85 : 1
+        ctx.filter = ghost
+          ? 'brightness(1.28) contrast(1.08) saturate(.76) drop-shadow(0 1px 1px #101a20)'
+          : 'brightness(1.16) contrast(1.08) drop-shadow(0 1px 1px #101a20)'
         if (person.self) {
           ctx.beginPath()
           ctx.ellipse(point.x, point.y, 12 * scale, 4 * scale, 0, 0, Math.PI * 2)
@@ -3906,9 +3920,11 @@ export function createMapRenderer(
         if (!showLocationLabels) continue
         ctx.font = '13px Georgia'
         ctx.textAlign = 'center'
+        const terminal = isFerryTerminalLandmark(landmark.id)
+        const labelY = terminal ? p.y - tile * 1.9 - 16 : p.y + 25
         const bounds = {
           x: p.x - ctx.measureText(landmark.name).width / 2 - 9,
-          y: p.y + 25,
+          y: labelY,
           width: ctx.measureText(landmark.name).width + 18,
           height: 21,
         }
@@ -3931,7 +3947,7 @@ export function createMapRenderer(
         ctx.fill()
         ctx.stroke()
         ctx.fillStyle = '#f3dca6'
-        ctx.fillText(landmark.name, p.x, p.y + 40)
+        ctx.fillText(landmark.name, p.x, labelY + 15)
       }
     }
     if (timing) {
@@ -4473,7 +4489,7 @@ export function createMapRenderer(
           (!position.sectorId.startsWith('void:') && !position.sectorId.startsWith('uncharted-'))
         )
           return position
-        // Visible landscape is not a survey or navigation grant.
+        if (isLocalVoidWalk(view.position.sectorId, position.sectorId)) return position
         return view.sectors.some(
           (sector) =>
             sector.id === position.sectorId &&
@@ -4563,13 +4579,16 @@ export function createMapRenderer(
       return
     }
     const base = { x: Math.floor(p.x) + 0.5, y: Math.floor(p.y) + 0.5 }
-    let from = pick(base) ?? sample.position,
+    const localVoid = isVoidRealmSectorId(sample.position.sectorId)
+    const pickStep = (point: MapPoint) =>
+      pick(point) ?? (localVoid ? pick(point, renderSectors) : null)
+    let from = pickStep(base) ?? sample.position,
       position: WorldPosition | null = null,
       first: WorldPosition | null = null
     // Keep a known legal route ahead of the key timer instead of exhausting a
     // single tile at every callback. WorldMotion still caps unconfirmed preview.
     for (let distance = 1; distance <= 3; distance++) {
-      const candidate = pick({
+      const candidate = pickStep({
         x: base.x + offset.x * distance,
         y: base.y + offset.y * distance,
       })
@@ -4581,7 +4600,13 @@ export function createMapRenderer(
         crossing = source?.exits.some(
           (exit) => samePosition(exit.from, from) && samePosition(exit.to, candidate),
         )
-      if (!adjacent && !crossing) break
+      // Void terrain connects across dry cardinal neighbors at sector edges.
+      if (
+        !adjacent &&
+        !crossing &&
+        !(localVoid && isLocalVoidWalk(sample.position.sectorId, candidate.sectorId))
+      )
+        break
       first ??= candidate
       position = candidate
       from = candidate
