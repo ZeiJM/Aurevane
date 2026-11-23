@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo, useState, useSyncExternalStore, type CSSProperties } from 'react'
+import { useCallback, useMemo, useState, type CSSProperties } from 'react'
 import {
   APPEARANCE_MOTION_FRAME,
   APPEARANCE_READY_CYCLE_MS,
@@ -9,10 +9,6 @@ import {
   appearanceMotionFrameIndex,
   type AppearanceFacing,
 } from '@/appearance/appearance-manifest'
-import {
-  readClassicPortraitTokens,
-  subscribeClassicPortraitTokens,
-} from '@/appearance/appearance-preferences'
 import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
 import type { ImageAssetId } from '@/media/registry'
 import { BattleSummonPortrait } from './battle-summon-portrait'
@@ -41,11 +37,6 @@ export function BattlefieldAppearanceToken({
   fallbackClassName: string
 }) {
   const atlas = useMemo(() => appearanceManifestFromImageUrl(imageUrl)?.motionAtlas, [imageUrl])
-  const classic = useSyncExternalStore(
-    subscribeClassicPortraitTokens,
-    readClassicPortraitTokens,
-    () => false,
-  )
   const [loaded, setLoaded] = useState<string | null>(null)
   const trackAtlas = useCallback(
     (image: HTMLImageElement | null) => {
@@ -54,7 +45,7 @@ export function BattlefieldAppearanceToken({
     },
     [atlas],
   )
-  const embodied = !classic && atlas && loaded === atlas
+  const embodied = atlas && loaded === atlas
   const pose = defeated ? 'down' : walking ? 'walk' : (cue?.pose ?? 'idle')
   const { columns, rows, frames } = APPEARANCE_MOTION_FRAME
   const x = (frame: number) => {
@@ -64,7 +55,7 @@ export function BattlefieldAppearanceToken({
   const y = (row: number) => `${(100 * row) / (rows - 1)}%`
   return (
     <>
-      {!classic && atlas && !embodied ? (
+      {atlas && !embodied ? (
         // Preload the complete atlas. Keep the portrait token until the file is ready.
         // eslint-disable-next-line @next/next/no-img-element
         <img

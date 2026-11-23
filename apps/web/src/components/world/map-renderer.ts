@@ -24,10 +24,6 @@ import {
   appearanceWalkFrame,
   type AppearanceFacing,
 } from '@/appearance/appearance-manifest'
-import {
-  readClassicPortraitTokens,
-  subscribeClassicPortraitTokens,
-} from '@/appearance/appearance-preferences'
 import { GRID_HEIGHT, GRID_WIDTH, STEP_MS } from '@/world/catalog'
 import { FERRY_MAINLAND_DOCK, ferryAtPort, isFerryTerminalLandmark } from '@/world/ferry'
 import { hashString } from '@/world/terrain-gen'
@@ -681,11 +677,6 @@ export function createMapRenderer(
     position: WorldPosition | null
     player: { id: string; self: boolean } | null
   } | null = null
-  let classicTokens = readClassicPortraitTokens()
-  const unsubscribeClassicTokens = subscribeClassicPortraitTokens(() => {
-    classicTokens = readClassicPortraitTokens()
-    requestDraw()
-  })
   const actorAssets = new Map<string, ReturnType<typeof appearanceManifestFromImageUrl>>()
   let actorPositions = new Map<
     string,
@@ -2989,12 +2980,11 @@ export function createMapRenderer(
       }
       return actorAssets.get(image) ?? null
     }
-    const compactPortraitSource = (image: string | null) =>
-      !classicTokens ? (manifestFor(image)?.icon ?? image) : image
+    const compactPortraitSource = (image: string | null) => manifestFor(image)?.icon ?? image
     const requestedImages = new Set<string>()
     const localImage = selfStack.people[0]?.image ?? null
     const selfIcon = compactPortraitSource(localImage)
-    const selfAtlas = manifestFor(localImage)?.atlas
+    const selfAtlas = manifestFor(localImage)?.motionAtlas
     if (selfIcon) requestedImages.add(selfIcon)
     if (selfAtlas) requestedImages.add(selfAtlas)
     const visibleImage = (source: string | null) => {
@@ -3013,8 +3003,7 @@ export function createMapRenderer(
       self: boolean,
       spriteUrl?: string,
     ) => {
-      if (classicTokens || tile < 42 || (!self && requestedActors >= MAX_EMBODIED_ACTORS - 1))
-        return null
+      if (tile < 42 || (!self && requestedActors >= MAX_EMBODIED_ACTORS - 1)) return null
       if (spriteUrl) {
         requestedActors++
         const sprite = visibleImage(spriteUrl)
@@ -4595,7 +4584,6 @@ export function createMapRenderer(
       weatherVeil.clear()
       lighting.clear()
       for (const cloud of clouds) releaseStaticRaster(cloud)
-      unsubscribeClassicTokens()
       cancelAnimationFrame(frame)
       observer.disconnect()
       document.removeEventListener('visibilitychange', visibility)

@@ -798,12 +798,22 @@ test('AI forecast arming, inline targets and cockpit reading keep the desktop bo
     'Both approved desktop geometries are exercised in one authenticated session',
   )
   test.setTimeout(180_000)
-  await provision(page, 'Forecast')
+  const characterName = await provision(page, 'Forecast')
+  await page.evaluate(() => localStorage.setItem('aurevane:classic-portrait-tokens', 'true'))
+  await page.goto('/game/world')
+  await expect(page.locator('canvas[data-world-stage]')).toHaveAttribute(
+    'data-embodied-actors',
+    /[1-9]\d*/,
+  )
   const nexusRows = await equipForecastSkills(page)
   await page.goto('/game/battle')
   await page.getByLabel('Battle mode').selectOption('recruit-sparring')
   await page.getByRole('button', { name: 'Enter Battle' }).click()
   await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
+  const characterTile = page.getByRole('button', {
+    name: new RegExp(`occupied by ${characterName}`),
+  })
+  await expect(characterTile.locator('[data-battle-appearance-pose]')).toBeVisible()
   await arrangeAdjacentCombatants(page)
   await exerciseForecast(page, testInfo, 'pve', nexusRows)
 })
