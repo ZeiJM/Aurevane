@@ -1,4 +1,6 @@
-import { ASTERWAKE_REGION_ID } from '@/world/asterwake'
+import { ASTERWAKE_GOLDEN_TREE, ASTERWAKE_REGION_ID } from '@/world/asterwake'
+import { GRID_HEIGHT, GRID_WIDTH } from '@/world/catalog'
+import { asterwakeShore } from './asterwake-shore'
 import { globeVeilTexture } from './globe-veil'
 import {
   globeHash as hash,
@@ -136,6 +138,8 @@ export function globeAtlasDetailPixels(
   const anchors = new Map(
     atlas.filter((c) => c.charted && c.id === c.regionId).map((c) => [c.regionId, c]),
   )
+  const asterwakeCenter = atlas.find((c) => c.charted && c.id === ASTERWAKE_GOLDEN_TREE.sectorId)
+  if (asterwakeCenter) anchors.set(ASTERWAKE_REGION_ID, asterwakeCenter)
   const mask = new Float32Array(columns * rows)
   for (const cell of cells.values())
     if (cell.column >= 0 && cell.column < columns && cell.row >= 0 && cell.row < rows)
@@ -225,10 +229,11 @@ export function globeAtlasDetailPixels(
         if (material) {
           let offset = x / scale - (anchor?.column ?? 0)
           offset -= Math.round(offset / columns) * columns
+          const island = neighbor.regionId === ASTERWAKE_REGION_ID
           material(
             neighbor.regionId,
-            0.5 + offset / 26,
-            0.5 + (y / scale - (anchor?.row ?? 0)) / 24,
+            0.5 + offset / (island ? 40 : 26),
+            0.5 + (y / scale - (anchor?.row ?? 0)) / (island ? 30 : 24),
             materialColor,
           )
         }
@@ -291,6 +296,10 @@ export function globeAtlasDetailPixels(
     )
       continue
     const base = colors[cell.regionId] ?? colors['verdant-expanse']!
+    const island = cell.regionId === ASTERWAKE_REGION_ID
+    const islandShore = island
+      ? asterwakeShore(cell.column, cell.row, (column, row) => cells.get(`${column}:${row}`))
+      : undefined
     for (let sy = 0; sy < scale; sy++)
       for (let sx = 0; sx < scale; sx++) {
         const x = cell.column * scale + sx,
@@ -314,7 +323,14 @@ export function globeAtlasDetailPixels(
           (0.68 + height * 0.36 + light * 2.7 + grain) * surface.mountain
         const snow = material ? 0 : surface.snow * smooth(0.43, 0.9, height) * 105
         if (material) shade = 0.97 + grain * 0.2
-        const beach = 1 - smooth(0.018, 0.115, surface.coastDistance)
+        const coverage = island
+          ? (islandShore?.(((sx + 0.5) * GRID_WIDTH) / scale, ((sy + 0.5) * GRID_HEIGHT) / scale) ??
+            1)
+          : undefined
+        const beach =
+          coverage === undefined
+            ? 1 - smooth(0.018, 0.115, surface.coastDistance)
+            : 1 - smooth(0.5, 0.91, coverage)
         const index = (y * width + x) * 4
         const terrain =
           cell.waterTiles?.length === 117
@@ -322,9 +338,8 @@ export function globeAtlasDetailPixels(
                 Math.floor(((sy + 0.5) * 9) / scale) * 13 + Math.floor(((sx + 0.5) * 13) / scale)
               ]
             : '.'
-        const water = terrain === '~' || terrain === 'w',
+        const water = !island && (terrain === '~' || terrain === 'w'),
           lava = terrain === 'l'
-        if (cell.regionId === ASTERWAKE_REGION_ID && water) continue
         const fabric = (hash(Math.floor(x / 2), Math.floor(y / 2)) - 0.5) * 22
         const builtUp = surface.settlement * 0.42 * (1 - beach)
         for (let channel = 0; channel < 3; channel++)
@@ -344,7 +359,7 @@ export function globeAtlasDetailPixels(
           )
         // Coast antialiasing changes depiction only; movement/picking keep their canonical addresses.
         pixels[index + 3] =
-          cell.regionId === ASTERWAKE_REGION_ID ? Math.max(surface.alpha, 240) : surface.alpha
+          coverage === undefined ? surface.alpha : Math.round(255 * smooth(0.54, 0.65, coverage))
       }
   }
   const distance = new Float32Array(width * height)

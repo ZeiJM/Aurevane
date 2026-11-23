@@ -1,4 +1,5 @@
 import { colosseumDetailArt } from './map-colosseum-detail-art'
+import { asterwakeShore, paintAsterwakeShore } from './asterwake-shore'
 import { createGroundProjectionCache, drawGroundSurface } from './map-ground-projection'
 import {
   releaseStaticRaster,
@@ -593,6 +594,10 @@ function sprite(
 }
 type LabelBounds = { left: number; top: number; right: number; bottom: number }
 
+function labelsOverlap(a: LabelBounds, b: LabelBounds) {
+  return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
+}
+
 const mapLabelPalette = {
   self: { text: '#ffdb86', border: '#bd904f', top: '#3b2a1b', bottom: '#211810' },
   player: { text: '#a5efe2', border: '#5bb4a4', top: '#19383b', bottom: '#102628' },
@@ -833,13 +838,14 @@ export function createMapRenderer(
   let chartedTerrain = chartedTerrainAt(view.atlas)
   const atlasTerrainKey = (atlas: WorldView['atlas']) =>
     JSON.stringify(
-      atlas?.map(({ id, charted, column, row, regionId, townId }) => [
+      atlas?.map(({ id, charted, column, row, regionId, townId, waterTiles }) => [
         id,
         charted,
         column,
         row,
         regionId,
         townId,
+        regionId === ASTERWAKE_REGION_ID ? waterTiles : undefined,
       ]) ?? [],
     )
   let indexedAtlasKey = atlasTerrainKey(view.atlas)
@@ -866,6 +872,22 @@ export function createMapRenderer(
     terrainKeys.clear()
     featureKeys.clear()
     for (const sector of renderSectors) {
+      const islandCoast = []
+      if (
+        sector.regionId === ASTERWAKE_REGION_ID &&
+        sector.atlasColumn !== undefined &&
+        sector.atlasRow !== undefined
+      ) {
+        for (let dy = -1; dy <= 1; dy++)
+          for (let dx = -1; dx <= 1; dx++) {
+            const neighbor = chartedTerrain.get(
+              `${wrapAtlasColumn(sector.atlasColumn + dx)}:${sector.atlasRow + dy}`,
+            )
+            islandCoast.push(
+              neighbor?.regionId === ASTERWAKE_REGION_ID ? (neighbor.waterTiles ?? '') : null,
+            )
+          }
+      }
       terrainKeys.set(
         sector.id,
         JSON.stringify([
@@ -878,6 +900,7 @@ export function createMapRenderer(
               .filter((landmark) => landmark.kind === 'marketplace')
               .map(({ x, y }) => [x, y]),
           coastField.get(sector.id),
+          islandCoast,
           settlementGround.edges.get(sector.id),
           Array.from(settlementGround.shoreRoads.get(sector.id) ?? []),
           Array.from(settlementGround.pavedCells.get(sector.id) ?? []),
@@ -1196,6 +1219,12 @@ export function createMapRenderer(
     c.imageSmoothingQuality = 'high'
     const onFerry = sector.id.startsWith('ferry:')
     const islandOcean = sector.regionId === ASTERWAKE_REGION_ID
+    const islandShore =
+      islandOcean && view.atlas && sector.atlasColumn !== undefined && sector.atlasRow !== undefined
+        ? asterwakeShore(sector.atlasColumn, sector.atlasRow, (column, row) =>
+            chartedTerrain.get(`${column}:${row}`),
+          )
+        : undefined
     const warped = sector.warpedTheme ? warpedPalette[sector.warpedTheme] : undefined
     if (!warped && !onFerry && !islandOcean) {
       c.fillStyle = '#233d3c'
@@ -1282,7 +1311,8 @@ export function createMapRenderer(
     }
     if (!onFerry)
       for (const cell of sector.cells)
-        if (!islandOcean || cell.terrain !== '~') paintMaterial(c, cell, sector.regionId)
+        if (islandShore || !islandOcean || cell.terrain !== '~')
+          paintMaterial(c, cell, sector.regionId)
     const materialLayer = (
       x: number,
       y: number,
@@ -1532,7 +1562,8 @@ export function createMapRenderer(
         tile,
         pavement?.color ?? (sector.regionId === WINTER_ART ? '#a4aaa4' : '#95856a'),
       )
-    paintCoastLand(c, coastField.get(sector.id) ?? [], tile, sector.regionId, sector)
+    if (islandShore) paintAsterwakeShore(c, tile, islandShore)
+    else paintCoastLand(c, coastField.get(sector.id) ?? [], tile, sector.regionId, sector)
     // A crossing is a continuous stone support, not a blue pond stamped on
     // the avenue. Shade only its supplied liquid mouths and its legal deck.
     const origin = sectorMapOrigin(sector)
@@ -2282,18 +2313,20 @@ export function createMapRenderer(
       } else {
         ctx.save()
         ctx.transform(MAP_X, MAP_Y, -MAP_X, MAP_Y, p.x, p.y)
-        coastEdges += paintCoastSea(
-          ctx,
-          coastField.get(sector.id) ?? [],
-          tile,
-          now,
-          ambient,
-          16 - coastEdges,
-          sector.regionId,
-          budget.surf,
-          wind.speed,
-          sector,
-        )
+        // The cached Asterwake shore carries its own shallows through the inlets.
+        if (sector.regionId !== ASTERWAKE_REGION_ID)
+          coastEdges += paintCoastSea(
+            ctx,
+            coastField.get(sector.id) ?? [],
+            tile,
+            now,
+            ambient,
+            16 - coastEdges,
+            sector.regionId,
+            budget.surf,
+            wind.speed,
+            sector,
+          )
         // Visibility has extra room for tall scenery, overhanging shore art
         // and animation. Do not build or submit its fully clipped ground plane.
         // Include the projected raster's filtered edges in this tighter test.
@@ -3434,13 +3467,7 @@ export function createMapRenderer(
           bounds.right > width ||
           bounds.top < 0 ||
           bounds.bottom > height ||
-          occupied.some(
-            (other) =>
-              bounds.left < other.right &&
-              bounds.right > other.left &&
-              bounds.top < other.bottom &&
-              bounds.bottom > other.top,
-          ))
+          occupied.some((other) => labelsOverlap(bounds, other)))
       )
         return
       occupied.push(bounds)
@@ -4264,31 +4291,6 @@ export function createMapRenderer(
           identityContext.clearRect(left, top, right - left, bottom - top)
         } else identityContext.clearRect(0, 0, width, height)
       }
-      if (locationLabels.length) {
-        const fontSize = Math.max(11, Math.min(14, Math.round(12 * tokenScale)))
-        const labelHeight = fontSize + 6
-        const occupied: LabelBounds[] = []
-        personContext.font = `600 ${fontSize}px Arial, sans-serif`
-        for (const { text, x, y } of locationLabels) {
-          const labelWidth = Math.ceil(personContext.measureText(text).width + 12)
-          const left = Math.max(3, Math.min(width - labelWidth - 3, Math.round(x - labelWidth / 2)))
-          const top = Math.max(3, Math.min(height - labelHeight - 3, Math.round(y)))
-          const bounds = { left, top, right: left + labelWidth, bottom: top + labelHeight }
-          if (
-            occupied.some(
-              (other) =>
-                bounds.left < other.right &&
-                bounds.right > other.left &&
-                bounds.top < other.bottom &&
-                bounds.bottom > other.top,
-            )
-          )
-            continue
-          occupied.push(bounds)
-          includeIdentityBounds(left, top, bounds.right, bounds.bottom)
-          paintMapLabel(personContext, text, bounds, fontSize, 'location', identityRatio)
-        }
-      }
       for (const { stack, ghost, actor, image, previous } of identities) {
         drawPerson(stack, ghost && Boolean(actor), actor, image, previous)
         if (ghost && !actor) drawPerson(stack, true, null, image, previous)
@@ -4305,10 +4307,39 @@ export function createMapRenderer(
             Number(b.person.self) - Number(a.person.self) || centerDistance(a) - centerDistance(b),
         )
       }
-      const occupied: { left: number; top: number; right: number; bottom: number }[] = []
+      const occupied: LabelBounds[] = []
       for (const nameplate of nameplates) {
         if (dense && occupied.length >= labelLimit) break
         paintNameplate(nameplate, occupied, dense)
+      }
+      if (locationLabels.length) {
+        const fontSize = Math.max(11, Math.min(14, Math.round(12 * tokenScale)))
+        const labelHeight = fontSize + 6
+        const spacing = labelHeight + 4
+        personContext.font = `600 ${fontSize}px Arial, sans-serif`
+        for (const { text, x, y } of locationLabels) {
+          const labelWidth = Math.ceil(personContext.measureText(text).width + 12)
+          const left = Math.max(3, Math.min(width - labelWidth - 3, Math.round(x - labelWidth / 2)))
+          const top = Math.max(3, Math.min(height - labelHeight - 3, Math.round(y)))
+          for (const offset of [0, spacing, -spacing, spacing * 2]) {
+            const bounds = {
+              left,
+              top: top + offset,
+              right: left + labelWidth,
+              bottom: top + offset + labelHeight,
+            }
+            if (
+              bounds.top < 3 ||
+              bounds.bottom > height - 3 ||
+              occupied.some((other) => labelsOverlap(bounds, other))
+            )
+              continue
+            occupied.push(bounds)
+            includeIdentityBounds(left, bounds.top, bounds.right, bounds.bottom)
+            paintMapLabel(personContext, text, bounds, fontSize, 'location', identityRatio)
+            break
+          }
+        }
       }
       paintedIdentity = identity
       paintedIdentityBounds = identityBounds
@@ -4713,7 +4744,8 @@ export function createMapRenderer(
       next = retainWorldSceneReferences(view, next)
       const terrain = worldRenderTerrain(next, renderSectors)
       const terrainChanged = terrain !== renderSectors
-      const atlasChanged = atlasTerrainKey(next.atlas) !== indexedAtlasKey
+      const atlasChanged =
+        next.atlas !== view.atlas && atlasTerrainKey(next.atlas) !== indexedAtlasKey
       const discoveryProofChanged =
         (next.publicGrandDiscoveries ?? []).join(':') !==
         (view.publicGrandDiscoveries ?? []).join(':')
