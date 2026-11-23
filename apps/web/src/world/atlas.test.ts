@@ -18,7 +18,7 @@ vi.mock('./road-shorelines', async (importOriginal) => {
 import { ASTERWAKE_REGION_ID, ASTERWAKE_GOLDEN_TREE } from './asterwake'
 import { FERRY_ASTERWAKE_DOCK, FERRY_NORTH_DOCK } from './ferry'
 import { canWalkPublicAtlas } from './atlas-walking'
-import { atlasAddress, atlasSectors, ATLAS_COLUMNS, ATLAS_ROWS } from './atlas'
+import { atlasAddress, atlasChartAddresses, atlasSectors, ATLAS_COLUMNS, ATLAS_ROWS } from './atlas'
 import { CHARTED_SECTORS } from './catalog'
 import { OFFSHORE_DISCOVERY, OFFSHORE_SECTORS } from './discovery-sites'
 import { terrainWalkable } from './terrain'
@@ -336,6 +336,11 @@ describe('one traversable world atlas', () => {
     const sectors = atlasSectors()
     expect(ATLAS_COLUMNS).toBe(128)
     expect(ATLAS_ROWS).toBe(64)
+    expect(
+      atlasChartAddresses()
+        .map(({ id }) => id)
+        .sort(),
+    ).toEqual(sectors.map(({ id }) => id).sort())
     expect(new Set(sectors.map((s) => s.id)).size).toBe(sectors.length)
     expect(new Set(sectors.map((s) => JSON.stringify(atlasAddress(s)))).size).toBe(sectors.length)
     expect(

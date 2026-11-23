@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import { useRouter } from 'next/navigation'
 import { WORLD_LAND_NAME } from '@/world/atlas'
 import { WORLD_REGIONS } from '@/world/catalog'
-import { mainlandSectorAtNumber, readSectorNumber } from '@/world/sector-index'
+import { mainlandSectorIdAtNumber, readSectorNumber } from '@/world/sector-index'
 import { canWalkPublicAtlas } from '@/world/atlas-walking'
 import { positionLabel, sectorLabel } from '@/world/coordinate-label'
 import { parseVoidSectorId, VOID_REALMS } from '@/world/void-realms'
@@ -640,7 +640,7 @@ export function WorldWorkspace({
     [view.atlas, view.anchors, favoriteSectorId],
   )
   const typedNumber = readSectorNumber(sectorJump)
-  const typedSectorId = typedNumber === null ? undefined : mainlandSectorAtNumber(typedNumber)?.id
+  const typedSectorId = typedNumber === null ? undefined : mainlandSectorIdAtNumber(typedNumber)
   const typedSector =
     typedSectorId && view.atlas?.find((cell) => cell.charted && cell.id === typedSectorId)
   const typedSectorAvailable =

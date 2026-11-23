@@ -26,13 +26,19 @@ function distance(column: number, row: number, shore: (typeof shores)[number]) {
   )
 }
 
-export function asterwakeSector(column: number, row: number): WorldSector | undefined {
+export function asterwakeCoastAt(column: number, row: number) {
   if (row > 20 || (column > 19 && column < 116)) return
+  return `atlas:${column}:${row}` === FERRY_ASTERWAKE_DOCK.sectorId
+    ? shores[0]
+    : shores.find((coast) => distance(column, row, coast) <= 0.99)
+}
+
+export function asterwakeSector(column: number, row: number): WorldSector | undefined {
+  const shore = asterwakeCoastAt(column, row)
+  if (!shore) return
   const id = `atlas:${column}:${row}`
   const dock = id === FERRY_ASTERWAKE_DOCK.sectorId
   const golden = id === ASTERWAKE_GOLDEN_TREE.sectorId
-  const shore = dock ? shores[0] : shores.find((coast) => distance(column, row, coast) <= 0.99)
-  if (!shore) return
   const rows = Array.from({ length: GRID_HEIGHT }, (_, y) =>
     Array.from({ length: GRID_WIDTH }, (_, x) => {
       if (

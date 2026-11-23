@@ -26,7 +26,7 @@ import {
   FERRY_TERMINAL_LANDMARK,
   FERRY_TERMINAL_NAME,
 } from './ferry'
-import { asterwakeSector } from './asterwake'
+import { asterwakeCoastAt, asterwakeSector } from './asterwake'
 import type { WorldBuilding, WorldLandmark, WorldRoad, WorldSector } from './types'
 import { ATLAS_COLUMNS, ATLAS_ROWS, atlasNeighbor, wrappedColumnDistance } from './topology'
 
@@ -110,7 +110,7 @@ function segmentDistance(
   const t = Math.max(0, Math.min(1, ((x - a.column) * dx + (y - a.row) * dy) / (dx * dx + dy * dy)))
   return Math.hypot(x - a.column - t * dx, y - a.row - t * dy)
 }
-export function isIsolaHeartland(column: number, row: number) {
+function isIsolaHeartland(column: number, row: number) {
   return (
     roots.some((root) => Math.hypot(column - root.column, (row - root.row) * 1.12) <= 8.8) ||
     rootLinks.some(
@@ -323,31 +323,63 @@ function townStreet(index: number, x: number, y: number) {
       )
   }
 }
+const authoredByAddress = new Map(
+  CHARTED_SECTORS.flatMap((sector) => {
+    const address = originalAddress(sector.coordinate)
+    return address ? [[addressKey(address.column, address.row), sector] as const] : []
+  }),
+)
+
+function chartedLandAt(column: number, row: number, authored: WorldSector | undefined) {
+  if (asterwakeCoastAt(column, row)) return 'remote'
+  if (isIsolaHeartland(column, row)) return 'heartland'
+  if (authored) return 'authored'
+  if (mountainFrontierAt(column, row)) return 'mountains'
+  if (longitudeCountrysideAt(column, row)) return 'countryside'
+  return null
+}
+
+type AtlasChartAddress = { id: string; column: number; row: number; tier: number }
+let chartAddresses: readonly AtlasChartAddress[] | undefined
+/** The public chart index needs addresses only. Terrain, artwork and roads stay lazy. */
+export function atlasChartAddresses() {
+  if (chartAddresses) return chartAddresses
+  const addresses: AtlasChartAddress[] = []
+  for (let row = 0; row < ATLAS_ROWS; row++)
+    for (let column = 0; column < ATLAS_COLUMNS; column++) {
+      const authored = authoredByAddress.get(addressKey(column, row))
+      const land = chartedLandAt(column, row, authored)
+      if (land)
+        addresses.push({
+          id: authored?.id ?? `atlas:${column}:${row}`,
+          column,
+          row,
+          tier: land === 'heartland' ? 0 : land === 'remote' ? 2 : 1,
+        })
+    }
+  for (const { id, column } of OFFSHORE_SECTORS)
+    addresses.push({ id, column, row: OFFSHORE_DISCOVERY.row, tier: 1 })
+  chartAddresses = addresses.sort((a, b) => a.tier - b.tier || a.row - b.row || a.column - b.column)
+  return chartAddresses
+}
+
 let cache: readonly WorldSector[] | null = null
 
 /** Stable authored IDs occupy their geographic anchors; the space between is real terrain. */
 export function atlasSectors(): readonly WorldSector[] {
   if (cache) return cache
-  const authoredByAddress = new Map(
-    CHARTED_SECTORS.flatMap((sector) => {
-      const address = originalAddress(sector.coordinate)
-      return address ? [[addressKey(address.column, address.row), sector] as const] : []
-    }),
-  )
   const sectors: WorldSector[] = []
   for (let row = 0; row < ATLAS_ROWS; row++)
     for (let column = 0; column < ATLAS_COLUMNS; column++) {
-      const northern = asterwakeSector(column, row)
-      if (northern) {
-        sectors.push(northern)
+      const authored = authoredByAddress.get(addressKey(column, row))
+      const land = chartedLandAt(column, row, authored)
+      if (!land) continue
+      if (land === 'remote') {
+        sectors.push(asterwakeSector(column, row)!)
         continue
       }
-      const authored = authoredByAddress.get(addressKey(column, row))
-      const existingLand = Boolean(authored || isIsolaHeartland(column, row))
-      // Expand into formerly empty sea coordinates without rewriting a single
-      // existing sector. The alpine spur is actual terrain, not an overlay.
-      const newMountainLand = !existingLand && mountainFrontierAt(column, row)
-      if (!existingLand && !longitudeCountrysideAt(column, row) && !newMountainLand) continue
+      const existingLand = land === 'authored' || land === 'heartland'
+      const newMountainLand = land === 'mountains'
       const nearest = [...roots].sort(
         (a, b) =>
           Math.hypot(wrappedColumnDistance(column, a.column), row - a.row) -
