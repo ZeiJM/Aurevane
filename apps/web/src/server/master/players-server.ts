@@ -6,7 +6,16 @@ import { createSelectedCharacterRpc } from './selected-character-rpc'
 import { createServerMasterPanelStaffAccessService } from './staff-access-server'
 import { createMasterPlayersService, playerRecord, type PlayersRpc } from './players-service'
 import { readPlayerContentNames } from './player-content-names'
-import { masterTeleportGeometry, MASTER_TELEPORT_GEOMETRY_VERSION } from './player-teleport'
+import {
+  masterTeleportGeometry,
+  MASTER_TELEPORT_GEOMETRY_VERSION,
+  teleportStorageNumber,
+} from './player-teleport'
+import { resolveVoidRotation } from '@/world/environment'
+import { mainlandSectorAtNumber } from '@/world/sector-index'
+import { isWalkable } from '@/world/travel'
+import { VOID_REALM_COLUMNS, voidSectorId } from '@/world/void-realms'
+import { readWorldEnvironmentSettings } from '../world/world-environment-store'
 import { resolveSector } from '../world/world-content'
 import { sectorLabel } from '@/world/coordinate-label'
 import { createServerCombatContentResolver } from '../combat/combat-content-resolver'
@@ -91,6 +100,23 @@ export function createServerMasterPlayersService() {
         p_geometry_version: MASTER_TELEPORT_GEOMETRY_VERSION,
         p_geometry: masterTeleportGeometry(destination, resolveSector),
       })
+    },
+    async (destination) => {
+      if (destination.map === 'mainland') {
+        const sector = mainlandSectorAtNumber(destination.sectorNumber)
+        return !!sector && isWalkable(sector, destination)
+      }
+      const settings = await readWorldEnvironmentSettings()
+      const { realmId } = resolveVoidRotation(Date.now(), settings)
+      const zeroBased = teleportStorageNumber(destination) - 1
+      const sector = resolveSector(
+        voidSectorId(
+          realmId,
+          zeroBased % VOID_REALM_COLUMNS,
+          Math.floor(zeroBased / VOID_REALM_COLUMNS),
+        ),
+      )
+      return !!sector && isWalkable(sector, destination)
     },
   )
 }

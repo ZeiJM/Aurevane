@@ -840,6 +840,27 @@
   transform: translate(-50%, -50%);
   box-shadow: 0 0 12px #ffd58755;
 }
+.workspace .globeTerminal {
+  position: absolute;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  color: #ffebb9;
+  background: #173c48;
+  border: 1px solid #e0c485;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 2px 8px #06161d;
+}
+.workspace button.globeTerminal:hover,
+.workspace button.globeTerminal:focus-visible,
+.workspace button.globeTerminal[aria-pressed='true'] {
+  color: #1f3133;
+  background: #f0d997;
+}
 .destination {
   padding: 8px 14px 12px;
   border-bottom: 1px solid var(--map-line);
@@ -1305,28 +1326,11 @@
   font: inherit;
   font-size: 14px;
 }
-.atlasActions {
-  display: flex;
-  align-items: center;
-  gap: 7px;
+.atlasTools input[data-sector-valid='true'] {
+  color: #91e5ad;
 }
-.atlasTools form {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-}
-.atlasActions button {
-  min-height: 44px;
-  flex: 1 1 0;
-  color: #eedfc4;
-  background: #233b4a;
-  border: 1px solid #af956d70;
-  border-radius: 5px;
-  font:
-    12px/1.3 system-ui,
-    sans-serif;
-}
-.atlasActions button:hover:not(:disabled) {
-  background: #3e5365;
+.atlasTools input[data-sector-valid='false'] {
+  color: #ffa6a1;
 }
 @media (max-width: 760px), (max-height: 500px) and (pointer: coarse) {
   .atlasTools {
@@ -1418,4 +1422,21 @@
 
 .workspace .destinationActions > .confirmTravel:hover:not(:disabled) {
   background: #337857;
+}
+
+.workspace .destinationActions > .reviewTravel {
+  background: #142e63;
+  border-color: #597ac2;
+  color: #f1f5ff;
+}
+.workspace .destinationActions > .reviewTravel:hover:not(:disabled) {
+  background: #204380;
+}
+.workspace .destinationActions > .cancelTravel {
+  background: #742e38;
+  border-color: #b65c66;
+  color: #fff1ef;
+}
+.workspace .destinationActions > .cancelTravel:hover:not(:disabled) {
+  background: #913944;
 }

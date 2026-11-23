@@ -1,4 +1,5 @@
 import { GRID_HEIGHT, GRID_WIDTH } from '@/world/catalog'
+import { ASTERWAKE_REGION_ID } from '@/world/asterwake'
 import { hashString } from '@/world/terrain-gen'
 import type { WorldSectorView, WorldView } from '@/world/types'
 import { atlasNeighbor, WORLD_MAP_WIDTH, wrapAtlasColumn } from '@/world/topology'
@@ -38,6 +39,9 @@ export function publicGroundCoversViewport(
       sector.atlasColumn !== undefined &&
       sector.atlasRow !== undefined &&
       !sector.warpedTheme &&
+      !(
+        sector.regionId === ASTERWAKE_REGION_ID && sector.cells.some((cell) => cell.terrain === '~')
+      ) &&
       coasts.get(sector.id)?.length === 0
     )
       ground.add(`${sector.atlasColumn}:${sector.atlasRow}`)

@@ -19,9 +19,10 @@ import styles from './players-workspace.module.css'
 import { MasterHelp } from './master-help'
 import { pv1fSkillByActionId } from '@aurevane/game-core/combat/pv1f-skills'
 
-async function request<T>(body: Record<string, unknown>): Promise<T> {
+async function request<T>(body: Record<string, unknown>, signal?: AbortSignal): Promise<T> {
   const response = await fetch('/api/master/players', {
     method: 'POST',
+    signal,
     headers: { 'Content-Type': 'application/json' },
     cache: 'no-store',
     body: JSON.stringify(body),
@@ -32,6 +33,13 @@ async function request<T>(body: Record<string, unknown>): Promise<T> {
       result.error?.message ?? 'Player support is unavailable. Refresh and try again.',
     )
   return result as T
+}
+async function validateVoidTeleport(destination: PlayerTeleportDestination, signal: AbortSignal) {
+  const result = await request<{ available: boolean }>(
+    { operation: 'validate-teleport', destination },
+    signal,
+  )
+  return result.available
 }
 type Review =
   | { kind: 'edit'; command: PlayerCorrection; requestKey: string }
@@ -389,11 +397,13 @@ export function PlayersWorkspace({
                 navigationDisabled={busy || !!review}
                 teleport={
                   <PlayerTeleportForm
+                    validateVoid={validateVoidTeleport}
                     disabled={
                       busy ||
                       !!review ||
                       player.deletionPending ||
                       !!player.battle ||
+                      !!player.world?.position?.sectorId?.startsWith('ferry:') ||
                       (!!player.world && player.world.version === undefined)
                     }
                     onReview={(destination, reason) =>

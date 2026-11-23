@@ -355,7 +355,7 @@ describe('world authority and spoiler projection', () => {
   })
   it('does not send unknown frontier names, cells or exits', () => {
     const view = projectWorld(newWorldState(), [], 1000)
-    expect(new Set(view.atlas!.map((s) => s.regionId)).size).toBe(8)
+    expect(new Set(view.atlas!.map((s) => s.regionId)).size).toBe(9)
     expect(JSON.stringify(view)).not.toContain('survey-01')
     expect(JSON.stringify(view)).not.toContain('Weathered Observatory')
   })

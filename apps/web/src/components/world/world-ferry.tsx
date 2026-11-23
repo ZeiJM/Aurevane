@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, type MouseEventHandler } from 'react'
+import { useEffect, useId, useState, type MouseEventHandler } from 'react'
 import {
   FERRY_BOARDING_MS,
   FERRY_MAINLAND_DOCK,
@@ -14,6 +14,12 @@ import styles from './world-ferry.module.css'
 
 export const FERRY_CONVERSATION_ID = 'world-ferryman'
 
+function portName(port: WorldFerryView['port']) {
+  if (port === 'north-shore') return 'North Shore Ferry Terminal'
+  if (port === 'asterwake') return 'Asterwake Ferry Terminal'
+  return FERRY_TERMINAL_NAME
+}
+
 export function ferrymanTopic(
   ferry: WorldFerryView | undefined,
   serverNow: number,
@@ -25,10 +31,14 @@ export function ferrymanTopic(
     objectiveId: FERRY_CONVERSATION_ID,
     speakerId: FERRY_CONVERSATION_ID,
     speaker: 'Ferryman',
-    title: FERRY_TERMINAL_NAME,
+    title: portName(ferry.port),
     body: ferry.passage
       ? 'You’re aboard. You can step back onto the dock until we leave.'
-      : 'There’s room aboard. The crossing takes five minutes and the fare is free.',
+      : ferry.port === 'north-shore'
+        ? 'The ferry to Asterwake takes five minutes. The fare is free.'
+        : ferry.port === 'asterwake'
+          ? 'The ferry to the North Shore takes five minutes. The fare is free.'
+          : 'There’s room aboard. The crossing takes five minutes and the fare is free.',
     portraitUrl: FERRYMAN_PORTRAIT,
     actionId: null,
     actionLabel: null,
@@ -118,21 +128,38 @@ export function WorldFerryStation({
 }) {
   const now = useFerryClock(serverNow)
   const status = ferryStatus(ferry, now)
+  const statusId = useId()
   if (!ferry.port && !ferry.passage) return null
+  const name = ferry.passage ? 'Ferry crossing' : portName(ferry.port)
+  const details = (
+    <span className={styles.stationCopy}>
+      <strong>{name}</strong>
+      <span className={styles.stationStatus} id={statusId}>
+        {status.label}{' '}
+        {status.at !== null ? <time>{formatFerryCountdown(status.at, now)}</time> : null}
+      </span>
+    </span>
+  )
   return (
     <section className={styles.station} aria-label="Ferry station">
-      <div>
-        <strong>{ferry.passage ? 'Ferry crossing' : FERRY_TERMINAL_NAME}</strong>
-        <span>
-          {status.label}{' '}
-          {status.at !== null ? <time>{formatFerryCountdown(status.at, now)}</time> : null}
-        </span>
-      </div>
       {status.action || (ferry.port && !ferry.passage) ? (
-        <button type="button" disabled={disabled} onClick={onTalk}>
-          Talk to Ferryman
+        <button
+          type="button"
+          className={styles.stationCard}
+          aria-label={`${name}. Talk to Ferryman`}
+          aria-haspopup="dialog"
+          aria-describedby={statusId}
+          disabled={disabled}
+          onClick={onTalk}
+        >
+          {details}
+          <span className={styles.stationArrow} aria-hidden="true">
+            →
+          </span>
         </button>
-      ) : null}
+      ) : (
+        <div className={styles.stationCard}>{details}</div>
+      )}
     </section>
   )
 }

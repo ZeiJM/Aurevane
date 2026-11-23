@@ -1,4 +1,5 @@
 import 'server-only'
+import { ASTERWAKE_REGION_ID } from '@/world/asterwake'
 import { atlasSectors } from '@/world/atlas'
 import { terrainWalkable } from '@/world/terrain'
 import type { WorldPosition, WorldSector } from '@/world/types'
@@ -99,6 +100,14 @@ export function savedWorldGeometryRecovery(position: WorldPosition): WorldPositi
   if (!sector) return null
   const at = sector.rows[position.y]?.[position.x] ?? '#'
   if (terrainWalkable(at)) return null
+  if (sector.regionId === ASTERWAKE_REGION_ID) {
+    const land = sector.rows.flatMap((row, y) =>
+      [...row].flatMap((tile, x) => (terrainWalkable(tile) ? [{ sectorId: sector.id, x, y }] : [])),
+    )
+    const distance = (target: WorldPosition) =>
+      (position.x - target.x) ** 2 + (position.y - target.y) ** 2
+    return land.sort((a, b) => distance(a) - distance(b))[0] ?? null
+  }
   const globalX = sector.atlasColumn! * GRID_WIDTH + position.x
   const globalY = sector.atlasRow! * GRID_HEIGHT + position.y
   const { sectors, connected } = publicComponent()

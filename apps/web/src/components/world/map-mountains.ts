@@ -112,8 +112,8 @@ export function mountainPlacements(sector: MountainSector): MountainPlacement[] 
       cellX: cell.x,
       cellY: cell.y,
       index: row * 4 + type,
-      widthTiles: major ? 3.7 + (seed % 4) * 0.38 : type === 2 ? 1.95 : 2.6,
-      heightTiles: major ? 5.5 + (seed % 5) * 0.6 : type === 2 ? 1.7 : 3.4,
+      widthTiles: major ? 4.4 + (seed % 4) * 0.42 : type === 2 ? 2.15 : 3.1,
+      heightTiles: major ? 6.6 + (seed % 5) * 0.6 : type === 2 ? 2 : 4.35,
       pass: false,
       range,
     })

@@ -20,7 +20,13 @@ import { structuralTerrainAt } from './discovery-collision'
 import { mountainFrontierAt, mountainFrontierPass } from './mountain-frontier'
 import { trimRoadShorelines } from './road-shorelines'
 import { TOWN_OUTSKIRTS } from './town-extents'
-import { FERRY_MAINLAND_DOCK, FERRY_TERMINAL_LANDMARK, FERRY_TERMINAL_NAME } from './ferry'
+import {
+  FERRY_MAINLAND_DOCK,
+  FERRY_NORTH_DOCK,
+  FERRY_TERMINAL_LANDMARK,
+  FERRY_TERMINAL_NAME,
+} from './ferry'
+import { asterwakeCoastAt, asterwakeSector } from './asterwake'
 import type { WorldBuilding, WorldLandmark, WorldRoad, WorldSector } from './types'
 import { ATLAS_COLUMNS, ATLAS_ROWS, atlasNeighbor, wrappedColumnDistance } from './topology'
 
@@ -104,7 +110,7 @@ function segmentDistance(
   const t = Math.max(0, Math.min(1, ((x - a.column) * dx + (y - a.row) * dy) / (dx * dx + dy * dy)))
   return Math.hypot(x - a.column - t * dx, y - a.row - t * dy)
 }
-function originalLandAt(column: number, row: number) {
+function isIsolaHeartland(column: number, row: number) {
   return (
     roots.some((root) => Math.hypot(column - root.column, (row - root.row) * 1.12) <= 8.8) ||
     rootLinks.some(
@@ -124,8 +130,18 @@ export function longitudeCountrysideLatitude(column: number) {
 }
 function longitudeCountrysideAt(column: number, row: number) {
   const longitude = (column * Math.PI * 2) / ATLAS_COLUMNS
+  const center = longitudeCountrysideLatitude(column)
   const width = 1.15 + Math.max(0, Math.cos(longitude)) ** 16 * 0.65
-  return Math.abs(row - longitudeCountrysideLatitude(column)) <= width
+  // Offset peninsulas on opposite shores, with open bays between them. Keep the
+  // existing core so previously saved positions and the transcontinental road survive.
+  const headland = (phase: number) =>
+    Math.max(0, Math.cos(longitude * 5 + phase) * 0.7 + Math.cos(longitude * 9 - phase) * 0.3) ** 2
+  // Preserve open sea around the Farwater Span and Lanternward Tower.
+  if (column >= 98 && column <= 102 && row <= OFFSHORE_DISCOVERY.row)
+    return Math.abs(row - center) <= width
+  const north = width + 4.3 * headland(1.4)
+  const south = width + 4.2 * headland(-1.1)
+  return row >= center - north && row <= center + south
 }
 const buildingArt: Record<string, number> = {
   'verdant-expanse': 0,
@@ -307,26 +323,63 @@ function townStreet(index: number, x: number, y: number) {
       )
   }
 }
+const authoredByAddress = new Map(
+  CHARTED_SECTORS.flatMap((sector) => {
+    const address = originalAddress(sector.coordinate)
+    return address ? [[addressKey(address.column, address.row), sector] as const] : []
+  }),
+)
+
+function chartedLandAt(column: number, row: number, authored: WorldSector | undefined) {
+  if (asterwakeCoastAt(column, row)) return 'remote'
+  if (isIsolaHeartland(column, row)) return 'heartland'
+  if (authored) return 'authored'
+  if (mountainFrontierAt(column, row)) return 'mountains'
+  if (longitudeCountrysideAt(column, row)) return 'countryside'
+  return null
+}
+
+type AtlasChartAddress = { id: string; column: number; row: number; tier: number }
+let chartAddresses: readonly AtlasChartAddress[] | undefined
+/** The public chart index needs addresses only. Terrain, artwork and roads stay lazy. */
+export function atlasChartAddresses() {
+  if (chartAddresses) return chartAddresses
+  const addresses: AtlasChartAddress[] = []
+  for (let row = 0; row < ATLAS_ROWS; row++)
+    for (let column = 0; column < ATLAS_COLUMNS; column++) {
+      const authored = authoredByAddress.get(addressKey(column, row))
+      const land = chartedLandAt(column, row, authored)
+      if (land)
+        addresses.push({
+          id: authored?.id ?? `atlas:${column}:${row}`,
+          column,
+          row,
+          tier: land === 'heartland' ? 0 : land === 'remote' ? 2 : 1,
+        })
+    }
+  for (const { id, column } of OFFSHORE_SECTORS)
+    addresses.push({ id, column, row: OFFSHORE_DISCOVERY.row, tier: 1 })
+  chartAddresses = addresses.sort((a, b) => a.tier - b.tier || a.row - b.row || a.column - b.column)
+  return chartAddresses
+}
+
 let cache: readonly WorldSector[] | null = null
 
 /** Stable authored IDs occupy their geographic anchors; the space between is real terrain. */
 export function atlasSectors(): readonly WorldSector[] {
   if (cache) return cache
-  const authoredByAddress = new Map(
-    CHARTED_SECTORS.flatMap((sector) => {
-      const address = originalAddress(sector.coordinate)
-      return address ? [[addressKey(address.column, address.row), sector] as const] : []
-    }),
-  )
   const sectors: WorldSector[] = []
   for (let row = 0; row < ATLAS_ROWS; row++)
     for (let column = 0; column < ATLAS_COLUMNS; column++) {
       const authored = authoredByAddress.get(addressKey(column, row))
-      const existingLand = Boolean(authored || originalLandAt(column, row))
-      // Expand into formerly empty sea coordinates without rewriting a single
-      // existing sector. The alpine spur is actual terrain, not an overlay.
-      const newMountainLand = !existingLand && mountainFrontierAt(column, row)
-      if (!existingLand && !longitudeCountrysideAt(column, row) && !newMountainLand) continue
+      const land = chartedLandAt(column, row, authored)
+      if (!land) continue
+      if (land === 'remote') {
+        sectors.push(asterwakeSector(column, row)!)
+        continue
+      }
+      const existingLand = land === 'authored' || land === 'heartland'
+      const newMountainLand = land === 'mountains'
       const nearest = [...roots].sort(
         (a, b) =>
           Math.hypot(wrappedColumnDistance(column, a.column), row - a.row) -
@@ -613,6 +666,12 @@ export function atlasSectors(): readonly WorldSector[] {
         ] as const)
           grid[y]![x] = 'l'
       }
+      // Visible water is blocked. The former snow/volcanic town pools are dry
+      // on the rendered surface and retain their saved walkability.
+      if (town?.id !== 'frostmere' && town?.id !== 'emberreach')
+        for (let y = 0; y < GRID_HEIGHT; y++)
+          for (let x = 0; x < GRID_WIDTH; x++)
+            if (grid[y]![x] === 'w') grid[y]![x] = town && y === 4 ? '=' : '~'
       const landmarks: WorldLandmark[] = (authored?.landmarks ?? []).map((l) => ({ ...l }))
       if (!town && column === REMOTE_GRAND_CROSSING.column && row >= 31 && row <= 33)
         landmarks.push({
@@ -644,8 +703,6 @@ export function atlasSectors(): readonly WorldSector[] {
           })
       }
       if (isRoot) {
-        const settlement = landmarks.find((l) => l.kind === 'settlement')
-        if (settlement) settlement.name = 'Town Square'
         landmarks.push({
           id: `${id}:marketplace`,
           name: 'Marketplace',
@@ -696,12 +753,21 @@ export function atlasSectors(): readonly WorldSector[] {
           x: FERRY_MAINLAND_DOCK.x,
           y: FERRY_MAINLAND_DOCK.y,
         })
+      if (id === FERRY_NORTH_DOCK.sectorId)
+        landmarks.push({
+          id: 'north-shore:ferry-terminal',
+          name: 'North Shore Ferry Terminal',
+          kind: 'waystone',
+          x: FERRY_NORTH_DOCK.x,
+          y: FERRY_NORTH_DOCK.y,
+        })
       sectors.push({
         ...authored,
         id,
         name:
           authored?.name ??
           (id === FERRY_MAINLAND_DOCK.sectorId ? FERRY_TERMINAL_NAME : undefined) ??
+          (id === FERRY_NORTH_DOCK.sectorId ? 'North Shore Ferry Terminal' : undefined) ??
           grandDiscoverySectorName(id) ??
           (scenicCenter
             ? scenic.name

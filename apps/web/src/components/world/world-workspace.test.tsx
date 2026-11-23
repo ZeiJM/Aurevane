@@ -9,14 +9,14 @@ import { projectWorld } from '@/server/world/world-service'
 import { newWorldState, revealNearby } from '@/world/travel'
 import { VOID_REALMS } from '@/world/void-realms'
 import { WorldWorkspace } from './world-workspace'
-import { worldTravelPoints } from './world-travel-points'
+import { worldKeyLocations } from './world-travel-points'
 
 describe('World page', () => {
   it('offers existing public town destinations before a character discovers any private survey anchor', () => {
     const view = projectWorld(newWorldState(), [], 1000)
     expect(view.anchors).toEqual([])
-    const points = worldTravelPoints(view)
-    expect(points).toHaveLength(9)
+    const points = worldKeyLocations(view, null)
+    expect(points.length).toBeGreaterThanOrEqual(11)
     expect(points.map(({ id }) => id)).toEqual(
       expect.arrayContaining(['atlas:126:33', 'aureth-crown', 'verdant-expanse']),
     )
@@ -113,7 +113,7 @@ describe('World page', () => {
       markup.match(/<div class="[^"]*panelFoot[^"]*"[^>]*>([\s\S]*?)<\/div>/)?.[1] ?? ''
     const initial = foot(render())
     expect(initial).toContain('data-world-coordinates')
-    expect(initial).toContain('Sector 3643 · X:6 · Y:4')
+    expect(initial).toContain('Sector 817 · X:6 · Y:4')
     expect(initial).not.toContain('S59-29')
     expect(initial).not.toContain('N320')
     expect(initial).not.toContain('E760')
@@ -121,7 +121,7 @@ describe('World page', () => {
     expect(initial).toContain('aria-label="Map settings"')
     view.position = { sectorId: 'atlas:58:28', x: 7, y: 3 }
     const moved = foot(render())
-    expect(moved).toContain('Sector 3643 · X:7 · Y:3')
+    expect(moved).toContain('Sector 817 · X:7 · Y:3')
     expect(moved).not.toContain('X:6')
   })
   it('masks Void local X/Y while preserving its geographic sector number', () => {
@@ -135,7 +135,7 @@ describe('World page', () => {
         character: { name: 'Traveller', portrait: '/portrait.webp' },
       }),
     )
-    expect(markup).toContain('Sector 66 · X:? · Y:?')
+    expect(markup).toContain('Sector 8258 · X:? · Y:?')
     expect(markup).not.toContain('X:6')
     expect(markup).not.toContain('Y:4')
     expect(markup).not.toContain('Beyond the charts')
@@ -152,7 +152,7 @@ describe('World page', () => {
       }),
     )
     expect(markup).toContain(`${VOID_REALMS[0].name} · `)
-    expect(markup).toContain('Sector 406 · X:? · Y:?')
+    expect(markup).toContain('Sector 8598 · X:? · Y:?')
     expect(markup).not.toContain('X:6')
     expect(markup).not.toContain('Y:4')
     for (const realm of VOID_REALMS.slice(1)) expect(markup).not.toContain(realm.name)

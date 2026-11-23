@@ -249,3 +249,10 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+.workspace input.teleportSector[data-sector-valid='true'] {
+  color: #91e5ad;
+}
+.workspace input.teleportSector[data-sector-valid='false'] {
+  color: #ffa6a1;
+}

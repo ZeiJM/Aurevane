@@ -118,7 +118,7 @@ async function main() {
   const output = process.argv[2]
   if (!output)
     throw new Error(
-      'Usage: node render-world-source-review.cjs <output-dir> [region|landmark-detail|town-dry-town] [zoom]',
+      'Usage: node render-world-source-review.cjs <output-dir> [region|landmark-detail|town-dry-town|town:region|sector:id:x:y] [zoom]',
     )
   const scene = process.argv[3] || 'verdant-expanse',
     zoom = Number(process.argv[4] || 1)
@@ -139,7 +139,17 @@ async function main() {
     },
   })
   const state = newWorldState()
-  if (scene.endsWith('-dry-town')) {
+  if (scene.startsWith('town:') || scene.startsWith('sector:')) {
+    const [, ...parts] = scene.split(':')
+    const y = scene.startsWith('town:') ? 4 : Number(parts.pop())
+    const x = scene.startsWith('town:') ? 6 : Number(parts.pop())
+    const sectorId = parts.join(':')
+    const sector = atlasSectors().find((candidate) => candidate.id === sectorId)
+    const { isWalkable } = require(root + '/apps/web/src/world/travel.ts')
+    if (!sector || !isWalkable(sector, { x, y }))
+      throw new Error('No walkable viewpoint for ' + scene)
+    state.position = { sectorId, x, y }
+  } else if (scene.endsWith('-dry-town')) {
     const townId = scene.slice(0, -9)
     const sector = atlasSectors().find(
       (candidate) => candidate.townId === townId && candidate.rows.some((row) => row.includes('w')),
@@ -183,7 +193,7 @@ async function main() {
     if (pending.length === before && !frames.size) break
   }
   await Promise.all(pending)
-  const image = path.join(output, scene + '-' + zoom + '.png')
+  const image = path.join(output, scene.replaceAll(':', '-') + '-' + zoom + '.png')
   fs.writeFileSync(image, c.toBuffer('image/png'))
   const hash = (filename) => createHash('sha256').update(fs.readFileSync(filename)).digest('hex')
   const report = {
@@ -209,7 +219,7 @@ async function main() {
     ),
   }
   fs.writeFileSync(
-    path.join(output, scene + '-' + zoom + '.json'),
+    path.join(output, scene.replaceAll(':', '-') + '-' + zoom + '.json'),
     JSON.stringify(report, null, 2) + '\n',
   )
   console.log(JSON.stringify({ image, ...report }, null, 2))

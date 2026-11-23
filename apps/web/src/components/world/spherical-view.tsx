@@ -187,7 +187,12 @@ export function SphericalView({
       onPointerDown={(e) => {
         consumedDrag.current = false
         const button = (e.target as HTMLElement).closest('button')
-        if (button && !button.hasAttribute('data-globe-town')) return
+        if (
+          button &&
+          !button.hasAttribute('data-globe-marker') &&
+          !button.hasAttribute('data-globe-town')
+        )
+          return
         // Towns support click selection and drag rotation. Capture only after a
         // real drag starts, so an ordinary button click still reaches its target.
         if (!button) e.currentTarget.setPointerCapture(e.pointerId)
@@ -238,7 +243,8 @@ export function SphericalView({
         const dx = e.clientX - start.x,
           dy = e.clientY - start.y
         if (dx * dx + dy * dy > 36) return
-        if ((e.target as HTMLElement).closest('[data-globe-town]')) return
+        const target = e.target as HTMLElement
+        if (target.closest('[data-globe-marker]') || target.closest('[data-globe-town]')) return
         const bounds = e.currentTarget.getBoundingClientRect(),
           x = (((e.clientX - bounds.left) / bounds.width) * 2 - 1) / zoom,
           y = (1 - ((e.clientY - bounds.top) / bounds.height) * 2) / zoom

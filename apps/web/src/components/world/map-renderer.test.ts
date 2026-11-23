@@ -4,6 +4,8 @@ import { readFile } from 'node:fs/promises'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
 import { projectWorld, projectWorldSector } from '@/server/world/world-service'
+import { voidRealmFerryDock } from '@/server/world/void-realms'
+import { FERRYMAN_PORTRAIT, FERRYMAN_SPRITE } from '@/world/ferry'
 import { atlasSectors } from '@/world/atlas'
 import { CHARTED_SECTORS } from '@/world/catalog'
 import { GRAND_DISCOVERY_SITES, OFFSHORE_DISCOVERY } from '@/world/discovery-sites'
@@ -93,6 +95,7 @@ function scene(reduced = false, initial?: WorldView) {
     font: string
     align: string
     maxWidth?: number
+    colour: string
   }[] = []
   const transforms: number[][] = []
   const groundCurves: number[][] = []
@@ -175,7 +178,15 @@ function scene(reduced = false, initial?: WorldView) {
       },
       fillText(text: string, x: number, y: number, maxWidth?: number) {
         const state = this as unknown as { font: string; textAlign: string }
-        texts.push({ text, x, y, font: state.font, align: state.textAlign, maxWidth })
+        texts.push({
+          text,
+          x,
+          y,
+          font: state.font,
+          align: state.textAlign,
+          maxWidth,
+          colour: this.fillStyle,
+        })
       },
       beginPath() {
         recordedPath = []
@@ -318,7 +329,7 @@ function scene(reduced = false, initial?: WorldView) {
     clientHeight: 600,
     width: 0,
     height: 0,
-    dataset: {},
+    dataset: { characterName: 'Wayfarer' },
     getContext: () => context,
     getBoundingClientRect: () => ({ left: 0, top: 0 }),
     setPointerCapture() {},
@@ -535,11 +546,115 @@ describe('native map input and bounded lifecycle', () => {
       vi.unstubAllGlobals()
     }
   })
+  it('renders the full Orchard ferry with a visible Ferryman and accepts clicks inland', () => {
+    const { sectorId, x, y } = voidRealmFerryDock('hollow-orchard')
+    const position = { sectorId, x, y }
+    const view = projectWorld(revealNearby({ ...newWorldState(), position }), [], 10 * 60_000)
+    const s = scene(true, {
+      ...view,
+      players: [
+        {
+          characterId: 'orchard-visitor',
+          name: 'Orchard visitor',
+          level: 1,
+          portraitRef: '',
+          imageUrl: '/visitor.webp',
+          online: true,
+          attackable: false,
+          position: { ...position, y: y + 1 },
+        },
+      ],
+      npcs: [
+        {
+          id: 'ferryman',
+          name: 'Ferryman',
+          position: { ...position, x: x + 1 },
+          imageUrl: FERRYMAN_PORTRAIT,
+          spriteUrl: FERRYMAN_SPRITE,
+        },
+      ],
+    })
+    try {
+      s.frame(40)
+      const hull = s.spriteDraws.find(({ src }) => src.endsWith('ferry-vessel-v01.webp'))
+      const sprite = s.spriteDraws.find(({ src }) => src === FERRYMAN_SPRITE)
+      expect(hull?.args).toHaveLength(4)
+      expect(sprite?.args.at(-1)).toBeGreaterThan(64)
+      expect(s.texts.map(({ text }) => text)).toEqual(
+        expect.arrayContaining(['Ferry Terminal', 'Ferryman']),
+      )
+      const labelColours = Object.fromEntries(s.texts.map(({ text, colour }) => [text, colour]))
+      expect(labelColours).toMatchObject({
+        Wayfarer: '#ffdb86',
+        'Orchard visitor': '#a5efe2',
+        Ferryman: '#ffc2a6',
+        'Ferry Terminal': '#dbc8ff',
+      })
+      const destination = { sectorId, x: x + 3, y }
+      expect(
+        view.sectors
+          .find(({ id }) => id === sectorId)
+          ?.cells.some((cell) => cell.x === destination.x && cell.y === y),
+      ).toBe(false)
+      const camera = mapPoint(position, view.sectors)
+      const point = projectMapPoint(
+        mapPoint(destination, view.sectors, camera),
+        camera,
+        { x: 0, y: 0 },
+        64,
+        800,
+        600,
+      )
+      s.event('pointerdown', point.x, point.y)
+      s.event('pointerup', point.x, point.y)
+      expect(s.select).toHaveBeenCalledWith(destination)
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  })
+  it('paints charted dry ground while awaiting the next scene and leaves water to the sea layer', () => {
+    const view = legacyTownView('verdant-expanse')
+    const own = view.sectors.find((sector) => sector.id === view.position.sectorId)!
+    const candidate = {
+      id: 'next-charted',
+      name: 'Next charted ground',
+      coordinate: 'S03-02',
+      regionId: 'glasswind-desert',
+      column: (own.atlasColumn ?? 1) + 1,
+      row: own.atlasRow ?? 1,
+      charted: true,
+    }
+    const centre = {
+      ...own,
+      atlasColumn: candidate.column - 1,
+      atlasRow: candidate.row,
+    }
+    const s = scene(true, { ...view, atlas: [candidate], scenery: [], sectors: [centre] })
+    try {
+      s.renderer.settings({ animate: false, zoom: 0.35 })
+      s.frame(40)
+      expect(s.rectangles.filter(({ colour }) => colour === '#ab956e')).toHaveLength(1)
+      s.rectangles.length = 0
+      s.renderer.update({
+        ...view,
+        atlas: [{ ...candidate, waterTiles: '~'.repeat(117) }],
+        scenery: [],
+        sectors: [centre],
+      })
+      s.frame(90)
+      expect(s.rectangles.some(({ colour }) => colour === '#ab956e')).toBe(false)
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  })
   it('toggles location names without hiding player identities or disabling map input', () => {
     const s = scene(true)
     try {
       s.frame(40)
-      expect(s.texts.some(({ text }) => text === 'Town Square')).toBe(true)
+      s.frame(76)
+      expect(s.texts.filter(({ text }) => text === 'Forest Settlement')).toHaveLength(1)
       s.texts.length = 0
       s.renderer.settings({ animate: false, zoom: 1, showLocationLabels: false })
       s.renderer.update({
@@ -558,8 +673,8 @@ describe('native map input and bounded lifecycle', () => {
         ],
       })
       s.frame(80)
-      expect(s.texts.some(({ text }) => text === 'Town Square')).toBe(false)
-      expect(s.texts.some(({ text }) => text === 'You')).toBe(true)
+      expect(s.texts.some(({ text }) => text === 'Forest Settlement')).toBe(false)
+      expect(s.texts.some(({ text }) => text === 'Wayfarer')).toBe(true)
       const camera = mapPoint(s.view.position, s.view.sectors)
       const target = { ...s.view.position, x: s.view.position.x + 1 }
       const point = projectMapPoint(
@@ -576,7 +691,7 @@ describe('native map input and bounded lifecycle', () => {
       s.texts.length = 0
       s.renderer.settings({ animate: false, zoom: 1, showLocationLabels: true })
       s.frame(120)
-      expect(s.texts.some(({ text }) => text === 'Town Square')).toBe(true)
+      expect(s.texts.some(({ text }) => text === 'Forest Settlement')).toBe(true)
     } finally {
       s.renderer.dispose()
       vi.unstubAllGlobals()
@@ -778,7 +893,7 @@ describe('native map input and bounded lifecycle', () => {
     const context = s.identityCanvas.getContext('2d')!
     const drawText = context.fillText.bind(context)
     const identities = vi.spyOn(context, 'fillText').mockImplementation((...args) => {
-      if (args[0] === 'You') now += 11
+      if (args[0] === 'Wayfarer') now += 11
       drawText(...args)
     })
     const create = document.createElement.bind(document)
@@ -1754,7 +1869,9 @@ describe('native map input and bounded lifecycle', () => {
         .filter((fill) => fill.colour === 'rgba(6,28,35,.92)')
         .every((fill) => fill.order > lastCloud),
     ).toBe(true)
-    for (const text of s.texts.filter((text) => text.text === 'You' || text.text === 'Other')) {
+    for (const text of s.texts.filter(
+      (text) => text.text === 'Wayfarer' || text.text === 'Other',
+    )) {
       expect(text.x * 3).toBeCloseTo(Math.round(text.x * 3))
       expect(text.y * 3).toBeCloseTo(Math.round(text.y * 3))
     }
@@ -3579,8 +3696,8 @@ describe('native map input and bounded lifecycle', () => {
     s.renderer.settings({ animate: true, zoom: 0.65 })
     s.frame(40)
 
-    const labels = s.texts.filter(({ text }) => text === 'You' || text.startsWith('Neighbour'))
-    expect(labels.some(({ text }) => text === 'You')).toBe(true)
+    const labels = s.texts.filter(({ text }) => text === 'Wayfarer' || text.startsWith('Neighbour'))
+    expect(labels.some(({ text }) => text === 'Wayfarer')).toBe(true)
     expect(labels.length).toBeLessThanOrEqual(12)
     expect(s.identityDraws.filter(({ src }) => src === '/peer.webp').length).toBeGreaterThan(12)
     for (const [index, label] of labels.entries()) {
@@ -3634,7 +3751,7 @@ describe('native map input and bounded lifecycle', () => {
       })
       s.renderer.settings({ animate: true, zoom })
       s.frame(40)
-      const self = s.texts.findLast((text) => text.text === 'You')!
+      const self = s.texts.findLast((text) => text.text === 'Wayfarer')!
       const peer = s.texts.findLast((text) => text.text === 'Sellophina')!
       const longName = s.texts.findLast((text) => text.text.startsWith('A traveller'))!
       expect(self).toBeDefined()
@@ -3707,7 +3824,7 @@ describe('native map input and bounded lifecycle', () => {
       s.frame(40)
       const portrait = s.identityDraws.find((entry) => entry.src === '/moving-native.webp')!
       const [portraitX, portraitY, portraitWidth, portraitHeight] = portrait.args.slice(-4)
-      const priorLabel = s.texts.findLast(({ text }) => text === 'You')!
+      const priorLabel = s.texts.findLast(({ text }) => text === 'Wayfarer')!
       const destination = { ...s.view.position, x: s.view.position.x + 1 }
       s.identityClear.mockClear()
       s.motion.plan([{ position: destination, durationMs: 200 }], s.view.sectors, 40)
@@ -4647,7 +4764,7 @@ it('uses projected walkability for staff inspection without a player marker', ()
     s.frame(40)
     expect(s.fills.some((fill) => fill.colour === 'rgba(129,38,122,.56)')).toBe(true)
     expect(s.rectangles.some((rect) => rect.colour === '#f1ca62')).toBe(true)
-    expect(s.texts.some((text) => text.text === 'You')).toBe(false)
+    expect(s.texts.some((text) => text.text === 'Wayfarer')).toBe(false)
   } finally {
     s.renderer.dispose()
     vi.unstubAllGlobals()
@@ -5402,7 +5519,7 @@ it('enlarges a clear-ground shrine without moving its visual foot as nearby grou
   expect(grand.footY).toBeCloseTo(ordinary.footY, 5)
 })
 
-it('renders the actual canonical shallow moat crossing without inventing a deep-water route', () => {
+it('renders the canonical moat crossing while blocking the channel', () => {
   const canonical = atlasSectors().find(
     (sector) =>
       sector.townId === 'umbral-march' &&
@@ -5416,7 +5533,7 @@ it('renders the actual canonical shallow moat crossing without inventing a deep-
     1000,
   )
   const own = view.sectors.find((sector) => sector.id === canonical.id)!
-  expect(own.cells.some((cell) => cell.terrain === 'w' && cell.walkable)).toBe(true)
+  expect(own.cells.some((cell) => cell.terrain === '~' && !cell.walkable)).toBe(true)
   expect(own.cells.find((cell) => cell.x === bridge.x && cell.y === bridge.y)).toMatchObject({
     walkable: true,
   })

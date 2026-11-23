@@ -563,3 +563,22 @@ it('installs v5 offshore geometry and limits teleport to the authored bridge dec
   await denied(() => call(3), /DESTINATION_BLOCKED/)
   expect((await call(4)).rows[0]!.result.position).toEqual({ sectorId: bridge, x: 5, y: 4 })
 })
+
+it('isolates the new mainland chart numbers in v6 and commits only walkable cells', async () => {
+  await seed()
+  const indexed = { ...geometry[0]!, sectorNumber: 1 }
+  await db.query('select public.install_master_teleport_geometry_v1($1,$2,$3,null)', [
+    owner,
+    '2026-11-23-v6',
+    [indexed],
+  ])
+  const call = (x: number, y: number, actor = owner) =>
+    db.query<{ result: { position: unknown } }>(
+      "select public.teleport_master_player_v6($1,$2,5,$3,'mainland',1,$4,$5,'Reviewed recovery',true,null) result",
+      [actor, character, request, x, y],
+    )
+  await denied(() => call(6, 4, other), /PAGE_ACCESS_REQUIRED/)
+  await denied(() => call(1, 0), /DESTINATION_BLOCKED/)
+  await denied(() => call(2, 0), /DESTINATION_BLOCKED/)
+  expect((await call(6, 4)).rows[0]!.result.position).toEqual({ sectorId, x: 6, y: 4 })
+})

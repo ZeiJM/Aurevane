@@ -1,10 +1,11 @@
-import type { WorldAtlasCell } from '@/world/types'
+import type { WorldAtlasCell, WorldPosition } from '@/world/types'
 import { positionLabel } from '@/world/coordinate-label'
 import { worldTravelDestination } from './world-travel-points'
 import styles from './workspace.module.css'
 
 interface Props {
   destination: WorldAtlasCell
+  arrival?: WorldPosition
   disabled: boolean
   reviewing: boolean
   replacesRoute: boolean
@@ -18,6 +19,7 @@ interface Props {
 
 export function WorldDestinationCard({
   destination,
+  arrival,
   disabled,
   reviewing,
   replacesRoute,
@@ -66,7 +68,7 @@ export function WorldDestinationCard({
         </div>
       </header>
       <p className={styles.destinationCoordinates}>
-        {positionLabel(destination, worldTravelDestination(destination.id))}
+        {positionLabel(destination, arrival ?? worldTravelDestination(destination.id))}
       </p>
       <div
         className={styles.destinationActions}
@@ -80,7 +82,7 @@ export function WorldDestinationCard({
         ) : null}
         <button
           type="button"
-          className={`${styles.primary} ${reviewing ? styles.confirmTravel : ''}`}
+          className={`${styles.primary} ${reviewing ? styles.confirmTravel : styles.reviewTravel}`}
           disabled={disabled}
           aria-expanded={reviewing}
           aria-describedby={reviewing && replacesRoute ? 'world-travel-review-copy' : undefined}
@@ -89,7 +91,7 @@ export function WorldDestinationCard({
           {reviewing ? 'Confirm travel' : 'Travel here'}
         </button>
         {reviewing ? (
-          <button type="button" onClick={onCancel}>
+          <button type="button" className={styles.cancelTravel} onClick={onCancel}>
             Cancel
           </button>
         ) : null}

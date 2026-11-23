@@ -1,3 +1,4 @@
+import { sectorDisplayNumber } from '../src/world/coordinate-label'
 import { openMapSettings, closeMapSettings } from './world-map-settings-helpers'
 import { observeWorldRead, readWorldSnapshot } from './world-read-observation'
 import { cleanupWorldPresenceFixtures } from './world-presence-diagnostics'
@@ -327,13 +328,13 @@ async function expectLocation(page: Page, name: string) {
 async function reviewSectorTravel(page: Page, sectorId: string) {
   const charted = (await world(page)).atlas?.find((cell) => cell.id === sectorId && cell.charted)
   expect(charted).toBeDefined()
-  const sectorNumber = charted!.row * 128 + charted!.column + 1
+  const sectorNumber = sectorDisplayNumber(charted)!
   const field = page.getByRole('textbox', { name: 'Sector number', exact: true })
   if (!(await field.isVisible()))
     await page.getByRole('button', { name: 'Details', exact: true }).click()
   await expect(field).toBeVisible()
   await field.fill(String(sectorNumber))
-  await page.getByRole('button', { name: 'Review sector', exact: true }).click()
+  await field.press('Enter')
   await expect(page.getByRole('dialog', { name: 'Confirm world travel' })).toHaveCount(0)
   await page.getByRole('button', { name: 'Travel here', exact: true }).click()
   await expect(page.getByRole('group', { name: 'Confirm world travel' })).toBeVisible()
@@ -1749,7 +1750,7 @@ test('the globe rotates by dragging and has a usable charted fallback without We
   await capture(page, info, 'fallback-route-return')
 })
 
-test('sidebar Travel Points and Key Locations select a destination dot without submitting travel', async ({
+test('alphabetical Key locations select a destination dot without submitting travel', async ({
   page,
 }, info) => {
   test.skip(info.project.name === 'laptop-chromium', 'Exercise mouse and touch once each.')
@@ -1762,8 +1763,8 @@ test('sidebar Travel Points and Key Locations select a destination dot without s
   expect(known).toHaveLength(2)
   expect(before.anchors).toEqual([])
   await page.getByRole('button', { name: /Open world atlas/ }).click()
-  const sidebar = page.getByRole('button', { name: /^(?:Next )?Travel Points?$/ })
-  if (!(await sidebar.isVisible()))
+  const locationPicker = page.getByRole('combobox', { name: 'Key locations' })
+  if (!(await locationPicker.isVisible()))
     await page.getByRole('button', { name: 'Details', exact: true }).click()
   const commands: string[] = []
   page.on('request', (request) => {
@@ -1772,7 +1773,21 @@ test('sidebar Travel Points and Key Locations select a destination dot without s
   })
   const selected = (id: string) => page.locator(`[data-globe-destination="${id}"]`)
   await expect(page.locator('[data-globe-travel-point]')).toHaveCount(0)
-  const locationPicker = page.getByRole('combobox', { name: 'Key locations' })
+  await expect(page.getByRole('button', { name: /^(?:Next )?Travel Points?$/ })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Review sector' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'My favorite', exact: true })).toHaveCount(0)
+  const input = page.getByRole('textbox', { name: 'Sector number' })
+  await input.fill('99999')
+  await expect(input).toHaveAttribute('data-sector-valid', 'false')
+  await input.fill(String(sectorDisplayNumber(known[0])!))
+  await expect(input).toHaveAttribute('data-sector-valid', 'true')
+  await input.press('Enter')
+  await expect(selected(known[0]!.id)).toBeVisible()
+
+  const names = (await locationPicker.locator('option:not([value=""])').allTextContents()).map(
+    (label) => label.split(' · ')[1]!,
+  )
+  expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b, 'en')))
   await expect(
     locationPicker.locator(`option[value="${FERRY_MAINLAND_DOCK.sectorId}"]`),
   ).toContainText('Ferry Terminal')
@@ -1783,16 +1798,8 @@ test('sidebar Travel Points and Key Locations select a destination dot without s
     'rgb(201, 62, 64)',
   )
   await expect(page.getByRole('region', { name: 'Selected destination' })).toContainText('Y:8')
-  const towns = (before.atlas ?? []).filter(
-    (sector) => sector.charted && sector.townId === sector.id,
-  )
-  for (const destination of [...towns.map((sector) => sector.id), FERRY_MAINLAND_DOCK.sectorId]) {
-    await sidebar.click()
-    await expect(selected(destination)).toBeVisible()
-  }
-  await sidebar.click()
+  await locationPicker.selectOption(known[0]!.id)
   await expect(selected(known[0]!.id)).toBeVisible()
-  await expect(sidebar).toHaveAttribute('title', `Selected: ${known[0]!.name}`)
   await expect(page.getByRole('dialog', { name: 'Confirm world travel' })).toHaveCount(0)
   await expect(
     page.getByRole('button', { name: 'Focus Uncharted Lands', exact: true }),
@@ -1816,7 +1823,7 @@ test('sidebar Travel Points and Key Locations select a destination dot without s
   expect((await world(page)).position).toEqual(before.position)
   expect((await world(page)).route).toEqual(before.route)
   expect(commands).toEqual([])
-  await capture(page, info, 'shared-travel-point-cycle')
+  await capture(page, info, 'alphabetical-key-locations')
 })
 
 test('ambient clouds, water and wildlife remain alive with bounded effects and can be paused', async ({
@@ -1960,7 +1967,7 @@ test('shows the coast terminal and keeps its Ferryman in Nearby outside boarding
   await capture(page, info, 'coastal-ferry-terminal')
   await onDock.getByRole('button', { name: 'Talk to Ferryman' }).click()
   const dialogue = page.getByRole('dialog', { name: 'Ferryman' })
-  await expect(dialogue.locator('img')).toHaveAttribute('src', /ferryman-portrait-v01\.webp$/)
+  await expect(dialogue.locator('img')).toHaveAttribute('src', /ferryman-portrait-v02\.webp$/)
   await expect
     .poll(() => dialogue.locator('img').evaluate((img: HTMLImageElement) => img.naturalWidth))
     .toBeGreaterThan(0)

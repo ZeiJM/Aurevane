@@ -15,6 +15,7 @@ it('mounts a transparent identity canvas while keeping input and accessibility o
       view,
       motion: new WorldMotion(view),
       portrait: '/custom-portrait.webp',
+      characterName: 'Wayfarer',
       animate: true,
       paused: false,
       zoom: 1,
@@ -32,4 +33,5 @@ it('mounts a transparent identity canvas while keeping input and accessibility o
   expect(markup).toContain('pointer-events:none')
   expect(markup).toContain('aria-hidden="true"')
   expect(markup).toContain('data-portrait="/custom-portrait.webp"')
+  expect(markup).toContain('data-character-name="Wayfarer"')
 })

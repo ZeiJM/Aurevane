@@ -1,3 +1,4 @@
+import { mainlandSectorNumber } from '@/world/sector-index'
 import { expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
 import { atlasSectors } from '@/world/atlas'
@@ -78,7 +79,7 @@ it.each(['frostmere', 'emberreach'])(
       const geometry = masterTeleportGeometry(
         {
           map: 'mainland',
-          sectorNumber: sector.atlasRow! * 128 + sector.atlasColumn! + 1,
+          sectorNumber: mainlandSectorNumber(sector.atlasColumn!, sector.atlasRow!)!,
           x: 6,
           y: 4,
         },

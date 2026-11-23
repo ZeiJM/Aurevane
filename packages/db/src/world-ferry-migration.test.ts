@@ -60,6 +60,7 @@ beforeAll(async () => {
   await db.exec(migration(embarkationSql))
   await db.exec(migration('20261119101500_mainland_ferry_terminal'))
   await db.exec(migration('20261119114000_uncharted_coastal_ferry_terminals'))
+  await db.exec(migration('20261123011000_asterwake_ferry'))
 }, 30_000)
 beforeEach(async () => {
   await db.exec(`
@@ -272,4 +273,35 @@ describe('durable world ferry authority', () => {
     `)
     expect(rows[0]).toEqual({ board: false, settle: false, trips: false })
   })
+})
+
+it('boards and settles both Asterwake legs at their real terminals and preserves shared receipts', async () => {
+  const north = { sectorId: 'atlas:126:30', x: 6, y: 0 }
+  const island = { sectorId: 'atlas:4:15', x: 6, y: 8 }
+  const outbound = departure + 900_000
+  const inbound = departure + 2_700_000
+  await db.query(
+    "update app_private.character_world_state set state=jsonb_set(state,'{position}',$2::jsonb) where character_id=$1",
+    [player, JSON.stringify(north)],
+  )
+  await clock(outbound - 300_001)
+  await expect(passage()).rejects.toThrow('WORLD_FERRY_WINDOW')
+  await clock(outbound - 300_000)
+  const boarded = await passage()
+  expect(boarded).toMatchObject({
+    position: { sectorId: `ferry:asterwake-outbound:${outbound}`, x: 6, y: 4 },
+    ferry: { direction: 'asterwake-outbound', origin: north, arrivalAt: outbound + 300_000 },
+    version: 2,
+  })
+  await expect(passage()).resolves.toEqual(boarded)
+  await clock(outbound + 300_000)
+  await expect(read()).resolves.toMatchObject({ position: island, version: 3 })
+  await clock(inbound - 300_000)
+  await expect(passage(disembark, 3)).resolves.toMatchObject({
+    position: { sectorId: `ferry:asterwake-return:${inbound}`, x: 6, y: 4 },
+    ferry: { direction: 'asterwake-return', origin: island, arrivalAt: inbound + 300_000 },
+    version: 4,
+  })
+  await clock(inbound + 300_000)
+  await expect(read()).resolves.toMatchObject({ position: north, version: 5 })
 })

@@ -10,7 +10,7 @@ const cache = new WeakMap<
   { scene: WorldView['sectors']; origin: string; result: WorldSectorView[] }
 >()
 
-/** This geometry is painted only. Never feed its cells into navigation or presence. */
+/** Terrain for rendering and pointing at the ground. Route previews and presence use the scene. */
 export function unchartedRenderTerrain(
   view: Pick<WorldView, 'sectors' | 'unchartedTerrain'> & Partial<Pick<WorldView, 'position'>>,
   base: WorldSectorView[],

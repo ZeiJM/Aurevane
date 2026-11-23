@@ -107,35 +107,37 @@ it('preserves world addresses and historic routes through the authorized map geo
     routes,
   }).toEqual({
     ...baseline,
-    // Preserve the archived baseline and its routes. Beyond the earlier alpine
-    // and mountain corridor, the ferry update adds two offshore sectors and
-    // replaces seven dry Emberreach cells with the authored lavafall basin.
-    atlasSectors: baseline.atlasSectors + 57,
-    resolvedServerSectors: baseline.resolvedServerSectors + 57,
+    // The older baseline and named long routes remain archived. The current
+    // snapshot adds the north coast, island chain, terminal and blocked water.
+    atlasSectors: 2195,
+    resolvedServerSectors: 2244,
     counts: {
-      ...baseline.counts,
-      walkable: baseline.counts.walkable + 2316 - 166 + 93 - 7,
-      roads: baseline.counts.roads + 624 - 20 + 14,
-      safe: baseline.counts.safe - 6,
-      water: baseline.counts.water + 141,
-      lava: baseline.counts.lava + 7,
+      walkable: 246526,
+      roads: 84728,
+      safe: 7030,
+      water: 1974,
+      lava: 15,
     },
     regions: baseline.regions.map((region) => ({
       ...region,
       sectors:
-        region.sectors +
-        (region.id === 'starfall-highlands'
-          ? 39
-          : region.id === 'frostmere'
-            ? 11
-            : region.id === 'emberreach'
-              ? 5
-              : region.id === 'umbral-march'
-                ? 2
-                : 0),
+        region.id === 'aureth-crown'
+          ? 206
+          : region.id === 'glasswind-desert'
+            ? 341
+            : region.id === 'umbral-march'
+              ? 357
+              : region.sectors +
+                (region.id === 'starfall-highlands'
+                  ? 39
+                  : region.id === 'frostmere'
+                    ? 11
+                    : region.id === 'emberreach'
+                      ? 5
+                      : 0),
     })),
-    landmarks: baseline.landmarks + 7,
-    authorityDigest: 'ffd45064a616d9a9afcafba186fd95bb3ce9d81bb5473945c7143ff32e8adc9a',
-    landmarkDigest: '02872cf0f27a2d8590f84c8727e7e04c49011bc6f28dfe8c7a3716a4e1132b4c',
+    landmarks: 669,
+    authorityDigest: '111854d583429a62d23c56ca234b914a1e992830206018c71f79b4398e6515ac',
+    landmarkDigest: '9f24713c4f53d0efb481d010c19a60908eee35da7af87c2e624294295f51a832',
   })
 })

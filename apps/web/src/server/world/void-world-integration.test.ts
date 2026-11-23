@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
-import { newWorldState, revealNearby, findWorldRoute } from '@/world/travel'
+import { newWorldState, revealNearby, findWorldRoute, isWalkable } from '@/world/travel'
 import { atlasSectors } from '@/world/atlas'
 import type { WorldState } from '@/world/types'
 import { isKnownCell, resolveSector, visibleSectors, WORLD_SECTORS } from './world-content'
 import { projectWorld, projectWorldSector, resolveWorldIntent } from './world-service'
-import { voidRealmLanding, voidRealmScenery } from './void-realms'
+import { voidRealmFerryDock, voidRealmLanding, voidRealmScenery } from './void-realms'
 
 const home = 'void:ivory-veil:16:12'
 const elsewhere = 'void:amber-drowned:16:12'
@@ -124,6 +124,28 @@ describe('lazy private Void world integration', () => {
     expect(arrived.position).toEqual(road.to)
     expect(arrived.discoveries[next.id]!.length).toBeGreaterThan(1)
     expect(arrived.warpedDiscoveries ?? []).toEqual([])
+  })
+
+  it('walks inland from the Outer Orchard ferry across unsurveyed ground and a sector seam', () => {
+    const { sectorId, x, y } = voidRealmFerryDock('hollow-orchard')
+    const state = revealNearby({ ...newWorldState(), position: { sectorId, x, y } })
+    const destination = { sectorId: 'void:hollow-orchard:2:12', x: 2, y: 6 }
+    expect(isKnownCell(state, destination)).toBe(false)
+    const walking = resolveWorldIntent(state, { kind: 'walk', destination }, 0)
+    expect(walking.route.at(-1)?.position).toEqual(destination)
+    expect(walking.discoveries).toEqual(state.discoveries)
+    expect(projectWorld(walking, [], 0).route).toEqual(walking.route)
+    const westShore = resolveSector(sectorId)!
+    const water = { sectorId, x: 0, y }
+    expect(isWalkable(westShore, water)).toBe(false)
+    expect(() => resolveWorldIntent(state, { kind: 'walk', destination: water }, 0)).toThrow(
+      'walkable route',
+    )
+    let arrived = walking
+    while (arrived.nextStepAt !== null)
+      arrived = resolveWorldIntent(arrived, { kind: 'tick' }, arrived.nextStepAt)
+    expect(arrived.position).toEqual(destination)
+    expect(isKnownCell(arrived, destination)).toBe(true)
   })
 
   it('bounds repeated scene payloads even after an entire realm has been explored', () => {

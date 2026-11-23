@@ -130,32 +130,38 @@ export function paintPrecipitation(
   const kind = precipitationKind(weather, regionId)
   if (!kind || width <= 0 || height <= 0) return 0
   const spindrift = kind === 'snow' && weather === 'storm'
+  const flakes = kind === 'snow' && !spindrift
   const count = precipitationBudget(weather, kind, density)
   context.save()
   context.lineCap = 'round'
   context.lineWidth = 1
-  for (let index = 0; index < count; index++) {
-    const particle = precipitationParticle(kind, index, width, height, now, wind.offset)
-    context.globalAlpha = spindrift ? particle.alpha * 1.35 : particle.alpha
+  context.fillStyle = '#edf4ed'
+  context.strokeStyle = spindrift ? '#e2edf4' : '#c6e2e6'
+  // Particles at the same depth share an opacity. Submit each depth as one
+  // canvas path to keep storms light on the compositor at high density.
+  for (let depth = 0; depth < Math.min(3, count); depth++) {
+    context.globalAlpha = (0.16 + depth * 0.1) * (spindrift ? 1.35 : 1)
     context.beginPath()
-    if (spindrift) {
-      context.strokeStyle = '#e2edf4'
-      context.moveTo(particle.x, particle.y)
-      context.lineTo(
-        particle.x + wind.speed * (85 + particle.radius * 38),
-        particle.y + particle.radius * 2,
+    for (let index = depth; index < count; index += 3) {
+      const { x, y, radius, length } = precipitationParticle(
+        kind,
+        index,
+        width,
+        height,
+        now,
+        wind.offset,
       )
-      context.stroke()
-    } else if (kind === 'snow') {
-      context.fillStyle = '#edf4ed'
-      context.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2)
-      context.fill()
-    } else {
-      context.strokeStyle = '#c6e2e6'
-      context.moveTo(particle.x, particle.y)
-      context.lineTo(particle.x + particle.length * wind.speed * 2.8, particle.y + particle.length)
-      context.stroke()
+      if (flakes) {
+        context.moveTo(x + radius, y)
+        context.arc(x, y, radius, 0, Math.PI * 2)
+      } else {
+        context.moveTo(x, y)
+        if (spindrift) context.lineTo(x + wind.speed * (85 + radius * 38), y + radius * 2)
+        else context.lineTo(x + length * wind.speed * 2.8, y + length)
+      }
     }
+    if (flakes) context.fill()
+    else context.stroke()
   }
   context.restore()
   return count

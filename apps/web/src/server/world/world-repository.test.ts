@@ -267,6 +267,12 @@ it('supplies the approaching sector so an approved crossing can animate before s
   const view = { ...projectWorld(initial.state, [], initial.serverNow), characterId }
   const before = { ...view, sectors: view.sectors.filter(({ id }) => id !== boundary.to.sectorId) }
   expect(receipt.upcomingSector?.id).toBe(boundary.to.sectorId)
+  expect(() =>
+    mergeWorldMovement(before, {
+      ...receipt,
+      upcomingSector: { ...receipt.upcomingSector!, cells: [] },
+    }),
+  ).toThrow('Movement terrain could not be loaded safely.')
   const approved = mergeWorldMovement(before, receipt)
   const motion = new WorldMotion(approved)
   expect(motion.sample(receipt.route[0]!.durationMs + 1).position).toEqual(boundary.to)
@@ -275,6 +281,80 @@ it('supplies the approaching sector so an approved crossing can animate before s
     'commit_world_state_v1',
   ])
 })
+
+it.each(['arrival', 'stop'] as const)(
+  'keeps compact approval authority through a late boundary lookahead and %s with scene loading held',
+  async (outcome) => {
+    const initial = {
+      ...payload(),
+      state: { ...newWorldState(), position: { sectorId: 'frostmere', x: 6, y: 4 } },
+    }
+    let state = initial.state
+    let serverNow = initial.serverNow
+    const destination = { sectorId: 'atlas:63:15', x: 6, y: 4 }
+    const view = { ...projectWorld(state, [], serverNow), characterId }
+    const scene = deferred<typeof view>()
+    const refresh = vi.fn(() => scene.promise)
+    const error = vi.fn()
+    const lateBoundaries = new Set<number>()
+    rpc.mockImplementation(
+      async (name: string, args: { p_next_state?: WorldState; p_expected_version?: number }) => {
+        if (name === 'commit_world_state_v1') {
+          expect(args.p_expected_version).toBe(state.version)
+          state = { ...args.p_next_state!, version: state.version + 1 }
+        }
+        return { data: name === 'commit_world_state_v1' ? state : { ...initial, state, serverNow } }
+      },
+    )
+    const controller = new WorldController(view, {
+      command: async (intent, source) => {
+        const receipt = await commitWorldCommand(
+          'owner',
+          characterId,
+          { ...command, commandId: crypto.randomUUID(), expectedVersion: source.version, intent },
+          true,
+        )
+        const index = receipt.route.findIndex(
+          ({ position }) => position.sectorId !== receipt.position.sectorId,
+        )
+        if (receipt.upcomingSector && index >= 6) lateBoundaries.add(index)
+        return receipt
+      },
+      refresh,
+      accept: () => {},
+      presentation: () => {},
+      error,
+      busy: () => {},
+    })
+    const hydration = controller.hydrate()
+    try {
+      expect((await controller.send({ kind: 'walk', destination })).applied).toBe(true)
+      const steps = state.route.length
+      for (let tick = 0; tick < steps && state.route.length; tick++) {
+        if (outcome === 'stop' && lateBoundaries.size > 0) {
+          expect((await controller.send({ kind: 'stop' })).applied).toBe(true)
+          break
+        }
+        serverNow = state.nextStepAt!
+        expect((await controller.send({ kind: 'tick' })).applied).toBe(true)
+        expect(controller.view.version).toBe(state.version)
+      }
+      expect(lateBoundaries).toContain(7)
+      expect(controller.view.version).toBe(state.version)
+      expect(controller.view.route).toEqual([])
+      if (outcome === 'arrival') {
+        expect(lateBoundaries).toContain(6)
+        expect(controller.view.position).toEqual(destination)
+      } else expect(controller.view.position).not.toEqual(destination)
+      expect(refresh).toHaveBeenCalledTimes(1)
+      expect(error).not.toHaveBeenCalled()
+    } finally {
+      controller.dispose()
+      scene.resolve(view)
+      await hydration
+    }
+  },
+)
 
 it.each(['stop', 'partial receipt', 'advanced version', 'existing block'] as const)(
   'retains the fresh authority read for %s',

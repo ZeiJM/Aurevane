@@ -1,4 +1,5 @@
 import { colosseumDetailArt } from './map-colosseum-detail-art'
+import { asterwakeShore, paintAsterwakeShore } from './asterwake-shore'
 import { createGroundProjectionCache, drawGroundSurface } from './map-ground-projection'
 import {
   releaseStaticRaster,
@@ -6,7 +7,13 @@ import {
   type StaticMapRaster,
 } from './map-static-raster'
 import { mapSceneDomain } from './map-scene-domain'
-import { forestCanopy, vegetationPose, treeFlex, treeWindBend } from './map-vegetation'
+import {
+  forestCanopy,
+  mainlandTreeIndex,
+  vegetationPose,
+  treeFlex,
+  treeWindBend,
+} from './map-vegetation'
 import { OFFSHORE_DISCOVERY } from '@/world/discovery-sites'
 import {
   mountainPlacements,
@@ -25,8 +32,18 @@ import {
   type AppearanceFacing,
 } from '@/appearance/appearance-manifest'
 import { GRID_HEIGHT, GRID_WIDTH, STEP_MS } from '@/world/catalog'
-import { FERRY_MAINLAND_DOCK, ferryAtPort, isFerryTerminalLandmark } from '@/world/ferry'
+import {
+  FERRY_NORTH_DOCK,
+  FERRY_ASTERWAKE_DOCK,
+  ferryAtPort,
+  isFerryTerminalLandmark,
+} from '@/world/ferry'
 import { hashString } from '@/world/terrain-gen'
+import {
+  ASTERWAKE_GOLDEN_TREE,
+  ASTERWAKE_GOLDEN_TREE_ID,
+  ASTERWAKE_REGION_ID,
+} from '@/world/asterwake'
 import type {
   WorldBuilding,
   WorldCell,
@@ -35,11 +52,12 @@ import type {
   WorldSectorView,
   WorldView,
 } from '@/world/types'
-import { sectorMapOrigin, wrappedMapX, WORLD_MAP_WIDTH } from '@/world/topology'
+import { sectorMapOrigin, wrapAtlasColumn, wrappedMapX, WORLD_MAP_WIDTH } from '@/world/topology'
 import { mapPoint, type MapPoint, WorldMotion } from './world-motion'
 import { WorldPlayerMotion } from './map-player-motion'
 import { clampWorldZoom } from './world-zoom'
 import { samePosition } from '@/world/travel'
+import { isLocalVoidWalk, isVoidRealmSectorId } from '@/world/void-realms'
 import { retainWorldSceneReferences } from '@/world/presence'
 import {
   createCloudTexture,
@@ -175,6 +193,7 @@ const palettes: Record<string, [string, number, number]> = {
   emberreach: ['#5c5150', 6, 3],
   'starfall-highlands': ['#7c7c77', 7, 1],
   'umbral-march': ['#384e48', 1, 0],
+  [ASTERWAKE_REGION_ID]: ['#566454', 1, 0],
 }
 const regionalGround: Readonly<Partial<Record<string, number>>> = {
   'aureth-crown': 0,
@@ -570,6 +589,49 @@ function sprite(
     height,
   )
 }
+type LabelBounds = { left: number; top: number; right: number; bottom: number }
+
+function labelsOverlap(a: LabelBounds, b: LabelBounds) {
+  return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
+}
+
+const mapLabelPalette = {
+  self: { text: '#ffdb86', border: '#bd904f', top: '#3b2a1b', bottom: '#211810' },
+  player: { text: '#a5efe2', border: '#5bb4a4', top: '#19383b', bottom: '#102628' },
+  npc: { text: '#ffc2a6', border: '#c28069', top: '#3c2822', bottom: '#261a17' },
+  location: { text: '#dbc8ff', border: '#9279c0', top: '#302641', bottom: '#211a31' },
+} as const
+
+function paintMapLabel(
+  ctx: CanvasRenderingContext2D,
+  label: string,
+  { left, top, right, bottom }: LabelBounds,
+  fontSize: number,
+  kind: keyof typeof mapLabelPalette,
+  ratio: number,
+) {
+  const palette = mapLabelPalette[kind]
+  const background = ctx.createLinearGradient(left, top, left, bottom)
+  background.addColorStop(0, palette.top)
+  background.addColorStop(1, palette.bottom)
+  ctx.fillStyle = background
+  ctx.strokeStyle = palette.border
+  ctx.lineWidth = Math.max(1 / ratio, 0.85)
+  ctx.beginPath()
+  ctx.roundRect(left, top, right - left, bottom - top, 4)
+  ctx.fill()
+  ctx.stroke()
+  ctx.font = `600 ${fontSize}px Arial, sans-serif`
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'alphabetic'
+  ctx.fillStyle = palette.text
+  ctx.fillText(
+    label,
+    Math.round((left + 6) * ratio) / ratio,
+    Math.round((top + fontSize + 2) * ratio) / ratio,
+  )
+}
+
 export function createMapRenderer(
   canvas: HTMLCanvasElement,
   motion: WorldMotion,
@@ -626,6 +688,7 @@ export function createMapRenderer(
   const pan = { x: 0, y: 0 }
   const heldKeys = new Map<string, MapPoint>()
   let keyTimer: ReturnType<typeof setTimeout> | null = null
+  let heldLine: number | null = null
   let heldDestination: WorldPosition | null = null
   let heldReleaseOrigin: WorldPosition | null = null
   let heldFirstDestination: WorldPosition | null = null
@@ -637,6 +700,7 @@ export function createMapRenderer(
     heldReleaseOrigin = null
     heldFirstDestination = null
     heldKeys.clear()
+    heldLine = null
     if (keyTimer !== null) clearTimeout(keyTimer)
     keyTimer = null
     if (finishStep && destination && !view.movementBlocked && !view.battleSessionId) {
@@ -762,15 +826,21 @@ export function createMapRenderer(
   let visibleGroundIds = new Set<string>()
   let activeVisibleTerrainIds = new Set<string>()
   let terrainSources = new Map<string, WorldSectorView>()
+  const chartedTerrainAt = (atlas: WorldView['atlas']) =>
+    new Map(
+      atlas?.filter((cell) => cell.charted).map((cell) => [`${cell.column}:${cell.row}`, cell]),
+    )
+  let chartedTerrain = chartedTerrainAt(view.atlas)
   const atlasTerrainKey = (atlas: WorldView['atlas']) =>
     JSON.stringify(
-      atlas?.map(({ id, charted, column, row, regionId, townId }) => [
+      atlas?.map(({ id, charted, column, row, regionId, townId, waterTiles }) => [
         id,
         charted,
         column,
         row,
         regionId,
         townId,
+        regionId === ASTERWAKE_REGION_ID ? waterTiles : undefined,
       ]) ?? [],
     )
   let indexedAtlasKey = atlasTerrainKey(view.atlas)
@@ -797,6 +867,22 @@ export function createMapRenderer(
     terrainKeys.clear()
     featureKeys.clear()
     for (const sector of renderSectors) {
+      const islandCoast = []
+      if (
+        sector.regionId === ASTERWAKE_REGION_ID &&
+        sector.atlasColumn !== undefined &&
+        sector.atlasRow !== undefined
+      ) {
+        for (let dy = -1; dy <= 1; dy++)
+          for (let dx = -1; dx <= 1; dx++) {
+            const neighbor = chartedTerrain.get(
+              `${wrapAtlasColumn(sector.atlasColumn + dx)}:${sector.atlasRow + dy}`,
+            )
+            islandCoast.push(
+              neighbor?.regionId === ASTERWAKE_REGION_ID ? (neighbor.waterTiles ?? '') : null,
+            )
+          }
+      }
       terrainKeys.set(
         sector.id,
         JSON.stringify([
@@ -809,6 +895,7 @@ export function createMapRenderer(
               .filter((landmark) => landmark.kind === 'marketplace')
               .map(({ x, y }) => [x, y]),
           coastField.get(sector.id),
+          islandCoast,
           settlementGround.edges.get(sector.id),
           Array.from(settlementGround.shoreRoads.get(sector.id) ?? []),
           Array.from(settlementGround.pavedCells.get(sector.id) ?? []),
@@ -845,6 +932,8 @@ export function createMapRenderer(
   }
   const load = (name: string, version = 'v02', format = 'webp') => {
     const image = new Image()
+    if (name === 'terrain' || name === 'regional-ground' || name === 'water-materials')
+      image.fetchPriority = 'high'
     image.onload = () => {
       if (name === 'nature') wildlifeParts.clear()
       // Only the terrain sheet is baked into ground layers. Scenery sheets
@@ -984,6 +1073,21 @@ export function createMapRenderer(
       load('ferry-terminal', 'v01')
       load('ferry-vessel', 'v01')
     }
+    if (
+      !images.has('asterwake-woodland') &&
+      renderSectors.some(({ regionId }) => regionId === ASTERWAKE_REGION_ID)
+    )
+      load('asterwake-woodland', 'v01')
+    if (
+      !images.has('asterwake-ferry-terminal') &&
+      renderSectors.some(({ id }) => id === FERRY_ASTERWAKE_DOCK.sectorId)
+    )
+      load('asterwake-ferry-terminal', 'v01')
+    if (
+      !images.has('gildroot-oak') &&
+      renderSectors.some(({ id }) => id === ASTERWAKE_GOLDEN_TREE.sectorId)
+    )
+      load('gildroot-oak', 'v01')
     if (!images.has('forest-variety') && renderSectors.some((sector) => sector.warpedTheme))
       load('forest-variety', 'v01')
     if (!images.has(WINTER_ART) && renderSectors.some((sector) => sector.regionId === WINTER_ART))
@@ -1109,8 +1213,15 @@ export function createMapRenderer(
     c.imageSmoothingEnabled = true
     c.imageSmoothingQuality = 'high'
     const onFerry = sector.id.startsWith('ferry:')
+    const islandOcean = sector.regionId === ASTERWAKE_REGION_ID
+    const islandShore =
+      islandOcean && view.atlas && sector.atlasColumn !== undefined && sector.atlasRow !== undefined
+        ? asterwakeShore(sector.atlasColumn, sector.atlasRow, (column, row) =>
+            chartedTerrain.get(`${column}:${row}`),
+          )
+        : undefined
     const warped = sector.warpedTheme ? warpedPalette[sector.warpedTheme] : undefined
-    if (!warped && !onFerry) {
+    if (!warped && !onFerry && !islandOcean) {
       c.fillStyle = '#233d3c'
       c.fillRect(0, 0, layer.width, layer.height)
     }
@@ -1193,7 +1304,10 @@ export function createMapRenderer(
         target.globalAlpha = 1
       }
     }
-    if (!onFerry) for (const cell of sector.cells) paintMaterial(c, cell, sector.regionId)
+    if (!onFerry)
+      for (const cell of sector.cells)
+        if (islandShore || !islandOcean || cell.terrain !== '~')
+          paintMaterial(c, cell, sector.regionId)
     const materialLayer = (
       x: number,
       y: number,
@@ -1393,6 +1507,7 @@ export function createMapRenderer(
             pavedCells,
           )
       }
+      if (islandOcean && cell.terrain === '~') continue
       if (isWaterTerrain(cell.terrain) || cell.terrain === 'l') {
         const water = isWaterTerrain(cell.terrain)
         const surfaceProfile = (water ? waterField : lavaField)
@@ -1442,7 +1557,8 @@ export function createMapRenderer(
         tile,
         pavement?.color ?? (sector.regionId === WINTER_ART ? '#a4aaa4' : '#95856a'),
       )
-    paintCoastLand(c, coastField.get(sector.id) ?? [], tile, sector.regionId, sector)
+    if (islandShore) paintAsterwakeShore(c, tile, islandShore)
+    else paintCoastLand(c, coastField.get(sector.id) ?? [], tile, sector.regionId, sector)
     // A crossing is a continuous stone support, not a blue pond stamped on
     // the avenue. Shade only its supplied liquid mouths and its legal deck.
     const origin = sectorMapOrigin(sector)
@@ -2026,6 +2142,35 @@ export function createMapRenderer(
           quality === 'low' ? 18 : 48,
         )
     }
+    // A route/read can briefly outpace full scenery. The public chart can paint
+    // dry ground immediately without changing collision, fog, or real water.
+    if (current?.charted && chartedTerrain.size) {
+      const left = unprojectMapPoint({ x: 0, y: 0 }, camera, pan, tile, width, height)
+      const right = unprojectMapPoint({ x: width, y: height }, camera, pan, tile, width, height)
+      const top = unprojectMapPoint({ x: width, y: 0 }, camera, pan, tile, width, height)
+      const bottom = unprojectMapPoint({ x: 0, y: height }, camera, pan, tile, width, height)
+      for (let row = Math.floor(top.y / GRID_HEIGHT); row <= bottom.y / GRID_HEIGHT; row++)
+        for (
+          let column = Math.floor(left.x / GRID_WIDTH);
+          column <= right.x / GRID_WIDTH;
+          column++
+        ) {
+          const sector = chartedTerrain.get(`${wrapAtlasColumn(column)}:${row}`)
+          if (!sector || nextVisibleTerrainIds.has(sector.id)) continue
+          const p = screen({ x: column * GRID_WIDTH, y: row * GRID_HEIGHT })
+          ctx.save()
+          ctx.transform(MAP_X, MAP_Y, -MAP_X, MAP_Y, p.x, p.y)
+          ctx.fillStyle = (palettes[sector.regionId] ?? palettes['verdant-expanse']!)[0]
+          if (!sector.waterTiles) ctx.fillRect(0, 0, GRID_WIDTH * tile, GRID_HEIGHT * tile)
+          else
+            for (let y = 0; y < GRID_HEIGHT; y++) {
+              const surface = sector.waterTiles.slice(y * GRID_WIDTH, (y + 1) * GRID_WIDTH)
+              for (const dry of surface.matchAll(/\.+/g))
+                ctx.fillRect(dry.index * tile, y * tile, dry[0].length * tile, tile)
+            }
+          ctx.restore()
+        }
+    }
     // The compositor rasterizes these draws after the callback. Use the
     // lighter sampler while animating the viewport; source crops and cached
     // terrain are still prepared at high quality and labels keep native density.
@@ -2053,11 +2198,37 @@ export function createMapRenderer(
       !sample.moving
     const cachedScenery = cacheScenery ? stationaryScenery : null
     const scenery = cachedScenery ?? []
+    const docks = visible.flatMap((sector) => {
+      const landmark = sector.landmarks.find(({ id }) => isFerryTerminalLandmark(id))
+      if (!landmark) return []
+      const north = sector.id === FERRY_NORTH_DOCK.sectorId
+      const asterwake = sector.id === FERRY_ASTERWAKE_DOCK.sectorId
+      const shoreSide = sector.ferryDock?.shoreSide ?? (north ? 'north' : 'south')
+      const origin = sectorOrigin(sector)
+      return [
+        {
+          sectorId: sector.id,
+          x: origin.x + landmark.x + 0.5,
+          y: origin.y + landmark.y + 0.5,
+          shoreSide,
+          port: asterwake
+            ? ('asterwake' as const)
+            : north
+              ? ('north-shore' as const)
+              : sector.charted
+                ? ('mainland' as const)
+                : ('uncharted' as const),
+        },
+      ]
+    })
+    const dockBySector = new Map(docks.map((dock) => [dock.sectorId, dock]))
     const addScenery = (item: Scenery) => {
       const p = screen(item)
+      const anchorX = item.anchorX ?? 0.5
+      const left = p.x - item.width * (item.mirror ? 1 - anchorX : anchorX)
       if (
-        p.x + item.width / 2 > 0 &&
-        p.x - item.width / 2 < width &&
+        left + item.width > 0 &&
+        left < width &&
         p.y + item.height * (1 - (item.anchorY ?? 1)) > 0 &&
         p.y - item.height * (item.anchorY ?? 1) < height
       )
@@ -2075,6 +2246,7 @@ export function createMapRenderer(
     const nature = images.get('nature'),
       livingTrees = images.get('living-trees'),
       forestTrees = images.get('forest-variety'),
+      asterwakeWoodland = images.get('asterwake-woodland'),
       buildings = images.get('buildings'),
       props = images.get('props'),
       biomes = images.get('biomes'),
@@ -2136,18 +2308,20 @@ export function createMapRenderer(
       } else {
         ctx.save()
         ctx.transform(MAP_X, MAP_Y, -MAP_X, MAP_Y, p.x, p.y)
-        coastEdges += paintCoastSea(
-          ctx,
-          coastField.get(sector.id) ?? [],
-          tile,
-          now,
-          ambient,
-          16 - coastEdges,
-          sector.regionId,
-          budget.surf,
-          wind.speed,
-          sector,
-        )
+        // The cached Asterwake shore carries its own shallows through the inlets.
+        if (sector.regionId !== ASTERWAKE_REGION_ID)
+          coastEdges += paintCoastSea(
+            ctx,
+            coastField.get(sector.id) ?? [],
+            tile,
+            now,
+            ambient,
+            16 - coastEdges,
+            sector.regionId,
+            budget.surf,
+            wind.speed,
+            sector,
+          )
         // Visibility has extra room for tall scenery, overhanging shore art
         // and animation. Do not build or submit its fully clipped ground plane.
         // Include the projected raster's filtered edges in this tighter test.
@@ -2175,36 +2349,6 @@ export function createMapRenderer(
           } else drawGroundSurface(ctx, surface, GRID_WIDTH * tile, GRID_HEIGHT * tile, ratio)
         }
         ctx.restore()
-      }
-      const dock =
-        sector.ferryDock ??
-        (sector.id === FERRY_MAINLAND_DOCK.sectorId
-          ? { ...FERRY_MAINLAND_DOCK, shoreSide: 'south' as const }
-          : undefined)
-      if (dock && sector.landmarks.some(({ id }) => isFerryTerminalLandmark(id))) {
-        const vessel = images.get('ferry-vessel')
-        if (
-          vessel?.complete &&
-          vessel.naturalWidth &&
-          ferryAtPort(
-            sector.charted ? 'mainland' : 'uncharted',
-            view.serverNow + Math.max(0, now - ferryClockAt),
-          )
-        ) {
-          const mooring = screen({
-            x: origin.x + dock.x + (dock.shoreSide === 'west' ? -2.1 : 2.9),
-            y: origin.y + dock.y + (dock.shoreSide === 'west' ? 0.7 : 3.2),
-          })
-          const vesselWidth = tile * 4.6
-          const vesselHeight = vesselWidth * (vessel.naturalHeight / vessel.naturalWidth)
-          ctx.drawImage(
-            vessel,
-            mooring.x - vesselWidth * 0.4,
-            mooring.y - vesselHeight * 0.75,
-            vesselWidth,
-            vesselHeight,
-          )
-        }
       }
       if (
         !cachedScenery &&
@@ -2238,6 +2382,18 @@ export function createMapRenderer(
             })
           }
           if (cell.terrain !== 't' && cell.terrain !== '#') continue
+          // Open the dock itself and its view-side approach across sector seams.
+          if (
+            docks.some((dock) => {
+              const dx = origin.x + cell.x + 0.5 - dock.x
+              const dy = origin.y + cell.y + 0.5 - dock.y
+              return (
+                Math.abs(dx) + Math.abs(dy) <= 3 ||
+                (dx + dy > 0 && dx + dy <= 6 && Math.abs(dx - dy) <= 3)
+              )
+            })
+          )
+            continue
           if (denseRidge && cell.terrain === '#' && !drawMountainScree(sector.id, cell.x, cell.y))
             continue
           // Keep the viewing side of surveyed private landmarks clear of
@@ -2258,32 +2414,53 @@ export function createMapRenderer(
           )
             continue
           const rock = cell.terrain === '#'
-          const canopy =
-            !rock &&
-            sector.warpedTheme &&
-            sector.landscape !== 'willow' &&
-            !['sakura', 'autumn', 'wisteria'].includes(sector.landscape ?? '')
+          if (sector.regionId === ASTERWAKE_REGION_ID) {
+            const grove = sector.id === ASTERWAKE_GOLDEN_TREE.sectorId
+            const dx = Math.abs(cell.x - ASTERWAKE_GOLDEN_TREE.x)
+            const dy = Math.abs(cell.y - ASTERWAKE_GOLDEN_TREE.y)
+            if (grove && dx <= 1 && dy <= 1) continue
+            const seed = hashString(`${sector.id}:${cell.x}:${cell.y}:woodland`)
+            const golden =
+              !rock && grove && livingTrees?.complete && livingTrees.naturalWidth && seed % 3 !== 0
+            if (asterwakeWoodland?.complete && asterwakeWoodland.naturalWidth) {
+              const size = tile * (rock ? 1.65 + (seed % 4) * 0.16 : 1.75 + (seed % 6) * 0.12)
+              addScenery({
+                x: origin.x + cell.x + 0.5,
+                y: origin.y + cell.y + 0.74,
+                width: size,
+                height: size,
+                image: golden ? livingTrees : asterwakeWoodland,
+                index: golden ? 0 : rock ? 2 : seed % 2,
+                columns: golden ? 4 : 2,
+                rows: 2,
+                anchorY: golden ? 0.91 : 0.93,
+                tree: !rock,
+                windFlex: 0.76 + (seed % 13) * 0.03,
+              })
+              continue
+            }
+          }
+          const woodland =
+            !rock && sector.warpedTheme
               ? forestCanopy(sector.id, cell.x, cell.y, sector.warpedTheme)
               : undefined
-          if (
-            canopy &&
-            ((denseCanopy && !canopy.visible) ||
-              sector.landmarks.some(
-                ({ id, x, y }) =>
-                  isFerryTerminalLandmark(id) && Math.abs(x - cell.x) + Math.abs(y - cell.y) <= 2,
-              ))
-          )
-            continue
+          if (denseCanopy && woodland && !woodland.visible) continue
+          const canopy =
+            sector.landscape !== 'willow' &&
+            !['sakura', 'autumn', 'wisteria'].includes(sector.landscape ?? '')
+              ? woodland
+              : undefined
           const variedTree =
             canopy && forestTrees?.complete && forestTrees.naturalWidth ? canopy : undefined
+          const anchored =
+            Boolean(mixedTreeRegions) ||
+            Boolean(sector.townId) ||
+            sector.landmarks.some((l) => Math.abs(l.x - cell.x) + Math.abs(l.y - cell.y) <= 3)
           const pose = vegetationPose(
             sector.warpedTheme ? sector.id : 'public',
             origin.x + cell.x,
             origin.y + cell.y,
-            rock ||
-              Boolean(mixedTreeRegions) ||
-              Boolean(sector.townId) ||
-              sector.landmarks.some((l) => Math.abs(l.x - cell.x) + Math.abs(l.y - cell.y) <= 3),
+            rock || anchored,
             Boolean(sector.warpedTheme),
           )
           const mixedTreeRegion = mixedTreeRegions?.get(cell)
@@ -2327,7 +2504,12 @@ export function createMapRenderer(
             !sector.warpedTheme &&
             livingTrees?.complete &&
             livingTrees.naturalWidth
-              ? regionalGround[treeRegion]
+              ? mainlandTreeIndex(
+                  treeRegion,
+                  origin.x + cell.x,
+                  origin.y + cell.y,
+                  Boolean(mixedTreeRegions || sector.townId || sector.landscape === 'willow'),
+                )
               : undefined
           const asset =
             livingIndex !== undefined
@@ -2450,7 +2632,8 @@ export function createMapRenderer(
           x: origin.x + building.x + building.width / 2,
           y: origin.y + building.y + building.height,
         }
-        const width = tile * (building.width + building.height) * 0.85
+        const dwellingScale = building.propIndex === undefined && building.artIndex < 10 ? 0.84 : 1
+        const width = tile * (building.width + building.height) * 0.85 * dwellingScale
         if (winterIndex !== undefined && winterArt) {
           addScenery({
             ...point,
@@ -2472,7 +2655,7 @@ export function createMapRenderer(
         if (architecture) {
           const image = images.get(architecture.sheet)
           if (image?.complete && image.naturalWidth) {
-            const size = width * (building.artIndex >= 10 ? 1.25 : 1.08)
+            const size = width * (building.artIndex >= 10 ? 1.2 : 1.08)
             addScenery({
               ...point,
               width: size,
@@ -2522,7 +2705,7 @@ export function createMapRenderer(
           width,
           height:
             building.propIndex === undefined
-              ? tile * (building.height + 2)
+              ? tile * (building.height + 2) * dwellingScale
               : tile * (building.width + building.height) * 0.85,
           image: asset,
           index: building.propIndex ?? building.artIndex,
@@ -2563,26 +2746,51 @@ export function createMapRenderer(
         }
       // Landmark structures share scenery depth/culling and identity occlusion.
       // Painting them after the character pass would hide someone on a bridge/anchor.
-      if (!cachedScenery && props?.complete && props.naturalWidth)
+      if (!cachedScenery)
         for (const landmark of sector.landmarks) {
+          if (landmark.id === ASTERWAKE_GOLDEN_TREE_ID) {
+            const oak = images.get('gildroot-oak')
+            if (oak?.complete && oak.naturalWidth)
+              addScenery({
+                x: origin.x + ASTERWAKE_GOLDEN_TREE.x + 0.5,
+                y: origin.y + ASTERWAKE_GOLDEN_TREE.y + 0.9,
+                width: tile * 12,
+                height: tile * 12 * (oak.naturalHeight / oak.naturalWidth),
+                image: oak,
+                index: 0,
+                columns: 1,
+                rows: 1,
+                anchorX: 0.42,
+                anchorY: 0.9,
+                tree: false,
+                grandFeature: true,
+              })
+            continue
+          }
           if (isFerryTerminalLandmark(landmark.id)) {
-            const terminal = images.get('ferry-terminal')
+            const dock = dockBySector.get(sector.id)!
+            const northReach = dock.port === 'asterwake'
+            const terminal =
+              (northReach ? images.get('asterwake-ferry-terminal') : undefined) ??
+              images.get('ferry-terminal')
             if (terminal?.complete && terminal.naturalWidth)
               addScenery({
-                x: origin.x + landmark.x + (sector.ferryDock?.shoreSide === 'west' ? 1.1 : -0.7),
-                y: origin.y + landmark.y - 0.25,
+                x: dock.x + (dock.shoreSide === 'west' ? 0.6 : -0.55),
+                y: dock.y + (dock.shoreSide === 'north' ? 0.35 : -0.25),
                 width: tile * 3.2,
                 height: tile * 3.2 * (terminal.naturalHeight / terminal.naturalWidth),
                 image: terminal,
                 index: 0,
                 columns: 1,
                 rows: 1,
-                anchorX: 0.58,
-                anchorY: 0.62,
+                anchorX: northReach ? 0.4 : 0.58,
+                anchorY: northReach ? 0.9 : 0.62,
                 tree: false,
+                mirror: !northReach && dock.shoreSide !== 'north',
               })
             continue
           }
+          if (!props?.complete || !props.naturalWidth) continue
           if (sector.id.startsWith('ferry:')) {
             const mast = landmark.id === 'ferry-mast'
             const painted = images.get(mast ? 'ferry-sails' : 'ferry-cabin')
@@ -2822,7 +3030,11 @@ export function createMapRenderer(
       }
       if (ambient && !sector.id.startsWith('ferry:'))
         for (const cell of sector.cells)
-          if ((isWaterTerrain(cell.terrain) || cell.terrain === 'l') && waterCells < budget.water) {
+          if (
+            sector.regionId !== ASTERWAKE_REGION_ID &&
+            (isWaterTerrain(cell.terrain) || cell.terrain === 'l') &&
+            waterCells < budget.water
+          ) {
             const point = screen({ x: origin.x + cell.x, y: origin.y + cell.y })
             if (!liquidVisible(point)) continue
             waterCells++
@@ -2854,6 +3066,25 @@ export function createMapRenderer(
             )
             ctx.restore()
           }
+    }
+    // The hull is over the finished water plane, including the next sector's
+    // raster. The pier, terminal and other upright art retain their depth pass.
+    const vessel = images.get('ferry-vessel')
+    if (docks.length && vessel?.complete && vessel.naturalWidth) {
+      const ferryTime = view.serverNow + Math.max(0, now - ferryClockAt)
+      const vesselWidth = tile * 4.85
+      const vesselHeight = vesselWidth * (vessel.naturalHeight / vessel.naturalWidth)
+      for (const dock of docks) {
+        if (!ferryAtPort(dock.port, ferryTime)) continue
+        const mooring = screen({
+          x: dock.x + (dock.shoreSide === 'west' ? -3.45 : dock.shoreSide === 'north' ? 1.9 : 0.8),
+          y: dock.y + (dock.shoreSide === 'west' ? 0.75 : dock.shoreSide === 'north' ? -3.3 : 4.5),
+        })
+        const x = mooring.x - vesselWidth * 0.46
+        const y = mooring.y - vesselHeight * 0.76
+        if (x < width && x + vesselWidth > 0 && y < height && y + vesselHeight > 0)
+          ctx.drawImage(vessel, x, y, vesselWidth, vesselHeight)
+      }
     }
     if (cacheScenery && !cachedScenery) stationaryScenery = scenery
     if (timing) {
@@ -2951,7 +3182,7 @@ export function createMapRenderer(
     if (!preview) {
       selfStack.people.unshift({
         id: view.characterId,
-        name: 'You',
+        name: canvas.dataset.characterName || 'Traveller',
         image: canvas.dataset.portrait ?? null,
         self: true,
       })
@@ -3088,11 +3319,13 @@ export function createMapRenderer(
       ctx.globalAlpha = 1
       if (actor) {
         const { width, height, anchorX, anchorY } = APPEARANCE_FRAME
-        const scale = tokenScale * 0.95
-        if (ghost) {
-          ctx.globalAlpha = 0.7
-          ctx.filter = 'grayscale(1)'
-        }
+        const scale = tokenScale * 1.22
+        ctx.imageSmoothingEnabled = true
+        ctx.imageSmoothingQuality = 'high'
+        ctx.globalAlpha = ghost ? 0.85 : 1
+        ctx.filter = ghost
+          ? 'brightness(1.28) contrast(1.08) saturate(.76) drop-shadow(0 1px 1px #101a20)'
+          : 'brightness(1.16) contrast(1.08) drop-shadow(0 1px 1px #101a20)'
         if (person.self) {
           ctx.beginPath()
           ctx.ellipse(point.x, point.y, 12 * scale, 4 * scale, 0, 0, Math.PI * 2)
@@ -3196,11 +3429,7 @@ export function createMapRenderer(
       }
       if (!ghost || actor) nameplates.push({ point, person })
     }
-    function paintNameplate(
-      { point, person }: Nameplate,
-      occupied: { left: number; top: number; right: number; bottom: number }[],
-      dense: boolean,
-    ) {
+    function paintNameplate({ point, person }: Nameplate, occupied: LabelBounds[], dense: boolean) {
       const ctx = personContext
       // Small serif strokes and Canvas maxWidth condensation soften identity labels.
       // Keep glyphs at a readable whole-pixel size and shorten long names instead.
@@ -3235,29 +3464,18 @@ export function createMapRenderer(
           bounds.right > width ||
           bounds.top < 0 ||
           bounds.bottom > height ||
-          occupied.some(
-            (other) =>
-              bounds.left < other.right &&
-              bounds.right > other.left &&
-              bounds.top < other.bottom &&
-              bounds.bottom > other.top,
-          ))
+          occupied.some((other) => labelsOverlap(bounds, other)))
       )
         return
       occupied.push(bounds)
       includeIdentityBounds(bounds.left, bounds.top, bounds.right, bounds.bottom)
-      ctx.fillStyle = 'rgba(6,28,35,.96)'
-      ctx.strokeStyle = person.self ? '#d0ac66' : 'rgba(176,192,186,.7)'
-      ctx.lineWidth = Math.max(1 / identityRatio, 0.7 * Math.min(1, tokenScale))
-      ctx.beginPath()
-      ctx.roundRect(left, top, nameWidth, labelHeight, 3 * tokenScale)
-      ctx.fill()
-      ctx.stroke()
-      ctx.fillStyle = person.self ? '#f5dda5' : '#f1ebda'
-      ctx.fillText(
+      paintMapLabel(
+        ctx,
         label,
-        Math.round((left + 6) * identityRatio) / identityRatio,
-        Math.round((top + fontSize + 2) * identityRatio) / identityRatio,
+        bounds,
+        fontSize,
+        person.self ? 'self' : person.npc ? 'npc' : 'player',
+        identityRatio,
       )
     }
     const cacheBiomeRasters = rasterZoomAt === null && (tile >= 32 || (width < 600 && ratio > 1))
@@ -3715,7 +3933,7 @@ export function createMapRenderer(
       ctx.restore()
     }
     const majorScenery = scenery.filter((item) => item.grandFeature)
-    const labelBounds: { x: number; y: number; width: number; height: number }[] = []
+    const locationLabels: { text: string; x: number; y: number }[] = []
     for (const sector of visible) {
       if (sector.id.startsWith('ferry:')) continue
       const origin = sectorOrigin(sector)
@@ -3754,34 +3972,11 @@ export function createMapRenderer(
           ctx.restore()
         }
         if (!showLocationLabels) continue
-        ctx.font = '13px Georgia'
-        ctx.textAlign = 'center'
-        const bounds = {
-          x: p.x - ctx.measureText(landmark.name).width / 2 - 9,
-          y: p.y + 25,
-          width: ctx.measureText(landmark.name).width + 18,
-          height: 21,
-        }
-        if (
-          labelBounds.some(
-            (b) =>
-              bounds.x < b.x + b.width &&
-              bounds.x + bounds.width > b.x &&
-              bounds.y < b.y + b.height &&
-              bounds.y + bounds.height > b.y,
-          )
-        )
-          continue
-        labelBounds.push(bounds)
-        ctx.fillStyle = 'rgba(6,28,35,.88)'
-        ctx.strokeStyle = 'rgba(208,172,102,.7)'
-        ctx.lineWidth = 0.7
-        ctx.beginPath()
-        ctx.roundRect(bounds.x, bounds.y, bounds.width, bounds.height, 3)
-        ctx.fill()
-        ctx.stroke()
-        ctx.fillStyle = '#f3dca6'
-        ctx.fillText(landmark.name, p.x, p.y + 40)
+        locationLabels.push({
+          text: landmark.name,
+          x: p.x,
+          y: isFerryTerminalLandmark(landmark.id) ? p.y - tile * 1.9 - 16 : p.y + 25,
+        })
       }
     }
     if (timing) {
@@ -3932,15 +4127,16 @@ export function createMapRenderer(
       timing.weatherVeilPixels = weatherVeil.pixels
       phaseAt = ended
     }
-    // Identity is interface: weather and nighttime tint scenery, not portraits
-    // or nameplates. Retain the gray identity cue for travellers behind foliage.
+    // Keep labels and portraits on the retained layer above the weather.
     const identity: (string | number | boolean | null)[] = [
       identityRatio,
       width,
       height,
       tokenScale,
       radius,
+      locationLabels.length,
     ]
+    for (const { text, x, y } of locationLabels) identity.push(text, x, y)
     const occluderCell = 96
     const occluders = scenery.map((item) => {
       const point = screen({ x: item.x, y: item.y })
@@ -4108,10 +4304,39 @@ export function createMapRenderer(
             Number(b.person.self) - Number(a.person.self) || centerDistance(a) - centerDistance(b),
         )
       }
-      const occupied: { left: number; top: number; right: number; bottom: number }[] = []
+      const occupied: LabelBounds[] = []
       for (const nameplate of nameplates) {
         if (dense && occupied.length >= labelLimit) break
         paintNameplate(nameplate, occupied, dense)
+      }
+      if (locationLabels.length) {
+        const fontSize = Math.max(11, Math.min(14, Math.round(12 * tokenScale)))
+        const labelHeight = fontSize + 6
+        const spacing = labelHeight + 4
+        personContext.font = `600 ${fontSize}px Arial, sans-serif`
+        for (const { text, x, y } of locationLabels) {
+          const labelWidth = Math.ceil(personContext.measureText(text).width + 12)
+          const left = Math.max(3, Math.min(width - labelWidth - 3, Math.round(x - labelWidth / 2)))
+          const top = Math.max(3, Math.min(height - labelHeight - 3, Math.round(y)))
+          for (const offset of [0, spacing, -spacing, spacing * 2]) {
+            const bounds = {
+              left,
+              top: top + offset,
+              right: left + labelWidth,
+              bottom: top + offset + labelHeight,
+            }
+            if (
+              bounds.top < 3 ||
+              bounds.bottom > height - 3 ||
+              occupied.some((other) => labelsOverlap(bounds, other))
+            )
+              continue
+            occupied.push(bounds)
+            includeIdentityBounds(left, bounds.top, bounds.right, bounds.bottom)
+            paintMapLabel(personContext, text, bounds, fontSize, 'location', identityRatio)
+            break
+          }
+        }
       }
       paintedIdentity = identity
       paintedIdentityBounds = identityBounds
@@ -4323,7 +4548,7 @@ export function createMapRenderer(
           (!position.sectorId.startsWith('void:') && !position.sectorId.startsWith('uncharted-'))
         )
           return position
-        // Visible landscape is not a survey or navigation grant.
+        if (isLocalVoidWalk(view.position.sectorId, position.sectorId)) return position
         return view.sectors.some(
           (sector) =>
             sector.id === position.sectorId &&
@@ -4397,21 +4622,32 @@ export function createMapRenderer(
     const now = performance.now(),
       sample = motion.sample(now),
       approved = mapPoint(motion.approvedPosition(now), view.sectors, sample.point),
-      // An arrival receipt can lead the visual catch-up. Continuing that same
-      // direction must start beyond the approved tile, or a tap's release can
-      // select the old landing and cancel the new step.
-      p =
-        (approved.x - sample.point.x) * offset.x + (approved.y - sample.point.y) * offset.y > 0
-          ? approved
-          : sample.point,
-      base = { x: Math.floor(p.x) + 0.5, y: Math.floor(p.y) + 0.5 }
-    let from = pick(base) ?? sample.position,
+      perpendicular = (point: MapPoint) => (offset.x ? point.y : point.x)
+    heldLine ??= Math.floor(perpendicular(sample.point)) + 0.5
+    const onLane = (point: MapPoint) => Math.floor(perpendicular(point)) + 0.5 === heldLine
+    const standing = mapPoint(sample.position, view.sectors, sample.point)
+    const p =
+      onLane(approved) &&
+      (approved.x - sample.point.x) * offset.x + (approved.y - sample.point.y) * offset.y > 0
+        ? approved
+        : onLane(sample.point)
+          ? sample.point
+          : standing
+    if (!onLane(p)) {
+      keyTimer = setTimeout(walkHeldKey, STEP_MS)
+      return
+    }
+    const base = { x: Math.floor(p.x) + 0.5, y: Math.floor(p.y) + 0.5 }
+    const localVoid = isVoidRealmSectorId(sample.position.sectorId)
+    const pickStep = (point: MapPoint) =>
+      pick(point) ?? (localVoid ? pick(point, renderSectors) : null)
+    let from = pickStep(base) ?? sample.position,
       position: WorldPosition | null = null,
       first: WorldPosition | null = null
     // Keep a known legal route ahead of the key timer instead of exhausting a
     // single tile at every callback. WorldMotion still caps unconfirmed preview.
     for (let distance = 1; distance <= 3; distance++) {
-      const candidate = pick({
+      const candidate = pickStep({
         x: base.x + offset.x * distance,
         y: base.y + offset.y * distance,
       })
@@ -4423,7 +4659,13 @@ export function createMapRenderer(
         crossing = source?.exits.some(
           (exit) => samePosition(exit.from, from) && samePosition(exit.to, candidate),
         )
-      if (!adjacent && !crossing) break
+      // Void terrain connects across dry cardinal neighbors at sector edges.
+      if (
+        !adjacent &&
+        !crossing &&
+        !(localVoid && isLocalVoidWalk(sample.position.sectorId, candidate.sectorId))
+      )
+        break
       first ??= candidate
       position = candidate
       from = candidate
@@ -4459,12 +4701,15 @@ export function createMapRenderer(
     if (!offset) return
     event.preventDefault()
     if (event.repeat || heldKeys.has(name)) return
+    heldLine = null
     heldKeys.set(name, offset)
     if (keyTimer !== null) clearTimeout(keyTimer)
     walkHeldKey()
   }
   const keyUp = (event: KeyboardEvent) => {
-    heldKeys.delete(event.key.toLowerCase())
+    const key = event.key.toLowerCase()
+    if ([...heldKeys.keys()].at(-1) === key) heldLine = null
+    heldKeys.delete(key)
     if (!heldKeys.size) releaseHeldKeys()
   }
   const blur = (event: FocusEvent) => {
@@ -4496,13 +4741,15 @@ export function createMapRenderer(
       next = retainWorldSceneReferences(view, next)
       const terrain = worldRenderTerrain(next, renderSectors)
       const terrainChanged = terrain !== renderSectors
-      const atlasChanged = atlasTerrainKey(next.atlas) !== indexedAtlasKey
+      const atlasChanged =
+        next.atlas !== view.atlas && atlasTerrainKey(next.atlas) !== indexedAtlasKey
       const discoveryProofChanged =
         (next.publicGrandDiscoveries ?? []).join(':') !==
         (view.publicGrandDiscoveries ?? []).join(':')
       renderSectors = terrain
       const peerStarted = performance.now()
       if (next.serverNow !== view.serverNow) ferryClockAt = peerStarted
+      if (next.atlas !== view.atlas) chartedTerrain = chartedTerrainAt(next.atlas)
       view = next
       // Network refreshes deserialize a new object graph. Retain the exact
       // authority array only when all topology is equivalent, so ordinary

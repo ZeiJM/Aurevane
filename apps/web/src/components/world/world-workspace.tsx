@@ -6,9 +6,8 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import { useRouter } from 'next/navigation'
 import { WORLD_LAND_NAME } from '@/world/atlas'
 import { WORLD_REGIONS } from '@/world/catalog'
-import { grandDiscoverySectorName } from '@/world/discovery-sites'
-import { FERRY_MAINLAND_DOCK } from '@/world/ferry'
-import { positionLabel, sectorDisplayNumber, sectorLabel } from '@/world/coordinate-label'
+import { mainlandSectorIdAtNumber, readSectorNumber } from '@/world/sector-index'
+import { positionLabel, sectorLabel } from '@/world/coordinate-label'
 import { parseVoidSectorId, VOID_REALMS } from '@/world/void-realms'
 import { regionalWeatherLabel } from './map-weather'
 import {
@@ -18,7 +17,7 @@ import {
   subscribeMapQuality,
   type MapQuality,
 } from './map-quality'
-import { remainingTravelMs, worldSyncDelayMs } from '@/world/travel'
+import { canAutoPath, remainingTravelMs, worldSyncDelayMs } from '@/world/travel'
 import type { WorldAttackReceipt } from '@/world/attack-receipt'
 import type { WorldMovementReceipt } from '@/world/movement-receipt'
 import { WorldNearbyPlayer } from './world-nearby-player'
@@ -30,6 +29,7 @@ import {
   worldRefreshUrl,
 } from '@/world/presence'
 import type {
+  TravelStep,
   WorldIntent,
   WorldInteraction,
   WorldInteractionActionId,
@@ -43,11 +43,7 @@ import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { localRoute, mapPoint, prepareLocalRoute, WorldMotion } from './world-motion'
 import { WorldMap } from './world-map'
 import { GLOBE_FOCUS_EVENT, WorldGlobe } from './world-globe'
-import {
-  nextWorldTravelPoint,
-  worldTravelDestination,
-  worldTravelPoints,
-} from './world-travel-points'
+import { worldKeyLocations, worldReachableTravelDestination } from './world-travel-points'
 import { WorldNearbyNpc } from './world-nearby-npc'
 import { WorldMissions } from './world-missions'
 import { dialogueSpeakerId, WorldDialogue, type NarrativeReply } from './world-dialogue'
@@ -385,7 +381,7 @@ export function WorldWorkspace({
           if (document.visibilityState === 'visible') await instance.hydrate()
           scheduleScene()
         },
-        Math.max(100, loaded - 1200),
+        Math.max(250, loaded - 1800),
       )
     }
     const schedule = () => {
@@ -472,35 +468,49 @@ export function WorldWorkspace({
       setApproachingPlayer(null)
   }, [approachingPlayer, approvedPosition, view, active])
   const send = useCallback(
-    (intent: WorldIntent) => {
+    (intent: WorldIntent, previewRoute?: readonly TravelStep[]) => {
       setMessage('')
-      if (intent.kind === 'stop') motion.stop(performance.now())
-      else if (intent.kind === 'attack') motion.hold(performance.now())
-      void controller.current?.send(intent).then(() => {
-        if (['walk', 'autopath', 'stop'].includes(intent.kind))
-          void controller.current?.hydrate({ movement: true })
+      const now = performance.now()
+      const instance = controller.current
+      if (intent.kind === 'stop') motion.stop(now)
+      else if (intent.kind === 'attack') motion.hold(now)
+      if (!instance) return
+      const current = instance.view
+      const walking = intent.kind === 'walk' || intent.kind === 'autopath'
+      const origin =
+        walking && !current.movementBlocked && !current.battleSessionId && !instance.attackPending
+          ? motion.sample(now).position
+          : null
+      void instance.send(intent).then(() => {
+        if (walking || intent.kind === 'stop') void instance.hydrate({ movement: true })
       })
+      if (!origin) return
+      const objective =
+        intent.kind === 'autopath'
+          ? current.objectives.find((item) => item.id === intent.objectiveId && canAutoPath(item))
+          : undefined
+      const destination = intent.kind === 'walk' ? intent.destination : objective?.destination
+      if (destination) {
+        const route = previewRoute ?? localRoute(current, origin, destination)
+        if (route) motion.plan(route, current.sectors, now)
+      }
     },
     [motion],
   )
   const walk = useCallback(
     (destination: WorldPosition) => {
-      const current = controller.current?.view
+      const instance = controller.current
       if (
-        !current ||
-        current.movementBlocked ||
-        current.battleSessionId ||
-        controller.current?.attackPending
+        !instance ||
+        instance.view.movementBlocked ||
+        instance.view.battleSessionId ||
+        instance.attackPending
       )
         return
       setApproachingPlayer(null)
-      const now = performance.now()
-      const origin = motion.sample(now).position
       send({ kind: 'walk', destination })
-      const route = localRoute(current, origin, destination)
-      if (route) motion.plan(route, current.sectors, now)
     },
-    [send, motion],
+    [send],
   )
   const stopMoving = () => {
     setApproachingPlayer(null)
@@ -624,24 +634,21 @@ export function WorldWorkspace({
     setDestinationId(id)
     if (id) centerGlobeOn(id)
   }
-  const keyLocations = useMemo(() => {
-    const knownAnchors = new Set(view.anchors.map((anchor) => anchor.sectorId))
-    return (view.atlas ?? [])
-      .filter(
-        (cell) =>
-          cell.charted &&
-          (cell.townId === cell.id ||
-            knownAnchors.has(cell.id) ||
-            grandDiscoverySectorName(cell.id) !== undefined ||
-            cell.id === FERRY_MAINLAND_DOCK.sectorId),
-      )
-      .sort((a, b) => a.row - b.row || a.column - b.column)
-  }, [view.atlas, view.anchors])
-  const travelPoints = useMemo(
-    () => worldTravelPoints({ atlas: view.atlas, anchors: view.anchors }),
-    [view.atlas, view.anchors],
+  const keyLocations = useMemo(
+    () => worldKeyLocations({ atlas: view.atlas, anchors: view.anchors }, favoriteSectorId),
+    [view.atlas, view.anchors, favoriteSectorId],
   )
-  const activeTravelPoint = travelPoints.find((point) => point.id === destinationId)
+  const typedNumber = readSectorNumber(sectorJump)
+  const typedSectorId = typedNumber === null ? undefined : mainlandSectorIdAtNumber(typedNumber)
+  const typedSector =
+    typedSectorId && view.atlas?.find((cell) => cell.charted && cell.id === typedSectorId)
+  const typedSectorAvailable =
+    Boolean(typedSector) &&
+    !disabled &&
+    Boolean(worldReachableTravelDestination(approvedPosition, typedSectorId!))
+  const destinationArrival = destination
+    ? worldReachableTravelDestination(approvedPosition, destination.id)
+    : null
   const confirmDestination = view.atlas?.find(
     (cell) => cell.id === confirmDestinationId && cell.charted,
   )
@@ -678,8 +685,7 @@ export function WorldWorkspace({
         .filter((candidate) => candidate.route !== null)
         .sort((a, b) => a.route!.length - b.route!.length)
       if (routes[0]) {
-        motion.plan(routes[0].route!, current.sectors, now)
-        send({ kind: 'walk', destination: routes[0].destination })
+        send({ kind: 'walk', destination: routes[0].destination }, routes[0].route!)
       } else {
         setApproachingPlayer(null)
         setMessage('There is no known route to that character yet.')
@@ -713,7 +719,7 @@ export function WorldWorkspace({
       <header
         className={styles.header}
         style={{
-          backgroundImage: `linear-gradient(90deg, #071c24 30%, #071c2480), url("/media/art/world/${region?.art ?? 'verdant-expanse'}-v01.webp")`,
+          backgroundImage: `linear-gradient(90deg, #071c24 30%, #071c2480), url("/media/art/world/${region?.art ?? 'verdant-expanse'}-v02.webp")`,
         }}
       >
         <div>
@@ -769,6 +775,7 @@ export function WorldWorkspace({
               view={mapView}
               motion={motion}
               portrait={character.portrait}
+              characterName={character.name}
               animate={animate}
               showLocationLabels={showLocationLabels}
               quality={mapQuality}
@@ -793,6 +800,7 @@ export function WorldWorkspace({
               zoomLocked={zoomLocked}
               onZoom={setGlobeZoom}
               selected={destinationId}
+              selectedArrival={destinationArrival ?? undefined}
               onSelect={(id) => {
                 setConfirmDestinationId(null)
                 setDestinationId(id)
@@ -885,22 +893,14 @@ export function WorldWorkspace({
                     ))}
                   </select>
                   <form
-                    className={styles.atlasActions}
                     onSubmit={(event) => {
                       event.preventDefault()
-                      const number = Number(sectorJump)
-                      const sector =
-                        /^\d+$/.test(sectorJump.trim()) && number > 0
-                          ? view.atlas?.find(
-                              (cell) => cell.charted && sectorDisplayNumber(cell) === number,
-                            )
-                          : null
-                      if (!sector) {
-                        setMessage('Enter a known charted sector number to review travel.')
+                      if (!typedSector || !typedSectorAvailable) {
+                        setMessage('That sector is unavailable for walking travel.')
                         return
                       }
                       setMessage('')
-                      focusGlobalSector(sector.id)
+                      focusGlobalSector(typedSector.id)
                     }}
                   >
                     <input
@@ -908,29 +908,19 @@ export function WorldWorkspace({
                       inputMode="numeric"
                       aria-label="Sector number"
                       placeholder="Sector number"
+                      title={
+                        sectorJump
+                          ? typedSectorAvailable
+                            ? 'Available for walking travel'
+                            : 'Unavailable for walking travel'
+                          : 'Enter a sector number and press Enter'
+                      }
+                      aria-invalid={sectorJump.length > 0 && !typedSectorAvailable}
+                      data-sector-valid={sectorJump.length ? typedSectorAvailable : undefined}
                       value={sectorJump}
                       onChange={(event) => setSectorJump(event.target.value)}
                     />
-                    <button type="submit">Review sector</button>
                   </form>
-                  <div className={styles.atlasActions}>
-                    <button
-                      type="button"
-                      disabled={!travelPoints.length}
-                      title={activeTravelPoint ? `Selected: ${activeTravelPoint.name}` : undefined}
-                      onClick={() => {
-                        const next = nextWorldTravelPoint(travelPoints, destinationId)
-                        if (next) focusGlobalSector(next.id)
-                      }}
-                    >
-                      {activeTravelPoint ? 'Next Travel Point' : 'Travel Points'}
-                    </button>
-                    {favoriteSectorId ? (
-                      <button type="button" onClick={() => focusGlobalSector(favoriteSectorId)}>
-                        My favorite
-                      </button>
-                    ) : null}
-                  </div>
                 </section>
                 <section className={styles.position} data-world-position aria-label="Your position">
                   <div>
@@ -1016,7 +1006,8 @@ export function WorldWorkspace({
                 {mode === 'global' && destination ? (
                   <WorldDestinationCard
                     destination={destination}
-                    disabled={disabled}
+                    arrival={destinationArrival ?? undefined}
+                    disabled={disabled || !destinationArrival}
                     reviewing={confirmDestination?.id === destination.id}
                     replacesRoute={view.route.length > 0}
                     favorite={favoriteSectorId === destination.id}
@@ -1030,8 +1021,8 @@ export function WorldWorkspace({
                       setDestinationId(null)
                     }}
                     onConfirm={() => {
-                      if (confirmDestination?.id !== destination.id) return
-                      walk(worldTravelDestination(destination.id))
+                      if (!destinationArrival || confirmDestination?.id !== destination.id) return
+                      walk(destinationArrival)
                       setConfirmDestinationId(null)
                       setMode('local')
                       setDestinationId(null)
