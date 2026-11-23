@@ -1,0 +1,4 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["bash", "-e", "-c", "corepack pnpm exec prettier --check packages/db/src/master-players-recovery.test.ts; corepack pnpm exec eslint packages/db/src/master-players-recovery.test.ts"], "start": "2026-10-20T19:02:22.322991+00:00"}
+Checking formatting...
+All matched files use Prettier code style!
+{"end": "2026-10-20T19:02:25.683801+00:00", "exit": 0}

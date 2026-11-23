@@ -56,20 +56,20 @@ function detailsFromTrigger(trigger: HTMLElement): EffectDetails {
     source.includes('lg↓')
   ) {
     return {
-      title: 'Lowered Guard',
+      title: 'Defenseless',
       kind: 'Debuff',
       description:
-        'Defenses are exposed. Each Lowered Guard stack multiplies incoming damage by 2.5×, up to three stacks. In PvP it is applied after a genuine turn-timer expiry and lasts for the next owner-turn start.',
+        'Defenses are exposed. Each Defenseless application multiplies incoming damage by 2.5×. In PvP it is applied after a genuine turn-timer expiry and lasts for the next owner-turn start.',
       duration,
     }
   }
 
   if (source.includes('guarded')) {
     return {
-      title: 'Guarded',
+      title: 'Guard',
       kind: 'Buff',
       description:
-        'Each Guarded stack reduces incoming damage by 15%, up to three stacks. Reapplying Guarded adds a stack and refreshes its shared owner-turn duration.',
+        'Each Guard application reduces incoming damage by 15%. Reapplying Guard adds a stack and refreshes its shared owner-turn duration.',
       duration,
     }
   }
@@ -105,14 +105,23 @@ function detailsFromTrigger(trigger: HTMLElement): EffectDetails {
   }
 }
 
+function ownedByNativeReader(element: Element): boolean {
+  return Boolean(
+    element.closest('[data-battle-info-trigger], [data-battle-info-panel]') ||
+    element.querySelector('[data-battle-info-trigger]'),
+  )
+}
+
 function decorateEffectTriggers() {
   for (const item of document.querySelectorAll<HTMLElement>(
     '[aria-label$=" buffs and debuffs"] button',
   )) {
+    if (ownedByNativeReader(item)) continue
     item.dataset.battleEffectTrigger = 'true'
   }
 
   for (const item of document.querySelectorAll<HTMLElement>('[aria-label$=" active effects"] li')) {
+    if (ownedByNativeReader(item)) continue
     item.dataset.battleEffectTrigger = 'true'
     item.tabIndex = 0
     item.setAttribute('role', 'button')
@@ -121,6 +130,7 @@ function decorateEffectTriggers() {
   }
 
   for (const item of document.querySelectorAll<HTMLElement>('[aria-label$=" status effects"] b')) {
+    if (ownedByNativeReader(item)) continue
     item.dataset.battleEffectTrigger = 'true'
     item.tabIndex = 0
     item.setAttribute('role', 'button')
@@ -151,7 +161,8 @@ export function BattleStatusEffectAssist() {
     function openFromTarget(target: EventTarget | null) {
       const element = target instanceof Element ? target : null
       const trigger = element?.closest<HTMLElement>('[data-battle-effect-trigger="true"]')
-      if (!trigger) return false
+      if (!trigger || (element && ownedByNativeReader(element)) || ownedByNativeReader(trigger))
+        return false
       setEffect(detailsFromTrigger(trigger))
       return true
     }

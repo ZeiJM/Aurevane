@@ -8,6 +8,7 @@ const character = {
   characterId: 'character-one',
   name: 'Aster Vale',
   level: 12,
+  xp: 12345,
   lastSeenAt: '2026-09-15T12:00:00Z',
   portraitRef: null,
   disciplineId: 'vanguard',
@@ -31,6 +32,11 @@ describe('Adventurers roster composition', () => {
     expect(markup).toContain('The Patient Flame')
     expect(markup).toContain('Vanguard | Aetherist')
     expect(markup).toContain('Show all characters')
+    expect(markup).toContain('>EXP</span>')
+    expect(markup).toContain('12,345')
+    expect(markup).toContain('value="recent" selected=""')
+    expect(markup).toContain('Level: highest first')
+    expect(markup).toContain('EXP: highest first')
     expect(markup).toContain('data-online-users-heading="true"')
     expect(markup).not.toContain('Different paths. A shared world.')
     expect(markup).not.toContain(character.email)
@@ -43,4 +49,29 @@ describe('Adventurers roster composition', () => {
     expect(markup).toContain('No characters are currently visible online.')
     expect(markup).not.toContain('data-directory-character="true"')
   })
+
+  it('shows unavailable EXP honestly when the public identity query has no value', () => {
+    const markup = renderToStaticMarkup(
+      createElement(OnlineUsersDirectory, { characters: [{ ...character, xp: null }] }),
+    )
+    expect(markup).toContain('EXP unavailable')
+    expect(markup).toContain('>—</span>')
+  })
+})
+
+it('uses the published Discipline name instead of formatting a generated identity', () => {
+  const markup = renderToStaticMarkup(
+    createElement(OnlineUsersDirectory, {
+      characters: [
+        {
+          ...character,
+          disciplineId: 'discipline.f60c5dc7-abf2-4e03-8b10-428dee7fc4c2',
+          disciplineName: 'Super Saiyan',
+          secondaryDisciplineName: 'Renamed Aetherist',
+        },
+      ],
+    }),
+  )
+  expect(markup).toContain('Super Saiyan | Renamed Aetherist')
+  expect(markup).not.toContain('F60c5dc7')
 })

@@ -1,0 +1,45 @@
+{
+  "sourceArtifactId": 12608960288,
+  "artifactBytes": 156640515,
+  "artifactSha256": "59bf746904b77795ca61ec4b215983925d2d051b7095c60389000f0be5ccb728",
+  "candidate": "2913777a1dbe02477b77b55faa9e18e1cc154a62",
+  "cases": [
+    {
+      "case": "master-world-environment-c-f51a0--right-panel-over-real-time-desktop-chromium",
+      "traceSha256": "e6589ea39a26071ef933996b0d68104e69e23bc930b552bbba4bddb1831f24f2",
+      "errors": [
+        {
+          "callId": "pw:api@62",
+          "message": "Error: locator.selectOption: Test timeout of 150000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByLabel('Weather selection', { exact: true })\u001b[22m\n"
+        }
+      ],
+      "worldRequests": [
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:3100/api/master/world-environment",
+          "status": 200,
+          "at": "2026-10-25T17:45:59.695Z"
+        }
+      ]
+    },
+    {
+      "case": "master-world-environment-c-f51a0--right-panel-over-real-time-desktop-chromium-repeat1",
+      "traceSha256": "d1c95164896ffdd467667242e412c7f388a0d4a8e731c2997a9c28e2f02a7c43",
+      "errors": [
+        {
+          "callId": "pw:api@62",
+          "message": "Error: locator.selectOption: Test timeout of 150000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByLabel('Weather selection', { exact: true })\u001b[22m\n"
+        }
+      ],
+      "worldRequests": [
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:3100/api/master/world-environment",
+          "status": 200,
+          "at": "2026-10-25T17:49:48.089Z"
+        }
+      ]
+    }
+  ],
+  "note": "Only failed action messages and World endpoint method/URL/status/time extracted; no headers, tokens, raw trace or auth bodies."
+}

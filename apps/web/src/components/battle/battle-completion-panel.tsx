@@ -15,7 +15,8 @@ import type { BattleSessionView } from '@/server/battle/battle-session-service'
 import styles from './battle-completion-panel.module.css'
 import { formatBattleLogForClipboard } from './battle-log-clipboard'
 import { BattleLogFeed, countBattleLogActions } from './battle-log-feed'
-import { useBattlePlayerName } from './battle-runtime-context'
+import { battleSparringTeamCounts } from './battle-runtime'
+import { useBattleCombatantNames, useBattlePlayerName } from './battle-runtime-context'
 
 interface BattleCompletionPanelProps {
   battle: BattleSessionView
@@ -60,6 +61,7 @@ function readAiDifficulty(sourceId: string | null): 'easy' | 'standard' | 'high'
 export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
   const router = useRouter()
   const playerName = useBattlePlayerName()
+  const combatantNames = useBattleCombatantNames()
   const [masteryNotice, setMasteryNotice] = useState<string | null>(null)
   const [claimPending, setClaimPending] = useState(false)
   const [retryPending, setRetryPending] = useState(false)
@@ -78,8 +80,14 @@ export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
     'recruit-sparring'
   const aiDifficulty = readAiDifficulty(scenarioSourceId)
   const battleState = battle.snapshot.tactical.battle
+  const logOptions = {
+    playerName: playerName ?? undefined,
+    combatantNames,
+    currentRound: battleState.round,
+  }
   const player = battleState.combatants.find((combatant) => combatant.teamId === 'players')
   const recruit = battleState.combatants.find((combatant) => combatant.teamId === 'opponents')
+  const worldEncounter = battle.snapshot.worldBattleOrigin !== undefined
   const guidedTraining = recordId === 'guided-fundamentals'
   const guidedTrainingSucceeded = Boolean(guidedTraining && player && player.hp > 0)
   const headline = guidedTrainingSucceeded ? 'Training Complete' : result
@@ -145,9 +153,7 @@ export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
     const current = await loadBattleLog()
     if (!current) return
     try {
-      await navigator.clipboard.writeText(
-        formatBattleLogForClipboard(current.entries, { playerName: playerName ?? undefined }),
-      )
+      await navigator.clipboard.writeText(formatBattleLogForClipboard(current.entries, logOptions))
       setCopyNotice('Full battle log copied')
       window.setTimeout(() => setCopyNotice(null), 1800)
     } catch {
@@ -169,6 +175,8 @@ export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
           arenaId,
           aiDifficulty,
           battleHallRecordId: recordId,
+          ...(battle.snapshot.arenaNpc ? { arenaNpcId: battle.snapshot.arenaNpc.id } : {}),
+          ...(recordId === 'recruit-sparring' ? battleSparringTeamCounts(battle) : {}),
           idempotencyKey: crypto.randomUUID(),
         }),
       })
@@ -198,83 +206,106 @@ export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
         className={styles.panel}
         aria-labelledby="battle-hall-result-title"
         data-testid="tactical-hall-result"
+        data-log-open={logOpen || undefined}
         data-result={guidedTrainingSucceeded ? 'complete' : result.toLowerCase()}
       >
-        <div className={styles.resultHero}>
-          <p className={styles.eyebrow}>
-            Battle Hall ·{' '}
-            {guidedTraining
-              ? guidedTrainingSucceeded
-                ? 'Guided Exercise Complete'
-                : 'Guided Exercise Result'
-              : 'Practice Result'}
-          </p>
-          <h2 id="battle-hall-result-title">{headline}</h2>
-          <p>
-            {guidedTrainingSucceeded
-              ? `All Guided Fundamentals criteria were verified from the committed battle record in Round ${battleState.round}.`
-              : guidedTraining
-                ? `The Wayfarer was defeated in Round ${battleState.round}, so the Guided Fundamentals exercise ended in defeat.`
-                : `The exercise concluded in Round ${battleState.round}. The committed battle history remains available for review.`}
-          </p>
-        </div>
+        <div
+          className={styles.resultSummary}
+          role="region"
+          aria-label="Battle result summary"
+          tabIndex={logOpen ? 0 : undefined}
+        >
+          <div className={styles.resultHero}>
+            <span className={styles.resultSeal} aria-hidden="true">
+              <svg viewBox="0 0 40 40" fill="none">
+                <path d="M20 4 24 16 36 20 24 24 20 36 16 24 4 20 16 16Z" />
+                <circle cx="20" cy="20" r="4" />
+              </svg>
+            </span>
+            <p className={styles.eyebrow}>
+              {worldEncounter
+                ? 'World encounter · Result'
+                : 'Battle Hall · ' +
+                  (guidedTraining
+                    ? guidedTrainingSucceeded
+                      ? 'Guided Exercise Complete'
+                      : 'Guided Exercise Result'
+                    : 'Practice Result')}
+            </p>
+            <h2 id="battle-hall-result-title">{headline}</h2>
+            <p>
+              {guidedTrainingSucceeded
+                ? `All Guided Fundamentals criteria were verified from the committed battle record in Round ${battleState.round}.`
+                : guidedTraining
+                  ? `The Wayfarer was defeated in Round ${battleState.round}, so the Guided Fundamentals exercise ended in defeat.`
+                  : `${worldEncounter ? 'The encounter' : 'The exercise'} concluded in Round ${battleState.round}. The committed battle history remains available for review.`}
+            </p>
+          </div>
 
-        <dl className={styles.record} aria-label="Battle Hall practice result">
-          <div>
-            <dt>Exercise</dt>
-            <dd>
+          <dl
+            className={styles.record}
+            aria-label={worldEncounter ? 'World encounter result' : 'Battle Hall practice result'}
+          >
+            <div>
+              <dt>{worldEncounter ? 'Opponent' : 'Exercise'}</dt>
+              <dd>
+                {worldEncounter
+                  ? battle.snapshot.arenaNpc?.name
+                  : guidedTraining
+                    ? 'Guided Fundamentals'
+                    : recordId === 'mastery-trial'
+                      ? 'Discipline Mastery Trial'
+                      : 'AI Sparring'}
+              </dd>
+            </div>
+            <div>
+              <dt>Arena</dt>
+              <dd>
+                {arena.name} · {arena.width}×{arena.height}
+              </dd>
+            </div>
+            <div>
+              <dt>Wayfarer HP</dt>
+              <dd>{player ? `${player.hp}/${player.maxHp}` : '—'}</dd>
+            </div>
+            <div>
+              <dt>{worldEncounter ? 'Opponent HP' : 'Recruit HP'}</dt>
+              <dd>{recruit ? `${recruit.hp}/${recruit.maxHp}` : '—'}</dd>
+            </div>
+          </dl>
+
+          <div className={styles.outcomeNote}>
+            <strong>
               {guidedTraining
-                ? 'Guided Fundamentals'
+                ? guidedTrainingSucceeded
+                  ? 'Lesson objective achieved'
+                  : 'Lesson failed'
+                : 'Practice battle concluded'}
+            </strong>
+            <p>
+              {worldEncounter
+                ? 'You can review the committed battle history before returning to the World.'
                 : recordId === 'mastery-trial'
-                  ? 'Discipline Mastery Trial'
-                  : 'AI Sparring'}
-            </dd>
+                  ? 'A qualifying victory awards up to 50 Primary Discipline Mastery XP. Use two different Primary Skills across three Skill commands, win without a player timeout, then claim your result.'
+                  : 'Practice grants no Character XP, Mastery, loot, Crowns, PvP rating, or normal progression reward. Your committed battle history remains available for review.'}
+            </p>
           </div>
-          <div>
-            <dt>Arena</dt>
-            <dd>
-              {arena.name} · {arena.width}×{arena.height}
-            </dd>
-          </div>
-          <div>
-            <dt>Wayfarer HP</dt>
-            <dd>{player ? `${player.hp}/${player.maxHp}` : '—'}</dd>
-          </div>
-          <div>
-            <dt>Recruit HP</dt>
-            <dd>{recruit ? `${recruit.hp}/${recruit.maxHp}` : '—'}</dd>
-          </div>
-        </dl>
-
-        <div className={styles.outcomeNote}>
-          <strong>
-            {guidedTraining
-              ? guidedTrainingSucceeded
-                ? 'Lesson objective achieved'
-                : 'Lesson failed'
-              : 'Practice battle concluded'}
-          </strong>
-          <p>
-            {recordId === 'mastery-trial'
-              ? 'A qualifying victory awards up to 50 Primary Discipline Mastery XP. Use two different Primary Skills across three Skill commands, win without a player timeout, then claim your result.'
-              : 'Practice grants no Character XP, Mastery, loot, Crowns, PvP rating, or normal progression reward. Your committed battle history remains available for review.'}
-          </p>
         </div>
 
-        {recordId === 'mastery-trial' && result === 'Victory' ? (
-          <div className={styles.logActions}>
-            <button
-              type="button"
-              className={styles.secondary}
-              disabled={claimPending || masteryNotice !== null}
-              onClick={() => void claimMastery()}
-            >
-              {claimPending ? 'Verifying…' : 'Claim Mastery'}
-            </button>
-            {masteryNotice ? <span role="status">{masteryNotice}</span> : null}
-          </div>
-        ) : null}
         <div className={styles.logActions}>
+          {!worldEncounter && recordId === 'mastery-trial' && result === 'Victory' ? (
+            <>
+              <button
+                type="button"
+                className={styles.secondary}
+                disabled={claimPending || masteryNotice !== null}
+                onClick={() => void claimMastery()}
+              >
+                {claimPending ? 'Verifying…' : 'Claim Mastery'}
+              </button>
+              {masteryNotice ? <span role="status">{masteryNotice}</span> : null}
+            </>
+          ) : null}
           <button type="button" className={styles.secondary} onClick={() => void toggleBattleLog()}>
             {logLoading ? 'Loading Battle Log…' : logOpen ? 'Hide Battle Log' : 'Review Battle Log'}
           </button>
@@ -294,7 +325,10 @@ export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
               <div className={styles.logTranscript}>
                 <BattleLogFeed
                   entries={log.entries}
-                  playerName={playerName ?? undefined}
+                  elementalDamagePolicyVersion={
+                    battle.snapshot.elementalDamagePolicyVersion ?? null
+                  }
+                  {...logOptions}
                   emptyMessage="No committed battle actions were recorded."
                 />
               </div>
@@ -314,18 +348,26 @@ export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
           <button
             type="button"
             className={styles.primary}
-            onClick={() => router.push('/game/battle')}
+            onClick={() => router.push(worldEncounter ? '/game/world' : '/game/battle')}
           >
-            Return to Battle Hall
+            {worldEncounter ? 'Return to World' : 'Return to Battle Hall'}
           </button>
-          <button
-            type="button"
-            className={styles.secondary}
-            onClick={() => void retry()}
-            disabled={retryPending || !characterId}
-          >
-            {retryPending ? 'Preparing…' : guidedTraining ? 'Run Lesson Again' : 'Rematch Recruit'}
-          </button>
+          {!worldEncounter ? (
+            <button
+              type="button"
+              className={styles.secondary}
+              onClick={() => void retry()}
+              disabled={retryPending || !characterId}
+            >
+              {retryPending
+                ? 'Preparing…'
+                : guidedTraining
+                  ? 'Run Lesson Again'
+                  : battle.snapshot.arenaNpc
+                    ? `Rematch ${battle.snapshot.arenaNpc.name}`
+                    : 'Rematch Recruit'}
+            </button>
+          ) : null}
         </div>
       </section>
     </div>

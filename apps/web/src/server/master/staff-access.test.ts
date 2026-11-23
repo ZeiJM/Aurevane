@@ -1,300 +1,207 @@
 import { describe, expect, it, vi } from 'vitest'
-
 vi.mock('server-only', () => ({}))
-
-import { AurevaneError } from '@aurevane/game-core/errors'
-
 import {
-  MASTER_PANEL_SPECIAL_CAPABILITIES,
   createMasterPanelStaffAccessService,
+  createMasterPanelRoleDefaultsService,
   effectiveMasterPanelCapabilities,
-  type DelegatedMasterPanelRole,
+  MASTER_PANEL_SPECIAL_CAPABILITIES,
   type MasterPanelAccessRecord,
-  type MasterPanelAccountReference,
-  type MasterPanelSpecialCapability,
+  type MasterPanelRoleDefaults,
   type MasterPanelStaffAccessStore,
-  type MasterPanelStaffSummary,
+  type SetCharacterStaffAccessInput,
 } from './staff-access'
-
-const OWNER = '11111111-1111-4111-8111-111111111111'
-const STAFF = '22222222-2222-4222-8222-222222222222'
-const OUTSIDER = '33333333-3333-4333-8333-333333333333'
-
-class MemoryStaffAccessStore implements MasterPanelStaffAccessStore {
-  readonly access = new Map<string, MasterPanelAccessRecord>()
-  readonly mutations: string[] = []
-  readonly staff: MasterPanelStaffSummary[] = []
-  readonly accounts = new Map<string, MasterPanelAccountReference>()
-
-  async readAccess(userId: string): Promise<MasterPanelAccessRecord | null> {
-    return this.access.get(userId) ?? null
+const owner = '11111111-1111-4111-8111-111111111111',
+  staff = '22222222-2222-4222-8222-222222222222',
+  character = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+function fixture() {
+  const records = new Map<string, MasterPanelAccessRecord>([
+    [owner, { userId: owner, roles: ['game-owner'], specialCapabilities: [], accessVersion: 1 }],
+  ])
+  let saved: SetCharacterStaffAccessInput | null = null
+  const store: MasterPanelStaffAccessStore = {
+    readAccess: async (userId) => records.get(userId) ?? null,
+    listStaff: async () => [],
+    resolveIdentity: async () => ({
+      userId: staff,
+      email: 'verified@example.com',
+      characters: [{ characterId: character, name: 'Chosen', playable: true }],
+    }),
+    setCharacterAccess: async (input) => {
+      saved = input
+      return 2
+    },
   }
-
-  async listStaff(): Promise<readonly MasterPanelStaffSummary[]> {
-    return this.staff
+  const input: SetCharacterStaffAccessInput = {
+    actorUserId: owner,
+    targetUserId: staff,
+    targetCharacterId: character,
+    roles: ['content-staff'],
+    specialCapabilities: [],
+    days: null,
+    expectedVersion: 0,
+    enabled: true,
   }
-
-  async resolveAccountByEmail(
-    _actorUserId: string,
-    email: string,
-  ): Promise<MasterPanelAccountReference | null> {
-    return this.accounts.get(email) ?? null
-  }
-
-  async grantRole(input: {
-    actorUserId: string
-    targetUserId: string
-    role: DelegatedMasterPanelRole
-    note: string
-  }): Promise<number> {
-    this.mutations.push(`grant-role:${input.actorUserId}:${input.targetUserId}:${input.role}`)
-    return 2
-  }
-
-  async revokeRole(input: {
-    actorUserId: string
-    targetUserId: string
-    role: DelegatedMasterPanelRole
-    note: string
-  }): Promise<number> {
-    this.mutations.push(`revoke-role:${input.actorUserId}:${input.targetUserId}:${input.role}`)
-    return 3
-  }
-
-  async grantCapability(input: {
-    actorUserId: string
-    targetUserId: string
-    capability: MasterPanelSpecialCapability
-    note: string
-  }): Promise<number> {
-    this.mutations.push(
-      `grant-capability:${input.actorUserId}:${input.targetUserId}:${input.capability}`,
-    )
-    return 4
-  }
-
-  async revokeCapability(input: {
-    actorUserId: string
-    targetUserId: string
-    capability: MasterPanelSpecialCapability
-    note: string
-  }): Promise<number> {
-    this.mutations.push(
-      `revoke-capability:${input.actorUserId}:${input.targetUserId}:${input.capability}`,
-    )
-    return 5
-  }
+  return { service: createMasterPanelStaffAccessService(store), records, input, saved: () => saved }
 }
-
-function access(
-  userId: string,
-  roles: MasterPanelAccessRecord['roles'],
-  specialCapabilities: MasterPanelAccessRecord['specialCapabilities'] = [],
-): MasterPanelAccessRecord {
-  return { userId, accessVersion: 1, roles, specialCapabilities }
-}
-
-describe('Master Panel staff access', () => {
-  it('derives role permissions and lets the Game Owner inherit every registered capability', () => {
-    expect(effectiveMasterPanelCapabilities(['game-owner'])).toEqual([
-      'master.access',
-      'staff.manage',
-      'content.combat.author',
-      'events.author',
-      'events.operate',
-      ...MASTER_PANEL_SPECIAL_CAPABILITIES,
-    ])
+describe('selected-character staff service', () => {
+  it('preserves canonical role presets and nondelegable root powers', () => {
     expect(effectiveMasterPanelCapabilities(['content-staff'])).toEqual([
       'master.access',
       'content.combat.author',
+      'content.story_copy',
+      'content.production_publish',
     ])
-    expect(effectiveMasterPanelCapabilities(['moderator', 'event-staff'])).toEqual([
+    expect(effectiveMasterPanelCapabilities(['event-staff'])).toEqual([
       'master.access',
       'events.author',
       'events.operate',
-    ])
-  })
-
-  it('unions explicit special capabilities without creating another role', async () => {
-    const store = new MemoryStaffAccessStore()
-    store.access.set(
-      STAFF,
-      access(STAFF, ['moderator'], ['events.global_scope', 'events.emergency_stop']),
-    )
-
-    const service = createMasterPanelStaffAccessService(store)
-    const effective = await service.requireCapability(STAFF, 'events.emergency_stop')
-
-    expect(effective.roles).toEqual(['moderator'])
-    expect(effective.specialCapabilities).toEqual(['events.global_scope', 'events.emergency_stop'])
-    expect(effective.effectiveCapabilities).toEqual([
-      'master.access',
+      'events.production_publish',
       'events.global_scope',
+      'events.reward_titles',
       'events.emergency_stop',
     ])
+    expect(effectiveMasterPanelCapabilities(['moderator'])).toEqual([
+      'master.access',
+      'moderation.manage',
+      'moderation.permanent_ban',
+    ])
+    expect(effectiveMasterPanelCapabilities(['game-owner'])).toContain('staff.manage')
+    expect(MASTER_PANEL_SPECIAL_CAPABILITIES).not.toContain('staff.manage')
   })
-
-  it('fails closed for accounts without Master Panel authority', async () => {
-    const service = createMasterPanelStaffAccessService(new MemoryStaffAccessStore())
-
-    await expect(service.requireCapability(OUTSIDER, 'master.access')).rejects.toMatchObject({
+  it('expired_revoked_open_session: rereads live access for the next protected action', async () => {
+    const { service, records } = fixture()
+    records.set(staff, {
+      userId: staff,
+      roles: ['content-staff'],
+      specialCapabilities: [],
+      accessVersion: 1,
+    })
+    await expect(service.requireCapability(staff, 'content.combat.author')).resolves.toMatchObject({
+      roles: ['content-staff'],
+    })
+    records.delete(staff)
+    await expect(service.requireCapability(staff, 'content.combat.author')).rejects.toMatchObject({
       code: 'FORBIDDEN',
     })
   })
-
-  it('allows only the Game Owner to list staff and resolve an exact account email', async () => {
-    const store = new MemoryStaffAccessStore()
-    store.access.set(OWNER, access(OWNER, ['game-owner']))
-    store.accounts.set('staff@example.com', { userId: STAFF, email: 'staff@example.com' })
-    store.staff.push({
-      ...access(STAFF, ['content-staff']),
-      email: 'staff@example.com',
+  it('reason_free_attribution: selected-character assignments need no fabricated reason or account grant', async () => {
+    const { service, input, saved } = fixture()
+    await expect(service.setCharacterAccess(input)).resolves.toBe(2)
+    expect(saved()).toEqual(input)
+    expect(saved()).not.toHaveProperty('reason')
+    await expect(service.resolveIdentity(owner, 'Chosen')).resolves.toMatchObject({
+      characters: [{ characterId: character }],
     })
-    const service = createMasterPanelStaffAccessService(store)
-
-    await expect(service.listStaff(OWNER)).resolves.toHaveLength(1)
-    await expect(service.resolveAccountByEmail(OWNER, 'staff@example.com')).resolves.toEqual({
-      userId: STAFF,
-      email: 'staff@example.com',
-    })
-    await expect(service.resolveAccountByEmail(OWNER, 'not-an-email')).rejects.toMatchObject({
+  })
+  it.each([0, -1, 0.5, 36501, NaN])('rejects invalid positive-day duration %s', async (days) => {
+    const { service, input } = fixture()
+    await expect(service.setCharacterAccess({ ...input, days })).rejects.toMatchObject({
       code: 'INVALID_REQUEST',
     })
   })
-
-  it('requires a reason for delegated role mutations', async () => {
-    const store = new MemoryStaffAccessStore()
-    store.access.set(OWNER, access(OWNER, ['game-owner']))
-    const service = createMasterPanelStaffAccessService(store)
-
+  it('denies delegated management, self-elevation and invented roles/capabilities', async () => {
+    const { service, input, records } = fixture()
+    records.set(staff, {
+      userId: staff,
+      roles: ['event-staff'],
+      specialCapabilities: [],
+      accessVersion: 1,
+    })
     await expect(
-      service.grantRole({
-        actorUserId: OWNER,
-        targetUserId: STAFF,
-        role: 'content-staff',
-        reason: 'Combat authoring',
-      }),
-    ).resolves.toBe(2)
-    await expect(
-      service.revokeRole({
-        actorUserId: OWNER,
-        targetUserId: STAFF,
-        role: 'content-staff',
-        reason: 'Role rotation',
-      }),
-    ).resolves.toBe(3)
-    await expect(
-      service.grantRole({
-        actorUserId: OWNER,
-        targetUserId: STAFF,
-        role: 'event-staff',
-        reason: '',
-      }),
-    ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
-
-    expect(store.mutations).toEqual([
-      `grant-role:${OWNER}:${STAFF}:content-staff`,
-      `revoke-role:${OWNER}:${STAFF}:content-staff`,
-    ])
-  })
-
-  it('grants and revokes only approved special capabilities for delegated staff', async () => {
-    const store = new MemoryStaffAccessStore()
-    store.access.set(OWNER, access(OWNER, ['game-owner']))
-    store.access.set(STAFF, access(STAFF, ['event-staff']))
-    const service = createMasterPanelStaffAccessService(store)
-
-    await expect(
-      service.grantCapability({
-        actorUserId: OWNER,
-        targetUserId: STAFF,
-        capability: 'events.global_scope',
-        reason: 'Global event operations',
-      }),
-    ).resolves.toBe(4)
-    await expect(
-      service.revokeCapability({
-        actorUserId: OWNER,
-        targetUserId: STAFF,
-        capability: 'events.global_scope',
-        reason: 'Scope no longer required',
-      }),
-    ).resolves.toBe(5)
-
-    await expect(
-      service.grantCapability({
-        actorUserId: OWNER,
-        targetUserId: STAFF,
-        capability: 'staff.manage' as MasterPanelSpecialCapability,
-        reason: 'Should fail',
-      }),
-    ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
-
-    expect(store.mutations).toEqual([
-      `grant-capability:${OWNER}:${STAFF}:events.global_scope`,
-      `revoke-capability:${OWNER}:${STAFF}:events.global_scope`,
-    ])
-  })
-
-  it('requires a delegated staff role before granting a special capability', async () => {
-    const store = new MemoryStaffAccessStore()
-    store.access.set(OWNER, access(OWNER, ['game-owner']))
-    const service = createMasterPanelStaffAccessService(store)
-
-    await expect(
-      service.grantCapability({
-        actorUserId: OWNER,
-        targetUserId: OUTSIDER,
-        capability: 'events.global_scope',
-        reason: 'Global event operations',
-      }),
-    ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
-
-    expect(store.mutations).toEqual([])
-  })
-
-  it('blocks removal of the final delegated role while special grants remain', async () => {
-    const store = new MemoryStaffAccessStore()
-    store.access.set(OWNER, access(OWNER, ['game-owner']))
-    store.access.set(STAFF, access(STAFF, ['event-staff'], ['events.global_scope']))
-    const service = createMasterPanelStaffAccessService(store)
-
-    await expect(
-      service.revokeRole({
-        actorUserId: OWNER,
-        targetUserId: STAFF,
-        role: 'event-staff',
-        reason: 'Role rotation',
-      }),
-    ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
-
-    expect(store.mutations).toEqual([])
-  })
-
-  it('blocks delegated staff management and all Owner self-grants', async () => {
-    const store = new MemoryStaffAccessStore()
-    store.access.set(STAFF, access(STAFF, ['content-staff']))
-    store.access.set(OWNER, access(OWNER, ['game-owner']))
-    const service = createMasterPanelStaffAccessService(store)
-
-    await expect(
-      service.grantRole({
-        actorUserId: STAFF,
-        targetUserId: OUTSIDER,
-        role: 'event-staff',
-        reason: 'Escalation attempt',
-      }),
+      service.setCharacterAccess({ ...input, actorUserId: staff }),
     ).rejects.toMatchObject({ code: 'FORBIDDEN' })
-
     await expect(
-      service.grantCapability({
-        actorUserId: OWNER,
-        targetUserId: OWNER,
-        capability: 'events.global_scope',
-        reason: 'Owner already has root power',
-      }),
-    ).rejects.toBeInstanceOf(AurevaneError)
-
-    expect(store.mutations).toEqual([])
+      service.setCharacterAccess({ ...input, targetUserId: owner }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+    await expect(
+      service.setCharacterAccess({ ...input, roles: ['game-owner' as never] }),
+    ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+    await expect(
+      service.setCharacterAccess({ ...input, specialCapabilities: ['staff.manage' as never] }),
+    ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
   })
+})
+
+it('only the protected Owner can read and CAS-save validated role defaults', async () => {
+  const { service, records } = fixture()
+  let defaults: MasterPanelRoleDefaults = {
+    revision: 1,
+    roles: {
+      moderator: ['moderation'],
+      'content-staff': ['combat'],
+      'event-staff': ['events'],
+    },
+  }
+  const defaultsService = createMasterPanelRoleDefaultsService(service, {
+    readRoleDefaults: async () => defaults,
+    saveRoleDefaults: async (input) => {
+      if (input.expectedRevision !== defaults.revision)
+        throw Object.assign(new Error('stale'), { code: 'STALE_VERSION' })
+      defaults = {
+        revision: defaults.revision + 1,
+        roles: input.roles as MasterPanelRoleDefaults['roles'],
+      }
+      return defaults
+    },
+  })
+  expect(await defaultsService.readRoleDefaults(owner)).toMatchObject({ revision: 1 })
+  const roles = { ...defaults.roles, moderator: ['moderation', 'combat'] }
+  expect(
+    await defaultsService.saveRoleDefaults({ actorUserId: owner, expectedRevision: 1, roles }),
+  ).toMatchObject({ revision: 2 })
+  await expect(
+    defaultsService.saveRoleDefaults({ actorUserId: owner, expectedRevision: 1, roles }),
+  ).rejects.toMatchObject({ code: 'STALE_VERSION' })
+  records.set(staff, {
+    userId: staff,
+    roles: ['moderator'],
+    specialCapabilities: [],
+    accessVersion: 1,
+    effectiveCapabilities: ['master.access', 'staff.manage'],
+  })
+  await expect(defaultsService.readRoleDefaults(staff)).rejects.toMatchObject({ code: 'FORBIDDEN' })
+  await expect(
+    defaultsService.saveRoleDefaults({ actorUserId: staff, expectedRevision: 2, roles }),
+  ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+  await expect(defaultsService.readRoleDefaults('no-selection')).rejects.toMatchObject({
+    code: 'FORBIDDEN',
+  })
+  for (const invalid of [
+    ['staff.manage'],
+    ['invented'],
+    ['events.author', 'events.author'],
+    [null],
+  ]) {
+    await expect(
+      defaultsService.saveRoleDefaults({
+        actorUserId: owner,
+        expectedRevision: 2,
+        roles: { ...roles, moderator: invalid },
+      }),
+    ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+  }
+  expect(await service.requireCapability(owner, 'staff.manage')).toMatchObject({
+    roles: ['game-owner'],
+  })
+})
+it('uses current authoritative capabilities instead of the built-in role preset on every action', async () => {
+  const { service, records } = fixture()
+  records.set(staff, {
+    userId: staff,
+    roles: ['content-staff'],
+    specialCapabilities: [],
+    accessVersion: 1,
+    effectiveCapabilities: ['master.access'],
+  })
+  await expect(service.requireCapability(staff, 'content.combat.author')).rejects.toMatchObject({
+    code: 'FORBIDDEN',
+  })
+  records.set(staff, {
+    ...records.get(staff)!,
+    effectiveCapabilities: ['master.access', 'content.combat.author'],
+  })
+  await expect(service.requireCapability(staff, 'content.combat.author')).resolves.toMatchObject({
+    roles: ['content-staff'],
+  })
+  await expect(service.listStaff(staff)).rejects.toMatchObject({ code: 'FORBIDDEN' })
 })

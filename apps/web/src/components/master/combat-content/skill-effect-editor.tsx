@@ -1,350 +1,311 @@
 'use client'
+import { DamageUpTypeControls } from './damage-up-type-controls'
+import { SEAL_CATEGORIES, type SealCategory } from '@aurevane/game-core/combat/combat-seal'
+import { CURRENT_EFFECT_PERCENT_MAXIMUM } from '@aurevane/game-core/combat/combat-effect-percentages'
+import { combatPercentageEditIsWithinBounds } from '@/lib/combat-percentage-authoring'
+import {
+  DEFAULT_RECKLESS_POTENCY_BASIS_POINTS,
+  maximumCombatStatusPotencyBasisPoints,
+} from '@aurevane/game-core/combat/combat-status-tuning'
+import {
+  selectableCombatStatusIds,
+  combatStatusSelectionSummary,
+  type StatusSelectionKind,
+} from '@aurevane/game-core/combat/combat-status-selection'
+import { effectAuthoringTag } from '@aurevane/game-core/combat/combat-effect-authoring'
+import {
+  CURRENT_EFFECT_DURATION_MAXIMUM_TURNS,
+  CURRENT_RECOVERY_MAXIMUM_APPLICATIONS,
+} from '@aurevane/game-core/combat/combat-effect-duration'
 
-import type {
-  CombatEffectDefinition,
-  CombatEffectRecipient,
-} from '@aurevane/game-core/combat/actions'
-import type { CombatElement } from '@aurevane/game-core/combat/gameplay-tags'
+import type { CombatEffectDefinition, CombatTargetSpec } from '@aurevane/game-core/combat/actions'
+import {
+  combatStatusPresentationTag,
+  type CombatElement,
+} from '@aurevane/game-core/combat/gameplay-tags'
+import {
+  DEFAULT_BLINDSIDE_MODIFIERS,
+  isBlindsideStatusId,
+} from '@aurevane/game-core/combat/combat-blindside'
+
+import { useId, useState } from 'react'
+import { currentTagForAuthoring } from '@/lib/combat-current-tag-authoring'
+import {
+  CURRENT_POISON_REFRESH_TRAVERSED_TILES,
+  parsePercentageBasisPoints,
+  percentageBasisPointsText,
+  percentageDotSequence,
+} from '@aurevane/game-core/combat/combat-percentage-dots'
 
 import styles from './combat-content-editor.module.css'
+import { EffectTargetEditor } from './effect-target-editor'
+import {
+  withAuthoredEffectTarget,
+  type TargetedEffect,
+} from '@aurevane/game-core/combat/combat-effect-target-authoring'
+import { AbilityNumber } from './ability-editor-fields'
 
 type DamageEffect = Extract<CombatEffectDefinition, { type: 'damage' }>
-type DisplaceEffect = Extract<CombatEffectDefinition, { type: 'displace' }>
 
-const RECIPIENTS: readonly { value: CombatEffectRecipient; label: string }[] = [
-  { value: 'actor', label: 'Actor' },
-  { value: 'primary-unit', label: 'Primary unit' },
-  { value: 'affected-units', label: 'Affected units' },
-]
+const PERCENTAGE_STATUS_IDS = new Set([
+  'guarded',
+  'exposed',
+  'mark',
+  'blind',
+  'marked',
+  'hexed',
+  'wet',
+  'conductive',
+  'suppress',
+  'inspired',
+  'summoned',
+  'warded',
+  'reckless',
+  'fortified',
+  'challenged',
+])
+
+function StatusSelectionControls({
+  kind,
+  selected,
+  verb,
+  onChange,
+}: {
+  kind: StatusSelectionKind
+  selected: readonly string[]
+  verb: 'Copy' | 'Remove'
+  onChange: (statusIds: readonly string[]) => void
+}) {
+  const allowed = selectableCombatStatusIds(kind)
+  const all = allowed.every((id) => selected.includes(id))
+  const allLabel = kind === 'buffs' || kind === 'copy-buffs' ? 'All Buffs' : 'All Debuffs'
+  return (
+    <fieldset className={styles.typedGrid}>
+      <legend>
+        {selected.length ? combatStatusSelectionSummary(selected, kind) : 'Choose statuses'}
+      </legend>
+      <label className={styles.checkField}>
+        <input
+          type="checkbox"
+          aria-label={`${verb} ${allLabel}`}
+          checked={all}
+          onChange={(event) => onChange(event.currentTarget.checked ? [...allowed] : [])}
+        />
+        <span>{allLabel}</span>
+      </label>
+      {allowed.map((id) => (
+        <label key={id} className={styles.checkField}>
+          <input
+            type="checkbox"
+            value={id}
+            aria-label={`${verb} ${combatStatusPresentationTag(id)}`}
+            checked={selected.includes(id)}
+            onChange={(event) =>
+              onChange(
+                event.currentTarget.checked
+                  ? [...new Set([...selected, id])]
+                  : selected.filter((selectedId) => selectedId !== id),
+              )
+            }
+          />
+          <span>{combatStatusPresentationTag(id)}</span>
+        </label>
+      ))}
+    </fieldset>
+  )
+}
 
 function integer(value: string, fallback: number): number {
   const parsed = Number(value)
-  return Number.isSafeInteger(parsed) ? parsed : fallback
+  return value.trim() && Number.isSafeInteger(parsed) ? parsed : fallback
 }
 
-function recipientField(
-  label: string,
-  value: CombatEffectRecipient,
-  onChange: (recipient: CombatEffectRecipient) => void,
-  allowed: readonly CombatEffectRecipient[] = RECIPIENTS.map((entry) => entry.value),
+function damageEditor(
+  value: DamageEffect,
+  onChange: (next: CombatEffectDefinition) => void,
+  nonElemental = false,
 ) {
   return (
-    <label className={styles.field}>
-      <span>{label}</span>
-      <select
-        aria-label={label}
-        value={value}
-        onChange={(event) => onChange(event.currentTarget.value as CombatEffectRecipient)}
-      >
-        {RECIPIENTS.filter((entry) => allowed.includes(entry.value)).map((entry) => (
-          <option key={entry.value} value={entry.value}>
-            {entry.label}
-          </option>
-        ))}
-      </select>
-    </label>
-  )
-}
-
-function curseCopyableField(value: boolean | undefined, onChange: (next: boolean) => void) {
-  return (
-    <label className={styles.checkField}>
-      <input
-        aria-label="Curse-copyable"
-        type="checkbox"
-        checked={value === true}
-        onChange={(event) => onChange(event.currentTarget.checked)}
-      />
-      <span>Curse-copyable</span>
-    </label>
-  )
-}
-
-function damageEditor(value: DamageEffect, onChange: (next: CombatEffectDefinition) => void) {
-  const scaling = value.scaling
-  const vengeance = value.vengeance
-  const facing = value.facingModifiersBasisPoints
-
-  return (
     <div className={styles.typedGrid}>
-      {recipientField('Damage recipient', value.recipient, (recipient) =>
-        onChange({ ...value, recipient }),
-      )}
-
       <label className={styles.field}>
         <span>Damage amount</span>
         <input
           aria-label="Damage amount"
           type="number"
-          min={0}
+          min={1}
+          max={20}
           step={1}
           value={value.amount}
-          disabled={vengeance !== undefined}
           onChange={(event) =>
-            onChange({ ...value, amount: integer(event.currentTarget.value, value.amount) })
+            onChange({
+              ...value,
+              amount: Math.max(1, integer(event.currentTarget.value, value.amount)),
+            })
           }
         />
       </label>
 
-      <label className={styles.field}>
-        <span>Defense kind</span>
-        <select
-          aria-label="Defense kind"
-          value={value.defenseKind ?? ''}
-          onChange={(event) => {
-            const defenseKind = event.currentTarget.value
-            const rest = { ...value }
-            Reflect.deleteProperty(rest, 'defenseKind')
-            onChange(defenseKind ? { ...rest, defenseKind: defenseKind as 'armor' | 'ward' } : rest)
-          }}
-        >
-          <option value="">None</option>
-          <option value="armor">Armor</option>
-          <option value="ward">Ward</option>
-        </select>
-      </label>
-
-      <label className={styles.field}>
-        <span>Element</span>
-        <select
-          aria-label="Element"
-          value={value.element ?? ''}
-          onChange={(event) => {
-            const element = event.currentTarget.value
-            const rest = { ...value }
-            Reflect.deleteProperty(rest, 'element')
-            onChange(element ? { ...rest, element: element as CombatElement } : rest)
-          }}
-        >
-          <option value="">None</option>
-          <option value="water">Water</option>
-          <option value="storm">Storm</option>
-          <option value="fire">Fire</option>
-        </select>
-      </label>
-
-      <label className={styles.checkField}>
-        <input
-          aria-label="Piercing"
-          type="checkbox"
-          checked={value.piercing === true}
-          onChange={(event) => onChange({ ...value, piercing: event.currentTarget.checked })}
-        />
-        <span>Piercing</span>
-      </label>
-
-      <label className={styles.checkField}>
-        <input
-          aria-label="Scaling enabled"
-          type="checkbox"
-          checked={scaling !== undefined}
-          disabled={vengeance !== undefined}
-          onChange={(event) => {
-            if (event.currentTarget.checked) {
-              onChange({
-                ...value,
-                scaling: { source: 'physical-power', coefficientBasisPoints: 10_000 },
-              })
-              return
-            }
-            const rest = { ...value }
-            Reflect.deleteProperty(rest, 'scaling')
-            onChange(rest)
-          }}
-        />
-        <span>Offensive-stat scaling</span>
-      </label>
-
-      {scaling ? (
-        <>
-          <label className={styles.field}>
-            <span>Scaling source</span>
-            <select
-              aria-label="Scaling source"
-              value={scaling.source}
-              onChange={(event) =>
-                onChange({
-                  ...value,
-                  scaling: {
-                    ...scaling,
-                    source: event.currentTarget.value as 'physical-power' | 'mystic-power',
-                  },
-                })
-              }
-            >
-              <option value="physical-power">Physical Power</option>
-              <option value="mystic-power">Mystic Power</option>
-            </select>
-          </label>
-          <label className={styles.field}>
-            <span>Scaling coefficient (basis points)</span>
-            <input
-              aria-label="Scaling coefficient (basis points)"
-              type="number"
-              min={0}
-              max={20_000}
-              step={1}
-              value={scaling.coefficientBasisPoints}
-              onChange={(event) =>
-                onChange({
-                  ...value,
-                  scaling: {
-                    ...scaling,
-                    coefficientBasisPoints: integer(
-                      event.currentTarget.value,
-                      scaling.coefficientBasisPoints,
-                    ),
-                  },
-                })
-              }
-            />
-          </label>
-        </>
-      ) : null}
-
-      <label className={styles.checkField}>
-        <input
-          aria-label="Vengeance enabled"
-          type="checkbox"
-          checked={vengeance !== undefined}
-          onChange={(event) => {
-            if (event.currentTarget.checked) {
+      {!nonElemental ? (
+        <label className={styles.field}>
+          <span>Element</span>
+          <select
+            aria-label="Element"
+            value={value.element ?? ''}
+            onChange={(event) => {
+              const element = event.currentTarget.value
               const rest = { ...value }
-              Reflect.deleteProperty(rest, 'scaling')
-              onChange({
-                ...rest,
-                amount: 0,
-                vengeance: { conversionBasisPoints: 5_000, maximumDamage: 80 },
-              })
-              return
-            }
-            const rest = { ...value }
-            Reflect.deleteProperty(rest, 'vengeance')
-            onChange(rest)
-          }}
-        />
-        <span>Vengeance conversion</span>
-      </label>
+              Reflect.deleteProperty(rest, 'element')
+              onChange(element ? { ...rest, element: element as CombatElement } : rest)
+            }}
+          >
+            <option value="">None</option>
+            <option value="ice">Ice</option>
+            <option value="water">Water</option>
+            <option value="storm">Storm</option>
+            <option value="fire">Fire</option>
+          </select>
+        </label>
+      ) : null}
+    </div>
+  )
+}
 
-      {vengeance ? (
+function PercentageInput({
+  label,
+  basisPoints,
+  allowZero = false,
+  onChange,
+}: {
+  label: string
+  basisPoints: number
+  allowZero?: boolean
+  onChange: (value: number) => void
+}) {
+  const id = useId()
+  const [draft, setDraft] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const display =
+    draft ?? (Number.isSafeInteger(basisPoints) ? percentageBasisPointsText(basisPoints) : '')
+  return (
+    <label className={styles.field}>
+      <span>{label}</span>
+      <input
+        aria-label={label}
+        type="text"
+        inputMode="decimal"
+        value={display}
+        aria-invalid={error !== null}
+        aria-describedby={error ? id : undefined}
+        onChange={(event) => {
+          const text = event.currentTarget.value
+          setDraft(text)
+          try {
+            onChange(parsePercentageBasisPoints(text, allowZero))
+            setError(null)
+          } catch {
+            setError(
+              'Enter ' +
+                (allowZero ? '0' : '0.01') +
+                `–${CURRENT_EFFECT_PERCENT_MAXIMUM} with at most two decimal places.`,
+            )
+            onChange(Number.NaN)
+          }
+        }}
+        onBlur={() => {
+          if (!error) setDraft(null)
+        }}
+      />
+      {error ? (
+        <span id={id} role="alert">
+          {error}
+        </span>
+      ) : null}
+    </label>
+  )
+}
+
+type DotEffect = Extract<CombatEffectDefinition, { type: 'burn' | 'poison' | 'bleed' }>
+function PercentageDotControls({
+  value,
+  onChange,
+}: {
+  value: DotEffect
+  onChange: (value: CombatEffectDefinition) => void
+}) {
+  const profile = value.damageProfile ?? {
+    kind: 'attack-percentage' as const,
+    basisPoints: value.type === 'burn' ? 2500 : value.type === 'poison' ? 1500 : 2000,
+    ...(value.type === 'burn' ? { decayBasisPointsPerTick: 500 } : {}),
+  }
+  const ticks =
+    value.type === 'bleed'
+      ? value.ticks
+      : (value.durationTurns ?? (value.type === 'poison' ? 4 : 3))
+  function changeProfile(next: typeof profile) {
+    const rest = { ...value }
+    delete rest.power
+    if (rest.type === 'bleed') {
+      const { damagePerTick, ...bleed } = rest
+      void damagePerTick
+      onChange({ ...bleed, damageProfile: next })
+      return
+    }
+    onChange({ ...rest, durationTurns: ticks, damageProfile: next })
+  }
+  let sequence: string
+  try {
+    sequence = percentageDotSequence(profile, ticks)
+  } catch {
+    sequence = 'Every scheduled percentage must be positive.'
+  }
+  return (
+    <div className={styles.typedGrid}>
+      <PercentageInput
+        label={
+          value.type === 'burn'
+            ? 'First tick (% of attack damage)'
+            : 'Damage per tick (% of attack damage)'
+        }
+        basisPoints={profile.basisPoints}
+        onChange={(basisPoints) => changeProfile({ ...profile, basisPoints })}
+      />
+      {value.type === 'burn' ? (
         <>
-          <label className={styles.field}>
-            <span>Vengeance conversion (basis points)</span>
-            <input
-              aria-label="Vengeance conversion (basis points)"
-              type="number"
-              min={1}
-              step={1}
-              value={vengeance.conversionBasisPoints}
-              onChange={(event) =>
-                onChange({
-                  ...value,
-                  vengeance: {
-                    ...vengeance,
-                    conversionBasisPoints: integer(
-                      event.currentTarget.value,
-                      vengeance.conversionBasisPoints,
-                    ),
-                  },
-                })
-              }
-            />
-          </label>
-          <label className={styles.field}>
-            <span>Vengeance minimum damage</span>
-            <input
-              aria-label="Vengeance minimum damage"
-              type="number"
-              min={0}
-              step={1}
-              value={vengeance.minimumDamage ?? ''}
-              placeholder="0"
-              onChange={(event) => {
-                if (event.currentTarget.value === '') {
-                  const nextVengeance = { ...vengeance }
-                  Reflect.deleteProperty(nextVengeance, 'minimumDamage')
-                  onChange({ ...value, vengeance: nextVengeance })
-                  return
-                }
-                onChange({
-                  ...value,
-                  vengeance: {
-                    ...vengeance,
-                    minimumDamage: integer(event.currentTarget.value, vengeance.minimumDamage ?? 0),
-                  },
-                })
-              }}
-            />
-          </label>
-          <label className={styles.field}>
-            <span>Vengeance maximum damage</span>
-            <input
-              aria-label="Vengeance maximum damage"
-              type="number"
-              min={1}
-              step={1}
-              value={vengeance.maximumDamage}
-              onChange={(event) =>
-                onChange({
-                  ...value,
-                  vengeance: {
-                    ...vengeance,
-                    maximumDamage: integer(event.currentTarget.value, vengeance.maximumDamage),
-                  },
-                })
-              }
-            />
-          </label>
+          <PercentageInput
+            label="Decay per tick (percentage points)"
+            basisPoints={profile.decayBasisPointsPerTick ?? 0}
+            allowZero
+            onChange={(decayBasisPointsPerTick) =>
+              changeProfile({ ...profile, decayBasisPointsPerTick })
+            }
+          />
+          <PercentageInput
+            label="Backlash (% of burning unit’s hostile damage)"
+            basisPoints={value.backlashBasisPoints ?? 1000}
+            allowZero
+            onChange={(backlashBasisPoints) => onChange({ ...value, backlashBasisPoints })}
+          />
+          <p className={styles.effectNote}>{sequence}. Backlash can trigger once per turn.</p>
         </>
       ) : null}
-
-      <label className={styles.checkField}>
-        <input
-          aria-label="Facing modifiers enabled"
-          type="checkbox"
-          checked={facing !== undefined}
-          onChange={(event) => {
-            if (event.currentTarget.checked) {
-              onChange({
-                ...value,
-                facingModifiersBasisPoints: { front: 10_000, side: 10_000, rear: 10_000 },
-              })
-              return
-            }
-            const rest = { ...value }
-            Reflect.deleteProperty(rest, 'facingModifiersBasisPoints')
-            onChange(rest)
-          }}
+      {value.type === 'poison' ? (
+        <AbilityNumber
+          label="Movement refresh (tiles)"
+          value={value.movementRefreshTiles ?? CURRENT_POISON_REFRESH_TRAVERSED_TILES}
+          min={1}
+          max={99}
+          onChange={(movementRefreshTiles) => onChange({ ...value, movementRefreshTiles })}
         />
-        <span>Facing modifiers</span>
-      </label>
-
-      {facing ? (
-        <>
-          {(['front', 'side', 'rear'] as const).map((direction) => (
-            <label className={styles.field} key={direction}>
-              <span>{direction} damage modifier</span>
-              <input
-                aria-label={`${direction[0]!.toUpperCase()}${direction.slice(1)} damage modifier (basis points)`}
-                type="number"
-                min={0}
-                max={22_000}
-                step={1}
-                value={facing[direction]}
-                onChange={(event) =>
-                  onChange({
-                    ...value,
-                    facingModifiersBasisPoints: {
-                      ...facing,
-                      [direction]: integer(event.currentTarget.value, facing[direction]),
-                    },
-                  })
-                }
-              />
-            </label>
-          ))}
-        </>
       ) : null}
+      {!value.damageProfile ? (
+        <button type="button" onClick={() => changeProfile(profile)}>
+          Convert to attack percentage
+        </button>
+      ) : null}
+      <p className={styles.effectNote}>
+        Based on HP damage dealt by this attack. Damage or Pierce in this group supplies the basis;
+        this effect can target different recipients.
+      </p>
     </div>
   )
 }
@@ -355,33 +316,188 @@ function assertNever(value: never): never {
 
 export interface SkillEffectEditorProps {
   readonly value: CombatEffectDefinition
+  readonly aim?: CombatTargetSpec
+  readonly siblings?: readonly TargetedEffect[]
+  readonly hideTarget?: boolean
   readonly onChange: (next: CombatEffectDefinition) => void
+  readonly canonicalDamage?: 'damage' | 'pierce'
 }
 
-export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
+export function SkillEffectEditor({
+  value: savedValue,
+  onChange: commitChange,
+  aim,
+  siblings,
+  hideTarget = false,
+  canonicalDamage,
+}: SkillEffectEditorProps) {
+  const onChange = (next: CombatEffectDefinition) => {
+    if (combatPercentageEditIsWithinBounds(value, next)) commitChange(next)
+  }
+  const value = currentTagForAuthoring(savedValue)
   let controls
 
   switch (value.type) {
+    case 'loot':
+      controls = (
+        <p className={styles.effectNote}>Loot is a placeholder and grants no items or rewards.</p>
+      )
+      break
+    case 'reversal':
+      controls = (
+        <>
+          <div className={styles.typedGrid}>
+            <label className={styles.field}>
+              <span>Reversal family</span>
+              <select
+                aria-label="Reversal family"
+                value={value.family}
+                onChange={(event) =>
+                  onChange({ ...value, family: event.currentTarget.value as typeof value.family })
+                }
+              >
+                <option value="physical">Physical Reversal</option>
+                <option value="mystic">Mystic Reversal</option>
+              </select>
+            </label>
+            <AbilityNumber
+              label="Reflection potency (%)"
+              value={value.reflectionBasisPoints / 100}
+              max={CURRENT_EFFECT_PERCENT_MAXIMUM}
+              min={0.01}
+              step={0.01}
+              onChange={(percent) =>
+                onChange({ ...value, reflectionBasisPoints: Math.round(percent * 100) })
+              }
+            />
+          </div>
+          <p className={styles.effectNote}>
+            Arms immediately and stays armed until triggered or cancelled. One matching front or
+            side hit; returns the chosen percentage. Ending causes Reversal Strain. Other Controlled
+            effects need a separate group.
+          </p>
+        </>
+      )
+      break
+    case 'endure':
+      controls = (
+        <div className={styles.typedGrid}>
+          <AbilityNumber
+            label="Damage returned (%)"
+            value={value.releaseBasisPoints / 100}
+            min={0.01}
+            max={CURRENT_EFFECT_PERCENT_MAXIMUM}
+            step={0.01}
+            onChange={(percent) =>
+              onChange({ ...value, releaseBasisPoints: Math.round(percent * 100) })
+            }
+          />
+          <AbilityNumber
+            label="Burst range (tiles)"
+            value={value.radiusTiles}
+            min={1}
+            max={20}
+            onChange={(radiusTiles) => onChange({ ...value, radiusTiles })}
+          />
+          <label className={styles.field}>
+            <span>Burst targets</span>
+            <select
+              aria-label="Endure burst targets"
+              value={value.targetTeams}
+              onChange={(event) =>
+                onChange({
+                  ...value,
+                  targetTeams: event.currentTarget.value as typeof value.targetTeams,
+                })
+              }
+            >
+              <option value="enemies">Enemies</option>
+              <option value="allies">Allies</option>
+              <option value="all">All</option>
+            </select>
+          </label>
+        </div>
+      )
+      break
+    case 'weak-point':
+      controls = (
+        <AbilityNumber
+          label="Debuff threshold"
+          value={value.debuffThreshold}
+          min={0}
+          onChange={(debuffThreshold) => onChange({ ...value, debuffThreshold })}
+        />
+      )
+      break
+    case 'spike':
+      controls = (
+        <p className={styles.effectNote}>Critical hits deal twice their usual critical damage.</p>
+      )
+      break
+    case 'ruin':
+      controls = (
+        <AbilityNumber
+          label="Damage increase per debuff (%)"
+          value={value.bonusPerDebuffBasisPoints / 100}
+          min={0.01}
+          max={CURRENT_EFFECT_PERCENT_MAXIMUM}
+          step={0.01}
+          onChange={(percent) =>
+            onChange({ ...value, bonusPerDebuffBasisPoints: Math.round(percent * 100) })
+          }
+        />
+      )
+      break
     case 'damage':
-      controls = damageEditor(value, onChange)
+      controls = damageEditor(
+        value,
+        onChange,
+        canonicalDamage === 'pierce' || value.piercing === true || value.shattersBarrier === true,
+      )
+      break
+
+    case 'percentage-recovery':
+      controls = (
+        <div className={styles.typedGrid}>
+          <label className={styles.field}>
+            <span>Percent of recipient maximum</span>
+            <input
+              aria-label="Recovery percent"
+              type="number"
+              min={1}
+              max={CURRENT_EFFECT_PERCENT_MAXIMUM}
+              step={1}
+              value={value.percent}
+              onChange={(event) =>
+                onChange({ ...value, percent: integer(event.currentTarget.value, value.percent) })
+              }
+            />
+          </label>
+          <p className={styles.effectNote}>
+            Restores the saved percentage of maximum {value.resource.toUpperCase()}. Healing Down
+            reduces recovery.
+          </p>
+        </div>
+      )
       break
 
     case 'healing':
       controls = (
         <div className={styles.typedGrid}>
-          {recipientField('Healing recipient', value.recipient, (recipient) =>
-            onChange({ ...value, recipient }),
-          )}
           <label className={styles.field}>
             <span>Healing amount</span>
             <input
               aria-label="Healing amount"
               type="number"
-              min={0}
+              min={1}
+              max={20}
               step={1}
               value={value.amount}
               onChange={(event) =>
-                onChange({ ...value, amount: integer(event.currentTarget.value, value.amount) })
+                onChange({
+                  ...value,
+                  amount: Math.max(1, integer(event.currentTarget.value, value.amount)),
+                })
               }
             />
           </label>
@@ -391,7 +507,7 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
               aria-label="Healing ticks"
               type="number"
               min={1}
-              max={4}
+              max={CURRENT_RECOVERY_MAXIMUM_APPLICATIONS}
               step={1}
               value={value.ticks ?? ''}
               placeholder="Immediate"
@@ -414,16 +530,38 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
       break
 
     case 'resource-change':
+      if (value.delta < 0) {
+        const percentage = value.basis === 'maximum-mp-percent'
+        controls = (
+          <label className={styles.field}>
+            <span>{percentage ? 'MP Drain potency (%)' : 'MP Drain amount'}</span>
+            <input
+              aria-label={percentage ? 'MP Drain potency (%)' : 'MP Drain amount'}
+              type="number"
+              min={1}
+              max={percentage ? CURRENT_EFFECT_PERCENT_MAXIMUM : 20}
+              step={1}
+              value={Math.abs(value.delta)}
+              onChange={(event) =>
+                onChange({
+                  ...value,
+                  delta: -Math.abs(integer(event.currentTarget.value, Math.abs(value.delta))),
+                })
+              }
+            />
+          </label>
+        )
+        break
+      }
       controls = (
         <div className={styles.typedGrid}>
-          {recipientField('MP recipient', value.recipient, (recipient) =>
-            onChange({ ...value, recipient }),
-          )}
           <label className={styles.field}>
-            <span>MP delta</span>
+            <span>Amount (MP)</span>
             <input
-              aria-label="MP delta"
+              aria-label="Amount (MP)"
               type="number"
+              min={-20}
+              max={20}
               step={1}
               value={value.delta}
               onChange={(event) =>
@@ -432,12 +570,12 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
             />
           </label>
           <label className={styles.field}>
-            <span>MP ticks</span>
+            <span>Applications</span>
             <input
-              aria-label="MP ticks"
+              aria-label="Applications"
               type="number"
               min={1}
-              max={value.delta < 0 ? 1 : 4}
+              max={value.delta < 0 ? 1 : CURRENT_RECOVERY_MAXIMUM_APPLICATIONS}
               step={1}
               value={value.ticks ?? ''}
               placeholder="Immediate"
@@ -464,81 +602,259 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
       break
 
     case 'apply-status':
-      controls = (
-        <div className={styles.typedGrid}>
-          {recipientField('Status recipient', value.recipient, (recipient) =>
-            onChange({ ...value, recipient }),
-          )}
-          <label className={styles.field}>
-            <span>Status ID</span>
-            <input
-              aria-label="Status ID"
-              type="text"
-              value={value.statusId}
-              onChange={(event) => onChange({ ...value, statusId: event.currentTarget.value })}
-            />
-            <small className={styles.fieldHint}>
-              Includes authored statuses such as Covert; Revealed is Sensory-owned.
-            </small>
-          </label>
-          <label className={styles.field}>
-            <span>Status stacks</span>
-            <input
-              aria-label="Status stacks"
-              type="number"
-              min={1}
-              step={1}
-              value={value.stacks}
-              onChange={(event) =>
-                onChange({ ...value, stacks: integer(event.currentTarget.value, value.stacks) })
+      if (value.statusId === 'counter') {
+        const counter = value.counter ?? { kind: 'full' as const, basisPoints: 10000 }
+        controls = (
+          <div className={styles.typedGrid}>
+            <label className={styles.field}>
+              <span>Type</span>
+              <select
+                aria-label="Reflect type"
+                value={counter.kind}
+                onChange={(event) =>
+                  onChange({
+                    ...value,
+                    counter: { ...counter, kind: event.currentTarget.value as typeof counter.kind },
+                  })
+                }
+              >
+                <option value="physical">Physical Reflect</option>
+                <option value="mystic">Magical Reflect</option>
+                <option value="full">Full Reflect</option>
+              </select>
+            </label>
+            <AbilityNumber
+              label="Reflect potency (%)"
+              value={counter.basisPoints / 100}
+              min={0.01}
+              max={CURRENT_EFFECT_PERCENT_MAXIMUM}
+              step={0.01}
+              onChange={(percent) =>
+                onChange({
+                  ...value,
+                  counter: { ...counter, basisPoints: Math.round(percent * 100) },
+                })
               }
             />
-          </label>
+          </div>
+        )
+        break
+      }
+      controls = (
+        <div className={styles.typedGrid}>
+          {![
+            'covert',
+            'invisible',
+            'mark',
+            'marked',
+            'blind',
+            'root',
+            'seal',
+            'range-up',
+            'range-down',
+          ].includes(value.statusId) ? (
+            <label className={styles.field}>
+              <span>Status stacks</span>
+              <input
+                aria-label="Status stacks"
+                type="number"
+                min={1}
+                step={1}
+                max={value.statusId === 'suppress' ? 1 : undefined}
+                disabled={value.statusId === 'suppress'}
+                value={value.statusId === 'suppress' ? 1 : value.stacks}
+                onChange={(event) =>
+                  onChange({ ...value, stacks: integer(event.currentTarget.value, value.stacks) })
+                }
+              />
+            </label>
+          ) : null}
+          {value.statusId === 'inspired' ? (
+            <DamageUpTypeControls
+              value={value.damageTypes}
+              onChange={(damageTypes) => {
+                const { damageTypes: previous, ...base } = value
+                void previous
+                onChange(damageTypes === undefined ? base : { ...base, damageTypes })
+              }}
+            />
+          ) : null}
+          {['range-up', 'range-down'].includes(value.statusId) ? (
+            <AbilityNumber
+              label="Range strength (tiles)"
+              value={value.rangeTiles ?? 1}
+              min={1}
+              max={Number.MAX_SAFE_INTEGER}
+              onChange={(rangeTiles) => onChange({ ...value, rangeTiles })}
+            />
+          ) : null}
+          {value.statusId === 'seal' ? (
+            <fieldset className={styles.typedGrid}>
+              <legend>Discipline categories sealed</legend>
+              <label className={styles.checkField}>
+                <input
+                  type="checkbox"
+                  aria-label="Seal all categories"
+                  checked={SEAL_CATEGORIES.every((category) =>
+                    value.sealedCategories?.includes(category),
+                  )}
+                  onChange={(event) =>
+                    onChange({
+                      ...value,
+                      sealedCategories: event.currentTarget.checked ? [...SEAL_CATEGORIES] : [],
+                    })
+                  }
+                />
+                <span>All categories</span>
+              </label>
+              {SEAL_CATEGORIES.map((category) => {
+                const label = category[0]!.toUpperCase() + category.slice(1)
+                return (
+                  <label key={category} className={styles.checkField}>
+                    <input
+                      type="checkbox"
+                      aria-label={`Seal ${label}`}
+                      checked={value.sealedCategories?.includes(category) ?? false}
+                      onChange={(event) => {
+                        const selected = new Set<SealCategory>(value.sealedCategories ?? [])
+                        if (event.currentTarget.checked) selected.add(category)
+                        else selected.delete(category)
+                        onChange({
+                          ...value,
+                          sealedCategories: SEAL_CATEGORIES.filter((entry) => selected.has(entry)),
+                        })
+                      }}
+                    />
+                    <span>{label}</span>
+                  </label>
+                )
+              })}
+            </fieldset>
+          ) : null}
+          {value.statusId === 'wet' ? (
+            <AbilityNumber
+              label="Initiative reduction (%)"
+              value={(value.initiativeReductionBasisPoints ?? 1000) / 100}
+              min={0}
+              max={CURRENT_EFFECT_PERCENT_MAXIMUM}
+              step={0.01}
+              onChange={(percent) =>
+                onChange({ ...value, initiativeReductionBasisPoints: Math.round(percent * 100) })
+              }
+            />
+          ) : null}
+          {value.statusId === 'fortified' ? (
+            <AbilityNumber
+              label="Defense increase / outgoing damage reduction (%)"
+              value={(value.defenseIncreaseBasisPoints ?? value.potencyBasisPoints ?? 1500) / 100}
+              min={0}
+              max={CURRENT_EFFECT_PERCENT_MAXIMUM}
+              step={0.01}
+              onChange={(percent) =>
+                onChange({ ...value, defenseIncreaseBasisPoints: Math.round(percent * 100) })
+              }
+            />
+          ) : null}
+          {value.statusId === 'lowered-guard' ? (
+            <AbilityNumber
+              label="Damage taken (%)"
+              value={
+                (value.damageTakenMultiplierBasisPoints ??
+                  (value.potencyBasisPoints === undefined
+                    ? 25000
+                    : 10000 + value.potencyBasisPoints)) / 100
+              }
+              min={0}
+              max={CURRENT_EFFECT_PERCENT_MAXIMUM}
+              step={0.01}
+              onChange={(percent) =>
+                onChange({ ...value, damageTakenMultiplierBasisPoints: Math.round(percent * 100) })
+              }
+            />
+          ) : null}
+          {['haste', 'slow'].includes(value.statusId) ? (
+            <AbilityNumber
+              label={value.statusId === 'haste' ? 'Movement AP reduction' : 'Movement AP increase'}
+              value={value.movementApAdjustment ?? 10}
+              min={0}
+              max={100}
+              onChange={(movementApAdjustment) => onChange({ ...value, movementApAdjustment })}
+            />
+          ) : null}
+          {isBlindsideStatusId(value.statusId) ? (
+            <>
+              {(['side', 'rear'] as const).map((direction) => (
+                <label className={styles.field} key={direction}>
+                  <span>{direction === 'side' ? 'Side' : 'Rear'} damage (%)</span>
+                  <input
+                    aria-label={`${direction === 'side' ? 'Side' : 'Rear'} damage (%)`}
+                    type="number"
+                    min={100}
+                    max={CURRENT_EFFECT_PERCENT_MAXIMUM}
+                    step={0.01}
+                    value={
+                      (value.blindsideModifiersBasisPoints ?? DEFAULT_BLINDSIDE_MODIFIERS)[
+                        direction
+                      ] / 100
+                    }
+                    onChange={(event) => {
+                      const percent = Number(event.currentTarget.value)
+                      const points = Math.round(percent * 100)
+                      onChange({
+                        ...value,
+                        blindsideModifiersBasisPoints: {
+                          ...(value.blindsideModifiersBasisPoints ?? DEFAULT_BLINDSIDE_MODIFIERS),
+                          [direction]:
+                            event.currentTarget.value.trim() &&
+                            Number.isFinite(percent) &&
+                            Math.abs(percent * 100 - points) < 0.000001
+                              ? points
+                              : Number.NaN,
+                        },
+                      })
+                    }}
+                  />
+                </label>
+              ))}
+            </>
+          ) : null}
         </div>
       )
       break
 
-    case 'remove-status':
-      controls = (
-        <div className={styles.typedGrid}>
-          {recipientField('Status removal recipient', value.recipient, (recipient) =>
-            onChange({ ...value, recipient }),
-          )}
-          <label className={styles.field}>
-            <span>Status IDs</span>
-            <input
-              aria-label="Status IDs"
-              type="text"
-              value={value.statusIds.join(', ')}
-              onChange={(event) =>
-                onChange({
-                  ...value,
-                  statusIds: event.currentTarget.value
-                    .split(',')
-                    .map((id) => id.trim())
-                    .filter((id, index, all) => id.length > 0 && all.indexOf(id) === index)
-                    .slice(0, 8),
-                })
-              }
-            />
-            <small className={styles.fieldHint}>
-              One to eight distinct status IDs. Use this for Cleanse/Dispel-style blocks.
-            </small>
-          </label>
-        </div>
-      )
+    case 'remove-status': {
+      const tag = effectAuthoringTag(value).id
+      const kind = tag === 'dispel' ? 'buffs' : 'debuffs'
+      controls =
+        tag === 'cleanse' ? null : (
+          <StatusSelectionControls
+            kind={kind}
+            selected={value.statusIds}
+            verb="Remove"
+            onChange={(statusIds) =>
+              onChange({ ...value, statusIds, removalMode: 'specified', selectionKind: kind })
+            }
+          />
+        )
       break
+    }
 
     case 'return-to-turn-start':
       controls = (
         <div className={styles.effectStaticGrid}>
           <div className={styles.effectStatic}>
             <span>Effect</span>
-            <strong>Return to turn start</strong>
+            <strong>
+              {value.anchorMode === 'cast-position'
+                ? 'Return to captured cast tile'
+                : 'Return to turn start'}
+            </strong>
           </div>
           <div className={styles.effectStatic}>
             <span>Recipient</span>
-            <strong>Actor only</strong>
+            <strong>
+              {value.target && value.target !== 'self' ? 'Each selected recipient' : 'Actor only'}
+            </strong>
           </div>
         </div>
       )
@@ -547,9 +863,13 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
     case 'create-terrain':
       controls = (
         <div className={styles.effectStaticGrid}>
+          <p className={styles.fieldHint}>
+            Retired Freeze Ground becomes Chilled Ground when this draft is saved. No extra Skill AP
+            cost is added.
+          </p>
           <div className={styles.effectStatic}>
             <span>Terrain</span>
-            <strong>Frozen terrain</strong>
+            <strong>Frozen Ground</strong>
           </div>
           <div className={styles.effectStatic}>
             <span>Recipient</span>
@@ -562,37 +882,10 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
     case 'displace':
       controls = (
         <div className={styles.typedGrid}>
-          {recipientField(
-            'Displacement recipient',
-            value.recipient,
-            (recipient) =>
-              onChange({
-                ...value,
-                recipient: recipient as DisplaceEffect['recipient'],
-              }),
-            ['primary-unit', 'affected-units'],
-          )}
           <label className={styles.field}>
-            <span>Displacement direction</span>
-            <select
-              aria-label="Displacement direction"
-              value={value.direction ?? ''}
-              onChange={(event) => {
-                const direction = event.currentTarget.value
-                const rest = { ...value }
-                Reflect.deleteProperty(rest, 'direction')
-                onChange(direction ? { ...rest, direction: direction as 'push' | 'pull' } : rest)
-              }}
-            >
-              <option value="">Engine default</option>
-              <option value="push">Push</option>
-              <option value="pull">Pull</option>
-            </select>
-          </label>
-          <label className={styles.field}>
-            <span>Displacement distance</span>
+            <span>Tiles moved</span>
             <input
-              aria-label="Displacement distance"
+              aria-label="Tiles moved"
               type="number"
               min={1}
               step={1}
@@ -610,171 +903,72 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
       break
 
     case 'poison':
-      controls = (
-        <div className={styles.typedGrid}>
-          {recipientField('Poison recipient', value.recipient, (recipient) =>
-            onChange({ ...value, recipient }),
-          )}
-          {curseCopyableField(value.curseCopyable, (curseCopyable) =>
-            onChange({ ...value, curseCopyable }),
-          )}
-          <p className={styles.effectNote}>
-            Uses the current engine-owned Poison movement profile.
-          </p>
-        </div>
-      )
-      break
-
     case 'bleed':
-      controls = (
-        <div className={styles.typedGrid}>
-          {recipientField('Bleed recipient', value.recipient, (recipient) =>
-            onChange({ ...value, recipient }),
-          )}
-          <label className={styles.field}>
-            <span>Bleed damage per tick</span>
-            <input
-              aria-label="Bleed damage per tick"
-              type="number"
-              min={1}
-              step={1}
-              value={value.damagePerTick}
-              onChange={(event) =>
-                onChange({
-                  ...value,
-                  damagePerTick: integer(event.currentTarget.value, value.damagePerTick),
-                })
-              }
-            />
-          </label>
-          <label className={styles.field}>
-            <span>Bleed ticks</span>
-            <input
-              aria-label="Bleed ticks"
-              type="number"
-              min={1}
-              max={4}
-              step={1}
-              value={value.ticks}
-              onChange={(event) =>
-                onChange({ ...value, ticks: integer(event.currentTarget.value, value.ticks) })
-              }
-            />
-            <small className={styles.fieldHint}>
-              Per-stack raw total may not exceed 10 damage.
-            </small>
-          </label>
-          {curseCopyableField(value.curseCopyable, (curseCopyable) =>
-            onChange({ ...value, curseCopyable }),
-          )}
-        </div>
-      )
-      break
-
     case 'burn':
-      controls = (
-        <div className={styles.typedGrid}>
-          {recipientField('Burn recipient', value.recipient, (recipient) =>
-            onChange({ ...value, recipient }),
-          )}
-          {curseCopyableField(value.curseCopyable, (curseCopyable) =>
-            onChange({ ...value, curseCopyable }),
-          )}
-          <p className={styles.effectNote}>Uses the current engine-owned Burn stage profile.</p>
-        </div>
-      )
+      controls = <PercentageDotControls value={value} onChange={onChange} />
       break
 
     case 'barrier-change':
       controls = (
         <div className={styles.typedGrid}>
-          {recipientField('Barrier recipient', value.recipient, (recipient) =>
-            onChange({ ...value, recipient }),
-          )}
           <label className={styles.field}>
-            <span>Barrier amount</span>
+            <span>
+              {value.basis === 'maximum-hp-percent' ? 'Barrier (% maximum HP)' : 'Barrier amount'}
+            </span>
             <input
-              aria-label="Barrier amount"
+              aria-label={
+                value.basis === 'maximum-hp-percent' ? 'Barrier (% maximum HP)' : 'Barrier amount'
+              }
               type="number"
               min={1}
+              max={value.basis === 'maximum-hp-percent' ? CURRENT_EFFECT_PERCENT_MAXIMUM : 20}
               step={1}
               value={value.amount}
               onChange={(event) =>
-                onChange({ ...value, amount: integer(event.currentTarget.value, value.amount) })
-              }
-            />
-          </label>
-        </div>
-      )
-      break
-
-    case 'copy-statuses':
-      controls = (
-        <div className={styles.typedGrid}>
-          <label className={styles.field}>
-            <span>Status copy mode</span>
-            <select
-              aria-label="Status copy mode"
-              value={value.mode}
-              onChange={(event) =>
                 onChange({
                   ...value,
-                  mode: event.currentTarget.value as 'amplify' | 'curse',
+                  amount: Math.max(1, integer(event.currentTarget.value, value.amount)),
                 })
               }
-            >
-              <option value="amplify">Amplify</option>
-              <option value="curse">Curse</option>
-            </select>
-          </label>
-          <label className={styles.checkField}>
-            <input
-              aria-label="Allow empty status copy"
-              type="checkbox"
-              checked={value.allowNoEligibleEffects === true}
-              onChange={(event) =>
-                onChange({ ...value, allowNoEligibleEffects: event.currentTarget.checked })
-              }
             />
-            <span>Allow empty status copy on composed command</span>
           </label>
-          <p className={styles.effectNote}>
-            Amplify/Curse clone eligible active statuses. This is not temporary-Skill Copy.
-          </p>
         </div>
       )
       break
 
-    case 'copy':
+    case 'copy-statuses': {
+      const kind = value.mode === 'amplify' ? 'copy-buffs' : 'copy-debuffs'
       controls = (
-        <div className={styles.effectStaticGrid}>
-          <div className={styles.effectStatic}>
-            <span>Effect</span>
-            <strong>Temporary Skill Copy</strong>
-          </div>
-          <div className={styles.effectStatic}>
-            <span>Source</span>
-            <strong>Selected primary unit</strong>
-          </div>
-          <p className={styles.effectNote}>
-            On a successful resolution, the server randomly grants one eligible committed regular
-            Skill from the selected unit for this battle. The copied Skill keeps its original MP,
-            targeting, effects, and requirements and costs half AP rounded up.
-          </p>
-        </div>
+        <StatusSelectionControls
+          kind={kind}
+          selected={value.statusIds ?? selectableCombatStatusIds(kind)}
+          verb="Copy"
+          onChange={(statusIds) => onChange({ ...value, statusIds })}
+        />
       )
       break
+    }
 
     case 'sensory':
       controls = (
         <div className={styles.typedGrid}>
+          <AbilityNumber
+            label="Increased damage taken (%)"
+            value={(value.increasedDamageTakenBasisPoints ?? 1500) / 100}
+            min={0}
+            max={CURRENT_EFFECT_PERCENT_MAXIMUM}
+            step={0.01}
+            onChange={(percent) =>
+              onChange({ ...value, increasedDamageTakenBasisPoints: Math.round(percent * 100) })
+            }
+          />
           <label className={styles.field}>
             <span>Revealed duration</span>
             <input
               aria-label="Revealed duration (owner-turn starts)"
               type="number"
               min={1}
-              max={4}
+              max={CURRENT_EFFECT_DURATION_MAXIMUM_TURNS}
               step={1}
               value={value.revealedDurationOwnerTurnStarts}
               onChange={(event) =>
@@ -789,8 +983,7 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
             />
           </label>
           <p className={styles.effectNote}>
-            Sensory conditionally purges eligible positive statuses, removes Covert, and applies
-            Revealed only on a successful hit against a Covert target.
+            A hit against an Invisible or Covert target removes both and applies Revealed.
           </p>
         </div>
       )
@@ -800,9 +993,142 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
       controls = assertNever(value)
   }
 
+  const fixedActor = ['weak-point', 'spike', 'ruin', 'endure', 'reversal'].includes(value.type)
+  const fixedImmediate = [
+    'weak-point',
+    'spike',
+    'ruin',
+    'reversal',
+    'damage',
+    'remove-status',
+    'return-to-turn-start',
+    'displace',
+    'copy-statuses',
+    'sensory',
+  ].includes(value.type)
+  const fixedTerrain = value.type === 'create-terrain'
+  const fixedBlindside = value.type === 'apply-status' && isBlindsideStatusId(value.statusId)
+  const editableDuration =
+    !fixedImmediate && !fixedTerrain && !fixedBlindside && value.type !== 'percentage-recovery'
+  const hasPotency =
+    value.type === 'apply-status' &&
+    PERCENTAGE_STATUS_IDS.has(value.statusId) &&
+    value.statusId !== 'fortified'
+  const maximumDuration = CURRENT_EFFECT_DURATION_MAXIMUM_TURNS
+  const minimumDuration = [
+    'apply-status',
+    'bleed',
+    'burn',
+    'poison',
+    'barrier-change',
+    'endure',
+  ].includes(value.type)
+    ? 1
+    : 0
+  const durationTurns =
+    value.durationTurns ??
+    (value.type === 'healing' || value.type === 'percentage-recovery'
+      ? Math.max(0, (value.ticks ?? 1) - 1)
+      : value.type === 'resource-change' && value.delta > 0
+        ? Math.max(0, (value.ticks ?? 1) - 1)
+        : value.type === 'bleed'
+          ? value.ticks
+          : value.type === 'burn'
+            ? 3
+            : value.type === 'poison'
+              ? 4
+              : value.type === 'create-terrain'
+                ? 2
+                : value.type === 'apply-status'
+                  ? 2
+                  : 0)
+
+  function changeDuration(nextDuration: number) {
+    const duration = Math.max(minimumDuration, Math.min(maximumDuration, nextDuration))
+    if (value.type === 'healing') {
+      onChange({ ...value, durationTurns: duration, ticks: duration + 1 })
+      return
+    }
+    if (value.type === 'resource-change' && value.delta > 0) {
+      onChange({ ...value, durationTurns: duration, ticks: duration + 1 })
+      return
+    }
+    if (value.type === 'bleed') {
+      onChange({ ...value, durationTurns: duration, ticks: Math.max(1, duration) })
+      return
+    }
+    onChange({ ...value, durationTurns: duration })
+  }
+
   return (
     <div className={styles.effectEditor} data-effect-type={value.type}>
+      {!hideTarget && !fixedActor ? (
+        <EffectTargetEditor
+          value={value}
+          aim={aim}
+          siblings={siblings}
+          onChange={(target) => onChange(withAuthoredEffectTarget(value, target))}
+        />
+      ) : null}
       {controls}
+      {fixedTerrain ? <p className={styles.effectNote}>Lasts 2 rounds.</p> : null}
+      {fixedBlindside ? (
+        <p className={styles.effectNote}>Expires at the end of the affected character’s turn.</p>
+      ) : null}
+      {editableDuration || hasPotency ? (
+        <div className={styles.effectTuningGrid}>
+          {editableDuration ? (
+            <AbilityNumber
+              label="Effect duration (turns)"
+              value={
+                value.type === 'barrier-change' && value.durationTurns === undefined
+                  ? undefined
+                  : durationTurns
+              }
+              min={minimumDuration}
+              max={maximumDuration}
+              placeholder={
+                value.type === 'barrier-change' ? 'Until depleted (historical)' : undefined
+              }
+              onChange={changeDuration}
+            />
+          ) : null}
+          {hasPotency && value.type === 'apply-status' ? (
+            <AbilityNumber
+              label={
+                value.statusId === 'blind'
+                  ? 'Accuracy reduction (%)'
+                  : value.statusId === 'wet'
+                    ? 'Storm damage increase (%)'
+                    : 'Status potency (percent)'
+              }
+              displayLabel={
+                value.statusId === 'blind'
+                  ? 'Accuracy reduction (%)'
+                  : value.statusId === 'wet'
+                    ? 'Storm damage increase (%)'
+                    : 'Status potency (%)'
+              }
+              value={
+                (value.potencyBasisPoints ??
+                  (value.statusId === 'reckless'
+                    ? DEFAULT_RECKLESS_POTENCY_BASIS_POINTS
+                    : value.statusId === 'suppress'
+                      ? 2500
+                      : ['wet', 'conductive'].includes(value.statusId)
+                        ? 2000
+                        : 1500)) / 100
+              }
+              min={1}
+              max={maximumCombatStatusPotencyBasisPoints(value.statusId) / 100}
+              step={0.01}
+              onChange={(percent) =>
+                onChange({ ...value, potencyBasisPoints: Math.round(percent * 100) })
+              }
+            />
+          ) : null}
+        </div>
+      ) : null}
     </div>
   )
 }

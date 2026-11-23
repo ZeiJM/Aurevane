@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+trap 'printf "P3.5 Resonance assertion failed at script line %s.\n" "$LINENO" >&2' ERR
 
 source .github/scripts/auth-test-helpers.sh
 load_test_auth
@@ -116,28 +117,48 @@ mixed_snapshot="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgre
   from (
     select public.get_character_committed_build_snapshot_v1('$user_id'::uuid, '$character_id'::uuid) as snapshot
   ) resolved;")"
-test "$mixed_snapshot" = '2|resonance.lifebinder-vanguard.mercys-edge|1|lifebinder|vanguard'
+test "$mixed_snapshot" = '2|resonance.lifebinder-vanguard.mercys-edge|5|lifebinder|vanguard'
 
-# Content disablement fails closed: the pair cannot fabricate or retain a disabled Resonance.
+# Current readers use the selected immutable content catalogue (the builtin is
+# version 5), not the retired resonance_definitions enable flag. Force a
+# tombstone inside a rolled-back subtransaction to prove fail-closed admission.
+# The ordinary editor cannot archive a selected dependency in the first place.
 docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
-  update app_private.resonance_definitions
-  set enabled = false
-  where resonance_id = 'resonance.lifebinder-vanguard.mercys-edge'
-    and content_version = 1;" >/dev/null
-
-disabled_snapshot="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
-  set role service_role;
-  select coalesce(snapshot -> 'extensions' ->> 'resonance', '')
-  from (
-    select public.get_character_committed_build_snapshot_v1('$user_id'::uuid, '$character_id'::uuid) as snapshot
-  ) resolved;")"
-test "$disabled_snapshot" = ''
-
-docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
-  update app_private.resonance_definitions
-  set enabled = true
-  where resonance_id = 'resonance.lifebinder-vanguard.mercys-edge'
-    and content_version = 1;
+  do \$proof\$
+  begin
+    -- Model a retained disabled current row independently of the publication
+    -- guard. The exception subtransaction rolls back the row, pointer and DDL.
+    begin
+      alter table app_private.combat_content_publications disable trigger validate_discipline_selections;
+      with retained as (
+        insert into app_private.combat_content_versions(content_key,content_kind,content_version,definition,published_by)
+        values('resonance.lifebinder-vanguard.mercys-edge','resonance',100,
+          jsonb_build_object('id','resonance.lifebinder-vanguard.mercys-edge','contentVersion',100,
+            'enabled',false,'disciplinePair',jsonb_build_array('lifebinder','vanguard')),'$user_id'::uuid)
+        returning id,content_key,content_kind
+      )
+      insert into app_private.combat_content_publications(content_key,content_kind,version_id,updated_by)
+      select content_key,content_kind,id,'$user_id'::uuid from retained;
+      perform public.get_character_committed_build_snapshot_v1('$user_id'::uuid, '$character_id'::uuid);
+      raise exception 'P35_DISABLED_SELECTION_WAS_ACCEPTED';
+    exception when sqlstate '22023' then
+      if sqlerrm <> 'COMBAT_CONTENT_SELECTION_DISABLED' then raise; end if;
+    end;
+    if exists(select 1 from app_private.combat_content_versions
+      where content_key = 'resonance.lifebinder-vanguard.mercys-edge' and content_version = 100)
+    then raise exception 'P35_DISABLED_SELECTION_DID_NOT_ROLL_BACK'; end if;
+    begin
+      update app_private.combat_content_records set lifecycle = 'archived'
+      where content_key = 'resonance.lifebinder-vanguard.mercys-edge';
+      perform public.get_character_committed_build_snapshot_v1('$user_id'::uuid, '$character_id'::uuid);
+      raise exception 'P35_TOMBSTONE_WAS_ACCEPTED';
+    exception when sqlstate '22023' then
+      if sqlerrm <> 'COMBAT_CONTENT_ARCHIVED' then raise; end if;
+    end;
+    if exists(select 1 from app_private.combat_content_records
+      where content_key = 'resonance.lifebinder-vanguard.mercys-edge' and lifecycle <> 'active')
+    then raise exception 'P35_TOMBSTONE_DID_NOT_ROLL_BACK'; end if;
+  end \$proof\$;
   update app_private.character_active_builds
   set secondary_attunement_locked_until = clock_timestamp() - interval '1 second'
   where character_id = '$character_id'::uuid;" >/dev/null

@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-import { expectMapKey } from './battle-map-key-helpers'
+import { expectTerrainKey } from './battle-map-key-helpers'
 import {
   expectBattleFlowKeepsBoardSize,
   expectBattleReferenceLayout,
@@ -42,7 +42,7 @@ test('keeps the desktop AI 9x7 grid, header map key, and battle log dock structu
   await expect(board).toHaveCount(1)
   await expect(board.locator("button[aria-label^='Tile ']")).toHaveCount(63)
 
-  await expectMapKey(page)
+  await expectTerrainKey(page)
 
   const geometry = await board.evaluate((element) => {
     const tile11 = element.querySelector<HTMLButtonElement>('button[aria-label^="Tile 1, 1;"]')!
@@ -87,18 +87,9 @@ test('keeps the desktop AI 9x7 grid, header map key, and battle log dock structu
   expect(geometry.lastTileRight).toBeLessThanOrEqual(geometry.viewportRight + 1)
   expect(geometry.lastTileBottom).toBeLessThanOrEqual(geometry.viewportBottom + 1)
 
-  const flowToggle = page.locator('[data-battle-flow] > button')
-  if ((await flowToggle.getAttribute('aria-expanded')) !== 'true') await flowToggle.click()
-  const dock = page.locator('[data-battle-flow-log-target] [data-docked-battle-log]')
-  await expect(dock).toBeVisible()
+  await expect(page.locator('[data-battle-flow-log-target] [data-battle-inline-log]')).toBeVisible()
   await page.reload()
-  await expect(dock).toBeVisible()
-  await flowToggle.click()
-  await expect(dock).toHaveCount(0)
-  await page.reload()
-  await expect(dock).toHaveCount(0)
-  await flowToggle.click()
-  await expect(dock).toBeVisible()
+  await expect(page.locator('[data-battle-flow-log-target] [data-battle-inline-log]')).toBeVisible()
 
   await expectBattleReferenceLayout(page, testInfo, 'combat-ai-command-dock')
   await expectBattleFlowKeepsBoardSize(page)

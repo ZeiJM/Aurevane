@@ -1,9 +1,16 @@
-import { AurevaneError } from '@aurevane/game-core/errors'
+import { AccountBannedError, AurevaneError } from '@aurevane/game-core/errors'
 import { describe, expect, it, vi } from 'vitest'
 
 import { toServerErrorResponse } from './error-response'
 
 describe('server error responses', () => {
+  it('marks an account ban for the self-only notice without exposing moderation history', async () => {
+    const response = toServerErrorResponse(new AccountBannedError())
+    expect(response.status).toBe(403)
+    expect(await response.json()).toMatchObject({
+      error: { code: 'FORBIDDEN', accountBanned: true },
+    })
+  })
   it('maps known errors to stable player-safe responses', async () => {
     const logger = { error: vi.fn() }
     const response = toServerErrorResponse(

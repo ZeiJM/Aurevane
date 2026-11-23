@@ -1,0 +1,42 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.10 /workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/apps/web
+
+ ❯ src/server/character/character-build-eligibility-transport.test.ts (22 tests | 1 failed | 21 skipped) 13ms
+   × retains the authoritative catalogue generation and earned policy through committed transport 11ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/server/character/character-build-eligibility-transport.test.ts > retains the authoritative catalogue generation and earned policy through committed transport
+AssertionError: expected { …(7) } to match object { …(2) }
+(14 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "catalogueToken": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "skillEligibilityPolicyVersion": 1,
+  }
+
+ ❯ src/server/character/character-build-eligibility-transport.test.ts:194:105
+    192| it('retains the authoritative catalogue generation and earned policy t…
+    193|   rpc.mockResolvedValue({data:{...snapshot,skillEligibilityPolicyVersi…
+    194|   expect(await createSupabaseCharacterBuildRepository().loadCommittedB…
+       |                                                                                                         ^
+    195| })
+    196|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 21 skipped (22)
+   Start at  13:12:07
+   Duration  1.34s (transform 943ms, setup 0ms, import 1.18s, tests 13ms, environment 0ms)
+
+undefined
+/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/apps/web:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/server/character/character-build-eligibility-transport.test.ts -t 'catalogue generation'

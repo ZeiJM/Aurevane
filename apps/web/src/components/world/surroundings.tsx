@@ -17,6 +17,7 @@ export function Surroundings({
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null
     dialog.current?.showModal()
+    dialog.current?.querySelector<HTMLButtonElement>('button')?.focus()
     return () => {
       previous?.focus()
     }
@@ -38,12 +39,10 @@ export function Surroundings({
       />
       <header>
         <div>
-          <small>VIEW 360°</small>
+          <small>Town View</small>
           <h2 id="surroundings-title">{name}</h2>
         </div>
-        <button autoFocus onClick={onClose}>
-          Return to Map ×
-        </button>
+        <button onClick={onClose}>Return to Map ×</button>
       </header>
       <footer>
         <span>Drag to look around · Arrow keys to turn · Esc to return</span>

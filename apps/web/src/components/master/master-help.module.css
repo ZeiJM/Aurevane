@@ -1,0 +1,21 @@
+.help {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  margin-inline-start: 0.35rem;
+}
+.help.help > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  min-width: 1.6rem;
+  min-height: 1.6rem;
+  width: 1.6rem;
+  height: 1.6rem;
+  padding: 0;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font: 600 1rem/1 sans-serif;
+  cursor: pointer;
+}

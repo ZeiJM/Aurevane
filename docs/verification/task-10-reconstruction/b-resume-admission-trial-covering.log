@@ -1,0 +1,32 @@
+
+ RUN  v4.1.10 /workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/packages/db
+
+ ❯ src/master-players-recovery.test.ts (43 tests | 1 failed) 5269ms
+   × completion-first keeps a real successful trial claim and its repeat receipt 20ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/master-players-recovery.test.ts > completion-first keeps a real successful trial claim and its repeat receipt
+error: TRIAL_SKILL_VARIETY_REQUIRED
+ ❯ pe.Ue ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pg-protocol/src/parser.ts:442:10
+ ❯ pe.tt ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pg-protocol/src/parser.ts:220:15
+ ❯ pe.parse ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pg-protocol/src/parser.ts:104:20
+ ❯ N.qe ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pglite/src/pglite.ts:753:25
+ ❯ ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pglite/src/pglite.ts:706:13
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:5922000
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:2616044
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:2648530
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:2649134
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:5569870
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  1 failed | 89 passed (90)
+   Start at  13:12:33
+   Duration  6.58s (transform 1.11s, setup 0ms, import 1.39s, tests 10.49s, environment 0ms)
+
+undefined
+/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/packages/db:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/combat-content-discipline-producers.test.ts src/master-players-recovery.test.ts

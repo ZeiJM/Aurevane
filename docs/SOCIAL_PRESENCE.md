@@ -172,6 +172,7 @@ A roster row may eventually show safe public information such as:
 - approved/current portrait;
 - public character name;
 - level or appropriate progression display;
+- current Character EXP (Owner-approved 2026-10-05): a column beside Level, included in compact mobile row text; Level and EXP sorting work in both online-only and full-directory views, with Last Seen most recent as the initial sort. Missing EXP is shown as unavailable and placed last for either EXP direction. Private progression receipts and account data remain excluded;
 - title/badge where public;
 - guild crest/name where public;
 - broad region/location when privacy rules allow;

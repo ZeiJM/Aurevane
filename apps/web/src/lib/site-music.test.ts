@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   attemptSiteMusicPlayback,
   createDefaultSiteMusicConfig,
+  parseSiteMusicConfig,
   parseSiteMusicDraft,
   parseSiteMusicUploadMetadata,
   resolveSiteMusicTrack,
@@ -10,6 +11,53 @@ import {
 } from './site-music'
 
 describe('site music configuration', () => {
+  it.each([
+    'https://www.youtube.com/watch?v=x06zFQ85gT0',
+    'https://youtu.be/x06zFQ85gT0',
+    'https://music.youtube.com/watch?v=x06zFQ85gT0',
+    'https://www.youtube-nocookie.com/embed/x06zFQ85gT0',
+    'https://WWW.YOUTUBE.COM./shorts/x06zFQ85gT0',
+  ])('rejects a YouTube page before saving it as native background audio: %s', (url) => {
+    const config = createDefaultSiteMusicConfig()
+    config.defaultTrack = { ...config.defaultTrack, url, source: 'url' }
+    expect(() => parseSiteMusicDraft(config)).toThrow(/YouTube.*background music/)
+  })
+
+  it('rejects an unsupported source in an unassigned library song or retained silent page', () => {
+    const config = createDefaultSiteMusicConfig()
+    const track = { ...config.defaultTrack, url: 'https://youtu.be/x06zFQ85gT0' }
+    expect(() =>
+      parseSiteMusicDraft({ ...config, songLibrary: [config.defaultTrack, track] }),
+    ).toThrow(/YouTube/)
+    expect(() =>
+      parseSiteMusicDraft({
+        ...config,
+        routeOverrides: [
+          { id: 'world', label: 'World', pathPrefix: '/game/world', enabled: false, track },
+        ],
+      }),
+    ).toThrow(/YouTube/)
+  })
+
+  it('retains legacy unsupported sources on read so the Owner can replace them', () => {
+    const config = createDefaultSiteMusicConfig()
+    config.defaultTrack = { ...config.defaultTrack, url: 'https://youtu.be/x06zFQ85gT0' }
+    expect(parseSiteMusicConfig(config).defaultTrack).toEqual(config.defaultTrack)
+  })
+
+  it.each([
+    '/media/audio/music/road-to-aurevane.webm',
+    'https://cdn.example.test/song.mp3?signature=valid',
+    'https://cdn.example.test/audio/123?token=valid',
+    'https://youtube.com.example.test/song.mp3',
+  ])('preserves direct and signed audio sources: %s', (url) => {
+    const config = createDefaultSiteMusicConfig()
+    expect(
+      parseSiteMusicDraft({ ...config, defaultTrack: { ...config.defaultTrack, url } }).defaultTrack
+        .url,
+    ).toBe(url)
+  })
+
   it('attempts soundtrack playback on initial load before user interaction', async () => {
     const play = vi.fn().mockResolvedValue(undefined)
 
@@ -23,6 +71,52 @@ describe('site music configuration', () => {
     expect(resolveSiteMusicTrack(config, '/')?.label).toBe('Road to Aurevane')
     expect(resolveSiteMusicTrack(config, '/game/create/1')?.label).toBe('Road to Aurevane')
     expect(resolveSiteMusicTrack(config, '/game/select')?.label).toBe('Road to Aurevane')
+  })
+
+  it.each(['bundled', 'upload', 'url'] as const)(
+    'keeps a legacy non-looping %s background track playing continuously',
+    (source) => {
+      const config = createDefaultSiteMusicConfig()
+      config.defaultTrack = {
+        label: 'Selected soundtrack',
+        url: '/selected-soundtrack.wav',
+        source,
+        loop: false,
+      }
+
+      expect(resolveSiteMusicTrack(config, '/game/settings/audio')).toEqual({
+        label: 'Selected soundtrack',
+        url: '/selected-soundtrack.wav',
+        source,
+        loop: true,
+      })
+      expect(config.defaultTrack.loop).toBe(false)
+    },
+  )
+
+  it('loops the selected page soundtrack without changing the configured source or silence rules', () => {
+    const config = createDefaultSiteMusicConfig()
+    config.routeOverrides = [
+      {
+        id: 'battle',
+        label: 'Battle',
+        pathPrefix: '/game/battle',
+        enabled: true,
+        track: { label: 'Battle', url: '/battle.wav', source: 'upload', loop: false },
+      },
+    ]
+
+    expect(resolveSiteMusicTrack(config, '/game/battle/123')).toEqual({
+      label: 'Battle',
+      url: '/battle.wav',
+      source: 'upload',
+      loop: true,
+    })
+    expect(config.routeOverrides[0]?.track.loop).toBe(false)
+    config.routeOverrides[0]!.enabled = false
+    expect(resolveSiteMusicTrack(config, '/game/battle/123')).toBeNull()
+    config.enabled = false
+    expect(resolveSiteMusicTrack(config, '/game/settings/audio')).toBeNull()
   })
 
   it('uses the most specific matching page override', () => {
@@ -227,4 +321,107 @@ describe('site music configuration', () => {
       }),
     ).toThrow(/MP3, M4A\/AAC, OGG, WebM, or WAV/)
   })
+})
+
+describe('explicit page music choices', () => {
+  it('allows a custom page track while Global Music is silent', () => {
+    const config = createDefaultSiteMusicConfig()
+    config.enabled = false
+    config.routeOverrides = [
+      {
+        id: 'world',
+        label: 'World',
+        pathPrefix: '/game/world',
+        enabled: true,
+        track: { ...config.defaultTrack, url: '/world.mp3' },
+      },
+    ]
+    expect(resolveSiteMusicTrack(config, '/game/world')?.url).toBe('/world.mp3')
+    expect(resolveSiteMusicTrack(config, '/game/worldwide')).toBeNull()
+  })
+  it.each([true, false])(
+    'explicit Use Global bypasses a broader custom or silent rule with global enabled=%s',
+    (enabled) => {
+      for (const broaderEnabled of [true, false]) {
+        const config = createDefaultSiteMusicConfig()
+        config.enabled = enabled
+        const draft = parseSiteMusicDraft({
+          ...config,
+          routeOverrides: [
+            {
+              id: 'game',
+              label: 'Game',
+              pathPrefix: '/game',
+              enabled: broaderEnabled,
+              track: { ...config.defaultTrack, url: '/game.mp3' },
+            },
+            {
+              id: 'world',
+              label: 'World',
+              pathPrefix: '/game/world',
+              enabled: true,
+              mode: 'global',
+              track: { ...config.defaultTrack, url: '/retained-custom.mp3' },
+            },
+          ],
+        })
+        expect(draft.routeOverrides[1]).toHaveProperty('mode', 'global')
+        expect(resolveSiteMusicTrack({ ...config, ...draft }, '/game/world')?.url ?? null).toBe(
+          enabled ? config.defaultTrack.url : null,
+        )
+        expect(resolveSiteMusicTrack({ ...config, ...draft }, '/game/character')?.url ?? null).toBe(
+          broaderEnabled ? '/game.mp3' : null,
+        )
+      }
+    },
+  )
+  it('round trips explicit silence and rejects unknown modes', () => {
+    const config = createDefaultSiteMusicConfig()
+    const entry = {
+      id: 'world',
+      label: 'World',
+      pathPrefix: '/game/world',
+      enabled: true,
+      mode: 'silent',
+      track: config.defaultTrack,
+    }
+    const draft = parseSiteMusicDraft({ ...config, routeOverrides: [entry] })
+    expect(resolveSiteMusicTrack({ ...config, ...draft }, '/game/world')).toBeNull()
+    expect(() =>
+      parseSiteMusicDraft({ ...config, routeOverrides: [{ ...entry, mode: 'surprise' }] }),
+    ).toThrow(/mode/)
+  })
+})
+
+it('reports an actual playback rejection and does not report hidden-tab suppression as an error', async () => {
+  const failure = new DOMException('gesture required', 'NotAllowedError')
+  const rejected = vi.fn()
+  await expect(
+    attemptSiteMusicPlayback(() => Promise.reject(failure), false, rejected),
+  ).resolves.toBe(false)
+  expect(rejected).toHaveBeenCalledWith(failure)
+  rejected.mockClear()
+  const play = vi.fn()
+  await expect(attemptSiteMusicPlayback(play, true, rejected)).resolves.toBe(false)
+  expect(play).not.toHaveBeenCalled()
+  expect(rejected).not.toHaveBeenCalled()
+})
+
+it('retains unassigned songs across parsing and preserves legacy assigned songs in the library', () => {
+  const config = createDefaultSiteMusicConfig()
+  const spare = { ...config.defaultTrack, label: 'For later', url: '/later.mp3' }
+  const saved = parseSiteMusicDraft({ ...config, songLibrary: [config.defaultTrack, spare] })
+  expect(saved.songLibrary).toEqual([config.defaultTrack, spare])
+  expect(parseSiteMusicDraft(config).songLibrary).toEqual([config.defaultTrack])
+  expect(resolveSiteMusicTrack({ ...saved, revision: 2, updatedAt: null }, '/')).toEqual(
+    config.defaultTrack,
+  )
+})
+
+it('rejects deleting an assigned song and permits removing an unassigned song', () => {
+  const config = createDefaultSiteMusicConfig()
+  expect(() => parseSiteMusicDraft({ ...config, songLibrary: [] })).toThrow(/assigned/i)
+  expect(
+    parseSiteMusicDraft({ ...config, songLibrary: [config.defaultTrack] }).songLibrary,
+  ).toEqual([config.defaultTrack])
 })

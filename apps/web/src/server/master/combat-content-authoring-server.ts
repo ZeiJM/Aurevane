@@ -1,4 +1,5 @@
 import 'server-only'
+import { createCombatContentRecordCommand } from './combat-content-record-command'
 
 import { createServerCombatContentResolver } from '@/server/combat/combat-content-resolver'
 
@@ -11,8 +12,13 @@ import { createSupabaseCombatContentAuthoringStore } from './supabase-combat-con
 export function createServerCombatContentAuthoringService(
   actorUserId: string,
 ): CombatContentAuthoringService {
-  return createCombatContentAuthoringService({
-    store: createSupabaseCombatContentAuthoringStore(actorUserId),
+  const store = createSupabaseCombatContentAuthoringStore(actorUserId)
+  const service = createCombatContentAuthoringService({
+    store,
     resolver: createServerCombatContentResolver(),
   })
+  return {
+    ...service,
+    recordCommand: createCombatContentRecordCommand(store, service, actorUserId),
+  }
 }

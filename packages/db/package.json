@@ -10,12 +10,13 @@
     "./migration-policy": "./src/migration-policy.ts",
     "./player-profile": "./src/player-profile.ts",
     "./progression": "./src/progression.ts",
+    "./supernatural-state": "./src/supernatural-state.ts",
     "./transactional-command": "./src/transactional-command.ts",
     "./wayfarers-practice": "./src/wayfarers-practice.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run --maxWorkers=2"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.8",

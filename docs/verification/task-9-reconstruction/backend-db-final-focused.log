@@ -1,0 +1,35 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["corepack", "pnpm", "--filter", "@aurevane/db", "exec", "vitest", "run", "src/master-players-recovery.test.ts"], "start": "2026-10-20T18:36:04.169799+00:00"}
+
+ RUN  v4.1.10 /workspace/scratch/081f137b6a6d/aurevane-players-20261020/packages/db
+
+ ❯ src/master-players-recovery.test.ts (25 tests | 1 failed) 2629ms
+   × shared PvP recovery names the exact real participants and clears actual clocks, staging and spectator locks 34ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/master-players-recovery.test.ts > shared PvP recovery names the exact real participants and clears actual clocks, staging and spectator locks
+AssertionError: expected { active: false, …(1) } to deeply equal { active: false }
+
+- Expected
++ Received
+
+  {
+    "active": false,
++   "turn_timer_seconds": null,
+  }
+
+ ❯ src/master-players-recovery.test.ts:428:150
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 24 passed (25)
+   Start at  14:36:04
+   Duration  2.83s (transform 43ms, setup 0ms, import 70ms, tests 2.63s, environment 0ms)
+
+undefined
+/workspace/scratch/081f137b6a6d/aurevane-players-20261020/packages/db:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/master-players-recovery.test.ts
+{"end": "2026-10-20T18:36:07.774957+00:00", "exit": 1}

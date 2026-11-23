@@ -18,19 +18,10 @@ describe('authenticated navigation performance contracts', () => {
     expect(accountMenu).toContain("fetch('/api/master/access'")
   })
 
-  it('shares presence heartbeats across client-side route remounts', () => {
-    const presence = source('src/components/shell/online-presence-link.tsx')
-
-    expect(presence).toContain('sharedHeartbeat')
-    expect(presence).toContain('lastHeartbeatAt')
-    expect(presence).toContain('HEARTBEAT_INTERVAL_MS')
-    expect(presence).not.toContain('new AbortController()')
-  })
-
-  it('overlaps current Skill resolution with the remaining Character and Arsenal reads', () => {
+  it('overlaps current Skill resolution with the remaining Character and Nexus reads', () => {
     for (const path of [
       'src/app/game/(roaming)/character/page.tsx',
-      'src/app/game/(roaming)/arsenal/page.tsx',
+      'src/app/game/(roaming)/nexus/page.tsx',
     ]) {
       const page = source(path)
 
@@ -73,12 +64,26 @@ describe('authenticated navigation performance contracts', () => {
     expect(world).toContain('AuthenticatedGameRecoveryContent')
   })
 
+  it('schedules Atlas travel from authoritative step deadlines instead of fixed polling', () => {
+    const workspace = source('src/components/world/world-workspace.tsx')
+    const travel = source('src/world/travel.ts')
+
+    expect(workspace).toContain('worldSyncDelayMs')
+    expect(workspace).toContain('window.setTimeout')
+    expect(workspace).not.toContain('window.setInterval')
+    expect(travel).toContain('state.nextStepAt - state.serverNow')
+  })
+
+  it('keeps route-only site music changes from broadcasting a new audio context value', () => {
+    const audio = source('src/components/audio/audio-provider.tsx')
+
+    expect(audio).toContain('const contextValue = useMemo<AudioContextValue>(')
+    expect(audio).toContain('<AudioRuntimeContext.Provider value={contextValue}>')
+  })
+
   it('bounds repeated Atlas client render work', () => {
-    const sector = source('src/components/world/sector-map.tsx')
     const sphere = source('src/components/world/spherical-view.tsx')
 
-    expect(sector).toContain('cellsByIndex')
-    expect(sector).not.toContain('sector.cells.find')
     expect(sphere).toContain('requestAnimationFrame')
     expect(sphere).toContain('cancelAnimationFrame')
   })

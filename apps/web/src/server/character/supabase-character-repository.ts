@@ -1,4 +1,10 @@
+import {
+  CHARACTER_ATTRIBUTE_IDS,
+  type CharacterAttributes,
+} from '@aurevane/game-core/character/creation'
+import { getFoundationDiscipline } from '@aurevane/game-core/character/foundation-disciplines'
 import 'server-only'
+import { throwCombatContentAdmissionError } from '../combat/combat-content-admission-error'
 
 import type { CharacterRecord, CharacterRepository } from '@aurevane/db/character'
 import { AurevaneError } from '@aurevane/game-core/errors'
@@ -9,52 +15,30 @@ import {
 } from '@aurevane/validation/player/character'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
-
-const characterColumns =
-  'id, user_id, slot_index, rules_version, name, name_key, presentation_id, pronoun_preset_id, portrait_ref, starter_appearance_ref, foundation_discipline_id, might, finesse, vitality, agility, intellect, resolve, level, xp, progression_cycle, created_at, cycle_started_at, last_active_at'
 
 export function createSupabaseCharacterRepository(): CharacterRepository {
   return {
     async findByOwnerSlot(userId, slotIndex) {
-      const supabase = await createSupabaseServerClient()
-      const { data, error } = await supabase
-        .from('characters')
-        .select(characterColumns)
-        .eq('user_id', userId)
-        .eq('slot_index', slotIndex)
-        .maybeSingle()
-
-      if (error) throw unavailable()
-      if (!data) return null
-      const row = parseCharacterPersistenceRow(data)
-      if (!row) throw unavailable()
-      return toRecord(row)
-    },
-
-    async findByOwnerId(userId, characterId) {
-      const supabase = createSupabaseAdminClient()
-      const { data, error } = await supabase.rpc('get_character_slots_v2', { p_user_id: userId })
-      if (error || !Array.isArray(data)) throw unavailable()
-
-      const candidate = data.find(
-        (row) => row && typeof row === 'object' && !Array.isArray(row) && row.id === characterId,
+      return (
+        (await readCurrentOwnedRecords(userId)).find((row) => row.slotIndex === slotIndex) ?? null
       )
-      if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) return null
-      const extended = candidate as Record<string, unknown>
-      if (typeof extended.deletion_execute_after === 'string') return null
-      const base = { ...extended }
-      delete base.deletion_requested_at
-      delete base.deletion_execute_after
-      delete base.reselect_available_at
-      const row = parseCharacterPersistenceRow(base)
-      if (!row) throw unavailable()
-      return toRecord(row)
+    },
+    async findByOwnerId(userId, characterId) {
+      return (await readCurrentOwnedRecords(userId)).find((row) => row.id === characterId) ?? null
     },
 
     async createBaseCharacter(input) {
+      // Retained direct adapter callers supply the old static seed; recover only
+      // their original five choices, then let the actual SQL producer add current Core.
+      const legacy = getFoundationDiscipline(input.foundationDisciplineId)
+      if (!input.personalBonuses && !legacy) throw unavailable()
+      const bonuses =
+        input.personalBonuses ??
+        (Object.fromEntries(
+          CHARACTER_ATTRIBUTE_IDS.map((key) => [key, input[key] - legacy!.baseAttributes[key]]),
+        ) as CharacterAttributes)
       const supabase = createSupabaseAdminClient()
-      const { data, error } = await supabase.rpc('create_character_v3', {
+      const { data, error } = await supabase.rpc('create_character_v4', {
         p_user_id: input.userId,
         p_slot_index: 0,
         p_idempotency_key: input.idempotencyKey,
@@ -67,15 +51,22 @@ export function createSupabaseCharacterRepository(): CharacterRepository {
         p_portrait_ref: input.portraitRef,
         p_starter_appearance_ref: input.starterAppearanceRef,
         p_foundation_discipline_id: input.foundationDisciplineId,
-        p_might: input.might,
-        p_finesse: input.finesse,
-        p_vitality: input.vitality,
-        p_agility: input.agility,
-        p_intellect: input.intellect,
-        p_resolve: input.resolve,
+        p_bonus_might: bonuses.might,
+        p_bonus_finesse: bonuses.finesse,
+        p_bonus_vitality: bonuses.vitality,
+        p_bonus_agility: bonuses.agility,
+        p_bonus_intellect: bonuses.intellect,
+        p_bonus_resolve: bonuses.resolve,
+        p_expected_profile_version: input.expectedProfileVersion ?? null,
       })
 
       if (error) {
+        throwCombatContentAdmissionError(error)
+        if (error.message.includes('CHARACTER_CORE_STALE'))
+          throw new AurevaneError(
+            'INVALID_REQUEST',
+            'The Discipline Core changed. Refresh and review your five personal choices.',
+          )
         if (error.code === '22023') {
           throw new AurevaneError(
             'IDEMPOTENCY_CONFLICT',
@@ -103,6 +94,25 @@ export function createSupabaseCharacterRepository(): CharacterRepository {
       return { result: toRecord(row), replayed: row.replayed }
     },
   }
+}
+
+async function readCurrentOwnedRecords(userId: string): Promise<CharacterRecord[]> {
+  const { data, error } = await createSupabaseAdminClient().rpc('get_character_slots_v3', {
+    p_user_id: userId,
+  })
+  if (error) throwCombatContentAdmissionError(error)
+  if (error || !Array.isArray(data) || data.length > 3) throw unavailable()
+  return data.flatMap((candidate) => {
+    if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) throw unavailable()
+    if (typeof candidate.deletion_execute_after === 'string') return []
+    const base = { ...candidate }
+    delete base.deletion_requested_at
+    delete base.deletion_execute_after
+    delete base.reselect_available_at
+    const row = parseCharacterPersistenceRow(base)
+    if (!row || row.user_id !== userId) throw unavailable()
+    return [toRecord(row)]
+  })
 }
 
 function toRecord(row: CharacterPersistenceRow): CharacterRecord {

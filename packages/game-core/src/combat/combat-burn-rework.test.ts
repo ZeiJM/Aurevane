@@ -233,7 +233,6 @@ describe('current Burn pressure runtime', () => {
             stage: 0,
           },
         ],
-        temporarySkills: [],
         damageHistory: [],
       },
     })

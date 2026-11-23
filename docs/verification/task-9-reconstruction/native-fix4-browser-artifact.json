@@ -1,0 +1,25 @@
+{
+  "run_id": 39494343945,
+  "job_id": 118875348742,
+  "remote_source": "05aba4f4dc560d2f82b7211b89421a5a1c7ec361",
+  "artifact_id": 12298477046,
+  "artifact_bytes": 103950770,
+  "artifact_sha256": "c4444b0019189ad66c9d277e71930253e8755e0e3cda39881f2e2b9aa928bcb0",
+  "cases": [
+    {
+      "repeat": 0,
+      "context_file": "native-fix4-players-error-context-r0.md",
+      "context_sha256": "f2be559690e7f80356ebcaaec027017ea224f2a14b71818d9930b0334de17575",
+      "trace_bytes": 33723347,
+      "trace_sha256": "fb21293e37a9eeb280ad5a538b11d499a987d53aa7e23cce8a3dd714b4548232"
+    },
+    {
+      "repeat": 1,
+      "context_file": "native-fix4-players-error-context-r1.md",
+      "context_sha256": "f2be559690e7f80356ebcaaec027017ea224f2a14b71818d9930b0334de17575",
+      "trace_bytes": 34315159,
+      "trace_sha256": "70e6a6cd6a23e866a88f1bf0c6f156ed6d7e660196af71c1ea2b93a44930faee"
+    }
+  ],
+  "review": "Implementer inspected failed action metadata in both actual traces; both reach the no-op error at E2E228 and match the application p plus Next route announcer div. No previous group-selector stall or cleanup failure recurs. Only trace hashes and sanitized contexts are published. Full downstream Discipline/PvE/PvP/recovery remains unproved. Existing initial-layout review is source-specific; no new physical-device or zoom acceptance."
+}

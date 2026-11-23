@@ -1,18 +1,34 @@
+import type { PublicCombatGroundArea } from '@aurevane/game-core/combat/combat-ground-visuals'
+import { combatReversalKnowledgeState } from '@aurevane/game-core/combat/combat-reversal'
+import { combatReversalPayload } from '@aurevane/game-core/combat/combat-reversal'
+import { combatEvaluatedActionRecipientIds } from '@aurevane/game-core/combat/combat-effect-recipients'
 import 'server-only'
-
-import type { CombatResolutionEvent } from '@aurevane/game-core/combat/actions'
+import type {
+  CombatEffectProjection,
+  CombatResolutionEvent,
+  CombatActionEvaluation,
+} from '@aurevane/game-core/combat/actions'
 import type { CombatTerrainProjection } from '@aurevane/game-core/combat/terrain-overlays'
 
 import type { BattleSessionRecord, BattleSessionRepository } from '@aurevane/db/battle-session'
 import {
   PV1F_COMBAT_CONTENT,
   evaluatePv1fAction,
-  evaluatePv1fCopiedSkill,
   evaluatePv1fMatureSkill,
   evaluatePv1fMovement,
-  finishPv1fTurn,
+  validatePv1fFinalFacing,
   readPv1fActionEconomy,
+  preparePv1fTurnEconomy,
 } from '@aurevane/game-core/combat/pv1f-action-economy'
+import { prepareCombatAbilityCommand } from '@aurevane/game-core/combat/combat-ability-command'
+import { capturedBasicSkillSource } from '@aurevane/game-core/combat/combat-basic-actions'
+import {
+  combatAbilityCommandContext,
+  combatAbilityBehavior,
+  combatControlledAbilityAvailability,
+  refreezeCapturedCombatAbilityState,
+} from '@aurevane/game-core/combat/combat-behavior-runtime'
+import { essenceCombatSkill } from '@aurevane/game-core/combat/essence'
 import {
   forecastStatDrivenAttack,
   validateStatDrivenCombatEncounterState,
@@ -24,17 +40,17 @@ import type { BattleIntent } from '@aurevane/validation/combat/battle-session'
 
 import type { CombatContentResolver } from '@/server/combat/combat-content-resolver'
 
+import { omitCombatExecutionMetadata } from './battle-live-viewer-projection'
 import { battleActionResourceIssue } from './battle-action-resource-availability'
+import { projectBattleCommandQuote, type BattleCommandQuote } from './battle-command-quote'
 import {
   battleBuildAuthorityForCombatant,
   resolveBattleDisciplineSkillDefinition,
-  resolveBattleEssenceDefinition,
+  resolvePinnedBattleEssenceDefinition,
+  capturedBattleActionSource,
+  capturedBattleActionBehaviorId,
   type BattleBuildAuthoritySnapshot,
 } from './battle-build-authority'
-import {
-  resolveBattleCopiedSkillCommand,
-  resolveBattleSkillCopyContext,
-} from './battle-skill-copy-authority'
 
 export interface BattlePreviewIssue {
   code: string
@@ -58,27 +74,32 @@ export interface BattleMovePreview {
 }
 
 export interface BattleActionPreview {
+  commandCosts?: BattleCommandQuote['commandCosts']
+  commandCooldowns?: BattleCommandQuote['commandCooldowns']
   kind: 'action'
   legal: boolean
+  /** Owner-only, bound to this version and complete current target/Move/modifier intent. */
+  controlledReady?: boolean
+  preparation?: 'paid-controlled-prime'
   actionId: string
   actorId: string | null
   primaryCombatantId: string | null
   affectedTiles: readonly { x: number; y: number }[]
   affectedCombatantIds: readonly string[]
-  projectedEffects: readonly {
-    effectType: string
-    combatantId: string
-    before: number | string
-    after: number | string
-  }[]
+  projectedEffects: readonly CombatEffectProjection[]
+  targetHitChances?: CombatActionEvaluation['targetHitChances']
+  targetStatusResistances?: CombatActionEvaluation['targetStatusResistances']
+  projectedGroundAreas?: readonly PublicCombatGroundArea[]
   projectedTerrain?: readonly CombatTerrainProjection[]
   projectedEvents?: readonly CombatResolutionEvent[]
   projectedStatuses: readonly {
     statusId: string
+    potencyBasisPoints?: number
     durationOwnerTurnStarts: number | null
     damageTakenMultiplierBasisPoints: number | null
   }[]
   mpCost: number
+  hpCost?: number
   actionEconomyCost: number
   actionEconomyBefore: number
   actionEconomyAfter: number
@@ -86,11 +107,6 @@ export interface BattleActionPreview {
   defenseKind: CombatDefenseKind | null
   defenseRating: number | null
   mitigatedBaseDamage: number | null
-  skillCopy?: {
-    sourceCombatantId: string
-    random: true
-    eligibleSkills: readonly { skillId: string; contentVersion: number }[]
-  } | null
   issues: readonly BattlePreviewIssue[]
   /** Legacy compatibility only; PV-1F uses numeric Action Economy costs. */
   spendsAction: boolean
@@ -147,7 +163,7 @@ function readPersistedEncounter(record: BattleSessionRecord): StatDrivenCombatEn
     const candidate = snapshot as StatDrivenCombatEncounterState
     const issues = validateStatDrivenCombatEncounterState(candidate)
     if (issues.length > 0) throw persistenceInvalid()
-    return candidate
+    return refreezeCapturedCombatAbilityState(candidate)
   } catch (error) {
     if (error instanceof AurevaneError) throw error
     throw persistenceInvalid()
@@ -177,22 +193,65 @@ function issue(code: string, message: string): BattlePreviewIssue {
   return { code, message }
 }
 
+/** Public forecast probabilities only; never expose the authoritative future RNG draw. */
+export function projectBattleHitChanceForecast(evaluation: CombatActionEvaluation) {
+  return evaluation.targetHitChances?.map((row) => ({
+    targetCombatantId: row.targetCombatantId,
+    hitChanceBasisPoints: row.hitChanceBasisPoints,
+  }))
+}
+
+export function projectBattleStatusResistanceForecast(evaluation: CombatActionEvaluation) {
+  return evaluation.targetStatusResistances?.map((row) => ({
+    targetCombatantId: row.targetCombatantId,
+    resistanceChanceBasisPoints: row.resistanceChanceBasisPoints,
+    eligibleEffectOrdinals: [...row.eligibleEffectOrdinals],
+  }))
+}
+
 async function previewIntent(
   state: StatDrivenCombatEncounterState,
   intent: BattleIntent,
   combatContentResolver?: CombatContentResolver,
 ): Promise<BattleIntentPreview> {
+  state = combatReversalKnowledgeState(state, state.tactical.battle.currentTurn?.combatantId)
+
+  if (intent.kind === 'ability-prime') {
+    const actionId = intent.actionId
+    const actorId = state.tactical.battle.currentTurn?.combatantId
+    const source = state.capturedAbilitySources?.find(
+      (row) => row.ownerCombatantId === actorId && row.abilityId === actionId,
+    )
+    const behavior = source
+      ? combatAbilityBehavior(source, intent.behaviorId, state.effectTimingPolicy)
+      : undefined
+    if (behavior && combatReversalPayload(behavior))
+      intent = {
+        kind: 'action',
+        actionId: intent.actionId,
+        behaviorId: behavior.id,
+        target: { kind: 'self' },
+        ...(intent.manualModifiers ? { manualModifiers: intent.manualModifiers } : {}),
+      }
+  }
+  if (intent.kind === 'ability-prime' || intent.kind === 'ability-cancel-prime')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Prime and cancel commands do not take a targeting preview.',
+    )
   if (intent.kind === 'move') {
-    const { prepared, movement, economyCost } = evaluatePv1fMovement(state, intent.path)
+    const { prepared, movement, terrainCost, economyCost } = evaluatePv1fMovement(
+      state,
+      intent.path,
+    )
     const economy = readPv1fActionEconomy(prepared)
     const before = economy?.current ?? 0
     const affordable = before >= economyCost
-    const movementRemainingBefore = prepared.tactical.battle.currentTurn?.movementRemaining ?? 0
     return {
       kind: 'move',
       legal: movement.legal && affordable,
       path: movement.path,
-      terrainCost: movement.cost,
+      terrainCost,
       actionEconomyCost: economyCost,
       actionEconomyBefore: before,
       actionEconomyAfter: Math.max(0, before - economyCost),
@@ -209,7 +268,7 @@ async function previewIntent(
             ]),
       ],
       cost: movement.cost,
-      movementRemainingAfter: Math.max(0, movementRemainingBefore - movement.cost),
+      movementRemainingAfter: movement.movementRemainingAfter,
     }
   }
 
@@ -221,23 +280,18 @@ async function previewIntent(
       }
     ).buildAuthority
     const build = actorId ? battleBuildAuthorityForCombatant(authority, actorId) : null
-    const essence = actorId ? resolveBattleEssenceDefinition(authority, actorId) : null
+    const capturedSource = actorId
+      ? capturedBattleActionSource(state, authority, actorId, intent.actionId, intent.behaviorId)
+      : null
+    const essence =
+      !capturedSource && actorId
+        ? await resolvePinnedBattleEssenceDefinition(authority, actorId, combatContentResolver)
+        : null
     const taggedTechnique = build?.disciplineSkills.find(
       (reference) => reference.skillId === intent.actionId,
     )
-    const copiedCommand = actorId
-      ? await resolveBattleCopiedSkillCommand(
-          state as StatDrivenCombatEncounterState & {
-            buildAuthority?: BattleBuildAuthoritySnapshot
-          },
-          actorId,
-          intent.actionId,
-          combatContentResolver,
-        )
-      : null
-    if (copiedCommand && !copiedCommand.definition) throw persistenceInvalid()
     const matureDefinition =
-      taggedTechnique && actorId
+      !capturedSource && taggedTechnique && actorId
         ? await resolveBattleDisciplineSkillDefinition(
             authority,
             actorId,
@@ -245,91 +299,176 @@ async function previewIntent(
             combatContentResolver,
           )
         : null
-    if (taggedTechnique && !matureDefinition) throw persistenceInvalid()
-    const copiedCopyContext =
-      copiedCommand?.definition?.effects.some((effect) => effect.type === 'copy') &&
-      intent.target.kind === 'unit'
-        ? await resolveBattleSkillCopyContext(
-            state as StatDrivenCombatEncounterState & {
-              buildAuthority?: BattleBuildAuthoritySnapshot
+    if (!capturedSource && taggedTechnique && !matureDefinition) throw persistenceInvalid()
+    const preparedState = preparePv1fTurnEconomy(state)
+    const reversalPreparation =
+      capturedSource &&
+      combatReversalPayload(
+        combatAbilityBehavior(
+          capturedSource,
+          capturedBattleActionBehaviorId(capturedSource, intent.actionId, intent.behaviorId),
+          preparedState.effectTimingPolicy,
+        ),
+      )
+    const canonical =
+      capturedSource && actorId
+        ? prepareCombatAbilityCommand({
+            state: preparedState,
+            actorId,
+            root: {
+              kind: 'canonical',
+              source: capturedSource,
+              behaviorId: capturedBattleActionBehaviorId(
+                capturedSource,
+                intent.actionId,
+                intent.behaviorId,
+              ),
             },
-            actorId ?? '',
-            intent.target.combatantId,
-            combatContentResolver,
-          )
-        : undefined
-    if (copiedCopyContext === null) throw persistenceInvalid()
-    const matureCopyContext =
-      matureDefinition?.effects.some((effect) => effect.type === 'copy') &&
-      intent.target.kind === 'unit'
-        ? await resolveBattleSkillCopyContext(
-            state as StatDrivenCombatEncounterState & {
-              buildAuthority?: BattleBuildAuthoritySnapshot
-            },
-            actorId ?? '',
-            intent.target.combatantId,
-            combatContentResolver,
-          )
-        : undefined
-    if (matureCopyContext === null) throw persistenceInvalid()
-
-    const resolved =
-      copiedCommand?.definition && authority
-        ? evaluatePv1fCopiedSkill(
+            movementPath: intent.movementPath,
+            manualModifiers: intent.manualModifiers,
+            selection: intent.target,
+            content: PV1F_COMBAT_CONTENT,
+            context: combatAbilityCommandContext(preparedState, capturedSource),
+            ...(reversalPreparation ? { reversalPreparation: true as const } : {}),
+          })
+        : null
+    const resolved = canonical
+      ? {
+          prepared: preparedState,
+          action: canonical.action,
+          evaluation: canonical.evaluation,
+          quote: { costs: canonical.costs, participants: canonical.participants },
+          cost: canonical.costs.find((row) => row.resource === 'ap')?.amount ?? 0,
+        }
+      : essence && essence.skill.id === intent.actionId && authority
+        ? evaluatePv1fMatureSkill(
             state,
-            copiedCommand.definition,
+            essenceCombatSkill(essence),
             intent.target,
             authority.combatContext,
-            copiedCopyContext,
+            {
+              behaviorId: intent.behaviorId,
+              movementPath: intent.movementPath,
+              manualModifiers: intent.manualModifiers,
+            },
           )
-        : essence && essence.skill.id === intent.actionId && authority
-          ? evaluatePv1fMatureSkill(state, essence.skill, intent.target, authority.combatContext)
-          : matureDefinition &&
-              matureDefinition.sourceDisciplineId === taggedTechnique?.sourceDisciplineId &&
-              authority
-            ? evaluatePv1fMatureSkill(
-                state,
-                matureDefinition,
-                intent.target,
-                authority.combatContext,
-                matureCopyContext ? { copyContext: matureCopyContext } : {},
-              )
-            : evaluatePv1fAction(state, intent.actionId, intent.target)
+        : matureDefinition &&
+            matureDefinition.sourceDisciplineId === taggedTechnique?.sourceDisciplineId &&
+            authority
+          ? evaluatePv1fMatureSkill(
+              state,
+              matureDefinition,
+              intent.target,
+              authority.combatContext,
+              {
+                behaviorId: intent.behaviorId,
+                movementPath: intent.movementPath,
+                manualModifiers: intent.manualModifiers,
+              },
+            )
+          : evaluatePv1fAction(state, intent.actionId, intent.target, {
+              behaviorId: intent.behaviorId,
+              movementPath: intent.movementPath,
+              manualModifiers: intent.manualModifiers,
+            })
     const { prepared, action, cost, evaluation } = resolved
     const economy = readPv1fActionEconomy(prepared)
     const before = economy?.current ?? 0
     const affordable = before >= cost
     const resourceIssue = battleActionResourceIssue(prepared, intent)
     const forecast =
-      action.sourceType === 'basic-attack'
+      action.sourceType === 'basic-attack' && !action.nativeBasicAttackCommand
         ? forecastStatDrivenAttack(prepared, action, intent.target, PV1F_COMBAT_CONTENT)
         : null
-    const projectedStatuses = action.effects.flatMap((effect) => {
-      if (effect.type !== 'apply-status') return []
-      const status = PV1F_COMBAT_CONTENT.statuses.find(
-        (candidate) => candidate.id === effect.statusId,
+    const projectedStatuses: BattleActionPreview['projectedStatuses'][number][] =
+      action.effects.flatMap((effect) => {
+        if (effect.type !== 'apply-status') return []
+        if (effect.statusId === 'suppress') return []
+        const status = PV1F_COMBAT_CONTENT.statuses.find(
+          (candidate) => candidate.id === effect.statusId,
+        )
+        return [
+          {
+            statusId: effect.statusId,
+            durationOwnerTurnStarts: status?.durationOwnerTurnStarts ?? null,
+            damageTakenMultiplierBasisPoints: status?.damageTakenMultiplierBasisPoints ?? null,
+          },
+        ]
+      })
+    const suppressProjections = new Map(
+      evaluation.projectedEffects
+        .filter((effect) => effect.statusId === 'suppress')
+        .map((effect) => [effect.combatantId, effect]),
+    )
+    for (const projection of suppressProjections.values()) {
+      const receipt = evaluation.projectedEvents.find(
+        (event): event is Extract<CombatResolutionEvent, { event: 'status_applied' }> =>
+          event.event === 'status_applied' &&
+          event.statusId === 'suppress' &&
+          event.targetCombatantId === projection.combatantId,
       )
-      return [
-        {
-          statusId: effect.statusId,
-          durationOwnerTurnStarts: status?.durationOwnerTurnStarts ?? null,
-          damageTakenMultiplierBasisPoints: status?.damageTakenMultiplierBasisPoints ?? null,
-        },
-      ]
-    })
+      projectedStatuses.push({
+        statusId: 'suppress',
+        potencyBasisPoints: projection.potencyBasisPoints ?? 2500,
+        durationOwnerTurnStarts:
+          projection.remainingRoundBoundaries ??
+          projection.remainingOwnerTurnEnds ??
+          Math.max(1, (receipt?.remainingOwnerTurnStarts ?? 3) - 1),
+        damageTakenMultiplierBasisPoints: null,
+      })
+    }
+    const legal = evaluation.legal && affordable && !resourceIssue
+    const controlledSource =
+      capturedSource ??
+      (actorId ? capturedBasicSkillSource(state, actorId, intent.actionId) : undefined)
+    const controlled =
+      controlledSource && actorId
+        ? combatControlledAbilityAvailability({
+            state,
+            actorId,
+            sourceInstanceId: controlledSource.sourceInstanceId,
+            content: PV1F_COMBAT_CONTENT,
+            behaviorId: combatAbilityBehavior(
+              controlledSource,
+              intent.behaviorId,
+              state.effectTimingPolicy,
+            ).id,
+          })
+        : undefined
     return {
       kind: 'action',
-      legal: evaluation.legal && affordable && !resourceIssue,
+      legal,
+      ...(actorId
+        ? projectBattleCommandQuote(
+            prepared,
+            actorId,
+            resolved.quote ? { quote: resolved.quote } : { native: { action, apCost: cost } },
+          )
+        : {}),
+      ...(controlled && !reversalPreparation
+        ? { controlledReady: controlled.phase === 'primed' && legal }
+        : {}),
+      ...(reversalPreparation ? { preparation: 'paid-controlled-prime' as const } : {}),
       actionId: evaluation.actionId,
       actorId: evaluation.actorId,
       primaryCombatantId: evaluation.primaryCombatantId,
       affectedTiles: evaluation.affectedTiles,
-      affectedCombatantIds: evaluation.affectedCombatantIds,
+      affectedCombatantIds: action.effects.some((effect) => effect.target === 'all')
+        ? combatEvaluatedActionRecipientIds(prepared, action, evaluation, PV1F_COMBAT_CONTENT)
+        : evaluation.affectedCombatantIds,
       projectedEffects: resourceIssue ? [] : evaluation.projectedEffects,
+      targetHitChances: resourceIssue ? [] : projectBattleHitChanceForecast(evaluation),
+      targetStatusResistances: resourceIssue
+        ? []
+        : projectBattleStatusResistanceForecast(evaluation),
       projectedStatuses,
+      projectedGroundAreas: resourceIssue ? [] : evaluation.projectedGroundAreas,
       projectedTerrain: resourceIssue ? [] : evaluation.projectedTerrain,
-      projectedEvents: resourceIssue ? [] : evaluation.projectedEvents,
+      projectedEvents: resourceIssue
+        ? []
+        : evaluation.projectedEvents.map(omitCombatExecutionMetadata),
       mpCost: evaluation.mpCost,
+      ...(evaluation.hpCost !== undefined ? { hpCost: evaluation.hpCost } : {}),
       actionEconomyCost: cost,
       actionEconomyBefore: before,
       actionEconomyAfter: Math.max(0, before - cost),
@@ -342,13 +481,6 @@ async function previewIntent(
       defenseKind: forecast?.defenseKind ?? null,
       defenseRating: forecast?.defenseRating ?? null,
       mitigatedBaseDamage: forecast?.mitigatedBaseDamage ?? null,
-      skillCopy: evaluation.skillCopy
-        ? {
-            sourceCombatantId: evaluation.skillCopy.sourceCombatantId,
-            random: true,
-            eligibleSkills: evaluation.skillCopy.eligibleSkills,
-          }
-        : null,
       issues: [
         ...evaluation.issues.map((entry) => issue(entry.code, entry.message)),
         ...(resourceIssue ? [issue(resourceIssue.code, resourceIssue.message)] : []),
@@ -367,7 +499,7 @@ async function previewIntent(
 
   if (intent.kind === 'face') {
     try {
-      finishPv1fTurn(state, intent.facing)
+      validatePv1fFinalFacing(state, intent.facing)
       return { kind: 'face', legal: true, facing: intent.facing, endsTurn: true, issues: [] }
     } catch (error) {
       return {

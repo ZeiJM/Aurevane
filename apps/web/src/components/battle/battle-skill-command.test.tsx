@@ -4,7 +4,114 @@ import { describe, expect, it } from 'vitest'
 
 import { BattleSkillCommand } from './battle-skill-command'
 
+it('marks a captured prime on its image even while release is unavailable and clears it after release', () => {
+  const props = {
+    slot: 'guard' as const,
+    hotkey: '3',
+    label: 'Anchor',
+    cost: '30 AP',
+    artworkSrc: '/media/skills/guard.webp',
+    active: false,
+    disabled: true,
+    onActivate: () => undefined,
+  }
+  const html = renderToStaticMarkup(
+    createElement(BattleSkillCommand, {
+      ...props,
+      controlledAvailability: {
+        controlledSpent: false,
+        chooseAction: false,
+        controlledPrimed: true,
+      },
+    }),
+  )
+  expect(html).toContain('data-battle-controlled-primed="true"')
+  expect(html).toContain('Primed')
+  expect(html).toContain('aria-label="Anchor, 30 AP, primed"')
+  expect(
+    renderToStaticMarkup(
+      createElement(BattleSkillCommand, {
+        ...props,
+        controlledAvailability: {
+          controlledSpent: false,
+          chooseAction: false,
+          controlledPrimed: false,
+        },
+      }),
+    ),
+  ).not.toContain('data-battle-controlled-primed="true"')
+})
+
+it('keeps free Controlled preparation selectable on cooldown and draws light only for enabled ready release', () => {
+  const props = {
+    slot: 'guard' as const,
+    hotkey: '3',
+    label: 'Anchor',
+    cost: '30 AP',
+    artworkSrc: '/media/skills/guard.webp',
+    active: false,
+    disabled: false,
+    onActivate: () => undefined,
+  }
+  const prime = renderToStaticMarkup(
+    createElement(BattleSkillCommand, { ...props, primeAvailable: true, cooldownTurns: 2 }),
+  )
+  expect(prime).not.toMatch(/data-command-slot="guard"[^>]*disabled/)
+  expect(prime).not.toContain('data-battle-controlled-ready="true"')
+  const ready = renderToStaticMarkup(
+    createElement(BattleSkillCommand, { ...props, controlledReady: true }),
+  )
+  expect(ready).toContain('data-battle-controlled-ready="true"')
+  expect(ready).toContain('ready to release')
+  expect(
+    renderToStaticMarkup(
+      createElement(BattleSkillCommand, { ...props, disabled: true, controlledReady: true }),
+    ),
+  ).not.toContain('data-battle-controlled-ready="true"')
+})
+
 describe('Battle Technique command information', () => {
+  it('keeps End Turn compact without an empty facing-control row', () => {
+    for (const active of [false, true]) {
+      const markup = renderToStaticMarkup(
+        createElement(BattleSkillCommand, {
+          slot: 'finish',
+          hotkey: 'Space',
+          label: 'End Turn',
+          cost: 'Choose facing',
+          artworkSrc: '/media/skills/finish-turn.webp',
+          active,
+          disabled: false,
+          onActivate: () => undefined,
+        }),
+      )
+      expect(markup).toContain('aria-label="End Turn, Choose facing"')
+      expect(markup).toContain('data-battle-command-hotkey="true">Space')
+      expect(markup).not.toContain('data-battle-command-extra-controls')
+      expect(markup).not.toContain('data-unified-facing-pad')
+    }
+  })
+  it.each(['inspect', 'move', 'attack', 'guard', 'finish'] as const)(
+    'places %s artwork, name, then readable information and hotkey in order',
+    (slot) => {
+      const markup = renderToStaticMarkup(
+        createElement(BattleSkillCommand, {
+          slot,
+          hotkey: slot === 'finish' ? 'Space' : '1',
+          label: slot === 'finish' ? 'End Turn' : 'Action name',
+          cost: '30 AP',
+          artworkSrc: '/media/skills/guard.webp',
+          active: false,
+          disabled: true,
+          onActivate: () => undefined,
+        }),
+      )
+      expect(markup).toMatch(
+        /data-battle-command-artwork="static"[\s\S]*<strong>[^<]+<\/strong><\/button><div[^>]*data-battle-cockpit-controls="true"[^>]*><button[^>]*aria-label="About [^"]+"[^>]*>i<\/button><span[^>]*data-battle-command-hotkey="true"[^>]*>/,
+      )
+      expect(markup).not.toMatch(/data-battle-info-trigger="true"[^>]*disabled/)
+    },
+  )
   it('provides a separate information control without filling the action card with tags', () => {
     const markup = renderToStaticMarkup(
       createElement(BattleSkillCommand, {
@@ -43,4 +150,67 @@ describe('Battle Technique command information', () => {
     expect(markup).toContain('aria-label="About Water Lance"')
     expect(markup).not.toContain('cockpit:')
   })
+})
+
+describe('cooling Support Actions', () => {
+  it('disables selection with an artwork countdown while retaining information', () => {
+    const markup = renderToStaticMarkup(
+      createElement(BattleSkillCommand, {
+        slot: 'guard',
+        hotkey: '3',
+        label: 'Guard',
+        cost: '30 AP',
+        artworkSrc: '/guard.webp',
+        active: false,
+        disabled: false,
+        cooldownTurns: 2,
+        onActivate: () => undefined,
+      }),
+    )
+    expect(markup).toMatch(/data-battle-command="guard"[^>]*disabled/)
+    expect(markup).toContain('Cooldown: 2 turns remaining')
+    expect(markup).toContain('data-battle-cooldown-countdown="true"')
+    expect(markup).not.toMatch(/data-battle-info-trigger="true"[^>]*disabled/)
+  })
+})
+
+it('labels paid Reversal preparation honestly and keeps only cancellation available on cooldown', () => {
+  const props = {
+    slot: 'guard' as const,
+    hotkey: '3',
+    label: 'Mirror',
+    cost: '35 AP / 5 MP / 3 HP',
+    artworkSrc: '/mirror.webp',
+    active: false,
+    disabled: false,
+    onActivate: () => undefined,
+  }
+  const availability = {
+    controlledPrimed: false,
+    controlledSpent: false,
+    chooseAction: false,
+    controlledKind: 'reversal' as const,
+    canCancel: false,
+  }
+  const prepare = renderToStaticMarkup(
+    createElement(BattleSkillCommand, {
+      ...props,
+      primeAvailable: true,
+      controlledAvailability: availability,
+    }),
+  )
+  expect(prepare).toContain('Prepare')
+  expect(prepare).toContain('35 AP / 5 MP / 3 HP')
+  expect(prepare).not.toContain('prime without payment')
+  const armed = renderToStaticMarkup(
+    createElement(BattleSkillCommand, {
+      ...props,
+      cooldownTurns: 3,
+      controlledReady: true,
+      controlledAvailability: { ...availability, controlledPrimed: true, canCancel: true },
+    }),
+  )
+  expect(armed).toContain('Cancel Reversal')
+  expect(armed).not.toContain('ready to release')
+  expect(armed).not.toMatch(/data-command-slot="guard"[^>]*disabled/)
 })

@@ -4,7 +4,7 @@ import { combatActionPresentationTags } from './gameplay-tags'
 import type { CombatActionDefinition } from './actions'
 
 describe('CSR-1 Sensory presentation metadata', () => {
-  it('derives the Sensory tag from the typed effect', () => {
+  it('derives the Reveal tag from the typed Sensory effect', () => {
     const action: CombatActionDefinition = {
       id: 'test.sensory-tag',
       version: 1,
@@ -31,6 +31,6 @@ describe('CSR-1 Sensory presentation metadata', () => {
       ],
     }
 
-    expect(combatActionPresentationTags(action)).toEqual(['Enemy', 'Single', 'Sensory'])
+    expect(combatActionPresentationTags(action)).toEqual(['Enemy', 'Single', 'Reveal'])
   })
 })

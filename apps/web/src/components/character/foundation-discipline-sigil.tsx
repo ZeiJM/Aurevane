@@ -1,3 +1,6 @@
+import { contentMediaSource } from '@aurevane/game-core/combat/content-media'
+import type { DisciplinePresentationMedia } from '@aurevane/game-core/character/discipline-build'
+import { imageAssetRegistry } from '@/media/registry'
 import { phase4DisciplineSigil } from '@/components/battle/phase4-combat-art'
 import Image from 'next/image'
 import type { ReactNode } from 'react'
@@ -6,12 +9,14 @@ import { getFoundationDisciplineImageAsset } from '@/media/disciplines'
 
 interface FoundationDisciplineSigilProps {
   disciplineId: string
+  media?: DisciplinePresentationMedia
   className?: string
 }
 
 function Frame({ className, children }: { className?: string; children: ReactNode }) {
   return (
     <svg
+      data-gameplay-art="discipline"
       className={className}
       viewBox="0 0 96 96"
       fill="none"
@@ -37,9 +42,26 @@ function Frame({ className, children }: { className?: string; children: ReactNod
 
 export function FoundationDisciplineSigil({
   disciplineId,
+  media,
   className,
 }: FoundationDisciplineSigilProps) {
-  const mediaAsset = getFoundationDisciplineImageAsset(disciplineId)
+  if (media?.artwork) {
+    return (
+      <Image
+        data-gameplay-art="discipline"
+        className={className}
+        src={contentMediaSource(media.artwork)}
+        width={media.artwork.width}
+        height={media.artwork.height}
+        alt=""
+        aria-hidden="true"
+        unoptimized
+      />
+    )
+  }
+  const mediaAsset =
+    (media?.artworkId ? imageAssetRegistry.get(media.artworkId) : null) ??
+    getFoundationDisciplineImageAsset(disciplineId)
   if (
     mediaAsset?.status === 'approved' &&
     mediaAsset.src &&
@@ -48,6 +70,7 @@ export function FoundationDisciplineSigil({
   ) {
     return (
       <Image
+        data-gameplay-art="discipline"
         className={className}
         src={mediaAsset.src}
         width={mediaAsset.width}
@@ -145,7 +168,17 @@ export function FoundationDisciplineSigil({
 
   const phase4 = phase4DisciplineSigil(disciplineId)
   if (phase4)
-    return <Image src={phase4} alt="" width={96} height={96} unoptimized className={className} />
+    return (
+      <Image
+        data-gameplay-art="discipline"
+        src={phase4}
+        alt=""
+        width={96}
+        height={96}
+        unoptimized
+        className={className}
+      />
+    )
 
   return (
     <Frame className={className}>

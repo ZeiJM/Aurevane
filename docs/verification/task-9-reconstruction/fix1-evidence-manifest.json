@@ -1,0 +1,51 @@
+{
+  "fixBase": "96c4f20d6805abfdd7a6c0c3afe5b1816d21b5b5",
+  "redaction": "None needed in these local probe/test logs. Raw native DB transcript was not copied; controller retains separately sanitized evidence.",
+  "files": [
+    {
+      "path": "fix1-basic-service-green.log",
+      "bytes": 464,
+      "sha256": "ef78ea8ee3d3b1b0ef56a512a4037d92b84f5dbdc78a4bb31c24c1f11eee99de"
+    },
+    {
+      "path": "fix1-discipline-form-red.log",
+      "bytes": 7494,
+      "sha256": "ecbd5b4740081cd74af1aa908e2e02a762ca98b712d84bfd472da3dd45a2ca33"
+    },
+    {
+      "path": "fix1-discipline-green.log",
+      "bytes": 1329,
+      "sha256": "8015f005f61ccab6efe550b6aafc5eb37b00a855db3d1ef8acd7edc69e3fd04a"
+    },
+    {
+      "path": "fix1-discipline-sql-red.log",
+      "bytes": 3930,
+      "sha256": "4cbc8e067df44245bc7ad2df71a5957e2c33631093d54469d096911fad1f00f8"
+    },
+    {
+      "path": "fix1-format.log",
+      "bytes": 951,
+      "sha256": "540d0a906a8fa5718288ef268b120db907a492465f4354e821ea324c06f2ddc7"
+    },
+    {
+      "path": "fix1-main-lock-integrity.log",
+      "bytes": 1058,
+      "sha256": "f135dd921b244515d4e51481c3a9bb03d5bd25b8613df00e5bbe95fd1e203e0c"
+    },
+    {
+      "path": "fix1-native-discovery.log",
+      "bytes": 542,
+      "sha256": "440ba9f4c866ee08a89836ceef452a36a33b64265bbf004db69c48a070486169"
+    },
+    {
+      "path": "fix1-native-syntax.log",
+      "bytes": 496,
+      "sha256": "81b1fd760f17a1b9e7e986ccb05ff702697003c16b62dcf3f297751695a76fd1"
+    },
+    {
+      "path": "fix1-touched-types-lint.log",
+      "bytes": 790,
+      "sha256": "bbfa2eb765b9a025518a77552162c00380ad1aa68bb58382c96a59d377c75cb3"
+    }
+  ]
+}

@@ -1,0 +1,96 @@
+import 'server-only'
+
+import { AurevaneError } from '@aurevane/game-core/errors'
+import { getAuthenticatedActor } from '@/server/auth/actor'
+import { loadSelectedCharacter } from '@/server/character/selected-character'
+
+/** Only staff entrypoints take selected actor context. Player/history and worker RPCs do not. */
+const SELECTED_ACTOR_RPCS = new Set([
+  'review_discipline_deletion_v1',
+  'delete_discipline_v1',
+  'search_discipline_grant_players_v1',
+  'read_discipline_player_grants_v1',
+  'write_discipline_player_grants_v1',
+  'search_master_moderation_players_v1',
+  'read_master_moderation_v1',
+  'list_active_master_bans_v1',
+  'write_master_moderation_v1',
+  'read_master_panel_activity_v1',
+  'set_world_environment_v2',
+  'publish_battlefield_elevation_policy_v2',
+  'publish_battlefield_elevation_policy_v3',
+  'publish_combat_effect_timing_policy_v2',
+  'save_site_music_configuration_v1',
+  'finalize_combat_content_media_v1',
+  'read_combat_content_media_v1',
+  'read_combat_content_record_v1',
+  'list_combat_content_records_v1',
+  'write_combat_content_record_v1',
+  'publish_saved_combat_content_v1',
+  'commit_combat_content_record_v1',
+  'search_master_players_v1',
+  'read_master_player_v1',
+  'edit_master_player_v1',
+  'recover_master_player_battle_v1',
+  'teleport_master_player_v1',
+  'teleport_master_player_v2',
+  'teleport_master_player_v3',
+  'teleport_master_player_v4',
+  'teleport_master_player_v5',
+  'teleport_master_player_v6',
+  'install_master_teleport_geometry_v1',
+  'read_master_panel_navigation_v1',
+  'save_master_panel_navigation_v1',
+  'read_master_panel_navigation_v2',
+  'save_master_panel_navigation_v2',
+  'read_master_panel_access_v3',
+  'read_master_npc_designs_v1',
+  'read_master_story_npcs_v1',
+  'read_master_restoration_trial_npc_v1',
+  'write_master_npc_design_v1',
+  'find_master_npc_appearance_conflicts_v1',
+  'commit_master_npc_uniform_v1',
+  'read_master_panel_access_v1',
+  'read_master_panel_access_v2',
+  'read_master_panel_operator_v1',
+  'read_combat_content_draft_v1',
+  'list_combat_content_versions_v1',
+  'save_combat_content_draft_v1',
+  'publish_combat_content_v3',
+  'set_combat_content_publication_v2',
+  'read_event_workspace_catalogue_v1',
+  'read_event_definition_draft_v1',
+  'save_event_definition_draft_v1',
+  'list_event_definition_versions_v1',
+  'publish_event_definition_v2',
+  'schedule_event_run_v2',
+  'cancel_scheduled_event_run_v2',
+  'list_event_operation_runs_v1',
+  'list_event_workspace_runs_v1',
+  'read_event_operation_dashboard_v1',
+  'operate_event_run_v2',
+  'advance_event_run_phase_v2',
+  'complete_event_cleanup_requirement_v2',
+])
+interface ActorDependencies {
+  getActor(): Promise<{ userId: string }>
+  loadSelection(actor: { userId: string }): Promise<{ id: string } | null>
+}
+export function createSelectedCharacterRpc<T>(
+  rpc: (name: string, parameters: Readonly<Record<string, unknown>>) => PromiseLike<T>,
+  dependencies: ActorDependencies = {
+    getActor: getAuthenticatedActor,
+    loadSelection: loadSelectedCharacter,
+  },
+): (name: string, parameters: Readonly<Record<string, unknown>>) => Promise<T> {
+  return async (name, parameters) => {
+    if (!SELECTED_ACTOR_RPCS.has(name)) return rpc(name, parameters)
+    const actor = await dependencies.getActor()
+    const expectedUser = parameters.p_actor_user_id ?? parameters.p_user_id ?? parameters.p_actor
+    if (expectedUser !== actor.userId) {
+      throw new AurevaneError('FORBIDDEN', 'Master Panel actor context changed unexpectedly.')
+    }
+    const selected = await dependencies.loadSelection(actor)
+    return rpc(name, { ...parameters, p_actor_character_id: selected?.id ?? null })
+  }
+}

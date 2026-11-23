@@ -1,6 +1,8 @@
 'use client'
 
+import type { ReactNode } from 'react'
 import styles from './combat-content-editor.module.css'
+import { CombatContentPreviewReport } from './combat-content-preview-report'
 import {
   canPublishCombatContent,
   type CombatContentPreviewSummary,
@@ -10,12 +12,21 @@ import {
 } from './combat-content-workflow'
 
 export interface CombatContentReviewPanelProps {
+  readonly className?: string
+  readonly draftActions?: ReactNode
+  readonly rollbackEnabled?: boolean
+  readonly onRequestRestoreDraft?: (version: number) => void
   readonly contentKey: string
   readonly baseVersion: number
   readonly nextVersion: number
   readonly validation: CombatContentValidationResult | null
   readonly diff: CombatContentSemanticDiff | null
   readonly preview: CombatContentPreviewSummary | null
+  readonly previewRequired?: boolean
+  readonly previewOptional?: boolean
+  readonly requireLegalPreview?: boolean
+  readonly previewAvailable?: boolean
+  readonly previewSelectionControl?: ReactNode
   readonly history: readonly CombatContentVersionHistoryEntry[]
   readonly busy: boolean
   readonly publishConfirmationOpen: boolean
@@ -33,17 +44,22 @@ export interface CombatContentReviewPanelProps {
   readonly onCancelRollback: () => void
 }
 
-function percent(basisPoints: number): string {
-  return `${Math.round(basisPoints / 100)}%`
-}
-
 export function CombatContentReviewPanel({
+  className,
+  draftActions,
+  rollbackEnabled = true,
+  onRequestRestoreDraft,
   contentKey,
   baseVersion,
   nextVersion,
   validation,
   diff,
   preview,
+  previewRequired = true,
+  previewOptional = false,
+  requireLegalPreview = true,
+  previewAvailable = true,
+  previewSelectionControl,
   history,
   busy,
   publishConfirmationOpen,
@@ -62,21 +78,26 @@ export function CombatContentReviewPanel({
 }: CombatContentReviewPanelProps) {
   const review = { validation, diff, preview }
   const canPublish =
-    canPublishCombatContent(review) && (diff?.changedPaths.length ?? 0) > 0 && !busy
+    validation?.valid === true &&
+    diff !== null &&
+    diff.changedPaths.length > 0 &&
+    (!previewRequired ||
+      (previewAvailable && canPublishCombatContent(review, { requireLegalPreview }))) &&
+    !busy
   const canDiff = validation?.valid === true && !busy
-  const canPreview = validation?.valid === true && diff !== null && !busy
-  const hitChance = preview?.accuracy?.targetHitChances?.[0]
-  const effectTypes =
-    preview?.projections?.effects
-      ?.map((effect) => effect.effectType)
-      .filter((type): type is string => typeof type === 'string' && type.length > 0) ?? []
+  const canPreview =
+    (previewRequired || previewOptional) &&
+    previewAvailable &&
+    validation?.valid === true &&
+    diff !== null &&
+    !busy
   const defaultRollback = [...history]
     .filter((entry) => !entry.current)
     .sort((left, right) => right.contentVersion - left.contentVersion)[0]
 
   return (
     <section
-      className={styles.reviewPanel}
+      className={[styles.reviewPanel, className].filter(Boolean).join(' ')}
       id="combat-review"
       aria-labelledby="combat-review-heading"
     >
@@ -135,26 +156,33 @@ export function CombatContentReviewPanel({
           </div>
         </div>
 
+        {previewSelectionControl}
+
         <div className={styles.reviewActions}>
           <button type="button" disabled={busy} onClick={onValidate}>
             Validate
           </button>
+          {draftActions}
           <button type="button" disabled={!canDiff} onClick={onDiff}>
             Diff
           </button>
-          <button type="button" disabled={!canPreview} onClick={onPreview}>
-            Preview
-          </button>
+          {previewRequired || previewOptional ? (
+            <button type="button" disabled={!canPreview} onClick={onPreview}>
+              Preview
+            </button>
+          ) : null}
           <button type="button" disabled={!canPublish} onClick={onRequestPublish}>
             Publish
           </button>
-          <button
-            type="button"
-            disabled={busy || !defaultRollback}
-            onClick={() => defaultRollback && onRequestRollback(defaultRollback.contentVersion)}
-          >
-            Rollback
-          </button>
+          {rollbackEnabled ? (
+            <button
+              type="button"
+              disabled={busy || !defaultRollback}
+              onClick={() => defaultRollback && onRequestRollback(defaultRollback.contentVersion)}
+            >
+              Rollback
+            </button>
+          ) : null}
         </div>
 
         {validation && !validation.valid ? (
@@ -191,44 +219,7 @@ export function CombatContentReviewPanel({
         </section>
       ) : null}
 
-      {preview ? (
-        <section className={styles.reviewBlock} aria-label="Deterministic preview">
-          <div className={styles.dockHeading}>
-            <h3>Deterministic preview</h3>
-            <span>{preview.legal === false ? 'Illegal' : 'Legal'}</span>
-          </div>
-          <dl className={styles.previewFacts}>
-            <div>
-              <dt>Legality</dt>
-              <dd>{preview.legal === false ? 'Illegal in fixture' : 'Legal in fixture'}</dd>
-            </div>
-            {preview.costs?.actionEconomy !== undefined ? (
-              <div>
-                <dt>Action Economy</dt>
-                <dd>{preview.costs.actionEconomy} AP</dd>
-              </div>
-            ) : null}
-            {preview.costs?.mp !== undefined ? (
-              <div>
-                <dt>MP</dt>
-                <dd>{preview.costs.mp} MP</dd>
-              </div>
-            ) : null}
-            {hitChance ? (
-              <div>
-                <dt>First target hit chance</dt>
-                <dd>{percent(hitChance.hitChanceBasisPoints)}</dd>
-              </div>
-            ) : null}
-            {effectTypes.length > 0 ? (
-              <div>
-                <dt>Projected effects</dt>
-                <dd>{effectTypes.join(', ')}</dd>
-              </div>
-            ) : null}
-          </dl>
-        </section>
-      ) : null}
+      <CombatContentPreviewReport preview={preview} requireLegalPreview={requireLegalPreview} />
 
       {publishConfirmationOpen ? (
         <section className={styles.confirmation} aria-label="Confirm publication">
@@ -280,7 +271,16 @@ export function CombatContentReviewPanel({
                 </div>
                 {entry.current ? (
                   <span className={styles.currentPill}>Current</span>
-                ) : (
+                ) : onRequestRestoreDraft ? (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    aria-label={`Restore v${entry.contentVersion} to draft`}
+                    onClick={() => onRequestRestoreDraft(entry.contentVersion)}
+                  >
+                    Restore to draft
+                  </button>
+                ) : rollbackEnabled ? (
                   <button
                     type="button"
                     disabled={busy}
@@ -288,7 +288,7 @@ export function CombatContentReviewPanel({
                   >
                     Rollback
                   </button>
-                )}
+                ) : null}
               </div>
             ))}
         </div>

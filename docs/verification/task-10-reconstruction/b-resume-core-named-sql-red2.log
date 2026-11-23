@@ -1,0 +1,32 @@
+
+ RUN  v4.1.10 /workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/packages/db
+
+ ❯ src/combat-content-discipline-producers.test.ts (50 tests | 1 failed | 49 skipped) 4907ms
+   × named activation uses actual v3 Core conversion with preserved personal choices 100ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/combat-content-discipline-producers.test.ts > named activation uses actual v3 Core conversion with preserved personal choices
+error: null value in column "source_build_version" of relation "character_saved_build_loadouts" violates not-null constraint
+ ❯ pe.Ue ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pg-protocol/src/parser.ts:442:10
+ ❯ pe.tt ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pg-protocol/src/parser.ts:220:15
+ ❯ pe.parse ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pg-protocol/src/parser.ts:104:20
+ ❯ N.qe ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pglite/src/pglite.ts:753:25
+ ❯ ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pglite/src/pglite.ts:706:13
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:5922000
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:2616044
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:2648530
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:2649134
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:5569870
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 49 skipped (50)
+   Start at  13:16:10
+   Duration  7.96s (transform 2.21s, setup 0ms, import 2.59s, tests 4.91s, environment 0ms)
+
+undefined
+/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/packages/db:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/combat-content-discipline-producers.test.ts -t 'named activation uses actual'

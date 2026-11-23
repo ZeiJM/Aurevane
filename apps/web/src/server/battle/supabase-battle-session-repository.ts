@@ -1,3 +1,5 @@
+import { throwItemRpcError } from '@/server/character/supabase-character-items-repository'
+import { throwCoreConversionAdmissionError } from './core-conversion-admission-error'
 import 'server-only'
 
 import type {
@@ -13,6 +15,7 @@ import {
   parseBattleEventPersistenceRows,
   parseBattleSessionCommitPersistenceRow,
   parseBattleSessionCreationPersistenceRow,
+  parseBattleSessionId,
   parseBattleSessionPersistenceRow,
 } from '@aurevane/validation/combat/battle-session'
 
@@ -28,6 +31,8 @@ function persistenceUnavailable(message: string): AurevaneError {
 }
 
 function throwRpcError(error: { code?: string; message?: string }): never {
+  throwCoreConversionAdmissionError(error)
+  if (error.message?.startsWith('ITEM_')) throwItemRpcError(error)
   if (error.code === '22023' && error.message?.includes('IDEMPOTENCY_CONFLICT')) {
     throw new AurevaneError(
       'IDEMPOTENCY_CONFLICT',
@@ -35,7 +40,7 @@ function throwRpcError(error: { code?: string; message?: string }): never {
     )
   }
 
-  if (error.code === '40001') {
+  if (error.code === '40001' || error.code === 'PT409') {
     const match = error.message?.match(/BATTLE_VERSION_STALE:(\d+)/)
     if (match) {
       const currentVersion = Number(match[1])
@@ -52,15 +57,105 @@ function throwRpcError(error: { code?: string; message?: string }): never {
   throw persistenceUnavailable('The server could not persist the battle right now.')
 }
 
-export function createSupabaseBattleSessionRepository(): BattleSessionRepository &
-  BattleEventRepository &
-  BattleHistoryPrivacyRepository {
+interface WorldBattleAdmissionContext {
+  characterId: string
+  expectedVersion: number
+  worldFingerprint: string
+  throwWorldError(error: { code?: string; message?: string }): never
+}
+
+type WorldBattleAdmission = WorldBattleAdmissionContext &
+  (
+    | { runId: string }
+    | ({ npcId: string } & (
+        { ticketId?: string; mentor?: never } | { ticketId?: never; mentor: MentorBattleTarget }
+      ))
+  )
+
+type MentorBattleTarget = { mentorRunId: string; training: boolean }
+export type WorldNpcBattleTarget = { npcId: string } | { ticketId: string } | MentorBattleTarget
+
+export function worldNpcBattleTargetArgs(target: WorldNpcBattleTarget) {
+  if ('mentorRunId' in target)
+    return { p_mentor_run_id: target.mentorRunId, p_training: target.training }
+  if ('ticketId' in target) return { p_ticket_id: target.ticketId }
+  return { p_npc_id: target.npcId }
+}
+
+export async function readWorldNpcBattleReplay(
+  client: ReturnType<typeof createSupabaseAdminClient>,
+  target: WorldNpcBattleTarget,
+  input: { userId: string; characterId: string; commandId: string; worldFingerprint: string },
+  throwWorldError: WorldBattleAdmissionContext['throwWorldError'],
+): Promise<string | null> {
+  const { data, error } = await client.rpc(
+    'mentorRunId' in target
+      ? 'read_world_mentor_battle_replay_v1'
+      : 'ticketId' in target
+        ? 'read_world_avenger_battle_replay_v1'
+        : 'read_world_npc_battle_replay_v1',
+    {
+      p_user_id: input.userId,
+      p_character_id: input.characterId,
+      p_command_id: input.commandId,
+      p_world_fingerprint: input.worldFingerprint,
+      ...worldNpcBattleTargetArgs(target),
+    },
+  )
+  if (error) throwWorldError(error)
+  if (data === null) return null
+  const battleSessionId = parseBattleSessionId(data)
+  if (!battleSessionId)
+    throw persistenceUnavailable('The server returned an invalid World battle receipt.')
+  return battleSessionId
+}
+
+export function createSupabaseBattleSessionRepository(
+  world?: WorldBattleAdmission,
+): BattleSessionRepository & BattleEventRepository & BattleHistoryPrivacyRepository {
   return {
+    async findBattleCreationReplay(input) {
+      const supabase = createSupabaseAdminClient()
+      const { data, error } = await supabase.rpc('get_battle_creation_replay_v1', {
+        p_user_id: input.userId,
+        p_idempotency_key: input.idempotencyKey,
+        p_request_fingerprint: input.requestFingerprint,
+      })
+      if (error) throwRpcError(error)
+      if (Array.isArray(data) && data.length === 0) return null
+      const row = parseBattleSessionCreationPersistenceRow(data)
+      if (!row)
+        throw persistenceUnavailable('The server returned an invalid battle-creation replay.')
+      if (world && 'npcId' in world) {
+        // A concurrent creation may share an NPC but belong to a different World command.
+        const receipt = await readWorldNpcBattleReplay(
+          supabase,
+          world.mentor ??
+            (world.ticketId === undefined ? { npcId: world.npcId } : { ticketId: world.ticketId }),
+          {
+            userId: input.userId,
+            characterId: world.characterId,
+            commandId: input.idempotencyKey,
+            worldFingerprint: world.worldFingerprint,
+          },
+          world.throwWorldError,
+        )
+        if (receipt !== row.battle_session_id)
+          throw new AurevaneError(
+            'IDEMPOTENCY_CONFLICT',
+            'That request key was already used for a different battle request.',
+          )
+      }
+      return {
+        battleSessionId: row.battle_session_id,
+        battleVersion: row.battle_version,
+        snapshot: row.snapshot,
+        createdAt: row.created_at,
+      }
+    },
     async createBattleSession(input) {
       const supabase = createSupabaseAdminClient()
-      const { data, error } = await supabase.rpc('create_battle_session_v1', {
-        p_actor_key: input.actorKey,
-        p_idempotency_key: input.idempotencyKey,
+      const common = {
         p_request_fingerprint: input.requestFingerprint,
         p_user_id: input.userId,
         p_battle_id: input.battleId,
@@ -72,9 +167,51 @@ export function createSupabaseBattleSessionRepository(): BattleSessionRepository
           participant_role: participant.participantRole,
           character_id: participant.characterId,
         })),
-      })
+      }
+      const startup = {
+        p_start_snapshot: input.startup?.startSnapshot ?? null,
+        p_initial_events: input.startup?.events ?? null,
+        p_privacy_journal: input.startup?.privacyJournal ?? null,
+      }
+      const { data, error } = world
+        ? await supabase.rpc(
+            'runId' in world
+              ? 'start_world_personal_realm_battle_v1'
+              : world.mentor
+                ? 'start_world_mentor_battle_v1'
+                : world.ticketId === undefined
+                  ? 'start_world_npc_battle_v1'
+                  : 'start_world_avenger_battle_v1',
+            {
+              ...common,
+              ...startup,
+              p_command_id: input.idempotencyKey,
+              p_character_id: world.characterId,
+              p_expected_version: world.expectedVersion,
+              ...('runId' in world
+                ? { p_run_id: world.runId }
+                : {
+                    p_npc_id: world.npcId,
+                    ...(world.mentor ? worldNpcBattleTargetArgs(world.mentor) : {}),
+                    ...(world.ticketId === undefined ? {} : { p_ticket_id: world.ticketId }),
+                  }),
+              p_world_fingerprint: world.worldFingerprint,
+            },
+          )
+        : await supabase.rpc(
+            input.startup ? 'create_battle_session_v2' : 'create_battle_session_v1',
+            {
+              ...common,
+              p_actor_key: input.actorKey,
+              p_idempotency_key: input.idempotencyKey,
+              ...(input.startup ? startup : {}),
+            },
+          )
 
-      if (error) throwRpcError(error)
+      if (error) {
+        if (world && error.message?.startsWith('WORLD_')) world.throwWorldError(error)
+        throwRpcError(error)
+      }
       const row = parseBattleSessionCreationPersistenceRow(data)
       if (!row) {
         throw persistenceUnavailable('The server returned an invalid battle-creation result.')

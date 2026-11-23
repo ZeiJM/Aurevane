@@ -193,7 +193,7 @@ describe('Absorb HP command boundaries', () => {
     expect(result.resolution).toBeUndefined()
   })
 
-  it.each([0, -1, 0.5, 10_001, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1])(
+  it.each([0, -1, 0.5, 99_901, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1])(
     'rejects invalid authored basis points %s',
     (basisPoints) => {
       expect(() => validateCombatStatusDefinition(absorbStatus(basisPoints))).toThrow(/Absorb HP/i)

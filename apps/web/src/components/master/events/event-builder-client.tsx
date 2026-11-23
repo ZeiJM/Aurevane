@@ -1,12 +1,41 @@
 'use client'
 import { EventNavigationFields } from '@/components/world/event-navigation-fields'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type {
+  EventDefinitionPreview,
+  EventWorkspaceCatalogue,
+} from '@/server/master/event-authoring-service'
+import { EventPhaseCast, isNpcCastEffect, type StoryNpcCatalogue } from './event-phase-cast'
+import { eventRuntimeBlockers } from './event-runtime-support'
+import {
+  blankPhase,
+  createEventStarter,
+  EventPhasePath,
+  EventStarterPicker,
+  initialDefinition,
+} from './event-authoring-assists'
+import { PersonalJourneyFields } from './personal-journey-fields'
+import { WorldEncounterPicker } from './world-encounter-picker'
+import { MentorChallengeFields } from './mentor-challenge-fields'
+import { RepeatableTravelFields } from './repeatable-travel-fields'
+import { InventoryRestorationFields } from './inventory-restoration-fields'
+import { CombatDiscoveryFields } from './combat-discovery-fields'
+import { eventAudienceLabel } from './event-audience'
+import { WORLD_REGIONS } from '@/world/catalog'
+import { isWorldWeather, WORLD_WEATHER } from '@/world/environment'
 
 import {
+  EVENT_CATEGORIES,
+  EVENT_CATEGORY_LABELS,
   EVENT_EFFECT_TYPES,
   EVENT_FAMILIES,
   EVENT_OBJECTIVE_TYPES,
+  PERSONAL_QUEST_GIVERS,
+  isPersonalQuestGiver,
+  hasConfirmedEventProducer,
+  resolveEventCategory,
+  type EventCategory,
   type EventEffectReference,
   type EventObjectiveDefinition,
   type EventPhaseTransition,
@@ -20,6 +49,8 @@ import styles from './event-builder.module.css'
 interface Props {
   canPublish: boolean
   canUseGlobalScope: boolean
+  category: EventCategory
+  canManageNpcs: boolean
 }
 
 interface WorkspaceResponse {
@@ -40,32 +71,9 @@ interface WorkspaceResponse {
 }
 
 interface ScheduledRun {
+  eventKey: string
   runId: string
   stateVersion: number
-}
-
-const blankPhase = (index: number): PersistentEventPhaseDefinition => ({
-  id: `phase-${index + 1}`,
-  name: `Phase ${index + 1}`,
-  objectives: [],
-  effects: [],
-  cleanupEffects: [],
-  transition: { type: 'manual' },
-})
-
-const initialDefinition: PersistentEventDefinition = {
-  schemaVersion: 1,
-  eventKey: 'event.new-event',
-  templateKey: 'template.live-event',
-  contentVersion: 1,
-  title: 'New Event',
-  summary: 'Describe the player-facing purpose of this event.',
-  internalNotes: '',
-  family: 'regional-event',
-  scope: { type: 'region', key: 'region.frostmere' },
-  phases: [blankPhase(0)],
-  rewardPackageRefs: [],
-  aftermathRefs: [],
 }
 
 function csv(value: readonly string[]): string {
@@ -93,7 +101,10 @@ async function post(body: Record<string, unknown>): Promise<Record<string, unkno
   return payload
 }
 
-function transitionFor(type: EventPhaseTransition['type']): EventPhaseTransition {
+function transitionFor(
+  type: EventPhaseTransition['type'],
+  objectives: readonly EventObjectiveDefinition[],
+): EventPhaseTransition {
   switch (type) {
     case 'manual':
       return { type: 'manual' }
@@ -103,7 +114,241 @@ function transitionFor(type: EventPhaseTransition['type']): EventPhaseTransition
       return { type: 'scheduled', at: new Date(Date.now() + 3_600_000).toISOString() }
     case 'objective-threshold':
       return { type: 'objective-threshold', objectiveId: 'objective-1' }
+    case 'objective-branch':
+      return { type, routes: [] }
+    case 'objective-quorum': {
+      const objectiveIds = objectives.filter(hasConfirmedEventProducer).map(({ id }) => id)
+      return { type, objectiveIds, required: objectiveIds.length || 1 }
+    }
   }
+}
+
+function ObjectiveQuorumFields({
+  transition,
+  objectives,
+  destinations,
+  successPhaseId,
+  onChange,
+}: {
+  transition: Extract<EventPhaseTransition, { type: 'objective-quorum' }>
+  objectives: readonly EventObjectiveDefinition[]
+  destinations: readonly PersistentEventPhaseDefinition[]
+  successPhaseId: string | undefined
+  onChange: (next: Extract<EventPhaseTransition, { type: 'objective-quorum' }>) => void
+}) {
+  const eligible = objectives.filter(hasConfirmedEventProducer)
+  const { deadline } = transition
+  const fallbacks = destinations.filter(({ id }) => id !== successPhaseId)
+  const supportsDeadline =
+    eligible.length >= 2 && objectives.every(({ completion }) => completion === 'world-arrival')
+  return (
+    <fieldset>
+      <legend>Objective requirements</legend>
+      {eligible.length < 2 ? (
+        <p>Add at least two objectives with confirmed World arrivals or NPC battle results.</p>
+      ) : null}
+      {eligible.map(({ id }) => (
+        <label key={id}>
+          <input
+            type="checkbox"
+            checked={transition.objectiveIds.includes(id)}
+            onChange={(event) => {
+              const objectiveIds = event.target.checked
+                ? [...transition.objectiveIds, id]
+                : transition.objectiveIds.filter((candidate) => candidate !== id)
+              onChange({
+                ...transition,
+                objectiveIds,
+                required: Math.min(transition.required, objectiveIds.length || 1),
+              })
+            }}
+          />
+          {id}
+        </label>
+      ))}
+      <label>
+        Objectives required
+        <input
+          type="number"
+          min={1}
+          max={transition.objectiveIds.length || 1}
+          value={transition.required}
+          onChange={(event) => onChange({ ...transition, required: Number(event.target.value) })}
+        />
+      </label>
+      {supportsDeadline || deadline ? (
+        <label>
+          <input
+            type="checkbox"
+            checked={Boolean(deadline)}
+            disabled={!deadline && !fallbacks.length}
+            onChange={(event) =>
+              onChange({
+                ...transition,
+                deadline: event.target.checked ? { afterSeconds: 600, nextPhaseId: '' } : undefined,
+              })
+            }
+          />
+          Take a fallback path if time runs out
+        </label>
+      ) : null}
+      {deadline ? (
+        <>
+          <label>
+            Time limit in seconds
+            <input
+              type="number"
+              min={1}
+              max={2_147_483_647}
+              value={deadline.afterSeconds}
+              onChange={(event) =>
+                onChange({
+                  ...transition,
+                  deadline: { ...deadline, afterSeconds: Number(event.target.value) },
+                })
+              }
+            />
+          </label>
+          <label>
+            Fallback phase
+            <select
+              value={
+                fallbacks.some(({ id }) => id === deadline.nextPhaseId) ? deadline.nextPhaseId : ''
+              }
+              onChange={(event) =>
+                onChange({
+                  ...transition,
+                  deadline: { ...deadline, nextPhaseId: event.target.value },
+                })
+              }
+            >
+              <option value="">Choose a different later phase</option>
+              {fallbacks.map(({ id, name }) => (
+                <option key={id} value={id}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <p>
+            Only arrivals confirmed before the time limit count. The clock starts when this phase
+            opens.
+          </p>
+        </>
+      ) : null}
+      {supportsDeadline && !deadline && !fallbacks.length ? (
+        <p>Add a later phase distinct from the success phase to set a timed fallback.</p>
+      ) : null}
+    </fieldset>
+  )
+}
+
+function ObjectiveBranchFields({
+  transition,
+  objectives,
+  destinations,
+  onChange,
+}: {
+  transition: Extract<EventPhaseTransition, { type: 'objective-branch' }>
+  objectives: readonly EventObjectiveDefinition[]
+  destinations: readonly PersistentEventPhaseDefinition[]
+  onChange: (next: Extract<EventPhaseTransition, { type: 'objective-branch' }>) => void
+}) {
+  const eligible = objectives.filter(hasConfirmedEventProducer)
+  const { routes } = transition
+
+  function moveRoute(index: number, offset: -1 | 1) {
+    const reordered = [...routes]
+    const [route] = reordered.splice(index, 1)
+    reordered.splice(index + offset, 0, route!)
+    onChange({ ...transition, routes: reordered })
+  }
+
+  return (
+    <fieldset>
+      <legend>Objective destinations</legend>
+      {destinations.length ? (
+        <p>The first confirmed completion chooses the next phase. Routes listed first win a tie.</p>
+      ) : (
+        <p>Add a later phase before assigning destinations.</p>
+      )}
+      {eligible.length < 2 ? (
+        <p>Add at least two objectives with confirmed World arrivals or NPC battle results.</p>
+      ) : null}
+      {eligible.map(({ id }) => (
+        <label key={id}>
+          When {id} completes
+          <select
+            value={routes.find(({ objectiveId }) => objectiveId === id)?.nextPhaseId ?? ''}
+            onChange={(event) => {
+              const nextPhaseId = event.target.value
+              const updated = routes.flatMap((route) =>
+                route.objectiveId !== id ? [route] : nextPhaseId ? [{ ...route, nextPhaseId }] : [],
+              )
+              if (nextPhaseId && !routes.some(({ objectiveId }) => objectiveId === id))
+                updated.push({ objectiveId: id, nextPhaseId })
+              onChange({ ...transition, routes: updated })
+            }}
+          >
+            <option value="">Do not use this objective for routing</option>
+            {destinations.map((phase) => (
+              <option key={phase.id} value={phase.id}>
+                {phase.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      ))}
+      {routes.length > 1 ? (
+        <ol aria-label="Priority for simultaneous completions">
+          {routes.map(({ objectiveId }, index) => (
+            <li key={objectiveId} className={styles.branchPriority}>
+              <span>{objectiveId}</span>
+              <button
+                type="button"
+                disabled={index === 0}
+                aria-label={`Raise priority for ${objectiveId}`}
+                onClick={() => moveRoute(index, -1)}
+              >
+                Move up
+              </button>
+              <button
+                type="button"
+                disabled={index === routes.length - 1}
+                aria-label={`Lower priority for ${objectiveId}`}
+                onClick={() => moveRoute(index, 1)}
+              >
+                Move down
+              </button>
+            </li>
+          ))}
+        </ol>
+      ) : null}
+    </fieldset>
+  )
+}
+
+function updatePhaseDestination(
+  phase: PersistentEventPhaseDefinition,
+  previous: string,
+  next?: string,
+): PersistentEventPhaseDefinition {
+  if (phase.transition.type === 'objective-branch') {
+    const routes = phase.transition.routes.flatMap((route) =>
+      route.nextPhaseId !== previous ? [route] : next ? [{ ...route, nextPhaseId: next }] : [],
+    )
+    return { ...phase, transition: { ...phase.transition, routes } }
+  }
+  const nextPhaseId = phase.nextPhaseId === previous ? next : phase.nextPhaseId
+  const { transition } = phase
+  if (transition.type === 'objective-quorum' && transition.deadline?.nextPhaseId === previous) {
+    return {
+      ...phase,
+      nextPhaseId,
+      transition: { ...transition, deadline: { ...transition.deadline, nextPhaseId: next ?? '' } },
+    }
+  }
+  return nextPhaseId === phase.nextPhaseId ? phase : { ...phase, nextPhaseId }
 }
 
 function effect(): EventEffectReference {
@@ -119,8 +364,20 @@ function objective(index: number): EventObjectiveDefinition {
   }
 }
 
-export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
+export function EventBuilderClient({
+  canPublish,
+  canUseGlobalScope,
+  category,
+  canManageNpcs,
+}: Props) {
+  const [tab, setTab] = useState('Setup')
+  const authoringTabs = useRef<HTMLElement>(null)
+  const [eventQuery, setEventQuery] = useState('')
+  const [storyNpcs, setStoryNpcs] = useState<StoryNpcCatalogue>(null)
+  const [catalogue, setCatalogue] = useState<EventWorkspaceCatalogue>({ events: [], rewards: [] })
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
   const [definition, setDefinition] = useState<PersistentEventDefinition>(initialDefinition)
+  const [freshWorkspace, setFreshWorkspace] = useState(true)
   const [baseVersion, setBaseVersion] = useState<number | null>(null)
   const [draftVersion, setDraftVersion] = useState<number | null>(null)
   const [versions, setVersions] = useState<WorkspaceResponse['versions']>([])
@@ -128,21 +385,70 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
   const [testClock, setTestClock] = useState('2026-09-19T12:00')
   const [scheduleStart, setScheduleStart] = useState('')
   const [scheduleEnd, setScheduleEnd] = useState('')
-  const [productionReason, setProductionReason] = useState('')
   const [productionConfirmed, setProductionConfirmed] = useState(false)
   const [scheduledRun, setScheduledRun] = useState<ScheduledRun | null>(null)
   const [message, setMessage] = useState('Ready.')
   const [details, setDetails] = useState('')
+  const [previewResult, setPreviewResult] = useState<EventDefinitionPreview | null>(null)
   const [busy, setBusy] = useState(false)
+  const blockers = eventRuntimeBlockers(definition)
+  const eventCategory = resolveEventCategory(definition)
+  const inventoryDiscovery = definition.inventoryDiscovery
+  const combatDiscovery = definition.combatDiscovery
+  const mentorChallenge = definition.mentorChallenge
+  const hasInventoryRestoration = Boolean(inventoryDiscovery?.restoration)
+  const query = eventQuery.trim().toLowerCase()
+  const visibleEvents = catalogue.events.filter(
+    (entry) =>
+      entry.category === category &&
+      (!query || `${entry.title} ${entry.eventKey}`.toLowerCase().includes(query)),
+  )
+  useEffect(() => {
+    let active = true
+    void post({ operation: 'catalogue' })
+      .then((payload) => {
+        if (active) setCatalogue(payload.catalogue as unknown as EventWorkspaceCatalogue)
+      })
+      .catch((error: unknown) => {
+        if (active)
+          setMessage(error instanceof Error ? error.message : 'Unable to load event references.')
+      })
+    return () => {
+      active = false
+    }
+  }, [])
+
+  useEffect(() => {
+    if (tab !== 'Phases' && tab !== 'Journey' && !(tab === 'Discovery' && hasInventoryRestoration))
+      return
+    let request: AbortController | undefined
+    async function loadStoryNpcs() {
+      request?.abort()
+      const next = new AbortController()
+      request = next
+      try {
+        const response = await fetch('/api/master/events/story-npcs', { signal: next.signal })
+        if (!response.ok) throw new Error('Story NPCs are unavailable.')
+        const { npcs } = (await response.json()) as {
+          npcs: Exclude<StoryNpcCatalogue, string | null>
+        }
+        if (!next.signal.aborted) setStoryNpcs(npcs)
+      } catch {
+        if (!next.signal.aborted) setStoryNpcs('unavailable')
+      }
+    }
+    void loadStoryNpcs()
+    window.addEventListener('focus', loadStoryNpcs)
+    return () => {
+      request?.abort()
+      window.removeEventListener('focus', loadStoryNpcs)
+    }
+  }, [tab, hasInventoryRestoration])
 
   const selectedPhase =
     definition.phases.find((phase) => phase.id === selectedPhaseId) ?? definition.phases[0]
 
-  const productionActionReady =
-    productionConfirmed &&
-    productionReason.length >= 3 &&
-    productionReason.length <= 240 &&
-    productionReason.trim() === productionReason
+  const productionActionReady = productionConfirmed
 
   const globalWarning = useMemo(
     () =>
@@ -152,15 +458,61 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
     [definition.scope.type, canUseGlobalScope],
   )
 
+  function clearEventActions() {
+    setProductionConfirmed(false)
+    setPreviewResult(null)
+    setScheduledRun(null)
+    setScheduleStart('')
+    setScheduleEnd('')
+  }
+
+  function replaceEventIdentity(next: PersistentEventDefinition) {
+    clearEventActions()
+    setFreshWorkspace(false)
+    setDefinition(next)
+    setBaseVersion(null)
+    setDraftVersion(null)
+    setVersions([])
+    setSelectedPhaseId(next.phases[0]!.id)
+    setDetails('')
+  }
+
   function patchDefinition(patch: Partial<PersistentEventDefinition>) {
+    setFreshWorkspace(false)
     setDefinition((current) => ({ ...current, ...patch }))
+    setProductionConfirmed(false)
+    setPreviewResult(null)
   }
 
   function patchPhase(index: number, patch: Partial<PersistentEventPhaseDefinition>) {
+    const current = definition.phases[index]!
+    const replacementId = patch.id
     patchDefinition({
-      phases: definition.phases.map((phase, candidate) =>
-        candidate === index ? { ...phase, ...patch } : phase,
-      ),
+      phases: definition.phases.map((phase, candidate) => {
+        if (candidate !== index)
+          return replacementId === undefined || current.id === replacementId
+            ? phase
+            : updatePhaseDestination(phase, current.id, replacementId)
+        const updated = { ...phase, ...patch }
+        if (!patch.objectives) return updated
+        const ids = new Set(
+          updated.objectives.filter(hasConfirmedEventProducer).map(({ id }) => id),
+        )
+        if (updated.transition.type === 'objective-branch') {
+          const routes = updated.transition.routes.filter(({ objectiveId }) => ids.has(objectiveId))
+          return { ...updated, transition: { ...updated.transition, routes } }
+        }
+        if (updated.transition.type !== 'objective-quorum') return updated
+        const objectiveIds = updated.transition.objectiveIds.filter((id) => ids.has(id))
+        return {
+          ...updated,
+          transition: {
+            ...updated.transition,
+            objectiveIds,
+            required: Math.min(updated.transition.required, objectiveIds.length || 1),
+          },
+        }
+      }),
     })
   }
 
@@ -170,7 +522,25 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
     patch: Partial<EventObjectiveDefinition>,
   ) {
     const phase = definition.phases[phaseIndex]!
+    const previousId = phase.objectives[objectiveIndex]?.id
+    const nextId = patch.id
+    let transition = phase.transition
+    if (previousId && nextId !== undefined && nextId !== previousId) {
+      if (transition.type === 'objective-quorum')
+        transition = {
+          ...transition,
+          objectiveIds: transition.objectiveIds.map((id) => (id === previousId ? nextId : id)),
+        }
+      if (transition.type === 'objective-branch')
+        transition = {
+          ...transition,
+          routes: transition.routes.map((route) =>
+            route.objectiveId === previousId ? { ...route, objectiveId: nextId } : route,
+          ),
+        }
+    }
     patchPhase(phaseIndex, {
+      transition,
       objectives: phase.objectives.map((entry, candidate) =>
         candidate === objectiveIndex ? { ...entry, ...patch } : entry,
       ),
@@ -205,16 +575,18 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
     }
   }
 
-  async function loadWorkspace() {
+  async function loadWorkspace(eventKey = definition.eventKey) {
+    clearEventActions()
     await run('Loading authoritative Event workspace…', async () => {
-      const payload = await post({ operation: 'load', eventKey: definition.eventKey })
+      const payload = await post({ operation: 'load', eventKey })
       const workspace = payload.workspace as unknown as WorkspaceResponse
       const chosen = workspace.draft?.definition ?? workspace.current?.definition
-      if (chosen) {
-        setDefinition(chosen)
-        setSelectedPhaseId(chosen.phases[0]!.id)
-      }
-      setBaseVersion(workspace.current?.definitionVersion ?? null)
+      replaceEventIdentity(chosen ?? { ...definition, eventKey })
+      setBaseVersion(
+        workspace.draft
+          ? workspace.draft.baseVersion
+          : (workspace.current?.definitionVersion ?? null),
+      )
       setDraftVersion(workspace.draft?.draftVersion ?? null)
       setVersions(workspace.versions ?? [])
       setMessage(
@@ -248,7 +620,7 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
         testClock: testClock ? new Date(testClock).toISOString() : undefined,
       })
       setMessage('Preview ready. No Event Run was created.')
-      setDetails(JSON.stringify(payload.preview, null, 2))
+      setPreviewResult(payload.preview as unknown as EventDefinitionPreview)
     })
   }
 
@@ -268,6 +640,23 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
       setDraftVersion(draft.draftVersion)
       setBaseVersion(draft.baseVersion)
       setDefinition(draft.definition)
+      setCatalogue((current) => {
+        const entry = current.events.find((event) => event.eventKey === draft.definition.eventKey)
+        return {
+          ...current,
+          events: [
+            ...current.events.filter((event) => event !== entry),
+            {
+              eventKey: draft.definition.eventKey,
+              title: draft.definition.title,
+              scope: draft.definition.scope,
+              category: resolveEventCategory(draft.definition),
+              draftVersion: draft.draftVersion,
+              publishedVersion: entry?.publishedVersion ?? null,
+            },
+          ].sort((left, right) => left.title.localeCompare(right.title)),
+        }
+      })
       setMessage(`Draft v${draft.draftVersion} saved.`)
     })
   }
@@ -279,7 +668,7 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
         definition,
         expectedBaseVersion: baseVersion,
         correlationKey: crypto.randomUUID(),
-        reason: productionReason,
+
         confirmed: productionConfirmed,
       })
       const published = payload.published as {
@@ -289,6 +678,25 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
       setBaseVersion(published.definitionVersion)
       setDefinition(published.definition)
       await loadWorkspace()
+      setCatalogue((current) => {
+        const previous = current.events.find(
+          (entry) => entry.eventKey === published.definition.eventKey,
+        )
+        const entry = {
+          eventKey: published.definition.eventKey,
+          title: published.definition.title,
+          scope: published.definition.scope,
+          category: resolveEventCategory(published.definition),
+          publishedVersion: published.definitionVersion,
+          draftVersion: previous?.draftVersion == null ? null : previous.draftVersion + 1,
+        }
+        return {
+          ...current,
+          events: [...current.events.filter((candidate) => candidate !== previous), entry].sort(
+            (left, right) => left.title.localeCompare(right.title),
+          ),
+        }
+      })
       setProductionConfirmed(false)
       setMessage(`Published Event definition v${published.definitionVersion}.`)
     })
@@ -304,28 +712,28 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
         operation: 'schedule',
         eventKey: definition.eventKey,
         idempotencyKey,
-        requestFingerprint: `schedule:${definition.eventKey}:${startIso}:${endIso ?? 'open'}`,
+
         scheduledStartAt: startIso,
         scheduledEndAt: endIso,
-        reason: productionReason,
+
         confirmed: productionConfirmed,
       })
-      const scheduled = payload.scheduled as ScheduledRun
-      setScheduledRun(scheduled)
+      const scheduled = payload.scheduled as Omit<ScheduledRun, 'eventKey'>
+      setScheduledRun({ ...scheduled, eventKey: definition.eventKey })
       setProductionConfirmed(false)
       setMessage(`Scheduled run ${scheduled.runId}.`)
     })
   }
 
   async function unschedule() {
-    if (!scheduledRun) return
+    if (!scheduledRun || scheduledRun.eventKey !== definition.eventKey) return
     await run('Cancelling scheduled Event Run…', async () => {
       const payload = await post({
         operation: 'cancel-scheduled',
         runId: scheduledRun.runId,
         expectedStateVersion: scheduledRun.stateVersion,
         idempotencyKey: crypto.randomUUID(),
-        reason: productionReason,
+
         confirmed: productionConfirmed,
       })
       const transition = payload.transition as { lifecycleStatus: string }
@@ -336,15 +744,10 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
   }
 
   function startNewDefinition() {
-    const next = structuredClone(initialDefinition)
-    setDefinition(next)
-    setBaseVersion(null)
-    setDraftVersion(null)
-    setVersions([])
-    setSelectedPhaseId(next.phases[0]!.id)
-    setScheduledRun(null)
-    setProductionReason('')
-    setProductionConfirmed(false)
+    const next = { ...structuredClone(initialDefinition), category }
+    replaceEventIdentity(next)
+    setFreshWorkspace(true)
+    setTab('Setup')
     setMessage('New Event workspace ready.')
     setDetails('')
   }
@@ -353,435 +756,865 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
     baseVersion !== null ? 'Published' : draftVersion !== null ? 'Draft' : 'New'
 
   return (
-    <section className={styles.builder}>
-      <aside className={styles.eventNavigator} aria-label="Event workspace navigator">
-        <div className={styles.navigatorHeading}>
-          <div>
-            <p className={styles.eyebrow}>Event definition</p>
-            <h2>Events</h2>
-          </div>
-          <span>{publicationState}</span>
-        </div>
-
-        <label className={styles.navigatorField}>
-          Event key
-          <input
-            value={definition.eventKey}
-            onChange={(event) => patchDefinition({ eventKey: event.target.value })}
-          />
-        </label>
-
-        <div className={styles.navigatorActions}>
-          <button type="button" onClick={loadWorkspace} disabled={busy}>
-            Load
-          </button>
-          <button type="button" onClick={startNewDefinition} disabled={busy}>
-            New Event
-          </button>
-        </div>
-
-        <div className={styles.navigatorSummary}>
-          <div>
-            <span>Published</span>
-            <strong>{baseVersion === null ? '—' : `v${baseVersion}`}</strong>
-          </div>
-          <div>
-            <span>Draft</span>
-            <strong>{draftVersion === null ? '—' : `d${draftVersion}`}</strong>
-          </div>
-          <div>
-            <span>Phases</span>
-            <strong>{definition.phases.length}</strong>
-          </div>
-        </div>
-
-        <section className={styles.navigatorHistory} aria-label="Event version history">
-          <div className={styles.miniHeading}>
-            <h3>Recent versions</h3>
-            <span>{versions.length}</span>
-          </div>
-          {versions.length === 0 ? (
-            <p>No published history loaded.</p>
-          ) : (
-            <div className={styles.versionList}>
-              {versions.map((version) => (
-                <div key={version.definitionVersion}>
-                  <span aria-hidden="true">◆</span>
-                  <div>
-                    <strong>v{version.definitionVersion}</strong>
-                    <small>{version.current ? 'Current publication' : 'Published version'}</small>
-                  </div>
-                  <time>{new Date(version.publishedAt).toLocaleDateString()}</time>
-                </div>
-              ))}
+    <section className={styles.builder} aria-busy={busy}>
+      <fieldset className={styles.busyFields} disabled={busy}>
+        <aside className={styles.eventNavigator} aria-label="Event workspace navigator">
+          <div className={styles.navigatorHeading}>
+            <div>
+              <p className={styles.eyebrow}>Event definition</p>
+              <h2>{EVENT_CATEGORY_LABELS[category]}</h2>
             </div>
-          )}
-        </section>
-      </aside>
-
-      <div className={styles.builderWorkspace}>
-        <header className={styles.eventHeader}>
-          <div className={styles.eventIdentityIcon} aria-hidden="true">
-            ✦
-          </div>
-          <div className={styles.eventIdentity}>
-            <h2 className={styles.definitionHeading}>Persistent Event Definition</h2>
-            <strong className={styles.eventTitle}>{definition.title}</strong>
-            <p>
-              <code>{definition.eventKey}</code>
-              <span>{publicationState}</span>
-            </p>
-          </div>
-          <div className={styles.eventHeaderState}>
             <span>{publicationState}</span>
           </div>
-        </header>
 
-        <nav className={styles.workspaceTabs} aria-label="Event Builder workspace">
-          <a href="#event-details">Details</a>
-          <a href="#event-phases">Phases</a>
-          <a href="#event-phases">Objectives</a>
-          <a href="#event-phases">Effects</a>
-          <a href="#event-controls">Schedule</a>
-        </nav>
-
-        {!canPublish ? (
-          <p className={styles.notice}>
-            Production publication is disabled for this account. Draft and preview remain available.
-          </p>
-        ) : null}
-        {globalWarning ? <p className={styles.notice}>{globalWarning}</p> : null}
-
-        <section className={`${styles.card} ${styles.primaryCard}`} id="event-details">
-          <div className={styles.sectionHeading}>
-            <div>
-              <p className={styles.eyebrow}>Details</p>
-              <h2>Basic information</h2>
-            </div>
-          </div>
+          <label className={styles.navigatorField}>
+            Event key
+            <input
+              value={definition.eventKey}
+              onChange={(event) => {
+                replaceEventIdentity({ ...definition, eventKey: event.target.value })
+                setMessage('Event identity changed. Load its history or save a new draft.')
+              }}
+            />
+          </label>
 
           <label>
-            Template key
+            Search events
             <input
-              value={definition.templateKey}
-              onChange={(event) => patchDefinition({ templateKey: event.target.value })}
+              type="search"
+              value={eventQuery}
+              onChange={(event) => setEventQuery(event.target.value)}
+              placeholder="Title or event key"
             />
           </label>
           <label>
-            Family
+            Saved events
             <select
-              value={definition.family}
-              onChange={(event) =>
-                patchDefinition({
-                  family: event.target.value as PersistentEventDefinition['family'],
-                })
-              }
+              value=""
+              disabled={busy}
+              onChange={(event) => {
+                if (event.target.value) void loadWorkspace(event.target.value)
+              }}
             >
-              {EVENT_FAMILIES.map((family) => (
-                <option key={family}>{family}</option>
+              <option value="">Choose an event</option>
+              {visibleEvents.map((entry) => (
+                <option key={entry.eventKey} value={entry.eventKey}>
+                  {entry.title} · {entry.draftVersion ? 'Draft' : 'Published'} ·{' '}
+                  {eventAudienceLabel(
+                    entry.scope.type,
+                    entry.scope.type === 'global' ? null : entry.scope.key,
+                  )}
+                </option>
               ))}
             </select>
           </label>
-          <label>
-            Title
-            <input
-              value={definition.title}
-              onChange={(event) => patchDefinition({ title: event.target.value })}
-            />
-          </label>
-          <label>
-            Scope
-            <select
-              value={definition.scope.type}
-              onChange={(event) => {
-                const type = event.target.value as EventScope['type']
-                patchDefinition({
-                  scope: type === 'global' ? { type: 'global' } : { type, key: 'region.frostmere' },
-                })
-              }}
-            >
-              <option value="global">global</option>
-              <option value="region">region</option>
-              <option value="node">node</option>
-              <option value="cohort">cohort</option>
-            </select>
-          </label>
-          {definition.scope.type !== 'global' ? (
-            <label>
-              Scope key
-              <input
-                value={definition.scope.key}
-                onChange={(event) =>
-                  patchDefinition({
-                    scope: { type: definition.scope.type, key: event.target.value } as EventScope,
-                  })
-                }
-              />
-            </label>
-          ) : null}
-          <label className={styles.wideField}>
-            Summary
-            <textarea
-              value={definition.summary}
-              onChange={(event) => patchDefinition({ summary: event.target.value })}
-            />
-          </label>
-          <label className={styles.wideField}>
-            Internal notes
-            <textarea
-              value={definition.internalNotes}
-              onChange={(event) => patchDefinition({ internalNotes: event.target.value })}
-            />
-          </label>
-        </section>
-
-        <section className={styles.phases} id="event-phases">
-          <div className={styles.sectionHeading}>
-            <div>
-              <p className={styles.eyebrow}>Composition</p>
-              <h2>Phases, objectives &amp; effects</h2>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                const next = blankPhase(definition.phases.length)
-                patchDefinition({ phases: [...definition.phases, next] })
-                setSelectedPhaseId(next.id)
-              }}
-            >
-              Add phase
+          <div className={styles.navigatorActions}>
+            <button type="button" onClick={() => void loadWorkspace()} disabled={busy}>
+              Load
+            </button>
+            <button type="button" onClick={startNewDefinition} disabled={busy}>
+              New Event
             </button>
           </div>
 
-          {definition.phases.map((phase, phaseIndex) => (
-            <article className={styles.phaseCard} key={`${phase.id}-${phaseIndex}`}>
-              <div className={styles.phaseHeader}>
-                <div>
-                  <span>Phase {phaseIndex + 1}</span>
-                  <strong>{phase.name}</strong>
-                </div>
-                <button
-                  type="button"
-                  disabled={definition.phases.length === 1}
-                  onClick={() => {
-                    const remaining = definition.phases.filter((_, index) => index !== phaseIndex)
-                    patchDefinition({ phases: remaining })
-                    setSelectedPhaseId(remaining[0]!.id)
-                  }}
-                >
-                  Remove
-                </button>
-              </div>
+          <div className={styles.navigatorSummary}>
+            <div>
+              <span>Published</span>
+              <strong>{baseVersion === null ? '—' : `v${baseVersion}`}</strong>
+            </div>
+            <div>
+              <span>Draft</span>
+              <strong>{draftVersion === null ? '—' : `d${draftVersion}`}</strong>
+            </div>
+            <div>
+              <span>Phases</span>
+              <strong>{definition.phases.length}</strong>
+            </div>
+          </div>
 
-              <div className={styles.grid}>
+          <section className={styles.navigatorHistory} aria-label="Event version history">
+            <div className={styles.miniHeading}>
+              <h3>Recent versions</h3>
+              <span>{versions.length}</span>
+            </div>
+            {versions.length === 0 ? (
+              <p>No published history loaded.</p>
+            ) : (
+              <div className={styles.versionList}>
+                {versions.map((version) => (
+                  <div key={version.definitionVersion}>
+                    <span aria-hidden="true">◆</span>
+                    <div>
+                      <strong>v{version.definitionVersion}</strong>
+                      <small>{version.current ? 'Current publication' : 'Published version'}</small>
+                    </div>
+                    <time>{new Date(version.publishedAt).toLocaleDateString()}</time>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        </aside>
+
+        <div className={styles.builderWorkspace}>
+          <header className={styles.eventHeader}>
+            <div className={styles.eventIdentityIcon} aria-hidden="true">
+              ✦
+            </div>
+            <div className={styles.eventIdentity}>
+              <h2 className={styles.definitionHeading}>Persistent Event Definition</h2>
+              <strong className={styles.eventTitle}>{definition.title}</strong>
+              <small>{EVENT_CATEGORY_LABELS[eventCategory]}</small>
+              <p>
+                <code>{definition.eventKey}</code>
+                <span>{publicationState}</span>
+              </p>
+            </div>
+            <div className={styles.eventHeaderState}>
+              <span>{publicationState}</span>
+            </div>
+          </header>
+
+          <nav
+            ref={authoringTabs}
+            className={styles.workspaceTabs}
+            aria-label="Event authoring sections"
+          >
+            {[
+              'Setup',
+              ...(eventCategory === 'story-campaigns' ||
+              eventCategory === 'repeatable-activities' ||
+              definition.personalJourney ||
+              definition.repeatableTravel ||
+              mentorChallenge
+                ? ['Journey']
+                : []),
+              ...(eventCategory === 'hidden-discoveries' || inventoryDiscovery || combatDiscovery
+                ? ['Discovery']
+                : []),
+              'Phases',
+              'Rewards',
+              'Preview',
+              'Schedule',
+            ].map((name) => (
+              <button
+                key={name}
+                type="button"
+                aria-pressed={tab === name}
+                onClick={() => setTab(name)}
+              >
+                {name}
+              </button>
+            ))}
+          </nav>
+          <p className={styles.notice}>
+            Audience:{' '}
+            {eventAudienceLabel(
+              definition.scope.type,
+              definition.scope.type === 'global' ? null : definition.scope.key,
+            )}
+            . World guidance navigates without awarding progress. Contribution and reward recipes
+            stay in drafts until a live producer is available. Draft changes never alter pinned live
+            runs.
+          </p>
+          {blockers.length ? (
+            <details className={styles.notice}>
+              <summary>
+                Production unavailable · {blockers.length} unsupported reference
+                {blockers.length === 1 ? '' : 's'}
+              </summary>
+              <ul>
+                {blockers.map((blocker, index) => (
+                  <li key={index}>{blocker}</li>
+                ))}
+              </ul>
+            </details>
+          ) : null}
+
+          {!canPublish ? (
+            <p className={styles.notice}>
+              Production publication is disabled for this account. Draft and preview remain
+              available.
+            </p>
+          ) : null}
+          {globalWarning ? <p className={styles.notice}>{globalWarning}</p> : null}
+
+          <section
+            className={`${styles.card} ${styles.primaryCard}`}
+            id="event-details"
+            hidden={tab !== 'Setup'}
+          >
+            <div className={styles.sectionHeading}>
+              <div>
+                <p className={styles.eyebrow}>Details</p>
+                <h2>Basic information</h2>
+              </div>
+            </div>
+
+            {freshWorkspace && baseVersion === null && draftVersion === null ? (
+              <EventStarterPicker
+                category={category}
+                start={(starter) => {
+                  const next = createEventStarter(
+                    starter,
+                    `event.${starter}-${crypto.randomUUID()}`,
+                  )
+                  replaceEventIdentity(next)
+                  setTab(next.personalJourney ? 'Journey' : 'Phases')
+                  requestAnimationFrame(() =>
+                    authoringTabs.current
+                      ?.querySelector<HTMLElement>('[aria-pressed="true"]')
+                      ?.focus(),
+                  )
+                  setMessage('Starter loaded into a new workspace. Save it as a draft when ready.')
+                }}
+              />
+            ) : null}
+            <details>
+              <summary>Template identity</summary>
+              <label>
+                Template key
+                <input
+                  value={definition.templateKey}
+                  onChange={(event) => patchDefinition({ templateKey: event.target.value })}
+                />
+              </label>
+            </details>
+            <label>
+              Category
+              <select
+                value={eventCategory}
+                onChange={(event) =>
+                  patchDefinition({ category: event.target.value as EventCategory })
+                }
+              >
+                {EVENT_CATEGORIES.map((entry) => (
+                  <option key={entry} value={entry}>
+                    {EVENT_CATEGORY_LABELS[entry]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Family
+              <select
+                value={definition.family}
+                onChange={(event) =>
+                  patchDefinition({
+                    family: event.target.value as PersistentEventDefinition['family'],
+                  })
+                }
+              >
+                {EVENT_FAMILIES.map((family) => (
+                  <option key={family}>{family}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Title
+              <input
+                value={definition.title}
+                onChange={(event) => patchDefinition({ title: event.target.value })}
+              />
+            </label>
+            <label>
+              Scope
+              <select
+                value={definition.scope.type}
+                onChange={(event) => {
+                  const type = event.target.value as EventScope['type']
+                  patchDefinition({
+                    scope:
+                      type === 'global'
+                        ? { type: 'global' }
+                        : { type, key: type === 'region' ? WORLD_REGIONS[0]!.id : '' },
+                  })
+                }}
+              >
+                <option value="global">global</option>
+                <option value="region">region</option>
+                <option value="node">node</option>
+                <option value="cohort">cohort</option>
+              </select>
+            </label>
+            {definition.scope.type === 'region' ? (
+              <label>
+                Region audience
+                <select
+                  value={definition.scope.key}
+                  onChange={(event) =>
+                    patchDefinition({ scope: { type: 'region', key: event.target.value } })
+                  }
+                >
+                  {!WORLD_REGIONS.some(
+                    (region) => region.id === (definition.scope as { key: string }).key,
+                  ) ? (
+                    <option value={definition.scope.key}>
+                      Unresolved region reference · {definition.scope.key}
+                    </option>
+                  ) : null}
+                  {WORLD_REGIONS.map((region) => (
+                    <option key={region.id} value={region.id}>
+                      {region.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : definition.scope.type === 'node' || definition.scope.type === 'cohort' ? (
+              <div className={styles.wideField}>
                 <label>
-                  Phase id
+                  Custom {definition.scope.type} reference (unresolved)
                   <input
-                    value={phase.id}
-                    onChange={(event) => patchPhase(phaseIndex, { id: event.target.value })}
-                  />
-                </label>
-                <label>
-                  Name
-                  <input
-                    value={phase.name}
-                    onChange={(event) => patchPhase(phaseIndex, { name: event.target.value })}
-                  />
-                </label>
-                <label>
-                  Transition
-                  <select
-                    value={phase.transition.type}
+                    value={definition.scope.key}
                     onChange={(event) =>
-                      patchPhase(phaseIndex, {
-                        transition: transitionFor(
-                          event.target.value as EventPhaseTransition['type'],
-                        ),
+                      patchDefinition({
+                        scope: {
+                          type: definition.scope.type,
+                          key: event.target.value,
+                        } as EventScope,
                       })
                     }
-                  >
-                    <option value="manual">manual</option>
-                    <option value="elapsed">elapsed</option>
-                    <option value="scheduled">scheduled</option>
-                    <option value="objective-threshold">objective-threshold</option>
-                  </select>
+                  />
                 </label>
-                {phase.transition.type === 'elapsed' ? (
-                  <label>
-                    After seconds
+                <p>
+                  No {definition.scope.type} catalogue or audience-membership resolver is available
+                  here. This custom draft reference does not verify an audience or add gameplay
+                  execution.
+                </p>
+              </div>
+            ) : null}
+            <label className={styles.wideField}>
+              Summary
+              <textarea
+                value={definition.summary}
+                onChange={(event) => patchDefinition({ summary: event.target.value })}
+              />
+            </label>
+            <label className={styles.wideField}>
+              Internal notes
+              <textarea
+                value={definition.internalNotes}
+                onChange={(event) => patchDefinition({ internalNotes: event.target.value })}
+              />
+            </label>
+          </section>
+
+          <section className={styles.card} hidden={tab !== 'Journey'} aria-label="Personal journey">
+            <h2>
+              {eventCategory === 'repeatable-activities' ||
+              definition.repeatableTravel ||
+              mentorChallenge
+                ? 'Repeatable activity'
+                : 'Personal journey'}
+            </h2>
+            {(eventCategory === 'repeatable-activities' || mentorChallenge) &&
+            !definition.repeatableTravel ? (
+              <MentorChallengeFields
+                value={mentorChallenge}
+                rewards={catalogue.rewards}
+                change={(mentorChallenge) => patchDefinition({ mentorChallenge })}
+              />
+            ) : null}
+            {eventCategory === 'repeatable-activities' ||
+            definition.repeatableTravel ||
+            mentorChallenge ? (
+              !mentorChallenge && (
+                <RepeatableTravelFields
+                  value={definition.repeatableTravel}
+                  storyNpcs={storyNpcs}
+                  rewards={catalogue.rewards}
+                  change={(repeatableTravel) =>
+                    patchDefinition({
+                      repeatableTravel,
+                      ...(repeatableTravel?.journey.type === 'travel-and-report' &&
+                      definition.scope.type === 'region'
+                        ? {
+                            scope: {
+                              type: 'region',
+                              key: PERSONAL_QUEST_GIVERS[repeatableTravel.journey.giverId].position
+                                .sectorId,
+                            },
+                          }
+                        : {}),
+                    })
+                  }
+                />
+              )
+            ) : (
+              <PersonalJourneyFields
+                journey={definition.personalJourney}
+                storyNpcs={storyNpcs}
+                change={(journey) =>
+                  patchDefinition({
+                    personalJourney: journey,
+                    ...(journey &&
+                    definition.scope.type === 'region' &&
+                    isPersonalQuestGiver(journey.giverId)
+                      ? {
+                          scope: {
+                            type: 'region',
+                            key: PERSONAL_QUEST_GIVERS[journey.giverId].position.sectorId,
+                          },
+                        }
+                      : {}),
+                  })
+                }
+              />
+            )}
+          </section>
+
+          <section
+            className={styles.card}
+            hidden={tab !== 'Discovery'}
+            aria-label="Inventory discovery"
+          >
+            <h2>Inventory discovery</h2>
+            <p>
+              The journal reveals the clue when a character carries both Items. Discovery keeps both
+              Items in inventory.
+            </p>
+            <label className={styles.checkbox}>
+              <input
+                type="checkbox"
+                checked={Boolean(inventoryDiscovery)}
+                disabled={(!canUseGlobalScope || Boolean(combatDiscovery)) && !inventoryDiscovery}
+                onChange={(event) =>
+                  patchDefinition({
+                    inventoryDiscovery: event.target.checked
+                      ? { firstItemId: '', secondItemId: '', clue: '' }
+                      : undefined,
+                  })
+                }
+              />
+              Enable a carried Item discovery
+            </label>
+            <p>Requires a global Hidden Discovery with one manual phase.</p>
+            {inventoryDiscovery ? (
+              <>
+                {(
+                  [
+                    ['firstItemId', 'First carried Item ID'],
+                    ['secondItemId', 'Second carried Item ID'],
+                  ] as const
+                ).map(([field, label]) => (
+                  <label key={field}>
+                    {label}
                     <input
-                      type="number"
-                      min={1}
-                      value={phase.transition.afterSeconds}
+                      value={inventoryDiscovery[field]}
+                      maxLength={160}
                       onChange={(event) =>
-                        patchPhase(phaseIndex, {
-                          transition: { type: 'elapsed', afterSeconds: Number(event.target.value) },
-                        })
-                      }
-                    />
-                  </label>
-                ) : null}
-                {phase.transition.type === 'scheduled' ? (
-                  <label>
-                    At
-                    <input
-                      value={phase.transition.at}
-                      onChange={(event) =>
-                        patchPhase(phaseIndex, {
-                          transition: { type: 'scheduled', at: event.target.value },
-                        })
-                      }
-                    />
-                  </label>
-                ) : null}
-                {phase.transition.type === 'objective-threshold' ? (
-                  <label>
-                    Objective id
-                    <input
-                      value={phase.transition.objectiveId}
-                      onChange={(event) =>
-                        patchPhase(phaseIndex, {
-                          transition: {
-                            type: 'objective-threshold',
-                            objectiveId: event.target.value,
+                        patchDefinition({
+                          inventoryDiscovery: {
+                            ...inventoryDiscovery,
+                            [field]: event.target.value,
                           },
                         })
                       }
                     />
                   </label>
-                ) : null}
-              </div>
-
-              <div className={styles.compositionGroup}>
-                <div className={styles.sectionHeading}>
-                  <h3>Objectives</h3>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      patchPhase(phaseIndex, {
-                        objectives: [...phase.objectives, objective(phase.objectives.length)],
+                ))}
+                <label>
+                  Revealed clue
+                  <textarea
+                    value={inventoryDiscovery.clue}
+                    maxLength={800}
+                    onChange={(event) =>
+                      patchDefinition({
+                        inventoryDiscovery: { ...inventoryDiscovery, clue: event.target.value },
                       })
                     }
+                  />
+                </label>
+                <InventoryRestorationFields
+                  key={definition.eventKey}
+                  value={inventoryDiscovery.restoration}
+                  storyNpcs={storyNpcs}
+                  rewards={catalogue.rewards}
+                  canUseGlobalScope={canUseGlobalScope}
+                  change={(restoration) =>
+                    patchDefinition({ inventoryDiscovery: { ...inventoryDiscovery, restoration } })
+                  }
+                />
+              </>
+            ) : null}
+          </section>
+
+          <section
+            className={styles.card}
+            hidden={tab !== 'Discovery'}
+            aria-label="Combat discovery"
+          >
+            <h2>Combat discovery</h2>
+            {inventoryDiscovery ? (
+              <p>Turn off the carried Item discovery to use this trigger.</p>
+            ) : null}
+            <CombatDiscoveryFields
+              key={definition.eventKey}
+              value={combatDiscovery}
+              rewards={catalogue.rewards}
+              canEnable={
+                canUseGlobalScope &&
+                !inventoryDiscovery &&
+                !definition.personalJourney &&
+                !definition.repeatableTravel
+              }
+              change={(next) => patchDefinition({ combatDiscovery: next })}
+            />
+          </section>
+
+          <section className={styles.phases} id="event-phases" hidden={tab !== 'Phases'}>
+            <div className={styles.sectionHeading}>
+              <div>
+                <p className={styles.eyebrow}>Composition</p>
+                <h2>Phases, objectives &amp; effects</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const next = blankPhase(definition.phases.length)
+                  patchDefinition({ phases: [...definition.phases, next] })
+                  setSelectedPhaseId(next.id)
+                }}
+              >
+                Add phase
+              </button>
+            </div>
+
+            <EventPhasePath
+              phases={definition.phases}
+              onOpenPhase={(phaseIndex) => {
+                setSelectedPhaseId(definition.phases[phaseIndex]!.id)
+                document.getElementById(`event-phase-editor-${phaseIndex}`)?.focus()
+              }}
+            />
+
+            {definition.phases.map((phase, phaseIndex) => (
+              <article
+                aria-label={phase.name || `Phase ${phaseIndex + 1}`}
+                className={styles.phaseCard}
+                id={`event-phase-editor-${phaseIndex}`}
+                key={phaseIndex}
+                tabIndex={-1}
+              >
+                <div className={styles.phaseHeader}>
+                  <div>
+                    <span>Phase {phaseIndex + 1}</span>
+                    <strong>{phase.name}</strong>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={definition.phases.length === 1}
+                    onClick={() => {
+                      const remaining = definition.phases
+                        .filter((_, index) => index !== phaseIndex)
+                        .map((candidate) => updatePhaseDestination(candidate, phase.id))
+                      patchDefinition({ phases: remaining })
+                      setSelectedPhaseId(remaining[0]!.id)
+                    }}
                   >
-                    Add objective
+                    Remove
                   </button>
                 </div>
-                {phase.objectives.map((entry, objectiveIndex) => (
-                  <div className={styles.row} key={`${entry.id}-${objectiveIndex}`}>
+
+                <div className={styles.grid}>
+                  <label>
+                    Phase id
                     <input
-                      value={entry.id}
-                      onChange={(event) =>
-                        patchObjective(phaseIndex, objectiveIndex, { id: event.target.value })
-                      }
-                      aria-label="Objective id"
+                      value={phase.id}
+                      onChange={(event) => patchPhase(phaseIndex, { id: event.target.value })}
                     />
+                  </label>
+                  <label>
+                    Name
+                    <input
+                      value={phase.name}
+                      onChange={(event) => patchPhase(phaseIndex, { name: event.target.value })}
+                    />
+                  </label>
+                  <label>
+                    Transition
                     <select
-                      value={entry.type}
-                      onChange={(event) =>
-                        patchObjective(phaseIndex, objectiveIndex, {
-                          type: event.target.value as EventObjectiveDefinition['type'],
+                      value={phase.transition.type}
+                      onChange={(event) => {
+                        const type = event.target.value as EventPhaseTransition['type']
+                        patchPhase(phaseIndex, {
+                          transition: transitionFor(type, phase.objectives),
+                          ...(type === 'objective-branch' ? { nextPhaseId: undefined } : {}),
                         })
-                      }
-                      aria-label="Objective type"
+                      }}
                     >
-                      {EVENT_OBJECTIVE_TYPES.map((type) => (
-                        <option key={type}>{type}</option>
-                      ))}
+                      <option value="manual">manual</option>
+                      <option value="elapsed">elapsed</option>
+                      <option value="scheduled">scheduled</option>
+                      <option value="objective-threshold">objective-threshold</option>
+                      <option value="objective-quorum">Multiple objectives</option>
+                      <option value="objective-branch">Branch by objective</option>
                     </select>
-                    <input
-                      value={entry.referenceKey}
-                      onChange={(event) =>
-                        patchObjective(phaseIndex, objectiveIndex, {
-                          referenceKey: event.target.value,
-                        })
-                      }
-                      aria-label="Objective reference"
+                  </label>
+                  {phase.transition.type === 'elapsed' ? (
+                    <label>
+                      After seconds
+                      <input
+                        type="number"
+                        min={1}
+                        value={phase.transition.afterSeconds}
+                        onChange={(event) =>
+                          patchPhase(phaseIndex, {
+                            transition: {
+                              type: 'elapsed',
+                              afterSeconds: Number(event.target.value),
+                            },
+                          })
+                        }
+                      />
+                    </label>
+                  ) : null}
+                  {phase.transition.type === 'scheduled' ? (
+                    <label>
+                      At
+                      <input
+                        value={phase.transition.at}
+                        onChange={(event) =>
+                          patchPhase(phaseIndex, {
+                            transition: { type: 'scheduled', at: event.target.value },
+                          })
+                        }
+                      />
+                    </label>
+                  ) : null}
+                  {phase.transition.type === 'objective-threshold' ? (
+                    <label>
+                      Objective id
+                      <input
+                        value={phase.transition.objectiveId}
+                        onChange={(event) =>
+                          patchPhase(phaseIndex, {
+                            transition: {
+                              type: 'objective-threshold',
+                              objectiveId: event.target.value,
+                            },
+                          })
+                        }
+                      />
+                    </label>
+                  ) : null}
+                  {phase.transition.type === 'objective-quorum' ? (
+                    <ObjectiveQuorumFields
+                      transition={phase.transition}
+                      objectives={phase.objectives}
+                      destinations={definition.phases.slice(phaseIndex + 1)}
+                      successPhaseId={phase.nextPhaseId ?? definition.phases[phaseIndex + 1]?.id}
+                      onChange={(transition) => patchPhase(phaseIndex, { transition })}
                     />
-                    <input
-                      type="number"
-                      min={1}
-                      value={entry.target}
-                      onChange={(event) =>
-                        patchObjective(phaseIndex, objectiveIndex, {
-                          target: Number(event.target.value),
-                        })
-                      }
-                      aria-label="Objective target"
+                  ) : null}
+                  {phase.transition.type === 'objective-branch' ? (
+                    <ObjectiveBranchFields
+                      transition={phase.transition}
+                      objectives={phase.objectives}
+                      destinations={definition.phases.slice(phaseIndex + 1)}
+                      onChange={(transition) => patchPhase(phaseIndex, { transition })}
                     />
-                    <EventNavigationFields
-                      value={entry.worldNavigation}
-                      onChange={(worldNavigation) =>
-                        patchObjective(phaseIndex, objectiveIndex, { worldNavigation })
-                      }
-                    />
+                  ) : phaseIndex + 1 < definition.phases.length ? (
+                    <label>
+                      Next phase
+                      <select
+                        value={phase.nextPhaseId ?? ''}
+                        onChange={(event) =>
+                          patchPhase(phaseIndex, { nextPhaseId: event.target.value || undefined })
+                        }
+                      >
+                        <option value="">Follow phase order</option>
+                        {definition.phases.slice(phaseIndex + 1).map((destination) => (
+                          <option key={destination.id} value={destination.id}>
+                            {destination.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  ) : null}
+                </div>
+
+                <div className={styles.compositionGroup}>
+                  <div className={styles.sectionHeading}>
+                    <h3>Objectives</h3>
                     <button
                       type="button"
                       onClick={() =>
                         patchPhase(phaseIndex, {
-                          objectives: phase.objectives.filter(
-                            (_, index) => index !== objectiveIndex,
-                          ),
+                          objectives: [...phase.objectives, objective(phase.objectives.length)],
                         })
                       }
                     >
-                      ×
+                      Add objective
                     </button>
                   </div>
-                ))}
-              </div>
-
-              {(['effects', 'cleanupEffects'] as const).map((list) => (
-                <div className={styles.compositionGroup} key={list}>
-                  <div className={styles.sectionHeading}>
-                    <h3>{list === 'effects' ? 'Active effects' : 'Cleanup effects'}</h3>
-                    <button
-                      type="button"
-                      onClick={() => patchPhase(phaseIndex, { [list]: [...phase[list], effect()] })}
-                    >
-                      Add effect
-                    </button>
-                  </div>
-                  {phase[list].map((entry, effectIndex) => (
-                    <div className={styles.row} key={`${entry.referenceKey}-${effectIndex}`}>
-                      <select
-                        value={entry.type}
+                  {phase.objectives.map((entry, objectiveIndex) => (
+                    <div className={styles.row} key={objectiveIndex}>
+                      <input
+                        value={entry.id}
                         onChange={(event) =>
-                          patchEffect(phaseIndex, list, effectIndex, {
-                            type: event.target.value as EventEffectReference['type'],
-                          })
+                          patchObjective(phaseIndex, objectiveIndex, { id: event.target.value })
                         }
-                        aria-label="Effect type"
+                        aria-label="Objective id"
+                      />
+                      <select
+                        value={entry.completion ?? entry.type}
+                        onChange={(event) => {
+                          const selection = event.target.value
+                          if (selection === 'world-arrival') {
+                            patchObjective(phaseIndex, objectiveIndex, {
+                              type: 'discover',
+                              completion: 'world-arrival',
+                              battleResult: undefined,
+                              worldNavigation: entry.worldNavigation ?? {
+                                sectorId:
+                                  definition.scope.type === 'region'
+                                    ? definition.scope.key.replace(/^region\./, '')
+                                    : 'verdant-expanse',
+                                x: 12,
+                                y: 4,
+                                guidance: 'exact',
+                                autoPath: true,
+                              },
+                            })
+                          } else if (selection === 'world-npc-result') {
+                            patchObjective(phaseIndex, objectiveIndex, {
+                              type: 'defeat',
+                              completion: 'world-npc-result',
+                              requiredWeather: undefined,
+                              battleResult: { npcId: '', outcome: 'victory' },
+                              worldNavigation: entry.worldNavigation ?? {
+                                sectorId:
+                                  definition.scope.type === 'region'
+                                    ? definition.scope.key.replace(/^region\./, '')
+                                    : 'verdant-expanse',
+                                x: 5,
+                                y: 4,
+                                guidance: 'exact',
+                                autoPath: true,
+                              },
+                            })
+                          } else {
+                            patchObjective(phaseIndex, objectiveIndex, {
+                              type: selection as EventObjectiveDefinition['type'],
+                              battleResult: undefined,
+                              completion: undefined,
+                              requiredWeather: undefined,
+                            })
+                          }
+                        }}
+                        aria-label="Objective type"
                       >
-                        {EVENT_EFFECT_TYPES.map((type) => (
+                        {eventCategory === 'world-events' ||
+                        entry.completion === 'world-arrival' ? (
+                          <option value="world-arrival">Reach a location</option>
+                        ) : null}
+                        {eventCategory === 'world-events' ||
+                        entry.completion === 'world-npc-result' ? (
+                          <option value="world-npc-result">Complete a World NPC battle</option>
+                        ) : null}
+                        {EVENT_OBJECTIVE_TYPES.map((type) => (
                           <option key={type}>{type}</option>
                         ))}
                       </select>
                       <input
                         value={entry.referenceKey}
                         onChange={(event) =>
-                          patchEffect(phaseIndex, list, effectIndex, {
+                          patchObjective(phaseIndex, objectiveIndex, {
                             referenceKey: event.target.value,
                           })
                         }
-                        aria-label="Effect reference"
+                        aria-label="Objective reference"
                       />
-                      <label className={styles.checkbox}>
-                        <input
-                          type="checkbox"
-                          checked={entry.enabled}
-                          onChange={(event) =>
-                            patchEffect(phaseIndex, list, effectIndex, {
-                              enabled: event.target.checked,
-                            })
-                          }
-                        />
-                        enabled
-                      </label>
+                      <input
+                        type="number"
+                        min={1}
+                        value={entry.target}
+                        onChange={(event) =>
+                          patchObjective(phaseIndex, objectiveIndex, {
+                            target: Number(event.target.value),
+                          })
+                        }
+                        aria-label="Objective target"
+                      />
+                      {entry.completion === 'world-arrival' ? (
+                        <>
+                          <label>
+                            Required weather
+                            <select
+                              value={entry.requiredWeather ?? ''}
+                              onChange={(event) => {
+                                const weather = event.target.value
+                                patchObjective(phaseIndex, objectiveIndex, {
+                                  requiredWeather: isWorldWeather(weather) ? weather : undefined,
+                                })
+                              }}
+                            >
+                              <option value="">Any weather</option>
+                              {WORLD_WEATHER.map((weather) => (
+                                <option key={weather} value={weather}>
+                                  {weather[0]!.toUpperCase() + weather.slice(1)}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <small>
+                            Each character adds one point on a confirmed arrival while this phase is
+                            live and the required World weather is present. Set the target to the
+                            number of distinct arrivals needed.
+                          </small>
+                        </>
+                      ) : null}
+                      {entry.completion === 'world-npc-result' && entry.battleResult ? (
+                        <fieldset>
+                          <legend>Required battle result</legend>
+                          <WorldEncounterPicker
+                            npcId={entry.battleResult.npcId}
+                            fallbackSectorId={entry.worldNavigation?.sectorId}
+                            sectorLabel="Encounter sector"
+                            npcLabel="Encounter NPC"
+                            unavailableLabel="Unavailable World NPC"
+                            onChange={(npcId) =>
+                              patchObjective(phaseIndex, objectiveIndex, {
+                                battleResult: { ...entry.battleResult!, npcId },
+                              })
+                            }
+                          />
+                          <label>
+                            Outcome
+                            <select
+                              value={entry.battleResult.outcome}
+                              onChange={(event) =>
+                                patchObjective(phaseIndex, objectiveIndex, {
+                                  battleResult: {
+                                    ...entry.battleResult!,
+                                    outcome: event.target.value === 'defeat' ? 'defeat' : 'victory',
+                                  },
+                                })
+                              }
+                            >
+                              <option value="victory">Victory</option>
+                              <option value="defeat">Defeat</option>
+                            </select>
+                          </label>
+                          <small>
+                            Set the map guidance in the same sector as the published encounter.
+                          </small>
+                        </fieldset>
+                      ) : null}
+                      <EventNavigationFields
+                        value={entry.worldNavigation}
+                        onChange={(worldNavigation) =>
+                          patchObjective(phaseIndex, objectiveIndex, { worldNavigation })
+                        }
+                      />
                       <button
                         type="button"
                         onClick={() =>
                           patchPhase(phaseIndex, {
-                            [list]: phase[list].filter((_, index) => index !== effectIndex),
+                            objectives: phase.objectives.filter(
+                              (_, index) => index !== objectiveIndex,
+                            ),
                           })
                         }
                       >
@@ -790,158 +1623,290 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
                     </div>
                   ))}
                 </div>
-              ))}
-            </article>
-          ))}
-        </section>
 
-        <section className={styles.status}>
-          <strong>{message}</strong>
-          {details ? <pre>{details}</pre> : null}
-          {versions.length > 0 ? (
-            <p>
-              Published history:{' '}
-              {versions
-                .map(
-                  (version) => `v${version.definitionVersion}${version.current ? ' current' : ''}`,
-                )
-                .join(' · ')}
-            </p>
-          ) : null}
-        </section>
-      </div>
+                {!definition.personalJourney ? (
+                  <EventPhaseCast
+                    key={`${definition.eventKey}:${phase.id}`}
+                    phaseName={phase.name}
+                    effects={phase.effects}
+                    catalogue={storyNpcs}
+                    canManageNpcs={canManageNpcs}
+                    change={(effects) => patchPhase(phaseIndex, { effects })}
+                  />
+                ) : null}
+                {(['effects', 'cleanupEffects'] as const).map((list) => (
+                  <div className={styles.compositionGroup} key={list}>
+                    <div className={styles.sectionHeading}>
+                      <h3>{list === 'effects' ? 'Active effects' : 'Cleanup effects'}</h3>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          patchPhase(phaseIndex, { [list]: [...phase[list], effect()] })
+                        }
+                      >
+                        Add effect
+                      </button>
+                    </div>
+                    {phase[list].map((entry, effectIndex) =>
+                      list === 'effects' &&
+                      !definition.personalJourney &&
+                      isNpcCastEffect(entry) ? null : (
+                        <div className={styles.row} key={effectIndex}>
+                          <select
+                            value={entry.type}
+                            onChange={(event) =>
+                              patchEffect(phaseIndex, list, effectIndex, {
+                                type: event.target.value as EventEffectReference['type'],
+                              })
+                            }
+                            aria-label="Effect type"
+                          >
+                            {EVENT_EFFECT_TYPES.map((type) => (
+                              <option key={type}>{type}</option>
+                            ))}
+                          </select>
+                          <input
+                            value={entry.referenceKey}
+                            onChange={(event) =>
+                              patchEffect(phaseIndex, list, effectIndex, {
+                                referenceKey: event.target.value,
+                              })
+                            }
+                            aria-label="Effect reference"
+                          />
+                          <label className={styles.checkbox}>
+                            <input
+                              type="checkbox"
+                              checked={entry.enabled}
+                              onChange={(event) =>
+                                patchEffect(phaseIndex, list, effectIndex, {
+                                  enabled: event.target.checked,
+                                })
+                              }
+                            />
+                            enabled
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              patchPhase(phaseIndex, {
+                                [list]: phase[list].filter((_, index) => index !== effectIndex),
+                              })
+                            }
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ),
+                    )}
+                  </div>
+                ))}
+              </article>
+            ))}
+          </section>
 
-      <aside className={styles.controlCard} id="event-controls">
-        <section className={styles.dockSection}>
-          <p className={styles.eyebrow}>Preview &amp; testing</p>
-          <div className={styles.dockActions}>
-            <button type="button" onClick={validate} disabled={busy}>
-              Validate
-            </button>
-            <button type="button" onClick={preview} disabled={busy}>
-              Preview
-            </button>
+          <div className={styles.controlCard} id="event-controls">
             <button type="button" onClick={saveDraft} disabled={busy}>
               Save draft
             </button>
-          </div>
-          <label>
-            Preview phase
-            <select
-              value={selectedPhase?.id}
-              onChange={(event) => setSelectedPhaseId(event.target.value)}
-            >
-              {definition.phases.map((phase) => (
-                <option key={phase.id} value={phase.id}>
-                  {phase.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Test clock
-            <input
-              type="datetime-local"
-              value={testClock}
-              onChange={(event) => setTestClock(event.target.value)}
-            />
-          </label>
-        </section>
+            <p>Actor and time are recorded automatically.</p>
+            <section className={styles.dockSection} hidden={tab !== 'Preview'}>
+              <p className={styles.eyebrow}>Preview &amp; testing</p>
+              <div className={styles.dockActions}>
+                <button type="button" onClick={validate} disabled={busy}>
+                  Validate
+                </button>
+                <button type="button" onClick={preview} disabled={busy}>
+                  Preview
+                </button>
+              </div>
+              {previewResult ? (
+                <article aria-label="Event preview">
+                  <h3>{previewResult.title}</h3>
+                  <p>
+                    {previewResult.selectedPhase.name} ·{' '}
+                    {previewResult.selectedPhase.objectiveCount} objectives ·{' '}
+                    {previewResult.selectedPhase.transitionType} transition
+                  </p>
+                  <p>
+                    {previewResult.phaseCount} phases ·{' '}
+                    {eventAudienceLabel(
+                      previewResult.scope.type,
+                      previewResult.scope.type === 'global' ? null : previewResult.scope.key,
+                    )}{' '}
+                    · {previewResult.rewardPackageRefs.length} reward packages
+                  </p>
+                  <p>
+                    Definition preview only. No run, participation, effect or reward was created.
+                  </p>
+                </article>
+              ) : null}
+              <label>
+                Preview phase
+                <select
+                  value={selectedPhase?.id}
+                  onChange={(event) => setSelectedPhaseId(event.target.value)}
+                >
+                  {definition.phases.map((phase) => (
+                    <option key={phase.id} value={phase.id}>
+                      {phase.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Test clock · {timezone}
+                <input
+                  type="datetime-local"
+                  value={testClock}
+                  onChange={(event) => setTestClock(event.target.value)}
+                />
+              </label>
+            </section>
 
-        <section className={styles.dockSection}>
-          <p className={styles.eyebrow}>References</p>
-          <label>
-            Reward Package refs
-            <input
-              value={csv(definition.rewardPackageRefs)}
-              onChange={(event) =>
-                patchDefinition({ rewardPackageRefs: parseCsv(event.target.value) })
-              }
-              placeholder="reward.event-xp"
-            />
-          </label>
-          <label>
-            Aftermath refs
-            <input
-              value={csv(definition.aftermathRefs)}
-              onChange={(event) => patchDefinition({ aftermathRefs: parseCsv(event.target.value) })}
-              placeholder="aftermath.event-result"
-            />
-          </label>
-        </section>
+            <section className={styles.dockSection} hidden={tab !== 'Rewards'}>
+              <p className={styles.eyebrow}>References</p>
+              <label>
+                Reward packages
+                <select
+                  multiple
+                  value={[...definition.rewardPackageRefs]}
+                  onChange={(event) =>
+                    patchDefinition({
+                      rewardPackageRefs: Array.from(
+                        event.currentTarget.selectedOptions,
+                        (option) => option.value,
+                      ),
+                    })
+                  }
+                >
+                  {definition.rewardPackageRefs
+                    .filter((key) => !catalogue.rewards.some((reward) => reward.key === key))
+                    .map((key) => (
+                      <option key={key} value={key}>
+                        {key} · unavailable
+                      </option>
+                    ))}
+                  {catalogue.rewards.map((reward) => (
+                    <option key={reward.key} value={reward.key}>
+                      {reward.label} · {reward.key}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <p>
+                {mentorChallenge
+                  ? 'Choose Mentor rewards in Journey. Leave shared rewards and aftermath empty.'
+                  : combatDiscovery
+                    ? 'Choose the challenge’s Character XP packages in Discovery. Leave shared rewards and aftermath empty.'
+                    : definition.repeatableTravel?.journey.type === 'defeat-and-report'
+                      ? 'Choose the hunt’s Character XP package in Journey. Leave shared rewards and aftermath empty.'
+                      : definition.personalJourney?.type === 'item-exchange'
+                        ? definition.personalJourney.realm
+                          ? 'Choose an approved Character XP reward for the first guardian victory.'
+                          : 'The item and access are set in Personal journey. Leave Character XP rewards empty.'
+                        : definition.personalJourney
+                          ? 'Approved Character XP is granted once when the player returns and reports. Active attempts keep their original rewards.'
+                          : 'Only budget-approved Character XP packages are listed. Shared events currently have no live reward producer.'}
+              </p>
+              <label>
+                Aftermath refs
+                <input
+                  value={csv(definition.aftermathRefs)}
+                  onChange={(event) =>
+                    patchDefinition({ aftermathRefs: parseCsv(event.target.value) })
+                  }
+                  placeholder="aftermath.event-result"
+                />
+              </label>
+            </section>
 
-        <section className={styles.dockSection}>
-          <p className={styles.eyebrow}>Publication</p>
-          <div className={styles.publicationState}>
-            <span>{publicationState}</span>
-            <strong>{baseVersion === null ? 'Not published' : `v${baseVersion}`}</strong>
-          </div>
-          <label>
-            Production action reason
-            <textarea
-              value={productionReason}
-              maxLength={240}
-              onChange={(event) => {
-                setProductionReason(event.target.value)
-                setProductionConfirmed(false)
-              }}
-              placeholder="Why is this Production action being performed?"
-            />
-          </label>
-          <label className={styles.checkbox}>
-            <input
-              type="checkbox"
-              checked={productionConfirmed}
-              onChange={(event) => setProductionConfirmed(event.target.checked)}
-            />
-            Confirm Production action
-          </label>
-          <button
-            type="button"
-            className={styles.primaryAction}
-            onClick={publish}
-            disabled={busy || !canPublish || !productionActionReady}
-          >
-            Publish
-          </button>
-        </section>
+            <section className={styles.dockSection} hidden={tab !== 'Schedule'}>
+              <p className={styles.eyebrow}>Publication</p>
+              <div className={styles.publicationState}>
+                <span>{publicationState}</span>
+                <strong>{baseVersion === null ? 'Not published' : `v${baseVersion}`}</strong>
+              </div>
+              <label className={styles.checkbox}>
+                <input
+                  type="checkbox"
+                  checked={productionConfirmed}
+                  onChange={(event) => setProductionConfirmed(event.target.checked)}
+                />
+                Confirm publication or schedule for this audience
+              </label>
+              <button
+                type="button"
+                className={styles.primaryAction}
+                onClick={publish}
+                disabled={busy || !canPublish || !productionActionReady || blockers.length > 0}
+              >
+                Publish
+              </button>
+            </section>
 
-        <section className={styles.dockSection}>
-          <p className={styles.eyebrow}>Schedule</p>
-          <label>
-            Start
-            <input
-              type="datetime-local"
-              value={scheduleStart}
-              onChange={(event) => setScheduleStart(event.target.value)}
-            />
-          </label>
-          <label>
-            End
-            <input
-              type="datetime-local"
-              value={scheduleEnd}
-              onChange={(event) => setScheduleEnd(event.target.value)}
-            />
-          </label>
-          <div className={styles.inlineActions}>
-            <button
-              type="button"
-              onClick={schedule}
-              disabled={busy || baseVersion === null || !productionActionReady}
-            >
-              Schedule
-            </button>
-            <button
-              type="button"
-              onClick={unschedule}
-              disabled={busy || !scheduledRun || !productionActionReady}
-            >
-              Unschedule
-            </button>
+            <section className={styles.dockSection} hidden={tab !== 'Schedule'}>
+              <p className={styles.eyebrow}>Schedule · {timezone}</p>
+              <p>
+                Times use your displayed timezone. Absolute end and scheduled phase deadlines remain
+                fixed during a pause; elapsed phase clocks freeze.
+              </p>
+              <label>
+                Start
+                <input
+                  type="datetime-local"
+                  value={scheduleStart}
+                  onChange={(event) => setScheduleStart(event.target.value)}
+                />
+              </label>
+              <label>
+                End
+                <input
+                  type="datetime-local"
+                  value={scheduleEnd}
+                  onChange={(event) => setScheduleEnd(event.target.value)}
+                />
+              </label>
+              <div className={styles.inlineActions}>
+                <button
+                  type="button"
+                  onClick={schedule}
+                  disabled={busy || baseVersion === null || !productionActionReady}
+                >
+                  Schedule
+                </button>
+                <button
+                  type="button"
+                  onClick={unschedule}
+                  disabled={
+                    busy ||
+                    !scheduledRun ||
+                    scheduledRun.eventKey !== definition.eventKey ||
+                    !productionActionReady
+                  }
+                >
+                  Unschedule
+                </button>
+              </div>
+            </section>
           </div>
-        </section>
-      </aside>
+          <section className={styles.status}>
+            <strong>{message}</strong>
+            {details ? <pre>{details}</pre> : null}
+            {versions.length > 0 ? (
+              <p>
+                Published history:{' '}
+                {versions
+                  .map(
+                    (version) =>
+                      `v${version.definitionVersion}${version.current ? ' current' : ''}`,
+                  )
+                  .join(' · ')}
+              </p>
+            ) : null}
+          </section>
+        </div>
+      </fieldset>
     </section>
   )
 }

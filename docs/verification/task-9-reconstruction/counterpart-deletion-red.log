@@ -1,0 +1,67 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["corepack", "pnpm", "--filter", "@aurevane/db", "exec", "vitest", "run", "src/master-players-recovery.test.ts", "-t", "shared PvP"], "start": "2026-10-20T18:54:29.448997+00:00"}
+
+ RUN  v4.1.10 /workspace/scratch/081f137b6a6d/aurevane-players-20261020/packages/db
+
+ ❯ src/master-players-recovery.test.ts (31 tests | 1 failed | 30 skipped) 2556ms
+   × shared PvP recovery names the exact real participants and clears actual clocks, staging and spectator locks 135ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/master-players-recovery.test.ts > shared PvP recovery names the exact real participants and clears actual clocks, staging and spectator locks
+AssertionError: expected [ { …(10) } ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "action": "battle.no-contest",
++     "actor_character_id": null,
++     "actor_user_id": "00000000-0000-4000-8000-000000000001",
++     "after_facts": {
++       "battleSessionId": "d8bf281c-67be-4953-8dfd-024b34a2c41c",
++       "outcome": "NoContest",
++       "participants": [
++         "00000000-0000-4000-8000-000000000011",
++         "00000000-0000-4000-8000-000000000012",
++       ],
++       "rewards": "NoRewards",
++       "version": 2,
++     },
++     "before_facts": {
++       "battleSessionId": "d8bf281c-67be-4953-8dfd-024b34a2c41c",
++       "participants": [
++         "00000000-0000-4000-8000-000000000011",
++         "00000000-0000-4000-8000-000000000012",
++       ],
++       "version": 1,
++     },
++     "character_id": "00000000-0000-4000-8000-000000000011",
++     "created_at": 2026-10-20T18:54:32.906Z,
++     "id": "67f45258-6247-437b-9bb5-77a255821be3",
++     "request_hash": "bcd2c7040da43cb8b7f0a8191209aac88784bd2b20da997bb63e339f7ace23a0",
++     "request_key": "00000000-0000-4000-8000-000000000088",
++   },
++ ]
+
+ ❯ src/master-players-recovery.test.ts:652:83
+    650|   await db.query('select app_private.finalize_due_character_deletions_…
+    651|   expect((await db.query('select * from app_private.battle_sessions'))…
+    652|   expect((await db.query('select * from app_private.player_support_aud…
+       |                                                                                   ^
+    653|   expect((await db.query('select * from app_private.battle_no_contest_…
+    654| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 30 skipped (31)
+   Start at  14:54:30
+   Duration  2.77s (transform 42ms, setup 0ms, import 71ms, tests 2.56s, environment 0ms)
+
+undefined
+/workspace/scratch/081f137b6a6d/aurevane-players-20261020/packages/db:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/master-players-recovery.test.ts -t 'shared PvP'
+{"end": "2026-10-20T18:54:33.024150+00:00", "exit": 1}

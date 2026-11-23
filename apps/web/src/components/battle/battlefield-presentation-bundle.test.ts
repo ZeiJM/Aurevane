@@ -11,6 +11,38 @@ function readLocalFile(name: string): string {
 }
 
 describe('shared battlefield presentation bundle', () => {
+  it('keeps every blue fill selector on the overlay so buff reach preserves terrain texture', () => {
+    const styles = readLocalFile('battlefield-presentation-bundle.module.css')
+    const fillRules = [...styles.matchAll(/([^{}]+)\{([^{}]*)\}/g)].filter((rule) =>
+      rule[2]!.includes('background: #6c91c680;'),
+    )
+    expect(fillRules).toHaveLength(1)
+    for (const selector of fillRules[0]![1]!.split(/,\s*(?=:global)/))
+      expect(selector.trim().endsWith('::after')).toBe(true)
+  })
+  it('uses the shared full-tile blue fill for potential nonattack footprints', () => {
+    const styles = readLocalFile('battlefield-presentation-bundle.module.css')
+    expect(styles).toContain("[data-buff-path='true']:not([data-attack-path='true'])")
+    expect(readLocalFile('battle-experience.tsx')).toContain('data-buff-path=')
+  })
+  it('paints canonical damaging paths above terrain through the mounted shared styles', () => {
+    const styles = readLocalFile('battlefield-presentation-bundle.module.css')
+    expect(styles).toContain("button[aria-label^='Tile '][data-attack-path='true']")
+    expect(styles).toContain('inset 0 0 12px #d83b4c99')
+    expect(styles).toContain('background: #bd263a38;')
+  })
+  it('fills self-target tiles blue below the unchanged participant token', () => {
+    const styles = readLocalFile('battlefield-presentation-bundle.module.css')
+    expect(styles).toContain("[data-self-target='true']:not([data-attack-path='true'])")
+    expect(styles).toContain('background: #6c91c680;')
+    expect(readLocalFile('battle-experience.tsx')).toContain('data-self-target=')
+  })
+  it('fills healing targets green through the shared tile layer', () => {
+    const styles = readLocalFile('battlefield-presentation-bundle.module.css')
+    expect(styles).toContain("[data-heal-target='true']:not([data-attack-path='true'])")
+    expect(styles).toContain('background: #66da8f80;')
+    expect(readLocalFile('battle-experience.tsx')).toContain('data-heal-target=')
+  })
   it('owns terrain and tile-scaled combatant token presentation', () => {
     const source = readLocalFile('battlefield-presentation-bundle.tsx')
 
@@ -40,7 +72,7 @@ describe('shared battlefield presentation bundle', () => {
     const mobileControls = readLocalFile('pvp-spectator-mobile-control-balance.module.css')
 
     expect(spectator).toContain('data-board-auto-fit={`${tactical.width}x${tactical.height}`}')
-    expect(spectator).toContain('<BattleMapKey />')
+    expect(spectator).not.toContain('<BattleMapKey />')
     expect(spectator).not.toContain('className={styles.tileMeta}')
     expect(mobileLayout).toContain("[data-spectator-terrain-cost='true']")
     expect(mobileLayout).toContain('display: none !important;')
@@ -58,42 +90,61 @@ describe('shared battlefield presentation bundle', () => {
     expect(styles).toContain('border-width: 1px !important;')
   })
 
-  it('places courtyard atmosphere beneath the real grid while retaining state exclusions', () => {
+  it('keeps terrain icons and countdowns compact only at shared mobile breakpoints', () => {
     const styles = readLocalFile('battlefield-presentation-bundle.module.css')
-
-    expect(styles).toContain("[data-battlefield-backdrop='true']")
-    expect(styles).toContain(":not([data-pvp-spectator='true'])")
-    expect(styles).toContain("url('/media/art/concept-ui/battle-hall-v01.webp')")
-    expect(styles).toContain('background-color: rgba(42, 53, 59, 0.58) !important;')
-    expect(styles).toContain("button[data-terrain-presentation='difficult']")
-    expect(styles).toContain(':not([data-reachable])')
-    expect(styles).toContain(':not([data-target])')
-    expect(styles).toContain(':not([data-terrain-overlay])')
+    const mobileMarkers = styles.match(
+      /@media \(max-width: 820px\), \(max-width: 980px\) and \(max-height: 500px\) and \(pointer: coarse\) \{\s*:global\(section#battlefield button\[data-terrain-overlay\]\) \{([^}]+)\}\s*:global\(section#battlefield \[data-terrain-overlay-marker='true'\]\) \{([^}]+)\}/,
+    )
+    expect(mobileMarkers).not.toBeNull()
+    expect(mobileMarkers?.[1]).toContain('container-type: inline-size;')
+    expect(mobileMarkers?.[2]).toContain('font-size: clamp(0.3rem, 24cqw, 0.55rem);')
+    expect(mobileMarkers?.[2]).toContain('line-height: 1;')
+    expect(mobileMarkers?.[2]).toContain('padding: 0;')
+    expect(mobileMarkers?.[2]).toContain('right: 5%;')
+    expect(mobileMarkers?.[2]).toContain('bottom: 4%;')
+    const desktopMarker = styles.match(
+      /:global\(section#battlefield \[data-terrain-overlay-marker='true'\]\) \{([^}]+)\}/,
+    )
+    expect(desktopMarker?.[1]).toContain('font-size: 0.6875rem;')
+    expect(desktopMarker?.[1]).toContain('padding: 1px 3px;')
+    expect(desktopMarker?.[1]).toContain('pointer-events: none;')
+    for (const surface of ['battle-experience.tsx', 'pvp-spectator-experience.tsx']) {
+      expect(readLocalFile(surface)).toContain('data-terrain-overlay-marker="true"')
+      expect(readLocalFile(surface)).toContain('{overlay.remainingRoundBoundaries}')
+    }
   })
 
-  it('composes spectator teams as portrait rails around a central board and communication dock', () => {
+  it('uses separate production terrain materials without owning command or card geometry', () => {
+    const styles = readLocalFile('battlefield-presentation-bundle.module.css')
+    for (const file of [
+      'terrain-open-stone-v01.webp',
+      'terrain-rough-moss-v01.webp',
+      'terrain-raised-ledge-v02.webp',
+    ])
+      expect(styles).toContain(file)
+    expect(styles).toContain("button[data-terrain-presentation='difficult']")
+    expect(styles).not.toContain('data-battle-combatant-card')
+    expect(styles).not.toContain('data-unified-command-deck')
+  })
+
+  it('composes spectators with stacked summaries, footer terrain and a full Chronicle rail', () => {
     const spectator = readLocalFile('pvp-spectator-experience.tsx')
     const spectatorStyles = readLocalFile('pvp-spectator-experience.module.css')
-    const battleChat = readLocalFile('pvp-battle-chat.tsx')
     const viewportPolish = readLocalFile('pvp-spectator-viewport-polish.tsx')
-
-    expect(spectator).toContain('data-spectator-team-rail="left"')
-    expect(spectator).toContain('data-spectator-team-rail="right"')
-    expect(spectator).toContain('data-member-count={String(team.members.length)}')
-    expect(spectator).toContain('data-battlefield-backdrop="true"')
-    expect(spectator).toContain('showBattleLog')
-    expect(spectator).toContain('requestedTab="log"')
-    expect(spectator).toContain(
-      "logRecentTurnCount={battleState.lifecycle === 'active' ? 4 : null}",
+    expect(spectator).toContain('data-battle-side="local"')
+    expect(spectator).toContain('data-battle-side="selected"')
+    expect(spectator).toContain('<BattleCombatantCard')
+    expect(spectator).toContain('<BattleTerrainToggle snapshot={battle.snapshot} />')
+    expect(spectator).toContain('<BattleChronicleHeading round={battleState.round} />')
+    expect(spectator).not.toContain('BattleRoundBadge')
+    expect(spectator).toMatch(/<BattleLogPanel\s+presentation="inline"/)
+    expect(spectator).toContain('setSelectedCombatantId(placement.combatantId)')
+    expect(spectator).toContain('data-battle-command-dock="true"')
+    expect(spectator).not.toContain('teamSummaries.filter((team) => team.teamIndex %')
+    expect(spectatorStyles).toContain("composes: stage from './battle-approved-layout.module.css'")
+    expect(readLocalFile('battle-approved-layout.module.css').replace(/\s+/g, ' ')).toContain(
+      "'local board selected' 'local preview selected' 'cockpit cockpit cockpit'",
     )
-    expect(spectator).toContain('logCurrentTurnNumber={battleState.turnNumber}')
-    expect(battleChat).toContain('logRecentTurnCount = 4')
-    expect(battleChat).toContain('recentTurnCount={logRecentTurnCount ?? undefined}')
-    expect(battleChat).toContain('currentTurnNumber={logCurrentTurnNumber}')
-    expect(spectatorStyles).toContain(".teamCard[data-member-count='1'] .memberPortrait")
-    expect(spectatorStyles).toContain(
-      'grid-template-columns: clamp(10rem, 13vw, 15rem) minmax(0, 1fr) clamp(10rem, 13vw, 15rem);',
-    )
-    expect(viewportPolish).not.toContain('pvp-spectator-viewport-polish.module.css')
+    expect(viewportPolish).not.toContain('pvp-spectator-mobile-board-layout.module.css')
   })
 })

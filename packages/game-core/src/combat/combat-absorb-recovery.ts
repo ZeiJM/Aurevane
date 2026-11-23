@@ -1,3 +1,7 @@
+import {
+  observeCombatNativeMutation,
+  type CombatNativeExecutionHooks,
+} from './combat-native-mutations'
 import { collectCommittedHostileCommandDamage } from './combat-committed-damage'
 import type {
   CombatContentCatalog,
@@ -6,6 +10,7 @@ import type {
   CombatResolutionTransition,
 } from './actions'
 import { validateCombatStatusDefinition } from './combat-authoring-validation'
+import { healingDownAdjustedRecovery } from './combat-recovery-modifiers'
 
 const ABSORB_BASIS_POINTS = 10_000
 const ABSORB_HP_ACTION_ID = 'status.absorb-hp.current.v1'
@@ -17,6 +22,7 @@ export function applyCommittedAbsorbRecovery(
   events: readonly CombatResolutionEvent[],
   content: CombatContentCatalog,
   command: { sourceCombatantId: string; actionId: string },
+  nativeHooks?: CombatNativeExecutionHooks,
 ): CombatResolutionTransition {
   const battle = state.tactical.battle
   const combatants = new Map(battle.combatants.map((unit) => [unit.id, unit]))
@@ -29,8 +35,12 @@ export function applyCommittedAbsorbRecovery(
     if (!target || target.hp <= 0) continue
     const rates = activeAbsorbBasisPoints(state, content, targetId)
     // Both resources use original HP damage, never the net loss after healing.
-    const hpRecovery = recoveryAmount(damage, rates.hp, target.maxHp - target.hp)
-    const mpRecovery = recoveryAmount(damage, rates.mp, target.maxMp - target.mp)
+    const reduceRecovery = (amount: bigint) =>
+      state.healingDownPolicyVersion === 1
+        ? healingDownAdjustedRecovery(state, targetId, amount, content)
+        : amount
+    const hpRecovery = recoveryAmount(damage, rates.hp, target.maxHp - target.hp, reduceRecovery)
+    const mpRecovery = recoveryAmount(damage, rates.mp, target.maxMp - target.mp, reduceRecovery)
     if (hpRecovery === 0 && mpRecovery === 0) continue
 
     const hpAfter = target.hp + hpRecovery
@@ -63,33 +73,46 @@ export function applyCommittedAbsorbRecovery(
 
   if (recoveryEvents.length === 0) return { state, events }
 
-  return {
-    state: {
-      ...state,
-      tactical: {
-        ...state.tactical,
-        battle: {
-          ...battle,
-          combatants: battle.combatants.map((unit) => {
-            const pools = recoveredPools.get(unit.id)
-            return pools === undefined ? unit : { ...unit, ...pools }
-          }),
+  let next = state
+  for (const [targetId, pools] of recoveredPools) {
+    const receipts = recoveryEvents.filter(
+      (event) => 'targetCombatantId' in event && event.targetCombatantId === targetId,
+    )
+    next = observeCombatNativeMutation(
+      nativeHooks,
+      next,
+      {
+        state: {
+          ...next,
+          tactical: {
+            ...next.tactical,
+            battle: {
+              ...next.tactical.battle,
+              combatants: next.tactical.battle.combatants.map((unit) =>
+                unit.id === targetId ? { ...unit, ...pools } : unit,
+              ),
+            },
+          },
         },
+        events: receipts,
       },
-    },
-    // One bounded pass: emitted healing/restoration never feeds back into this input.
-    events: [...events, ...recoveryEvents],
+      { triggeringCombatantId: targetId, affectedCombatantIds: [targetId] },
+    ).state
   }
+  return { state: next, events: [...events, ...recoveryEvents] }
 }
 
-function recoveryAmount(damage: number, basisPoints: number, capacity: number): number {
+function recoveryAmount(
+  damage: number,
+  basisPoints: number,
+  capacity: number,
+  reduceRecovery: (amount: bigint) => bigint,
+): number {
   if (basisPoints === 0 || capacity <= 0) return 0
   // Integer arithmetic keeps the percentage floor exact before the minimum-1 rule.
-  const requested = Math.max(
-    1,
-    Number((BigInt(damage) * BigInt(basisPoints)) / BigInt(ABSORB_BASIS_POINTS)),
-  )
-  return Math.min(capacity, requested)
+  const requested = (BigInt(damage) * BigInt(basisPoints)) / BigInt(ABSORB_BASIS_POINTS)
+  const positive = reduceRecovery(requested > 0n ? requested : 1n)
+  return Number(positive < BigInt(capacity) ? positive : BigInt(capacity))
 }
 
 function activeAbsorbBasisPoints(
@@ -98,8 +121,8 @@ function activeAbsorbBasisPoints(
   targetId: string,
 ): { hp: number; mp: number } {
   const statuses = state.statusState.find((row) => row.combatantId === targetId)?.statuses ?? []
-  let hp = 0
-  let mp = 0
+  let hp = 0n
+  let mp = 0n
   for (const instance of statuses) {
     if (instance.remainingOwnerTurnStarts <= 0 || instance.stacks <= 0) continue
     const definition = content.statuses.find(
@@ -111,8 +134,16 @@ function activeAbsorbBasisPoints(
     )
       continue
     validateCombatStatusDefinition(definition)
-    hp = Math.min(ABSORB_BASIS_POINTS, hp + (definition.absorbHpBasisPoints ?? 0) * instance.stacks)
-    mp = Math.min(ABSORB_BASIS_POINTS, mp + (definition.absorbMpBasisPoints ?? 0) * instance.stacks)
+    hp += BigInt(definition.absorbHpBasisPoints ?? 0) * BigInt(instance.stacks)
+    mp += BigInt(definition.absorbMpBasisPoints ?? 0) * BigInt(instance.stacks)
   }
-  return { hp, mp }
+  if (state.effectStackingPolicyVersion === 1) {
+    if (hp > BigInt(Number.MAX_SAFE_INTEGER) || mp > BigInt(Number.MAX_SAFE_INTEGER))
+      throw new RangeError('Combined Absorb rate exceeds the safe integer range.')
+    return { hp: Number(hp), mp: Number(mp) }
+  }
+  return {
+    hp: Number(hp < BigInt(ABSORB_BASIS_POINTS) ? hp : BigInt(ABSORB_BASIS_POINTS)),
+    mp: Number(mp < BigInt(ABSORB_BASIS_POINTS) ? mp : BigInt(ABSORB_BASIS_POINTS)),
+  }
 }

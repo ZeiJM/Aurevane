@@ -1,18 +1,28 @@
 import 'server-only'
+import { buildBattlePrivacyJournalInput } from './battle-history-privacy'
 
 import { createHash } from 'node:crypto'
 
 import type { BattleSessionRecord, BattleSessionRepository } from '@aurevane/db/battle-session'
 import type { BattleFacing } from '@aurevane/game-core/combat/battle-state'
-import { finishPv1fTurn } from '@aurevane/game-core/combat/pv1f-action-economy'
+import {
+  finishPv1fTurn,
+  validatePv1fFinalFacing,
+} from '@aurevane/game-core/combat/pv1f-action-economy'
 import {
   validateStatDrivenCombatEncounterState,
   type StatDrivenCombatEncounterState,
 } from '@aurevane/game-core/combat/stat-driven-combat'
+import { refreezeCapturedCombatAbilityState } from '@aurevane/game-core/combat/combat-behavior-runtime'
 import { AurevaneError, StaleBattleVersionError } from '@aurevane/game-core/errors'
 import { createBattleSessionChangedInvalidation } from '@aurevane/realtime'
 
-import type { BattleSessionProjection, BattleSessionView } from './battle-session-service'
+import {
+  projectBattleSnapshot as projectParticipantBattleSnapshot,
+  type BattleSessionProjection,
+  type BattleSessionView,
+} from './battle-session-service'
+import { deriveParticipantBattleViewerEntitlement } from './battle-viewer-entitlement'
 
 type BuildExtendedEncounterState = StatDrivenCombatEncounterState & {
   readonly buildAuthority?: unknown
@@ -76,7 +86,7 @@ function readPersistedEncounter(record: BattleSessionRecord): BuildExtendedEncou
     ) {
       throw persistenceInvalid()
     }
-    return candidate
+    return refreezeCapturedCombatAbilityState(candidate)
   } catch (error) {
     if (error instanceof AurevaneError) throw error
     throw persistenceInvalid()
@@ -128,28 +138,20 @@ function resolveFinalTurn(
   }
 }
 
-function projectBattleSnapshot(state: StatDrivenCombatEncounterState): BattleSessionProjection {
-  const battle = state.tactical.battle
-  return {
-    ...state,
-    tactical: {
-      ...state.tactical,
-      battle: {
-        schemaVersion: battle.schemaVersion,
-        battleId: battle.battleId,
-        rulesVersion: battle.rulesVersion,
-        contentVersion: battle.contentVersion,
-        lifecycle: battle.lifecycle,
-        combatants: battle.combatants,
-        initiativeOrder: battle.initiativeOrder,
-        ...(battle.roundInitiativeModifiers
-          ? { roundInitiativeModifiers: battle.roundInitiativeModifiers }
-          : {}),
-        round: battle.round,
-        turnNumber: battle.turnNumber,
-        currentTurn: battle.currentTurn,
-      },
-    },
+function projectBattleSnapshot(
+  state: StatDrivenCombatEncounterState,
+  controlledCombatantIds: readonly string[],
+): BattleSessionProjection {
+  try {
+    return projectParticipantBattleSnapshot(
+      state,
+      deriveParticipantBattleViewerEntitlement(
+        state.tactical.battle.combatants,
+        controlledCombatantIds,
+      ),
+    )
+  } catch {
+    throw persistenceInvalid()
   }
 }
 
@@ -174,7 +176,7 @@ export function createBattleFinalTurnService(
       const state = readPersistedEncounter(record)
       assertControlledTurn(state, record.controlledCombatantIds)
       try {
-        resolveFinalTurn(state, command.facing)
+        validatePv1fFinalFacing(state, command.facing)
         return {
           battleSessionId: record.battleSessionId,
           battleVersion: record.battleVersion,
@@ -226,6 +228,7 @@ export function createBattleFinalTurnService(
               battleVersion: replayOrStale.result.battleVersion,
               snapshot: replayOrStale.result.snapshot,
             }),
+            current.controlledCombatantIds,
           ),
           replayed: replayOrStale.replayed,
           invalidation: createBattleSessionChangedInvalidation({
@@ -251,7 +254,14 @@ export function createBattleFinalTurnService(
         nextSnapshot: nextState,
         events: resolved.events,
 
-        privacyJournal: null,
+        privacyJournal: state.capturedAbilitySources?.length
+          ? buildBattlePrivacyJournalInput({
+              before: state,
+              after: nextState,
+              commandKind: 'face',
+              events: resolved.events,
+            })
+          : null,
       })
 
       return {
@@ -263,6 +273,7 @@ export function createBattleFinalTurnService(
             battleVersion: committed.result.battleVersion,
             snapshot: committed.result.snapshot,
           }),
+          current.controlledCombatantIds,
         ),
         replayed: committed.replayed,
         invalidation: createBattleSessionChangedInvalidation({

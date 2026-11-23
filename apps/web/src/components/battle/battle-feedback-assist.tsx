@@ -180,6 +180,9 @@ function syncMapTokenPortrait(
   customImageUrl?: string | null,
 ) {
   const tile = combatantTile(name)
+  // The shared battle renders its own portrait/fallback inside the circular token.
+  // Legacy portrait injection would add an intrinsically sized image over that token.
+  if (tile?.closest('[data-battle-layout="refined"]')) return
   const unit = tile?.querySelector<HTMLElement>(':scope > span:not(.tileMeta):last-child')
   if (!unit) return
 
@@ -352,7 +355,7 @@ function buildEmojiPicker(form: HTMLFormElement, input: HTMLInputElement, player
 
 function enhanceChat(playerName: string) {
   const footer = document.querySelector<HTMLElement>('main[aria-busy] > footer')
-  if (!footer) return
+  if (!footer || footer.closest('[data-unified-battle="true"]')) return
   const trigger = footer.querySelector<HTMLButtonElement>(':scope > div:first-child > button')
   if (trigger && trigger.dataset.a2ChatLabel !== 'ready') {
     trigger.dataset.a2ChatLabel = 'ready'

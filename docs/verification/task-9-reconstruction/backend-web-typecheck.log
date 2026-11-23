@@ -1,0 +1,10 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["corepack", "pnpm", "--filter", "@aurevane/web", "typecheck"], "start": "2026-10-20T18:35:01.546824+00:00"}
+$ next typegen && tsc --noEmit
+Generating route types...
+✓ Types generated successfully
+src/server/world/world-battle-combat-policy.test.ts(425,40): error TS2345: Argument of type '(userId: string, id: string) => Promise<{ sourceHash: string; supportActionId?: SupportActionId; schemaVersion: number; buildVersion: number; primary: { disciplineId: string; definitionVersion: number; profileVersion: number; }; secondary: { disciplineId: string; definitionVersion: number; } | null; disciplineSkills...' is not assignable to parameter of type '() => Promise<CharacterCommittedBuildSnapshotRecord>'.
+  Target signature provides too few arguments. Expected 2 or more, but got 0.
+/workspace/scratch/081f137b6a6d/aurevane-players-20261020/apps/web:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @aurevane/web@0.0.1 typecheck: `next typegen && tsc --noEmit`
+Exit status 2
+{"end": "2026-10-20T18:35:19.340156+00:00", "exit": 2}

@@ -1,0 +1,5 @@
+{
+  "error": "AssertionError [ERR_ASSERTION]: Basic contrast below 4.5: {\"color\":\"rgb(49, 59, 55)\",\"background\":\"rgb(56, 67, 66)\",\"element\":\"<span>Name</span>\",\"matchedRules\":[\"._status_1r09c_121 span, ._versionGrid_1r09c_130 span, ._field_1r09c_131 > span { display: block; color: var(--av-text-dim); font: 650 0.55rem/1.2 var(--av-font-body); letter-spacing: 0.06em; text-transform: uppercase; }\",\"._workspace_tqoe0_1 label > span { color: rgb(49, 59, 55); }\",\"* { box-sizing: border-box; }\"]}",
+  "browserErrors": [],
+  "evidence": []
+}

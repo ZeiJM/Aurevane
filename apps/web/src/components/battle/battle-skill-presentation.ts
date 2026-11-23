@@ -1,3 +1,5 @@
+import { imageAssetRegistry } from '@/media/registry'
+import { contentMediaKeySource } from '@aurevane/game-core/combat/content-media'
 import {
   PV1F_BASIC_ATTACK_ID,
   PV1F_GUARD_ACTION_ID,
@@ -6,6 +8,7 @@ import {
 } from '@aurevane/game-core/combat/pv1f-skills'
 
 import { darkFantasyResonanceArtwork } from '../../media/generated-dark-fantasy-art'
+import { resonanceArtwork } from '../../media/resonance-art'
 import { registeredSkillArtworkSource, resolveSkillIconHook } from '../../media/skill-media-hooks'
 
 export const BATTLE_COMMAND_ARTWORK = {
@@ -53,7 +56,7 @@ export const PHASE_3_COMBAT_ARTWORK = Object.fromEntries(
 export const PHASE_3_RESONANCE_ARTWORK = Object.fromEntries(
   PHASE_3_RESONANCE_IDS.map((id) => [
     id,
-    darkFantasyResonanceArtwork(id) ?? BATTLE_MISSING_ARTWORK,
+    resonanceArtwork(id) ?? darkFantasyResonanceArtwork(id) ?? BATTLE_MISSING_ARTWORK,
   ]),
 ) as Record<(typeof PHASE_3_RESONANCE_IDS)[number], string>
 
@@ -61,12 +64,14 @@ const ACTION_ARTWORK = new Map<string, string>([
   [PV1F_BASIC_ATTACK_ID, '/media/skills/basic-attack-fist.webp'],
   [PV1F_GUARD_ACTION_ID, '/media/skills/guard.webp'],
   [PV1F_RECOVER_ACTION_ID, '/media/skills/hp-recovery.webp'],
-  [PV1F_MP_RECOVER_ACTION_ID, '/media/skills/mp-recovery.svg'],
+  [PV1F_MP_RECOVER_ACTION_ID, '/media/skills/mp-recovery-dark-fantasy-v1.webp'],
 ])
 
 export function battleSkillArtwork(actionId: string, iconKey?: string | null): string {
   const hooked = resolveSkillIconHook(iconKey)
   return (
+    contentMediaKeySource(iconKey) ??
+    imageAssetRegistry.get(iconKey ?? '')?.src ??
     (hooked ? disciplineSkillArtwork(hooked.skillId) : null) ??
     disciplineSkillArtwork(actionId) ??
     ACTION_ARTWORK.get(actionId) ??
@@ -74,6 +79,11 @@ export function battleSkillArtwork(actionId: string, iconKey?: string | null): s
   )
 }
 
-export function battleResonanceArtwork(resonanceId: string): string {
-  return darkFantasyResonanceArtwork(resonanceId) ?? BATTLE_MISSING_ARTWORK
+export function battleResonanceArtwork(resonanceId: string, iconKey?: string | null): string {
+  return (
+    contentMediaKeySource(iconKey) ??
+    resonanceArtwork(resonanceId) ??
+    darkFantasyResonanceArtwork(resonanceId) ??
+    BATTLE_MISSING_ARTWORK
+  )
 }

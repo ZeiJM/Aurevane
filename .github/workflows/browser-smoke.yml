@@ -3,26 +3,58 @@ name: Browser smoke
 on:
   pull_request:
   push:
-    branches:
-      - main
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: browser-smoke-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  browser:
-    name: Responsive browser smoke
+  verification-plan:
+    name: Select Browser smoke coverage
     runs-on: ubuntu-latest
-    # The complete serial suite includes elapsed-time Atlas journeys and Edge checks.
-    # Keep every scenario enabled and allow enough time to finish after stack setup.
-    timeout-minutes: 75
+    timeout-minutes: 3
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+    outputs:
+      plan: ${{ steps.plan.outputs.plan }}
+      execute: ${{ steps.plan.outputs.execute }}
+      battle: ${{ steps.plan.outputs.battle }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 2
+      - uses: ./.github/actions/verification-plan
+        id: plan
+        with:
+          workflow: browser-smoke.yml
+
+  browser:
+    needs: verification-plan
+    if: ${{ needs.verification-plan.outputs.execute == 'true' }}
+    name: Execute Responsive browser smoke
+    runs-on: ubuntu-latest
+    # The serial full suite reached the 150-minute job cap after 747/783 Chromium cases;
+    # retain every Chromium/Edge assertion and allow time for remaining cases and evidence.
+    timeout-minutes: 210
     env:
       TURBO_TELEMETRY_DISABLED: 1
       NEXT_TELEMETRY_DISABLED: 1
+      AV_VERIFICATION_PLAN: ${{ needs.verification-plan.outputs.plan }}
+      AV_VERIFY_BATTLE: ${{ needs.verification-plan.outputs.battle }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -37,11 +69,160 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Install Chromium and Microsoft Edge
-        run: pnpm --filter @aurevane/web exec playwright install --with-deps chromium msedge
+      - name: Install selected browsers
+        run: |
+          # The runner's Azure apt mirror stalled before browser installation.
+          # Use the official HTTPS mirror that responded in the same job logs.
+          printf '%s\n' 'https://archive.ubuntu.com/ubuntu/' | sudo tee /etc/apt/apt-mirrors.txt >/dev/null
+          browsers=(chromium)
+          if [ "$AV_VERIFY_BATTLE" = 'true' ]; then browsers+=(msedge); fi
+          pnpm --filter @aurevane/web exec playwright install --with-deps "${browsers[@]}"
+
+      - name: Verify Item editor, Arsenal and battle actions across desktop and mobile
+        if: ${{ needs.verification-plan.outputs.battle == 'true' }}
+        run: |
+          AV_PANEL_CONTENT_SCENARIO=item-layout pnpm --filter @aurevane/web exec node scripts/panel-content-browser-regression.mjs
+          pnpm --filter @aurevane/web exec node scripts/runtime-item-editor-browser-regression.mjs
+          pnpm --filter @aurevane/web exec node scripts/item-imbued-technique-browser-regression.mjs
+          pnpm --filter @aurevane/web exec node scripts/effect-summary-fit-browser-regression.mjs
+          pnpm --filter @aurevane/web exec node scripts/arsenal-items-browser-regression.mjs
+          pnpm --filter @aurevane/web exec node scripts/battle-items-browser-regression.mjs
+          pnpm --filter @aurevane/web exec node scripts/guided-items-browser-regression.mjs
+
+      - name: Save Item native evidence
+        if: ${{ always() && needs.verification-plan.outputs.battle == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: item-editor-and-arsenal-native
+          path: |
+            /tmp/panel-content-evidence
+            /tmp/runtime-item-editor-browser-evidence
+            /tmp/imbued-technique-browser-evidence
+            /tmp/effect-summary-fit-evidence
+            /tmp/arsenal-items-browser-evidence
+            /tmp/battle-items-browser-evidence
+            /tmp/guided-items-browser-evidence
+          if-no-files-found: error
+
+      - name: Verify complete Master operational components
+        if: ${{ needs.verification-plan.outputs.battle == 'true' }}
+        env:
+          AV_MASTER_OPERATIONS_EVIDENCE_DIR: /tmp/master-operations-review
+          AV_TECHNIQUE_ELIGIBILITY_EVIDENCE_DIR: /tmp/technique-eligibility-review
+          AV_EVENT_WORKSPACE_EVIDENCE_DIR: /tmp/event-workspace-review
+          AV_NEXUS_DESKTOP_EVIDENCE_DIR: /tmp/nexus-desktop-review
+        run: |
+          node apps/web/scripts/master-operations-browser-regression.mjs
+          node apps/web/scripts/technique-eligibility-browser-regression.mjs
+          node apps/web/scripts/event-workspace-browser-regression.mjs
+          node apps/web/scripts/nexus-desktop-integration-regression.mjs
+
+      - name: Verify shared ally inspection and multi-target previews
+        if: ${{ needs.verification-plan.outputs.battle == 'true' }}
+        env:
+          AV_ALLY_INSPECTION_EVIDENCE_DIR: /tmp/battle-ally-inspection-review
+        run: pnpm --filter @aurevane/web exec node scripts/battle-ally-inspection-browser-regression.mjs
+
+      - name: Verify current and historical targeting geometry across modes
+        if: ${{ needs.verification-plan.outputs.battle == 'true' }}
+        env:
+          AV_TARGETING_EVIDENCE_DIR: /tmp/battle-targeting-review
+        run: pnpm --filter @aurevane/web exec node scripts/battle-targeting-browser-regression.mjs
+
+      - name: Verify grouped Ground previews and pending field visuals
+        if: ${{ needs.verification-plan.outputs.battle == 'true' }}
+        env:
+          AV_GROUND_PREVIEW_EVIDENCE_DIR: /tmp/battle-ground-preview-review
+        run: pnpm --filter @aurevane/web exec node scripts/battle-ground-preview-browser-regression.mjs
+
+      - name: Verify all Ground animation presets and reduced motion
+        if: ${{ needs.verification-plan.outputs.battle == 'true' }}
+        env:
+          AV_GROUND_PRESETS_EVIDENCE_DIR: /tmp/battle-ground-presets-review
+        run: pnpm --filter @aurevane/web exec node scripts/battle-ground-presets-browser-regression.mjs
+
+      - name: Verify universal Support actions and Vesper portraits across modes
+        if: ${{ needs.verification-plan.outputs.battle == 'true' }}
+        env:
+          AV_SUPPORT_EVIDENCE_DIR: /tmp/battle-support-review
+        run: pnpm --filter @aurevane/web exec node scripts/battle-support-browser-regression.mjs
+
+      - name: Verify captured plural targeting and Manual behavior choices
+        if: ${{ needs.verification-plan.outputs.battle == 'true' }}
+        env:
+          AV_TARGETING_EVIDENCE_DIR: /tmp/battle-canonical-targeting-review
+        run: pnpm --filter @aurevane/web exec node scripts/battle-canonical-targeting-browser-regression.mjs
+
+      - name: Verify captured Move destination and combined follow-up
+        if: ${{ needs.verification-plan.outputs.battle == 'true' }}
+        env:
+          AV_CANONICAL_MOVE: '1'
+          AV_TARGETING_EVIDENCE_DIR: /tmp/battle-canonical-move-review
+        run: pnpm --filter @aurevane/web exec node scripts/battle-canonical-targeting-browser-regression.mjs
+
+      - name: Verify standardized skill parameter colors and readers
+        if: ${{ needs.verification-plan.outputs.battle == 'true' }}
+        env:
+          AV_SKILL_PARAMETER_PALETTE_EVIDENCE_DIR: /tmp/skill-parameter-palette-review
+        run: pnpm --filter @aurevane/web exec node scripts/skill-parameter-palette-browser-regression.mjs
+
+      - name: Verify Basic authoring and retired rollback through actual mutation responses
+        if: ${{ needs.verification-plan.outputs.battle == 'true' }}
+        env:
+          AV_BASIC_ORIGINAL_RPC_ACCEPTANCE: '1'
+          AV_SKILL_PARAMETER_PALETTE_EVIDENCE_DIR: /tmp/basic-original-rpc-review
+        run: pnpm --filter @aurevane/web exec node scripts/skill-parameter-palette-browser-regression.mjs
+
+      - name: Verify percentage Skill Essence and rail readers across modes
+        if: ${{ needs.verification-plan.outputs.battle == 'true' }}
+        env:
+          AV_PERCENTAGE_DOT_EVIDENCE_DIR: /tmp/battle-percentage-dot-review
+        run: pnpm --filter @aurevane/web exec node scripts/battle-percentage-dot-browser-regression.mjs
+
+      - name: Verify elemental statuses and Ground readers across modes
+        if: ${{ needs.verification-plan.outputs.battle == 'true' }}
+        env:
+          AV_ELEMENTAL_EVIDENCE_DIR: /tmp/battle-elemental-review
+        run: pnpm --filter @aurevane/web exec node scripts/battle-elemental-browser-regression.mjs
+
+      - name: Verify Suppress percentage authoring and readers across modes
+        if: ${{ needs.verification-plan.outputs.battle == 'true' }}
+        env:
+          AV_SUPPRESS_EVIDENCE_DIR: /tmp/battle-suppress-review
+        run: pnpm --filter @aurevane/web exec node scripts/battle-suppress-browser-regression.mjs
+      - name: Seal authoring and category reload regression
+        if: ${{ needs.verification-plan.outputs.battle == 'true' }}
+        run: pnpm --filter @aurevane/web exec node scripts/seal-browser-regression.mjs
+
+      - name: Damage Up scope editor, reload and battle settlement
+        if: ${{ needs.verification-plan.outputs.battle == 'true' }}
+        run: pnpm --filter @aurevane/web exec node scripts/damage-up-browser-regression.mjs
+
+      - name: Verify elevated rail effects and viewer privacy
+        if: ${{ needs.verification-plan.outputs.battle == 'true' }}
+        env:
+          AV_ELEVATED_RAIL_EVIDENCE_DIR: /tmp/battle-elevated-rail-review
+        run: pnpm --filter @aurevane/web exec node scripts/battle-elevated-rail-browser-regression.mjs
+
+      - name: Verify completion windows fit the viewport
+        if: ${{ needs.verification-plan.outputs.battle == 'true' }}
+        env:
+          AV_COMPLETION_FIT_EVIDENCE_DIR: /tmp/battle-completion-fit-review
+        run: pnpm --filter @aurevane/web exec node scripts/battle-completion-fit-browser-regression.mjs
+
+      - name: Verify immediate battle command feedback and Tab prevention
+        if: ${{ needs.verification-plan.outputs.battle == 'true' }}
+        env:
+          AV_COMMAND_FEEDBACK_EVIDENCE_DIR: /tmp/battle-command-feedback-review
+        run: pnpm --filter @aurevane/web exec node scripts/battle-command-feedback-browser-regression.mjs
 
       - name: Start local Supabase stack
-        run: pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
+        run: |
+          python .github/scripts/configure-supabase-test-ports.test.py
+          python .github/scripts/configure-supabase-test-ports.py
+          python .github/scripts/configure-discipline-test-mail.test.py
+          python .github/scripts/configure-discipline-test-mail.py
+          pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
 
       - name: Verify desktop and mobile shell
         shell: bash
@@ -54,7 +235,7 @@ jobs:
           server_key="${SECRET_KEY:-${SERVICE_ROLE_KEY:-}}"
           test -n "$server_key"
 
-          api_url='http://127.0.0.1:54321'
+          api_url="${SUPABASE_TEST_API_URL:-http://127.0.0.1:54321}"
 
           AUREVANE_ENV=local \
           NEXT_PUBLIC_AUREVANE_ENV=local \
@@ -72,38 +253,211 @@ jobs:
             select public.activate_phase4_discipline_rebalance_v1();
           "
 
-          # Catch shared battle composition regressions before the longer all-page run.
-          # A successful candidate still runs the entire suite and the Edge keyboard checks below.
-          AUREVANE_ENV=local \
-          NEXT_PUBLIC_AUREVANE_ENV=local \
-          NEXT_PUBLIC_SUPABASE_URL="$api_url" \
-          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY" \
-          SUPABASE_SECRET_KEY="$server_key" \
-          pnpm --filter @aurevane/web exec playwright test \
-            e2e/ai-header-control-shape.pw.ts e2e/ai-grid-legend-regression.pw.ts \
-            e2e/battle-cockpit-skill-slots.pw.ts e2e/pvp-six-combatant-rails.pw.ts \
-            e2e/shared-battle-presentation-parity.pw.ts e2e/pvp-battle-log-footer-parity.pw.ts \
-            e2e/phase4-ground-targeting.pw.ts \
-            e2e/pvp-mobile-unified-battle.pw.ts e2e/discipline-sigil-art.pw.ts \
-            e2e/character-secondary-build.pw.ts \
-            --project=desktop-chromium --project=mobile-chromium
+          export AUREVANE_ENV=local NEXT_PUBLIC_AUREVANE_ENV=local
+          export NEXT_PUBLIC_SUPABASE_URL="$api_url"
+          export NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY"
+          export SUPABASE_SECRET_KEY="$server_key"
+          node .github/scripts/run-browser-verification.mjs
 
-          AUREVANE_ENV=local \
-          NEXT_PUBLIC_AUREVANE_ENV=local \
-          NEXT_PUBLIC_SUPABASE_URL="$api_url" \
-          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY" \
-          SUPABASE_SECRET_KEY="$server_key" \
-          pnpm --filter @aurevane/web test:browser
+      - name: Save Technique and Chronicle failure diagnostics
+        if: ${{ failure() && needs.verification-plan.outputs.battle == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: technique-chronicle-failure-diagnostics
+          path: |
+            apps/web/test-results/techniques-state-stability*/**/*.md
+            apps/web/test-results/techniques-state-stability*/**/*.json
+            apps/web/test-results/techniques-state-stability*/**/test-failed*.png
+            apps/web/test-results/battle-log-inline-reader*/**/*.md
+            apps/web/test-results/battle-log-inline-reader*/**/*.json
+            apps/web/test-results/battle-log-inline-reader*/**/test-failed*.png
+          retention-days: 7
 
-          AUREVANE_ENV=local \
-          NEXT_PUBLIC_AUREVANE_ENV=local \
-          NEXT_PUBLIC_SUPABASE_URL="$api_url" \
-          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY" \
-          SUPABASE_SECRET_KEY="$server_key" \
-          pnpm --filter @aurevane/web exec playwright test \
-            e2e/battle-self-action-quick-commit.pw.ts \
-            e2e/battle-recovery-hotkey.pw.ts \
-            --config=playwright.edge.config.ts --output=test-results-edge
+      - name: Save battle rail evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: battle-rail-review
+          path: /tmp/battle-rail-review
+          retention-days: 7
+
+      - name: Save ally inspection and preview evidence
+        if: ${{ always() && needs.verification-plan.outputs.battle == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: battle-ally-inspection-review
+          path: /tmp/battle-ally-inspection-review
+          retention-days: 7
+
+      - name: Save targeting geometry evidence
+        if: ${{ always() && needs.verification-plan.outputs.battle == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: battle-targeting-review
+          path: /tmp/battle-targeting-review
+          retention-days: 7
+
+      - name: Save grouped Ground preview and field visual evidence
+        if: ${{ always() && needs.verification-plan.outputs.battle == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: battle-ground-preview-review
+          path: /tmp/battle-ground-preview-review
+          retention-days: 7
+
+      - name: Save Ground animation palette evidence
+        if: ${{ always() && needs.verification-plan.outputs.battle == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: battle-ground-presets-review
+          path: /tmp/battle-ground-presets-review
+          retention-days: 7
+
+      - name: Save universal Support action and Vesper evidence
+        if: ${{ always() && needs.verification-plan.outputs.battle == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: battle-support-review
+          path: /tmp/battle-support-review
+          retention-days: 7
+
+      - name: Save captured targeting evidence
+        if: ${{ always() && needs.verification-plan.outputs.battle == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: battle-canonical-targeting-review
+          path: /tmp/battle-canonical-targeting-review
+          retention-days: 7
+
+      - name: Save captured Move evidence
+        if: ${{ always() && needs.verification-plan.outputs.battle == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: battle-canonical-move-review
+          path: /tmp/battle-canonical-move-review
+          retention-days: 7
+
+      - name: Save percentage reader evidence
+        if: ${{ always() && needs.verification-plan.outputs.battle == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: battle-percentage-dot-review
+          path: /tmp/battle-percentage-dot-review
+          retention-days: 7
+
+      - name: Save elemental status and Ground reader evidence
+        if: ${{ always() && needs.verification-plan.outputs.battle == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: battle-elemental-review
+          path: /tmp/battle-elemental-review
+          retention-days: 7
+
+      - name: Save Suppress percentage authoring and reader evidence
+        if: ${{ always() && needs.verification-plan.outputs.battle == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: battle-suppress-review
+          path: /tmp/battle-suppress-review
+          retention-days: 7
+
+      - name: Save compact combat release screenshots
+        if: ${{ always() && needs.verification-plan.outputs.battle == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: combat-release-reader-screens
+          path: |
+            /tmp/battle-percentage-dot-review/results.json
+            /tmp/battle-percentage-dot-review/spectator-*.png
+            /tmp/battle-percentage-dot-review/pve-1366-burn-active-rail.png
+            /tmp/battle-percentage-dot-review/pve-390-poison-pending-rail.png
+            /tmp/battle-percentage-dot-review/pvp-390-essence-burn-active-report.png
+            /tmp/combat-master-release-review/*.png
+            /tmp/players-task9-review/*.png
+            apps/web/test-results/master-players-recovery*/error-context.md
+            apps/web/test-results/master-players-recovery*/test-failed-*.png
+            apps/web/test-results/master-players-recovery*/trace.zip
+            apps/web/test-results/**/master-percentage-*.png
+            apps/web/test-results/**/master-elevation-*.png
+            apps/web/test-results/**/master-ground-*.png
+            apps/web/test-results/**/battle-ground-*.png
+            apps/web/test-results/**/staff-*.png
+            apps/web/test-results/staff-selected-character-access*/error-context.md
+            apps/web/test-results/staff-selected-character-access*/test-failed-*.png
+            apps/web/test-results/master-combat-content*/error-context.md
+            apps/web/test-results/master-combat-content*/test-failed-*.png
+            apps/web/test-results/battle-wasd-backtracking*/error-context.md
+            apps/web/test-results/battle-wasd-backtracking*/test-failed-*.png
+            apps/web/test-results/refined-battle-execution*/error-context.md
+          retention-days: 7
+
+      - name: Save skill parameter palette evidence
+        if: ${{ always() && needs.verification-plan.outputs.battle == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: skill-parameter-palette-review
+          path: /tmp/skill-parameter-palette-review
+          retention-days: 7
+
+      - name: Save Basic authoring and retirement evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: basic-original-rpc-review
+          path: /tmp/basic-original-rpc-review
+          retention-days: 7
+
+      - name: Save elevated rail effect evidence
+        if: ${{ always() && needs.verification-plan.outputs.battle == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: battle-elevated-rail-review
+          path: /tmp/battle-elevated-rail-review
+          retention-days: 7
+
+      - name: Save completion window fit evidence
+        if: ${{ always() && needs.verification-plan.outputs.battle == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: battle-completion-fit-review
+          path: /tmp/battle-completion-fit-review
+          retention-days: 7
+
+      - name: Save command feedback and Tab evidence
+        if: ${{ always() && needs.verification-plan.outputs.battle == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: battle-command-feedback-review
+          path: /tmp/battle-command-feedback-review
+          retention-days: 7
+
+      - name: Save focused World failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-world-failure-diagnostics
+          path: |
+            apps/web/test-results/atlas-world.pw.ts-*/trace.zip
+            apps/web/test-results/atlas-world.pw.ts-*/error-context.md
+            apps/web/test-results/atlas-world.pw.ts-*/world-contention-responses.json
+            apps/web/test-results/atlas-world.pw.ts-*/test-failed-*.png
+            apps/web/test-results/atlas-world.pw.ts-*/attachments/world-*.json
+          retention-days: 7
+
+      - name: Save complete Master operational evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: master-integration-operational-evidence
+          path: |
+            /tmp/master-full-integration-review
+            apps/web/test-results/master-complete-layout*/
+            apps/web/test-results/master-world-environment-*/
+            /tmp/master-operations-review
+            /tmp/technique-eligibility-review
+            /tmp/event-workspace-review
+            /tmp/nexus-desktop-review
+          retention-days: 7
 
       - name: Save browser evidence
         if: always()
@@ -115,6 +469,48 @@ jobs:
             apps/web/test-results-edge
           retention-days: 7
 
+      - name: Save compact browser diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-smoke-diagnostics
+          path: |
+            apps/web/test-results/**/*.zip
+            apps/web/test-results/**/*.json
+            apps/web/test-results/**/*.md
+            apps/web/test-results/battle-ui-polish-regressio*/**
+            apps/web/test-results-edge
+          retention-days: 7
+
       - name: Stop local Supabase services
         if: always()
         run: pnpm exec supabase stop --no-backup
+
+  browser-result:
+    name: Responsive browser smoke
+    if: ${{ always() }}
+    needs: [verification-plan, browser]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Require selected verification or verified reuse
+        env:
+          AV_PROOF_OUTPUT: /tmp/verification-proof.json
+          AV_WORKFLOW_FILE: browser-smoke.yml
+          AV_PLAN_RESULT: ${{ needs.verification-plan.result }}
+          AV_VERIFICATION_PLAN: ${{ needs.verification-plan.outputs.plan }}
+          AV_EXECUTION_RESULTS: '["${{ needs.browser.result }}"]'
+        run: node .github/scripts/verification-plan.mjs gate
+      - name: Save exact tested-source receipt
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: verification-proof-browser-smoke.yml-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/verification-proof.json
+          if-no-files-found: error
+          retention-days: 2

@@ -1,0 +1,72 @@
+{
+  "version": "mountains-v01",
+  "origin": "Original AI-assisted painterly art created for Aurevane; no third-party assets",
+  "columns": 4,
+  "rows": 3,
+  "pixelSizes": {
+    "normal": [1536, 1152],
+    "hd": [3072, 2304]
+  },
+  "styles": ["rugged highland", "snowbound alpine", "Void riftstone"],
+  "cellsPerStyle": ["clustered foothills", "major spire", "rounded hills", "open traversable pass"],
+  "collision": "only preexisting nonwalkable rock terrain; pass imagery only on existing walkable road",
+  "quality": "normal-resolution sheet always; high-resolution sheet only on demand at increased zoom",
+  "sources": [
+    {
+      "name": "highland-peaks.webp",
+      "width": 1774,
+      "height": 887,
+      "sha256": "8d71348d16d8dbb0c05d982c871fc56dfe1cf7b943915618b32067fe4191d575"
+    },
+    {
+      "name": "highland-hills-pass.webp",
+      "width": 1774,
+      "height": 887,
+      "sha256": "289251ff4c5dfbc9653fc81e73da01659d1cf8a4d0f956f2ebc01f383c9aedf6"
+    },
+    {
+      "name": "alpine-peaks.webp",
+      "width": 1774,
+      "height": 887,
+      "sha256": "0055a339f0fcabe56fe7b5876f9b84f0b555ce321bfd17a1dc4323a8252d398a"
+    },
+    {
+      "name": "alpine-hills-pass.webp",
+      "width": 1774,
+      "height": 887,
+      "sha256": "6af269180bff564fcf083dbcafb433b9db9471c04dd770ccd53c2c05f12899b1"
+    },
+    {
+      "name": "void-peaks.webp",
+      "width": 1774,
+      "height": 887,
+      "sha256": "f6de64b5748d33b159bf39d1bf26e2be67b234e5025bf546815c3825661e4155"
+    },
+    {
+      "name": "void-hills-pass.webp",
+      "width": 1774,
+      "height": 887,
+      "sha256": "58e3aecb47f6309ec5a1d46940371624cf20c3cb61e4ce16b4f395af5e055982"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "mountains-v01.webp",
+      "width": 1536,
+      "height": 1152,
+      "bytes": 458018,
+      "quality": 88,
+      "alphaQuality": 100,
+      "sha256": "ed3bffa671d51a37904e6ac7fb9668b106fc2d2507dd2a9aff5566cfc50d2f77"
+    },
+    {
+      "name": "mountains-hd-v01.webp",
+      "width": 3072,
+      "height": 2304,
+      "bytes": 464658,
+      "quality": 16,
+      "alphaQuality": 100,
+      "sha256": "f33b958e2e466be588c4467c1fde6d71ea54af7d61537f67b813fed01aa125bd"
+    }
+  ]
+}

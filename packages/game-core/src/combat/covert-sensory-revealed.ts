@@ -1,8 +1,13 @@
+import { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from './combat-effect-duration'
+import { hasArmedCombatReversal } from './combat-reversal'
+import { combatStatusApplications } from './combat-status-applications'
+import { combatEvaluatedEffectRecipientIds } from './combat-effect-recipients'
 import { combatStatusMetadata } from './combat-effect-state'
 import type {
   CombatActionDefinition,
   CombatContentCatalog,
   CombatEncounterState,
+  CombatResolutionTransition,
   CombatStatusDefinition,
 } from './actions'
 import type {
@@ -13,14 +18,194 @@ import type {
 
 export const CSR_STATUS_VERSION = 1 as const
 export const CSR_MINIMUM_DURATION_OWNER_TURN_STARTS = 1 as const
-export const CSR_MAXIMUM_DURATION_OWNER_TURN_STARTS = 4 as const
+export const CSR_MAXIMUM_DURATION_OWNER_TURN_STARTS = CURRENT_EFFECT_DURATION_MAXIMUM_TURNS
 export const COVERT_STATUS_ID = 'covert' as const
 export const REVEALED_STATUS_ID = 'revealed' as const
+
+/** A successful concealment cast protects its own receipts and future delayed packets. */
+export function protectCovertEstablishingAction<T extends CombatResolutionTransition>(
+  before: CombatEncounterState,
+  transition: T,
+  actorId: string | undefined,
+  actionId: string,
+): T {
+  if (!actorId) return transition
+  const establishesCovert = transition.events.some(
+    (event) =>
+      ((event.event === 'status_applied' && event.statusId === COVERT_STATUS_ID) ||
+        (event.event === 'effect_pending' && event.effectTag === COVERT_STATUS_ID)) &&
+      event.actionId === actionId &&
+      event.sourceCombatantId === actorId &&
+      event.targetCombatantId === actorId,
+  )
+  if (!establishesCovert) return transition
+  const teamId = before.tactical.battle.combatants.find((unit) => unit.id === actorId)!.teamId
+  const visibility = { kind: 'team-only' as const, teamId }
+  const existingPending = new Set(before.pendingEffects ?? [])
+  const existingSummons = new Set(before.pendingSummons ?? [])
+  const existingGroundIds = new Set(before.groundAreas?.map((area) => area.id) ?? [])
+  const existingBarriers = new Set(
+    before.effectState?.barriers?.map((pool) => pool.applicationOrder) ?? [],
+  )
+  const existingBarrierInstances = new Set(before.effectState?.barriers ?? [])
+  const existingRecovery = new Set(before.effectState?.ongoingRecovery ?? [])
+  const appliedStatuses = new Set(
+    transition.events.flatMap((event) =>
+      event.event === 'status_applied' &&
+      event.actionId === actionId &&
+      event.sourceCombatantId === actorId
+        ? [JSON.stringify([event.targetCombatantId, event.statusId])]
+        : [],
+    ),
+  )
+  return {
+    ...transition,
+    state: {
+      ...transition.state,
+      statusState: transition.state.statusState.map((row) => ({
+        ...row,
+        statuses: row.statuses.map((status) => {
+          if (!appliedStatuses.has(JSON.stringify([row.combatantId, status.statusId])))
+            return status
+          if (!status.applicationModifiers)
+            return status.sourceCombatantId === actorId && !status.sourceCommandVisibility
+              ? { ...status, sourceCommandVisibility: visibility }
+              : status
+          const previous = before.statusState
+            .find((item) => item.combatantId === row.combatantId)
+            ?.statuses.find(
+              (item) =>
+                item.statusId === status.statusId &&
+                (!status.sourceScopedMark || item.sourceCombatantId === status.sourceCombatantId),
+            )
+          const previousApplications = new Set(previous?.applicationModifiers ?? [])
+          const removed = transition.events.some(
+            (event) =>
+              (event.event === 'status_removed' &&
+                event.targetCombatantId === row.combatantId &&
+                event.statusId === status.statusId) ||
+              (event.event === 'status_expired' &&
+                event.combatantId === row.combatantId &&
+                event.statusId === status.statusId),
+          )
+          // Legacy single statuses are promoted to an application record by the native append.
+          // It is public only when the original survived and its exact application facts remain.
+          const promotedPrevious =
+            previous && !previous.applicationModifiers && !removed
+              ? status.applicationModifiers.find(
+                  (application) =>
+                    application.stacks === previous.stacks &&
+                    application.sourceCombatantId === previous.sourceCombatantId &&
+                    application.potencyBasisPoints === previous.potencyBasisPoints &&
+                    application.blindsideModifiersBasisPoints ===
+                      previous.blindsideModifiersBasisPoints &&
+                    application.sourceCommandVisibility === previous.sourceCommandVisibility,
+                )
+              : undefined
+          const clockFields = [
+            'remainingOwnerTurnStarts',
+            'remainingOwnerTurnEnds',
+            'remainingRoundBoundaries',
+            'durationScope',
+            'skipCurrentOwnerTurnEnd',
+            'activationRound',
+            'timingState',
+          ] as const
+          const privateClock = previous && clockFields.some((key) => previous[key] !== status[key])
+          return {
+            ...status,
+            applicationModifiers: status.applicationModifiers.map((application) =>
+              !previousApplications.has(application) &&
+              application !== promotedPrevious &&
+              application.sourceCombatantId === actorId
+                ? {
+                    ...application,
+                    sourceCommandVisibility: application.sourceCommandVisibility ?? visibility,
+                    // The shared refreshed lifetime cannot be attributed to public applications.
+                    ...(privateClock ? { privateSharedLifetime: true as const } : {}),
+                  }
+                : application,
+            ),
+          }
+        }),
+      })),
+      ...(transition.state.effectState
+        ? {
+            effectState: {
+              ...transition.state.effectState,
+              ongoingRecovery: transition.state.effectState.ongoingRecovery.map((instance) =>
+                !existingRecovery.has(instance) &&
+                instance.sourceCombatantId === actorId &&
+                instance.sourceActionId === actionId &&
+                !instance.sourceCommandVisibility
+                  ? { ...instance, sourceCommandVisibility: visibility }
+                  : instance,
+              ),
+              ...(transition.state.effectState.barriers
+                ? {
+                    barriers: transition.state.effectState.barriers.map((instance) =>
+                      (instance.applicationOrder === undefined
+                        ? !existingBarrierInstances.has(instance)
+                        : !existingBarriers.has(instance.applicationOrder)) &&
+                      instance.sourceCombatantId === actorId &&
+                      instance.sourceActionId === actionId &&
+                      !instance.sourceCommandVisibility
+                        ? { ...instance, sourceCommandVisibility: visibility }
+                        : instance,
+                    ),
+                  }
+                : {}),
+            },
+          }
+        : {}),
+      ...(transition.state.pendingEffects
+        ? {
+            pendingEffects: transition.state.pendingEffects.map((pending) =>
+              !existingPending.has(pending) &&
+              pending.actorId === actorId &&
+              pending.actionId === actionId &&
+              !pending.sourceCommandVisibility
+                ? { ...pending, sourceCommandVisibility: visibility }
+                : pending,
+            ),
+          }
+        : {}),
+      ...(transition.state.pendingSummons
+        ? {
+            pendingSummons: transition.state.pendingSummons.map((pending) =>
+              !existingSummons.has(pending) &&
+              pending.input.ownerCombatantId === actorId &&
+              pending.input.sourceSkillId === actionId &&
+              !pending.sourceCommandVisibility
+                ? { ...pending, sourceCommandVisibility: visibility }
+                : pending,
+            ),
+          }
+        : {}),
+      ...(transition.state.groundAreas
+        ? {
+            groundAreas: transition.state.groundAreas.map((area) =>
+              !existingGroundIds.has(area.id) &&
+              area.sourceCombatantId === actorId &&
+              area.sourceActionId === actionId &&
+              !area.sourceCommandVisibility
+                ? { ...area, sourceCommandVisibility: visibility }
+                : area,
+            ),
+          }
+        : {}),
+    },
+    events: transition.events.map((event) =>
+      event.sourceCommandVisibility ? event : { ...event, sourceCommandVisibility: visibility },
+    ),
+  }
+}
 
 export interface CombatSensoryEffect {
   readonly type: 'sensory'
   readonly recipient: 'primary-unit'
   readonly revealedDurationOwnerTurnStarts: number
+  readonly increasedDamageTakenBasisPoints?: number
 }
 
 export function createCovertStatusDefinition(
@@ -34,7 +219,7 @@ export function createCovertStatusDefinition(
     durationOwnerTurnStarts,
     damageTakenMultiplierBasisPoints: 10_000,
     polarity: 'positive',
-    amplifyCopyable: false,
+    amplifyCopyable: true,
     curseCopyable: false,
     reactionClass: 'ordinary',
     effectCategories: ['Buff', 'Stealth'],
@@ -67,7 +252,9 @@ export function hasCombatStatus(
   return (
     state.statusState
       .find((row) => row.combatantId === combatantId)
-      ?.statuses.some((status) => status.statusId === statusId) === true
+      ?.statuses.some(
+        (status) => status.statusId === statusId && status.timingState !== 'pending',
+      ) === true
   )
 }
 
@@ -80,6 +267,18 @@ export function revealedSkillApCost(
     throw new RangeError('Skill AP cost must be a non-negative safe integer.')
   }
   if (!hasCombatStatus(state, combatantId, REVEALED_STATUS_ID)) return intrinsicApCost
+  const applications =
+    state.statusState
+      .find((row) => row.combatantId === combatantId)
+      ?.statuses.filter(
+        (status) => status.statusId === REVEALED_STATUS_ID && status.timingState !== 'pending',
+      )
+      .flatMap(combatStatusApplications) ?? []
+  if (
+    applications.length &&
+    applications.every((row) => row.increasedDamageTakenBasisPoints !== undefined)
+  )
+    return intrinsicApCost
   const doubled = intrinsicApCost * 2
   if (!Number.isSafeInteger(doubled))
     throw new RangeError('Revealed Skill AP cost exceeds safe range.')
@@ -93,7 +292,10 @@ export function validateCsrActionDefinition(
   for (const effect of action.effects) {
     if (effect.type === 'sensory') {
       sensoryCount += 1
-      if (effect.recipient !== 'primary-unit' || action.target.kind !== 'unit') {
+      if (!(
+        (effect.recipient === 'primary-unit' && action.target.kind === 'unit') ||
+        (effect.recipient === 'affected-units' && effect.target === 'ground')
+      )) {
         throw new TypeError('Sensory requires a primary-unit effect on a unit-targeting Skill.')
       }
       validateCsrDuration(effect.revealedDurationOwnerTurnStarts, 'Sensory Revealed duration')
@@ -113,7 +315,54 @@ export function materializeCsrPreviewAction(
   validateCsrActionDefinition(action)
   return {
     ...action,
+    ...(action.effects.some(
+      (effect) => effect.type === 'sensory' && effect.increasedDamageTakenBasisPoints !== undefined,
+    )
+      ? { target: { ...action.target, revealConcealedTargets: true as const } }
+      : {}),
     effects: action.effects.filter((effect) => effect.type !== 'sensory'),
+    ...(action.effectSourceOrdinals
+      ? {
+          effectSourceOrdinals: action.effectSourceOrdinals.filter(
+            (_, i) => action.effects[i]?.type !== 'sensory',
+          ),
+        }
+      : {}),
+    ...(action.effectRequirementCaptures
+      ? {
+          effectRequirementCaptures: action.effectRequirementCaptures.filter(
+            (_, i) => action.effects[i]?.type !== 'sensory',
+          ),
+        }
+      : {}),
+    ...(action.effectTimingTags
+      ? {
+          effectTimingTags: action.effectTimingTags.filter(
+            (_, index) => action.effects[index]?.type !== 'sensory',
+          ),
+        }
+      : {}),
+    ...(action.effectOrigins
+      ? {
+          effectOrigins: action.effectOrigins.filter(
+            (_, index) => action.effects[index]?.type !== 'sensory',
+          ),
+        }
+      : {}),
+    ...(action.effectTimingModes
+      ? {
+          effectTimingModes: action.effectTimingModes.filter(
+            (_, index) => action.effects[index]?.type !== 'sensory',
+          ),
+        }
+      : {}),
+    ...(action.effectEligibleRecipientIds
+      ? {
+          effectEligibleRecipientIds: action.effectEligibleRecipientIds.filter(
+            (_, index) => action.effects[index]?.type !== 'sensory',
+          ),
+        }
+      : {}),
   }
 }
 
@@ -124,53 +373,138 @@ export function materializeCsrCommittedAction(input: {
   evaluation: CombatActionEvaluation | null
   content: CombatContentCatalog
   missedCombatantIds: ReadonlySet<string>
-}): { action: CombatActionDefinition; content: CombatContentCatalog } {
+}): {
+  action: CombatActionDefinition
+  content: CombatContentCatalog
+  effectSourceOrdinals: readonly number[]
+} {
   const { state, action, evaluation, content, missedCombatantIds } = input
   validateCsrActionDefinition(action)
   const primaryCombatantId = evaluation?.primaryCombatantId ?? null
   let sensoryDuration: number | null = null
   const effects: CombatActionDefinition['effects'][number][] = []
+  const effectSourceOrdinals: number[] = []
+  const effectTimingTags: (string | undefined)[] = []
+  const effectOrigins: NonNullable<CombatActionDefinition['effectOrigins']>[number][] = []
+  const effectTimingModes: NonNullable<CombatActionDefinition['effectTimingModes']>[number][] = []
+  const effectEligibleRecipientIds: NonNullable<
+    CombatActionDefinition['effectEligibleRecipientIds']
+  >[number][] = []
 
   for (const [effectIndex, effect] of action.effects.entries()) {
-    if (effect.type !== 'sensory') {
-      effects.push(effect)
-      continue
-    }
+    const initialEffectCount = effects.length
+    try {
+      if (effect.type !== 'sensory') {
+        effects.push(effect)
+        continue
+      }
 
-    if (
-      !primaryCombatantId ||
-      missedCombatantIds.has(primaryCombatantId) ||
-      !primaryWouldBeCovertAtEffect(state, action, evaluation, primaryCombatantId, effectIndex)
-    ) {
-      continue
-    }
+      if (
+        !primaryCombatantId ||
+        missedCombatantIds.has(primaryCombatantId) ||
+        !primaryWouldBeCovertAtEffect(
+          state,
+          action,
+          evaluation,
+          primaryCombatantId,
+          effectIndex,
+          effect.increasedDamageTakenBasisPoints !== undefined,
+        )
+      ) {
+        continue
+      }
 
-    sensoryDuration = effect.revealedDurationOwnerTurnStarts
-    const purgeIds = content.statuses
-      .filter(isSensoryPurgeEligibleStatus)
-      .map((status) => status.id)
-      .sort(compareIdentity)
-    if (!purgeIds.includes(COVERT_STATUS_ID)) {
-      throw new TypeError('Sensory requires Covert to be an explicitly positive removable status.')
-    }
+      sensoryDuration = effect.revealedDurationOwnerTurnStarts
+      const purgeIds =
+        effect.increasedDamageTakenBasisPoints !== undefined
+          ? ['covert', 'invisible']
+          : content.statuses
+              .filter(isSensoryPurgeEligibleStatus)
+              .map((status) => status.id)
+              .sort(compareIdentity)
+      if (!purgeIds.includes(COVERT_STATUS_ID)) {
+        throw new TypeError(
+          'Sensory requires Covert to be an explicitly positive removable status.',
+        )
+      }
 
-    for (let index = 0; index < purgeIds.length; index += 8) {
+      for (let index = 0; index < purgeIds.length; index += 8) {
+        effects.push({
+          type: 'remove-status',
+          recipient: 'primary-unit',
+          statusIds: purgeIds.slice(index, index + 8),
+          removalMode: 'specified',
+        })
+      }
       effects.push({
-        type: 'remove-status',
+        type: 'apply-status',
         recipient: 'primary-unit',
-        statusIds: purgeIds.slice(index, index + 8),
+        statusId: REVEALED_STATUS_ID,
+        stacks: 1,
+        ...(effect.increasedDamageTakenBasisPoints === undefined
+          ? {}
+          : {
+              increasedDamageTakenBasisPoints: effect.increasedDamageTakenBasisPoints,
+              durationTurns: effect.revealedDurationOwnerTurnStarts,
+            }),
       })
+    } finally {
+      for (let index = initialEffectCount; index < effects.length; index += 1) {
+        effectSourceOrdinals.push(effectIndex)
+        effectOrigins.push(action.effectOrigins?.[effectIndex])
+        effectTimingModes.push(action.effectTimingModes?.[effectIndex])
+        effectEligibleRecipientIds.push(action.effectEligibleRecipientIds?.[effectIndex])
+        effectTimingTags.push(
+          action.effectTimingTags?.[effectIndex] ??
+            (effect.type === 'sensory' ? 'sensory' : undefined),
+        )
+      }
     }
-    effects.push({
-      type: 'apply-status',
-      recipient: 'primary-unit',
-      statusId: REVEALED_STATUS_ID,
-      stacks: 1,
-    })
   }
 
+  const ordering = effects.map((_, index) => index)
+  if (primaryCombatantId && hasArmedCombatReversal(state, primaryCombatantId))
+    ordering.sort(
+      (a, b) =>
+        (effectTimingTags[a] === 'sensory' ? 0 : 1) - (effectTimingTags[b] === 'sensory' ? 0 : 1) ||
+        a - b,
+    )
   return {
-    action: { ...action, effects },
+    action: {
+      ...action,
+      ...(action.effects.some(
+        (effect) =>
+          effect.type === 'sensory' && effect.increasedDamageTakenBasisPoints !== undefined,
+      )
+        ? { target: { ...action.target, revealConcealedTargets: true as const } }
+        : {}),
+      effects: ordering.map((index) => effects[index]!),
+      ...(action.effectSourceOrdinals
+        ? {
+            effectSourceOrdinals: ordering.map(
+              (index) => action.effectSourceOrdinals![effectSourceOrdinals[index]!]!,
+            ),
+          }
+        : {}),
+      ...(action.effectRequirementCaptures
+        ? {
+            effectRequirementCaptures: ordering.map(
+              (index) => action.effectRequirementCaptures![effectSourceOrdinals[index]!],
+            ),
+          }
+        : {}),
+      effectTimingTags: ordering.map((index) => effectTimingTags[index]),
+      ...(action.effectOrigins
+        ? { effectOrigins: ordering.map((index) => effectOrigins[index]) }
+        : {}),
+      ...(action.effectTimingModes
+        ? { effectTimingModes: ordering.map((index) => effectTimingModes[index]) }
+        : {}),
+      ...(action.effectEligibleRecipientIds
+        ? { effectEligibleRecipientIds: ordering.map((index) => effectEligibleRecipientIds[index]) }
+        : {}),
+    },
+    effectSourceOrdinals: ordering.map((index) => effectSourceOrdinals[index]!),
     content: sensoryDuration === null ? content : withRevealedDuration(content, sensoryDuration),
   }
 }
@@ -247,34 +581,35 @@ function primaryWouldBeCovertAtEffect(
   evaluation: CombatActionEvaluation | null,
   primaryCombatantId: string,
   effectIndex: number,
+  includeInvisible = false,
 ): boolean {
+  let invisible = includeInvisible && hasCombatStatus(state, primaryCombatantId, 'invisible')
   let covert = hasCombatStatus(state, primaryCombatantId, COVERT_STATUS_ID)
   let revealed = hasCombatStatus(state, primaryCombatantId, REVEALED_STATUS_ID)
 
   for (let index = 0; index < effectIndex; index += 1) {
     const effect = action.effects[index]
-    if (!effect || !effectHitsPrimary(effect, evaluation, primaryCombatantId)) continue
+    if (
+      !effect ||
+      !evaluation ||
+      !combatEvaluatedEffectRecipientIds(state, action, evaluation, index).includes(
+        primaryCombatantId,
+      )
+    )
+      continue
     if (effect.type === 'apply-status') {
       if (effect.statusId === REVEALED_STATUS_ID) revealed = true
+      if (effect.statusId === 'invisible' && includeInvisible) invisible = true
       if (effect.statusId === COVERT_STATUS_ID && !revealed) covert = true
       continue
     }
     if (effect.type === 'remove-status') {
       if (effect.statusIds.includes(COVERT_STATUS_ID)) covert = false
+      if (effect.statusIds.includes('invisible')) invisible = false
       if (effect.statusIds.includes(REVEALED_STATUS_ID)) revealed = false
     }
   }
-  return covert
-}
-
-function effectHitsPrimary(
-  effect: CombatActionDefinition['effects'][number],
-  evaluation: CombatActionEvaluation | null,
-  primaryCombatantId: string,
-): boolean {
-  if (effect.recipient === 'primary-unit') return true
-  if (effect.recipient === 'actor') return evaluation?.actorId === primaryCombatantId
-  return evaluation?.affectedCombatantIds.includes(primaryCombatantId) === true
+  return covert || invisible || hasArmedCombatReversal(state, primaryCombatantId)
 }
 
 function isSensoryPurgeEligibleStatus(status: CombatStatusDefinition): boolean {
@@ -306,7 +641,9 @@ function validateCsrDuration(value: number, field: string): void {
     value < CSR_MINIMUM_DURATION_OWNER_TURN_STARTS ||
     value > CSR_MAXIMUM_DURATION_OWNER_TURN_STARTS
   ) {
-    throw new RangeError(`${field} must be an integer from 1 to 4 owner-turn starts.`)
+    throw new RangeError(
+      `${field} must be an integer from 1 to ${CURRENT_EFFECT_DURATION_MAXIMUM_TURNS} owner-turn starts.`,
+    )
   }
 }
 

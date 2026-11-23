@@ -1,5 +1,4 @@
 import 'server-only'
-
 import { createHash, randomUUID } from 'node:crypto'
 
 import {
@@ -12,14 +11,23 @@ import {
   chooseBuildAwareRecruitAiDecision,
   type BuildAwareRecruitAiSkillOptions,
 } from '@aurevane/game-core/combat/recruit-ai-build'
-import { normalizeCombatEffectState } from '@aurevane/game-core/combat/combat-effect-state'
 import {
+  normalizeCombatEffectState,
+  type CombatSummonInstance,
+} from '@aurevane/game-core/combat/combat-effect-state'
+import {
+  chooseRecruitAiDecision,
   getRecruitAiProfile,
   type RecruitAiDecision,
   type RecruitAiDifficulty,
   type RecruitAiIntent,
 } from '@aurevane/game-core/combat/recruit-ai'
-import { executePv1fMovement, finishPv1fTurn } from '@aurevane/game-core/combat/pv1f-action-economy'
+import {
+  executePv1fMovement,
+  executePv1fSummonAbility,
+  finishPv1fTurn,
+} from '@aurevane/game-core/combat/pv1f-action-economy'
+import { chooseSummonAiDecision } from '@aurevane/game-core/combat/summon-ai'
 import {
   validateStatDrivenCombatEncounterState,
   type StatDrivenCombatEncounterState,
@@ -28,27 +36,23 @@ import { AurevaneError, StaleBattleVersionError } from '@aurevane/game-core/erro
 import type { CombatContentResolver } from '@/server/combat/combat-content-resolver'
 import { createServerCombatContentResolver } from '@/server/combat/combat-content-resolver'
 import {
-  resolveBattleDisciplineSkillDefinitions,
-  resolveBattleEssenceDefinition,
-  resolveBattleTemporarySkillDefinition,
+  resolveBattleDisciplineSkillDefinition,
+  battleBuildAuthorityForCombatant,
+  capturedBattleActionSource,
+  resolvePinnedBattleEssenceDefinition,
   type BattleBuildAuthoritySnapshot,
 } from './battle-build-authority'
-import { resolveBattleSkillCopyContext } from './battle-skill-copy-authority'
-
+import { essenceCombatSkill } from '@aurevane/game-core/combat/essence'
+import { refreezeCapturedCombatAbilityState } from '@aurevane/game-core/combat/combat-behavior-runtime'
 import {
   createBattleSessionChangedInvalidation,
   type BattleSessionChangedInvalidation,
 } from '@aurevane/realtime'
 
-const MAX_RECRUIT_DECISIONS_PER_REQUEST = 16
+import { projectBattleSnapshot, type BattleSessionProjection } from './battle-session-service'
+import { deriveParticipantBattleViewerEntitlement } from './battle-viewer-entitlement'
 
-type ProjectedBattleState = Omit<StatDrivenCombatEncounterState['tactical']['battle'], 'rng'>
-type ProjectedTacticalState = Omit<StatDrivenCombatEncounterState['tactical'], 'battle'> & {
-  battle: ProjectedBattleState
-}
-type RecruitBattleProjection = Omit<StatDrivenCombatEncounterState, 'tactical'> & {
-  tactical: ProjectedTacticalState
-}
+const MAX_RECRUIT_DECISIONS_PER_REQUEST = 16
 type BuildExtendedEncounterState = StatDrivenCombatEncounterState & {
   readonly buildAuthority?: BattleBuildAuthoritySnapshot
   readonly buildBridge?: unknown
@@ -57,7 +61,7 @@ type BuildExtendedEncounterState = StatDrivenCombatEncounterState & {
 export interface RecruitTurnView {
   battleSessionId: string
   battleVersion: number
-  snapshot: RecruitBattleProjection
+  snapshot: BattleSessionProjection
   decisions: readonly {
     combatantId: string
     reason: RecruitAiDecision['reason']
@@ -108,7 +112,7 @@ function readPersistedEncounter(snapshot: unknown): BuildExtendedEncounterState 
     const candidate = snapshot as BuildExtendedEncounterState
     const issues = validateStatDrivenCombatEncounterState(candidate)
     if (issues.length > 0) throw persistenceInvalid()
-    return candidate
+    return refreezeCapturedCombatAbilityState(candidate)
   } catch (error) {
     if (error instanceof AurevaneError) throw error
     throw persistenceInvalid()
@@ -126,53 +130,118 @@ function preserveFrozenBuildMetadata(
   }
 }
 
-function projectBattleSnapshot(state: StatDrivenCombatEncounterState): RecruitBattleProjection {
-  const battle = state.tactical.battle
-  return {
-    ...state,
-    tactical: {
-      ...state.tactical,
-      battle: {
-        schemaVersion: battle.schemaVersion,
-        battleId: battle.battleId,
-        rulesVersion: battle.rulesVersion,
-        contentVersion: battle.contentVersion,
-        lifecycle: battle.lifecycle,
-        combatants: battle.combatants,
-        initiativeOrder: battle.initiativeOrder,
-        ...(battle.roundInitiativeModifiers
-          ? { roundInitiativeModifiers: battle.roundInitiativeModifiers }
-          : {}),
-        round: battle.round,
-        turnNumber: battle.turnNumber,
-        currentTurn: battle.currentTurn,
-      },
-    },
-  }
-}
-
 function resolveRecruitIntent(
   state: StatDrivenCombatEncounterState,
   intent: RecruitAiIntent,
   skillOptions: BuildAwareRecruitAiSkillOptions,
+  summon: CombatSummonInstance | null = null,
 ): { state: StatDrivenCombatEncounterState; events: readonly unknown[] } {
-  try {
-    if (intent.kind === 'move') return executePv1fMovement(state, intent.path)
-    if (intent.kind === 'action') {
-      return executeBuildAwareRecruitAiAction(state, intent.actionId, intent.target, skillOptions)
-    }
-    if (intent.kind === 'face') return finishPv1fTurn(state, intent.facing)
+  if (intent.kind === 'ability-prime' || intent.kind === 'ability-cancel-prime') {
+    if (summon) throw new TypeError('summon-controlled-command-unsupported')
+    return executeBuildAwareRecruitAiAction(
+      state,
+      intent.actionId,
+      intent.kind === 'ability-prime' ? (intent.target ?? { kind: 'self' }) : { kind: 'self' },
+      skillOptions,
+      {
+        behaviorId: intent.behaviorId,
+        controlledOperation: intent.kind === 'ability-prime' ? 'prime' : 'cancel',
+        ...(intent.kind === 'ability-prime' ? { manualModifiers: intent.manualModifiers } : {}),
+      },
+    )
+  }
+  if (intent.kind === 'move') return executePv1fMovement(state, intent.path)
+  if (intent.kind === 'action') {
+    if (summon && intent.manualModifiers?.length)
+      throw new TypeError('summon-modifier-command-unsupported')
+    return summon
+      ? executePv1fSummonAbility(state, summon, intent.actionId, intent.target)
+      : executeBuildAwareRecruitAiAction(state, intent.actionId, intent.target, skillOptions, {
+          behaviorId: intent.behaviorId,
+          movementPath: intent.movementPath,
+          manualModifiers: intent.manualModifiers,
+        })
+  }
+  if (intent.kind === 'face') return finishPv1fTurn(state, intent.facing)
 
-    const activeId = state.tactical.battle.currentTurn?.combatantId
-    const placement = activeId
-      ? state.tactical.placements.find((candidate) => candidate.combatantId === activeId)
-      : null
-    if (!placement) throw new Error('Recruit has no committed facing.')
-    return finishPv1fTurn(state, placement.facing)
+  const activeId = state.tactical.battle.currentTurn?.combatantId
+  const placement = activeId
+    ? state.tactical.placements.find((candidate) => candidate.combatantId === activeId)
+    : null
+  if (!placement) throw new Error('AI combatant has no committed facing.')
+  return finishPv1fTurn(state, placement.facing)
+}
+
+/** Never bypass shared legality: try a simpler AI action, then a legal turn end.
+ * The original encounter remains untouched unless the resulting transition commits. */
+export function resolveRecruitDecisionWithFallback(
+  state: StatDrivenCombatEncounterState,
+  selected: RecruitAiDecision,
+  skillOptions: BuildAwareRecruitAiSkillOptions,
+  tieBreakSeed: number,
+  difficulty: RecruitAiDifficulty,
+  summon: CombatSummonInstance | null = null,
+): {
+  decision: RecruitAiDecision
+  resolved: ReturnType<typeof resolveRecruitIntent>
+  recovery?: 'basic' | 'end-turn'
+} {
+  try {
+    return {
+      decision: selected,
+      resolved: resolveRecruitIntent(state, selected.intent, skillOptions, summon),
+    }
   } catch (error) {
     if (error instanceof AurevaneError) throw error
-    throw persistenceInvalid('Recruit AI produced a command rejected by shared combat legality.')
   }
+
+  // A canonical Skill can have a valid preview but fail at commit. The ordinary
+  // AI's independently quoted Basics, movement and facing are safer alternatives.
+  if (!summon) {
+    try {
+      const basic = chooseRecruitAiDecision({
+        state,
+        profile: getRecruitAiProfile(difficulty),
+        tieBreakSeed,
+      })
+      return {
+        decision: basic,
+        resolved: resolveRecruitIntent(state, basic.intent, skillOptions),
+        recovery: 'basic',
+      }
+    } catch (error) {
+      if (error instanceof AurevaneError) throw error
+    }
+  }
+
+  // A rejected AI command must never hold the battle hostage. Finish through the
+  // same final-facing and turn-boundary authority as a player, preserving Frozen.
+  try {
+    const ended: RecruitAiDecision = {
+      ...selected,
+      intent: { kind: 'end-turn' },
+      reason: 'safe-end-turn',
+      utility: 0,
+    }
+    return {
+      decision: ended,
+      resolved: resolveRecruitIntent(state, ended.intent, skillOptions, summon),
+      recovery: 'end-turn',
+    }
+  } catch {
+    throw persistenceInvalid('Combat AI produced a command rejected by shared combat legality.')
+  }
+}
+
+function activeSummonForActor(
+  state: StatDrivenCombatEncounterState,
+  combatantId: string,
+): CombatSummonInstance | null {
+  return (
+    (normalizeCombatEffectState(state.effectState).summons ?? []).find(
+      (summon) => summon.combatantId === combatantId,
+    ) ?? null
+  )
 }
 
 async function resolveRecruitSkillOptions(
@@ -181,52 +250,39 @@ async function resolveRecruitSkillOptions(
   resolver: CombatContentResolver | undefined,
 ): Promise<BuildAwareRecruitAiSkillOptions> {
   const authority = state.buildAuthority
-  if (!authority) {
-    if (
-      normalizeCombatEffectState(state.effectState).temporarySkills.some(
-        (grant) => grant.combatantId === actorId,
-      )
-    ) {
-      throw persistenceInvalid('Temporary copied Skills require frozen battle build authority.')
-    }
-    return {}
-  }
+  if (!authority) return {}
   if (!resolver) throw persistenceInvalid('Published combat content resolver is unavailable.')
 
-  const regular = await resolveBattleDisciplineSkillDefinitions(authority, actorId, resolver)
-  if (regular === null) return { committedSkills: [] }
-
-  const essence = resolveBattleEssenceDefinition(authority, actorId)
-  const committedSkills = essence ? [...regular, essence.skill] : [...regular]
-  const copiedSkills = []
-  for (const grant of normalizeCombatEffectState(state.effectState).temporarySkills) {
-    if (grant.combatantId !== actorId) continue
-    const definition = await resolveBattleTemporarySkillDefinition(authority, grant, resolver)
-    if (!definition) throw persistenceInvalid('Stored temporary Skill grant is invalid.')
-    copiedSkills.push(definition)
+  const build = battleBuildAuthorityForCombatant(authority, actorId)
+  if (!build) return { committedSkills: [], canonicalSources: [] }
+  const canonicalSources = (state.capturedAbilitySources ?? []).filter(
+    (source) =>
+      source.ownerCombatantId === actorId &&
+      ((source.sourceKind === 'basic' &&
+        source.basic !== undefined &&
+        state.abilityRuntime?.activeSourceIds.includes(source.sourceInstanceId)) ||
+        capturedBattleActionSource(state, authority, actorId, source.abilityId) === source),
+  )
+  const regular = []
+  for (const reference of build.disciplineSkills) {
+    if (canonicalSources.some((source) => source.abilityId === reference.skillId)) continue
+    const definition = await resolveBattleDisciplineSkillDefinition(
+      authority,
+      actorId,
+      reference.skillId,
+      resolver,
+    )
+    if (!definition) throw persistenceInvalid('Pinned AI Skill definition is unavailable.')
+    regular.push(definition)
   }
-
-  const all = [...committedSkills, ...copiedSkills]
-  const copyContextsBySource: Record<
-    string,
-    Awaited<ReturnType<typeof resolveBattleSkillCopyContext>>
-  > = {}
-  if (all.some((definition) => definition.effects.some((effect) => effect.type === 'copy'))) {
-    for (const source of state.tactical.battle.combatants) {
-      const context = await resolveBattleSkillCopyContext(state, actorId, source.id, resolver)
-      if (context === null) throw persistenceInvalid('Stored Copy source build is invalid.')
-      copyContextsBySource[source.id] = context
-    }
-  }
-
+  const essence =
+    build.extensions.essence &&
+    !canonicalSources.some((source) => source.abilityId === build.extensions.essence!.skillId)
+      ? await resolvePinnedBattleEssenceDefinition(authority, actorId, resolver)
+      : null
   return {
-    committedSkills,
-    copiedSkills,
-    copyContextsBySource: Object.fromEntries(
-      Object.entries(copyContextsBySource).filter(
-        (entry): entry is [string, NonNullable<(typeof entry)[1]>] => entry[1] !== null,
-      ),
-    ),
+    committedSkills: essence ? [...regular, essenceCombatSkill(essence)] : regular,
+    canonicalSources,
   }
 }
 
@@ -264,9 +320,14 @@ export function deriveRecruitTieBreakSeed(input: RecruitTieBreakSeedInput): numb
   return digest.readInt32BE(0)
 }
 
-function decisionEvent(decision: RecruitAiDecision, combatantId: string) {
+function decisionEvent(
+  decision: RecruitAiDecision,
+  combatantId: string,
+  controller: 'recruit' | 'summon',
+  recovery?: 'basic' | 'end-turn',
+) {
   return {
-    event: 'recruit_ai_decision',
+    event: controller === 'summon' ? 'summon_ai_decision' : 'recruit_ai_decision',
     combatantId,
     profileId: decision.profileId,
     profileVersion: decision.profileVersion,
@@ -274,6 +335,7 @@ function decisionEvent(decision: RecruitAiDecision, combatantId: string) {
     reason: decision.reason,
     utility: decision.utility,
     candidateCount: decision.candidateCount,
+    ...(recovery ? { recovery } : {}),
   }
 }
 
@@ -307,9 +369,25 @@ export function createBattleRecruitAiService(
         )
       }
 
+      const initialTurnNumber = state.tactical.battle.turnNumber
       let battleVersion = initial.battleVersion
       let committedAt = initial.updatedAt
       const decisions: Array<RecruitTurnView['decisions'][number]> = []
+      const committedView = (): RecruitTurnView => ({
+        battleSessionId: initial.battleSessionId,
+        battleVersion,
+        snapshot: projectBattleSnapshot(
+          state,
+          deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, controlledIds),
+        ),
+        decisions,
+        invalidation: createBattleSessionChangedInvalidation({
+          battleSessionId: initial.battleSessionId,
+          battleVersion,
+          occurredAt: committedAt,
+          reason: 'state_changed',
+        }),
+      })
 
       for (let step = 0; step < MAX_RECRUIT_DECISIONS_PER_REQUEST; step += 1) {
         const battle = state.tactical.battle
@@ -317,44 +395,59 @@ export function createBattleRecruitAiService(
         if (
           battle.lifecycle !== 'active' ||
           turn === null ||
-          controlledIds.includes(turn.combatantId)
+          controlledIds.includes(turn.combatantId) ||
+          battle.turnNumber !== initialTurnNumber
         ) {
-          return {
-            battleSessionId: initial.battleSessionId,
-            battleVersion,
-            snapshot: projectBattleSnapshot(state),
-            decisions,
-            invalidation: createBattleSessionChangedInvalidation({
-              battleSessionId: initial.battleSessionId,
-              battleVersion,
-              occurredAt: committedAt,
-              reason: 'state_changed',
-            }),
-          }
+          return committedView()
         }
 
-        const difficulty = recruitDifficultyForActor(state, turn.combatantId)
+        const summon = activeSummonForActor(state, turn.combatantId)
+        const tieBreakSeed = deriveRecruitTieBreakSeed({
+          battleId: battle.battleId,
+          round: battle.round,
+          turnNumber: battle.turnNumber,
+          battleVersion,
+          step,
+          combatantId: turn.combatantId,
+        })
+        const difficulty =
+          summon?.profile.aiProfile ?? recruitDifficultyForActor(state, turn.combatantId)
         const resolver =
           combatContentResolver ??
           (state.buildAuthority ? createServerCombatContentResolver() : undefined)
-        const skillOptions = await resolveRecruitSkillOptions(state, turn.combatantId, resolver)
-        const decision = chooseBuildAwareRecruitAiDecision({
+        const skillOptions = summon
+          ? {}
+          : await resolveRecruitSkillOptions(state, turn.combatantId, resolver)
+        const selected = summon
+          ? chooseSummonAiDecision({
+              state,
+              summon,
+              tieBreakSeed,
+            })
+          : chooseBuildAwareRecruitAiDecision({
+              state,
+              profile: getRecruitAiProfile(difficulty),
+              tieBreakSeed,
+              skillOptions,
+            })
+        const { decision, resolved, recovery } = resolveRecruitDecisionWithFallback(
           state,
-          profile: getRecruitAiProfile(difficulty),
-          tieBreakSeed: deriveRecruitTieBreakSeed({
-            battleId: battle.battleId,
-            round: battle.round,
-            turnNumber: battle.turnNumber,
-            battleVersion,
-            step,
-            combatantId: turn.combatantId,
-          }),
+          selected,
           skillOptions,
-        })
-        const resolved = resolveRecruitIntent(state, decision.intent, skillOptions)
+          tieBreakSeed,
+          difficulty,
+          summon,
+        )
         const nextState = preserveFrozenBuildMetadata(state, resolved.state)
-        const event = decisionEvent(decision, turn.combatantId)
-        const events = [event, ...resolved.events]
+        const freeControlled =
+          decision.intent.kind === 'ability-prime' ||
+          decision.intent.kind === 'ability-cancel-prime'
+        const events = freeControlled
+          ? [...resolved.events]
+          : [
+              decisionEvent(decision, turn.combatantId, summon ? 'summon' : 'recruit', recovery),
+              ...resolved.events,
+            ]
         const privacyJournal = buildBattlePrivacyJournalInput({
           before: state,
           after: nextState,
@@ -362,7 +455,7 @@ export function createBattleRecruitAiService(
           events,
         })
         const requestFingerprint = fingerprint({
-          command: 'battle.recruit-ai.v2',
+          command: summon ? 'battle.summon-ai.v1' : 'battle.recruit-ai.v2',
           battleSessionId: initial.battleSessionId,
           expectedBattleVersion: battleVersion,
           difficulty,
@@ -390,16 +483,17 @@ export function createBattleRecruitAiService(
         battleVersion = committed.result.battleVersion
         committedAt = committed.result.committedAt
         state = readPersistedEncounter(committed.result.snapshot)
-        decisions.push({
-          combatantId: turn.combatantId,
-          reason: decision.reason,
-          utility: decision.utility,
-        })
+        if (!freeControlled)
+          decisions.push({
+            combatantId: turn.combatantId,
+            reason: decision.reason,
+            utility: decision.utility,
+          })
       }
 
-      throw persistenceInvalid(
-        `Recruit AI exceeded the bounded ${MAX_RECRUIT_DECISIONS_PER_REQUEST}-decision turn budget.`,
-      )
+      // Each step is already committed. Return that progress so the existing client
+      // can request the next bounded page at the new version, preserving the turn.
+      return committedView()
     },
   }
 }

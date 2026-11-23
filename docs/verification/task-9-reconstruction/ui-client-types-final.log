@@ -1,0 +1,9 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["corepack", "pnpm", "--filter", "@aurevane/web", "--filter", "@aurevane/db", "typecheck"], "start": "2026-10-20T18:49:00.802075+00:00"}
+Scope: 2 of 9 workspace projects
+packages/db typecheck$ tsc --noEmit
+packages/db typecheck: Done
+apps/web typecheck$ next typegen && tsc --noEmit
+apps/web typecheck: Generating route types...
+apps/web typecheck: ✓ Types generated successfully
+apps/web typecheck: Done
+{"end": "2026-10-20T18:49:10.405895+00:00", "exit": 0}

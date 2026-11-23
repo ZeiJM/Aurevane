@@ -11,6 +11,7 @@ import {
   type CombatResolutionTransition,
   type CombatStatusDefinition,
 } from './actions'
+import { applyCommittedReflect } from './combat-reflect'
 import * as legacy from './actions-legacy'
 import { createPendingBattle, startBattle } from './battle-state'
 import { createTacticalBattleState, selectCurrentFinalFacing } from './board'
@@ -315,6 +316,19 @@ describe('Reflect committed-command contract', () => {
     ])
     expect(validateCombatEncounterState(result.state)).toEqual([])
   })
+  it.each([undefined, 1] as const)(
+    'displays a full finishing return under modular policy %s without inflating HP loss',
+    (policy) => {
+      const result = cast({
+        ...encounter({ actorHp: 3, duel: true }),
+        ...(policy ? { modularSkillPolicyVersion: policy } : {}),
+      })
+      expect(reflected(result)).toEqual([
+        expect.objectContaining({ amount: 3, resolvedDamage: 5, hpBefore: 3, hpAfter: 0 }),
+      ])
+      expect(unit(result, 'actor').hp).toBe(0)
+    },
+  )
   it('allows a defeated defender to cause mutual KO before victory is finalized', () => {
     const result = cast(encounter({ actorHp: 5, targetHp: 20, duel: true }), hit(40))
     expect(unit(result, 'target').hp).toBe(0)
@@ -412,7 +426,6 @@ describe('Reflect committed-command contract', () => {
       poison: [],
       bleed: [],
       burn: [],
-      temporarySkills: [],
       damageHistory: [],
     }
     const result = cast(initial)
@@ -545,7 +558,7 @@ describe('Reflect committed-command contract', () => {
     expect(reflected(first)).toHaveLength(1)
     expect(reflected(second)).toEqual([])
   })
-  it.each([0, -1, 0.5, 10_001, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1])(
+  it.each([0, -1, 0.5, 99_901, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1])(
     'rejects invalid reflection percentage %s',
     (rate) => {
       expect(() => validateCombatStatusDefinition(reflectStatus(rate))).toThrow(/Reflect/)
@@ -628,49 +641,6 @@ describe('Reflect successor lifecycle regression', () => {
     ).toBe(2)
     expect(result.events.filter((event) => event.event === 'status_expired')).toEqual([])
   })
-  it('applies and consumes scheduled tempo when reflected defeat wraps the round', () => {
-    const initial = roundEndReflectEncounter()
-    const tempo: CombatStatusDefinition = {
-      id: 'test.reflect-successor-tempo',
-      version: 1,
-      maximumStacks: 1,
-      durationOwnerTurnStarts: 2,
-      damageTakenMultiplierBasisPoints: 10_000,
-      nextRoundInitiative: 20,
-    }
-    initial.statusState = initial.statusState.map((row) =>
-      row.combatantId !== 'witness'
-        ? row
-        : {
-            ...row,
-            statuses: [
-              {
-                statusId: tempo.id,
-                statusVersion: 1,
-                stacks: 1,
-                remainingOwnerTurnStarts: 2,
-                sourceCombatantId: 'witness',
-              },
-            ],
-          },
-    )
-    expect(validateCombatEncounterState(initial)).toEqual([])
-    const result = cast(initial, hit(), [REFLECT, tempo])
-    expect(result.state.tactical.battle.round).toBe(2)
-    expect(result.state.tactical.battle.currentTurn?.combatantId).toBe('witness')
-    expect(result.state.tactical.battle.roundInitiativeModifiers).toEqual([
-      { combatantId: 'witness', amount: 20 },
-    ])
-    expect(result.state.statusState.find((row) => row.combatantId === 'witness')?.statuses).toEqual(
-      [],
-    )
-    expect(result.events).toContainEqual({
-      event: 'status_expired',
-      combatantId: 'witness',
-      statusId: tempo.id,
-    })
-    expect(validateCombatEncounterState(result.state)).toEqual([])
-  })
   it('advances temporary terrain lifetime on a reflected round boundary', () => {
     const initial = setTerrainOverlay(
       roundEndReflectEncounter(),
@@ -683,5 +653,49 @@ describe('Reflect successor lifecycle regression', () => {
     expect(result.state.tactical.battle.round).toBe(2)
     expect(terrainOverlayAt(result.state, { x: 0, y: 0 })?.remainingRoundBoundaries).toBe(1)
     expect(validateCombatEncounterState(result.state)).toEqual([])
+  })
+})
+
+describe('unlimited Reflect applications', () => {
+  it('reflects all three 50-percent applications with historical aggregate caps preserved', () => {
+    const definition = reflectStatus(5000)
+    const initial = {
+      ...encounter({ stacks: 3, targetStatuses: [definition] }),
+      effectStackingPolicyVersion: 1 as const,
+    }
+    const result = cast(initial, hit(20), [definition])
+    expect(reflected(result)[0]).toMatchObject({ amount: 30 })
+    expect(unit(result, 'actor').hp).toBe(70)
+    const legacy = cast({ ...initial, effectStackingPolicyVersion: undefined }, hit(20), [
+      definition,
+    ])
+    expect(reflected(legacy)[0]).toMatchObject({ amount: 20 })
+    expect(unit(legacy, 'actor').hp).toBe(80)
+  })
+
+  it('fails closed when the combined reflection rate exceeds safe integer authority', () => {
+    const definition = reflectStatus(5000)
+    const initial = {
+      ...encounter({ stacks: Number.MAX_SAFE_INTEGER, targetStatuses: [definition] }),
+      effectStackingPolicyVersion: 1 as const,
+    }
+    expect(() =>
+      applyCommittedReflect(
+        initial,
+        [
+          {
+            event: 'damage_applied',
+            actionId: 'hit',
+            sourceCombatantId: 'actor',
+            targetCombatantId: 'target',
+            amount: 20,
+            hpBefore: 100,
+            hpAfter: 80,
+          },
+        ],
+        { statuses: [definition] },
+        { sourceCombatantId: 'actor', actionId: 'hit' },
+      ),
+    ).toThrow('safe integer')
   })
 })

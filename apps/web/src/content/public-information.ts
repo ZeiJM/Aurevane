@@ -1,10 +1,21 @@
 import { CURRENT_LEVEL_CAP } from '@aurevane/game-core/character/progression'
+import type { ManualInlinePart } from './manual-mechanic-text'
 
 export interface PublicBodyBlock {
   id: string
   title?: string
   paragraphs: readonly string[]
   bullets?: readonly string[]
+  table?: {
+    caption: string
+    headers: readonly string[]
+    rows: readonly (readonly string[])[]
+  }
+  disclosures?: readonly {
+    title: string
+    bullets: readonly string[]
+    bulletParts?: readonly (readonly ManualInlinePart[] | null)[]
+  }[]
 }
 
 export interface ManualArticle {
@@ -184,7 +195,7 @@ export const manualArticles: readonly ManualArticle[] = [
         bullets: [
           'Maximum HP and Maximum MP',
           'Physical Power and Mystic Power',
-          'Armor and Ward',
+          'Physical Defense and Mystic Defense',
           'Accuracy and Evasion',
           'Critical Chance',
           'Initiative',

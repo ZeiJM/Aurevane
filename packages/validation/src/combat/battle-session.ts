@@ -4,6 +4,25 @@ const safeInteger = z.number().int().min(Number.MIN_SAFE_INTEGER).max(Number.MAX
 const safePositiveInteger = safeInteger.positive()
 const battleSessionIdSchema = z.string().uuid()
 const combatantIdSchema = z.string().trim().min(1).max(160)
+const exactReferenceIdSchema = z
+  .string()
+  .min(1)
+  .refine((value) => value.trim() === value)
+const manualModifiersSchema = z
+  .array(
+    z
+      .object({
+        sourceInstanceId: exactReferenceIdSchema,
+        behaviorId: exactReferenceIdSchema,
+      })
+      .strict(),
+  )
+  .max(15)
+  .refine(
+    (rows) =>
+      new Set(rows.map((row) => JSON.stringify([row.sourceInstanceId, row.behaviorId]))).size ===
+      rows.length,
+  )
 const gridPositionSchema = z.object({ x: safeInteger, y: safeInteger }).strict()
 const battleFacingSchema = z.enum(['north', 'east', 'south', 'west'])
 const tacticalHallArenaIdSchema = z.enum([
@@ -25,8 +44,31 @@ export const battleHallRecordIdSchema = z.enum([
 
 const combatTargetSelectionSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('self') }).strict(),
+  z
+    .object({
+      kind: z.literal('direction'),
+      direction: battleFacingSchema,
+      ground: z.literal(true).optional(),
+    })
+    .strict(),
+  z.object({ kind: z.literal('activate'), ground: z.literal(true).optional() }).strict(),
   z.object({ kind: z.literal('unit'), combatantId: combatantIdSchema }).strict(),
   z.object({ kind: z.literal('tile'), position: gridPositionSchema }).strict(),
+  z
+    .object({
+      kind: z.literal('selections'),
+      selections: z
+        .array(
+          z.discriminatedUnion('kind', [
+            z.object({ kind: z.literal('self') }).strict(),
+            z.object({ kind: z.literal('unit'), combatantId: combatantIdSchema }).strict(),
+            z.object({ kind: z.literal('tile'), position: gridPositionSchema }).strict(),
+          ]),
+        )
+        .min(1)
+        .max(3),
+    })
+    .strict(),
 ])
 
 export const battleIntentSchema = z.discriminatedUnion('kind', [
@@ -36,6 +78,25 @@ export const battleIntentSchema = z.discriminatedUnion('kind', [
       kind: z.literal('action'),
       actionId: z.string().trim().min(1).max(160),
       target: combatTargetSelectionSchema,
+      behaviorId: exactReferenceIdSchema.optional(),
+      manualModifiers: manualModifiersSchema.optional(),
+      movementPath: z.array(gridPositionSchema).min(2).max(21).optional(),
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal('ability-prime'),
+      target: combatTargetSelectionSchema.optional(),
+      actionId: z.string().trim().min(1).max(160),
+      behaviorId: exactReferenceIdSchema,
+      manualModifiers: manualModifiersSchema.optional(),
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal('ability-cancel-prime'),
+      actionId: z.string().trim().min(1).max(160),
+      behaviorId: exactReferenceIdSchema,
     })
     .strict(),
   z.object({ kind: z.literal('face'), facing: battleFacingSchema }).strict(),
@@ -46,11 +107,24 @@ const battleSessionCreateRequestSchema = z
   .object({
     idempotencyKey: z.string().uuid(),
     characterId: z.string().uuid(),
+    arenaNpcId: z.string().uuid().optional(),
     arenaId: tacticalHallArenaIdSchema.default('basic-training-floor'),
     aiDifficulty: battleAiDifficultySchema.default('standard'),
     battleHallRecordId: battleHallRecordIdSchema.default('recruit-sparring'),
+    allyCount: z.number().int().min(0).max(2).default(0),
+    enemyCount: z.number().int().min(1).max(5).default(1),
   })
   .strict()
+  .refine((request) => 1 + request.allyCount + request.enemyCount <= 6)
+  .refine(
+    (request) =>
+      (request.battleHallRecordId === 'recruit-sparring' && request.arenaNpcId === undefined) ||
+      (request.allyCount === 0 && request.enemyCount === 1),
+  )
+  .refine(
+    (request) =>
+      request.arenaNpcId === undefined || request.battleHallRecordId === 'recruit-sparring',
+  )
 
 const battleIntentRequestSchema = z
   .object({
@@ -62,6 +136,7 @@ const battleIntentRequestSchema = z
 const battlePreviewRequestSchema = z
   .object({ expectedBattleVersion: safePositiveInteger, intent: battleIntentSchema })
   .strict()
+  .refine(({ intent }) => intent.kind !== 'ability-prime' && intent.kind !== 'ability-cancel-prime')
 const battleRecruitTurnRequestSchema = z
   .object({ expectedBattleVersion: safePositiveInteger })
   .strict()

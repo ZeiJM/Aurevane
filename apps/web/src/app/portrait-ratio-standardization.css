@@ -129,7 +129,7 @@ aside[aria-label$=' combat status']
 /* Header portraits, battle roster portraits, spectator portraits and map-token portraits are already
  * square/circular. This reinforces their media crop without changing their intended shape. */
 .screenPortrait .character-portrait-media,
-[data-pvp-battle='true'] .character-portrait-media,
+main[data-pvp-battle='true']:not([data-unified-battle]) .character-portrait-media,
 [data-map-token-portrait] .character-portrait-media {
   width: 100% !important;
   height: 100% !important;

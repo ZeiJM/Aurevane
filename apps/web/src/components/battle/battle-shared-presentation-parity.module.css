@@ -373,35 +373,11 @@
     bottom: auto !important;
     left: 50% !important;
     z-index: 9 !important;
-    color: #f1d892 !important;
+    color: var(--battle-combatant-accent, #d0aa62) !important;
     font: 900 0.68rem/1 var(--av-font-mono) !important;
     text-shadow: 0 1px 3px #000 !important;
     transform: translateX(-50%) !important;
     pointer-events: none !important;
-  }
-
-  /* PvE uses the same full-width mobile danger action as PvP. Cancel/Confirm keep their paired row;
-     Surrender owns the row beneath them instead of appearing as a cramped third button. */
-  :global(main[data-battle-kind='pve'] > footer[data-unified-battle-footer='true'] > div) {
-    display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    width: 100% !important;
-    gap: 0.3rem !important;
-    justify-self: stretch !important;
-  }
-
-  :global(
-    main[data-battle-kind='pve']
-      > footer[data-unified-battle-footer='true']
-      > div
-      > button[data-unified-surrender='true']
-  ) {
-    grid-column: 1 / -1 !important;
-    width: 100% !important;
-    min-height: 2rem !important;
-    border: 1px solid rgba(201, 80, 80, 0.78) !important;
-    color: #f2b0b0 !important;
-    background: rgba(126, 38, 38, 0.35) !important;
   }
 }
 

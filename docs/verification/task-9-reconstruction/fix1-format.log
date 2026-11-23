@@ -1,0 +1,8 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["corepack", "pnpm", "exec", "prettier", "--write", "apps/web/src/master/player-discipline-correction.ts", "apps/web/src/components/master/player-correction-form.tsx", "apps/web/src/components/master/player-correction-form.test.tsx", "packages/db/src/master-players-recovery.test.ts", "apps/web/e2e/master-players-recovery.pw.ts", "apps/web/scripts/skill-parameter-palette-browser-regression.mjs"], "start": "2026-10-20T19:21:08.110686+00:00"}
+apps/web/src/master/player-discipline-correction.ts 50ms
+apps/web/src/components/master/player-correction-form.tsx 73ms
+apps/web/src/components/master/player-correction-form.test.tsx 17ms
+packages/db/src/master-players-recovery.test.ts 109ms
+apps/web/e2e/master-players-recovery.pw.ts 45ms
+apps/web/scripts/skill-parameter-palette-browser-regression.mjs 170ms (unchanged)
+{"end": "2026-10-20T19:21:09.254756+00:00", "exit": 0}

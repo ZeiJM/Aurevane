@@ -116,6 +116,7 @@ function repository(overrides: Partial<CharacterBuildRepository> = {}): Characte
       },
     })),
     changeDisciplines: vi.fn(async () => ({ build: activeBuild(), replayed: false })),
+    saveSupportAction: vi.fn(async () => ({ buildVersion: 2, replayed: false })),
     saveDisciplineSkills: vi.fn(async () => ({ buildVersion: 1, replayed: false })),
     ...overrides,
   }
@@ -130,10 +131,10 @@ describe('P3.6 character build Essence authority', () => {
     expect(context.disciplineSkills.extensions.resonance).toBeNull()
     expect(context.disciplineSkills.extensions.essence).toMatchObject({
       essenceId: 'essence.vanguard.unbroken-strike',
-      contentVersion: 2,
+      contentVersion: 4,
       sourceDisciplineId: 'vanguard',
       skill: expect.objectContaining({
-        contentVersion: 2,
+        contentVersion: 4,
         id: 'essence.vanguard.unbroken-strike',
         apCost: 55,
         cooldown: { key: 'essence.vanguard.unbroken-strike', ownerTurns: 3 },
@@ -153,7 +154,9 @@ describe('P3.6 character build Essence authority', () => {
     expect(context.disciplineSkills.extensions.essence).toBeNull()
     expect(context.disciplineSkills.extensions.resonance).toMatchObject({
       id: 'resonance.lifebinder-vanguard.mercys-edge',
-      contentVersion: 1,
+      contentVersion: 5,
+      trigger: { kind: 'skill-trigger-v2' },
+      authoring: { schemaVersion: 2 },
     })
   })
 

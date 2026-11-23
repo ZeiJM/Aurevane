@@ -1,0 +1,35 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["corepack", "pnpm", "--filter", "@aurevane/web", "exec", "vitest", "run", "src/server/master/player-battle-recovery.test.ts"], "start": "2026-10-20T18:17:42.956252+00:00"}
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.10 /workspace/scratch/081f137b6a6d/aurevane-players-20261020/apps/web
+
+ ❯ src/server/master/player-battle-recovery.test.ts (2 tests | 1 failed) 13ms
+   × no_refund_or_unrelated_reward_loss: validates terminal state while preserving resources and pinned historical rules 10ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/server/master/player-battle-recovery.test.ts > no_refund_or_unrelated_reward_loss: validates terminal state while preserving resources and pinned historical rules
+AurevaneError: The terminal encounter could not be validated: tactical.movementProfiles: At least one movement profile is required.
+ ❯ Module.resolveMasterBattleRecovery src/server/master/player-battle-recovery.ts:40:28
+     38|   const reconciled = state.abilityRuntime || state.capturedAbilitySour…
+     39|   const issues = validateStatDrivenCombatEncounterState(reconciled)
+     40|   if (issues.length) throw new AurevaneError('PERSISTENCE_UNAVAILABLE'…
+       |                            ^
+     41|   return refreezeCapturedCombatAbilityState(reconciled) as typeof term…
+     42| }
+ ❯ src/server/master/player-battle-recovery.test.ts:8:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 passed (2)
+   Start at  14:17:43
+   Duration  830ms (transform 558ms, setup 0ms, import 678ms, tests 13ms, environment 0ms)
+
+undefined
+/workspace/scratch/081f137b6a6d/aurevane-players-20261020/apps/web:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/server/master/player-battle-recovery.test.ts
+{"end": "2026-10-20T18:17:44.573052+00:00", "exit": 1}

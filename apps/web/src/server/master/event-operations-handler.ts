@@ -114,7 +114,7 @@ export async function handleEventOperationsRequest(
         expectedStateVersion: positiveInteger(body.expectedStateVersion, 'expectedStateVersion'),
         idempotencyKey: requiredString(body.idempotencyKey, 'idempotencyKey'),
         command: operationCommand(body.command),
-        reason: requiredString(body.reason, 'reason'),
+
         confirmed: requiredBoolean(body.confirmed, 'confirmed'),
       })
       return success({ result })
@@ -126,7 +126,7 @@ export async function handleEventOperationsRequest(
         runId: requiredString(body.runId, 'runId'),
         expectedStateVersion: positiveInteger(body.expectedStateVersion, 'expectedStateVersion'),
         idempotencyKey: requiredString(body.idempotencyKey, 'idempotencyKey'),
-        reason: requiredString(body.reason, 'reason'),
+
         confirmed: requiredBoolean(body.confirmed, 'confirmed'),
       })
       return success({ result })
@@ -139,7 +139,7 @@ export async function handleEventOperationsRequest(
         phaseId: requiredString(body.phaseId, 'phaseId'),
         effectOrdinal: nonNegativeInteger(body.effectOrdinal, 'effectOrdinal'),
         completionKey: requiredString(body.completionKey, 'completionKey'),
-        reason: requiredString(body.reason, 'reason'),
+
         confirmed: requiredBoolean(body.confirmed, 'confirmed'),
       })
       return success({ result })

@@ -1,0 +1,35 @@
+import pathlib,subprocess,hashlib,json,gzip,re
+root=pathlib.Path.cwd();base=root/'docs/verification/task-10-reconstruction';ledger=base/'verification.jsonl';ref='a38acb715610063afe9d88204cc039768716bf78'
+old=subprocess.check_output(['git','show',ref+':docs/verification/task-10-reconstruction/verification.jsonl']); data=ledger.read_bytes()
+assert len(old)==593047 and hashlib.sha256(old).hexdigest()=='ef3e42d755c977aeacb0f1c017b34a5cc3bd5c95ad1ed73317cd475d0ffb224f'
+assert data.startswith(old)
+checkpoint=subprocess.check_output(['git','show','85ff1d73e4f1e53244643010ac96c182ca28e76e:docs/verification/task-10-reconstruction/verification.jsonl'])
+assert len(checkpoint)==599478 and hashlib.sha256(checkpoint).hexdigest()=='cd28ebb26490aff2e3fcef8a6dbe44d058c9f2c62756f834cf7df3d4b9061b19'
+assert data.startswith(checkpoint)
+assert hashlib.sha256(data[:470454]).hexdigest()=='f8a0c43acbc1a29ef1a42b9ee2af4e2911a5d961bf008b33cfa5cb6cef78a3e7'
+assert hashlib.sha256(data[:560710]).hexdigest()==hashlib.sha256(subprocess.check_output(['git','show','135240af649dbf30b8a2cd4ae981516f0ab72204:docs/verification/task-10-reconstruction/verification.jsonl'])).hexdigest()
+changed=subprocess.check_output(['git','diff','--diff-filter=MD','--name-only',ref],text=True).splitlines()
+assert not any(p.startswith('supabase/migrations/') or p=='apps/web/vercel.json' for p in changed)
+assert not any(p.startswith('docs/verification/') and p!='docs/verification/task-10-reconstruction/verification.jsonl' for p in changed)
+rows=[json.loads(line) for line in data[len(old):].splitlines()];jwts=0
+for row in rows:
+ b=(root/row['raw_gzip']).read_bytes();raw=gzip.decompress(b)
+ assert hashlib.sha256(b).hexdigest()==row['gzip_sha256']
+ assert hashlib.sha256(raw).hexdigest()==row['raw_sha256']
+ jwts+=len(re.findall(rb'eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}',raw))
+for row in json.loads((base/'task13-fix4-native-provenance.json').read_text())['logs']:
+ b=(root/row['path']).read_bytes();raw=gzip.decompress(b)
+ assert hashlib.sha256(b).hexdigest()==row['gzipSha256'] and hashlib.sha256(raw).hexdigest()==row['rawSha256']
+ jwts+=len(re.findall(rb'eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}',raw))
+for row in json.loads((base/'task13-fix4-late-evidence.json').read_text())['files']:
+ b=(root/row['path']).read_bytes()
+ assert len(b)==row['bytes'] and hashlib.sha256(b).hexdigest()==row['sha256']
+ if not row['path'].endswith(('.png','.jpeg')): jwts+=len(re.findall(rb'eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}',b))
+late=json.loads((base/'task13-fix4-n11-native/log-provenance.json').read_text());b=(root/late['path']).read_bytes();raw=gzip.decompress(b)
+assert len(raw)==late['bytes'] and hashlib.sha256(raw).hexdigest()==late['rawSha256'] and hashlib.sha256(b).hexdigest()==late['gzipSha256']
+jwts+=len(re.findall(rb'eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}',raw))
+assert jwts==0
+subprocess.run(['git','diff','--check'],check=True)
+print('Intermediate prefix599478 and all174 late evidence hashes verified; no old artifact/migration changes.')
+subprocess.run(['git','merge-base','--is-ancestor','ff4467ed7284b7c2497caf4df6dff6669043ca39','HEAD'],check=True)
+print(json.dumps(dict(dispatchPrefixBytes=len(old),dispatchPrefixSha256=hashlib.sha256(old).hexdigest(),originalPrefixBytes=470454,round3PrefixBytes=560710,currentLedgerBytes=len(data),ledgerSha256=hashlib.sha256(data).hexdigest(),newReceiptsBeforeThisReceipt=len(rows),oldArtifactsAndMigrationsUnchanged=True,vercelLockUnchanged=True,newReceiptsAndNativeHashesVerified=True,jwtMatches=jwts,currentMainAncestor=True)))

@@ -1,0 +1,59 @@
+{
+  "requestId": "ART-WORLD-CORRECTION-20261112",
+  "promptSpec": "content/art-requests/ART-WORLD-CORRECTION-20261112.md",
+  "provider": "OpenAI image generation",
+  "selection": "Original generated sheet selected for runtime integration",
+  "name": "valley-cascade-detail",
+  "source": {
+    "path": "sources/valley-cascade-context-detail-v01.png",
+    "method": "generated-edit",
+    "reference": "sources/elemental-waterfall-valley-owner-selected-v01.png",
+    "referenceSha256": "3970d259fd7aae25e2c75be3b8220bffcff4660b9236cd444fb39d37539da32a",
+    "sha256": "d6045d4474032fc70869177405144a19149ea56d755b94cce8d7184118a69ec0",
+    "width": 1203,
+    "height": 1307
+  },
+  "runtime": {
+    "path": "runtime/valley-cascade-detail-v01.webp",
+    "sha256": "9565c7dd951a75c822eeb6e1d6cbfcc8ed9eaf87f41fe18959be080c76a42382",
+    "bytes": 676172,
+    "width": 1203,
+    "height": 1307,
+    "columns": 1,
+    "rows": 1,
+    "cellWidth": 1203,
+    "cellHeight": 1307,
+    "preserveFrame": true,
+    "featherPixels": 28,
+    "referenceBounds": [410, 0, 700, 760],
+    "encoding": "Native full reference frame retained;16master-pixel smoothstep perimeter feather; Sharp WebP quality88 alphaQuality100"
+  },
+  "fringePixelsRemoved": 15168,
+  "packedFringePixelsRemoved": 9,
+  "sprites": [
+    {
+      "index": 0,
+      "anchorX": 0.499958,
+      "anchorY": 0.984698,
+      "sourceCell": {
+        "left": 0,
+        "top": 0,
+        "width": 1203,
+        "height": 1307
+      },
+      "crop": {
+        "left": 0,
+        "top": 0,
+        "width": 1203,
+        "height": 1307
+      },
+      "runtimeBounds": {
+        "left": 0,
+        "top": 0,
+        "width": 1203,
+        "height": 1307
+      },
+      "floorY": 1
+    }
+  ]
+}

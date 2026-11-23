@@ -28,7 +28,7 @@ export interface CharacterProfileReadModel {
     id: FoundationDisciplineId
     name: string
     summary: string
-  }
+  } | null
   progression: {
     level: number
     xp: number
@@ -55,7 +55,7 @@ export function buildCharacterProfileReadModel(
   const discipline = getFoundationDiscipline(character.foundationDisciplineId)
   const progress = resolveLevelProgress(character.xp, levelCurve)
 
-  if (!presentation || !pronouns || !discipline) {
+  if (!presentation || !pronouns) {
     throw new Error('Character identity references are not available for profile rendering.')
   }
 
@@ -75,11 +75,9 @@ export function buildCharacterProfileReadModel(
       portraitRef: character.portraitRef,
       starterAppearanceRef: character.starterAppearanceRef,
     },
-    foundationDiscipline: {
-      id: discipline.id,
-      name: discipline.name,
-      summary: discipline.summary,
-    },
+    foundationDiscipline: discipline
+      ? { id: discipline.id, name: discipline.name, summary: discipline.summary }
+      : null,
     progression: {
       level: character.level,
       xp: character.xp,

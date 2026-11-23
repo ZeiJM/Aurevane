@@ -1,0 +1,125 @@
+import type { BattleIntent } from '@aurevane/validation/combat/battle-session'
+import type { BattleActionPreview, BattlePreviewView } from '@/server/battle/battle-preview-service'
+import {
+  selectBattleSkillPreviewIntent,
+  battleSkillTargetSpec,
+  battleSkillIntentMetadata,
+  type BattlePreviewSkill,
+} from './battle-preview-selection'
+import {
+  combatCardinalDirections,
+  combatTargetCategories,
+} from '@aurevane/game-core/combat/combat-targeting-shapes'
+import { requestBattlePreview } from './battle-preview-request'
+
+export type BattleRangePreviewSkill = BattlePreviewSkill
+export interface BattleRangePreviewCombatant {
+  combatantId: string
+  teamIndex: number
+  hp: number
+  position: { x: number; y: number }
+}
+type ActionIntent = Extract<BattleIntent, { kind: 'action' }>
+
+/** Range/team filtering only narrows requests; every outcome still requires server legality. */
+export function battleRangePreviewIntents(
+  skill: BattleRangePreviewSkill | null,
+  actorId: string | null,
+  combatants: readonly BattleRangePreviewCombatant[],
+): ActionIntent[] {
+  if (!skill || skill.unavailable) return []
+  if (
+    skill.move &&
+    (skill.movementPath === undefined || (!skill.movementPath.length && !skill.move.conditional))
+  )
+    return []
+  const actor = combatants.find((row) => row.combatantId === actorId)
+  if (!actor || actor.hp <= 0) return []
+  const target = battleSkillTargetSpec(skill)
+  if (target?.geometryVersion === 2 || target?.geometryVersion === 3) {
+    if (target.shape.kind === 'line')
+      return combatCardinalDirections.map((direction) => ({
+        kind: 'action',
+        actionId: skill.id,
+        ...battleSkillIntentMetadata(skill),
+        target: { kind: 'direction', direction },
+      }))
+    if (target.shape.kind === 'circle' || target.shape.kind === 'all')
+      return [
+        {
+          kind: 'action',
+          actionId: skill.id,
+          ...battleSkillIntentMetadata(skill),
+          target: { kind: 'activate' },
+        },
+      ]
+  }
+  if (
+    skill.targetKind !== 'unit' &&
+    !(
+      target?.geometryVersion === 3 &&
+      combatTargetCategories(target).some((category) => category !== 'ground')
+    )
+  )
+    return []
+  return combatants.flatMap((combatant) => {
+    const intent = selectBattleSkillPreviewIntent(skill, {
+      actorId,
+      selectedCombatantId: combatant.combatantId,
+      selectedTile: null,
+      combatants,
+    })
+    return intent?.kind === 'action' ? [intent] : []
+  })
+}
+
+export async function requestBattleRangePreviews({
+  battleSessionId,
+  battleVersion,
+  actorId,
+  intents,
+  signal,
+  fetchPreview = fetch,
+}: {
+  battleSessionId: string
+  battleVersion: number
+  actorId: string | null
+  intents: readonly ActionIntent[]
+  signal: AbortSignal
+  fetchPreview?: typeof fetch
+}): Promise<BattleActionPreview[]> {
+  const results = await Promise.all(
+    intents.map(async (intent): Promise<BattleActionPreview | null> => {
+      try {
+        const response = await requestBattlePreview({
+          battleSessionId,
+          battleVersion,
+          intent,
+          signal,
+          fetchPreview,
+        })
+        const body = (await response.json()) as { battlePreview?: BattlePreviewView }
+        const view = body.battlePreview
+        const preview = view?.preview
+        return !signal.aborted &&
+          response.ok &&
+          view?.battleSessionId === battleSessionId &&
+          view.battleVersion === battleVersion &&
+          preview?.kind === 'action' &&
+          preview.legal &&
+          preview.actorId === actorId &&
+          preview.actionId === intent.actionId &&
+          (intent.target.kind === 'unit'
+            ? preview.primaryCombatantId === intent.target.combatantId
+            : (intent.target.kind === 'direction' || intent.target.kind === 'activate') &&
+              preview.primaryCombatantId === null)
+          ? preview
+          : null
+      } catch {
+        // Informational comparisons must never interrupt command execution or replace it.
+        return null
+      }
+    }),
+  )
+  return results.filter((preview): preview is BattleActionPreview => preview !== null)
+}

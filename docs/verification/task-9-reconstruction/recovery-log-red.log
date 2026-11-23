@@ -1,0 +1,41 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["corepack", "pnpm", "--filter", "@aurevane/web", "exec", "vitest", "run", "src/server/battle/battle-log-service.test.ts", "-t", "administrative no contest"], "start": "2026-10-20T18:44:41.716197+00:00"}
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.10 /workspace/scratch/081f137b6a6d/aurevane-players-20261020/apps/web
+
+ ❯ src/server/battle/battle-log-service.test.ts (32 tests | 1 failed | 31 skipped) 8ms
+   × records only authoritative administrative no contest as No rewards without ordinary abandonment attribution 7ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/server/battle/battle-log-service.test.ts > records only authoritative administrative no contest as No rewards without ordinary abandonment attribution
+AssertionError: expected undefined to be 'Encounter ended: No contest. No rewar…' // Object.is equality
+
+- Expected:
+"Encounter ended: No contest. No rewards."
+
++ Received:
+undefined
+
+ ❯ src/server/battle/battle-log-service.test.ts:1008:35
+    1006| it('records only authoritative administrative no contest as No rewards…
+    1007|  const view=buildBattleLogView(SESSION_ID,[{battleVersion:2,eventIndex…
+    1008|  expect(view.entries[0]?.message).toBe('Encounter ended: No contest. N…
+       |                                   ^
+    1009|  const ordinary=buildBattleLogView(SESSION_ID,[{battleVersion:2,eventI…
+    1010|  expect(ordinary.entries[0]?.message).not.toContain('No contest')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 31 skipped (32)
+   Start at  14:44:42
+   Duration  1.34s (transform 977ms, setup 0ms, import 1.19s, tests 8ms, environment 0ms)
+
+undefined
+/workspace/scratch/081f137b6a6d/aurevane-players-20261020/apps/web:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/server/battle/battle-log-service.test.ts -t 'administrative no contest'
+{"end": "2026-10-20T18:44:44.024971+00:00", "exit": 1}

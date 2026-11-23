@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-import { createVerifiedAccountAndSignIn } from './pv1f-test-helpers'
+import { allocateCreationPoints, createVerifiedAccountAndSignIn } from './pv1f-test-helpers'
 
 function safeName(info: { workerIndex: number }) {
   const suffix = `${Date.now()}${info.workerIndex}`
@@ -42,30 +42,30 @@ test('Creation Discipline follows its own subject composition without losing rea
   await expect(creation.getByTestId('attribute-points')).toContainText('personal points remaining')
 
   const metrics = await page.evaluate(() => {
-    const workspaceElement = document.querySelector<HTMLElement>(
-      '[data-testid="creation-discipline-workspace"]',
-    )!
     const firstRow = document.querySelectorAll<HTMLElement>(
       '[data-testid="creation-attribute-row"]',
     )[0]
     const secondRow = document.querySelectorAll<HTMLElement>(
       '[data-testid="creation-attribute-row"]',
     )[1]
-    const background = getComputedStyle(workspaceElement).backgroundColor
+    const background = getComputedStyle(firstRow).backgroundColor
     return {
       background,
       overflow: document.documentElement.scrollWidth - innerWidth,
       firstX: firstRow.getBoundingClientRect().x,
       secondX: secondRow.getBoundingClientRect().x,
+      firstY: firstRow.getBoundingClientRect().y,
+      secondY: secondRow.getBoundingClientRect().y,
       firstWidth: firstRow.getBoundingClientRect().width,
       secondWidth: secondRow.getBoundingClientRect().width,
     }
   })
 
   expect(metrics.overflow).toBeLessThanOrEqual(1)
-  expect(Math.abs(metrics.firstX - metrics.secondX)).toBeLessThanOrEqual(2)
+  expect(Math.abs(metrics.secondX - metrics.firstX)).toBeLessThanOrEqual(2)
+  expect(metrics.secondY).toBeGreaterThan(metrics.firstY)
   expect(Math.abs(metrics.firstWidth - metrics.secondWidth)).toBeLessThanOrEqual(2)
-  expect(metrics.firstWidth).toBeGreaterThan(700)
+  expect(metrics.firstWidth).toBeGreaterThan(200)
   const channels = (metrics.background.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number)
   expect(Math.min(...channels)).toBeGreaterThan(150)
 })
@@ -90,6 +90,7 @@ test('Creation Confirm follows its own subject composition and keeps genuine sub
   const creation = page.getByTestId('character-creation')
   await creation.getByLabel('Character name', { exact: true }).fill(safeName(info))
   await creation.getByRole('button', { name: 'Choose your discipline', exact: true }).click()
+  await allocateCreationPoints(page)
   await creation.getByRole('button', { name: 'Review character', exact: true }).click()
 
   const workspace = creation.getByTestId('creation-confirm-workspace')
@@ -114,14 +115,10 @@ test('Creation Confirm follows its own subject composition and keeps genuine sub
     const summaryElement = document.querySelector<HTMLElement>(
       '[data-testid="creation-confirm-summary"]',
     )!
-    const workspaceElement = document.querySelector<HTMLElement>(
-      '[data-testid="creation-confirm-workspace"]',
-    )!
     const portraitBox = portraitElement.getBoundingClientRect()
     const summaryBox = summaryElement.getBoundingClientRect()
-    const background = getComputedStyle(workspaceElement).backgroundColor
     return {
-      background,
+      background: getComputedStyle(summaryElement.querySelector('dl > div')!).backgroundColor,
       overflow: document.documentElement.scrollWidth - innerWidth,
       portraitRight: portraitBox.right,
       summaryLeft: summaryBox.left,

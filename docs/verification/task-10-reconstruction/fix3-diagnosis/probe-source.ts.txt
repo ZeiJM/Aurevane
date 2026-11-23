@@ -1,0 +1,74 @@
+import { beforeEach, expect, it, vi } from 'vitest'
+vi.mock('server-only', () => ({}))
+const { adminRpc } = vi.hoisted(() => ({ adminRpc: vi.fn() }))
+vi.mock('@/lib/supabase/admin', () => ({ createSupabaseAdminClient: () => ({ rpc: adminRpc }) }))
+import {
+  latestEnabledMatureSkills,
+  resolveMatureSkillVersion,
+} from '@aurevane/game-core/combat/mature-skills'
+import { currentEssenceDefinitions } from '@aurevane/game-core/combat/essence'
+import { currentResonanceDefinitions } from '@aurevane/game-core/combat/resonance'
+import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
+import { parseAbilityDefinition } from '@aurevane/game-core/combat/combat-definition'
+import { RpcCombatContentAuthoringStore } from './supabase-combat-content-authoring-store'
+import { publishCombatEffectTimingPolicy } from './combat-effect-timing-policy-store'
+
+const actor = '11111111-1111-4111-8111-111111111111'
+const token = 'a'.repeat(32)
+const instantPolicy = { version: 7, modes: {} }
+function record(kind: string, key: string, definition: object, version: number) {
+  return {
+    id: `version:${key}:${version}`,
+    content_key: key,
+    content_kind: kind,
+    content_version: version,
+    definition,
+    published_by: actor,
+    published_at: '2026-10-15T12:00:00Z',
+  }
+}
+function disabledNativeRecords() {
+  return [
+    ...latestEnabledMatureSkills().map((d) =>
+      record('skill', d.id, { ...d, enabled: false }, d.contentVersion),
+    ),
+    ...currentEssenceDefinitions().map((d) =>
+      record('essence', d.essenceId, { ...d, enabled: false }, d.contentVersion),
+    ),
+    ...currentResonanceDefinitions().map((d) =>
+      record('resonance', d.id, { ...d, enabled: false }, d.contentVersion),
+    ),
+  ]
+}
+function fixture(policy = instantPolicy, publications: ReturnType<typeof record>[] = []) {
+  const writes: { name: string; parameters: Readonly<Record<string, unknown>> }[] = []
+  const skill = structuredClone(resolveMatureSkillVersion('vanguard.forceful-strike')!)
+  const row = record('skill', skill.id, skill, skill.contentVersion)
+  const rpc = vi.fn(async (name: string, parameters: Readonly<Record<string, unknown>>) => {
+    if (name === 'read_combat_content_catalogue_v1')
+      return { data: structuredClone({ token, policy, publications }), error: null }
+    if (name === 'list_combat_content_versions_v1') return { data: [row], error: null }
+    writes.push({ name, parameters })
+    return {
+      data: name.includes('timing') ? { version: 8, modes: parameters.p_modes } : [row],
+      error: null,
+    }
+  })
+  adminRpc.mockImplementation(rpc)
+  return { rpc, writes, skill, store: new RpcCombatContentAuthoringStore(rpc, actor) }
+}
+beforeEach(() => {
+  adminRpc.mockReset()
+})
+
+import { PHASE4_STATUSES } from '@aurevane/game-core/combat/status-content'
+it.each([
+ ['valid', { ...PHASE4_STATUSES[0]!, id: 'a.owner-identity', contentVersion: 1 }, 'INVALID_REQUEST'],
+ ['malformed', { id: 'a.owner-identity' }, 'PERSISTENCE_UNAVAILABLE'],
+] as const)('diagnosis: %s retained Status preserves the intended zero-write rejection', async (_name, definition, expected) => {
+ const f = fixture(instantPolicy,[record('status','a.owner-identity',definition,1)])
+ const custom = {...f.skill,id:'a.owner-identity'}
+ await expect(f.store.publish({actorUserId:actor,contentKey:custom.id,contentKind:'skill',definition:custom as unknown as Record<string,unknown>,expectedBaseVersion:1})).rejects.toMatchObject({code:expected})
+ expect(f.writes).toEqual([])
+ expect(f.rpc.mock.calls.map(([name])=>name)).toEqual(['read_combat_content_catalogue_v1'])
+})

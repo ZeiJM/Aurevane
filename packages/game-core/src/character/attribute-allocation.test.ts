@@ -8,6 +8,7 @@ import {
   PERSONAL_STARTING_ATTRIBUTE_POINT_POOL,
   STARTING_ATTRIBUTE_POINT_POOL,
   attributePointPoolForLevel,
+  spendableAttributePoints,
   consumeAttributeReset,
   effectiveAttributesFromPersonal,
   foundationDisciplineAttributePolicy,
@@ -229,4 +230,64 @@ describe('attribute allocation guardrails', () => {
     expect(renewed.used).toBe(0)
     expect(renewed.remaining).toBe(ATTRIBUTE_RESET_LIMIT_PER_WINDOW)
   })
+})
+
+const saturated = { might: 10, finesse: 4, vitality: 7, agility: 4, intellect: 3, resolve: 8 }
+const saturatedPolicy: DisciplineAttributePolicy = {
+  ...foundationDisciplineAttributePolicy('vanguard')!,
+  attributeCaps: saturated,
+}
+it('retains cap-saturated excess on reset and after level-up without inventing more spend capacity', () => {
+  expect(spendableAttributePoints(saturated, 37, saturated)).toBe(0)
+  expect(spendableAttributePoints(saturated, 38, saturated)).toBe(0)
+  expect(
+    validateAttributeAllocation({
+      attributes: saturated,
+      level: 3,
+      policy: saturatedPolicy,
+      requireFullPool: true,
+    }),
+  ).toEqual([])
+  const oneShort = { ...saturated, might: 9 }
+  expect(spendableAttributePoints(oneShort, 38, saturated)).toBe(1)
+  expect(
+    validateAttributeAllocation({
+      attributes: oneShort,
+      level: 3,
+      policy: saturatedPolicy,
+      requireFullPool: true,
+    }),
+  ).toContainEqual(expect.objectContaining({ code: 'point-pool-incomplete' }))
+  expect(
+    validateAttributeAllocation({
+      attributes: { ...saturated, might: 11 },
+      level: 3,
+      policy: saturatedPolicy,
+      requireFullPool: true,
+    }),
+  ).toContainEqual(expect.objectContaining({ code: 'discipline-cap-exceeded' }))
+})
+it('treats an uncapped attribute as spendable and preserves excess on a legal Primary change', () => {
+  expect(spendableAttributePoints(saturated, 38, { might: 10 })).toBe(2)
+  expect(spendableAttributePoints(saturated, 36, {})).toBe(0)
+  const aetherist = foundationDisciplineAttributePolicy('aetherist')!
+  const targetCaps = effectiveAttributesFromPersonal(
+    personalAttributesFromEffective(saturated, saturatedPolicy),
+    aetherist,
+  )
+  const changed = projectAllocationForPrimaryDisciplineChange({
+    attributes: saturated,
+    level: 3,
+    currentPolicy: saturatedPolicy,
+    proposedPolicy: { ...aetherist, attributeCaps: targetCaps },
+  })
+  expect(changed.issues).toEqual([])
+  expect(unspentAttributePoints(changed.attributes, 3)).toBe(2)
+  expect(spendableAttributePoints(changed.attributes, 38, targetCaps)).toBe(0)
+  expect(
+    spendableAttributePoints(changed.attributes, 38, {
+      ...targetCaps,
+      intellect: targetCaps.intellect + 2,
+    }),
+  ).toBe(2)
 })

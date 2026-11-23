@@ -1,0 +1,143 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.10 /workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/apps/web
+
+ ❯ src/server/character/character-build-eligibility-transport.test.ts (21 tests | 5 failed | 11 skipped) 18ms
+   × committed read retains SQL-derived selected earned eligibility true 7ms
+   × committed read retains SQL-derived selected earned eligibility false 1ms
+   × committed read rejects malformed earned eligibility null 3ms
+   × committed read rejects malformed earned eligibility "true" 1ms
+   × committed read rejects malformed earned eligibility 1 1ms
+ ❯ src/server/battle/battle-build-authority-mixed-source-cap.test.ts (15 tests | 2 failed | 13 skipped) 9ms
+   × published absent extensions and selected cross eligibility survive actual admission and restoration 6ms
+   × published custom extensions and selected cross eligibility survive actual admission and restoration 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/server/character/character-build-eligibility-transport.test.ts > committed read retains SQL-derived selected earned eligibility true
+AssertionError: expected [ { slotIndex: 1, …(4) } ] to deeply equal [ { slotIndex: 1, …(5) } ]
+
+- Expected
++ Received
+
+@@ -1,9 +1,8 @@
+  [
+    {
+      "contentVersion": 5,
+-     "earnedEligibility": true,
+      "eligibilityDisciplineId": "vanguard",
+      "skillId": "lifebinder.mend",
+      "slotIndex": 1,
+      "sourceDisciplineId": "lifebinder",
+    },
+
+ ❯ src/server/character/character-build-eligibility-transport.test.ts:186:125
+    184|   const captured = {...snapshot,disciplineSkills:[{...snapshot.discipl…
+    185|   rpc.mockResolvedValue({data:captured,error:null})
+    186|   expect((await createSupabaseCharacterBuildRepository().loadCommitted…
+       |                                                                                                                             ^
+    187| })
+    188| it.each([null,'true',1])('committed read rejects malformed earned elig…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/7]⎯
+
+ FAIL  src/server/character/character-build-eligibility-transport.test.ts > committed read retains SQL-derived selected earned eligibility false
+AssertionError: expected [ { slotIndex: 1, …(4) } ] to deeply equal [ { slotIndex: 1, …(5) } ]
+
+- Expected
++ Received
+
+@@ -1,9 +1,8 @@
+  [
+    {
+      "contentVersion": 5,
+-     "earnedEligibility": false,
+      "eligibilityDisciplineId": "vanguard",
+      "skillId": "lifebinder.mend",
+      "slotIndex": 1,
+      "sourceDisciplineId": "lifebinder",
+    },
+
+ ❯ src/server/character/character-build-eligibility-transport.test.ts:186:125
+    184|   const captured = {...snapshot,disciplineSkills:[{...snapshot.discipl…
+    185|   rpc.mockResolvedValue({data:captured,error:null})
+    186|   expect((await createSupabaseCharacterBuildRepository().loadCommitted…
+       |                                                                                                                             ^
+    187| })
+    188| it.each([null,'true',1])('committed read rejects malformed earned elig…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/7]⎯
+
+ FAIL  src/server/character/character-build-eligibility-transport.test.ts > committed read rejects malformed earned eligibility null
+ FAIL  src/server/character/character-build-eligibility-transport.test.ts > committed read rejects malformed earned eligibility "true"
+ FAIL  src/server/character/character-build-eligibility-transport.test.ts > committed read rejects malformed earned eligibility 1
+AssertionError: promise resolved "{ schemaVersion: 3, …(5) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "buildVersion": 1,
++   "disciplineSkills": [
++     {
++       "contentVersion": 5,
++       "eligibilityDisciplineId": "vanguard",
++       "skillId": "lifebinder.mend",
++       "slotIndex": 1,
++       "sourceDisciplineId": "lifebinder",
++     },
++   ],
++   "extensions": {
++     "equipmentSkills": [],
++     "essence": null,
++     "prestige": null,
++     "resonance": null,
++     "supernatural": null,
++   },
++   "primary": {
++     "definitionVersion": 1,
++     "disciplineId": "vanguard",
++     "profileVersion": 1,
++   },
++   "schemaVersion": 3,
++   "secondary": null,
+  }
+
+ ❯ src/server/character/character-build-eligibility-transport.test.ts:190:104
+    188| it.each([null,'true',1])('committed read rejects malformed earned elig…
+    189|   rpc.mockResolvedValue({data:{...snapshot,disciplineSkills:[{...snaps…
+    190|   await expect(createSupabaseCharacterBuildRepository().loadCommittedB…
+       |                                                                                                        ^
+    191| })
+    192|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/7]⎯
+
+ FAIL  src/server/battle/battle-build-authority-mixed-source-cap.test.ts > published absent extensions and selected cross eligibility survive actual admission and restoration
+ FAIL  src/server/battle/battle-build-authority-mixed-source-cap.test.ts > published custom extensions and selected cross eligibility survive actual admission and restoration
+TypeError: Published Essence does not match the enabled committed build extension.
+ ❯ src/server/battle/battle-build-authority.ts:550:15
+    548|           secondary !== null)
+    549|       )
+    550|         throw new TypeError(
+       |               ^
+    551|           'Published Essence does not match the enabled committed buil…
+    552|         )
+ ❯ Module.createResolvedBattleBuildAuthoritySnapshot src/server/battle/battle-build-authority.ts:506:26
+ ❯ src/server/battle/battle-build-authority-mixed-source-cap.test.ts:520:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/7]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  7 failed | 5 passed | 24 skipped (36)
+   Start at  13:07:51
+   Duration  1.74s (transform 2.30s, setup 0ms, import 2.95s, tests 27ms, environment 0ms)
+
+undefined
+/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/apps/web:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/server/battle/battle-build-authority-mixed-source-cap.test.ts src/server/character/character-build-eligibility-transport.test.ts -t 'published .* extensions and selected|earned eligibility'

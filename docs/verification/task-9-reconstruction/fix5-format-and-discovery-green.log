@@ -1,0 +1,9 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "argv": ["python", "-c", "import subprocess; subprocess.run([\"corepack\",\"pnpm\",\"exec\",\"prettier\",\"--write\",\"apps/web/e2e/master-players-recovery.pw.ts\"],check=True); subprocess.run([\"corepack\",\"pnpm\",\"exec\",\"prettier\",\"--check\",\"apps/web/e2e/master-players-recovery.pw.ts\"],check=True); subprocess.run([\"corepack\",\"pnpm\",\"--filter\",\"@aurevane/web\",\"exec\",\"playwright\",\"test\",\"--config=playwright.config.ts\",\"e2e/master-players-recovery.pw.ts\",\"--project=desktop-chromium\",\"--repeat-each=2\",\"--list\"],check=True)"], "start": "2026-10-20T21:08:35.611531+00:00"}
+apps/web/e2e/master-players-recovery.pw.ts 154ms
+Checking formatting...
+All matched files use Prettier code style!
+Listing tests:
+  [desktop-chromium] › master-players-recovery.pw.ts:42:5 › Owner corrections and whole encounter recovery reach actual PvE, both PvP participants and spectator
+  [desktop-chromium] › master-players-recovery.pw.ts:42:5 › Owner corrections and whole encounter recovery reach actual PvE, both PvP participants and spectator
+Total: 2 tests in 1 file
+{"end": "2026-10-20T21:08:38.387615+00:00", "exit": 0}

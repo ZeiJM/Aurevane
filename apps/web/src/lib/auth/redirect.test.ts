@@ -18,4 +18,11 @@ describe('getSafeInternalRedirect', () => {
   it('uses a caller-provided fallback when the redirect is absent', () => {
     expect(getSafeInternalRedirect(null, '/home')).toBe('/home')
   })
+
+  it.each(['/\\evil.test', '/\n/evil.test', '/\t/evil.test'])(
+    'rejects URL-parser origin escapes: %s',
+    (value) => {
+      expect(getSafeInternalRedirect(value)).toBe('/')
+    },
+  )
 })

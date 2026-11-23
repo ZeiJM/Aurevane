@@ -1,0 +1,9 @@
+
+ RUN  v4.1.10 /workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/packages/game-core
+
+
+ Test Files  1 passed (1)
+      Tests  30 passed (30)
+   Start at  13:28:32
+   Duration  1.13s (transform 818ms, setup 0ms, import 962ms, tests 21ms, environment 0ms)
+

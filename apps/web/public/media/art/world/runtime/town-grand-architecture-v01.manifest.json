@@ -1,0 +1,237 @@
+{
+  "requestId": "ART-WORLD-CORRECTION-20261112",
+  "promptSpec": "content/art-requests/ART-WORLD-CORRECTION-20261112.md",
+  "provider": "OpenAI image generation",
+  "selection": "Original generated sheet selected for runtime integration",
+  "name": "town-grand-architecture",
+  "source": {
+    "path": "sources/town-grand-architecture-v01.png",
+    "sha256": "8f00682b0cdf7b04dee9df99c987301b2d5de0893288a940977806f2d1dce60b",
+    "width": 1774,
+    "height": 887
+  },
+  "runtime": {
+    "path": "runtime/town-grand-architecture-v01.webp",
+    "sha256": "90f7fc463b3a820eb791d71e9a0d4f6bff283fe946cfaf4e2bd70d406b3caeb7",
+    "bytes": 555024,
+    "width": 2048,
+    "height": 1024,
+    "columns": 4,
+    "rows": 2,
+    "cellWidth": 512,
+    "cellHeight": 512,
+    "encoding": "Sharp WebP quality88 alphaQuality100; alpha-tail normalization; visible-bounds crop; aspect-preserving fit; 24px floor inset"
+  },
+  "fringePixelsRemoved": 2479,
+  "packedFringePixelsRemoved": 344,
+  "sprites": [
+    {
+      "index": 0,
+      "anchorX": 0.474341,
+      "anchorY": 0.951172,
+      "isolation": "dominant-alpha-component",
+      "componentArea": 96169,
+      "sourceCell": {
+        "left": 8,
+        "top": 46,
+        "width": 429,
+        "height": 344
+      },
+      "crop": {
+        "left": 3,
+        "top": 2,
+        "width": 423,
+        "height": 340
+      },
+      "runtimeBounds": {
+        "left": 16,
+        "top": 102,
+        "width": 480,
+        "height": 386
+      },
+      "floorY": 0.953125
+    },
+    {
+      "index": 1,
+      "anchorX": 0.531248,
+      "anchorY": 0.951172,
+      "isolation": "dominant-alpha-component",
+      "componentArea": 102459,
+      "sourceCell": {
+        "left": 455,
+        "top": 7,
+        "width": 418,
+        "height": 386
+      },
+      "crop": {
+        "left": 3,
+        "top": 2,
+        "width": 412,
+        "height": 382
+      },
+      "runtimeBounds": {
+        "left": 16,
+        "top": 43,
+        "width": 480,
+        "height": 445
+      },
+      "floorY": 0.953125
+    },
+    {
+      "index": 2,
+      "anchorX": 0.565557,
+      "anchorY": 0.951172,
+      "isolation": "dominant-alpha-component",
+      "componentArea": 103923,
+      "sourceCell": {
+        "left": 891,
+        "top": 43,
+        "width": 433,
+        "height": 358
+      },
+      "crop": {
+        "left": 2,
+        "top": 3,
+        "width": 429,
+        "height": 353
+      },
+      "runtimeBounds": {
+        "left": 16,
+        "top": 93,
+        "width": 480,
+        "height": 395
+      },
+      "floorY": 0.953125
+    },
+    {
+      "index": 3,
+      "anchorX": 0.564089,
+      "anchorY": 0.951172,
+      "isolation": "dominant-alpha-component",
+      "componentArea": 97117,
+      "sourceCell": {
+        "left": 1361,
+        "top": 7,
+        "width": 402,
+        "height": 397
+      },
+      "crop": {
+        "left": 3,
+        "top": 2,
+        "width": 396,
+        "height": 392
+      },
+      "runtimeBounds": {
+        "left": 17,
+        "top": 16,
+        "width": 477,
+        "height": 472
+      },
+      "floorY": 0.953125
+    },
+    {
+      "index": 4,
+      "anchorX": 0.474492,
+      "anchorY": 0.951172,
+      "isolation": "dominant-alpha-component",
+      "componentArea": 98560,
+      "sourceCell": {
+        "left": 3,
+        "top": 472,
+        "width": 438,
+        "height": 373
+      },
+      "crop": {
+        "left": 3,
+        "top": 3,
+        "width": 432,
+        "height": 368
+      },
+      "runtimeBounds": {
+        "left": 16,
+        "top": 79,
+        "width": 480,
+        "height": 409
+      },
+      "floorY": 0.953125
+    },
+    {
+      "index": 5,
+      "anchorX": 0.490287,
+      "anchorY": 0.951172,
+      "isolation": "dominant-alpha-component",
+      "componentArea": 106364,
+      "sourceCell": {
+        "left": 450,
+        "top": 452,
+        "width": 431,
+        "height": 400
+      },
+      "crop": {
+        "left": 3,
+        "top": 2,
+        "width": 425,
+        "height": 396
+      },
+      "runtimeBounds": {
+        "left": 16,
+        "top": 41,
+        "width": 480,
+        "height": 447
+      },
+      "floorY": 0.953125
+    },
+    {
+      "index": 6,
+      "anchorX": 0.510261,
+      "anchorY": 0.951172,
+      "isolation": "dominant-alpha-component",
+      "componentArea": 111297,
+      "sourceCell": {
+        "left": 890,
+        "top": 464,
+        "width": 439,
+        "height": 392
+      },
+      "crop": {
+        "left": 3,
+        "top": 3,
+        "width": 434,
+        "height": 386
+      },
+      "runtimeBounds": {
+        "left": 16,
+        "top": 61,
+        "width": 480,
+        "height": 427
+      },
+      "floorY": 0.953125
+    },
+    {
+      "index": 7,
+      "anchorX": 0.482639,
+      "anchorY": 0.951172,
+      "isolation": "dominant-alpha-component",
+      "componentArea": 111364,
+      "sourceCell": {
+        "left": 1336,
+        "top": 448,
+        "width": 436,
+        "height": 411
+      },
+      "crop": {
+        "left": 2,
+        "top": 3,
+        "width": 431,
+        "height": 405
+      },
+      "runtimeBounds": {
+        "left": 16,
+        "top": 37,
+        "width": 480,
+        "height": 451
+      },
+      "floorY": 0.953125
+    }
+  ]
+}

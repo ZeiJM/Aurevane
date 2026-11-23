@@ -1,11 +1,18 @@
 import 'server-only'
 
+import {
+  compileAppearanceManifest,
+  parseAppearanceBlueprint,
+} from '@/appearance/appearance-manifest'
+import { throwCombatContentAdmissionError } from '../combat/combat-content-admission-error'
+
 import { createHash } from 'node:crypto'
 
 import type { PersistedCharacter } from '@aurevane/game-core/character/persistence'
+import { getFoundationDiscipline } from '@aurevane/game-core/character/foundation-disciplines'
 import {
-  buildInitialCharacterState,
-  CharacterCreationRuleError,
+  CHARACTER_CREATION_RULES_V1,
+  validateCharacterCreationIntent,
   type CharacterCreationIntent,
 } from '@aurevane/game-core/character/creation'
 import type { AuthenticatedActor } from '@aurevane/game-core/command'
@@ -17,13 +24,21 @@ import {
 } from '@aurevane/validation/player/character'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { createSupabaseCharacterBuildRepository } from './supabase-character-build-repository'
 
 export const CHARACTER_SLOT_COUNT = 3 as const
 
-export interface CharacterSlotCharacter extends PersistedCharacter {
+interface OwnedCharacterSlot extends PersistedCharacter {
   deletionRequestedAt: string | null
   deletionExecuteAfter: string | null
   reselectAvailableAt: string | null
+}
+
+export interface CharacterSlotCharacter extends OwnedCharacterSlot {
+  disciplines: {
+    primary: { id: string; name: string }
+    secondary: { id: string; name: string } | null
+  }
 }
 
 export function isCharacterSlotIndex(value: number): boolean {
@@ -37,9 +52,35 @@ export function hasEarnedPrestigeCharacterSlot(
 }
 
 export async function loadCharacterSlots(userId: string): Promise<CharacterSlotCharacter[]> {
+  const characters = await loadOwnedCharacterSlots(userId)
+  const builds = createSupabaseCharacterBuildRepository()
+  // The roster is bounded to three slots. Reuse the owner-scoped, validated build authority.
+  return Promise.all(
+    characters.map(async (character) => {
+      const build = await builds.findActiveBuild(userId, character.id)
+      if (build && build.characterId !== character.id) throw unavailable()
+      const foundation =
+        build === null ? getFoundationDiscipline(character.foundationDisciplineId) : null
+      return {
+        ...character,
+        disciplines: {
+          primary: build
+            ? { id: build.primaryDefinition.id, name: build.primaryDefinition.name }
+            : { id: character.foundationDisciplineId, name: foundation?.name ?? 'Adventurer' },
+          secondary: build?.secondaryDefinition
+            ? { id: build.secondaryDefinition.id, name: build.secondaryDefinition.name }
+            : null,
+        },
+      }
+    }),
+  )
+}
+
+async function loadOwnedCharacterSlots(userId: string): Promise<OwnedCharacterSlot[]> {
   const supabase = createSupabaseAdminClient()
-  const { data, error } = await supabase.rpc('get_character_slots_v2', { p_user_id: userId })
-  if (error || !Array.isArray(data)) throw unavailable()
+  const { data, error } = await supabase.rpc('get_character_slots_v3', { p_user_id: userId })
+  if (error) throwCombatContentAdmissionError(error)
+  if (error || !Array.isArray(data) || data.length > CHARACTER_SLOT_COUNT) throw unavailable()
 
   return data.map((candidate) => {
     if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) throw unavailable()
@@ -55,7 +96,7 @@ export async function loadCharacterSlots(userId: string): Promise<CharacterSlotC
     delete base.deletion_execute_after
     delete base.reselect_available_at
     const row = parseCharacterPersistenceRow(base)
-    if (!row) throw unavailable()
+    if (!row || row.user_id !== userId || !isCharacterSlotIndex(row.slot_index)) throw unavailable()
     return {
       ...toPersistedCharacter(row),
       deletionRequestedAt,
@@ -69,7 +110,7 @@ export async function findPlayableOwnedCharacterById(
   userId: string,
   characterId: string,
 ): Promise<PersistedCharacter | null> {
-  const character = (await loadCharacterSlots(userId)).find(
+  const character = (await loadOwnedCharacterSlots(userId)).find(
     (candidate) => candidate.id === characterId,
   )
   if (!character || character.deletionExecuteAfter) return null
@@ -118,6 +159,8 @@ export async function createCharacterInSlot(command: {
   slotIndex: number
   idempotencyKey: string
   intent: CharacterCreationIntent
+  expectedProfileVersion?: number
+  appearance?: unknown
 }): Promise<{ character: PersistedCharacter; replayed: boolean }> {
   if (!isCharacterSlotIndex(command.slotIndex)) {
     throw new AurevaneError('INVALID_REQUEST', 'Choose character slot 1, 2, or 3.')
@@ -133,7 +176,7 @@ export async function createCharacterInSlot(command: {
     )
   }
   if (command.slotIndex === 2) {
-    const roster = await loadCharacterSlots(command.actor.userId)
+    const roster = await loadOwnedCharacterSlots(command.actor.userId)
     if (!hasEarnedPrestigeCharacterSlot(roster)) {
       throw new AurevaneError(
         'FORBIDDEN',
@@ -142,26 +185,26 @@ export async function createCharacterInSlot(command: {
     }
   }
 
-  let seed
-  try {
-    seed = buildInitialCharacterState(command.intent)
-  } catch (error) {
-    if (error instanceof CharacterCreationRuleError) {
-      const firstIssue = error.issues[0]
-      throw new AurevaneError(
-        'INVALID_REQUEST',
-        firstIssue?.message ?? 'Review the character choices and try again.',
-      )
-    }
-    throw error
+  const validation = validateCharacterCreationIntent(command.intent, 'published')
+  if (!validation.ok) {
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      validation.issues[0]?.message ?? 'Review the character choices and try again.',
+    )
   }
+  const seed = validation.value
 
+  const blueprint = parseAppearanceBlueprint(command.appearance)
+  if (command.appearance !== undefined && !blueprint) {
+    throw new AurevaneError('INVALID_REQUEST', 'Choose compatible appearance parts.')
+  }
+  const appearanceUrl = blueprint ? compileAppearanceManifest(blueprint).portraits.neutral : null
   const requestFingerprint = createHash('sha256')
     .update(
       JSON.stringify({
-        command: 'character.create.v3',
+        command: 'character.create.v4',
         slotIndex: command.slotIndex,
-        rulesVersion: seed.rulesVersion,
+        rulesVersion: CHARACTER_CREATION_RULES_V1.version,
         name: seed.name,
         nameKey: seed.nameKey,
         presentationId: seed.presentationId,
@@ -169,18 +212,20 @@ export async function createCharacterInSlot(command: {
         portraitRef: seed.portraitRef,
         starterAppearanceRef: seed.starterAppearanceRef,
         foundationDisciplineId: seed.foundationDisciplineId,
-        attributes: seed.attributes,
+        attributeBonuses: command.intent.attributeBonuses,
+        expectedProfileVersion: command.expectedProfileVersion ?? null,
+        ...(appearanceUrl ? { appearanceUrl } : {}),
       }),
     )
     .digest('hex')
 
   const supabase = createSupabaseAdminClient()
-  const { data, error } = await supabase.rpc('create_character_v3', {
+  const args = {
     p_user_id: command.actor.userId,
     p_slot_index: command.slotIndex,
     p_idempotency_key: command.idempotencyKey,
     p_request_fingerprint: requestFingerprint,
-    p_rules_version: seed.rulesVersion,
+    p_rules_version: CHARACTER_CREATION_RULES_V1.version,
     p_name: seed.name,
     p_name_key: seed.nameKey,
     p_presentation_id: seed.presentationId,
@@ -188,15 +233,37 @@ export async function createCharacterInSlot(command: {
     p_portrait_ref: seed.portraitRef,
     p_starter_appearance_ref: seed.starterAppearanceRef,
     p_foundation_discipline_id: seed.foundationDisciplineId,
-    p_might: seed.attributes.might,
-    p_finesse: seed.attributes.finesse,
-    p_vitality: seed.attributes.vitality,
-    p_agility: seed.attributes.agility,
-    p_intellect: seed.attributes.intellect,
-    p_resolve: seed.attributes.resolve,
+    p_bonus_might: command.intent.attributeBonuses.might,
+    p_bonus_finesse: command.intent.attributeBonuses.finesse,
+    p_bonus_vitality: command.intent.attributeBonuses.vitality,
+    p_bonus_agility: command.intent.attributeBonuses.agility,
+    p_bonus_intellect: command.intent.attributeBonuses.intellect,
+    p_bonus_resolve: command.intent.attributeBonuses.resolve,
+    p_expected_profile_version: command.expectedProfileVersion ?? null,
+  }
+  const { data, error } = await supabase.rpc('create_character_with_appearance_v1', {
+    ...args,
+    p_appearance_url: appearanceUrl,
   })
 
   if (error) {
+    if (error.message.includes('CHARACTER_APPEARANCE_DUPLICATE')) {
+      throw new AurevaneError(
+        'STALE_VERSION',
+        'Another character already uses this look. Change one or more parts.',
+      )
+    }
+    throwCombatContentAdmissionError(error)
+    if (error.message.includes('CHARACTER_CORE_STALE'))
+      throw new AurevaneError(
+        'INVALID_REQUEST',
+        'The Discipline Core changed. Refresh and review your five personal choices.',
+      )
+    if (error.message.includes('FOUNDATION_PRIMARY_DISCIPLINE_UNAVAILABLE'))
+      throw new AurevaneError(
+        'INVALID_REQUEST',
+        'This starter Discipline is no longer available. Refresh and choose again.',
+      )
     if (error.code === '22023') {
       throw new AurevaneError(
         'IDEMPOTENCY_CONFLICT',
@@ -239,6 +306,7 @@ export async function requestCharacterDeletion(
     p_confirmation_phrase: confirmationPhrase,
   })
   if (error) {
+    throwCombatContentAdmissionError(error)
     if (error.message.includes('CHARACTER_DELETE_CONFIRMATION_MISMATCH')) {
       throw new AurevaneError('INVALID_REQUEST', 'The deletion phrase does not match exactly.')
     }
@@ -279,8 +347,7 @@ function toPersistedCharacter(row: CharacterPersistenceRow): PersistedCharacter 
     pronounPresetId: row.pronoun_preset_id as PersistedCharacter['pronounPresetId'],
     portraitRef: row.portrait_ref as PersistedCharacter['portraitRef'],
     starterAppearanceRef: row.starter_appearance_ref as PersistedCharacter['starterAppearanceRef'],
-    foundationDisciplineId:
-      row.foundation_discipline_id as PersistedCharacter['foundationDisciplineId'],
+    foundationDisciplineId: row.foundation_discipline_id,
     attributes: {
       might: row.might,
       finesse: row.finesse,

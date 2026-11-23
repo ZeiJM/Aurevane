@@ -1,0 +1,143 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "argv": ["python", "/tmp/players-fix5-evidence.py"], "start": "2026-10-20T21:08:13.142761+00:00"}
+CPU_PROFILE_SUMMARY {
+  "rawProfileSha256": "a985296d271da660965d73398efde7f030eaac6c1a88e09dcb0631390b6a4802",
+  "sampledDurationMs": 30329.37,
+  "inclusiveSamplesMs": {
+    "playLegalRosterDuel": 27914.29,
+    "chooseBuildAwareRecruitAiDecision": 26692.72,
+    "validateCombatAbilityState": 22282.13,
+    "parseAbilityDefinition": 17065.74,
+    "executeBuildAwareRecruitAiAction": 1030.98,
+    "validateStatDrivenCombatEncounterState": 840.36,
+    "finishPv1fTurn": 99.52,
+    "createLegalRosterDuel": 39.47
+  },
+  "topSelfSamples": [
+    {
+      "function": "parseAbilityDefinition",
+      "source": "file://packages/game-core/src/combat/combat-definition.ts",
+      "ms": 9492.61
+    },
+    {
+      "function": "validateAbilityDefinition",
+      "source": "file://packages/game-core/src/combat/combat-definition.ts",
+      "ms": 3198.19
+    },
+    {
+      "function": "parseBasicSkillDefinition",
+      "source": "file://packages/game-core/src/combat/combat-basic-actions.ts",
+      "ms": 1728.91
+    },
+    {
+      "function": "freezeCapture",
+      "source": "file://packages/game-core/src/combat/combat-behavior-capture.ts",
+      "ms": 1538.56
+    },
+    {
+      "function": "validateCombatTagPayload",
+      "source": "file://packages/game-core/src/combat/combat-tag-registry.ts",
+      "ms": 1374.38
+    },
+    {
+      "function": "(idle)",
+      "source": "",
+      "ms": 1084.48
+    },
+    {
+      "function": "validateCombatActionDefinition",
+      "source": "file://packages/game-core/src/combat/combat-authoring-validation.ts",
+      "ms": 1064.71
+    },
+    {
+      "function": "captureCombatAbilitySource",
+      "source": "file://packages/game-core/src/combat/combat-behavior-capture.ts",
+      "ms": 678.54
+    },
+    {
+      "function": "validateCombatAbilityState",
+      "source": "file://packages/game-core/src/combat/combat-ability-state.ts",
+      "ms": 657.37
+    },
+    {
+      "function": "keys",
+      "source": "file://packages/game-core/src/combat/combat-definition.ts",
+      "ms": 560.61
+    },
+    {
+      "function": "",
+      "source": "file://packages/game-core/src/combat/combat-ability-state.ts",
+      "ms": 493.47
+    },
+    {
+      "function": "validateVersionedCombatTargetSpec",
+      "source": "file://packages/game-core/src/combat/combat-targeting-shapes.ts",
+      "ms": 339.72
+    }
+  ],
+  "note": "CPU sample ancestry is diagnostic, not wall time or native runner measurement; inclusive categories overlap."
+}
+NATIVE_TRACE_SUMMARY [
+  {
+    "repetition": "master-players-recovery.pw-c3772--participants-and-spectator-desktop-chromium",
+    "traceSha256": "fb21293e37a9eeb280ad5a538b11d499a987d53aa7e23cce8a3dd714b4548232",
+    "selectedActions": [
+      {
+        "title": "Verify the first XP correction in SQL",
+        "method": "test.step",
+        "error": false,
+        "durationMs": 126.21
+      },
+      {
+        "title": "Read current Players facts through the protected API",
+        "method": "test.step",
+        "error": false,
+        "durationMs": 96.27
+      },
+      {
+        "title": "Select the Discipline correction group",
+        "method": "test.step",
+        "error": false,
+        "durationMs": 69.59
+      },
+      {
+        "title": "Expect \"toHaveText\"",
+        "method": "expect",
+        "error": true,
+        "durationMs": 21.24
+      }
+    ]
+  },
+  {
+    "repetition": "master-players-recovery.pw-c3772--participants-and-spectator-desktop-chromium-repeat1",
+    "traceSha256": "70e6a6cd6a23e866a88f1bf0c6f156ed6d7e660196af71c1ea2b93a44930faee",
+    "selectedActions": [
+      {
+        "title": "Verify the first XP correction in SQL",
+        "method": "test.step",
+        "error": false,
+        "durationMs": 156.51
+      },
+      {
+        "title": "Read current Players facts through the protected API",
+        "method": "test.step",
+        "error": false,
+        "durationMs": 50.68
+      },
+      {
+        "title": "Select the Discipline correction group",
+        "method": "test.step",
+        "error": false,
+        "durationMs": 47.58
+      },
+      {
+        "title": "Expect \"toHaveText\"",
+        "method": "expect",
+        "error": true,
+        "durationMs": 30.18
+      }
+    ]
+  }
+]
+RESTORED_SOURCE_SHA256 apps/web/src/server/battle/roster-legal-duel.test-utils.ts 613417be9c332b1b71e5e3d5eac23302a60d324de4b5e5cd2c7601ad1e673aea
+RESTORED_SOURCE_SHA256 apps/web/src/server/master/modular-correction-publication.test.ts 569f6a0a95ca37704c0c11098208d619bdd3df01cb47c8e0115a8ec1d5f26154
+{"end": "2026-10-20T21:08:13.666809+00:00", "exit": 0}

@@ -1,0 +1,2954 @@
+{
+  "testedHead": "7a406a5fb30c6495a50911b9e1e0c6f6f87f5738",
+  "tree": "f2ab45ccc958fe2974928e428ff4988ab836452f",
+  "merge": "20acdee4eaab2e11f95c9b9f811e73e3ac0ff15b",
+  "deployment": {
+    "id": "dpl_3mfkmqUsANdB44zA1Be8xd3HTYcE",
+    "name": "aurevane",
+    "url": "aurevane-6wbtae6eg-zeijms-projects.vercel.app",
+    "type": "LAMBDAS",
+    "state": "INITIALIZING",
+    "createdAt": 1793337013970,
+    "creator": {
+      "uid": "VwTLakFObK5PLogxt6E3lfFr",
+      "username": "zeijm"
+    },
+    "project": {
+      "id": "prj_ZmH66I1zyOARUt8OXdTl7CN9r18d",
+      "name": "aurevane",
+      "framework": "nextjs"
+    },
+    "meta": {
+      "githubCommitRef": "20acdee4eaab2e11f95c9b9f811e73e3ac0ff15b",
+      "githubCommitSha": "20acdee4eaab2e11f95c9b9f811e73e3ac0ff15b",
+      "githubCommitMessage": "Merge pull request #992 from ZeiJM/agent/master-authoring-portraits-20261030\n\nFix Master ability authoring and refresh Wayfarer portraits",
+      "githubRepo": "Aurevane",
+      "githubOrg": "ZeiJM"
+    },
+    "alias": [
+      "aurevane-zeijms-projects.vercel.app",
+      "aurevane-git-20acdee4eaab2e11f95c9b9f811-8a5f76-zeijms-projects.vercel.app"
+    ],
+    "target": "production",
+    "regions": ["cle1"],
+    "buildingAt": 1793337013970,
+    "readyState": "INITIALIZING"
+  },
+  "workflows": [
+    {
+      "id": 40998758789,
+      "name": "Controlled combat browser",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 240,
+      "jobs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/40998758789/jobs",
+      "logs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/40998758789/logs",
+      "workflow_id": 385297185,
+      "jobs": [
+        {
+          "id": 123877963270,
+          "name": "controlled",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 40998758789,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Enable pnpm",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Run pnpm install --frozen-lockfile",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Install Chromium",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Verify Controlled commands and readiness across shared modes",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            },
+            {
+              "name": "Save native evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8
+            },
+            {
+              "name": "Post Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 15
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 16
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 17
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 40998756505,
+      "name": "Living Atlas browser",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 653,
+      "jobs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/40998756505/jobs",
+      "logs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/40998756505/logs",
+      "workflow_id": 364668825,
+      "jobs": [
+        {
+          "id": 123877956163,
+          "name": "verify",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 40998756505,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Run corepack enable && corepack prepare pnpm@11.17.0 --activate",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Run pnpm install --frozen-lockfile",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Run pnpm --filter @aurevane/web exec playwright install --with-deps chromium",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Run pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            },
+            {
+              "name": "Build and exercise authenticated Atlas",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8
+            },
+            {
+              "name": "Capture safe Realtime failure diagnostics",
+              "status": "completed",
+              "conclusion": "skipped",
+              "number": 9
+            },
+            {
+              "name": "Save compact Atlas timing and presentation evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 10
+            },
+            {
+              "name": "Save Atlas screenshots and traces",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 11
+            },
+            {
+              "name": "Stop disposable database",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 12
+            },
+            {
+              "name": "Post Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 23
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 24
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 25
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 40998756401,
+      "name": "CI",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 13129,
+      "jobs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/40998756401/jobs",
+      "logs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/40998756401/logs",
+      "workflow_id": 335177451,
+      "jobs": [
+        {
+          "id": 123877956147,
+          "name": "Select CI coverage",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 40998756401,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Run ./.github/actions/verification-plan",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Post Run ./.github/actions/verification-plan",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            }
+          ]
+        },
+        {
+          "id": 123878035327,
+          "name": "Execute Quality gates",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 40998756401,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Set up Node.js",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Verify Vercel deployment gate is locked",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Enable pnpm",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Install dependencies",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Check CI selection scripts and workflow formatting",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            },
+            {
+              "name": "Audit production dependencies",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8
+            },
+            {
+              "name": "Run quality gates",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 9
+            },
+            {
+              "name": "Show formatting patch on quality-gate failure",
+              "status": "completed",
+              "conclusion": "skipped",
+              "number": 10
+            },
+            {
+              "name": "Verify worker boot",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 11
+            },
+            {
+              "name": "Verify checks did not modify tracked source",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 12
+            },
+            {
+              "name": "Post Set up Node.js",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 23
+            },
+            {
+              "name": "Post Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 24
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 25
+            }
+          ]
+        },
+        {
+          "id": 123878035419,
+          "name": "Execute Database foundation",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 40998756401,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Set up Node.js",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Enable pnpm",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Install dependencies",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Start local Supabase stack",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Rebuild database from migrations",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            },
+            {
+              "name": "Verify repeatable portrait choices on PostgreSQL",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8
+            },
+            {
+              "name": "Verify private World live presence on the migrated database",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 9
+            },
+            {
+              "name": "Verify social chat, friends and groups on the migrated database",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 10
+            },
+            {
+              "name": "Verify private schema permissions",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 11
+            },
+            {
+              "name": "Verify Master Panel staff authority",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 12
+            },
+            {
+              "name": "Verify native Players recovery races",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 13
+            },
+            {
+              "name": "Verify Phase 4 persistent event kernel",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 14
+            },
+            {
+              "name": "Verify Phase 4 Event participation ledger",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 15
+            },
+            {
+              "name": "Verify Phase 4 Event reward execution",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 16
+            },
+            {
+              "name": "Verify Phase 4 Event terminal cleanup",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 17
+            },
+            {
+              "name": "Verify Phase 4 pre-start Event cleanup isolation",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 18
+            },
+            {
+              "name": "Verify Phase 4 Event Builder",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 19
+            },
+            {
+              "name": "Verify Phase 4 Event Builder write boundary",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 20
+            },
+            {
+              "name": "Verify Phase 4 live Event operations",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 21
+            },
+            {
+              "name": "Verify Phase 4 Event recovery",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 22
+            },
+            {
+              "name": "Verify Event emergency settlement lock orders and rollback",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 23
+            },
+            {
+              "name": "Verify player profile provisioning and privacy",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 24
+            },
+            {
+              "name": "Verify character persistence and privacy",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 25
+            },
+            {
+              "name": "Verify P3.1 Discipline build authority",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 26
+            },
+            {
+              "name": "Verify Online Users active Disciplines",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 27
+            },
+            {
+              "name": "Verify PV-1F character deletion lifecycle",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 28
+            },
+            {
+              "name": "Verify character XP progression authority",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 29
+            },
+            {
+              "name": "Verify transactional idempotency boundary",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 30
+            },
+            {
+              "name": "Verify authenticated web authority route",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 31
+            },
+            {
+              "name": "Verify combat catalogue publication across real PostgreSQL sessions",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 32
+            },
+            {
+              "name": "Save exact catalogue race failure evidence",
+              "status": "completed",
+              "conclusion": "skipped",
+              "number": 33
+            },
+            {
+              "name": "Stop local Supabase services",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 34
+            },
+            {
+              "name": "Post Set up Node.js",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 67
+            },
+            {
+              "name": "Post Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 68
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 69
+            }
+          ]
+        },
+        {
+          "id": 123879518925,
+          "name": "Database foundation",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 40998756401,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Require selected verification or verified reuse",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Post Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 9
+            }
+          ]
+        },
+        {
+          "id": 123882254309,
+          "name": "Quality gates",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 40998756401,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Require selected verification or verified reuse",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Save exact tested-source receipt",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Post Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 9
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 10
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 11
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 40998756429,
+      "name": "Skill Engine",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 1867,
+      "jobs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/40998756429/jobs",
+      "logs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/40998756429/logs",
+      "workflow_id": 349515249,
+      "jobs": [
+        {
+          "id": 123877956172,
+          "name": "skill-engine",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 40998756429,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Enable pnpm",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Install dependencies",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Focused formatting",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Focused lint",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            },
+            {
+              "name": "Game core typecheck",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8
+            },
+            {
+              "name": "P3.3 focused tests",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 9
+            },
+            {
+              "name": "A03 battle authority regression",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 10
+            },
+            {
+              "name": "Production workspace build",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 11
+            },
+            {
+              "name": "Post Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 21
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 22
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 23
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 40998756654,
+      "name": "Resonance Build",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 2020,
+      "jobs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/40998756654/jobs",
+      "logs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/40998756654/logs",
+      "workflow_id": 349567136,
+      "jobs": [
+        {
+          "id": 123877957068,
+          "name": "quality",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 40998756654,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Enable pnpm",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Install dependencies",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Focused formatting",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Focused lint",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            },
+            {
+              "name": "Game core typecheck",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8
+            },
+            {
+              "name": "Focused web typecheck",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 9
+            },
+            {
+              "name": "Focused P3.5 tests",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 10
+            },
+            {
+              "name": "Production workspace build",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 11
+            },
+            {
+              "name": "Post Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 21
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 22
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 23
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 40998756395,
+      "name": "Essence Build",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 2190,
+      "jobs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/40998756395/jobs",
+      "logs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/40998756395/logs",
+      "workflow_id": 349610571,
+      "jobs": [
+        {
+          "id": 123877956159,
+          "name": "quality",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 40998756395,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Enable pnpm",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Install dependencies",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Focused formatting",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Focused lint",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            },
+            {
+              "name": "Game core typecheck",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8
+            },
+            {
+              "name": "Web typecheck",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 9
+            },
+            {
+              "name": "Focused P3.6 game-core tests",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 10
+            },
+            {
+              "name": "Focused P3.6 web tests",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 11
+            },
+            {
+              "name": "Production workspace build",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 12
+            },
+            {
+              "name": "Post Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 23
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 24
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 25
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 40998756519,
+      "name": "Modular ability readers browser",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 233,
+      "jobs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/40998756519/jobs",
+      "logs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/40998756519/logs",
+      "workflow_id": 385594055,
+      "jobs": [
+        {
+          "id": 123877956080,
+          "name": "readers",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 40998756519,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Enable pnpm",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Run pnpm install --frozen-lockfile",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Verify modular catalogue and release bindings",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Install Chromium",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            },
+            {
+              "name": "Verify modular current and pinned public readers",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8
+            },
+            {
+              "name": "Save native evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 9
+            },
+            {
+              "name": "Verify Basic authoring and retired rollback with actual local services",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 10
+            },
+            {
+              "name": "Save Basic authoring evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 11
+            },
+            {
+              "name": "Verify Primed and modular requirements on desktop and mobile",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 12
+            },
+            {
+              "name": "Save Primed and modular requirement evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 13
+            },
+            {
+              "name": "Verify simple Requirements and Conditional Cleanse on desktop and mobile",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 14
+            },
+            {
+              "name": "Save simple Requirements browser evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 15
+            },
+            {
+              "name": "Post Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 29
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 30
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 31
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 40998756651,
+      "name": "Desktop page fit",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 1842,
+      "jobs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/40998756651/jobs",
+      "logs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/40998756651/logs",
+      "workflow_id": 355392339,
+      "jobs": [
+        {
+          "id": 123877957104,
+          "name": "verify",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 40998756651,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Run corepack enable && corepack prepare pnpm@11.17.0 --activate",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Run pnpm install --frozen-lockfile",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Check page source formatting without modifying it",
+              "status": "completed",
+              "conclusion": "skipped",
+              "number": 6
+            },
+            {
+              "name": "Lint",
+              "status": "completed",
+              "conclusion": "skipped",
+              "number": 7
+            },
+            {
+              "name": "Typecheck",
+              "status": "completed",
+              "conclusion": "skipped",
+              "number": 8
+            },
+            {
+              "name": "Unit tests",
+              "status": "completed",
+              "conclusion": "skipped",
+              "number": 9
+            },
+            {
+              "name": "Run pnpm --filter @aurevane/web exec playwright install --with-deps chromium",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 10
+            },
+            {
+              "name": "Run pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 11
+            },
+            {
+              "name": "Build and verify page interactions",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 12
+            },
+            {
+              "name": "Run actions/upload-artifact@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 13
+            },
+            {
+              "name": "Run pnpm exec supabase stop --no-backup",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 14
+            },
+            {
+              "name": "Post Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 27
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 28
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 29
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 40998756624,
+      "name": "Representative Buildcraft",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 2726,
+      "jobs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/40998756624/jobs",
+      "logs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/40998756624/logs",
+      "workflow_id": 350260916,
+      "jobs": [
+        {
+          "id": 123877957571,
+          "name": "representative-buildcraft",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 40998756624,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Enable pnpm",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Install dependencies",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Install Chromium",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Focused formatting",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            },
+            {
+              "name": "Focused lint",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8
+            },
+            {
+              "name": "Typecheck",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 9
+            },
+            {
+              "name": "Focused representative tests",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 10
+            },
+            {
+              "name": "Format and lint shared battle and Atlas changes",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 11
+            },
+            {
+              "name": "Focused shared targeting and presentation tests",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 12
+            },
+            {
+              "name": "Start local Supabase stack",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 13
+            },
+            {
+              "name": "Rebuild local database",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 14
+            },
+            {
+              "name": "Verify normal Ironfist database provisioning",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 15
+            },
+            {
+              "name": "Verify Phase 4 Mastery authority",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 16
+            },
+            {
+              "name": "Verify staged Phase 4 combat publication",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 17
+            },
+            {
+              "name": "Verify staged Phase 4 Discipline rebalance publication",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 18
+            },
+            {
+              "name": "Build and verify PV-2 Profile flow",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 19
+            },
+            {
+              "name": "Save browser evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 20
+            },
+            {
+              "name": "Stop local Supabase services",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 21
+            },
+            {
+              "name": "Post Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 41
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 42
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 43
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 40998756528,
+      "name": "Desktop experience",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 2039,
+      "jobs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/40998756528/jobs",
+      "logs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/40998756528/logs",
+      "workflow_id": 355411640,
+      "jobs": [
+        {
+          "id": 123877956319,
+          "name": "desktop-experience",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 40998756528,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Run corepack enable && corepack prepare pnpm@11.17.0 --activate",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Run pnpm install --frozen-lockfile",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Run pnpm typecheck",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Install browser dependencies from the official Ubuntu mirror",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            },
+            {
+              "name": "Run pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8
+            },
+            {
+              "name": "Verify rendered desktop and phone interactions",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 9
+            },
+            {
+              "name": "Run actions/upload-artifact@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 10
+            },
+            {
+              "name": "Run pnpm exec supabase stop --no-backup",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 11
+            },
+            {
+              "name": "Post Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 21
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 22
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 23
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 40998756631,
+      "name": "UI layout review",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 2190,
+      "jobs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/40998756631/jobs",
+      "logs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/40998756631/logs",
+      "workflow_id": 358723765,
+      "jobs": [
+        {
+          "id": 123877956958,
+          "name": "review",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 40998756631,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Install locked dependencies",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Start disposable local database",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Build and inspect real authenticated pages",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Run actions/upload-artifact@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            },
+            {
+              "name": "Run actions/upload-artifact@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8
+            },
+            {
+              "name": "Stop disposable database",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 9
+            },
+            {
+              "name": "Post Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 17
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 18
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 19
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 40998756430,
+      "name": "Browser smoke",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 7127,
+      "jobs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/40998756430/jobs",
+      "logs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/40998756430/logs",
+      "workflow_id": 335250790,
+      "jobs": [
+        {
+          "id": 123878704530,
+          "name": "Select Browser smoke coverage",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 40998756430,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Run ./.github/actions/verification-plan",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Post Run ./.github/actions/verification-plan",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            }
+          ]
+        },
+        {
+          "id": 123878775182,
+          "name": "Execute Responsive browser smoke",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 40998756430,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Set up Node.js",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Enable pnpm",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Install dependencies",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Install selected browsers",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Verify complete Master operational components",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            },
+            {
+              "name": "Verify shared ally inspection and multi-target previews",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8
+            },
+            {
+              "name": "Verify current and historical targeting geometry across modes",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 9
+            },
+            {
+              "name": "Verify captured plural targeting and Manual behavior choices",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 10
+            },
+            {
+              "name": "Verify captured Move destination and combined follow-up",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 11
+            },
+            {
+              "name": "Verify standardized skill parameter colors and readers",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 12
+            },
+            {
+              "name": "Verify Basic authoring and retired rollback through actual mutation responses",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 13
+            },
+            {
+              "name": "Verify percentage Skill Essence and rail readers across modes",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 14
+            },
+            {
+              "name": "Verify elemental statuses and Ground readers across modes",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 15
+            },
+            {
+              "name": "Verify Suppress percentage authoring and readers across modes",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 16
+            },
+            {
+              "name": "Verify elevated rail effects and viewer privacy",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 17
+            },
+            {
+              "name": "Verify completion windows fit the viewport",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 18
+            },
+            {
+              "name": "Verify immediate battle command feedback and Tab prevention",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 19
+            },
+            {
+              "name": "Start local Supabase stack",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 20
+            },
+            {
+              "name": "Verify desktop and mobile shell",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 21
+            },
+            {
+              "name": "Save Technique and Chronicle failure diagnostics",
+              "status": "completed",
+              "conclusion": "skipped",
+              "number": 22
+            },
+            {
+              "name": "Save battle rail evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 23
+            },
+            {
+              "name": "Save ally inspection and preview evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 24
+            },
+            {
+              "name": "Save targeting geometry evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 25
+            },
+            {
+              "name": "Save captured targeting evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 26
+            },
+            {
+              "name": "Save captured Move evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 27
+            },
+            {
+              "name": "Save percentage reader evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 28
+            },
+            {
+              "name": "Save elemental status and Ground reader evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 29
+            },
+            {
+              "name": "Save Suppress percentage authoring and reader evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 30
+            },
+            {
+              "name": "Save compact combat release screenshots",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 31
+            },
+            {
+              "name": "Save skill parameter palette evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 32
+            },
+            {
+              "name": "Save Basic authoring and retirement evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 33
+            },
+            {
+              "name": "Save elevated rail effect evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 34
+            },
+            {
+              "name": "Save completion window fit evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 35
+            },
+            {
+              "name": "Save command feedback and Tab evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 36
+            },
+            {
+              "name": "Save focused World failure diagnostics",
+              "status": "completed",
+              "conclusion": "skipped",
+              "number": 37
+            },
+            {
+              "name": "Save complete Master operational evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 38
+            },
+            {
+              "name": "Save browser evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 39
+            },
+            {
+              "name": "Save compact browser diagnostics",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 40
+            },
+            {
+              "name": "Stop local Supabase services",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 41
+            },
+            {
+              "name": "Post Set up Node.js",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 81
+            },
+            {
+              "name": "Post Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 82
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 83
+            }
+          ]
+        },
+        {
+          "id": 123903111723,
+          "name": "Responsive browser smoke",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 40998756430,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Require selected verification or verified reuse",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Save exact tested-source receipt",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Post Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 9
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 10
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 11
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "routingBefore": {
+    "routes": [
+      {
+        "id": "bb343d6a-005e-41f5-96ff-33e15c2c04b3",
+        "name": "Retire incompatible deployment hosts",
+        "description": "Only the canonical domains and exact compatible deployment aliases may serve this project. Update allowed-host regex with every future approved production cutover.",
+        "enabled": true,
+        "route": {
+          "src": "^/.*$",
+          "headers": {
+            "Cache-Control": "no-store"
+          },
+          "status": 503,
+          "missing": [
+            {
+              "type": "host",
+              "value": "^(aurevane\\.vercel\\.app|aurevane-dq0fj4t3j-zeijms-projects\\.vercel\\.app|aurevane-zeijms-projects\\.vercel\\.app|aurevane-git-32c8b10fb64fd4fb40bbf5e3374-86633f-zeijms-projects\\.vercel\\.app|aurevane-j3058egtv-zeijms-projects\\.vercel\\.app|aurevane-git-9b1629b1de9f7300d1c05f77f7f-9d1134-zeijms-projects\\.vercel\\.app|aurevane-azewbbh8a-zeijms-projects\\.vercel\\.app|aurevane-git-c0996fe959a843f52f378feee28-de0cc3-zeijms-projects\\.vercel\\.app)$"
+            }
+          ]
+        },
+        "srcSyntax": "regex",
+        "staged": false,
+        "routeType": "set_status"
+      },
+      {
+        "id": "d53aa166-cf3f-42db-a6fd-1a27b3fe8298",
+        "name": "Retire incompatible header pins",
+        "description": "Reject existing deployment pins unless they name the current compatible deployment.",
+        "enabled": true,
+        "route": {
+          "src": "^/.*$",
+          "headers": {
+            "Cache-Control": "no-store"
+          },
+          "status": 503,
+          "has": [
+            {
+              "type": "header",
+              "key": "x-deployment-id"
+            }
+          ],
+          "missing": [
+            {
+              "type": "header",
+              "key": "x-deployment-id",
+              "value": "^(dpl_GwdeeomzR6G79nqUBD8SU58JcPSF|dpl_2UEurScWVE1GxnTrqSvwGtcCmsbc|dpl_8vhURf84Goyo6tzkvk7wtsHJ3pPU)$"
+            }
+          ]
+        },
+        "srcSyntax": "regex",
+        "staged": false,
+        "routeType": "set_status"
+      },
+      {
+        "id": "04259482-8b0f-4b01-85bf-b5bd35dbb910",
+        "name": "Retire incompatible query pins",
+        "description": "Reject existing deployment pins unless they name the current compatible deployment.",
+        "enabled": true,
+        "route": {
+          "src": "^/.*$",
+          "headers": {
+            "Cache-Control": "no-store"
+          },
+          "status": 503,
+          "has": [
+            {
+              "type": "query",
+              "key": "dpl"
+            }
+          ],
+          "missing": [
+            {
+              "type": "query",
+              "key": "dpl",
+              "value": "^(dpl_GwdeeomzR6G79nqUBD8SU58JcPSF|dpl_2UEurScWVE1GxnTrqSvwGtcCmsbc|dpl_8vhURf84Goyo6tzkvk7wtsHJ3pPU)$"
+            }
+          ]
+        },
+        "srcSyntax": "regex",
+        "staged": false,
+        "routeType": "set_status"
+      },
+      {
+        "id": "66ba7749-1a6b-4ccd-9202-be7a7bb8ff76",
+        "name": "Retire incompatible cookie pins",
+        "description": "Reject existing deployment pins unless they name the current compatible deployment.",
+        "enabled": true,
+        "route": {
+          "src": "^/.*$",
+          "headers": {
+            "Cache-Control": "no-store",
+            "Set-Cookie": "__vdpl=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Lax"
+          },
+          "status": 503,
+          "has": [
+            {
+              "type": "cookie",
+              "key": "__vdpl"
+            }
+          ],
+          "missing": [
+            {
+              "type": "cookie",
+              "key": "__vdpl",
+              "value": "^(dpl_GwdeeomzR6G79nqUBD8SU58JcPSF|dpl_2UEurScWVE1GxnTrqSvwGtcCmsbc|dpl_8vhURf84Goyo6tzkvk7wtsHJ3pPU)$"
+            }
+          ]
+        },
+        "srcSyntax": "regex",
+        "staged": false,
+        "routeType": "set_status"
+      },
+      {
+        "id": "1762a69d-d88b-464d-9986-a3885460cc13",
+        "name": "Retired Master baseline cookie",
+        "description": "Retire the old deployment cookie and clear its pin so a refresh can load the compatible production app.",
+        "enabled": true,
+        "staged": false,
+        "route": {
+          "src": "^/.*$",
+          "headers": {
+            "Cache-Control": "no-store",
+            "Set-Cookie": "__vdpl=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Lax"
+          },
+          "status": 503,
+          "has": [
+            {
+              "type": "cookie",
+              "key": "__vdpl",
+              "value": "dpl_2noMyXV766mtZwJtoGbWY4QXZxaE"
+            }
+          ]
+        },
+        "srcSyntax": "regex",
+        "routeType": "set_status"
+      },
+      {
+        "id": "301121a1-fbd1-41cf-a045-228548908639",
+        "name": "Retired Master baseline query",
+        "description": "Prevent fresh framework requests pinned to the retired baseline after cutover; refresh uses current production.",
+        "enabled": true,
+        "staged": false,
+        "route": {
+          "src": "^/.*$",
+          "headers": {
+            "Cache-Control": "no-store"
+          },
+          "status": 503,
+          "has": [
+            {
+              "type": "query",
+              "key": "dpl",
+              "value": "dpl_2noMyXV766mtZwJtoGbWY4QXZxaE"
+            }
+          ]
+        },
+        "srcSyntax": "regex",
+        "routeType": "set_status"
+      },
+      {
+        "id": "49bed491-bc3d-4736-a8dc-9894c31f2b9e",
+        "name": "Retired Master baseline header",
+        "description": "Prevent fresh framework requests pinned to the retired baseline after cutover; refresh uses current production.",
+        "enabled": true,
+        "staged": false,
+        "route": {
+          "src": "^/.*$",
+          "headers": {
+            "Cache-Control": "no-store"
+          },
+          "status": 503,
+          "has": [
+            {
+              "type": "header",
+              "key": "x-deployment-id",
+              "value": "dpl_2noMyXV766mtZwJtoGbWY4QXZxaE"
+            }
+          ]
+        },
+        "srcSyntax": "regex",
+        "routeType": "set_status"
+      },
+      {
+        "id": "fd8c5790-8c24-44fa-ae75-06f845fcf546",
+        "name": "Retired Master baseline 2",
+        "description": "Retire the previous baseline URL after the approved compatible production replacement.",
+        "enabled": true,
+        "staged": false,
+        "route": {
+          "src": "^/.*$",
+          "headers": {
+            "Cache-Control": "no-store"
+          },
+          "status": 503,
+          "has": [
+            {
+              "type": "host",
+              "value": "aurevane-git-a759c6ea651a8e14dff0ec4cdc3-614017-zeijms-projects.vercel.app"
+            }
+          ]
+        },
+        "srcSyntax": "regex",
+        "routeType": "set_status"
+      },
+      {
+        "id": "aa0fbb3e-fad0-4071-9d3f-ba1befb4c00e",
+        "name": "Retired Master baseline 1",
+        "description": "Retire the previous baseline URL after the approved compatible production replacement.",
+        "enabled": true,
+        "staged": false,
+        "route": {
+          "src": "^/.*$",
+          "headers": {
+            "Cache-Control": "no-store"
+          },
+          "status": 503,
+          "has": [
+            {
+              "type": "host",
+              "value": "aurevane-fdhf3oe1n-zeijms-projects.vercel.app"
+            }
+          ]
+        },
+        "srcSyntax": "regex",
+        "routeType": "set_status"
+      }
+    ],
+    "version": {
+      "id": "eea9bd0c-01cc-4ebd-906a-19653c2a806d",
+      "s3Key": "8c7328d4a118acfa",
+      "createdBy": "Nicholas JM",
+      "lastModified": 1793322837109,
+      "ruleCount": 9,
+      "alias": "aurevane-a6cff6-routes-zeijms-projects.vercel.app"
+    },
+    "limit": {
+      "maxRoutes": 100,
+      "currentRoutes": 9
+    }
+  },
+  "routingAdd": [
+    {
+      "id": "bb343d6a-005e-41f5-96ff-33e15c2c04b3",
+      "name": "Retire incompatible deployment hosts",
+      "description": "Only the canonical domains and exact compatible deployment aliases may serve this project. Update allowed-host regex with every future approved production cutover.",
+      "enabled": true,
+      "route": {
+        "src": "^/.*$",
+        "headers": {
+          "Cache-Control": "no-store"
+        },
+        "status": 503,
+        "missing": [
+          {
+            "type": "host",
+            "value": "^(aurevane\\.vercel\\.app|aurevane-dq0fj4t3j-zeijms-projects\\.vercel\\.app|aurevane-zeijms-projects\\.vercel\\.app|aurevane-git-32c8b10fb64fd4fb40bbf5e3374-86633f-zeijms-projects\\.vercel\\.app|aurevane-j3058egtv-zeijms-projects\\.vercel\\.app|aurevane-git-9b1629b1de9f7300d1c05f77f7f-9d1134-zeijms-projects\\.vercel\\.app|aurevane-azewbbh8a-zeijms-projects\\.vercel\\.app|aurevane-git-c0996fe959a843f52f378feee28-de0cc3-zeijms-projects\\.vercel\\.app|aurevane-6wbtae6eg-zeijms-projects\\.vercel\\.app|aurevane-git-20acdee4eaab2e11f95c9b9f811-8a5f76-zeijms-projects\\.vercel\\.app)$"
+          }
+        ]
+      },
+      "srcSyntax": "regex",
+      "staged": false,
+      "routeType": "set_status"
+    },
+    {
+      "id": "d53aa166-cf3f-42db-a6fd-1a27b3fe8298",
+      "name": "Retire incompatible header pins",
+      "description": "Reject existing deployment pins unless they name the current compatible deployment.",
+      "enabled": true,
+      "route": {
+        "src": "^/.*$",
+        "headers": {
+          "Cache-Control": "no-store"
+        },
+        "status": 503,
+        "has": [
+          {
+            "type": "header",
+            "key": "x-deployment-id"
+          }
+        ],
+        "missing": [
+          {
+            "type": "header",
+            "key": "x-deployment-id",
+            "value": "^(dpl_GwdeeomzR6G79nqUBD8SU58JcPSF|dpl_2UEurScWVE1GxnTrqSvwGtcCmsbc|dpl_8vhURf84Goyo6tzkvk7wtsHJ3pPU|dpl_3mfkmqUsANdB44zA1Be8xd3HTYcE)$"
+          }
+        ]
+      },
+      "srcSyntax": "regex",
+      "staged": false,
+      "routeType": "set_status"
+    },
+    {
+      "id": "04259482-8b0f-4b01-85bf-b5bd35dbb910",
+      "name": "Retire incompatible query pins",
+      "description": "Reject existing deployment pins unless they name the current compatible deployment.",
+      "enabled": true,
+      "route": {
+        "src": "^/.*$",
+        "headers": {
+          "Cache-Control": "no-store"
+        },
+        "status": 503,
+        "has": [
+          {
+            "type": "query",
+            "key": "dpl"
+          }
+        ],
+        "missing": [
+          {
+            "type": "query",
+            "key": "dpl",
+            "value": "^(dpl_GwdeeomzR6G79nqUBD8SU58JcPSF|dpl_2UEurScWVE1GxnTrqSvwGtcCmsbc|dpl_8vhURf84Goyo6tzkvk7wtsHJ3pPU|dpl_3mfkmqUsANdB44zA1Be8xd3HTYcE)$"
+          }
+        ]
+      },
+      "srcSyntax": "regex",
+      "staged": false,
+      "routeType": "set_status"
+    },
+    {
+      "id": "66ba7749-1a6b-4ccd-9202-be7a7bb8ff76",
+      "name": "Retire incompatible cookie pins",
+      "description": "Reject existing deployment pins unless they name the current compatible deployment.",
+      "enabled": true,
+      "route": {
+        "src": "^/.*$",
+        "headers": {
+          "Cache-Control": "no-store",
+          "Set-Cookie": "__vdpl=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Lax"
+        },
+        "status": 503,
+        "has": [
+          {
+            "type": "cookie",
+            "key": "__vdpl"
+          }
+        ],
+        "missing": [
+          {
+            "type": "cookie",
+            "key": "__vdpl",
+            "value": "^(dpl_GwdeeomzR6G79nqUBD8SU58JcPSF|dpl_2UEurScWVE1GxnTrqSvwGtcCmsbc|dpl_8vhURf84Goyo6tzkvk7wtsHJ3pPU|dpl_3mfkmqUsANdB44zA1Be8xd3HTYcE)$"
+          }
+        ]
+      },
+      "srcSyntax": "regex",
+      "staged": false,
+      "routeType": "set_status"
+    },
+    {
+      "id": "1762a69d-d88b-464d-9986-a3885460cc13",
+      "name": "Retired Master baseline cookie",
+      "description": "Retire the old deployment cookie and clear its pin so a refresh can load the compatible production app.",
+      "enabled": true,
+      "staged": false,
+      "route": {
+        "src": "^/.*$",
+        "headers": {
+          "Cache-Control": "no-store",
+          "Set-Cookie": "__vdpl=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Lax"
+        },
+        "status": 503,
+        "has": [
+          {
+            "type": "cookie",
+            "key": "__vdpl",
+            "value": "dpl_2noMyXV766mtZwJtoGbWY4QXZxaE"
+          }
+        ]
+      },
+      "srcSyntax": "regex",
+      "routeType": "set_status"
+    },
+    {
+      "id": "301121a1-fbd1-41cf-a045-228548908639",
+      "name": "Retired Master baseline query",
+      "description": "Prevent fresh framework requests pinned to the retired baseline after cutover; refresh uses current production.",
+      "enabled": true,
+      "staged": false,
+      "route": {
+        "src": "^/.*$",
+        "headers": {
+          "Cache-Control": "no-store"
+        },
+        "status": 503,
+        "has": [
+          {
+            "type": "query",
+            "key": "dpl",
+            "value": "dpl_2noMyXV766mtZwJtoGbWY4QXZxaE"
+          }
+        ]
+      },
+      "srcSyntax": "regex",
+      "routeType": "set_status"
+    },
+    {
+      "id": "49bed491-bc3d-4736-a8dc-9894c31f2b9e",
+      "name": "Retired Master baseline header",
+      "description": "Prevent fresh framework requests pinned to the retired baseline after cutover; refresh uses current production.",
+      "enabled": true,
+      "staged": false,
+      "route": {
+        "src": "^/.*$",
+        "headers": {
+          "Cache-Control": "no-store"
+        },
+        "status": 503,
+        "has": [
+          {
+            "type": "header",
+            "key": "x-deployment-id",
+            "value": "dpl_2noMyXV766mtZwJtoGbWY4QXZxaE"
+          }
+        ]
+      },
+      "srcSyntax": "regex",
+      "routeType": "set_status"
+    },
+    {
+      "id": "fd8c5790-8c24-44fa-ae75-06f845fcf546",
+      "name": "Retired Master baseline 2",
+      "description": "Retire the previous baseline URL after the approved compatible production replacement.",
+      "enabled": true,
+      "staged": false,
+      "route": {
+        "src": "^/.*$",
+        "headers": {
+          "Cache-Control": "no-store"
+        },
+        "status": 503,
+        "has": [
+          {
+            "type": "host",
+            "value": "aurevane-git-a759c6ea651a8e14dff0ec4cdc3-614017-zeijms-projects.vercel.app"
+          }
+        ]
+      },
+      "srcSyntax": "regex",
+      "routeType": "set_status"
+    },
+    {
+      "id": "aa0fbb3e-fad0-4071-9d3f-ba1befb4c00e",
+      "name": "Retired Master baseline 1",
+      "description": "Retire the previous baseline URL after the approved compatible production replacement.",
+      "enabled": true,
+      "staged": false,
+      "route": {
+        "src": "^/.*$",
+        "headers": {
+          "Cache-Control": "no-store"
+        },
+        "status": 503,
+        "has": [
+          {
+            "type": "host",
+            "value": "aurevane-fdhf3oe1n-zeijms-projects.vercel.app"
+          }
+        ]
+      },
+      "srcSyntax": "regex",
+      "routeType": "set_status"
+    }
+  ],
+  "routingAddVersion": "3bae0f1b-56d5-4528-93eb-4b6aa65cb8ed",
+  "preflight": {
+    "checkedAt": "2026-10-30T05:13:02.829873+00:00",
+    "origin": "https://aurevane-6wbtae6eg-zeijms-projects.vercel.app",
+    "passed": true,
+    "results": [
+      {
+        "name": "/",
+        "url": "https://aurevane-6wbtae6eg-zeijms-projects.vercel.app/",
+        "status": 200,
+        "passed": true,
+        "bytes": 16601,
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8"
+        }
+      },
+      {
+        "name": "/manual",
+        "url": "https://aurevane-6wbtae6eg-zeijms-projects.vercel.app/manual",
+        "status": 200,
+        "passed": true,
+        "bytes": 43451,
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8"
+        }
+      },
+      {
+        "name": "/rules",
+        "url": "https://aurevane-6wbtae6eg-zeijms-projects.vercel.app/rules",
+        "status": 200,
+        "passed": true,
+        "bytes": 33365,
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8"
+        }
+      },
+      {
+        "name": "/news",
+        "url": "https://aurevane-6wbtae6eg-zeijms-projects.vercel.app/news",
+        "status": 200,
+        "passed": true,
+        "bytes": 14821,
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8"
+        }
+      },
+      {
+        "name": "master",
+        "url": "https://aurevane-6wbtae6eg-zeijms-projects.vercel.app/master",
+        "status": 307,
+        "passed": true,
+        "bytes": 6940,
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8",
+          "location": "/"
+        }
+      },
+      {
+        "name": "access",
+        "url": "https://aurevane-6wbtae6eg-zeijms-projects.vercel.app/api/master/access",
+        "status": 401,
+        "passed": true,
+        "bytes": 73,
+        "headers": {
+          "cache-control": "private, no-store",
+          "content-type": "application/json"
+        }
+      },
+      {
+        "name": "new header",
+        "url": "https://aurevane-6wbtae6eg-zeijms-projects.vercel.app/",
+        "status": 200,
+        "passed": true,
+        "bytes": 16601,
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8"
+        }
+      },
+      {
+        "name": "new query",
+        "url": "https://aurevane-6wbtae6eg-zeijms-projects.vercel.app/?dpl=dpl_3mfkmqUsANdB44zA1Be8xd3HTYcE",
+        "status": 200,
+        "passed": true,
+        "bytes": 16675,
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8"
+        }
+      },
+      {
+        "name": "new cookie",
+        "url": "https://aurevane-6wbtae6eg-zeijms-projects.vercel.app/",
+        "status": 200,
+        "passed": true,
+        "bytes": 16601,
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8"
+        }
+      },
+      {
+        "name": "portrait.starter.wayfarer-02",
+        "url": "https://aurevane-6wbtae6eg-zeijms-projects.vercel.app/media/art/wayfarer/portrait-02-v02.webp",
+        "status": 200,
+        "passed": true,
+        "bytes": 202230,
+        "headers": {
+          "cache-control": "public, max-age=0, must-revalidate",
+          "content-type": "image/webp"
+        }
+      },
+      {
+        "name": "portrait.starter.wayfarer-02 alias",
+        "url": "https://aurevane-6wbtae6eg-zeijms-projects.vercel.app/api/media/starter-portrait/portrait.starter.wayfarer-02?v=wayfarer-v02",
+        "status": 307,
+        "passed": true,
+        "bytes": 0,
+        "headers": {
+          "cache-control": "public, max-age=0, must-revalidate",
+          "location": "https://aurevane-6wbtae6eg-zeijms-projects.vercel.app/media/art/wayfarer/portrait-02-v02.webp"
+        }
+      },
+      {
+        "name": "portrait.starter.wayfarer-21",
+        "url": "https://aurevane-6wbtae6eg-zeijms-projects.vercel.app/media/art/wayfarer/portrait-21-v02.webp",
+        "status": 200,
+        "passed": true,
+        "bytes": 207770,
+        "headers": {
+          "cache-control": "public, max-age=0, must-revalidate",
+          "content-type": "image/webp"
+        }
+      },
+      {
+        "name": "portrait.starter.wayfarer-21 alias",
+        "url": "https://aurevane-6wbtae6eg-zeijms-projects.vercel.app/api/media/starter-portrait/portrait.starter.wayfarer-21?v=wayfarer-v02",
+        "status": 307,
+        "passed": true,
+        "bytes": 0,
+        "headers": {
+          "cache-control": "public, max-age=0, must-revalidate",
+          "location": "https://aurevane-6wbtae6eg-zeijms-projects.vercel.app/media/art/wayfarer/portrait-21-v02.webp"
+        }
+      },
+      {
+        "name": "portrait.starter.wayfarer-40",
+        "url": "https://aurevane-6wbtae6eg-zeijms-projects.vercel.app/media/art/wayfarer/portrait-40-v02.webp",
+        "status": 200,
+        "passed": true,
+        "bytes": 169684,
+        "headers": {
+          "cache-control": "public, max-age=0, must-revalidate",
+          "content-type": "image/webp"
+        }
+      },
+      {
+        "name": "portrait.starter.wayfarer-40 alias",
+        "url": "https://aurevane-6wbtae6eg-zeijms-projects.vercel.app/api/media/starter-portrait/portrait.starter.wayfarer-40?v=wayfarer-v02",
+        "status": 307,
+        "passed": true,
+        "bytes": 0,
+        "headers": {
+          "cache-control": "public, max-age=0, must-revalidate",
+          "location": "https://aurevane-6wbtae6eg-zeijms-projects.vercel.app/media/art/wayfarer/portrait-40-v02.webp"
+        }
+      }
+    ]
+  },
+  "postflight": {
+    "checkedAt": "2026-10-30T05:14:05.084108+00:00",
+    "origin": "https://aurevane.vercel.app",
+    "passed": true,
+    "results": [
+      {
+        "name": "/",
+        "url": "https://aurevane.vercel.app/",
+        "status": 200,
+        "passed": true,
+        "bytes": 16601,
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8"
+        }
+      },
+      {
+        "name": "/manual",
+        "url": "https://aurevane.vercel.app/manual",
+        "status": 200,
+        "passed": true,
+        "bytes": 43451,
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8"
+        }
+      },
+      {
+        "name": "/rules",
+        "url": "https://aurevane.vercel.app/rules",
+        "status": 200,
+        "passed": true,
+        "bytes": 33365,
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8"
+        }
+      },
+      {
+        "name": "/news",
+        "url": "https://aurevane.vercel.app/news",
+        "status": 200,
+        "passed": true,
+        "bytes": 14821,
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8"
+        }
+      },
+      {
+        "name": "master",
+        "url": "https://aurevane.vercel.app/master",
+        "status": 307,
+        "passed": true,
+        "bytes": 6940,
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8",
+          "location": "/"
+        }
+      },
+      {
+        "name": "access",
+        "url": "https://aurevane.vercel.app/api/master/access",
+        "status": 401,
+        "passed": true,
+        "bytes": 73,
+        "headers": {
+          "cache-control": "private, no-store",
+          "content-type": "application/json"
+        }
+      },
+      {
+        "name": "new header",
+        "url": "https://aurevane.vercel.app/",
+        "status": 200,
+        "passed": true,
+        "bytes": 16601,
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8"
+        }
+      },
+      {
+        "name": "new query",
+        "url": "https://aurevane.vercel.app/?dpl=dpl_3mfkmqUsANdB44zA1Be8xd3HTYcE",
+        "status": 200,
+        "passed": true,
+        "bytes": 16675,
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8"
+        }
+      },
+      {
+        "name": "new cookie",
+        "url": "https://aurevane.vercel.app/",
+        "status": 200,
+        "passed": true,
+        "bytes": 16601,
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8"
+        }
+      },
+      {
+        "name": "old header",
+        "url": "https://aurevane.vercel.app/",
+        "status": 503,
+        "passed": true,
+        "bytes": 101,
+        "headers": {
+          "cache-control": "no-store",
+          "content-type": "text/plain; charset=utf-8"
+        }
+      },
+      {
+        "name": "old query",
+        "url": "https://aurevane.vercel.app/?dpl=dpl_8vhURf84Goyo6tzkvk7wtsHJ3pPU",
+        "status": 503,
+        "passed": true,
+        "bytes": 101,
+        "headers": {
+          "cache-control": "no-store",
+          "content-type": "text/plain; charset=utf-8"
+        }
+      },
+      {
+        "name": "old cookie",
+        "url": "https://aurevane.vercel.app/",
+        "status": 503,
+        "passed": true,
+        "bytes": 101,
+        "headers": {
+          "cache-control": "no-store",
+          "content-type": "text/plain; charset=utf-8",
+          "set-cookie": "__vdpl=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Lax"
+        }
+      },
+      {
+        "name": "old host",
+        "url": "https://aurevane-azewbbh8a-zeijms-projects.vercel.app/",
+        "status": 503,
+        "passed": true,
+        "bytes": 101,
+        "headers": {
+          "cache-control": "no-store",
+          "content-type": "text/plain; charset=utf-8"
+        }
+      },
+      {
+        "name": "old host",
+        "url": "https://aurevane-git-c0996fe959a843f52f378feee28-de0cc3-zeijms-projects.vercel.app/",
+        "status": 503,
+        "passed": true,
+        "bytes": 101,
+        "headers": {
+          "cache-control": "no-store",
+          "content-type": "text/plain; charset=utf-8"
+        }
+      },
+      {
+        "name": "portrait.starter.wayfarer-02",
+        "url": "https://aurevane.vercel.app/media/art/wayfarer/portrait-02-v02.webp",
+        "status": 200,
+        "passed": true,
+        "bytes": 202230,
+        "headers": {
+          "cache-control": "public, max-age=0, must-revalidate",
+          "content-type": "image/webp"
+        }
+      },
+      {
+        "name": "portrait.starter.wayfarer-02 alias",
+        "url": "https://aurevane.vercel.app/api/media/starter-portrait/portrait.starter.wayfarer-02?v=wayfarer-v02",
+        "status": 307,
+        "passed": true,
+        "bytes": 0,
+        "headers": {
+          "cache-control": "public, max-age=0, must-revalidate",
+          "location": "https://aurevane.vercel.app/media/art/wayfarer/portrait-02-v02.webp"
+        }
+      },
+      {
+        "name": "portrait.starter.wayfarer-21",
+        "url": "https://aurevane.vercel.app/media/art/wayfarer/portrait-21-v02.webp",
+        "status": 200,
+        "passed": true,
+        "bytes": 207770,
+        "headers": {
+          "cache-control": "public, max-age=0, must-revalidate",
+          "content-type": "image/webp"
+        }
+      },
+      {
+        "name": "portrait.starter.wayfarer-21 alias",
+        "url": "https://aurevane.vercel.app/api/media/starter-portrait/portrait.starter.wayfarer-21?v=wayfarer-v02",
+        "status": 307,
+        "passed": true,
+        "bytes": 0,
+        "headers": {
+          "cache-control": "public, max-age=0, must-revalidate",
+          "location": "https://aurevane.vercel.app/media/art/wayfarer/portrait-21-v02.webp"
+        }
+      },
+      {
+        "name": "portrait.starter.wayfarer-40",
+        "url": "https://aurevane.vercel.app/media/art/wayfarer/portrait-40-v02.webp",
+        "status": 200,
+        "passed": true,
+        "bytes": 169684,
+        "headers": {
+          "cache-control": "public, max-age=0, must-revalidate",
+          "content-type": "image/webp"
+        }
+      },
+      {
+        "name": "portrait.starter.wayfarer-40 alias",
+        "url": "https://aurevane.vercel.app/api/media/starter-portrait/portrait.starter.wayfarer-40?v=wayfarer-v02",
+        "status": 307,
+        "passed": true,
+        "bytes": 0,
+        "headers": {
+          "cache-control": "public, max-age=0, must-revalidate",
+          "location": "https://aurevane.vercel.app/media/art/wayfarer/portrait-40-v02.webp"
+        }
+      }
+    ]
+  },
+  "routingFinalVersion": "1cffe1ab-7456-43bc-9ddc-79a8177d49a2",
+  "errorScan": {
+    "since": "2026-10-30T05:12:29Z",
+    "until": "2026-10-30T05:13:51.996Z",
+    "levels": ["error", "fatal"],
+    "count": 0
+  },
+  "additionalErrorScan": {
+    "since": "2026-10-30T05:13:52Z",
+    "until": "2026-10-30T05:14:57.065Z",
+    "count": 0
+  }
+}

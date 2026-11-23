@@ -1,0 +1,62 @@
+.effectLine {
+  display: inline;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.label,
+.reference {
+  color: #e4bd67;
+}
+
+.magnitude {
+  color: #c9a7ff;
+}
+
+.label,
+.magnitude {
+  font-weight: 650;
+}
+
+.timing {
+  color: #70d7ce;
+  font-weight: 650;
+}
+
+/* Inline tag names keep the report's typography and label color. */
+.reference {
+  display: inline;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px dotted currentColor;
+  border-radius: 0;
+  background: transparent;
+  font: inherit;
+  cursor: help;
+}
+.reference:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.target {
+  color: #ffb475;
+  font-weight: 650;
+}
+
+:global(.av-master) .target {
+  color: #65310e;
+}
+
+:global(.av-master) .label,
+:global(.av-master) .reference {
+  color: #503510;
+}
+
+:global(.av-master) .magnitude {
+  color: #4e226e;
+}
+
+:global(.av-master) .timing {
+  color: #12463e;
+}

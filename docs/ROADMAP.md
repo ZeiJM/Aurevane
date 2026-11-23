@@ -1,862 +1,113 @@
-# AUREVANE — Implementation Roadmap
+# AUREVANE — Roadmap status index
 
-**Authority:** Derived from `docs/GAME_MASTER_PLAN.md` and Owner-approved domain specifications. If conflict exists, the Master Game Plan and applicable canonical domain specification win.
+**Latest reconciled evidence:** [17 November 2026 verified release and status](ROADMAP_STATUS_2026-11-15.md). This is the current **status** entry point; the [master plan](GAME_MASTER_PLAN.md), [historical detailed roadmap](ROADMAP_DETAILED_2026-10-13.md), [product-validation gates](ROADMAP_PRODUCT_VALIDATION.md), and domain specifications retain the approved game vision and rules. See [November 14 independent PR #1040 audit](https://github.com/ZeiJM/Aurevane/issues/1041) for older-SHA findings, not an unqualified current acceptance claim.
 
-**Synchronized:** 2026-09-12
+| Scope | Current reality | Next evidence boundary |
+| --- | --- | --- |
+| **Phases 0–1** | Engineering, character and persistence foundations delivered; historical owner closeout evidence is not fully reconciled | Real first-session/return workflow |
+| **Phases 2–4** | Owner-closed combat, buildcraft and first 17-Discipline content platform | Regression preservation as later systems advance |
+| **Phase 5** | **Active and substantially implemented**, including merged World, NPC, quest/event, ferry/Void and map work; not phase-closed | Signed-in/physical-phone acceptance of live #1043, ferry follow-through and player-facing PV-3 validation |
+| **Phases 6–10** | Early solo traversal, PvP, supernatural engine and social foundations exist; mature co-op, expeditions, competitive, roster and guild/social goals remain open | Phase-specific gameplay validation |
+| **Phases 11–12** | Items/equipment are live but not a complete crafting/trade economy; nations are not delivered | Profession/market and nation design + acceptance |
+| **Phases 13–15** | Extensive Master Panel, art/audio and CI/security foundation; overall operations/polish/Closed Alpha gates open | Whole-product, concurrency, visual, security and human playtest evidence |
 
-This roadmap reflects the game that actually exists today. It formally credits early-delivered battle-platform work instead of pretending later phases must rebuild it.
+**Live-source boundary:** [PR #1043](https://github.com/ZeiJM/Aurevane/pull/1043) is **LIVE for Owner testing** at [aurevane-rpg.com](https://aurevane-rpg.com), verified November 17, 2026 at 22:44 AST (November 18, 02:44 UTC). Source `6216bff7a8c1ab6432d223159eabbfd91278e2b1`, tested tree `0e63d1637dbdf413177458bb7f32e165f36ff7ad`, Production `dpl_7wFcLjXVCagiAvH5jLwV8oc7MaZ5`. The staged build was smoked and the same build promoted. All five candidate workflows and applicable merged-main checks pass. The recorded read-only production ledger has 263 migrations through `20261114114000`; this release applied no migration and replayed no cron or content publication. Human signed-in and physical-phone gameplay acceptance remains open.
 
-A phase is a **development milestone**, not a calendar promise.
+The next **Ferry and Uncharted Lands** update connects the existing ferry to the active Uncharted map, preserves the free hourly crossing/shared deck, completes deferred gameplay testing and revalidates the inherited 82-row backlog. It also carries the player-facing names **The Shadows’ Vigil** (waterfall valley) and **The Thousand Steps** (colosseum), retaining existing IDs and approved lore; authored stream/river/pond/basin bends and natural waterfall/lavafall connections using approved artwork (especially Willow Cascades and Emberreach); verification of existing weather-responsive, individually varied vegetation motion with gap fixes only; and a new grand walkable bridge across a broad sea channel from a remote mainland coast to a modest offshore island with a grand scenic tower. Preserve ferry navigation, natural walking approaches and the separate Longwater Crossing. The tower is scenery only for now, without entry, quests, rewards or gameplay function. This is approved subsequent scope, not part of the completed #1043 release or authorization to deploy another build through its completion monitor.
 
----
+See [World Map completion and release evidence](verification/2026-11-16-world-map-request-completion.md) and the [immutable evidence receipt](https://github.com/ZeiJM/Aurevane/blob/agent/world-map-completion-evidence/docs/verification/2026-11-17-world-map-completion-receipt.json). The evidence branch and diagnostic branches must never merge or deploy.
 
-# 1. How to read status
-
-- **Implemented** — capability exists at the required authority boundary.
-- **Verified** — applicable automated/database/browser checks pass.
-- **Owner testing / stabilization** — the Owner is actively testing player-facing behavior and contained fixes may still occur.
-- **Validated / phase gate passed** — required human/product evidence has been reviewed and the next expensive layer may begin.
-
-Automation does not equal human validation. Production deployment does not prove fun, clarity or balance.
-
-## Early-delivered scope rule
-
-If a later-phase capability is deliberately built early and remains reusable:
-
-1. give it roadmap credit;
-2. preserve compatible foundations;
-3. audit it when the mature phase arrives;
-4. close only real gaps;
-5. do not rebuild it merely because an older plan scheduled it later.
-
-This already applies to direct PvP, multi-combatant battles, spectation, battle communication, battle logs and responsive combat presentation delivered during Phase 2.
-
-## Continuous performance/scaling rule
-
-Performance and scaling are a **cross-cutting roadmap responsibility**, not work deferred only to Phase 15.
-
-`docs/ROADMAP_PERFORMANCE_SCALING.md` is the detailed companion for behavior-preserving performance work. Its checkpoints must be run automatically at the roadmap boundaries defined below.
-
-Performance work never authorizes a gameplay redesign, weakened server authority, weakened security, altered timers/rewards/progression, or speculative infrastructure complexity. Optimize only measured bottlenecks and preserve current game behavior unless a separate Owner-approved design explicitly changes it.
+The full [November status matrix](ROADMAP_STATUS_2026-11-15.md) distinguishes **implemented**, **merged**, **live**, **technically verified** and **Owner accepted**, and records open gates. Do not use an ungrounded global completion percentage.
 
 ---
 
-# 2. Current operating state
+## Historical release notes and earlier roadmap checkpoints
 
-| Phase | Status | Interpretation |
-|---|---|---|
-| Phase 0 — Engineering Foundation | ✅ Substantially complete | Core technical/security/deployment foundations exist. |
-| Phase 1 — Character & Progression Foundation | ✅ Substantially complete | Character/account/profile/progression/equipment foundations exist. |
-| Phase 2 — Tactical Combat & Battle Platform | ✅ Closed / PV-1 passed | Mature combat, AI, direct PvP and spectation foundations are preserved for reuse. |
-| Phase 3 — Signature Buildcraft Foundation | ✅ Implementation complete; Owner-approved closeout | P3.1–P3.8 delivered; final UI/quality release completes the Owner's closure condition. See `PHASE_3_CLOSEOUT.md`. |
-| Phase 4 — First Playable Buildcraft Roster & Core Combat Content | ✅ Closed — Owner accepted 2026-09-23 | Seventeen-Discipline combat/content baseline plus P4.11–P4.14 staff/event operations are complete and preserved. See `PHASE_4_CLOSEOUT.md`, `PHASE_4_TICKETS.md` and `ROADMAP_DISCIPLINE_ATLAS_MASTERY.md`. |
-| Phase 5 — Living World, Story & Supernatural Identity | 🔵 In progress / initial Living Atlas implemented | Owner authorized Phase-5 Living Atlas work on 2026-09-22 and its verified production release on 2026-09-23. PR #609 records the initial travel/exploration release; see `PHASE_5_HANDOVER.md` for release evidence and remaining scope. |
+November17 World Map request completion — source Pieces1–5, one combined update: controls/Travel Points, Uncharted fog cleanup, dry fire/ice town surfaces and9–14-district public built-up extents are implemented with saved authority and existing safe cores preserved. Native major-art/zoom, coast/naturalness and runtime review plus final combined gates remain pending. Use agent/world-map-request-completion and [the current checklist/worker lease](verification/2026-11-16-world-map-request-completion.md). Keep the single hourly continuation active, older watchers paused and Git deployments disabled. PR1040 is already released; no replay or partial deployment.
 
-## Current decision boundary
+**Archive notice:** The timestamped entries below are preserved historical context. When an older `not live`, `active` or `pending` note conflicts with a later verified release, the newer exact-SHA release record and current status matrix control **execution status** (not canonical mechanic design).
 
-AUREVANE has completed and closed **Phase 4 — First Playable Buildcraft Roster & Core Combat Content** by explicit Owner decision on 2026-09-23. Phase 4's seventeen-Discipline combat/content baseline and P4.11–P4.14 staff/event operations platform remain preserved dependencies. Phase 5 was separately authorized by the Owner on 2026-09-22; PR #609 records the initial Living Atlas implementation and release. See `PHASE_5_HANDOVER.md` for the live-testing boundary and remaining work.
+November12 living-world continuation: Owner requests twelve ordinary regional scenic pieces (50% above the original eight), plus four rare celestial/time-warped ruins, weighted toward Void; larger pieces span about three tiles. Yellow/spectral-white Void ground and purple/orange water join richer ground/water/foliage, simulated cliff/valley relief, detailed banks and occasional weather-driven surf. The two reference scenes remain the whole-world graphics target. Production release is explicitly authorized after quality/native smoke gates, with hourly action through verified live completion. No new reward mechanics, topology/collision, private reveal or data/content mutation. Current implementation/evidence: docs/verification/2026-11-12-world-environment-overhaul.md.
 
-Active now:
+November 5 Items — **LIVE for Owner testing** at https://aurevane-rpg.com: compact authoring, Class/Position/Type, optional weapon Imbued Techniques, equip requirements, automatic inventory actions and actual consumable stock settlement are released. All 19 source workflows pass; four guarded migrations and three exact v5 Item publications preserve prior versions, drafts, inventory and frozen encounters. Production `dpl_D79wgdgrFWWjf3kom6sfypujPk6F`, source `0fd6cb6144da1624e88d3c58a24f224693f541b2`; admission/authoring hold removed, nine retirement guards retained. This supersedes source-only Items checkpoints below. [Release receipt](verification/2026-11-05-items-production-release.md); Owner acceptance remains open.
 
-- preserve the closed Phase-2, Phase-3 and Phase-4 authority/security/gameplay contracts unless a genuine regression or explicit redesign request requires a change;
-- collect Owner feedback on the initial Living Atlas, fix concrete regressions, then continue the remaining Phase-5 slices in `PHASE_5_HANDOVER.md`;
-- keep testing entitlement separate from earned Mastery so every published Discipline remains testable without converting temporary access into progression;
-- treat post-closeout UI polish, performance work and regression fixes as maintenance rather than reopening Phase 4;
-- keep Production deployment Owner-controlled and the default Vercel deployment gate locked.
+November 5 Items panel followup — **implemented and independently reviewed; draft source handoff, not live**: Owner requests type-aware search, explicit named-character grants, compact contained Item editing, internal display order, selectable armor positions and Gloves naming. Weapons may optionally author an Imbued Technique through the shared Skill editor and expose it as the equipped Support choice. Inventory writes/sort refresh automatically without Save order or Reload; relevant category filters, matching cockpit-sized inventory/equipment artwork, centered equipment slots and Basic Attack slot labels supersede the old page presentation. Preserve server authority, eight slots/100 QP, current bindings, historical content and Owner data. No hosted migration, real grant or deployment is authorized by this followup. Authority: `superpowers/specs/2026-11-05-items-panel-followup.md`; plan: `superpowers/plans/2026-11-05-items-panel-followup.md`.
 
-Not allowed by default:
+November 4 Seal and Damage Up — **LIVE for Owner testing**: PR #1015 merge `dc6ba0349dc127018044fd59dcc78ed9316f9d61`, exact tested tree `7d88851e41518c374ce384df8c7be99d6f791f82`, READY Production `dpl_E9j4htHeNBGb5a385ea3H5TuhxJT`. All 19 workflows pass; additive Seal registration and guarded preservation verified, Master hold removed, all 12 canonical checks pass. Both tags shipped together; no content republication or Owner data/history rewrite. Git deployment lock and nine retirement rules remain. This supersedes source-only Seal/Damage Up checkpoints below. Receipt: `docs/verification/2026-11-04-seal-damage-up-production-release.md`. Owner acceptance remains open.
 
-- reopening or redesigning Phase-2 systems without a genuine regression;
-- making a planned/unpublished Atlas identity selectable before its authoritative Discipline content is published;
-- treating temporary testing access as earned Mastery or as satisfaction of eventual release requirements;
-- Vercel deployment unless separately authorized by the Owner.
-
-## Automatic performance/scaling checkpoints
+November 4 Damage Up expansion — **implemented, not live**: Owner approved All Damage or any nonempty combination of Pierce/Fire/Water/Ice/Storm sharing one percentage, with ordinary duration and stacking. Packet-scoped resolution applies once even when multiple selected identities match; copying, saved captures and shared reports retain each application’s scope. Existing absent-scope tags keep All Damage. Owner authorizes one coordinated release with Seal after combined exact-head verification; do not deploy either separately or overwrite drafts/inventory/history. Spec: `docs/superpowers/specs/2026-11-04-damage-up-types-design.md`.
 
-Run a performance checkpoint automatically when any of these boundaries is reached:
-
-1. the completed Phase-2 stabilization/PV-1 exit review, retained as the comparison baseline;
-2. every phase boundary that materially changes persistent state, request volume, concurrency, realtime traffic or data growth;
-3. before and after major multiplayer/social/economy scale steps, especially Phase 3 build snapshots, Phase 4 content expansion, Phase 6 co-op, Phase 7 Expeditions, Phase 8 competitive PvP, Phase 10 social systems and Phase 11 economy/trade;
-4. whenever monitoring shows a sustained regression in latency, errors, connections/pool pressure, CPU, memory, disk I/O, network, rollback/deadlock/lock-wait trends or database growth;
-5. Phase 15 full security/scale/exploit hardening before Closed Alpha readiness.
+November 4 Seal followup — **implemented, not live**: separate from Items PR #1011, tracked by #1012. Seal blocks any selected Attack/Recovery/Utility discipline skill categories; Essence, Resonance, Support, Severance, Ascension and non-discipline actions remain usable. Uses ordinary editable Turns and Cleanse rules; existing committed effects continue. Owner authorizes its additive registration and one coordinated production release with Damage Up after final combined exact-head verification in PR #1015; do not deploy separately or broadly republish content. Authority: `docs/superpowers/specs/2026-11-04-seal-design.md`.
 
-Each automatic checkpoint should:
+November 4 Owner followup — **LIVE for Owner testing**: current equipment has eight positions (four armor, Main Hand weapon/shield, Off Hand passive armor, two independent consumable slots); two-handed weapons block Off Hand only. The cockpit begins Inspect → Item → Move → Basic Attack → Support. Compact shared reports use Turns and explicit Instant for instant standard Damage; current Chilled-only removal is Conditional Cleanse. Equipment templates are detailed, presentation-specific, neutral and faceless. Compact inventory/report layout, packed filters, actual equipment stat deltas and accurate shared editor text guidance supersede older designs. Follow the [current authority and regression boundaries](superpowers/specs/2026-11-04-items-presentation-followup.md) before reusing an earlier component, fixture or checkpoint. Released through PR #1011, merge `121297dc4a0d564fac7348e6c9f999dff7efc53e`, Production `dpl_4oqVgUh9J6PJKEuw5NwepntitgS2`. The eight-slot migration and 13 reviewed Item publications are applied; historical sources and Owner drafts remain preserved. See `verification/2026-11-04-items-production-release.md`. Human acceptance remains open.
 
-- inspect current repository/runtime truth first;
-- baseline Supabase and Vercel health;
-- rerun Supabase performance/security advisors;
-- inspect request/RPC volume and p50/p95/p99 latency where available;
-- inspect duplicate/overlapping/in-flight reads before changing polling intervals;
-- inspect connections/pool pressure, locks/deadlocks, rollback/commit trends, CPU, memory, I/O, network/WAL and table growth where relevant;
-- apply only the smallest measured, behavior-preserving improvement;
-- rerun the applicable database/automated/browser/human validation flow;
-- stop when evidence no longer justifies added complexity.
+November 3 Quality Point Items — **LIVE for Owner testing**: 47 genuine illustrated defaults use the shared source/current/pinned publication authority and atomic starter receipt. Six categories each hold 40 positions; Gear stacks to 1 and other Items to 99. Equipment has Head, Body, Pants, Boots, Main Hand and Off Hand, capped at 100 QP. Weapons supply Basic Attack; equipped supplies refill their finite uses each battle without consuming owned quantities; one selected equipment Support can replace normal Support. The cockpit is Inspect → Move → Basic Attack → Item → Support, retaining internal custom binding keys. Archived/disabled owned Items remain repairable; first-load grants defer clearly for capacity or pending/active battles. This supersedes older five-slot and locked Items-placeholder direction. PR #1008 merge `0af2782adea552ad7d2b18f7159fb8200356ab24` is live at https://aurevane.vercel.app on READY Production `dpl_DQpfKyFbeNKXEMxBqAMHnh76dfkE`. All 20 exact-source workflows, 112 staged and 112 canonical probes pass. Eleven migrations and 14 reviewed current publications are applied with old history and drafts preserved. Temporary maintenance is removed; nine retirement rules remain. Human acceptance and Phase 5 closure remain open. [Release receipt](verification/2026-11-03-combat-items-release.md) and [96-case Owner checklist](verification/2026-11-03-owner-combat-items-checklist.md). Full 47 reference, balance and lifecycle: [starter Items reference](verification/2026-11-03-starter-items-reference.md).
 
-Current Phase-2 performance credit as of 2026-08-26:
+November 2 targeting, displacement and Requirements continuation — **implemented, independently reviewed and locally verified, not live**: legal aim highlights exclude distant All recipients; no-aim All accepts any living-unit click as the same Self command, and shared React tile layers own uniform target tint. Submitted Move actions suppress the redundant self glow while mixed follow-up targeting stays available. New encounters pin `displacementOriginPolicyVersion: 1`: Self Push recoils opposite facing, Self Pull follows facing, and Ground displacement uses its saved chosen anchor across pending effects, persistent contact and reload. Historical captures remain literal. Ground controls live once inside the first Ground effect’s Edit parameters card. Resonance Requirements selects Prerequisite tags or Automatic activation, hides Requirement target for events, omits both redundant event choices, and includes the event in the canonical Requirements report. Saved combined event/predicate definitions remain visible and executable. No migration, catalogue publication or deployment is included. Current prior production is PR #1005; older release statements below are historical. The full `pnpm check` passes (16,045 Vitest tests, seven Node tests and production build); 164 native browser cases pass. Exact-head remote CI remains required before integration. Evidence and remaining gates: `docs/verification/2026-11-02-targeting-requirements.md`.
 
-- Supabase baseline indicates healthy resource headroom and fast ordinary gameplay reads;
-- authoritative combat mutation already preserves idempotency, expected-version checks and row locking;
-- added the missing FK-supporting indexes for `app_private.pvp_lobby_members(user_id)` and `app_private.product_validation_events(character_id)`;
-- the Supabase performance advisor no longer reports those unindexed foreign keys;
-- polling/request-shape, historical rollback explanation and combat-write tail latency remain diagnosis/measurement items before any broader runtime optimization.
+November 2 battle feedback and support actions — **LIVE for Owner testing** at https://aurevane.vercel.app, PR #1003 merge `53e6da7a4815e9041d0f02508f89e4bbd8997dce`, identical tested tree `941b9588e00dd6d1307105685759e9bf24abbe7d`, READY Production `dpl_6Gx7E7t4iRtAu1KQCXXfVY1yfAQ4`. All 20 candidate workflows, 17 staged and 20 canonical probes pass. Pilfer, Fleetstep and Invocation/Vesper replace current Guard; five active Guard choices migrate to HP Recovery with audit, while saved history and three Owner drafts remain intact. Wildwarden current publication is Briar Snare v9 through the normal versioned Commit, preserving every prior version. The additive catalogue-reader compatibility correction excludes archived publications from current snapshots without deleting pointers or history; six migration tests, 62 adjacent catalogue tests, actual hosted-snapshot/timing validation and independent review pass. Original full quality evidence remains in the release receipt. Git deployment and automatic domain-assignment locks remain; no second application build, broad catalogue republication or Phase 5 closure. Human gameplay acceptance remains open. Evidence: `docs/verification/2026-11-02-battle-support-feedback.md` and `docs/verification/release-assets/2026-11-02-battle-support-production.json`.
 
-## Phase-2 exit — completed 2026-09-03
+November 1 Summon and Chronicle continuation — **implemented and independently reviewed; full local quality gate passed, not live**: Chronicle outcomes use saved effect-specific strength metadata with concise narrative wording shared by the clipboard; absent historical values remain qualitative and concealed data remains private. Current Summon potency uses a frozen spawn-time damage budget from the geometric mean of the summoner’s normalized offensive potential and the strongest living opponent’s, multiplied by authored potency, shared across outgoing damage each global round. The Owner’s newer balancing instruction removes the proposed enemy-relative ceiling and arbitrary Summon potency caps; retain only technical numeric validity and existing engine geometry/authority. Automatically link elemental/dependent tags in native Summon AI Skills through the ordinary dependency mechanism. Repair legitimate target metadata allowlists and Circle15 save roundtrips without accepting unknown garbage or exposing internal fields. Add an authored Summon portrait carried into battle. Historical captures remain pinned; no catalogue publication, hosted mutation or application deployment is authorized. The combined `pnpm check` passes formatting, lint, types,15372Vitest tests,7Node tests and the production build. Native CI is tracked on PR1002. Details and verification: `docs/superpowers/specs/2026-11-01-ground-contact-followups.md` and its plan.
 
-Phase 2 is formally closed. PV-1 reconciliation, repository cleanup, the performance/security checkpoint and the Phase-3 handoff were completed on `main` at `20ed23527695f5320345428587472be7248e7ac7`.
+November 1 Ruin/Pierce continuation — **implemented and independently reviewed; full local gate passed, not live**: the Owner wants Ruin's applied bonus on the same Chronicle damage line, and Ruin to spend existing debuffs for one big hit. Current Ruin will consume exact captured, still-active consumable applications on its first qualifying landed boosted packet per target; misses/Reversal prevention do not spend them, Barrier-landed hits do, and later/queued packets cannot reuse consumed applications. Preserve newly applied prefix/suffix effects, private application identities, ordinary/DoT lifecycle and historical absent-policy behavior. Protected Reversal Strain is excluded from current consumable counting; neutral Reckless/Fortified stay unchanged. Current Pierce can never crit, including Weak Point/Spike/forced outcomes; ordinary Damage siblings may crit and Ruin may still boost Pierce. New encounters pin optional Ruin and Pierce critical policies; historical captures stay literal. No catalogue republication, hosted mutation or application deployment is authorized.
 
-Phase 3 therefore inherits the existing combat/PvP/spectator platform. Phase activation still does **not** authorize a Vercel deployment.
+November 1 Reversal continuation — **implemented and independently reviewed; full local gate passed, not live**: the Owner removed next-owner-turn expiry and both maximum-HP caps. New encounters pin `reversalPolicyVersion:1`: Reversal arms immediately, can intercept a qualifying hit in the same turn, and stays armed across turns/rounds until triggered or cancelled, with established Reveal/defeat/battle-end cleanup. Return damage is the saved percentage of prevented HP damage without attacker/defender max-HP clamps; preserve exact rounding, Barrier, actual HP settlement/overkill presentation and authored Summon outgoing limits. Historical absent-policy captures retain the old expiry and caps. Current cap controls are removed and explanations shortened; linked help must respect captured history. The recorded Basic Attack counterexample was checked read-only: the defender faced away from the attacker, so those hits came from the rear and correctly bypassed the existing front/side rule. Do not broaden arcs or families implicitly. No hosted data mutation, catalogue publication or application deployment is authorized by this follow-up.
 
----
+November 1 Ground and battle follow-ups — **implemented and independently reviewed on the feature branch; full local gate passed, not live**: new battles pin Ground contact policy1. Active fields affect eligible occupants immediately, once per logical effect type per character own-turn cycle across casts/tiles, and reapply on later cycles; authored activation timing and small pending tile clocks remain. Current Freeze Ground becomes ordinary Chilled Ground with icy visuals, preserving linked effects, references and historical captures. Recipient effects have distinct compact tile identities; controller effects keep their existing destinations. Haste can reduce entered-tile Move AP to0 while physical Movement remains bounded. Current MP Restore choices/usages display as MP Recovery while saved flat amounts remain flat. Acting-player AP/HP/MP cost proposals use matching authoritative quotes and yellow resource segments. Blind reduces Accuracy by static percentage points (80%-30%=50%), supports999%/99turn authoring, Cleanse and Copy Debuffs; its additive database/timing registration is source-only pending release. Explicit effect All includes all living characters/summons including the caster, independent of inherited team/footprint filters; sibling targets remain local. Push/Pull reports actual distance without coordinates, and blocked displacement has simple prose. Reveal links Reversal, Reversal Strain and Revealed through existing semantic information popups. The Owner's withdrawn Reckless/Fortified reclassification remains withdrawn. No application deployment, catalogue republication or phase closure is authorized. Spec and plan: `docs/superpowers/specs/2026-11-01-ground-contact-followups.md`, `docs/superpowers/plans/2026-11-01-ground-contact-followups.md`.
 
-# 3. Canonical build and combat direction
+October 31 shared editor/tag batch — **LIVE for Owner testing** through PR #1000, merge `c6351856fd1974691e3e17aca1ae8a7909ca6957`, identical tested tree `ab3282e10eea39d5793eff2667d3fda28a817aa6`. Production `dpl_9vmqZ8Che4Nb2RHDpVZwKuVsgqbf` is READY at https://aurevane.vercel.app. All 19 candidate and 11 merged-source workflows pass; 17 staged and 25 canonical probes pass, with a clear initial runtime scan. Four tag-registration migrations are applied; 1,319 immutable versions, 301 publications, two Owner drafts, eight timing rows and all 193 prior migration-history rows are unchanged. Skills, Essences, Resonances and native Summon Skills share the new editors/mechanics. Commit Now upgrades only the edited current record; historical captures stay pinned. MP Restore remains flat and distinct from percentage MP Recovery. Git deployment and automatic domain-assignment locks remain in place. No automatic catalogue republication, human acceptance or Phase 5 closure is claimed. See `docs/verification/2026-10-31-editor-tag-standardization.md` for exact evidence and the separate pre-existing Supabase Git-history drift.
 
-## Current build vocabulary
+Owner editor-layout follow-up — October 30, 2026 (pending release): compact shared Skill/Essence/Resonance fields and label-bound help, with no Target Method information button in reports. No phase or gameplay change; native responsive acceptance remains a release gate.
 
-- **Primary Discipline** — principal active combat tradition and active Discipline base-stat profile.
-- **Secondary Discipline** — optional mastered Discipline mixed into the build; contributes no second base profile.
-- **Skill** — umbrella term for usable abilities.
-- **Resonance** — passive interaction from an eligible Primary + Secondary pair.
-- **Essence / Discipline Essence** — pure-build counterpart; a Primary-only build gains a special Essence Skill outside normal Discipline capacity.
-- **Ascension / Ascended** — permanent soul-enhanced supernatural path.
-- **Severence / Severed** — mutually exclusive alternate supernatural path. **Severence** is the canonical AUREVANE spelling.
-- **Battle Hall** — current player-facing practice destination.
-- **Passive Training** — explicit server-timed background progression.
+October 30 Skill compatibility and legal highlights — **LIVE for Owner testing**: PR #996 merge `545481a00649b7fafd9edc61b5bfe400deac45db`, exact tested tree `60e13e183072d80d8011f5d11862d596e6195068`, Production `dpl_98NEWgarZCPxzWM9jLPuUb1KqtMQ`, https://aurevane.vercel.app/master. All 13 exact-head workflows and 19 jobs pass, including 38 canonical Move cases and the full native browser gate. Shared editors disable incompatible controls while preserving raw draft recovery; Move displays Ground, Target Method is compact, utility/healing highlights follow selectable units, generic missing-result prose is removed, self-only [0] is hidden and effect choices sort A–Z. All 14 staged and 19 production probes pass; nine retirement rules remain. No migration, catalogue republication or Owner data/history/progression mutation. Owner/device/audio/multiplayer/load acceptance and separate World timing work remain open; no Phase5 closure. Receipt: `docs/verification/2026-10-30-skill-compatibility-release.md`.
 
-Retired player-facing terminology includes Current Discipline, Legacy Discipline, Art as the generic ability term, Confluence, separate Trait/Reaction/Movement Art/Ultimate slot systems and Tactical Hall.
+Owner self-target range display refinement — October 30, 2026 (implemented, not live): omit the `[0]` suffix from Target Method only when the committed targeting is self-only with maximum range zero. Keep the shape label, all other ranges and targeting legality unchanged; shared Skill, Essence, Resonance, Master preview and battle readers use the existing presentation adapter. Shared effect-tag choices sort A–Z by their displayed names. Keep the selected Damage default, search and eligibility checks.
 
-Each fully authored Discipline provides eight learnable Skills. A pure build draws its four battle selections from eight; a mixed build draws four total from the two libraries (16 learned Skills across a fully authored pair). Its Essence or Resonance is separate from these four selections.
+October 30 Skill authoring and battle feedback — **LIVE for Owner testing**: PR #994 merge `f18c89b0cd15658e4a5f932e291a50501675efd2`, exact tested tree `b80dda9ef609bbcc1a6407832d9b936817d7e1ed`, Production `dpl_5fkEjru5kvsHHzgqwdMysYQCR8nU`, https://aurevane.vercel.app/master. All 13 exact-head workflows and 19 jobs passed. The conservative Commit Now corrector, editable effect values, compact tag help, category controls, combined Target Method/range, normal-width scrolling popups, elementless Pierce, saved Skill names and captured audio cues are deployed. One Git-backed Production build was staged and explicitly promoted; all 19 postflight checks pass and the bounded initial error/fatal scan is empty. All nine routing retirement rules remain, narrowed to this compatible release. No database migration, content republication or Owner draft/history/progression mutation. Refresh; use a new battle for newly captured names/audio. Owner hands-on/listening, physical-device, multiplayer and sustained-load acceptance remain open; no Phase5 closure. Full receipt: `docs/verification/2026-10-30-target-method-category-controls.md`.
 
-## Current normal build contract
+October 30 additional authoring fixes — **released in PR #994**: show saved Skill names in battle (including Kaio-ken), use readable Status choices with internal IDs hidden, add space above editor tabs, and run a conservative corrector on Commit Now. The corrector preserves authored effects, targets, requirements and triggers; repairs nearby numeric limits and current area reach consistency; adds missing required elemental companions; retains effect notes; and reports repairs after strict validation. Unsupported or ambiguous mechanics remain blocked for review. See `docs/verification/2026-10-30-target-method-category-controls.md`.
 
-The September 6 Technique Repeat-Use Addendum supersedes older selected-loadout and authored-cooldown text. Eight learned Skills per mature Discipline is library size, not selected capacity. Ordinary authored Skills use 50% consecutive-use falloff at unchanged AP cost; a different actual command resets the chain, but a turn boundary alone does not. Basic recovery timing remains separate.
+Additional October 30 follow-up scope (released in PR #994): editable effect percentages and durations across shared editors, compact forms with popup tag help, remove Once per round from preview bullets, preserve single-column bounded long popups, and non-elemental current Pierce with piercing-damage log receipts. Historical captures and unrelated Owner definitions stay intact. See `docs/verification/2026-10-30-target-method-category-controls.md`.
 
+October 30 follow-up — **released in PR #994**: full Skill reports remove the standalone Range row and show saved maximum range in Target Method brackets (Single [4], Line [5], Circle [2]); All has no range suffix. Existing area geometry remains in help and engine targeting is unchanged. Remove the first-tab Target Requirement aim conversion control; Range & Area owns geometry and effect targets determine aim. Keep category activation/type controls visible and locked for Discipline Skills and Essences (Manual/Action) and Resonances (Passive, preserving existing triggered-action or ongoing-modifier execution). New Resonance behavior groups use a passive starter. Fire element companions use Conditional Cleanse with specified Chilled-only removal; retained Chilled-only payloads share the current authoring name without rewriting historical captures. Verification map: `docs/verification/2026-10-30-target-method-category-controls.md`.
 
-```text
-CHARACTER ATTRIBUTES
-+
-PRIMARY DISCIPLINE
-+
-OPTIONAL SECONDARY DISCIPLINE
-+
-DISCIPLINE SKILLS
-+
-RESONANCE OR PURE ESSENCE
-+
-ASCENSION OR SEVERENCE
-+
-EQUIPMENT + EQUIPMENT SKILLS
-+
-BOUNDED PRESTIGE / VETERAN EDGE
-```
+October 30 Master authoring and HQ Wayfarer release — **LIVE for Owner testing**: PR #992 merge `20acdee4eaab2e11f95c9b9f811e73e3ac0ff15b`, tested tree `f2ab45ccc958fe2974928e428ff4988ab836452f`, Production `dpl_3mfkmqUsANdB44zA1Be8xd3HTYcE`, https://aurevane.vercel.app/master. All 12 applicable exact-head workflows passed, including native desktop/mobile Requirements, shared authoring, actual zoom and all 39 portrait decodes. One staged Git-backed Production build was explicitly promoted; canonical source/READY, media hashes and old-reader retirement passed. All nine retirement rules remain; only this Line15-compatible release can serve pinned readers. No database migration, content republication or Owner draft/progression/history mutation. Refresh; explicitly save older hidden-setting drafts before publishing. Human Owner, audio, physical-device, multiplayer and sustained-load acceptance remain open; no Phase5 closure. Receipt: `docs/verification/2026-10-30-master-authoring-portraits.md`.
 
-Pure:
+Owner Master Panel workspace overhaul — October 27, 2026: **LIVE for Owner testing** at https://aurevane.vercel.app/master. PR #984 merge `0895e0b76adbe7805cd7b9c4559dc5eb117fcb09` has the exact tested tree `74af1e34b405fd059f2bef89713890d5a30292f6`. Production `dpl_3VF7cNextXyhMffHL5F38hkTTCE6` is READY; Master opened at21:00:34.958UTC (17:00 Trinidad). All19 workflows pass for head `e5f6ec43b0ee53446b229ec0cbbfca7974c0fdc4`; full quality passes13186Vitest tests, formatting/lint/types/build, and actual native runs pass16repeated authoring,376Chromium and10Edge cases with configured skips. Four canonical migrations applied atomically after verified retirement and1950second drain;53function/ACL contracts and durable-data preservation guards pass. New private tables/API denials and source/readiness/initial error-fatal scan pass. Current Details, Skills/relationship editors, grants, page access, Moderation and Usage & Balance replace prior UI directions. YouTube watch audio remains unsupported; runtime-dependent immutable versions remain stored. Owner hands-on, physical-device, multiplayer and sustained-load acceptance remain open. Full receipt and prioritized remaining work: `docs/verification/2026-10-27-master-panel-release.md`. Keep Git automatic deployment lock and old-reader retirement guards; future promotions must allow compatible candidate hosts AND IDs first. No P5 closure.
 
-```text
-Primary only
-0–4 selected Discipline Techniques
-+ 1 Essence Skill
-+ no Resonance
-```
+Master Panel refinements — October 26, 2026: **LIVE for Owner testing** at https://aurevane.vercel.app, PR #981, merge `68fdfd654885466f09cce5ca4c4e571308c43858`, identical tested tree `9cb0b4763809586239e3af37e37e6791f4bf98eb`. Production `dpl_HdrJfZxeE5WZaszSfeu6vhRZyBLA` is READY; Master hold lifted at21:23:51UTC (17:23:51 Trinidad). All19exact-head workflows pass. Seven canonical migrations,25unchanged physical data-set hashes,35audited function/ACL comparisons, private/browser-role denial checks and canonical source/readiness are verified. Initial signed-in normal-player entry/Skill reads pass; Owner UI/human/physical-device/multiplayer/load acceptance remains open. Current/Previous UI and no-op saves ship, while protected deeper definitions remain retained (ID35partial). Archive activity completion is a separate database-only follow-through in `20261026212841_master_activity_content_archive.sql`. Full receipt and prioritized remaining work: `docs/verification/2026-10-26-master-panel-release.md`. No P5 closure; Git automatic deployments remain locked.
 
-Mixed:
+Owner combined fixes and Essence/Resonance identity — October19: **LIVE for testing** through PR #946 (incorporating #943), merge `2ace05d9684a3cef9f35c527db93c834ee4d50ec`, identical tested tree `c636324c2f4323ee0c3627878dc4012230582418`. Production `dpl_qrA2tsAzbmKELLwDFyk4h3s9vLiK` is READY since `2026-10-19T06:47:42.438Z` (02:47:42 Trinidad), https://aurevane.vercel.app. Compact clickable Online Users/larger Account portrait, World persistence compression, Barrier casting/effective HP, Covert log/rail privacy and Cleanse wording ship together. The catalogue appends131Resonances and5Essences, retains17reviewed definitions, preserves158other current definitions and all719immutable versions; current294/drafts0/global policy8 match exactly. Essences remain castable single-Discipline pinnacles; Resonances are passive combinations with meaningful setup/risk and generally no independent direct damage. All17 exact-head workflows pass:11,098Vitest+7Node,358fullChromium,73focused,10Edge,55Atlas,49Desktop and110UI cases with documented skips and two bounded unchanged-source retries. Migration20261019035553 pins LZ4 without history deletion or authority changes;21World function bodies/ACLs and private RLS/table ACL are preserved. Canonical/source, six public/account-gateway responses and initial runtime warning/error/fatal scan pass. Refresh and start a new battle for new definitions; historical captures retain their rules and require the compatible reader even after pointer rollback. Human movement/physical-device/multiplayer/load acceptance and broader Master Task8 remain open; no phase closure. Git auto deployments stay locked. Full receipts: `docs/verification/2026-10-19-combined-owner-release.md`.
 
-```text
-Primary + mastered Secondary
-up to 4 selected Techniques across the pair
-Full-loadout splits: 1+3, 2+2 or 3+1
-+ Resonance passive
-+ no Essence while Secondary is equipped
-```
+Owner Blindside facing correction — October19: **LIVE for testing** through PR #941, merge `28ff6a1b0113cf7183ddd2fc513397a96a2b7a18`, identical tested tree `bae82959a6e6ee3ec1a88c1dd84a3552cc037499`. Production `dpl_9mHT3oy3YxhmZvVp1rcFP6Z2Dxre` is READY since `2026-10-19T03:15:49.229Z` (October18,23:15:49 Trinidad), https://aurevane.vercel.app. Current enemy Blindside applies/refreshes only on an eligible successful side/rear hit against that same enemy, from the reached actor position; head-on hits grant no debuff. All six exact-head workflows pass:10,260 Vitest plus7Node,357fullChromium,73focused and10Edge cases with documented project skips. Canonical deployment/source, six public/account-gateway responses and the initial deployment warning/error/fatal scan pass. Preserve World #940/#942, earned pending/copy behavior and historical absent-policy captures. No migration, catalogue publication or phase closure. Human gameplay acceptance remains open; Git auto deployments stay locked. Broader Master work resumes Task8 Staff & Access, whose local source/publication boundary remains separate. Full receipts: `docs/verification/2026-10-19-blindside-facing.md`.
 
-## Universal attributes
+Task 8 local reconstruction — October 19: selected-character delegated Staff authority is implemented locally on `agent/staff-access-20261019` from `16838f0c`. It is not deployed. Canonical roles remain `game-owner`, `moderator`, `content-staff`, `event-staff`; Game Owner remains the single protected account-root/bootstrap exception. Ambiguous legacy account grants do not authorize delegation until explicitly bound to a verified linked character. Every protected operation checks current ownership/selection, live expiry/revocation and capability; ordinary current/pinned gameplay reads and event workers retain their paths. Exact actor handoff, regression/ACL evidence and native browser limitations: `docs/verification/task-8/actor-interface.md` and `.superpowers/sdd/2026-10-10-unified-engine-recovery/task-8-report.md`. Staff upload/merge/deployment remains separately restricted; Git auto deployments stay locked.
 
-- Might
-- Finesse
-- Vitality
-- Agility
-- Intellect
-- Resolve
+Owner modular correction — October18: **LIVE for testing** through PR #936, merge `db1dc0d6a0c7c728d3d10bbb7f5ad5fa1faeed50`, identical tested tree `d71c2b161236cac86634932cdcb9fdf06d303c7d`. Production `dpl_jezRyZhcsgtE83BJWMcg2pT13t3o` is READY since `2026-10-18T19:58:34.709Z`; hosted verification finished at20:02UTC (16:02 Trinidad). All16 exact-head workflows pass, including10,197Vitest plus7Node,352 full Chromium,73 focused and10Edge cases with documented skips and one unchanged-World bounded retry. All294 definitions match exactly,583 history rows are retained, zero drafts, global policy8,11 function bodies/ACLs, private RLS and unchanged security findings verified. Shared readers, Ground Move, uncommon elevation, enemy Blindside, percentage Barrier/Pierce, unlimited cooldown-governed Skills, Primed and automatic eligible extensions ship together. Refresh and start a new battle; historical captures retain their rules. Excel version4 is updated and live-labelled. Broader Master work resumes at Task8 Staff & Access; private checkpoint0350184a9 source is not recovered and its earlier upload approval restriction remains separate. No human/hosted signed-in/multiplayer/load acceptance or phase closure is claimed. Git auto deployments stay locked. Receipts and continuation: `docs/verification/2026-10-18-modular-correction-release-handoff.md`.
 
-Primary supplies a base Discipline profile. Player-assigned attributes remain separately owned. Secondary contributes no second base profile.
+**⚔️ AUREVANE ROADMAP | OCT 2026**
+✅ Closed · 🟢 Built · 🟡 Partial · 🔜 Planned
 
-## Current combat authority
+🟢 **P0 — Engineering:** DB, security, CI, release controls.
+🟢 **P1 — Characters:** creation, profiles, stats, leveling, equipment, training.
+✅ **P2 — Combat:** tactical PvE, AI, direct PvP, spectation, battle UI.
+✅ **P3 — Buildcraft:** Primary/Secondary, Skills, Mastery, Essence, Resonance.
+✅ **P4 — Core Roster:** 17 Disciplines, battle content, staff/event platform.
+🟡 **P5 — Living World (CURRENT):** Isola globe, painted continuous map, 8 towns, countryside, weather, movement, nearby players, missions, World Pulse, frontier/Archive/Anchor proofs. **To finish:** NPC dialogue, deeper quests/services, supernatural fork, Drift rollout, playtest sign-off.
+🟡 **P6 — Parties & Co-op:** continuous solo traversal delivered early; parties, invites, team quests/battles pending.
+🔜 **P7 — Expeditions:** dungeons, bosses, loot, deeper frontier.
+🟡 **P8 — Competitive PvP:** duels/spectators exist; matchmaking, rankings, seasons, tournaments pending.
+🟡 **P9 — Content Expansion:** 17-Discipline base exists; expand roster, Skills, paths, enemies, gear.
+🟡 **P10 — Social World:** profiles, presence, Online Users; friends, guilds, messages later.
+🔜 **P11 — Economy:** vendors, crafting, trade, loot systems.
+🔜 **P12 — Nations:** allegiance, reputation, large campaigns.
+🟡 **P13 — Master Panel:** staff, events, combat tools built; full editing, World/Weather tools and analytics still evolving.
+🟡 **P14 — Art & Audio:** major UI, world visuals, Skill art, battle SFX; final polish ahead.
+🟡 **P15 — Alpha Readiness:** ongoing security/testing; load, exploit, human playtest gates remain.
 
-`docs/COMBAT.md` is definitive.
+🔥 **Now:** smooth live World/PvP → finish P5 → recover/verify modular Skill engine + Master Panel overhaul → build co-op.
+📌 **Built ≠ deployed ≠ accepted.** Early-delivered features count, but don't close later phases.
 
-Current combat uses one shared **Action Economy**, displayed as AP, normally 100 AP at turn start.
+📚 [Full plan](ROADMAP_DETAILED_2026-10-13.md) · [Audit](ROADMAP_AUDIT_2026-10-13.md)
 
-Current implemented baseline (September mobility revision):
-
-```text
-Inspect                         0 AP
-Move, normal traversal point   20 AP
-Move, terrain cost 2           40 AP
-Basic Attack                   30 AP
-Guard                          30 AP
-Recover                        50 AP
-Final Facing                    0 AP and ends turn
-```
-
-The old Movement Budget + one Action model is retired. Movement still has its own character allowance (baseline 2, maximum 5), independently enforced alongside AP; Jump starts at 0 and caps at 3.
-
----
-
-# 4. Special long-horizon systems
-
-## Rekindling
-
-Rekindling is AUREVANE's prestige system, but later cycles must not be an identical level-1-to-100 replay.
-
-The approved direction in `docs/REKINDLING_FRONTIER.md` uses:
-
-- Memory Carryover;
-- **Echo Routes** influenced by prior history;
-- alternate mentors/challenges/routes;
-- abbreviated already-mastered tutorials;
-- history-aware NPC interactions;
-- Hall of Selves;
-- different build/progression questions;
-- evolving frontier relationships.
-
-Later cycles should be **different and more self-directed**, not merely faster.
-
-## The Unwritten Reach / Edge of the World
-
-The known authored world eventually gives way to unstable frontier geography.
-
-Core concepts:
-
-- common phrase: **Edge of the World**;
-- working canonical term: **The Unwritten Reach**;
-- persistent authored **Anchors**;
-- mutable deterministic connective **Driftspace**;
-- server-seeded **Cartographic Drift**;
-- **Frontier Acumen** as demonstrated knowledge rather than a generic XP bar;
-- famous explorer/Chronicle identity;
-- working far-inhabitant culture: **the Veyr**;
-- long-term continuity threat: **the Inward Drift**.
-
-The frontier should feel near-infinite without technically generating an uncontrolled infinite world.
-
-## Anomalies — corrected canonical meaning
-
-`docs/ANOMALIES.md` is authoritative.
-
-An **Anomaly** is **not** frontier loot, a hidden quest reward, contraband, a rare class, a random rarity tier or something players grind toward.
-
-An Anomaly is a protected **Owner-granted exceptional character state** that deliberately breaks normal supernatural exclusivity.
-
-Initial forms:
-
-```text
-Ascension + Severence
-Two Ascensions
-Two Severence powers
-```
-
-Only the protected Owner may create/revoke these states through an audited Master Panel / Owner Override workflow by default.
-
-Normal players continue to obey the ordinary Ascended versus Severence rules.
-
-Gameplay-affecting Anomalies are excluded from standard ranked PvP by default and must be identifiable in audit/analytics.
-
-The Unwritten Reach is **not** their acquisition source.
-
----
-
-# 5. PHASES
-
-## ✅ Phase 0 — Engineering Foundation
-
-**Goal:** production-grade technical foundation.
-
-Delivered substantially:
-
-- repository/document authority;
-- Next.js/TypeScript application foundations;
-- CI/test/typecheck/build baseline;
-- environment separation;
-- database/migrations;
-- authentication/RLS/security boundaries;
-- server-domain separation;
-- transactions/idempotency;
-- realtime/worker foundations;
-- responsive design system/application shell;
-- media/audio foundations;
-- logging/error/security conventions;
-- protected deployment controls.
-
-**Status:** substantially complete.
-
----
-
-## ✅ Phase 1 — Character & Progression Foundation
-
-**Goal:** persistent authoritative character/account/progression base.
-
-Delivered substantially:
-
-- account/profile and verified-auth flow;
-- three-character roster foundation;
-- character creation;
-- six attributes and derived stats;
-- XP/level 1–50 boundaries, +1 personal attribute point per gained Level and five full personal-pool resets per 30-day window;
-- Character Profile foundation;
-- starting Foundation Discipline;
-- Discipline/Mastery boundaries;
-- Primary Discipline foundation;
-- switching/cooldown boundaries;
-- portraits/titles/presence/Online Users;
-- initial item/equipment ownership/equip boundaries;
-- Armory presentation foundations;
-- Passive Training / Training Report authority and telemetry;
-- public News / Manual / Rules.
-
-Later depth includes Secondary, mature Mastery, Skills, Resonance/Essence, supernatural identity, full loadouts, Horizons/Rekindling and mature equipment/economy progression.
-
-**Status:** substantially complete.
-
----
-
-## ✅ Phase 2 — Tactical Combat & Battle Platform
-
-**Goal:** prove a readable deterministic server-authoritative tactical game and reusable battle platform before build/content volume multiplies.
-
-### Tactical combat delivered
-
-- deterministic/versioned battle state;
-- 100-AP Action Economy;
-- board/grid;
-- movement/path/terrain/elevation/facing;
-- Basic Attack / Guard / Recover;
-- targeting/requirements/effects;
-- statuses and deterministic ordering;
-- authoritative intent + expected battle version;
-- persistence/idempotency/concurrency safety;
-- responsive board-first battle UI;
-- previews/forecasts/Inspect;
-- combatant rails/initiative/status presentation;
-- shared streamlined battle logs;
-- keybind/mobile foundations;
-- larger-map/usability work;
-- surrender/abort/results.
-
-### AI / Battle Hall delivered
-
-- deterministic legal Recruit AI;
-- shared legality/fairness/knowledge boundaries;
-- Battle Hall / AI Sparring;
-- repeatable practice isolation;
-- retry/recovery;
-- AI/battle regression coverage.
-
-### Direct PvP delivered early
-
-- authoritative lobbies/participants;
-- lobby keys;
-- persisted shared PvP battles;
-- multiple formats including 1v1, 2v2, 3v3, three-way and flexible teams;
-- turn timing;
-- surrender;
-- reconnect/handoff/polling hardening;
-- battle chat;
-- desktop/mobile presentation;
-- multi-combatant presentation;
-- active-session safety.
-
-### Spectation delivered early
-
-- keyed read-only spectation;
-- join/leave authorization;
-- presence/roster/count;
-- committed read-only projection;
-- spectator logs/chat;
-- responsive battlefield;
-- Inspect;
-- mutation/security protections.
-
-### Performance hardening delivered during stabilization
-
-- baseline Supabase resource/RPC diagnosis;
-- verified separation of active game-session lease semantics from character presence;
-- verified battle-write idempotency/version/row-lock protections;
-- additive FK-supporting indexes for PvP lobby user lookups and product-validation character references;
-- no speculative removal of unused indexes and no weakening of authoritative combat/session behavior.
-
-### Closeout
-
-Phase 2 is formally closed and PV-1 is reconciled. Genuine regressions may still be fixed, but the delivered combat/battle platform is not reopened for redesign by default.
-
-Performance diagnosis continues only through the behavior-preserving checkpoint contract above.
-
-**Status:** ✅ Closed; mature reusable platform for Phase 3.
-
----
-
-## 🛠️ Phase 3 — Signature Buildcraft Foundation
-
-**Goal:** turn the battle platform into AUREVANE's distinctive build game.
-
-Exact execution is defined in `docs/PHASE_3_TICKETS.md`:
-
-```text
-P3.1 Discipline build authority + Primary profiles
-P3.2 Secondary + independent attunement cooldowns
-P3.3 Mature Skill schema + cooldown engine
-P3.4 Profile Skill configuration + pure/mixed capacity
-P3.5 Resonance framework + mixed proof
-P3.6 Essence framework + pure proof
-P3.7 Shared AI / PvP / saved-loadout snapshots
-P3.8 Representative buildcraft slice + PV-2 readiness
-```
-
-Phase outcome:
-
-- Primary base profiles;
-- optional mastered Secondary;
-- independent server-owned attunement cooldowns;
-- mature Skill schema;
-- consecutive-use falloff for ordinary authored Skills; generic cooldown utility retained for basic/exceptional actions;
-- pure four selected Techniques + Essence versus mixed four selected Techniques + Resonance;
-- Profile as build headquarters;
-- legal saved-loadout foundation;
-- AI and existing PvP consuming the same build snapshots;
-- first minimum safe authoring/validation tooling.
-
-No Ascension/Severence or frontier implementation is required here.
-
-**Current boundary:** P3.1–P3.8 are complete. The Owner approved closure with the final responsive UI/quality release on 2026-09-11. `docs/PHASE_3_CLOSEOUT.md` records evidence and remaining Phase-4 preparation notes; this is an Owner decision, not fabricated cohort validation.
-
-**Gate:** players understand and voluntarily experiment with Primary/Secondary, Skills, cooldowns and pure-vs-mixed identity.
-
----
-
-## ✅ Phase 4 — First Playable Buildcraft Roster & Core Combat Content — CLOSED
-
-**Status:** CLOSED by explicit Owner decision on 2026-09-23. See `PHASE_4_CLOSEOUT.md` for the final acceptance boundary.
-
-**Goal:** prove the Phase-3 grammar across genuinely different builds before roster scale.
-
-Current released baseline and continuation (2026-09-12):
-
-PR #455 adds Chronist while preserving Tidecaller: 17 published Disciplines, 136 regular Skills, 17 Essences and 136 Resonance pairs. The 36-identity Atlas/Mastery system is live inside Profile → Discipline Management, with temporary testing access separate from earned eligibility. The Owner has requested completion of the remaining §18 gameplay tag/terrain and ground-target UI gaps. See `PHASE_4_COMPLETENESS_AUDIT.md` for the current requirement ledger; earlier release summaries below are historical.
-
-- Vanguard, Lifebinder, Aetherist, Farstrider, Shadehand and Ironfist each have eight authored regular Skills. All six Essences and fifteen unordered Resonance pairs are live.
-- Skill targeting/effect tags and expandable details are live, together with Crossroads Court and Terraced Yard AI Sparring arenas. See `PHASE_4_TICKETS.md` for exact CI, migration and production evidence.
-- Authored coverage is implementation credit, not proof of balance, acquisition, AI quality, media completion or human validation.
-
-The continuation in PR #451 implements the full sixteen-Discipline catalog (128 regular Skills, 16 Essences, 120 pairs), named effects, sparse conditional modifiers and Mastery Trial acquisition. The roster is live, and existing testing grants make it immediately testable. The final self-target cockpit correction is released through PR #452. PR #454 releases ten painted advanced identities and 72 synthesized action/effect cue variants for Owner evaluation; independent human art/listening and balance acceptance remains open. Exact database/browser/deployment evidence and remaining human balance/media acceptance belong in `PHASE_4_TICKETS.md`.
-
-Reconciled sequence:
-
-```text
-Validate the five inherited authored Disciplines
-→ complete the sixth Foundation (Ironfist)
-→ 6–8 validated Disciplines
-→ 12
-→ 16 mature Closed Alpha target
-```
-
-The former four-Discipline minimum is already exceeded in authored coverage. Do not rebuild or remove delivered content to recreate it. The first Phase-4 ticket is a roster acceptance matrix and gap assessment over the existing five plus Ironfist; the Owner has now authorized implementation and the final production release. See `PHASE_3_CLOSEOUT.md` for the readiness evidence and remaining verification.
-
-Each expansion must justify:
-
-- Skill quality;
-- Essence coverage;
-- Resonance coverage;
-- Mastery/acquisition;
-- tactical identity/counterplay;
-- equipment interactions;
-- AI behavior;
-- PvE/PvP coverage;
-- VFX/SFX/media cost;
-- interaction/content linting.
-
-**Gate:** multiple builds/routes/maps materially change strategy and content production remains sustainable.
-
-### Phase 4 operations extension
-
-By Owner decision on 2026-09-19, the following work was assigned to Phase 4 and was completed before the final Phase-4 closeout:
-
-- P4.11 — staff authority foundation;
-- P4.12 — persistent event operations kernel, participant/contribution/claim boundaries, reward-service integration and safe cleanup;
-- P4.13 — Event Builder MVP;
-- P4.14 — live event operations.
-
-These are operational foundations for later world content. They do not themselves count as Phase 5 Living World progress.
-
-
----
-
-## 🔵 Phase 5 — Living World, Story & Supernatural Identity — AUTHORIZED
-
-**Authorization boundary:** the Owner authorized Phase-5 Living Atlas work on 2026-09-22. The Owner separately authorized the verified Atlas production release on 2026-09-23. PR #609 is the release record for this initial server-authoritative travel/exploration slice; `PHASE_5_HANDOVER.md` defines its limited scope and the remaining Phase-5 work. Phase-4 closeout does not authorize later unrelated deployments.
-
-**Goal:** make AUREVANE a living world and introduce the supernatural identity fork plus the first outer-world mystery.
-
-Scope:
-
-- strategic Atlas/world map;
-- settlements/locations;
-- NPC/dialogue;
-- quests;
-- layered world state;
-- world events/World Pulse;
-- Archive/Fragment Sets/lore provenance;
-- protected key items;
-- vendors/acquisition links where needed;
-- location-coherent battle scenes;
-- player-facing World Pulse and world-event presentation built on the completed Phase-4 operations platform;
-- early Horizon/world gates.
-
-### Supernatural fork
-
-```text
-UNAWAKENED
-→ ASCENDED
-OR
-→ SEVERED
-```
-
-Ship a small high-quality proof of both Ascension and Severence so each permanent path has a clear gameplay identity and meaningful payoff. Temporary transformation design space belongs inside Severence rather than becoming a third supernatural system.
-
-Normal characters obey strict branch exclusivity.
-
-The data model should remain capable of safely representing future Owner-created Anomalies, but **normal gameplay does not grant them**.
-
-### Frontier threshold
-
-- known-world cartography fades into uncertain territory;
-- deliberate crossing prompt;
-- small outer-Reach vertical slice;
-- first Anchor;
-- first controlled Cartographic Drift proof;
-- Field Observation → Archive integration;
-- early evidence of far inhabitants.
-
-**Gate:** players understand the living-world loop, supernatural fork and frontier mystery without confusion or procedural-filler feeling.
-
----
-
-## 🔜 Phase 6 — Party & Co-op Foundation
-
-**Goal:** reuse multiplayer battle technology for cooperative play.
-
-Scope:
-
-- parties/invites;
-- availability/realtime;
-- party finder;
-- co-op battles;
-- shared quests/objectives;
-- each player owns only their character;
-- reconnect/rejoin ownership;
-- pings/action visibility;
-- allied/enemy-team coordination;
-- multi-unit Battle Hall where useful;
-- frontier party entry/extraction/shared route state where useful.
-
-The Reach retains meaningful solo content.
-
-**Gate:** three players can complete a readable fair cooperative mission together.
-
----
-
-## 🔜 Phase 7 — Expeditions, Boss PvE & Deep Frontier
-
-**Goal:** stress buildcraft/co-op/AI/persistence through long-form PvE and deepen exploration.
-
-Scope:
-
-- deterministic seeded Expeditions;
-- Easy / Standard / Deep;
-- modifiers/threat;
-- progressive reveal;
-- suspension/reconnect;
-- multiphase bosses;
-- loot/anti-duplication/bad-luck protections;
-- environmental battle objects/terrain transformation;
-- objective/boss AI;
-- long-run reliability.
-
-Deep Reach expansion:
-
-- Reach-discovered Expedition entrances;
-- deeper drift states;
-- stronger hazards;
-- named phenomena;
-- meaningful Frontier Acumen;
-- first substantial Veyr interactions when story timing supports them;
-- deep Anchor/boss interactions.
-
-There is **no Anomaly acquisition loop** here.
-
-**Gate:** a long Deep Expedition is memorable/resumable and frontier exploration creates comprehensible mystery rather than arbitrary randomness.
-
----
-
-## 🟡 Phase 8 — Competitive PvP, Colosseum, Seasons & Tournaments
-
-**Goal:** mature the existing direct PvP/spectator platform into a competitive product.
-
-Inherited rather than rebuilt:
-
-- direct lobbies/battle sessions;
-- multiple formats;
-- timing;
-- surrender;
-- spectation;
-- battle communication/logs;
-- multi-combatant presentation.
-
-Remaining scope:
-
-- casual/ranked queues;
-- rating/matchmaking;
-- queue population safety;
-- Arena Tempering;
-- disconnect/abandonment protection;
-- seasons;
-- tournaments;
-- build snapshot/lock;
-- Skill/Resonance/Essence/equipment/Ascension/Severence/Veteran Edge legality;
-- map/side-bias testing;
-- competitive telemetry;
-- spectator visibility/delay;
-- Colosseum public discovery;
-- featured matches/replays where appropriate.
-
-### Anomaly policy
-
-Gameplay-affecting Owner-created Anomalies are **DISALLOWED in standard ranked PvP by default**.
-
-Special modes may explicitly normalize or allow them under transparent rules.
-
----
-
-## 🔜 Phase 9 — Roster, Ascension, Severence & Content Expansion
-
-**Goal:** scale only systems already proven fun and sustainable.
-
-- expand Disciplines in controlled batches toward the long-term roster;
-- mature eight-Skill libraries;
-- complete Essence/Resonance coverage;
-- expand Ascension identities based on quality/data;
-- expand Severence powers only after the first representative Severence implementation proves readable and sustainable;
-- expand enemies/maps/equipment interactions;
-- broaden AI/PvP regression coverage;
-- scale Reach Anchors/phenomena only if exploration evidence supports it.
-
-Anomalies remain Owner-created exceptional states, not a content catalog players farm.
-
----
-
-## 🔵 Phase 10 — Social World & Explorer Identity
-
-Existing foundations include profiles, presence, Online Users and battle-scoped communication.
-
-Mature scope:
-
-- friends;
-- messages;
-- guilds;
-- guild quests/progression;
-- social profiles;
-- moderation/reporting;
-- build sharing;
-- Chronicle recognition;
-- Hall of Selves/Rekindling presentation;
-- public Frontier Ledger excerpts;
-- route/map sharing where appropriate;
-- guild frontier organization;
-- first-discovery attribution and famous explorer identity.
-
----
-
-## 🔜 Phase 11 — Economy, Crafting & Trade
-
-Scope:
-
-- mature stores/vendors/loot;
-- materials;
-- crafting/professions;
-- enchantment where approved;
-- Trade House;
-- binding/trading;
-- safe sell/salvage;
-- capacity/overflow/recovery;
-- item provenance;
-- acquisition graph;
-- economy telemetry/support tooling.
-
-**Anomalies are not tradable commodities and are not part of the normal economy.**
-
----
-
-## 🔜 Phase 12 — Nations & Large-Group Identity
-
-Scope:
-
-- allegiance/reputation;
-- nation quests/events;
-- campaigns;
-- political rankings;
-- warfare only when population supports it;
-- PvE/PvP contribution paths.
-
-Nations may interpret the Reach, Veyr and Great Vane mysteries differently.
-
-Do not permanently lock essential competitive power behind one political choice.
-
-Anomalies are not a nation acquisition system.
-
----
-
-## 🔵 Phase 13 — Complete Master Panel & Long-Horizon Operations
-
-Earlier phases ship minimum safe operational tools. Phase 13 consolidates the complete operating system.
-
-Scope:
-
-- Owner Command Center;
-- staff roles/permissions;
-- audited player correction;
-- Discipline/Skill/Resonance/Essence/Ascension/Severence tools;
-- item/effect/loot/economy tools;
-- quest/dialogue/story/Archive tools;
-- event scheduling;
-- Expedition controls;
-- PvP/season/tournament operations;
-- Audio Manager / Asset Studio;
-- Balance Lab;
-- Combat Content Studio / AI Lab;
-- Pacing Simulator;
-- progression/Horizon/Passive Training/Rekindling/Veteran Edge controls;
-- feature flags;
-- staging/diff/history/rollback;
-- canon/spoiler controls;
-- break-glass recovery.
-
-### Reach operations
-
-- drift seeds/versions;
-- Anchor authoring;
-- route/frontier-state inspection;
-- Reach events;
-- Frontier Ledger/support inspection;
-- generation simulation/validation.
-
-### Owner-only Anomaly Console
-
-Per `docs/ANOMALIES.md`:
-
-- create Cross-Fork, Dual-Ascension and Dual-Severence exceptional states;
-- select valid registered components;
-- preview rules being bypassed;
-- require Owner reason/re-authentication/confirmation;
-- atomic grant/revoke/repair;
-- immutable audit/provenance;
-- visibility/PvP/analytics inspection;
-- no ordinary staff access by default.
-
----
-
-## 🔵 Phase 14 — Art, Audio & Production Presentation
-
-Complete production-quality presentation across world, characters, Disciplines, Ascensions, Severence powers, items, battle environments, VFX, audio, transitions, responsive/mobile behavior, accessibility, Archive/Rekindling/Hall of Selves and spectator/competitive presentation.
-
-### Reach identity
-
-The Unwritten Reach needs a distinct language based on:
-
-- uncertain distance;
-- contradictory geography;
-- familiar objects in impossible context;
-- continuity errors;
-- beauty mixed with unease;
-- shifting but readable navigation cues.
-
-Avoid generic purple-corruption/void-fog presentation.
-
----
-
-## 🔵 Phase 15 — Security, Scale, Exploit Hardening & Closed-Alpha Readiness
-
-Phase 15 is the **full hardening pass**, not the first time performance is considered. It consumes the baselines and incremental checkpoints accumulated throughout earlier phases.
-
-Scope:
-
-- security/penetration/abuse review;
-- privileged access/audit integrity;
-- database/index/realtime/load performance;
-- combat/reward/idempotency races;
-- PvP/loadout/economy exploits;
-- migration/versioning;
-- AI/property tests;
-- authoring permissions/rollback;
-- progression/Rekindling integrity;
-- live-event recovery;
-- human cross-skill playtests.
-
-### Reach hardening
-
-- deterministic drift reproduction;
-- unreachable-layout rejection;
-- route/version migration;
-- reconnect/extraction;
-- reward duplication/reroll abuse;
-- spoiler leakage;
-- community discovery load;
-- generation performance.
-
-### Anomaly hardening
-
-- Owner-only authorization;
-- re-authentication/audit integrity;
-- atomic grant/revoke;
-- duplicate/conflicting component handling;
-- battle snapshot correctness;
-- migration/content-version repair;
-- standard-ranked exclusion;
-- telemetry isolation;
-- no client/support-staff privilege escalation.
-
----
-
-# 6. Endgame / Rekindling maturity
-
-Before Rekindling becomes a normal recurring loop, prove:
-
-- the first character era is meaningful throughout its long progression;
-- later cycles offer Echo Routes and self-directed choices rather than repeated chores;
-- Memory Carryover creates strategy without trivializing the cycle;
-- Hall of Selves preserves identity/history;
-- Frontier history creates new questions without becoming the only reason to Rekindle;
-- Veteran Edge remains bounded horizontal prestige rather than infinite raw-stat inflation.
-
-The approximate **180-day** first-cycle planning default remains subject to validation and pacing evidence.
-
----
-
-# 7. Immediate execution sequence
-
-```text
-PHASE 2 CLOSED / PV-1 RECONCILED
-        ↓
-PHASE 3 CLOSED — OWNER-APPROVED CLOSEOUT
-        ↓
-PHASE 4 CLOSED — OWNER ACCEPTED 2026-09-23
-        ↓
-PHASE 5 AUTHORIZED 2026-09-22
-        ↓
-VERIFY / RELEASE THE INITIAL LIVING ATLAS CANDIDATE UNDER ITS OWN GATES
-```
-
-The immediate development priority is therefore:
-
-> **Preserve the closed Phase-2/3/4 platform, keep UI/regression cleanup behavior-preserving, and continue the separately authorized Phase-5 world work from the verified Living Atlas handover.**
-
-Automatic performance/scaling checkpoints continue at the defined future boundaries; they are maintenance/hardening work, not permission to expand feature scope.
-
-The frontier, Rekindling replay systems and Owner-created Anomalies remain approved long-horizon direction, outside this closeout scope.
+UI audit continuation remains pending release; scope and validation: [UI audit refinements](verification/2026-10-24-ui-audit-refinements.md). No phase closure or gameplay-rule changes.

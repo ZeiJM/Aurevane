@@ -1,0 +1,49 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.10 /workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/apps/web
+
+ ❯ src/server/battle/battle-build-authority-mixed-source-cap.test.ts (15 tests | 2 failed) 37ms
+   × published absent extensions and selected cross eligibility survive actual admission and restoration 4ms
+   × published custom extensions and selected cross eligibility survive actual admission and restoration 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/server/battle/battle-build-authority-mixed-source-cap.test.ts > published absent extensions and selected cross eligibility survive actual admission and restoration
+TypeError: Cannot create an invalid battle build-authority snapshot.
+ ❯ createBattleBuildAuthoritySnapshotForCatalog src/server/battle/battle-build-authority.ts:488:22
+    486|   }
+    487|   const parsed = parseBattleBuildAuthoritySnapshot(value)
+    488|   if (!parsed) throw new TypeError('Cannot create an invalid battle bu…
+       |                      ^
+    489|   return parsed
+    490| }
+ ❯ Module.createResolvedBattleBuildAuthoritySnapshot src/server/battle/battle-build-authority.ts:570:10
+ ❯ src/server/battle/battle-build-authority-mixed-source-cap.test.ts:520:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/server/battle/battle-build-authority-mixed-source-cap.test.ts > published custom extensions and selected cross eligibility survive actual admission and restoration
+TypeError: Published Essence does not match the enabled committed build extension.
+ ❯ src/server/battle/battle-build-authority.ts:550:15
+    548|       if (currentEssence && (!currentEssence.enabled || !currentEssenc…
+    549|         validateEssenceDefinition(currentEssence).length || currentEss…
+    550|         throw new TypeError('Published Essence does not match the enab…
+       |               ^
+    551|       if (currentResonance && (!currentResonance.enabled || validateRe…
+    552|         secondary === null || !currentResonance.disciplinePair.include…
+ ❯ Module.createResolvedBattleBuildAuthoritySnapshot src/server/battle/battle-build-authority.ts:514:26
+ ❯ src/server/battle/battle-build-authority-mixed-source-cap.test.ts:520:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed | 3 passed (4)
+      Tests  2 failed | 43 passed (45)
+   Start at  13:08:39
+   Duration  1.88s (transform 4.36s, setup 0ms, import 5.85s, tests 93ms, environment 0ms)
+
+undefined
+/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/apps/web:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/server/battle/battle-build-authority-mixed-source-cap.test.ts src/server/character/character-build-eligibility-transport.test.ts src/server/battle/phase4-snapshot-compatibility.test.ts src/server/battle/combat-content-publication-consumption.test.ts

@@ -1,5 +1,7 @@
 import 'server-only'
 
+import { createSelectedCharacterRpc } from '@/server/master/selected-character-rpc'
+
 import { AurevaneError } from '@aurevane/game-core/errors'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
@@ -15,6 +17,7 @@ type SiteMusicRow = {
   enabled: boolean
   default_track: unknown
   route_overrides: unknown
+  song_library?: unknown
   revision: number | string
   updated_at: string
 }
@@ -25,6 +28,7 @@ function parseRow(row: SiteMusicRow): SiteMusicConfig {
     enabled: row.enabled,
     defaultTrack: row.default_track,
     routeOverrides: row.route_overrides,
+    songLibrary: row.song_library,
     revision,
     updatedAt: row.updated_at,
   })
@@ -37,7 +41,7 @@ export async function readSiteMusicConfig(options?: {
     const client = createSupabaseAdminClient()
     const { data, error } = await client
       .from('site_music_configuration')
-      .select('enabled, default_track, route_overrides, revision, updated_at')
+      .select('enabled, default_track, route_overrides, song_library, revision, updated_at')
       .eq('singleton_id', true)
       .maybeSingle()
 
@@ -60,41 +64,56 @@ export async function saveSiteMusicConfig(input: {
   expectedRevision: number
   config: SiteMusicDraft
 }): Promise<SiteMusicConfig> {
+  if (input.config.songLibrary === undefined) {
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Refresh Site Music before saving; the complete song library is required.',
+    )
+  }
   const config = parseSiteMusicDraft(input.config)
   if (!Number.isSafeInteger(input.expectedRevision) || input.expectedRevision < 1) {
     throw new AurevaneError('INVALID_REQUEST', 'expectedRevision must be a positive integer.')
   }
 
   const client = createSupabaseAdminClient()
-  const nextRevision = input.expectedRevision + 1
-  const { data, error } = await client
-    .from('site_music_configuration')
-    .update({
-      enabled: config.enabled,
-      default_track: config.defaultTrack,
-      route_overrides: config.routeOverrides,
-      revision: nextRevision,
-      updated_by: input.actorUserId,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('singleton_id', true)
-    .eq('revision', input.expectedRevision)
-    .select('enabled, default_track, route_overrides, revision, updated_at')
-    .maybeSingle()
-
-  if (error) {
+  let result
+  try {
+    result = await createSelectedCharacterRpc((name, params) => client.rpc(name, params))(
+      'save_site_music_configuration_v1',
+      {
+        p_actor_user_id: input.actorUserId,
+        p_expected_revision: input.expectedRevision,
+        p_config: config,
+      },
+    )
+  } catch (error) {
+    if (error instanceof AurevaneError) throw error
     throw new AurevaneError(
       'PERSISTENCE_UNAVAILABLE',
-      'Site music changes could not be saved right now.',
-      { cause: error },
+      'Site music configuration is unavailable right now.',
     )
   }
-  if (!data) {
+  const { data, error } = result
+  if (error?.code === '42501')
+    throw new AurevaneError('FORBIDDEN', 'Site Music page access is required.')
+  if (error?.code === 'PT409' || error?.code === '40001')
     throw new AurevaneError(
       'STALE_VERSION',
       'The site music configuration changed. Refresh and try again.',
     )
+  if (error?.code === '22023')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Use supported direct audio files and valid music settings.',
+    )
+  if (error || !data || typeof data !== 'object' || Array.isArray(data))
+    throw new AurevaneError(
+      'PERSISTENCE_UNAVAILABLE',
+      'Site music changes could not be saved right now.',
+    )
+  try {
+    return parseRow(data as SiteMusicRow)
+  } catch {
+    throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'The saved music configuration is invalid.')
   }
-
-  return parseRow(data as SiteMusicRow)
 }

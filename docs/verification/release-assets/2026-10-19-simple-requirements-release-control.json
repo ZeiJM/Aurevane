@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "status": "prepared-not-executed",
+  "candidateSha256": "7f2baf49ec379b3367dfe88a81058ae6865d76f7db49f0154b8b3a67efaa41fa",
+  "designSha256": "2e0820b5766a53209f07ff1ac85cb14ecb173fa7648da7cb43d1f7cf9113e9e4",
+  "baselineManifests": [
+    {
+      "path": "docs/superpowers/specs/2026-10-18-modular-correction-cohort.json",
+      "sha256": "998a68515af8cfbb2ce38ecb949fd595a044eb617175bf14d7520ca400c8d02f"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-10-19-essence-resonance-identity-cohort.json",
+      "sha256": "d74c7e65bdf8b73560b5d890ba08c776b1a523c300fe3810e88013195a8892f1"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-10-19-resonance-modularity-cohort.json",
+      "sha256": "5b2a44f8b88489064e1e993af77023677c8cb83ed6e869d10fe6933b438c4534"
+    }
+  ],
+  "templates": {
+    "publication": "7c8ad8b30bd72eab626445d16555014f2cde6ac50010198fb5d1654fdfcc439a",
+    "rollback": "6bd2acd6e6d3666ac2a55b38aabd4b6c593512e7b5e0dfedaa85a7280502f68e",
+    "readback": "338c04ea0dab4ee1e0bdb4237c1d0cb5c1662a2c12316be3d27b633e3d5cc3ab"
+  },
+  "publication": {
+    "historyBefore": 787,
+    "historyAfter": 953,
+    "current": 294,
+    "drafts": 0,
+    "appended": 166,
+    "appendedByKind": {
+      "basic": 2,
+      "skill": 24,
+      "essence": 4,
+      "resonance": 136
+    },
+    "databaseKindMapping": "basic definitions publish with content_kind skill; authored kind remains basic in review manifests",
+    "unchangedCurrent": 128,
+    "policyVersion": 8
+  },
+  "rollback": {
+    "historyBefore": 953,
+    "historyAfter": 953,
+    "current": 294,
+    "drafts": 0,
+    "repointed": 166,
+    "immutableVersionsRetained": 953
+  },
+  "deploymentOrder": [
+    "verify compatible application READY and exact source SHA before any publication",
+    "refresh exact294-definition inventory including history787,drafts0,policy8 and CAS token",
+    "bind reviewed templates using authorized Owner UUID, fresh exact inventory and compatible source",
+    "execute authorized atomic CAS append retaining all787 preexisting versions",
+    "read back all294 current definitions,953 immutable history rows,128 untouched pointers and exact hashes"
+  ],
+  "rollbackOrder": [
+    "refresh exact new294-definition inventory and953-row history count",
+    "restore166 baseline current pointers atomically while retaining all953 immutable versions",
+    "readback rolled-back pointers and compare unchanged history hash",
+    "keep compatible readers and executors for already captured simple definitions"
+  ],
+  "readbackHashes": {
+    "algorithm": "MD5 over PostgreSQL JSONB text for deterministic receipt comparison",
+    "authority": "Exact JSONB equality of all294 current definitions and old/new immutable versions; hashes are receipts and never authorization."
+  }
+}

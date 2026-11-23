@@ -1,0 +1,405 @@
+import { isAttackTag } from './combat-attack-tags'
+import { combatEvaluatedEffectRecipientIds } from './combat-effect-recipients'
+import type { CombatActionDefinition, CombatActionEvaluation } from './actions'
+import { canonicalCombatEffectRecipients } from './combat-targeting-shapes'
+import {
+  combatCanonicalModifierRootFacts,
+  combatNativeModifierRootFacts,
+} from './combat-modifier-compatibility'
+import {
+  captureCombatAbilitySource,
+  type CapturedCombatAbilitySource,
+} from './combat-behavior-capture'
+import { combatAbilitySubject } from './combat-behavior-runtime'
+import type { AbilityBehavior, AbilityEffect } from './combat-definition'
+import {
+  evaluateAbilitySelectedRequirements,
+  type AbilityRequirementContext,
+  type RequirementNode,
+} from './combat-requirements'
+import { nativeCombatTagPayload } from './combat-tag-registry'
+import {
+  aggregateCombatAbilityCosts,
+  combatAbilityCostIssues,
+  combatAbilityParticipant,
+  combatAbilityParticipantIssues,
+  type CombatAbilityCommandInput,
+  type CombatCommandDamageBonus,
+} from './combat-ability-command'
+import { consumeCombatTrigger } from './combat-kernel-types'
+import {
+  resolveCombatManualModifierReferences,
+  combatModifierRootCompatible,
+} from './combat-manual-modifier-references'
+
+export type CombatModifierSuppressionReason =
+  | 'participant-budget'
+  | 'requirement-not-met'
+  | 'root-incompatible'
+  | 'skill-sealed'
+  | 'source-owner-mismatch'
+  | 'cooldown-active'
+  | 'activation-limit'
+  | 'duplicate-command'
+  | 'insufficient-ap'
+  | 'insufficient-mp'
+  | 'insufficient-hp'
+  | 'depth-limit'
+  | 'reaction-budget-exhausted'
+  | 'instance-already-executed'
+export interface CombatModifierSuppression {
+  readonly sourceInstanceId: string
+  readonly abilityId: string
+  readonly contentVersion: number
+  readonly behaviorId: string
+  readonly reason: CombatModifierSuppressionReason
+}
+function suppressionIssue(code: string): CombatModifierSuppressionReason {
+  switch (code) {
+    case 'skill-sealed':
+    case 'source-owner-mismatch':
+    case 'cooldown-active':
+    case 'activation-limit':
+    case 'duplicate-command':
+    case 'insufficient-ap':
+    case 'insufficient-mp':
+    case 'insufficient-hp':
+      return code
+    default:
+      throw new TypeError(`unexpected-modifier-suppression-issue:${code}`)
+  }
+}
+type Participant = ReturnType<typeof combatAbilityParticipant>
+function compare(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0
+}
+function mentionsAffected(requirement: RequirementNode): boolean {
+  if (requirement.kind === 'all' || requirement.kind === 'any')
+    return requirement.children.some(mentionsAffected)
+  return (
+    ('subject' in requirement && requirement.subject === 'affected') ||
+    ('otherSubject' in requirement && requirement.otherSubject === 'affected')
+  )
+}
+export function composeCombatModifiers(
+  input: CombatAbilityCommandInput,
+  rootAction: CombatActionDefinition,
+  geometry: CombatActionEvaluation,
+  rootParticipant: Parameters<typeof combatAbilityParticipantIssues>[1],
+): {
+  readonly action: CombatActionDefinition
+  readonly participants: readonly Participant[]
+  readonly modifierSuppressions: readonly CombatModifierSuppression[]
+} {
+  const root = input.root
+  const rootBehavior = rootParticipant.behavior
+  const rootNativeEffects = rootBehavior?.effects.filter(
+    (effect) => !['move', 'summon'].includes(effect.payload.type),
+  )
+  const selectedIds =
+    geometry.selectedCombatantIds ??
+    (geometry.primaryCombatantId ? [geometry.primaryCombatantId] : [])
+  const selectedSubjects = selectedIds.map((id) => combatAbilitySubject(input.state, id))
+  const context: AbilityRequirementContext = {
+    owner: combatAbilitySubject(input.state, input.actorId),
+    selected: combatAbilitySubject(input.state, geometry.primaryCombatantId),
+    triggering:
+      input.trigger?.requirementsContext?.triggering ??
+      (input.trigger
+        ? combatAbilitySubject(input.state, input.trigger.triggeringCombatantId)
+        : null),
+    event: {
+      type: 'combat_action_used',
+      phase: 'before',
+      action: {
+        classification:
+          root.kind === 'canonical' ? rootBehavior!.classification : root.classification,
+        attackFamily: root.kind === 'canonical' ? rootBehavior!.attackFamily : root.attackFamily,
+        sourceDisciplineId:
+          root.kind === 'canonical' ? root.source.sourceDisciplineId : root.sourceDisciplineId,
+        tags: rootAction.tags,
+      },
+    },
+  }
+  const participants: Participant[] = []
+  const effects = [...rootAction.effects],
+    origins = rootAction.effects.map((_, i) => rootAction.effectOrigins?.[i]),
+    timings = rootAction.effects.map((_, i) => rootAction.effectTimingModes?.[i]),
+    timingTags = rootAction.effects.map((_, i) => rootAction.effectTimingTags?.[i])
+  function eligible(
+    effect: AbilityEffect,
+    effectContext: AbilityRequirementContext,
+  ): readonly string[] | undefined {
+    if (!effect.requirements) return undefined
+    if (effect.payload.recipient === 'affected-tiles')
+      throw new TypeError('canonical-tile-requirement-routing-required')
+    if (isAttackTag(effect.payload) && !mentionsAffected(effect.requirements))
+      return evaluateAbilitySelectedRequirements(
+        effect.requirements,
+        effectContext,
+        selectedSubjects,
+      )
+        ? [input.actorId]
+        : []
+    const damageRecipients = () =>
+      [
+        ...new Set(
+          rootAction.effects.flatMap((damage, ordinal) => {
+            if (damage.type !== 'damage' || damage.vengeance) return []
+            // Ground captures recipient Requirements for potential future entrants, just like
+            // its ordinary affected-units packets; entry later refreshes debuff counts only.
+            return rootAction.groundArea?.entryEffectOrdinals.includes(ordinal)
+              ? input.state.tactical.battle.combatants
+                  .filter((unit) => unit.hp > 0 && unit.id !== input.actorId)
+                  .map((unit) => unit.id)
+              : combatEvaluatedEffectRecipientIds(
+                  input.state,
+                  rootAction,
+                  geometry,
+                  ordinal,
+                  input.content,
+                ).filter((id) => id !== input.actorId)
+          }),
+        ),
+      ].sort()
+    const ids = isAttackTag(effect.payload)
+      ? damageRecipients()
+      : effect.payload.recipient === 'actor'
+        ? [input.actorId]
+        : effect.payload.recipient === 'primary-unit'
+          ? selectedIds
+          : input.state.tactical.battle.combatants.map((unit) => unit.id)
+    return ids.filter((id) =>
+      evaluateAbilitySelectedRequirements(
+        effect.requirements ?? null,
+        {
+          ...effectContext,
+          affected: combatAbilitySubject(input.state, id),
+        },
+        selectedSubjects,
+      ),
+    )
+  }
+  const rootContext: AbilityRequirementContext = {
+    ...(input.trigger?.requirementsContext ?? {}),
+    owner: context.owner,
+    selected: context.selected,
+    triggering: context.triggering,
+    ...(input.trigger
+      ? {
+          event: {
+            ...input.trigger.requirementsContext?.event,
+            type: input.trigger.type,
+            phase: input.trigger.phase,
+          },
+        }
+      : {}),
+  }
+  const eligibility = rootAction.effects.map((_, i) =>
+    rootBehavior
+      ? eligible(rootNativeEffects![i]!, rootContext)
+      : rootAction.effectEligibleRecipientIds?.[i],
+  )
+  const requirementCaptures = rootAction.effects.map((_, i) =>
+    rootBehavior &&
+    rootNativeEffects?.[i]?.requirements &&
+    input.state.groundContactPolicyVersion === 1
+      ? { requirement: rootNativeEffects[i]!.requirements!, context: rootContext, selectedSubjects }
+      : rootAction.effectRequirementCaptures?.[i],
+  )
+  const bonuses: CombatCommandDamageBonus[] = []
+  function compatible(behavior: AbilityBehavior): boolean {
+    const facts =
+      root.kind === 'canonical'
+        ? combatCanonicalModifierRootFacts(rootBehavior!)
+        : combatNativeModifierRootFacts(rootAction.target, root.classification)
+    return combatModifierRootCompatible(behavior, {
+      ...facts,
+      persistentGround: !!rootAction.groundArea,
+      hasPrimaryRecipient: facts.hasPrimaryRecipient && selectedIds.length > 0,
+    })
+  }
+  function append(
+    source: CapturedCombatAbilitySource,
+    behavior: AbilityBehavior,
+    participant: Participant,
+  ): void {
+    participants.push(participant)
+    for (const effect of behavior.effects) {
+      const recipientIds = eligible(effect, context)
+      if (effect.payload.type === 'damage-bonus') {
+        if (recipientIds === undefined || recipientIds.includes(input.actorId))
+          bonuses.push({
+            sourceInstanceId: source.sourceInstanceId,
+            contentId: source.abilityId,
+            contentVersion: source.contentVersion,
+            behaviorId: behavior.id,
+            effectId: effect.id,
+            multiplierBasisPoints: effect.payload.multiplierBasisPoints,
+            ...(effect.payload.damageTypes ? { damageTypes: [...effect.payload.damageTypes] } : {}),
+            ...(effect.payload.elementFilter
+              ? { elementFilter: effect.payload.elementFilter }
+              : {}),
+          })
+        continue
+      }
+      effects.push(
+        canonicalCombatEffectRecipients(nativeCombatTagPayload(effect.payload), rootAction.target),
+      )
+      origins.push({
+        sourceInstanceId: source.sourceInstanceId,
+        behaviorId: behavior.id,
+        effectId: effect.id,
+        family:
+          source.sourceKind === 'resonance'
+            ? 'resonance'
+            : source.sourceKind === 'essence'
+              ? 'essence'
+              : 'skill',
+        contentId: source.abilityId,
+        contentVersion: source.contentVersion,
+      })
+      if (effect.timing === 'controlled') throw new TypeError('controlled-modifier-unsupported')
+      timings.push(effect.timing)
+      timingTags.push(undefined)
+      eligibility.push(recipientIds)
+      requirementCaptures.push(
+        effect.requirements && input.state.groundContactPolicyVersion === 1
+          ? { requirement: effect.requirements, context, selectedSubjects }
+          : undefined,
+      )
+    }
+  }
+  const selected = resolveCombatManualModifierReferences(
+    input.state,
+    input.actorId,
+    input.manualModifiers,
+  )
+  for (const { behavior } of selected) {
+    if (rootParticipant.activation !== 'manual')
+      throw new TypeError('manual-modifier-root-required')
+    if (!compatible(behavior)) throw new TypeError('modifier-root-incompatible')
+    if (!evaluateAbilitySelectedRequirements(behavior.requirements, context, selectedSubjects))
+      throw new TypeError('modifier-requirement-not-met')
+  }
+  for (const { source, behavior } of selected)
+    append(source, behavior, combatAbilityParticipant(input.state, source, behavior))
+  let quotedGuard = input.context.triggerGuard
+  if (rootParticipant.activation === 'automatic' && rootParticipant.source && rootBehavior)
+    quotedGuard = consumeCombatTrigger(quotedGuard, {
+      instanceId: JSON.stringify([
+        JSON.stringify([
+          input.state.tactical.battle.battleId,
+          rootParticipant.sourceInstanceId,
+          input.actorId,
+          rootParticipant.abilityId,
+          rootParticipant.contentVersion,
+          rootBehavior.id,
+        ]),
+        input.trigger?.id,
+      ]),
+      depth: input.trigger?.depth ?? 1,
+    }).guard
+  const candidates = (input.state.capturedAbilitySources ?? [])
+    .filter(
+      (row) =>
+        row.ownerCombatantId === input.actorId &&
+        input.state.abilityRuntime?.activeSourceIds.includes(row.sourceInstanceId),
+    )
+    .flatMap((captured) => {
+      const source = captureCombatAbilitySource(captured)
+      return source.definition.behaviors
+        .filter((behavior) => behavior.activation === 'automatic' && behavior.mode === 'modifier')
+        .map((behavior) => ({ source, behavior }))
+    })
+    .sort(
+      (a, b) =>
+        compare(a.source.sourceInstanceId, b.source.sourceInstanceId) ||
+        compare(a.behavior.id, b.behavior.id),
+    )
+  const hookId = JSON.stringify([
+    'before-action',
+    input.context.provenance.triggerChainId,
+    input.trigger?.id ?? 'root',
+    rootParticipant.sourceInstanceId,
+    rootParticipant.behaviorId ?? rootAction.id,
+  ])
+  const modifierSuppressions: CombatModifierSuppression[] = []
+  for (const { source, behavior } of candidates) {
+    const suppress = (reason: CombatModifierSuppressionReason) =>
+      modifierSuppressions.push({
+        sourceInstanceId: source.sourceInstanceId,
+        abilityId: source.abilityId,
+        contentVersion: source.contentVersion,
+        behaviorId: behavior.id,
+        reason,
+      })
+    if (participants.length >= 15) {
+      suppress('participant-budget')
+      continue
+    }
+    if (!evaluateAbilitySelectedRequirements(behavior.requirements, context, selectedSubjects)) {
+      suppress('requirement-not-met')
+      continue
+    }
+    if (!compatible(behavior)) {
+      suppress('root-incompatible')
+      continue
+    }
+    const participant = combatAbilityParticipant(
+      input.state,
+      source,
+      behavior,
+      hookId,
+      (input.trigger?.depth ?? 0) + 1,
+    )
+    const key = JSON.stringify([
+      input.state.tactical.battle.battleId,
+      source.sourceInstanceId,
+      source.ownerCombatantId,
+      source.abilityId,
+      source.contentVersion,
+      behavior.id,
+    ])
+    const reservation = consumeCombatTrigger(quotedGuard, {
+      instanceId: JSON.stringify([key, hookId]),
+      depth: participant.depth!,
+    })
+    if (!reservation.accepted) {
+      suppress(reservation.reason)
+      continue
+    }
+    const participantIssues = combatAbilityParticipantIssues(
+      { ...input, context: { ...input.context, triggerGuard: quotedGuard } },
+      participant,
+    )
+    if (participantIssues.length) {
+      suppress(suppressionIssue(participantIssues[0]!.code))
+      continue
+    }
+    const costIssues = combatAbilityCostIssues(
+      input,
+      aggregateCombatAbilityCosts([rootParticipant, ...participants, participant]),
+    )
+    if (costIssues.length) {
+      suppress(suppressionIssue(costIssues[0]!.code))
+      continue
+    }
+    quotedGuard = reservation.guard
+    append(source, behavior, participant)
+  }
+  return {
+    action: {
+      ...rootAction,
+      effects,
+      effectOrigins: origins,
+      effectTimingModes: timings,
+      effectTimingTags: timingTags,
+      effectEligibleRecipientIds: eligibility,
+      effectRequirementCaptures: requirementCaptures,
+      ...(bonuses.length > 0 ? { commandDamageBonuses: bonuses } : {}),
+    },
+    participants,
+    modifierSuppressions,
+  }
+}

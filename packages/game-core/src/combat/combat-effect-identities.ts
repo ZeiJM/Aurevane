@@ -1,0 +1,182 @@
+import type { CombatSummonEffect } from './summon-content'
+import type { CombatEffectDefinition } from './actions'
+import type { CombatTagPayload } from './combat-tag-registry'
+import { PHASE4_STATUSES, combatStatusDetails } from './status-content'
+import { isRetiredCombatStatusId } from './retired-combat-statuses'
+import { BLINDSIDE_DEBUFF_STATUS_ID } from './combat-blindside'
+import { combatEffectPresentationTags } from './gameplay-tags'
+
+export const SUPPORTED_COMBAT_STATUS_IDS: readonly string[] = Object.freeze(
+  [
+    'guarded',
+    'exposed',
+    'lowered-guard',
+    'covert',
+    'revealed',
+    ...PHASE4_STATUSES.map((status) => status.id),
+  ].filter((id) => !isRetiredCombatStatusId(id) && id !== 'displaced'),
+)
+/** Presentation variants share the existing opcode and its authoritative validation. */
+export interface AuthorableEffectTag {
+  readonly id: string
+  readonly label: string
+  readonly opcode: CombatTagPayload['type']
+  readonly unavailableReason?: string
+  readonly statusId?: string
+}
+const variants: readonly AuthorableEffectTag[] = [
+  { id: 'weak-point', label: 'Weak Point', opcode: 'weak-point' },
+  { id: 'spike', label: 'Spike', opcode: 'spike' },
+  { id: 'ruin', label: 'Ruin', opcode: 'ruin' },
+  { id: 'endure', label: 'Endure', opcode: 'endure' },
+  { id: 'damage', label: 'Damage', opcode: 'damage' },
+  { id: 'reversal', label: 'Reversal', opcode: 'reversal' },
+  { id: 'pierce', label: 'Pierce', opcode: 'pierce' },
+  { id: 'counter', label: 'Reflect', opcode: 'apply-status', statusId: 'counter' },
+  { id: 'vengeance', label: 'Vengeance', opcode: 'damage' },
+  { id: 'hp-recovery', label: 'HP Recovery', opcode: 'percentage-recovery' },
+  { id: 'mp-recovery', label: 'MP Recovery', opcode: 'percentage-recovery' },
+  { id: 'healing', label: 'HP Recovery (fixed amount)', opcode: 'healing' },
+  { id: 'mp-restore', label: 'MP Recovery', opcode: 'resource-change' },
+  { id: 'mp-drain', label: 'MP Drain', opcode: 'resource-change' },
+  { id: 'barrier', label: 'Barrier', opcode: 'barrier-change' },
+  { id: 'burn', label: 'Burn', opcode: 'burn', statusId: 'burn' },
+  { id: 'poison', label: 'Poison', opcode: 'poison', statusId: 'poison' },
+  { id: 'bleed', label: 'Bleed', opcode: 'bleed', statusId: 'bleed' },
+  { id: 'copy-buffs', label: 'Copy Buffs', opcode: 'copy-statuses' },
+  { id: 'copy-debuffs', label: 'Copy Debuffs', opcode: 'copy-statuses' },
+  { id: 'cleanse', label: 'Cleanse', opcode: 'remove-status' },
+  { id: 'dispel', label: 'Dispel', opcode: 'remove-status' },
+  { id: 'conditional-cleanse', label: 'Conditional Cleanse', opcode: 'remove-status' },
+  { id: 'cleanse-chilled', label: 'Cleanse Chilled', opcode: 'remove-status' },
+  { id: 'reveal', label: 'Reveal', opcode: 'sensory' },
+  { id: 'rewind', label: 'Rewind', opcode: 'return-to-turn-start' },
+  { id: 'freeze-ground', label: 'Freeze Ground', opcode: 'create-terrain' },
+  { id: 'push', label: 'Push', opcode: 'displace' },
+  { id: 'pull', label: 'Pull', opcode: 'displace' },
+  { id: 'move', label: 'Move', opcode: 'move' },
+  { id: 'stat-bonus', label: 'Stat Bonus', opcode: 'stat-bonus' },
+  { id: 'damage-bonus', label: 'Damage Bonus', opcode: 'damage-bonus' },
+  { id: 'summon', label: 'Summon', opcode: 'summon' },
+  { id: 'loot', label: 'Loot', opcode: 'loot' },
+]
+export const REGISTERED_EFFECT_TAGS: readonly AuthorableEffectTag[] = Object.freeze([
+  ...variants,
+  ...SUPPORTED_COMBAT_STATUS_IDS.filter(
+    (statusId) => !['burn', 'poison', 'bleed', 'counter', 'endure'].includes(statusId),
+  )
+    .map((statusId) => ({
+      id: `status:${statusId}`,
+      opcode: 'apply-status' as const,
+      statusId,
+      ...(statusId === 'revealed'
+        ? { unavailableReason: 'Revealed is applied by Reveal. Choose Reveal to set its duration.' }
+        : {}),
+      label: combatStatusDetails(statusId).name,
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label)),
+])
+/** Retained payloads and captured wording remain readable; these are not new-authoring choices. */
+export const AUTHORABLE_EFFECT_TAGS = Object.freeze(
+  REGISTERED_EFFECT_TAGS.filter(
+    (tag) =>
+      ![
+        'vengeance',
+        'healing',
+        'damage-bonus',
+        'status:blindside',
+        'status:revealed',
+        'cleanse-chilled',
+        'mp-restore',
+        'freeze-ground',
+      ].includes(tag.id),
+  ),
+)
+export function currentCombatTagName(tagId: string, name: string): string {
+  if (tagId === 'cleanse-chilled' && name === 'Cleanse Chilled') return 'Conditional Cleanse'
+  if (tagId === 'mp-restore' && name === 'MP Restore') return 'MP Recovery'
+  if (tagId === 'counter' && name === 'Counter') return 'Reflect'
+  if (tagId === 'challenged' && name === 'Taunted') return 'Taunt'
+  return tagId === BLINDSIDE_DEBUFF_STATUS_ID && name === 'Blindside (debuff)' ? 'Blindside' : name
+}
+
+export function combatEffectIdentity(
+  payload: CombatTagPayload | CombatEffectDefinition | CombatSummonEffect,
+): AuthorableEffectTag {
+  let id: string = payload.type
+  switch (payload.type) {
+    case 'damage-bonus':
+      id = 'status:inspired'
+      break
+    case 'damage':
+      id = payload.vengeance
+        ? 'vengeance'
+        : ('shattersBarrier' in payload && payload.shattersBarrier === true) ||
+            ('piercing' in payload && payload.piercing === true)
+          ? 'pierce'
+          : 'damage'
+      break
+    case 'apply-status':
+      id = ['burn', 'poison', 'bleed', 'counter'].includes(payload.statusId)
+        ? payload.statusId
+        : `status:${payload.statusId}`
+      break
+    case 'percentage-recovery':
+      id = payload.resource === 'mp' ? 'mp-recovery' : 'hp-recovery'
+      break
+    case 'resource-change':
+      id = payload.delta < 0 ? 'mp-drain' : 'mp-restore'
+      break
+    case 'barrier-change':
+      id = 'barrier'
+      break
+    case 'copy-statuses':
+      id = payload.mode === 'curse' ? 'copy-debuffs' : 'copy-buffs'
+      break
+    case 'remove-status':
+      id =
+        (
+          {
+            'Cleanse Chilled': 'cleanse-chilled',
+            Dispel: 'dispel',
+            Cleanse: 'cleanse',
+            'Conditional Cleanse': 'conditional-cleanse',
+          } as Record<string, string>
+        )[combatEffectPresentationTags(payload)[0]!] ?? 'conditional-cleanse'
+      break
+    case 'sensory':
+      id = 'reveal'
+      break
+    case 'return-to-turn-start':
+      id = 'rewind'
+      break
+    case 'create-terrain':
+      id = 'freeze-ground'
+      break
+    case 'displace':
+      id = payload.direction ?? 'push'
+      break
+  }
+  return (
+    REGISTERED_EFFECT_TAGS.find((tag) => tag.id === id) ?? {
+      id,
+      label: payload.type,
+      opcode: payload.type,
+    }
+  )
+}
+
+/** Stable content keys use status identities directly; picker-only status: prefixes never persist. */
+export function combatEffectPresentationId(
+  payload: CombatTagPayload | CombatEffectDefinition | CombatSummonEffect,
+): string {
+  return combatEffectIdentity(payload).id.replace(/^status:/u, '')
+}
+export const COMBAT_PRESENTATION_TAG_IDS: readonly string[] = Object.freeze([
+  ...new Set(
+    REGISTERED_EFFECT_TAGS.flatMap((tag) => [tag.id.replace(/^status:/u, ''), tag.opcode]),
+  ),
+])
+export function isCombatPresentationTagId(id: unknown): id is string {
+  return typeof id === 'string' && COMBAT_PRESENTATION_TAG_IDS.includes(id)
+}

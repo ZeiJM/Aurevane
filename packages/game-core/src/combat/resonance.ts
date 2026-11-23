@@ -1,7 +1,27 @@
+import {
+  combatTagPresentationIssues,
+  type CombatTagPresentationSnapshot,
+} from './combat-tag-registry'
+import { abilityPresentationTextIssues, type AbilityPresentationText } from './battle-narration'
+import { finalizedContentMediaIssues, type FinalizedContentMediaSlots } from './content-media'
+import { validateAbilityDefinition, type AbilityDefinition } from './combat-definition'
+import { createPercentageRecoveryResonanceVersion } from './combat-recovery-roster'
+import { battleFlavorTemplateIssues } from './battle-narration'
 import { validateGameplayEffectMetadata } from './gameplay-tags'
 import { ADVANCED_RESONANCES } from './advanced-resonances'
 import { FOUNDATION_TRIO_RESONANCES } from './foundation-trio-resonances'
 import { IRONFIST_RESONANCES } from './ironfist-content'
+import { rebalanceResonanceDefinition } from './resonance-balance-v5'
+import { createCanonicalCleanseResonanceVersion } from './combat-cleanse'
+import { createClarifiedResonanceVersion } from './resonance-clarified-content'
+import { matchesResonanceSkill, validResonanceSkillMatcher } from './resonance-skill-matcher'
+import {
+  convertV5ResonanceToV2,
+  isResonanceDefinitionV2,
+  normalizedResonanceMechanics,
+  validateResonanceDefinitionV2,
+  type ResonanceDefinitionV2,
+} from './resonance-v2'
 import {
   executeCombatAction,
   evaluateCombatAction,
@@ -22,6 +42,7 @@ export const RESONANCE_SCHEMA_VERSION = 1 as const
 export interface ResonanceSkillMatcher {
   readonly sourceDisciplineId: string
   readonly requiredTags: readonly string[]
+  readonly matchMode?: 'any-skill'
 }
 
 export interface ResonanceSkillSequenceTrigger {
@@ -33,19 +54,25 @@ export interface ResonanceSkillSequenceTrigger {
   readonly aiPayoffUtilityBonus: number
 }
 
-export interface ResonanceMediaHooks {
+export interface ResonanceMediaHooks extends FinalizedContentMediaSlots {
   readonly iconKey: string | null
   readonly audioCueKey: string | null
   readonly vfxKey: string | null
 }
 
 export interface ResonanceDefinition {
+  /** Captured server selection only; never changes the original power identity. */
+  readonly relationshipOverrideDisciplineId?: string
+  readonly tagPresentation?: readonly CombatTagPresentationSnapshot[]
+  readonly ability?: AbilityDefinition
   readonly id: string
   readonly contentVersion: number
   readonly enabled: boolean
   readonly disciplinePair: readonly [string, string]
   readonly name: string
   readonly description: string
+  readonly presentation?: AbilityPresentationText
+  readonly flavorLine?: string
   readonly trigger: ResonanceSkillSequenceTrigger
   readonly media: ResonanceMediaHooks
   readonly authoring: {
@@ -55,7 +82,11 @@ export interface ResonanceDefinition {
   }
 }
 
+export type AnyResonanceDefinition = ResonanceDefinition | ResonanceDefinitionV2
+
 export interface ResonanceSnapshotReference {
+  /** Captured server selection only; never changes the original power identity. */
+  readonly relationshipOverrideDisciplineId?: string
   readonly resonanceId: string
   readonly contentVersion: number
   readonly disciplinePair: readonly [string, string]
@@ -80,7 +111,8 @@ export type ResonanceCombatEvent =
       readonly resonanceId: string
       readonly contentVersion: number
       readonly actorId: string
-      readonly setupActionId: string
+      readonly setupActionId: string | null
+      readonly triggerActionId: string
       readonly payoffActionId: string
     }
   | {
@@ -106,7 +138,7 @@ export interface MatureSkillResonanceTransition {
   readonly events: readonly (CombatResolutionEvent | ResonanceCombatEvent)[]
 }
 
-export const P35_REPRESENTATIVE_RESONANCES = [
+const PRE_V5_RESONANCES = [
   {
     id: 'resonance.lifebinder-vanguard.mercys-edge',
     contentVersion: 1,
@@ -139,6 +171,39 @@ export const P35_REPRESENTATIVE_RESONANCES = [
   ...ADVANCED_RESONANCES,
 ] as const satisfies readonly ResonanceDefinition[]
 
+const V5_REBALANCED_RESONANCES = PRE_V5_RESONANCES.map(rebalanceResonanceDefinition)
+const V51_REBALANCED_RESONANCES = V5_REBALANCED_RESONANCES.map(convertV5ResonanceToV2)
+
+export const P35_REPRESENTATIVE_RESONANCES: readonly ResonanceDefinition[] = PRE_V5_RESONANCES
+
+const PRE_PERCENTAGE_RECOVERY_RESONANCE_REGISTRY: readonly AnyResonanceDefinition[] = [
+  ...P35_REPRESENTATIVE_RESONANCES,
+  ...V5_REBALANCED_RESONANCES,
+  ...V51_REBALANCED_RESONANCES,
+  ...V51_REBALANCED_RESONANCES.flatMap((definition) => {
+    const updated = createCanonicalCleanseResonanceVersion(definition, true)
+    return updated ? [updated] : []
+  }),
+  ...V51_REBALANCED_RESONANCES.map((definition) =>
+    createClarifiedResonanceVersion(
+      createCanonicalCleanseResonanceVersion(definition, true) ?? definition,
+    ),
+  ),
+]
+const latestRecoveryResonances = new Map<string, AnyResonanceDefinition>()
+for (const row of PRE_PERCENTAGE_RECOVERY_RESONANCE_REGISTRY) {
+  const previous = latestRecoveryResonances.get(row.id)
+  if (row.enabled && (!previous || row.contentVersion > previous.contentVersion))
+    latestRecoveryResonances.set(row.id, row)
+}
+const CURRENT_RESONANCE_REGISTRY = [
+  ...PRE_PERCENTAGE_RECOVERY_RESONANCE_REGISTRY,
+  ...[...latestRecoveryResonances.values()].flatMap((definition) => {
+    const next = createPercentageRecoveryResonanceVersion(definition)
+    return next ? [next] : []
+  }),
+]
+
 const STABLE_ID_PATTERN = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/
 
 export function canonicalResonancePair(
@@ -150,14 +215,36 @@ export function canonicalResonancePair(
     : [secondDisciplineId, firstDisciplineId]
 }
 
-export function validateResonanceDefinition(definition: ResonanceDefinition): readonly string[] {
-  const issues: string[] = []
+export function validateResonanceDefinition(definition: AnyResonanceDefinition): readonly string[] {
+  if (isResonanceDefinitionV2(definition)) {
+    return validateResonanceDefinitionV2(definition)
+  }
+
+  const issues: string[] = [
+    ...finalizedContentMediaIssues(definition.media),
+    ...abilityPresentationTextIssues(definition),
+    ...combatTagPresentationIssues(definition.tagPresentation),
+  ]
+  const canonical = Object.hasOwn(definition, 'ability')
+  if (canonical && validateAbilityDefinition(definition.ability).length > 0) issues.push('ability')
   if (!STABLE_ID_PATTERN.test(definition.id)) issues.push('id')
   if (!Number.isSafeInteger(definition.contentVersion) || definition.contentVersion < 1) {
     issues.push('contentVersion')
   }
   if (!definition.name.trim()) issues.push('name')
   if (!definition.description.trim()) issues.push('description')
+  if (
+    definition.flavorLine !== undefined &&
+    battleFlavorTemplateIssues(definition.flavorLine).length > 0
+  ) {
+    issues.push('flavorLine')
+  }
+  if (
+    definition.authoring.validationTags.includes('owner-rebalance-v5') &&
+    !definition.flavorLine?.trim()
+  ) {
+    issues.push('flavorLine')
+  }
 
   const [first, second] = definition.disciplinePair
   if (
@@ -169,43 +256,49 @@ export function validateResonanceDefinition(definition: ResonanceDefinition): re
     issues.push('disciplinePair')
   }
 
-  for (const [field, matcher] of [
-    ['trigger.setup', definition.trigger.setup],
-    ['trigger.payoff', definition.trigger.payoff],
-  ] as const) {
-    if (!STABLE_ID_PATTERN.test(matcher.sourceDisciplineId)) {
-      issues.push(`${field}.sourceDisciplineId`)
+  if (!canonical) {
+    for (const [field, matcher] of [
+      ['trigger.setup', definition.trigger.setup],
+      ['trigger.payoff', definition.trigger.payoff],
+    ] as const) {
+      if (!STABLE_ID_PATTERN.test(matcher.sourceDisciplineId)) {
+        issues.push(`${field}.sourceDisciplineId`)
+      }
+      if (
+        !validResonanceSkillMatcher(matcher) ||
+        (field === 'trigger.payoff' && matcher.matchMode !== undefined)
+      ) {
+        issues.push(`${field}.requiredTags`)
+      }
+    }
+
+    if (
+      !definition.disciplinePair.includes(definition.trigger.setup.sourceDisciplineId) ||
+      !definition.disciplinePair.includes(definition.trigger.payoff.sourceDisciplineId)
+    ) {
+      issues.push('trigger.sourceDiscipline')
     }
     if (
-      matcher.requiredTags.length === 0 ||
-      matcher.requiredTags.some((tag) => !STABLE_ID_PATTERN.test(tag))
+      definition.trigger.payoffEffects.length < 1 ||
+      definition.trigger.payoffEffects.length > 3
     ) {
-      issues.push(`${field}.requiredTags`)
-    }
-  }
-
-  if (
-    !definition.disciplinePair.includes(definition.trigger.setup.sourceDisciplineId) ||
-    !definition.disciplinePair.includes(definition.trigger.payoff.sourceDisciplineId)
-  ) {
-    issues.push('trigger.sourceDiscipline')
-  }
-  if (definition.trigger.payoffEffects.length < 1 || definition.trigger.payoffEffects.length > 3) {
-    issues.push('trigger.payoffEffects')
-  } else {
-    try {
-      for (const effect of definition.trigger.payoffEffects) validateGameplayEffectMetadata(effect)
-    } catch {
       issues.push('trigger.payoffEffects')
+    } else {
+      try {
+        for (const effect of definition.trigger.payoffEffects)
+          validateGameplayEffectMetadata(effect)
+      } catch {
+        issues.push('trigger.payoffEffects')
+      }
     }
-  }
-  if (
-    !Number.isFinite(definition.trigger.aiSetupUtilityBonus) ||
-    definition.trigger.aiSetupUtilityBonus < 0 ||
-    !Number.isFinite(definition.trigger.aiPayoffUtilityBonus) ||
-    definition.trigger.aiPayoffUtilityBonus < 0
-  ) {
-    issues.push('trigger.aiUtility')
+    if (
+      !Number.isFinite(definition.trigger.aiSetupUtilityBonus) ||
+      definition.trigger.aiSetupUtilityBonus < 0 ||
+      !Number.isFinite(definition.trigger.aiPayoffUtilityBonus) ||
+      definition.trigger.aiPayoffUtilityBonus < 0
+    ) {
+      issues.push('trigger.aiUtility')
+    }
   }
   if (definition.authoring.schemaVersion !== RESONANCE_SCHEMA_VERSION) {
     issues.push('authoring.schemaVersion')
@@ -213,14 +306,44 @@ export function validateResonanceDefinition(definition: ResonanceDefinition): re
   return issues
 }
 
+/** Enumerate every current identity without reconstructing a fixed set of Discipline pairs. */
+export function currentResonanceDefinitions(): readonly AnyResonanceDefinition[] {
+  const latest = new Map<string, AnyResonanceDefinition>()
+  for (const definition of CURRENT_RESONANCE_REGISTRY) {
+    if (!definition.enabled) continue
+    const previous = latest.get(definition.id)
+    if (!previous || definition.contentVersion > previous.contentVersion)
+      latest.set(definition.id, definition)
+  }
+  return [...latest.values()]
+}
+
+/** Publication numbering reserves disabled shipped history as well as current definitions. */
+export function highestBuiltinResonanceVersion(resonanceId: string): number | null {
+  const versions = CURRENT_RESONANCE_REGISTRY.filter((row) => row.id === resonanceId).map(
+    (row) => row.contentVersion,
+  )
+  return versions.length ? Math.max(...versions) : null
+}
+
+export function resolveResonanceForPair(
+  primaryDisciplineId: string,
+  secondaryDisciplineId: string | null,
+  contentVersion: 1 | 2,
+): ResonanceDefinition | null
 export function resolveResonanceForPair(
   primaryDisciplineId: string,
   secondaryDisciplineId: string | null,
   contentVersion?: number,
-): ResonanceDefinition | null {
+): AnyResonanceDefinition | null
+export function resolveResonanceForPair(
+  primaryDisciplineId: string,
+  secondaryDisciplineId: string | null,
+  contentVersion?: number,
+): AnyResonanceDefinition | null {
   if (secondaryDisciplineId === null || primaryDisciplineId === secondaryDisciplineId) return null
   const pair = canonicalResonancePair(primaryDisciplineId, secondaryDisciplineId)
-  const candidates = P35_REPRESENTATIVE_RESONANCES.filter(
+  const candidates = CURRENT_RESONANCE_REGISTRY.filter(
     (definition) =>
       definition.enabled &&
       definition.disciplinePair[0] === pair[0] &&
@@ -235,17 +358,22 @@ export function resolveResonanceForPair(
 }
 
 export function resonanceSnapshotReference(
-  definition: ResonanceDefinition,
+  definition: AnyResonanceDefinition,
 ): ResonanceSnapshotReference {
   assertUsableResonance(definition)
   return {
+    ...(definition.relationshipOverrideDisciplineId
+      ? { relationshipOverrideDisciplineId: definition.relationshipOverrideDisciplineId }
+      : {}),
     resonanceId: definition.id,
     contentVersion: definition.contentVersion,
     disciplinePair: [...definition.disciplinePair],
   }
 }
 
-export function createResonanceCombatState(definition: ResonanceDefinition): ResonanceCombatState {
+export function createResonanceCombatState(
+  definition: AnyResonanceDefinition,
+): ResonanceCombatState {
   assertUsableResonance(definition)
   return {
     resonanceId: definition.id,
@@ -255,26 +383,32 @@ export function createResonanceCombatState(definition: ResonanceDefinition): Res
 }
 
 export function forecastResonanceForSkill(
-  definition: ResonanceDefinition,
+  definition: AnyResonanceDefinition,
   state: ResonanceCombatState,
   skill: MatureSkillDefinition,
 ): ResonanceSkillForecast {
   assertMatchingState(definition, state)
-  const setup = matchesSkill(skill, definition.trigger.setup)
-  const payoff = state.armedByActionId !== null && matchesSkill(skill, definition.trigger.payoff)
-  const expires = state.armedByActionId !== null && !payoff
+  const mechanics = normalizedResonanceMechanics(definition)
+  const setupMatches = mechanics.setup ? matchesSkill(skill, mechanics.setup) : false
+  const triggerMatches = matchesSkill(skill, mechanics.trigger)
+  const immediate = mechanics.mode === 'immediate'
+  const activates = immediate ? triggerMatches : state.armedByActionId !== null && triggerMatches
+  const expires = !immediate && state.armedByActionId !== null && !activates
+  const arms = !immediate && setupMatches
 
   return {
-    willArm: setup,
-    willActivate: payoff,
+    willArm: arms,
+    willActivate: activates,
     willExpireArmedSetup: expires,
-    bonusEffects: payoff ? definition.trigger.payoffEffects : [],
-    explanation: payoff
-      ? `${definition.name} is armed: this Skill gains the Resonance payoff.`
-      : setup
-        ? `${definition.name} will arm after this Skill resolves successfully.`
+    bonusEffects: activates ? mechanics.resultEffects : [],
+    explanation: activates
+      ? immediate
+        ? `${definition.name} triggers immediately: this Skill gains the Resonance Result.`
+        : `${definition.name} is armed: this Skill triggers the Resonance Result.`
+      : arms
+        ? `${definition.name} will arm its Setup after this Skill resolves successfully.`
         : expires
-          ? `${definition.name}'s armed setup will expire if this Discipline Skill is used.`
+          ? `${definition.name}'s armed Setup will expire if this Discipline Skill is used.`
           : null,
   }
 }
@@ -288,7 +422,11 @@ export function constrainResonanceForecastToTarget(
   selection: CombatTargetSelection,
   affectedCombatantIds: readonly string[],
 ): ReturnType<typeof forecastResonanceForSkill> {
-  if (!forecast.willActivate || selection.kind !== 'tile') return forecast
+  if (
+    !forecast.willActivate ||
+    (selection.kind !== 'tile' && selection.kind !== 'direction' && selection.kind !== 'activate')
+  )
+    return forecast
   if (
     !forecast.bonusEffects.some((effect) => effect.recipient === 'primary-unit') &&
     (!skill.tags.includes('attack') || affectedCombatantIds.length > 0)
@@ -307,19 +445,25 @@ export function constrainResonanceForecastToTarget(
 }
 
 export function resonanceAiUtilityBonus(
-  definition: ResonanceDefinition,
+  definition: AnyResonanceDefinition,
   state: ResonanceCombatState,
   skill: MatureSkillDefinition,
 ): number {
   const forecast = forecastResonanceForSkill(definition, state, skill)
-  if (forecast.willActivate) return definition.trigger.aiPayoffUtilityBonus
-  if (forecast.willArm) return definition.trigger.aiSetupUtilityBonus
+  const mechanics = normalizedResonanceMechanics(definition)
+  if (forecast.willActivate) return mechanics.aiTriggerUtilityBonus
+  if (forecast.willArm) return mechanics.aiSetupUtilityBonus
   return 0
+}
+
+/** Attack-triggered Results use the command's authoritative hit decision, including zero-HP-damage hits. */
+export function resonanceTriggerRequiresHit(definition: AnyResonanceDefinition): boolean {
+  return normalizedResonanceMechanics(definition).trigger.requiredTags.includes('attack')
 }
 
 export function executeMatureSkillWithResonance(input: {
   readonly state: CombatEncounterState
-  readonly resonance: ResonanceDefinition
+  readonly resonance: AnyResonanceDefinition
   readonly resonanceState: ResonanceCombatState
   readonly skill: MatureSkillDefinition
   readonly combatContext: MatureSkillCombatContext
@@ -339,20 +483,37 @@ export function executeMatureSkillWithResonance(input: {
     ? { ...baseAction, effects: [...baseAction.effects, ...forecast.bonusEffects] }
     : baseAction
 
-  const resolution = executeCombatAction(input.state, action, input.selection, input.content)
+  const requiresHit = forecast.willActivate && resonanceTriggerRequiresHit(input.resonance)
+  const resolution = executeCombatAction(
+    input.state,
+    action,
+    input.selection,
+    input.content,
+    undefined,
+    requiresHit
+      ? {
+          effectOrdinals: forecast.bonusEffects.map(
+            (_effect, index) => baseAction.effects.length + index,
+          ),
+        }
+      : undefined,
+  )
+  const activated =
+    forecast.willActivate && (!requiresHit || resolution.hitDependentEffectsActivated === true)
   const actorId = resolution.events.find((event) => event.event === 'combat_action_used')?.actorId
   if (!actorId) throw new Error('Resonance Skill resolution did not emit a combat action event.')
 
   const resonanceEvents: ResonanceCombatEvent[] = []
   let nextArmedByActionId = input.resonanceState.armedByActionId
 
-  if (forecast.willActivate && input.resonanceState.armedByActionId) {
+  if (activated) {
     resonanceEvents.push({
       event: 'resonance_activated',
       resonanceId: input.resonance.id,
       contentVersion: input.resonance.contentVersion,
       actorId,
       setupActionId: input.resonanceState.armedByActionId,
+      triggerActionId: input.skill.id,
       payoffActionId: input.skill.id,
     })
     nextArmedByActionId = null
@@ -405,19 +566,19 @@ function insertResonanceEventsAfterActionUse(
 }
 
 function matchesSkill(skill: MatureSkillDefinition, matcher: ResonanceSkillMatcher): boolean {
-  return (
-    skill.sourceDisciplineId === matcher.sourceDisciplineId &&
-    matcher.requiredTags.every((tag) => skill.tags.includes(tag))
-  )
+  return matchesResonanceSkill(skill, matcher)
 }
 
-function assertUsableResonance(definition: ResonanceDefinition): void {
+function assertUsableResonance(definition: AnyResonanceDefinition): void {
   const issues = validateResonanceDefinition(definition)
   if (issues.length > 0) throw new TypeError(`Invalid Resonance definition: ${issues.join(', ')}.`)
   if (!definition.enabled) throw new RangeError('That Resonance version is disabled.')
 }
 
-function assertMatchingState(definition: ResonanceDefinition, state: ResonanceCombatState): void {
+function assertMatchingState(
+  definition: AnyResonanceDefinition,
+  state: ResonanceCombatState,
+): void {
   assertUsableResonance(definition)
   if (state.resonanceId !== definition.id || state.contentVersion !== definition.contentVersion) {
     throw new RangeError('Resonance combat state does not match the active definition version.')

@@ -1,0 +1,1181 @@
+{
+  "status": "Finished artwork; source registration and gameplay integration remain separate.",
+  "date": "2026-11-03",
+  "items": [
+    {
+      "assetKey": "wayfarer-hood",
+      "name": "Wayfarer Hood",
+      "generator": "image_gen built-in",
+      "prompt": "Use case: stylized-concept. Asset type: finished square inventory and battle item artwork for Aurevane. Subject: a simple weathered olive-brown linen hood with leather neck ties, hollow opening without any head. Style: polished dark fantasy anime game item illustration, painterly detailed materials with crisp readable silhouette. One centered item or the explicitly requested matching pair, fully visible with generous 12 percent safe margin, three-quarter view on a softly textured near-black navy background. Restrained cinematic rim lighting makes the item readable at 64px. No humans, hands, bodies, mannequins, creatures, text, letters, numerals, logo, watermark, user interface, border, frame or tier badge. Do not add unrelated props. Square composition.",
+      "originalFile": "exec-3c3990bb-fb9c-46eb-b781-2508c7af8fcb.png",
+      "originalSha256": "8020b8c583919f34a6c35261ade002d6cd0736777943c2c3821703343b935aa5",
+      "visualReview": "accepted: recognizable requested item; no person, text or frame",
+      "assets": {
+        "preview": {
+          "path": "/media/art/items/wayfarer-hood-v01.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 30480,
+          "sha256": "1a2265692cd3fd0769b98c5e95109a3c946622eadfc02c5935fd17382ee857ff"
+        },
+        "thumbnail": {
+          "path": "/media/art/items/thumbnails/wayfarer-hood-v01.webp",
+          "width": 256,
+          "height": 256,
+          "bytes": 8668,
+          "sha256": "fdf5ddcd4bbd1c8a6bf5590e1e1f37f862c856d4192d45777dd293cf734c2610"
+        }
+      }
+    },
+    {
+      "assetKey": "ember-stitched-cowl",
+      "name": "Ember-Stitched Cowl",
+      "generator": "image_gen built-in",
+      "prompt": "Use case: stylized-concept. Asset type: finished square inventory and battle item artwork for Aurevane. Subject: a charcoal mage cowl embroidered with delicate ember-orange seams, faint warm glow, hollow without any head. Style: polished dark fantasy anime game item illustration, painterly detailed materials with crisp readable silhouette. One centered item or the explicitly requested matching pair, fully visible with generous 12 percent safe margin, three-quarter view on a softly textured near-black navy background. Restrained cinematic rim lighting makes the item readable at 64px. No humans, hands, bodies, mannequins, creatures, text, letters, numerals, logo, watermark, user interface, border, frame or tier badge. Do not add unrelated props. Square composition.",
+      "originalFile": "exec-c9506148-5e59-4cf8-bb02-8537a58061b9.png",
+      "originalSha256": "f2e72eeb4e1b94bf28368bc67ac492225251fc41337ae6657805d9db5bb490d7",
+      "visualReview": "accepted: recognizable requested item; no person, text or frame",
+      "assets": {
+        "preview": {
+          "path": "/media/art/items/ember-stitched-cowl-v01.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 25008,
+          "sha256": "f537a74e3ae30a9aae129f64bf5530c75724626d14ba80cf9eca45f72d55e44e"
+        },
+        "thumbnail": {
+          "path": "/media/art/items/thumbnails/ember-stitched-cowl-v01.webp",
+          "width": 256,
+          "height": 256,
+          "bytes": 7952,
+          "sha256": "2f2b86d305f6ac4be1edd871eea00dc28b744f354f4615de79df12b19f9c1117"
+        }
+      }
+    },
+    {
+      "assetKey": "warden-helm",
+      "name": "Warden Helm",
+      "generator": "image_gen built-in",
+      "prompt": "Use case: stylized-concept. Asset type: finished square inventory and battle item artwork for Aurevane. Subject: a worn steel enclosed medieval helmet with a modest brass brow ridge and slate enamel accents. Style: polished dark fantasy anime game item illustration, painterly detailed materials with crisp readable silhouette. One centered item or the explicitly requested matching pair, fully visible with generous 12 percent safe margin, three-quarter view on a softly textured near-black navy background. Restrained cinematic rim lighting makes the item readable at 64px. No humans, hands, bodies, mannequins, creatures, text, letters, numerals, logo, watermark, user interface, border, frame or tier badge. Do not add unrelated props. Square composition.",
+      "originalFile": "exec-1db5ae8f-4e13-45d2-9aba-94765fd8c87e.png",
+      "originalSha256": "c8a8e9c5e1bd484c0260480f40f3548a284b2764da3222362ba76cdad3f9cb8a",
+      "visualReview": "accepted: recognizable requested item; no person, text or frame",
+      "assets": {
+        "preview": {
+          "path": "/media/art/items/warden-helm-v01.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 28466,
+          "sha256": "b98ba2177134023d6ea7219bd6b22cf608f7e815a4a0658df613e750826d2d5a"
+        },
+        "thumbnail": {
+          "path": "/media/art/items/thumbnails/warden-helm-v01.webp",
+          "width": 256,
+          "height": 256,
+          "bytes": 8686,
+          "sha256": "d47a6f841d5356d7eeb56a768b0ed4205d239726934805c73c2c748de6396242"
+        }
+      }
+    },
+    {
+      "assetKey": "traveler-jerkin",
+      "name": "Traveler Jerkin",
+      "generator": "image_gen built-in",
+      "prompt": "Use case: stylized-concept. Asset type: finished square inventory and battle item artwork for Aurevane. Subject: a practical brown leather sleeveless jerkin with travel-worn stitching and restrained steel buckles, empty garment. Style: polished dark fantasy anime game item illustration, painterly detailed materials with crisp readable silhouette. One centered item or the explicitly requested matching pair, fully visible with generous 12 percent safe margin, three-quarter view on a softly textured near-black navy background. Restrained cinematic rim lighting makes the item readable at 64px. No humans, hands, bodies, mannequins, creatures, text, letters, numerals, logo, watermark, user interface, border, frame or tier badge. Do not add unrelated props. Square composition.",
+      "originalFile": "exec-135a3ca7-efd8-4016-be1b-1c9e506c6348.png",
+      "originalSha256": "0a78d90382d91a8fc0c61b8a4735c0e5c7f424a40c10296be7058b39da5b77d3",
+      "visualReview": "accepted: recognizable requested item; no person, text or frame",
+      "assets": {
+        "preview": {
+          "path": "/media/art/items/traveler-jerkin-v01.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 32006,
+          "sha256": "bd0e333bb955eab453cece72be2e160af8c9427e9444b5bdb5f096e9e29cd32a"
+        },
+        "thumbnail": {
+          "path": "/media/art/items/thumbnails/traveler-jerkin-v01.webp",
+          "width": 256,
+          "height": 256,
+          "bytes": 9536,
+          "sha256": "8100316b37e292d000847a8e11248a2cda66b338ae27acdd079e67414e872333"
+        }
+      }
+    },
+    {
+      "assetKey": "stormweave-robe",
+      "name": "Stormweave Robe",
+      "generator": "image_gen built-in",
+      "prompt": "Use case: stylized-concept. Asset type: finished square inventory and battle item artwork for Aurevane. Subject: an empty folded deep-indigo short mage robe with silver cloud stitching and a small cyan charged clasp. Style: polished dark fantasy anime game item illustration, painterly detailed materials with crisp readable silhouette. One centered item or the explicitly requested matching pair, fully visible with generous 12 percent safe margin, three-quarter view on a softly textured near-black navy background. Restrained cinematic rim lighting makes the item readable at 64px. No humans, hands, bodies, mannequins, creatures, text, letters, numerals, logo, watermark, user interface, border, frame or tier badge. Do not add unrelated props. Square composition.",
+      "originalFile": "exec-5591666a-cd8a-4794-ad86-886375ada975.png",
+      "originalSha256": "e0ba163bac6a739bee14c90b8e99bc88a0225d67b3766f5ab2dbff56bd64e0dc",
+      "visualReview": "accepted: recognizable requested item; no person, text or frame",
+      "assets": {
+        "preview": {
+          "path": "/media/art/items/stormweave-robe-v01.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 30908,
+          "sha256": "404f954da75512a1402007afdb2503dd267413bfac568e33ee3e7e4217f04552"
+        },
+        "thumbnail": {
+          "path": "/media/art/items/thumbnails/stormweave-robe-v01.webp",
+          "width": 256,
+          "height": 256,
+          "bytes": 10152,
+          "sha256": "24d500cfadbf11d023b0a56aa6d620f8eab851f49a6f7c99c017f76a6878e94e"
+        }
+      }
+    },
+    {
+      "assetKey": "duskplate-cuirass",
+      "name": "Duskplate Cuirass",
+      "generator": "image_gen built-in",
+      "prompt": "Use case: stylized-concept. Asset type: finished square inventory and battle item artwork for Aurevane. Subject: an empty dark gunmetal breastplate with layered shoulder guards, subtle violet reflections and aged brass rivets. Style: polished dark fantasy anime game item illustration, painterly detailed materials with crisp readable silhouette. One centered item or the explicitly requested matching pair, fully visible with generous 12 percent safe margin, three-quarter view on a softly textured near-black navy background. Restrained cinematic rim lighting makes the item readable at 64px. No humans, hands, bodies, mannequins, creatures, text, letters, numerals, logo, watermark, user interface, border, frame or tier badge. Do not add unrelated props. Square composition.",
+      "originalFile": "exec-b52717df-5f11-4264-b0a7-9660b645ff0d.png",
+      "originalSha256": "d63d22bb98c2f63381cdc55cb0c150eec10b5fe1565df03effa4cdcc9a6aab19",
+      "visualReview": "accepted: recognizable requested item; no person, text or frame",
+      "assets": {
+        "preview": {
+          "path": "/media/art/items/duskplate-cuirass-v01.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 28706,
+          "sha256": "13278b3657c24f648f8cb4fdaf74ab1fb85f77051bf8a7fde248e9a9f11eb48d"
+        },
+        "thumbnail": {
+          "path": "/media/art/items/thumbnails/duskplate-cuirass-v01.webp",
+          "width": 256,
+          "height": 256,
+          "bytes": 9146,
+          "sha256": "a276f9b186f9e88f3ffa7cccd9acf419284b90f45927bd6a01652c0b8f03019a"
+        }
+      }
+    },
+    {
+      "assetKey": "roadworn-trousers",
+      "name": "Roadworn Trousers",
+      "generator": "image_gen built-in",
+      "prompt": "Use case: stylized-concept. Asset type: finished square inventory and battle item artwork for Aurevane. Subject: folded travel-worn brown cloth trousers with leather knee patches and practical laces. Style: polished dark fantasy anime game item illustration, painterly detailed materials with crisp readable silhouette. One centered item or the explicitly requested matching pair, fully visible with generous 12 percent safe margin, three-quarter view on a softly textured near-black navy background. Restrained cinematic rim lighting makes the item readable at 64px. No humans, hands, bodies, mannequins, creatures, text, letters, numerals, logo, watermark, user interface, border, frame or tier badge. Do not add unrelated props. Square composition.",
+      "originalFile": "exec-aab854d4-aa87-4803-89ec-e6eb5858330d.png",
+      "originalSha256": "e3b64b66ec5972fff54ab8d1a770758fdd4775137ecc985689317383a4f2c393",
+      "visualReview": "accepted: recognizable requested item; no person, text or frame",
+      "assets": {
+        "preview": {
+          "path": "/media/art/items/roadworn-trousers-v01.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 41794,
+          "sha256": "5ada6ceffb141e33f819e343196b632b6dfdfb19a0be767229ac2849d52bb870"
+        },
+        "thumbnail": {
+          "path": "/media/art/items/thumbnails/roadworn-trousers-v01.webp",
+          "width": 256,
+          "height": 256,
+          "bytes": 11928,
+          "sha256": "cb2f245a4d68e3f70dc613805bc9700694db4cede208318f2046a8d18cf176e9"
+        }
+      }
+    },
+    {
+      "assetKey": "reinforced-greaves",
+      "name": "Reinforced Greaves",
+      "generator": "image_gen built-in",
+      "prompt": "Use case: stylized-concept. Asset type: finished square inventory and battle item artwork for Aurevane. Subject: a matched pair of steel leg armor greaves with brown leather straps, clear armored knee shapes. Style: polished dark fantasy anime game item illustration, painterly detailed materials with crisp readable silhouette. One centered item or the explicitly requested matching pair, fully visible with generous 12 percent safe margin, three-quarter view on a softly textured near-black navy background. Restrained cinematic rim lighting makes the item readable at 64px. No humans, hands, bodies, mannequins, creatures, text, letters, numerals, logo, watermark, user interface, border, frame or tier badge. Do not add unrelated props. Square composition.",
+      "originalFile": "exec-0eb2e9e5-baa7-452c-ba6e-0a7a07586d83.png",
+      "originalSha256": "b20d95673690b719a40acb56673661fc7d5b38c8d8260462f2992965a197dab5",
+      "visualReview": "accepted: recognizable requested item; no person, text or frame",
+      "assets": {
+        "preview": {
+          "path": "/media/art/items/reinforced-greaves-v01.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 27616,
+          "sha256": "466f01a9f412aa65a401ec8209006566ec0d6c1f77cabeddced799228e247ad6"
+        },
+        "thumbnail": {
+          "path": "/media/art/items/thumbnails/reinforced-greaves-v01.webp",
+          "width": 256,
+          "height": 256,
+          "bytes": 9448,
+          "sha256": "5659647f971ee74d59a8bc606293cec7d65baac1da8da95e32dce98b92e16962"
+        }
+      }
+    },
+    {
+      "assetKey": "shadowstep-leggings",
+      "name": "Shadowstep Leggings",
+      "generator": "image_gen built-in",
+      "prompt": "Use case: stylized-concept. Asset type: finished square inventory and battle item artwork for Aurevane. Subject: a folded pair of fitted charcoal leather leggings with overlapping matte knee panels and subtle violet seam highlights. Style: polished dark fantasy anime game item illustration, painterly detailed materials with crisp readable silhouette. One centered item or the explicitly requested matching pair, fully visible with generous 12 percent safe margin, three-quarter view on a softly textured near-black navy background. Restrained cinematic rim lighting makes the item readable at 64px. No humans, hands, bodies, mannequins, creatures, text, letters, numerals, logo, watermark, user interface, border, frame or tier badge. Do not add unrelated props. Square composition.",
+      "originalFile": "exec-6750bd8d-86f4-4c87-8b81-0015fc7c8e60.png",
+      "originalSha256": "e3b80ef8744aa89a20840cad2d5cd2b793a4bb927bc8086a75cb860a0602e92f",
+      "visualReview": "accepted: recognizable requested item; no person, text or frame",
+      "assets": {
+        "preview": {
+          "path": "/media/art/items/shadowstep-leggings-v01.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 20144,
+          "sha256": "2207258ca736bd2843488294d62ce8ae9a601950ff53e6800737c801865bf267"
+        },
+        "thumbnail": {
+          "path": "/media/art/items/thumbnails/shadowstep-leggings-v01.webp",
+          "width": 256,
+          "height": 256,
+          "bytes": 6400,
+          "sha256": "5d8462800c4aa5e13e35f98e9c2adae199b35032c880a95de23219ac4fd61bd6"
+        }
+      }
+    },
+    {
+      "assetKey": "trailbound-boots",
+      "name": "Trailbound Boots",
+      "generator": "image_gen built-in",
+      "prompt": "Use case: stylized-concept. Asset type: finished square inventory and battle item artwork for Aurevane. Subject: a pair of sturdy chestnut leather walking boots with green wraps and well-defined rugged soles. Style: polished dark fantasy anime game item illustration, painterly detailed materials with crisp readable silhouette. One centered item or the explicitly requested matching pair, fully visible with generous 12 percent safe margin, three-quarter view on a softly textured near-black navy background. Restrained cinematic rim lighting makes the item readable at 64px. No humans, hands, bodies, mannequins, creatures, text, letters, numerals, logo, watermark, user interface, border, frame or tier badge. Do not add unrelated props. Square composition.",
+      "originalFile": "exec-5b13bce5-f098-491b-86ee-5d699912bad3.png",
+      "originalSha256": "a75280c71b439fa18d0da507ecc378c9f2eb26cd61ee4f4b4580e7be7b03897f",
+      "visualReview": "accepted: recognizable requested item; no person, text or frame",
+      "assets": {
+        "preview": {
+          "path": "/media/art/items/trailbound-boots-v01.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 42070,
+          "sha256": "959d834f388a623dbc7e900794c216128b0d4d78ca39ba27d93cf852814b42df"
+        },
+        "thumbnail": {
+          "path": "/media/art/items/thumbnails/trailbound-boots-v01.webp",
+          "width": 256,
+          "height": 256,
+          "bytes": 12694,
+          "sha256": "8f4788d5ce7740a06ae619a273790388f9554fc3c372d4c376f53fa921c991ba"
+        }
+      }
+    },
+    {
+      "assetKey": "galewalker-boots",
+      "name": "Galewalker Boots",
+      "generator": "image_gen built-in",
+      "prompt": "Use case: stylized-concept. Asset type: finished square inventory and battle item artwork for Aurevane. Subject: a pair of elegant dark teal boots with silver wing-like ankle buckles and faint curling wind ribbons. Style: polished dark fantasy anime game item illustration, painterly detailed materials with crisp readable silhouette. One centered item or the explicitly requested matching pair, fully visible with generous 12 percent safe margin, three-quarter view on a softly textured near-black navy background. Restrained cinematic rim lighting makes the item readable at 64px. No humans, hands, bodies, mannequins, creatures, text, letters, numerals, logo, watermark, user interface, border, frame or tier badge. Do not add unrelated props. Square composition.",
+      "originalFile": "exec-c89aafd0-ce5c-45c3-9d67-70bb11ce0450.png",
+      "originalSha256": "55e5a1a813be9596fc2614b9a6b16923f3db0797d20f4df1bef8275127d55d37",
+      "visualReview": "accepted: recognizable requested item; no person, text or frame",
+      "assets": {
+        "preview": {
+          "path": "/media/art/items/galewalker-boots-v01.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 28772,
+          "sha256": "0ffba1a1758c30cedbbfd545fcd466c5c5cc7ee0f8fe8ecab041d777c6255679"
+        },
+        "thumbnail": {
+          "path": "/media/art/items/thumbnails/galewalker-boots-v01.webp",
+          "width": 256,
+          "height": 256,
+          "bytes": 9734,
+          "sha256": "eb7ff94d320aefd40f08abe6f0b0bc8719a8601c20612c09d8a7089d271e8b7a"
+        }
+      }
+    },
+    {
+      "assetKey": "quickdraw-glove",
+      "name": "Quickdraw Glove",
+      "generator": "image_gen built-in",
+      "prompt": "Use case: stylized-concept. Asset type: finished square inventory and battle item artwork for Aurevane. Subject: a single supple dark brown leather glove, empty, laid neatly palm down with brass wrist fastener. Style: polished dark fantasy anime game item illustration, painterly detailed materials with crisp readable silhouette. One centered item or the explicitly requested matching pair, fully visible with generous 12 percent safe margin, three-quarter view on a softly textured near-black navy background. Restrained cinematic rim lighting makes the item readable at 64px. No humans, hands, bodies, mannequins, creatures, text, letters, numerals, logo, watermark, user interface, border, frame or tier badge. Do not add unrelated props. Square composition.",
+      "originalFile": "exec-52362715-c1ac-45f4-969e-67e664c9d801.png",
+      "originalSha256": "005c4c42244e1d86c3207187526ddbd36116ca7078d1ddcfec1587611d26a822",
+      "visualReview": "accepted: recognizable requested item; no person, text or frame",
+      "assets": {
+        "preview": {
+          "path": "/media/art/items/quickdraw-glove-v01.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 22754,
+          "sha256": "9d1cff6552b851aaa16e0ca26ff75d1539315420107feb03f3f3d606f3df630d"
+        },
+        "thumbnail": {
+          "path": "/media/art/items/thumbnails/quickdraw-glove-v01.webp",
+          "width": 256,
+          "height": 256,
+          "bytes": 7024,
+          "sha256": "f9ca2aa6957546539c3e7f4650e576224bd9a5293f9ef8159bbc67cde3f30c55"
+        }
+      }
+    },
+    {
+      "assetKey": "wardstone-bracer",
+      "name": "Wardstone Bracer",
+      "generator": "image_gen built-in",
+      "prompt": "Use case: stylized-concept. Asset type: finished square inventory and battle item artwork for Aurevane. Subject: a thick steel-and-leather forearm bracer holding one luminous jade protective stone, no arm. Style: polished dark fantasy anime game item illustration, painterly detailed materials with crisp readable silhouette. One centered item or the explicitly requested matching pair, fully visible with generous 12 percent safe margin, three-quarter view on a softly textured near-black navy background. Restrained cinematic rim lighting makes the item readable at 64px. No humans, hands, bodies, mannequins, creatures, text, letters, numerals, logo, watermark, user interface, border, frame or tier badge. Do not add unrelated props. Square composition.",
+      "originalFile": "exec-15667d17-cfd7-46d3-a95f-3a294541ade0.png",
+      "originalSha256": "453e556bdcdecb4cd7b662a187f962d94f5df022802ab90af7818c82157b3162",
+      "visualReview": "accepted: recognizable requested item; no person, text or frame",
+      "assets": {
+        "preview": {
+          "path": "/media/art/items/wardstone-bracer-v01.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 29930,
+          "sha256": "9abdb3e216f902293d3062114325f6e0a111d19e7d24cd50a212fc07a53124a8"
+        },
+        "thumbnail": {
+          "path": "/media/art/items/thumbnails/wardstone-bracer-v01.webp",
+          "width": 256,
+          "height": 256,
+          "bytes": 9180,
+          "sha256": "306879f7d805b127b00f04cdf464ffa3b1f30c469a9e1cd4092678a78b954c66"
+        }
+      }
+    },
+    {
+      "assetKey": "iron-shortsword",
+      "name": "Iron Shortsword",
+      "generator": "image_gen built-in",
+      "prompt": "Use case: stylized-concept. Asset type: finished square inventory and battle item artwork for Aurevane. Subject: a practical straight iron shortsword with a compact crossguard and brown leather grip, full blade visible diagonally. Style: polished dark fantasy anime game item illustration, painterly detailed materials with crisp readable silhouette. One centered item or the explicitly requested matching pair, fully visible with generous 12 percent safe margin, three-quarter view on a softly textured near-black navy background. Restrained cinematic rim lighting makes the item readable at 64px. No humans, hands, bodies, mannequins, creatures, text, letters, numerals, logo, watermark, user interface, border, frame or tier badge. Do not add unrelated props. Square composition.",
+      "originalFile": "exec-a6d4bbcb-dd3f-4bd9-b66f-fbbf1f223c9b.png",
+      "originalSha256": "26175325781f06c3f9a76ed6d907e679893a1067fd7a0b6c3423ce8973f007bf",
+      "visualReview": "accepted: recognizable requested item; no person, text or frame",
+      "assets": {
+        "preview": {
+          "path": "/media/art/items/iron-shortsword-v01.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 12438,
+          "sha256": "13744bc55739b7d552d6f103874a6efecfca0efd4abde5e0c93ace4a5f9b25ee"
+        },
+        "thumbnail": {
+          "path": "/media/art/items/thumbnails/iron-shortsword-v01.webp",
+          "width": 256,
+          "height": 256,
+          "bytes": 4290,
+          "sha256": "11221d1b17b4a8a5fbe3bee9344cb1cc6ac4055d9c7cd54c48d602a9a5457973"
+        }
+      }
+    },
+    {
+      "assetKey": "hollow-dagger",
+      "name": "Hollow Dagger",
+      "generator": "image_gen built-in",
+      "prompt": "Use case: stylized-concept. Asset type: finished square inventory and battle item artwork for Aurevane. Subject: a slender blackened-steel dagger with a clear concave fuller, wrapped grip and subtle violet edge light, full silhouette. Style: polished dark fantasy anime game item illustration, painterly detailed materials with crisp readable silhouette. One centered item or the explicitly requested matching pair, fully visible with generous 12 percent safe margin, three-quarter view on a softly textured near-black navy background. Restrained cinematic rim lighting makes the item readable at 64px. No humans, hands, bodies, mannequins, creatures, text, letters, numerals, logo, watermark, user interface, border, frame or tier badge. Do not add unrelated props. Square composition.",
+      "originalFile": "exec-7dd2de7d-e9d2-4a7a-85f1-9d5a520add39.png",
+      "originalSha256": "238619e5ff16219ad2fbdd1ff16582461b157936f1fbe56346e8b29378b1bef5",
+      "visualReview": "accepted: recognizable requested item; no person, text or frame",
+      "assets": {
+        "preview": {
+          "path": "/media/art/items/hollow-dagger-v01.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 12728,
+          "sha256": "9aebbcd17fdb3a23c23f00a008c9b1f22a4673870245796fdb12a9b517529ff3"
+        },
+        "thumbnail": {
+          "path": "/media/art/items/thumbnails/hollow-dagger-v01.webp",
+          "width": 256,
+          "height": 256,
+          "bytes": 4190,
+          "sha256": "6a168daa7e4ad0d3b6b01bd2735ae280c2e49b9fa8300e233bd1895fc6415410"
+        }
+      }
+    },
+    {
+      "assetKey": "buckler-patience",
+      "name": "Buckler of Patience",
+      "generator": "image_gen built-in",
+      "prompt": "Use case: stylized-concept. Asset type: finished square inventory and battle item artwork for Aurevane. Subject: a small round dark wood buckler with iron rim and a central steel boss, worn gold radial marks. Style: polished dark fantasy anime game item illustration, painterly detailed materials with crisp readable silhouette. One centered item or the explicitly requested matching pair, fully visible with generous 12 percent safe margin, three-quarter view on a softly textured near-black navy background. Restrained cinematic rim lighting makes the item readable at 64px. No humans, hands, bodies, mannequins, creatures, text, letters, numerals, logo, watermark, user interface, border, frame or tier badge. Do not add unrelated props. Square composition.",
+      "originalFile": "exec-2623f8ea-c4f9-403c-a82b-01d1aa5ba5c2.png",
+      "originalSha256": "5c2b36ab88398724d09fb658e736618386c3f5d887dd84827480f98f42d008ba",
+      "visualReview": "accepted: recognizable requested item; no person, text or frame",
+      "assets": {
+        "preview": {
+          "path": "/media/art/items/buckler-patience-v01.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 34918,
+          "sha256": "79faede639648f567028976017cb54e8ac04051f16bab2ec4aa80cbc00819290"
+        },
+        "thumbnail": {
+          "path": "/media/art/items/thumbnails/buckler-patience-v01.webp",
+          "width": 256,
+          "height": 256,
+          "bytes": 10038,
+          "sha256": "996a07c8e02662420e287e0fb5bf05d3ea5da7f8cf8f3d7c71ba30dfec45b82f"
+        }
+      }
+    },
+    {
+      "assetKey": "twinfang-blade",
+      "name": "Twinfang Blade",
+      "generator": "image_gen built-in",
+      "prompt": "Use case: stylized-concept. Asset type: finished square inventory and battle item artwork for Aurevane. Subject: a single elegant weapon with two parallel short curved fang-like blades joined at one dark leather hilt, unambiguous double cutting edges. Style: polished dark fantasy anime game item illustration, painterly detailed materials with crisp readable silhouette. One centered item or the explicitly requested matching pair, fully visible with generous 12 percent safe margin, three-quarter view on a softly textured near-black navy background. Restrained cinematic rim lighting makes the item readable at 64px. No humans, hands, bodies, mannequins, creatures, text, letters, numerals, logo, watermark, user interface, border, frame or tier badge. Do not add unrelated props. Square composition.",
+      "originalFile": "exec-6a17d418-a6af-48cf-a3c8-5205fb2b378e.png",
+      "originalSha256": "57efe2c7776b9bb0aa64b8a3c18200dcb93aa0d2ae606bb2f84dac96a5fb2f0f",
+      "visualReview": "accepted: recognizable requested item; no person, text or frame",
+      "assets": {
+        "preview": {
+          "path": "/media/art/items/twinfang-blade-v01.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 21946,
+          "sha256": "6e12ac81cc7d0e16690e2454ac1cb7b411f05c6aa226d4e6c887e9c8b23e3933"
+        },
+        "thumbnail": {
+          "path": "/media/art/items/thumbnails/twinfang-blade-v01.webp",
+          "width": 256,
+          "height": 256,
+          "bytes": 7240,
+          "sha256": "dfb0304c8623ec7de91454e80fa5cb5bb9445461192a1f2a16bbac43bc278086"
+        }
+      }
+    },
+    {
+      "assetKey": "tower-shield",
+      "name": "Tower Shield",
+      "generator": "image_gen built-in",
+      "prompt": "Use case: stylized-concept. Asset type: finished square inventory and battle item artwork for Aurevane. Subject: a tall rectangular steel-faced wooden shield with reinforced dark iron edges and a simple embossed guardian ridge. Style: polished dark fantasy anime game item illustration, painterly detailed materials with crisp readable silhouette. One centered item or the explicitly requested matching pair, fully visible with generous 12 percent safe margin, three-quarter view on a softly textured near-black navy background. Restrained cinematic rim lighting makes the item readable at 64px. No humans, hands, bodies, mannequins, creatures, text, letters, numerals, logo, watermark, user interface, border, frame or tier badge. Do not add unrelated props. Square composition.",
+      "originalFile": "exec-d494537b-9f7c-4ea6-bfb0-0ff0a9587815.png",
+      "originalSha256": "72fbb009b9a0115e3209d65e16746c0186fd59dfb2ecb171e2c556437d3af325",
+      "visualReview": "accepted: recognizable requested item; no person, text or frame",
+      "assets": {
+        "preview": {
+          "path": "/media/art/items/tower-shield-v01.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 23034,
+          "sha256": "7753582e676716592b5769f6f8bf332d857a087043fff63b5e2209a73826a854"
+        },
+        "thumbnail": {
+          "path": "/media/art/items/thumbnails/tower-shield-v01.webp",
+          "width": 256,
+          "height": 256,
+          "bytes": 7034,
+          "sha256": "43d39452c4e17f525ad50117a3c363bf92b6646b2b2fef6843137fdfc06b43d2"
+        }
+      }
+    },
+    {
+      "assetKey": "stormcaller-staff",
+      "name": "Stormcaller Staff",
+      "generator": "image_gen built-in",
+      "prompt": "Use case: stylized-concept. Asset type: finished square inventory and battle item artwork for Aurevane. Subject: a long dark wood staff with a silver forked crown holding a small electric-blue crystal, full staff visible diagonally. Style: polished dark fantasy anime game item illustration, painterly detailed materials with crisp readable silhouette. One centered item or the explicitly requested matching pair, fully visible with generous 12 percent safe margin, three-quarter view on a softly textured near-black navy background. Restrained cinematic rim lighting makes the item readable at 64px. No humans, hands, bodies, mannequins, creatures, text, letters, numerals, logo, watermark, user interface, border, frame or tier badge. Do not add unrelated props. Square composition.",
+      "originalFile": "exec-c8866806-dbd3-4a86-b08c-3674d0539c91.png",
+      "originalSha256": "dd0c42fab083208091dbaa8d512578034347777c950d62f98cd765614e3cdb8a",
+      "visualReview": "accepted: recognizable requested item; no person, text or frame",
+      "assets": {
+        "preview": {
+          "path": "/media/art/items/stormcaller-staff-v01.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 12988,
+          "sha256": "25504d35c56299017a7488caa7ae69002e7560623c1b897da0ca28d976b473f9"
+        },
+        "thumbnail": {
+          "path": "/media/art/items/thumbnails/stormcaller-staff-v01.webp",
+          "width": 256,
+          "height": 256,
+          "bytes": 4376,
+          "sha256": "bb449b57e8ecc3bfaff548da1d0a402ca9a0fb39e01290e1da6e889138c12b28"
+        }
+      }
+    },
+    {
+      "assetKey": "emberbrand",
+      "name": "Emberbrand",
+      "generator": "image_gen built-in",
+      "prompt": "Use case: stylized-concept. Asset type: finished square inventory and battle item artwork for Aurevane. Subject: a straight dark steel sword whose shallow engraved channels glow orange like banked embers, restrained fire wisps and black leather grip. Style: polished dark fantasy anime game item illustration, painterly detailed materials with crisp readable silhouette. One centered item or the explicitly requested matching pair, fully visible with generous 12 percent safe margin, three-quarter view on a softly textured near-black navy background. Restrained cinematic rim lighting makes the item readable at 64px. No humans, hands, bodies, mannequins, creatures, text, letters, numerals, logo, watermark, user interface, border, frame or tier badge. Do not add unrelated props. Square composition.",
+      "originalFile": "exec-b84028c0-d323-4fa4-9840-8914447e1fb5.png",
+      "originalSha256": "23a513e256cf2679e7cd875c4f5eaf9b18b9bcb853d634b17ecd2b935cff4276",
+      "visualReview": "accepted: recognizable requested item; no person, text or frame",
+      "assets": {
+        "preview": {
+          "path": "/media/art/items/emberbrand-v01.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 18476,
+          "sha256": "476bfff9f63c334b30d8da70c87dfbea3b4374794faf5d14d4189cf3bfc2178e"
+        },
+        "thumbnail": {
+          "path": "/media/art/items/thumbnails/emberbrand-v01.webp",
+          "width": 256,
+          "height": 256,
+          "bytes": 6048,
+          "sha256": "94b2f6be1c361bea30ceeca4561f0086367bc648640bc902bf0426f6860c4834"
+        }
+      }
+    },
+    {
+      "assetKey": "sunsplitter",
+      "name": "Sunsplitter",
+      "generator": "image_gen built-in",
+      "prompt": "Use case: stylized-concept. Asset type: finished square inventory and battle item artwork for Aurevane. Subject: a massive two-handed gold-edged greatsword with a broad dark steel blade, long leather grip and radiant amber core inset near the guard. Style: polished dark fantasy anime game item illustration, painterly detailed materials with crisp readable silhouette. One centered item or the explicitly requested matching pair, fully visible with generous 12 percent safe margin, three-quarter view on a softly textured near-black navy background. Restrained cinematic rim lighting makes the item readable at 64px. No humans, hands, bodies, mannequins, creatures, text, letters, numerals, logo, watermark, user interface, border, frame or tier badge. Do not add unrelated props. Square composition.",
+      "originalFile": "exec-8b7ef648-06ea-425f-885c-066decd8ca84.png",
+      "originalSha256": "0504faf2a121f126a346db5faaaf442420c0b685aef362a919e890946072ccb1",
+      "visualReview": "accepted: recognizable requested item; no person, text or frame",
+      "assets": {
+        "preview": {
+          "path": "/media/art/items/sunsplitter-v01.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 22676,
+          "sha256": "35cc7635ddd25f000964c1b055ad64ebab1e219df76d196067b918615eb320e7"
+        },
+        "thumbnail": {
+          "path": "/media/art/items/thumbnails/sunsplitter-v01.webp",
+          "width": 256,
+          "height": 256,
+          "bytes": 7242,
+          "sha256": "c0826566402bf19001668b9aa20c1fa5f6cecee6b94045bd286d4fd585ffeda6"
+        }
+      }
+    },
+    {
+      "assetKey": "mender-salve",
+      "name": "Mender Salve",
+      "generator": "image_gen built-in",
+      "prompt": "Use case: stylized-concept. Asset type: finished square inventory and battle item artwork for Aurevane. Subject: a small open ceramic ointment jar containing luminous soft green salve, linen wraps and one healing leaf beside it. Style: polished dark fantasy anime game item illustration, painterly detailed materials with crisp readable silhouette. One centered item or the explicitly requested matching pair, fully visible with generous 12 percent safe margin, three-quarter view on a softly textured near-black navy background. Restrained cinematic rim lighting makes the item readable at 64px. No humans, hands, bodies, mannequins, creatures, text, letters, numerals, logo, watermark, user interface, border, frame or tier badge. Do not add unrelated props. Square composition.",
+      "originalFile": "exec-910139d6-0430-4daf-8e0f-96bd8adf60b7.png",
+      "originalSha256": "9b013b3226303c2cc2fdaf82b81813139e0eb32fe8cdeb35d88102012d0cf5ef",
+      "visualReview": "accepted: recognizable requested item; no person, text or frame",
+      "assets": {
+        "preview": {
+          "path": "/media/art/items/mender-salve-v01.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 35694,
+          "sha256": "beebc1e87cdbb44a996e69b8e68e206cdc9473c2ecd9c2895a8ba9d2c052d93b"
+        },
+        "thumbnail": {
+          "path": "/media/art/items/thumbnails/mender-salve-v01.webp",
+          "width": 256,
+          "height": 256,
+          "bytes": 10428,
+          "sha256": "4c6408fb35bfbe1a0b460a4a50c046df9cc6fd0f4cdbddba304599194b18ed09"
+        }
+      }
+    },
+    {
+      "assetKey": "clarity-draught",
+      "name": "Clarity Draught",
+      "generator": "image_gen built-in",
+      "prompt": "Use case: stylized-concept. Asset type: finished square inventory and battle item artwork for Aurevane. Subject: a narrow corked glass vial filled with luminous sapphire-blue liquid, simple silver neck wire and clear glass reflections. Style: polished dark fantasy anime game item illustration, painterly detailed materials with crisp readable silhouette. One centered item or the explicitly requested matching pair, fully visible with generous 12 percent safe margin, three-quarter view on a softly textured near-black navy background. Restrained cinematic rim lighting makes the item readable at 64px. No humans, hands, bodies, mannequins, creatures, text, letters, numerals, logo, watermark, user interface, border, frame or tier badge. Do not add unrelated props. Square composition.",
+      "originalFile": "exec-bf324924-a790-462f-ad8f-aedb74d9ad91.png",
+      "originalSha256": "deeebd53339e03e00d393dd58a32259ef4e619050215490ff04ba3ee1bbe2fd2",
+      "visualReview": "accepted: recognizable requested item; no person, text or frame",
+      "assets": {
+        "preview": {
+          "path": "/media/art/items/clarity-draught-v01.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 17106,
+          "sha256": "a16d4e9d74161c9330ee81df49d7136a23a621e1dd249749d2198f8fc7fdeea5"
+        },
+        "thumbnail": {
+          "path": "/media/art/items/thumbnails/clarity-draught-v01.webp",
+          "width": 256,
+          "height": 256,
+          "bytes": 5956,
+          "sha256": "f77b075e00009d0cec574257512f504a9f4c498dc6ab38214d72837f35222093"
+        }
+      }
+    },
+    {
+      "assetKey": "purifying-incense",
+      "name": "Purifying Incense",
+      "generator": "image_gen built-in",
+      "prompt": "Use case: stylized-concept. Asset type: finished square inventory and battle item artwork for Aurevane. Subject: a small dark brass incense dish holding pale burning incense sticks, one elegant curl of white cleansing smoke. Style: polished dark fantasy anime game item illustration, painterly detailed materials with crisp readable silhouette. One centered item or the explicitly requested matching pair, fully visible with generous 12 percent safe margin, three-quarter view on a softly textured near-black navy background. Restrained cinematic rim lighting makes the item readable at 64px. No humans, hands, bodies, mannequins, creatures, text, letters, numerals, logo, watermark, user interface, border, frame or tier badge. Do not add unrelated props. Square composition.",
+      "originalFile": "exec-edfdc530-14ad-473f-9918-118b470948ef.png",
+      "originalSha256": "b619752fca611896b163887919763b305c649683f80a908df474bd8868d80bd3",
+      "visualReview": "accepted: recognizable requested item; no person, text or frame",
+      "assets": {
+        "preview": {
+          "path": "/media/art/items/purifying-incense-v01.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 17222,
+          "sha256": "576b30bdfc9e0a44cb78bdc2c3473923b56a6a1f94f82575f11e0197901e9489"
+        },
+        "thumbnail": {
+          "path": "/media/art/items/thumbnails/purifying-incense-v01.webp",
+          "width": 256,
+          "height": 256,
+          "bytes": 6082,
+          "sha256": "1c7f40416aabe0c739d2152c5b794114d8e249950b7208f0953203d8451722c6"
+        }
+      }
+    },
+    {
+      "assetKey": "whetstone-charm",
+      "name": "Whetstone Charm",
+      "generator": "image_gen built-in",
+      "prompt": "Use case: stylized-concept. Asset type: finished square inventory and battle item artwork for Aurevane. Subject: a small red-gray whetstone bound in leather cord with a restrained glowing crimson sigil and a tiny steel clasp. Style: polished dark fantasy anime game item illustration, painterly detailed materials with crisp readable silhouette. One centered item or the explicitly requested matching pair, fully visible with generous 12 percent safe margin, three-quarter view on a softly textured near-black navy background. Restrained cinematic rim lighting makes the item readable at 64px. No humans, hands, bodies, mannequins, creatures, text, letters, numerals, logo, watermark, user interface, border, frame or tier badge. Do not add unrelated props. Square composition.",
+      "originalFile": "exec-e909a12c-f1a0-4dbd-8fba-b93d0a235b20.png",
+      "originalSha256": "1e01f806f75702ca91856bc2778a827724383313d396e3a998722bf02ad39e3f",
+      "visualReview": "accepted: recognizable requested item; no person, text or frame",
+      "assets": {
+        "preview": {
+          "path": "/media/art/items/whetstone-charm-v01.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 19206,
+          "sha256": "edd563818d2bc21d6034f926c9897909cb9fd91b45be4b986756bf2dc18e333f"
+        },
+        "thumbnail": {
+          "path": "/media/art/items/thumbnails/whetstone-charm-v01.webp",
+          "width": 256,
+          "height": 256,
+          "bytes": 5766,
+          "sha256": "ad613c5eb97e75fa14e6d602e292552483a79ec0bdfb0f123d9af4a83a6fc45e"
+        }
+      }
+    },
+    {
+      "assetKey": "ironbark-tonic",
+      "name": "Ironbark Tonic",
+      "generator": "image_gen built-in",
+      "prompt": "Use case: stylized-concept. Asset type: finished square inventory and battle item artwork for Aurevane. Subject: a squat corked amber glass tonic bottle wrapped with rough bark and a dark green leaf, warm brown herbal liquid. Style: polished dark fantasy anime game item illustration, painterly detailed materials with crisp readable silhouette. One centered item or the explicitly requested matching pair, fully visible with generous 12 percent safe margin, three-quarter view on a softly textured near-black navy background. Restrained cinematic rim lighting makes the item readable at 64px. No humans, hands, bodies, mannequins, creatures, text, letters, numerals, logo, watermark, user interface, border, frame or tier badge. Do not add unrelated props. Square composition.",
+      "originalFile": "exec-9e388c35-0eaf-4210-973a-e16e191cb7b8.png",
+      "originalSha256": "91ec61b2109b96d38d7ed3196c6e542c88d6611c1809f09b36409178c7bc5720",
+      "visualReview": "accepted: recognizable requested item; no person, text or frame",
+      "assets": {
+        "preview": {
+          "path": "/media/art/items/ironbark-tonic-v01.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 33520,
+          "sha256": "c025e08bbba6997dd6919bfebff4606e67565c815a2f9b73f6733ced637fa10d"
+        },
+        "thumbnail": {
+          "path": "/media/art/items/thumbnails/ironbark-tonic-v01.webp",
+          "width": 256,
+          "height": 256,
+          "bytes": 10152,
+          "sha256": "d868b686aeae79cdcd4db10133bb2bfee49b39c872062f5986628f25baf84e8b"
+        }
+      }
+    },
+    {
+      "assetKey": "swiftleaf-tea",
+      "name": "Swiftleaf Tea",
+      "generator": "image_gen built-in",
+      "prompt": "Use case: stylized-concept. Asset type: finished square inventory and battle item artwork for Aurevane. Subject: a small lidded pale celadon flask of bright lime herbal tea beside two delicate narrow green leaves, faint wind-like vapor. Style: polished dark fantasy anime game item illustration, painterly detailed materials with crisp readable silhouette. One centered item or the explicitly requested matching pair, fully visible with generous 12 percent safe margin, three-quarter view on a softly textured near-black navy background. Restrained cinematic rim lighting makes the item readable at 64px. No humans, hands, bodies, mannequins, creatures, text, letters, numerals, logo, watermark, user interface, border, frame or tier badge. Do not add unrelated props. Square composition.",
+      "originalFile": "exec-b4a85eb9-204a-42e4-a384-5d2641df63ad.png",
+      "originalSha256": "6c2f56205468db200f461c1affa9a7fa253dfc0c8ae78ef5b2cd59b2d99d1721",
+      "visualReview": "accepted: recognizable requested item; no person, text or frame",
+      "assets": {
+        "preview": {
+          "path": "/media/art/items/swiftleaf-tea-v01.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 24798,
+          "sha256": "e9e130f6ebd1c9e48f7db8c1b9a531020970c27157fd91158013e8e532785934"
+        },
+        "thumbnail": {
+          "path": "/media/art/items/thumbnails/swiftleaf-tea-v01.webp",
+          "width": 256,
+          "height": 256,
+          "bytes": 8132,
+          "sha256": "b41d87ff1e69a10cb8e34bfcf29321944b2356ffbd2cbf48a2cf54fc25b00936"
+        }
+      }
+    },
+    {
+      "assetKey": "emberflask",
+      "name": "Emberflask",
+      "generator": "image_gen built-in",
+      "prompt": "Use case: stylized-concept. Asset type: finished square inventory and battle item artwork for Aurevane. Subject: a round sealed dark glass throwing flask containing molten-orange liquid, tightly wrapped wire collar and smoldering red reflections. Style: polished dark fantasy anime game item illustration, painterly detailed materials with crisp readable silhouette. One centered item or the explicitly requested matching pair, fully visible with generous 12 percent safe margin, three-quarter view on a softly textured near-black navy background. Restrained cinematic rim lighting makes the item readable at 64px. No humans, hands, bodies, mannequins, creatures, text, letters, numerals, logo, watermark, user interface, border, frame or tier badge. Do not add unrelated props. Square composition.",
+      "originalFile": "exec-4c8081b1-a872-4ec6-baf1-585448f02c5d.png",
+      "originalSha256": "cb181b8005a56da02de0e62fba702a362755e22c182596f49105f6a5ecde18e7",
+      "visualReview": "accepted: recognizable requested item; no person, text or frame",
+      "assets": {
+        "preview": {
+          "path": "/media/art/items/emberflask-v01.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 27044,
+          "sha256": "5bca21d87cc694caacc7cbc4b30d3bad8f46c598a7d5f0cb0f574c5c9ce08a4d"
+        },
+        "thumbnail": {
+          "path": "/media/art/items/thumbnails/emberflask-v01.webp",
+          "width": 256,
+          "height": 256,
+          "bytes": 8736,
+          "sha256": "7a42aed516dfca12a240fe77aa32c88014c0552149d3cb84c98f11d81e0a2a73"
+        }
+      }
+    },
+    {
+      "assetKey": "vulnerability-oil",
+      "name": "Vulnerability Oil",
+      "generator": "image_gen built-in",
+      "prompt": "Use case: stylized-concept. Asset type: finished square inventory and battle item artwork for Aurevane. Subject: a stoppered angular violet glass bottle of plum-colored alchemical oil, hanging broken-shield-shaped metal charm. Style: polished dark fantasy anime game item illustration, painterly detailed materials with crisp readable silhouette. One centered item or the explicitly requested matching pair, fully visible with generous 12 percent safe margin, three-quarter view on a softly textured near-black navy background. Restrained cinematic rim lighting makes the item readable at 64px. No humans, hands, bodies, mannequins, creatures, text, letters, numerals, logo, watermark, user interface, border, frame or tier badge. Do not add unrelated props. Square composition.",
+      "originalFile": "exec-79364bd4-ded1-40b5-967a-ca3efaf41227.png",
+      "originalSha256": "e762b71222383d766680445ed1189b7eaab5c6a82a7e6f31497c1a98b7883c09",
+      "visualReview": "accepted: recognizable requested item; no person, text or frame",
+      "assets": {
+        "preview": {
+          "path": "/media/art/items/vulnerability-oil-v01.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 22160,
+          "sha256": "c5d6fd5baba11275950693a2b58760f0019c9a28b1e5c8222174655536633062"
+        },
+        "thumbnail": {
+          "path": "/media/art/items/thumbnails/vulnerability-oil-v01.webp",
+          "width": 256,
+          "height": 256,
+          "bytes": 7474,
+          "sha256": "3519b7c0f27465d365e774d328cfd3e7a45a879353289bc6753216d5bee8603c"
+        }
+      }
+    },
+    {
+      "assetKey": "frostbind-powder",
+      "name": "Frostbind Powder",
+      "generator": "image_gen built-in",
+      "prompt": "Use case: stylized-concept. Asset type: finished square inventory and battle item artwork for Aurevane. Subject: a small dark cloth pouch open to crystalline ice-blue powder, a few angular frost crystals and faint cold mist. Style: polished dark fantasy anime game item illustration, painterly detailed materials with crisp readable silhouette. One centered item or the explicitly requested matching pair, fully visible with generous 12 percent safe margin, three-quarter view on a softly textured near-black navy background. Restrained cinematic rim lighting makes the item readable at 64px. No humans, hands, bodies, mannequins, creatures, text, letters, numerals, logo, watermark, user interface, border, frame or tier badge. Do not add unrelated props. Square composition.",
+      "originalFile": "exec-3c20e194-239e-4e94-b741-a210e073065a.png",
+      "originalSha256": "d592541d4575411a76cf5ab280e308a2655767ea8acaa701539de0a8a4f54772",
+      "visualReview": "accepted: recognizable requested item; no person, text or frame",
+      "assets": {
+        "preview": {
+          "path": "/media/art/items/frostbind-powder-v01.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 33118,
+          "sha256": "8d08e2672a77d91c09b23d2c777c8ca84e34232ec96a1cc479184efc3594ce52"
+        },
+        "thumbnail": {
+          "path": "/media/art/items/thumbnails/frostbind-powder-v01.webp",
+          "width": 256,
+          "height": 256,
+          "bytes": 10138,
+          "sha256": "cc23aa23eb3cbe199d09a42bc50fb34d15095127068864071d1ce9a6b79ef426"
+        }
+      }
+    },
+    {
+      "assetKey": "smoke-veil",
+      "name": "Smoke Veil",
+      "generator": "image_gen built-in",
+      "prompt": "Use case: stylized-concept. Asset type: finished square inventory and battle item artwork for Aurevane. Subject: a small sealed matte-black smoke bomb with a short braided fuse, curling cool gray smoke and a pale silver band. Style: polished dark fantasy anime game item illustration, painterly detailed materials with crisp readable silhouette. One centered item or the explicitly requested matching pair, fully visible with generous 12 percent safe margin, three-quarter view on a softly textured near-black navy background. Restrained cinematic rim lighting makes the item readable at 64px. No humans, hands, bodies, mannequins, creatures, text, letters, numerals, logo, watermark, user interface, border, frame or tier badge. Do not add unrelated props. Square composition.",
+      "originalFile": "exec-be574f54-51f9-4ccf-9282-faba7aaca0bd.png",
+      "originalSha256": "ee7e316865ee4f10b4c4c1ad1f39cdeaed683d9e57d9274ccb9f2b89f5fdbf7c",
+      "visualReview": "accepted: recognizable requested item; no person, text or frame",
+      "assets": {
+        "preview": {
+          "path": "/media/art/items/smoke-veil-v01.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 14644,
+          "sha256": "d37f70102c03944e3bbaf4bffb63763d1e6189560c9f1a64dbd78c6736552f83"
+        },
+        "thumbnail": {
+          "path": "/media/art/items/thumbnails/smoke-veil-v01.webp",
+          "width": 256,
+          "height": 256,
+          "bytes": 4994,
+          "sha256": "5e7d509d0162bedcb6c786c4cf2ad3d183589043f6beddc8b247761950f154eb"
+        }
+      }
+    },
+    {
+      "assetKey": "ward-sigil-scroll",
+      "name": "Ward Sigil Scroll",
+      "generator": "image_gen built-in",
+      "prompt": "Use case: stylized-concept. Asset type: finished square inventory and battle item artwork for Aurevane. Subject: a partly unrolled parchment scroll bearing one abstract luminous gold circular protective sigil with no legible writing, red cord tie. Style: polished dark fantasy anime game item illustration, painterly detailed materials with crisp readable silhouette. One centered item or the explicitly requested matching pair, fully visible with generous 12 percent safe margin, three-quarter view on a softly textured near-black navy background. Restrained cinematic rim lighting makes the item readable at 64px. No humans, hands, bodies, mannequins, creatures, text, letters, numerals, logo, watermark, user interface, border, frame or tier badge. Do not add unrelated props. Square composition.",
+      "originalFile": "exec-c31e8d5a-899b-4411-b130-4f1726f600ef.png",
+      "originalSha256": "42c91c58238ce795436051388f997d5bcaabed7f5e6474b73d4de4d3cf660a33",
+      "visualReview": "accepted: recognizable requested item; no person, text or frame",
+      "assets": {
+        "preview": {
+          "path": "/media/art/items/ward-sigil-scroll-v01.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 34824,
+          "sha256": "dd74c2014c8867c298718e2e459ff8d14bc1bc597271a9f85d95382ef7a7d5f9"
+        },
+        "thumbnail": {
+          "path": "/media/art/items/thumbnails/ward-sigil-scroll-v01.webp",
+          "width": 256,
+          "height": 256,
+          "bytes": 11060,
+          "sha256": "7484ee03ffa2e6aa1f48e124cc245f34ed80256ba420259961ed802f128d1f17"
+        }
+      }
+    },
+    {
+      "assetKey": "ashwood-plank",
+      "name": "Ashwood Plank",
+      "generator": "image_gen built-in",
+      "prompt": "Use case: stylized-concept. Asset type: finished square inventory and battle item artwork for Aurevane. Subject: three short pale ashwood crafting planks stacked neatly, visible grain and rough cut ends. Style: polished dark fantasy anime game item illustration, painterly detailed materials with crisp readable silhouette. One centered item or the explicitly requested matching pair, fully visible with generous 12 percent safe margin, three-quarter view on a softly textured near-black navy background. Restrained cinematic rim lighting makes the item readable at 64px. No humans, hands, bodies, mannequins, creatures, text, letters, numerals, logo, watermark, user interface, border, frame or tier badge. Do not add unrelated props. Square composition.",
+      "originalFile": "exec-bfd035b8-29b5-4bc4-a4e2-d23975d06bf6.png",
+      "originalSha256": "b12e289d8e9a507bdc1862b734b90269f20b5056063d9e23efbcc14c7d95d25d",
+      "visualReview": "accepted: recognizable requested item; no person, text or frame",
+      "assets": {
+        "preview": {
+          "path": "/media/art/items/ashwood-plank-v01.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 33276,
+          "sha256": "7ccbeb3b165837c1b7293e16b6f3f13e35519c0864c2730efca75900f8caf6be"
+        },
+        "thumbnail": {
+          "path": "/media/art/items/thumbnails/ashwood-plank-v01.webp",
+          "width": 256,
+          "height": 256,
+          "bytes": 10312,
+          "sha256": "68629f867f3228e5def8d6bdf142b2766f241c73a2df6d2a9cc4c1c0c2f68cfd"
+        }
+      }
+    },
+    {
+      "assetKey": "ironvein-ore",
+      "name": "Ironvein Ore",
+      "generator": "image_gen built-in",
+      "prompt": "Use case: stylized-concept. Asset type: finished square inventory and battle item artwork for Aurevane. Subject: a rough charcoal rock ore chunk split by natural silver iron veins, a few small stone fragments. Style: polished dark fantasy anime game item illustration, painterly detailed materials with crisp readable silhouette. One centered item or the explicitly requested matching pair, fully visible with generous 12 percent safe margin, three-quarter view on a softly textured near-black navy background. Restrained cinematic rim lighting makes the item readable at 64px. No humans, hands, bodies, mannequins, creatures, text, letters, numerals, logo, watermark, user interface, border, frame or tier badge. Do not add unrelated props. Square composition.",
+      "originalFile": "exec-f5310aee-8540-4c87-a2ae-8042628e7bc1.png",
+      "originalSha256": "cf1a1497ca3473ae92b98b837cb2c48a25f211fb91c166e8759eface7795db74",
+      "visualReview": "accepted: recognizable requested item; no person, text or frame",
+      "assets": {
+        "preview": {
+          "path": "/media/art/items/ironvein-ore-v01.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 31064,
+          "sha256": "c51efc172f17520072852cb002e2e6268b42c7dba86f3e3915afc76f578c3e94"
+        },
+        "thumbnail": {
+          "path": "/media/art/items/thumbnails/ironvein-ore-v01.webp",
+          "width": 256,
+          "height": 256,
+          "bytes": 9700,
+          "sha256": "492386b272b49cbd74cc73c08c4ba1c6ee58f077354beacfc8d24c824fc931ba"
+        }
+      }
+    },
+    {
+      "assetKey": "dusk-petal",
+      "name": "Dusk Petal",
+      "generator": "image_gen built-in",
+      "prompt": "Use case: stylized-concept. Asset type: finished square inventory and battle item artwork for Aurevane. Subject: three delicate deep-violet flower petals with rose highlights, soft velvety texture and restrained magical shimmer. Style: polished dark fantasy anime game item illustration, painterly detailed materials with crisp readable silhouette. One centered item or the explicitly requested matching pair, fully visible with generous 12 percent safe margin, three-quarter view on a softly textured near-black navy background. Restrained cinematic rim lighting makes the item readable at 64px. No humans, hands, bodies, mannequins, creatures, text, letters, numerals, logo, watermark, user interface, border, frame or tier badge. Do not add unrelated props. Square composition.",
+      "originalFile": "exec-ef983770-c527-4516-83f4-dbfd375b4faa.png",
+      "originalSha256": "6505eefe7504aa1bad193c9aae7206b8f7c9f6939e65b1f5eeb2b3ff5c2734af",
+      "visualReview": "accepted: recognizable requested item; no person, text or frame",
+      "assets": {
+        "preview": {
+          "path": "/media/art/items/dusk-petal-v01.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 24342,
+          "sha256": "18884c24ddff4799afb4a8c91b9a883c994b95b2bd8edb92ff886bd8e7e0969a"
+        },
+        "thumbnail": {
+          "path": "/media/art/items/thumbnails/dusk-petal-v01.webp",
+          "width": 256,
+          "height": 256,
+          "bytes": 7044,
+          "sha256": "102360ec475cfa432a11283ba10db1a973d75f7a702a9834dcae09dcb0713d92"
+        }
+      }
+    },
+    {
+      "assetKey": "wyrm-scale-shard",
+      "name": "Wyrm Scale Shard",
+      "generator": "image_gen built-in",
+      "prompt": "Use case: stylized-concept. Asset type: finished square inventory and battle item artwork for Aurevane. Subject: one large broken iridescent deep-emerald reptilian scale shard with jagged edges and heavy ridged texture. Style: polished dark fantasy anime game item illustration, painterly detailed materials with crisp readable silhouette. One centered item or the explicitly requested matching pair, fully visible with generous 12 percent safe margin, three-quarter view on a softly textured near-black navy background. Restrained cinematic rim lighting makes the item readable at 64px. No humans, hands, bodies, mannequins, creatures, text, letters, numerals, logo, watermark, user interface, border, frame or tier badge. Do not add unrelated props. Square composition.",
+      "originalFile": "exec-40a5f27a-6697-4306-b046-08987ddc1981.png",
+      "originalSha256": "f7352bc7983b408aaccf42e583aa1c4099b3e0fed038d66c2021bc0d60865dc1",
+      "visualReview": "accepted: recognizable requested item; no person, text or frame",
+      "assets": {
+        "preview": {
+          "path": "/media/art/items/wyrm-scale-shard-v01.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 40104,
+          "sha256": "013064d287e831ae973c940df0380c4d448869b5f1887e96451e9f5df0126327"
+        },
+        "thumbnail": {
+          "path": "/media/art/items/thumbnails/wyrm-scale-shard-v01.webp",
+          "width": 256,
+          "height": 256,
+          "bytes": 11298,
+          "sha256": "e69b4352227e591c25450f24c8251e3eb8a21dc3056ad3c39e909fa462f018a9"
+        }
+      }
+    },
+    {
+      "assetKey": "glimmer-dust",
+      "name": "Glimmer Dust",
+      "generator": "image_gen built-in",
+      "prompt": "Use case: stylized-concept. Asset type: finished square inventory and battle item artwork for Aurevane. Subject: a small open glass vial spilling fine warm gold sparkling mineral dust, tiny individual glints. Style: polished dark fantasy anime game item illustration, painterly detailed materials with crisp readable silhouette. One centered item or the explicitly requested matching pair, fully visible with generous 12 percent safe margin, three-quarter view on a softly textured near-black navy background. Restrained cinematic rim lighting makes the item readable at 64px. No humans, hands, bodies, mannequins, creatures, text, letters, numerals, logo, watermark, user interface, border, frame or tier badge. Do not add unrelated props. Square composition.",
+      "originalFile": "exec-774349ea-0c4e-41fe-872f-9191bba6cb96.png",
+      "originalSha256": "05ee2847562e67a6e24b77a629903e603c14de4936c15d2c532da613a148b510",
+      "visualReview": "accepted: recognizable requested item; no person, text or frame",
+      "assets": {
+        "preview": {
+          "path": "/media/art/items/glimmer-dust-v01.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 31724,
+          "sha256": "8096bc9b39988ac66bb11db4c1dbce0050419427986347e8bcf7bec978de6b2f"
+        },
+        "thumbnail": {
+          "path": "/media/art/items/thumbnails/glimmer-dust-v01.webp",
+          "width": 256,
+          "height": 256,
+          "bytes": 9700,
+          "sha256": "f9f676f2d61d8ca4a6e08e7bb18e3ab5d5f58089f8241cfafa843c83fff3626a"
+        }
+      }
+    },
+    {
+      "assetKey": "lantern-oil",
+      "name": "Lantern Oil",
+      "generator": "image_gen built-in",
+      "prompt": "Use case: stylized-concept. Asset type: finished square inventory and battle item artwork for Aurevane. Subject: a plain dark bronze oil can with a short spout and leather handle, one amber oil droplet at the tip. Style: polished dark fantasy anime game item illustration, painterly detailed materials with crisp readable silhouette. One centered item or the explicitly requested matching pair, fully visible with generous 12 percent safe margin, three-quarter view on a softly textured near-black navy background. Restrained cinematic rim lighting makes the item readable at 64px. No humans, hands, bodies, mannequins, creatures, text, letters, numerals, logo, watermark, user interface, border, frame or tier badge. Do not add unrelated props. Square composition.",
+      "originalFile": "exec-105cdcc5-8923-48c6-8f8a-c6067a32a26e.png",
+      "originalSha256": "d8e5cfcc7394e7656c5a3783190e62c92a1e7767e8af901a3ead36047fa254c3",
+      "visualReview": "accepted: recognizable requested item; no person, text or frame",
+      "assets": {
+        "preview": {
+          "path": "/media/art/items/lantern-oil-v01.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 22402,
+          "sha256": "74d438e5d7f355c738291e2171d6e551a4635aff73d46fff05c2d36b5e0d860e"
+        },
+        "thumbnail": {
+          "path": "/media/art/items/thumbnails/lantern-oil-v01.webp",
+          "width": 256,
+          "height": 256,
+          "bytes": 6696,
+          "sha256": "7b54cbc26b44cd43f62c067846eb65fdae236db5263796342739b1fc5a1b9710"
+        }
+      }
+    },
+    {
+      "assetKey": "rope-coil",
+      "name": "Rope Coil",
+      "generator": "image_gen built-in",
+      "prompt": "Use case: stylized-concept. Asset type: finished square inventory and battle item artwork for Aurevane. Subject: a compact coil of thick weathered tan hemp rope, clear braided fiber texture and tied loose end. Style: polished dark fantasy anime game item illustration, painterly detailed materials with crisp readable silhouette. One centered item or the explicitly requested matching pair, fully visible with generous 12 percent safe margin, three-quarter view on a softly textured near-black navy background. Restrained cinematic rim lighting makes the item readable at 64px. No humans, hands, bodies, mannequins, creatures, text, letters, numerals, logo, watermark, user interface, border, frame or tier badge. Do not add unrelated props. Square composition.",
+      "originalFile": "exec-e0ed9670-87a1-4bcc-aef4-0f7d964ffd64.png",
+      "originalSha256": "13bd00c8207deeeda99c71bdce13037c7299ea1992ff4bf42a16939cd1dc34cd",
+      "visualReview": "accepted: recognizable requested item; no person, text or frame",
+      "assets": {
+        "preview": {
+          "path": "/media/art/items/rope-coil-v01.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 35870,
+          "sha256": "a79c0c4020edccb00a3e7e408378e92b937305a790160e3bb4df147c5f15e6e4"
+        },
+        "thumbnail": {
+          "path": "/media/art/items/thumbnails/rope-coil-v01.webp",
+          "width": 256,
+          "height": 256,
+          "bytes": 10966,
+          "sha256": "33fd7e9d19200dcacb94225e5658fd7c9db65cde02f5d73676078d5ad367e6f1"
+        }
+      }
+    },
+    {
+      "assetKey": "worn-map-fragment",
+      "name": "Worn Map Fragment",
+      "generator": "image_gen built-in",
+      "prompt": "Use case: stylized-concept. Asset type: finished square inventory and battle item artwork for Aurevane. Subject: a torn weathered parchment map fragment with abstract coastlines and a small compass sketch, absolutely no readable writing. Style: polished dark fantasy anime game item illustration, painterly detailed materials with crisp readable silhouette. One centered item or the explicitly requested matching pair, fully visible with generous 12 percent safe margin, three-quarter view on a softly textured near-black navy background. Restrained cinematic rim lighting makes the item readable at 64px. No humans, hands, bodies, mannequins, creatures, text, letters, numerals, logo, watermark, user interface, border, frame or tier badge. Do not add unrelated props. Square composition.",
+      "originalFile": "exec-31339010-6c4e-4582-88bb-4e77eaab0552.png",
+      "originalSha256": "b404cd08e3f7a1f5e78cf78583665258126f3b997910ac9112ffe401f7dfe9b6",
+      "visualReview": "accepted: recognizable requested item; no person, text or frame",
+      "assets": {
+        "preview": {
+          "path": "/media/art/items/worn-map-fragment-v01.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 47108,
+          "sha256": "99eeb184f5b5002a8abc2e276f06e58780eb71e2341241fbd62552ec0498ff3b"
+        },
+        "thumbnail": {
+          "path": "/media/art/items/thumbnails/worn-map-fragment-v01.webp",
+          "width": 256,
+          "height": 256,
+          "bytes": 13736,
+          "sha256": "e0bf0666257d1334c3e5d264674f12c1828e2e13ba5b43488f4324cd41b0328f"
+        }
+      }
+    },
+    {
+      "assetKey": "travel-rations",
+      "name": "Travel Rations",
+      "generator": "image_gen built-in",
+      "prompt": "Use case: stylized-concept. Asset type: finished square inventory and battle item artwork for Aurevane. Subject: a compact wrapped bundle of travel bread and dried fruit in coarse linen tied with brown string. Style: polished dark fantasy anime game item illustration, painterly detailed materials with crisp readable silhouette. One centered item or the explicitly requested matching pair, fully visible with generous 12 percent safe margin, three-quarter view on a softly textured near-black navy background. Restrained cinematic rim lighting makes the item readable at 64px. No humans, hands, bodies, mannequins, creatures, text, letters, numerals, logo, watermark, user interface, border, frame or tier badge. Do not add unrelated props. Square composition.",
+      "originalFile": "exec-631b0ab9-938d-42fc-8d3f-6cdbcce6c316.png",
+      "originalSha256": "8a920b49f9bbf54f1001fc057606adcc1b2e13e6418bc8b98b22d592492175a6",
+      "visualReview": "accepted: recognizable requested item; no person, text or frame",
+      "assets": {
+        "preview": {
+          "path": "/media/art/items/travel-rations-v01.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 48266,
+          "sha256": "c4ccfdfd26ba8073c3df17912c20f9ce021f1613bb881924ec11abc231d1f048"
+        },
+        "thumbnail": {
+          "path": "/media/art/items/thumbnails/travel-rations-v01.webp",
+          "width": 256,
+          "height": 256,
+          "bytes": 12778,
+          "sha256": "6d227752461f2c0345b839c14eccf24f2824844d75ead5c5ef9ac3040c6f056e"
+        }
+      }
+    },
+    {
+      "assetKey": "letter-introduction",
+      "name": "Letter of Introduction",
+      "generator": "image_gen built-in",
+      "prompt": "Use case: stylized-concept. Asset type: finished square inventory and battle item artwork for Aurevane. Subject: a folded cream parchment letter sealed with a crimson wax crest, no readable writing. Style: polished dark fantasy anime game item illustration, painterly detailed materials with crisp readable silhouette. One centered item or the explicitly requested matching pair, fully visible with generous 12 percent safe margin, three-quarter view on a softly textured near-black navy background. Restrained cinematic rim lighting makes the item readable at 64px. No humans, hands, bodies, mannequins, creatures, text, letters, numerals, logo, watermark, user interface, border, frame or tier badge. Do not add unrelated props. Square composition.",
+      "originalFile": "exec-b7d3e0e5-9470-41ca-83b4-3c8bbc7d16c4.png",
+      "originalSha256": "784d269ae54a06fca69220c61c983c367d061f809001331d0e2b0cdf8d86c0c2",
+      "visualReview": "accepted: recognizable requested item; no person, text or frame",
+      "assets": {
+        "preview": {
+          "path": "/media/art/items/letter-introduction-v01.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 25778,
+          "sha256": "8ad636ac5725f68f016e13c8546dafb18c85fa861d86c1b3e4c16d05e8108a63"
+        },
+        "thumbnail": {
+          "path": "/media/art/items/thumbnails/letter-introduction-v01.webp",
+          "width": 256,
+          "height": 256,
+          "bytes": 8426,
+          "sha256": "014f65ee7573b1176461fe2edf6a542f9e5fa99890ce269530331d685c8806d8"
+        }
+      }
+    },
+    {
+      "assetKey": "cracked-aurevane-sigil",
+      "name": "Cracked Aurevane Sigil",
+      "generator": "image_gen built-in",
+      "prompt": "Use case: stylized-concept. Asset type: finished square inventory and battle item artwork for Aurevane. Subject: a broken ancient bronze medallion with an abstract sun-and-gate crest and a visible diagonal crack, faint teal patina. Style: polished dark fantasy anime game item illustration, painterly detailed materials with crisp readable silhouette. One centered item or the explicitly requested matching pair, fully visible with generous 12 percent safe margin, three-quarter view on a softly textured near-black navy background. Restrained cinematic rim lighting makes the item readable at 64px. No humans, hands, bodies, mannequins, creatures, text, letters, numerals, logo, watermark, user interface, border, frame or tier badge. Do not add unrelated props. Square composition.",
+      "originalFile": "exec-b7ed035d-0769-4c42-a81b-33232a819e79.png",
+      "originalSha256": "f747d15f4f3d212df1e20a3607011cf135a6745b004f388b11f3ce57135897ba",
+      "visualReview": "accepted: recognizable requested item; no person, text or frame",
+      "assets": {
+        "preview": {
+          "path": "/media/art/items/cracked-aurevane-sigil-v01.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 40898,
+          "sha256": "0576ecd4d5b58d45c24c67e726a09f8e735435e9f1d0c9f3adf11cdd981a3b59"
+        },
+        "thumbnail": {
+          "path": "/media/art/items/thumbnails/cracked-aurevane-sigil-v01.webp",
+          "width": 256,
+          "height": 256,
+          "bytes": 12134,
+          "sha256": "a2415bc3dc9e9b2d6c2f638496e28d5ba7641eeb42f20653a575df18175acc5d"
+        }
+      }
+    },
+    {
+      "assetKey": "gatewarden-token",
+      "name": "Gatewarden Token",
+      "generator": "image_gen built-in",
+      "prompt": "Use case: stylized-concept. Asset type: finished square inventory and battle item artwork for Aurevane. Subject: a heavy octagonal silver token engraved with an abstract closed gate emblem, dark blue enamel insets, no letters. Style: polished dark fantasy anime game item illustration, painterly detailed materials with crisp readable silhouette. One centered item or the explicitly requested matching pair, fully visible with generous 12 percent safe margin, three-quarter view on a softly textured near-black navy background. Restrained cinematic rim lighting makes the item readable at 64px. No humans, hands, bodies, mannequins, creatures, text, letters, numerals, logo, watermark, user interface, border, frame or tier badge. Do not add unrelated props. Square composition.",
+      "originalFile": "exec-f1405c3f-c73a-4211-b9ae-ee7c11f34575.png",
+      "originalSha256": "643dfe402a28b0d8f0b6a6e175c7d7c2386a47e3d34e7455c2cc0c63900f6429",
+      "visualReview": "accepted: recognizable requested item; no person, text or frame",
+      "assets": {
+        "preview": {
+          "path": "/media/art/items/gatewarden-token-v01.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 37096,
+          "sha256": "34c2b08db4067768df78af94d476a8050ccf3d3391d117f9add35212c015ad9d"
+        },
+        "thumbnail": {
+          "path": "/media/art/items/thumbnails/gatewarden-token-v01.webp",
+          "width": 256,
+          "height": 256,
+          "bytes": 11590,
+          "sha256": "7a48ded641f393a44579e44e1faef2e45f6b92757174ddd0991e160d2c211087"
+        }
+      }
+    },
+    {
+      "assetKey": "hearthbite-treat",
+      "name": "Hearthbite Treat",
+      "generator": "image_gen built-in",
+      "prompt": "Use case: stylized-concept. Asset type: finished square inventory and battle item artwork for Aurevane. Subject: three small golden-brown baked animal treats in a simple open linen pouch, warm amber crumbs, no animal. Style: polished dark fantasy anime game item illustration, painterly detailed materials with crisp readable silhouette. One centered item or the explicitly requested matching pair, fully visible with generous 12 percent safe margin, three-quarter view on a softly textured near-black navy background. Restrained cinematic rim lighting makes the item readable at 64px. No humans, hands, bodies, mannequins, creatures, text, letters, numerals, logo, watermark, user interface, border, frame or tier badge. Do not add unrelated props. Square composition.",
+      "originalFile": "exec-6b770240-dc0f-4eb8-853b-c18e3c55eb9b.png",
+      "originalSha256": "d3aa63baa725202a5678f13db4823860326ad6e54dd593bbc6b82fb01d2bca86",
+      "visualReview": "accepted: recognizable requested item; no person, text or frame",
+      "assets": {
+        "preview": {
+          "path": "/media/art/items/hearthbite-treat-v01.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 46698,
+          "sha256": "90f0468fb6cdd5d632aa203ca83044f0b66aa6333558388e94f0e6d1342d195f"
+        },
+        "thumbnail": {
+          "path": "/media/art/items/thumbnails/hearthbite-treat-v01.webp",
+          "width": 256,
+          "height": 256,
+          "bytes": 12428,
+          "sha256": "fa6199034fc470a2111c93da4ef3c28a12e5d125c1b3935d751a225c348b2ae6"
+        }
+      }
+    },
+    {
+      "assetKey": "bond-ribbon",
+      "name": "Bond Ribbon",
+      "generator": "image_gen built-in",
+      "prompt": "Use case: stylized-concept. Asset type: finished square inventory and battle item artwork for Aurevane. Subject: a neatly curled rich burgundy ribbon tied around a small bronze friendship clasp, delicate fabric sheen. Style: polished dark fantasy anime game item illustration, painterly detailed materials with crisp readable silhouette. One centered item or the explicitly requested matching pair, fully visible with generous 12 percent safe margin, three-quarter view on a softly textured near-black navy background. Restrained cinematic rim lighting makes the item readable at 64px. No humans, hands, bodies, mannequins, creatures, text, letters, numerals, logo, watermark, user interface, border, frame or tier badge. Do not add unrelated props. Square composition.",
+      "originalFile": "exec-409cb0bf-7d3b-462d-9e67-f438ca0f6694.png",
+      "originalSha256": "5a2a70a8876ccdcbf9558990425498ab941a3b1dabf3008cab7a7a67a214715b",
+      "visualReview": "accepted: recognizable requested item; no person, text or frame",
+      "assets": {
+        "preview": {
+          "path": "/media/art/items/bond-ribbon-v01.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 24246,
+          "sha256": "1f7a937d995b297fc620414cf441182756c1061ac9a852d8af85a870d18b02be"
+        },
+        "thumbnail": {
+          "path": "/media/art/items/thumbnails/bond-ribbon-v01.webp",
+          "width": 256,
+          "height": 256,
+          "bytes": 7384,
+          "sha256": "b8a4c5039561087651f8acd5d963ef24c32746c31fa23ab25339149107e59097"
+        }
+      }
+    },
+    {
+      "assetKey": "travel-collar",
+      "name": "Travel Collar",
+      "generator": "image_gen built-in",
+      "prompt": "Use case: stylized-concept. Asset type: finished square inventory and battle item artwork for Aurevane. Subject: a practical small brown leather animal collar with a brass buckle and simple teal enamel tag, empty, no animal. Style: polished dark fantasy anime game item illustration, painterly detailed materials with crisp readable silhouette. One centered item or the explicitly requested matching pair, fully visible with generous 12 percent safe margin, three-quarter view on a softly textured near-black navy background. Restrained cinematic rim lighting makes the item readable at 64px. No humans, hands, bodies, mannequins, creatures, text, letters, numerals, logo, watermark, user interface, border, frame or tier badge. Do not add unrelated props. Square composition.",
+      "originalFile": "exec-b1ac29fc-7601-4b51-86ae-7c6c9b39c6e9.png",
+      "originalSha256": "b43bda9fdd0798acbbda7780ea9ccdc2dde023c6b39f40840e30749b42da895e",
+      "visualReview": "accepted: recognizable requested item; no person, text or frame",
+      "assets": {
+        "preview": {
+          "path": "/media/art/items/travel-collar-v01.webp",
+          "width": 512,
+          "height": 512,
+          "bytes": 20452,
+          "sha256": "4b51254fba39197caf03162e47b07831a92400bab2fc71a739a4d6143bfece2d"
+        },
+        "thumbnail": {
+          "path": "/media/art/items/thumbnails/travel-collar-v01.webp",
+          "width": 256,
+          "height": 256,
+          "bytes": 6708,
+          "sha256": "7e9b3f099f7a6e3cb597de854ad1446303489a8f8efed264201650a0a1bc07c0"
+        }
+      }
+    }
+  ]
+}

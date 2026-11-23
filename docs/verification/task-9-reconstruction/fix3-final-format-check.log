@@ -1,0 +1,4 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["corepack", "pnpm", "exec", "prettier", "--check", "apps/web/e2e/players-local-fixture.ts", "apps/web/e2e/pv1f-test-helpers.ts", "apps/web/e2e/master-players-recovery.pw.ts", "packages/db/src/master-players-recovery.test.ts"], "start": "2026-10-20T19:59:00.946428+00:00"}
+Checking formatting...
+All matched files use Prettier code style!
+{"end": "2026-10-20T19:59:01.872116+00:00", "exit": 0}

@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-import { expectMapKey } from './battle-map-key-helpers'
+import { expectTerrainKey } from './battle-map-key-helpers'
 import { createAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 function uniqueCharacterName(): string {
@@ -12,7 +12,7 @@ function uniqueCharacterName(): string {
   return `Wayfarer ${letters}`
 }
 
-test('keeps Map Key immediately left of Victory Conditions at desktop and mobile sizes', async ({
+test('keeps contextual terrain help in the side key and Victory Conditions in the header', async ({
   page,
 }, testInfo) => {
   test.slow()
@@ -26,7 +26,7 @@ test('keeps Map Key immediately left of Victory Conditions at desktop and mobile
 
   const battleHallLink = page
     .getByRole('navigation', { name: 'Primary game navigation', exact: true })
-    .getByRole('link', { name: /Battle Hall/ })
+    .getByRole('link', { name: /Arena/ })
   await battleHallLink.focus()
   await battleHallLink.press('Enter')
 
@@ -37,22 +37,33 @@ test('keeps Map Key immediately left of Victory Conditions at desktop and mobile
   await expect(page.getByRole('region', { name: 'Tactical battlefield' })).toBeVisible()
 
   const victoryConditions = page.getByRole('button', { name: /^Victory conditions/i })
-  const key = page.getByRole('button', { name: 'Map Key', exact: true })
   await expect(victoryConditions).toBeVisible()
   await expect(page.getByRole('button', { name: /Round .*Combat Log/i })).toHaveCount(0)
-  await expectMapKey(page)
+  await expectTerrainKey(page)
   expect(
     await victoryConditions
       .locator('span')
       .evaluate((el) => parseFloat(getComputedStyle(el).fontSize)),
   ).toBeGreaterThanOrEqual(testInfo.project.name === 'mobile-chromium' ? 10 : 12)
-  const victoryBox = await victoryConditions.boundingBox()
-  const keyBox = await key.boundingBox()
-  expect(keyBox!.x + keyBox!.width).toBeLessThanOrEqual(victoryBox!.x)
-  expect(Math.abs(victoryBox!.height - keyBox!.height)).toBeLessThanOrEqual(1)
+  await expect(page.locator('[data-battle-header-utilities]')).toContainText('Victory Conditions')
+  await expect(page.getByRole('button', { name: 'Terrain', exact: true })).toBeVisible()
   await victoryConditions.click()
   const objectives = page.getByRole('dialog', { name: /^Victory conditions/i })
   await expect(objectives).toBeVisible()
-  await objectives.getByRole('button', { name: /^Close /i }).click()
+  await page.keyboard.press('Escape')
+  await expect(objectives).toHaveCount(0)
+  const battle = page.locator('main[data-unified-battle]')
+  await expect(battle).toHaveAttribute('data-local-turn', 'true')
+  await expect(battle).not.toHaveAttribute('aria-busy', 'true')
+  const ap = page.getByRole('progressbar', { name: 'Action Economy remaining' })
+  const beforeAP = await ap.getAttribute('aria-valuenow')
+  await page.keyboard.press('Digit3')
+  await expect(battle).toHaveAttribute('data-battle-action-mode', 'recover')
+  await expect(ap).toHaveAttribute('aria-valuenow', beforeAP!)
+  await page.getByRole('button', { name: 'Cancel Action', exact: true }).click()
+  await victoryConditions.click()
+  await expect(objectives).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(objectives).toHaveCount(0)
   await expect(objectives).toHaveCount(0)
 })

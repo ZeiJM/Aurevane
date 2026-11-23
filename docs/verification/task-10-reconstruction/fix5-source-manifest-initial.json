@@ -1,0 +1,10 @@
+{
+  ".github/workflows/ci.yml": "7e0f3a6311310ba64dd581a574cbc8bd889735180d35ce22f1acac49271c0f97",
+  "apps/web/e2e/master-combat-content-authoring.pw.ts": "49504be6213657ee55b05f2977d6062b344cfbc3f0b55d02749d7501db472c87",
+  "apps/web/e2e/master-zoom-workflows.ts": "a90de1f94eda86461dda7812772565760a91ac8bdef39a9458ae0a319bd51d4d",
+  "apps/web/scripts/master-operations-browser-regression.mjs": "549a7ad9969288209bd94ec9fb04e6aa8f1f6ce002214b739f5e0d28d60615d9",
+  "packages/game-core/src/combat/combat-unlimited-dots.test.ts": "b40448d233b35bf0b446cb5a50c92f0ce7bedcad84bb6d0d719d66f0ce4d079e",
+  "packages/game-core/src/combat/damage-modifiers.ts": "d83bf9dd3cedc140918b12c03d4a5e0517c34295d44dbe82fac196eb8367a2ff",
+  "packages/db/src/site-music-access.test.ts": "19ff36e03b34c9d8ce9470e6d45389c08b2117c9fc1c97bda4389ddb2d3dc04b",
+  "supabase/migrations/20261025201625_site_music_server_access.sql": "d61c6e314f0b9fcf0e31dc3413e2bdb611cdcb211783100596b100f4e09e325c"
+}

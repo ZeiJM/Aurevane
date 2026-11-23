@@ -1,5 +1,18 @@
+import { effectiveCombatStatProfile } from './combat-stat-bonuses'
+import { hasConfiguredRevealed } from './combat-status-tuning'
+import { accuracyActionForRecipient } from './combat-effect-delivery-eligibility'
+import { combatEvaluatedEffectRecipientIds } from './combat-effect-recipients'
+import { validAccuracy, type CombatAccuracyRule } from './combat-definition'
+import {
+  airborneGroundMiss,
+  airborneAttackAction,
+  combatActionHasGroundDelivery,
+} from './combat-airborne'
+import { terrainEvasionBonusBasisPoints } from './combat-stat-balance'
+import { facingHitChanceModifierBasisPoints } from './combat-duel-balance'
 import { advanceBattleRng } from './battle-state'
 import { combatAccuracyStatusModifier } from './combat-accuracy-status'
+import { combatTargetAllowsHostileHit } from './combat-targeting-shapes'
 import type {
   CombatActionDefinition,
   CombatActionEvaluation,
@@ -11,6 +24,8 @@ const BASIS_POINTS = 10_000
 export const COMBAT_SKILL_ACCURACY_RULES_VERSION = 1 as const
 
 export interface CombatAccuracyAuthoring {
+  /** Private canonical hit rule; mutually exclusive with legacy authoring. */
+  readonly accuracyRule?: CombatAccuracyRule
   readonly accuracyMode?: 'automatic' | 'per-target'
   readonly accuracyModifierBasisPoints?: number
 }
@@ -26,12 +41,58 @@ export interface CombatSkillAccuracyResolvedEvent extends CombatTargetHitChance 
   sourceCombatantId: string
   rollBasisPoints: number
   hit: boolean
+  effectOrdinals?: readonly number[]
   accuracyRulesVersion: typeof COMBAT_SKILL_ACCURACY_RULES_VERSION
 }
 
 export function validateCombatAccuracyDefinition(
-  definition: CombatAccuracyAuthoring & { readonly sourceType?: string },
+  definition: CombatAccuracyAuthoring & {
+    readonly nativeBasicAttackCommand?: true
+    readonly equipmentBasicAttackCommand?: true
+    readonly sourceType?: string
+    readonly target?: CombatActionDefinition['target']
+    readonly effects?: readonly { readonly recipient: string; readonly target?: unknown }[]
+  },
 ): void {
+  if (
+    definition.equipmentBasicAttackCommand !== undefined &&
+    (definition.equipmentBasicAttackCommand !== true ||
+      definition.nativeBasicAttackCommand !== true ||
+      definition.sourceType !== 'basic-attack')
+  )
+    throw new TypeError('invalid-equipment-basic-command-marker')
+  if (
+    definition.nativeBasicAttackCommand !== undefined &&
+    (definition.nativeBasicAttackCommand !== true ||
+      definition.sourceType !== 'basic-attack' ||
+      (!definition.equipmentBasicAttackCommand &&
+        (definition.target?.kind !== 'unit' || definition.accuracyRule !== undefined)) ||
+      definition.accuracyMode !== undefined ||
+      definition.accuracyModifierBasisPoints !== undefined)
+  )
+    throw new TypeError('invalid-native-basic-command-marker')
+  if (definition.accuracyRule !== undefined) {
+    if (!validAccuracy(definition.accuracyRule))
+      throw new TypeError('Invalid canonical combat accuracy rule.')
+    if (
+      definition.accuracyMode !== undefined ||
+      definition.accuracyModifierBasisPoints !== undefined
+    )
+      throw new TypeError('Canonical and legacy combat accuracy authoring conflict.')
+    if (definition.sourceType === 'basic-attack' && !definition.equipmentBasicAttackCommand)
+      throw new TypeError(
+        'Canonical Basic Attack accuracy requires its canonical activation adapter.',
+      )
+    if (definition.target && !combatTargetAllowsHostileHit(definition.target, definition.effects))
+      throw new TypeError('Canonical accuracy requires an applicable hostile recipient hit check.')
+    if (
+      definition.effects &&
+      !definition.effects.some((effect) =>
+        ['primary-unit', 'affected-units'].includes(effect.recipient),
+      )
+    )
+      throw new TypeError('Canonical accuracy requires an applicable hit-dependent packet.')
+  }
   if (
     definition.accuracyMode !== undefined &&
     definition.accuracyMode !== 'automatic' &&
@@ -70,7 +131,15 @@ export function forecastCombatSkillAccuracyForTarget(
   content: CombatContentCatalog,
 ): CombatTargetHitChance | null {
   validateCombatAccuracyDefinition(action)
-  if (action.accuracyMode !== 'per-target') return null
+  if (airborneGroundMiss(state, action, targetCombatantId, content))
+    return { targetCombatantId, hitChanceBasisPoints: 0 }
+  action = airborneAttackAction(state, action, content)
+  if (
+    !action.nativeBasicAttackCommand &&
+    action.accuracyMode !== 'per-target' &&
+    action.accuracyRule === undefined
+  )
+    return null
 
   const actor = state.tactical.battle.combatants.find((unit) => unit.id === actorId)
   const target = state.tactical.battle.combatants.find((unit) => unit.id === targetCombatantId)
@@ -79,12 +148,27 @@ export function forecastCombatSkillAccuracyForTarget(
   }
   if (target.hp <= 0 || target.teamId === actor.teamId) return null
 
+  if (hasConfiguredRevealed(state, targetCombatantId))
+    return { targetCombatantId, hitChanceBasisPoints: 10000 }
+
+  if (action.accuracyRule?.kind === 'fixed')
+    return { targetCombatantId, hitChanceBasisPoints: action.accuracyRule.chanceBasisPoints }
+
   return {
     targetCombatantId,
     hitChanceBasisPoints: calculateHitChanceBasisPoints(
       { accuracy: committedRating(state, actorId, 'accuracy') },
-      { evasion: committedRating(state, targetCombatantId, 'evasion') },
+      {
+        evasion:
+          committedRating(state, targetCombatantId, 'evasion') +
+          terrainEvasionBonusBasisPoints(
+            state,
+            targetCombatantId,
+            action.nativeBasicAttackCommand ? undefined : action.target.maximumElevationDifference,
+          ),
+      },
       (action.accuracyModifierBasisPoints ?? 0) +
+        facingHitChanceModifierBasisPoints(state, actorId, targetCombatantId) +
         combatAccuracyStatusModifier(state, actorId, targetCombatantId, content),
     ),
   }
@@ -140,31 +224,44 @@ export function forecastCombatSkillAccuracy(
   content: CombatContentCatalog,
 ): CombatActionEvaluation {
   validateCombatAccuracyDefinition(action)
-  if (!evaluation.legal || !evaluation.actorId || action.accuracyMode !== 'per-target')
+  if (
+    !evaluation.legal ||
+    !evaluation.actorId ||
+    (action.accuracyMode !== 'per-target' &&
+      action.accuracyRule === undefined &&
+      !action.nativeBasicAttackCommand &&
+      !(state.airbornePolicyVersion === 1 && combatActionHasGroundDelivery(action)))
+  )
     return evaluation
   const actorId = evaluation.actorId
   const actor = state.tactical.battle.combatants.find((unit) => unit.id === actorId)
   if (!actor) throw new TypeError('Combat accuracy requires the committed acting combatant.')
   const recipients = new Set<string>()
-  for (const effect of action.effects) {
+  for (const [ordinal, effect] of action.effects.entries()) {
     if (effect.type === 'create-terrain' || effect.recipient === 'actor') continue
-    if (effect.recipient === 'primary-unit') {
-      if (evaluation.primaryCombatantId) recipients.add(evaluation.primaryCombatantId)
-    } else {
-      for (const id of evaluation.affectedCombatantIds) recipients.add(id)
-    }
+    for (const id of combatEvaluatedEffectRecipientIds(state, action, evaluation, ordinal, content))
+      recipients.add(id)
   }
   const hostileIds = [...recipients]
     .filter((id) => {
       const target = state.tactical.battle.combatants.find((unit) => unit.id === id)
       if (!target) throw new TypeError('Combat accuracy requires a committed recipient.')
-      return target.hp > 0 && target.teamId !== actor.teamId
+      return (
+        target.hp > 0 &&
+        (target.teamId !== actor.teamId ||
+          airborneGroundMiss(
+            state,
+            accuracyActionForRecipient(state, action, evaluation, id, content),
+            id,
+            content,
+          ))
+      )
     })
     .sort((left, right) => (left < right ? -1 : left > right ? 1 : 0))
   const targetHitChances = hostileIds.flatMap((targetCombatantId) => {
     const chance = forecastCombatSkillAccuracyForTarget(
       state,
-      action,
+      accuracyActionForRecipient(state, action, evaluation, targetCombatantId, content),
       actorId,
       targetCombatantId,
       content,
@@ -187,7 +284,14 @@ export function rollCombatSkillAccuracy(
 } {
   const missedCombatantIds = new Set<string>()
   const events: CombatSkillAccuracyResolvedEvent[] = []
-  if (!evaluation?.legal || !evaluation.actorId || action.accuracyMode !== 'per-target') {
+  if (
+    !evaluation?.legal ||
+    !evaluation.actorId ||
+    (action.accuracyMode !== 'per-target' &&
+      action.accuracyRule === undefined &&
+      !action.nativeBasicAttackCommand &&
+      !(state.airbornePolicyVersion === 1 && combatActionHasGroundDelivery(action)))
+  ) {
     return { state, events, missedCombatantIds }
   }
   const forecast = forecastCombatSkillAccuracy(state, action, evaluation, content)
@@ -232,12 +336,12 @@ function committedRating(
   const matches = profiles.filter((row) => row.combatantId === combatantId)
   if (matches.length !== 1)
     throw new TypeError('Combat accuracy requires exactly one committed profile per recipient.')
-  const value = matches[0]?.[field]
+  const value = effectiveCombatStatProfile(state, combatantId)?.[field]
   if (
     typeof value !== 'number' ||
     !Number.isSafeInteger(value) ||
     value < 0 ||
-    value > BASIS_POINTS
+    value > (state.statBalancePolicyVersion === 1 && field === 'accuracy' ? 14_000 : BASIS_POINTS)
   ) {
     throw new RangeError(
       `Combat accuracy ${field} must be an integer between 0 and 10000 basis points.`,

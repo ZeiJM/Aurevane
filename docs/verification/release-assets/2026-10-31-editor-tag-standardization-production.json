@@ -1,0 +1,1032 @@
+{
+  "release": {
+    "pr": 1000,
+    "testedHead": "19358698dadefcd117b68bc815e28231a293067e",
+    "merge": "c6351856fd1974691e3e17aca1ae8a7909ca6957",
+    "tree": "ab3282e10eea39d5793eff2667d3fda28a817aa6",
+    "deploymentId": "dpl_9vmqZ8Che4Nb2RHDpVZwKuVsgqbf",
+    "deploymentUrl": "https://aurevane-5go3zmb0t-zeijms-projects.vercel.app",
+    "canonical": "https://aurevane.vercel.app",
+    "target": "production",
+    "status": "READY",
+    "readyAt": "2026-10-31T17:26:08.104Z",
+    "promotionVerifiedAt": "2026-10-31T17:44:34.679Z",
+    "localPromotionTime": "2026-10-31T13:44:34.679000-04:00"
+  },
+  "gates": {
+    "candidateWorkflows": 19,
+    "mergedWorkflows": [
+      {
+        "name": "CI",
+        "id": 41224310748,
+        "conclusion": "success"
+      },
+      {
+        "name": "Browser smoke",
+        "id": 41224310883,
+        "conclusion": "success"
+      },
+      {
+        "name": "Battle Session DB",
+        "id": 41224310754,
+        "conclusion": "success"
+      },
+      {
+        "name": "Attribute Allocation",
+        "id": 41224310710,
+        "conclusion": "success"
+      },
+      {
+        "name": "Shared Build Snapshots",
+        "id": 41224310832,
+        "conclusion": "success"
+      },
+      {
+        "name": "Essence Build",
+        "id": 41224310793,
+        "conclusion": "success"
+      },
+      {
+        "name": "Resonance Build",
+        "id": 41224310804,
+        "conclusion": "success"
+      },
+      {
+        "name": "Foundation Security DB",
+        "id": 41224310854,
+        "conclusion": "success"
+      },
+      {
+        "name": "Wayfarer's Practice DB",
+        "id": 41224310844,
+        "conclusion": "success"
+      },
+      {
+        "name": "Discipline Build DB",
+        "id": 41224310909,
+        "conclusion": "success"
+      },
+      {
+        "name": "UI layout review",
+        "id": 41224310786,
+        "conclusion": "success"
+      }
+    ],
+    "vitest": 14526,
+    "node": 7,
+    "browser": {
+      "masterRepeated": 16,
+      "chromiumPassed": 379,
+      "chromiumSkipped": 284,
+      "edgePassed": 10,
+      "edgeSkipped": 2
+    }
+  },
+  "migrations": [
+    {
+      "version": "20261031081044",
+      "name": "counter_tag_identity",
+      "source_md5": "5160be47317166a3cf163c5c83098bc0",
+      "exact_source": true,
+      "source_sha256": "b4196ed9ecedb2ded63e14110d4b982b9e4e0f86d95fb61a36210f09a1ef0164",
+      "generated_identity": "20261031173232"
+    },
+    {
+      "version": "20261031084336",
+      "name": "endure_tag_identity",
+      "source_md5": "045876b96da73df99434c5668fe85163",
+      "exact_source": true,
+      "source_sha256": "b867098e171bf144e356a0810cdc49f883ec1ef803b7775f180e854da0d9a98c",
+      "generated_identity": "20261031173322"
+    },
+    {
+      "version": "20261031084705",
+      "name": "attack_modifier_tag_identities",
+      "source_md5": "1240494b5a4abea9463dc71dc76cc915",
+      "exact_source": true,
+      "source_sha256": "b08053206c2d58311fa98d6c5a8dab9d3f83ff35159ceab099d9b5afbb39dfd8",
+      "generated_identity": "20261031173324"
+    },
+    {
+      "version": "20261031090902",
+      "name": "reversal_tag_identity",
+      "source_md5": "1ed38381a64ff283dcf6302dfd79a14c",
+      "exact_source": true,
+      "source_sha256": "3affe81b05088fb6225826f3fc805ddb32a4fe43f7131051ba3f7ab045a569b9",
+      "generated_identity": "20261031173325"
+    }
+  ],
+  "preservation": {
+    "before": [
+      {
+        "hash": "14e94c40e25429d16b70b647ce403898",
+        "count": 1319,
+        "table": "versions"
+      },
+      {
+        "hash": "04f4601c577fcf9ef455d30e5658e321",
+        "count": 301,
+        "table": "publications"
+      },
+      {
+        "hash": "943ce9cdcca6c297c8a033c5f632708b",
+        "count": 2,
+        "table": "drafts"
+      },
+      {
+        "hash": "5976e884cb10c6d76ab9e718ae7ba335",
+        "count": 8,
+        "table": "timing"
+      },
+      {
+        "hash": "ee8966f4b8b5bced1b31c3eb8e330d30",
+        "count": 367,
+        "table": "other_records"
+      }
+    ],
+    "after": [
+      {
+        "hash": "14e94c40e25429d16b70b647ce403898",
+        "count": 1319,
+        "table": "versions"
+      },
+      {
+        "hash": "04f4601c577fcf9ef455d30e5658e321",
+        "count": 301,
+        "table": "publications"
+      },
+      {
+        "hash": "943ce9cdcca6c297c8a033c5f632708b",
+        "count": 2,
+        "table": "drafts"
+      },
+      {
+        "hash": "5976e884cb10c6d76ab9e718ae7ba335",
+        "count": 8,
+        "table": "timing"
+      },
+      {
+        "hash": "ee8966f4b8b5bced1b31c3eb8e330d30",
+        "count": 367,
+        "table": "other_records"
+      }
+    ],
+    "priorHistoryBefore": {
+      "hash": "8d25939e76b45731690cfd46c49c0e2c",
+      "count": 193
+    },
+    "priorHistoryAfter": {
+      "hash": "8d25939e76b45731690cfd46c49c0e2c",
+      "count": 193
+    }
+  },
+  "databaseChecks": {
+    "classes": [
+      {
+        "actual": "cleanse",
+        "expected": "cleanse"
+      },
+      {
+        "actual": "dispel",
+        "expected": "dispel"
+      },
+      {
+        "actual": "conditional-cleanse",
+        "expected": "conditional-cleanse"
+      },
+      {
+        "actual": "dispel",
+        "expected": "dispel"
+      },
+      {
+        "actual": "dispel",
+        "expected": "dispel"
+      },
+      {
+        "actual": "counter",
+        "expected": "counter"
+      },
+      {
+        "actual": "endure",
+        "expected": "endure"
+      },
+      {
+        "actual": "weak-point",
+        "expected": "weak-point"
+      },
+      {
+        "actual": "spike",
+        "expected": "spike"
+      },
+      {
+        "actual": "ruin",
+        "expected": "ruin"
+      },
+      {
+        "actual": "reversal",
+        "expected": "reversal"
+      }
+    ],
+    "identities": ["counter", "endure", "reversal", "ruin", "spike", "weak-point"],
+    "timing_predecessor_hashes": [
+      {
+        "identity": "publish_combat_effect_timing_policy_v1(uuid,integer,jsonb,text)",
+        "predecessor_hash": "67c0dc1529bf16862fe7ceea0d193d72"
+      },
+      {
+        "identity": "publish_combat_effect_timing_policy_v1(uuid,integer,jsonb,text,uuid)",
+        "predecessor_hash": "c37185ad29213e4a6c2dc4f9dcd49ccf"
+      }
+    ]
+  },
+  "routing": {
+    "beforeVersion": "1f990d98-00a2-4e2f-a740-3a524bb90e64",
+    "transitionVersion": "6ca662ee-44c3-4b9e-8299-2d685fc6e0f7",
+    "finalVersion": "826b14a4-a6b6-428d-931f-e9c6ce94d278",
+    "rules": 9,
+    "fixedRetirementRulesUnchanged": 5,
+    "newHosts": [
+      "aurevane.vercel.app",
+      "aurevane-zeijms-projects.vercel.app",
+      "aurevane-5go3zmb0t-zeijms-projects.vercel.app",
+      "aurevane-git-c6351856fd1974691e3e17aca1a-ad2a75-zeijms-projects.vercel.app"
+    ],
+    "retiredPreviousHosts": [
+      "aurevane-59qw6tpmh-zeijms-projects.vercel.app",
+      "aurevane-git-b7a1e4290061815b0f1a8a7a9c9-d9f0b1-zeijms-projects.vercel.app"
+    ]
+  },
+  "securityAdvisors": {
+    "before": [
+      {
+        "name": "rls_enabled_no_policy",
+        "level": "INFO",
+        "count": 83
+      },
+      {
+        "name": "function_search_path_mutable",
+        "level": "WARN",
+        "count": 1
+      },
+      {
+        "name": "authenticated_security_definer_function_executable",
+        "level": "WARN",
+        "count": 1
+      },
+      {
+        "name": "auth_leaked_password_protection",
+        "level": "WARN",
+        "count": 1
+      }
+    ],
+    "after": [
+      {
+        "name": "rls_enabled_no_policy",
+        "level": "INFO",
+        "count": 83
+      },
+      {
+        "name": "function_search_path_mutable",
+        "level": "WARN",
+        "count": 1
+      },
+      {
+        "name": "authenticated_security_definer_function_executable",
+        "level": "WARN",
+        "count": 1
+      },
+      {
+        "name": "auth_leaked_password_protection",
+        "level": "WARN",
+        "count": 1
+      }
+    ]
+  },
+  "runtime": {
+    "staged": "## Runtime Logs\n\n**Project:** prj_ZmH66I1zyOARUt8OXdTl7CN9r18d\n**Deployment:** dpl_9vmqZ8Che4Nb2RHDpVZwKuVsgqbf\n**Time range:** 2026-10-31T17:26:08.104Z → 2026-10-31T17:41:29.854Z\n\nNo logs found for the specified criteria.",
+    "post": "## Runtime Logs\n\n**Project:** prj_ZmH66I1zyOARUt8OXdTl7CN9r18d\n**Deployment:** dpl_9vmqZ8Che4Nb2RHDpVZwKuVsgqbf\n**Time range:** 2026-10-31T17:44:34.679Z → 2026-10-31T17:46:50.262Z\n\nNo logs found for the specified criteria.",
+    "postCheckedAt": "2026-10-31T17:46:51.181Z"
+  },
+  "legacyMigrationHistory": {
+    "integration": "MIGRATIONS_FAILED before manual application; remote versions absent from repository",
+    "preexistingRemoteOnly": [
+      {
+        "version": "20261012144305",
+        "name": "world_scene_players"
+      },
+      {
+        "version": "20261013171017",
+        "name": "world_live_presence"
+      },
+      {
+        "version": "20261014045202",
+        "name": "captured_ability_startup_events"
+      },
+      {
+        "version": "20261014045207",
+        "name": "world_captured_ability_startup"
+      },
+      {
+        "version": "20261026043928",
+        "name": "master_panel_release_071112e"
+      },
+      {
+        "version": "20261026064833",
+        "name": "master_panel_access_read_repair"
+      },
+      {
+        "version": "20261026072537",
+        "name": "world_stale_retry_loop_repair"
+      },
+      {
+        "version": "20261026200658",
+        "name": "master_panel_refinement_preparation"
+      },
+      {
+        "version": "20261026212031",
+        "name": "master_panel_refinement_after_app"
+      },
+      {
+        "version": "20261026232755",
+        "name": "master_panel_archive_rollout_coordinator"
+      },
+      {
+        "version": "20261027205902",
+        "name": "master_workspace_atomic_coordinator"
+      },
+      {
+        "version": "20261029042805",
+        "name": "master_usability_atomic_coordinator"
+      }
+    ],
+    "preservedExistingRows": 193,
+    "action": "Applied only four reviewed canonical SQL files through migration API; immediately mapped their four newly generated history identities to original source versions, guarded by exact SQL equality. Existing history remained unchanged."
+  },
+  "limitations": [
+    "No existing Skill catalogue was automatically republished; current edits adopt new profiles on Commit Now.",
+    "Historical captures remain authoritative.",
+    "Signed-in Owner production interaction, physical-device, audible playback, multiplayer and sustained-load acceptance are not claimed.",
+    "No Phase5 closure or separate World timing fix.",
+    "Pre-existing Supabase Git migration-history drift remains a separate operations issue."
+  ],
+  "preflight": {
+    "checked_at": "2026-10-31T17:40:28.834653+00:00",
+    "phase": "preflight",
+    "origin": "https://aurevane-5go3zmb0t-zeijms-projects.vercel.app",
+    "passed": true,
+    "results": [
+      {
+        "name": "/",
+        "url": "https://aurevane-5go3zmb0t-zeijms-projects.vercel.app/",
+        "method": "GET",
+        "expected": 200,
+        "status": 200,
+        "bytes": 16601,
+        "sha256": "cf40d4e297f9b1ec3d507084e0ffb57186b79c438dc80881b45276709c2c6178",
+        "headers": {
+          "content-type": "text/html; charset=utf-8",
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate"
+        },
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "/manual",
+        "url": "https://aurevane-5go3zmb0t-zeijms-projects.vercel.app/manual",
+        "method": "GET",
+        "expected": 200,
+        "status": 200,
+        "bytes": 43451,
+        "sha256": "04d2119e120481eac04f6f36eba1688994e979685f2b42fb4195c5891ccf50d7",
+        "headers": {
+          "content-type": "text/html; charset=utf-8",
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate"
+        },
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "/rules",
+        "url": "https://aurevane-5go3zmb0t-zeijms-projects.vercel.app/rules",
+        "method": "GET",
+        "expected": 200,
+        "status": 200,
+        "bytes": 33365,
+        "sha256": "a0585e698ae7cb0e15d903e92941e065be0ece23958d6f6319557eecc8db19e8",
+        "headers": {
+          "content-type": "text/html; charset=utf-8",
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate"
+        },
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "/news",
+        "url": "https://aurevane-5go3zmb0t-zeijms-projects.vercel.app/news",
+        "method": "GET",
+        "expected": 200,
+        "status": 200,
+        "bytes": 14821,
+        "sha256": "63c3995f607adb2ac9533e384a9c94037c899eeca8dc0af9b048a51225827519",
+        "headers": {
+          "content-type": "text/html; charset=utf-8",
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate"
+        },
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "current Counter manual",
+        "url": "https://aurevane-5go3zmb0t-zeijms-projects.vercel.app/manual/battle-hall",
+        "method": "GET",
+        "expected": 200,
+        "status": 200,
+        "bytes": 73585,
+        "sha256": "ab8e766b1cafeeaa152e47310aed696074364d2daab09ba76f79558a0b7aa393",
+        "headers": {
+          "content-type": "text/html; charset=utf-8",
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate"
+        },
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "account gateway",
+        "url": "https://aurevane-5go3zmb0t-zeijms-projects.vercel.app/api/foundation/auth-status",
+        "method": "GET",
+        "expected": 200,
+        "status": 200,
+        "bytes": 23,
+        "sha256": "3e58c6fcf10a31770582814c2babfd1ff71bb1a72cae32cdb1c1a428f406d47f",
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "private, no-store"
+        },
+        "auth_status_keys": ["authenticated"],
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "/master",
+        "url": "https://aurevane-5go3zmb0t-zeijms-projects.vercel.app/master",
+        "method": "GET",
+        "expected": 307,
+        "status": 307,
+        "bytes": 6940,
+        "sha256": "0bc119d39aa74fa5e2ff4c1f009ea45c2d5ebe6915bc9fd4fc7d46025bbf84b8",
+        "headers": {
+          "content-type": "text/html; charset=utf-8",
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "location": "/"
+        },
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "/game",
+        "url": "https://aurevane-5go3zmb0t-zeijms-projects.vercel.app/game",
+        "method": "GET",
+        "expected": 307,
+        "status": 307,
+        "bytes": 6677,
+        "sha256": "f6930c54867d0adb2715e9462f241f222dee85a7f97fb74c50b06f9c764f4d8a",
+        "headers": {
+          "content-type": "text/html; charset=utf-8",
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "location": "/"
+        },
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "/api/master/access",
+        "url": "https://aurevane-5go3zmb0t-zeijms-projects.vercel.app/api/master/access",
+        "method": "GET",
+        "expected": 401,
+        "status": 401,
+        "bytes": 73,
+        "sha256": "4bfe04de1cef70ace710731d4ee1e093cb59bc1a05c8615830afe1a343309c07",
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "private, no-store"
+        },
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "Moderation rejects unsupported GET",
+        "url": "https://aurevane-5go3zmb0t-zeijms-projects.vercel.app/api/master/moderation",
+        "method": "GET",
+        "expected": 405,
+        "status": 405,
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "headers": {
+          "cache-control": "public, max-age=0, must-revalidate"
+        },
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "Moderation read-only authentication denial",
+        "url": "https://aurevane-5go3zmb0t-zeijms-projects.vercel.app/api/master/moderation",
+        "method": "POST",
+        "expected": 401,
+        "status": 401,
+        "bytes": 73,
+        "sha256": "4bfe04de1cef70ace710731d4ee1e093cb59bc1a05c8615830afe1a343309c07",
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "private, no-store"
+        },
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "new header pin",
+        "url": "https://aurevane-5go3zmb0t-zeijms-projects.vercel.app/",
+        "method": "GET",
+        "expected": 200,
+        "status": 200,
+        "bytes": 16601,
+        "sha256": "cf40d4e297f9b1ec3d507084e0ffb57186b79c438dc80881b45276709c2c6178",
+        "headers": {
+          "content-type": "text/html; charset=utf-8",
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate"
+        },
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "new query pin",
+        "url": "https://aurevane-5go3zmb0t-zeijms-projects.vercel.app/?dpl=dpl_9vmqZ8Che4Nb2RHDpVZwKuVsgqbf",
+        "method": "GET",
+        "expected": 200,
+        "status": 200,
+        "bytes": 16675,
+        "sha256": "eac7137633e9bfd417ef4d9227df3f5993d345522d9e3bafb328a33c385ec28e",
+        "headers": {
+          "content-type": "text/html; charset=utf-8",
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate"
+        },
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "new cookie pin",
+        "url": "https://aurevane-5go3zmb0t-zeijms-projects.vercel.app/",
+        "method": "GET",
+        "expected": 200,
+        "status": 200,
+        "bytes": 16601,
+        "sha256": "cf40d4e297f9b1ec3d507084e0ffb57186b79c438dc80881b45276709c2c6178",
+        "headers": {
+          "content-type": "text/html; charset=utf-8",
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate"
+        },
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "portrait 02",
+        "url": "https://aurevane-5go3zmb0t-zeijms-projects.vercel.app/media/art/wayfarer/portrait-02-v02.webp",
+        "method": "GET",
+        "expected": 200,
+        "status": 200,
+        "bytes": 202230,
+        "sha256": "117a7cf005a9933ff53309cbab235b76d88740119587f889c1b32c8483f1ad4f",
+        "headers": {
+          "content-type": "image/webp",
+          "cache-control": "public, max-age=0, must-revalidate"
+        },
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "portrait 21",
+        "url": "https://aurevane-5go3zmb0t-zeijms-projects.vercel.app/media/art/wayfarer/portrait-21-v02.webp",
+        "method": "GET",
+        "expected": 200,
+        "status": 200,
+        "bytes": 207770,
+        "sha256": "b13bc447eb97429bba56026adf40b81cb54299c9a04de35aff6e64e594519676",
+        "headers": {
+          "content-type": "image/webp",
+          "cache-control": "public, max-age=0, must-revalidate"
+        },
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "portrait 40",
+        "url": "https://aurevane-5go3zmb0t-zeijms-projects.vercel.app/media/art/wayfarer/portrait-40-v02.webp",
+        "method": "GET",
+        "expected": 200,
+        "status": 200,
+        "bytes": 169684,
+        "sha256": "7fca1e51656efb6abd4dd38b0297653fe6706e5bb59b5b2fc8486fbe429b59ab",
+        "headers": {
+          "content-type": "image/webp",
+          "cache-control": "public, max-age=0, must-revalidate"
+        },
+        "passed": true,
+        "failures": []
+      }
+    ]
+  },
+  "postflight": {
+    "checked_at": "2026-10-31T17:45:11.068507+00:00",
+    "phase": "postflight",
+    "origin": "https://aurevane.vercel.app",
+    "passed": true,
+    "results": [
+      {
+        "name": "/",
+        "url": "https://aurevane.vercel.app/",
+        "method": "GET",
+        "expected": 200,
+        "status": 200,
+        "bytes": 16601,
+        "sha256": "cf40d4e297f9b1ec3d507084e0ffb57186b79c438dc80881b45276709c2c6178",
+        "headers": {
+          "content-type": "text/html; charset=utf-8",
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate"
+        },
+        "account_entry_enabled": {
+          "sign in": true,
+          "create account": true
+        },
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "/manual",
+        "url": "https://aurevane.vercel.app/manual",
+        "method": "GET",
+        "expected": 200,
+        "status": 200,
+        "bytes": 43451,
+        "sha256": "04d2119e120481eac04f6f36eba1688994e979685f2b42fb4195c5891ccf50d7",
+        "headers": {
+          "content-type": "text/html; charset=utf-8",
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate"
+        },
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "/rules",
+        "url": "https://aurevane.vercel.app/rules",
+        "method": "GET",
+        "expected": 200,
+        "status": 200,
+        "bytes": 33365,
+        "sha256": "a0585e698ae7cb0e15d903e92941e065be0ece23958d6f6319557eecc8db19e8",
+        "headers": {
+          "content-type": "text/html; charset=utf-8",
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate"
+        },
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "/news",
+        "url": "https://aurevane.vercel.app/news",
+        "method": "GET",
+        "expected": 200,
+        "status": 200,
+        "bytes": 14821,
+        "sha256": "63c3995f607adb2ac9533e384a9c94037c899eeca8dc0af9b048a51225827519",
+        "headers": {
+          "content-type": "text/html; charset=utf-8",
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate"
+        },
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "current Counter manual",
+        "url": "https://aurevane.vercel.app/manual/battle-hall",
+        "method": "GET",
+        "expected": 200,
+        "status": 200,
+        "bytes": 73585,
+        "sha256": "ab8e766b1cafeeaa152e47310aed696074364d2daab09ba76f79558a0b7aa393",
+        "headers": {
+          "content-type": "text/html; charset=utf-8",
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate"
+        },
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "account gateway",
+        "url": "https://aurevane.vercel.app/api/foundation/auth-status",
+        "method": "GET",
+        "expected": 200,
+        "status": 200,
+        "bytes": 23,
+        "sha256": "3e58c6fcf10a31770582814c2babfd1ff71bb1a72cae32cdb1c1a428f406d47f",
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "private, no-store"
+        },
+        "auth_status_keys": ["authenticated"],
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "/master",
+        "url": "https://aurevane.vercel.app/master",
+        "method": "GET",
+        "expected": 307,
+        "status": 307,
+        "bytes": 6940,
+        "sha256": "0bc119d39aa74fa5e2ff4c1f009ea45c2d5ebe6915bc9fd4fc7d46025bbf84b8",
+        "headers": {
+          "content-type": "text/html; charset=utf-8",
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "location": "/"
+        },
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "/game",
+        "url": "https://aurevane.vercel.app/game",
+        "method": "GET",
+        "expected": 307,
+        "status": 307,
+        "bytes": 6677,
+        "sha256": "f6930c54867d0adb2715e9462f241f222dee85a7f97fb74c50b06f9c764f4d8a",
+        "headers": {
+          "content-type": "text/html; charset=utf-8",
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "location": "/"
+        },
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "/api/master/access",
+        "url": "https://aurevane.vercel.app/api/master/access",
+        "method": "GET",
+        "expected": 401,
+        "status": 401,
+        "bytes": 73,
+        "sha256": "4bfe04de1cef70ace710731d4ee1e093cb59bc1a05c8615830afe1a343309c07",
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "private, no-store"
+        },
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "Moderation rejects unsupported GET",
+        "url": "https://aurevane.vercel.app/api/master/moderation",
+        "method": "GET",
+        "expected": 405,
+        "status": 405,
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "headers": {
+          "cache-control": "public, max-age=0, must-revalidate"
+        },
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "Moderation read-only authentication denial",
+        "url": "https://aurevane.vercel.app/api/master/moderation",
+        "method": "POST",
+        "expected": 401,
+        "status": 401,
+        "bytes": 73,
+        "sha256": "4bfe04de1cef70ace710731d4ee1e093cb59bc1a05c8615830afe1a343309c07",
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "private, no-store"
+        },
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "new header pin",
+        "url": "https://aurevane.vercel.app/",
+        "method": "GET",
+        "expected": 200,
+        "status": 200,
+        "bytes": 16601,
+        "sha256": "cf40d4e297f9b1ec3d507084e0ffb57186b79c438dc80881b45276709c2c6178",
+        "headers": {
+          "content-type": "text/html; charset=utf-8",
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate"
+        },
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "new query pin",
+        "url": "https://aurevane.vercel.app/?dpl=dpl_9vmqZ8Che4Nb2RHDpVZwKuVsgqbf",
+        "method": "GET",
+        "expected": 200,
+        "status": 200,
+        "bytes": 16675,
+        "sha256": "eac7137633e9bfd417ef4d9227df3f5993d345522d9e3bafb328a33c385ec28e",
+        "headers": {
+          "content-type": "text/html; charset=utf-8",
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate"
+        },
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "new cookie pin",
+        "url": "https://aurevane.vercel.app/",
+        "method": "GET",
+        "expected": 200,
+        "status": 200,
+        "bytes": 16601,
+        "sha256": "cf40d4e297f9b1ec3d507084e0ffb57186b79c438dc80881b45276709c2c6178",
+        "headers": {
+          "content-type": "text/html; charset=utf-8",
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate"
+        },
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "portrait 02",
+        "url": "https://aurevane.vercel.app/media/art/wayfarer/portrait-02-v02.webp",
+        "method": "GET",
+        "expected": 200,
+        "status": 200,
+        "bytes": 202230,
+        "sha256": "117a7cf005a9933ff53309cbab235b76d88740119587f889c1b32c8483f1ad4f",
+        "headers": {
+          "content-type": "image/webp",
+          "cache-control": "public, max-age=0, must-revalidate"
+        },
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "portrait 21",
+        "url": "https://aurevane.vercel.app/media/art/wayfarer/portrait-21-v02.webp",
+        "method": "GET",
+        "expected": 200,
+        "status": 200,
+        "bytes": 207770,
+        "sha256": "b13bc447eb97429bba56026adf40b81cb54299c9a04de35aff6e64e594519676",
+        "headers": {
+          "content-type": "image/webp",
+          "cache-control": "public, max-age=0, must-revalidate"
+        },
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "portrait 40",
+        "url": "https://aurevane.vercel.app/media/art/wayfarer/portrait-40-v02.webp",
+        "method": "GET",
+        "expected": 200,
+        "status": 200,
+        "bytes": 169684,
+        "sha256": "7fca1e51656efb6abd4dd38b0297653fe6706e5bb59b5b2fc8486fbe429b59ab",
+        "headers": {
+          "content-type": "image/webp",
+          "cache-control": "public, max-age=0, must-revalidate"
+        },
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "retired header pin",
+        "url": "https://aurevane.vercel.app/",
+        "method": "GET",
+        "expected": 503,
+        "status": 503,
+        "bytes": 101,
+        "sha256": "4ef12bd053c959f2a6ed45e1134dc685f28c1938295a6dc77cd19a1cd569d5b2",
+        "headers": {
+          "content-type": "text/plain; charset=utf-8",
+          "cache-control": "no-store"
+        },
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "retired query pin",
+        "url": "https://aurevane.vercel.app/?dpl=dpl_HQ4TTgVouY4QFkzjZVyCBQzgzf7o",
+        "method": "GET",
+        "expected": 503,
+        "status": 503,
+        "bytes": 101,
+        "sha256": "95faf3c794843f6218da09c05d577719a7187eeca7c1944727fc5550216ddc99",
+        "headers": {
+          "content-type": "text/plain; charset=utf-8",
+          "cache-control": "no-store"
+        },
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "retired cookie pin",
+        "url": "https://aurevane.vercel.app/",
+        "method": "GET",
+        "expected": 503,
+        "status": 503,
+        "bytes": 101,
+        "sha256": "5ff69a9b4a9728cc2ddb0c0ee57c361800f24eb839964c7a99b26081662cddee",
+        "headers": {
+          "content-type": "text/plain; charset=utf-8",
+          "cache-control": "no-store",
+          "set-cookie": "__vdpl=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Lax"
+        },
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "retired host aurevane-59qw6tpmh-zeijms-projects.vercel.app",
+        "url": "https://aurevane-59qw6tpmh-zeijms-projects.vercel.app/",
+        "method": "GET",
+        "expected": 503,
+        "status": 503,
+        "bytes": 101,
+        "sha256": "b8ef5415ec5bd5281af1f4a89ef5a145dc14d7f22c9b1a15222fe284e4def653",
+        "headers": {
+          "content-type": "text/plain; charset=utf-8",
+          "cache-control": "no-store"
+        },
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "retired host aurevane-git-b7a1e4290061815b0f1a8a7a9c9-d9f0b1-zeijms-projects.vercel.app",
+        "url": "https://aurevane-git-b7a1e4290061815b0f1a8a7a9c9-d9f0b1-zeijms-projects.vercel.app/",
+        "method": "GET",
+        "expected": 503,
+        "status": 503,
+        "bytes": 101,
+        "sha256": "6f3ec5458a959193e520a09c986a533c1f647d82cd87e269b5a2f0248f17c876",
+        "headers": {
+          "content-type": "text/plain; charset=utf-8",
+          "cache-control": "no-store"
+        },
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "fixed retired header",
+        "url": "https://aurevane.vercel.app/",
+        "method": "GET",
+        "expected": 503,
+        "status": 503,
+        "bytes": 101,
+        "sha256": "eeb9c7205f6b50d2eeafb9d5391589a276139b447c61c2a9048bd73d9cf305fa",
+        "headers": {
+          "content-type": "text/plain; charset=utf-8",
+          "cache-control": "no-store"
+        },
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "fixed retired query",
+        "url": "https://aurevane.vercel.app/?dpl=dpl_2noMyXV766mtZwJtoGbWY4QXZxaE",
+        "method": "GET",
+        "expected": 503,
+        "status": 503,
+        "bytes": 101,
+        "sha256": "626a2c81fe81d75168a64ca73bd1c6c6d337c0c25d9cd6659078dbe3030ebbbd",
+        "headers": {
+          "content-type": "text/plain; charset=utf-8",
+          "cache-control": "no-store"
+        },
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "fixed retired cookie",
+        "url": "https://aurevane.vercel.app/",
+        "method": "GET",
+        "expected": 503,
+        "status": 503,
+        "bytes": 101,
+        "sha256": "d5225c31c4420120c80a45891a5fc938a8a9bbea67c2ae809f9931feb0a0fc51",
+        "headers": {
+          "content-type": "text/plain; charset=utf-8",
+          "cache-control": "no-store",
+          "set-cookie": "__vdpl=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Lax"
+        },
+        "passed": true,
+        "failures": []
+      }
+    ]
+  },
+  "locks": {
+    "gitAutomaticDeployments": false,
+    "automaticDomainAssignment": false
+  }
+}

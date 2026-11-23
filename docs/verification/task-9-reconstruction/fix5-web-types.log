@@ -1,0 +1,5 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "argv": ["corepack", "pnpm", "--filter", "@aurevane/web", "typecheck"], "start": "2026-10-20T21:08:14.276478+00:00"}
+$ next typegen && tsc --noEmit
+Generating route types...
+✓ Types generated successfully
+{"end": "2026-10-20T21:08:18.635214+00:00", "exit": 0}

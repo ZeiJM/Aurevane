@@ -1,43 +1,155 @@
 'use client'
-import { useEffect, useRef, useState, type ReactNode } from 'react'
-import type { GlobeLocation } from '@/world/globe-math'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { unprojectGlobePoint, type GlobeLocation } from '@/world/globe-math'
 import { createSphericalRenderer } from './spherical-renderer'
 import styles from './world.module.css'
+import type { WorldAtlasCell } from '@/world/types'
+import { globeAtlasDetailPixels, readGlobePainting, type GlobePainting } from './globe-atlas'
+import { globeFallbackPixels } from './globe-fallback'
+import { clampWorldZoom } from './world-zoom'
 
 interface Props {
   src: string
   camera: GlobeLocation
   zoom: number
+  zoomLocked?: boolean
   panorama?: boolean
   grid?: boolean
+  gridColumns?: number
+  gridRows?: number
   onCamera: (camera: GlobeLocation) => void
   onZoom: (zoom: number) => void
+  onActivate?: (location: GlobeLocation) => void
   children?: ReactNode
+  atlas?: readonly WorldAtlasCell[]
 }
 export function SphericalView({
   src,
   camera,
   zoom,
+  zoomLocked = false,
   panorama = false,
   grid = true,
+  gridColumns = 32,
+  gridRows = 16,
   onCamera,
   onZoom,
+  onActivate,
   children,
+  atlas,
 }: Props) {
   const canvas = useRef<HTMLCanvasElement>(null),
     renderer = useRef<ReturnType<typeof createSphericalRenderer>>(null)
+  const host = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const element = host.current
+    if (!element) return
+    const wheel = (event: WheelEvent) => {
+      event.preventDefault()
+      if (!zoomLocked)
+        onZoom(clampWorldZoom(zoom - event.deltaY * (event.ctrlKey ? 0.006 : 0.0008)))
+    }
+    element.addEventListener('wheel', wheel, { passive: false })
+    return () => element.removeEventListener('wheel', wheel)
+  }, [zoomLocked, zoom, onZoom])
   const drag = useRef<{ x: number; y: number; camera: GlobeLocation } | null>(null)
+  const consumedDrag = useRef(false)
+  const touchPoints = useRef(new Map<number, { x: number; y: number }>())
+  const pinch = useRef<{ distance: number; zoom: number } | null>(null)
+  const gestured = useRef(false)
+  const touchDistance = () => {
+    const [a, b] = [...touchPoints.current.values()]
+    return a && b ? Math.hypot(a.x - b.x, a.y - b.y) : 0
+  }
+  const endTouch = (id: number) => {
+    touchPoints.current.delete(id)
+    if (touchPoints.current.size < 2) pinch.current = null
+    if (!touchPoints.current.size) gestured.current = false
+  }
   const cameraFrame = useRef<number | null>(null)
   const pendingCamera = useRef<GlobeLocation | null>(null)
   const [failed, setFailed] = useState(false)
+  const fallbackCanvas = useRef<HTMLCanvasElement>(null)
+  const hasAtlas = Boolean(atlas)
+  const [painting, setPainting] = useState<GlobePainting | undefined>(undefined)
+  useEffect(() => {
+    if (!failed || !hasAtlas) return
+    const image = new Image()
+    image.onload = () => setPainting(readGlobePainting(image))
+    image.src = src
+    return () => {
+      image.onload = null
+    }
+  }, [failed, src, hasAtlas])
+  const detail = useMemo(
+    () => (failed && atlas ? globeAtlasDetailPixels(atlas, gridColumns, gridRows, painting) : null),
+    [failed, atlas, gridColumns, gridRows, painting],
+  )
+  useEffect(() => {
+    const canvas = fallbackCanvas.current,
+      ctx = canvas?.getContext('2d')
+    if (!ctx || !detail || !canvas) return
+    const render = (size: number) => {
+      canvas.width = size
+      canvas.height = size
+      ctx.putImageData(
+        new ImageData(
+          globeFallbackPixels(detail, camera, zoom, gridColumns, gridRows, size, grid),
+          size,
+          size,
+        ),
+        0,
+        0,
+      )
+    }
+    const resolution = () =>
+      Math.max(
+        420,
+        Math.min(
+          768,
+          Math.ceil((canvas.clientWidth || 420) * Math.min(window.devicePixelRatio || 1, 1.5)),
+        ),
+      )
+    let settled = resolution()
+    let refine: ReturnType<typeof setTimeout>
+    const draw = () => {
+      clearTimeout(refine)
+      // A cheap moving preview prevents a large software sphere from blocking
+      // every drag frame. Refine the final camera after input has settled.
+      render(320)
+      refine = setTimeout(() => render(settled), 120)
+    }
+    draw()
+    const observer = new ResizeObserver(() => {
+      const size = resolution()
+      if (size !== settled) {
+        settled = size
+        draw()
+      }
+    })
+    observer.observe(canvas)
+    return () => {
+      clearTimeout(refine)
+      observer.disconnect()
+    }
+  }, [detail, camera, zoom, gridColumns, gridRows, grid])
   useEffect(() => {
     if (!canvas.current) return
-    renderer.current = createSphericalRenderer(canvas.current, src, () => setFailed(true))
+    renderer.current = createSphericalRenderer(canvas.current, src, () => setFailed(true), {
+      columns: gridColumns,
+      rows: gridRows,
+    })
     return () => renderer.current?.dispose()
-  }, [src])
+  }, [src, gridColumns, gridRows])
   useEffect(() => {
     renderer.current?.draw({ ...camera, zoom, panorama, grid })
   }, [camera, zoom, panorama, grid])
+  useEffect(() => {
+    if (atlas) renderer.current?.updateAtlas(atlas)
+  }, [atlas])
+  useEffect(() => {
+    if (failed) renderer.current?.dispose()
+  }, [failed])
   useEffect(
     () => () => {
       if (cameraFrame.current !== null) cancelAnimationFrame(cameraFrame.current)
@@ -56,6 +168,7 @@ export function SphericalView({
   }
   return (
     <div
+      ref={host}
       className={panorama ? styles.panoramaScene : styles.sphere}
       role="group"
       aria-label={
@@ -64,13 +177,50 @@ export function SphericalView({
           : 'World globe. Drag or use arrow keys to rotate.'
       }
       tabIndex={0}
+      onClickCapture={(event) => {
+        if (consumedDrag.current && event.detail > 0) {
+          event.preventDefault()
+          event.stopPropagation()
+        }
+        consumedDrag.current = false
+      }}
       onPointerDown={(e) => {
-        if ((e.target as HTMLElement).closest('button')) return
-        e.currentTarget.setPointerCapture(e.pointerId)
+        consumedDrag.current = false
+        const button = (e.target as HTMLElement).closest('button')
+        if (
+          button &&
+          !button.hasAttribute('data-globe-marker') &&
+          !button.hasAttribute('data-globe-town')
+        )
+          return
+        // Towns support click selection and drag rotation. Capture only after a
+        // real drag starts, so an ordinary button click still reaches its target.
+        if (!button) e.currentTarget.setPointerCapture(e.pointerId)
+        if (e.pointerType === 'touch') {
+          touchPoints.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+          if (touchPoints.current.size === 2) {
+            pinch.current = { distance: touchDistance(), zoom }
+            gestured.current = true
+            drag.current = null
+            return
+          }
+        }
         drag.current = { x: e.clientX, y: e.clientY, camera }
       }}
       onPointerMove={(e) => {
+        if (touchPoints.current.has(e.pointerId))
+          touchPoints.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+        if (pinch.current && touchPoints.current.size >= 2) {
+          if (!zoomLocked && pinch.current.distance > 0)
+            onZoom(clampWorldZoom((pinch.current.zoom * touchDistance()) / pinch.current.distance))
+          return
+        }
+        if (gestured.current) return
         if (!drag.current) return
+        if (Math.hypot(e.clientX - drag.current.x, e.clientY - drag.current.y) > 6) {
+          consumedDrag.current = true
+          e.currentTarget.setPointerCapture(e.pointerId)
+        }
         scheduleCamera({
           longitude: drag.current.camera.longitude - (e.clientX - drag.current.x) * 0.25,
           latitude: Math.max(
@@ -79,10 +229,30 @@ export function SphericalView({
           ),
         })
       }}
-      onPointerUp={() => {
+      onPointerUp={(e) => {
+        if (gestured.current) {
+          consumedDrag.current = true
+          endTouch(e.pointerId)
+          drag.current = null
+          return
+        }
+        endTouch(e.pointerId)
+        const start = drag.current
         drag.current = null
+        if (!start || !onActivate || panorama || consumedDrag.current) return
+        const dx = e.clientX - start.x,
+          dy = e.clientY - start.y
+        if (dx * dx + dy * dy > 36) return
+        const target = e.target as HTMLElement
+        if (target.closest('[data-globe-marker]') || target.closest('[data-globe-town]')) return
+        const bounds = e.currentTarget.getBoundingClientRect(),
+          x = (((e.clientX - bounds.left) / bounds.width) * 2 - 1) / zoom,
+          y = (1 - ((e.clientY - bounds.top) / bounds.height) * 2) / zoom
+        const location = unprojectGlobePoint(x, y, start.camera)
+        if (location) onActivate(location)
       }}
-      onPointerCancel={() => {
+      onPointerCancel={(e) => {
+        endTouch(e.pointerId)
         drag.current = null
       }}
       onKeyDown={(e) => {
@@ -103,25 +273,37 @@ export function SphericalView({
             ),
           })
         }
-        if (e.key === '+' || e.key === '=') onZoom(Math.min(1.4, zoom + 0.1))
-        if (e.key === '-') onZoom(Math.max(0.65, zoom - 0.1))
+        if (e.key === '+' || e.key === '=') onZoom(clampWorldZoom(zoom + 0.1))
+        if (e.key === '-') onZoom(clampWorldZoom(zoom - 0.1))
       }}
-      onWheel={(e) => onZoom(Math.max(0.65, Math.min(1.4, zoom - e.deltaY * 0.0008)))}
     >
       {failed ? (
         <div
           className={styles.sphereFallback}
-          style={{
-            backgroundImage: `url(${src})`,
-            backgroundPosition: `${50 - camera.longitude / 3.6}% ${50 + camera.latitude / 1.8}%`,
-          }}
+          style={
+            atlas
+              ? undefined
+              : {
+                  backgroundImage: `url(${src})`,
+                  backgroundPosition: `${50 - camera.longitude / 3.6}% ${50 + camera.latitude / 1.8}%`,
+                }
+          }
         >
-          <span>Drag to look around · choose a region from the list</span>
+          {atlas ? (
+            <canvas
+              ref={fallbackCanvas}
+              role="img"
+              aria-label="Charted world atlas"
+              data-globe-fallback
+            />
+          ) : (
+            <span>Drag to look around · choose a region from the list</span>
+          )}
         </div>
       ) : (
         <canvas ref={canvas} aria-hidden="true" />
       )}
-      {!failed ? children : null}
+      {!failed || atlas ? children : null}
     </div>
   )
 }

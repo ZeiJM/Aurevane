@@ -2,7 +2,14 @@ import { execFileSync } from 'node:child_process'
 
 import { expect, test, type Page, type Response } from '@playwright/test'
 
-import { createVerifiedAccountAndSignIn } from './pv1f-test-helpers'
+import { createAccountAndEnterCharacter } from './pv1f-test-helpers'
+import { createEventPageAccessFixture } from './event-page-access-fixture'
+
+let eventPageAccess: ReturnType<typeof createEventPageAccessFixture> | undefined
+test.afterEach(() => {
+  eventPageAccess?.restore()
+  eventPageAccess = undefined
+})
 
 function escapeSqlLiteral(value: string): string {
   return value.replaceAll("'", "''")
@@ -54,48 +61,12 @@ function localUserId(email: string): string {
 function grantEventStaff(email: string): string {
   const userId = localUserId(email)
   queryLocalDatabase(`
-    insert into app_private.master_panel_role_assignments (
-      user_id, role, enabled, note
-    ) values (
-      '${userId}'::uuid,
-      'event-staff',
-      true,
-      'P4.14 local browser verification'
-    )
-    on conflict (user_id, role) do update
-    set enabled = true,
-        updated_at = clock_timestamp(),
-        note = excluded.note;
-
-    insert into app_private.master_panel_access_versions (user_id, access_version)
-    values ('${userId}'::uuid, 1)
-    on conflict (user_id) do update
-    set access_version = app_private.master_panel_access_versions.access_version + 1,
-        updated_at = clock_timestamp();
+    insert into app_private.master_panel_character_access(character_id,user_id,roles,special_capabilities,updated_by)
+      select c.id,c.user_id,array['event-staff'],array[]::text[],c.user_id from public.characters c
+      where c.user_id='${userId}'::uuid order by c.slot_index limit 1
+      on conflict(character_id) do update set roles=excluded.roles,special_capabilities=excluded.special_capabilities,enabled=true,access_version=app_private.master_panel_character_access.access_version+1;
   `)
   return userId
-}
-
-function grantEmergencyStop(userId: string): void {
-  queryLocalDatabase(`
-    insert into app_private.master_panel_capability_grants (
-      user_id, capability, enabled, note
-    ) values (
-      '${userId}'::uuid,
-      'events.emergency_stop',
-      true,
-      'P4.14 local emergency-stop verification'
-    )
-    on conflict (user_id, capability) do update
-    set enabled = true,
-        updated_at = clock_timestamp(),
-        note = excluded.note;
-
-    update app_private.master_panel_access_versions
-    set access_version = access_version + 1,
-        updated_at = clock_timestamp()
-    where user_id = '${userId}'::uuid;
-  `)
 }
 
 function createScheduledRun(userId: string, eventKey: string): string {
@@ -215,9 +186,8 @@ function isOperationResponse(response: Response, operation: string): boolean {
   }
 }
 
-async function confirmOperation(page: Page, reason: string): Promise<void> {
-  await page.getByLabel('Operation reason').fill(reason)
-  await page.getByLabel('Confirm live operation').check()
+async function confirmOperation(page: Page): Promise<void> {
+  await page.getByLabel('Confirm the live action below').check()
 }
 
 async function clickOperation(page: Page, operation: string, buttonName: string): Promise<void> {
@@ -243,63 +213,114 @@ test('Event Staff operates a run, completes cleanup and archives Chronicle safel
 
   const now = Date.now()
   const email = `event-ops-${now}@example.com`
-  await createVerifiedAccountAndSignIn({
+  await createAccountAndEnterCharacter({
     page,
     email,
     password: 'Event-ops-browser-2026!',
+    characterName: `Event ${String(now).replace(/\d/g, (d) => String.fromCharCode(65 + Number(d)))}`,
   })
 
   const userId = grantEventStaff(email)
+  eventPageAccess = createEventPageAccessFixture(queryLocalDatabase)
+  eventPageAccess.set(true)
   const eventKey = `event.browser-ops-${now}`
   const runId = createScheduledRun(userId, eventKey)
 
   await page.goto('/master')
-  await expect(page.getByRole('link', { name: /Live Event Ops/ })).toBeVisible()
-  await page.getByRole('link', { name: /Live Event Ops/ }).click()
+  const masterNavigation = page.getByRole('navigation', { name: 'Master Panel navigation' })
+  await expect(masterNavigation.getByRole('link', { name: /Events/ })).toBeVisible()
+  await masterNavigation.getByRole('link', { name: /Events/ }).click()
+  await page.getByRole('button', { name: 'Live Operations', exact: true }).click()
 
   await expect(page.getByRole('heading', { name: 'Event runs', exact: true })).toBeVisible()
-  await expect(page.getByText('Operations console', { exact: true })).toBeVisible()
-  await expect(page.getByLabel('Event Run').locator('option', { hasText: eventKey })).toHaveCount(1)
+  const categories = page.getByRole('navigation', { name: 'Event categories' })
+  for (const category of [
+    'World Events',
+    'Story Campaigns',
+    'Repeatable Activities',
+    'Hidden Discoveries',
+  ]) {
+    await expect(categories.getByRole('button', { name: category, exact: true })).toBeVisible()
+  }
+  const workspace = page.getByRole('navigation', { name: 'Events workspace' })
+  await workspace.getByRole('button', { name: 'Calendar', exact: true }).click()
+  const calendar = page.getByRole('region', { name: 'Event calendar' })
+  await expect(calendar.getByText('Browser Live Operations', { exact: true })).toBeVisible()
+  await categories.getByRole('button', { name: 'Hidden Discoveries', exact: true }).click()
+  await expect(calendar.getByText('Browser Live Operations', { exact: true })).toHaveCount(0)
+  await categories.getByRole('button', { name: 'World Events', exact: true }).click()
+  await workspace.getByRole('button', { name: 'Live Operations', exact: true }).click()
+  await expect(page.getByLabel('Event Run').locator(`option[value="${runId}"]`)).toHaveCount(1)
   await page.getByLabel('Event Run').selectOption(runId)
 
-  await expect(page.getByText('scheduled', { exact: true }).first()).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Emergency stop', exact: true })).toHaveCount(0)
+  const runHeader = page
+    .locator('header')
+    .filter({ has: page.getByRole('heading', { name: 'Browser Live Operations', exact: true }) })
+  const runStatus = runHeader.locator('[data-status]')
+  async function expectRunStatus(status: string) {
+    await expect(runHeader.locator('code')).toHaveText(runId)
+    await expect(runStatus).toHaveText(status)
+    await expect(runStatus).toBeVisible()
+  }
 
-  await confirmOperation(page, 'Start browser-verified Event run')
+  await expectRunStatus('scheduled')
+  await expect(page.getByRole('button', { name: 'Emergency stop', exact: true })).toBeVisible()
+
+  await confirmOperation(page)
   await clickOperation(page, 'operate', 'Start due run')
-  await expect(page.getByText('live', { exact: true }).first()).toBeVisible()
+  await expectRunStatus('live')
   await expect(page.getByText('announcement.browser-ops')).toBeVisible()
-  await expect(page.getByText('community')).toBeVisible()
+  await page
+    .getByRole('navigation', { name: 'Live Event workspace' })
+    .getByRole('button', { name: 'Phases', exact: true })
+    .click()
+  const phases = page.locator('#event-phases').filter({
+    has: page.getByRole('heading', { name: 'Phases & objectives', exact: true }),
+  })
+  await expect(phases.getByText('community', { exact: true })).toBeVisible()
 
-  await confirmOperation(page, 'Pause browser-verified Event run')
+  await confirmOperation(page)
   await clickOperation(page, 'operate', 'Pause')
-  await expect(page.getByText('paused', { exact: true }).first()).toBeVisible()
+  await expectRunStatus('paused')
 
-  await confirmOperation(page, 'Resume browser-verified Event run')
+  await confirmOperation(page)
   await clickOperation(page, 'operate', 'Resume')
-  await expect(page.getByText('live', { exact: true }).first()).toBeVisible()
+  await expectRunStatus('live')
 
-  grantEmergencyStop(userId)
+  // Every Events tool is present, but the open console must recheck live page access.
+  eventPageAccess.set(false)
+  await confirmOperation(page)
+  const deniedEmergency = page.waitForResponse((response) =>
+    isOperationResponse(response, 'operate'),
+  )
+  await page.getByRole('button', { name: 'Emergency stop', exact: true }).click()
+  expect((await deniedEmergency).status()).toBe(403)
+  eventPageAccess.set(true)
   await page.reload()
+  await page.getByRole('button', { name: 'Live Operations', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Event runs', exact: true })).toBeVisible()
   await page.getByLabel('Event Run').selectOption(runId)
   await expect(page.getByRole('button', { name: 'Emergency stop', exact: true })).toBeVisible()
 
-  await confirmOperation(page, 'Emergency stop browser-verified Event run')
+  await confirmOperation(page)
   await clickOperation(page, 'operate', 'Emergency stop')
-  await expect(page.getByText('emergency-stopped', { exact: true }).first()).toBeVisible()
+  await expectRunStatus('emergency-stopped')
+  await page
+    .getByRole('navigation', { name: 'Live Event workspace' })
+    .getByRole('button', { name: 'Closure', exact: true })
+    .click()
   await expect(page.getByText('node.browser-ops')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Archive', exact: true })).toBeDisabled()
 
-  await confirmOperation(page, 'Confirm browser-verified typed cleanup')
-  await clickOperation(page, 'complete-cleanup', 'Confirm cleanup completed')
+  await confirmOperation(page)
+  await clickOperation(page, 'complete-cleanup', 'Record manual cleanup acknowledgement')
   await expect(page.getByText(/node\.browser-ops · completed/)).toBeVisible()
   await expect(page.getByRole('button', { name: 'Archive', exact: true })).toBeDisabled()
 
-  await confirmOperation(page, 'Archive browser-verified Event run')
+  await confirmOperation(page)
   await expect(page.getByRole('button', { name: 'Archive', exact: true })).toBeEnabled()
   await clickOperation(page, 'operate', 'Archive')
-  await expect(page.getByText('archived', { exact: true }).first()).toBeVisible()
+  await expectRunStatus('archived')
   await expect(page.getByRole('heading', { name: 'Chronicle snapshot' })).toBeVisible()
   await expect(page.getByText(/"terminalStatus": "emergency-stopped"/)).toBeVisible()
 })

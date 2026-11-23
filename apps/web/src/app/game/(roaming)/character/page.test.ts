@@ -1,5 +1,11 @@
+import { Children, isValidElement, type ReactNode } from 'react'
+import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
+import { CharacterArsenalShell } from '@/components/character/character-arsenal-shell'
+import { CharacterSkillBuildPanel } from '@/components/character/character-skill-build-panel'
+import CharacterNexusPage from '../nexus/page'
 import type { PersistedCharacter } from '@aurevane/game-core/character/persistence'
 import { buildPrimaryDisciplinePreview } from '@aurevane/game-core/character/discipline-build'
+import { defaultCombatEffectTimingPolicy } from '@aurevane/game-core/combat/combat-effect-timing'
 import { AurevaneError } from '@aurevane/game-core/errors'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -8,21 +14,30 @@ import type { CharacterBuildContext } from '@/server/character/character-build-s
 
 const mocks = vi.hoisted(() => ({
   actor: vi.fn(),
+  items: vi.fn(),
+  itemsRepository: vi.fn(),
   activeBattle: vi.fn(),
   activeSpectating: vi.fn(),
   selectedCharacter: vi.fn(),
   levelCurve: vi.fn(),
+  timingPolicy: vi.fn(),
   disciplineBuild: vi.fn(),
   currentSkillDetails: vi.fn(),
+  currentBasicSkills: vi.fn(),
   attributeAllocation: vi.fn(),
   titleState: vi.fn(),
   displayState: vi.fn(),
+  supernaturalState: vi.fn(),
   testKit: vi.fn(),
   redirect: vi.fn((path: string) => {
     throw new Error(`redirect:${path}`)
   }),
 }))
 
+vi.mock('@/server/character/character-items-service', () => ({ loadCharacterItems: mocks.items }))
+vi.mock('@/server/character/supabase-character-items-repository', () => ({
+  createSupabaseCharacterItemsRepository: mocks.itemsRepository,
+}))
 vi.mock('server-only', () => ({}))
 vi.mock('next/headers', () => ({ headers: async () => new Headers({ host: '127.0.0.1:3100' }) }))
 vi.mock('next/navigation', () => ({ redirect: mocks.redirect }))
@@ -38,6 +53,9 @@ vi.mock('@/server/account/active-game-session', () => ({
 vi.mock('@/server/character/selected-character', () => ({
   loadSelectedCharacter: mocks.selectedCharacter,
 }))
+vi.mock('@/server/master/combat-effect-timing-policy-store', () => ({
+  readCombatEffectTimingPolicy: mocks.timingPolicy,
+}))
 vi.mock('@/server/progression/progression-service', () => ({
   loadLevelProgressionCurve: mocks.levelCurve,
 }))
@@ -48,7 +66,9 @@ vi.mock('@/server/character/current-skill-detail-loader', () => ({
   resolveCurrentCharacterSkillDetails: mocks.currentSkillDetails,
 }))
 vi.mock('@/server/combat/combat-content-resolver', () => ({
-  createServerCombatContentResolver: () => ({}),
+  createServerCombatContentResolver: () => ({
+    resolveCurrentBasicSkillDefinitions: mocks.currentBasicSkills,
+  }),
 }))
 vi.mock('@/server/character/character-attribute-service', () => ({
   loadCharacterAttributeAllocation: mocks.attributeAllocation,
@@ -58,6 +78,9 @@ vi.mock('@/server/character/character-title-service', () => ({
 }))
 vi.mock('@/server/character/character-profile-display-service', () => ({
   loadCharacterProfileDisplay: mocks.displayState,
+}))
+vi.mock('@/server/character/supernatural-story-state-service', () => ({
+  findAuthoredSupernaturalStoryState: mocks.supernaturalState,
 }))
 vi.mock('@/server/character/pv2-buildcraft-test-kit', () => ({
   isPv2BuildcraftTestKitEnabled: mocks.testKit,
@@ -71,6 +94,9 @@ vi.mock('@/server/character/supabase-character-build-repository', () => ({
 vi.mock('@/server/character/supabase-character-attribute-repository', () => ({
   createSupabaseCharacterAttributeRepository: () => ({}),
 }))
+vi.mock('@/server/character/supabase-supernatural-story-state-repository', () => ({
+  createSupabaseSupernaturalStoryStateRepository: () => ({}),
+}))
 vi.mock('@/components/character/character-profile-shell', () => ({
   CharacterProfileShell: () => null,
 }))
@@ -79,6 +105,7 @@ vi.mock('@/components/shell/authenticated-game-shell', () => ({
 }))
 vi.mock('@/server/logging', () => import('../../../../server/logging'))
 
+import { SkillEffectTimingProvider } from '@/components/character/skill-effect-timing-context'
 import { CharacterProfileShell } from '@/components/character/character-profile-shell'
 import { AuthenticatedGameRecoveryContent } from '@/components/shell/authenticated-game-shell'
 
@@ -186,6 +213,7 @@ const recoveryStages = [
   ['level_curve', mocks.levelCurve],
   ['discipline_build', mocks.disciplineBuild],
   ['attribute_allocation', mocks.attributeAllocation],
+  ['effect_timing', mocks.timingPolicy],
 ] as const
 
 describe('Profile persistence recovery diagnostics', () => {
@@ -195,6 +223,7 @@ describe('Profile persistence recovery diagnostics', () => {
     mocks.redirect.mockImplementation((path: string) => {
       throw new Error(`redirect:${path}`)
     })
+    mocks.timingPolicy.mockResolvedValue(defaultCombatEffectTimingPolicy())
     mocks.actor.mockResolvedValue({ userId: character.userId })
     mocks.activeBattle.mockResolvedValue(null)
     mocks.activeSpectating.mockResolvedValue(null)
@@ -206,13 +235,99 @@ describe('Profile persistence recovery diagnostics', () => {
     })
     mocks.disciplineBuild.mockResolvedValue(disciplineBuild)
     mocks.currentSkillDetails.mockImplementation(async (skills) => skills)
+    mocks.currentBasicSkills.mockResolvedValue(
+      new Map(defaultBasicSkills().map((row) => [row.id, row])),
+    )
     mocks.attributeAllocation.mockResolvedValue(attributeAllocation)
     mocks.titleState.mockResolvedValue({ personalTitle: null, personalTitleSetAt: null })
     mocks.displayState.mockResolvedValue({ imageUrl: null })
+    mocks.supernaturalState.mockResolvedValue(null)
     mocks.testKit.mockResolvedValue(false)
+    mocks.items.mockResolvedValue({ statBonuses: [], equipmentIssue: null })
+    mocks.itemsRepository.mockReturnValue({ profileEquipmentRepository: true })
   })
 
   afterEach(() => vi.restoreAllMocks())
+
+  it('carries locked cross-source names from the build context through Nexus and Arsenal to the Skill reader', async () => {
+    const disciplineNames = { 'discipline.f60c5dc7-abf2-4e03-8b10-428dee7fc4c2': 'Super Saiyan' }
+    mocks.disciplineBuild.mockResolvedValue({ ...disciplineBuild, disciplineNames })
+    const page = await CharacterNexusPage()
+    const shell = page.props.children
+    expect(shell.type).toBe(CharacterArsenalShell)
+    expect(shell.props.disciplineBuild.disciplineNames).toEqual(disciplineNames)
+    const panels: unknown[] = []
+    function visit(node: ReactNode) {
+      Children.forEach(node, (child) => {
+        if (!isValidElement<{ children?: ReactNode; disciplineNames?: unknown }>(child)) return
+        if (child.type === CharacterSkillBuildPanel) panels.push(child.props.disciplineNames)
+        visit(child.props.children)
+      })
+    }
+    visit(CharacterArsenalShell(shell.props))
+    expect(panels).toEqual([disciplineNames])
+  })
+
+  it('carries current published Support artwork through Nexus and Arsenal to Skill Manager', async () => {
+    const definitions = defaultBasicSkills().map((definition) => ({
+      ...definition,
+      description:
+        definition.id === 'basic.invocation' ? 'Published summon purpose.' : definition.description,
+      media:
+        definition.id === 'basic.invocation'
+          ? { ...definition.media, iconKey: 'skill.basic.pilfer.icon' }
+          : definition.media,
+    }))
+    mocks.currentBasicSkills.mockResolvedValue(new Map(definitions.map((row) => [row.id, row])))
+    const page = await CharacterNexusPage()
+    const shell = page.props.children
+    expect(shell.props.disciplineBuild.supportActionArtworkKeys['basic.invocation']).toBe(
+      'skill.basic.pilfer.icon',
+    )
+    expect(shell.props.disciplineBuild.supportActionDescriptions['basic.invocation']).toBe(
+      'Published summon purpose.',
+    )
+    const descriptions: unknown[] = []
+    const panels: unknown[] = []
+    function visit(node: ReactNode) {
+      Children.forEach(node, (child) => {
+        if (
+          !isValidElement<{
+            children?: ReactNode
+            supportActionArtworkKeys?: unknown
+            supportActionDescriptions?: unknown
+          }>(child)
+        )
+          return
+        if (child.type === CharacterSkillBuildPanel) {
+          panels.push(child.props.supportActionArtworkKeys)
+          descriptions.push(child.props.supportActionDescriptions)
+        }
+        visit(child.props.children)
+      })
+    }
+    visit(CharacterArsenalShell(shell.props))
+    expect(descriptions).toEqual([
+      expect.objectContaining({ 'basic.invocation': 'Published summon purpose.' }),
+    ])
+    expect(panels).toEqual([
+      expect.objectContaining({ 'basic.invocation': 'skill.basic.pilfer.icon' }),
+    ])
+  })
+
+  it('renders Nexus recovery when current Support artwork cannot be loaded', async () => {
+    mocks.currentBasicSkills.mockRejectedValue(
+      new AurevaneError('PERSISTENCE_UNAVAILABLE', 'Private media detail'),
+    )
+    const page = await CharacterNexusPage()
+    expect(page.type).toBe(AuthenticatedGameRecoveryContent)
+    const entry = JSON.parse(String(vi.mocked(console.error).mock.calls[0]?.[0]))
+    expect(entry).toMatchObject({
+      event: 'character_nexus.persistence_unavailable',
+      stage: 'discipline_build',
+    })
+    expect(JSON.stringify(entry)).not.toContain('Private media detail')
+  })
 
   it.each(recoveryStages)('records the %s stage when rendering recovery', async (stage, load) => {
     load.mockRejectedValue(
@@ -240,7 +355,108 @@ describe('Profile persistence recovery diagnostics', () => {
   it('renders healthy Profile data without a recovery log', async () => {
     const page = await CharacterProfilePage()
 
-    expect(page.type).toBe(CharacterProfileShell)
+    expect(page.type).toBe(SkillEffectTimingProvider)
+    expect(page.props.policy).toEqual(defaultCombatEffectTimingPolicy())
+    expect(page.props.children.type).toBe(CharacterProfileShell)
+    expect(page.props.children.props.supernatural).toEqual({ state: null, choices: [] })
+    expect(console.error).not.toHaveBeenCalled()
+  })
+
+  it('loads verified equipment for Profile without granting starter Items', async () => {
+    const statBonuses = [
+      {
+        itemId: 'cowl',
+        itemName: 'Ember-Stitched Cowl',
+        position: 'head',
+        stat: 'mystic-power',
+        amount: 12,
+        conditional: false,
+      },
+    ]
+    mocks.items.mockResolvedValue({ statBonuses, equipmentIssue: null })
+    const page = await CharacterProfilePage()
+    expect(mocks.itemsRepository).toHaveBeenCalledWith(false)
+    expect(mocks.items).toHaveBeenCalledWith(character.userId, character.id, {
+      profileEquipmentRepository: true,
+    })
+    expect(page.props.children.props.equipmentBonuses).toEqual(statBonuses)
+    expect(page.props.children.props.disciplineBuild.current.derived).toEqual(
+      disciplineBuild.current.derived,
+    )
+  })
+
+  it.each(['unavailable', 'invalid', 'missing-projection'] as const)(
+    'shows base Profile with an explicit equipment status for %s equipment',
+    async (state) => {
+      if (state === 'unavailable')
+        mocks.items.mockRejectedValue(
+          new AurevaneError('PERSISTENCE_UNAVAILABLE', 'Private inventory detail'),
+        )
+      else
+        mocks.items.mockResolvedValue(
+          state === 'invalid'
+            ? {
+                statBonuses: [],
+                equipmentIssue: { code: 'definition', message: 'Unavailable Item' },
+              }
+            : { equipmentIssue: null },
+        )
+      const page = await CharacterProfilePage()
+      expect(page.type).toBe(SkillEffectTimingProvider)
+      expect(page.props.children.props.equipmentBonuses).toBeNull()
+      expect(page.props.children.props.disciplineBuild.current.derived).toEqual(
+        disciplineBuild.current.derived,
+      )
+    },
+  )
+
+  it('projects authored permanent supernatural choices only after the threshold is initialized', async () => {
+    mocks.supernaturalState.mockResolvedValue({
+      schemaVersion: 1,
+      stateVersion: 4,
+      storyId: 'supernatural.main',
+      storyVersion: 1,
+      nodeId: 'awakening.threshold',
+      path: 'unawakened',
+      ascension: null,
+      severence: null,
+      chosenAt: null,
+      updatedAt: character.createdAt,
+    })
+
+    const page = await CharacterProfilePage()
+
+    expect(page.type).toBe(SkillEffectTimingProvider)
+    expect(page.props.policy).toEqual(defaultCombatEffectTimingPolicy())
+    expect(page.props.children.type).toBe(CharacterProfileShell)
+    expect(page.props.children.props.supernatural).toMatchObject({
+      state: { stateVersion: 4, path: 'unawakened', nodeId: 'awakening.threshold' },
+      choices: [
+        {
+          transitionId: 'supernatural.main.choose-ascension',
+          transitionContentVersion: 1,
+          path: 'ascended',
+        },
+        {
+          transitionId: 'supernatural.main.choose-severence',
+          transitionContentVersion: 1,
+          path: 'severed',
+        },
+      ],
+    })
+  })
+
+  it('keeps Character profile available when supernatural persistence is unavailable', async () => {
+    mocks.supernaturalState.mockRejectedValue(
+      new AurevaneError('PERSISTENCE_UNAVAILABLE', 'Supernatural persistence unavailable'),
+    )
+
+    const page = await CharacterProfilePage()
+
+    expect(page.type).toBe(SkillEffectTimingProvider)
+    expect(page.props.policy).toEqual(defaultCombatEffectTimingPolicy())
+    expect(page.props.children.type).toBe(CharacterProfileShell)
+    expect(page.props.children.props.supernatural).toEqual({ state: null, choices: [] })
     expect(console.error).not.toHaveBeenCalled()
   })
 
@@ -261,7 +477,9 @@ describe('Profile persistence recovery diagnostics', () => {
 
       const page = await CharacterProfilePage()
 
-      expect(page.type).toBe(CharacterProfileShell)
+      expect(page.type).toBe(SkillEffectTimingProvider)
+      expect(page.props.policy).toEqual(defaultCombatEffectTimingPolicy())
+      expect(page.props.children.type).toBe(CharacterProfileShell)
       expect(console.error).not.toHaveBeenCalled()
     },
   )

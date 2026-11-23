@@ -1,0 +1,533 @@
+
+ RUN  v4.1.10 /workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/packages/db
+
+ ❯ src/combat-content-discipline-producers.test.ts (47 tests | 6 failed | 40 skipped) 3164ms
+   × committed producer pins selected earned facts and explicit policy without changing the Players sourceHash contract 29ms
+   × fresh actual admission rejects stale or forged source with whole transaction rollback 27ms
+   × fresh actual admission rejects stale or forged build with whole transaction rollback 16ms
+   × fresh actual admission rejects stale or forged earned with whole transaction rollback 14ms
+   × fresh actual admission rejects stale or forged eligibility with whole transaction rollback 14ms
+   × actual trial credits only immutable selected earned eligibility (true), once for battle-pinned Primary 22ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/combat-content-discipline-producers.test.ts > committed producer pins selected earned facts and explicit policy without changing the Players sourceHash contract
+AssertionError: expected undefined to be 1 // Object.is equality
+
+- Expected:
+1
+
++ Received:
+undefined
+
+ ❯ src/combat-content-discipline-producers.test.ts:1625:50
+    1623|   await crossTrialSkills(false)
+    1624|   const snapshot=await capturedBuild()
+    1625|   expect(snapshot.skillEligibilityPolicyVersion).toBe(1)
+       |                                                  ^
+    1626|   expect(snapshot.disciplineSkills).toEqual(expect.arrayContaining([ex…
+    1627|   const hash=(await db.query<{hash:string}>('select app_private.player…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  src/combat-content-discipline-producers.test.ts > fresh actual admission rejects stale or forged source with whole transaction rollback
+AssertionError: promise resolved "{ …(5) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "battle_session_id": "a2b6d679-b3ff-486b-8268-a73236e4929a",
++   "battle_version": 1,
++   "created_at": 2026-10-22T20:10:29.011Z,
++   "replayed": false,
++   "snapshot": {
++     "buildAuthority": {
++       "combatants": [
++         {
++           "buildVersion": 2,
++           "characterId": "00000000-0000-4000-8000-000000000011",
++           "combatantId": "character:00000000-0000-4000-8000-000000000011",
++           "disciplineSkills": [
++             {
++               "contentVersion": 1,
++               "eligibilityDisciplineId": "vanguard",
++               "skillId": "lifebinder.barrier",
++               "slotIndex": 1,
++               "sourceDisciplineId": "lifebinder",
++             },
++             {
++               "contentVersion": 1,
++               "eligibilityDisciplineId": "vanguard",
++               "skillId": "lifebinder.fortifying-light",
++               "slotIndex": 2,
++               "sourceDisciplineId": "lifebinder",
++             },
++           ],
++           "extensions": {
++             "equipmentSkills": [],
++             "essence": {
++               "contentVersion": 4,
++               "essenceId": "essence.vanguard.unbroken-strike",
++               "skillContentVersion": 4,
++               "skillId": "essence.vanguard.unbroken-strike",
++               "sourceDisciplineId": "vanguard",
++             },
++             "prestige": null,
++             "resonance": null,
++             "supernatural": null,
++           },
++           "primary": {
++             "definitionVersion": 1,
++             "disciplineId": "vanguard",
++             "profileVersion": 1,
++           },
++           "schemaVersion": 3,
++           "secondary": null,
++           "sourceHash": "ff2fd21744b0bbafba903f4c66486cd71d6c4818d23d82f132aa56a009d11212",
++           "supportActionId": "basic.guard",
++         },
++       ],
++     },
++     "statBridge": {
++       "combatants": [
++         {
++           "combatantId": "enemy",
++           "provenance": {
++             "kind": "scenario",
++             "sourceId": "scenario:p2-7-recruit:vanguard:mastery-trial:standard",
++           },
++         },
++       ],
++     },
++     "tactical": {
++       "battle": {
++         "battleId": "stage-b-trial",
++         "combatants": [
++           {
++             "hp": 100,
++             "id": "character:00000000-0000-4000-8000-000000000011",
++             "mp": 10,
++             "teamId": "players",
++             "temporaryResources": [],
++           },
++           {
++             "hp": 100,
++             "id": "enemy",
++             "mp": 10,
++             "teamId": "enemies",
++             "temporaryResources": [],
++           },
++         ],
++         "contentVersion": 1,
++         "currentTurn": {
++           "combatantId": "character:00000000-0000-4000-8000-000000000011",
++         },
++         "lifecycle": "active",
++         "rng": {
++           "algorithm": "xorshift32-v1",
++           "draws": 0,
++           "seed": 7,
++           "state": 7,
++         },
++         "rulesVersion": 1,
++       },
++     },
++   },
+  }
+
+ ❯ denied src/combat-content-discipline-producers.test.ts:104:22
+    102| async function denied(run: () => Promise<unknown>, message: RegExp) {
+    103|   await db.exec('savepoint rejected')
+    104|   await expect(run()).rejects.toThrow(message)
+       |                      ^
+    105|   await db.exec('rollback to savepoint rejected')
+    106| }
+ ❯ src/combat-content-discipline-producers.test.ts:1638:3
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  src/combat-content-discipline-producers.test.ts > fresh actual admission rejects stale or forged build with whole transaction rollback
+AssertionError: promise resolved "{ …(5) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "battle_session_id": "927944a9-1300-4c74-8179-5c1ed8a07a68",
++   "battle_version": 1,
++   "created_at": 2026-10-22T20:10:29.036Z,
++   "replayed": false,
++   "snapshot": {
++     "buildAuthority": {
++       "combatants": [
++         {
++           "buildVersion": 2,
++           "characterId": "00000000-0000-4000-8000-000000000011",
++           "combatantId": "character:00000000-0000-4000-8000-000000000011",
++           "disciplineSkills": [
++             {
++               "contentVersion": 1,
++               "eligibilityDisciplineId": "vanguard",
++               "skillId": "lifebinder.barrier",
++               "slotIndex": 1,
++               "sourceDisciplineId": "lifebinder",
++             },
++             {
++               "contentVersion": 1,
++               "eligibilityDisciplineId": "vanguard",
++               "skillId": "lifebinder.fortifying-light",
++               "slotIndex": 2,
++               "sourceDisciplineId": "lifebinder",
++             },
++           ],
++           "extensions": {
++             "equipmentSkills": [],
++             "essence": {
++               "contentVersion": 4,
++               "essenceId": "essence.vanguard.unbroken-strike",
++               "skillContentVersion": 4,
++               "skillId": "essence.vanguard.unbroken-strike",
++               "sourceDisciplineId": "vanguard",
++             },
++             "prestige": null,
++             "resonance": null,
++             "supernatural": null,
++           },
++           "primary": {
++             "definitionVersion": 1,
++             "disciplineId": "vanguard",
++             "profileVersion": 1,
++           },
++           "schemaVersion": 3,
++           "secondary": null,
++           "sourceHash": "ff2fd21744b0bbafba903f4c66486cd71d6c4818d23d82f132aa56a009d11212",
++           "supportActionId": "basic.guard",
++         },
++       ],
++     },
++     "statBridge": {
++       "combatants": [
++         {
++           "combatantId": "enemy",
++           "provenance": {
++             "kind": "scenario",
++             "sourceId": "scenario:p2-7-recruit:vanguard:mastery-trial:standard",
++           },
++         },
++       ],
++     },
++     "tactical": {
++       "battle": {
++         "battleId": "stage-b-trial",
++         "combatants": [
++           {
++             "hp": 100,
++             "id": "character:00000000-0000-4000-8000-000000000011",
++             "mp": 10,
++             "teamId": "players",
++             "temporaryResources": [],
++           },
++           {
++             "hp": 100,
++             "id": "enemy",
++             "mp": 10,
++             "teamId": "enemies",
++             "temporaryResources": [],
++           },
++         ],
++         "contentVersion": 1,
++         "currentTurn": {
++           "combatantId": "character:00000000-0000-4000-8000-000000000011",
++         },
++         "lifecycle": "active",
++         "rng": {
++           "algorithm": "xorshift32-v1",
++           "draws": 0,
++           "seed": 7,
++           "state": 7,
++         },
++         "rulesVersion": 1,
++       },
++     },
++   },
+  }
+
+ ❯ denied src/combat-content-discipline-producers.test.ts:104:22
+    102| async function denied(run: () => Promise<unknown>, message: RegExp) {
+    103|   await db.exec('savepoint rejected')
+    104|   await expect(run()).rejects.toThrow(message)
+       |                      ^
+    105|   await db.exec('rollback to savepoint rejected')
+    106| }
+ ❯ src/combat-content-discipline-producers.test.ts:1638:3
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  src/combat-content-discipline-producers.test.ts > fresh actual admission rejects stale or forged earned with whole transaction rollback
+AssertionError: promise resolved "{ …(5) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "battle_session_id": "32a3cd5b-21af-485f-b4a5-ee79f449c2fa",
++   "battle_version": 1,
++   "created_at": 2026-10-22T20:10:29.050Z,
++   "replayed": false,
++   "snapshot": {
++     "buildAuthority": {
++       "combatants": [
++         {
++           "buildVersion": 2,
++           "characterId": "00000000-0000-4000-8000-000000000011",
++           "combatantId": "character:00000000-0000-4000-8000-000000000011",
++           "disciplineSkills": [
++             {
++               "contentVersion": 1,
++               "earnedEligibility": true,
++               "eligibilityDisciplineId": "vanguard",
++               "skillId": "lifebinder.barrier",
++               "slotIndex": 1,
++               "sourceDisciplineId": "lifebinder",
++             },
++             {
++               "contentVersion": 1,
++               "eligibilityDisciplineId": "vanguard",
++               "skillId": "lifebinder.fortifying-light",
++               "slotIndex": 2,
++               "sourceDisciplineId": "lifebinder",
++             },
++           ],
++           "extensions": {
++             "equipmentSkills": [],
++             "essence": {
++               "contentVersion": 4,
++               "essenceId": "essence.vanguard.unbroken-strike",
++               "skillContentVersion": 4,
++               "skillId": "essence.vanguard.unbroken-strike",
++               "sourceDisciplineId": "vanguard",
++             },
++             "prestige": null,
++             "resonance": null,
++             "supernatural": null,
++           },
++           "primary": {
++             "definitionVersion": 1,
++             "disciplineId": "vanguard",
++             "profileVersion": 1,
++           },
++           "schemaVersion": 3,
++           "secondary": null,
++           "sourceHash": "ff2fd21744b0bbafba903f4c66486cd71d6c4818d23d82f132aa56a009d11212",
++           "supportActionId": "basic.guard",
++         },
++       ],
++     },
++     "statBridge": {
++       "combatants": [
++         {
++           "combatantId": "enemy",
++           "provenance": {
++             "kind": "scenario",
++             "sourceId": "scenario:p2-7-recruit:vanguard:mastery-trial:standard",
++           },
++         },
++       ],
++     },
++     "tactical": {
++       "battle": {
++         "battleId": "stage-b-trial",
++         "combatants": [
++           {
++             "hp": 100,
++             "id": "character:00000000-0000-4000-8000-000000000011",
++             "mp": 10,
++             "teamId": "players",
++             "temporaryResources": [],
++           },
++           {
++             "hp": 100,
++             "id": "enemy",
++             "mp": 10,
++             "teamId": "enemies",
++             "temporaryResources": [],
++           },
++         ],
++         "contentVersion": 1,
++         "currentTurn": {
++           "combatantId": "character:00000000-0000-4000-8000-000000000011",
++         },
++         "lifecycle": "active",
++         "rng": {
++           "algorithm": "xorshift32-v1",
++           "draws": 0,
++           "seed": 7,
++           "state": 7,
++         },
++         "rulesVersion": 1,
++       },
++     },
++   },
+  }
+
+ ❯ denied src/combat-content-discipline-producers.test.ts:104:22
+    102| async function denied(run: () => Promise<unknown>, message: RegExp) {
+    103|   await db.exec('savepoint rejected')
+    104|   await expect(run()).rejects.toThrow(message)
+       |                      ^
+    105|   await db.exec('rollback to savepoint rejected')
+    106| }
+ ❯ src/combat-content-discipline-producers.test.ts:1638:3
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+ FAIL  src/combat-content-discipline-producers.test.ts > fresh actual admission rejects stale or forged eligibility with whole transaction rollback
+AssertionError: promise resolved "{ …(5) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "battle_session_id": "0ddc9eb1-bb5e-45e6-8ee7-e0bf602f6923",
++   "battle_version": 1,
++   "created_at": 2026-10-22T20:10:29.064Z,
++   "replayed": false,
++   "snapshot": {
++     "buildAuthority": {
++       "combatants": [
++         {
++           "buildVersion": 2,
++           "characterId": "00000000-0000-4000-8000-000000000011",
++           "combatantId": "character:00000000-0000-4000-8000-000000000011",
++           "disciplineSkills": [
++             {
++               "contentVersion": 1,
++               "eligibilityDisciplineId": "lifebinder",
++               "skillId": "lifebinder.barrier",
++               "slotIndex": 1,
++               "sourceDisciplineId": "lifebinder",
++             },
++             {
++               "contentVersion": 1,
++               "eligibilityDisciplineId": "vanguard",
++               "skillId": "lifebinder.fortifying-light",
++               "slotIndex": 2,
++               "sourceDisciplineId": "lifebinder",
++             },
++           ],
++           "extensions": {
++             "equipmentSkills": [],
++             "essence": {
++               "contentVersion": 4,
++               "essenceId": "essence.vanguard.unbroken-strike",
++               "skillContentVersion": 4,
++               "skillId": "essence.vanguard.unbroken-strike",
++               "sourceDisciplineId": "vanguard",
++             },
++             "prestige": null,
++             "resonance": null,
++             "supernatural": null,
++           },
++           "primary": {
++             "definitionVersion": 1,
++             "disciplineId": "vanguard",
++             "profileVersion": 1,
++           },
++           "schemaVersion": 3,
++           "secondary": null,
++           "sourceHash": "ff2fd21744b0bbafba903f4c66486cd71d6c4818d23d82f132aa56a009d11212",
++           "supportActionId": "basic.guard",
++         },
++       ],
++     },
++     "statBridge": {
++       "combatants": [
++         {
++           "combatantId": "enemy",
++           "provenance": {
++             "kind": "scenario",
++             "sourceId": "scenario:p2-7-recruit:vanguard:mastery-trial:standard",
++           },
++         },
++       ],
++     },
++     "tactical": {
++       "battle": {
++         "battleId": "stage-b-trial",
++         "combatants": [
++           {
++             "hp": 100,
++             "id": "character:00000000-0000-4000-8000-000000000011",
++             "mp": 10,
++             "teamId": "players",
++             "temporaryResources": [],
++           },
++           {
++             "hp": 100,
++             "id": "enemy",
++             "mp": 10,
++             "teamId": "enemies",
++             "temporaryResources": [],
++           },
++         ],
++         "contentVersion": 1,
++         "currentTurn": {
++           "combatantId": "character:00000000-0000-4000-8000-000000000011",
++         },
++         "lifecycle": "active",
++         "rng": {
++           "algorithm": "xorshift32-v1",
++           "draws": 0,
++           "seed": 7,
++           "state": 7,
++         },
++         "rulesVersion": 1,
++       },
++     },
++   },
+  }
+
+ ❯ denied src/combat-content-discipline-producers.test.ts:104:22
+    102| async function denied(run: () => Promise<unknown>, message: RegExp) {
+    103|   await db.exec('savepoint rejected')
+    104|   await expect(run()).rejects.toThrow(message)
+       |                      ^
+    105|   await db.exec('rollback to savepoint rejected')
+    106| }
+ ❯ src/combat-content-discipline-producers.test.ts:1638:3
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯
+
+ FAIL  src/combat-content-discipline-producers.test.ts > actual trial credits only immutable selected earned eligibility (true), once for battle-pinned Primary
+error: TRIAL_SKILL_VARIETY_REQUIRED
+ ❯ pe.Ue ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pg-protocol/src/parser.ts:442:10
+ ❯ pe.tt ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pg-protocol/src/parser.ts:220:15
+ ❯ pe.parse ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pg-protocol/src/parser.ts:104:20
+ ❯ N.qe ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pglite/src/pglite.ts:753:25
+ ❯ ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pglite/src/pglite.ts:706:13
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:5922000
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:2616044
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:2648530
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:2649134
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:5569870
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/6]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  6 failed | 1 passed | 40 skipped (47)
+   Start at  13:10:24
+   Duration  4.42s (transform 864ms, setup 0ms, import 1.06s, tests 3.16s, environment 0ms)
+
+undefined
+/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/packages/db:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/combat-content-discipline-producers.test.ts -t 'committed producer pins|fresh actual admission|actual trial credits'

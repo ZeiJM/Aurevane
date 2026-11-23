@@ -1,0 +1,50 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["corepack", "pnpm", "--filter", "@aurevane/web", "exec", "vitest", "run", "src/server/battle/battle-source-authority.test.ts"], "start": "2026-10-20T18:11:25.273982+00:00"}
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.10 /workspace/scratch/081f137b6a6d/aurevane-players-20261020/apps/web
+
+ ❯ src/server/battle/battle-source-authority.test.ts (9 tests | 1 failed) 15ms
+   × recursively removes private source captures from every public envelope 8ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/server/battle/battle-source-authority.test.ts > recursively removes private source captures from every public envelope
+AssertionError: expected { sourceHash: 'root', …(1) } to deeply equal { snapshot: { combatants: [ …(1) ] } }
+
+- Expected
++ Received
+
+  {
+    "snapshot": {
+      "combatants": [
+        {
+          "hp": 8,
++         "sourceHash": "private",
+        },
+      ],
+    },
++   "sourceHash": "root",
+  }
+
+ ❯ src/server/battle/battle-source-authority.test.ts:30:117
+     28| import { projectPublicCombat } from '@aurevane/game-core/combat/public…
+     29| it('recursively removes private source captures from every public enve…
+     30|   expect(projectPublicCombat({ sourceHash: 'root', snapshot: { combata…
+       |                                                                                                                     ^
+     31| })
+     32|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 8 passed (9)
+   Start at  14:11:26
+   Duration  253ms (transform 48ms, setup 0ms, import 68ms, tests 15ms, environment 0ms)
+
+undefined
+/workspace/scratch/081f137b6a6d/aurevane-players-20261020/apps/web:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/server/battle/battle-source-authority.test.ts
+{"end": "2026-10-20T18:11:26.487187+00:00", "exit": 1}

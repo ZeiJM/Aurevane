@@ -1,4 +1,57 @@
+import { combatRangeTarget } from '@aurevane/game-core/combat/combat-range'
+import { combatSealBlocksSkill } from '@aurevane/game-core/combat/combat-seal'
+import { equipmentBehaviorActionId } from '@aurevane/game-core/combat/combat-equipment'
+import { effectiveCombatStatProfile } from '@aurevane/game-core/combat/combat-stat-bonuses'
+import {
+  combatAbilityUsageLimitReached,
+  combatAbilityRemainingUses,
+} from '@aurevane/game-core/combat/combat-ability-command'
+import { combatAbilityCooldown } from '@aurevane/game-core/combat/skill-cooldowns'
+import {
+  COMBAT_STATUS_TUNING_FIELDS,
+  combatStatusTuning,
+} from '@aurevane/game-core/combat/combat-status-tuning'
+import {
+  combatReversalStatusProfiles,
+  combatReversalAttackIssue,
+} from '@aurevane/game-core/combat/combat-reversal'
+import { battleTagForStatus } from '@/lib/battle/battle-tag-wording'
+import type { BattleBuildAuthoritySnapshot } from './battle-build-authority'
+import { combatEffectPresentationId } from '@aurevane/game-core/combat/combat-effect-identities'
+import { combatEffectTagPresentation } from '@aurevane/game-core/combat/combat-tag-registry'
+import { renderAbilityPresentationText } from '@aurevane/game-core/combat/battle-narration'
+import { contentArtworkKey } from '@aurevane/game-core/combat/content-media'
+import { airborneJump } from '@aurevane/game-core/combat/combat-airborne'
+import { battleActionDealsDamage } from '@/components/battle/battle-attack-path'
+import { abilityBehaviorInformation } from '@/components/character/ability-detail-presentation'
+import type { BattleBasicActionPresentation } from '@/lib/battle/battle-basic-actions'
+import { PV1F_BASIC_ATTACK_ID } from '@aurevane/game-core/combat/pv1f-skills'
+import {
+  effectiveBasicSkillBehavior,
+  isFreeOffensiveBasicMove,
+} from '@aurevane/game-core/combat/combat-basic-actions'
+import {
+  combatAbilityBehavior,
+  materializeCombatAbilityAction,
+  combatManualModifierAvailability,
+  combatControlledAbilityAvailability,
+  combatPrimedAbilityIds,
+} from '@aurevane/game-core/combat/combat-behavior-runtime'
 import 'server-only'
+import { canonicalAbilitySupportsFireGroundIntent } from '@aurevane/game-core/combat/combat-targeting-shapes'
+import {
+  combatCanonicalModifierRootFacts,
+  combatModifierCompatibilityFacts,
+} from '@aurevane/game-core/combat/combat-modifier-compatibility'
+import {
+  projectPublicCombatGroundAreas,
+  type PublicCombatGroundArea,
+} from '@aurevane/game-core/combat/combat-ground-visuals'
+
+import {
+  activePersistentCombatStatusRows,
+  pendingCombatStatusRows,
+} from '@aurevane/game-core/combat/combat-effect-timing'
 
 import {
   combatStatusMetadata,
@@ -9,10 +62,450 @@ import {
   PV1F_COVERT_STATUS,
 } from '@aurevane/game-core/combat/pv1f-action-economy'
 import type { StatDrivenCombatEncounterState } from '@aurevane/game-core/combat/stat-driven-combat'
+import {
+  terrainDefenseReductionBasisPoints,
+  terrainEvasionBonusBasisPoints,
+} from '@aurevane/game-core/combat/combat-stat-balance'
+import {
+  terrainBattleEffectPresentation,
+  TERRAIN_DEFENSE_STATUS_ID,
+  TERRAIN_EVASION_STATUS_ID,
+  type BattlePresentedStatus,
+} from '../../lib/battle/battle-elevation-effects'
 
 import { battleViewerRelationship, type BattleViewerEntitlement } from './battle-viewer-entitlement'
+import {
+  combatEndureBlocksAction,
+  type CombatSourceCommandVisibility,
+} from '@aurevane/game-core/combat/actions'
 
-type BattleStatusState = StatDrivenCombatEncounterState['statusState']
+function pendingCovertConcealsInstance(
+  state: Pick<StatDrivenCombatEncounterState, 'pendingEffects'>,
+  instance: { sourceCombatantId: string; sourceCommandVisibility?: CombatSourceCommandVisibility },
+): boolean {
+  return (
+    instance.sourceCommandVisibility?.kind === 'team-only' &&
+    (state.pendingEffects ?? []).some(
+      (pending) =>
+        pending.actorId === instance.sourceCombatantId &&
+        pending.sourceCommandVisibility &&
+        pending.effect.type === 'apply-status' &&
+        pending.effect.statusId === PV1F_COVERT_STATUS.id &&
+        pending.recipientIds.includes(pending.actorId),
+    )
+  )
+}
+
+function capturedAbilityEffectContext(state: StatDrivenCombatEncounterState) {
+  return {
+    legacyActionUsageLimits: state.abilityUsageLimitPolicyVersion !== 1,
+    legacyTriggers: state.dotTriggerPolicyVersion === undefined,
+    legacyPoisonMovement: state.dotTriggerPolicyVersion !== 2,
+    groundContactPolicyVersion: state.groundContactPolicyVersion ?? null,
+    legacyFrozenGround: state.frozenGroundPolicyVersion !== 1,
+    legacyAirborne: state.airbornePolicyVersion !== 1,
+    legacyAirborneJump: state.airborneJumpPolicyVersion !== 1,
+    legacyHealingDown: state.healingDownPolicyVersion !== 1,
+    legacyBlindsideActivation: state.blindsideActivationPolicyVersion !== 1,
+    legacyReversal: state.reversalPolicyVersion !== 1,
+    legacyReflectBarrier: state.reflectBarrierPolicyVersion !== 1,
+    legacyPierceCritical: state.pierceCriticalPolicyVersion !== 1,
+    legacySummonPotency: state.summonPotencyPolicyVersion !== 1,
+    legacyRuin: state.ruinPolicyVersion !== 1,
+    legacyPairedStatus: state.pairedStatusPolicyVersion !== 1,
+    legacyElemental: state.elementalDamagePolicyVersion === undefined,
+    explicitElemental: state.elementalDamagePolicyVersion === 2,
+  }
+}
+
+/** Only controlled owners receive reference choices; allies/opponents/spectators receive none. */
+export function projectBattleManualModifierAvailability(
+  state: StatDrivenCombatEncounterState,
+  viewer: BattleViewerEntitlement,
+) {
+  if (viewer.kind !== 'participant') return []
+  return [...viewer.controlledCombatantIds]
+    .sort()
+    .flatMap((ownerId) => combatManualModifierAvailability(state, ownerId))
+    .map((row) => {
+      const source = state.capturedAbilitySources!.find(
+        (source) => source.sourceInstanceId === row.sourceInstanceId,
+      )!
+      const behavior = source.definition.behaviors.find(
+        (behavior) => behavior.id === row.behaviorId,
+      )!
+      return {
+        ...row,
+        abilityId: source.abilityId,
+        contentVersion: source.contentVersion,
+        compatibility: combatModifierCompatibilityFacts(behavior),
+        report: abilityBehaviorInformation(behavior, {
+          timingPolicy: state.effectTimingPolicy ?? null,
+          effectContext: capturedAbilityEffectContext(state),
+        }),
+      }
+    })
+}
+
+/** Safe geometry and payment metadata from the owner's immutable active Manual captures. */
+export function projectBattleManualActionTargets(
+  state: StatDrivenCombatEncounterState,
+  viewer: BattleViewerEntitlement,
+) {
+  if (viewer.kind !== 'participant') return []
+  return (state.capturedAbilitySources ?? [])
+    .filter(
+      (source) =>
+        viewer.controlledCombatantIds.has(source.ownerCombatantId) &&
+        state.abilityRuntime?.activeSourceIds.includes(source.sourceInstanceId),
+    )
+    .flatMap((source) =>
+      source.definition.behaviors
+        .filter(
+          (behavior) =>
+            behavior.activation === 'manual' && behavior.mode === 'action' && behavior.targeting,
+        )
+        .map((behavior) => {
+          const controlled = combatControlledAbilityAvailability({
+            state,
+            actorId: source.ownerCombatantId,
+            sourceInstanceId: source.sourceInstanceId,
+            behaviorId: behavior.id,
+            content: PV1F_COMBAT_CONTENT,
+          })
+          const spec = combatRangeTarget(
+            state,
+            source.ownerCombatantId,
+            materializeCombatAbilityAction(source, behavior, state),
+          )
+          const move =
+            source.basic?.execution.kind === 'basic-move' &&
+            source.basic.execution.costBasis === 'per-terrain-point'
+              ? undefined
+              : behavior.effects.find((effect) => effect.payload.type === 'move')
+          return {
+            ownerCombatantId: source.ownerCombatantId,
+            actionId:
+              source.basic?.execution.kind === 'basic-attack' ||
+              source.equipment?.roles.attack === behavior.id
+                ? PV1F_BASIC_ATTACK_ID
+                : source.equipment
+                  ? equipmentBehaviorActionId(source.equipment, behavior.id)
+                  : source.abilityId,
+            behaviorId: behavior.id,
+            ...(behavior.maximumUsesPerBattle === undefined
+              ? {}
+              : {
+                  maximumUsesPerBattle: behavior.maximumUsesPerBattle,
+                  remainingUses: combatAbilityRemainingUses(state, source, behavior)!,
+                }),
+            ...(combatAbilityUsageLimitReached(
+              state,
+              source,
+              isFreeOffensiveBasicMove(source, behavior)
+                ? effectiveBasicSkillBehavior(state, source, behavior)
+                : combatAbilityBehavior(source, behavior.id, state.effectTimingPolicy),
+            )
+              ? { usageLimitReached: true as const }
+              : {}),
+            ...(combatSealBlocksSkill(
+              state,
+              source.ownerCombatantId,
+              source.sourceKind,
+              behavior.classification,
+            )
+              ? { sealBlocked: true as const }
+              : {}),
+            ...(combatEndureBlocksAction(
+              state,
+              source.ownerCombatantId,
+              {
+                ...materializeCombatAbilityAction(source, behavior, state),
+                ...(source.basic?.execution.kind === 'basic-attack'
+                  ? { sourceType: 'basic-attack' as const }
+                  : {}),
+              },
+              PV1F_COMBAT_CONTENT,
+            )
+              ? { endureBlocked: true as const }
+              : {}),
+            ...(combatReversalAttackIssue(state, source.ownerCombatantId, {
+              ...materializeCombatAbilityAction(source, behavior, state),
+              ...(source.basic?.execution.kind === 'basic-attack'
+                ? { sourceType: 'basic-attack' as const }
+                : {}),
+            })
+              ? { reversalBlocked: true as const }
+              : {}),
+            ...(behavior.classification ? { classification: behavior.classification } : {}),
+            dealsDamage: battleActionDealsDamage(behavior.effects.map((effect) => effect.payload)),
+            ...(behavior.effects.some(
+              (effect) => 'target' in effect.payload && effect.payload.target === 'all',
+            )
+              ? { hasAllTargetEffects: true as const }
+              : {}),
+            modifierRoot: combatCanonicalModifierRootFacts(behavior),
+            ...(canonicalAbilitySupportsFireGroundIntent(
+              behavior,
+              state.elementalDamagePolicyVersion,
+            )
+              ? { groundIntentCapable: true as const }
+              : {}),
+            costs: behavior.costs.map((cost) => ({ ...cost })),
+            cooldown: combatAbilityCooldown(state, source, behavior.cooldown),
+            ...(source.basic
+              ? {}
+              : {
+                  report: abilityBehaviorInformation(behavior, {
+                    timingPolicy: state.effectTimingPolicy ?? null,
+                    effectContext: capturedAbilityEffectContext(state),
+                  }),
+                }),
+            ...(controlled
+              ? {
+                  controlled: {
+                    ...controlled,
+                    ...(behavior.effects.some((effect) => effect.payload.type === 'reversal')
+                      ? { kind: 'reversal' as const }
+                      : {}),
+                  },
+                }
+              : {}),
+            ...(move?.payload.type === 'move'
+              ? {
+                  move: {
+                    maximumTiles: move.payload.maximumTiles,
+                    ...(move.payload.maximumElevation !== undefined
+                      ? { maximumElevation: move.payload.maximumElevation }
+                      : {}),
+                    ...(move.payload.requiresLineOfSight !== undefined
+                      ? { requiresLineOfSight: move.payload.requiresLineOfSight }
+                      : {}),
+                    conditional: move.requirements != null,
+                  },
+                }
+              : {}),
+            target: {
+              kind: spec.kind,
+              teamPolicy: spec.teamPolicy,
+              friendlyFire: spec.friendlyFire,
+              shape: { ...spec.shape },
+              minimumRange: spec.minimumRange,
+              maximumRange: spec.maximumRange,
+              requiresLineOfSight: spec.requiresLineOfSight,
+              maximumElevationDifference: spec.maximumElevationDifference,
+              maximumSelections: spec.maximumSelections,
+              geometryVersion: spec.geometryVersion,
+              ...(spec.categories ? { categories: [...spec.categories] } : {}),
+            },
+          }
+        }),
+    )
+    .sort((a, b) =>
+      a.actionId < b.actionId
+        ? -1
+        : a.actionId > b.actionId
+          ? 1
+          : a.behaviorId < b.behaviorId
+            ? -1
+            : a.behaviorId > b.behaviorId
+              ? 1
+              : 0,
+    )
+}
+
+/** A controlled owner's saved Basic display data, without private execution envelopes or accuracy. */
+/** Only viewer-owned captured presentation crosses the composed public boundary. */
+export function projectBattleTagPresentations(
+  state: StatDrivenCombatEncounterState,
+  viewer: BattleViewerEntitlement,
+) {
+  if (viewer.kind !== 'participant') return []
+  return (state.capturedAbilitySources ?? [])
+    .filter(
+      (source) =>
+        viewer.controlledCombatantIds.has(source.ownerCombatantId) &&
+        source.definition.tagPresentation,
+    )
+    .map((source) => ({
+      ownerCombatantId: source.ownerCombatantId,
+      abilityId: source.abilityId,
+      contentVersion: source.contentVersion,
+      tags: source.definition.tagPresentation!,
+    }))
+}
+
+export function projectBattleBasicActions(
+  state: StatDrivenCombatEncounterState,
+  viewer: BattleViewerEntitlement,
+): readonly BattleBasicActionPresentation[] | undefined {
+  if (viewer.kind !== 'participant') return undefined
+  const owned = (state.capturedAbilitySources ?? []).filter(
+    (source) => source.basic && viewer.controlledCombatantIds.has(source.ownerCombatantId),
+  )
+  if (!owned.length) return undefined
+  return owned
+    .filter((source) => state.abilityRuntime?.activeSourceIds.includes(source.sourceInstanceId))
+    .map((source) => {
+      const basic = source.basic!
+      const owner = state.tactical.battle.combatants.find(
+        (unit) => unit.id === source.ownerCombatantId,
+      )!
+      const profile = effectiveCombatStatProfile(state, source.ownerCombatantId)!
+      const rawProfile = state.statBridge.combatants.find(
+        (row) => row.combatantId === source.ownerCombatantId,
+      )!
+      const behaviors = source.definition.behaviors
+        .filter((behavior) => behavior.activation === 'manual' && behavior.mode === 'action')
+        .map((behavior) => {
+          const move = behavior.effects.find((effect) => effect.payload.type === 'move')
+          const freeOffensiveMove = isFreeOffensiveBasicMove(source, behavior)
+          const report = abilityBehaviorInformation(
+            freeOffensiveMove ? effectiveBasicSkillBehavior(state, source, behavior) : behavior,
+            {
+              basic,
+              tagPresentation: basic.ability.tagPresentation,
+              timingPolicy: state.effectTimingPolicy ?? null,
+              effectContext: capturedAbilityEffectContext(state),
+              stats: {
+                move:
+                  state.tactical.battle.currentTurn?.combatantId === owner.id
+                    ? state.tactical.battle.currentTurn.movementMaximum
+                    : owner.baseMovementBudget,
+                jump: airborneJump(
+                  state,
+                  source.ownerCombatantId,
+                  rawProfile.jump,
+                  PV1F_COMBAT_CONTENT,
+                ),
+                physicalPower: profile.physicalPower,
+                mysticPower: profile.mysticPower,
+              },
+            },
+          )
+          return {
+            behaviorId: behavior.id,
+            classification: behavior.classification,
+            modifierRoot: combatCanonicalModifierRootFacts(behavior),
+            costs: behavior.costs.map((cost) => ({ ...cost })),
+            cooldown: combatAbilityCooldown(state, source, behavior.cooldown),
+            target: structuredClone(
+              combatRangeTarget(
+                state,
+                source.ownerCombatantId,
+                materializeCombatAbilityAction(source, behavior, state),
+              ),
+            ),
+            ...(move?.payload.type === 'move'
+              ? {
+                  move: {
+                    maximumTiles: move.payload.maximumTiles,
+                    ...(move.payload.maximumElevation !== undefined
+                      ? { maximumElevation: move.payload.maximumElevation }
+                      : {}),
+                    ...(move.payload.requiresLineOfSight !== undefined
+                      ? { requiresLineOfSight: move.payload.requiresLineOfSight }
+                      : {}),
+                    conditional: move.requirements != null,
+                  },
+                }
+              : {}),
+            ...report,
+            ...(freeOffensiveMove
+              ? {
+                  limits: [
+                    ...report.limits,
+                    'Free offensive Move shares this limit across its action groups.',
+                  ],
+                }
+              : {}),
+          }
+        })
+      const native = basic.execution.kind === 'basic-move' ? behaviors[0]! : null
+      return {
+        ownerCombatantId: source.ownerCombatantId,
+        actionId: basic.execution.kind === 'basic-attack' ? PV1F_BASIC_ATTACK_ID : source.abilityId,
+        contentVersion: source.contentVersion,
+        name: basic.name,
+        description:
+          renderAbilityPresentationText(basic, 'public', { ability: basic.name }) ??
+          basic.description,
+        ...(renderAbilityPresentationText(basic, 'compact', { ability: basic.name })
+          ? {
+              compactText: renderAbilityPresentationText(basic, 'compact', {
+                ability: basic.name,
+              })!,
+            }
+          : {}),
+        enabled: basic.enabled,
+        iconKey: contentArtworkKey(basic.media),
+        ...(native
+          ? {
+              movement: {
+                costBasis:
+                  basic.execution.kind === 'basic-move' ? basic.execution.costBasis : 'flat',
+                ...(basic.execution.kind === 'basic-move' &&
+                basic.execution.costBasis === 'per-terrain-point'
+                  ? {
+                      apPerTraversalPoint: native.costs.find((cost) => cost.resource === 'ap')!
+                        .amount,
+                    }
+                  : {}),
+                maximumTiles: native.move!.maximumTiles,
+                ...(native.move!.maximumElevation !== undefined
+                  ? { maximumElevation: native.move!.maximumElevation }
+                  : {}),
+                ...(native.move!.requiresLineOfSight !== undefined
+                  ? { requiresLineOfSight: native.move!.requiresLineOfSight }
+                  : {}),
+              },
+            }
+          : {}),
+        behaviors,
+      }
+    })
+    .sort(
+      (left, right) =>
+        left.ownerCombatantId.localeCompare(right.ownerCombatantId) ||
+        left.actionId.localeCompare(right.actionId),
+    )
+}
+
+/** Public receipt projection, including per-application private execution metadata. */
+export function omitCombatExecutionMetadata<T extends object>(receipt: T): T {
+  const projected = { ...receipt }
+  for (const key of [
+    'effectOrigin',
+    'abilityParticipants',
+    'modifierSuppressions',
+    'sourceCommandVisibility',
+    'privateSharedLifetime',
+    'originalDurationTurns',
+    'copyEffectOrdinal',
+    'abilityCommandFacts',
+    'counterReturnBasisPoints',
+    'attackTagCapture',
+    'ruinApplicationId',
+    'ruinCommandId',
+    'ruinState',
+    'summonDamageCommandId',
+    'provenance',
+  ])
+    Reflect.deleteProperty(projected, key)
+  if ('applicationModifiers' in projected && Array.isArray(projected.applicationModifiers)) {
+    Object.assign(projected, {
+      applicationModifiers: projected.applicationModifiers.map((application: object) =>
+        omitCombatExecutionMetadata(application),
+      ),
+    })
+  }
+  return projected
+}
+
+type BattleStatusState = readonly {
+  combatantId: string
+  statuses: readonly BattlePresentedStatus[]
+}[]
 
 function statusDefinitionKey(statusId: string, statusVersion: number): string {
   return `${statusId}@${statusVersion}`
@@ -25,40 +518,366 @@ const STATUS_DEFINITION_BY_KEY = new Map(
 )
 
 export function projectBattleStatusStateForViewer(
-  state: Pick<StatDrivenCombatEncounterState, 'statusState' | 'tactical'>,
+  state: Pick<
+    StatDrivenCombatEncounterState,
+    | 'statusState'
+    | 'effectStackingPolicyVersion'
+    | 'statBalancePolicyVersion'
+    | 'tactical'
+    | 'effectState'
+    | 'terrainOverlays'
+    | 'pendingEffects'
+    | 'pendingSummons'
+    | 'airbornePolicyVersion'
+    | 'airborneJumpPolicyVersion'
+    | 'healingDownPolicyVersion'
+    | 'elementalDamagePolicyVersion'
+    | 'blindsideActivationPolicyVersion'
+    | 'reflectBarrierPolicyVersion'
+    | 'dotTriggerPolicyVersion'
+    | 'skillPacketPolicyVersion'
+    | 'capturedAbilitySources'
+    | 'abilityRuntime'
+    | 'reversalState'
+    | 'effectTimingPolicy'
+  > & { buildAuthority?: BattleBuildAuthoritySnapshot },
   viewer: BattleViewerEntitlement,
 ): BattleStatusState {
   const combatantById = new Map(
     state.tactical.battle.combatants.map((combatant) => [combatant.id, combatant] as const),
   )
 
-  return state.statusState.map((row) => {
-    const combatant = combatantById.get(row.combatantId)
+  const knownCovertApplication = (status: BattlePresentedStatus): BattlePresentedStatus | null => {
+    if (
+      status.statusId !== PV1F_COVERT_STATUS.id ||
+      status.statusVersion !== PV1F_COVERT_STATUS.version
+    )
+      return null
+    const applications = status.applicationModifiers ?? [status]
+    const own = applications.findLast((application) => {
+      const source = combatantById.get(application.sourceCombatantId)
+      const relationship = source ? battleViewerRelationship(viewer, source) : 'enemy'
+      return relationship === 'self' || relationship === 'ally'
+    })
+    if (!own) return null
+    // Only confirm the known application. A shared clock or count could disclose another caster.
+    return {
+      statusId: status.statusId,
+      statusVersion: status.statusVersion,
+      sourceCombatantId: own.sourceCombatantId,
+      stacks: 1,
+      remainingOwnerTurnStarts: 1,
+      presentationDuration: 'while-active',
+      ...(status.timingState === undefined ? {} : { timingState: status.timingState }),
+      ...(status.timingState === 'pending' && status.activationRound !== undefined
+        ? { activationRound: status.activationRound }
+        : {}),
+      ...(status.battleTag === undefined ? {} : { battleTag: status.battleTag }),
+    }
+  }
+  const ownsCovertApplication = (status: BattlePresentedStatus): boolean =>
+    knownCovertApplication(status) !== null
+
+  const presentInteractionPolicy = (
+    status: BattlePresentedStatus,
+    exactTagId?: string,
+  ): BattlePresentedStatus => ({
+    ...status,
+    battleTag: battleTagForStatus(state.buildAuthority?.tagPresentations, status, exactTagId),
+    ...(state.effectStackingPolicyVersion === 1 ? { effectStackingPolicyVersion: 1 as const } : {}),
+    ...(status.statusId === 'counter' && state.reflectBarrierPolicyVersion === 1
+      ? { reflectBarrierPolicyVersion: 1 as const }
+      : {}),
+    ...(status.statusId === 'blindside' && state.blindsideActivationPolicyVersion === 1
+      ? { blindsideActivationPolicyVersion: 1 as const }
+      : {}),
+    ...(status.statusId === 'airborne' && state.airbornePolicyVersion === 1
+      ? { airbornePolicyVersion: 1 as const }
+      : {}),
+    ...(status.statusId === 'airborne' && state.airborneJumpPolicyVersion === 1
+      ? { airborneJumpPolicyVersion: 1 as const }
+      : {}),
+    ...(['wet', 'frozen', 'conductive'].includes(status.statusId) &&
+    state.elementalDamagePolicyVersion !== undefined
+      ? { elementalDamagePolicyVersion: state.elementalDamagePolicyVersion }
+      : {}),
+    ...(status.statusId === 'hexed' && state.healingDownPolicyVersion === 1
+      ? { healingDownPolicyVersion: 1 as const }
+      : {}),
+  })
+  const pending = [
+    ...(state.pendingEffects ?? []).flatMap((effect) => {
+      const rows = pendingCombatStatusRows({
+        ...state,
+        pendingEffects: [effect],
+        pendingSummons: [],
+      })
+      for (const row of rows)
+        row.status = {
+          ...row.status,
+          battleTag: battleTagForStatus(
+            state.buildAuthority?.tagPresentations,
+            row.status,
+            combatEffectTagPresentation(state.buildAuthority?.tagPresentations, effect.effect)
+              ?.tagId ?? combatEffectPresentationId(effect.effect),
+          ),
+        } as BattlePresentedStatus
+      const visibility = effect.sourceCommandVisibility
+      if (
+        !visibility ||
+        (viewer.kind === 'participant' && viewer.friendlyTeamIds.has(visibility.teamId))
+      )
+        return rows
+      // A protected cast's queued benefits stay private before its own Covert activates.
+      return rows.filter(({ combatantId, status }) => {
+        const recipient = combatantById.get(combatantId)
+        const relationship = recipient ? battleViewerRelationship(viewer, recipient) : 'enemy'
+        if (relationship === 'self' || relationship === 'ally') return true
+        const definition = STATUS_DEFINITION_BY_KEY.get(
+          statusDefinitionKey(status.statusId, status.statusVersion),
+        )
+        return definition && combatStatusMetadata(definition).polarity !== 'positive'
+      })
+    }),
+    ...pendingCombatStatusRows({
+      ...state,
+      pendingEffects: [],
+      pendingSummons: state.pendingSummons?.filter(
+        (summon) =>
+          !summon.sourceCommandVisibility ||
+          (viewer.kind === 'participant' &&
+            viewer.friendlyTeamIds.has(summon.sourceCommandVisibility.teamId)),
+      ),
+    }),
+    ...activePersistentCombatStatusRows({
+      ...state,
+      effectState: projectBattleEffectStateForViewer(state, viewer),
+    }),
+  ]
+  return state.statusState.map((activeRow) => {
+    const combatant = combatantById.get(activeRow.combatantId)
+    const terrainBonus =
+      combatant && combatant.hp > 0
+        ? terrainEvasionBonusBasisPoints(state, activeRow.combatantId)
+        : 0
+    const terrainStatuses: BattlePresentedStatus[] =
+      terrainBonus > 0
+        ? [
+            { statusId: TERRAIN_EVASION_STATUS_ID, potencyBasisPoints: terrainBonus },
+            {
+              statusId: TERRAIN_DEFENSE_STATUS_ID,
+              potencyBasisPoints: terrainDefenseReductionBasisPoints(state, activeRow.combatantId),
+            },
+          ].map((effect) => ({
+            ...effect,
+            statusVersion: 1,
+            stacks: 1,
+            // Compatibility field only; presentationDuration supplies the positional lifetime.
+            remainingOwnerTurnStarts: 1,
+            sourceCombatantId: activeRow.combatantId,
+            timingState: 'active',
+            presentationDuration: 'while-elevated',
+          }))
+        : []
+    const relationship = combatant ? battleViewerRelationship(viewer, combatant) : 'enemy'
+    const reversalProfiles = combatReversalStatusProfiles(state, activeRow.combatantId)
+    const reversalStatuses: BattlePresentedStatus[] = reversalProfiles.flatMap((profile) => {
+      if (
+        profile.kind === 'armed' &&
+        relationship !== 'self' &&
+        relationship !== 'ally' &&
+        pendingCovertConcealsInstance(state, {
+          sourceCombatantId: profile.combatantId,
+          sourceCommandVisibility: profile.sourceCommandVisibility,
+        })
+      )
+        return []
+      return [
+        {
+          statusId: profile.kind === 'armed' ? 'reversal' : 'reversal-strain',
+          statusVersion: 1,
+          stacks: 1,
+          remainingOwnerTurnStarts: 1,
+          sourceCombatantId: profile.combatantId,
+          timingState: 'active',
+          presentationDuration:
+            profile.kind === 'armed' ? 'until-reversal-ends' : 'next-complete-owner-turn',
+          ...(profile.kind === 'armed'
+            ? {
+                reversal: {
+                  ...(relationship === 'self' || relationship === 'ally'
+                    ? { family: profile.family }
+                    : {}),
+                  reflectionBasisPoints: profile.reflectionBasisPoints,
+                  attackerMaxHpCapBasisPoints: profile.attackerMaxHpCapBasisPoints,
+                  defenderMaxHpCapBasisPoints: profile.defenderMaxHpCapBasisPoints,
+                  ...(profile.policyVersion === 1 ? { policyVersion: 1 as const } : {}),
+                },
+              }
+            : {}),
+        },
+      ]
+    })
+    const primedStatuses: BattlePresentedStatus[] =
+      (relationship === 'self' || relationship === 'ally') &&
+      combatPrimedAbilityIds(state, activeRow.combatantId).some(
+        (id) =>
+          !reversalProfiles.some(
+            (profile) => profile.kind === 'armed' && profile.sourceAbilityId === id,
+          ),
+      )
+        ? [
+            {
+              statusId: 'primed',
+              statusVersion: 1,
+              stacks: 1,
+              remainingOwnerTurnStarts: 1,
+              sourceCombatantId: activeRow.combatantId,
+              timingState: 'active',
+              presentationDuration: 'while-primed',
+            },
+          ]
+        : []
+    const row = {
+      ...activeRow,
+      statuses: [
+        ...activeRow.statuses
+          .flatMap((status) => {
+            const recipient = combatantById.get(activeRow.combatantId)
+            const relationship = recipient ? battleViewerRelationship(viewer, recipient) : 'enemy'
+            if (relationship === 'self' || relationship === 'ally') return [status]
+            const knownCovert = knownCovertApplication(status)
+            if (knownCovert) return [knownCovert]
+            const definition = STATUS_DEFINITION_BY_KEY.get(
+              statusDefinitionKey(status.statusId, status.statusVersion),
+            )
+            if (definition && combatStatusMetadata(definition).polarity !== 'positive')
+              return [status]
+            if (pendingCovertConcealsInstance(state, status)) return []
+            if (!status.applicationModifiers) return [status]
+            if (
+              status.applicationModifiers.some(
+                (application) =>
+                  application.privateSharedLifetime &&
+                  pendingCovertConcealsInstance(state, application),
+              )
+            )
+              return []
+            const applications = status.applicationModifiers.filter(
+              (application) => !pendingCovertConcealsInstance(state, application),
+            )
+            if (applications.length === status.applicationModifiers.length) return [status]
+            const last = applications.at(-1)
+            if (!last) return []
+            const visible = {
+              ...status,
+              applicationModifiers: applications,
+              stacks: applications.reduce((sum, application) => sum + application.stacks, 0),
+              sourceCombatantId: last.sourceCombatantId,
+            }
+            for (const field of COMBAT_STATUS_TUNING_FIELDS) delete visible[field]
+            delete visible.damageTypes
+            delete visible.sealedCategories
+            Object.assign(visible, combatStatusTuning(last))
+            delete visible.counter
+            if (last.counter) visible.counter = last.counter
+            delete visible.potencyBasisPoints
+            delete visible.blindsideModifiersBasisPoints
+            if (last.potencyBasisPoints !== undefined)
+              visible.potencyBasisPoints = last.potencyBasisPoints
+            if (last.blindsideModifiersBasisPoints !== undefined)
+              visible.blindsideModifiersBasisPoints = last.blindsideModifiersBasisPoints
+            return [visible]
+          })
+          .map((status) => presentInteractionPolicy(omitCombatExecutionMetadata(status))),
+        ...terrainStatuses,
+        ...primedStatuses,
+        ...reversalStatuses,
+        ...pending
+          .filter((item) => item.combatantId === activeRow.combatantId)
+          .map((item) =>
+            presentInteractionPolicy(
+              omitCombatExecutionMetadata(item.status),
+              (item.status as BattlePresentedStatus).battleTag?.tagId,
+            ),
+          ),
+      ],
+    }
     // Validated snapshots should always resolve this row; omission is safer than disclosure if they do not.
     if (!combatant) return { ...row, statuses: [] }
 
-    const relationship = battleViewerRelationship(viewer, combatant)
-    if (relationship === 'self' || relationship === 'ally') return row
+    // Opposing applied debuffs may retain a concealed cast's engine provenance.
+    row.statuses = row.statuses.map((status) => {
+      const source = combatantById.get(status.sourceCombatantId)
+      const sourceRelationship = source ? battleViewerRelationship(viewer, source) : 'enemy'
+      if (sourceRelationship === 'self' || sourceRelationship === 'ally') return status
+      const publicStatus = { ...status }
+      delete publicStatus.provenance
+      return publicStatus
+    })
 
-    const covert = row.statuses.some((status) => status.statusId === PV1F_COVERT_STATUS.id)
-    if (!covert) return row
+    if (relationship === 'self' || relationship === 'ally') return row
+    row.statuses = row.statuses.map((status) => knownCovertApplication(status) ?? status)
+
+    // Concealment is authoritative even when a private queued refresh hides the
+    // active Covert instance from this viewer's presented rows.
+    const covert = activeRow.statuses.some(
+      (status) => status.statusId === PV1F_COVERT_STATUS.id && status.timingState !== 'pending',
+    )
+    if (!covert)
+      return {
+        ...row,
+        statuses: row.statuses.filter(
+          (status) => status.statusId !== PV1F_COVERT_STATUS.id || ownsCovertApplication(status),
+        ),
+      }
 
     return {
       ...row,
       statuses: row.statuses.filter((status) => {
+        if (
+          status.statusId === 'reversal-strain' &&
+          status.presentationDuration === 'next-complete-owner-turn'
+        )
+          return true
+        const terrainEffect = terrainBattleEffectPresentation(status)
+        if (terrainEffect) return terrainEffect.kind !== 'Buff'
         const definition = STATUS_DEFINITION_BY_KEY.get(
           statusDefinitionKey(status.statusId, status.statusVersion),
         )
         // Unknown or mismatched pinned status versions fail closed for unauthorized Covert viewers.
         if (!definition) return false
+        // Confirm the caster team's own Covert application without exposing other hidden buffs.
+        if (ownsCovertApplication(status)) return true
         return combatStatusMetadata(definition).polarity !== 'positive'
       }),
     }
   })
 }
 
+function omitPrivateSummonDamageState<T extends object>(effects: T): T {
+  const projected = { ...effects }
+  for (const key of ['summonDamageSources', 'summonDamageCommands', 'nextSummonDamageCommandId'])
+    Reflect.deleteProperty(projected, key)
+  for (const key of ['poison', 'burn', 'bleed']) {
+    const rows = Reflect.get(projected, key)
+    if (Array.isArray(rows))
+      Object.assign(projected, {
+        [key]: rows.map((row: object) => {
+          const publicRow = { ...row }
+          Reflect.deleteProperty(publicRow, 'summonDamageCommandId')
+          return publicRow
+        }),
+      })
+  }
+  return projected
+}
+
 export function projectBattleEffectStateForViewer(
-  state: Pick<StatDrivenCombatEncounterState, 'effectState' | 'tactical'>,
+  state: Pick<
+    StatDrivenCombatEncounterState,
+    'effectState' | 'tactical' | 'statusState' | 'pendingEffects'
+  >,
   viewer: BattleViewerEntitlement,
 ): CombatEffectState | undefined {
   if (!state.effectState) return undefined
@@ -66,13 +885,142 @@ export function projectBattleEffectStateForViewer(
   const combatantById = new Map(
     state.tactical.battle.combatants.map((combatant) => [combatant.id, combatant] as const),
   )
-  return {
-    ...state.effectState,
-    temporarySkills: state.effectState.temporarySkills.filter((grant) => {
-      const holder = combatantById.get(grant.combatantId)
-      if (!holder) return false
-      const relationship = battleViewerRelationship(viewer, holder)
-      return relationship === 'self' || relationship === 'ally'
-    }),
+  const sourceAllowed = (sourceId: string) => {
+    const source = combatantById.get(sourceId)
+    if (!source) return false
+    const relationship = battleViewerRelationship(viewer, source)
+    return relationship === 'self' || relationship === 'ally'
   }
+  const positiveHolderVisible = (instance: {
+    targetCombatantId: string
+    sourceCombatantId: string
+    sourceCommandVisibility?: CombatSourceCommandVisibility
+  }) => {
+    const holder = combatantById.get(instance.targetCombatantId)
+    if (!holder) return false
+    const relationship = battleViewerRelationship(viewer, holder)
+    return (
+      relationship === 'self' ||
+      relationship === 'ally' ||
+      (!pendingCovertConcealsInstance(state, instance) &&
+        !state.statusState
+          .find((row) => row.combatantId === holder.id)
+          ?.statuses.some(
+            (row) => row.statusId === PV1F_COVERT_STATUS.id && row.timingState !== 'pending',
+          ))
+    )
+  }
+  const publicInstance = <
+    T extends { sourceCombatantId: string; sourceActionId: string; provenance?: unknown },
+  >(
+    instance: T,
+  ): T => {
+    if (sourceAllowed(instance.sourceCombatantId)) return omitCombatExecutionMetadata(instance)
+    const publicEffect = { ...instance, sourceActionId: 'combat.effect' }
+    delete publicEffect.provenance
+    return omitCombatExecutionMetadata(publicEffect)
+  }
+  return {
+    ...omitPrivateSummonDamageState(state.effectState),
+    poison: state.effectState.poison.map(publicInstance),
+    burn: state.effectState.burn.map(publicInstance),
+    bleed: state.effectState.bleed.map(publicInstance),
+    ongoingRecovery: state.effectState.ongoingRecovery
+      .filter(positiveHolderVisible)
+      .map(publicInstance),
+    ...(state.effectState.barriers
+      ? { barriers: state.effectState.barriers.filter(positiveHolderVisible).map(publicInstance) }
+      : {}),
+    ...(state.effectState.summons
+      ? {
+          summons: state.effectState.summons.map((instance) =>
+            sourceAllowed(instance.ownerCombatantId)
+              ? instance
+              : { ...instance, sourceSkillId: 'combat.summon' },
+          ),
+        }
+      : {}),
+  }
+}
+
+const PRIVATE_BATTLE_STATE_KEYS = [
+  'ruinState',
+  'ruinCommandId',
+  'nextGroundAreaId',
+  'nextSkillPacketCommandId',
+  'nextReversalAttackCommandId',
+  'capturedAbilitySources',
+  'abilityRuntime',
+  'itemConsumptionState',
+  'reversalState',
+  'modifierSuppressions',
+  'nativeBasicAttackCommand',
+  'rangeModifierEligible',
+  'groundTargetedRecipientIds',
+  'commandDamageBonuses',
+  'effectEligibleRecipientIds',
+  'effectTimingModes',
+  'turnTriggerState',
+  'pendingEffects',
+  'pendingSummons',
+] as const
+export type PrivateBattleStateKey = (typeof PRIVATE_BATTLE_STATE_KEYS)[number]
+
+/** Internal delayed payloads and narration pins must never reach live viewers. */
+export function omitPendingBattlePayloads<
+  T extends {
+    groundAreas?: readonly PublicCombatGroundArea[]
+    nextGroundAreaId?: unknown
+    tactical?: { battle: { round: number; lifecycle: string } }
+    pendingEffects?: unknown
+    turnTriggerState?: unknown
+    pendingSummons?: unknown
+    buildAuthority?: unknown
+  },
+>(
+  state: T,
+): Omit<T, 'groundAreas' | PrivateBattleStateKey> & {
+  groundAreas?: readonly PublicCombatGroundArea[]
+} {
+  const projected: Omit<T, 'groundAreas' | PrivateBattleStateKey> & {
+    groundAreas?: readonly PublicCombatGroundArea[]
+  } = {
+    ...state,
+  }
+  for (const key of PRIVATE_BATTLE_STATE_KEYS) Reflect.deleteProperty(projected, key)
+  if (
+    'effectState' in projected &&
+    projected.effectState &&
+    typeof projected.effectState === 'object'
+  )
+    Object.assign(projected, { effectState: omitPrivateSummonDamageState(projected.effectState) })
+  if (state.groundAreas)
+    projected.groundAreas = projectPublicCombatGroundAreas(
+      state.groundAreas,
+      state.tactical?.battle.round ?? 0,
+      state.tactical?.battle.lifecycle ?? 'completed',
+    )
+  const authority = projected.buildAuthority
+  if (
+    authority &&
+    typeof authority === 'object' &&
+    'combatants' in authority &&
+    Array.isArray(authority.combatants)
+  ) {
+    Object.assign(projected, {
+      buildAuthority: {
+        ...authority,
+        combatants: authority.combatants.map((combatant: Record<string, unknown>) => {
+          const publicCombatant = { ...combatant }
+          delete publicCombatant.narratorIdentity
+          if (publicCombatant.extensions && typeof publicCombatant.extensions === 'object') {
+            publicCombatant.extensions = { ...publicCombatant.extensions }
+            Reflect.deleteProperty(publicCombatant.extensions as object, 'equipmentSkills')
+          }
+          return publicCombatant
+        }),
+      },
+    })
+  }
+  return projected
 }

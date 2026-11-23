@@ -1,0 +1,321 @@
+{
+  "schemaVersion": 1,
+  "status": "live-for-testing",
+  "source": {
+    "pr": 948,
+    "head": "86500e189ffdd00428f45e2f63ce666bafb3ad2f",
+    "tree": "1d4d6e2d214f2fa043b6c45c4a9113b2ac444532",
+    "baseline": "f65f9b1560f5e31406f2c9b4f65b432c7bd752a6",
+    "merge": "b174339574f45ea8cf81ce75ed0aca3daae33701",
+    "mergeToolTransport": "Merge request timed out; branch ref and exact merge parents/tree independently confirmed. No repeated mutation.",
+    "prMetadata": {
+      "state": "closed",
+      "mergedFlag": false,
+      "note": "The merge API timed out after integrating the exact tested merge commit on main. Commit parents/tree and git fetch confirm integration. The still-open PR metadata was closed without repeating the merge."
+    }
+  },
+  "catalogue": {
+    "candidateSha256": "5b2a44f8b88489064e1e993af77023677c8cb83ed6e869d10fe6933b438c4534",
+    "designSha256": "a95044aada31d0b0fc58e03e7e308c5655e2f660b639dddf50c752c9670c55c9",
+    "effectiveBaselineSha256": "a58a82b457795d568e587c6a443c7855fb9317eebb00a21a63ec9767fcb6d88b",
+    "changes": {
+      "skills": 9,
+      "essences": 1,
+      "resonances": 58,
+      "requirementsChanged": 30,
+      "unchangedCurrent": 226,
+      "barrierDefinitions": 45,
+      "barrierPayloads": 46
+    },
+    "expectedHistoryBefore": 719,
+    "expectedHistoryAfter": 787,
+    "current": 294,
+    "drafts": 0,
+    "policyVersion": 8,
+    "publicationSqlSha256": "77a2f4cecd630fa11256be8506f5614f4666a95e3897651c734a3741d31f23bc",
+    "readbackSqlSha256": "d9d4e08ec3559db38b7bf46cd8bca5f2beff512028a39b6ee920049e69ab029c",
+    "publicationAttemptedAt": "2026-10-19T13:43:13.047Z",
+    "publishedReadbackVerifiedAt": "2026-10-19T13:43:48.799Z",
+    "receipt": {
+      "mode": "publication",
+      "token": "ffe5263dcf251cb886352890dfb60170",
+      "drafts": 0,
+      "policy": {
+        "modes": {
+          "summon": "instant",
+          "displace": "instant",
+          "mp-drain": "instant",
+          "blindside": "instant",
+          "remove-status": "instant",
+          "barrier-change": "instant",
+          "return-to-turn-start": "controlled"
+        },
+        "version": 8,
+        "tagAuthority": "global"
+      },
+      "current": 294,
+      "history": 787,
+      "hashFormat": "md5-postgresql-jsonb-text; exact JSONB equality is authoritative",
+      "currentHash": "8c26184a719f3ab1d7e2e39ba952bc06",
+      "historyHash": "f2c1a00af131ad7f2c1a63264c03041b",
+      "designSha256": "a95044aada31d0b0fc58e03e7e308c5655e2f660b639dddf50c752c9670c55c9",
+      "candidateSha256": "5b2a44f8b88489064e1e993af77023677c8cb83ed6e869d10fe6933b438c4534",
+      "compatibleSourceSha": "b174339574f45ea8cf81ce75ed0aca3daae33701",
+      "effectiveBaselineSha256": "a58a82b457795d568e587c6a443c7855fb9317eebb00a21a63ec9767fcb6d88b"
+    },
+    "readback": {
+      "state": "published",
+      "token": "ffe5263dcf251cb886352890dfb60170",
+      "drafts": 0,
+      "policy": {
+        "modes": {
+          "summon": "instant",
+          "displace": "instant",
+          "mp-drain": "instant",
+          "blindside": "instant",
+          "remove-status": "instant",
+          "barrier-change": "instant",
+          "return-to-turn-start": "controlled"
+        },
+        "version": 8,
+        "tagAuthority": "global"
+      },
+      "current": 294,
+      "history": 787,
+      "hashFormat": "md5-postgresql-jsonb-text; exact JSONB equality is authoritative",
+      "mismatches": [],
+      "designSha256": "a95044aada31d0b0fc58e03e7e308c5655e2f660b639dddf50c752c9670c55c9",
+      "history_hash": "f2c1a00af131ad7f2c1a63264c03041b",
+      "exact_current": 294,
+      "policy_matches": true,
+      "candidateSha256": "5b2a44f8b88489064e1e993af77023677c8cb83ed6e869d10fe6933b438c4534",
+      "exact_untouched": 226,
+      "expected_changed": 68,
+      "expected_current": 294,
+      "expected_history": 787,
+      "expected_untouched": 226,
+      "actual_current_hash": "8c26184a719f3ab1d7e2e39ba952bc06",
+      "compatibleSourceSha": "b174339574f45ea8cf81ce75ed0aca3daae33701",
+      "expected_current_hash": "8c26184a719f3ab1d7e2e39ba952bc06",
+      "current_mismatch_count": 0,
+      "effectiveBaselineSha256": "a58a82b457795d568e587c6a443c7855fb9317eebb00a21a63ec9767fcb6d88b",
+      "new_history_mismatch_count": 0,
+      "old_history_mismatch_count": 0
+    }
+  },
+  "validation": {
+    "vitest": 11591,
+    "node": 7,
+    "localQuality": "passed",
+    "format": "passed",
+    "lint": "passed",
+    "types": "passed",
+    "build": "passed",
+    "nativeReleaseSqlCases": 6,
+    "independentReview": "No remaining Critical/Important findings",
+    "primedModulesBrowser": {
+      "runId": 39250142248,
+      "jobId": 118051647395,
+      "artifactId": 12185905459,
+      "cases": 6,
+      "desktop": {
+        "width": 1366,
+        "height": 768
+      },
+      "mobile": {
+        "width": 390,
+        "height": 844
+      },
+      "modes": [
+        "PvE",
+        "PvP"
+      ],
+      "privacy": [
+        "owner",
+        "opponent",
+        "spectator"
+      ],
+      "savedMpThresholdEligibility": true,
+      "visuallyInspected": [
+        "desktop PvE popover",
+        "mobile PvP popover",
+        "desktop Master modules",
+        "mobile Master modules"
+      ]
+    },
+    "controlledBrowserCases": 57,
+    "desktop": {
+      "passed": 49,
+      "skipped": 26
+    },
+    "ui": {
+      "passed": 110,
+      "skipped": 61
+    },
+    "pageFit": {
+      "passed": 8,
+      "skipped": 7
+    },
+    "buildcraft": {
+      "passed": 24,
+      "skipped": 6
+    },
+    "ciRetry": {
+      "runId": 39250142036,
+      "priorJobId": 118051647398,
+      "successJobId": 118055023514,
+      "sourceChanged": false,
+      "cause": "Existing October18 modular-correction-release PGlite case exceeded120000ms without assertion failure; same-source retry passed complete quality checks"
+    },
+    "workflows": [
+      {
+        "name": "Skill Engine",
+        "runId": 39250142023,
+        "conclusion": "success"
+      },
+      {
+        "name": "Essence Build",
+        "runId": 39250142293,
+        "conclusion": "success"
+      },
+      {
+        "name": "Resonance Build",
+        "runId": 39250142099,
+        "conclusion": "success"
+      },
+      {
+        "name": "Profile Skill Build",
+        "runId": 39250142193,
+        "conclusion": "success"
+      },
+      {
+        "name": "Modular ability readers browser",
+        "runId": 39250142248,
+        "conclusion": "success"
+      },
+      {
+        "name": "Controlled combat browser",
+        "runId": 39250142049,
+        "conclusion": "success"
+      },
+      {
+        "name": "Shared Build Snapshots",
+        "runId": 39250142048,
+        "conclusion": "success"
+      },
+      {
+        "name": "Discipline Build DB",
+        "runId": 39250142126,
+        "conclusion": "success"
+      },
+      {
+        "name": "Desktop experience",
+        "runId": 39250142156,
+        "conclusion": "success"
+      },
+      {
+        "name": "Representative Buildcraft",
+        "runId": 39250142140,
+        "conclusion": "success"
+      },
+      {
+        "name": "UI layout review",
+        "runId": 39250142150,
+        "conclusion": "success"
+      },
+      {
+        "name": "Desktop page fit",
+        "runId": 39250142333,
+        "conclusion": "success"
+      },
+      {
+        "name": "CI",
+        "runId": 39250142036,
+        "conclusion": "success"
+      },
+      {
+        "name": "Browser smoke",
+        "runId": 39250141939,
+        "conclusion": "success"
+      }
+    ],
+    "fullChromium": {
+      "passed": 358,
+      "skipped": 278
+    },
+    "focusedBrowser": {
+      "passed": 73,
+      "skipped": 21
+    },
+    "edge": {
+      "passed": 10,
+      "skipped": 2
+    },
+    "browserSmokeRunId": 39250141939,
+    "browserSmokeJobId": 118051646471
+  },
+  "limits": {
+    "historicalUntimedPools": "Retain until-depleted behavior; start a new battle for published timed barriers",
+    "hostedSignedInAcceptance": false,
+    "humanAcceptance": false,
+    "physicalDeviceAcceptance": false,
+    "multiplayerLoadAcceptance": false,
+    "broaderMasterTask8Closed": false,
+    "phaseClosure": false,
+    "gitAutoDeploymentsEnabled": false,
+    "migrationsAdded": 0
+  },
+  "verifiedAt": "2026-10-19T13:45:23.844Z",
+  "production": {
+    "id": "dpl_FBGiA9CA4eS27e5ZnckmLKy86KJJ",
+    "url": "https://aurevane.vercel.app",
+    "state": "READY",
+    "readyAt": "2026-10-19T13:41:53.097Z",
+    "source": "b174339574f45ea8cf81ce75ed0aca3daae33701",
+    "canonicalAliasVerified": true
+  },
+  "health": [
+    {
+      "path": "/",
+      "status": 200,
+      "title": "AUREVANE",
+      "accountGateway": true
+    },
+    {
+      "path": "/manual",
+      "status": 200,
+      "title": "Adventurer’s Guide | AUREVANE"
+    },
+    {
+      "path": "/rules",
+      "status": 200,
+      "title": "Rules | AUREVANE"
+    },
+    {
+      "path": "/api/foundation/auth-status",
+      "status": 200
+    },
+    {
+      "path": "/game/world",
+      "status": 200,
+      "title": "AUREVANE",
+      "accountGateway": true
+    },
+    {
+      "path": "/game/character",
+      "status": 200,
+      "title": "AUREVANE",
+      "accountGateway": true
+    }
+  ],
+  "runtime": {
+    "deploymentScoped": true,
+    "levels": [
+      "warning",
+      "error",
+      "fatal"
+    ],
+    "result": "No logs found",
+    "timeRange": "2026-10-19T13:34:58.664Z → 2026-10-19T13:44:58.663Z"
+  }
+}

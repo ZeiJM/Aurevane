@@ -1,0 +1,651 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.10 /workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/apps/web
+
+ ❯ src/server/character/character-build-service.test.ts (36 tests | 2 failed | 27 skipped) 39ms
+     × rejects disabled current Skill before a save 19ms
+     × rejects wrong-id current Skill before a save 5ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/server/character/character-build-service.test.ts > published current build consumers and earned eligibility > rejects disabled current Skill before a save
+AssertionError: promise resolved "{ build: { …(11) }, …(7) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "attunement": {
++     "policy": {
++       "primaryCooldownSeconds": 14400,
++       "secondaryCooldownSeconds": 14400,
++       "version": 1,
++     },
++     "primaryLockedUntil": null,
++     "primaryRemainingSeconds": 0,
++     "secondaryLockedUntil": null,
++     "secondaryRemainingSeconds": 0,
++     "serverNow": "2026-09-03T00:00:00.000Z",
++   },
++   "availablePrimaries": [
++     {
++       "definition": {
++         "definitionVersion": 1,
++         "enabledForPrimary": true,
++         "enabledForSecondary": true,
++         "id": "vanguard",
++         "name": "Vanguard",
++         "summary": "vanguard summary",
++       },
++       "masteredAt": null,
++       "profile": {
++         "disciplineId": "vanguard",
++         "profileVersion": 1,
++         "statOffsets": {
++           "armor": 5,
++           "maxHp": 20,
++         },
++       },
++     },
++     {
++       "definition": {
++         "definitionVersion": 1,
++         "enabledForPrimary": true,
++         "enabledForSecondary": true,
++         "id": "aetherist",
++         "name": "Aetherist",
++         "summary": "aetherist summary",
++       },
++       "masteredAt": "2026-09-02T00:00:00.000Z",
++       "profile": {
++         "disciplineId": "aetherist",
++         "profileVersion": 1,
++         "statOffsets": {
++           "maxHp": -8,
++           "maxMp": 20,
++           "mysticPower": 5,
++         },
++       },
++     },
++     {
++       "definition": {
++         "definitionVersion": 1,
++         "enabledForPrimary": true,
++         "enabledForSecondary": true,
++         "id": "lifebinder",
++         "name": "Lifebinder",
++         "summary": "lifebinder summary",
++       },
++       "masteredAt": "2026-09-02T01:00:00.000Z",
++       "profile": {
++         "disciplineId": "lifebinder",
++         "profileVersion": 1,
++         "statOffsets": {
++           "maxHp": 8,
++           "maxMp": 15,
++           "ward": 4,
++         },
++       },
++     },
++   ],
++   "availableSecondaries": [
++     {
++       "definition": {
++         "definitionVersion": 1,
++         "enabledForPrimary": true,
++         "enabledForSecondary": true,
++         "id": "aetherist",
++         "name": "Aetherist",
++         "summary": "aetherist summary",
++       },
++       "masteredAt": "2026-09-02T00:00:00.000Z",
++       "profile": {
++         "disciplineId": "aetherist",
++         "profileVersion": 1,
++         "statOffsets": {
++           "maxHp": -8,
++           "maxMp": 20,
++           "mysticPower": 5,
++         },
++       },
++     },
++     {
++       "definition": {
++         "definitionVersion": 1,
++         "enabledForPrimary": true,
++         "enabledForSecondary": true,
++         "id": "lifebinder",
++         "name": "Lifebinder",
++         "summary": "lifebinder summary",
++       },
++       "masteredAt": "2026-09-02T01:00:00.000Z",
++       "profile": {
++         "disciplineId": "lifebinder",
++         "profileVersion": 1,
++         "statOffsets": {
++           "maxHp": 8,
++           "maxMp": 15,
++           "ward": 4,
++         },
++       },
++     },
++   ],
++   "build": {
++     "attunementPolicy": {
++       "primaryCooldownSeconds": 14400,
++       "secondaryCooldownSeconds": 14400,
++       "version": 1,
++     },
++     "buildVersion": 1,
++     "characterId": "00000000-0000-4000-8000-000000000802",
++     "primaryAttunementLockedUntil": null,
++     "primaryDefinition": {
++       "definitionVersion": 1,
++       "enabledForPrimary": true,
++       "enabledForSecondary": true,
++       "id": "vanguard",
++       "name": "Vanguard",
++       "summary": "vanguard summary",
++     },
++     "primaryProfile": {
++       "disciplineId": "vanguard",
++       "profileVersion": 1,
++       "statOffsets": {
++         "armor": 5,
++         "maxHp": 20,
++       },
++     },
++     "schemaVersion": 4,
++     "secondaryAttunementLockedUntil": null,
++     "secondaryDefinition": null,
++     "serverNow": "2026-09-03T00:00:00.000Z",
++     "updatedAt": "2026-09-02T00:00:00.000Z",
++   },
++   "current": {
++     "definition": {
++       "definitionVersion": 1,
++       "enabledForPrimary": true,
++       "enabledForSecondary": true,
++       "id": "vanguard",
++       "name": "Vanguard",
++       "summary": "vanguard summary",
++     },
++     "derived": {
++       "rulesVersion": 5,
++       "stats": {
++         "accuracy": {
++           "contributions": [
++             {
++               "coefficient": 17000,
++               "inputValue": 1,
++               "numeratorAmount": 17000,
++               "sourceId": "derived.accuracy.base",
++               "sourceKind": "base",
++             },
++             {
++               "coefficient": 125,
++               "inputValue": 4,
++               "numeratorAmount": 500,
++               "sourceId": "character.attribute.finesse",
++               "sourceKind": "attribute",
++             },
++           ],
++           "divisor": 2,
++           "id": "accuracy",
++           "label": "Accuracy",
++           "unclampedValue": 8750,
++           "unit": "basisPoints",
++           "value": 8750,
++         },
++         "armor": {
++           "contributions": [
++             {
++               "coefficient": 40,
++               "inputValue": 1,
++               "numeratorAmount": 40,
++               "sourceId": "derived.armor.base",
++               "sourceKind": "base",
++             },
++             {
++               "coefficient": 2,
++               "inputValue": 9,
++               "numeratorAmount": 18,
++               "sourceId": "character.attribute.vitality",
++               "sourceKind": "attribute",
++             },
++           ],
++           "divisor": 1,
++           "id": "armor",
++           "label": "Physical Defense",
++           "unclampedValue": 58,
++           "unit": "rating",
++           "value": 58,
++         },
++         "criticalChance": {
++           "contributions": [
++             {
++               "coefficient": 0,
++               "inputValue": 1,
++               "numeratorAmount": 0,
++               "sourceId": "derived.criticalChance.base",
++               "sourceKind": "base",
++             },
++             {
++               "coefficient": 75,
++               "inputValue": 4,
++               "numeratorAmount": 300,
++               "sourceId": "character.attribute.finesse",
++               "sourceKind": "attribute",
++             },
++           ],
++           "divisor": 2,
++           "id": "criticalChance",
++           "label": "Critical Chance",
++           "unclampedValue": 150,
++           "unit": "basisPoints",
++           "value": 150,
++         },
++         "evasion": {
++           "contributions": [
++             {
++               "coefficient": 0,
++               "inputValue": 1,
++               "numeratorAmount": 0,
++               "sourceId": "derived.evasion.base",
++               "sourceKind": "base",
++             },
++             {
++               "coefficient": 125,
++               "inputValue": 4,
++               "numeratorAmount": 500,
++               "sourceId": "character.attribute.agility",
++               "sourceKind": "attribute",
++             },
++           ],
++           "divisor": 2,
++           "id": "evasion",
++           "label": "Evasion",
++           "unclampedValue": 250,
++           "unit": "basisPoints",
++           "value": 250,
++         },
++         "initiative": {
++           "contributions": [
++             {
++               "coefficient": 40,
++               "inputValue": 1,
++               "numeratorAmount": 40,
++               "sourceId": "derived.initiative.base",
++               "sourceKind": "base",
++             },
++             {
++               "coefficient": 9,
++               "inputValue": 4,
++               "numeratorAmount": 36,
++               "sourceId": "character.attribute.agility",
++               "sourceKind": "attribute",
++             },
++           ],
++           "divisor": 4,
++           "id": "initiative",
++           "label": "Initiative",
++           "unclampedValue": 19,
++           "unit": "rating",
++           "value": 19,
++         },
++         "jump": {
++           "contributions": [
++             {
++               "coefficient": 0,
++               "inputValue": 1,
++               "numeratorAmount": 0,
++               "sourceId": "derived.jump.base",
++               "sourceKind": "base",
++             },
++             {
++               "coefficient": 3,
++               "inputValue": 4,
++               "numeratorAmount": 12,
++               "sourceId": "character.attribute.agility",
++               "sourceKind": "attribute",
++             },
++           ],
++           "divisor": 40,
++           "id": "jump",
++           "label": "Jump",
++           "unclampedValue": 0,
++           "unit": "height",
++           "value": 0,
++         },
++         "maxHp": {
++           "contributions": [
++             {
++               "coefficient": 160,
++               "inputValue": 1,
++               "numeratorAmount": 160,
++               "sourceId": "derived.maxHp.base",
++               "sourceKind": "base",
++             },
++             {
++               "coefficient": 21,
++               "inputValue": 9,
++               "numeratorAmount": 189,
++               "sourceId": "character.attribute.vitality",
++               "sourceKind": "attribute",
++             },
++           ],
++           "divisor": 2,
++           "id": "maxHp",
++           "label": "Maximum HP",
++           "unclampedValue": 174,
++           "unit": "points",
++           "value": 174,
++         },
++         "maxMp": {
++           "contributions": [
++             {
++               "coefficient": 80,
++               "inputValue": 1,
++               "numeratorAmount": 80,
++               "sourceId": "derived.maxMp.base",
++               "sourceKind": "base",
++             },
++             {
++               "coefficient": 48,
++               "inputValue": 3,
++               "numeratorAmount": 144,
++               "sourceId": "character.attribute.intellect",
++               "sourceKind": "attribute",
++             },
++           ],
++           "divisor": 5,
++           "id": "maxMp",
++           "label": "Maximum MP",
++           "unclampedValue": 44,
++           "unit": "points",
++           "value": 44,
++         },
++         "movement": {
++           "contributions": [
++             {
++               "coefficient": 40,
++               "inputValue": 1,
++               "numeratorAmount": 40,
++               "sourceId": "derived.movement.base",
++               "sourceKind": "base",
++             },
++             {
++               "coefficient": 1,
++               "inputValue": 4,
++               "numeratorAmount": 4,
++               "sourceId": "character.attribute.agility",
++               "sourceKind": "attribute",
++             },
++           ],
++           "divisor": 20,
++           "id": "movement",
++           "label": "Movement",
++           "unclampedValue": 2,
++           "unit": "steps",
++           "value": 2,
++         },
++         "mysticPower": {
++           "contributions": [
++             {
++               "coefficient": 40,
++               "inputValue": 1,
++               "numeratorAmount": 40,
++               "sourceId": "derived.mysticPower.base",
++               "sourceKind": "base",
++             },
++             {
++               "coefficient": 2,
++               "inputValue": 3,
++               "numeratorAmount": 6,
++               "sourceId": "character.attribute.intellect",
++               "sourceKind": "attribute",
++             },
++           ],
++           "divisor": 1,
++           "id": "mysticPower",
++           "label": "Mystic Power",
++           "unclampedValue": 46,
++           "unit": "rating",
++           "value": 46,
++         },
++         "physicalPower": {
++           "contributions": [
++             {
++               "coefficient": 40,
++               "inputValue": 1,
++               "numeratorAmount": 40,
++               "sourceId": "derived.physicalPower.base",
++               "sourceKind": "base",
++             },
++             {
++               "coefficient": 2,
++               "inputValue": 9,
++               "numeratorAmount": 18,
++               "sourceId": "character.attribute.might",
++               "sourceKind": "attribute",
++             },
++           ],
++           "divisor": 1,
++           "id": "physicalPower",
++           "label": "Physical Power",
++           "unclampedValue": 58,
++           "unit": "rating",
++           "value": 58,
++         },
++         "statusResistance": {
++           "contributions": [
++             {
++               "coefficient": 0,
++               "inputValue": 1,
++               "numeratorAmount": 0,
++               "sourceId": "derived.statusResistance.base",
++               "sourceKind": "base",
++             },
++             {
++               "coefficient": 25,
++               "inputValue": 7,
++               "numeratorAmount": 175,
++               "sourceId": "character.attribute.resolve",
++               "sourceKind": "attribute",
++             },
++           ],
++           "divisor": 1,
++           "id": "statusResistance",
++           "label": "Status Resistance",
++           "unclampedValue": 175,
++           "unit": "basisPoints",
++           "value": 175,
++         },
++         "ward": {
++           "contributions": [
++             {
++               "coefficient": 40,
++               "inputValue": 1,
++               "numeratorAmount": 40,
++               "sourceId": "derived.ward.base",
++               "sourceKind": "base",
++             },
++             {
++               "coefficient": 2,
++               "inputValue": 7,
++               "numeratorAmount": 14,
++               "sourceId": "character.attribute.resolve",
++               "sourceKind": "attribute",
++             },
++           ],
++           "divisor": 1,
++           "id": "ward",
++           "label": "Mystic Defense",
++           "unclampedValue": 54,
++           "unit": "rating",
++           "value": 54,
++         },
++       },
++     },
++     "profile": {
++       "disciplineId": "vanguard",
++       "profileVersion": 1,
++       "statOffsets": {
++         "armor": 5,
++         "maxHp": 20,
++       },
++     },
++   },
++   "currentSecondary": null,
++   "disciplineSkills": {
++     "capacity": 4,
++     "equippedSkills": [],
++     "extensions": {
++       "equipmentSkills": [],
++       "essence": null,
++       "prestige": null,
++       "resonance": null,
++       "supernatural": null,
++     },
++     "learnedSkills": [
++       {
++         "activeSource": true,
++         "definition": {
++           "accuracyMode": "automatic",
++           "accuracyModifierBasisPoints": undefined,
++           "ai": {
++             "baseUtility": 72,
++             "enabled": true,
++             "purposeTags": [
++               "heal",
++               "survival",
++             ],
++           },
++           "apCost": 45,
++           "authoring": {
++             "schemaVersion": 1,
++             "status": "representative",
++             "validationTags": [
++               "representative",
++               "p3.3",
++               "phase4-discipline-rebalance",
++               "owner-rebalance-v5",
++               "power-1-20",
++               "duration-aware",
++               "cooldown-1-3",
++               "owner-rebalance-v5-1",
++               "target-budget-v5-1",
++               "captured-percentage-recovery",
++             ],
++           },
++           "contentVersion": 9,
++           "cooldown": null,
++           "descriptionRef": "skill.lifebinder.mending-light.description",
++           "effects": [
++             {
++               "durationTurns": 0,
++               "percent": 11,
++               "recipient": "actor",
++               "resource": "hp",
++               "ticks": 1,
++               "type": "percentage-recovery",
++             },
++           ],
++           "enabled": false,
++           "flavorLine": "Call on Lifebinder discipline to turn a wounded moment back toward survival.",
++           "id": "lifebinder.authored-aid",
++           "media": {
++             "audioCueKey": "skill.lifebinder.mending-light.audio",
++             "iconKey": "skill.lifebinder.mending-light.icon",
++             "vfxKey": "skill.lifebinder.mending-light.vfx",
++           },
++           "mpCost": undefined,
++           "nameRef": "skill.lifebinder.mending-light.name",
++           "overrides": {
++             "pvp": {
++               "cooldownOwnerTurns": undefined,
++             },
++           },
++           "requirements": [
++             {
++               "basisPoints": 9999,
++               "kind": "actor-hp-at-most",
++             },
++           ],
++           "sourceDisciplineId": "lifebinder",
++           "tags": [
++             "discipline",
++             "lifebinder",
++             "heal",
++             "support",
++             "cockpit:recovery",
++           ],
++           "target": {
++             "friendlyFire": "allies-only",
++             "kind": "self",
++             "maximumElevationDifference": null,
++             "maximumRange": 0,
++             "minimumRange": 0,
++             "requiresLineOfSight": false,
++             "shape": {
++               "kind": "single",
++             },
++             "teamPolicy": "self",
++           },
++           "unlockRequirement": {
++             "kind": "discipline-mastery",
++             "minimumStage": 1,
++           },
++         },
++         "eligibilityGrants": [
++           {
++             "activeSource": true,
++             "earnedAt": null,
++             "eligibilityDisciplineId": "vanguard",
++             "grantSourceKind": undefined,
++             "grantedAt": "2026-10-20T00:00:00Z",
++           },
++         ],
++         "learnedAt": "2026-09-02T03:00:00.000Z",
++       },
++     ],
++   },
++   "replayed": false,
+  }
+
+ ❯ src/server/character/character-build-service.test.ts:633:178
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/server/character/character-build-service.test.ts > published current build consumers and earned eligibility > rejects wrong-id current Skill before a save
+AssertionError: expected AurevaneError: Only learned Skills eligib… { …(2) } to match object { code: 'PERSISTENCE_UNAVAILABLE' }
+(2 matching properties omitted from actual)
+
+- Expected
++ Received
+
+- {
+-   "code": "PERSISTENCE_UNAVAILABLE",
++ AurevaneError {
++   "code": "INVALID_REQUEST",
+  }
+
+ ❯ src/server/character/character-build-service.test.ts:633:178
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 7 passed | 27 skipped (36)
+   Start at  13:04:30
+   Duration  2.49s (transform 1.89s, setup 0ms, import 2.28s, tests 39ms, environment 0ms)
+
+undefined
+/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/apps/web:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/server/character/character-build-service.test.ts -t 'rejects .*current Skill|selected eligibility with zero writes'

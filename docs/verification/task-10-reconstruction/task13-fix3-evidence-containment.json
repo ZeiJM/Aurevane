@@ -1,0 +1,92 @@
+[
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix3-n6-contained-green/pure-1366-768.png",
+    "sha256": "eea284956d4e8bd6fc8205d09fff46365e0df55f2a830a9350ee29012f45e55c",
+    "bytes": 497719
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix3-n6-contained-green/pure-1280-720.png",
+    "sha256": "a28b8b6c422ed6c89e54a50c976379e22348e9d5b9ed726eccf6c3bd0bc4af47",
+    "bytes": 473066
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix3-n6-contained-green/pure-1366-768.json",
+    "sha256": "edfd955feac04acdfbeb1c390816be8bf19ba2dd9a7bdc57d27ab0ce8032c357",
+    "bytes": 18618
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix3-n6-contained-green/pure-1536-614.png",
+    "sha256": "ca43a716c7cae7a3f0929555fd7ae915899be4890453c72b6fef0cfb5f33869d",
+    "bytes": 458293
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix3-n6-contained-green/pure-1280-720.json",
+    "sha256": "af1458a6ac22a88647ff5efa4fb722b49fa809734e486e87ac8df00a0df935ec",
+    "bytes": 18544
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix3-n6-contained-green/pure-1536-614.json",
+    "sha256": "a32ec5decdc57a2ed2050f25402c74061c51a6f67ba86f9b9e498889edf33e1a",
+    "bytes": 18553
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix3-n6-all-contained-green/pure-1366-768.png",
+    "sha256": "6afea562d4ac67b9dbb091894b53ac300c6270fa1b081f47e333ed3c7512e35b",
+    "bytes": 496043
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix3-n6-all-contained-green/pure-1280-720.png",
+    "sha256": "8aa1eb44be1257c040e7c0afb33114014ddfc369f1a20f746a14db236b2baec2",
+    "bytes": 473118
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix3-n6-all-contained-green/pure-1366-768.json",
+    "sha256": "af308b01611d07ee0828f67671f14a4b76339d263cad3e2b5a73969722488b37",
+    "bytes": 18526
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix3-n6-all-contained-green/mixed-1440-900.json",
+    "sha256": "4284ea638eb0d284dc8c5c6434f98108c173a4c36467740cb4195993dae8423b",
+    "bytes": 18619
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix3-n6-all-contained-green/pure-1920-1080.json",
+    "sha256": "a3483bc12f6a15ecfd0e248a16b7c4b0e65a238434f1e811088d3724df1172a4",
+    "bytes": 18653
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix3-n6-all-contained-green/pure-1536-614.png",
+    "sha256": "958a7bb82605749f190a914c82e7969d8b7f900554580174273f69a4c685e174",
+    "bytes": 458335
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix3-n6-all-contained-green/pure-1280-720.json",
+    "sha256": "15dfc820aeedcf8b58d7d6b90f3589f57eb0e1a396ccd3fb836cf3b2370520fe",
+    "bytes": 18577
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix3-n6-all-contained-green/mixed-1366-768.json",
+    "sha256": "026cad1ec066e1ce2a3f14572e5ddfef19e07eec4e0a26b54de272a661ccdb6a",
+    "bytes": 18613
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix3-n6-all-contained-green/mixed-1440-900.png",
+    "sha256": "05ea9688469e2df28982269e5c99c88eddd3120cce7acc7e93bbbfb1627b627b",
+    "bytes": 584413
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix3-n6-all-contained-green/pure-1536-614.json",
+    "sha256": "9377e5c2885aa6f01ac53020ebc704df5ee42e2218ed8190d6836ce6fd39aebb",
+    "bytes": 18580
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix3-n6-all-contained-green/mixed-1366-768.png",
+    "sha256": "05addcfdc6a5cf4b5cd8e1d50389f073639f4b4d01cd675d47861d884d2d18f3",
+    "bytes": 496603
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix3-n6-all-contained-green/pure-1920-1080.png",
+    "sha256": "8275614432c9168f5a05fe0dbf1be9e5a13e9c3009c56cc022f91dc24c6fbd02",
+    "bytes": 642772
+  }
+]

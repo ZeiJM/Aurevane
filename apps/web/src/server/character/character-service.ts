@@ -5,10 +5,10 @@ import {
   buildInitialCharacterState,
   CHARACTER_PRESENTATIONS,
   CharacterCreationRuleError,
+  isContentReference,
   PRONOUN_PRESETS,
   type CharacterCreationIntent,
 } from '@aurevane/game-core/character/creation'
-import { isFoundationDisciplineId } from '@aurevane/game-core/character/foundation-disciplines'
 import {
   BASE_CHARACTER_SLOT_INDEX,
   type PersistedCharacter,
@@ -29,6 +29,7 @@ export interface CreateBaseCharacterCommand {
   actor: AuthenticatedActor
   idempotencyKey: string
   intent: CharacterCreationIntent
+  expectedProfileVersion?: number
 }
 
 export async function loadBaseCharacter(
@@ -91,6 +92,8 @@ export async function createBaseCharacter(
     .digest('hex')
 
   const outcome = await repository.createBaseCharacter({
+    personalBonuses: command.intent.attributeBonuses,
+    expectedProfileVersion: command.expectedProfileVersion,
     actorKey: `user:${command.actor.userId}`,
     commandName: CREATE_CHARACTER_COMMAND,
     idempotencyKey: command.idempotencyKey,
@@ -128,7 +131,7 @@ function toPersistedCharacter(record: CharacterRecord): PersistedCharacter {
     !pronounIds.has(record.pronounPresetId) ||
     !isStarterCharacterPortraitRef(record.portraitRef) ||
     !isStarterCharacterAppearanceRef(record.starterAppearanceRef) ||
-    !isFoundationDisciplineId(record.foundationDisciplineId)
+    !isContentReference(record.foundationDisciplineId)
   ) {
     throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'Character data is unavailable.')
   }

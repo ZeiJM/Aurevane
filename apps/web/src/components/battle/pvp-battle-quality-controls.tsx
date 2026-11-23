@@ -3,11 +3,13 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useDesktopBattleLayout } from './battle-responsive-layout'
+import { battleReturnNavigation } from './battle-return-navigation'
 
 import type { PvpBattleMetadata } from '@/server/battle/pvp-lobby-service'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
-import styles from './pvp-battle-quality-controls.module.css'
+import './pvp-battle-quality-controls.module.css'
+import surrenderStyles from './battle-surrender-dialog.module.css'
 
 interface ClockView {
   active: boolean
@@ -97,9 +99,10 @@ export function PvpBattleQualityControls({
         commandDeck?.firstElementChild instanceof HTMLElement ? commandDeck.firstElementChild : null
       setCommandTarget(target)
 
-      let clockSlot = desktopLayout
-        ? (root?.querySelector<HTMLElement>('[data-battle-turn-clock-slot="true"]') ?? null)
-        : (target?.querySelector<HTMLElement>(':scope > [data-pvp-turn-clock-slot="true"]') ?? null)
+      let clockSlot =
+        root?.querySelector<HTMLElement>('[data-battle-turn-clock-slot="true"]') ??
+        target?.querySelector<HTMLElement>(':scope > [data-pvp-turn-clock-slot="true"]') ??
+        null
       if (target && !clockSlot) {
         clockSlot = document.createElement('div')
         clockSlot.dataset.pvpTurnClockSlot = 'true'
@@ -118,10 +121,12 @@ export function PvpBattleQualityControls({
 
       const footer = root?.querySelector<HTMLElement>('footer') ?? null
       const footerActions = footer
-        ? (Array.from(footer.querySelectorAll<HTMLElement>('div')).find((candidate) => {
+        ? (footer.querySelector<HTMLElement>('[data-battle-footer-actions="true"]') ??
+          Array.from(footer.querySelectorAll<HTMLElement>('div')).find((candidate) => {
             const text = candidate.textContent ?? ''
             return text.includes('Cancel Action') && text.includes('Confirm Action')
-          }) ?? null)
+          }) ??
+          null)
         : null
       setFooterActionsTarget(footerActions)
     }
@@ -324,7 +329,7 @@ export function PvpBattleQualityControls({
                 border: '1px solid rgba(111,172,143,.42)',
                 borderRadius: '999px',
                 background: 'rgba(75,143,111,.055)',
-                font: '750 .4rem/1 var(--av-font-mono)',
+                font: '750 .75rem/1 var(--av-font-mono)',
                 whiteSpace: 'nowrap',
                 visibility: 'visible',
                 opacity: 1,
@@ -367,7 +372,7 @@ export function PvpBattleQualityControls({
                 borderRadius: '999px',
                 color: opponentTimerColor,
                 background: 'rgba(154, 54, 54, .08)',
-                font: '800 .42rem/1 var(--av-font-mono)',
+                font: '800 .75rem/1 var(--av-font-mono)',
                 letterSpacing: '.02em',
                 textOverflow: 'clip',
                 textTransform: 'none',
@@ -417,28 +422,28 @@ export function PvpBattleQualityControls({
       {surrenderDialogOpen
         ? createPortal(
             <div
-              className={styles.backdrop}
+              className={surrenderStyles.backdrop}
               onPointerDown={() => {
                 if (!surrendering) setSurrenderDialogOpen(false)
               }}
             >
               <section
-                className={styles.modal}
+                className={surrenderStyles.dialog}
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="pvp-surrender-title"
                 onPointerDown={(event) => event.stopPropagation()}
               >
-                <span>Battle Hall · PvP</span>
+                <span>{battleReturnNavigation(metadata.origin).encounterEyebrow}</span>
                 <h2 id="pvp-surrender-title">Surrender this battle?</h2>
                 <p>
                   Surrendering ends the battle immediately as a loss. The normal PvP result screen
                   will follow and the committed battle history remains available for review.
                 </p>
-                <div className={styles.actions}>
+                <div className={surrenderStyles.actions}>
                   <button
                     type="button"
-                    className={styles.stay}
+                    className={surrenderStyles.stay}
                     disabled={surrendering}
                     onClick={() => setSurrenderDialogOpen(false)}
                   >
@@ -446,7 +451,7 @@ export function PvpBattleQualityControls({
                   </button>
                   <button
                     type="button"
-                    className={styles.confirm}
+                    className={surrenderStyles.confirm}
                     disabled={surrendering}
                     onClick={() => void confirmSurrender()}
                   >

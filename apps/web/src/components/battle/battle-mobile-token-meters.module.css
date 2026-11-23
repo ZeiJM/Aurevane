@@ -14,8 +14,9 @@
       > [data-mobile-token-meters='true']
   ) {
     position: absolute !important;
+    top: calc(100% - 1px) !important;
     right: auto !important;
-    bottom: -22% !important;
+    bottom: auto !important;
     left: 50% !important;
     z-index: 8 !important;
     display: grid !important;
@@ -51,7 +52,7 @@
     position: relative !important;
     display: block !important;
     width: 100% !important;
-    height: clamp(2px, 0.8vw, 4px) !important;
+    height: clamp(2px, 0.65vw, 3px) !important;
     overflow: hidden !important;
     border: 1px solid rgba(0, 0, 0, 0.72) !important;
     border-radius: 999px !important;
@@ -88,5 +89,18 @@
       > i
   ) {
     background: linear-gradient(90deg, #31569b, #4f85ed) !important;
+  }
+  /* Temporary HP remains grey even below maximum health; never merge it into red HP. */
+  :global(
+    main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind]
+      #battlefield
+      [data-mobile-token-meter='hp']
+      > [data-mobile-hp-barrier='true']
+  ) {
+    position: absolute !important;
+    inset-block: 0 !important;
+    background: linear-gradient(90deg, #7d858c, #c8cdd1) !important;
+    border-left: 1px solid #e4e7e9 !important;
+    opacity: 0.95 !important;
   }
 }

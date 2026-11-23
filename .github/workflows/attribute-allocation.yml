@@ -51,6 +51,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: attribute-allocation-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   authority:
     name: Attribute authority
@@ -128,7 +132,10 @@ jobs:
             src/character/foundation-disciplines.test.ts
 
       - name: Start local Supabase stack
-        run: pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
+        run: |
+          python .github/scripts/configure-discipline-test-mail.test.py
+          python .github/scripts/configure-discipline-test-mail.py
+          pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
 
       - name: Rebuild database from migrations
         run: pnpm exec supabase db reset --local

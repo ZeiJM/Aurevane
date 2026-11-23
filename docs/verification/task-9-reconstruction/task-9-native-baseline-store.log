@@ -1,0 +1,4 @@
+{"mode": "baseline-store", "script": "/tmp/task9-module-probe-gx2t2lfk/probe.mjs", "cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020/apps/web", "start": "2026-10-20T19:15:24.778302+00:00"}
+Actual Basic HTTP handler/service probe passed: five v2 records and v1 Guard restore.
+
+{"exit": 0, "end": "2026-10-20T19:15:26.238877+00:00"}

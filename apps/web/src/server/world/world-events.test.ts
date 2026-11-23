@@ -22,3 +22,12 @@ it('rejects uncharted, malformed or blocked event destinations', () => {
     ]),
   ).toEqual([])
 })
+
+it('shows valid weather requirements beside a shared event destination', () => {
+  expect(
+    eventWorldObjectives([
+      { ...row(true), requiredWeather: 'storm' },
+      { ...row(true), requiredWeather: 'client-particles' },
+    ]).map((objective) => objective.description),
+  ).toEqual(['Find the watch · Arrive during stormy weather', 'Find the watch'])
+})

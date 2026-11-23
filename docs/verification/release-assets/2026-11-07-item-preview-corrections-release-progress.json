@@ -1,0 +1,727 @@
+{
+  "schemaVersion": 1,
+  "status": "verified-live-for-owner-testing",
+  "pr": 1023,
+  "receiptBranch": "agent/item-preview-corrections-release-20261107",
+  "sourceCommit": "3efadd14ff7bb17d9b4dc4beb1990e8e7040dad2",
+  "sourceTree": "ec9ec72acc981ad08a4b0002ae7493f78ffd03d7",
+  "testedHead": "712fd3652cd40bdc99aeef6da3c7408caff80f28",
+  "applicationChecksPassed": true,
+  "mainChecksPassed": true,
+  "mainChecks": [
+    {
+      "name": "Discipline build authority",
+      "id": 128368472142,
+      "conclusion": "success"
+    },
+    {
+      "name": "Supabase Preview",
+      "id": 128368345784,
+      "conclusion": "failure"
+    },
+    {
+      "name": "Execute Responsive browser smoke",
+      "id": 128368260964,
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Responsive browser smoke",
+      "id": 128368260083,
+      "conclusion": "success"
+    },
+    {
+      "name": "Execute Database foundation",
+      "id": 128368231502,
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Execute Quality gates",
+      "id": 128368231438,
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Quality gates",
+      "id": 128368230588,
+      "conclusion": "success"
+    },
+    {
+      "name": "Database foundation",
+      "id": 128368230534,
+      "conclusion": "success"
+    },
+    {
+      "name": "quality",
+      "id": 128368167208,
+      "conclusion": "success"
+    },
+    {
+      "name": "Battle session persistence + authority",
+      "id": 128368167184,
+      "conclusion": "success"
+    },
+    {
+      "name": "quality",
+      "id": 128368167157,
+      "conclusion": "success"
+    },
+    {
+      "name": "review",
+      "id": 128368167019,
+      "conclusion": "success"
+    },
+    {
+      "name": "Select CI coverage",
+      "id": 128368166956,
+      "conclusion": "success"
+    },
+    {
+      "name": "Select Browser smoke coverage",
+      "id": 128368166897,
+      "conclusion": "success"
+    },
+    {
+      "name": "Attribute authority",
+      "id": 128368166891,
+      "conclusion": "success"
+    },
+    {
+      "name": "Wayfarer authority",
+      "id": 128368166812,
+      "conclusion": "success"
+    },
+    {
+      "name": "Foundation security privileges",
+      "id": 128368166800,
+      "conclusion": "success"
+    }
+  ],
+  "supabaseIntegration": {
+    "conclusion": "failure",
+    "summary": "Remote migration versions not found in local migrations directory.",
+    "action": "Preserve history and apply only the reviewed additive migration through the controlled release."
+  },
+  "projectId": "prj_ZmH66I1zyOARUt8OXdTl7CN9r18d",
+  "teamId": "team_oZRrN2ckoy5ge7NgZfp1B6de",
+  "supabaseProjectId": "luazfeupwfgnilohfsya",
+  "previousDeploymentId": "dpl_DCs9PefFRMAawAX8JbXEWjQVmAZ6",
+  "previousDeploymentUrl": "aurevane-afhp3mc50-zeijms-projects.vercel.app",
+  "routingVersionBefore": "e66b8ef2-5afd-41f8-ac02-b668a459bcdf",
+  "retirementRulesToPreserve": 9,
+  "canonicalHosts": [
+    "aurevane-rpg.com",
+    "www.aurevane-rpg.com",
+    "aurevane.vercel.app",
+    "aurevane-zeijms-projects.vercel.app"
+  ],
+  "gitDeploymentEnabled": false,
+  "requiredAutoAssignCustomDomains": false,
+  "buildIntent": {
+    "sourceCommit": "3efadd14ff7bb17d9b4dc4beb1990e8e7040dad2",
+    "requestedOnce": true,
+    "policy": "Inspect the actual deployment history after any interruption and reuse the matching build.",
+    "projectLockReasserted": true,
+    "completedCreate": true,
+    "verifiedSource": "3efadd14ff7bb17d9b4dc4beb1990e8e7040dad2"
+  },
+  "holdActive": false,
+  "promoted": true,
+  "migrationsApplied": [
+    {
+      "source": "20261106143000_item_technique_descriptions.sql",
+      "hostedVersion": "20261107103304",
+      "sha256": "1c42a1740e93b44e0df11b4da59dae58e49de031419e1ad0e1bf63c2a4b575d6"
+    }
+  ],
+  "sourceRegistrationDone": true,
+  "publicationsDone": true,
+  "scope": {
+    "migration": "20261106143000_item_technique_descriptions.sql",
+    "audit": "docs/verification/2026-11-06-item-purpose-successors.json",
+    "sourceSuccessors": 4,
+    "publicationSuccessors": 3,
+    "templateSha256": "70aaee4105917cced60a9e4a79d7f823706694fa1bd97797bb5cac80958a020c"
+  },
+  "validation": {
+    "core": 7171,
+    "db": 651,
+    "web": 8951,
+    "repeatedAuthoring": 16,
+    "chromium": 383,
+    "chromiumConfiguredSkips": 286,
+    "edge": 12,
+    "edgeConfiguredSkips": 2,
+    "browserRun": 42296440637,
+    "browserAttempt": 2,
+    "qualityRun": 42296440746
+  },
+  "deploymentId": "dpl_CBPxHC4kMSnbSmRYsGNfKFTTexJT",
+  "deploymentUrl": "aurevane-kwzxxvap7-zeijms-projects.vercel.app",
+  "buildState": "READY",
+  "holdRuleId": "45a07761-caca-49ad-9017-a665fb051023",
+  "compatibleRoutingVersion": "cd9d2a24-c185-437f-8d5f-ac28d90a5f49",
+  "promotionRequested": true,
+  "prePromotionProbe": [
+    {
+      "case": "canonical-home",
+      "status": 200,
+      "deployment": "dpl_DCs9PefFRMAawAX8JbXEWjQVmAZ6",
+      "pass": true
+    },
+    {
+      "case": "staged-home",
+      "status": 200,
+      "deployment": "dpl_CBPxHC4kMSnbSmRYsGNfKFTTexJT",
+      "pass": true
+    },
+    {
+      "case": "canonical-hold",
+      "status": 503,
+      "deployment": null,
+      "pass": true
+    },
+    {
+      "case": "staged-hold",
+      "status": 503,
+      "deployment": null,
+      "pass": true
+    },
+    {
+      "case": "existing-battle",
+      "status": 401,
+      "deployment": null,
+      "pass": true
+    }
+  ],
+  "autoAssignCustomDomains": false,
+  "aliasPromotionProbes": [
+    {
+      "i": 0,
+      "status": 200,
+      "id": "dpl_CBPxHC4kMSnbSmRYsGNfKFTTexJT",
+      "pass": true
+    },
+    {
+      "i": 1,
+      "status": 200,
+      "id": "dpl_CBPxHC4kMSnbSmRYsGNfKFTTexJT",
+      "pass": true
+    },
+    {
+      "i": 2,
+      "status": 200,
+      "id": "dpl_CBPxHC4kMSnbSmRYsGNfKFTTexJT",
+      "pass": true
+    }
+  ],
+  "retirementRoutingVersion": "26102f0e-dfb9-4232-b589-8583a96a6c86",
+  "retirementVerifiedAt": "2026-11-07 10:00:08.422549+00",
+  "drainNotBefore": "2026-11-07 10:32:38.422549+00",
+  "drainSeconds": 1950,
+  "heldProbes": [
+    {
+      "case": "apex",
+      "url": "https://aurevane-rpg.com/",
+      "status": 200,
+      "deployment": "dpl_CBPxHC4kMSnbSmRYsGNfKFTTexJT",
+      "pass": true
+    },
+    {
+      "case": "manual",
+      "url": "https://aurevane.vercel.app/manual",
+      "status": 200,
+      "deployment": "dpl_CBPxHC4kMSnbSmRYsGNfKFTTexJT",
+      "pass": true
+    },
+    {
+      "case": "team-alias",
+      "url": "https://aurevane-zeijms-projects.vercel.app/",
+      "status": 200,
+      "deployment": "dpl_CBPxHC4kMSnbSmRYsGNfKFTTexJT",
+      "pass": true
+    },
+    {
+      "case": "candidate",
+      "url": "https://aurevane-kwzxxvap7-zeijms-projects.vercel.app/",
+      "status": 200,
+      "deployment": "dpl_CBPxHC4kMSnbSmRYsGNfKFTTexJT",
+      "pass": true
+    },
+    {
+      "case": "www",
+      "url": "https://www.aurevane-rpg.com/",
+      "status": 308,
+      "deployment": null,
+      "pass": true
+    },
+    {
+      "case": "old-host",
+      "url": "https://aurevane-afhp3mc50-zeijms-projects.vercel.app/",
+      "status": 503,
+      "deployment": null,
+      "pass": true
+    },
+    {
+      "case": "old-cookie",
+      "url": "https://aurevane-rpg.com/",
+      "status": 503,
+      "deployment": null,
+      "pass": true
+    },
+    {
+      "case": "old-header",
+      "url": "https://aurevane-rpg.com/",
+      "status": 200,
+      "deployment": "dpl_CBPxHC4kMSnbSmRYsGNfKFTTexJT",
+      "pass": true
+    },
+    {
+      "case": "old-query",
+      "url": "https://aurevane-rpg.com/?dpl=dpl_DCs9PefFRMAawAX8JbXEWjQVmAZ6",
+      "status": 200,
+      "deployment": "dpl_CBPxHC4kMSnbSmRYsGNfKFTTexJT",
+      "pass": true
+    },
+    {
+      "case": "current-header",
+      "url": "https://aurevane-rpg.com/",
+      "status": 200,
+      "deployment": "dpl_CBPxHC4kMSnbSmRYsGNfKFTTexJT",
+      "pass": true
+    },
+    {
+      "case": "current-query",
+      "url": "https://aurevane-rpg.com/?dpl=dpl_CBPxHC4kMSnbSmRYsGNfKFTTexJT",
+      "status": 200,
+      "deployment": "dpl_CBPxHC4kMSnbSmRYsGNfKFTTexJT",
+      "pass": true
+    },
+    {
+      "case": "existing-battle-guest",
+      "url": "https://aurevane-rpg.com/api/battles/00000000-0000-4000-8000-000000000000",
+      "status": 401,
+      "deployment": null,
+      "pass": true
+    },
+    {
+      "case": "hold:/master",
+      "url": "https://aurevane-rpg.com/master",
+      "status": 503,
+      "deployment": null,
+      "pass": true
+    },
+    {
+      "case": "hold:/api/master/access",
+      "url": "https://aurevane-rpg.com/api/master/access",
+      "status": 503,
+      "deployment": null,
+      "pass": true
+    },
+    {
+      "case": "hold:/game/nexus",
+      "url": "https://aurevane-rpg.com/game/nexus",
+      "status": 503,
+      "deployment": null,
+      "pass": true
+    },
+    {
+      "case": "hold:/game/loadout/items",
+      "url": "https://aurevane-rpg.com/game/loadout/items",
+      "status": 503,
+      "deployment": null,
+      "pass": true
+    },
+    {
+      "case": "hold:/api/character/items",
+      "url": "https://aurevane-rpg.com/api/character/items",
+      "status": 503,
+      "deployment": null,
+      "pass": true
+    },
+    {
+      "case": "hold:/api/battles",
+      "url": "https://aurevane-rpg.com/api/battles",
+      "status": 503,
+      "deployment": null,
+      "pass": true
+    },
+    {
+      "case": "hold:/api/pvp/lobbies",
+      "url": "https://aurevane-rpg.com/api/pvp/lobbies",
+      "status": 503,
+      "deployment": null,
+      "pass": true
+    },
+    {
+      "case": "hold:/api/world",
+      "url": "https://aurevane-rpg.com/api/world",
+      "status": 503,
+      "deployment": null,
+      "pass": true
+    },
+    {
+      "case": "hold:/api/wayfarers-practice",
+      "url": "https://aurevane-rpg.com/api/wayfarers-practice",
+      "status": 503,
+      "deployment": null,
+      "pass": true
+    },
+    {
+      "case": "art:emberbrand",
+      "url": "https://aurevane-rpg.com/media/art/items/techniques/emberbrand-technique-v01.webp",
+      "status": 200,
+      "deployment": null,
+      "pass": true
+    },
+    {
+      "case": "art:stormcaller-staff",
+      "url": "https://aurevane-rpg.com/media/art/items/techniques/stormcaller-staff-technique-v01.webp",
+      "status": 200,
+      "deployment": null,
+      "pass": true
+    },
+    {
+      "case": "art:tower-shield",
+      "url": "https://aurevane-rpg.com/media/art/items/techniques/tower-shield-technique-v01.webp",
+      "status": 200,
+      "deployment": null,
+      "pass": true
+    },
+    {
+      "case": "art:twinfang-blade",
+      "url": "https://aurevane-rpg.com/media/art/items/techniques/twinfang-blade-technique-v01.webp",
+      "status": 200,
+      "deployment": null,
+      "pass": true
+    }
+  ],
+  "releaseSqlSha256": "023407adf08789294eb9e8a1710cf2dabd7842a581246044d642f1e314a9b269",
+  "migrationSha256": "1c42a1740e93b44e0df11b4da59dae58e49de031419e1ad0e1bf63c2a4b575d6",
+  "executableReview": {
+    "approved": true,
+    "conditions": [
+      "Fresh DB clock at or beyond deadline",
+      "Zero older client transactions",
+      "Unchanged retirement and hold",
+      "Fresh exact predecessor and no targeted Owner drafts",
+      "Reviewed grammar installed"
+    ],
+    "preservationDigests": 12
+  },
+  "preMigrationControls": {
+    "stockRls": {
+      "character_item_grants": true,
+      "character_item_stacks": true,
+      "character_item_inventory": true
+    },
+    "seedAccess": {
+      "anon": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    "timingPolicy": {
+      "modes": {
+        "summon": "instant",
+        "sensory": "instant",
+        "displace": "instant",
+        "mp-drain": "instant",
+        "blindside": "instant",
+        "conductive": "instant",
+        "remove-status": "instant",
+        "barrier-change": "instant",
+        "create-terrain": "instant",
+        "return-to-turn-start": "controlled"
+      },
+      "version": 11,
+      "tagAuthority": "global"
+    },
+    "enabledOwners": 1,
+    "descriptionMigrationCount": 0
+  },
+  "releaseSqlPath": "docs/verification/release-assets/2026-11-07-item-preview-corrections-register-and-publish.sql",
+  "sqlReviewPath": "docs/verification/release-assets/2026-11-07-item-preview-corrections-sql-review.md",
+  "drainVerified": {
+    "db_time": "2026-11-07 10:32:44.443505+00",
+    "drain_complete": true,
+    "older_client_transactions": 0
+  },
+  "freshPredecessorsMatch": true,
+  "targetDraftCount": 0,
+  "grammarVerification": {
+    "migration_version": "20261107103304",
+    "helper_exists": true,
+    "helper_invoker": true,
+    "helper_private": true,
+    "bound_to_validator": true
+  },
+  "contentWriteIntent": true,
+  "preservationDigestsPassed": 12,
+  "readback": {
+    "items": [
+      {
+        "id": "emberbrand",
+        "qp": 28,
+        "name": "Kindle",
+        "artworkId": "item.emberbrand.technique.art.v1",
+        "description": "Increase your direct Fire damage for 2 turns.",
+        "draftAbsent": true,
+        "sourceExact": true,
+        "currentExact": true,
+        "currentVersion": 11,
+        "oldSourceExact": true,
+        "oldPublicationExact": true
+      },
+      {
+        "id": "stormcaller-staff",
+        "qp": 22,
+        "name": "Storm Ward",
+        "artworkId": "item.stormcaller-staff.technique.art.v1",
+        "description": "Gain a Barrier equal to 8% of your maximum HP for 2 turns.",
+        "draftAbsent": true,
+        "sourceExact": true,
+        "currentExact": true,
+        "currentVersion": 11,
+        "oldSourceExact": true,
+        "oldPublicationExact": true
+      },
+      {
+        "id": "tower-shield",
+        "qp": 30,
+        "name": "Tower Guard",
+        "artworkId": "item.tower-shield.technique.art.v1",
+        "description": "Reduce incoming damage with Guarded for 2 turns.",
+        "draftAbsent": true,
+        "sourceExact": true,
+        "currentExact": true,
+        "currentVersion": 10,
+        "oldSourceExact": true,
+        "oldPublicationExact": true
+      },
+      {
+        "id": "twinfang-blade",
+        "qp": 20,
+        "name": "Quickstep",
+        "artworkId": "item.twinfang-blade.technique.art.v1",
+        "description": "Reduce the AP cost of your movement for 1 turn.",
+        "draftAbsent": true,
+        "sourceExact": true,
+        "currentExact": true,
+        "currentVersion": 11,
+        "oldSourceExact": true,
+        "oldPublicationExact": true
+      }
+    ],
+    "grammarPrivate": true,
+    "migrationVersions": ["20261107103304"]
+  },
+  "postMigrationControls": {
+    "stockRls": {
+      "character_item_grants": true,
+      "character_item_stacks": true,
+      "character_item_inventory": true
+    },
+    "seedAccess": {
+      "anon": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    "timingPolicy": {
+      "modes": {
+        "summon": "instant",
+        "sensory": "instant",
+        "displace": "instant",
+        "mp-drain": "instant",
+        "blindside": "instant",
+        "conductive": "instant",
+        "remove-status": "instant",
+        "barrier-change": "instant",
+        "create-terrain": "instant",
+        "return-to-turn-start": "controlled"
+      },
+      "version": 11,
+      "tagAuthority": "global"
+    },
+    "enabledOwners": 1,
+    "descriptionMigrationCount": 1
+  },
+  "holdRemoved": true,
+  "finalRoutingVersion": "cc2ece10-84d1-457e-89b7-7ecb8867710a",
+  "verifiedAt": "2026-11-07T10:35:17.205Z",
+  "canonicalUrl": "https://aurevane-rpg.com",
+  "finalProbes": [
+    {
+      "case": "apex",
+      "url": "https://aurevane-rpg.com/",
+      "status": 200,
+      "deployment": "dpl_CBPxHC4kMSnbSmRYsGNfKFTTexJT",
+      "pass": true
+    },
+    {
+      "case": "manual",
+      "url": "https://aurevane.vercel.app/manual",
+      "status": 200,
+      "deployment": "dpl_CBPxHC4kMSnbSmRYsGNfKFTTexJT",
+      "pass": true
+    },
+    {
+      "case": "team-alias",
+      "url": "https://aurevane-zeijms-projects.vercel.app/",
+      "status": 200,
+      "deployment": "dpl_CBPxHC4kMSnbSmRYsGNfKFTTexJT",
+      "pass": true
+    },
+    {
+      "case": "candidate",
+      "url": "https://aurevane-kwzxxvap7-zeijms-projects.vercel.app/",
+      "status": 200,
+      "deployment": "dpl_CBPxHC4kMSnbSmRYsGNfKFTTexJT",
+      "pass": true
+    },
+    {
+      "case": "www",
+      "url": "https://www.aurevane-rpg.com/",
+      "status": 308,
+      "deployment": null,
+      "pass": true
+    },
+    {
+      "case": "old-host",
+      "url": "https://aurevane-afhp3mc50-zeijms-projects.vercel.app/",
+      "status": 503,
+      "deployment": null,
+      "pass": true
+    },
+    {
+      "case": "old-cookie",
+      "url": "https://aurevane-rpg.com/",
+      "status": 503,
+      "deployment": null,
+      "pass": true
+    },
+    {
+      "case": "old-header",
+      "url": "https://aurevane-rpg.com/",
+      "status": 200,
+      "deployment": "dpl_CBPxHC4kMSnbSmRYsGNfKFTTexJT",
+      "pass": true
+    },
+    {
+      "case": "old-query",
+      "url": "https://aurevane-rpg.com/?dpl=dpl_DCs9PefFRMAawAX8JbXEWjQVmAZ6",
+      "status": 200,
+      "deployment": "dpl_CBPxHC4kMSnbSmRYsGNfKFTTexJT",
+      "pass": true
+    },
+    {
+      "case": "current-header",
+      "url": "https://aurevane-rpg.com/",
+      "status": 200,
+      "deployment": "dpl_CBPxHC4kMSnbSmRYsGNfKFTTexJT",
+      "pass": true
+    },
+    {
+      "case": "current-query",
+      "url": "https://aurevane-rpg.com/?dpl=dpl_CBPxHC4kMSnbSmRYsGNfKFTTexJT",
+      "status": 200,
+      "deployment": "dpl_CBPxHC4kMSnbSmRYsGNfKFTTexJT",
+      "pass": true
+    },
+    {
+      "case": "existing-battle-guest",
+      "url": "https://aurevane-rpg.com/api/battles/00000000-0000-4000-8000-000000000000",
+      "status": 401,
+      "deployment": null,
+      "pass": true
+    },
+    {
+      "case": "master-guest",
+      "url": "https://aurevane-rpg.com/master",
+      "status": 200,
+      "deployment": "dpl_CBPxHC4kMSnbSmRYsGNfKFTTexJT",
+      "pass": true
+    },
+    {
+      "case": "nexus-guest",
+      "url": "https://aurevane-rpg.com/game/nexus",
+      "status": 200,
+      "deployment": "dpl_CBPxHC4kMSnbSmRYsGNfKFTTexJT",
+      "pass": true
+    },
+    {
+      "case": "master-api-guest",
+      "url": "https://aurevane-rpg.com/api/master/access",
+      "status": 401,
+      "deployment": null,
+      "pass": true
+    },
+    {
+      "case": "items-api-guest",
+      "url": "https://aurevane-rpg.com/api/character/items",
+      "status": 401,
+      "deployment": null,
+      "pass": true
+    },
+    {
+      "case": "battle-create-get",
+      "url": "https://aurevane-rpg.com/api/battles",
+      "status": 405,
+      "deployment": null,
+      "pass": true
+    },
+    {
+      "case": "art:emberbrand",
+      "url": "https://aurevane-rpg.com/media/art/items/techniques/emberbrand-technique-v01.webp",
+      "status": 200,
+      "deployment": null,
+      "pass": true
+    },
+    {
+      "case": "art:stormcaller-staff",
+      "url": "https://aurevane-rpg.com/media/art/items/techniques/stormcaller-staff-technique-v01.webp",
+      "status": 200,
+      "deployment": null,
+      "pass": true
+    },
+    {
+      "case": "art:tower-shield",
+      "url": "https://aurevane-rpg.com/media/art/items/techniques/tower-shield-technique-v01.webp",
+      "status": 200,
+      "deployment": null,
+      "pass": true
+    },
+    {
+      "case": "art:twinfang-blade",
+      "url": "https://aurevane-rpg.com/media/art/items/techniques/twinfang-blade-technique-v01.webp",
+      "status": 200,
+      "deployment": null,
+      "pass": true
+    }
+  ],
+  "finalRetirementRuleCount": 9,
+  "finalDomains": [
+    {
+      "name": "www.aurevane-rpg.com",
+      "verified": true,
+      "redirect": "aurevane-rpg.com"
+    },
+    {
+      "name": "aurevane-rpg.com",
+      "verified": true,
+      "redirect": null
+    },
+    {
+      "name": "aurevane.vercel.app",
+      "verified": true,
+      "redirect": null
+    }
+  ],
+  "initialRuntimeScan": {
+    "since": "2026-11-07T09:58:08.422Z",
+    "until": "2026-11-07T10:35:17.205Z",
+    "errorAndFatalMatches": 0
+  },
+  "watcher": {
+    "id": "Automation_1343d4b26ad081919eb65e2273a3fe91",
+    "enabled": false
+  },
+  "remaining": "Owner gameplay acceptance remains open."
+}

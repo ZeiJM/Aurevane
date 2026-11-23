@@ -1,0 +1,57 @@
+[
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix3-n7a-identity-final/editor-identity-1366.png",
+    "sha256": "c26b5fdc86771b412666ad6bbf44c14b53ad422cc376127529f1312c025d3738",
+    "bytes": 1513724
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix3-n7a-identity-final/results.json",
+    "sha256": "ec3256f9d04bbbe80bce24afb23e400787fd5f752eee248e1261b7545ee34a86",
+    "bytes": 397
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix3-n7a-identity-final/editor-identity-390.png",
+    "sha256": "183e636dd91f9912d11a96aa3bbfc835e4e8c1e9823d8de68f61fc4640920274",
+    "bytes": 778073
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix3-n7d-controls/world-1366-1.png",
+    "sha256": "ab7d9f9bf3cb59c791d0fb2f2822090400ac5ab9b0e3c1bf8abe30b56c8d4667",
+    "bytes": 399573
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix3-n7d-controls/players-reader-results.json",
+    "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "bytes": 2
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix3-n7d-controls/world-390-1.png",
+    "sha256": "256ec66e4ac014326b621e3d71a29ffdd8b0898423d35d76530d8d09e1c65cbf",
+    "bytes": 182309
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix3-native-transport-probe/transport.pw.ts.txt",
+    "sha256": "e08931cdaf42e6bba73b8474e26a75162e3d3792ce13eebd9941769bcd0bb2a2",
+    "bytes": 3267
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix3-native-transport-probe/playwright.config.ts.txt",
+    "sha256": "e0f2d78406eaa3544e3d046755ac5183b3e90a5369d50a19b1c7f0a234cc2944",
+    "bytes": 332
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix3-native-transport-probe/extract-probe.py.txt",
+    "sha256": "1428b8247b2e89417702ce3d6afcc93abe1e08cf416ba17b584fc1b891e7f92b",
+    "bytes": 3016
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix3-world-native-diagnosis.json",
+    "sha256": "730b34055a269130d991e50576359857c18458b6455571ec3a2e5b98a4bec301",
+    "bytes": 1742
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix3-late-native-log.json",
+    "sha256": "cab7c069c8bdd825e6f1d044a7c9d1ad21e04087cb54d53e22c766141816aa6c",
+    "bytes": 305
+  }
+]

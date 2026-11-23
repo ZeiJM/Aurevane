@@ -1,12 +1,104 @@
-import { randomUUID } from 'node:crypto'
-import { execFileSync, spawn } from 'node:child_process'
-import { expect, test, type APIResponse, type Page, type TestInfo } from '@playwright/test'
+import { sectorDisplayNumber } from '../src/world/coordinate-label'
+import { openMapSettings, closeMapSettings } from './world-map-settings-helpers'
+import { observeWorldRead, readWorldSnapshot } from './world-read-observation'
+import { cleanupWorldPresenceFixtures } from './world-presence-diagnostics'
+import { hashWorldBackingPixels, startWorldFrameCounting } from './world-render-diagnostics'
+import { clickWorldGroundSequence } from './world-ground-click-sequence'
+import { createHash, randomUUID } from 'node:crypto'
+import {
+  gateWorldMutationDefinition,
+  diagnoseWorldEquipmentDefinition,
+  parseWorldEquipmentErrors,
+  parseWorldEquipmentLockHolders,
+  WORLD_MUTATION_GATE_SIGNATURES,
+} from './world-contention-gate'
+import { writeFileSync } from 'node:fs'
+import { execFileSync, spawn, spawnSync } from 'node:child_process'
+import {
+  expect,
+  test,
+  type APIResponse,
+  type Page,
+  type Response as BrowserResponse,
+  type TestInfo,
+} from '@playwright/test'
 import type { SetPracticePlanRequest } from '@aurevane/validation/player/wayfarers-practice'
 import { provisionAccountAndEnterCharacter, openOfflineTraining } from './pv1f-test-helpers'
-import { WORLD_REGIONS } from '../src/world/catalog'
-import { newWorldState } from '../src/world/travel'
+import { STEP_MS, WORLD_REGIONS } from '../src/world/catalog'
+import { newWorldState, samePosition } from '../src/world/travel'
+import { FERRY_MAINLAND_DOCK } from '../src/world/ferry'
+import { OFFSHORE_DISCOVERY } from '../src/world/discovery-sites'
 import type { WorldView } from '../src/world/types'
+import { verifyWorldPresentation, registerWorldInputCases } from './world-presentation-case'
+import { verifyWorldScenePresence, verifyWorldInstantActions } from './world-presence-case'
+import { sectorMapOrigin } from '../src/world/topology'
+import { projectMapPoint } from '../src/components/world/map-projection'
+import { worldRenderTerrain } from '../src/components/world/map-render-terrain'
+import { registerWorldLandscapeCases } from './world-landscape-case'
+import { registerWorldArtReviewCases } from './world-art-review-case'
+import { registerWorldMapCorrectionCases } from './world-map-correction-case'
+import { registerWorldMultiplayerLoadCase } from './world-multiplayer-load-case'
 import type { CharacterBuildContext } from '../src/server/character/character-build-service'
+
+const runtimeErrors = new WeakMap<Page, string[]>()
+const caseFixtures = new WeakMap<TestInfo, Map<string, Page>>()
+test.beforeEach(({ page }, info) => {
+  const errors: string[] = []
+  runtimeErrors.set(page, errors)
+  caseFixtures.set(info, new Map())
+  page.on('pageerror', (error) => errors.push(error.message))
+})
+test.afterEach(async ({ page }, info) => {
+  const fixtures = [...(caseFixtures.get(info) ?? new Map<string, Page>())]
+  // Closing a browser alone leaves its offline character selectable for ten
+  // minutes. Retire only this case's fixtures after their heartbeats stop.
+  const cleanupErrors: string[] = []
+  for (let i = 0; i < fixtures.length; i += 2) {
+    const pair = fixtures.slice(i, i + 2)
+    cleanupErrors.push(
+      ...(await cleanupWorldPresenceFixtures(
+        pair.map(([characterId]) => characterId),
+        pair.map(
+          ([, fixturePage]) =>
+            () =>
+              fixturePage.close(),
+        ),
+        sql,
+      )),
+    )
+  }
+  caseFixtures.delete(info)
+  expect(runtimeErrors.get(page) ?? []).toEqual([])
+  expect(cleanupErrors, 'Atlas case must retire its own presence fixtures').toEqual([])
+})
+
+async function verifyPlacePortraits(page: Page) {
+  const portraits = page
+    .getByRole('tabpanel', { name: 'Places', exact: true })
+    .locator('span[aria-hidden="true"][style*="/media/art/world/runtime/"]')
+  await expect(portraits.first()).toBeVisible()
+  for (const portrait of await portraits.all()) {
+    const metrics = await portrait.evaluate(async (element) => {
+      const style = getComputedStyle(element)
+      const image = new Image()
+      image.src = style.backgroundImage.slice(5, -2)
+      await image.decode()
+      const bounds = element.getBoundingClientRect()
+      return {
+        width: bounds.width,
+        height: bounds.height,
+        radius: style.borderRadius,
+        border: style.borderWidth,
+        pixels: image.naturalWidth * image.naturalHeight,
+      }
+    })
+    expect(metrics.width).toBe(36)
+    expect(metrics.height).toBe(36)
+    expect(metrics.radius).toBe('50%')
+    expect(metrics.border).toBe('2px')
+    expect(metrics.pixels).toBeGreaterThan(1_000_000)
+  }
+}
 
 function localDatabase(): string {
   const host = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://invalid').hostname
@@ -41,13 +133,15 @@ function sql(query: string): string {
     { encoding: 'utf8' },
   ).trim()
 }
-// Hold only these disposable accounts' mutation locks until the real HTTP
-// requests are demonstrably waiting in Postgres. This tests contention rather
-// than relying on Promise.all happening to overlap on a fast runner.
+// Travel retains its account-lock gate. Attack tests pause only these disposable
+// characters at mutation RPC entry after preparation, before unchanged authority
+// locks; inventory preparation must not contend against a fabricated account lock.
 async function contend(
   characterIds: string[],
   send: () => Promise<APIResponse>[],
   whileBlocked?: () => Promise<void>,
+  afterPreparation = false,
+  diagnosticPath?: string,
 ) {
   for (const id of characterIds) expect(id).toMatch(/^[0-9a-f-]{36}$/)
   const application = `atlas-gate-${randomUUID()}`
@@ -66,7 +160,9 @@ async function contend(
       '-d',
       'postgres',
       '-Atqc',
-      `begin; select pg_advisory_xact_lock(hashtextextended(user_id::text,1)) from public.characters where id in (${characterIds.map((id) => `'${id}'::uuid`).join(',')}) order by user_id; select pg_sleep(45); rollback;`,
+      afterPreparation
+        ? `begin; select pg_advisory_xact_lock(hashtextextended('${application}',0)); select pg_sleep(45); rollback;`
+        : `begin; select pg_advisory_xact_lock(hashtextextended(user_id::text,1)) from public.characters where id in (${characterIds.map((id) => `'${id}'::uuid`).join(',')}) order by user_id; select pg_sleep(45); rollback;`,
     ],
     { stdio: 'ignore' },
   )
@@ -75,7 +171,22 @@ async function contend(
     gate.once('error', () => resolve())
   })
   let pending: Promise<APIResponse>[] = []
+  const originalDefinitions: string[] = []
+  const diagnosticsSince = new Date().toISOString()
   try {
+    if (afterPreparation && diagnosticPath) {
+      const definition = sql(
+        "select pg_get_functiondef('public.read_character_battle_equipment_v1(uuid,uuid)'::regprocedure)",
+      )
+      originalDefinitions.push(definition)
+      sql(diagnoseWorldEquipmentDefinition(definition, application, characterIds))
+    }
+    if (afterPreparation)
+      for (const signature of WORLD_MUTATION_GATE_SIGNATURES) {
+        const definition = sql(`select pg_get_functiondef('${signature}'::regprocedure)`)
+        originalDefinitions.push(definition)
+        sql(gateWorldMutationDefinition(definition, application, characterIds))
+      }
     await expect
       .poll(
         () =>
@@ -110,8 +221,49 @@ async function contend(
     sql(
       `select pg_terminate_backend(pid) from pg_stat_activity where application_name='${application}'`,
     )
-    await Promise.allSettled(pending)
-    await closed
+    const outcomes = await Promise.allSettled(pending)
+    try {
+      if (diagnosticPath) {
+        const responses = await Promise.all(
+          outcomes.map(async (outcome) => {
+            if (outcome.status === 'rejected') return { transportRejected: true }
+            const response = outcome.value
+            const body = await response.json().catch(() => null)
+            return { status: response.status(), errorCode: body?.error?.code ?? null }
+          }),
+        )
+        const logs = spawnSync('docker', ['logs', '--since', diagnosticsSince, localDatabase()], {
+          encoding: 'utf8',
+          maxBuffer: 8 * 1024 * 1024,
+        })
+        const equipmentErrors = parseWorldEquipmentErrors(
+          `${logs.stdout ?? ''}\n${logs.stderr ?? ''}`,
+          application,
+        )
+        const diagnostic = {
+          afterPreparation,
+          responses,
+          databaseLogCapture: logs.status === 0,
+          equipmentErrors,
+        }
+        // Keep the original response/error evidence even if holder decoding fails.
+        writeFileSync(diagnosticPath, JSON.stringify(diagnostic, null, 2))
+        const equipmentLockHolders = parseWorldEquipmentLockHolders(
+          `${logs.stdout ?? ''}\n${logs.stderr ?? ''}`,
+          application,
+        )
+        writeFileSync(
+          diagnosticPath,
+          JSON.stringify({ ...diagnostic, equipmentLockHolders }, null, 2),
+        )
+      }
+    } finally {
+      try {
+        for (const definition of originalDefinitions) sql(definition)
+      } finally {
+        await closed
+      }
+    }
   }
 }
 
@@ -126,11 +278,12 @@ async function enter(page: Page) {
     password: 'Atlas-browser-2026!',
     characterName: name,
   })
-  // Exercise the real SQL schema as well as HTTP; a missing column should produce
-  // its actual database error here instead of only a generic recovery-page timeout.
-  sql(
-    `select public.read_world_state_v1(c.user_id,c.id,'${JSON.stringify({ ...newWorldState(), safe: false })}'::jsonb) from public.characters c where c.name='${name}';`,
+  const fixture = JSON.parse(
+    sql(
+      `select jsonb_build_object('characterId',c.id,'state',public.read_world_state_v1(c.user_id,c.id,'${JSON.stringify({ ...newWorldState(), safe: false })}'::jsonb)) from public.characters c where c.name='${name}';`,
+    ),
   )
+  caseFixtures.get(test.info())!.set(fixture.characterId, page)
   await page
     .getByRole('navigation', { name: 'Primary game navigation', exact: true })
     .getByRole('link', { name: /World/ })
@@ -139,9 +292,7 @@ async function enter(page: Page) {
   return name
 }
 async function world(page: Page): Promise<WorldView> {
-  const response = await page.request.get('/api/world')
-  expect(response.ok()).toBe(true)
-  return response.json()
+  return readWorldSnapshot(await page.request.get('/api/world'))
 }
 function place(characterId: string, sectorId: string, x: number, y: number, safe = false) {
   // Fixture setup only; all exercised commands still pass through real auth and server authority.
@@ -157,101 +308,138 @@ async function capture(page: Page, info: TestInfo, name: string) {
   })
 }
 
-test('Living Atlas fits the shared shell and supports travel, globe and temporary surroundings', async ({
+async function openJournal(page: Page) {
+  // The Missions tab of the right-hand panel shows the former Journal.
+  const details = page.getByRole('button', { name: 'Details', exact: true })
+  if (await details.isVisible()) await details.click()
+  await page.getByRole('tab', { name: /Missions/ }).click()
+  await expect(page.getByRole('tabpanel', { name: /Missions/ })).toBeVisible()
+}
+async function reloadWorld(page: Page) {
+  await page.reload()
+  await openJournal(page)
+}
+async function expectLocation(page: Page, name: string) {
+  await expect(page.getByRole('button', { name: /Open world atlas/ })).toContainText(name, {
+    timeout: 15000,
+  })
+}
+// The quick sector field reviews the same server-validated travel path as the side panel.
+async function reviewSectorTravel(page: Page, sectorId: string) {
+  const charted = (await world(page)).atlas?.find((cell) => cell.id === sectorId && cell.charted)
+  expect(charted).toBeDefined()
+  const sectorNumber = sectorDisplayNumber(charted)!
+  const field = page.getByRole('textbox', { name: 'Sector number', exact: true })
+  if (!(await field.isVisible()))
+    await page.getByRole('button', { name: 'Details', exact: true }).click()
+  await expect(field).toBeVisible()
+  await field.fill(String(sectorNumber))
+  await field.press('Enter')
+  await expect(page.getByRole('dialog', { name: 'Confirm world travel' })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Travel here', exact: true }).click()
+  await expect(page.getByRole('group', { name: 'Confirm world travel' })).toBeVisible()
+  await page.getByRole('button', { name: 'Confirm travel', exact: true }).click()
+}
+// Exercise actual canvas picking or the globe's charted-destination controls.
+async function stageWalk(page: Page, destination: { sectorId: string; x: number; y: number }) {
+  const current = await world(page)
+  const sector = current.sectors.find((s) => s.id === destination.sectorId)
+  if (!sector) {
+    await page.getByRole('button', { name: /Open world atlas/ }).click()
+    await reviewSectorTravel(page, destination.sectorId)
+    return
+  }
+  const canvas = page.locator('canvas[data-world-stage]')
+  await expect(canvas).toHaveAttribute('data-tile-size', /\d/)
+  const box = (await canvas.boundingBox())!
+  const metrics = await canvas.evaluate((el) => ({
+    x: Number(el.dataset.cameraX),
+    y: Number(el.dataset.cameraY),
+    tile: Number(el.dataset.tileSize),
+  }))
+  const origin = sectorMapOrigin(sector, metrics.x)
+  const dx = origin.x + destination.x + 0.5 - metrics.x
+  const dy = origin.y + destination.y + 0.5 - metrics.y
+  const x = box.width / 2 + (dx - dy) * metrics.tile * 0.85
+  const y = box.height / 2 + (dx + dy) * metrics.tile * 0.44
+  if (x <= 0 || x >= box.width || y <= 0 || y >= box.height) {
+    await page.getByRole('button', { name: /Open world atlas/ }).click()
+    await reviewSectorTravel(page, destination.sectorId)
+    return
+  }
+  expect(x).toBeGreaterThan(0)
+  expect(x).toBeLessThan(box.width)
+  expect(y).toBeGreaterThan(0)
+  expect(y).toBeLessThan(box.height)
+  // The camera follows the traveller every frame. Locator.click's actionability
+  // wait can age these measured coordinates by several tiles during a replan.
+  // The canvas is already visible/bounded above; send the real mouse click now.
+  await page.mouse.click(box.x + x, box.y + y)
+}
+
+test('the World page is the scenic map stage inside the shared shell, with Missions panel and globe', async ({
   page,
 }, info) => {
   test.setTimeout(120000)
   const name = await enter(page)
   const initial = await world(page)
-  for (const id of [
-    ...WORLD_REGIONS.map((region) => region.id),
-    'crown-road',
-    'coastal-road',
-    'ember-road',
-    'southern-caravan-road',
-    'highland-road',
-    'northern-pass',
-    'eastern-march-road',
-    'old-coast-road',
-  ])
-    expect(initial.sectors.find((sector) => sector.id === id)).toBeDefined()
+  expect(initial.sectors.length).toBeLessThanOrEqual(25)
+  expect(initial.atlas!.length).toBeGreaterThan(150)
+  for (const region of WORLD_REGIONS)
+    expect(initial.atlas!.some((s) => s.id === region.id)).toBe(true)
   expect(JSON.stringify(initial)).not.toContain('survey-01')
-  const identity = page.getByTestId('character-profile')
-  const identityBox = (await identity.boundingBox())!
-  for (const content of [
-    identity.getByRole('heading', { name, exact: true }),
-    identity.locator('[data-character-resource="hp"]'),
-    identity.locator('[data-character-resource="mp"]'),
-  ]) {
-    const bounds = (await content.boundingBox())!
-    expect(bounds.x).toBeGreaterThanOrEqual(identityBox.x)
-    expect(bounds.y).toBeGreaterThanOrEqual(identityBox.y)
-    expect(bounds.x + bounds.width).toBeLessThanOrEqual(identityBox.x + identityBox.width)
-    expect(bounds.y + bounds.height).toBeLessThanOrEqual(identityBox.y + identityBox.height)
-  }
+  const rail = page.locator('[data-av-game-rail]')
+  await expect(rail).toBeVisible()
+  const railBox = (await rail.boundingBox())!
   if (info.project.name === 'mobile-chromium') {
-    const portrait = (await identity.locator('[data-character-portrait-frame]').boundingBox())!
-    expect(portrait.width).toBeLessThanOrEqual(100)
-    expect(identityBox.height).toBeLessThan(260)
+    await expect(
+      page.getByRole('navigation', { name: 'Primary game navigation', exact: true }),
+    ).toBeVisible()
+    expect(railBox.height).toBeLessThan(100)
+  } else {
+    const identity = page.getByTestId('authenticated-shell').getByTestId('character-rail-profile')
+    await expect(identity).toBeVisible()
+    const identityBox = (await identity.boundingBox())!
+    for (const content of [
+      identity.locator('[data-character-identity-copy] > strong').filter({ hasText: name }),
+      identity.locator('[data-character-resource="hp"]'),
+      identity.locator('[data-character-resource="mp"]'),
+    ]) {
+      const bounds = (await content.boundingBox())!
+      expect(bounds.x).toBeGreaterThanOrEqual(identityBox.x)
+      expect(bounds.y).toBeGreaterThanOrEqual(identityBox.y)
+      expect(bounds.x + bounds.width).toBeLessThanOrEqual(identityBox.x + identityBox.width)
+      expect(bounds.y + bounds.height).toBeLessThanOrEqual(identityBox.y + identityBox.height)
+    }
+    expect(railBox.width).toBe(190)
   }
-  const grid = page.getByRole('group', { name: 'Verdant Expanse, square movement grid' })
-  await expect(grid.getByRole('button')).toHaveCount(117)
-  const cell = await grid
-    .getByRole('button', { name: 'E17 N24, open territory', exact: true })
-    .boundingBox()
-  const marker = await page
-    .getByRole('button', { name: `${name}, your position`, exact: true })
-    .boundingBox()
-  expect(cell).not.toBeNull()
-  expect(marker).not.toBeNull()
-  expect(Math.abs(cell!.width - cell!.height)).toBeLessThan(1)
-  expect(Math.abs(cell!.x + cell!.width / 2 - marker!.x - marker!.width / 2)).toBeLessThan(1)
-  expect(Math.abs(cell!.y + cell!.height / 2 - marker!.y - marker!.height / 2)).toBeLessThan(1)
-  const eastings = await page.locator('[class*="eastings"]').boundingBox()
-  const gridBox = await grid.boundingBox()
-  expect(eastings!.y).toBeGreaterThanOrEqual(gridBox!.y + gridBox!.height - 1)
-  async function expectSectorToFit() {
-    if (info.project.name === 'mobile-chromium') return
-    const viewport = (await page.locator('[class*="mapViewport"]').boundingBox())!
-    const frame = (await page.locator('[class*="sectorFrame"]').boundingBox())!
-    expect(frame.y).toBeGreaterThanOrEqual(viewport.y - 1)
-    expect(frame.y + frame.height).toBeLessThanOrEqual(viewport.y + viewport.height + 1)
-  }
-  await expectSectorToFit()
+  await expectLocation(page, 'Verdant Expanse')
+  await expect(page.locator('canvas[data-world-stage]')).toBeVisible()
+  await expect(page.locator('[data-world-workspace] header')).toContainText('UTC')
+  if (info.project.name === 'mobile-chromium')
+    await page.getByRole('button', { name: 'Details', exact: true }).click()
+  await expect(page.getByRole('tab', { name: /^Nearby/ })).toBeVisible()
+  await expect(page.getByText('Protected settlement', { exact: true })).toHaveCount(0)
+  await expect(page.locator('[data-world-workspace] footer')).toHaveCount(0)
+  if (info.project.name === 'mobile-chromium')
+    await page.getByRole('button', { name: 'Close details', exact: true }).click()
+  const stageBox = (await page.locator('[data-world-stage]').boundingBox())!
+  expect(stageBox.height).toBeGreaterThan(300)
   expect(
     await page.evaluate(
-      () => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
+      () =>
+        document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1 &&
+        document.documentElement.scrollHeight <= window.innerHeight + 1,
     ),
   ).toBe(true)
-  const ambient = page.locator('[data-world-ambient]')
-  const flow = ambient.locator('[data-world-flow]')
-  await expect(ambient).toBeVisible()
-  const flowPosition = await flow.evaluate(
-    (element) => getComputedStyle(element).backgroundPosition,
-  )
-  await expect
-    .poll(() => flow.evaluate((element) => getComputedStyle(element).backgroundPosition))
-    .not.toBe(flowPosition)
-  await page.getByRole('button', { name: /Layers/ }).click()
-  await page.getByLabel('Environmental motion').uncheck()
-  await expect(ambient).toHaveCount(0)
-  await page.getByLabel('Environmental motion').check()
-  await expect(ambient).toBeVisible()
-  await page.getByRole('button', { name: /Layers/ }).click()
-  await page.emulateMedia({ reducedMotion: 'reduce' })
-  await expect(ambient).toBeHidden()
-  expect(await ambient.evaluate((element) => element.getAnimations({ subtree: true }).length)).toBe(
-    0,
-  )
-  await page.emulateMedia({ reducedMotion: 'no-preference' })
-  await expect(ambient).toBeVisible()
-  await capture(page, info, 'world-sector')
+  expect(name).toBeTruthy()
+  await capture(page, info, 'world-stage')
+  await openJournal(page)
   await page
     .getByRole('button', { name: /Start Auto-path/ })
     .first()
     .click()
   await expect(page.getByRole('button', { name: /Stop Auto-path/ })).toBeVisible()
-  await expectSectorToFit()
   await expect.poll(async () => (await world(page)).position.x).toBeGreaterThan(5)
   await page.getByRole('button', { name: /Stop Auto-path/ }).click()
   await expect.poll(async () => (await world(page)).route.length).toBe(0)
@@ -271,88 +459,85 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
     data: { ...command, intent: { kind: 'cross' } },
   })
   expect(conflict.status()).toBe(409)
-  await page.getByRole('button', { name: /Globe/ }).click()
-  for (const region of WORLD_REGIONS)
-    await expect(
-      page.locator('aside').getByRole('button', { name: region.name, exact: true }),
-    ).toBeVisible()
-  const sphere = page.getByRole('group', { name: /World globe/ })
-  const globeBounds = (await sphere.boundingBox())!
-  const viewportBounds = (await page.locator('[class*="mapViewport"]').boundingBox())!
-  expect(globeBounds.y).toBeGreaterThanOrEqual(viewportBounds.y + 16)
-  expect(globeBounds.y + globeBounds.height).toBeLessThanOrEqual(
-    viewportBounds.y + viewportBounds.height - 16,
-  )
-  await page.mouse.move(globeBounds.x + globeBounds.width * 0.45, globeBounds.y + globeBounds.height * 0.5)
-  await page.mouse.down()
-  await page.mouse.move(
-    globeBounds.x + globeBounds.width * 0.58,
-    globeBounds.y + globeBounds.height * 0.44,
-    { steps: 8 },
-  )
-  await page.mouse.up()
-  await expect(sphere).toBeVisible()
+  await page.getByRole('button', { name: /Open world atlas|Return to local map/ }).click()
+  await expect(page.getByRole('group', { name: /World globe/ })).toBeVisible()
   await capture(page, info, 'world-globe')
-  await sphere.focus()
-  await page.keyboard.press('ArrowRight')
-  await page.getByRole('button', { name: /My Position/ }).click()
-  await page.getByRole('button', { name: /View 360/ }).click()
-  const dialog = page.getByRole('dialog')
-  await expect(dialog).toBeVisible()
-  await expect(dialog.getByRole('heading', { name: 'Verdant Expanse' })).toBeVisible()
-  await dialog.getByRole('button', { name: 'Look right' }).click()
-  await capture(page, info, 'world-surroundings')
-  await page.keyboard.press('Escape')
-  await expect(dialog).toHaveCount(0)
-  await expect(page.getByRole('button', { name: /View 360/ })).toBeFocused()
+  await page.getByRole('button', { name: /Open world atlas|Return to local map/ }).click()
+  await expect(page.getByRole('group', { name: /World globe/ })).toBeHidden()
   if (info.project.name === 'desktop-chromium') {
     for (const region of WORLD_REGIONS) {
       place(initial.characterId, region.id, 5, 4)
       await page.reload()
-      await expect(page.getByRole('heading', { name: region.name, exact: true })).toBeVisible()
-      const regionalFlow = page.locator('[data-world-flow]')
-      const before = await regionalFlow.evaluate(
-        (element) => getComputedStyle(element).backgroundPosition,
-      )
-      await expect
-        .poll(() =>
-          regionalFlow.evaluate((element) => getComputedStyle(element).backgroundPosition),
-        )
-        .not.toBe(before)
+      await expectLocation(page, region.name)
       await capture(page, info, `sector-${region.id}`)
-      const loaded = page.waitForResponse(
-        // A previously viewed panorama may be revalidated from the browser cache.
-        (r) =>
-          r.url().endsWith(`/${region.id}-panorama-v01.webp`) && (r.ok() || r.status() === 304),
-        { timeout: 15000 },
-      )
-      await page.getByRole('button', { name: /View 360/ }).click()
-      await loaded
-      await expect(dialog.locator('canvas')).toBeVisible()
-      await dialog.getByRole('button', { name: 'Look right' }).click()
-      await capture(page, info, `panorama-${region.id}`)
-      await page.keyboard.press('Escape')
     }
   }
+})
+
+test('World controls keep the map continuous, panels fitted and errors visible', async ({
+  page,
+}, info) => {
+  await verifyWorldPresentation(page, info, { enter, world, place, capture })
 })
 
 test('Eastern Watch objective persists accept, inspect and idempotent return completion', async ({
   page,
 }, info) => {
   test.skip(
-    info.project.name !== 'desktop-chromium',
-    'Objective authority is viewport independent.',
+    info.project.name === 'laptop-chromium',
+    'The same journey covers desktop and mobile dialogue layouts.',
   )
   test.setTimeout(60000)
   await enter(page)
   const initial = await world(page)
   place(initial.characterId, 'verdant-expanse', 2, 4, true)
-  await page.reload()
+  await reloadWorld(page)
 
   const interaction = page.getByRole('region', { name: 'Local interaction' })
   await expect(interaction.getByRole('heading', { name: 'The Eastern Watch' })).toBeVisible()
   await expect(interaction).toContainText('Watch officer')
-  await page.getByRole('button', { name: 'Accept objective' }).click()
+  const talk = interaction
+    .getByRole('heading', { name: 'The Eastern Watch', exact: true })
+    .locator('..')
+    .getByRole('button', { name: 'Talk to Watch officer', exact: true })
+  await talk.click()
+  const dialogue = page.getByRole('dialog', { name: 'Watch officer' })
+  await expect(
+    dialogue.getByText('The eastern tower has gone quiet.', { exact: false }),
+  ).toBeVisible()
+  await expect(page.locator('[data-world-stage]')).toBeVisible()
+  const portrait = dialogue.locator('img')
+  await expect(portrait).toHaveAttribute('src', /\/neutral\.svg$/)
+  await expect
+    .poll(() => portrait.evaluate((image) => (image as HTMLImageElement).naturalWidth))
+    .toBeGreaterThan(0)
+  const dialogueBounds = (await dialogue.boundingBox())!
+  const viewport = page.viewportSize()!
+  expect(dialogueBounds.y).toBeGreaterThan(viewport.height / 2)
+  if (info.project.name === 'mobile-chromium') {
+    expect(dialogueBounds.width).toBe(viewport.width)
+    await expect(page.locator('#world-panel')).toBeHidden()
+  }
+  await expect(dialogue.getByRole('button', { name: 'End conversation' })).toBeFocused()
+  await page.keyboard.press('Shift+Tab')
+  await expect(dialogue.getByRole('button', { name: 'History' })).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(dialogue.getByRole('button', { name: 'End conversation' })).toBeFocused()
+  await capture(page, info, 'eastern-watch-dialogue')
+  await page.keyboard.press('Escape')
+  await expect(dialogue).toHaveCount(0)
+  await expect(talk).toBeFocused()
+  expect(
+    (await world(page)).objectives.find((objective) => objective.id === 'eastern-watch')?.progress,
+  ).toBe('available')
+  await talk.click()
+  await dialogue.getByRole('button', { name: 'Accept objective' }).click()
+  await expect(dialogue.getByText('In progress', { exact: true })).toBeVisible()
+  await dialogue.getByRole('button', { name: 'History' }).click()
+  await expect(dialogue.getByRole('region', { name: 'Conversation history' })).toContainText(
+    'Accept objective',
+  )
+  await dialogue.getByRole('button', { name: 'End conversation' }).click()
   await expect(page.getByText('Reach the eastern watchtower across the river.')).toBeVisible()
   let state = await world(page)
   expect(state.objectives.find((objective) => objective.id === 'eastern-watch')).toMatchObject({
@@ -360,10 +545,16 @@ test('Eastern Watch objective persists accept, inspect and idempotent return com
     completed: false,
   })
 
-  await page.reload()
+  await reloadWorld(page)
   await expect(page.getByText('Reach the eastern watchtower across the river.')).toBeVisible()
+  await talk.click()
+  await dialogue.getByRole('button', { name: 'History' }).click()
+  await expect(dialogue.getByRole('region', { name: 'Conversation history' })).toContainText(
+    'Your last reply: Accept objective',
+  )
+  await dialogue.getByRole('button', { name: 'End conversation' }).click()
   place(initial.characterId, 'verdant-expanse', 12, 4, false)
-  await page.reload()
+  await reloadWorld(page)
   state = await world(page)
   const inspect = await page.request.post('/api/world', {
     data: {
@@ -374,7 +565,7 @@ test('Eastern Watch objective persists accept, inspect and idempotent return com
     },
   })
   expect(inspect.ok()).toBe(true)
-  await page.reload()
+  await reloadWorld(page)
   await expect(
     page.getByText('Return to the protected settlement and report to the watch officer.'),
   ).toBeVisible()
@@ -386,18 +577,120 @@ test('Eastern Watch objective persists accept, inspect and idempotent return com
   })
 
   place(initial.characterId, 'verdant-expanse', 2, 4, true)
-  await page.reload()
+  await reloadWorld(page)
   const reportRequest = page.waitForRequest(
     (request) =>
       new URL(request.url()).pathname === '/api/world' &&
       request.method() === 'POST' &&
       request.postDataJSON()?.intent?.kind === 'interact',
   )
-  await page.getByRole('button', { name: 'Report back' }).click()
+  await talk.click()
+  await dialogue.getByRole('button', { name: 'Report back' }).click()
+  await expect(dialogue.getByText('Completed', { exact: true })).toBeVisible()
+  await expect(portrait).toHaveAttribute('src', /\/happy\.svg$/)
+  await expect
+    .poll(() => portrait.evaluate((image) => (image as HTMLImageElement).naturalWidth))
+    .toBeGreaterThan(0)
+  await capture(page, info, 'eastern-watch-dialogue-completed')
+  await dialogue.getByRole('button', { name: 'End conversation' }).click()
   const reportCommand = (await reportRequest).postDataJSON()
+  await page.getByRole('tab', { name: 'Completed', exact: true }).click()
   await expect(page.getByText('The eastern route has been verified.')).toBeVisible()
   state = await world(page)
   const completed = state.objectives.find((objective) => objective.id === 'eastern-watch')!
+  expect(completed).toMatchObject({ progress: 'completed', completed: true, destination: null })
+  expect(state.interactions[0]).toMatchObject({
+    progress: 'completed',
+    actionId: null,
+    actionLabel: null,
+  })
+  const version = state.version
+
+  const replay = await page.request.post('/api/world', { data: reportCommand })
+  expect(replay.ok()).toBe(true)
+  expect((await replay.json()).version).toBe(version)
+  await reloadWorld(page)
+  await talk.click()
+  await expect(dialogue.getByRole('button', { name: 'Report back' })).toHaveCount(0)
+  await dialogue.getByRole('button', { name: 'End conversation' }).click()
+  expect((await world(page)).version).toBe(version)
+})
+
+test('Crown Hinterland patrol persists accept, field check and idempotent return completion', async ({
+  page,
+}, info) => {
+  test.skip(
+    info.project.name !== 'desktop-chromium',
+    'Objective authority is viewport independent.',
+  )
+  test.setTimeout(60000)
+  await enter(page)
+  const initial = await world(page)
+  place(initial.characterId, 'aureth-crown', 2, 4, true)
+  await reloadWorld(page)
+
+  const interaction = page.getByRole('region', { name: 'Local interaction' })
+  await expect(interaction.getByRole('heading', { name: 'Hinterland Patrol' })).toBeVisible()
+  await expect(interaction).toContainText('Watch officer')
+  const talk = interaction.getByRole('button', { name: 'Talk to Watch officer' })
+  const dialogue = page.getByRole('dialog', { name: 'Watch officer' })
+  await talk.click()
+  await dialogue.getByRole('button', { name: 'Accept objective' }).click()
+  await expect(dialogue.getByText('In progress', { exact: true })).toBeVisible()
+  await dialogue.getByRole('button', { name: 'End conversation' }).click()
+  await expect(page.getByText('Reach the central road in Crown Hinterland.')).toBeVisible()
+  let state = await world(page)
+  expect(
+    state.objectives.find((objective) => objective.id === 'crown-hinterland-patrol'),
+  ).toMatchObject({
+    progress: 'active',
+    completed: false,
+  })
+
+  await reloadWorld(page)
+  await expect(page.getByText('Reach the central road in Crown Hinterland.')).toBeVisible()
+  place(initial.characterId, 'crown-hinterland', 6, 4, false)
+  await reloadWorld(page)
+  state = await world(page)
+  const inspect = await page.request.post('/api/world', {
+    data: {
+      characterId: state.characterId,
+      expectedVersion: state.version,
+      commandId: randomUUID(),
+      intent: { kind: 'tick' },
+    },
+  })
+  expect(inspect.ok()).toBe(true)
+  await reloadWorld(page)
+  await expect(
+    page.getByText('Return to the Aureth Crown settlement and report to the watch officer.'),
+  ).toBeVisible()
+  expect(
+    (await world(page)).objectives.find((objective) => objective.id === 'crown-hinterland-patrol'),
+  ).toMatchObject({
+    progress: 'ready',
+    completed: false,
+  })
+
+  place(initial.characterId, 'aureth-crown', 2, 4, true)
+  await reloadWorld(page)
+  const reportRequest = page.waitForRequest(
+    (request) =>
+      new URL(request.url()).pathname === '/api/world' &&
+      request.method() === 'POST' &&
+      request.postDataJSON()?.intent?.kind === 'interact',
+  )
+  await talk.click()
+  await dialogue.getByRole('button', { name: 'Report back' }).click()
+  await expect(dialogue.getByText('Completed', { exact: true })).toBeVisible()
+  await dialogue.getByRole('button', { name: 'End conversation' }).click()
+  const reportCommand = (await reportRequest).postDataJSON()
+  await page.getByRole('tab', { name: 'Completed', exact: true }).click()
+  await expect(page.getByText('The Crown Hinterland patrol has been recorded.')).toBeVisible()
+  state = await world(page)
+  const completed = state.objectives.find(
+    (objective) => objective.id === 'crown-hinterland-patrol',
+  )!
   expect(completed).toMatchObject({ progress: 'completed', completed: true, destination: null })
   expect(state.interactions[0]).toMatchObject({ progress: 'completed', actionLabel: null })
   const version = state.version
@@ -405,8 +698,10 @@ test('Eastern Watch objective persists accept, inspect and idempotent return com
   const replay = await page.request.post('/api/world', { data: reportCommand })
   expect(replay.ok()).toBe(true)
   expect((await replay.json()).version).toBe(version)
-  await page.reload()
-  await expect(page.getByRole('button', { name: 'Report back' })).toHaveCount(0)
+  await reloadWorld(page)
+  await talk.click()
+  await expect(dialogue.getByRole('button', { name: 'Report back' })).toHaveCount(0)
+  await dialogue.getByRole('button', { name: 'End conversation' }).click()
   expect((await world(page)).version).toBe(version)
 })
 
@@ -418,10 +713,13 @@ test('expired training releases travel without claiming XP and frontier discover
   await enter(page)
   const initial = await world(page)
   await openOfflineTraining(page)
-  await page.getByRole('button', { name: 'Start Medium' }).click()
+  await page.getByRole('radio', { name: 'Medium Plan', exact: true }).check()
+  await page.getByRole('button', { name: 'Start Training', exact: true }).click()
   await expect(page.getByTestId('passive-training-active')).toBeVisible()
   await page.goto('/game/world')
-  await expect(page.getByRole('status')).toContainText('Stop Passive Training')
+  await expect(page.locator('[data-world-workspace]').getByRole('alert')).toContainText(
+    'Stop Passive Training',
+  )
   sql(
     `update app_private.wayfarers_practice_state set plan_set_at=clock_timestamp()-interval '9 hours' where character_id='${initial.characterId}'::uuid`,
   )
@@ -438,12 +736,10 @@ test('expired training releases travel without claiming XP and frontier discover
     ),
   ).toBe('0')
   place(initial.characterId, 'umbral-march', 6, 0)
-  await page.reload()
+  await reloadWorld(page)
   page.once('dialog', (dialog) => dialog.accept())
   await page.getByRole('button', { name: 'Cross into uncharted territory' }).click()
-  await expect(
-    page.getByRole('heading', { name: 'Beyond the Last Map', exact: true }),
-  ).toBeVisible()
+  await expectLocation(page, 'Beyond the Last Map')
   const surveyed = await world(page)
   const survey = surveyed.sectors.find((s) => !s.charted)!
   expect(survey.cells.length).toBeLessThan(117)
@@ -457,9 +753,94 @@ test('expired training releases travel without claiming XP and frontier discover
     },
   })
   expect(forged.ok()).toBe(false)
+
+  place(initial.characterId, survey.id, 11, 1, false)
+  await reloadWorld(page)
+  const observation = await world(page)
+  expect(observation.archive).toEqual([])
+  expect(observation.anchors).toEqual([])
+  const recordObservation = await page.request.post('/api/world', {
+    data: {
+      characterId: initial.characterId,
+      expectedVersion: observation.version,
+      commandId: randomUUID(),
+      intent: { kind: 'tick' },
+    },
+  })
+  expect(recordObservation.ok()).toBe(true)
+  await reloadWorld(page)
+  const archive = page.getByRole('region', { name: 'Archive' })
+  await expect(archive).toContainText('Weathered Observatory')
+  await expect(archive).toContainText('Field Observation')
+  const archived = await world(page)
+  expect(archived.archive).toEqual([
+    expect.objectContaining({
+      id: 'field-observation-first-observation',
+      provenance: 'Direct field observation',
+    }),
+  ])
+  expect(archived.anchors).toEqual([
+    expect.objectContaining({
+      id: 'first-observation',
+      name: 'Weathered Observatory',
+    }),
+  ])
+  const anchors = page.getByRole('region', { name: 'Frontier Anchors' })
+  await expect(anchors).toContainText('Weathered Observatory')
+  await expect(anchors).toContainText('persists in frontier history')
+  const archivedVersion = archived.version
+  await reloadWorld(page)
+  expect((await world(page)).version).toBe(archivedVersion)
+  await expect(page.getByRole('region', { name: 'Archive' })).toContainText('Weathered Observatory')
+  await expect(page.getByRole('region', { name: 'Frontier Anchors' })).toContainText(
+    'Weathered Observatory',
+  )
+
+  const archivedCells = archived.sectors.find((s) => !s.charted)!.cells
   await capture(page, info, 'world-frontier')
-  await page.reload()
-  expect((await world(page)).sectors.find((s) => !s.charted)?.cells).toEqual(survey.cells)
+  await reloadWorld(page)
+  expect((await world(page)).sectors.find((s) => !s.charted)?.cells).toEqual(archivedCells)
+})
+
+test('Crown Road advances one authoritative ordinary step with one due client tick', async ({
+  page,
+}, info) => {
+  test.skip(
+    info.project.name !== 'desktop-chromium',
+    'Tick scheduling is viewport independent; exercise one authoritative desktop journey.',
+  )
+  test.setTimeout(60_000)
+  await enter(page)
+  const initial = await world(page)
+  place(initial.characterId, 'crown-road', 6, 4)
+  await reloadWorld(page)
+
+  const placed = await world(page)
+  const road = placed.sectors.find((sector) => sector.id === 'crown-road')!
+  let tickPosts = 0
+  page.on('request', (request) => {
+    if (request.method() !== 'POST' || !request.url().endsWith('/api/world')) return
+    try {
+      const payload = request.postDataJSON() as { intent?: { kind?: string } }
+      if (payload.intent?.kind === 'tick') tickPosts++
+    } catch {
+      // Ignore non-JSON requests; World commands are JSON by contract.
+    }
+  })
+
+  expect((await world(page)).route).toHaveLength(0)
+  const walkReceipt = page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname === '/api/world' &&
+      response.request().method() === 'POST' &&
+      response.request().postDataJSON()?.intent?.kind === 'walk',
+  )
+  await stageWalk(page, { sectorId: road.id, x: 7, y: 4 })
+  // The first full 200ms step is confirmed by one deadline-driven tick.
+  const planned: WorldView = await (await walkReceipt).json()
+  expect(planned.route[0]?.durationMs).toBe(STEP_MS)
+  await expect.poll(async () => (await world(page)).position.x, { timeout: 4_000 }).toBe(7)
+  expect(tickPosts).toBe(1)
 })
 
 for (const journey of [
@@ -528,7 +909,7 @@ for (const journey of [
     startSector: 'aureth-crown',
   },
 ])
-  test(`${journey.name} is a persistent journey with exits, stopping, globe location and its own surroundings`, async ({
+  test(`${journey.name} is a persistent journey with stopping, globe location and its own surroundings`, async ({
     page,
   }, info) => {
     test.skip(
@@ -536,60 +917,26 @@ for (const journey of [
       'Full elapsed-time journey is viewport independent.',
     )
     test.setTimeout(150000)
-    const name = await enter(page)
-    if (journey.startSector !== 'verdant-expanse') {
-      place((await world(page)).characterId, journey.startSector, 5, 4)
-      await page.reload()
-    }
-    await page.getByRole('button', { name: `Travel to ${journey.name}`, exact: false }).click()
-    await expect(page.locator('[data-world-travel-status]')).toContainText(journey.name)
-    await expect
-      .poll(async () => (await world(page)).position.sectorId, { timeout: 20000 })
-      .toBe(journey.id)
-    await expect(page.getByRole('heading', { name: journey.name, exact: true })).toBeVisible()
+    await enter(page)
+    // Towns now sit well apart behind generated trail sectors, so start on the road itself.
+    place((await world(page)).characterId, journey.id, 6, 4)
+    await reloadWorld(page)
+    await openJournal(page)
+    await expectLocation(page, journey.name)
+    await expect(page.locator('canvas[data-world-stage]')).toBeVisible()
     await capture(page, info, `${journey.id}-sector`)
-    const ambient = page.locator(`[data-sector="${journey.id}"] [class*="ambient"]`)
-    await expect(ambient).toBeVisible()
-    await page.emulateMedia({ reducedMotion: 'reduce' })
-    await expect(ambient).toBeHidden()
-    await page.emulateMedia({ reducedMotion: 'no-preference' })
-    await expect(ambient).toBeVisible()
-    const panorama = (await world(page)).sectors.find(
-      (sector) => sector.id === journey.id,
-    )!.panorama!
-    const loaded = page.waitForResponse(
-      (response) =>
-        response.url().endsWith(panorama) && (response.ok() || response.status() === 304),
-      { timeout: 15000 },
-    )
-    await page.getByRole('button', { name: /View 360/ }).click()
-    await (await loaded).finished()
-    await expect(
-      page.getByRole('dialog').getByRole('heading', { name: journey.name }),
-    ).toBeVisible()
-    await capture(page, info, `${journey.id}-surroundings`)
-    for (let turn = 0; turn < 6; turn++)
-      await page.getByRole('dialog').getByRole('button', { name: 'Look right' }).click()
-    await capture(page, info, `${journey.id}-surroundings-reverse`)
-    await page.keyboard.press('Escape')
-    await page.getByRole('button', { name: /Globe/ }).click()
-    await page.getByRole('button', { name: /My Position/ }).click()
-    await expect(
-      page.getByRole('img', { name: `${name}, your current sector`, exact: true }),
-    ).toBeVisible()
+    await page.getByRole('button', { name: /Open world atlas|Return to local map/ }).click()
+    await expect(page.getByRole('group', { name: /World globe/ })).toBeVisible()
     await capture(page, info, `${journey.id}-globe`)
-    await page
-      .getByRole('button', { name: /Sector/, exact: false })
-      .first()
-      .click()
-    await page
-      .getByRole('button', { name: `Travel to ${journey.destinationName}`, exact: false })
-      .click()
-    await expect(page.locator('[data-world-travel-status]')).toContainText(journey.destinationName)
-    await expect(page.locator('[data-world-travel-status]')).toContainText('About')
+    await page.getByRole('button', { name: /Open world atlas|Return to local map/ }).click()
+    await expect(page.getByRole('group', { name: /World globe/ })).toBeHidden()
+    const arrival = { sectorId: journey.destinationId, x: 6, y: 4 }
+    await stageWalk(page, arrival)
+    await expect(page.getByRole('button', { name: 'Stop travel', exact: true })).toHaveCount(0)
+    // Steps are fast now, so poll tightly and stop before the walk leaves the road sector.
     await expect
-      .poll(async () => (await world(page)).position.x, { timeout: 12000 })
-      .not.toBe(journey.entranceX)
+      .poll(async () => (await world(page)).position, { timeout: 12000, intervals: [40] })
+      .not.toEqual({ sectorId: journey.id, x: 6, y: 4 })
     const stopResponse = page.waitForResponse(
       (response) =>
         new URL(response.url()).pathname === '/api/world' &&
@@ -597,36 +944,30 @@ for (const journey of [
         response.request().postDataJSON()?.intent?.kind === 'stop',
       { timeout: 15000 },
     )
-    const stopButton = page.getByRole('button', { name: 'Stop travel', exact: true })
-    await stopButton.click()
+    await page.locator('canvas[data-world-stage]').press('Escape')
     const committedStop = await stopResponse
     expect(committedStop.status()).toBe(200)
     const stopReceipt: WorldView = await committedStop.json()
     expect(stopReceipt.route).toHaveLength(0)
-    await expect(stopButton).toBeHidden()
     const stopped = await world(page)
     expect(stopped.route).toHaveLength(0)
     expect(stopped.position).toEqual(stopReceipt.position)
-    expect(stopped.position.sectorId).toBe(journey.id)
-    await page.reload()
+    // At the faster pace a stop can land just past the road in a neighbouring trail sector.
+    expect(stopped.position.sectorId).not.toBe(journey.destinationId)
+    await reloadWorld(page)
     expect((await world(page)).position).toEqual(stopped.position)
-    await page
-      .getByRole('button', { name: `Travel to ${journey.destinationName}`, exact: false })
-      .click()
+    await stageWalk(page, arrival)
     await expect
       .poll(async () => (await world(page)).position.sectorId, { timeout: 85000 })
       .toBe(journey.destinationId)
-    await expect(
-      page.getByRole('heading', { name: journey.destinationName, exact: true }),
-    ).toBeVisible()
-    expect((await world(page)).route).toHaveLength(0)
+    await expectLocation(page, journey.destinationName)
+    // The route now ends at a tile inside the destination, a few steps after crossing into it.
+    await expect.poll(async () => (await world(page)).route.length, { timeout: 30000 }).toBe(0)
+    expect((await world(page)).position).toEqual(arrival)
     await capture(page, info, `${journey.id}-arrival`)
   })
 
-test('a proximity attack reaches both authenticated players while the target views 360', async ({
-  page,
-  browser,
-}, info) => {
+test('a proximity attack reaches both authenticated players', async ({ page, browser }, info) => {
   test.skip(
     info.project.name !== 'desktop-chromium',
     'Two-account authority is viewport independent.',
@@ -636,7 +977,7 @@ test('a proximity attack reaches both authenticated players while the target vie
   const opponentContext = await browser.newContext({ baseURL: new URL(page.url()).origin })
   try {
     const opponent = await opponentContext.newPage()
-    const opponentName = await enter(opponent)
+    await enter(opponent)
     const attacker = await world(page),
       target = await world(opponent)
     place(target.characterId, 'verdant-expanse', 4, 4, true)
@@ -653,17 +994,56 @@ test('a proximity attack reaches both authenticated players while the target vie
     place(target.characterId, 'crown-road', 6, 4)
     await page.reload()
     await opponent.reload()
-    await opponent.getByRole('button', { name: /View 360/ }).click()
-    await expect(opponent.getByRole('dialog')).toBeVisible()
-    await expect(
-      page.getByRole('button', { name: `Inspect ${opponentName}`, exact: true }),
-    ).toBeVisible()
-    const selection = page.getByLabel('Select nearby player')
-    if (await selection.count()) await selection.selectOption(target.characterId)
-    await page.getByRole('button', { name: /Attack/, exact: false }).click()
-    await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]+$/, { timeout: 15000 })
+    const attackButton = page
+      .locator(`[data-world-player="${target.characterId}"]`)
+      .getByRole('button', {
+        name: 'Attack',
+        exact: true,
+      })
+    await expect(attackButton).toBeEnabled({ timeout: 15000 })
+    // An idle read must never make a real encounter command wait for that read.
+    let releaseRead!: () => void,
+      heldRead = false
+    const slowRead = new Promise<void>((resolve) => {
+      releaseRead = resolve
+    })
+    const holdRefresh = async (route: import('@playwright/test').Route) => {
+      if (
+        route.request().method() === 'GET' &&
+        new URL(route.request().url()).searchParams.has('presenceVersion') &&
+        !heldRead
+      ) {
+        heldRead = true
+        await slowRead
+        await route.continue().catch(() => {}) // Expected if user input aborts the held GET.
+      } else await route.continue()
+    }
+    await page.route('**/api/world*', holdRefresh)
+    try {
+      await expect.poll(() => heldRead, { timeout: 10000 }).toBe(true)
+      const dispatched = page.waitForRequest(
+        (request) =>
+          new URL(request.url()).pathname === '/api/world' &&
+          request.method() === 'POST' &&
+          request.postDataJSON()?.intent?.kind === 'attack',
+        { timeout: 1500 },
+      )
+      await attackButton.click()
+      await dispatched
+    } finally {
+      releaseRead()
+      await page.unroute('**/api/world*', holdRefresh)
+    }
+    await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}\?returnTo=world$/, {
+      timeout: 15000,
+    })
+    // The target automatically receives the confirmed encounter, without clicking refresh.
+    await expect(opponent).toHaveURL(page.url(), { timeout: 10000 })
+    // Re-entering World must retain the same preference through the server redirect too.
+    await opponent.goto('/game/world')
     await expect(opponent).toHaveURL(page.url(), { timeout: 15000 })
-    const battleId = page.url().split('/').at(-1)!
+    const battleId = new URL(page.url()).pathname.split('/').at(-1)!
+    expect(battleId).toMatch(/^[0-9a-f-]{36}$/)
     expect(
       sql(
         `select count(*) from app_private.battle_participants where battle_session_id='${battleId}'::uuid and participant_role='player'`,
@@ -676,6 +1056,36 @@ test('a proximity attack reaches both authenticated players while the target vie
     ).toBe('1')
     await capture(page, info, 'world-encounter-attacker')
     await capture(opponent, info, 'world-encounter-target')
+    const field = page.locator('main[data-unified-battle="true"][data-battle-kind="pvp"]')
+    await expect(field).not.toHaveAttribute('aria-busy', 'true')
+    await field.getByRole('button', { name: 'Surrender', exact: true }).click()
+    const dialog = page.getByRole('dialog', { name: 'Surrender this battle?' })
+    await expect(dialog).toBeVisible()
+    await expect(dialog).not.toContainText('Battle Hall')
+    const surrendered = page.waitForResponse(
+      (response) => response.url().endsWith('/surrender') && response.request().method() === 'POST',
+    )
+    await dialog.getByRole('button', { name: 'Confirm Surrender' }).click()
+    expect((await surrendered).status()).toBe(200)
+    for (const participant of [page, opponent]) {
+      await expect(participant.getByTestId('pvp-battle-result-overlay')).toBeVisible({
+        timeout: 20000,
+      })
+      await participant.reload()
+      const result = participant.getByTestId('pvp-battle-result-overlay')
+      await expect(
+        result.getByRole('button', { name: 'Return to World', exact: true }),
+      ).toBeVisible()
+      await expect(
+        result.getByRole('button', { name: 'Return to Battle Hall', exact: true }),
+      ).toHaveCount(0)
+      await result.getByRole('button', { name: 'Return to World', exact: true }).click()
+      await expect(participant).toHaveURL(/\/game\/world$/)
+      await expect(participant.locator('canvas[data-world-stage]')).toBeVisible()
+    }
+    expect((await world(page)).position).toEqual({ sectorId: 'crown-road', x: 5, y: 4 })
+    expect((await world(opponent)).position).toEqual({ sectorId: 'crown-road', x: 6, y: 4 })
+    await capture(page, info, 'world-battle-return-after-reload')
   } finally {
     await opponentContext.close()
   }
@@ -741,26 +1151,32 @@ test('simultaneous mutual attacks create one shared active encounter', async ({
     place(second.characterId, 'crown-road', 6, 4)
     await world(page)
     await world(opponent)
-    const responses = await contend([first.characterId, second.characterId], () => [
-      page.request.post('/api/world', {
-        data: {
-          characterId: first.characterId,
-          expectedVersion: first.version,
-          commandId: randomUUID(),
-          intent: { kind: 'attack', targetId: second.characterId },
-        },
-        timeout: 20000,
-      }),
-      opponent.request.post('/api/world', {
-        data: {
-          characterId: second.characterId,
-          expectedVersion: second.version,
-          commandId: randomUUID(),
-          intent: { kind: 'attack', targetId: first.characterId },
-        },
-        timeout: 20000,
-      }),
-    ])
+    const responses = await contend(
+      [first.characterId, second.characterId],
+      () => [
+        page.request.post('/api/world', {
+          data: {
+            characterId: first.characterId,
+            expectedVersion: first.version,
+            commandId: randomUUID(),
+            intent: { kind: 'attack', targetId: second.characterId },
+          },
+          timeout: 20000,
+        }),
+        opponent.request.post('/api/world', {
+          data: {
+            characterId: second.characterId,
+            expectedVersion: second.version,
+            commandId: randomUUID(),
+            intent: { kind: 'attack', targetId: first.characterId },
+          },
+          timeout: 20000,
+        }),
+      ],
+      undefined,
+      true,
+      info.outputPath('world-contention-responses.json'),
+    )
     expect(responses.map((response) => response.status()).sort()).toEqual([200, 409])
     expect((await responses.find((response) => response.status() === 409)!.json()).error.code).toBe(
       'STALE_VERSION',
@@ -804,30 +1220,35 @@ test('a due movement step and an attack cannot both commit from the same target 
     place(target.characterId, 'crown-road', 6, 4)
     const destination = { sectorId: 'crown-road', x: 7, y: 4 }
     sql(
-      `update app_private.character_world_state set state = state || '${JSON.stringify({ route: [{ position: destination, durationMs: 4000 }], nextStepAt: Date.now() - 1000 })}'::jsonb where character_id='${target.characterId}'::uuid`,
+      `update app_private.character_world_state set state = state || '${JSON.stringify({ route: [{ position: destination, durationMs: STEP_MS }], nextStepAt: Date.now() - 1000 })}'::jsonb where character_id='${target.characterId}'::uuid`,
     )
     await world(page)
     await world(opponent)
-    const [attack, move] = await contend([attacker.characterId, target.characterId], () => [
-      page.request.post('/api/world', {
-        data: {
-          characterId: attacker.characterId,
-          expectedVersion: attacker.version,
-          commandId: randomUUID(),
-          intent: { kind: 'attack', targetId: target.characterId },
-        },
-        timeout: 20000,
-      }),
-      opponent.request.post('/api/world', {
-        data: {
-          characterId: target.characterId,
-          expectedVersion: target.version,
-          commandId: randomUUID(),
-          intent: { kind: 'tick' },
-        },
-        timeout: 20000,
-      }),
-    ])
+    const [attack, move] = await contend(
+      [attacker.characterId, target.characterId],
+      () => [
+        page.request.post('/api/world', {
+          data: {
+            characterId: attacker.characterId,
+            expectedVersion: attacker.version,
+            commandId: randomUUID(),
+            intent: { kind: 'attack', targetId: target.characterId },
+          },
+          timeout: 20000,
+        }),
+        opponent.request.post('/api/world', {
+          data: {
+            characterId: target.characterId,
+            expectedVersion: target.version,
+            commandId: randomUUID(),
+            intent: { kind: 'tick' },
+          },
+          timeout: 20000,
+        }),
+      ],
+      undefined,
+      true,
+    )
     expect([attack!.status(), move!.status()].sort()).toEqual([200, 409])
     const loser = attack!.ok() ? move! : attack!
     expect((await loser.json()).error.code).toBe('STALE_VERSION')
@@ -928,6 +1349,7 @@ for (const change of ['training', 'build'] as const)
             ).toEqual(skillIds)
           }
         },
+        true,
       )
       expect(attack!.status()).toBe(change === 'training' ? 400 : 409)
       expect((await attack!.json()).error.code).toBe(
@@ -955,3 +1377,763 @@ for (const change of ['training', 'build'] as const)
       await context.close()
     }
   })
+
+test('rapid ground clicks settle at the last legal tile and keyboard movement crosses seamlessly', async ({
+  page,
+}, info) => {
+  test.skip(info.project.name !== 'desktop-chromium', 'Input authority is viewport independent.')
+  test.setTimeout(60000)
+  await enter(page)
+  const initial = await world(page)
+  place(initial.characterId, 'atlas:58:28', 6, 4)
+  await page.reload()
+  const canvas = page.locator('canvas[data-world-stage]')
+  await expect(canvas).toHaveAttribute('data-camera-x', /\d/)
+  const sector = (await world(page)).sectors.find((entry) => entry.id === 'atlas:58:28')
+  expect(sector).toBeDefined()
+  const final = { sectorId: 'atlas:58:28', x: 10, y: 4 }
+  const intended = [{ ...final, x: 7 }, { ...final, x: 5 }, final]
+  const receipts: { destination: WorldView['position']; status: number }[] = []
+  const recordWalk = (response: BrowserResponse) => {
+    const request = response.request()
+    if (new URL(response.url()).pathname !== '/api/world' || request.method() !== 'POST') return
+    const intent = request.postDataJSON()?.intent
+    if (intent?.kind === 'walk')
+      receipts.push({ destination: intent.destination, status: response.status() })
+  }
+  page.on('response', recordWalk)
+  const projections: Awaited<ReturnType<typeof clickWorldGroundSequence>> = []
+  const observe = (ready: (view: WorldView) => boolean) =>
+    observeWorldRead(() => page.request.get('/api/world'), ready)
+  try {
+    projections.push(...(await clickWorldGroundSequence(page, sector!, intended)))
+    await expect
+      .poll(
+        () => observe((view) => samePosition(view.position, final) && view.route.length === 0),
+        {
+          timeout: 12000,
+          message: 'Native rapid clicks must submit and arrive at the exact final requested tile',
+        },
+      )
+      .toBe(true)
+    // Unsent movement may coalesce, but every submitted walk must preserve the
+    // requested order and the final exact target must receive server approval.
+    let previousIndex = -1
+    for (const receipt of receipts) {
+      const index = intended.findIndex((target) => samePosition(target, receipt.destination))
+      expect(
+        index,
+        'Native canvas picking must preserve each submitted requested tile',
+      ).toBeGreaterThanOrEqual(0)
+      expect(
+        index,
+        'Submitted walks must preserve requested order, including stale-version retries',
+      ).toBeGreaterThanOrEqual(previousIndex)
+      previousIndex = index
+    }
+    expect(receipts.at(-1)).toEqual({ destination: final, status: 200 })
+  } finally {
+    page.off('response', recordWalk)
+    await info.attach('rapid-ground-click-intents', {
+      body: JSON.stringify({ intended, projections, receipts }, null, 2),
+      contentType: 'application/json',
+    })
+  }
+  await canvas.press('ArrowRight')
+  await expect
+    .poll(() => observe((view) => samePosition(view.position, { ...final, x: 11 })))
+    .toBe(true)
+  await canvas.press('ArrowRight')
+  await expect
+    .poll(() => observe((view) => samePosition(view.position, { ...final, x: 12 })))
+    .toBe(true)
+  await canvas.press('ArrowRight')
+  await expect.poll(() => observe((view) => view.position.sectorId !== 'atlas:58:28')).toBe(true)
+  await capture(page, info, 'seamless-edge-crossing')
+  await page.reload()
+  await expect(canvas).toBeVisible()
+  expect((await world(page)).position.sectorId).not.toBe('atlas:58:28')
+})
+
+test('a synthetic population of 100 has bounded rendering at high DPI and lower CPU speed', async ({
+  page,
+}, info) => {
+  test.skip(info.project.name !== 'mobile-chromium', 'Exercise constrained mobile rendering once.')
+  test.setTimeout(90000)
+  await enter(page)
+  const initial = await world(page)
+  const canvas = page.locator('canvas[data-world-stage]')
+  await page.getByRole('button', { name: 'Details', exact: true }).click()
+  await openMapSettings(page)
+  await page.getByRole('slider', { name: 'Zoom level', exact: true }).press('Home')
+  await closeMapSettings(page)
+  await expect.poll(() => canvas.evaluate((el) => Number(el.dataset.tileSize))).toBe(48 * 0.35)
+  const viewport = await canvas.evaluate((el) => ({
+    width: el.clientWidth,
+    height: el.clientHeight,
+    tile: Number(el.dataset.tileSize),
+    camera: { x: Number(el.dataset.cameraX), y: Number(el.dataset.cameraY) },
+  }))
+  // Skip the owner and any coincident sector aliases: each peer must really draw.
+  const occupied = new Set([`${viewport.camera.x}:${viewport.camera.y}`])
+  const ground = initial.sectors.flatMap((sector) => {
+    const origin = sectorMapOrigin(sector, viewport.camera.x)
+    return sector.cells
+      .filter((cell) => cell.walkable)
+      .flatMap((cell) => {
+        const worldPoint = { x: origin.x + cell.x + 0.5, y: origin.y + cell.y + 0.5 }
+        const key = `${worldPoint.x}:${worldPoint.y}`
+        if (occupied.has(key)) return []
+        const point = projectMapPoint(
+          worldPoint,
+          viewport.camera,
+          { x: 0, y: 0 },
+          viewport.tile,
+          viewport.width,
+          viewport.height,
+        )
+        const visible =
+          point.x > 20 &&
+          point.x < viewport.width - 20 &&
+          point.y > 40 &&
+          point.y < viewport.height - 22
+        if (!visible) return []
+        occupied.add(key)
+        return [{ sectorId: sector.id, x: cell.x, y: cell.y }]
+      })
+  })
+  expect(ground.length).toBeGreaterThanOrEqual(100)
+  const players = Array.from({ length: 100 }, (_, i) => ({
+    characterId: `synthetic-${i}`,
+    name: `Traveller ${i + 1}`,
+    level: 10,
+    portraitRef: '',
+    imageUrl: `/api/media/starter-portrait/portrait.starter.wayfarer-01?syntheticPortrait=${i}`,
+    online: true,
+    attackable: false,
+    position: ground[i]!,
+  }))
+  const identity = page.locator('canvas[data-world-identity]')
+  await identity.evaluate((el) => {
+    const context = (el as HTMLCanvasElement).getContext('2d')!,
+      original = context.drawImage.bind(context),
+      clear = context.clearRect.bind(context),
+      sources = new Set<string>()
+    let paints = 0
+    context.clearRect = (x, y, width, height) => {
+      el.dataset.testIdentityPaints = String(++paints)
+      clear(x, y, width, height)
+    }
+    context.drawImage = (image: CanvasImageSource, ...args: number[]) => {
+      if (image instanceof HTMLImageElement && image.src.includes('syntheticPortrait=')) {
+        sources.add(image.src)
+        el.dataset.testPortraitSources = String(sources.size)
+        el.dataset.testPortraitMinimumWidth = String(
+          Math.min(Number(el.dataset.testPortraitMinimumWidth ?? Infinity), image.naturalWidth),
+        )
+      }
+      Reflect.apply(original, context, [image, ...args])
+    }
+  })
+  await page.route('**/api/world*', async (route) => {
+    if (route.request().method() !== 'GET') return route.continue()
+    const response = await route.fetch(),
+      body = await response.json()
+    await route.fulfill({ response, json: { ...body, players } })
+  })
+  await expect(canvas).toHaveAttribute('data-visible-players', '101', { timeout: 25000 })
+  await expect(identity).toHaveAttribute('data-test-portrait-sources', '100', { timeout: 25000 })
+  await expect(identity).toHaveAttribute('data-test-portrait-minimum-width', '400')
+  const density = await identity.evaluate((el) => ({
+    width: (el as HTMLCanvasElement).width,
+    height: (el as HTMLCanvasElement).height,
+    expectedWidth: Math.round(el.clientWidth * window.devicePixelRatio),
+    expectedHeight: Math.round(el.clientHeight * window.devicePixelRatio),
+  }))
+  expect(density.width).toBe(density.expectedWidth)
+  expect(density.height).toBe(density.expectedHeight)
+  await canvas.evaluate(startWorldFrameCounting)
+  const session = await page.context().newCDPSession(page)
+  await session.send('Emulation.setCPUThrottlingRate', { rate: 4 })
+  const readMetrics = () =>
+    canvas.evaluate((el) => ({
+      sampledAt: performance.now(),
+      renderFrames: Number(el.dataset.renderFrames),
+      frameP95Ms: Number(el.dataset.frameP95),
+      cachedSectors: Number(el.dataset.cachedSectors),
+      cachedPixels: Number(el.dataset.cachedPixels),
+      visibleScenery: Number(el.dataset.visibleScenery),
+      detailedScenery: Number(el.dataset.detailedScenery),
+      waterCells: Number(el.dataset.waterCells),
+      canvasPixels: (el as HTMLCanvasElement).width * (el as HTMLCanvasElement).height,
+      identityPixels: (() => {
+        const identity = document.querySelector<HTMLCanvasElement>('canvas[data-world-identity]')!
+        return identity.width * identity.height
+      })(),
+      identityPaints: Number(
+        document.querySelector<HTMLCanvasElement>('canvas[data-world-identity]')!.dataset
+          .testIdentityPaints ?? 0,
+      ),
+      players: Number(el.dataset.visiblePlayers),
+      deviceRatio: window.devicePixelRatio,
+    }))
+  const baseline = await readMetrics()
+  const before = baseline.renderFrames
+  const costPath = info.outputPath('synthetic-world-render-cost.json')
+  writeFileSync(costPath, JSON.stringify({ baseline }, null, 2))
+  let metrics = baseline
+  let reached: { renderFrames: number; sampledAt: number } | null = null
+  try {
+    // Observe in the rendering page: a one-second cross-process polling gap can
+    // miss the last part of this unchanged 15-second, >120-frame window.
+    const progress = await page.waitForFunction(
+      (minimum) => {
+        const canvas = document.querySelector<HTMLCanvasElement>('canvas[data-world-stage]')!
+        const renderFrames = Number(canvas.dataset.renderFrames)
+        return renderFrames > minimum ? { renderFrames, sampledAt: performance.now() } : null
+      },
+      before + 120,
+      { timeout: 15000, polling: 'raf' },
+    )
+    reached = await progress.jsonValue()
+  } finally {
+    metrics = await readMetrics()
+    writeFileSync(costPath, JSON.stringify({ ...metrics, baseline, reached }, null, 2))
+    await info.attach('synthetic-world-render-cost', {
+      path: costPath,
+      contentType: 'application/json',
+    })
+  }
+  expect(metrics.cachedPixels).toBeLessThanOrEqual(8_000_000)
+  expect(metrics.detailedScenery).toBeLessThanOrEqual(180)
+  // Sprite existence follows supplied visible terrain, independently of the
+  // optional-detail budget. Dense desktop/phone walking fixtures separately
+  // assert each actual tree draw; this workload must retain its visible bodies.
+  const renderedViewport = await canvas.evaluate((el) => ({
+    width: el.clientWidth,
+    height: el.clientHeight,
+    tile: Number(el.dataset.tileSize),
+    camera: { x: Number(el.dataset.cameraX), y: Number(el.dataset.cameraY) },
+  }))
+  const visibleTerrainBodies = worldRenderTerrain(await world(page)).flatMap((sector) => {
+    const origin = sectorMapOrigin(sector, renderedViewport.camera.x)
+    return sector.cells.filter((cell) => {
+      if (cell.terrain !== 't' && cell.terrain !== '#') return false
+      const point = projectMapPoint(
+        { x: origin.x + cell.x + 0.5, y: origin.y + cell.y + (cell.terrain === '#' ? 0.5 : 0.75) },
+        renderedViewport.camera,
+        { x: 0, y: 0 },
+        renderedViewport.tile,
+        renderedViewport.width,
+        renderedViewport.height,
+      )
+      return (
+        point.x > 20 &&
+        point.x < renderedViewport.width - 20 &&
+        point.y > 60 &&
+        point.y < renderedViewport.height - 20
+      )
+    })
+  }).length
+  expect(visibleTerrainBodies).toBeGreaterThan(0)
+  expect(metrics.visibleScenery).toBeGreaterThanOrEqual(visibleTerrainBodies)
+  expect(metrics.waterCells).toBeLessThanOrEqual(60)
+  expect(metrics.frameP95Ms).toBeLessThan(80)
+  await capture(page, info, 'synthetic-100-mobile')
+  await page.getByRole('button', { name: 'Details', exact: true }).click()
+  await expect(page.getByRole('tab', { name: 'Places', exact: true })).toBeVisible()
+  await page.getByRole('tab', { name: 'Places', exact: true }).click()
+  await expect(page.getByRole('tabpanel', { name: 'Places', exact: true })).toContainText(
+    'Marketplace',
+  )
+  await verifyPlacePortraits(page)
+  expect(
+    await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight + 1),
+  ).toBe(true)
+  await capture(page, info, 'mobile-places-panel')
+  await page.getByRole('button', { name: 'Close details', exact: true }).click()
+  await page.getByRole('button', { name: /Open world atlas/ }).click()
+  await expect(page.getByRole('group', { name: /World globe/ })).toBeVisible()
+  await capture(page, info, 'mobile-globe')
+  await session.send('Emulation.setCPUThrottlingRate', { rate: 1 })
+})
+
+test('the mobile map stays usable after rotating to landscape', async ({ page }, info) => {
+  test.skip(info.project.name !== 'mobile-chromium', 'Exercise touch orientation once.')
+  test.setTimeout(90000)
+  await enter(page)
+  await page.setViewportSize({ width: 915, height: 412 })
+  const navigation = page.getByRole('navigation', { name: 'Primary game navigation', exact: true })
+  const links = navigation.getByRole('link')
+  await expect(links).toHaveCount(6)
+  for (const link of await links.all()) {
+    await expect(link).toBeInViewport({ ratio: 1 })
+    expect((await link.boundingBox())!.height).toBeGreaterThanOrEqual(44)
+  }
+  const stage = page.locator('canvas[data-world-stage]')
+  await expect(stage).toBeVisible()
+  const bounds = (await stage.boundingBox())!
+  expect(bounds.width).toBeGreaterThan(300)
+  expect(bounds.height).toBeGreaterThan(180)
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth <= window.innerWidth + 1 &&
+        document.documentElement.scrollHeight <= window.innerHeight + 1,
+    ),
+  ).toBe(true)
+  await capture(page, info, 'mobile-landscape-map')
+  await page.getByRole('button', { name: 'Details', exact: true }).click()
+  await page.getByRole('tab', { name: 'Places', exact: true }).click()
+  await expect(page.getByRole('tabpanel', { name: 'Places', exact: true })).toContainText(
+    'Marketplace',
+  )
+  await verifyPlacePortraits(page)
+  await capture(page, info, 'mobile-landscape-places')
+  const close = page.getByRole('button', { name: 'Close details', exact: true })
+  await expect(close).toBeInViewport({ ratio: 1 })
+  const closeBounds = (await close.boundingBox())!,
+    headerBounds = (await page.locator('[data-world-workspace] > header').boundingBox())!
+  expect(closeBounds.x + closeBounds.width).toBeLessThanOrEqual(headerBounds.x + headerBounds.width)
+  await close.click()
+  await page.getByRole('button', { name: /Open world atlas/ }).click()
+  await expect(page.getByRole('group', { name: /World globe/ })).toBeVisible()
+  await capture(page, info, 'mobile-landscape-globe')
+  await page.getByRole('button', { name: /Return to local map/ }).click()
+  await expect(stage).toBeVisible()
+})
+
+test('the globe rotates by dragging and has a usable charted fallback without WebGL', async ({
+  page,
+}, info) => {
+  test.skip(info.project.name !== 'desktop-chromium', 'Shared globe input and fallback.')
+  test.setTimeout(90000)
+  await enter(page)
+  await page.getByRole('button', { name: /Open world atlas/ }).click()
+  const globe = page.getByRole('group', { name: /World globe/ }),
+    pin = page.getByLabel('Your current position', { exact: true })
+  await expect(pin).toBeVisible()
+  const style = await pin.getAttribute('style'),
+    box = (await globe.boundingBox())!
+  await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.5)
+  await page.mouse.down()
+  await page.mouse.move(box.x + box.width * 0.65, box.y + box.height * 0.5, { steps: 8 })
+  await page.mouse.up()
+  await expect.poll(() => pin.getAttribute('style')).not.toBe(style)
+  await expect(page.getByRole('button', { name: 'Travel here', exact: true })).toHaveCount(0)
+  await capture(page, info, 'rotated-globe')
+  await page.addInitScript(() => {
+    const original = HTMLCanvasElement.prototype.getContext
+    HTMLCanvasElement.prototype.getContext = function (
+      this: HTMLCanvasElement,
+      kind: string,
+      ...args: unknown[]
+    ) {
+      if (kind === 'webgl') return null
+      return original.apply(this, [kind, ...args] as never)
+    } as typeof original
+  })
+  await page.reload()
+  await page.getByRole('button', { name: /Open world atlas/ }).click()
+  await expect(page.getByLabel('Charted world atlas', { exact: true })).toBeVisible()
+  await expect(page.getByLabel('Your current position', { exact: true })).toBeVisible()
+  await expect(page.getByText('Verdant Expanse', { exact: true }).first()).toBeVisible()
+  const fallback = page.locator('canvas[data-globe-fallback]')
+  const beforeRotation = await fallback.screenshot()
+  await globe.press('ArrowRight')
+  await expect.poll(async () => (await fallback.screenshot()).equals(beforeRotation)).toBe(false)
+  await capture(page, info, 'detailed-fallback-globe')
+  await reviewSectorTravel(page, 'frostmere')
+  await expect.poll(async () => (await world(page)).route.length).toBeGreaterThan(0)
+  await page.locator('canvas[data-world-stage]').press('Escape')
+  await expect.poll(async () => (await world(page)).route.length).toBe(0)
+  await capture(page, info, 'fallback-route-return')
+})
+
+test('alphabetical Key locations select a destination dot without submitting travel', async ({
+  page,
+}, info) => {
+  test.skip(info.project.name === 'laptop-chromium', 'Exercise mouse and touch once each.')
+  test.setTimeout(90000)
+  await enter(page)
+  const before = await world(page)
+  const known = (before.atlas ?? [])
+    .filter((sector) => sector.charted && sector.townId === sector.id)
+    .slice(0, 2)
+  expect(known).toHaveLength(2)
+  expect(before.anchors).toEqual([])
+  await page.getByRole('button', { name: /Open world atlas/ }).click()
+  const locationPicker = page.getByRole('combobox', { name: 'Key locations' })
+  if (!(await locationPicker.isVisible()))
+    await page.getByRole('button', { name: 'Details', exact: true }).click()
+  const commands: string[] = []
+  page.on('request', (request) => {
+    if (new URL(request.url()).pathname === '/api/world' && request.method() === 'POST')
+      commands.push(request.postDataJSON()?.intent?.kind)
+  })
+  const selected = (id: string) => page.locator(`[data-globe-destination="${id}"]`)
+  await expect(page.locator('[data-globe-travel-point]')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /^(?:Next )?Travel Points?$/ })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Review sector' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'My favorite', exact: true })).toHaveCount(0)
+  const input = page.getByRole('textbox', { name: 'Sector number' })
+  await input.fill('99999')
+  await expect(input).toHaveAttribute('data-sector-valid', 'false')
+  await input.fill(String(sectorDisplayNumber(known[0])!))
+  await expect(input).toHaveAttribute('data-sector-valid', 'true')
+  await input.press('Enter')
+  await expect(selected(known[0]!.id)).toBeVisible()
+
+  const names = (await locationPicker.locator('option:not([value=""])').allTextContents()).map(
+    (label) => label.split(' · ')[1]!,
+  )
+  expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b, 'en')))
+  await expect(
+    locationPicker.locator(`option[value="${FERRY_MAINLAND_DOCK.sectorId}"]`),
+  ).toContainText('Ferry Terminal')
+  await locationPicker.selectOption(FERRY_MAINLAND_DOCK.sectorId)
+  await expect(selected(FERRY_MAINLAND_DOCK.sectorId)).toBeVisible()
+  await expect(selected(FERRY_MAINLAND_DOCK.sectorId)).toHaveCSS(
+    'background-color',
+    'rgb(201, 62, 64)',
+  )
+  await expect(page.getByRole('region', { name: 'Selected destination' })).toContainText('Y:8')
+  await locationPicker.selectOption(known[0]!.id)
+  await expect(selected(known[0]!.id)).toBeVisible()
+  await expect(page.getByRole('dialog', { name: 'Confirm world travel' })).toHaveCount(0)
+  await expect(
+    page.getByRole('button', { name: 'Focus Uncharted Lands', exact: true }),
+  ).toHaveCount(0)
+  expect((await world(page)).position).toEqual(before.position)
+  expect((await world(page)).route).toEqual(before.route)
+  expect(commands).toEqual([])
+  const destinationCard = page.getByRole('region', { name: 'Selected destination' })
+  await destinationCard.getByRole('button', { name: 'Travel here', exact: true }).click()
+  await expect(page.getByRole('group', { name: 'Confirm world travel' })).toBeVisible()
+  const confirm = destinationCard.getByRole('button', { name: 'Confirm travel', exact: true })
+  const confirmBox = (await confirm.boundingBox())!
+  const footer = (await page.locator('[data-world-panel-foot]').boundingBox())!
+  expect(confirmBox.y + confirmBox.height).toBeLessThanOrEqual(footer.y + 1)
+  await expect(page.getByRole('dialog', { name: 'Confirm world travel' })).toHaveCount(0)
+  await destinationCard.getByRole('button', { name: 'Cancel', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Confirm travel', exact: true })).toHaveCount(0)
+  await destinationCard.getByRole('button', { name: 'Travel here', exact: true }).click()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('button', { name: 'Confirm travel', exact: true })).toHaveCount(0)
+  expect((await world(page)).position).toEqual(before.position)
+  expect((await world(page)).route).toEqual(before.route)
+  expect(commands).toEqual([])
+  await capture(page, info, 'alphabetical-key-locations')
+})
+
+test('ambient clouds, water and wildlife remain alive with bounded effects and can be paused', async ({
+  page,
+}, info) => {
+  test.skip(info.project.name !== 'desktop-chromium', 'Inspect ambient movement once.')
+  test.setTimeout(90000)
+  await enter(page)
+  const initial = await world(page)
+  place(initial.characterId, 'verdant-expanse', 8, 4)
+  await page.reload()
+  const canvas = page.locator('canvas[data-world-stage]')
+  await expect.poll(async () => Number(await canvas.getAttribute('data-clouds'))).toBeGreaterThan(0)
+  await expect
+    .poll(async () => Number(await canvas.getAttribute('data-water-cells')))
+    .toBeGreaterThan(0)
+  const before = await canvas.screenshot()
+  await page.waitForTimeout(2000)
+  expect((await canvas.screenshot()).equals(before)).toBe(false)
+  for (let i = 0; i < 12; i++) {
+    await canvas.screenshot({
+      path: info.outputPath(`ambient-motion-${String(i).padStart(2, '0')}.png`),
+    })
+    await page.waitForTimeout(500)
+  }
+  await capture(page, info, 'alive-map-clouds-water')
+  await page.getByRole('button', { name: 'Map settings', exact: true }).click()
+  await page.getByRole('checkbox', { name: 'Ambient animation', exact: true }).uncheck()
+  await page.getByRole('button', { name: 'Done', exact: true }).click()
+  await expect(canvas).toHaveAttribute('data-clouds', '0')
+  const ambientState = {
+    clouds: await canvas.getAttribute('data-clouds'),
+    cloudPhase: await canvas.getAttribute('data-cloud-phase'),
+    wildlifeWalking: await canvas.getAttribute('data-wildlife-walking'),
+  }
+  const pauseState = async () => {
+    const snapshot = await world(page)
+    return {
+      environment: snapshot.environment,
+      serverNow: snapshot.serverNow,
+      position: snapshot.position,
+      routeLength: snapshot.route.length,
+      playersDigest: createHash('sha256').update(JSON.stringify(snapshot.players)).digest('hex'),
+      canvas: await canvas.evaluate((node) => ({ ...node.dataset })),
+      artResources: await page.evaluate(() =>
+        (performance.getEntriesByType('resource') as PerformanceResourceTiming[])
+          .filter((entry) => new URL(entry.name).pathname.startsWith('/media/art/'))
+          .map((entry) => ({ path: new URL(entry.name).pathname, end: entry.responseEnd })),
+      ),
+    }
+  }
+  const pixelHash = () => canvas.evaluate(hashWorldBackingPixels)
+  const beforePauseState = await pauseState()
+  const beforePausePixelHash = await pixelHash()
+  await canvas.screenshot({
+    path: info.outputPath('terrain-motion-paused-before.png'),
+  })
+  await page.waitForTimeout(1200)
+  expect({
+    clouds: await canvas.getAttribute('data-clouds'),
+    cloudPhase: await canvas.getAttribute('data-cloud-phase'),
+    wildlifeWalking: await canvas.getAttribute('data-wildlife-walking'),
+  }).toEqual(ambientState)
+  const afterPauseState = await pauseState()
+  const afterPausePixelHash = await pixelHash()
+  await canvas.screenshot({
+    path: info.outputPath('terrain-motion-paused-after.png'),
+  })
+  writeFileSync(
+    info.outputPath('world-ambient-pause.json'),
+    JSON.stringify({
+      before: beforePauseState,
+      after: afterPauseState,
+      pixelHashes: { before: beforePausePixelHash, after: afterPausePixelHash },
+    }),
+  )
+  expect(afterPausePixelHash).toBe(beforePausePixelHash)
+  await openMapSettings(page)
+  await page.getByRole('checkbox', { name: 'Ambient animation', exact: true }).check()
+  await closeMapSettings(page)
+  await expect.poll(async () => Number(await canvas.getAttribute('data-clouds'))).toBeGreaterThan(0)
+})
+
+test('scenic countryside has real blossom woodland, ruins, pools and open meadows', async ({
+  page,
+}, info) => {
+  test.skip(info.project.name !== 'desktop-chromium', 'Inspect original landscape sprites once.')
+  test.setTimeout(120000)
+  await enter(page)
+  const initial = await world(page)
+  for (const [id, name, landscape] of [
+    ['atlas:62:28', 'Cherryblossom Grove', 'sakura'],
+    ['atlas:58:27', 'Amberwood Glade', 'autumn'],
+    ['atlas:48:22', 'Wisteria Hollow', 'wisteria'],
+    ['atlas:69:36', 'Willow Cascades', 'willow'],
+    ['atlas:50:34', 'Wildflower Meadow', 'wildflowers'],
+  ] as const) {
+    place(initial.characterId, id, 6, 4)
+    await page.reload()
+    await expect(page.locator('canvas[data-world-stage]')).toBeVisible()
+    const scene = await world(page)
+    const sector = scene.sectors.find((s) => s.id === id)!
+    expect(sector.landscape).toBe(landscape)
+    expect(sector.townId).toBeUndefined()
+    const landmark = sector.landmarks.find((l) => l.name === name)!
+    expect(landmark).toBeDefined()
+    expect(sector.cells.find((c) => c.x === landmark.x && c.y === landmark.y)?.walkable).toBe(true)
+    await stageWalk(page, { sectorId: id, x: landmark.x, y: landmark.y })
+    await expect
+      .poll(async () => (await world(page)).position, { timeout: 12000 })
+      .toEqual({ sectorId: id, x: landmark.x, y: landmark.y })
+    await expectLocation(page, name)
+    if (landscape === 'willow')
+      expect(sector.cells.some((c) => c.terrain === '~' && !c.walkable)).toBe(true)
+    await capture(page, info, `countryside-${landscape}`)
+  }
+})
+
+test('shows the coast terminal and keeps its Ferryman in Nearby outside boarding range', async ({
+  page,
+}, info) => {
+  test.skip(info.project.name === 'laptop-chromium', 'Exercise desktop and phone travel.')
+  await enter(page)
+  const { characterId } = await world(page)
+  const showNearby = async () => {
+    const details = page.getByRole('button', { name: 'Details', exact: true })
+    if (await details.isVisible()) await details.click()
+    await page.getByRole('tab', { name: /Nearby/ }).click()
+    return page.locator('[data-world-nearby-npc="world-ferryman"]')
+  }
+  place(characterId, FERRY_MAINLAND_DOCK.sectorId, FERRY_MAINLAND_DOCK.x, FERRY_MAINLAND_DOCK.y - 2)
+  await reloadWorld(page)
+  expect((await world(page)).ferry).toBeUndefined()
+  const outside = await showNearby()
+  await expect(outside.getByRole('button', { name: 'Approach Ferryman' })).toBeVisible()
+  place(characterId, FERRY_MAINLAND_DOCK.sectorId, FERRY_MAINLAND_DOCK.x, FERRY_MAINLAND_DOCK.y)
+  await reloadWorld(page)
+  expect((await world(page)).ferry?.port).toBe('mainland')
+  const onDock = await showNearby()
+  await expect(onDock.getByRole('button', { name: 'Talk to Ferryman' })).toBeVisible()
+  await capture(page, info, 'coastal-ferry-terminal')
+  await onDock.getByRole('button', { name: 'Talk to Ferryman' }).click()
+  const dialogue = page.getByRole('dialog', { name: 'Ferryman' })
+  await expect(dialogue.locator('img')).toHaveAttribute('src', /ferryman-portrait-v01\.webp$/)
+  await expect
+    .poll(() => dialogue.locator('img').evaluate((img: HTMLImageElement) => img.naturalWidth))
+    .toBeGreaterThan(0)
+  await capture(page, info, 'coastal-ferryman-dialogue')
+})
+
+test('settles an arrived ferry at the active Uncharted coast and lets the passenger explore and return to the terminal', async ({
+  page,
+}, info) => {
+  test.skip(info.project.name === 'laptop-chromium', 'Exercise desktop and phone travel.')
+  test.setTimeout(90000)
+  await enter(page)
+  const { characterId } = await world(page)
+  const passage = JSON.parse(
+    sql(`
+    with clock as (select app_private.world_ferry_now_v1() t),
+    rotation as (select t, app_private.world_void_rotation_v1(t) active from clock)
+    select jsonb_build_object('now', t, 'next', active->'nextRollAt',
+      'dock', app_private.world_void_ferry_dock_v1(active->>'realmId')) from rotation;
+  `),
+  ) as { now: number; next: number; dock: WorldView['position'] }
+  test.skip(passage.next - passage.now < 120_000, 'A production-style evacuation is imminent.')
+  const arrivalAt = passage.now - 2_000
+  const departureAt = arrivalAt - 300_000
+  const { dock } = passage
+  const boarded = {
+    position: { sectorId: 'ferry:outbound:' + departureAt, x: 6, y: 4 },
+    route: [],
+    routeDestination: null,
+    nextStepAt: null,
+    ferry: {
+      direction: 'outbound',
+      departureAt,
+      arrivalAt,
+      activeVoid: true,
+      origin: FERRY_MAINLAND_DOCK,
+    },
+  }
+  sql(
+    `update app_private.character_world_state set state = state || '${JSON.stringify(boarded)}'::jsonb where character_id='${characterId}'::uuid`,
+  )
+  await page.reload()
+  const scene = await world(page)
+  expect(scene.position).toEqual(dock)
+  expect(scene.ferry?.port).toBe('uncharted')
+  const terminal = scene.sectors.find(({ id }) => id === dock.sectorId)!
+  expect(terminal.landmarks).toContainEqual(expect.objectContaining({ name: 'Ferry Terminal' }))
+  const west = terminal.ferryDock?.shoreSide === 'west'
+  expect(terminal.cells).toContainEqual(
+    expect.objectContaining({
+      x: dock.x - (west ? 1 : 0),
+      y: dock.y + (west ? 0 : 1),
+      terrain: '~',
+      walkable: false,
+    }),
+  )
+  expect(scene.atlas!.every((cell) => !cell.id.startsWith('void:'))).toBe(true)
+  const station = page.getByRole('region', { name: 'Ferry station' })
+  await expect(station.getByRole('button', { name: 'Talk to Ferryman' })).toBeVisible()
+  const walk = { ...dock, x: dock.x + 2 }
+  await stageWalk(page, walk)
+  await expect.poll(async () => (await world(page)).position).toEqual(walk)
+  expect((await world(page)).ferry).toBeUndefined()
+  const approach = { ...dock, x: dock.x + 1 }
+  await stageWalk(page, approach)
+  await expect.poll(async () => (await world(page)).position).toEqual(approach)
+  await expect(station).toBeVisible()
+  await capture(page, info, 'active-uncharted-ferry-terminal')
+})
+
+test('walks the offshore bridge and resumes at the scenic tower after reload', async ({
+  page,
+}, info) => {
+  test.skip(info.project.name === 'laptop-chromium', 'Exercise desktop and phone travel.')
+  test.setTimeout(90000)
+  await enter(page)
+  const { characterId } = await world(page)
+  place(characterId, OFFSHORE_DISCOVERY.mainlandSectorId, 2, 4)
+  await page.reload()
+  await page.getByRole('button', { name: /Open world atlas/ }).click()
+  await reviewSectorTravel(page, OFFSHORE_DISCOVERY.islandSectorId)
+  const target = { sectorId: OFFSHORE_DISCOVERY.islandSectorId, x: 6, y: 4 }
+  await expect.poll(async () => (await world(page)).position, { timeout: 20000 }).toEqual(target)
+  await page.reload()
+  const scene = await world(page)
+  expect(scene.position).toEqual(target)
+  const tower = scene.sectors.find((sector) => sector.id === target.sectorId)!.landmarks[0]!
+  expect(tower.name).toBe('The Lanternward Tower')
+  expect(scene.interactions.some((interaction) => interaction.objectiveId === tower.id)).toBe(false)
+  await capture(page, info, 'lanternward-isle-tower')
+})
+
+test('charted globe travel survives unrelated frontier discoveries and retains bounded authoritative continuation', async ({
+  page,
+}, info) => {
+  test.skip(info.project.name !== 'desktop-chromium', 'Exercise distant canonical routing once.')
+  test.setTimeout(60000)
+  await enter(page)
+  const initial = await world(page)
+  place(initial.characterId, 'atlas:47:33', 6, 4)
+  sql(
+    `update app_private.character_world_state set state=jsonb_set(state,'{discoveries}',coalesce(state->'discoveries','{}'::jsonb)||'{"survey-01":[110]}'::jsonb) where character_id='${initial.characterId}'::uuid`,
+  )
+  await page.reload()
+  const approval = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'POST' &&
+      new URL(response.url()).pathname === '/api/world' &&
+      response.request().postDataJSON()?.intent?.kind === 'walk' &&
+      response.request().postDataJSON()?.intent?.destination?.sectorId === 'verdant-expanse',
+  )
+  await stageWalk(page, { sectorId: 'verdant-expanse', x: 6, y: 4 })
+  const response = await approval
+  expect(response.status()).toBe(200)
+  const receipt = await response.json()
+  expect(receipt.kind).toBe('movement')
+  expect(receipt.route).toHaveLength(256)
+  expect(receipt.routeDestination).toEqual({ sectorId: 'verdant-expanse', x: 6, y: 4 })
+  expect(receipt.route.every((step: WorldView['route'][number]) => step.durationMs === 200)).toBe(
+    true,
+  )
+  // Next's empty route announcer also has role=alert outside the game main.
+  // Require the actual World error surface to remain absent.
+  await expect(page.locator('main').getByRole('alert')).toHaveCount(0)
+  await capture(page, info, 'distant-globe-route-approved')
+  const stopped = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'POST' &&
+      new URL(response.url()).pathname === '/api/world' &&
+      response.request().postDataJSON()?.intent?.kind === 'stop',
+  )
+  await page.locator('canvas[data-world-stage]').press('Escape')
+  expect((await stopped).status()).toBe(200)
+  await expect.poll(async () => (await world(page)).route.length).toBe(0)
+})
+
+registerWorldInputCases({ enter, world, place, stageWalk, capture, openJournal })
+registerWorldLandscapeCases({ enter, world, place, stageWalk, capture })
+registerWorldArtReviewCases({ enter, world, sql, capture, stageWalk })
+registerWorldMapCorrectionCases({ enter, world, sql, stageWalk })
+registerWorldMultiplayerLoadCase({ enter, world, place, sql })
+
+test('known neighbouring players follow the visible viewport with service-only presence authority', async ({
+  page,
+  browser,
+}, info) => {
+  await verifyWorldScenePresence(page, browser, info, {
+    enter,
+    world,
+    place,
+    sql,
+    capture,
+    stageWalk,
+  })
+})
+
+test('approach arrival controls remain immediate with slow presentation and legal attacks keep canonical authority', async ({
+  page,
+  browser,
+}, info) => {
+  await verifyWorldInstantActions(page, browser, info, {
+    enter,
+    world,
+    place,
+    sql,
+    capture,
+    stageWalk,
+  })
+})

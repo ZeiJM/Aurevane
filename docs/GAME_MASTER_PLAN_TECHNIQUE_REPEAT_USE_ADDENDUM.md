@@ -1,10 +1,10 @@
 # AUREVANE — Technique Loadouts & Consecutive-Use Falloff Addendum
 
-**Status:** Owner-approved authoritative game-design addendum to `docs/GAME_MASTER_PLAN.md`.
+**Status:** Historical pre-v5 game-design addendum. Its four-Technique loadout rules remain current; its consecutive-use falloff rules apply only to battles/content pinned to pre-v5 Skill versions and are superseded for current combat-v5 authored Skills by `docs/COMBAT.md`.
 
 **Direction approved:** 2026-09-06.
 
-This addendum supersedes conflicting earlier wording about selected Discipline Technique capacity, mixed-Discipline slot splits, and ordinary authored Skill cooldowns in `docs/GAME_MASTER_PLAN_BUILD_SYSTEM_ADDENDUM.md`, `docs/COMBAT.md`, `docs/PHASE_3_TICKETS.md`, `docs/ROADMAP_BUILD_SYSTEM_REWORK.md`, `docs/ROADMAP.md`, and older tickets/tests/prose. Existing server authority, Action Economy, targeting, Effect Catalog, build snapshot, AI/PvP parity, progression, and anti-pay-to-win rules remain in force unless explicitly changed below.
+This addendum historically superseded conflicting earlier wording about selected Discipline Technique capacity, mixed-Discipline slot splits, and ordinary authored Skill cooldowns in `docs/GAME_MASTER_PLAN_BUILD_SYSTEM_ADDENDUM.md`, `docs/COMBAT.md`, `docs/PHASE_3_TICKETS.md`, `docs/ROADMAP_BUILD_SYSTEM_REWORK.md`, `docs/ROADMAP.md`, and older tickets/tests/prose. Existing server authority, Action Economy, targeting, Effect Catalog, build snapshot, AI/PvP parity, progression, and anti-pay-to-win rules remain in force unless explicitly changed below.
 
 ---
 
@@ -62,13 +62,13 @@ The selected Technique UI must identify each Technique's source Discipline and c
 
 ---
 
-## 3. Authored Skills no longer use ordinary turn cooldowns
+## 3. Historical pre-v5 authored-Skill repeat rule
 
-Ordinary authored combat Skills — including Discipline Techniques and Essence Skills — do **not** become unavailable for a fixed number of turns after use.
+For pre-v5 pinned content, ordinary authored combat Skills — including Discipline Techniques and Essence Skills — did **not** become unavailable for a fixed number of turns after use.
 
-The previous mature-Skill cooldown rule is retired for these authored Skills.
+That historical branch retired its earlier mature-Skill cooldown rule.
 
-The canonical anti-spam rule is now **consecutive-use effectiveness falloff**.
+Its canonical anti-spam rule was **consecutive-use effectiveness falloff**. Current combat-v5 authored Skills instead use 1–3 owner-turn cooldowns, with no cooldown when an explicit use Requirement is present.
 
 ### Consecutive-use rule
 

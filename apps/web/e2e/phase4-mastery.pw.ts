@@ -1,5 +1,11 @@
 import { execFileSync } from 'node:child_process'
 import { expect, test } from '@playwright/test'
+import { PV1F_BASIC_ATTACK_COST, PV1F_RECOVER_COST } from '@aurevane/game-core/combat/pv1f-skills'
+import {
+  PV1F_RECOVER_PERCENT,
+  PV1F_RECOVERY_COOLDOWN,
+} from '@aurevane/game-core/combat/pv1f-action-economy'
+import { readSkillCooldown } from '@aurevane/game-core/combat/skill-cooldowns'
 import type { BattleSessionView } from '../src/server/battle/battle-session-service'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
@@ -8,13 +14,14 @@ test.use({ trace: 'on' })
 test('earns Mastery through a UI victory, claims once, reloads and retries without duplicate XP', async ({
   page,
 }, testInfo) => {
+  const localSupabaseUrl = process.env.SUPABASE_TEST_API_URL ?? 'http://127.0.0.1:54321'
   test.skip(
     testInfo.project.name !== 'desktop-chromium',
     'One complete acquisition run; responsive roster/media flows run on all viewports.',
   )
   test.skip(
     process.env.AUREVANE_ENV !== 'local' ||
-      process.env.NEXT_PUBLIC_SUPABASE_URL !== 'http://127.0.0.1:54321',
+      process.env.NEXT_PUBLIC_SUPABASE_URL !== localSupabaseUrl,
     'The acquisition fixture is strictly local CI; production testing grants are preserved.',
   )
   test.setTimeout(300000)
@@ -57,22 +64,42 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
     },
   )
   await page.reload()
-  await page.goto('/game/arsenal')
+  await page.goto('/game/nexus')
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
   await page.getByRole('button', { name: /Manage Techniques/ }).click()
   const techniques = page.getByRole('dialog', { name: 'Techniques', exact: true })
   const list = page.getByTestId('learned-skill-list')
-  for (const name of ['Forceful Strike', 'Brace'])
-    await list
+  for (const name of ['Forceful Strike', 'Brace', 'Shield Bash']) {
+    const checkbox = list
       .locator('article')
       .filter({ has: page.getByText(name, { exact: true }) })
       .getByRole('checkbox')
-      .check()
-  const saved = page.waitForResponse(
-    (r) => r.url().endsWith('/api/character/build/skills') && r.request().method() === 'PUT',
-  )
-  await page.getByRole('button', { name: 'Commit Selected Techniques' }).click()
-  expect((await saved).status()).toBe(200)
+    if (await checkbox.isChecked()) continue
+    const saved = page.waitForResponse(
+      (r) => r.url().endsWith('/api/character/build/skills') && r.request().method() === 'PUT',
+    )
+    await checkbox.check()
+    expect((await saved).status()).toBe(200)
+  }
+  // The trial uses HP Recovery. Exercise real Support writes by changing away
+  // from its default first, then saving it again through the single Support slot.
+  const capacity = await techniques.getByTestId('skill-capacity').textContent()
+  expect(capacity).toBeTruthy()
+  await expect(techniques.getByRole('radio', { name: 'HP Recovery', exact: true })).toBeChecked()
+  for (const name of ['MP Recovery', 'HP Recovery']) {
+    const supportSaved = page.waitForResponse(
+      (response) =>
+        response.url().endsWith('/api/character/build/support-action') &&
+        response.request().method() === 'POST',
+    )
+    await techniques.getByRole('radio', { name, exact: true }).check()
+    expect((await supportSaved).status()).toBe(200)
+    await expect(techniques.getByRole('radio', { name, exact: true })).toBeChecked()
+    await expect(
+      techniques.getByRole('radiogroup', { name: 'Support Action' }).locator('input:checked'),
+    ).toHaveCount(1)
+    await expect(techniques.getByTestId('skill-capacity')).toHaveText(capacity!)
+  }
   await techniques.getByRole('button', { name: 'Close', exact: true }).click()
   await page.goto('/game/battle')
   await page.getByLabel('Battle mode').selectOption('mastery-trial')
@@ -85,32 +112,35 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
   let battle: BattleSessionView = (await creation.json()).battle
   const root = page.locator("main[data-unified-battle='true'][data-battle-kind='pve']")
   await expect(root).toBeVisible()
+  const finish = root.getByRole('button', { name: /^End Turn,/ })
+  await expect(root).toHaveAttribute('data-local-turn', 'true')
+  await expect(finish).toBeEnabled({ timeout: 15000 })
+  // Initiative may give the Recruit the opening turn. Read the canonical state
+  // after that automatic handoff instead of reusing the creation snapshot.
+  const current = await page.request.get(`/api/battles/${battle.battleSessionId}`)
+  expect(current.status()).toBe(200)
+  battle = (await current.json()).battle
   const playerId = battle.snapshot.tactical.battle.combatants.find(
     (unit) => unit.teamId === 'players',
   )!.id
   const enemyId = battle.snapshot.tactical.battle.combatants.find(
     (unit) => unit.teamId === 'opponents',
   )!.id
-  const confirm = root.getByRole('button', { name: 'Confirm Action', exact: true })
-  const finish = root.getByRole('button', { name: /^Finish Turn,/ })
+  expect(battle.snapshot.tactical.battle.currentTurn!.combatantId).toBe(playerId)
   let skillCommands = 0
   let braced = false
-  const commit = async () => {
-    await expect(confirm).toBeEnabled()
+  const commit = async (
+    target = root.getByRole('button', { name: new RegExp(`occupied by Earned ${suffix}`) }),
+  ) => {
     const response = page.waitForResponse(
       (r) => r.url().endsWith('/intents') && r.request().method() === 'POST',
     )
-    await confirm.click()
+    await target.click()
     const result = await response
     expect(result.status()).toBe(200)
     battle = (await result.json()).battle
+    return result.request().postDataJSON().intent
   }
-  const chooseSkill = async (category: string, id: string) => {
-    await root.locator(`[data-battle-skill-selector-category="${category}"]`).click()
-    await page.locator(`[data-battle-skill-option-id="${id}"]`).click()
-  }
-  await chooseSkill('Guard', 'vanguard.brace')
-  await chooseSkill('Attack', 'vanguard.forceful-strike')
   for (
     let command = 0;
     command < 100 && battle.snapshot.tactical.battle.lifecycle === 'active';
@@ -126,32 +156,90 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
     })
     await expect(root).toHaveAttribute('data-local-turn', 'true')
     await expect(enemyTile).toBeVisible()
+    await expect(
+      root.getByRole('button', {
+        name: new RegExp(`^Tile ${player.x + 1}, ${player.y + 1};.*occupied by Earned ${suffix}`),
+      }),
+    ).toBeVisible()
     const distance = Math.abs(player.x - enemy.x) + Math.abs(player.y - enemy.y)
-    const ap = tactical.battle.combatants
-      .find((unit) => unit.id === playerId)!
-      .temporaryResources.find((resource) => resource.key === 'pv1f.action-economy')!.current
+    const actor = tactical.battle.combatants.find((unit) => unit.id === playerId)!
+    const ap = actor.temporaryResources.find(
+      (resource) => resource.key === 'pv1f.action-economy',
+    )!.current
     // A response can arrive before React renders its board/AP state. Follow the
     // committed budget and wait for its visible projection before the next input.
     await expect(
       root.getByRole('progressbar', { name: 'Action Economy remaining' }),
     ).toHaveAttribute('aria-valuenow', String(ap))
-    if (!braced && ap >= 30) {
-      await root.getByRole('button', { name: 'Brace, 30 AP', exact: true }).click()
+    if (!braced && distance === 1 && ap >= 35) {
+      await root.getByRole('button', { name: 'Selected Brace, 35 AP', exact: true }).click()
       await commit()
       braced = true
       skillCommands++
       continue
     }
-    if (distance === 1 && ap >= (skillCommands < 3 ? 40 : 50)) {
-      if (skillCommands < 3) {
-        await root.getByRole('button', { name: 'Forceful Strike, 40 AP', exact: true }).click()
+    // Survive through normal inputs, observing the shared two-turn recovery cooldown.
+    // No HP, AP, placements or victory state is injected into the acquisition run.
+    if (
+      skillCommands >= 3 &&
+      actor.hp <= Math.floor((actor.maxHp * 2) / 3) &&
+      ap >= PV1F_RECOVER_COST &&
+      !readSkillCooldown(actor, PV1F_RECOVERY_COOLDOWN).active
+    ) {
+      await root.focus()
+      await page.keyboard.press('KeyR')
+      await expect(root).toHaveAttribute('data-battle-action-mode', 'recover')
+      expect(await commit()).toMatchObject({
+        kind: 'action',
+        actionId: 'basic.recover',
+        target: { kind: 'self' },
+      })
+      const healed = battle.snapshot.tactical.battle.combatants.find(
+        (unit) => unit.id === playerId,
+      )!
+      expect(healed.hp).toBe(
+        Math.min(actor.maxHp, actor.hp + Math.round((actor.maxHp * PV1F_RECOVER_PERCENT) / 100)),
+      )
+      expect(
+        healed.temporaryResources.find((resource) => resource.key === 'pv1f.action-economy')!
+          .current,
+      ).toBe(ap - PV1F_RECOVER_COST)
+      continue
+    }
+    const nextPrimarySkillCost = 45
+    if (
+      distance === 1 &&
+      ap >= (skillCommands < 3 ? nextPrimarySkillCost : PV1F_BASIC_ATTACK_COST)
+    ) {
+      if (skillCommands === 1) {
+        await root
+          .getByRole('button', { name: 'Selected Forceful Strike, 45 AP', exact: true })
+          .click()
+      } else if (skillCommands === 2) {
+        await root.getByRole('button', { name: 'Selected Shield Bash, 45 AP', exact: true }).click()
       } else {
-        await chooseSkill('Attack', 'basic.attack.unarmed.basic')
-        await root.locator('[data-battle-command="attack"]').click()
+        // Reuse ready equipped attacks, including Shield Bash's protection, instead
+        // of abandoning the build after its three required demonstrations.
+        const readyAttack = ['Shield Bash', 'Forceful Strike'].find(
+          (name) =>
+            ap >= nextPrimarySkillCost &&
+            !actor.temporaryResources.some(
+              (resource) =>
+                resource.key ===
+                  `p3.skill-cooldown.vanguard.${name === 'Shield Bash' ? 'shield-bash' : 'forceful-strike'}` &&
+                resource.current > 0,
+            ),
+        )
+        if (readyAttack) {
+          await root
+            .getByRole('button', { name: `Selected ${readyAttack}, 45 AP`, exact: true })
+            .click()
+        } else {
+          await root.locator('[data-battle-command="attack"]').click()
+        }
       }
       await expect(enemyTile).toHaveAttribute('data-target', 'enemy')
-      await enemyTile.click()
-      await commit()
+      await commit(enemyTile)
       if (skillCommands < 3) skillCommands++
       continue
     }
@@ -175,8 +263,7 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
         enemy,
       )
       if (destination && destination.distance < distance) {
-        await root.getByRole('button', { name: destination.label, exact: true }).click()
-        await commit()
+        await commit(root.getByRole('button', { name: destination.label, exact: true }))
         continue
       }
     }
@@ -195,6 +282,16 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
     expect(turn.status()).toBe(200)
     battle = (await turn.json()).battle
   }
+  console.log(
+    'mastery-trial-result',
+    JSON.stringify({
+      version: battle.battleVersion,
+      lifecycle: battle.snapshot.tactical.battle.lifecycle,
+      round: battle.snapshot.tactical.battle.round,
+      skillCommands,
+      combatants: battle.snapshot.tactical.battle.combatants,
+    }),
+  )
   expect(skillCommands).toBeGreaterThanOrEqual(3)
   const result = page.getByTestId('battle-result-overlay')
   await expect(result.getByRole('heading', { name: 'Victory', exact: true })).toBeVisible()
@@ -222,23 +319,24 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
     body: await page.screenshot(),
     contentType: 'image/png',
   })
-  await page.goto('/game/arsenal')
+  await page.goto('/game/nexus')
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
-  await page.getByRole('button', { name: /Manage Primary Discipline/ }).click()
+  await page.getByRole('button', { name: /Manage Disciplines/ }).click()
   const management = page.getByRole('dialog', { name: 'Discipline Management' })
-  const atlasResponse = page.waitForResponse(
-    (r) => r.url().endsWith('/api/character/mastery') && r.request().method() === 'GET',
-  )
-  await management.getByText('Discipline Atlas & Mastery', { exact: true }).click()
-  const atlasResult = await atlasResponse
-  expect(atlasResult.status()).toBe(200)
-  expect((await atlasResult.json()).atlas.entries).toEqual(
+  const mastery = await page.evaluate(async () => {
+    const response = await fetch('/api/character/mastery')
+    return { status: response.status, body: await response.json() }
+  })
+  expect(mastery.status).toBe(200)
+  expect(mastery.body.atlas.entries).toEqual(
     expect.arrayContaining([
       expect.objectContaining({ disciplineId: 'bastion', releaseEligible: true }),
     ]),
   )
-  await expect(management).toContainText('Adept · 300/1,000 XP')
-  await expect(management.locator('select').first().locator('option[value="bastion"]')).toHaveCount(
-    1,
-  )
+  await management.getByRole('button', { name: 'Edit Primary Discipline', exact: true }).click()
+  await expect(
+    management
+      .getByRole('region', { name: 'Primary Discipline library', exact: true })
+      .getByRole('button', { name: 'Select Bastion as Primary Discipline', exact: true }),
+  ).toHaveCount(1)
 })

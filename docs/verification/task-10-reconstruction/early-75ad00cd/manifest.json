@@ -1,0 +1,77 @@
+{
+  "local_source": "75ad00cd5c374e7ebf25c2a8ad86d3f49c6c9a82",
+  "remote_source": "c7c2e440cc48e066187d73b086720ed13c0fcaa3",
+  "status": "incomplete non-deployable source checkpoint, not independently reviewed",
+  "logs": [
+    {
+      "file": "lifecycle-red.log.gz",
+      "sha256": "325815b26fcd58bd4eca5ee1f2853aa00daa5493d6bef746f5c7e11573bdb8ee",
+      "uncompressed_sha256": "a198fafa1d7a4ccc9abde8a94cfbfc2d53409e738b57b5933cca8e67190a3545",
+      "exit": 1,
+      "argv": [
+        "corepack",
+        "pnpm",
+        "--filter",
+        "@aurevane/db",
+        "exec",
+        "vitest",
+        "run",
+        "src/combat-content-record-lifecycle.test.ts"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "not externally instrumented; Vitest local start is retained in raw log",
+      "completedAt": "2026-10-20T20:06:00.059445+00:00"
+    },
+    {
+      "file": "lifecycle-first-green-attempt.log.gz",
+      "sha256": "a0d85681da3f9d3984e6468fbf7d4fdee3967960126e899fa82f2243e550cc1e",
+      "uncompressed_sha256": "9bf3d43a06a3e6847df0fc48064a53b25fd6d135206dd7fff30bad0932de7454",
+      "exit": 0,
+      "argv": [
+        "corepack",
+        "pnpm",
+        "--filter",
+        "@aurevane/db",
+        "exec",
+        "vitest",
+        "run",
+        "src/combat-content-record-lifecycle.test.ts"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "not externally instrumented; Vitest local start is retained in raw log",
+      "completedAt": "2026-10-20T20:08:08.926345+00:00"
+    },
+    {
+      "file": "lifecycle-types.log.gz",
+      "sha256": "ebf3d1893fd4d9be31bf3200a96fbde978a866f79051a60e74f8120db7c621d9",
+      "uncompressed_sha256": "a183b29ce28121a1c7379881be8d7f145f7771bdb2320bf753fd3b07e2e304f1",
+      "exit": 2,
+      "argv": [
+        "corepack",
+        "pnpm",
+        "--filter",
+        "@aurevane/db",
+        "typecheck"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "not externally instrumented; Vitest local start is retained in raw log",
+      "completedAt": "2026-10-20T20:08:31.330151+00:00"
+    },
+    {
+      "file": "lifecycle-types-green.log.gz",
+      "sha256": "67be5567bde7f0f4c1fd5e775e918562bc1f228a849614e4ad48b4172e907169",
+      "uncompressed_sha256": "8366207267355d3e3d5bf3bf6e8c94c5f93f6078c34f08973fa2b38cdda6cc92",
+      "exit": 0,
+      "argv": [
+        "corepack",
+        "pnpm",
+        "--filter",
+        "@aurevane/db",
+        "typecheck"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "not externally instrumented; Vitest local start is retained in raw log",
+      "completedAt": "2026-10-20T20:08:50.477988+00:00"
+    }
+  ]
+}

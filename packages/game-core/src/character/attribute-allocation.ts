@@ -52,6 +52,33 @@ function attributeCapsForFocus(focusAttributes: readonly CharacterAttributeId[])
   ) as Record<CharacterAttributeId, number>
 }
 
+/** Parse the same published six-base/focus contract used by SQL and preserve its exact version. */
+export function disciplineAttributePolicyFromCore(
+  disciplineId: string,
+  policyVersion: number,
+  base: unknown,
+  focus: unknown,
+  offFocusCap: unknown,
+): DisciplineAttributePolicy | null {
+  if (
+    !base ||
+    typeof base !== 'object' ||
+    Array.isArray(base) ||
+    Object.keys(base).length !== CHARACTER_ATTRIBUTE_IDS.length ||
+    !Array.isArray(focus) ||
+    offFocusCap !== FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP
+  )
+    return null
+  const policy: DisciplineAttributePolicy = {
+    disciplineId,
+    policyVersion,
+    baseAttributes: base as CharacterAttributes,
+    focusAttributes: focus as CharacterAttributeId[],
+    attributeCaps: attributeCapsForFocus(focus as CharacterAttributeId[]),
+  }
+  return validateDisciplineAttributePolicy(policy).length === 0 ? policy : null
+}
+
 /**
  * Foundation identity policy v5. The Primary owns a fixed 31-point Core Stat base, while all
  * creation/level points remain player-owned. Primary focus attributes cap at 60 and all non-focus
@@ -94,7 +121,7 @@ export interface AttributeAllocationValidationInput {
   attributes: CharacterAttributes
   level: number
   policy?: DisciplineAttributePolicy | null
-  /** Respec/reset commits must spend the entire legal effective point pool. */
+  /** Respec/reset commits must spend every point that fits within the legal caps. */
   requireFullPool?: boolean
 }
 
@@ -174,6 +201,22 @@ export function personalAttributePointsSpent(
 ): number {
   const personal = personalAttributesFromEffective(attributes, policy)
   return CHARACTER_ATTRIBUTE_IDS.reduce((total, attributeId) => total + personal[attributeId], 0)
+}
+
+/** Remaining entitlement that can fit without exceeding any current effective cap. */
+export function spendableAttributePoints(
+  attributes: CharacterAttributes,
+  pointPool: number,
+  attributeCaps: Readonly<Partial<Record<CharacterAttributeId, number>>>,
+): number {
+  const remaining = Math.max(0, pointPool - attributePointsSpent(attributes))
+  let capacity = 0
+  for (const id of CHARACTER_ATTRIBUTE_IDS) {
+    const cap = attributeCaps[id]
+    if (cap === undefined) return remaining
+    capacity += Math.max(0, cap - attributes[id])
+  }
+  return Math.min(remaining, capacity)
 }
 
 export function unspentAttributePoints(attributes: CharacterAttributes, level: number): number {
@@ -345,11 +388,15 @@ export function validateAttributeAllocation(
       field: 'attributes',
       message: `Level ${input.level} provides ${pool} total effective Core Stat points, but ${total} are assigned.`,
     })
-  } else if (input.requireFullPool && total !== pool) {
+  } else if (
+    input.requireFullPool &&
+    issues.length === 0 &&
+    spendableAttributePoints(input.attributes, pool, input.policy?.attributeCaps ?? {}) > 0
+  ) {
     issues.push({
       code: 'point-pool-incomplete',
       field: 'attributes',
-      message: `A full redistribution must assign all ${pool} available effective Core Stat points.`,
+      message: `A full redistribution must assign every available Core Stat point that fits within the current caps.`,
     })
   }
 

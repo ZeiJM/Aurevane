@@ -9,10 +9,13 @@ export interface OnlineCharacter {
   characterId: string
   name: string
   level: number
+  xp: number | null
   lastSeenAt: string
   portraitRef: string | null
   disciplineId: string | null
   secondaryDisciplineId: string | null
+  disciplineName?: string | null
+  secondaryDisciplineName?: string | null
   personalTitle: string | null
   imageUrl: string | null
 }
@@ -21,10 +24,13 @@ export interface CharacterPresenceDirectoryEntry {
   characterId: string
   name: string
   level: number
+  xp: number | null
   lastSeenAt: string | null
   portraitRef: string | null
   disciplineId: string | null
   secondaryDisciplineId: string | null
+  disciplineName?: string | null
+  secondaryDisciplineName?: string | null
   personalTitle: string | null
   imageUrl: string | null
   isOnline: boolean
@@ -65,6 +71,7 @@ function parseOnlineCharacters(data: unknown[]): OnlineCharacter[] {
         characterId: candidate.character_id,
         name: candidate.character_name,
         level,
+        xp: null,
         lastSeenAt: candidate.last_seen_at,
         portraitRef: null,
         disciplineId: null,
@@ -102,9 +109,12 @@ export async function countOnlineCharacters(): Promise<number> {
 }
 
 interface PublicCharacterIdentity {
+  xp: number | null
   portraitRef: string | null
   disciplineId: string | null
   secondaryDisciplineId: string | null
+  disciplineName?: string | null
+  secondaryDisciplineName?: string | null
   personalTitle: string | null
 }
 
@@ -118,7 +128,7 @@ async function loadPublicCharacterIdentityMap(
     await Promise.all([
       supabase
         .from('characters')
-        .select('id, portrait_ref, personal_title')
+        .select('id, xp, portrait_ref, personal_title')
         .in('id', [...characterIds]),
       supabase.rpc('get_character_public_active_disciplines_v1', {
         p_character_ids: [...characterIds],
@@ -147,6 +157,8 @@ async function loadPublicCharacterIdentityMap(
       if (!row || typeof row.id !== 'string') continue
       const build = buildMap.get(row.id)
       identityMap.set(row.id, {
+        xp:
+          typeof row.xp === 'number' && Number.isSafeInteger(row.xp) && row.xp >= 0 ? row.xp : null,
         portraitRef: typeof row.portrait_ref === 'string' ? row.portrait_ref : null,
         disciplineId: build?.disciplineId ?? null,
         secondaryDisciplineId: build?.secondaryDisciplineId ?? null,
@@ -158,31 +170,82 @@ async function loadPublicCharacterIdentityMap(
   return identityMap
 }
 
+async function loadPublicCharacterPresentationMaps(characterIds: readonly string[]) {
+  const identities = new Map<string, PublicCharacterIdentity>()
+  const images = new Map<string, string>()
+  // Keep UUID filters below gateway URL limits and each read below the Data API row limit.
+  // Sequential batches bound load while the independent identity/image reads run together.
+  for (let offset = 0; offset < characterIds.length; offset += 100) {
+    const ids = characterIds.slice(offset, offset + 100)
+    const [identityMap, imageMap] = await Promise.all([
+      loadPublicCharacterIdentityMap(ids),
+      loadPublicCharacterProfileImageMap(ids).catch(() => new Map<string, string>()),
+    ])
+    for (const [id, identity] of identityMap) identities.set(id, identity)
+    for (const [id, image] of imageMap) images.set(id, image)
+  }
+  // The catalogue RPC returns one JSONB array, so it cannot take table filters.
+  // Read it once on the server and project only names for already-public identities.
+  // Never send authored definitions, unlocks, grants or stats through the public roster.
+  const disciplineIds = new Set(
+    [...identities.values()].flatMap((identity) =>
+      [identity.disciplineId, identity.secondaryDisciplineId].filter(
+        (id): id is string => id !== null,
+      ),
+    ),
+  )
+  const names = new Map<string, string>()
+  if (disciplineIds.size > 0) {
+    const { data, error } = await createSupabaseAdminClient().rpc(
+      'get_current_discipline_catalog_v1',
+    )
+    if (!error && Array.isArray(data)) {
+      for (const row of data) {
+        if (
+          row &&
+          typeof row.discipline_id === 'string' &&
+          disciplineIds.has(row.discipline_id) &&
+          typeof row.name === 'string' &&
+          row.name.trim()
+        )
+          names.set(row.discipline_id, row.name.trim())
+      }
+    }
+  }
+  for (const identity of identities.values()) {
+    identity.disciplineName = identity.disciplineId
+      ? (names.get(identity.disciplineId) ?? null)
+      : null
+    identity.secondaryDisciplineName = identity.secondaryDisciplineId
+      ? (names.get(identity.secondaryDisciplineId) ?? null)
+      : null
+  }
+  return [identities, images] as const
+}
+
 export async function listOnlineCharacters(): Promise<OnlineCharacter[]> {
-  const supabase = createSupabaseAdminClient()
-  const { data, error } = await supabase.rpc('list_online_characters_v1')
-  if (error || !Array.isArray(data)) throw unavailable()
+  const data = await loadPresenceRows('list_online_characters_v1')
 
   const base = parseOnlineCharacters(data)
   if (base.length === 0) return base
   const ids = base.map((row) => row.characterId)
 
   // Public online identity is deliberately shallow: portrait/title plus the current committed
-  // Primary/Secondary Discipline pair only. Never expose stats, skills, account identifiers,
-  // currencies, inventory, progression, or other private build data.
-  const [identityMap, imageMap] = await Promise.all([
-    loadPublicCharacterIdentityMap(ids),
-    loadPublicCharacterProfileImageMap(ids).catch(() => new Map<string, string>()),
-  ])
+  // Primary/Secondary Discipline pair and Owner-approved current Character EXP only. Never expose
+  // stats, skills, account identifiers, currencies, inventory or private progression receipts.
+  const [identityMap, imageMap] = await loadPublicCharacterPresentationMaps(ids)
 
   return base
     .map((row) => {
       const identity = identityMap.get(row.characterId)
       return {
         ...row,
+        xp: identity?.xp ?? null,
         portraitRef: identity?.portraitRef ?? null,
         disciplineId: identity?.disciplineId ?? null,
         secondaryDisciplineId: identity?.secondaryDisciplineId ?? null,
+        disciplineName: identity?.disciplineName ?? null,
+        secondaryDisciplineName: identity?.secondaryDisciplineName ?? null,
         personalTitle: identity?.personalTitle ?? null,
         imageUrl: imageMap.get(row.characterId) ?? null,
       }
@@ -191,17 +254,16 @@ export async function listOnlineCharacters(): Promise<OnlineCharacter[]> {
 }
 
 export async function listCharacterPresenceDirectory(): Promise<CharacterPresenceDirectoryEntry[]> {
-  const supabase = createSupabaseAdminClient()
-  const { data, error } = await supabase.rpc('list_character_presence_directory_v1')
-  if (error || !Array.isArray(data)) throw unavailable()
+  const data = await loadPresenceRows('list_character_presence_directory_v1')
 
   const base: CharacterPresenceDirectoryEntry[] = []
-  for (const row of data) {
+  for (const candidate of data) {
+    if (!candidate || typeof candidate !== 'object') continue
+    const row = candidate as Record<string, unknown>
     if (
-      row &&
-      typeof row === 'object' &&
       typeof row.character_id === 'string' &&
       typeof row.character_name === 'string' &&
+      typeof row.character_level === 'number' &&
       Number.isSafeInteger(row.character_level) &&
       (row.last_seen_at === null || typeof row.last_seen_at === 'string') &&
       typeof row.is_online === 'boolean'
@@ -210,6 +272,7 @@ export async function listCharacterPresenceDirectory(): Promise<CharacterPresenc
         characterId: row.character_id,
         name: row.character_name,
         level: row.character_level,
+        xp: null,
         lastSeenAt: row.last_seen_at,
         portraitRef: null,
         disciplineId: null,
@@ -224,22 +287,48 @@ export async function listCharacterPresenceDirectory(): Promise<CharacterPresenc
   if (base.length === 0) return base
   const ids = base.map((row) => row.characterId)
 
-  const [identityMap, imageMap] = await Promise.all([
-    loadPublicCharacterIdentityMap(ids),
-    loadPublicCharacterProfileImageMap(ids).catch(() => new Map<string, string>()),
-  ])
+  const [identityMap, imageMap] = await loadPublicCharacterPresentationMaps(ids)
 
   return base.map((row) => {
     const identity = identityMap.get(row.characterId)
     return {
       ...row,
+      xp: identity?.xp ?? null,
       portraitRef: identity?.portraitRef ?? null,
       disciplineId: identity?.disciplineId ?? null,
       secondaryDisciplineId: identity?.secondaryDisciplineId ?? null,
+      disciplineName: identity?.disciplineName ?? null,
+      secondaryDisciplineName: identity?.secondaryDisciplineName ?? null,
       personalTitle: identity?.personalTitle ?? null,
       imageUrl: imageMap.get(row.characterId) ?? null,
     }
   })
+}
+
+async function loadPresenceRows(
+  procedure: 'list_online_characters_v1' | 'list_character_presence_directory_v1',
+): Promise<unknown[]> {
+  const supabase = createSupabaseAdminClient()
+  const rows: unknown[] = []
+  const pageSize = 500
+  let afterId: string | null = null
+
+  // Page the primary RPC as well as its identity hydration. Immutable UUID ordering avoids
+  // missing/duplicating characters when live heartbeat timestamps change between requests.
+  while (true) {
+    const query = supabase.rpc(procedure).order('character_id', { ascending: true }).limit(pageSize)
+    if (afterId !== null) query.gt('character_id', afterId)
+    const { data, error } = await query
+    if (error || !Array.isArray(data)) throw unavailable()
+    rows.push(...data)
+    if (data.length < pageSize) return rows
+
+    const lastRow: unknown = data.at(-1)
+    if (!lastRow || typeof lastRow !== 'object' || !('character_id' in lastRow)) throw unavailable()
+    const nextId = lastRow.character_id
+    if (typeof nextId !== 'string' || (afterId !== null && nextId <= afterId)) throw unavailable()
+    afterId = nextId
+  }
 }
 
 function unavailable(): AurevaneError {

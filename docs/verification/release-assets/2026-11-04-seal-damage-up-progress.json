@@ -1,0 +1,308 @@
+{
+  "status": "verified-live-for-owner-testing",
+  "pr": 1015,
+  "testedHead": "c632198c075e365ec431a52845cb8c516acc38be",
+  "merge": "dc6ba0349dc127018044fd59dcc78ed9316f9d61",
+  "tree": "7d88851e41518c374ce384df8c7be99d6f791f82",
+  "deployment": "dpl_E9j4htHeNBGb5a385ea3H5TuhxJT",
+  "host": "aurevane-3bcyfzpnq-zeijms-projects.vercel.app",
+  "canonical": "https://aurevane.vercel.app",
+  "all19WorkflowsPassed": true,
+  "stagedProbesPassed": 10,
+  "canonicalRetirementProbes": [
+    {
+      "url": "https://aurevane.vercel.app/",
+      "headers": {},
+      "expected": 200,
+      "status": 200,
+      "pass": true
+    },
+    {
+      "url": "https://aurevane.vercel.app/manual",
+      "headers": {},
+      "expected": 200,
+      "status": 200,
+      "pass": true
+    },
+    {
+      "url": "https://aurevane.vercel.app/master",
+      "headers": {},
+      "expected": 503,
+      "status": 503,
+      "pass": true
+    },
+    {
+      "url": "https://aurevane.vercel.app/api/master/access",
+      "headers": {},
+      "expected": 503,
+      "status": 503,
+      "pass": true
+    },
+    {
+      "url": "https://aurevane-6xkck8928-zeijms-projects.vercel.app/",
+      "headers": {},
+      "expected": 503,
+      "status": 503,
+      "pass": true
+    },
+    {
+      "url": "https://aurevane.vercel.app/?dpl=dpl_4oqVgUh9J6PJKEuw5NwepntitgS2",
+      "headers": {},
+      "expected": 503,
+      "status": 503,
+      "pass": true
+    },
+    {
+      "url": "https://aurevane.vercel.app/",
+      "headers": {
+        "x-deployment-id": "dpl_4oqVgUh9J6PJKEuw5NwepntitgS2"
+      },
+      "expected": 503,
+      "status": 503,
+      "pass": true
+    },
+    {
+      "url": "https://aurevane.vercel.app/",
+      "headers": {
+        "Cookie": "__vdpl=dpl_4oqVgUh9J6PJKEuw5NwepntitgS2"
+      },
+      "expected": 503,
+      "status": 503,
+      "pass": true
+    },
+    {
+      "url": "https://aurevane.vercel.app/?dpl=dpl_E9j4htHeNBGb5a385ea3H5TuhxJT",
+      "headers": {},
+      "expected": 200,
+      "status": 200,
+      "pass": true
+    },
+    {
+      "url": "https://aurevane.vercel.app/",
+      "headers": {
+        "x-deployment-id": "dpl_E9j4htHeNBGb5a385ea3H5TuhxJT"
+      },
+      "expected": 200,
+      "status": 200,
+      "pass": true
+    }
+  ],
+  "retirementRoutingVersion": "31125157-0fb5-4e58-8156-fe1b1136fdef",
+  "routingRuleCount": 9,
+  "holdRuleId": "b8d7f6c0-1c2a-4c0e-9b11-6520b6781015",
+  "retirementVerifiedAt": "2026-11-04T22:16:41.294834+00:00",
+  "drainNotBefore": "2026-11-04T22:49:11.294834+00:00",
+  "sealMigrationApplied": true,
+  "finalReleaseVerified": true,
+  "automaticDomainAssignmentDisabled": true,
+  "next": "Owner gameplay acceptance; no further deployment is authorized by this receipt.",
+  "hostedMigration": {
+    "version": "20261104231024",
+    "name": "seal_tag_identity"
+  },
+  "finalRoutingVersion": "fc781f28-7619-4bc0-85ae-6ecc7d4cc3fd",
+  "masterHoldRemoved": true,
+  "finalSmoke": {
+    "verifiedAt": "2026-11-04T23:11:17.627717+00:00",
+    "cases": [
+      {
+        "url": "https://aurevane.vercel.app/",
+        "headers": {},
+        "expected": 200,
+        "status": 200,
+        "location": null,
+        "pass": true
+      },
+      {
+        "url": "https://aurevane.vercel.app/manual",
+        "headers": {},
+        "expected": 200,
+        "status": 200,
+        "location": null,
+        "pass": true
+      },
+      {
+        "url": "https://aurevane.vercel.app/master",
+        "headers": {},
+        "expected": 307,
+        "status": 307,
+        "location": "/",
+        "pass": true
+      },
+      {
+        "url": "https://aurevane.vercel.app/game",
+        "headers": {},
+        "expected": 307,
+        "status": 307,
+        "location": "/",
+        "pass": true
+      },
+      {
+        "url": "https://aurevane.vercel.app/api/master/access",
+        "headers": {},
+        "expected": 401,
+        "status": 401,
+        "location": null,
+        "pass": true
+      },
+      {
+        "url": "https://aurevane-6xkck8928-zeijms-projects.vercel.app/",
+        "headers": {},
+        "expected": 503,
+        "status": 503,
+        "location": null,
+        "pass": true
+      },
+      {
+        "url": "https://aurevane.vercel.app/?dpl=dpl_4oqVgUh9J6PJKEuw5NwepntitgS2",
+        "headers": {},
+        "expected": 503,
+        "status": 503,
+        "location": null,
+        "pass": true
+      },
+      {
+        "url": "https://aurevane.vercel.app/",
+        "headers": {
+          "x-deployment-id": "dpl_4oqVgUh9J6PJKEuw5NwepntitgS2"
+        },
+        "expected": 503,
+        "status": 503,
+        "location": null,
+        "pass": true
+      },
+      {
+        "url": "https://aurevane.vercel.app/",
+        "headers": {
+          "Cookie": "__vdpl=dpl_4oqVgUh9J6PJKEuw5NwepntitgS2"
+        },
+        "expected": 503,
+        "status": 503,
+        "location": null,
+        "pass": true
+      },
+      {
+        "url": "https://aurevane.vercel.app/?dpl=dpl_E9j4htHeNBGb5a385ea3H5TuhxJT",
+        "headers": {},
+        "expected": 200,
+        "status": 200,
+        "location": null,
+        "pass": true
+      },
+      {
+        "url": "https://aurevane.vercel.app/",
+        "headers": {
+          "x-deployment-id": "dpl_E9j4htHeNBGb5a385ea3H5TuhxJT"
+        },
+        "expected": 200,
+        "status": 200,
+        "location": null,
+        "pass": true
+      },
+      {
+        "url": "https://aurevane.vercel.app/",
+        "headers": {
+          "Cookie": "__vdpl=dpl_E9j4htHeNBGb5a385ea3H5TuhxJT"
+        },
+        "expected": 200,
+        "status": 200,
+        "location": null,
+        "pass": true
+      }
+    ]
+  },
+  "preservation": {
+    "preservation": [
+      {
+        "label": "combat_content_records",
+        "amount": 428,
+        "digest": "08c7918cfe6313ecfb9a269ebc5bf370"
+      },
+      {
+        "label": "combat_content_versions",
+        "amount": 1485,
+        "digest": "bfba6d4ed57b4f823701af15cd2cebb7"
+      },
+      {
+        "label": "combat_content_publications",
+        "amount": 317,
+        "digest": "6a2b84bcba88e4406f74af2032884f72"
+      },
+      {
+        "label": "combat_content_drafts",
+        "amount": 3,
+        "digest": "0b1b1a8143077a80a8deb63afaab7439"
+      },
+      {
+        "label": "combat_effect_timing_policy_versions",
+        "amount": 11,
+        "digest": "67827bdbb28a4efc51e293d0b56c9985"
+      },
+      {
+        "label": "runtime_item_source_definitions",
+        "amount": 60,
+        "digest": "b1cb8603c23eb16865890d3d4cb2b960"
+      },
+      {
+        "label": "character_item_inventory",
+        "amount": 2,
+        "digest": "4174b7462b7a17eb809365f3ec20fb39"
+      },
+      {
+        "label": "character_item_stacks",
+        "amount": 94,
+        "digest": "ee1f5a4c0395df75cc7f6c81cd8d6ab7"
+      },
+      {
+        "label": "character_item_grants",
+        "amount": 2,
+        "digest": "e2b628e65c11463ab5d1548173fac118"
+      }
+    ],
+    "postflight": {
+      "verified_at": "2026-11-04 23:10:42.78979+00",
+      "identity": [
+        {
+          "lifecycle": "active",
+          "content_key": "tag.seal",
+          "builtin_name": "Seal",
+          "content_kind": "tag",
+          "builtin_version": 1
+        }
+      ],
+      "presentation_registered": true,
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": false,
+      "timing_writers": [
+        {
+          "acl": ["postgres=X/postgres"],
+          "seal": true,
+          "owner": "16388",
+          "identity": "publish_combat_effect_timing_policy_v1(uuid,integer,jsonb,text)"
+        },
+        {
+          "acl": ["postgres=X/postgres"],
+          "seal": true,
+          "owner": "16388",
+          "identity": "publish_combat_effect_timing_policy_v1(uuid,integer,jsonb,text,uuid)"
+        }
+      ],
+      "migration": [
+        {
+          "name": "seal_tag_identity",
+          "version": "20261104231024"
+        }
+      ]
+    }
+  },
+  "sourceMigrationSha256": "dea18741af5a03cbe15b6b269c3b3c11930e58fdab137b3509d4e1d49d089ce7",
+  "guardedMigrationSha256": "bc26c36b2a8734465bcabcea1b7d344032a902fc38a7bb9b121a78fbc756a80b",
+  "runtimeErrorScan": {
+    "since": "2026-11-04T23:10:42Z",
+    "until": "2026-11-04T23:11:28.600Z",
+    "levels": ["error", "fatal"],
+    "results": 0
+  },
+  "ownerAcceptance": "pending"
+}

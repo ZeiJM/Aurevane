@@ -1,0 +1,1101 @@
+import { mapSceneDomain } from './map-scene-domain'
+import { sectorMapOrigin } from '@/world/topology'
+import { ATLAS_COLUMNS, ATLAS_ROWS } from '@/world/topology'
+import { GRID_HEIGHT, GRID_WIDTH } from '@/world/catalog'
+import { hashString } from '@/world/terrain-gen'
+import type { WorldCell as TerrainCell, WorldSectorView } from '@/world/types'
+
+type Point = readonly [number, number]
+type Curve = readonly [Point, Point, Point, Point]
+type Side = 0 | 1 | 2 | 3
+type WaterfallStyle = 'water' | 'grand' | 'lava'
+const worldWidth = ATLAS_COLUMNS * GRID_WIDTH
+const wrapX = (x: number) => ((x % worldWidth) + worldWidth) % worldWidth
+// Integral longitude frequencies meet in both value and slope at the atlas seam.
+const longitudeFrequency = (radians: number) =>
+  (Math.round((worldWidth * radians) / (Math.PI * 2)) * Math.PI * 2) / worldWidth
+/** Source-art channel coordinates: only the falling water moves, never its rocks. */
+export function waterfallHighlights(now: number, style: WaterfallStyle = 'water') {
+  return Array.from({ length: 8 }, (_, i) => {
+    const lower = i >= 4,
+      phase = (now / (820 + i * 39) + (i % 4) / 4) % 1,
+      standard = style === 'water'
+    return {
+      x: (standard ? (lower ? 0.48 : 0.47) : lower ? 0.49 : 0.5) + ((i % 3) - 1) * 0.013,
+      y:
+        (standard ? (lower ? 0.51 : 0.32) : lower ? 0.5 : 0.2) +
+        phase * (standard ? 0.13 : lower ? 0.258 : 0.178),
+      length: 0.022,
+      alpha: Math.sin(phase * Math.PI) * 0.32,
+    }
+  })
+}
+export function paintWaterfallMotion(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  now: number,
+  windSpeed = 0,
+  spray = true,
+  style: WaterfallStyle = 'water',
+) {
+  const lava = style === 'lava',
+    impactY = style === 'water' ? 0.78 : 0.9
+  context.save()
+  context.strokeStyle = lava ? '#ffe0a0' : '#e4f6f1'
+  context.lineCap = 'round'
+  context.lineWidth = Math.max(0.6, width * 0.007)
+  for (const point of waterfallHighlights(now, style)) {
+    context.globalAlpha = point.alpha
+    context.beginPath()
+    context.moveTo(x + point.x * width, y + point.y * height)
+    context.lineTo(x + point.x * width, y + (point.y + point.length) * height)
+    context.stroke()
+  }
+  const phase = (now / 2400) % 1
+  context.globalAlpha = (1 - phase) * 0.18
+  context.beginPath()
+  context.ellipse(
+    x + width * 0.49,
+    y + height * impactY,
+    width * (0.05 + phase * 0.12),
+    height * (0.015 + phase * 0.025),
+    0,
+    0,
+    Math.PI * 2,
+  )
+  context.stroke()
+  if (spray) {
+    // Only airborne spray/embers drift; the painted sheet and impact stay fixed.
+    context.fillStyle = lava ? '#ffc36b' : '#d7efed'
+    for (let i = 0; i < 6; i++) {
+      const age = (now / (1100 + i * 87) + i / 6) % 1
+      const side = i % 2 ? 1 : -1
+      const drift = windSpeed * 3.4 * age ** 1.45 + side * age * (0.024 + (i % 3) * 0.012)
+      const rise = Math.sin(age * Math.PI * 0.8) * ((lava ? 0.06 : 0.033) + (i % 3) * 0.015)
+      const size = Math.max(0.65, width * (0.004 + age * 0.013))
+      context.globalAlpha = Math.sin(age * Math.PI) * (0.36 - age * 0.16)
+      context.beginPath()
+      context.ellipse(
+        x + width * (0.49 + drift),
+        y + height * (impactY - rise),
+        size * (lava ? 0.35 : 1),
+        size * (lava ? 0.72 : 0.58),
+        0,
+        0,
+        Math.PI * 2,
+      )
+      context.fill()
+    }
+  }
+  context.restore()
+}
+interface Bank {
+  side: Side
+  edge: Curve[]
+  shallow: Curve[]
+}
+export interface WaterBasin {
+  left: number
+  top: number
+  width: number
+  height: number
+  seed: number
+}
+export interface WaterCell {
+  x: number
+  y: number
+  seed: number
+  channel: boolean
+  banks: Bank[]
+  flow: Curve
+  /** Cosmetic distance from a supplied dry bank, capped at three water cells. */
+  depth?: number
+  cornerDepths?: readonly [number, number, number, number]
+  shallow?: boolean
+  /** Shared registration only after the complete body and its banks are supplied. */
+  basin?: WaterBasin
+}
+export const isWaterTerrain = (terrain: string | undefined) => terrain === '~' || terrain === 'w'
+interface WaterSector {
+  key: string
+  cells: Map<string, WaterCell>
+}
+type WaterTint = NonNullable<WorldSectorView['warpedTheme']> | boolean
+interface VoidWaterPalette {
+  base: readonly [string, string, string]
+  shallow: readonly [number, number, number]
+  deep: readonly [number, number, number]
+  glint: string
+}
+// Shared by cached depths, bridge undersides and animated reflections.
+const voidWater: Record<NonNullable<WorldSectorView['warpedTheme']>, VoidWaterPalette> = {
+  haven: {
+    base: ['#71679a', '#b8a1d6', '#49466f'],
+    shallow: [204, 189, 232],
+    deep: [65, 54, 107],
+    glint: '#ede0ff',
+  },
+  ashen: {
+    base: ['#736b91', '#c6bfd9', '#514b70'],
+    shallow: [223, 218, 238],
+    deep: [91, 80, 126],
+    glint: '#f4efff',
+  },
+  fracture: {
+    base: ['#665176', '#ae83b6', '#43365e'],
+    shallow: [208, 174, 218],
+    deep: [68, 45, 96],
+    glint: '#efd3fa',
+  },
+  wayfarer: {
+    base: ['#6d4269', '#b86f9b', '#493b6c'],
+    shallow: [224, 168, 204],
+    deep: [73, 46, 103],
+    glint: '#f7d2ee',
+  },
+  amber: {
+    base: ['#793d27', '#d78545', '#572942'],
+    shallow: [233, 164, 99],
+    deep: [104, 45, 62],
+    glint: '#fce0bd',
+  },
+  amethyst: {
+    base: ['#563786', '#8e61c5', '#4b3476'],
+    shallow: [159, 128, 193],
+    deep: [56, 40, 94],
+    glint: '#e0c5f1',
+  },
+}
+const waterPalette = (tint: WaterTint) =>
+  tint ? voidWater[tint === true ? 'amethyst' : tint] : undefined
+const rgba = (colour: readonly number[], alpha: number) => `rgba(${colour.join(',')},${alpha})`
+
+const depthRasters = new WeakMap<
+  CanvasRenderingContext2D,
+  {
+    layer: HTMLCanvasElement
+    context: CanvasRenderingContext2D
+    pixels: ImageData
+  }
+>()
+const directions = [
+  [0, -1],
+  [1, 0],
+  [0, 1],
+  [-1, 0],
+] as const
+const cellKey = (x: number, y: number) => `${x}:${y}`
+const bankPoint = (side: Side, along: number, inset: number): Point =>
+  side === 0
+    ? [along, inset]
+    : side === 1
+      ? [1 - inset, along]
+      : side === 2
+        ? [along, 1 - inset]
+        : [inset, along]
+
+function bankCurves(
+  side: Side,
+  worldX: number,
+  worldY: number,
+  shallow: boolean,
+  namespace: string,
+): Curve[] {
+  const vertical = side === 1 || side === 3
+  const along = vertical ? worldY : worldX
+  const boundary = vertical ? worldX + Number(side === 1) : worldY + Number(side === 2)
+  const across = vertical && namespace === 'atlas' ? wrapX(boundary) : boundary
+  const salt = ((hashString(`${namespace}:${across}:bank`) % 997) / 997) * Math.PI * 2
+  // Broad meanders span roughly seven cells; finer irregularities roughen the
+  // shore without resetting its position or tangent at every tile boundary.
+  const broad = vertical || namespace !== 'atlas' ? 0.85 : longitudeFrequency(0.85)
+  const fine = vertical || namespace !== 'atlas' ? 11.1 : longitudeFrequency(11.1)
+  const inset = (t: number) =>
+    (shallow ? 0.225 : 0.09) +
+    Math.sin((along + t) * broad + salt) * (shallow ? 0.034 : 0.042) +
+    Math.sin((along + t) * fine + across * 0.43 + salt) * (shallow ? 0.018 : 0.036)
+  const derivative = (t: number) =>
+    Math.cos((along + t) * broad + salt) * broad * (shallow ? 0.034 : 0.042) +
+    Math.cos((along + t) * fine + across * 0.43 + salt) * fine * (shallow ? 0.018 : 0.036)
+  return [0, 0.25, 0.5, 0.75].map((t) => [
+    bankPoint(side, t, inset(t)),
+    bankPoint(side, t + 1 / 12, inset(t) + derivative(t) / 12),
+    bankPoint(side, t + 1 / 6, inset(t + 0.25) - derivative(t + 0.25) / 12),
+    bankPoint(side, t + 0.25, inset(t + 0.25)),
+  ])
+}
+
+function currentCurve(
+  worldX: number,
+  worldY: number,
+  connected: boolean[],
+  publicAtlas: boolean,
+): Curve {
+  let start: Side = 0,
+    end: Side = 2
+  if (connected[0] && connected[2]) {
+    start = 0
+    end = 2
+  } else if (connected[1] && connected[3]) {
+    start = 3
+    end = 1
+  } else if (connected[0] && connected[1]) {
+    start = 0
+    end = 1
+  } else if (connected[3] && connected[2]) {
+    start = 3
+    end = 2
+  } else if (connected[0] && connected[3]) {
+    start = 0
+    end = 3
+  } else if (connected[2] && connected[1]) {
+    start = 1
+    end = 2
+  } else if (connected[1] || connected[3]) {
+    start = 3
+    end = 1
+  }
+  const port = (side: Side): Point => {
+    const vertical = side === 0 || side === 2
+    // Both cells sharing an edge evaluate exactly the same world-space port.
+    const along = vertical ? worldY + Number(side === 2) : worldX + Number(side === 1)
+    const across = vertical ? worldX : worldY
+    const phase = vertical
+      ? along * 0.67 + (publicAtlas ? wrapX(across) : across) * 0.31
+      : along * (publicAtlas ? longitudeFrequency(0.67) : 0.67) + across * 0.31
+    return bankPoint(side, 0.5 + Math.sin(phase) * 0.065, 0)
+  }
+  const a = port(start),
+    b = port(end)
+  const inward = (p: Point, side: Side): Point => [
+    p[0] - directions[side][0] * 0.42,
+    p[1] - directions[side][1] * 0.42,
+  ]
+  return [a, inward(a, start), inward(b, end), b]
+}
+
+/** Only supplied cells participate. Private/legacy sectors have their own namespace. */
+export function buildWaterField(
+  sectors: readonly WorldSectorView[],
+  material: 'water' | 'lava' = 'water',
+): Map<string, WaterSector> {
+  const liquid = material === 'lava' ? 'l' : '~'
+  const matches = (terrain: string | undefined) =>
+    material === 'water' ? isWaterTerrain(terrain) : terrain === liquid
+  // Most movement windows contain no lava. Keep their empty entries without
+  // constructing an address for every dry cell or resolving private domains.
+  if (!sectors.some((sector) => sector.cells.some((cell) => matches(cell.terrain))))
+    return new Map(sectors.map((sector) => [sector.id, { key: '[]', cells: new Map() }]))
+  const domains = new Map(sectors.map((sector) => [sector, mapSceneDomain(sector)]))
+  const namespace = (sector: WorldSectorView) => domains.get(sector)!
+  // Numeric columns/rows avoid allocating thousands of repeated namespace
+  // strings. Last supplied cells still win at coincident addresses.
+  const terrain = new Map<string, Map<number, Map<number, TerrainCell>>>()
+  const terrainAt = (space: string, x: number, y: number) =>
+    terrain
+      .get(space)
+      ?.get(space === 'atlas' ? wrapX(x) : x)
+      ?.get(y)
+  const address = (sector: WorldSectorView, x: number, y: number) =>
+    `${namespace(sector)}:${cellKey(namespace(sector) === 'atlas' ? ((x % (ATLAS_COLUMNS * GRID_WIDTH)) + ATLAS_COLUMNS * GRID_WIDTH) % (ATLAS_COLUMNS * GRID_WIDTH) : x, y)}`
+  for (const sector of sectors) {
+    const { x: ox, y: oy } = sectorMapOrigin(sector)
+    const space = namespace(sector)
+    let columns = terrain.get(space)
+    if (!columns) terrain.set(space, (columns = new Map()))
+    for (const cell of sector.cells) {
+      const x = space === 'atlas' ? wrapX(ox + cell.x) : ox + cell.x
+      let rows = columns.get(x)
+      if (!rows) columns.set(x, (rows = new Map()))
+      rows.set(oy + cell.y, cell)
+    }
+  }
+  const field = new Map<string, WaterSector>()
+  const water = new Map<string, WaterCell>()
+  for (const sector of sectors) {
+    const cells = new Map<string, WaterCell>()
+    const { x: ox, y: oy } = sectorMapOrigin(sector)
+    for (const cell of sector.cells) {
+      if (!matches(cell.terrain)) continue
+      const wx = ox + cell.x,
+        wy = oy + cell.y
+      const neighbours = directions.map(([dx, dy]) => {
+        const at = (distance: number) =>
+          terrainAt(namespace(sector), wx + dx * distance, wy + dy * distance)
+        const neighbour = at(1)
+        if (neighbour?.terrain === '=' && neighbour.walkable)
+          for (let distance = 2; distance <= 4; distance++) {
+            const next = at(distance)
+            // The dry bridge remains dry and legal. Only a supplied matching
+            // liquid endpoint proves that this bank continues beneath its deck.
+            if (matches(next?.terrain)) return liquid
+            if (next?.terrain !== '=' || !next.walkable) break
+          }
+        return neighbour?.terrain === '?' ? undefined : neighbour?.terrain
+      })
+      const banks: Bank[] = []
+      neighbours.forEach((material, side) => {
+        // Unknown cells are neither invented land nor an exposed shoreline.
+        if (material === undefined || matches(material)) return
+        banks.push({
+          side: side as Side,
+          edge: bankCurves(side as Side, wx, wy, false, namespace(sector)),
+          shallow: bankCurves(side as Side, wx, wy, true, namespace(sector)),
+        })
+      })
+      const connected = neighbours.map((material) => matches(material))
+      const connectionCount = connected.filter(Boolean).length
+      const profile: WaterCell = {
+        x: cell.x,
+        y: cell.y,
+        seed: hashString(`${namespace(sector)}:${wx}:${wy}:${material}`),
+        channel: connectionCount > 0 && connectionCount <= 2,
+        banks,
+        flow: currentCurve(wx, wy, connected, namespace(sector) === 'atlas'),
+        depth: banks.length || cell.terrain === 'w' ? 0 : 3,
+        shallow: cell.terrain === 'w',
+      }
+      cells.set(cellKey(cell.x, cell.y), profile)
+      water.set(address(sector, wx, wy), profile)
+    }
+    // Adjacent changes must invalidate a cached bank even when its own cells are identical.
+    field.set(sector.id, { key: JSON.stringify([...cells.values()]), cells })
+  }
+  // Multi-source breadth-first propagation visits known water only. Missing and
+  // private neighbors cannot become invented banks, depths or revealed terrain.
+  let frontier = [...water.entries()].filter(([, cell]) => cell.depth === 0).map(([key]) => key)
+  for (let depth = 1; depth < 3; depth++) {
+    const next: string[] = []
+    for (const key of frontier) {
+      const split = key.lastIndexOf(':'),
+        before = key.lastIndexOf(':', split - 1)
+      const space = key.slice(0, before),
+        x = Number(key.slice(before + 1, split)),
+        y = Number(key.slice(split + 1))
+      for (const [dx, dy] of directions) {
+        const nx =
+          space === 'atlas'
+            ? (x + dx + ATLAS_COLUMNS * GRID_WIDTH) % (ATLAS_COLUMNS * GRID_WIDTH)
+            : x + dx
+        const neighborKey = `${space}:${cellKey(nx, y + dy)}`
+        const neighbor = water.get(neighborKey)
+        if (!neighbor || neighbor.depth! <= depth) continue
+        neighbor.depth = depth
+        next.push(neighborKey)
+      }
+    }
+    frontier = next
+  }
+  // A fully supplied closed body may share one generated surface registration.
+  // Missing cells and other scene domains can never complete its perimeter.
+  const visited = new Set<string>()
+  for (const first of water.keys()) {
+    if (visited.has(first)) continue
+    const split = first.lastIndexOf(':'),
+      before = first.lastIndexOf(':', split - 1)
+    const space = first.slice(0, before)
+    const queue = [
+      { key: first, x: Number(first.slice(before + 1, split)), y: Number(first.slice(split + 1)) },
+    ]
+    const body: WaterCell[] = []
+    let closed = true,
+      left = Infinity,
+      top = Infinity,
+      right = -Infinity,
+      bottom = -Infinity
+    visited.add(first)
+    for (let i = 0; i < queue.length; i++) {
+      const at = queue[i]!,
+        cell = water.get(at.key)!
+      body.push(cell)
+      left = Math.min(left, at.x)
+      right = Math.max(right, at.x)
+      top = Math.min(top, at.y)
+      bottom = Math.max(bottom, at.y)
+      for (const [dx, dy] of directions) {
+        const x = at.x + dx,
+          y = at.y + dy
+        const key = `${space}:${cellKey(space === 'atlas' ? wrapX(x) : x, y)}`
+        const known = terrainAt(space, x, y)
+        if (!known || known.terrain === '?') {
+          closed = false
+          continue
+        }
+        if (!water.has(key) || visited.has(key)) continue
+        visited.add(key)
+        queue.push({ key, x, y })
+      }
+    }
+    const width = right - left + 1,
+      height = bottom - top + 1
+    if (
+      !closed ||
+      body.length < 6 ||
+      width < 3 ||
+      height < 3 ||
+      body.length / (width * height) < 0.42 ||
+      Math.max(width / height, height / width) > 3
+    )
+      continue
+    const canonicalLeft = space === 'atlas' ? wrapX(left) : left
+    const basin = {
+      left: canonicalLeft,
+      top,
+      width,
+      height,
+      seed: hashString(`${space}:${canonicalLeft}:${top}:${width}:${height}:basin`),
+    }
+    for (const cell of body) cell.basin = basin
+  }
+  for (const sector of sectors) {
+    const part = field.get(sector.id)!
+    const { x: ox, y: oy } = sectorMapOrigin(sector)
+    for (const cell of part.cells.values()) {
+      cell.cornerDepths = [
+        [0, 0],
+        [1, 0],
+        [1, 1],
+        [0, 1],
+      ].map(([cx, cy]) => {
+        const depths = [-1, 0].flatMap((dy) =>
+          [-1, 0].flatMap((dx) => {
+            const neighbor = water.get(
+              address(sector, ox + cell.x + cx! + dx, oy + cell.y + cy! + dy),
+            )
+            return neighbor ? [neighbor.depth!] : []
+          }),
+        )
+        // Shallow cells already seed zero depth before propagation. A second
+        // per-cell cap gives the same shared vertex two different colours and
+        // exposes tile diamonds where a ford meets deeper water.
+        return depths.reduce((sum, depth) => sum + depth, 0) / depths.length
+      }) as [number, number, number, number]
+    }
+    part.key = JSON.stringify([...part.cells.values()])
+  }
+  return field
+}
+
+type WaterPath = Pick<CanvasRenderingContext2D, 'moveTo' | 'lineTo' | 'bezierCurveTo' | 'closePath'>
+
+function trace(context: WaterPath, curve: Curve, tile: number, move = true) {
+  if (move) context.moveTo(curve[0][0] * tile, curve[0][1] * tile)
+  context.bezierCurveTo(
+    curve[1][0] * tile,
+    curve[1][1] * tile,
+    curve[2][0] * tile,
+    curve[2][1] * tile,
+    curve[3][0] * tile,
+    curve[3][1] * tile,
+  )
+}
+
+const surfaceClipPaths = new WeakMap<WaterCell, { tile: number; path: Path2D }>()
+
+function traceWaterSurface(context: WaterPath, cell: WaterCell, tile: number) {
+  const banks = new Map(cell.banks.map((bank) => [bank.side, bank]))
+  const sides = ([0, 1, 2, 3] as const).map((side) => {
+    const bank = banks.get(side)
+    const a = bankPoint(side, side < 2 ? 0 : 1, 0),
+      b = bankPoint(side, side < 2 ? 1 : 0, 0)
+    const flat: Curve = [
+      a,
+      [a[0] + (b[0] - a[0]) / 3, a[1] + (b[1] - a[1]) / 3],
+      [a[0] + ((b[0] - a[0]) * 2) / 3, a[1] + ((b[1] - a[1]) * 2) / 3],
+      b,
+    ]
+    const curves = bank
+      ? side < 2
+        ? bank.edge
+        : [...bank.edge].reverse().map(([a, b, c, d]): Curve => [d, c, b, a])
+      : [flat]
+    const from = bank && banks.has(((side + 3) % 4) as Side) ? 0.42 : 0
+    const to = bank && banks.has(((side + 1) % 4) as Side) ? 0.58 : 1
+    const pieces: Curve[] = []
+    for (let i = 0; i < curves.length; i++) {
+      const low = Math.max(from, i / curves.length),
+        high = Math.min(to, (i + 1) / curves.length)
+      if (high <= low) continue
+      pieces.push(stream(curves[i]!, low * curves.length - i, high * curves.length - i, 0))
+    }
+    return { bank: Boolean(bank), pieces }
+  })
+  const start = sides[0]!.pieces[0]![0]
+  context.moveTo(start[0] * tile, start[1] * tile)
+  for (let side = 0; side < 4; side++) {
+    const current = sides[side]!,
+      next = sides[(side + 1) % 4]!
+    for (const curve of current.pieces) {
+      if (current.bank) trace(context, curve, tile, false)
+      else context.lineTo(curve[3][0] * tile, curve[3][1] * tile)
+    }
+    const end = current.pieces.at(-1)!,
+      following = next.pieces[0]!
+    const p = end[3],
+      q = following[0]
+    if (current.bank && next.bank) {
+      // Tangent-aligned corner joins connect the same shared bank curves;
+      // straight rectangular sides cannot reappear between rounded corners.
+      const incoming = [p[0] - end[2][0], p[1] - end[2][1]]
+      const outgoing = [following[1][0] - q[0], following[1][1] - q[1]]
+      const handle = Math.hypot(q[0] - p[0], q[1] - p[1]) * 0.55
+      const a = handle / (Math.hypot(...incoming) || 1),
+        b = handle / (Math.hypot(...outgoing) || 1)
+      context.bezierCurveTo(
+        (p[0] + incoming[0]! * a) * tile,
+        (p[1] + incoming[1]! * a) * tile,
+        (q[0] - outgoing[0]! * b) * tile,
+        (q[1] - outgoing[1]! * b) * tile,
+        q[0] * tile,
+        q[1] * tile,
+      )
+    } else context.lineTo(q[0] * tile, q[1] * tile)
+  }
+  context.closePath()
+}
+function sample(curve: Curve, t: number) {
+  const u = 1 - t
+  return {
+    x:
+      u ** 3 * curve[0][0] +
+      3 * u * u * t * curve[1][0] +
+      3 * u * t * t * curve[2][0] +
+      t ** 3 * curve[3][0],
+    y:
+      u ** 3 * curve[0][1] +
+      3 * u * u * t * curve[1][1] +
+      3 * u * t * t * curve[2][1] +
+      t ** 3 * curve[3][1],
+    dx:
+      3 * u * u * (curve[1][0] - curve[0][0]) +
+      6 * u * t * (curve[2][0] - curve[1][0]) +
+      3 * t * t * (curve[3][0] - curve[2][0]),
+    dy:
+      3 * u * u * (curve[1][1] - curve[0][1]) +
+      6 * u * t * (curve[2][1] - curve[1][1]) +
+      3 * t * t * (curve[3][1] - curve[2][1]),
+  }
+}
+function stream(curve: Curve, from: number, to: number, offset: number): Curve {
+  const a = sample(curve, from),
+    b = sample(curve, to),
+    interval = (to - from) / 3
+  const shift = (point: typeof a): Point => {
+    const length = Math.hypot(point.dx, point.dy) || 1
+    return [point.x - (point.dy / length) * offset, point.y + (point.dx / length) * offset]
+  }
+  const p = shift(a),
+    q = shift(b)
+  return [
+    p,
+    [p[0] + a.dx * interval, p[1] + a.dy * interval],
+    [q[0] - b.dx * interval, q[1] - b.dy * interval],
+    q,
+  ]
+}
+
+/** Trace a moving sub-curve without allocating the temporary nested Curve arrays. */
+function traceStream(
+  context: WaterPath,
+  curve: Curve,
+  from: number,
+  to: number,
+  offset: number,
+  tile: number,
+) {
+  const a = sample(curve, from),
+    b = sample(curve, to),
+    interval = (to - from) / 3,
+    aLength = Math.hypot(a.dx, a.dy) || 1,
+    bLength = Math.hypot(b.dx, b.dy) || 1,
+    px = a.x - (a.dy / aLength) * offset,
+    py = a.y + (a.dx / aLength) * offset,
+    qx = b.x - (b.dy / bLength) * offset,
+    qy = b.y + (b.dx / bLength) * offset
+  context.moveTo(px * tile, py * tile)
+  context.bezierCurveTo(
+    (px + a.dx * interval) * tile,
+    (py + a.dy * interval) * tile,
+    (qx - b.dx * interval) * tile,
+    (qy - b.dy * interval) * tile,
+    qx * tile,
+    qy * tile,
+  )
+}
+function clipCell(context: CanvasRenderingContext2D, tile: number) {
+  context.beginPath()
+  context.rect(0, 0, tile, tile)
+  context.clip()
+  context.lineCap = 'round'
+  context.lineJoin = 'round'
+}
+
+/** Clip only supplied shore curves; unknown/liquid edges stay open to their neighbours. */
+export function clipWaterSurface(context: CanvasRenderingContext2D, cell: WaterCell, tile: number) {
+  if (typeof Path2D !== 'undefined') {
+    let cached = surfaceClipPaths.get(cell)
+    if (!cached || cached.tile !== tile) {
+      const path = new Path2D()
+      traceWaterSurface(path, cell, tile)
+      cached = { tile, path }
+      surfaceClipPaths.set(cell, cached)
+    }
+    context.clip(cached.path)
+    return
+  }
+  context.beginPath()
+  traceWaterSurface(context, cell, tile)
+  context.clip()
+}
+
+function paintDepth(
+  context: CanvasRenderingContext2D,
+  cell: WaterCell,
+  tile: number,
+  shallow: readonly number[],
+  deep: readonly number[],
+) {
+  const corners = cell.cornerDepths ?? [
+    cell.depth ?? 2,
+    cell.depth ?? 2,
+    cell.depth ?? 2,
+    cell.depth ?? 2,
+  ]
+  const colour = (depth: number) => {
+    const t = Math.max(0, Math.min(1, depth / 3))
+    return shallow.map((v, i) => Math.round(v + (deep[i]! - v) * t))
+  }
+  let raster = depthRasters.get(context)
+  if (!raster && typeof document !== 'undefined') {
+    const layer = document.createElement('canvas')
+    layer.width = layer.height = 2
+    const target = layer.getContext('2d')
+    if (target) {
+      raster = { layer, context: target, pixels: target.createImageData(2, 2) }
+      depthRasters.set(context, raster)
+    }
+  }
+  if (raster) {
+    // Shared corner colours align to vertices, avoiding diagonal per-cell depth steps.
+    for (const [pixel, corner] of [0, 1, 3, 2].entries())
+      raster.pixels.data.set([...colour(corners[corner]!), 255], pixel * 4)
+    raster.context.putImageData(raster.pixels, 0, 0)
+    context.imageSmoothingEnabled = true
+    context.drawImage(raster.layer, -tile / 2, -tile / 2, tile * 2, tile * 2)
+  } else {
+    // A failed secondary canvas must not erase material-free depth contrast.
+    const gradient = context.createLinearGradient(0, 0, tile, tile)
+    gradient.addColorStop(0, `rgb(${colour(corners[0]!).join(',')})`)
+    gradient.addColorStop(0.5, `rgb(${colour(corners.reduce((a, b) => a + b, 0) / 4).join(',')})`)
+    gradient.addColorStop(1, `rgb(${colour(corners[2]!).join(',')})`)
+    context.fillStyle = gradient
+    context.fillRect(0, 0, tile, tile)
+  }
+}
+// Inspected water-only rectangles in the 2x2 natural-lakes sheet. Bank foliage,
+// rocks above water and transparent sprite margins stay outside these crops.
+const lakeWaterCrops = [
+  [0.34, 0.35, 0.3, 0.28],
+  [0.55, 0.36, 0.22, 0.3],
+  [0.35, 0.39, 0.26, 0.27],
+  [0.43, 0.36, 0.26, 0.25],
+] as const
+function paintLakeSurface(
+  context: CanvasRenderingContext2D,
+  cell: WaterCell,
+  tile: number,
+  worldX: number,
+  worldY: number,
+  art?: HTMLImageElement,
+) {
+  const basin = cell.basin
+  if (!basin || !art?.complete || !art.naturalWidth) return
+  const index = basin.seed % 4,
+    [x, y, width, height] = lakeWaterCrops[index]!
+  const sw = art.width / 2,
+    sh = art.height / 2
+  const dx = wrapX(worldX - basin.left),
+    dy = worldY - basin.top
+  if (dx >= basin.width || dy < 0 || dy >= basin.height) return
+  context.save()
+  context.globalAlpha = cell.shallow ? 0.22 : 0.42
+  context.drawImage(
+    art,
+    ((index % 2) + x + (dx / basin.width) * width) * sw,
+    (Math.floor(index / 2) + y + (dy / basin.height) * height) * sh,
+    (width * sw) / basin.width,
+    (height * sh) / basin.height,
+    0,
+    0,
+    tile,
+    tile,
+  )
+  context.restore()
+}
+
+/** Static depth, reflected colour and broken filaments belong in the ground cache. */
+export function paintWaterGround(
+  context: CanvasRenderingContext2D,
+  cell: WaterCell,
+  tile: number,
+  tint: WaterTint = false,
+  material?: HTMLImageElement,
+  worldX = cell.x,
+  worldY = cell.y,
+  lakeArt?: HTMLImageElement,
+) {
+  const palette = waterPalette(tint)
+  context.save()
+  context.translate(cell.x * tile, cell.y * tile)
+  clipCell(context, tile)
+  clipWaterSurface(context, cell, tile)
+  const paintTexture = (index: number, alpha: number) => {
+    if (!material?.complete || !material.naturalWidth) return
+    const sw = material.width / 2,
+      sh = material.height / 2
+    const flipX = Math.floor(worldX / 4) % 2 !== 0,
+      flipY = Math.floor(worldY / 4) % 2 !== 0
+    const px = ((worldX % 4) + 4) % 4,
+      py = ((worldY % 4) + 4) % 4
+    context.save()
+    context.globalAlpha = alpha
+    context.translate(flipX ? tile : 0, flipY ? tile : 0)
+    context.scale(flipX ? -1 : 1, flipY ? -1 : 1)
+    context.drawImage(
+      material,
+      (index % 2) * sw + ((flipX ? 3 - px : px) * sw) / 4,
+      Math.floor(index / 2) * sh + ((flipY ? 3 - py : py) * sh) / 4,
+      sw / 4,
+      sh / 4,
+      0,
+      0,
+      tile + 1,
+      tile + 1,
+    )
+    context.restore()
+  }
+  paintDepth(
+    context,
+    cell,
+    tile,
+    palette?.shallow ?? [111, 190, 171],
+    palette?.deep ?? [20, 74, 100],
+  )
+  paintTexture(palette ? 3 : 1, palette ? 0.12 : 0.2)
+  if (!palette) {
+    paintTexture(2, 0.12)
+    paintLakeSurface(context, cell, tile, worldX, worldY, lakeArt)
+  }
+  // Shared corner depth already shades the river bed. Broad per-cell flow
+  // strokes end at the clip boundary and stamp dark tile-shaped slabs where
+  // a narrow channel joins a pool. Keep the finer flow filaments below.
+  for (const bank of cell.banks) {
+    const vertical = bank.side === 1 || bank.side === 3
+    const start = bankPoint(bank.side, 0.5, 0),
+      end = bankPoint(bank.side, 0.5, 0.27)
+    const gradient = context.createLinearGradient(
+      start[0] * tile,
+      start[1] * tile,
+      end[0] * tile,
+      end[1] * tile,
+    )
+    gradient.addColorStop(0, palette ? rgba(palette.deep, 0.9) : 'rgba(40,51,35,.85)')
+    gradient.addColorStop(0.16, palette ? rgba(palette.shallow, 0.64) : 'rgba(125,133,79,.63)')
+    gradient.addColorStop(0.38, palette ? rgba(palette.shallow, 0.66) : 'rgba(93,157,124,.54)')
+    gradient.addColorStop(0.72, palette ? rgba(palette.shallow, 0.34) : 'rgba(101,174,155,.31)')
+    gradient.addColorStop(1, palette ? rgba(palette.shallow, 0) : 'rgba(97,174,161,0)')
+    context.beginPath()
+    const a = bankPoint(bank.side, 0, 0),
+      b = bankPoint(bank.side, 1, 0)
+    context.moveTo(a[0] * tile, a[1] * tile)
+    context.lineTo(b[0] * tile, b[1] * tile)
+    for (const curve of [...bank.shallow].reverse()) {
+      context.lineTo(curve[3][0] * tile, curve[3][1] * tile)
+      trace(context, [curve[3], curve[2], curve[1], curve[0]], tile, false)
+    }
+    context.closePath()
+    context.fillStyle = gradient
+    context.fill()
+    if (!palette) {
+      context.save()
+      context.clip()
+      paintTexture(0, 0.24)
+      context.restore()
+    }
+    context.beginPath()
+    bank.edge.forEach((curve, i) => trace(context, curve, tile, i === 0))
+    context.strokeStyle = palette
+      ? palette.glint
+      : vertical
+        ? 'rgba(195,195,130,.48)'
+        : 'rgba(181,199,147,.37)'
+    context.lineWidth = tile * 0.022
+    context.stroke()
+    // A wide transparent rim adds bank depth without a hard straight outline.
+    context.strokeStyle = palette ? rgba(palette.deep, 0.24) : 'rgba(12,55,54,.21)'
+    context.lineWidth = tile * 0.065
+    context.stroke()
+    // Small submerged gravel stays within the legal water cell.
+    context.fillStyle = palette ? rgba(palette.shallow, 0.32) : 'rgba(186,182,137,.29)'
+    for (let grain = 0; grain < 4; grain++) {
+      const seed = hashString(`${cell.seed}:${bank.side}:${grain}:gravel`)
+      const [x, y] = bankPoint(bank.side, 0.12 + grain * 0.23, 0.055 + (seed % 10) / 100)
+      const size = tile * (0.009 + (seed % 15) / 1000)
+      context.fillRect(x * tile, y * tile, size * 1.45, size)
+    }
+  }
+  const colours = palette
+    ? [
+        rgba(palette.shallow, 0.33),
+        rgba(palette.shallow, 0.22),
+        rgba(palette.deep, 0.25),
+        rgba(palette.shallow, 0.33),
+      ]
+    : [
+        'rgba(137,199,180,.20)',
+        'rgba(191,215,177,.13)',
+        'rgba(13,67,78,.20)',
+        'rgba(181,220,205,.27)',
+      ]
+  for (let i = 0; i < 19; i++) {
+    const salt = hashString(`${cell.seed}:${i}`),
+      from = ((salt % 8191) / 8191) * 0.88
+    const offset = (((salt >>> 13) % 1021) / 1021 - 0.5) * 0.66
+    context.beginPath()
+    trace(
+      context,
+      stream(cell.flow, from, Math.min(1, from + 0.07 + (i % 4) * 0.025), offset),
+      tile,
+    )
+    context.strokeStyle = colours[i % colours.length]!
+    context.lineWidth = tile * (i % 5 === 0 ? 0.045 : 0.009)
+    context.stroke()
+  }
+  context.restore()
+}
+
+export interface SurfaceWeather {
+  rain: number
+  windSpeed: number
+}
+
+function paintRainImpact(
+  context: CanvasRenderingContext2D,
+  cell: WaterCell,
+  tile: number,
+  now: number,
+  rain: number,
+  glint: string,
+) {
+  if (rain < 0.015) return
+  const phase = (now / (1400 + (cell.seed % 800)) + (cell.seed % 997) / 997) % 1
+  const lifetime = 0.25 + 0.21 * rain
+  if (phase >= lifetime) return
+  const age = phase / lifetime
+  const x = (0.29 + ((cell.seed >>> 8) % 83) / 200) * tile
+  const y = (0.29 + ((cell.seed >>> 17) % 83) / 200) * tile
+  const radius = tile * (0.025 + age * 0.19)
+  context.globalAlpha = Math.sin(age * Math.PI) * (1 - age * 0.5) * rain * 0.49
+  context.strokeStyle = glint
+  context.lineWidth = Math.max(0.65, tile * 0.02)
+  context.beginPath()
+  context.ellipse(x, y, radius, radius * 0.89, 0, 0, Math.PI * 2)
+  context.stroke()
+}
+
+/** A clipped pool ripple or four short channel glints, capped by the caller. */
+export function paintWaterMotion(
+  context: CanvasRenderingContext2D,
+  cell: WaterCell,
+  tile: number,
+  now: number,
+  tint: WaterTint = false,
+  weather?: SurfaceWeather,
+  isolate = true,
+) {
+  const palette = waterPalette(tint)
+  if (isolate) context.save()
+  clipCell(context, tile)
+  clipWaterSurface(context, cell, tile)
+  const roughness = Math.min(1, Math.abs(weather?.windSpeed ?? 0) / 0.06)
+  if (!cell.channel) {
+    const phase = (now / (4200 + (cell.seed % 1800)) + (cell.seed % 997) / 997) % 1
+    const radius = tile * (0.13 + phase * 0.29)
+    context.strokeStyle = palette?.glint ?? '#bbded0'
+    context.globalAlpha = Math.sin(phase * Math.PI) * (0.16 + roughness * 0.14)
+    context.lineWidth = tile * 0.012
+    context.beginPath()
+    context.ellipse(
+      tile / 2,
+      tile / 2,
+      radius,
+      radius * (0.86 - roughness * 0.12),
+      0,
+      0,
+      Math.PI * 2,
+    )
+    context.stroke()
+  } else {
+    const speed = 8500 + (cell.seed % 3500)
+    for (let i = 0; i < 4; i++) {
+      const phase = (now / speed + i * 0.25 + (cell.seed % 997) / 997) % 1
+      const from = phase * 0.86,
+        offset = (i - 1.5) * 0.13
+      context.globalAlpha =
+        Math.sin(phase * Math.PI) * (i === 1 ? 0.54 : 0.3) * (1 + roughness * 0.18)
+      context.strokeStyle = palette
+        ? i % 2
+          ? palette.glint
+          : `rgb(${palette.shallow.join(',')})`
+        : i % 2
+          ? '#bbded0'
+          : '#82c6c7'
+      context.lineWidth = tile * (i === 1 ? 0.014 : 0.009)
+      context.beginPath()
+      traceStream(context, cell.flow, from, from + 0.09, offset, tile)
+      context.stroke()
+    }
+  }
+  if (weather) paintRainImpact(context, cell, tile, now, weather.rain, palette?.glint ?? '#d4efe9')
+  if (isolate) context.restore()
+}
+
+/** Ground and bridge undersides share the same world-anchored liquid colours. */
+export function liquidMaterial(
+  context: CanvasRenderingContext2D,
+  material: 'water' | 'lava',
+  tile: number,
+  originX: number,
+  originY: number,
+  tint: WaterTint = false,
+) {
+  const palette = waterPalette(tint)
+  const gradient = context.createLinearGradient(
+    -originX * tile,
+    -originY * tile,
+    (ATLAS_COLUMNS * GRID_WIDTH - originX) * tile,
+    (ATLAS_ROWS * GRID_HEIGHT - originY) * tile,
+  )
+  const colours =
+    material === 'water'
+      ? (palette?.base ?? ['#245e67', '#3e7b82', '#244e60'])
+      : ['#702f25', '#bd5b2e', '#4d2526']
+  colours.forEach((colour, i) => gradient.addColorStop(i / (colours.length - 1), colour))
+  return gradient
+}
+
+/** Cached cooling plates and hot seams stay inside the supplied lava cell. */
+export function paintLavaGround(context: CanvasRenderingContext2D, cell: WaterCell, tile: number) {
+  context.save()
+  context.translate(cell.x * tile, cell.y * tile)
+  clipCell(context, tile)
+  clipWaterSurface(context, cell, tile)
+  paintDepth(context, cell, tile, [72, 37, 38], [235, 109, 39])
+  if (cell.channel) {
+    // Molten flow stays broad and luminous beneath its irregular cooling crust.
+    for (const [width, colour] of [
+      [0.68, 'rgba(241,106,27,.46)'],
+      [0.34, 'rgba(255,171,51,.56)'],
+      [0.11, 'rgba(255,217,125,.42)'],
+    ] as const) {
+      context.beginPath()
+      trace(context, cell.flow, tile)
+      context.lineWidth = tile * width
+      context.strokeStyle = colour
+      context.stroke()
+    }
+  }
+
+  // Broken, irregular cooling plates expose the warmer material beneath.
+  // This deterministic detail runs only when the caller rebuilds its ground cache.
+  for (let i = 0; i < 7; i++) {
+    const salt = hashString(`${cell.seed}:${i}:crust`)
+    const cx = 0.09 + (salt % 811) / 1000,
+      cy = 0.08 + ((salt >>> 10) % 821) / 1000,
+      radius = 0.09 + ((salt >>> 21) % 100) / 1000
+    context.beginPath()
+    for (let corner = 0; corner < 6; corner++) {
+      const angle = (corner / 6) * Math.PI * 2
+      const reach = radius * (0.74 + ((salt >>> (corner * 3)) % 7) / 10)
+      const x = (cx + Math.cos(angle) * reach) * tile,
+        y = (cy + Math.sin(angle) * reach) * tile
+      if (corner === 0) context.moveTo(x, y)
+      else context.lineTo(x, y)
+    }
+    context.closePath()
+    context.fillStyle = i % 2 ? 'rgba(43,31,34,.51)' : 'rgba(76,39,37,.60)'
+    context.fill()
+    context.strokeStyle = 'rgba(246,124,51,.39)'
+    context.lineWidth = tile * 0.012
+    context.stroke()
+  }
+  // Banks inherit the same multi-cell outline as water, with cooler dark rims.
+  for (const bank of cell.banks) {
+    context.beginPath()
+    const a = bankPoint(bank.side, 0, 0),
+      b = bankPoint(bank.side, 1, 0)
+    context.moveTo(a[0] * tile, a[1] * tile)
+    context.lineTo(b[0] * tile, b[1] * tile)
+    for (const curve of [...bank.edge].reverse()) {
+      context.lineTo(curve[3][0] * tile, curve[3][1] * tile)
+      trace(context, [curve[3], curve[2], curve[1], curve[0]], tile, false)
+    }
+    context.closePath()
+    context.fillStyle = 'rgba(42,30,33,.73)'
+    context.fill()
+    context.beginPath()
+    bank.edge.forEach((curve, i) => trace(context, curve, tile, i === 0))
+    context.strokeStyle = 'rgba(255,165,69,.60)'
+    context.lineWidth = tile * 0.018
+    context.stroke()
+  }
+  for (let i = 0; i < 5; i++) {
+    const salt = hashString(`${cell.seed}:${i}:hot-seam`)
+    const from = (salt % 811) / 1000
+    context.beginPath()
+    trace(context, stream(cell.flow, from, Math.min(1, from + 0.12), (i - 2) * 0.13), tile)
+    context.strokeStyle = i % 2 ? 'rgba(255,204,99,.50)' : 'rgba(242,112,39,.55)'
+    context.lineWidth = tile * (i % 2 ? 0.014 : 0.029)
+    context.stroke()
+  }
+  context.restore()
+}
+
+/** Reuse exactly the same world phase on open lava and beneath a proven crossing. */
+export function paintLavaMotion(
+  context: CanvasRenderingContext2D,
+  tile: number,
+  now: number,
+  worldX: number,
+  worldY: number,
+  profile?: WaterCell,
+) {
+  context.save()
+  clipCell(context, tile)
+  if (profile) clipWaterSurface(context, profile, tile)
+  context.strokeStyle = 'rgba(255,196,95,.44)'
+  context.lineWidth = 1.8
+  for (let i = 0; i < 3; i++) {
+    const phase = (now / 3200 + i * 0.33 + worldX * 0.17 + worldY * 0.11) % 1
+    const shift = phase * tile
+    context.globalAlpha = Math.sin(phase * Math.PI) * 0.85
+    context.beginPath()
+    if (profile) {
+      const from = phase * 0.83
+      traceStream(context, profile.flow, from, from + 0.14, (i - 1) * 0.16, tile)
+    } else {
+      context.moveTo(-12 + shift, tile * (0.23 + i * 0.27))
+      context.quadraticCurveTo(
+        shift,
+        tile * (0.25 + i * 0.27),
+        shift + 28,
+        tile * (0.23 + i * 0.27),
+      )
+    }
+    context.stroke()
+  }
+  context.restore()
+}

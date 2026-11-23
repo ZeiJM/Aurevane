@@ -1,5 +1,9 @@
 # AUREVANE — Combat Intelligence, Battle Hall & Practice Systems
 
+## Standard sparring map variation — Owner-approved 2026-10-03
+
+New standard AI sparring and rematches vary neutral/rough ground and joined elevations through the server-seeded shared map generator, preserving legal low-mobility approaches and combat RNG. Authored micro/Guided/Mastery scenarios remain fixed. Stored sessions retain their maps; replay and reconnect do not regenerate tiles. Configured PvP map size and terrain/elevation biases remain separate explicit inputs to the shared generator. Automated legality and AI regression checks do not establish human matchup balance. Evidence: `superpowers/verification/2026-10-03-battle-map-preview-readability.md`.
+
 **Status:** Authoritative feature specification subordinate to `docs/GAME_MASTER_PLAN.md`, `docs/GAME_MASTER_PLAN_BUILD_SYSTEM_ADDENDUM.md`, and the canonical combat rules in `docs/COMBAT.md`.
 
 **Initial direction approved:** 2026-08-15.  
@@ -75,6 +79,9 @@ The current player-facing practice-combat feature and navigation destination.
 ### AI Sparring
 
 The first explicit full training duel inside Battle Hall. It uses the authoritative combat engine and released Recruit AI behavior.
+
+Owner refinement (2026-10-02): AI Sparring permits two teams with at most six initial participants. The local character has 0–2 AI allies and 1–5 enemies, with enemy maximum `5 - allies`. Both selectors remain consistent; increasing allies clamps an incompatible enemy count. Each AI combatant uses the existing visible Recruit profile and authoritative AI. All allies share the local character's team; all enemies share the opposing team. Guided Fundamentals and Discipline Mastery Trial remain fixed duels. Sparring rematches preserve original team sizes (excluding summoned units), and surrender concedes the whole practice team immediately. This adds no rewards, opponent catalog, free-for-all mode, or migration.
+
 
 ### Practice drill / practice scenario
 

@@ -1,0 +1,117 @@
+{
+  "requestId": "ART-WORLD-CORRECTION-20261112",
+  "promptSpec": "content/art-requests/ART-WORLD-CORRECTION-20261112.md",
+  "provider": "OpenAI image generation",
+  "selection": "Original generated sheet selected for runtime integration",
+  "name": "natural-lakes",
+  "source": {
+    "path": "sources/natural-lakes-v01.png",
+    "sha256": "8f30c8cf94a7caeb666194b1dadd9717222c7edd15f69294cb5ebe3c995788c9",
+    "width": 1312,
+    "height": 1199
+  },
+  "runtime": {
+    "path": "runtime/natural-lakes-v01.webp",
+    "sha256": "4dba529de115d67149f550b5b0e91122af71137e3db142bcf8c5272d7b57593f",
+    "bytes": 345170,
+    "width": 1024,
+    "height": 1024,
+    "columns": 2,
+    "rows": 2,
+    "cellWidth": 512,
+    "cellHeight": 512,
+    "encoding": "Sharp WebP quality88 alphaQuality100; alpha-tail normalization; visible-bounds crop; aspect-preserving fit; 24px floor inset"
+  },
+  "fringePixelsRemoved": 205511,
+  "packedFringePixelsRemoved": 381,
+  "sprites": [
+    {
+      "index": 0,
+      "sourceCell": {
+        "left": 0,
+        "top": 0,
+        "width": 656,
+        "height": 600
+      },
+      "crop": {
+        "left": 27,
+        "top": 19,
+        "width": 601,
+        "height": 550
+      },
+      "runtimeBounds": {
+        "left": 16,
+        "top": 49,
+        "width": 480,
+        "height": 439
+      },
+      "floorY": 0.953125
+    },
+    {
+      "index": 1,
+      "sourceCell": {
+        "left": 656,
+        "top": 0,
+        "width": 656,
+        "height": 600
+      },
+      "crop": {
+        "left": 23,
+        "top": 44,
+        "width": 614,
+        "height": 499
+      },
+      "runtimeBounds": {
+        "left": 16,
+        "top": 98,
+        "width": 480,
+        "height": 390
+      },
+      "floorY": 0.953125
+    },
+    {
+      "index": 2,
+      "sourceCell": {
+        "left": 0,
+        "top": 600,
+        "width": 656,
+        "height": 599
+      },
+      "crop": {
+        "left": 19,
+        "top": 19,
+        "width": 611,
+        "height": 530
+      },
+      "runtimeBounds": {
+        "left": 16,
+        "top": 72,
+        "width": 480,
+        "height": 416
+      },
+      "floorY": 0.953125
+    },
+    {
+      "index": 3,
+      "sourceCell": {
+        "left": 656,
+        "top": 600,
+        "width": 656,
+        "height": 599
+      },
+      "crop": {
+        "left": 20,
+        "top": 24,
+        "width": 609,
+        "height": 533
+      },
+      "runtimeBounds": {
+        "left": 16,
+        "top": 68,
+        "width": 480,
+        "height": 420
+      },
+      "floorY": 0.953125
+    }
+  ]
+}

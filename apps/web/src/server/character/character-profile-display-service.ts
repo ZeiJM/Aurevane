@@ -4,9 +4,11 @@ import { AurevaneError } from '@aurevane/game-core/errors'
 import { cache } from 'react'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { findPlayableOwnedCharacterById } from './character-slot-service'
 
 export interface CharacterProfileDisplayState {
   imageUrl: string | null
+  legacyImageUrl?: string | null
 }
 
 async function readCharacterProfileDisplay(
@@ -16,13 +18,18 @@ async function readCharacterProfileDisplay(
   const supabase = createSupabaseAdminClient()
   const { data, error } = await supabase
     .from('character_profile_display')
-    .select('image_url')
+    .select('image_url, appearance_image_url')
     .eq('user_id', userId)
     .eq('character_id', characterId)
     .maybeSingle()
 
   if (error) throw unavailable()
-  return { imageUrl: typeof data?.image_url === 'string' ? data.image_url : null }
+  const legacyImageUrl = typeof data?.image_url === 'string' ? data.image_url : null
+  return {
+    imageUrl:
+      typeof data?.appearance_image_url === 'string' ? data.appearance_image_url : legacyImageUrl,
+    legacyImageUrl,
+  }
 }
 
 /**
@@ -40,7 +47,7 @@ export async function loadCharacterProfileImageMap(
   const supabase = createSupabaseAdminClient()
   const { data, error } = await supabase
     .from('character_profile_display')
-    .select('character_id, image_url')
+    .select('character_id, image_url, appearance_image_url')
     .eq('user_id', userId)
     .in('character_id', [...characterIds])
 
@@ -59,7 +66,7 @@ export async function loadPublicCharacterProfileImageMap(
   const supabase = createSupabaseAdminClient()
   const { data, error } = await supabase
     .from('character_profile_display')
-    .select('character_id, image_url')
+    .select('character_id, image_url, appearance_image_url')
     .in('character_id', [...characterIds])
 
   if (error || !Array.isArray(data)) throw unavailable()
@@ -72,17 +79,10 @@ export async function setCharacterProfileImage(input: {
   imageUrl: string | null
 }): Promise<CharacterProfileDisplayState> {
   const imageUrl = normalizeProfileImageUrl(input.imageUrl)
-  const supabase = createSupabaseAdminClient()
-  const { data: owned, error: ownershipError } = await supabase
-    .from('characters')
-    .select('id')
-    .eq('id', input.characterId)
-    .eq('user_id', input.userId)
-    .maybeSingle()
-
-  if (ownershipError) throw unavailable()
+  const owned = await findPlayableOwnedCharacterById(input.userId, input.characterId)
   if (!owned)
     throw new AurevaneError('FORBIDDEN', 'That character is not available to this account.')
+  const supabase = createSupabaseAdminClient()
 
   const { error } = await supabase.from('character_profile_display').upsert(
     {
@@ -142,12 +142,13 @@ export function normalizeProfileImageUrl(value: string | null): string | null {
 }
 
 function profileImageRowsToMap(
-  rows: readonly { character_id?: unknown; image_url?: unknown }[],
+  rows: readonly { character_id?: unknown; image_url?: unknown; appearance_image_url?: unknown }[],
 ): ReadonlyMap<string, string> {
   const result = new Map<string, string>()
   for (const row of rows) {
-    if (typeof row.character_id === 'string' && typeof row.image_url === 'string') {
-      result.set(row.character_id, row.image_url)
+    const imageUrl = row.appearance_image_url ?? row.image_url
+    if (typeof row.character_id === 'string' && typeof imageUrl === 'string') {
+      result.set(row.character_id, imageUrl)
     }
   }
   return result

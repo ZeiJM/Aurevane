@@ -1,12 +1,57 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
 import {
   BATTLE_MISSING_ARTWORK,
   battleSkillArtwork,
 } from '../src/components/battle/battle-skill-presentation'
+import { selectDiscipline } from './discipline-library-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 // Keep the screenshots and interaction trace when this release gate passes, too.
 test.use({ trace: 'on' })
+
+async function setTechnique(page: Page, card: Locator, checked = true): Promise<void> {
+  const category = await card
+    .locator('xpath=ancestor::section[@data-technique-category][1]')
+    .getAttribute('data-technique-category')
+  const categoryTab =
+    category === 'primary' ? 'Discipline 1' : category === 'secondary' ? 'Discipline 2' : null
+  if (categoryTab) {
+    const tab = page
+      .getByRole('dialog', { name: 'Techniques', exact: true })
+      .getByRole('tab', { name: categoryTab, exact: true })
+    if (await tab.isVisible()) {
+      await tab.click()
+      await expect(tab).toHaveAttribute('aria-selected', 'true')
+    }
+  }
+  const checkbox = card.getByRole('checkbox')
+  if ((await checkbox.isChecked()) === checked) return
+
+  const saved = page.waitForResponse(
+    (response) =>
+      response.url().endsWith('/api/character/build/skills') &&
+      response.request().method() === 'PUT',
+  )
+  const coarsePointer = await page.evaluate(
+    () => window.matchMedia('(hover: none), (pointer: coarse)').matches,
+  )
+
+  if (coarsePointer) {
+    // Touch taps only preview a technique; the sticky action commits the change.
+    await card.locator('label:has(input[type="checkbox"])').click()
+    await page
+      .getByRole('button', {
+        name: checked ? 'Equip technique' : 'Remove from loadout',
+        exact: true,
+      })
+      .click()
+  } else {
+    await checkbox.click()
+  }
+
+  expect((await saved).status()).toBe(200)
+  await expect(checkbox).toBeChecked({ checked })
+}
 
 test('Ironfist provisions normally and Skill details preserve selection on phone and desktop', async ({
   page,
@@ -25,30 +70,20 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
     password: 'Phase4-disposable-browser-2026!',
     characterName: `Roster ${suffix}`,
   })
-  await page.goto('/game/arsenal')
+  await page.goto('/game/nexus')
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
-  await page.getByRole('button', { name: /Manage Primary Discipline/ }).click()
+  await page.getByRole('button', { name: /Manage Disciplines/ }).click()
   const management = page.getByRole('dialog', { name: 'Discipline Management' })
   await expect(management).toBeVisible()
   await page.reload()
   await expect(management).toBeVisible()
-  await management
-    .locator('label')
-    .filter({ hasText: /^Proposed Primary/ })
-    .locator('select')
-    .selectOption('ironfist')
-  await page.getByRole('button', { name: 'Commit Ironfist as Primary' }).click()
+  await selectDiscipline(management, 'Primary', 'Ironfist')
   await expect(page.getByTestId('primary-discipline-chip')).toHaveText('Ironfist')
   await management.getByRole('button', { name: 'Close', exact: true }).click()
-  await page.getByRole('button', { name: /Manage Techniques/ }).click()
-  const dialog = page.getByRole('dialog', { name: 'Techniques', exact: true })
-  const list = page.getByTestId('learned-skill-list')
-  await expect(list.locator('article')).toHaveCount(8)
-  await expect(page.getByTestId('active-essence')).toHaveText('Hundredfold Rush')
-  const essenceArtwork = dialog
-    .locator('article')
-    .filter({ has: page.getByTestId('active-essence') })
-    .locator('img')
+  const attunement = page.locator('[aria-labelledby="nexus-attunement-heading"]')
+  const essenceCard = attunement.locator('article').filter({ hasText: 'Hundredfold Rush' })
+  await expect(essenceCard).toBeVisible()
+  const essenceArtwork = essenceCard.locator('img')
   const expectedEssenceArtwork = battleSkillArtwork('essence.ironfist.hundredfold-rush')
   expect(expectedEssenceArtwork).not.toBe(BATTLE_MISSING_ARTWORK)
   await expect(essenceArtwork).toHaveAttribute('src', expectedEssenceArtwork)
@@ -56,34 +91,35 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
   await expect
     .poll(() => essenceArtwork.evaluate((image: HTMLImageElement) => image.naturalWidth))
     .toBeGreaterThan(0)
+  await page.getByRole('button', { name: /Manage Techniques/ }).click()
+  const dialog = page.getByRole('dialog', { name: 'Techniques', exact: true })
+  const list = page.getByTestId('learned-skill-list')
+  await expect(list.getByRole('checkbox')).toHaveCount(8)
   const palm = list.locator('article').filter({ hasText: 'Counter Palm' })
-  await palm.locator('summary').click()
-  await expect(palm).toContainText('Requires Guarded on yourself.')
-  await expect(palm).toContainText('1 tile')
+  await palm.getByRole('checkbox').focus()
+  await expect(dialog).toContainText('RequirementsGuard [Self]')
+  await expect(page.getByTestId('technique-preview')).toContainText('Target MethodSingle [1]')
+  await expect(
+    page.getByTestId('technique-preview').locator('dt', { hasText: /^Range$/ }),
+  ).toHaveCount(0)
   await expect(palm.getByRole('checkbox')).not.toBeChecked()
   const sweep = list.locator('article').filter({ hasText: 'Sweep' })
-  await expect(sweep).toContainText('Circle 1')
+  await sweep.getByRole('checkbox').focus()
+  await expect(page.getByTestId('technique-preview')).toContainText('Target MethodCircle')
   for (const name of ['Rising Fist', 'Sweep', 'Breakfall', 'Counter Palm']) {
-    await list.locator('article').filter({ hasText: name }).getByRole('checkbox').check()
+    await setTechnique(page, list.locator('article').filter({ hasText: name }), true)
   }
-  // The profile refresh can remount the panel and clear its transient status.
-  // Verify the authoritative save, then independently check persisted selections.
-  const saved = page.waitForResponse(
-    (response) =>
-      response.url().endsWith('/api/character/build/skills') &&
-      response.request().method() === 'PUT',
-  )
-  await page.getByRole('button', { name: 'Commit Selected Techniques' }).click()
-  expect((await saved).status()).toBe(200)
+  // The profile refresh can remount the panel. Verify the authoritative auto-save
+  // by independently checking persisted selections after reload.
   await page.reload()
   await expect(dialog).toBeVisible()
-  await expect(list.locator('input:checked')).toHaveCount(4)
+  await expect(list.getByRole('checkbox', { checked: true })).toHaveCount(4)
   for (const name of ['Rising Fist', 'Sweep', 'Breakfall', 'Counter Palm']) {
     await expect(
       list.locator('article').filter({ hasText: name }).getByRole('checkbox'),
     ).toBeChecked()
   }
-  await palm.locator('summary').click()
+  await palm.getByRole('checkbox').focus()
   const overflow = await dialog.evaluate((element) => element.scrollWidth > element.clientWidth + 1)
   expect(overflow).toBe(false)
   expect(await palm.evaluate((element) => element.scrollHeight > element.clientHeight + 1)).toBe(
@@ -107,8 +143,8 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
     contentType: 'image/png',
   })
   for (const [id, dimensions, tiles, name] of [
-    ['crossroads-court', '7x7', 49, 'Crossroads Court'],
-    ['terraced-yard', '11x7', 77, 'Terraced Yard'],
+    ['crossroads-court', '12x7', 84, 'Crossroads Court'],
+    ['terraced-yard', '15x7', 105, 'Terraced Yard'],
   ] as const) {
     await arena.selectOption(id)
     await page.getByRole('button', { name: 'Enter Battle', exact: true }).click()
@@ -125,10 +161,11 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
         if (/\/api\/battles\/[^/]+\/audio\?/.test(request.url())) audioRequests.push(request.url())
       }
       page.on('request', trackAudio)
-      await root.getByRole('button', { name: /Choose Guard skill/ }).click()
-      await page.getByRole('option', { name: 'Breakfall 25 AP', exact: true }).click()
-      await root.getByRole('button', { name: 'Breakfall, 25 AP', exact: true }).click()
-      await expect(root.getByRole('button', { name: 'Confirm Action', exact: true })).toBeEnabled()
+      const armed = page.waitForResponse(
+        (response) => response.url().endsWith('/preview') && response.request().method() === 'POST',
+      )
+      await root.getByRole('button', { name: 'Selected Breakfall, 35 AP', exact: true }).click()
+      expect((await armed).status()).toBe(200)
       expect(audioRequests).toEqual([])
       const committed = page.waitForResponse(
         (response) => response.url().endsWith('/intents') && response.request().method() === 'POST',
@@ -137,9 +174,9 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
         /\/api\/battles\/[^/]+\/audio\?/.test(response.url()),
       )
       const sound = page.waitForResponse((response) =>
-        response.url().includes('/media/audio/sfx/phase4/ironfist-action-'),
+        response.url().includes('/media/audio/sfx/skill-fx-v01/082-'),
       )
-      await root.getByRole('button', { name: 'Confirm Action', exact: true }).click()
+      await root.locator('#battlefield button[aria-label*="occupied by"]').first().click()
       const committedResponse = await committed
       expect(committedResponse.status()).toBe(200)
       const battle = (await committedResponse.json()).battle
@@ -147,14 +184,14 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
         battleVersion: battle.battleVersion,
         cues: [
           {
-            assetId: `audio.phase4.ironfist-action-v02-${(battle.battleVersion % 3) + 1}`,
+            assetId: `audio.skill-fx.v01.082-${(battle.battleVersion % 3) + 1}`,
             priority: 70,
           },
         ],
       })
       const assetResponse = await sound
       expect([200, 206]).toContain(assetResponse.status())
-      expect(assetResponse.headers()['content-type']).toContain('audio/wav')
+      expect(assetResponse.headers()['content-type']).toContain('audio/mpeg')
       expect((await assetResponse.body()).byteLength).toBeGreaterThan(0)
       expect(
         battle.snapshot.statusState.flatMap((row: { statuses: unknown[] }) => row.statuses),
@@ -200,18 +237,16 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
     password: 'P4-advanced-disposable-2026!',
     characterName: `Mastery ${suffix}`,
   })
-  await page.goto('/game/arsenal')
+  await page.goto('/game/nexus')
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
-  await page.getByRole('button', { name: /Manage Primary Discipline/ }).click()
+  await page.getByRole('button', { name: /Manage Disciplines/ }).click()
   const management = page.getByRole('dialog', { name: 'Discipline Management' })
-  const atlasResponse = page.waitForResponse(
-    (response) =>
-      response.url().endsWith('/api/character/mastery') && response.request().method() === 'GET',
-  )
-  await management.getByText('Discipline Atlas & Mastery', { exact: true }).click()
-  const atlasResult = await atlasResponse
-  expect(atlasResult.status()).toBe(200)
-  const atlasBody = (await atlasResult.json()) as {
+  const mastery = await page.evaluate(async () => {
+    const response = await fetch('/api/character/mastery')
+    return { status: response.status, body: await response.json() }
+  })
+  expect(mastery.status).toBe(200)
+  const atlasBody = mastery.body as {
     progress: Array<{
       disciplineId: string
       xp: number
@@ -244,28 +279,23 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
       }),
     ]),
   )
-  await expect(management).toContainText('36 Disciplines')
-  await expect(management).toContainText('Testing access is open.')
-  const primary = management
-    .locator('label')
-    .filter({ hasText: /^Proposed Primary/ })
-    .locator('select')
-  await expect(primary.locator('option[value="bastion"]')).toHaveCount(1)
+  await management.getByRole('button', { name: 'Edit Primary Discipline', exact: true }).click()
+  const primary = management.getByRole('region', {
+    name: 'Primary Discipline library',
+    exact: true,
+  })
+  await expect(
+    primary.getByRole('button', { name: 'Select Bastion as Primary Discipline', exact: true }),
+  ).toHaveCount(1)
   // Existing Owner-authorized testing access covers all published Disciplines without fake Mastery.
   // Earned prerequisites and 4/2/2 acquisition are independently verified in database CI.
-  await primary.selectOption('bastion')
-  await page.getByRole('button', { name: 'Commit Bastion as Primary' }).click()
+  await selectDiscipline(management, 'Primary', 'Bastion')
   await expect(page.getByTestId('primary-discipline-chip')).toHaveText('Bastion')
   await management.getByRole('button', { name: 'Close', exact: true }).click()
-  await page.getByRole('button', { name: /Manage Techniques/ }).click()
-  const dialog = page.getByRole('dialog', { name: 'Techniques', exact: true })
-  const list = page.getByTestId('learned-skill-list')
-  await expect(list.locator('article')).toHaveCount(8)
-  await expect(page.getByTestId('active-essence')).toHaveText('Last Bastion')
-  const essenceArt = dialog
-    .locator('article')
-    .filter({ has: page.getByTestId('active-essence') })
-    .locator('img')
+  const attunement = page.locator('[aria-labelledby="nexus-attunement-heading"]')
+  const essenceCard = attunement.locator('article').filter({ hasText: 'Last Bastion' })
+  await expect(essenceCard).toBeVisible()
+  const essenceArt = essenceCard.locator('img')
   const expectedEssenceArtwork = battleSkillArtwork('essence.bastion.last-bastion')
   expect(expectedEssenceArtwork).not.toBe(BATTLE_MISSING_ARTWORK)
   await expect(essenceArt).toHaveAttribute('src', expectedEssenceArtwork)
@@ -275,11 +305,24 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
       essenceArt.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0),
     )
     .toBe(true)
+  await page.getByRole('button', { name: /Manage Techniques/ }).click()
+  const dialog = page.getByRole('dialog', { name: 'Techniques', exact: true })
+  const list = page.getByTestId('learned-skill-list')
+  await expect(list.getByRole('checkbox')).toHaveCount(8)
   const fortress = list.locator('article').filter({ hasText: 'Fortress' })
-  await expect(fortress).toContainText('Fortified')
-  await fortress.locator('summary').click()
-  await expect(fortress).toContainText('Take 30% less damage and deal 20% less damage.')
-  await expect(fortress).toContainText('to yourself')
+  await fortress.getByRole('checkbox').focus()
+  await expect(dialog).toContainText('EffectsFortified [15%]')
+  await expect(dialog.locator('dt').filter({ hasText: /^Target$/ })).toHaveCount(0)
+  await expect(
+    dialog
+      .locator('dt')
+      .filter({ hasText: /^Effects$/ })
+      .locator('..'),
+  ).toContainText('[Self]')
+  await expect(dialog.locator('dt').filter({ hasText: /^Damage$/ })).toHaveCount(0)
+  await expect(dialog).toContainText(
+    'Increase Physical and Mystic Defense by 15% and deal 15% less damage.',
+  )
   expect(await dialog.evaluate((element) => element.scrollWidth > element.clientWidth + 1)).toBe(
     false,
   )
@@ -287,20 +330,15 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
     body: await page.screenshot(),
     contentType: 'image/png',
   })
-  await fortress.getByRole('checkbox').check()
-  const saved = page.waitForResponse(
-    (response) =>
-      response.url().endsWith('/api/character/build/skills') &&
-      response.request().method() === 'PUT',
-  )
-  await page.getByRole('button', { name: 'Commit Selected Techniques' }).click()
-  expect((await saved).status()).toBe(200)
+  await setTechnique(page, fortress, true)
   await dialog.getByRole('button', { name: 'Close', exact: true }).click()
   await page.goto('/game/battle')
   await page.getByLabel('Battle mode').selectOption('mastery-trial')
   await expect(page.getByRole('button', { name: 'Easy', exact: true })).toHaveCount(0)
   await expect(page.getByLabel('AI sparring arena')).toHaveValue('terraced-yard')
-  await expect(page.getByText(/50 Mastery XP/).last()).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: /Mastery Trial/ }).getByText(/50 Mastery XP/),
+  ).toBeVisible()
   await page.getByRole('button', { name: 'Enter Battle', exact: true }).click()
   await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
   const root = page.locator("main[data-unified-battle='true'][data-battle-kind='pve']")
@@ -308,29 +346,20 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
   page.on('request', (request) => {
     if (/\/api\/battles\/[^/]+\/audio\?/.test(request.url())) audioRequests.push(request.url())
   })
-  await root.getByRole('button', { name: /Choose Guard skill/ }).click()
-  await page.getByRole('option', { name: 'Fortress 30 AP', exact: true }).click()
-  await root.getByRole('button', { name: 'Fortress, 30 AP', exact: true }).click()
-  await expect(root.getByRole('button', { name: 'Confirm Action', exact: true })).toBeEnabled()
-  await expect(root.locator('#battlefield button[data-target="friendly"]')).toHaveCount(1)
-  await expect(
-    root.getByRole('button', { name: new RegExp(`occupied by Mastery ${suffix}$`) }),
-  ).toHaveAttribute('data-target', 'friendly')
-  // A new invalid target must discard the earlier accepted self projection and confirmation.
-  await root.locator('#battlefield button:not([aria-label*="occupied by"])').first().click()
-  await expect(root.getByRole('button', { name: 'Confirm Action', exact: true })).toBeDisabled()
-  await expect(root.getByLabel('Action preview')).not.toContainText('Success 100%')
   const selfPreview = page.waitForResponse(
     (response) => response.url().endsWith('/preview') && response.request().method() === 'POST',
   )
-  // Re-selecting the caster on the board must not replace self with an illegal unit target.
-  await root.getByRole('button', { name: new RegExp(`occupied by Mastery ${suffix}$`) }).click()
+  await root.getByRole('button', { name: 'Selected Fortress, 35 AP', exact: true }).click()
   const previewResponse = await selfPreview
   expect(previewResponse.request().postDataJSON().intent.target).toEqual({ kind: 'self' })
   const preview = (await previewResponse.json()).battlePreview.preview
   expect(preview.legal).toBe(true)
   expect(preview.projectedStatuses).toEqual(
     expect.arrayContaining([expect.objectContaining({ statusId: 'fortified' })]),
+  )
+  await expect(root.getByRole('progressbar', { name: 'Action Economy remaining' })).toHaveAttribute(
+    'aria-valuenow',
+    '100',
   )
   const committed = page.waitForResponse(
     (response) => response.url().endsWith('/intents') && response.request().method() === 'POST',
@@ -340,9 +369,9 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
     /\/api\/battles\/[^/]+\/audio\?/.test(response.url()),
   )
   const playedAsset = page.waitForResponse((response) =>
-    response.url().includes('/media/audio/sfx/phase4/bastion-action-'),
+    response.url().includes('/media/audio/sfx/skill-fx-v01/011-'),
   )
-  await root.getByRole('button', { name: 'Confirm Action', exact: true }).click()
+  await root.locator('#battlefield button:not([aria-label*="occupied by"])').first().click()
   const commitResponse = await committed
   expect(commitResponse.status()).toBe(200)
   const battle = (await commitResponse.json()).battle
@@ -352,7 +381,7 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
     battleVersion: battle.battleVersion,
     cues: [
       {
-        assetId: `audio.phase4.bastion-action-v02-${(battle.battleVersion % 3) + 1}`,
+        assetId: `audio.skill-fx.v01.011-${(battle.battleVersion % 3) + 1}`,
         priority: 70,
       },
     ],
@@ -360,7 +389,7 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
   const audioAssetResponse = await playedAsset
   // HTMLAudioElement may request a byte range; 206 is successful media delivery.
   expect([200, 206]).toContain(audioAssetResponse.status())
-  expect(audioAssetResponse.headers()['content-type']).toContain('audio/wav')
+  expect(audioAssetResponse.headers()['content-type']).toContain('audio/mpeg')
   expect((await audioAssetResponse.body()).byteLength).toBeGreaterThan(0)
   expect(
     battle.snapshot.statusState.flatMap((row: { statuses: unknown[] }) => row.statuses),
@@ -390,27 +419,17 @@ test('Chronist provisions its full testing library, Essence artwork and explicit
     password: 'P4-chronist-disposable-2026!',
     characterName: `Chronist ${suffix}`,
   })
-  await page.goto('/game/arsenal')
+  await page.goto('/game/nexus')
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
-  await page.getByRole('button', { name: /Manage Primary Discipline/ }).click()
+  await page.getByRole('button', { name: /Manage Disciplines/ }).click()
   const management = page.getByRole('dialog', { name: 'Discipline Management' })
-  await management
-    .locator('label')
-    .filter({ hasText: /^Proposed Primary/ })
-    .locator('select')
-    .selectOption('chronist')
-  await page.getByRole('button', { name: 'Commit Chronist as Primary' }).click()
+  await selectDiscipline(management, 'Primary', 'Chronist')
   await expect(page.getByTestId('primary-discipline-chip')).toHaveText('Chronist')
   await management.getByRole('button', { name: 'Close', exact: true }).click()
-  await page.getByRole('button', { name: /Manage Techniques/ }).click()
-  const dialog = page.getByRole('dialog', { name: 'Techniques', exact: true })
-  const list = page.getByTestId('learned-skill-list')
-  await expect(list.locator('article')).toHaveCount(8)
-  await expect(page.getByTestId('active-essence')).toHaveText('Borrowed Hour')
-  const artwork = dialog
-    .locator('article')
-    .filter({ has: page.getByTestId('active-essence') })
-    .locator('img')
+  const attunement = page.locator('[aria-labelledby="nexus-attunement-heading"]')
+  const essenceCard = attunement.locator('article').filter({ hasText: 'Borrowed Hour' })
+  await expect(essenceCard).toBeVisible()
+  const artwork = essenceCard.locator('img')
   const expectedEssenceArtwork = battleSkillArtwork('essence.chronist.borrowed-hour')
   expect(expectedEssenceArtwork).not.toBe(BATTLE_MISSING_ARTWORK)
   await expect(artwork).toHaveAttribute('src', expectedEssenceArtwork)
@@ -418,12 +437,20 @@ test('Chronist provisions its full testing library, Essence artwork and explicit
   await expect
     .poll(() => artwork.evaluate((image: HTMLImageElement) => image.naturalWidth))
     .toBeGreaterThan(0)
-  const haste = list.locator('article').filter({ hasText: /^HasteChronist30 AP/ })
-  await haste.locator('summary').click()
-  await expect(haste).toContainText('Movement costs 10 less AP per entered tile')
+  await page.getByRole('button', { name: /Manage Techniques/ }).click()
+  const dialog = page.getByRole('dialog', { name: 'Techniques', exact: true })
+  const list = page.getByTestId('learned-skill-list')
+  await expect(list.getByRole('checkbox')).toHaveCount(8)
+  const haste = list.locator('article').filter({ hasText: 'Haste' }).first()
+  await haste.getByRole('checkbox').focus()
+  await expect(dialog).toContainText('EffectsHaste')
   const rewind = list.locator('article').filter({ hasText: 'Rewind Step' })
-  await rewind.locator('summary').click()
-  await expect(rewind).toContainText('turn')
+  await rewind.getByRole('checkbox').focus()
+  await expect(dialog).toContainText('EffectsRewind [Delayed]')
+  await expect(dialog).toContainText(
+    'Returns you to the tile captured when cast if legal; refunds no resources.',
+  )
+  await expect(dialog).toContainText('Cooldown')
   expect(await dialog.evaluate((element) => element.scrollWidth > element.clientWidth + 1)).toBe(
     false,
   )

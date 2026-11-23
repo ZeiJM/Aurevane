@@ -1,0 +1,12 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.10 /workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/apps/web
+
+stderr | src/app/api/character/build/disciplines/admission-route.test.ts > real PUT/service/v3 adapter maps 40001 COMBAT_CONTENT_ADMISSION_RETRY
+{"timestamp":"2026-10-22T21:28:53.484Z","level":"error","event":"server.persistence_unavailable","code":"PERSISTENCE_UNAVAILABLE"}
+
+ ❯ src/app/api/character/build/disciplines/admission-route.test.ts (12 tests | 2 failed) 117ms
+   × real PUT/service/v3 adapter maps 40001 COMBAT_CONTENT_ADMISSION_RETRY 23ms
+   × real PUT/service/v3 adapter maps 22023 COMBAT_CONTENT_ARCHIVED 12ms

@@ -28,6 +28,7 @@ export const COMBAT_ACTION_SOURCE_KINDS = [
   'basic',
   'discipline-skill',
   'essence',
+  'resonance',
   'equipment',
   'soulmark',
   'mantle',

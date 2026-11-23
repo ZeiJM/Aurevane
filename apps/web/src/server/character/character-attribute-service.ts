@@ -5,9 +5,11 @@ import { createHash } from 'node:crypto'
 import {
   CHARACTER_ATTRIBUTE_IDS,
   type CharacterAttributes,
+  type CharacterAttributeId,
 } from '@aurevane/game-core/character/creation'
 import {
   foundationDisciplineAttributePolicy,
+  disciplineAttributePolicyFromCore,
   validateAttributeAllocation,
 } from '@aurevane/game-core/character/attribute-allocation'
 import type { PersistedCharacter } from '@aurevane/game-core/character/persistence'
@@ -18,6 +20,8 @@ export type CharacterAttributeChangeMode = 'spend' | 'reset' | 'convert'
 export interface CharacterAttributeAllocationView {
   characterId: string
   attributes: CharacterAttributes
+  focusAttributes?: readonly CharacterAttributeId[]
+  offFocusCap?: number
   baseAttributes: CharacterAttributes
   level: number
   pointPool: number
@@ -85,7 +89,15 @@ export async function commitCharacterAttributeAllocation(
   }
 
   const current = await loadCharacterAttributeAllocation(userId, character, repository)
-  const policy = foundationDisciplineAttributePolicy(input.primaryDisciplineId)
+  const policy = current.focusAttributes
+    ? disciplineAttributePolicyFromCore(
+        input.primaryDisciplineId,
+        1,
+        current.baseAttributes,
+        current.focusAttributes,
+        current.offFocusCap,
+      )
+    : foundationDisciplineAttributePolicy(input.primaryDisciplineId)
   if (!policy) {
     throw new AurevaneError('INVALID_REQUEST', 'The active Primary Discipline is unavailable.')
   }

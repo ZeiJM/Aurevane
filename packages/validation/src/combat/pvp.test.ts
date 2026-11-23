@@ -7,6 +7,26 @@ import {
 } from './pvp'
 
 describe('PvP request validation', () => {
+  it.each(['small', 'medium', 'large'])(
+    'accepts %s at creation and settings boundaries',
+    (mapSize) => {
+      expect(
+        parsePvpCreateLobbyRequest({
+          characterId: '5e996b20-04cb-4977-875a-b88550630aa0',
+          mode: '1v1',
+          mapSize,
+        })?.mapSize,
+      ).toBe(mapSize)
+      expect(
+        parsePvpLobbySettingsRequest({
+          mapSize,
+          elevationBias: 'neutral',
+          terrainBias: 'neutral',
+          turnTimerSeconds: 60,
+        })?.mapSize,
+      ).toBe(mapSize)
+    },
+  )
   it('defaults safe medium neutral battlefield settings and a 60-second timer', () => {
     const parsed = parsePvpCreateLobbyRequest({
       characterId: '5e996b20-04cb-4977-875a-b88550630aa0',
@@ -49,7 +69,7 @@ describe('PvP request validation', () => {
     })
     expect(
       parsePvpLobbySettingsRequest({
-        mapSize: 'small',
+        mapSize: 'enormous',
         elevationBias: 'neutral',
         terrainBias: 'neutral',
         turnTimerSeconds: 60,

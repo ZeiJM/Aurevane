@@ -51,7 +51,9 @@ describe('P3.7 character combat build snapshot mapping', () => {
     const second = toCombatBuildSnapshot(pureCommitted())
 
     expect(first).toEqual(second)
-    expect(first.fingerprint).toMatch(/^sha256:[0-9a-f]{64}$/)
+    expect(first.fingerprint).toBe(
+      'sha256:722aa2e60f2923601107ce6e9cd421741a58b36ce5d7f931b977d56dfde55607',
+    )
     expect(first.sourceBuildSchemaVersion).toBe(2)
     expect(first.sourceBuildVersion).toBe(7)
     expect(first.disciplineSkills.map((skill) => skill.slotIndex)).toEqual([1, 2])
@@ -86,4 +88,23 @@ describe('P3.7 character combat build snapshot mapping', () => {
       ),
     ).toThrow('The committed combat build is invalid: Mixed builds cannot carry Essence.')
   })
+})
+
+it.each(['basic.guard', 'basic.recover', 'basic.recover.mp'] as const)(
+  'pins %s into the fingerprint without changing old snapshots',
+  (supportActionId) => {
+    const legacy = toCombatBuildSnapshot(pureCommitted())
+    const committed = pureCommitted({ supportActionId })
+    const snapshot = toCombatBuildSnapshot(committed)
+    expect(snapshot.supportActionId).toBe(supportActionId)
+    expect(snapshot.fingerprint).not.toBe(legacy.fingerprint)
+    committed.supportActionId = 'basic.guard'
+    expect(snapshot.supportActionId).toBe(supportActionId)
+    expect(Object.hasOwn(legacy, 'supportActionId')).toBe(false)
+  },
+)
+it('rejects an explicit arbitrary Support Action in a snapshot', () => {
+  expect(() =>
+    toCombatBuildSnapshot(pureCommitted({ supportActionId: 'basic.attack' as never })),
+  ).toThrow('Support Action')
 })

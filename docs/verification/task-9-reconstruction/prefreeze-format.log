@@ -1,0 +1,5 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["corepack", "pnpm", "exec", "prettier", "--write", "packages/db/src/master-players-recovery.test.ts", "apps/web/src/server/master/player-battle-recovery.test.ts", "apps/web/src/components/battle/battle-experience.tsx"], "start": "2026-10-20T18:50:34.399514+00:00"}
+packages/db/src/master-players-recovery.test.ts 189ms
+apps/web/src/server/master/player-battle-recovery.test.ts 18ms
+apps/web/src/components/battle/battle-experience.tsx 292ms (unchanged)
+{"end": "2026-10-20T18:50:35.502633+00:00", "exit": 0}

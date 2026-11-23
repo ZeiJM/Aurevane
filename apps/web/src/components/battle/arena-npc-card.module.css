@@ -1,0 +1,40 @@
+.card {
+  display: grid;
+  grid-template-columns: 4rem minmax(0, 1fr);
+  gap: 0.7rem;
+  padding: 0.65rem;
+  border: 1px solid #9d8456;
+  border-radius: 0.55rem;
+  color: #f6ecda;
+  background: #202f2d;
+}
+
+.portrait {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 0.35rem;
+  object-fit: cover;
+}
+
+.identity {
+  display: grid;
+  align-content: start;
+  gap: 0.3rem;
+  overflow-wrap: anywhere;
+}
+
+.identity span {
+  font-size: 0.8rem;
+  color: #e7cca0;
+}
+
+.identity p {
+  margin: 0;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.identity summary {
+  cursor: pointer;
+  padding-block: 0.4rem;
+}

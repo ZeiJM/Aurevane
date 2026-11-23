@@ -1,0 +1,28 @@
+[
+  {
+    "viewport": {
+      "width": 1366,
+      "height": 768,
+      "zoom": 1
+    },
+    "broadMatches": 2,
+    "readerCount": 1,
+    "geometry": {
+      "clientWidth": 1321,
+      "scrollWidth": 1321
+    }
+  },
+  {
+    "viewport": {
+      "width": 390,
+      "height": 844,
+      "zoom": 1
+    },
+    "broadMatches": 2,
+    "readerCount": 1,
+    "geometry": {
+      "clientWidth": 345,
+      "scrollWidth": 345
+    }
+  }
+]

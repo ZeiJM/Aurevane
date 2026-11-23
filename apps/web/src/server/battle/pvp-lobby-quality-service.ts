@@ -1,3 +1,9 @@
+import { throwItemRpcError } from '@/server/character/supabase-character-items-repository'
+import { throwCoreConversionAdmissionError } from './core-conversion-admission-error'
+import { createBattleUsageProvenance } from './usage-balance-provenance'
+import { assertPreparedBattleSource } from '@/server/battle/battle-source-authority'
+import { readBattlefieldElevationPolicy } from '@/server/master/battlefield-elevation-policy-store'
+import { readCombatEffectTimingPolicy } from '@/server/master/combat-effect-timing-policy-store'
 import 'server-only'
 
 import { randomInt, randomUUID } from 'node:crypto'
@@ -14,7 +20,6 @@ import {
   P2_2_ORDINARY_GROUND_PROFILE,
   P2_2_VERTICAL_SLICE_TERRAINS,
   createTacticalBattleState,
-  type CombatTile,
   type GridPosition,
 } from '@aurevane/game-core/combat/board'
 import { attachCombatBuildBridge } from '@aurevane/game-core/combat/build-snapshot'
@@ -26,26 +31,38 @@ import {
 import { createPvpQualityResources } from '@aurevane/game-core/combat/pvp-quality'
 import {
   createCharacterDerivedCombatProfile,
-  createStatDrivenCombatEncounterState,
+  createDuelBalancedCombatEncounterState,
 } from '@aurevane/game-core/combat/stat-driven-combat'
 import { AurevaneError } from '@aurevane/game-core/errors'
+import {
+  defaultBattlefieldElevationPolicy,
+  parseBattlefieldElevationPolicy,
+  type BattlefieldElevationPolicy,
+  createStandardBattlefieldTiles,
+} from '@aurevane/game-core/combat/standard-battlefield'
 import type { PvpMapBias, PvpMapSize, PvpTurnTimerSeconds } from '@aurevane/validation/combat/pvp'
 
+import { pvpMapProfile } from '@/lib/battle/pvp-map-presentation'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createSupabaseCharacterBuildRepository } from '@/server/character/supabase-character-build-repository'
 import { createSupabaseCharacterRepository } from '@/server/character/supabase-character-repository'
+import { createServerCombatContentResolver } from '@/server/combat/combat-content-resolver'
 
 import { toCombatBuildSnapshot } from '../character/character-combat-build-snapshot'
 import {
   loadCharacterCommittedBuildSnapshot,
   type CharacterCommittedBuildSnapshotRecord,
 } from '../character/character-build-service'
-import { createBattleBuildAuthoritySnapshot } from './battle-build-authority'
+import {
+  createResolvedBattleBuildAuthoritySnapshot,
+  narratorIdentityForCharacter,
+  type BattleBuildAuthoritySnapshot,
+} from './battle-build-authority'
 import { getPvpLobby, type PvpLobbyMemberView } from './pvp-lobby-service'
+import { prepareBattleAbilityStartup } from './battle-ability-startup'
 
 const PVP_RULES_VERSION = 2
 const PVP_CONTENT_VERSION = 2
-const PVP_BASE_MOVEMENT_UNITS = 10
 
 export interface PvpLobbyMapSettings {
   mapSize: PvpMapSize
@@ -65,6 +82,8 @@ function unavailable(message = 'PvP staging services are unavailable right now.'
 }
 
 function mapRpcError(error: { code?: string; message?: string }): never {
+  throwCoreConversionAdmissionError(error)
+  if (error.message?.startsWith('ITEM_')) throwItemRpcError(error)
   const message = error.message ?? ''
   if (error.code === '42501') {
     throw new AurevaneError('FORBIDDEN', 'That PvP lobby is not available to this account.')
@@ -100,7 +119,7 @@ export async function getPvpLobbyMapSettings(
   const terrainBias = row.terrain_bias
   const turnTimerSeconds = row.turn_timer_seconds
   if (
-    (mapSize !== 'medium' && mapSize !== 'large') ||
+    (mapSize !== 'small' && mapSize !== 'medium' && mapSize !== 'large') ||
     (elevationBias !== 'less' && elevationBias !== 'neutral' && elevationBias !== 'more') ||
     (terrainBias !== 'less' && terrainBias !== 'neutral' && terrainBias !== 'more') ||
     (turnTimerSeconds !== null && turnTimerSeconds !== 60 && turnTimerSeconds !== 120)
@@ -171,54 +190,14 @@ function spawnFor(
   return { position: { x: Math.floor(width / 2), y: 1 }, facing: 'south' }
 }
 
-function chance(bias: PvpMapBias, kind: 'terrain' | 'elevation'): number {
-  if (kind === 'terrain') return bias === 'less' ? 70 : bias === 'more' ? 270 : 150
-  return bias === 'less' ? 45 : bias === 'more' ? 220 : 115
-}
-
-function nearbyKeys(position: GridPosition): string[] {
-  return [
-    `${position.x}:${position.y}`,
-    `${position.x + 1}:${position.y}`,
-    `${position.x - 1}:${position.y}`,
-    `${position.x}:${position.y + 1}`,
-    `${position.x}:${position.y - 1}`,
-  ]
-}
-
-function createRandomPvpTiles(
-  width: number,
-  height: number,
-  spawns: readonly GridPosition[],
-  elevationBias: PvpMapBias,
-  terrainBias: PvpMapBias,
-): readonly CombatTile[] {
-  const protectedTiles = new Set(spawns.flatMap(nearbyKeys))
-  const roughChance = chance(terrainBias, 'terrain')
-  const raisedChance = chance(elevationBias, 'elevation')
-  const tiles: CombatTile[] = []
-  for (let y = 0; y < height; y += 1) {
-    for (let x = 0; x < width; x += 1) {
-      const key = `${x}:${y}`
-      const protectedSpawn = protectedTiles.has(key)
-      tiles.push({
-        position: { x, y },
-        elevation: !protectedSpawn && randomInt(0, 1000) < raisedChance ? 1 : 0,
-        terrainId:
-          !protectedSpawn && randomInt(0, 1000) < roughChance ? 'rough-ground' : 'open-ground',
-      })
-    }
-  }
-  return tiles
-}
-
 function createPvpEncounter(
   roster: readonly PvpRosterEntry[],
   teamSizes: readonly [number, number, number],
   settings: PvpLobbyMapSettings,
+  buildAuthority: BattleBuildAuthoritySnapshot,
+  elevationPolicy: BattlefieldElevationPolicy = defaultBattlefieldElevationPolicy(),
 ) {
-  const width = settings.mapSize === 'large' ? 13 : 9
-  const height = settings.mapSize === 'large' ? 9 : 7
+  const { width, height } = pvpMapProfile(settings.mapSize)
   const spawnRows = roster.map(({ member }) => ({
     member,
     spawn: spawnFor(
@@ -229,13 +208,6 @@ function createPvpEncounter(
       height,
     ),
   }))
-  const tiles = createRandomPvpTiles(
-    width,
-    height,
-    spawnRows.map((row) => row.spawn.position),
-    settings.elevationBias,
-    settings.terrainBias,
-  )
   const profiles = []
   const movementProfiles = []
   const placements = []
@@ -279,7 +251,7 @@ function createPvpEncounter(
       id: combatantId,
       teamId: `team:${member.teamIndex}`,
       initiative: derived.stats.initiative.value,
-      baseMovementBudget: PVP_BASE_MOVEMENT_UNITS,
+      baseMovementBudget: derived.stats.movement.value,
       hp: derived.stats.maxHp.value,
       maxHp: derived.stats.maxHp.value,
       mp: derived.stats.maxMp.value,
@@ -302,14 +274,22 @@ function createPvpEncounter(
   ).state
 
   const encounter = preparePv1fTurnEconomy(
-    createStatDrivenCombatEncounterState(
+    createDuelBalancedCombatEncounterState(
       createCombatEncounterState(
         createTacticalBattleState({
           battle,
           width,
           height,
           terrains: P2_2_VERTICAL_SLICE_TERRAINS,
-          tiles,
+          tiles: createStandardBattlefieldTiles({
+            elevationPolicy,
+            width,
+            height,
+            seed: battle.rng.seed,
+            spawns: spawnRows.map((row) => row.spawn.position),
+            elevationBias: settings.elevationBias,
+            terrainBias: settings.terrainBias,
+          }),
           movementProfiles,
           placements,
         }),
@@ -317,13 +297,8 @@ function createPvpEncounter(
       profiles,
     ),
   )
-  // Freeze both projections from the same committed loadout. Runtime/preview/commit read
-  // buildAuthority; the existing bridge remains the common combat snapshot contract.
-  const authorityInputs = roster.map(({ character, buildSnapshot }) => ({
-    combatantId: `character:${character.id}`,
-    characterId: character.id,
-    snapshot: buildSnapshot,
-  }))
+  // Preserve the committed bridge for historical/source-build inspection while runtime
+  // authority pins the current published/static combat versions for this new battle.
   return {
     ...attachCombatBuildBridge(
       encounter,
@@ -333,7 +308,8 @@ function createPvpEncounter(
         snapshot: toCombatBuildSnapshot(buildSnapshot),
       })),
     ),
-    buildAuthority: createBattleBuildAuthoritySnapshot('pvp', authorityInputs),
+    buildAuthority,
+    battlefieldElevationPolicy: parseBattlefieldElevationPolicy(elevationPolicy),
   }
 }
 
@@ -357,36 +333,107 @@ export async function startPvpLobbyWithQuality(
   const builds = createSupabaseCharacterBuildRepository()
   const roster: PvpRosterEntry[] = await Promise.all(
     lobby.members.map(async (member) => {
-      const [character, buildSnapshot] = await Promise.all([
-        characters.findByOwnerId
-          ? characters.findByOwnerId(member.userId, member.characterId)
-          : Promise.resolve(null),
-        loadCharacterCommittedBuildSnapshot(member.userId, member.characterId, builds),
-      ])
+      const character = characters.findByOwnerId
+        ? await characters.findByOwnerId(member.userId, member.characterId)
+        : null
       if (!character) {
         throw new AurevaneError('INVALID_REQUEST', 'A lobby character is no longer available.')
       }
+      const buildSnapshot = await loadCharacterCommittedBuildSnapshot(
+        member.userId,
+        member.characterId,
+        builds,
+        true,
+      )
+      assertPreparedBattleSource(character, buildSnapshot)
       return { member, character, buildSnapshot }
     }),
   )
 
-  const encounter = createPvpEncounter(roster, lobby.teamSizes, settings)
-  const battle = encounter.tactical.battle
-  const supabase = createSupabaseAdminClient()
-  const { data, error } = await supabase.rpc('create_pvp_battle_session_v1', {
-    p_actor_user_id: userId,
-    p_lobby_id: lobbyId,
-    p_battle_id: battle.battleId,
-    p_rules_version: battle.rulesVersion,
-    p_content_version: battle.contentVersion,
-    p_initial_snapshot: encounter,
-    p_participants: roster.map(({ member, character }) => ({
-      combatant_id: `character:${character.id}`,
-      user_id: member.userId,
-      character_id: character.id,
-      team_index: member.teamIndex,
+  const liveResolver = createServerCombatContentResolver()
+  const catalogue = await liveResolver.captureCurrentCatalogue?.()
+  const combatContentResolver = catalogue?.resolver ?? liveResolver
+  const buildAuthority = await createResolvedBattleBuildAuthoritySnapshot(
+    'pvp',
+    roster.map(({ character, buildSnapshot }) => ({
+      combatantId: `character:${character.id}`,
+      characterId: character.id,
+      snapshot: buildSnapshot,
+      narratorIdentity: narratorIdentityForCharacter(character),
     })),
-  })
+    combatContentResolver,
+  )
+  const elevationPolicy = parseBattlefieldElevationPolicy(await readBattlefieldElevationPolicy())
+  const encounter = createPvpEncounter(
+    roster,
+    lobby.teamSizes,
+    settings,
+    buildAuthority,
+    elevationPolicy,
+  )
+  encounter.battlefieldElevationPolicy = elevationPolicy
+  encounter.effectTimingPolicy = catalogue?.policy ?? (await readCombatEffectTimingPolicy())
+  encounter.effectStackingPolicyVersion = 1
+  encounter.percentageDotPolicyVersion = 1
+  encounter.dotTriggerPolicyVersion = 2
+  encounter.skillPacketPolicyVersion = 1
+  encounter.displacementPolicyVersion = 1
+  encounter.frozenGroundPolicyVersion = 1
+  encounter.airbornePolicyVersion = 1
+  encounter.airborneJumpPolicyVersion = 1
+  encounter.elementalDamagePolicyVersion = 2
+  encounter.dynamicInitiativePolicyVersion = 1
+  encounter.healingDownPolicyVersion = 1
+  encounter.conditionalDamageRoundingPolicyVersion = 1
+  encounter.blindsideActivationPolicyVersion = 1
+  encounter.abilityCooldownScopeVersion = 1
+  encounter.reflectBarrierPolicyVersion = 1
+  encounter.supportActionPolicyVersion = 1
+  if (encounter.effectTimingPolicy?.tagAuthority === 'global') {
+    encounter.modularSkillPolicyVersion = 1
+  }
+  encounter.groundEffectPolicyVersion = 1
+  encounter.groundContactPolicyVersion = 1
+  encounter.displacementOriginPolicyVersion = 1
+  encounter.rangeModifierPolicyVersion = 1
+  encounter.reversalPolicyVersion = 1
+  encounter.pierceCriticalPolicyVersion = 1
+  encounter.summonPotencyPolicyVersion = 1
+  encounter.ruinPolicyVersion = 1
+  const { snapshot, startup } = await prepareBattleAbilityStartup(
+    encounter,
+    buildAuthority,
+    combatContentResolver,
+  )
+  const usageBalance = await createBattleUsageProvenance(
+    'pvp',
+    roster.map(({ member }) => member.userId),
+  )
+  const battle = snapshot.tactical.battle
+  const supabase = createSupabaseAdminClient()
+  const { data, error } = await supabase.rpc(
+    startup ? 'create_pvp_battle_session_v2' : 'create_pvp_battle_session_v1',
+    {
+      p_actor_user_id: userId,
+      p_lobby_id: lobbyId,
+      p_battle_id: battle.battleId,
+      p_rules_version: battle.rulesVersion,
+      p_content_version: battle.contentVersion,
+      p_initial_snapshot: { ...snapshot, usageBalance },
+      ...(startup
+        ? {
+            ...startup,
+            p_start_snapshot: { ...(startup.p_start_snapshot as object), usageBalance },
+          }
+        : {}),
+      p_participants: roster.map(({ member, character }) => ({
+        combatant_id: `character:${character.id}`,
+        user_id: member.userId,
+        character_id: character.id,
+        team_index: member.teamIndex,
+      })),
+    },
+  )
   if (error) mapRpcError(error)
   const row =
     Array.isArray(data) && data.length === 1 && data[0] && typeof data[0] === 'object'

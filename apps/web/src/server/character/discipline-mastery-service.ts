@@ -1,4 +1,5 @@
 import 'server-only'
+import { throwCombatContentAdmissionError } from '../combat/combat-content-admission-error'
 
 import type { DisciplineMasteryStage } from '@aurevane/game-core/character/discipline-atlas'
 import { AurevaneError } from '@aurevane/game-core/errors'
@@ -13,6 +14,8 @@ export interface DisciplineMasteryProgress {
   releaseUnlocked: boolean
   testingAccess: boolean
   demonstratedSkillCount: number
+  earnedSkillCount: number
+  unearnedSkillCount: number
 }
 
 export async function loadDisciplineMastery(
@@ -20,7 +23,7 @@ export async function loadDisciplineMastery(
   characterId: string,
 ): Promise<DisciplineMasteryProgress[]> {
   const { data, error } = await createSupabaseAdminClient().rpc(
-    'get_character_discipline_atlas_progress_v1',
+    'get_character_discipline_atlas_progress_v2',
     { p_user_id: userId, p_character_id: characterId },
   )
   if (error || !Array.isArray(data))
@@ -38,6 +41,8 @@ export async function loadDisciplineMastery(
       effective_unlocked: boolean
       testing_access: boolean
       demonstrated_skill_count: number
+      earned_skill_count: number
+      unearned_skill_count: number
     }) => ({
       disciplineId: row.discipline_id,
       xp: row.mastery_xp,
@@ -46,6 +51,8 @@ export async function loadDisciplineMastery(
       releaseUnlocked: row.release_unlocked,
       testingAccess: row.testing_access,
       demonstratedSkillCount: row.demonstrated_skill_count,
+      earnedSkillCount: row.earned_skill_count,
+      unearnedSkillCount: row.unearned_skill_count,
     }),
   )
 }
@@ -68,6 +75,7 @@ export async function claimDisciplineTrial(userId: string, battleSessionId: stri
     p_battle_session_id: battleSessionId,
   })
   if (error) {
+    throwCombatContentAdmissionError(error)
     if (error.message.includes('TRIAL_NOT_FOUND'))
       throw new AurevaneError('FORBIDDEN', 'That trial is unavailable to this account.')
     const message = Object.entries(claimErrors).find(([code]) => error.message.includes(code))?.[1]

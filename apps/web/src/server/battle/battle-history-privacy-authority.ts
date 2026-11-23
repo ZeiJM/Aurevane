@@ -1,11 +1,20 @@
 import 'server-only'
 
 import {
+  captureCombatAbilitySource,
+  type CapturedCombatAbilitySource,
+} from '@aurevane/game-core/combat/combat-behavior-capture'
+
+import {
   validateStatDrivenCombatEncounterState,
   type StatDrivenCombatEncounterState,
 } from '@aurevane/game-core/combat/stat-driven-combat'
 
 import type { BattleHistoryPrivacyJournal, BattlePrivacyVisibility } from './battle-history-privacy'
+import {
+  parseBattleBuildAuthoritySnapshot,
+  type BattleBuildAuthoritySnapshot,
+} from './battle-build-authority'
 import {
   createSpectatorBattleViewerEntitlement,
   deriveParticipantBattleViewerEntitlement,
@@ -15,6 +24,9 @@ import {
 export interface BattleHistoryPrivacyAuthority {
   readonly viewer: BattleViewerEntitlement
   readonly journals: readonly BattleHistoryPrivacyJournal[]
+  readonly buildAuthority?: BattleBuildAuthoritySnapshot
+  /** Private execution captures; only projected names/text may reach the log DTO. */
+  readonly capturedAbilitySources?: readonly CapturedCombatAbilitySource[]
 }
 
 export interface BattleHistoryPrivacyRepository {
@@ -42,9 +54,21 @@ function integerValue(value: unknown): number | null {
 function visibility(value: unknown): BattlePrivacyVisibility | null {
   const record = objectValue(value)
   if (!record) return null
-  if (record.kind === 'public' && !('teamId' in record)) return { kind: 'public' }
+  if (record.kind === 'public' && !('teamId' in record) && !('requiredTeamIds' in record))
+    return { kind: 'public' }
   const teamId = stringValue(record.teamId)
-  if (record.kind === 'team-only' && teamId) return { kind: 'team-only', teamId }
+  if (record.kind === 'team-only' && teamId) {
+    if (!Object.hasOwn(record, 'requiredTeamIds')) return { kind: 'team-only', teamId }
+    if (
+      !Array.isArray(record.requiredTeamIds) ||
+      record.requiredTeamIds.length < 1 ||
+      record.requiredTeamIds.length > 6 ||
+      record.requiredTeamIds.some((required) => !stringValue(required) || required === teamId) ||
+      new Set(record.requiredTeamIds).size !== record.requiredTeamIds.length
+    )
+      return null
+    return { kind: 'team-only', teamId, requiredTeamIds: [...record.requiredTeamIds] as string[] }
+  }
   return null
 }
 
@@ -61,7 +85,7 @@ function journal(value: unknown): BattleHistoryPrivacyJournal | null {
 
   if (
     battleVersion === null ||
-    battleVersion <= 1 ||
+    battleVersion < 1 ||
     !actorCombatantId ||
     !actorTeamId ||
     eventCount === null ||
@@ -118,6 +142,10 @@ export function parseBattleHistoryPrivacyAuthorityRow(
 
   const snapshot = record.snapshot as StatDrivenCombatEncounterState
   if (validateStatDrivenCombatEncounterState(snapshot).length > 0) return null
+  const buildAuthority = parseBattleBuildAuthoritySnapshot(
+    objectValue(record.snapshot)?.buildAuthority,
+  )
+  const capturedAbilitySources = snapshot.capturedAbilitySources?.map(captureCombatAbilitySource)
 
   const controlledCombatantIds: string[] = []
   for (const controlled of record.controlled_combatant_ids) {
@@ -144,6 +172,8 @@ export function parseBattleHistoryPrivacyAuthorityRow(
         controlledCombatantIds,
       ),
       journals,
+      ...(buildAuthority ? { buildAuthority } : {}),
+      ...(capturedAbilitySources ? { capturedAbilitySources } : {}),
     }
   }
 
@@ -151,6 +181,8 @@ export function parseBattleHistoryPrivacyAuthorityRow(
     return {
       viewer: createSpectatorBattleViewerEntitlement(),
       journals,
+      ...(buildAuthority ? { buildAuthority } : {}),
+      ...(capturedAbilitySources ? { capturedAbilitySources } : {}),
     }
   }
 

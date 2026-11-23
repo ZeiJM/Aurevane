@@ -949,3 +949,73 @@
     transition: none;
   }
 }
+
+/* The mobile crest is part of the compact battle HUD, never a second desktop logo. */
+.mobileCrest {
+  display: none;
+}
+.previewFacing {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(0.25rem, 1vw, 0.6rem);
+  min-height: 2.6rem;
+  flex-wrap: nowrap;
+}
+.previewFacing > span {
+  flex: 0 1 auto;
+  color: #d3c1a3;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+.previewFacing button {
+  display: grid;
+  place-items: center;
+  flex: 0 0 2.35rem;
+  min-width: 0;
+  width: 2.35rem;
+  height: 2.35rem;
+  border: 1px solid #b18b53;
+  border-radius: 0.35rem;
+  color: #f4e1b8;
+  background: #203f48;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+.previewFacing button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.previewFacing button:focus-visible {
+  outline: 2px solid #57baba;
+}
+@media (max-width: 820px) {
+  .mobileCrest {
+    display: grid;
+    place-items: center;
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    width: 2rem;
+    height: 2rem;
+    border: 1px solid #c5aa77;
+    color: #efdfc4;
+    font: 600 1.45rem/1 var(--av-font-display);
+    background: #173039;
+  }
+  .previewFacing > span {
+    font-size: 0.71rem;
+  }
+  .previewFacing button {
+    flex-basis: 2rem;
+    width: 2rem;
+    height: 2rem;
+  }
+  .shell :global([data-battle-command-group]) {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+@media (min-width: 821px) {
+  .shell :global([data-battle-command-group]) {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}

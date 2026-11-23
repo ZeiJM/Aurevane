@@ -9,7 +9,6 @@ describe('combat effect-state compatibility', () => {
       poison: [],
       bleed: [],
       burn: [],
-      temporarySkills: [],
       damageHistory: [],
     } satisfies CombatEffectState)
   })

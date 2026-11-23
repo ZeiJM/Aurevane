@@ -1,0 +1,258 @@
+{
+  "local_source": "b05c3e5e5f2edabb2763e0268350b922c50659eb",
+  "remote_source": "f02edff870c176ceae9073fbf749635c73bf87ae",
+  "status": "incomplete non-deployable StageA checkpoint; native physical/review pending",
+  "logs": [
+    {
+      "argv": [
+        "corepack",
+        "pnpm",
+        "exec",
+        "supabase",
+        "migration",
+        "new",
+        "combat_content_reference_index"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "2026-10-20T20:56:30.070874+00:00",
+      "completedAt": "2026-10-20T20:56:31.185743+00:00",
+      "exit": 0,
+      "rawLog": "docs/verification/task-10-reconstruction/dependency-migration-new.log",
+      "file": "dependency-migration-new.log.gz",
+      "uncompressed_sha256": "e451ddb50a1332259135ca37ec1430e66ac5de0e787fc953154b1bf7e247fd14",
+      "sha256": "29d0afccc89cb6fadbf2a1391b5b173e499d5c047cd05d2c65a0b280bfaa3f6c"
+    },
+    {
+      "argv": [
+        "corepack",
+        "pnpm",
+        "--filter",
+        "@aurevane/db",
+        "exec",
+        "vitest",
+        "run",
+        "src/combat-content-record-lifecycle.test.ts"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "2026-10-20T20:56:28.463731+00:00",
+      "completedAt": "2026-10-20T20:56:32.640107+00:00",
+      "exit": 1,
+      "rawLog": "docs/verification/task-10-reconstruction/dependency-boundaries-red.log",
+      "file": "dependency-boundaries-red.log.gz",
+      "uncompressed_sha256": "fdbb42903ccb104c22753e899fa09f88d9b7c7c1e6b6a76aeeac3279c4372a70",
+      "sha256": "96dd6e82dc2cbeed07837448cc3f00e7e42ef09f91e01c1ba04bf66551f28b71"
+    },
+    {
+      "argv": [
+        "corepack",
+        "pnpm",
+        "--filter",
+        "@aurevane/web",
+        "exec",
+        "vitest",
+        "run",
+        "src/server/master/builtin-selection-generate.test.ts",
+        "src/server/master/combat-content-builtin-index.test.ts"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "2026-10-20T20:57:22.792496+00:00",
+      "completedAt": "2026-10-20T20:57:24.635120+00:00",
+      "exit": 1,
+      "rawLog": "docs/verification/task-10-reconstruction/builtin-selection-red-and-generate.log",
+      "file": "builtin-selection-red-and-generate.log.gz",
+      "uncompressed_sha256": "46fad06c5787e740980eb37ca121f0b1dd043784ca41a822615147c3b15c87d7",
+      "sha256": "824d5fbe5fd1f54b36066b3e0ae54004114b2c833b647267adfd7abe396daf88"
+    },
+    {
+      "argv": [
+        "corepack",
+        "pnpm",
+        "--filter",
+        "@aurevane/db",
+        "exec",
+        "vitest",
+        "run",
+        "src/combat-content-record-lifecycle.test.ts"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "2026-10-20T20:58:14.697753+00:00",
+      "completedAt": "2026-10-20T20:58:18.021951+00:00",
+      "exit": 1,
+      "rawLog": "docs/verification/task-10-reconstruction/dependency-boundaries-green-attempt.log",
+      "file": "dependency-boundaries-green-attempt.log.gz",
+      "uncompressed_sha256": "f12ba2e7d3fc9d40e1647b11fadf61532b4c91e26fe4c7e2631f232ea8ac1cdd",
+      "sha256": "b54302c05727196fd59365b0ce8d60a195f018538424ddfc7229285606007621"
+    },
+    {
+      "argv": [
+        "corepack",
+        "pnpm",
+        "--filter",
+        "@aurevane/web",
+        "exec",
+        "vitest",
+        "run",
+        "src/server/master/combat-content-builtin-index.test.ts",
+        "src/server/master/combat-content-records.test.ts"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "2026-10-20T20:58:58.179673+00:00",
+      "completedAt": "2026-10-20T20:59:00.349163+00:00",
+      "exit": 0,
+      "rawLog": "docs/verification/task-10-reconstruction/builtin-selection-green.log",
+      "file": "builtin-selection-green.log.gz",
+      "uncompressed_sha256": "3918fb5ce45a7ef0d514dd6f26922a3dba5d21c5f532671f0aff6ba49cb98efe",
+      "sha256": "2dd4a184f75e328c6b0789f6c6036331dc87be8f4af79bfc2cdeaf528a429bec"
+    },
+    {
+      "argv": [
+        "corepack",
+        "pnpm",
+        "--filter",
+        "@aurevane/db",
+        "exec",
+        "vitest",
+        "run",
+        "src/combat-content-record-lifecycle.test.ts"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "2026-10-20T20:58:56.730191+00:00",
+      "completedAt": "2026-10-20T20:59:01.031799+00:00",
+      "exit": 1,
+      "rawLog": "docs/verification/task-10-reconstruction/dependency-boundaries-green.log",
+      "file": "dependency-boundaries-green.log.gz",
+      "uncompressed_sha256": "449d6c811b733522ca690af93882e3cea03e9ae0400a6c13816769d0aef0546e",
+      "sha256": "d873b69b1f55c2e6359632cb43566e64584ebe5d819fc2f258d33804a97edbd6"
+    },
+    {
+      "argv": [
+        "corepack",
+        "pnpm",
+        "--filter",
+        "@aurevane/db",
+        "exec",
+        "vitest",
+        "run",
+        "src/combat-content-record-lifecycle.test.ts"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "2026-10-20T21:00:18.292753+00:00",
+      "completedAt": "2026-10-20T21:00:22.566217+00:00",
+      "exit": 0,
+      "rawLog": "docs/verification/task-10-reconstruction/dependency-and-transaction-green.log",
+      "file": "dependency-and-transaction-green.log.gz",
+      "uncompressed_sha256": "442e9a99f81894003853b48d05eb02e7aa2300ed4a52b4f2b2d6b0ca516e5a38",
+      "sha256": "5909bc0bbf0ef5a08883d3aed88a56978f5bd2ffc9265a7e4c19456bfc4ef92f"
+    },
+    {
+      "argv": [
+        "corepack",
+        "pnpm",
+        "exec",
+        "prettier",
+        "--write",
+        "apps/web/src/server/master/combat-content-builtin-index.ts",
+        "apps/web/src/server/master/combat-content-builtin-index.test.ts",
+        "apps/web/src/server/master/combat-content-record.ts",
+        "packages/db/src/combat-content.ts",
+        "packages/db/src/combat-content-record-lifecycle.test.ts"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "2026-10-20T21:01:44.030129+00:00",
+      "completedAt": "2026-10-20T21:01:44.893749+00:00",
+      "exit": 0,
+      "rawLog": "docs/verification/task-10-reconstruction/dependency-format.log",
+      "file": "dependency-format.log.gz",
+      "uncompressed_sha256": "0aefec8dfa631039e590cac819494cb5f5d4fa2f795b1a4be12280a2fd396273",
+      "sha256": "2d84a3f1e713b7056ac85f41f89c9680e4a6cc83a43beb1d962a02a39e0133f3"
+    },
+    {
+      "argv": [
+        "corepack",
+        "pnpm",
+        "--filter",
+        "@aurevane/db",
+        "typecheck"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "2026-10-20T21:01:45.353306+00:00",
+      "completedAt": "2026-10-20T21:01:50.327433+00:00",
+      "exit": 0,
+      "rawLog": "docs/verification/task-10-reconstruction/dependency-db-types.log",
+      "file": "dependency-db-types.log.gz",
+      "uncompressed_sha256": "8366207267355d3e3d5bf3bf6e8c94c5f93f6078c34f08973fa2b38cdda6cc92",
+      "sha256": "67be5567bde7f0f4c1fd5e775e918562bc1f228a849614e4ad48b4172e907169"
+    },
+    {
+      "argv": [
+        "corepack",
+        "pnpm",
+        "--filter",
+        "@aurevane/web",
+        "typecheck"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "2026-10-20T21:01:45.356502+00:00",
+      "completedAt": "2026-10-20T21:01:57.208101+00:00",
+      "exit": 0,
+      "rawLog": "docs/verification/task-10-reconstruction/dependency-web-types.log",
+      "file": "dependency-web-types.log.gz",
+      "uncompressed_sha256": "99d7c2179cdd316467c51f37901025a0753453664d741214ba56fc631fa6c0bc",
+      "sha256": "e0356247813383c642bcaf9deb204edac049294684227f11c159d094ec0752cb"
+    },
+    {
+      "argv": [
+        "bash",
+        "-n",
+        ".github/scripts/verify-combat-catalogue-concurrency.sh"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "2026-10-20T21:02:51.971879+00:00",
+      "completedAt": "2026-10-20T21:02:51.974512+00:00",
+      "exit": 0,
+      "rawLog": "docs/verification/task-10-reconstruction/dependency-native-shell-syntax.log",
+      "file": "dependency-native-shell-syntax.log.gz",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec"
+    },
+    {
+      "argv": [
+        "corepack",
+        "pnpm",
+        "--filter",
+        "@aurevane/web",
+        "exec",
+        "eslint",
+        "src/server/master/combat-content-builtin-index.ts",
+        "src/server/master/combat-content-builtin-index.test.ts",
+        "src/server/master/combat-content-record.ts"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "2026-10-20T21:02:51.970798+00:00",
+      "completedAt": "2026-10-20T21:02:53.973072+00:00",
+      "exit": 0,
+      "rawLog": "docs/verification/task-10-reconstruction/dependency-web-lint.log",
+      "file": "dependency-web-lint.log.gz",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec"
+    },
+    {
+      "argv": [
+        "corepack",
+        "pnpm",
+        "exec",
+        "eslint",
+        "packages/db/src/combat-content.ts",
+        "packages/db/src/combat-content-record-lifecycle.test.ts"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "2026-10-20T21:02:51.975117+00:00",
+      "completedAt": "2026-10-20T21:02:54.455460+00:00",
+      "exit": 0,
+      "rawLog": "docs/verification/task-10-reconstruction/dependency-db-lint.log",
+      "file": "dependency-db-lint.log.gz",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec"
+    }
+  ]
+}

@@ -1,5 +1,8 @@
 import 'server-only'
 
+import { createSelectedCharacterRpc } from './selected-character-rpc'
+
+import { resolveEventCategory } from '@aurevane/game-core/events/persistent-event'
 import { AurevaneError } from '@aurevane/game-core/errors'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
@@ -57,7 +60,11 @@ function unavailable(
 
 function mapRpcError(error: RpcError): never {
   const message = error.message ?? ''
-  if (error.code === '40001' || message.includes('STATE_VERSION_CONFLICT')) {
+  if (
+    error.code === '40001' ||
+    error.code === 'PT409' ||
+    message.includes('STATE_VERSION_CONFLICT')
+  ) {
     throw new AurevaneError('STALE_VERSION', 'Event state changed. Refresh and retry.', {
       cause: error,
     })
@@ -120,6 +127,12 @@ function parseRunSummary(row: JsonObject): EventOperationRunSummary | null {
   }
 
   return {
+    title: text(row.title) ?? eventKey,
+    category: resolveEventCategory(row),
+    participantCount:
+      Number.isSafeInteger(row.participant_count) && Number(row.participant_count) >= 0
+        ? Number(row.participant_count)
+        : 0,
     runId,
     eventKey,
     lifecycleStatus,
@@ -184,7 +197,8 @@ export function createSupabaseEventOperationsStore(): EventOperationsStore {
   return {
     async listRuns(actorUserId) {
       const supabase = createSupabaseAdminClient()
-      const { data, error } = await supabase.rpc('list_event_operation_runs_v1', {
+      const rpc = createSelectedCharacterRpc((name, parameters) => supabase.rpc(name, parameters))
+      const { data, error } = await rpc('list_event_workspace_runs_v1', {
         p_actor_user_id: actorUserId,
       })
       if (error) mapRpcError(error)
@@ -202,7 +216,8 @@ export function createSupabaseEventOperationsStore(): EventOperationsStore {
 
     async readDashboard(actorUserId, runId) {
       const supabase = createSupabaseAdminClient()
-      const { data, error } = await supabase.rpc('read_event_operation_dashboard_v1', {
+      const rpc = createSelectedCharacterRpc((name, parameters) => supabase.rpc(name, parameters))
+      const { data, error } = await rpc('read_event_operation_dashboard_v1', {
         p_actor_user_id: actorUserId,
         p_run_id: runId,
       })
@@ -212,13 +227,14 @@ export function createSupabaseEventOperationsStore(): EventOperationsStore {
 
     async operate(input) {
       const supabase = createSupabaseAdminClient()
-      const { data, error } = await supabase.rpc('operate_event_run_v2', {
+      const rpc = createSelectedCharacterRpc((name, parameters) => supabase.rpc(name, parameters))
+      const { data, error } = await rpc('operate_event_run_v2', {
         p_actor_user_id: input.actorUserId,
         p_run_id: input.runId,
         p_expected_state_version: input.expectedStateVersion,
         p_idempotency_key: input.idempotencyKey,
         p_command: input.command,
-        p_reason: input.reason,
+        p_reason: null,
         p_confirmed: input.confirmed,
       })
       if (error) mapRpcError(error)
@@ -227,12 +243,13 @@ export function createSupabaseEventOperationsStore(): EventOperationsStore {
 
     async advancePhase(input) {
       const supabase = createSupabaseAdminClient()
-      const { data, error } = await supabase.rpc('advance_event_run_phase_v2', {
+      const rpc = createSelectedCharacterRpc((name, parameters) => supabase.rpc(name, parameters))
+      const { data, error } = await rpc('advance_event_run_phase_v2', {
         p_actor_user_id: input.actorUserId,
         p_run_id: input.runId,
         p_expected_state_version: input.expectedStateVersion,
         p_idempotency_key: input.idempotencyKey,
-        p_reason: input.reason,
+        p_reason: null,
         p_confirmed: input.confirmed,
       })
       if (error) mapRpcError(error)
@@ -241,13 +258,14 @@ export function createSupabaseEventOperationsStore(): EventOperationsStore {
 
     async completeCleanup(input) {
       const supabase = createSupabaseAdminClient()
-      const { data, error } = await supabase.rpc('complete_event_cleanup_requirement_v2', {
+      const rpc = createSelectedCharacterRpc((name, parameters) => supabase.rpc(name, parameters))
+      const { data, error } = await rpc('complete_event_cleanup_requirement_v2', {
         p_actor_user_id: input.actorUserId,
         p_run_id: input.runId,
         p_phase_id: input.phaseId,
         p_effect_ordinal: input.effectOrdinal,
         p_completion_key: input.completionKey,
-        p_reason: input.reason,
+        p_reason: null,
         p_confirmed: input.confirmed,
       })
       if (error) mapRpcError(error)

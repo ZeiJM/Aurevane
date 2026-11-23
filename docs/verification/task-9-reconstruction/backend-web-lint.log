@@ -1,0 +1,12 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["corepack", "pnpm", "--filter", "@aurevane/web", "exec", "eslint", "src/server/master/player-battle-recovery.ts", "src/server/master/players-service.ts", "src/server/master/players-service.test.ts", "src/server/master/players-handler.ts", "src/server/master/players-handler.test.ts", "src/server/master/player-battle-recovery.test.ts", "--max-warnings=0"], "start": "2026-10-20T18:37:34.964202+00:00"}
+
+/workspace/scratch/081f137b6a6d/aurevane-players-20261020/apps/web/src/server/master/player-battle-recovery.ts
+  83:38  warning  '_pending' is defined but never used  @typescript-eslint/no-unused-vars
+
+✖ 1 problem (0 errors, 1 warning)
+
+ESLint found too many warnings (maximum: 0).
+undefined
+/workspace/scratch/081f137b6a6d/aurevane-players-20261020/apps/web:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: eslint src/server/master/player-battle-recovery.ts src/server/master/players-service.ts src/server/master/players-service.test.ts src/server/master/players-handler.ts src/server/master/players-handler.test.ts src/server/master/player-battle-recovery.test.ts '--max-warnings=0'
+{"end": "2026-10-20T18:37:37.064992+00:00", "exit": 1}

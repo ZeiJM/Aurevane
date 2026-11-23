@@ -1,31 +1,123 @@
 'use client'
 
-import { isBattleShortcutBlocked as isTextEntryTarget } from './battle-keyboard-scope'
+import { BattlefieldAppearanceToken } from './battlefield-appearance-token'
+import { useBattleAppearanceCues } from './use-battle-appearance-cues'
+
+import { BattleItemPicker } from './battle-item-picker'
+import { useSelectedBattleItem } from './use-selected-battle-item'
+
+import { BattleSummonPortrait } from './battle-summon-portrait'
+
+import { contentArtworkKey } from '@aurevane/game-core/combat/content-media'
+import { BattleCockpitInfoProvider, BattlePreviewInfoMenu } from './battle-cockpit-info'
+
+import { BATTLE_MOBILE_LAYOUT_QUERY, useDesktopBattleLayout } from './battle-responsive-layout'
+import { useBattleMobileWorkspace } from './use-battle-mobile-workspace'
+import mobileStyles from './battle-mobile-layout.module.css'
+
+import { BATTLE_EFFECT_KEYBOARD_HELP } from './battle-effect-keyboard-navigation'
+
+import {
+  findBattleBasicAction,
+  battleBasicCostLabel,
+  canAffordBattleBasicAction,
+} from '@/lib/battle/battle-basic-actions'
+import {
+  battleCapturedActionAttackBlocked,
+  battleCapturedActionChoices,
+  battleCapturedActionCost,
+  battleCapturedControlledAvailability,
+  battleCapturedSpecialAction,
+  battleSkillCastMode,
+  battleNoncastAbilityInspection,
+} from './battle-captured-action-cost'
+import { airborneJump } from '@aurevane/game-core/combat/combat-airborne'
+import { hasGameplayTag } from '@aurevane/game-core/combat/gameplay-tags'
+import { BattleGroundAreaLayer, battleGroundAreaLabel } from './battle-ground-area-layer'
+import { battleProposedCosts } from './battle-proposed-cost'
+
+import {
+  SkillEffectTimingProvider,
+  AirborneAttackElevationContext,
+} from '../character/skill-effect-timing-context'
+
+import {
+  isBattleShortcutBlocked as isTextEntryTarget,
+  restoreBattleKeyboardFocus,
+} from './battle-keyboard-scope'
+import { useBattleTabCyclePrevention } from './battle-tab-cycle-prevention'
+import { routeBattleAbilityShortcut } from './battle-ability-shortcuts'
 
 import {
   isCurrentBattlePreview,
-  battleIntentTileKey,
   selectBattleSkillPreviewIntent,
+  selectInitialBattleSkillPreviewIntent,
+  selectBattleSkillMovementCommitIntent,
+  selectDirectionalBattleSkillPreviewIntent,
+  battleSkillUsesAreaActivation,
+  battleSkillTargetSpec,
+  battleActionDescriptorWithElevation,
+  canRetainBattleActionPreview,
+  resolveBattleCapturedSkill,
+  toggleBattleSkillTargetSelection,
+  battleTargetDraftIncludesTile,
+  bindBattleSkillMovement,
+  selectBattleControlledPrimeIntent,
+  type BattleActionMovementDraft,
+  type BattlePreviewSkill,
+  battleSkillIntentMetadata,
 } from './battle-preview-selection'
+import {
+  battleModifierChoices,
+  battleModifierContextForAction,
+  battleRecoveryActionId,
+  battleModifierActionMode,
+} from './battle-modifier-picker-model'
+import {
+  battleManualModifierReferences,
+  resolveBattleModifierDraft,
+  type BattleModifierDraft,
+} from './battle-modifier-draft'
+import { combatNativeModifierRootFacts } from '@aurevane/game-core/combat/combat-modifier-compatibility'
 import { BattleActionPreview } from './battle-action-preview'
+import { useBattleRangePreviews } from './use-battle-range-previews'
+import { battleRangePreviewIntents } from './battle-range-previews'
+import { requestBattlePreview } from './battle-preview-request'
+import { BattleChronicleHeading } from './battle-chronicle-heading'
 import { BattleMapKey } from './battle-map-key'
+import {
+  presentBattleTerrainKey,
+  type BattleTerrainKeyKind,
+} from './battle-terrain-key-presentation'
 import { BattleInfoPopover } from './battle-info-popover'
 import { terrainOverlayAt } from '@aurevane/game-core/combat/terrain-overlays'
+import { getTacticalHallRecordFromScenarioSourceId } from '@aurevane/game-core/combat/tactical-hall-records'
 import { terrainOverlayDescription } from '../../lib/battle/combat-interaction-presentation'
+import { describeTerrainLabel } from './battle-inspect-terrain-context'
 
 import {
   PV1F_BASIC_ATTACK_COST,
   PV1F_BASIC_ATTACK_ID,
   PV1F_GUARD_ACTION_ID,
-  PV1F_GUARD_COST,
-  PV1F_MOVEMENT_COST_PER_TERRAIN_POINT,
   PV1F_MP_RECOVER_ACTION_ID,
   PV1F_MP_RECOVER_COST,
   PV1F_RECOVER_ACTION_ID,
   PV1F_RECOVER_COST,
+  pv1fSkillByActionId,
 } from '@aurevane/game-core/combat/pv1f-skills'
+import {
+  DEFAULT_SUPPORT_ACTION_ID,
+  parseSupportActionId,
+  SUPPORT_ACTION_IDS,
+} from '@aurevane/game-core/combat/support-actions'
 import type { BattleIntent } from '@aurevane/validation/combat/battle-session'
 import { useRouter } from 'next/navigation'
+import { battleReturnNavigation } from './battle-return-navigation'
+import {
+  battleRecoveryNotice,
+  participantPollDelay,
+  shouldPollParticipant,
+} from './battle-recovery-navigation'
 import {
   useCallback,
   useEffect,
@@ -40,19 +132,20 @@ import { CharacterPortraitImage } from '@/components/character/character-portrai
 import type { BattlePreviewView } from '@/server/battle/battle-preview-service'
 import type { RecruitTurnView } from '@/server/battle/battle-recruit-ai-service'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
+import { getImageAsset } from '@/media/registry'
 
 import { pvpParticipantAccent } from './battle-combatant-colors'
 import { BattleFacingIndicator } from './battle-facing-indicator'
 import { useBattleInteractionLifecycle } from './battle-interaction-lifecycle'
 import {
+  buildMovementPaths,
   buildReachablePaths,
-  manhattanDistance,
+  buildDisplayedPlacementByTile,
   facingGlyph,
   meterPercent,
   MOVE_COST_PER_TERRAIN_POINT,
   positionKey,
   positionsEqual,
-  type BattleFacing,
   type BattleGridPosition,
 } from './battle-geometry'
 import {
@@ -62,29 +155,58 @@ import {
   type BattlePresentationParticipant,
   type BattleRuntime,
 } from './battle-runtime'
-import { BattleCombatantEffects } from './battle-combatant-effects'
-import { useDesktopBattleLayout } from './battle-responsive-layout'
+import { BattleCombatantCard } from './battle-combatant-card'
+import {
+  selectBattleCombatantRails,
+  type BattleAllyInspection,
+} from './battle-combatant-rail-selection'
+import { BattleVersusEmblem } from './battle-versus-emblem'
+import { BattleLogPanel } from './battle-log-panel'
+import {
+  DEFAULT_COMBAT_KEYBINDS,
+  COMBAT_KEYBIND_ACTIONS,
+  parseCombatKeybindMap,
+  formatCombatKeybind,
+  type CombatKeybindMap,
+} from '@aurevane/validation/player/combat-controls'
 import { BattleSelectedSkills } from './battle-selected-skills'
+import { battleActionCooldownTurns } from './battle-action-cooldown'
 
+import {
+  battleTargetReachTiles,
+  battleActionDealsDamage,
+  type BattleTargetAim,
+} from './battle-attack-path'
+import { combatCardinalDirections } from '@aurevane/game-core/combat/combat-targeting-shapes'
+import { battleActionUsesRecoverySelection } from './battle-recovery-selection'
+import {
+  PV1F_COMBAT_CONTENT,
+  createPv1fBasicAttackDefinition,
+  PV1F_GUARD_ACTION,
+} from '@aurevane/game-core/combat/pv1f-action-economy'
 import { BattleSkillCommand } from './battle-skill-command'
-import { BATTLE_COMMAND_ARTWORK, battleSkillArtwork } from './battle-skill-presentation'
+import {
+  BATTLE_COMMAND_ARTWORK,
+  BATTLE_MISSING_ARTWORK,
+  battleSkillArtwork,
+  battleResonanceArtwork,
+} from './battle-skill-presentation'
 import { useBattleSkillSelections } from './battle-skill-selection'
-import { useBattleSessionUiBoolean } from './battle-session-ui-state'
 import styles from './pvp-battle-experience.module.css'
-import railStyles from './pvp-six-combatant-rails.module.css'
+import surrenderStyles from './battle-surrender-dialog.module.css'
 import bridgeStyles from './unified-battle-experience.module.css'
 
 const BASIC_ATTACK_ID = PV1F_BASIC_ATTACK_ID
+const COCKPIT_ORNAMENT_STYLE = {
+  '--av-battle-cockpit-ornament': `url("${getImageAsset('ui.battle.cockpit-ornament.v01').src}")`,
+} as CSSProperties
 const GUARD_ID = PV1F_GUARD_ACTION_ID
 const RECOVER_ID = PV1F_RECOVER_ACTION_ID
 const MP_RECOVER_ID = PV1F_MP_RECOVER_ACTION_ID
 const ACTION_ECONOMY_KEY = 'pv1f.action-economy'
 const ATTACK_COST = PV1F_BASIC_ATTACK_COST
-const GUARD_COST = PV1F_GUARD_COST
 const RECOVER_COST = PV1F_RECOVER_COST
 const MP_RECOVER_COST = PV1F_MP_RECOVER_COST
-const ACTIVE_PLAYER_POLL_MS = 900
-const WAITING_PLAYER_POLL_MS = 1000
 const COMMIT_POLL_RETRY_MS = 120
 
 const HEAL_SELECTOR_OPTIONS = [
@@ -100,7 +222,7 @@ const HEAL_SELECTOR_OPTIONS = [
     label: 'MP Recovery',
     cost: `${MP_RECOVER_COST} AP`,
     artworkSrc: battleSkillArtwork(MP_RECOVER_ID),
-    tags: ['Self', 'MP Restore'],
+    tags: ['Self', 'MP Recovery'],
   },
 ] as const
 
@@ -122,6 +244,8 @@ type ApiErrorBody = {
     currentVersion?: number
   }
 }
+
+type ReadyBattlePreview = { intent: BattleIntent; version: number; sequence: number }
 
 function readEconomy(combatant: Combatant | null): number {
   if (!combatant) return 0
@@ -149,15 +273,15 @@ function livingTeamIndexes(
   return result
 }
 
-function describeRecruitTurn(
+export function describeRecruitTurn(
   before: BattleSessionView,
   after: BattleSessionView,
   decisions: RecruitTurnView['decisions'],
-  playerName: string,
   recruitId: string | null,
-  playerId: string | null,
+  recruitName: string,
+  participants: ReadonlyMap<string, BattlePresentationParticipant>,
 ): string {
-  if (!recruitId) return 'Recruit turn resolved.'
+  if (!recruitId) return `${recruitName} turn resolved.`
 
   const beforeRecruitPlacement = before.snapshot.tactical.placements.find(
     (placement) => placement.combatantId === recruitId,
@@ -171,12 +295,29 @@ function describeRecruitTurn(
   const afterRecruit = after.snapshot.tactical.battle.combatants.find(
     (combatant) => combatant.id === recruitId,
   )
-  const beforePlayer = before.snapshot.tactical.battle.combatants.find(
-    (combatant) => combatant.id === playerId,
+  const beforeBattle = before.snapshot.tactical.battle
+  const afterBattle = after.snapshot.tactical.battle
+  const beforeTurn = beforeBattle.currentTurn
+  const economy = beforeRecruit?.temporaryResources.find(
+    (resource) => resource.key === ACTION_ECONOMY_KEY,
   )
-  const afterPlayer = after.snapshot.tactical.battle.combatants.find(
-    (combatant) => combatant.id === playerId,
-  )
+  if (
+    beforeBattle.lifecycle === 'active' &&
+    beforeTurn?.combatantId === recruitId &&
+    beforeTurn.actionState === 'ready' &&
+    beforeTurn.movementSpent === 0 &&
+    economy &&
+    economy.current === economy.maximum &&
+    (afterBattle.turnNumber > beforeBattle.turnNumber || afterBattle.lifecycle === 'completed') &&
+    decisions.length > 0 &&
+    decisions.every(
+      (decision) =>
+        decision.combatantId === recruitId &&
+        (decision.reason === 'face-threat' || decision.reason === 'safe-end-turn'),
+    )
+  ) {
+    return `${recruitName} stands around and does nothing.`
+  }
   const recruitStatuses =
     after.snapshot.statusState.find((row) => row.combatantId === recruitId)?.statuses ?? []
   const parts: string[] = []
@@ -190,11 +331,18 @@ function describeRecruitTurn(
       `moved ${beforeRecruitPlacement.position.x + 1},${beforeRecruitPlacement.position.y + 1} → ${afterRecruitPlacement.position.x + 1},${afterRecruitPlacement.position.y + 1}`,
     )
   }
-  if (beforePlayer && afterPlayer && beforePlayer.hp > afterPlayer.hp) {
-    parts.push(`hit ${playerName} for ${beforePlayer.hp - afterPlayer.hp}`)
-  } else if (decisions.some((decision) => decision.reason === 'legal-damage')) {
+  const damageTargets = before.snapshot.tactical.battle.combatants.flatMap((combatant) => {
+    const afterCombatant = after.snapshot.tactical.battle.combatants.find(
+      (row) => row.id === combatant.id,
+    )
+    const damage = afterCombatant ? combatant.hp - afterCombatant.hp : 0
+    return combatant.id !== recruitId && damage > 0
+      ? [`${participants.get(combatant.id)?.name ?? combatant.id} for ${damage}`]
+      : []
+  })
+  if (damageTargets.length) parts.push(`hit ${damageTargets.join(', ')}`)
+  else if (decisions.some((decision) => decision.reason === 'legal-damage'))
     parts.push('attacked but dealt no damage')
-  }
   if (beforeRecruit && afterRecruit && afterRecruit.hp > beforeRecruit.hp) {
     parts.push(`recovered ${afterRecruit.hp - beforeRecruit.hp} HP`)
   }
@@ -202,15 +350,49 @@ function describeRecruitTurn(
     parts.push('Guarded (-15% damage)')
   }
   if (afterRecruitPlacement) {
-    parts.push(
-      `finished facing ${afterRecruitPlacement.facing} ${facingGlyph(afterRecruitPlacement.facing)}`,
-    )
+    parts.push(`finished facing ${afterRecruitPlacement.facing}`)
   }
 
-  return parts.length > 0 ? `Recruit: ${parts.join(' → ')}.` : 'Recruit turn resolved.'
+  return parts.length > 0
+    ? `${recruitName}: ${parts.join(' → ')}.`
+    : `${recruitName} turn resolved.`
 }
 
-export function BattleExperience({
+export function BattleExperience(props: {
+  initialBattle: BattleSessionView
+  runtime: BattleRuntime
+}) {
+  useBattleTabCyclePrevention()
+  return (
+    <SkillEffectTimingProvider
+      policy={props.initialBattle.snapshot.effectTimingPolicy ?? null}
+      dotTriggerPolicyVersion={props.initialBattle.snapshot.dotTriggerPolicyVersion ?? null}
+      frozenGroundPolicyVersion={props.initialBattle.snapshot.frozenGroundPolicyVersion ?? null}
+      groundContactPolicyVersion={props.initialBattle.snapshot.groundContactPolicyVersion ?? null}
+      elementalDamagePolicyVersion={
+        props.initialBattle.snapshot.elementalDamagePolicyVersion ?? null
+      }
+      reversalPolicyVersion={props.initialBattle.snapshot.reversalPolicyVersion ?? null}
+      reflectBarrierPolicyVersion={props.initialBattle.snapshot.reflectBarrierPolicyVersion ?? null}
+      pierceCriticalPolicyVersion={props.initialBattle.snapshot.pierceCriticalPolicyVersion ?? null}
+      summonPotencyPolicyVersion={props.initialBattle.snapshot.summonPotencyPolicyVersion ?? null}
+      ruinPolicyVersion={props.initialBattle.snapshot.ruinPolicyVersion ?? null}
+      pairedStatusPolicyVersion={props.initialBattle.snapshot.pairedStatusPolicyVersion ?? null}
+      airbornePolicyVersion={props.initialBattle.snapshot.airbornePolicyVersion ?? null}
+      airborneJumpPolicyVersion={props.initialBattle.snapshot.airborneJumpPolicyVersion ?? null}
+      healingDownPolicyVersion={props.initialBattle.snapshot.healingDownPolicyVersion ?? null}
+      blindsideActivationPolicyVersion={
+        props.initialBattle.snapshot.blindsideActivationPolicyVersion ?? null
+      }
+    >
+      <BattleCockpitInfoProvider>
+        <BattleExperienceContent {...props} />
+      </BattleCockpitInfoProvider>
+    </SkillEffectTimingProvider>
+  )
+}
+
+function BattleExperienceContent({
   initialBattle,
   runtime,
 }: {
@@ -218,13 +400,155 @@ export function BattleExperience({
   runtime: BattleRuntime
 }) {
   const router = useRouter()
-  const [battle, setBattle] = useState(initialBattle)
+  const lowerPanelRef = useRef<HTMLDivElement>(null)
+  const [mobileWorkspace, setMobileWorkspace] = useBattleMobileWorkspace(
+    initialBattle.battleSessionId,
+  )
+  const chronicleOpen = mobileWorkspace === 'log'
+  const [terrainView, setTerrainView] = useState(false)
+  const [terrainKind, setTerrainKind] = useState<BattleTerrainKeyKind | null>(null)
+  const [bindings, setBindings] = useState<CombatKeybindMap>(DEFAULT_COMBAT_KEYBINDS)
+  useEffect(() => {
+    if (!terrainView) return
+    const dismiss = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      event.preventDefault()
+      setTerrainView(false)
+      restoreBattleKeyboardFocus()
+    }
+    document.addEventListener('keydown', dismiss)
+    return () => document.removeEventListener('keydown', dismiss)
+  }, [terrainView])
+  const [battle, setBattleState] = useState(initialBattle)
+  const desktopLayout = useDesktopBattleLayout()
+  const mobileReading = !desktopLayout && mobileWorkspace !== 'actions'
+  useLayoutEffect(() => {
+    const toggleLog = () => {
+      if (!window.matchMedia(BATTLE_MOBILE_LAYOUT_QUERY).matches) return
+      setTerrainView(false)
+      setMobileWorkspace(mobileWorkspace === 'log' ? 'actions' : 'log')
+    }
+    const dismiss = (event: KeyboardEvent) => {
+      if (
+        !mobileReading ||
+        event.defaultPrevented ||
+        event.repeat ||
+        event.altKey ||
+        event.ctrlKey ||
+        event.metaKey
+      )
+        return
+      if (
+        document.querySelector(
+          '[data-battle-info-panel], dialog[open], [role="dialog"][aria-modal="true"]',
+        )
+      )
+        return
+      const target = event.target instanceof HTMLElement ? event.target : null
+      const textEntry = target?.isContentEditable || target?.closest('input, textarea, select')
+      const nativeActivation =
+        (event.code === 'Space' || event.code === 'Enter') &&
+        target?.closest('button, summary, a, [role="button"]')
+      const logShortcut =
+        mobileWorkspace === 'log' &&
+        !textEntry &&
+        !nativeActivation &&
+        event.code === bindings.combatLog.code &&
+        event.shiftKey === bindings.combatLog.shift
+      if (event.key !== 'Escape' && !logShortcut) return
+      event.preventDefault()
+      event.stopPropagation()
+      setMobileWorkspace('actions')
+      restoreBattleKeyboardFocus()
+    }
+    window.addEventListener('aurevane:battle-log-toggle', toggleLog)
+    document.addEventListener('keydown', dismiss)
+    return () => {
+      window.removeEventListener('aurevane:battle-log-toggle', toggleLog)
+      document.removeEventListener('keydown', dismiss)
+    }
+  }, [
+    bindings.combatLog.code,
+    bindings.combatLog.shift,
+    mobileReading,
+    mobileWorkspace,
+    setMobileWorkspace,
+  ])
+  const [chronicleDetailsHost, setChronicleDetailsHost] = useState<HTMLDivElement | null>(null)
+  const [chronicleDetailsOpen, setChronicleDetailsOpen] = useState(false)
+  const [chronicleDetailsEpoch, setChronicleDetailsEpoch] = useState(0)
+  useEffect(() => {
+    const changeWorkspace = (event: Event) => {
+      const detail = (event as CustomEvent<{ battleSessionId: string; workspace: string }>).detail
+      if (
+        detail?.battleSessionId !== initialBattle.battleSessionId ||
+        detail.workspace === 'actions'
+      )
+        return
+      setTerrainView(false)
+      setChronicleDetailsEpoch((epoch) => epoch + 1)
+    }
+    window.addEventListener('aurevane:battle-mobile-workspace-change', changeWorkspace)
+    return () =>
+      window.removeEventListener('aurevane:battle-mobile-workspace-change', changeWorkspace)
+  }, [initialBattle.battleSessionId])
+  const handleChronicleDetailsOpen = useCallback(
+    (open: boolean) => {
+      setChronicleDetailsOpen(open)
+      if (open) {
+        setTerrainView(false)
+        setMobileWorkspace('actions')
+      }
+    },
+    [setMobileWorkspace],
+  )
   const [mode, setMode] = useState<Mode>('none')
+  const [inspectedAbilityId, setInspectedAbilityId] = useState<string | null>(null)
+  const [infoSelectionVersion, setInfoSelectionVersion] = useState(0)
   const [path, setPath] = useState<BattleGridPosition[]>([])
   const pathRef = useRef<BattleGridPosition[]>([])
   const [pendingIntent, setPendingIntent] = useState<BattleIntent | null>(null)
-  const [preview, setPreview] = useState<BattlePreviewView | null>(null)
+  const pluralSelection = useRef<Extract<BattleIntent, { kind: 'action' }> | null>(null)
+  const [actionMovementDraft, setActionMovementDraft] = useState<BattleActionMovementDraft | null>(
+    null,
+  )
+  const [selectedBehavior, setSelectedBehavior] = useState<{
+    actionId: string
+    behaviorId: string
+  } | null>(null)
+  const [modifierDraft, setModifierDraftState] = useState<BattleModifierDraft | null>(null)
+  const modifierDraftRef = useRef<BattleModifierDraft | null>(null)
+  const replaceModifierDraft = useCallback((next: BattleModifierDraft | null) => {
+    modifierDraftRef.current = next
+    setModifierDraftState(next)
+  }, [])
+  const [preview, setPreview] = useState<(BattlePreviewView & { intent: BattleIntent }) | null>(
+    null,
+  )
+  const [costPreviewInvalidated, setCostPreviewInvalidated] = useState(false)
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null)
+  const [targetAim, setTargetAim] = useState<BattleTargetAim>({ aimSource: 'implicit' })
+  const [inspectedUnitId, setInspectedUnitId] = useState<string | null>(null)
+  const [inspectedEnemyUnitId, setInspectedEnemyUnitId] = useState<string | null>(null)
+  const [allyInspection, setAllyInspection] = useState<BattleAllyInspection | null>(null)
+  const [inspectedTile, setInspectedTile] = useState<BattleGridPosition | null>(null)
+  const executionLock = useRef(false)
+  const [executionPending, setExecutionPending] = useState(false)
+  useEffect(() => {
+    let cancelled = false
+    void fetch('/api/account/controls', { cache: 'no-store' })
+      .then(async (response) => {
+        const body = (await response.json()) as { controls?: { combatKeybinds?: unknown } }
+        const parsed = parseCombatKeybindMap(body.controls?.combatKeybinds)
+        if (!cancelled && response.ok && parsed) {
+          setBindings(parsed)
+        }
+      })
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+    }
+  }, [])
   const [notice, setNotice] = useState(
     runtime.kind === 'pvp'
       ? 'Arena linked. Waiting for the authoritative turn state.'
@@ -239,29 +563,69 @@ export function BattleExperience({
   const [surrenderPending, setSurrenderPending] = useState(false)
 
   const previewSequence = useRef(0)
-  const readyPreview = useRef<{ intent: BattleIntent; version: number; sequence: number } | null>(
-    null,
-  )
+  const mounted = useRef(true)
+  const previewController = useRef<AbortController | null>(null)
+  const readyPreview = useRef<ReadyBattlePreview | null>(null)
+  const inFlightPreview = useRef<
+    (ReadyBattlePreview & { result: Promise<ReadyBattlePreview | null | undefined> }) | null
+  >(null)
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+      setInfoSelectionVersion((version) => version + 1)
+      previewSequence.current += 1
+      readyPreview.current = null
+      inFlightPreview.current = null
+      previewController.current?.abort()
+    }
+  }, [])
   const commitLock = useRef(false)
   const battleRef = useRef(initialBattle)
+  const setBattle = useCallback(
+    (next: BattleSessionView) => {
+      replaceModifierDraft(null)
+      setBattleState(next)
+    },
+    [replaceModifierDraft],
+  )
   const battlePollInFlight = useRef(false)
   const battlePollController = useRef<AbortController | null>(null)
   const recruitAttemptedVersion = useRef<number | null>(null)
   const recruitLock = useRef(false)
+  const rearmActionAfterCommit = useRef<{
+    intent: Extract<BattleIntent, { kind: 'action' | 'ability-prime' | 'ability-cancel-prime' }>
+    version: number
+  } | null>(null)
   const modeRef = useRef<Mode>('none')
   useLayoutEffect(() => {
     modeRef.current = mode
   }, [mode])
   const { registerFinishTurnHandler, registerInspectCloseHandler } = useBattleInteractionLifecycle()
 
-  const { selectedSkillId, selectSkill } = useBattleSkillSelections(
+  const { selectedSkillId } = useBattleSkillSelections(
     initialBattle.battleSessionId,
     BATTLE_SKILL_CATEGORIES,
   )
   const selectedHealActionId = selectedSkillId('heal')
   const selectableTechniques = useMemo(
-    () => [...(runtime.techniques ?? []), ...(runtime.copiedSkills ?? [])],
-    [runtime.copiedSkills, runtime.techniques],
+    () =>
+      (runtime.techniques ?? [])
+        .filter((skill) => battleSkillCastMode(skill).canCast)
+        .map((skill) => ({
+          ...skill,
+          groundIntentCapable:
+            (battle.snapshot.elementalDamagePolicyVersion === 1 ||
+              battle.snapshot.elementalDamagePolicyVersion === 2) &&
+            (skill.targetKind === 'unit' ||
+              (battle.snapshot.elementalDamagePolicyVersion === 2 &&
+                skill.targetKind === 'ground-tile')) &&
+            skill.targetTeamPolicy === 'enemy' &&
+            skill.definition?.effects.some(
+              (effect) => effect.type === 'damage' && effect.element === 'fire',
+            ),
+        })),
+    [runtime.techniques, battle.snapshot.elementalDamagePolicyVersion],
   )
   const attackTechniques = selectableTechniques.filter(
     (technique) => technique.category === 'attack',
@@ -271,126 +635,437 @@ export function BattleExperience({
   )
   const healTechniques = selectableTechniques.filter((technique) => technique.category === 'heal')
   const skillArtwork = (technique: (typeof selectableTechniques)[number]) =>
-    battleSkillArtwork(
-      'sourceSkillId' in technique ? technique.sourceSkillId : technique.id,
-      technique.iconKey,
-    )
+    battleSkillArtwork(technique.id, technique.iconKey)
+  const capabilities = useMemo(() => deriveBattleCapabilities(runtime), [runtime])
+  const viewModel = useMemo(() => buildBattleViewModel(battle, runtime), [battle, runtime])
+  const localCombatantId = viewModel.localCombatantId
+  const localCombatant = localCombatantId
+    ? (battle.snapshot.tactical.battle.combatants.find(
+        (combatant) => combatant.id === localCombatantId,
+      ) ?? null)
+    : null
+  const manualActionTargets = useMemo(
+    () =>
+      (battle.snapshot.manualActionTargets ?? []).filter(
+        (row) => !row.ownerCombatantId || row.ownerCombatantId === localCombatantId,
+      ),
+    [battle.snapshot.manualActionTargets, localCombatantId],
+  )
+  const modifierNames = useMemo(
+    () => [
+      ...(runtime.techniques ?? []).map((row) => ({
+        id: row.id,
+        contentVersion: row.contentVersion,
+        name: row.name,
+      })),
+      ...(runtime.essence
+        ? [
+            {
+              id: runtime.essence.id,
+              contentVersion: runtime.essence.contentVersion,
+              name: runtime.essence.name,
+            },
+          ]
+        : []),
+      ...(runtime.resonance
+        ? [
+            {
+              id: runtime.resonance.id,
+              contentVersion: runtime.resonance.contentVersion,
+              name: runtime.resonance.name,
+            },
+          ]
+        : []),
+      ...(battle.snapshot.basicActions ?? [])
+        .filter((row) => row.ownerCombatantId === localCombatantId)
+        .map((row) => ({ id: row.actionId, contentVersion: row.contentVersion, name: row.name })),
+    ],
+    [
+      runtime.techniques,
+      runtime.essence,
+      runtime.resonance,
+      battle.snapshot.basicActions,
+      localCombatantId,
+    ],
+  )
+  const ownedModifierChoices = useMemo(
+    () =>
+      battleModifierChoices(
+        battle.snapshot.manualModifierAvailability ?? [],
+        localCombatantId,
+        modifierNames,
+      ),
+    [battle.snapshot.manualModifierAvailability, localCombatantId, modifierNames],
+  )
+  const modifierPins = useMemo(
+    () => ownedModifierChoices.flatMap((choice) => (choice.pin ? [choice.pin] : [])),
+    [ownedModifierChoices],
+  )
+  const special = useMemo(
+    () =>
+      battleCapturedSpecialAction(
+        runtime,
+        manualActionTargets,
+        localCombatantId,
+        battle.snapshot.elementalDamagePolicyVersion,
+        selectedBehavior && selectedBehavior.actionId === runtime.resonance?.id
+          ? selectedBehavior.behaviorId
+          : undefined,
+      ),
+    [
+      runtime,
+      manualActionTargets,
+      localCombatantId,
+      battle.snapshot.elementalDamagePolicyVersion,
+      selectedBehavior,
+    ],
+  )
+  const selectableSpecial = special?.skill
+  const specialOption = selectableSpecial
+    ? {
+        id: selectableSpecial.id,
+        label: selectableSpecial.name,
+        artworkSrc:
+          special.kind === 'resonance'
+            ? battleResonanceArtwork(
+                selectableSpecial.id,
+                contentArtworkKey(runtime.resonance?.definition?.media ?? {}),
+              )
+            : battleSkillArtwork(selectableSpecial.id, selectableSpecial.iconKey),
+        tags: selectableSpecial.tags,
+      }
+    : undefined
+  const skillCostLabel = (skill: { id: string; apCost: number; mpCost: number; hpCost?: number }) =>
+    battleCapturedActionCost(
+      battleCapturedActionChoices(manualActionTargets, skill.id, localCombatantId),
+      [
+        { resource: 'ap', amount: skill.apCost },
+        { resource: 'mp', amount: skill.mpCost },
+        { resource: 'hp', amount: skill.hpCost ?? 0 },
+      ],
+      {
+        ap: readEconomy(localCombatant),
+        mp: localCombatant?.mp ?? 0,
+        hp: localCombatant?.hp ?? 0,
+      },
+      selectedBehavior?.actionId === skill.id ? selectedBehavior.behaviorId : undefined,
+    ).costLabel
+  const [itemsOpen, setItemsOpen] = useState(false)
+  const equipmentActions = (battle.snapshot.equipmentActions ?? []).filter(
+    (item) => item.ownerCombatantId === localCombatantId,
+  )
+  const handItems = equipmentActions.filter(
+    (item) => item.role === 'use' && item.stockQuantity !== 0,
+  )
+  const [selectedItem, rememberSelectedItem] = useSelectedBattleItem(
+    battle.battleSessionId,
+    localCombatantId,
+    handItems,
+  )
+  const itemOptions = equipmentActions
+    .filter((item) => item.role !== 'attack' && item.stockQuantity !== 0)
+    .map((item) => ({
+      id: item.actionId,
+      label: item.name,
+      cost: battleBasicCostLabel(item, ''),
+      artworkSrc: item.artworkSrc ?? BATTLE_MISSING_ARTWORK,
+      tags: item.item.tags,
+      classification: item.behaviors[0]?.classification,
+    }))
+  const itemUnavailableReason = handItems.length
+    ? handItems.every((item) => item.unavailableReason !== null)
+      ? handItems.map((item) => item.unavailableReason).join(' ')
+      : null
+    : equipmentActions.some((item) => item.role === 'use' && item.stockQuantity === 0)
+      ? 'Consumable stock is exhausted. Equip another stack after battle.'
+      : 'Equip a Consumable before battle.'
+  const basicMove = findBattleBasicAction(battle.snapshot, localCombatantId, 'basic.move')
+  const basicAttack = findBattleBasicAction(battle.snapshot, localCombatantId, BASIC_ATTACK_ID)
+  const attackLabel = basicAttack?.name ?? 'Basic Attack'
+  const basicBehaviorId = useCallback(
+    (actionId: string) =>
+      selectedBehavior?.actionId === actionId ? selectedBehavior.behaviorId : undefined,
+    [selectedBehavior],
+  )
+  const actionAttackBlocked = useCallback(
+    (actionId: string, behaviorId?: string) =>
+      battleCapturedActionAttackBlocked(
+        battleCapturedActionChoices(manualActionTargets, actionId, localCombatantId),
+        behaviorId,
+      ),
+    [manualActionTargets, localCombatantId],
+  )
   const [selectedAttackActionId, setSelectedAttackActionId] = useState<string>(BASIC_ATTACK_ID)
-  const [selectedDefenseActionId, setSelectedDefenseActionId] = useState<string>(GUARD_ID)
+  const supportActionId = String(
+    equipmentActions.find((item) => item.role === 'support')?.actionId ??
+      parseSupportActionId(runtime.supportActionId) ??
+      (battle.snapshot.supportActionPolicyVersion === 1 ? DEFAULT_SUPPORT_ACTION_ID : GUARD_ID),
+  )
+  const basicSupport = findBattleBasicAction(battle.snapshot, localCombatantId, supportActionId)
+  const practiceSupportId = battle.snapshot.supportActionPolicyVersion === 1 ? RECOVER_ID : GUARD_ID
+  const practiceSupportLabel = practiceSupportId === RECOVER_ID ? 'HP Recovery' : 'Guard'
+  const basicPracticeSupport = findBattleBasicAction(
+    battle.snapshot,
+    localCombatantId,
+    practiceSupportId,
+  )
+  const supportSkill = pv1fSkillByActionId(supportActionId)
+  const supportLabel = basicSupport?.name ?? supportSkill?.name ?? 'Support unavailable'
+  const supportCost = supportSkill?.cost.kind === 'flat' ? supportSkill.cost.amount : 0
+  const guidedSupportPractice =
+    runtime.kind === 'pve' &&
+    (battle.snapshot.supportActionPolicyVersion !== 1 || Boolean(basicPracticeSupport)) &&
+    supportActionId !== practiceSupportId &&
+    battle.snapshot.statBridge.combatants.some(
+      (profile) =>
+        profile.provenance.kind === 'scenario' &&
+        getTacticalHallRecordFromScenarioSourceId(profile.provenance.sourceId)?.id ===
+          'guided-fundamentals',
+    )
+  const [selectedDefenseActionId, setSelectedDefenseActionId] = useState<string>(supportActionId)
   const [selectedTechniqueHealId, setSelectedTechniqueHealId] = useState<string | null>(null)
   const attackOptions = [
     {
       id: BASIC_ATTACK_ID,
-      label: 'Basic Attack',
-      cost: `${ATTACK_COST} AP`,
+      label: attackLabel,
+      cost: battleBasicCostLabel(
+        basicAttack,
+        `${ATTACK_COST} AP`,
+        basicBehaviorId(BASIC_ATTACK_ID),
+      ),
       artworkSrc: BATTLE_COMMAND_ARTWORK.attack,
       tags: ['Enemy', 'Single target', 'Damage'],
     },
+    ...itemOptions.filter((item) => item.classification === 'attack'),
     ...attackTechniques.map((technique) => ({
       id: technique.id,
       label: technique.name,
-      cost: `${technique.apCost} AP`,
+      cost: skillCostLabel(technique),
       artworkSrc: skillArtwork(technique),
       tags: technique.tags,
     })),
-    ...(runtime.essence
-      ? [
-          {
-            id: runtime.essence.id,
-            label: runtime.essence.name,
-            cost: `${runtime.essence.apCost} AP`,
-            artworkSrc: battleSkillArtwork(runtime.essence.id, runtime.essence.iconKey),
-            tags: runtime.essence.tags,
-          },
-        ]
+    ...(specialOption && special?.category === 'attack'
+      ? [{ ...specialOption, cost: skillCostLabel(selectableSpecial!) }]
       : []),
   ]
   const defenseOptions = [
     {
-      id: GUARD_ID,
-      label: 'Guard',
-      cost: `${GUARD_COST} AP`,
-      artworkSrc: BATTLE_COMMAND_ARTWORK.guard,
-      tags: ['Self', 'Guarded'],
+      id: supportActionId,
+      label: supportLabel,
+      cost: battleBasicCostLabel(
+        basicSupport,
+        `${supportCost} AP`,
+        basicBehaviorId(supportActionId),
+      ),
+      artworkSrc: battleSkillArtwork(supportActionId),
+      tags: ['Self', 'Support Action'],
     },
+    ...(guidedSupportPractice
+      ? [
+          {
+            id: practiceSupportId,
+            label: practiceSupportLabel,
+            cost: battleBasicCostLabel(
+              basicPracticeSupport,
+              '30 AP',
+              basicBehaviorId(practiceSupportId),
+            ),
+            artworkSrc: battleSkillArtwork(practiceSupportId, basicPracticeSupport?.iconKey),
+            tags: ['Self', 'Support Action'],
+          },
+        ]
+      : []),
+    ...itemOptions.filter((item) => item.classification === 'utility'),
     ...defenseTechniques.map((technique) => ({
       id: technique.id,
       label: technique.name,
-      cost: `${technique.apCost} AP`,
+      cost: skillCostLabel(technique),
       artworkSrc: skillArtwork(technique),
       tags: technique.tags,
     })),
+    ...(specialOption && special?.category === 'defense'
+      ? [{ ...specialOption, cost: skillCostLabel(selectableSpecial!) }]
+      : []),
   ]
   const recoveryOptions = [
-    ...HEAL_SELECTOR_OPTIONS,
+    ...HEAL_SELECTOR_OPTIONS.filter(
+      (option) => findBattleBasicAction(battle.snapshot, localCombatantId, option.id) !== null,
+    ).map((option) => ({
+      ...option,
+      label:
+        findBattleBasicAction(battle.snapshot, localCombatantId, option.id)?.name ?? option.label,
+      cost: battleBasicCostLabel(
+        findBattleBasicAction(battle.snapshot, localCombatantId, option.id),
+        option.cost,
+        basicBehaviorId(option.id),
+      ),
+    })),
+    ...itemOptions.filter((item) => item.classification === 'recovery'),
     ...healTechniques.map((technique) => ({
       id: technique.id,
       label: technique.name,
-      cost: `${technique.apCost} AP`,
+      cost: skillCostLabel(technique),
       artworkSrc: skillArtwork(technique),
       tags: technique.tags,
     })),
+    ...(specialOption && special?.category === 'heal'
+      ? [{ ...specialOption, cost: skillCostLabel(selectableSpecial!) }]
+      : []),
   ]
   const selectedAttack =
-    attackOptions.find((option) => option.id === selectedAttackActionId) ?? attackOptions[0]!
+    attackOptions.find((option) => option.id === selectedAttackActionId) ??
+    (selectedAttackActionId === supportActionId ? defenseOptions[0]! : attackOptions[0]!)
   const selectedDefense =
     defenseOptions.find((option) => option.id === selectedDefenseActionId) ?? defenseOptions[0]!
-  const effectiveHealActionId = selectedTechniqueHealId ?? selectedHealActionId
-  const selectedHealOption =
-    recoveryOptions.find((option) => option.id === effectiveHealActionId) ?? recoveryOptions[0]!
-  const desktopLayout = useDesktopBattleLayout()
-  const [logOpen, setLogOpen] = useBattleSessionUiBoolean(
-    initialBattle.battleSessionId,
-    'battleLogOpen',
-    desktopLayout,
+  const preferredHealId = String(selectedTechniqueHealId ?? selectedHealActionId)
+  const selectedOwnedRecoveryGroups =
+    selectableTechniques.some((row) => row.id === preferredHealId) ||
+    selectableSpecial?.id === preferredHealId
+      ? manualActionTargets.filter(
+          (row) =>
+            row.actionId === preferredHealId &&
+            (selectedBehavior?.actionId !== preferredHealId ||
+              row.behaviorId === selectedBehavior.behaviorId),
+        )
+      : []
+  const effectiveHealActionId = String(
+    battleRecoveryActionId(
+      preferredHealId,
+      recoveryOptions.map((option) => option.id),
+      selectedOwnedRecoveryGroups,
+    ),
   )
-
-  const capabilities = useMemo(() => deriveBattleCapabilities(runtime), [runtime])
-  const viewModel = useMemo(
-    () => buildBattleViewModel(initialBattle, runtime),
-    [initialBattle, runtime],
-  )
+  const appearanceCues = useBattleAppearanceCues(battle.battleSessionId, battle.battleVersion)
   const tactical = battle.snapshot.tactical
   const battleState = tactical.battle
   const localParticipant = viewModel.localParticipant
-  const localCombatantId = viewModel.localCombatantId
-  const localCombatant = localCombatantId
-    ? (battleState.combatants.find((combatant) => combatant.id === localCombatantId) ?? null)
-    : null
+  const canPrimeAction = useCallback(
+    (actionId: string) => {
+      const behaviorId =
+        selectedBehavior?.actionId === actionId ? selectedBehavior.behaviorId : undefined
+      return manualActionTargets.some(
+        (row) =>
+          row.actionId === actionId &&
+          (!behaviorId || row.behaviorId === behaviorId) &&
+          row.controlled?.canPrime,
+      )
+    },
+    [manualActionTargets, selectedBehavior],
+  )
+  const primeAvailableIds = [
+    ...new Set(
+      manualActionTargets.filter((row) => canPrimeAction(row.actionId)).map((row) => row.actionId),
+    ),
+  ]
+  const controlledAvailabilityForAction = useCallback(
+    (actionId: string) =>
+      battleCapturedControlledAvailability(
+        battleCapturedActionChoices(manualActionTargets, actionId, localCombatantId),
+        selectedBehavior?.actionId === actionId ? selectedBehavior.behaviorId : undefined,
+      ),
+    [manualActionTargets, localCombatantId, selectedBehavior],
+  )
+  const actionCooldownTurns = useCallback(
+    (actionId: string) =>
+      canPrimeAction(actionId) ||
+      controlledAvailabilityForAction(actionId).chooseAction ||
+      controlledAvailabilityForAction(actionId).canCancel
+        ? 0
+        : battleActionCooldownTurns(
+            battleRef.current,
+            runtime,
+            localCombatantId,
+            actionId,
+            selectedBehavior?.actionId === actionId ? selectedBehavior.behaviorId : undefined,
+          ),
+    [canPrimeAction, controlledAvailabilityForAction, localCombatantId, runtime, selectedBehavior],
+  )
+  const cooldowns = useMemo(
+    () =>
+      Object.fromEntries(
+        [
+          'basic.move',
+          BASIC_ATTACK_ID,
+          GUARD_ID,
+          RECOVER_ID,
+          MP_RECOVER_ID,
+          supportActionId,
+          ...selectableTechniques.map((skill) => skill.id),
+          ...(selectableSpecial ? [selectableSpecial.id] : []),
+        ].map((id) => [
+          id,
+          battleActionCooldownTurns(
+            battle,
+            runtime,
+            localCombatantId,
+            id,
+            selectedBehavior?.actionId === id ? selectedBehavior.behaviorId : undefined,
+          ),
+        ]),
+      ),
+    [
+      battle,
+      localCombatantId,
+      runtime,
+      selectableTechniques,
+      selectableSpecial,
+      selectedBehavior,
+      supportActionId,
+    ],
+  )
+  const localProfile = battle.snapshot.statBridge.combatants.find(
+    (row) => row.combatantId === localCombatantId,
+  )
+  const characterStats = {
+    move: localCombatant?.baseMovementBudget,
+    jump:
+      localCombatantId && localProfile
+        ? airborneJump(battle.snapshot, localCombatantId, localProfile.jump, PV1F_COMBAT_CONTENT)
+        : localProfile?.jump,
+    physicalPower: localProfile?.physicalPower,
+    mysticPower: localProfile?.mysticPower,
+  }
   const localPlacement = localCombatantId
     ? (tactical.placements.find((placement) => placement.combatantId === localCombatantId) ?? null)
     : null
   const localTeamIndex = viewModel.localTeamIndex ?? -1
+  const { local: localRailParticipant, enemy: enemyParticipant } = selectBattleCombatantRails({
+    viewModel,
+    battleVersion: battle.battleVersion,
+    allyInspection,
+    selectedUnitId,
+    inspectedEnemyUnitId,
+  })
   const localTurn = Boolean(
     localCombatantId && battleState.currentTurn?.combatantId === localCombatantId,
   )
-  const actionEconomy = localTurn ? readEconomy(localCombatant) : 0
+  const actionEconomy = localTurn ? Number(readEconomy(localCombatant)) : 0
   const planningDisabled =
-    !localTurn || battleState.lifecycle !== 'active' || commitPending || recruitPending
+    !localTurn ||
+    battleState.lifecycle !== 'active' ||
+    commitPending ||
+    recruitPending ||
+    executionPending
   const planningDisabledRef = useRef(planningDisabled)
   useLayoutEffect(() => {
     planningDisabledRef.current = planningDisabled
   }, [planningDisabled])
   const activeName = battleParticipantName(viewModel, battleState.currentTurn?.combatantId)
-  const selectedHealName = selectedHealOption.label
-  const selectedHealCost = Number.parseInt(selectedHealOption.cost, 10)
-  const selectedHealAtMaximum =
-    effectiveHealActionId === MP_RECOVER_ID
-      ? !localCombatant || localCombatant.mp >= localCombatant.maxMp
-      : effectiveHealActionId === RECOVER_ID
-        ? !localCombatant || localCombatant.hp >= localCombatant.maxHp
-        : false
-  const selectedAttackCost = Number.parseInt(selectedAttack.cost, 10)
-  const selectedDefenseCost = Number.parseInt(selectedDefense.cost, 10)
+  const selectedHealName =
+    recoveryOptions.find((option) => option.id === effectiveHealActionId)?.label ??
+    selectableTechniques.find((row) => row.id === effectiveHealActionId)?.name ??
+    (selectableSpecial?.id === effectiveHealActionId
+      ? selectableSpecial.name
+      : 'Recovery unavailable')
   const selectedAttackTechnique =
     selectableTechniques.find((technique) => technique.id === selectedAttackActionId) ??
-    (runtime.essence?.id === selectedAttackActionId ? runtime.essence : undefined)
-  const selectedDefenseTechnique = selectableTechniques.find(
-    (technique) => technique.id === selectedDefenseActionId,
-  )
-  const selectedHealTechnique = selectableTechniques.find(
-    (technique) => technique.id === effectiveHealActionId,
-  )
+    (selectableSpecial?.id === selectedAttackActionId ? selectableSpecial : undefined)
+  const selectedDefenseTechnique =
+    selectableTechniques.find((technique) => technique.id === selectedDefenseActionId) ??
+    (selectableSpecial?.id === selectedDefenseActionId ? selectableSpecial : undefined)
+  const selectedHealTechnique =
+    selectableTechniques.find((technique) => technique.id === effectiveHealActionId) ??
+    (selectableSpecial?.id === effectiveHealActionId ? selectableSpecial : undefined)
   const activeTechnique =
     mode === 'attack'
       ? selectedAttackTechnique
@@ -399,6 +1074,30 @@ export function BattleExperience({
         : mode === 'recover'
           ? selectedHealTechnique
           : null
+  const armedActionId =
+    pendingIntent?.kind === 'action'
+      ? pendingIntent.actionId
+      : mode === 'guard'
+        ? selectedDefenseActionId
+        : mode === 'recover'
+          ? effectiveHealActionId
+          : null
+  const meaningActionId =
+    mode === 'attack'
+      ? selectedAttackActionId
+      : mode === 'guard'
+        ? selectedDefenseActionId
+        : effectiveHealActionId
+  const meaningGroups = manualActionTargets.filter((row) => row.actionId === meaningActionId)
+  const meaningGroup =
+    selectedBehavior?.actionId === meaningActionId
+      ? meaningGroups.find((row) => row.behaviorId === selectedBehavior.behaviorId)
+      : meaningGroups.length === 1
+        ? meaningGroups[0]
+        : undefined
+  const healingSelection = meaningGroup?.classification
+    ? meaningGroup.classification === 'recovery'
+    : battleActionUsesRecoverySelection(armedActionId, activeTechnique)
   const previewCombatants = useMemo(
     () =>
       tactical.placements.flatMap((placement) => {
@@ -418,42 +1117,20 @@ export function BattleExperience({
     [battleState.combatants, tactical.placements, viewModel.participantByCombatant],
   )
 
-  const placementByTile = useMemo(
-    () =>
-      new Map(
-        tactical.placements.map(
-          (placement) => [positionKey(placement.position), placement] as const,
-        ),
-      ),
-    [tactical.placements],
-  )
+  const placementByTile = useMemo(() => buildDisplayedPlacementByTile(tactical), [tactical])
+  const moveBehaviorId =
+    selectedBehavior?.actionId === 'basic.move' ? String(selectedBehavior.behaviorId) : undefined
   const reachablePaths = useMemo(
     () =>
       localTurn
-        ? buildReachablePaths(battle.snapshot, localPlacement, actionEconomy)
+        ? buildMovementPaths(battle.snapshot, localPlacement, actionEconomy, moveBehaviorId)
         : new Map<string, BattleGridPosition[]>(),
-    [actionEconomy, battle.snapshot, localPlacement, localTurn],
+    [actionEconomy, battle.snapshot, localPlacement, localTurn, moveBehaviorId],
   )
-  const attackRange = useMemo(() => {
-    const result = new Set<string>()
-    if (!localPlacement) return result
-    for (const position of [
-      { x: localPlacement.position.x + 1, y: localPlacement.position.y },
-      { x: localPlacement.position.x - 1, y: localPlacement.position.y },
-      { x: localPlacement.position.x, y: localPlacement.position.y + 1 },
-      { x: localPlacement.position.x, y: localPlacement.position.y - 1 },
-    ]) {
-      if (
-        position.x >= 0 &&
-        position.x < tactical.width &&
-        position.y >= 0 &&
-        position.y < tactical.height
-      ) {
-        result.add(positionKey(position))
-      }
-    }
-    return result
-  }, [localPlacement, tactical.height, tactical.width])
+  const maximumMoveDistance = Math.max(
+    0,
+    ...Array.from(reachablePaths.values(), (path) => path.length - 1),
+  )
 
   const selectedParticipant = selectedUnitId
     ? (viewModel.participantByCombatant.get(selectedUnitId) ?? null)
@@ -464,10 +1141,6 @@ export function BattleExperience({
   const selectedPlacement = selectedUnitId
     ? (tactical.placements.find((placement) => placement.combatantId === selectedUnitId) ?? null)
     : null
-  const proposedCost =
-    preview?.preview.kind === 'move' || preview?.preview.kind === 'action'
-      ? preview.preview.actionEconomyCost
-      : 0
   const livingTeams = livingTeamIndexes(battle, viewModel.participantByCombatant)
   const objectiveComplete = battleState.lifecycle === 'completed'
 
@@ -478,13 +1151,25 @@ export function BattleExperience({
 
   const clearPlanning = useCallback(
     (nextMode: Mode = 'none') => {
+      setItemsOpen(false)
+      setCostPreviewInvalidated(false)
+      setInfoSelectionVersion((version) => version + 1)
+      setInspectedAbilityId(null)
       previewSequence.current += 1
       readyPreview.current = null
+      inFlightPreview.current = null
+      previewController.current?.abort()
+      rearmActionAfterCommit.current = null
+      modeRef.current = nextMode
       setMode(nextMode)
       updatePlanningPath([])
       setPendingIntent(null)
+      setActionMovementDraft(null)
+      pluralSelection.current = null
       setPreview(null)
       setSelectedUnitId(null)
+      setTargetAim({ aimSource: 'implicit' })
+      setAllyInspection(null)
       setPreviewPending(false)
     },
     [updatePlanningPath],
@@ -495,11 +1180,7 @@ export function BattleExperience({
       if (modeRef.current !== 'inspect') return
       clearPlanning()
       setNotice('Inspection closed. Choose your action.')
-      window.requestAnimationFrame(() => {
-        document
-          .querySelector<HTMLElement>('main[data-battle-keyboard-focus-root="true"]')
-          ?.focus({ preventScroll: true })
-      })
+      restoreBattleKeyboardFocus()
     })
   }, [clearPlanning, registerInspectCloseHandler])
 
@@ -513,7 +1194,7 @@ export function BattleExperience({
   }, [clearPlanning, registerFinishTurnHandler])
 
   const refreshBattle = useCallback(
-    async (message = 'Battle state reloaded.') => {
+    async (message = 'Battle state reloaded.', retainArmedAction = false) => {
       const response = await fetch(`/api/battles/${battle.battleSessionId}`, {
         method: 'GET',
         cache: 'no-store',
@@ -522,17 +1203,21 @@ export function BattleExperience({
       if (!response.ok || !body.battle) {
         throw new Error(body.error?.message ?? 'The battle state could not be reloaded.')
       }
+      const retainMode =
+        retainArmedAction &&
+        ['attack', 'guard', 'recover'].includes(modeRef.current) &&
+        canRetainBattleActionPreview(battleRef.current, body.battle, localCombatantId)
       battleRef.current = body.battle
       setBattle(body.battle)
-      clearPlanning()
+      clearPlanning(retainMode ? modeRef.current : 'none')
       setNotice(message)
       return body.battle
     },
-    [battle.battleSessionId, clearPlanning],
+    [battle.battleSessionId, clearPlanning, localCombatantId, setBattle],
   )
 
   const handleApiFailure = useCallback(
-    async (response: Response, body: ApiErrorBody, fallback: string) => {
+    async (response: Response, body: ApiErrorBody, fallback: string, retainArmedAction = false) => {
       if (response.status === 401) {
         router.replace('/')
         router.refresh()
@@ -542,6 +1227,7 @@ export function BattleExperience({
         try {
           await refreshBattle(
             'The battle changed elsewhere. Your unfinished selection was cleared.',
+            retainArmedAction,
           )
         } catch (refreshError) {
           setNotice(
@@ -570,10 +1256,17 @@ export function BattleExperience({
       battleRef.current = next
       setBattle(next)
 
-      if (nextBattleState.lifecycle === 'completed') {
+      if (nextBattleState.lifecycle === 'abandoned') {
+        clearPlanning()
+        setNotice(battleRecoveryNotice(next.snapshot))
+      } else if (nextBattleState.lifecycle === 'completed') {
         clearPlanning()
         setNotice('Battle complete.')
-      } else if (!wasLocal && isLocal) {
+      } else if (
+        isLocal &&
+        (!wasLocal || current.snapshot.tactical.battle.turnNumber !== nextBattleState.turnNumber)
+      ) {
+        clearPlanning()
         setNotice('Your turn. Choose your action.')
       } else if (wasLocal && !isLocal) {
         clearPlanning()
@@ -583,9 +1276,14 @@ export function BattleExperience({
             nextBattleState.currentTurn?.combatantId,
           )}.`,
         )
+      } else {
+        // A new authoritative version invalidates drafts and quotes even within the same turn.
+        const retainMode = canRetainBattleActionPreview(current, next, localCombatantId)
+        clearPlanning(retainMode ? modeRef.current : 'none')
+        setNotice('The battle changed elsewhere. Choose your targets again.')
       }
     },
-    [clearPlanning, localCombatantId, viewModel],
+    [clearPlanning, localCombatantId, viewModel, setBattle],
   )
 
   useEffect(() => {
@@ -601,7 +1299,8 @@ export function BattleExperience({
   }, [battle, runtime.kind])
 
   useEffect(() => {
-    if (runtime.kind !== 'pvp') return
+    const stateEvent =
+      runtime.kind === 'pvp' ? 'aurevane:pvp-battle-state' : 'aurevane:battle-state'
 
     const receiveExternalBattleState = (event: Event) => {
       if (!(event instanceof CustomEvent)) return
@@ -610,12 +1309,12 @@ export function BattleExperience({
       applyRemoteBattle(next)
     }
 
-    window.addEventListener('aurevane:pvp-battle-state', receiveExternalBattleState)
-    return () => window.removeEventListener('aurevane:pvp-battle-state', receiveExternalBattleState)
+    window.addEventListener(stateEvent, receiveExternalBattleState)
+    return () => window.removeEventListener(stateEvent, receiveExternalBattleState)
   }, [applyRemoteBattle, battle.battleSessionId, runtime.kind])
 
   useEffect(() => {
-    if (runtime.kind !== 'pvp' || battleState.lifecycle !== 'active') return
+    if (!shouldPollParticipant(runtime.kind, battleState.lifecycle)) return
     let cancelled = false
     let timer: number | null = null
 
@@ -626,7 +1325,7 @@ export function BattleExperience({
 
     const nextNormalDelay = () => {
       const currentTurnId = battleRef.current.snapshot.tactical.battle.currentTurn?.combatantId
-      return currentTurnId === localCombatantId ? ACTIVE_PLAYER_POLL_MS : WAITING_PLAYER_POLL_MS
+      return participantPollDelay(runtime.kind, currentTurnId === localCombatantId)
     }
 
     async function poll() {
@@ -677,65 +1376,150 @@ export function BattleExperience({
     runtime.kind,
   ])
 
+  const recoveryReturnHref = battleReturnNavigation(
+    runtime.kind === 'pvp' ? runtime.metadata.origin : 'battle-hall',
+    runtime.kind === 'pvp' ? runtime.returnTo : undefined,
+  ).href
+  useEffect(() => {
+    if (battleState.lifecycle !== 'abandoned') return
+    router.replace(recoveryReturnHref)
+    router.refresh()
+  }, [battleState.lifecycle, recoveryReturnHref, router])
+
   const requestPreview = useCallback(
-    async (intent: BattleIntent) => {
+    (intent: BattleIntent) => {
+      if (!mounted.current) return null
+      if (
+        (intent.kind === 'action' || intent.kind === 'ability-prime') &&
+        actionAttackBlocked(intent.actionId, intent.behaviorId)
+      ) {
+        setNotice('Attacks are currently locked.')
+        return null
+      }
+      if (intent.kind === 'action' && actionCooldownTurns(intent.actionId) > 0) return null
+      const pending = inFlightPreview.current
+      if (
+        pending &&
+        previewController.current &&
+        !previewController.current.signal.aborted &&
+        isCurrentBattlePreview(
+          pending,
+          intent,
+          battleRef.current.battleVersion,
+          previewSequence.current,
+        )
+      ) {
+        return pending.result
+      }
+      setCostPreviewInvalidated(false)
+      previewController.current?.abort()
+      const controller = new AbortController()
+      previewController.current = controller
       const sequence = ++previewSequence.current
       readyPreview.current = null
       setPreview(null)
       setPreviewPending(true)
       setPendingIntent(intent)
-      try {
-        const response = await fetch(`/api/battles/${battle.battleSessionId}/preview`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ expectedBattleVersion: battle.battleVersion, intent }),
-        })
-        const body = (await response.json()) as { battlePreview?: BattlePreviewView } & ApiErrorBody
-        if (sequence !== previewSequence.current) return
-        if (!response.ok || !body.battlePreview) {
-          setPreview(null)
-          await handleApiFailure(response, body, 'That command could not be checked.')
-          return
+      const result = (async () => {
+        try {
+          const response = await requestBattlePreview({
+            battleSessionId: battle.battleSessionId,
+            battleVersion: battle.battleVersion,
+            intent,
+            signal: controller.signal,
+          })
+          const body = (await response.json()) as {
+            battlePreview?: BattlePreviewView
+          } & ApiErrorBody
+          if (!mounted.current || controller.signal.aborted || sequence !== previewSequence.current)
+            return
+          if (!response.ok || !body.battlePreview) {
+            setPreview(null)
+            await handleApiFailure(response, body, 'That command could not be checked.', true)
+            return
+          }
+          if (
+            body.battlePreview.battleSessionId !== battle.battleSessionId ||
+            body.battlePreview.battleVersion !== battle.battleVersion
+          ) {
+            clearPlanning(modeRef.current)
+            setCostPreviewInvalidated(true)
+            setNotice('That forecast is out of date. Choose a target to check it again.')
+            return
+          }
+          setPreview({ ...body.battlePreview, intent })
+          const result = body.battlePreview.preview
+          readyPreview.current = result.legal
+            ? { intent, version: battle.battleVersion, sequence }
+            : null
+          if (!result.legal) {
+            setNotice(result.issues[0]?.message ?? 'That command is not legal right now.')
+          } else if (result.kind === 'move') {
+            setNotice(
+              `Movement ready · ${result.actionEconomyCost} AP · ${result.actionEconomyAfter} AP remains.`,
+            )
+          } else if (result.kind === 'action') {
+            const actionName =
+              modifierNames.find((row) => row.id === result.actionId)?.name ??
+              (battle.snapshot.basicActions === undefined
+                ? pv1fSkillByActionId(result.actionId)?.name
+                : undefined) ??
+              'Action'
+            setNotice(
+              `${actionName} ${result.controlledReady ? 'ready to release' : 'forecast ready'}.`,
+            )
+          }
+          return readyPreview.current
+        } catch (error) {
+          if (
+            mounted.current &&
+            !controller.signal.aborted &&
+            sequence === previewSequence.current
+          ) {
+            setPreview(null)
+            setNotice(error instanceof Error ? error.message : 'That command could not be checked.')
+          }
+        } finally {
+          if (mounted.current && sequence === previewSequence.current) setPreviewPending(false)
+          if (previewController.current === controller) previewController.current = null
+          if (inFlightPreview.current?.sequence === sequence) inFlightPreview.current = null
         }
-        setPreview(body.battlePreview)
-        const result = body.battlePreview.preview
-        readyPreview.current = result.legal
-          ? { intent, version: battle.battleVersion, sequence }
-          : null
-        if (!result.legal) {
-          setNotice(result.issues[0]?.message ?? 'That command is not legal right now.')
-        } else if (result.kind === 'move') {
-          setNotice(
-            `Movement ready · ${result.actionEconomyCost} AP · ${result.actionEconomyAfter} AP remains.`,
-          )
-        } else if (result.kind === 'action' && result.actionId === BASIC_ATTACK_ID) {
-          setNotice(`Basic Attack ready · ${result.actionEconomyCost} AP.`)
-        } else if (result.kind === 'action' && result.actionId === GUARD_ID) {
-          setNotice('Guard ready · 30 AP · incoming damage reduced for 2 turns.')
-        } else if (result.kind === 'action' && result.actionId === RECOVER_ID) {
-          setNotice('HP Recovery ready · 50 AP · restores 10% maximum HP.')
-        } else if (result.kind === 'action' && result.actionId === MP_RECOVER_ID) {
-          setNotice('MP Recovery ready · 50 AP · restores 10% maximum MP.')
-        } else if (result.kind === 'action') {
-          setNotice(
-            `Skill ready · ${result.actionEconomyCost} AP · review the target forecast before confirming.`,
-          )
-        }
-      } catch (error) {
-        if (sequence === previewSequence.current) {
-          setPreview(null)
-          setNotice(error instanceof Error ? error.message : 'That command could not be checked.')
-        }
-      } finally {
-        if (sequence === previewSequence.current) setPreviewPending(false)
-      }
+      })()
+      inFlightPreview.current = { intent, version: battle.battleVersion, sequence, result }
+      return result
     },
-    [battle.battleSessionId, battle.battleVersion, handleApiFailure],
+    [
+      actionAttackBlocked,
+      actionCooldownTurns,
+      battle.battleSessionId,
+      battle.battleVersion,
+      battle.snapshot.basicActions,
+      clearPlanning,
+      handleApiFailure,
+      modifierNames,
+    ],
   )
 
   const commitValue = useCallback(
     async (intent: BattleIntent) => {
-      if (commitLock.current || commitPending || !localTurn) return
+      if (
+        !mounted.current ||
+        commitLock.current ||
+        commitPending ||
+        battleRef.current.battleVersion !== battle.battleVersion ||
+        !localTurn ||
+        battleRef.current.snapshot.tactical.battle.lifecycle !== 'active'
+      )
+        return
+      if (
+        (intent.kind === 'action' || intent.kind === 'ability-prime') &&
+        actionAttackBlocked(intent.actionId, intent.behaviorId)
+      ) {
+        setNotice('Attacks are currently locked.')
+        return
+      }
+      if (intent.kind === 'action' && actionCooldownTurns(intent.actionId) > 0) return
+      if (intent.kind === 'action') setTargetAim({ aimSource: 'player', selection: intent.target })
       commitLock.current = true
       if (runtime.kind === 'pvp') {
         battlePollController.current?.abort()
@@ -743,6 +1527,34 @@ export function BattleExperience({
       }
       setCommitPending(true)
       const before = battle
+      const committedAction =
+        intent.kind === 'action'
+          ? battleCapturedActionChoices(
+              manualActionTargets,
+              intent.actionId,
+              localCombatantId,
+            ).find((row) => !intent.behaviorId || row.behaviorId === intent.behaviorId)
+          : undefined
+      const committedSkill =
+        intent.kind === 'action'
+          ? (selectableTechniques.find((row) => row.id === intent.actionId) ??
+            (selectableSpecial?.id === intent.actionId ? selectableSpecial : undefined))
+          : undefined
+      const committedTarget =
+        committedAction?.target ?? committedSkill?.target ?? committedSkill?.definition?.target
+      const groundOnlyTarget = committedTarget?.categories?.length
+        ? committedTarget.categories.every((category) => category === 'ground')
+        : (committedTarget?.kind ?? committedSkill?.targetKind) === 'ground-tile'
+      const groundCapable =
+        committedAction?.groundIntentCapable ||
+        committedSkill?.groundIntentCapable ||
+        committedTarget?.categories?.includes('ground') ||
+        groundOnlyTarget
+      const groundAction =
+        intent.kind === 'action' &&
+        (groundOnlyTarget ||
+          (intent.target.kind === 'tile' && groundCapable) ||
+          ('ground' in intent.target && intent.target.ground === true))
 
       try {
         const endpoint =
@@ -770,7 +1582,7 @@ export function BattleExperience({
           setNotice(
             runtime.kind === 'pvp'
               ? 'Committing final facing and ending turn…'
-              : `Finishing facing ${intent.facing} ${facingGlyph(intent.facing)}…`,
+              : `Finishing facing ${intent.facing}…`,
           )
         }
 
@@ -781,20 +1593,15 @@ export function BattleExperience({
         })
         const body = (await response.json()) as { battle?: BattleSessionView } & ApiErrorBody
         if (!response.ok || !body.battle) {
-          await handleApiFailure(response, body, 'That action could not be committed.')
+          clearPlanning(groundAction ? modeRef.current : 'none')
+          await handleApiFailure(
+            response,
+            body,
+            'That action could not be committed.',
+            groundAction,
+          )
           return
         }
-
-        const priorCopiedSkills = new Set(
-          (before.snapshot.effectState?.temporarySkills ?? [])
-            .filter((grant) => grant.combatantId === localCombatantId)
-            .map((grant) => `${grant.skillId}@${grant.contentVersion}`),
-        )
-        const gainedCopiedSkill = (body.battle.snapshot.effectState?.temporarySkills ?? []).some(
-          (grant) =>
-            grant.combatantId === localCombatantId &&
-            !priorCopiedSkills.has(`${grant.skillId}@${grant.contentVersion}`),
-        )
 
         battleRef.current = body.battle
         setBattle(body.battle)
@@ -807,39 +1614,68 @@ export function BattleExperience({
           body.battle.snapshot.tactical.battle.currentTurn?.combatantId === localCombatantId
         const remaining = nextLocalTurn ? readEconomy(nextLocalCombatant) : 0
 
-        if (runtime.kind === 'pvp') {
-          if (
-            intent.kind === 'action' &&
-            intent.actionId === BASIC_ATTACK_ID &&
-            body.battle.snapshot.tactical.battle.lifecycle === 'active' &&
-            nextLocalTurn &&
-            remaining >= ATTACK_COST
-          ) {
-            clearPlanning('attack')
-            setNotice(
-              `Basic Attack committed. ${remaining} AP remains — choose another target or another action.`,
+        const nextBattleState = body.battle.snapshot.tactical.battle
+        const placedGroundField =
+          intent.kind === 'action' &&
+          body.battle.snapshot.groundAreas?.some(
+            (area) => !before.snapshot.groundAreas?.some((previous) => previous.id === area.id),
+          )
+        const keepAction =
+          !groundAction &&
+          !placedGroundField &&
+          intent.kind !== 'face' &&
+          nextBattleState.lifecycle === 'active' &&
+          nextLocalTurn &&
+          before.snapshot.tactical.battle.turnNumber === nextBattleState.turnNumber &&
+          (intent.kind !== 'action' ||
+            battleActionCooldownTurns(body.battle, runtime, localCombatantId, intent.actionId) ===
+              0) &&
+          ['move', 'attack', 'guard', 'recover'].includes(modeRef.current)
+        clearPlanning(keepAction ? modeRef.current : 'none')
+        if (
+          keepAction &&
+          ((intent.kind === 'action' && !intent.movementPath) || intent.kind === 'ability-prime')
+        ) {
+          rearmActionAfterCommit.current = { intent, version: body.battle.battleVersion }
+        }
+
+        if (intent.kind === 'ability-prime') {
+          setNotice(
+            manualActionTargets.some(
+              (row) =>
+                row.actionId === intent.actionId &&
+                row.behaviorId === intent.behaviorId &&
+                row.controlled?.kind === 'reversal',
             )
+              ? 'Reversal prepared and paid. It automatically counters one qualifying hit. Attacks are locked while armed.'
+              : intent.target
+                ? 'Rewind positions captured. Release on the same selection at its full cost.'
+                : 'Ability prepared. Choose a legal target to release it at its full cost.',
+          )
+        } else if (intent.kind === 'ability-cancel-prime') {
+          setNotice(
+            manualActionTargets.some(
+              (row) =>
+                row.actionId === intent.actionId &&
+                row.behaviorId === intent.behaviorId &&
+                row.controlled?.kind === 'reversal',
+            )
+              ? 'Reversal cancelled. Costs and cooldown remain. Attacks are locked through your next complete turn.'
+              : 'Preparation cancelled. This ability cannot be primed again in this battle.',
+          )
+        } else if (runtime.kind === 'pvp') {
+          if (nextBattleState.lifecycle === 'completed') {
+            setNotice('Battle complete.')
+          } else if (nextLocalTurn) {
+            setNotice(`Action committed. ${remaining} AP remains.`)
           } else {
-            clearPlanning()
-            if (body.battle.snapshot.tactical.battle.lifecycle === 'completed') {
-              setNotice('Battle complete.')
-            } else if (nextLocalTurn) {
-              setNotice(`Action committed. ${remaining} AP remains.`)
-            } else {
-              setNotice(
-                `Turn handed to ${battleParticipantName(
-                  viewModel,
-                  body.battle.snapshot.tactical.battle.currentTurn?.combatantId,
-                )}.`,
-              )
-            }
+            setNotice(
+              `Turn handed to ${battleParticipantName(viewModel, nextBattleState.currentTurn?.combatantId)}.`,
+            )
           }
         } else {
-          clearPlanning()
           if (intent.kind === 'face') {
-            setNotice(
-              `Finished facing ${intent.facing} ${facingGlyph(intent.facing)}. Recruit turn begins.`,
-            )
+            setNotice(`Finished facing ${intent.facing}. Recruit turn begins.`)
           } else if (intent.kind === 'move') {
             setNotice(`Movement committed. ${remaining} AP remains.`)
           } else if (intent.kind === 'action' && intent.actionId === BASIC_ATTACK_ID) {
@@ -883,8 +1719,8 @@ export function BattleExperience({
             setNotice(`Recovered ${restored} MP. ${remaining} AP remains.`)
           }
         }
-        if (gainedCopiedSkill) router.refresh()
       } catch (error) {
+        clearPlanning(groundAction ? modeRef.current : 'none')
         setNotice(error instanceof Error ? error.message : 'That action could not be committed.')
       } finally {
         setCommitPending(false)
@@ -892,362 +1728,1123 @@ export function BattleExperience({
       }
     },
     [
+      actionAttackBlocked,
+      actionCooldownTurns,
       battle,
       clearPlanning,
       commitPending,
       handleApiFailure,
       localCombatantId,
       localTurn,
-      router,
-      runtime.kind,
+      manualActionTargets,
+      selectableTechniques,
+      selectableSpecial,
+      runtime,
       viewModel,
+      setBattle,
     ],
   )
 
-  const commitSelected = useCallback(() => {
-    if (
-      !pendingIntent ||
-      !preview?.preview.legal ||
-      previewPending ||
-      !isCurrentBattlePreview(
-        readyPreview.current,
-        pendingIntent,
-        battle.battleVersion,
-        previewSequence.current,
+  const airborneAttackElevation = Boolean(
+    battle.snapshot.airbornePolicyVersion === 1 &&
+    localCombatantId &&
+    hasGameplayTag(battle.snapshot, localCombatantId, 'Airborne', PV1F_COMBAT_CONTENT),
+  )
+  const unboundActionDescriptor = useCallback(
+    (actionId: string, behaviorId?: string): BattlePreviewSkill => {
+      const skill =
+        selectableTechniques.find((item) => item.id === actionId) ??
+        (selectableSpecial?.id === actionId ? selectableSpecial : undefined)
+      const basic = findBattleBasicAction(battle.snapshot, localCombatantId, actionId)
+      const isBasic =
+        !!basic || ['basic.move', BASIC_ATTACK_ID, ...SUPPORT_ACTION_IDS].includes(actionId)
+      const native: BattlePreviewSkill = skill ?? {
+        id: actionId,
+        groundIntentCapable: false,
+        targetKind: actionId === BASIC_ATTACK_ID ? 'unit' : 'self',
+        targetTeamPolicy: actionId === BASIC_ATTACK_ID ? 'enemy' : 'self',
+        minimumRange: actionId === BASIC_ATTACK_ID ? 1 : 0,
+        maximumRange: actionId === BASIC_ATTACK_ID ? 1 : 0,
+        target: actionId === BASIC_ATTACK_ID ? undefined : PV1F_GUARD_ACTION.target,
+      }
+      if (!skill && !isBasic) return { ...native, unavailable: true }
+      const resolved = resolveBattleCapturedSkill(
+        native,
+        manualActionTargets,
+        behaviorId ??
+          (selectedBehavior?.actionId === actionId ? selectedBehavior.behaviorId : undefined),
       )
+      const captured = resolved
+        ? bindBattleSkillMovement(
+            resolved,
+            actionMovementDraft,
+            battle.battleVersion,
+            localCombatantId,
+          )
+        : null
+      if (!captured || (isBasic && (basic === null || basic?.enabled === false)))
+        return { ...native, unavailable: true }
+      const category =
+        selectableTechniques.find((row) => row.id === actionId)?.category ??
+        (selectableSpecial?.id === actionId
+          ? special?.category
+          : actionId === BASIC_ATTACK_ID
+            ? 'attack'
+            : actionId === RECOVER_ID || actionId === MP_RECOVER_ID
+              ? 'heal'
+              : 'defense')
+      const classification =
+        captured.classification ??
+        (category === 'attack' ? 'attack' : category === 'heal' ? 'recovery' : 'utility')
+      const target =
+        battleSkillTargetSpec(captured) ??
+        (actionId === BASIC_ATTACK_ID ? createPv1fBasicAttackDefinition(1).target : undefined)
+      const price = pv1fSkillByActionId(actionId)?.cost
+      const described: BattlePreviewSkill = {
+        ...captured,
+        classification,
+        costs:
+          captured.costs ??
+          (skill
+            ? [
+                { resource: 'ap' as const, amount: skill.apCost },
+                { resource: 'mp' as const, amount: skill.mpCost },
+                { resource: 'hp' as const, amount: skill.hpCost ?? 0 },
+              ]
+            : price?.kind === 'flat'
+              ? [{ resource: 'ap' as const, amount: price.amount }]
+              : undefined),
+        modifierRoot:
+          captured.modifierRoot ??
+          (!manualActionTargets.some((row) => row.actionId === actionId) &&
+          !skill?.definition?.ability &&
+          target
+            ? combatNativeModifierRootFacts(target, classification)
+            : undefined),
+      }
+      return battleActionDescriptorWithElevation(described, target, airborneAttackElevation)
+    },
+    [
+      airborneAttackElevation,
+      selectableSpecial,
+      selectableTechniques,
+      battle.snapshot,
+      manualActionTargets,
+      localCombatantId,
+      selectedBehavior,
+      actionMovementDraft,
+      battle.battleVersion,
+      special?.category,
+    ],
+  )
+
+  const modifierContext = useCallback(
+    (descriptor: BattlePreviewSkill) =>
+      battleModifierContextForAction(
+        battle.battleSessionId,
+        battle.battleVersion,
+        localCombatantId ?? '',
+        descriptor,
+        modifierNames.find((row) => row.id === descriptor.id)?.contentVersion ??
+          descriptor.definition?.contentVersion ??
+          null,
+      ),
+    [battle.battleSessionId, battle.battleVersion, localCombatantId, modifierNames],
+  )
+  const actionDescriptor = useCallback(
+    (
+      actionId: string,
+      behaviorId?: string,
+      draft: BattleModifierDraft | null = modifierDraft,
+    ): BattlePreviewSkill => {
+      const descriptor = unboundActionDescriptor(actionId, behaviorId)
+      const matching =
+        draft?.context.actionId === actionId && draft.context.behaviorId === descriptor.behaviorId
+          ? draft
+          : null
+      const resolved = resolveBattleModifierDraft(
+        matching,
+        modifierContext(descriptor),
+        modifierPins,
+        descriptor.controlled,
+      )
+      return {
+        ...descriptor,
+        manualModifiers: resolved.manualModifiers,
+        unavailable: descriptor.unavailable || resolved.stale,
+      }
+    },
+    [modifierContext, modifierDraft, modifierPins, unboundActionDescriptor],
+  )
+  const abandonOtherModifierDraft = useCallback(
+    (descriptor: BattlePreviewSkill) => {
+      const draft = modifierDraftRef.current
+      if (
+        draft &&
+        (draft.context.actionId !== descriptor.id ||
+          draft.context.behaviorId !== descriptor.behaviorId)
+      )
+        replaceModifierDraft(null)
+    },
+    [replaceModifierDraft],
+  )
+
+  // Forecasts are informational. A deliberate gesture goes straight to the server's
+  // versioned legality/commit boundary instead of waiting for a second round trip.
+  const executeIntent = useCallback(
+    async (intent: BattleIntent, keyboardCode?: string) => {
+      if (
+        !mounted.current ||
+        planningDisabledRef.current ||
+        executionLock.current ||
+        commitLock.current ||
+        document.hidden ||
+        !document.hasFocus() ||
+        isTextEntryTarget(document.activeElement, keyboardCode)
+      )
+        return
+      if (intent.kind === 'action' || intent.kind === 'ability-prime') {
+        if (actionAttackBlocked(intent.actionId, intent.behaviorId)) {
+          setNotice('Attacks are currently locked.')
+          return
+        }
+        const draft = modifierDraftRef.current
+        const descriptor = actionDescriptor(intent.actionId, intent.behaviorId, draft)
+        if (
+          descriptor.unavailable ||
+          (draft &&
+            (draft.context.actionId !== intent.actionId ||
+              draft.context.behaviorId !== descriptor.behaviorId)) ||
+          JSON.stringify(battleManualModifierReferences(intent.manualModifiers ?? [])) !==
+            JSON.stringify(descriptor.manualModifiers ?? [])
+        ) {
+          setNotice('The modifier selection changed. Prepare this action again.')
+          return
+        }
+      }
+      const command =
+        intent.kind === 'action'
+          ? (selectBattleControlledPrimeIntent(
+              manualActionTargets,
+              intent.actionId,
+              intent.behaviorId,
+              intent.manualModifiers,
+              intent.target,
+            ) ?? intent)
+          : intent
+      if (command.kind === 'action' && actionCooldownTurns(command.actionId) > 0) return
+      executionLock.current = true
+      setAllyInspection(null)
+      setExecutionPending(true)
+      previewController.current?.abort()
+      previewController.current = null
+      setInfoSelectionVersion((version) => version + 1)
+      previewSequence.current += 1
+      readyPreview.current = null
+      inFlightPreview.current = null
+      setPreviewPending(false)
+      try {
+        await commitValue(command)
+      } finally {
+        executionLock.current = false
+        if (mounted.current) setExecutionPending(false)
+      }
+    },
+    [actionCooldownTurns, actionDescriptor, actionAttackBlocked, manualActionTargets, commitValue],
+  )
+
+  const selection = useMemo(
+    () => ({
+      actorId: localCombatantId,
+      selectedTarget: pendingIntent?.kind === 'action' ? pendingIntent.target : null,
+      selectedCombatantId: selectedUnitId ?? inspectedUnitId,
+      selectedTile:
+        pendingIntent?.kind === 'action' && pendingIntent.target.kind === 'tile'
+          ? pendingIntent.target.position
+          : null,
+      combatants: previewCombatants,
+      tiles: tactical.tiles.map((tile) => tile.position),
+    }),
+    [
+      inspectedUnitId,
+      localCombatantId,
+      pendingIntent,
+      previewCombatants,
+      selectedUnitId,
+      tactical.tiles,
+    ],
+  )
+
+  useEffect(() => {
+    const prior = rearmActionAfterCommit.current
+    if (
+      !prior ||
+      battle.battleVersion !== prior.version ||
+      battleRef.current.battleVersion !== prior.version
     )
       return
-    void commitValue(pendingIntent)
-  }, [battle.battleVersion, commitValue, pendingIntent, preview, previewPending])
+    rearmActionAfterCommit.current = null
+    if (!localTurn || battleState.lifecycle !== 'active') return
+    const priorTarget = prior.intent.kind === 'action' ? prior.intent.target : null
+    const intent = selectInitialBattleSkillPreviewIntent(actionDescriptor(prior.intent.actionId), {
+      ...selection,
+      selectedCombatantId: priorTarget?.kind === 'unit' ? priorTarget.combatantId : null,
+      selectedTile: priorTarget?.kind === 'tile' ? priorTarget.position : null,
+      selectedTarget: priorTarget,
+    })
+    if (intent) {
+      setSelectedUnitId(
+        intent.target.kind === 'self'
+          ? localCombatantId
+          : intent.target.kind === 'unit'
+            ? intent.target.combatantId
+            : null,
+      )
+      void requestPreview(intent)
+    }
+  }, [
+    actionDescriptor,
+    battle.battleVersion,
+    battleState.lifecycle,
+    localCombatantId,
+    localTurn,
+    requestPreview,
+    selection,
+  ])
 
   const armAction = useCallback(
     (nextMode: 'attack' | 'guard' | 'recover', actionId: string) => {
-      if (planningDisabled) return
-      const skill =
-        selectableTechniques.find((item) => item.id === actionId) ??
-        (runtime.essence?.id === actionId ? runtime.essence : undefined)
-      // Preserve only a target the player already chose. Changing a skill invalidates its old
-      // forecast, while the preview endpoint remains the authority for the new action.
-      const selectedTile =
-        pendingIntent?.kind === 'action' && pendingIntent.target.kind === 'tile'
-          ? pendingIntent.target.position
-          : null
-      clearPlanning(nextMode)
-      if (skill) {
-        const intent = selectBattleSkillPreviewIntent(skill, {
-          actorId: localCombatantId,
-          selectedCombatantId: selectedUnitId,
-          selectedTile,
-          combatants: previewCombatants,
-        })
-        if (intent?.kind === 'action') {
-          setSelectedUnitId(
-            intent.target.kind === 'self'
-              ? localCombatantId
-              : intent.target.kind === 'unit'
-                ? intent.target.combatantId
-                : null,
-          )
-          void requestPreview(intent)
-        } else {
-          const target =
-            skill.targetKind === 'ground-tile' || skill.targetKind === 'empty-tile'
-              ? 'tile'
-              : skill.targetTeamPolicy === 'ally'
-                ? 'ally'
-                : 'target'
-          setNotice(`Select ${target === 'ally' ? 'an' : 'a'} ${target}.`)
-        }
-      } else if (nextMode === 'guard' || nextMode === 'recover') {
-        void requestPreview({ kind: 'action', actionId, target: { kind: 'self' } })
+      if (planningDisabled || executionLock.current) return
+      if (actionAttackBlocked(actionId, basicBehaviorId(actionId))) {
+        setNotice('Attacks are currently locked.')
+        return
+      }
+      if (actionCooldownTurns(actionId) > 0) return
+      const descriptor = actionDescriptor(actionId, undefined, modifierDraftRef.current)
+      abandonOtherModifierDraft(descriptor)
+      const commandMode = descriptor.classification
+        ? battleModifierActionMode(descriptor)
+        : nextMode
+      if (commandMode === 'attack') setSelectedAttackActionId(actionId)
+      else if (commandMode === 'guard') setSelectedDefenseActionId(actionId)
+      else if (commandMode === 'recover') setSelectedTechniqueHealId(actionId)
+      clearPlanning(commandMode)
+      if (controlledAvailabilityForAction(actionId).chooseAction) {
+        replaceModifierDraft(null)
+        setSelectedBehavior(null)
+        setNotice('Choose another action for this ability. No action has been used.')
+        return
+      }
+      if (descriptor.unavailable) {
+        setNotice('Choose which action to use for this ability.')
+        return
+      }
+      const prime = selectBattleControlledPrimeIntent(
+        manualActionTargets,
+        actionId,
+        descriptor.behaviorId,
+        descriptor.manualModifiers,
+      )
+      if (prime) {
+        void executeIntent(prime)
+        return
+      }
+      const intent = selectInitialBattleSkillPreviewIntent(descriptor, {
+        ...selection,
+        selectedTarget:
+          pendingIntent?.kind === 'action' && pendingIntent.actionId === actionId
+            ? pendingIntent.target
+            : null,
+      })
+      if (
+        descriptor.controlled?.phase === 'primed' &&
+        intent !== null &&
+        !descriptor.move &&
+        (battleSkillTargetSpec(descriptor)?.maximumSelections ?? 1) === 1 &&
+        (descriptor.controlled.releaseTarget !== undefined ||
+          intent?.target.kind === 'self' ||
+          (intent?.target.kind === 'unit' && intent.target.combatantId === localCombatantId))
+      ) {
+        void executeIntent(intent)
+        return
+      }
+      if (descriptor.move) {
+        setNotice(
+          descriptor.move.conditional
+            ? 'Choose a highlighted Move destination, or your own tile to attempt a stationary cast when the Move condition is unmet. Movement is included in the Skill cost.'
+            : 'Choose a highlighted Move destination, then the Skill target. Movement is included in the Skill cost.',
+        )
+        return
+      }
+      if ((battleSkillTargetSpec(descriptor)?.maximumSelections ?? 1) > 1) {
+        setNotice('Select targets, then confirm. Select a target again to remove it.')
+        return
+      }
+      if (intent) {
+        setSelectedUnitId(
+          intent.target.kind === 'self'
+            ? localCombatantId
+            : intent.target.kind === 'unit'
+              ? intent.target.combatantId
+              : null,
+        )
+        void requestPreview(intent)
+      } else setNotice('No eligible target is in range. Select a different action or target.')
+    },
+    [
+      actionAttackBlocked,
+      actionCooldownTurns,
+      actionDescriptor,
+      controlledAvailabilityForAction,
+      basicBehaviorId,
+      replaceModifierDraft,
+      abandonOtherModifierDraft,
+      manualActionTargets,
+      executeIntent,
+      clearPlanning,
+      localCombatantId,
+      planningDisabled,
+      requestPreview,
+      selection,
+      pendingIntent,
+    ],
+  )
+
+  const inspectAbility = useCallback(
+    (id: string) => {
+      if (!battleNoncastAbilityInspection(runtime, manualActionTargets, localCombatantId, id))
+        return
+      clearPlanning()
+      replaceModifierDraft(null)
+      setSelectedBehavior(null)
+      setInspectedAbilityId(id)
+    },
+    [runtime, manualActionTargets, localCombatantId, clearPlanning, replaceModifierDraft],
+  )
+
+  const selectAction = useCallback(
+    (skillId: string, category: 'attack' | 'defense' | 'heal') => {
+      const equipped =
+        runtime.techniques?.find((skill) => skill.id === skillId) ??
+        (runtime.essence?.id === skillId ? runtime.essence : undefined)
+      if (equipped && !battleSkillCastMode(equipped).canCast) return
+      if (planningDisabledRef.current || executionLock.current || commitLock.current) return
+      if (actionCooldownTurns(skillId) > 0) return
+      const classification = actionDescriptor(skillId).classification
+      const meaning =
+        classification === 'recovery'
+          ? 'heal'
+          : classification === 'utility'
+            ? 'defense'
+            : classification === 'attack'
+              ? 'attack'
+              : category
+      if (meaning === 'defense') {
+        setSelectedDefenseActionId(skillId)
+        armAction('guard', skillId)
+      } else if (meaning === 'heal') {
+        setSelectedTechniqueHealId(skillId)
+        armAction('recover', skillId)
       } else {
-        setNotice('Choose a legal enemy target on the board.')
+        setSelectedAttackActionId(skillId)
+        armAction('attack', skillId)
       }
     },
     [
-      clearPlanning,
-      localCombatantId,
-      pendingIntent,
-      planningDisabled,
-      previewCombatants,
-      requestPreview,
-      runtime.essence,
-      selectableTechniques,
-      selectedUnitId,
+      actionCooldownTurns,
+      actionDescriptor,
+      armAction,
+      runtime,
+      setSelectedAttackActionId,
+      setSelectedDefenseActionId,
+      setSelectedTechniqueHealId,
     ],
   )
 
   const chooseMode = useCallback(
     (nextMode: Mode) => {
+      if (executionLock.current || commitLock.current) return
       if (planningDisabled && nextMode !== 'inspect') return
-      if (nextMode === 'attack' || nextMode === 'guard' || nextMode === 'recover') {
-        armAction(
-          nextMode,
-          nextMode === 'attack'
-            ? selectedAttackActionId
-            : nextMode === 'guard'
-              ? selectedDefenseActionId
-              : effectiveHealActionId,
-        )
+      if (nextMode === 'guard' && actionCooldownTurns(supportActionId) > 0) return
+      if (nextMode === 'recover' && !effectiveHealActionId) {
+        setNotice('No Recovery action is equipped in this battle.')
         return
       }
-      clearPlanning(nextMode)
-      if (nextMode === 'move') {
-        setNotice(
-          `Move · ${PV1F_MOVEMENT_COST_PER_TERRAIN_POINT} AP per normal tile. Green tiles are reachable. Rough ground costs ${PV1F_MOVEMENT_COST_PER_TERRAIN_POINT * 2} AP. Click a destination to draw the numbered path.`,
-        )
-      } else if (nextMode === 'finish') {
-        setNotice('Choose final facing with the buttons, WASD, or arrow keys to end the turn.')
-      } else if (nextMode === 'inspect') {
-        setNotice('Review terrain and unit details. Choose a combatant or tile. No AP is spent.')
+      if (nextMode === 'recover' && actionCooldownTurns(effectiveHealActionId) > 0) return
+      setInspectedTile(null)
+      if (
+        nextMode === 'move' &&
+        (basicMove === null ||
+          basicMove?.enabled === false ||
+          actionCooldownTurns('basic.move') > 0)
+      )
+        return
+      if (nextMode === 'attack') {
+        setSelectedAttackActionId(BASIC_ATTACK_ID)
+        armAction('attack', BASIC_ATTACK_ID)
+        return
       }
+      if (nextMode === 'guard') {
+        setSelectedDefenseActionId(supportActionId)
+        armAction('guard', supportActionId)
+        return
+      }
+      if (nextMode === 'recover') {
+        armAction('recover', effectiveHealActionId)
+        return
+      }
+      if (nextMode === 'move') {
+        const descriptor = actionDescriptor('basic.move', undefined, modifierDraftRef.current)
+        abandonOtherModifierDraft(descriptor)
+        if (controlledAvailabilityForAction('basic.move').chooseAction) {
+          replaceModifierDraft(null)
+          setSelectedBehavior(null)
+          clearPlanning('move')
+          setNotice('Choose another action for Move. No action has been used.')
+          return
+        }
+        const prime = selectBattleControlledPrimeIntent(
+          manualActionTargets,
+          'basic.move',
+          descriptor.behaviorId,
+          descriptor.manualModifiers,
+        )
+        if (prime) {
+          clearPlanning('move')
+          void executeIntent(prime)
+          return
+        }
+      }
+      clearPlanning(nextMode)
+      if (nextMode === 'finish') replaceModifierDraft(null)
+      if (nextMode === 'move')
+        setNotice(
+          basicMove?.movement?.costBasis === 'flat'
+            ? 'Choose a highlighted Move destination, then any required Skill target. The overall Skill cost includes movement.'
+            : 'Choose any highlighted destination to move the full route, or use WASD for one step. Movement and AP limits apply.',
+        )
+      else if (nextMode === 'finish')
+        setNotice(
+          'Choose final facing with WASD or the facing buttons. Press Space again to keep your facing and end the turn.',
+        )
+      else if (nextMode === 'inspect')
+        setNotice('Choose a character or tile to inspect. No AP is spent.')
     },
     [
+      actionCooldownTurns,
+      actionDescriptor,
+      abandonOtherModifierDraft,
+      replaceModifierDraft,
+      manualActionTargets,
+      executeIntent,
       armAction,
       clearPlanning,
       effectiveHealActionId,
+      basicMove,
+      controlledAvailabilityForAction,
       planningDisabled,
-      selectedAttackActionId,
-      selectedDefenseActionId,
+      setSelectedAttackActionId,
+      setSelectedDefenseActionId,
+      supportActionId,
     ],
   )
 
-  const handleTile = useCallback(
-    (position: BattleGridPosition) => {
-      const key = positionKey(position)
-      const placement = placementByTile.get(key)
-      if (mode === 'inspect') {
-        setSelectedUnitId(placement?.combatantId ?? null)
-        return
-      }
-      if (planningDisabled) return
-
-      if (mode === 'move') {
-        const currentPath = pathRef.current
-        const plottedIndex = currentPath.findIndex((point) => positionsEqual(point, position))
-        if (plottedIndex >= 0) {
-          const trimmedPath = currentPath.slice(0, plottedIndex + 1)
-          if (trimmedPath.length <= 1) {
-            previewSequence.current += 1
-            updatePlanningPath([])
-            setPendingIntent(null)
-            setPreview(null)
-            setPreviewPending(false)
-            setNotice('Move preview returned to your current tile.')
-          } else if (trimmedPath.length < currentPath.length) {
-            updatePlanningPath(trimmedPath)
-            void requestPreview({ kind: 'move', path: trimmedPath })
-          }
-          return
-        }
-
-        const nextPath = reachablePaths.get(key)
-        if (!nextPath || nextPath.length < 2) {
-          if (localPlacement && positionsEqual(position, localPlacement.position)) {
-            clearPlanning('move')
-            setNotice('Move preview returned to your current tile.')
-          } else {
-            setNotice('That tile is not reachable with the AP you have left.')
-          }
-          return
-        }
-        updatePlanningPath(nextPath)
-        void requestPreview({ kind: 'move', path: nextPath })
-        return
-      }
-
-      if (mode === 'attack' || mode === 'guard' || mode === 'recover') {
-        // Selecting a different tile invalidates the old forecast even if this new target is
-        // rejected before an API request. Confirm must never submit the previous selection.
-        clearPlanning(mode)
-        const selectedActionId =
-          mode === 'attack'
-            ? selectedAttackActionId
-            : mode === 'guard'
-              ? selectedDefenseActionId
-              : effectiveHealActionId
-        const selectedTechnique =
-          mode === 'attack'
-            ? selectedAttackTechnique
-            : mode === 'guard'
-              ? selectedDefenseTechnique
-              : selectedHealTechnique
-        if (
-          selectedTechnique?.targetKind === 'ground-tile' ||
-          selectedTechnique?.targetKind === 'empty-tile'
-        ) {
-          setSelectedUnitId(null)
-          void requestPreview({
-            kind: 'action',
-            actionId: selectedActionId,
-            target: { kind: 'tile', position },
+  const currentActionId =
+    mode === 'none' && modifierDraft
+      ? modifierDraft.context.actionId
+      : mode === 'move'
+        ? 'basic.move'
+        : mode === 'attack'
+          ? selectedAttackActionId
+          : mode === 'guard'
+            ? selectedDefenseActionId
+            : effectiveHealActionId
+  const behaviorChoices = manualActionTargets.filter(
+    (choice) => choice.actionId === currentActionId,
+  )
+  const currentDescriptor = useMemo(
+    () => actionDescriptor(currentActionId),
+    [actionDescriptor, currentActionId],
+  )
+  const controlledReadyActionId =
+    localTurn &&
+    !currentDescriptor.unavailable &&
+    !planningDisabled &&
+    !executionPending &&
+    !previewPending &&
+    pendingIntent?.kind === 'action' &&
+    preview?.battleVersion === battle.battleVersion &&
+    preview.preview.kind === 'action' &&
+    currentDescriptor.controlled?.kind !== 'reversal' &&
+    preview.preview.controlledReady &&
+    JSON.stringify(preview.intent) === JSON.stringify(pendingIntent)
+      ? pendingIntent.actionId
+      : undefined
+  const flatMoveMode = mode === 'move' && basicMove?.movement?.costBasis === 'flat'
+  const proposedCosts = battleProposedCosts({
+    enabled:
+      !costPreviewInvalidated &&
+      !planningDisabled &&
+      !terrainView &&
+      !mobileReading &&
+      !chronicleDetailsOpen &&
+      ['attack', 'guard', 'recover', 'move'].includes(mode),
+    battleSessionId: battle.battleSessionId,
+    battleVersion: battle.battleVersion,
+    actorId: localCombatantId,
+    descriptor: currentDescriptor,
+    allowCapturedCosts: mode !== 'move' || flatMoveMode,
+    pendingIntent,
+    preview,
+  })
+  const proposedCost = proposedCosts?.ap ?? 0
+  const choosingActionMovement =
+    !currentDescriptor.unavailable &&
+    Boolean(currentDescriptor.move) &&
+    currentDescriptor.movementPath === undefined &&
+    (flatMoveMode || ['attack', 'guard', 'recover'].includes(mode))
+  const movementMaximum = currentDescriptor.move
+    ? Number(currentDescriptor.move.maximumTiles)
+    : undefined
+  const movementCosts = useMemo(
+    () =>
+      currentDescriptor.costs?.map((cost) => ({
+        resource: cost.resource,
+        amount: Number(cost.amount),
+      })),
+    [currentDescriptor.costs],
+  )
+  const actionMovementPaths = useMemo(
+    () =>
+      localTurn && movementMaximum !== undefined && movementCosts
+        ? buildReachablePaths(battle.snapshot, localPlacement, actionEconomy, Infinity, undefined, {
+            maximumTiles: movementMaximum,
+            costs: movementCosts,
+            independentAllowance: !flatMoveMode,
+            maximumElevation: currentDescriptor.move?.maximumElevation,
+            requiresLineOfSight: currentDescriptor.move?.requiresLineOfSight,
           })
-          return
-        }
-        if (!placement || !localParticipant) {
-          setNotice('Choose a combatant target.')
-          return
-        }
-        const target = viewModel.participantByCombatant.get(placement.combatantId)
-        const targetCombatant = battleState.combatants.find(
-          (combatant) => combatant.id === placement.combatantId,
-        )
-        const basicSelfAction = !selectedTechnique && (mode === 'guard' || mode === 'recover')
-        const minimumRange = selectedTechnique?.minimumRange ?? (basicSelfAction ? 0 : 1)
-        const maximumRange = selectedTechnique?.maximumRange ?? (basicSelfAction ? 0 : 1)
-        const distance = localPlacement
-          ? manhattanDistance(position, localPlacement.position)
-          : Number.MAX_SAFE_INTEGER
-        if (
-          distance < minimumRange ||
-          distance > maximumRange ||
-          !target ||
-          !targetCombatant ||
-          targetCombatant.hp <= 0
-        ) {
-          setNotice('That unit is not in range for the selected Technique.')
-          return
-        }
-        if (
-          mode === 'attack' &&
-          selectedActionId === BASIC_ATTACK_ID &&
-          target.teamIndex === localParticipant.teamIndex
-        ) {
-          setNotice('Basic Attack requires an enemy target.')
-          return
-        }
-        setSelectedUnitId(placement.combatantId)
-        void requestPreview({
-          kind: 'action',
-          actionId: selectedActionId,
-          // Clicking the caster must preserve the same self-target intent as arming the
-          // Skill. A unit target is a distinct engine contract, even for the same actor.
-          target:
-            (selectedTechnique?.targetKind === 'self' || basicSelfAction) &&
-            placement.combatantId === localCombatantId
-              ? { kind: 'self' }
-              : { kind: 'unit', combatantId: placement.combatantId },
-        })
+        : new Map<string, BattleGridPosition[]>(),
+    [
+      battle.snapshot,
+      localPlacement,
+      actionEconomy,
+      localTurn,
+      movementMaximum,
+      movementCosts,
+      flatMoveMode,
+      currentDescriptor.move?.maximumElevation,
+      currentDescriptor.move?.requiresLineOfSight,
+    ],
+  )
+  const movementGuideRange = choosingActionMovement
+    ? Math.max(0, ...Array.from(actionMovementPaths.values(), (route) => route.length - 1))
+    : maximumMoveDistance
+  const maximumSelections = useMemo(
+    () => battleSkillTargetSpec(actionDescriptor(currentActionId))?.maximumSelections ?? 1,
+    [actionDescriptor, currentActionId],
+  )
+  const draftTargets =
+    pendingIntent?.kind === 'action' && pendingIntent.target.kind === 'selections'
+      ? pendingIntent.target.selections
+      : []
+  const submitTargetGesture = useCallback(
+    (intent: Extract<BattleIntent, { kind: 'action' }>, keyboardCode?: string) => {
+      if (planningDisabledRef.current || executionLock.current || commitLock.current) return
+      if (maximumSelections <= 1) {
+        void executeIntent(intent, keyboardCode)
+        return
+      }
+      if (!localCombatantId) return
+      const next = toggleBattleSkillTargetSelection(
+        pluralSelection.current,
+        intent,
+        maximumSelections,
+        localCombatantId,
+      )
+      pluralSelection.current = next
+      if (next) void requestPreview(next)
+      else {
+        clearPlanning(mode)
+        setActionMovementDraft(actionMovementDraft)
+        setNotice('Select targets, then confirm.')
       }
     },
     [
-      battleState.combatants,
       clearPlanning,
+      executeIntent,
       localCombatantId,
-      localParticipant,
+      maximumSelections,
+      mode,
+      requestPreview,
+      actionMovementDraft,
+    ],
+  )
+  const commitSelected = useCallback(() => {
+    if (maximumSelections > 1) {
+      if (pluralSelection.current) void executeIntent(pluralSelection.current, 'Enter')
+    } else if (pendingIntent) void executeIntent(pendingIntent, 'Enter')
+  }, [executeIntent, maximumSelections, pendingIntent])
+  const { rangePreviews, rangePreviewsPending, rangePreviewActionId } = useBattleRangePreviews({
+    battleSessionId: battle.battleSessionId,
+    battleVersion: battle.battleVersion,
+    actorId: localCombatantId,
+    skill:
+      mode === 'attack' || mode === 'guard' || mode === 'recover' || flatMoveMode
+        ? actionDescriptor(currentActionId)
+        : null,
+    combatants: previewCombatants,
+    enabled: !planningDisabled,
+  })
+  const selectedActionPreview =
+    preview?.battleVersion === battle.battleVersion &&
+    !currentDescriptor.unavailable &&
+    preview.preview.kind === 'action' &&
+    preview.preview.actionId === currentActionId &&
+    preview.intent.kind === 'action' &&
+    JSON.stringify(battleManualModifierReferences(preview.intent.manualModifiers ?? [])) ===
+      JSON.stringify(currentDescriptor.manualModifiers ?? [])
+      ? preview.preview
+      : null
+  // Target gestures stay available while informational forecasts load or fail.
+  const basicAttackTargets = new Set(
+    mode === 'attack' && !activeTechnique
+      ? battleRangePreviewIntents(
+          actionDescriptor(currentActionId),
+          localCombatantId,
+          previewCombatants,
+        ).flatMap((intent) => (intent.target.kind === 'unit' ? [intent.target.combatantId] : []))
+      : [],
+  )
+  const attackDefinition =
+    currentActionId === BASIC_ATTACK_ID
+      ? createPv1fBasicAttackDefinition(1)
+      : activeTechnique?.definition
+  const authoredTargetSpec = currentDescriptor.unavailable
+    ? undefined
+    : (battleSkillTargetSpec(currentDescriptor, airborneAttackElevation) ??
+      attackDefinition?.target)
+  const targetSpec = authoredTargetSpec
+  const damagingSelection =
+    !currentDescriptor.unavailable &&
+    battleActionDealsDamage(attackDefinition?.effects ?? [], currentDescriptor.dealsDamage)
+  const hasAllTargetEffects =
+    !currentDescriptor.unavailable &&
+    (currentDescriptor.hasAllTargetEffects ??
+      attackDefinition?.effects.some((effect) => 'target' in effect && effect.target === 'all') ??
+      false)
+  const potentialPath =
+    !(executionPending && currentDescriptor.move) &&
+    !choosingActionMovement &&
+    (mode === 'attack' || mode === 'guard' || mode === 'recover' || flatMoveMode) &&
+    localPlacement &&
+    targetSpec
+      ? battleTargetReachTiles(
+          tactical,
+          currentDescriptor.movementPath?.at(-1) ?? localPlacement.position,
+          targetSpec,
+          selectedActionPreview?.affectedTiles,
+          targetAim,
+          localCombatantId
+            ? {
+                tactical,
+                actorId: localCombatantId,
+                terrainOverlays: battle.snapshot.terrainOverlays,
+              }
+            : undefined,
+          hasAllTargetEffects,
+        )
+      : new Set<string>()
+  const handleTile = useCallback(
+    (position: BattleGridPosition) => {
+      const placement = placementByTile.get(positionKey(position))
+      if (
+        placement &&
+        viewModel.participantByCombatant.get(placement.combatantId)?.teamIndex !== localTeamIndex
+      )
+        setInspectedEnemyUnitId(placement.combatantId)
+      // Allied rail inspection is presentation only; armed action targeting still
+      // resolves against the local actor and its authored target policy below.
+      if ((mode === 'none' || mode === 'inspect') && placement) {
+        const participant = viewModel.participantByCombatant.get(placement.combatantId)
+        if (participant?.teamIndex === localTeamIndex) {
+          setAllyInspection({
+            combatantId: placement.combatantId,
+            battleVersion: battle.battleVersion,
+          })
+        }
+      }
+      if (mode === 'none') {
+        if (placement && placement.combatantId !== localCombatantId)
+          setInspectedUnitId(placement.combatantId)
+        return
+      }
+      if (mode === 'inspect') {
+        setInspectedTile(position)
+        setSelectedUnitId(placement?.combatantId ?? null)
+        if (placement) setInspectedUnitId(placement.combatantId)
+        return
+      }
+      if (planningDisabled || executionLock.current) return
+      const currentDescriptor = actionDescriptor(currentActionId)
+      if (flatMoveMode && currentDescriptor.unavailable) {
+        setNotice('Choose which action to use for this ability.')
+        return
+      }
+      if (choosingActionMovement) {
+        const stationary =
+          currentDescriptor.move?.conditional &&
+          localPlacement &&
+          positionsEqual(position, localPlacement.position)
+        const chosenPath = stationary ? [] : actionMovementPaths.get(positionKey(position))
+        if (!chosenPath || (!stationary && chosenPath.length < 2) || !localCombatantId) {
+          setNotice(
+            currentDescriptor.move?.conditional
+              ? 'Choose a highlighted destination, or your own tile to attempt a stationary cast when the Move condition is unmet.'
+              : 'Choose a highlighted destination within this Skill’s Move distance and Jump.',
+          )
+          return
+        }
+        const copiedPath = chosenPath.map((point) => ({ ...point }))
+        setActionMovementDraft({
+          battleVersion: battle.battleVersion,
+          actorId: localCombatantId,
+          actionId: currentActionId,
+          behaviorId: currentDescriptor.behaviorId,
+          path: copiedPath,
+        })
+        const descriptor = { ...currentDescriptor, movementPath: copiedPath }
+        const intent = selectInitialBattleSkillPreviewIntent(descriptor, {
+          ...selection,
+          selectedTarget: null,
+          selectedTile: null,
+        })
+        const commit = selectBattleSkillMovementCommitIntent(descriptor, {
+          ...selection,
+          selectedTarget: null,
+          selectedTile: null,
+        })
+        if (commit) void executeIntent(commit)
+        else {
+          setNotice(
+            stationary
+              ? 'Choose the Skill target. A stationary cast is legal only when the Move condition is unmet.'
+              : 'Move destination selected. Choose the Skill target; the server resolves both together.',
+          )
+          if (intent) void requestPreview(intent)
+        }
+        return
+      }
+      if (mode === 'move' && !flatMoveMode) {
+        const nextPath = reachablePaths.get(positionKey(position))
+        if (!nextPath || nextPath.length < 2) {
+          setNotice('Choose a highlighted destination within your remaining Movement and AP.')
+          return
+        }
+        void executeIntent({ kind: 'move', path: nextPath })
+      } else if (mode === 'attack' || mode === 'guard' || mode === 'recover' || flatMoveMode) {
+        const descriptor = actionDescriptor(currentActionId)
+        // An authored self action executes on a deliberate gesture, regardless of which tile was clicked.
+        const intent = selectBattleSkillPreviewIntent(descriptor, {
+          ...selection,
+          selectedCombatantId: placement?.combatantId ?? null,
+          selectedTile: position,
+        })
+        if (
+          !intent ||
+          (intent.target.kind === 'unit' &&
+            descriptor.targetKind === 'unit' &&
+            !battleSkillUsesAreaActivation(descriptor) &&
+            !descriptor.groundIntentCapable &&
+            !placement)
+        ) {
+          clearPlanning(mode)
+          if (descriptor.move) setActionMovementDraft(actionMovementDraft)
+          setNotice(
+            battleSkillTargetSpec(descriptor)?.shape.kind === 'line'
+              ? 'Choose a straight lane: up, down, left or right.'
+              : 'Choose an eligible target in range.',
+          )
+          return
+        }
+        setSelectedUnitId(
+          intent.kind === 'action' && intent.target.kind === 'unit'
+            ? intent.target.combatantId
+            : localCombatantId,
+        )
+        submitTargetGesture(intent)
+      }
+    },
+    [
+      actionDescriptor,
+      actionMovementPaths,
+      actionMovementDraft,
+      choosingActionMovement,
+      flatMoveMode,
+      battle.battleVersion,
+      clearPlanning,
+      currentActionId,
+      executeIntent,
+      submitTargetGesture,
+      localCombatantId,
       localPlacement,
+      localTeamIndex,
       mode,
       placementByTile,
       planningDisabled,
       reachablePaths,
       requestPreview,
-      updatePlanningPath,
-      selectedAttackActionId,
-      selectedAttackTechnique,
-      selectedDefenseActionId,
-      selectedDefenseTechnique,
-      effectiveHealActionId,
-      selectedHealTechnique,
+      selection,
       viewModel.participantByCombatant,
     ],
   )
 
-  const moveByKeyboard = useCallback(
-    (delta: BattleGridPosition) => {
-      if (mode !== 'move' || planningDisabled || !localPlacement) return
-      const origin = localPlacement.position
-      const currentPath = pathRef.current
-      const tip = currentPath.at(-1) ?? origin
-      const next = { x: tip.x + delta.x, y: tip.y + delta.y }
-
-      if (currentPath.length > 1) {
-        const previous = currentPath[currentPath.length - 2]
-        if (previous && positionsEqual(previous, next)) {
-          const shorter = currentPath.slice(0, -1)
-          if (shorter.length <= 1) {
-            previewSequence.current += 1
-            updatePlanningPath([])
-            setPendingIntent(null)
-            setPreview(null)
-            setPreviewPending(false)
-            setNotice('Move preview returned to your current tile.')
-          } else {
-            updatePlanningPath(shorter)
-            void requestPreview({ kind: 'move', path: shorter })
-          }
-          return
-        }
-      }
-
-      const nextPath = reachablePaths.get(positionKey(next))
-      if (!nextPath || nextPath.length < 2) {
-        setNotice('That direction is not reachable with the AP you have left.')
-        return
-      }
-      updatePlanningPath(nextPath)
-      void requestPreview({ kind: 'move', path: nextPath })
-    },
-    [localPlacement, mode, planningDisabled, reachablePaths, requestPreview, updatePlanningPath],
-  )
-
-  useEffect(() => {
+  // Native hotkeys must observe the selection and legal preview as soon as their DOM is rendered.
+  // A passive listener refresh can otherwise drop a fast second press or confirmation.
+  useLayoutEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
-      if (isTextEntryTarget(event.target)) return
-      // Native keyboard activation selects the focused tile/summary/button. It must
-      // never commit a previous preview while the user is choosing another target.
       if (
-        event.key === 'Enter' &&
+        event.defaultPrevented ||
+        event.repeat ||
+        event.altKey ||
+        event.ctrlKey ||
+        event.metaKey ||
+        isTextEntryTarget(event.target, event.code) ||
+        surrenderOpen ||
+        (chronicleDetailsOpen && !desktopLayout)
+      )
+        return
+      if (
+        event.code === 'Enter' &&
         event.target instanceof Element &&
         event.target.closest('button, summary, a, [role="button"]')
       )
         return
-      const lower = event.key.toLowerCase()
-      const direction: { delta: BattleGridPosition; facing: BattleFacing } | null =
-        lower === 'w' || event.key === 'ArrowUp'
-          ? { delta: { x: 0, y: -1 }, facing: 'north' }
-          : lower === 'd' || event.key === 'ArrowRight'
-            ? { delta: { x: 1, y: 0 }, facing: 'east' }
-            : lower === 's' || event.key === 'ArrowDown'
-              ? { delta: { x: 0, y: 1 }, facing: 'south' }
-              : lower === 'a' || event.key === 'ArrowLeft'
-                ? { delta: { x: -1, y: 0 }, facing: 'west' }
-                : null
-
-      if (direction && mode === 'finish' && !planningDisabled) {
+      const action = COMBAT_KEYBIND_ACTIONS.find(
+        (key) =>
+          key !== 'modifiers' &&
+          bindings[key].code === event.code &&
+          bindings[key].shift === event.shiftKey,
+      )
+      const arrow = !event.shiftKey
+        ? (
+            {
+              ArrowUp: 'faceNorth',
+              ArrowLeft: 'faceWest',
+              ArrowDown: 'faceSouth',
+              ArrowRight: 'faceEast',
+            } as const
+          )[event.code as 'ArrowUp']
+        : undefined
+      const selected = action ?? arrow
+      if (!selected) return
+      const facing = (
+        { faceNorth: 'north', faceWest: 'west', faceSouth: 'south', faceEast: 'east' } as const
+      )[selected as 'faceNorth']
+      if (facing) {
+        if (planningDisabled || !['finish', 'move', 'attack', 'guard', 'recover'].includes(mode))
+          return
         event.preventDefault()
-        void commitValue({ kind: 'face', facing: direction.facing })
+        if (mode === 'finish') {
+          if (
+            (battle.snapshot.elementalDamagePolicyVersion === 1 ||
+              battle.snapshot.elementalDamagePolicyVersion === 2) &&
+            localCombatantId &&
+            localPlacement &&
+            hasGameplayTag(battle.snapshot, localCombatantId, 'Frozen', PV1F_COMBAT_CONTENT) &&
+            facing !== localPlacement.facing
+          ) {
+            setNotice('Chilled: keep your current facing to end the turn.')
+            return
+          }
+          void commitValue({ kind: 'face', facing })
+          return
+        }
+        const delta = {
+          north: { x: 0, y: -1 },
+          west: { x: -1, y: 0 },
+          south: { x: 0, y: 1 },
+          east: { x: 1, y: 0 },
+        }[facing]
+        if ((choosingActionMovement || (mode === 'move' && !flatMoveMode)) && localPlacement) {
+          handleTile({
+            x: localPlacement.position.x + delta.x,
+            y: localPlacement.position.y + delta.y,
+          })
+          return
+        }
+        const intent = selectDirectionalBattleSkillPreviewIntent(
+          actionDescriptor(currentActionId),
+          selection,
+          delta,
+        )
+        if (intent) submitTargetGesture(intent, event.code)
+        else setNotice('No eligible target in that direction.')
         return
       }
-      if (direction && mode === 'move' && !planningDisabled) {
+      if (selected === 'nextTarget' || selected === 'previousTarget') {
+        if (
+          (!['attack', 'guard', 'recover'].includes(mode) && !flatMoveMode) ||
+          planningDisabled ||
+          choosingActionMovement
+        )
+          return
+        const descriptor = actionDescriptor(currentActionId)
+        if (descriptor.unavailable) {
+          setNotice('Prepare this action again before choosing a target.')
+          return
+        }
+        const target = battleSkillTargetSpec(descriptor)
+        const candidates: Extract<BattleIntent, { kind: 'action' }>[] =
+          (target?.geometryVersion === 2 || target?.geometryVersion === 3) &&
+          target.shape.kind === 'line'
+            ? combatCardinalDirections.map((direction) => ({
+                kind: 'action',
+                actionId: descriptor.id,
+                ...battleSkillIntentMetadata(descriptor),
+                target: { kind: 'direction', direction },
+              }))
+            : previewCombatants.flatMap((row) => {
+                const intent = selectBattleSkillPreviewIntent(descriptor, {
+                  ...selection,
+                  selectedCombatantId: row.combatantId,
+                  selectedTile: null,
+                })
+                return intent?.kind === 'action' && intent.target.kind === 'unit' ? [intent] : []
+              })
+        if (!candidates.length) return
         event.preventDefault()
-        moveByKeyboard(direction.delta)
+        const index = candidates.findIndex((intent) =>
+          intent.target.kind === 'unit'
+            ? intent.target.combatantId === selectedUnitId
+            : intent.target.kind === 'direction' &&
+              pendingIntent?.kind === 'action' &&
+              pendingIntent.target.kind === 'direction' &&
+              intent.target.direction === pendingIntent.target.direction,
+        )
+        const next =
+          candidates[
+            (index + (selected === 'nextTarget' ? 1 : candidates.length - 1) + candidates.length) %
+              candidates.length
+          ]!
+        if (next.target.kind === 'unit') setSelectedUnitId(next.target.combatantId)
+        setTargetAim({ aimSource: 'player', selection: next.target })
+        void requestPreview(next)
         return
       }
-      if (event.key === 'Enter' && pendingIntent && preview?.preview.legal) {
-        event.preventDefault()
-        commitSelected()
-      } else if (event.key === 'Escape') {
-        event.preventDefault()
+      event.preventDefault()
+      if (selected === 'cancel') {
+        replaceModifierDraft(null)
         clearPlanning()
         setNotice('Selection cleared.')
-      } else if (event.key === '0') {
-        event.preventDefault()
-        chooseMode('inspect')
+        restoreBattleKeyboardFocus()
+        return
       }
+      if (selected === 'combatLog') {
+        if (window.matchMedia(BATTLE_MOBILE_LAYOUT_QUERY).matches) {
+          window.dispatchEvent(new Event('aurevane:battle-log-toggle'))
+        } else document.querySelector<HTMLButtonElement>('[data-battle-inline-log] button')?.click()
+        return
+      }
+      if (selected === 'inspect') {
+        chooseMode('inspect')
+        return
+      }
+      const executeArmedSelf = (actionId: string, nextMode: Mode) => {
+        if (mode !== nextMode || currentActionId !== actionId) return false
+        const descriptor = actionDescriptor(actionId)
+        const intent = selectBattleSkillPreviewIntent(descriptor, selection)
+        if (
+          intent?.kind !== 'action' ||
+          !(
+            intent.target.kind === 'self' ||
+            (intent.target.kind === 'unit' && intent.target.combatantId === localCombatantId)
+          )
+        )
+          return false
+        submitTargetGesture(intent, event.code)
+        return true
+      }
+      if (
+        routeBattleAbilityShortcut(
+          selected,
+          {
+            techniques: runtime.techniques,
+            special,
+            commandsDisabled: planningDisabled || executionLock.current,
+          },
+          {
+            openInfo: (selector) => {
+              const trigger = document.querySelector<HTMLButtonElement>(selector)
+              trigger?.click()
+            },
+            activate: (actionId, category) => {
+              const nextMode =
+                category === 'defense' ? 'guard' : category === 'heal' ? 'recover' : 'attack'
+              if (!executeArmedSelf(actionId, nextMode)) selectAction(actionId, category)
+            },
+          },
+        )
+      )
+        return
+      if (planningDisabled || executionLock.current) return
+      if (selected === 'items') {
+        if (!itemUnavailableReason) {
+          clearPlanning()
+          setItemsOpen(true)
+        }
+      } else if (selected === 'move') chooseMode('move')
+      else if (selected === 'basicAttack') chooseMode('attack')
+      else if (selected === 'guard') {
+        const descriptor = actionDescriptor(supportActionId)
+        const supportMode = descriptor.classification
+          ? battleModifierActionMode(descriptor)
+          : 'guard'
+        if (!executeArmedSelf(supportActionId, supportMode)) chooseMode('guard')
+      } else if (selected === 'recover') {
+        if (!executeArmedSelf(effectiveHealActionId, 'recover')) chooseMode('recover')
+      } else if (selected === 'endTurn') {
+        if (mode === 'finish' && localPlacement)
+          void commitValue({ kind: 'face', facing: localPlacement.facing })
+        else chooseMode('finish')
+      } else if (selected === 'confirm') commitSelected()
     }
-
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [
+    actionDescriptor,
+    chronicleDetailsOpen,
+    desktopLayout,
+    bindings,
+    replaceModifierDraft,
+    battle.snapshot,
     chooseMode,
+    itemUnavailableReason,
     clearPlanning,
     commitSelected,
     commitValue,
+    currentActionId,
+    choosingActionMovement,
+    flatMoveMode,
+    effectiveHealActionId,
+    supportActionId,
+    executeIntent,
+    submitTargetGesture,
+    handleTile,
+    localCombatantId,
+    localPlacement,
     mode,
-    moveByKeyboard,
     pendingIntent,
     planningDisabled,
-    preview,
+    previewCombatants,
+    requestPreview,
+    selectableSpecial,
+    special,
+    runtime.techniques,
+    selectAction,
+    selectedUnitId,
+    selection,
+    surrenderOpen,
   ])
 
   const runRecruitTurn = useCallback(async () => {
@@ -1293,16 +2890,15 @@ export function BattleExperience({
       }
       battleRef.current = nextBattle
       setBattle(nextBattle)
-      const recruitId =
-        viewModel.participants.find((participant) => !participant.local)?.combatantId ?? null
+      const recruitId = before.snapshot.tactical.battle.currentTurn?.combatantId ?? null
       setNotice(
         describeRecruitTurn(
           before,
           nextBattle,
           body.battle.decisions,
-          runtime.playerName,
           recruitId,
-          localCombatantId,
+          battleParticipantName(viewModel, recruitId),
+          viewModel.participantByCombatant,
         ),
       )
     } catch (error) {
@@ -1318,11 +2914,11 @@ export function BattleExperience({
     battleState.lifecycle,
     clearPlanning,
     handleApiFailure,
-    localCombatantId,
     localTurn,
     recruitPending,
     runtime,
-    viewModel.participants,
+    viewModel,
+    setBattle,
   ])
 
   useEffect(() => {
@@ -1394,771 +2990,1151 @@ export function BattleExperience({
     return livingTeams.has(localTeamIndex) ? 'Victory' : 'Defeat'
   }
 
-  const boardStyle: CSSProperties = {
+  const boardStyle = {
+    '--battle-columns': tactical.width,
+    '--battle-rows': tactical.height,
     gridTemplateColumns: `repeat(${tactical.width}, minmax(0, 1fr))`,
     gridTemplateRows: `repeat(${tactical.height}, minmax(0, 1fr))`,
     aspectRatio: `${tactical.width} / ${tactical.height}`,
-  }
+  } as CSSProperties
 
+  const inspectedAbility = inspectedAbilityId
+    ? battleNoncastAbilityInspection(
+        runtime,
+        manualActionTargets,
+        localCombatantId,
+        inspectedAbilityId,
+      )
+    : null
   const contextTitle =
-    mode === 'inspect' && selectedParticipant && selectedCombatant && selectedPlacement
-      ? selectedParticipant.name
-      : !localTurn && battleState.lifecycle === 'active'
-        ? `${activeName}’s Turn`
-        : mode === 'none'
-          ? 'Choose your action'
-          : mode === 'finish'
-            ? 'Choose final facing'
-            : mode === 'recover'
-              ? selectedHealName
-              : mode === 'attack'
-                ? selectedAttack.label
-                : mode === 'guard'
-                  ? selectedDefense.label
-                  : mode === 'move'
-                    ? 'Move'
-                    : 'Inspect'
-  const contextDescription =
-    mode === 'inspect' && selectedParticipant && selectedCombatant && selectedPlacement
-      ? `Team ${selectedParticipant.teamIndex + 1} · HP ${selectedCombatant.hp}/${selectedCombatant.maxHp} · MP ${selectedCombatant.mp}/${selectedCombatant.maxMp} · Facing ${selectedPlacement.facing} ${facingGlyph(selectedPlacement.facing)}`
-      : notice
+    (itemsOpen ? 'Choose Item' : undefined) ??
+    inspectedAbility?.name ??
+    (battleState.lifecycle !== 'active'
+      ? resultLabel()
+      : mode === 'inspect' && selectedParticipant && selectedCombatant && selectedPlacement
+        ? selectedParticipant.name
+        : !localTurn && battleState.lifecycle === 'active'
+          ? `Waiting for ${activeName}`
+          : mode === 'none'
+            ? 'Your turn'
+            : mode === 'finish'
+              ? 'Choose final facing'
+              : mode === 'recover'
+                ? selectedHealName
+                : mode === 'attack'
+                  ? selectedAttack.label
+                  : mode === 'guard'
+                    ? selectedDefense.label
+                    : mode === 'move'
+                      ? flatMoveMode
+                        ? (basicMove?.name ?? 'Move')
+                        : `Move · up to ${maximumMoveDistance} tiles`
+                      : 'Inspect')
+  const characterInspection =
+    (mode === 'move' && !flatMoveMode) || choosingActionMovement
+      ? `Range: ${movementGuideRange} tiles · ${notice}`
+      : mode === 'inspect' && selectedParticipant && selectedCombatant && selectedPlacement
+        ? `Team ${selectedParticipant.teamIndex + 1} · HP ${selectedCombatant.hp}/${selectedCombatant.maxHp} · MP ${selectedCombatant.mp}/${selectedCombatant.maxMp} · Facing ${selectedPlacement.facing} ${facingGlyph(selectedPlacement.facing)}`
+        : notice
+  const inspectedTerrain =
+    mode === 'inspect' && inspectedTile
+      ? tactical.tiles.find((tile) => positionsEqual(tile.position, inspectedTile))
+      : null
+  const inspectedOverlay = inspectedTerrain
+    ? terrainOverlayAt(battle.snapshot, inspectedTerrain.position)
+    : null
+  const terrainInspection = inspectedTerrain
+    ? describeTerrainLabel(
+        `Tile ${inspectedTerrain.position.x + 1}, ${inspectedTerrain.position.y + 1}; ${inspectedTerrain.terrainId}; elevation ${inspectedTerrain.elevation}${inspectedOverlay ? `; ${terrainOverlayDescription(inspectedOverlay)}` : ''}${battleGroundAreaLabel(battle.snapshot.groundAreas, tactical.battle.round, inspectedTerrain.position)}`,
+      )
+    : null
+  const contextDescription = terrainInspection
+    ? `${terrainInspection.title} · ${terrainInspection.description}${selectedParticipant ? ` · ${characterInspection}` : ''}`
+    : characterInspection
+  const previewTargetPosition =
+    pendingIntent?.kind === 'action' && pendingIntent.target.kind === 'tile'
+      ? pendingIntent.target.position
+      : null
+
+  const terrainPreview = terrainKind ? presentBattleTerrainKey(battle.snapshot, terrainKind) : null
 
   return (
-    <main
-      data-battle-concept="true"
-      className={styles.shell}
-      data-unified-battle="true"
-      data-battle-layout="map-first"
-      data-battle-kind={runtime.kind}
-      data-battle-mode={runtime.kind}
-      data-battle-visual-contract="true"
-      data-pvp-battle={runtime.kind === 'pvp' ? 'true' : undefined}
-      data-local-turn={localTurn || undefined}
-      data-battle-keyboard-focus-root="true"
-      tabIndex={-1}
-      aria-busy={recruitPending || undefined}
-    >
-      <header className={styles.header} data-unified-battle-header="true">
-        <div className={styles.objective}>
-          <span>{viewModel.objectiveEyebrow}</span>
-          <strong>{viewModel.objective}</strong>
-        </div>
-
-        <div
-          className={styles.economy}
-          data-active={localTurn || undefined}
-          data-unified-battle-economy="true"
-        >
-          <div className={styles.economyCopy}>
-            <span data-battle-turn-clock-slot="true" />
-            <span>Action Economy</span>
-            <strong>{actionEconomy} AP</strong>
-            {localTurn && proposedCost > 0 ? (
-              <small>− {proposedCost} proposed</small>
-            ) : (
-              <small aria-hidden="true" />
-            )}
+    <AirborneAttackElevationContext.Provider value={airborneAttackElevation}>
+      <main
+        aria-description={BATTLE_EFFECT_KEYBOARD_HELP}
+        data-battle-concept="true"
+        className={`${styles.shell} ${mobileStyles.shell}`}
+        data-battle-mobile-stage="true"
+        data-mobile-chronicle-open={chronicleOpen}
+        data-battle-mobile-workspace={!desktopLayout ? mobileWorkspace : undefined}
+        data-battle-terrain-view={terrainView || undefined}
+        data-battle-chronicle-detail-open={(chronicleDetailsOpen && !desktopLayout) || undefined}
+        data-unified-battle="true"
+        data-battle-layout="refined"
+        data-battle-action-mode={
+          mode === 'guard' &&
+          (selectedDefenseActionId === RECOVER_ID || selectedDefenseActionId === MP_RECOVER_ID)
+            ? 'recover'
+            : mode
+        }
+        data-battle-kind={runtime.kind}
+        data-battle-mode={runtime.kind}
+        data-battle-visual-contract="true"
+        data-pvp-battle={runtime.kind === 'pvp' ? 'true' : undefined}
+        data-local-turn={localTurn || undefined}
+        data-battle-keyboard-focus-root="true"
+        data-battle-execution-pending={executionPending || commitPending || undefined}
+        tabIndex={-1}
+        aria-busy={recruitPending || undefined}
+      >
+        <header className={styles.header} data-unified-battle-header="true">
+          <div className={styles.objective}>
+            <strong>{viewModel.objective}</strong>
           </div>
+
           <div
-            className={styles.economyTrack}
-            role="progressbar"
-            aria-label="Action Economy remaining"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={actionEconomy}
+            className={styles.economy}
+            data-active={localTurn || undefined}
+            data-unified-battle-economy="true"
           >
-            <span style={{ width: `${actionEconomy}%` }} />
-            {localTurn && proposedCost > 0 ? (
-              <i
-                style={{
-                  left: `${Math.max(0, actionEconomy - proposedCost)}%`,
-                  width: `${Math.min(actionEconomy, proposedCost)}%`,
-                }}
+            {!desktopLayout ? (
+              <span
+                className={`brand__crest ${styles.battleCrest}`}
+                role="img"
+                aria-label="Aurevane"
+                data-battle-brand-crest="true"
               />
             ) : null}
-          </div>
-        </div>
-
-        <div data-battle-header-utilities="true">
-          <BattleMapKey />
-          <BattleInfoPopover
-            label="Victory Conditions"
-            trigger={
-              <>
-                <span>Victory Conditions</span>
-                <b>{objectiveComplete ? '1/1' : '0/1'}</b>
-              </>
-            }
-          >
-            <h2>{viewModel.objective}.</h2>
-            <p>
-              You win when your side is the only side with at least one combatant still able to
-              fight.
-            </p>
-          </BattleInfoPopover>
-        </div>
-      </header>
-
-      <section className={styles.roster} aria-label="Battle roster">
-        {Array.from({ length: viewModel.teamCount }, (_, teamIndex) => {
-          const members = viewModel.participants.filter(
-            (participant) => participant.teamIndex === teamIndex,
-          )
-          return (
-            <div
-              className={styles.teamRoster}
-              key={teamIndex}
-              data-local={teamIndex === localTeamIndex || undefined}
-            >
-              <div className={styles.teamHeading}>
-                <span>Team {teamIndex + 1}</span>
-                <strong>{teamLabel(teamIndex, viewModel.teamCount)}</strong>
-              </div>
-              <div className={styles.teamMembers}>
-                {members.map((participant) => {
-                  const combatant = battleState.combatants.find(
-                    (candidate) => candidate.id === participant.combatantId,
-                  )
-                  const active = battleState.currentTurn?.combatantId === participant.combatantId
-                  return (
-                    <article
-                      key={participant.combatantId}
-                      className={styles.rosterCard}
-                      data-active={active || undefined}
-                      data-defeated={combatant?.hp === 0 || undefined}
-                    >
-                      {participant.portraitAssetId ? (
-                        <CharacterPortraitImage
-                          imageUrl={participant.profileImageUrl}
-                          fallbackAssetId={participant.portraitAssetId}
-                          className={styles.rosterPortrait}
-                          sizes="56px"
-                          alt=""
-                        />
-                      ) : (
-                        <span
-                          className={`${styles.rosterPortrait} ${bridgeStyles.portraitFallback}`}
-                          aria-hidden="true"
-                        >
-                          {participant.name.charAt(0).toUpperCase()}
-                        </span>
-                      )}
-                      <div className={styles.rosterIdentity}>
-                        <strong>{participant.name}</strong>
-                        <small>
-                          {participant.level ? `Lv ${participant.level}` : 'Combatant'}
-                          {participant.local ? ' · You' : ''}
-                        </small>
-                        <div className={styles.miniMeters}>
-                          <span>
-                            <i
-                              style={{
-                                width: `${meterPercent(combatant?.hp ?? 0, combatant?.maxHp ?? 1)}%`,
-                              }}
-                            />
-                          </span>
-                          <span>
-                            <i
-                              style={{
-                                width: `${meterPercent(combatant?.mp ?? 0, combatant?.maxMp ?? 1)}%`,
-                              }}
-                            />
-                          </span>
-                        </div>
-                      </div>
-                      {active ? <b>ACTIVE</b> : null}
-                    </article>
-                  )
-                })}
-              </div>
+            <div className={styles.economyCopy}>
+              <span data-battle-turn-clock-slot="true" />
+              <span>Action Economy</span>
+              <strong>{actionEconomy} AP</strong>
+              {localTurn && proposedCost > 0 ? (
+                <small data-battle-proposed-ap="true" title={`${proposedCost} AP proposed spend`}>
+                  − {proposedCost}
+                  <span data-battle-proposal-word="true"> proposed</span>
+                </small>
+              ) : (
+                <small aria-hidden="true" />
+              )}
             </div>
-          )
-        })}
-      </section>
-
-      <section className={styles.content} data-unified-battle-content="true">
-        <div
-          className={styles.notice}
-          data-local-turn={localTurn || undefined}
-          data-battle-notice="true"
-        >
-          <strong>
-            {localTurn
-              ? 'Your turn'
-              : battleState.lifecycle === 'active'
-                ? `Waiting for ${activeName}`
-                : resultLabel()}
-          </strong>
-          <span>{notice}</span>
-        </div>
-
-        <DesktopBattleRail
-          side="left"
-          battle={battle}
-          participants={viewModel.participants.filter(
-            (participant) => participant.teamIndex === localTeamIndex,
-          )}
-          teamCount={viewModel.teamCount}
-        />
-
-        <section
-          id="battlefield"
-          className={styles.battlefield}
-          aria-label={runtime.kind === 'pvp' ? 'PvP tactical battlefield' : 'Tactical battlefield'}
-          data-unified-battlefield="true"
-        >
-          <div className={styles.boardViewport}>
             <div
-              className={styles.board}
-              style={boardStyle}
-              data-board-auto-fit={`${tactical.width}x${tactical.height}`}
+              className={styles.economyTrack}
+              role="progressbar"
+              aria-label="Action Economy remaining"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={actionEconomy}
             >
-              {tactical.tiles.map((tile) => {
-                const key = positionKey(tile.position)
-                const placement = placementByTile.get(key)
-                const participant = placement
-                  ? viewModel.participantByCombatant.get(placement.combatantId)
-                  : null
-                const combatant = placement
-                  ? battleState.combatants.find(
-                      (candidate) => candidate.id === placement.combatantId,
-                    )
-                  : null
-                const pathIndex = path.findIndex((point) => positionsEqual(point, tile.position))
-                const reachable = mode === 'move' && reachablePaths.has(key) && pathIndex < 0
-                const inAttackRange = mode === 'attack' && attackRange.has(key)
-                const legalEnemy = Boolean(
-                  inAttackRange &&
-                  participant &&
-                  participant.teamIndex !== localTeamIndex &&
-                  combatant &&
-                  combatant.hp > 0,
-                )
-                const selfTarget =
-                  (mode === 'guard' || mode === 'recover') &&
-                  placement?.combatantId === localCombatantId
-                const groundTarget =
-                  activeTechnique?.targetKind === 'ground-tile' ||
-                  activeTechnique?.targetKind === 'empty-tile'
-                const skillTarget =
-                  activeTechnique &&
-                  (groundTarget ||
-                    (placement &&
-                      (activeTechnique.targetKind !== 'self' ||
-                        placement.combatantId === localCombatantId)))
-                    ? selectBattleSkillPreviewIntent(activeTechnique, {
-                        actorId: localCombatantId,
-                        selectedCombatantId: placement?.combatantId ?? null,
-                        selectedTile: tile.position,
-                        combatants: previewCombatants,
-                      })
-                    : null
-                const targetRelation = activeTechnique
-                  ? skillTarget
-                    ? groundTarget
-                      ? 'ground'
-                      : participant?.teamIndex === localTeamIndex
-                        ? 'friendly'
-                        : 'enemy'
-                    : undefined
-                  : selfTarget
-                    ? 'friendly'
-                    : inAttackRange
-                      ? legalEnemy
-                        ? 'enemy'
-                        : 'illegal'
-                      : undefined
-                const selected = selectedUnitId === placement?.combatantId
-                const terrain = tile.terrainId === 'rough-ground' ? 'rough' : 'open'
-                const overlay = terrainOverlayAt(battle.snapshot, tile.position)
+              <span style={{ width: `${actionEconomy}%` }} />
+              {localTurn && proposedCost > 0 ? (
+                <i
+                  style={{
+                    left: `${Math.max(0, actionEconomy - proposedCost)}%`,
+                    width: `${Math.min(actionEconomy, proposedCost)}%`,
+                  }}
+                />
+              ) : null}
+            </div>
+          </div>
 
-                return (
-                  <button
-                    type="button"
-                    key={key}
-                    className={styles.tile}
-                    data-terrain={terrain}
-                    data-terrain-overlay={overlay?.kind}
-                    data-elevation={tile.elevation > 0 || undefined}
-                    data-reachable={reachable || undefined}
-                    data-path={pathIndex >= 0 || undefined}
-                    data-path-index={pathIndex >= 0 ? pathIndex : undefined}
-                    data-target={targetRelation}
-                    data-selected={selected || undefined}
-                    onClick={() => handleTile(tile.position)}
-                    aria-label={`Tile ${tile.position.x + 1}, ${tile.position.y + 1}; ${tile.terrainId}; elevation ${tile.elevation}${participant ? `; occupied by ${participant.name}` : ''}${overlay ? `; ${terrainOverlayDescription(overlay)}` : ''}`}
-                  >
-                    {overlay ? (
-                      <i data-terrain-overlay-marker="true" aria-hidden="true">
-                        {overlay.kind === 'frozen' ? '❄' : '≋'}
-                        {overlay.remainingRoundBoundaries}
-                      </i>
-                    ) : null}
-                    {tile.elevation > 0 ? <span className={styles.elevation}>▲</span> : null}
-                    {pathIndex >= 0 ? <span className={styles.pathNumber}>{pathIndex}</span> : null}
-                    {participant && placement ? (
-                      <span
-                        className={styles.unit}
-                        data-team={participant.teamIndex}
-                        data-active={
-                          battleState.currentTurn?.combatantId === participant.combatantId ||
-                          undefined
-                        }
+          <div data-battle-header-utilities="true">
+            {guidedSupportPractice ? (
+              <button
+                type="button"
+                className={bridgeStyles.guidedPractice}
+                aria-label={`Practice ${basicPracticeSupport?.name ?? practiceSupportLabel}, ${battleBasicCostLabel(basicPracticeSupport, '30 AP', basicBehaviorId(practiceSupportId))}`}
+                title={`Practice ${practiceSupportLabel} for this lesson. Your saved Support Action stays in slot 3.`}
+                disabled={
+                  planningDisabled ||
+                  (basicPracticeSupport === undefined
+                    ? actionEconomy < 30
+                    : !canAffordBattleBasicAction(
+                        basicPracticeSupport,
+                        {
+                          ap: actionEconomy,
+                          mp: localCombatant?.mp ?? 0,
+                          hp: localCombatant?.hp ?? 0,
+                        },
+                        basicBehaviorId(practiceSupportId),
+                      )) ||
+                  (cooldowns[practiceSupportId] ?? 0) > 0
+                }
+                onKeyDown={(event) => {
+                  if (event.repeat && (event.key === 'Enter' || event.key === ' '))
+                    event.preventDefault()
+                }}
+                onClick={() => {
+                  if (executionLock.current || commitLock.current || planningDisabled) return
+                  if (
+                    (mode === 'guard' || mode === 'recover') &&
+                    currentActionId === practiceSupportId
+                  ) {
+                    const intent = selectBattleSkillPreviewIntent(
+                      actionDescriptor(practiceSupportId),
+                      selection,
+                    )
+                    if (intent) void executeIntent(intent)
+                    return
+                  }
+                  setSelectedDefenseActionId(practiceSupportId)
+                  armAction('guard', practiceSupportId)
+                }}
+              >
+                <span>Practice {basicPracticeSupport?.name ?? practiceSupportLabel}</span>
+              </button>
+            ) : null}
+            <BattleInfoPopover
+              label="Victory Conditions"
+              consumeOutsideClick
+              trigger={
+                <>
+                  <span>Victory Conditions</span>
+                  <b>{objectiveComplete ? '1/1' : '0/1'}</b>
+                </>
+              }
+            >
+              <h2>{viewModel.objective}.</h2>
+              <p>
+                You win when your side is the only side with at least one combatant still able to
+                fight.
+              </p>
+            </BattleInfoPopover>
+          </div>
+        </header>
+
+        <section className={styles.roster} aria-label="Battle roster">
+          {Array.from({ length: viewModel.teamCount }, (_, teamIndex) => {
+            const members = viewModel.participants.filter(
+              (participant) => participant.teamIndex === teamIndex,
+            )
+            return (
+              <div
+                className={styles.teamRoster}
+                key={teamIndex}
+                data-local={teamIndex === localTeamIndex || undefined}
+              >
+                <div className={styles.teamHeading}>
+                  <span>Team {teamIndex + 1}</span>
+                  <strong>{teamLabel(teamIndex, viewModel.teamCount)}</strong>
+                </div>
+                <div className={styles.teamMembers}>
+                  {members.map((participant) => {
+                    const combatant = battleState.combatants.find(
+                      (candidate) => candidate.id === participant.combatantId,
+                    )
+                    const active = battleState.currentTurn?.combatantId === participant.combatantId
+                    return (
+                      <article
+                        key={participant.combatantId}
+                        className={styles.rosterCard}
+                        data-active={active || undefined}
                         data-defeated={combatant?.hp === 0 || undefined}
                       >
-                        {participant.portraitAssetId ? (
+                        {participant.profileImageUrl && !participant.portraitAssetId ? (
+                          <BattleSummonPortrait
+                            src={participant.profileImageUrl}
+                            name={participant.name}
+                            fallbackClassName={`${styles.rosterPortrait} ${bridgeStyles.portraitFallback}`}
+                            className={styles.rosterPortrait}
+                          />
+                        ) : participant.portraitAssetId ? (
                           <CharacterPortraitImage
                             imageUrl={participant.profileImageUrl}
                             fallbackAssetId={participant.portraitAssetId}
-                            className={styles.unitPortrait}
-                            sizes="64px"
+                            className={styles.rosterPortrait}
+                            sizes="56px"
                             alt=""
                           />
                         ) : (
                           <span
-                            className={`${bridgeStyles.portraitFallback} ${bridgeStyles.unitPortraitFallback}`}
+                            className={`${styles.rosterPortrait} ${bridgeStyles.portraitFallback}`}
                             aria-hidden="true"
                           >
                             {participant.name.charAt(0).toUpperCase()}
                           </span>
                         )}
-                        <BattleFacingIndicator facing={placement.facing} />
-                        <strong>{participant.name}</strong>
-                      </span>
-                    ) : null}
-                  </button>
-                )
-              })}
+                        <div className={styles.rosterIdentity}>
+                          <strong>{participant.name}</strong>
+                          <small>
+                            {participant.level ? `Lv ${participant.level}` : 'Combatant'}
+                            {participant.local ? ' · You' : ''}
+                          </small>
+                          <div className={styles.miniMeters}>
+                            <span>
+                              <i
+                                style={{
+                                  width: `${meterPercent(combatant?.hp ?? 0, combatant?.maxHp ?? 1)}%`,
+                                }}
+                              />
+                            </span>
+                            <span>
+                              <i
+                                style={{
+                                  width: `${meterPercent(combatant?.mp ?? 0, combatant?.maxMp ?? 1)}%`,
+                                }}
+                              />
+                            </span>
+                          </div>
+                        </div>
+                        {active ? <b>ACTIVE</b> : null}
+                      </article>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
+        </section>
+
+        <section className={styles.content} data-unified-battle-content="true">
+          <div
+            className={styles.notice}
+            data-local-turn={localTurn || undefined}
+            data-battle-notice="true"
+          >
+            <strong>
+              {localTurn
+                ? 'Your turn'
+                : battleState.lifecycle === 'active'
+                  ? `Waiting for ${activeName}`
+                  : resultLabel()}
+            </strong>
+            <span>{notice}</span>
+          </div>
+
+          <aside data-battle-side="local">
+            <BattleCombatantCard
+              participant={localRailParticipant}
+              battle={battle}
+              teamCount={viewModel.teamCount}
+              role="local"
+              proposedCosts={proposedCosts}
+            />
+            {localParticipant && enemyParticipant ? <BattleVersusEmblem /> : null}
+            <BattleCombatantCard
+              participant={enemyParticipant}
+              battle={battle}
+              teamCount={viewModel.teamCount}
+              role="selected"
+            />
+          </aside>
+
+          <section
+            id="battlefield"
+            onClickCapture={(event) => {
+              if (!mobileReading) return
+              event.preventDefault()
+              event.stopPropagation()
+            }}
+            onPointerLeave={() => {
+              if (
+                (targetSpec?.geometryVersion === 2 || targetSpec?.geometryVersion === 3) &&
+                targetSpec.shape.kind === 'line'
+              )
+                setTargetAim({ aimSource: 'implicit' })
+            }}
+            className={styles.battlefield}
+            aria-label={
+              runtime.kind === 'pvp' ? 'PvP tactical battlefield' : 'Tactical battlefield'
+            }
+            data-unified-battlefield="true"
+          >
+            <div className={styles.boardViewport}>
+              <div
+                className={styles.board}
+                style={boardStyle}
+                data-board-auto-fit={`${tactical.width}x${tactical.height}`}
+              >
+                {tactical.tiles.map((tile) => {
+                  const key = positionKey(tile.position)
+                  const placement = placementByTile.get(key)
+                  const participant = placement
+                    ? viewModel.participantByCombatant.get(placement.combatantId)
+                    : null
+                  const combatant = placement
+                    ? battleState.combatants.find(
+                        (candidate) => candidate.id === placement.combatantId,
+                      )
+                    : null
+                  const pathIndex = path.findIndex((point) => positionsEqual(point, tile.position))
+                  const reachable =
+                    (choosingActionMovement
+                      ? actionMovementPaths.has(key)
+                      : mode === 'move' && !flatMoveMode && reachablePaths.has(key)) &&
+                    pathIndex < 0
+                  const inAttackRange = Boolean(
+                    placement && basicAttackTargets.has(placement.combatantId),
+                  )
+                  const legalEnemy = Boolean(
+                    inAttackRange &&
+                    participant &&
+                    participant.teamIndex !== localTeamIndex &&
+                    combatant &&
+                    combatant.hp > 0,
+                  )
+                  const selfTarget =
+                    (mode === 'guard' || mode === 'recover') &&
+                    placement?.combatantId === localCombatantId
+                  const groundTarget =
+                    currentDescriptor.groundIntentCapable ||
+                    currentDescriptor.targetKind === 'ground-tile' ||
+                    currentDescriptor.targetKind === 'empty-tile' ||
+                    targetSpec?.categories?.includes('ground')
+                  const skillTarget =
+                    groundTarget ||
+                    (placement &&
+                      (targetSpec?.geometryVersion === 3 ||
+                        currentDescriptor.targetKind !== 'self' ||
+                        placement.combatantId === localCombatantId))
+                      ? selectBattleSkillPreviewIntent(currentDescriptor, {
+                          actorId: localCombatantId,
+                          selectedCombatantId: placement?.combatantId ?? null,
+                          selectedTile: tile.position,
+                          combatants: previewCombatants,
+                        })
+                      : null
+                  // Potential range remains visible even when only an occupied unit can be selected.
+                  const inFootprint = potentialPath.has(key)
+                  const targetRelation = !inFootprint
+                    ? undefined
+                    : activeTechnique
+                      ? skillTarget || (hasAllTargetEffects && !!combatant && combatant.hp > 0)
+                        ? groundTarget
+                          ? 'ground'
+                          : participant?.teamIndex === localTeamIndex
+                            ? 'friendly'
+                            : 'enemy'
+                        : undefined
+                      : selfTarget
+                        ? 'friendly'
+                        : inAttackRange
+                          ? legalEnemy
+                            ? 'enemy'
+                            : 'illegal'
+                          : undefined
+                  const selected =
+                    (mode === 'inspect' && selectedUnitId === placement?.combatantId) ||
+                    battleTargetDraftIncludesTile(
+                      draftTargets,
+                      localCombatantId,
+                      combatant && combatant.hp > 0 ? (placement?.combatantId ?? null) : null,
+                      tile.position,
+                    )
+                  const terrain = tile.terrainId === 'rough-ground' ? 'rough' : 'open'
+                  const overlay = terrainOverlayAt(battle.snapshot, tile.position)
+
+                  return (
+                    <button
+                      type="button"
+                      key={key}
+                      className={styles.tile}
+                      data-ground-path={(groundTarget && inFootprint) || undefined}
+                      data-attack-path={
+                        (!groundTarget && damagingSelection && inFootprint) || undefined
+                      }
+                      data-buff-path={
+                        (!groundTarget && !damagingSelection && !healingSelection && inFootprint) ||
+                        undefined
+                      }
+                      data-self-target={
+                        (!groundTarget &&
+                          inFootprint &&
+                          targetRelation === 'friendly' &&
+                          placement?.combatantId === localCombatantId) ||
+                        undefined
+                      }
+                      data-heal-target={
+                        (!groundTarget && inFootprint && healingSelection && !damagingSelection) ||
+                        undefined
+                      }
+                      data-terrain={terrain}
+                      data-terrain-overlay={overlay?.kind}
+                      data-elevation={tile.elevation > 0 || undefined}
+                      data-reachable={reachable || undefined}
+                      data-path={pathIndex >= 0 || undefined}
+                      data-path-index={pathIndex >= 0 ? pathIndex : undefined}
+                      data-target={targetRelation}
+                      data-selected={selected || undefined}
+                      data-preview-tile={
+                        (pendingIntent?.kind === 'action' &&
+                          pendingIntent.target.kind === 'tile' &&
+                          positionsEqual(pendingIntent.target.position, tile.position)) ||
+                        undefined
+                      }
+                      data-affected={
+                        (selectedActionPreview?.legal &&
+                          placement &&
+                          selectedActionPreview.affectedCombatantIds.includes(
+                            placement.combatantId,
+                          )) ||
+                        undefined
+                      }
+                      onClick={() => handleTile(tile.position)}
+                      onPointerEnter={(event) => {
+                        if (
+                          event.pointerType === 'touch' ||
+                          planningDisabled ||
+                          executionLock.current ||
+                          (targetSpec?.geometryVersion !== 2 &&
+                            targetSpec?.geometryVersion !== 3) ||
+                          targetSpec.shape.kind !== 'line' ||
+                          (!['attack', 'guard', 'recover'].includes(mode) && !flatMoveMode)
+                        )
+                          return
+                        const intent = selectBattleSkillPreviewIntent(
+                          actionDescriptor(currentActionId),
+                          {
+                            ...selection,
+                            selectedTile: tile.position,
+                            selectedCombatantId: null,
+                          },
+                        )
+                        if (intent?.target.kind === 'direction') {
+                          setTargetAim({ aimSource: 'player', selection: intent.target })
+                          void requestPreview(intent)
+                        } else setTargetAim({ aimSource: 'implicit' })
+                      }}
+                      aria-label={`Tile ${tile.position.x + 1}, ${tile.position.y + 1}; ${tile.terrainId}; elevation ${tile.elevation}${participant ? `; occupied by ${participant.name}` : ''}${overlay ? `; ${terrainOverlayDescription(overlay)}` : ''}${battleGroundAreaLabel(battle.snapshot.groundAreas, tactical.battle.round, tile.position)}`}
+                    >
+                      <BattleGroundAreaLayer
+                        steam={overlay?.kind === 'steam'}
+                        areas={battle.snapshot.groundAreas}
+                        round={tactical.battle.round}
+                        position={tile.position}
+                      />
+                      {overlay ? (
+                        <i data-terrain-overlay-marker="true" aria-hidden="true">
+                          {overlay.kind === 'frozen' ? '❄' : '≋'}
+                          {overlay.remainingRoundBoundaries}
+                        </i>
+                      ) : null}
+                      {tile.elevation > 0 ? <span className={styles.elevation}>▲</span> : null}
+                      {participant && placement && combatant && combatant.hp > 0 ? (
+                        <BattleFacingIndicator
+                          facing={placement.facing}
+                          accent={pvpParticipantAccent(
+                            participant.teamIndex,
+                            participant.seatIndex,
+                            viewModel.teamCount,
+                          )}
+                        />
+                      ) : null}
+                      {participant && placement ? (
+                        <span
+                          className={styles.unit}
+                          style={
+                            {
+                              '--battle-combatant-accent': pvpParticipantAccent(
+                                participant.teamIndex,
+                                participant.seatIndex,
+                                viewModel.teamCount,
+                              ),
+                            } as CSSProperties
+                          }
+                          data-team={participant.teamIndex}
+                          data-active={
+                            battleState.currentTurn?.combatantId === participant.combatantId ||
+                            undefined
+                          }
+                          data-defeated={combatant?.hp === 0 || undefined}
+                        >
+                          <BattlefieldAppearanceToken
+                            imageUrl={participant.profileImageUrl}
+                            portraitAssetId={participant.portraitAssetId}
+                            facing={placement.facing}
+                            defeated={combatant?.hp === 0}
+                            cue={appearanceCues.cues?.get(placement.combatantId)}
+                            name={participant.name}
+                            className={styles.unitPortrait}
+                            fallbackClassName={`${bridgeStyles.portraitFallback} ${bridgeStyles.unitPortraitFallback}`}
+                          />
+                          <strong>{participant.name}</strong>
+                        </span>
+                      ) : null}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
+          </section>
+
+          <div
+            ref={lowerPanelRef}
+            className={mobileStyles.lowerPanel}
+            data-battle-mobile-lower-panel="true"
+          >
+            <div data-battle-mobile-chat-host="true" />
+            <section
+              data-battle-preview-strip="true"
+              data-battle-item-picker-open={itemsOpen || undefined}
+              aria-label="Target forecast"
+              data-battle-turn-state={
+                battleState.lifecycle !== 'active' ? 'complete' : localTurn ? 'yours' : 'waiting'
+              }
+            >
+              <BattlePreviewInfoMenu
+                actionKey={`${terrainView || mobileReading ? 'none' : inspectedAbility ? 'passive' : mode}:${inspectedAbility?.id ?? activeTechnique?.id ?? ''}:${infoSelectionVersion}`}
+              />
+              <strong data-battle-instruction-title="true">
+                {terrainView ? (terrainPreview?.name ?? 'Terrain') : contextTitle}
+              </strong>
+              {terrainView ? (
+                <p data-battle-terrain-description="true">
+                  {terrainPreview
+                    ? `${terrainPreview.active ? 'Active' : 'Inactive'} · ${terrainPreview.description}`
+                    : 'Choose a terrain below to read its effects.'}
+                </p>
+              ) : itemsOpen ? (
+                <BattleItemPicker
+                  items={handItems}
+                  disabled={planningDisabled}
+                  onSelect={(item) => {
+                    rememberSelectedItem(item.actionId)
+                    selectAction(
+                      item.actionId,
+                      item.behaviors[0]?.classification === 'attack'
+                        ? 'attack'
+                        : item.behaviors[0]?.classification === 'recovery'
+                          ? 'heal'
+                          : 'defense',
+                    )
+                  }}
+                />
+              ) : inspectedAbility ? (
+                <p data-battle-instruction-description="true">{inspectedAbility.caption}</p>
+              ) : mode === 'finish' ? (
+                <div className={styles.previewFacing} role="group" aria-label="Choose final facing">
+                  <span>Choose facing</span>
+                  {(['north', 'south', 'west', 'east'] as const).map((facing) => (
+                    <button
+                      type="button"
+                      key={facing}
+                      aria-label={`Face ${facing}`}
+                      disabled={
+                        planningDisabled ||
+                        ((battle.snapshot.elementalDamagePolicyVersion === 1 ||
+                          battle.snapshot.elementalDamagePolicyVersion === 2) &&
+                          !!localCombatantId &&
+                          hasGameplayTag(
+                            battle.snapshot,
+                            localCombatantId,
+                            'Frozen',
+                            PV1F_COMBAT_CONTENT,
+                          ) &&
+                          facing !== localPlacement?.facing)
+                      }
+                      onClick={() => void commitValue({ kind: 'face', facing })}
+                    >
+                      {facingGlyph(facing)}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <BattleActionPreview
+                  aimSource={targetAim.aimSource}
+                  preview={
+                    preview?.battleVersion === battle.battleVersion &&
+                    (preview.preview.kind !== 'action' || selectedActionPreview)
+                      ? preview.preview
+                      : null
+                  }
+                  pending={previewPending}
+                  rangePreviews={rangePreviews}
+                  rangePreviewsPending={rangePreviewsPending}
+                  rangePreviewActionId={rangePreviewActionId}
+                  skill={activeTechnique}
+                  targetTile={
+                    previewTargetPosition
+                      ? tactical.tiles.find((tile) =>
+                          positionsEqual(tile.position, previewTargetPosition),
+                        )
+                      : undefined
+                  }
+                  targetOverlay={
+                    previewTargetPosition
+                      ? terrainOverlayAt(battle.snapshot, previewTargetPosition)?.kind
+                      : undefined
+                  }
+                  participants={Array.from(viewModel.participantByCombatant.values())}
+                  notice={contextDescription}
+                />
+              )}
+            </section>
+            <div data-battle-command-dock="true">
+              <div ref={setChronicleDetailsHost} data-battle-cockpit-history="true" />
+              {terrainView ? (
+                <div
+                  className={mobileStyles.terrainWorkspace}
+                  aria-label="Battle terrain information"
+                >
+                  <BattleMapKey
+                    snapshot={battle.snapshot}
+                    compact
+                    onSelect={(terrain) => setTerrainKind(terrain.kind)}
+                    selectedKind={terrainKind ?? undefined}
+                  />
+                </div>
+              ) : null}
+              <section
+                className={styles.commandDeck}
+                aria-label="Command Deck"
+                data-unified-command-deck="true"
+                style={{
+                  ...COCKPIT_ORNAMENT_STYLE,
+                  visibility: terrainView || mobileReading ? 'hidden' : undefined,
+                }}
+                aria-hidden={terrainView || mobileReading || undefined}
+                inert={terrainView || mobileReading}
+              >
+                <div className={styles.commands} data-battle-command-group="true">
+                  <BattleSkillCommand
+                    characterStats={characterStats}
+                    slot="inspect"
+                    hotkey={formatCombatKeybind(bindings.inspect)}
+                    label="Inspect"
+                    cost="Free"
+                    artworkSrc={BATTLE_COMMAND_ARTWORK.inspect}
+                    active={mode === 'inspect'}
+                    disabled={false}
+                    onActivate={() => chooseMode('inspect')}
+                  />
+                  <BattleSkillCommand
+                    characterStats={characterStats}
+                    slot="items"
+                    hotkey={formatCombatKeybind(bindings.items)}
+                    label="Item"
+                    cost={itemUnavailableReason ? 'Unavailable' : 'Choose Item'}
+                    artworkSrc={selectedItem?.artworkSrc ?? BATTLE_MISSING_ARTWORK}
+                    basicAction={selectedItem}
+                    itemAction={selectedItem}
+                    active={
+                      itemsOpen ||
+                      handItems.some((item) => item.actionId === currentActionId && mode !== 'none')
+                    }
+                    disabled={planningDisabled || itemUnavailableReason !== null}
+                    unavailableReason={itemUnavailableReason}
+                    onActivate={() => {
+                      clearPlanning()
+                      setItemsOpen(true)
+                    }}
+                  />
+                  <BattleSkillCommand
+                    characterStats={characterStats}
+                    slot="move"
+                    hotkey={formatCombatKeybind(bindings.move)}
+                    label={basicMove?.name ?? 'Move'}
+                    cost={battleBasicCostLabel(
+                      basicMove,
+                      `${MOVE_COST_PER_TERRAIN_POINT} AP`,
+                      basicBehaviorId('basic.move'),
+                    )}
+                    basicAction={basicMove}
+                    behaviorId={basicBehaviorId('basic.move')}
+                    primeAvailable={canPrimeAction('basic.move')}
+                    controlledAvailability={controlledAvailabilityForAction('basic.move')}
+                    controlledReady={controlledReadyActionId === 'basic.move'}
+                    cooldownTurns={cooldowns['basic.move'] ?? 0}
+                    artworkSrc={
+                      basicMove?.iconKey
+                        ? battleSkillArtwork('basic.move', basicMove.iconKey)
+                        : BATTLE_COMMAND_ARTWORK.move
+                    }
+                    active={mode === 'move'}
+                    disabled={
+                      planningDisabled ||
+                      actionAttackBlocked('basic.move', basicBehaviorId('basic.move')) ||
+                      (!canPrimeAction('basic.move') &&
+                        !controlledAvailabilityForAction('basic.move').chooseAction &&
+                        ((reachablePaths.size === 0 &&
+                          !basicMove?.behaviors.some((behavior) => behavior.move?.conditional)) ||
+                          !canAffordBattleBasicAction(
+                            basicMove,
+                            {
+                              ap: actionEconomy,
+                              mp: localCombatant?.mp ?? 0,
+                              hp: localCombatant?.hp ?? 0,
+                            },
+                            basicBehaviorId('basic.move'),
+                          )))
+                    }
+                    onActivate={() => chooseMode('move')}
+                  />
+                  <BattleSkillCommand
+                    characterStats={characterStats}
+                    slot="attack"
+                    hotkey={formatCombatKeybind(bindings.basicAttack)}
+                    label={attackLabel}
+                    cost={battleBasicCostLabel(
+                      basicAttack,
+                      `${ATTACK_COST} AP`,
+                      basicBehaviorId(BASIC_ATTACK_ID),
+                    )}
+                    basicAction={basicAttack}
+                    behaviorId={basicBehaviorId(BASIC_ATTACK_ID)}
+                    primeAvailable={canPrimeAction(BASIC_ATTACK_ID)}
+                    controlledAvailability={controlledAvailabilityForAction(BASIC_ATTACK_ID)}
+                    controlledReady={controlledReadyActionId === BASIC_ATTACK_ID}
+                    cooldownTurns={cooldowns[BASIC_ATTACK_ID] ?? 0}
+                    artworkSrc={battleSkillArtwork(BASIC_ATTACK_ID, basicAttack?.iconKey)}
+                    active={mode === 'attack' && selectedAttackActionId === BASIC_ATTACK_ID}
+                    disabled={
+                      planningDisabled ||
+                      actionAttackBlocked(BASIC_ATTACK_ID, basicBehaviorId(BASIC_ATTACK_ID)) ||
+                      (!canPrimeAction(BASIC_ATTACK_ID) &&
+                        !controlledAvailabilityForAction(BASIC_ATTACK_ID).chooseAction &&
+                        (basicAttack === undefined
+                          ? actionEconomy < ATTACK_COST
+                          : !canAffordBattleBasicAction(
+                              basicAttack,
+                              {
+                                ap: actionEconomy,
+                                mp: localCombatant?.mp ?? 0,
+                                hp: localCombatant?.hp ?? 0,
+                              },
+                              basicBehaviorId(BASIC_ATTACK_ID),
+                            )))
+                    }
+                    onActivate={() => chooseMode('attack')}
+                  />
+                  <BattleSkillCommand
+                    characterStats={characterStats}
+                    slot="guard"
+                    hotkey={formatCombatKeybind(bindings.guard)}
+                    label={supportLabel}
+                    cost={battleBasicCostLabel(
+                      basicSupport,
+                      `${supportCost} AP`,
+                      basicBehaviorId(supportActionId),
+                    )}
+                    basicAction={basicSupport}
+                    behaviorId={basicBehaviorId(supportActionId)}
+                    primeAvailable={canPrimeAction(supportActionId)}
+                    controlledAvailability={controlledAvailabilityForAction(supportActionId)}
+                    controlledReady={controlledReadyActionId === supportActionId}
+                    artworkSrc={battleSkillArtwork(supportActionId, basicSupport?.iconKey)}
+                    active={
+                      (mode === 'attack' || mode === 'guard' || mode === 'recover') &&
+                      currentActionId === supportActionId
+                    }
+                    disabled={
+                      planningDisabled ||
+                      actionAttackBlocked(supportActionId, basicBehaviorId(supportActionId)) ||
+                      (!canPrimeAction(supportActionId) &&
+                        !controlledAvailabilityForAction(supportActionId).chooseAction &&
+                        (basicSupport === undefined
+                          ? actionEconomy < supportCost
+                          : !canAffordBattleBasicAction(
+                              basicSupport,
+                              {
+                                ap: actionEconomy,
+                                mp: localCombatant?.mp ?? 0,
+                                hp: localCombatant?.hp ?? 0,
+                              },
+                              basicBehaviorId(supportActionId),
+                            )))
+                    }
+                    cooldownTurns={cooldowns[supportActionId] ?? 0}
+                    onActivate={() => chooseMode('guard')}
+                  />
+                  <BattleSkillCommand
+                    characterStats={characterStats}
+                    slot="finish"
+                    hotkey={formatCombatKeybind(bindings.endTurn)}
+                    label="End Turn"
+                    cost="Choose facing"
+                    artworkSrc={BATTLE_COMMAND_ARTWORK.finish}
+                    active={mode === 'finish'}
+                    disabled={planningDisabled}
+                    onActivate={() => {
+                      if (mode === 'finish' && localPlacement)
+                        void commitValue({ kind: 'face', facing: localPlacement.facing })
+                      else chooseMode('finish')
+                    }}
+                  />
+                </div>
+                <BattleSelectedSkills
+                  runtime={runtime}
+                  activeId={inspectedAbility?.id ?? activeTechnique?.id}
+                  disabled={planningDisabled}
+                  actionEconomy={actionEconomy}
+                  actorId={localCombatantId}
+                  manualActionTargets={manualActionTargets}
+                  resources={{ mp: localCombatant?.mp ?? 0, hp: localCombatant?.hp ?? 0 }}
+                  selectedBehavior={selectedBehavior}
+                  cooldowns={cooldowns}
+                  primeAvailableIds={primeAvailableIds}
+                  readyActionId={controlledReadyActionId}
+                  bindings={bindings}
+                  onSelect={selectAction}
+                  onInspect={inspectAbility}
+                />
+              </section>
+            </div>
+            <aside
+              data-battle-side="selected"
+              id="battle-mobile-chronicle"
+              data-battle-mobile-log-workspace="true"
+              data-battle-flow-log-target="true"
+              aria-label="Battle Chronicle"
+            >
+              <BattleChronicleHeading round={battleState.round} />
+              <BattleLogPanel
+                presentation="inline"
+                battleSessionId={battle.battleSessionId}
+                battleVersion={battle.battleVersion}
+                currentRound={battleState.round}
+                playerName={runtime.playerName}
+                combatantNames={Object.fromEntries(
+                  Array.from(viewModel.participantByCombatant.values()).map((participant) => [
+                    participant.combatantId,
+                    participant.name,
+                  ]),
+                )}
+              />
+            </aside>
           </div>
         </section>
 
-        <DesktopBattleRail
-          side="right"
-          battle={battle}
-          participants={viewModel.participants.filter(
-            (participant) => participant.teamIndex !== localTeamIndex,
-          )}
-          teamCount={viewModel.teamCount}
-        />
-
-        <div data-battle-command-dock="true">
-          <section
-            className={styles.commandDeck}
-            aria-label="Command Deck"
-            data-unified-command-deck="true"
-            data-battle-cockpit-polish="true"
-          >
-            <div
-              className={styles.context}
-              data-testid={runtime.kind === 'pve' ? 'combat-mode-instruction' : undefined}
-              data-battle-instruction-host="true"
-              data-battle-instruction-row="true"
-            >
-              {runtime.kind === 'pve' ? <div className={bridgeStyles.aiQualityPortalSlot} /> : null}
-              <strong data-battle-instruction-title="true">{contextTitle}</strong>
-              {mode !== 'none' && mode !== 'inspect' ? (
-                <BattleActionPreview
-                  preview={preview?.battleVersion === battle.battleVersion ? preview.preview : null}
-                  pending={previewPending}
-                  skill={activeTechnique}
-                  notice={contextDescription}
-                />
-              ) : (
-                <span data-battle-instruction-description="true">{contextDescription}</span>
-              )}
-            </div>
-            <div className={styles.commands} data-battle-command-group="true">
-              <BattleSkillCommand
-                slot="inspect"
-                hotkey="00"
-                label="Inspect"
-                cost="Free"
-                artworkSrc={BATTLE_COMMAND_ARTWORK.inspect}
-                active={mode === 'inspect'}
-                disabled={false}
-                onActivate={() => chooseMode('inspect')}
-              />
-              <BattleSkillCommand
-                slot="move"
-                hotkey="01"
-                label="Move"
-                cost={`${MOVE_COST_PER_TERRAIN_POINT} AP`}
-                artworkSrc={BATTLE_COMMAND_ARTWORK.move}
-                active={mode === 'move'}
-                disabled={planningDisabled || actionEconomy < MOVE_COST_PER_TERRAIN_POINT}
-                onActivate={() => chooseMode('move')}
-              />
-              <BattleSkillCommand
-                slot="attack"
-                hotkey="02"
-                label={selectedAttack.label}
-                cost={selectedAttack.cost}
-                artworkSrc={selectedAttack.artworkSrc}
-                tags={selectedAttack.tags}
-                active={mode === 'attack'}
-                disabled={planningDisabled || actionEconomy < selectedAttackCost}
-                onActivate={() => chooseMode('attack')}
-                selector={{
-                  categoryLabel: 'Attack',
-                  selectedId: selectedAttackActionId,
-                  options: attackOptions,
-                  onSelect: (actionId) => {
-                    setSelectedAttackActionId(actionId)
-                    if (mode === 'attack') armAction('attack', actionId)
-                    else {
-                      const option = attackOptions.find((candidate) => candidate.id === actionId)
-                      if (option) setNotice(`${option.label} equipped in the Attack slot.`)
-                    }
-                  },
-                }}
-              />
-              <BattleSkillCommand
-                slot="guard"
-                hotkey="03"
-                label={selectedDefense.label}
-                cost={selectedDefense.cost}
-                artworkSrc={selectedDefense.artworkSrc}
-                tags={selectedDefense.tags}
-                active={mode === 'guard'}
-                disabled={planningDisabled || actionEconomy < selectedDefenseCost}
-                onActivate={() => chooseMode('guard')}
-                selector={{
-                  categoryLabel: 'Guard',
-                  selectedId: selectedDefenseActionId,
-                  options: defenseOptions,
-                  onSelect: (actionId) => {
-                    setSelectedDefenseActionId(actionId)
-                    if (mode === 'guard') armAction('guard', actionId)
-                    else {
-                      const option = defenseOptions.find((candidate) => candidate.id === actionId)
-                      if (option) setNotice(`${option.label} equipped in the Guard slot.`)
-                    }
-                  },
-                }}
-              />
-              <BattleSkillCommand
-                slot="recover"
-                hotkey="04"
-                label={selectedHealName}
-                cost={`${selectedHealCost} AP`}
-                artworkSrc={selectedHealOption.artworkSrc}
-                tags={selectedHealOption.tags}
-                active={mode === 'recover'}
-                disabled={
-                  planningDisabled || actionEconomy < selectedHealCost || selectedHealAtMaximum
-                }
-                onActivate={() => chooseMode('recover')}
-                selector={{
-                  categoryLabel: 'Heal',
-                  selectedId: effectiveHealActionId,
-                  options: recoveryOptions,
-                  onSelect: (skillId) => {
-                    if (skillId === RECOVER_ID || skillId === MP_RECOVER_ID) {
-                      setSelectedTechniqueHealId(null)
-                      selectSkill('heal', skillId)
-                    } else {
-                      setSelectedTechniqueHealId(skillId)
-                    }
-                    if (mode === 'recover') armAction('recover', skillId)
-                    else {
-                      const option = recoveryOptions.find((candidate) => candidate.id === skillId)
-                      if (option) setNotice(`${option.label} equipped in the Recovery slot.`)
-                    }
-                  },
-                }}
-              />
-              <BattleSkillCommand
-                slot="finish"
-                hotkey="05"
-                label="Finish Turn"
-                cost="Choose facing + end"
-                artworkSrc={BATTLE_COMMAND_ARTWORK.finish}
-                active={mode === 'finish'}
-                disabled={planningDisabled}
-                onActivate={() => chooseMode('finish')}
-              />
-            </div>
-
-            <BattleSelectedSkills
-              runtime={runtime}
-              activeId={activeTechnique?.id}
-              disabled={planningDisabled}
-              actionEconomy={actionEconomy}
-              onSelect={(skillId, category) => {
-                if (category === 'defense') {
-                  setSelectedDefenseActionId(skillId)
-                  armAction('guard', skillId)
-                } else if (category === 'heal') {
-                  setSelectedTechniqueHealId(skillId)
-                  armAction('recover', skillId)
-                } else {
-                  setSelectedAttackActionId(skillId)
-                  armAction('attack', skillId)
-                }
-              }}
-            />
-
-            {/* Map guides and keyboard shortcuts use these same commit handlers. Keep the legacy
-              cockpit pad hidden from the first render, including while facing mode opens. */}
-            <div
-              hidden
-              className={styles.facingRow}
-              data-open={mode === 'finish' || undefined}
-              data-unified-facing-pad="true"
-            >
-              <span>Final Facing</span>
-              {(['north', 'west', 'east', 'south'] as const).map((facing) => (
-                <button
-                  type="button"
-                  key={facing}
-                  disabled={mode !== 'finish' || planningDisabled}
-                  onClick={() => void commitValue({ kind: 'face', facing })}
-                  aria-label={`Face ${facing}`}
-                >
-                  {facingGlyph(facing)}
-                </button>
-              ))}
-            </div>
-          </section>
-          <section
-            data-battle-flow="true"
-            data-open={logOpen || undefined}
-            aria-label="Battle flow"
-          >
-            <button
-              type="button"
-              aria-expanded={logOpen}
-              onClick={() => setLogOpen((open) => !open)}
-            >
-              <span>
-                Battle Flow <small>Round {battleState.round}</small>
-              </span>
-              <span>{logOpen ? 'Hide history −' : 'Show history +'}</span>
-            </button>
-            <div data-battle-flow-log-target="true" />
-          </section>
-        </div>
-      </section>
-
-      <footer className={styles.footer} data-unified-battle-footer="true">
-        {capabilities.chat ? (
-          <button type="button" className={styles.chatButton} aria-expanded="false">
-            Chat
-          </button>
-        ) : null}
-        {capabilities.battleLink && viewModel.battleKey ? (
-          <button
-            type="button"
-            className={styles.battleKey}
-            data-pvp-spectator-key="true"
-            onClick={() => void copyBattleKey()}
-          >
-            <small>{copyNotice ? 'Copied!' : 'Spectator Key · click to copy'}</small>
-            <strong>{viewModel.battleKey}</strong>
-          </button>
-        ) : null}
-        <div className={styles.footerActions}>
-          <button
-            type="button"
-            onClick={() => {
-              clearPlanning()
-              setNotice('Selection cleared.')
+        <div className={mobileStyles.chronicleBar} data-battle-mobile-chronicle-strip="true">
+          <BattleLogPanel
+            logOpen={chronicleOpen}
+            onToggleLog={() => {
+              setTerrainView(false)
+              setChronicleDetailsEpoch((epoch) => epoch + 1)
+              setMobileWorkspace(chronicleOpen ? 'actions' : 'log')
             }}
-            disabled={commitPending}
-          >
-            Cancel Action
-          </button>
-          <button
-            type="button"
-            className={styles.confirm}
-            data-preview-tile={battleIntentTileKey(
-              pendingIntent,
-              tactical.placements,
-              localCombatantId,
+            presentation="timeline"
+            onLogLoaded={appearanceCues.onLogLoaded}
+            detailsHost={desktopLayout ? null : chronicleDetailsHost}
+            onDetailsOpenChange={handleChronicleDetailsOpen}
+            resetEpoch={chronicleDetailsEpoch}
+            battleSessionId={battle.battleSessionId}
+            battleVersion={battle.battleVersion}
+            currentRound={battleState.round}
+            playerName={runtime.playerName}
+            combatantNames={Object.fromEntries(
+              Array.from(viewModel.participantByCombatant.values()).map((participant) => [
+                participant.combatantId,
+                participant.name,
+              ]),
             )}
-            onClick={commitSelected}
-            disabled={commitPending || previewPending || !pendingIntent || !preview?.preview.legal}
-          >
-            {commitPending ? 'Committing…' : 'Confirm Action'}
-          </button>
-          {runtime.kind === 'pve' ? (
+          />
+        </div>
+
+        <footer
+          className={styles.footer}
+          data-unified-battle-footer="true"
+          data-battle-mobile-footer="true"
+        >
+          {capabilities.chat ? (
             <button
               type="button"
-              data-unified-surrender="true"
-              onClick={() => setSurrenderOpen(true)}
-              disabled={surrenderPending || battleState.lifecycle !== 'active'}
+              className={styles.chatButton}
+              data-battle-chat-toggle="true"
+              aria-expanded="false"
             >
-              Surrender
+              Chat
             </button>
           ) : null}
-        </div>
-      </footer>
-
-      {recruitFailed ? (
-        <button
-          type="button"
-          className={bridgeStyles.retryOpponent}
-          onClick={() => {
-            recruitAttemptedVersion.current = null
-            setRecruitFailed(false)
-            void runRecruitTurn()
-          }}
-        >
-          Retry Recruit turn
-        </button>
-      ) : null}
-
-      {surrenderOpen && runtime.kind === 'pve' ? (
-        <div className={styles.modalBackdrop} onPointerDown={() => setSurrenderOpen(false)}>
-          <section
-            className={styles.modal}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="battle-surrender-title"
-            onPointerDown={(event) => event.stopPropagation()}
-          >
-            <span>Controlled Exercise</span>
-            <h2 id="battle-surrender-title">Surrender this battle?</h2>
-            <p>
-              Surrendering ends the battle immediately as a loss. Practice grants no normal
-              progression rewards.
-            </p>
+          {capabilities.battleLink && viewModel.battleKey ? (
             <button
               type="button"
-              onClick={() => setSurrenderOpen(false)}
-              disabled={surrenderPending}
+              className={styles.battleKey}
+              data-pvp-spectator-key="true"
+              aria-label={`Copy battle key ${viewModel.battleKey}`}
+              onClick={() => void copyBattleKey()}
             >
-              Stay in battle
+              <small>{copyNotice ? 'Copied!' : 'Spectator Key · click to copy'}</small>
+              <strong>{viewModel.battleKey}</strong>
             </button>
+          ) : null}
+          <div className={styles.footerActions} data-battle-footer-actions="true">
+            {['move', 'attack', 'guard', 'recover'].includes(mode) && behaviorChoices.length > 1 ? (
+              <label className={bridgeStyles.targetChoices}>
+                Action{' '}
+                <select
+                  aria-label="Ability action"
+                  value={currentDescriptor.behaviorId ?? ''}
+                  disabled={planningDisabled || executionPending}
+                  onChange={(event) => {
+                    const descriptor = unboundActionDescriptor(currentActionId, event.target.value)
+                    if (
+                      descriptor.unavailable ||
+                      actionAttackBlocked(currentActionId, event.target.value)
+                    )
+                      return
+                    const nextMode = battleModifierActionMode(descriptor)
+                    if (nextMode === 'attack') setSelectedAttackActionId(currentActionId)
+                    else if (nextMode === 'guard') setSelectedDefenseActionId(currentActionId)
+                    else if (nextMode === 'recover') setSelectedTechniqueHealId(currentActionId)
+                    replaceModifierDraft(null)
+                    clearPlanning(nextMode)
+                    setSelectedBehavior({
+                      actionId: currentActionId,
+                      behaviorId: event.target.value,
+                    })
+                    setNotice(
+                      behaviorChoices.find((choice) => choice.behaviorId === event.target.value)
+                        ?.move
+                        ? 'Choose a Move destination, then the Skill target.'
+                        : 'Select a target for this action.',
+                    )
+                    restoreBattleKeyboardFocus()
+                  }}
+                >
+                  <option value="" disabled>
+                    Choose an action
+                  </option>
+                  {behaviorChoices.map((choice) => (
+                    <option
+                      key={choice.behaviorId}
+                      value={choice.behaviorId}
+                      disabled={actionAttackBlocked(currentActionId, choice.behaviorId)}
+                    >
+                      {choice.behaviorId.replace(/[._-]+/g, ' ')}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+
             <button
               type="button"
-              onClick={() => void confirmPveSurrender()}
-              disabled={surrenderPending}
+              className={styles.terrainToggle}
+              aria-pressed={terrainView}
+              aria-label={terrainView ? 'Back to Actions' : 'Terrain'}
+              onClick={() => {
+                setMobileWorkspace('actions')
+                if (!terrainView) setChronicleDetailsEpoch((epoch) => epoch + 1)
+                setTerrainView((current) => !current)
+              }}
             >
-              {surrenderPending ? 'Surrendering…' : 'Confirm Surrender'}
+              {terrainView ? 'Back to Actions' : '▲ Terrain'}
             </button>
-          </section>
-        </div>
-      ) : null}
-    </main>
-  )
-}
-
-function DesktopBattleRail({
-  side,
-  battle,
-  participants,
-  teamCount,
-}: {
-  side: 'left' | 'right'
-  battle: BattleSessionView
-  participants: readonly BattlePresentationParticipant[]
-  teamCount: number
-}) {
-  const sorted = participants
-    .slice()
-    .sort((left, right) => left.teamIndex - right.teamIndex || left.seatIndex - right.seatIndex)
-
-  return (
-    <aside
-      className={`${railStyles.rail} ${side === 'left' ? railStyles.railLeft : railStyles.railRight} ${bridgeStyles.desktopRail}`}
-      data-unified-combatant-rail="true"
-      aria-label={side === 'left' ? 'Allied combatants' : 'Opposing combatants'}
-    >
-      <div className={railStyles.stack} data-count={String(sorted.length)}>
-        {sorted.map((participant) => {
-          const combatant = battle.snapshot.tactical.battle.combatants.find(
-            (candidate) => candidate.id === participant.combatantId,
-          )
-          const placement = battle.snapshot.tactical.placements.find(
-            (candidate) => candidate.combatantId === participant.combatantId,
-          )
-          if (!combatant || !placement) return null
-          const active =
-            battle.snapshot.tactical.battle.currentTurn?.combatantId === participant.combatantId
-          const accent = pvpParticipantAccent(
-            participant.teamIndex,
-            participant.seatIndex,
-            teamCount,
-          )
-          const accentStyle = { '--battle-combatant-accent': accent } as CSSProperties
-
-          return (
-            <article
-              key={participant.combatantId}
-              className={railStyles.card}
-              data-active={active || undefined}
-              data-defeated={combatant.hp <= 0 || undefined}
-              style={accentStyle}
-            >
-              <div className={railStyles.heading}>
-                <div>
-                  <span>
-                    {participant.local
-                      ? 'Character'
-                      : `${side === 'left' ? 'Ally' : 'Opponent'} · Team ${participant.teamIndex + 1}`}
-                  </span>
-                  <strong>{participant.name}</strong>
-                </div>
-                <div className={railStyles.turnState}>
-                  <i aria-label={`${participant.name} facing ${placement.facing}`}>
-                    {facingGlyph(placement.facing)}
-                  </i>
-                  {active ? <b>Active</b> : null}
-                </div>
-              </div>
+            {(['attack', 'guard', 'recover'].includes(mode) || flatMoveMode) &&
+            maximumSelections > 1 ? (
               <button
                 type="button"
-                className={railStyles.portraitButton}
-                data-av-square-media="true"
-                data-desktop-inspect-combatant={participant.combatantId}
-                aria-label={`Inspect ${participant.name}`}
+                className={styles.cancelAction}
+                aria-label="Use selected targets"
+                onClick={commitSelected}
+                disabled={planningDisabled || executionPending || !draftTargets.length}
               >
-                {participant.portraitAssetId ? (
-                  <CharacterPortraitImage
-                    imageUrl={participant.profileImageUrl}
-                    fallbackAssetId={participant.portraitAssetId}
-                    className={railStyles.portraitImage}
-                    sizes="11rem"
-                    alt=""
-                  />
-                ) : (
-                  <span
-                    className={`${railStyles.portraitImage} ${bridgeStyles.portraitFallback}`}
-                    aria-hidden="true"
-                  >
-                    {participant.name.charAt(0).toUpperCase()}
-                  </span>
-                )}
-                <div className={railStyles.meters}>
-                  <span aria-label={`${participant.name} HP ${combatant.hp} of ${combatant.maxHp}`}>
-                    <i style={{ width: `${meterPercent(combatant.hp, combatant.maxHp)}%` }} />
-                    <b>
-                      HP {combatant.hp} / {combatant.maxHp}
-                    </b>
-                  </span>
-                  <span aria-label={`${participant.name} MP ${combatant.mp} of ${combatant.maxMp}`}>
-                    <i style={{ width: `${meterPercent(combatant.mp, combatant.maxMp)}%` }} />
-                    <b>
-                      MP {combatant.mp} / {combatant.maxMp}
-                    </b>
-                  </span>
-                </div>
+                <span data-battle-full-label="true">
+                  Confirm [{draftTargets.length}/{maximumSelections}]
+                </span>
+                <span data-battle-compact-label="true" aria-hidden="true">
+                  ✓{draftTargets.length}/{maximumSelections}
+                </span>
               </button>
-              <BattleCombatantEffects
-                compact
-                name={participant.name}
-                statuses={
-                  battle.snapshot.statusState.find(
-                    (row) => row.combatantId === participant.combatantId,
-                  )?.statuses ?? []
+            ) : null}
+            <button
+              type="button"
+              className={styles.cancelAction}
+              aria-label={
+                currentDescriptor.controlled?.canCancel && !planningDisabled
+                  ? currentDescriptor.controlled.kind === 'reversal'
+                    ? 'Cancel Reversal'
+                    : 'Cancel prime'
+                  : 'Cancel Action'
+              }
+              data-battle-cancel-action="true"
+              onClick={() => {
+                if (
+                  !planningDisabled &&
+                  currentDescriptor.controlled?.canCancel &&
+                  currentDescriptor.behaviorId
+                ) {
+                  void executeIntent({
+                    kind: 'ability-cancel-prime',
+                    actionId: currentActionId,
+                    behaviorId: currentDescriptor.behaviorId,
+                  })
+                  return
                 }
-              />
-            </article>
-          )
-        })}
-      </div>
-    </aside>
+                clearPlanning()
+                replaceModifierDraft(null)
+                setNotice('Selection cleared.')
+                restoreBattleKeyboardFocus()
+              }}
+              disabled={commitPending}
+            >
+              <span data-battle-full-label="true">
+                {currentDescriptor.controlled?.canCancel && !planningDisabled
+                  ? currentDescriptor.controlled.kind === 'reversal'
+                    ? 'Cancel Reversal'
+                    : 'Cancel prime'
+                  : 'Cancel Action'}
+              </span>
+              <span data-battle-compact-label="true" aria-hidden="true">
+                Cancel
+              </span>
+            </button>
+            {runtime.kind === 'pve' ? (
+              <button
+                type="button"
+                data-unified-surrender="true"
+                onClick={() => setSurrenderOpen(true)}
+                disabled={surrenderPending || battleState.lifecycle !== 'active'}
+              >
+                Surrender
+              </button>
+            ) : null}
+          </div>
+        </footer>
+
+        {recruitFailed ? (
+          <button
+            type="button"
+            className={bridgeStyles.retryOpponent}
+            onClick={() => {
+              recruitAttemptedVersion.current = null
+              setRecruitFailed(false)
+              void runRecruitTurn()
+            }}
+          >
+            Retry Recruit turn
+          </button>
+        ) : null}
+
+        {surrenderOpen && runtime.kind === 'pve' ? (
+          <div className={surrenderStyles.backdrop} onPointerDown={() => setSurrenderOpen(false)}>
+            <section
+              className={surrenderStyles.dialog}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="battle-surrender-title"
+              onPointerDown={(event) => event.stopPropagation()}
+            >
+              <span>Controlled Exercise</span>
+              <h2 id="battle-surrender-title">Surrender this battle?</h2>
+              <p>
+                Surrendering ends the battle immediately as a loss. Practice grants no normal
+                progression rewards.
+              </p>
+              <div className={surrenderStyles.actions}>
+                <button
+                  type="button"
+                  className={surrenderStyles.stay}
+                  onClick={() => setSurrenderOpen(false)}
+                  disabled={surrenderPending}
+                >
+                  Stay in battle
+                </button>
+                <button
+                  type="button"
+                  className={surrenderStyles.confirm}
+                  onClick={() => void confirmPveSurrender()}
+                  disabled={surrenderPending}
+                >
+                  {surrenderPending ? 'Surrendering…' : 'Confirm Surrender'}
+                </button>
+              </div>
+            </section>
+          </div>
+        ) : null}
+      </main>
+    </AirborneAttackElevationContext.Provider>
   )
 }

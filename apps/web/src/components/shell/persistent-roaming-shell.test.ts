@@ -9,7 +9,7 @@ function source(path: string) {
 
 const roamingPages = [
   'src/app/game/(roaming)/character/page.tsx',
-  'src/app/game/(roaming)/arsenal/page.tsx',
+  'src/app/game/(roaming)/nexus/page.tsx',
   'src/app/game/(roaming)/training/page.tsx',
   'src/app/game/(roaming)/online/page.tsx',
   'src/app/game/(roaming)/account/titles/page.tsx',
@@ -63,7 +63,7 @@ describe('persistent roaming shell architecture', () => {
 
     for (const pagePath of [
       'src/app/game/(roaming)/character/page.tsx',
-      'src/app/game/(roaming)/arsenal/page.tsx',
+      'src/app/game/(roaming)/nexus/page.tsx',
       'src/app/game/(roaming)/training/page.tsx',
       'src/app/game/(roaming)/account/titles/page.tsx',
     ]) {
@@ -71,6 +71,11 @@ describe('persistent roaming shell architecture', () => {
       expect(page).toContain('AuthenticatedGameRecoveryContent')
       expect(page).not.toContain('<AuthenticatedGameRecovery />')
     }
+  })
+
+  it('keeps the future Arsenal route as a legacy redirect while Nexus owns build management', () => {
+    const legacyArsenal = source('src/app/game/(roaming)/arsenal/page.tsx')
+    expect(legacyArsenal).toContain("redirect('/game/nexus')")
   })
 
   it('moves the Character page test with its route and keeps its logger mock resolvable', () => {

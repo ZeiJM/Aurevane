@@ -1,0 +1,148 @@
+[
+  {
+    "repeat": 0,
+    "traceSha256": "3e410319f16e7082b359afaf1a2e196b13a231def500251e29c52b033350790c",
+    "sourceArtifact": "12610461605",
+    "sourceArtifactBytes": 117346878,
+    "sourceArtifactSha256": "0aa26ed20aebe80474686d41cea473ce0b91a7f667bacca242074cc6c55c4c1a",
+    "screenshot": "docs/verification/task-10-reconstruction/task13-fix4-n11-native/repeat-0-search-dock.jpeg",
+    "screenshotSha256": "9f674fd6a8a82e94137e77a285a09f9ca88a7859e4a47c05b6de5ea3a0e978e3",
+    "metrics": [
+      {
+        "callId": "call@696",
+        "result": {
+          "innerWidth": 1366,
+          "innerHeight": 681,
+          "outerWidth": 1366,
+          "outerHeight": 768,
+          "dpr": 1,
+          "visualScale": 1,
+          "cssZoom": "1",
+          "scrollWidth": 1351
+        }
+      },
+      {
+        "callId": "call@698",
+        "result": 2
+      },
+      {
+        "callId": "call@700",
+        "result": {
+          "innerWidth": 683,
+          "innerHeight": 340,
+          "outerWidth": 1366,
+          "outerHeight": 768,
+          "dpr": 2,
+          "visualScale": 1,
+          "cssZoom": "1",
+          "scrollWidth": 675
+        }
+      },
+      {
+        "callId": "call@702",
+        "result": {
+          "innerWidth": 683,
+          "innerHeight": 340,
+          "outerWidth": 1366,
+          "outerHeight": 768,
+          "dpr": 2,
+          "visualScale": 1,
+          "cssZoom": "1",
+          "scrollWidth": 675
+        }
+      },
+      {
+        "callId": "call@710",
+        "result": 2
+      },
+      {
+        "callId": "call@712",
+        "result": {
+          "innerWidth": 683,
+          "innerHeight": 340,
+          "outerWidth": 1366,
+          "outerHeight": 768,
+          "dpr": 2,
+          "visualScale": 1,
+          "cssZoom": "1",
+          "scrollWidth": 675
+        }
+      }
+    ],
+    "failure": "control(search-empty): unobscured=false",
+    "interpretation": "Focused Search is visibly behind the persistent mobile primary dock. Exact target hit rectangle was not retained in this trace; local mounted proof provides independent detailed geometry."
+  },
+  {
+    "repeat": 1,
+    "traceSha256": "5137e8cbce8a8b409e13b0cadb493942117d570aa8a4d1e22dabf6c55a5e8b38",
+    "sourceArtifact": "12610461605",
+    "sourceArtifactBytes": 117346878,
+    "sourceArtifactSha256": "0aa26ed20aebe80474686d41cea473ce0b91a7f667bacca242074cc6c55c4c1a",
+    "screenshot": "docs/verification/task-10-reconstruction/task13-fix4-n11-native/repeat-1-search-dock.jpeg",
+    "screenshotSha256": "9f674fd6a8a82e94137e77a285a09f9ca88a7859e4a47c05b6de5ea3a0e978e3",
+    "metrics": [
+      {
+        "callId": "call@696",
+        "result": {
+          "innerWidth": 1366,
+          "innerHeight": 681,
+          "outerWidth": 1366,
+          "outerHeight": 768,
+          "dpr": 1,
+          "visualScale": 1,
+          "cssZoom": "1",
+          "scrollWidth": 1351
+        }
+      },
+      {
+        "callId": "call@698",
+        "result": 2
+      },
+      {
+        "callId": "call@700",
+        "result": {
+          "innerWidth": 683,
+          "innerHeight": 340,
+          "outerWidth": 1366,
+          "outerHeight": 768,
+          "dpr": 2,
+          "visualScale": 1,
+          "cssZoom": "1",
+          "scrollWidth": 675
+        }
+      },
+      {
+        "callId": "call@702",
+        "result": {
+          "innerWidth": 683,
+          "innerHeight": 340,
+          "outerWidth": 1366,
+          "outerHeight": 768,
+          "dpr": 2,
+          "visualScale": 1,
+          "cssZoom": "1",
+          "scrollWidth": 675
+        }
+      },
+      {
+        "callId": "call@710",
+        "result": 2
+      },
+      {
+        "callId": "call@712",
+        "result": {
+          "innerWidth": 683,
+          "innerHeight": 340,
+          "outerWidth": 1366,
+          "outerHeight": 768,
+          "dpr": 2,
+          "visualScale": 1,
+          "cssZoom": "1",
+          "scrollWidth": 675
+        }
+      }
+    ],
+    "failure": "control(search-empty): unobscured=false",
+    "interpretation": "Focused Search is visibly behind the persistent mobile primary dock. Exact target hit rectangle was not retained in this trace; local mounted proof provides independent detailed geometry."
+  }
+]

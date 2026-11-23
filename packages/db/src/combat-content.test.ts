@@ -16,6 +16,55 @@ const skillDefinition = (name: string, ap = 2): CombatContentDefinition => ({
 })
 
 describe('InMemoryCombatContentRepository', () => {
+  it('allocates above the shipped-version floor without confusing it with current-pointer CAS', async () => {
+    const repository = new InMemoryCombatContentRepository()
+    const input = {
+      contentKey: 'owner.skill',
+      contentKind: 'skill' as const,
+      definition: skillDefinition('Owner'),
+      actorUserId: ACTOR,
+      expectedBaseVersion: null,
+    }
+    const first = await repository.publish(input)
+    const next = await repository.publish({
+      ...input,
+      expectedBaseVersion: first.contentVersion,
+      versionFloor: 8,
+    })
+    expect(next.contentVersion).toBe(9)
+    expect((await repository.listPublishedVersions(input.contentKey))[0]).toEqual(first)
+    await expect(
+      repository.publish({ ...input, expectedBaseVersion: first.contentVersion, versionFloor: 20 }),
+    ).rejects.toThrow('Expected published base version')
+    await repository.setCurrentPublication(input.contentKey, first.contentVersion, ACTOR)
+    expect(
+      (
+        await repository.publish({
+          ...input,
+          expectedBaseVersion: first.contentVersion,
+          versionFloor: 3,
+        })
+      ).contentVersion,
+    ).toBe(10)
+  })
+  it.each([0, -1, 1.5, 2147483647, Number.MAX_SAFE_INTEGER])(
+    'rejects invalid or exhausted publication floor %s without changing history',
+    async (versionFloor) => {
+      const repository = new InMemoryCombatContentRepository()
+      await expect(
+        repository.publish({
+          contentKey: 'owner.skill',
+          contentKind: 'skill',
+          definition: skillDefinition('Owner'),
+          actorUserId: ACTOR,
+          expectedBaseVersion: null,
+          versionFloor,
+        }),
+      ).rejects.toBeInstanceOf(CombatContentConflictError)
+      expect(await repository.listPublishedVersions('owner.skill')).toEqual([])
+      expect(await repository.findPublished('owner.skill')).toBeNull()
+    },
+  )
   it('saves mutable drafts with optimistic draft versions', async () => {
     const repository = new InMemoryCombatContentRepository()
 
@@ -216,4 +265,66 @@ describe('InMemoryCombatContentRepository', () => {
       }),
     ).rejects.toBeInstanceOf(CombatContentConflictError)
   })
+
+  it('supports immutable Essence and Resonance lineages without cross-kind aliasing', async () => {
+    const repository = new InMemoryCombatContentRepository()
+
+    const essence = await repository.publish({
+      contentKey: 'essence.vanguard.unbroken-strike',
+      contentKind: 'essence',
+      definition: { contentVersion: 4, name: 'Unbroken Strike', skill: { contentVersion: 4 } },
+      expectedBaseVersion: 4,
+      actorUserId: ACTOR,
+    })
+    const resonance = await repository.publish({
+      contentKey: 'resonance.lifebinder-vanguard.mercys-edge',
+      contentKind: 'resonance',
+      definition: { name: "Mercy's Edge" },
+      expectedBaseVersion: 2,
+      actorUserId: ACTOR,
+    })
+
+    expect(essence.contentKind).toBe('essence')
+    expect(essence.contentVersion).toBe(5)
+    expect(essence.definition).toMatchObject({
+      contentVersion: 5,
+      skill: { contentVersion: 5 },
+    })
+    expect(resonance.contentKind).toBe('resonance')
+    expect(resonance.contentVersion).toBe(3)
+
+    await expect(
+      repository.saveDraft({
+        contentKey: essence.contentKey,
+        contentKind: 'resonance',
+        definition: { name: 'Wrong lineage' },
+        baseVersion: essence.contentVersion,
+        expectedDraftVersion: null,
+        actorUserId: OTHER_ACTOR,
+      }),
+    ).rejects.toMatchObject({ code: 'COMBAT_CONTENT_KIND_CONFLICT' })
+  })
+})
+
+it('keeps typed current reads and pointer changes within the requested content kind', async () => {
+  const repository = new InMemoryCombatContentRepository()
+  const input = {
+    contentKey: 'typed.essence',
+    contentKind: 'essence' as const,
+    actorUserId: ACTOR,
+    definition: { contentVersion: 1 },
+    expectedBaseVersion: null,
+  }
+  const first = await repository.publish(input)
+  await repository.publish({ ...input, expectedBaseVersion: first.contentVersion })
+  expect(await repository.findPublished(input.contentKey, 'resonance')).toBeNull()
+  await repository.setCurrentPublication(input.contentKey, null, ACTOR, 'resonance')
+  expect((await repository.findPublished(input.contentKey, 'essence'))?.contentVersion).toBe(2)
+  await expect(
+    repository.setCurrentPublication(input.contentKey, 1, ACTOR, 'resonance'),
+  ).rejects.toMatchObject({ code: 'COMBAT_CONTENT_VERSION_NOT_FOUND' })
+  expect((await repository.findPublished(input.contentKey, 'essence'))?.contentVersion).toBe(2)
+  await repository.setCurrentPublication(input.contentKey, 1, ACTOR, 'essence')
+  expect((await repository.findPublished(input.contentKey, 'essence'))?.contentVersion).toBe(1)
+  expect(await repository.listPublishedVersions(input.contentKey)).toHaveLength(2)
 })

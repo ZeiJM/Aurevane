@@ -199,15 +199,15 @@ describe('published combat content consumption', () => {
     expect(snapshot.extensions.essence?.contentVersion).toBe(2)
     expect(authority.combatants[0]!.extensions.essence).toMatchObject({
       essenceId: 'essence.edgedancer.sevenfold-cut',
-      contentVersion: 3,
-      skillContentVersion: 3,
+      contentVersion: 5,
+      skillContentVersion: 5,
     })
-    expect(resolved?.contentVersion).toBe(3)
+    expect(resolved?.contentVersion).toBe(5)
     expect(
       resolved?.skill.effects
         .filter((effect) => effect.type === 'damage')
         .map((effect) => effect.amount),
-    ).toEqual([4, 4, 4, 4, 4, 4, 4])
+    ).toEqual([9, 9, 9, 9, 9, 9, 9])
   })
 
   it('resolves the exact pinned publication for catalog-v3 battle execution without static fallback', async () => {
@@ -234,4 +234,19 @@ describe('published combat content consumption', () => {
       resolveBattleDisciplineSkillDefinition(authority, COMBATANT_ID, 'vanguard.forceful-strike'),
     ).resolves.toBeNull()
   })
+})
+
+it('omits private hit authoring from the actual current player Skill loadout without changing its server definitions', async () => {
+  const input = loadout()
+  const before = JSON.stringify(input)
+  const current = await resolveCurrentCharacterSkillDetails(input, resolver())
+  expect(JSON.stringify(current)).not.toMatch(
+    /accuracyMode|accuracyModifierBasisPoints|accuracyRule/,
+  )
+  expect(current.equippedSkills[0]!.definition).toMatchObject({
+    id: 'vanguard.forceful-strike',
+    apCost: 37,
+  })
+  expect(JSON.stringify(input)).toBe(before)
+  expect(staticSkill('vanguard.forceful-strike')).toHaveProperty('accuracyMode')
 })

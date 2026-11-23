@@ -5,11 +5,11 @@ describe('Staged status-copy descriptions', () => {
   it.each([
     [
       'amplify',
-      'Copy eligible positive active statuses from the selected unit onto yourself. The selected unit keeps its statuses; copied stacks respect caps and remaining durations are not restarted.',
+      'Copies All Buffs from the target to you. Originals remain; remaining durations are preserved.',
     ],
     [
       'curse',
-      'Copy eligible negative active statuses from yourself onto the selected unit. You keep the original statuses; copied stacks respect caps and remaining durations are not restarted.',
+      'Copies All Debuffs from you to the target. Originals remain; remaining durations are preserved.',
     ],
   ] as const)('describes %s without implying theft or refreshed durations', (mode, expected) => {
     const effect = {
@@ -20,3 +20,31 @@ describe('Staged status-copy descriptions', () => {
     expect(skillEffectDescription(effect)).toBe(expected)
   })
 })
+
+it('explains the captured Invisible donor exception without granting it to accompanying effects', () => {
+  const description = skillEffectDescription({
+    type: 'copy-statuses',
+    recipient: 'primary-unit',
+    mode: 'amplify',
+    statusIds: ['invisible', 'covert'],
+    invisibleDonorPolicyVersion: 1,
+  })
+  expect(description).toContain('Can select an Invisible donor.')
+  expect(description).toContain('Other direct effects still require Reveal.')
+})
+
+it.each(['amplify', 'curse'] as const)(
+  'describes full source-Skill durations for current %s copies',
+  (mode) => {
+    const description = skillEffectDescription({
+      type: 'copy-statuses',
+      recipient: 'primary-unit',
+      mode,
+      durationPolicyVersion: 1,
+    })
+    expect(description).toContain(
+      'each copied status receives its source Skill’s full recorded duration',
+    )
+    expect(description).not.toContain('remaining durations are preserved')
+  },
+)

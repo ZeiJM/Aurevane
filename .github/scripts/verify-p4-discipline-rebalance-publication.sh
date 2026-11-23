@@ -23,8 +23,18 @@ for caller in anon authenticated; do
   grep -Fq 'permission denied for function activate_phase4_discipline_rebalance_v1'     /tmp/p4-rebalance-denial.log
 done
 
-docker exec -i "$db_container" psql -v ON_ERROR_STOP=1 -v user_id="$user_id" -U postgres -d postgres <<'SQL'
-begin;
+# Verify the historical stage against its actual predecessor resolver. The final
+# catalogue uses immutable Content pointers and must not be downgraded to v2.
+predecessor_sql="$(python - <<'PYSQL'
+from pathlib import Path
+s=Path('supabase/migrations/20260903200000_p36_essence_framework.sql').read_text()
+a=s.index('create or replace function app_private.resolve_essence_reference_v1(')
+b=s.index('$$;', a)+3
+print(s[a:b])
+PYSQL
+)"
+{ printf '%s\n' 'begin;' "$predecessor_sql"; cat <<'SQL'
+
 select set_config('p4.rebalance_user', :'user_id', true);
 
 do $$
@@ -402,5 +412,6 @@ $$;
 
 rollback;
 SQL
+} | docker exec -i "$db_container" psql -v ON_ERROR_STOP=1 -v user_id="$user_id" -U postgres -d postgres
 
 echo 'Phase 4 Discipline rebalance staging, prerequisite, activation, history, loadout normalization, Essences and future provisioning PASS.'

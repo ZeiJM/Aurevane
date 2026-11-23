@@ -48,7 +48,7 @@ describe('character profile read model', () => {
       presentationLabel: 'Androgynous',
       pronounLabel: 'They / Them',
     })
-    expect(profile.foundationDiscipline.name).toBe('Vanguard')
+    expect(profile.foundationDiscipline?.name).toBe('Vanguard')
     expect(serialized).not.toContain(character.userId)
     expect(serialized).not.toContain(character.nameKey)
     expect(profile).not.toHaveProperty('userId')
@@ -58,9 +58,9 @@ describe('character profile read model', () => {
   it('calculates derived stats and Level progress from authoritative state plus curve config', () => {
     const profile = buildCharacterProfileReadModel(character, levelCurve)
 
-    expect(profile.derived.rulesVersion).toBe(3)
-    expect(profile.derived.stats.maxHp.value).toBe(164)
-    expect(profile.derived.stats.accuracy.value).toBe(6650)
+    expect(profile.derived.rulesVersion).toBe(5)
+    expect(profile.derived.stats.maxHp.value).toBe(143)
+    expect(profile.derived.stats.accuracy.value).toBe(8875)
     expect(profile.derived.stats.movement.value).toBe(2)
     expect(profile.progression.progress).toMatchObject({
       curveVersion: 1,
@@ -72,6 +72,15 @@ describe('character profile read model', () => {
       progressBasisPoints: 0,
       isMaxLevel: false,
     })
+  })
+
+  it('renders a profile created with an authored Foundation', () => {
+    const profile = buildCharacterProfileReadModel(
+      { ...character, foundationDisciplineId: 'discipline.authored-foundation' },
+      levelCurve,
+    )
+    expect(profile.identity.name).toBe(character.name)
+    expect(profile.attributes).toEqual(character.attributes)
   })
 
   it('rejects persisted Level drift from the authoritative cumulative XP curve', () => {

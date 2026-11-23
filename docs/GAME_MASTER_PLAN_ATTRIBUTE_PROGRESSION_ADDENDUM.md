@@ -1,10 +1,50 @@
 # AUREVANE — Attribute Progression and Stat Guardrails Addendum
 
+## Resource pools, twelve-round duel benchmark and Items placeholder — Owner-approved 2026-10-05
+
+Current derived ruleset5 preserves all non-resource V4 curves and mathematical bases80HP/16MP. Maximum HP is500 at Vitality40 and650 at60; Maximum MP is400 at Intellect40 and500 at60. Through40 the HP/MP slopes are10.5/9.6 per Core; above40 they are7.5/5. Integer numerators round down once. Effective Primary Core bases and focus60/non-focus40 caps remain. Explicit rulesets1–4 and saved encounters retain their recorded values.
+
+New encounters additionally pin `duelBalancePolicyVersion: 1` alongside stat policy1 and bridge4. Hostile direct damage multiplies post-defense damage by140% (round down), before Critical, relative-Level, authored facing/status/elemental/conditional modifiers and Barrier. This applies once to Basic Attack, Skills, Essence, Resonance, summon strikes and Vengeance direct packets. Periodic ticks, self/friendly damage, healing and resource formulas remain on their own paths. Reflect derives from committed damage without another duel multiplier. Authored1–20/ordinary-Mystic16 potencies remain pre-modifier values.
+
+Hostile Basic Attack and per-target Skill hit chance adds front−5, side+5 or rear+10 percentage points to Accuracy minus Evasion and existing authored/status modifiers, then clamps once to0–100%. Classify from the target's committed facing and source position using the existing directional relation. Evasion itself does not change. Preview, AI and commit share this arithmetic; automatic/self/friendly effects do not gain a hostile roll. Historical encounters without the policy retain their old chance and damage.
+
+The balance standard is approximately12 rounds for equally built Level100, Vitality40/offensive-Core40 direct-pressure mirrors using four selected Skills, normal AP/cooldowns and Basic Attack filler on flat adjacent front-facing tiles. Both reference allocations spend135 effective Core points. Across100 seeds per reference, Vanguard averages11.52 rounds and Aetherist12.68, pooled12.10. Build specialization, HP investment, healing, terrain and tactics can change duration; no turn limit or scripted kill enforces12. Exact fixtures and limitations: `superpowers/plans/2026-10-05-duel-resources-facing-items-spec.md`.
+
+The shared playable cockpit adds locked **Items · Coming soon** immediately before Inspect, default **P**, with identical square/frame/control formatting. Preserve existing artwork variables, image/card sizes and commands; allocate five inherent columns evenly, followed by the four Skills, Essence/Resonance, supernatural placeholder and End Turn. Desktop and mobile PvE/PvP use the same component. Saved customP bindings survive, allocating an available alternative for the new placeholder. The slot and hotkey cannot issue gameplay commands; this does not implement item consumption or storage.
+
+
 **Status:** Owner-approved authoritative addendum to `docs/GAME_MASTER_PLAN.md`.
 
 **Direction approved:** 2026-09-06. **Foundation non-focus cap policy approved:** 2026-09-08. **Level-range adventure scaling and Profile presentation approved:** 2026-09-09. **Level-100 / one-to-one Adventure Stat / combat-power rewrite approved:** 2026-09-20.
 
 This addendum supersedes conflicting earlier wording about the current Level cap, per-Level core-attribute growth, attribute redistribution, Discipline-specific attribute ceilings, and the global Critical Chance / Evasion / Movement / Jump limits.
+
+## Owner stat and battle reader continuation — 2026-10-05
+
+Derived ruleset5 replaces current resource curves; explicit rulesets1–4 remain historical. New encounters pin `statBalancePolicyVersion: 1` independently of bridge4, so saved battles retain their original damage/movement/RNG. Primary Core bases and focus/non-focus caps60/40 remain; legacy Primary Adventure-stat offsets/caps no longer shift the new endpoints. Internal `armor`/`ward` identifiers remain, presented as **Physical Defense/Mystic Defense**.
+
+| Adventure Stat | Mathematical base | Core40 | Core60 |
+|---|---:|---:|---:|
+| Physical/Mystic Power and matching Defense |40|120|160|
+| Maximum HP |80|500|650|
+| Maximum MP |16|400|500|
+| Accuracy |85%|110%|140%|
+| Evasion |0%|25%|55%|
+| Critical Chance |0%|15%|20%|
+| Initiative |10|100|120|
+| Movement |2|4|4|
+| Jump |0|3|3|
+| Status Resistance |0%|10%|15%|
+
+The relevant effective Core determines each baseline; Level does not add to these curves, while relative-Level combat damage scaling remains. Accuracy is a rating: subtract Evasion before clamping final probability to0–100%. Existing authored/status Accuracy modifiers remain. Piecewise formulas, provenance and delegated Power/Defense/HP/MP reasoning are recorded in `superpowers/plans/2026-10-05-stat-balance-spec.md`.
+
+New-policy movement requires Jump at least equal to destination absolute height for raised entry; descending remains possible. Raised height1/2/3 grants15/20/25 percentage points Evasion and reduces both Defense ratings20% before mitigation. Skill Target Elevation at least equal to target absolute height bypasses only terrain Evasion. Existing delta-based targeting legality remains. Rail icons are viewer-relative position-derived effects, never persisted, copied or cleansed, and end on leaving.
+
+Status Resistance draws once per successfully hit living hostile recipient with eligible ordinary Skill debuffs, filters resisted effect ordinals before scheduling, retains damage/costs/cooldowns and never rerolls on activation. Negative ordinary statuses/Poison/Burn/Bleed/hostile Curse qualify; beneficial effects, damage, MP drain, cleanses, terrain, displacement, rewind and self-costs do not. Per-effect Essence/Resonance/Ascension/Severance origins bypass. AI previews use the same conditional probability. Chronicle records an explicit resisted-tags line without exposing RNG.
+
+Physical authored damage generally ranges1–20 per packet; ordinary Mystic generally caps16 in exchange for stronger tempo. These are authored values, not final HP damage caps. Preserve published immutable exceptions, including Judgmentv4(18) and Verdant Rupture Essencev5(19), rather than rejecting historical versions. MP recovery/drain retain authored Power/AP scaling, AP/cooldown/Requirement limits and real resource caps; a finite starting pool does not promise a finite number of total casts.
+
+Parameter readers show `Attack [Physical]` in red or `Attack [Mystic]` in green. Resonance type is exactly Resonance and headings use the bare canonical name, with the Discipline white/gold/teal effect palette. Shared playable/spectator map focus no longer paints unrelated unselected rectangles. Open result logs fit the window with complete internally readable summary/log, visible controls/footer and unchanged artwork. Short mobile landscape is included in validation. Release/verification remains tracked in `../TASKS.md`.
 
 ## Current implementation synchronization — 2026-09-11
 
@@ -130,13 +170,13 @@ Current global caps/defaults:
 - **Jump:** baseline **0**, maximum **3**;
 - **Movement Action Economy cost:** **20 AP per terrain-cost point**.
 
-Action Economy does not increase the character's Movement allowance. A character may only traverse up to the server-owned Movement budget for that turn even if sufficient AP remains.
+Each entered tile consumes one Movement, regardless of terrain weight. Neutral terrain costs 20 AP per tile and rough terrain costs 40 AP per tile before applicable modifiers; terrain and temporary AP modifiers do not consume additional Movement. This is the Owner-authorized 2026-10-01 correction. Action Economy does not increase the character's Movement allowance. A character may only traverse up to the server-owned Movement budget for that turn even if sufficient AP remains.
 
 The active committed Primary Discipline is part of the derived-stat calculation used when a battle session is created. Battle Movement, Jump/elevation reach, HP/MP and other derived combat bridge values therefore use the same committed Primary-derived snapshot represented by the Profile rather than a raw-attributes-only approximation.
 
 Projected movement is not a commitment. While planning a move, the player may retract the provisional path tile by tile with directional controls or by selecting an earlier point on the projected path. Only the committed path consumes Movement and AP.
 
-## 8. Level-100 Adventure Stat scaling
+## 8. Historical September Level-100 Adventure Stat scaling (ruleset3)
 
 **Derived Stat Ruleset V3** makes the Profile grouping mechanically literal. Each Core Attribute contributes only to the Adventure Stats displayed beneath it:
 
@@ -149,7 +189,7 @@ Projected movement is not a commitment. While planning a move, the player may re
 
 Character Level contributes broad maturation across Levels 1–100 for survivability, reliability and mobility. Physical Power and Mystic Power remain Core-Stat ratings: Might owns Physical Power and Intellect owns Mystic Power. Relative Level modifies direct combat damage separately.
 
-Let `L = Level - 1`. Current V3 formulas before Primary Discipline offsets and final clamping are:
+Let `L = Level - 1`. Historical V3 formulas before Primary Discipline offsets and final clamping are:
 
 - **Maximum HP:** `floor((184 + 5L + 24 × Vitality) / 2)`.
 - **Maximum MP:** `floor((84 + 3L + 16 × Intellect) / 2)`.
@@ -167,7 +207,7 @@ Let `L = Level - 1`. Current V3 formulas before Primary Discipline offsets and f
 
 The Level coefficients are deliberately stretched over 100 Levels so the familiar early-game values remain stable while Level 100 lands near the former Level-50 endgame band instead of doubling it outright.
 
-### 8.0.1 Current offensive damage bridge
+### 8.0.1 Historical offensive damage bridge
 
 New combat sessions use stat-driven combat rules v3.
 
@@ -182,7 +222,6 @@ New combat sessions use stat-driven combat rules v3.
 Persisted stat-bridge v1/v2 battles remain valid historical snapshots and retain their prior damage semantics. The v3 rewrite applies to newly created battle snapshots rather than mutating old battles in place.
 
 Primary Discipline offsets are applied after the base calculation and the final result is re-clamped. They may reinforce a class identity but do not make a Core Attribute feed an unrelated Adventure Stat or bypass global hard caps.
-
 
 ### 8.1 Optional Primary-derived ceilings
 

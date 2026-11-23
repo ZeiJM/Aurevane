@@ -1,0 +1,5 @@
+{
+  "error": "Error: search-empty\n\nexpect(received).toBe(expected) // Object.is equality\n\nExpected: true\nReceived: false",
+  "browserErrors": [],
+  "evidence": []
+}

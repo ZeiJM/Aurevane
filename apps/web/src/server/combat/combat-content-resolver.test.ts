@@ -1,12 +1,22 @@
+import { readFileSync } from 'node:fs'
+import {
+  captureBasicSkillSources,
+  defaultBasicSkills,
+} from '@aurevane/game-core/combat/combat-basic-actions'
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
 
 import type { CombatContentVersionRecord } from '@aurevane/db/combat-content'
+import { resolveEssenceForBuild, type EssenceDefinition } from '@aurevane/game-core/combat/essence'
 import {
   resolveMatureSkillVersion,
   type MatureSkillDefinition,
 } from '@aurevane/game-core/combat/mature-skills'
+import {
+  resolveResonanceForPair,
+  type AnyResonanceDefinition,
+} from '@aurevane/game-core/combat/resonance'
 
 import {
   InvalidPublishedCombatContentError,
@@ -41,6 +51,23 @@ class MemoryPublishedCombatContentSource implements PublishedCombatContentSource
   ): Promise<CombatContentVersionRecord | null> {
     return this.versions.get(`${contentKey}@${contentVersion}`) ?? null
   }
+
+  async findCurrentContent(
+    contentKey: string,
+    contentKind: 'essence' | 'resonance',
+  ): Promise<CombatContentVersionRecord | null> {
+    const row = this.current.get(contentKey) ?? null
+    return row?.contentKind === contentKind ? row : null
+  }
+
+  async findContentVersion(
+    contentKey: string,
+    contentKind: 'essence' | 'resonance',
+    contentVersion: number,
+  ): Promise<CombatContentVersionRecord | null> {
+    const row = this.versions.get(`${contentKey}@${contentVersion}`) ?? null
+    return row?.contentKind === contentKind ? row : null
+  }
 }
 
 const staticSkill = (skillId: string, version?: number): MatureSkillDefinition => {
@@ -59,7 +86,71 @@ const publishedSkill = (definition: MatureSkillDefinition): CombatContentVersion
   publishedAt: '2026-09-17T21:45:00.000Z',
 })
 
+const publishedEssence = (definition: EssenceDefinition): CombatContentVersionRecord => ({
+  id: '33333333-3333-4333-8333-333333333333',
+  contentKey: definition.essenceId,
+  contentKind: 'essence',
+  contentVersion: definition.contentVersion,
+  definition: structuredClone(definition) as unknown as Readonly<Record<string, unknown>>,
+  publishedBy: '22222222-2222-4222-8222-222222222222',
+  publishedAt: '2026-09-27T21:45:00.000Z',
+})
+
+const publishedResonance = (definition: AnyResonanceDefinition): CombatContentVersionRecord => ({
+  id: '44444444-4444-4444-8444-444444444444',
+  contentKey: definition.id,
+  contentKind: 'resonance',
+  contentVersion: definition.contentVersion,
+  definition: structuredClone(definition) as unknown as Readonly<Record<string, unknown>>,
+  publishedBy: '22222222-2222-4222-8222-222222222222',
+  publishedAt: '2026-09-27T21:45:00.000Z',
+})
+
 describe('combat content resolver', () => {
+  it('returns validated published canonical Skill envelopes before the guarded legacy action projection', async () => {
+    const source = new MemoryPublishedCombatContentSource()
+    const definition = {
+      ...staticSkill('vanguard.forceful-strike'),
+      contentVersion: 77,
+      ability: {
+        schemaVersion: 1 as const,
+        behaviors: [
+          {
+            id: 'canonical',
+            activation: 'manual' as const,
+            mode: 'action' as const,
+            classification: 'attack' as const,
+            attackFamily: 'physical' as const,
+            costs: [],
+            cooldown: null,
+            requirements: null,
+            targeting: { ...staticSkill('vanguard.forceful-strike').target, maximumSelections: 1 },
+            effects: [
+              {
+                id: 'damage',
+                payload: { type: 'damage' as const, recipient: 'primary-unit' as const, amount: 1 },
+              },
+            ],
+          },
+        ],
+      },
+    }
+    source.current.set(definition.id, publishedSkill(definition))
+    source.versions.set(`${definition.id}@77`, publishedSkill(definition))
+    const resolver = createCombatContentResolver(source)
+    expect((await resolver.resolveCurrentSkillDefinition(definition.id))?.ability).toEqual(
+      definition.ability,
+    )
+    expect((await resolver.resolvePinnedSkillDefinition(definition.id, 77))?.ability).toEqual(
+      definition.ability,
+    )
+    definition.ability.behaviors[0]!.effects[0]!.payload.amount = 99
+    expect(
+      (await resolver.resolvePinnedSkillDefinition(definition.id, 77))?.ability?.behaviors[0]
+        ?.effects[0]?.payload,
+    ).toMatchObject({ amount: 1 })
+  })
+
   it('falls back to the current static Skill when no publication exists', async () => {
     const source = new MemoryPublishedCombatContentSource()
     const resolver = createCombatContentResolver(source)
@@ -67,7 +158,7 @@ describe('combat content resolver', () => {
     const definition = await resolver.resolveCurrentSkillDefinition('vanguard.forceful-strike')
 
     expect(definition?.id).toBe('vanguard.forceful-strike')
-    expect(definition?.contentVersion).toBe(3)
+    expect(definition?.contentVersion).toBe(staticSkill('vanguard.forceful-strike').contentVersion)
   })
 
   it('prefers the current published Skill over static content', async () => {
@@ -215,6 +306,177 @@ describe('combat content resolver', () => {
   it('derives read-only presentation tags from target/effects instead of stored manual tags', () => {
     const definition = staticSkill('vanguard.forceful-strike', 2)
 
-    expect(deriveSkillPresentationTags(definition)).toEqual(['Enemy', 'Single', 'Dmg'])
+    expect(deriveSkillPresentationTags(definition)).toEqual(['Enemy', 'Single', 'Dmg [12]'])
+  })
+
+  it('prefers published current Essence and Resonance definitions over static content', async () => {
+    const source = new MemoryPublishedCombatContentSource()
+    const staticEssence = resolveEssenceForBuild('vanguard', null)
+    const staticResonance = resolveResonanceForPair('lifebinder', 'vanguard')
+    if (!staticEssence || !staticResonance) throw new Error('Missing static combat fixtures.')
+
+    const essence: EssenceDefinition = {
+      ...structuredClone(staticEssence),
+      contentVersion: staticEssence.contentVersion + 1,
+      flavorLine: 'Published Essence flavor.',
+      skill: {
+        ...structuredClone(staticEssence.skill),
+        contentVersion: staticEssence.contentVersion + 1,
+      },
+    }
+    const resonance: AnyResonanceDefinition = {
+      ...structuredClone(staticResonance),
+      contentVersion: staticResonance.contentVersion + 1,
+      flavorLine: 'Published Resonance flavor.',
+    }
+    source.current.set(essence.essenceId, publishedEssence(essence))
+    source.current.set(resonance.id, publishedResonance(resonance))
+
+    const resolver = createCombatContentResolver(source)
+    await expect(
+      resolver.resolveCurrentEssenceDefinition?.('vanguard', null),
+    ).resolves.toMatchObject({
+      contentVersion: essence.contentVersion,
+      flavorLine: 'Published Essence flavor.',
+    })
+    await expect(
+      resolver.resolveCurrentResonanceDefinition?.('lifebinder', 'vanguard'),
+    ).resolves.toMatchObject({
+      contentVersion: resonance.contentVersion,
+      flavorLine: 'Published Resonance flavor.',
+    })
+  })
+
+  it('resolves exact pinned published Essence and Resonance versions', async () => {
+    const source = new MemoryPublishedCombatContentSource()
+    const staticEssence = resolveEssenceForBuild('vanguard', null)
+    const staticResonance = resolveResonanceForPair('lifebinder', 'vanguard')
+    if (!staticEssence || !staticResonance) throw new Error('Missing static combat fixtures.')
+
+    const essenceVersion = staticEssence.contentVersion + 2
+    const resonanceVersion = staticResonance.contentVersion + 2
+    const essence: EssenceDefinition = {
+      ...structuredClone(staticEssence),
+      contentVersion: essenceVersion,
+      skill: { ...structuredClone(staticEssence.skill), contentVersion: essenceVersion },
+    }
+    const resonance: AnyResonanceDefinition = {
+      ...structuredClone(staticResonance),
+      contentVersion: resonanceVersion,
+    }
+    source.versions.set(`${essence.essenceId}@${essenceVersion}`, publishedEssence(essence))
+    source.versions.set(`${resonance.id}@${resonanceVersion}`, publishedResonance(resonance))
+
+    const resolver = createCombatContentResolver(source)
+    await expect(
+      resolver.resolvePinnedEssenceDefinition?.(
+        'vanguard',
+        null,
+        essence.essenceId,
+        essenceVersion,
+      ),
+    ).resolves.toMatchObject({ contentVersion: essenceVersion })
+    await expect(
+      resolver.resolvePinnedResonanceDefinition?.(
+        'lifebinder',
+        'vanguard',
+        resonance.id,
+        resonanceVersion,
+      ),
+    ).resolves.toMatchObject({ contentVersion: resonanceVersion })
+  })
+})
+
+describe('Basic Skill publication resolution', () => {
+  it('resolves exact builtin Guard v1 history while current v2 remains retired for new captures', async () => {
+    const proposal = JSON.parse(
+      readFileSync(
+        new URL(
+          '../../../../../docs/superpowers/specs/2026-10-10-roster-rebalance-proposals.json',
+          import.meta.url,
+        ),
+        'utf8',
+      ),
+    ) as { records: { kind: string; id: string; after: unknown }[] }
+    const savedGuard = proposal.records.find(
+      (row) => row.kind === 'basic' && row.id === 'basic.guard',
+    )!.after
+    const resolver = createCombatContentResolver(new MemoryPublishedCombatContentSource())
+    const historical = await resolver.resolvePinnedBasicSkillDefinition!('basic.guard', 1)
+    expect(historical).toEqual(savedGuard)
+    expect(historical).toMatchObject({ contentVersion: 1, enabled: true })
+    const current = await resolver.resolveCurrentBasicSkillDefinitions!(['basic.guard'])
+    expect(current.get('basic.guard')).toMatchObject({ contentVersion: 2, enabled: false })
+    expect(await resolver.resolvePinnedBasicSkillDefinition!('basic.guard', 2)).toEqual(
+      current.get('basic.guard'),
+    )
+    expect(await resolver.resolvePinnedBasicSkillDefinition!('basic.guard', 3)).toBeNull()
+    expect(() =>
+      captureBasicSkillSources({
+        ownerCombatantId: 'actor',
+        supportActionId: 'basic.guard',
+        definitions: defaultBasicSkills(),
+      }),
+    ).toThrow(/disabled|retired/i)
+    const mutableEffects = historical!.ability.behaviors[0]!.effects as unknown[]
+    mutableEffects.length = 0
+    expect(await resolver.resolvePinnedBasicSkillDefinition!('basic.guard', 1)).toEqual(savedGuard)
+  })
+
+  it('reads complete current Basics in one bounded batch and exact historical versions', async () => {
+    const source = new MemoryPublishedCombatContentSource()
+    const old = defaultBasicSkills().find((row) => row.id === 'basic.recover')!
+    const edited = {
+      ...old,
+      contentVersion: 2,
+      name: 'Renewal',
+      ability: {
+        ...old.ability,
+        behaviors: old.ability.behaviors.map((behavior) => ({
+          ...behavior,
+          costs: [{ resource: 'ap' as const, amount: 35 }],
+        })),
+      },
+    }
+    const row = {
+      ...publishedSkill(staticSkill('vanguard.forceful-strike')),
+      contentKey: old.id,
+      contentVersion: 2,
+      definition: edited as unknown as Record<string, unknown>,
+    }
+    source.current.set(old.id, row)
+    source.versions.set(`${old.id}@2`, row)
+    const resolver = createCombatContentResolver(source)
+    const current = await resolver.resolveCurrentBasicSkillDefinitions!([
+      'basic.move',
+      'unarmed.basic',
+      'basic.recover',
+    ])
+    expect(current.get('basic.recover')).toEqual(edited)
+    expect(current.get('basic.move')).toEqual(defaultBasicSkills()[0])
+    expect(source.batchCurrentReads).toBe(1)
+    expect(source.singleCurrentReads).toBe(0)
+    expect(await resolver.resolvePinnedBasicSkillDefinition!(old.id, 2)).toEqual(edited)
+    expect(await resolver.resolvePinnedBasicSkillDefinition!(old.id, 1)).toEqual(old)
+    expect(await resolver.resolvePinnedBasicSkillDefinition!(old.id, 99)).toBeNull()
+    edited.name = 'Changed afterward'
+    expect(current.get('basic.recover')!.name).toBe('Renewal')
+  })
+  it('rejects malformed or mismatched published Basics instead of substituting builtins', async () => {
+    const source = new MemoryPublishedCombatContentSource()
+    const basic = defaultBasicSkills()[0]!
+    source.current.set(basic.id, {
+      ...publishedSkill(staticSkill('vanguard.forceful-strike')),
+      contentKey: basic.id,
+      contentVersion: 7,
+      definition: {
+        ...basic,
+        contentVersion: 7,
+        execution: { kind: 'basic-move', costBasis: 'invented' },
+      },
+    })
+    await expect(
+      createCombatContentResolver(source).resolveCurrentBasicSkillDefinitions!([basic.id]),
+    ).rejects.toBeInstanceOf(InvalidPublishedCombatContentError)
   })
 })

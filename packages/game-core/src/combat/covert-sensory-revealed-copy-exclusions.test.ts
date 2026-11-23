@@ -32,14 +32,14 @@ function state(): CombatEncounterState {
 }
 
 describe('CSR-1 status-copy exclusions', () => {
-  it('never plans Covert for Amplify or Revealed for Curse', () => {
+  it('copies explicitly eligible Covert for Amplify and excludes Revealed from Curse', () => {
     const content = { statuses: [covert, revealed] }
 
     const amplify = planCombatStatusCopies(
       state(),
       'actor',
       'target',
-      { type: 'copy-statuses', recipient: 'primary-unit', mode: 'amplify' },
+      { type: 'copy-statuses', recipient: 'primary-unit', mode: 'amplify', statusIds: ['covert'] },
       content,
     )
     const curse = planCombatStatusCopies(
@@ -51,8 +51,20 @@ describe('CSR-1 status-copy exclusions', () => {
     )
 
     expect(amplify.receiverId).toBe('actor')
-    expect(amplify.copies).toEqual([])
+    expect(amplify.copies.map((entry) => entry.next.statusId)).toEqual(['covert'])
     expect(curse.receiverId).toBe('target')
     expect(curse.copies).toEqual([])
   })
+})
+
+it('preserves historical omitted-All Copy Buffs exclusion of Covert', () => {
+  expect(
+    planCombatStatusCopies(
+      state(),
+      'actor',
+      'target',
+      { type: 'copy-statuses', recipient: 'primary-unit', mode: 'amplify' },
+      { statuses: [covert, revealed] },
+    ).copies,
+  ).toEqual([])
 })

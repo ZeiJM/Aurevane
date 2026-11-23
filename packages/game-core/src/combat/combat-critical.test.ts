@@ -8,6 +8,7 @@ import {
 } from './actions'
 import { createPendingBattle, startBattle } from './battle-state'
 import { createTacticalBattleState } from './board'
+import { PV1F_COMBAT_CONTENT } from './pv1f-action-economy'
 import {
   COMBAT_CRITICAL_DAMAGE_BASIS_POINTS,
   forecastCombatCritical,
@@ -128,6 +129,49 @@ function action(
 }
 
 describe('A03 authoritative Critical Chance', () => {
+  it.each([
+    [0, 15],
+    [10_000, 23],
+  ])('retains Damage Up across repeated attacks at %s critical chance', (chance, damage) => {
+    const initial = encounter(chance)
+    const inspired = PV1F_COMBAT_CONTENT.statuses.find((row) => row.id === 'inspired')!
+    let state = {
+      ...initial,
+      effectStackingPolicyVersion: 1 as const,
+      statusState: initial.statusState.map((row) =>
+        row.combatantId === 'actor'
+          ? {
+              ...row,
+              statuses: [
+                {
+                  statusId: inspired.id,
+                  statusVersion: inspired.version,
+                  sourceCombatantId: 'actor',
+                  stacks: 1,
+                  remainingOwnerTurnStarts: 2,
+                },
+              ],
+            }
+          : row,
+      ),
+    }
+    const definition = action([{ type: 'damage', recipient: 'primary-unit', amount: 14 }])
+    for (let index = 0; index < 2; index += 1) {
+      const transition = executeCombatAction(
+        state,
+        definition,
+        { kind: 'unit', combatantId: 'target-a' },
+        PV1F_COMBAT_CONTENT,
+      )
+      expect(transition.events).toContainEqual(
+        expect.objectContaining({ event: 'damage_applied', amount: damage }),
+      )
+      expect(
+        transition.state.statusState.find((row) => row.combatantId === 'actor')?.statuses,
+      ).toEqual(state.statusState.find((row) => row.combatantId === 'actor')?.statuses)
+      state = transition.state as typeof state
+    }
+  })
   it('keeps preview RNG-pure while exposing the committed critical chance', () => {
     const state = encounter(2_500)
     const definition = action([{ type: 'damage', recipient: 'primary-unit', amount: 10 }])

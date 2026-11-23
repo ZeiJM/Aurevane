@@ -1,5 +1,12 @@
+import { contentArtworkKey } from '@aurevane/game-core/combat/content-media'
 import Image from 'next/image'
+import { BattleInfoPopover } from '@/components/battle/battle-info-popover'
+import { renderBattleFlavorTemplate } from '@aurevane/game-core/combat/battle-narration'
+import { DEFAULT_SUPPORT_ACTION_ID } from '@aurevane/game-core/combat/support-actions'
+import { pv1fSkillByActionId } from '@aurevane/game-core/combat/pv1f-skills'
+import { essenceCombatSkill, type EssenceDefinition } from '@aurevane/game-core/combat/essence'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
+import type { AnyResonanceDefinition } from '@aurevane/game-core/combat/resonance'
 import { Surface } from '@aurevane/ui'
 
 import {
@@ -7,48 +14,195 @@ import {
   battleSkillArtwork,
 } from '@/components/battle/battle-skill-presentation'
 import { CharacterDisciplineBuildPanel } from '@/components/character/character-discipline-build-panel'
-import { CharacterIdentityCard } from '@/components/character/character-identity-card'
-import {
-  characterDisciplineSummary,
-  type CharacterWorkspaceProps,
-} from '@/components/character/character-profile-shell'
+import { type CharacterWorkspaceProps } from '@/components/character/character-profile-shell'
 import { CharacterSkillBuildPanel } from '@/components/character/character-skill-build-panel'
 import { FoundationDisciplineSigil } from '@/components/character/foundation-discipline-sigil'
+import { LoadoutHeader } from '@/components/character/loadout-header'
 
+import { skillPreviewEffects } from './skill-effect-preview'
 import { skillDisplayName } from './skill-detail-presentation'
+import { ResonanceParameters } from './resonance-parameters'
+import { SkillParameters } from './skill-parameters'
+import { EffectTagLabel } from './compact-skill-effect-summary'
 import styles from './character-arsenal-shell.module.css'
+import type { CharacterItemsView } from '@/server/character/character-items-service'
+import { itemSupportOptions } from './item-support-options'
 
-const disciplineConceptCopy: Readonly<Record<string, { description: string; label: string }>> = {
-  runeblade: {
-    description:
-      'Harness ancient marks and turn precision into power. Cut through what others cannot.',
-    label: 'Discipline of Marks',
-  },
-  lifebinder: {
-    description:
-      'Draw life, sustain allies, and shape a stronger tomorrow. What you protect persists.',
-    label: 'Discipline of Life',
-  },
+const OVERVIEW_TECHNIQUE_SLOTS = 4
+
+export function EssenceHoverPreview({ essence }: { essence: EssenceDefinition }) {
+  const skill = essenceCombatSkill(essence)
+  return (
+    <BattleInfoPopover
+      label={`Preview Essence: ${essence.name}`}
+      title={essence.name}
+      className={styles.attunementPreviewAnchor}
+      hover
+      trigger={
+        <span className={styles.attunementArt} data-gameplay-art="attunement">
+          <Image
+            src={battleSkillArtwork(skill.id, contentArtworkKey(skill.media))}
+            width={160}
+            height={160}
+            unoptimized
+            alt=""
+          />
+        </span>
+      }
+    >
+      <aside id={`essence-preview-${essence.essenceId}`} role="tooltip">
+        <SkillParameters skill={skill} />
+        {!skill.ability ? (
+          <ul aria-label="Effect explanations">
+            {skillPreviewEffects(skill, { groundContactPolicyVersion: 1 }).map((effect) => (
+              <li key={JSON.stringify(effect)}>
+                <strong>
+                  <EffectTagLabel label={effect.label} />
+                </strong>{' '}
+                — {effect.explanation}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </aside>
+    </BattleInfoPopover>
+  )
 }
 
-const techniqueConceptCopy: Readonly<Record<string, string>> = {
-  'runeblade.aether-cut': 'Slice through barriers.',
-  'runeblade.rune-strike': 'Imbue and release.',
-  'runeblade.frost-nova': 'Freeze the field.',
-  'runeblade.shadow-step': 'Vanish and reposition.',
-  'lifebinder.mend': 'Restore health.',
-  'lifebinder.barrier': 'Raise a protective ward.',
-  'lifebinder.verdant-pulse': 'Heal and strengthen.',
-  'lifebinder.vital-surge': 'Empower and renew.',
+function ResonanceHoverPreview({
+  resonance,
+  knownSkills,
+}: {
+  resonance: AnyResonanceDefinition
+  knownSkills: readonly MatureSkillDefinition[]
+}) {
+  return (
+    <BattleInfoPopover
+      label={`Preview Resonance: ${resonance.name}`}
+      title={resonance.name}
+      className={styles.attunementPreviewAnchor}
+      hover
+      trigger={
+        <span className={styles.attunementArt} data-gameplay-art="attunement">
+          <Image
+            src={battleResonanceArtwork(resonance.id, contentArtworkKey(resonance.media ?? {}))}
+            width={160}
+            height={160}
+            unoptimized
+            alt=""
+          />
+        </span>
+      }
+    >
+      <aside id={`resonance-preview-${resonance.id}`} role="tooltip">
+        <ResonanceParameters definition={resonance} knownSkills={knownSkills} />
+      </aside>
+    </BattleInfoPopover>
+  )
+}
+
+function TechniqueLane({
+  kind,
+  discipline,
+  skills,
+  locked = false,
+}: {
+  kind: 'primary' | 'secondary'
+  discipline: { id: string; name: string } | null
+  skills: readonly MatureSkillDefinition[]
+  locked?: boolean
+}) {
+  return (
+    <section
+      className={styles.techniqueLane}
+      data-nexus-technique-lane="true"
+      data-locked={locked ? 'true' : 'false'}
+      aria-label={locked ? 'Locked Secondary Techniques' : `${discipline?.name ?? kind} Techniques`}
+    >
+      <header className={styles.techniqueLaneIdentity}>
+        <div>
+          <strong>{locked ? 'Locked' : discipline?.name}</strong>
+          {locked ? <small>Choose a second discipline.</small> : null}
+        </div>
+      </header>
+
+      <div className={styles.techniqueSlots}>
+        {Array.from({ length: OVERVIEW_TECHNIQUE_SLOTS }, (_, index) => {
+          const skill = skills[index]
+          if (locked) {
+            return (
+              <div
+                className={styles.lockedTechniqueSlot}
+                key={`locked-${kind}-${index}`}
+                data-arsenal-technique-row="true"
+                data-arsenal-media="true"
+                data-equipped="false"
+                aria-hidden="true"
+              >
+                <span>▣</span>
+              </div>
+            )
+          }
+          if (!skill) {
+            return (
+              <div
+                className={styles.emptyTechniqueSlot}
+                key={`empty-${kind}-${index}`}
+                data-arsenal-technique-row="true"
+                data-empty-technique-slot="true"
+                data-equipped="false"
+                aria-hidden="true"
+              >
+                <span>+</span>
+              </div>
+            )
+          }
+          return (
+            <article
+              className={styles.overviewTechnique}
+              key={skill.id}
+              data-arsenal-technique-row="true"
+              data-equipped="true"
+            >
+              <span className={styles.overviewTechniqueArt} data-arsenal-media="true">
+                <Image
+                  src={battleSkillArtwork(skill.id, contentArtworkKey(skill.media))}
+                  width={160}
+                  height={160}
+                  unoptimized
+                  alt=""
+                />
+              </span>
+              <strong>{skillDisplayName(skill)}</strong>
+            </article>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
+
+function LockedAttunementCard({ label }: { label: 'Essence' | 'Resonance' }) {
+  return (
+    <article className={styles.attunementCard} data-active="false">
+      <span className={styles.attunementArt} data-gameplay-art="attunement" aria-hidden="true">
+        <span className={styles.lockGlyph}>▣</span>
+      </span>
+      <div>
+        <strong>{label}</strong>
+        <p>Not yet attuned.</p>
+        <b>▣ Locked</b>
+      </div>
+    </article>
+  )
 }
 
 export function CharacterArsenalShell({
   profile,
   attributeAllocation,
   disciplineBuild,
-  personalTitle = null,
-  imageUrl = null,
-}: CharacterWorkspaceProps) {
+  itemsView,
+}: CharacterWorkspaceProps & { itemsView?: CharacterItemsView | null }) {
   const learnedSkillCatalogKey = disciplineBuild.disciplineSkills.learnedSkills
     .map((entry) => entry.definition.id + '@' + entry.definition.contentVersion)
     .sort()
@@ -58,104 +212,99 @@ export function CharacterArsenalShell({
     disciplineBuild.current.definition.id,
     disciplineBuild.currentSecondary?.id ?? 'pure',
     learnedSkillCatalogKey,
+    JSON.stringify(
+      disciplineBuild.disciplineSkills.learnedSkills.map((entry) => entry.eligibilityGrants ?? []),
+    ),
   ].join(':')
   const resonance = disciplineBuild.disciplineSkills.extensions.resonance
   const essence = disciplineBuild.disciplineSkills.extensions.essence
-  const anomaly = Boolean(resonance && essence)
-  const disciplineSummary = characterDisciplineSummary(
-    disciplineBuild.current.definition,
-    disciplineBuild.currentSecondary,
+  const supportActionId = disciplineBuild.supportActionId ?? DEFAULT_SUPPORT_ACTION_ID
+  const supportAction = pv1fSkillByActionId(supportActionId)!
+  const supportSelection = itemsView?.selectedSupport
+  const equipmentSupport =
+    itemsView && supportSelection?.kind === 'equipment'
+      ? itemSupportOptions(itemsView).find(
+          (option) =>
+            option.selection.position === supportSelection.position &&
+            option.selection.itemId === supportSelection.itemId &&
+            option.selection.behaviorId === supportSelection.behaviorId,
+        )
+      : undefined
+  const equipped = [...disciplineBuild.disciplineSkills.equippedSkills].sort(
+    (left, right) => left.slotIndex - right.slotIndex,
   )
-  const maxHp = disciplineBuild.current.derived.stats.maxHp.value
-  const maxMp = disciplineBuild.current.derived.stats.maxMp.value
-  const slotCount = Math.max(4, disciplineBuild.disciplineSkills.capacity)
-  const disciplines = [disciplineBuild.current.definition, disciplineBuild.currentSecondary].filter(
-    (entry): entry is NonNullable<typeof entry> => entry !== null,
-  )
-  const equippedSkillIds = new Set(
-    disciplineBuild.disciplineSkills.equippedSkills.map((entry) => entry.definition.id),
-  )
-  const techniqueCatalog = new Map<string, MatureSkillDefinition>()
-  for (const entry of disciplineBuild.disciplineSkills.learnedSkills) {
-    if (entry.activeSource) techniqueCatalog.set(entry.definition.id, entry.definition)
-  }
-  for (const entry of disciplineBuild.disciplineSkills.equippedSkills) {
-    techniqueCatalog.set(entry.definition.id, entry.definition)
-  }
-
   return (
-    <div className={styles.layout} data-arsenal-workspace data-character-concept="arsenal">
-      <CharacterIdentityCard
-        profile={profile}
-        primary={disciplineBuild.current.definition}
-        secondary={disciplineBuild.currentSecondary}
-        personalTitle={personalTitle}
-        imageUrl={imageUrl}
-        disciplineSummary={disciplineSummary}
-        maxHp={maxHp}
-        maxMp={maxMp}
-      />
-
-      <Surface
-        className={styles.arsenal}
-        tone="elevated"
-        data-av-surface="moonstone"
-        data-arsenal-sheet="true"
-      >
-        <header className={styles.pageHeading}>
-          <div className={styles.pageHeadingTitle}>
-            <span className={styles.pageIcon} aria-hidden="true">
-              ⚔
-            </span>
-            <div>
-              <h1>Arsenal</h1>
-              <p>Master disciplines. Refine techniques. Prepare for battle.</p>
-            </div>
-          </div>
-          <small>
-            “A sharper mind. A steadier hand.
-            <br />A kinder world through greater power.”
-          </small>
-        </header>
+    <div
+      className={styles.layout}
+      data-arsenal-workspace
+      data-character-concept="nexus"
+      data-composition="correction"
+    >
+      <Surface className={styles.arsenal} tone="elevated" data-arsenal-sheet="true">
+        <LoadoutHeader active="nexus" />
 
         <section
           className={[styles.panel, styles.disciplinesPanel].join(' ')}
           data-arsenal-panel="disciplines"
-          aria-labelledby="arsenal-disciplines-heading"
+          aria-labelledby="nexus-disciplines-heading"
         >
           <header className={styles.sectionHeading}>
             <div>
               <span>✦</span>
-              <h2 id="arsenal-disciplines-heading">Disciplines</h2>
+              <h2 id="nexus-disciplines-heading">Disciplines</h2>
             </div>
-            <small>Your disciplines shape your options in battle.</small>
           </header>
 
-          <div className={styles.disciplineList}>
-            {disciplines.map((entry) => {
-              const concept = disciplineConceptCopy[entry.id]
-              return (
-                <article className={styles.disciplineRow} key={entry.id} data-discipline={entry.id}>
-                  <div className={styles.mediaTile} data-arsenal-media="true">
-                    <FoundationDisciplineSigil disciplineId={entry.id} />
-                  </div>
-                  <div className={styles.disciplineIdentity}>
-                    <strong>{entry.name}</strong>
-                    <p>{entry.summary}</p>
-                  </div>
-                  <p className={styles.disciplineDescription}>
-                    {concept?.description ?? entry.summary}
-                  </p>
-                  <span className={styles.disciplineLabel}>
-                    {concept?.label ?? 'Foundation Discipline'}
-                  </span>
-                </article>
-              )
-            })}
+          <div className={styles.disciplinePair}>
+            <article className={styles.disciplineCard} data-slot="primary">
+              <span className={styles.disciplineSigil}>
+                <FoundationDisciplineSigil
+                  disciplineId={disciplineBuild.current.definition.id}
+                  media={disciplineBuild.current.definition.media}
+                />
+              </span>
+              <div>
+                <span>Primary Discipline</span>
+                <strong data-testid="primary-discipline-chip">
+                  {disciplineBuild.current.definition.name}
+                </strong>
+                <p>{disciplineBuild.current.definition.summary}</p>
+              </div>
+            </article>
+
+            {disciplineBuild.currentSecondary ? (
+              <article className={styles.disciplineCard} data-slot="secondary">
+                <span className={styles.disciplineSigil}>
+                  <FoundationDisciplineSigil
+                    disciplineId={disciplineBuild.currentSecondary.id}
+                    media={disciplineBuild.currentSecondary.media}
+                  />
+                </span>
+                <div>
+                  <span>Secondary Discipline</span>
+                  <strong data-testid="secondary-discipline-chip">
+                    {disciplineBuild.currentSecondary.name}
+                  </strong>
+                  <p>{disciplineBuild.currentSecondary.summary}</p>
+                </div>
+              </article>
+            ) : (
+              <article className={styles.disciplineCard} data-slot="secondary" data-locked="true">
+                <span className={styles.disciplineSigil} aria-hidden="true">
+                  <span className={styles.lockGlyph}>▣</span>
+                </span>
+                <div>
+                  <span>Secondary Discipline</span>
+                  <strong>Locked</strong>
+                  <p>A second discipline awaits.</p>
+                </div>
+              </article>
+            )}
           </div>
 
           <CharacterDisciplineBuildPanel
-            initialBuildVersion={disciplineBuild.buildVersion}
+            key={profile.characterId}
+            characterId={profile.characterId}
             initialCurrent={disciplineBuild.current}
             initialCurrentSecondary={disciplineBuild.currentSecondary}
             availablePrimaries={disciplineBuild.availablePrimaries}
@@ -168,86 +317,73 @@ export function CharacterArsenalShell({
         <section
           className={[styles.panel, styles.techniquesPanel].join(' ')}
           data-arsenal-panel="techniques"
-          aria-labelledby="arsenal-techniques-heading"
+          aria-labelledby="nexus-techniques-heading"
         >
-          <header className={styles.sectionHeading}>
-            <div>
-              <span>✧</span>
-              <h2 id="arsenal-techniques-heading">Techniques</h2>
+          <div className={styles.techniqueSummary}>
+            <div className={styles.techniqueLanes}>
+              <header className={styles.sectionHeading}>
+                <div>
+                  <span>✦</span>
+                  <h2 id="nexus-techniques-heading">
+                    Discipline Skills — {equipped.length} /{' '}
+                    {disciplineBuild.disciplineSkills.capacity}
+                  </h2>
+                </div>
+              </header>
+              <TechniqueLane
+                kind="primary"
+                discipline={{
+                  id: disciplineBuild.current.definition.id,
+                  name: `Discipline Skills — ${equipped.length} / ${disciplineBuild.disciplineSkills.capacity}`,
+                }}
+                skills={equipped.map((entry) => entry.definition)}
+              />
             </div>
-            <small>
-              Active Techniques {disciplineBuild.disciplineSkills.equippedSkills.length} /{' '}
-              {slotCount}
-            </small>
-          </header>
 
-          <div className={styles.techniqueGroups} aria-label="Equipped Discipline Skills">
-            {disciplines.map((discipline) => {
-              const definitions = [...techniqueCatalog.values()]
-                .filter((definition) => definition.sourceDisciplineId === discipline.id)
-                .slice(0, 4)
-              const placeholders = Math.max(0, 4 - definitions.length)
-
-              return (
-                <section
-                  className={styles.techniqueGroup}
-                  key={discipline.id}
-                  data-discipline={discipline.id}
-                  aria-label={`${discipline.name} Techniques`}
-                >
-                  <header>
-                    <FoundationDisciplineSigil disciplineId={discipline.id} />
-                    <div>
-                      <strong>{discipline.name} Techniques</strong>
-                      <small>{discipline.summary}</small>
-                    </div>
-                  </header>
-                  <div>
-                    {definitions.map((definition) => (
-                      <article
-                        className={styles.techniqueRow}
-                        key={definition.id}
-                        data-arsenal-technique-row="true"
-                        data-equipped={equippedSkillIds.has(definition.id) ? 'true' : 'false'}
-                      >
-                        <div className={styles.mediaTile} data-arsenal-media="true">
-                          <Image
-                            src={battleSkillArtwork(definition.id)}
-                            width={56}
-                            height={56}
-                            unoptimized
-                            alt=""
-                          />
-                        </div>
-                        <div>
-                          <strong>{skillDisplayName(definition)}</strong>
-                          <small>{techniqueSummary(definition)}</small>
-                        </div>
-                      </article>
-                    ))}
-                    {Array.from({ length: placeholders }, (_, index) => (
-                      <div
-                        className={styles.emptyTechnique}
-                        key={`${discipline.id}-empty-${index}`}
-                        data-arsenal-technique-row="true"
-                        data-equipped="false"
-                      >
-                        <div className={styles.mediaTile} data-arsenal-empty-media="true">
-                          <span aria-hidden="true">+</span>
-                        </div>
-                        <small>Open technique slot</small>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              )
-            })}
+            <div className={styles.supportSummary} data-testid="nexus-support-action">
+              <header className={styles.sectionHeading}>
+                <div>
+                  <h2 className={styles.mobileSupportHeading}>Support Action</h2>
+                </div>
+              </header>
+              <span className={styles.overviewTechniqueArt} data-arsenal-media="true">
+                <Image
+                  src={
+                    equipmentSupport?.item.actions.support?.artworkSrc ??
+                    equipmentSupport?.item.artworkSrc ??
+                    battleSkillArtwork(
+                      supportActionId,
+                      disciplineBuild.supportActionArtworkKeys?.[supportActionId],
+                    )
+                  }
+                  width={160}
+                  height={160}
+                  unoptimized
+                  alt=""
+                />
+              </span>
+              <div>
+                <strong>
+                  {equipmentSupport?.label ??
+                    (itemsView === null
+                      ? 'Support unavailable · reload Techniques'
+                      : supportSelection?.kind === 'equipment'
+                        ? 'Unavailable equipment Support · repair Items'
+                        : supportAction.name)}
+                </strong>
+              </div>
+            </div>
           </div>
 
           <CharacterSkillBuildPanel
             key={skillBuildKey}
             characterId={attributeAllocation.characterId}
             initialBuildVersion={disciplineBuild.buildVersion}
+            disciplineNames={disciplineBuild.disciplineNames}
+            initialSupportActionId={supportActionId}
+            initialItemsView={itemsView}
+            supportActionArtworkKeys={disciplineBuild.supportActionArtworkKeys}
+            supportActionDescriptions={disciplineBuild.supportActionDescriptions}
             primaryDiscipline={{
               id: disciplineBuild.current.definition.id,
               name: disciplineBuild.current.definition.name,
@@ -272,133 +408,107 @@ export function CharacterArsenalShell({
           <section
             className={[styles.panel, styles.attunementPanel].join(' ')}
             data-arsenal-panel="attunement"
-            aria-labelledby="arsenal-attunement-heading"
+            aria-labelledby="nexus-attunement-heading"
           >
             <header className={styles.sectionHeading}>
               <div>
-                <span>✧</span>
-                <h2 id="arsenal-attunement-heading">Attunement</h2>
+                <span>✦</span>
+                <h2 id="nexus-attunement-heading">Attunement</h2>
               </div>
-              <small>
-                {anomaly
-                  ? 'Anomaly: dual attunement'
-                  : 'Your core attunement. Most paths resonate with either a Resonance or an Essence.'}
-              </small>
             </header>
 
             <div className={styles.attunementGrid}>
-              {resonance ? (
-                <article className={styles.attunementCard} data-active="true">
-                  <div className={styles.mediaTile} data-arsenal-media="true">
-                    <Image
-                      src={battleResonanceArtwork(resonance.id)}
-                      width={56}
-                      height={56}
-                      unoptimized
-                      alt=""
-                    />
-                  </div>
-                  <div>
-                    <strong>{resonance.name}</strong>
-                    <span>Resonance</span>
-                    <p>{resonance.description}</p>
-                    <b>● Active</b>
-                  </div>
-                </article>
-              ) : null}
-
               {essence ? (
                 <article className={styles.attunementCard} data-active="true">
-                  <div className={styles.mediaTile} data-arsenal-media="true">
-                    <Image
-                      src={battleSkillArtwork(essence.skill.id)}
-                      width={56}
-                      height={56}
-                      unoptimized
-                      alt=""
-                    />
-                  </div>
+                  <EssenceHoverPreview essence={essence} />
                   <div>
-                    <strong>{essence.name}</strong>
-                    <span>Essence</span>
-                    <p>{essence.description}</p>
-                    <b>● Active</b>
-                  </div>
-                </article>
-              ) : null}
-
-              {!anomaly ? (
-                <article className={styles.lockedAttunement} data-disabled="true">
-                  <div className={styles.mediaTile} data-arsenal-media="true">
-                    <span aria-hidden="true">▣</span>
-                  </div>
-                  <div>
-                    <strong>Anomaly Path</strong>
-                    <span>{resonance ? 'Essence' : 'Resonance'}</span>
+                    <div className={styles.attunementIdentity}>
+                      <strong>{essence.name}</strong>
+                      <b>● Active</b>
+                    </div>
                     <p>
-                      Not Available. A rare and unstable path. Only an owner-granted anomaly may
-                      open both attunement paths.
+                      {renderBattleFlavorTemplate(essence.flavorLine, { ability: essence.name }) ??
+                        essence.description}
                     </p>
-                    <b>▣ Locked</b>
                   </div>
                 </article>
-              ) : null}
+              ) : (
+                <LockedAttunementCard label="Essence" />
+              )}
 
-              {!resonance && !essence ? (
-                <p className={styles.emptyAttunement}>
-                  No authored Resonance or Essence is available for this build yet.
-                </p>
-              ) : null}
+              {resonance ? (
+                <article className={styles.attunementCard} data-active="true">
+                  <ResonanceHoverPreview
+                    resonance={resonance}
+                    knownSkills={disciplineBuild.disciplineSkills.learnedSkills.map(
+                      (entry) => entry.definition,
+                    )}
+                  />
+                  <div>
+                    <div className={styles.attunementIdentity}>
+                      <strong>{resonance.name}</strong>
+                      <b>● Active</b>
+                    </div>
+                    <p>
+                      {renderBattleFlavorTemplate(resonance.flavorLine, {
+                        ability: resonance.name,
+                      }) ?? resonance.description}
+                    </p>
+                  </div>
+                </article>
+              ) : (
+                <LockedAttunementCard label="Resonance" />
+              )}
             </div>
-            {!anomaly ? (
-              <p className={styles.anomalyNote}>
-                ⓘ A rare anomaly may allow access to both through special provenance.
-              </p>
-            ) : null}
           </section>
 
           <section
-            className={[styles.panel, styles.itemsPanel].join(' ')}
-            aria-labelledby="arsenal-items-heading"
-            data-arsenal-panel="items"
-            data-disabled="true"
+            className={[styles.panel, styles.powerPanel].join(' ')}
+            data-arsenal-panel="power"
+            aria-labelledby="nexus-power-heading"
           >
             <header className={styles.sectionHeading}>
               <div>
-                <span>▣</span>
-                <h2 id="arsenal-items-heading">Items</h2>
+                <span>✦</span>
+                <h2 id="nexus-power-heading">Ascension / Severance</h2>
               </div>
-              <small>Coming Soon</small>
             </header>
-            <p>Gear for what lies ahead.</p>
-            <div className={styles.itemSlots} aria-hidden="true">
-              {['Weapon', 'Head', 'Body', 'Ring', 'Feet', 'Cloak', 'Amulet', 'Hands'].map(
-                (label) => (
-                  <div key={label}>
-                    <span>□</span>
-                    <small>{label}</small>
-                  </div>
-                ),
-              )}
-            </div>
-            <div className={styles.comingSoon}>
-              <strong>Coming Soon</strong>
-              <small>Item management will be available in a future update.</small>
+
+            <div className={styles.powerGrid}>
+              <article className={styles.futurePowerCard} data-power="ascension">
+                <span className={styles.powerGlyph} data-gameplay-art="power" aria-hidden="true">
+                  <Image
+                    src="/media/art/nexus/nexus-ascension-default-v01.webp"
+                    width={160}
+                    height={160}
+                    unoptimized
+                    alt=""
+                  />
+                </span>
+                <div>
+                  <strong>Ascension</strong>
+                  <b>▣ Coming Soon</b>
+                </div>
+              </article>
+              <article className={styles.futurePowerCard} data-power="severed">
+                <span className={styles.powerGlyph} data-gameplay-art="power" aria-hidden="true">
+                  <Image
+                    src="/media/art/nexus/nexus-severed-default-v01.webp"
+                    width={160}
+                    height={160}
+                    unoptimized
+                    alt=""
+                  />
+                </span>
+                <div>
+                  <strong>Severance</strong>
+                  <b>▣ Coming Soon</b>
+                </div>
+              </article>
             </div>
           </section>
         </div>
       </Surface>
     </div>
   )
-}
-
-function techniqueSummary(definition: MatureSkillDefinition): string {
-  const approved = techniqueConceptCopy[definition.id]
-  if (approved) return approved
-  if (definition.tags.includes('heal')) return 'Restore and sustain.'
-  if (definition.tags.includes('defense')) return 'Protect and endure.'
-  if (definition.tags.includes('area')) return 'Shape the field.'
-  if (definition.tags.includes('movement')) return 'Reposition with intent.'
-  if (definition.tags.includes('support')) return 'Strengthen the advantage.'
-  return 'Refine the opening.'
 }

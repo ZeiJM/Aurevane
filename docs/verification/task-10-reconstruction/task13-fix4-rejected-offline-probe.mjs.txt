@@ -1,0 +1,103 @@
+import { mkdtemp, writeFile, readFile, readdir, rm } from 'node:fs/promises'
+import { spawn } from 'node:child_process'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { randomUUID } from 'node:crypto'
+
+// Diagnostic only: real shell assertions and production SQL, disposable Supabase
+// identity and psql transport. Serialized PGlite cannot prove physical lock races.
+export async function runNativeShell(db, source, cwd) {
+  const folder = await mkdtemp(join(tmpdir(), 'task13-shell-'))
+  let sequence = 0
+  let queue = Promise.resolve()
+  const seen = new Set()
+  const poll = setInterval(async () => {
+    for (const file of await readdir(folder)) {
+      if (!file.endsWith('.request') || seen.has(file)) continue
+      seen.add(file)
+      queue = queue.then(async () => {
+        const data = JSON.parse(await readFile(join(folder, file), 'utf8'))
+        const respond = value => writeFile(join(folder, file + '.response'), JSON.stringify(value))
+        const savepoint = `shell_command_${sequence++}`
+        await db.exec(`savepoint ${savepoint}; reset role;`)
+        try {
+          if (data.kind === 'signup') {
+            const id = randomUUID()
+            await db.query('insert into auth.users(id,email,email_confirmed_at) values($1,$2,now())', [id, `${id}@example.test`])
+            await respond({ output: JSON.stringify({ id, user: { id } }) })
+          } else {
+            // Translate explicit script-local transaction scopes to savepoints;
+            // the containing test always rolls every script back.
+            let sql = data.sql.replace(/\\\$/g, '$')
+              .replace(/^\s*begin;\s*$/gmi, 'savepoint script_transaction;')
+              .replace(/^\s*rollback;\s*$/gmi, 'rollback to savepoint script_transaction;')
+              .replace(/^\s*commit;\s*$/gmi, 'release savepoint script_transaction;')
+            for (const [key, value] of Object.entries(data.variables ?? {})) {
+              sql = sql.replaceAll(`:'${key}'`, `'${String(value).replaceAll("'", "''")}'`)
+            }
+            const results = await db.exec(sql)
+            const output = results.flatMap(result => result.rows).map(row => Object.values(row).map(value => {
+              if (value == null) return ''
+              if (typeof value === 'boolean') return value ? 't' : 'f'
+              return typeof value === 'object' ? JSON.stringify(value) : String(value)
+            }).join('|')).join('\n')
+            await respond({ output })
+          }
+        } catch (error) {
+          await db.exec(`rollback to savepoint ${savepoint}; reset role;`)
+          await respond({ error: `ERROR: ${error.message}` })
+        }
+      }).catch(async error => { await writeFile(join(folder, file + '.response'), JSON.stringify({ error: String(error) })) })
+    }
+  }, 5)
+  const client = join(folder, 'client.mjs')
+  await writeFile(client, `
+import { readFileSync, writeFileSync, renameSync, existsSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
+let args=process.argv.slice(2), data;
+if(args[0]==='signup') data={kind:'signup'};
+else if(args[0]==='ps') { console.log('local_pglite'); process.exit(0); }
+else {
+  const variables={}; let sql;
+  for(let i=0;i<args.length;i++) {
+    if (args[i]==='-v') { const [key,...value]=args[++i].split('='); variables[key]=value.join('='); }
+    else if (/^-[A-Za-z]*c$/.test(args[i])) sql=args[++i];
+  }
+  if(sql===undefined) sql=readFileSync(0,'utf8');
+  data={sql,variables};
+}
+const requestPath='${folder}/'+randomUUID()+'.request';
+writeFileSync(requestPath+'.tmp',JSON.stringify(data));
+renameSync(requestPath+'.tmp',requestPath);
+while(!existsSync(requestPath+'.response')) await new Promise(resolve=>setTimeout(resolve,5));
+const result=JSON.parse(readFileSync(requestPath+'.response','utf8'));
+if(result.error) { console.error(result.error); process.exit(1); }
+if(result.output) console.log(result.output);
+`)
+  const bootstrap = join(folder, 'env.sh')
+  await writeFile(bootstrap, `
+docker() { node '${client}' "$@"; }
+load_test_auth() { TEST_AUTH_API_URL='http://fixture.invalid'; TEST_AUTH_ADMIN_KEY='disposable-fixture'; }
+signup_test_user() { node '${client}' signup; }
+confirm_test_user() { :; }
+source() { if [[ "$1" != '.github/scripts/auth-test-helpers.sh' ]]; then builtin source "$@"; fi; }
+pnpm() { if [[ "$*" == 'exec supabase status -o env' ]]; then printf 'SECRET_KEY=disposable-fixture\\n'; else echo "Unexpected pnpm command in offline probe" >&2; return 99; fi; }
+curl() { node '${client}' signup; }
+export -f docker load_test_auth signup_test_user confirm_test_user source pnpm curl
+`)
+  try {
+    const result = await new Promise((resolve, reject) => {
+      const child = spawn('bash', ['-euo', 'pipefail', '-c', source], { cwd, env: { ...process.env, BASH_ENV: bootstrap, GITHUB_RUN_ID: 'local-task13', GITHUB_RUN_ATTEMPT: '1' } })
+      let output = ''
+      child.stdout.on('data', chunk => output += chunk)
+      child.stderr.on('data', chunk => output += chunk)
+      child.on('error', reject)
+      child.on('close', code => resolve({ code, output }))
+    })
+    return result
+  } finally {
+    clearInterval(poll)
+    await queue
+    await rm(folder, { recursive: true, force: true })
+  }
+}

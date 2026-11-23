@@ -1,0 +1,271 @@
+{
+  "source": "dda552b93dd02b01417033574e97d6d6e81511ad",
+  "main": "ff4467ed7284b7c2497caf4df6dff6669043ca39",
+  "changedPaths": 2064,
+  "workflows": [
+    {
+      "path": ".github/workflows/ability-readers-browser.yml",
+      "name": "Modular ability readers browser",
+      "expectedPr": true,
+      "examples": [
+        "apps/web/e2e/fixtures/skill-parameter-palette-harness.jsx",
+        "apps/web/scripts/browser-simple-requirements-regression.mjs"
+      ],
+      "jobs": [
+        "readers"
+      ]
+    },
+    {
+      "path": ".github/workflows/attribute-allocation.yml",
+      "name": "Attribute Allocation",
+      "expectedPr": true,
+      "examples": [
+        "apps/web/src/app/api/character/build/disciplines/route.ts",
+        "apps/web/src/components/character/character-creation-experience.tsx"
+      ],
+      "jobs": [
+        "authority"
+      ]
+    },
+    {
+      "path": ".github/workflows/battle-session-db.yml",
+      "name": "Battle Session DB",
+      "expectedPr": true,
+      "examples": [
+        ".github/scripts/verify-battle-event-read.sh",
+        ".github/scripts/verify-battle-privacy-journal.sh"
+      ],
+      "jobs": [
+        "battle-session-authority"
+      ]
+    },
+    {
+      "path": ".github/workflows/browser-smoke.yml",
+      "name": "Browser smoke",
+      "expectedPr": true,
+      "examples": [
+        ".github/scripts/current-character-test-snapshot.sh",
+        ".github/scripts/run-browser-verification.mjs"
+      ],
+      "jobs": [
+        "verification-plan",
+        "browser",
+        "browser-result"
+      ]
+    },
+    {
+      "path": ".github/workflows/build-snapshots.yml",
+      "name": "Shared Build Snapshots",
+      "expectedPr": true,
+      "examples": [
+        "apps/web/src/server/battle/battle-build-authority.ts",
+        "apps/web/src/server/character/character-combat-build-snapshot.ts"
+      ],
+      "jobs": [
+        "quality"
+      ]
+    },
+    {
+      "path": ".github/workflows/ci.yml",
+      "name": "CI",
+      "expectedPr": true,
+      "examples": [
+        ".github/scripts/current-character-test-snapshot.sh",
+        ".github/scripts/run-browser-verification.mjs"
+      ],
+      "jobs": [
+        "verification-plan",
+        "quality",
+        "database",
+        "quality-result",
+        "database-result"
+      ]
+    },
+    {
+      "path": ".github/workflows/combat-controlled-browser.yml",
+      "name": "Controlled combat browser",
+      "expectedPr": true,
+      "examples": [
+        "apps/web/src/components/battle/battle-basic-action-parameters.test.tsx",
+        "apps/web/src/components/battle/battle-captured-report.test.tsx"
+      ],
+      "jobs": [
+        "controlled"
+      ]
+    },
+    {
+      "path": ".github/workflows/combat-mobile-regressions.yml",
+      "name": "Combat and mobile layout regressions",
+      "expectedPr": true,
+      "examples": [
+        "apps/web/scripts/event-workspace-browser-regression.mjs",
+        "apps/web/scripts/master-operations-browser-regression.mjs"
+      ],
+      "jobs": [
+        "mobile-regressions"
+      ]
+    },
+    {
+      "path": ".github/workflows/desktop-experience.yml",
+      "name": "Desktop experience",
+      "expectedPr": true,
+      "examples": [
+        "apps/web/src/app/manual/[slug]/page.test.tsx",
+        "apps/web/src/app/manual/[slug]/page.tsx"
+      ],
+      "jobs": [
+        "desktop-experience"
+      ]
+    },
+    {
+      "path": ".github/workflows/desktop-page-fit.yml",
+      "name": "Desktop page fit",
+      "expectedPr": true,
+      "examples": [
+        "apps/web/src/components/character/ability-definition-parameters.tsx",
+        "apps/web/src/components/character/ability-definition-readers.test.tsx"
+      ],
+      "jobs": [
+        "verify"
+      ]
+    },
+    {
+      "path": ".github/workflows/discipline-build-db.yml",
+      "name": "Discipline Build DB",
+      "expectedPr": true,
+      "examples": [
+        ".github/scripts/verify-p34-skill-loadout.sh",
+        ".github/scripts/verify-p4-discipline-rebalance-publication.sh"
+      ],
+      "jobs": [
+        "discipline-build"
+      ]
+    },
+    {
+      "path": ".github/workflows/essence-build.yml",
+      "name": "Essence Build",
+      "expectedPr": true,
+      "examples": [
+        "apps/web/src/components/character/character-profile-shell.tsx",
+        "apps/web/src/components/character/character-skill-build-panel.tsx"
+      ],
+      "jobs": [
+        "quality"
+      ]
+    },
+    {
+      "path": ".github/workflows/foundation-security-db.yml",
+      "name": "Foundation Security DB",
+      "expectedPr": true,
+      "examples": [
+        "supabase/migrations/20261020200612_combat_content_complete_records.sql",
+        "supabase/migrations/20261020201044_combat_content_admission_guards.sql"
+      ],
+      "jobs": [
+        "foundation-security"
+      ]
+    },
+    {
+      "path": ".github/workflows/living-atlas-browser.yml",
+      "name": "Living Atlas browser",
+      "expectedPr": true,
+      "examples": [
+        "apps/web/src/components/world/map-renderer.test.ts",
+        "apps/web/src/components/world/map-weather.ts"
+      ],
+      "jobs": [
+        "verify"
+      ]
+    },
+    {
+      "path": ".github/workflows/mobile-audit.yml",
+      "name": "Mobile audit",
+      "expectedPr": false,
+      "examples": [],
+      "jobs": [
+        "audit"
+      ]
+    },
+    {
+      "path": ".github/workflows/profile-layout-review.yml",
+      "name": "UI layout review",
+      "expectedPr": true,
+      "examples": [
+        "apps/web/src/app/game/create/[slot]/page.tsx",
+        "apps/web/src/app/manual/[slug]/page.test.tsx"
+      ],
+      "jobs": [
+        "review"
+      ]
+    },
+    {
+      "path": ".github/workflows/profile-skill-build.yml",
+      "name": "Profile Skill Build",
+      "expectedPr": true,
+      "examples": [
+        "apps/web/src/app/api/character/build/skills/route.test.ts",
+        "apps/web/src/app/api/character/build/skills/route.ts"
+      ],
+      "jobs": [
+        "quality"
+      ]
+    },
+    {
+      "path": ".github/workflows/representative-buildcraft.yml",
+      "name": "Representative Buildcraft",
+      "expectedPr": true,
+      "examples": [
+        ".github/scripts/verify-p4-discipline-rebalance-publication.sh",
+        ".github/scripts/verify-p4-mastery.sh"
+      ],
+      "jobs": [
+        "representative-buildcraft"
+      ]
+    },
+    {
+      "path": ".github/workflows/resonance-build.yml",
+      "name": "Resonance Build",
+      "expectedPr": true,
+      "examples": [
+        "apps/web/src/components/battle/battle-resonance-indicator.tsx",
+        "apps/web/src/components/character/character-profile-shell.tsx"
+      ],
+      "jobs": [
+        "quality"
+      ]
+    },
+    {
+      "path": ".github/workflows/skill-engine.yml",
+      "name": "Skill Engine",
+      "expectedPr": true,
+      "examples": [
+        "apps/web/src/server/battle/battle-build-authority-mixed-source-cap.test.ts",
+        "apps/web/src/server/battle/battle-build-authority.ts"
+      ],
+      "jobs": [
+        "skill-engine"
+      ]
+    },
+    {
+      "path": ".github/workflows/wayfarers-practice-db.yml",
+      "name": "Wayfarer's Practice DB",
+      "expectedPr": true,
+      "examples": [
+        "supabase/migrations/20261020200612_combat_content_complete_records.sql",
+        "supabase/migrations/20261020201044_combat_content_admission_guards.sql"
+      ],
+      "jobs": [
+        "database"
+      ]
+    },
+    {
+      "path": ".github/workflows/world-timing-repeat.yml",
+      "name": "World timing repeat validation",
+      "expectedPr": false,
+      "examples": [],
+      "jobs": [
+        "verify"
+      ]
+    }
+  ]
+}

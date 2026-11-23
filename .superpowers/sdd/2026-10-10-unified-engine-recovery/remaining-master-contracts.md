@@ -1,0 +1,29 @@
+# Remaining operational Master contracts
+
+Read-only carry-forward; no Task11/12 implementation or acceptance is claimed. Refreshed against the October20 recovery/current-main code. Tasks9/10 producer contracts and final shared shell must be consumed before implementing dependent work. Preserve completed Blindside, roster, Covert, World and simple modular Requirements releases; no new creative/balance work here.
+
+## Task11 — Rules, Site Music and approved World Environment
+
+World Environment remains within the wider Master mandate even though the old Task11 title names only Rules/Music. Actual `world-environment-editor.tsx` still requires8–240character reasons, shows policy/version text and Recent Changes, and offers fixed15m/1h/6h/cleared choices. `world-environment-admin-store.ts` validates that bureaucracy and sends p_reason. Remove routine reason/history/version chores through UI/TS/relevant SQL, preserve automatic actor/time/action and internal CAS/history. Force weather for a positive whole number of minutes and return to ordinary weather after expiry. Do not replace one required reason with an invented value.
+
+`world/environment.ts` currently uses the fixed24h UTC clock, offset and freeze; `dayLengthMs` is a returned constant, not configurable day/night authority. Add real configurable cycle authority/actual consumers. `map-renderer.ts` already applies gradual cosine night tint from minuteOfDay. `map-weather.ts` already maps shared rain/storm to Frostmere snow, and `world-workspace.tsx` already shows Snow/Snowstorm with UTC time in the header. Preserve those working paths. Remaining work includes accurate regional labels/explanation in Master and compact current time/phase/weather in the requested World right panel. Do not redo movement, traversal, artwork or persistence compression owned by other work.
+
+Rules use the actual shared global Tag timing/elevation authority; display sorting Instant/Normal/Delayed/Controlled must not alter execution order. Keep captured history and real compatibility/Used-by safeguards. Hide policy management numbers and routine reasons while preserving CAS and attribution. Consume the actual simple Requirements/Tag registry from merged #950 rather than replacing it with qualitative prose or another mechanics registry.
+
+Site Music's actual resolver (`lib/site-music.ts`) already implements slash-boundary longest matching and an explicit disabled matching override returns silence. The actual gap is `if (!config.enabled) return null` before route overrides, which prevents custom page tracks under global silence. Preserve working silence/boundaries. Expose real persistent Use Global / Custom Track / No Music, understandable page coverage and legacy prefix preservation, search/preview/reset/replace/upload/direct URL.
+
+`audio-provider.tsx` already keeps the same media element/source for an unchanged URL, uses native loop, preserves user pause intent and handles hidden/visible behavior; do not rebuild or falsely claim these are absent. Preserve volume/mute and avoid overlapping players. Existing PC upload/signed site-music bucket/direct URL and20MB MIME allowlist work; preserve them. Improve actual visible upload/playback failures rather than promising successful audio without a real browser event. Site music stays separate from Skill audio.
+
+## Task12 — integrated Events and real lifecycle
+
+Actual SQL owns the persistent event kernel and pg_cron recovery; the TypeScript worker's ready/shutdown path is not a replacement domain executor. `freeze_event_phase_clock_on_resume_v1` already locks the run and advances the live phase started_at by actual paused duration; preserve existing native60s-shift proof. `execute_event_reward_claim_v1` locks reservation/run, requires production ended/archived state, calls real grant_character_xp and preserves immutable/deduplicated receipts. Do not claim these authorities are wholly missing or rebuild XP.
+
+Audit actual stop→resolving→ended, emergency-stop, queued/late job and reward settlement order. Cleanup acknowledgement is not gameplay execution. Preserve legitimate completed claims/prior receipts and unrelated XP; repeated actions must not replay outcomes. Carry Task9 terminal no-contest guards into any actual shared domain consumers. Verify both concurrency orders/rollback with the real database/worker boundaries; static UI status changes do not establish safe Pause/Stop.
+
+Complete one compact Builder/Live Ops workspace retaining actual supported setup/phases/objectives/reference/audience/timezone/schedule/preview/live capabilities and existing usable routes. Remove routine reasons through UI/TS/SQL, preserve automatic attribution/internal fingerprints and concise consequential confirmations. Selected Event Staff/global emergency authority stays live per Task8. Expose specific unsupported-domain blockers instead of decorative actions or invented event battle join/economy.
+
+Existing World objective navigation is a real bounded48/sector-walkability/privacy projection, not a fabricated event-battle entry. Preserve it and distinguish navigation from domain execution. Finish supported real transitions and truthful irreversible/undo/executor limits.
+
+## Integration handoff
+
+Task13 maps all20 Owner sections plus Move/auxiliary addenda to actual producer/consumer evidence. Reuse passing checks; add integrated guards only for real gaps. Prove editor→saved exact revision→publication→new authoritative encounter→public/participant/spectator readers, including every independent Support Action. Preserve historical captures, current Owner edits, prior receipts and complete direct-RPC authority. Run actual two-session SQL, production-browser layouts/keyboard/touch/200% evidence and one frozen full quality gate. Distinguish source/native/hosted/human acceptance and final release; the live roster is already completed and must not be re-unlocked or republished as a new task.

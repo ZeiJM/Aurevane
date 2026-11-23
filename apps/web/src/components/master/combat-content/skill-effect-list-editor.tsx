@@ -1,30 +1,34 @@
 'use client'
 
-import type { CombatEffectDefinition } from '@aurevane/game-core/combat/actions'
-import { useState } from 'react'
+import type { CombatEffectDefinition, CombatTargetSpec } from '@aurevane/game-core/combat/actions'
+import { useMemo, useState, type ReactNode } from 'react'
+import { hasGroundAuthoringEffects } from '@/lib/combat-ground-entry-authoring'
+import {
+  reconcileAuthoredEffectDependencies,
+  authoredReversalCombinationIssue,
+  hasSharedGroundAim,
+} from '@/lib/combat-effect-dependencies'
+import { reconcileEffectRowIdentity, type EffectRowIdentity } from './effect-row-identity'
+import { currentTagForAuthoring } from '@/lib/combat-current-tag-authoring'
+import { withAuthoredAreaRecipients } from '@aurevane/game-core/combat/combat-effect-target-authoring'
+import { nativeCombatTagPayload } from '@aurevane/game-core/combat/combat-tag-registry'
+import {
+  effectAuthoringTag,
+  createAuthorableEffectPayload,
+} from '@aurevane/game-core/combat/combat-effect-authoring'
+import { EffectTagPicker } from './effect-tag-picker'
 
+import { inheritedEffectTargetLabel } from './effect-target-editor'
 import styles from './combat-content-editor.module.css'
 import { SkillEffectEditor } from './skill-effect-editor'
 
-export type CombatEffectType = CombatEffectDefinition['type']
-
-const EFFECT_TYPES: readonly { value: CombatEffectType; label: string }[] = [
-  { value: 'damage', label: 'Damage' },
-  { value: 'healing', label: 'Healing' },
-  { value: 'resource-change', label: 'MP change' },
-  { value: 'apply-status', label: 'Apply status' },
-  { value: 'remove-status', label: 'Remove status' },
-  { value: 'return-to-turn-start', label: 'Return to turn start' },
-  { value: 'create-terrain', label: 'Create Frozen terrain' },
-  { value: 'displace', label: 'Displace' },
-  { value: 'poison', label: 'Poison' },
-  { value: 'bleed', label: 'Bleed' },
-  { value: 'burn', label: 'Burn' },
-  { value: 'barrier-change', label: 'Barrier' },
-  { value: 'copy-statuses', label: 'Amplify / Curse status copy' },
-  { value: 'copy', label: 'Temporary Skill Copy' },
-  { value: 'sensory', label: 'Sensory / Revealed' },
-]
+export type CombatEffectType =
+  | CombatEffectDefinition['type']
+  | 'push'
+  | 'pull'
+  | 'blindside'
+  | 'cleanse-chilled'
+  | 'conditional-cleanse'
 
 function assertNever(value: never): never {
   throw new TypeError(`Unsupported combat effect type: ${String(value)}`)
@@ -32,36 +36,113 @@ function assertNever(value: never): never {
 
 export function createDefaultCombatEffect(type: CombatEffectType): CombatEffectDefinition {
   switch (type) {
+    case 'loot':
+      return { type: 'loot', recipient: 'primary-unit' }
+    case 'blindside':
+      return {
+        type: 'apply-status',
+        recipient: 'actor',
+        statusId: 'blindside',
+        stacks: 1,
+        durationTurns: 1,
+      }
+    case 'reversal':
+      return {
+        type,
+        recipient: 'actor',
+        target: 'self',
+        version: 1,
+        family: 'physical',
+        reflectionBasisPoints: 10000,
+        attackerMaxHpCapBasisPoints: 2000,
+        defenderMaxHpCapBasisPoints: 2500,
+      }
+    case 'endure':
+      return {
+        type,
+        recipient: 'actor',
+        target: 'self',
+        durationTurns: 2,
+        releaseBasisPoints: 15000,
+        radiusTiles: 3,
+        targetTeams: 'enemies',
+      }
+    case 'weak-point':
+      return { type, recipient: 'actor', debuffThreshold: 2 }
+    case 'spike':
+      return { type, recipient: 'actor' }
+    case 'ruin':
+      return { type, recipient: 'actor', bonusPerDebuffBasisPoints: 1000 }
     case 'damage':
       return { type, recipient: 'primary-unit', amount: 0 }
+    case 'percentage-recovery':
+      return { type, recipient: 'actor', resource: 'hp', percent: 10, ticks: 1 }
     case 'healing':
       return { type, recipient: 'actor', amount: 0, ticks: 1 }
     case 'resource-change':
       return { type, recipient: 'actor', resource: 'mp', delta: 0, ticks: 1 }
     case 'apply-status':
       return { type, recipient: 'primary-unit', statusId: 'guarded', stacks: 1 }
+    case 'cleanse-chilled':
+      return {
+        type: 'remove-status',
+        recipient: 'actor',
+        target: 'self',
+        statusIds: ['frozen'],
+        removalMode: 'specified',
+        selectionKind: 'debuffs',
+      }
+    case 'conditional-cleanse':
+      return {
+        type: 'remove-status',
+        recipient: 'primary-unit',
+        statusIds: ['burn'],
+        removalMode: 'specified',
+        selectionKind: 'debuffs',
+      }
     case 'remove-status':
-      return { type, recipient: 'primary-unit', statusIds: ['burn'] }
+      return nativeCombatTagPayload(createAuthorableEffectPayload('cleanse')!)
     case 'return-to-turn-start':
-      return { type, recipient: 'actor' }
+      return { type, recipient: 'actor', anchorMode: 'cast-position' }
     case 'create-terrain':
       return { type, recipient: 'affected-tiles', terrain: 'frozen' }
+    case 'push':
+    case 'pull':
+      return { type: 'displace', recipient: 'primary-unit', direction: type, distance: 1 }
     case 'displace':
       return { type, recipient: 'primary-unit', direction: 'push', distance: 1 }
     case 'poison':
-      return { type, recipient: 'primary-unit' }
+      return {
+        type,
+        recipient: 'primary-unit',
+        durationTurns: 4,
+        damageProfile: { kind: 'attack-percentage', basisPoints: 1500 },
+      }
     case 'bleed':
-      return { type, recipient: 'primary-unit', damagePerTick: 1, ticks: 1 }
+      return {
+        type,
+        recipient: 'primary-unit',
+        ticks: 3,
+        durationTurns: 3,
+        damageProfile: { kind: 'attack-percentage', basisPoints: 2000 },
+      }
     case 'burn':
-      return { type, recipient: 'primary-unit' }
+      return {
+        type,
+        recipient: 'primary-unit',
+        durationTurns: 3,
+        damageProfile: {
+          kind: 'attack-percentage',
+          basisPoints: 2500,
+          decayBasisPointsPerTick: 500,
+        },
+      }
     case 'barrier-change':
-      return { type, recipient: 'actor', amount: 1 }
+      return { type, recipient: 'actor', amount: 1, basis: 'maximum-hp-percent', durationTurns: 2 }
     case 'copy-statuses':
-      return { type, recipient: 'primary-unit', mode: 'amplify' }
-    case 'copy':
-      return { type, recipient: 'primary-unit' }
+      return nativeCombatTagPayload(createAuthorableEffectPayload('copy-buffs')!)
     case 'sensory':
-      return { type, recipient: 'primary-unit', revealedDurationOwnerTurnStarts: 2 }
+      return nativeCombatTagPayload(createAuthorableEffectPayload('reveal')!)
     default:
       return assertNever(type)
   }
@@ -97,86 +178,224 @@ export function moveCombatEffect(
   return next
 }
 
-export interface SkillEffectListEditorProps {
-  readonly value: readonly CombatEffectDefinition[]
-  readonly onChange: (next: readonly CombatEffectDefinition[]) => void
+function alignedEffectDescriptions(
+  effects: readonly CombatEffectDefinition[],
+  descriptions: readonly (string | null)[] | undefined,
+): (string | null)[] {
+  return effects.map((_, index) => descriptions?.[index] ?? null)
 }
 
-export function SkillEffectListEditor({ value, onChange }: SkillEffectListEditorProps) {
-  const [newEffectType, setNewEffectType] = useState<CombatEffectType>('damage')
+export function moveCombatEffectDescription(
+  descriptions: readonly (string | null)[],
+  index: number,
+  direction: 'up' | 'down',
+): readonly (string | null)[] {
+  const nextIndex = direction === 'up' ? index - 1 : index + 1
+  if (
+    index < 0 ||
+    index >= descriptions.length ||
+    nextIndex < 0 ||
+    nextIndex >= descriptions.length
+  ) {
+    return [...descriptions]
+  }
+  const next = [...descriptions]
+  const current = next[index] ?? null
+  next[index] = next[nextIndex] ?? null
+  next[nextIndex] = current
+  return next
+}
+
+export interface SkillEffectListEditorProps {
+  readonly aim?: CombatTargetSpec
+  readonly groundSettings?: ReactNode
+  readonly canonicalDamage?: boolean
+  readonly allowReversal?: boolean
+  readonly value: readonly CombatEffectDefinition[]
+  readonly effectDescriptions?: readonly (string | null)[]
+  readonly maxEffects?: number
+  readonly onChange: (
+    nextEffects: readonly CombatEffectDefinition[],
+    nextDescriptions: readonly (string | null)[],
+  ) => void
+}
+
+export function SkillEffectListEditor({
+  value: captured,
+  aim,
+  groundSettings,
+  effectDescriptions: capturedDescriptions,
+  maxEffects,
+  canonicalDamage = false,
+  allowReversal = false,
+  onChange: update,
+}: SkillEffectListEditorProps) {
+  const { value, effectDescriptions } = useMemo(() => {
+    const sources = new Map(captured.map((effect, index) => [effect, index]))
+    const value = captured.some((effect) => effect.type === 'create-terrain')
+      ? reconcileAuthoredEffectDependencies(captured, captured, {
+          inheritedGround: hasSharedGroundAim(aim),
+          onLinked: (source, linked) => {
+            const index = sources.get(source)
+            if (index !== undefined) sources.set(linked, index)
+          },
+        })
+      : captured
+    return {
+      value,
+      effectDescriptions: value.map(
+        (effect) => capturedDescriptions?.[sources.get(effect) ?? -1] ?? null,
+      ),
+    }
+  }, [captured, capturedDescriptions, aim])
+  const onChange: SkillEffectListEditorProps['onChange'] = (proposed, notes) => {
+    const sourceIndices = new Map(proposed.map((effect, index) => [effect, index]))
+    const effects = reconcileAuthoredEffectDependencies(value, proposed, {
+      inheritedGround: hasSharedGroundAim(aim),
+      onLinked: (source, linked) => {
+        const index = sourceIndices.get(source)
+        if (index !== undefined) sourceIndices.set(linked, index)
+      },
+    })
+    update(
+      effects,
+      effects.map((effect) => {
+        const index = sourceIndices.get(effect) ?? -1
+        return index < 0 ? null : (notes[index] ?? null)
+      }),
+    )
+  }
+  const [rowIdentity, setRowIdentity] = useState<EffectRowIdentity<CombatEffectDefinition>>({
+    value,
+    keys: value.map((_, index) => index),
+    next: value.length,
+  })
+  const rows =
+    rowIdentity.value === value ? rowIdentity : reconcileEffectRowIdentity(rowIdentity, value)
+  if (rows !== rowIdentity) setRowIdentity(rows)
+  const alignedDescriptions = alignedEffectDescriptions(value, effectDescriptions)
+  const firstGroundEffect = aim
+    ? value.findIndex((effect) => hasGroundAuthoringEffects(aim, [effect]))
+    : -1
 
   return (
     <fieldset className={styles.typedGroup}>
-      <legend>Ordered effects</legend>
+      <legend>Effects</legend>
 
       <div
         className={styles.effectList}
         data-effect-sequence={value.map((effect) => effect.type).join('|')}
       >
         {value.map((effect, index) => (
-          <article className={styles.effectCard} key={`${index}:${effect.type}`}>
+          <article className={styles.effectCard} key={rows.keys[index]}>
             <header className={styles.effectHeader}>
               <div>
                 <span className={styles.effectOrdinal}>Effect {index + 1}</span>
-                <strong>{EFFECT_TYPES.find((entry) => entry.value === effect.type)?.label}</strong>
+                <strong>{effectAuthoringTag(currentTagForAuthoring(effect)).label}</strong>
+                <span className={styles.effectTarget}>
+                  [{inheritedEffectTargetLabel(effect, aim)}]
+                </span>
               </div>
               <div className={styles.effectActions}>
                 <button
                   type="button"
                   disabled={index === 0}
-                  onClick={() => onChange(moveCombatEffect(value, index, 'up'))}
+                  onClick={() =>
+                    onChange(
+                      moveCombatEffect(value, index, 'up'),
+                      moveCombatEffectDescription(alignedDescriptions, index, 'up'),
+                    )
+                  }
                 >
                   ↑ Up
                 </button>
                 <button
                   type="button"
                   disabled={index === value.length - 1}
-                  onClick={() => onChange(moveCombatEffect(value, index, 'down'))}
+                  onClick={() =>
+                    onChange(
+                      moveCombatEffect(value, index, 'down'),
+                      moveCombatEffectDescription(alignedDescriptions, index, 'down'),
+                    )
+                  }
                 >
                   ↓ Down
                 </button>
-                <button type="button" onClick={() => onChange(removeCombatEffect(value, index))}>
+                <button
+                  type="button"
+                  onClick={() =>
+                    onChange(
+                      removeCombatEffect(value, index),
+                      alignedDescriptions.filter(
+                        (_, descriptionIndex) => descriptionIndex !== index,
+                      ),
+                    )
+                  }
+                >
                   Remove
                 </button>
               </div>
             </header>
-            <SkillEffectEditor
-              value={effect}
-              onChange={(nextEffect) =>
-                onChange(
-                  value.map((candidate, effectIndex) =>
-                    effectIndex === index ? nextEffect : candidate,
-                  ),
-                )
-              }
-            />
+            <details className={styles.effectBody} data-effect-collapsible="true">
+              <summary>Edit parameters</summary>
+              <SkillEffectEditor
+                aim={aim}
+                siblings={value}
+                canonicalDamage={canonicalDamage && effect.type === 'damage' ? 'damage' : undefined}
+                value={effect}
+                onChange={(nextEffect) =>
+                  onChange(
+                    value.map((candidate, effectIndex) =>
+                      effectIndex === index ? nextEffect : candidate,
+                    ),
+                    alignedDescriptions,
+                  )
+                }
+              />
+              {index === firstGroundEffect ? groundSettings : null}
+            </details>
           </article>
         ))}
       </div>
 
-      <div className={styles.effectAdd}>
-        <label className={styles.field}>
-          <span>New effect type</span>
-          <select
-            aria-label="New effect type"
-            value={newEffectType}
-            onChange={(event) => setNewEffectType(event.currentTarget.value as CombatEffectType)}
-          >
-            {EFFECT_TYPES.map((entry) => (
-              <option key={entry.value} value={entry.value}>
-                {entry.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button type="button" onClick={() => onChange(appendCombatEffect(value, newEffectType))}>
-          Add effect
-        </button>
-      </div>
+      {firstGroundEffect < 0 ? groundSettings : null}
+
+      <EffectTagPicker
+        nativeOnly
+        additionalIssue={(id) => {
+          if (id === 'reversal' && !allowReversal)
+            return 'Reversal requires a modular Manual Action ability.'
+          const payload = createAuthorableEffectPayload(id)
+          const reversalIssue = authoredReversalCombinationIssue(value, payload?.type)
+          if (reversalIssue) return reversalIssue
+          if (maxEffects === undefined) return undefined
+          if (!payload || ['stat-bonus', 'move', 'summon', 'damage-bonus'].includes(payload.type))
+            return undefined
+          const proposed = reconcileAuthoredEffectDependencies(value, [
+            ...value,
+            nativeCombatTagPayload(payload),
+          ])
+          return proposed.length > maxEffects
+            ? `This effect and its required tags exceed the ${maxEffects}-effect limit.`
+            : undefined
+        }}
+        disabled={maxEffects !== undefined && value.length >= maxEffects}
+        onAdd={(payload) =>
+          onChange(
+            [
+              ...value,
+              aim
+                ? withAuthoredAreaRecipients(aim, [nativeCombatTagPayload(payload)])[0]!
+                : nativeCombatTagPayload(payload),
+            ],
+            [...alignedDescriptions, null],
+          )
+        }
+      />
 
       <p className={styles.effectNote}>
-        Effect order is authoritative. Validation catches composition rules such as status Copy
-        placement, Sensory targeting, and Rewind self-only requirements.
+        Effects resolve in the order shown.
+        {maxEffects === undefined ? '' : ` At most ${maxEffects} effects.`}
       </p>
     </fieldset>
   )

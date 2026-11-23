@@ -112,7 +112,7 @@ function nextPlayerTurn(state: StatDrivenCombatEncounterState): StatDrivenCombat
 
 describe('P3.5 Resonance on the authoritative PV-1F Skill path', () => {
   it('spends authored AP, avoids mature-Skill cooldowns, and applies the bounded payoff', () => {
-    const resonance = resolveResonanceForPair('vanguard', 'lifebinder')
+    const resonance = resolveResonanceForPair('vanguard', 'lifebinder', 1)
     const heal = resolveMatureSkillVersion('lifebinder.mending-light', 1)
     const strike = resolveMatureSkillVersion('vanguard.forceful-strike', 2)
     if (!resonance || !heal || !strike) throw new Error('Expected representative P3.5 content.')
@@ -155,6 +155,28 @@ describe('P3.5 Resonance on the authoritative PV-1F Skill path', () => {
     expect(readPv1fActionEconomy(payoff.state, 'player')?.current).toBe(60)
     expect(payoff.state.tactical.battle.combatants.find((row) => row.id === 'recruit')?.hp).toBe(32)
     expect(payoff.resonanceState.armedByActionId).toBeNull()
+    const damageOrigins = payoff.events.filter(
+      (event) =>
+        event && typeof event === 'object' && 'event' in event && event.event === 'damage_applied',
+    )
+    expect(damageOrigins).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          effectOrigin: {
+            family: 'skill',
+            contentId: strike.id,
+            contentVersion: strike.contentVersion,
+          },
+        }),
+        expect.objectContaining({
+          effectOrigin: {
+            family: 'resonance',
+            contentId: resonance.id,
+            contentVersion: resonance.contentVersion,
+          },
+        }),
+      ]),
+    )
     expect(payoff.events).not.toContainEqual(
       expect.objectContaining({ event: 'skill_cooldown_started', actionId: strike.id }),
     )
@@ -177,7 +199,7 @@ describe('P3.5 Resonance on the authoritative PV-1F Skill path', () => {
   })
 
   it('does not mutate Resonance state when the authoritative AP check rejects the Skill', () => {
-    const resonance = resolveResonanceForPair('vanguard', 'lifebinder')
+    const resonance = resolveResonanceForPair('vanguard', 'lifebinder', 1)
     const heal = resolveMatureSkillVersion('lifebinder.mending-light', 1)
     if (!resonance || !heal) throw new Error('Expected representative P3.5 content.')
 

@@ -1,0 +1,5 @@
+Command: pnpm --filter @aurevane/web exec playwright install chromium
+CWD: /workspace/scratch/081f137b6a6d/aurevane-staff-20261019
+Exit: 1
+Observed from tool transcript: Playwright 1.62.0 attempted Chrome for Testing 151.0.7922.34 (chromium v1234), https://cdn.playwright.dev/builds/cft/151.0.7922.34/linux64/chrome-linux64.zip. Each automatic installer retry reported 100% of 0 MiB then "End of central directory record signature not found. Either not a zip file, or file is truncated." Final: Failed to install browsers; Download failure, code=1. No further download attempted.
+Parent independently checked system paths, /opt and normal caches: no usable Chrome/Chromium/Firefox/headless_shell. Native screenshot/focus/physical zoom acceptance is unavailable in this executor.

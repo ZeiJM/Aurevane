@@ -1,3 +1,7 @@
+import { AccountBannedError } from '@aurevane/game-core/errors'
+import { SkillEffectTimingProvider } from '@/components/character/skill-effect-timing-context'
+import { readCombatEffectTimingPolicy } from '@/server/master/combat-effect-timing-policy-store'
+import { availableSupernaturalChoiceTransitions } from '@aurevane/game-core/character/supernatural-content'
 import { buildCharacterProfileReadModel } from '@aurevane/game-core/character/profile'
 import { isAurevaneError } from '@aurevane/game-core/errors'
 import { headers } from 'next/headers'
@@ -15,11 +19,15 @@ import { getAuthenticatedActor } from '@/server/auth/actor'
 import { loadCharacterAttributeAllocation } from '@/server/character/character-attribute-service'
 import { loadCharacterBuildContext } from '@/server/character/character-build-service'
 import { loadCharacterProfileDisplay } from '@/server/character/character-profile-display-service'
+import { loadCharacterItems } from '@/server/character/character-items-service'
+import { createSupabaseCharacterItemsRepository } from '@/server/character/supabase-character-items-repository'
 import { loadCharacterTitleState } from '@/server/character/character-title-service'
 import { resolveCurrentCharacterSkillDetails } from '@/server/character/current-skill-detail-loader'
+import { findAuthoredSupernaturalStoryState } from '@/server/character/supernatural-story-state-service'
 import { loadSelectedCharacter } from '@/server/character/selected-character'
 import { createSupabaseCharacterAttributeRepository } from '@/server/character/supabase-character-attribute-repository'
 import { createSupabaseCharacterBuildRepository } from '@/server/character/supabase-character-build-repository'
+import { createSupabaseSupernaturalStoryStateRepository } from '@/server/character/supabase-supernatural-story-state-repository'
 import { createServerCombatContentResolver } from '@/server/combat/combat-content-resolver'
 import { serverLogger } from '@/server/logging'
 import { loadLevelProgressionCurve } from '@/server/progression/progression-service'
@@ -32,7 +40,12 @@ function isPersistenceUnavailable(error: unknown) {
 }
 
 function renderPersistenceRecovery(
-  stage: 'selected_character' | 'level_curve' | 'discipline_build' | 'attribute_allocation',
+  stage:
+    | 'selected_character'
+    | 'level_curve'
+    | 'discipline_build'
+    | 'attribute_allocation'
+    | 'effect_timing',
 ) {
   serverLogger.error('character_profile.persistence_unavailable', {
     route: '/game/character',
@@ -52,6 +65,7 @@ export default async function CharacterProfilePage() {
   try {
     actor = await getAuthenticatedActor()
   } catch (error) {
+    if (error instanceof AccountBannedError) redirect('/account/banned')
     if (isAurevaneError(error) && error.code === 'UNAUTHENTICATED') redirect('/')
     throw error
   }
@@ -93,13 +107,17 @@ export default async function CharacterProfilePage() {
   )
 
   const [
+    timingPolicyResult,
     levelCurveResult,
     disciplineBuildResult,
     currentDisciplineSkillsResult,
     attributeAllocationResult,
     titleStateResult,
     displayStateResult,
+    supernaturalStateResult,
+    equipmentResult,
   ] = await Promise.allSettled([
+    readCombatEffectTimingPolicy(),
     loadLevelProgressionCurve(
       character.progressionCycle.number,
       createSupabaseProgressionRepository(),
@@ -113,8 +131,19 @@ export default async function CharacterProfilePage() {
     ),
     loadCharacterTitleState(actor.userId, character.id),
     loadCharacterProfileDisplay(actor.userId, character.id),
+    findAuthoredSupernaturalStoryState(
+      actor.userId,
+      character.id,
+      createSupabaseSupernaturalStoryStateRepository(),
+    ),
+    loadCharacterItems(actor.userId, character.id, createSupabaseCharacterItemsRepository(false)),
   ])
 
+  if (timingPolicyResult.status === 'rejected') {
+    if (isPersistenceUnavailable(timingPolicyResult.reason))
+      return renderPersistenceRecovery('effect_timing')
+    throw timingPolicyResult.reason
+  }
   if (levelCurveResult.status === 'rejected') {
     if (isPersistenceUnavailable(levelCurveResult.reason)) {
       return renderPersistenceRecovery('level_curve')
@@ -151,6 +180,12 @@ export default async function CharacterProfilePage() {
   ) {
     throw displayStateResult.reason
   }
+  if (
+    supernaturalStateResult.status === 'rejected' &&
+    !isPersistenceUnavailable(supernaturalStateResult.reason)
+  ) {
+    throw supernaturalStateResult.reason
+  }
   const levelCurve = levelCurveResult.value
   const disciplineBuild = disciplineBuildResult.value
   const currentDisciplineSkills = currentDisciplineSkillsResult.value
@@ -159,26 +194,51 @@ export default async function CharacterProfilePage() {
     titleStateResult.status === 'fulfilled' ? titleStateResult.value.personalTitle : null
   const imageUrl =
     displayStateResult.status === 'fulfilled' ? displayStateResult.value.imageUrl : null
+  const supernaturalState =
+    supernaturalStateResult.status === 'fulfilled' ? supernaturalStateResult.value : null
+  const supernaturalChoices = supernaturalState
+    ? availableSupernaturalChoiceTransitions(supernaturalState).flatMap((transition) =>
+        transition.result.path === 'ascended' || transition.result.path === 'severed'
+          ? [
+              {
+                transitionId: transition.id,
+                transitionContentVersion: transition.contentVersion,
+                path: transition.result.path,
+              },
+            ]
+          : [],
+      )
+    : []
   return (
-    <CharacterProfileShell
-      profile={buildCharacterProfileReadModel(character, levelCurve)}
-      attributeAllocation={attributeAllocation}
-      disciplineBuild={{
-        buildVersion: disciplineBuild.build.buildVersion,
-        current: disciplineBuild.current,
-        currentSecondary: disciplineBuild.currentSecondary,
-        availablePrimaries: disciplineBuild.availablePrimaries,
-        availableSecondaries: disciplineBuild.availableSecondaries,
-        attunement: disciplineBuild.attunement,
-        disciplineSkills: {
-          capacity: currentDisciplineSkills.capacity,
-          learnedSkills: currentDisciplineSkills.learnedSkills,
-          equippedSkills: currentDisciplineSkills.equippedSkills,
-          extensions: currentDisciplineSkills.extensions,
-        },
-      }}
-      personalTitle={personalTitle}
-      imageUrl={imageUrl}
-    />
+    <SkillEffectTimingProvider policy={timingPolicyResult.value}>
+      <CharacterProfileShell
+        profile={buildCharacterProfileReadModel(character, levelCurve)}
+        attributeAllocation={attributeAllocation}
+        disciplineBuild={{
+          buildVersion: disciplineBuild.build.buildVersion,
+          current: disciplineBuild.current,
+          currentSecondary: disciplineBuild.currentSecondary,
+          availablePrimaries: disciplineBuild.availablePrimaries,
+          availableSecondaries: disciplineBuild.availableSecondaries,
+          attunement: disciplineBuild.attunement,
+          disciplineSkills: {
+            capacity: currentDisciplineSkills.capacity,
+            learnedSkills: currentDisciplineSkills.learnedSkills,
+            equippedSkills: currentDisciplineSkills.equippedSkills,
+            extensions: currentDisciplineSkills.extensions,
+          },
+        }}
+        personalTitle={personalTitle}
+        imageUrl={imageUrl}
+        equipmentBonuses={
+          equipmentResult.status === 'fulfilled' &&
+          equipmentResult.value &&
+          !equipmentResult.value.equipmentIssue
+            ? (equipmentResult.value.statBonuses ?? null)
+            : null
+        }
+        supernatural={{ state: supernaturalState, choices: supernaturalChoices }}
+      />
+    </SkillEffectTimingProvider>
   )
 }

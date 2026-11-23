@@ -1,0 +1,37 @@
+.requirements {
+  min-width: 0;
+  max-width: 100%;
+  display: grid;
+  gap: 0.75rem;
+}
+.requirements > label,
+.stats label {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+.requirements input[type='number'] {
+  width: 6rem;
+  max-width: 100%;
+}
+.disciplines {
+  min-width: 0;
+}
+.choices {
+  display: grid;
+  gap: 0.25rem;
+  max-height: 10rem;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+}
+.choices label {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(9rem, 100%), 1fr));
+  gap: 0.5rem;
+  min-width: 0;
+}

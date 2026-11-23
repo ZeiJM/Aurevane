@@ -1,0 +1,178 @@
+{
+  "scope": "Controlled offline native Skia source experiments, not browser/CI/handset acceptance",
+  "sourceBaseline": "93fe885205f304aa0135961b5ea5318ba4c834fe",
+  "lagRequirement": "Nick explicitly reaffirmed significant map lag is in this same release scope",
+  "change": "Reuse a translated padded consecutive dry terrain composite. Preserve liquid/coast ordering and original small-phone idle path. Single composite capped4M pixels; original8M sector and8M projection budgets unchanged. Immutable three-cloud snapshots.",
+  "rejected": [
+    "A composited-lighting experiment lacked reliable whole-scene benefit; removed.",
+    "Initial native Image shim could snapshot before asynchronous decode. Those experiment timings and image comparisons are invalid for decision making; replaced by synchronous source-pixel fallback until decode settles."
+  ],
+  "repeats": [
+    {
+      "repeat": 0,
+      "original": {
+        "medianStageSumMs": 58.29649299999983,
+        "medianTerrainMs": 19.9231079999995,
+        "rawLogSHA256": "e3c9b69acce13c278d8f1f6218face9655d5764b751c3478638c1642922cbc67",
+        "measuredSources": {
+          "apps/web/src/components/world/map-renderer.ts": "a694085b72c782adc2ca86b389a6e36eef42abe4f0ac2cc1bdbb8d42da535fa5",
+          "apps/web/src/components/world/map-water.ts": "5bcd797cf8090838c8500b44895447484409299c7fab7d7aa1a84bdd04442fd4",
+          "apps/web/e2e/world-map-correction-scenes.ts": "90d8079717a443ad4ba0cdc7042a9544e72a76dbb45aa809b1f6bcda192dce50"
+        }
+      },
+      "repair": {
+        "medianStageSumMs": 47.873549999999796,
+        "medianTerrainMs": 9.847779000000173,
+        "rawLogSHA256": "d0fd569acd141f43e03be927c0c11ab5b0617b1a7b7f3c91f4f4f500bb8e0a07",
+        "measuredSources": {
+          "apps/web/src/components/world/map-renderer.ts": "a694085b72c782adc2ca86b389a6e36eef42abe4f0ac2cc1bdbb8d42da535fa5",
+          "apps/web/src/components/world/map-water.ts": "5bcd797cf8090838c8500b44895447484409299c7fab7d7aa1a84bdd04442fd4",
+          "apps/web/e2e/world-map-correction-scenes.ts": "90d8079717a443ad4ba0cdc7042a9544e72a76dbb45aa809b1f6bcda192dce50"
+        }
+      },
+      "stageSumReductionPercent": 17.879193865058163
+    },
+    {
+      "repeat": 1,
+      "original": {
+        "medianStageSumMs": 56.331165999999484,
+        "medianTerrainMs": 18.962928999999804,
+        "rawLogSHA256": "f3088994a5ac3960287ca1d34017bb50e9a85184a75aa08ef78f74d4bc57b876",
+        "measuredSources": {
+          "apps/web/src/components/world/map-renderer.ts": "a694085b72c782adc2ca86b389a6e36eef42abe4f0ac2cc1bdbb8d42da535fa5",
+          "apps/web/src/components/world/map-water.ts": "5bcd797cf8090838c8500b44895447484409299c7fab7d7aa1a84bdd04442fd4",
+          "apps/web/e2e/world-map-correction-scenes.ts": "90d8079717a443ad4ba0cdc7042a9544e72a76dbb45aa809b1f6bcda192dce50"
+        }
+      },
+      "repair": {
+        "medianStageSumMs": 46.349943500000336,
+        "medianTerrainMs": 9.672502999999324,
+        "rawLogSHA256": "9c35681a73f6c20d598b6d0acc3b6b37874190f97cabeb8f42501d11eed04612",
+        "measuredSources": {
+          "apps/web/src/components/world/map-renderer.ts": "a694085b72c782adc2ca86b389a6e36eef42abe4f0ac2cc1bdbb8d42da535fa5",
+          "apps/web/src/components/world/map-water.ts": "5bcd797cf8090838c8500b44895447484409299c7fab7d7aa1a84bdd04442fd4",
+          "apps/web/e2e/world-map-correction-scenes.ts": "90d8079717a443ad4ba0cdc7042a9544e72a76dbb45aa809b1f6bcda192dce50"
+        }
+      },
+      "stageSumReductionPercent": 17.718828152783562
+    },
+    {
+      "repeat": 2,
+      "original": {
+        "medianStageSumMs": 58.10879999999952,
+        "medianTerrainMs": 19.98678949999976,
+        "rawLogSHA256": "ee0c536ddcec2eea1fbbba1c8bde219a1d39de0bafbeea4fd5824249b2bd6081",
+        "measuredSources": {
+          "apps/web/src/components/world/map-renderer.ts": "a694085b72c782adc2ca86b389a6e36eef42abe4f0ac2cc1bdbb8d42da535fa5",
+          "apps/web/src/components/world/map-water.ts": "5bcd797cf8090838c8500b44895447484409299c7fab7d7aa1a84bdd04442fd4",
+          "apps/web/e2e/world-map-correction-scenes.ts": "90d8079717a443ad4ba0cdc7042a9544e72a76dbb45aa809b1f6bcda192dce50"
+        }
+      },
+      "repair": {
+        "medianStageSumMs": 48.91450799999984,
+        "medianTerrainMs": 10.140845500000069,
+        "rawLogSHA256": "48444093308c642638934b1259a12b03bf896ea7adac3437cd51218375b78eed",
+        "measuredSources": {
+          "apps/web/src/components/world/map-renderer.ts": "a694085b72c782adc2ca86b389a6e36eef42abe4f0ac2cc1bdbb8d42da535fa5",
+          "apps/web/src/components/world/map-water.ts": "5bcd797cf8090838c8500b44895447484409299c7fab7d7aa1a84bdd04442fd4",
+          "apps/web/e2e/world-map-correction-scenes.ts": "90d8079717a443ad4ba0cdc7042a9544e72a76dbb45aa809b1f6bcda192dce50"
+        }
+      },
+      "stageSumReductionPercent": 15.82254667107177
+    }
+  ],
+  "pixelComparison": {
+    "movingScene": {
+      "maximumChannelDifference": 19,
+      "meanChannelDifference": 0.25171320802328584,
+      "channelsOver8": 86
+    },
+    "explanation": "Cached fractional translation introduces a small filtering difference; not exact pixel identity. No claim of native visual acceptance."
+  },
+  "regressions": {
+    "dryComposite": "Fails on old source (projectedGroundSectors0), passes on repair; same bitmap over short1-tile movement, no new layers/ground builds, refreshes after ground art reload",
+    "clouds": "Retained silhouettes drift under same native images, close exactly once at disposal",
+    "fullWorld": "988/78 passed before colosseum integration; final source still requires full check"
+  },
+  "art": {
+    "originalSelectedMasterUnchanged": true,
+    "registration": [
+      {
+        "name": "left",
+        "x": 0,
+        "matrix": [
+          [0.9992779736725502, 0.0025019212840888035, -0.2799298938639578],
+          [0.0016781715536216002, 0.9980613921022918, -2.2678605701955217]
+        ],
+        "inliers": 31,
+        "maxResidualMasterPixels": 1.8331702984172156
+      },
+      {
+        "name": "rear",
+        "x": 448,
+        "matrix": [
+          [0.9998309457839613, -0.00039144019336192413, 0.08516732496210859],
+          [0.0008367387844128562, 1.00325791428403, -1.5485171255084687]
+        ],
+        "inliers": 30,
+        "maxResidualMasterPixels": 1.1345716272837996
+      },
+      {
+        "name": "right",
+        "x": 896,
+        "matrix": [
+          [1.0023768729734757, 0.008160379379793341, -2.0496100501361223],
+          [0.0010290021535050476, 0.9962414916401505, -4.4914327821716595]
+        ],
+        "inliers": 22,
+        "maxResidualMasterPixels": 1.85727039649496
+      }
+    ],
+    "sourceAcceptance": "Center and two lateral normal source renders inspected; native normal/max, lateral and desktop/mobile execution remains mandatory. Top masonry companion detail is not a full replacement master.",
+    "loading": "Only visible public colosseum patches above1536 projected backing pixels; same original footprint/floor ellipse/actor occlusion/entry geometry. Detail in both complementary floor/wall clips."
+  },
+  "medianReductionPercent": 17.718828152783562,
+  "workTreeSourcesAtDocumentation": {
+    "apps/web/src/components/world/map-renderer.ts": "923c73163032884548b4d590daef79828737b6cc27a33adfe90f01d73f3b421c",
+    ".github/scripts/probe-world-dry-translation.cjs": "14701727101abfcbce92f528dde27aff94a49407d9ede2cdab1d4d55d32adef2",
+    "tools/pack-colosseum-details.mjs": "77c1f49876598056c59e53c181a895a09f0a64b2ce2478e8c49dafaa0c8426b4"
+  },
+  "finalCleanProbe": {
+    "control": {
+      "arm": "separate-sector-projections",
+      "sources": {
+        "apps/web/src/components/world/map-renderer.ts": "923c73163032884548b4d590daef79828737b6cc27a33adfe90f01d73f3b421c",
+        "apps/web/src/components/world/map-water.ts": "5bcd797cf8090838c8500b44895447484409299c7fab7d7aa1a84bdd04442fd4",
+        "apps/web/e2e/world-map-correction-scenes.ts": "bc6fa87a40fa68bec5e2ee67796ee9284ca8d46ef4c4d80335516fd06e90e5f1"
+      },
+      "medianPaintWithReadbackMs": 59.04279399999996,
+      "p95PaintWithReadbackMs": 69.44344600000022,
+      "finalCamera": {
+        "cameraX": "770.4365214199491",
+        "cameraY": "256.5"
+      }
+    },
+    "repair": {
+      "arm": "translated-consecutive-dry-run",
+      "sources": {
+        "apps/web/src/components/world/map-renderer.ts": "923c73163032884548b4d590daef79828737b6cc27a33adfe90f01d73f3b421c",
+        "apps/web/src/components/world/map-water.ts": "5bcd797cf8090838c8500b44895447484409299c7fab7d7aa1a84bdd04442fd4",
+        "apps/web/e2e/world-map-correction-scenes.ts": "bc6fa87a40fa68bec5e2ee67796ee9284ca8d46ef4c4d80335516fd06e90e5f1"
+      },
+      "medianPaintWithReadbackMs": 48.65317899999991,
+      "p95PaintWithReadbackMs": 256.92616,
+      "finalCamera": {
+        "cameraX": "770.4365214199491",
+        "cameraY": "256.5"
+      }
+    }
+  },
+  "frozenCandidateSources": {
+    "apps/web/src/components/world/map-renderer.ts": "08eece29f226041a3f89f79af9ade637a50faebbd1eea1d271675cce611f49f1",
+    ".github/scripts/probe-world-dry-translation.cjs": "14701727101abfcbce92f528dde27aff94a49407d9ede2cdab1d4d55d32adef2",
+    "tools/pack-colosseum-details.mjs": "4e25957396a483ee17ec7f2844d2b3660bbb47a1a2e3187f5878176529206908",
+    "apps/web/src/components/world/world-workspace.tsx": "71ba295fbe149aff992ff636f61922697c5fec2a5f6b748c860649840365b381",
+    "apps/web/src/components/world/world-destination-card.tsx": "c598be040e297628703a87e48ce124b91e18016e77aa6974cfafe517b0e10dce"
+  },
+  "finalGate": "Focused checks pass; final full local quality and exact-source hosted native gates pending. Prior benchmark hashes remain attached only to the measured sources."
+}

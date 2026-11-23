@@ -7,6 +7,24 @@ import {
 } from './tactical-hall-arenas'
 
 describe('P2.7 Tactical Hall arenas', () => {
+  it.each([
+    ['duel-yard', 9, 63],
+    ['crossroads-court', 12, 84],
+    ['terraced-yard', 15, 105],
+  ] as const)('builds the standard %s board with seven rows and %i columns', (id, width, count) => {
+    const arena = getTacticalHallArena(id)
+    expect(arena).toMatchObject({ width, height: 7, scale: 'duel', exitPolicy: 'ABORT_PRACTICE' })
+    expect(arena.tiles).toHaveLength(count)
+    expect(arena.tiles.at(-1)?.position).toEqual({ x: width - 1, y: 6 })
+    expect(arena.playerSpawn).toEqual({ x: 1, y: 3 })
+    expect(arena.recruitSpawn).toEqual({ x: width - 2, y: 3 })
+    for (const spawn of [arena.playerSpawn, arena.recruitSpawn]) {
+      expect(
+        arena.tiles.find((tile) => tile.position.x === spawn.x && tile.position.y === spawn.y),
+      ).toMatchObject({ elevation: 0, terrainId: 'open-ground' })
+    }
+  })
+
   it('keeps the deterministic micro floor and adds a materially larger duel arena', () => {
     const micro = getTacticalHallArena('basic-training-floor')
     const duel = getTacticalHallArena('duel-yard')

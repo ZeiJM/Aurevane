@@ -1,5 +1,7 @@
 'use client'
 
+import { contentMediaKeySource } from '@aurevane/game-core/combat/content-media'
+
 import {
   AUDIO_SETTINGS_STORAGE_KEY,
   AudioDirector,
@@ -30,8 +32,11 @@ import {
   createDefaultSiteMusicConfig,
   parseSiteMusicConfig,
   resolveSiteMusicTrack,
+  siteMusicSourceError,
   SITE_MUSIC_UPDATED_EVENT,
+  SITE_MUSIC_PREVIEW_EVENT,
   type SiteMusicConfig,
+  type SiteMusicTrack,
 } from '@/lib/site-music'
 
 interface AudioContextValue {
@@ -42,6 +47,14 @@ interface AudioContextValue {
   unlock(): Promise<AudioDirectorState>
   playAsset(id: string, priority?: number): Promise<boolean>
   stopSfx(): void
+  music: {
+    track: SiteMusicTrack | null
+    playing: boolean
+    currentTime: number
+    duration: number
+    error: string | null
+  }
+  toggleMusicPlayback(): Promise<void>
 }
 
 const AudioRuntimeContext = createContext<AudioContextValue | null>(null)
@@ -49,6 +62,9 @@ const AudioRuntimeContext = createContext<AudioContextValue | null>(null)
 export function AudioProvider({ children }: PropsWithChildren) {
   const pathname = usePathname()
   const musicElementRef = useRef<HTMLAudioElement>(null)
+  const musicPausedByUser = useRef(false)
+  const musicPreviewActive = useRef(false)
+  const [musicError, setMusicError] = useState<{ url: string; message: string } | null>(null)
   const [director] = useState(() => new AudioDirector())
   const [settings, dispatch] = useReducer(
     reduceAudioSettings,
@@ -58,6 +74,11 @@ export function AudioProvider({ children }: PropsWithChildren) {
   const [audioState, setAudioState] = useState<AudioDirectorState>('locked')
   const [storageReady, setStorageReady] = useState(false)
   const [interactionUnlocked, setInteractionUnlocked] = useState(false)
+  const [musicPlayback, setMusicPlayback] = useState({
+    playing: false,
+    currentTime: 0,
+    duration: 0,
+  })
   const [siteMusicConfig, setSiteMusicConfig] = useState<SiteMusicConfig | null>(null)
   const activeTrack = useMemo(
     () => (siteMusicConfig ? resolveSiteMusicTrack(siteMusicConfig, pathname) : null),
@@ -126,11 +147,55 @@ export function AudioProvider({ children }: PropsWithChildren) {
     }
   }, [])
 
+  const playMusic = useCallback((element: HTMLAudioElement) => {
+    if (musicPreviewActive.current || musicPausedByUser.current) return Promise.resolve(false)
+    const url = element.dataset.trackUrl
+    if (!url || siteMusicSourceError(url)) return Promise.resolve(false)
+    return attemptSiteMusicPlayback(
+      () => element.play(),
+      document.hidden,
+      (error) => {
+        // A source replacement, preview or user pause can legitimately abort an old play request.
+        if (
+          !url ||
+          url !== element.dataset.trackUrl ||
+          !element.paused ||
+          document.hidden ||
+          musicPreviewActive.current ||
+          musicPausedByUser.current
+        )
+          return
+        if (error instanceof Error && error.name === 'AbortError') return
+        setMusicError({
+          url,
+          message:
+            error instanceof Error && error.name === 'NotAllowedError'
+              ? 'Playback needs your permission. Select Play music to start.'
+              : 'The audio source could not be played. Check its URL, format and access permissions.',
+        })
+      },
+    )
+  }, [])
+
+  useEffect(() => {
+    const preview = (event: Event) => {
+      if (!(event instanceof CustomEvent) || typeof event.detail !== 'boolean') return
+      musicPreviewActive.current = event.detail
+      const element = musicElementRef.current
+      if (!element) return
+      if (event.detail) element.pause()
+      else if (element.dataset.trackUrl) void playMusic(element)
+    }
+    window.addEventListener(SITE_MUSIC_PREVIEW_EVENT, preview)
+    return () => window.removeEventListener(SITE_MUSIC_PREVIEW_EVENT, preview)
+  }, [playMusic])
+
   useEffect(() => {
     const element = musicElementRef.current
     if (!element) return
 
-    if (!activeTrack) {
+    if (!activeTrack || siteMusicSourceError(activeTrack.url)) {
+      musicPausedByUser.current = false
       element.pause()
       element.removeAttribute('src')
       element.removeAttribute('data-track-url')
@@ -143,14 +208,17 @@ export function AudioProvider({ children }: PropsWithChildren) {
     element.volume = musicVolume
 
     if (element.dataset.trackUrl !== activeTrack.url) {
+      musicPausedByUser.current = false
       element.pause()
       element.src = activeTrack.url
       element.dataset.trackUrl = activeTrack.url
       element.load()
     }
 
-    void attemptSiteMusicPlayback(() => element.play(), document.hidden)
-  }, [activeTrack, musicVolume])
+    if (!musicPausedByUser.current) {
+      void playMusic(element)
+    }
+  }, [activeTrack, musicVolume, playMusic])
 
   useEffect(() => {
     const element = musicElementRef.current
@@ -176,13 +244,13 @@ export function AudioProvider({ children }: PropsWithChildren) {
         element?.pause()
         return
       }
-      if (activeTrack && element) {
-        void attemptSiteMusicPlayback(() => element.play(), false)
+      if (activeTrack && element && !musicPausedByUser.current) {
+        void playMusic(element)
       }
     }
     document.addEventListener('visibilitychange', handleVisibility)
     return () => document.removeEventListener('visibilitychange', handleVisibility)
-  }, [activeTrack, director])
+  }, [activeTrack, director, playMusic])
 
   const setVolume = useCallback((channel: AudioChannel, value: number) => {
     dispatch({ type: 'set-volume', channel, value })
@@ -204,13 +272,19 @@ export function AudioProvider({ children }: PropsWithChildren) {
     }
 
     let attempting = false
-    const unlockFromInteraction = () => {
+    const unlockFromInteraction = (event: Event) => {
       setInteractionUnlocked(true)
       const element = musicElementRef.current
-      if (activeTrack && element && !document.hidden) {
-        void element.play().catch(() => {
-          // The same gesture also unlocks the Web Audio graph below.
-        })
+      const playbackControl =
+        event.target instanceof Element && event.target.closest('[data-music-playback]')
+      if (
+        activeTrack &&
+        element &&
+        !document.hidden &&
+        !musicPausedByUser.current &&
+        !playbackControl
+      ) {
+        void playMusic(element)
       }
       if (attempting || audioState !== 'locked') return
       attempting = true
@@ -226,30 +300,108 @@ export function AudioProvider({ children }: PropsWithChildren) {
       window.removeEventListener('pointerdown', unlockFromInteraction, true)
       window.removeEventListener('keydown', unlockFromInteraction, true)
     }
-  }, [activeTrack, audioState, interactionUnlocked, unlock])
+  }, [activeTrack, audioState, interactionUnlocked, unlock, playMusic])
 
   const playAsset = useCallback(
     (id: string, priority = 50) => {
-      const asset = audioAssetRegistry.get(id)
+      const src = contentMediaKeySource(id)
+      const asset = src
+        ? {
+            id,
+            src,
+            kind: 'sfx' as const,
+            channel: 'sfx' as const,
+            status: 'approved' as const,
+            requestId: 'finalized-content-media',
+            loop: false,
+            preload: 'none' as const,
+          }
+        : audioAssetRegistry.get(id)
       return asset ? director.playAsset(asset, priority) : Promise.resolve(false)
     },
     [director],
   )
   const stopSfx = useCallback(() => director.stopChannel('sfx'), [director])
+  const toggleMusicPlayback = useCallback(async () => {
+    const element = musicElementRef.current
+    if (!element || !activeTrack) return
+    if (element.paused) {
+      musicPausedByUser.current = false
+      await playMusic(element)
+    } else {
+      musicPausedByUser.current = true
+      element.pause()
+    }
+  }, [activeTrack, playMusic])
+  const updateMusicPlayback = useCallback(() => {
+    const element = musicElementRef.current
+    if (!element) return
+    setMusicPlayback({
+      playing: !element.paused,
+      currentTime: element.currentTime,
+      duration: Number.isFinite(element.duration) ? element.duration : 0,
+    })
+  }, [])
+  const contextValue = useMemo<AudioContextValue>(
+    () => ({
+      settings,
+      audioState,
+      setVolume,
+      toggleMute,
+      unlock,
+      playAsset,
+      stopSfx,
+      music: {
+        track: activeTrack,
+        ...musicPlayback,
+        error: activeTrack
+          ? (siteMusicSourceError(activeTrack.url) ??
+            (musicError?.url === activeTrack.url ? musicError.message : null))
+          : null,
+      },
+      toggleMusicPlayback,
+    }),
+    [
+      settings,
+      audioState,
+      setVolume,
+      toggleMute,
+      unlock,
+      playAsset,
+      stopSfx,
+      activeTrack,
+      musicPlayback,
+      musicError,
+      toggleMusicPlayback,
+    ],
+  )
 
   return (
-    <AudioRuntimeContext.Provider
-      value={{
-        settings,
-        audioState,
-        setVolume,
-        toggleMute,
-        unlock,
-        playAsset,
-        stopSfx,
-      }}
-    >
-      <audio ref={musicElementRef} aria-hidden="true" data-testid="site-music-player" />
+    <AudioRuntimeContext.Provider value={contextValue}>
+      <audio
+        ref={musicElementRef}
+        aria-hidden="true"
+        data-testid="site-music-player"
+        onPlay={() => {
+          setMusicError(null)
+          updateMusicPlayback()
+        }}
+        onError={() => {
+          const url = musicElementRef.current?.dataset.trackUrl
+          if (url)
+            setMusicError({
+              url,
+              message:
+                'The audio source could not be played. Check its URL, format and access permissions.',
+            })
+          updateMusicPlayback()
+        }}
+        onPause={updateMusicPlayback}
+        onTimeUpdate={updateMusicPlayback}
+        onLoadedMetadata={updateMusicPlayback}
+        onEmptied={updateMusicPlayback}
+        onEnded={updateMusicPlayback}
+      />
       {children}
     </AudioRuntimeContext.Provider>
   )

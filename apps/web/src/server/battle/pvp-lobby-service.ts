@@ -1,4 +1,14 @@
+import { throwItemRpcError } from '@/server/character/supabase-character-items-repository'
+import { throwCoreConversionAdmissionError } from './core-conversion-admission-error'
+import { createBattleUsageProvenance } from './usage-balance-provenance'
+import { assertPreparedBattleSource } from '@/server/battle/battle-source-authority'
+import { projectPublicCombat } from '@aurevane/game-core/combat/public-combat-presentation'
+import { readBattlefieldElevationPolicy } from '@/server/master/battlefield-elevation-policy-store'
+import { readCombatEffectTimingPolicy } from '@/server/master/combat-effect-timing-policy-store'
+import { omitPendingBattlePayloads } from './battle-live-viewer-projection'
 import 'server-only'
+
+import { loadPinnedBattleCharacterImages } from './battle-character-appearance'
 
 import { randomInt, randomUUID } from 'node:crypto'
 
@@ -20,15 +30,25 @@ import {
   calculatePv1fBasicAttackDamage,
   createPv1fTemporaryResources,
   preparePv1fTurnEconomy,
+  PV1F_COMBAT_CONTENT,
 } from '@aurevane/game-core/combat/pv1f-action-economy'
+import { createPvpQualityResources } from '@aurevane/game-core/combat/pvp-quality'
+import { activateCombatAbilitySources } from '@aurevane/game-core/combat/combat-ability-command'
+import { buildBattlePrivacyJournalInput } from './battle-history-privacy'
 import {
   createCharacterDerivedCombatProfile,
-  createStatDrivenCombatEncounterState,
+  createDuelBalancedCombatEncounterState,
   validateStatDrivenCombatEncounterState,
   type StatDrivenCombatEncounterState,
 } from '@aurevane/game-core/combat/stat-driven-combat'
 import { getTacticalHallArena } from '@aurevane/game-core/combat/tactical-hall-arenas'
 import { AurevaneError } from '@aurevane/game-core/errors'
+import {
+  defaultBattlefieldElevationPolicy,
+  parseBattlefieldElevationPolicy,
+  type BattlefieldElevationPolicy,
+  createStandardBattlefieldTiles,
+} from '@aurevane/game-core/combat/standard-battlefield'
 import type { PvpMode } from '@aurevane/validation/combat/pvp'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
@@ -43,7 +63,9 @@ import { createServerCombatContentResolver } from '@/server/combat/combat-conten
 
 import {
   createBattleBuildAuthoritySnapshot,
+  captureBattleBuildAbilitySources,
   createResolvedBattleBuildAuthoritySnapshot,
+  narratorIdentityForCharacter,
   type BattleBuildAuthoritySnapshot,
 } from './battle-build-authority'
 import { projectBattleStatusStateForViewer } from './battle-live-viewer-projection'
@@ -56,7 +78,6 @@ import { createSpectatorBattleViewerEntitlement } from './battle-viewer-entitlem
 
 const PVP_RULES_VERSION = 3
 const PVP_CONTENT_VERSION = 2
-const PVP_BASE_MOVEMENT_UNITS = 10
 
 export interface PvpLobbyMemberView {
   userId: string
@@ -97,6 +118,7 @@ export interface PvpBattleParticipantView {
 }
 
 export interface PvpBattleMetadata {
+  origin?: 'world' | 'battle-hall'
   lobbyId: string
   mode: PvpMode
   battleKey: string
@@ -164,6 +186,8 @@ function unavailable(message = 'PvP services are unavailable right now.'): Aurev
 }
 
 function mapRpcError(error: { code?: string; message?: string }): never {
+  throwCoreConversionAdmissionError(error)
+  if (error.message?.startsWith('ITEM_')) throwItemRpcError(error)
   const message = error.message ?? ''
   if (error.code === '42501') {
     throw new AurevaneError(
@@ -211,19 +235,20 @@ async function decorateLobbyMembers(
 }
 
 async function decorateBattleParticipants(
+  battleSessionId: string,
   participants: Omit<PvpBattleParticipantView, 'profileImageUrl'>[],
 ): Promise<PvpBattleParticipantView[]> {
-  let images: ReadonlyMap<string, string> = new Map()
-  try {
-    images = await loadPublicCharacterProfileImageMap(
-      participants.map((participant) => participant.characterId),
-    )
-  } catch {
-    // Cosmetic image failure falls back to initials in the PvP surfaces.
-  }
+  const pins = await loadPinnedBattleCharacterImages(battleSessionId).catch(() => new Map())
+  const unpinned = participants
+    .map((participant) => participant.characterId)
+    .filter((characterId) => !pins.has(characterId))
+  const images = await loadPublicCharacterProfileImageMap(unpinned).catch(() => new Map())
   return participants.map((participant) => ({
     ...participant,
-    profileImageUrl: images.get(participant.characterId) ?? null,
+    profileImageUrl:
+      (pins.has(participant.characterId)
+        ? pins.get(participant.characterId)
+        : images.get(participant.characterId)) ?? null,
   }))
 }
 
@@ -374,6 +399,7 @@ export function createPvpEncounter(
   roster: readonly PvpEncounterRosterEntry[],
   teamSizes: readonly [number, number, number],
   buildAuthority?: BattleBuildAuthoritySnapshot,
+  elevationPolicy: BattlefieldElevationPolicy = defaultBattlefieldElevationPolicy(),
 ): BattleAuthoritativeEncounterState {
   const arena = getTacticalHallArena('duel-yard')
   const profiles = []
@@ -424,12 +450,15 @@ export function createPvpEncounter(
       id: combatantId,
       teamId: `team:${member.teamIndex}`,
       initiative: derived.stats.initiative.value,
-      baseMovementBudget: PVP_BASE_MOVEMENT_UNITS,
+      baseMovementBudget: derived.stats.movement.value,
       hp: derived.stats.maxHp.value,
       maxHp: derived.stats.maxHp.value,
       mp: derived.stats.maxMp.value,
       maxMp: derived.stats.maxMp.value,
-      temporaryResources: createPv1fTemporaryResources(basicDamage),
+      temporaryResources: [
+        ...createPv1fTemporaryResources(basicDamage),
+        ...createPvpQualityResources(),
+      ].sort((left, right) => left.key.localeCompare(right.key)),
     })
   }
 
@@ -444,14 +473,20 @@ export function createPvpEncounter(
   ).state
 
   const encounter = preparePv1fTurnEconomy(
-    createStatDrivenCombatEncounterState(
+    createDuelBalancedCombatEncounterState(
       createCombatEncounterState(
         createTacticalBattleState({
           battle,
           width: arena.width,
           height: arena.height,
           terrains: P2_2_VERTICAL_SLICE_TERRAINS,
-          tiles: arena.tiles,
+          tiles: createStandardBattlefieldTiles({
+            elevationPolicy,
+            width: arena.width,
+            height: arena.height,
+            seed: battle.rng.seed,
+            spawns: placements.map((placement) => placement.position),
+          }),
           movementProfiles,
           placements,
         }),
@@ -462,6 +497,7 @@ export function createPvpEncounter(
 
   return {
     ...encounter,
+    battlefieldElevationPolicy: parseBattlefieldElevationPolicy(elevationPolicy),
     buildAuthority:
       buildAuthority ??
       createBattleBuildAuthoritySnapshot(
@@ -470,6 +506,7 @@ export function createPvpEncounter(
           combatantId: `character:${character.id}`,
           characterId: character.id,
           snapshot: buildSnapshot,
+          narratorIdentity: narratorIdentityForCharacter(character),
         })),
       ),
   }
@@ -482,8 +519,8 @@ function projectSnapshot(input: unknown): BattleSessionProjection {
   if (issues.length > 0) throw unavailable('The stored PvP battle is invalid.')
   const viewer = createSpectatorBattleViewerEntitlement()
   const battle = candidate.tactical.battle
-  return {
-    ...candidate,
+  return projectPublicCombat({
+    ...omitPendingBattlePayloads(candidate),
     statusState: projectBattleStatusStateForViewer(candidate, viewer),
     tactical: {
       ...candidate.tactical,
@@ -495,6 +532,7 @@ function projectSnapshot(input: unknown): BattleSessionProjection {
         lifecycle: battle.lifecycle,
         combatants: battle.combatants,
         initiativeOrder: battle.initiativeOrder,
+        ...(battle.initiativeTieOrder ? { initiativeTieOrder: battle.initiativeTieOrder } : {}),
         ...(battle.roundInitiativeModifiers
           ? { roundInitiativeModifiers: battle.roundInitiativeModifiers }
           : {}),
@@ -503,7 +541,7 @@ function projectSnapshot(input: unknown): BattleSessionProjection {
         currentTurn: battle.currentTurn,
       },
     },
-  }
+  })
 }
 
 export async function getPvpLobby(userId: string, lobbyId: string): Promise<PvpLobbyView> {
@@ -599,36 +637,99 @@ export async function startPvpLobby(
       member.userId,
       character.id,
       builds,
+      true,
     )
+    assertPreparedBattleSource(character, buildSnapshot)
     roster.push({ member, character, buildSnapshot })
   }
 
+  const liveResolver = createServerCombatContentResolver()
+  const catalogue = await liveResolver.captureCurrentCatalogue?.()
+  const combatContentResolver = catalogue?.resolver ?? liveResolver
   const buildAuthority = await createResolvedBattleBuildAuthoritySnapshot(
     'pvp',
     roster.map(({ character, buildSnapshot }) => ({
       combatantId: `character:${character.id}`,
       characterId: character.id,
       snapshot: buildSnapshot,
+      narratorIdentity: narratorIdentityForCharacter(character),
     })),
-    createServerCombatContentResolver(),
+    combatContentResolver,
   )
-  const encounter = createPvpEncounter(roster, lobby.teamSizes, buildAuthority)
+  const elevationPolicy = parseBattlefieldElevationPolicy(await readBattlefieldElevationPolicy())
+  let encounter = createPvpEncounter(roster, lobby.teamSizes, buildAuthority, elevationPolicy)
+  encounter.battlefieldElevationPolicy = elevationPolicy
+  encounter.effectTimingPolicy = catalogue?.policy ?? (await readCombatEffectTimingPolicy())
+  encounter.effectStackingPolicyVersion = 1
+  encounter.percentageDotPolicyVersion = 1
+  encounter.dotTriggerPolicyVersion = 2
+  encounter.skillPacketPolicyVersion = 1
+  encounter.displacementPolicyVersion = 1
+  encounter.frozenGroundPolicyVersion = 1
+  encounter.airbornePolicyVersion = 1
+  encounter.airborneJumpPolicyVersion = 1
+  encounter.elementalDamagePolicyVersion = 2
+  encounter.dynamicInitiativePolicyVersion = 1
+  encounter.healingDownPolicyVersion = 1
+  encounter.conditionalDamageRoundingPolicyVersion = 1
+  encounter.blindsideActivationPolicyVersion = 1
+  encounter.abilityCooldownScopeVersion = 1
+  encounter.reflectBarrierPolicyVersion = 1
+  encounter.supportActionPolicyVersion = 1
+  if (encounter.effectTimingPolicy?.tagAuthority === 'global') {
+    encounter.modularSkillPolicyVersion = 1
+  }
+  encounter.groundEffectPolicyVersion = 1
+  encounter.groundContactPolicyVersion = 1
+  encounter.displacementOriginPolicyVersion = 1
+  encounter.rangeModifierPolicyVersion = 1
+  encounter.reversalPolicyVersion = 1
+  encounter.pierceCriticalPolicyVersion = 1
+  encounter.summonPotencyPolicyVersion = 1
+  encounter.ruinPolicyVersion = 1
+  const startSnapshot = encounter
+  const sources = await captureBattleBuildAbilitySources(
+    encounter,
+    buildAuthority,
+    combatContentResolver,
+  )
+  const initialized = activateCombatAbilitySources(encounter, sources, PV1F_COMBAT_CONTENT, true)
+  encounter = { ...initialized.state, buildAuthority } as typeof encounter
+  const usageBalance = await createBattleUsageProvenance(
+    'pvp',
+    roster.map(({ member }) => member.userId),
+  )
   const battle = encounter.tactical.battle
   const supabase = createSupabaseAdminClient()
-  const { data, error } = await supabase.rpc('create_pvp_battle_session_v1', {
-    p_actor_user_id: userId,
-    p_lobby_id: lobbyId,
-    p_battle_id: battle.battleId,
-    p_rules_version: battle.rulesVersion,
-    p_content_version: battle.contentVersion,
-    p_initial_snapshot: encounter,
-    p_participants: roster.map(({ member, character }) => ({
-      combatant_id: `character:${character.id}`,
-      user_id: member.userId,
-      character_id: character.id,
-      team_index: member.teamIndex,
-    })),
-  })
+  const { data, error } = await supabase.rpc(
+    sources.length ? 'create_pvp_battle_session_v2' : 'create_pvp_battle_session_v1',
+    {
+      p_actor_user_id: userId,
+      p_lobby_id: lobbyId,
+      p_battle_id: battle.battleId,
+      p_rules_version: battle.rulesVersion,
+      p_content_version: battle.contentVersion,
+      p_initial_snapshot: { ...encounter, usageBalance },
+      ...(sources.length
+        ? {
+            p_start_snapshot: { ...startSnapshot, usageBalance },
+            p_initial_events: initialized.events,
+            p_privacy_journal: buildBattlePrivacyJournalInput({
+              before: startSnapshot,
+              after: encounter,
+              commandKind: 'system',
+              events: initialized.events,
+            }),
+          }
+        : {}),
+      p_participants: roster.map(({ member, character }) => ({
+        combatant_id: `character:${character.id}`,
+        user_id: member.userId,
+        character_id: character.id,
+        team_index: member.teamIndex,
+      })),
+    },
+  )
   if (error) mapRpcError(error)
   const row = Array.isArray(data) && data.length === 1 && isObject(data[0]) ? data[0] : null
   const battleSessionId = row ? readString(row.battle_session_id) : null
@@ -655,8 +756,20 @@ export async function getPvpBattleMetadata(
   const localCharacterId = readString(data.local_character_id)
   if (!lobbyId || !battleKey || !localCharacterId)
     throw unavailable('The PvP battle metadata is invalid.')
-  const participants = await decorateBattleParticipants(parseParticipantRows(data.participants))
-  return { lobbyId, mode: data.mode, battleKey, localCharacterId, participants }
+  if (data.origin !== undefined && data.origin !== 'world' && data.origin !== 'battle-hall')
+    throw unavailable('The PvP battle origin is invalid.')
+  const participants = await decorateBattleParticipants(
+    battleSessionId,
+    parseParticipantRows(data.participants),
+  )
+  return {
+    lobbyId,
+    mode: data.mode,
+    battleKey,
+    localCharacterId,
+    participants,
+    origin: data.origin,
+  }
 }
 
 export async function getPvpSpectatorView(battleKey: string): Promise<PvpSpectatorView | null> {
@@ -673,7 +786,10 @@ export async function getPvpSpectatorView(battleKey: string): Promise<PvpSpectat
   if (!battleSessionId || battleVersion === null || !resolvedBattleKey) {
     throw unavailable('The spectator view is invalid.')
   }
-  const participants = await decorateBattleParticipants(parseParticipantRows(data.participants))
+  const participants = await decorateBattleParticipants(
+    battleSessionId,
+    parseParticipantRows(data.participants),
+  )
   return {
     battle: {
       battleSessionId,

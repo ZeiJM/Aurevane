@@ -1,0 +1,44 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["env", "TASK9_PREDECESSOR=1", "corepack", "pnpm", "--filter", "@aurevane/db", "exec", "vitest", "run", "src/master-players-recovery.test.ts"], "start": "2026-10-20T18:15:40.701087+00:00"}
+
+ RUN  v4.1.10 /workspace/scratch/081f137b6a6d/aurevane-players-20261020/packages/db
+
+ ❯ src/master-players-recovery.test.ts (2 tests | 2 skipped) 2170ms
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/master-players-recovery.test.ts [ src/master-players-recovery.test.ts ]
+Error: Migration 20260923163055_site_music_management.sql: error: relation "storage.buckets" does not exist
+ ❯ src/master-players-recovery.test.ts:25:54
+     23|     if (process.env.TASK9_PREDECESSOR === '1' && name.endsWith('_maste…
+     24|     const sql = readFileSync(resolve(root, name), 'utf8').replace(/cre…
+     25|     try { await db.exec(sql) } catch (error) { throw new Error(`Migrat…
+       |                                                      ^
+     26|   }
+     27|   await db.exec(`insert into auth.users(id,email,email_confirmed_at) v…
+
+Caused by: error: relation "storage.buckets" does not exist
+ ❯ pe.Ue ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pglite/dist/chunk-2BOC2OMW.js:1:17959
+ ❯ pe.tt ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pglite/dist/chunk-2BOC2OMW.js:1:15347
+ ❯ pe.parse ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pglite/dist/chunk-2BOC2OMW.js:1:14021
+ ❯ N.qe ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pglite/dist/index.js:5:1762
+ ❯ ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pglite/dist/index.js:5:1155
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:5922000
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:2616044
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:2648530
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:2649134
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:5569870
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { length: 116, severity: 'ERROR', code: '42P01', detail: undefined, hint: undefined, position: '1601', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, dataType: undefined, constraint: undefined, file: 'parse_relation.c', routine: 'parserOpenTable', query: 'create table if not exists public.site_music_configuration (\n  singleton_id boolean primary key default true check (singleton_id),\n  enabled boolean not null default true,\n  default_track jsonb not null,\n  route_overrides jsonb not null default \'[]\'::jsonb,\n  revision bigint not null default 1 check (revision > 0),\n  updated_by uuid references auth.users(id) on delete set null,\n  updated_at timestamptz not null default now()\n);\n\nalter table public.site_music_configuration enable row level security;\nrevoke all on table public.site_music_configuration from anon, authenticated;\n\ninsert into public.site_music_configuration (\n  singleton_id,\n  enabled,\n  default_track,\n  route_overrides,\n  revision\n)\nvalues (\n  true,\n  true,\n  jsonb_build_object(\n    \'label\', \'Road to Aurevane\',\n    \'url\', \'/media/audio/music/road-to-aurevane.webm\',\n    \'source\', \'bundled\',\n    \'loop\', true\n  ),\n  \'[]\'::jsonb,\n  1\n)\non conflict (singleton_id) do nothing;\n\n-- Production briefly received an earlier site-music seed outside repository\n-- history. Repair only that untouched seed; never overwrite an operator edit.\nupdate public.site_music_configuration\nset\n  default_track = jsonb_set(\n    default_track,\n    \'{url}\',\n    to_jsonb(\'/media/audio/music/road-to-aurevane.webm\'::text),\n    false\n  ),\n  updated_at = now()\nwhere singleton_id = true\n  and revision = 1\n  and updated_by is null\n  and route_overrides = \'[]\'::jsonb\n  and default_track ->> \'label\' = \'Road to Aurevane\'\n  and default_track ->> \'source\' = \'bundled\'\n  and default_track ->> \'url\' = \'/media/audio/music/road-to-aurevane.m4a\';\n\ninsert into storage.buckets (\n  id,\n  name,\n  public,\n  file_size_limit,\n  allowed_mime_types\n)\nvalues (\n  \'site-music\',\n  \'site-music\',\n  true,\n  20971520,\n  array[\n    \'audio/mpeg\',\n    \'audio/mp4\',\n    \'audio/x-m4a\',\n    \'audio/aac\',\n    \'audio/ogg\',\n    \'audio/webm\',\n    \'audio/wav\',\n    \'audio/x-wav\'\n  ]::text[]\n)\non conflict (id) do update set\n  public = excluded.public,\n  file_size_limit = excluded.file_size_limit,\n  allowed_mime_types = excluded.allowed_mime_types;\n', params: undefined, queryOptions: undefined }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 skipped (2)
+   Start at  14:15:41
+   Duration  2.36s (transform 26ms, setup 0ms, import 56ms, tests 2.17s, environment 0ms)
+
+undefined
+/workspace/scratch/081f137b6a6d/aurevane-players-20261020/packages/db:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/master-players-recovery.test.ts
+{"end": "2026-10-20T18:15:43.840300+00:00", "exit": 1}

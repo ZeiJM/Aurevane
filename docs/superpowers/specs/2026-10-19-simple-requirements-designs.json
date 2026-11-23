@@ -1,0 +1,3585 @@
+{
+  "schemaVersion": 1,
+  "status": "reviewed-design-candidate-not-published",
+  "baseCommit": "d817cb827858a49f5d5bcd0589dc92cbc2858aa4",
+  "brief": "One complete requirement: None, one registered present status/Primed with Self/Target, or one strict HP/MP percentage comparison with Self/Target. Native execution timing is separate and finite.",
+  "baselineManifests": [
+    {
+      "path": "docs/superpowers/specs/2026-10-18-modular-correction-cohort.json",
+      "sha256": "998a68515af8cfbb2ce38ecb949fd595a044eb617175bf14d7520ca400c8d02f"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-10-19-essence-resonance-identity-cohort.json",
+      "sha256": "d74c7e65bdf8b73560b5d890ba08c776b1a523c300fe3810e88013195a8892f1"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-10-19-resonance-modularity-cohort.json",
+      "sha256": "5b2a44f8b88489064e1e993af77023677c8cb83ed6e869d10fe6933b438c4534"
+    }
+  ],
+  "registeredStatusIds": [
+    "wet",
+    "frozen",
+    "conductive",
+    "inspired",
+    "blindside",
+    "suppress",
+    "hexed",
+    "invisible",
+    "airborne",
+    "haste",
+    "burn",
+    "bleed",
+    "poison",
+    "slow",
+    "root",
+    "reckless",
+    "fortified",
+    "challenged",
+    "mark",
+    "warded",
+    "guarded",
+    "exposed",
+    "covert",
+    "revealed",
+    "lowered-guard"
+  ],
+  "sharedPolicy": {
+    "reviewedResonances": 136,
+    "additionalRequirementDefinitions": 30,
+    "currentInventory": 294,
+    "historyBefore": 787,
+    "historyAfter": 953,
+    "barrierDurationTurns": 2,
+    "legacyInterpreter": "Historical captures retain their exact prior definitions; only new versions opt into requirementMode simple.",
+    "preservation": "All names, pairs, costs, effects, target geometry, cooldowns, limits, assets and unlocks stay unchanged except one strict Aether Nova effect requirement and necessary Self causal target bindings.",
+    "effectEligibility": "No Resonance has effect-level conditions. Existing positive singleton effect gates stay unchanged. Field Remedy and Dawn’s Oath historical Any-of-nine standard Cleanse eligibility stays unchanged outside this cohort."
+  },
+  "records": [
+    {
+      "kind": "resonance",
+      "id": "resonance.lifebinder-vanguard.mercys-edge",
+      "name": "Mercy at the Breach",
+      "pair": [
+        "lifebinder",
+        "vanguard"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "69c1fcb73db8db37a04c077e7b9dae9b963a64a3262bd415c4e06bae9c3ee215",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "affected",
+        "statusId": "guarded",
+        "present": true
+      },
+      "automaticTrigger": "healed",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you heal a friendly unit, with Guard [Target]: remove Guard from Target; grant Damage Up to Target.",
+      "rationale": "Mercy at the Breach keeps Guard [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.aetherist-farstrider.arcane-hunt",
+      "name": "Sighted Capacitor",
+      "pair": [
+        "aetherist",
+        "farstrider"
+      ],
+      "beforeVersion": 9,
+      "beforeDigest": "27983752bd5c94f745e0ea7a4e510b6335ac4a92a2eb185857dcb9d74995be85",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "affected",
+        "statusId": "mark",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Marked [Target]: drain 9 MP from Target.",
+      "rationale": "Sighted Capacitor keeps Marked [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.aetherist-lifebinder.vital-circuit",
+      "name": "Measured Transfusion",
+      "pair": [
+        "aetherist",
+        "lifebinder"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "79c5820efdb751b51e269cf936cdb318efab68052974f04b24f7e4d2dc16aabb",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "selected",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 3500
+      },
+      "automaticTrigger": "after-action",
+      "automaticTarget": {
+        "subject": "selected"
+      },
+      "description": "After your action, with HP less than 35% [Target]: recover 4% HP for Target over 2 applications.",
+      "rationale": "Measured Transfusion keeps HP less than 35% [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.aetherist-shadehand.veiled-conduit",
+      "name": "Dissolving Formula",
+      "pair": [
+        "aetherist",
+        "shadehand"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "d6786779d525c9128576fa98551dfde8fe1b5bc4fa077420ebfcce2f1c7d7f33",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "owner",
+        "statusId": "guarded",
+        "present": true
+      },
+      "automaticTarget": {
+        "subject": "owner"
+      },
+      "description": "On entering Guard [Self]: remove Guard from Self; restore 7 MP for Self; grant Covert to Self.",
+      "rationale": "Dissolving Formula keeps Guard [Self] as its single thematic setup. Native owner state-entry replaces the action/Discipline trigger; other prior states are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.aetherist-vanguard.spellsteel-rhythm",
+      "name": "Wardbreaker Advance",
+      "pair": [
+        "aetherist",
+        "vanguard"
+      ],
+      "beforeVersion": 7,
+      "beforeDigest": "d1cc996963c3d43606c2ae9a7cc099c50b4de80b50d31649d335c496fa51bbf1",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "affected",
+        "statusId": "guarded",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Guard [Target]: remove Guard from Target; grant Vulnerable to Target.",
+      "rationale": "Wardbreaker Advance keeps Guard [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.farstrider-lifebinder.guided-renewal",
+      "name": "Field Triage",
+      "pair": [
+        "farstrider",
+        "lifebinder"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "e07e3d42558fd8c68c922bd8b497932dd3e6f19b7dc053efeb187d14b01fbb68",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 5000
+      },
+      "automaticTarget": {
+        "subject": "owner"
+      },
+      "description": "On entering HP less than 50% [Self]: remove Guard from Self; recover 5% HP for Self.",
+      "rationale": "Field Triage keeps HP less than 50% [Self] as its single thematic setup. Native owner state-entry replaces the action/Discipline trigger; other prior states are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.farstrider-shadehand.marked-opening",
+      "name": "Unmask the Lane",
+      "pair": [
+        "farstrider",
+        "shadehand"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "88d0f0524f84864b1ba612fbe1a23a8ee05ba232b99107e82aeb41a2e79e4666",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "affected",
+        "statusId": "mark",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Marked [Target]: remove Marked, Revealed from Target; grant Suppress to Target.",
+      "rationale": "Unmask the Lane keeps Marked [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.farstrider-vanguard.covering-break",
+      "name": "Picket Charge",
+      "pair": [
+        "farstrider",
+        "vanguard"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "49eee1c1d0ffd36dd8d56995e1056fe9ad5c16a447d425231ea241cdffb7364a",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "affected",
+        "statusId": "mark",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Marked [Target]: remove Marked from Target; grant Taunted to Target.",
+      "rationale": "Picket Charge keeps Marked [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.lifebinder-shadehand.mercy-in-shadow",
+      "name": "Suffering Returned",
+      "pair": [
+        "lifebinder",
+        "shadehand"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "7ec88afc0c564452a6c7dc412ae06086b7c537fa189c77e5e2c662fa2e020abe",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "owner",
+        "statusId": "hexed",
+        "present": true
+      },
+      "automaticTarget": {
+        "subject": "owner"
+      },
+      "description": "On entering Healing Down [Self]: remove Invisible, Healing Down from Self; restore 3 MP for Self.",
+      "rationale": "Suffering Returned keeps Healing Down [Self] as its single thematic setup. Native owner state-entry replaces the action/Discipline trigger; other prior states are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.shadehand-vanguard.broken-line",
+      "name": "Broken Formation",
+      "pair": [
+        "shadehand",
+        "vanguard"
+      ],
+      "beforeVersion": 7,
+      "beforeDigest": "19db9ec99e1aff68d6e27d68a72a45613a10792e8a12707420be795c8dcf4bf1",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "owner",
+        "statusId": "covert",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Covert [Self]: remove Vulnerable from Target; remove Covert from Self; grant Taunted to Target; grant Damage Up to Self.",
+      "rationale": "Broken Formation keeps Covert [Self] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.aetherist-ironfist.conductive-impact",
+      "name": "Reservoir Palm",
+      "pair": [
+        "aetherist",
+        "ironfist"
+      ],
+      "beforeVersion": 7,
+      "beforeDigest": "f8e03d8a7e3169f284d8035a67dfa96258381306199cae068513a09e76c25feb",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "mp",
+        "comparison": "more-than",
+        "basisPoints": 5000
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with MP more than 50% [Self]: drain 8 MP from Target; grant Conductive to Target.",
+      "rationale": "Reservoir Palm keeps MP more than 50% [Self] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.farstrider-ironfist.marked-approach",
+      "name": "Drive Back the Line",
+      "pair": [
+        "farstrider",
+        "ironfist"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "59908af3d98ae27f6bec9f5a996e5889eca8303532efd196cfd6b5dd36c48cd7",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "affected",
+        "statusId": "mark",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Marked [Target]: remove Marked, Guard from Target; drain 4 MP from Target.",
+      "rationale": "Drive Back the Line keeps Marked [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.ironfist-lifebinder.renewed-force",
+      "name": "Breath after Impact",
+      "pair": [
+        "ironfist",
+        "lifebinder"
+      ],
+      "beforeVersion": 7,
+      "beforeDigest": "b1250773ab3face1d852f5f4ac00cdba955e08fb14bc6f00127108eb6c2cefb2",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 10000
+      },
+      "automaticTarget": {
+        "subject": "owner"
+      },
+      "description": "On entering HP less than 100% [Self]: recover 4% HP for Self.",
+      "rationale": "Breath after Impact keeps HP less than 100% [Self] as its single thematic setup. Native owner state-entry replaces the action/Discipline trigger; other prior states are removed. HP less than 100% replaces the historical inclusive 99.99% approximation and permits recovery when genuinely injured."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.ironfist-shadehand.broken-rhythm",
+      "name": "Low Sweep Feint",
+      "pair": [
+        "ironfist",
+        "shadehand"
+      ],
+      "beforeVersion": 7,
+      "beforeDigest": "daae198c63347eab54f0c70035ab067443c296c04b962f4448e50df6cb9409e4",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "owner",
+        "statusId": "airborne",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Airborne [Self]: remove Slow from Target; remove Airborne from Self; grant Rooted to Target.",
+      "rationale": "Low Sweep Feint keeps Airborne [Self] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.ironfist-vanguard.tempered-response",
+      "name": "Disciplined Pressure",
+      "pair": [
+        "ironfist",
+        "vanguard"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "bac40e2a40eab951ffe4353801a4e3309020eb4e442baa147ac1d985113cc693",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "owner",
+        "statusId": "airborne",
+        "present": true
+      },
+      "automaticTrigger": "damage-taken",
+      "automaticTarget": {
+        "subject": "triggering"
+      },
+      "description": "When an enemy damages you, with Airborne [Self]: remove Airborne from Self; give Self 10% HP Barrier; grant Slow to Target.",
+      "rationale": "Disciplined Pressure keeps Airborne [Self] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.bastion-vanguard.linked-sequence",
+      "name": "Hold the Opening",
+      "pair": [
+        "bastion",
+        "vanguard"
+      ],
+      "beforeVersion": 7,
+      "beforeDigest": "8da4ec7670f12c5908284863e17b5877b1dfda59d537d1231f5800257fe5e85b",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "owner",
+        "statusId": "fortified",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Fortified [Self]: grant Taunted to Target; grant Vulnerable to Target.",
+      "rationale": "Hold the Opening keeps Fortified [Self] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed. Remove the old target-not-Taunted absence gate rather than invert or hide it."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.bastion-lifebinder.linked-sequence",
+      "name": "Shelter Choice",
+      "pair": [
+        "bastion",
+        "lifebinder"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "eeee2a6d17916aa1680170663a30eef07125edde3fc8dcc5113bc525c69d78af",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "selected",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 3000
+      },
+      "automaticTrigger": "after-action",
+      "automaticTarget": {
+        "subject": "selected"
+      },
+      "description": "After your action, with HP less than 30% [Target]: give Target 12% HP Barrier.",
+      "rationale": "Shelter Choice keeps HP less than 30% [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.aetherist-bastion.linked-sequence",
+      "name": "Mana Bulwark",
+      "pair": [
+        "aetherist",
+        "bastion"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "3371062171325795513368d4eeed829318067cfcd3dae76eba30346ced911bca",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "mp",
+        "comparison": "less-than",
+        "basisPoints": 2500
+      },
+      "automaticTarget": {
+        "subject": "owner"
+      },
+      "description": "On entering MP less than 25% [Self]: recover 6% MP for Self; give Self 5% HP Barrier.",
+      "rationale": "Mana Bulwark keeps MP less than 25% [Self] as its single thematic setup. Native owner state-entry replaces the action/Discipline trigger; other prior states are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.bastion-farstrider.linked-sequence",
+      "name": "Watchtower Signal",
+      "pair": [
+        "bastion",
+        "farstrider"
+      ],
+      "beforeVersion": 7,
+      "beforeDigest": "dd84944c35fc7b2228ce6de93367fb39d349d8482e48da1ab681725c68f068ba",
+      "requirements": null,
+      "automaticTrigger": "damage-taken",
+      "automaticTarget": {
+        "subject": "triggering"
+      },
+      "description": "When an enemy damages you: grant Suppress to Target; grant Marked to Target.",
+      "rationale": "Watchtower Signal keeps no state gate; its existing payment and activation limits govern the counter. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.bastion-shadehand.linked-sequence",
+      "name": "Behind the Shield",
+      "pair": [
+        "bastion",
+        "shadehand"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "003f95eedb3f1c8f0584f6c24da4db6acbeefc70da76af0d811bad40663185a8",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "owner",
+        "statusId": "guarded",
+        "present": true
+      },
+      "automaticTarget": {
+        "subject": "owner"
+      },
+      "description": "On entering Guard [Self]: give Self 8% HP Barrier; grant Covert to Self.",
+      "rationale": "Behind the Shield keeps Guard [Self] as its single thematic setup. Native owner state-entry replaces the action/Discipline trigger; other prior states are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.bastion-ironfist.linked-sequence",
+      "name": "Fortress Knuckle",
+      "pair": [
+        "bastion",
+        "ironfist"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "4959a7cd5705e007b42b85ff547106e55fce351ac46fadfb359065761a538865",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "owner",
+        "statusId": "fortified",
+        "present": true
+      },
+      "automaticTarget": {
+        "subject": "owner"
+      },
+      "description": "On entering Fortified [Self]: give Self 10% HP Barrier; grant Rooted to Self.",
+      "rationale": "Fortress Knuckle keeps Fortified [Self] as its single thematic setup. Native owner state-entry replaces the action/Discipline trigger; other prior states are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.ravager-vanguard.linked-sequence",
+      "name": "Breach at a Price",
+      "pair": [
+        "ravager",
+        "vanguard"
+      ],
+      "beforeVersion": 9,
+      "beforeDigest": "01f40855b5c277bb56bfa8861a89ab753ad14a4b5fa0ec0f6abed05017c8c539",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "affected",
+        "statusId": "bleed",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Bleed [Target]: remove Bleed from Target; give Self 10% HP Barrier; grant Suppress to Target.",
+      "rationale": "Breach at a Price keeps Bleed [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.lifebinder-ravager.linked-sequence",
+      "name": "Bleeding Mercy",
+      "pair": [
+        "lifebinder",
+        "ravager"
+      ],
+      "beforeVersion": 9,
+      "beforeDigest": "55e0eef7765c07c7b3b9336061ca309455b6bc9ca7da8e81375f9699210dd82f",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "affected",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 3500
+      },
+      "automaticTrigger": "healed",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you heal a friendly unit, with HP less than 35% [Target]: recover 12% HP for Target; grant Healing Down to Self.",
+      "rationale": "Bleeding Mercy keeps HP less than 35% [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.aetherist-ravager.linked-sequence",
+      "name": "Unstable Reserve",
+      "pair": [
+        "aetherist",
+        "ravager"
+      ],
+      "beforeVersion": 7,
+      "beforeDigest": "01aac917b3338eb2afa5bcb8a5f1e37e8805cc914ccbef10c8e95d4a528ba642",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 3500
+      },
+      "description": "While HP less than 35% [Self]: increase attack damage by 10%.",
+      "rationale": "Unstable Reserve keeps HP less than 35% [Self] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.farstrider-ravager.linked-sequence",
+      "name": "Barbed Pursuit",
+      "pair": [
+        "farstrider",
+        "ravager"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "8a244798d8fceb9b10b63b1d564917932df410342a9937b5f5d2048d3274fc81",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "affected",
+        "statusId": "bleed",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Bleed [Target]: remove Bleed from Target; recover 6% HP for Self.",
+      "rationale": "Barbed Pursuit keeps Bleed [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.ravager-shadehand.linked-sequence",
+      "name": "Risk the Blindside",
+      "pair": [
+        "ravager",
+        "shadehand"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "b1650cc2493702c20c3a43792b3979b80f826a53506be7603fc73cccdd619ddc",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "owner",
+        "statusId": "reckless",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Reckless [Self]: remove Bleed from Target; grant Invisible to Self; grant Healing Down to Self.",
+      "rationale": "Risk the Blindside keeps Reckless [Self] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.ironfist-ravager.linked-sequence",
+      "name": "Bloodied Separation",
+      "pair": [
+        "ironfist",
+        "ravager"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "1e5a7a7de07fadaea3c7cb9652f8b0eb9fa09232e8ae43ee7f237e695c0f5ef4",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "owner",
+        "statusId": "reckless",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Reckless [Self]: remove Reckless from Self; grant Taunted to Target; grant Guard to Self.",
+      "rationale": "Bloodied Separation keeps Reckless [Self] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.bastion-ravager.linked-sequence",
+      "name": "Crimson Redoubt",
+      "pair": [
+        "bastion",
+        "ravager"
+      ],
+      "beforeVersion": 9,
+      "beforeDigest": "3ad339eaad4251a6978025a078e5a6c43f5ae8b39086728aba9a7f51e27cec6f",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "owner",
+        "statusId": "reckless",
+        "present": true
+      },
+      "automaticTarget": {
+        "subject": "owner"
+      },
+      "description": "On entering Reckless [Self]: recover 10% HP for Self; grant Rooted to Self.",
+      "rationale": "Crimson Redoubt keeps Reckless [Self] as its single thematic setup. Native owner state-entry replaces the action/Discipline trigger; other prior states are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.edgedancer-vanguard.linked-sequence",
+      "name": "Turning Advance",
+      "pair": [
+        "edgedancer",
+        "vanguard"
+      ],
+      "beforeVersion": 7,
+      "beforeDigest": "dd8005e238d4a260fe178042db85540a72c792ad69cc632ad2ccca25774a1d33",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "owner",
+        "statusId": "inspired",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Damage Up [Self]: remove Damage Up from Self; grant Guard to Self; grant Slow to Target.",
+      "rationale": "Turning Advance keeps Damage Up [Self] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.edgedancer-lifebinder.linked-sequence",
+      "name": "Merciful Exit",
+      "pair": [
+        "edgedancer",
+        "lifebinder"
+      ],
+      "beforeVersion": 7,
+      "beforeDigest": "f58dea1172bb861f59e04d07fa2534f27c4cd15bd480b54ffa52ed0cb886ec8c",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "owner",
+        "statusId": "guarded",
+        "present": true
+      },
+      "automaticTarget": {
+        "subject": "owner"
+      },
+      "description": "On entering Guard [Self]: remove Guard from Self; recover 7% HP for Self.",
+      "rationale": "Merciful Exit keeps Guard [Self] as its single thematic setup. Native owner state-entry replaces the action/Discipline trigger; other prior states are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.aetherist-edgedancer.linked-sequence",
+      "name": "Aether in Poise",
+      "pair": [
+        "aetherist",
+        "edgedancer"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "3faa9107a7ff66d80349f25596ac0c3095c7956e63e54724800b21965f9c352a",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "mp",
+        "comparison": "less-than",
+        "basisPoints": 5000
+      },
+      "automaticTarget": {
+        "subject": "owner"
+      },
+      "description": "On entering MP less than 50% [Self]: recover 6% MP for Self; grant Airborne to Self.",
+      "rationale": "Aether in Poise keeps MP less than 50% [Self] as its single thematic setup. Native owner state-entry replaces the action/Discipline trigger; other prior states are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.edgedancer-farstrider.linked-sequence",
+      "name": "Close the Sightline",
+      "pair": [
+        "edgedancer",
+        "farstrider"
+      ],
+      "beforeVersion": 7,
+      "beforeDigest": "c465d536b6a0441f283fd19ab2766c1f2eefdb448ab1b05d811c2ad9b0e8c410",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "affected",
+        "statusId": "slow",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Slow [Target]: remove Damage Up from Self; grant Suppress to Target.",
+      "rationale": "Close the Sightline keeps Slow [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.edgedancer-shadehand.linked-sequence",
+      "name": "Veiled Flourish",
+      "pair": [
+        "edgedancer",
+        "shadehand"
+      ],
+      "beforeVersion": 7,
+      "beforeDigest": "c920f5ab4f3f28670811bb880768f91f61b6f37a1f17625cfcb79e1bd0a5c5c2",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "owner",
+        "statusId": "inspired",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Damage Up [Self]: remove Damage Up from Self; grant Covert to Self; grant Suppress to Target.",
+      "rationale": "Veiled Flourish keeps Damage Up [Self] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.edgedancer-ironfist.linked-sequence",
+      "name": "Aerial Form",
+      "pair": [
+        "edgedancer",
+        "ironfist"
+      ],
+      "beforeVersion": 7,
+      "beforeDigest": "7da8b17581eb1fb9c2fae9966fa20f65160074f99d70f638e060ed3009ee0306",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "owner",
+        "statusId": "airborne",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Airborne [Self]: remove Damage Up from Self; drain 6 MP from Target.",
+      "rationale": "Aerial Form keeps Airborne [Self] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.bastion-edgedancer.linked-sequence",
+      "name": "Guarded Exchange",
+      "pair": [
+        "bastion",
+        "edgedancer"
+      ],
+      "beforeVersion": 7,
+      "beforeDigest": "8bfe627a1e1c92ead14c7799282c2876f70c130aa8c7a3eb3e3a197f85abcc70",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "owner",
+        "statusId": "fortified",
+        "present": true
+      },
+      "automaticTarget": {
+        "subject": "owner"
+      },
+      "description": "On entering Fortified [Self]: grant Airborne to Self; grant Haste to Self.",
+      "rationale": "Guarded Exchange keeps Fortified [Self] as its single thematic setup. Native owner state-entry replaces the action/Discipline trigger; other prior states are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.edgedancer-ravager.linked-sequence",
+      "name": "Cut Through Pain",
+      "pair": [
+        "edgedancer",
+        "ravager"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "1d627a6976243c10d29640d26d8dacf7f9bf439032a3e03756c1b7a8fbccab7e",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "owner",
+        "statusId": "reckless",
+        "present": true
+      },
+      "description": "While Reckless [Self]: increase attack damage by 15%.",
+      "rationale": "Cut Through Pain keeps Reckless [Self] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.vanguard-wildwarden.linked-sequence",
+      "name": "Drive the Quarry",
+      "pair": [
+        "vanguard",
+        "wildwarden"
+      ],
+      "beforeVersion": 9,
+      "beforeDigest": "48a99a99aae4d3fa4d7158a459de8a6a56604ed234240ac17970b79e4e0863dd",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "affected",
+        "statusId": "mark",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "description": "When you damage an enemy, with Marked [Target]: give nearby allies 6% HP Barrier.",
+      "rationale": "Drive the Quarry keeps Marked [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.lifebinder-wildwarden.linked-sequence",
+      "name": "Trail Medicine",
+      "pair": [
+        "lifebinder",
+        "wildwarden"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "f071e63609a50d0256ec4b906f9122f9ecb63492dd592ece75019912b93e1571",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "affected",
+        "statusId": "poison",
+        "present": true
+      },
+      "automaticTrigger": "healed",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you heal a friendly unit, with Poison [Target]: remove Poison, Marked from Target; grant Haste to Target.",
+      "rationale": "Trail Medicine keeps Poison [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.aetherist-wildwarden.linked-sequence",
+      "name": "Quarry Disruption",
+      "pair": [
+        "aetherist",
+        "wildwarden"
+      ],
+      "beforeVersion": 9,
+      "beforeDigest": "2034ffe768576cf59e2b995d54e660c9944b63a400e739abf7bae7f409c1f18e",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "affected",
+        "statusId": "mark",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Marked [Target]: drain 10 MP from Target; grant Healing Down to Target.",
+      "rationale": "Quarry Disruption keeps Marked [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.farstrider-wildwarden.linked-sequence",
+      "name": "Twin Hunt",
+      "pair": [
+        "farstrider",
+        "wildwarden"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "e06a3e9798073c7abbf8744e95d95de9df58bf5e4ff5a18642fb37d83c4ecf8b",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "affected",
+        "statusId": "poison",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Poison [Target]: remove Poison from Target; grant Healing Down to Target.",
+      "rationale": "Twin Hunt keeps Poison [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.shadehand-wildwarden.linked-sequence",
+      "name": "Hidden Snare",
+      "pair": [
+        "shadehand",
+        "wildwarden"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "16402c67cd9e97450462459ebcac197acaedade58333555cd72446a6f73061eb",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "affected",
+        "statusId": "root",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Rooted [Target]: remove Rooted from Target; grant Haste to Self; grant Healing Down to Target.",
+      "rationale": "Hidden Snare keeps Rooted [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.ironfist-wildwarden.linked-sequence",
+      "name": "Quarry Wheel",
+      "pair": [
+        "ironfist",
+        "wildwarden"
+      ],
+      "beforeVersion": 9,
+      "beforeDigest": "85b29cd762912a66252fe4960397240dbfac64e6d568c62f62eed74c4e97af9f",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "triggering",
+        "statusId": "mark",
+        "present": true
+      },
+      "automaticTrigger": "enemy-turn-ended",
+      "automaticTarget": {
+        "subject": "owner"
+      },
+      "description": "When an enemy's turn ends, with Marked [Target]: restore 5 MP for Self.",
+      "rationale": "Quarry Wheel keeps Marked [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.bastion-wildwarden.linked-sequence",
+      "name": "Warden of the Path",
+      "pair": [
+        "bastion",
+        "wildwarden"
+      ],
+      "beforeVersion": 9,
+      "beforeDigest": "1edf80a6ed8814c71ad9452886dccfa36120c4afafbe6f7363870dfbf98a9892",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "owner",
+        "statusId": "guarded",
+        "present": true
+      },
+      "automaticTrigger": "ally-damage-taken",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When an enemy damages an ally, with Guard [Self]: give Target 10% HP Barrier; grant Guard to Target.",
+      "rationale": "Warden of the Path keeps Guard [Self] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.ravager-wildwarden.linked-sequence",
+      "name": "Blood Scent",
+      "pair": [
+        "ravager",
+        "wildwarden"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "d161f92c07a3fadb08209fdb09403d3ca13d26cabfba9bb169ae49c76bc4a2e5",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "affected",
+        "statusId": "poison",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Poison [Target]: remove Poison from Target; grant Healing Down to Target; grant Rooted to Self.",
+      "rationale": "Blood Scent keeps Poison [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.edgedancer-wildwarden.linked-sequence",
+      "name": "Pursuit Angle",
+      "pair": [
+        "edgedancer",
+        "wildwarden"
+      ],
+      "beforeVersion": 9,
+      "beforeDigest": "d30fae3c76a22a0283689d9302d18f5663b2fe5acd8d1354a52c60fa632d060d",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "affected",
+        "statusId": "mark",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Marked [Target]: remove Marked from Target; give Self 8% HP Barrier; restore 3 MP for Self.",
+      "rationale": "Pursuit Angle keeps Marked [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.runeblade-vanguard.linked-sequence",
+      "name": "Rune on the Ram",
+      "pair": [
+        "runeblade",
+        "vanguard"
+      ],
+      "beforeVersion": 7,
+      "beforeDigest": "62a92f716f0dc6d03d8f097aa4d8e3aaff5e79213aca54a822b27ef0721ad55b",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "triggering",
+        "statusId": "hexed",
+        "present": true
+      },
+      "automaticTrigger": "barrier-hit",
+      "automaticTarget": {
+        "subject": "triggering"
+      },
+      "description": "When your Barrier absorbs damage, with Healing Down [Target]: remove Healing Down from Target; drain 5 MP from Target; grant Damage Up to Self.",
+      "rationale": "Rune on the Ram keeps Healing Down [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.lifebinder-runeblade.linked-sequence",
+      "name": "Restorative Inscription",
+      "pair": [
+        "lifebinder",
+        "runeblade"
+      ],
+      "beforeVersion": 7,
+      "beforeDigest": "6c5e5cc1720616d33af99f5ca1fb06e78fcf3ea3a6b4205024d76e7eb3bf9db2",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "mp",
+        "comparison": "less-than",
+        "basisPoints": 2500
+      },
+      "automaticTarget": {
+        "subject": "owner"
+      },
+      "description": "On entering MP less than 25% [Self]: remove Guard from Self; restore 6 MP for Self.",
+      "rationale": "Restorative Inscription keeps MP less than 25% [Self] as its single thematic setup. Native owner state-entry replaces the action/Discipline trigger; other prior states are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.aetherist-runeblade.linked-sequence",
+      "name": "Unspent Circuit",
+      "pair": [
+        "aetherist",
+        "runeblade"
+      ],
+      "beforeVersion": 7,
+      "beforeDigest": "8100dd4a48f5d1aa3cde0cb92eab35faea33b1828a94b131fe561dfd37721276",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "affected",
+        "statusId": "guarded",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Guard [Target]: remove Guard, Damage Up from Target; drain 5 MP from Target.",
+      "rationale": "Unspent Circuit keeps Guard [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed. Guard is the one reviewed alternative from the old Guard-or-Damage Up branch."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.farstrider-runeblade.linked-sequence",
+      "name": "Disrupting Inscription",
+      "pair": [
+        "farstrider",
+        "runeblade"
+      ],
+      "beforeVersion": 7,
+      "beforeDigest": "3d558d9862a0f780c9aa9ef9dd7416430385010fbd26621a08c78bc3a2e0c6d1",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "affected",
+        "resource": "mp",
+        "comparison": "less-than",
+        "basisPoints": 2500
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with MP less than 25% [Target]: remove Healing Down, Guard, Burn Ward from Target; drain 4 MP from Target.",
+      "rationale": "Disrupting Inscription keeps MP less than 25% [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.runeblade-shadehand.linked-sequence",
+      "name": "Unbind the Veil",
+      "pair": [
+        "runeblade",
+        "shadehand"
+      ],
+      "beforeVersion": 7,
+      "beforeDigest": "1f175c229d9a6f8602a4d0cb8c12cb65f5f340d55a2fdf894f192f900389b0b0",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "selected",
+        "statusId": "hexed",
+        "present": true
+      },
+      "automaticTrigger": "after-action",
+      "automaticTarget": {
+        "subject": "selected"
+      },
+      "description": "After your action, with Healing Down [Target]: remove Healing Down, Guard, Burn Ward from Target; restore 5 MP for Self.",
+      "rationale": "Unbind the Veil keeps Healing Down [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.ironfist-runeblade.linked-sequence",
+      "name": "Runic Pressure Point",
+      "pair": [
+        "ironfist",
+        "runeblade"
+      ],
+      "beforeVersion": 7,
+      "beforeDigest": "86d0b0a15b97d13b423599a97a7a4ca81b08c3828cf286aec91c27ccaf1fcdcd",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "affected",
+        "statusId": "hexed",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Healing Down [Target]: remove Healing Down from Target; drain 6 MP from Target; grant Suppress to Target.",
+      "rationale": "Runic Pressure Point keeps Healing Down [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.bastion-runeblade.linked-sequence",
+      "name": "Inscribed Shelter",
+      "pair": [
+        "bastion",
+        "runeblade"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "3612a72cdd459b187803ff8ec7c5c2e7a908c92c953d89124d21e93228607d19",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "owner",
+        "statusId": "fortified",
+        "present": true
+      },
+      "description": "On entering Fortified [Self]: give nearby allies 5% HP Barrier; grant Guard to Self.",
+      "rationale": "Inscribed Shelter keeps Fortified [Self] as its single thematic setup. Native owner state-entry replaces the action/Discipline trigger; other prior states are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.ravager-runeblade.linked-sequence",
+      "name": "Scarred Rune",
+      "pair": [
+        "ravager",
+        "runeblade"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "d22d66473d7d7a272a8422b276a99ba67f7f5d5fbc2e3e912868268993982ba8",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 3500
+      },
+      "description": "While HP less than 35% [Self]: increase attack damage by 25%.",
+      "rationale": "Scarred Rune keeps HP less than 35% [Self] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.edgedancer-runeblade.linked-sequence",
+      "name": "Rune in Motion",
+      "pair": [
+        "edgedancer",
+        "runeblade"
+      ],
+      "beforeVersion": 7,
+      "beforeDigest": "2a5ea713ead194e28a78a6233374d6b2201d2e767873cb6a84ce547b61ebd1ff",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "affected",
+        "resource": "mp",
+        "comparison": "less-than",
+        "basisPoints": 2500
+      },
+      "automaticTrigger": "resource-changed",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When your action changes a resource, with MP less than 25% [Target]: remove Damage Up from Self; restore 3 MP for Self; grant Haste to Self.",
+      "rationale": "Rune in Motion keeps MP less than 25% [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.runeblade-wildwarden.linked-sequence",
+      "name": "Quarry Sigil",
+      "pair": [
+        "runeblade",
+        "wildwarden"
+      ],
+      "beforeVersion": 7,
+      "beforeDigest": "cd1b71bce5e525f2b67a380861b03e945f164964347194408b4c45784140d338",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "selected",
+        "statusId": "hexed",
+        "present": true
+      },
+      "automaticTrigger": "after-action",
+      "automaticTarget": {
+        "subject": "selected"
+      },
+      "description": "After your action, with Healing Down [Target]: remove Healing Down from Target; grant Rooted to Target; restore 3 MP for Self.",
+      "rationale": "Quarry Sigil keeps Healing Down [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.dawnshield-vanguard.linked-sequence",
+      "name": "Light after the Charge",
+      "pair": [
+        "dawnshield",
+        "vanguard"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "29f85073b0dbfbe4c544f8f8622fcde4502108eb20cfbb4a01b8796afb3754a8",
+      "requirements": null,
+      "automaticTrigger": "after-action",
+      "automaticTarget": {
+        "subject": "triggering"
+      },
+      "description": "After your action: give Self 12% HP Barrier.",
+      "rationale": "Light after the Charge keeps no state gate; its existing payment and activation limits govern the counter. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.dawnshield-lifebinder.linked-sequence",
+      "name": "Two Hands of Mercy",
+      "pair": [
+        "dawnshield",
+        "lifebinder"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "277fb36b4a1474dc47801b64954148d0150c5446efdd6755690ea4a0253faf30",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "selected",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 3000
+      },
+      "automaticTrigger": "after-action",
+      "automaticTarget": {
+        "subject": "selected"
+      },
+      "description": "After your action, with HP less than 30% [Target]: recover 3% HP for Target over 3 applications; grant Guard to Target; grant Healing Down to Self.",
+      "rationale": "Two Hands of Mercy keeps HP less than 30% [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.aetherist-dawnshield.linked-sequence",
+      "name": "Luminous Reserve",
+      "pair": [
+        "aetherist",
+        "dawnshield"
+      ],
+      "beforeVersion": 9,
+      "beforeDigest": "e0eebc860fd55503ea4fa6faa4dcd0a5b1fa046fb2d64e425257e2c7a86b8793",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "mp",
+        "comparison": "more-than",
+        "basisPoints": 6000
+      },
+      "automaticTrigger": "after-action",
+      "automaticTarget": {
+        "subject": "selected"
+      },
+      "description": "After your action, with MP more than 60% [Self]: give Target 8% HP Barrier; restore 3 MP for Self.",
+      "rationale": "Luminous Reserve keeps MP more than 60% [Self] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.dawnshield-farstrider.linked-sequence",
+      "name": "Signal of Refuge",
+      "pair": [
+        "dawnshield",
+        "farstrider"
+      ],
+      "beforeVersion": 9,
+      "beforeDigest": "55b6eac017f4fb6fc6dae0aec156808d78226fbedc929480e7a425e673c1c682",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "affected",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 4000
+      },
+      "automaticTrigger": "ally-damage-taken",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When an enemy damages an ally, with HP less than 40% [Target]: recover 5% HP for Target; give Target 5% HP Barrier.",
+      "rationale": "Signal of Refuge keeps HP less than 40% [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.dawnshield-shadehand.linked-sequence",
+      "name": "Purge and Vanish",
+      "pair": [
+        "dawnshield",
+        "shadehand"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "eae0e4bf08c2664761b33b21b61ffefe78106408c03a5d287f72e68a1bc9562b",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "owner",
+        "statusId": "mark",
+        "present": true
+      },
+      "automaticTarget": {
+        "subject": "owner"
+      },
+      "description": "On entering Marked [Self]: Cleanse Self; grant Invisible to Self; grant Healing Down to Self.",
+      "rationale": "Purge and Vanish keeps Marked [Self] as its single thematic setup. Native owner state-entry replaces the action/Discipline trigger; other prior states are removed. Select one actual old debuff alternative rather than create a synthetic Any Debuff tag; the unchanged Cleanse payoff still clears its supported list."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.dawnshield-ironfist.linked-sequence",
+      "name": "Consecrated Form",
+      "pair": [
+        "dawnshield",
+        "ironfist"
+      ],
+      "beforeVersion": 7,
+      "beforeDigest": "4122305dc316388f3bb5b275f2f772c3334e46369916736c5bedf063c03cd712",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "owner",
+        "statusId": "root",
+        "present": true
+      },
+      "automaticTarget": {
+        "subject": "owner"
+      },
+      "description": "On entering Rooted [Self]: Cleanse Self.",
+      "rationale": "Consecrated Form keeps Rooted [Self] as its single thematic setup. Native owner state-entry replaces the action/Discipline trigger; other prior states are removed. Select one actual old debuff alternative rather than create a synthetic Any Debuff tag; the unchanged Cleanse payoff still clears its supported list."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.bastion-dawnshield.linked-sequence",
+      "name": "Oath of Shelter",
+      "pair": [
+        "bastion",
+        "dawnshield"
+      ],
+      "beforeVersion": 9,
+      "beforeDigest": "87325a933b2fd67d5b18fde9a82bd4f0406f947128c0dd118ecf739379224d4d",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 3500
+      },
+      "description": "On entering HP less than 35% [Self]: give nearby allies 10% HP Barrier; give Self 5% HP Barrier.",
+      "rationale": "Oath of Shelter keeps HP less than 35% [Self] as its single thematic setup. Native owner state-entry replaces the action/Discipline trigger; other prior states are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.dawnshield-ravager.linked-sequence",
+      "name": "Mercy under Red Steel",
+      "pair": [
+        "dawnshield",
+        "ravager"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "28fe40f5c3d674a620ce8cc780e8bc3600d3c1cd9c865fffa02221d649b48d5e",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "owner",
+        "statusId": "reckless",
+        "present": true
+      },
+      "description": "On entering Reckless [Self]: recover 5% HP for nearby allies; Cleanse nearby allies.",
+      "rationale": "Mercy under Red Steel keeps Reckless [Self] as its single thematic setup. Native owner state-entry replaces the action/Discipline trigger; other prior states are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.dawnshield-edgedancer.linked-sequence",
+      "name": "Step into the Light",
+      "pair": [
+        "dawnshield",
+        "edgedancer"
+      ],
+      "beforeVersion": 9,
+      "beforeDigest": "cf56176d0c6046988f539dbc155bf7061c4742403db6c16466ca41f41fafc7c0",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "owner",
+        "statusId": "guarded",
+        "present": true
+      },
+      "description": "On entering Guard [Self]: give nearby allies 5% HP Barrier.",
+      "rationale": "Step into the Light keeps Guard [Self] as its single thematic setup. Native owner state-entry replaces the action/Discipline trigger; other prior states are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.dawnshield-wildwarden.linked-sequence",
+      "name": "Ward the Companion",
+      "pair": [
+        "dawnshield",
+        "wildwarden"
+      ],
+      "beforeVersion": 9,
+      "beforeDigest": "daa25127bf1e4710a8b2a564b58697a5beff4d7f896bc4b55f597c247098fdee",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "affected",
+        "statusId": "guarded",
+        "present": true
+      },
+      "automaticTrigger": "healed",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you heal a friendly unit, with Guard [Target]: give Target 18% HP Barrier.",
+      "rationale": "Ward the Companion keeps Guard [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.dawnshield-runeblade.linked-sequence",
+      "name": "Oathbound Circuit",
+      "pair": [
+        "dawnshield",
+        "runeblade"
+      ],
+      "beforeVersion": 9,
+      "beforeDigest": "f483323107bbd29d08dae4d25af825926fd229dbbb30dda40d72f8d93e34f137",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "selected",
+        "resource": "mp",
+        "comparison": "less-than",
+        "basisPoints": 2500
+      },
+      "automaticTrigger": "after-action",
+      "automaticTarget": {
+        "subject": "selected"
+      },
+      "description": "After your action, with MP less than 25% [Target]: give Target 14% HP Barrier; Cleanse Target.",
+      "rationale": "Oathbound Circuit keeps MP less than 25% [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.cinderweaver-vanguard.linked-sequence",
+      "name": "Ember Ram",
+      "pair": [
+        "cinderweaver",
+        "vanguard"
+      ],
+      "beforeVersion": 7,
+      "beforeDigest": "de4994884fdb5aee7a884a799cc4c05a39c7863359bbbfec45c37b0c52ca6955",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "affected",
+        "statusId": "burn",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Burn [Target]: remove Guard from Target; grant Burn Ward to Self; grant Vulnerable to Self.",
+      "rationale": "Ember Ram keeps Burn [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.cinderweaver-lifebinder.linked-sequence",
+      "name": "Cauterized Relief",
+      "pair": [
+        "cinderweaver",
+        "lifebinder"
+      ],
+      "beforeVersion": 7,
+      "beforeDigest": "5b4917ac8dd442fd14261c04338c82b14c73cd2e97d358ee7f2eca36a64625b4",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "selected",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 3500
+      },
+      "automaticTrigger": "after-action",
+      "automaticTarget": {
+        "subject": "selected"
+      },
+      "description": "After your action, with HP less than 35% [Target]: Cleanse Target; recover 5% HP for Target; grant Healing Down to Self.",
+      "rationale": "Cauterized Relief keeps HP less than 35% [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.aetherist-cinderweaver.linked-sequence",
+      "name": "Banked Furnace",
+      "pair": [
+        "aetherist",
+        "cinderweaver"
+      ],
+      "beforeVersion": 7,
+      "beforeDigest": "f07943e6df59880a5f1e73fc769ea04bed357d291e1fe74c00db849dc6c95ec6",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "owner",
+        "statusId": "warded",
+        "present": true
+      },
+      "automaticTarget": {
+        "subject": "owner"
+      },
+      "description": "On entering Burn Ward [Self]: recover 10% MP for Self; grant Healing Down to Self.",
+      "rationale": "Banked Furnace keeps Burn Ward [Self] as its single thematic setup. Native owner state-entry replaces the action/Discipline trigger; other prior states are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.cinderweaver-farstrider.linked-sequence",
+      "name": "Sighting Flame",
+      "pair": [
+        "cinderweaver",
+        "farstrider"
+      ],
+      "beforeVersion": 7,
+      "beforeDigest": "24f8a51b49c2211a197c0910793136a3504dcd9edc0612580ae4e703941f3825",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "affected",
+        "statusId": "burn",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Burn [Target]: remove Marked from Target; grant Suppress to Target.",
+      "rationale": "Sighting Flame keeps Burn [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.cinderweaver-shadehand.linked-sequence",
+      "name": "Smoke from the Scar",
+      "pair": [
+        "cinderweaver",
+        "shadehand"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "91d5ac0d247dcbd075945f172fbb00022e7a57a59e3962b2e81376d5503b3ddd",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "owner",
+        "statusId": "burn",
+        "present": true
+      },
+      "automaticTarget": {
+        "subject": "owner"
+      },
+      "description": "On entering Burn [Self]: give Self 6% HP Barrier; grant Covert to Self.",
+      "rationale": "Smoke from the Scar keeps Burn [Self] as its single thematic setup. Native owner state-entry replaces the action/Discipline trigger; other prior states are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.cinderweaver-ironfist.linked-sequence",
+      "name": "Furnace Palm",
+      "pair": [
+        "cinderweaver",
+        "ironfist"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "487b57ef36c6cef60469a43bc6fc030738b13debf3e4f269722bc63291e35af0",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "affected",
+        "statusId": "burn",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Burn [Target]: remove Burn from Target; give Self 10% HP Barrier; grant Burn Ward to Self.",
+      "rationale": "Furnace Palm keeps Burn [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.bastion-cinderweaver.linked-sequence",
+      "name": "Ember Watch",
+      "pair": [
+        "bastion",
+        "cinderweaver"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "dd5b649e50b130fc8d32d349314e89e63eeb2bf1818091c2e1858f496afccb73",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "triggering",
+        "statusId": "burn",
+        "present": true
+      },
+      "automaticTrigger": "damage-taken",
+      "automaticTarget": {
+        "subject": "triggering"
+      },
+      "description": "When an enemy damages you, with Burn [Target]: grant Taunted to Target; give Self 6% HP Barrier.",
+      "rationale": "Ember Watch keeps Burn [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.cinderweaver-ravager.linked-sequence",
+      "name": "Bloodfed Cinder",
+      "pair": [
+        "cinderweaver",
+        "ravager"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "96721c39550f08442504f5cbd38ab06872e431ef67969fcf70563e5daff7fdaa",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "owner",
+        "statusId": "reckless",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Reckless [Self]: remove Burn from Target; grant Healing Down to Target; grant Vulnerable to Self.",
+      "rationale": "Bloodfed Cinder keeps Reckless [Self] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.cinderweaver-edgedancer.linked-sequence",
+      "name": "Ashen Tempo",
+      "pair": [
+        "cinderweaver",
+        "edgedancer"
+      ],
+      "beforeVersion": 7,
+      "beforeDigest": "4d7c87eb46c7f640299b79b6288512e9a58f139b7b3342932e8cda019bc9f318",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "affected",
+        "statusId": "burn",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Burn [Target]: remove Guard from Target; grant Haste to Self.",
+      "rationale": "Ashen Tempo keeps Burn [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.cinderweaver-wildwarden.linked-sequence",
+      "name": "Burn the Thicket",
+      "pair": [
+        "cinderweaver",
+        "wildwarden"
+      ],
+      "beforeVersion": 7,
+      "beforeDigest": "c4de34d9f5fbe51e9e20e753ee4115e1d110aa4d79f27486a9023452c6eeb16b",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "affected",
+        "statusId": "poison",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Poison [Target]: remove Poison, Marked from Target; grant Rooted to Target; grant Healing Down to Target.",
+      "rationale": "Burn the Thicket keeps Poison [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.cinderweaver-runeblade.linked-sequence",
+      "name": "Unbinding Heat",
+      "pair": [
+        "cinderweaver",
+        "runeblade"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "5afdd34eea7c9fc7fe8350c4299f6c85aaf31f8a08a861cdd472fd7c966c8b05",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "affected",
+        "statusId": "burn",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Burn [Target]: remove Burn, Guard, Damage Up from Target; restore 6 MP for Self.",
+      "rationale": "Unbinding Heat keeps Burn [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.cinderweaver-dawnshield.linked-sequence",
+      "name": "Ashen Benediction",
+      "pair": [
+        "cinderweaver",
+        "dawnshield"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "380dfedf27c03097532bfabc786036f63bec6fc2c9cb39f9418ba2924228c428",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "selected",
+        "statusId": "burn",
+        "present": true
+      },
+      "automaticTrigger": "after-action",
+      "automaticTarget": {
+        "subject": "selected"
+      },
+      "description": "After your action, with Burn [Target]: remove Burn from Target; give Target 7% HP Barrier; grant Burn Ward to Target.",
+      "rationale": "Ashen Benediction keeps Burn [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.frostweaver-vanguard.linked-sequence",
+      "name": "Cold Breach",
+      "pair": [
+        "frostweaver",
+        "vanguard"
+      ],
+      "beforeVersion": 7,
+      "beforeDigest": "30dd5cba9b01556f5442b62f7a27c8941bf3b416327df3e28921c9510a5ab920",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "affected",
+        "statusId": "frozen",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Chilled [Target]: remove Chilled, Guard, Fortified, Burn Ward from Target.",
+      "rationale": "Cold Breach keeps Chilled [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.frostweaver-lifebinder.linked-sequence",
+      "name": "Winter Triage",
+      "pair": [
+        "frostweaver",
+        "lifebinder"
+      ],
+      "beforeVersion": 7,
+      "beforeDigest": "f37ccdedc622b84729bb2655296487e3321ccdc1aa2ccc9777e5b5ae8fb06705",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 2500
+      },
+      "automaticTarget": {
+        "subject": "owner"
+      },
+      "description": "On entering HP less than 25% [Self]: recover 8% HP for Self; grant Fortified to Self.",
+      "rationale": "Winter Triage keeps HP less than 25% [Self] as its single thematic setup. Native owner state-entry replaces the action/Discipline trigger; other prior states are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.aetherist-frostweaver.linked-sequence",
+      "name": "Cold Reserve",
+      "pair": [
+        "aetherist",
+        "frostweaver"
+      ],
+      "beforeVersion": 7,
+      "beforeDigest": "ea1d47c966bdf205e33ab8a2edf465048ab0e738f06777896ad2843350a81314",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "selected",
+        "statusId": "frozen",
+        "present": true
+      },
+      "automaticTrigger": "after-action",
+      "automaticTarget": {
+        "subject": "selected"
+      },
+      "description": "After your action, with Chilled [Target]: restore 5 MP for Self; grant Suppress to Target.",
+      "rationale": "Cold Reserve keeps Chilled [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.farstrider-frostweaver.linked-sequence",
+      "name": "Still Target",
+      "pair": [
+        "farstrider",
+        "frostweaver"
+      ],
+      "beforeVersion": 7,
+      "beforeDigest": "39bf6d7b02eeacb7bfd83a301a667235de6f2decae6d0d54c9161199edfd691c",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "selected",
+        "statusId": "root",
+        "present": true
+      },
+      "description": "For an attack with Rooted [Target]: add 3 damage to the attack.",
+      "rationale": "Still Target keeps Rooted [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed. Rooted differentiates Still Target from Crystal Impact, which retains Chilled."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.frostweaver-shadehand.linked-sequence",
+      "name": "Brittle Secret",
+      "pair": [
+        "frostweaver",
+        "shadehand"
+      ],
+      "beforeVersion": 7,
+      "beforeDigest": "6fdde5a812cce7baef0489647132ee1a5fa1b12bf68852d9dddac607aa3af789",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "selected",
+        "statusId": "frozen",
+        "present": true
+      },
+      "automaticTrigger": "after-action",
+      "automaticTarget": {
+        "subject": "selected"
+      },
+      "description": "After your action, with Chilled [Target]: remove Chilled from Target; grant Invisible to Self.",
+      "rationale": "Brittle Secret keeps Chilled [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.frostweaver-ironfist.linked-sequence",
+      "name": "Crystal Impact",
+      "pair": [
+        "frostweaver",
+        "ironfist"
+      ],
+      "beforeVersion": 7,
+      "beforeDigest": "07e72a67ff33638e4db2013309495b519621bb6e16610bdd42a064d4222d018c",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "selected",
+        "statusId": "frozen",
+        "present": true
+      },
+      "description": "For an attack with Chilled [Target]: add 3 damage to the attack.",
+      "rationale": "Crystal Impact keeps Chilled [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.bastion-frostweaver.linked-sequence",
+      "name": "Icebound Watch",
+      "pair": [
+        "bastion",
+        "frostweaver"
+      ],
+      "beforeVersion": 7,
+      "beforeDigest": "923b011ec980b7bae505d500291b643a5d90d4d8b01b9eaa72d1242deb474f49",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "triggering",
+        "statusId": "frozen",
+        "present": true
+      },
+      "automaticTrigger": "damage-taken",
+      "automaticTarget": {
+        "subject": "triggering"
+      },
+      "description": "When an enemy damages you, with Chilled [Target]: grant Rooted to Target.",
+      "rationale": "Icebound Watch keeps Chilled [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.frostweaver-ravager.linked-sequence",
+      "name": "Cold Blood",
+      "pair": [
+        "frostweaver",
+        "ravager"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "b324d50a653ade4bc9c5b96c30216944c225e04e78b23a399b684621f316621b",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "owner",
+        "statusId": "reckless",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Reckless [Self]: remove Chilled from Target; grant Suppress to Target; grant Chilled to Self.",
+      "rationale": "Cold Blood keeps Reckless [Self] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.edgedancer-frostweaver.linked-sequence",
+      "name": "Glacial Step",
+      "pair": [
+        "edgedancer",
+        "frostweaver"
+      ],
+      "beforeVersion": 7,
+      "beforeDigest": "7be778247992717e78a49f63d4882308a47d86dd3ea5fae3ae359615f1835f4c",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "affected",
+        "statusId": "frozen",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Chilled [Target]: remove Chilled from Target; remove Rooted, Slow from Self; grant Haste to Self.",
+      "rationale": "Glacial Step keeps Chilled [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.frostweaver-wildwarden.linked-sequence",
+      "name": "Frostbound Quarry",
+      "pair": [
+        "frostweaver",
+        "wildwarden"
+      ],
+      "beforeVersion": 7,
+      "beforeDigest": "35ee5990254886a43d0bae8b43b395c25a07dc7e6f53868ee79e0838dd4a8dfe",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "affected",
+        "statusId": "poison",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Poison [Target]: remove Chilled from Target; grant Rooted to Target; grant Airborne to Self.",
+      "rationale": "Frostbound Quarry keeps Poison [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.frostweaver-runeblade.linked-sequence",
+      "name": "Quiet Rune",
+      "pair": [
+        "frostweaver",
+        "runeblade"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "310b3f7b9824a7063407af34ac66cd68236a96bb078f5ab2150b07d18eb46512",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "affected",
+        "statusId": "frozen",
+        "present": true
+      },
+      "automaticTrigger": "resource-changed",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When your action changes a resource, with Chilled [Target]: remove Chilled from Target; give Self 12% HP Barrier.",
+      "rationale": "Quiet Rune keeps Chilled [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.dawnshield-frostweaver.linked-sequence",
+      "name": "Shelter from Winter",
+      "pair": [
+        "dawnshield",
+        "frostweaver"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "35d419a04139f8a1dc4c9a04aad5b4df221758eeb3960cf510b253e896116e24",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "selected",
+        "statusId": "frozen",
+        "present": true
+      },
+      "automaticTrigger": "after-action",
+      "automaticTarget": {
+        "subject": "selected"
+      },
+      "description": "After your action, with Chilled [Target]: remove Chilled, Rooted from Target; give Target 9% HP Barrier; grant Guard to Target.",
+      "rationale": "Shelter from Winter keeps Chilled [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.cinderweaver-frostweaver.linked-sequence",
+      "name": "Thermal Choice",
+      "pair": [
+        "cinderweaver",
+        "frostweaver"
+      ],
+      "beforeVersion": 7,
+      "beforeDigest": "2d153ee26bca09543b85936bc3268774d25206a8ebcbfea1f940acb177b166d3",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "affected",
+        "statusId": "frozen",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Chilled [Target]: remove Chilled from Target; grant Vulnerable to Target.",
+      "rationale": "Thermal Choice keeps Chilled [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.stormsinger-vanguard.linked-sequence",
+      "name": "Thunder Breach",
+      "pair": [
+        "stormsinger",
+        "vanguard"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "041e42b28f6e5f04ca0cd1212a42f6ca40ba795de081ad051b7e32093a92ba73",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "affected",
+        "statusId": "conductive",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Conductive [Target]: remove Conductive from Target; restore 2 MP for Self; grant Suppress to Target.",
+      "rationale": "Thunder Breach keeps Conductive [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.lifebinder-stormsinger.linked-sequence",
+      "name": "Restorative Current",
+      "pair": [
+        "lifebinder",
+        "stormsinger"
+      ],
+      "beforeVersion": 9,
+      "beforeDigest": "d548bd8e6432eeab5280f0d7607dd1706c28046428e4439616c84d9efc00f398",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "owner",
+        "statusId": "guarded",
+        "present": true
+      },
+      "automaticTarget": {
+        "subject": "owner"
+      },
+      "description": "On entering Guard [Self]: remove Guard from Self; recover 5% HP for Self; remove Rooted, Slow from Self.",
+      "rationale": "Restorative Current keeps Guard [Self] as its single thematic setup. Native owner state-entry replaces the action/Discipline trigger; other prior states are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.aetherist-stormsinger.linked-sequence",
+      "name": "Charged Calculation",
+      "pair": [
+        "aetherist",
+        "stormsinger"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "60d639ae41b5ab45d359a0a55bfc938295a682ae41038cb7e0418c4f8aa6ed4c",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "selected",
+        "statusId": "conductive",
+        "present": true
+      },
+      "automaticTrigger": "after-action",
+      "automaticTarget": {
+        "subject": "selected"
+      },
+      "description": "After your action, with Conductive [Target]: drain 8 MP from Target; grant Suppress to Target.",
+      "rationale": "Charged Calculation keeps Conductive [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.farstrider-stormsinger.linked-sequence",
+      "name": "Conductive Sight",
+      "pair": [
+        "farstrider",
+        "stormsinger"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "621d59f758b0945fa417910c890bc3d9ce63e2226c66ab66d699c6e546627e70",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "affected",
+        "statusId": "conductive",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Conductive [Target]: remove Conductive from Target; grant Marked to Target; grant Haste to Self.",
+      "rationale": "Conductive Sight keeps Conductive [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.shadehand-stormsinger.linked-sequence",
+      "name": "Static Misdirection",
+      "pair": [
+        "shadehand",
+        "stormsinger"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "ad4a2477fa4f804d909c15eb696c888af035fead057de78049ed97db310ede7e",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "owner",
+        "statusId": "covert",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Covert [Self]: remove Covert from Self; remove Conductive from Target; grant Marked to Target; grant Suppress to Target.",
+      "rationale": "Static Misdirection keeps Covert [Self] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.ironfist-stormsinger.linked-sequence",
+      "name": "Disrupting Palm",
+      "pair": [
+        "ironfist",
+        "stormsinger"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "905c97b9999657250b4c0a16790bf9b90be29fd41d7f64ecfd8fcd31b470f306",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "owner",
+        "statusId": "airborne",
+        "present": true
+      },
+      "automaticTrigger": "barrier-hit",
+      "automaticTarget": {
+        "subject": "triggering"
+      },
+      "description": "When your Barrier absorbs damage, with Airborne [Self]: grant Conductive to Target; restore 3 MP for Self.",
+      "rationale": "Disrupting Palm keeps Airborne [Self] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.bastion-stormsinger.linked-sequence",
+      "name": "Grounded Challenge",
+      "pair": [
+        "bastion",
+        "stormsinger"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "3c8d8f221a38e05bc7bb0e3222949deebbba96c66f57d183726751cfb398823f",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "selected",
+        "statusId": "conductive",
+        "present": true
+      },
+      "automaticTrigger": "after-action",
+      "automaticTarget": {
+        "subject": "selected"
+      },
+      "description": "After your action, with Conductive [Target]: grant Taunted to Target; grant Suppress to Target.",
+      "rationale": "Grounded Challenge keeps Conductive [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.ravager-stormsinger.linked-sequence",
+      "name": "Red Lightning",
+      "pair": [
+        "ravager",
+        "stormsinger"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "7de45b1beeebee0dd18bbf2484756a4618295d60a4caf08a5ac230eef83e9054",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "owner",
+        "statusId": "reckless",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Reckless [Self]: remove Conductive from Target; drain 8 MP from Target; grant Conductive to Self.",
+      "rationale": "Red Lightning keeps Reckless [Self] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.edgedancer-stormsinger.linked-sequence",
+      "name": "Arc across the Gap",
+      "pair": [
+        "edgedancer",
+        "stormsinger"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "8b72e707c3e0b82e01beef71e645298f8f7231a564c2629bb37720a79478c8fa",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "affected",
+        "statusId": "conductive",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Conductive [Target]: remove Conductive from Target; drain 6 MP from Target; restore 2 MP for Self.",
+      "rationale": "Arc across the Gap keeps Conductive [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.stormsinger-wildwarden.linked-sequence",
+      "name": "Charged Quarry",
+      "pair": [
+        "stormsinger",
+        "wildwarden"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "ab43c5f7118921155f1a50e72de593acedc783b91dfcea469aea69d958137ad0",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "affected",
+        "statusId": "poison",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Poison [Target]: remove Poison, Conductive from Target; drain 5 MP from Target; grant Slow to Target.",
+      "rationale": "Charged Quarry keeps Poison [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.runeblade-stormsinger.linked-sequence",
+      "name": "Circuit after Contact",
+      "pair": [
+        "runeblade",
+        "stormsinger"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "14af84a39046e6d5867bf11f4778b2422bca6d0e8b8d7df85b465c4245076d25",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "affected",
+        "statusId": "conductive",
+        "present": true
+      },
+      "automaticTrigger": "resource-changed",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When your action changes a resource, with Conductive [Target]: remove Conductive from Target; restore 7 MP for Self; grant Conductive to Self.",
+      "rationale": "Circuit after Contact keeps Conductive [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.dawnshield-stormsinger.linked-sequence",
+      "name": "Calm the Charge",
+      "pair": [
+        "dawnshield",
+        "stormsinger"
+      ],
+      "beforeVersion": 9,
+      "beforeDigest": "84e4a1e61d26e50c154f9711b545bb1fadd0d33dcef64cfb335697a0d1a223f9",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "selected",
+        "statusId": "wet",
+        "present": true
+      },
+      "automaticTrigger": "after-action",
+      "automaticTarget": {
+        "subject": "selected"
+      },
+      "description": "After your action, with Drenched [Target]: remove Drenched, Conductive from Target; give Target 10% HP Barrier.",
+      "rationale": "Calm the Charge keeps Drenched [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.cinderweaver-stormsinger.linked-sequence",
+      "name": "Overheated Circuit",
+      "pair": [
+        "cinderweaver",
+        "stormsinger"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "949a13d7d8d058513770055f0c1769a8f1107f816aaeb5c6a881be2bd6a6288b",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "affected",
+        "statusId": "burn",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Burn [Target]: remove Conductive from Target; drain 12 MP from Target; grant Suppress to Target.",
+      "rationale": "Overheated Circuit keeps Burn [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.frostweaver-stormsinger.linked-sequence",
+      "name": "Brittle Conductor",
+      "pair": [
+        "frostweaver",
+        "stormsinger"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "07ae567f39216902194d67e709332ea1f7b44ceaaa6329b086580f473d78019b",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "affected",
+        "statusId": "conductive",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Conductive [Target]: remove Conductive from Target; restore 3 MP for Self; grant Healing Down to Target.",
+      "rationale": "Brittle Conductor keeps Conductive [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.tidecaller-vanguard.linked-sequence",
+      "name": "Undertow Breach",
+      "pair": [
+        "tidecaller",
+        "vanguard"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "7750c485cb92e46497ae1e0365cc5b6f45d4ea5a104c4ca6912f6daa6ef6964b",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "affected",
+        "statusId": "wet",
+        "present": true
+      },
+      "automaticTrigger": "displaced",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you displace a unit, with Drenched [Target]: remove Drenched from Target; grant Healing Down to Target; recover 4% HP for Self.",
+      "rationale": "Undertow Breach keeps Drenched [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.lifebinder-tidecaller.linked-sequence",
+      "name": "Patient Waters",
+      "pair": [
+        "lifebinder",
+        "tidecaller"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "377769f2a56cabdca60169821e8d5f8fe9df8f6445c5afb37e64910d53b80751",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "affected",
+        "statusId": "guarded",
+        "present": true
+      },
+      "automaticTrigger": "healed",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you heal a friendly unit, with Guard [Target]: remove Guard from Target; recover 3% HP for Target over 2 applications.",
+      "rationale": "Patient Waters keeps Guard [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.aetherist-tidecaller.linked-sequence",
+      "name": "Reserve Current",
+      "pair": [
+        "aetherist",
+        "tidecaller"
+      ],
+      "beforeVersion": 9,
+      "beforeDigest": "0eacbae5ad7cd1c617e5833cfb2b95453d89dd83f8e745d4e459b1ad0f5e44b6",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "selected",
+        "statusId": "wet",
+        "present": true
+      },
+      "automaticTrigger": "after-action",
+      "automaticTarget": {
+        "subject": "selected"
+      },
+      "description": "After your action, with Drenched [Target]: restore 4 MP for Target; give Target 5% HP Barrier.",
+      "rationale": "Reserve Current keeps Drenched [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.farstrider-tidecaller.linked-sequence",
+      "name": "Waterline Shot",
+      "pair": [
+        "farstrider",
+        "tidecaller"
+      ],
+      "beforeVersion": 9,
+      "beforeDigest": "b1daa0629b985229b4cde861db7f88b55753bdfd7779e09b6698c1546c0b2787",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "affected",
+        "statusId": "wet",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Drenched [Target]: remove Drenched from Target; recover 3% HP for Self over 2 applications; grant Rooted to Self.",
+      "rationale": "Waterline Shot keeps Drenched [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.shadehand-tidecaller.linked-sequence",
+      "name": "Mistbound Escape",
+      "pair": [
+        "shadehand",
+        "tidecaller"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "dca53c5b5d61d0a95bff21af67098a7f704eb8bada97b6c14a301e91a3a97159",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "owner",
+        "statusId": "covert",
+        "present": true
+      },
+      "automaticTarget": {
+        "subject": "owner"
+      },
+      "description": "On entering Covert [Self]: remove Covert, Marked, Revealed, Vulnerable from Self; recover 4% HP for Self.",
+      "rationale": "Mistbound Escape keeps Covert [Self] as its single thematic setup. Native owner state-entry replaces the action/Discipline trigger; other prior states are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.ironfist-tidecaller.linked-sequence",
+      "name": "Turning Current",
+      "pair": [
+        "ironfist",
+        "tidecaller"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "427bd7a8639e6dba0b5f59d54fe4baf890dde9de9fb505555d580abba6f5b7e6",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "owner",
+        "statusId": "airborne",
+        "present": true
+      },
+      "automaticTarget": {
+        "subject": "owner"
+      },
+      "description": "On entering Airborne [Self]: remove Airborne, Rooted, Slow from Self; grant Haste to Self.",
+      "rationale": "Turning Current keeps Airborne [Self] as its single thematic setup. Native owner state-entry replaces the action/Discipline trigger; other prior states are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.bastion-tidecaller.linked-sequence",
+      "name": "Harbor Guard",
+      "pair": [
+        "bastion",
+        "tidecaller"
+      ],
+      "beforeVersion": 9,
+      "beforeDigest": "54957bc75536b019a1063ea05270ce3ca0eb5e264dc31152ad39ad8cf76972bf",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "selected",
+        "statusId": "wet",
+        "present": true
+      },
+      "automaticTrigger": "after-action",
+      "automaticTarget": {
+        "subject": "selected"
+      },
+      "description": "After your action, with Drenched [Target]: give Target 9% HP Barrier; remove Drenched, Conductive from Target.",
+      "rationale": "Harbor Guard keeps Drenched [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.ravager-tidecaller.linked-sequence",
+      "name": "Red Undertow",
+      "pair": [
+        "ravager",
+        "tidecaller"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "051c42d05af882c95bdcd18beb311c6d07cedc6cd4c46644d292b9f8394e885a",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "owner",
+        "statusId": "reckless",
+        "present": true
+      },
+      "automaticTarget": {
+        "subject": "owner"
+      },
+      "description": "On entering Reckless [Self]: remove Reckless from Self; recover 6% HP for Self; grant Suppress to Self.",
+      "rationale": "Red Undertow keeps Reckless [Self] as its single thematic setup. Native owner state-entry replaces the action/Discipline trigger; other prior states are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.edgedancer-tidecaller.linked-sequence",
+      "name": "Mistward Step",
+      "pair": [
+        "edgedancer",
+        "tidecaller"
+      ],
+      "beforeVersion": 9,
+      "beforeDigest": "8bfcd11972d52dc98b6b12896c9640c98ec8ce03129cfae22106cc4b836fbed0",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "owner",
+        "statusId": "guarded",
+        "present": true
+      },
+      "automaticTarget": {
+        "subject": "owner"
+      },
+      "description": "On entering Guard [Self]: remove Guard from Self; give Self 10% HP Barrier; grant Airborne to Self.",
+      "rationale": "Mistward Step keeps Guard [Self] as its single thematic setup. Native owner state-entry replaces the action/Discipline trigger; other prior states are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.tidecaller-wildwarden.linked-sequence",
+      "name": "Quarry in the Current",
+      "pair": [
+        "tidecaller",
+        "wildwarden"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "03b17dd8471d1e63629120d52b3a6c41694b7ce3073f009f08876e93fa55114b",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "affected",
+        "statusId": "mark",
+        "present": true
+      },
+      "automaticTrigger": "displaced",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you displace a unit, with Marked [Target]: remove Marked from Target; grant Suppress to Target; restore 3 MP for Self.",
+      "rationale": "Quarry in the Current keeps Marked [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.runeblade-tidecaller.linked-sequence",
+      "name": "Washing Inscription",
+      "pair": [
+        "runeblade",
+        "tidecaller"
+      ],
+      "beforeVersion": 9,
+      "beforeDigest": "310b06e3e8bc5c2a1e7840b836e06b00c3b19f2dc35742019d94172990a6e4ce",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "owner",
+        "statusId": "hexed",
+        "present": true
+      },
+      "automaticTarget": {
+        "subject": "owner"
+      },
+      "description": "On entering Healing Down [Self]: remove Guard, Healing Down from Self; restore 4 MP for Self.",
+      "rationale": "Washing Inscription keeps Healing Down [Self] as its single thematic setup. Native owner state-entry replaces the action/Discipline trigger; other prior states are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.dawnshield-tidecaller.linked-sequence",
+      "name": "Harbor Benediction",
+      "pair": [
+        "dawnshield",
+        "tidecaller"
+      ],
+      "beforeVersion": 9,
+      "beforeDigest": "329fcbabd3c2fc4234fde25c97b74908305336ad7f6d574515c0c64edc0d3e7d",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "selected",
+        "statusId": "wet",
+        "present": true
+      },
+      "automaticTrigger": "after-action",
+      "automaticTarget": {
+        "subject": "selected"
+      },
+      "description": "After your action, with Drenched [Target]: remove Drenched from Target; recover 3% HP for Target over 2 applications; grant Guard to Target.",
+      "rationale": "Harbor Benediction keeps Drenched [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.cinderweaver-tidecaller.linked-sequence",
+      "name": "Steamfront",
+      "pair": [
+        "cinderweaver",
+        "tidecaller"
+      ],
+      "beforeVersion": 9,
+      "beforeDigest": "6350876c581d21c5b8795d5633d20996ace53b567a1256562bb05c463719129f",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "owner",
+        "statusId": "burn",
+        "present": true
+      },
+      "automaticTarget": {
+        "subject": "owner"
+      },
+      "description": "On entering Burn [Self]: remove Burn, Drenched from Self; give Self 9% HP Barrier; grant Burn Ward to Self.",
+      "rationale": "Steamfront keeps Burn [Self] as its single thematic setup. Native owner state-entry replaces the action/Discipline trigger; other prior states are removed. Burn alone immediately triggers Conditional Cleanse of Burn/Drenched, Barrier and Burn Ward; Drenched and Tidecaller Heal are no longer prerequisites."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.frostweaver-tidecaller.linked-sequence",
+      "name": "Rime Current",
+      "pair": [
+        "frostweaver",
+        "tidecaller"
+      ],
+      "beforeVersion": 9,
+      "beforeDigest": "08159ed77d1a9b29a77cc59925da002752f1d3cbf158eb966dd015c7ee3dab65",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "affected",
+        "statusId": "wet",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Drenched [Target]: remove Drenched, Chilled from Target; remove Burn, Bleed, Poison from Self; give Self 8% HP Barrier.",
+      "rationale": "Rime Current keeps Drenched [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.stormsinger-tidecaller.linked-sequence",
+      "name": "Chosen Confluence",
+      "pair": [
+        "stormsinger",
+        "tidecaller"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "253478f1f9b95f00081942e3bcfad580aff24a7fc3a4dc8672c8ad04b7f6f825",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "affected",
+        "statusId": "wet",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Drenched [Target]: remove Drenched from Target; recover 3% HP for Self over 2 applications; grant Slow to Self.",
+      "rationale": "Chosen Confluence keeps Drenched [Target] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.chronist-vanguard.linked-sequence",
+      "name": "Delayed Breach",
+      "pair": [
+        "chronist",
+        "vanguard"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "ca7c1e625c0bf89ae76c6ce18ebec49cfdbfa177d35a5c269ecbd4ace999c91e",
+      "requirements": {
+        "kind": "prime-presence",
+        "subject": "owner",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Primed [Self]: remove Guard from Target; grant Vulnerable to Target; remove Guard from Self.",
+      "rationale": "Delayed Breach keeps Primed [Self] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.chronist-lifebinder.linked-sequence",
+      "name": "Triage in Two Times",
+      "pair": [
+        "chronist",
+        "lifebinder"
+      ],
+      "beforeVersion": 7,
+      "beforeDigest": "69d72c041f6631e7aa4dbd46ba9b6dba0d100286272a3ab88f19e257f321210a",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 3500
+      },
+      "automaticTarget": {
+        "subject": "owner"
+      },
+      "description": "On entering HP less than 35% [Self]: recover 5% HP for Self over 2 applications.",
+      "rationale": "Triage in Two Times keeps HP less than 35% [Self] as its single thematic setup. Native owner state-entry replaces the action/Discipline trigger; other prior states are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.aetherist-chronist.linked-sequence",
+      "name": "Held Formula",
+      "pair": [
+        "aetherist",
+        "chronist"
+      ],
+      "beforeVersion": 7,
+      "beforeDigest": "9b0c0e09ffd6ee934270999d4c77687121095dddcfa84124735fc2331f730fd2",
+      "requirements": {
+        "kind": "prime-presence",
+        "subject": "owner",
+        "present": true
+      },
+      "description": "While Primed [Self]: increase attack damage by 10%.",
+      "rationale": "Held Formula keeps Primed [Self] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.chronist-farstrider.linked-sequence",
+      "name": "Forecasted Mark",
+      "pair": [
+        "chronist",
+        "farstrider"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "221b09df5c24fa1c89e637c33010381be2f3329907bb0290f9720d0bc9f021f8",
+      "requirements": {
+        "kind": "prime-presence",
+        "subject": "owner",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Primed [Self]: remove Marked from Target; grant Haste to Self.",
+      "rationale": "Forecasted Mark keeps Primed [Self] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.chronist-shadehand.linked-sequence",
+      "name": "Borrowed Concealment",
+      "pair": [
+        "chronist",
+        "shadehand"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "3163783fa051f3bba73cb641d9da631c817598a2f32e93ab8b6a9af2535764bb",
+      "requirements": {
+        "kind": "prime-presence",
+        "subject": "owner",
+        "present": true
+      },
+      "automaticTarget": {
+        "subject": "owner"
+      },
+      "description": "On entering Primed [Self]: give Self 6% HP Barrier; grant Covert to Self.",
+      "rationale": "Borrowed Concealment keeps Primed [Self] as its single thematic setup. Native owner state-entry replaces the action/Discipline trigger; other prior states are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.chronist-ironfist.linked-sequence",
+      "name": "Patient Palm",
+      "pair": [
+        "chronist",
+        "ironfist"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "d27788e5ed44d4d6219de9d89316a1f5196f40156aa1d95085ce768adac1c54a",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "owner",
+        "statusId": "haste",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Haste [Self]: remove Haste from Self; give Self 7% HP Barrier; grant Slow to Target.",
+      "rationale": "Patient Palm keeps Haste [Self] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.bastion-chronist.linked-sequence",
+      "name": "Fortress at Dawn",
+      "pair": [
+        "bastion",
+        "chronist"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "de49a8d95e22ad9c871e4270edbbd159a12e5466b41a32b1ab22c8fcd0425da4",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "owner",
+        "statusId": "fortified",
+        "present": true
+      },
+      "automaticTarget": {
+        "subject": "owner"
+      },
+      "description": "On entering Fortified [Self]: give Self 12% HP Barrier.",
+      "rationale": "Fortress at Dawn keeps Fortified [Self] as its single thematic setup. Native owner state-entry replaces the action/Discipline trigger; other prior states are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.chronist-ravager.linked-sequence",
+      "name": "Debt of Blood",
+      "pair": [
+        "chronist",
+        "ravager"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "50fa3cff220c0a3f10964ac781f716f9b6029bd6a88edfe23d3e8b075c73adbe",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 3000
+      },
+      "automaticTarget": {
+        "subject": "owner"
+      },
+      "description": "On entering HP less than 30% [Self]: recover 12% HP for Self; grant Healing Down to Self.",
+      "rationale": "Debt of Blood keeps HP less than 30% [Self] as its single thematic setup. Native owner state-entry replaces the action/Discipline trigger; other prior states are removed. Low HP remains the actual emergency gate; Primed/Reckless are removed rather than turning the heal into a full-HP prime reward."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.chronist-edgedancer.linked-sequence",
+      "name": "Poised Moment",
+      "pair": [
+        "chronist",
+        "edgedancer"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "07159612bf523dec67d2914fcf8537e0ca2c55072f54679b3aa69f812a067542",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "owner",
+        "statusId": "haste",
+        "present": true
+      },
+      "automaticTarget": {
+        "subject": "owner"
+      },
+      "description": "On entering Haste [Self]: give Self 8% HP Barrier; restore 4 MP for Self.",
+      "rationale": "Poised Moment keeps Haste [Self] as its single thematic setup. Native owner state-entry replaces the action/Discipline trigger; other prior states are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.chronist-wildwarden.linked-sequence",
+      "name": "Patient Hunt",
+      "pair": [
+        "chronist",
+        "wildwarden"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "7c1791d8dc9e1a5a77232c56d2c79187120470372ee81854ca4a91234ec54bdf",
+      "requirements": {
+        "kind": "prime-presence",
+        "subject": "owner",
+        "present": true
+      },
+      "automaticTrigger": "damage-dealt",
+      "automaticTarget": {
+        "subject": "affected"
+      },
+      "description": "When you damage an enemy, with Primed [Self]: remove Marked, Slow from Target; grant Rooted to Target; grant Healing Down to Target.",
+      "rationale": "Patient Hunt keeps Primed [Self] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.chronist-runeblade.linked-sequence",
+      "name": "Deferred Inscription",
+      "pair": [
+        "chronist",
+        "runeblade"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "59753d573a5a6c5ca7318df00ef0b5ab670ba40a80b4da78f6534e468738e287",
+      "requirements": {
+        "kind": "prime-presence",
+        "subject": "owner",
+        "present": true
+      },
+      "automaticTarget": {
+        "subject": "owner"
+      },
+      "description": "On entering Primed [Self]: remove Haste from Self; recover 7% MP for Self; grant Guard to Self.",
+      "rationale": "Deferred Inscription keeps Primed [Self] as its single thematic setup. Native owner state-entry replaces the action/Discipline trigger; other prior states are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.chronist-dawnshield.linked-sequence",
+      "name": "Light after Recovery",
+      "pair": [
+        "chronist",
+        "dawnshield"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "f054605938bc0cd01f2d87ea6cd26a3d1478580b2235e33b51a77731ab4ec216",
+      "requirements": {
+        "kind": "prime-presence",
+        "subject": "owner",
+        "present": true
+      },
+      "automaticTarget": {
+        "subject": "owner"
+      },
+      "description": "On entering Primed [Self]: give Self 10% HP Barrier.",
+      "rationale": "Light after Recovery keeps Primed [Self] as its single thematic setup. Native owner state-entry replaces the action/Discipline trigger; other prior states are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.chronist-cinderweaver.linked-sequence",
+      "name": "Banked Flash",
+      "pair": [
+        "chronist",
+        "cinderweaver"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "fbf534a8b619a3104105430339e20cb3a960811d7ce674ada091a05908ea332f",
+      "requirements": {
+        "kind": "prime-presence",
+        "subject": "owner",
+        "present": true
+      },
+      "automaticTarget": {
+        "subject": "owner"
+      },
+      "description": "On entering Primed [Self]: give Self 9% HP Barrier; grant Haste to Self.",
+      "rationale": "Banked Flash keeps Primed [Self] as its single thematic setup. Native owner state-entry replaces the action/Discipline trigger; other prior states are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.chronist-frostweaver.linked-sequence",
+      "name": "Approaching Winter",
+      "pair": [
+        "chronist",
+        "frostweaver"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "e600caa4c8e21d53e44e81be26d4eae985c057fc9c716e80d9dcc36fafeef114",
+      "requirements": {
+        "kind": "prime-presence",
+        "subject": "owner",
+        "present": true
+      },
+      "automaticTrigger": "after-action",
+      "automaticTarget": {
+        "subject": "selected"
+      },
+      "description": "After your action, with Primed [Self]: remove Chilled from Target; grant Rooted to Target.",
+      "rationale": "Approaching Winter keeps Primed [Self] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.chronist-stormsinger.linked-sequence",
+      "name": "Forecasted Thunder",
+      "pair": [
+        "chronist",
+        "stormsinger"
+      ],
+      "beforeVersion": 8,
+      "beforeDigest": "1a18b9ea0e3d02909a453b394b9a89c641f89552f31cc7136904effc14f68331",
+      "requirements": {
+        "kind": "prime-presence",
+        "subject": "owner",
+        "present": true
+      },
+      "automaticTrigger": "after-action",
+      "automaticTarget": {
+        "subject": "selected"
+      },
+      "description": "After your action, with Primed [Self]: remove Conductive from Target; drain 10 MP from Target; grant Suppress to Target.",
+      "rationale": "Forecasted Thunder keeps Primed [Self] as its single thematic setup. Native causal timing is separate from the single condition; prior Discipline, action-tag and extra-state gates are removed."
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.chronist-tidecaller.linked-sequence",
+      "name": "Returning Current",
+      "pair": [
+        "chronist",
+        "tidecaller"
+      ],
+      "beforeVersion": 7,
+      "beforeDigest": "a39d2bdb396d737f997c76bc5fcccd76326510b0057427cfc0b5be182acdf343",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "owner",
+        "statusId": "wet",
+        "present": true
+      },
+      "automaticTarget": {
+        "subject": "owner"
+      },
+      "description": "On entering Drenched [Self]: remove Drenched from Self; recover 6% HP for Self; grant Guard to Self.",
+      "rationale": "Returning Current keeps Drenched [Self] as its single thematic setup. Native owner state-entry replaces the action/Discipline trigger; other prior states are removed."
+    },
+    {
+      "kind": "skill",
+      "id": "vanguard.second-wind",
+      "name": "Second Wind",
+      "beforeVersion": 7,
+      "beforeDigest": "0456cebf6fc917e9002750c83ddf01ce7402ca1935f96712a69629a5031379db",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 3000
+      },
+      "description": "Restore HP and gain Guard.",
+      "automaticTarget": {
+        "subject": "owner"
+      },
+      "rationale": "Expose HP less than 30% [Self] as the complete requirement, preserving all effect payloads, costs and targeting. Real HP-less-than-30% state entry replaces the damage-only crossing conjunction."
+    },
+    {
+      "kind": "skill",
+      "id": "lifebinder.mend",
+      "name": "Mend",
+      "beforeVersion": 7,
+      "beforeDigest": "6b455c532172cf44cf0083b3c32097bb0f054570330bf5dbfb3bf36a6b5b8a3c",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "selected",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 3500
+      },
+      "description": "Restore HP.",
+      "rationale": "Expose HP less than 35% [Target] as the complete requirement, preserving all effect payloads, costs and targeting. The displayed less-than/more-than operator is now literal and strict at the authored percentage."
+    },
+    {
+      "kind": "skill",
+      "id": "aetherist.channel",
+      "name": "Channel",
+      "beforeVersion": 8,
+      "beforeDigest": "5ad6ee7b75d3eeb862be9eddc20f6d8c9a816327a324bfcf3b4e4e331b1ae91a",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "mp",
+        "comparison": "less-than",
+        "basisPoints": 5000
+      },
+      "description": "Restore MP.",
+      "rationale": "Expose MP less than 50% [Self] as the complete requirement, preserving all effect payloads, costs and targeting. The displayed less-than/more-than operator is now literal and strict at the authored percentage."
+    },
+    {
+      "kind": "skill",
+      "id": "aetherist.mana-shield",
+      "name": "Mana Shield",
+      "beforeVersion": 8,
+      "beforeDigest": "892e19b4cf31f9fa8561edd33dda4a1dac5c90b1d3faa3451622de8a77041ab6",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "mp",
+        "comparison": "more-than",
+        "basisPoints": 5000
+      },
+      "description": "Gain a Barrier and gain Guard.",
+      "rationale": "Expose MP more than 50% [Self] as the complete requirement, preserving all effect payloads, costs and targeting. The displayed less-than/more-than operator is now literal and strict at the authored percentage."
+    },
+    {
+      "kind": "skill",
+      "id": "farstrider.keen-focus",
+      "name": "Keen Focus",
+      "beforeVersion": 6,
+      "beforeDigest": "d92db4532c854d6cffb71381be75c021eda2248a9bd2c41b4c65fb202cb4993b",
+      "requirements": null,
+      "description": "Strengthen the chosen attack.",
+      "rationale": "Expose None as the complete requirement, preserving all effect payloads, costs and targeting. The native Attack modifier composer supplies execution compatibility; remove the Farstrider-specific gate."
+    },
+    {
+      "kind": "skill",
+      "id": "shadehand.exploit-opening",
+      "name": "Exploit Opening",
+      "beforeVersion": 7,
+      "beforeDigest": "843b440f8e1aac1aa23aa561b7aa98140c250d8fa9f1514f3d913a2bcaaecfe8",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "selected",
+        "statusId": "exposed",
+        "present": true
+      },
+      "description": "Strike the enemy.",
+      "rationale": "Expose Vulnerable [Target] as the complete requirement, preserving all effect payloads, costs and targeting. Choose Vulnerable from Vulnerable-or-Marked; Marked is no longer an alternate prerequisite."
+    },
+    {
+      "kind": "skill",
+      "id": "shadehand.execution-cut",
+      "name": "Execution Cut",
+      "beforeVersion": 7,
+      "beforeDigest": "4529e39461a70fe06519719eebdf5b936111ee0b2f920c73d18e36913c6c415a",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "selected",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 3500
+      },
+      "description": "Strike the enemy.",
+      "rationale": "Expose HP less than 35% [Target] as the complete requirement, preserving all effect payloads, costs and targeting. The displayed less-than/more-than operator is now literal and strict at the authored percentage."
+    },
+    {
+      "kind": "skill",
+      "id": "ironfist.focus-breath",
+      "name": "Focus Breath",
+      "beforeVersion": 7,
+      "beforeDigest": "6ad4ec937765403ef88402b7c626c1df3b66092561cff107ba751aa73acaa67d",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 7000
+      },
+      "description": "Restore HP and restore MP.",
+      "rationale": "Expose HP less than 70% [Self] as the complete requirement, preserving all effect payloads, costs and targeting. The displayed less-than/more-than operator is now literal and strict at the authored percentage."
+    },
+    {
+      "kind": "skill",
+      "id": "ironfist.counter-palm",
+      "name": "Counter Palm",
+      "beforeVersion": 7,
+      "beforeDigest": "65939daad5dbe355d14f70ec7cac5432d2ba26df16016b34030c82de305bd86c",
+      "requirements": null,
+      "description": "Gain a Barrier.",
+      "automaticTrigger": "after-action",
+      "automaticTarget": {
+        "subject": "triggering"
+      },
+      "rationale": "Expose None as the complete requirement, preserving all effect payloads, costs and targeting. After Your Action is explicit execution timing; remove the hidden physical Attack filter while retaining once-per-owner-turn and 3 MP payment."
+    },
+    {
+      "kind": "skill",
+      "id": "ironfist.last-stand",
+      "name": "Last Stand",
+      "beforeVersion": 7,
+      "beforeDigest": "e7cd5dd49c1b5a8c8642df86fc086bbe70431890f9b044405c50a0ad07386a8a",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 2500
+      },
+      "description": "Restore HP and gain Guard.",
+      "rationale": "Expose HP less than 25% [Self] as the complete requirement, preserving all effect payloads, costs and targeting. The displayed less-than/more-than operator is now literal and strict at the authored percentage."
+    },
+    {
+      "kind": "skill",
+      "id": "chronist.stolen-moment",
+      "name": "Stolen Moment",
+      "beforeVersion": 7,
+      "beforeDigest": "5b177cccacf1cf4df1ff1473cbfcde5cfd12eb1354b6e6397dd5d566be909d43",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "selected",
+        "statusId": "slow",
+        "present": true
+      },
+      "description": "Strike the enemy and restore MP.",
+      "rationale": "Expose Slow [Target] as the complete requirement, preserving all effect payloads, costs and targeting."
+    },
+    {
+      "kind": "skill",
+      "id": "bastion.hold-fast",
+      "name": "Hold Fast",
+      "beforeVersion": 8,
+      "beforeDigest": "1473a9ee2152e2987a9edbe9382f263549ddf1e3af2dacfc689ef97c241c6b1c",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 6000
+      },
+      "description": "Restore HP and gain a Barrier.",
+      "rationale": "Expose HP less than 60% [Self] as the complete requirement, preserving all effect payloads, costs and targeting. The displayed less-than/more-than operator is now literal and strict at the authored percentage."
+    },
+    {
+      "kind": "skill",
+      "id": "ravager.desperate-execution",
+      "name": "Desperate Execution",
+      "beforeVersion": 6,
+      "beforeDigest": "307cec22a75a9c41987730f0df066cd6b346243eb7f20ed7dbc1eb38d397f9d1",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 3500
+      },
+      "description": "Strike the enemy.",
+      "rationale": "Expose HP less than 35% [Self] as the complete requirement, preserving all effect payloads, costs and targeting. The displayed less-than/more-than operator is now literal and strict at the authored percentage."
+    },
+    {
+      "kind": "skill",
+      "id": "edgedancer.riposte",
+      "name": "Riposte",
+      "beforeVersion": 6,
+      "beforeDigest": "8a6c46ab3ca97336a311faf61f7b514cc7ea0d398a56ad557dafdbbd773aa02d",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "owner",
+        "statusId": "guarded",
+        "present": true
+      },
+      "description": "Strengthen the chosen attack.",
+      "rationale": "Expose Guard [Self] as the complete requirement, preserving all effect payloads, costs and targeting. Keep Guard alone; the native modifier composer provides Attack compatibility without an extra physical-family condition."
+    },
+    {
+      "kind": "skill",
+      "id": "edgedancer.finishing-thrust",
+      "name": "Finishing Thrust",
+      "beforeVersion": 6,
+      "beforeDigest": "f27aa1e79e3ac91bc553b095ef994d7b0c2688da44593997b41f296dd9cf6e06",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "selected",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 4000
+      },
+      "description": "Strike the enemy.",
+      "rationale": "Expose HP less than 40% [Target] as the complete requirement, preserving all effect payloads, costs and targeting. The displayed less-than/more-than operator is now literal and strict at the authored percentage."
+    },
+    {
+      "kind": "skill",
+      "id": "runeblade.rune-guard",
+      "name": "Rune Guard",
+      "beforeVersion": 7,
+      "beforeDigest": "209b23e38d8a5bb31b3d1d844a8e4e329116edbe3bb20c61a56a7678900600b3",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "mp",
+        "comparison": "less-than",
+        "basisPoints": 5000
+      },
+      "description": "Gain Guard and restore MP.",
+      "rationale": "Expose MP less than 50% [Self] as the complete requirement, preserving all effect payloads, costs and targeting. The displayed less-than/more-than operator is now literal and strict at the authored percentage."
+    },
+    {
+      "kind": "skill",
+      "id": "runeblade.rune-burst",
+      "name": "Rune Burst",
+      "beforeVersion": 6,
+      "beforeDigest": "e42c258f49277b5440ce3a7ba1e6fce20633d555bb5576d67062fe3ebe5a16c1",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "mp",
+        "comparison": "more-than",
+        "basisPoints": 2500
+      },
+      "description": "Strengthen the chosen attack.",
+      "rationale": "Expose MP more than 25% [Self] as the complete requirement, preserving all effect payloads, costs and targeting. Convert the absolute MP>=12 reserve to MP more than 25%; remove the Runeblade action gate while keeping the existing 5 MP payment."
+    },
+    {
+      "kind": "skill",
+      "id": "dawnshield.judgment",
+      "name": "Judgment",
+      "beforeVersion": 6,
+      "beforeDigest": "24e34af43ae9bb968b19c8c1cd4cae61845b0542401e5d68da2b804fb6dc6519",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "owner",
+        "statusId": "guarded",
+        "present": true
+      },
+      "description": "Strike the enemy.",
+      "rationale": "Expose Guard [Self] as the complete requirement, preserving all effect payloads, costs and targeting."
+    },
+    {
+      "kind": "skill",
+      "id": "dawnshield.last-light",
+      "name": "Last Light",
+      "beforeVersion": 7,
+      "beforeDigest": "c2394f1b4f5bc2350ea5a93b1857d9a67c9127217b9019c356fe01da390247e0",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "selected",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 2500
+      },
+      "description": "Restore HP.",
+      "rationale": "Expose HP less than 25% [Target] as the complete requirement, preserving all effect payloads, costs and targeting. The displayed less-than/more-than operator is now literal and strict at the authored percentage."
+    },
+    {
+      "kind": "skill",
+      "id": "cinderweaver.ash-ward",
+      "name": "Ash Ward",
+      "beforeVersion": 6,
+      "beforeDigest": "dd62f4e5fcb16c79c1f540f54b266f7923143076eca9bc80dba85c9a419e06ad",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "owner",
+        "statusId": "burn",
+        "present": true
+      },
+      "description": "Gain Burn Ward and gain Guard.",
+      "rationale": "Expose Burn [Self] as the complete requirement, preserving all effect payloads, costs and targeting."
+    },
+    {
+      "kind": "skill",
+      "id": "cinderweaver.banked-embers",
+      "name": "Banked Embers",
+      "beforeVersion": 7,
+      "beforeDigest": "481307de75c3787b5fc363d6b6c0551f8f6e76b9a19fa8398fea111cc72cc9a6",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "mp",
+        "comparison": "less-than",
+        "basisPoints": 3000
+      },
+      "description": "Restore MP.",
+      "rationale": "Expose MP less than 30% [Self] as the complete requirement, preserving all effect payloads, costs and targeting. The displayed less-than/more-than operator is now literal and strict at the authored percentage."
+    },
+    {
+      "kind": "skill",
+      "id": "frostweaver.crystal-prison",
+      "name": "Crystal Prison",
+      "beforeVersion": 6,
+      "beforeDigest": "194115901d54f6ee5c485875df6f73266d1a592c9796cdfb284da3c2406979df",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "selected",
+        "statusId": "frozen",
+        "present": true
+      },
+      "description": "Root the enemy.",
+      "rationale": "Expose Chilled [Target] as the complete requirement, preserving all effect payloads, costs and targeting."
+    },
+    {
+      "kind": "skill",
+      "id": "stormsinger.storm-breath",
+      "name": "Storm Breath",
+      "beforeVersion": 7,
+      "beforeDigest": "d68ff39012bc330a0806a91efdee05b018dd66ced96c763fc1b67c3f8c30ad07",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "mp",
+        "comparison": "less-than",
+        "basisPoints": 4000
+      },
+      "description": "Restore MP.",
+      "rationale": "Expose MP less than 40% [Self] as the complete requirement, preserving all effect payloads, costs and targeting. The displayed less-than/more-than operator is now literal and strict at the authored percentage."
+    },
+    {
+      "kind": "skill",
+      "id": "tidecaller.still-water",
+      "name": "Still Water",
+      "beforeVersion": 7,
+      "beforeDigest": "fa18eeea381b4d47dcd3d4afae85eff307c28d71ed9629ffa5bae274b64f9daa",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "mp",
+        "comparison": "less-than",
+        "basisPoints": 4000
+      },
+      "description": "Restore HP and restore MP.",
+      "rationale": "Expose MP less than 40% [Self] as the complete requirement, preserving all effect payloads, costs and targeting. Choose the depleted-mana branch as the one setup for dual recovery; remove the alternative HP gate."
+    },
+    {
+      "kind": "essence",
+      "id": "essence.aetherist.aether-nova",
+      "name": "Aether Nova",
+      "beforeVersion": 8,
+      "beforeDigest": "0f7b50bec7059a66667cb03d087c4ff7c08fcbb2c452c84c25656075dd635d8b",
+      "requirements": null,
+      "description": "Strike nearby enemies.",
+      "rationale": "Keep the concentrated nova and its stored-aether packet. Its only conditional packet now literally requires Self MP more than 75%; no payload or other eligibility changes.",
+      "effectRequirements": {
+        "stored-aether": {
+          "kind": "resource-state",
+          "subject": "owner",
+          "resource": "mp",
+          "comparison": "more-than",
+          "basisPoints": 7500
+        }
+      }
+    },
+    {
+      "kind": "essence",
+      "id": "essence.bastion.last-bastion",
+      "name": "Last Bastion",
+      "beforeVersion": 8,
+      "beforeDigest": "e2cebe15e6e0042f97bef0ed038b9b2be08f8ac750e7bb22c8b449a3c097a86d",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 4000
+      },
+      "description": "Restore HP, fortify yourself, and gain a Barrier.",
+      "rationale": "Expose HP less than 40% [Self] as the complete requirement, preserving all effect payloads, costs and targeting. The displayed less-than/more-than operator is now literal and strict at the authored percentage."
+    },
+    {
+      "kind": "essence",
+      "id": "essence.wildwarden.apex-hunt",
+      "name": "Apex Hunt",
+      "beforeVersion": 6,
+      "beforeDigest": "e8591430ced61ae0ac71e62fa45fc5fbcd454fdb455bbb316c0a5025cab24221",
+      "requirements": {
+        "kind": "status-presence",
+        "subject": "selected",
+        "statusId": "mark",
+        "present": true
+      },
+      "description": "Strike the enemy and root the enemy.",
+      "rationale": "Expose Marked [Target] as the complete requirement, preserving all effect payloads, costs and targeting."
+    },
+    {
+      "kind": "essence",
+      "id": "essence.runeblade.runic-overdrive",
+      "name": "Runic Overdrive",
+      "beforeVersion": 8,
+      "beforeDigest": "b8f0abab23f100d637fcffbe731fc40d00bd4358609c566e5a8eba6597a50e8d",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "mp",
+        "comparison": "more-than",
+        "basisPoints": 3000
+      },
+      "description": "Strike enemies along a line and restore MP.",
+      "rationale": "Expose MP more than 30% [Self] as the complete requirement, preserving all effect payloads, costs and targeting. The displayed less-than/more-than operator is now literal and strict at the authored percentage."
+    },
+    {
+      "kind": "basic",
+      "id": "basic.recover",
+      "name": "HP Recovery",
+      "beforeVersion": 2,
+      "beforeDigest": "fe06e27377f2adb84ded1fd12265b1bb42e58e5cc5637ce0e2235b8475250392",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 10000
+      },
+      "description": "Restore HP.",
+      "rationale": "Expose HP less than 100% [Self] as the complete requirement, preserving all effect payloads, costs and targeting. The displayed less-than/more-than operator is now literal and strict at the authored percentage."
+    },
+    {
+      "kind": "basic",
+      "id": "basic.recover.mp",
+      "name": "MP Recovery",
+      "beforeVersion": 2,
+      "beforeDigest": "fc0098a8646dcad93d809d559717a12c3e9c1a16bfbd8ca8172f0772c77a2871",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "mp",
+        "comparison": "less-than",
+        "basisPoints": 10000
+      },
+      "description": "Restore MP.",
+      "rationale": "Expose MP less than 100% [Self] as the complete requirement, preserving all effect payloads, costs and targeting. The displayed less-than/more-than operator is now literal and strict at the authored percentage."
+    }
+  ]
+}

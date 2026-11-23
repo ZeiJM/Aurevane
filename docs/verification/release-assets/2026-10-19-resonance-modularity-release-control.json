@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "status": "prepared-not-executed",
+  "candidateSha256": "5b2a44f8b88489064e1e993af77023677c8cb83ed6e869d10fe6933b438c4534",
+  "designSha256": "a95044aada31d0b0fc58e03e7e308c5655e2f660b639dddf50c752c9670c55c9",
+  "baselineManifests": [
+    {
+      "path": "docs/superpowers/specs/2026-10-18-modular-correction-cohort.json",
+      "sha256": "998a68515af8cfbb2ce38ecb949fd595a044eb617175bf14d7520ca400c8d02f"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-10-19-essence-resonance-identity-cohort.json",
+      "sha256": "d74c7e65bdf8b73560b5d890ba08c776b1a523c300fe3810e88013195a8892f1"
+    }
+  ],
+  "templates": {
+    "publication": "0ae3f894b091354411bddaad20eddb8fabac061c54abd175d48333dac008c5e0",
+    "rollback": "5f0d314d580bd191655ac87163c47ac5e0188b81994377b37bf0753d32c7adb2",
+    "readback": "4992ea290db68e7a3633524db20672b94146f99bc644b8d6732c959a641a6f4b"
+  },
+  "publication": {
+    "historyBefore": 719,
+    "historyAfter": 787,
+    "current": 294,
+    "drafts": 0,
+    "appended": 68,
+    "appendedByKind": {
+      "skill": 9,
+      "essence": 1,
+      "resonance": 58
+    },
+    "unchangedCurrent": 226,
+    "policyVersion": 8
+  },
+  "rollback": {
+    "historyBefore": 787,
+    "historyAfter": 787,
+    "current": 294,
+    "drafts": 0,
+    "repointed": 68,
+    "immutableVersionsRetained": 787
+  },
+  "deploymentOrder": [
+    "verify compatible application READY and exact source SHA",
+    "refresh exact294-definition inventory including counts/drafts0/policy8/token",
+    "bind reviewed templates using Owner UUID, fresh inventory and verified compatible source",
+    "execute Owner-authorized atomic CAS append, retaining all719 pre-existing version rows",
+    "read back all294 current definitions,787 history rows,226 untouched pointers and exact hashes"
+  ],
+  "rollbackOrder": [
+    "refresh exact new294-definition inventory and787-row history count",
+    "atomically restore68 baseline current pointers while retaining all787 immutable version rows",
+    "readback with --state rolled-back and compare unchanged history hash",
+    "retain compatible readers for captured new definitions before older application promotion"
+  ],
+  "readbackHashes": {
+    "algorithm": "MD5 over PostgreSQL JSONB text for deterministic receipt comparison",
+    "authority": "Exact JSONB equality for every294 definition and old/new immutable versions; hashes are comparison receipts, never authorization."
+  }
+}

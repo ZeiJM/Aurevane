@@ -1,0 +1,180 @@
+[
+  {
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "case": "finite tag palette and None",
+    "passed": true
+  },
+  {
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "case": "hp-less-than strict equality and genuine target resource",
+    "passed": true
+  },
+  {
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "case": "hp-more-than strict equality and genuine target resource",
+    "passed": true
+  },
+  {
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "case": "mp-less-than strict equality and genuine target resource",
+    "passed": true
+  },
+  {
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "case": "mp-more-than strict equality and genuine target resource",
+    "passed": true
+  },
+  {
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "case": "0–100 percentage bounds and serialized reload with linked strict explanation",
+    "passed": true
+  },
+  {
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "case": "Primed reflects genuine native Controlled state and selected unit",
+    "passed": true
+  },
+  {
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "case": "Circle and All geometry rebind root and actor effect Target to Self without incompatible rules",
+    "passed": true
+  },
+  {
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "case": "Effect recipient rebinds selected to affected and preserves single-unit Target for actor effects",
+    "passed": true
+  },
+  {
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "case": "finite activation and limits remain programmable without redundant Resonance notes",
+    "passed": true
+  },
+  {
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "case": "Conditional Cleanse specified Burn and Drenched survives JSON reload",
+    "passed": true,
+    "errors": []
+  },
+  {
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "case": "finite tag palette and None",
+    "passed": true
+  },
+  {
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "case": "hp-less-than strict equality and genuine target resource",
+    "passed": true
+  },
+  {
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "case": "hp-more-than strict equality and genuine target resource",
+    "passed": true
+  },
+  {
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "case": "mp-less-than strict equality and genuine target resource",
+    "passed": true
+  },
+  {
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "case": "mp-more-than strict equality and genuine target resource",
+    "passed": true
+  },
+  {
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "case": "0–100 percentage bounds and serialized reload with linked strict explanation",
+    "passed": true
+  },
+  {
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "case": "Primed reflects genuine native Controlled state and selected unit",
+    "passed": true
+  },
+  {
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "case": "Circle and All geometry rebind root and actor effect Target to Self without incompatible rules",
+    "passed": true
+  },
+  {
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "case": "Effect recipient rebinds selected to affected and preserves single-unit Target for actor effects",
+    "passed": true
+  },
+  {
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "case": "finite activation and limits remain programmable without redundant Resonance notes",
+    "passed": true
+  },
+  {
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "case": "Conditional Cleanse specified Burn and Drenched survives JSON reload",
+    "passed": true,
+    "errors": []
+  }
+]

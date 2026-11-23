@@ -1,0 +1,117 @@
+'use client'
+
+import { renderAbilityPresentationText } from '@aurevane/game-core/combat/battle-narration'
+
+import { AbilityDefinitionParameters } from './ability-definition-parameters'
+import { groupSkillEffects } from './skill-effect-groups'
+
+import { useSkillEffectTimingPolicy } from './skill-effect-timing-context'
+import type { AnyResonanceDefinition } from '@aurevane/game-core/combat/resonance'
+import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
+import { normalizedResonanceMechanics } from '@aurevane/game-core/combat/resonance-v2'
+import { skillPreviewEffects } from './skill-effect-preview'
+import { CompactSkillEffectSummary, EffectTagLabel } from './compact-skill-effect-summary'
+import {
+  resonanceCharacteristicRows,
+  resonanceMatcher,
+  resonanceSupplementalRows,
+} from './resonance-detail-presentation'
+import { SkillCharacteristicRows } from './skill-characteristic-rows'
+import styles from './resonance-parameters.module.css'
+
+/** One Skill-style report for current, draft and battle-pinned Resonance definitions. */
+export function ResonanceParameters({
+  definition,
+  className,
+  knownSkills,
+}: {
+  definition: AnyResonanceDefinition | null | undefined
+  className?: string
+  knownSkills?: readonly MatureSkillDefinition[]
+}) {
+  const timingPolicy = useSkillEffectTimingPolicy()
+  const publicText = definition
+    ? renderAbilityPresentationText(definition, 'public', { ability: definition.name })
+    : null
+  const compactText = definition
+    ? renderAbilityPresentationText(definition, 'compact', { ability: definition.name })
+    : null
+  const presentation = (
+    <>
+      {publicText ? <p>{publicText}</p> : null}
+      {compactText ? <p>{compactText}</p> : null}
+    </>
+  )
+
+  if (definition?.ability)
+    return (
+      <div
+        className={[styles.report, className].filter(Boolean).join(' ')}
+        data-resonance-parameters="true"
+      >
+        {presentation}
+        <AbilityDefinitionParameters definition={definition.ability} showActivationNotes={false} />
+      </div>
+    )
+  const mechanics = definition ? normalizedResonanceMechanics(definition) : null
+  const effects = mechanics?.resultEffects ?? []
+  const supplemental = resonanceSupplementalRows(definition)
+  const explanations = skillPreviewEffects({
+    effects,
+    tagPresentation: definition?.tagPresentation,
+  })
+  return (
+    <div
+      className={[styles.report, className].filter(Boolean).join(' ')}
+      data-resonance-parameters="true"
+    >
+      {presentation}
+      {mechanics?.setup ? (
+        <p>
+          Use a setup Skill from Requirements first. Your next Discipline Skill must match the
+          condition in Effects to gain the bonus. The setup is consumed when the combo activates.
+        </p>
+      ) : mechanics ? (
+        <p>Matching Skills automatically gain the effects below. No setup Skill is required.</p>
+      ) : null}
+      <dl>
+        <SkillCharacteristicRows
+          rows={resonanceCharacteristicRows(definition, timingPolicy, knownSkills)}
+          effectSummary={
+            definition
+              ? effects.length
+                ? groupSkillEffects(effects).map(({ effect, count, firstIndex: index }) => (
+                    <div className={styles.effectRow} key={index}>
+                      {resonanceMatcher(mechanics!.trigger, knownSkills)}:{' '}
+                      <CompactSkillEffectSummary
+                        effect={effect}
+                        count={count}
+                        tagPresentations={definition.tagPresentation}
+                      />
+                    </div>
+                  ))
+                : 'N/A'
+              : undefined
+          }
+        />
+        <SkillCharacteristicRows
+          rows={supplemental.filter(([label]) => label !== 'Result details')}
+        />
+      </dl>
+      {Array.isArray(explanations) && explanations.length ? (
+        <ul aria-label="Effect explanations">
+          {explanations.map((preview, index) => {
+            return (
+              <li key={index}>
+                <strong>
+                  <EffectTagLabel label={preview.label} tagPresentation={preview.tagPresentation} />
+                </strong>{' '}
+                — {preview.explanation}
+              </li>
+            )
+          })}
+        </ul>
+      ) : null}
+    </div>
+  )
+}

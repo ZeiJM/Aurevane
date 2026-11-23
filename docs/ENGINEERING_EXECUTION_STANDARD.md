@@ -1,5 +1,7 @@
 # AUREVANE — Clean & Efficient Engineering Execution Standard
 
+**Owner-approved verification refinement — 2026-10-24:** Follow [Change-scoped verification](CHANGE_SCOPED_VERIFICATION.md) when planning checks. Focused development loops, justified exclusions and removal of proven duplicate work reduce update latency; configured required checks and active release gates remain mandatory until deliberately revised.
+
 **Status:** Authoritative engineering-quality refinement subordinate to `docs/GAME_MASTER_PLAN.md`, `docs/AI_DEVELOPMENT_QUALITY_MANDATE.md`, and `docs/TECH_ARCHITECTURE.md`.
 
 **Direction approved:** 2026-08-15.

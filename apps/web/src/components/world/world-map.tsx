@@ -1,0 +1,88 @@
+'use client'
+import { useEffect, useRef } from 'react'
+import type { WorldPosition, WorldView } from '@/world/types'
+import { createMapRenderer } from './map-renderer'
+import { WorldMotion } from './world-motion'
+import type { MapQuality } from './map-quality'
+import styles from './workspace.module.css'
+export function WorldMap({
+  view,
+  motion,
+  portrait,
+  animate,
+  showLocationLabels = true,
+  quality,
+  paused,
+  zoom,
+  zoomLocked,
+  onZoom,
+  onWalk,
+  onStop,
+  onPlayer,
+  onVisiblePlayers,
+}: {
+  view: WorldView
+  motion: WorldMotion
+  portrait: string
+  animate: boolean
+  showLocationLabels?: boolean
+  quality?: MapQuality
+  paused: boolean
+  zoom: number
+  zoomLocked: boolean
+  onZoom: (zoom: number) => void
+  onWalk: (position: WorldPosition) => void
+  onStop: () => void
+  onPlayer: (id: string) => void
+  onVisiblePlayers: (ids: string[]) => void
+}) {
+  const canvas = useRef<HTMLCanvasElement>(null),
+    identityCanvas = useRef<HTMLCanvasElement>(null),
+    renderer = useRef<ReturnType<typeof createMapRenderer>>(null)
+  const initial = useRef(view)
+  const callbacks = useRef({ onWalk, onStop, onPlayer, onZoom, onVisiblePlayers })
+  useEffect(() => {
+    callbacks.current = { onWalk, onStop, onPlayer, onZoom, onVisiblePlayers }
+  }, [onWalk, onStop, onPlayer, onZoom, onVisiblePlayers])
+  useEffect(() => {
+    if (!canvas.current) return
+    renderer.current = createMapRenderer(
+      canvas.current,
+      motion,
+      initial.current,
+      (position) => callbacks.current.onWalk(position),
+      (id) => callbacks.current.onPlayer(id),
+      (zoom) => callbacks.current.onZoom(zoom),
+      (ids) => callbacks.current.onVisiblePlayers(ids),
+      () => callbacks.current.onStop(),
+      identityCanvas.current ?? undefined,
+    )
+    return () => renderer.current?.dispose()
+  }, [motion]) // Initial snapshot is replaced below without recreating the renderer.
+  useEffect(() => {
+    renderer.current?.update(view)
+  }, [view])
+  useEffect(() => {
+    renderer.current?.settings({ animate, quality, zoom, paused, zoomLocked, showLocationLabels })
+  }, [animate, quality, zoom, paused, zoomLocked, showLocationLabels])
+  return (
+    <>
+      <canvas
+        ref={canvas}
+        className={styles.canvas}
+        data-world-stage
+        data-portrait={portrait}
+        tabIndex={0}
+        role="application"
+        aria-label="World map. Click ground or hold WASD and arrow keys to walk. Press Escape to stop travel. Use the mouse wheel or pinch to zoom."
+      />
+      <canvas
+        ref={identityCanvas}
+        className={styles.canvas}
+        style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}
+        data-world-identity
+        aria-hidden="true"
+      />
+    </>
+  )
+}

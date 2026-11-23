@@ -1,0 +1,33 @@
+{
+  "scope": "Unaccepted generated-art registration experiments only. No runtime asset changed; not native visual acceptance.",
+  "input": {
+    "source": "sources/remote-colosseum-v03.png",
+    "sha256": "c25798d30e50bcd8273fff95ea9b6c375e24a36b361805ce552d5ff5d2e2e829",
+    "exactCrop": [600, 120, 336, 336]
+  },
+  "generationIntent": "Preserve exact crop and structure; add genuinely new fine sandstone detail at high native resolution, not claimed fidelity from enlarging the original.",
+  "candidates": [
+    {
+      "file": "exec-53de4528-4866-4840-9452-c81d378162f5.png",
+      "sha256": "a5680ab5763c467ca918e2ebd003131216cc08430faa6e29ed2e1b26f8f6f1aa",
+      "status": "Rejected: changed framing and tiers."
+    },
+    {
+      "file": "exec-f57b38ca-bc35-4121-89af-0eec6b1b1453.png",
+      "sha256": "f765534868928d40f1375da3ffc16bda4bcfc51ef0e15880cc4ac9052f5cfc19",
+      "status": "Unaccepted: context framing closer but registration not proven."
+    },
+    {
+      "file": "exec-f2d2d861-b572-4f70-ae44-8c2cfaeca28c.png",
+      "sha256": "9f22eebd8dca4b30570d66df6510726a0c8c21904dc82ed9f13d638779e68ad9",
+      "status": "Rejected after actual normal/minimum source renderer review: rectangular contrast and differing architectural alignment."
+    },
+    {
+      "file": "exec-242aa970-34aa-4fca-b198-370024908070.png",
+      "sha256": "e64c94c8f43744d27683ce8291f5b52cf5cc7d7e41da42521822c20b5a771a4c",
+      "status": "Unaccepted original-input-only detail; maximum source preview improves isolated detail but whole registration/zoom consistency unproven. Frequency-separation derivative still exposes unequal contrast."
+    }
+  ],
+  "review": "Generated rear-wall detail is crisper in isolated maximum view, but native-size source normal/minimum views reveal context/contrast registration. Four-times enlarged runtime used ONLY as temporary preview background; never claimed as new detail, never written over any selected source/runtime. Frequency-separation prototype also rejected for visible contrast.",
+  "next": "Solve continuous registration or add faithful context-preserving detail; inspect all affected source zooms then actual native desktop/mobile before accepting. Do not integrate rejected overlays."
+}

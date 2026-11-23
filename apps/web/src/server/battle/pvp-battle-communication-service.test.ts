@@ -187,7 +187,7 @@ describe('PvP battle communication history', () => {
       'status_applied',
     ])
     expect(result.entries[0]).toMatchObject({
-      message: 'Wayfarer performed an action.',
+      message: 'Wayfarer uses a skill.',
       actionId: null,
       actionLabel: null,
     })

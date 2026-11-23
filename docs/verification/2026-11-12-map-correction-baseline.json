@@ -1,0 +1,130 @@
+{
+  "atlas": [128, 64],
+  "addressSpaceTiles": [1664, 576],
+  "atlasSectors": 1870,
+  "resolvedServerSectors": 1919,
+  "counts": {
+    "walkable": 215405,
+    "safe": 7582,
+    "water": 331,
+    "lava": 8,
+    "roads": 74278
+  },
+  "regions": [
+    {
+      "id": "aureth-crown",
+      "name": "Aureth Crown",
+      "sectors": 199
+    },
+    {
+      "id": "verdant-expanse",
+      "name": "Verdant Expanse",
+      "sectors": 207
+    },
+    {
+      "id": "emberreach",
+      "name": "Emberreach",
+      "sectors": 209
+    },
+    {
+      "id": "frostmere",
+      "name": "Frostmere",
+      "sectors": 211
+    },
+    {
+      "id": "glasswind-desert",
+      "name": "Glasswind Desert",
+      "sectors": 303
+    },
+    {
+      "id": "hollow-coast",
+      "name": "Hollow Coast",
+      "sectors": 216
+    },
+    {
+      "id": "starfall-highlands",
+      "name": "Starfall Highlands",
+      "sectors": 199
+    },
+    {
+      "id": "umbral-march",
+      "name": "Umbral March",
+      "sectors": 326
+    }
+  ],
+  "landmarks": 636,
+  "authorityDigest": "dc2223385395f9b924a2271d833844de703f82c3eb2e6d5dee1577d1922e202b",
+  "landmarkDigest": "8804265668fd1cac7a5102b7807444f35498c46aaf4ecc46838dbad6485658bf",
+  "routes": [
+    {
+      "from": {
+        "sectorId": "aureth-crown",
+        "x": 6,
+        "y": 4
+      },
+      "to": {
+        "sectorId": "frostmere",
+        "x": 6,
+        "y": 4
+      },
+      "steps": 300,
+      "milliseconds": 60000
+    },
+    {
+      "from": {
+        "sectorId": "aureth-crown",
+        "x": 6,
+        "y": 4
+      },
+      "to": {
+        "sectorId": "umbral-march",
+        "x": 6,
+        "y": 4
+      },
+      "steps": 488,
+      "milliseconds": 97600
+    },
+    {
+      "from": {
+        "sectorId": "atlas:47:33",
+        "x": 6,
+        "y": 4
+      },
+      "to": {
+        "sectorId": "verdant-expanse",
+        "x": 6,
+        "y": 4
+      },
+      "steps": 318,
+      "milliseconds": 63600
+    },
+    {
+      "from": {
+        "sectorId": "atlas:127:32",
+        "x": 11,
+        "y": 4
+      },
+      "to": {
+        "sectorId": "atlas:0:32",
+        "x": 1,
+        "y": 4
+      },
+      "steps": 3,
+      "milliseconds": 600
+    },
+    {
+      "from": {
+        "sectorId": "survey-01",
+        "x": 6,
+        "y": 8
+      },
+      "to": {
+        "sectorId": "umbral-march",
+        "x": 6,
+        "y": 4
+      },
+      "steps": 5,
+      "milliseconds": 1900
+    }
+  ]
+}

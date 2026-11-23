@@ -1,0 +1,26 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["corepack", "pnpm", "--filter", "@aurevane/web", "exec", "eslint", "src/app/game/battle/[battleSessionId]/page.tsx", "src/components/battle/battle-experience.tsx", "src/components/battle/battle-log-presentation.ts", "src/components/battle/pvp-spectator-experience.tsx", "src/components/master/master-panel-shell.tsx", "src/server/battle/battle-log-service.test.ts", "src/server/battle/battle-log-service.ts", "src/server/master/player-battle-recovery.test.ts", "e2e/master-players-recovery.pw.ts", "src/app/master/players/page.tsx", "src/components/battle/battle-recovery-navigation.test.ts", "src/components/battle/battle-recovery-navigation.ts", "src/components/master/player-correction-form.tsx", "src/components/master/players-workspace.test.tsx", "src/components/master/players-workspace.tsx", "--max-warnings=0"], "start": "2026-10-20T18:49:35.241550+00:00"}
+
+/workspace/scratch/081f137b6a6d/aurevane-players-20261020/apps/web/src/components/battle/battle-experience.tsx
+  1176:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/workspace/scratch/081f137b6a6d/aurevane-players-20261020/apps/web/src/components/battle/battle-experience.tsx:1176:5
+  1174 |   useEffect(() => {
+  1175 |     if (battleState.lifecycle !== 'abandoned') return
+> 1176 |     clearPlanning()
+       |     ^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  1177 |     setNotice(battleRecoveryNotice(battle.snapshot))
+  1178 |     router.replace(recoveryReturnHref)
+  1179 |     router.refresh()  react-hooks/set-state-in-effect
+
+✖ 1 problem (1 error, 0 warnings)
+
+undefined
+/workspace/scratch/081f137b6a6d/aurevane-players-20261020/apps/web:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: eslint 'src/app/game/battle/[battleSessionId]/page.tsx' src/components/battle/battle-experience.tsx src/components/battle/battle-log-presentation.ts src/components/battle/pvp-spectator-experience.tsx src/components/master/master-panel-shell.tsx src/server/battle/battle-log-service.test.ts src/server/battle/battle-log-service.ts src/server/master/player-battle-recovery.test.ts e2e/master-players-recovery.pw.ts src/app/master/players/page.tsx src/components/battle/battle-recovery-navigation.test.ts src/components/battle/battle-recovery-navigation.ts src/components/master/player-correction-form.tsx src/components/master/players-workspace.test.tsx src/components/master/players-workspace.tsx '--max-warnings=0'
+{"end": "2026-10-20T18:49:41.519875+00:00", "exit": 1}

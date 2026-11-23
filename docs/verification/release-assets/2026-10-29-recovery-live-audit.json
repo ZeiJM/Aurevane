@@ -1,0 +1,5208 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-10-29T08:22:12.286018+00:00",
+  "projectId": "luazfeupwfgnilohfsya",
+  "currentCount": 298,
+  "counts": {
+    "history": 1271,
+    "records": 363
+  },
+  "byKind": {
+    "discipline": 3,
+    "skill": 141,
+    "essence": 18,
+    "resonance": 136
+  },
+  "drafts": [
+    {
+      "content_key": "essence.4bee1f71-3123-4e0f-8eec-3cc48c1a832a",
+      "content_kind": "essence",
+      "draft_version": 1,
+      "base_version": null
+    }
+  ],
+  "effectRequirementAudit": [
+    {
+      "key": "bastion.stalwart-strike",
+      "kind": "skill",
+      "version": 6,
+      "behavior": "stalwart-strike",
+      "requirements": null,
+      "effect": {
+        "id": "damage-2",
+        "payload": {
+          "type": "damage",
+          "amount": 5,
+          "scaling": {
+            "source": "physical-power",
+            "coefficientBasisPoints": 0
+          },
+          "recipient": "primary-unit",
+          "defenseKind": "armor"
+        },
+        "requirements": {
+          "kind": "status-presence",
+          "present": true,
+          "subject": "owner",
+          "statusId": "fortified"
+        }
+      }
+    },
+    {
+      "key": "cinderweaver.scorch",
+      "kind": "skill",
+      "version": 6,
+      "behavior": "scorch",
+      "requirements": null,
+      "effect": {
+        "id": "damage-2",
+        "payload": {
+          "type": "damage",
+          "amount": 3,
+          "scaling": {
+            "source": "mystic-power",
+            "coefficientBasisPoints": 0
+          },
+          "recipient": "primary-unit",
+          "defenseKind": "ward"
+        },
+        "requirements": {
+          "kind": "status-presence",
+          "present": true,
+          "subject": "selected",
+          "statusId": "burn"
+        }
+      }
+    },
+    {
+      "key": "essence.aetherist.aether-nova",
+      "kind": "essence",
+      "version": 9,
+      "name": "Aether Nova",
+      "behavior": "aether-nova",
+      "requirements": null,
+      "effect": {
+        "id": "stored-aether",
+        "payload": {
+          "type": "damage",
+          "amount": 5,
+          "scaling": {
+            "source": "mystic-power",
+            "coefficientBasisPoints": 0
+          },
+          "recipient": "affected-units",
+          "defenseKind": "ward"
+        },
+        "requirements": {
+          "kind": "resource-state",
+          "subject": "owner",
+          "resource": "mp",
+          "comparison": "more-than",
+          "basisPoints": 7500
+        }
+      }
+    },
+    {
+      "key": "essence.dawnshield.dawns-oath",
+      "kind": "essence",
+      "version": 7,
+      "name": "Dawn’s Oath",
+      "behavior": "dawns-oath",
+      "requirements": null,
+      "effect": {
+        "id": "percentage-recovery",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 1,
+          "resource": "hp",
+          "recipient": "primary-unit",
+          "durationTurns": 0,
+          "percentageBasisPoints": 1400
+        },
+        "requirements": {
+          "kind": "any",
+          "children": [
+            {
+              "kind": "status-presence",
+              "present": true,
+              "subject": "selected",
+              "statusId": "burn"
+            },
+            {
+              "kind": "status-presence",
+              "present": true,
+              "subject": "selected",
+              "statusId": "bleed"
+            },
+            {
+              "kind": "status-presence",
+              "present": true,
+              "subject": "selected",
+              "statusId": "poison"
+            },
+            {
+              "kind": "status-presence",
+              "present": true,
+              "subject": "selected",
+              "statusId": "slow"
+            },
+            {
+              "kind": "status-presence",
+              "present": true,
+              "subject": "selected",
+              "statusId": "root"
+            },
+            {
+              "kind": "status-presence",
+              "present": true,
+              "subject": "selected",
+              "statusId": "exposed"
+            },
+            {
+              "kind": "status-presence",
+              "present": true,
+              "subject": "selected",
+              "statusId": "mark"
+            },
+            {
+              "kind": "status-presence",
+              "present": true,
+              "subject": "selected",
+              "statusId": "challenged"
+            },
+            {
+              "kind": "status-presence",
+              "present": true,
+              "subject": "selected",
+              "statusId": "suppress"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "key": "essence.farstrider.deadeye-barrage",
+      "kind": "essence",
+      "version": 7,
+      "name": "Deadeye Barrage",
+      "behavior": "deadeye-barrage",
+      "requirements": null,
+      "effect": {
+        "id": "prepared-lines",
+        "payload": {
+          "type": "damage",
+          "amount": 4,
+          "scaling": {
+            "source": "physical-power",
+            "coefficientBasisPoints": 0
+          },
+          "recipient": "affected-units",
+          "defenseKind": "armor"
+        },
+        "requirements": {
+          "kind": "status-presence",
+          "present": true,
+          "subject": "selected",
+          "statusId": "mark"
+        }
+      }
+    },
+    {
+      "key": "frostweaver.brittle-ice",
+      "kind": "skill",
+      "version": 8,
+      "behavior": "brittle-ice",
+      "requirements": null,
+      "effect": {
+        "id": "apply-status",
+        "payload": {
+          "type": "apply-status",
+          "stacks": 1,
+          "statusId": "exposed",
+          "recipient": "primary-unit",
+          "durationTurns": 2,
+          "potencyBasisPoints": 1500
+        },
+        "requirements": {
+          "kind": "status-presence",
+          "present": true,
+          "subject": "selected",
+          "statusId": "frozen"
+        }
+      }
+    },
+    {
+      "key": "frostweaver.shatter",
+      "kind": "skill",
+      "version": 9,
+      "behavior": "shatter",
+      "requirements": null,
+      "effect": {
+        "id": "damage-2",
+        "payload": {
+          "type": "damage",
+          "amount": 3,
+          "scaling": {
+            "source": "mystic-power",
+            "coefficientBasisPoints": 0
+          },
+          "recipient": "primary-unit",
+          "defenseKind": "ward"
+        },
+        "requirements": {
+          "kind": "status-presence",
+          "present": true,
+          "subject": "selected",
+          "statusId": "frozen"
+        }
+      }
+    },
+    {
+      "key": "ravager.desperate-execution",
+      "kind": "skill",
+      "version": 7,
+      "behavior": "desperate-execution",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 3500
+      },
+      "effect": {
+        "id": "damage-2",
+        "payload": {
+          "type": "damage",
+          "amount": 4,
+          "scaling": {
+            "source": "physical-power",
+            "coefficientBasisPoints": 0
+          },
+          "recipient": "primary-unit",
+          "defenseKind": "armor"
+        },
+        "requirements": {
+          "kind": "status-presence",
+          "present": true,
+          "subject": "owner",
+          "statusId": "reckless"
+        }
+      }
+    },
+    {
+      "key": "ravager.open-wound",
+      "kind": "skill",
+      "version": 7,
+      "behavior": "open-wound",
+      "requirements": null,
+      "effect": {
+        "id": "bleed",
+        "payload": {
+          "type": "bleed",
+          "ticks": 3,
+          "recipient": "primary-unit",
+          "curseCopyable": true,
+          "damageProfile": {
+            "kind": "attack-percentage",
+            "basisPoints": 2000
+          },
+          "durationTurns": 3
+        },
+        "requirements": {
+          "kind": "status-presence",
+          "present": true,
+          "subject": "selected",
+          "statusId": "bleed"
+        }
+      }
+    },
+    {
+      "key": "shadehand.execution-cut",
+      "kind": "skill",
+      "version": 8,
+      "behavior": "execution-cut",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "selected",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 3500
+      },
+      "effect": {
+        "id": "damage-2",
+        "payload": {
+          "type": "damage",
+          "amount": 4,
+          "scaling": {
+            "source": "physical-power",
+            "coefficientBasisPoints": 0
+          },
+          "recipient": "primary-unit",
+          "defenseKind": "armor"
+        },
+        "requirements": {
+          "kind": "status-presence",
+          "present": true,
+          "subject": "selected",
+          "statusId": "exposed"
+        }
+      }
+    },
+    {
+      "key": "stormsinger.conductive-bolt",
+      "kind": "skill",
+      "version": 9,
+      "behavior": "conductive-bolt",
+      "requirements": null,
+      "effect": {
+        "id": "damage-2",
+        "payload": {
+          "type": "damage",
+          "amount": 2,
+          "scaling": {
+            "source": "mystic-power",
+            "coefficientBasisPoints": 0
+          },
+          "recipient": "primary-unit",
+          "defenseKind": "ward"
+        },
+        "requirements": {
+          "kind": "status-presence",
+          "present": true,
+          "subject": "selected",
+          "statusId": "conductive"
+        }
+      }
+    },
+    {
+      "key": "tidecaller.crushing-wave",
+      "kind": "skill",
+      "version": 8,
+      "behavior": "crushing-wave",
+      "requirements": null,
+      "effect": {
+        "id": "displace",
+        "payload": {
+          "type": "displace",
+          "distance": 1,
+          "direction": "push",
+          "recipient": "primary-unit"
+        },
+        "requirements": {
+          "kind": "status-presence",
+          "present": true,
+          "subject": "selected",
+          "statusId": "wet"
+        }
+      }
+    },
+    {
+      "key": "wildwarden.close-quarry",
+      "kind": "skill",
+      "version": 7,
+      "behavior": "close-quarry",
+      "requirements": null,
+      "effect": {
+        "id": "resource-change",
+        "payload": {
+          "type": "resource-change",
+          "delta": 3,
+          "resource": "mp",
+          "recipient": "actor"
+        },
+        "requirements": {
+          "kind": "status-presence",
+          "present": true,
+          "subject": "selected",
+          "statusId": "mark"
+        }
+      }
+    },
+    {
+      "key": "wildwarden.field-remedy",
+      "kind": "skill",
+      "version": 7,
+      "behavior": "field-remedy",
+      "requirements": null,
+      "effect": {
+        "id": "percentage-recovery",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 1,
+          "resource": "hp",
+          "recipient": "actor",
+          "durationTurns": 0,
+          "percentageBasisPoints": 900
+        },
+        "requirements": {
+          "kind": "any",
+          "children": [
+            {
+              "kind": "status-presence",
+              "present": true,
+              "subject": "owner",
+              "statusId": "burn"
+            },
+            {
+              "kind": "status-presence",
+              "present": true,
+              "subject": "owner",
+              "statusId": "bleed"
+            },
+            {
+              "kind": "status-presence",
+              "present": true,
+              "subject": "owner",
+              "statusId": "poison"
+            },
+            {
+              "kind": "status-presence",
+              "present": true,
+              "subject": "owner",
+              "statusId": "slow"
+            },
+            {
+              "kind": "status-presence",
+              "present": true,
+              "subject": "owner",
+              "statusId": "root"
+            },
+            {
+              "kind": "status-presence",
+              "present": true,
+              "subject": "owner",
+              "statusId": "exposed"
+            },
+            {
+              "kind": "status-presence",
+              "present": true,
+              "subject": "owner",
+              "statusId": "mark"
+            },
+            {
+              "kind": "status-presence",
+              "present": true,
+              "subject": "owner",
+              "statusId": "challenged"
+            },
+            {
+              "kind": "status-presence",
+              "present": true,
+              "subject": "owner",
+              "statusId": "suppress"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "key": "wildwarden.pursuit-shot",
+      "kind": "skill",
+      "version": 6,
+      "behavior": "pursuit-shot",
+      "requirements": null,
+      "effect": {
+        "id": "damage-2",
+        "payload": {
+          "type": "damage",
+          "amount": 4,
+          "scaling": {
+            "source": "physical-power",
+            "coefficientBasisPoints": 0
+          },
+          "recipient": "primary-unit",
+          "defenseKind": "armor"
+        },
+        "requirements": {
+          "kind": "status-presence",
+          "present": true,
+          "subject": "selected",
+          "statusId": "mark"
+        }
+      }
+    }
+  ],
+  "recoveryAudit": [
+    {
+      "key": "aetherist.arcane-field",
+      "kind": "skill",
+      "version": 8,
+      "behavior": "arcane-field",
+      "requirements": null,
+      "effect": {
+        "id": "drain",
+        "payload": {
+          "type": "resource-change",
+          "delta": -4,
+          "resource": "mp",
+          "recipient": "affected-units"
+        }
+      },
+      "mode": "action",
+      "activation": "manual"
+    },
+    {
+      "key": "aetherist.channel",
+      "kind": "skill",
+      "version": 9,
+      "behavior": "channel",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "mp",
+        "comparison": "less-than",
+        "basisPoints": 5000
+      },
+      "effect": {
+        "id": "channel",
+        "payload": {
+          "type": "percentage-recovery",
+          "resource": "mp",
+          "recipient": "actor",
+          "percentageBasisPoints": 1200
+        }
+      },
+      "mode": "action",
+      "activation": "manual"
+    },
+    {
+      "key": "basic.recover",
+      "kind": "skill",
+      "version": 3,
+      "name": "HP Recovery",
+      "behavior": "use",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 10000
+      },
+      "effect": {
+        "id": "recovery",
+        "payload": {
+          "type": "percentage-recovery",
+          "resource": "hp",
+          "recipient": "actor",
+          "percentageBasisPoints": 1000
+        }
+      },
+      "mode": "action",
+      "activation": "manual"
+    },
+    {
+      "key": "basic.recover.mp",
+      "kind": "skill",
+      "version": 3,
+      "name": "MP Recovery",
+      "behavior": "use",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "mp",
+        "comparison": "less-than",
+        "basisPoints": 10000
+      },
+      "effect": {
+        "id": "recovery",
+        "payload": {
+          "type": "percentage-recovery",
+          "resource": "mp",
+          "recipient": "actor",
+          "percentageBasisPoints": 1000
+        }
+      },
+      "mode": "action",
+      "activation": "manual"
+    },
+    {
+      "key": "bastion.hold-fast",
+      "kind": "skill",
+      "version": 9,
+      "behavior": "hold-fast",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 6000
+      },
+      "effect": {
+        "id": "percentage-recovery",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 1,
+          "resource": "hp",
+          "recipient": "actor",
+          "durationTurns": 0,
+          "percentageBasisPoints": 1000
+        }
+      },
+      "mode": "action",
+      "activation": "manual"
+    },
+    {
+      "key": "chronist.stolen-moment",
+      "kind": "skill",
+      "version": 8,
+      "behavior": "stolen-moment",
+      "requirements": {
+        "kind": "status-presence",
+        "present": true,
+        "subject": "selected",
+        "statusId": "slow"
+      },
+      "effect": {
+        "id": "resource-change",
+        "payload": {
+          "type": "resource-change",
+          "delta": 4,
+          "resource": "mp",
+          "recipient": "actor"
+        }
+      },
+      "mode": "action",
+      "activation": "manual"
+    },
+    {
+      "key": "cinderweaver.banked-embers",
+      "kind": "skill",
+      "version": 8,
+      "behavior": "banked-embers",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "mp",
+        "comparison": "less-than",
+        "basisPoints": 3000
+      },
+      "effect": {
+        "id": "resource-change",
+        "payload": {
+          "type": "resource-change",
+          "delta": 6,
+          "resource": "mp",
+          "recipient": "actor"
+        }
+      },
+      "mode": "action",
+      "activation": "manual"
+    },
+    {
+      "key": "dawnshield.consecrated-light",
+      "kind": "skill",
+      "version": 8,
+      "behavior": "consecrated-light",
+      "requirements": null,
+      "effect": {
+        "id": "percentage-recovery",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 1,
+          "resource": "hp",
+          "recipient": "primary-unit",
+          "durationTurns": 0,
+          "percentageBasisPoints": 600
+        }
+      },
+      "mode": "action",
+      "activation": "manual"
+    },
+    {
+      "key": "dawnshield.last-light",
+      "kind": "skill",
+      "version": 8,
+      "behavior": "last-light",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "selected",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 2500
+      },
+      "effect": {
+        "id": "percentage-recovery",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 1,
+          "resource": "hp",
+          "recipient": "primary-unit",
+          "durationTurns": 0,
+          "percentageBasisPoints": 1400
+        }
+      },
+      "mode": "action",
+      "activation": "manual"
+    },
+    {
+      "key": "dawnshield.renewal",
+      "kind": "skill",
+      "version": 7,
+      "behavior": "renewal",
+      "requirements": null,
+      "effect": {
+        "id": "percentage-recovery",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 2,
+          "resource": "hp",
+          "recipient": "actor",
+          "durationTurns": 1,
+          "percentageBasisPoints": 600
+        }
+      },
+      "mode": "action",
+      "activation": "manual"
+    },
+    {
+      "key": "dawnshield.sacred-guard",
+      "kind": "skill",
+      "version": 8,
+      "behavior": "sacred-guard",
+      "requirements": null,
+      "effect": {
+        "id": "percentage-recovery",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 1,
+          "resource": "hp",
+          "recipient": "primary-unit",
+          "durationTurns": 0,
+          "percentageBasisPoints": 800
+        }
+      },
+      "mode": "action",
+      "activation": "manual"
+    },
+    {
+      "key": "essence.bastion.last-bastion",
+      "kind": "essence",
+      "version": 9,
+      "name": "Last Bastion",
+      "behavior": "last-bastion",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 4000
+      },
+      "effect": {
+        "id": "percentage-recovery",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 1,
+          "resource": "hp",
+          "recipient": "actor",
+          "durationTurns": 0,
+          "percentageBasisPoints": 1500
+        }
+      },
+      "mode": "action",
+      "activation": "manual"
+    },
+    {
+      "key": "essence.chronist.borrowed-hour",
+      "kind": "essence",
+      "version": 8,
+      "name": "Borrowed Hour",
+      "behavior": "borrowed-hour",
+      "requirements": null,
+      "effect": {
+        "id": "borrowed-recovery",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 3,
+          "resource": "hp",
+          "recipient": "actor",
+          "percentageBasisPoints": 600
+        }
+      },
+      "mode": "action",
+      "activation": "manual"
+    },
+    {
+      "key": "essence.dawnshield.dawns-oath",
+      "kind": "essence",
+      "version": 7,
+      "name": "Dawn’s Oath",
+      "behavior": "dawns-oath",
+      "requirements": null,
+      "effect": {
+        "id": "percentage-recovery",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 1,
+          "resource": "hp",
+          "recipient": "primary-unit",
+          "durationTurns": 0,
+          "percentageBasisPoints": 1400
+        },
+        "requirements": {
+          "kind": "any",
+          "children": [
+            {
+              "kind": "status-presence",
+              "present": true,
+              "subject": "selected",
+              "statusId": "burn"
+            },
+            {
+              "kind": "status-presence",
+              "present": true,
+              "subject": "selected",
+              "statusId": "bleed"
+            },
+            {
+              "kind": "status-presence",
+              "present": true,
+              "subject": "selected",
+              "statusId": "poison"
+            },
+            {
+              "kind": "status-presence",
+              "present": true,
+              "subject": "selected",
+              "statusId": "slow"
+            },
+            {
+              "kind": "status-presence",
+              "present": true,
+              "subject": "selected",
+              "statusId": "root"
+            },
+            {
+              "kind": "status-presence",
+              "present": true,
+              "subject": "selected",
+              "statusId": "exposed"
+            },
+            {
+              "kind": "status-presence",
+              "present": true,
+              "subject": "selected",
+              "statusId": "mark"
+            },
+            {
+              "kind": "status-presence",
+              "present": true,
+              "subject": "selected",
+              "statusId": "challenged"
+            },
+            {
+              "kind": "status-presence",
+              "present": true,
+              "subject": "selected",
+              "statusId": "suppress"
+            }
+          ]
+        }
+      },
+      "mode": "action",
+      "activation": "manual"
+    },
+    {
+      "key": "essence.lifebinder.verdant-rupture",
+      "kind": "essence",
+      "version": 8,
+      "name": "Verdant Rupture",
+      "behavior": "rupture",
+      "requirements": null,
+      "effect": {
+        "id": "return",
+        "payload": {
+          "type": "percentage-recovery",
+          "resource": "hp",
+          "recipient": "actor",
+          "percentageBasisPoints": 300
+        }
+      },
+      "mode": "action",
+      "activation": "manual"
+    },
+    {
+      "key": "essence.lifebinder.verdant-rupture",
+      "kind": "essence",
+      "version": 8,
+      "name": "Verdant Rupture",
+      "behavior": "shelter",
+      "requirements": null,
+      "effect": {
+        "id": "restore",
+        "payload": {
+          "type": "percentage-recovery",
+          "resource": "hp",
+          "recipient": "affected-units",
+          "percentageBasisPoints": 2000
+        }
+      },
+      "mode": "action",
+      "activation": "manual"
+    },
+    {
+      "key": "essence.runeblade.runic-overdrive",
+      "kind": "essence",
+      "version": 9,
+      "name": "Runic Overdrive",
+      "behavior": "runic-overdrive",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "mp",
+        "comparison": "more-than",
+        "basisPoints": 3000
+      },
+      "effect": {
+        "id": "percentage-recovery",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 1,
+          "resource": "mp",
+          "recipient": "actor",
+          "durationTurns": 0,
+          "percentageBasisPoints": 500
+        }
+      },
+      "mode": "action",
+      "activation": "manual"
+    },
+    {
+      "key": "essence.tidecaller.tidal-crown",
+      "kind": "essence",
+      "version": 9,
+      "name": "Tidal Crown",
+      "behavior": "tidal-crown",
+      "requirements": null,
+      "effect": {
+        "id": "percentage-recovery",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 2,
+          "resource": "hp",
+          "recipient": "affected-units",
+          "durationTurns": 1,
+          "percentageBasisPoints": 800
+        }
+      },
+      "mode": "action",
+      "activation": "manual"
+    },
+    {
+      "key": "farstrider.fieldcraft",
+      "kind": "skill",
+      "version": 7,
+      "behavior": "fieldcraft",
+      "requirements": null,
+      "effect": {
+        "id": "recover",
+        "payload": {
+          "type": "percentage-recovery",
+          "resource": "hp",
+          "recipient": "actor",
+          "percentageBasisPoints": 400
+        }
+      },
+      "mode": "action",
+      "activation": "manual"
+    },
+    {
+      "key": "frostweaver.thaw",
+      "kind": "skill",
+      "version": 8,
+      "behavior": "thaw",
+      "requirements": null,
+      "effect": {
+        "id": "percentage-recovery",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 1,
+          "resource": "hp",
+          "recipient": "primary-unit",
+          "durationTurns": 0,
+          "percentageBasisPoints": 800
+        }
+      },
+      "mode": "action",
+      "activation": "manual"
+    },
+    {
+      "key": "ironfist.focus-breath",
+      "kind": "skill",
+      "version": 8,
+      "behavior": "focus-breath",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 7000
+      },
+      "effect": {
+        "id": "percentage-recovery",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 1,
+          "resource": "hp",
+          "recipient": "actor",
+          "durationTurns": 0,
+          "percentageBasisPoints": 900
+        }
+      },
+      "mode": "action",
+      "activation": "manual"
+    },
+    {
+      "key": "ironfist.focus-breath",
+      "kind": "skill",
+      "version": 8,
+      "behavior": "focus-breath",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 7000
+      },
+      "effect": {
+        "id": "resource-change",
+        "payload": {
+          "type": "resource-change",
+          "delta": 4,
+          "resource": "mp",
+          "recipient": "actor"
+        }
+      },
+      "mode": "action",
+      "activation": "manual"
+    },
+    {
+      "key": "ironfist.last-stand",
+      "kind": "skill",
+      "version": 8,
+      "behavior": "last-stand",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 2500
+      },
+      "effect": {
+        "id": "percentage-recovery",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 1,
+          "resource": "hp",
+          "recipient": "actor",
+          "durationTurns": 0,
+          "percentageBasisPoints": 1400
+        }
+      },
+      "mode": "action",
+      "activation": "manual"
+    },
+    {
+      "key": "lifebinder.fortifying-light",
+      "kind": "skill",
+      "version": 7,
+      "behavior": "fortifying-light",
+      "requirements": null,
+      "effect": {
+        "id": "restore",
+        "payload": {
+          "type": "percentage-recovery",
+          "resource": "hp",
+          "recipient": "primary-unit",
+          "percentageBasisPoints": 600
+        }
+      },
+      "mode": "action",
+      "activation": "manual"
+    },
+    {
+      "key": "lifebinder.mend",
+      "kind": "skill",
+      "version": 8,
+      "behavior": "mend",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "selected",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 3500
+      },
+      "effect": {
+        "id": "triage",
+        "payload": {
+          "type": "percentage-recovery",
+          "resource": "hp",
+          "recipient": "primary-unit",
+          "percentageBasisPoints": 1200
+        }
+      },
+      "mode": "action",
+      "activation": "manual"
+    },
+    {
+      "key": "lifebinder.mending-light",
+      "kind": "skill",
+      "version": 7,
+      "behavior": "mending-light",
+      "requirements": null,
+      "effect": {
+        "id": "mend",
+        "payload": {
+          "type": "percentage-recovery",
+          "resource": "hp",
+          "recipient": "primary-unit",
+          "percentageBasisPoints": 1000
+        }
+      },
+      "mode": "action",
+      "activation": "manual"
+    },
+    {
+      "key": "lifebinder.renew",
+      "kind": "skill",
+      "version": 7,
+      "behavior": "renew",
+      "requirements": null,
+      "effect": {
+        "id": "renew",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 3,
+          "resource": "hp",
+          "recipient": "primary-unit",
+          "percentageBasisPoints": 400
+        }
+      },
+      "mode": "action",
+      "activation": "manual"
+    },
+    {
+      "key": "lifebinder.sanctuary",
+      "kind": "skill",
+      "version": 8,
+      "behavior": "sanctuary",
+      "requirements": null,
+      "effect": {
+        "id": "circle",
+        "payload": {
+          "type": "percentage-recovery",
+          "resource": "hp",
+          "recipient": "affected-units",
+          "percentageBasisPoints": 500
+        }
+      },
+      "mode": "action",
+      "activation": "manual"
+    },
+    {
+      "key": "lifebinder.sanctuary",
+      "kind": "skill",
+      "version": 8,
+      "behavior": "sanctuary",
+      "requirements": null,
+      "effect": {
+        "id": "center",
+        "payload": {
+          "type": "percentage-recovery",
+          "resource": "hp",
+          "recipient": "actor",
+          "percentageBasisPoints": 300
+        }
+      },
+      "mode": "action",
+      "activation": "manual"
+    },
+    {
+      "key": "lifebinder.searing-bloom",
+      "kind": "skill",
+      "version": 8,
+      "behavior": "searing-bloom",
+      "requirements": null,
+      "effect": {
+        "id": "recover",
+        "payload": {
+          "type": "percentage-recovery",
+          "resource": "hp",
+          "recipient": "actor",
+          "percentageBasisPoints": 500
+        }
+      },
+      "mode": "action",
+      "activation": "manual"
+    },
+    {
+      "key": "ravager.blood-siphon",
+      "kind": "skill",
+      "version": 7,
+      "behavior": "blood-siphon",
+      "requirements": null,
+      "effect": {
+        "id": "percentage-recovery",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 1,
+          "resource": "hp",
+          "recipient": "actor",
+          "durationTurns": 0,
+          "percentageBasisPoints": 600
+        }
+      },
+      "mode": "action",
+      "activation": "manual"
+    },
+    {
+      "key": "resonance.aetherist-bastion.linked-sequence",
+      "kind": "resonance",
+      "version": 10,
+      "name": "Mana Bulwark",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "mp",
+        "comparison": "less-than",
+        "basisPoints": 2500
+      },
+      "effect": {
+        "id": "effect-1",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 1,
+          "resource": "mp",
+          "recipient": "actor",
+          "durationTurns": 0,
+          "percentageBasisPoints": 600
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.aetherist-cinderweaver.linked-sequence",
+      "kind": "resonance",
+      "version": 9,
+      "name": "Banked Furnace",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "status-presence",
+        "present": true,
+        "subject": "owner",
+        "statusId": "warded"
+      },
+      "effect": {
+        "id": "effect-1",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 1,
+          "resource": "mp",
+          "recipient": "actor",
+          "durationTurns": 0,
+          "percentageBasisPoints": 1000
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.aetherist-dawnshield.linked-sequence",
+      "kind": "resonance",
+      "version": 11,
+      "name": "Luminous Reserve",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "mp",
+        "comparison": "more-than",
+        "basisPoints": 6000
+      },
+      "effect": {
+        "id": "effect-2",
+        "payload": {
+          "type": "resource-change",
+          "delta": 3,
+          "resource": "mp",
+          "recipient": "actor"
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.aetherist-edgedancer.linked-sequence",
+      "kind": "resonance",
+      "version": 10,
+      "name": "Aether in Poise",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "mp",
+        "comparison": "less-than",
+        "basisPoints": 5000
+      },
+      "effect": {
+        "id": "effect-1",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 1,
+          "resource": "mp",
+          "recipient": "actor",
+          "durationTurns": 0,
+          "percentageBasisPoints": 600
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.aetherist-farstrider.arcane-hunt",
+      "kind": "resonance",
+      "version": 11,
+      "name": "Sighted Capacitor",
+      "behavior": "arcane-hunt",
+      "requirements": {
+        "kind": "status-presence",
+        "present": true,
+        "subject": "selected",
+        "statusId": "mark"
+      },
+      "effect": {
+        "id": "effect-1",
+        "payload": {
+          "type": "resource-change",
+          "delta": -9,
+          "resource": "mp",
+          "recipient": "primary-unit"
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.aetherist-frostweaver.linked-sequence",
+      "kind": "resonance",
+      "version": 9,
+      "name": "Cold Reserve",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "status-presence",
+        "present": true,
+        "subject": "selected",
+        "statusId": "frozen"
+      },
+      "effect": {
+        "id": "effect-1",
+        "payload": {
+          "type": "resource-change",
+          "delta": 5,
+          "resource": "mp",
+          "recipient": "actor"
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.aetherist-ironfist.conductive-impact",
+      "kind": "resonance",
+      "version": 9,
+      "name": "Reservoir Palm",
+      "behavior": "conductive-impact",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "mp",
+        "comparison": "more-than",
+        "basisPoints": 5000
+      },
+      "effect": {
+        "id": "effect-1",
+        "payload": {
+          "type": "resource-change",
+          "delta": -8,
+          "resource": "mp",
+          "recipient": "primary-unit"
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.aetherist-lifebinder.vital-circuit",
+      "kind": "resonance",
+      "version": 10,
+      "name": "Measured Transfusion",
+      "behavior": "vital-circuit",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "selected",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 3500
+      },
+      "effect": {
+        "id": "effect-1",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 2,
+          "resource": "hp",
+          "recipient": "primary-unit",
+          "percentageBasisPoints": 400
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.aetherist-runeblade.linked-sequence",
+      "kind": "resonance",
+      "version": 9,
+      "name": "Unspent Circuit",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "status-presence",
+        "present": true,
+        "subject": "selected",
+        "statusId": "guarded"
+      },
+      "effect": {
+        "id": "effect-2",
+        "payload": {
+          "type": "resource-change",
+          "delta": -5,
+          "resource": "mp",
+          "recipient": "primary-unit"
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.aetherist-shadehand.veiled-conduit",
+      "kind": "resonance",
+      "version": 12,
+      "name": "Dissolving Formula",
+      "behavior": "veiled-conduit",
+      "requirements": {
+        "kind": "status-presence",
+        "present": true,
+        "subject": "owner",
+        "statusId": "guarded"
+      },
+      "effect": {
+        "id": "effect-2",
+        "payload": {
+          "type": "resource-change",
+          "delta": 7,
+          "resource": "mp",
+          "recipient": "actor"
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.aetherist-stormsinger.linked-sequence",
+      "kind": "resonance",
+      "version": 10,
+      "name": "Charged Calculation",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "status-presence",
+        "present": true,
+        "subject": "selected",
+        "statusId": "conductive"
+      },
+      "effect": {
+        "id": "effect-1",
+        "payload": {
+          "type": "resource-change",
+          "delta": -8,
+          "resource": "mp",
+          "recipient": "primary-unit"
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.aetherist-tidecaller.linked-sequence",
+      "kind": "resonance",
+      "version": 11,
+      "name": "Reserve Current",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "status-presence",
+        "present": true,
+        "subject": "selected",
+        "statusId": "wet"
+      },
+      "effect": {
+        "id": "effect-1",
+        "payload": {
+          "type": "resource-change",
+          "delta": 4,
+          "resource": "mp",
+          "recipient": "primary-unit"
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.aetherist-wildwarden.linked-sequence",
+      "kind": "resonance",
+      "version": 11,
+      "name": "Quarry Disruption",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "status-presence",
+        "present": true,
+        "subject": "selected",
+        "statusId": "mark"
+      },
+      "effect": {
+        "id": "effect-1",
+        "payload": {
+          "type": "resource-change",
+          "delta": -10,
+          "resource": "mp",
+          "recipient": "primary-unit"
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.bastion-ravager.linked-sequence",
+      "kind": "resonance",
+      "version": 11,
+      "name": "Crimson Redoubt",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "status-presence",
+        "present": true,
+        "subject": "owner",
+        "statusId": "reckless"
+      },
+      "effect": {
+        "id": "effect-1",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 1,
+          "resource": "hp",
+          "recipient": "actor",
+          "durationTurns": 0,
+          "percentageBasisPoints": 1000
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.chronist-edgedancer.linked-sequence",
+      "kind": "resonance",
+      "version": 10,
+      "name": "Poised Moment",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "status-presence",
+        "present": true,
+        "subject": "owner",
+        "statusId": "haste"
+      },
+      "effect": {
+        "id": "effect-2",
+        "payload": {
+          "type": "resource-change",
+          "delta": 4,
+          "resource": "mp",
+          "recipient": "actor"
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.chronist-lifebinder.linked-sequence",
+      "kind": "resonance",
+      "version": 9,
+      "name": "Triage in Two Times",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 3500
+      },
+      "effect": {
+        "id": "effect-1",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 2,
+          "resource": "hp",
+          "recipient": "actor",
+          "percentageBasisPoints": 500
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.chronist-ravager.linked-sequence",
+      "kind": "resonance",
+      "version": 10,
+      "name": "Debt of Blood",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 3000
+      },
+      "effect": {
+        "id": "effect-1",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 1,
+          "resource": "hp",
+          "recipient": "actor",
+          "durationTurns": 0,
+          "percentageBasisPoints": 1200
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.chronist-runeblade.linked-sequence",
+      "kind": "resonance",
+      "version": 12,
+      "name": "Deferred Inscription",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "prime-presence",
+        "present": true,
+        "subject": "owner"
+      },
+      "effect": {
+        "id": "effect-2",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 1,
+          "resource": "mp",
+          "recipient": "actor",
+          "durationTurns": 0,
+          "percentageBasisPoints": 700
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.chronist-stormsinger.linked-sequence",
+      "kind": "resonance",
+      "version": 12,
+      "name": "Forecasted Thunder",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "prime-presence",
+        "present": true,
+        "subject": "owner"
+      },
+      "effect": {
+        "id": "effect-2",
+        "payload": {
+          "type": "resource-change",
+          "delta": -10,
+          "resource": "mp",
+          "recipient": "primary-unit"
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.cinderweaver-lifebinder.linked-sequence",
+      "kind": "resonance",
+      "version": 11,
+      "name": "Cauterized Relief",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "selected",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 3500
+      },
+      "effect": {
+        "id": "effect-2",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 1,
+          "resource": "hp",
+          "recipient": "primary-unit",
+          "durationTurns": 0,
+          "percentageBasisPoints": 500
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.cinderweaver-runeblade.linked-sequence",
+      "kind": "resonance",
+      "version": 10,
+      "name": "Unbinding Heat",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "status-presence",
+        "present": true,
+        "subject": "selected",
+        "statusId": "burn"
+      },
+      "effect": {
+        "id": "effect-2",
+        "payload": {
+          "type": "resource-change",
+          "delta": 6,
+          "resource": "mp",
+          "recipient": "actor"
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.cinderweaver-stormsinger.linked-sequence",
+      "kind": "resonance",
+      "version": 12,
+      "name": "Overheated Circuit",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "status-presence",
+        "present": true,
+        "subject": "selected",
+        "statusId": "burn"
+      },
+      "effect": {
+        "id": "effect-2",
+        "payload": {
+          "type": "resource-change",
+          "delta": -12,
+          "resource": "mp",
+          "recipient": "primary-unit"
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.dawnshield-farstrider.linked-sequence",
+      "kind": "resonance",
+      "version": 11,
+      "name": "Signal of Refuge",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "selected",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 4000
+      },
+      "effect": {
+        "id": "effect-1",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 1,
+          "resource": "hp",
+          "recipient": "primary-unit",
+          "durationTurns": 0,
+          "percentageBasisPoints": 500
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.dawnshield-lifebinder.linked-sequence",
+      "kind": "resonance",
+      "version": 12,
+      "name": "Two Hands of Mercy",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "selected",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 3000
+      },
+      "effect": {
+        "id": "effect-1",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 3,
+          "resource": "hp",
+          "recipient": "primary-unit",
+          "percentageBasisPoints": 300
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.dawnshield-ravager.linked-sequence",
+      "kind": "resonance",
+      "version": 10,
+      "name": "Mercy under Red Steel",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "status-presence",
+        "present": true,
+        "subject": "owner",
+        "statusId": "reckless"
+      },
+      "effect": {
+        "id": "effect-1",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 1,
+          "resource": "hp",
+          "recipient": "affected-units",
+          "durationTurns": 0,
+          "percentageBasisPoints": 500
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.dawnshield-tidecaller.linked-sequence",
+      "kind": "resonance",
+      "version": 13,
+      "name": "Harbor Benediction",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "status-presence",
+        "present": true,
+        "subject": "selected",
+        "statusId": "wet"
+      },
+      "effect": {
+        "id": "effect-2",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 2,
+          "resource": "hp",
+          "recipient": "primary-unit",
+          "percentageBasisPoints": 300
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.edgedancer-ironfist.linked-sequence",
+      "kind": "resonance",
+      "version": 10,
+      "name": "Aerial Form",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "status-presence",
+        "present": true,
+        "subject": "owner",
+        "statusId": "airborne"
+      },
+      "effect": {
+        "id": "effect-2",
+        "payload": {
+          "type": "resource-change",
+          "delta": -6,
+          "resource": "mp",
+          "recipient": "primary-unit"
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.edgedancer-lifebinder.linked-sequence",
+      "kind": "resonance",
+      "version": 11,
+      "name": "Merciful Exit",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "status-presence",
+        "present": true,
+        "subject": "owner",
+        "statusId": "guarded"
+      },
+      "effect": {
+        "id": "effect-2",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 1,
+          "resource": "hp",
+          "recipient": "actor",
+          "durationTurns": 0,
+          "percentageBasisPoints": 700
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.edgedancer-runeblade.linked-sequence",
+      "kind": "resonance",
+      "version": 11,
+      "name": "Rune in Motion",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "selected",
+        "resource": "mp",
+        "comparison": "less-than",
+        "basisPoints": 2500
+      },
+      "effect": {
+        "id": "effect-2",
+        "payload": {
+          "type": "resource-change",
+          "delta": 3,
+          "resource": "mp",
+          "recipient": "actor"
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.edgedancer-stormsinger.linked-sequence",
+      "kind": "resonance",
+      "version": 12,
+      "name": "Arc across the Gap",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "status-presence",
+        "present": true,
+        "subject": "selected",
+        "statusId": "conductive"
+      },
+      "effect": {
+        "id": "effect-2",
+        "payload": {
+          "type": "resource-change",
+          "delta": -6,
+          "resource": "mp",
+          "recipient": "primary-unit"
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.edgedancer-stormsinger.linked-sequence",
+      "kind": "resonance",
+      "version": 12,
+      "name": "Arc across the Gap",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "status-presence",
+        "present": true,
+        "subject": "selected",
+        "statusId": "conductive"
+      },
+      "effect": {
+        "id": "effect-3",
+        "payload": {
+          "type": "resource-change",
+          "delta": 2,
+          "resource": "mp",
+          "recipient": "actor"
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.edgedancer-wildwarden.linked-sequence",
+      "kind": "resonance",
+      "version": 13,
+      "name": "Pursuit Angle",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "status-presence",
+        "present": true,
+        "subject": "selected",
+        "statusId": "mark"
+      },
+      "effect": {
+        "id": "effect-3",
+        "payload": {
+          "type": "resource-change",
+          "delta": 3,
+          "resource": "mp",
+          "recipient": "actor"
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.farstrider-ironfist.marked-approach",
+      "kind": "resonance",
+      "version": 10,
+      "name": "Drive Back the Line",
+      "behavior": "marked-approach",
+      "requirements": {
+        "kind": "status-presence",
+        "present": true,
+        "subject": "selected",
+        "statusId": "mark"
+      },
+      "effect": {
+        "id": "effect-2",
+        "payload": {
+          "type": "resource-change",
+          "delta": -4,
+          "resource": "mp",
+          "recipient": "primary-unit"
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.farstrider-lifebinder.guided-renewal",
+      "kind": "resonance",
+      "version": 10,
+      "name": "Field Triage",
+      "behavior": "guided-renewal",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 5000
+      },
+      "effect": {
+        "id": "effect-2",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 1,
+          "resource": "hp",
+          "recipient": "actor",
+          "durationTurns": 0,
+          "percentageBasisPoints": 500
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.farstrider-ravager.linked-sequence",
+      "kind": "resonance",
+      "version": 12,
+      "name": "Barbed Pursuit",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "status-presence",
+        "present": true,
+        "subject": "selected",
+        "statusId": "bleed"
+      },
+      "effect": {
+        "id": "effect-2",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 1,
+          "resource": "hp",
+          "recipient": "actor",
+          "durationTurns": 0,
+          "percentageBasisPoints": 600
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.farstrider-runeblade.linked-sequence",
+      "kind": "resonance",
+      "version": 9,
+      "name": "Disrupting Inscription",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "selected",
+        "resource": "mp",
+        "comparison": "less-than",
+        "basisPoints": 2500
+      },
+      "effect": {
+        "id": "effect-2",
+        "payload": {
+          "type": "resource-change",
+          "delta": -4,
+          "resource": "mp",
+          "recipient": "primary-unit"
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.farstrider-tidecaller.linked-sequence",
+      "kind": "resonance",
+      "version": 13,
+      "name": "Waterline Shot",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "status-presence",
+        "present": true,
+        "subject": "selected",
+        "statusId": "wet"
+      },
+      "effect": {
+        "id": "effect-2",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 2,
+          "resource": "hp",
+          "recipient": "actor",
+          "durationTurns": 1,
+          "percentageBasisPoints": 300
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.frostweaver-lifebinder.linked-sequence",
+      "kind": "resonance",
+      "version": 9,
+      "name": "Winter Triage",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 2500
+      },
+      "effect": {
+        "id": "effect-1",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 1,
+          "resource": "hp",
+          "recipient": "actor",
+          "durationTurns": 0,
+          "percentageBasisPoints": 800
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.frostweaver-stormsinger.linked-sequence",
+      "kind": "resonance",
+      "version": 12,
+      "name": "Brittle Conductor",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "status-presence",
+        "present": true,
+        "subject": "selected",
+        "statusId": "conductive"
+      },
+      "effect": {
+        "id": "effect-2",
+        "payload": {
+          "type": "resource-change",
+          "delta": 3,
+          "resource": "mp",
+          "recipient": "actor"
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.ironfist-lifebinder.renewed-force",
+      "kind": "resonance",
+      "version": 9,
+      "name": "Breath after Impact",
+      "behavior": "renewed-force",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 10000
+      },
+      "effect": {
+        "id": "percentage-recovery",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 1,
+          "resource": "hp",
+          "recipient": "actor",
+          "durationTurns": 0,
+          "percentageBasisPoints": 400
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.ironfist-runeblade.linked-sequence",
+      "kind": "resonance",
+      "version": 11,
+      "name": "Runic Pressure Point",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "status-presence",
+        "present": true,
+        "subject": "selected",
+        "statusId": "hexed"
+      },
+      "effect": {
+        "id": "effect-2",
+        "payload": {
+          "type": "resource-change",
+          "delta": -6,
+          "resource": "mp",
+          "recipient": "primary-unit"
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.ironfist-stormsinger.linked-sequence",
+      "kind": "resonance",
+      "version": 10,
+      "name": "Disrupting Palm",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "status-presence",
+        "present": true,
+        "subject": "owner",
+        "statusId": "airborne"
+      },
+      "effect": {
+        "id": "effect-2",
+        "payload": {
+          "type": "resource-change",
+          "delta": 3,
+          "resource": "mp",
+          "recipient": "actor"
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.ironfist-wildwarden.linked-sequence",
+      "kind": "resonance",
+      "version": 11,
+      "name": "Quarry Wheel",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "status-presence",
+            "present": true,
+            "subject": "selected",
+            "statusId": "mark"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "selected",
+            "relation": "enemy",
+            "otherSubject": "owner"
+          }
+        ]
+      },
+      "effect": {
+        "id": "effect-1",
+        "payload": {
+          "type": "resource-change",
+          "delta": 5,
+          "resource": "mp",
+          "recipient": "actor"
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.lifebinder-ravager.linked-sequence",
+      "kind": "resonance",
+      "version": 11,
+      "name": "Bleeding Mercy",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "selected",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 3500
+      },
+      "effect": {
+        "id": "effect-1",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 1,
+          "resource": "hp",
+          "recipient": "primary-unit",
+          "durationTurns": 0,
+          "percentageBasisPoints": 1200
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.lifebinder-runeblade.linked-sequence",
+      "kind": "resonance",
+      "version": 9,
+      "name": "Restorative Inscription",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "mp",
+        "comparison": "less-than",
+        "basisPoints": 2500
+      },
+      "effect": {
+        "id": "effect-2",
+        "payload": {
+          "type": "resource-change",
+          "delta": 6,
+          "resource": "mp",
+          "recipient": "actor"
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.lifebinder-shadehand.mercy-in-shadow",
+      "kind": "resonance",
+      "version": 12,
+      "name": "Suffering Returned",
+      "behavior": "mercy-in-shadow",
+      "requirements": {
+        "kind": "status-presence",
+        "present": true,
+        "subject": "owner",
+        "statusId": "hexed"
+      },
+      "effect": {
+        "id": "effect-2",
+        "payload": {
+          "type": "resource-change",
+          "delta": 3,
+          "resource": "mp",
+          "recipient": "actor"
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.lifebinder-stormsinger.linked-sequence",
+      "kind": "resonance",
+      "version": 13,
+      "name": "Restorative Current",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "status-presence",
+        "present": true,
+        "subject": "owner",
+        "statusId": "guarded"
+      },
+      "effect": {
+        "id": "effect-2",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 1,
+          "resource": "hp",
+          "recipient": "actor",
+          "durationTurns": 0,
+          "percentageBasisPoints": 500
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.lifebinder-tidecaller.linked-sequence",
+      "kind": "resonance",
+      "version": 10,
+      "name": "Patient Waters",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "status-presence",
+        "present": true,
+        "subject": "selected",
+        "statusId": "guarded"
+      },
+      "effect": {
+        "id": "effect-2",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 2,
+          "resource": "hp",
+          "recipient": "primary-unit",
+          "durationTurns": 1,
+          "percentageBasisPoints": 300
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.ravager-stormsinger.linked-sequence",
+      "kind": "resonance",
+      "version": 13,
+      "name": "Red Lightning",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "status-presence",
+        "present": true,
+        "subject": "owner",
+        "statusId": "reckless"
+      },
+      "effect": {
+        "id": "effect-2",
+        "payload": {
+          "type": "resource-change",
+          "delta": -8,
+          "resource": "mp",
+          "recipient": "primary-unit"
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.ravager-tidecaller.linked-sequence",
+      "kind": "resonance",
+      "version": 12,
+      "name": "Red Undertow",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "status-presence",
+        "present": true,
+        "subject": "owner",
+        "statusId": "reckless"
+      },
+      "effect": {
+        "id": "effect-2",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 1,
+          "resource": "hp",
+          "recipient": "actor",
+          "durationTurns": 0,
+          "percentageBasisPoints": 600
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.runeblade-shadehand.linked-sequence",
+      "kind": "resonance",
+      "version": 11,
+      "name": "Unbind the Veil",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "status-presence",
+        "present": true,
+        "subject": "selected",
+        "statusId": "hexed"
+      },
+      "effect": {
+        "id": "effect-2",
+        "payload": {
+          "type": "resource-change",
+          "delta": 5,
+          "resource": "mp",
+          "recipient": "actor"
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.runeblade-stormsinger.linked-sequence",
+      "kind": "resonance",
+      "version": 12,
+      "name": "Circuit after Contact",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "status-presence",
+        "present": true,
+        "subject": "selected",
+        "statusId": "conductive"
+      },
+      "effect": {
+        "id": "effect-2",
+        "payload": {
+          "type": "resource-change",
+          "delta": 7,
+          "resource": "mp",
+          "recipient": "actor"
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.runeblade-tidecaller.linked-sequence",
+      "kind": "resonance",
+      "version": 13,
+      "name": "Washing Inscription",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "status-presence",
+        "present": true,
+        "subject": "owner",
+        "statusId": "hexed"
+      },
+      "effect": {
+        "id": "effect-2",
+        "payload": {
+          "type": "resource-change",
+          "delta": 4,
+          "resource": "mp",
+          "recipient": "actor"
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.runeblade-vanguard.linked-sequence",
+      "kind": "resonance",
+      "version": 11,
+      "name": "Rune on the Ram",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "status-presence",
+        "present": true,
+        "subject": "selected",
+        "statusId": "hexed"
+      },
+      "effect": {
+        "id": "effect-2",
+        "payload": {
+          "type": "resource-change",
+          "delta": -5,
+          "resource": "mp",
+          "recipient": "primary-unit"
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.runeblade-wildwarden.linked-sequence",
+      "kind": "resonance",
+      "version": 11,
+      "name": "Quarry Sigil",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "status-presence",
+        "present": true,
+        "subject": "selected",
+        "statusId": "hexed"
+      },
+      "effect": {
+        "id": "effect-3",
+        "payload": {
+          "type": "resource-change",
+          "delta": 3,
+          "resource": "mp",
+          "recipient": "actor"
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.shadehand-tidecaller.linked-sequence",
+      "kind": "resonance",
+      "version": 12,
+      "name": "Mistbound Escape",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "status-presence",
+        "present": true,
+        "subject": "owner",
+        "statusId": "covert"
+      },
+      "effect": {
+        "id": "effect-2",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 1,
+          "resource": "hp",
+          "recipient": "actor",
+          "durationTurns": 0,
+          "percentageBasisPoints": 400
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.stormsinger-tidecaller.linked-sequence",
+      "kind": "resonance",
+      "version": 12,
+      "name": "Chosen Confluence",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "status-presence",
+        "present": true,
+        "subject": "selected",
+        "statusId": "wet"
+      },
+      "effect": {
+        "id": "effect-2",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 2,
+          "resource": "hp",
+          "recipient": "actor",
+          "durationTurns": 1,
+          "percentageBasisPoints": 300
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.stormsinger-vanguard.linked-sequence",
+      "kind": "resonance",
+      "version": 12,
+      "name": "Thunder Breach",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "status-presence",
+        "present": true,
+        "subject": "selected",
+        "statusId": "conductive"
+      },
+      "effect": {
+        "id": "effect-2",
+        "payload": {
+          "type": "resource-change",
+          "delta": 2,
+          "resource": "mp",
+          "recipient": "actor"
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.stormsinger-wildwarden.linked-sequence",
+      "kind": "resonance",
+      "version": 12,
+      "name": "Charged Quarry",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "status-presence",
+        "present": true,
+        "subject": "selected",
+        "statusId": "poison"
+      },
+      "effect": {
+        "id": "effect-2",
+        "payload": {
+          "type": "resource-change",
+          "delta": -5,
+          "resource": "mp",
+          "recipient": "primary-unit"
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.tidecaller-vanguard.linked-sequence",
+      "kind": "resonance",
+      "version": 12,
+      "name": "Undertow Breach",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "status-presence",
+        "present": true,
+        "subject": "selected",
+        "statusId": "wet"
+      },
+      "effect": {
+        "id": "effect-3",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 1,
+          "resource": "hp",
+          "recipient": "actor",
+          "durationTurns": 0,
+          "percentageBasisPoints": 400
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "resonance.tidecaller-wildwarden.linked-sequence",
+      "kind": "resonance",
+      "version": 12,
+      "name": "Quarry in the Current",
+      "behavior": "linked-sequence",
+      "requirements": {
+        "kind": "status-presence",
+        "present": true,
+        "subject": "selected",
+        "statusId": "mark"
+      },
+      "effect": {
+        "id": "effect-3",
+        "payload": {
+          "type": "resource-change",
+          "delta": 3,
+          "resource": "mp",
+          "recipient": "actor"
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "runeblade.rune-guard",
+      "kind": "skill",
+      "version": 8,
+      "behavior": "rune-guard",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "mp",
+        "comparison": "less-than",
+        "basisPoints": 5000
+      },
+      "effect": {
+        "id": "resource-change",
+        "payload": {
+          "type": "resource-change",
+          "delta": 3,
+          "resource": "mp",
+          "recipient": "actor"
+        }
+      },
+      "mode": "action",
+      "activation": "manual"
+    },
+    {
+      "key": "runeblade.rune-mending",
+      "kind": "skill",
+      "version": 8,
+      "behavior": "rune-mending",
+      "requirements": null,
+      "effect": {
+        "id": "percentage-recovery",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 1,
+          "resource": "hp",
+          "recipient": "actor",
+          "durationTurns": 0,
+          "percentageBasisPoints": 700
+        }
+      },
+      "mode": "action",
+      "activation": "manual"
+    },
+    {
+      "key": "runeblade.siphon-slash",
+      "kind": "skill",
+      "version": 7,
+      "behavior": "siphon-slash",
+      "requirements": null,
+      "effect": {
+        "id": "resource-change",
+        "payload": {
+          "type": "resource-change",
+          "delta": -5,
+          "resource": "mp",
+          "recipient": "primary-unit"
+        }
+      },
+      "mode": "action",
+      "activation": "manual"
+    },
+    {
+      "key": "runeblade.siphon-slash",
+      "kind": "skill",
+      "version": 7,
+      "behavior": "siphon-slash",
+      "requirements": null,
+      "effect": {
+        "id": "percentage-recovery",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 1,
+          "resource": "hp",
+          "recipient": "actor",
+          "durationTurns": 0,
+          "percentageBasisPoints": 500
+        }
+      },
+      "mode": "action",
+      "activation": "manual"
+    },
+    {
+      "key": "stormsinger.grounding",
+      "kind": "skill",
+      "version": 8,
+      "behavior": "grounding",
+      "requirements": null,
+      "effect": {
+        "id": "resource-change",
+        "payload": {
+          "type": "resource-change",
+          "delta": 3,
+          "resource": "mp",
+          "recipient": "actor"
+        }
+      },
+      "mode": "action",
+      "activation": "manual"
+    },
+    {
+      "key": "stormsinger.static-drain",
+      "kind": "skill",
+      "version": 9,
+      "behavior": "static-drain",
+      "requirements": null,
+      "effect": {
+        "id": "resource-change",
+        "payload": {
+          "type": "resource-change",
+          "delta": -6,
+          "resource": "mp",
+          "recipient": "primary-unit"
+        }
+      },
+      "mode": "action",
+      "activation": "manual"
+    },
+    {
+      "key": "stormsinger.storm-breath",
+      "kind": "skill",
+      "version": 8,
+      "behavior": "storm-breath",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "mp",
+        "comparison": "less-than",
+        "basisPoints": 4000
+      },
+      "effect": {
+        "id": "percentage-recovery",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 1,
+          "resource": "mp",
+          "recipient": "actor",
+          "durationTurns": 0,
+          "percentageBasisPoints": 700
+        }
+      },
+      "mode": "action",
+      "activation": "manual"
+    },
+    {
+      "key": "tidecaller.cleansing-rain",
+      "kind": "skill",
+      "version": 8,
+      "behavior": "cleansing-rain",
+      "requirements": null,
+      "effect": {
+        "id": "percentage-recovery",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 1,
+          "resource": "hp",
+          "recipient": "primary-unit",
+          "durationTurns": 0,
+          "percentageBasisPoints": 500
+        }
+      },
+      "mode": "action",
+      "activation": "manual"
+    },
+    {
+      "key": "tidecaller.springwater",
+      "kind": "skill",
+      "version": 7,
+      "behavior": "springwater",
+      "requirements": null,
+      "effect": {
+        "id": "percentage-recovery",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 3,
+          "resource": "hp",
+          "recipient": "primary-unit",
+          "durationTurns": 2,
+          "percentageBasisPoints": 500
+        }
+      },
+      "mode": "action",
+      "activation": "manual"
+    },
+    {
+      "key": "tidecaller.still-water",
+      "kind": "skill",
+      "version": 8,
+      "behavior": "still-water",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "mp",
+        "comparison": "less-than",
+        "basisPoints": 4000
+      },
+      "effect": {
+        "id": "percentage-recovery",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 1,
+          "resource": "hp",
+          "recipient": "actor",
+          "durationTurns": 0,
+          "percentageBasisPoints": 700
+        }
+      },
+      "mode": "action",
+      "activation": "manual"
+    },
+    {
+      "key": "tidecaller.still-water",
+      "kind": "skill",
+      "version": 8,
+      "behavior": "still-water",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "mp",
+        "comparison": "less-than",
+        "basisPoints": 4000
+      },
+      "effect": {
+        "id": "percentage-recovery-2",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 1,
+          "resource": "mp",
+          "recipient": "actor",
+          "durationTurns": 0,
+          "percentageBasisPoints": 500
+        }
+      },
+      "mode": "action",
+      "activation": "manual"
+    },
+    {
+      "key": "vanguard.rally",
+      "kind": "skill",
+      "version": 7,
+      "behavior": "rally",
+      "requirements": null,
+      "effect": {
+        "id": "resolve",
+        "payload": {
+          "type": "percentage-recovery",
+          "resource": "hp",
+          "recipient": "affected-units",
+          "percentageBasisPoints": 300
+        }
+      },
+      "mode": "action",
+      "activation": "manual"
+    },
+    {
+      "key": "vanguard.second-wind",
+      "kind": "skill",
+      "version": 8,
+      "behavior": "second-wind",
+      "requirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 3000
+      },
+      "effect": {
+        "id": "recover",
+        "payload": {
+          "type": "percentage-recovery",
+          "resource": "hp",
+          "recipient": "actor",
+          "percentageBasisPoints": 800
+        }
+      },
+      "mode": "action",
+      "activation": "automatic"
+    },
+    {
+      "key": "wildwarden.close-quarry",
+      "kind": "skill",
+      "version": 7,
+      "behavior": "close-quarry",
+      "requirements": null,
+      "effect": {
+        "id": "resource-change",
+        "payload": {
+          "type": "resource-change",
+          "delta": 3,
+          "resource": "mp",
+          "recipient": "actor"
+        },
+        "requirements": {
+          "kind": "status-presence",
+          "present": true,
+          "subject": "selected",
+          "statusId": "mark"
+        }
+      },
+      "mode": "action",
+      "activation": "manual"
+    },
+    {
+      "key": "wildwarden.field-remedy",
+      "kind": "skill",
+      "version": 7,
+      "behavior": "field-remedy",
+      "requirements": null,
+      "effect": {
+        "id": "percentage-recovery",
+        "payload": {
+          "type": "percentage-recovery",
+          "ticks": 1,
+          "resource": "hp",
+          "recipient": "actor",
+          "durationTurns": 0,
+          "percentageBasisPoints": 900
+        },
+        "requirements": {
+          "kind": "any",
+          "children": [
+            {
+              "kind": "status-presence",
+              "present": true,
+              "subject": "owner",
+              "statusId": "burn"
+            },
+            {
+              "kind": "status-presence",
+              "present": true,
+              "subject": "owner",
+              "statusId": "bleed"
+            },
+            {
+              "kind": "status-presence",
+              "present": true,
+              "subject": "owner",
+              "statusId": "poison"
+            },
+            {
+              "kind": "status-presence",
+              "present": true,
+              "subject": "owner",
+              "statusId": "slow"
+            },
+            {
+              "kind": "status-presence",
+              "present": true,
+              "subject": "owner",
+              "statusId": "root"
+            },
+            {
+              "kind": "status-presence",
+              "present": true,
+              "subject": "owner",
+              "statusId": "exposed"
+            },
+            {
+              "kind": "status-presence",
+              "present": true,
+              "subject": "owner",
+              "statusId": "mark"
+            },
+            {
+              "kind": "status-presence",
+              "present": true,
+              "subject": "owner",
+              "statusId": "challenged"
+            },
+            {
+              "kind": "status-presence",
+              "present": true,
+              "subject": "owner",
+              "statusId": "suppress"
+            }
+          ]
+        }
+      },
+      "mode": "action",
+      "activation": "manual"
+    }
+  ],
+  "targets": [
+    {
+      "definition": {
+        "name": "Dawn’s Oath",
+        "skill": {
+          "ai": {
+            "enabled": true,
+            "baseUtility": 95,
+            "purposeTags": [
+              "heal",
+              "defense",
+              "support"
+            ]
+          },
+          "id": "essence.dawnshield.dawns-oath",
+          "tags": [
+            "essence",
+            "dawnshield",
+            "heal",
+            "defense",
+            "support",
+            "cockpit:recovery"
+          ],
+          "media": {
+            "vfxKey": "essence.dawnshield.dawns-oath.vfx",
+            "iconKey": "essence.dawnshield.dawns-oath.icon",
+            "audioCueKey": "essence.dawnshield.dawns-oath.audio"
+          },
+          "apCost": 65,
+          "mpCost": 10,
+          "target": {
+            "kind": "unit",
+            "shape": {
+              "kind": "single"
+            },
+            "categories": [
+              "self",
+              "ally"
+            ],
+            "teamPolicy": "any",
+            "friendlyFire": "allies-only",
+            "maximumRange": 3,
+            "minimumRange": 0,
+            "geometryVersion": 3,
+            "maximumSelections": 1,
+            "requiresLineOfSight": true,
+            "maximumElevationDifference": 0
+          },
+          "effects": [
+            {
+              "type": "remove-status",
+              "recipient": "primary-unit",
+              "statusIds": [
+                "burn",
+                "bleed",
+                "poison",
+                "slow",
+                "root",
+                "exposed",
+                "mark",
+                "challenged"
+              ],
+              "durationTurns": 0
+            },
+            {
+              "type": "percentage-recovery",
+              "ticks": 1,
+              "percent": 15,
+              "resource": "hp",
+              "recipient": "primary-unit",
+              "durationTurns": 0
+            },
+            {
+              "type": "apply-status",
+              "stacks": 1,
+              "statusId": "guarded",
+              "recipient": "primary-unit",
+              "durationTurns": 2,
+              "potencyBasisPoints": 1300
+            }
+          ],
+          "enabled": true,
+          "nameRef": "essence.dawnshield.dawns-oath.name",
+          "cooldown": {
+            "key": "essence.dawnshield.dawns-oath",
+            "ownerTurns": 4
+          },
+          "authoring": {
+            "status": "representative",
+            "schemaVersion": 1,
+            "validationTags": [
+              "p4",
+              "dawnshield",
+              "shared-combat-authority",
+              "phase4-discipline-rebalance",
+              "owner-rebalance-v5",
+              "power-1-20",
+              "duration-aware",
+              "cooldown-1-3",
+              "owner-rebalance-v5-1",
+              "target-budget-v5-1",
+              "captured-percentage-recovery"
+            ]
+          },
+          "overrides": {},
+          "flavorLine": "Call on Dawnshield discipline to turn a wounded moment back toward survival.",
+          "accuracyMode": "automatic",
+          "requirements": [],
+          "contentVersion": 7,
+          "descriptionRef": "Remove common debuffs and grant Guard.",
+          "unlockRequirement": {
+            "kind": "discipline-mastery",
+            "minimumStage": 1
+          },
+          "sourceDisciplineId": "dawnshield"
+        },
+        "ability": {
+          "behaviors": [
+            {
+              "id": "dawns-oath",
+              "mode": "action",
+              "costs": [
+                {
+                  "amount": 65,
+                  "resource": "ap"
+                },
+                {
+                  "amount": 10,
+                  "resource": "mp"
+                }
+              ],
+              "effects": [
+                {
+                  "id": "remove-status",
+                  "payload": {
+                    "type": "remove-status",
+                    "recipient": "primary-unit",
+                    "statusIds": [
+                      "burn",
+                      "bleed",
+                      "poison",
+                      "slow",
+                      "root",
+                      "exposed",
+                      "mark",
+                      "challenged"
+                    ]
+                  }
+                },
+                {
+                  "id": "percentage-recovery",
+                  "payload": {
+                    "type": "percentage-recovery",
+                    "ticks": 1,
+                    "resource": "hp",
+                    "recipient": "primary-unit",
+                    "durationTurns": 0,
+                    "percentageBasisPoints": 1400
+                  },
+                  "requirements": {
+                    "kind": "any",
+                    "children": [
+                      {
+                        "kind": "status-presence",
+                        "present": true,
+                        "subject": "selected",
+                        "statusId": "burn"
+                      },
+                      {
+                        "kind": "status-presence",
+                        "present": true,
+                        "subject": "selected",
+                        "statusId": "bleed"
+                      },
+                      {
+                        "kind": "status-presence",
+                        "present": true,
+                        "subject": "selected",
+                        "statusId": "poison"
+                      },
+                      {
+                        "kind": "status-presence",
+                        "present": true,
+                        "subject": "selected",
+                        "statusId": "slow"
+                      },
+                      {
+                        "kind": "status-presence",
+                        "present": true,
+                        "subject": "selected",
+                        "statusId": "root"
+                      },
+                      {
+                        "kind": "status-presence",
+                        "present": true,
+                        "subject": "selected",
+                        "statusId": "exposed"
+                      },
+                      {
+                        "kind": "status-presence",
+                        "present": true,
+                        "subject": "selected",
+                        "statusId": "mark"
+                      },
+                      {
+                        "kind": "status-presence",
+                        "present": true,
+                        "subject": "selected",
+                        "statusId": "challenged"
+                      },
+                      {
+                        "kind": "status-presence",
+                        "present": true,
+                        "subject": "selected",
+                        "statusId": "suppress"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "apply-status",
+                  "payload": {
+                    "type": "apply-status",
+                    "stacks": 1,
+                    "statusId": "guarded",
+                    "recipient": "primary-unit",
+                    "durationTurns": 2,
+                    "potencyBasisPoints": 1500
+                  }
+                }
+              ],
+              "cooldown": {
+                "key": "essence.dawnshield.dawns-oath",
+                "ownerTurns": 4
+              },
+              "targeting": {
+                "kind": "unit",
+                "shape": {
+                  "kind": "single"
+                },
+                "categories": [
+                  "self",
+                  "ally"
+                ],
+                "teamPolicy": "any",
+                "friendlyFire": "allies-only",
+                "maximumRange": 3,
+                "minimumRange": 0,
+                "geometryVersion": 3,
+                "maximumSelections": 1,
+                "requiresLineOfSight": true,
+                "maximumElevationDifference": 0
+              },
+              "activation": "manual",
+              "requirements": null,
+              "classification": "recovery"
+            }
+          ],
+          "schemaVersion": 1
+        },
+        "enabled": true,
+        "authoring": {
+          "status": "representative",
+          "schemaVersion": 1,
+          "validationTags": [
+            "p4",
+            "dawnshield",
+            "shared-combat-authority",
+            "phase4-discipline-rebalance",
+            "owner-rebalance-v5",
+            "duration-aware",
+            "power-1-20",
+            "owner-rebalance-v5-1",
+            "target-budget-v5-1",
+            "captured-percentage-recovery"
+          ]
+        },
+        "essenceId": "essence.dawnshield.dawns-oath",
+        "flavorLine": "Cleanse and shield a friendly, restoring health when an affliction needed repair.",
+        "description": "Remove common debuffs and grant Guard.",
+        "contentVersion": 7,
+        "sourceDisciplineId": "dawnshield"
+      },
+      "content_key": "essence.dawnshield.dawns-oath",
+      "content_kind": "essence",
+      "content_version": 7
+    },
+    {
+      "definition": {
+        "ai": {
+          "enabled": true,
+          "baseUtility": 66,
+          "purposeTags": [
+            "heal",
+            "cleanse"
+          ]
+        },
+        "id": "wildwarden.field-remedy",
+        "tags": [
+          "discipline",
+          "wildwarden",
+          "heal",
+          "cleanse",
+          "cockpit:recovery"
+        ],
+        "media": {
+          "vfxKey": "skill.wildwarden.field-remedy.vfx",
+          "iconKey": "skill.wildwarden.field-remedy.icon",
+          "audioCueKey": "skill.wildwarden.field-remedy.audio"
+        },
+        "apCost": 45,
+        "mpCost": 4,
+        "target": {
+          "kind": "self",
+          "shape": {
+            "kind": "single"
+          },
+          "categories": [
+            "self"
+          ],
+          "teamPolicy": "self",
+          "friendlyFire": "allies-only",
+          "maximumRange": 0,
+          "minimumRange": 0,
+          "geometryVersion": 3,
+          "maximumSelections": 1,
+          "requiresLineOfSight": false,
+          "maximumElevationDifference": null
+        },
+        "ability": {
+          "behaviors": [
+            {
+              "id": "field-remedy",
+              "mode": "action",
+              "costs": [
+                {
+                  "amount": 45,
+                  "resource": "ap"
+                },
+                {
+                  "amount": 4,
+                  "resource": "mp"
+                }
+              ],
+              "effects": [
+                {
+                  "id": "remove-status",
+                  "payload": {
+                    "type": "remove-status",
+                    "recipient": "actor",
+                    "statusIds": [
+                      "burn",
+                      "bleed",
+                      "poison",
+                      "slow",
+                      "root",
+                      "exposed",
+                      "mark",
+                      "challenged"
+                    ]
+                  }
+                },
+                {
+                  "id": "percentage-recovery",
+                  "payload": {
+                    "type": "percentage-recovery",
+                    "ticks": 1,
+                    "resource": "hp",
+                    "recipient": "actor",
+                    "durationTurns": 0,
+                    "percentageBasisPoints": 900
+                  },
+                  "requirements": {
+                    "kind": "any",
+                    "children": [
+                      {
+                        "kind": "status-presence",
+                        "present": true,
+                        "subject": "owner",
+                        "statusId": "burn"
+                      },
+                      {
+                        "kind": "status-presence",
+                        "present": true,
+                        "subject": "owner",
+                        "statusId": "bleed"
+                      },
+                      {
+                        "kind": "status-presence",
+                        "present": true,
+                        "subject": "owner",
+                        "statusId": "poison"
+                      },
+                      {
+                        "kind": "status-presence",
+                        "present": true,
+                        "subject": "owner",
+                        "statusId": "slow"
+                      },
+                      {
+                        "kind": "status-presence",
+                        "present": true,
+                        "subject": "owner",
+                        "statusId": "root"
+                      },
+                      {
+                        "kind": "status-presence",
+                        "present": true,
+                        "subject": "owner",
+                        "statusId": "exposed"
+                      },
+                      {
+                        "kind": "status-presence",
+                        "present": true,
+                        "subject": "owner",
+                        "statusId": "mark"
+                      },
+                      {
+                        "kind": "status-presence",
+                        "present": true,
+                        "subject": "owner",
+                        "statusId": "challenged"
+                      },
+                      {
+                        "kind": "status-presence",
+                        "present": true,
+                        "subject": "owner",
+                        "statusId": "suppress"
+                      }
+                    ]
+                  }
+                }
+              ],
+              "cooldown": {
+                "key": "wildwarden.field-remedy",
+                "ownerTurns": 3
+              },
+              "targeting": {
+                "kind": "self",
+                "shape": {
+                  "kind": "single"
+                },
+                "categories": [
+                  "self"
+                ],
+                "teamPolicy": "self",
+                "friendlyFire": "allies-only",
+                "maximumRange": 0,
+                "minimumRange": 0,
+                "geometryVersion": 3,
+                "maximumSelections": 1,
+                "requiresLineOfSight": false,
+                "maximumElevationDifference": null
+              },
+              "activation": "manual",
+              "requirements": null,
+              "classification": "recovery"
+            }
+          ],
+          "schemaVersion": 1
+        },
+        "effects": [
+          {
+            "type": "percentage-recovery",
+            "ticks": 1,
+            "percent": 12,
+            "resource": "hp",
+            "recipient": "actor",
+            "durationTurns": 0
+          },
+          {
+            "type": "remove-status",
+            "recipient": "actor",
+            "statusIds": [
+              "burn",
+              "bleed",
+              "poison",
+              "slow",
+              "root",
+              "exposed",
+              "mark",
+              "challenged"
+            ],
+            "durationTurns": 0
+          }
+        ],
+        "enabled": true,
+        "nameRef": "skill.wildwarden.field-remedy.name",
+        "cooldown": {
+          "key": "wildwarden.field-remedy",
+          "ownerTurns": 3
+        },
+        "authoring": {
+          "status": "representative",
+          "schemaVersion": 1,
+          "validationTags": [
+            "p4",
+            "wildwarden",
+            "shared-combat-authority",
+            "phase4-discipline-rebalance",
+            "owner-rebalance-v5",
+            "power-1-20",
+            "duration-aware",
+            "cooldown-1-3",
+            "owner-rebalance-v5-1",
+            "target-budget-v5-1",
+            "captured-percentage-recovery"
+          ]
+        },
+        "overrides": {},
+        "flavorLine": "Clear an affliction and turn that repair into recovery.",
+        "accuracyMode": "automatic",
+        "requirements": [],
+        "contentVersion": 7,
+        "descriptionRef": "Remove common debuffs.",
+        "unlockRequirement": {
+          "kind": "discipline-mastery",
+          "minimumStage": 1
+        },
+        "sourceDisciplineId": "wildwarden"
+      },
+      "content_key": "wildwarden.field-remedy",
+      "content_kind": "skill",
+      "content_version": 7
+    }
+  ],
+  "publishedInventory": [
+    {
+      "content_key": "aetherist",
+      "content_kind": "discipline",
+      "content_version": 14
+    },
+    {
+      "content_key": "aetherist.arc-bolt",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "aetherist.arcane-field",
+      "content_kind": "skill",
+      "content_version": 8
+    },
+    {
+      "content_key": "aetherist.chain-spark",
+      "content_kind": "skill",
+      "content_version": 8
+    },
+    {
+      "content_key": "aetherist.channel",
+      "content_kind": "skill",
+      "content_version": 9
+    },
+    {
+      "content_key": "aetherist.mana-burst",
+      "content_kind": "skill",
+      "content_version": 8
+    },
+    {
+      "content_key": "aetherist.mana-shield",
+      "content_kind": "skill",
+      "content_version": 9
+    },
+    {
+      "content_key": "aetherist.overchannel",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "aetherist.ward-pierce",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "basic.guard",
+      "content_kind": "skill",
+      "content_version": 2
+    },
+    {
+      "content_key": "basic.move",
+      "content_kind": "skill",
+      "content_version": 2
+    },
+    {
+      "content_key": "basic.recover",
+      "content_kind": "skill",
+      "content_version": 3
+    },
+    {
+      "content_key": "basic.recover.mp",
+      "content_kind": "skill",
+      "content_version": 3
+    },
+    {
+      "content_key": "bastion.challenge",
+      "content_kind": "skill",
+      "content_version": 6
+    },
+    {
+      "content_key": "bastion.cover",
+      "content_kind": "skill",
+      "content_version": 6
+    },
+    {
+      "content_key": "bastion.fortress",
+      "content_kind": "skill",
+      "content_version": 6
+    },
+    {
+      "content_key": "bastion.hold-fast",
+      "content_kind": "skill",
+      "content_version": 9
+    },
+    {
+      "content_key": "bastion.shield-bash",
+      "content_kind": "skill",
+      "content_version": 6
+    },
+    {
+      "content_key": "bastion.shield-line",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "bastion.stalwart-strike",
+      "content_kind": "skill",
+      "content_version": 6
+    },
+    {
+      "content_key": "bastion.steady-footing",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "chronist.delay",
+      "content_kind": "skill",
+      "content_version": 6
+    },
+    {
+      "content_key": "chronist.haste",
+      "content_kind": "skill",
+      "content_version": 6
+    },
+    {
+      "content_key": "chronist.rewind-step",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "chronist.slow",
+      "content_kind": "skill",
+      "content_version": 6
+    },
+    {
+      "content_key": "chronist.stolen-moment",
+      "content_kind": "skill",
+      "content_version": 8
+    },
+    {
+      "content_key": "chronist.temporal-bolt",
+      "content_kind": "skill",
+      "content_version": 6
+    },
+    {
+      "content_key": "chronist.temporal-ward",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "chronist.time-lock",
+      "content_kind": "skill",
+      "content_version": 6
+    },
+    {
+      "content_key": "cinderweaver.ash-ward",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "cinderweaver.banked-embers",
+      "content_kind": "skill",
+      "content_version": 8
+    },
+    {
+      "content_key": "cinderweaver.blistering-heat",
+      "content_kind": "skill",
+      "content_version": 8
+    },
+    {
+      "content_key": "cinderweaver.cinder-bolt",
+      "content_kind": "skill",
+      "content_version": 9
+    },
+    {
+      "content_key": "cinderweaver.ember-line",
+      "content_kind": "skill",
+      "content_version": 10
+    },
+    {
+      "content_key": "cinderweaver.flame-burst",
+      "content_kind": "skill",
+      "content_version": 11
+    },
+    {
+      "content_key": "cinderweaver.flashfire",
+      "content_kind": "skill",
+      "content_version": 6
+    },
+    {
+      "content_key": "cinderweaver.scorch",
+      "content_kind": "skill",
+      "content_version": 6
+    },
+    {
+      "content_key": "dawnshield.aegis",
+      "content_kind": "skill",
+      "content_version": 8
+    },
+    {
+      "content_key": "dawnshield.consecrated-light",
+      "content_kind": "skill",
+      "content_version": 8
+    },
+    {
+      "content_key": "dawnshield.judgment",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "dawnshield.last-light",
+      "content_kind": "skill",
+      "content_version": 8
+    },
+    {
+      "content_key": "dawnshield.purge",
+      "content_kind": "skill",
+      "content_version": 6
+    },
+    {
+      "content_key": "dawnshield.radiant-strike",
+      "content_kind": "skill",
+      "content_version": 6
+    },
+    {
+      "content_key": "dawnshield.renewal",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "dawnshield.sacred-guard",
+      "content_kind": "skill",
+      "content_version": 8
+    },
+    {
+      "content_key": "discipline.f60c5dc7-abf2-4e03-8b10-428dee7fc4c2",
+      "content_kind": "discipline",
+      "content_version": 13
+    },
+    {
+      "content_key": "edgedancer.finishing-thrust",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "edgedancer.flanking-cut",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "edgedancer.flourish",
+      "content_kind": "skill",
+      "content_version": 6
+    },
+    {
+      "content_key": "edgedancer.hamstring",
+      "content_kind": "skill",
+      "content_version": 6
+    },
+    {
+      "content_key": "edgedancer.lunge",
+      "content_kind": "skill",
+      "content_version": 6
+    },
+    {
+      "content_key": "edgedancer.poised-guard",
+      "content_kind": "skill",
+      "content_version": 6
+    },
+    {
+      "content_key": "edgedancer.riposte",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "edgedancer.severing-cut",
+      "content_kind": "skill",
+      "content_version": 8
+    },
+    {
+      "content_key": "essence.aadcff8c-1d66-4e0d-af85-5e2ecb0e9ee2",
+      "content_kind": "essence",
+      "content_version": 2
+    },
+    {
+      "content_key": "essence.aetherist.aether-nova",
+      "content_kind": "essence",
+      "content_version": 9
+    },
+    {
+      "content_key": "essence.bastion.last-bastion",
+      "content_kind": "essence",
+      "content_version": 9
+    },
+    {
+      "content_key": "essence.chronist.borrowed-hour",
+      "content_kind": "essence",
+      "content_version": 8
+    },
+    {
+      "content_key": "essence.cinderweaver.phoenix-wake",
+      "content_kind": "essence",
+      "content_version": 8
+    },
+    {
+      "content_key": "essence.dawnshield.dawns-oath",
+      "content_kind": "essence",
+      "content_version": 7
+    },
+    {
+      "content_key": "essence.edgedancer.sevenfold-cut",
+      "content_kind": "essence",
+      "content_version": 7
+    },
+    {
+      "content_key": "essence.farstrider.deadeye-barrage",
+      "content_kind": "essence",
+      "content_version": 7
+    },
+    {
+      "content_key": "essence.frostweaver.absolute-winter",
+      "content_kind": "essence",
+      "content_version": 7
+    },
+    {
+      "content_key": "essence.ironfist.hundredfold-rush",
+      "content_kind": "essence",
+      "content_version": 6
+    },
+    {
+      "content_key": "essence.lifebinder.verdant-rupture",
+      "content_kind": "essence",
+      "content_version": 8
+    },
+    {
+      "content_key": "essence.ravager.red-tempest",
+      "content_kind": "essence",
+      "content_version": 9
+    },
+    {
+      "content_key": "essence.runeblade.runic-overdrive",
+      "content_kind": "essence",
+      "content_version": 9
+    },
+    {
+      "content_key": "essence.shadehand.perfect-opening",
+      "content_kind": "essence",
+      "content_version": 7
+    },
+    {
+      "content_key": "essence.stormsinger.skybreak",
+      "content_kind": "essence",
+      "content_version": 7
+    },
+    {
+      "content_key": "essence.tidecaller.tidal-crown",
+      "content_kind": "essence",
+      "content_version": 9
+    },
+    {
+      "content_key": "essence.vanguard.unbroken-strike",
+      "content_kind": "essence",
+      "content_version": 7
+    },
+    {
+      "content_key": "essence.wildwarden.apex-hunt",
+      "content_kind": "essence",
+      "content_version": 7
+    },
+    {
+      "content_key": "farstrider.aimed-shot",
+      "content_kind": "skill",
+      "content_version": 6
+    },
+    {
+      "content_key": "farstrider.fieldcraft",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "farstrider.keen-focus",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "farstrider.longshot",
+      "content_kind": "skill",
+      "content_version": 6
+    },
+    {
+      "content_key": "farstrider.piercing-barrage",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "farstrider.pinning-shot",
+      "content_kind": "skill",
+      "content_version": 6
+    },
+    {
+      "content_key": "farstrider.scouts-mark",
+      "content_kind": "skill",
+      "content_version": 6
+    },
+    {
+      "content_key": "farstrider.volley",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "frostweaver.brittle-ice",
+      "content_kind": "skill",
+      "content_version": 8
+    },
+    {
+      "content_key": "frostweaver.chilling-mist",
+      "content_kind": "skill",
+      "content_version": 9
+    },
+    {
+      "content_key": "frostweaver.crystal-prison",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "frostweaver.frost-guard",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "frostweaver.ice-lance",
+      "content_kind": "skill",
+      "content_version": 9
+    },
+    {
+      "content_key": "frostweaver.ice-line",
+      "content_kind": "skill",
+      "content_version": 9
+    },
+    {
+      "content_key": "frostweaver.shatter",
+      "content_kind": "skill",
+      "content_version": 9
+    },
+    {
+      "content_key": "frostweaver.thaw",
+      "content_kind": "skill",
+      "content_version": 8
+    },
+    {
+      "content_key": "ironfist.breakfall",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "ironfist.counter-palm",
+      "content_kind": "skill",
+      "content_version": 8
+    },
+    {
+      "content_key": "ironfist.focus-breath",
+      "content_kind": "skill",
+      "content_version": 8
+    },
+    {
+      "content_key": "ironfist.hammer-knuckle",
+      "content_kind": "skill",
+      "content_version": 6
+    },
+    {
+      "content_key": "ironfist.last-stand",
+      "content_kind": "skill",
+      "content_version": 8
+    },
+    {
+      "content_key": "ironfist.pressure-palm",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "ironfist.rising-fist",
+      "content_kind": "skill",
+      "content_version": 6
+    },
+    {
+      "content_key": "ironfist.sweep",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "lifebinder.barrier",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "lifebinder.fortifying-light",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "lifebinder.mend",
+      "content_kind": "skill",
+      "content_version": 8
+    },
+    {
+      "content_key": "lifebinder.mending-light",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "lifebinder.renew",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "lifebinder.sanctuary",
+      "content_kind": "skill",
+      "content_version": 8
+    },
+    {
+      "content_key": "lifebinder.searing-bloom",
+      "content_kind": "skill",
+      "content_version": 8
+    },
+    {
+      "content_key": "lifebinder.vital-sever",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "ravager.blood-rush",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "ravager.blood-siphon",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "ravager.cleaving-blow",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "ravager.desperate-execution",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "ravager.frenzy",
+      "content_kind": "skill",
+      "content_version": 6
+    },
+    {
+      "content_key": "ravager.gash",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "ravager.open-wound",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "ravager.war-roar",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "resonance.aetherist-bastion.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 10
+    },
+    {
+      "content_key": "resonance.aetherist-chronist.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 8
+    },
+    {
+      "content_key": "resonance.aetherist-cinderweaver.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 9
+    },
+    {
+      "content_key": "resonance.aetherist-dawnshield.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11
+    },
+    {
+      "content_key": "resonance.aetherist-edgedancer.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 10
+    },
+    {
+      "content_key": "resonance.aetherist-farstrider.arcane-hunt",
+      "content_kind": "resonance",
+      "content_version": 11
+    },
+    {
+      "content_key": "resonance.aetherist-frostweaver.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 9
+    },
+    {
+      "content_key": "resonance.aetherist-ironfist.conductive-impact",
+      "content_kind": "resonance",
+      "content_version": 9
+    },
+    {
+      "content_key": "resonance.aetherist-lifebinder.vital-circuit",
+      "content_kind": "resonance",
+      "content_version": 10
+    },
+    {
+      "content_key": "resonance.aetherist-ravager.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 8
+    },
+    {
+      "content_key": "resonance.aetherist-runeblade.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 9
+    },
+    {
+      "content_key": "resonance.aetherist-shadehand.veiled-conduit",
+      "content_kind": "resonance",
+      "content_version": 12
+    },
+    {
+      "content_key": "resonance.aetherist-stormsinger.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 10
+    },
+    {
+      "content_key": "resonance.aetherist-tidecaller.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11
+    },
+    {
+      "content_key": "resonance.aetherist-vanguard.spellsteel-rhythm",
+      "content_kind": "resonance",
+      "content_version": 9
+    },
+    {
+      "content_key": "resonance.aetherist-wildwarden.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11
+    },
+    {
+      "content_key": "resonance.bastion-chronist.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 10
+    },
+    {
+      "content_key": "resonance.bastion-cinderweaver.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 10
+    },
+    {
+      "content_key": "resonance.bastion-dawnshield.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11
+    },
+    {
+      "content_key": "resonance.bastion-edgedancer.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 9
+    },
+    {
+      "content_key": "resonance.bastion-farstrider.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 8
+    },
+    {
+      "content_key": "resonance.bastion-frostweaver.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 9
+    },
+    {
+      "content_key": "resonance.bastion-ironfist.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 10
+    },
+    {
+      "content_key": "resonance.bastion-lifebinder.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 10
+    },
+    {
+      "content_key": "resonance.bastion-ravager.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11
+    },
+    {
+      "content_key": "resonance.bastion-runeblade.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 10
+    },
+    {
+      "content_key": "resonance.bastion-shadehand.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 10
+    },
+    {
+      "content_key": "resonance.bastion-stormsinger.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 10
+    },
+    {
+      "content_key": "resonance.bastion-tidecaller.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 13
+    },
+    {
+      "content_key": "resonance.bastion-vanguard.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 10
+    },
+    {
+      "content_key": "resonance.bastion-wildwarden.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11
+    },
+    {
+      "content_key": "resonance.chronist-cinderweaver.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 10
+    },
+    {
+      "content_key": "resonance.chronist-dawnshield.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 10
+    },
+    {
+      "content_key": "resonance.chronist-edgedancer.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 10
+    },
+    {
+      "content_key": "resonance.chronist-farstrider.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12
+    },
+    {
+      "content_key": "resonance.chronist-frostweaver.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12
+    },
+    {
+      "content_key": "resonance.chronist-ironfist.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 13
+    },
+    {
+      "content_key": "resonance.chronist-lifebinder.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 9
+    },
+    {
+      "content_key": "resonance.chronist-ravager.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 10
+    },
+    {
+      "content_key": "resonance.chronist-runeblade.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12
+    },
+    {
+      "content_key": "resonance.chronist-shadehand.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 10
+    },
+    {
+      "content_key": "resonance.chronist-stormsinger.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12
+    },
+    {
+      "content_key": "resonance.chronist-tidecaller.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11
+    },
+    {
+      "content_key": "resonance.chronist-vanguard.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12
+    },
+    {
+      "content_key": "resonance.chronist-wildwarden.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12
+    },
+    {
+      "content_key": "resonance.cinderweaver-dawnshield.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12
+    },
+    {
+      "content_key": "resonance.cinderweaver-edgedancer.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 9
+    },
+    {
+      "content_key": "resonance.cinderweaver-farstrider.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11
+    },
+    {
+      "content_key": "resonance.cinderweaver-frostweaver.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11
+    },
+    {
+      "content_key": "resonance.cinderweaver-ironfist.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12
+    },
+    {
+      "content_key": "resonance.cinderweaver-lifebinder.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11
+    },
+    {
+      "content_key": "resonance.cinderweaver-ravager.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 13
+    },
+    {
+      "content_key": "resonance.cinderweaver-runeblade.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 10
+    },
+    {
+      "content_key": "resonance.cinderweaver-shadehand.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 10
+    },
+    {
+      "content_key": "resonance.cinderweaver-stormsinger.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12
+    },
+    {
+      "content_key": "resonance.cinderweaver-tidecaller.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 13
+    },
+    {
+      "content_key": "resonance.cinderweaver-vanguard.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11
+    },
+    {
+      "content_key": "resonance.cinderweaver-wildwarden.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11
+    },
+    {
+      "content_key": "resonance.dawnshield-edgedancer.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11
+    },
+    {
+      "content_key": "resonance.dawnshield-farstrider.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11
+    },
+    {
+      "content_key": "resonance.dawnshield-frostweaver.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12
+    },
+    {
+      "content_key": "resonance.dawnshield-ironfist.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 9
+    },
+    {
+      "content_key": "resonance.dawnshield-lifebinder.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12
+    },
+    {
+      "content_key": "resonance.dawnshield-ravager.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 10
+    },
+    {
+      "content_key": "resonance.dawnshield-runeblade.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11
+    },
+    {
+      "content_key": "resonance.dawnshield-shadehand.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12
+    },
+    {
+      "content_key": "resonance.dawnshield-stormsinger.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 13
+    },
+    {
+      "content_key": "resonance.dawnshield-tidecaller.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 13
+    },
+    {
+      "content_key": "resonance.dawnshield-vanguard.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 9
+    },
+    {
+      "content_key": "resonance.dawnshield-wildwarden.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11
+    },
+    {
+      "content_key": "resonance.edgedancer-farstrider.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 9
+    },
+    {
+      "content_key": "resonance.edgedancer-frostweaver.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11
+    },
+    {
+      "content_key": "resonance.edgedancer-ironfist.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 10
+    },
+    {
+      "content_key": "resonance.edgedancer-lifebinder.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11
+    },
+    {
+      "content_key": "resonance.edgedancer-ravager.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 9
+    },
+    {
+      "content_key": "resonance.edgedancer-runeblade.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11
+    },
+    {
+      "content_key": "resonance.edgedancer-shadehand.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12
+    },
+    {
+      "content_key": "resonance.edgedancer-stormsinger.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12
+    },
+    {
+      "content_key": "resonance.edgedancer-tidecaller.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 13
+    },
+    {
+      "content_key": "resonance.edgedancer-vanguard.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12
+    },
+    {
+      "content_key": "resonance.edgedancer-wildwarden.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 13
+    },
+    {
+      "content_key": "resonance.farstrider-frostweaver.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11
+    },
+    {
+      "content_key": "resonance.farstrider-ironfist.marked-approach",
+      "content_kind": "resonance",
+      "content_version": 10
+    },
+    {
+      "content_key": "resonance.farstrider-lifebinder.guided-renewal",
+      "content_kind": "resonance",
+      "content_version": 10
+    },
+    {
+      "content_key": "resonance.farstrider-ravager.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12
+    },
+    {
+      "content_key": "resonance.farstrider-runeblade.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 9
+    },
+    {
+      "content_key": "resonance.farstrider-shadehand.marked-opening",
+      "content_kind": "resonance",
+      "content_version": 10
+    },
+    {
+      "content_key": "resonance.farstrider-stormsinger.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12
+    },
+    {
+      "content_key": "resonance.farstrider-tidecaller.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 13
+    },
+    {
+      "content_key": "resonance.farstrider-vanguard.covering-break",
+      "content_kind": "resonance",
+      "content_version": 12
+    },
+    {
+      "content_key": "resonance.farstrider-wildwarden.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12
+    },
+    {
+      "content_key": "resonance.frostweaver-ironfist.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11
+    },
+    {
+      "content_key": "resonance.frostweaver-lifebinder.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 9
+    },
+    {
+      "content_key": "resonance.frostweaver-ravager.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 13
+    },
+    {
+      "content_key": "resonance.frostweaver-runeblade.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12
+    },
+    {
+      "content_key": "resonance.frostweaver-shadehand.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11
+    },
+    {
+      "content_key": "resonance.frostweaver-stormsinger.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12
+    },
+    {
+      "content_key": "resonance.frostweaver-tidecaller.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 13
+    },
+    {
+      "content_key": "resonance.frostweaver-vanguard.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 9
+    },
+    {
+      "content_key": "resonance.frostweaver-wildwarden.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11
+    },
+    {
+      "content_key": "resonance.ironfist-lifebinder.renewed-force",
+      "content_kind": "resonance",
+      "content_version": 9
+    },
+    {
+      "content_key": "resonance.ironfist-ravager.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 13
+    },
+    {
+      "content_key": "resonance.ironfist-runeblade.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11
+    },
+    {
+      "content_key": "resonance.ironfist-shadehand.broken-rhythm",
+      "content_kind": "resonance",
+      "content_version": 12
+    },
+    {
+      "content_key": "resonance.ironfist-stormsinger.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 10
+    },
+    {
+      "content_key": "resonance.ironfist-tidecaller.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12
+    },
+    {
+      "content_key": "resonance.ironfist-vanguard.tempered-response",
+      "content_kind": "resonance",
+      "content_version": 12
+    },
+    {
+      "content_key": "resonance.ironfist-wildwarden.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11
+    },
+    {
+      "content_key": "resonance.lifebinder-ravager.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11
+    },
+    {
+      "content_key": "resonance.lifebinder-runeblade.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 9
+    },
+    {
+      "content_key": "resonance.lifebinder-shadehand.mercy-in-shadow",
+      "content_kind": "resonance",
+      "content_version": 12
+    },
+    {
+      "content_key": "resonance.lifebinder-stormsinger.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 13
+    },
+    {
+      "content_key": "resonance.lifebinder-tidecaller.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 10
+    },
+    {
+      "content_key": "resonance.lifebinder-vanguard.mercys-edge",
+      "content_kind": "resonance",
+      "content_version": 10
+    },
+    {
+      "content_key": "resonance.lifebinder-wildwarden.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 10
+    },
+    {
+      "content_key": "resonance.ravager-runeblade.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 9
+    },
+    {
+      "content_key": "resonance.ravager-shadehand.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 13
+    },
+    {
+      "content_key": "resonance.ravager-stormsinger.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 13
+    },
+    {
+      "content_key": "resonance.ravager-tidecaller.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12
+    },
+    {
+      "content_key": "resonance.ravager-vanguard.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 13
+    },
+    {
+      "content_key": "resonance.ravager-wildwarden.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12
+    },
+    {
+      "content_key": "resonance.runeblade-shadehand.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11
+    },
+    {
+      "content_key": "resonance.runeblade-stormsinger.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12
+    },
+    {
+      "content_key": "resonance.runeblade-tidecaller.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 13
+    },
+    {
+      "content_key": "resonance.runeblade-vanguard.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11
+    },
+    {
+      "content_key": "resonance.runeblade-wildwarden.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11
+    },
+    {
+      "content_key": "resonance.shadehand-stormsinger.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 13
+    },
+    {
+      "content_key": "resonance.shadehand-tidecaller.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12
+    },
+    {
+      "content_key": "resonance.shadehand-vanguard.broken-line",
+      "content_kind": "resonance",
+      "content_version": 12
+    },
+    {
+      "content_key": "resonance.shadehand-wildwarden.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12
+    },
+    {
+      "content_key": "resonance.stormsinger-tidecaller.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12
+    },
+    {
+      "content_key": "resonance.stormsinger-vanguard.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12
+    },
+    {
+      "content_key": "resonance.stormsinger-wildwarden.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12
+    },
+    {
+      "content_key": "resonance.tidecaller-vanguard.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12
+    },
+    {
+      "content_key": "resonance.tidecaller-wildwarden.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12
+    },
+    {
+      "content_key": "resonance.vanguard-wildwarden.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11
+    },
+    {
+      "content_key": "runeblade",
+      "content_kind": "discipline",
+      "content_version": 4
+    },
+    {
+      "content_key": "runeblade.aether-cut",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "runeblade.arc-edge",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "runeblade.rune-burst",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "runeblade.rune-guard",
+      "content_kind": "skill",
+      "content_version": 8
+    },
+    {
+      "content_key": "runeblade.rune-mending",
+      "content_kind": "skill",
+      "content_version": 8
+    },
+    {
+      "content_key": "runeblade.sigil-brand",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "runeblade.siphon-slash",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "runeblade.unbinding-rune",
+      "content_kind": "skill",
+      "content_version": 6
+    },
+    {
+      "content_key": "shadehand.backstab",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "shadehand.crippling-cut",
+      "content_kind": "skill",
+      "content_version": 6
+    },
+    {
+      "content_key": "shadehand.execution-cut",
+      "content_kind": "skill",
+      "content_version": 8
+    },
+    {
+      "content_key": "shadehand.exploit-opening",
+      "content_kind": "skill",
+      "content_version": 8
+    },
+    {
+      "content_key": "shadehand.fan-of-knives",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "shadehand.feint",
+      "content_kind": "skill",
+      "content_version": 6
+    },
+    {
+      "content_key": "shadehand.quick-hands",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "shadehand.smoke-vial",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "stormsinger.arc-spark",
+      "content_kind": "skill",
+      "content_version": 9
+    },
+    {
+      "content_key": "stormsinger.conductive-bolt",
+      "content_kind": "skill",
+      "content_version": 9
+    },
+    {
+      "content_key": "stormsinger.grounding",
+      "content_kind": "skill",
+      "content_version": 8
+    },
+    {
+      "content_key": "stormsinger.lightning-line",
+      "content_kind": "skill",
+      "content_version": 9
+    },
+    {
+      "content_key": "stormsinger.static-burst",
+      "content_kind": "skill",
+      "content_version": 10
+    },
+    {
+      "content_key": "stormsinger.static-drain",
+      "content_kind": "skill",
+      "content_version": 9
+    },
+    {
+      "content_key": "stormsinger.storm-breath",
+      "content_kind": "skill",
+      "content_version": 8
+    },
+    {
+      "content_key": "stormsinger.thunderclap",
+      "content_kind": "skill",
+      "content_version": 8
+    },
+    {
+      "content_key": "tidecaller.cleansing-rain",
+      "content_kind": "skill",
+      "content_version": 8
+    },
+    {
+      "content_key": "tidecaller.crushing-wave",
+      "content_kind": "skill",
+      "content_version": 8
+    },
+    {
+      "content_key": "tidecaller.flood-line",
+      "content_kind": "skill",
+      "content_version": 10
+    },
+    {
+      "content_key": "tidecaller.mist-veil",
+      "content_kind": "skill",
+      "content_version": 6
+    },
+    {
+      "content_key": "tidecaller.springwater",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "tidecaller.still-water",
+      "content_kind": "skill",
+      "content_version": 8
+    },
+    {
+      "content_key": "tidecaller.undertow",
+      "content_kind": "skill",
+      "content_version": 8
+    },
+    {
+      "content_key": "tidecaller.water-lance",
+      "content_kind": "skill",
+      "content_version": 9
+    },
+    {
+      "content_key": "unarmed.basic",
+      "content_kind": "skill",
+      "content_version": 2
+    },
+    {
+      "content_key": "vanguard.brace",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "vanguard.cleave",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "vanguard.forceful-strike",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "vanguard.guard-break",
+      "content_kind": "skill",
+      "content_version": 6
+    },
+    {
+      "content_key": "vanguard.rally",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "vanguard.second-wind",
+      "content_kind": "skill",
+      "content_version": 8
+    },
+    {
+      "content_key": "vanguard.shield-bash",
+      "content_kind": "skill",
+      "content_version": 6
+    },
+    {
+      "content_key": "vanguard.sweeping-strike",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "wildwarden.close-quarry",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "wildwarden.field-remedy",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "wildwarden.hunters-mark",
+      "content_kind": "skill",
+      "content_version": 6
+    },
+    {
+      "content_key": "wildwarden.pursuit-shot",
+      "content_kind": "skill",
+      "content_version": 6
+    },
+    {
+      "content_key": "wildwarden.renewing-herbs",
+      "content_kind": "skill",
+      "content_version": 8
+    },
+    {
+      "content_key": "wildwarden.snare",
+      "content_kind": "skill",
+      "content_version": 6
+    },
+    {
+      "content_key": "wildwarden.thorn-line",
+      "content_kind": "skill",
+      "content_version": 7
+    },
+    {
+      "content_key": "wildwarden.venom-shot",
+      "content_kind": "skill",
+      "content_version": 9
+    }
+  ],
+  "recoveryCounts": {
+    "recoveryOrResourceEffects": 107,
+    "positiveRecoveryEffects": 89,
+    "positiveRecoveryDefinitions": 85,
+    "effectLocalPositiveRecoveryGates": 3,
+    "unconditionalPositiveRecoveryEffects": 22,
+    "behaviorConditionedPositiveRecoveryEffects": 64,
+    "byKind": {
+      "skill": 36,
+      "essence": 7,
+      "resonance": 46
+    }
+  }
+}

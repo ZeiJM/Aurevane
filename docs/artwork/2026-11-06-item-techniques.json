@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-11-06",
+  "assets": [
+    {
+      "weaponId": "twinfang-blade",
+      "techniqueName": "Quickstep",
+      "registryId": "item.twinfang-blade.technique.art.v1",
+      "path": "apps/web/public/media/art/items/techniques/twinfang-blade-technique-v01.webp",
+      "sha256": "3ebcb92f3c9f0578c9903ebbfd6173ff73cd439da32649885b140f89675ce752",
+      "size": [
+        512,
+        512
+      ],
+      "tool": "image_gen",
+      "origin": "Original generated fantasy technique illustration",
+      "promptSubject": "Agile boots evading sideways through gold-green magical motion trails",
+      "constraints": "Square painterly fantasy RPG icon; dark navy-black background; luminous central technique; no text, logo, frame or UI; distinct from weapon artwork."
+    },
+    {
+      "weaponId": "tower-shield",
+      "techniqueName": "Tower Guard",
+      "registryId": "item.tower-shield.technique.art.v1",
+      "path": "apps/web/public/media/art/items/techniques/tower-shield-technique-v01.webp",
+      "sha256": "34cd55c856708598d7d8fe2e32e7970377b8aac1bbc136d14a14f0bd3a4d16c2",
+      "size": [
+        512,
+        512
+      ],
+      "tool": "image_gen",
+      "origin": "Original generated fantasy technique illustration",
+      "promptSubject": "Layered amber-gold shield ward blocking sparks",
+      "constraints": "Square painterly fantasy RPG icon; dark navy-black background; luminous central technique; no text, logo, frame or UI; distinct from weapon artwork."
+    },
+    {
+      "weaponId": "stormcaller-staff",
+      "techniqueName": "Storm Ward",
+      "registryId": "item.stormcaller-staff.technique.art.v1",
+      "path": "apps/web/public/media/art/items/techniques/stormcaller-staff-technique-v01.webp",
+      "sha256": "0d3109ccb469d13917c6e837fb94bd7edfc1d2f665c89d867491625c10939cc6",
+      "size": [
+        512,
+        512
+      ],
+      "tool": "image_gen",
+      "origin": "Original generated fantasy technique illustration",
+      "promptSubject": "Spherical blue-violet lightning barrier protecting a faceless mage",
+      "constraints": "Square painterly fantasy RPG icon; dark navy-black background; luminous central technique; no text, logo, frame or UI; distinct from weapon artwork."
+    },
+    {
+      "weaponId": "emberbrand",
+      "techniqueName": "Kindle",
+      "registryId": "item.emberbrand.technique.art.v1",
+      "path": "apps/web/public/media/art/items/techniques/emberbrand-technique-v01.webp",
+      "sha256": "743062786c19db8b0109a48331e80745ffab9c69d541c81ffeab92fba22ab253",
+      "size": [
+        512,
+        512
+      ],
+      "tool": "image_gen",
+      "origin": "Original generated fantasy technique illustration",
+      "promptSubject": "Fiery orange-red aura blossoming from an ember above a gloved hand",
+      "constraints": "Square painterly fantasy RPG icon; dark navy-black background; luminous central technique; no text, logo, frame or UI; distinct from weapon artwork."
+    }
+  ]
+}

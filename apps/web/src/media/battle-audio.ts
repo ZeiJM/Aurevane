@@ -1,6 +1,6 @@
-import { PHASE4_AUDIO_DISCIPLINES, PHASE4_DISCIPLINE_AUDIO_VERSION } from '@aurevane/audio'
+import { isFinalizedContentMedia } from '@aurevane/game-core/combat/content-media'
+import { sharedSkillFxGroups } from '@aurevane/audio'
 import type { BattleEventRecord } from '@aurevane/db/battle-session'
-import { parseCopiedSkillCommandId } from '@aurevane/game-core/combat/combat-skill-copy'
 
 import { resolveSkillAudioCueHook } from './skill-media-hooks'
 
@@ -21,33 +21,58 @@ export function selectBattleAudioCues(
     if (record.battleVersion !== version || !Number.isFinite(age) || age < 0 || age > 5000) continue
     if (!record.event || typeof record.event !== 'object' || Array.isArray(record.event)) continue
     const event = record.event as Record<string, unknown>
+    if (
+      (event.event === 'combat_action_used' || event.event === 'resonance_activated') &&
+      isFinalizedContentMedia(event.audioMedia) &&
+      event.audioMedia.kind === 'audio'
+    ) {
+      const assetId = `content-media.${event.audioMedia.id}`
+      selected.set(assetId, {
+        assetId,
+        priority:
+          event.event === 'resonance_activated'
+            ? 80
+            : String(event.actionId).startsWith('essence.')
+              ? 90
+              : 70,
+      })
+      continue
+    }
     const storedAction = typeof event.actionId === 'string' ? event.actionId : ''
-    const action = parseCopiedSkillCommandId(storedAction)?.skillId ?? storedAction
-    let family = ''
-    let role = 'action'
+    const action = storedAction
+    let group: string | null = null
     let priority = 20
-    if (event.event === 'combat_action_used') {
+    if (event.event === 'combat_action_used' || event.event === 'resonance_activated') {
+      if (Object.hasOwn(event, 'audioCueKey') && event.audioCueKey === null) continue
       const authoredAudio =
-        typeof event.audioCueKey === 'string' ? resolveSkillAudioCueHook(event.audioCueKey) : null
-      const essence = action.startsWith('essence.')
-      const discipline = authoredAudio?.audioFamily ?? action.split('.')[essence ? 1 : 0]
-      if (discipline && PHASE4_AUDIO_DISCIPLINES.some((id) => id === discipline)) {
-        family = discipline
-        role = essence ? 'essence' : 'action'
-        priority = essence ? 90 : 70
+        typeof event.audioCueKey === 'string'
+          ? resolveSkillAudioCueHook(event.audioCueKey)
+          : event.event === 'combat_action_used'
+            ? resolveSkillAudioCueHook(
+                action.startsWith('essence.') ? `${action}.audio` : `skill.${action}.audio`,
+              )
+            : null
+      if (authoredAudio?.audioGroup && authoredAudio.available) {
+        selected.set(authoredAudio.audioGroup, {
+          assetId: `${authoredAudio.audioGroup}-${(version % 3) + 1}`,
+          priority:
+            event.event === 'resonance_activated' ? 80 : action.startsWith('essence.') ? 90 : 70,
+        })
+        continue
       }
-    } else if (event.event === 'resonance_activated') {
-      family = 'resonance'
-      priority = 80
+      if (event.event === 'resonance_activated' && !Object.hasOwn(event, 'audioCueKey')) {
+        group = sharedSkillFxGroups.resonance
+        priority = 80
+      }
     } else if (event.event === 'status_removed') {
-      family = 'cleanse'
+      group = sharedSkillFxGroups.cleanse
       priority = 50
     } else if (
       event.event === 'healing_applied' &&
       typeof event.amount === 'number' &&
       event.amount > 0
     ) {
-      family = 'healing'
+      group = sharedSkillFxGroups.healing
       priority = 40
     } else if (
       event.event === 'damage_applied' &&
@@ -55,17 +80,10 @@ export function selectBattleAudioCues(
       typeof event.amount === 'number' &&
       event.amount > 0
     ) {
-      family = 'attrition'
+      group = sharedSkillFxGroups.attrition
     }
-    if (!family) continue
-    const key = `${family}-${role}`
-    const audioVersion = PHASE4_AUDIO_DISCIPLINES.some((id) => id === family)
-      ? PHASE4_DISCIPLINE_AUDIO_VERSION
-      : 'v01'
-    selected.set(key, {
-      assetId: `audio.phase4.${key}-${audioVersion}-${(version % 3) + 1}`,
-      priority,
-    })
+    if (!group) continue
+    selected.set(group, { assetId: `${group}-${(version % 3) + 1}`, priority })
   }
   return [...selected.values()].sort((a, b) => b.priority - a.priority).slice(0, 2)
 }

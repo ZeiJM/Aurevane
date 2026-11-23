@@ -1,10 +1,10 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
-import { expect, test } from '@playwright/test'
+import { expect, test, type Locator } from '@playwright/test'
 
 import { createVerifiedAccountAndSignIn } from './pv1f-test-helpers'
 
-test('Creation exposes its forty portraits and preserves the complete authenticated three-step journey', async ({
+test('Creation exposes 24 portraits per gender and preserves the complete authenticated three-step journey', async ({
   page,
 }, info) => {
   test.setTimeout(120_000)
@@ -16,7 +16,7 @@ test('Creation exposes its forty portraits and preserves the complete authentica
     .split('')
     .map((digit) => String.fromCharCode(65 + Number(digit)))
     .join('')
-  const characterName = `Aurelia ${suffix}`
+  const characterName = `Aurelia ${suffix.slice(-16)}`
   const pageErrors: string[] = []
   page.on('pageerror', (error) => pageErrors.push(error.message))
   await createVerifiedAccountAndSignIn({
@@ -35,11 +35,13 @@ test('Creation exposes its forty portraits and preserves the complete authentica
   await expect(name).toHaveAttribute('aria-invalid', 'true')
   await expect(creation.getByRole('alert')).toBeVisible()
   await name.fill(characterName)
+  await expect(name).toHaveAttribute('maxlength', '24')
+  await expect(name).toHaveValue(characterName)
 
   const library = creation.locator('[data-portrait-library]')
   const portraits = library.locator('input[name="portrait"]')
   await expect(library).toBeVisible()
-  await expect(portraits).toHaveCount(40)
+  await expect(portraits).toHaveCount(24)
   const decoded = await library.locator('img').evaluateAll(async (images) => {
     return Promise.all(
       images.map(async (image) => {
@@ -64,11 +66,11 @@ test('Creation exposes its forty portraits and preserves the complete authentica
       }),
     )
   })
-  expect(decoded).toHaveLength(40)
+  expect(decoded).toHaveLength(24)
   expect(
     decoded.every((image) => image.loaded && image.width >= 96 && image.width === image.height),
   ).toBe(true)
-  expect(new Set(decoded.map((image) => image.src)).size).toBe(40)
+  expect(new Set(decoded.map((image) => image.src)).size).toBe(24)
 
   const sizes =
     info.project.name === 'mobile-chromium'
@@ -99,6 +101,9 @@ test('Creation exposes its forty portraits and preserves the complete authentica
         return { x: box.x, y: box.y, width: box.width, height: box.height, bottom: box.bottom }
       }
       const input = element.querySelector('#creation-name')!
+      const heading = element.querySelector('h1')!
+      const gender = element.querySelector('input[name="presentation"]')!.closest('fieldset')!
+      const gallery = element.querySelector('[data-portrait-grid]')!
       const preview = element.querySelector('[aria-label="Selected portrait preview"] img')!
       const primary = Array.from(element.querySelectorAll('button')).find((button) =>
         button.textContent?.includes('Choose your discipline'),
@@ -106,39 +111,64 @@ test('Creation exposes its forty portraits and preserves the complete authentica
       return {
         library: rect(element.querySelector('[data-portrait-library]')!),
         name: rect(input),
+        heading: rect(heading),
+        gender: rect(gender),
+        gallery: rect(gallery),
+        galleryOverflow: gallery.scrollHeight - gallery.clientHeight,
         preview: rect(preview),
         primary: rect(primary),
         nameFont: parseFloat(getComputedStyle(input).fontSize),
         primaryFont: parseFloat(getComputedStyle(primary).fontSize),
-        background: getComputedStyle(element.lastElementChild!).backgroundColor,
+        background: getComputedStyle(element.lastElementChild!).backgroundImage,
         overflow: document.documentElement.scrollWidth - innerWidth,
+        overflowY: document.documentElement.scrollHeight - innerHeight,
       }
     })
     results.push({ viewport: size, ...metrics })
     const label = `${info.project.name}-${size.width}x${size.height}`
     expect.soft(metrics.library.width, `${label}: gallery is not hidden`).toBeGreaterThan(150)
-    expect
-      .soft(metrics.library.bottom, `${label}: gallery precedes identity fields`)
-      .toBeLessThanOrEqual(metrics.name.y + 1)
+    if (size.width >= 1100) {
+      expect
+        .soft(metrics.library.x, `${label}: collection sits left of the selected portrait`)
+        .toBeLessThan(metrics.preview.x)
+      expect
+        .soft(metrics.name.y, `${label}: name follows the selected portrait`)
+        .toBeGreaterThan(metrics.preview.y + metrics.preview.height)
+      expect
+        .soft(
+          Math.abs(metrics.name.x - metrics.preview.x),
+          `${label}: name belongs to the preview column`,
+        )
+        .toBeLessThanOrEqual(1)
+    } else {
+      expect
+        .soft(metrics.name.y, `${label}: selected portrait precedes the name`)
+        .toBeGreaterThan(metrics.preview.y + metrics.preview.height)
+    }
     expect.soft(metrics.overflow, `${label}: no horizontal overflow`).toBeLessThanOrEqual(1)
     expect
       .soft(metrics.preview.width / metrics.preview.height, `${label}: square preview`)
       .toBeCloseTo(1, 2)
     if (size.width >= 1024)
       expect
-        .soft(
-          metrics.preview.width / metrics.library.width,
-          `${label}: desktop preview balances gallery`,
-        )
-        .toBeGreaterThanOrEqual(0.45)
+        .soft(metrics.preview.width, `${label}: usable desktop preview`)
+        .toBeGreaterThanOrEqual(128)
     expect.soft(metrics.nameFont, `${label}: readable name input`).toBeGreaterThanOrEqual(16)
     expect.soft(metrics.primaryFont, `${label}: readable action`).toBeGreaterThanOrEqual(14)
-    expect
-      .soft(
-        Math.max(...(metrics.background.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number)),
-        `${label}: dark workspace`,
-      )
-      .toBeLessThan(75)
+    expect.soft(metrics.background, `${label}: stone workspace`).toContain('linear-gradient')
+    if (size.width >= 1280 && size.height >= 768)
+      expect.soft(metrics.overflowY, `${label}: desktop page fits`).toBeLessThanOrEqual(1)
+    if (size.width >= 1280 && size.height >= 768) {
+      expect
+        .soft(metrics.gender.x, `${label}: Gender belongs to the header right`)
+        .toBeGreaterThan(metrics.heading.x)
+      expect
+        .soft(metrics.gender.bottom, `${label}: Gender precedes the collection`)
+        .toBeLessThanOrEqual(metrics.gallery.y)
+      expect
+        .soft(metrics.galleryOverflow, `${label}: gallery keeps scrolling within the workspace`)
+        .toBeGreaterThan(0)
+    }
     if (size.width >= 1280 && size.height >= 768)
       expect
         .soft(metrics.primary.bottom, `${label}: primary fits at normal zoom`)
@@ -165,17 +195,45 @@ test('Creation exposes its forty portraits and preserves the complete authentica
   await portraits.last().check()
   await portraits.last().focus()
   await page.keyboard.press('ArrowLeft')
-  await expect(portraits.nth(38)).toBeChecked()
+  await expect(portraits.nth(22)).toBeChecked()
   await page.keyboard.press('ArrowRight')
   await expect(portraits.last()).toBeChecked()
   await expect(portraits.last()).toBeInViewport({ ratio: 1 })
-  await creation.getByRole('radio', { name: 'Feminine', exact: true }).check()
-  await creation.locator('input[name="appearance"]').last().check()
+  const focusedPortrait = await portraits.last().evaluate((input) => ({
+    top: input.parentElement!.getBoundingClientRect().top,
+    bottom: input.parentElement!.getBoundingClientRect().bottom,
+    viewportHeight: innerHeight,
+  }))
+  expect(focusedPortrait.top).toBeGreaterThanOrEqual(0)
+  expect(focusedPortrait.bottom).toBeLessThanOrEqual(focusedPortrait.viewportHeight + 1)
+  await creation.getByRole('radio', { name: 'Female', exact: true }).check()
+  await expect(portraits).toHaveCount(24)
+  await expect(portraits.first()).toBeChecked()
+  await portraits.last().check()
+  await expect(creation.locator('input[name="appearance"]')).toHaveCount(0)
   await next.click()
   await expect(creation).toHaveAttribute('data-step', 'discipline')
+  const disciplineSigils = creation
+    .getByTestId('creation-discipline-choice')
+    .locator('[data-gameplay-art="discipline"]')
+  await expect(disciplineSigils).toHaveCount(6)
+  await assertSquareSigils(disciplineSigils)
+  if (info.project.name !== 'mobile-chromium') {
+    await page.setViewportSize({ width: 1366, height: 768 })
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollHeight - innerHeight))
+      .toBeLessThanOrEqual(1)
+  }
   await expect(creation.getByRole('heading', { level: 1 })).toBeFocused()
   const disciplines = creation.locator('input[name="discipline"]')
+  await expect(creation.getByTestId('attribute-points')).toContainText(
+    '5 personal points remaining',
+  )
+  await expect(creation.getByRole('button', { name: 'Review character' })).toBeDisabled()
+  const increaseMight = creation.getByRole('button', { name: 'Increase might bonus' })
+  for (let index = 0; index < 5; index++) await increaseMight.click()
   await disciplines.nth(1).check()
+  await expect(creation.getByRole('status', { name: 'might bonus' })).toHaveText('+5')
   const decrease = creation.locator('button[aria-label^="Decrease"]:not([disabled])').first()
   const attribute = (await decrease.getAttribute('aria-label'))!.split(' ')[1]
   await decrease.click()
@@ -196,9 +254,18 @@ test('Creation exposes its forty portraits and preserves the complete authentica
       fullPage: true,
     })
   await creation.getByRole('button', { name: 'Review character', exact: true }).click()
+  await assertSquareSigils(
+    creation
+      .getByTestId('creation-confirm-discipline-sigil')
+      .locator('[data-gameplay-art="discipline"]'),
+  )
+  if (info.project.name !== 'mobile-chromium')
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollHeight - innerHeight))
+      .toBeLessThanOrEqual(1)
   await expect(creation.getByText('Portrait', { exact: true })).toBeVisible()
-  await expect(creation.getByText('Wayfarer 40', { exact: true })).toBeVisible()
-  await expect(creation.getByText('Lightstep travelwear', { exact: true })).toBeVisible()
+  await expect(creation.getByText('Female adventurer 24', { exact: true })).toBeVisible()
+  await expect(creation.getByText('Starter appearance', { exact: true })).toHaveCount(0)
   await expect(creation).not.toContainText(/pronouns/i)
   if (process.env.LAYOUT_REVIEW_OUTPUT)
     await page.screenshot({
@@ -214,8 +281,7 @@ test('Creation exposes its forty portraits and preserves the complete authentica
   await creation.getByRole('button', { name: 'Back', exact: true }).click()
   await expect(name).toHaveValue(characterName)
   await expect(portraits.last()).toBeChecked()
-  await expect(creation.getByRole('radio', { name: 'Feminine', exact: true })).toBeChecked()
-  await expect(creation.locator('input[name="appearance"]').last()).toBeChecked()
+  await expect(creation.getByRole('radio', { name: 'Female', exact: true })).toBeChecked()
   await next.click()
   await creation.getByRole('button', { name: 'Review character', exact: true }).click()
 
@@ -258,17 +324,32 @@ test('Creation exposes its forty portraits and preserves the complete authentica
   const payload = await response.json()
   expect(payload.character).toMatchObject({
     name: characterName,
-    portraitRef: 'portrait.starter.wayfarer-40',
+    portraitRef: 'portrait.starter.wayfarer-30',
     presentationId: 'feminine',
-    starterAppearanceRef: 'appearance.starter.lightstep',
+    starterAppearanceRef: 'appearance.starter.roadworn',
   })
   expect(requests).toHaveLength(2)
   expect(requests[0].idempotencyKey).toBe(requests[1].idempotencyKey)
   expect(requests[1].intent.pronounPresetId).toBe('she_her')
-  await expect(page).toHaveURL(/\/game\/character$/)
-  await expect(page.getByTestId('character-profile')).toContainText(characterName)
+  expect(requests[1].intent.attributeBonuses).toMatchObject({ might: 5 })
+  await expect(page).toHaveURL(/\/game\/haven$/)
+  const appearance = await page.request.get('/api/account/appearance')
+  expect(appearance.ok()).toBe(true)
+  expect(await appearance.json()).toMatchObject({ appearance: { remainingDesigns: 1 } })
+  await page.goto('/game/character')
+  const railIdentity = page
+    .getByTestId('authenticated-shell')
+    .locator('[data-av-game-rail]')
+    .getByTestId('character-rail-profile')
+  const visibleRailIdentities = page.getByTestId('character-rail-profile').filter({ visible: true })
+  const desktopRail = await page.evaluate(() => matchMedia('(min-width: 761px)').matches)
+  await expect(railIdentity).toHaveCount(1)
+  await expect(railIdentity).toContainText(characterName)
+  await expect(visibleRailIdentities).toHaveCount(desktopRail ? 1 : 0)
   await page.reload()
-  await expect(page.getByTestId('character-profile')).toContainText(characterName)
+  await expect(railIdentity).toHaveCount(1)
+  await expect(railIdentity).toContainText(characterName)
+  await expect(visibleRailIdentities).toHaveCount(desktopRail ? 1 : 0)
   expect(pageErrors).toEqual([])
   if (process.env.LAYOUT_REVIEW_OUTPUT)
     await writeFile(
@@ -286,3 +367,25 @@ test('Creation exposes its forty portraits and preserves the complete authentica
       ),
     )
 })
+
+async function assertSquareSigils(sigils: Locator) {
+  const boxes = await sigils.evaluateAll((elements) =>
+    elements.map((element) => {
+      const artwork = element.getBoundingClientRect()
+      const owner = element.parentElement!.getBoundingClientRect()
+      return {
+        width: artwork.width,
+        height: artwork.height,
+        ownerWidth: owner.width,
+        ownerHeight: owner.height,
+      }
+    }),
+  )
+  expect(boxes.length).toBeGreaterThan(0)
+  for (const box of boxes) {
+    expect(box.width, 'Creation owns a readable sigil size').toBeGreaterThanOrEqual(32)
+    expect(Math.abs(box.width - box.height), 'Creation sigil stays square').toBeLessThanOrEqual(1)
+    expect(box.width, 'Sigil fits its creation card').toBeLessThanOrEqual(box.ownerWidth + 1)
+    expect(box.height, 'Sigil fits its creation card').toBeLessThanOrEqual(box.ownerHeight + 1)
+  }
+}

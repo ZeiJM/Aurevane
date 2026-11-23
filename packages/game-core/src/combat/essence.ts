@@ -1,3 +1,10 @@
+import { validateAbilityDefinition, type AbilityDefinition } from './combat-definition'
+import { createBlindsideEssenceVersion } from './combat-blindside-roster'
+import { createPercentageRecoveryEssenceVersion } from './combat-recovery-roster'
+import { createCurrentGroundEssenceVersion } from './combat-ground-roster'
+import { createCurrentTargetingEssenceVersion } from './combat-targeting-roster'
+import { createPercentageDotEssenceVersion } from './combat-percentage-dot-roster'
+import { battleFlavorTemplateIssues } from './battle-narration'
 import { ADVANCED_DISCIPLINE_ESSENCES } from './advanced-discipline-content'
 import type { CombatActionEvaluation, CombatTargetSelection } from './actions'
 import { FOUNDATION_TRIO_ESSENCES } from './foundation-trio-essences'
@@ -8,23 +15,33 @@ import {
   type MatureSkillDefinition,
   validateMatureSkillDefinition,
 } from './mature-skills'
+import { rebalanceMatureSkillDefinition } from './skill-balance-v5'
+import {
+  applyV51CurrentTechniqueTargeting,
+  rebalanceMatureSkillDefinitionV51,
+} from './skill-balance-v5-1'
 import {
   evaluatePv1fMatureSkill,
   executePv1fMatureSkill,
   readPv1fActionEconomy,
   type Pv1fTransition,
+  type Pv1fMatureSkillOptions,
 } from './pv1f-action-economy'
 import type { StatDrivenCombatEncounterState } from './stat-driven-combat'
 
 export const ESSENCE_SCHEMA_VERSION = 1 as const
 
 export interface EssenceDefinition {
+  /** Captured server selection only; never changes the original power identity. */
+  readonly relationshipOverrideDisciplineId?: string
+  readonly ability?: AbilityDefinition
   readonly essenceId: string
   readonly contentVersion: number
   readonly enabled: boolean
   readonly sourceDisciplineId: string
   readonly name: string
   readonly description: string
+  readonly flavorLine?: string
   readonly skill: MatureSkillDefinition
   readonly authoring: {
     readonly schemaVersion: typeof ESSENCE_SCHEMA_VERSION
@@ -34,6 +51,8 @@ export interface EssenceDefinition {
 }
 
 export interface EssenceSnapshotReference {
+  /** Captured server selection only; never changes the original power identity. */
+  readonly relationshipOverrideDisciplineId?: string
   readonly essenceId: string
   readonly contentVersion: number
   readonly sourceDisciplineId: string
@@ -181,19 +200,6 @@ function rebalanceEssencePurposeTags(
   return [...new Set([...definition.skill.ai.purposeTags, ...additions])]
 }
 
-function currentEssenceEffect(
-  effect: MatureSkillDefinition['effects'][number],
-): MatureSkillDefinition['effects'][number] {
-  if (
-    effect.type === 'remove-status' &&
-    effect.statusIds.includes('marked') &&
-    !effect.statusIds.includes('mark')
-  ) {
-    return { ...effect, statusIds: [...effect.statusIds, 'mark'] }
-  }
-  return effect
-}
-
 function currentEssenceAccuracyMode(
   definition: EssenceDefinition,
 ): NonNullable<MatureSkillDefinition['accuracyMode']> {
@@ -202,7 +208,7 @@ function currentEssenceAccuracyMode(
   if (skill.target.teamPolicy !== 'enemy' && skill.target.teamPolicy !== 'any') return 'automatic'
   return skill.effects.some((effect) => {
     if (!('recipient' in effect) || effect.recipient === 'actor') return false
-    if (effect.type === 'healing') return false
+    if (effect.type === 'healing' || effect.type === 'percentage-recovery') return false
     if (effect.type === 'resource-change') return effect.delta < 0
     if (effect.type === 'barrier-change') return effect.amount < 0
     return effect.type !== 'create-terrain'
@@ -332,7 +338,6 @@ function createPhase4RebalancedEssence(definition: EssenceDefinition): EssenceDe
                 'root',
                 'exposed',
                 'mark',
-                'marked',
                 'challenged',
               ],
             },
@@ -366,7 +371,7 @@ function createPhase4RebalancedEssence(definition: EssenceDefinition): EssenceDe
           ...definition.skill,
           contentVersion: version,
           accuracyMode,
-          effects: definition.skill.effects.map(currentEssenceEffect),
+          effects: definition.skill.effects,
           ...(accuracyMode === 'per-target'
             ? { accuracyModifierBasisPoints: definition.skill.accuracyModifierBasisPoints ?? 0 }
             : { accuracyModifierBasisPoints: undefined }),
@@ -466,17 +471,143 @@ const A03_CLASS_TUNED_ESSENCES = latestEnabledEssences([
   return next ? [next] : []
 })
 
-export const P36_REPRESENTATIVE_ESSENCES = [
+const PRE_V5_CURRENT_ESSENCES = [
   ...PRE_PHASE4_REBALANCE_ESSENCES,
   ...PHASE4_REBALANCED_ESSENCES,
   ...A03_MYSTIC_MP_ESSENCES,
   ...A03_CLASS_TUNED_ESSENCES,
 ] as const satisfies readonly EssenceDefinition[]
 
+function v5EssenceFlavorLine(definition: EssenceDefinition): string {
+  const discipline =
+    definition.sourceDisciplineId.charAt(0).toUpperCase() + definition.sourceDisciplineId.slice(1)
+  if (definition.skill.tags.includes('attack')) {
+    return `A high-cost ${discipline} signature attack built for a decisive payoff.`
+  }
+  if (
+    definition.skill.effects.some(
+      (effect) =>
+        effect.type === 'healing' || (effect.type === 'resource-change' && effect.delta > 0),
+    )
+  ) {
+    return `A high-cost ${discipline} signature recovery with concentrated restorative power.`
+  }
+  return `A high-cost ${discipline} signature utility Skill built around its defining control effects.`
+}
+
+const V5_REBALANCED_ESSENCES = latestEnabledEssences(PRE_V5_CURRENT_ESSENCES).map(
+  (definition): EssenceDefinition => {
+    const skill = rebalanceMatureSkillDefinition(definition.skill, 'essence')
+    return {
+      ...definition,
+      contentVersion: skill.contentVersion,
+      flavorLine: v5EssenceFlavorLine(definition),
+      skill,
+      authoring: {
+        ...definition.authoring,
+        validationTags: [
+          ...new Set([
+            ...definition.authoring.validationTags,
+            'owner-rebalance-v5',
+            'duration-aware',
+            'power-1-20',
+          ]),
+        ],
+      },
+    }
+  },
+)
+
+const V51_REBALANCED_ESSENCES = latestEnabledEssences([
+  ...PRE_V5_CURRENT_ESSENCES,
+  ...V5_REBALANCED_ESSENCES,
+]).map((definition): EssenceDefinition => {
+  const skill = rebalanceMatureSkillDefinitionV51(
+    applyV51CurrentTechniqueTargeting(definition.skill),
+    'essence',
+  )
+  return {
+    ...definition,
+    contentVersion: skill.contentVersion,
+    skill,
+    authoring: {
+      ...definition.authoring,
+      validationTags: [
+        ...new Set([
+          ...definition.authoring.validationTags,
+          'owner-rebalance-v5-1',
+          'target-budget-v5-1',
+        ]),
+      ],
+    },
+  }
+})
+
+export const P36_REPRESENTATIVE_ESSENCES = PRE_V5_CURRENT_ESSENCES
+
+const PERCENTAGE_DOT_ESSENCES = latestEnabledEssences([
+  ...P36_REPRESENTATIVE_ESSENCES,
+  ...V5_REBALANCED_ESSENCES,
+  ...V51_REBALANCED_ESSENCES,
+]).flatMap((definition) => {
+  const next = createPercentageDotEssenceVersion(definition)
+  return next ? [next] : []
+})
+
+const PRE_CURRENT_TARGETING_ESSENCE_REGISTRY = [
+  ...P36_REPRESENTATIVE_ESSENCES,
+  ...V5_REBALANCED_ESSENCES,
+  ...V51_REBALANCED_ESSENCES,
+  ...PERCENTAGE_DOT_ESSENCES,
+] as const satisfies readonly EssenceDefinition[]
+const CURRENT_TARGETING_ESSENCES = latestEnabledEssences(
+  PRE_CURRENT_TARGETING_ESSENCE_REGISTRY,
+).flatMap((definition) => {
+  const next = createCurrentTargetingEssenceVersion(definition)
+  return next ? [next] : []
+})
+const PRE_CURRENT_GROUND_ESSENCE_REGISTRY = [
+  ...PRE_CURRENT_TARGETING_ESSENCE_REGISTRY,
+  ...CURRENT_TARGETING_ESSENCES,
+]
+
+const CURRENT_GROUND_ESSENCES = latestEnabledEssences(PRE_CURRENT_GROUND_ESSENCE_REGISTRY).flatMap(
+  (definition) => {
+    const next = createCurrentGroundEssenceVersion(definition)
+    return next ? [next] : []
+  },
+)
+const PRE_PERCENTAGE_RECOVERY_ESSENCE_REGISTRY = [
+  ...PRE_CURRENT_GROUND_ESSENCE_REGISTRY,
+  ...CURRENT_GROUND_ESSENCES,
+]
+const PRE_BLINDSIDE_REGISTRY = [
+  ...PRE_PERCENTAGE_RECOVERY_ESSENCE_REGISTRY,
+  ...latestEnabledEssences(PRE_PERCENTAGE_RECOVERY_ESSENCE_REGISTRY).flatMap((definition) => {
+    const next = createPercentageRecoveryEssenceVersion(definition)
+    return next ? [next] : []
+  }),
+]
+
+const CURRENT_ESSENCE_REGISTRY = [
+  ...PRE_BLINDSIDE_REGISTRY,
+  ...latestEnabledEssences(PRE_BLINDSIDE_REGISTRY).flatMap((definition) => {
+    const next = createBlindsideEssenceVersion(definition)
+    return next ? [next] : []
+  }),
+]
+
 const STABLE_ID_PATTERN = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/
+
+/** Complete current identities; historical registry versions remain available separately. */
+export function currentEssenceDefinitions(): readonly EssenceDefinition[] {
+  return latestEnabledEssences(CURRENT_ESSENCE_REGISTRY)
+}
 
 export function validateEssenceDefinition(definition: EssenceDefinition): readonly string[] {
   const issues: string[] = []
+  const canonical = Object.hasOwn(definition, 'ability')
+  if (canonical && validateAbilityDefinition(definition.ability).length > 0) issues.push('ability')
   if (!STABLE_ID_PATTERN.test(definition.essenceId)) issues.push('essenceId')
   if (!Number.isSafeInteger(definition.contentVersion) || definition.contentVersion < 1) {
     issues.push('contentVersion')
@@ -484,6 +615,18 @@ export function validateEssenceDefinition(definition: EssenceDefinition): readon
   if (!STABLE_ID_PATTERN.test(definition.sourceDisciplineId)) issues.push('sourceDisciplineId')
   if (!definition.name.trim()) issues.push('name')
   if (!definition.description.trim()) issues.push('description')
+  if (
+    definition.flavorLine !== undefined &&
+    battleFlavorTemplateIssues(definition.flavorLine).length > 0
+  ) {
+    issues.push('flavorLine')
+  }
+  if (
+    definition.authoring.validationTags.includes('owner-rebalance-v5') &&
+    !definition.flavorLine?.trim()
+  ) {
+    issues.push('flavorLine')
+  }
   if (definition.skill.id !== definition.essenceId) issues.push('skill.id')
   if (definition.skill.contentVersion !== definition.contentVersion) {
     issues.push('skill.contentVersion')
@@ -492,11 +635,24 @@ export function validateEssenceDefinition(definition: EssenceDefinition): readon
     issues.push('skill.sourceDisciplineId')
   }
   if (!definition.skill.tags.includes('essence')) issues.push('skill.tags.essence')
-  if (validateMatureSkillDefinition(definition.skill).length > 0) issues.push('skill.definition')
+  if (
+    validateMatureSkillDefinition(
+      canonical ? { ...definition.skill, ability: definition.ability } : definition.skill,
+    ).length > 0
+  )
+    issues.push('skill.definition')
   if (definition.authoring.schemaVersion !== ESSENCE_SCHEMA_VERSION) {
     issues.push('authoring.schemaVersion')
   }
   return issues
+}
+
+/** Publication numbering reserves disabled shipped history as well as current definitions. */
+export function highestBuiltinEssenceVersion(essenceId: string): number | null {
+  const versions = CURRENT_ESSENCE_REGISTRY.filter((row) => row.essenceId === essenceId).map(
+    (row) => row.contentVersion,
+  )
+  return versions.length ? Math.max(...versions) : null
 }
 
 export function resolveEssenceForBuild(
@@ -505,7 +661,7 @@ export function resolveEssenceForBuild(
   contentVersion?: number,
 ): EssenceDefinition | null {
   if (secondaryDisciplineId !== null) return null
-  const candidates = P36_REPRESENTATIVE_ESSENCES.filter(
+  const candidates = CURRENT_ESSENCE_REGISTRY.filter(
     (definition) => definition.enabled && definition.sourceDisciplineId === primaryDisciplineId,
   )
   if (contentVersion !== undefined) {
@@ -519,6 +675,9 @@ export function resolveEssenceForBuild(
 export function essenceSnapshotReference(definition: EssenceDefinition): EssenceSnapshotReference {
   assertUsableEssence(definition)
   return {
+    ...(definition.relationshipOverrideDisciplineId
+      ? { relationshipOverrideDisciplineId: definition.relationshipOverrideDisciplineId }
+      : {}),
     essenceId: definition.essenceId,
     contentVersion: definition.contentVersion,
     sourceDisciplineId: definition.sourceDisciplineId,
@@ -533,6 +692,18 @@ function resolveLegalEssence(
   secondaryDisciplineId: string | null,
 ): EssenceDefinition | null {
   assertUsableEssence(essence)
+  if (
+    essence.relationshipOverrideDisciplineId &&
+    [primaryDisciplineId, secondaryDisciplineId].includes(
+      essence.relationshipOverrideDisciplineId,
+    ) &&
+    essence.sourceDisciplineId === essence.relationshipOverrideDisciplineId
+  )
+    return essence
+  if (Object.hasOwn(essence, 'ability') || Object.hasOwn(essence.skill, 'ability'))
+    return secondaryDisciplineId === null && primaryDisciplineId === essence.sourceDisciplineId
+      ? essence
+      : null
   const resolved = resolveEssenceForBuild(
     primaryDisciplineId,
     secondaryDisciplineId,
@@ -541,7 +712,16 @@ function resolveLegalEssence(
   return resolved?.essenceId === essence.essenceId ? resolved : null
 }
 
+/** Root canonical mechanics own the nested Skill envelope without flattening them. */
+export function essenceCombatSkill(definition: EssenceDefinition): MatureSkillDefinition {
+  assertUsableEssence(definition)
+  return Object.hasOwn(definition, 'ability')
+    ? { ...definition.skill, ability: definition.ability }
+    : definition.skill
+}
+
 export function evaluatePv1fEssenceSkillForAi(input: {
+  readonly options?: Pv1fMatureSkillOptions
   readonly state: StatDrivenCombatEncounterState
   readonly essence: EssenceDefinition
   readonly primaryDisciplineId: string
@@ -558,9 +738,10 @@ export function evaluatePv1fEssenceSkillForAi(input: {
 
   const evaluated = evaluatePv1fMatureSkill(
     input.state,
-    essence.skill,
+    essenceCombatSkill(essence),
     input.selection,
     input.combatContext,
+    input.options,
   )
   const actionEconomyRemaining = readPv1fActionEconomy(evaluated.prepared)?.current ?? 0
   const affordable = actionEconomyRemaining >= evaluated.cost
@@ -580,6 +761,7 @@ export function evaluatePv1fEssenceSkillForAi(input: {
 }
 
 export function executePv1fEssenceSkill(input: {
+  readonly options?: Pv1fMatureSkillOptions
   readonly state: StatDrivenCombatEncounterState
   readonly essence: EssenceDefinition
   readonly primaryDisciplineId: string
@@ -595,7 +777,13 @@ export function executePv1fEssenceSkill(input: {
   if (!resolved) {
     throw new Error('That Essence Skill is not legal for the committed Discipline build.')
   }
-  return executePv1fMatureSkill(input.state, resolved.skill, input.selection, input.combatContext)
+  return executePv1fMatureSkill(
+    input.state,
+    essenceCombatSkill(resolved),
+    input.selection,
+    input.combatContext,
+    input.options,
+  )
 }
 
 function assertUsableEssence(definition: EssenceDefinition): void {

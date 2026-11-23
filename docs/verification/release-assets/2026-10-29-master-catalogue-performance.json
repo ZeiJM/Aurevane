@@ -1,0 +1,67 @@
+{
+  "scope": "Read-only production evidence and local replay; not a deployed sustained-load acceptance claim",
+  "snapshot": {
+    "publications": 298,
+    "definitionBytes": 787716
+  },
+  "productionWindow": {
+    "start": "2026-10-29T05:30:00Z",
+    "end": "2026-10-29T08:20:00Z",
+    "fullCatalogueCalls": 228,
+    "fullCatalogueMedianMs": 150,
+    "fullCatalogueP95Ms": 503.3,
+    "fullCatalogueMaxMs": 1688,
+    "commitCalls": 16,
+    "commitP95Ms": 386,
+    "errorsInThoseRpcSamples": 0
+  },
+  "readOnlyExplain": {
+    "fullSnapshotExecutionMs": 123.267,
+    "freshTokenExecutionMs": 28.528,
+    "cacheReadBlocks": 0,
+    "writes": 0
+  },
+  "localReplay": [
+    {
+      "admission": false,
+      "reuse": false,
+      "requests": 30,
+      "fullSnapshots": 30,
+      "tokenReads": 0,
+      "cpuMs": 694.8,
+      "rows": 298
+    },
+    {
+      "admission": false,
+      "reuse": true,
+      "requests": 30,
+      "fullSnapshots": 1,
+      "tokenReads": 30,
+      "cpuMs": 239.3,
+      "rows": 298
+    },
+    {
+      "admission": true,
+      "reuse": false,
+      "requests": 30,
+      "fullSnapshots": 30,
+      "tokenReads": 0,
+      "cpuMs": 1736.5,
+      "rows": 298
+    },
+    {
+      "admission": true,
+      "reuse": true,
+      "requests": 30,
+      "fullSnapshots": 1,
+      "tokenReads": 30,
+      "cpuMs": 1283.3,
+      "rows": 298
+    }
+  ],
+  "acceptanceRemaining": [
+    "Required exact-head native CI",
+    "Live post-release baseline comparison and Owner reproduction",
+    "Physical-device/multiplayer/sustained-load acceptance"
+  ]
+}

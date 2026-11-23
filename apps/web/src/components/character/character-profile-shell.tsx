@@ -1,4 +1,4 @@
-import { foundationDisciplineAttributePolicy } from '@aurevane/game-core/character/attribute-allocation'
+import { disciplineAttributePolicyForProfile } from '@aurevane/game-core/character/discipline-build'
 import type {
   CharacterAttributeId,
   CharacterAttributes,
@@ -9,15 +9,18 @@ import type {
   PrimaryDisciplinePreview,
 } from '@aurevane/game-core/character/discipline-build'
 import type { CharacterProfileReadModel } from '@aurevane/game-core/character/profile'
+import type { SupernaturalStoryState } from '@aurevane/game-core/character/supernatural-state'
+import type { SupportActionId } from '@aurevane/game-core/combat/support-actions'
 import type { EssenceDefinition } from '@aurevane/game-core/combat/essence'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
-import type { ResonanceDefinition } from '@aurevane/game-core/combat/resonance'
+import type { AnyResonanceDefinition } from '@aurevane/game-core/combat/resonance'
 import { Surface } from '@aurevane/ui'
 
 import { CharacterAttributeAllocationPanel } from '@/components/character/character-attribute-allocation-panel'
-import { CharacterIdentityCard } from '@/components/character/character-identity-card'
 import { CharacterRailSynchronizedLayout } from '@/components/character/character-rail-synchronized-layout'
 import { CharacterProfileDetails } from '@/components/character/character-profile-details'
+import type { EquipmentStatBonus } from '@/lib/items/equipment-stat-presentation'
+import { type SupernaturalChoiceOption } from '@/components/character/character-supernatural-choice-controls'
 import { getStarterPortraitImageAssetId } from '@/media/character'
 
 import styles from './character-profile-shell.module.css'
@@ -28,7 +31,7 @@ interface PrimaryOption {
 }
 
 interface SecondaryOption extends PrimaryOption {
-  masteredAt: string
+  masteredAt: string | null
 }
 
 interface AttributeAllocationView {
@@ -49,9 +52,14 @@ interface AttributeAllocationView {
 }
 
 export interface CharacterWorkspaceProps {
+  equipmentBonuses?: readonly EquipmentStatBonus[] | null
   profile: CharacterProfileReadModel
   attributeAllocation: AttributeAllocationView
   disciplineBuild: {
+    disciplineNames?: Readonly<Record<string, string>>
+    supportActionId?: SupportActionId
+    supportActionArtworkKeys?: Readonly<Partial<Record<SupportActionId, string | null>>>
+    supportActionDescriptions?: Readonly<Partial<Record<SupportActionId, string>>>
     buildVersion: number
     current: PrimaryDisciplinePreview
     currentSecondary: DisciplineDefinition | null
@@ -75,20 +83,30 @@ export interface CharacterWorkspaceProps {
         definition: MatureSkillDefinition
         learnedAt: string
         activeSource: boolean
+        eligibilityGrants?: readonly {
+          eligibilityDisciplineId: string
+          activeSource: boolean
+          earnedAt?: string | null
+        }[]
       }[]
       equippedSkills: readonly {
         definition: MatureSkillDefinition
         slotIndex: number
         equippedAt: string
+        eligibilityDisciplineId?: string
       }[]
       extensions: {
-        resonance: ResonanceDefinition | null
+        resonance: AnyResonanceDefinition | null
         essence: EssenceDefinition | null
       }
     }
   }
   personalTitle?: string | null
   imageUrl?: string | null
+  supernatural?: {
+    state: SupernaturalStoryState | null
+    choices: readonly SupernaturalChoiceOption[]
+  }
 }
 
 const DUAL_DISCIPLINE_PROFILE_SUMMARIES: Readonly<Record<string, string>> = {
@@ -127,59 +145,87 @@ export function CharacterProfileShell({
   disciplineBuild,
   personalTitle = null,
   imageUrl = null,
+  equipmentBonuses,
 }: CharacterWorkspaceProps) {
-  const disciplineSummary = characterDisciplineSummary(
-    disciplineBuild.current.definition,
-    disciplineBuild.currentSecondary,
-  )
-  const attributePolicy = foundationDisciplineAttributePolicy(disciplineBuild.current.definition.id)
+  const attributePolicy = disciplineAttributePolicyForProfile(disciplineBuild.current.profile)
   const focusAttributes: readonly CharacterAttributeId[] = attributePolicy?.focusAttributes ?? []
   const buildTypeLabel = disciplineBuild.currentSecondary ? 'Resonance Build' : 'Essence Build'
-  const maxHp = disciplineBuild.current.derived.stats.maxHp.value
-  const maxMp = disciplineBuild.current.derived.stats.maxMp.value
 
   return (
     <CharacterRailSynchronizedLayout
       className={styles.layout}
       data-profile-workspace
       data-character-concept="profile"
+      data-composition="correction"
     >
-      <CharacterIdentityCard
-        profile={profile}
-        primary={disciplineBuild.current.definition}
-        secondary={disciplineBuild.currentSecondary}
-        personalTitle={personalTitle}
-        imageUrl={imageUrl}
-        disciplineSummary={disciplineSummary}
-        maxHp={maxHp}
-        maxMp={maxMp}
-      />
-
+      <header className={styles.pageHeading}>
+        <h1>Profile</h1>
+        <p>Your journey, your choices, your story.</p>
+      </header>
       <Surface
         className={styles.profile}
         tone="elevated"
         data-av-surface="moonstone"
         data-profile-sheet="true"
       >
-        <header className={styles.sheetHeading}>
-          <div>
-            <span className={styles.sheetMarker} aria-hidden="true">
-              ✧
-            </span>
-            <h2>Identity</h2>
+        <div className={styles.identityTags} aria-label="Disciplines and titles">
+          <div
+            className={styles.identityTag}
+            data-profile-tag="primary"
+            role="group"
+            aria-label="Primary Discipline"
+          >
+            <span aria-hidden="true">✦</span>
+            <strong data-testid="primary-discipline-chip">
+              {disciplineBuild.current.definition.name}
+            </strong>
           </div>
-          <small>Same soul. A wider horizon.</small>
-        </header>
-
+          {disciplineBuild.currentSecondary ? (
+            <div
+              className={styles.identityTag}
+              data-profile-tag="secondary"
+              role="group"
+              aria-label="Secondary Discipline"
+            >
+              <span aria-hidden="true">◇</span>
+              <strong data-testid="secondary-discipline-chip">
+                {disciplineBuild.currentSecondary.name}
+              </strong>
+            </div>
+          ) : null}
+          {personalTitle ? (
+            <div
+              className={styles.identityTag}
+              data-profile-tag="title"
+              role="group"
+              aria-label="Personal title"
+            >
+              <span aria-hidden="true">✧</span>
+              <strong>{personalTitle}</strong>
+            </div>
+          ) : null}
+        </div>
         <CharacterProfileDetails
           presentationLabel={profile.identity.presentationLabel}
           buildTypeLabel={buildTypeLabel}
           cycleNumber={profile.progression.cycleNumber}
           attributes={profile.attributes}
           derived={disciplineBuild.current.derived}
+          equipmentBonuses={equipmentBonuses}
+          showBuildTendencies
           attributeResetControl={
             <CharacterAttributeAllocationPanel
+              key={JSON.stringify([
+                attributeAllocation.characterId,
+                attributeAllocation.level,
+                attributeAllocation.attributes,
+                attributeAllocation.baseAttributes,
+                attributeAllocation.conversionRequired,
+                attributeAllocation.resetUsed,
+                attributePolicy?.attributeCaps,
+              ])}
               initialAllocation={attributeAllocation}
+              resetLabel="Reset Stats"
               portrait={{
                 name: profile.identity.name,
                 imageUrl,
@@ -191,40 +237,6 @@ export function CharacterProfileShell({
           }
         />
       </Surface>
-
-      <aside
-        className={styles.story}
-        data-testid="current-path-coming-soon"
-        aria-label="Current Path"
-      >
-        <header className={styles.storyHeading}>
-          <div>
-            <span aria-hidden="true">♜</span>
-            <strong>Current Path</strong>
-          </div>
-          <small>Your story continues.</small>
-        </header>
-        <div className={styles.storyArt} aria-hidden="true" />
-        <div className={styles.storyCopy}>
-          <h2>Echoes Beyond the Vale</h2>
-          <p>
-            Fragments stir across Aurevane. Follow the threads, sharpen your strength, and uncover
-            what lies beyond the turning skies.
-          </p>
-          <div className={styles.storyDivider} aria-hidden="true">
-            ✧
-          </div>
-          <button type="button" disabled>
-            View Journey <span aria-hidden="true">→</span>
-          </button>
-          <blockquote>
-            “New paths are not found,
-            <br />
-            but remembered.”
-            <cite>— An Aurevane Proverb</cite>
-          </blockquote>
-        </div>
-      </aside>
     </CharacterRailSynchronizedLayout>
   )
 }

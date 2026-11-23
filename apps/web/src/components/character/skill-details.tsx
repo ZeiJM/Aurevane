@@ -1,86 +1,160 @@
+'use client'
+
+import { currentGroundPresentation } from '@/lib/combat-ground-presentation'
+
+import type { BasicSkillDefinition } from '@aurevane/game-core/combat/combat-basic-actions'
+import type { BasicActionCharacterStats } from './basic-action-presentation'
+import { renderAbilityPresentationText } from '@aurevane/game-core/combat/battle-narration'
+import { skillDisplayName } from './skill-detail-presentation'
+
+import {
+  useSkillGroundInteractionRules,
+  useAirborneAttackElevation,
+  useSkillEffectTimingPolicy,
+  useSkillDotTriggerPolicyVersion,
+} from './skill-effect-timing-context'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
 import {
-  skillAffectedDescription,
-  skillEffectDescription,
-  skillRangeDescription,
-  skillRequirementDescription,
+  skillCostDescription,
+  skillCooldownDescription,
+  skillParameterRows,
   skillTargetTags,
+  skillTargetMethodExplanation,
 } from './skill-detail-presentation'
+import { skillPreviewEffects } from './skill-effect-preview'
+import { SkillGroundAreaDetails } from './skill-ground-area-details'
 import styles from './skill-details.module.css'
+import { SkillCharacteristicRows } from './skill-characteristic-rows'
+import { CompactSkillEffectSummary, EffectTagLabel } from './compact-skill-effect-summary'
+import { AbilityDefinitionParameters } from './ability-definition-parameters'
+import { groupSkillEffects } from './skill-effect-groups'
 
-export function SkillDetails({ skill }: { skill: MatureSkillDefinition }) {
+function SkillDetailBody({ skill }: { skill: MatureSkillDefinition }) {
+  const timingPolicy = useSkillEffectTimingPolicy()
+  const groundRules = useSkillGroundInteractionRules()
+  const airborneAttackElevation = useAirborneAttackElevation()
+  const dotTriggerPolicyVersion = useSkillDotTriggerPolicyVersion()
+  const legacyTriggers = dotTriggerPolicyVersion === null
+  const legacyPoisonMovement = dotTriggerPolicyVersion !== 2
+  return (
+    <>
+      <dl>
+        <SkillCharacteristicRows
+          rows={skillParameterRows(skill, skill, timingPolicy, {
+            ...groundRules,
+            airborneAttackElevation,
+          })}
+          targetMethodExplanation={skillTargetMethodExplanation(skill, groundRules)}
+          targetDetails={<SkillGroundAreaDetails skill={skill} />}
+          effectSummary={
+            skill.effects.length
+              ? groupSkillEffects(skill.effects, skill.effectDescriptions).map(
+                  ({ effect, count, firstIndex }, index) => (
+                    <span key={firstIndex}>
+                      {index > 0 ? ', ' : null}
+                      <CompactSkillEffectSummary
+                        aim={skill.target}
+                        effect={effect}
+                        count={count}
+                        skillEffects={skill.effects}
+                        tagPresentations={skill.tagPresentation}
+                      />
+                    </span>
+                  ),
+                )
+              : 'N/A'
+          }
+        />
+        {skill.overrides.pvp?.apCost !== undefined &&
+        skill.overrides.pvp.apCost !== skill.apCost ? (
+          <div>
+            <dt>PvP Cost</dt>
+            <dd>{skillCostDescription({ ...skill, apCost: skill.overrides.pvp.apCost })}</dd>
+          </div>
+        ) : null}
+        {skill.cooldown !== null &&
+        skill.overrides.pvp?.cooldownOwnerTurns !== undefined &&
+        skill.overrides.pvp.cooldownOwnerTurns !== skill.cooldown.ownerTurns ? (
+          <div>
+            <dt>PvP Cooldown</dt>
+            <dd>{skillCooldownDescription(skill, skill.overrides.pvp.cooldownOwnerTurns)}</dd>
+          </div>
+        ) : null}
+      </dl>
+      <strong>Effects</strong>
+      <ol>
+        {skillPreviewEffects(skill, {
+          legacyTriggers,
+          legacyPoisonMovement,
+          ...groundRules,
+          timingPolicy,
+        }).map((effect, index) => (
+          <li key={index}>
+            <strong>
+              <EffectTagLabel label={effect.label} tagPresentation={effect.tagPresentation} />
+            </strong>{' '}
+            — {effect.explanation}
+          </li>
+        ))}
+      </ol>
+      <p>
+        Final results depend on combat stats and defenses. Consecutive reuse reduces effectiveness
+        at the same AP cost. Battle previews show the current result.
+      </p>
+    </>
+  )
+}
+
+export function SkillDetails({
+  skill: capturedSkill,
+  expanded = false,
+  basic,
+  stats,
+}: {
+  skill: MatureSkillDefinition
+  expanded?: boolean
+  basic?: BasicSkillDefinition
+  stats?: BasicActionCharacterStats
+}) {
+  const groundRules = useSkillGroundInteractionRules()
+  const timingPolicy = useSkillEffectTimingPolicy()
+  const skill = capturedSkill.ability
+    ? capturedSkill
+    : currentGroundPresentation(capturedSkill, groundRules.groundContactPolicyVersion, timingPolicy)
+        .view
+  const body = skill.ability ? (
+    <AbilityDefinitionParameters
+      definition={skill.ability}
+      basic={basic}
+      stats={stats}
+      effectDescriptions={skill.effectDescriptions}
+    />
+  ) : (
+    <SkillDetailBody skill={skill} />
+  )
   return (
     <div className={styles.root} data-testid="skill-details">
-      <div className={styles.tags} aria-label="Targeting and effects">
-        {skillTargetTags(skill).map((tag) => (
-          <span key={tag}>{tag}</span>
-        ))}
-      </div>
-      <details className={styles.details}>
-        <summary>Skill details</summary>
-        <dl>
-          <div>
-            <dt>Range</dt>
-            <dd>{skillRangeDescription(skill)}</dd>
-          </div>
-          <div>
-            <dt>Affects</dt>
-            <dd>{skillAffectedDescription(skill)}</dd>
-          </div>
-          {skill.target.kind !== 'self' ? (
-            <>
-              <div>
-                <dt>Line of sight</dt>
-                <dd>{skill.target.requiresLineOfSight ? 'Required' : 'Not required'}</dd>
-              </div>
-              <div>
-                <dt>Elevation gap</dt>
-                <dd>
-                  {skill.target.maximumElevationDifference === null
-                    ? 'No limit'
-                    : `Up to ${skill.target.maximumElevationDifference}`}
-                </dd>
-              </div>
-            </>
-          ) : null}
-          <div>
-            <dt>AP cost</dt>
-            <dd>
-              {skill.apCost}
-              {skill.overrides.pvp?.apCost !== undefined &&
-              skill.overrides.pvp.apCost !== skill.apCost
-                ? ` · PvP ${skill.overrides.pvp.apCost}`
-                : ''}
-            </dd>
-          </div>
-          {(skill.mpCost ?? 0) > 0 ? (
-            <div>
-              <dt>MP cost</dt>
-              <dd>{skill.mpCost}</dd>
-            </div>
-          ) : null}
-        </dl>
-        <strong>Effects, in order</strong>
-        <ol>
-          {skill.effects.map((effect, index) => (
-            <li key={index}>{skillEffectDescription(effect)}</li>
-          ))}
-        </ol>
-        {skill.requirements.length ? (
-          <>
-            <strong>Requirements</strong>
-            <ul>
-              {skill.requirements.map((requirement, index) => (
-                <li key={index}>{skillRequirementDescription(requirement)}</li>
-              ))}
-            </ul>
-          </>
-        ) : null}
+      {skill.description ? <p>{skill.description}</p> : null}
+      {renderAbilityPresentationText(skill, 'public', { ability: skillDisplayName(skill) }) ? (
         <p>
-          Final results depend on combat stats and defenses. Consecutive reuse reduces effectiveness
-          at the same AP cost. Battle previews show the current result.
+          {renderAbilityPresentationText(skill, 'public', { ability: skillDisplayName(skill) })}
         </p>
-      </details>
+      ) : null}
+      {!skill.ability ? (
+        <div className={styles.tags} aria-label="Targeting and effects">
+          {skillTargetTags(skill, groundRules).map((tag) => (
+            <span key={tag}>{tag}</span>
+          ))}
+        </div>
+      ) : null}
+      {expanded ? (
+        <div className={[styles.details, styles.expanded].join(' ')}>{body}</div>
+      ) : (
+        <details className={styles.details}>
+          <summary>Skill details</summary>
+          {body}
+        </details>
+      )}
     </div>
   )
 }

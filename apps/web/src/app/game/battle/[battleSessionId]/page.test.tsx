@@ -1,0 +1,367 @@
+import { beforeAll, beforeEach, expect, it, vi } from 'vitest'
+import type { ReactElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
+import { BattleSelectedSkills } from '@/components/battle/battle-selected-skills'
+import type { BattleRuntime } from '@/components/battle/battle-runtime'
+import { customAutomaticResonance } from '@/components/battle/battle-custom-resonance.test-utils'
+import { essenceSnapshotReference } from '@aurevane/game-core/combat/essence'
+import { resonanceSnapshotReference } from '@aurevane/game-core/combat/resonance'
+import {
+  actorId,
+  characterId,
+  publishProposedRoster,
+  resolver,
+  rows,
+} from '@/server/battle/roster-legal-build.test-utils'
+
+const mocks = vi.hoisted(() => ({
+  session: vi.fn(),
+  metadata: vi.fn(),
+  resolver: vi.fn(),
+  names: vi.fn(),
+}))
+vi.mock('server-only', () => ({}))
+vi.mock('@/server/character/current-discipline-names', () => ({
+  loadCurrentDisciplineNames: mocks.names,
+}))
+vi.mock('next/headers', () => ({ headers: async () => new Headers({ host: '127.0.0.1:3100' }) }))
+vi.mock('next/navigation', () => ({
+  redirect: (path: string) => {
+    throw new Error('redirect:' + path)
+  },
+}))
+vi.mock('@/lib/supabase/config', () => ({ getOptionalPublicSupabaseConfig: () => ({}) }))
+vi.mock('@/server/account/account-services-readiness', () => ({
+  getCurrentAccountServicesReadiness: () => ({ available: true }),
+}))
+vi.mock('@/server/auth/actor', () => ({
+  getAuthenticatedActor: async () => ({ userId: '11111111-1111-4111-8111-111111111111' }),
+}))
+vi.mock('@/server/battle/battle-session-service', () => ({
+  createBattleSessionService: () => ({ getSession: mocks.session }),
+}))
+vi.mock('@/server/battle/supabase-battle-session-repository', () => ({
+  createSupabaseBattleSessionRepository: () => ({}),
+}))
+vi.mock('@/server/battle/pvp-lobby-service', () => ({ getPvpBattleMetadata: mocks.metadata }))
+vi.mock('@/server/character/supabase-character-repository', () => ({
+  createSupabaseCharacterRepository: () => ({
+    findByOwnerId: async () => ({
+      id: '22222222-2222-4222-8222-222222222222',
+      name: 'Wayfarer',
+      level: 100,
+      portraitRef: 'portrait.starter.wayfarer-01',
+    }),
+  }),
+}))
+vi.mock('@/server/character/character-profile-display-service', () => ({
+  loadCharacterProfileDisplay: async () => ({ imageUrl: null }),
+}))
+vi.mock('@/server/combat/combat-content-resolver', async (original) => ({
+  ...(await original<typeof import('@/server/combat/combat-content-resolver')>()),
+  createServerCombatContentResolver: mocks.resolver,
+}))
+vi.mock('@/components/battle/battle-audio-gate', () => ({ BattleAudioGate: () => null }))
+vi.mock('@/components/battle/battle-client-boundary', () => ({ BattleClientBoundary: () => null }))
+
+import BattleSessionPage from './page'
+
+beforeAll(publishProposedRoster, 30_000)
+beforeEach(() => {
+  vi.clearAllMocks()
+  mocks.resolver.mockReturnValue(resolver)
+  mocks.names.mockResolvedValue({})
+})
+
+it.each(['pve', 'pvp'] as const)(
+  'carries only the exact pinned custom Resonance artwork into the local %s cockpit',
+  async (mode) => {
+    const pinned = customAutomaticResonance()
+    const resolvePinnedResonanceDefinition = vi.fn(async () => pinned)
+    mocks.resolver.mockReturnValue({ ...resolver, resolvePinnedResonanceDefinition })
+    mocks.session.mockResolvedValue({
+      battleSessionId: '33333333-3333-4333-8333-333333333333',
+      battleVersion: 1,
+      snapshot: {
+        tactical: { battle: { lifecycle: 'active' } },
+        statBridge: {
+          combatants: [{ provenance: { kind: 'character-derived', sourceId: actorId } }],
+        },
+        buildAuthority: {
+          schemaVersion: 1,
+          catalogVersion: 3,
+          combatContext: mode,
+          combatants: [
+            {
+              combatantId: actorId,
+              characterId,
+              primary: { disciplineId: pinned.disciplinePair[0] },
+              secondary: { disciplineId: pinned.disciplinePair[1] },
+              disciplineSkills: [],
+              extensions: { essence: null, resonance: resonanceSnapshotReference(pinned) },
+            },
+          ],
+        },
+      },
+    })
+    mocks.metadata.mockResolvedValue(
+      mode === 'pvp'
+        ? {
+            localCharacterId: characterId,
+            participants: [
+              {
+                characterId,
+                combatantId: actorId,
+                characterName: 'Wayfarer',
+                portraitRef: 'portrait.starter.wayfarer-01',
+              },
+            ],
+          }
+        : null,
+    )
+    const page = await BattleSessionPage({
+      params: Promise.resolve({ battleSessionId: '33333333-3333-4333-8333-333333333333' }),
+    })
+    const current = (page as ReactElement<{ children: ReactElement<{ runtime: BattleRuntime }> }>)
+      .props.children.props.runtime
+    expect(current.resonance).toMatchObject({
+      id: pinned.id,
+      name: 'Ultra Instinct',
+      definition: { contentVersion: 2, media: pinned.media },
+    })
+    expect(resolvePinnedResonanceDefinition).toHaveBeenCalledWith(
+      ...pinned.disciplinePair,
+      pinned.id,
+      2,
+    )
+    const html = renderToStaticMarkup(
+      <BattleSelectedSkills
+        runtime={current}
+        disabled
+        actionEconomy={0}
+        onSelect={vi.fn()}
+        onInspect={vi.fn()}
+      />,
+    )
+    expect(html).toContain('src="/api/content-media/f6ba91b3-6887-4197-8cc6-22f0aa48361b"')
+    expect(html).toContain('aria-label="Ultra Instinct, Resonance, inspect"')
+    expect(JSON.stringify(current)).not.toContain('sourceInstanceId')
+  },
+)
+
+it.each(['pve', 'pvp'] as const)(
+  'shows the captured published Essence in the %s cockpit without manually equipping it',
+  async (mode) => {
+    const row = rows.find(
+      (entry) => entry.kind === 'essence' && entry.id === 'essence.edgedancer.sevenfold-cut',
+    )!
+    if (row.kind !== 'essence') throw new Error('Missing published Essence fixture.')
+    mocks.session.mockResolvedValue({
+      battleSessionId: '33333333-3333-4333-8333-333333333333',
+      battleVersion: 1,
+      snapshot: {
+        tactical: { battle: { lifecycle: 'active' } },
+        statBridge: {
+          combatants: [{ provenance: { kind: 'character-derived', sourceId: actorId } }],
+        },
+        buildAuthority: {
+          schemaVersion: 1,
+          catalogVersion: 3,
+          combatContext: mode,
+          combatants: [
+            {
+              combatantId: actorId,
+              characterId,
+              primary: { disciplineId: 'edgedancer' },
+              secondary: null,
+              disciplineSkills: [],
+              extensions: { essence: essenceSnapshotReference(row.after), resonance: null },
+            },
+          ],
+        },
+      },
+    })
+    mocks.metadata.mockResolvedValue(
+      mode === 'pvp'
+        ? {
+            localCharacterId: characterId,
+            participants: [
+              {
+                characterId,
+                combatantId: actorId,
+                characterName: 'Wayfarer',
+                portraitRef: 'portrait.starter.wayfarer-01',
+              },
+            ],
+          }
+        : null,
+    )
+    const page = await BattleSessionPage({
+      params: Promise.resolve({ battleSessionId: '33333333-3333-4333-8333-333333333333' }),
+    })
+    const boundary = (
+      page as ReactElement<{
+        children: ReactElement<{
+          runtime: {
+            essence: {
+              id: string
+              definition: { contentVersion: number; ability?: unknown }
+            } | null
+          }
+        }>
+      }>
+    ).props.children
+    expect(boundary.props.runtime.essence).toMatchObject({
+      id: 'essence.edgedancer.sevenfold-cut',
+      definition: { contentVersion: row.after.skill.contentVersion, ability: { schemaVersion: 1 } },
+    })
+  },
+)
+
+it('shows the exact captured published Resonance instead of losing it to the built-in catalogue', async () => {
+  const row = rows.find(
+    (entry) =>
+      entry.kind === 'resonance' && entry.id === 'resonance.chronist-edgedancer.linked-sequence',
+  )!
+  if (row.kind !== 'resonance') throw new Error('Missing published Resonance fixture.')
+  mocks.session.mockResolvedValue({
+    battleSessionId: '33333333-3333-4333-8333-333333333333',
+    battleVersion: 1,
+    snapshot: {
+      tactical: { battle: { lifecycle: 'active' } },
+      statBridge: {
+        combatants: [{ provenance: { kind: 'character-derived', sourceId: actorId } }],
+      },
+      buildAuthority: {
+        schemaVersion: 1,
+        catalogVersion: 3,
+        combatContext: 'pve',
+        combatants: [
+          {
+            combatantId: actorId,
+            characterId,
+            primary: { disciplineId: 'chronist' },
+            secondary: { disciplineId: 'edgedancer' },
+            disciplineSkills: [],
+            extensions: { essence: null, resonance: resonanceSnapshotReference(row.after) },
+          },
+        ],
+      },
+    },
+  })
+  mocks.metadata.mockResolvedValue(null)
+  const page = await BattleSessionPage({
+    params: Promise.resolve({ battleSessionId: '33333333-3333-4333-8333-333333333333' }),
+  })
+  const boundary = (
+    page as ReactElement<{
+      children: ReactElement<{
+        runtime: { resonance: { id: string; contentVersion: number } | null }
+      }>
+    }>
+  ).props.children
+  expect(boundary.props.runtime.resonance).toMatchObject({
+    id: row.id,
+    contentVersion: row.after.contentVersion,
+  })
+})
+
+it.each(['pve', 'pvp'] as const)(
+  'projects current custom source names alongside pinned %s Skill definitions',
+  async (mode) => {
+    const row = rows.find((entry) => entry.kind === 'skill')!
+    if (row.kind !== 'skill') throw new Error('Missing Skill fixture.')
+    const sourceId = 'discipline.f60c5dc7-abf2-4e03-8b10-428dee7fc4c2'
+    const pinned = {
+      ...row.after,
+      id: 'skill.5e18336c-eb31-45e5-a86a-43edc4d2cb21',
+      name: 'Kaio-ken',
+      sourceDisciplineId: sourceId,
+    }
+    const resolvePinnedSkillDefinition = vi.fn(async () => pinned)
+    mocks.resolver.mockReturnValue({ ...resolver, resolvePinnedSkillDefinition })
+    mocks.names.mockResolvedValue({ [sourceId]: 'Super Saiyan' })
+    mocks.session.mockResolvedValue({
+      battleSessionId: '33333333-3333-4333-8333-333333333333',
+      battleVersion: 1,
+      snapshot: {
+        tactical: { battle: { lifecycle: 'active' } },
+        statBridge: {
+          combatants: [{ provenance: { kind: 'character-derived', sourceId: actorId } }],
+        },
+        buildAuthority: {
+          schemaVersion: 1,
+          catalogVersion: 3,
+          combatContext: mode,
+          combatants: [
+            {
+              combatantId: actorId,
+              characterId,
+              primary: { disciplineId: 'edgedancer' },
+              secondary: null,
+              disciplineSkills: [
+                {
+                  skillId: pinned.id,
+                  contentVersion: pinned.contentVersion,
+                  sourceDisciplineId: sourceId,
+                  slotIndex: 1,
+                },
+              ],
+              extensions: { essence: null, resonance: null },
+            },
+          ],
+        },
+      },
+    })
+    mocks.metadata.mockResolvedValue(
+      mode === 'pvp'
+        ? {
+            localCharacterId: characterId,
+            participants: [
+              {
+                characterId,
+                combatantId: actorId,
+                characterName: 'Wayfarer',
+                portraitRef: 'portrait.starter.wayfarer-01',
+              },
+            ],
+          }
+        : null,
+    )
+    const read = async () => {
+      const page = await BattleSessionPage({
+        params: Promise.resolve({ battleSessionId: '33333333-3333-4333-8333-333333333333' }),
+      })
+      return (
+        page as ReactElement<{
+          children: ReactElement<{
+            runtime: { techniques: { sourceDisciplineName?: string; definition: unknown }[] }
+          }>
+        }>
+      ).props.children.props.runtime
+    }
+    expect((await read()).techniques[0]).toMatchObject({
+      name: 'Kaio-ken',
+      sourceDisciplineName: 'Super Saiyan',
+      definition: {
+        id: pinned.id,
+        contentVersion: pinned.contentVersion,
+        sourceDisciplineId: sourceId,
+        effects: pinned.effects,
+        apCost: pinned.apCost,
+      },
+    })
+    expect(mocks.names).toHaveBeenCalledWith([sourceId])
+    expect(resolvePinnedSkillDefinition).toHaveBeenCalledWith(pinned.id, pinned.contentVersion)
+    mocks.names.mockRejectedValueOnce(new Error('labels offline'))
+    expect((await read()).techniques[0]).toMatchObject({
+      definition: {
+        id: pinned.id,
+        contentVersion: pinned.contentVersion,
+        sourceDisciplineId: sourceId,
+        effects: pinned.effects,
+        apCost: pinned.apCost,
+      },
+    })
+  },
+)

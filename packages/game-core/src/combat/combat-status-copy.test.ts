@@ -222,6 +222,49 @@ function cast(
 }
 
 describe('Amplify Curse active-status copying: public command contract', () => {
+  it.each(['amplify', 'curse'] as const)(
+    'does not transfer donor privacy or shared lifetime onto a fresh %s application',
+    (mode) => {
+      const donorId = mode === 'amplify' ? 'target' : 'actor'
+      const receiverId = mode === 'amplify' ? 'actor' : 'target'
+      const initial = { ...world(), effectStackingPolicyVersion: 1 as const }
+      initial.statusState = initial.statusState.map((entry) =>
+        entry.combatantId === donorId
+          ? {
+              ...entry,
+              statuses: [
+                row(mode === 'amplify' ? POSITIVE : NEGATIVE, {
+                  sourceCombatantId: donorId,
+                  applicationModifiers: [
+                    {
+                      stacks: 1,
+                      sourceCombatantId: donorId,
+                      sourceCommandVisibility: {
+                        kind: 'team-only',
+                        teamId: mode === 'amplify' ? 'enemies' : 'players',
+                      },
+                      privateSharedLifetime: true,
+                    },
+                  ],
+                }),
+              ],
+            }
+          : entry,
+      )
+      const result = cast(initial, mode)
+      expect(validateCombatEncounterState(result.state)).toEqual([])
+      expect(statuses(result.state, receiverId)[0].applicationModifiers![0]).not.toHaveProperty(
+        'sourceCommandVisibility',
+      )
+      expect(statuses(result.state, receiverId)[0].applicationModifiers![0]).not.toHaveProperty(
+        'privateSharedLifetime',
+      )
+      expect(statuses(initial, donorId)[0].applicationModifiers![0]).toHaveProperty(
+        'sourceCommandVisibility',
+      )
+    },
+  )
+
   it('copies positive target statuses onto the caster without removing originals', () => {
     const state = world([
       { combatantId: 'target', statuses: [row(POSITIVE, { stacks: 2 }), row(NEGATIVE)] },
@@ -441,7 +484,7 @@ describe('Status copying: fail-closed eligibility and staged scope', () => {
       expect(statuses(result.state, 'target').map((entry) => entry.statusId)).toEqual([NEGATIVE.id])
     },
   )
-  it.each([{ statusVersion: 2 }, { stacks: 4 }, { remainingOwnerTurnStarts: 5 }])(
+  it.each([{ statusVersion: 2 }, { stacks: 4 }, { remainingOwnerTurnStarts: 101 }])(
     'rejects mismatched donor state %j',
     (patch) => {
       const state = world([{ combatantId: 'target', statuses: [row(POSITIVE, patch)] }])
@@ -475,12 +518,31 @@ describe('Status copying: fail-closed eligibility and staged scope', () => {
     expect(() => validateCombatActionDefinition(action, CONTENT)).toThrow()
     expect(() => executeCombatAction(world(), action, TARGET, CONTENT)).toThrow()
   })
-  it('rejects copy blocks placed after another authored effect', () => {
+  it('rejects persisted generic Copy even when the donor has eligible Buffs', () => {
+    const state = world([{ combatantId: 'target', statuses: [row(POSITIVE)] }])
+    const before = JSON.stringify(state)
+    const action = {
+      ...copying('amplify'),
+      effects: [
+        {
+          type: 'copy-statuses',
+          recipient: 'primary-unit',
+          mode: 'amplify',
+          beneficialEffects: true,
+        },
+      ],
+    } as unknown as CombatActionDefinition
+    expect(() => executeCombatAction(state, action, TARGET, CONTENT)).toThrow(
+      'Retired beneficial-effects Copy',
+    )
+    expect(JSON.stringify(state)).toBe(before)
+  })
+  it('accepts copy blocks placed after another authored effect', () => {
     const action = {
       ...copying('amplify'),
       effects: [...attack().effects, ...copying('amplify').effects],
     }
-    expect(() => validateCombatActionDefinition(action, CONTENT)).toThrow()
+    expect(() => validateCombatActionDefinition(action, CONTENT)).not.toThrow()
   })
   it('rejects area copying in this single-recipient slice', () => {
     const action = copying('amplify', {
@@ -590,4 +652,82 @@ describe('Status copying: K3 lineage and deterministic identity', () => {
     expect(value).not.toHaveProperty('copyOrdinal')
     expect(validateCombatEffectInstanceProvenance(value)).toEqual([])
   })
+})
+
+it.each([1, 99])(
+  'copies %s affected-turn-end ticks without converting to start-turn expiry',
+  (remainingOwnerTurnEnds) => {
+    const initial = {
+      ...world([
+        {
+          combatantId: 'target',
+          statuses: [
+            row(POSITIVE, {
+              remainingOwnerTurnStarts: remainingOwnerTurnEnds,
+              remainingOwnerTurnEnds,
+              timingState: 'active',
+            }),
+          ],
+        },
+      ]),
+      effectTimingPolicy: { version: 1, modes: { 'copy-statuses': 'instant' as const } },
+    }
+    const result = cast(initial, 'amplify')
+    expect(statuses(result.state, 'actor')[0]?.remainingOwnerTurnEnds).toBe(remainingOwnerTurnEnds)
+    expect(result.events.find((event) => event.event === 'status_applied')).toMatchObject({
+      expiryBoundary: 'owner-turn-end',
+    })
+  },
+)
+it('pins delayed Amplify source effects even when the donor expires before activation', () => {
+  let initial = {
+    ...world([
+      {
+        combatantId: 'target',
+        statuses: [
+          row(POSITIVE, {
+            remainingOwnerTurnEnds: 1,
+            remainingOwnerTurnStarts: 1,
+            timingState: 'active',
+          }),
+        ],
+      },
+    ]),
+    effectTimingPolicy: { version: 1, modes: {} },
+  }
+  initial = cast(initial, 'amplify').state as typeof initial
+  for (let turn = 0; turn < 3; turn += 1) initial = advance(initial, CONTENT) as typeof initial
+  expect(statuses(initial, 'actor')).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ statusId: POSITIVE.id, remainingOwnerTurnEnds: 1 }),
+    ]),
+  )
+  expect(statuses(initial, 'target')).toHaveLength(0)
+})
+
+it.each([99, 100])(
+  'copies an authored start-turn lifetime of %i through retained boundary timing',
+  (remainingOwnerTurnStarts) => {
+    const initial = world([
+      { combatantId: 'target', statuses: [row(POSITIVE, { remainingOwnerTurnStarts })] },
+    ])
+    expect(validateCombatEncounterState(initial)).toEqual([])
+    const result = cast(initial, 'amplify')
+    expect(statuses(result.state, 'actor')[0]?.remainingOwnerTurnStarts).toBe(
+      remainingOwnerTurnStarts,
+    )
+    expect(validateCombatEncounterState(JSON.parse(JSON.stringify(result.state)))).toEqual([])
+  },
+)
+
+it('retains a longer legitimate catalogue lifetime when copying a historical status', () => {
+  const content = {
+    statuses: [{ ...POSITIVE, durationOwnerTurnStarts: 200 }, NEGATIVE, MARK, REFLECT],
+  }
+  const initial = world([
+    { combatantId: 'target', statuses: [row(POSITIVE, { remainingOwnerTurnStarts: 150 })] },
+  ])
+  expect(
+    statuses(cast(initial, 'amplify', content).state, 'actor')[0]?.remainingOwnerTurnStarts,
+  ).toBe(150)
 })

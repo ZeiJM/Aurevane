@@ -1,19 +1,95 @@
+import {
+  parseRuntimeItemDefinition,
+  type RuntimeItemDefinition,
+} from '@aurevane/game-core/content/items'
+import {
+  captureCombatTagPresentation,
+  bindCombatTagPresentations,
+  type CombatTagPresentationSnapshot,
+} from '@aurevane/game-core/combat/combat-tag-registry'
+import {
+  parseNoncombatContentDefinition,
+  type AuthoredTag,
+} from '@aurevane/game-core/content/authored-content'
+import {
+  defaultBasicSkills,
+  resolveBuiltinBasicSkillVersion,
+  type BasicSkillDefinition,
+  type BasicSkillId,
+} from '@aurevane/game-core/combat/combat-basic-actions'
 import 'server-only'
+import { combatContentCategory } from './combat-content-categories'
+import {
+  InvalidPublishedCombatContentError,
+  isBasicSkillId,
+  validatePublishedBasicSkill,
+  validatePublishedEssence,
+  validatePublishedResonance,
+  validatePublishedSkill,
+} from './combat-content-published-validation'
+import { EFFECT_PROFILE_AUTHORING_BLOCKER } from './combat-standalone-content'
+export {
+  InvalidPublishedCombatContentError,
+  isBasicSkillId,
+  validatePublishedBasicSkill,
+} from './combat-content-published-validation'
 
-import type { CombatContentVersionRecord } from '@aurevane/db/combat-content'
-import { validateCombatActionDefinition } from '@aurevane/game-core/combat/combat-authoring-validation'
-import { AurevaneError } from '@aurevane/game-core/errors'
+import type {
+  CombatContentDefinition,
+  CombatContentKind,
+  CombatContentVersionRecord,
+} from '@aurevane/db/combat-content'
+import {
+  parseStoredCombatEffectTimingPolicy,
+  type CombatEffectTimingPolicy,
+} from '@aurevane/game-core/combat/combat-effect-timing'
+import {
+  currentEssenceDefinitions,
+  resolveEssenceForBuild,
+  type EssenceDefinition,
+  type EssenceSnapshotReference,
+} from '@aurevane/game-core/combat/essence'
 import { combatActionPresentationTags } from '@aurevane/game-core/combat/gameplay-tags'
 import {
+  latestEnabledMatureSkills,
   resolveMatureSkillVersion,
-  toCombatActionDefinition,
-  validateMatureSkillDefinition,
   type MatureSkillDefinition,
 } from '@aurevane/game-core/combat/mature-skills'
+import {
+  currentResonanceDefinitions,
+  resolveResonanceForPair,
+  type AnyResonanceDefinition,
+  type ResonanceSnapshotReference,
+} from '@aurevane/game-core/combat/resonance'
+import { AurevaneError } from '@aurevane/game-core/errors'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
 export interface CombatContentResolver {
+  resolveCurrentItemDefinition?(itemId: string): Promise<RuntimeItemDefinition | null>
+  resolvePinnedItemDefinition?(
+    itemId: string,
+    version: number,
+  ): Promise<RuntimeItemDefinition | null>
+  resolveCurrentTagPresentations?(): Promise<readonly CombatTagPresentationSnapshot[]>
+  resolvePinnedTagPresentation?(
+    key: string,
+    version: number,
+  ): Promise<CombatTagPresentationSnapshot | null>
+  /** One MVCC catalogue supplies timing and every current lookup during battle admission. */
+  captureCurrentCatalogue?(): Promise<{
+    resolver: CombatContentResolver
+    policy: CombatEffectTimingPolicy
+  }>
+
+  resolveCurrentCatalogue?(): Promise<CombatContentCatalogue>
+  resolveCurrentBasicSkillDefinitions?(
+    ids: readonly BasicSkillId[],
+  ): Promise<ReadonlyMap<BasicSkillId, BasicSkillDefinition>>
+  resolvePinnedBasicSkillDefinition?(
+    id: BasicSkillId,
+    version: number,
+  ): Promise<BasicSkillDefinition | null>
   resolveCurrentSkillDefinition(skillId: string): Promise<MatureSkillDefinition | null>
   resolveCurrentSkillDefinitions?(
     skillIds: readonly string[],
@@ -22,24 +98,95 @@ export interface CombatContentResolver {
     skillId: string,
     version: number,
   ): Promise<MatureSkillDefinition | null>
+  resolveCurrentEssenceDefinition?(
+    primaryDisciplineId: string,
+    secondaryDisciplineId: string | null,
+  ): Promise<EssenceDefinition | null>
+  resolvePinnedEssenceDefinition?(
+    primaryDisciplineId: string,
+    secondaryDisciplineId: string | null,
+    essenceId: string,
+    version: number,
+  ): Promise<EssenceDefinition | null>
+  resolveCurrentResonanceDefinition?(
+    primaryDisciplineId: string,
+    secondaryDisciplineId: string | null,
+  ): Promise<AnyResonanceDefinition | null>
+  resolvePinnedResonanceDefinition?(
+    primaryDisciplineId: string,
+    secondaryDisciplineId: string | null,
+    resonanceId: string,
+    version: number,
+  ): Promise<AnyResonanceDefinition | null>
+}
+
+/** Server-private snapshot. Definitions may contain private authoring and must not enter public DTOs. */
+export interface PublishedCombatContentCatalogueSnapshot {
+  readonly token: string
+  readonly policy: CombatEffectTimingPolicy
+  readonly publications: readonly CombatContentVersionRecord[]
+  readonly archivedKeys?: readonly string[]
+  readonly runtimeItems?: readonly RuntimeItemDefinition[]
+}
+type CatalogueIdentity = {
+  readonly contentKey: string
+  readonly contentKind: CombatContentKind
+  readonly contentVersion: number
+  readonly source: 'builtin' | 'published'
+}
+export type CombatContentCatalogueEntry = CatalogueIdentity &
+  (
+    | { readonly category: 'basic'; readonly definition: BasicSkillDefinition }
+    | { readonly category: 'skill'; readonly definition: MatureSkillDefinition }
+    | { readonly category: 'essence'; readonly definition: EssenceDefinition }
+    | { readonly category: 'resonance'; readonly definition: AnyResonanceDefinition }
+    | { readonly category: 'item'; readonly definition: RuntimeItemDefinition }
+    | { readonly category: 'status'; readonly definition: CombatContentDefinition }
+    | {
+        readonly category: 'effect-profile'
+        readonly definition: CombatContentDefinition
+        readonly runtimeSupported: false
+        readonly authoringBlocker: typeof EFFECT_PROFILE_AUTHORING_BLOCKER
+      }
+  )
+export interface CombatContentCatalogue {
+  /** Current presentation dictionary captured with this catalogue token. */
+  readonly tagPresentations?: readonly CombatTagPresentationSnapshot[]
+  readonly token: string
+  readonly policy: CombatEffectTimingPolicy
+  readonly entries: readonly CombatContentCatalogueEntry[]
+}
+
+export interface CurrentDisciplineSelection {
+  readonly selectionVersion: 1
+  readonly catalogueToken: string
+  readonly essence: EssenceSnapshotReference | null
+  readonly resonance: ResonanceSnapshotReference | null
 }
 
 export interface PublishedCombatContentSource {
+  findCurrentRuntimeItem?(id: string): Promise<RuntimeItemDefinition | null>
+  findRuntimeItemVersion?(id: string, version: number): Promise<RuntimeItemDefinition | null>
+  readCurrentDisciplineSelection?(
+    primary: string,
+    secondary: string | null,
+  ): Promise<CurrentDisciplineSelection>
+  readCatalogueSnapshot?(): Promise<PublishedCombatContentCatalogueSnapshot>
   findCurrentSkill(contentKey: string): Promise<CombatContentVersionRecord | null>
   findCurrentSkills?(contentKeys: readonly string[]): Promise<readonly CombatContentVersionRecord[]>
   findSkillVersion(
     contentKey: string,
     contentVersion: number,
   ): Promise<CombatContentVersionRecord | null>
-}
-
-export class InvalidPublishedCombatContentError extends Error {
-  readonly code = 'INVALID_PUBLISHED_COMBAT_CONTENT' as const
-
-  constructor(message: string, options?: ErrorOptions) {
-    super(message, options)
-    this.name = 'InvalidPublishedCombatContentError'
-  }
+  findCurrentContent?(
+    contentKey: string,
+    contentKind: 'essence' | 'resonance' | 'tag' | 'item',
+  ): Promise<CombatContentVersionRecord | null>
+  findContentVersion?(
+    contentKey: string,
+    contentKind: 'essence' | 'resonance' | 'tag' | 'item',
+    contentVersion: number,
+  ): Promise<CombatContentVersionRecord | null>
 }
 
 type RpcError = { readonly code?: string; readonly message?: string }
@@ -71,14 +218,17 @@ function mapRpcFailure(error: RpcError): never {
   )
 }
 
-function parseVersionRow(data: unknown): CombatContentVersionRecord | null {
+function parseVersionRow(
+  data: unknown,
+  expectedKind: CombatContentVersionRecord['contentKind'] = 'skill',
+): CombatContentVersionRecord | null {
   if (data === null || (Array.isArray(data) && data.length === 0)) return null
   const row = Array.isArray(data) && data.length === 1 ? data[0] : null
   if (
     !isObject(row) ||
     !requiredString(row.id) ||
     !requiredString(row.content_key) ||
-    row.content_kind !== 'skill' ||
+    row.content_kind !== expectedKind ||
     !positiveInteger(row.content_version) ||
     !isObject(row.definition) ||
     !requiredString(row.published_by) ||
@@ -93,7 +243,7 @@ function parseVersionRow(data: unknown): CombatContentVersionRecord | null {
   return {
     id: row.id,
     contentKey: row.content_key,
-    contentKind: 'skill',
+    contentKind: expectedKind,
     contentVersion: row.content_version,
     definition: structuredClone(row.definition),
     publishedBy: row.published_by,
@@ -121,13 +271,202 @@ function parseVersionRows(data: unknown): readonly CombatContentVersionRecord[] 
   })
 }
 
+export type CombatCatalogueSnapshotCache = Map<
+  string,
+  Promise<PublishedCombatContentCatalogueSnapshot>
+>
+
+/** Server-private immutable data only; every hit requires fresh database authority. */
+export const serverCombatCatalogueSnapshotCache: CombatCatalogueSnapshotCache = new Map()
+
 export class RpcPublishedCombatContentSource implements PublishedCombatContentSource {
   readonly #rpc: RpcExecutor
+  readonly #snapshotCache?: CombatCatalogueSnapshotCache
 
-  constructor(rpc: RpcExecutor) {
+  constructor(rpc: RpcExecutor, snapshotCache?: CombatCatalogueSnapshotCache) {
     this.#rpc = rpc
+    this.#snapshotCache = snapshotCache
   }
 
+  async readCurrentDisciplineSelection(
+    primary: string,
+    secondary: string | null,
+  ): Promise<CurrentDisciplineSelection> {
+    const { data, error } = await this.#rpc('read_current_discipline_selection_v1', {
+      p_primary_discipline_id: primary,
+      p_secondary_discipline_id: secondary,
+    })
+    if (error) mapRpcFailure(error)
+    const invalid = () =>
+      new AurevaneError('PERSISTENCE_UNAVAILABLE', 'The current Discipline selection is invalid.')
+    if (
+      !isObject(data) ||
+      data.selectionVersion !== 1 ||
+      typeof data.catalogueToken !== 'string' ||
+      !/^[a-f0-9]{32}$/.test(data.catalogueToken) ||
+      Object.keys(data).some(
+        (key) => !['selectionVersion', 'catalogueToken', 'essence', 'resonance'].includes(key),
+      )
+    )
+      throw invalid()
+    const activeOverride = (row: Record<string, unknown>) =>
+      typeof row.relationshipOverrideDisciplineId === 'string' &&
+      [primary, secondary].includes(row.relationshipOverrideDisciplineId)
+    const essence = data.essence
+    const resonance = data.resonance
+    if (
+      essence !== null &&
+      (!isObject(essence) ||
+        (secondary !== null && !activeOverride(essence)) ||
+        (essence.relationshipOverrideDisciplineId !== undefined &&
+          (!activeOverride(essence) ||
+            essence.sourceDisciplineId !== essence.relationshipOverrideDisciplineId)) ||
+        !requiredString(essence.essenceId) ||
+        !positiveInteger(essence.contentVersion) ||
+        (essence.sourceDisciplineId !== primary && !activeOverride(essence)) ||
+        essence.skillId !== essence.essenceId ||
+        essence.skillContentVersion !== essence.contentVersion ||
+        Object.keys(essence).some(
+          (key) =>
+            ![
+              'essenceId',
+              'contentVersion',
+              'sourceDisciplineId',
+              'skillId',
+              'skillContentVersion',
+              'relationshipOverrideDisciplineId',
+            ].includes(key),
+        ))
+    )
+      throw invalid()
+    const pair = secondary === null ? null : [primary, secondary].sort()
+    if (
+      resonance !== null &&
+      (!isObject(resonance) ||
+        (secondary === null && !activeOverride(resonance)) ||
+        secondary === primary ||
+        (resonance.relationshipOverrideDisciplineId !== undefined &&
+          (!activeOverride(resonance) ||
+            !Array.isArray(resonance.disciplinePair) ||
+            !resonance.disciplinePair.includes(resonance.relationshipOverrideDisciplineId))) ||
+        !requiredString(resonance.resonanceId) ||
+        !positiveInteger(resonance.contentVersion) ||
+        !Array.isArray(resonance.disciplinePair) ||
+        resonance.disciplinePair.length !== 2 ||
+        (!activeOverride(resonance) &&
+          resonance.disciplinePair.some((id, index) => id !== pair![index])) ||
+        Object.keys(resonance).some(
+          (key) =>
+            ![
+              'resonanceId',
+              'contentVersion',
+              'disciplinePair',
+              'relationshipOverrideDisciplineId',
+            ].includes(key),
+        ))
+    )
+      throw invalid()
+    return structuredClone(data) as unknown as CurrentDisciplineSelection
+  }
+
+  async readCatalogueSnapshot(): Promise<PublishedCombatContentCatalogueSnapshot> {
+    const cache = this.#snapshotCache
+    if (!cache) return this.#readCatalogueSnapshot()
+    const { data: token, error } = await this.#rpc('read_combat_content_catalogue_token_v1', {})
+    if (error) mapRpcFailure(error)
+    if (typeof token !== 'string' || !/^[a-f0-9]{32}$/.test(token))
+      throw new AurevaneError(
+        'PERSISTENCE_UNAVAILABLE',
+        'The current catalogue revision is invalid.',
+      )
+    let pending = cache.get(token)
+    if (!pending) {
+      pending = this.#readCatalogueSnapshot()
+      cache.set(token, pending)
+      while (cache.size > 2) cache.delete(cache.keys().next().value!)
+    }
+    try {
+      const snapshot = await pending
+      // A publication between token and snapshot reads can return a newer generation.
+      // It is valid for this request, but must never be cached under the older token.
+      if (snapshot.token !== token && cache.get(token) === pending) cache.delete(token)
+      return structuredClone(snapshot)
+    } catch (cause) {
+      if (cache.get(token) === pending) cache.delete(token)
+      throw cause
+    }
+  }
+
+  async #readCatalogueSnapshot(): Promise<PublishedCombatContentCatalogueSnapshot> {
+    const { data, error } = await this.#rpc('read_combat_content_catalogue_v1', {})
+    if (error) mapRpcFailure(error)
+    try {
+      if (
+        !isObject(data) ||
+        Object.keys(data).some(
+          (key) =>
+            !['token', 'policy', 'publications', 'archivedKeys', 'runtimeItems'].includes(key),
+        ) ||
+        typeof data.token !== 'string' ||
+        !/^[a-f0-9]{32}$/.test(data.token) ||
+        !Array.isArray(data.publications)
+      )
+        throw new TypeError('Invalid catalogue snapshot.')
+      const seen = new Set<string>()
+      const publications = data.publications.map((row) => {
+        if (!isObject(row) || !combatContentCategory(row.content_kind))
+          throw new TypeError('Invalid catalogue content kind.')
+        const record = parseVersionRow([row], row.content_kind as CombatContentKind)
+        if (!record || seen.has(record.contentKey))
+          throw new TypeError('Invalid or duplicate catalogue identity.')
+        seen.add(record.contentKey)
+        combatContentCategory(record.contentKind, record.contentKey)!.parseRetained(
+          record.definition,
+          record.contentKey,
+          record.contentVersion,
+        )
+        return record
+      })
+      if (
+        data.archivedKeys !== undefined &&
+        (!Array.isArray(data.archivedKeys) ||
+          data.archivedKeys.some(
+            (key) => typeof key !== 'string' || !requiredString(key) || seen.has(key),
+          ) ||
+          new Set(data.archivedKeys).size !== data.archivedKeys.length)
+      )
+        throw new TypeError('Invalid archived identities.')
+      return {
+        ...(data.runtimeItems === undefined
+          ? {}
+          : { runtimeItems: parseRuntimeItems(data.runtimeItems) }),
+        ...(data.archivedKeys === undefined ? {} : { archivedKeys: data.archivedKeys as string[] }),
+        token: data.token,
+        policy: parseStoredCombatEffectTimingPolicy(data.policy),
+        publications,
+      }
+    } catch (cause) {
+      throw new AurevaneError(
+        'PERSISTENCE_UNAVAILABLE',
+        'The current combat catalogue is invalid.',
+        { cause },
+      )
+    }
+  }
+
+  async findCurrentRuntimeItem(id: string): Promise<RuntimeItemDefinition | null> {
+    const { data, error } = await this.#rpc('read_current_runtime_item_v1', { p_item_id: id })
+    if (error) mapRpcFailure(error)
+    return checkedItem(data, id)
+  }
+  async findRuntimeItemVersion(id: string, version: number): Promise<RuntimeItemDefinition | null> {
+    const { data, error } = await this.#rpc('read_runtime_item_version_v1', {
+      p_item_id: id,
+      p_content_version: version,
+    })
+    if (error) mapRpcFailure(error)
+    return checkedItem(data, id, version)
+  }
   async findCurrentSkill(contentKey: string): Promise<CombatContentVersionRecord | null> {
     const { data, error } = await this.#rpc('read_current_combat_content_v1', {
       p_content_key: contentKey,
@@ -135,6 +474,18 @@ export class RpcPublishedCombatContentSource implements PublishedCombatContentSo
     })
     if (error) mapRpcFailure(error)
     return parseVersionRow(data)
+  }
+
+  async findCurrentContent(
+    contentKey: string,
+    contentKind: 'essence' | 'resonance' | 'tag' | 'item',
+  ): Promise<CombatContentVersionRecord | null> {
+    const { data, error } = await this.#rpc('read_current_combat_content_v1', {
+      p_content_key: contentKey,
+      p_content_kind: contentKind,
+    })
+    if (error) mapRpcFailure(error)
+    return parseVersionRow(data, contentKind)
   }
 
   async findCurrentSkills(
@@ -148,6 +499,20 @@ export class RpcPublishedCombatContentSource implements PublishedCombatContentSo
     })
     if (error) mapRpcFailure(error)
     return parseVersionRows(data)
+  }
+
+  async findContentVersion(
+    contentKey: string,
+    contentKind: 'essence' | 'resonance' | 'tag' | 'item',
+    contentVersion: number,
+  ): Promise<CombatContentVersionRecord | null> {
+    const { data, error } = await this.#rpc('read_combat_content_version_v1', {
+      p_content_key: contentKey,
+      p_content_kind: contentKind,
+      p_content_version: contentVersion,
+    })
+    if (error) mapRpcFailure(error)
+    return parseVersionRow(data, contentKind)
   }
 
   async findSkillVersion(
@@ -164,63 +529,135 @@ export class RpcPublishedCombatContentSource implements PublishedCombatContentSo
   }
 }
 
-function validatePublishedSkill(
-  record: CombatContentVersionRecord,
-  expectedSkillId: string,
-  expectedVersion?: number,
-): MatureSkillDefinition {
-  if (
-    record.contentKind !== 'skill' ||
-    record.contentKey !== expectedSkillId ||
-    (expectedVersion !== undefined && record.contentVersion !== expectedVersion)
-  ) {
-    throw new InvalidPublishedCombatContentError(
-      `Published Skill metadata does not match ${expectedSkillId}${
-        expectedVersion === undefined ? '' : `@${expectedVersion}`
-      }.`,
+/** Resolve a proposed server-private snapshot with the same validators as current reads. */
+export function resolveCombatContentCatalogueSnapshot(
+  snapshot: PublishedCombatContentCatalogueSnapshot,
+): CombatContentCatalogue {
+  const entries: CombatContentCatalogueEntry[] = [
+    ...(snapshot.runtimeItems ?? []).map((definition) => ({
+      contentKey: definition.id,
+      contentKind: 'item' as const,
+      contentVersion: definition.contentVersion,
+      source: 'builtin' as const,
+      category: 'item' as const,
+      definition: structuredClone(definition),
+    })),
+    ...defaultBasicSkills().map((definition) => ({
+      contentKey: definition.id,
+      contentKind: 'skill' as const,
+      contentVersion: definition.contentVersion,
+      source: 'builtin' as const,
+      category: 'basic' as const,
+      definition: structuredClone(definition),
+    })),
+    ...latestEnabledMatureSkills().map((definition) => ({
+      contentKey: definition.id,
+      contentKind: 'skill' as const,
+      contentVersion: definition.contentVersion,
+      source: 'builtin' as const,
+      category: 'skill' as const,
+      definition: structuredClone(definition),
+    })),
+    ...currentEssenceDefinitions().map((definition) => ({
+      contentKey: definition.essenceId,
+      contentKind: 'essence' as const,
+      contentVersion: definition.contentVersion,
+      source: 'builtin' as const,
+      category: 'essence' as const,
+      definition: structuredClone(definition),
+    })),
+    ...currentResonanceDefinitions().map((definition) => ({
+      contentKey: definition.id,
+      contentKind: 'resonance' as const,
+      contentVersion: definition.contentVersion,
+      source: 'builtin' as const,
+      category: 'resonance' as const,
+      definition: structuredClone(definition),
+    })),
+  ]
+  const current = new Map(
+    entries
+      .filter((entry) => !snapshot.archivedKeys?.includes(entry.contentKey))
+      .map((entry) => [entry.contentKey, entry]),
+  )
+  const seen = new Set<string>()
+  for (const record of snapshot.publications) {
+    if (seen.has(record.contentKey))
+      throw new InvalidPublishedCombatContentError('Duplicate current content identity.')
+    seen.add(record.contentKey)
+    if (snapshot.archivedKeys?.includes(record.contentKey))
+      throw new InvalidPublishedCombatContentError('Archived content has a current publication.')
+    const descriptor = combatContentCategory(record.contentKind, record.contentKey)
+    if (!descriptor)
+      throw new InvalidPublishedCombatContentError('Unsupported current content kind.')
+    const definition = descriptor.parsePublished(record)
+    if (
+      descriptor.catalogueProjection === 'container' ||
+      (record.contentKind === 'item' && definition.schemaVersion !== 2)
     )
-  }
-
-  const candidate = structuredClone(record.definition) as unknown as MatureSkillDefinition
-  let issues: readonly string[]
-  try {
-    issues = validateMatureSkillDefinition(candidate)
-  } catch (error) {
-    throw new InvalidPublishedCombatContentError(
-      `Published Skill ${expectedSkillId}@${record.contentVersion} has an invalid definition shape.`,
-      { cause: error },
+      continue
+    const entry = {
+      contentKey: record.contentKey,
+      contentKind: record.contentKind,
+      contentVersion: record.contentVersion,
+      source: 'published',
+      category: descriptor.category,
+      definition,
+      ...(descriptor.authoringBlocker
+        ? { authoringBlocker: { ...descriptor.authoringBlocker }, runtimeSupported: false }
+        : {}),
+    } as CombatContentCatalogueEntry
+    if (
+      current.has(entry.contentKey) &&
+      current.get(entry.contentKey)!.contentKind !== entry.contentKind
     )
+      throw new InvalidPublishedCombatContentError(
+        'Current content kind conflicts with its builtin identity.',
+      )
+    current.set(entry.contentKey, entry)
   }
-
-  if (
-    issues.length > 0 ||
-    candidate.id !== record.contentKey ||
-    candidate.contentVersion !== record.contentVersion
-  ) {
-    throw new InvalidPublishedCombatContentError(
-      `Published Skill ${expectedSkillId}@${record.contentVersion} failed validation${
-        issues.length > 0 ? `: ${issues.join(', ')}` : '.'
-      }`,
-    )
+  return {
+    token: snapshot.token,
+    policy: structuredClone(snapshot.policy),
+    entries: [...current.values()].sort((a, b) =>
+      a.contentKey < b.contentKey ? -1 : a.contentKey > b.contentKey ? 1 : 0,
+    ),
   }
+}
 
-  try {
-    for (const context of ['pve', 'pvp'] as const) {
-      validateCombatActionDefinition(toCombatActionDefinition(candidate, context))
-    }
-  } catch (error) {
-    throw new InvalidPublishedCombatContentError(
-      `Published Skill ${expectedSkillId}@${record.contentVersion} failed combat-action validation.`,
-      { cause: error },
-    )
-  }
-
-  return structuredClone(candidate)
+export function catalogueTagPresentations(
+  snapshot: PublishedCombatContentCatalogueSnapshot,
+): readonly CombatTagPresentationSnapshot[] {
+  return snapshot.publications
+    .filter((row) => row.contentKind === 'tag' && !snapshot.archivedKeys?.includes(row.contentKey))
+    .flatMap((row) => {
+      const definition = parseNoncombatContentDefinition('tag', row.definition) as AuthoredTag
+      if (definition.id !== row.contentKey || definition.contentVersion !== row.contentVersion)
+        throw new InvalidPublishedCombatContentError('Tag identity mismatch.')
+      return definition.enabled ? [captureCombatTagPresentation(definition)] : []
+    })
 }
 
 export function createCombatContentResolver(
   source: PublishedCombatContentSource,
+  admissionTags?: readonly CombatTagPresentationSnapshot[],
 ): CombatContentResolver {
+  async function resolveCurrentCatalogue(): Promise<CombatContentCatalogue> {
+    if (!source.readCatalogueSnapshot)
+      throw new AurevaneError(
+        'PERSISTENCE_UNAVAILABLE',
+        'A complete combat catalogue is unavailable.',
+      )
+    const snapshot = await source.readCatalogueSnapshot()
+    const tagPresentations = admissionTags ?? catalogueTagPresentations(snapshot)
+    return {
+      ...bindCombatTagPresentations(
+        resolveCombatContentCatalogueSnapshot(snapshot),
+        tagPresentations,
+      ),
+      tagPresentations,
+    }
+  }
   async function resolveCurrentSkillDefinitions(
     skillIds: readonly string[],
   ): Promise<ReadonlyMap<string, MatureSkillDefinition>> {
@@ -259,7 +696,154 @@ export function createCombatContentResolver(
     return resolved
   }
 
-  return {
+  const resolver: CombatContentResolver = {
+    async resolveCurrentItemDefinition(id) {
+      return checkedItem(
+        source.findCurrentRuntimeItem
+          ? await source.findCurrentRuntimeItem(id)
+          : ((await source.findCurrentContent?.(id, 'item'))?.definition ?? null),
+        id,
+      )
+    },
+    async resolvePinnedItemDefinition(id, version) {
+      if (!positiveInteger(version)) return null
+      return checkedItem(
+        source.findRuntimeItemVersion
+          ? await source.findRuntimeItemVersion(id, version)
+          : ((await source.findContentVersion?.(id, 'item', version))?.definition ?? null),
+        id,
+        version,
+      )
+    },
+    ...(source.readCatalogueSnapshot
+      ? {
+          async captureCurrentCatalogue() {
+            const snapshot = structuredClone(await source.readCatalogueSnapshot!())
+            // Validate the entire coherent generation before selecting any battle source.
+            resolveCombatContentCatalogueSnapshot(snapshot)
+            const current = (key: string, kind: CombatContentKind) => {
+              if (snapshot.archivedKeys?.includes(key))
+                throw new InvalidPublishedCombatContentError('This content is archived.')
+              return (
+                snapshot.publications.find(
+                  (row) => row.contentKey === key && row.contentKind === kind,
+                ) ?? null
+              )
+            }
+            const pinned = (key: string, kind: CombatContentKind, version: number) => {
+              const row = snapshot.publications.find(
+                (row) => row.contentKey === key && row.contentKind === kind,
+              )
+              return row?.contentVersion === version ? row : null
+            }
+            // Coalesce only inside this captured generation. Fresh captures always
+            // consult authority again; shared immutable data is reused only after
+            // a fresh database token check, never using a TTL or stale fallback.
+            const selections = new Map<string, Promise<CurrentDisciplineSelection>>()
+            const frozen = createCombatContentResolver(
+              {
+                readCatalogueSnapshot: async () => structuredClone(snapshot),
+                ...(source.readCurrentDisciplineSelection
+                  ? {
+                      readCurrentDisciplineSelection: async (
+                        primary: string,
+                        secondary: string | null,
+                      ) => {
+                        const key = JSON.stringify([primary, secondary])
+                        let pending = selections.get(key)
+                        if (!pending) {
+                          pending = source.readCurrentDisciplineSelection!(primary, secondary)
+                          selections.set(key, pending)
+                        }
+                        const selected = await pending
+                        if (selected.catalogueToken !== snapshot.token)
+                          throw new AurevaneError(
+                            'STALE_VERSION',
+                            'The combat catalogue changed. Refresh your build and retry.',
+                          )
+                        return selected
+                      },
+                    }
+                  : {}),
+                findCurrentRuntimeItem: async (key) =>
+                  checkedItem(
+                    current(key, 'item')?.definition ??
+                      snapshot.runtimeItems?.find((row) => row.id === key) ??
+                      null,
+                    key,
+                  ),
+                findRuntimeItemVersion: async (key, version) =>
+                  checkedItem(
+                    pinned(key, 'item', version)?.definition ??
+                      snapshot.runtimeItems?.find(
+                        (row) => row.id === key && row.contentVersion === version,
+                      ) ??
+                      (await source.findRuntimeItemVersion?.(key, version)) ??
+                      null,
+                    key,
+                    version,
+                  ),
+                findCurrentSkill: async (key) => structuredClone(current(key, 'skill')),
+                findCurrentSkills: async (keys) =>
+                  keys
+                    .map((key) => current(key, 'skill'))
+                    .filter((row): row is CombatContentVersionRecord => row !== null)
+                    .map((row) => structuredClone(row)),
+                findCurrentContent: async (key, kind) => structuredClone(current(key, kind)),
+                findSkillVersion: async (key, version) =>
+                  structuredClone(pinned(key, 'skill', version)) ??
+                  source.findSkillVersion(key, version),
+                findContentVersion: async (key, kind, version) =>
+                  structuredClone(pinned(key, kind, version)) ??
+                  (await source.findContentVersion?.(key, kind, version)) ??
+                  null,
+              },
+              catalogueTagPresentations(snapshot),
+            )
+            return { resolver: frozen, policy: structuredClone(snapshot.policy) }
+          },
+        }
+      : {}),
+    resolveCurrentCatalogue,
+    async resolveCurrentBasicSkillDefinitions(ids) {
+      const unique = [...new Set(ids)]
+      if (unique.some((id) => !isBasicSkillId(id)))
+        throw new InvalidPublishedCombatContentError('Unknown Basic Skill identity.')
+      const rows = source.findCurrentSkills
+        ? await source.findCurrentSkills(unique)
+        : (await Promise.all(unique.map((id) => source.findCurrentSkill(id)))).filter(
+            (row): row is CombatContentVersionRecord => row !== null,
+          )
+      const published = new Map<BasicSkillId, CombatContentVersionRecord>()
+      for (const row of rows) {
+        if (
+          !isBasicSkillId(row.contentKey) ||
+          !unique.includes(row.contentKey) ||
+          published.has(row.contentKey)
+        )
+          throw new InvalidPublishedCombatContentError(
+            'Invalid or duplicate Basic Skill publication rows.',
+          )
+        published.set(row.contentKey, row)
+      }
+      const result = new Map<BasicSkillId, BasicSkillDefinition>()
+      for (const id of unique) {
+        const row = published.get(id)
+        result.set(
+          id,
+          row
+            ? validatePublishedBasicSkill(row, id)
+            : structuredClone(defaultBasicSkills().find((basic) => basic.id === id)!),
+        )
+      }
+      return result
+    },
+    async resolvePinnedBasicSkillDefinition(id, version) {
+      if (!isBasicSkillId(id) || !positiveInteger(version)) return null
+      const published = await source.findSkillVersion(id, version)
+      if (published) return validatePublishedBasicSkill(published, id, version)
+      return resolveBuiltinBasicSkillVersion(id, version)
+    },
     async resolveCurrentSkillDefinition(skillId) {
       return (await resolveCurrentSkillDefinitions([skillId])).get(skillId) ?? null
     },
@@ -272,11 +856,189 @@ export function createCombatContentResolver(
       const fallback = resolveMatureSkillVersion(skillId, version)
       return fallback ? structuredClone(fallback) : null
     },
+    async resolveCurrentEssenceDefinition(primaryDisciplineId, secondaryDisciplineId) {
+      if (source.readCurrentDisciplineSelection) {
+        const reference = (
+          await source.readCurrentDisciplineSelection(primaryDisciplineId, secondaryDisciplineId)
+        ).essence
+        if (!reference) return null
+        const published = await source.findContentVersion?.(
+          reference.essenceId,
+          'essence',
+          reference.contentVersion,
+        )
+        const definition = published
+          ? validatePublishedEssence(published, reference.essenceId, reference.contentVersion)
+          : resolveEssenceForBuild(reference.sourceDisciplineId, null, reference.contentVersion)
+        if (
+          !definition ||
+          definition.essenceId !== reference.essenceId ||
+          definition.sourceDisciplineId !== reference.sourceDisciplineId ||
+          !definition.enabled ||
+          !definition.skill.enabled
+        )
+          throw new InvalidPublishedCombatContentError(
+            'The selected Essence is unavailable for this build.',
+          )
+        return {
+          ...structuredClone(definition),
+          ...(reference.relationshipOverrideDisciplineId
+            ? { relationshipOverrideDisciplineId: reference.relationshipOverrideDisciplineId }
+            : {}),
+        }
+      }
+      const fallback = resolveEssenceForBuild(primaryDisciplineId, secondaryDisciplineId)
+      if (!fallback) return null
+      const published = source.findCurrentContent
+        ? await source.findCurrentContent(fallback.essenceId, 'essence')
+        : null
+      return published
+        ? validatePublishedEssence(published, fallback.essenceId)
+        : structuredClone(fallback)
+    },
+
+    async resolvePinnedEssenceDefinition(
+      primaryDisciplineId,
+      secondaryDisciplineId,
+      essenceId,
+      version,
+    ) {
+      const published = source.findContentVersion
+        ? await source.findContentVersion(essenceId, 'essence', version)
+        : null
+      if (published) return validatePublishedEssence(published, essenceId, version)
+      const fallback = resolveEssenceForBuild(primaryDisciplineId, secondaryDisciplineId, version)
+      return fallback?.essenceId === essenceId ? structuredClone(fallback) : null
+    },
+
+    async resolveCurrentResonanceDefinition(primaryDisciplineId, secondaryDisciplineId) {
+      if (source.readCurrentDisciplineSelection) {
+        const reference = (
+          await source.readCurrentDisciplineSelection(primaryDisciplineId, secondaryDisciplineId)
+        ).resonance
+        if (!reference) return null
+        const published = await source.findContentVersion?.(
+          reference.resonanceId,
+          'resonance',
+          reference.contentVersion,
+        )
+        const definition = published
+          ? validatePublishedResonance(published, reference.resonanceId, reference.contentVersion)
+          : resolveResonanceForPair(
+              reference.disciplinePair[0],
+              reference.disciplinePair[1],
+              reference.contentVersion,
+            )
+        if (
+          !definition ||
+          definition.id !== reference.resonanceId ||
+          !definition.enabled ||
+          definition.disciplinePair.some((id, index) => id !== reference.disciplinePair[index])
+        )
+          throw new InvalidPublishedCombatContentError(
+            'The selected Resonance is unavailable for this build.',
+          )
+        return {
+          ...structuredClone(definition),
+          ...(reference.relationshipOverrideDisciplineId
+            ? { relationshipOverrideDisciplineId: reference.relationshipOverrideDisciplineId }
+            : {}),
+        }
+      }
+      const fallback = resolveResonanceForPair(primaryDisciplineId, secondaryDisciplineId)
+      if (!fallback) return null
+      const published = source.findCurrentContent
+        ? await source.findCurrentContent(fallback.id, 'resonance')
+        : null
+      return published
+        ? validatePublishedResonance(published, fallback.id)
+        : structuredClone(fallback)
+    },
+
+    async resolvePinnedResonanceDefinition(
+      primaryDisciplineId,
+      secondaryDisciplineId,
+      resonanceId,
+      version,
+    ) {
+      const published = source.findContentVersion
+        ? await source.findContentVersion(resonanceId, 'resonance', version)
+        : null
+      if (published) return validatePublishedResonance(published, resonanceId, version)
+      const fallback = resolveResonanceForPair(primaryDisciplineId, secondaryDisciplineId, version)
+      return fallback?.id === resonanceId ? structuredClone(fallback) : null
+    },
+  }
+  const tags = async () =>
+    admissionTags ??
+    (source.readCatalogueSnapshot
+      ? catalogueTagPresentations(await source.readCatalogueSnapshot())
+      : [])
+  const bindCurrent = async <T>(value: T) => bindCombatTagPresentations(value, await tags())
+  const bindPinned = <T>(value: T) =>
+    admissionTags ? bindCombatTagPresentations(value, admissionTags) : value
+  return {
+    ...resolver,
+    resolveCurrentTagPresentations: tags,
+    async resolvePinnedTagPresentation(key, version) {
+      if (!Number.isSafeInteger(version) || version < 1) return null
+      const row = await source.findContentVersion?.(key, 'tag', version)
+      if (!row || row.contentKey !== key || row.contentVersion !== version) return null
+      const tag = parseNoncombatContentDefinition('tag', row.definition) as AuthoredTag
+      if (tag.id !== key || tag.contentVersion !== version) return null
+      return captureCombatTagPresentation(tag)
+    },
+    resolveCurrentCatalogue,
+    async resolveCurrentSkillDefinition(id) {
+      return bindCurrent(await resolver.resolveCurrentSkillDefinition(id))
+    },
+    async resolveCurrentSkillDefinitions(ids) {
+      const entries = await resolver.resolveCurrentSkillDefinitions!(ids)
+      const currentTags = await tags()
+      return new Map(
+        [...entries].map(([id, definition]) => [
+          id,
+          bindCombatTagPresentations(definition, currentTags),
+        ]),
+      )
+    },
+    async resolveCurrentBasicSkillDefinitions(ids) {
+      const entries = await resolver.resolveCurrentBasicSkillDefinitions!(ids)
+      const currentTags = await tags()
+      return new Map(
+        [...entries].map(([id, definition]) => [
+          id,
+          bindCombatTagPresentations(definition, currentTags),
+        ]),
+      )
+    },
+    async resolveCurrentEssenceDefinition(primary, secondary) {
+      return bindCurrent(await resolver.resolveCurrentEssenceDefinition!(primary, secondary))
+    },
+    async resolveCurrentResonanceDefinition(primary, secondary) {
+      return bindCurrent(await resolver.resolveCurrentResonanceDefinition!(primary, secondary))
+    },
+    async resolvePinnedSkillDefinition(id, version) {
+      return bindPinned(await resolver.resolvePinnedSkillDefinition(id, version))
+    },
+    async resolvePinnedBasicSkillDefinition(id, version) {
+      return bindPinned(await resolver.resolvePinnedBasicSkillDefinition!(id, version))
+    },
+    async resolvePinnedEssenceDefinition(primary, secondary, id, version) {
+      return bindPinned(
+        await resolver.resolvePinnedEssenceDefinition!(primary, secondary, id, version),
+      )
+    },
+    async resolvePinnedResonanceDefinition(primary, secondary, id, version) {
+      return bindPinned(
+        await resolver.resolvePinnedResonanceDefinition!(primary, secondary, id, version),
+      )
+    },
   }
 }
 
 export function deriveSkillPresentationTags(definition: MatureSkillDefinition): readonly string[] {
-  return combatActionPresentationTags(toCombatActionDefinition(definition, 'pve'))
+  return combatActionPresentationTags(definition)
 }
 
 export function createServerCombatContentResolver(): CombatContentResolver {
@@ -284,6 +1046,22 @@ export function createServerCombatContentResolver(): CombatContentResolver {
   const source = new RpcPublishedCombatContentSource(
     (functionName, parameters) =>
       client.rpc(functionName, parameters) as unknown as PromiseLike<RpcResult>,
+    serverCombatCatalogueSnapshotCache,
   )
   return createCombatContentResolver(source)
+}
+
+function checkedItem(value: unknown, id: string, version?: number): RuntimeItemDefinition | null {
+  if (value === null) return null
+  const definition = parseRuntimeItemDefinition(value)
+  if (definition.id !== id || (version !== undefined && definition.contentVersion !== version))
+    throw new InvalidPublishedCombatContentError('Item identity or version mismatch.')
+  return definition
+}
+function parseRuntimeItems(value: unknown): readonly RuntimeItemDefinition[] {
+  if (!Array.isArray(value)) throw new TypeError('Invalid source Item catalogue.')
+  const definitions = value.map(parseRuntimeItemDefinition)
+  if (new Set(definitions.map((definition) => definition.id)).size !== definitions.length)
+    throw new TypeError('Duplicate source Item identity.')
+  return definitions
 }

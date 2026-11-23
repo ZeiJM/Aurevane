@@ -1,5 +1,7 @@
 'use client'
 
+import { BattleVersusEmblem } from './battle-versus-emblem'
+
 import type { CharacterPortraitRef } from '@aurevane/game-core/character/creation'
 import type { PvpMapBias, PvpMapSize, PvpTurnTimerSeconds } from '@aurevane/validation/combat/pvp'
 import { useRouter } from 'next/navigation'
@@ -8,6 +10,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
 import { getStarterPortraitImageAssetId } from '@/media/character'
 import type { PvpLobbyMemberView, PvpLobbyView } from '@/server/battle/pvp-lobby-service'
+
+import { pvpMapProfile } from '@/lib/battle/pvp-map-presentation'
 
 import styles from './pvp-lobby-modal.module.css'
 
@@ -304,7 +308,7 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
 
   const filled = lobby.members.filter((member) => member.seated).length
   const readyCount = lobby.members.filter((member) => member.seated && member.ready).length
-  const mapSizeLabel = settings.mapSize === 'medium' ? 'Standard' : 'Expanded'
+  const mapSizeLabel = pvpMapProfile(settings.mapSize).description
   const turnTimerLabel =
     settings.turnTimerSeconds === null ? 'No timer' : `${settings.turnTimerSeconds} seconds`
 
@@ -313,6 +317,7 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
       ref={dialogRef}
       className={styles.modal}
       data-lobby-concept="true"
+      data-lobby-mode={lobby.mode}
       role="dialog"
       aria-modal="true"
       aria-labelledby="pvp-lobby-title"
@@ -378,16 +383,19 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
 
         {canMoveSeats ? (
           <p className={styles.seatHelp}>
-            Click your occupied seat to step out of formation. Click an open seat to rejoin; while
-            seated, clicking another occupied seat swaps positions. Any seat change clears every
-            Ready state.
+            Tap your seat to leave formation, an open seat to join, or another player to swap. Seat
+            changes reset everyone’s Ready state.
           </p>
         ) : null}
 
         <div className={styles.teams} data-team-count={teams}>
           {Array.from({ length: teams }, (_, teamIndex) => (
             <div className={styles.teamWrap} key={teamIndex}>
-              {teamIndex > 0 ? <div className={styles.vs}>VS</div> : null}
+              {teamIndex > 0 ? (
+                <div className={styles.vs} data-pvp-versus="true" role="img" aria-label="Versus">
+                  <BattleVersusEmblem placement="lobby" />
+                </div>
+              ) : null}
               <section className={styles.team} data-team={teamIndex}>
                 <div className={styles.teamHeading}>
                   <span>Team {teamIndex + 1}</span>
@@ -508,14 +516,6 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
           ) : null}
         </div>
         <div className={styles.actions}>
-          <button
-            type="button"
-            className={styles.lobbyChat}
-            disabled
-            title="Lobby chat will be enabled in a later update."
-          >
-            Chat
-          </button>
           <button
             type="button"
             className={styles.leave}

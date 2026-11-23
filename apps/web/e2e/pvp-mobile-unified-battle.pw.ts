@@ -1,7 +1,9 @@
 import { expect, test } from '@playwright/test'
 
-import { expectMapKey } from './battle-map-key-helpers'
+import { expectTerrainKey } from './battle-map-key-helpers'
 import { expectBattleFlowKeepsBoardSize } from './battle-reference-layout-helpers'
+import { expectRefinedCockpit } from './refined-battle-helpers'
+
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 function uniqueIdentity(prefix: string): { email: string; characterName: string } {
@@ -57,7 +59,13 @@ test('keeps the unified PvP battle usable on mobile', async ({ browser }, testIn
     })
 
     await host.goto('/game/battle')
-    await host.getByRole('button', { name: /Player vs Player/ }).click()
+    await host.getByRole('button', { name: 'PVP', exact: true }).click()
+    await host.getByRole('button', { name: 'Create Lobby', exact: true }).click()
+    await expect(
+      host
+        .getByRole('group', { name: 'Map size' })
+        .getByRole('button', { name: 'Medium · 12×7', exact: true }),
+    ).toHaveAttribute('aria-pressed', 'true')
     const createLobbyButton = host.getByRole('button', { name: 'Create Battle Lobby' })
     await expect(createLobbyButton).toBeVisible()
     await createLobbyButton.click()
@@ -86,25 +94,42 @@ test('keeps the unified PvP battle usable on mobile', async ({ browser }, testIn
     const guestRoot = guest.locator("main[data-unified-battle='true'][data-battle-kind='pvp']")
     await expect(hostRoot).toBeVisible()
     await expect(guestRoot).toBeVisible()
+    for (const root of [hostRoot, guestRoot]) {
+      await expect(root.locator('[data-battle-mobile-chronicle-toggle]')).toHaveCount(0)
+      const timeline = root.locator('[data-battle-mobile-chronicle-strip]')
+      await expect(timeline).toBeVisible()
+      await expect(timeline.locator('[data-battle-action-strip]')).toBeVisible()
+      await expect(timeline.locator('[data-battle-round]')).toHaveAttribute(
+        'aria-label',
+        /^Current battle round/,
+      )
+      const cards = await root
+        .locator('[data-battle-side="local"] > [data-battle-combatant-card]')
+        .evaluateAll((nodes) => nodes.map((node) => node.getBoundingClientRect().toJSON()))
+      expect(cards).toHaveLength(2)
+      expect(Math.abs(cards[0].top - cards[1].top)).toBeLessThanOrEqual(1)
+      expect(cards[0].right).toBeLessThanOrEqual(cards[1].left)
+    }
 
     const hostHasTurn = (await hostRoot.getAttribute('data-local-turn')) === 'true'
+    const activePage = hostHasTurn ? host : guest
     const activeRoot = hostHasTurn ? hostRoot : guestRoot
     const waitingRoot = hostHasTurn ? guestRoot : hostRoot
     const waitingPage = hostHasTurn ? guest : host
 
     const battlefield = activeRoot.locator('#battlefield')
-    const board = battlefield.locator("[data-board-auto-fit='9x7']")
+    const board = battlefield.locator("[data-board-auto-fit='12x7']")
     const commandDeck = activeRoot.getByRole('region', { name: 'Command Deck' })
 
     await expect(battlefield).toBeVisible()
     await expect(commandDeck).toBeVisible()
-    await expect(board.locator(":scope > button[aria-label^='Tile ']")).toHaveCount(63)
-    await expectMapKey(hostHasTurn ? host : guest)
+    await expect(board.locator(":scope > button[aria-label^='Tile ']")).toHaveCount(84)
+    await expectTerrainKey(hostHasTurn ? host : guest)
 
     await expect(commandDeck.getByRole('button', { name: /^Move, / })).toBeVisible()
     await expect(commandDeck.getByRole('button', { name: /^Basic Attack, / })).toBeVisible()
-    await expect(commandDeck.getByRole('button', { name: /^Guard, / })).toBeVisible()
-    await expect(commandDeck.getByRole('button', { name: /^Finish Turn, / })).toBeVisible()
+    await expect(commandDeck.getByRole('button', { name: /^HP Recovery, / })).toBeVisible()
+    await expect(commandDeck.getByRole('button', { name: /^End Turn, / })).toBeVisible()
     await expect(activeRoot.getByRole('button', { name: /^Chat/ })).toBeVisible()
     await expect(activeRoot.locator('[data-pvp-spectator-key="true"]')).toBeVisible()
     await expect(activeRoot.locator('button[data-pvp-surrender="true"]')).toBeVisible()
@@ -119,54 +144,16 @@ test('keeps the unified PvP battle usable on mobile', async ({ browser }, testIn
     const secondCountdown = readCountdownSeconds(await opponentClock.textContent())
     expect(secondCountdown).toBeLessThan(firstCountdown)
 
-    const mobileGeometry = await activeRoot.evaluate((root) => {
-      const battlefield = root.querySelector<HTMLElement>('#battlefield')!
-      const board = battlefield.firstElementChild?.firstElementChild as HTMLElement
-      const commandDeck = root.querySelector<HTMLElement>('section[aria-label="Command Deck"]')!
-      const battlefieldRect = battlefield.getBoundingClientRect()
-      const boardRect = board.getBoundingClientRect()
-      const commandRect = commandDeck.getBoundingClientRect()
-      const preview = commandDeck
-        .querySelector('[data-battle-instruction-host]')!
-        .getBoundingClientRect()
-      const cards = Array.from(commandDeck.querySelectorAll('[data-command-card]'))
-      const flow = root.querySelector('[data-battle-flow]')!.getBoundingClientRect()
-
-      return {
-        viewportWidth: window.innerWidth,
-        documentWidth: document.documentElement.scrollWidth,
-        battlefieldLeft: battlefieldRect.left,
-        battlefieldRight: battlefieldRect.right,
-        boardLeft: boardRect.left,
-        boardRight: boardRect.right,
-        commandLeft: commandRect.left,
-        commandRight: commandRect.right,
-        commandBottom: commandRect.bottom,
-        previewTop: preview.top,
-        lastCardBottom: Math.max(...cards.map((card) => card.getBoundingClientRect().bottom)),
-        flowTop: flow.top,
-        artwork: cards.map((card) => {
-          const image = card.querySelector<HTMLImageElement>('[data-battle-command-artwork] img')!
-          const rect = image.getBoundingClientRect()
-          return { width: rect.width, height: rect.height, fit: getComputedStyle(image).objectFit }
-        }),
-      }
-    })
-
-    expect(mobileGeometry.documentWidth).toBeLessThanOrEqual(mobileGeometry.viewportWidth + 2)
-    expect(mobileGeometry.battlefieldLeft).toBeGreaterThanOrEqual(-1)
-    expect(mobileGeometry.battlefieldRight).toBeLessThanOrEqual(mobileGeometry.viewportWidth + 1)
-    expect(mobileGeometry.boardLeft).toBeGreaterThanOrEqual(mobileGeometry.battlefieldLeft - 1)
-    expect(mobileGeometry.boardRight).toBeLessThanOrEqual(mobileGeometry.battlefieldRight + 1)
-    expect(mobileGeometry.commandLeft).toBeGreaterThanOrEqual(-1)
-    expect(mobileGeometry.commandRight).toBeLessThanOrEqual(mobileGeometry.viewportWidth + 1)
-    expect(mobileGeometry.previewTop).toBeGreaterThanOrEqual(mobileGeometry.lastCardBottom)
-    expect(mobileGeometry.flowTop).toBeGreaterThanOrEqual(mobileGeometry.commandBottom)
-    for (const artwork of mobileGeometry.artwork) {
-      expect(Math.abs(artwork.width - artwork.height)).toBeLessThanOrEqual(1)
-      expect(artwork.fit).toBe('contain')
-    }
+    await expectRefinedCockpit(activePage)
+    const documentFits = await activePage.evaluate(
+      () => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
+    )
+    expect(documentFits).toBe(true)
+    await expect(activeRoot.locator('[data-battle-combatant-card="local"]')).toBeVisible()
+    await expect(activeRoot.locator('[data-battle-combatant-card="selected"]')).toBeVisible()
     await expectBattleFlowKeepsBoardSize(hostHasTurn ? host : guest)
+    await expect(activeRoot.locator('[data-battle-mobile-chronicle-toggle]')).toHaveCount(0)
+    await expect(activeRoot.locator('[data-battle-mobile-chronicle-strip]')).toBeVisible()
   } finally {
     await Promise.all([hostContext.close(), guestContext.close()])
   }

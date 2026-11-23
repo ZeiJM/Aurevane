@@ -1,0 +1,25 @@
+{
+  "status": "read-only-observation-not-publication-approval",
+  "projectId": "luazfeupwfgnilohfsya",
+  "observed_at": "2026-10-17 11:04:17.539348+00",
+  "version_rows": 0,
+  "publication_rows": 0,
+  "draft_rows": 0,
+  "policy": {
+    "modes": {
+      "summon": "instant",
+      "displace": "instant",
+      "mp-drain": "instant",
+      "remove-status": "instant",
+      "return-to-turn-start": "delayed"
+    },
+    "version": 7
+  },
+  "rpc_availability": {
+    "publish_combat_content_v3": false,
+    "read_combat_content_catalogue_v1": false,
+    "publish_combat_effect_timing_policy_v2": false
+  },
+  "publicationTimeRefreshRequired": true,
+  "hostedWritesPerformed": false
+}

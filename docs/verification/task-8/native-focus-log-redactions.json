@@ -1,0 +1,23 @@
+{
+  "head": "d6640945adfb877f94ca18c79c136c18d6a9a466",
+  "logs": [
+    {
+      "file": "native-focus-database.log.gz",
+      "originalSha256": "d16cd90867d191696e37c0395cb8b18bc617b66d838233cdd175e2745078c8db",
+      "publishedSha256": "65316873ae415b8ca11e4d50d6b09abd779a7e1a39c08bb48b3a691fa5914d12",
+      "credentialValuesRedacted": 1
+    },
+    {
+      "file": "native-focus-quality.log.gz",
+      "originalSha256": "15f3fe94dbe0ea846518c74758e72a1540206f756ff89093e25aa50704e3b651",
+      "publishedSha256": "15f3fe94dbe0ea846518c74758e72a1540206f756ff89093e25aa50704e3b651",
+      "credentialValuesRedacted": 0
+    },
+    {
+      "file": "native-focus-browser-failure.log.gz",
+      "originalSha256": "442a42f2a1f5abb36dec288eb37bc8fc688a0afca9489ebb4bba38527a505ca1",
+      "publishedSha256": "bb529cb09105bba65be0101a0a4d4def16b5095ba3e3d0aab2b0ebf7e1ef85bb",
+      "credentialValuesRedacted": 1
+    }
+  ]
+}

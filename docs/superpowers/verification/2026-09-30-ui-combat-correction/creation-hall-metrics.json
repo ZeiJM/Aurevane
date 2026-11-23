@@ -1,0 +1,6290 @@
+[
+  {
+    "route": "hall",
+    "state": "ai",
+    "width": 1366,
+    "height": 768,
+    "overflowX": -15,
+    "overflowY": 0,
+    "controls": [
+      {
+        "text": "⚔AI Battles",
+        "rect": {
+          "x": 224.65625,
+          "y": 177.84375,
+          "width": 167.25,
+          "height": 49.1875,
+          "top": 177.84375,
+          "right": 391.90625,
+          "bottom": 227.03125,
+          "left": 224.65625
+        }
+      },
+      {
+        "text": "♟Player vs Player",
+        "rect": {
+          "x": 392.90625,
+          "y": 177.84375,
+          "width": 167.25,
+          "height": 49.1875,
+          "top": 177.84375,
+          "right": 560.15625,
+          "bottom": 227.03125,
+          "left": 392.90625
+        }
+      },
+      {
+        "text": "◉Spectate",
+        "rect": {
+          "x": 561.15625,
+          "y": 177.84375,
+          "width": 167.25,
+          "height": 49.1875,
+          "top": 177.84375,
+          "right": 728.40625,
+          "bottom": 227.03125,
+          "left": 561.15625
+        }
+      },
+      {
+        "text": "✧MatchmakingComing Soon",
+        "rect": {
+          "x": 729.40625,
+          "y": 177.84375,
+          "width": 167.25,
+          "height": 49.1875,
+          "top": 177.84375,
+          "right": 896.65625,
+          "bottom": 227.03125,
+          "left": 729.40625
+        }
+      },
+      {
+        "text": "AI sparring arena",
+        "rect": {
+          "x": 795.484375,
+          "y": 533.796875,
+          "width": 228.5,
+          "height": 40,
+          "top": 533.796875,
+          "right": 1023.984375,
+          "bottom": 573.796875,
+          "left": 795.484375
+        }
+      },
+      {
+        "text": "Battle mode",
+        "rect": {
+          "x": 317.703125,
+          "y": 408.625,
+          "width": 2,
+          "height": 40,
+          "top": 408.625,
+          "right": 319.703125,
+          "bottom": 448.625,
+          "left": 317.703125
+        }
+      },
+      {
+        "text": "⚔AI SparringCombine movement, AP management, targeting, terr",
+        "rect": {
+          "x": 239.25,
+          "y": 408.625,
+          "width": 485.0625,
+          "height": 67.25,
+          "top": 408.625,
+          "right": 724.3125,
+          "bottom": 475.875,
+          "left": 239.25
+        }
+      },
+      {
+        "text": "▣Guided FundamentalsLearn movement, Action Economy, attackin",
+        "rect": {
+          "x": 239.25,
+          "y": 480.671875,
+          "width": 485.0625,
+          "height": 67.25,
+          "top": 480.671875,
+          "right": 724.3125,
+          "bottom": 547.921875,
+          "left": 239.25
+        }
+      },
+      {
+        "text": "★Discipline Mastery TrialWin using at least two different Pr",
+        "rect": {
+          "x": 239.25,
+          "y": 552.71875,
+          "width": 485.0625,
+          "height": 82.84375,
+          "top": 552.71875,
+          "right": 724.3125,
+          "bottom": 635.5625,
+          "left": 239.25
+        }
+      },
+      {
+        "text": "Enter Battle",
+        "rect": {
+          "x": 1158.703125,
+          "y": 642.75,
+          "width": 143.046875,
+          "height": 44,
+          "top": 642.75,
+          "right": 1301.75,
+          "bottom": 686.75,
+          "left": 1158.703125
+        }
+      }
+    ]
+  },
+  {
+    "route": "hall",
+    "state": "pvp",
+    "width": 1366,
+    "height": 768,
+    "overflowX": -15,
+    "overflowY": 0,
+    "controls": [
+      {
+        "text": "⚔AI Battles",
+        "rect": {
+          "x": 224.65625,
+          "y": 177.84375,
+          "width": 167.25,
+          "height": 49.1875,
+          "top": 177.84375,
+          "right": 391.90625,
+          "bottom": 227.03125,
+          "left": 224.65625
+        }
+      },
+      {
+        "text": "♟Player vs Player",
+        "rect": {
+          "x": 392.90625,
+          "y": 177.84375,
+          "width": 167.25,
+          "height": 49.1875,
+          "top": 177.84375,
+          "right": 560.15625,
+          "bottom": 227.03125,
+          "left": 392.90625
+        }
+      },
+      {
+        "text": "◉Spectate",
+        "rect": {
+          "x": 561.15625,
+          "y": 177.84375,
+          "width": 167.25,
+          "height": 49.1875,
+          "top": 177.84375,
+          "right": 728.40625,
+          "bottom": 227.03125,
+          "left": 561.15625
+        }
+      },
+      {
+        "text": "✧MatchmakingComing Soon",
+        "rect": {
+          "x": 729.40625,
+          "y": 177.84375,
+          "width": 167.25,
+          "height": 49.1875,
+          "top": 177.84375,
+          "right": 896.65625,
+          "bottom": 227.03125,
+          "left": 729.40625
+        }
+      },
+      {
+        "text": "Create Lobby",
+        "rect": {
+          "x": 241.640625,
+          "y": 320.375,
+          "width": 526.0625,
+          "height": 40,
+          "top": 320.375,
+          "right": 767.703125,
+          "bottom": 360.375,
+          "left": 241.640625
+        }
+      },
+      {
+        "text": "Join by Key",
+        "rect": {
+          "x": 773.296875,
+          "y": 320.375,
+          "width": 526.0625,
+          "height": 40,
+          "top": 320.375,
+          "right": 1299.359375,
+          "bottom": 360.375,
+          "left": 773.296875
+        }
+      },
+      {
+        "text": "pvp-mode",
+        "rect": {
+          "x": 351.71875,
+          "y": 367.734375,
+          "width": 937.640625,
+          "height": 40,
+          "top": 367.734375,
+          "right": 1289.359375,
+          "bottom": 407.734375,
+          "left": 351.71875
+        }
+      },
+      {
+        "text": "Standard",
+        "rect": {
+          "x": 241.640625,
+          "y": 460.5625,
+          "width": 258.015625,
+          "height": 40,
+          "top": 460.5625,
+          "right": 499.65625,
+          "bottom": 500.5625,
+          "left": 241.640625
+        }
+      },
+      {
+        "text": "Expanded",
+        "rect": {
+          "x": 503.484375,
+          "y": 460.5625,
+          "width": 258.015625,
+          "height": 40,
+          "top": 460.5625,
+          "right": 761.5,
+          "bottom": 500.5625,
+          "left": 503.484375
+        }
+      },
+      {
+        "text": "Less",
+        "rect": {
+          "x": 769.5,
+          "y": 460.5625,
+          "width": 170.734375,
+          "height": 40,
+          "top": 460.5625,
+          "right": 940.234375,
+          "bottom": 500.5625,
+          "left": 769.5
+        }
+      },
+      {
+        "text": "Neutral",
+        "rect": {
+          "x": 944.0625,
+          "y": 460.5625,
+          "width": 170.734375,
+          "height": 40,
+          "top": 460.5625,
+          "right": 1114.796875,
+          "bottom": 500.5625,
+          "left": 944.0625
+        }
+      },
+      {
+        "text": "More",
+        "rect": {
+          "x": 1118.625,
+          "y": 460.5625,
+          "width": 170.734375,
+          "height": 40,
+          "top": 460.5625,
+          "right": 1289.359375,
+          "bottom": 500.5625,
+          "left": 1118.625
+        }
+      },
+      {
+        "text": "Less",
+        "rect": {
+          "x": 241.640625,
+          "y": 523.1875,
+          "width": 170.734375,
+          "height": 40,
+          "top": 523.1875,
+          "right": 412.375,
+          "bottom": 563.1875,
+          "left": 241.640625
+        }
+      },
+      {
+        "text": "Neutral",
+        "rect": {
+          "x": 416.203125,
+          "y": 523.1875,
+          "width": 170.734375,
+          "height": 40,
+          "top": 523.1875,
+          "right": 586.9375,
+          "bottom": 563.1875,
+          "left": 416.203125
+        }
+      },
+      {
+        "text": "More",
+        "rect": {
+          "x": 590.765625,
+          "y": 523.1875,
+          "width": 170.734375,
+          "height": 40,
+          "top": 523.1875,
+          "right": 761.5,
+          "bottom": 563.1875,
+          "left": 590.765625
+        }
+      },
+      {
+        "text": "60 second turn timer",
+        "rect": {
+          "x": 769.5,
+          "y": 523.1875,
+          "width": 170.734375,
+          "height": 40,
+          "top": 523.1875,
+          "right": 940.234375,
+          "bottom": 563.1875,
+          "left": 769.5
+        }
+      },
+      {
+        "text": "120 second turn timer",
+        "rect": {
+          "x": 944.0625,
+          "y": 523.1875,
+          "width": 170.734375,
+          "height": 40,
+          "top": 523.1875,
+          "right": 1114.796875,
+          "bottom": 563.1875,
+          "left": 944.0625
+        }
+      },
+      {
+        "text": "No turn timer",
+        "rect": {
+          "x": 1118.625,
+          "y": 523.1875,
+          "width": 170.734375,
+          "height": 40,
+          "top": 523.1875,
+          "right": 1289.359375,
+          "bottom": 563.1875,
+          "left": 1118.625
+        }
+      },
+      {
+        "text": "Create Battle Lobby",
+        "rect": {
+          "x": 1083.21875,
+          "y": 640.359375,
+          "width": 216.140625,
+          "height": 44,
+          "top": 640.359375,
+          "right": 1299.359375,
+          "bottom": 684.359375,
+          "left": 1083.21875
+        }
+      }
+    ]
+  },
+  {
+    "route": "hall",
+    "state": "spectate",
+    "width": 1366,
+    "height": 768,
+    "overflowX": -15,
+    "overflowY": 0,
+    "controls": [
+      {
+        "text": "⚔AI Battles",
+        "rect": {
+          "x": 224.65625,
+          "y": 177.84375,
+          "width": 167.25,
+          "height": 49.1875,
+          "top": 177.84375,
+          "right": 391.90625,
+          "bottom": 227.03125,
+          "left": 224.65625
+        }
+      },
+      {
+        "text": "♟Player vs Player",
+        "rect": {
+          "x": 392.90625,
+          "y": 177.84375,
+          "width": 167.25,
+          "height": 49.1875,
+          "top": 177.84375,
+          "right": 560.15625,
+          "bottom": 227.03125,
+          "left": 392.90625
+        }
+      },
+      {
+        "text": "◉Spectate",
+        "rect": {
+          "x": 561.15625,
+          "y": 177.84375,
+          "width": 167.25,
+          "height": 49.1875,
+          "top": 177.84375,
+          "right": 728.40625,
+          "bottom": 227.03125,
+          "left": 561.15625
+        }
+      },
+      {
+        "text": "✧MatchmakingComing Soon",
+        "rect": {
+          "x": 729.40625,
+          "y": 177.84375,
+          "width": 167.25,
+          "height": 49.1875,
+          "top": 177.84375,
+          "right": 896.65625,
+          "bottom": 227.03125,
+          "left": 729.40625
+        }
+      },
+      {
+        "text": "Battle Key",
+        "rect": {
+          "x": 421.5,
+          "y": 466.34375,
+          "width": 688,
+          "height": 40,
+          "top": 466.34375,
+          "right": 1109.5,
+          "bottom": 506.34375,
+          "left": 421.5
+        }
+      },
+      {
+        "text": "Spectate Battle",
+        "rect": {
+          "x": 421.5,
+          "y": 511.140625,
+          "width": 688,
+          "height": 36,
+          "top": 511.140625,
+          "right": 1109.5,
+          "bottom": 547.140625,
+          "left": 421.5
+        }
+      }
+    ]
+  },
+  {
+    "route": "creation",
+    "state": "identity",
+    "width": 1366,
+    "height": 768,
+    "overflowX": -15,
+    "overflowY": 0,
+    "controls": [
+      {
+        "text": "",
+        "rect": {
+          "x": 764.65625,
+          "y": 277.609375,
+          "width": 13,
+          "height": 13,
+          "top": 277.609375,
+          "right": 777.65625,
+          "bottom": 290.609375,
+          "left": 764.65625
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 947.75,
+          "y": 277.609375,
+          "width": 13,
+          "height": 13,
+          "top": 277.609375,
+          "right": 960.75,
+          "bottom": 290.609375,
+          "left": 947.75
+        }
+      },
+      {
+        "text": "Male adventurer 01",
+        "rect": {
+          "x": 702.28125,
+          "y": 369.578125,
+          "width": 86.234375,
+          "height": 86.234375,
+          "top": 369.578125,
+          "right": 788.515625,
+          "bottom": 455.8125,
+          "left": 702.28125
+        }
+      },
+      {
+        "text": "Male adventurer 02",
+        "rect": {
+          "x": 796.90625,
+          "y": 369.578125,
+          "width": 86.25,
+          "height": 86.25,
+          "top": 369.578125,
+          "right": 883.15625,
+          "bottom": 455.828125,
+          "left": 796.90625
+        }
+      },
+      {
+        "text": "Male adventurer 03",
+        "rect": {
+          "x": 891.546875,
+          "y": 369.578125,
+          "width": 86.234375,
+          "height": 86.234375,
+          "top": 369.578125,
+          "right": 977.78125,
+          "bottom": 455.8125,
+          "left": 891.546875
+        }
+      },
+      {
+        "text": "Male adventurer 04",
+        "rect": {
+          "x": 986.171875,
+          "y": 369.578125,
+          "width": 86.25,
+          "height": 86.25,
+          "top": 369.578125,
+          "right": 1072.421875,
+          "bottom": 455.828125,
+          "left": 986.171875
+        }
+      },
+      {
+        "text": "Male adventurer 05",
+        "rect": {
+          "x": 702.28125,
+          "y": 464.21875,
+          "width": 86.234375,
+          "height": 86.234375,
+          "top": 464.21875,
+          "right": 788.515625,
+          "bottom": 550.453125,
+          "left": 702.28125
+        }
+      },
+      {
+        "text": "Male adventurer 06",
+        "rect": {
+          "x": 796.90625,
+          "y": 464.21875,
+          "width": 86.25,
+          "height": 86.25,
+          "top": 464.21875,
+          "right": 883.15625,
+          "bottom": 550.46875,
+          "left": 796.90625
+        }
+      },
+      {
+        "text": "Male adventurer 07",
+        "rect": {
+          "x": 891.546875,
+          "y": 464.21875,
+          "width": 86.234375,
+          "height": 86.234375,
+          "top": 464.21875,
+          "right": 977.78125,
+          "bottom": 550.453125,
+          "left": 891.546875
+        }
+      },
+      {
+        "text": "Male adventurer 08",
+        "rect": {
+          "x": 986.171875,
+          "y": 464.21875,
+          "width": 86.25,
+          "height": 86.25,
+          "top": 464.21875,
+          "right": 1072.421875,
+          "bottom": 550.46875,
+          "left": 986.171875
+        }
+      },
+      {
+        "text": "Male adventurer 09",
+        "rect": {
+          "x": 702.28125,
+          "y": 558.859375,
+          "width": 86.234375,
+          "height": 86.234375,
+          "top": 558.859375,
+          "right": 788.515625,
+          "bottom": 645.09375,
+          "left": 702.28125
+        }
+      },
+      {
+        "text": "Male adventurer 10",
+        "rect": {
+          "x": 796.90625,
+          "y": 558.859375,
+          "width": 86.25,
+          "height": 86.25,
+          "top": 558.859375,
+          "right": 883.15625,
+          "bottom": 645.109375,
+          "left": 796.90625
+        }
+      },
+      {
+        "text": "Male adventurer 11",
+        "rect": {
+          "x": 891.546875,
+          "y": 558.859375,
+          "width": 86.234375,
+          "height": 86.234375,
+          "top": 558.859375,
+          "right": 977.78125,
+          "bottom": 645.09375,
+          "left": 891.546875
+        }
+      },
+      {
+        "text": "Male adventurer 12",
+        "rect": {
+          "x": 986.171875,
+          "y": 558.859375,
+          "width": 86.25,
+          "height": 86.25,
+          "top": 558.859375,
+          "right": 1072.421875,
+          "bottom": 645.109375,
+          "left": 986.171875
+        }
+      },
+      {
+        "text": "Character name",
+        "rect": {
+          "x": 1104,
+          "y": 523.5625,
+          "width": 216.40625,
+          "height": 44,
+          "top": 523.5625,
+          "right": 1320.40625,
+          "bottom": 567.5625,
+          "left": 1104
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 699.09375,
+          "y": 641.71875,
+          "width": 201.171875,
+          "height": 30.28125,
+          "top": 641.71875,
+          "right": 900.265625,
+          "bottom": 672,
+          "left": 699.09375
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 908.65625,
+          "y": 641.71875,
+          "width": 201.171875,
+          "height": 30.28125,
+          "top": 641.71875,
+          "right": 1109.828125,
+          "bottom": 672,
+          "left": 908.65625
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 1118.21875,
+          "y": 641.71875,
+          "width": 201.171875,
+          "height": 30.28125,
+          "top": 641.71875,
+          "right": 1319.390625,
+          "bottom": 672,
+          "left": 1118.21875
+        }
+      },
+      {
+        "text": "Choose your discipline",
+        "rect": {
+          "x": 1087.4375,
+          "y": 694.78125,
+          "width": 232.96875,
+          "height": 44,
+          "top": 694.78125,
+          "right": 1320.40625,
+          "bottom": 738.78125,
+          "left": 1087.4375
+        }
+      }
+    ]
+  },
+  {
+    "route": "creation",
+    "state": "discipline",
+    "width": 1366,
+    "height": 768,
+    "overflowX": -15,
+    "overflowY": 0,
+    "controls": [
+      {
+        "text": "",
+        "rect": {
+          "x": 699.09375,
+          "y": 261.609375,
+          "width": 98.9375,
+          "height": 100.671875,
+          "top": 261.609375,
+          "right": 798.03125,
+          "bottom": 362.28125,
+          "left": 699.09375
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 808.03125,
+          "y": 261.609375,
+          "width": 98.953125,
+          "height": 100.671875,
+          "top": 261.609375,
+          "right": 906.984375,
+          "bottom": 362.28125,
+          "left": 808.03125
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 916.984375,
+          "y": 261.609375,
+          "width": 98.9375,
+          "height": 100.671875,
+          "top": 261.609375,
+          "right": 1015.921875,
+          "bottom": 362.28125,
+          "left": 916.984375
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 699.09375,
+          "y": 372.28125,
+          "width": 98.9375,
+          "height": 100.671875,
+          "top": 372.28125,
+          "right": 798.03125,
+          "bottom": 472.953125,
+          "left": 699.09375
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 808.03125,
+          "y": 372.28125,
+          "width": 98.953125,
+          "height": 100.671875,
+          "top": 372.28125,
+          "right": 906.984375,
+          "bottom": 472.953125,
+          "left": 808.03125
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 916.984375,
+          "y": 372.28125,
+          "width": 98.9375,
+          "height": 100.671875,
+          "top": 372.28125,
+          "right": 1015.921875,
+          "bottom": 472.953125,
+          "left": 916.984375
+        }
+      },
+      {
+        "text": "Decrease might bonus",
+        "rect": {
+          "x": 1227.421875,
+          "y": 400.015625,
+          "width": 32,
+          "height": 36,
+          "top": 400.015625,
+          "right": 1259.421875,
+          "bottom": 436.015625,
+          "left": 1227.421875
+        }
+      },
+      {
+        "text": "Increase might bonus",
+        "rect": {
+          "x": 1281.8125,
+          "y": 400.015625,
+          "width": 32,
+          "height": 36,
+          "top": 400.015625,
+          "right": 1313.8125,
+          "bottom": 436.015625,
+          "left": 1281.8125
+        }
+      },
+      {
+        "text": "Decrease finesse bonus",
+        "rect": {
+          "x": 1227.421875,
+          "y": 446.796875,
+          "width": 32,
+          "height": 36,
+          "top": 446.796875,
+          "right": 1259.421875,
+          "bottom": 482.796875,
+          "left": 1227.421875
+        }
+      },
+      {
+        "text": "Increase finesse bonus",
+        "rect": {
+          "x": 1281.8125,
+          "y": 446.796875,
+          "width": 32,
+          "height": 36,
+          "top": 446.796875,
+          "right": 1313.8125,
+          "bottom": 482.796875,
+          "left": 1281.8125
+        }
+      },
+      {
+        "text": "Decrease vitality bonus",
+        "rect": {
+          "x": 1227.421875,
+          "y": 493.578125,
+          "width": 32,
+          "height": 36,
+          "top": 493.578125,
+          "right": 1259.421875,
+          "bottom": 529.578125,
+          "left": 1227.421875
+        }
+      },
+      {
+        "text": "Increase vitality bonus",
+        "rect": {
+          "x": 1281.8125,
+          "y": 493.578125,
+          "width": 32,
+          "height": 36,
+          "top": 493.578125,
+          "right": 1313.8125,
+          "bottom": 529.578125,
+          "left": 1281.8125
+        }
+      },
+      {
+        "text": "Decrease agility bonus",
+        "rect": {
+          "x": 1227.421875,
+          "y": 540.359375,
+          "width": 32,
+          "height": 36,
+          "top": 540.359375,
+          "right": 1259.421875,
+          "bottom": 576.359375,
+          "left": 1227.421875
+        }
+      },
+      {
+        "text": "Increase agility bonus",
+        "rect": {
+          "x": 1281.8125,
+          "y": 540.359375,
+          "width": 32,
+          "height": 36,
+          "top": 540.359375,
+          "right": 1313.8125,
+          "bottom": 576.359375,
+          "left": 1281.8125
+        }
+      },
+      {
+        "text": "Decrease intellect bonus",
+        "rect": {
+          "x": 1227.421875,
+          "y": 587.140625,
+          "width": 32,
+          "height": 36,
+          "top": 587.140625,
+          "right": 1259.421875,
+          "bottom": 623.140625,
+          "left": 1227.421875
+        }
+      },
+      {
+        "text": "Increase intellect bonus",
+        "rect": {
+          "x": 1281.8125,
+          "y": 587.140625,
+          "width": 32,
+          "height": 36,
+          "top": 587.140625,
+          "right": 1313.8125,
+          "bottom": 623.140625,
+          "left": 1281.8125
+        }
+      },
+      {
+        "text": "Decrease resolve bonus",
+        "rect": {
+          "x": 1227.421875,
+          "y": 633.921875,
+          "width": 32,
+          "height": 36,
+          "top": 633.921875,
+          "right": 1259.421875,
+          "bottom": 669.921875,
+          "left": 1227.421875
+        }
+      },
+      {
+        "text": "Increase resolve bonus",
+        "rect": {
+          "x": 1281.8125,
+          "y": 633.921875,
+          "width": 32,
+          "height": 36,
+          "top": 633.921875,
+          "right": 1313.8125,
+          "bottom": 669.921875,
+          "left": 1281.8125
+        }
+      },
+      {
+        "text": "Back",
+        "rect": {
+          "x": 698.09375,
+          "y": 695.09375,
+          "width": 75.9375,
+          "height": 44,
+          "top": 695.09375,
+          "right": 774.03125,
+          "bottom": 739.09375,
+          "left": 698.09375
+        }
+      },
+      {
+        "text": "Review character",
+        "rect": {
+          "x": 1133.65625,
+          "y": 695.09375,
+          "width": 186.75,
+          "height": 44,
+          "top": 695.09375,
+          "right": 1320.40625,
+          "bottom": 739.09375,
+          "left": 1133.65625
+        }
+      }
+    ]
+  },
+  {
+    "route": "creation",
+    "state": "review",
+    "width": 1366,
+    "height": 768,
+    "overflowX": -15,
+    "overflowY": 0,
+    "controls": [
+      {
+        "text": "Back",
+        "rect": {
+          "x": 698.09375,
+          "y": 654.96875,
+          "width": 75.9375,
+          "height": 44,
+          "top": 654.96875,
+          "right": 774.03125,
+          "bottom": 698.96875,
+          "left": 698.09375
+        }
+      },
+      {
+        "text": "Create character",
+        "rect": {
+          "x": 1138.28125,
+          "y": 654.96875,
+          "width": 182.125,
+          "height": 44,
+          "top": 654.96875,
+          "right": 1320.40625,
+          "bottom": 698.96875,
+          "left": 1138.28125
+        }
+      }
+    ]
+  },
+  {
+    "route": "hall",
+    "state": "ai",
+    "width": 1440,
+    "height": 900,
+    "overflowX": -15,
+    "overflowY": 0,
+    "controls": [
+      {
+        "text": "⚔AI Battles",
+        "rect": {
+          "x": 225.390625,
+          "y": 181.78125,
+          "width": 167.25,
+          "height": 49.1875,
+          "top": 181.78125,
+          "right": 392.640625,
+          "bottom": 230.96875,
+          "left": 225.390625
+        }
+      },
+      {
+        "text": "♟Player vs Player",
+        "rect": {
+          "x": 393.640625,
+          "y": 181.78125,
+          "width": 167.25,
+          "height": 49.1875,
+          "top": 181.78125,
+          "right": 560.890625,
+          "bottom": 230.96875,
+          "left": 393.640625
+        }
+      },
+      {
+        "text": "◉Spectate",
+        "rect": {
+          "x": 561.890625,
+          "y": 181.78125,
+          "width": 167.25,
+          "height": 49.1875,
+          "top": 181.78125,
+          "right": 729.140625,
+          "bottom": 230.96875,
+          "left": 561.890625
+        }
+      },
+      {
+        "text": "✧MatchmakingComing Soon",
+        "rect": {
+          "x": 730.140625,
+          "y": 181.78125,
+          "width": 167.25,
+          "height": 49.1875,
+          "top": 181.78125,
+          "right": 897.390625,
+          "bottom": 230.96875,
+          "left": 730.140625
+        }
+      },
+      {
+        "text": "AI sparring arena",
+        "rect": {
+          "x": 829.953125,
+          "y": 669.96875,
+          "width": 248.65625,
+          "height": 40,
+          "top": 669.96875,
+          "right": 1078.609375,
+          "bottom": 709.96875,
+          "left": 829.953125
+        }
+      },
+      {
+        "text": "Battle mode",
+        "rect": {
+          "x": 318.4375,
+          "y": 550.6875,
+          "width": 2,
+          "height": 40,
+          "top": 550.6875,
+          "right": 320.4375,
+          "bottom": 590.6875,
+          "left": 318.4375
+        }
+      },
+      {
+        "text": "⚔AI SparringCombine movement, AP management, targeting, terr",
+        "rect": {
+          "x": 239.984375,
+          "y": 550.6875,
+          "width": 518.796875,
+          "height": 67.25,
+          "top": 550.6875,
+          "right": 758.78125,
+          "bottom": 617.9375,
+          "left": 239.984375
+        }
+      },
+      {
+        "text": "▣Guided FundamentalsLearn movement, Action Economy, attackin",
+        "rect": {
+          "x": 239.984375,
+          "y": 624.65625,
+          "width": 518.796875,
+          "height": 67.25,
+          "top": 624.65625,
+          "right": 758.78125,
+          "bottom": 691.90625,
+          "left": 239.984375
+        }
+      },
+      {
+        "text": "★Discipline Mastery TrialWin using at least two different Pr",
+        "rect": {
+          "x": 239.984375,
+          "y": 698.625,
+          "width": 518.796875,
+          "height": 67.25,
+          "top": 698.625,
+          "right": 758.78125,
+          "bottom": 765.875,
+          "left": 239.984375
+        }
+      },
+      {
+        "text": "Enter Battle",
+        "rect": {
+          "x": 1231.96875,
+          "y": 774.015625,
+          "width": 143.046875,
+          "height": 44,
+          "top": 774.015625,
+          "right": 1375.015625,
+          "bottom": 818.015625,
+          "left": 1231.96875
+        }
+      }
+    ]
+  },
+  {
+    "route": "hall",
+    "state": "pvp",
+    "width": 1440,
+    "height": 900,
+    "overflowX": -15,
+    "overflowY": 0,
+    "controls": [
+      {
+        "text": "⚔AI Battles",
+        "rect": {
+          "x": 225.390625,
+          "y": 181.78125,
+          "width": 167.25,
+          "height": 49.1875,
+          "top": 181.78125,
+          "right": 392.640625,
+          "bottom": 230.96875,
+          "left": 225.390625
+        }
+      },
+      {
+        "text": "♟Player vs Player",
+        "rect": {
+          "x": 393.640625,
+          "y": 181.78125,
+          "width": 167.25,
+          "height": 49.1875,
+          "top": 181.78125,
+          "right": 560.890625,
+          "bottom": 230.96875,
+          "left": 393.640625
+        }
+      },
+      {
+        "text": "◉Spectate",
+        "rect": {
+          "x": 561.890625,
+          "y": 181.78125,
+          "width": 167.25,
+          "height": 49.1875,
+          "top": 181.78125,
+          "right": 729.140625,
+          "bottom": 230.96875,
+          "left": 561.890625
+        }
+      },
+      {
+        "text": "✧MatchmakingComing Soon",
+        "rect": {
+          "x": 730.140625,
+          "y": 181.78125,
+          "width": 167.25,
+          "height": 49.1875,
+          "top": 181.78125,
+          "right": 897.390625,
+          "bottom": 230.96875,
+          "left": 730.140625
+        }
+      },
+      {
+        "text": "Create Lobby",
+        "rect": {
+          "x": 242.375,
+          "y": 451.640625,
+          "width": 562.328125,
+          "height": 40,
+          "top": 451.640625,
+          "right": 804.703125,
+          "bottom": 491.640625,
+          "left": 242.375
+        }
+      },
+      {
+        "text": "Join by Key",
+        "rect": {
+          "x": 810.296875,
+          "y": 451.640625,
+          "width": 562.328125,
+          "height": 40,
+          "top": 451.640625,
+          "right": 1372.625,
+          "bottom": 491.640625,
+          "left": 810.296875
+        }
+      },
+      {
+        "text": "pvp-mode",
+        "rect": {
+          "x": 352.453125,
+          "y": 499,
+          "width": 1010.171875,
+          "height": 40,
+          "top": 499,
+          "right": 1362.625,
+          "bottom": 539,
+          "left": 352.453125
+        }
+      },
+      {
+        "text": "Standard",
+        "rect": {
+          "x": 242.375,
+          "y": 591.828125,
+          "width": 276.140625,
+          "height": 40,
+          "top": 591.828125,
+          "right": 518.515625,
+          "bottom": 631.828125,
+          "left": 242.375
+        }
+      },
+      {
+        "text": "Expanded",
+        "rect": {
+          "x": 522.34375,
+          "y": 591.828125,
+          "width": 276.15625,
+          "height": 40,
+          "top": 591.828125,
+          "right": 798.5,
+          "bottom": 631.828125,
+          "left": 522.34375
+        }
+      },
+      {
+        "text": "Less",
+        "rect": {
+          "x": 806.5,
+          "y": 591.828125,
+          "width": 182.8125,
+          "height": 40,
+          "top": 591.828125,
+          "right": 989.3125,
+          "bottom": 631.828125,
+          "left": 806.5
+        }
+      },
+      {
+        "text": "Neutral",
+        "rect": {
+          "x": 993.140625,
+          "y": 591.828125,
+          "width": 182.828125,
+          "height": 40,
+          "top": 591.828125,
+          "right": 1175.96875,
+          "bottom": 631.828125,
+          "left": 993.140625
+        }
+      },
+      {
+        "text": "More",
+        "rect": {
+          "x": 1179.796875,
+          "y": 591.828125,
+          "width": 182.828125,
+          "height": 40,
+          "top": 591.828125,
+          "right": 1362.625,
+          "bottom": 631.828125,
+          "left": 1179.796875
+        }
+      },
+      {
+        "text": "Less",
+        "rect": {
+          "x": 242.375,
+          "y": 654.453125,
+          "width": 182.8125,
+          "height": 40,
+          "top": 654.453125,
+          "right": 425.1875,
+          "bottom": 694.453125,
+          "left": 242.375
+        }
+      },
+      {
+        "text": "Neutral",
+        "rect": {
+          "x": 429.015625,
+          "y": 654.453125,
+          "width": 182.828125,
+          "height": 40,
+          "top": 654.453125,
+          "right": 611.84375,
+          "bottom": 694.453125,
+          "left": 429.015625
+        }
+      },
+      {
+        "text": "More",
+        "rect": {
+          "x": 615.671875,
+          "y": 654.453125,
+          "width": 182.828125,
+          "height": 40,
+          "top": 654.453125,
+          "right": 798.5,
+          "bottom": 694.453125,
+          "left": 615.671875
+        }
+      },
+      {
+        "text": "60 second turn timer",
+        "rect": {
+          "x": 806.5,
+          "y": 654.453125,
+          "width": 182.8125,
+          "height": 40,
+          "top": 654.453125,
+          "right": 989.3125,
+          "bottom": 694.453125,
+          "left": 806.5
+        }
+      },
+      {
+        "text": "120 second turn timer",
+        "rect": {
+          "x": 993.140625,
+          "y": 654.453125,
+          "width": 182.828125,
+          "height": 40,
+          "top": 654.453125,
+          "right": 1175.96875,
+          "bottom": 694.453125,
+          "left": 993.140625
+        }
+      },
+      {
+        "text": "No turn timer",
+        "rect": {
+          "x": 1179.796875,
+          "y": 654.453125,
+          "width": 182.828125,
+          "height": 40,
+          "top": 654.453125,
+          "right": 1362.625,
+          "bottom": 694.453125,
+          "left": 1179.796875
+        }
+      },
+      {
+        "text": "Create Battle Lobby",
+        "rect": {
+          "x": 1156.484375,
+          "y": 771.625,
+          "width": 216.140625,
+          "height": 44,
+          "top": 771.625,
+          "right": 1372.625,
+          "bottom": 815.625,
+          "left": 1156.484375
+        }
+      }
+    ]
+  },
+  {
+    "route": "hall",
+    "state": "spectate",
+    "width": 1440,
+    "height": 900,
+    "overflowX": -15,
+    "overflowY": 0,
+    "controls": [
+      {
+        "text": "⚔AI Battles",
+        "rect": {
+          "x": 225.390625,
+          "y": 181.78125,
+          "width": 167.25,
+          "height": 49.1875,
+          "top": 181.78125,
+          "right": 392.640625,
+          "bottom": 230.96875,
+          "left": 225.390625
+        }
+      },
+      {
+        "text": "♟Player vs Player",
+        "rect": {
+          "x": 393.640625,
+          "y": 181.78125,
+          "width": 167.25,
+          "height": 49.1875,
+          "top": 181.78125,
+          "right": 560.890625,
+          "bottom": 230.96875,
+          "left": 393.640625
+        }
+      },
+      {
+        "text": "◉Spectate",
+        "rect": {
+          "x": 561.890625,
+          "y": 181.78125,
+          "width": 167.25,
+          "height": 49.1875,
+          "top": 181.78125,
+          "right": 729.140625,
+          "bottom": 230.96875,
+          "left": 561.890625
+        }
+      },
+      {
+        "text": "✧MatchmakingComing Soon",
+        "rect": {
+          "x": 730.140625,
+          "y": 181.78125,
+          "width": 167.25,
+          "height": 49.1875,
+          "top": 181.78125,
+          "right": 897.390625,
+          "bottom": 230.96875,
+          "left": 730.140625
+        }
+      },
+      {
+        "text": "Battle Key",
+        "rect": {
+          "x": 458.5,
+          "y": 579.28125,
+          "width": 688,
+          "height": 40,
+          "top": 579.28125,
+          "right": 1146.5,
+          "bottom": 619.28125,
+          "left": 458.5
+        }
+      },
+      {
+        "text": "Spectate Battle",
+        "rect": {
+          "x": 458.5,
+          "y": 624.078125,
+          "width": 688,
+          "height": 37.59375,
+          "top": 624.078125,
+          "right": 1146.5,
+          "bottom": 661.671875,
+          "left": 458.5
+        }
+      }
+    ]
+  },
+  {
+    "route": "creation",
+    "state": "identity",
+    "width": 1440,
+    "height": 900,
+    "overflowX": -15,
+    "overflowY": 0,
+    "controls": [
+      {
+        "text": "",
+        "rect": {
+          "x": 807.421875,
+          "y": 284.015625,
+          "width": 13,
+          "height": 13,
+          "top": 284.015625,
+          "right": 820.421875,
+          "bottom": 297.015625,
+          "left": 807.421875
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 1002.03125,
+          "y": 284.015625,
+          "width": 13,
+          "height": 13,
+          "top": 284.015625,
+          "right": 1015.03125,
+          "bottom": 297.015625,
+          "left": 1002.03125
+        }
+      },
+      {
+        "text": "Male adventurer 01",
+        "rect": {
+          "x": 739.28125,
+          "y": 375.984375,
+          "width": 92,
+          "height": 92,
+          "top": 375.984375,
+          "right": 831.28125,
+          "bottom": 467.984375,
+          "left": 739.28125
+        }
+      },
+      {
+        "text": "Male adventurer 02",
+        "rect": {
+          "x": 839.671875,
+          "y": 375.984375,
+          "width": 92,
+          "height": 92,
+          "top": 375.984375,
+          "right": 931.671875,
+          "bottom": 467.984375,
+          "left": 839.671875
+        }
+      },
+      {
+        "text": "Male adventurer 03",
+        "rect": {
+          "x": 940.0625,
+          "y": 375.984375,
+          "width": 92,
+          "height": 92,
+          "top": 375.984375,
+          "right": 1032.0625,
+          "bottom": 467.984375,
+          "left": 940.0625
+        }
+      },
+      {
+        "text": "Male adventurer 04",
+        "rect": {
+          "x": 1040.453125,
+          "y": 375.984375,
+          "width": 92,
+          "height": 92,
+          "top": 375.984375,
+          "right": 1132.453125,
+          "bottom": 467.984375,
+          "left": 1040.453125
+        }
+      },
+      {
+        "text": "Male adventurer 05",
+        "rect": {
+          "x": 739.28125,
+          "y": 476.375,
+          "width": 92,
+          "height": 92,
+          "top": 476.375,
+          "right": 831.28125,
+          "bottom": 568.375,
+          "left": 739.28125
+        }
+      },
+      {
+        "text": "Male adventurer 06",
+        "rect": {
+          "x": 839.671875,
+          "y": 476.375,
+          "width": 92,
+          "height": 92,
+          "top": 476.375,
+          "right": 931.671875,
+          "bottom": 568.375,
+          "left": 839.671875
+        }
+      },
+      {
+        "text": "Male adventurer 07",
+        "rect": {
+          "x": 940.0625,
+          "y": 476.375,
+          "width": 92,
+          "height": 92,
+          "top": 476.375,
+          "right": 1032.0625,
+          "bottom": 568.375,
+          "left": 940.0625
+        }
+      },
+      {
+        "text": "Male adventurer 08",
+        "rect": {
+          "x": 1040.453125,
+          "y": 476.375,
+          "width": 92,
+          "height": 92,
+          "top": 476.375,
+          "right": 1132.453125,
+          "bottom": 568.375,
+          "left": 1040.453125
+        }
+      },
+      {
+        "text": "Male adventurer 09",
+        "rect": {
+          "x": 739.28125,
+          "y": 576.765625,
+          "width": 92,
+          "height": 92,
+          "top": 576.765625,
+          "right": 831.28125,
+          "bottom": 668.765625,
+          "left": 739.28125
+        }
+      },
+      {
+        "text": "Male adventurer 10",
+        "rect": {
+          "x": 839.671875,
+          "y": 576.765625,
+          "width": 92,
+          "height": 92,
+          "top": 576.765625,
+          "right": 931.671875,
+          "bottom": 668.765625,
+          "left": 839.671875
+        }
+      },
+      {
+        "text": "Male adventurer 11",
+        "rect": {
+          "x": 940.0625,
+          "y": 576.765625,
+          "width": 92,
+          "height": 92,
+          "top": 576.765625,
+          "right": 1032.0625,
+          "bottom": 668.765625,
+          "left": 940.0625
+        }
+      },
+      {
+        "text": "Male adventurer 12",
+        "rect": {
+          "x": 1040.453125,
+          "y": 576.765625,
+          "width": 92,
+          "height": 92,
+          "top": 576.765625,
+          "right": 1132.453125,
+          "bottom": 668.765625,
+          "left": 1040.453125
+        }
+      },
+      {
+        "text": "Character name",
+        "rect": {
+          "x": 1164.03125,
+          "y": 584.328125,
+          "width": 230.359375,
+          "height": 44,
+          "top": 584.328125,
+          "right": 1394.390625,
+          "bottom": 628.328125,
+          "left": 1164.03125
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 736.09375,
+          "y": 710.734375,
+          "width": 213.5,
+          "height": 30.28125,
+          "top": 710.734375,
+          "right": 949.59375,
+          "bottom": 741.015625,
+          "left": 736.09375
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 957.984375,
+          "y": 710.734375,
+          "width": 213.515625,
+          "height": 30.28125,
+          "top": 710.734375,
+          "right": 1171.5,
+          "bottom": 741.015625,
+          "left": 957.984375
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 1179.890625,
+          "y": 710.734375,
+          "width": 213.515625,
+          "height": 30.28125,
+          "top": 710.734375,
+          "right": 1393.40625,
+          "bottom": 741.015625,
+          "left": 1179.890625
+        }
+      },
+      {
+        "text": "Choose your discipline",
+        "rect": {
+          "x": 1161.4375,
+          "y": 763.796875,
+          "width": 232.96875,
+          "height": 44,
+          "top": 763.796875,
+          "right": 1394.40625,
+          "bottom": 807.796875,
+          "left": 1161.4375
+        }
+      }
+    ]
+  },
+  {
+    "route": "creation",
+    "state": "discipline",
+    "width": 1440,
+    "height": 900,
+    "overflowX": -15,
+    "overflowY": 0,
+    "controls": [
+      {
+        "text": "",
+        "rect": {
+          "x": 736.09375,
+          "y": 268.015625,
+          "width": 105.40625,
+          "height": 100.671875,
+          "top": 268.015625,
+          "right": 841.5,
+          "bottom": 368.6875,
+          "left": 736.09375
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 851.5,
+          "y": 268.015625,
+          "width": 105.40625,
+          "height": 100.671875,
+          "top": 268.015625,
+          "right": 956.90625,
+          "bottom": 368.6875,
+          "left": 851.5
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 966.90625,
+          "y": 268.015625,
+          "width": 105.40625,
+          "height": 100.671875,
+          "top": 268.015625,
+          "right": 1072.3125,
+          "bottom": 368.6875,
+          "left": 966.90625
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 736.09375,
+          "y": 378.6875,
+          "width": 105.40625,
+          "height": 100.671875,
+          "top": 378.6875,
+          "right": 841.5,
+          "bottom": 479.359375,
+          "left": 736.09375
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 851.5,
+          "y": 378.6875,
+          "width": 105.40625,
+          "height": 100.671875,
+          "top": 378.6875,
+          "right": 956.90625,
+          "bottom": 479.359375,
+          "left": 851.5
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 966.90625,
+          "y": 378.6875,
+          "width": 105.40625,
+          "height": 100.671875,
+          "top": 378.6875,
+          "right": 1072.3125,
+          "bottom": 479.359375,
+          "left": 966.90625
+        }
+      },
+      {
+        "text": "Decrease might bonus",
+        "rect": {
+          "x": 1301.421875,
+          "y": 406.421875,
+          "width": 32,
+          "height": 40,
+          "top": 406.421875,
+          "right": 1333.421875,
+          "bottom": 446.421875,
+          "left": 1301.421875
+        }
+      },
+      {
+        "text": "Increase might bonus",
+        "rect": {
+          "x": 1355.8125,
+          "y": 406.421875,
+          "width": 32,
+          "height": 40,
+          "top": 406.421875,
+          "right": 1387.8125,
+          "bottom": 446.421875,
+          "left": 1355.8125
+        }
+      },
+      {
+        "text": "Decrease finesse bonus",
+        "rect": {
+          "x": 1301.421875,
+          "y": 457.203125,
+          "width": 32,
+          "height": 40,
+          "top": 457.203125,
+          "right": 1333.421875,
+          "bottom": 497.203125,
+          "left": 1301.421875
+        }
+      },
+      {
+        "text": "Increase finesse bonus",
+        "rect": {
+          "x": 1355.8125,
+          "y": 457.203125,
+          "width": 32,
+          "height": 40,
+          "top": 457.203125,
+          "right": 1387.8125,
+          "bottom": 497.203125,
+          "left": 1355.8125
+        }
+      },
+      {
+        "text": "Decrease vitality bonus",
+        "rect": {
+          "x": 1301.421875,
+          "y": 507.984375,
+          "width": 32,
+          "height": 40,
+          "top": 507.984375,
+          "right": 1333.421875,
+          "bottom": 547.984375,
+          "left": 1301.421875
+        }
+      },
+      {
+        "text": "Increase vitality bonus",
+        "rect": {
+          "x": 1355.8125,
+          "y": 507.984375,
+          "width": 32,
+          "height": 40,
+          "top": 507.984375,
+          "right": 1387.8125,
+          "bottom": 547.984375,
+          "left": 1355.8125
+        }
+      },
+      {
+        "text": "Decrease agility bonus",
+        "rect": {
+          "x": 1301.421875,
+          "y": 558.765625,
+          "width": 32,
+          "height": 40,
+          "top": 558.765625,
+          "right": 1333.421875,
+          "bottom": 598.765625,
+          "left": 1301.421875
+        }
+      },
+      {
+        "text": "Increase agility bonus",
+        "rect": {
+          "x": 1355.8125,
+          "y": 558.765625,
+          "width": 32,
+          "height": 40,
+          "top": 558.765625,
+          "right": 1387.8125,
+          "bottom": 598.765625,
+          "left": 1355.8125
+        }
+      },
+      {
+        "text": "Decrease intellect bonus",
+        "rect": {
+          "x": 1301.421875,
+          "y": 609.546875,
+          "width": 32,
+          "height": 40,
+          "top": 609.546875,
+          "right": 1333.421875,
+          "bottom": 649.546875,
+          "left": 1301.421875
+        }
+      },
+      {
+        "text": "Increase intellect bonus",
+        "rect": {
+          "x": 1355.8125,
+          "y": 609.546875,
+          "width": 32,
+          "height": 40,
+          "top": 609.546875,
+          "right": 1387.8125,
+          "bottom": 649.546875,
+          "left": 1355.8125
+        }
+      },
+      {
+        "text": "Decrease resolve bonus",
+        "rect": {
+          "x": 1301.421875,
+          "y": 660.328125,
+          "width": 32,
+          "height": 40,
+          "top": 660.328125,
+          "right": 1333.421875,
+          "bottom": 700.328125,
+          "left": 1301.421875
+        }
+      },
+      {
+        "text": "Increase resolve bonus",
+        "rect": {
+          "x": 1355.8125,
+          "y": 660.328125,
+          "width": 32,
+          "height": 40,
+          "top": 660.328125,
+          "right": 1387.8125,
+          "bottom": 700.328125,
+          "left": 1355.8125
+        }
+      },
+      {
+        "text": "Back",
+        "rect": {
+          "x": 735.09375,
+          "y": 725.5,
+          "width": 75.9375,
+          "height": 44,
+          "top": 725.5,
+          "right": 811.03125,
+          "bottom": 769.5,
+          "left": 735.09375
+        }
+      },
+      {
+        "text": "Review character",
+        "rect": {
+          "x": 1207.65625,
+          "y": 725.5,
+          "width": 186.75,
+          "height": 44,
+          "top": 725.5,
+          "right": 1394.40625,
+          "bottom": 769.5,
+          "left": 1207.65625
+        }
+      }
+    ]
+  },
+  {
+    "route": "creation",
+    "state": "review",
+    "width": 1440,
+    "height": 900,
+    "overflowX": -15,
+    "overflowY": 0,
+    "controls": [
+      {
+        "text": "Back",
+        "rect": {
+          "x": 735.09375,
+          "y": 656.375,
+          "width": 75.9375,
+          "height": 44,
+          "top": 656.375,
+          "right": 811.03125,
+          "bottom": 700.375,
+          "left": 735.09375
+        }
+      },
+      {
+        "text": "Create character",
+        "rect": {
+          "x": 1212.28125,
+          "y": 656.375,
+          "width": 182.125,
+          "height": 44,
+          "top": 656.375,
+          "right": 1394.40625,
+          "bottom": 700.375,
+          "left": 1212.28125
+        }
+      }
+    ]
+  },
+  {
+    "route": "hall",
+    "state": "ai",
+    "width": 1920,
+    "height": 1080,
+    "overflowX": -15,
+    "overflowY": 0,
+    "controls": [
+      {
+        "text": "⚔AI Battles",
+        "rect": {
+          "x": 227,
+          "y": 209.765625,
+          "width": 167.25,
+          "height": 51.125,
+          "top": 209.765625,
+          "right": 394.25,
+          "bottom": 260.890625,
+          "left": 227
+        }
+      },
+      {
+        "text": "♟Player vs Player",
+        "rect": {
+          "x": 395.25,
+          "y": 209.765625,
+          "width": 167.25,
+          "height": 51.125,
+          "top": 209.765625,
+          "right": 562.5,
+          "bottom": 260.890625,
+          "left": 395.25
+        }
+      },
+      {
+        "text": "◉Spectate",
+        "rect": {
+          "x": 563.5,
+          "y": 209.765625,
+          "width": 167.25,
+          "height": 51.125,
+          "top": 209.765625,
+          "right": 730.75,
+          "bottom": 260.890625,
+          "left": 563.5
+        }
+      },
+      {
+        "text": "✧MatchmakingComing Soon",
+        "rect": {
+          "x": 731.75,
+          "y": 209.765625,
+          "width": 167.25,
+          "height": 51.125,
+          "top": 209.765625,
+          "right": 899,
+          "bottom": 260.890625,
+          "left": 731.75
+        }
+      },
+      {
+        "text": "AI sparring arena",
+        "rect": {
+          "x": 1053.328125,
+          "y": 863.9375,
+          "width": 381.265625,
+          "height": 40,
+          "top": 863.9375,
+          "right": 1434.59375,
+          "bottom": 903.9375,
+          "left": 1053.328125
+        }
+      },
+      {
+        "text": "Battle mode",
+        "rect": {
+          "x": 320.046875,
+          "y": 742.171875,
+          "width": 2,
+          "height": 2,
+          "top": 742.171875,
+          "right": 322.046875,
+          "bottom": 744.171875,
+          "left": 320.046875
+        }
+      },
+      {
+        "text": "⚔AI SparringCombine movement, AP management, targeting, terr",
+        "rect": {
+          "x": 241.59375,
+          "y": 742.171875,
+          "width": 740.5625,
+          "height": 56.390625,
+          "top": 742.171875,
+          "right": 982.15625,
+          "bottom": 798.5625,
+          "left": 241.59375
+        }
+      },
+      {
+        "text": "▣Guided FundamentalsLearn movement, Action Economy, attackin",
+        "rect": {
+          "x": 241.59375,
+          "y": 808.46875,
+          "width": 740.5625,
+          "height": 56.390625,
+          "top": 808.46875,
+          "right": 982.15625,
+          "bottom": 864.859375,
+          "left": 241.59375
+        }
+      },
+      {
+        "text": "★Discipline Mastery TrialWin using at least two different Pr",
+        "rect": {
+          "x": 241.59375,
+          "y": 874.765625,
+          "width": 740.5625,
+          "height": 67.25,
+          "top": 874.765625,
+          "right": 982.15625,
+          "bottom": 942.015625,
+          "left": 241.59375
+        }
+      },
+      {
+        "text": "Enter Battle",
+        "rect": {
+          "x": 1710.359375,
+          "y": 952.40625,
+          "width": 143.046875,
+          "height": 44,
+          "top": 952.40625,
+          "right": 1853.40625,
+          "bottom": 996.40625,
+          "left": 1710.359375
+        }
+      }
+    ]
+  },
+  {
+    "route": "hall",
+    "state": "pvp",
+    "width": 1920,
+    "height": 1080,
+    "overflowX": -15,
+    "overflowY": 0,
+    "controls": [
+      {
+        "text": "⚔AI Battles",
+        "rect": {
+          "x": 227,
+          "y": 209.765625,
+          "width": 167.25,
+          "height": 51.125,
+          "top": 209.765625,
+          "right": 394.25,
+          "bottom": 260.890625,
+          "left": 227
+        }
+      },
+      {
+        "text": "♟Player vs Player",
+        "rect": {
+          "x": 395.25,
+          "y": 209.765625,
+          "width": 167.25,
+          "height": 51.125,
+          "top": 209.765625,
+          "right": 562.5,
+          "bottom": 260.890625,
+          "left": 395.25
+        }
+      },
+      {
+        "text": "◉Spectate",
+        "rect": {
+          "x": 563.5,
+          "y": 209.765625,
+          "width": 167.25,
+          "height": 51.125,
+          "top": 209.765625,
+          "right": 730.75,
+          "bottom": 260.890625,
+          "left": 563.5
+        }
+      },
+      {
+        "text": "✧MatchmakingComing Soon",
+        "rect": {
+          "x": 731.75,
+          "y": 209.765625,
+          "width": 167.25,
+          "height": 51.125,
+          "top": 209.765625,
+          "right": 899,
+          "bottom": 260.890625,
+          "left": 731.75
+        }
+      },
+      {
+        "text": "Create Lobby",
+        "rect": {
+          "x": 243.984375,
+          "y": 616.625,
+          "width": 800.71875,
+          "height": 40,
+          "top": 616.625,
+          "right": 1044.703125,
+          "bottom": 656.625,
+          "left": 243.984375
+        }
+      },
+      {
+        "text": "Join by Key",
+        "rect": {
+          "x": 1050.296875,
+          "y": 616.625,
+          "width": 800.71875,
+          "height": 40,
+          "top": 616.625,
+          "right": 1851.015625,
+          "bottom": 656.625,
+          "left": 1050.296875
+        }
+      },
+      {
+        "text": "pvp-mode",
+        "rect": {
+          "x": 355.984375,
+          "y": 664.296875,
+          "width": 1485.03125,
+          "height": 40,
+          "top": 664.296875,
+          "right": 1841.015625,
+          "bottom": 704.296875,
+          "left": 355.984375
+        }
+      },
+      {
+        "text": "Standard",
+        "rect": {
+          "x": 243.984375,
+          "y": 760.328125,
+          "width": 394.734375,
+          "height": 40,
+          "top": 760.328125,
+          "right": 638.71875,
+          "bottom": 800.328125,
+          "left": 243.984375
+        }
+      },
+      {
+        "text": "Expanded",
+        "rect": {
+          "x": 642.546875,
+          "y": 760.328125,
+          "width": 394.75,
+          "height": 40,
+          "top": 760.328125,
+          "right": 1037.296875,
+          "bottom": 800.328125,
+          "left": 642.546875
+        }
+      },
+      {
+        "text": "Less",
+        "rect": {
+          "x": 1047.6875,
+          "y": 760.328125,
+          "width": 261.890625,
+          "height": 40,
+          "top": 760.328125,
+          "right": 1309.578125,
+          "bottom": 800.328125,
+          "left": 1047.6875
+        }
+      },
+      {
+        "text": "Neutral",
+        "rect": {
+          "x": 1313.40625,
+          "y": 760.328125,
+          "width": 261.890625,
+          "height": 40,
+          "top": 760.328125,
+          "right": 1575.296875,
+          "bottom": 800.328125,
+          "left": 1313.40625
+        }
+      },
+      {
+        "text": "More",
+        "rect": {
+          "x": 1579.125,
+          "y": 760.328125,
+          "width": 261.890625,
+          "height": 40,
+          "top": 760.328125,
+          "right": 1841.015625,
+          "bottom": 800.328125,
+          "left": 1579.125
+        }
+      },
+      {
+        "text": "Less",
+        "rect": {
+          "x": 243.984375,
+          "y": 827.109375,
+          "width": 261.875,
+          "height": 40,
+          "top": 827.109375,
+          "right": 505.859375,
+          "bottom": 867.109375,
+          "left": 243.984375
+        }
+      },
+      {
+        "text": "Neutral",
+        "rect": {
+          "x": 509.6875,
+          "y": 827.109375,
+          "width": 261.890625,
+          "height": 40,
+          "top": 827.109375,
+          "right": 771.578125,
+          "bottom": 867.109375,
+          "left": 509.6875
+        }
+      },
+      {
+        "text": "More",
+        "rect": {
+          "x": 775.40625,
+          "y": 827.109375,
+          "width": 261.890625,
+          "height": 40,
+          "top": 827.109375,
+          "right": 1037.296875,
+          "bottom": 867.109375,
+          "left": 775.40625
+        }
+      },
+      {
+        "text": "60 second turn timer",
+        "rect": {
+          "x": 1047.6875,
+          "y": 827.109375,
+          "width": 261.890625,
+          "height": 40,
+          "top": 827.109375,
+          "right": 1309.578125,
+          "bottom": 867.109375,
+          "left": 1047.6875
+        }
+      },
+      {
+        "text": "120 second turn timer",
+        "rect": {
+          "x": 1313.40625,
+          "y": 827.109375,
+          "width": 261.890625,
+          "height": 40,
+          "top": 827.109375,
+          "right": 1575.296875,
+          "bottom": 867.109375,
+          "left": 1313.40625
+        }
+      },
+      {
+        "text": "No turn timer",
+        "rect": {
+          "x": 1579.125,
+          "y": 827.109375,
+          "width": 261.890625,
+          "height": 40,
+          "top": 827.109375,
+          "right": 1841.015625,
+          "bottom": 867.109375,
+          "left": 1579.125
+        }
+      },
+      {
+        "text": "Create Battle Lobby",
+        "rect": {
+          "x": 1634.875,
+          "y": 950.015625,
+          "width": 216.140625,
+          "height": 44,
+          "top": 950.015625,
+          "right": 1851.015625,
+          "bottom": 994.015625,
+          "left": 1634.875
+        }
+      }
+    ]
+  },
+  {
+    "route": "hall",
+    "state": "spectate",
+    "width": 1920,
+    "height": 1080,
+    "overflowX": -15,
+    "overflowY": 0,
+    "controls": [
+      {
+        "text": "⚔AI Battles",
+        "rect": {
+          "x": 227,
+          "y": 209.765625,
+          "width": 167.25,
+          "height": 51.125,
+          "top": 209.765625,
+          "right": 394.25,
+          "bottom": 260.890625,
+          "left": 227
+        }
+      },
+      {
+        "text": "♟Player vs Player",
+        "rect": {
+          "x": 395.25,
+          "y": 209.765625,
+          "width": 167.25,
+          "height": 51.125,
+          "top": 209.765625,
+          "right": 562.5,
+          "bottom": 260.890625,
+          "left": 395.25
+        }
+      },
+      {
+        "text": "◉Spectate",
+        "rect": {
+          "x": 563.5,
+          "y": 209.765625,
+          "width": 167.25,
+          "height": 51.125,
+          "top": 209.765625,
+          "right": 730.75,
+          "bottom": 260.890625,
+          "left": 563.5
+        }
+      },
+      {
+        "text": "✧MatchmakingComing Soon",
+        "rect": {
+          "x": 731.75,
+          "y": 209.765625,
+          "width": 167.25,
+          "height": 51.125,
+          "top": 209.765625,
+          "right": 899,
+          "bottom": 260.890625,
+          "left": 731.75
+        }
+      },
+      {
+        "text": "Battle Key",
+        "rect": {
+          "x": 698.5,
+          "y": 739.546875,
+          "width": 688,
+          "height": 40,
+          "top": 739.546875,
+          "right": 1386.5,
+          "bottom": 779.546875,
+          "left": 698.5
+        }
+      },
+      {
+        "text": "Spectate Battle",
+        "rect": {
+          "x": 698.5,
+          "y": 786.265625,
+          "width": 688,
+          "height": 43.1875,
+          "top": 786.265625,
+          "right": 1386.5,
+          "bottom": 829.453125,
+          "left": 698.5
+        }
+      }
+    ]
+  },
+  {
+    "route": "creation",
+    "state": "identity",
+    "width": 1920,
+    "height": 1080,
+    "overflowX": -15,
+    "overflowY": 0,
+    "controls": [
+      {
+        "text": "",
+        "rect": {
+          "x": 1051.078125,
+          "y": 284.015625,
+          "width": 13,
+          "height": 13,
+          "top": 284.015625,
+          "right": 1064.078125,
+          "bottom": 297.015625,
+          "left": 1051.078125
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 1253,
+          "y": 284.015625,
+          "width": 13,
+          "height": 13,
+          "top": 284.015625,
+          "right": 1266,
+          "bottom": 297.015625,
+          "left": 1253
+        }
+      },
+      {
+        "text": "Male adventurer 01",
+        "rect": {
+          "x": 979.28125,
+          "y": 375.984375,
+          "width": 95.65625,
+          "height": 95.65625,
+          "top": 375.984375,
+          "right": 1074.9375,
+          "bottom": 471.640625,
+          "left": 979.28125
+        }
+      },
+      {
+        "text": "Male adventurer 02",
+        "rect": {
+          "x": 1083.328125,
+          "y": 375.984375,
+          "width": 95.65625,
+          "height": 95.65625,
+          "top": 375.984375,
+          "right": 1178.984375,
+          "bottom": 471.640625,
+          "left": 1083.328125
+        }
+      },
+      {
+        "text": "Male adventurer 03",
+        "rect": {
+          "x": 1187.375,
+          "y": 375.984375,
+          "width": 95.65625,
+          "height": 95.65625,
+          "top": 375.984375,
+          "right": 1283.03125,
+          "bottom": 471.640625,
+          "left": 1187.375
+        }
+      },
+      {
+        "text": "Male adventurer 04",
+        "rect": {
+          "x": 1291.421875,
+          "y": 375.984375,
+          "width": 95.65625,
+          "height": 95.65625,
+          "top": 375.984375,
+          "right": 1387.078125,
+          "bottom": 471.640625,
+          "left": 1291.421875
+        }
+      },
+      {
+        "text": "Male adventurer 05",
+        "rect": {
+          "x": 979.28125,
+          "y": 480.03125,
+          "width": 95.65625,
+          "height": 95.65625,
+          "top": 480.03125,
+          "right": 1074.9375,
+          "bottom": 575.6875,
+          "left": 979.28125
+        }
+      },
+      {
+        "text": "Male adventurer 06",
+        "rect": {
+          "x": 1083.328125,
+          "y": 480.03125,
+          "width": 95.65625,
+          "height": 95.65625,
+          "top": 480.03125,
+          "right": 1178.984375,
+          "bottom": 575.6875,
+          "left": 1083.328125
+        }
+      },
+      {
+        "text": "Male adventurer 07",
+        "rect": {
+          "x": 1187.375,
+          "y": 480.03125,
+          "width": 95.65625,
+          "height": 95.65625,
+          "top": 480.03125,
+          "right": 1283.03125,
+          "bottom": 575.6875,
+          "left": 1187.375
+        }
+      },
+      {
+        "text": "Male adventurer 08",
+        "rect": {
+          "x": 1291.421875,
+          "y": 480.03125,
+          "width": 95.65625,
+          "height": 95.65625,
+          "top": 480.03125,
+          "right": 1387.078125,
+          "bottom": 575.6875,
+          "left": 1291.421875
+        }
+      },
+      {
+        "text": "Male adventurer 09",
+        "rect": {
+          "x": 979.28125,
+          "y": 584.078125,
+          "width": 95.65625,
+          "height": 95.65625,
+          "top": 584.078125,
+          "right": 1074.9375,
+          "bottom": 679.734375,
+          "left": 979.28125
+        }
+      },
+      {
+        "text": "Male adventurer 10",
+        "rect": {
+          "x": 1083.328125,
+          "y": 584.078125,
+          "width": 95.65625,
+          "height": 95.65625,
+          "top": 584.078125,
+          "right": 1178.984375,
+          "bottom": 679.734375,
+          "left": 1083.328125
+        }
+      },
+      {
+        "text": "Male adventurer 11",
+        "rect": {
+          "x": 1187.375,
+          "y": 584.078125,
+          "width": 95.65625,
+          "height": 95.65625,
+          "top": 584.078125,
+          "right": 1283.03125,
+          "bottom": 679.734375,
+          "left": 1187.375
+        }
+      },
+      {
+        "text": "Male adventurer 12",
+        "rect": {
+          "x": 1291.421875,
+          "y": 584.078125,
+          "width": 95.65625,
+          "height": 95.65625,
+          "top": 584.078125,
+          "right": 1387.078125,
+          "bottom": 679.734375,
+          "left": 1291.421875
+        }
+      },
+      {
+        "text": "Character name",
+        "rect": {
+          "x": 1418.65625,
+          "y": 593.203125,
+          "width": 239.234375,
+          "height": 44,
+          "top": 593.203125,
+          "right": 1657.890625,
+          "bottom": 637.203125,
+          "left": 1418.65625
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 976.09375,
+          "y": 721.703125,
+          "width": 221.34375,
+          "height": 30.28125,
+          "top": 721.703125,
+          "right": 1197.4375,
+          "bottom": 751.984375,
+          "left": 976.09375
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 1205.828125,
+          "y": 721.703125,
+          "width": 221.34375,
+          "height": 30.28125,
+          "top": 721.703125,
+          "right": 1427.171875,
+          "bottom": 751.984375,
+          "left": 1205.828125
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 1435.5625,
+          "y": 721.703125,
+          "width": 221.34375,
+          "height": 30.28125,
+          "top": 721.703125,
+          "right": 1656.90625,
+          "bottom": 751.984375,
+          "left": 1435.5625
+        }
+      },
+      {
+        "text": "Choose your discipline",
+        "rect": {
+          "x": 1424.9375,
+          "y": 774.765625,
+          "width": 232.96875,
+          "height": 44,
+          "top": 774.765625,
+          "right": 1657.90625,
+          "bottom": 818.765625,
+          "left": 1424.9375
+        }
+      }
+    ]
+  },
+  {
+    "route": "creation",
+    "state": "discipline",
+    "width": 1920,
+    "height": 1080,
+    "overflowX": -15,
+    "overflowY": 0,
+    "controls": [
+      {
+        "text": "",
+        "rect": {
+          "x": 976.09375,
+          "y": 268.015625,
+          "width": 109.5,
+          "height": 100.671875,
+          "top": 268.015625,
+          "right": 1085.59375,
+          "bottom": 368.6875,
+          "left": 976.09375
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 1095.59375,
+          "y": 268.015625,
+          "width": 109.515625,
+          "height": 100.671875,
+          "top": 268.015625,
+          "right": 1205.109375,
+          "bottom": 368.6875,
+          "left": 1095.59375
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 1215.109375,
+          "y": 268.015625,
+          "width": 109.5,
+          "height": 100.671875,
+          "top": 268.015625,
+          "right": 1324.609375,
+          "bottom": 368.6875,
+          "left": 1215.109375
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 976.09375,
+          "y": 378.6875,
+          "width": 109.5,
+          "height": 100.671875,
+          "top": 378.6875,
+          "right": 1085.59375,
+          "bottom": 479.359375,
+          "left": 976.09375
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 1095.59375,
+          "y": 378.6875,
+          "width": 109.515625,
+          "height": 100.671875,
+          "top": 378.6875,
+          "right": 1205.109375,
+          "bottom": 479.359375,
+          "left": 1095.59375
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 1215.109375,
+          "y": 378.6875,
+          "width": 109.5,
+          "height": 100.671875,
+          "top": 378.6875,
+          "right": 1324.609375,
+          "bottom": 479.359375,
+          "left": 1215.109375
+        }
+      },
+      {
+        "text": "Decrease might bonus",
+        "rect": {
+          "x": 1564.921875,
+          "y": 406.421875,
+          "width": 32,
+          "height": 40,
+          "top": 406.421875,
+          "right": 1596.921875,
+          "bottom": 446.421875,
+          "left": 1564.921875
+        }
+      },
+      {
+        "text": "Increase might bonus",
+        "rect": {
+          "x": 1619.3125,
+          "y": 406.421875,
+          "width": 32,
+          "height": 40,
+          "top": 406.421875,
+          "right": 1651.3125,
+          "bottom": 446.421875,
+          "left": 1619.3125
+        }
+      },
+      {
+        "text": "Decrease finesse bonus",
+        "rect": {
+          "x": 1564.921875,
+          "y": 457.203125,
+          "width": 32,
+          "height": 40,
+          "top": 457.203125,
+          "right": 1596.921875,
+          "bottom": 497.203125,
+          "left": 1564.921875
+        }
+      },
+      {
+        "text": "Increase finesse bonus",
+        "rect": {
+          "x": 1619.3125,
+          "y": 457.203125,
+          "width": 32,
+          "height": 40,
+          "top": 457.203125,
+          "right": 1651.3125,
+          "bottom": 497.203125,
+          "left": 1619.3125
+        }
+      },
+      {
+        "text": "Decrease vitality bonus",
+        "rect": {
+          "x": 1564.921875,
+          "y": 507.984375,
+          "width": 32,
+          "height": 40,
+          "top": 507.984375,
+          "right": 1596.921875,
+          "bottom": 547.984375,
+          "left": 1564.921875
+        }
+      },
+      {
+        "text": "Increase vitality bonus",
+        "rect": {
+          "x": 1619.3125,
+          "y": 507.984375,
+          "width": 32,
+          "height": 40,
+          "top": 507.984375,
+          "right": 1651.3125,
+          "bottom": 547.984375,
+          "left": 1619.3125
+        }
+      },
+      {
+        "text": "Decrease agility bonus",
+        "rect": {
+          "x": 1564.921875,
+          "y": 558.765625,
+          "width": 32,
+          "height": 40,
+          "top": 558.765625,
+          "right": 1596.921875,
+          "bottom": 598.765625,
+          "left": 1564.921875
+        }
+      },
+      {
+        "text": "Increase agility bonus",
+        "rect": {
+          "x": 1619.3125,
+          "y": 558.765625,
+          "width": 32,
+          "height": 40,
+          "top": 558.765625,
+          "right": 1651.3125,
+          "bottom": 598.765625,
+          "left": 1619.3125
+        }
+      },
+      {
+        "text": "Decrease intellect bonus",
+        "rect": {
+          "x": 1564.921875,
+          "y": 609.546875,
+          "width": 32,
+          "height": 40,
+          "top": 609.546875,
+          "right": 1596.921875,
+          "bottom": 649.546875,
+          "left": 1564.921875
+        }
+      },
+      {
+        "text": "Increase intellect bonus",
+        "rect": {
+          "x": 1619.3125,
+          "y": 609.546875,
+          "width": 32,
+          "height": 40,
+          "top": 609.546875,
+          "right": 1651.3125,
+          "bottom": 649.546875,
+          "left": 1619.3125
+        }
+      },
+      {
+        "text": "Decrease resolve bonus",
+        "rect": {
+          "x": 1564.921875,
+          "y": 660.328125,
+          "width": 32,
+          "height": 40,
+          "top": 660.328125,
+          "right": 1596.921875,
+          "bottom": 700.328125,
+          "left": 1564.921875
+        }
+      },
+      {
+        "text": "Increase resolve bonus",
+        "rect": {
+          "x": 1619.3125,
+          "y": 660.328125,
+          "width": 32,
+          "height": 40,
+          "top": 660.328125,
+          "right": 1651.3125,
+          "bottom": 700.328125,
+          "left": 1619.3125
+        }
+      },
+      {
+        "text": "Back",
+        "rect": {
+          "x": 975.09375,
+          "y": 725.5,
+          "width": 75.9375,
+          "height": 44,
+          "top": 725.5,
+          "right": 1051.03125,
+          "bottom": 769.5,
+          "left": 975.09375
+        }
+      },
+      {
+        "text": "Review character",
+        "rect": {
+          "x": 1471.15625,
+          "y": 725.5,
+          "width": 186.75,
+          "height": 44,
+          "top": 725.5,
+          "right": 1657.90625,
+          "bottom": 769.5,
+          "left": 1471.15625
+        }
+      }
+    ]
+  },
+  {
+    "route": "creation",
+    "state": "review",
+    "width": 1920,
+    "height": 1080,
+    "overflowX": -15,
+    "overflowY": 0,
+    "controls": [
+      {
+        "text": "Back",
+        "rect": {
+          "x": 975.09375,
+          "y": 656.375,
+          "width": 75.9375,
+          "height": 44,
+          "top": 656.375,
+          "right": 1051.03125,
+          "bottom": 700.375,
+          "left": 975.09375
+        }
+      },
+      {
+        "text": "Create character",
+        "rect": {
+          "x": 1475.78125,
+          "y": 656.375,
+          "width": 182.125,
+          "height": 44,
+          "top": 656.375,
+          "right": 1657.90625,
+          "bottom": 700.375,
+          "left": 1475.78125
+        }
+      }
+    ]
+  },
+  {
+    "route": "hall",
+    "state": "ai",
+    "width": 390,
+    "height": 844,
+    "overflowX": -15,
+    "overflowY": 382,
+    "controls": [
+      {
+        "text": "⚔AI Battles",
+        "rect": {
+          "x": 23.390625,
+          "y": 254.4375,
+          "width": 163.609375,
+          "height": 50.796875,
+          "top": 254.4375,
+          "right": 187,
+          "bottom": 305.234375,
+          "left": 23.390625
+        }
+      },
+      {
+        "text": "♟Player vs Player",
+        "rect": {
+          "x": 188,
+          "y": 254.4375,
+          "width": 163.609375,
+          "height": 50.796875,
+          "top": 254.4375,
+          "right": 351.609375,
+          "bottom": 305.234375,
+          "left": 188
+        }
+      },
+      {
+        "text": "◉Spectate",
+        "rect": {
+          "x": 23.390625,
+          "y": 306.234375,
+          "width": 163.609375,
+          "height": 69.828125,
+          "top": 306.234375,
+          "right": 187,
+          "bottom": 376.0625,
+          "left": 23.390625
+        }
+      },
+      {
+        "text": "✧MatchmakingComing Soon",
+        "rect": {
+          "x": 188,
+          "y": 306.234375,
+          "width": 163.609375,
+          "height": 69.828125,
+          "top": 306.234375,
+          "right": 351.609375,
+          "bottom": 376.0625,
+          "left": 188
+        }
+      },
+      {
+        "text": "AI sparring arena",
+        "rect": {
+          "x": 99.5625,
+          "y": 569.84375,
+          "width": 237.453125,
+          "height": 44,
+          "top": 569.84375,
+          "right": 337.015625,
+          "bottom": 613.84375,
+          "left": 99.5625
+        }
+      },
+      {
+        "text": "Battle mode",
+        "rect": {
+          "x": 136.0625,
+          "y": 623.4375,
+          "width": 2,
+          "height": 44,
+          "top": 623.4375,
+          "right": 138.0625,
+          "bottom": 667.4375,
+          "left": 136.0625
+        }
+      },
+      {
+        "text": "⚔AI SparringCombine movement, AP management, targeting, terr",
+        "rect": {
+          "x": 37.984375,
+          "y": 623.4375,
+          "width": 299.03125,
+          "height": 103.25,
+          "top": 623.4375,
+          "right": 337.015625,
+          "bottom": 726.6875,
+          "left": 37.984375
+        }
+      },
+      {
+        "text": "▣Guided FundamentalsLearn movement, Action Economy, attackin",
+        "rect": {
+          "x": 37.984375,
+          "y": 736.59375,
+          "width": 299.03125,
+          "height": 103.25,
+          "top": 736.59375,
+          "right": 337.015625,
+          "bottom": 839.84375,
+          "left": 37.984375
+        }
+      },
+      {
+        "text": "★Discipline Mastery TrialWin using at least two different Pr",
+        "rect": {
+          "x": 37.984375,
+          "y": 849.75,
+          "width": 299.03125,
+          "height": 103.25,
+          "top": 849.75,
+          "right": 337.015625,
+          "bottom": 953,
+          "left": 37.984375
+        }
+      },
+      {
+        "text": "Enter Battle",
+        "rect": {
+          "x": 201.65625,
+          "y": 1035.984375,
+          "width": 135.359375,
+          "height": 44,
+          "top": 1035.984375,
+          "right": 337.015625,
+          "bottom": 1079.984375,
+          "left": 201.65625
+        }
+      }
+    ]
+  },
+  {
+    "route": "hall",
+    "state": "pvp",
+    "width": 390,
+    "height": 844,
+    "overflowX": -15,
+    "overflowY": 377,
+    "controls": [
+      {
+        "text": "⚔AI Battles",
+        "rect": {
+          "x": 23.390625,
+          "y": 254.4375,
+          "width": 163.609375,
+          "height": 50.796875,
+          "top": 254.4375,
+          "right": 187,
+          "bottom": 305.234375,
+          "left": 23.390625
+        }
+      },
+      {
+        "text": "♟Player vs Player",
+        "rect": {
+          "x": 188,
+          "y": 254.4375,
+          "width": 163.609375,
+          "height": 50.796875,
+          "top": 254.4375,
+          "right": 351.609375,
+          "bottom": 305.234375,
+          "left": 188
+        }
+      },
+      {
+        "text": "◉Spectate",
+        "rect": {
+          "x": 23.390625,
+          "y": 306.234375,
+          "width": 163.609375,
+          "height": 69.828125,
+          "top": 306.234375,
+          "right": 187,
+          "bottom": 376.0625,
+          "left": 23.390625
+        }
+      },
+      {
+        "text": "✧MatchmakingComing Soon",
+        "rect": {
+          "x": 188,
+          "y": 306.234375,
+          "width": 163.609375,
+          "height": 69.828125,
+          "top": 306.234375,
+          "right": 351.609375,
+          "bottom": 376.0625,
+          "left": 188
+        }
+      },
+      {
+        "text": "Create Lobby",
+        "rect": {
+          "x": 40.375,
+          "y": 478.21875,
+          "width": 144.328125,
+          "height": 40,
+          "top": 478.21875,
+          "right": 184.703125,
+          "bottom": 518.21875,
+          "left": 40.375
+        }
+      },
+      {
+        "text": "Join by Key",
+        "rect": {
+          "x": 190.296875,
+          "y": 478.21875,
+          "width": 144.328125,
+          "height": 40,
+          "top": 478.21875,
+          "right": 334.625,
+          "bottom": 518.21875,
+          "left": 190.296875
+        }
+      },
+      {
+        "text": "pvp-mode",
+        "rect": {
+          "x": 40.375,
+          "y": 547.890625,
+          "width": 294.25,
+          "height": 44,
+          "top": 547.890625,
+          "right": 334.625,
+          "bottom": 591.890625,
+          "left": 40.375
+        }
+      },
+      {
+        "text": "Standard",
+        "rect": {
+          "x": 40.375,
+          "y": 648.625,
+          "width": 145.203125,
+          "height": 40,
+          "top": 648.625,
+          "right": 185.578125,
+          "bottom": 688.625,
+          "left": 40.375
+        }
+      },
+      {
+        "text": "Expanded",
+        "rect": {
+          "x": 189.40625,
+          "y": 648.625,
+          "width": 145.21875,
+          "height": 40,
+          "top": 648.625,
+          "right": 334.625,
+          "bottom": 688.625,
+          "left": 189.40625
+        }
+      },
+      {
+        "text": "Less",
+        "rect": {
+          "x": 40.375,
+          "y": 715.40625,
+          "width": 95.53125,
+          "height": 40,
+          "top": 715.40625,
+          "right": 135.90625,
+          "bottom": 755.40625,
+          "left": 40.375
+        }
+      },
+      {
+        "text": "Neutral",
+        "rect": {
+          "x": 139.734375,
+          "y": 715.40625,
+          "width": 95.53125,
+          "height": 40,
+          "top": 715.40625,
+          "right": 235.265625,
+          "bottom": 755.40625,
+          "left": 139.734375
+        }
+      },
+      {
+        "text": "More",
+        "rect": {
+          "x": 239.09375,
+          "y": 715.40625,
+          "width": 95.53125,
+          "height": 40,
+          "top": 715.40625,
+          "right": 334.625,
+          "bottom": 755.40625,
+          "left": 239.09375
+        }
+      },
+      {
+        "text": "Less",
+        "rect": {
+          "x": 40.375,
+          "y": 782.1875,
+          "width": 95.53125,
+          "height": 40,
+          "top": 782.1875,
+          "right": 135.90625,
+          "bottom": 822.1875,
+          "left": 40.375
+        }
+      },
+      {
+        "text": "Neutral",
+        "rect": {
+          "x": 139.734375,
+          "y": 782.1875,
+          "width": 95.53125,
+          "height": 40,
+          "top": 782.1875,
+          "right": 235.265625,
+          "bottom": 822.1875,
+          "left": 139.734375
+        }
+      },
+      {
+        "text": "More",
+        "rect": {
+          "x": 239.09375,
+          "y": 782.1875,
+          "width": 95.53125,
+          "height": 40,
+          "top": 782.1875,
+          "right": 334.625,
+          "bottom": 822.1875,
+          "left": 239.09375
+        }
+      },
+      {
+        "text": "60 second turn timer",
+        "rect": {
+          "x": 40.375,
+          "y": 848.96875,
+          "width": 95.53125,
+          "height": 40,
+          "top": 848.96875,
+          "right": 135.90625,
+          "bottom": 888.96875,
+          "left": 40.375
+        }
+      },
+      {
+        "text": "120 second turn timer",
+        "rect": {
+          "x": 139.734375,
+          "y": 848.96875,
+          "width": 95.53125,
+          "height": 40,
+          "top": 848.96875,
+          "right": 235.265625,
+          "bottom": 888.96875,
+          "left": 139.734375
+        }
+      },
+      {
+        "text": "No turn timer",
+        "rect": {
+          "x": 239.09375,
+          "y": 848.96875,
+          "width": 95.53125,
+          "height": 40,
+          "top": 848.96875,
+          "right": 334.625,
+          "bottom": 888.96875,
+          "left": 239.09375
+        }
+      },
+      {
+        "text": "Create Battle Lobby",
+        "rect": {
+          "x": 130.640625,
+          "y": 1012.484375,
+          "width": 203.984375,
+          "height": 44,
+          "top": 1012.484375,
+          "right": 334.625,
+          "bottom": 1056.484375,
+          "left": 130.640625
+        }
+      }
+    ]
+  },
+  {
+    "route": "hall",
+    "state": "spectate",
+    "width": 390,
+    "height": 844,
+    "overflowX": -15,
+    "overflowY": 208,
+    "controls": [
+      {
+        "text": "⚔AI Battles",
+        "rect": {
+          "x": 23.390625,
+          "y": 254.4375,
+          "width": 163.609375,
+          "height": 50.796875,
+          "top": 254.4375,
+          "right": 187,
+          "bottom": 305.234375,
+          "left": 23.390625
+        }
+      },
+      {
+        "text": "♟Player vs Player",
+        "rect": {
+          "x": 188,
+          "y": 254.4375,
+          "width": 163.609375,
+          "height": 50.796875,
+          "top": 254.4375,
+          "right": 351.609375,
+          "bottom": 305.234375,
+          "left": 188
+        }
+      },
+      {
+        "text": "◉Spectate",
+        "rect": {
+          "x": 23.390625,
+          "y": 306.234375,
+          "width": 163.609375,
+          "height": 69.828125,
+          "top": 306.234375,
+          "right": 187,
+          "bottom": 376.0625,
+          "left": 23.390625
+        }
+      },
+      {
+        "text": "✧MatchmakingComing Soon",
+        "rect": {
+          "x": 188,
+          "y": 306.234375,
+          "width": 163.609375,
+          "height": 69.828125,
+          "top": 306.234375,
+          "right": 351.609375,
+          "bottom": 376.0625,
+          "left": 188
+        }
+      },
+      {
+        "text": "Battle Key",
+        "rect": {
+          "x": 37.984375,
+          "y": 582.984375,
+          "width": 299.03125,
+          "height": 44,
+          "top": 582.984375,
+          "right": 337.015625,
+          "bottom": 626.984375,
+          "left": 37.984375
+        }
+      },
+      {
+        "text": "Spectate Battle",
+        "rect": {
+          "x": 37.984375,
+          "y": 633.703125,
+          "width": 299.03125,
+          "height": 43.1875,
+          "top": 633.703125,
+          "right": 337.015625,
+          "bottom": 676.890625,
+          "left": 37.984375
+        }
+      }
+    ]
+  },
+  {
+    "route": "creation",
+    "state": "identity",
+    "width": 390,
+    "height": 844,
+    "overflowX": -15,
+    "overflowY": 404,
+    "controls": [
+      {
+        "text": "",
+        "rect": {
+          "x": 77.1875,
+          "y": 597.4375,
+          "width": 13,
+          "height": 13,
+          "top": 597.4375,
+          "right": 90.1875,
+          "bottom": 610.4375,
+          "left": 77.1875
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 235.515625,
+          "y": 597.4375,
+          "width": 13,
+          "height": 13,
+          "top": 597.4375,
+          "right": 248.515625,
+          "bottom": 610.4375,
+          "left": 235.515625
+        }
+      },
+      {
+        "text": "Male adventurer 01",
+        "rect": {
+          "x": 27.1875,
+          "y": 693.609375,
+          "width": 73.859375,
+          "height": 73.859375,
+          "top": 693.609375,
+          "right": 101.046875,
+          "bottom": 767.46875,
+          "left": 27.1875
+        }
+      },
+      {
+        "text": "Male adventurer 02",
+        "rect": {
+          "x": 109.4375,
+          "y": 693.609375,
+          "width": 73.859375,
+          "height": 73.859375,
+          "top": 693.609375,
+          "right": 183.296875,
+          "bottom": 767.46875,
+          "left": 109.4375
+        }
+      },
+      {
+        "text": "Male adventurer 03",
+        "rect": {
+          "x": 191.6875,
+          "y": 693.609375,
+          "width": 73.859375,
+          "height": 73.859375,
+          "top": 693.609375,
+          "right": 265.546875,
+          "bottom": 767.46875,
+          "left": 191.6875
+        }
+      },
+      {
+        "text": "Male adventurer 04",
+        "rect": {
+          "x": 273.9375,
+          "y": 693.609375,
+          "width": 73.875,
+          "height": 73.875,
+          "top": 693.609375,
+          "right": 347.8125,
+          "bottom": 767.484375,
+          "left": 273.9375
+        }
+      },
+      {
+        "text": "Male adventurer 05",
+        "rect": {
+          "x": 27.1875,
+          "y": 775.875,
+          "width": 73.859375,
+          "height": 73.859375,
+          "top": 775.875,
+          "right": 101.046875,
+          "bottom": 849.734375,
+          "left": 27.1875
+        }
+      },
+      {
+        "text": "Male adventurer 06",
+        "rect": {
+          "x": 109.4375,
+          "y": 775.875,
+          "width": 73.859375,
+          "height": 73.859375,
+          "top": 775.875,
+          "right": 183.296875,
+          "bottom": 849.734375,
+          "left": 109.4375
+        }
+      },
+      {
+        "text": "Male adventurer 07",
+        "rect": {
+          "x": 191.6875,
+          "y": 775.875,
+          "width": 73.859375,
+          "height": 73.859375,
+          "top": 775.875,
+          "right": 265.546875,
+          "bottom": 849.734375,
+          "left": 191.6875
+        }
+      },
+      {
+        "text": "Male adventurer 08",
+        "rect": {
+          "x": 273.9375,
+          "y": 775.875,
+          "width": 73.875,
+          "height": 73.875,
+          "top": 775.875,
+          "right": 347.8125,
+          "bottom": 849.75,
+          "left": 273.9375
+        }
+      },
+      {
+        "text": "Male adventurer 09",
+        "rect": {
+          "x": 27.1875,
+          "y": 858.140625,
+          "width": 73.859375,
+          "height": 73.859375,
+          "top": 858.140625,
+          "right": 101.046875,
+          "bottom": 932,
+          "left": 27.1875
+        }
+      },
+      {
+        "text": "Male adventurer 10",
+        "rect": {
+          "x": 109.4375,
+          "y": 858.140625,
+          "width": 73.859375,
+          "height": 73.859375,
+          "top": 858.140625,
+          "right": 183.296875,
+          "bottom": 932,
+          "left": 109.4375
+        }
+      },
+      {
+        "text": "Male adventurer 11",
+        "rect": {
+          "x": 191.6875,
+          "y": 858.140625,
+          "width": 73.859375,
+          "height": 73.859375,
+          "top": 858.140625,
+          "right": 265.546875,
+          "bottom": 932,
+          "left": 191.6875
+        }
+      },
+      {
+        "text": "Male adventurer 12",
+        "rect": {
+          "x": 273.9375,
+          "y": 858.140625,
+          "width": 73.875,
+          "height": 73.875,
+          "top": 858.140625,
+          "right": 347.8125,
+          "bottom": 932.015625,
+          "left": 273.9375
+        }
+      },
+      {
+        "text": "Character name",
+        "rect": {
+          "x": 23,
+          "y": 473.875,
+          "width": 329,
+          "height": 44,
+          "top": 473.875,
+          "right": 352,
+          "bottom": 517.875,
+          "left": 23
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 24,
+          "y": 976.390625,
+          "width": 327,
+          "height": 33.5,
+          "top": 976.390625,
+          "right": 351,
+          "bottom": 1009.890625,
+          "left": 24
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 24,
+          "y": 1018.28125,
+          "width": 327,
+          "height": 33.5,
+          "top": 1018.28125,
+          "right": 351,
+          "bottom": 1051.78125,
+          "left": 24
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 24,
+          "y": 1060.171875,
+          "width": 327,
+          "height": 33.5,
+          "top": 1060.171875,
+          "right": 351,
+          "bottom": 1093.671875,
+          "left": 24
+        }
+      },
+      {
+        "text": "Choose your discipline",
+        "rect": {
+          "x": 23,
+          "y": 1174.859375,
+          "width": 232.96875,
+          "height": 44,
+          "top": 1174.859375,
+          "right": 255.96875,
+          "bottom": 1218.859375,
+          "left": 23
+        }
+      }
+    ]
+  },
+  {
+    "route": "creation",
+    "state": "discipline",
+    "width": 390,
+    "height": 844,
+    "overflowX": -15,
+    "overflowY": 397,
+    "controls": [
+      {
+        "text": "",
+        "rect": {
+          "x": 24,
+          "y": 337.796875,
+          "width": 158.5,
+          "height": 100.671875,
+          "top": 337.796875,
+          "right": 182.5,
+          "bottom": 438.46875,
+          "left": 24
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 192.5,
+          "y": 337.796875,
+          "width": 158.5,
+          "height": 100.671875,
+          "top": 337.796875,
+          "right": 351,
+          "bottom": 438.46875,
+          "left": 192.5
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 24,
+          "y": 448.46875,
+          "width": 158.5,
+          "height": 100.671875,
+          "top": 448.46875,
+          "right": 182.5,
+          "bottom": 549.140625,
+          "left": 24
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 192.5,
+          "y": 448.46875,
+          "width": 158.5,
+          "height": 100.671875,
+          "top": 448.46875,
+          "right": 351,
+          "bottom": 549.140625,
+          "left": 192.5
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 24,
+          "y": 559.140625,
+          "width": 158.5,
+          "height": 100.671875,
+          "top": 559.140625,
+          "right": 182.5,
+          "bottom": 659.8125,
+          "left": 24
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 192.5,
+          "y": 559.140625,
+          "width": 158.5,
+          "height": 100.671875,
+          "top": 559.140625,
+          "right": 351,
+          "bottom": 659.8125,
+          "left": 192.5
+        }
+      },
+      {
+        "text": "Decrease might bonus",
+        "rect": {
+          "x": 259.015625,
+          "y": 846.484375,
+          "width": 32,
+          "height": 40,
+          "top": 846.484375,
+          "right": 291.015625,
+          "bottom": 886.484375,
+          "left": 259.015625
+        }
+      },
+      {
+        "text": "Increase might bonus",
+        "rect": {
+          "x": 313.40625,
+          "y": 846.484375,
+          "width": 32,
+          "height": 40,
+          "top": 846.484375,
+          "right": 345.40625,
+          "bottom": 886.484375,
+          "left": 313.40625
+        }
+      },
+      {
+        "text": "Decrease finesse bonus",
+        "rect": {
+          "x": 259.015625,
+          "y": 897.265625,
+          "width": 32,
+          "height": 40,
+          "top": 897.265625,
+          "right": 291.015625,
+          "bottom": 937.265625,
+          "left": 259.015625
+        }
+      },
+      {
+        "text": "Increase finesse bonus",
+        "rect": {
+          "x": 313.40625,
+          "y": 897.265625,
+          "width": 32,
+          "height": 40,
+          "top": 897.265625,
+          "right": 345.40625,
+          "bottom": 937.265625,
+          "left": 313.40625
+        }
+      },
+      {
+        "text": "Decrease vitality bonus",
+        "rect": {
+          "x": 259.015625,
+          "y": 948.046875,
+          "width": 32,
+          "height": 40,
+          "top": 948.046875,
+          "right": 291.015625,
+          "bottom": 988.046875,
+          "left": 259.015625
+        }
+      },
+      {
+        "text": "Increase vitality bonus",
+        "rect": {
+          "x": 313.40625,
+          "y": 948.046875,
+          "width": 32,
+          "height": 40,
+          "top": 948.046875,
+          "right": 345.40625,
+          "bottom": 988.046875,
+          "left": 313.40625
+        }
+      },
+      {
+        "text": "Decrease agility bonus",
+        "rect": {
+          "x": 259.015625,
+          "y": 998.828125,
+          "width": 32,
+          "height": 40,
+          "top": 998.828125,
+          "right": 291.015625,
+          "bottom": 1038.828125,
+          "left": 259.015625
+        }
+      },
+      {
+        "text": "Increase agility bonus",
+        "rect": {
+          "x": 313.40625,
+          "y": 998.828125,
+          "width": 32,
+          "height": 40,
+          "top": 998.828125,
+          "right": 345.40625,
+          "bottom": 1038.828125,
+          "left": 313.40625
+        }
+      },
+      {
+        "text": "Decrease intellect bonus",
+        "rect": {
+          "x": 259.015625,
+          "y": 1049.609375,
+          "width": 32,
+          "height": 40,
+          "top": 1049.609375,
+          "right": 291.015625,
+          "bottom": 1089.609375,
+          "left": 259.015625
+        }
+      },
+      {
+        "text": "Increase intellect bonus",
+        "rect": {
+          "x": 313.40625,
+          "y": 1049.609375,
+          "width": 32,
+          "height": 40,
+          "top": 1049.609375,
+          "right": 345.40625,
+          "bottom": 1089.609375,
+          "left": 313.40625
+        }
+      },
+      {
+        "text": "Decrease resolve bonus",
+        "rect": {
+          "x": 259.015625,
+          "y": 1100.390625,
+          "width": 32,
+          "height": 40,
+          "top": 1100.390625,
+          "right": 291.015625,
+          "bottom": 1140.390625,
+          "left": 259.015625
+        }
+      },
+      {
+        "text": "Increase resolve bonus",
+        "rect": {
+          "x": 313.40625,
+          "y": 1100.390625,
+          "width": 32,
+          "height": 40,
+          "top": 1100.390625,
+          "right": 345.40625,
+          "bottom": 1140.390625,
+          "left": 313.40625
+        }
+      },
+      {
+        "text": "Back",
+        "rect": {
+          "x": 23,
+          "y": 1167.96875,
+          "width": 75.9375,
+          "height": 44,
+          "top": 1167.96875,
+          "right": 98.9375,
+          "bottom": 1211.96875,
+          "left": 23
+        }
+      },
+      {
+        "text": "Review character",
+        "rect": {
+          "x": 165.25,
+          "y": 1167.96875,
+          "width": 186.75,
+          "height": 44,
+          "top": 1167.96875,
+          "right": 352,
+          "bottom": 1211.96875,
+          "left": 165.25
+        }
+      }
+    ]
+  },
+  {
+    "route": "creation",
+    "state": "review",
+    "width": 390,
+    "height": 844,
+    "overflowX": -15,
+    "overflowY": 339,
+    "controls": [
+      {
+        "text": "Back",
+        "rect": {
+          "x": 23,
+          "y": 1109.9375,
+          "width": 75.9375,
+          "height": 44,
+          "top": 1109.9375,
+          "right": 98.9375,
+          "bottom": 1153.9375,
+          "left": 23
+        }
+      },
+      {
+        "text": "Create character",
+        "rect": {
+          "x": 169.875,
+          "y": 1109.9375,
+          "width": 182.125,
+          "height": 44,
+          "top": 1109.9375,
+          "right": 352,
+          "bottom": 1153.9375,
+          "left": 169.875
+        }
+      }
+    ]
+  },
+  {
+    "route": "hall",
+    "state": "ai",
+    "width": 1280,
+    "height": 720,
+    "overflowX": -15,
+    "overflowY": 0,
+    "controls": [
+      {
+        "text": "⚔AI Battles",
+        "rect": {
+          "x": 223.796875,
+          "y": 176.984375,
+          "width": 167.25,
+          "height": 49.1875,
+          "top": 176.984375,
+          "right": 391.046875,
+          "bottom": 226.171875,
+          "left": 223.796875
+        }
+      },
+      {
+        "text": "♟Player vs Player",
+        "rect": {
+          "x": 392.046875,
+          "y": 176.984375,
+          "width": 167.25,
+          "height": 49.1875,
+          "top": 176.984375,
+          "right": 559.296875,
+          "bottom": 226.171875,
+          "left": 392.046875
+        }
+      },
+      {
+        "text": "◉Spectate",
+        "rect": {
+          "x": 560.296875,
+          "y": 176.984375,
+          "width": 167.25,
+          "height": 49.1875,
+          "top": 176.984375,
+          "right": 727.546875,
+          "bottom": 226.171875,
+          "left": 560.296875
+        }
+      },
+      {
+        "text": "✧MatchmakingComing Soon",
+        "rect": {
+          "x": 728.546875,
+          "y": 176.984375,
+          "width": 167.25,
+          "height": 49.1875,
+          "top": 176.984375,
+          "right": 895.796875,
+          "bottom": 226.171875,
+          "left": 728.546875
+        }
+      },
+      {
+        "text": "AI sparring arena",
+        "rect": {
+          "x": 755.421875,
+          "y": 486.65625,
+          "width": 205.046875,
+          "height": 40,
+          "top": 486.65625,
+          "right": 960.46875,
+          "bottom": 526.65625,
+          "left": 755.421875
+        }
+      },
+      {
+        "text": "Battle mode",
+        "rect": {
+          "x": 316.84375,
+          "y": 361.484375,
+          "width": 2,
+          "height": 40,
+          "top": 361.484375,
+          "right": 318.84375,
+          "bottom": 401.484375,
+          "left": 316.84375
+        }
+      },
+      {
+        "text": "⚔AI SparringCombine movement, AP management, targeting, terr",
+        "rect": {
+          "x": 238.390625,
+          "y": 361.484375,
+          "width": 445.859375,
+          "height": 67.25,
+          "top": 361.484375,
+          "right": 684.25,
+          "bottom": 428.734375,
+          "left": 238.390625
+        }
+      },
+      {
+        "text": "▣Guided FundamentalsLearn movement, Action Economy, attackin",
+        "rect": {
+          "x": 238.390625,
+          "y": 433.53125,
+          "width": 445.859375,
+          "height": 67.25,
+          "top": 433.53125,
+          "right": 684.25,
+          "bottom": 500.78125,
+          "left": 238.390625
+        }
+      },
+      {
+        "text": "★Discipline Mastery TrialWin using at least two different Pr",
+        "rect": {
+          "x": 238.390625,
+          "y": 505.578125,
+          "width": 445.859375,
+          "height": 82.84375,
+          "top": 505.578125,
+          "right": 684.25,
+          "bottom": 588.421875,
+          "left": 238.390625
+        }
+      },
+      {
+        "text": "Enter Battle",
+        "rect": {
+          "x": 1073.5625,
+          "y": 595.609375,
+          "width": 143.046875,
+          "height": 44,
+          "top": 595.609375,
+          "right": 1216.609375,
+          "bottom": 639.609375,
+          "left": 1073.5625
+        }
+      }
+    ]
+  },
+  {
+    "route": "hall",
+    "state": "pvp",
+    "width": 1280,
+    "height": 720,
+    "overflowX": -15,
+    "overflowY": 0,
+    "controls": [
+      {
+        "text": "⚔AI Battles",
+        "rect": {
+          "x": 223.796875,
+          "y": 176.984375,
+          "width": 167.25,
+          "height": 49.1875,
+          "top": 176.984375,
+          "right": 391.046875,
+          "bottom": 226.171875,
+          "left": 223.796875
+        }
+      },
+      {
+        "text": "♟Player vs Player",
+        "rect": {
+          "x": 392.046875,
+          "y": 176.984375,
+          "width": 167.25,
+          "height": 49.1875,
+          "top": 176.984375,
+          "right": 559.296875,
+          "bottom": 226.171875,
+          "left": 392.046875
+        }
+      },
+      {
+        "text": "◉Spectate",
+        "rect": {
+          "x": 560.296875,
+          "y": 176.984375,
+          "width": 167.25,
+          "height": 49.1875,
+          "top": 176.984375,
+          "right": 727.546875,
+          "bottom": 226.171875,
+          "left": 560.296875
+        }
+      },
+      {
+        "text": "✧MatchmakingComing Soon",
+        "rect": {
+          "x": 728.546875,
+          "y": 176.984375,
+          "width": 167.25,
+          "height": 49.1875,
+          "top": 176.984375,
+          "right": 895.796875,
+          "bottom": 226.171875,
+          "left": 728.546875
+        }
+      },
+      {
+        "text": "Create Lobby",
+        "rect": {
+          "x": 240.78125,
+          "y": 306.3125,
+          "width": 483.921875,
+          "height": 40,
+          "top": 306.3125,
+          "right": 724.703125,
+          "bottom": 346.3125,
+          "left": 240.78125
+        }
+      },
+      {
+        "text": "Join by Key",
+        "rect": {
+          "x": 730.296875,
+          "y": 306.3125,
+          "width": 483.921875,
+          "height": 40,
+          "top": 306.3125,
+          "right": 1214.21875,
+          "bottom": 346.3125,
+          "left": 730.296875
+        }
+      },
+      {
+        "text": "pvp-mode",
+        "rect": {
+          "x": 350.859375,
+          "y": 337.140625,
+          "width": 853.359375,
+          "height": 40,
+          "top": 337.140625,
+          "right": 1204.21875,
+          "bottom": 377.140625,
+          "left": 350.859375
+        }
+      },
+      {
+        "text": "Standard",
+        "rect": {
+          "x": 240.78125,
+          "y": 429.96875,
+          "width": 236.9375,
+          "height": 40,
+          "top": 429.96875,
+          "right": 477.71875,
+          "bottom": 469.96875,
+          "left": 240.78125
+        }
+      },
+      {
+        "text": "Expanded",
+        "rect": {
+          "x": 481.546875,
+          "y": 429.96875,
+          "width": 236.953125,
+          "height": 40,
+          "top": 429.96875,
+          "right": 718.5,
+          "bottom": 469.96875,
+          "left": 481.546875
+        }
+      },
+      {
+        "text": "Less",
+        "rect": {
+          "x": 726.5,
+          "y": 429.96875,
+          "width": 156.6875,
+          "height": 40,
+          "top": 429.96875,
+          "right": 883.1875,
+          "bottom": 469.96875,
+          "left": 726.5
+        }
+      },
+      {
+        "text": "Neutral",
+        "rect": {
+          "x": 887.015625,
+          "y": 429.96875,
+          "width": 156.6875,
+          "height": 40,
+          "top": 429.96875,
+          "right": 1043.703125,
+          "bottom": 469.96875,
+          "left": 887.015625
+        }
+      },
+      {
+        "text": "More",
+        "rect": {
+          "x": 1047.53125,
+          "y": 429.96875,
+          "width": 156.6875,
+          "height": 40,
+          "top": 429.96875,
+          "right": 1204.21875,
+          "bottom": 469.96875,
+          "left": 1047.53125
+        }
+      },
+      {
+        "text": "Less",
+        "rect": {
+          "x": 240.78125,
+          "y": 492.59375,
+          "width": 156.6875,
+          "height": 40,
+          "top": 492.59375,
+          "right": 397.46875,
+          "bottom": 532.59375,
+          "left": 240.78125
+        }
+      },
+      {
+        "text": "Neutral",
+        "rect": {
+          "x": 401.296875,
+          "y": 492.59375,
+          "width": 156.6875,
+          "height": 40,
+          "top": 492.59375,
+          "right": 557.984375,
+          "bottom": 532.59375,
+          "left": 401.296875
+        }
+      },
+      {
+        "text": "More",
+        "rect": {
+          "x": 561.8125,
+          "y": 492.59375,
+          "width": 156.6875,
+          "height": 40,
+          "top": 492.59375,
+          "right": 718.5,
+          "bottom": 532.59375,
+          "left": 561.8125
+        }
+      },
+      {
+        "text": "60 second turn timer",
+        "rect": {
+          "x": 726.5,
+          "y": 492.59375,
+          "width": 156.6875,
+          "height": 40,
+          "top": 492.59375,
+          "right": 883.1875,
+          "bottom": 532.59375,
+          "left": 726.5
+        }
+      },
+      {
+        "text": "120 second turn timer",
+        "rect": {
+          "x": 887.015625,
+          "y": 492.59375,
+          "width": 156.6875,
+          "height": 40,
+          "top": 492.59375,
+          "right": 1043.703125,
+          "bottom": 532.59375,
+          "left": 887.015625
+        }
+      },
+      {
+        "text": "No turn timer",
+        "rect": {
+          "x": 1047.53125,
+          "y": 492.59375,
+          "width": 156.6875,
+          "height": 40,
+          "top": 492.59375,
+          "right": 1204.21875,
+          "bottom": 532.59375,
+          "left": 1047.53125
+        }
+      },
+      {
+        "text": "Create Battle Lobby",
+        "rect": {
+          "x": 998.078125,
+          "y": 593.21875,
+          "width": 216.140625,
+          "height": 44,
+          "top": 593.21875,
+          "right": 1214.21875,
+          "bottom": 637.21875,
+          "left": 998.078125
+        }
+      }
+    ]
+  },
+  {
+    "route": "hall",
+    "state": "spectate",
+    "width": 1280,
+    "height": 720,
+    "overflowX": -15,
+    "overflowY": 0,
+    "controls": [
+      {
+        "text": "⚔AI Battles",
+        "rect": {
+          "x": 223.796875,
+          "y": 176.984375,
+          "width": 167.25,
+          "height": 49.1875,
+          "top": 176.984375,
+          "right": 391.046875,
+          "bottom": 226.171875,
+          "left": 223.796875
+        }
+      },
+      {
+        "text": "♟Player vs Player",
+        "rect": {
+          "x": 392.046875,
+          "y": 176.984375,
+          "width": 167.25,
+          "height": 49.1875,
+          "top": 176.984375,
+          "right": 559.296875,
+          "bottom": 226.171875,
+          "left": 392.046875
+        }
+      },
+      {
+        "text": "◉Spectate",
+        "rect": {
+          "x": 560.296875,
+          "y": 176.984375,
+          "width": 167.25,
+          "height": 49.1875,
+          "top": 176.984375,
+          "right": 727.546875,
+          "bottom": 226.171875,
+          "left": 560.296875
+        }
+      },
+      {
+        "text": "✧MatchmakingComing Soon",
+        "rect": {
+          "x": 728.546875,
+          "y": 176.984375,
+          "width": 167.25,
+          "height": 49.1875,
+          "top": 176.984375,
+          "right": 895.796875,
+          "bottom": 226.171875,
+          "left": 728.546875
+        }
+      },
+      {
+        "text": "Battle Key",
+        "rect": {
+          "x": 378.5,
+          "y": 452.1875,
+          "width": 688,
+          "height": 40,
+          "top": 452.1875,
+          "right": 1066.5,
+          "bottom": 492.1875,
+          "left": 378.5
+        }
+      },
+      {
+        "text": "Spectate Battle",
+        "rect": {
+          "x": 378.5,
+          "y": 496.984375,
+          "width": 688,
+          "height": 36,
+          "top": 496.984375,
+          "right": 1066.5,
+          "bottom": 532.984375,
+          "left": 378.5
+        }
+      }
+    ]
+  },
+  {
+    "route": "creation",
+    "state": "identity",
+    "width": 1280,
+    "height": 720,
+    "overflowX": -15,
+    "overflowY": 41,
+    "controls": [
+      {
+        "text": "",
+        "rect": {
+          "x": 714.96875,
+          "y": 277.609375,
+          "width": 13,
+          "height": 13,
+          "top": 277.609375,
+          "right": 727.96875,
+          "bottom": 290.609375,
+          "left": 714.96875
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 884.671875,
+          "y": 277.609375,
+          "width": 13,
+          "height": 13,
+          "top": 277.609375,
+          "right": 897.671875,
+          "bottom": 290.609375,
+          "left": 884.671875
+        }
+      },
+      {
+        "text": "Male adventurer 01",
+        "rect": {
+          "x": 659.28125,
+          "y": 369.578125,
+          "width": 79.546875,
+          "height": 79.546875,
+          "top": 369.578125,
+          "right": 738.828125,
+          "bottom": 449.125,
+          "left": 659.28125
+        }
+      },
+      {
+        "text": "Male adventurer 02",
+        "rect": {
+          "x": 747.21875,
+          "y": 369.578125,
+          "width": 79.546875,
+          "height": 79.546875,
+          "top": 369.578125,
+          "right": 826.765625,
+          "bottom": 449.125,
+          "left": 747.21875
+        }
+      },
+      {
+        "text": "Male adventurer 03",
+        "rect": {
+          "x": 835.15625,
+          "y": 369.578125,
+          "width": 79.546875,
+          "height": 79.546875,
+          "top": 369.578125,
+          "right": 914.703125,
+          "bottom": 449.125,
+          "left": 835.15625
+        }
+      },
+      {
+        "text": "Male adventurer 04",
+        "rect": {
+          "x": 923.09375,
+          "y": 369.578125,
+          "width": 79.546875,
+          "height": 79.546875,
+          "top": 369.578125,
+          "right": 1002.640625,
+          "bottom": 449.125,
+          "left": 923.09375
+        }
+      },
+      {
+        "text": "Male adventurer 05",
+        "rect": {
+          "x": 659.28125,
+          "y": 457.515625,
+          "width": 79.546875,
+          "height": 79.546875,
+          "top": 457.515625,
+          "right": 738.828125,
+          "bottom": 537.0625,
+          "left": 659.28125
+        }
+      },
+      {
+        "text": "Male adventurer 06",
+        "rect": {
+          "x": 747.21875,
+          "y": 457.515625,
+          "width": 79.546875,
+          "height": 79.546875,
+          "top": 457.515625,
+          "right": 826.765625,
+          "bottom": 537.0625,
+          "left": 747.21875
+        }
+      },
+      {
+        "text": "Male adventurer 07",
+        "rect": {
+          "x": 835.15625,
+          "y": 457.515625,
+          "width": 79.546875,
+          "height": 79.546875,
+          "top": 457.515625,
+          "right": 914.703125,
+          "bottom": 537.0625,
+          "left": 835.15625
+        }
+      },
+      {
+        "text": "Male adventurer 08",
+        "rect": {
+          "x": 923.09375,
+          "y": 457.515625,
+          "width": 79.546875,
+          "height": 79.546875,
+          "top": 457.515625,
+          "right": 1002.640625,
+          "bottom": 537.0625,
+          "left": 923.09375
+        }
+      },
+      {
+        "text": "Male adventurer 09",
+        "rect": {
+          "x": 659.28125,
+          "y": 545.453125,
+          "width": 79.546875,
+          "height": 79.546875,
+          "top": 545.453125,
+          "right": 738.828125,
+          "bottom": 625,
+          "left": 659.28125
+        }
+      },
+      {
+        "text": "Male adventurer 10",
+        "rect": {
+          "x": 747.21875,
+          "y": 545.453125,
+          "width": 79.546875,
+          "height": 79.546875,
+          "top": 545.453125,
+          "right": 826.765625,
+          "bottom": 625,
+          "left": 747.21875
+        }
+      },
+      {
+        "text": "Male adventurer 11",
+        "rect": {
+          "x": 835.15625,
+          "y": 545.453125,
+          "width": 79.546875,
+          "height": 79.546875,
+          "top": 545.453125,
+          "right": 914.703125,
+          "bottom": 625,
+          "left": 835.15625
+        }
+      },
+      {
+        "text": "Male adventurer 12",
+        "rect": {
+          "x": 923.09375,
+          "y": 545.453125,
+          "width": 79.546875,
+          "height": 79.546875,
+          "top": 545.453125,
+          "right": 1002.640625,
+          "bottom": 625,
+          "left": 923.09375
+        }
+      },
+      {
+        "text": "Character name",
+        "rect": {
+          "x": 1034.21875,
+          "y": 523.5625,
+          "width": 200.171875,
+          "height": 44,
+          "top": 523.5625,
+          "right": 1234.390625,
+          "bottom": 567.5625,
+          "left": 1034.21875
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 656.09375,
+          "y": 641.71875,
+          "width": 186.84375,
+          "height": 30.28125,
+          "top": 641.71875,
+          "right": 842.9375,
+          "bottom": 672,
+          "left": 656.09375
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 851.328125,
+          "y": 641.71875,
+          "width": 186.84375,
+          "height": 30.28125,
+          "top": 641.71875,
+          "right": 1038.171875,
+          "bottom": 672,
+          "left": 851.328125
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 1046.5625,
+          "y": 641.71875,
+          "width": 186.84375,
+          "height": 30.28125,
+          "top": 641.71875,
+          "right": 1233.40625,
+          "bottom": 672,
+          "left": 1046.5625
+        }
+      },
+      {
+        "text": "Choose your discipline",
+        "rect": {
+          "x": 1001.4375,
+          "y": 694.78125,
+          "width": 232.96875,
+          "height": 44,
+          "top": 694.78125,
+          "right": 1234.40625,
+          "bottom": 738.78125,
+          "left": 1001.4375
+        }
+      }
+    ]
+  },
+  {
+    "route": "creation",
+    "state": "discipline",
+    "width": 1280,
+    "height": 720,
+    "overflowX": -15,
+    "overflowY": 42,
+    "controls": [
+      {
+        "text": "",
+        "rect": {
+          "x": 656.09375,
+          "y": 242.609375,
+          "width": 91.4375,
+          "height": 118.171875,
+          "top": 242.609375,
+          "right": 747.53125,
+          "bottom": 360.78125,
+          "left": 656.09375
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 757.53125,
+          "y": 242.609375,
+          "width": 91.4375,
+          "height": 118.171875,
+          "top": 242.609375,
+          "right": 848.96875,
+          "bottom": 360.78125,
+          "left": 757.53125
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 858.96875,
+          "y": 242.609375,
+          "width": 91.453125,
+          "height": 118.171875,
+          "top": 242.609375,
+          "right": 950.421875,
+          "bottom": 360.78125,
+          "left": 858.96875
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 656.09375,
+          "y": 370.78125,
+          "width": 91.4375,
+          "height": 100.671875,
+          "top": 370.78125,
+          "right": 747.53125,
+          "bottom": 471.453125,
+          "left": 656.09375
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 757.53125,
+          "y": 370.78125,
+          "width": 91.4375,
+          "height": 100.671875,
+          "top": 370.78125,
+          "right": 848.96875,
+          "bottom": 471.453125,
+          "left": 757.53125
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 858.96875,
+          "y": 370.78125,
+          "width": 91.453125,
+          "height": 100.671875,
+          "top": 370.78125,
+          "right": 950.421875,
+          "bottom": 471.453125,
+          "left": 858.96875
+        }
+      },
+      {
+        "text": "Decrease might bonus",
+        "rect": {
+          "x": 1141.421875,
+          "y": 381.015625,
+          "width": 32,
+          "height": 36,
+          "top": 381.015625,
+          "right": 1173.421875,
+          "bottom": 417.015625,
+          "left": 1141.421875
+        }
+      },
+      {
+        "text": "Increase might bonus",
+        "rect": {
+          "x": 1195.8125,
+          "y": 381.015625,
+          "width": 32,
+          "height": 36,
+          "top": 381.015625,
+          "right": 1227.8125,
+          "bottom": 417.015625,
+          "left": 1195.8125
+        }
+      },
+      {
+        "text": "Decrease finesse bonus",
+        "rect": {
+          "x": 1141.421875,
+          "y": 427.796875,
+          "width": 32,
+          "height": 36,
+          "top": 427.796875,
+          "right": 1173.421875,
+          "bottom": 463.796875,
+          "left": 1141.421875
+        }
+      },
+      {
+        "text": "Increase finesse bonus",
+        "rect": {
+          "x": 1195.8125,
+          "y": 427.796875,
+          "width": 32,
+          "height": 36,
+          "top": 427.796875,
+          "right": 1227.8125,
+          "bottom": 463.796875,
+          "left": 1195.8125
+        }
+      },
+      {
+        "text": "Decrease vitality bonus",
+        "rect": {
+          "x": 1141.421875,
+          "y": 474.578125,
+          "width": 32,
+          "height": 36,
+          "top": 474.578125,
+          "right": 1173.421875,
+          "bottom": 510.578125,
+          "left": 1141.421875
+        }
+      },
+      {
+        "text": "Increase vitality bonus",
+        "rect": {
+          "x": 1195.8125,
+          "y": 474.578125,
+          "width": 32,
+          "height": 36,
+          "top": 474.578125,
+          "right": 1227.8125,
+          "bottom": 510.578125,
+          "left": 1195.8125
+        }
+      },
+      {
+        "text": "Decrease agility bonus",
+        "rect": {
+          "x": 1141.421875,
+          "y": 521.359375,
+          "width": 32,
+          "height": 36,
+          "top": 521.359375,
+          "right": 1173.421875,
+          "bottom": 557.359375,
+          "left": 1141.421875
+        }
+      },
+      {
+        "text": "Increase agility bonus",
+        "rect": {
+          "x": 1195.8125,
+          "y": 521.359375,
+          "width": 32,
+          "height": 36,
+          "top": 521.359375,
+          "right": 1227.8125,
+          "bottom": 557.359375,
+          "left": 1195.8125
+        }
+      },
+      {
+        "text": "Decrease intellect bonus",
+        "rect": {
+          "x": 1141.421875,
+          "y": 568.140625,
+          "width": 32,
+          "height": 36,
+          "top": 568.140625,
+          "right": 1173.421875,
+          "bottom": 604.140625,
+          "left": 1141.421875
+        }
+      },
+      {
+        "text": "Increase intellect bonus",
+        "rect": {
+          "x": 1195.8125,
+          "y": 568.140625,
+          "width": 32,
+          "height": 36,
+          "top": 568.140625,
+          "right": 1227.8125,
+          "bottom": 604.140625,
+          "left": 1195.8125
+        }
+      },
+      {
+        "text": "Decrease resolve bonus",
+        "rect": {
+          "x": 1141.421875,
+          "y": 614.921875,
+          "width": 32,
+          "height": 36,
+          "top": 614.921875,
+          "right": 1173.421875,
+          "bottom": 650.921875,
+          "left": 1141.421875
+        }
+      },
+      {
+        "text": "Increase resolve bonus",
+        "rect": {
+          "x": 1195.8125,
+          "y": 614.921875,
+          "width": 32,
+          "height": 36,
+          "top": 614.921875,
+          "right": 1227.8125,
+          "bottom": 650.921875,
+          "left": 1195.8125
+        }
+      },
+      {
+        "text": "Back",
+        "rect": {
+          "x": 655.09375,
+          "y": 676.09375,
+          "width": 75.9375,
+          "height": 44,
+          "top": 676.09375,
+          "right": 731.03125,
+          "bottom": 720.09375,
+          "left": 655.09375
+        }
+      },
+      {
+        "text": "Review character",
+        "rect": {
+          "x": 1047.65625,
+          "y": 676.09375,
+          "width": 186.75,
+          "height": 44,
+          "top": 676.09375,
+          "right": 1234.40625,
+          "bottom": 720.09375,
+          "left": 1047.65625
+        }
+      }
+    ]
+  },
+  {
+    "route": "creation",
+    "state": "review",
+    "width": 1280,
+    "height": 720,
+    "overflowX": -15,
+    "overflowY": 40,
+    "controls": [
+      {
+        "text": "Back",
+        "rect": {
+          "x": 655.09375,
+          "y": 674.8125,
+          "width": 75.9375,
+          "height": 44,
+          "top": 674.8125,
+          "right": 731.03125,
+          "bottom": 718.8125,
+          "left": 655.09375
+        }
+      },
+      {
+        "text": "Create character",
+        "rect": {
+          "x": 1052.28125,
+          "y": 674.8125,
+          "width": 182.125,
+          "height": 44,
+          "top": 674.8125,
+          "right": 1234.40625,
+          "bottom": 718.8125,
+          "left": 1052.28125
+        }
+      }
+    ]
+  },
+  {
+    "route": "hall",
+    "state": "ai",
+    "width": 1024,
+    "height": 576,
+    "overflowX": -15,
+    "overflowY": 0,
+    "controls": [
+      {
+        "text": "⚔AI Battles",
+        "rect": {
+          "x": 221.390625,
+          "y": 204.15625,
+          "width": 167.25,
+          "height": 51.125,
+          "top": 204.15625,
+          "right": 388.640625,
+          "bottom": 255.28125,
+          "left": 221.390625
+        }
+      },
+      {
+        "text": "♟Player vs Player",
+        "rect": {
+          "x": 389.640625,
+          "y": 204.15625,
+          "width": 167.25,
+          "height": 51.125,
+          "top": 204.15625,
+          "right": 556.890625,
+          "bottom": 255.28125,
+          "left": 389.640625
+        }
+      },
+      {
+        "text": "◉Spectate",
+        "rect": {
+          "x": 557.890625,
+          "y": 204.15625,
+          "width": 167.25,
+          "height": 51.125,
+          "top": 204.15625,
+          "right": 725.140625,
+          "bottom": 255.28125,
+          "left": 557.890625
+        }
+      },
+      {
+        "text": "✧MatchmakingComing Soon",
+        "rect": {
+          "x": 726.140625,
+          "y": 204.15625,
+          "width": 167.25,
+          "height": 51.125,
+          "top": 204.15625,
+          "right": 893.390625,
+          "bottom": 255.28125,
+          "left": 726.140625
+        }
+      },
+      {
+        "text": "AI sparring arena",
+        "rect": {
+          "x": 640.84375,
+          "y": 454.984375,
+          "width": 162.421875,
+          "height": 40,
+          "top": 454.984375,
+          "right": 803.265625,
+          "bottom": 494.984375,
+          "left": 640.84375
+        }
+      },
+      {
+        "text": "Battle mode",
+        "rect": {
+          "x": 314.4375,
+          "y": 311.46875,
+          "width": 2,
+          "height": 2,
+          "top": 311.46875,
+          "right": 316.4375,
+          "bottom": 313.46875,
+          "left": 314.4375
+        }
+      },
+      {
+        "text": "⚔AI SparringCombine movement, AP management, targeting, terr",
+        "rect": {
+          "x": 235.984375,
+          "y": 311.46875,
+          "width": 333.6875,
+          "height": 82.84375,
+          "top": 311.46875,
+          "right": 569.671875,
+          "bottom": 394.3125,
+          "left": 235.984375
+        }
+      },
+      {
+        "text": "▣Guided FundamentalsLearn movement, Action Economy, attackin",
+        "rect": {
+          "x": 235.984375,
+          "y": 404.21875,
+          "width": 333.6875,
+          "height": 82.84375,
+          "top": 404.21875,
+          "right": 569.671875,
+          "bottom": 487.0625,
+          "left": 235.984375
+        }
+      },
+      {
+        "text": "★Discipline Mastery TrialWin using at least two different Pr",
+        "rect": {
+          "x": 235.984375,
+          "y": 496.96875,
+          "width": 333.6875,
+          "height": 98.4375,
+          "top": 496.96875,
+          "right": 569.671875,
+          "bottom": 595.40625,
+          "left": 235.984375
+        }
+      },
+      {
+        "text": "Enter Battle",
+        "rect": {
+          "x": 819.96875,
+          "y": 605.796875,
+          "width": 143.046875,
+          "height": 44,
+          "top": 605.796875,
+          "right": 963.015625,
+          "bottom": 649.796875,
+          "left": 819.96875
+        }
+      }
+    ]
+  },
+  {
+    "route": "hall",
+    "state": "pvp",
+    "width": 1024,
+    "height": 576,
+    "overflowX": -15,
+    "overflowY": 0,
+    "controls": [
+      {
+        "text": "⚔AI Battles",
+        "rect": {
+          "x": 221.390625,
+          "y": 204.15625,
+          "width": 167.25,
+          "height": 51.125,
+          "top": 204.15625,
+          "right": 388.640625,
+          "bottom": 255.28125,
+          "left": 221.390625
+        }
+      },
+      {
+        "text": "♟Player vs Player",
+        "rect": {
+          "x": 389.640625,
+          "y": 204.15625,
+          "width": 167.25,
+          "height": 51.125,
+          "top": 204.15625,
+          "right": 556.890625,
+          "bottom": 255.28125,
+          "left": 389.640625
+        }
+      },
+      {
+        "text": "◉Spectate",
+        "rect": {
+          "x": 557.890625,
+          "y": 204.15625,
+          "width": 167.25,
+          "height": 51.125,
+          "top": 204.15625,
+          "right": 725.140625,
+          "bottom": 255.28125,
+          "left": 557.890625
+        }
+      },
+      {
+        "text": "✧MatchmakingComing Soon",
+        "rect": {
+          "x": 726.140625,
+          "y": 204.15625,
+          "width": 167.25,
+          "height": 51.125,
+          "top": 204.15625,
+          "right": 893.390625,
+          "bottom": 255.28125,
+          "left": 726.140625
+        }
+      },
+      {
+        "text": "Create Lobby",
+        "rect": {
+          "x": 238.375,
+          "y": 335.734375,
+          "width": 358.328125,
+          "height": 40,
+          "top": 335.734375,
+          "right": 596.703125,
+          "bottom": 375.734375,
+          "left": 238.375
+        }
+      },
+      {
+        "text": "Join by Key",
+        "rect": {
+          "x": 602.296875,
+          "y": 335.734375,
+          "width": 358.328125,
+          "height": 40,
+          "top": 335.734375,
+          "right": 960.625,
+          "bottom": 375.734375,
+          "left": 602.296875
+        }
+      },
+      {
+        "text": "pvp-mode",
+        "rect": {
+          "x": 350.375,
+          "y": 383.40625,
+          "width": 610.25,
+          "height": 40,
+          "top": 383.40625,
+          "right": 960.625,
+          "bottom": 423.40625,
+          "left": 350.375
+        }
+      },
+      {
+        "text": "Standard",
+        "rect": {
+          "x": 238.375,
+          "y": 479.4375,
+          "width": 176.046875,
+          "height": 40,
+          "top": 479.4375,
+          "right": 414.421875,
+          "bottom": 519.4375,
+          "left": 238.375
+        }
+      },
+      {
+        "text": "Expanded",
+        "rect": {
+          "x": 418.25,
+          "y": 479.4375,
+          "width": 176.046875,
+          "height": 40,
+          "top": 479.4375,
+          "right": 594.296875,
+          "bottom": 519.4375,
+          "left": 418.25
+        }
+      },
+      {
+        "text": "Less",
+        "rect": {
+          "x": 604.6875,
+          "y": 479.4375,
+          "width": 116.09375,
+          "height": 40,
+          "top": 479.4375,
+          "right": 720.78125,
+          "bottom": 519.4375,
+          "left": 604.6875
+        }
+      },
+      {
+        "text": "Neutral",
+        "rect": {
+          "x": 724.609375,
+          "y": 479.4375,
+          "width": 116.09375,
+          "height": 40,
+          "top": 479.4375,
+          "right": 840.703125,
+          "bottom": 519.4375,
+          "left": 724.609375
+        }
+      },
+      {
+        "text": "More",
+        "rect": {
+          "x": 844.53125,
+          "y": 479.4375,
+          "width": 116.09375,
+          "height": 40,
+          "top": 479.4375,
+          "right": 960.625,
+          "bottom": 519.4375,
+          "left": 844.53125
+        }
+      },
+      {
+        "text": "Less",
+        "rect": {
+          "x": 238.375,
+          "y": 546.21875,
+          "width": 116.078125,
+          "height": 40,
+          "top": 546.21875,
+          "right": 354.453125,
+          "bottom": 586.21875,
+          "left": 238.375
+        }
+      },
+      {
+        "text": "Neutral",
+        "rect": {
+          "x": 358.28125,
+          "y": 546.21875,
+          "width": 116.09375,
+          "height": 40,
+          "top": 546.21875,
+          "right": 474.375,
+          "bottom": 586.21875,
+          "left": 358.28125
+        }
+      },
+      {
+        "text": "More",
+        "rect": {
+          "x": 478.203125,
+          "y": 546.21875,
+          "width": 116.09375,
+          "height": 40,
+          "top": 546.21875,
+          "right": 594.296875,
+          "bottom": 586.21875,
+          "left": 478.203125
+        }
+      },
+      {
+        "text": "60 second turn timer",
+        "rect": {
+          "x": 604.6875,
+          "y": 546.21875,
+          "width": 116.09375,
+          "height": 40,
+          "top": 546.21875,
+          "right": 720.78125,
+          "bottom": 586.21875,
+          "left": 604.6875
+        }
+      },
+      {
+        "text": "120 second turn timer",
+        "rect": {
+          "x": 724.609375,
+          "y": 546.21875,
+          "width": 116.09375,
+          "height": 40,
+          "top": 546.21875,
+          "right": 840.703125,
+          "bottom": 586.21875,
+          "left": 724.609375
+        }
+      },
+      {
+        "text": "No turn timer",
+        "rect": {
+          "x": 844.53125,
+          "y": 546.21875,
+          "width": 116.09375,
+          "height": 40,
+          "top": 546.21875,
+          "right": 960.625,
+          "bottom": 586.21875,
+          "left": 844.53125
+        }
+      },
+      {
+        "text": "Create Battle Lobby",
+        "rect": {
+          "x": 744.484375,
+          "y": 669.125,
+          "width": 216.140625,
+          "height": 44,
+          "top": 669.125,
+          "right": 960.625,
+          "bottom": 713.125,
+          "left": 744.484375
+        }
+      }
+    ]
+  },
+  {
+    "route": "hall",
+    "state": "spectate",
+    "width": 1024,
+    "height": 576,
+    "overflowX": -15,
+    "overflowY": 0,
+    "controls": [
+      {
+        "text": "⚔AI Battles",
+        "rect": {
+          "x": 221.390625,
+          "y": 204.15625,
+          "width": 167.25,
+          "height": 51.125,
+          "top": 204.15625,
+          "right": 388.640625,
+          "bottom": 255.28125,
+          "left": 221.390625
+        }
+      },
+      {
+        "text": "♟Player vs Player",
+        "rect": {
+          "x": 389.640625,
+          "y": 204.15625,
+          "width": 167.25,
+          "height": 51.125,
+          "top": 204.15625,
+          "right": 556.890625,
+          "bottom": 255.28125,
+          "left": 389.640625
+        }
+      },
+      {
+        "text": "◉Spectate",
+        "rect": {
+          "x": 557.890625,
+          "y": 204.15625,
+          "width": 167.25,
+          "height": 51.125,
+          "top": 204.15625,
+          "right": 725.140625,
+          "bottom": 255.28125,
+          "left": 557.890625
+        }
+      },
+      {
+        "text": "✧MatchmakingComing Soon",
+        "rect": {
+          "x": 726.140625,
+          "y": 204.15625,
+          "width": 167.25,
+          "height": 51.125,
+          "top": 204.15625,
+          "right": 893.390625,
+          "bottom": 255.28125,
+          "left": 726.140625
+        }
+      },
+      {
+        "text": "Battle Key",
+        "rect": {
+          "x": 255.5,
+          "y": 442.171875,
+          "width": 688,
+          "height": 40,
+          "top": 442.171875,
+          "right": 943.5,
+          "bottom": 482.171875,
+          "left": 255.5
+        }
+      },
+      {
+        "text": "Spectate Battle",
+        "rect": {
+          "x": 255.5,
+          "y": 488.890625,
+          "width": 688,
+          "height": 43.1875,
+          "top": 488.890625,
+          "right": 943.5,
+          "bottom": 532.078125,
+          "left": 255.5
+        }
+      }
+    ]
+  },
+  {
+    "route": "creation",
+    "state": "identity",
+    "width": 1024,
+    "height": 576,
+    "overflowX": -15,
+    "overflowY": 378,
+    "controls": [
+      {
+        "text": "",
+        "rect": {
+          "x": 152.234375,
+          "y": 140.546875,
+          "width": 13,
+          "height": 13,
+          "top": 140.546875,
+          "right": 165.234375,
+          "bottom": 153.546875,
+          "left": 152.234375
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 432.671875,
+          "y": 140.546875,
+          "width": 13,
+          "height": 13,
+          "top": 140.546875,
+          "right": 445.671875,
+          "bottom": 153.546875,
+          "left": 432.671875
+        }
+      },
+      {
+        "text": "Male adventurer 01",
+        "rect": {
+          "x": 41.1875,
+          "y": 233.90625,
+          "width": 134.90625,
+          "height": 134.90625,
+          "top": 233.90625,
+          "right": 176.09375,
+          "bottom": 368.8125,
+          "left": 41.1875
+        }
+      },
+      {
+        "text": "Male adventurer 02",
+        "rect": {
+          "x": 184.484375,
+          "y": 233.90625,
+          "width": 134.921875,
+          "height": 134.921875,
+          "top": 233.90625,
+          "right": 319.40625,
+          "bottom": 368.828125,
+          "left": 184.484375
+        }
+      },
+      {
+        "text": "Male adventurer 03",
+        "rect": {
+          "x": 327.796875,
+          "y": 233.90625,
+          "width": 134.90625,
+          "height": 134.90625,
+          "top": 233.90625,
+          "right": 462.703125,
+          "bottom": 368.8125,
+          "left": 327.796875
+        }
+      },
+      {
+        "text": "Male adventurer 04",
+        "rect": {
+          "x": 471.09375,
+          "y": 233.90625,
+          "width": 134.921875,
+          "height": 134.921875,
+          "top": 233.90625,
+          "right": 606.015625,
+          "bottom": 368.828125,
+          "left": 471.09375
+        }
+      },
+      {
+        "text": "Male adventurer 05",
+        "rect": {
+          "x": 41.1875,
+          "y": 377.21875,
+          "width": 134.90625,
+          "height": 134.90625,
+          "top": 377.21875,
+          "right": 176.09375,
+          "bottom": 512.125,
+          "left": 41.1875
+        }
+      },
+      {
+        "text": "Male adventurer 06",
+        "rect": {
+          "x": 184.484375,
+          "y": 377.21875,
+          "width": 134.921875,
+          "height": 134.921875,
+          "top": 377.21875,
+          "right": 319.40625,
+          "bottom": 512.140625,
+          "left": 184.484375
+        }
+      },
+      {
+        "text": "Male adventurer 07",
+        "rect": {
+          "x": 327.796875,
+          "y": 377.21875,
+          "width": 134.90625,
+          "height": 134.90625,
+          "top": 377.21875,
+          "right": 462.703125,
+          "bottom": 512.125,
+          "left": 327.796875
+        }
+      },
+      {
+        "text": "Male adventurer 08",
+        "rect": {
+          "x": 471.09375,
+          "y": 377.21875,
+          "width": 134.921875,
+          "height": 134.921875,
+          "top": 377.21875,
+          "right": 606.015625,
+          "bottom": 512.140625,
+          "left": 471.09375
+        }
+      },
+      {
+        "text": "Male adventurer 09",
+        "rect": {
+          "x": 41.1875,
+          "y": 520.53125,
+          "width": 134.90625,
+          "height": 134.90625,
+          "top": 520.53125,
+          "right": 176.09375,
+          "bottom": 655.4375,
+          "left": 41.1875
+        }
+      },
+      {
+        "text": "Male adventurer 10",
+        "rect": {
+          "x": 184.484375,
+          "y": 520.53125,
+          "width": 134.921875,
+          "height": 134.921875,
+          "top": 520.53125,
+          "right": 319.40625,
+          "bottom": 655.453125,
+          "left": 184.484375
+        }
+      },
+      {
+        "text": "Male adventurer 11",
+        "rect": {
+          "x": 327.796875,
+          "y": 520.53125,
+          "width": 134.90625,
+          "height": 134.90625,
+          "top": 520.53125,
+          "right": 462.703125,
+          "bottom": 655.4375,
+          "left": 327.796875
+        }
+      },
+      {
+        "text": "Male adventurer 12",
+        "rect": {
+          "x": 471.09375,
+          "y": 520.53125,
+          "width": 134.921875,
+          "height": 134.921875,
+          "top": 520.53125,
+          "right": 606.015625,
+          "bottom": 655.453125,
+          "left": 471.09375
+        }
+      },
+      {
+        "text": "Character name",
+        "rect": {
+          "x": 637.59375,
+          "y": 544.890625,
+          "width": 334.390625,
+          "height": 44,
+          "top": 544.890625,
+          "right": 971.984375,
+          "bottom": 588.890625,
+          "left": 637.59375
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 38,
+          "y": 653.90625,
+          "width": 305.40625,
+          "height": 33.5,
+          "top": 653.90625,
+          "right": 343.40625,
+          "bottom": 687.40625,
+          "left": 38
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 351.796875,
+          "y": 653.90625,
+          "width": 305.40625,
+          "height": 33.5,
+          "top": 653.90625,
+          "right": 657.203125,
+          "bottom": 687.40625,
+          "left": 351.796875
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 665.59375,
+          "y": 653.90625,
+          "width": 305.40625,
+          "height": 33.5,
+          "top": 653.90625,
+          "right": 971,
+          "bottom": 687.40625,
+          "left": 665.59375
+        }
+      },
+      {
+        "text": "Choose your discipline",
+        "rect": {
+          "x": 739.03125,
+          "y": 712.59375,
+          "width": 232.96875,
+          "height": 44,
+          "top": 712.59375,
+          "right": 972,
+          "bottom": 756.59375,
+          "left": 739.03125
+        }
+      }
+    ]
+  },
+  {
+    "route": "creation",
+    "state": "discipline",
+    "width": 1024,
+    "height": 576,
+    "overflowX": -15,
+    "overflowY": 334,
+    "controls": [
+      {
+        "text": "",
+        "rect": {
+          "x": 38,
+          "y": 284.546875,
+          "width": 304.328125,
+          "height": 100.671875,
+          "top": 284.546875,
+          "right": 342.328125,
+          "bottom": 385.21875,
+          "left": 38
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 352.328125,
+          "y": 284.546875,
+          "width": 304.328125,
+          "height": 100.671875,
+          "top": 284.546875,
+          "right": 656.65625,
+          "bottom": 385.21875,
+          "left": 352.328125
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 666.65625,
+          "y": 284.546875,
+          "width": 304.34375,
+          "height": 100.671875,
+          "top": 284.546875,
+          "right": 971,
+          "bottom": 385.21875,
+          "left": 666.65625
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 38,
+          "y": 395.21875,
+          "width": 304.328125,
+          "height": 100.671875,
+          "top": 395.21875,
+          "right": 342.328125,
+          "bottom": 495.890625,
+          "left": 38
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 352.328125,
+          "y": 395.21875,
+          "width": 304.328125,
+          "height": 100.671875,
+          "top": 395.21875,
+          "right": 656.65625,
+          "bottom": 495.890625,
+          "left": 352.328125
+        }
+      },
+      {
+        "text": "",
+        "rect": {
+          "x": 666.65625,
+          "y": 395.21875,
+          "width": 304.34375,
+          "height": 100.671875,
+          "top": 395.21875,
+          "right": 971,
+          "bottom": 495.890625,
+          "left": 666.65625
+        }
+      },
+      {
+        "text": "Decrease might bonus",
+        "rect": {
+          "x": 409.515625,
+          "y": 659.53125,
+          "width": 32,
+          "height": 40,
+          "top": 659.53125,
+          "right": 441.515625,
+          "bottom": 699.53125,
+          "left": 409.515625
+        }
+      },
+      {
+        "text": "Increase might bonus",
+        "rect": {
+          "x": 463.90625,
+          "y": 659.53125,
+          "width": 32,
+          "height": 40,
+          "top": 659.53125,
+          "right": 495.90625,
+          "bottom": 699.53125,
+          "left": 463.90625
+        }
+      },
+      {
+        "text": "Decrease finesse bonus",
+        "rect": {
+          "x": 879.015625,
+          "y": 659.53125,
+          "width": 32,
+          "height": 40,
+          "top": 659.53125,
+          "right": 911.015625,
+          "bottom": 699.53125,
+          "left": 879.015625
+        }
+      },
+      {
+        "text": "Increase finesse bonus",
+        "rect": {
+          "x": 933.40625,
+          "y": 659.53125,
+          "width": 32,
+          "height": 40,
+          "top": 659.53125,
+          "right": 965.40625,
+          "bottom": 699.53125,
+          "left": 933.40625
+        }
+      },
+      {
+        "text": "Decrease vitality bonus",
+        "rect": {
+          "x": 409.515625,
+          "y": 710.3125,
+          "width": 32,
+          "height": 40,
+          "top": 710.3125,
+          "right": 441.515625,
+          "bottom": 750.3125,
+          "left": 409.515625
+        }
+      },
+      {
+        "text": "Increase vitality bonus",
+        "rect": {
+          "x": 463.90625,
+          "y": 710.3125,
+          "width": 32,
+          "height": 40,
+          "top": 710.3125,
+          "right": 495.90625,
+          "bottom": 750.3125,
+          "left": 463.90625
+        }
+      },
+      {
+        "text": "Decrease agility bonus",
+        "rect": {
+          "x": 879.015625,
+          "y": 710.3125,
+          "width": 32,
+          "height": 40,
+          "top": 710.3125,
+          "right": 911.015625,
+          "bottom": 750.3125,
+          "left": 879.015625
+        }
+      },
+      {
+        "text": "Increase agility bonus",
+        "rect": {
+          "x": 933.40625,
+          "y": 710.3125,
+          "width": 32,
+          "height": 40,
+          "top": 710.3125,
+          "right": 965.40625,
+          "bottom": 750.3125,
+          "left": 933.40625
+        }
+      },
+      {
+        "text": "Decrease intellect bonus",
+        "rect": {
+          "x": 409.515625,
+          "y": 761.09375,
+          "width": 32,
+          "height": 40,
+          "top": 761.09375,
+          "right": 441.515625,
+          "bottom": 801.09375,
+          "left": 409.515625
+        }
+      },
+      {
+        "text": "Increase intellect bonus",
+        "rect": {
+          "x": 463.90625,
+          "y": 761.09375,
+          "width": 32,
+          "height": 40,
+          "top": 761.09375,
+          "right": 495.90625,
+          "bottom": 801.09375,
+          "left": 463.90625
+        }
+      },
+      {
+        "text": "Decrease resolve bonus",
+        "rect": {
+          "x": 879.015625,
+          "y": 761.09375,
+          "width": 32,
+          "height": 40,
+          "top": 761.09375,
+          "right": 911.015625,
+          "bottom": 801.09375,
+          "left": 879.015625
+        }
+      },
+      {
+        "text": "Increase resolve bonus",
+        "rect": {
+          "x": 933.40625,
+          "y": 761.09375,
+          "width": 32,
+          "height": 40,
+          "top": 761.09375,
+          "right": 965.40625,
+          "bottom": 801.09375,
+          "left": 933.40625
+        }
+      },
+      {
+        "text": "Back",
+        "rect": {
+          "x": 37,
+          "y": 828.671875,
+          "width": 75.9375,
+          "height": 44,
+          "top": 828.671875,
+          "right": 112.9375,
+          "bottom": 872.671875,
+          "left": 37
+        }
+      },
+      {
+        "text": "Review character",
+        "rect": {
+          "x": 785.25,
+          "y": 828.671875,
+          "width": 186.75,
+          "height": 44,
+          "top": 828.671875,
+          "right": 972,
+          "bottom": 872.671875,
+          "left": 785.25
+        }
+      }
+    ]
+  },
+  {
+    "route": "creation",
+    "state": "review",
+    "width": 1024,
+    "height": 576,
+    "overflowX": -15,
+    "overflowY": 148,
+    "controls": [
+      {
+        "text": "Back",
+        "rect": {
+          "x": 37,
+          "y": 494.71875,
+          "width": 75.9375,
+          "height": 44,
+          "top": 494.71875,
+          "right": 112.9375,
+          "bottom": 538.71875,
+          "left": 37
+        }
+      },
+      {
+        "text": "Create character",
+        "rect": {
+          "x": 789.875,
+          "y": 494.71875,
+          "width": 182.125,
+          "height": 44,
+          "top": 494.71875,
+          "right": 972,
+          "bottom": 538.71875,
+          "left": 789.875
+        }
+      }
+    ]
+  }
+]

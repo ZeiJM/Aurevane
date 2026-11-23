@@ -1,29 +1,83 @@
 'use client'
 
+import { currentGroundPresentation } from '@/lib/combat-ground-presentation'
+
+import { readableDisciplineName } from '@/lib/discipline-display-name'
+import { contentArtworkKey } from '@aurevane/game-core/combat/content-media'
+
+import { AbilityDefinitionParameters } from './ability-definition-parameters'
+import { groupSkillEffects } from './skill-effect-groups'
+
+import {
+  useSkillEffectTimingPolicy,
+  useSkillGroundInteractionRules,
+} from './skill-effect-timing-context'
+import { CompactSkillEffectSummary, EffectTagLabel } from './compact-skill-effect-summary'
+import { skillPreviewEffects } from './skill-effect-preview'
+import { SkillGroundAreaDetails } from './skill-ground-area-details'
+
 import Image from 'next/image'
+
+import { renderBattleFlavorTemplate } from '@aurevane/game-core/combat/battle-narration'
+import { pv1fSkillByActionId } from '@aurevane/game-core/combat/pv1f-skills'
+import {
+  DEFAULT_SUPPORT_ACTION_ID,
+  CURRENT_SUPPORT_ACTION_IDS,
+  parseCurrentSupportActionId,
+  type SupportActionId,
+} from '@aurevane/game-core/combat/support-actions'
+import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
 
 import type { EssenceDefinition } from '@aurevane/game-core/combat/essence'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
-import type { ResonanceDefinition } from '@aurevane/game-core/combat/resonance'
+import type { AnyResonanceDefinition } from '@aurevane/game-core/combat/resonance'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useMemo, useState, useSyncExternalStore, type CSSProperties } from 'react'
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type CSSProperties,
+} from 'react'
 import { createPortal } from 'react-dom'
 
-import type { FavoriteTechniqueCategory } from '../battle/favorite-technique-storage'
-import { battleResonanceArtwork, battleSkillArtwork } from '../battle/battle-skill-presentation'
-import { FavoriteTechniqueButton } from './favorite-technique-button'
-import { SkillDetails } from './skill-details'
-import { skillDisplayName } from './skill-detail-presentation'
-import polish from './character-skill-build-panel-polish.module.css'
+import { battleSkillArtwork } from '../battle/battle-skill-presentation'
+import artworkScaleStyles from '../battle/battle-artwork-scale.module.css'
+import {
+  skillDisplayName,
+  skillParameterRows,
+  skillTargetMethodExplanation,
+  skillTypeDescription,
+} from './skill-detail-presentation'
 import styles from './character-skill-build-panel.module.css'
+import type { CharacterItemsView } from '@/server/character/character-items-service'
+import { itemSupportOptions } from './item-support-options'
+import { positionNames } from './item-equipment-preview'
+import { AbilityParameters } from './ability-parameters'
+import {
+  basicActionCharacteristicRows,
+  type SkillCharacteristic,
+} from './basic-action-presentation'
+import {
+  BasicActionEffectExplanations,
+  BasicActionEffectSummary,
+} from './basic-action-effect-details'
+import { SkillCharacteristicRows } from './skill-characteristic-rows'
 
 interface SkillCatalogEntryView {
   definition: MatureSkillDefinition
   learnedAt: string
   activeSource: boolean
+  eligibilityGrants?: readonly {
+    eligibilityDisciplineId: string
+    activeSource: boolean
+    earnedAt?: string | null
+  }[]
 }
 
 interface EquippedSkillView {
+  eligibilityDisciplineId?: string
   definition: MatureSkillDefinition
   slotIndex: number
   equippedAt: string
@@ -31,19 +85,24 @@ interface EquippedSkillView {
 
 interface CharacterSkillBuildPanelProps {
   characterId: string
+  disciplineNames?: Readonly<Record<string, string>>
   initialBuildVersion: number
+  supportActionArtworkKeys?: Readonly<Partial<Record<SupportActionId, string | null>>>
+  supportActionDescriptions?: Readonly<Partial<Record<SupportActionId, string>>>
+  initialSupportActionId?: SupportActionId
+  initialItemsView?: CharacterItemsView | null
   primaryDiscipline: { id: string; name: string }
   secondaryDiscipline: { id: string; name: string } | null
   initialCapacity: number
   initialLearnedSkills: readonly SkillCatalogEntryView[]
   initialEquippedSkills: readonly EquippedSkillView[]
-  initialResonance: ResonanceDefinition | null
+  initialResonance: AnyResonanceDefinition | null
   initialEssence: EssenceDefinition | null
 }
 
 interface SkillCommitResponse {
   context?: {
-    build: { buildVersion: number }
+    build: { buildVersion: number; supportActionId?: SupportActionId }
     disciplineSkills: {
       capacity: number
       learnedSkills: readonly SkillCatalogEntryView[]
@@ -56,6 +115,7 @@ interface SkillCommitResponse {
 const PROFILE_PANEL_QUERY = 'profilePanel'
 const TECHNIQUES_PANEL = 'techniques'
 const MIXED_SOURCE_MAXIMUM = 3
+const TECHNIQUES_PER_DISCIPLINE = 8
 
 const DISCIPLINE_PALETTE: Readonly<Record<string, { accent: string; deep: string }>> = {
   vanguard: { accent: '232 119 76', deep: '117 50 31' },
@@ -78,48 +138,51 @@ function skillPaletteStyle(disciplineId: string): CSSProperties {
   } as CSSProperties
 }
 
-function chipPaletteStyle(disciplineId: string): CSSProperties {
-  return { '--chip': paletteFor(disciplineId).accent } as CSSProperties
-}
-
-function titleCase(value: string): string {
-  return value
-    .split(/[._-]/g)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ')
-}
-
-function cockpitType(skill: MatureSkillDefinition): string {
-  const cockpitTag = skill.tags.find((tag) => tag.startsWith('cockpit:'))
-  return cockpitTag ? titleCase(cockpitTag.slice('cockpit:'.length)) : 'Technique'
-}
-
-function favoriteCategory(skill: MatureSkillDefinition): FavoriteTechniqueCategory | null {
-  const type = cockpitType(skill).toLowerCase()
-  if (type === 'attack') return 'attack'
-  if (type === 'defense' || type === 'guard') return 'defense'
-  if (type === 'heal' || type === 'recovery') return 'heal'
-  return null
-}
-
 function orderedSkillIds(equippedSkills: readonly EquippedSkillView[]): string[] {
   return [...equippedSkills]
     .sort((left, right) => left.slotIndex - right.slotIndex)
     .map((entry) => entry.definition.id)
 }
 
-export function CharacterSkillBuildPanel({
-  characterId,
-  initialBuildVersion,
-  primaryDiscipline,
-  secondaryDiscipline,
-  initialCapacity,
-  initialLearnedSkills,
-  initialEquippedSkills,
-  initialResonance,
-  initialEssence,
-}: CharacterSkillBuildPanelProps) {
+function sameSelection(left: readonly string[], right: readonly string[]): boolean {
+  return left.length === right.length && left.every((skillId, index) => skillId === right[index])
+}
+
+function activeEligibility(skill: SkillCatalogEntryView) {
+  return (
+    skill.eligibilityGrants?.filter((grant) => grant.activeSource) ??
+    (skill.activeSource
+      ? [
+          {
+            eligibilityDisciplineId: skill.definition.sourceDisciplineId,
+            activeSource: true,
+            earnedAt: undefined,
+          },
+        ]
+      : [])
+  )
+}
+
+function equippedEligibility(skills: readonly EquippedSkillView[]): Record<string, string> {
+  return Object.fromEntries(
+    skills.map((entry) => [
+      entry.definition.id,
+      entry.eligibilityDisciplineId ?? entry.definition.sourceDisciplineId,
+    ]),
+  )
+}
+
+export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
+  const timingPolicy = useSkillEffectTimingPolicy()
+  const groundRules = useSkillGroundInteractionRules()
+  const {
+    initialBuildVersion,
+    primaryDiscipline,
+    secondaryDiscipline,
+    initialCapacity,
+    initialLearnedSkills,
+    initialEquippedSkills,
+  } = props
   const mounted = useSyncExternalStore(
     () => () => {},
     () => true,
@@ -129,20 +192,166 @@ export function CharacterSkillBuildPanel({
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const initialIds = orderedSkillIds(initialEquippedSkills)
+  const initialFocusedId =
+    initialIds[0] ?? initialLearnedSkills.find((entry) => entry.activeSource)?.definition.id ?? null
   const open = searchParams.get(PROFILE_PANEL_QUERY) === TECHNIQUES_PANEL
-  const [buildVersion, setBuildVersion] = useState(initialBuildVersion)
+  const buildVersionRef = useRef(initialBuildVersion)
+  const pendingRef = useRef(false)
+  const supportReadVersionRef = useRef(0)
+  const [supportActionId, setSupportActionId] = useState(
+    props.initialSupportActionId ?? DEFAULT_SUPPORT_ACTION_ID,
+  )
+  const [committedSupportActionId, setCommittedSupportActionId] = useState(
+    props.initialSupportActionId ?? DEFAULT_SUPPORT_ACTION_ID,
+  )
+  const [focusedSupportActionId, setNativeSupportFocus] = useState<SupportActionId | null>(null)
+  const [itemSupportView, setItemSupportView] = useState<CharacterItemsView | null>(
+    props.initialItemsView ?? null,
+  )
+  const [itemSupportError, setItemSupportError] = useState<string | null>(null)
+  const [itemSupportLoading, setItemSupportLoading] = useState(false)
+  const equipmentSupportSelected = itemSupportView?.selectedSupport.kind === 'equipment'
+  const [focusedEquipmentKey, setFocusedEquipmentKey] = useState<string | null>(null)
+  const equipmentOptions = itemSupportView ? itemSupportOptions(itemSupportView) : []
+  const focusedEquipment = equipmentOptions.find((option) => option.key === focusedEquipmentKey)
+  const focusedEquipmentReport = focusedEquipment?.item.reports.find(
+    (report) => report.behaviorId === focusedEquipment.selection.behaviorId,
+  )
+  function setFocusedSupportActionId(id: SupportActionId | null) {
+    setFocusedEquipmentKey(null)
+    setNativeSupportFocus(id)
+  }
+  function focusEquipment(key: string) {
+    setNativeSupportFocus(null)
+    setFocusedEquipmentKey(key)
+  }
+
   const [capacity, setCapacity] = useState(initialCapacity)
   const [learnedSkills, setLearnedSkills] =
     useState<readonly SkillCatalogEntryView[]>(initialLearnedSkills)
   const [committedIds, setCommittedIds] = useState<string[]>(initialIds)
   const [selectedIds, setSelectedIds] = useState<string[]>(initialIds)
+  const [focusedSkillId, setFocusedSkillId] = useState<string | null>(initialFocusedId)
   const [pending, setPending] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
+  const [coarsePointer, setCoarsePointer] = useState(false)
+  const [activeMobileTab, setActiveMobileTab] = useState<'primary' | 'secondary' | 'support'>(
+    'primary',
+  )
+  const refreshOnCloseRef = useRef(false)
+  const [eligibility, setEligibility] = useState<Record<string, string>>(
+    equippedEligibility(initialEquippedSkills),
+  )
+  const [committedEligibility, setCommittedEligibility] = useState<Record<string, string>>(
+    equippedEligibility(initialEquippedSkills),
+  )
+
+  function selectedEligibility(
+    skill: SkillCatalogEntryView,
+    choices = eligibility,
+  ): string | undefined {
+    const grants = activeEligibility(skill)
+    const choice = choices[skill.definition.id]
+    return grants.some((grant) => grant.eligibilityDisciplineId === choice)
+      ? choice
+      : (
+          grants.find((grant) => grant.eligibilityDisciplineId === primaryDiscipline.id) ??
+          grants.find((grant) => grant.eligibilityDisciplineId === secondaryDiscipline?.id) ??
+          [...grants].sort((left, right) =>
+            left.eligibilityDisciplineId.localeCompare(right.eligibilityDisciplineId),
+          )[0]
+        )?.eligibilityDisciplineId
+  }
 
   const visibleSkills = useMemo(
     () => learnedSkills.filter((entry) => entry.activeSource),
     [learnedSkills],
   )
+  const primarySkills = useMemo(
+    () =>
+      visibleSkills.filter((entry) =>
+        activeEligibility(entry).some(
+          (grant) => grant.eligibilityDisciplineId === primaryDiscipline.id,
+        ),
+      ),
+    [primaryDiscipline.id, visibleSkills],
+  )
+  const secondarySkills = useMemo(
+    () =>
+      secondaryDiscipline
+        ? visibleSkills.filter(
+            (entry) =>
+              !primarySkills.includes(entry) &&
+              activeEligibility(entry).some(
+                (grant) => grant.eligibilityDisciplineId === secondaryDiscipline.id,
+              ),
+          )
+        : [],
+    [secondaryDiscipline, primarySkills, visibleSkills],
+  )
+  const focusedSkill =
+    visibleSkills.find((entry) => entry.definition.id === focusedSkillId) ??
+    visibleSkills[0] ??
+    null
+  const focusedSkillDisciplineName = focusedSkill
+    ? focusedSkill.definition.sourceDisciplineId === primaryDiscipline.id
+      ? primaryDiscipline.name
+      : secondaryDiscipline?.id === focusedSkill.definition.sourceDisciplineId
+        ? secondaryDiscipline.name
+        : readableDisciplineName(
+            focusedSkill.definition.sourceDisciplineId,
+            props.disciplineNames?.[focusedSkill.definition.sourceDisciplineId],
+          )
+    : null
+  const focusedNativeDefinition = focusedSkill
+    ? currentGroundPresentation(
+        focusedSkill.definition,
+        groundRules.groundContactPolicyVersion,
+        timingPolicy,
+      ).view
+    : undefined
+  const focusedCharacteristics: readonly SkillCharacteristic[] =
+    focusedNativeDefinition && !focusedNativeDefinition.ability
+      ? skillParameterRows(
+          focusedNativeDefinition,
+          focusedNativeDefinition,
+          timingPolicy,
+          groundRules,
+        )
+      : []
+
+  useEffect(() => {
+    const media = window.matchMedia('(hover: none), (pointer: coarse)')
+    const sync = () => setCoarsePointer(media.matches)
+    sync()
+    media.addEventListener?.('change', sync)
+    return () => media.removeEventListener?.('change', sync)
+  }, [])
+
+  useEffect(() => {
+    if (!open) return
+    let active = true
+    const readVersion = supportReadVersionRef.current
+    void fetch('/api/character/items', { cache: 'no-store' })
+      .then(async (response) => {
+        const body = await response.json()
+        if (!response.ok || !body.view)
+          throw new Error(body.error?.message ?? 'Equipment Support choices could not be loaded.')
+        if (active && supportReadVersionRef.current === readVersion) {
+          setItemSupportView(body.view)
+          setItemSupportError(null)
+        }
+      })
+      .catch(() => {
+        if (active && supportReadVersionRef.current === readVersion)
+          setItemSupportError(
+            'Equipment Support choices could not be loaded. Reopen Techniques to retry.',
+          )
+      })
+    return () => {
+      active = false
+    }
+  }, [open])
 
   useEffect(() => {
     if (!open) return
@@ -158,11 +367,17 @@ export function CharacterSkillBuildPanel({
     }
   }, [open])
 
-  const dirty =
-    committedIds.length !== selectedIds.length ||
-    committedIds.some((skillId, index) => skillId !== selectedIds[index])
+  useEffect(() => {
+    if (open || !refreshOnCloseRef.current) return
+
+    // Wait for the history update to commit before refreshing the server summary.
+    refreshOnCloseRef.current = false
+    router.refresh()
+  }, [open, router])
 
   function setPanelOpen(nextOpen: boolean) {
+    if (!nextOpen && pendingRef.current) return
+
     const params = new URLSearchParams(searchParams.toString())
     if (nextOpen) {
       params.set(PROFILE_PANEL_QUERY, TECHNIQUES_PANEL)
@@ -174,94 +389,588 @@ export function CharacterSkillBuildPanel({
     window.history.replaceState(null, '', href)
   }
 
-  function selectedSourceCount(sourceDisciplineId: string): number {
-    const selected = new Set(selectedIds)
+  function selectedSourceCount(
+    sourceDisciplineId: string,
+    ids: readonly string[] = selectedIds,
+    choices = eligibility,
+  ): number {
+    const selected = new Set(ids)
     return visibleSkills.filter(
       (entry) =>
         selected.has(entry.definition.id) &&
-        entry.definition.sourceDisciplineId === sourceDisciplineId,
+        selectedEligibility(entry, choices) === sourceDisciplineId,
     ).length
   }
 
-  const primarySelected = selectedSourceCount(primaryDiscipline.id)
-  const secondarySelected = secondaryDiscipline ? selectedSourceCount(secondaryDiscipline.id) : 0
-  const primaryMixedLimit = secondaryDiscipline
-    ? Math.min(MIXED_SOURCE_MAXIMUM, capacity - secondarySelected)
-    : capacity
-  const secondaryMixedLimit = secondaryDiscipline
-    ? Math.min(MIXED_SOURCE_MAXIMUM, capacity - primarySelected)
-    : capacity
-  const mixedSelectionValid =
-    !secondaryDiscipline ||
-    selectedIds.length < capacity ||
-    (primarySelected > 0 && secondarySelected > 0)
-
-  function toggle(skill: SkillCatalogEntryView) {
-    if (!skill.activeSource || pending) return
-    const id = skill.definition.id
-    setMessage(null)
-    setSelectedIds((current) => {
-      if (current.includes(id)) return current.filter((candidate) => candidate !== id)
-      if (current.length >= capacity) return current
-      if (secondaryDiscipline) {
-        const selected = new Set(current)
-        const sameSourceCount = visibleSkills.filter(
-          (entry) =>
-            selected.has(entry.definition.id) &&
-            entry.definition.sourceDisciplineId === skill.definition.sourceDisciplineId,
-        ).length
-        if (sameSourceCount >= MIXED_SOURCE_MAXIMUM) return current
-      }
-      return [...current, id]
-    })
+  function mixedSelectionValid(ids: readonly string[], choices = eligibility): boolean {
+    if (!secondaryDiscipline || ids.length < capacity) return true
+    return (
+      selectedSourceCount(primaryDiscipline.id, ids, choices) > 0 &&
+      selectedSourceCount(secondaryDiscipline.id, ids, choices) > 0
+    )
   }
 
-  async function save() {
-    if (!dirty || pending) return
-    if (!mixedSelectionValid) {
+  function eligibilityForSelection(skill: SkillCatalogEntryView): Record<string, string> {
+    const source = selectedEligibility(skill)
+    if (
+      selectedIds.includes(skill.definition.id) ||
+      !secondaryDiscipline ||
+      !source ||
+      selectedSourceCount(source) < MIXED_SOURCE_MAXIMUM
+    )
+      return eligibility
+    // Preserve equipped provenance. A new shared Skill may use its other active
+    // grant to satisfy the existing mixed-loadout limit without another control.
+    const alternative = activeEligibility(skill)
+      .filter((grant) => grant.eligibilityDisciplineId !== source)
+      .sort((left, right) => {
+        const rank = (id: string) =>
+          id === primaryDiscipline.id ? 0 : id === secondaryDiscipline.id ? 1 : 2
+        return (
+          rank(left.eligibilityDisciplineId) - rank(right.eligibilityDisciplineId) ||
+          left.eligibilityDisciplineId.localeCompare(right.eligibilityDisciplineId)
+        )
+      })
+      .find((grant) => selectedSourceCount(grant.eligibilityDisciplineId) < MIXED_SOURCE_MAXIMUM)
+    return alternative
+      ? { ...eligibility, [skill.definition.id]: alternative.eligibilityDisciplineId }
+      : eligibility
+  }
+
+  function nextSelectionFor(skill: SkillCatalogEntryView, choices = eligibility): string[] {
+    const id = skill.definition.id
+    if (selectedIds.includes(id)) {
+      return selectedIds.filter((candidate) => candidate !== id)
+    }
+    if (selectedIds.length >= capacity) return selectedIds
+    if (
+      secondaryDiscipline &&
+      selectedSourceCount(selectedEligibility(skill, choices) ?? '') >= MIXED_SOURCE_MAXIMUM
+    ) {
+      return selectedIds
+    }
+    return [...selectedIds, id]
+  }
+
+  async function commitSelection(nextIds: string[], nextEligibility = eligibility) {
+    if (
+      pendingRef.current ||
+      (sameSelection(nextIds, selectedIds) &&
+        nextIds.every((id) => nextEligibility[id] === eligibility[id]))
+    )
+      return
+    const eligibilitySelections = nextIds.map((skillId) => ({
+      skillId,
+      eligibilityDisciplineId: selectedEligibility(
+        visibleSkills.find((entry) => entry.definition.id === skillId)!,
+        nextEligibility,
+      ),
+    }))
+    if (eligibilitySelections.some((choice) => !choice.eligibilityDisciplineId)) {
+      setMessage(
+        'A selected Technique is unavailable for your active Disciplines. Refresh Techniques.',
+      )
+      return
+    }
+    if (!mixedSelectionValid(nextIds, nextEligibility)) {
       setMessage('A full mixed loadout needs at least one Technique from each active Discipline.')
       return
     }
 
+    setSelectedIds(nextIds)
+    setEligibility(nextEligibility)
+    pendingRef.current = true
     setPending(true)
     setMessage(null)
+
     try {
       const response = await fetch('/api/character/build/skills', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          expectedBuildVersion: buildVersion,
-          skillIds: selectedIds,
+          expectedBuildVersion: buildVersionRef.current,
+          skillIds: nextIds,
+          eligibilitySelections,
           idempotencyKey: crypto.randomUUID(),
         }),
       })
       const body = (await response.json()) as SkillCommitResponse
       if (!response.ok || !body.context) {
+        setSelectedIds(committedIds)
+        setEligibility(committedEligibility)
+        refreshOnCloseRef.current = true
         setMessage(body.error?.message ?? 'The selected Techniques could not be saved.')
         return
       }
 
-      const nextIds = orderedSkillIds(body.context.disciplineSkills.equippedSkills)
-      setBuildVersion(body.context.build.buildVersion)
+      const committed = orderedSkillIds(body.context.disciplineSkills.equippedSkills)
+      buildVersionRef.current = body.context.build.buildVersion
+      const committedSupport = body.context.build.supportActionId ?? committedSupportActionId
+      setSupportActionId(committedSupport)
+      setCommittedSupportActionId(committedSupport)
       setCapacity(body.context.disciplineSkills.capacity)
       setLearnedSkills(body.context.disciplineSkills.learnedSkills)
-      setCommittedIds(nextIds)
-      setSelectedIds(nextIds)
-      setMessage('Selected Techniques committed.')
-      router.refresh()
+      setCommittedIds(committed)
+      setSelectedIds(committed)
+      setEligibility(equippedEligibility(body.context.disciplineSkills.equippedSkills))
+      setCommittedEligibility(equippedEligibility(body.context.disciplineSkills.equippedSkills))
+      refreshOnCloseRef.current = true
+      setMessage(null)
     } catch {
-      setMessage('The build service could not be reached. Nothing was changed.')
+      setSelectedIds(committedIds)
+      setEligibility(committedEligibility)
+      refreshOnCloseRef.current = true
+      setMessage('The save could not be confirmed. Close Techniques to refresh your build.')
     } finally {
+      pendingRef.current = false
       setPending(false)
     }
   }
 
-  const signatureLabel = initialResonance
-    ? 'Build Signature · Resonance'
-    : initialEssence
-      ? 'Build Signature · Essence Skill'
-      : 'Build Signature'
-  const essenceFavoriteCategory = initialEssence ? favoriteCategory(initialEssence.skill) : null
+  function equipBlockedReason(skill: SkillCatalogEntryView): string | null {
+    if (selectedIds.includes(skill.definition.id)) return null
+    const choices = eligibilityForSelection(skill)
+    if (!selectedEligibility(skill, choices))
+      return 'This Technique is unavailable for your active Disciplines.'
+    if (selectedIds.length >= capacity) return 'Your technique slots are full. Remove one first.'
+    if (
+      secondaryDiscipline &&
+      selectedSourceCount(selectedEligibility(skill, choices) ?? '') >= MIXED_SOURCE_MAXIMUM
+    ) {
+      return 'You already have the most techniques allowed from this discipline.'
+    }
+    return null
+  }
+
+  function toggleAndCommit(skill: SkillCatalogEntryView) {
+    if (!skill.activeSource || pendingRef.current) return
+    setFocusedSupportActionId(null)
+    setFocusedSkillId(skill.definition.id)
+    setMessage(null)
+    const choices = eligibilityForSelection(skill)
+    const nextIds = nextSelectionFor(skill, choices)
+    if (sameSelection(nextIds, selectedIds)) return
+    void commitSelection(nextIds, choices)
+  }
+
+  async function commitSupportAction(nextId: SupportActionId) {
+    setFocusedSupportActionId(nextId)
+    if (pendingRef.current || (nextId === supportActionId && !equipmentSupportSelected)) return
+    supportReadVersionRef.current += 1
+    pendingRef.current = true
+    setSupportActionId(nextId)
+    setPending(true)
+    setMessage(null)
+    try {
+      const response = await fetch('/api/character/build/support-action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          characterId: props.characterId,
+          expectedBuildVersion: buildVersionRef.current,
+          supportActionId: nextId,
+          idempotencyKey: crypto.randomUUID(),
+        }),
+      })
+      const body = (await response.json()) as SkillCommitResponse
+      if (!response.ok || !body.context) {
+        setSupportActionId(committedSupportActionId)
+        refreshOnCloseRef.current = true
+        setMessage(body.error?.message ?? 'The Support Action could not be saved.')
+        return
+      }
+      const committedSupport = body.context.build.supportActionId ?? DEFAULT_SUPPORT_ACTION_ID
+      const committed = orderedSkillIds(body.context.disciplineSkills.equippedSkills)
+      buildVersionRef.current = body.context.build.buildVersion
+      setSupportActionId(committedSupport)
+      setCommittedSupportActionId(committedSupport)
+      setItemSupportView((current) =>
+        current
+          ? {
+              ...current,
+              selectedSupport: {
+                kind: 'basic',
+                actionId:
+                  parseCurrentSupportActionId(committedSupport) ?? DEFAULT_SUPPORT_ACTION_ID,
+              },
+            }
+          : current,
+      )
+      setCapacity(body.context.disciplineSkills.capacity)
+      setLearnedSkills(body.context.disciplineSkills.learnedSkills)
+      setCommittedIds(committed)
+      setSelectedIds(committed)
+      setEligibility(equippedEligibility(body.context.disciplineSkills.equippedSkills))
+      setCommittedEligibility(equippedEligibility(body.context.disciplineSkills.equippedSkills))
+      refreshOnCloseRef.current = true
+      setMessage(null)
+    } catch {
+      setSupportActionId(committedSupportActionId)
+      refreshOnCloseRef.current = true
+      setMessage('The save could not be confirmed. Close Techniques to refresh your build.')
+    } finally {
+      pendingRef.current = false
+      setPending(false)
+    }
+  }
+
+  async function commitItemSupport(
+    selection: ReturnType<typeof itemSupportOptions>[number]['selection'],
+  ) {
+    if (pendingRef.current) return
+    supportReadVersionRef.current += 1
+    pendingRef.current = true
+    setPending(true)
+    setItemSupportLoading(true)
+    setItemSupportError(null)
+    try {
+      // The Basic writer and Skill editor can advance build/inventory revisions in this same modal.
+      const read = await fetch('/api/character/items', { cache: 'no-store' })
+      const current = (await read.json()) as {
+        view?: CharacterItemsView
+        error?: { message?: string }
+      }
+      if (!read.ok || !current.view)
+        throw new Error(current.error?.message ?? 'Reload equipment before choosing Support.')
+      const response = await fetch('/api/character/items', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          characterId: props.characterId,
+          expectedRevision: current.view.revision,
+          catalogueToken: current.view.catalogueToken,
+          action: 'support',
+          selection,
+        }),
+      })
+      const body = (await response.json()) as {
+        view?: CharacterItemsView
+        error?: { message?: string }
+      }
+      if (!response.ok || !body.view)
+        throw new Error(body.error?.message ?? 'The Support Action could not be saved.')
+      setItemSupportView(body.view)
+      refreshOnCloseRef.current = true
+      // Item Support advances the build revision too. Close and refresh before another build edit.
+      pendingRef.current = false
+      setPanelOpen(false)
+    } catch (cause) {
+      refreshOnCloseRef.current = true
+      setItemSupportError(
+        cause instanceof Error
+          ? cause.message
+          : 'The save could not be confirmed. Close Techniques to refresh.',
+      )
+    } finally {
+      pendingRef.current = false
+      setPending(false)
+      setItemSupportLoading(false)
+    }
+  }
+
+  function renderSupportActions() {
+    return (
+      <section
+        className={styles.techniqueGroup}
+        data-mobile-active={activeMobileTab === 'support' ? 'true' : 'false'}
+        data-technique-category="support"
+        data-support-action-group="true"
+      >
+        <header>
+          <div>
+            <span aria-hidden="true">✦</span>
+            <h3>Support Action</h3>
+          </div>
+          <small>Choose one Support Action</small>
+        </header>
+        <div className={styles.supportGrid} role="radiogroup" aria-label="Support Action">
+          {CURRENT_SUPPORT_ACTION_IDS.map((id) => {
+            const selected = !equipmentSupportSelected && supportActionId === id
+            const name = pv1fSkillByActionId(id)!.name
+            return (
+              <article
+                className={styles.skill}
+                key={id}
+                data-selected={selected ? 'true' : 'false'}
+                onMouseEnter={() => setFocusedSupportActionId(id)}
+                onFocusCapture={() => setFocusedSupportActionId(id)}
+              >
+                <label>
+                  <input
+                    type="radio"
+                    name={`support-action-${props.characterId}`}
+                    checked={selected}
+                    disabled={pending || itemSupportView?.battleLocked}
+                    aria-label={name}
+                    onClick={(event) => {
+                      if (!coarsePointer) return
+                      event.preventDefault()
+                      setFocusedSupportActionId(id)
+                    }}
+                    onChange={() => {
+                      if (!coarsePointer) void commitSupportAction(id)
+                    }}
+                  />
+                  <span
+                    className={styles.skillArt}
+                    data-av-square-media="true"
+                    data-av-square-media-fit="contain"
+                    aria-hidden="true"
+                  >
+                    <Image
+                      src={battleSkillArtwork(id, props.supportActionArtworkKeys?.[id])}
+                      width={160}
+                      height={160}
+                      unoptimized
+                      alt=""
+                    />
+                    {selected ? <b>✓</b> : null}
+                  </span>
+                  <strong>{name}</strong>
+                  <span className={styles.skillMeta}>
+                    {defaultBasicSkills().find((row) => row.id === id)?.ability.behaviors[0]
+                      ?.classification === 'attack'
+                      ? 'Attack'
+                      : id === 'basic.recover' || id === 'basic.recover.mp'
+                        ? 'Recovery'
+                        : 'Utility'}
+                  </span>
+                </label>
+              </article>
+            )
+          })}
+          {itemSupportView
+            ? itemSupportOptions(itemSupportView).map((option) => {
+                const selected =
+                  equipmentSupportSelected &&
+                  itemSupportView.selectedSupport.kind === 'equipment' &&
+                  itemSupportView.selectedSupport.position === option.selection.position &&
+                  itemSupportView.selectedSupport.itemId === option.selection.itemId &&
+                  itemSupportView.selectedSupport.behaviorId === option.selection.behaviorId
+                return (
+                  <article
+                    className={styles.skill}
+                    key={option.key}
+                    data-selected={selected ? 'true' : 'false'}
+                    onMouseEnter={() => focusEquipment(option.key)}
+                    onFocusCapture={() => focusEquipment(option.key)}
+                  >
+                    <label>
+                      <input
+                        type="radio"
+                        name={`support-action-${props.characterId}`}
+                        aria-label={option.label}
+                        aria-describedby={`support-source-${props.characterId}-${option.key}`}
+                        checked={selected}
+                        disabled={
+                          pending ||
+                          itemSupportLoading ||
+                          itemSupportView.battleLocked ||
+                          !!itemSupportView.equipmentIssue
+                        }
+                        onClick={(event) => {
+                          if (!coarsePointer) return
+                          event.preventDefault()
+                          focusEquipment(option.key)
+                        }}
+                        onChange={() => {
+                          if (!coarsePointer) void commitItemSupport(option.selection)
+                        }}
+                      />
+                      <span id={`support-source-${props.characterId}-${option.key}`} hidden>
+                        {`${option.item.name}, ${positionNames[option.selection.position]}`}
+                      </span>
+                      <span className={styles.skillArt}>
+                        {(option.item.actions.support?.artworkSrc ?? option.item.artworkSrc) ? (
+                          <Image
+                            src={
+                              (option.item.actions.support?.artworkSrc ?? option.item.artworkSrc)!
+                            }
+                            width={160}
+                            height={160}
+                            unoptimized
+                            alt=""
+                          />
+                        ) : null}
+                        {selected ? <b>✓</b> : null}
+                      </span>
+                      <strong>{option.label}</strong>
+                      <span className={styles.skillMeta}>
+                        {option.item.reports
+                          .find((report) => report.behaviorId === option.selection.behaviorId)
+                          ?.rows.find(([label]) => label === 'Skill Type')?.[1] ?? 'Utility'}
+                      </span>
+                    </label>
+                  </article>
+                )
+              })
+            : null}
+          {Array.from(
+            {
+              length: Math.max(
+                0,
+                TECHNIQUES_PER_DISCIPLINE -
+                  CURRENT_SUPPORT_ACTION_IDS.length -
+                  equipmentOptions.length,
+              ),
+            },
+            (_, index) => (
+              <div
+                key={`support-empty-${index}`}
+                className={`${styles.lockedSkill} ${styles.supportEmpty}`}
+                data-support-action-empty="true"
+                aria-hidden="true"
+              >
+                <span>◇</span>
+                <strong>Empty</strong>
+              </div>
+            ),
+          )}
+        </div>
+        {itemSupportError ? <p role="alert">{itemSupportError}</p> : null}
+        {itemSupportView?.battleLocked ? (
+          <p role="status">Support changes are locked during a pending or active battle.</p>
+        ) : null}
+      </section>
+    )
+  }
+
+  function renderTechniqueGroup(
+    discipline: { id: string; name: string } | null,
+    skills: readonly SkillCatalogEntryView[],
+    secondary: boolean,
+  ) {
+    const locked = secondary && !discipline
+    return (
+      <section
+        className={styles.techniqueGroup}
+        data-technique-group="true"
+        data-technique-category={secondary ? 'secondary' : 'primary'}
+        data-locked={locked ? 'true' : 'false'}
+        data-mobile-active={
+          activeMobileTab === (secondary ? 'secondary' : 'primary') ? 'true' : 'false'
+        }
+      >
+        <header>
+          <div>
+            <span aria-hidden="true">✦</span>
+            <h3>
+              {locked
+                ? 'Secondary Discipline Techniques'
+                : `${discipline?.name ?? 'Discipline'} Techniques`}
+            </h3>
+          </div>
+          <small>{locked ? '0 / 8 unlocked' : `${skills.length} techniques available`}</small>
+        </header>
+        <div className={styles.skillGrid} data-technique-grid="true">
+          {Array.from(
+            { length: Math.max(TECHNIQUES_PER_DISCIPLINE, skills.length) },
+            (_, index) => {
+              if (locked) {
+                return (
+                  <div
+                    className={styles.lockedSkill}
+                    data-technique-card="true"
+                    key={`locked-${index}`}
+                    aria-hidden="true"
+                  >
+                    <span data-technique-art="true">▣</span>
+                    <strong>Locked</strong>
+                  </div>
+                )
+              }
+
+              const entry = skills[index]
+              if (!entry) {
+                return (
+                  <div
+                    className={styles.lockedSkill}
+                    data-technique-card="true"
+                    key={`void-${index}`}
+                    aria-hidden="true"
+                  >
+                    <span data-technique-art="true">◇</span>
+                    <strong>Unavailable</strong>
+                  </div>
+                )
+              }
+
+              const selected = selectedIds.includes(entry.definition.id)
+              const sourceCount = selectedSourceCount(
+                selectedEligibility(entry, eligibilityForSelection(entry)) ?? '',
+              )
+              const disabledBySource = Boolean(
+                secondaryDiscipline && !selected && sourceCount >= MIXED_SOURCE_MAXIMUM,
+              )
+              const disabledByCapacity = !selected && selectedIds.length >= capacity
+              const disabled = pending || disabledByCapacity || disabledBySource
+              const label = skillDisplayName(entry.definition)
+
+              return (
+                <article
+                  className={styles.skill}
+                  data-technique-card="true"
+                  key={`${entry.definition.id}:${entry.definition.contentVersion}`}
+                  data-selected={selected ? 'true' : 'false'}
+                  style={skillPaletteStyle(entry.definition.sourceDisciplineId)}
+                  onMouseEnter={() => {
+                    setFocusedSupportActionId(null)
+                    setFocusedSkillId(entry.definition.id)
+                  }}
+                  onFocusCapture={() => {
+                    setFocusedSupportActionId(null)
+                    setFocusedSkillId(entry.definition.id)
+                  }}
+                >
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={selected}
+                      disabled={disabled}
+                      aria-label={`${selected ? 'Unselect' : 'Select'} ${label}`}
+                      onClick={(event) => {
+                        // Touch: a tap only previews. Equipping is the explicit button in the preview.
+                        if (!coarsePointer) return
+                        event.preventDefault()
+                        setFocusedSupportActionId(null)
+                        setFocusedSkillId(entry.definition.id)
+                      }}
+                      onChange={() => {
+                        if (!coarsePointer) toggleAndCommit(entry)
+                      }}
+                    />
+                    <span
+                      className={styles.skillArt}
+                      data-technique-art="true"
+                      data-av-square-media="true"
+                      data-av-square-media-fit="contain"
+                      aria-hidden="true"
+                    >
+                      <Image
+                        src={battleSkillArtwork(
+                          entry.definition.id,
+                          contentArtworkKey(entry.definition.media),
+                        )}
+                        width={160}
+                        height={160}
+                        unoptimized
+                        alt=""
+                      />
+                      {selected ? <b>✓</b> : null}
+                    </span>
+                    <strong title={label}>{label}</strong>
+                    <span className={styles.skillMeta} data-technique-meta="true">
+                      {skillTypeDescription(entry.definition)}
+                    </span>
+                  </label>
+                </article>
+              )
+            },
+          )}
+        </div>
+      </section>
+    )
+  }
 
   return (
     <div className={styles.root} data-testid="skill-build-panel">
@@ -272,16 +981,15 @@ export function CharacterSkillBuildPanel({
         aria-label={`Manage Techniques. ${selectedIds.length} of ${capacity} selected.`}
         onClick={() => setPanelOpen(true)}
       >
+        <span aria-hidden="true">⚔</span>
         <strong>Manage Techniques</strong>
-        <small>
-          {selectedIds.length} / {capacity}
-        </small>
+        <span aria-hidden="true">›</span>
       </button>
 
       {open && mounted
         ? createPortal(
             <div
-              className={styles.backdrop}
+              className={`${styles.backdrop} ${artworkScaleStyles.scale}`}
               data-techniques-overlay="true"
               role="presentation"
               onPointerDown={() => setPanelOpen(false)}
@@ -297,305 +1005,347 @@ export function CharacterSkillBuildPanel({
               >
                 <header className={styles.header}>
                   <div className={styles.headingCopy}>
-                    <h2 id="skill-build-heading">Techniques</h2>
-                  </div>
-                  <div className={styles.headerActions}>
-                    <div className={polish.counterGroup} data-testid="skill-capacity">
-                      {secondaryDiscipline ? (
-                        <>
-                          <div
-                            className={`${styles.capacityBadge} ${polish.capacityBadge}`}
-                            style={chipPaletteStyle(primaryDiscipline.id)}
-                          >
-                            <span className={polish.counterName}>{primaryDiscipline.name}</span>
-                            <strong>{primarySelected}</strong>
-                            <span>{` / ${primaryMixedLimit}`}</span>
-                          </div>
-                          <div
-                            className={`${styles.capacityBadge} ${polish.capacityBadge}`}
-                            style={chipPaletteStyle(secondaryDiscipline.id)}
-                          >
-                            <span className={polish.counterName}>{secondaryDiscipline.name}</span>
-                            <strong>{secondarySelected}</strong>
-                            <span>{` / ${secondaryMixedLimit}`}</span>
-                          </div>
-                        </>
-                      ) : (
-                        <div
-                          className={`${styles.capacityBadge} ${polish.capacityBadge}`}
-                          style={chipPaletteStyle(primaryDiscipline.id)}
-                        >
-                          <span className={polish.counterName}>{primaryDiscipline.name}</span>
-                          <strong>{selectedIds.length}</strong>
-                          <span>{` / ${capacity}`}</span>
-                        </div>
-                      )}
+                    <span className={styles.headerIcon} aria-hidden="true">
+                      ⚔
+                    </span>
+                    <div>
+                      <h2 id="skill-build-heading">Techniques</h2>
+                      <small className={styles.autoSaveNote} data-testid="skill-capacity">
+                        Discipline Skills — {selectedIds.length} / {capacity} selected
+                      </small>
                     </div>
-                    <button
-                      type="button"
-                      className={`${styles.close} ${polish.standardButton}`}
-                      onClick={() => setPanelOpen(false)}
-                    >
-                      Close
-                    </button>
                   </div>
+                  <button
+                    type="button"
+                    className={styles.close}
+                    disabled={pending}
+                    onClick={() => setPanelOpen(false)}
+                  >
+                    <span aria-hidden="true">×</span>
+                    Close
+                  </button>
                 </header>
 
-                <div className={styles.workspace}>
-                  <aside className={styles.buildRail} data-av-surface="ink">
-                    <section className={styles.buildCard}>
-                      <span className={styles.eyebrow}>Active build</span>
-                      <strong className={styles.buildName}>
-                        {primaryDiscipline.name}
-                        {secondaryDiscipline ? ` + ${secondaryDiscipline.name}` : ''}
-                      </strong>
-                    </section>
-
-                    {(initialResonance || initialEssence) && (
-                      <section className={`${styles.extensions} ${polish.signatureSection}`}>
-                        <span className={styles.eyebrow}>{signatureLabel}</span>
-                        {initialResonance ? (
-                          <article className={polish.signatureCard}>
-                            <span
-                              className={polish.signatureArtFrame}
-                              data-av-square-media="true"
-                              data-av-square-media-fit="contain"
-                              aria-hidden="true"
-                            >
-                              <Image
-                                width={64}
-                                height={64}
-                                unoptimized
-                                className={polish.signatureArt}
-                                src={battleResonanceArtwork(initialResonance.id)}
-                                alt=""
-                              />
-                            </span>
-                            <div className={polish.signatureCopy}>
-                              <strong data-testid="active-resonance">
-                                {initialResonance.name}
-                              </strong>
-                              <span className={styles.metaRow}>
-                                {initialResonance.disciplinePair.map((disciplineId) => (
-                                  <small
-                                    key={disciplineId}
-                                    className={styles.sourceChip}
-                                    style={chipPaletteStyle(disciplineId)}
-                                  >
-                                    {titleCase(disciplineId)}
-                                  </small>
-                                ))}
-                                <small className={polish.typeChip} data-light-panel-chip="true">
-                                  Passive
-                                </small>
-                              </span>
-                              <p>{initialResonance.description}</p>
-                            </div>
-                          </article>
-                        ) : null}
-                        {initialEssence ? (
-                          <article className={polish.signatureCard}>
-                            <span
-                              className={polish.signatureArtFrame}
-                              data-av-square-media="true"
-                              data-av-square-media-fit="contain"
-                              aria-hidden="true"
-                            >
-                              <Image
-                                width={64}
-                                height={64}
-                                unoptimized
-                                className={polish.signatureArt}
-                                src={battleSkillArtwork(initialEssence.skill.id)}
-                                alt=""
-                              />
-                            </span>
-                            <div className={polish.signatureCopy}>
-                              <strong data-testid="active-essence">{initialEssence.name}</strong>
-                              <span className={styles.metaRow}>
-                                <small
-                                  className={styles.sourceChip}
-                                  style={chipPaletteStyle(initialEssence.sourceDisciplineId)}
-                                >
-                                  {titleCase(initialEssence.sourceDisciplineId)}
-                                </small>
-                                <small>
-                                  {initialEssence.skill.apCost} AP
-                                  {initialEssence.skill.mpCost
-                                    ? ` · ${initialEssence.skill.mpCost} MP`
-                                    : ''}
-                                </small>
-                                <small className={polish.typeChip} data-light-panel-chip="true">
-                                  {cockpitType(initialEssence.skill)}
-                                </small>
-                              </span>
-                              <p>{initialEssence.description}</p>
-                            </div>
-                            <SkillDetails skill={initialEssence.skill} />
-                            {essenceFavoriteCategory ? (
-                              <FavoriteTechniqueButton
-                                characterId={characterId}
-                                techniqueId={initialEssence.skill.id}
-                                label={initialEssence.name}
-                                category={essenceFavoriteCategory}
-                              />
-                            ) : null}
-                          </article>
-                        ) : null}
-                      </section>
-                    )}
-                  </aside>
-
-                  <section className={styles.techniqueArea} aria-label="Techniques">
-                    <div className={`${styles.techniqueHeading} ${polish.techniqueHeading}`}>
-                      <strong>Select your combat loadout</strong>
-                    </div>
-
-                    <ol className={styles.selectedLoadout} aria-label="Selected ordinary Skills">
-                      {Array.from({ length: capacity }, (_, index) => {
-                        const entry = initialLearnedSkills.find(
-                          (entry) => entry.definition.id === selectedIds[index],
-                        )
-                        return (
-                          <li key={index} data-av-surface="ink">
-                            <span className={styles.slotNumber}>{index + 1}</span>
-                            {entry ? (
-                              <>
-                                <span
-                                  className={styles.selectedLoadoutArt}
-                                  data-av-square-media="true"
-                                  data-av-square-media-fit="contain"
-                                >
-                                  <Image
-                                    src={battleSkillArtwork(entry.definition.id)}
-                                    width={200}
-                                    height={200}
-                                    unoptimized
-                                    alt=""
-                                  />
-                                </span>
-                                <strong>{skillDisplayName(entry.definition)}</strong>
-                              </>
-                            ) : (
-                              <span className={styles.emptySlot}>Empty slot</span>
-                            )}
-                          </li>
-                        )
-                      })}
-                    </ol>
-                    <h3 className={styles.libraryHeading}>Skill library</h3>
-                    <div className={styles.skillList} data-testid="learned-skill-list">
-                      {visibleSkills.length === 0 ? (
-                        <p className={styles.empty}>No Techniques are available for this build.</p>
-                      ) : (
-                        visibleSkills.map((entry) => {
-                          const selected = selectedIds.includes(entry.definition.id)
-                          const sourceCount = selectedSourceCount(
-                            entry.definition.sourceDisciplineId,
-                          )
-                          const disabledBySource = Boolean(
-                            secondaryDiscipline && !selected && sourceCount >= MIXED_SOURCE_MAXIMUM,
-                          )
-                          const disabledByCapacity = !selected && selectedIds.length >= capacity
-                          const disabled = pending || disabledByCapacity || disabledBySource
-                          const category = favoriteCategory(entry.definition)
-                          const label = skillDisplayName(entry.definition)
-
-                          return (
-                            <article
-                              key={`${entry.definition.id}:${entry.definition.contentVersion}`}
-                              className={styles.skill}
-                              data-av-surface="ink"
-                              data-active-source="true"
-                              data-selected={selected ? 'true' : 'false'}
-                              data-source={entry.definition.sourceDisciplineId}
-                              style={skillPaletteStyle(entry.definition.sourceDisciplineId)}
-                            >
-                              <label className={styles.skillToggle}>
-                                <input
-                                  type="checkbox"
-                                  checked={selected}
-                                  disabled={disabled}
-                                  onChange={() => toggle(entry)}
-                                />
-                                <span
-                                  className={styles.artFrame}
-                                  data-av-square-media="true"
-                                  data-av-square-media-fit="contain"
-                                  aria-hidden="true"
-                                >
-                                  <Image
-                                    width={64}
-                                    height={64}
-                                    unoptimized
-                                    className={styles.skillArt}
-                                    src={battleSkillArtwork(entry.definition.id)}
-                                    alt=""
-                                  />
-                                </span>
-                                <span className={styles.skillCopy}>
-                                  <strong>{label}</strong>
-                                  <span className={styles.metaRow}>
-                                    <small className={styles.sourceChip}>
-                                      {titleCase(entry.definition.sourceDisciplineId)}
-                                    </small>
-                                    <small>
-                                      {entry.definition.apCost} AP
-                                      {entry.definition.mpCost
-                                        ? ` · ${entry.definition.mpCost} MP`
-                                        : ''}
-                                    </small>
-                                    <small className={polish.typeChip} data-light-panel-chip="true">
-                                      {cockpitType(entry.definition)}
-                                    </small>
-                                  </span>
-                                </span>
-                              </label>
-                              <SkillDetails skill={entry.definition} />
-                              {category ? (
-                                <FavoriteTechniqueButton
-                                  characterId={characterId}
-                                  techniqueId={entry.definition.id}
-                                  label={label}
-                                  category={category}
-                                  disabled={!selected || pending}
-                                />
-                              ) : null}
-                            </article>
-                          )
-                        })
-                      )}
-                    </div>
+                <div className={styles.workspace} data-technique-workspace="true">
+                  <section
+                    className={styles.techniqueArea}
+                    aria-label="Available Techniques"
+                    data-testid="learned-skill-list"
+                    data-technique-tab={activeMobileTab}
+                  >
+                    <nav
+                      className={styles.mobileTechniqueTabs}
+                      role="tablist"
+                      aria-label="Technique categories"
+                    >
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={activeMobileTab === 'primary'}
+                        onClick={() => {
+                          setActiveMobileTab('primary')
+                          setFocusedSupportActionId(null)
+                          setFocusedSkillId(primarySkills[0]?.definition.id ?? null)
+                        }}
+                      >
+                        Discipline 1
+                      </button>
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={activeMobileTab === 'secondary'}
+                        disabled={!secondaryDiscipline}
+                        onClick={() => {
+                          setActiveMobileTab('secondary')
+                          setFocusedSupportActionId(null)
+                          setFocusedSkillId(secondarySkills[0]?.definition.id ?? null)
+                        }}
+                      >
+                        Discipline 2
+                      </button>
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={activeMobileTab === 'support'}
+                        onClick={() => {
+                          setActiveMobileTab('support')
+                          setFocusedSupportActionId(supportActionId)
+                        }}
+                      >
+                        Support
+                      </button>
+                    </nav>
+                    {renderTechniqueGroup(primaryDiscipline, primarySkills, false)}
+                    {renderTechniqueGroup(secondaryDiscipline, secondarySkills, true)}
+                    {renderSupportActions()}
                   </section>
+
+                  <aside
+                    className={styles.detailRail}
+                    data-av-surface="ink"
+                    data-testid="technique-preview"
+                  >
+                    <section
+                      className={styles.selectedTechnique}
+                      data-technique-preview-details="true"
+                    >
+                      <span>
+                        {focusedSupportActionId || focusedEquipment
+                          ? 'Support Action Preview'
+                          : 'Technique Preview'}
+                      </span>
+                      {focusedEquipment && focusedEquipmentReport ? (
+                        <>
+                          <div className={styles.selectedTechniqueHeading}>
+                            <div>
+                              <strong>{focusedEquipment.label}</strong>
+                              <small>
+                                {focusedEquipment.item.actions.support?.description ??
+                                  'Technique description unavailable.'}
+                              </small>
+                            </div>
+                          </div>
+                          <AbilityParameters
+                            report={focusedEquipmentReport}
+                            characteristicsClassName={styles.characteristics}
+                            effectExplanationsClassName={styles.effectExplanations}
+                            showMaintenance={false}
+                          />
+                        </>
+                      ) : focusedSupportActionId ? (
+                        <>
+                          <div className={styles.selectedTechniqueHeading}>
+                            <div>
+                              <strong>{pv1fSkillByActionId(focusedSupportActionId)!.name}</strong>
+                              <small>
+                                {props.supportActionDescriptions?.[focusedSupportActionId] ??
+                                  defaultBasicSkills().find(
+                                    (skill) => skill.id === focusedSupportActionId,
+                                  )?.description ??
+                                  'Description unavailable.'}
+                              </small>
+                            </div>
+                          </div>
+                          {(() => {
+                            const basic = defaultBasicSkills().find(
+                              (row) => row.id === focusedSupportActionId,
+                            )
+                            return basic &&
+                              !['basic.guard', 'basic.recover', 'basic.recover.mp'].includes(
+                                basic.id,
+                              ) ? (
+                              <AbilityDefinitionParameters
+                                definition={basic.ability}
+                                basic={basic}
+                                characteristicsClassName={styles.characteristics}
+                                effectExplanationsClassName={styles.effectExplanations}
+                              />
+                            ) : (
+                              <>
+                                <dl className={styles.characteristics}>
+                                  <SkillCharacteristicRows
+                                    rows={basicActionCharacteristicRows(
+                                      focusedSupportActionId,
+                                      timingPolicy,
+                                    )}
+                                    effectSummary={
+                                      <div className={styles.effectSummaryList}>
+                                        <BasicActionEffectSummary id={focusedSupportActionId} />
+                                      </div>
+                                    }
+                                  />
+                                </dl>
+                                <BasicActionEffectExplanations
+                                  id={focusedSupportActionId}
+                                  className={styles.effectExplanations}
+                                />
+                              </>
+                            )
+                          })()}
+                        </>
+                      ) : focusedSkill ? (
+                        <>
+                          <div className={styles.selectedTechniqueHeading}>
+                            <div>
+                              <strong>{skillDisplayName(focusedSkill.definition)}</strong>
+                              <small>
+                                {renderBattleFlavorTemplate(focusedSkill.definition.flavorLine, {
+                                  ability: skillDisplayName(focusedSkill.definition),
+                                }) ?? `${focusedSkillDisciplineName} Technique`}
+                              </small>
+                            </div>
+                          </div>
+                          {focusedSkill.definition.ability ? (
+                            <AbilityDefinitionParameters
+                              definition={focusedSkill.definition.ability}
+                              effectDescriptions={focusedSkill.definition.effectDescriptions}
+                              characteristicsClassName={styles.characteristics}
+                              effectExplanationsClassName={styles.effectExplanations}
+                            />
+                          ) : (
+                            <>
+                              <dl className={styles.characteristics}>
+                                {focusedCharacteristics.map(([label, value]) =>
+                                  label === 'Target Method' ? (
+                                    <SkillCharacteristicRows
+                                      key={label}
+                                      rows={[[label, value]]}
+                                      targetMethodExplanation={skillTargetMethodExplanation(
+                                        focusedNativeDefinition!,
+                                      )}
+                                      targetDetails={
+                                        <SkillGroundAreaDetails skill={focusedNativeDefinition!} />
+                                      }
+                                    />
+                                  ) : (
+                                    <div key={label}>
+                                      <dt>{label}</dt>
+                                      <dd>
+                                        {label === 'Effects' && focusedSkill ? (
+                                          focusedNativeDefinition!.effects.length > 0 ? (
+                                            <div className={styles.effectSummaryList}>
+                                              {groupSkillEffects(
+                                                focusedNativeDefinition!.effects,
+                                                focusedNativeDefinition!.effectDescriptions,
+                                              ).map(({ effect, count, firstIndex: index }) => (
+                                                <CompactSkillEffectSummary
+                                                  aim={focusedNativeDefinition!.target}
+                                                  skillEffects={focusedNativeDefinition!.effects}
+                                                  effect={effect}
+                                                  count={count}
+                                                  key={`${index}:${effect.type}`}
+                                                />
+                                              ))}
+                                            </div>
+                                          ) : (
+                                            'N/A'
+                                          )
+                                        ) : typeof value === 'string' ? (
+                                          value
+                                        ) : value.length > 0 ? (
+                                          value.join(', ')
+                                        ) : (
+                                          'N/A'
+                                        )}
+                                      </dd>
+                                    </div>
+                                  ),
+                                )}
+                              </dl>
+                              <ul
+                                className={styles.effectExplanations}
+                                aria-label="Effect explanations"
+                              >
+                                {skillPreviewEffects(focusedNativeDefinition!, {
+                                  ...groundRules,
+                                  timingPolicy,
+                                }).map((effect) => (
+                                  <li key={JSON.stringify(effect)}>
+                                    <strong>
+                                      <EffectTagLabel label={effect.label} />
+                                    </strong>{' '}
+                                    — {effect.explanation}
+                                  </li>
+                                ))}
+                              </ul>
+                            </>
+                          )}
+                        </>
+                      ) : (
+                        <p>No Technique is available for this build.</p>
+                      )}
+                    </section>
+                    {coarsePointer &&
+                    (focusedEquipment || focusedSupportActionId || focusedSkill) ? (
+                      <div className={styles.previewActions} data-technique-preview-actions="true">
+                        {focusedEquipment ? (
+                          <button
+                            type="button"
+                            className={styles.equipAction}
+                            disabled={
+                              pending ||
+                              itemSupportLoading ||
+                              itemSupportView?.battleLocked ||
+                              !!itemSupportView?.equipmentIssue
+                            }
+                            onClick={() => void commitItemSupport(focusedEquipment.selection)}
+                          >
+                            Use as Support Action
+                          </button>
+                        ) : focusedSupportActionId ? (
+                          <button
+                            type="button"
+                            className={styles.equipAction}
+                            data-equipped={
+                              (!equipmentSupportSelected &&
+                                supportActionId === focusedSupportActionId) ||
+                              undefined
+                            }
+                            disabled={
+                              pending ||
+                              (!equipmentSupportSelected &&
+                                supportActionId === focusedSupportActionId)
+                            }
+                            onClick={() => void commitSupportAction(focusedSupportActionId)}
+                          >
+                            {!equipmentSupportSelected && supportActionId === focusedSupportActionId
+                              ? '✓ Current Support Action'
+                              : 'Use as Support Action'}
+                          </button>
+                        ) : focusedSkill ? (
+                          <>
+                            <button
+                              type="button"
+                              className={styles.equipAction}
+                              data-equipped={
+                                selectedIds.includes(focusedSkill.definition.id) || undefined
+                              }
+                              disabled={
+                                pending ||
+                                equipBlockedReason(focusedSkill) !== null ||
+                                !focusedSkill.activeSource
+                              }
+                              onClick={() => toggleAndCommit(focusedSkill)}
+                            >
+                              {selectedIds.includes(focusedSkill.definition.id)
+                                ? 'Remove from loadout'
+                                : 'Equip technique'}
+                            </button>
+                            {equipBlockedReason(focusedSkill) ? (
+                              <small
+                                className={styles.equipHint}
+                                data-technique-capacity-note={
+                                  selectedIds.length >= capacity || undefined
+                                }
+                              >
+                                {equipBlockedReason(focusedSkill)}
+                              </small>
+                            ) : null}
+                          </>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </aside>
                 </div>
 
-                <footer className={`${styles.actions} ${polish.actions}`}>
+                {/* Desktop retains bulk clearing; phone tabs use the full height for the editor. */}
+                <footer className={styles.actions}>
                   <button
                     type="button"
-                    className={`${styles.secondaryAction} ${polish.standardButton}`}
-                    onClick={() => {
-                      setSelectedIds([])
-                      setMessage(null)
-                    }}
+                    className={styles.secondaryAction}
+                    onClick={() => void commitSelection([])}
                     disabled={pending || selectedIds.length === 0}
                   >
-                    Clear Selected Techniques
+                    ↻ Clear Selections
                   </button>
-                  <button
-                    type="button"
-                    className={polish.standardButton}
-                    onClick={() => void save()}
-                    disabled={!dirty || pending || !mixedSelectionValid}
-                  >
-                    {pending ? 'Saving…' : 'Commit Selected Techniques'}
-                  </button>
+                  <span className={styles.saveState} aria-live="polite">
+                    {pending ? 'Saving selection…' : ''}
+                  </span>
                 </footer>
 
-                {message ? (
-                  <p className={styles.status} role="status">
-                    {message}
-                  </p>
-                ) : null}
+                <p className={styles.status} role="status">
+                  {message}
+                </p>
               </section>
             </div>,
             document.body,

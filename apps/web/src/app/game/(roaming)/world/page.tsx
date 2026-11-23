@@ -1,10 +1,12 @@
+import { AccountBannedError } from '@aurevane/game-core/errors'
 import { isAurevaneError } from '@aurevane/game-core/errors'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { CharacterIdentityCard } from '@/components/character/character-identity-card'
 import { AuthenticatedGameRecoveryContent } from '@/components/shell/authenticated-game-shell'
 import { WorldWorkspace } from '@/components/world/world-workspace'
-import styles from '@/components/world/world.module.css'
+import { battleSessionHref } from '@/components/battle/battle-return-navigation'
+import styles from '@/components/world/workspace.module.css'
 import { getOptionalPublicSupabaseConfig } from '@/lib/supabase/config'
 import { getCurrentAccountServicesReadiness } from '@/server/account/account-services-readiness'
 import {
@@ -28,6 +30,7 @@ export default async function WorldMapPage() {
   try {
     actor = await getAuthenticatedActor()
   } catch (error) {
+    if (error instanceof AccountBannedError) redirect('/account/banned')
     if (isAurevaneError(error) && error.code === 'UNAUTHENTICATED') redirect('/')
     throw error
   }
@@ -36,7 +39,7 @@ export default async function WorldMapPage() {
     getActiveSpectatingForUser(actor.userId),
     loadSelectedCharacter(actor),
   ])
-  if (battle) redirect(`/game/battle/${battle.battleSessionId}`)
+  if (battle) redirect(battleSessionHref(battle.battleSessionId, 'world'))
   if (spectating) redirect(`/game/battle/spectate/${spectating.battleKey}`)
   if (!character) redirect('/game')
   let loaded
@@ -55,7 +58,7 @@ export default async function WorldMapPage() {
     identity.imageUrl ?? getImageAsset(getStarterPortraitImageAssetId(character.portraitRef)).src
   if (!portrait) throw new Error('The registered character portrait is unavailable.')
   return (
-    <div className={styles.layout}>
+    <div className={styles.layout} data-world-shell>
       <CharacterIdentityCard {...identity} />
       <WorldWorkspace
         key={character.id}

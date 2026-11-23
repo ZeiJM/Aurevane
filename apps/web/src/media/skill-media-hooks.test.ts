@@ -45,7 +45,42 @@ describe('Skill media hook registry', () => {
     expect(registeredSkillArtworkSource('ravager.frenzy')).toBe(
       '/media/art/discipline-skills/ravager-frenzy-v01.webp',
     )
-    expect(registeredSkillArtworkSource('edgedancer.lunge')).toMatch(/^data:image\/svg\+xml/)
+    expect(registeredSkillArtworkSource('edgedancer.lunge')).toBe(
+      '/media/art/discipline-skills/edgedancer-lunge-v01.webp',
+    )
+    expect(registeredSkillArtworkSource('edgedancer.finishing-thrust')).toBe(
+      '/media/art/discipline-skills/edgedancer-finishing-thrust-v01.webp',
+    )
+    expect(registeredSkillArtworkSource('wildwarden.snare')).toBe(
+      '/media/art/discipline-skills/wildwarden-snare-v01.webp',
+    )
+    expect(registeredSkillArtworkSource('wildwarden.close-quarry')).toBe(
+      '/media/art/discipline-skills/wildwarden-close-quarry-v01.webp',
+    )
+    expect(registeredSkillArtworkSource('runeblade.aether-cut')).toBe(
+      '/media/art/discipline-skills/runeblade-aether-cut-v01.webp',
+    )
+    expect(registeredSkillArtworkSource('runeblade.rune-mending')).toBe(
+      '/media/art/discipline-skills/runeblade-rune-mending-v01.webp',
+    )
+    expect(registeredSkillArtworkSource('dawnshield.radiant-strike')).toBe(
+      '/media/art/discipline-skills/dawnshield-radiant-strike-v01.webp',
+    )
+    expect(registeredSkillArtworkSource('cinderweaver.cinder-bolt')).toBe(
+      '/media/art/discipline-skills/cinderweaver-cinder-bolt-v01.webp',
+    )
+    expect(registeredSkillArtworkSource('frostweaver.ice-lance')).toBe(
+      '/media/art/discipline-skills/frostweaver-ice-lance-v01.webp',
+    )
+    expect(registeredSkillArtworkSource('stormsinger.arc-spark')).toBe(
+      '/media/art/discipline-skills/stormsinger-arc-spark-v01.webp',
+    )
+    expect(registeredSkillArtworkSource('tidecaller.water-lance')).toBe(
+      '/media/art/discipline-skills/tidecaller-water-lance-v01.webp',
+    )
+    expect(registeredSkillArtworkSource('tidecaller.crushing-wave')).toBe(
+      '/media/art/discipline-skills/tidecaller-crushing-wave-v01.webp',
+    )
     const essence = resolveSkillIconHook('essence.aetherist.aether-nova.icon')
     expect(essence).toEqual(
       expect.objectContaining({
@@ -70,8 +105,8 @@ describe('Skill media hook registry', () => {
         key: 'skill.ironfist.breakfall.audio',
         skillId: 'ironfist.breakfall',
         available: true,
-        audioFamily: 'ironfist',
-        sampleAssetId: 'audio.phase4.ironfist-action-v02-1',
+        audioFamily: null,
+        sampleAssetId: 'audio.skill-fx.v01.082-1',
       }),
     )
     const vanguard = resolveSkillAudioCueHook('skill.vanguard.forceful-strike.audio')
@@ -79,24 +114,18 @@ describe('Skill media hook registry', () => {
       expect.objectContaining({
         skillId: 'vanguard.forceful-strike',
         available: true,
-        audioFamily: 'vanguard',
-        sampleAssetId: 'audio.phase4.vanguard-action-v02-1',
+        audioFamily: null,
+        sampleAssetId: 'audio.skill-fx.v01.140-1',
       }),
     )
-    const foundationFamilies = ['vanguard', 'farstrider', 'shadehand', 'aetherist', 'lifebinder']
-    for (const family of foundationFamilies) {
-      expect(
-        skillAudioCueHookOptions.some(
-          (option) => option.sourceDisciplineId === family && option.available,
-        ),
-      ).toBe(true)
-    }
+    expect(skillAudioCueHookOptions).toHaveLength(153)
+    expect(skillAudioCueHookOptions.every((option) => option.available)).toBe(true)
     const aetherNova = resolveSkillAudioCueHook('essence.aetherist.aether-nova.audio')
     expect(aetherNova).toEqual(
       expect.objectContaining({
         available: true,
-        audioFamily: 'aetherist',
-        sampleAssetId: 'audio.phase4.aetherist-essence-v02-1',
+        audioFamily: null,
+        sampleAssetId: 'audio.skill-fx.v01.049-1',
       }),
     )
     expect(skillAudioCueHookOptions.length).toBeGreaterThan(10)

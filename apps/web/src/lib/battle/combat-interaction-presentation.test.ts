@@ -26,14 +26,14 @@ it('shares terrain duration and both-team rules between forecast and board inspe
     after: 'steam',
     remainingRoundBoundaries: 2,
   }
-  expect(combatInteractionDescription(event)).toContain('Frozen → Steam at tile 2,3')
+  expect(combatInteractionDescription(event)).toContain('Frozen Ground → Steam at tile 2,3')
   expect(combatInteractionDescription(event)).toContain('Blocks line of sight')
 })
 
 it('shows displacement failures and tag consumption without exposing arbitrary payloads', () => {
   expect(
     combatInteractionDescription({ event: 'displacement_failed', reason: 'occupied-tile' }),
-  ).toContain('no refund')
+  ).toBe('Target was not displaced.')
   expect(
     combatInteractionDescription({ event: 'displacement_failed', reason: 'private-invalid-data' }),
   ).toBeNull()
@@ -48,9 +48,9 @@ it('shows displacement failures and tag consumption without exposing arbitrary p
   expect(combatInteractionDescription({ event: 'status_removed', statusId: 'conductive' })).toBe(
     'Conductive removed.',
   )
-  expect(gameplayStatusName('burn')).toBe('Burn (Scorched)')
-  expect(gameplayStatusName('bleed')).toBe('Bleed (Bleeding)')
-  expect(gameplayStatusName('poison')).toBe('Poison (Poisoned)')
+  expect(gameplayStatusName('burn')).toBe('Burn')
+  expect(gameplayStatusName('bleed')).toBe('Bleed')
+  expect(gameplayStatusName('poison')).toBe('Poison')
 })
 
 it('does not advertise unit statuses when a legal empty-ground action affects no units', () => {
@@ -76,5 +76,25 @@ it('reports Pull distance and failed Pull without calling it a Push', () => {
       direction: 'pull',
       reason: 'occupied-tile',
     }),
-  ).toContain('Pull failed')
+  ).toBe('Target was not displaced.')
+})
+
+it('preserves captured Skill AP in terrain inspection and recorded terrain descriptions', () => {
+  const overlay = {
+    kind: 'frozen' as const,
+    position: { x: 1, y: 2 },
+    remainingRoundBoundaries: 2,
+    sourceCombatantId: 'actor',
+    skillApSurcharge: 27,
+  }
+  expect(terrainOverlayDescription(overlay)).toContain('27 AP to Skills')
+  expect(terrainOverlayDescription(overlay)).not.toContain('per entered tile')
+  expect(
+    combatInteractionDescription({
+      event: 'terrain_overlay_changed',
+      ...overlay,
+      before: null,
+      after: 'frozen',
+    }),
+  ).toContain('27 AP to Skills')
 })

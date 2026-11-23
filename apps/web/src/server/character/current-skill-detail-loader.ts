@@ -1,4 +1,8 @@
 import 'server-only'
+import {
+  projectPublicCombat,
+  type PublicCombat,
+} from '@aurevane/game-core/combat/public-combat-presentation'
 
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
 import { AurevaneError } from '@aurevane/game-core/errors'
@@ -73,10 +77,42 @@ async function resolveCurrentDefinitions(
 export async function resolveCurrentCharacterSkillDetails(
   loadout: CharacterDisciplineSkillLoadoutView,
   resolver: CombatContentResolver,
-): Promise<CharacterDisciplineSkillLoadoutView> {
-  const definitions = await resolveCurrentDefinitions(loadout, resolver)
+): Promise<PublicCombat<CharacterDisciplineSkillLoadoutView>> {
+  const priorEssence = loadout.extensions.essence
+  const priorResonance = loadout.extensions.resonance
+  const [definitions, essence, resonance] = await Promise.all([
+    resolveCurrentDefinitions(loadout, resolver),
+    priorEssence &&
+    !priorEssence.relationshipOverrideDisciplineId &&
+    resolver.resolveCurrentEssenceDefinition
+      ? resolver.resolveCurrentEssenceDefinition(priorEssence.sourceDisciplineId, null)
+      : priorEssence,
+    priorResonance &&
+    !priorResonance.relationshipOverrideDisciplineId &&
+    resolver.resolveCurrentResonanceDefinition
+      ? resolver.resolveCurrentResonanceDefinition(...priorResonance.disciplinePair)
+      : priorResonance,
+  ])
+  if (
+    priorEssence &&
+    (!essence ||
+      !essence.enabled ||
+      essence.essenceId !== priorEssence.essenceId ||
+      essence.sourceDisciplineId !== priorEssence.sourceDisciplineId)
+  )
+    throw unavailable('The current Essence does not match this character build.')
+  if (
+    priorResonance &&
+    (!resonance ||
+      !resonance.enabled ||
+      resonance.id !== priorResonance.id ||
+      resonance.disciplinePair.some(
+        (discipline, index) => discipline !== priorResonance.disciplinePair[index],
+      ))
+  )
+    throw unavailable('The current Resonance does not match this character build.')
 
-  return {
+  return projectPublicCombat({
     ...loadout,
     learnedSkills: loadout.learnedSkills.map((entry) => ({
       ...entry,
@@ -88,6 +124,8 @@ export async function resolveCurrentCharacterSkillDetails(
     })),
     extensions: {
       ...loadout.extensions,
+      essence,
+      resonance,
     },
-  }
+  })
 }

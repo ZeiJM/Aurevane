@@ -1,0 +1,9 @@
+# Willow Cascades receiving pool
+
+The canonical Willow Cascades landmark is at `atlas:69:36` cell `(8,3)`. The renderer places the painted waterfall over the blocked water at `(9,2)`. All four adjoining tiles are dry, and the World projection carries no surface elevations or drainage links for this pool. The previous renderer treated zero water connections as a narrow channel and animated glints toward a dry bank.
+
+The pool now gets a clipped surface ripple. Standing water and broad water use this ripple, and narrow connected channels still use moving glints. The waterfall’s falling highlights and its painted pool stay at the existing anchor. Terrain rows, movement and bridge clipping are outside the patch.
+
+The canonical Willow regression failed on the old channel classification. It now verifies the blocked tile, its four banks, a clipped ripple, and the absence of channel glints. The water, coast, renderer and atlas suites passed all 190 focused tests, including the existing underpass clips and movement authority checks. Matched 1100 × 720 Chromium 151 captures used the actual renderer and canonical projection. The control drew 124 directional glints in 31 pool paints. The change drew 31 contained ripples and no directional glints. Both runs drew 30 waterfall animation passes with the same blocked tile and dry banks.
+
+An additional diagnostic found 11 neighboring pairs of narrow-channel cells with opposing local port directions in the supplied public atlas, including `(8,0)`/`(9,0)` and `(8,8)`/`(9,8)` in `crown-road`. Current curves pick orientation independently per cell. A next slice can supply stable downstream direction for named waterways and reuse it on both open and proven under-bridge profiles. A connected Willow outlet and a verified fall height need reviewed geography or authored hydrology evidence. WRL-06 remains partial.

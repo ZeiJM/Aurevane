@@ -1,24 +1,66 @@
+import { assertPreparedBattleSource } from '@/server/battle/battle-source-authority'
+import type { CharacterRecord, CharacterRepository } from '@aurevane/db/character'
+import { readBattlefieldElevationPolicy } from '@/server/master/battlefield-elevation-policy-store'
+import { readCombatEffectTimingPolicy } from '@/server/master/combat-effect-timing-policy-store'
 import 'server-only'
 import { AurevaneError } from '@aurevane/game-core/errors'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createPvpEncounter, type PvpLobbyMemberView } from '@/server/battle/pvp-lobby-service'
 import { createResolvedBattleBuildAuthoritySnapshot } from '@/server/battle/battle-build-authority'
-import { loadCharacterCommittedBuildSnapshot } from '@/server/character/character-build-service'
+import { prepareBattleAbilityStartup } from '@/server/battle/battle-ability-startup'
+import {
+  loadCharacterCommittedBuildSnapshot,
+  type CharacterBuildRepository,
+  type CharacterCommittedBuildSnapshotRecord,
+} from '@/server/character/character-build-service'
 import { createSupabaseCharacterBuildRepository } from '@/server/character/supabase-character-build-repository'
 import { createSupabaseCharacterRepository } from '@/server/character/supabase-character-repository'
 import { createServerCombatContentResolver } from '@/server/combat/combat-content-resolver'
 import type { WorldState } from '@/world/types'
+import type { WorldAttackReceipt } from '@/world/attack-receipt'
 import { assertEncounterRange } from './world-service'
-import { readWorld, worldRpcError } from './world-repository'
+import { settleWorldAttackAuthority, worldRpcError } from './world-repository'
+
+type PreparedWorldParticipant = {
+  character: CharacterRecord
+  buildSnapshot: CharacterCommittedBuildSnapshotRecord
+}
+const participantPreparations = new Map<string, Promise<PreparedWorldParticipant>>()
+function prepareWorldParticipant(
+  userId: string,
+  characterId: string,
+  characters: CharacterRepository,
+  builds: CharacterBuildRepository,
+) {
+  const key = `${userId}:${characterId}`
+  const existing = participantPreparations.get(key)
+  if (existing) return existing
+  const pending = (async () => {
+    const character = await characters.findByOwnerId?.(userId, characterId)
+    if (!character) throw new AurevaneError('INVALID_REQUEST', 'That character is unavailable.')
+    const buildSnapshot = await loadCharacterCommittedBuildSnapshot(
+      userId,
+      characterId,
+      builds,
+      true,
+    )
+    return { character, buildSnapshot }
+  })()
+  const tracked = pending.finally(() => {
+    if (participantPreparations.get(key) === tracked) participantPreparations.delete(key)
+  })
+  participantPreparations.set(key, tracked)
+  return tracked
+}
 
 export async function attackWorldPlayer(
   userId: string,
   characterId: string,
   targetId: string,
   expectedVersion: number,
-) {
-  const current = await readWorld(userId, characterId)
-  if (!current.view.players.some((p) => p.characterId === targetId && p.attackable))
+): Promise<WorldAttackReceipt> {
+  const current = await settleWorldAttackAuthority(userId, characterId, expectedVersion)
+  if (!current.players.some((p) => p.characterId === targetId && p.attackable))
     throw new AurevaneError('INVALID_REQUEST', 'That player is not within reach.')
   const supabase = createSupabaseAdminClient()
   const { data: pair, error: pairError } = await supabase.rpc('read_world_encounter_pair_v1', {
@@ -31,17 +73,17 @@ export async function attackWorldPlayer(
     throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'The encounter could not be prepared.')
   assertEncounterRange(pair.attacker as WorldState, pair.target as WorldState)
   const characters = createSupabaseCharacterRepository(),
-    builds = createSupabaseCharacterBuildRepository()
-  const roster = await Promise.all(
+    builds = createSupabaseCharacterBuildRepository({ retryBattleEquipmentAdmission: true })
+  const combatContentResolver = createServerCombatContentResolver()
+  const preparation = Promise.all(
     [
       { userId, characterId },
       { userId: pair.targetUserId as string, characterId: targetId },
     ].map(async (entry, index) => {
-      const character = await characters.findByOwnerId?.(entry.userId, entry.characterId)
-      if (!character) throw new AurevaneError('INVALID_REQUEST', 'That character is unavailable.')
-      const buildSnapshot = await loadCharacterCommittedBuildSnapshot(
+      const { character, buildSnapshot } = await prepareWorldParticipant(
         entry.userId,
         entry.characterId,
+        characters,
         builds,
       )
       const member: PvpLobbyMemberView = {
@@ -56,35 +98,68 @@ export async function attackWorldPlayer(
         ready: true,
         isHost: index === 0,
       }
+      assertPreparedBattleSource(character, buildSnapshot)
       return { character, buildSnapshot, member }
     }),
-  )
-  const authority = await createResolvedBattleBuildAuthoritySnapshot(
-    'pvp',
-    roster.map(({ character, buildSnapshot }) => ({
-      combatantId: `character:${character.id}`,
-      characterId: character.id,
-      snapshot: buildSnapshot,
-    })),
-    createServerCombatContentResolver(),
-  )
-  const encounter = createPvpEncounter(roster, [1, 1, 0], authority)
-  const { data, error } = await supabase.rpc('start_world_encounter_v1', {
-    p_user_id: userId,
-    p_character_id: characterId,
-    p_target_id: targetId,
-    p_expected_version: expectedVersion,
-    p_target_version: pair.target.version,
-    p_snapshot: encounter,
-    p_build_versions: Object.fromEntries(
-      roster.map((r) => [r.character.id, r.buildSnapshot.buildVersion]),
-    ),
+  ).then(async (roster) => {
+    const authority = await createResolvedBattleBuildAuthoritySnapshot(
+      'pvp',
+      roster.map(({ character, buildSnapshot }) => ({
+        combatantId: `character:${character.id}`,
+        characterId: character.id,
+        snapshot: buildSnapshot,
+      })),
+      combatContentResolver,
+    )
+    return { roster, authority }
   })
+  const [{ roster, authority }, elevationPolicy, timingPolicy] = await Promise.all([
+    preparation,
+    readBattlefieldElevationPolicy(),
+    readCombatEffectTimingPolicy(),
+  ])
+  const encounter = createPvpEncounter(roster, [1, 1, 0], authority, elevationPolicy)
+  encounter.effectTimingPolicy = timingPolicy
+  encounter.effectStackingPolicyVersion = 1
+  encounter.abilityCooldownScopeVersion = 1
+  encounter.reflectBarrierPolicyVersion = 1
+  encounter.supportActionPolicyVersion = 1
+  encounter.percentageDotPolicyVersion = 1
+  encounter.dotTriggerPolicyVersion = 2
+  encounter.skillPacketPolicyVersion = 1
+  encounter.groundEffectPolicyVersion = 1
+  encounter.groundContactPolicyVersion = 1
+  encounter.displacementOriginPolicyVersion = 1
+  encounter.rangeModifierPolicyVersion = 1
+  encounter.reversalPolicyVersion = 1
+  encounter.pierceCriticalPolicyVersion = 1
+  encounter.summonPotencyPolicyVersion = 1
+  encounter.ruinPolicyVersion = 1
+  const { snapshot, startup } = await prepareBattleAbilityStartup(
+    encounter,
+    authority,
+    combatContentResolver,
+  )
+  const { data, error } = await supabase.rpc(
+    startup ? 'start_world_encounter_v2' : 'start_world_encounter_v1',
+    {
+      p_user_id: userId,
+      p_character_id: characterId,
+      p_target_id: targetId,
+      p_expected_version: current.state.version,
+      p_target_version: pair.target.version,
+      p_snapshot: snapshot,
+      ...(startup ?? {}),
+      p_build_versions: Object.fromEntries(
+        roster.map((r) => [r.character.id, r.buildSnapshot.buildVersion]),
+      ),
+    },
+  )
   if (error) worldRpcError(error)
-  if (typeof data?.battleSessionId !== 'string')
+  if (typeof data?.battleSessionId !== 'string' || data.battleSessionId.trim().length === 0)
     throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'The encounter could not be started.')
   return {
-    ...(await readWorld(userId, characterId)).view,
-    battleSessionId: data.battleSessionId as string,
+    characterId,
+    battleSessionId: data.battleSessionId,
   }
 }

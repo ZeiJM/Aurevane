@@ -1,0 +1,22 @@
+/* The same responsive inset keeps Arsenal navigation fixed across both pages. */
+.frame {
+  padding: 1rem;
+}
+
+@media (min-width: 1101px) and (max-height: 800px) {
+  .frame {
+    padding: 0.5rem;
+  }
+}
+
+@media (min-width: 1101px) and (max-height: 700px) {
+  .frame {
+    padding: 0;
+  }
+}
+
+@media (max-width: 760px) {
+  .frame {
+    padding: 0.2rem 0 0.4rem;
+  }
+}

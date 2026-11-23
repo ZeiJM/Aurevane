@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { AurevaneError } from '@aurevane/game-core/errors'
+import { AccountBannedError, AurevaneError } from '@aurevane/game-core/errors'
 import { cache } from 'react'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
@@ -44,6 +44,9 @@ export async function claimActiveGameSession(
     p_auth_session_id: identity.authSessionId,
   })
 
+  if (error?.code === '42501' && error.message?.includes('ACCOUNT_BANNED')) {
+    throw new AccountBannedError()
+  }
   if (error || typeof data !== 'boolean') {
     throw new AurevaneError(
       'PERSISTENCE_UNAVAILABLE',
@@ -63,6 +66,9 @@ export async function ensureActiveGameSession(
     p_auth_session_id: identity.authSessionId,
   })
 
+  if (error?.code === '42501' && error.message?.includes('ACCOUNT_BANNED')) {
+    throw new AccountBannedError()
+  }
   if (error || typeof data !== 'boolean') {
     throw new AurevaneError(
       'PERSISTENCE_UNAVAILABLE',

@@ -1,0 +1,96 @@
+import { beforeEach, expect, it, vi } from 'vitest'
+vi.mock('server-only', () => ({}))
+const { rpc } = vi.hoisted(() => ({ rpc: vi.fn() }))
+vi.mock('@/lib/supabase/admin', () => ({ createSupabaseAdminClient: () => ({ rpc }) }))
+import { DEFAULT_WORLD_ENVIRONMENT_SETTINGS } from '@/world/environment'
+import {
+  parseWorldEnvironmentSettings,
+  readWorldEnvironmentSettings,
+} from './world-environment-store'
+
+beforeEach(() => rpc.mockReset())
+
+it('reads stored settings', async () => {
+  rpc.mockResolvedValueOnce({
+    data: {
+      version: 4,
+      timeOffsetMinutes: -30,
+      frozenMinuteOfDay: 600,
+      weatherOverride: 'fog',
+      weatherOverrideUntilMs: 99,
+    },
+  })
+  expect(await readWorldEnvironmentSettings()).toEqual({
+    version: 4,
+    dayLengthMinutes: 1440,
+    weatherRollMinutes: 360,
+    warpedShiftMinutes: 1440,
+    voidRealmOverride: null,
+    voidRealmOverrideUntil: null,
+    timeOffsetMinutes: -30,
+    frozenMinuteOfDay: 600,
+    weatherOverride: 'fog',
+    weatherOverrideUntil: 99,
+  })
+})
+it('fails safe to the live clock and weather on RPC errors, throws or malformed data', async () => {
+  rpc.mockResolvedValueOnce({ error: { code: 'PGRST202' } })
+  expect(await readWorldEnvironmentSettings()).toEqual(DEFAULT_WORLD_ENVIRONMENT_SETTINGS)
+  rpc.mockRejectedValueOnce(new Error('network'))
+  expect(await readWorldEnvironmentSettings()).toEqual(DEFAULT_WORLD_ENVIRONMENT_SETTINGS)
+  rpc.mockResolvedValueOnce({ data: { version: 1, timeOffsetMinutes: 99999 } })
+  expect(await readWorldEnvironmentSettings()).toEqual(DEFAULT_WORLD_ENVIRONMENT_SETTINGS)
+})
+it('rejects out-of-range or unknown values', () => {
+  const ok = { version: 1, timeOffsetMinutes: 0 }
+  expect(parseWorldEnvironmentSettings(ok)).not.toBeNull()
+  expect(parseWorldEnvironmentSettings({ ...ok, frozenMinuteOfDay: 1440 })).toBeNull()
+  expect(parseWorldEnvironmentSettings({ ...ok, weatherOverride: 'hail' })).toBeNull()
+})
+
+it('reads configurable cycles and rejects malformed cycles instead of silently changing time', () => {
+  const base = { version: 1, timeOffsetMinutes: 0 }
+  expect(parseWorldEnvironmentSettings({ ...base, dayLengthMinutes: 120 })).toMatchObject({
+    dayLengthMinutes: 120,
+  })
+  for (const dayLengthMinutes of [0, -1, 1.5, 10081, '120'])
+    expect(parseWorldEnvironmentSettings({ ...base, dayLengthMinutes })).toBeNull()
+})
+
+it('parses weather cadence with historical six-hour default and strict whole-minute bounds', () => {
+  const base = { version: 1, timeOffsetMinutes: 0 }
+  expect(parseWorldEnvironmentSettings(base)).toMatchObject({ weatherRollMinutes: 360 })
+  expect(parseWorldEnvironmentSettings({ ...base, weatherRollMinutes: 5 })).toMatchObject({
+    weatherRollMinutes: 5,
+  })
+  for (const weatherRollMinutes of [0, -1, 1.5, 10081, '5', null])
+    expect(parseWorldEnvironmentSettings({ ...base, weatherRollMinutes })).toBeNull()
+})
+
+it('reads the expedition cadence separately from the world clock and rejects invalid intervals', () => {
+  const base = { version: 1, timeOffsetMinutes: 0 }
+  expect(parseWorldEnvironmentSettings(base)?.warpedShiftMinutes).toBe(1440)
+  expect(
+    parseWorldEnvironmentSettings({ ...base, dayLengthMinutes: 120, warpedShiftMinutes: 30 }),
+  ).toMatchObject({ dayLengthMinutes: 120, warpedShiftMinutes: 30 })
+  for (const warpedShiftMinutes of [0, 1.5, 10081, '5', null])
+    expect(parseWorldEnvironmentSettings({ ...base, warpedShiftMinutes })).toBeNull()
+})
+
+it('parses persisted Void selections and rejects invalid ids or unpaired expiry', () => {
+  const base = { version: 1, timeOffsetMinutes: 0 }
+  expect(
+    parseWorldEnvironmentSettings({
+      ...base,
+      voidRealmOverride: 'glass-tides',
+      voidRealmOverrideUntilMs: 600_000,
+    }),
+  ).toMatchObject({ voidRealmOverride: 'glass-tides', voidRealmOverrideUntil: 600_000 })
+  for (const extra of [
+    { voidRealmOverride: 'unknown', voidRealmOverrideUntilMs: 600_000 },
+    { voidRealmOverride: 'glass-tides', voidRealmOverrideUntilMs: null },
+    { voidRealmOverride: null, voidRealmOverrideUntilMs: 600_000 },
+    { voidRealmOverride: 'glass-tides', voidRealmOverrideUntilMs: 1.5 },
+  ])
+    expect(parseWorldEnvironmentSettings({ ...base, ...extra })).toBeNull()
+})

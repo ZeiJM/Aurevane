@@ -1,0 +1,14 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["corepack", "pnpm", "--filter", "@aurevane/web", "exec", "vitest", "run", "src/server/master/modular-correction-publication.test.ts", "-t", "resonance.edgedancer-wildwarden.*admits corrected earned builds and plays natural turns with global timing"], "start": "2026-10-20T19:56:28.565630+00:00"}
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.10 /workspace/scratch/081f137b6a6d/aurevane-players-20261020/apps/web
+
+
+ Test Files  1 passed (1)
+      Tests  2 passed | 322 skipped (324)
+   Start at  15:56:29
+   Duration  29.35s (transform 1.02s, setup 0ms, import 1.39s, tests 27.82s, environment 0ms)
+
+{"end": "2026-10-20T19:56:58.711645+00:00", "exit": 0}

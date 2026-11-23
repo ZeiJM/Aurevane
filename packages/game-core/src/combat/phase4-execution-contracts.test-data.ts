@@ -32,17 +32,7 @@ export interface PublishedSkillContract {
 // Independent, hand-checked outcomes for the published roster on the fixture's flat board.
 // These values do not call the effect resolver or copy its projections. A recipient-routing,
 // omitted-effect, cost, repeat-scaling or execution-order regression must change an outcome.
-const cleanse = [
-  'burn',
-  'bleed',
-  'poison',
-  'slow',
-  'root',
-  'exposed',
-  'mark',
-  'marked',
-  'challenged',
-]
+const cleanse = ['burn', 'bleed', 'poison', 'slow', 'root', 'exposed', 'mark', 'challenged']
 const enemy = (first: number, repeat: number): ResourceDeltas => ({ enemy: [first, repeat] })
 const enemies = (first: number, repeat: number): ResourceDeltas => ({
   enemy: [first, repeat],
@@ -220,7 +210,6 @@ export const PUBLISHED_SKILL_CONTRACTS: readonly PublishedSkillContract[] = [
     id: 'wildwarden.renewing-herbs',
     cost: [35, 0],
     hp: { ally: [4, 2] },
-    applied: { ally: ['summoned'] },
     dynamic: {
       ally: { recovery: { kind: 'hp', amountPerTick: 4, remainingFutureTicks: 1 } },
     },
@@ -246,8 +235,7 @@ export const PUBLISHED_SKILL_CONTRACTS: readonly PublishedSkillContract[] = [
   {
     id: 'runeblade.aether-cut',
     cost: [35, 2],
-    hp: enemy(-10, -6),
-    removed: { enemy: ['summoned'] },
+    hp: enemy(-12, -6),
   },
   { id: 'runeblade.rune-mending', cost: [40, 0], hp: actor(10, 5) },
 
@@ -366,7 +354,7 @@ export const PUBLISHED_SKILL_CONTRACTS: readonly PublishedSkillContract[] = [
     id: 'stormsinger.grounding',
     cost: [30, 0],
     mp: actor(3, 1),
-    removed: { actor: ['slow', 'root', 'marked'] },
+    removed: { actor: ['slow', 'root', 'mark'] },
   },
   {
     id: 'stormsinger.static-drain',
@@ -537,9 +525,9 @@ const historicalOverrides: Record<string, Partial<PublishedSkillContract>> = {
   'frostweaver.shatter': {},
   'wildwarden.renewing-herbs': {
     cost: [30, 0],
-    hp: undefined,
+    hp: { ally: [4, 2] },
     dynamic: undefined,
-    applied: { ally: ['regeneration'] },
+    applied: undefined,
   },
   'runeblade.sigil-brand': { applied: { enemy: ['exposed'] } },
   'runeblade.aether-cut': { hp: enemy(-12, -6), removed: undefined },

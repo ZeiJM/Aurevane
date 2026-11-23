@@ -5,19 +5,28 @@ import { createPortal } from 'react-dom'
 
 import type { BattleLogView } from '@/server/battle/battle-log-service'
 
-import { BattleLogFeed, countBattleLogActions, type BattleLogFlowView } from './battle-log-feed'
+import { BattleLogFeed } from './battle-log-feed'
+import { MobileBattleChronicle } from './battle-log-chronicle'
 import { useBattlePlayerName } from './battle-runtime-context'
 import styles from './battle-log-panel.module.css'
 
 interface BattleLogPanelProps {
   battleSessionId: string
   battleVersion?: number
+  currentRound?: number
+  resetEpoch?: number
+  detailsHost?: HTMLElement | null
+  onDetailsOpenChange?: (open: boolean) => void
+  onToggleLog?: () => void
+  onLogLoaded?: (log: BattleLogView) => void
+  logOpen?: boolean
   open?: boolean
   onClose?: () => void
   playerName?: string
   combatantNames?: Readonly<Record<string, string>>
   dockOnDesktop?: boolean
   recentTurnCount?: number
+  presentation?: 'floating' | 'inline' | 'timeline'
 }
 
 interface BattleLogResponse {
@@ -127,25 +136,35 @@ function findDesktopDockTarget(): HTMLElement | null {
 export function BattleLogPanel({
   battleSessionId,
   battleVersion,
+  currentRound,
   open,
   onClose,
   playerName,
   combatantNames,
   dockOnDesktop = false,
   recentTurnCount,
+  presentation = 'floating',
+  detailsHost,
+  resetEpoch,
+  onDetailsOpenChange,
+  onToggleLog,
+  logOpen,
+  onLogLoaded,
 }: BattleLogPanelProps) {
   const runtimePlayerName = useBattlePlayerName()
   const effectivePlayerName = playerName ?? runtimePlayerName ?? undefined
   const controlled = open !== undefined
   const [internalOpen, setInternalOpen] = useState(false)
-  const visible = controlled ? Boolean(open) : internalOpen
+  const visible =
+    presentation === 'inline' ||
+    presentation === 'timeline' ||
+    (controlled ? Boolean(open) : internalOpen)
   const [log, setLog] = useState<BattleLogView | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [dockTarget, setDockTarget] = useState<HTMLElement | null>(null)
   const requestSequence = useRef(0)
   const controlledPanelRef = useRef<HTMLDivElement>(null)
-  const [flowView, setFlowView] = useState<BattleLogFlowView>('timeline')
 
   const loadLog = useCallback(async () => {
     const sequence = ++requestSequence.current
@@ -161,6 +180,7 @@ export function BattleLogPanel({
         throw new Error(body.error?.message ?? 'Battle history is temporarily unavailable.')
       }
       setLog(body.battleLog)
+      onLogLoaded?.(body.battleLog)
       setError(null)
     } catch (loadError) {
       if (sequence !== requestSequence.current) return
@@ -172,7 +192,7 @@ export function BattleLogPanel({
     } finally {
       if (sequence === requestSequence.current) setLoading(false)
     }
-  }, [battleSessionId])
+  }, [battleSessionId, onLogLoaded])
 
   useEffect(() => {
     if (!visible) return
@@ -222,7 +242,53 @@ export function BattleLogPanel({
   }, [controlled])
 
   const entries = log?.entries ?? []
-  const actionCount = countBattleLogActions(entries)
+
+  if (presentation === 'timeline')
+    return (
+      <div data-battle-compact-log="true" className={styles.compactInline}>
+        {loading && entries.length === 0 ? (
+          <p className={styles.empty}>Reading battle history…</p>
+        ) : error ? (
+          <p className={styles.empty} role="status">
+            {error}
+          </p>
+        ) : (
+          <MobileBattleChronicle
+            onToggleLog={onToggleLog}
+            logOpen={logOpen}
+            detailsHost={detailsHost}
+            resetEpoch={resetEpoch}
+            onDetailsOpenChange={onDetailsOpenChange}
+            currentRound={currentRound}
+            entries={entries}
+            playerName={effectivePlayerName}
+            combatantNames={combatantNames}
+          />
+        )}
+      </div>
+    )
+
+  if (presentation === 'inline')
+    return (
+      <div className={styles.inline} data-battle-inline-log="true">
+        {loading && entries.length === 0 ? (
+          <p className={styles.empty}>Reading battle history…</p>
+        ) : error ? (
+          <p className={styles.empty} role="status">
+            {error}
+          </p>
+        ) : (
+          <BattleLogFeed
+            compactFlow
+            currentRound={currentRound}
+            entries={entries}
+            playerName={effectivePlayerName}
+            combatantNames={combatantNames}
+            emptyMessage="No committed battle actions yet."
+          />
+        )}
+      </div>
+    )
 
   if (!controlled) {
     return (
@@ -234,13 +300,12 @@ export function BattleLogPanel({
           aria-expanded={visible}
           onClick={() => setInternalOpen((value) => !value)}
         >
-          Combat Log <span>{loading ? '…' : actionCount}</span>
+          Combat Log
         </button>
         {visible ? (
           <LogPanel
-            flowView={flowView}
-            onFlowViewChange={setFlowView}
             entries={entries}
+            currentRound={currentRound}
             recentTurnCount={recentTurnCount}
             loading={loading}
             error={error}
@@ -261,9 +326,8 @@ export function BattleLogPanel({
       <div className={styles.docked} data-testid="battle-log-panel" data-docked-battle-log="true">
         <LogPanel
           compactFlow={dockTarget.hasAttribute('data-battle-flow-log-target')}
-          flowView={flowView}
-          onFlowViewChange={setFlowView}
           entries={entries}
+          currentRound={currentRound}
           recentTurnCount={recentTurnCount}
           loading={loading}
           error={error}
@@ -278,9 +342,8 @@ export function BattleLogPanel({
   return createPortal(
     <div ref={controlledPanelRef} className={styles.controlled} data-testid="battle-log-panel">
       <LogPanel
-        flowView={flowView}
-        onFlowViewChange={setFlowView}
         entries={entries}
+        currentRound={currentRound}
         recentTurnCount={recentTurnCount}
         loading={loading}
         error={error}
@@ -302,10 +365,9 @@ export function BattleLogPanel({
 
 function LogPanel({
   compactFlow = false,
-  flowView,
-  onFlowViewChange,
   recentTurnCount,
   entries,
+  currentRound,
   loading,
   error,
   onClose,
@@ -314,10 +376,9 @@ function LogPanel({
   combatantNames,
 }: {
   compactFlow?: boolean
-  flowView?: BattleLogFlowView
-  onFlowViewChange?: (view: BattleLogFlowView) => void
   recentTurnCount?: number
   entries: readonly BattleLogView['entries'][number][]
+  currentRound?: number
   loading: boolean
   error: string | null
   onClose?: () => void
@@ -326,27 +387,33 @@ function LogPanel({
   combatantNames?: Readonly<Record<string, string>>
 }) {
   return (
-    <section className={styles.panel} aria-label="Battle Log">
-      <header
-        data-drag-handle={onHeaderPointerDown ? 'true' : undefined}
-        onPointerDown={onHeaderPointerDown}
-      >
-        <div>
-          <strong>
-            {recentTurnCount ? `Battle Log · Recent ${recentTurnCount} turns` : 'Battle Log'}
-          </strong>
-        </div>
-        {onClose ? (
-          <button
-            type="button"
-            className={styles.close}
-            onClick={onClose}
-            aria-label="Close battle log"
-          >
-            ×
-          </button>
-        ) : null}
-      </header>
+    <section
+      className={styles.panel}
+      aria-label="Battle Log"
+      data-chronicle-rail={compactFlow || undefined}
+    >
+      {!compactFlow ? (
+        <header
+          data-drag-handle={onHeaderPointerDown ? 'true' : undefined}
+          onPointerDown={onHeaderPointerDown}
+        >
+          <div>
+            <strong>
+              {recentTurnCount ? `Battle Log · Recent ${recentTurnCount} turns` : 'Battle Log'}
+            </strong>
+          </div>
+          {onClose ? (
+            <button
+              type="button"
+              className={styles.close}
+              onClick={onClose}
+              aria-label="Close battle log"
+            >
+              ×
+            </button>
+          ) : null}
+        </header>
+      ) : null}
       {loading && entries.length === 0 ? (
         <p className={styles.empty}>Reading battle history…</p>
       ) : error ? (
@@ -356,8 +423,7 @@ function LogPanel({
       ) : (
         <BattleLogFeed
           compactFlow={compactFlow}
-          flowView={flowView}
-          onFlowViewChange={onFlowViewChange}
+          currentRound={currentRound}
           entries={entries}
           recentTurnCount={recentTurnCount}
           playerName={playerName}

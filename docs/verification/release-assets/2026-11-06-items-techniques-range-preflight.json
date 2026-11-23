@@ -1,0 +1,1032 @@
+{
+  "dbTime": "2026-11-06T18:17:00.438253+00:00",
+  "targets": [
+    {
+      "floor": 7,
+      "itemId": "emberbrand",
+      "builtin": 6,
+      "revision": 10,
+      "draftExists": false,
+      "sourceVersion": 6,
+      "sourceDefinition": {
+        "id": "emberbrand",
+        "name": "Emberbrand",
+        "tags": ["starter"],
+        "tier": "A",
+        "media": {
+          "artworkId": "item.emberbrand.art.v1"
+        },
+        "ability": {
+          "behaviors": [
+            {
+              "id": "attack",
+              "mode": "action",
+              "costs": [
+                {
+                  "amount": 35,
+                  "resource": "ap"
+                }
+              ],
+              "effects": [
+                {
+                  "id": "effect-1",
+                  "payload": {
+                    "type": "damage",
+                    "amount": 6,
+                    "element": "fire",
+                    "scaling": {
+                      "source": "physical-power",
+                      "coefficientBasisPoints": 1400
+                    },
+                    "recipient": "primary-unit",
+                    "defenseKind": "armor"
+                  }
+                },
+                {
+                  "id": "effect-2",
+                  "payload": {
+                    "type": "remove-status",
+                    "target": "self",
+                    "recipient": "actor",
+                    "statusIds": ["frozen"],
+                    "removalMode": "specified",
+                    "selectionKind": "debuffs"
+                  }
+                }
+              ],
+              "cooldown": null,
+              "targeting": {
+                "kind": "unit",
+                "shape": {
+                  "kind": "single"
+                },
+                "categories": ["enemy"],
+                "teamPolicy": "enemy",
+                "friendlyFire": "enemies-only",
+                "maximumRange": 1,
+                "minimumRange": 1,
+                "geometryVersion": 3,
+                "maximumSelections": 1,
+                "requiresLineOfSight": true,
+                "maximumElevationDifference": 1
+              },
+              "activation": "manual",
+              "attackFamily": "physical",
+              "requirements": null,
+              "classification": "attack"
+            },
+            {
+              "id": "kindle",
+              "mode": "action",
+              "costs": [
+                {
+                  "amount": 20,
+                  "resource": "ap"
+                }
+              ],
+              "effects": [
+                {
+                  "id": "effect-1",
+                  "payload": {
+                    "type": "apply-status",
+                    "stacks": 1,
+                    "statusId": "inspired",
+                    "recipient": "actor",
+                    "damageTypes": ["fire"],
+                    "durationTurns": 2,
+                    "potencyBasisPoints": 1000
+                  }
+                }
+              ],
+              "cooldown": {
+                "key": "kindle",
+                "ownerTurns": 2
+              },
+              "targeting": {
+                "kind": "self",
+                "shape": {
+                  "kind": "single"
+                },
+                "categories": ["self"],
+                "teamPolicy": "self",
+                "friendlyFire": "allies-only",
+                "maximumRange": 0,
+                "minimumRange": 0,
+                "geometryVersion": 3,
+                "maximumSelections": 1,
+                "requiresLineOfSight": false,
+                "maximumElevationDifference": null
+              },
+              "activation": "manual",
+              "requirements": null,
+              "classification": "utility"
+            }
+          ],
+          "schemaVersion": 1
+        },
+        "actions": {
+          "attack": {
+            "name": "Emberbrand",
+            "behaviorId": "attack"
+          },
+          "support": {
+            "name": "Kindle",
+            "behaviorId": "kindle"
+          }
+        },
+        "enabled": true,
+        "equipment": {
+          "slot": "hand",
+          "hands": 1
+        },
+        "itemClass": "weapon",
+        "sortOrder": 19,
+        "battleUses": null,
+        "description": "A banked ember fuels fiery strikes; Kindle strengthens direct Fire damage for 2 turns.",
+        "consumeOnUse": false,
+        "maximumStack": 1,
+        "requirements": null,
+        "qualityPoints": 28,
+        "schemaVersion": 2,
+        "contentVersion": 6,
+        "inventoryCategory": "gear"
+      },
+      "publicationVersion": 7,
+      "publicationDefinition": {
+        "id": "emberbrand",
+        "name": "Emberbrand",
+        "tags": ["starter"],
+        "tier": "A",
+        "media": {
+          "artworkId": "item.emberbrand.art.v1"
+        },
+        "ability": {
+          "behaviors": [
+            {
+              "id": "attack",
+              "mode": "action",
+              "costs": [
+                {
+                  "amount": 35,
+                  "resource": "ap"
+                }
+              ],
+              "effects": [
+                {
+                  "id": "effect-1",
+                  "payload": {
+                    "type": "damage",
+                    "amount": 6,
+                    "element": "fire",
+                    "scaling": {
+                      "source": "physical-power",
+                      "coefficientBasisPoints": 1400
+                    },
+                    "recipient": "primary-unit",
+                    "defenseKind": "armor"
+                  }
+                },
+                {
+                  "id": "effect-2",
+                  "payload": {
+                    "type": "remove-status",
+                    "target": "self",
+                    "recipient": "actor",
+                    "statusIds": ["frozen"],
+                    "removalMode": "specified",
+                    "selectionKind": "debuffs"
+                  }
+                }
+              ],
+              "cooldown": null,
+              "targeting": {
+                "kind": "unit",
+                "shape": {
+                  "kind": "single"
+                },
+                "categories": ["enemy"],
+                "teamPolicy": "enemy",
+                "friendlyFire": "enemies-only",
+                "maximumRange": 1,
+                "minimumRange": 1,
+                "geometryVersion": 3,
+                "maximumSelections": 1,
+                "requiresLineOfSight": true,
+                "maximumElevationDifference": 1
+              },
+              "activation": "manual",
+              "attackFamily": "physical",
+              "requirements": null,
+              "classification": "attack"
+            },
+            {
+              "id": "kindle",
+              "mode": "action",
+              "costs": [
+                {
+                  "amount": 20,
+                  "resource": "ap"
+                }
+              ],
+              "effects": [
+                {
+                  "id": "effect-1",
+                  "payload": {
+                    "type": "apply-status",
+                    "stacks": 1,
+                    "statusId": "inspired",
+                    "recipient": "actor",
+                    "damageTypes": ["fire"],
+                    "durationTurns": 2,
+                    "potencyBasisPoints": 1000
+                  }
+                }
+              ],
+              "cooldown": {
+                "key": "kindle",
+                "ownerTurns": 2
+              },
+              "targeting": {
+                "kind": "self",
+                "shape": {
+                  "kind": "single"
+                },
+                "categories": ["self"],
+                "teamPolicy": "self",
+                "friendlyFire": "allies-only",
+                "maximumRange": 0,
+                "minimumRange": 0,
+                "geometryVersion": 3,
+                "maximumSelections": 1,
+                "requiresLineOfSight": false,
+                "maximumElevationDifference": null
+              },
+              "activation": "manual",
+              "requirements": null,
+              "classification": "utility"
+            }
+          ],
+          "schemaVersion": 1
+        },
+        "actions": {
+          "attack": {
+            "name": "Emberbrand",
+            "behaviorId": "attack"
+          },
+          "support": {
+            "name": "Kindle",
+            "behaviorId": "kindle"
+          }
+        },
+        "enabled": true,
+        "equipment": {
+          "slot": "hand",
+          "hands": 1
+        },
+        "itemClass": "weapon",
+        "sortOrder": 19,
+        "battleUses": null,
+        "description": "A banked ember fuels fiery strikes; Kindle strengthens direct Fire damage for 2 turns.",
+        "consumeOnUse": false,
+        "maximumStack": 1,
+        "requirements": null,
+        "qualityPoints": 28,
+        "schemaVersion": 2,
+        "contentVersion": 7,
+        "inventoryCategory": "gear"
+      }
+    },
+    {
+      "floor": 6,
+      "itemId": "stormcaller-staff",
+      "builtin": 6,
+      "revision": 5,
+      "draftExists": false,
+      "sourceVersion": 6,
+      "sourceDefinition": {
+        "id": "stormcaller-staff",
+        "name": "Stormcaller Staff",
+        "tags": ["starter"],
+        "tier": "B",
+        "media": {
+          "artworkId": "item.stormcaller-staff.art.v1"
+        },
+        "ability": {
+          "behaviors": [
+            {
+              "id": "attack",
+              "mode": "action",
+              "costs": [
+                {
+                  "amount": 35,
+                  "resource": "ap"
+                }
+              ],
+              "effects": [
+                {
+                  "id": "effect-1",
+                  "payload": {
+                    "type": "damage",
+                    "amount": 5,
+                    "element": "storm",
+                    "scaling": {
+                      "source": "mystic-power",
+                      "coefficientBasisPoints": 1500
+                    },
+                    "recipient": "primary-unit",
+                    "defenseKind": "ward"
+                  }
+                },
+                {
+                  "id": "effect-2",
+                  "payload": {
+                    "type": "apply-status",
+                    "stacks": 1,
+                    "statusId": "conductive",
+                    "recipient": "primary-unit",
+                    "durationTurns": 1,
+                    "potencyBasisPoints": 1000
+                  }
+                }
+              ],
+              "cooldown": null,
+              "targeting": {
+                "kind": "unit",
+                "shape": {
+                  "kind": "single"
+                },
+                "categories": ["enemy"],
+                "teamPolicy": "enemy",
+                "friendlyFire": "enemies-only",
+                "maximumRange": 3,
+                "minimumRange": 1,
+                "geometryVersion": 3,
+                "maximumSelections": 1,
+                "requiresLineOfSight": true,
+                "maximumElevationDifference": 1
+              },
+              "activation": "manual",
+              "attackFamily": "mystic",
+              "requirements": null,
+              "classification": "attack"
+            },
+            {
+              "id": "storm-ward",
+              "mode": "action",
+              "costs": [
+                {
+                  "amount": 25,
+                  "resource": "ap"
+                }
+              ],
+              "effects": [
+                {
+                  "id": "effect-1",
+                  "payload": {
+                    "type": "barrier-change",
+                    "basis": "maximum-hp-percent",
+                    "amount": 8,
+                    "recipient": "actor",
+                    "durationTurns": 2
+                  }
+                }
+              ],
+              "cooldown": {
+                "key": "storm-ward",
+                "ownerTurns": 2
+              },
+              "targeting": {
+                "kind": "self",
+                "shape": {
+                  "kind": "single"
+                },
+                "categories": ["self"],
+                "teamPolicy": "self",
+                "friendlyFire": "allies-only",
+                "maximumRange": 0,
+                "minimumRange": 0,
+                "geometryVersion": 3,
+                "maximumSelections": 1,
+                "requiresLineOfSight": false,
+                "maximumElevationDifference": null
+              },
+              "activation": "manual",
+              "requirements": null,
+              "classification": "utility"
+            }
+          ],
+          "schemaVersion": 1
+        },
+        "actions": {
+          "attack": {
+            "name": "Stormcaller Staff",
+            "behaviorId": "attack"
+          },
+          "support": {
+            "name": "Storm Ward",
+            "behaviorId": "storm-ward"
+          }
+        },
+        "enabled": true,
+        "equipment": {
+          "slot": "hand",
+          "hands": 1
+        },
+        "itemClass": "weapon",
+        "sortOrder": 18,
+        "battleUses": null,
+        "description": "A short arc of lightning leaves its target Conductive.",
+        "consumeOnUse": false,
+        "maximumStack": 1,
+        "requirements": null,
+        "qualityPoints": 22,
+        "schemaVersion": 2,
+        "contentVersion": 6,
+        "inventoryCategory": "gear"
+      },
+      "publicationVersion": 3,
+      "publicationDefinition": {
+        "id": "stormcaller-staff",
+        "name": "Stormcaller Staff",
+        "tags": ["starter"],
+        "tier": "B",
+        "media": {
+          "artworkId": "item.stormcaller-staff.art.v1"
+        },
+        "ability": {
+          "behaviors": [
+            {
+              "id": "attack",
+              "mode": "action",
+              "costs": [
+                {
+                  "amount": 35,
+                  "resource": "ap"
+                }
+              ],
+              "effects": [
+                {
+                  "id": "effect-1",
+                  "timing": "instant",
+                  "payload": {
+                    "type": "damage",
+                    "amount": 5,
+                    "element": "storm",
+                    "scaling": {
+                      "source": "mystic-power",
+                      "coefficientBasisPoints": 1500
+                    },
+                    "recipient": "primary-unit",
+                    "defenseKind": "ward"
+                  }
+                },
+                {
+                  "id": "effect-2",
+                  "timing": "instant",
+                  "payload": {
+                    "type": "apply-status",
+                    "stacks": 1,
+                    "statusId": "conductive",
+                    "recipient": "primary-unit",
+                    "durationTurns": 1,
+                    "potencyBasisPoints": 1000
+                  }
+                }
+              ],
+              "cooldown": null,
+              "targeting": {
+                "kind": "unit",
+                "shape": {
+                  "kind": "single"
+                },
+                "categories": ["enemy"],
+                "teamPolicy": "enemy",
+                "friendlyFire": "enemies-only",
+                "maximumRange": 3,
+                "minimumRange": 1,
+                "geometryVersion": 3,
+                "maximumSelections": 1,
+                "requiresLineOfSight": true,
+                "maximumElevationDifference": 1
+              },
+              "activation": "manual",
+              "attackFamily": "mystic",
+              "requirements": null,
+              "classification": "attack"
+            },
+            {
+              "id": "storm-ward",
+              "mode": "action",
+              "costs": [
+                {
+                  "amount": 25,
+                  "resource": "ap"
+                }
+              ],
+              "effects": [
+                {
+                  "id": "effect-1",
+                  "timing": "instant",
+                  "payload": {
+                    "type": "barrier-change",
+                    "basis": "maximum-hp-percent",
+                    "amount": 8,
+                    "recipient": "actor",
+                    "durationTurns": 2
+                  }
+                }
+              ],
+              "cooldown": {
+                "key": "storm-ward",
+                "ownerTurns": 2
+              },
+              "targeting": {
+                "kind": "self",
+                "shape": {
+                  "kind": "single"
+                },
+                "categories": ["self"],
+                "teamPolicy": "self",
+                "friendlyFire": "allies-only",
+                "maximumRange": 0,
+                "minimumRange": 0,
+                "geometryVersion": 3,
+                "maximumSelections": 1,
+                "requiresLineOfSight": false,
+                "maximumElevationDifference": null
+              },
+              "activation": "manual",
+              "requirements": null,
+              "classification": "utility"
+            }
+          ],
+          "schemaVersion": 1
+        },
+        "actions": {
+          "attack": {
+            "name": "Stormcaller Staff",
+            "behaviorId": "attack"
+          },
+          "support": {
+            "name": "Storm Ward",
+            "behaviorId": "storm-ward"
+          }
+        },
+        "enabled": true,
+        "equipment": {
+          "slot": "hand",
+          "hands": 1
+        },
+        "itemClass": "weapon",
+        "sortOrder": 18,
+        "battleUses": null,
+        "description": "A short arc of lightning leaves its target Conductive.",
+        "consumeOnUse": false,
+        "maximumStack": 1,
+        "requirements": null,
+        "qualityPoints": 22,
+        "schemaVersion": 2,
+        "contentVersion": 3,
+        "inventoryCategory": "gear"
+      }
+    },
+    {
+      "floor": 6,
+      "itemId": "tower-shield",
+      "builtin": 6,
+      "revision": 2,
+      "draftExists": false,
+      "sourceVersion": 6,
+      "sourceDefinition": {
+        "id": "tower-shield",
+        "name": "Tower Shield",
+        "tags": ["starter"],
+        "tier": "A",
+        "media": {
+          "artworkId": "item.tower-shield.art.v1"
+        },
+        "ability": {
+          "behaviors": [
+            {
+              "id": "attack",
+              "mode": "action",
+              "costs": [
+                {
+                  "amount": 30,
+                  "resource": "ap"
+                }
+              ],
+              "effects": [
+                {
+                  "id": "effect-1",
+                  "payload": {
+                    "type": "damage",
+                    "amount": 3,
+                    "scaling": {
+                      "source": "physical-power",
+                      "coefficientBasisPoints": 850
+                    },
+                    "recipient": "primary-unit",
+                    "defenseKind": "armor"
+                  }
+                }
+              ],
+              "cooldown": null,
+              "targeting": {
+                "kind": "unit",
+                "shape": {
+                  "kind": "single"
+                },
+                "categories": ["enemy"],
+                "teamPolicy": "enemy",
+                "friendlyFire": "enemies-only",
+                "maximumRange": 1,
+                "minimumRange": 1,
+                "geometryVersion": 3,
+                "maximumSelections": 1,
+                "requiresLineOfSight": true,
+                "maximumElevationDifference": 1
+              },
+              "activation": "manual",
+              "attackFamily": "physical",
+              "requirements": null,
+              "classification": "attack"
+            },
+            {
+              "id": "guard",
+              "mode": "action",
+              "costs": [
+                {
+                  "amount": 30,
+                  "resource": "ap"
+                }
+              ],
+              "effects": [
+                {
+                  "id": "effect-1",
+                  "payload": {
+                    "type": "apply-status",
+                    "stacks": 1,
+                    "statusId": "guarded",
+                    "recipient": "actor",
+                    "durationTurns": 2,
+                    "potencyBasisPoints": 3000
+                  }
+                }
+              ],
+              "cooldown": {
+                "key": "guard",
+                "ownerTurns": 2
+              },
+              "targeting": {
+                "kind": "self",
+                "shape": {
+                  "kind": "single"
+                },
+                "categories": ["self"],
+                "teamPolicy": "self",
+                "friendlyFire": "allies-only",
+                "maximumRange": 0,
+                "minimumRange": 0,
+                "geometryVersion": 3,
+                "maximumSelections": 1,
+                "requiresLineOfSight": false,
+                "maximumElevationDifference": null
+              },
+              "activation": "manual",
+              "requirements": null,
+              "classification": "utility"
+            }
+          ],
+          "schemaVersion": 1
+        },
+        "actions": {
+          "attack": {
+            "name": "Tower Shield",
+            "behaviorId": "attack"
+          },
+          "support": {
+            "name": "Tower Guard",
+            "behaviorId": "guard"
+          }
+        },
+        "enabled": true,
+        "equipment": {
+          "slot": "hand",
+          "hands": 1
+        },
+        "itemClass": "weapon",
+        "sortOrder": 17,
+        "battleUses": null,
+        "description": "A heavy shield delivers a restrained bash and offers the Tower Guard technique.",
+        "consumeOnUse": false,
+        "maximumStack": 1,
+        "requirements": null,
+        "qualityPoints": 30,
+        "schemaVersion": 2,
+        "contentVersion": 6,
+        "inventoryCategory": "gear"
+      },
+      "publicationVersion": null,
+      "publicationDefinition": null
+    },
+    {
+      "floor": 6,
+      "itemId": "twinfang-blade",
+      "builtin": 6,
+      "revision": 5,
+      "draftExists": false,
+      "sourceVersion": 6,
+      "sourceDefinition": {
+        "id": "twinfang-blade",
+        "name": "Twinfang Blade",
+        "tags": ["starter"],
+        "tier": "B",
+        "media": {
+          "artworkId": "item.twinfang-blade.art.v1"
+        },
+        "ability": {
+          "behaviors": [
+            {
+              "id": "attack",
+              "mode": "action",
+              "costs": [
+                {
+                  "amount": 40,
+                  "resource": "ap"
+                }
+              ],
+              "effects": [
+                {
+                  "id": "effect-1",
+                  "payload": {
+                    "type": "damage",
+                    "amount": 3,
+                    "scaling": {
+                      "source": "physical-power",
+                      "coefficientBasisPoints": 850
+                    },
+                    "recipient": "primary-unit",
+                    "defenseKind": "armor"
+                  }
+                },
+                {
+                  "id": "effect-2",
+                  "payload": {
+                    "type": "damage",
+                    "amount": 3,
+                    "scaling": {
+                      "source": "physical-power",
+                      "coefficientBasisPoints": 850
+                    },
+                    "recipient": "primary-unit",
+                    "defenseKind": "armor"
+                  }
+                }
+              ],
+              "cooldown": null,
+              "targeting": {
+                "kind": "unit",
+                "shape": {
+                  "kind": "single"
+                },
+                "categories": ["enemy"],
+                "teamPolicy": "enemy",
+                "friendlyFire": "enemies-only",
+                "maximumRange": 1,
+                "minimumRange": 1,
+                "geometryVersion": 3,
+                "maximumSelections": 1,
+                "requiresLineOfSight": true,
+                "maximumElevationDifference": 1
+              },
+              "activation": "manual",
+              "attackFamily": "physical",
+              "requirements": null,
+              "classification": "attack"
+            },
+            {
+              "id": "quickstep",
+              "mode": "action",
+              "costs": [
+                {
+                  "amount": 15,
+                  "resource": "ap"
+                }
+              ],
+              "effects": [
+                {
+                  "id": "effect-1",
+                  "payload": {
+                    "type": "apply-status",
+                    "stacks": 1,
+                    "statusId": "haste",
+                    "recipient": "actor",
+                    "durationTurns": 1,
+                    "movementApAdjustment": 5
+                  }
+                }
+              ],
+              "cooldown": {
+                "key": "quickstep",
+                "ownerTurns": 2
+              },
+              "targeting": {
+                "kind": "self",
+                "shape": {
+                  "kind": "single"
+                },
+                "categories": ["self"],
+                "teamPolicy": "self",
+                "friendlyFire": "allies-only",
+                "maximumRange": 0,
+                "minimumRange": 0,
+                "geometryVersion": 3,
+                "maximumSelections": 1,
+                "requiresLineOfSight": false,
+                "maximumElevationDifference": null
+              },
+              "activation": "manual",
+              "requirements": null,
+              "classification": "utility"
+            }
+          ],
+          "schemaVersion": 1
+        },
+        "actions": {
+          "attack": {
+            "name": "Twinfang Blade",
+            "behaviorId": "attack"
+          },
+          "support": {
+            "name": "Quickstep",
+            "behaviorId": "quickstep"
+          }
+        },
+        "enabled": true,
+        "equipment": {
+          "slot": "hand",
+          "hands": 1
+        },
+        "itemClass": "weapon",
+        "sortOrder": 16,
+        "battleUses": null,
+        "description": "Two light cuts trade individual force for a second impact.",
+        "consumeOnUse": false,
+        "maximumStack": 1,
+        "requirements": null,
+        "qualityPoints": 20,
+        "schemaVersion": 2,
+        "contentVersion": 6,
+        "inventoryCategory": "gear"
+      },
+      "publicationVersion": 3,
+      "publicationDefinition": {
+        "id": "twinfang-blade",
+        "name": "Twinfang Blade",
+        "tags": ["starter"],
+        "tier": "B",
+        "media": {
+          "artworkId": "item.twinfang-blade.art.v1"
+        },
+        "ability": {
+          "behaviors": [
+            {
+              "id": "attack",
+              "mode": "action",
+              "costs": [
+                {
+                  "amount": 40,
+                  "resource": "ap"
+                }
+              ],
+              "effects": [
+                {
+                  "id": "effect-1",
+                  "timing": "instant",
+                  "payload": {
+                    "type": "damage",
+                    "amount": 3,
+                    "scaling": {
+                      "source": "physical-power",
+                      "coefficientBasisPoints": 850
+                    },
+                    "recipient": "primary-unit",
+                    "defenseKind": "armor"
+                  }
+                },
+                {
+                  "id": "effect-2",
+                  "timing": "instant",
+                  "payload": {
+                    "type": "damage",
+                    "amount": 3,
+                    "scaling": {
+                      "source": "physical-power",
+                      "coefficientBasisPoints": 850
+                    },
+                    "recipient": "primary-unit",
+                    "defenseKind": "armor"
+                  }
+                }
+              ],
+              "cooldown": null,
+              "targeting": {
+                "kind": "unit",
+                "shape": {
+                  "kind": "single"
+                },
+                "categories": ["enemy"],
+                "teamPolicy": "enemy",
+                "friendlyFire": "enemies-only",
+                "maximumRange": 1,
+                "minimumRange": 1,
+                "geometryVersion": 3,
+                "maximumSelections": 1,
+                "requiresLineOfSight": true,
+                "maximumElevationDifference": 1
+              },
+              "activation": "manual",
+              "attackFamily": "physical",
+              "requirements": null,
+              "classification": "attack"
+            },
+            {
+              "id": "quickstep",
+              "mode": "action",
+              "costs": [
+                {
+                  "amount": 15,
+                  "resource": "ap"
+                }
+              ],
+              "effects": [
+                {
+                  "id": "effect-1",
+                  "timing": "instant",
+                  "payload": {
+                    "type": "apply-status",
+                    "stacks": 1,
+                    "statusId": "haste",
+                    "recipient": "actor",
+                    "durationTurns": 1,
+                    "movementApAdjustment": 5
+                  }
+                }
+              ],
+              "cooldown": {
+                "key": "quickstep",
+                "ownerTurns": 2
+              },
+              "targeting": {
+                "kind": "self",
+                "shape": {
+                  "kind": "single"
+                },
+                "categories": ["self"],
+                "teamPolicy": "self",
+                "friendlyFire": "allies-only",
+                "maximumRange": 0,
+                "minimumRange": 0,
+                "geometryVersion": 3,
+                "maximumSelections": 1,
+                "requiresLineOfSight": false,
+                "maximumElevationDifference": null
+              },
+              "activation": "manual",
+              "requirements": null,
+              "classification": "utility"
+            }
+          ],
+          "schemaVersion": 1
+        },
+        "actions": {
+          "attack": {
+            "name": "Twinfang Blade",
+            "behaviorId": "attack"
+          },
+          "support": {
+            "name": "Quickstep",
+            "behaviorId": "quickstep"
+          }
+        },
+        "enabled": true,
+        "equipment": {
+          "slot": "hand",
+          "hands": 1
+        },
+        "itemClass": "weapon",
+        "sortOrder": 16,
+        "battleUses": null,
+        "description": "Two light cuts trade individual force for a second impact.",
+        "consumeOnUse": false,
+        "maximumStack": 1,
+        "requirements": null,
+        "qualityPoints": 20,
+        "schemaVersion": 2,
+        "contentVersion": 3,
+        "inventoryCategory": "gear"
+      }
+    }
+  ]
+}

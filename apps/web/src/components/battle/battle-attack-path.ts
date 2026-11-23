@@ -1,0 +1,221 @@
+import {
+  resolveTargetShapeTiles,
+  type CombatTargetSpec,
+  type CombatTargetSelection,
+} from '@aurevane/game-core/combat/actions'
+import {
+  resolveCombatTargetFootprint,
+  combatCardinalDirections,
+  type CombatTargetFootprintBoard,
+  type CombatTargetSpatialBoard,
+  filterCombatTargetSpatialFootprint,
+} from '@aurevane/game-core/combat/combat-targeting-shapes'
+
+export interface BattleTargetAim {
+  aimSource: 'implicit' | 'player'
+  selection?: CombatTargetSelection
+}
+interface BattleTargetSpatialContext {
+  tactical: Omit<CombatTargetSpatialBoard, 'battle'> & {
+    battle: { combatants: readonly { id: string; hp: number; teamId: string }[] }
+  }
+  actorId?: string
+  terrainOverlays?: readonly { kind: string; position: { x: number; y: number } }[]
+}
+
+/** Self-only All actions have no aimed anchor; every living recipient can activate the same cast. */
+export function battleAllTargetActivation(
+  target: CombatTargetSpec | undefined,
+  hasAllEffects: boolean,
+) {
+  return Boolean(
+    hasAllEffects &&
+    target?.kind === 'self' &&
+    target.shape.kind === 'single' &&
+    target.minimumRange === 0 &&
+    target.maximumRange === 0 &&
+    (target.categories ?? ['self']).every((category) => category === 'self'),
+  )
+}
+
+/** Potential coverage never depends on victims, forecast success, or automatic recipient selection. */
+export function battleTargetReachTiles(
+  tactical: CombatTargetFootprintBoard,
+  origin: { x: number; y: number },
+  target: CombatTargetSpec,
+  selectedAffectedTiles: readonly { x: number; y: number }[] = [],
+  aim: BattleTargetAim = { aimSource: 'implicit' },
+  spatial?: BattleTargetSpatialContext,
+  hasAllTargetEffects = false,
+): ReadonlySet<string> {
+  const result = new Set<string>()
+  const add = (positions: readonly { x: number; y: number }[]) => {
+    for (const tile of positions) result.add(`${tile.x}:${tile.y}`)
+  }
+  if (battleAllTargetActivation(target, hasAllTargetEffects) && spatial) {
+    const living = new Set(
+      spatial.tactical.battle.combatants.filter((unit) => unit.hp > 0).map((unit) => unit.id),
+    )
+    add(
+      spatial.tactical.placements
+        .filter((row) => living.has(row.combatantId))
+        .map((row) => row.position),
+    )
+    return result
+  }
+  const footprint = (selection: CombatTargetSelection, spec = target) => {
+    const positions = resolveCombatTargetFootprint(tactical, origin, spec, selection)
+    if (!spatial) return positions
+    if ((spec.geometryVersion === 2 || spec.geometryVersion === 3) && spec.shape.kind !== 'single')
+      return filterCombatTargetSpatialFootprint(
+        spatial.tactical,
+        origin,
+        spec,
+        positions,
+        spatial.terrainOverlays,
+      )
+    // Historical area methods validate the endpoint, then keep their historical footprint.
+    const endpoint =
+      selection.kind === 'tile' ? selection.position : selection.kind === 'self' ? origin : null
+    return endpoint &&
+      filterCombatTargetSpatialFootprint(
+        spatial.tactical,
+        origin,
+        spec,
+        [endpoint],
+        spatial.terrainOverlays,
+      ).length
+      ? positions
+      : []
+  }
+  if (
+    (target.geometryVersion === 2 || target.geometryVersion === 3) &&
+    target.shape.kind !== 'single'
+  ) {
+    const selections: readonly CombatTargetSelection[] =
+      target.shape.kind === 'line'
+        ? combatCardinalDirections.map((direction) => ({ kind: 'direction', direction }))
+        : [{ kind: 'activate' }]
+    for (const selection of selections) add(footprint(selection))
+    if (
+      target.geometryVersion === 2 &&
+      target.shape.kind === 'all' &&
+      target.kind === 'unit' &&
+      spatial
+    ) {
+      const actor = spatial.tactical.battle.combatants.find(
+        (unit) =>
+          unit.id ===
+          (spatial.actorId ??
+            spatial.tactical.placements.find(
+              (placement) => placement.position.x === origin.x && placement.position.y === origin.y,
+            )?.combatantId),
+      )
+      const eligible = new Set(
+        spatial.tactical.placements
+          .filter((placement) => {
+            const unit = spatial.tactical.battle.combatants.find(
+              (unit) => unit.id === placement.combatantId,
+            )
+            if (!actor || !unit || unit.hp <= 0) return false
+            const ally = actor.teamId === unit.teamId
+            const teamAllowed =
+              target.teamPolicy === 'any' ||
+              (target.teamPolicy === 'self'
+                ? unit.id === actor.id
+                : target.teamPolicy === 'ally'
+                  ? ally
+                  : !ally)
+            const friendlyAllowed =
+              target.friendlyFire === 'all-units' ||
+              (target.friendlyFire === 'all-except-actor'
+                ? unit.id !== actor.id
+                : target.friendlyFire === 'allies-only'
+                  ? ally
+                  : !ally)
+            return teamAllowed && friendlyAllowed
+          })
+          .map((placement) => `${placement.position.x}:${placement.position.y}`),
+      )
+      for (const key of result) if (!eligible.has(key)) result.delete(key)
+    }
+    return result
+  }
+  // Historical destination-based shapes retain explicit endpoint behavior only for a player aim.
+  if (
+    aim.aimSource === 'player' &&
+    target.shape.kind !== 'single' &&
+    selectedAffectedTiles.length
+  ) {
+    const selection = aim.selection
+    const endpoint =
+      selection?.kind === 'self'
+        ? origin
+        : selection?.kind === 'tile'
+          ? selection.position
+          : selection?.kind === 'unit'
+            ? (spatial?.tactical ?? tactical).placements?.find(
+                (row) => row.combatantId === selection.combatantId,
+              )?.position
+            : undefined
+    const distance = endpoint
+      ? Math.abs(endpoint.x - origin.x) + Math.abs(endpoint.y - origin.y)
+      : -1
+    if (
+      endpoint &&
+      distance >= target.minimumRange &&
+      distance <= target.maximumRange &&
+      (target.kind !== 'self' || distance === 0) &&
+      (!spatial ||
+        filterCombatTargetSpatialFootprint(
+          spatial.tactical,
+          origin,
+          target,
+          [endpoint],
+          spatial.terrainOverlays,
+        ).length > 0)
+    ) {
+      add(selectedAffectedTiles)
+      return result
+    }
+  }
+  for (const tile of tactical.tiles) {
+    const distance = Math.abs(tile.position.x - origin.x) + Math.abs(tile.position.y - origin.y)
+    if (distance < target.minimumRange || distance > target.maximumRange) continue
+    if (target.kind === 'self' && distance !== 0) continue
+    add(
+      spatial
+        ? footprint(
+            target.kind === 'self' ? { kind: 'self' } : { kind: 'tile', position: tile.position },
+            target.kind === 'unit' ? { ...target, kind: 'ground-tile' } : target,
+          )
+        : resolveTargetShapeTiles(tactical, origin, tile.position, target.shape),
+    )
+  }
+  return result
+}
+
+export function battleActionDealsDamage(
+  effects: readonly { type: string }[],
+  capturedDamage?: boolean,
+) {
+  return (
+    capturedDamage ??
+    effects.some((effect) => ['damage', 'pierce', 'burn', 'bleed', 'poison'].includes(effect.type))
+  )
+}
+
+/** Red is reserved for damage; buffs, healing and terrain share the same potential geometry. */
+export function battleAttackReachTiles(
+  tactical: CombatTargetFootprintBoard,
+  origin: { x: number; y: number },
+  target: CombatTargetSpec,
+  effects: readonly { type: string }[],
+  selectedAffectedTiles: readonly { x: number; y: number }[] = [],
+  aim: BattleTargetAim = { aimSource: 'implicit' },
+  spatial?: BattleTargetSpatialContext,
+): ReadonlySet<string> {
+  return battleActionDealsDamage(effects)
+    ? battleTargetReachTiles(tactical, origin, target, selectedAffectedTiles, aim, spatial)
+    : new Set<string>()
+}

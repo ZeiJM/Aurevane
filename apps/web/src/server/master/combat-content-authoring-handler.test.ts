@@ -9,6 +9,8 @@ import {
   type CombatContentAuthoringHandlerDependencies,
 } from './combat-content-authoring-handler'
 import type { CombatContentAuthoringService } from './combat-content-authoring-service'
+import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
+import { validateSkillDefinition as strictSkillValidation } from './combat-content-authoring-validation'
 
 const ACTOR = '11111111-1111-4111-8111-111111111111'
 
@@ -16,6 +18,8 @@ function serviceMock(): CombatContentAuthoringService {
   return {
     requireOperator: vi.fn(async () => 'owner' as const),
     validateSkillDefinition: vi.fn(() => ({ valid: true, issues: [], derivedTags: [] })),
+    validateEssenceDefinition: vi.fn(() => ({ valid: true, issues: [], derivedTags: [] })),
+    validateResonanceDefinition: vi.fn(() => ({ valid: true, issues: [], derivedTags: [] })),
     previewSkillDefinition: vi.fn(async () => {
       throw new Error('Not used by handler tests yet.')
     }),
@@ -29,6 +33,9 @@ function serviceMock(): CombatContentAuthoringService {
       updatedBy: ACTOR,
       updatedAt: '2026-09-17T22:00:00.000Z',
     })),
+    restoreBasicSkillDraft: vi.fn(async () => {
+      throw new Error('Not used by isolated handler tests.')
+    }),
     publishSkill: vi.fn(async () => ({
       id: '22222222-2222-4222-8222-222222222222',
       contentKey: 'vanguard.forceful-strike',
@@ -39,6 +46,47 @@ function serviceMock(): CombatContentAuthoringService {
       publishedAt: '2026-09-17T22:01:00.000Z',
     })),
     rollbackSkill: vi.fn(async () => undefined),
+    saveEssenceDraft: vi.fn(async () => ({
+      contentKey: 'essence.vanguard.unbroken-strike',
+      contentKind: 'essence' as const,
+      definition: { essenceId: 'essence.vanguard.unbroken-strike' },
+      baseVersion: 4,
+      draftVersion: 1,
+      updatedBy: ACTOR,
+      updatedAt: '2026-09-27T20:00:00.000Z',
+    })),
+    publishEssence: vi.fn(async () => ({
+      id: '33333333-3333-4333-8333-333333333333',
+      contentKey: 'essence.vanguard.unbroken-strike',
+      contentKind: 'essence' as const,
+      contentVersion: 5,
+      definition: { essenceId: 'essence.vanguard.unbroken-strike', contentVersion: 5 },
+      publishedBy: ACTOR,
+      publishedAt: '2026-09-27T20:01:00.000Z',
+    })),
+    rollbackEssence: vi.fn(async () => undefined),
+    saveResonanceDraft: vi.fn(async () => ({
+      contentKey: 'resonance.lifebinder-vanguard.mercys-edge',
+      contentKind: 'resonance' as const,
+      definition: { id: 'resonance.lifebinder-vanguard.mercys-edge' },
+      baseVersion: 2,
+      draftVersion: 1,
+      updatedBy: ACTOR,
+      updatedAt: '2026-09-27T20:00:00.000Z',
+    })),
+    publishResonance: vi.fn(async () => ({
+      id: '44444444-4444-4444-8444-444444444444',
+      contentKey: 'resonance.lifebinder-vanguard.mercys-edge',
+      contentKind: 'resonance' as const,
+      contentVersion: 3,
+      definition: {
+        id: 'resonance.lifebinder-vanguard.mercys-edge',
+        contentVersion: 3,
+      },
+      publishedBy: ACTOR,
+      publishedAt: '2026-09-27T20:01:00.000Z',
+    })),
+    rollbackResonance: vi.fn(async () => undefined),
   }
 }
 
@@ -58,6 +106,52 @@ function post(body: unknown): Request {
 }
 
 describe('combat content authoring handler', () => {
+  it.each(['garbage', null])(
+    'rejects invalid All friendly-fire %s through real HTTP validation',
+    async (friendlyFire) => {
+      const service = serviceMock()
+      vi.mocked(service.validateSkillDefinition).mockImplementation(strictSkillValidation)
+      const original = resolveMatureSkillVersion('aetherist.arc-bolt')!
+      const definition = {
+        ...original,
+        target: { ...original.target, friendlyFire },
+        effects: [{ type: 'damage', target: 'all', recipient: 'affected-units', amount: 20 }],
+      }
+      const response = await handleCombatContentAuthoringRequest(
+        post({ operation: 'validate', definition }),
+        dependencies(service),
+      )
+      expect(response.status).toBe(200)
+      const body = await response.json()
+      expect(body.validation.valid).toBe(false)
+      expect(service.publishSkill).not.toHaveBeenCalled()
+    },
+  )
+  it('saves a current explicit All choice with its opt-in policy and safe effective default', async () => {
+    const service = serviceMock()
+    const original = {
+      ...resolveMatureSkillVersion('aetherist.arc-bolt')!,
+      effects: [{ type: 'damage', recipient: 'affected-units', target: 'all', amount: 20 }],
+    }
+    const response = await handleCombatContentAuthoringRequest(
+      post({
+        operation: 'save-draft',
+        definition: original,
+        baseVersion: original.contentVersion,
+        expectedDraftVersion: null,
+      }),
+      dependencies(service),
+    )
+    expect(response.status).toBe(200)
+    expect(service.saveSkillDraft).toHaveBeenCalledWith(
+      expect.objectContaining({
+        definition: expect.objectContaining({
+          target: expect.objectContaining({ allTargetPolicyVersion: 1, friendlyFire: 'all-units' }),
+        }),
+      }),
+    )
+    expect(original.target).not.toHaveProperty('allTargetPolicyVersion')
+  })
   it('requires explicit Master Panel authorization before validate/diff operations', async () => {
     const service = serviceMock()
     vi.mocked(service.requireOperator).mockRejectedValue(
@@ -138,7 +232,7 @@ describe('combat content authoring handler', () => {
     })
   })
 
-  it('routes publish and rollback through the protected service', async () => {
+  it('publishes current settings and rejects retired rollback', async () => {
     const service = serviceMock()
     const deps = dependencies(service)
 
@@ -160,17 +254,47 @@ describe('combat content authoring handler', () => {
     )
 
     expect(publishResponse.status).toBe(200)
-    expect(rollbackResponse.status).toBe(200)
+    expect(rollbackResponse.status).toBe(400)
     expect(service.publishSkill).toHaveBeenCalledWith({
       actorUserId: ACTOR,
       definition: { id: 'vanguard.forceful-strike' },
       expectedBaseVersion: 2,
     })
-    expect(service.rollbackSkill).toHaveBeenCalledWith({
+    expect(service.rollbackSkill).not.toHaveBeenCalled()
+  })
+
+  it('routes Essence and Resonance writes through their typed authoring lanes', async () => {
+    const service = serviceMock()
+    const deps = dependencies(service)
+
+    const essenceResponse = await handleCombatContentAuthoringRequest(
+      post({
+        operation: 'publish',
+        contentKind: 'essence',
+        definition: { essenceId: 'essence.vanguard.unbroken-strike' },
+        expectedBaseVersion: 4,
+      }),
+      deps,
+    )
+    const resonanceRollback = await handleCombatContentAuthoringRequest(
+      post({
+        operation: 'rollback',
+        contentKind: 'resonance',
+        contentKey: 'resonance.lifebinder-vanguard.mercys-edge',
+        disciplinePair: ['lifebinder', 'vanguard'],
+        targetVersion: 2,
+      }),
+      deps,
+    )
+
+    expect(essenceResponse.status).toBe(200)
+    expect(resonanceRollback.status).toBe(400)
+    expect(service.publishEssence).toHaveBeenCalledWith({
       actorUserId: ACTOR,
-      skillId: 'vanguard.forceful-strike',
-      targetVersion: 2,
+      definition: { essenceId: 'essence.vanguard.unbroken-strike' },
+      expectedBaseVersion: 4,
     })
+    expect(service.rollbackResonance).not.toHaveBeenCalled()
   })
 
   it('rejects malformed operations as invalid requests', async () => {
@@ -184,4 +308,33 @@ describe('combat content authoring handler', () => {
       error: { code: 'INVALID_REQUEST' },
     })
   })
+})
+
+describe('authoring preview behavior boundary', () => {
+  it('forwards the selected group with the authenticated actor', async () => {
+    const service = serviceMock()
+    vi.mocked(service.previewSkillDefinition).mockResolvedValue({} as never)
+    const response = await handleCombatContentAuthoringRequest(
+      post({ operation: 'preview', definition: { id: 'owner.skill' }, behaviorId: 'second' }),
+      dependencies(service),
+    )
+    expect(response.status).toBe(200)
+    expect(service.previewSkillDefinition).toHaveBeenCalledWith({
+      actorUserId: ACTOR,
+      definition: { id: 'owner.skill' },
+      behaviorId: 'second',
+    })
+  })
+  it.each([null, '', ' second', 'second ', 4, {}, []])(
+    'rejects malformed group identity %j before calling preview',
+    async (behaviorId) => {
+      const service = serviceMock()
+      const response = await handleCombatContentAuthoringRequest(
+        post({ operation: 'preview', definition: { id: 'owner.skill' }, behaviorId }),
+        dependencies(service),
+      )
+      expect(response.status).toBe(400)
+      expect(service.previewSkillDefinition).not.toHaveBeenCalled()
+    },
+  )
 })

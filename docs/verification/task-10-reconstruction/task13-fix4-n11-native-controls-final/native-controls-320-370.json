@@ -1,0 +1,61 @@
+[
+  {
+    "label": "search-empty",
+    "left": 24.1875,
+    "right": 82.15625,
+    "top": 136.796875,
+    "bottom": 176.796875,
+    "width": 320,
+    "height": 370,
+    "unobscured": true,
+    "hitElement": "BUTTON",
+    "hitWithinPrimaryDock": false,
+    "clippedBy": []
+  },
+  {
+    "label": "search-empty",
+    "focus": {
+      "visible": true,
+      "outline": "solid",
+      "width": 2,
+      "color": "rgb(50, 127, 119)",
+      "shadow": "none"
+    }
+  },
+  {
+    "label": "name",
+    "left": 46.96875,
+    "right": 273.03125,
+    "top": 270.09375,
+    "bottom": 314.09375,
+    "width": 320,
+    "height": 370,
+    "unobscured": true,
+    "hitElement": "INPUT",
+    "hitWithinPrimaryDock": false,
+    "clippedBy": []
+  },
+  {
+    "label": "history",
+    "left": 230.15625,
+    "right": 289.6875,
+    "top": 155.578125,
+    "bottom": 195.578125,
+    "width": 320,
+    "height": 370,
+    "unobscured": true,
+    "hitElement": "BUTTON",
+    "hitWithinPrimaryDock": false,
+    "clippedBy": []
+  },
+  {
+    "label": "history",
+    "focus": {
+      "visible": true,
+      "outline": "solid",
+      "width": 2,
+      "color": "rgb(50, 127, 119)",
+      "shadow": "none"
+    }
+  }
+]

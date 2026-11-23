@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="240" viewBox="0 0 480 240">
+  <defs>
+    <linearGradient id="wood" x2="0" y2="1" gradientUnits="objectBoundingBox"><stop stop-color="#a67950"/><stop offset="1" stop-color="#57382e"/></linearGradient>
+    <linearGradient id="roof" x2=".8" y2="1" gradientUnits="objectBoundingBox"><stop stop-color="#557377"/><stop offset="1" stop-color="#243e43"/></linearGradient>
+    <linearGradient id="sail" x2=".7" y2="1" gradientUnits="objectBoundingBox"><stop stop-color="#f3dca1"/><stop offset=".68" stop-color="#bf995e"/><stop offset="1" stop-color="#85623c"/></linearGradient>
+  </defs>
+  <g stroke-linejoin="round">
+    <path fill="#12282b" fill-opacity=".29" d="M35 176 94 157l102 37-50 18z"/>
+    <path fill="url(#wood)" stroke="#422e29" stroke-width="4" d="M49 116l70 22v57l-70-23z"/>
+    <path fill="#634735" stroke="#402e28" stroke-width="4" d="M119 138l69-30v53l-69 34z"/>
+    <path fill="url(#roof)" stroke="#253638" stroke-width="5" d="M31 122l61-55 55 14-39 64z"/>
+    <path fill="#304e53" stroke="#253638" stroke-width="5" d="M108 145l39-64 58 27-78 44z"/>
+    <path fill="none" stroke="#88a29d" stroke-opacity=".56" stroke-width="2.3" d="m44 113 73 25m-60-36 70 26m-56-37 65 25m-54-36 62 26m-13 27 57-30m-66 44 70-35"/>
+    <path fill="none" stroke="#d7b17b" stroke-opacity=".64" stroke-width="2" d="m52 138 64 21m-64-12 65 22m-65-14 65 22m-64-12 64 21m9-29 60-29m-61 38 60-29m-59 38 60-29"/>
+    <path fill="#302c29" stroke="#bc8b55" stroke-width="3" d="M72 145l19 6v31l-19-7z"/>
+    <path fill="#e1b35c" stroke="#49372a" stroke-width="3" d="m138 148 15-7v14l-15 7zm23-11 15-7v13l-15 7z"/>
+    <path fill="none" stroke="#815837" stroke-width="2" d="m146 145v14m23-22v13"/>
+    <circle cx="85" cy="164" r="2" fill="#d5ad65"/>
+    <path fill="#583c2f" stroke="#3c2c28" stroke-width="2" d="M51 170l68 22 71-33v7l-71 34-68-24z"/>
+    <path fill="#152b2d" fill-opacity=".26" d="m295 183 39-14 89 23-33 16z"/>
+    <path fill="#9c7552" stroke="#453329" stroke-width="3" d="m324 178 22-10 36 15-21 12z"/>
+    <path fill="#624734" stroke="#453329" stroke-width="3" d="m324 178 37 17 21-12v7l-21 12-37-16z"/>
+    <path stroke="#5d4131" stroke-width="12" stroke-linecap="round" d="M352 186 354 38"/>
+    <path stroke="#d0a26b" stroke-width="3" stroke-linecap="round" d="M350 185 352 38"/>
+    <path fill="none" stroke="#7d674d" stroke-width="2" d="m355 55-43 126m0-121 106 129"/>
+    <path fill="#805840" stroke="#463229" stroke-width="4" d="m293 91 106 29 4 8-112-28z"/>
+    <path fill="url(#sail)" stroke="#7f6246" stroke-width="3" d="M300 91q32 5 47 15 20 3 46 15-24 1-44-4-30-4-49-26z"/>
+    <path fill="none" stroke="#ead2a5" stroke-width="2" d="M306 98q18 12 41 14m5 1q19 5 30 7"/>
+    <path fill="#c6a374" stroke="#5d4735" stroke-width="2" d="m343 174 13-5 12 5-2 11-15 2z"/>
+    <path fill="none" stroke="#6b4f39" stroke-width="2" d="m345 177 19-2m-19 5 19-2m-18 5 16-1"/>
+  </g>
+</svg>

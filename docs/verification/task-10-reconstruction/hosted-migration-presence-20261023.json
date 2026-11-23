@@ -1,0 +1,76 @@
+{
+  "queriedAt": "2026-10-23T01:18Z",
+  "project": "luazfeupwfgnilohfsya",
+  "mode": "read-only transaction; rollback; migration identity/presence only",
+  "preflight": {
+    "recentApplied": [
+      {
+        "name": "master_players_recovery",
+        "version": "20261020181057"
+      }
+    ],
+    "playersAlreadyApplied": true,
+    "frozenDContentMigrationPresence": [
+      {
+        "applied": false,
+        "version": "20261020200612"
+      },
+      {
+        "applied": false,
+        "version": "20261020201044"
+      },
+      {
+        "applied": false,
+        "version": "20261020201807"
+      },
+      {
+        "applied": false,
+        "version": "20261020202415"
+      },
+      {
+        "applied": false,
+        "version": "20261020204712"
+      },
+      {
+        "applied": false,
+        "version": "20261020204946"
+      },
+      {
+        "applied": false,
+        "version": "20261020205631"
+      },
+      {
+        "applied": false,
+        "version": "20261020211441"
+      },
+      {
+        "applied": false,
+        "version": "20261020222401"
+      },
+      {
+        "applied": false,
+        "version": "20261020225734"
+      },
+      {
+        "applied": false,
+        "version": "20261022200753"
+      },
+      {
+        "applied": false,
+        "version": "20261022214821"
+      },
+      {
+        "applied": false,
+        "version": "20261022221218"
+      },
+      {
+        "applied": false,
+        "version": "20261022225712"
+      },
+      {
+        "applied": false,
+        "version": "20261022233500"
+      }
+    ]
+  }
+}

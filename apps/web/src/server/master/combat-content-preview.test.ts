@@ -1,3 +1,8 @@
+import { VESPER_SUMMON_PROFILE } from '@aurevane/game-core/combat/universal-support'
+import { withCurrentSummonCoreAttributes } from '@aurevane/game-core/combat/summon-content'
+import type { AbilityDefinition } from '@aurevane/game-core/combat/combat-definition'
+import { parseAbilityDefinition } from '@aurevane/game-core/combat/combat-definition'
+import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
@@ -7,9 +12,139 @@ import {
   type MatureSkillDefinition,
 } from '@aurevane/game-core/combat/mature-skills'
 
-import { previewCombatContentDefinition } from './combat-content-preview'
+import {
+  previewCombatContentDefinition,
+  previewBasicCombatContentDefinition,
+  previewModifierCombatContentDefinition,
+} from './combat-content-preview'
 
 const PREVIEW_SEED = 0x4d415354
+
+function invocationWithProfile(profile = VESPER_SUMMON_PROFILE) {
+  const basic = defaultBasicSkills().find((row) => row.id === 'basic.invocation')!
+  return {
+    ...basic,
+    ability: parseAbilityDefinition({
+      ...basic.ability,
+      behaviors: basic.ability.behaviors.map((behavior) => ({
+        ...behavior,
+        effects: behavior.effects.map((effect) =>
+          effect.payload.type === 'summon'
+            ? { ...effect, payload: { ...effect.payload, profile } }
+            : effect,
+        ),
+      })),
+    }),
+  }
+}
+
+it('previews canonical Sensory followed by Mark without losing timing alignment or exposing private packets', () => {
+  const native = resolveMatureSkillVersion('farstrider.scouts-mark')!
+  const guard = defaultBasicSkills().find((row) => row.id === 'basic.guard')!.ability.behaviors[0]!
+  const definition = {
+    ...native,
+    ability: parseAbilityDefinition({
+      schemaVersion: 1,
+      behaviors: [
+        {
+          ...guard,
+          id: 'observe',
+          classification: 'utility',
+          costs: [
+            { resource: 'ap', amount: 30 },
+            { resource: 'mp', amount: 2 },
+          ],
+          cooldown: null,
+          requirements: null,
+          targeting: { ...native.target, geometryVersion: 3, maximumSelections: 1 },
+          effects: [
+            {
+              id: 'sensory',
+              timing: 'instant',
+              payload: {
+                type: 'sensory',
+                recipient: 'primary-unit',
+                revealedDurationOwnerTurnStarts: 1,
+              },
+            },
+            {
+              id: 'mark',
+              timing: 'instant',
+              payload: {
+                type: 'apply-status',
+                recipient: 'primary-unit',
+                statusId: 'mark',
+                stacks: 1,
+                durationTurns: 2,
+              },
+            },
+          ],
+        },
+      ],
+    }),
+  }
+  const before = JSON.stringify(definition)
+  const preview = previewCombatContentDefinition(definition, { behaviorId: 'observe' })
+  expect(preview.legal).toBe(true)
+  expect(preview.costs).toMatchObject({ actionEconomy: 30, mp: 2 })
+  expect(preview.simulation.rngConsumed).toBe(false)
+  expect(JSON.stringify(definition)).toBe(before)
+  expect(JSON.stringify(preview)).not.toMatch(/effectOrigins|sourceInstanceId|chanceBasisPoints/)
+})
+
+it.each(['instant', 'next-round', 'delayed'] as const)(
+  'previews the exact canonical %s summon instead of the stale native envelope',
+  (timing) => {
+    const native = invocationWithProfile()
+    const guard = defaultBasicSkills().find((row) => row.id === 'basic.guard')!.ability
+      .behaviors[0]!
+    const profile = {
+      ...VESPER_SUMMON_PROFILE,
+      name: 'Canonical Preview Companion',
+      neverMoves: true,
+    }
+    const definition = {
+      ...native,
+      ability: parseAbilityDefinition({
+        schemaVersion: 1,
+        behaviors: [
+          {
+            ...guard,
+            cooldown: null,
+            requirements: null,
+            targeting: {
+              ...native.ability.behaviors[0]!.targeting,
+              geometryVersion: 3,
+              maximumSelections: 1,
+            },
+            effects: [
+              {
+                id: 'spawn',
+                timing,
+                payload: { type: 'summon', recipient: 'selected-tile', profile },
+              },
+            ],
+          },
+        ],
+      }),
+    }
+    const preview = previewBasicCombatContentDefinition(definition, { seed: PREVIEW_SEED })
+    expect(preview.legal).toBe(true)
+    expect(preview.simulation.rngConsumed).toBe(false)
+    expect(preview.summon?.profile.name).toBe(profile.name)
+    expect(preview.summon?.profile).toHaveProperty('neverMoves', true)
+    expect(preview.summon?.abilities).toHaveLength(profile.abilities.length)
+    expect(preview.projections.effects).toContainEqual(
+      expect.objectContaining({
+        effectType: 'summon',
+        after: timing === 'instant' ? 'active' : 'pending',
+      }),
+    )
+    expect(JSON.stringify(preview)).not.toMatch(
+      /sourceInstanceId|capturedAbilitySources|chanceBasisPoints/,
+    )
+  },
+)
 
 function baseSkill(): MatureSkillDefinition {
   const definition = resolveMatureSkillVersion('vanguard.forceful-strike', 2)
@@ -32,6 +167,70 @@ function withEffects(
 }
 
 describe('Master Panel combat content preview', () => {
+  it('uses exact conditional percentages for new modifier preview fixtures', () => {
+    const modifier = withEffects([], {
+      id: 'test.exact-modifier',
+      ability: parseAbilityDefinition({
+        schemaVersion: 1,
+        behaviors: [
+          {
+            id: 'ongoing',
+            activation: 'ongoing',
+            mode: 'modifier',
+            classification: 'attack',
+            attackFamily: 'physical',
+            costs: [],
+            cooldown: null,
+            requirements: null,
+            targeting: null,
+            effects: Array.from({ length: 8 }, (_, index) => ({
+              id: `bonus-${index}`,
+              payload: { type: 'damage-bonus', recipient: 'actor', multiplierBasisPoints: 10044 },
+            })),
+          },
+        ],
+      }),
+    })
+    const reference = withEffects(
+      [{ type: 'damage', recipient: 'primary-unit', amount: 13, defenseKind: 'armor' }],
+      { id: 'test.exact-reference' },
+    )
+    const result = previewModifierCombatContentDefinition(modifier, reference, {
+      behaviorId: 'ongoing',
+    })
+    expect(result.legal).toBe(true)
+    // Raw 13 + floor(30 * 25%) = 20; duel multiplier gives 28.
+    // Eight 0.44% bonuses give floor(28 * 1.0044^8) = 29.
+    expect(result.projections.effects).toContainEqual(
+      expect.objectContaining({ effectType: 'damage', before: 100, after: 71 }),
+    )
+  })
+
+  it.each(['pve', 'pvp'] as const)(
+    'previews authored Flame Burst persistence with explicit Ground intent in %s',
+    (combatContext) => {
+      const definition = resolveMatureSkillVersion('cinderweaver.flame-burst')!
+      const before = JSON.stringify(definition)
+      const preview = previewCombatContentDefinition(definition, { combatContext })
+      expect(preview.legal).toBe(true)
+      expect(preview.targeting.selection).toEqual({ kind: 'activate', ground: true })
+      expect(preview.groundAreas).toHaveLength(1)
+      const area = preview.groundAreas[0]!
+      expect(area.visualPresetId).toBe(definition.groundArea!.visualPresetId)
+      expect(area.expiresAtRound - area.activationRound).toBe(definition.groundArea!.durationRounds)
+      expect(preview.simulation.rngConsumed).toBe(false)
+      expect(JSON.stringify(definition)).toBe(before)
+    },
+  )
+  it.each(['cinderweaver.cinder-bolt', 'cinderweaver.ember-line'])(
+    'keeps ordinary Fire %s previews on Enemy intent',
+    (skillId) => {
+      const preview = previewCombatContentDefinition(resolveMatureSkillVersion(skillId)!)
+      expect(preview.legal).toBe(true)
+      expect(preview.targeting.selection).not.toHaveProperty('ground')
+      expect(preview.groundAreas).toEqual([])
+    },
+  )
   it('uses a deterministic isolated fixture and projects canonical targeting, tags, AP and MP', () => {
     const definition = baseSkill()
     const first = previewCombatContentDefinition(definition, { seed: PREVIEW_SEED })
@@ -61,6 +260,33 @@ describe('Master Panel combat content preview', () => {
     expect(first.derivedTags).toEqual(expect.arrayContaining(['Enemy', 'Single']))
     expect(first.projections.effects).toEqual(
       expect.arrayContaining([expect.objectContaining({ effectType: 'damage' })]),
+    )
+  })
+
+  it('previews the pinned summon profile, lifetime and authored abilities without consuming RNG', () => {
+    const definition = invocationWithProfile()
+    const profile = VESPER_SUMMON_PROFILE
+
+    const preview = previewBasicCombatContentDefinition(definition, { seed: PREVIEW_SEED })
+
+    expect(preview.legal).toBe(true)
+    expect(preview.simulation.rngConsumed).toBe(false)
+    expect(preview.targeting.selection).toMatchObject({ kind: 'tile' })
+    expect(preview.derivedTags).toEqual(expect.arrayContaining(['Empty Tile', 'Single']))
+    expect(preview.summon).toMatchObject({
+      profile: {
+        id: profile.id,
+        name: profile.name,
+        lifetimeTurns: profile.lifetimeTurns,
+        maxHp: profile.maxHp,
+        maxMp: profile.maxMp,
+        initiative: profile.initiative,
+        movementBudget: profile.movementBudget,
+      },
+    })
+    expect(preview.summon?.abilities).toHaveLength(profile.abilities.length)
+    expect(preview.summon?.abilities.map((ability) => ability.name)).toEqual(
+      profile.abilities.map((ability) => ability.name),
     )
   })
 
@@ -178,7 +404,7 @@ describe('Master Panel combat content preview', () => {
       }),
     ])
     expect(vengeance.projections.events).toContainEqual(
-      expect.objectContaining({ event: 'damage_applied', amount: 20 }),
+      expect.objectContaining({ event: 'damage_applied', amount: 28 }),
     )
   })
 
@@ -209,4 +435,119 @@ describe('Master Panel combat content preview', () => {
     expect(JSON.stringify(preview)).not.toContain('covertPresent')
     expect(preview.simulation.rngConsumed).toBe(false)
   })
+})
+
+it('uses selected canonical behavior geometry and keeps raw execution origin out of actual authoring preview receipts', () => {
+  const original = structuredClone(resolveMatureSkillVersion('vanguard.forceful-strike')!)
+  const ability: AbilityDefinition = {
+    schemaVersion: 1,
+    behaviors: [
+      {
+        id: 'restore',
+        activation: 'manual',
+        mode: 'action',
+        classification: 'recovery',
+        costs: [
+          { resource: 'ap', amount: 3 },
+          { resource: 'mp', amount: 2 },
+        ],
+        cooldown: null,
+        requirements: null,
+        targeting: {
+          kind: 'self',
+          teamPolicy: 'self',
+          friendlyFire: 'allies-only',
+          shape: { kind: 'single' },
+          minimumRange: 0,
+          maximumRange: 0,
+          requiresLineOfSight: false,
+          maximumElevationDifference: null,
+          maximumSelections: 1,
+        },
+        effects: [{ id: 'heal', payload: { type: 'healing', recipient: 'actor', amount: 1 } }],
+      },
+    ],
+  }
+  const definition = { ...original, ability }
+  const before = JSON.stringify(definition)
+  const preview = previewCombatContentDefinition(definition, { behaviorId: 'restore' })
+  expect(preview.legal).toBe(true)
+  expect(preview.targeting.selection).toEqual({ kind: 'self' })
+  expect(preview.costs).toMatchObject({ actionEconomy: 3, mp: 2 })
+  expect(JSON.stringify(preview)).not.toMatch(
+    /effectOrigin|sourceInstanceId|abilityParticipants|sourceCommandVisibility/,
+  )
+  expect(JSON.stringify(definition)).toBe(before)
+})
+
+it.each(['pve', 'pvp'] as const)(
+  'previews a canonical persistent Ground group in %s without RNG or private area data',
+  (combatContext) => {
+    const native = resolveMatureSkillVersion('cinderweaver.flame-burst')!
+    const group = defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!.ability
+      .behaviors[0]!
+    const definition = {
+      ...native,
+      ability: parseAbilityDefinition({
+        schemaVersion: 1,
+        behaviors: [
+          {
+            ...group,
+            id: 'persistent-ground',
+            costs: [
+              { resource: 'ap', amount: 55 },
+              { resource: 'mp', amount: 3 },
+            ],
+            targeting: { ...native.target, maximumSelections: 1 },
+            effects: [
+              { id: 'hit', payload: { type: 'damage', recipient: 'affected-units', amount: 8 } },
+            ],
+            groundArea: {
+              durationRounds: 3,
+              visualPresetId: 'embers',
+              entryEffectIds: ['hit'],
+              timing: 'next-round',
+            },
+          },
+        ],
+      }),
+    }
+    const before = JSON.stringify(definition)
+    const preview = previewCombatContentDefinition(definition, { combatContext })
+    expect(preview.legal).toBe(true)
+    expect(preview.groundAreas).toHaveLength(1)
+    expect(preview.groundAreas![0]!.visualPresetId).toBe('embers')
+    expect(preview.groundAreas![0]!.expiresAtRound - preview.groundAreas![0]!.activationRound).toBe(
+      3,
+    )
+    expect(preview.simulation.rngConsumed).toBe(false)
+    expect(preview.groundAreas![0]).not.toHaveProperty('caster')
+    expect(preview.groundAreas![0]).not.toHaveProperty('entryEffects')
+    expect(JSON.stringify(definition)).toBe(before)
+  },
+)
+
+it('previews the captured Core-derived summon stats and optional HP costs', () => {
+  const profile = withCurrentSummonCoreAttributes(VESPER_SUMMON_PROFILE)
+  const definition = invocationWithProfile({
+    ...profile,
+    abilities: profile.abilities.map((ability) => ({ ...ability, hpCost: 3 })),
+  })
+  const preview = previewBasicCombatContentDefinition(definition)
+  expect(preview.legal).toBe(true)
+  expect(preview.summon?.profile).toMatchObject({
+    coreAttributes: profile.coreAttributes,
+    derivedStatRulesVersion: 5,
+    maxHp: profile.maxHp,
+    stats: profile.stats,
+  })
+  expect(preview.summon?.abilities.every((ability) => ability.hpCost === 3)).toBe(true)
+})
+
+it('retains optional authored Summon potency in the Master preview', () => {
+  const profile = { ...VESPER_SUMMON_PROFILE, potencyBasisPoints: 4000 }
+  const definition = invocationWithProfile(profile)
+  const preview = previewBasicCombatContentDefinition(definition, { seed: PREVIEW_SEED })
+  expect(preview.summon?.profile.potencyBasisPoints).toBe(4000)
+  expect(preview.simulation.rngConsumed).toBe(false)
 })

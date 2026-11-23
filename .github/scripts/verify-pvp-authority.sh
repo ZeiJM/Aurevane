@@ -133,11 +133,23 @@ battle_id='battle:pvp-authority-regression'
 combatant_one="character:$character_one"
 combatant_two="character:$character_two"
 
+# Capture the real prepared authority for both selected characters. Admission still
+# compares these pins with the current source inside its own transaction.
+committed_builds="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+  set role service_role;
+  select jsonb_agg(public.get_character_committed_build_snapshot_v2(selected.user_id, selected.character_id) ||
+    jsonb_build_object('combatantId', 'character:' || selected.character_id::text,
+      'characterId', selected.character_id::text) order by selected.character_id)::text
+  from (values ('$user_one'::uuid, '$character_one'::uuid), ('$user_two'::uuid, '$character_two'::uuid))
+    selected(user_id, character_id);")"
+
 snapshot="$(jq -cn \
+  --argjson committed_builds "$committed_builds" \
   --arg battle_id "$battle_id" \
   --arg combatant_one "$combatant_one" \
   --arg combatant_two "$combatant_two" \
   '{
+    buildAuthority: { combatants: $committed_builds },
     tactical: {
       battle: {
         battleId: $battle_id,
@@ -176,6 +188,7 @@ participants="$(jq -cn \
   ]')"
 
 create_pvp_battle() {
+  local prepared_snapshot="${1:-$snapshot}"
   docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
     set role service_role;
     select battle_session_id::text || '|' || battle_version::text || '|' || battle_key
@@ -185,10 +198,26 @@ create_pvp_battle() {
       '$battle_id',
       1,
       1,
-      '$snapshot'::jsonb,
+      '$prepared_snapshot'::jsonb,
       '$participants'::jsonb
     );"
 }
+
+# A bad capture for either player must roll the whole admission back. Retain the
+# same lobby/readiness and prove no session, participant or history survives.
+for player_index in 0 1; do
+  stale_snapshot="$(printf '%s' "$snapshot" | jq -c --argjson i "$player_index" '.buildAuthority.combatants[$i].sourceHash = "stale"')"
+  if create_pvp_battle "$stale_snapshot" >/tmp/pvp-stale-create.out 2>/tmp/pvp-stale-create.err; then
+    echo 'Stale participant preparation unexpectedly admitted.' >&2
+    exit 1
+  fi
+  grep -q 'PLAYER_PREPARATION_STALE' /tmp/pvp-stale-create.err
+  rollback_state="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+    select (select count(*) from app_private.battle_sessions where battle_id = '$battle_id')::text || '|' ||
+      (select count(*) from app_private.battle_participants where character_id in ('$character_one'::uuid, '$character_two'::uuid))::text || '|' ||
+      (public.get_pvp_lobby_v1('$user_one'::uuid, '$lobby_id'::uuid)->>'ready_to_start');")"
+  test "$rollback_state" = '0|0|true'
+done
 
 first_battle="$(create_pvp_battle)"
 replayed_battle="$(create_pvp_battle)"

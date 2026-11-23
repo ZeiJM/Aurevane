@@ -1,0 +1,1124 @@
+{
+  "phase": "LIVE for Owner testing; final health and authority probes passed",
+  "merge": "0895e0b76adbe7805cd7b9c4559dc5eb117fcb09",
+  "tested_tree": "74af1e34b405fd059f2bef89713890d5a30292f6",
+  "deployment": "dpl_3VF7cNextXyhMffHL5F38hkTTCE6",
+  "retirement_version": "481c577d-b608-4e94-9fc4-cb8b31c46d51",
+  "hold_id": "a42a4693-7bef-4558-8148-5c92db82da84",
+  "drain_start": "2026-10-27T20:26:13.268Z",
+  "drain_end": "2026-10-27T20:58:43.268Z",
+  "final_routes": [
+    {
+      "id": "bb343d6a-005e-41f5-96ff-33e15c2c04b3",
+      "name": "Retire incompatible deployment hosts",
+      "description": "Only the canonical domains and exact compatible deployment aliases may serve this project. Update allowed-host regex with every future approved production cutover.",
+      "enabled": true,
+      "route": {
+        "src": "^/.*$",
+        "status": 503,
+        "headers": {
+          "Cache-Control": "no-store"
+        },
+        "missing": [
+          {
+            "type": "host",
+            "value": "^(aurevane-11uy9b7uk-zeijms-projects\\.vercel\\.app|aurevane\\.vercel\\.app|aurevane-zeijms-projects\\.vercel\\.app|aurevane-git-0895e0b76adbe7805cd7b9c4559-100b4f-zeijms-projects\\.vercel\\.app)$"
+          }
+        ]
+      }
+    },
+    {
+      "id": "d53aa166-cf3f-42db-a6fd-1a27b3fe8298",
+      "name": "Retire incompatible header pins",
+      "description": "Reject existing deployment pins unless they name the current compatible deployment.",
+      "enabled": true,
+      "route": {
+        "src": "^/.*$",
+        "status": 503,
+        "headers": {
+          "Cache-Control": "no-store"
+        },
+        "has": [
+          {
+            "type": "header",
+            "key": "x-deployment-id"
+          }
+        ],
+        "missing": [
+          {
+            "type": "header",
+            "key": "x-deployment-id",
+            "value": "^dpl_3VF7cNextXyhMffHL5F38hkTTCE6$"
+          }
+        ]
+      }
+    },
+    {
+      "id": "04259482-8b0f-4b01-85bf-b5bd35dbb910",
+      "name": "Retire incompatible query pins",
+      "description": "Reject existing deployment pins unless they name the current compatible deployment.",
+      "enabled": true,
+      "route": {
+        "src": "^/.*$",
+        "status": 503,
+        "headers": {
+          "Cache-Control": "no-store"
+        },
+        "has": [
+          {
+            "type": "query",
+            "key": "dpl"
+          }
+        ],
+        "missing": [
+          {
+            "type": "query",
+            "key": "dpl",
+            "value": "^dpl_3VF7cNextXyhMffHL5F38hkTTCE6$"
+          }
+        ]
+      }
+    },
+    {
+      "id": "66ba7749-1a6b-4ccd-9202-be7a7bb8ff76",
+      "name": "Retire incompatible cookie pins",
+      "description": "Reject existing deployment pins unless they name the current compatible deployment.",
+      "enabled": true,
+      "route": {
+        "src": "^/.*$",
+        "status": 503,
+        "headers": {
+          "Cache-Control": "no-store",
+          "Set-Cookie": "__vdpl=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Lax"
+        },
+        "has": [
+          {
+            "type": "cookie",
+            "key": "__vdpl"
+          }
+        ],
+        "missing": [
+          {
+            "type": "cookie",
+            "key": "__vdpl",
+            "value": "^dpl_3VF7cNextXyhMffHL5F38hkTTCE6$"
+          }
+        ]
+      }
+    },
+    {
+      "id": "1762a69d-d88b-464d-9986-a3885460cc13",
+      "name": "Retired Master baseline cookie",
+      "description": "Retire the old deployment cookie and clear its pin so a refresh can load the compatible production app.",
+      "enabled": true,
+      "route": {
+        "src": "^/.*$",
+        "headers": {
+          "Cache-Control": "no-store",
+          "Set-Cookie": "__vdpl=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Lax"
+        },
+        "status": 503,
+        "has": [
+          {
+            "type": "cookie",
+            "key": "__vdpl",
+            "value": "dpl_2noMyXV766mtZwJtoGbWY4QXZxaE"
+          }
+        ]
+      }
+    },
+    {
+      "id": "301121a1-fbd1-41cf-a045-228548908639",
+      "name": "Retired Master baseline query",
+      "description": "Prevent fresh framework requests pinned to the retired baseline after cutover; refresh uses current production.",
+      "enabled": true,
+      "route": {
+        "src": "^/.*$",
+        "headers": {
+          "Cache-Control": "no-store"
+        },
+        "status": 503,
+        "has": [
+          {
+            "type": "query",
+            "key": "dpl",
+            "value": "dpl_2noMyXV766mtZwJtoGbWY4QXZxaE"
+          }
+        ]
+      }
+    },
+    {
+      "id": "49bed491-bc3d-4736-a8dc-9894c31f2b9e",
+      "name": "Retired Master baseline header",
+      "description": "Prevent fresh framework requests pinned to the retired baseline after cutover; refresh uses current production.",
+      "enabled": true,
+      "route": {
+        "src": "^/.*$",
+        "headers": {
+          "Cache-Control": "no-store"
+        },
+        "status": 503,
+        "has": [
+          {
+            "type": "header",
+            "key": "x-deployment-id",
+            "value": "dpl_2noMyXV766mtZwJtoGbWY4QXZxaE"
+          }
+        ]
+      }
+    },
+    {
+      "id": "fd8c5790-8c24-44fa-ae75-06f845fcf546",
+      "name": "Retired Master baseline 2",
+      "description": "Retire the previous baseline URL after the approved compatible production replacement.",
+      "enabled": true,
+      "route": {
+        "src": "^/.*$",
+        "headers": {
+          "Cache-Control": "no-store"
+        },
+        "status": 503,
+        "has": [
+          {
+            "type": "host",
+            "value": "aurevane-git-a759c6ea651a8e14dff0ec4cdc3-614017-zeijms-projects.vercel.app"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aa0fbb3e-fad0-4071-9d3f-ba1befb4c00e",
+      "name": "Retired Master baseline 1",
+      "description": "Retire the previous baseline URL after the approved compatible production replacement.",
+      "enabled": true,
+      "route": {
+        "src": "^/.*$",
+        "headers": {
+          "Cache-Control": "no-store"
+        },
+        "status": 503,
+        "has": [
+          {
+            "type": "host",
+            "value": "aurevane-fdhf3oe1n-zeijms-projects.vercel.app"
+          }
+        ]
+      }
+    }
+  ],
+  "hold_routes": [
+    {
+      "id": "bb343d6a-005e-41f5-96ff-33e15c2c04b3",
+      "name": "Retire incompatible deployment hosts",
+      "description": "Only the canonical domains and exact compatible deployment aliases may serve this project. Update allowed-host regex with every future approved production cutover.",
+      "enabled": true,
+      "route": {
+        "src": "^/.*$",
+        "status": 503,
+        "headers": {
+          "Cache-Control": "no-store"
+        },
+        "missing": [
+          {
+            "type": "host",
+            "value": "^(aurevane-11uy9b7uk-zeijms-projects\\.vercel\\.app|aurevane\\.vercel\\.app|aurevane-zeijms-projects\\.vercel\\.app|aurevane-git-0895e0b76adbe7805cd7b9c4559-100b4f-zeijms-projects\\.vercel\\.app)$"
+          }
+        ]
+      }
+    },
+    {
+      "id": "d53aa166-cf3f-42db-a6fd-1a27b3fe8298",
+      "name": "Retire incompatible header pins",
+      "description": "Reject existing deployment pins unless they name the current compatible deployment.",
+      "enabled": true,
+      "route": {
+        "src": "^/.*$",
+        "status": 503,
+        "headers": {
+          "Cache-Control": "no-store"
+        },
+        "has": [
+          {
+            "type": "header",
+            "key": "x-deployment-id"
+          }
+        ],
+        "missing": [
+          {
+            "type": "header",
+            "key": "x-deployment-id",
+            "value": "^dpl_3VF7cNextXyhMffHL5F38hkTTCE6$"
+          }
+        ]
+      }
+    },
+    {
+      "id": "04259482-8b0f-4b01-85bf-b5bd35dbb910",
+      "name": "Retire incompatible query pins",
+      "description": "Reject existing deployment pins unless they name the current compatible deployment.",
+      "enabled": true,
+      "route": {
+        "src": "^/.*$",
+        "status": 503,
+        "headers": {
+          "Cache-Control": "no-store"
+        },
+        "has": [
+          {
+            "type": "query",
+            "key": "dpl"
+          }
+        ],
+        "missing": [
+          {
+            "type": "query",
+            "key": "dpl",
+            "value": "^dpl_3VF7cNextXyhMffHL5F38hkTTCE6$"
+          }
+        ]
+      }
+    },
+    {
+      "id": "66ba7749-1a6b-4ccd-9202-be7a7bb8ff76",
+      "name": "Retire incompatible cookie pins",
+      "description": "Reject existing deployment pins unless they name the current compatible deployment.",
+      "enabled": true,
+      "route": {
+        "src": "^/.*$",
+        "status": 503,
+        "headers": {
+          "Cache-Control": "no-store",
+          "Set-Cookie": "__vdpl=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Lax"
+        },
+        "has": [
+          {
+            "type": "cookie",
+            "key": "__vdpl"
+          }
+        ],
+        "missing": [
+          {
+            "type": "cookie",
+            "key": "__vdpl",
+            "value": "^dpl_3VF7cNextXyhMffHL5F38hkTTCE6$"
+          }
+        ]
+      }
+    },
+    {
+      "id": "a42a4693-7bef-4558-8148-5c92db82da84",
+      "name": "Master workspace cutover hold",
+      "description": "Hold Master pages and APIs during application-first upgrade, old execution drain and verified atomic migration.",
+      "enabled": true,
+      "route": {
+        "src": "^/(master|api/master)(/.*)?$",
+        "status": 503,
+        "headers": {
+          "Cache-Control": "no-store",
+          "Retry-After": "60"
+        }
+      }
+    },
+    {
+      "id": "1762a69d-d88b-464d-9986-a3885460cc13",
+      "name": "Retired Master baseline cookie",
+      "description": "Retire the old deployment cookie and clear its pin so a refresh can load the compatible production app.",
+      "enabled": true,
+      "route": {
+        "src": "^/.*$",
+        "headers": {
+          "Cache-Control": "no-store",
+          "Set-Cookie": "__vdpl=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Lax"
+        },
+        "status": 503,
+        "has": [
+          {
+            "type": "cookie",
+            "key": "__vdpl",
+            "value": "dpl_2noMyXV766mtZwJtoGbWY4QXZxaE"
+          }
+        ]
+      }
+    },
+    {
+      "id": "301121a1-fbd1-41cf-a045-228548908639",
+      "name": "Retired Master baseline query",
+      "description": "Prevent fresh framework requests pinned to the retired baseline after cutover; refresh uses current production.",
+      "enabled": true,
+      "route": {
+        "src": "^/.*$",
+        "headers": {
+          "Cache-Control": "no-store"
+        },
+        "status": 503,
+        "has": [
+          {
+            "type": "query",
+            "key": "dpl",
+            "value": "dpl_2noMyXV766mtZwJtoGbWY4QXZxaE"
+          }
+        ]
+      }
+    },
+    {
+      "id": "49bed491-bc3d-4736-a8dc-9894c31f2b9e",
+      "name": "Retired Master baseline header",
+      "description": "Prevent fresh framework requests pinned to the retired baseline after cutover; refresh uses current production.",
+      "enabled": true,
+      "route": {
+        "src": "^/.*$",
+        "headers": {
+          "Cache-Control": "no-store"
+        },
+        "status": 503,
+        "has": [
+          {
+            "type": "header",
+            "key": "x-deployment-id",
+            "value": "dpl_2noMyXV766mtZwJtoGbWY4QXZxaE"
+          }
+        ]
+      }
+    },
+    {
+      "id": "fd8c5790-8c24-44fa-ae75-06f845fcf546",
+      "name": "Retired Master baseline 2",
+      "description": "Retire the previous baseline URL after the approved compatible production replacement.",
+      "enabled": true,
+      "route": {
+        "src": "^/.*$",
+        "headers": {
+          "Cache-Control": "no-store"
+        },
+        "status": 503,
+        "has": [
+          {
+            "type": "host",
+            "value": "aurevane-git-a759c6ea651a8e14dff0ec4cdc3-614017-zeijms-projects.vercel.app"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aa0fbb3e-fad0-4071-9d3f-ba1befb4c00e",
+      "name": "Retired Master baseline 1",
+      "description": "Retire the previous baseline URL after the approved compatible production replacement.",
+      "enabled": true,
+      "route": {
+        "src": "^/.*$",
+        "headers": {
+          "Cache-Control": "no-store"
+        },
+        "status": 503,
+        "has": [
+          {
+            "type": "host",
+            "value": "aurevane-fdhf3oe1n-zeijms-projects.vercel.app"
+          }
+        ]
+      }
+    }
+  ],
+  "database_applied": true,
+  "database_verified_at": "2026-10-27T21:00:22.690Z",
+  "postflight": {
+    "canonical": [
+      {
+        "md5": "bbdca40b621bbd781c5341ebd205b4a1",
+        "name": "master_page_access_and_moderation",
+        "version": "20261027123107"
+      },
+      {
+        "md5": "e1f87535b3e8ad74a5fc34d33f87a674",
+        "name": "discipline_player_grants_relationship_override",
+        "version": "20261027123133"
+      },
+      {
+        "md5": "0fd799d42bf8e13d9108f6d815350d69",
+        "name": "master_usage_balance_reporting",
+        "version": "20261027123206"
+      },
+      {
+        "md5": "0593305eed978ad0a9554f7b7e621451",
+        "name": "player_correction_allocation_capacity",
+        "version": "20261027123211"
+      }
+    ],
+    "new_tables": [
+      {
+        "rls": true,
+        "name": "character_discipline_skill_grants",
+        "anon_select": false,
+        "auth_select": false
+      },
+      {
+        "rls": false,
+        "name": "character_xp_grants",
+        "anon_select": false,
+        "auth_select": false
+      },
+      {
+        "rls": true,
+        "name": "phase4_discipline_rebalance_skill_versions",
+        "anon_select": false,
+        "auth_select": false
+      },
+      {
+        "rls": true,
+        "name": "phase4_discipline_rebalance_publication",
+        "anon_select": false,
+        "auth_select": false
+      },
+      {
+        "rls": true,
+        "name": "master_panel_capability_grants",
+        "anon_select": false,
+        "auth_select": false
+      },
+      {
+        "rls": true,
+        "name": "master_moderation_audit",
+        "anon_select": false,
+        "auth_select": false
+      },
+      {
+        "rls": true,
+        "name": "discipline_player_grants",
+        "anon_select": false,
+        "auth_select": false
+      },
+      {
+        "rls": true,
+        "name": "discipline_player_grant_audit",
+        "anon_select": false,
+        "auth_select": false
+      },
+      {
+        "rls": true,
+        "name": "usage_balance_sessions",
+        "anon_select": false,
+        "auth_select": false
+      },
+      {
+        "rls": true,
+        "name": "usage_balance_actions",
+        "anon_select": false,
+        "auth_select": false
+      }
+    ],
+    "unsafe_conflicts": 0,
+    "function_contracts": [
+      {
+        "owner": "postgres",
+        "signature": "app_private.assert_master_page_v1(uuid,uuid,text)",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "app_private.capture_usage_balance_event_v1()",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "app_private.capture_usage_balance_start_v1()",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "app_private.current_discipline_relationship_override_v1(text,text)",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "app_private.current_essence_selection_key_v1(text,text)",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "app_private.current_resonance_selection_key_v1(text,text)",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "app_private.discipline_account_granted_v1(uuid,text)",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "app_private.discipline_grant_only_v1(text)",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "app_private.discipline_unlocked_before_player_grants_v1(uuid,text)",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "app_private.discipline_unlocked_v1(uuid,text)",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "app_private.essence_reference_before_override_v1(text,text)",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "app_private.essence_selection_key_before_override_v1(text,text)",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "app_private.guard_player_battle_admission_v1()",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "app_private.master_page_capabilities_v1(text[])",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "app_private.prevent_moderation_history_change_v1()",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "app_private.project_published_discipline_v1(uuid)",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "app_private.provision_character_active_build_v1()",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "app_private.resolve_essence_reference_v1(text,text)",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "app_private.resolve_resonance_reference_v1(text,text)",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "app_private.resonance_reference_before_override_v1(text,text)",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "app_private.resonance_selection_key_before_override_v1(text,text)",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "app_private.validate_authored_discipline_envelope_v1(jsonb)",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "app_private.validate_character_core_allocation_v1(integer,integer,integer,integer,integer,integer,integer,jsonb,text[],integer,boolean)",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "app_private.validate_discipline_envelope_before_override_v1(jsonb)",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "app_private.validate_noncombat_content_v1(text,jsonb)",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "change_character_disciplines_v2(uuid,uuid,bigint,boolean,text,boolean,text,uuid,text)",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "claim_active_game_session_v1(uuid,text)",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "commit_character_attribute_allocation_v1(uuid,uuid,text,integer,integer,integer,integer,integer,integer,uuid,text)",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "commit_character_attribute_allocation_v2(uuid,uuid,text,integer,integer,integer,integer,integer,integer,uuid,text)",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "discipline_catalog_before_player_grants_v3(uuid,uuid)",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "edit_master_player_v1(uuid,uuid,text,uuid,jsonb,boolean,uuid)",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "ensure_active_game_session_v1(uuid,text)",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "get_account_discipline_grants_v1(uuid)",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "get_character_discipline_catalog_v3(uuid,uuid)",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "publish_battlefield_elevation_policy_v2(uuid,integer,jsonb,uuid)",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "publish_battlefield_elevation_policy_v3(uuid,integer,jsonb,uuid)",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "publish_combat_effect_timing_policy_v1(uuid,integer,jsonb,text,uuid)",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "publish_combat_effect_timing_policy_v2(uuid,integer,jsonb,text,uuid)",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "read_discipline_player_grants_v1(uuid,uuid,text,uuid)",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "read_master_moderation_v1(uuid,uuid,uuid,bigint)",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "read_master_panel_access_v2(uuid,uuid)",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "read_master_panel_activity_v1(uuid,integer,bigint,uuid)",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "read_master_player_v1(uuid,uuid,uuid)",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "read_master_usage_balance_v1(uuid,uuid,text)",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "recover_master_player_battle_v1(uuid,uuid,uuid,bigint,uuid[],uuid,jsonb,boolean,uuid)",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "save_master_panel_role_defaults_v1(uuid,bigint,jsonb)",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "save_site_music_configuration_v1(uuid,uuid,bigint,jsonb)",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "search_discipline_grant_players_v1(uuid,uuid,text)",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "search_master_moderation_players_v1(uuid,text,uuid)",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "search_master_players_v1(uuid,text,uuid)",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "set_world_environment_v2(uuid,integer,jsonb,uuid)",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "write_discipline_player_grants_v1(uuid,uuid,text,uuid[],text,text)",
+        "acl_matches": true,
+        "body_matches": true
+      },
+      {
+        "owner": "postgres",
+        "signature": "write_master_moderation_v1(uuid,uuid,text,text,text,integer,boolean,uuid)",
+        "acl_matches": true,
+        "body_matches": true
+      }
+    ]
+  },
+  "opened_at": "2026-10-27T21:00:34.958Z",
+  "live_route_version": "ddc515c7-378c-43fd-b53e-e0f4b9edc7d8",
+  "http_open": {
+    "checked_at": "2026-10-27T21:01:12.125745+00:00",
+    "results": [
+      {
+        "name": "Entry",
+        "url": "https://aurevane.vercel.app/",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "headers": [
+          "HTTP/1.1 200 OK",
+          "HTTP/2 200 ",
+          "cache-control: private, no-cache, no-store, max-age=0, must-revalidate"
+        ],
+        "curl_error": null
+      },
+      {
+        "name": "Manual",
+        "url": "https://aurevane.vercel.app/manual",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "headers": [
+          "HTTP/1.1 200 OK",
+          "HTTP/2 200 ",
+          "cache-control: private, no-cache, no-store, max-age=0, must-revalidate"
+        ],
+        "curl_error": null
+      },
+      {
+        "name": "Master access page",
+        "url": "https://aurevane.vercel.app/master/combat-content",
+        "status": 307,
+        "expected": 307,
+        "passed": true,
+        "headers": [
+          "HTTP/1.1 200 OK",
+          "HTTP/2 307 ",
+          "cache-control: private, no-cache, no-store, max-age=0, must-revalidate",
+          "location: /"
+        ],
+        "curl_error": null
+      },
+      {
+        "name": "Master API access",
+        "url": "https://aurevane.vercel.app/api/master/access",
+        "status": 401,
+        "expected": 401,
+        "passed": true,
+        "headers": ["HTTP/1.1 200 OK", "HTTP/2 401 ", "cache-control: private, no-store"],
+        "curl_error": null
+      },
+      {
+        "name": "Old deployment",
+        "url": "https://aurevane-hoyoxns0a-zeijms-projects.vercel.app/",
+        "status": 503,
+        "expected": 503,
+        "passed": true,
+        "headers": ["HTTP/1.1 200 OK", "HTTP/2 503 ", "cache-control: no-store"],
+        "curl_error": null
+      }
+    ]
+  },
+  "http_retirement_after_open": {
+    "checked_at": "2026-10-27T21:02:01.426503+00:00",
+    "results": [
+      {
+        "name": "current host aurevane-11uy9b7uk-zeijms-projects.vercel.app",
+        "url": "https://aurevane-11uy9b7uk-zeijms-projects.vercel.app/",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "headers": [
+          "HTTP/1.1 200 OK",
+          "HTTP/2 200 ",
+          "cache-control: private, no-cache, no-store, max-age=0, must-revalidate"
+        ],
+        "curl_error": null
+      },
+      {
+        "name": "current host aurevane.vercel.app",
+        "url": "https://aurevane.vercel.app/",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "headers": [
+          "HTTP/1.1 200 OK",
+          "HTTP/2 200 ",
+          "cache-control: private, no-cache, no-store, max-age=0, must-revalidate"
+        ],
+        "curl_error": null
+      },
+      {
+        "name": "current host aurevane-zeijms-projects.vercel.app",
+        "url": "https://aurevane-zeijms-projects.vercel.app/",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "headers": [
+          "HTTP/1.1 200 OK",
+          "HTTP/2 200 ",
+          "cache-control: private, no-cache, no-store, max-age=0, must-revalidate"
+        ],
+        "curl_error": null
+      },
+      {
+        "name": "current host aurevane-git-0895e0b76adbe7805cd7b9c4559-100b4f-zeijms-projects.vercel.app",
+        "url": "https://aurevane-git-0895e0b76adbe7805cd7b9c4559-100b4f-zeijms-projects.vercel.app/",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "headers": [
+          "HTTP/1.1 200 OK",
+          "HTTP/2 200 ",
+          "cache-control: private, no-cache, no-store, max-age=0, must-revalidate"
+        ],
+        "curl_error": null
+      },
+      {
+        "name": "header dpl_3VF7cNextXyhMffHL5F38hkTTCE6",
+        "url": "https://aurevane.vercel.app/",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "headers": [
+          "HTTP/1.1 200 OK",
+          "HTTP/2 200 ",
+          "cache-control: private, no-cache, no-store, max-age=0, must-revalidate"
+        ],
+        "curl_error": null
+      },
+      {
+        "name": "query dpl_3VF7cNextXyhMffHL5F38hkTTCE6",
+        "url": "https://aurevane.vercel.app/?dpl=dpl_3VF7cNextXyhMffHL5F38hkTTCE6",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "headers": [
+          "HTTP/1.1 200 OK",
+          "HTTP/2 200 ",
+          "cache-control: private, no-cache, no-store, max-age=0, must-revalidate"
+        ],
+        "curl_error": null
+      },
+      {
+        "name": "cookie dpl_3VF7cNextXyhMffHL5F38hkTTCE6",
+        "url": "https://aurevane.vercel.app/",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "headers": [
+          "HTTP/1.1 200 OK",
+          "HTTP/2 200 ",
+          "cache-control: private, no-cache, no-store, max-age=0, must-revalidate"
+        ],
+        "curl_error": null
+      },
+      {
+        "name": "header dpl_5MNszWLhSQXrJC9ub7zLzWWXNGhM",
+        "url": "https://aurevane.vercel.app/",
+        "status": 503,
+        "expected": 503,
+        "passed": true,
+        "headers": ["HTTP/1.1 200 OK", "HTTP/2 503 ", "cache-control: no-store"],
+        "curl_error": null
+      },
+      {
+        "name": "query dpl_5MNszWLhSQXrJC9ub7zLzWWXNGhM",
+        "url": "https://aurevane.vercel.app/?dpl=dpl_5MNszWLhSQXrJC9ub7zLzWWXNGhM",
+        "status": 503,
+        "expected": 503,
+        "passed": true,
+        "headers": ["HTTP/1.1 200 OK", "HTTP/2 503 ", "cache-control: no-store"],
+        "curl_error": null
+      },
+      {
+        "name": "cookie dpl_5MNszWLhSQXrJC9ub7zLzWWXNGhM",
+        "url": "https://aurevane.vercel.app/",
+        "status": 503,
+        "expected": 503,
+        "passed": true,
+        "headers": [
+          "HTTP/1.1 200 OK",
+          "HTTP/2 503 ",
+          "cache-control: no-store",
+          "set-cookie: __vdpl=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Lax"
+        ],
+        "curl_error": null
+      },
+      {
+        "name": "header dpl_invalid_retired_pin",
+        "url": "https://aurevane.vercel.app/",
+        "status": 503,
+        "expected": 503,
+        "passed": true,
+        "headers": ["HTTP/1.1 200 OK", "HTTP/2 503 ", "cache-control: no-store"],
+        "curl_error": null
+      },
+      {
+        "name": "query dpl_invalid_retired_pin",
+        "url": "https://aurevane.vercel.app/?dpl=dpl_invalid_retired_pin",
+        "status": 503,
+        "expected": 503,
+        "passed": true,
+        "headers": ["HTTP/1.1 200 OK", "HTTP/2 503 ", "cache-control: no-store"],
+        "curl_error": null
+      },
+      {
+        "name": "cookie dpl_invalid_retired_pin",
+        "url": "https://aurevane.vercel.app/",
+        "status": 503,
+        "expected": 503,
+        "passed": true,
+        "headers": [
+          "HTTP/1.1 200 OK",
+          "HTTP/2 503 ",
+          "cache-control: no-store",
+          "set-cookie: __vdpl=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Lax"
+        ],
+        "curl_error": null
+      },
+      {
+        "name": "retired host aurevane-hoyoxns0a-zeijms-projects.vercel.app",
+        "url": "https://aurevane-hoyoxns0a-zeijms-projects.vercel.app/",
+        "status": 503,
+        "expected": 503,
+        "passed": true,
+        "headers": ["HTTP/1.1 200 OK", "HTTP/2 503 ", "cache-control: no-store"],
+        "curl_error": null
+      },
+      {
+        "name": "retired host aurevane-git-d20bb6c079cc6d8210426d0bbcb-f18ff7-zeijms-projects.vercel.app",
+        "url": "https://aurevane-git-d20bb6c079cc6d8210426d0bbcb-f18ff7-zeijms-projects.vercel.app/",
+        "status": 503,
+        "expected": 503,
+        "passed": true,
+        "headers": ["HTTP/1.1 200 OK", "HTTP/2 503 ", "cache-control: no-store"],
+        "curl_error": null
+      },
+      {
+        "name": "retired host aurevane-fdhf3oe1n-zeijms-projects.vercel.app",
+        "url": "https://aurevane-fdhf3oe1n-zeijms-projects.vercel.app/",
+        "status": 503,
+        "expected": 503,
+        "passed": true,
+        "headers": ["HTTP/1.1 200 OK", "HTTP/2 503 ", "cache-control: no-store"],
+        "curl_error": null
+      }
+    ]
+  },
+  "api_cache_denials": {
+    "checked_at": "2026-10-27T20:59:59.349514+00:00",
+    "anonymous_only": true,
+    "results": [
+      {
+        "rpc": "get_current_discipline_catalog_v1",
+        "status": 401,
+        "code": "42501",
+        "message": "permission denied for function get_current_discipline_catalog_v1",
+        "passed": true
+      },
+      {
+        "rpc": "read_master_usage_balance_v1",
+        "status": 401,
+        "code": "42501",
+        "message": "permission denied for function read_master_usage_balance_v1",
+        "passed": true
+      },
+      {
+        "rpc": "read_master_moderation_v1",
+        "status": 401,
+        "code": "42501",
+        "message": "permission denied for function read_master_moderation_v1",
+        "passed": true
+      },
+      {
+        "rpc": "read_discipline_player_grants_v1",
+        "status": 401,
+        "code": "42501",
+        "message": "permission denied for function read_discipline_player_grants_v1",
+        "passed": true
+      }
+    ]
+  },
+  "moderation_api_denial": {
+    "method": "POST",
+    "operation": "search",
+    "unauthenticated": true,
+    "status": 401,
+    "passed": true
+  }
+}

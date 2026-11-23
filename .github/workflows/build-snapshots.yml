@@ -34,7 +34,6 @@ on:
   push:
     branches:
       - main
-      - 'agent/p3-7-*'
     paths:
       - 'packages/game-core/src/combat/build-snapshot.ts'
       - 'packages/game-core/src/combat/build-snapshot.test.ts'
@@ -67,6 +66,10 @@ on:
 
 permissions:
   contents: read
+
+concurrency:
+  group: build-snapshots-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   quality:

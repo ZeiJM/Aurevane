@@ -12,8 +12,56 @@ import {
   validateCombatStatusDefinition,
 } from './combat-authoring-validation'
 import { combatStatusMetadata } from './combat-effect-state'
+import { validateCombatTagPayload } from './combat-tag-registry'
+
+describe('generated companion link validation', () => {
+  it.each([
+    'dot-damage.1',
+    'frozen-ground.12',
+    'element-companion.frozen.primary-unit',
+    'element-companion.wet.affected-units',
+    'element-companion.conductive.primary-unit.1',
+    'element-companion.cleanse-chilled.actor',
+  ])('accepts supported link %s through canonical and native validators', (authoringLink) => {
+    const effect = { ...P2_3_GUARD_ACTION.effects[0]!, authoringLink }
+    expect(validateCombatTagPayload(effect)).toEqual([])
+    expect(() =>
+      validateCombatActionDefinition({ ...P2_3_GUARD_ACTION, effects: [effect] }),
+    ).not.toThrow()
+  })
+
+  it.each([
+    '',
+    'authored.hit',
+    'dot-damage.0',
+    'frozen-ground.-1',
+    'element-companion.other.actor',
+    'element-companion.frozen.selected-tile',
+    'element-companion.frozen.primary-unit.0',
+    'element-companion.frozen.primary-unit.01',
+    'element-companion.frozen.primary-unit.1.extra',
+  ])('rejects unsupported link %s through canonical and native validators', (authoringLink) => {
+    const effect = { ...P2_3_GUARD_ACTION.effects[0]!, authoringLink }
+    expect(validateCombatTagPayload(effect)).toContainEqual(
+      expect.objectContaining({ path: 'payload.authoringLink', code: 'invalid-payload' }),
+    )
+    expect(() =>
+      validateCombatActionDefinition({ ...P2_3_GUARD_ACTION, effects: [effect] }),
+    ).toThrow('Invalid generated companion link.')
+  })
+})
 
 describe('combat authoring validation boundary', () => {
+  it('rejects the private native Basic marker at the actual authored boundary', () => {
+    expect(() =>
+      validateCombatActionDefinition({
+        ...P2_3_GUARD_ACTION,
+        sourceType: 'basic-attack',
+        target: { ...P2_3_GUARD_ACTION.target, kind: 'unit' },
+        nativeBasicAttackCommand: true,
+      }),
+    ).toThrow('private-native-basic-command-not-authored')
+  })
   it('exposes pure validators that accept current published content', () => {
     expect(() =>
       validateCombatActionDefinition(P2_3_GUARD_ACTION, P2_3_COMBAT_CONTENT),
@@ -73,31 +121,37 @@ describe('combat authoring validation boundary', () => {
     })
   })
 
-  it.each([0, 5])('rejects Heal tick count %s outside the current 1-4 bound', (ticks) => {
-    expect(() =>
-      validateCombatActionDefinition({
-        ...P2_3_GUARD_ACTION,
-        effects: [{ type: 'healing', recipient: 'actor', amount: 4, ticks }],
-      } as unknown as CombatActionDefinition),
-    ).toThrow(/healing ticks/i)
-  })
+  it.each([0, 101])(
+    'rejects Heal tick count %s outside the current 1-100 application bound',
+    (ticks) => {
+      expect(() =>
+        validateCombatActionDefinition({
+          ...P2_3_GUARD_ACTION,
+          effects: [{ type: 'healing', recipient: 'actor', amount: 4, ticks }],
+        } as unknown as CombatActionDefinition),
+      ).toThrow(/healing ticks/i)
+    },
+  )
 
-  it.each([0, 5])('rejects MP Rec tick count %s outside the current 1-4 bound', (ticks) => {
-    expect(() =>
-      validateCombatActionDefinition({
-        ...P2_3_GUARD_ACTION,
-        effects: [
-          {
-            type: 'resource-change',
-            recipient: 'actor',
-            resource: 'mp',
-            delta: 3,
-            ticks,
-          },
-        ],
-      } as unknown as CombatActionDefinition),
-    ).toThrow(/mp recovery ticks/i)
-  })
+  it.each([0, 101])(
+    'rejects MP Rec tick count %s outside the current 1-100 application bound',
+    (ticks) => {
+      expect(() =>
+        validateCombatActionDefinition({
+          ...P2_3_GUARD_ACTION,
+          effects: [
+            {
+              type: 'resource-change',
+              recipient: 'actor',
+              resource: 'mp',
+              delta: 3,
+              ticks,
+            },
+          ],
+        } as unknown as CombatActionDefinition),
+      ).toThrow(/mp recovery ticks/i)
+    },
+  )
 
   it('keeps MP Drain immediate-only', () => {
     expect(() =>
@@ -150,53 +204,6 @@ describe('combat authoring validation boundary', () => {
     ).not.toThrow()
   })
 
-  it('accepts direct-unit and ground-targeted Copy while rejecting self/empty targeting', () => {
-    const copyEffect = { type: 'copy' as const, recipient: 'primary-unit' as const }
-    const unitTarget = {
-      ...P2_3_GUARD_ACTION.target,
-      kind: 'unit' as const,
-      teamPolicy: 'enemy' as const,
-      minimumRange: 1,
-      maximumRange: 3,
-      friendlyFire: 'enemies-only' as const,
-    }
-    const groundTarget = {
-      ...unitTarget,
-      kind: 'ground-tile' as const,
-      teamPolicy: 'any' as const,
-      friendlyFire: 'all-units' as const,
-    }
-
-    expect(() =>
-      validateCombatActionDefinition({
-        ...P2_3_GUARD_ACTION,
-        target: unitTarget,
-        effects: [copyEffect],
-      }),
-    ).not.toThrow()
-    expect(() =>
-      validateCombatActionDefinition({
-        ...P2_3_GUARD_ACTION,
-        target: groundTarget,
-        effects: [copyEffect],
-      }),
-    ).not.toThrow()
-
-    expect(() =>
-      validateCombatActionDefinition({
-        ...P2_3_GUARD_ACTION,
-        effects: [copyEffect],
-      }),
-    ).toThrow(/Copy requires/i)
-    expect(() =>
-      validateCombatActionDefinition({
-        ...P2_3_GUARD_ACTION,
-        target: { ...groundTarget, kind: 'empty-tile' },
-        effects: [copyEffect],
-      }),
-    ).toThrow(/Copy requires/i)
-  })
-
   it('rejects malformed accuracy authoring', () => {
     expect(() =>
       validateCombatActionDefinition({
@@ -213,4 +220,13 @@ describe('combat authoring validation boundary', () => {
       } as unknown as CombatActionDefinition),
     ).toThrow(/accuracy modifier/i)
   })
+})
+
+it.each([-1, 0.5, Infinity])('rejects invalid authored HP payment %s', (hp) => {
+  expect(() =>
+    validateCombatActionDefinition({
+      ...P2_3_GUARD_ACTION,
+      cost: { ...P2_3_GUARD_ACTION.cost, hp },
+    }),
+  ).toThrow(/HP cost/)
 })

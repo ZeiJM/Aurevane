@@ -1,3 +1,17 @@
+import { groundEffectVisual } from '@aurevane/game-core/combat/combat-ground-visuals'
+import {
+  COMBAT_TERRAIN_OVERLAY_DETAILS,
+  frozenGroundDescription,
+  type CombatTerrainProjection,
+} from '@aurevane/game-core/combat/terrain-overlays'
+import {
+  combatTerrainProjectionDescription,
+  combatTerrainSummaries,
+} from '../../lib/battle/combat-interaction-presentation'
+import { skillCostDescription } from '../character/skill-detail-presentation'
+import { defaultCombatEffectTimingPolicy } from '@aurevane/game-core/combat/combat-effect-timing'
+import type { SkillEffectTimingPolicy } from '../character/skill-effect-timing-context'
+import { skillInformationRows } from '../character/skill-information-contract'
 import {
   combatInteractionDescription,
   gameplayStatusName,
@@ -5,28 +19,160 @@ import {
 } from '../../lib/battle/combat-interaction-presentation'
 import type { BattlePreviewView } from '@/server/battle/battle-preview-service'
 import type { BattleSkillForecastPresentation } from './battle-runtime'
+import {
+  attackSkillTypeDescription,
+  skillParameterRows,
+} from '../character/skill-detail-presentation'
+import type { ImageAssetId } from '@/media/registry'
+import { battleTerrainName, BATTLE_TERRAIN_KEY_DETAILS } from './battle-terrain-key-presentation'
 type IntentPreview = BattlePreviewView['preview']
 type ActionPreview = Extract<IntentPreview, { kind: 'action' }>
 type ProjectedEffect = ActionPreview['projectedEffects'][number]
+export function battleGroundTargetPresentation(
+  tile: { terrainId: string; elevation: number },
+  overlay?: 'frozen' | 'steam' | null,
+): { assetId: ImageAssetId; label: string; glyph: string } {
+  const terrain = battleTerrainName(tile.terrainId)
+  const assetId =
+    terrain === 'Difficult terrain'
+      ? 'terrain.battle.rough-moss.v01'
+      : tile.elevation > 0
+        ? 'terrain.battle.raised-ledge.v02'
+        : 'terrain.battle.open-stone.v01'
+  return {
+    assetId,
+    label: [
+      battleTerrainName(tile.terrainId, tile.elevation),
+      overlay ? BATTLE_TERRAIN_KEY_DETAILS[overlay].name : null,
+    ]
+      .filter(Boolean)
+      .join(' · '),
+    glyph: overlay
+      ? BATTLE_TERRAIN_KEY_DETAILS[overlay].glyph
+      : tile.terrainId === 'blocked'
+        ? '×'
+        : tile.elevation > 0
+          ? '▲'
+          : '',
+  }
+}
 export interface PreviewChip {
   label: string
+  description?: string
+  terrain?: boolean
   tone: 'chance' | 'damage' | 'heal' | 'effect' | 'cost' | 'blocked'
 }
 
-export function skillPreviewChips(skill: BattleSkillForecastPresentation): PreviewChip[] {
-  const range =
-    skill.minimumRange === skill.maximumRange
-      ? `${skill.maximumRange} ${skill.maximumRange === 1 ? 'tile' : 'tiles'}`
-      : `${skill.minimumRange}–${skill.maximumRange} tiles`
-  return [
-    { label: `${skill.apCost} AP`, tone: 'cost' },
-    ...(skill.mpCost > 0 ? [{ label: `${skill.mpCost} MP`, tone: 'cost' as const }] : []),
-    {
-      label: skill.targetKind === 'self' ? 'Self' : `${skill.tags[0] ?? 'Target'} · ${range}`,
-      tone: 'effect',
-    },
-    ...skill.tags.slice(2, 4).map((label) => ({ label, tone: 'effect' as const })),
+/** One forecast result per terrain transition, lifetime and activation, independent of Skill aim. */
+export function battlePreviewTerrainChips(
+  preview: Pick<ActionPreview, 'projectedTerrain' | 'projectedEvents' | 'projectedGroundAreas'>,
+): PreviewChip[] {
+  const groups = new Map<string, { projection: CombatTerrainProjection; tiles: Set<string> }>()
+  const projections = [
+    ...(preview.projectedTerrain ?? []),
+    ...(preview.projectedEvents ?? []).filter((event) => event.event === 'terrain_overlay_changed'),
   ]
+  for (const projection of projections) {
+    if (!combatTerrainProjectionDescription(projection)) continue
+    const key = JSON.stringify([
+      projection.before,
+      projection.after,
+      projection.remainingRoundBoundaries,
+      projection.activationRound ?? null,
+      projection.frozenGroundPolicyVersion ?? null,
+      projection.skillApSurcharge ?? null,
+    ])
+    const group = groups.get(key) ?? { projection, tiles: new Set<string>() }
+    group.tiles.add(`${projection.position.x},${projection.position.y}`)
+    groups.set(key, group)
+  }
+  const legacy = [...groups.values()].map(({ projection, tiles }): PreviewChip => {
+    const name = COMBAT_TERRAIN_OVERLAY_DETAILS[projection.after as 'frozen' | 'steam'].name
+    const before = projection.before ? COMBAT_TERRAIN_OVERLAY_DETAILS[projection.before].name : null
+    return {
+      label: [
+        `${before ? `${before} → ` : ''}${name}`,
+        countLabel(tiles.size, 'tile'),
+        projection.activationRound === undefined
+          ? null
+          : `Starts round ${projection.activationRound}`,
+        countLabel(projection.remainingRoundBoundaries, 'round'),
+      ]
+        .filter(Boolean)
+        .join(' · '),
+      description: [
+        combatTerrainSummaries([projection])[0],
+        projection.after === 'frozen'
+          ? frozenGroundDescription(
+              projection.frozenGroundPolicyVersion ?? null,
+              projection.skillApSurcharge,
+            )
+          : COMBAT_TERRAIN_OVERLAY_DETAILS.steam.description,
+      ].join(' · '),
+      tone: 'effect',
+      terrain: true,
+    }
+  })
+  return [
+    ...legacy,
+    ...(preview.projectedGroundAreas ?? []).flatMap((area) =>
+      (area.effectVisualIds ?? []).flatMap((id): PreviewChip[] => {
+        const visual = groundEffectVisual(id)
+        if (!visual) return []
+        return [
+          {
+            label: `${visual.label} · ${countLabel(area.tiles.length, 'tile')} · Starts round ${area.activationRound} · ${countLabel(area.expiresAtRound - area.activationRound, 'round')}`,
+            tone: 'effect',
+            terrain: true,
+          },
+        ]
+      }),
+    ),
+  ]
+}
+
+export function battleSkillParameterRows(
+  skill: BattleSkillForecastPresentation,
+  timingPolicy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
+  options: {
+    legacyFrozenGround?: boolean
+    airborneAttackElevation?: boolean
+    legacyElemental?: boolean
+    explicitElemental?: boolean
+  } = {},
+): readonly (readonly [string, string])[] {
+  if (skill.definition) {
+    return skillParameterRows(skill.definition, skill, timingPolicy, options)
+  }
+  // Legacy presentations may not retain an immutable definition. Never infer missing
+  // mechanics from a current catalogue or silently describe unknown fields as inapplicable.
+  return skillInformationRows({
+    'Skill Type': skill.tags.includes('attack')
+      ? attackSkillTypeDescription(skill.tags)
+      : 'Unavailable',
+    Cost: skillCostDescription(skill),
+    Cooldown:
+      skill.cooldownOwnerTurns === undefined
+        ? 'Unavailable'
+        : skill.cooldownOwnerTurns === null
+          ? 'None'
+          : `${skill.cooldownOwnerTurns} ${skill.cooldownOwnerTurns === 1 ? 'turn' : 'turns'}`,
+    Requirements: skill.requirementDescriptions.join(', ') || 'None',
+    Effects:
+      skill.effectDescriptions
+        .map((description) => `${description} [Target unavailable]`)
+        .join(', ') || 'Unavailable',
+    'Target Method': `Unavailable [${skill.maximumRange}] · Aim: ${skill.targetKind === 'self' ? 'Self' : skill.targetKind === 'ground-tile' ? 'Ground' : skill.targetKind === 'empty-tile' ? 'Empty Tile' : skill.targetTeamPolicy === 'any' ? 'Anyone' : skill.targetTeamPolicy.replace(/^./, (letter) => letter.toUpperCase())}`,
+    'Target Elevation': skill.targetKind === 'self' ? 'N/A' : 'Unavailable',
+    'Line of Sight': skill.targetKind === 'self' ? 'N/A' : 'Unavailable',
+  })
+}
+
+export function skillPreviewChips(skill: BattleSkillForecastPresentation): PreviewChip[] {
+  return battleSkillParameterRows(skill).map(([label, value]) => ({
+    label: `${label}: ${value}`,
+    tone: label === 'Cost' ? 'cost' : 'effect',
+  }))
 }
 
 function humanizeStatus(value: string): string {
@@ -150,6 +296,27 @@ function copyStatusPreviewChip(effect: ProjectedEffect): PreviewChip | null {
   return null
 }
 
+export function scheduledEffectPreviewLabel(
+  effect: ActionPreview['projectedEffects'][number],
+): string | null {
+  if (effect.after !== 'pending' || effect.activationRound === undefined) return null
+  const turns = effect.remainingOwnerTurnEnds
+  const rounds = effect.remainingRoundBoundaries
+  const lifetime =
+    turns !== undefined
+      ? `${turns} ${turns === 1 ? 'turn' : 'turns'}`
+      : rounds !== undefined
+        ? `${rounds} round ${rounds === 1 ? 'boundary' : 'boundaries'}`
+        : effect.durationScope === 'until-removed'
+          ? 'Until removed'
+          : effect.durationScope === 'until-spent'
+            ? 'Until spent'
+            : effect.durationScope === 'battle'
+              ? 'Battle-long'
+              : null
+  return `${effect.statusId === 'suppress' ? `Suppress [${(effect.potencyBasisPoints ?? 2500) / 100}%]` : gameplayStatusName(effect.statusId ?? effect.effectType)} · Starts round ${effect.activationRound}${lifetime ? ` · ${lifetime}` : ''}`
+}
+
 function actionPreviewChips(preview: ActionPreview): PreviewChip[] {
   if (!preview.legal) {
     return [{ label: 'Blocked', tone: 'blocked' }]
@@ -160,6 +327,7 @@ function actionPreviewChips(preview: ActionPreview): PreviewChip[] {
     { label: `${preview.actionEconomyAfter} AP left`, tone: 'effect' },
   ]
   if (preview.mpCost > 0) chips.push({ label: `${preview.mpCost} MP`, tone: 'cost' })
+  if ((preview.hpCost ?? 0) > 0) chips.push({ label: `${preview.hpCost} HP`, tone: 'cost' })
   chips.push({
     label:
       preview.hitChanceBasisPoints === null
@@ -168,7 +336,24 @@ function actionPreviewChips(preview: ActionPreview): PreviewChip[] {
     tone: 'chance',
   })
 
+  for (const resistance of preview.targetStatusResistances ?? []) {
+    if (
+      resistance.resistanceChanceBasisPoints > 0 &&
+      resistance.eligibleEffectOrdinals.length > 0 &&
+      preview.affectedCombatantIds.includes(resistance.targetCombatantId)
+    ) {
+      const label = `Debuff resistance ${Math.round(resistance.resistanceChanceBasisPoints / 100)}% on hit`
+      if (!chips.some((chip) => chip.label === label)) chips.push({ label, tone: 'effect' })
+    }
+  }
+
   for (const effect of preview.projectedEffects) {
+    const scheduled = scheduledEffectPreviewLabel(effect)
+    if (scheduled) {
+      if (!chips.some((chip) => chip.label === scheduled))
+        chips.push({ label: scheduled, tone: 'effect' })
+      continue
+    }
     const copyChip = copyStatusPreviewChip(effect)
     if (copyChip) chips.push(copyChip)
   }
@@ -210,12 +395,18 @@ function actionPreviewChips(preview: ActionPreview): PreviewChip[] {
   for (const effect of preview.projectedEffects.filter(
     (effect) => effect.effectType === 'return-to-turn-start',
   )) {
-    chips.push({ label: `Return to ${effect.after}`, tone: 'effect' })
+    chips.push({ label: `Rewind to ${effect.after}`, tone: 'effect' })
   }
 
   for (const status of preview.projectedStatuses) {
     if (!statusWasProjected(status.statusId, preview.projectedEvents)) continue
-    chips.push({ label: gameplayStatusName(status.statusId), tone: 'effect' })
+    chips.push({
+      label:
+        status.statusId === 'suppress'
+          ? `Suppress [${(status.potencyBasisPoints ?? 2500) / 100}%]`
+          : gameplayStatusName(status.statusId),
+      tone: 'effect',
+    })
     if (
       status.damageTakenMultiplierBasisPoints !== null &&
       status.damageTakenMultiplierBasisPoints < 10_000
@@ -223,9 +414,7 @@ function actionPreviewChips(preview: ActionPreview): PreviewChip[] {
       const reduction = Math.round((10_000 - status.damageTakenMultiplierBasisPoints) / 100)
       chips.push({ label: `-${reduction}% damage`, tone: 'effect' })
     }
-    if (['hastened', 'delayed', 'borrowed-hour'].includes(status.statusId)) {
-      chips.push({ label: 'Next round only', tone: 'effect' })
-    } else if (status.durationOwnerTurnStarts !== null) {
+    if (status.durationOwnerTurnStarts !== null) {
       chips.push({
         label: `${status.durationOwnerTurnStarts} turn${status.durationOwnerTurnStarts === 1 ? '' : 's'}`,
         tone: 'effect',
@@ -237,15 +426,25 @@ function actionPreviewChips(preview: ActionPreview): PreviewChip[] {
     const statuses = new Set(
       preview.projectedEffects
         .filter(
-          (effect) => effect.effectType === 'apply-status' && typeof effect.after === 'string',
+          (effect) =>
+            effect.effectType === 'apply-status' &&
+            typeof effect.after === 'string' &&
+            !scheduledEffectPreviewLabel(effect),
         )
-        .map((effect) => gameplayStatusName(String(effect.after))),
+        .map((effect) =>
+          effect.statusId === 'suppress'
+            ? `Suppress [${(effect.potencyBasisPoints ?? 2500) / 100}%]`
+            : gameplayStatusName(String(effect.after)),
+        ),
     )
     for (const status of statuses) {
       chips.push({ label: status, tone: 'effect' })
     }
   }
 
+  if (preview.projectedTerrain?.length) {
+    chips.push({ label: 'Terrain & effect details available', tone: 'effect' })
+  }
   for (const event of preview.projectedEvents ?? []) {
     const label = combatInteractionDescription(event)
     if (label && !chips.some((chip) => chip.label === 'Terrain & effect details available'))

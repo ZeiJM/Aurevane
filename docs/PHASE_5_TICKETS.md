@@ -1,5 +1,7 @@
 # Phase 5 — Living World, Story & Supernatural Identity
 
+> **17 November 2026 reconciliation:** Phase 5 remains **ACTIVE / not formally accepted**. World/NPC/Story/Events/ferry/Void platforms have merged; #1040 and #1043 are released for Owner testing. The original unchecked tickets below preserve acceptance scope and must not be marked complete merely because a platform shipped. See the [current roadmap](ROADMAP_STATUS_2026-11-15.md) and [verified map release](verification/2026-11-16-world-map-request-completion.md). Signed-in/physical-phone acceptance, ferry follow-through and PV-3 remain open.
+
 **Status:** AUTHORIZED / IN PROGRESS — Owner authorized Phase 5 in parallel with Phase 4 on 2026-09-22. Initial Strategic Atlas implementation is complete; release evidence and live-testing handover are in `PHASE_5_HANDOVER.md`. Full Phase 5 and Owner Atlas acceptance remain open.
 
 Phase 5 remains the player-facing world phase defined by the Owner. Staff authority, persistent-event infrastructure, Event Builder and live-event operations were reclassified into Phase 4 on 2026-09-19 and do not count as Phase 5 progress.
@@ -15,7 +17,7 @@ Historical branches, migrations and PR titles that contain `phase5` are retained
 - [ ] NPCs and dialogue.
 - [ ] Quests.
 - [ ] Layered authoritative world state.
-- [ ] Player-facing world events / World Pulse built on the completed Phase 4 event-operations platform.
+- [x] Player-facing world events / World Pulse built on the completed Phase 4 event-operations platform.
 - [ ] Archive, Fragment Sets and lore.
 - [ ] Vendors and location-based battle scenes.
 - [ ] Relevant active-event/world-state delivery remains spoiler-safe and server-authoritative.
@@ -24,25 +26,35 @@ Historical branches, migrations and PR titles that contain `phase5` are retained
 Current bounded progress:
 
 - PR #672 merged the first persistent settlement interaction loop using the existing Verdant protected settlement, a generic watch-officer role and the Eastern Watch objective. It proves authoritative accept → inspect → return/complete persistence and idempotency without inventing a named NPC or reward. This is a vertical slice only; the broader settlements, NPCs/dialogue and quests checklist items remain open.
-- The next bounded slice surfaces already-eligible live event objectives as a player-facing **World Pulse** while reusing the completed Phase 4 event-operations authority. It does not create a parallel event schema or broaden event eligibility.
+- PR #673 merged the first player-facing **World Pulse**, surfacing server-eligible live event objectives through the existing Phase 4 event-operations authority without creating a parallel event schema.
+- PR #679 merged the stronger environmental-motion/globe-presentation pass, including a stable zoomed globe silhouette, responsive label-safe projection and a deliberate dark uncharted veil.
+- PR #682 merged charted-sector globe selection. Existing unlabeled road sectors are now first-class globe destinations, hidden cells remain spoiler-safe, and `LIVING_ATLAS_EXPANSION.md` records the authored continuous-known-world expansion contract.
+- PR #681 remains a draft merge-hold for distinct major-region settlement geometry until matching v02 regional paintings are produced and reviewed.
+- PR #684 remains the active **Field Observation → Archive** slice; it is intentionally not counted as merged progress until exact-head verification/merge completes.
 
 ## 5B — Supernatural Fork
 
-Canonical normal-character progression:
+Current canonical normal-character progression follows `SUPERNATURAL_PATHS.md`:
 
 ```text
 UNAWAKENED
-→ SOULMARKED
+→ ASCENDED
 OR
-→ SOUL-SEVERED
+→ SEVERED
 ```
 
+**Severence** is the intentional AUREVANE spelling. The former Soulmark / Soulmarked / Mantle / Soul-Severed terminology is retired for new implementation. Mantle is not a separate current power family.
+
 - [ ] Data-driven, versioned supernatural story state.
-- [ ] Small high-quality Soulmark proof.
-- [ ] Permanent normal-character Soulmarked / Soul-Severed exclusivity.
-- [ ] At least one valid Soul-Severed Mantle route.
+- [ ] Small high-quality Ascension proof.
+- [ ] Permanent normal-character Ascended / Severed exclusivity.
+- [ ] At least one representative authored Severence power proof.
 - [ ] Spoiler-safe delivery and authoritative eligibility.
 - [ ] No unapproved supernatural mechanics outside the canonical design documents.
+
+Current bounded progress:
+
+- Branch `agent/phase5-supernatural-story-state-20260923` implements the first 5B authority foundation: typed versioned story state, Unawakened/Ascended/Severed invariants, private per-character persistence, expected-version writes, durable idempotency and server-only authored transitions. It deliberately contains no Ascension catalog, Severence power package, quest/reward or player-facing choice UI yet.
 
 ## 5C — Frontier Threshold
 
@@ -54,6 +66,21 @@ OR
 - [ ] Field Observation → Archive integration.
 - [ ] Early evidence of far inhabitants.
 - [ ] Early Horizon/world gates where required by progression/story.
+
+## Owner reference-review work — 2026-09-25
+
+Detailed scope, acceptance and two-chat ownership: `ROADMAP_WORLD_EXPERIENCE.md`. These are refinements to 5A/5B, not a new phase or claims of completed work.
+
+- [x] **P5-W1 — Faster ordinary travel:** inspect effective durations/overrides and the complete authoritative execution path; tune pace with before/after evidence while preserving route validation, ETA, stop/reconnect and encounter contention.
+  - **Implementation candidate — 2026-09-25:** traced the full browser → API → server route/tick → private world-state RPC/locks → encounter authority path. Ordinary region/local cells and authored cross-sector links already use the 1,100 ms baseline; the eight legacy road sectors alone overrode internal cells to 4,000 ms. Candidate removes those eight overrides so ordinary road cells inherit 1,100 ms. The routefinder, ETA, due-time checks, one-step reconnect behavior, idempotency/version checks, encounter locking and training/battle/spectator guards are unchanged.
+  - **Measured authoritative ETA:** Verdant local start → settlement remains 3 steps / 3.3 s. Verdant settlement → Aureth settlement remains the same 26-step authored path and changes from 63.4 s to 28.6 s. Crown Road regional edge → regional edge remains the same 14-step square-by-square path and changes from 50.2 s to 15.4 s. Saved 4,000 ms road routes fail current-route validation and stop before movement rather than silently changing timing.
+  - **Verified and merged:** PR #740 passed exact-tree CI, Living Atlas browser and Browser Smoke and merged to `main` as `795e7223416a408736a304c860f6291d7d568284`. The final six-file tree preserved the measured timings above, stale-route fail-closed behavior, encounter/stop/reconnect protections, and the deployment lock. Presentation/interpolation remains owned by the separate Work Mode presentation chat; combat movement and Passive Training timers are unchanged.
+- [ ] **P5-W2 — Globe/local clarity:** persistent player/destination context, explicit inspect/view versus travel, accessible navigation and readable responsive globe labels.
+- [ ] **P5-W3 — Place identity:** finish staged distinct settlement geometry with matching reviewed art and add truthful contextual service/objective presentation using existing authority.
+  - **P5-W3A — NPC conversation experience (Owner direction 2026-09-27):** build one reusable server-authoritative conversation framework. Keep the world visibly contextual behind focused dialogue; give approved NPC art strong but secondary presence; use readable dialogue and clear state-aware choice cards; stack responsively on mobile; preserve a clear End conversation action. Server projects the current authored node and legal choices from location/quest/service/permission state; client submits only a selected authored action. Remote/stale/forged choices fail closed and irreversible/resource-spending choices require deliberate confirmation. The supplied reference is structural inspiration only—do not copy its art, branding, lore or exact styling.
+- [ ] **P5-W4 — Character/fork clarity:** current build identity and representative Ascension/Severence explanations derived from approved story/power state; deliberate permanent choice, private undiscovered content and normal branch exclusivity preserved.
+
+**Existing Phase 5 chat:** server travel timing, authored geography/content, NPC conversation nodes/eligibility/actions, quest/service authority and supernatural authority/projection. **Separate Work Mode chat:** layout/CSS/rendering, cinematic conversation overlay/portrait treatment, contextual location and identity UI, approved map art alignment and visual verification. Coordinate shared types/DTOs before edits; preserve active music, Anchor and Drift slices. No wholesale multi-sector renderer or new Skill browser here: those remain P6-W1/P6-S1. Missing approved media or mechanics are explicit open dependencies, not permission to invent content.
 
 ## Phase 5 gate
 

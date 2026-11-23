@@ -1,0 +1,169 @@
+import { readFileSync } from 'node:fs'
+import { renderToStaticMarkup } from 'react-dom/server'
+import { expect, it } from 'vitest'
+import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
+import type { AbilityBehavior, RequirementNode } from '@aurevane/game-core/combat/combat-definition'
+import {
+  abilityBehaviorInformation,
+  abilityRequirementDescription,
+} from './ability-detail-presentation'
+import { AbilityParameters } from './ability-parameters'
+import { plainMechanicText } from './mechanic-text'
+import { SIMPLE_AUTOMATIC_TRIGGER_OPTIONS } from '@aurevane/game-core/combat/combat-simple-requirements'
+
+function report(requirements: RequirementNode | null) {
+  const group: AbilityBehavior = {
+    ...defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!.ability.behaviors[0]!,
+    requirementMode: 'simple',
+    requirements,
+  }
+  return abilityBehaviorInformation(group)
+}
+
+it('shows a linked status tag and its Target explicitly', () => {
+  const r = report({ kind: 'status-presence', subject: 'selected', statusId: 'wet', present: true })
+  expect(Object.fromEntries(r.rows).Requirements).toBe('Drenched [Target]')
+  expect(plainMechanicText(r.requirementParts!)).toBe('Drenched [Target]')
+  const html = renderToStaticMarkup(<AbilityParameters report={r} />)
+  expect(html).toMatch(/<strong[^>]*data-combat-tag-reference="wet"[^>]*>Drenched<\/strong>/)
+  expect(html).not.toContain('aria-label="Requirement explanations"')
+  expect(html).toMatch(/data-requirement-parameter="target">\[Target\]<\/span>/)
+  expect(html).not.toContain('data-effect-tag-label="true">Drenched</span>')
+  const explanation = r.requirementParts!.find((part) => typeof part !== 'string')!.explanation
+  expect(html).not.toContain(renderToStaticMarkup(<>{explanation}</>))
+})
+
+it.each([
+  ['hp', 'less-than', 'HP less than', 'hp-less-than'],
+  ['hp', 'more-than', 'HP more than', 'hp-more-than'],
+  ['mp', 'less-than', 'MP less than', 'mp-less-than'],
+  ['mp', 'more-than', 'MP more than', 'mp-more-than'],
+] as const)(
+  'links the predefined %s %s requirement tag with its percentage',
+  (resource, comparison, label, tag) => {
+    const r = report({
+      kind: 'resource-state',
+      subject: 'owner',
+      resource,
+      comparison,
+      basisPoints: 4050,
+    })
+    expect(Object.fromEntries(r.rows).Requirements).toBe(`${label} [40.5%] [Self]`)
+    expect(plainMechanicText(r.requirementParts!)).toBe(`${label} [40.5%] [Self]`)
+    const html = renderToStaticMarkup(<AbilityParameters report={r} />)
+    expect(html).toContain(`data-combat-tag-reference="${tag}"`)
+    expect(html).toMatch(/data-requirement-parameter="magnitude">\[40.5%\]<\/span>/)
+    expect(html).toMatch(/data-requirement-parameter="target">\[Self\]<\/span>/)
+    expect(r.requirementParts!.find((part) => typeof part !== 'string')?.explanation).toContain(
+      'strictly',
+    )
+  },
+)
+
+it('renders None without adding an event or action prerequisite', () => {
+  const r = report(null)
+  expect(Object.fromEntries(r.rows).Requirements).toBe('None')
+  expect(r.requirementParts).toBeUndefined()
+  expect(renderToStaticMarkup(<AbilityParameters report={r} />)).not.toContain(
+    'aria-label="Requirement explanations"',
+  )
+})
+
+it('includes automatic activation alongside its retained prerequisite in Requirements', () => {
+  const r = abilityBehaviorInformation({
+    ...defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!.ability.behaviors[0]!,
+    activation: 'automatic',
+    requirementMode: 'simple',
+    automaticTrigger: 'damage-dealt',
+    automaticTarget: { subject: 'affected' },
+    requirements: { kind: 'status-presence', subject: 'affected', statusId: 'burn', present: true },
+  })
+  expect(Object.fromEntries(r.rows).Requirements).toBe('Damage Dealt; Burn [Target]')
+  const html = renderToStaticMarkup(<AbilityParameters report={r} />)
+  expect(html).toContain('Automatic: Damage Dealt')
+  expect(html.slice(0, html.indexOf('</dl>'))).toContain('Damage Dealt')
+})
+
+const candidate = JSON.parse(
+  readFileSync(
+    new URL(
+      '../../../../../docs/superpowers/specs/2026-10-19-simple-requirements-cohort.json',
+      import.meta.url,
+    ),
+    'utf8',
+  ),
+) as {
+  records: { id: string; after: { ability: { behaviors: AbilityBehavior[] } } }[]
+}
+it.each(candidate.records)(
+  '$id renders its complete saved predicate and any meaningful activation event',
+  (row) => {
+    for (const behavior of row.after.ability.behaviors) {
+      const result = abilityBehaviorInformation(behavior)
+      const requirement = Object.fromEntries(result.rows).Requirements!
+      const root = abilityRequirementDescription(behavior.requirements, behavior)
+      expect(root).toMatch(
+        /^(None|[^\[\]&]+ \[(Self|Target)\]|(?:HP|MP) (?:less|more) than \[[\d.]+%\] \[(Self|Target)\])$/,
+      )
+      if (root !== 'None') expect(requirement).toContain(root)
+      const event =
+        behavior.activation === 'automatic' &&
+        behavior.mode === 'action' &&
+        behavior.automaticTrigger !== 'requirements-met'
+          ? SIMPLE_AUTOMATIC_TRIGGER_OPTIONS.find(({ id }) => id === behavior.automaticTrigger)
+              ?.label
+          : undefined
+      expect(requirement).toBe(
+        [event, root === 'None' && event ? undefined : root].filter(Boolean).join('; '),
+      )
+      result.effects.forEach((effect, index) => {
+        if (effect.condition) {
+          expect(result.effectDescriptions[index]).toContain(
+            `Applies only when ${effect.condition}.`,
+          )
+          expect(Object.fromEntries(result.rows).Effects).not.toContain(effect.condition)
+        }
+      })
+      expect(root).not.toMatch(/After|Tidecaller|Trigger|Action|\bIf\b/)
+      const html = renderToStaticMarkup(<AbilityParameters report={result} />)
+      expect(html.match(/<dt>/g)).toHaveLength(8)
+      if (root !== 'None') expect(html).toContain('data-combat-tag-reference=')
+      if (result.automaticActivation)
+        expect(html.slice(0, html.indexOf('</dl>'))).not.toContain('Automatic:')
+    }
+  },
+)
+
+it.each([
+  ['actor', 'selected', 'Target'],
+  ['affected-units', 'affected', 'Target'],
+  ['actor', 'owner', 'Self'],
+] as const)(
+  'keeps a simple %s effect condition on %s explicit beside the distinct group condition',
+  (recipient, subject, label) => {
+    const group: AbilityBehavior = {
+      ...defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!.ability.behaviors[0]!,
+      requirementMode: 'simple',
+      requirements: { kind: 'status-presence', subject: 'owner', statusId: 'wet', present: true },
+      effects: [
+        {
+          id: 'mend',
+          payload: { type: 'healing', recipient, amount: 1 },
+          requirements: { kind: 'status-presence', subject, statusId: 'wet', present: true },
+        },
+      ],
+    }
+    const before = JSON.stringify(group)
+    const result = abilityBehaviorInformation(group)
+    const expected = 'Drenched [Self]'
+    expect(Object.fromEntries(result.rows).Requirements).toBe(expected)
+    expect(result.effects[0]!.condition).toBe(`Drenched [${label}]`)
+    expect(plainMechanicText(result.requirementParts!)).toBe(expected)
+    expect(plainMechanicText(result.effects[0]!.conditionParts!)).toBe(`Drenched [${label}]`)
+    const html = renderToStaticMarkup(<AbilityParameters report={result} />)
+    expect(html.replace(/<[^>]*>/gu, '')).toContain(expected)
+    expect(html).not.toContain('aria-label="Requirement explanations"')
+    expect(result.effectDescriptions[0]).toContain(`Applies only when Drenched [${label}].`)
+    expect(JSON.stringify(group)).toBe(before)
+  },
+)

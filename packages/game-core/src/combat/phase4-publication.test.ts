@@ -34,7 +34,7 @@ import {
   essenceSnapshotReference,
   resolveEssenceForBuild,
 } from './essence'
-import { resolveResonanceForPair, resonanceSnapshotReference } from './resonance'
+import { P35_REPRESENTATIVE_RESONANCES, resonanceSnapshotReference } from './resonance'
 import { hasGameplayTag } from './gameplay-tags'
 import { validateDamageModifiers } from './damage-modifiers'
 import {
@@ -106,7 +106,36 @@ function encounter(): StatDrivenCombatEncounterState {
   )
 }
 const enemy = { kind: 'unit', combatantId: 'enemy' } as const
-const skill = (id: string, version?: number) => resolveMatureSkillVersion(id, version)!
+const phase4Skills = latestEnabledMatureSkills(P33_REPRESENTATIVE_DISCIPLINE_SKILLS)
+const phase4Essences = P36_REPRESENTATIVE_ESSENCES.filter(
+  (definition, index, definitions) =>
+    definition.enabled &&
+    !definitions.some(
+      (candidate, candidateIndex) =>
+        candidateIndex !== index &&
+        candidate.essenceId === definition.essenceId &&
+        candidate.contentVersion > definition.contentVersion,
+    ),
+)
+const phase4Resonances = P35_REPRESENTATIVE_RESONANCES
+const skill = (id: string, version?: number) =>
+  version === undefined
+    ? phase4Skills.find((definition) => definition.id === id)!
+    : resolveMatureSkillVersion(id, version)!
+const phase4Essence = (disciplineId: string, secondaryDisciplineId: string | null) =>
+  secondaryDisciplineId === null
+    ? (phase4Essences.find((definition) => definition.sourceDisciplineId === disciplineId) ?? null)
+    : null
+const phase4Resonance = (primaryDisciplineId: string, secondaryDisciplineId: string | null) => {
+  if (!secondaryDisciplineId || primaryDisciplineId === secondaryDisciplineId) return null
+  const pair = [primaryDisciplineId, secondaryDisciplineId].sort()
+  return (
+    phase4Resonances.find(
+      (definition) =>
+        definition.disciplinePair[0] === pair[0] && definition.disciplinePair[1] === pair[1],
+    ) ?? null
+  )
+}
 const reload = (state: StatDrivenCombatEncounterState): StatDrivenCombatEncounterState =>
   JSON.parse(JSON.stringify(state))
 function build(
@@ -119,8 +148,8 @@ function build(
   if (sources.length > 2) throw new Error('A build has at most two Disciplines')
   const primary = sources[0]!
   const secondary = sources[1] ?? null
-  const essence = resolveEssenceForBuild(primary, secondary)
-  const resonance = resolveResonanceForPair(primary, secondary)
+  const essence = phase4Essence(primary, secondary)
+  const resonance = phase4Resonance(primary, secondary)
   const snapshot: CombatBuildSnapshot = {
     schemaVersion: 1,
     sourceBuildSchemaVersion: 3,
@@ -181,17 +210,12 @@ function tag(
 }
 
 describe('Versioned Phase 4 published interactions', () => {
-  const currentSkills = latestEnabledMatureSkills()
-  const currentEssences = P36_REPRESENTATIVE_ESSENCES.filter(
-    (definition, index, definitions) =>
-      !definitions.some(
-        (candidate, candidateIndex) =>
-          candidateIndex !== index &&
-          candidate.essenceId === definition.essenceId &&
-          candidate.contentVersion > definition.contentVersion,
-      ),
-  )
-
+  const currentSkills = phase4Skills
+  const currentEssences = phase4Essences
+  /*
+   * The Phase 4 suite intentionally stays pinned to the historical content registry.
+   * Combat v5 has its own balance/authority contracts.
+   */
   it('selects 136 unique current Skills while retaining immutable historical versions', () => {
     expect(currentSkills).toHaveLength(136)
     for (const definition of currentSkills) {
@@ -261,23 +285,17 @@ describe('Versioned Phase 4 published interactions', () => {
         expect.objectContaining({ event: 'resonance_activated' }),
       )
     })
-    it(`${context}: spirit protection is dispelled and Hexed reduces real support healing`, () => {
-      let state = build(encounter(), [
-        'runeblade.sigil-brand',
-        'runeblade.aether-cut',
-        'wildwarden.renewing-herbs',
-      ])
-      // Support may target the caster; reusing enemy placement lets actual opposing turns author protection.
+    it(`${context}: Healing Down reduces real support healing without legacy spirit protection`, () => {
+      let state = build(encounter(), ['runeblade.sigil-brand', 'wildwarden.renewing-herbs'])
       state = cast(
         state,
         skill('wildwarden.renewing-herbs'),
         { kind: 'unit', combatantId: 'actor' },
         context,
       ).state
-      expect(tag(state, 'actor', 'Summoned')).toBe(true)
       const branded = cast(state, skill('runeblade.sigil-brand'), enemy, context).state
       expect(tag(branded, 'enemy', 'Hexed')).toBe(true)
-      // The enemy's legal support action now demonstrates the healing penalty on itself.
+      // The enemy's legal support action demonstrates the HP-healing penalty on itself.
       const enemyTurn = finishPv1fTurn(branded, 'west').state
       const healing = executePv1fMatureSkill(
         enemyTurn,
@@ -286,13 +304,6 @@ describe('Versioned Phase 4 published interactions', () => {
         context,
       )
       expect(hp(healing.state) - hp(enemyTurn)).toBe(3)
-      const dispelled = executePv1fMatureSkill(
-        enemyTurn,
-        skill('runeblade.aether-cut'),
-        { kind: 'unit', combatantId: 'actor' },
-        context,
-      ).state
-      expect(tag(dispelled, 'actor', 'Summoned')).toBe(false)
     })
     it(`${context}: concealment blocks selection and breaks on an authored attack`, () => {
       let state = build(encounter(), ['shadehand.smoke-vial', 'shadehand.backstab'])
@@ -397,16 +408,27 @@ describe('Versioned Phase 4 published interactions', () => {
   }
   it('keeps Skill facing, basic facing and conditional modifier bounds distinct', () => {
     const opening = resolveEssenceForBuild('shadehand', null)!.skill
-    const damage = opening.effects[0]!
+    const damage = opening.effects.find((effect) => effect.type === 'damage')!
     if (damage.type !== 'damage') throw new Error('Expected Perfect Opening damage')
-    expect(damage.facingModifiersBasisPoints!.rear).toBe(22000)
+    expect(damage.facingModifiersBasisPoints).toBeUndefined()
+    expect(opening.effects).toContainEqual({
+      type: 'apply-status',
+      recipient: 'actor',
+      statusId: 'blindside',
+      stacks: 1,
+      durationTurns: 1,
+    })
+    const previous = resolveEssenceForBuild('shadehand', null, opening.contentVersion - 1)!.skill
+    expect(previous.effects.find((effect) => effect.type === 'damage')).toMatchObject({
+      facingModifiersBasisPoints: { rear: 22000 },
+    })
     expect(() =>
       evaluatePv1fMatureSkill(
         encounter(),
         {
           ...opening,
           effects: [
-            { ...damage, facingModifiersBasisPoints: { front: 10000, side: 10000, rear: 22001 } },
+            { ...damage, facingModifiersBasisPoints: { front: 10000, side: 10000, rear: 99901 } },
           ],
         },
         enemy,
@@ -420,7 +442,7 @@ describe('Versioned Phase 4 published interactions', () => {
     ).toThrow()
     expect(() =>
       validateDamageModifiers([
-        { direction: 'outgoing', multiplierBasisPoints: 20001, condition: { kind: 'always' } },
+        { direction: 'outgoing', multiplierBasisPoints: 109901, condition: { kind: 'always' } },
       ]),
     ).toThrow()
   })

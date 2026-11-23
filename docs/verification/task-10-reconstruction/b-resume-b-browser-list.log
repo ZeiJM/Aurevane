@@ -1,0 +1,5 @@
+Listing tests:
+  [desktop-chromium] › master-discipline-consumers.pw.ts:6:5 › shared Skill eligibility persists through the actual route and refresh, without earning testing access
+  [laptop-chromium] › master-discipline-consumers.pw.ts:6:5 › shared Skill eligibility persists through the actual route and refresh, without earning testing access
+  [mobile-chromium] › master-discipline-consumers.pw.ts:6:5 › shared Skill eligibility persists through the actual route and refresh, without earning testing access
+Total: 3 tests in 1 file

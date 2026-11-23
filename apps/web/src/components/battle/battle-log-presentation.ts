@@ -2,6 +2,7 @@ import {
   isSkillNarrationVariantValid,
   type SkillNarrationTemplate,
 } from '@aurevane/game-core/combat/battle-narration'
+import { battleDamageLabel } from '../../lib/battle/battle-damage-type'
 
 import type {
   BattleLogEntry,
@@ -72,6 +73,7 @@ const STANDALONE_EVENTS = new Set([
   'terrain_overlay_expired',
   'battle_completed',
   'battle_abandoned',
+  'administrative_no_contest',
 ])
 
 const TONE_PRIORITY: Record<BattleLogTone, number> = {
@@ -108,8 +110,16 @@ function combatantName(
 export function renderBattleLogEntry(entry: BattleLogEntry, options: PresentationOptions): string {
   const values: Readonly<Record<string, string>> = {
     ...entry.templateValues,
-    actor: combatantName(entry.actorCombatantId, options) ?? 'Combatant',
-    target: combatantName(entry.targetCombatantId, options) ?? 'Combatant',
+    actor:
+      entry.actionContext?.narrator?.actor.name ??
+      entry.actorNarrator?.name ??
+      combatantName(entry.actorCombatantId, options) ??
+      'Combatant',
+    target:
+      entry.actionContext?.narrator?.target?.name ??
+      entry.targetNarrator?.name ??
+      combatantName(entry.targetCombatantId, options) ??
+      'Combatant',
   }
 
   return entry.messageTemplate
@@ -233,7 +243,7 @@ function usefulActionLabel(entries: readonly BattleLogEntry[]): string | null {
 function statusName(entry: BattleLogEntry): string {
   const explicit = entry.templateValues.status?.trim()
   if (explicit) return explicit
-  if (entry.eventType === 'pvp_lowered_guard_applied') return 'Lowered Guard'
+  if (entry.eventType === 'pvp_lowered_guard_applied') return 'Defenseless'
   if (entry.headline && !internalActionLabel(entry.headline)) return entry.headline
   return 'Status'
 }
@@ -516,6 +526,7 @@ function presentAction(group: ActionGroup, options: PresentationOptions): Presen
   const surrender = findEntry(group, 'pvp_combatant_surrendered')
   const completed = findEntry(group, 'battle_completed')
   const abandoned = findEntry(group, 'battle_abandoned')
+  const noContest = findEntry(group, 'administrative_no_contest')
   const started = findEntry(group, 'battle_started')
   const timeout = findEntry(group, 'pvp_turn_timed_out')
   const resolved = findEntry(group, 'stat_driven_attack_resolved')
@@ -546,6 +557,11 @@ function presentAction(group: ActionGroup, options: PresentationOptions): Presen
     kind = 'system'
     significance = 'highlight'
     consumed.add('complete')
+  } else if (noContest) {
+    primary = [segment('No contest · No rewards', 'outcome', 'neutral')]
+    kind = 'system'
+    significance = 'highlight'
+    consumed.add('no rewards')
   } else if (abandoned) {
     primary = [segment('Battle ended early', 'outcome', 'warning')]
     kind = 'system'
@@ -582,7 +598,23 @@ function presentAction(group: ActionGroup, options: PresentationOptions): Presen
     const actor = combatantName(damage.actorCombatantId, options)
     const target = combatantName(damage.targetCombatantId, options)
     const amount = damage.templateValues.amount?.trim()
-    const outcome = amount ? `${amount} damage` : 'Damage dealt'
+    const damageEntries = group.entries.filter((entry) => entry.eventType === 'damage_applied')
+    const criticalEntries = group.entries.filter(
+      (entry) =>
+        entry.eventType === 'combat_critical_resolved' &&
+        entry.templateValues.outcome === 'CRITICAL' &&
+        damageEntries.some(
+          (hit) =>
+            !hit.periodicStatusId &&
+            hit.templateValues.critical === undefined &&
+            entry.actorCombatantId === hit.actorCombatantId &&
+            entry.targetCombatantId === hit.targetCombatantId &&
+            entry.actionId === hit.actionId,
+        ),
+    )
+    const outcome = amount
+      ? `${damage.templateValues.critical === 'true' ? 'Critical ' : ''}${amount} ${battleDamageLabel(damage.templateValues.element, damage.templateValues.damageKind)}`
+      : 'Damage dealt'
     const selfDamage =
       damage.actorCombatantId !== null &&
       damage.targetCombatantId !== null &&
@@ -625,6 +657,32 @@ function presentAction(group: ActionGroup, options: PresentationOptions): Presen
       ]
     } else {
       secondary = statusApplicationSecondary(group, options, consumed, damage.targetCombatantId)
+    }
+    // A target-level critical receipt does not identify which packet was eligible:
+    // Vengeance and ordinary damage can share a command and recipient. Keep it separate.
+    const extraOutcomes = [
+      ...criticalEntries.map(
+        (entry) =>
+          `Critical hit on ${combatantName(entry.targetCombatantId, options) ?? 'the target'}!`,
+      ),
+      ...damageEntries
+        .filter((entry) => entry !== damage)
+        .sort((a, b) => a.eventIndex - b.eventIndex)
+        .map(
+          (entry) =>
+            `${entry.templateValues.critical === 'true' ? 'Critical ' : ''}${entry.templateValues.amount ?? 'Resolved'} ${battleDamageLabel(entry.templateValues.element, entry.templateValues.damageKind)} to ${combatantName(entry.targetCombatantId, options) ?? 'the target'}`,
+        ),
+    ]
+    if (extraOutcomes.length > 0) {
+      secondary = [
+        segment('↳ '),
+        segment(extraOutcomes.join(' · '), 'outcome', 'damage'),
+        ...(secondary ? [segment(' · '), ...secondary.slice(1)] : []),
+      ]
+    }
+    for (const entry of damageEntries) {
+      const hitAmount = entry.templateValues.amount?.trim()
+      if (hitAmount) consumed.add(`${hitAmount} dmg`.toLowerCase())
     }
   } else if (healing) {
     const actor = combatantName(healing.actorCombatantId, options)

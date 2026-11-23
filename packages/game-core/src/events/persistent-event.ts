@@ -1,4 +1,45 @@
+import { isWorldWeather, type WorldWeather } from '../world/weather'
+import {
+  PERSONAL_QUEST_GIVERS,
+  RESTORATION_REPLY_LIMIT,
+  isPersonalQuestGiver,
+  isPersonalJourneyNpcId,
+  type PersonalCombatDiscovery,
+  type PersonalHuntJourney,
+  type PersonalJourney,
+  type PersonalInventoryDiscovery,
+  type PersonalTravelJourney,
+} from './personal-journey'
+
+export * from './personal-journey'
+
 export const PERSISTENT_EVENT_SCHEMA_VERSION = 1 as const
+
+export const EVENT_CATEGORY_LABELS = {
+  'world-events': 'World Events',
+  'story-campaigns': 'Story Campaigns',
+  'repeatable-activities': 'Repeatable Activities',
+  'hidden-discoveries': 'Hidden Discoveries',
+} as const
+
+export type EventCategory = keyof typeof EVENT_CATEGORY_LABELS
+
+export const EVENT_CATEGORIES = Object.keys(EVENT_CATEGORY_LABELS) as EventCategory[]
+
+export function isEventCategory(value: unknown): value is EventCategory {
+  return typeof value === 'string' && Object.hasOwn(EVENT_CATEGORY_LABELS, value)
+}
+
+export function resolveEventCategory(definition: {
+  readonly category?: unknown
+  readonly family?: unknown
+}): EventCategory {
+  if (isEventCategory(definition.category)) return definition.category
+  // Legacy snapshots predate categories. Family remains the only categorization signal.
+  if (definition.family === 'narrative-event') return 'story-campaigns'
+  if (definition.family === 'lore-revelation') return 'hidden-discoveries'
+  return 'world-events'
+}
 
 export const EVENT_FAMILIES = [
   'world-crisis',
@@ -71,10 +112,25 @@ export interface EventWorldNavigation {
 
 export interface EventObjectiveDefinition {
   readonly worldNavigation?: EventWorldNavigation | null
+  readonly completion?: 'world-arrival' | 'world-npc-result'
+  readonly battleResult?: {
+    readonly npcId: string
+    readonly outcome: 'victory' | 'defeat'
+  }
+  readonly requiredWeather?: WorldWeather
   readonly id: string
   readonly type: EventObjectiveType
   readonly referenceKey: string
   readonly target: number
+}
+
+export function hasConfirmedEventProducer(objective: EventObjectiveDefinition): boolean {
+  return objective.completion === 'world-arrival' || objective.completion === 'world-npc-result'
+}
+
+export interface EventObjectiveBranchRoute {
+  readonly objectiveId: string
+  readonly nextPhaseId: string
 }
 
 export type EventPhaseTransition =
@@ -82,14 +138,49 @@ export type EventPhaseTransition =
   | { readonly type: 'elapsed'; readonly afterSeconds: number }
   | { readonly type: 'scheduled'; readonly at: string }
   | { readonly type: 'objective-threshold'; readonly objectiveId: string }
+  | {
+      readonly type: 'objective-quorum'
+      readonly objectiveIds: readonly string[]
+      readonly required: number
+      readonly deadline?: {
+        readonly afterSeconds: number
+        readonly nextPhaseId: string
+      }
+    }
+  | { readonly type: 'objective-branch'; readonly routes: readonly EventObjectiveBranchRoute[] }
 
 export interface PersistentEventPhaseDefinition {
   readonly id: string
   readonly name: string
+  readonly nextPhaseId?: string
   readonly objectives: readonly EventObjectiveDefinition[]
   readonly effects: readonly EventEffectReference[]
   readonly cleanupEffects: readonly EventEffectReference[]
   readonly transition: EventPhaseTransition
+}
+
+export type EventRecurrence =
+  | { readonly mode: 'rolling-24h' }
+  | {
+      readonly mode: 'calendar-day' | 'calendar-week'
+      readonly timeZone: string
+      readonly resetMinute: number
+    }
+
+export interface RepeatableTravel {
+  readonly journey: PersonalTravelJourney | PersonalHuntJourney
+  readonly recurrence: EventRecurrence
+}
+
+export interface MentorChallenge {
+  readonly opponentNpcId: string
+  readonly offer: string
+  readonly victory: string
+  readonly defeat: string
+  readonly victoryRewardPackageRef: string
+  readonly defeatRewardPackageRef: string
+  readonly fastVictory?: { readonly withinSeconds: number; readonly rewardPackageRef: string }
+  readonly recurrence: EventRecurrence
 }
 
 export interface PersistentEventDefinition {
@@ -101,6 +192,12 @@ export interface PersistentEventDefinition {
   readonly summary: string
   readonly internalNotes: string
   readonly family: EventFamily
+  readonly category?: EventCategory
+  readonly personalJourney?: PersonalJourney
+  readonly inventoryDiscovery?: PersonalInventoryDiscovery
+  readonly combatDiscovery?: PersonalCombatDiscovery
+  readonly mentorChallenge?: MentorChallenge
+  readonly repeatableTravel?: RepeatableTravel
   readonly scope: EventScope
   readonly phases: readonly PersistentEventPhaseDefinition[]
   readonly rewardPackageRefs: readonly string[]
@@ -127,21 +224,117 @@ const EVENT_RUN_TRANSITIONS: Readonly<Record<EventRunStatus, readonly EventRunSt
   live: ['paused', 'resolving', 'emergency-stopped'],
   paused: ['live', 'resolving', 'emergency-stopped'],
   resolving: ['ended', 'emergency-stopped'],
-  ended: ['archived'],
+  ended: ['archived', 'emergency-stopped'],
   archived: [],
   cancelled: ['archived'],
   'emergency-stopped': ['archived'],
 }
 
 function identity(value: string, label: string): void {
-  if (!/^[a-z0-9][a-z0-9._:-]{1,159}$/.test(value)) {
+  if (typeof value !== 'string' || !/^[a-z0-9][a-z0-9._:-]{1,159}$/.test(value)) {
     throw new TypeError(`${label} must be a stable lowercase identity.`)
   }
 }
 
+function isPersonalItemIdentity(value: unknown): value is string {
+  return (
+    typeof value === 'string' && value.length <= 160 && /^[a-z0-9]+([._-][a-z0-9]+)*$/.test(value)
+  )
+}
+
 function shortText(value: string, label: string, max: number): void {
-  if (value.trim() !== value || value.length < 1 || value.length > max) {
+  if (
+    typeof value !== 'string' ||
+    value.trim() !== value ||
+    value.length < 1 ||
+    value.length > max
+  ) {
     throw new TypeError(`${label} must be 1–${max} characters with no outer whitespace.`)
+  }
+}
+
+function validateInventoryRestoration(discovery: PersonalInventoryDiscovery): void {
+  const { restoration } = discovery
+  if (restoration === undefined) return
+  const dialogueFields = ['offer', 'travel', 'ready', 'completed'] as const
+  const allowedFields = [
+    'giverNpcId',
+    'checkpoint',
+    'outputItemId',
+    'trial',
+    'recoveryRewardPackageRef',
+    'recoveryReply',
+    ...dialogueFields,
+  ]
+  if (
+    !restoration ||
+    typeof restoration !== 'object' ||
+    Array.isArray(restoration) ||
+    Object.keys(restoration).some((key) => !allowedFields.includes(key))
+  ) {
+    throw new TypeError('The restoration route must contain only supported fields.')
+  }
+  if (!isPersonalJourneyNpcId(restoration.giverNpcId)) {
+    throw new TypeError('Choose a published World and Story NPC as the restoration giver.')
+  }
+  if (
+    !isPersonalItemIdentity(restoration.outputItemId) ||
+    restoration.outputItemId === discovery.firstItemId ||
+    restoration.outputItemId === discovery.secondItemId
+  ) {
+    throw new TypeError('Choose a restoration weapon Item identity distinct from both fragments.')
+  }
+  const { checkpoint } = restoration
+  if (
+    !checkpoint ||
+    typeof checkpoint !== 'object' ||
+    Array.isArray(checkpoint) ||
+    Object.keys(checkpoint).some((key) => !['sectorId', 'x', 'y'].includes(key)) ||
+    !Number.isInteger(checkpoint.x) ||
+    checkpoint.x < 0 ||
+    checkpoint.x > 12 ||
+    !Number.isInteger(checkpoint.y) ||
+    checkpoint.y < 0 ||
+    checkpoint.y > 8
+  ) {
+    throw new TypeError('Choose a restoration checkpoint with a World sector and valid grid cell.')
+  }
+  identity(checkpoint.sectorId, 'Restoration checkpoint sector')
+  for (const field of dialogueFields) {
+    shortText(restoration[field], `Restoration ${field} dialogue`, 800)
+  }
+  if (restoration.recoveryReply !== undefined)
+    shortText(restoration.recoveryReply, 'Restoration recovery reply', RESTORATION_REPLY_LIMIT)
+
+  const { trial, recoveryRewardPackageRef } = restoration
+  if (trial === undefined && recoveryRewardPackageRef === undefined) return
+  if (trial === undefined || recoveryRewardPackageRef === undefined) {
+    throw new TypeError(
+      'Restoration trial and recovery Character XP packages must be set together.',
+    )
+  }
+  const trialDialogueFields = ['offer', 'active', 'ready'] as const
+  const trialFields = ['npcId', 'rewardPackageRef', 'reply', ...trialDialogueFields]
+  if (
+    !trial ||
+    typeof trial !== 'object' ||
+    Array.isArray(trial) ||
+    Object.keys(trial).some((key) => !trialFields.includes(key))
+  ) {
+    throw new TypeError('The restoration trial must contain only supported fields.')
+  }
+  if (!isPersonalJourneyNpcId(trial.npcId)) {
+    throw new TypeError('For the restoration trial, choose a published World encounter NPC.')
+  }
+  for (const field of trialDialogueFields) {
+    shortText(trial[field], `Restoration trial ${field} dialogue`, 800)
+  }
+  if (trial.reply !== undefined)
+    shortText(trial.reply, 'Restoration trial reply', RESTORATION_REPLY_LIMIT)
+  identity(recoveryRewardPackageRef, 'Restoration recovery reward package')
+  identity(trial.rewardPackageRef, 'Restoration trial reward package')
+  if (recoveryRewardPackageRef === trial.rewardPackageRef) {
+    throw new TypeError('Restoration trial and recovery require different Character XP packages.')
   }
 }
 
@@ -153,6 +346,188 @@ function positiveSafeInteger(value: number, label: string): void {
 
 function isoTimestamp(value: string, label: string): void {
   if (!Number.isFinite(Date.parse(value))) throw new TypeError(`${label} must be an ISO timestamp.`)
+}
+
+function validatePrivateQuestPhase(
+  definition: PersistentEventDefinition,
+  subject = 'A personal journey',
+): void {
+  const { phases, aftermathRefs } = definition
+  if (
+    phases.length !== 1 ||
+    phases[0]?.transition.type !== 'manual' ||
+    phases[0].objectives.length ||
+    phases[0].effects.length ||
+    phases[0].cleanupEffects.length ||
+    aftermathRefs.length
+  ) {
+    throw new TypeError(`${subject} uses one manual phase without shared objectives or effects.`)
+  }
+}
+
+function validateCalendarReset(timeZone: string, resetMinute: number): void {
+  try {
+    if (typeof timeZone !== 'string' || !timeZone) throw new Error()
+    new Intl.DateTimeFormat('en', { timeZone })
+  } catch {
+    throw new TypeError('Choose a valid calendar timezone.')
+  }
+  if (!Number.isInteger(resetMinute) || resetMinute < 0 || resetMinute > 1439) {
+    throw new TypeError('Choose a calendar reset time from 00:00 to 23:59.')
+  }
+}
+
+function validateMentorChallenge(
+  definition: PersistentEventDefinition,
+  mentor: MentorChallenge,
+): void {
+  if (
+    resolveEventCategory(definition) !== 'repeatable-activities' ||
+    definition.scope.type !== 'global' ||
+    definition.personalJourney !== undefined ||
+    definition.repeatableTravel !== undefined ||
+    definition.combatDiscovery !== undefined ||
+    definition.inventoryDiscovery !== undefined ||
+    definition.rewardPackageRefs.length
+  ) {
+    throw new TypeError(
+      'A Mentor challenge requires a global Repeatable Activity with its own rewards.',
+    )
+  }
+  validatePrivateQuestPhase(definition, 'A Mentor challenge')
+  if (!mentor || !isPersonalJourneyNpcId(mentor.opponentNpcId))
+    throw new TypeError('Choose a published World encounter for the Mentor.')
+  shortText(mentor.offer, 'Mentor offer', 800)
+  shortText(mentor.victory, 'Victory dialogue', 800)
+  shortText(mentor.defeat, 'Defeat dialogue', 800)
+  const rewards = [mentor.victoryRewardPackageRef, mentor.defeatRewardPackageRef]
+  if (mentor.fastVictory !== undefined) {
+    const bonus = mentor.fastVictory
+    if (
+      !bonus ||
+      !Number.isInteger(bonus.withinSeconds) ||
+      bonus.withinSeconds < 1 ||
+      bonus.withinSeconds > 3600
+    )
+      throw new TypeError('Choose a fast victory threshold from 1 to 3,600 seconds.')
+    rewards.push(bonus.rewardPackageRef)
+  }
+  for (const reward of rewards) identity(reward, 'Mentor Character XP package')
+  if (new Set(rewards).size !== rewards.length)
+    throw new TypeError('Choose a different Character XP package for each Mentor reward.')
+  const policy = mentor.recurrence
+  if (!policy || !['rolling-24h', 'calendar-day', 'calendar-week'].includes(policy.mode))
+    throw new TypeError('Choose a supported recurrence.')
+  if (policy.mode !== 'rolling-24h') validateCalendarReset(policy.timeZone, policy.resetMinute)
+}
+
+function validateCombatDiscovery(definition: PersistentEventDefinition): void {
+  const {
+    combatDiscovery: discovery,
+    inventoryDiscovery,
+    personalJourney,
+    repeatableTravel,
+    scope,
+    rewardPackageRefs,
+  } = definition
+  if (
+    inventoryDiscovery !== undefined ||
+    personalJourney !== undefined ||
+    repeatableTravel !== undefined
+  )
+    throw new TypeError('Choose only one discovery or personal journey per Event.')
+  if (resolveEventCategory(definition) !== 'hidden-discoveries' || scope.type !== 'global')
+    throw new TypeError('A daily combat discovery requires a global Hidden Discovery.')
+  validatePrivateQuestPhase(definition, 'A daily combat discovery')
+  if (rewardPackageRefs.length)
+    throw new TypeError('Choose the combat discovery XP packages without shared Event rewards.')
+  const fields = [
+    'npcTag',
+    'requiredDefeats',
+    'timeZone',
+    'resetMinute',
+    'opponentNpcId',
+    'mode',
+    'ready',
+    'completed',
+    'firstRewardPackageRef',
+    'repeatRewardPackageRef',
+  ]
+  if (
+    !discovery ||
+    typeof discovery !== 'object' ||
+    Array.isArray(discovery) ||
+    Object.keys(discovery).some((field) => !fields.includes(field))
+  )
+    throw new TypeError('The daily combat discovery must contain only supported fields.')
+  if (typeof discovery.npcTag !== 'string' || !/^[a-z][a-z0-9-]{1,31}$/.test(discovery.npcTag))
+    throw new TypeError(
+      'Enter a World encounter tag with 2–32 lowercase letters, digits or hyphens, starting with a letter.',
+    )
+  if (
+    !Number.isInteger(discovery.requiredDefeats) ||
+    discovery.requiredDefeats < 1 ||
+    discovery.requiredDefeats > 50
+  )
+    throw new TypeError('Choose a required daily defeat count from 1 to 50.')
+  if (typeof discovery.timeZone !== 'string' || !/^[A-Za-z]/.test(discovery.timeZone))
+    throw new TypeError('Choose a valid calendar timezone.')
+  validateCalendarReset(discovery.timeZone, discovery.resetMinute)
+  if (!isPersonalJourneyNpcId(discovery.opponentNpcId))
+    throw new TypeError('Choose a published World encounter NPC for the challenge.')
+  if (discovery.mode !== 'evergreen' && discovery.mode !== 'seasonal')
+    throw new TypeError('Choose Evergreen or Seasonal challenge availability.')
+  shortText(discovery.ready, 'Challenge revealed dialogue', 800)
+  shortText(discovery.completed, 'Challenge completed dialogue', 800)
+  identity(discovery.firstRewardPackageRef, 'First-clear Character XP package')
+  if (discovery.repeatRewardPackageRef !== undefined)
+    identity(discovery.repeatRewardPackageRef, 'Repeat Character XP package')
+}
+
+function validateJourneyDialogue(journey: PersonalJourney | PersonalHuntJourney): void {
+  for (const [label, text] of [
+    ['Offer', journey.offer],
+    ['In progress', journey.active],
+    ['Ready', journey.ready],
+    ['Completion', journey.completed],
+  ] as const)
+    shortText(text, `${label} dialogue`, 800)
+}
+
+function validateRepeatableHunt(
+  journey: PersonalHuntJourney,
+  definition: PersistentEventDefinition,
+): void {
+  const fields = [
+    'type',
+    'giverId',
+    'npcTag',
+    'requiredDefeats',
+    'rewardPackageRef',
+    'offer',
+    'active',
+    'ready',
+    'completed',
+  ]
+  if (Object.keys(journey).some((field) => !fields.includes(field)))
+    throw new TypeError('Unknown hunt field.')
+  if (!isPersonalJourneyNpcId(journey.giverId))
+    throw new TypeError('Choose a published World and Story NPC as the hunt giver.')
+  if (typeof journey.npcTag !== 'string' || !/^[a-z][a-z0-9-]{1,31}$/.test(journey.npcTag))
+    throw new TypeError(
+      'Enter a World encounter tag with 2–32 lowercase letters, digits or hyphens, starting with a letter.',
+    )
+  if (
+    !Number.isInteger(journey.requiredDefeats) ||
+    journey.requiredDefeats < 1 ||
+    journey.requiredDefeats > 25
+  )
+    throw new TypeError('Choose a required defeat count from 1 to 25.')
+  identity(journey.rewardPackageRef, 'Hunt Character XP reward')
+  if (definition.scope.type !== 'global')
+    throw new TypeError('Choose Global audience in Setup for a World hunt.')
+  validatePrivateQuestPhase(definition)
+  validateJourneyDialogue(journey)
 }
 
 export function validatePersistentEventDefinition(definition: PersistentEventDefinition): void {
@@ -171,6 +546,10 @@ export function validatePersistentEventDefinition(definition: PersistentEventDef
     throw new TypeError('Unknown event family.')
   }
 
+  if (definition.category !== undefined && !isEventCategory(definition.category)) {
+    throw new TypeError('Unknown event category.')
+  }
+
   if (!['global', 'region', 'node', 'cohort'].includes(definition.scope.type)) {
     throw new TypeError('Unknown event scope type.')
   }
@@ -181,7 +560,8 @@ export function validatePersistentEventDefinition(definition: PersistentEventDef
   }
   const phaseIds = new Set<string>()
   const objectiveIds = new Set<string>()
-  for (const phase of definition.phases) {
+  const phaseOrdinals = new Map(definition.phases.map((phase, index) => [phase.id, index]))
+  for (const [phaseIndex, phase] of definition.phases.entries()) {
     identity(phase.id, 'Phase id')
     shortText(phase.name, 'Phase name', 100)
     if (phaseIds.has(phase.id)) throw new TypeError(`Duplicate event phase ${phase.id}.`)
@@ -210,6 +590,48 @@ export function validatePersistentEventDefinition(definition: PersistentEventDef
           )
         }
       }
+      if (
+        objective.requiredWeather !== undefined &&
+        (objective.completion !== 'world-arrival' || !isWorldWeather(objective.requiredWeather))
+      ) {
+        throw new TypeError('Choose a supported World weather condition for a confirmed arrival.')
+      }
+      if (objective.battleResult !== undefined && objective.completion !== 'world-npc-result')
+        throw new TypeError('A battle result must be attached to a World NPC battle objective.')
+      if (objective.completion !== undefined) {
+        const sectorId = objective.worldNavigation?.sectorId
+        const scope = definition.scope
+        const publicScope =
+          scope.type === 'global' ||
+          (scope.type === 'region' &&
+            (scope.key === sectorId || scope.key === `region.${sectorId}`))
+        const supportedAudience =
+          sectorId && publicScope && resolveEventCategory(definition) === 'world-events'
+        if (
+          objective.completion === 'world-arrival' &&
+          (objective.type !== 'discover' || !supportedAudience)
+        )
+          throw new TypeError(
+            'Reach a location needs a map destination inside a public World Event audience.',
+          )
+        if (objective.completion === 'world-npc-result') {
+          const result = objective.battleResult
+          if (
+            !supportedAudience ||
+            objective.type !== 'defeat' ||
+            !result ||
+            Object.keys(result).some((key) => key !== 'npcId' && key !== 'outcome') ||
+            !isPersonalJourneyNpcId(result.npcId) ||
+            (result.outcome !== 'victory' && result.outcome !== 'defeat')
+          ) {
+            throw new TypeError(
+              'Select a published World NPC, a confirmed result, and a destination in the event audience.',
+            )
+          }
+        } else if (objective.completion !== 'world-arrival') {
+          throw new TypeError('Choose a supported event objective producer.')
+        }
+      }
       identity(objective.id, 'Objective id')
       identity(objective.referenceKey, 'Objective reference')
       positiveSafeInteger(objective.target, 'Objective target')
@@ -233,6 +655,13 @@ export function validatePersistentEventDefinition(definition: PersistentEventDef
       }
     }
 
+    const isLaterPhase = (id: string): boolean => (phaseOrdinals.get(id) ?? -1) > phaseIndex
+    if (
+      phase.nextPhaseId !== undefined &&
+      (phase.transition.type === 'objective-branch' || !isLaterPhase(phase.nextPhaseId))
+    ) {
+      throw new TypeError('A phase destination must be a later phase.')
+    }
     if (phase.transition.type === 'elapsed') {
       positiveSafeInteger(phase.transition.afterSeconds, 'Elapsed phase transition seconds')
     } else if (phase.transition.type === 'scheduled') {
@@ -244,7 +673,222 @@ export function validatePersistentEventDefinition(definition: PersistentEventDef
           'Objective-threshold transition must reference an objective in the same phase.',
         )
       }
+    } else if (phase.transition.type === 'objective-quorum') {
+      const { deadline, objectiveIds, required } = phase.transition
+      if (
+        !Array.isArray(objectiveIds) ||
+        objectiveIds.length < 2 ||
+        objectiveIds.length > 48 ||
+        new Set(objectiveIds).size !== objectiveIds.length ||
+        !objectiveIds.every((id) => phaseObjectiveIds.has(id)) ||
+        !Number.isSafeInteger(required) ||
+        required < 1 ||
+        required > objectiveIds.length
+      ) {
+        throw new TypeError(
+          'Select at least two different objectives in the same phase and a valid required count.',
+        )
+      }
+      if (deadline !== undefined) {
+        const successPhaseId = phase.nextPhaseId ?? definition.phases[phaseIndex + 1]?.id
+        if (
+          !deadline ||
+          typeof deadline !== 'object' ||
+          Object.keys(deadline).some((key) => key !== 'afterSeconds' && key !== 'nextPhaseId') ||
+          !Number.isSafeInteger(deadline.afterSeconds) ||
+          deadline.afterSeconds < 1 ||
+          deadline.afterSeconds > 2_147_483_647 ||
+          !isLaterPhase(deadline.nextPhaseId) ||
+          deadline.nextPhaseId === successPhaseId ||
+          phase.objectives.some((objective) => objective.completion !== 'world-arrival')
+        ) {
+          throw new TypeError(
+            'An objective deadline requires confirmed World arrivals, a positive duration, and a later fallback phase different from the success phase.',
+          )
+        }
+      }
+    } else if (phase.transition.type === 'objective-branch') {
+      const { routes } = phase.transition
+      if (
+        !Array.isArray(routes) ||
+        routes.length < 2 ||
+        routes.length > 48 ||
+        routes.some(
+          (route) =>
+            !route || !phaseObjectiveIds.has(route.objectiveId) || !isLaterPhase(route.nextPhaseId),
+        ) ||
+        new Set(routes.map(({ objectiveId }) => objectiveId)).size !== routes.length
+      ) {
+        throw new TypeError(
+          'An objective branch needs at least two different objectives in this phase. Every route must lead to a later phase.',
+        )
+      }
     }
+  }
+
+  if (definition.mentorChallenge !== undefined)
+    validateMentorChallenge(definition, definition.mentorChallenge)
+  if (definition.combatDiscovery !== undefined) validateCombatDiscovery(definition)
+
+  if (definition.inventoryDiscovery !== undefined) {
+    const discovery = definition.inventoryDiscovery
+    if (
+      !discovery ||
+      typeof discovery !== 'object' ||
+      Object.keys(discovery).some(
+        (key) => !['firstItemId', 'secondItemId', 'clue', 'restoration'].includes(key),
+      ) ||
+      !isPersonalItemIdentity(discovery.firstItemId) ||
+      !isPersonalItemIdentity(discovery.secondItemId) ||
+      discovery.firstItemId === discovery.secondItemId
+    ) {
+      throw new TypeError('Choose two different carried Item identities for the discovery.')
+    }
+    const { scope, phases, personalJourney, rewardPackageRefs, aftermathRefs } = definition
+    if (
+      resolveEventCategory(definition) !== 'hidden-discoveries' ||
+      scope.type !== 'global' ||
+      personalJourney !== undefined ||
+      phases.length !== 1 ||
+      phases[0]?.transition.type !== 'manual' ||
+      phases[0].objectives.length ||
+      phases[0].effects.length ||
+      phases[0].cleanupEffects.length ||
+      rewardPackageRefs.length ||
+      aftermathRefs.length
+    ) {
+      throw new TypeError(
+        'Carried Item discovery requires a global Hidden Discovery with one manual phase and no shared effects or rewards.',
+      )
+    }
+    shortText(discovery.clue, 'Revealed clue', 800)
+    validateInventoryRestoration(discovery)
+  }
+
+  if (definition.repeatableTravel !== undefined) {
+    const repeatable = definition.repeatableTravel
+    const journey = repeatable?.journey
+    if (
+      (journey?.type !== 'travel-and-report' && journey?.type !== 'defeat-and-report') ||
+      definition.personalJourney !== undefined ||
+      resolveEventCategory(definition) !== 'repeatable-activities'
+    ) {
+      throw new TypeError(
+        'A repeatable journey requires a Repeatable Activity with one travel or defeat objective.',
+      )
+    }
+    if (definition.rewardPackageRefs.length || definition.aftermathRefs.length) {
+      throw new TypeError('Repeatable journeys cannot use shared rewards or aftermath.')
+    }
+    const policy = repeatable.recurrence
+    if (!policy || !['rolling-24h', 'calendar-day', 'calendar-week'].includes(policy.mode))
+      throw new TypeError('Choose a supported recurrence.')
+    if (policy.mode !== 'rolling-24h') validateCalendarReset(policy.timeZone, policy.resetMinute)
+    if (journey.type === 'defeat-and-report') validateRepeatableHunt(journey, definition)
+    else
+      validatePersistentEventDefinition({
+        ...definition,
+        category: 'story-campaigns',
+        personalJourney: journey,
+        repeatableTravel: undefined,
+      })
+  }
+
+  if (definition.personalJourney !== undefined) {
+    const journey = definition.personalJourney
+    if (
+      !journey ||
+      (journey.type !== 'travel-and-report' && journey.type !== 'item-exchange') ||
+      resolveEventCategory(definition) !== 'story-campaigns'
+    ) {
+      throw new TypeError('A personal journey needs a Story Campaign and a known quest giver.')
+    }
+    const realm = journey.type === 'item-exchange' ? journey.realm : undefined
+    if (
+      realm === undefined
+        ? !isPersonalQuestGiver(journey.giverId)
+        : !isPersonalJourneyNpcId(journey.giverId)
+    ) {
+      throw new TypeError(
+        'Choose a published World and Story NPC for a realm, or a known Watch officer for a basic quest.',
+      )
+    }
+    const giver = isPersonalQuestGiver(journey.giverId)
+      ? PERSONAL_QUEST_GIVERS[journey.giverId].position
+      : null
+    const { scope, rewardPackageRefs } = definition
+    if (
+      scope.type !== 'global' &&
+      (scope.type !== 'region' ||
+        (giver !== null &&
+          scope.key !== giver.sectorId &&
+          scope.key !== `region.${giver.sectorId}`))
+    ) {
+      throw new TypeError('The audience must include the quest giver’s region.')
+    }
+    validatePrivateQuestPhase(definition)
+    if (
+      rewardPackageRefs.length > 8 ||
+      new Set(rewardPackageRefs).size !== rewardPackageRefs.length
+    ) {
+      throw new TypeError('Choose at most eight distinct fixed XP reward packages.')
+    }
+    if (journey.type === 'travel-and-report') {
+      const destination = journey.destination
+      if (
+        !destination ||
+        !Number.isInteger(destination.x) ||
+        destination.x < 0 ||
+        destination.x > 12 ||
+        !Number.isInteger(destination.y) ||
+        destination.y < 0 ||
+        destination.y > 8 ||
+        (giver &&
+          destination.sectorId === giver.sectorId &&
+          destination.x === giver.x &&
+          destination.y === giver.y)
+      ) {
+        throw new TypeError('Choose a quest destination away from the giver.')
+      }
+      identity(destination.sectorId, 'Quest destination sector')
+    } else {
+      if (
+        !isPersonalItemIdentity(journey.inputItemId) ||
+        !isPersonalItemIdentity(journey.outputItemId) ||
+        journey.inputItemId === journey.outputItemId
+      ) {
+        throw new TypeError('Choose two different Items for the exchange.')
+      }
+      if (
+        !Number.isInteger(journey.inputQuantity) ||
+        journey.inputQuantity < 1 ||
+        journey.inputQuantity > 999
+      ) {
+        throw new TypeError('Choose an exchange quantity from 1 to 999.')
+      }
+      if (realm !== undefined) {
+        if (
+          !realm ||
+          !isPersonalJourneyNpcId(realm.guardianNpcId) ||
+          realm.guardianNpcId === journey.giverId
+        ) {
+          throw new TypeError('Choose a distinct published Story NPC as the realm guardian.')
+        }
+        if (!rewardPackageRefs.length)
+          throw new TypeError(
+            'Choose at least one approved Character XP reward for the guardian victory.',
+          )
+        for (const [label, text] of [
+          ['Realm lore', realm.lore],
+          ['Access', realm.access],
+          ['Challenge', realm.challenge],
+          ['Retry', realm.retry],
+        ] as const)
+          shortText(text, `${label} dialogue`, 800)
+      } else if (rewardPackageRefs.length)
+        throw new TypeError('An item exchange awards the selected Item and access.')
+    }
+    validateJourneyDialogue(journey)
   }
 
   for (const ref of [...definition.rewardPackageRefs, ...definition.aftermathRefs]) {

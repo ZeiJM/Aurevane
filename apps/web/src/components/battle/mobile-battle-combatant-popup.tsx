@@ -1,5 +1,13 @@
 'use client'
 
+import { BattleSummonPortrait } from './battle-summon-portrait'
+
+import { BattleEffectPopover } from './battle-effect-information'
+import { useBattleInspectEffectFocus } from './use-battle-inspect-effect-focus'
+import { BATTLE_EFFECT_KEYBOARD_HELP } from './battle-effect-keyboard-navigation'
+
+import { SummonAbilityList } from './summon-ability-list'
+
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
@@ -11,8 +19,20 @@ import {
   formatStatusStackCount,
   statusIsBeneficial,
   statusLabel,
+  statusDurationLabel,
 } from './battle-effect-summary'
 import { useBattleInteractionLifecycle } from './battle-interaction-lifecycle'
+import { buildBattleViewModel } from './battle-runtime'
+import { buildDisplayedPlacementByTile, positionKey } from './battle-geometry'
+import { battleInfoPopoverSession } from './battle-info-popover-session'
+import {
+  readSummonInspectMetadata,
+  type BattleSummonInspectMetadata,
+} from './battle-summon-inspect'
+import {
+  visibleBattleInitiative,
+  terrainAdjustedBattleProfile,
+} from '../../lib/battle/battle-elevation-stats'
 import styles from './mobile-battle-combatant-popup.module.css'
 
 const DESKTOP_POINTER_QUERY = '(any-hover: hover) and (any-pointer: fine)'
@@ -41,6 +61,7 @@ interface SelectedCombatant {
   isPlayer: boolean
   active: boolean
   actionEconomy: number | null
+  summon: (BattleSummonInspectMetadata & { ownerName: string }) | null
 }
 
 interface BattleApiBody {
@@ -52,10 +73,6 @@ function parseTilePosition(label: string): GridPosition | null {
   const match = label.match(/^Tile\s+(\d+),\s*(\d+)/i)
   if (!match) return null
   return { x: Number(match[1]) - 1, y: Number(match[2]) - 1 }
-}
-
-function positionsEqual(left: GridPosition, right: GridPosition): boolean {
-  return left.x === right.x && left.y === right.y
 }
 
 function percentFromBasisPoints(value: number): string {
@@ -86,12 +103,13 @@ function inspectModeActive(): boolean {
 
 function readSelectedCombatant(
   battle: BattleSessionView,
-  position: GridPosition,
+  target: GridPosition | string,
   playerName: string,
 ): SelectedCombatant | null {
-  const placement = battle.snapshot.tactical.placements.find((candidate) =>
-    positionsEqual(candidate.position, position),
-  )
+  const placement =
+    typeof target === 'string'
+      ? battle.snapshot.tactical.placements.find((candidate) => candidate.combatantId === target)
+      : buildDisplayedPlacementByTile(battle.snapshot.tactical).get(positionKey(target))
   if (!placement) return null
 
   const combatant = battle.snapshot.tactical.battle.combatants.find(
@@ -106,20 +124,47 @@ function readSelectedCombatant(
   const statuses =
     battle.snapshot.statusState.find((candidate) => candidate.combatantId === combatant.id)
       ?.statuses ?? []
-  const isPlayer = combatant.id.startsWith('character:')
+  const participants = buildBattleViewModel(battle, {
+    kind: 'pve',
+    playerName,
+    playerLevel: 1,
+    playerPortraitAssetId: 'character.portrait.starter.wayfarer-01',
+    playerProfileImageUrl: null,
+  }).participantByCombatant
+  const participant = participants.get(combatant.id)
+  const isPlayer = participant?.local ?? combatant.id.startsWith('character:')
   const economy = combatant.temporaryResources.find(
     (resource) => resource.key === ACTION_ECONOMY_KEY,
   )
+  const summon = readSummonInspectMetadata(battle.snapshot, combatant.id)
 
   return {
-    combatant,
+    combatant: {
+      ...combatant,
+      initiative: visibleBattleInitiative(battle.snapshot, combatant, statuses),
+    },
     placement,
-    profile,
+    profile: terrainAdjustedBattleProfile(battle.snapshot, combatant.id, profile, statuses),
     statuses,
-    name: isPlayer ? playerName : combatant.id.startsWith('recruit:') ? 'Recruit' : 'Combatant',
+    name:
+      summon?.name ??
+      participant?.name ??
+      (isPlayer ? playerName : combatant.id.startsWith('recruit:') ? 'Recruit' : 'Combatant'),
     isPlayer,
     active: battle.snapshot.tactical.battle.currentTurn?.combatantId === combatant.id,
     actionEconomy: economy?.current ?? null,
+    summon: summon
+      ? {
+          ...summon,
+          ownerName:
+            participants.get(summon.ownerCombatantId)?.name ??
+            (summon.ownerCombatantId.startsWith('character:')
+              ? playerName
+              : summon.ownerCombatantId.startsWith('recruit:')
+                ? 'Recruit'
+                : 'Combatant'),
+        }
+      : null,
   }
 }
 
@@ -130,6 +175,8 @@ export function MobileBattleCombatantPopup({
   playerProfileImageUrl = null,
 }: MobileBattleCombatantPopupProps) {
   const [open, setOpen] = useState(false)
+  const inspectionRef = useRef<HTMLElement>(null)
+  const inspectionDescriptionId = useBattleInspectEffectFocus(open, inspectionRef)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selected, setSelected] = useState<SelectedCombatant | null>(null)
@@ -146,7 +193,8 @@ export function MobileBattleCombatantPopup({
   useEffect(() => {
     let requestSequence = 0
 
-    async function openCombatant(position: GridPosition) {
+    async function openCombatant(target: GridPosition | string) {
+      battleInfoPopoverSession.dismissActive()
       const sequence = ++requestSequence
       openRef.current = true
       setOpen(true)
@@ -165,7 +213,7 @@ export function MobileBattleCombatantPopup({
           throw new Error(body.error?.message ?? 'Combatant details could not be loaded.')
         }
 
-        const next = readSelectedCombatant(body.battle, position, playerName)
+        const next = readSelectedCombatant(body.battle, target, playerName)
         if (!next) throw new Error('That combatant is no longer on this tile.')
         setSelected(next)
       } catch (loadError) {
@@ -179,12 +227,22 @@ export function MobileBattleCombatantPopup({
     }
 
     function handleBattlefieldClick(event: MouseEvent) {
-      if (window.matchMedia(DESKTOP_POINTER_QUERY).matches || !inspectModeActive()) return
+      if (window.matchMedia(DESKTOP_POINTER_QUERY).matches) return
       const target = event.target instanceof Element ? event.target : null
+      const cardId = target?.closest<HTMLElement>('[data-desktop-inspect-combatant]')?.dataset
+        .desktopInspectCombatant
+      if (cardId) {
+        event.preventDefault()
+        event.stopPropagation()
+        void openCombatant(cardId)
+        return
+      }
+      if (!inspectModeActive()) return
       const tile = target?.closest<HTMLButtonElement>(
         '#battlefield button[aria-label^="Tile "][aria-label*="occupied by"]',
       )
       if (!tile) return
+      if (tile.closest('main[data-battle-layout="refined"]')) return
 
       const label = tile.getAttribute('aria-label') ?? ''
       const position = parseTilePosition(label)
@@ -199,7 +257,7 @@ export function MobileBattleCombatantPopup({
     }
 
     function handleEscape(event: KeyboardEvent) {
-      if (event.key === 'Escape') closeInspect()
+      if (event.key === 'Escape' && !event.defaultPrevented) closeInspect()
     }
 
     document.addEventListener('click', handleBattlefieldClick, true)
@@ -228,10 +286,17 @@ export function MobileBattleCombatantPopup({
       <section
         className={styles.popup}
         role="dialog"
+        ref={inspectionRef}
+        data-battle-effect-inspect="true"
+        tabIndex={-1}
+        aria-describedby={inspectionDescriptionId}
         aria-modal="true"
         aria-label={selected ? `${selected.name} battle details` : 'Battle combatant details'}
         onPointerDown={(event) => event.stopPropagation()}
       >
+        <span id={inspectionDescriptionId} hidden>
+          {BATTLE_EFFECT_KEYBOARD_HELP}
+        </span>
         {loading ? (
           <div className={styles.loading}>Loading combatant details…</div>
         ) : error ? (
@@ -242,7 +307,14 @@ export function MobileBattleCombatantPopup({
           <>
             <div className={styles.identityRow}>
               <div className={styles.portrait}>
-                {selected.isPlayer ? (
+                {selected.summon?.portraitUrl ? (
+                  <BattleSummonPortrait
+                    src={selected.summon?.portraitUrl}
+                    name={selected.name}
+                    fallbackClassName={styles.recruitPortrait}
+                    className={styles.portraitImage}
+                  />
+                ) : selected.isPlayer ? (
                   <CharacterPortraitImage
                     imageUrl={playerProfileImageUrl}
                     fallbackAssetId={playerPortraitAssetId}
@@ -251,15 +323,27 @@ export function MobileBattleCombatantPopup({
                     alt={`${selected.name} portrait`}
                   />
                 ) : (
-                  <span className={styles.recruitPortrait} aria-label="Recruit default portrait">
-                    R
+                  <span
+                    className={styles.recruitPortrait}
+                    aria-label={
+                      selected.summon
+                        ? `${selected.name} summon portrait`
+                        : 'Recruit default portrait'
+                    }
+                  >
+                    {selected.summon ? selected.name.slice(0, 1).toUpperCase() : 'R'}
                   </span>
                 )}
               </div>
               <div className={styles.identityCopy}>
-                <span>{selected.isPlayer ? 'Character' : 'Opponent'}</span>
+                <span>
+                  {selected.summon ? 'Summon' : selected.isPlayer ? 'Character' : 'Opponent'}
+                </span>
                 <h2>{selected.name}</h2>
                 <p>
+                  {selected.summon
+                    ? `Summoner: ${selected.summon.ownerName} · ${selected.summon.remainingTurns} summon turn${selected.summon.remainingTurns === 1 ? '' : 's'} remaining · `
+                    : ''}
                   {selected.active ? 'Active turn · ' : ''}
                   Facing {selected.placement.facing} {facingGlyph(selected.placement.facing)}
                 </p>
@@ -315,11 +399,11 @@ export function MobileBattleCombatantPopup({
                 <dd>{selected.profile ? percentFromBasisPoints(selected.profile.evasion) : '—'}</dd>
               </div>
               <div>
-                <dt>Armor</dt>
+                <dt>Physical Defense</dt>
                 <dd>{selected.profile?.armor ?? '—'}</dd>
               </div>
               <div>
-                <dt>Ward</dt>
+                <dt>Mystic Defense</dt>
                 <dd>{selected.profile?.ward ?? '—'}</dd>
               </div>
               <div>
@@ -330,6 +414,26 @@ export function MobileBattleCombatantPopup({
               </div>
             </dl>
 
+            {selected.summon ? (
+              <section className={styles.effects} aria-label={`${selected.name} summon profile`}>
+                <span>Summon profile</span>
+                <p>
+                  {selected.summon.description} · {selected.summon.remainingTurns}/
+                  {selected.summon.lifetimeTurns} turns remaining.
+                </p>
+                <p>{selected.summon.flavorLine}</p>
+                <p>{selected.summon.tags.join(' · ')}</p>
+                {selected.summon.potencyDescription ? (
+                  <p>{selected.summon.potencyDescription}</p>
+                ) : null}
+                <SummonAbilityList
+                  abilities={selected.summon.abilities}
+                  policies={selected.summon.policies}
+                  airborne={selected.statuses.some((status) => status.statusId === 'airborne')}
+                />
+              </section>
+            ) : null}
+
             <section className={styles.effects} aria-label={`${selected.name} active effects`}>
               <span>Active effects</span>
               {effectStatuses.length === 0 ? (
@@ -339,16 +443,23 @@ export function MobileBattleCombatantPopup({
                   {effectStatuses.map((status) => (
                     <li
                       key={`${status.statusId}:${status.statusVersion}`}
-                      data-tone={statusIsBeneficial(status.statusId) ? 'buff' : 'debuff'}
+                      data-tone={statusIsBeneficial(status.statusId, status) ? 'buff' : 'debuff'}
                     >
-                      <strong>
-                        {statusLabel(status.statusId)}
-                        <b>{formatStatusStackCount(status.statusId, status.stacks)}</b>
-                      </strong>
-                      <small>
-                        {status.remainingOwnerTurnStarts} turn
-                        {status.remainingOwnerTurnStarts === 1 ? '' : 's'} remaining
-                      </small>
+                      <BattleEffectPopover
+                        effect={status}
+                        layer="inspect"
+                        portalHost={inspectionRef}
+                        className={styles.effectReader}
+                        trigger={
+                          <>
+                            <strong>
+                              {statusLabel(status.statusId, status)}
+                              <b>{formatStatusStackCount(status.statusId, status.stacks)}</b>
+                            </strong>
+                            <small>{statusDurationLabel(status)}</small>
+                          </>
+                        }
+                      />
                     </li>
                   ))}
                 </ul>

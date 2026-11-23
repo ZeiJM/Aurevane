@@ -1,6 +1,8 @@
 import 'server-only'
+import { buildBattlePrivacyJournalInput } from './battle-history-privacy'
 
 import { createHash, randomUUID } from 'node:crypto'
+import { refreezeCapturedCombatAbilityState } from '@aurevane/game-core/combat/combat-behavior-runtime'
 
 import {
   isPvpQualityEncounter,
@@ -99,7 +101,7 @@ function readEncounter(value: unknown): StatDrivenCombatEncounterState {
   if (!isPvpQualityEncounter(state)) {
     throw unavailable('This PvP battle predates the current turn-clock rules.')
   }
-  return state
+  return refreezeCapturedCombatAbilityState(state)
 }
 
 function unavailable(message = 'PvP battle services are unavailable right now.'): AurevaneError {
@@ -193,7 +195,14 @@ export async function tickPvpTurnClock(
       nextSnapshot: resolved.state,
       events: resolved.events,
 
-      privacyJournal: null,
+      privacyJournal: state.capturedAbilitySources?.length
+        ? buildBattlePrivacyJournalInput({
+            before: state,
+            after: resolved.state,
+            commandKind: 'system',
+            events: resolved.events,
+          })
+        : null,
     })
   } catch (error) {
     if (!(error instanceof StaleBattleVersionError)) throw error
@@ -240,7 +249,14 @@ export async function surrenderPvpBattle(
       nextSnapshot: resolved.state,
       events: resolved.events,
 
-      privacyJournal: null,
+      privacyJournal: state.capturedAbilitySources?.length
+        ? buildBattlePrivacyJournalInput({
+            before: state,
+            after: resolved.state,
+            commandKind: 'system',
+            events: resolved.events,
+          })
+        : null,
     })
     return projectCommittedBattleSession(committed, current.controlledCombatantIds)
   } catch (error) {

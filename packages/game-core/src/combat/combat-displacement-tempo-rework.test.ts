@@ -4,6 +4,7 @@ import {
   createCombatEncounterState,
   executeCombatAction,
   evaluateCombatAction,
+  validateCombatEncounterState,
   type CombatActionDefinition,
   type CombatEncounterState,
 } from './actions'
@@ -13,6 +14,7 @@ import {
   createPv1fTemporaryResources,
   evaluatePv1fMovement,
   executePv1fMovement,
+  pv1fMovementModifiers,
   readPv1fActionEconomy,
   PV1F_COMBAT_CONTENT,
 } from './pv1f-action-economy'
@@ -22,6 +24,8 @@ import {
 } from './stat-driven-combat'
 
 import { movementApCostForTile } from './pv1f-skills'
+import { combatStatusDetails } from './status-content'
+import { resolveCombatMovementStepEffects } from './actions-legacy'
 
 const OPEN = 'open'
 const ROUGH = 'rough'
@@ -297,6 +301,63 @@ describe('Task 2 variable Push and Pull', () => {
 })
 
 describe('Task 2 Haste and Slow movement AP', () => {
+  it('explains that Haste can reduce the AP price to zero without changing Movement', () => {
+    expect(combatStatusDetails('haste').description).toContain('can reach 0 AP')
+    expect(combatStatusDetails('haste').description).toContain('Movement allowance is unchanged')
+  })
+  it.each([1, 0, -1])(
+    'cancels extreme movement totals exactly with a %i-stack Slow residual',
+    (residual) => {
+      const base = withStatus(withStatus(movementEncounter(), 'actor', 'haste'), 'actor', 'slow')
+      const count = Number.MAX_SAFE_INTEGER - 1
+      const state = {
+        ...base,
+        effectStackingPolicyVersion: 1 as const,
+        statusState: base.statusState.map((row) => ({
+          ...row,
+          statuses: row.statuses.map((status) => ({
+            ...status,
+            stacks: count + (status.statusId === 'slow' ? residual : 0),
+          })),
+        })),
+      }
+      expect(evaluatePv1fMovement(state, path()).economyCost).toBe(20 + residual * 10)
+    },
+  )
+
+  it.each(['haste', 'slow'])(
+    'fails closed when uncancelled %s movement exceeds safe precision',
+    (statusId) => {
+      const base = withStatus(movementEncounter(), 'actor', statusId)
+      const state = {
+        ...base,
+        effectStackingPolicyVersion: 1 as const,
+        statusState: base.statusState.map((row) => ({
+          ...row,
+          statuses: row.statuses.map((status) => ({ ...status, stacks: Number.MAX_SAFE_INTEGER })),
+        })),
+      }
+      expect(() => pv1fMovementModifiers(state)).toThrow('safe integer')
+    },
+  )
+
+  it('counts Slow applications beyond the old surcharge cap and permits zero-cost Haste movement', () => {
+    for (const [statusId, economyCost] of [
+      ['slow', 60],
+      ['haste', 0],
+    ] as const) {
+      const base = withStatus(movementEncounter(), 'actor', statusId)
+      const state = {
+        ...base,
+        effectStackingPolicyVersion: 1 as const,
+        statusState: base.statusState.map((row) => ({
+          ...row,
+          statuses: row.statuses.map((status) => ({ ...status, stacks: 4 })),
+        })),
+      }
+      expect(evaluatePv1fMovement(state, path()).economyCost).toBe(economyCost)
+    }
+  })
   it('keeps the normal and Slow baselines while Haste reduces AP per entered tile', () => {
     const normal = evaluatePv1fMovement(movementEncounter(), path())
     const haste = evaluatePv1fMovement(withStatus(movementEncounter(), 'actor', 'haste'), path())
@@ -323,7 +384,8 @@ describe('Task 2 Haste and Slow movement AP', () => {
     )
     expect(rough.economyCost).toBe(40)
     expect(roughHaste.economyCost).toBe(30)
-    expect(roughHaste.movement.cost).toBe(2)
+    expect(rough.movement.cost).toBe(1)
+    expect(roughHaste.movement.cost).toBe(1)
   })
 
   it('combines Frozen, Slow, Airborne and Haste in the approved per-tile order', () => {
@@ -341,14 +403,6 @@ describe('Task 2 Haste and Slow movement AP', () => {
     )
     expect(frozenSlow.economyCost).toBe(40)
     expect(airborneHaste.economyCost).toBe(10)
-  })
-
-  it('does not reinterpret historical Hastened as movement Haste', () => {
-    const historical = evaluatePv1fMovement(
-      withStatus(movementEncounter(), 'actor', 'hastened'),
-      path(),
-    )
-    expect(historical.economyCost).toBe(20)
   })
 
   it('Root still blocks movement regardless of Haste', () => {
@@ -456,11 +510,96 @@ describe('displacement edge cases and preview parity', () => {
 })
 
 describe('movement AP floor and committed resources', () => {
+  const twoStepPath = [
+    { x: 1, y: 1 },
+    { x: 0, y: 1 },
+    { x: 0, y: 0 },
+  ]
+
+  function twoMoveEncounter(roughTiles: number, ap = 100): StatDrivenCombatEncounterState {
+    const state = movementEncounter()
+    const turn = state.tactical.battle.currentTurn!
+    turn.movementMaximum = 2
+    turn.movementRemaining = 2
+    state.tactical.battle.combatants[0]!.baseMovementBudget = 2
+    state.tactical.tiles = state.tactical.tiles.map((tile) => ({
+      ...tile,
+      terrainId: twoStepPath
+        .slice(1, roughTiles + 1)
+        .some((position) => position.x === tile.position.x && position.y === tile.position.y)
+        ? ROUGH
+        : OPEN,
+    }))
+    // Initialize the turn marker before reducing AP, as in a persisted in-progress turn.
+    const prepared = evaluatePv1fMovement(state, twoStepPath).prepared
+    prepared.tactical.battle.combatants[0]!.temporaryResources =
+      prepared.tactical.battle.combatants[0]!.temporaryResources.map((resource) =>
+        resource.key === 'pv1f.action-economy' ? { ...resource, current: ap } : resource,
+      )
+    return prepared
+  }
+
+  it.each([
+    [2, 80],
+    [1, 60],
+  ] as const)('MOVE 2 enters two tiles including %i rough tiles for %i AP', (roughTiles, ap) => {
+    const state = twoMoveEncounter(roughTiles, ap)
+    const before = JSON.stringify(state)
+    const preview = evaluatePv1fMovement(state, twoStepPath)
+    expect(preview.movement).toMatchObject({ legal: true, cost: 2, movementRemainingAfter: 0 })
+    expect(preview.economyCost).toBe(ap)
+    const moved = executePv1fMovement(state, twoStepPath)
+    expect(moved.state.tactical.battle.currentTurn).toMatchObject({
+      movementRemaining: 0,
+      movementSpent: 2,
+    })
+    expect(readPv1fActionEconomy(moved.state)?.current).toBe(0)
+    expect(at(moved.state, 'actor')).toEqual(twoStepPath[2])
+    expect(JSON.stringify(state)).toBe(before)
+    expect(moved.events).toContainEqual(
+      expect.objectContaining({ event: 'movement_spent', amount: 2 }),
+    )
+  })
+
+  it('rejects a third step even with enough AP and rejects two rough tiles with insufficient AP', () => {
+    const thirdStep = [...twoStepPath, { x: 1, y: 0 }]
+    const extra = evaluatePv1fMovement(twoMoveEncounter(0), thirdStep)
+    expect(extra.movement.issues).toContainEqual(
+      expect.objectContaining({ code: 'movement-budget-exceeded' }),
+    )
+    expect(() => executePv1fMovement(twoMoveEncounter(0), thirdStep)).toThrow(/Movement/)
+    const insufficient = twoMoveEncounter(2, 79)
+    expect(evaluatePv1fMovement(insufficient, twoStepPath).economyCost).toBe(80)
+    expect(() => executePv1fMovement(insufficient, twoStepPath)).toThrow(/Action Economy/)
+  })
+
+  it.each([
+    [[], false, 80],
+    [['haste'], false, 60],
+    [['slow'], false, 100],
+    [['haste', 'slow'], false, 80],
+    [['haste'], true, 70],
+    [['haste', 'airborne'], true, 60],
+  ] as [string[], boolean, number][])(
+    'keeps two MOVE steps with statuses %j and Frozen %j while charging %i AP',
+    (statuses, frozen, expected) => {
+      let state = twoMoveEncounter(2)
+      for (const status of statuses) state = withStatus(state, 'actor', status)
+      if (frozen) state = withFrozenDestination(state)
+      const preview = evaluatePv1fMovement(state, twoStepPath)
+      expect(preview.movement).toMatchObject({ legal: true, cost: 2, movementRemainingAfter: 0 })
+      expect(preview.economyCost).toBe(expected)
+      const result = executePv1fMovement(state, twoStepPath)
+      expect(result.state.tactical.battle.currentTurn?.movementRemaining).toBe(0)
+      expect(readPv1fActionEconomy(result.state)?.current).toBe(100 - expected)
+    },
+  )
+
   it.each([
     [1, -10, 10],
-    [1, -20, 10],
+    [1, -20, 0],
     [2, -20, 20],
-    [2, -50, 10],
+    [2, -50, 0],
     [1, 20, 40],
     [2, 0, 40],
   ])('charges terrain %i plus delta %i as %i AP', (traversal, delta, expected) => {
@@ -475,5 +614,245 @@ describe('movement AP floor and committed resources', () => {
     expect(readPv1fActionEconomy(result.state)?.current).toBe(90)
     expect(result.state.tactical.battle.currentTurn?.movementRemaining).toBe(3)
     expect(JSON.stringify(state)).toBe(before)
+  })
+})
+
+describe('captured current displacement origins', () => {
+  function current(facing: 'north' | 'east' | 'south' | 'west' = 'east') {
+    const state = combatEncounter({ actor: { x: 3, y: 1 }, enemy: { x: 5, y: 1 } })
+    return {
+      ...state,
+      displacementPolicyVersion: 1 as const,
+      displacementOriginPolicyVersion: 1 as const,
+      tactical: {
+        ...state.tactical,
+        placements: state.tactical.placements.map((row) =>
+          row.combatantId === 'actor' ? { ...row, facing } : row,
+        ),
+      },
+    }
+  }
+  function packet(target: 'self' | 'all' | 'ground', direction: 'push' | 'pull', distance = 1) {
+    const base = displace(direction, distance)
+    return {
+      ...base,
+      target: {
+        ...base.target,
+        allTargetPolicyVersion: 1 as const,
+        kind: target === 'ground' ? ('ground-tile' as const) : ('self' as const),
+        teamPolicy: 'any' as const,
+        friendlyFire: 'all-units' as const,
+        minimumRange: 0,
+        shape:
+          target === 'ground'
+            ? { kind: 'circle' as const, radius: 2 }
+            : { kind: 'single' as const },
+      },
+      effects: [
+        {
+          type: 'displace' as const,
+          target,
+          recipient: target === 'self' ? ('actor' as const) : ('affected-units' as const),
+          distance,
+          direction,
+        },
+      ],
+    }
+  }
+
+  it.each([
+    ['north', 0, -1],
+    ['east', 1, 0],
+    ['south', 0, 1],
+    ['west', -1, 0],
+  ] as const)('Self and All recoil on Push and follow %s facing on Pull', (facing, dx, dy) => {
+    for (const target of ['self', 'all'] as const) {
+      for (const direction of ['push', 'pull'] as const) {
+        const state = current(facing)
+        const action = packet(target, direction)
+        const selection = { kind: 'self' as const }
+        const quote = evaluateCombatAction(state, action, selection, PV1F_COMBAT_CONTENT)
+        expect(quote.legal).toBe(true)
+        const out = executeCombatAction(state, action, selection, PV1F_COMBAT_CONTENT)
+        const sign = direction === 'push' ? -1 : 1
+        expect(at(out.state, 'actor')).toEqual({ x: 3 + dx * sign, y: 1 + dy * sign })
+        expect(quote.projectedEvents).toEqual(
+          out.events.filter((event) => event.event !== 'combat_action_used'),
+        )
+      }
+    }
+  })
+
+  it('Push All separates both participants using the same unmoved cast origin', () => {
+    const out = executeCombatAction(
+      current(),
+      packet('all', 'push'),
+      { kind: 'self' },
+      PV1F_COMBAT_CONTENT,
+    )
+    expect(at(out.state, 'actor')).toEqual({ x: 2, y: 1 })
+    expect(at(out.state, 'enemy')).toEqual({ x: 6, y: 1 })
+  })
+
+  it('Ground Push moves the caster away from the selected tile even while facing toward it', () => {
+    const state = current()
+    const action = packet('ground', 'push')
+    const selection = { kind: 'tile' as const, position: { x: 4, y: 1 } }
+    const quote = evaluateCombatAction(state, action, selection, PV1F_COMBAT_CONTENT)
+    expect(quote.legal).toBe(true)
+    const out = executeCombatAction(state, action, selection, PV1F_COMBAT_CONTENT)
+    expect(at(out.state, 'actor')).toEqual({ x: 2, y: 1 })
+    expect(at(out.state, 'enemy')).toEqual({ x: 6, y: 1 })
+    expect(quote.projectedEvents).toEqual(
+      out.events.filter((event) => event.event !== 'combat_action_used'),
+    )
+  })
+
+  it('Ground Pull reaches its empty anchor and stops there without overshoot or false collision', () => {
+    const out = executeCombatAction(
+      current(),
+      packet('ground', 'pull', 4),
+      { kind: 'tile', position: { x: 4, y: 1 } },
+      PV1F_COMBAT_CONTENT,
+    )
+    expect(at(out.state, 'actor')).toEqual({ x: 4, y: 1 })
+    expect(out.events).toContainEqual(
+      expect.objectContaining({ event: 'combatant_displaced', combatantId: 'actor', distance: 1 }),
+    )
+    expect(out.events).not.toContainEqual(
+      expect.objectContaining({ event: 'displacement_failed', combatantId: 'actor' }),
+    )
+  })
+
+  it.each(['self', 'ground'] as const)(
+    'preserves Root, occupied tiles, terrain and elevation for current %s recoil',
+    (target) => {
+      const initial = current()
+      const selection =
+        target === 'self'
+          ? { kind: 'self' as const }
+          : { kind: 'tile' as const, position: { x: 4, y: 1 } }
+      for (const reason of [
+        'status-restricted',
+        'occupied-tile',
+        'blocked-terrain',
+        'elevation-step-too-high',
+      ] as const) {
+        let state: CombatEncounterState =
+          reason === 'status-restricted' ? withStatus(initial, 'actor', 'root') : initial
+        state = {
+          ...state,
+          tactical: {
+            ...state.tactical,
+            ...(reason === 'occupied-tile'
+              ? {
+                  placements: state.tactical.placements.map((row) =>
+                    row.combatantId === 'blocker' ? { ...row, position: { x: 2, y: 1 } } : row,
+                  ),
+                }
+              : {}),
+            terrains: [...state.tactical.terrains, { id: 'wall', traversalCost: null }],
+            tiles: state.tactical.tiles.map((tile) =>
+              tile.position.x === 2 && tile.position.y === 1
+                ? {
+                    ...tile,
+                    ...(reason === 'blocked-terrain' ? { terrainId: 'wall' } : {}),
+                    ...(reason === 'elevation-step-too-high' ? { elevation: 3 } : {}),
+                  }
+                : tile,
+            ),
+          },
+        }
+        const result = executeCombatAction(
+          state,
+          packet(target, 'push'),
+          selection,
+          PV1F_COMBAT_CONTENT,
+        )
+        expect(at(result.state, 'actor')).toEqual({ x: 3, y: 1 })
+        expect(result.events).toContainEqual(
+          expect.objectContaining({ event: 'displacement_failed', combatantId: 'actor', reason }),
+        )
+      }
+    },
+  )
+
+  it('ordinary unit Pull retains the caster origin and stops before its occupied tile', () => {
+    const out = executeCombatAction(
+      current(),
+      displace('pull', 5),
+      { kind: 'unit', combatantId: 'enemy' },
+      PV1F_COMBAT_CONTENT,
+    )
+    expect(at(out.state, 'actor')).toEqual({ x: 3, y: 1 })
+    expect(at(out.state, 'enemy')).toEqual({ x: 4, y: 1 })
+    expect(out.events).toContainEqual(
+      expect.objectContaining({ event: 'combatant_displaced', combatantId: 'enemy', distance: 1 }),
+    )
+  })
+
+  it('keeps a persistent Ground field anchored to its selected point after caster movement and reload', () => {
+    const state = {
+      ...current(),
+      groundEffectPolicyVersion: 1 as const,
+      groundContactPolicyVersion: 1 as const,
+    }
+    const action = {
+      ...packet('ground', 'push'),
+      groundArea: {
+        durationRounds: 3,
+        entryEffectOrdinals: [0],
+        timing: 'instant' as const,
+        visualPresetId: 'arcane-pulse' as const,
+      },
+    }
+    const cast = executeCombatAction(
+      state,
+      action,
+      { kind: 'tile', position: { x: 4, y: 1 } },
+      PV1F_COMBAT_CONTENT,
+    )
+    let restored = JSON.parse(JSON.stringify(cast.state)) as CombatEncounterState
+    expect(restored.groundAreas![0]).toHaveProperty('displacementOrigin', { x: 4, y: 1 })
+    expect(validateCombatEncounterState(restored)).toEqual([])
+    restored = {
+      ...restored,
+      turnTriggerState: undefined,
+      tactical: {
+        ...restored.tactical,
+        placements: restored.tactical.placements.map((row) =>
+          row.combatantId === 'actor'
+            ? { ...row, position: { x: 0, y: 1 } }
+            : row.combatantId === 'enemy'
+              ? { ...row, position: { x: 3, y: 1 } }
+              : row,
+        ),
+      },
+    }
+    const entered = resolveCombatMovementStepEffects(restored, 'enemy', PV1F_COMBAT_CONTENT)
+    expect(at(entered.state, 'enemy')).toEqual({ x: 2, y: 1 })
+  })
+
+  it('rejects unknown origin policies while old snapshots retain their undefined Self direction', () => {
+    const state = current()
+    expect(
+      validateCombatEncounterState({ ...state, displacementOriginPolicyVersion: 2 } as never),
+    ).toContainEqual(expect.objectContaining({ field: 'displacementOriginPolicyVersion' }))
+    const { displacementOriginPolicyVersion: _policy, ...legacy } = state
+    void _policy
+    const out = executeCombatAction(
+      legacy,
+      packet('self', 'push'),
+      { kind: 'self' },
+      PV1F_COMBAT_CONTENT,
+    )
+    expect(at(out.state, 'actor')).toEqual({ x: 3, y: 1 })
+    expect(out.events).toContainEqual(
+      expect.objectContaining({
+        event: 'displacement_failed',
+        combatantId: 'actor',
+        reason: 'direction-undefined',
+      }),
+    )
   })
 })

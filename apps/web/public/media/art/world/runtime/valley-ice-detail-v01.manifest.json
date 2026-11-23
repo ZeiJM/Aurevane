@@ -1,0 +1,59 @@
+{
+  "requestId": "ART-WORLD-CORRECTION-20261112",
+  "promptSpec": "content/art-requests/ART-WORLD-CORRECTION-20261112.md",
+  "provider": "OpenAI image generation",
+  "selection": "Original generated sheet selected for runtime integration",
+  "name": "valley-ice-detail",
+  "source": {
+    "path": "sources/valley-ice-context-detail-v01.png",
+    "method": "generated-edit",
+    "reference": "sources/elemental-waterfall-valley-owner-selected-v01.png",
+    "referenceSha256": "3970d259fd7aae25e2c75be3b8220bffcff4660b9236cd444fb39d37539da32a",
+    "sha256": "4aecc705a98b151b941afbf25ad7bff42dc1f90d844fe195193642d01b3e0306",
+    "width": 1086,
+    "height": 1448
+  },
+  "runtime": {
+    "path": "runtime/valley-ice-detail-v01.webp",
+    "sha256": "53e3f056d0cefd16c1fa040373c46c0f725f6431fdbb8e91d397fa9192d3dcd8",
+    "bytes": 637784,
+    "width": 1086,
+    "height": 1448,
+    "columns": 1,
+    "rows": 1,
+    "cellWidth": 1086,
+    "cellHeight": 1448,
+    "preserveFrame": true,
+    "featherPixels": 30,
+    "referenceBounds": [960, 80, 576, 768],
+    "encoding": "Native full reference frame retained;16master-pixel smoothstep perimeter feather; Sharp WebP quality88 alphaQuality100"
+  },
+  "fringePixelsRemoved": 13621,
+  "packedFringePixelsRemoved": 0,
+  "sprites": [
+    {
+      "index": 0,
+      "anchorX": 0.348562,
+      "anchorY": 0.984807,
+      "sourceCell": {
+        "left": 0,
+        "top": 0,
+        "width": 1086,
+        "height": 1448
+      },
+      "crop": {
+        "left": 0,
+        "top": 0,
+        "width": 1086,
+        "height": 1448
+      },
+      "runtimeBounds": {
+        "left": 0,
+        "top": 0,
+        "width": 1086,
+        "height": 1448
+      },
+      "floorY": 1
+    }
+  ]
+}

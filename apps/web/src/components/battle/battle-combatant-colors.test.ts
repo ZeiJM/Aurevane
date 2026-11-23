@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { BATTLE_COMBATANT_ACCENTS, pvpParticipantAccent } from './battle-combatant-colors'
@@ -5,6 +7,26 @@ import { BATTLE_COMBATANT_ACCENTS, pvpParticipantAccent } from './battle-combata
 const RESERVED_SEMANTIC_HUES = new Set(['#ff766f', '#59d39b', '#6c91c6'])
 
 describe('battle combatant identity accents', () => {
+  it('uses the inherited identity accent for shared rail portraits and grid arrows', () => {
+    for (const file of ['battle-combatant-card.module.css', 'battle-facing-indicator.module.css']) {
+      const css = readFileSync(join(process.cwd(), 'src/components/battle', file), 'utf8')
+      const rule = css.match(
+        file.startsWith('battle-combatant-card')
+          ? /\.portrait \{([^}]+)\}/
+          : /\.indicator \{([^}]+)\}/,
+      )![1]
+      expect(rule).toContain('var(--battle-combatant-accent, #d0aa62)')
+    }
+  })
+
+  it('keeps five opposing Recruit identities distinct from the local player', () => {
+    const accents = [
+      pvpParticipantAccent(0, 0, 2),
+      ...Array.from({ length: 5 }, (_, seat) => pvpParticipantAccent(1, seat, 2)),
+    ]
+    expect(new Set(accents).size).toBe(6)
+  })
+
   it('keeps opposing teams in distinct non-semantic identity families', () => {
     expect(pvpParticipantAccent(0, 0, 2)).toBe('#d0aa62')
     expect(pvpParticipantAccent(1, 0, 2)).toBe('#aa86cf')

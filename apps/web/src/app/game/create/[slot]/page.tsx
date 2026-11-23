@@ -1,10 +1,12 @@
+import { AccountBannedError } from '@aurevane/game-core/errors'
+import { loadPublishedFoundations } from '@/server/character/published-discipline-catalogue'
 import { isAurevaneError } from '@aurevane/game-core/errors'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
-import { AurevaneImage } from '@/components/media/aurevane-image'
 import { CharacterCreationExperience } from '@/components/character/character-creation-experience'
 import { AccountMenu } from '@/components/shell/account-menu'
+import { SiteHeader } from '@/components/shell/site-header'
 import { getAuthenticatedActor } from '@/server/auth/actor'
 import { isCharacterSlotIndex, loadCharacterSlots } from '@/server/character/character-slot-service'
 
@@ -22,6 +24,7 @@ export default async function CharacterCreationPage({
   try {
     actor = await getAuthenticatedActor()
   } catch (error) {
+    if (error instanceof AccountBannedError) redirect('/account/banned')
     if (isAurevaneError(error) && error.code === 'UNAUTHENTICATED') redirect('/')
     throw error
   }
@@ -33,23 +36,17 @@ export default async function CharacterCreationPage({
   const characters = await loadCharacterSlots(actor.userId)
   if (characters.some((character) => character.slotIndex === slotIndex)) redirect('/game')
 
+  const disciplines = await loadPublishedFoundations(actor.userId)
+  if (disciplines.length === 0) throw new Error('No current Foundation Discipline is available.')
+
   return (
     <div className={styles.shell} data-character-creation-page="true">
-      <div className={styles.world} aria-hidden="true">
-        <AurevaneImage assetId="ui.foundation.vista" />
-      </div>
-      <header className={styles.header}>
-        <Link className="brand" href="/game" aria-label="AUREVANE Character Select">
-          <span className="brand__crest" aria-hidden="true">
-            <span>A</span>
-          </span>
-          <span className="brand__wordmark">
-            <strong>AUREVANE</strong>
-            <small>Begin Your Legend</small>
-          </span>
-        </Link>
-        <AccountMenu />
-      </header>
+      <SiteHeader
+        className={styles.header}
+        brandHref="/game"
+        brandLabel="AUREVANE Character Select"
+        utility={<AccountMenu />}
+      />
 
       <main className={creationStyles.pageMain}>
         <section className={styles.creationPanel}>
@@ -57,7 +54,7 @@ export default async function CharacterCreationPage({
             <span>Slot {slotIndex + 1}</span>
             <Link href="/game">← Back to Character Select</Link>
           </div>
-          <CharacterCreationExperience slotIndex={slotIndex} />
+          <CharacterCreationExperience slotIndex={slotIndex} disciplines={disciplines} />
         </section>
       </main>
     </div>

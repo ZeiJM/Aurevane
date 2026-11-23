@@ -1,4 +1,4 @@
-export type Pv1fSkillCategory = 'movement' | 'attack' | 'defense' | 'heal'
+export type Pv1fSkillCategory = 'movement' | 'attack' | 'defense' | 'heal' | 'utility'
 
 export type Pv1fSkillCost =
   | { readonly kind: 'flat'; readonly amount: number }
@@ -15,6 +15,7 @@ export interface Pv1fSkillDefinition {
   readonly source: Pv1fSkillSource
 }
 
+export const PV1F_MINIMUM_MOVEMENT_AP_COST = 0 as const
 export const PV1F_MOVEMENT_COST_PER_TERRAIN_POINT = 20 as const
 export const PV1F_BASIC_ATTACK_COST = 30 as const
 export const PV1F_GUARD_COST = 30 as const
@@ -25,6 +26,9 @@ export const PV1F_BASIC_ATTACK_ID = 'basic.attack.unarmed.basic' as const
 export const PV1F_GUARD_ACTION_ID = 'basic.guard' as const
 export const PV1F_RECOVER_ACTION_ID = 'basic.recover' as const
 export const PV1F_MP_RECOVER_ACTION_ID = 'basic.recover.mp' as const
+export const PV1F_PILFER_ACTION_ID = 'basic.pilfer' as const
+export const PV1F_FLEETSTEP_ACTION_ID = 'basic.fleetstep' as const
+export const PV1F_INVOCATION_ACTION_ID = 'basic.invocation' as const
 
 export const PV1F_SKILLS = [
   {
@@ -67,6 +71,30 @@ export const PV1F_SKILLS = [
     cost: { kind: 'flat', amount: PV1F_MP_RECOVER_COST },
     source: 'inherent',
   },
+  {
+    id: PV1F_PILFER_ACTION_ID,
+    actionId: PV1F_PILFER_ACTION_ID,
+    category: 'attack',
+    name: 'Pilfer',
+    cost: { kind: 'flat', amount: 15 },
+    source: 'inherent',
+  },
+  {
+    id: PV1F_FLEETSTEP_ACTION_ID,
+    actionId: PV1F_FLEETSTEP_ACTION_ID,
+    category: 'movement',
+    name: 'Fleetstep',
+    cost: { kind: 'flat', amount: 30 },
+    source: 'inherent',
+  },
+  {
+    id: PV1F_INVOCATION_ACTION_ID,
+    actionId: PV1F_INVOCATION_ACTION_ID,
+    category: 'utility',
+    name: 'Invocation',
+    cost: { kind: 'flat', amount: 45 },
+    source: 'inherent',
+  },
 ] as const satisfies readonly Pv1fSkillDefinition[]
 
 export function pv1fSkillByActionId(actionId: string): Pv1fSkillDefinition | null {
@@ -74,7 +102,9 @@ export function pv1fSkillByActionId(actionId: string): Pv1fSkillDefinition | nul
 }
 
 export function pv1fSkillsByCategory(category: Pv1fSkillCategory): readonly Pv1fSkillDefinition[] {
-  return PV1F_SKILLS.filter((skill) => skill.category === category)
+  return PV1F_SKILLS.filter(
+    (skill) => skill.actionId !== PV1F_GUARD_ACTION_ID && skill.category === category,
+  )
 }
 
 export function pv1fFlatActionCost(actionId: string): number | null {
@@ -82,17 +112,26 @@ export function pv1fFlatActionCost(actionId: string): number | null {
   return skill?.cost.kind === 'flat' ? skill.cost.amount : null
 }
 
-/** One entered tile, after terrain, Frozen and signed status deltas. Never free movement. */
-export function movementApCostForTile(traversalCost: number, additionalAp: number): number {
+/** One entered tile after terrain and signed status deltas; discounts never grant AP. */
+export function movementApCostForTile(
+  traversalCost: number,
+  additionalAp: number,
+  apPerTraversalPoint: number = PV1F_MOVEMENT_COST_PER_TERRAIN_POINT,
+): number {
   if (
     !Number.isSafeInteger(traversalCost) ||
     traversalCost < 1 ||
-    !Number.isSafeInteger(additionalAp)
+    !Number.isSafeInteger(additionalAp) ||
+    !Number.isSafeInteger(apPerTraversalPoint) ||
+    apPerTraversalPoint < 10 ||
+    apPerTraversalPoint > 100
   ) {
     throw new RangeError('Movement requires a positive terrain cost and a safe-integer AP delta.')
   }
-  const cost = traversalCost * PV1F_MOVEMENT_COST_PER_TERRAIN_POINT + additionalAp
+  const cost = traversalCost * apPerTraversalPoint + additionalAp
   if (!Number.isSafeInteger(cost))
     throw new RangeError('Movement AP cost exceeds the safe integer range.')
-  return Math.max(10, cost)
+  return Math.max(PV1F_MINIMUM_MOVEMENT_AP_COST, cost)
 }
+
+export const PV1F_LAST_MATURE_SKILL_RESOURCE_PREFIX = 'pv1f.last-mature-skill.' as const

@@ -1,8 +1,11 @@
+import { parseBattleEquipmentCapture, type BattleEquipmentCapture } from './combat-equipment'
 import {
   MIXED_DISCIPLINE_SKILL_SOURCE_CAPACITY,
   disciplineSkillCapacity,
+  disciplineSkillEligibilityId,
   type DisciplineSkillReference,
 } from '../character/discipline-skill-loadout'
+import { parseSupportActionId, type SupportActionId } from './support-actions'
 import type { EssenceSnapshotReference } from './essence'
 import type { ResonanceSnapshotReference } from './resonance'
 import type { StatDrivenCombatEncounterState } from './stat-driven-combat'
@@ -16,6 +19,8 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3
 const SHA256_PATTERN = /^sha256:[0-9a-f]{64}$/
 
 export interface CombatBuildSnapshot {
+  readonly skillEligibilityPolicyVersion?: 1
+  readonly supportActionId?: SupportActionId
   readonly schemaVersion: typeof COMBAT_BUILD_SNAPSHOT_SCHEMA_VERSION
   readonly sourceBuildSchemaVersion: number
   readonly sourceBuildVersion: number
@@ -33,7 +38,7 @@ export interface CombatBuildSnapshot {
   readonly extensions: {
     readonly resonance: ResonanceSnapshotReference | null
     readonly essence: EssenceSnapshotReference | null
-    readonly equipmentSkills: readonly never[]
+    readonly equipmentSkills: readonly BattleEquipmentCapture[]
     readonly supernatural: null
     readonly prestige: null
   }
@@ -63,6 +68,15 @@ export function validateCombatBuildSnapshot(
   snapshot: CombatBuildSnapshot,
 ): readonly CombatBuildSnapshotIssue[] {
   const issues: CombatBuildSnapshotIssue[] = []
+  if (
+    Object.hasOwn(snapshot, 'supportActionId') &&
+    !parseSupportActionId(snapshot.supportActionId)
+  ) {
+    issues.push({
+      field: 'supportActionId',
+      message: 'Support Action must be Guard, HP Recovery or MP Recovery.',
+    })
+  }
   if (snapshot.schemaVersion !== COMBAT_BUILD_SNAPSHOT_SCHEMA_VERSION) {
     issues.push({ field: 'schemaVersion', message: 'Unsupported combat build snapshot schema.' })
     return issues
@@ -101,10 +115,10 @@ export function validateCombatBuildSnapshot(
   }
   if (secondaryId !== null) {
     const primaryCount = snapshot.disciplineSkills.filter(
-      (skill) => skill.sourceDisciplineId === snapshot.primary.disciplineId,
+      (skill) => disciplineSkillEligibilityId(skill) === snapshot.primary.disciplineId,
     ).length
     const secondaryCount = snapshot.disciplineSkills.filter(
-      (skill) => skill.sourceDisciplineId === secondaryId,
+      (skill) => disciplineSkillEligibilityId(skill) === secondaryId,
     ).length
     if (
       primaryCount > MIXED_DISCIPLINE_SKILL_SOURCE_CAPACITY ||
@@ -127,9 +141,14 @@ export function validateCombatBuildSnapshot(
     const prefix = `disciplineSkills.${index}`
     stableIdIssue(issues, skill.skillId, `${prefix}.skillId`)
     stableIdIssue(issues, skill.sourceDisciplineId, `${prefix}.sourceDisciplineId`)
+    if (Object.hasOwn(skill, 'earnedEligibility') && typeof skill.earnedEligibility !== 'boolean')
+      issues.push({
+        field: `${prefix}.earnedEligibility`,
+        message: 'Earned eligibility must be a captured boolean.',
+      })
     positiveIntegerIssue(issues, skill.contentVersion, `${prefix}.contentVersion`)
     positiveIntegerIssue(issues, skill.slotIndex, `${prefix}.slotIndex`)
-    if (!allowedSources.has(skill.sourceDisciplineId)) {
+    if (!allowedSources.has(disciplineSkillEligibilityId(skill) ?? '')) {
       issues.push({
         field: `${prefix}.sourceDisciplineId`,
         message: 'Combat Skill source is not an active Discipline.',
@@ -145,10 +164,22 @@ export function validateCombatBuildSnapshot(
     seenSlots.add(skill.slotIndex)
   }
 
-  if (secondaryId === null && snapshot.extensions.resonance !== null) {
+  if (snapshot.extensions.essence && snapshot.extensions.resonance)
+    issues.push({ field: 'extensions', message: 'Choose exactly one relationship power.' })
+  const activeOverride = (id: string | undefined) =>
+    typeof id === 'string' && [snapshot.primary.disciplineId, secondaryId].includes(id)
+  if (
+    secondaryId === null &&
+    snapshot.extensions.resonance !== null &&
+    !activeOverride(snapshot.extensions.resonance.relationshipOverrideDisciplineId)
+  ) {
     issues.push({ field: 'extensions.resonance', message: 'Pure builds cannot carry Resonance.' })
   }
-  if (secondaryId !== null && snapshot.extensions.essence !== null) {
+  if (
+    secondaryId !== null &&
+    snapshot.extensions.essence !== null &&
+    !activeOverride(snapshot.extensions.essence.relationshipOverrideDisciplineId)
+  ) {
     issues.push({ field: 'extensions.essence', message: 'Mixed builds cannot carry Essence.' })
   }
   if (snapshot.extensions.resonance) {
@@ -157,9 +188,13 @@ export function validateCombatBuildSnapshot(
     positiveIntegerIssue(issues, resonance.contentVersion, 'extensions.resonance.contentVersion')
     if (
       resonance.disciplinePair.length !== 2 ||
-      !resonance.disciplinePair.includes(snapshot.primary.disciplineId) ||
-      secondaryId === null ||
-      !resonance.disciplinePair.includes(secondaryId)
+      (resonance.relationshipOverrideDisciplineId !== undefined &&
+        (!activeOverride(resonance.relationshipOverrideDisciplineId) ||
+          !resonance.disciplinePair.includes(resonance.relationshipOverrideDisciplineId))) ||
+      (!activeOverride(resonance.relationshipOverrideDisciplineId) &&
+        (!resonance.disciplinePair.includes(snapshot.primary.disciplineId) ||
+          secondaryId === null ||
+          !resonance.disciplinePair.includes(secondaryId)))
     ) {
       issues.push({
         field: 'extensions.resonance.disciplinePair',
@@ -178,17 +213,27 @@ export function validateCombatBuildSnapshot(
       essence.skillContentVersion,
       'extensions.essence.skillContentVersion',
     )
-    if (essence.sourceDisciplineId !== snapshot.primary.disciplineId) {
+    if (
+      essence.relationshipOverrideDisciplineId !== undefined
+        ? !activeOverride(essence.relationshipOverrideDisciplineId) ||
+          essence.sourceDisciplineId !== essence.relationshipOverrideDisciplineId
+        : essence.sourceDisciplineId !== snapshot.primary.disciplineId
+    ) {
       issues.push({
         field: 'extensions.essence.sourceDisciplineId',
         message: 'Essence source must match the committed Primary Discipline.',
       })
     }
   }
-  if (snapshot.extensions.equipmentSkills.length !== 0) {
+  try {
+    if (snapshot.extensions.equipmentSkills.length > 1)
+      throw new TypeError('Ambiguous equipment admission.')
+    for (const equipment of snapshot.extensions.equipmentSkills)
+      parseBattleEquipmentCapture(equipment)
+  } catch {
     issues.push({
       field: 'extensions.equipmentSkills',
-      message: 'Equipment Skill snapshots are not supported by the current build bridge.',
+      message: 'Invalid versioned equipment admission.',
     })
   }
   if (snapshot.extensions.supernatural !== null || snapshot.extensions.prestige !== null) {
@@ -307,7 +352,7 @@ function copyEntry(entry: CombatBuildBridgeEntry): CombatBuildBridgeEntry {
         essence: entry.snapshot.extensions.essence
           ? { ...entry.snapshot.extensions.essence }
           : null,
-        equipmentSkills: [],
+        equipmentSkills: structuredClone(entry.snapshot.extensions.equipmentSkills),
         supernatural: null,
         prestige: null,
       },
@@ -329,6 +374,12 @@ function isBridge(value: unknown): value is CombatBuildBridgeState {
 }
 
 function isSnapshotShape(value: unknown): value is CombatBuildSnapshot {
+  if (
+    isRecord(value) &&
+    Object.hasOwn(value, 'supportActionId') &&
+    !parseSupportActionId(value.supportActionId)
+  )
+    return false
   if (!isRecord(value) || !isRecord(value.primary) || !isRecord(value.extensions)) return false
   if (
     typeof value.schemaVersion !== 'number' ||

@@ -157,3 +157,65 @@
     top: calc(4rem + env(safe-area-inset-top, 0px));
   }
 }
+
+.root:has(> :global(.av-audio-inline)) {
+  width: 100%;
+  justify-self: stretch;
+  z-index: auto;
+}
+:global(.av-audio-inline) .mix {
+  margin-top: 0;
+}
+:global(.av-audio-inline) .channel {
+  grid-template-columns: minmax(9rem, 0.6fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 1rem;
+}
+:global(.av-audio-inline) .actions {
+  margin-top: 0;
+  justify-self: end;
+}
+:global(.av-audio-inline) .actions button {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #978264;
+  color: #30392f;
+  background: #d6c9b0;
+}
+@media (max-width: 760px) {
+  :global(.av-audio-inline) .channel {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+}
+
+/* mobile type floor */
+@media (max-width: 760px) {
+  .trigger {
+    font-size: 0.6875rem !important;
+  }
+}
+
+/* Full-width slider: keep the track compact with a 44px interactive height. */
+@media (max-width: 760px) {
+  .channel input[type='range'] {
+    min-height: 2.75rem;
+  }
+}
+
+@media (max-width: 760px), (max-width: 980px) and (max-height: 500px) and (pointer: coarse) {
+  :global(.av-audio-inline) .heading h2 {
+    font-size: 1.1rem;
+  }
+  :global(.av-audio-inline) .channel {
+    grid-template-columns: minmax(5.5rem, 0.45fr) minmax(0, 1fr);
+    gap: 0.5rem;
+  }
+  :global(.av-audio-inline) .mix {
+    gap: 0.1rem;
+  }
+  :global(.av-audio-inline) .actions button {
+    min-height: 2.75rem;
+    padding: 0.35rem 0.5rem;
+    font-size: 0.75rem;
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "browser": "151.0.7922.34",
+  "evidence": [
+    {
+      "scenario": "modal-baseline-revert",
+      "parentOnlyMasteryRevertRetained": true,
+      "parentOnlyInclusionRevertRetained": true,
+      "noticeTruthful": true
+    },
+    {
+      "scenario": "modal-close-context",
+      "escapeAllowed": true,
+      "newAndNavigationDisabledUntilBothWritesFinish": true,
+      "newWorksAfterAcknowledgement": true
+    }
+  ],
+  "failures": []
+}

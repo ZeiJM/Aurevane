@@ -1,0 +1,3 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["env", "AV_BASIC_SERVICE_ACCEPTANCE=1", "AV_BASIC_SERVICE_PROBE_ONLY=1", "corepack", "pnpm", "--filter", "@aurevane/web", "exec", "node", "scripts/skill-parameter-palette-browser-regression.mjs"], "start": "2026-10-20T19:20:35.651947+00:00"}
+Actual Basic HTTP handler/service probe passed: five v2 records and v1 Guard restore.
+{"end": "2026-10-20T19:20:37.777847+00:00", "exit": 0}

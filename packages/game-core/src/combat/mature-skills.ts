@@ -1,3 +1,33 @@
+import { CURRENT_EFFECT_PERCENT_MAXIMUM } from './combat-effect-percentages'
+import { maximumCombatStatusPotencyBasisPoints } from './combat-status-tuning'
+import { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from './combat-effect-duration'
+import {
+  combatTagPresentationIssues,
+  type CombatTagPresentationSnapshot,
+} from './combat-tag-registry'
+import { abilityPresentationTextIssues, type AbilityPresentationText } from './battle-narration'
+import { finalizedContentMediaIssues, type FinalizedContentMediaSlots } from './content-media'
+import {
+  validateAbilityDefinition,
+  assertLegacyAbilityAbsent,
+  type AbilityDefinition,
+} from './combat-definition'
+import { createBlindsideSkillVersion } from './combat-blindside-roster'
+import { createPercentageRecoverySkillVersion } from './combat-recovery-roster'
+import { createCurrentGroundSkillVersion } from './combat-ground-roster'
+import {
+  validateCombatGroundAreaDefinition,
+  type CombatGroundAreaDefinition,
+} from './combat-ground-areas'
+import { createCurrentTargetingSkillVersion } from './combat-targeting-roster'
+import {
+  MAXIMUM_COMBAT_LINE_LENGTH,
+  maximumSupportedCombatRange,
+  validateCurrentAreaTargetRecipients,
+} from './combat-targeting-shapes'
+import { createPercentageDotSkillVersion } from './combat-percentage-dot-roster'
+import { battleFlavorTemplateIssues } from './battle-narration'
+import { createCanonicalCleanseSkillVersion } from './combat-cleanse'
 import {
   validateCombatAccuracyDefinition,
   type CombatAccuracyAuthoring,
@@ -13,6 +43,19 @@ import type {
   CombatUseRequirement,
 } from './actions'
 import type { SkillCooldownDefinition } from './skill-cooldowns'
+import {
+  isMaterializedCombatEffect,
+  SUMMON_PROFILE_SCHEMA_VERSION,
+  validateSummonProfileDefinition,
+  type CombatSummonEffect,
+  type SummonProfileDefinition,
+} from './summon-content'
+import { rebalanceMatureSkillDefinition } from './skill-balance-v5'
+import {
+  applyV51CurrentTechniqueTargeting,
+  classifyV51SkillRole,
+  rebalanceMatureSkillDefinitionV51,
+} from './skill-balance-v5-1'
 
 export const MATURE_SKILL_SCHEMA_VERSION = 1 as const
 export type MatureSkillCombatContext = 'pve' | 'pvp'
@@ -39,7 +82,7 @@ export interface MatureSkillContextOverride {
   readonly cooldownOwnerTurns?: number
 }
 
-export interface MatureSkillMediaHooks {
+export interface MatureSkillMediaHooks extends FinalizedContentMediaSlots {
   readonly iconKey: string | null
   readonly audioCueKey: string | null
   readonly vfxKey: string | null
@@ -51,21 +94,41 @@ export interface MatureSkillAuthoringMetadata {
   readonly validationTags: readonly string[]
 }
 
+export type MatureSkillEffectDefinition = CombatEffectDefinition | CombatSummonEffect
+
 export interface MatureSkillDefinition extends CombatAccuracyAuthoring {
+  /** Authored text overrides preserve the stable identity and historical translation refs. */
+  readonly name?: string
+  readonly description?: string
+  readonly tagPresentation?: readonly CombatTagPresentationSnapshot[]
+  readonly ability?: AbilityDefinition
+  readonly groundArea?: CombatGroundAreaDefinition
   readonly id: string
   readonly contentVersion: number
   readonly enabled: boolean
   readonly nameRef: string
   readonly descriptionRef: string
+  readonly flavorLine?: string
+  /** Optional versioned action prose, separate from catalogue flavor. */
+  readonly presentation?: AbilityPresentationText
+  readonly battleText?: string
   readonly sourceDisciplineId: string
   readonly unlockRequirement: MatureSkillUnlockRequirement
   readonly apCost: number
   readonly mpCost?: number
+  /** Optional nonlethal HP payment, charged before effects. */
+  readonly hpCost?: number
   readonly target: CombatTargetSpec
   readonly requirements: readonly CombatUseRequirement[]
-  readonly effects: readonly CombatEffectDefinition[]
+  readonly effects: readonly MatureSkillEffectDefinition[]
+  /**
+   * Optional player-facing copy for each effect, aligned by effect index.
+   * This presentation-only field is never projected into combat resolution.
+   */
+  readonly effectDescriptions?: readonly (string | null)[]
+  readonly summonProfile?: SummonProfileDefinition
   readonly tags: readonly string[]
-  readonly cooldown: SkillCooldownDefinition
+  readonly cooldown: SkillCooldownDefinition | null
   readonly ai: MatureSkillAiMetadata
   readonly overrides: Readonly<
     Partial<Record<MatureSkillCombatContext, MatureSkillContextOverride>>
@@ -76,6 +139,23 @@ export interface MatureSkillDefinition extends CombatAccuracyAuthoring {
 
 export interface ResolvedMatureSkillDefinition extends MatureSkillDefinition {
   readonly combatContext: MatureSkillCombatContext
+}
+
+export interface MatureSkillApCostBounds {
+  readonly minimum: number
+  readonly maximum: number
+}
+
+export function matureSkillApCostBounds(
+  definition: MatureSkillDefinition,
+): MatureSkillApCostBounds {
+  if (!definition.authoring.validationTags.includes('owner-rebalance-v5-1')) {
+    return { minimum: 1, maximum: 100 }
+  }
+  if (definition.tags.includes('essence')) return { minimum: 55, maximum: 75 }
+  return classifyV51SkillRole(definition) === 'utility'
+    ? { minimum: 35, maximum: 50 }
+    : { minimum: 45, maximum: 60 }
 }
 
 const meleeEnemyTarget: CombatTargetSpec = {
@@ -505,7 +585,7 @@ function currentAccuracyMode(
 
   const hostileRecipient = definition.effects.some((effect) => {
     if (!('recipient' in effect) || effect.recipient === 'actor') return false
-    if (effect.type === 'healing') return false
+    if (effect.type === 'healing' || effect.type === 'percentage-recovery') return false
     if (effect.type === 'resource-change') return effect.delta < 0
     if (effect.type === 'barrier-change') return effect.amount < 0
     return effect.type !== 'create-terrain'
@@ -537,43 +617,12 @@ function currentRequirement(requirement: CombatUseRequirement): CombatUseRequire
     }
   }
 
-  if (requirement.statusId === 'delayed') {
-    return { ...requirement, statusId: 'slow' }
-  }
-  if (requirement.statusId === 'hastened') {
-    return { ...requirement, statusId: 'haste' }
-  }
-  if (requirement.statusId === 'marked') {
-    return { ...requirement, statusId: 'mark' }
-  }
   return requirement
 }
 
 function currentEffect(effect: CombatEffectDefinition): CombatEffectDefinition {
-  if (effect.type === 'remove-status') {
-    return effect.statusIds.includes('marked') && !effect.statusIds.includes('mark')
-      ? { ...effect, statusIds: [...effect.statusIds, 'mark'] }
-      : effect
-  }
   if (effect.type !== 'apply-status') return effect
 
-  if (effect.statusId === 'hastened') {
-    return { ...effect, statusId: 'haste' }
-  }
-  if (effect.statusId === 'delayed') {
-    return { ...effect, statusId: 'slow' }
-  }
-  if (effect.statusId === 'marked') {
-    return { ...effect, statusId: 'mark' }
-  }
-  if (effect.statusId === 'regeneration') {
-    return {
-      type: 'healing',
-      recipient: effect.recipient,
-      amount: 4,
-      ticks: 2,
-    }
-  }
   if (effect.statusId === 'poison') {
     return {
       type: 'poison',
@@ -713,13 +762,10 @@ function applyNamedPhase4Rebalance(definition: MatureSkillDefinition): MatureSki
       return {
         ...definition,
         apCost: 35,
-        effects: [
-          { type: 'healing', recipient: 'primary-unit', amount: 4, ticks: 2 },
-          { type: 'apply-status', recipient: 'primary-unit', statusId: 'summoned', stacks: 1 },
-        ],
+        effects: [{ type: 'healing', recipient: 'primary-unit', amount: 4, ticks: 2 }],
         ai: {
           ...definition.ai,
-          purposeTags: rebalancePurposeTags(definition, ['heal', 'recovery', 'summon']),
+          purposeTags: rebalancePurposeTags(definition, ['heal', 'recovery']),
         },
       }
     case 'edgedancer.severing-cut':
@@ -777,17 +823,7 @@ function applyNamedPhase4Rebalance(definition: MatureSkillDefinition): MatureSki
           {
             type: 'remove-status',
             recipient: 'actor',
-            statusIds: [
-              'burn',
-              'bleed',
-              'poison',
-              'slow',
-              'root',
-              'exposed',
-              'mark',
-              'marked',
-              'challenged',
-            ],
+            statusIds: ['burn', 'bleed', 'poison', 'slow', 'root', 'exposed', 'mark', 'challenged'],
           },
         ],
         ai: {
@@ -815,7 +851,9 @@ function createPhase4RebalancedSkill(definition: MatureSkillDefinition): MatureS
     ...definition,
     contentVersion: definition.contentVersion + 1,
     requirements: definition.requirements.map(currentRequirement),
-    effects: definition.effects.map(currentEffect),
+    effects: definition.effects.map((effect) =>
+      effect.type === 'summon' ? effect : currentEffect(effect),
+    ),
     accuracyMode,
     ...(accuracyMode === 'per-target'
       ? { accuracyModifierBasisPoints: definition.accuracyModifierBasisPoints ?? 0 }
@@ -862,15 +900,363 @@ const A03_MYSTIC_MP_DISCIPLINE_SKILLS = latestEnabledMatureSkills([
   return next ? [next] : []
 })
 
-export const P33_REPRESENTATIVE_DISCIPLINE_SKILLS = [
+const PRE_V5_CURRENT_DISCIPLINE_SKILLS = [
   ...PRE_PHASE4_REBALANCE_DISCIPLINE_SKILLS,
   ...PHASE4_REBALANCED_DISCIPLINE_SKILLS,
   ...A03_MYSTIC_MP_DISCIPLINE_SKILLS,
 ] as const satisfies readonly MatureSkillDefinition[]
 
-/** Current selection catalog; the full registry above also retains explicit battle history. */
+const V5_REBALANCED_DISCIPLINE_SKILLS = latestEnabledMatureSkills(
+  PRE_V5_CURRENT_DISCIPLINE_SKILLS,
+).map((definition) => rebalanceMatureSkillDefinition(definition, 'technique'))
+
+function materializeV51CurrentSummon(definition: MatureSkillDefinition): MatureSkillDefinition {
+  if (definition.id !== 'wildwarden.renewing-herbs') return definition
+
+  const summonProfile: SummonProfileDefinition = {
+    schemaVersion: SUMMON_PROFILE_SCHEMA_VERSION,
+    id: 'summon.wildwarden.verdant-stalker',
+    name: 'Verdant Stalker',
+    description: 'A temporary woodland hunter that supports allies and pressures nearby enemies.',
+    flavorLine: 'Roots and herbs knot together into a watchful hunter.',
+    portraitKey: 'summon.wildwarden.verdant-stalker.portrait',
+    tags: ['summon', 'verdant', 'beast'],
+    maxHp: 36,
+    maxMp: 12,
+    initiative: 28,
+    movementBudget: 5,
+    stats: {
+      accuracy: 6800,
+      evasion: 1200,
+      armor: 8,
+      ward: 6,
+      jump: 1,
+      physicalPower: 24,
+      mysticPower: 18,
+    },
+    aiProfile: 'standard',
+    aiPurposeTags: ['damage', 'support'],
+    lifetimeTurns: 5,
+    abilities: [
+      {
+        id: 'wildwarden.verdant-stalker.thorn-rake',
+        name: 'Thorn Rake',
+        description: 'Rake a nearby enemy with thorned claws.',
+        apCost: 45,
+        mpCost: 0,
+        tags: ['attack', 'melee'],
+        target: {
+          kind: 'unit',
+          teamPolicy: 'enemy',
+          shape: { kind: 'single' },
+          minimumRange: 1,
+          maximumRange: 2,
+          requiresLineOfSight: true,
+          maximumElevationDifference: 0,
+          friendlyFire: 'enemies-only',
+        },
+        requirements: [],
+        effects: [{ type: 'damage', recipient: 'primary-unit', amount: 5, durationTurns: 0 }],
+        ai: { baseUtility: 70, purposeTags: ['damage', 'pressure'] },
+        media: {
+          iconKey: 'summon-ability.wildwarden.verdant-stalker.thorn-rake.icon',
+          audioCueKey: null,
+          vfxKey: null,
+        },
+      },
+      {
+        id: 'wildwarden.verdant-stalker.verdant-mend',
+        name: 'Verdant Mend',
+        description: 'Restore an injured ally with living herbs.',
+        apCost: 45,
+        mpCost: 0,
+        tags: ['heal', 'support'],
+        target: {
+          kind: 'unit',
+          teamPolicy: 'ally',
+          shape: { kind: 'single' },
+          minimumRange: 1,
+          maximumRange: 2,
+          requiresLineOfSight: true,
+          maximumElevationDifference: 0,
+          friendlyFire: 'allies-only',
+        },
+        requirements: [],
+        effects: [{ type: 'healing', recipient: 'primary-unit', amount: 4, durationTurns: 0 }],
+        ai: { baseUtility: 64, purposeTags: ['heal', 'support'] },
+        media: {
+          iconKey: 'summon-ability.wildwarden.verdant-stalker.verdant-mend.icon',
+          audioCueKey: null,
+          vfxKey: null,
+        },
+      },
+    ],
+  }
+
+  return {
+    ...definition,
+    apCost: 45,
+    target: {
+      kind: 'empty-tile',
+      teamPolicy: 'ally',
+      shape: { kind: 'single' },
+      minimumRange: 1,
+      maximumRange: 3,
+      requiresLineOfSight: true,
+      maximumElevationDifference: 0,
+      friendlyFire: 'allies-only',
+    },
+    effects: [{ type: 'summon', recipient: 'selected-tile', durationTurns: 0 }],
+    effectDescriptions: ['Summon a Verdant Stalker on the selected empty tile.'],
+    summonProfile,
+    ai: {
+      ...definition.ai,
+      purposeTags: rebalancePurposeTags(definition, ['summon', 'support']),
+    },
+  }
+}
+
+const V51_REBALANCED_DISCIPLINE_SKILLS = latestEnabledMatureSkills([
+  ...PRE_V5_CURRENT_DISCIPLINE_SKILLS,
+  ...V5_REBALANCED_DISCIPLINE_SKILLS,
+]).map((definition) =>
+  materializeV51CurrentSummon(
+    rebalanceMatureSkillDefinitionV51(applyV51CurrentTechniqueTargeting(definition), 'technique'),
+  ),
+)
+
+export const P33_REPRESENTATIVE_DISCIPLINE_SKILLS = PRE_V5_CURRENT_DISCIPLINE_SKILLS
+
+const CANONICAL_CLEANSE_DISCIPLINE_SKILLS = latestEnabledMatureSkills([
+  ...P33_REPRESENTATIVE_DISCIPLINE_SKILLS,
+  ...V5_REBALANCED_DISCIPLINE_SKILLS,
+  ...V51_REBALANCED_DISCIPLINE_SKILLS,
+]).flatMap((definition) => {
+  const next = createCanonicalCleanseSkillVersion(definition, true)
+  return next ? [next] : []
+})
+
+const PERCENTAGE_DOT_DISCIPLINE_SKILLS = latestEnabledMatureSkills([
+  ...P33_REPRESENTATIVE_DISCIPLINE_SKILLS,
+  ...V5_REBALANCED_DISCIPLINE_SKILLS,
+  ...V51_REBALANCED_DISCIPLINE_SKILLS,
+  ...CANONICAL_CLEANSE_DISCIPLINE_SKILLS,
+]).flatMap((definition) => {
+  const next = createPercentageDotSkillVersion(definition)
+  return next ? [next] : []
+})
+
+const PRE_CURRENT_TARGETING_DISCIPLINE_SKILL_REGISTRY = [
+  ...P33_REPRESENTATIVE_DISCIPLINE_SKILLS,
+  ...V5_REBALANCED_DISCIPLINE_SKILLS,
+  ...V51_REBALANCED_DISCIPLINE_SKILLS,
+  ...CANONICAL_CLEANSE_DISCIPLINE_SKILLS,
+  ...PERCENTAGE_DOT_DISCIPLINE_SKILLS,
+] as const satisfies readonly MatureSkillDefinition[]
+const CURRENT_TARGETING_DISCIPLINE_SKILLS = latestEnabledMatureSkills(
+  PRE_CURRENT_TARGETING_DISCIPLINE_SKILL_REGISTRY,
+).flatMap((definition) => {
+  const next = createCurrentTargetingSkillVersion(definition)
+  return next ? [next] : []
+})
+const PRE_CURRENT_GROUND_DISCIPLINE_SKILL_REGISTRY = [
+  ...PRE_CURRENT_TARGETING_DISCIPLINE_SKILL_REGISTRY,
+  ...CURRENT_TARGETING_DISCIPLINE_SKILLS,
+]
+
+const CURRENT_GROUND_DISCIPLINE_SKILLS = latestEnabledMatureSkills(
+  PRE_CURRENT_GROUND_DISCIPLINE_SKILL_REGISTRY,
+).flatMap((definition) => {
+  const next = createCurrentGroundSkillVersion(definition)
+  return next ? [next] : []
+})
+const PRE_PERCENTAGE_RECOVERY_DISCIPLINE_SKILL_REGISTRY = [
+  ...PRE_CURRENT_GROUND_DISCIPLINE_SKILL_REGISTRY,
+  ...CURRENT_GROUND_DISCIPLINE_SKILLS,
+]
+const PRE_BLINDSIDE_REGISTRY = [
+  ...PRE_PERCENTAGE_RECOVERY_DISCIPLINE_SKILL_REGISTRY,
+  ...latestEnabledMatureSkills(PRE_PERCENTAGE_RECOVERY_DISCIPLINE_SKILL_REGISTRY).flatMap(
+    (definition) => {
+      const next = createPercentageRecoverySkillVersion(definition)
+      return next ? [next] : []
+    },
+  ),
+]
+
+const PRE_ELEMENTAL_DISCIPLINE_SKILL_REGISTRY = [
+  ...PRE_BLINDSIDE_REGISTRY,
+  ...latestEnabledMatureSkills(PRE_BLINDSIDE_REGISTRY).flatMap((definition) => {
+    const next = createBlindsideSkillVersion(definition)
+    return next ? [next] : []
+  }),
+]
+
+const PRE_EXPLICIT_ELEMENTAL_DISCIPLINE_SKILL_REGISTRY = [
+  ...PRE_ELEMENTAL_DISCIPLINE_SKILL_REGISTRY,
+  ...latestEnabledMatureSkills(PRE_ELEMENTAL_DISCIPLINE_SKILL_REGISTRY).flatMap((definition) => {
+    const element =
+      definition.sourceDisciplineId === 'frostweaver'
+        ? ('ice' as const)
+        : definition.sourceDisciplineId === 'tidecaller'
+          ? ('water' as const)
+          : definition.sourceDisciplineId === 'stormsinger'
+            ? ('storm' as const)
+            : null
+    if (!element || !definition.effects.some((effect) => effect.type === 'damage')) return []
+    return [
+      {
+        ...definition,
+        contentVersion: definition.contentVersion + 1,
+        effects: definition.effects.map((effect) =>
+          effect.type === 'damage' ? { ...effect, element } : effect,
+        ),
+        authoring: {
+          ...definition.authoring,
+          validationTags: [...definition.authoring.validationTags, 'elemental-damage'],
+        },
+      },
+    ]
+  }),
+]
+
+/** Append editable elemental tags while retaining every previously published definition. */
+export function createExplicitElementalSkillVersion(
+  definition: MatureSkillDefinition,
+): MatureSkillDefinition | null {
+  const statusIds = { ice: 'frozen', water: 'wet', storm: 'conductive' } as const
+  const damages = definition.effects.filter(
+    (effect) =>
+      effect.type === 'damage' &&
+      effect.element &&
+      (effect.element in statusIds || effect.element === 'fire'),
+  )
+  if (!damages.length) return null
+  const effects = [...definition.effects]
+  for (const damage of damages) {
+    if (damage.type !== 'damage' || !damage.element || !(damage.element in statusIds)) continue
+    const statusId = statusIds[damage.element as keyof typeof statusIds]
+    if (
+      effects.some(
+        (effect) =>
+          effect.type === 'apply-status' &&
+          effect.statusId === statusId &&
+          effect.recipient === damage.recipient,
+      )
+    )
+      continue
+    effects.push({
+      type: 'apply-status',
+      recipient: damage.recipient,
+      statusId,
+      stacks: 1,
+      durationTurns: 2,
+      ...(statusId === 'frozen' ? {} : { potencyBasisPoints: 2000 }),
+    })
+  }
+  if (
+    damages.some((effect) => effect.type === 'damage' && effect.element === 'fire') &&
+    !effects.some(
+      (effect) =>
+        effect.type === 'remove-status' &&
+        effect.recipient === 'actor' &&
+        effect.statusIds.length === 1 &&
+        effect.statusIds[0] === 'frozen',
+    )
+  )
+    effects.push({ type: 'remove-status', recipient: 'actor', statusIds: ['frozen'] })
+  return {
+    ...definition,
+    contentVersion: definition.contentVersion + 1,
+    effects,
+    ...(definition.effectDescriptions
+      ? {
+          effectDescriptions: [
+            ...definition.effectDescriptions,
+            ...effects.slice(definition.effects.length).map(() => null),
+          ],
+        }
+      : {}),
+    authoring: {
+      ...definition.authoring,
+      validationTags: [...definition.authoring.validationTags, 'elemental-status-tags'],
+    },
+  }
+}
+
+const PRE_UNIVERSAL_SUPPORT_DISCIPLINE_SKILL_REGISTRY = [
+  ...PRE_EXPLICIT_ELEMENTAL_DISCIPLINE_SKILL_REGISTRY,
+  ...latestEnabledMatureSkills(PRE_EXPLICIT_ELEMENTAL_DISCIPLINE_SKILL_REGISTRY).flatMap(
+    (definition) => {
+      const next = createExplicitElementalSkillVersion(definition)
+      return next ? [next] : []
+    },
+  ),
+]
+
+/** Append the current class identity; every earlier Summon publication stays addressable. */
+const CURRENT_DISCIPLINE_SKILL_REGISTRY = [
+  ...PRE_UNIVERSAL_SUPPORT_DISCIPLINE_SKILL_REGISTRY,
+  ...latestEnabledMatureSkills(PRE_UNIVERSAL_SUPPORT_DISCIPLINE_SKILL_REGISTRY)
+    .filter((definition) => definition.id === 'wildwarden.renewing-herbs')
+    .map((previous): MatureSkillDefinition => {
+      const {
+        summonProfile: _summon,
+        ability: _ability,
+        groundArea: _ground,
+        ...definition
+      } = previous
+      void _summon
+      void _ability
+      void _ground
+      return {
+        ...definition,
+        contentVersion: previous.contentVersion + 1,
+        name: 'Briar Snare',
+        description: 'Briars lash an enemy and hold them in place.',
+        flavorLine: 'Briars coil around {target} as {actor} draws the snare tight.',
+        apCost: 35,
+        mpCost: 5,
+        tags: ['attack', 'physical', 'control'],
+        target: {
+          kind: 'unit',
+          teamPolicy: 'enemy',
+          friendlyFire: 'enemies-only',
+          shape: { kind: 'single' },
+          minimumRange: 1,
+          maximumRange: 3,
+          maximumElevationDifference: 1,
+          requiresLineOfSight: true,
+        },
+        requirements: [],
+        effects: [
+          { type: 'damage', recipient: 'primary-unit', amount: 8, durationTurns: 0 },
+          {
+            type: 'apply-status',
+            recipient: 'primary-unit',
+            statusId: 'root',
+            stacks: 1,
+            durationTurns: 2,
+          },
+        ],
+        effectDescriptions: ['Deal 8 Physical damage.', 'Root the target for 2 turns.'],
+        cooldown: { key: previous.id, ownerTurns: 3 },
+        overrides: {},
+        ai: { ...previous.ai, purposeTags: ['damage', 'control', 'root'] },
+        authoring: {
+          ...previous.authoring,
+          validationTags: [
+            ...previous.authoring.validationTags.filter((tag) => tag !== 'owner-rebalance-v5-1'),
+            'universal-support-v1',
+          ],
+        },
+      }
+    }),
+]
+
+/** Current selection catalog; the historical P3.3/P4 export remains stable for pinned contracts. */
 export function latestEnabledMatureSkills(
-  definitions: readonly MatureSkillDefinition[] = P33_REPRESENTATIVE_DISCIPLINE_SKILLS,
+  definitions: readonly MatureSkillDefinition[] = CURRENT_DISCIPLINE_SKILL_REGISTRY,
 ): readonly MatureSkillDefinition[] {
   const latest = new Map<string, MatureSkillDefinition>()
   for (const definition of definitions) {
@@ -885,12 +1271,54 @@ export function latestEnabledMatureSkills(
 export function validateMatureSkillDefinition(
   definition: MatureSkillDefinition,
 ): readonly string[] {
-  const issues: string[] = []
-  try {
-    validateCombatAccuracyDefinition(definition)
-    validateGameplayActionMetadata(definition)
-  } catch {
-    issues.push('combatDefinition')
+  const issues: string[] = [
+    ...abilityPresentationTextIssues(definition),
+    ...combatTagPresentationIssues(definition.tagPresentation),
+  ]
+  if (
+    definition.name !== undefined &&
+    (typeof definition.name !== 'string' || !definition.name.trim() || definition.name.length > 120)
+  )
+    issues.push('name')
+  if (
+    definition.description !== undefined &&
+    (typeof definition.description !== 'string' || definition.description.length > 2000)
+  )
+    issues.push('description')
+  if (
+    Object.hasOwn(definition, 'nativeBasicAttackCommand') ||
+    Object.hasOwn(definition, 'equipmentBasicAttackCommand')
+  )
+    issues.push('private-native-basic-command-not-authored')
+  const canonical = Object.hasOwn(definition, 'ability')
+  if (canonical && validateAbilityDefinition(definition.ability).length > 0) issues.push('ability')
+  if (!canonical) {
+    try {
+      validateCombatGroundAreaDefinition(definition)
+    } catch {
+      issues.push('groundArea')
+    }
+    if (
+      definition.authoring.validationTags.includes('persistent-ground-areas') &&
+      !definition.groundArea
+    )
+      issues.push('groundArea')
+
+    try {
+      validateCurrentAreaTargetRecipients(definition)
+    } catch {
+      issues.push('target.area-recipients')
+    }
+    try {
+      validateCombatAccuracyDefinition(definition)
+      validateGameplayActionMetadata({
+        target: definition.target,
+        requirements: definition.requirements,
+        effects: definition.effects.filter(isMaterializedCombatEffect),
+      })
+    } catch {
+      issues.push('combatDefinition')
+    }
   }
   const idPattern = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/
   if (!idPattern.test(definition.id)) issues.push('id')
@@ -899,19 +1327,66 @@ export function validateMatureSkillDefinition(
   }
   if (!definition.nameRef.trim()) issues.push('nameRef')
   if (!definition.descriptionRef.trim()) issues.push('descriptionRef')
-  if (!idPattern.test(definition.sourceDisciplineId)) issues.push('sourceDisciplineId')
   if (
-    !Number.isSafeInteger(definition.apCost) ||
-    definition.apCost < 1 ||
-    definition.apCost > 100
+    definition.flavorLine !== undefined &&
+    battleFlavorTemplateIssues(definition.flavorLine).length > 0
   ) {
-    issues.push('apCost')
+    issues.push('flavorLine')
   }
   if (
-    definition.mpCost !== undefined &&
-    (!Number.isSafeInteger(definition.mpCost) || definition.mpCost < 0 || definition.mpCost > 20)
+    definition.battleText !== undefined &&
+    battleFlavorTemplateIssues(definition.battleText).length > 0
   )
-    issues.push('mpCost')
+    issues.push('battleText')
+  if (!idPattern.test(definition.sourceDisciplineId)) issues.push('sourceDisciplineId')
+  if (!canonical) {
+    if (
+      !Number.isSafeInteger(definition.apCost) ||
+      definition.apCost < 1 ||
+      definition.apCost > 100
+    ) {
+      issues.push('apCost')
+    }
+    if (
+      definition.mpCost !== undefined &&
+      (!Number.isSafeInteger(definition.mpCost) || definition.mpCost < 0 || definition.mpCost > 20)
+    )
+      issues.push('mpCost')
+    if (
+      definition.hpCost !== undefined &&
+      (!Number.isSafeInteger(definition.hpCost) || definition.hpCost < 0)
+    )
+      issues.push('hpCost')
+  }
+  const effectDescriptions = definition.effectDescriptions as unknown
+  if (effectDescriptions !== undefined) {
+    if (
+      !Array.isArray(effectDescriptions) ||
+      effectDescriptions.length !==
+        (canonical
+          ? issues.includes('ability')
+            ? 0
+            : definition.ability!.behaviors.reduce(
+                (total, behavior) => total + behavior.effects.length,
+                0,
+              )
+          : definition.effects.length)
+    ) {
+      issues.push('effectDescriptions')
+    } else {
+      for (const [index, description] of effectDescriptions.entries()) {
+        if (
+          description !== null &&
+          (typeof description !== 'string' ||
+            description.trim().length === 0 ||
+            description.length > 240 ||
+            /[\r\n]/u.test(description))
+        ) {
+          issues.push(`effectDescriptions[${index}]`)
+        }
+      }
+    }
+  }
   if (definition.tags.length === 0 || definition.tags.some((tag) => !tag.trim()))
     issues.push('tags')
   if (
@@ -928,6 +1403,7 @@ export function validateMatureSkillDefinition(
     issues.push('unlockRequirement.grantId')
   }
   if (!Number.isFinite(definition.ai.baseUtility)) issues.push('ai.baseUtility')
+  issues.push(...finalizedContentMediaIssues(definition.media))
   const media = definition.media as MatureSkillMediaHooks | null | undefined
   if (!media || typeof media !== 'object') {
     issues.push('media')
@@ -943,35 +1419,183 @@ export function validateMatureSkillDefinition(
   if (definition.authoring.schemaVersion !== MATURE_SKILL_SCHEMA_VERSION) {
     issues.push('authoring.schemaVersion')
   }
-  if (
-    !idPattern.test(definition.cooldown.key) ||
-    !Number.isSafeInteger(definition.cooldown.ownerTurns) ||
-    definition.cooldown.ownerTurns < 1
-  ) {
-    issues.push('cooldown')
-  }
-  for (const [context, override] of Object.entries(definition.overrides)) {
-    if (
-      override?.apCost !== undefined &&
-      (!Number.isSafeInteger(override.apCost) || override.apCost < 1 || override.apCost > 100)
-    ) {
-      issues.push(`overrides.${context}.apCost`)
+  if (!canonical) {
+    const summonEffects = definition.effects.filter((effect) => effect.type === 'summon')
+    if (summonEffects.length > 0 !== (definition.summonProfile !== undefined)) {
+      issues.push('summonProfile')
     }
-    if (
-      override?.cooldownOwnerTurns !== undefined &&
-      (!Number.isSafeInteger(override.cooldownOwnerTurns) || override.cooldownOwnerTurns < 1)
+    if (definition.summonProfile !== undefined) {
+      const summonIssues = validateSummonProfileDefinition(definition.summonProfile)
+      if (summonIssues.length > 0) issues.push('summonProfile')
+    }
+    if (summonEffects.length > 0) {
+      if (summonEffects.length !== 1) issues.push('effects.summon')
+      if (definition.target.kind !== 'empty-tile') issues.push('target.kind')
+      if (summonEffects.some((effect) => (effect.durationTurns ?? 0) !== 0)) {
+        issues.push('effects.summon.durationTurns')
+      }
+    }
+  }
+  const usesV5BalanceRules = definition.authoring.validationTags.includes('owner-rebalance-v5')
+  if (usesV5BalanceRules && !definition.flavorLine?.trim()) issues.push('flavorLine')
+  if (!canonical) {
+    const usesV51BalanceRules = definition.authoring.validationTags.includes('owner-rebalance-v5-1')
+    if (usesV51BalanceRules) {
+      const apBounds = matureSkillApCostBounds(definition)
+      if (definition.apCost < apBounds.minimum || definition.apCost > apBounds.maximum) {
+        issues.push('apCost')
+      }
+      if (definition.target.kind !== 'self') {
+        const maximumRange =
+          (definition.target.geometryVersion === 2 || definition.target.geometryVersion === 3) &&
+          definition.target.shape.kind === 'line'
+            ? MAXIMUM_COMBAT_LINE_LENGTH
+            : definition.target.shape.kind === 'single'
+              ? maximumSupportedCombatRange()
+              : 5
+        if (
+          !(definition.target.geometryVersion === 2 && definition.target.shape.kind === 'all') &&
+          (definition.target.maximumRange < 1 || definition.target.maximumRange > maximumRange)
+        ) {
+          issues.push('target.maximumRange')
+        }
+        if (
+          definition.target.maximumElevationDifference === null ||
+          definition.target.maximumElevationDifference < 0 ||
+          definition.target.maximumElevationDifference > 2
+        ) {
+          issues.push('target.maximumElevationDifference')
+        }
+      }
+    }
+    if (usesV5BalanceRules && definition.requirements.length > 0) {
+      if (definition.cooldown !== null) issues.push('cooldown')
+    } else if (
+      usesV5BalanceRules &&
+      (definition.cooldown === null ||
+        !idPattern.test(definition.cooldown.key) ||
+        !Number.isSafeInteger(definition.cooldown.ownerTurns) ||
+        definition.cooldown.ownerTurns < 1 ||
+        definition.cooldown.ownerTurns > 3)
     ) {
-      issues.push(`overrides.${context}.cooldownOwnerTurns`)
+      issues.push('cooldown')
+    } else if (
+      !usesV5BalanceRules &&
+      (definition.cooldown === null ||
+        !idPattern.test(definition.cooldown.key) ||
+        !Number.isSafeInteger(definition.cooldown.ownerTurns) ||
+        definition.cooldown.ownerTurns < 1)
+    ) {
+      issues.push('cooldown')
+    }
+
+    for (const [index, effect] of definition.effects.entries()) {
+      if ('attackTagCapture' in effect) issues.push(`effects[${index}].attackTagCapture`)
+      const durationTurns = effect.durationTurns ?? 0
+      if (
+        !Number.isSafeInteger(durationTurns) ||
+        durationTurns < 0 ||
+        durationTurns > CURRENT_EFFECT_DURATION_MAXIMUM_TURNS
+      ) {
+        issues.push(`effects[${index}].durationTurns`)
+      }
+      if (effect.type === 'summon') continue
+      if (effect.type === 'copy-statuses' && 'beneficialEffects' in effect)
+        issues.push(`effects[${index}].beneficialEffects`)
+      if (
+        effect.potencyBasisPoints !== undefined &&
+        (!Number.isSafeInteger(effect.potencyBasisPoints) ||
+          effect.potencyBasisPoints < 100 ||
+          effect.potencyBasisPoints >
+            maximumCombatStatusPotencyBasisPoints(
+              effect.type === 'apply-status' ? effect.statusId : undefined,
+            ))
+      ) {
+        issues.push(`effects[${index}].potencyBasisPoints`)
+      }
+      if (
+        effect.power !== undefined &&
+        (!Number.isSafeInteger(effect.power) || effect.power < 1 || effect.power > 20)
+      ) {
+        issues.push(`effects[${index}].power`)
+      }
+      if (
+        usesV5BalanceRules &&
+        (effect.type === 'damage' || effect.type === 'healing' || effect.type === 'barrier-change')
+      ) {
+        const minimum = effect.type === 'damage' && effect.vengeance !== undefined ? 0 : 1
+        if (
+          !Number.isSafeInteger(effect.amount) ||
+          effect.amount < minimum ||
+          effect.amount >
+            (effect.type === 'barrier-change' && effect.basis === 'maximum-hp-percent'
+              ? CURRENT_EFFECT_PERCENT_MAXIMUM
+              : 20)
+        ) {
+          issues.push(`effects[${index}].amount`)
+        }
+      }
+      if (usesV5BalanceRules && effect.type === 'resource-change') {
+        const magnitude = Math.abs(effect.delta)
+        const percentageDrain = effect.basis === 'maximum-mp-percent'
+        if (
+          !Number.isSafeInteger(magnitude) ||
+          magnitude < 1 ||
+          magnitude > (percentageDrain ? CURRENT_EFFECT_PERCENT_MAXIMUM : 20) ||
+          (percentageDrain && effect.delta >= 0)
+        ) {
+          issues.push(`effects[${index}].delta`)
+        }
+      }
+      if (usesV5BalanceRules && effect.type === 'bleed' && !effect.damageProfile) {
+        if (
+          !Number.isSafeInteger(effect.damagePerTick) ||
+          effect.damagePerTick < 1 ||
+          effect.damagePerTick > 20
+        ) {
+          issues.push(`effects[${index}].damagePerTick`)
+        }
+      }
+    }
+    for (const [context, override] of Object.entries(definition.overrides)) {
+      if (override?.apCost !== undefined) {
+        const apBounds = usesV51BalanceRules
+          ? matureSkillApCostBounds(definition)
+          : { minimum: 1, maximum: 100 }
+        if (
+          !Number.isSafeInteger(override.apCost) ||
+          override.apCost < apBounds.minimum ||
+          override.apCost > apBounds.maximum
+        ) {
+          issues.push(`overrides.${context}.apCost`)
+        }
+      }
+      if (
+        override?.cooldownOwnerTurns !== undefined &&
+        (!Number.isSafeInteger(override.cooldownOwnerTurns) ||
+          override.cooldownOwnerTurns < 1 ||
+          (usesV5BalanceRules && override.cooldownOwnerTurns > 3))
+      ) {
+        issues.push(`overrides.${context}.cooldownOwnerTurns`)
+      }
     }
   }
   return issues
+}
+
+/** Reserve all shipped identities, including disabled historical definitions. */
+export function highestBuiltinMatureSkillVersion(skillId: string): number | null {
+  const versions = CURRENT_DISCIPLINE_SKILL_REGISTRY.filter((row) => row.id === skillId).map(
+    (row) => row.contentVersion,
+  )
+  return versions.length ? Math.max(...versions) : null
 }
 
 export function resolveMatureSkillVersion(
   skillId: string,
   contentVersion?: number,
 ): MatureSkillDefinition | null {
-  const candidates = P33_REPRESENTATIVE_DISCIPLINE_SKILLS.filter(
+  const candidates = CURRENT_DISCIPLINE_SKILL_REGISTRY.filter(
     (definition) => definition.id === skillId && definition.enabled,
   )
   if (contentVersion !== undefined) {
@@ -986,16 +1610,47 @@ export function resolveMatureSkillForContext(
   definition: MatureSkillDefinition,
   combatContext: MatureSkillCombatContext,
 ): ResolvedMatureSkillDefinition {
+  assertLegacyAbilityAbsent(definition)
   assertUsableDefinition(definition)
   const override = definition.overrides[combatContext]
   return {
     ...definition,
     apCost: override?.apCost ?? definition.apCost,
-    cooldown: {
-      ...definition.cooldown,
-      ownerTurns: override?.cooldownOwnerTurns ?? definition.cooldown.ownerTurns,
-    },
+    cooldown:
+      definition.cooldown === null
+        ? null
+        : {
+            ...definition.cooldown,
+            ownerTurns: override?.cooldownOwnerTurns ?? definition.cooldown.ownerTurns,
+          },
     combatContext,
+  }
+}
+
+function projectResolvedMatureSkillAction(
+  resolved: ResolvedMatureSkillDefinition,
+  effects: readonly CombatEffectDefinition[],
+): CombatActionDefinition {
+  return {
+    id: resolved.id,
+    version: resolved.contentVersion,
+    sourceType: 'discipline-skill',
+    tags: resolved.tags,
+    target: resolved.target,
+    ...(resolved.groundArea ? { groundArea: resolved.groundArea } : {}),
+    cost: {
+      spendsAction: true,
+      mp: resolved.mpCost ?? 0,
+      ...(resolved.hpCost !== undefined ? { hp: resolved.hpCost } : {}),
+    },
+    requirements: resolved.requirements,
+    ...(resolved.cooldown === null ? {} : { cooldown: resolved.cooldown }),
+    effects,
+    ...(resolved.accuracyRule !== undefined ? { accuracyRule: resolved.accuracyRule } : {}),
+    ...(resolved.accuracyMode !== undefined ? { accuracyMode: resolved.accuracyMode } : {}),
+    ...(resolved.accuracyModifierBasisPoints !== undefined
+      ? { accuracyModifierBasisPoints: resolved.accuracyModifierBasisPoints }
+      : {}),
   }
 }
 
@@ -1004,22 +1659,24 @@ export function toCombatActionDefinition(
   combatContext: MatureSkillCombatContext,
 ): CombatActionDefinition {
   const resolved = resolveMatureSkillForContext(definition, combatContext)
-
-  return {
-    id: resolved.id,
-    version: resolved.contentVersion,
-    sourceType: 'discipline-skill',
-    tags: resolved.tags,
-    target: resolved.target,
-    cost: { spendsAction: true, mp: resolved.mpCost ?? 0 },
-    requirements: resolved.requirements,
-    cooldown: resolved.cooldown,
-    effects: resolved.effects,
-    ...(resolved.accuracyMode !== undefined ? { accuracyMode: resolved.accuracyMode } : {}),
-    ...(resolved.accuracyModifierBasisPoints !== undefined
-      ? { accuracyModifierBasisPoints: resolved.accuracyModifierBasisPoints }
-      : {}),
+  if (resolved.effects.some((effect) => effect.type === 'summon')) {
+    throw new TypeError('Summon must be materialized by the mature Skill execution layer.')
   }
+  return projectResolvedMatureSkillAction(
+    resolved,
+    resolved.effects.filter(isMaterializedCombatEffect),
+  )
+}
+
+export function toMaterializedCombatActionDefinition(
+  definition: MatureSkillDefinition,
+  combatContext: MatureSkillCombatContext,
+): CombatActionDefinition {
+  const resolved = resolveMatureSkillForContext(definition, combatContext)
+  return projectResolvedMatureSkillAction(
+    resolved,
+    resolved.effects.filter(isMaterializedCombatEffect),
+  )
 }
 
 function assertUsableDefinition(definition: MatureSkillDefinition): void {

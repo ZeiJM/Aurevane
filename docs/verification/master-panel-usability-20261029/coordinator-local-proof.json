@@ -1,0 +1,16 @@
+{
+  "coordinatorSha256": "1a8fbccd29a6d3f41827a84557c85f45122475f68b0cf6ec5d20d70b020b98d9",
+  "canonicalSources": 9,
+  "functionContracts": 24,
+  "positiveRehearsalPassed": true,
+  "rejectionAndRollbackCases": [
+    "predecessor ownership drift",
+    "durable authoring mutation",
+    "seeded tag metadata mutation",
+    "null seeded tag name",
+    "null seeded tag version"
+  ],
+  "partialCanonicalHistoryAfterRollback": false,
+  "hostedChangesDuringRehearsal": false,
+  "independentReview": "No remaining Critical/Important findings"
+}

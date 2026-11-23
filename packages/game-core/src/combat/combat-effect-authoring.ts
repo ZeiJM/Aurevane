@@ -1,0 +1,267 @@
+import {
+  DEFAULT_RECKLESS_POTENCY_BASIS_POINTS,
+  DEFAULT_FORTIFIED_DEFENSE_BASIS_POINTS,
+} from './combat-status-tuning'
+import { selectableCombatStatusIds } from './combat-status-selection'
+export { AUTHORABLE_EFFECT_TAGS, type AuthorableEffectTag } from './combat-effect-identities'
+import { AUTHORABLE_EFFECT_TAGS, combatEffectIdentity } from './combat-effect-identities'
+import type { CombatEffectDefinition } from './actions'
+import type { AbilityActivation, AbilityMode } from './combat-definition'
+import { validateCombatTagPayload, type CombatTagPayload } from './combat-tag-registry'
+import { isBlindsideStatusId } from './combat-blindside'
+import type { SummonProfileDefinition } from './summon-content'
+
+/** Current authoring consolidates retained Chilled-only removal without changing captured identities. */
+export function effectAuthoringTag(payload: CombatTagPayload | CombatEffectDefinition) {
+  const tag = combatEffectIdentity(payload)
+  if (tag.id === 'mp-restore')
+    return AUTHORABLE_EFFECT_TAGS.find((entry) => entry.id === 'mp-recovery')!
+  return tag.id === 'cleanse-chilled'
+    ? AUTHORABLE_EFFECT_TAGS.find((entry) => entry.id === 'conditional-cleanse')!
+    : tag
+}
+
+export const DEFAULT_DISPEL_STATUS_IDS = [
+  'range-up',
+  'counter',
+  'guarded',
+  'inspired',
+  'haste',
+  'invisible',
+  'airborne',
+  'warded',
+  'covert',
+  'blindside',
+] as const
+export interface EffectAuthoringContext {
+  readonly summonProfile?: SummonProfileDefinition
+  readonly combination?: { activation: AbilityActivation; mode: AbilityMode }
+}
+export function createAuthorableEffectPayload(
+  id: string,
+  context: EffectAuthoringContext = {},
+): CombatTagPayload | null {
+  const tag = AUTHORABLE_EFFECT_TAGS.find((tag) => tag.id === id)
+  if (!tag || tag.unavailableReason) return null
+  if (
+    id === 'status:inspired' &&
+    context.combination?.mode === 'modifier' &&
+    context.combination.activation !== 'automatic'
+  )
+    return { type: 'damage-bonus', recipient: 'actor', multiplierBasisPoints: 11250 }
+  if (id === 'loot') return { type: 'loot', recipient: 'primary-unit' }
+  if (id === 'counter')
+    return {
+      type: 'apply-status',
+      recipient: 'actor',
+      statusId: 'counter',
+      stacks: 1,
+      durationTurns: 2,
+      counter: { kind: 'full', basisPoints: 10000 },
+    }
+  if (tag.opcode === 'apply-status')
+    return {
+      type: 'apply-status',
+      recipient: tag.statusId === 'blindside' ? 'actor' : 'primary-unit',
+      statusId: tag.statusId!,
+      stacks: 1,
+      ...(tag.statusId === 'seal'
+        ? { sealedCategories: ['attack', 'recovery', 'utility'] as const }
+        : {}),
+      ...(['range-up', 'range-down'].includes(tag.statusId!) ? { rangeTiles: 1 } : {}),
+      ...(tag.statusId === 'blind' ? { potencyBasisPoints: 1500 } : {}),
+      ...(tag.statusId === 'wet' ? { initiativeReductionBasisPoints: 1000 } : {}),
+      ...(tag.statusId === 'fortified'
+        ? { defenseIncreaseBasisPoints: DEFAULT_FORTIFIED_DEFENSE_BASIS_POINTS }
+        : {}),
+      ...(tag.statusId === 'reckless'
+        ? { potencyBasisPoints: DEFAULT_RECKLESS_POTENCY_BASIS_POINTS }
+        : {}),
+      ...(['haste', 'slow'].includes(tag.statusId!) ? { movementApAdjustment: 10 } : {}),
+      ...(tag.statusId === 'lowered-guard' ? { damageTakenMultiplierBasisPoints: 15000 } : {}),
+      durationTurns: isBlindsideStatusId(tag.statusId!) ? 1 : 2,
+    }
+  switch (id) {
+    case 'weak-point':
+      return { type: 'weak-point', recipient: 'actor', debuffThreshold: 2 }
+    case 'spike':
+      return { type: 'spike', recipient: 'actor' }
+    case 'ruin':
+      return { type: 'ruin', recipient: 'actor', bonusPerDebuffBasisPoints: 1000 }
+    case 'endure':
+      return {
+        type: 'endure',
+        recipient: 'actor',
+        target: 'self',
+        durationTurns: 2,
+        releaseBasisPoints: 15000,
+        radiusTiles: 3,
+        targetTeams: 'enemies',
+      }
+    case 'reversal':
+      return {
+        type: 'reversal',
+        recipient: 'actor',
+        target: 'self',
+        version: 1,
+        family: 'physical',
+        reflectionBasisPoints: 10000,
+        attackerMaxHpCapBasisPoints: 2000,
+        defenderMaxHpCapBasisPoints: 2500,
+      }
+    case 'damage':
+      return { type: 'damage', recipient: 'primary-unit', amount: 1 }
+    case 'pierce':
+      return { type: 'pierce', recipient: 'primary-unit', amount: 1, armorIgnoredBasisPoints: 2500 }
+    case 'vengeance':
+      return {
+        type: 'damage',
+        recipient: 'primary-unit',
+        amount: 0,
+        vengeance: { conversionBasisPoints: 10000, maximumDamage: 20 },
+      }
+    case 'hp-recovery':
+    case 'mp-recovery':
+      return {
+        type: 'percentage-recovery',
+        recipient: 'actor',
+        resource: id === 'mp-recovery' ? 'mp' : 'hp',
+        percentageBasisPoints: 1000,
+        ticks: 1,
+      }
+    case 'healing':
+      return { type: 'healing', recipient: 'actor', amount: 1, ticks: 1 }
+    case 'mp-restore':
+    case 'mp-drain':
+      return {
+        type: 'resource-change',
+        recipient: id === 'mp-drain' ? 'primary-unit' : 'actor',
+        resource: 'mp',
+        delta: id === 'mp-drain' ? -1 : 1,
+        ticks: 1,
+        ...(id === 'mp-drain' ? { basis: 'maximum-mp-percent' as const } : {}),
+      }
+    case 'barrier':
+      return {
+        type: 'barrier-change',
+        recipient: 'actor',
+        basis: 'maximum-hp-percent',
+        amount: 5,
+        durationTurns: 2,
+      }
+    case 'burn':
+      return {
+        type: 'burn',
+        recipient: 'primary-unit',
+        durationTurns: 3,
+        damageProfile: {
+          kind: 'attack-percentage',
+          basisPoints: 2500,
+          decayBasisPointsPerTick: 500,
+        },
+      }
+    case 'poison':
+      return {
+        type: 'poison',
+        recipient: 'primary-unit',
+        durationTurns: 4,
+        damageProfile: { kind: 'attack-percentage', basisPoints: 1500 },
+      }
+    case 'bleed':
+      return {
+        type: 'bleed',
+        recipient: 'primary-unit',
+        ticks: 3,
+        durationTurns: 3,
+        damageProfile: { kind: 'attack-percentage', basisPoints: 2000 },
+      }
+    case 'copy-buffs':
+    case 'copy-debuffs':
+      return {
+        type: 'copy-statuses',
+        recipient: 'primary-unit',
+        mode: id === 'copy-buffs' ? 'amplify' : 'curse',
+        durationPolicyVersion: 1,
+        ...(id === 'copy-buffs' ? { invisibleDonorPolicyVersion: 1 as const } : {}),
+        statusIds: [
+          ...selectableCombatStatusIds(id === 'copy-buffs' ? 'copy-buffs' : 'copy-debuffs'),
+        ],
+      }
+    case 'cleanse':
+      return {
+        type: 'remove-status',
+        recipient: 'primary-unit',
+        statusIds: [...selectableCombatStatusIds('debuffs')],
+        removalMode: 'all-debuffs',
+      }
+    case 'dispel':
+      return {
+        type: 'remove-status',
+        recipient: 'primary-unit',
+        statusIds: [...DEFAULT_DISPEL_STATUS_IDS],
+        invisibleTargetPolicyVersion: 1,
+        removalMode: 'specified',
+        selectionKind: 'buffs',
+      }
+    case 'conditional-cleanse':
+      return {
+        type: 'remove-status',
+        recipient: context.combination?.mode === 'modifier' ? 'actor' : 'primary-unit',
+        statusIds: [context.combination?.mode === 'modifier' ? 'frozen' : 'burn'],
+        removalMode: 'specified',
+        selectionKind: 'debuffs',
+        ...(context.combination?.mode === 'modifier' ? { target: 'self' as const } : {}),
+      }
+    case 'reveal':
+      return {
+        type: 'sensory',
+        recipient: 'primary-unit',
+        revealedDurationOwnerTurnStarts: 2,
+        increasedDamageTakenBasisPoints: 1500,
+      }
+    case 'rewind':
+      return { type: 'return-to-turn-start', recipient: 'actor', anchorMode: 'cast-position' }
+    case 'freeze-ground':
+      return {
+        type: 'create-terrain',
+        recipient: 'affected-tiles',
+        terrain: 'frozen',
+        skillApSurcharge: 10,
+      }
+    case 'push':
+    case 'pull':
+      return { type: 'displace', recipient: 'primary-unit', direction: id, distance: 1 }
+    case 'move':
+      return { type: 'move', recipient: 'actor', maximumTiles: 1 }
+    case 'stat-bonus':
+      return { type: 'stat-bonus', recipient: 'actor', stat: 'movement', amount: 1 }
+    case 'damage-bonus':
+      return { type: 'damage-bonus', recipient: 'actor', multiplierBasisPoints: 11250 }
+    case 'summon':
+      return context.summonProfile
+        ? {
+            type: 'summon',
+            recipient: 'selected-tile',
+            profile: {
+              ...structuredClone(context.summonProfile),
+              potencyBasisPoints: context.summonProfile.potencyBasisPoints ?? 4000,
+            },
+          }
+        : null
+  }
+  return null
+}
+export function effectAuthoringIssue(
+  id: string,
+  combination: { activation: AbilityActivation; mode: AbilityMode },
+  context: EffectAuthoringContext = {},
+): string | null {
+  const unavailable = AUTHORABLE_EFFECT_TAGS.find((tag) => tag.id === id)?.unavailableReason
+  if (unavailable) return unavailable
+  const payload = createAuthorableEffectPayload(id, { ...context, combination })
+  if (!payload)
+    return id === 'summon'
+      ? 'Choose a supported Summon profile before adding this tag.'
+      : 'This tag is unavailable.'
+  return validateCombatTagPayload(payload, combination)[0]?.message ?? null
+}

@@ -62,7 +62,8 @@
   outline-offset: -3px;
 }
 .rosterPanel {
-  --directory-columns: minmax(0, 1.6fr) 4rem minmax(7rem, 0.7fr) minmax(9rem, 0.9fr);
+  --directory-columns: minmax(0, 1.6fr) 3rem minmax(5.5rem, 0.45fr) minmax(7rem, 0.7fr)
+    minmax(9rem, 0.9fr);
   display: flex;
   min-width: 0;
   min-height: 0;
@@ -91,6 +92,9 @@
   display: grid;
   min-width: 0;
   gap: 0.3rem;
+}
+.filters[data-online-only] {
+  grid-template-columns: minmax(0, 1fr);
 }
 .filters label > span {
   color: #d8c298;
@@ -131,8 +135,9 @@
   text-transform: uppercase;
 }
 
-.columnHeadings > :is(:nth-child(2), :nth-child(3)),
+.columnHeadings > :is(:nth-child(2), :nth-child(3), :nth-child(4)),
 .level,
+.experience,
 .discipline {
   transform: translateX(0.35rem);
 }
@@ -222,10 +227,12 @@
   font: italic 0.8125rem/1.35 var(--av-font-display);
   overflow-wrap: anywhere;
 }
-.level {
+.level,
+.experience {
   color: #e4d7bd;
   font-variant-numeric: tabular-nums;
   font-size: 0.9375rem;
+  overflow-wrap: anywhere;
 }
 .discipline {
   color: #bccbd1;
@@ -338,6 +345,7 @@
   }
   .columnHeadings,
   .level,
+  .experience,
   .discipline {
     display: none;
   }

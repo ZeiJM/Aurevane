@@ -1,0 +1,9 @@
+
+ RUN  v4.1.10 /workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/packages/db
+
+
+ Test Files  1 passed (1)
+      Tests  7 passed | 40 skipped (47)
+   Start at  13:11:32
+   Duration  4.19s (transform 807ms, setup 0ms, import 1000ms, tests 3.06s, environment 0ms)
+

@@ -1,0 +1,34 @@
+apps/web/e2e/fixtures/discipline-management-harness.jsx 86ms
+apps/web/src/app/api/character/mastery/route.ts 61ms
+apps/web/src/app/api/character/route.ts 10ms (unchanged)
+apps/web/src/app/game/create/[slot]/page.tsx 17ms (unchanged)
+apps/web/src/app/manual/[slug]/page.tsx 18ms (unchanged)
+apps/web/src/components/character/character-arsenal-shell.tsx 57ms (unchanged)
+apps/web/src/components/character/character-creation-experience.tsx 80ms
+apps/web/src/components/character/character-discipline-build-panel.tsx 97ms
+apps/web/src/components/character/character-profile-shell.tsx 13ms (unchanged)
+apps/web/src/components/character/character-skill-build-panel.tsx 78ms (unchanged)
+apps/web/src/components/character/character-skill-build-reconciliation.test.tsx 21ms (unchanged)
+apps/web/src/components/character/discipline-library.test.tsx 12ms (unchanged)
+apps/web/src/components/character/discipline-mastery-panel.tsx 27ms (unchanged)
+apps/web/src/components/master/player-correction-form.tsx 31ms (unchanged)
+apps/web/src/components/public-information/discipline-atlas-guide.tsx 20ms (unchanged)
+apps/web/src/server/character/character-handler.ts 3ms (unchanged)
+apps/web/src/server/character/character-service.ts 7ms (unchanged)
+apps/web/src/server/character/character-slot-service.ts 28ms (unchanged)
+apps/web/src/server/character/discipline-mastery-service.ts 7ms (unchanged)
+apps/web/src/server/character/supabase-character-repository.ts 9ms (unchanged)
+apps/web/src/server/combat/combat-content-categories.ts 10ms
+apps/web/src/server/master/combat-content-records.test.ts 14ms
+apps/web/src/server/master/players-service.test.ts 8ms (unchanged)
+apps/web/src/server/master/players-service.ts 17ms (unchanged)
+apps/web/src/server/master/supabase-combat-content-authoring-store.ts 31ms
+packages/db/src/character.ts 3ms (unchanged)
+packages/db/src/combat-content-discipline-producers.test.ts 128ms
+packages/game-core/src/character/attribute-allocation.ts 19ms (unchanged)
+packages/game-core/src/content/authored-content.test.ts 8ms (unchanged)
+packages/game-core/src/content/authored-content.ts 23ms
+packages/validation/src/player/character.ts 9ms (unchanged)
+apps/web/src/server/character/character-published-creation.test.ts 70ms
+apps/web/src/server/character/published-discipline-catalogue.ts 25ms
+apps/web/e2e/master-discipline-consumers.pw.ts 34ms

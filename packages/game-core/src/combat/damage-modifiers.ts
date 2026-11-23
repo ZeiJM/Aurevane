@@ -1,6 +1,64 @@
+import { damageUpMatchesPacket, validateDamageUpTypes } from './combat-damage-up'
+import type { CombatElement } from './gameplay-tags'
+import { CURRENT_EFFECT_BONUS_MULTIPLIER_MAXIMUM_BASIS_POINTS } from './combat-effect-percentages'
+import { combatStatusApplications } from './combat-status-applications'
 import { hasGameplayTag, validateGameplayTag, type GameplayTag } from './gameplay-tags'
+import { hasCurrentBleed, hasCurrentBurn, hasCurrentPoison } from './combat-dots'
 import type { CombatContentCatalog, CombatEncounterState } from './actions'
 import { classifyFacingRelation } from './board'
+import { evaluateAbilityRequirements } from './combat-requirements'
+import { combatAbilitySubject } from './combat-behavior-runtime'
+import type { CombatCommandDamageBonus } from './combat-ability-command'
+
+export function validateCombatCommandDamageBonuses(value: unknown): void {
+  if (value === undefined) return
+  if (!Array.isArray(value) || value.length > 512)
+    throw new TypeError('invalid-command-damage-bonuses')
+  const identities = new Set<string>()
+  for (const bonus of value) {
+    if (
+      !bonus ||
+      typeof bonus !== 'object' ||
+      Array.isArray(bonus) ||
+      Object.keys(bonus).some(
+        (key) =>
+          ![
+            'sourceInstanceId',
+            'contentId',
+            'contentVersion',
+            'behaviorId',
+            'effectId',
+            'multiplierBasisPoints',
+            'elementFilter',
+            'damageTypes',
+          ].includes(key),
+      ) ||
+      ['sourceInstanceId', 'contentId', 'behaviorId', 'effectId'].some(
+        (key) => typeof bonus[key] !== 'string' || !bonus[key] || bonus[key].trim() !== bonus[key],
+      ) ||
+      (bonus.elementFilter !== undefined &&
+        !['fire', 'water', 'ice', 'storm'].includes(bonus.elementFilter)) ||
+      !Number.isSafeInteger(bonus.contentVersion) ||
+      bonus.contentVersion < 1 ||
+      !Number.isSafeInteger(bonus.multiplierBasisPoints) ||
+      bonus.multiplierBasisPoints < 10000 ||
+      bonus.multiplierBasisPoints > CURRENT_EFFECT_BONUS_MULTIPLIER_MAXIMUM_BASIS_POINTS
+    )
+      throw new TypeError('invalid-command-damage-bonuses')
+    validateDamageUpTypes(bonus.damageTypes)
+    if (bonus.damageTypes !== undefined && bonus.elementFilter !== undefined)
+      throw new TypeError('Conflicting command Damage Up scope fields.')
+    const identity = JSON.stringify([
+      bonus.sourceInstanceId,
+      bonus.contentId,
+      bonus.contentVersion,
+      bonus.behaviorId,
+      bonus.effectId,
+    ])
+    if (identities.has(identity)) throw new TypeError('duplicate-command-damage-bonus')
+    identities.add(identity)
+  }
+}
 
 export type DamageCondition =
   | { kind: 'always' }
@@ -17,67 +75,238 @@ export interface CombatDamageModifier {
   condition: DamageCondition
 }
 
-/** New modifiers share a bounded budget; historical Guarded/Exposed stacks remain separate. */
+/** Historical snapshots retain their combined modifier budget. */
 export const CONDITIONAL_DAMAGE_MINIMUM = 5_000
 export const CONDITIONAL_DAMAGE_MAXIMUM = 20_000
 
-export function conditionalDamageMultiplier(
+/** Exact multiplier in basis points, retained only during damage resolution. */
+export interface CombatDamageMultiplierRatio {
+  numerator: bigint
+  denominator: bigint
+}
+
+type ConditionalDamageArguments = [
+  state: CombatEncounterState,
+  attackerId: string,
+  recipientId: string,
+  content: CombatContentCatalog,
+  elementalMultiplier?: number,
+  options?: {
+    packetPiercing?: boolean
+    packetElement?: CombatElement
+    ignoreIncomingMitigation?: boolean
+    outgoingState?: CombatEncounterState
+    commandDamageBonuses?: readonly CombatCommandDamageBonus[]
+  },
+]
+
+/** Retain the historical integer-basis-point API and Inspired arithmetic. */
+export function conditionalDamageMultiplier(...args: ConditionalDamageArguments): number {
+  const ratio = calculateConditionalDamageRatio(false, ...args)
+  return Number(ratio.numerator / ratio.denominator)
+}
+
+export function conditionalDamageRatio(
+  ...args: ConditionalDamageArguments
+): CombatDamageMultiplierRatio {
+  return calculateConditionalDamageRatio(true, ...args)
+}
+
+function calculateConditionalDamageRatio(
+  exact: boolean,
   state: CombatEncounterState,
   attackerId: string,
   recipientId: string,
   content: CombatContentCatalog,
   elementalMultiplier = 10_000,
-  options: { ignoreIncomingMitigation?: boolean } = {},
-): number {
+  options: {
+    packetPiercing?: boolean
+    packetElement?: CombatElement
+    ignoreIncomingMitigation?: boolean
+    outgoingState?: CombatEncounterState
+    commandDamageBonuses?: readonly CombatCommandDamageBonus[]
+  } = {},
+): CombatDamageMultiplierRatio {
+  const outgoingState = options.outgoingState ?? state
   let numerator = BigInt(elementalMultiplier)
-  if (hasGameplayTag(state, attackerId, 'Inspired', content))
-    numerator = (numerator * 11_000n) / 10_000n
   let denominator = 1n
+  const inspiredStatuses =
+    outgoingState.statusState
+      .find((row) => row.combatantId === attackerId)
+      ?.statuses.filter((status) => {
+        const definition = content.statuses.find(
+          (candidate) =>
+            candidate.id === status.statusId && candidate.version === status.statusVersion,
+        )
+        return definition?.gameplayTags?.includes('Inspired') === true
+      }) ?? []
+  for (const inspired of state.effectStackingPolicyVersion === 1
+    ? inspiredStatuses
+    : inspiredStatuses.slice(0, 1)) {
+    for (const application of state.effectStackingPolicyVersion === 1
+      ? combatStatusApplications(inspired)
+      : [{ ...inspired, stacks: 1 }]) {
+      if (!damageUpMatchesPacket(application, options.packetElement, options.packetPiercing))
+        continue
+      const multiplier = 10_000 + (application.potencyBasisPoints ?? 1_000)
+      if (exact) {
+        ;[numerator, denominator] = multiplyRepeatedRatio(
+          numerator,
+          denominator,
+          multiplier,
+          application.stacks,
+        )
+        continue
+      }
+      for (let index = 0; index < application.stacks; index += 1) {
+        const next = (numerator * BigInt(multiplier)) / 10_000n
+        if (next > BigInt(Number.MAX_SAFE_INTEGER))
+          throw new RangeError('Inspired effect total exceeds the safe integer range.')
+        if (next === numerator) break
+        numerator = next
+      }
+    }
+  }
+  validateCombatCommandDamageBonuses(options.commandDamageBonuses)
+  for (const bonus of options.commandDamageBonuses ?? []) {
+    if (!damageUpMatchesPacket(bonus, options.packetElement, options.packetPiercing)) continue
+    ;[numerator, denominator] = multiplyRepeatedRatio(
+      numerator,
+      denominator,
+      bonus.multiplierBasisPoints,
+      1,
+    )
+  }
+  const owner = outgoingState.tactical.battle.combatants.find((unit) => unit.id === attackerId)
+  if (owner && owner.hp > 0 && outgoingState.tactical.battle.lifecycle === 'active') {
+    const context = { owner: combatAbilitySubject(outgoingState, attackerId) }
+    for (const source of outgoingState.capturedAbilitySources ?? []) {
+      if (
+        source.ownerCombatantId !== attackerId ||
+        !outgoingState.abilityRuntime?.activeSourceIds.includes(source.sourceInstanceId)
+      )
+        continue
+      for (const behavior of source.definition.behaviors) {
+        if (
+          behavior.activation !== 'ongoing' ||
+          !evaluateAbilityRequirements(behavior.requirements, context)
+        )
+          continue
+        for (const effect of behavior.effects) {
+          if (
+            effect.payload.type !== 'damage-bonus' ||
+            !damageUpMatchesPacket(effect.payload, options.packetElement, options.packetPiercing) ||
+            !evaluateAbilityRequirements(effect.requirements ?? null, context)
+          )
+            continue
+          ;[numerator, denominator] = multiplyRepeatedRatio(
+            numerator,
+            denominator,
+            effect.payload.multiplierBasisPoints,
+            1,
+          )
+        }
+      }
+    }
+  }
   for (const [ownerId, opponentId, direction] of [
     [attackerId, recipientId, 'outgoing'],
     [recipientId, attackerId, 'incoming'],
   ] as const) {
-    const statuses = state.statusState.find((row) => row.combatantId === ownerId)?.statuses ?? []
+    const modifierState = direction === 'outgoing' ? outgoingState : state
+    const statuses =
+      modifierState.statusState.find((row) => row.combatantId === ownerId)?.statuses ?? []
     for (const status of statuses) {
       const definition = content.statuses.find(
         (candidate) =>
           candidate.id === status.statusId && candidate.version === status.statusVersion,
       )
-      for (const modifier of definition?.damageModifiers ?? []) {
-        if (modifier.direction !== direction) continue
+      if (status.timingState === 'pending') continue
+      for (const application of state.effectStackingPolicyVersion === 1
+        ? combatStatusApplications(status)
+        : [{ ...status, stacks: 1 }]) {
         if (
-          direction === 'incoming' &&
-          options.ignoreIncomingMitigation === true &&
-          modifier.multiplierBasisPoints < 10_000
-        )
-          continue
-        if (
-          !matchesCondition(
-            state,
-            ownerId,
-            opponentId,
-            attackerId,
-            recipientId,
-            status.sourceCombatantId,
-            modifier.condition,
-            content,
+          status.statusId === 'revealed' &&
+          application.increasedDamageTakenBasisPoints !== undefined &&
+          direction === 'incoming'
+        ) {
+          ;[numerator, denominator] = multiplyRepeatedRatio(
+            numerator,
+            denominator,
+            10000 + application.increasedDamageTakenBasisPoints,
+            application.stacks,
           )
-        )
-          continue
-        // Each new modifier is applied once per status, independently of legacy stack counts.
-        numerator *= BigInt(modifier.multiplierBasisPoints)
-        denominator *= 10_000n
+        }
+        for (const modifier of definition?.damageModifiers ?? []) {
+          if (
+            status.statusId === 'fortified' &&
+            application.defenseIncreaseBasisPoints !== undefined
+          ) {
+            if (modifier.direction === 'incoming') continue
+          }
+          if (modifier.direction !== direction) continue
+          if (
+            direction === 'incoming' &&
+            options.ignoreIncomingMitigation === true &&
+            modifier.multiplierBasisPoints < 10_000
+          )
+            continue
+          if (
+            !matchesCondition(
+              modifierState,
+              ownerId,
+              opponentId,
+              attackerId,
+              recipientId,
+              application.sourceCombatantId,
+              modifier.condition,
+              content,
+            )
+          )
+            continue
+          // Current encounters preserve every application's magnitude; legacy rows apply once.
+          const multiplier =
+            status.statusId === 'fortified' && application.defenseIncreaseBasisPoints !== undefined
+              ? Math.max(0, 10000 - application.defenseIncreaseBasisPoints)
+              : application.potencyBasisPoints === undefined ||
+                  modifier.multiplierBasisPoints === 10_000
+                ? modifier.multiplierBasisPoints
+                : modifier.multiplierBasisPoints < 10_000
+                  ? Math.max(0, 10_000 - application.potencyBasisPoints)
+                  : 10_000 + application.potencyBasisPoints
+          ;[numerator, denominator] = multiplyRepeatedRatio(
+            numerator,
+            denominator,
+            multiplier,
+            application.stacks,
+          )
+        }
       }
     }
   }
   const result = numerator / denominator
-  return Number(
-    result < BigInt(CONDITIONAL_DAMAGE_MINIMUM)
-      ? BigInt(CONDITIONAL_DAMAGE_MINIMUM)
-      : result > BigInt(CONDITIONAL_DAMAGE_MAXIMUM)
-        ? BigInt(CONDITIONAL_DAMAGE_MAXIMUM)
-        : result,
+  const hasConfiguredModifier = [
+    ...(outgoingState.statusState.find((row) => row.combatantId === attackerId)?.statuses ?? []),
+    ...(state.statusState.find((row) => row.combatantId === recipientId)?.statuses ?? []),
+  ].some(
+    (status) =>
+      status.timingState !== 'pending' &&
+      combatStatusApplications(status).some(
+        (application) =>
+          application.defenseIncreaseBasisPoints !== undefined ||
+          application.increasedDamageTakenBasisPoints !== undefined,
+      ),
   )
+  if (state.effectStackingPolicyVersion === 1 || hasConfiguredModifier) {
+    if (result > BigInt(Number.MAX_SAFE_INTEGER))
+      throw new RangeError('Combined damage multiplier exceeds the safe integer range.')
+    return { numerator, denominator }
+  }
+  if (numerator < BigInt(CONDITIONAL_DAMAGE_MINIMUM) * denominator)
+    return { numerator: BigInt(CONDITIONAL_DAMAGE_MINIMUM), denominator: 1n }
+  if (numerator > BigInt(CONDITIONAL_DAMAGE_MAXIMUM) * denominator)
+    return { numerator: BigInt(CONDITIONAL_DAMAGE_MAXIMUM), denominator: 1n }
+  return { numerator, denominator }
 }
 
 function matchesCondition(
@@ -96,6 +325,12 @@ function matchesCondition(
     case 'opponent-tag':
       return hasGameplayTag(state, opponentId, condition.tag, content)
     case 'opponent-status':
+      if (
+        (condition.statusId === 'burn' && hasCurrentBurn(state, opponentId)) ||
+        (condition.statusId === 'poison' && hasCurrentPoison(state, opponentId)) ||
+        (condition.statusId === 'bleed' && hasCurrentBleed(state, opponentId))
+      )
+        return true
       return state.statusState.some(
         (row) =>
           row.combatantId === opponentId &&
@@ -150,7 +385,7 @@ export function validateDamageModifiers(
       !['outgoing', 'incoming'].includes(modifier.direction) ||
       !Number.isSafeInteger(modifier.multiplierBasisPoints) ||
       modifier.multiplierBasisPoints < 5_000 ||
-      modifier.multiplierBasisPoints > 15_000
+      modifier.multiplierBasisPoints > CURRENT_EFFECT_BONUS_MULTIPLIER_MAXIMUM_BASIS_POINTS
     )
       throw new TypeError('Invalid bounded damage modifier.')
     const condition = modifier.condition
@@ -193,4 +428,46 @@ export function validateDamageModifiers(
     )
       throw new TypeError('Invalid facing condition.')
   }
+}
+
+// Bound exact-arithmetic work, not gameplay applications. Neutral factors remain O(1)
+// even for the largest valid count; unsupported numeric precision fails before a long loop.
+function multiplyRepeatedRatio(
+  numerator: bigint,
+  denominator: bigint,
+  multiplier: number,
+  count: number,
+): [bigint, bigint] {
+  if (multiplier === 10_000 || numerator === 0n) return [numerator, denominator]
+  // A nonzero, nonneutral reduced ratio has a term >= 2. At this count,
+  // exponentiation must construct a factor with > 65,536 bits, so reject
+  // before spending time on large GCDs that cannot produce a valid result.
+  if (multiplier !== 0 && count >= 65_536)
+    throw new RangeError('Combined effect arithmetic exceeds exact calculation capacity.')
+  const gcd = (a: bigint, b: bigint): bigint => {
+    while (b !== 0n) [a, b] = [b, a % b]
+    return a
+  }
+  const product = (a: bigint, b: bigint): bigint => {
+    const result = a * b
+    if (result.toString(2).length > 65_536)
+      throw new RangeError('Combined effect arithmetic exceeds exact calculation capacity.')
+    return result
+  }
+  const multiply = (left: [bigint, bigint], right: [bigint, bigint]): [bigint, bigint] => {
+    const crossA = gcd(left[0], right[1])
+    const crossB = gcd(right[0], left[1])
+    return [
+      product(left[0] / crossA, right[0] / crossB),
+      product(left[1] / crossB, right[1] / crossA),
+    ]
+  }
+  const divisor = gcd(BigInt(multiplier), 10_000n)
+  let factor: [bigint, bigint] = [BigInt(multiplier) / divisor, 10_000n / divisor]
+  let result: [bigint, bigint] = [numerator, denominator]
+  for (let remaining = count; remaining > 0; remaining = Math.floor(remaining / 2)) {
+    if (remaining % 2 === 1) result = multiply(result, factor)
+    if (remaining > 1) factor = multiply(factor, factor)
+  }
+  return result
 }

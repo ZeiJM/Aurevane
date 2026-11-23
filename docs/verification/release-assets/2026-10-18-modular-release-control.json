@@ -1,0 +1,413 @@
+{
+  "status": "live-for-testing-verified",
+  "source": "df0792ec6d59f8fc77b53b50b7b7c124b97e4d67",
+  "tree": "d71c2b161236cac86634932cdcb9fdf06d303c7d",
+  "cohortSha256": "998a68515af8cfbb2ce38ecb949fd595a044eb617175bf14d7520ca400c8d02f",
+  "migrationSha256": "ad9c1c276f45b480b7b2d4a1d3d7b1cf0492e3f1786e56b7379fcb3b6f5e12aa",
+  "boundPublicationSha256": "a85e45874f5c77f57cbd0dd3d73c6f72f968acf633eadfbecc358aae59ba77d5",
+  "quality": {
+    "vitest": 10197,
+    "node": 7,
+    "typecheckPackages": 8,
+    "builds": 2,
+    "workflow": 39148564492
+  },
+  "review": {
+    "head": "df0792ec6d59f8fc77b53b50b7b7c124b97e4d67",
+    "tree": "d71c2b161236cac86634932cdcb9fdf06d303c7d",
+    "critical": 0,
+    "important": 0,
+    "scope": "Narrow nested-description repair; continuing whole-branch review",
+    "mechanicsUnchanged": true
+  },
+  "oldPolicyHistoryMd5": "bee7df43d93b79e3406547b0bfc34b40",
+  "productionWrites": [
+    "compatible timing-authority migration",
+    "version-only source-ledger identity CAS",
+    "one exact-source production deployment",
+    "atomic294-definition and global-policy8 publication"
+  ],
+  "merge": "db1dc0d6a0c7c728d3d10bbb7f5ad5fa1faeed50",
+  "browser": {
+    "run": 39148564367,
+    "job": 117757719595,
+    "fullPassed": 352,
+    "fullSkipped": 275,
+    "focusedPassed": 73,
+    "focusedSkipped": 21,
+    "edgePassed": 10,
+    "edgeSkipped": 2,
+    "boundedRetry": true
+  },
+  "migrationLedger": {
+    "version": "20261018141646",
+    "apiVersion": "20261018195655",
+    "name": "modular_global_tag_timing",
+    "metadataFingerprint": "c087eb15b85291fdbbd6add2f999b04d"
+  },
+  "deployment": "dpl_jezRyZhcsgtE83BJWMcg2pT13t3o",
+  "verifiedAt": "2026-10-18T20:02:28.798Z",
+  "readyAt": "2026-10-18T19:58:34.709Z",
+  "canonical": "https://aurevane.vercel.app",
+  "catalogue": {
+    "token": "5cb352212c59059b753ebaca48523296",
+    "drafts": 0,
+    "policy": {
+      "modes": {
+        "summon": "instant",
+        "displace": "instant",
+        "mp-drain": "instant",
+        "blindside": "instant",
+        "remove-status": "instant",
+        "barrier-change": "instant",
+        "return-to-turn-start": "controlled"
+      },
+      "version": 8,
+      "tagAuthority": "global"
+    },
+    "current": 294,
+    "history": 583,
+    "expected": 294,
+    "mismatches": [],
+    "exact_current": 294,
+    "old_history_retained": 294
+  },
+  "functionsVerified": 11,
+  "privateTimingRls": true,
+  "oldPolicyHistoryUnchanged": true,
+  "securityAdvisorsUnchanged": true,
+  "hostedProbes": {
+    "staleCatalogueDenied": true,
+    "authenticatedWriterDenied": true,
+    "globalAuthorityInherited": true,
+    "rolledBack": true
+  },
+  "publicHealth": [
+    {
+      "path": "/",
+      "status": 200,
+      "success": true,
+      "title": "AUREVANE",
+      "length": 18570
+    },
+    {
+      "path": "/manual",
+      "status": 200,
+      "success": true,
+      "title": "Adventurer’s Guide | AUREVANE",
+      "length": 47475
+    },
+    {
+      "path": "/rules",
+      "status": 200,
+      "success": true,
+      "title": "Rules | AUREVANE",
+      "length": 36430
+    },
+    {
+      "path": "/api/foundation/auth-status",
+      "status": 200,
+      "success": true,
+      "bodyJson": "{\"authenticated\":false}",
+      "length": 23
+    },
+    {
+      "path": "/manual/techniques-damage-effects",
+      "status": 200,
+      "success": true,
+      "title": "AUREVANE",
+      "length": 724796
+    },
+    {
+      "path": "/manual/disciplines-mastery",
+      "status": 200,
+      "success": true,
+      "title": "AUREVANE",
+      "length": 277148
+    },
+    {
+      "path": "/game/world",
+      "status": 200,
+      "success": true,
+      "title": "AUREVANE",
+      "length": 18238
+    }
+  ],
+  "manualWitnesses": [
+    "Hold Fast Heal/Barrier15%/no once limit",
+    "Rewind Step Controlled/no once limit",
+    "Flanking Cut Ground and Enemy overrides"
+  ],
+  "runtime": {
+    "since": "2026-10-18T19:58:34.709Z",
+    "levels": ["warning", "error", "fatal"],
+    "recordedGroups": 0
+  },
+  "acceptanceLimits": [
+    "Hosted signed-in/human/multiplayer/load/physical200%zoom acceptance is not certified"
+  ],
+  "workbook": {
+    "filename": "AUREVANE_Roster_Update_Preview.xlsx",
+    "version": 4,
+    "records": 294,
+    "commands": 297,
+    "effects": 604,
+    "liveLabelVerified": true
+  },
+  "masterResume": {
+    "task": 8,
+    "name": "Selected-character Staff authority and Staff & Access",
+    "historicalCheckpoint": "0350184a9",
+    "sourceRecovered": false,
+    "sourcePublicationRestriction": "The earlier Staff source-upload approval rejection remains separate; do not bypass it under the correction release authorization."
+  },
+  "ci": [
+    {
+      "id": 39148564428,
+      "name": "Skill Engine",
+      "result": "success"
+    },
+    {
+      "id": 39148564386,
+      "name": "Controlled combat browser",
+      "result": "success"
+    },
+    {
+      "id": 39148564380,
+      "name": "Modular ability readers browser",
+      "result": "success"
+    },
+    {
+      "id": 39148564491,
+      "name": "Essence Build",
+      "result": "success"
+    },
+    {
+      "id": 39148564393,
+      "name": "Shared Build Snapshots",
+      "result": "success"
+    },
+    {
+      "id": 39148564443,
+      "name": "Foundation Security DB",
+      "result": "success"
+    },
+    {
+      "id": 39148564515,
+      "name": "Discipline Build DB",
+      "result": "success"
+    },
+    {
+      "id": 39148564360,
+      "name": "Attribute Allocation",
+      "result": "success"
+    },
+    {
+      "id": 39148564493,
+      "name": "Battle Session DB",
+      "result": "success"
+    },
+    {
+      "id": 39148564395,
+      "name": "Wayfarer's Practice DB",
+      "result": "success"
+    },
+    {
+      "id": 39148564436,
+      "name": "UI layout review",
+      "result": "success"
+    },
+    {
+      "id": 39148564488,
+      "name": "Desktop page fit",
+      "result": "success"
+    },
+    {
+      "id": 39148564492,
+      "name": "CI",
+      "result": "success"
+    },
+    {
+      "id": 39148564426,
+      "name": "Desktop experience",
+      "result": "success"
+    },
+    {
+      "id": 39148564451,
+      "name": "Representative Buildcraft",
+      "result": "success"
+    },
+    {
+      "id": 39148564367,
+      "name": "Browser smoke",
+      "result": "success"
+    }
+  ],
+  "functionManifest": [
+    {
+      "namespace": "app_private",
+      "name": "lock_combat_content_catalogue_v1",
+      "source_md5": "3d0f06e4c7b4f99d9281832e1a46f6dd",
+      "arguments": "p_expected_token text",
+      "security_definer": true,
+      "config": ["search_path=\"\""],
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": false
+    },
+    {
+      "namespace": "app_private",
+      "name": "publish_combat_content_with_floor_v1",
+      "source_md5": "db16598520a8761d09a068fabc7d7846",
+      "arguments": "p_actor_user_id uuid, p_content_key text, p_content_kind text, p_definition jsonb, p_expected_base_version integer, p_version_floor integer",
+      "security_definer": true,
+      "config": ["search_path=\"\""],
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": false
+    },
+    {
+      "namespace": "public",
+      "name": "publish_combat_content_v1",
+      "source_md5": "7267d5f12c1efc7adfad2b760c1a43d2",
+      "arguments": "p_actor_user_id uuid, p_content_key text, p_content_kind text, p_definition jsonb, p_expected_base_version integer",
+      "security_definer": true,
+      "config": ["search_path=pg_catalog, public, app_private"],
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": false
+    },
+    {
+      "namespace": "public",
+      "name": "publish_combat_content_v2",
+      "source_md5": "2a3fd92cec760d063897acfcddfb42ed",
+      "arguments": "p_actor_user_id uuid, p_content_key text, p_content_kind text, p_definition jsonb, p_expected_base_version integer, p_expected_catalogue_token text",
+      "security_definer": true,
+      "config": ["search_path=\"\""],
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": false
+    },
+    {
+      "namespace": "public",
+      "name": "publish_combat_content_v3",
+      "source_md5": "24081faeea6e5c134b5efadedb2466dc",
+      "arguments": "p_actor_user_id uuid, p_content_key text, p_content_kind text, p_definition jsonb, p_expected_base_version integer, p_expected_catalogue_token text, p_version_floor integer",
+      "security_definer": true,
+      "config": ["search_path=\"\""],
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": true
+    },
+    {
+      "namespace": "public",
+      "name": "publish_combat_effect_timing_policy_v1",
+      "source_md5": "fbb528132fca11df106455a246f9019e",
+      "arguments": "p_actor_user_id uuid, p_expected_version integer, p_modes jsonb, p_reason text",
+      "security_definer": true,
+      "config": ["search_path=\"\""],
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": false
+    },
+    {
+      "namespace": "public",
+      "name": "publish_combat_effect_timing_policy_v2",
+      "source_md5": "4d9d723b040622b910f5691995fa0469",
+      "arguments": "p_actor_user_id uuid, p_expected_version integer, p_modes jsonb, p_expected_catalogue_token text",
+      "security_definer": true,
+      "config": ["search_path=\"\""],
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": true
+    },
+    {
+      "namespace": "public",
+      "name": "read_combat_content_catalogue_v1",
+      "source_md5": "6e5fc44de0567e97da755c5aee1d5899",
+      "arguments": "",
+      "security_definer": true,
+      "config": ["search_path=pg_catalog, public, app_private"],
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": true
+    },
+    {
+      "namespace": "public",
+      "name": "read_combat_effect_timing_policy_v1",
+      "source_md5": "fdf67911cec2cec8c41a790f3d124f1a",
+      "arguments": "",
+      "security_definer": true,
+      "config": ["search_path=\"\""],
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": true
+    },
+    {
+      "namespace": "public",
+      "name": "set_combat_content_publication_v1",
+      "source_md5": "8377c87ad3b87868155cd80d640ead0b",
+      "arguments": "p_actor_user_id uuid, p_content_key text, p_content_kind text, p_target_version integer",
+      "security_definer": true,
+      "config": ["search_path=pg_catalog, public, app_private"],
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": false
+    },
+    {
+      "namespace": "public",
+      "name": "set_combat_content_publication_v2",
+      "source_md5": "1cbdb706857311a04b9e6977a48703ae",
+      "arguments": "p_actor_user_id uuid, p_content_key text, p_content_kind text, p_target_version integer, p_expected_catalogue_token text",
+      "security_definer": true,
+      "config": ["search_path=\"\""],
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": true
+    }
+  ],
+  "firstBrowserAttempt": {
+    "head": "df0792ec6d59f8fc77b53b50b7b7c124b97e4d67",
+    "run": 39148564367,
+    "job": 117737670811,
+    "full": {
+      "passed": 351,
+      "skipped": 275,
+      "failed": 1
+    },
+    "focused": {
+      "passed": 73,
+      "skipped": 21,
+      "failed": 0
+    },
+    "failure": {
+      "file": "apps/web/e2e/world-presence-case.ts",
+      "line": 559,
+      "scenario": "known neighbouring players follow the visible viewport with service-only presence authority",
+      "expected": "delta < 1",
+      "actual": 1.9827620771870897,
+      "sourceUnchanged": true
+    },
+    "edge": "not reached after full-suite failure",
+    "artifactDownload": "diagnostic archive 714375277 bytes exceeds connector 536870912-byte limit",
+    "retry": "one bounded same-source failed-job retry started"
+  },
+  "originalScreenshots": {
+    "images": 13,
+    "source": "df0792ec6d59f8fc77b53b50b7b7c124b97e4d67",
+    "examples": [
+      "Measured Edge Haste label weight",
+      "Guard supplementary explanation palette",
+      "Riposte classification and damage prose",
+      "Stolen Moment compact Slow requirement/global timing",
+      "Flanking Cut Ground/Enemy recipients/Blindside/stack/expiry",
+      "Rewind once-per-battle prose and primed indicator",
+      "Barrier percent magnitude/temp HP/Pierce",
+      "Damage Up percentage-only magnitude",
+      "Cross-reader Sevenfold Cut style",
+      "Eligible automatic Essence/Resonance"
+    ],
+    "newSourceChanges": 0,
+    "observation": "All original images now inspected; examples match correction scope and prepared shared-reader/native evidence. No newly discovered scope difference."
+  }
+}

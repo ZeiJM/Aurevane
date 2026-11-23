@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     "./combat/battle-session": "./src/combat/battle-session.ts",
+    "./combat/npc-design": "./src/combat/npc-design.ts",
     "./combat/pvp": "./src/combat/pvp.ts",
     "./env/public": "./src/env/public.ts",
     "./env/server": "./src/env/server.ts",
@@ -13,6 +14,7 @@
     "./player/character-creation": "./src/player/character-creation.ts",
     "./player/combat-controls": "./src/player/combat-controls.ts",
     "./player/profile": "./src/player/profile.ts",
+    "./player/supernatural": "./src/player/supernatural.ts",
     "./player/progression": "./src/player/progression.ts",
     "./player/wayfarers-practice": "./src/player/wayfarers-practice.ts"
   },
@@ -21,7 +23,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "zod": "4.4.3"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@types/node": "24.1.0",

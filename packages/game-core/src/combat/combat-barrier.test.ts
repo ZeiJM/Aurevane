@@ -8,6 +8,14 @@ import {
   type CombatEncounterState,
   type CombatResolutionContext,
 } from './actions'
+import {
+  absorbDirectDamageWithBarrier,
+  absorbIndirectDamageWithBarrier,
+  currentBarrierAmount,
+  grantBarrier,
+  validateBarrierState,
+} from './combat-barrier'
+import { applyCombatStatusCopies } from './combat-status-copy'
 import { validateCombatActionDefinition } from './combat-authoring-validation'
 import { createPendingBattle, startBattle } from './battle-state'
 import { createTacticalBattleState } from './board'
@@ -20,6 +28,47 @@ import {
 
 const CONTENT: CombatContentCatalog = { statuses: [] }
 const BARRIER_ACTION_ID = 'test.k4-barrier'
+
+describe('finishing-hit damage presentation', () => {
+  it.each([0, 20])('retains full damage after %i Barrier while HP loss stays capped', (pool) => {
+    let state = { ...encounter(), modularSkillPolicyVersion: 1 as const }
+    if (pool)
+      state = {
+        ...grantBarrier(state, 'actor', 'recruit', 'test.barrier', pool).state,
+        modularSkillPolicyVersion: 1,
+      }
+    const result = castAtRecruit(
+      state,
+      enemyAction('test.finisher', [{ type: 'damage', recipient: 'primary-unit', amount: 999 }]),
+    )
+    expect(result.events).toContainEqual(
+      expect.objectContaining({
+        event: 'damage_applied',
+        amount: 100,
+        resolvedDamage: 999 - pool,
+        hpBefore: 100,
+        hpAfter: 0,
+      }),
+    )
+    expect(recruitHp(result.state)).toBe(0)
+    expect(result.state.effectState?.damageHistory).toEqual([
+      { combatantId: 'recruit', round: 1, amount: 100 },
+    ])
+  })
+
+  it('keeps exact indirect overkill beyond the numeric safe-integer boundary', () => {
+    const state = { ...encounter(), modularSkillPolicyVersion: 1 as const }
+    const result = absorbIndirectDamageWithBarrier(
+      state,
+      'actor',
+      'recruit',
+      'test.tick',
+      9007199254740993n,
+    )
+    expect(result.remainingDamage).toBe(100)
+    expect(result.damageBeforeHpLimit).toBe(9007199254740993n)
+  })
+})
 
 function encounter(): CombatEncounterState {
   const battle = startBattle(
@@ -182,6 +231,50 @@ function committedDamage(events: readonly { event: string }[]): number {
 }
 
 describe('P4.K4 direct Barrier primitive', () => {
+  it('grants a percentage of maximum HP as temporary HP and absorbs damage before real HP', () => {
+    const initial = encounter()
+    const state = {
+      ...initial,
+      tactical: {
+        ...initial.tactical,
+        battle: {
+          ...initial.tactical.battle,
+          combatants: initial.tactical.battle.combatants.map((unit) =>
+            unit.id === 'recruit' ? { ...unit, maxHp: 253, hp: 75 } : unit,
+          ),
+        },
+      },
+    }
+    const granted = castAtRecruit(
+      state,
+      enemyAction('percent-barrier', [
+        {
+          type: 'barrier-change',
+          recipient: 'primary-unit',
+          amount: 20,
+          basis: 'maximum-hp-percent',
+        },
+      ]),
+    )
+    expect(recruitBarrier(granted.state)).toBe(50)
+    const hit = castAtRecruit(granted.state, damageAction())
+    expect(recruitBarrier(hit.state)).toBe(30)
+    expect(recruitHp(hit.state)).toBe(75)
+  })
+
+  it('current Pierce shatters all target Barrier and deals full HP damage without changing other barriers', () => {
+    const initial = { ...encounter(), modularSkillPolicyVersion: 1 as const }
+    const own = grantBarrier(initial, 'actor', 'actor', 'own-shield', 13).state
+    const granted = castAtRecruit(own, barrierAction(75))
+    const hit = castAtRecruit(granted.state, damageAction(true))
+    expect(recruitHp(hit.state)).toBe(80)
+    expect(committedDamage(hit.events)).toBe(20)
+    expect(recruitBarrier(hit.state)).toBe(0)
+    expect(currentBarrierAmount(hit.state, 'actor')).toBe(13)
+    expect(hit.events).toContainEqual(
+      expect.objectContaining({ event: 'barrier_changed', amount: -75, before: 75, after: 0 }),
+    )
+  })
   it('preserves direct damage when no Barrier exists', () => {
     const hit = castAtRecruit(encounter(), damageAction())
 
@@ -197,7 +290,6 @@ describe('P4.K4 direct Barrier primitive', () => {
         poison: [],
         bleed: [],
         burn: [],
-        temporarySkills: [],
         damageHistory: [],
       },
     }
@@ -293,5 +385,78 @@ describe('P4.K4 direct Barrier primitive', () => {
     expect(firstRow?.provenance?.instanceId).toBe(
       `effect:chain:k4:first:${BARRIER_ACTION_ID}:0:recruit`,
     )
+  })
+})
+
+describe('unlimited independent Barrier applications', () => {
+  it('retains pools beyond maximum HP with independent lineage and absorbs all accumulated damage', () => {
+    let state = { ...encounter(), effectStackingPolicyVersion: 1 as const }
+    const lineages: CombatEffectInstanceProvenance[] = []
+    for (let i = 0; i < 3; i += 1) {
+      const result = castAtRecruit(state, barrierAction(70), barrierContext(`barrier:${i}`))
+      state = { ...result.state, effectStackingPolicyVersion: 1 }
+      lineages.push(state.effectState!.barriers!.at(-1)!.provenance!)
+    }
+    expect(currentBarrierAmount(state, 'recruit')).toBe(210)
+    expect(state.effectState!.barriers).toHaveLength(3)
+    expect(state.effectState!.barriers!.map((row) => row.provenance)).toEqual(lineages)
+    expect(new Set(lineages.map((row) => row.instanceId)).size).toBe(3)
+    expect(validateBarrierState(state)).toEqual([])
+    const absorbed = absorbDirectDamageWithBarrier(state, 'recruit', 250)
+    expect(absorbed.absorbed).toBe(210)
+    expect(absorbed.remainingDamage).toBe(40)
+    expect(absorbed.after).toBe(0)
+  })
+
+  it('does not clone Barrier pools through Copy Buffs or the retired beneficial-effects flag', () => {
+    let state = { ...encounter(), effectStackingPolicyVersion: 1 as const }
+    state = {
+      ...grantBarrier(state, 'actor', 'actor', BARRIER_ACTION_ID, 150).state,
+      effectStackingPolicyVersion: 1,
+    }
+    state = {
+      ...grantBarrier(state, 'actor', 'recruit', BARRIER_ACTION_ID, 140).state,
+      effectStackingPolicyVersion: 1,
+    }
+    const before = JSON.stringify(state)
+    const effect = {
+      type: 'copy-statuses' as const,
+      recipient: 'primary-unit' as const,
+      mode: 'amplify' as const,
+      beneficialEffects: true,
+    }
+    expect(() =>
+      applyCombatStatusCopies(state, 'actor', 'recruit', 'copy', effect, CONTENT),
+    ).toThrow('Retired beneficial-effects Copy')
+    expect(JSON.stringify(state)).toBe(before)
+    expect(currentBarrierAmount(state, 'actor')).toBe(150)
+    expect(currentBarrierAmount(state, 'recruit')).toBe(140)
+  })
+
+  it('fails closed on unsafe totals and malformed or duplicate pool identities', () => {
+    const initial = { ...encounter(), effectStackingPolicyVersion: 1 as const }
+    const state = grantBarrier(
+      initial,
+      'actor',
+      'recruit',
+      BARRIER_ACTION_ID,
+      Number.MAX_SAFE_INTEGER,
+    ).state
+    expect(() => grantBarrier(state, 'actor', 'recruit', BARRIER_ACTION_ID, 1)).toThrow(
+      'safe integer',
+    )
+    const pool = state.effectState!.barriers![0]!
+    expect(
+      validateBarrierState({
+        ...state,
+        effectState: { ...state.effectState!, barriers: [pool, pool] },
+      }),
+    ).not.toEqual([])
+    expect(
+      validateBarrierState({
+        ...state,
+        effectState: { ...state.effectState!, barriers: [{ ...pool, applicationOrder: -1 }] },
+      }),
+    ).not.toEqual([])
   })
 })

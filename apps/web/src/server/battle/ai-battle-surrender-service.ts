@@ -1,6 +1,8 @@
 import 'server-only'
+import { buildBattlePrivacyJournalInput } from './battle-history-privacy'
 
 import { createHash } from 'node:crypto'
+import { refreezeCapturedCombatAbilityState } from '@aurevane/game-core/combat/combat-behavior-runtime'
 
 import {
   isPvpQualityEncounter,
@@ -28,7 +30,7 @@ function readEncounter(value: unknown): StatDrivenCombatEncounterState {
   const state = value as StatDrivenCombatEncounterState
   const issues = validateStatDrivenCombatEncounterState(state)
   if (issues.length > 0) throw unavailable('The stored AI battle state is invalid.')
-  return state
+  return refreezeCapturedCombatAbilityState(state)
 }
 
 function translateSurrenderEvents(events: readonly unknown[]): readonly unknown[] {
@@ -94,7 +96,22 @@ export async function surrenderAiBattle(
   const controlledCombatantId = current.controlledCombatantIds[0]
   if (!controlledCombatantId) throw unavailable()
 
-  const resolved = surrenderPvpCombatant(state, controlledCombatantId)
+  const teamId = state.tactical.battle.combatants.find(
+    (combatant) => combatant.id === controlledCombatantId,
+  )?.teamId
+  if (!teamId) throw unavailable()
+  // The player's only teammates in practice are AI-controlled. Surrender concedes the whole
+  // practice team, preserving the existing promise that it immediately ends the battle as a loss.
+  let resolvedState = state
+  const surrenderEvents: unknown[] = []
+  for (const combatant of state.tactical.battle.combatants.filter(
+    (row) => row.teamId === teamId && row.hp > 0,
+  )) {
+    const resolved = surrenderPvpCombatant(resolvedState, combatant.id)
+    resolvedState = resolved.state
+    surrenderEvents.push(...resolved.events)
+  }
+  const events = translateSurrenderEvents(surrenderEvents)
   const committed = await repository.commitBattleIntent({
     actorKey: userId,
     idempotencyKey,
@@ -102,10 +119,17 @@ export async function surrenderAiBattle(
     userId,
     battleSessionId,
     expectedBattleVersion,
-    nextSnapshot: resolved.state,
-    events: translateSurrenderEvents(resolved.events),
+    nextSnapshot: resolvedState,
+    events,
 
-    privacyJournal: null,
+    privacyJournal: state.capturedAbilitySources?.length
+      ? buildBattlePrivacyJournalInput({
+          before: state,
+          after: resolvedState,
+          commandKind: 'system',
+          events,
+        })
+      : null,
   })
 
   return projectCommittedBattleSession(committed, current.controlledCombatantIds)

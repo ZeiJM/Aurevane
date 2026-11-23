@@ -14,26 +14,42 @@ test -n "$owner_id"
 staff_id="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   select target_user_id::text
   from app_private.master_panel_access_audit
-  where actor_user_id = '$owner_id'::uuid
+  where actor_user_id = '$owner_id'::uuid and target_character_id is not null
   order by created_at, id
   limit 1;")"
 test -n "$staff_id"
 test "$staff_id" != "$owner_id"
 
-docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+staff_character_id="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+  select target_character_id::text from app_private.master_panel_access_audit
+  where actor_user_id='$owner_id'::uuid and target_user_id='$staff_id'::uuid
+    and target_character_id is not null order by created_at,id limit 1;")"
+test -n "$staff_character_id"
+
+assign_event_staff() {
+  local version
+  version="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+    select access_version from app_private.master_panel_character_access where character_id='$staff_character_id'::uuid;")"
+  docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+    set role service_role;
+    select public.set_master_panel_character_access_v2(
+      '$owner_id'::uuid,'$staff_id'::uuid,'$staff_character_id'::uuid,
+      array['event-staff'], array[]::text[], null, '$version'::bigint, true);
+  " >/dev/null
+}
+assign_event_staff
+source "$(dirname "${BASH_SOURCE[0]}")/event-page-access-fixture.sh"
+set_event_page_access true
+all_event_tools="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   set role service_role;
-  select public.grant_master_panel_role_v1(
-    '$owner_id'::uuid,
-    '$staff_id'::uuid,
-    'event-staff',
-    'P4.13 Event Builder verification'
-  );
-" >/dev/null
+  select effective_capabilities @> array['events.author','events.operate','events.production_publish','events.global_scope','events.reward_titles','events.emergency_stop']
+  from public.read_master_panel_access_v2('$staff_id'::uuid,'$staff_character_id'::uuid);")"
+test "$all_event_tools" = 't'
 
 staff_access="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   set role service_role;
   select array_to_string(roles, ',')
-  from public.read_master_panel_access_v1('$staff_id'::uuid);")"
+  from public.read_master_panel_access_v1('$staff_id'::uuid,'$staff_character_id'::uuid);")"
 test "$staff_access" = 'event-staff'
 
 docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
@@ -75,33 +91,21 @@ definition_sql() {
           'objectives',jsonb_build_array(
             jsonb_build_object(
               'id','community',
-              'type','community-threshold',
+              'type','discover',
+              'worldNavigation',jsonb_build_object('sectorId','verdant-expanse','x',12,'y',4,'autoPath',true,'guidance','exact'),
               'referenceKey','objective.p413-community',
               'target',10
             )
           ),
-          'effects',jsonb_build_array(
-            jsonb_build_object(
-              'type','world-pulse',
-              'referenceKey','announcement.p413-live',
-              'enabled',true
-            )
-          ),
-          'cleanupEffects',jsonb_build_array(
-            jsonb_build_object(
-              'type','world-pulse',
-              'referenceKey','announcement.p413-live',
-              'enabled',false
-            )
-          ),
+          'effects',jsonb_build_array(),
+          'cleanupEffects',jsonb_build_array(),
           'transition',jsonb_build_object(
-            'type','objective-threshold',
-            'objectiveId','community'
+            'type','manual'
           )
         )
       ),
-      'rewardPackageRefs',jsonb_build_array('$reward_ref'),
-      'aftermathRefs',jsonb_build_array('aftermath.p413-ci')
+      'rewardPackageRefs',case when '$reward_ref'='reward.p413-missing' then jsonb_build_array('$reward_ref') else jsonb_build_array() end,
+      'aftermathRefs',jsonb_build_array()
     )"
   else
     printf "%s" "jsonb_build_object(
@@ -121,33 +125,21 @@ definition_sql() {
           'objectives',jsonb_build_array(
             jsonb_build_object(
               'id','community',
-              'type','community-threshold',
+              'type','discover',
+              'worldNavigation',jsonb_build_object('sectorId','verdant-expanse','x',12,'y',4,'autoPath',true,'guidance','exact'),
               'referenceKey','objective.p413-community',
               'target',10
             )
           ),
-          'effects',jsonb_build_array(
-            jsonb_build_object(
-              'type','world-pulse',
-              'referenceKey','announcement.p413-live',
-              'enabled',true
-            )
-          ),
-          'cleanupEffects',jsonb_build_array(
-            jsonb_build_object(
-              'type','world-pulse',
-              'referenceKey','announcement.p413-live',
-              'enabled',false
-            )
-          ),
+          'effects',jsonb_build_array(),
+          'cleanupEffects',jsonb_build_array(),
           'transition',jsonb_build_object(
-            'type','objective-threshold',
-            'objectiveId','community'
+            'type','manual'
           )
         )
       ),
-      'rewardPackageRefs',jsonb_build_array('$reward_ref'),
-      'aftermathRefs',jsonb_build_array('aftermath.p413-ci')
+      'rewardPackageRefs',case when '$reward_ref'='reward.p413-missing' then jsonb_build_array('$reward_ref') else jsonb_build_array() end,
+      'aftermathRefs',jsonb_build_array()
     )"
   fi
 }
@@ -159,6 +151,7 @@ draft_one="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d 
   select event_key || '|' || draft_version::text
   from public.save_event_definition_draft_v1(
     '$staff_id'::uuid,
+    '$staff_character_id'::uuid,
     'event.p413-ci',
     $regional_definition,
     null,
@@ -170,6 +163,7 @@ if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -
   set role service_role;
   select * from public.save_event_definition_draft_v1(
     '$staff_id'::uuid,
+    '$staff_character_id'::uuid,
     'event.p413-ci',
     $regional_definition,
     null,
@@ -180,10 +174,12 @@ if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -
 fi
 grep -Fq 'EVENT_DRAFT_VERSION_CONFLICT' /tmp/p413-stale-draft.err
 
+set_event_page_access false
 if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   set role service_role;
   select * from public.publish_event_definition_v2(
     '$staff_id'::uuid,
+    '$staff_character_id'::uuid,
     'event.p413-ci',
     $regional_definition,
     null,
@@ -191,25 +187,18 @@ if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -
     'P4.13 capability denial publication',
     true
   );" >/tmp/p413-publish-cap.out 2>/tmp/p413-publish-cap.err; then
-  echo 'Expected Event Staff publication without production capability to fail.' >&2
+  echo 'Expected Event publication after Events page revocation to fail.' >&2
   exit 1
 fi
-grep -Fq 'EVENT_PRODUCTION_PUBLISH_CAPABILITY_REQUIRED' /tmp/p413-publish-cap.err
+grep -Fq 'EVENT_STAFF_REQUIRED' /tmp/p413-publish-cap.err
 
-docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
-  set role service_role;
-  select public.grant_master_panel_capability_v1(
-    '$owner_id'::uuid,
-    '$staff_id'::uuid,
-    'events.production_publish',
-    'P4.13 production publication verification'
-  );
-" >/dev/null
+set_event_page_access true
 
 if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   set role service_role;
   select * from public.publish_event_definition_v2(
     '$staff_id'::uuid,
+    '$staff_character_id'::uuid,
     'event.p413-ci',
     $regional_definition,
     null,
@@ -222,27 +211,23 @@ if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -
 fi
 grep -Fq 'EVENT_ACTION_CONFIRMATION_REQUIRED' /tmp/p413-confirmation.err
 
-if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+# Explanation-free action still records automatic actor/result attribution; rollback
+# keeps this probe independent of the subsequent publication/CAS/idempotency assertions.
+docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+  begin;
   set role service_role;
-  select * from public.publish_event_definition_v2(
-    '$staff_id'::uuid,
-    'event.p413-ci',
-    $regional_definition,
-    null,
-    '00000000-0000-4000-8000-000000004303'::uuid,
-    'x',
-    true
-  );" >/tmp/p413-reason.out 2>/tmp/p413-reason.err; then
-  echo 'Expected Event publication without a valid reason to fail.' >&2
-  exit 1
-fi
-grep -Fq 'EVENT_ACTION_REASON_REQUIRED' /tmp/p413-reason.err
+  select * from public.publish_event_definition_v2('$staff_id'::uuid,'$staff_character_id'::uuid,'event.p413-ci',$regional_definition,null,'00000000-0000-4000-8000-000000004303'::uuid,null,true);
+  reset role;
+  do \$\$ begin if not exists(select 1 from app_private.event_authoring_audit where correlation_key='00000000-0000-4000-8000-000000004303' and actor_user_id='$staff_id' and reason is null) then raise exception 'Missing reason-free attributed receipt'; end if; end; \$\$;
+  rollback;
+" >/dev/null
 
 missing_reward_definition="$(definition_sql 'event.p413-missing-reward' 'region' 'region.frostmere' 'reward.p413-missing')"
 if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   set role service_role;
   select * from public.publish_event_definition_v2(
     '$staff_id'::uuid,
+    '$staff_character_id'::uuid,
     'event.p413-missing-reward',
     $missing_reward_definition,
     null,
@@ -260,6 +245,7 @@ published="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d 
   select event_key || '|' || definition_version::text
   from public.publish_event_definition_v2(
     '$staff_id'::uuid,
+    '$staff_character_id'::uuid,
     'event.p413-ci',
     $regional_definition,
     null,
@@ -274,6 +260,7 @@ published_replay="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postg
   select event_key || '|' || definition_version::text
   from public.publish_event_definition_v2(
     '$staff_id'::uuid,
+    '$staff_character_id'::uuid,
     'event.p413-ci',
     $regional_definition,
     null,
@@ -287,6 +274,7 @@ if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -
   set role service_role;
   select * from public.publish_event_definition_v2(
     '$staff_id'::uuid,
+    '$staff_character_id'::uuid,
     'event.p413-ci',
     $regional_definition || jsonb_build_object('title','Different request'),
     null,
@@ -304,6 +292,7 @@ if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -
   set role service_role;
   select * from public.save_event_definition_draft_v1(
     '$staff_id'::uuid,
+    '$staff_character_id'::uuid,
     'event.p413-ci',
     $forbidden_definition,
     1,
@@ -322,6 +311,7 @@ scheduled="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d 
   select run_id::text || '|' || state_version::text || '|' || replayed::text
   from public.schedule_event_run_v2(
     '$staff_id'::uuid,
+    '$staff_character_id'::uuid,
     'event.p413-ci',
     '00000000-0000-4000-8000-000000004311'::uuid,
     'p413:schedule:one',
@@ -338,6 +328,7 @@ if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -
   set role service_role;
   select * from public.schedule_event_run_v2(
     '$staff_id'::uuid,
+    '$staff_character_id'::uuid,
     'event.p413-ci',
     '00000000-0000-4000-8000-000000004312'::uuid,
     'p413:schedule:overlap',
@@ -356,6 +347,7 @@ cancelled="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d 
   select lifecycle_status || '|' || state_version::text
   from public.cancel_scheduled_event_run_v2(
     '$staff_id'::uuid,
+    '$staff_character_id'::uuid,
     '$scheduled_run_id'::uuid,
     1,
     '00000000-0000-4000-8000-000000004313'::uuid,
@@ -530,11 +522,13 @@ if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -
 fi
 grep -Fq 'permission denied for table event_authoring_audit' /tmp/p413-audit-write.err
 
+set_event_page_access false
 global_definition="$(definition_sql 'event.p413-global' 'global' '' 'reward.p413-ci')"
 if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   set role service_role;
   select * from public.publish_event_definition_v2(
     '$staff_id'::uuid,
+    '$staff_character_id'::uuid,
     'event.p413-global',
     $global_definition,
     null,
@@ -542,26 +536,19 @@ if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -
     'P4.13 global scope denial publication',
     true
   );" >/tmp/p413-global-cap.out 2>/tmp/p413-global-cap.err; then
-  echo 'Expected global Event publication without global-scope capability to fail.' >&2
+  echo 'Expected global Event publication after Events page revocation to fail.' >&2
   exit 1
 fi
-grep -Fq 'EVENT_GLOBAL_SCOPE_CAPABILITY_REQUIRED' /tmp/p413-global-cap.err
+grep -Fq 'EVENT_STAFF_REQUIRED' /tmp/p413-global-cap.err
 
-docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
-  set role service_role;
-  select public.grant_master_panel_capability_v1(
-    '$owner_id'::uuid,
-    '$staff_id'::uuid,
-    'events.global_scope',
-    'P4.13 global scope verification'
-  );
-" >/dev/null
+set_event_page_access true
 
 global_published="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   set role service_role;
   select event_key || '|' || definition_version::text
   from public.publish_event_definition_v2(
     '$staff_id'::uuid,
+    '$staff_character_id'::uuid,
     'event.p413-global',
     $global_definition,
     null,
@@ -577,20 +564,13 @@ audit_total="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -
   where actor_user_id = '$staff_id'::uuid;")"
 test "$audit_total" = '4'
 
-docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
-  set role service_role;
-  select public.revoke_master_panel_capability_v1(
-    '$owner_id'::uuid,
-    '$staff_id'::uuid,
-    'events.production_publish',
-    'P4.13 replay reauthorization verification'
-  );
-" >/dev/null
+set_event_page_access false
 
 if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   set role service_role;
   select * from public.publish_event_definition_v2(
     '$staff_id'::uuid,
+    '$staff_character_id'::uuid,
     'event.p413-global',
     $global_definition,
     null,
@@ -601,12 +581,14 @@ if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -
   echo 'Revoked Event Staff unexpectedly replayed a privileged publication receipt.' >&2
   exit 1
 fi
-grep -Fq 'EVENT_PRODUCTION_PUBLISH_CAPABILITY_REQUIRED' /tmp/p413-revoked-replay.err
+grep -Fq 'EVENT_STAFF_REQUIRED' /tmp/p413-revoked-replay.err
+set_event_page_access true
 
 if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   set role authenticated;
   select * from public.save_event_definition_draft_v1(
     '$staff_id'::uuid,
+    '$staff_character_id'::uuid,
     'event.browser-forged',
     jsonb_build_object('schemaVersion',1,'eventKey','event.browser-forged'),
     null,

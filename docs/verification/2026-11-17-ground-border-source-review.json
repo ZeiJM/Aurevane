@@ -1,0 +1,111 @@
+{
+  "scope": "Offline real-source Skia review, never native browser/auth/physical-handset/performance acceptance.",
+  "baselineCommit": "5def45b138248fe7ff7d9bec85239db504b74147",
+  "sources": {
+    "apps/web/src/components/world/map-ground-projection.ts": "9635a3f025bf3763bf97ee4c6b6e6f80b5d9b73fea17607334ec3cd71a85806f",
+    "apps/web/src/components/world/map-renderer.ts": "1db4b5a24e6e5fe981659bdddf89fb3f2646ef4180c6028da13462c9d24665b4",
+    ".github/scripts/render-world-source-review.cjs": "3aa2f718dbe7efe25e190a0cc01e6ac01e27b16c4ce2caa320d0e7f7429a1657"
+  },
+  "diagnosis": "Dark Frostmere lines follow transformed sector-raster boundaries. Disabling projection reuse reduces but does not remove them. Half-device-pixel source-border coverage improves the reproduced dark joins while keeping exact interior projection. Fainter material/tile joins remain open.",
+  "preservation": "No master art, canonical geometry/rows, collision, state, server authority, saved positions or pixel-cache budgets changed. Border copies use only valid edge texels.",
+  "evidence": {
+    "before": {
+      "image": "frostmere-dry-town-1.png",
+      "sha256": "f27c9773893a09a0e5952cbb357502aba041973567ddeb13a9c6c585310a7f54",
+      "position": {
+        "sectorId": "atlas:63:12",
+        "x": 5,
+        "y": 5
+      },
+      "zoom": 1,
+      "loaded": 22,
+      "missed": []
+    },
+    "direct-path-ablation": {
+      "image": "frostmere-dry-town-1.png",
+      "sha256": "5cd24b0213b4e0a56d519a61372da4dec93a855060e7a69d47f1de87cdf218c0",
+      "position": {
+        "sectorId": "atlas:63:12",
+        "x": 5,
+        "y": 5
+      },
+      "zoom": 1,
+      "loaded": 22,
+      "missed": []
+    },
+    "coverage-ablation": {
+      "image": "frostmere-dry-town-1.png",
+      "sha256": "06d1a2ef412b8c1e4419dc81290e7c79a145eb5dc5cd9e16c0a203afcc617f83",
+      "position": {
+        "sectorId": "atlas:63:12",
+        "x": 5,
+        "y": 5
+      },
+      "zoom": 1,
+      "loaded": 22,
+      "missed": []
+    },
+    "after-normal": {
+      "image": "frostmere-dry-town-1.png",
+      "sha256": "8f397274c7ad4b4f029d35ba7dcc2536e2d17dc842e575c165e3d6c81f2d88e5",
+      "position": {
+        "sectorId": "atlas:63:12",
+        "x": 5,
+        "y": 5
+      },
+      "zoom": 1,
+      "loaded": 22,
+      "missed": []
+    },
+    "after-maximum": {
+      "image": "frostmere-dry-town-1.4.png",
+      "sha256": "8c3ab2515ff6b79947ec9cf21fb3e3ea04575a08ce90aefa9ebb5c9546f280f8",
+      "position": {
+        "sectorId": "atlas:63:12",
+        "x": 5,
+        "y": 5
+      },
+      "zoom": 1.4,
+      "loaded": 23,
+      "missed": []
+    },
+    "after-minimum": {
+      "image": "frostmere-dry-town-0.35.png",
+      "sha256": "9402bba49df8410d2b8029d3a312c79fdda5cb255a5ec0c6c57d5def827ec1b7",
+      "position": {
+        "sectorId": "atlas:63:12",
+        "x": 5,
+        "y": 5
+      },
+      "zoom": 0.35,
+      "loaded": 22,
+      "missed": []
+    }
+  },
+  "native": "Active814 predates this change. Later exact-source native raster/zoom/scroll/performance gates are required.",
+  "assetHashes": {
+    "apps/web/public/media/art/world/runtime/terrain-v02.webp": "2f10ff7e77d096643a47614b92330dbd357c68d3df32de4b6b22038b81fdf17d",
+    "apps/web/public/media/art/world/runtime/buildings-v02.webp": "d7b92e19a1f804b07d274fafd36c6663a73bcf67f416e1da9d74c3d183228029",
+    "apps/web/public/media/art/world/runtime/nature-v02.webp": "f9a10a465050e399d86dd49b6914af7f3cbb3eb8966009f1650b1b73c91d82e2",
+    "apps/web/public/media/art/world/runtime/props-v02.webp": "aaa9b4cc7c35ce37baec82fb5c7bbfa06772a0bfc3ee212bf65e2d81cf03db3f",
+    "apps/web/public/media/art/world/runtime/biomes-v02.webp": "73fa2c77076ff57de05f98a3f5ec38065faf5b18feb91cb22b12086d3173cc01",
+    "apps/web/public/media/art/world/runtime/beauties-v03.webp": "fbfd6121d3c864532e144fff9eaf0873144b0e1bd45836e2ec9db17a4e88f0b4",
+    "apps/web/public/media/art/world/runtime/regional-ground-v02.webp": "7a8d46c9dc03bb98cbbba453ea8a19bc285007c30822f666ef1beefe6e910d43",
+    "apps/web/public/media/art/world/runtime/living-trees-v01.webp": "30614b3278d5b3ec65fe6f2e77784406ea75936a7b7cfd45e87b767067b31a11",
+    "apps/web/public/media/art/world/runtime/water-materials-v01.webp": "75222437badb8b2b36dbcee70bc178d684345dbe9a85fab38a7294eeaf07ce3d",
+    "apps/web/public/media/art/world/runtime/town-ordinary-architecture-v01.webp": "3ebf3b00f5863fc347bc83fdac3784808b7a8622fd606ab1b614e21b8f7deb86",
+    "apps/web/public/media/art/world/runtime/town-grand-architecture-v01.webp": "90f7fc463b3a820eb791d71e9a0d4f6bff283fe946cfaf4e2bd70d406b3caeb7",
+    "apps/web/public/media/art/world/runtime/settlement-floors-v01.webp": "2357c0614043ee10490808b397626b37ae93b4224ea952c7796d8734772c23b2",
+    "apps/web/public/media/art/world/runtime/mountains-v01.webp": "ed3bffa671d51a37904e6ac7fb9668b106fc2d2507dd2a9aff5566cfc50d2f77",
+    "apps/web/public/media/art/world/runtime/settlement-dressing-v01.webp": "456dee895fe622aa6de3fa763a3104dd3d52b6ff8de766af3ef22ae6710f6514",
+    "apps/web/public/media/art/world/runtime/wild-verges-v01.webp": "7c7898bab34c3206a396c82e489a9fbe1c9c78996b28ff4c46df979bb507cdeb",
+    "apps/web/public/media/art/world/runtime/town-centres-north-v01.webp": "e43c5a2a19038a11d1e1cda7d40f398dc87fe9424cc07c24e3156cab5261df55",
+    "apps/web/public/media/art/world/runtime/hamlet-dressing-v01.webp": "e81932d429a5055c7c0c3d17a8fc7eee8c3fe55f3ca7fe2a0f92c694cfc8a510",
+    "apps/web/public/media/art/world/runtime/regional-scenery-v01.webp": "69d414da26b67b5a653053dfdc8ca13bafa9623d7fcee6152073b040bb236ee5",
+    "apps/web/public/media/art/world/runtime/regional-scenery-extra-v01.webp": "56971cab932b88f27f2d4ef4a92d7f7f4f381ddb4735c98d73708936ead5721c",
+    "apps/web/public/media/art/world/runtime/hamlet-buildings-v01.webp": "2ecdb70bf03d8480ed52e675786d731672c44d4224a314381bf2319dc9e8ab6c",
+    "apps/web/public/media/art/world/runtime/hamlet-buildings-winter-v01.webp": "55346edb7be06767b5141a46a3c9805b46046201a0c7a5b479d356746e107d38",
+    "apps/web/public/media/art/world/runtime/frostmere-v01.webp": "d767503bccad944c9862f92d2b335ede9cc3dc03bc93eb9c6c9a12be7eb815ae",
+    "apps/web/public/media/art/world/runtime/mountains-hd-v01.webp": "f33b958e2e466be588c4467c1fde6d71ea54af7d61537f67b813fed01aa125bd"
+  }
+}

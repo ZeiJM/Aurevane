@@ -1,0 +1,303 @@
+'use client'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
+import {
+  CONTENT_MEDIA_GUIDANCE,
+  CONTENT_MEDIA_MAX_BYTES,
+  contentMediaSource,
+  isFinalizedContentMedia,
+  type ContentImageCrop,
+  type FinalizedContentMediaSlots,
+} from '@aurevane/game-core/combat/content-media'
+import { usePendingMediaReport } from './pending-media-boundary'
+import styles from './combat-content-editor.module.css'
+
+/** Reusable for independent Skills and image-only containers. No draft points at a local preview. */
+export function FinalizedMediaEditor({
+  value,
+  onChange,
+  allowAudio = true,
+  fallbackArtwork,
+  showArtworkRemoval = true,
+  onPendingMediaChange,
+}: {
+  value: FinalizedContentMediaSlots
+  onChange(value: FinalizedContentMediaSlots): void
+  allowAudio?: boolean
+  fallbackArtwork?: string
+  showArtworkRemoval?: boolean
+  onPendingMediaChange?(pending: boolean): void
+}) {
+  const reportPending = usePendingMediaReport(onPendingMediaChange)
+  const [file, setFile] = useState<File | null>(null)
+  const [preview, setPreview] = useState('')
+  const [crop, setCrop] = useState<ContentImageCrop>({ x: 0, y: 0, size: 1 })
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const canvas = useRef<HTMLCanvasElement>(null)
+  const mounted = useRef(false)
+  const uploading = useRef(false)
+  const latest = useRef({ value, onChange })
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+    }
+  }, [])
+  useEffect(() => {
+    reportPending(!!file)
+    return () => reportPending(false)
+  }, [file, reportPending])
+  useEffect(() => {
+    latest.current = { value, onChange }
+  }, [value, onChange])
+  const upload = useCallback(
+    async (selected: File, selectedCrop: ContentImageCrop) => {
+      if (uploading.current) return
+      uploading.current = true
+      setBusy(true)
+      setError('')
+      try {
+        const body = new FormData()
+        body.set('file', selected)
+        if (selected.type.startsWith('image/')) body.set('crop', JSON.stringify(selectedCrop))
+        const response = await fetch('/api/master/combat-content/media', { method: 'POST', body })
+        const result = await response.json()
+        if (!response.ok)
+          throw new Error(
+            result.error?.message ??
+              result.message ??
+              'Upload failed. Check the file format and try again.',
+          )
+        if (
+          !isFinalizedContentMedia(result.media) ||
+          (!allowAudio && result.media.kind === 'audio')
+        )
+          throw new Error('The server did not return a supported finalized asset.')
+        if (!mounted.current) return
+        const current = latest.current
+        current.onChange({
+          ...current.value,
+          ...(result.media.kind === 'image' ? { artwork: result.media } : { audio: result.media }),
+        })
+        setFile(null)
+        setPreview('')
+      } catch (cause) {
+        if (mounted.current)
+          setError(cause instanceof Error ? cause.message : 'Upload failed. Please retry.')
+      } finally {
+        uploading.current = false
+        if (mounted.current) setBusy(false)
+      }
+    },
+    [allowAudio],
+  )
+  useEffect(() => {
+    if (!file) return
+    const url = URL.createObjectURL(file)
+    let cancelled = false
+    // Keep local previews out of authored data; the server independently decodes and finalizes.
+    const image = new window.Image()
+    image.onload = () => {
+      const size = Math.min(image.naturalWidth, image.naturalHeight)
+      const centered = {
+        x: Math.floor((image.naturalWidth - size) / 2),
+        y: Math.floor((image.naturalHeight - size) / 2),
+        size,
+      }
+      setCrop(centered)
+      setPreview(url)
+      void upload(file, centered)
+    }
+    image.onerror = () =>
+      setError('This image could not be decoded. Choose a PNG, JPEG or WebP image.')
+    if (file.type.startsWith('image/')) image.src = url
+    else
+      queueMicrotask(() => {
+        if (cancelled) return
+        setPreview(url)
+        void upload(file, { x: 0, y: 0, size: 1 })
+      })
+    return () => {
+      cancelled = true
+      image.onload = null
+      image.onerror = null
+      URL.revokeObjectURL(url)
+    }
+  }, [file, upload])
+  useEffect(() => {
+    if (!preview || !file?.type.startsWith('image/')) return
+    const image = new window.Image()
+    image.onload = () => {
+      const context = canvas.current?.getContext('2d')
+      context?.clearRect(0, 0, 192, 192)
+      if (crop.size > 0)
+        context?.drawImage(image, crop.x, crop.y, crop.size, crop.size, 0, 0, 192, 192)
+    }
+    image.src = preview
+    return () => {
+      image.onload = null
+    }
+  }, [preview, crop, file])
+  return (
+    <fieldset
+      className={styles.mediaUpload}
+      data-media-editor
+      aria-label={allowAudio ? 'Artwork and sound' : 'Artwork'}
+      disabled={busy}
+    >
+      <div className={styles.mediaHeading}>
+        <strong>{allowAudio ? 'Artwork and sound' : 'Artwork'}</strong>
+      </div>
+      <div className={styles.mediaPreviewGrid}>
+        {!file?.type.startsWith('image/') && !value.artwork && fallbackArtwork ? (
+          <div>
+            <p>Current artwork</p>
+            <Image
+              src={fallbackArtwork}
+              alt="Current artwork"
+              width={192}
+              height={192}
+              unoptimized
+            />
+          </div>
+        ) : null}
+        {!file?.type.startsWith('image/') && value.artwork && (
+          <div>
+            <p>Current artwork</p>
+            <Image
+              src={contentMediaSource(value.artwork, true)}
+              onError={() =>
+                setError(
+                  'The finalized artwork preview is unavailable. Check your access or try again.',
+                )
+              }
+              alt="Finalized artwork crop"
+              width={192}
+              height={192}
+              unoptimized
+            />
+            {showArtworkRemoval && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onChange({ ...value, artwork: undefined })
+                  }}
+                >
+                  Remove uploaded artwork
+                </button>
+              </>
+            )}
+          </div>
+        )}
+        {file?.type.startsWith('image/') && (
+          <div>
+            <p>New artwork</p>
+            <canvas ref={canvas} width={192} height={192} aria-label="Actual crop preview" />
+          </div>
+        )}
+      </div>
+      <div className={styles.mediaUploadDetails}>
+        <p className={styles.mediaHint}>
+          Images are automatically centered and cropped to a square. Large crops are resized
+          automatically to fit.
+        </p>
+        <div className={styles.mediaUploadControls}>
+          <label className={styles.field}>
+            <span>Upload from computer</span>
+            <input
+              type="file"
+              aria-label="Upload content media"
+              title={CONTENT_MEDIA_GUIDANCE}
+              accept={`image/png,image/jpeg,image/webp${allowAudio ? ',audio/wav,audio/x-wav' : ''}`}
+              onChange={(event) => {
+                const selected = event.currentTarget.files?.[0] ?? null
+                event.currentTarget.value = ''
+                setError('')
+                setPreview('')
+                if (selected && !allowAudio && !selected.type.startsWith('image/')) {
+                  setError('This category supports images only; audio is unavailable.')
+                  setFile(null)
+                } else if (selected && selected.size > CONTENT_MEDIA_MAX_BYTES) {
+                  setError('Choose a file no larger than 2 MiB.')
+                  setFile(null)
+                } else setFile(selected)
+              }}
+            />
+          </label>
+          {file && error && !busy && (
+            <button
+              type="button"
+              disabled={file.type.startsWith('image/') && !preview}
+              onClick={() => void upload(file, crop)}
+            >
+              Retry upload
+            </button>
+          )}
+        </div>
+        {busy && <p role="status">Uploading selected media…</p>}
+        {file && (
+          <div className={styles.mediaUploadControls}>
+            <p className={styles.mediaHint}>Selected: {file.name}</p>
+            {!busy && (
+              <button
+                type="button"
+                onClick={() => {
+                  setFile(null)
+                  setPreview('')
+                  setError('')
+                }}
+              >
+                Cancel selected file
+              </button>
+            )}
+          </div>
+        )}
+        {file && !file.type.startsWith('image/') && preview && (
+          <div className={styles.mediaSound}>
+            <p>New sound</p>
+            <audio
+              controls
+              onError={() =>
+                setError(
+                  'This sound could not be played. Use PCM16 WAV, mono or stereo, at 44.1 or 48 kHz.',
+                )
+              }
+              src={preview}
+              aria-label="Selected sound preview"
+            />
+          </div>
+        )}
+        <p className={styles.mediaHint}>
+          Selected files upload automatically. Use Commit Now to save your edits.
+        </p>
+        {value.audio && (
+          <div className={styles.mediaSound}>
+            <p>Current uploaded sound</p>
+            <audio
+              controls
+              preload="none"
+              src={contentMediaSource(value.audio, true)}
+              onError={() =>
+                setError(
+                  'The finalized sound preview is unavailable. Check your access or try again.',
+                )
+              }
+              aria-label="Finalized sound preview"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                onChange({ ...value, audio: undefined })
+              }}
+            >
+              Remove uploaded sound
+            </button>
+          </div>
+        )}
+        {error && <p role="alert">{error}</p>}
+      </div>
+    </fieldset>
+  )
+}

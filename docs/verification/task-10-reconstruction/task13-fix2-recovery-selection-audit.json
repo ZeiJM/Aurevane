@@ -1,0 +1,63 @@
+{
+  "baseline": "e14337e4dc44c8d1abdad5849371bb76bdc2bc0d",
+  "fullCases": 660,
+  "duplicates": [
+    {
+      "phase": "Old focused battle phase",
+      "alreadyInFull": 98,
+      "projects": [
+        "desktop-chromium",
+        "mobile-chromium"
+      ]
+    },
+    {
+      "phase": "Old password and training phases",
+      "alreadyInFull": 9,
+      "projects": [
+        "desktop-chromium",
+        "laptop-chromium",
+        "mobile-chromium"
+      ]
+    }
+  ],
+  "selections": [
+    {
+      "name": "documentation",
+      "mode": "none",
+      "cases": 0
+    },
+    {
+      "name": "artwork",
+      "mode": "targeted",
+      "cases": 21,
+      "files": 4,
+      "edge": false,
+      "components": false
+    },
+    {
+      "name": "audio",
+      "mode": "targeted",
+      "cases": 24,
+      "files": 5,
+      "edge": false,
+      "components": false
+    },
+    {
+      "name": "battle",
+      "mode": "targeted",
+      "cases": 351,
+      "files": 69,
+      "edge": true,
+      "components": true
+    },
+    {
+      "name": "shared",
+      "mode": "full",
+      "cases": 660,
+      "files": 96,
+      "edge": true,
+      "components": true
+    }
+  ],
+  "assertions": "Every removed preliminary case/project is retained in the full suite; selected cases retain their existing projects."
+}

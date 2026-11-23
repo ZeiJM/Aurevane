@@ -1,0 +1,365 @@
+import 'server-only'
+import { projectPublicCombat } from '@aurevane/game-core/combat/public-combat-presentation'
+import { AurevaneError } from '@aurevane/game-core/errors'
+import { disciplineAttributePolicyFromCore } from '@aurevane/game-core/character/attribute-allocation'
+import { CHARACTER_ATTRIBUTE_IDS } from '@aurevane/game-core/character/creation'
+import { calculateDerivedStats } from '@aurevane/game-core/character/derived-stats'
+import { parseCurrentSupportActionId } from '@aurevane/game-core/combat/support-actions'
+import {
+  validateLevelProgressionCurve,
+  type LevelProgressionCurve,
+} from '@aurevane/game-core/character/progression'
+import type {
+  MasterPlayerFacts,
+  MasterPlayerSearchResult,
+  MasterPlayerView,
+  PlayerCorrection,
+  PlayerRecoveryResult,
+  PlayerTeleportDestination,
+} from '@/master/players'
+import type { MasterPanelStaffAccessService } from './staff-access'
+import { resolveMasterBattleRecovery } from './player-battle-recovery'
+import {
+  parseMasterTeleportDestination,
+  parseMasterTeleportReason,
+  teleportStorageNumber,
+} from './player-teleport'
+
+export type PlayersRpc = (name: string, parameters: Record<string, unknown>) => Promise<unknown>
+export function playerRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === 'object' && !Array.isArray(value)
+}
+function invalid(): never {
+  throw new AurevaneError(
+    'INVALID_REQUEST',
+    'Choose supported gameplay fields and confirm the reviewed change.',
+  )
+}
+function unavailable(): never {
+  throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'Player support data is unavailable.')
+}
+const whole = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
+export function parsePlayerCorrection(value: unknown): PlayerCorrection {
+  if (!playerRecord(value)) invalid()
+  const allowed =
+    value.kind === 'source'
+      ? ['kind', 'xp', 'attributes']
+      : value.kind === 'disciplines'
+        ? ['kind', 'primary', 'secondary']
+        : value.kind === 'skills'
+          ? ['kind', 'skills']
+          : value.kind === 'support'
+            ? ['kind', 'supportActionId']
+            : []
+  if (!allowed.length || Object.keys(value).some((key) => !allowed.includes(key))) invalid()
+  if (value.kind === 'source') {
+    if (
+      !whole(value.xp) ||
+      !playerRecord(value.attributes) ||
+      Object.keys(value.attributes).length !== 6 ||
+      !CHARACTER_ATTRIBUTE_IDS.every((key) =>
+        whole((value.attributes as Record<string, unknown>)[key]),
+      )
+    )
+      invalid()
+  } else if (value.kind === 'disciplines') {
+    if (
+      (!Object.hasOwn(value, 'primary') && !Object.hasOwn(value, 'secondary')) ||
+      (Object.hasOwn(value, 'primary') &&
+        (typeof value.primary !== 'string' ||
+          value.primary.length > 160 ||
+          !/^[a-z0-9]+(?:[._-][a-z0-9]+)*$/u.test(value.primary))) ||
+      (Object.hasOwn(value, 'secondary') &&
+        value.secondary !== null &&
+        (typeof value.secondary !== 'string' ||
+          value.secondary.length > 160 ||
+          !/^[a-z0-9]+(?:[._-][a-z0-9]+)*$/u.test(value.secondary)))
+    )
+      invalid()
+  } else if (value.kind === 'skills') {
+    if (
+      !Array.isArray(value.skills) ||
+      value.skills.length > 4 ||
+      value.skills.some(
+        (skill) =>
+          !playerRecord(skill) ||
+          Object.keys(skill).some(
+            (key) =>
+              ![
+                'skillId',
+                'contentVersion',
+                'sourceDisciplineId',
+                'eligibilityDisciplineId',
+              ].includes(key),
+          ) ||
+          typeof skill.skillId !== 'string' ||
+          typeof skill.sourceDisciplineId !== 'string' ||
+          (Object.hasOwn(skill, 'eligibilityDisciplineId') &&
+            (typeof skill.eligibilityDisciplineId !== 'string' ||
+              !/^[a-z0-9]+([._-][a-z0-9]+)*$/u.test(skill.eligibilityDisciplineId))) ||
+          !whole(skill.contentVersion) ||
+          skill.contentVersion < 1,
+      )
+    )
+      invalid()
+  } else if (!parseCurrentSupportActionId(value.supportActionId)) invalid()
+  return value as unknown as PlayerCorrection
+}
+function projectPlayer(raw: unknown): MasterPlayerView {
+  if (
+    !playerRecord(raw) ||
+    !playerRecord(raw.facts) ||
+    !playerRecord(raw.facts.attributes) ||
+    !whole(raw.facts.level) ||
+    !playerRecord(raw.facts.build) ||
+    typeof raw.characterId !== 'string' ||
+    typeof raw.fingerprint !== 'string'
+  )
+    unavailable()
+  const facts = raw.facts as unknown as MasterPlayerFacts
+  let progressionCurve: LevelProgressionCurve | undefined
+  if (raw.facts.progressionCurve !== undefined) {
+    const curve = raw.facts.progressionCurve
+    if (!playerRecord(curve) || !Array.isArray(curve.cumulativeXpByLevel)) unavailable()
+    progressionCurve = {
+      version: Number(curve.version),
+      maxLevel: Number(curve.maxLevel),
+      cumulativeXpByLevel: curve.cumulativeXpByLevel,
+    }
+    if (validateLevelProgressionCurve(progressionCurve).length) unavailable()
+  }
+  const stats = calculateDerivedStats({ level: facts.level, attributes: facts.attributes }).stats
+  let battle: MasterPlayerView['battle'] = null
+  if (playerRecord(raw.battle)) {
+    const source = raw.battle
+    if (
+      !playerRecord(source.snapshot) ||
+      !playerRecord(source.snapshot.tactical) ||
+      !playerRecord(source.snapshot.tactical.battle) ||
+      !Array.isArray(source.snapshot.tactical.battle.combatants) ||
+      !Array.isArray(source.participants)
+    )
+      unavailable()
+    const states = Array.isArray(source.snapshot.statusState) ? source.snapshot.statusState : []
+    battle = {
+      battleSessionId: String(source.battleSessionId),
+      version: Number(source.version),
+      lifecycle: String(source.lifecycle),
+      participants: source.participants as { characterId: string; name: string }[],
+      combatants: source.snapshot.tactical.battle.combatants.map(
+        (unit: Record<string, unknown>) => {
+          const resource = Array.isArray(unit.temporaryResources)
+            ? unit.temporaryResources.find(
+                (entry: unknown) => playerRecord(entry) && entry.key === 'pv1f.action-economy',
+              )
+            : null
+          const statusRow = states.find(
+            (row: unknown) => playerRecord(row) && row.combatantId === unit.id,
+          )
+          return {
+            id: String(unit.id),
+            hp: Number(unit.hp),
+            mp: Number(unit.mp),
+            ap: playerRecord(resource) && whole(resource.current) ? resource.current : null,
+            statuses:
+              playerRecord(statusRow) && Array.isArray(statusRow.statuses)
+                ? statusRow.statuses.filter(playerRecord).map((row) => String(row.statusId))
+                : [],
+          }
+        },
+      ),
+      recentActions: Array.isArray(source.recentActions)
+        ? source.recentActions.filter(playerRecord).map((event) => String(event.event))
+        : [],
+    }
+  }
+  const attributePolicy = playerRecord(raw.attributePolicy)
+    ? disciplineAttributePolicyFromCore(
+        String(raw.attributePolicy.disciplineId),
+        Number(raw.attributePolicy.policyVersion),
+        raw.attributePolicy.baseAttributes,
+        raw.attributePolicy.focusAttributes,
+        raw.attributePolicy.offFocusCap,
+      )
+    : null
+  if (raw.attributePolicy !== undefined && !attributePolicy) unavailable()
+  // Select fields explicitly. Raw battle state, source hashes, actor/account IDs,
+  // private journals and automatic audit facts never cross the public boundary.
+  return projectPublicCombat({
+    characterId: raw.characterId,
+    name: String(raw.name),
+    portraitRef: String(raw.portraitRef),
+    verifiedEmail: typeof raw.verifiedEmail === 'string' ? raw.verifiedEmail : null,
+    fingerprint: raw.fingerprint,
+    deletionPending: raw.deletionPending === true,
+    facts: {
+      level: facts.level,
+      xp: facts.xp,
+      cycle: facts.cycle,
+      attributes: facts.attributes,
+      build: facts.build,
+    },
+    ...(attributePolicy ? { attributePolicy } : {}),
+    ...(progressionCurve ? { progressionCurve } : {}),
+    calculated: {
+      maxHp: stats.maxHp.value,
+      maxMp: stats.maxMp.value,
+      personalPointPool: 5 + facts.level - 1,
+    },
+    disciplines: Array.isArray(raw.disciplines)
+      ? (raw.disciplines as MasterPlayerView['disciplines'])
+      : [],
+    learnedSkills: Array.isArray(raw.learnedSkills)
+      ? (raw.learnedSkills as MasterPlayerView['learnedSkills'])
+      : [],
+    savedLoadouts: Array.isArray(raw.savedLoadouts)
+      ? (raw.savedLoadouts as MasterPlayerView['savedLoadouts'])
+      : [],
+    world: playerRecord(raw.world)
+      ? {
+          version: whole(raw.world.version) ? raw.world.version : undefined,
+          locationLabel:
+            typeof raw.world.locationLabel === 'string' ? raw.world.locationLabel : undefined,
+          position: raw.world.position as NonNullable<MasterPlayerView['world']>['position'],
+        }
+      : null,
+    training: playerRecord(raw.training)
+      ? (raw.training as unknown as MasterPlayerView['training'])
+      : null,
+    battle,
+  }) as MasterPlayerView
+}
+export function createMasterPlayersService(
+  access: Pick<MasterPanelStaffAccessService, 'requireCapability'>,
+  rpc: PlayersRpc,
+  readContentNames?: (player: MasterPlayerView) => Promise<Readonly<Record<string, string>>>,
+  prepareTeleport?: (userId: string, destination: PlayerTeleportDestination) => Promise<void>,
+  checkTeleport?: (destination: PlayerTeleportDestination) => Promise<boolean>,
+) {
+  const call = async (userId: string, name: string, parameters: Record<string, unknown>) => {
+    await access.requireCapability(userId, 'players.manage')
+    return rpc(name, { p_actor_user_id: userId, ...parameters })
+  }
+  const readRaw = (userId: string, characterId: string) =>
+    call(userId, 'read_master_player_v1', { p_character_id: characterId })
+  const project = async (raw: unknown) => {
+    const player = projectPlayer(raw)
+    return readContentNames ? { ...player, contentNames: await readContentNames(player) } : player
+  }
+  return {
+    async search(userId: string, query: string): Promise<MasterPlayerSearchResult[]> {
+      if (query.trim().length < 2 || query.trim().length > 48) invalid()
+      const result = await call(userId, 'search_master_players_v1', { p_query: query.trim() })
+      if (!Array.isArray(result) || result.length > 20) unavailable()
+      return result as MasterPlayerSearchResult[]
+    },
+    async read(userId: string, characterId: string) {
+      return project(await readRaw(userId, characterId))
+    },
+    async edit(
+      userId: string,
+      characterId: string,
+      fingerprint: string,
+      requestKey: string,
+      command: unknown,
+    ) {
+      const correction = parsePlayerCorrection(command)
+      await call(userId, 'edit_master_player_v1', {
+        p_character_id: characterId,
+        p_expected_fingerprint: fingerprint,
+        p_request_key: requestKey,
+        p_command: correction,
+        p_confirmed: true,
+      })
+      return project(await readRaw(userId, characterId))
+    },
+    async validateTeleport(userId: string, input: unknown) {
+      await access.requireCapability(userId, 'players.manage')
+      const destination = parseMasterTeleportDestination(input)
+      return checkTeleport ? checkTeleport(destination) : false
+    },
+    async teleport(
+      userId: string,
+      input: {
+        characterId: string
+        expectedVersion: number
+        requestKey: string
+        destination: unknown
+        reason: unknown
+      },
+    ) {
+      const destination = parseMasterTeleportDestination(input.destination)
+      const reason = parseMasterTeleportReason(input.reason)
+      if (!whole(input.expectedVersion)) invalid()
+      await access.requireCapability(userId, 'players.manage')
+      if (!prepareTeleport) unavailable()
+      await prepareTeleport(userId, destination)
+      const receipt = await call(userId, 'teleport_master_player_v6', {
+        p_character_id: input.characterId,
+        p_expected_version: input.expectedVersion,
+        p_request_key: input.requestKey,
+        p_map: destination.map,
+        p_sector_number: teleportStorageNumber(destination),
+        p_x: destination.x,
+        p_y: destination.y,
+        p_reason: reason,
+        p_confirmed: true,
+      })
+      if (
+        !playerRecord(receipt) ||
+        !playerRecord(receipt.position) ||
+        typeof receipt.position.sectorId !== 'string' ||
+        !Number.isSafeInteger(receipt.position.x) ||
+        !Number.isSafeInteger(receipt.position.y) ||
+        !Number.isSafeInteger(receipt.version) ||
+        typeof receipt.replayed !== 'boolean'
+      )
+        unavailable()
+      const player = await project(await readRaw(userId, input.characterId))
+      return {
+        ...player,
+        teleportReceipt: {
+          position: receipt.position as { sectorId: string; x: number; y: number },
+          version: receipt.version as number,
+          replayed: receipt.replayed,
+        },
+      }
+    },
+    async recover(
+      userId: string,
+      input: {
+        characterId: string
+        battleSessionId: string
+        expectedVersion: number
+        participantIds: string[]
+        requestKey: string
+      },
+    ): Promise<PlayerRecoveryResult> {
+      const raw = await readRaw(userId, input.characterId)
+      if (
+        !playerRecord(raw) ||
+        (playerRecord(raw.battle) &&
+          (raw.battle.battleSessionId !== input.battleSessionId ||
+            raw.battle.version !== input.expectedVersion))
+      )
+        throw new AurevaneError(
+          'STALE_VERSION',
+          'The encounter changed. Refresh and review every participant again.',
+        )
+      const terminal = playerRecord(raw.battle)
+        ? resolveMasterBattleRecovery(raw.battle.snapshot)
+        : null
+      return (await call(userId, 'recover_master_player_battle_v1', {
+        p_character_id: input.characterId,
+        p_battle_session_id: input.battleSessionId,
+        p_expected_version: input.expectedVersion,
+        p_participant_ids: input.participantIds,
+        p_request_key: input.requestKey,
+        p_terminal_snapshot: terminal,
+        p_confirmed: true,
+      })) as PlayerRecoveryResult
+    },
+  }
+}
+export type MasterPlayersService = ReturnType<typeof createMasterPlayersService>

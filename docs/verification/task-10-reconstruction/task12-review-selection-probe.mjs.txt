@@ -1,0 +1,135 @@
+// Actual operational components and native media; HTTP/session boundaries are local fixtures.
+import assert from 'node:assert/strict'
+import fs from 'node:fs/promises'
+import { createRequire } from 'node:module'
+import { tmpdir } from 'node:os'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath, pathToFileURL } from 'node:url'
+const require = createRequire('/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261025/apps/web/package.json')
+const { createServer } = await import(
+  pathToFileURL(require.resolve('vite', { paths: [require.resolve('vitest')] }))
+)
+const { expect } = require('@playwright/test')
+const { chromium } = require(
+  require.resolve('playwright', { paths: [require.resolve('@playwright/test')] }),
+)
+const web = '/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261025/apps/web'
+const root = resolve(web, '../..')
+const fixture = await fs.mkdtemp(resolve(tmpdir(), 'event-workspace-'))
+const output =
+  process.env.AV_EVENT_WORKSPACE_EVIDENCE_DIR || resolve(tmpdir(), 'event-workspace-evidence')
+await fs.mkdir(output, { recursive: true })
+await fs.copyFile(
+  resolve(web, 'e2e/fixtures/event-workspace-harness.jsx'),
+  resolve(fixture, 'entry.jsx'),
+)
+await fs.writeFile(
+  resolve(fixture, 'index.html'),
+  '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body><div id="root"></div><script type="module" src="/entry.jsx"></script></body></html>',
+)
+await fs.writeFile(
+  resolve(fixture, 'production-styles.js'),
+  [
+    '@aurevane/ui/styles.css',
+    ...[
+      'globals',
+      'pv1e-shell-fixes',
+      'mobile-ui-batch',
+      'portrait-ratio-standardization',
+      'desktop-readability',
+      'desktop-page-fit',
+      'mobile-readability',
+      'concept-shell',
+      'profile-ui-readability-pass',
+      'sitewide-layout-v2',
+      'approved-adventure',
+    ].map((name) => `@/app/${name}.css`),
+  ]
+    .map((path) => `import '${path}'`)
+    .join('\n'),
+)
+await fs.writeFile(
+  resolve(fixture, 'next-link.jsx'),
+  `import React from 'react';export default function Link({prefetch,...props}){return <a {...props}/>}`,
+)
+await fs.writeFile(
+  resolve(fixture, 'next-mock.jsx'),
+  `import React,{useSyncExternalStore} from 'react';export default function Image({fill,priority,unoptimized,...props}){return <img {...props}/>};for(const method of ['pushState','replaceState']){const original=history[method].bind(history);history[method]=(...args)=>{original(...args);dispatchEvent(new PopStateEvent('popstate'))}};const subscribe=cb=>{addEventListener('popstate',cb);return()=>removeEventListener('popstate',cb)};export const usePathname=()=>useSyncExternalStore(subscribe,()=>location.pathname,()=>'/');export const useRouter=()=>({push:url=>history.pushState(null,'',url),refresh(){}});export const useSearchParams=()=>new URLSearchParams(location.search);`,
+)
+await fs.writeFile(
+  resolve(fixture, 'shell.jsx'),
+  `import React from 'react';export function AuthenticatedShellFrame({children}){return <main style={{height:'90vh',minHeight:0,overflow:'auto'}}>{children}</main>}`,
+)
+await fs.writeFile(
+  resolve(fixture, 'supabase.js'),
+  `export function createSupabaseBrowserClient(){throw new Error('Native fixture does not perform storage uploads')}`,
+)
+const config = {
+  configFile: false,
+  root: fixture,
+  publicDir: resolve(web, 'public'),
+  resolve: {
+    alias: {
+      '@/components/shell/authenticated-game-shell': resolve(fixture, 'shell.jsx'),
+      '@/lib/supabase/client': resolve(fixture, 'supabase.js'),
+      '@': resolve(web, 'src'),
+      '@aurevane/game-core': resolve(root, 'packages/game-core/src'),
+      '@aurevane/validation': resolve(root, 'packages/validation/src'),
+      '@aurevane/audio': resolve(root, 'packages/audio/src/index.ts'),
+      '@aurevane/ui/styles.css': resolve(root, 'packages/ui/src/styles.css'),
+      'next/link': resolve(fixture, 'next-link.jsx'),
+      'next/image': resolve(fixture, 'next-mock.jsx'),
+      'next/navigation': resolve(fixture, 'next-mock.jsx'),
+      react: resolve(web, 'node_modules/react'),
+      'react-dom': resolve(web, 'node_modules/react-dom'),
+    },
+  },
+  esbuild: { jsx: 'automatic' },
+  server: { host: '127.0.0.1', port: 0, hmr: false, watch: null, fs: { allow: [root, fixture] } },
+  optimizeDeps: { include: ['react', 'react-dom/client'] },
+}
+
+const server = await createServer(config)
+await server.listen()
+const executablePath = process.env.AV_EVENT_WORKSPACE_BROWSER_EXECUTABLE
+const browser = await chromium.launch({
+  headless: true,
+  ...(executablePath ? { executablePath } : {}),
+})
+console.log(
+  `Event browser: ${browser.version()}; executable: ${executablePath || chromium.executablePath()}`,
+)
+try {
+  const page = await browser.newPage({ viewport: {width:1366,height:768} })
+  await page.goto(server.resolvedUrls.local[0])
+  await page.getByLabel('Saved events').selectOption('event.ready')
+  await page.getByText('Loaded published v3.', {exact:true}).waitFor()
+  const section=page.getByRole('navigation',{name:'Event authoring sections'})
+  await section.getByRole('button',{name:'Preview',exact:true}).click()
+  await page.locator('#event-controls').getByRole('button',{name:'Preview',exact:true}).click()
+  await page.getByRole('article',{name:'Event preview'}).waitFor()
+  await section.getByRole('button',{name:'Schedule',exact:true}).click()
+  await page.getByLabel('Start',{exact:true}).fill('2026-12-01T12:00')
+  await page.getByLabel('Confirm publication or schedule for this audience').check()
+  await page.locator('#event-controls').getByRole('button',{name:'Schedule',exact:true}).click()
+  await page.getByText(/Scheduled run 22222222/).waitFor()
+  await page.getByLabel('Confirm publication or schedule for this audience').check()
+  await page.getByLabel('Saved events').selectOption('event.stale')
+  await page.getByText('Loaded draft v2.',{exact:true}).waitFor()
+  const confirmed=await page.getByLabel('Confirm publication or schedule for this audience').isChecked()
+  const selected=await page.getByLabel('Event key',{exact:true}).inputValue()
+  const unscheduleEnabled=await page.getByRole('button',{name:'Unschedule',exact:true}).isEnabled()
+  await page.getByRole('button',{name:'Unschedule',exact:true}).click()
+  await page.getByText('Request failed.',{exact:true}).waitFor()
+  const cancellation=await page.evaluate(()=>window.__eventRequests.find(r=>r.body.operation==='cancel-scheduled').body)
+  await section.getByRole('button',{name:'Preview',exact:true}).click()
+  const previewVisible=await page.getByRole('article',{name:'Event preview'}).isVisible()
+  console.log(JSON.stringify({selected,confirmed,unscheduleEnabled,cancellation,previewVisible},null,2))
+  assert.equal(selected,'event.stale')
+  assert.equal(confirmed,true)
+  assert.equal(unscheduleEnabled,true)
+  assert.equal(cancellation.runId,'22222222-2222-4222-8222-222222222222')
+  assert.equal(previewVisible,true)
+} finally {
+ await browser.close(); await server.close(); await fs.rm(fixture,{recursive:true,force:true})
+}

@@ -1,0 +1,23 @@
+{
+  "observedAt": "2026-10-22T23:51:07.813Z",
+  "canonical": "https://aurevane.vercel.app",
+  "id": "dpl_BQgHdRJQDYndXDRtexL5AZ8uLihh",
+  "state": "READY",
+  "project": {
+    "id": "prj_ZmH66I1zyOARUt8OXdTl7CN9r18d",
+    "name": "aurevane",
+    "framework": "nextjs"
+  },
+  "source": "874a14ce5b7f9aabed8df11140a9017fbfa4f71e",
+  "branch": "release/modular-skill-readers-20261022",
+  "target": "production",
+  "regions": [
+    "cle1"
+  ],
+  "alias": [
+    "aurevane.vercel.app",
+    "aurevane-zeijms-projects.vercel.app",
+    "aurevane-git-release-modular-skill-reade-f1a8e1-zeijms-projects.vercel.app"
+  ],
+  "action": "read-only; no new deployment"
+}

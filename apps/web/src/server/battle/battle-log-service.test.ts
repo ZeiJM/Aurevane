@@ -5,11 +5,396 @@ vi.mock('server-only', () => ({}))
 
 import { buildBattleLogView, createBattleLogService } from './battle-log-service'
 import { buildBattleLogPresentation } from '../../components/battle/battle-log-presentation'
+import { buildBattleChronicle } from '../../components/battle/battle-log-chronicle-model'
 
 const USER_ID = '11111111-1111-4111-8111-111111111111'
 const SESSION_ID = '33333333-3333-4333-8333-333333333333'
 
 describe('sanitized battle log service', () => {
+  it('describes a timed pool expiry while another Barrier remains', () => {
+    const view = buildBattleLogView(SESSION_ID, [
+      {
+        battleVersion: 2,
+        eventIndex: 0,
+        createdAt: '2026-10-19T14:00:00Z',
+        event: {
+          event: 'barrier_changed',
+          reason: 'expired',
+          actionId: 'barrier',
+          sourceCombatantId: 'actor',
+          targetCombatantId: 'ally',
+          amount: -75,
+          before: 175,
+          after: 100,
+        },
+      },
+    ])
+    expect(view.entries[0]!.messageTemplate).toBe("{target}'s Barrier expired.")
+    expect(view.entries[0]!.facts).toEqual([
+      { label: '75 Barrier expired', tone: 'neutral' },
+      { label: '100 Barrier remaining', tone: 'neutral' },
+    ])
+    expect(JSON.stringify(view)).not.toContain('shattered')
+    expect(JSON.stringify(view)).not.toContain('gained')
+  })
+  it('describes a shattered Barrier without claiming a negative grant or absorbed HP damage', () => {
+    const view = buildBattleLogView(SESSION_ID, [
+      {
+        battleVersion: 2,
+        eventIndex: 0,
+        createdAt: '2026-10-18T14:00:00Z',
+        event: {
+          event: 'barrier_changed',
+          actionId: 'pierce',
+          sourceCombatantId: 'actor',
+          targetCombatantId: 'enemy',
+          amount: -75,
+          before: 75,
+          after: 0,
+        },
+      },
+    ])
+    expect(view.entries[0]!.messageTemplate).toBe("{target}'s Barrier shattered.")
+    expect(JSON.stringify(view)).not.toContain('gained')
+    expect(JSON.stringify(view)).not.toContain('damage absorbed')
+  })
+  it('describes recorded Poison movement as a duration refresh without claiming damage', () => {
+    const view = buildBattleLogView(SESSION_ID, [
+      {
+        battleVersion: 2,
+        eventIndex: 0,
+        createdAt: '2026-10-09T00:00:00Z',
+        event: {
+          event: 'poison_duration_refreshed',
+          targetCombatantId: 'recruit:weon',
+          remainingOwnerTurnEnds: 4,
+        },
+      },
+    ])
+    expect(view.entries[0]).toMatchObject({
+      eventType: 'poison_duration_refreshed',
+      headline: 'Poison duration refreshed',
+      templateValues: { turns: '4' },
+    })
+    const chronicle = buildBattleChronicle(view.entries, {
+      combatantNames: { 'recruit:weon': 'Weon' },
+    })
+    const narration = chronicle.flatMap((round) =>
+      round.actors.flatMap((actor) =>
+        actor.actions.flatMap((action) => action.outcomes.map((outcome) => outcome.text)),
+      ),
+    )
+    expect(narration).toContain(
+      "Weon's Poison duration reset to 4 turns after five traversed tiles",
+    )
+    expect(JSON.stringify(view)).not.toContain('damage_applied')
+  })
+  it.each([true, false, 'true', undefined])(
+    'shows only a confirmed critical result: %s',
+    (critical) => {
+      const result = buildBattleLogView(SESSION_ID, [
+        {
+          battleVersion: 37,
+          eventIndex: 1,
+          createdAt: '2026-10-06T23:04:00Z',
+          event: {
+            event: 'combat_critical_resolved',
+            actionId: 'basic.attack.unarmed.basic',
+            sourceCombatantId: 'character:zei',
+            targetCombatantId: 'recruit:weon',
+            critical,
+            rollBasisPoints: 47,
+            criticalChanceBasisPoints: 75,
+            privatePayload: 'secret',
+          },
+        },
+      ])
+      expect(result.entries).toHaveLength(critical === true ? 1 : 0)
+      if (critical === true)
+        expect(result.entries[0]).toMatchObject({
+          eventType: 'combat_critical_resolved',
+          templateValues: { outcome: 'CRITICAL' },
+          actorCombatantId: 'character:zei',
+          targetCombatantId: 'recruit:weon',
+        })
+      expect(JSON.stringify(result)).not.toMatch(/rollBasisPoints|criticalChanceBasisPoints|secret/)
+    },
+  )
+  it.each([
+    [undefined, '21 piercing damage', 'piercing'],
+    ['fire', '21 fire damage'],
+    ['water', '21 water damage'],
+    ['storm', '21 storm damage'],
+    [undefined, '21 damage'],
+    ['private-unknown-element', '21 damage'],
+  ])(
+    'preserves only recorded canonical damage types: %s',
+    (element, wording, damageKind?: string) => {
+      const view = buildBattleLogView(SESSION_ID, [
+        {
+          battleVersion: 1,
+          eventIndex: 0,
+          createdAt: '2026-10-06T00:00:00Z',
+          event: {
+            event: 'damage_applied',
+            actionId: 'cinderweaver.cinder-bolt',
+            sourceCombatantId: 'character:zei',
+            targetCombatantId: 'recruit:weon',
+            amount: 21,
+            hpAfter: 50,
+            element,
+            damageKind,
+          },
+        },
+      ])
+      expect(view.entries[0].message).toContain(`took ${wording}`)
+      const chronicle = buildBattleChronicle(view.entries, {
+        combatantNames: { 'character:zei': 'Zei', 'recruit:weon': 'Weon' },
+      })
+      expect(
+        chronicle.flatMap((round) =>
+          round.actors.flatMap((actor) =>
+            actor.actions.flatMap((action) => action.outcomes.map((outcome) => outcome.text)),
+          ),
+        ),
+      ).toContain(wording)
+      const presentation = buildBattleLogPresentation(view.entries, {
+        combatantNames: { 'character:zei': 'Zei', 'recruit:weon': 'Weon' },
+      })
+      expect(JSON.stringify(presentation)).toContain(wording)
+      expect(JSON.stringify(view)).not.toContain('private-unknown-element')
+    },
+  )
+  it('shows a resisted ordinary debuff beneath its cast without exposing RNG or suppressing damage', () => {
+    const result = buildBattleLogView(
+      SESSION_ID,
+      [
+        {
+          event: 'combat_status_resistance_resolved',
+          sourceCombatantId: 'character:zei',
+          targetCombatantId: 'recruit:weon',
+          actionId: 'skill.root',
+          resisted: true,
+          rollBasisPoints: 19,
+          resistanceChanceBasisPoints: 1000,
+          eligibleEffectOrdinals: [1],
+          privatePayload: 'secret',
+        },
+        {
+          event: 'damage_applied',
+          sourceCombatantId: 'character:zei',
+          targetCombatantId: 'recruit:weon',
+          actionId: 'skill.root',
+          amount: 14,
+        },
+        {
+          event: 'combat_action_used',
+          actorId: 'character:zei',
+          actionId: 'skill.root',
+          targetCombatantIds: ['recruit:weon'],
+        },
+        {
+          event: 'combat_status_resistance_resolved',
+          sourceCombatantId: 'character:zei',
+          targetCombatantId: 'recruit:weon',
+          actionId: 'skill.root',
+          resisted: false,
+        },
+        {
+          event: 'combat_status_resistance_resolved',
+          sourceCombatantId: 'character:zei',
+          targetCombatantId: 'recruit:weon',
+          actionId: 'skill.root',
+          resisted: 'yes',
+        },
+      ].map((event, eventIndex) => ({
+        battleVersion: 1,
+        eventIndex,
+        createdAt: '2026-10-05T00:00:00Z',
+        event,
+      })),
+    )
+    expect(
+      result.entries.filter((entry) => entry.eventType === 'combat_status_resistance_resolved'),
+    ).toHaveLength(1)
+    const chronicle = buildBattleChronicle(result.entries, {
+      combatantNames: { 'character:zei': 'Zei', 'recruit:weon': 'Weon' },
+    })
+    const outcomes = chronicle.flatMap((round) =>
+      round.actors.flatMap((actor) => actor.actions.flatMap((action) => action.outcomes)),
+    )
+    expect(outcomes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ text: 'Weon resists the harmful effect tags.', tone: 'benefit' }),
+        expect.objectContaining({ tone: 'damage' }),
+      ]),
+    )
+    expect(JSON.stringify(result)).not.toMatch(
+      /secret|rollBasisPoints|eligibleEffectOrdinals|resistanceChanceBasisPoints/,
+    )
+  })
+
+  it('retains only valid recorded pending lifetime metadata, never inferring old durations', () => {
+    const entries = buildBattleLogView(
+      SESSION_ID,
+      [
+        { remainingOwnerTurnEnds: 2 },
+        { remainingRoundBoundaries: 3, durationScope: 'rounds' },
+        { durationScope: 'until-removed' },
+        { remainingOwnerTurnEnds: -1, remainingRoundBoundaries: '3', durationScope: 'secret' },
+        {},
+      ].map((timing, eventIndex) => ({
+        battleVersion: 1,
+        eventIndex,
+        createdAt: '2026-10-04T00:00:00Z',
+        event: {
+          event: 'effect_pending',
+          sourceCombatantId: 'character:zei',
+          targetCombatantId: 'recruit:weon',
+          actionId: 'skill.test',
+          effectTag: 'mark',
+          activationRound: 3,
+          ...timing,
+        },
+      })),
+    ).entries
+    expect(entries[0].effectTiming).toEqual({ remainingOwnerTurnEnds: 2 })
+    expect(entries[1].effectTiming).toEqual({
+      remainingRoundBoundaries: 3,
+      durationScope: 'rounds',
+    })
+    expect(entries[2].effectTiming).toEqual({ durationScope: 'until-removed' })
+    expect(entries[3].effectTiming).toBeUndefined()
+    expect(entries[4].effectTiming).toBeUndefined()
+  })
+
+  it('preserves a canonical successful summon receipt with the casting actor and source Skill', () => {
+    const result = buildBattleLogView(SESSION_ID, [
+      {
+        battleVersion: 1,
+        eventIndex: 0,
+        createdAt: '2026-10-04T00:00:00Z',
+        event: {
+          event: 'summon_spawned',
+          combatantId: 'summon:stalker',
+          ownerCombatantId: 'character:zei',
+          sourceSkillId: 'wildwarden.renewing-herbs',
+          sourceSkillVersion: 4,
+          profileId: 'summon.stalker',
+          privatePayload: 'secret',
+        },
+      },
+    ])
+    expect(result.entries[0]).toMatchObject({
+      eventType: 'summon_spawned',
+      actorCombatantId: 'character:zei',
+      targetCombatantId: 'summon:stalker',
+      actionId: 'wildwarden.renewing-herbs',
+    })
+    expect(JSON.stringify(result)).not.toContain('secret')
+  })
+
+  it('retains periodic damage identity and source Skill without altering ordinary damage', () => {
+    const entries = buildBattleLogView(
+      SESSION_ID,
+      [
+        { statusId: 'bleed', sourceActionId: 'skill.severing-cut' },
+        { statusId: 'poison', sourceActionId: 'skill.venom' },
+        { statusId: 'burn', sourceActionId: 'skill.flame' },
+        { statusId: 'unknown-secret', sourceActionId: 'skill.secret' },
+        {},
+      ].map((periodic, eventIndex) => ({
+        battleVersion: 1,
+        eventIndex,
+        createdAt: '2026-10-04T00:00:00Z',
+        event: {
+          event: 'damage_applied',
+          sourceCombatantId: 'character:zei',
+          targetCombatantId: 'recruit:weon',
+          actionId: 'skill.original',
+          amount: 4,
+          ...periodic,
+        },
+      })),
+    ).entries
+    expect(entries.slice(0, 3).map((entry) => [entry.periodicStatusId, entry.actionId])).toEqual([
+      ['bleed', 'skill.severing-cut'],
+      ['poison', 'skill.venom'],
+      ['burn', 'skill.flame'],
+    ])
+    expect(entries[3].periodicStatusId).toBeUndefined()
+    expect(entries[3].actionId).toBe('skill.original')
+    expect(entries[4].periodicStatusId).toBeUndefined()
+    expect(entries[4].actionId).toBe('skill.original')
+  })
+  it('retains actual per-target Skill accuracy receipts without exposing RNG or inventing malformed misses', () => {
+    const result = buildBattleLogView(
+      SESSION_ID,
+      [false, true, undefined, 'false'].map((hit, eventIndex) => ({
+        battleVersion: 1,
+        eventIndex,
+        createdAt: '2026-10-03T00:00:00.000Z',
+        event: {
+          event: 'combat_accuracy_resolved',
+          actionId: 'skill.reflection',
+          sourceCombatantId: 'character:player-1',
+          targetCombatantId: 'recruit:p2-4-1',
+          hit,
+          hitChanceBasisPoints: 7400,
+          rollBasisPoints: 8000,
+          accuracyRulesVersion: 1,
+        },
+      })),
+    )
+    expect(result.entries).toHaveLength(2)
+    expect(result.entries[0]).toMatchObject({
+      eventType: 'combat_accuracy_resolved',
+      actorCombatantId: 'character:player-1',
+      targetCombatantId: 'recruit:p2-4-1',
+      actionId: 'skill.reflection',
+      templateValues: { outcome: 'MISSED' },
+    })
+    expect(result.entries[1].templateValues.outcome).toBe('HIT')
+    expect(JSON.stringify(result)).not.toContain('rollBasisPoints')
+    expect(JSON.stringify(result)).not.toContain('8000')
+    expect(JSON.stringify(result)).not.toContain('accuracyRulesVersion')
+  })
+
+  it('carries a saved Skill miss into its own action without deriving a miss for unknown history', () => {
+    const records = [
+      {
+        event: 'combat_accuracy_resolved',
+        sourceCombatantId: 'character:player-1',
+        targetCombatantId: 'recruit:p2-4-1',
+        actionId: 'skill.reflection',
+        hit: false,
+      },
+      {
+        event: 'combat_action_used',
+        actorId: 'character:player-1',
+        targetCombatantId: 'recruit:p2-4-1',
+        actionId: 'skill.reflection',
+      },
+    ].map((event, eventIndex) => ({
+      battleVersion: 1,
+      eventIndex,
+      createdAt: '2026-10-03T00:00:00.000Z',
+      event,
+    }))
+    const view = buildBattleLogView(SESSION_ID, records)
+    const chronicle = buildBattleChronicle(view.entries, {
+      combatantNames: { 'recruit:p2-4-1': 'Weon' },
+    })
+    expect(chronicle[0].actors[0].actions).toHaveLength(1)
+    expect(chronicle[0].actors[0].actions[0].outcomes.map((result) => result.text)).toEqual([
+      'The skill misses Weon.',
+    ])
+    const historical = buildBattleChronicle(
+      buildBattleLogView(SESSION_ID, records.slice(1)).entries,
+    )
+    expect(historical[0].actors[0].actions[0].outcomes).toEqual([])
+  })
+
   it('projects committed events into rich readable entries without returning raw resolution payloads', async () => {
     const repository: BattleEventRepository = {
       findBattleEvents: vi.fn(async () => [
@@ -136,88 +521,7 @@ describe('sanitized battle log service', () => {
     expect(serialized).not.toContain('raw')
   })
 
-  it('records the exact pinned temporary copied Skill for authorized battle history', async () => {
-    const repository: BattleEventRepository = {
-      findBattleEvents: vi.fn(async () => [
-        {
-          battleVersion: 12,
-          eventIndex: 0,
-          event: {
-            event: 'temporary_skill_copied',
-            combatantId: 'character:player-1',
-            sourceCombatantId: 'recruit:p2-4-1',
-            skillId: 'vanguard.forceful-strike',
-            contentVersion: 2,
-          },
-          createdAt: '2026-09-18T10:00:00.000Z',
-        },
-      ]),
-    }
-
-    const result = await createBattleLogService(repository).getLog(USER_ID, SESSION_ID)
-
-    expect(result.entries[0]).toEqual(
-      expect.objectContaining({
-        eventType: 'temporary_skill_copied',
-        message: 'Wayfarer copied Vanguard Forceful Strike (v2) for this battle.',
-        actionId: 'vanguard.forceful-strike',
-        actionLabel: 'Vanguard Forceful Strike',
-        headline: 'Copied Skill',
-        tone: 'benefit',
-        facts: [
-          { label: 'Vanguard Forceful Strike', tone: 'benefit' },
-          { label: 'v2', tone: 'neutral' },
-        ],
-      }),
-    )
-  })
-
-  it('presents copied command events as their original Skill identity', () => {
-    const result = buildBattleLogView(SESSION_ID, [
-      {
-        battleVersion: 13,
-        eventIndex: 0,
-        event: {
-          event: 'combat_action_used',
-          actorId: 'character:player-1',
-          actionId: 'temporary.copy.vanguard.forceful-strike.v2',
-        },
-        createdAt: '2026-09-18T10:01:00.000Z',
-      },
-      {
-        battleVersion: 13,
-        eventIndex: 1,
-        event: {
-          event: 'damage_applied',
-          actionId: 'temporary.copy.vanguard.forceful-strike.v2',
-          sourceCombatantId: 'character:player-1',
-          targetCombatantId: 'recruit:p2-4-1',
-          amount: 12,
-          hpBefore: 80,
-          hpAfter: 68,
-        },
-        createdAt: '2026-09-18T10:01:00.000Z',
-      },
-    ])
-
-    expect(result.entries).toEqual([
-      expect.objectContaining({
-        eventType: 'combat_action_used',
-        actionId: 'vanguard.forceful-strike',
-        actionLabel: 'Vanguard Forceful Strike',
-        headline: 'Vanguard Forceful Strike',
-      }),
-      expect.objectContaining({
-        eventType: 'damage_applied',
-        actionId: 'vanguard.forceful-strike',
-        actionLabel: 'Vanguard Forceful Strike',
-        headline: 'Vanguard Forceful Strike',
-      }),
-    ])
-    expect(JSON.stringify(result)).not.toContain('Temporary Copy')
-  })
-
-  it('translates timeout and Lowered Guard internals into player-facing facts', async () => {
+  it('translates timeout and Defenseless internals into player-facing facts', async () => {
     const repository: BattleEventRepository = {
       findBattleEvents: vi.fn(async () => [
         {
@@ -250,7 +554,7 @@ describe('sanitized battle log service', () => {
     )
     const timeout = result.entries.find((entry) => entry.eventType === 'pvp_turn_timed_out')
     expect(loweredGuard?.facts).toEqual([
-      { label: 'Lowered Guard', tone: 'warning' },
+      { label: 'Defenseless', tone: 'warning' },
       { label: '1 turn', tone: 'neutral' },
       { label: 'Takes 2.5× damage', tone: 'warning' },
     ])
@@ -287,11 +591,11 @@ describe('sanitized battle log service', () => {
 
     expect(result.entries[0]).toEqual(
       expect.objectContaining({
-        message: 'Wayfarer stacked Guarded to ×2 for 2 owner-turn starts.',
+        message: 'Wayfarer stacked Guard to ×2 for 2 owner-turn starts.',
         messageTemplate: "{target}'s {status} stacks to ×{stacks}.",
-        templateValues: { status: 'Guarded', statusChange: 'STACKED', stacks: '2' },
+        templateValues: { status: 'Guard', statusChange: 'STACKED', stacks: '2' },
         facts: [
-          { label: 'Guarded', tone: 'benefit' },
+          { label: 'Guard', tone: 'benefit' },
           { label: '×2 stacks', tone: 'neutral' },
           { label: '2 turns', tone: 'neutral' },
         ],
@@ -471,13 +775,20 @@ it('retains committed terrain conversions, expiry and failed displacement as rea
       })),
   }).getLog(USER_ID, SESSION_ID)
   expect(log.entries).toHaveLength(5)
+  expect(log.entries[0]?.terrainChange).toEqual({
+    position: { x: 1, y: 2 },
+    before: null,
+    after: 'frozen',
+    remainingRoundBoundaries: 2,
+  })
   const text = log.entries.map((entry) => entry.message).join(' ')
   expect(text).toContain('Frozen')
   expect(text).toContain('Steam')
   expect(text).toContain('2 round boundaries')
   expect(text).toContain('expired')
-  expect(text).toContain('occupied')
-  expect(text).toContain('no refund')
+  expect(text).toContain('was not displaced')
+  expect(text).not.toContain('occupied')
+  expect(text).not.toContain('no refund')
   expect(text).not.toContain('sourceCombatantId')
 })
 
@@ -607,4 +918,171 @@ describe('Complete battle log opening context', () => {
       turnNumber: 3,
     })
   })
+})
+
+it('describes a passive Ground pulse without printing internal area identifiers', () => {
+  const view = buildBattleLogView(SESSION_ID, [
+    {
+      battleVersion: 3,
+      eventIndex: 0,
+      createdAt: '2026-10-07T15:04:00Z',
+      event: {
+        event: 'damage_applied',
+        actionId: 'ground.pulse.ground.area.1',
+        sourceCombatantId: 'enemy',
+        targetCombatantId: 'actor',
+        amount: 23,
+        hpBefore: 100,
+        hpAfter: 77,
+        element: 'fire',
+        groundAreaId: 'ground.area.1',
+      },
+    },
+  ])
+  expect(view.entries[0]).toMatchObject({
+    actionLabel: 'Ground Effect',
+    templateValues: { amount: '23', element: 'fire' },
+  })
+  expect(view.entries[0].message).toContain('23 fire damage')
+})
+
+it('projects canonical blocked Rewind reasons without raw anchors or arbitrary strings', () => {
+  const view = buildBattleLogView(SESSION_ID, [
+    {
+      battleVersion: 1,
+      eventIndex: 0,
+      createdAt: '2026-10-08T12:00:00Z',
+      event: {
+        event: 'combatant_rewind_blocked',
+        actionId: 'chronist.rewind-step',
+        combatantId: 'actor',
+        reason: 'occupied',
+        returnAnchor: { x: 9, y: 9 },
+        private: 'secret',
+      },
+    },
+  ])
+  expect(view.entries).toHaveLength(1)
+  expect(view.entries[0]!.message).toContain('occupied')
+  expect(JSON.stringify(view)).not.toMatch(/secret|returnAnchor/)
+})
+
+it('projects only bounded recovery application counts on the appropriate pending tags', () => {
+  const rows = [
+    { effectTag: 'healing', recoveryApplications: 4 },
+    { effectTag: 'mp-recovery', recoveryApplications: 1 },
+    { effectTag: 'healing', recoveryApplications: 5 },
+    { effectTag: 'healing', recoveryApplications: 100 },
+    { effectTag: 'healing', recoveryApplications: 101 },
+    { effectTag: 'damage', recoveryApplications: 4 },
+  ]
+  const result = buildBattleLogView(
+    SESSION_ID,
+    rows.map((row, eventIndex) => ({
+      battleVersion: 1,
+      eventIndex,
+      createdAt: '2026-10-08T00:00:00Z',
+      event: {
+        event: 'effect_pending',
+        sourceCombatantId: 'actor',
+        targetCombatantId: 'enemy',
+        actionId: 'skill.test',
+        activationRound: 4,
+        ...row,
+      },
+    })),
+  )
+  expect(result.entries.map((entry) => entry.effectTiming?.recoveryApplications)).toEqual([
+    4,
+    1,
+    5,
+    100,
+    undefined,
+    undefined,
+  ])
+  const chronicle = buildBattleChronicle(result.entries, {
+    combatantNames: { actor: 'Zei', enemy: 'Weon' },
+  })
+  const outcomes = chronicle.flatMap((r) =>
+    r.actors.flatMap((a) => a.actions.flatMap((c) => c.outcomes)),
+  )
+  expect(outcomes).toContainEqual(
+    expect.objectContaining({
+      text: 'HP Recovery: 4 applications on Weon (from round 4)',
+    }),
+  )
+  expect(JSON.stringify(outcomes)).not.toContain('a future round')
+})
+it('records only authoritative administrative no contest as No rewards without ordinary abandonment attribution', () => {
+  const view = buildBattleLogView(SESSION_ID, [
+    {
+      battleVersion: 2,
+      eventIndex: 0,
+      createdAt: '2026-10-20T00:00:00Z',
+      event: { event: 'administrative_no_contest', outcome: 'NoContest', rewards: 'NoRewards' },
+    },
+  ])
+  expect(view.entries[0]?.message).toBe('Encounter ended: No contest. No rewards.')
+  const ordinary = buildBattleLogView(SESSION_ID, [
+    {
+      battleVersion: 2,
+      eventIndex: 0,
+      createdAt: '2026-10-20T00:00:00Z',
+      event: { event: 'battle_abandoned' },
+    },
+  ])
+  expect(ordinary.entries[0]?.message).not.toContain('No contest')
+})
+
+it('reports HP payment as a resource cost rather than damage or an unknown event', () => {
+  const view = buildBattleLogView(SESSION_ID, [
+    {
+      battleVersion: 2,
+      eventIndex: 0,
+      createdAt: '2026-10-28T00:00:00Z',
+      event: { event: 'hp_spent', combatantId: 'actor', amount: 12, remaining: 1 },
+    },
+  ])
+  expect(view.entries[0]).toMatchObject({
+    kind: 'resource',
+    headline: 'HP',
+    messageTemplate: '{actor} spent {amount} HP.',
+  })
+  expect(view.entries[0]!.facts).toEqual([
+    { label: '−12 HP', tone: 'neutral' },
+    { label: '1 left', tone: 'neutral' },
+  ])
+})
+
+it('labels reflection receipts without leaking the internal status action/version into any reader', () => {
+  const records = [
+    {
+      battleVersion: 2,
+      eventIndex: 0,
+      createdAt: '2026-11-01T00:00:00Z',
+      event: {
+        event: 'damage_applied',
+        actionId: 'status.reflect.current.v1',
+        sourceCombatantId: 'character:zei',
+        targetCombatantId: 'recruit:weon',
+        amount: 13,
+        hpBefore: 90,
+        hpAfter: 77,
+      },
+    },
+  ]
+  const before = JSON.stringify(records)
+  const view = buildBattleLogView(SESSION_ID, records)
+  expect(view.entries[0]).toMatchObject({
+    actionId: 'status.reflect.current.v1',
+    actionLabel: 'Reflect',
+    headline: 'Reflect',
+    templateValues: { amount: '13' },
+  })
+  const action = buildBattleChronicle(view.entries, {
+    combatantNames: { 'character:zei': 'Zei', 'recruit:weon': 'Weon' },
+  })[0]!.actors[0]!.actions[0]!
+  expect(action.fallbackNarration).toBe('Zei reflects the damage.')
+  expect(action.outcomes[0]).toMatchObject({ text: '13 damage', recipient: ' to Weon' })
+  expect(JSON.stringify(records)).toBe(before)
 })

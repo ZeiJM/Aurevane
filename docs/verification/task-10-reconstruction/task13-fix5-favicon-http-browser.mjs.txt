@@ -1,0 +1,37 @@
+import assert from 'node:assert/strict'
+import { spawn } from 'node:child_process'
+import { createRequire } from 'node:module'
+import { once } from 'node:events'
+const web = '/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261025/apps/web'
+const require = createRequire(web + '/package.json')
+const { chromium } = require('@playwright/test')
+const app = spawn(process.execPath, [require.resolve('next/dist/bin/next'), 'start', '-H', '127.0.0.1', '-p', '3316'], { cwd: web, env: { ...process.env, NEXT_TELEMETRY_DISABLED: '1' }, stdio: ['ignore','pipe','pipe'] })
+let browser
+try {
+  await new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('Local Next start did not become ready')), 20000)
+    app.once('exit', code => { clearTimeout(timer); reject(new Error('Local Next exited ' + code)) })
+    app.stdout.on('data', chunk => { if (/Ready in/.test(String(chunk))) { clearTimeout(timer); resolve() } })
+    app.stderr.on('data', chunk => process.stderr.write(chunk))
+  })
+  const origin = 'http://127.0.0.1:3316'
+  const response = await fetch(origin + '/favicon.ico')
+  assert.equal(response.status, 200)
+  assert.match(response.headers.get('content-type'), /^image\/(?:x-icon|vnd\.microsoft\.icon)/)
+  const bytes = Buffer.from(await response.arrayBuffer())
+  assert.deepEqual([...bytes.subarray(0, 4)], [0,0,1,0])
+  browser = await chromium.launch({ executablePath: '/tmp/task13-recovery-browser/chromium', headless: true })
+  const page = await browser.newPage()
+  const errors = []
+  page.on('console', event => { if (event.type() === 'error') errors.push(event.text()) })
+  page.on('pageerror', error => errors.push(error.message))
+  await page.goto(origin + '/favicon.ico')
+  const dimensions = await page.locator('img').evaluate(async image => { await image.decode(); return [image.naturalWidth,image.naturalHeight] })
+  assert.deepEqual(dimensions,[64,64])
+  assert.deepEqual(errors,[])
+  console.log(JSON.stringify({ status: response.status, mime: response.headers.get('content-type'), bytes: bytes.length, dimensions, browser: browser.version(), errors }))
+} finally {
+  if (browser) await browser.close()
+  app.kill('SIGTERM')
+  if (app.exitCode === null) await once(app,'exit')
+}

@@ -1,0 +1,50 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["corepack", "pnpm", "exec", "prettier", "--write", "apps/web/src/app/api/master/players/route.ts", "apps/web/src/components/character/ability-detail-presentation.ts", "apps/web/src/components/character/ability-parameters.tsx", "apps/web/src/components/character/mechanic-tag-explanation.ts", "apps/web/src/components/character/mechanic-text.ts", "apps/web/src/components/character/simple-requirement-presentation.test.tsx", "apps/web/src/components/character/skill-effect-preview.test.ts", "apps/web/src/master/players.ts", "apps/web/src/server/battle/battle-build-authority.ts", "apps/web/src/server/battle/battle-essence-authority.test.ts", "apps/web/src/server/battle/battle-session-service.ts", "apps/web/src/server/battle/battle-source-authority.test.ts", "apps/web/src/server/battle/battle-source-authority.ts", "apps/web/src/server/battle/pvp-lobby-quality-service.test.ts", "apps/web/src/server/battle/pvp-lobby-quality-service.ts", "apps/web/src/server/battle/pvp-lobby-service.ts", "apps/web/src/server/character/character-build-service.ts", "apps/web/src/server/character/supabase-character-build-repository.ts", "apps/web/src/server/master/player-battle-recovery.test.ts", "apps/web/src/server/master/player-battle-recovery.ts", "apps/web/src/server/master/players-handler.ts", "apps/web/src/server/master/players-server.ts", "apps/web/src/server/master/players-service.ts", "apps/web/src/server/master/selected-character-rpc.test.ts", "apps/web/src/server/master/selected-character-rpc.ts", "apps/web/src/server/world/world-battle-combat-policy.test.ts", "apps/web/src/server/world/world-battle.ts", "packages/db/src/master-players-recovery.test.ts", "packages/db/src/simple-requirements-release.test.ts", "packages/game-core/src/combat/combat-ability-command.test.ts", "packages/game-core/src/combat/combat-ability-command.ts", "packages/game-core/src/combat/combat-ability-events.test.ts", "packages/game-core/src/combat/combat-ability-events.ts", "packages/game-core/src/combat/combat-behavior-capture.test.ts", "packages/game-core/src/combat/combat-definition.test.ts", "packages/game-core/src/combat/combat-definition.ts", "packages/game-core/src/combat/combat-modifier-composition.test.ts", "packages/game-core/src/combat/combat-requirements.test.ts", "packages/game-core/src/combat/combat-requirements.ts", "packages/game-core/src/combat/combat-simple-requirements.test.ts", "packages/game-core/src/combat/combat-simple-requirements.ts", "packages/game-core/src/combat/combat-status-removal-mode.test.ts", "packages/game-core/src/combat/gameplay-tags.test.ts", "packages/game-core/src/combat/gameplay-tags.ts", "packages/game-core/src/combat/public-combat-presentation.ts", "scripts/2026-10-19-simple-requirements.test.ts", "apps/web/src/server/master/players-handler.test.ts", "apps/web/src/server/master/players-service.test.ts"], "start": "2026-10-20T18:36:11.802401+00:00"}
+apps/web/src/app/api/master/players/route.ts 35ms (unchanged)
+apps/web/src/components/character/ability-detail-presentation.ts 132ms (unchanged)
+apps/web/src/components/character/ability-parameters.tsx 18ms (unchanged)
+apps/web/src/components/character/mechanic-tag-explanation.ts 9ms (unchanged)
+apps/web/src/components/character/mechanic-text.ts 8ms (unchanged)
+apps/web/src/components/character/simple-requirement-presentation.test.tsx 14ms (unchanged)
+apps/web/src/components/character/skill-effect-preview.test.ts 50ms (unchanged)
+apps/web/src/master/players.ts 8ms (unchanged)
+apps/web/src/server/battle/battle-build-authority.ts 73ms (unchanged)
+apps/web/src/server/battle/battle-essence-authority.test.ts 176ms
+apps/web/src/server/battle/battle-session-service.ts 60ms (unchanged)
+apps/web/src/server/battle/battle-source-authority.test.ts 4ms (unchanged)
+apps/web/src/server/battle/battle-source-authority.ts 3ms (unchanged)
+apps/web/src/server/battle/pvp-lobby-quality-service.test.ts 56ms
+apps/web/src/server/battle/pvp-lobby-quality-service.ts 23ms (unchanged)
+apps/web/src/server/battle/pvp-lobby-service.ts 44ms (unchanged)
+apps/web/src/server/character/character-build-service.ts 37ms (unchanged)
+apps/web/src/server/character/supabase-character-build-repository.ts 22ms (unchanged)
+apps/web/src/server/master/player-battle-recovery.test.ts 4ms
+apps/web/src/server/master/player-battle-recovery.ts 9ms
+apps/web/src/server/master/players-handler.ts 8ms (unchanged)
+apps/web/src/server/master/players-server.ts 2ms (unchanged)
+apps/web/src/server/master/players-service.ts 16ms (unchanged)
+apps/web/src/server/master/selected-character-rpc.test.ts 5ms
+apps/web/src/server/master/selected-character-rpc.ts 3ms (unchanged)
+apps/web/src/server/world/world-battle-combat-policy.test.ts 31ms
+apps/web/src/server/world/world-battle.ts 7ms (unchanged)
+packages/db/src/master-players-recovery.test.ts 51ms
+packages/db/src/simple-requirements-release.test.ts 17ms (unchanged)
+packages/game-core/src/combat/combat-ability-command.test.ts 127ms (unchanged)
+packages/game-core/src/combat/combat-ability-command.ts 69ms (unchanged)
+packages/game-core/src/combat/combat-ability-events.test.ts 43ms (unchanged)
+packages/game-core/src/combat/combat-ability-events.ts 21ms (unchanged)
+packages/game-core/src/combat/combat-behavior-capture.test.ts 12ms (unchanged)
+packages/game-core/src/combat/combat-definition.test.ts 38ms (unchanged)
+packages/game-core/src/combat/combat-definition.ts 37ms (unchanged)
+packages/game-core/src/combat/combat-modifier-composition.test.ts 13ms (unchanged)
+packages/game-core/src/combat/combat-requirements.test.ts 13ms (unchanged)
+packages/game-core/src/combat/combat-requirements.ts 26ms (unchanged)
+packages/game-core/src/combat/combat-simple-requirements.test.ts 13ms (unchanged)
+packages/game-core/src/combat/combat-simple-requirements.ts 15ms (unchanged)
+packages/game-core/src/combat/combat-status-removal-mode.test.ts 12ms (unchanged)
+packages/game-core/src/combat/gameplay-tags.test.ts 6ms (unchanged)
+packages/game-core/src/combat/gameplay-tags.ts 19ms (unchanged)
+packages/game-core/src/combat/public-combat-presentation.ts 8ms (unchanged)
+scripts/2026-10-19-simple-requirements.test.ts 11ms (unchanged)
+apps/web/src/server/master/players-handler.test.ts 5ms
+apps/web/src/server/master/players-service.test.ts 7ms
+{"end": "2026-10-20T18:36:14.007479+00:00", "exit": 0}

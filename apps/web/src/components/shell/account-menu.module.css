@@ -1,4 +1,6 @@
 .root {
+  display: flex;
+  align-items: center;
   position: relative;
   z-index: 900;
 }
@@ -89,12 +91,19 @@
   margin: 0;
 }
 .characterGreeting {
-  display: grid;
-  gap: 0.22rem;
+  display: flex;
+  gap: 0.7rem;
+  align-items: center;
+  justify-content: space-between;
   padding: 0.7rem 0.8rem 0.75rem;
   border-bottom: 1px solid var(--av-border);
 }
-.characterGreeting span {
+.characterGreeting > div:first-child {
+  display: grid;
+  min-width: 0;
+  gap: 0.22rem;
+}
+.characterGreeting > div:first-child > span {
   color: var(--av-text-dim);
   font: 650 0.54rem/1.1 var(--av-font-body);
   letter-spacing: 0.08em;
@@ -120,5 +129,34 @@
     min-height: 2.75rem;
     padding: 0.5rem 0.62rem;
     font-size: 0.75rem;
+  }
+}
+
+.presenceBlock {
+  display: flex;
+}
+.presenceBlock a {
+  min-height: 1.5rem;
+}
+@media (max-width: 760px) {
+  .trigger {
+    min-height: 2.3rem;
+    padding: 0.3rem 0.6rem;
+    font-size: 0.72rem;
+  }
+}
+
+/* mobile type floor */
+@media (max-width: 760px) {
+  .characterGreeting > div:first-child > span {
+    font-size: 0.6875rem !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .trigger {
+    border-width: 1px;
+    padding: 0.46rem 0.62rem;
+    min-height: 2.4rem;
   }
 }

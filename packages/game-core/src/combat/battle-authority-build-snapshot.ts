@@ -1,3 +1,5 @@
+import type { BattleEquipmentCapture } from './combat-equipment'
+import { parseSupportActionId } from './support-actions'
 import {
   readCombatBuildSnapshot,
   validateCombatBuildSnapshot,
@@ -50,11 +52,21 @@ function parseSnapshot(value: unknown): CombatBuildSnapshot | null {
       !positiveInteger(candidate.slotIndex) ||
       typeof candidate.skillId !== 'string' ||
       !positiveInteger(candidate.contentVersion) ||
-      typeof candidate.sourceDisciplineId !== 'string'
+      typeof candidate.sourceDisciplineId !== 'string' ||
+      (Object.hasOwn(candidate, 'eligibilityDisciplineId') &&
+        typeof candidate.eligibilityDisciplineId !== 'string') ||
+      (Object.hasOwn(candidate, 'earnedEligibility') &&
+        typeof candidate.earnedEligibility !== 'boolean')
     ) {
       return null
     }
     disciplineSkills.push({
+      ...(Object.hasOwn(candidate, 'eligibilityDisciplineId')
+        ? { eligibilityDisciplineId: candidate.eligibilityDisciplineId as string }
+        : {}),
+      ...(Object.hasOwn(candidate, 'earnedEligibility')
+        ? { earnedEligibility: candidate.earnedEligibility as boolean }
+        : {}),
       slotIndex: candidate.slotIndex,
       skillId: candidate.skillId,
       contentVersion: candidate.contentVersion,
@@ -62,12 +74,17 @@ function parseSnapshot(value: unknown): CombatBuildSnapshot | null {
     })
   }
 
+  const supportActionId = parseSupportActionId(value.supportActionId)
+  if (Object.hasOwn(value, 'supportActionId') && !supportActionId) return null
   const resonance = value.extensions.resonance
   const essence = value.extensions.essence
   const snapshot: CombatBuildSnapshot = {
     schemaVersion: 1,
     sourceBuildSchemaVersion: value.buildSchemaVersion,
     sourceBuildVersion: value.buildVersion,
+    ...(value.skillEligibilityPolicyVersion === 1
+      ? { skillEligibilityPolicyVersion: 1 as const }
+      : {}),
     fingerprint: value.fingerprint,
     primary: {
       disciplineId: value.primary.disciplineId,
@@ -76,6 +93,7 @@ function parseSnapshot(value: unknown): CombatBuildSnapshot | null {
     },
     secondary,
     disciplineSkills: disciplineSkills.sort((left, right) => left.slotIndex - right.slotIndex),
+    ...(supportActionId ? { supportActionId } : {}),
     extensions: {
       resonance:
         resonance === null
@@ -88,6 +106,12 @@ function parseSnapshot(value: unknown): CombatBuildSnapshot | null {
               typeof resonance.disciplinePair[0] === 'string' &&
               typeof resonance.disciplinePair[1] === 'string'
             ? {
+                ...(resonance.relationshipOverrideDisciplineId !== undefined
+                  ? {
+                      relationshipOverrideDisciplineId:
+                        resonance.relationshipOverrideDisciplineId as string,
+                    }
+                  : {}),
                 resonanceId: resonance.resonanceId,
                 contentVersion: resonance.contentVersion,
                 disciplinePair: [resonance.disciplinePair[0], resonance.disciplinePair[1]],
@@ -103,6 +127,12 @@ function parseSnapshot(value: unknown): CombatBuildSnapshot | null {
               typeof essence.skillId === 'string' &&
               positiveInteger(essence.skillContentVersion)
             ? {
+                ...(essence.relationshipOverrideDisciplineId !== undefined
+                  ? {
+                      relationshipOverrideDisciplineId:
+                        essence.relationshipOverrideDisciplineId as string,
+                    }
+                  : {}),
                 essenceId: essence.essenceId,
                 contentVersion: essence.contentVersion,
                 sourceDisciplineId: essence.sourceDisciplineId,
@@ -110,7 +140,8 @@ function parseSnapshot(value: unknown): CombatBuildSnapshot | null {
                 skillContentVersion: essence.skillContentVersion,
               }
             : null,
-      equipmentSkills: [],
+      equipmentSkills: (value.extensions.equipmentSkills ??
+        []) as readonly BattleEquipmentCapture[],
       supernatural: null,
       prestige: null,
     },

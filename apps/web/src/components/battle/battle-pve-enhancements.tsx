@@ -6,10 +6,8 @@ import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
 import { AiBattleQualityControls } from './ai-battle-quality-controls'
 import { BattleFeedbackAssist } from './battle-feedback-assist'
-import { BattleKeyboardAssist } from './battle-keyboard-assist'
 import { BattleLessonCoach } from './battle-lesson-coach'
 import { BattleLessonCoachSemantics } from './battle-lesson-coach-semantics'
-import { BattlePveCommandContextParity } from './battle-pve-command-context-parity'
 import { BattleRecruitRecoveryAssist } from './battle-recruit-recovery-assist'
 import type { BattleRuntime } from './battle-runtime'
 import { BattleUtilityWindows } from './battle-utility-windows'
@@ -32,7 +30,9 @@ export function BattlePveEnhancements({
   const battleHallRecord = scenario
     ? getTacticalHallRecordFromScenarioSourceId(scenario.provenance.sourceId)
     : null
-  const lessonActive = initialBattle.snapshot.tactical.battle.lifecycle === 'active'
+  const worldEncounter = initialBattle.snapshot.worldBattleOrigin !== undefined
+  const lessonActive =
+    !worldEncounter && initialBattle.snapshot.tactical.battle.lifecycle === 'active'
 
   return (
     <>
@@ -40,12 +40,12 @@ export function BattlePveEnhancements({
         battleSessionId={initialBattle.battleSessionId}
         playerName={runtime.playerName}
       />
-      <BattlePveCommandContextParity />
       <BattleLessonCoachSemantics />
       {lessonActive ? (
         <BattleLessonCoach
           battleSessionId={initialBattle.battleSessionId}
           recordId={battleHallRecord?.id ?? 'recruit-sparring'}
+          recoveryPractice={initialBattle.snapshot.supportActionPolicyVersion === 1}
         />
       ) : null}
       <PveBattleCompletionBridge initialBattle={initialBattle} />
@@ -55,8 +55,7 @@ export function BattlePveEnhancements({
         playerPortraitAssetId={runtime.playerPortraitAssetId}
         playerProfileImageUrl={runtime.playerProfileImageUrl}
       />
-      <BattleRecruitRecoveryAssist />
-      <BattleKeyboardAssist playerName={runtime.playerName} />
+      {worldEncounter ? null : <BattleRecruitRecoveryAssist />}
       <BattleFeedbackAssist
         playerName={runtime.playerName}
         playerProfileImageUrl={runtime.playerProfileImageUrl}

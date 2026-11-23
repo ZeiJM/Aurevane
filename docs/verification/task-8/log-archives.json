@@ -1,0 +1,260 @@
+[
+  {
+    "log": "docs/verification/task-8/directory-db-proof.log",
+    "archive": "docs/verification/task-8/directory-db-proof.log.gz",
+    "sha256": "709f68e7654062c0465f4fed82485e549995a8d9c554a475029df2dcff27a1d4",
+    "bytes": 329
+  },
+  {
+    "log": "docs/verification/task-8/final-main-freshness.log",
+    "archive": "docs/verification/task-8/final-main-freshness.log.gz",
+    "sha256": "a3c8803e5c244c66762183680a2a9703a2fb80b3281c298a86e8234fb6311d5b",
+    "bytes": 169
+  },
+  {
+    "log": "docs/verification/task-8/final-test-source-checks.log",
+    "archive": "docs/verification/task-8/final-test-source-checks.log.gz",
+    "sha256": "b54e4b1a009abbe7dec9c4ffbe82c01099241dbe0afdf0e77b1766dd2229dd94",
+    "bytes": 81
+  },
+  {
+    "log": "docs/verification/task-8/focus-repair-final-source.log",
+    "archive": "docs/verification/task-8/focus-repair-final-source.log.gz",
+    "sha256": "bebe33bf66e96ade39c6ee4be952390ba297c410b950449e67ed2655581383a0",
+    "bytes": 434
+  },
+  {
+    "log": "docs/verification/task-8/focus-repair-focused-corrected.log",
+    "archive": "docs/verification/task-8/focus-repair-focused-corrected.log.gz",
+    "sha256": "b7ded74988f55c253e5a8221c396c59345320c5a8ba63222ad201041e6b8a6b3",
+    "bytes": 781
+  },
+  {
+    "log": "docs/verification/task-8/focus-repair-focused.log",
+    "archive": "docs/verification/task-8/focus-repair-focused.log.gz",
+    "sha256": "55a8dde2726371ebe8c42cdac6bd26496950ec36f379ac0f8d48fa9ac3c614d7",
+    "bytes": 427
+  },
+  {
+    "log": "docs/verification/task-8/focus-repair-freeze-receipt.log",
+    "archive": "docs/verification/task-8/focus-repair-freeze-receipt.log.gz",
+    "sha256": "10b8adf301f1583085d3719d341369297a4f3339792d35345f87a6a509600a27",
+    "bytes": 434
+  },
+  {
+    "log": "docs/verification/task-8/focus-repair-full-check.log",
+    "archive": "docs/verification/task-8/focus-repair-full-check.log.gz",
+    "sha256": "ed4f8741403702dabcf7b4ca50a7435bbaed78a31207f9910e6f610f2d3c239b",
+    "bytes": 145194
+  },
+  {
+    "log": "docs/verification/task-8/focused-db-3.log",
+    "archive": "docs/verification/task-8/focused-db-3.log.gz",
+    "sha256": "3f6c2cac64865f2f213a912714a6bb1acbd85fc8f213dd50b338056c8caf8522",
+    "bytes": 1223
+  },
+  {
+    "log": "docs/verification/task-8/focused-db-4.log",
+    "archive": "docs/verification/task-8/focused-db-4.log.gz",
+    "sha256": "5bcb2ac987480fe27d432cd36db9a9b2f618b4577bbfb99db5aba4a9fee03293",
+    "bytes": 252
+  },
+  {
+    "log": "docs/verification/task-8/focused-db-5.log",
+    "archive": "docs/verification/task-8/focused-db-5.log.gz",
+    "sha256": "ac7b6225967fa3433a38122ab517d7cd7e84c99dba54b07eca40c9311844582e",
+    "bytes": 252
+  },
+  {
+    "log": "docs/verification/task-8/focused-format.log",
+    "archive": "docs/verification/task-8/focused-format.log.gz",
+    "sha256": "810b8e1c71aebc037bd1b2037650d3ba6e11e8511ece7bc2190564941187161a",
+    "bytes": 1428
+  },
+  {
+    "log": "docs/verification/task-8/focused-ts-1.log",
+    "archive": "docs/verification/task-8/focused-ts-1.log.gz",
+    "sha256": "7dd3554dd74e026c19a4ac693556700a3b7c38ef48a5839abb15aca8937a99a5",
+    "bytes": 626
+  },
+  {
+    "log": "docs/verification/task-8/focused-ts-2.log",
+    "archive": "docs/verification/task-8/focused-ts-2.log.gz",
+    "sha256": "06e231db3537d734b702ea4cff420644eaf37465876137846e8539a07269c7bf",
+    "bytes": 626
+  },
+  {
+    "log": "docs/verification/task-8/focused-types.log",
+    "archive": "docs/verification/task-8/focused-types.log.gz",
+    "sha256": "99d7c2179cdd316467c51f37901025a0753453664d741214ba56fc631fa6c0bc",
+    "bytes": 90
+  },
+  {
+    "log": "docs/verification/task-8/freeze-focused.log",
+    "archive": "docs/verification/task-8/freeze-focused.log.gz",
+    "sha256": "4101987121b74ff15a3470d9cec060b1fe04518953533332d9bae3c2368ec702",
+    "bytes": 877
+  },
+  {
+    "log": "docs/verification/task-8/freeze-format.log",
+    "archive": "docs/verification/task-8/freeze-format.log.gz",
+    "sha256": "6e4fbd602e3b4f1aa1535161b058dc0340ad783a578f2b9c09ad140aa13fdb48",
+    "bytes": 193
+  },
+  {
+    "log": "docs/verification/task-8/full-check-final.log",
+    "archive": "docs/verification/task-8/full-check-final.log.gz",
+    "sha256": "1c8b570860c3275b258e292e5dde89e11d04f58982ad95d4afd66f408f9ca742",
+    "bytes": 145600
+  },
+  {
+    "log": "docs/verification/task-8/full-check.log",
+    "archive": "docs/verification/task-8/full-check.log.gz",
+    "sha256": "1d6594942efad87ce3d030df2628bae35c8c81b2fde69c45f78f90a8a54661e2",
+    "bytes": 2727
+  },
+  {
+    "log": "docs/verification/task-8/green-db-1.log",
+    "archive": "docs/verification/task-8/green-db-1.log.gz",
+    "sha256": "40be62d1a5e434e607de216d5ebd21cda3af0389a8acd3e521260963fd917f8a",
+    "bytes": 1716
+  },
+  {
+    "log": "docs/verification/task-8/green-db-2.log",
+    "archive": "docs/verification/task-8/green-db-2.log.gz",
+    "sha256": "eb23ca479f1f5ba783a4fad79e18a955e9a0ef076974f28c605fbe05a16df8bb",
+    "bytes": 250
+  },
+  {
+    "log": "docs/verification/task-8/green-rpc.log",
+    "archive": "docs/verification/task-8/green-rpc.log.gz",
+    "sha256": "e08c64d6e36b03d0dd271a58438ba75103d30c81597859fcfa1b82f39d39584b",
+    "bytes": 620
+  },
+  {
+    "log": "docs/verification/task-8/native-gate-final-focused.log",
+    "archive": "docs/verification/task-8/native-gate-final-focused.log.gz",
+    "sha256": "9459953dc353f31479472e20c53fc114d79ddd6e9390e9795581556d17caf538",
+    "bytes": 333
+  },
+  {
+    "log": "docs/verification/task-8/native-gate-final-source-receipt.log",
+    "archive": "docs/verification/task-8/native-gate-final-source-receipt.log.gz",
+    "sha256": "df079098e948cc875d40e3840807b88533fa275f44ffbde07f53f50ebd9012dc",
+    "bytes": 341
+  },
+  {
+    "log": "docs/verification/task-8/native-gate-shared-sql-first.log",
+    "archive": "docs/verification/task-8/native-gate-shared-sql-first.log.gz",
+    "sha256": "7f15933e93fc1a3f65dfab7de916fd08da924fd19254bf60b110646e4fce2348",
+    "bytes": 1885
+  },
+  {
+    "log": "docs/verification/task-8/native-gate-shared-sql-green.log",
+    "archive": "docs/verification/task-8/native-gate-shared-sql-green.log.gz",
+    "sha256": "8b900a87b73743339d2d8f31e35c56a35d027c5732eac2ce3d81c94644dfb986",
+    "bytes": 252
+  },
+  {
+    "log": "docs/verification/task-8/native-gate-workflow-static.log",
+    "archive": "docs/verification/task-8/native-gate-workflow-static.log.gz",
+    "sha256": "e6ab21598772f8c049c9872cd7f81e1599ab8b874c1998b5f71378b5b4f68651",
+    "bytes": 1033
+  },
+  {
+    "log": "docs/verification/task-8/red-predecessor.log",
+    "archive": "docs/verification/task-8/red-predecessor.log.gz",
+    "sha256": "5fd63fda78ceead67467a9f8f0d21700a465b8d886f7865061f89796a5d81d53",
+    "bytes": 3261
+  },
+  {
+    "log": "docs/verification/task-8/red-rpc.log",
+    "archive": "docs/verification/task-8/red-rpc.log.gz",
+    "sha256": "2be23c14e9b8340a4947008675c2de8016b788fc312a5e7b8333c65eefefcecf",
+    "bytes": 1781
+  },
+  {
+    "log": "docs/verification/task-8/review-build-cache-quarantine.log",
+    "archive": "docs/verification/task-8/review-build-cache-quarantine.log.gz",
+    "sha256": "b4366126fb94b3e782d7201836cf7e9094055b9787999a99a14417a5c3b81eaf",
+    "bytes": 41
+  },
+  {
+    "log": "docs/verification/task-8/review-combined-full-check.log",
+    "archive": "docs/verification/task-8/review-combined-full-check.log.gz",
+    "sha256": "3e20471a7e186de23ff5aa50ad5200f0fbc0c89561df7f422e21aa08cca2432c",
+    "bytes": 141230
+  },
+  {
+    "log": "docs/verification/task-8/review-current-main-merge.log",
+    "archive": "docs/verification/task-8/review-current-main-merge.log.gz",
+    "sha256": "3cd3c92172e031b1f770a65fcd57ef8790d55e64c1a67788428e23aebe1f4c8c",
+    "bytes": 289
+  },
+  {
+    "log": "docs/verification/task-8/review-final-main-freshness.log",
+    "archive": "docs/verification/task-8/review-final-main-freshness.log.gz",
+    "sha256": "272bff9b2588abd219ff33a0c8a605bbf037d471b70c2bbdfe1f79bcc506f65e",
+    "bytes": 341
+  },
+  {
+    "log": "docs/verification/task-8/review-final-source-proof.log",
+    "archive": "docs/verification/task-8/review-final-source-proof.log.gz",
+    "sha256": "9340d557ba02cedec649595811c37486442464f66208350723afbed32fc79179",
+    "bytes": 197
+  },
+  {
+    "log": "docs/verification/task-8/review-i1-eslint.log",
+    "archive": "docs/verification/task-8/review-i1-eslint.log.gz",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "log": "docs/verification/task-8/review-i1-static.log",
+    "archive": "docs/verification/task-8/review-i1-static.log.gz",
+    "sha256": "bb1669f5a334e3b68c896500cc1274b6f1df279ccfab35ef8cca1711fdf04e91",
+    "bytes": 1052
+  },
+  {
+    "log": "docs/verification/task-8/review-merge-preservation.log",
+    "archive": "docs/verification/task-8/review-merge-preservation.log.gz",
+    "sha256": "dc3e5b28ecadaf4f82c9677e3f8e6afa883d06b90b0e418c9206c3fde0a3ccba",
+    "bytes": 2418
+  },
+  {
+    "log": "docs/verification/task-8/review-reconciled-focused.log",
+    "archive": "docs/verification/task-8/review-reconciled-focused.log.gz",
+    "sha256": "3cb97a88e0b41333ea016ca73fe054c8319f3fbec27e637ed1634af584856bf7",
+    "bytes": 1402
+  },
+  {
+    "log": "docs/verification/task-8/review-unchanged-source-build-retry.log",
+    "archive": "docs/verification/task-8/review-unchanged-source-build-retry.log.gz",
+    "sha256": "07efd2b20c5426ce87aeeb1d470a7103f29a276c051b347a166e91b777b8ca45",
+    "bytes": 7887
+  },
+  {
+    "log": "docs/verification/task-8/self-review.log",
+    "archive": "docs/verification/task-8/self-review.log.gz",
+    "sha256": "a5bf1ad318cc73d8b8675ed34aa4949cd44c3f940cf2e123de9e8a6f1e696d07",
+    "bytes": 24678
+  },
+  {
+    "log": "docs/verification/task-8/sql-final-focused.log",
+    "archive": "docs/verification/task-8/sql-final-focused.log.gz",
+    "sha256": "0e0f86d234560a2f03bca47eded1b62ab52808f02c017e4bcc7e379d60f0f509",
+    "bytes": 252
+  },
+  {
+    "log": "docs/verification/task-8/test-type-boundary-fix.log",
+    "archive": "docs/verification/task-8/test-type-boundary-fix.log.gz",
+    "sha256": "557fb8706e27518676acda8c6fa6e775aefa88fd3722437593e742408be578c8",
+    "bytes": 352
+  },
+  {
+    "log": "docs/verification/task-8/test-type-boundary-green.log",
+    "archive": "docs/verification/task-8/test-type-boundary-green.log.gz",
+    "sha256": "81d33e301beba70482aef3fa4876f755e0b026542523595ba088409834e99d9e",
+    "bytes": 267
+  }
+]

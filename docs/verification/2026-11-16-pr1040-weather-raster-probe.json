@@ -1,0 +1,553 @@
+{
+  "backend": "native Skia immutable decoded Image shim; not Web ImageBitmap",
+  "sourceHashes": {
+    "map-weather.ts": "e464f4dc9f5b93b8e9b1af85a829484a312b2e3542cbb7d373d91924bd958e50",
+    "map-daylight.ts": "e7ebf6822041b07469d63da6509b683f9030a1b755d03a50aa9752de04694b86"
+  },
+  "width": 903,
+  "height": 752,
+  "density": 1,
+  "minute": 116.65333333333334,
+  "measurements": [
+    {
+      "repeat": 0,
+      "mode": "direct-gradient",
+      "samples": 30,
+      "medianMs": 14.15561499999967,
+      "p95Ms": 26.698219999999992,
+      "maxMs": 31.342557999999826,
+      "retainedPixels": 0
+    },
+    {
+      "repeat": 0,
+      "mode": "immutable-composite",
+      "samples": 30,
+      "medianMs": 11.286814999999933,
+      "p95Ms": 26.181180999999924,
+      "maxMs": 26.87203899999986,
+      "retainedPixels": 778882
+    },
+    {
+      "repeat": 1,
+      "mode": "direct-gradient",
+      "samples": 30,
+      "medianMs": 14.448689999999715,
+      "p95Ms": 27.017135000000053,
+      "maxMs": 29.431032999999843,
+      "retainedPixels": 0
+    },
+    {
+      "repeat": 1,
+      "mode": "immutable-composite",
+      "samples": 30,
+      "medianMs": 11.854846999999609,
+      "p95Ms": 63.41949199999999,
+      "maxMs": 70.94308300000012,
+      "retainedPixels": 778882
+    },
+    {
+      "repeat": 2,
+      "mode": "direct-gradient",
+      "samples": 30,
+      "medianMs": 18.381822999999713,
+      "p95Ms": 42.83126799999991,
+      "maxMs": 54.912578000000394,
+      "retainedPixels": 0
+    },
+    {
+      "repeat": 2,
+      "mode": "immutable-composite",
+      "samples": 30,
+      "medianMs": 11.41636600000038,
+      "p95Ms": 28.226042000000234,
+      "maxMs": 28.437474999999722,
+      "retainedPixels": 778882
+    }
+  ],
+  "pixels": [
+    {
+      "weather": "fog",
+      "offset": -2000,
+      "drift": -63,
+      "maxChannelDifference": 1,
+      "changedChannels": 69390,
+      "meanChannelDifference": 0.025546493956315825
+    },
+    {
+      "weather": "fog",
+      "offset": -2000,
+      "drift": 0,
+      "maxChannelDifference": 2,
+      "changedChannels": 70705,
+      "meanChannelDifference": 0.02603577613628331
+    },
+    {
+      "weather": "fog",
+      "offset": -2000,
+      "drift": 63,
+      "maxChannelDifference": 1,
+      "changedChannels": 96420,
+      "meanChannelDifference": 0.035497808722697394
+    },
+    {
+      "weather": "fog",
+      "offset": -2000,
+      "drift": 65,
+      "maxChannelDifference": 1,
+      "changedChannels": 97327,
+      "meanChannelDifference": 0.035831728163803866
+    },
+    {
+      "weather": "fog",
+      "offset": -100,
+      "drift": -63,
+      "maxChannelDifference": 2,
+      "changedChannels": 211337,
+      "meanChannelDifference": 0.07781206557338423
+    },
+    {
+      "weather": "fog",
+      "offset": -100,
+      "drift": 0,
+      "maxChannelDifference": 2,
+      "changedChannels": 249769,
+      "meanChannelDifference": 0.09195670165641714
+    },
+    {
+      "weather": "fog",
+      "offset": -100,
+      "drift": 63,
+      "maxChannelDifference": 2,
+      "changedChannels": 294395,
+      "meanChannelDifference": 0.1084825846469216
+    },
+    {
+      "weather": "fog",
+      "offset": -100,
+      "drift": 65,
+      "maxChannelDifference": 2,
+      "changedChannels": 295581,
+      "meanChannelDifference": 0.10892731969086497
+    },
+    {
+      "weather": "fog",
+      "offset": 0,
+      "drift": -63,
+      "maxChannelDifference": 2,
+      "changedChannels": 219746,
+      "meanChannelDifference": 0.08091158902947622
+    },
+    {
+      "weather": "fog",
+      "offset": 0,
+      "drift": 0,
+      "maxChannelDifference": 2,
+      "changedChannels": 260484,
+      "meanChannelDifference": 0.09590004358992484
+    },
+    {
+      "weather": "fog",
+      "offset": 0,
+      "drift": 63,
+      "maxChannelDifference": 2,
+      "changedChannels": 305604,
+      "meanChannelDifference": 0.1126810601776584
+    },
+    {
+      "weather": "fog",
+      "offset": 0,
+      "drift": 65,
+      "maxChannelDifference": 2,
+      "changedChannels": 307106,
+      "meanChannelDifference": 0.11323661082443863
+    },
+    {
+      "weather": "fog",
+      "offset": 100,
+      "drift": -63,
+      "maxChannelDifference": 2,
+      "changedChannels": 229974,
+      "meanChannelDifference": 0.08467711057703636
+    },
+    {
+      "weather": "fog",
+      "offset": 100,
+      "drift": 0,
+      "maxChannelDifference": 2,
+      "changedChannels": 273012,
+      "meanChannelDifference": 0.10051674677787988
+    },
+    {
+      "weather": "fog",
+      "offset": 100,
+      "drift": 63,
+      "maxChannelDifference": 2,
+      "changedChannels": 319350,
+      "meanChannelDifference": 0.1177899908107726
+    },
+    {
+      "weather": "fog",
+      "offset": 100,
+      "drift": 65,
+      "maxChannelDifference": 2,
+      "changedChannels": 321232,
+      "meanChannelDifference": 0.11848912313564713
+    },
+    {
+      "weather": "fog",
+      "offset": 2000,
+      "drift": -63,
+      "maxChannelDifference": 2,
+      "changedChannels": 425801,
+      "meanChannelDifference": 0.15753376746542258
+    },
+    {
+      "weather": "fog",
+      "offset": 2000,
+      "drift": 0,
+      "maxChannelDifference": 2,
+      "changedChannels": 443075,
+      "meanChannelDifference": 0.16398316191889917
+    },
+    {
+      "weather": "fog",
+      "offset": 2000,
+      "drift": 63,
+      "maxChannelDifference": 2,
+      "changedChannels": 456119,
+      "meanChannelDifference": 0.168793884451356
+    },
+    {
+      "weather": "fog",
+      "offset": 2000,
+      "drift": 65,
+      "maxChannelDifference": 2,
+      "changedChannels": 456811,
+      "meanChannelDifference": 0.16904202304375485
+    },
+    {
+      "weather": "overcast",
+      "offset": -2000,
+      "drift": -63,
+      "maxChannelDifference": 1,
+      "changedChannels": 71872,
+      "meanChannelDifference": 0.026460262482033883
+    },
+    {
+      "weather": "overcast",
+      "offset": -2000,
+      "drift": 0,
+      "maxChannelDifference": 1,
+      "changedChannels": 51100,
+      "meanChannelDifference": 0.01881288141184232
+    },
+    {
+      "weather": "overcast",
+      "offset": -2000,
+      "drift": 63,
+      "maxChannelDifference": 1,
+      "changedChannels": 50830,
+      "meanChannelDifference": 0.018713478711623193
+    },
+    {
+      "weather": "overcast",
+      "offset": -2000,
+      "drift": 65,
+      "maxChannelDifference": 1,
+      "changedChannels": 50816,
+      "meanChannelDifference": 0.01870832449753776
+    },
+    {
+      "weather": "overcast",
+      "offset": -100,
+      "drift": -63,
+      "maxChannelDifference": 2,
+      "changedChannels": 130815,
+      "meanChannelDifference": 0.048160976414316346
+    },
+    {
+      "weather": "overcast",
+      "offset": -100,
+      "drift": 0,
+      "maxChannelDifference": 2,
+      "changedChannels": 172930,
+      "meanChannelDifference": 0.06366595685775547
+    },
+    {
+      "weather": "overcast",
+      "offset": -100,
+      "drift": 63,
+      "maxChannelDifference": 2,
+      "changedChannels": 212983,
+      "meanChannelDifference": 0.07844750653848873
+    },
+    {
+      "weather": "overcast",
+      "offset": -100,
+      "drift": 65,
+      "maxChannelDifference": 2,
+      "changedChannels": 214494,
+      "meanChannelDifference": 0.07900931587380128
+    },
+    {
+      "weather": "overcast",
+      "offset": 0,
+      "drift": -63,
+      "maxChannelDifference": 2,
+      "changedChannels": 156033,
+      "meanChannelDifference": 0.05744518861478287
+    },
+    {
+      "weather": "overcast",
+      "offset": 0,
+      "drift": 0,
+      "maxChannelDifference": 2,
+      "changedChannels": 197814,
+      "meanChannelDifference": 0.07282720423646945
+    },
+    {
+      "weather": "overcast",
+      "offset": 0,
+      "drift": 63,
+      "maxChannelDifference": 2,
+      "changedChannels": 243141,
+      "meanChannelDifference": 0.0896549769091209
+    },
+    {
+      "weather": "overcast",
+      "offset": 0,
+      "drift": 65,
+      "maxChannelDifference": 2,
+      "changedChannels": 244227,
+      "meanChannelDifference": 0.09006068718927453
+    },
+    {
+      "weather": "overcast",
+      "offset": 100,
+      "drift": -63,
+      "maxChannelDifference": 1,
+      "changedChannels": 180745,
+      "meanChannelDifference": 0.06654274463372682
+    },
+    {
+      "weather": "overcast",
+      "offset": 100,
+      "drift": 0,
+      "maxChannelDifference": 2,
+      "changedChannels": 223677,
+      "meanChannelDifference": 0.08242692797059448
+    },
+    {
+      "weather": "overcast",
+      "offset": 100,
+      "drift": 63,
+      "maxChannelDifference": 2,
+      "changedChannels": 271700,
+      "meanChannelDifference": 0.10041955302655452
+    },
+    {
+      "weather": "overcast",
+      "offset": 100,
+      "drift": 65,
+      "maxChannelDifference": 2,
+      "changedChannels": 273395,
+      "meanChannelDifference": 0.10104579003793501
+    },
+    {
+      "weather": "overcast",
+      "offset": 2000,
+      "drift": -63,
+      "maxChannelDifference": 2,
+      "changedChannels": 401561,
+      "meanChannelDifference": 0.14879074774392687
+    },
+    {
+      "weather": "overcast",
+      "offset": 2000,
+      "drift": 0,
+      "maxChannelDifference": 2,
+      "changedChannels": 369174,
+      "meanChannelDifference": 0.1367968915671167
+    },
+    {
+      "weather": "overcast",
+      "offset": 2000,
+      "drift": 63,
+      "maxChannelDifference": 2,
+      "changedChannels": 327487,
+      "meanChannelDifference": 0.1214362291180698
+    },
+    {
+      "weather": "overcast",
+      "offset": 2000,
+      "drift": 65,
+      "maxChannelDifference": 2,
+      "changedChannels": 325935,
+      "meanChannelDifference": 0.1208747879409062
+    },
+    {
+      "weather": "storm",
+      "offset": -2000,
+      "drift": -63,
+      "maxChannelDifference": 1,
+      "changedChannels": 71155,
+      "meanChannelDifference": 0.026196293089229754
+    },
+    {
+      "weather": "storm",
+      "offset": -2000,
+      "drift": 0,
+      "maxChannelDifference": 1,
+      "changedChannels": 49629,
+      "meanChannelDifference": 0.018271320774722558
+    },
+    {
+      "weather": "storm",
+      "offset": -2000,
+      "drift": 63,
+      "maxChannelDifference": 1,
+      "changedChannels": 50375,
+      "meanChannelDifference": 0.018545966753846517
+    },
+    {
+      "weather": "storm",
+      "offset": -2000,
+      "drift": 65,
+      "maxChannelDifference": 1,
+      "changedChannels": 50412,
+      "meanChannelDifference": 0.018559588605358026
+    },
+    {
+      "weather": "storm",
+      "offset": -100,
+      "drift": -63,
+      "maxChannelDifference": 1,
+      "changedChannels": 129657,
+      "meanChannelDifference": 0.04773428111967201
+    },
+    {
+      "weather": "storm",
+      "offset": -100,
+      "drift": 0,
+      "maxChannelDifference": 2,
+      "changedChannels": 171260,
+      "meanChannelDifference": 0.06305113274899272
+    },
+    {
+      "weather": "storm",
+      "offset": -100,
+      "drift": 63,
+      "maxChannelDifference": 2,
+      "changedChannels": 209296,
+      "meanChannelDifference": 0.0770636000565491
+    },
+    {
+      "weather": "storm",
+      "offset": -100,
+      "drift": 65,
+      "maxChannelDifference": 2,
+      "changedChannels": 210717,
+      "meanChannelDifference": 0.07758712094436983
+    },
+    {
+      "weather": "storm",
+      "offset": 0,
+      "drift": -63,
+      "maxChannelDifference": 2,
+      "changedChannels": 152271,
+      "meanChannelDifference": 0.05606054581654532
+    },
+    {
+      "weather": "storm",
+      "offset": 0,
+      "drift": 0,
+      "maxChannelDifference": 2,
+      "changedChannels": 194112,
+      "meanChannelDifference": 0.07146428276902052
+    },
+    {
+      "weather": "storm",
+      "offset": 0,
+      "drift": 63,
+      "maxChannelDifference": 2,
+      "changedChannels": 236597,
+      "meanChannelDifference": 0.08715223781249264
+    },
+    {
+      "weather": "storm",
+      "offset": 0,
+      "drift": 65,
+      "maxChannelDifference": 2,
+      "changedChannels": 237875,
+      "meanChannelDifference": 0.0876326841968851
+    },
+    {
+      "weather": "storm",
+      "offset": 100,
+      "drift": -63,
+      "maxChannelDifference": 2,
+      "changedChannels": 178016,
+      "meanChannelDifference": 0.06553840920336466
+    },
+    {
+      "weather": "storm",
+      "offset": 100,
+      "drift": 0,
+      "maxChannelDifference": 2,
+      "changedChannels": 218068,
+      "meanChannelDifference": 0.08029345149737283
+    },
+    {
+      "weather": "storm",
+      "offset": 100,
+      "drift": 63,
+      "maxChannelDifference": 2,
+      "changedChannels": 270728,
+      "meanChannelDifference": 0.09993837032586414
+    },
+    {
+      "weather": "storm",
+      "offset": 100,
+      "drift": 65,
+      "maxChannelDifference": 2,
+      "changedChannels": 272195,
+      "meanChannelDifference": 0.10051453782898612
+    },
+    {
+      "weather": "storm",
+      "offset": 2000,
+      "drift": -63,
+      "maxChannelDifference": 2,
+      "changedChannels": 407633,
+      "meanChannelDifference": 0.15123973575080701
+    },
+    {
+      "weather": "storm",
+      "offset": 2000,
+      "drift": 0,
+      "maxChannelDifference": 2,
+      "changedChannels": 373404,
+      "meanChannelDifference": 0.13841273768290097
+    },
+    {
+      "weather": "storm",
+      "offset": 2000,
+      "drift": 63,
+      "maxChannelDifference": 2,
+      "changedChannels": 336083,
+      "meanChannelDifference": 0.12474081666313235
+    },
+    {
+      "weather": "storm",
+      "offset": 2000,
+      "drift": 65,
+      "maxChannelDifference": 2,
+      "changedChannels": 335116,
+      "meanChannelDifference": 0.12439180273791853
+    }
+  ],
+  "transfers": 78,
+  "closes": 78,
+  "limitations": "Includes full readback; omits terrain, peers and browser compositor. No native acceptance or exact pixel identity claimed.",
+  "validationContext": "Concurrent broad local tests/build were active. Tail timing is noisy; second cached P95 is worse. This is a component experiment, not hosted acceptance or proof of a tail improvement."
+}

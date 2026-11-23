@@ -1,0 +1,33 @@
+{
+  "parentCheckpoint": "62e79b2efc64b7957b412a681b22ddf597f7469a",
+  "initialPublishedHead": "199f4718239d85fae7ed29c468a192c7ad286216",
+  "initialPublishedTree": "1d4591b8244d86f1f0740e4a190d94eae95e18dc",
+  "verificationFileBlobs": {
+    ".github/scripts/verify-master-panel-staff-authority.sh": "65971a3a0abadb92814f1db34bec0aefaea9d64d",
+    ".github/scripts/verify-master-panel-staff-authority.sql": "41dad9949266f4d336692e205e66f5650970bf2c",
+    ".github/scripts/verify-phase4-event-builder.sh": "9c4ad2f1f5e88b236c614d5741c10eb9817adaed",
+    ".github/scripts/verify-phase4-live-event-operations.sh": "bc7054aff1188b9e2bc988b49aab3b8875dde1be",
+    ".github/workflows/browser-smoke.yml": "425709d7a16f843f427b4a0bf58fe2a34ec05301",
+    "packages/db/src/selected-character-staff-authority.test.ts": "521c7c4273b9caccae699c6a662f43d85a1d2083"
+  },
+  "commands": {
+    "native-gate-shared-sql-first": 1,
+    "native-gate-shared-sql-green": 0,
+    "native-gate-final-focused": 0,
+    "native-gate-workflow-static": 0,
+    "native-gate-final-source-receipt": 0
+  },
+  "actualPGliteTests": 15,
+  "discoveredEarlyBrowserInstances": 6,
+  "earlyBrowserFiles": 3,
+  "actualNativeRun": false,
+  "productSourceUnchanged": true,
+  "fullGateRepeated": false,
+  "sameReviewerScopedReview": "pending",
+  "controllerPublication": "pending",
+  "excludedRootOwned": [
+    ".superpowers/sdd/2026-10-10-unified-engine-recovery/progress.md",
+    "docs/verification/task-8/native-initial-failures.json",
+    "docs/verification/2026-10-19-skill-display-controlled-release.md"
+  ]
+}

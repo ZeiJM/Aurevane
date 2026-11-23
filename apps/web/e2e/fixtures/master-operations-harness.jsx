@@ -1,0 +1,406 @@
+import React from 'react'
+import { defaultCombatTagDefinitions } from '@aurevane/game-core/combat/combat-tag-wording'
+import { assertTagPublicationReady } from '@aurevane/game-core/content/authored-content'
+import { createRoot } from 'react-dom/client'
+import { usePathname } from 'next/navigation'
+import { PlayersWorkspace } from '@/components/master/players-workspace'
+import { normalizeMasterPanelOrder } from '@/lib/master-panel-pages'
+import { MasterPanelShell } from '@/components/master/master-panel-shell'
+import { CombatEffectTimingEditor } from '@/components/master/combat-content/combat-effect-timing-editor'
+import { CombatContentAuthoringWorkspace } from '@/components/master/combat-content/combat-content-authoring-workspace'
+import { recordIsDirty } from '@/components/master/combat-content/content-record-workflow'
+import { BattlefieldElevationEditor } from '@/components/master/combat-content/battlefield-elevation-editor'
+import { WorldEnvironmentEditor } from '@/components/master/world-environment/world-environment-editor'
+import { SiteMusicManagement } from '@/components/master/music/site-music-management'
+import { AudioProvider } from '@/components/audio/audio-provider'
+import { SettingsScene } from '@/components/settings/settings-scene'
+import { AudioWorkspace } from '@/components/audio/audio-workspace'
+import { createDefaultSiteMusicConfig, parseSiteMusicDraft } from '@/lib/site-music'
+import { DEFAULT_WORLD_ENVIRONMENT_SETTINGS } from '@/world/environment'
+import { defaultCombatEffectTimingPolicy } from '@aurevane/game-core/combat/combat-effect-timing'
+import './production-styles'
+
+// Player facts are a local transport fixture; both nested sections are real components.
+let player = {
+  characterId: 'fixture-player',
+  name: 'Reader Target',
+  portraitRef: 'portrait',
+  verifiedEmail: 'reader@example.test',
+  fingerprint: 'f'.repeat(64),
+  deletionPending: false,
+  facts: {
+    level: 1,
+    xp: 0,
+    cycle: 1,
+    attributes: { might: 12, finesse: 4, vitality: 7, agility: 4, intellect: 3, resolve: 6 },
+    build: {
+      buildVersion: 1,
+      primary: { disciplineId: 'vanguard', definitionVersion: 1, profileVersion: 1 },
+      secondary: null,
+      disciplineSkills: [
+        {
+          skillId: 'vanguard.cleave',
+          contentVersion: 1,
+          sourceDisciplineId: 'vanguard',
+          slotIndex: 0,
+        },
+        {
+          skillId: 'vanguard.brace',
+          contentVersion: 1,
+          sourceDisciplineId: 'vanguard',
+          slotIndex: 1,
+        },
+      ],
+      supportActionId: 'basic.guard',
+      extensions: { resonance: null, essence: null },
+    },
+  },
+  calculated: { maxHp: 100, maxMp: 30, personalPointPool: 5 },
+  disciplines: [{ id: 'vanguard', name: 'Vanguard', primary: true, secondary: false }],
+  contentNames: {
+    'vanguard.cleave': 'Cleave',
+    'vanguard.brace': 'Brace',
+    'vanguard.rally': 'Rally',
+  },
+  learnedSkills: [
+    {
+      skillId: 'vanguard.cleave',
+      contentVersion: 1,
+      sourceDisciplineId: 'vanguard',
+      earnedEligibility: true,
+    },
+    {
+      skillId: 'vanguard.brace',
+      contentVersion: 1,
+      sourceDisciplineId: 'vanguard',
+      earnedEligibility: false,
+    },
+    {
+      skillId: 'vanguard.rally',
+      contentVersion: 1,
+      sourceDisciplineId: 'vanguard',
+      earnedEligibility: true,
+    },
+  ],
+  savedLoadouts: [],
+  world: null,
+  training: null,
+  battle: null,
+}
+const tagRecords = new Map(
+  defaultCombatTagDefinitions().map((definition) => [
+    definition.id,
+    {
+      contentKey: definition.id,
+      contentKind: 'tag',
+      lifecycle: 'active',
+      revision: 1,
+      versionFloor: 1,
+      createdBy: null,
+      createdAt: null,
+      builtin: { contentVersion: 1, name: definition.name },
+      builtinDefinition: definition,
+      current: { contentVersion: 1, definition },
+      draft: null,
+      history: [],
+      usedBy: [],
+      links: [],
+    },
+  ]),
+)
+const nativeFetch = window.fetch.bind(window)
+const config = createDefaultSiteMusicConfig()
+config.routeOverrides = [
+  {
+    id: 'legacy-game',
+    label: 'Legacy game silence',
+    pathPrefix: '/game',
+    enabled: false,
+    track: config.defaultTrack,
+  },
+]
+let savedMusic = config
+let settings = { ...DEFAULT_WORLD_ENVIRONMENT_SETTINGS }
+const initialNowMs = Date.now()
+window.__operationsRequests = []
+// HTTP boundary fixture: production forms, parsing, resolver, player and styles are mounted.
+// Owner authorization, SQL, storage durability and hosted publication are tested separately.
+window.fetch = async (input, options) => {
+  if (input === '/api/site-music') return Response.json({ config: savedMusic })
+  if (typeof input !== 'string' || !input.startsWith('/api/master/'))
+    return nativeFetch(input, options)
+  const body = JSON.parse(options.body)
+  window.__operationsRequests.push({ path: input, body })
+  if (input === '/api/master/navigation') {
+    if (body.expectedRevision !== access.navigation.revision)
+      return Response.json({ error: { message: 'Tab order changed.' } }, { status: 409 })
+    access.navigation = {
+      revision: body.expectedRevision + 1,
+      order: normalizeMasterPanelOrder(body.order),
+    }
+    localStorage.setItem('fixture-master-navigation', JSON.stringify(access.navigation))
+    return Response.json({ settings: access.navigation })
+  }
+  if (input === '/api/master/combat-content') {
+    const command = body.command
+    if (body.operation === 'record' && command.action === 'list' && command.kind === 'tag')
+      return Response.json({ records: tagPage(), nextCursor: null })
+    const record = tagRecords.get(command.contentKey)
+    if (body.operation !== 'record' || !record) throw new Error('Unexpected tag fixture request')
+    if (command.action === 'read') return Response.json({ record })
+    if (command.action === 'commit') {
+      if (command.expectedRevision !== record.revision)
+        return Response.json({ error: { message: 'The description changed.' } }, { status: 409 })
+      assertTagPublicationReady(command.definition)
+      if (!recordIsDirty(record, command.definition)) return Response.json({ record })
+      const contentVersion = record.versionFloor + 1
+      const saved = {
+        ...record,
+        revision: record.revision + 2,
+        versionFloor: contentVersion,
+        current: {
+          contentVersion,
+          definition: { ...command.definition, contentVersion },
+          publishedBy: 'fixture-owner',
+          publishedAt: new Date().toISOString(),
+          authoredBy: 'fixture-owner',
+          authoredAt: new Date().toISOString(),
+          restoredFrom: null,
+          restoredBy: null,
+        },
+      }
+      tagRecords.set(command.contentKey, saved)
+      return Response.json({ record: saved })
+    }
+    throw new Error('Unexpected tag command')
+  }
+  if (input === '/api/master/players') {
+    if (body.operation === 'search')
+      return Response.json({
+        players: [
+          {
+            characterId: player.characterId,
+            name: player.name,
+            level: 1,
+            slotIndex: 0,
+            verifiedEmail: player.verifiedEmail,
+            deletionPending: false,
+          },
+        ],
+      })
+    if (body.operation === 'read' && body.characterId === player.characterId)
+      return Response.json({ player })
+    if (
+      body.operation === 'teleport' &&
+      body.characterId === player.characterId &&
+      body.confirmed === true
+    ) {
+      // Transport fixture only: database legality, authorization and rotation are
+      // exercised by the real SQL tests, not by this component interaction proof.
+      const { sectorNumber, x, y, map } = body.destination
+      player = {
+        ...player,
+        world: {
+          version: body.expectedVersion + 1,
+          position: { sectorId: map === 'mainland' ? 'atlas:62:28' : 'void:ivory-veil:33:0', x, y },
+          locationLabel: `Sector ${sectorNumber} · X:${x} · Y:${y}`,
+        },
+      }
+      return Response.json({
+        player: {
+          ...player,
+          teleportReceipt: {
+            position: player.world.position,
+            version: player.world.version,
+            replayed: false,
+          },
+        },
+      })
+    }
+    // Controlled transport response for the post-save focus proof. Authority
+    // and persistence are covered by the authenticated recovery workflow.
+    if (
+      body.operation === 'edit' &&
+      body.characterId === player.characterId &&
+      body.confirmed === true &&
+      body.command?.kind === 'source' &&
+      body.command.xp === 0 &&
+      body.command.attributes?.might === 13
+    ) {
+      player = {
+        ...player,
+        fingerprint: 'e'.repeat(64),
+        facts: { ...player.facts, attributes: body.command.attributes },
+      }
+      return Response.json({ player })
+    }
+    throw new Error('Unexpected Players fixture request')
+  }
+  if (input === '/api/master/site-music') {
+    savedMusic = {
+      ...savedMusic,
+      ...parseSiteMusicDraft(body.config),
+      revision: savedMusic.revision + 1,
+    }
+    return Response.json({ config: savedMusic })
+  }
+  if (input === '/api/master/world-environment') {
+    const change = body.change
+    if (body.expectedVersion !== settings.version)
+      return Response.json({ error: { message: 'World settings changed.' } }, { status: 409 })
+    const intervalMs = change.weatherRollMinutes * 60_000
+    const now = Date.now()
+    const nextRoll = (Math.floor(now / intervalMs) + 1) * intervalMs
+    const voidInterval = (change.warpedShiftMinutes ?? settings.warpedShiftMinutes) * 60_000
+    const voidNextRoll = (Math.floor(now / voidInterval) + 1) * voidInterval
+    const activeOverride =
+      settings.weatherOverride &&
+      (settings.weatherOverrideUntil === null || settings.weatherOverrideUntil > now)
+    settings = {
+      ...settings,
+      dayLengthMinutes: change.dayLengthMinutes,
+      weatherRollMinutes: change.weatherRollMinutes,
+      warpedShiftMinutes: change.warpedShiftMinutes ?? settings.warpedShiftMinutes,
+      ...(Object.hasOwn(change, 'voidRealm')
+        ? {
+            voidRealmOverride: change.voidRealm,
+            voidRealmOverrideUntil: change.voidRealm === null ? null : voidNextRoll,
+          }
+        : {}),
+      timeOffsetMinutes: change.timeOffsetMinutes,
+      frozenMinuteOfDay: change.frozenMinuteOfDay,
+      ...(change.weather === 'unchanged'
+        ? activeOverride
+          ? { weatherOverrideUntil: Math.min(settings.weatherOverrideUntil ?? nextRoll, nextRoll) }
+          : {}
+        : {
+            weatherOverride: change.weather,
+            weatherOverrideUntil: change.weather === null ? null : nextRoll,
+          }),
+      version: settings.version + 1,
+    }
+    return Response.json({ settings })
+  }
+  return Response.json({ policy: { ...body.policy, version: body.policy.version + 1 } })
+}
+const access = {
+  userId: 'fixture-owner',
+  navigation: JSON.parse(localStorage.getItem('fixture-master-navigation') ?? 'null') ?? {
+    revision: 1,
+    order: normalizeMasterPanelOrder(null),
+  },
+  accessVersion: 1,
+  roles: ['game-owner'],
+  specialCapabilities: [],
+  effectiveCapabilities: [
+    'master.access',
+    'staff.manage',
+    'content.combat.author',
+    'combat.rules',
+    'events.author',
+    'events.operate',
+    'moderation.manage',
+    'players.manage',
+    'music.manage',
+    'world.manage',
+    'activity.read',
+  ],
+}
+function tagPage() {
+  return [...tagRecords.values()].map((record) => ({
+    contentKey: record.contentKey,
+    contentKind: record.contentKind,
+    lifecycle: record.lifecycle,
+    revision: record.revision,
+    name: (record.current?.definition ?? record.builtinDefinition).name,
+  }))
+}
+function App() {
+  const pathname = usePathname()
+  const view = new URLSearchParams(location.search).get('view') ?? 'music'
+  return (
+    <AudioProvider>
+      <div>
+        <button onClick={() => history.pushState(null, '', '/game/world?view=music')}>
+          Visit World
+        </button>
+        <button onClick={() => history.pushState(null, '', '/game/character?view=music')}>
+          Visit Character
+        </button>
+        <span data-fixture-path>{pathname}</span>
+      </div>
+      <MasterPanelShell
+        access={access}
+        activeSection={
+          view === 'players'
+            ? 'players'
+            : view === 'tags'
+              ? 'combat'
+              : view === 'rules'
+                ? 'combat-timing'
+                : view === 'world'
+                  ? 'world-environment'
+                  : 'music'
+        }
+        title={
+          view === 'players'
+            ? 'Players'
+            : view === 'tags'
+              ? 'Game Content'
+              : view === 'rules'
+                ? 'Combat Rules'
+                : view === 'world'
+                  ? 'World Environment'
+                  : 'Site Music'
+        }
+        description="Operational browser fixture"
+      >
+        {view === 'players' ? (
+          <PlayersWorkspace />
+        ) : view === 'tags' ? (
+          <CombatContentAuthoringWorkspace
+            categories={[
+              {
+                category: 'tag',
+                storedKind: 'tag',
+                label: 'Tag Library',
+                group: 'Tag Library',
+                defaultDefinition: null,
+                publicationBlocker: null,
+              },
+            ]}
+            initialPage={{ records: tagPage(), nextCursor: null }}
+          />
+        ) : view === 'rules' ? (
+          <>
+            <CombatEffectTimingEditor
+              initialPolicy={defaultCombatEffectTimingPolicy()}
+              effectUsedBy={{ damage: [{ contentKey: 'skill.fixture', name: 'Fixture Strike' }] }}
+              usedBy={{ damage: [{ contentKey: 'skill.fixture', name: 'Fixture Strike' }] }}
+            />
+            <BattlefieldElevationEditor
+              initialPolicy={{
+                version: 1,
+                level1BasisPoints: 6000,
+                level2BasisPoints: 3000,
+                level3BasisPoints: 1000,
+              }}
+            />
+          </>
+        ) : view === 'world' ? (
+          <WorldEnvironmentEditor initialSettings={settings} initialNowMs={initialNowMs} />
+        ) : (
+          <SiteMusicManagement initialConfig={savedMusic} />
+        )}
+      </MasterPanelShell>
+      {view === 'music' ? (
+        <main id="game-main">
+          <SettingsScene title="Audio" description="Adjust the sounds of your journey.">
+            <AudioWorkspace />
+          </SettingsScene>
+        </main>
+      ) : null}
+    </AudioProvider>
+  )
+}
+createRoot(document.getElementById('root')).render(<App />)

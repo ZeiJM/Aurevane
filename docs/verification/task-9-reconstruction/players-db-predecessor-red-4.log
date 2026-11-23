@@ -1,0 +1,44 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["env", "TASK9_PREDECESSOR=1", "corepack", "pnpm", "--filter", "@aurevane/db", "exec", "vitest", "run", "src/master-players-recovery.test.ts"], "start": "2026-10-20T18:16:49.600399+00:00"}
+
+ RUN  v4.1.10 /workspace/scratch/081f137b6a6d/aurevane-players-20261020/packages/db
+
+ ❯ src/master-players-recovery.test.ts (2 tests | 2 skipped) 2872ms
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/master-players-recovery.test.ts [ src/master-players-recovery.test.ts ]
+Error: Migration 20261019035553_world_state_fast_compression.sql: error: compression method lz4 not supported
+ ❯ src/master-players-recovery.test.ts:29:54
+     27|     if (process.env.TASK9_PREDECESSOR === '1' && name.endsWith('_maste…
+     28|     const sql = readFileSync(resolve(root, name), 'utf8').replace(/cre…
+     29|     try { await db.exec(sql) } catch (error) { throw new Error(`Migrat…
+       |                                                      ^
+     30|   }
+     31|   await db.exec(`insert into auth.users(id,email,email_confirmed_at) v…
+
+Caused by: error: compression method lz4 not supported
+ ❯ pe.Ue ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pglite/dist/chunk-2BOC2OMW.js:1:17959
+ ❯ pe.tt ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pglite/dist/chunk-2BOC2OMW.js:1:15347
+ ❯ pe.parse ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pglite/dist/chunk-2BOC2OMW.js:1:14021
+ ❯ N.qe ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pglite/dist/index.js:5:1762
+ ❯ ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pglite/dist/index.js:5:1155
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:5922000
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:2616044
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:2648530
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:2649134
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:5569870
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { length: 185, severity: 'ERROR', code: '0A000', detail: 'This functionality requires the server to be built with lz4 support.', hint: undefined, position: undefined, internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, dataType: undefined, constraint: undefined, file: 'toast_compression.c', routine: 'CompressionNameToMethod', query: '-- A long-lived traveller can carry hundreds of surveyed sectors. Recompressing\n-- that JSON with PGLZ on every movement commit causes avoidable approval stalls.\n-- LZ4 preserves the exact JSON and TOAST storage while reducing repeated work.\n-- Existing compressed values remain readable and convert on the next newly\n-- constructed state write; do not bulk-rewrite histories or alter authority.\nbegin;\nset local lock_timeout = \'5s\';\nalter table app_private.character_world_state\n  alter column state set compression lz4;\ncommit;\n', params: undefined, queryOptions: undefined }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 skipped (2)
+   Start at  14:16:50
+   Duration  3.12s (transform 28ms, setup 0ms, import 70ms, tests 2.87s, environment 0ms)
+
+undefined
+/workspace/scratch/081f137b6a6d/aurevane-players-20261020/packages/db:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/master-players-recovery.test.ts
+{"end": "2026-10-20T18:16:53.678202+00:00", "exit": 1}

@@ -15,6 +15,11 @@ export interface CombatDamageScalingIssue {
   message: string
 }
 
+/** New-policy ordinary packets each use the same offensive basis, regardless of AP or count. */
+export function standardSkillDamageScaling(source: CombatDamageScalingSource): CombatDamageScaling {
+  return { source, coefficientBasisPoints: LEGACY_SKILL_POWER_SCALING_BASIS_POINTS }
+}
+
 export function legacySkillDamageScaling(
   source: CombatDamageScalingSource,
   damageEffectCount: number,
@@ -43,6 +48,34 @@ export function currentSkillDamageScaling(
   return {
     source,
     coefficientBasisPoints: Math.max(1, Math.floor(commandBudget / damageEffectCount)),
+  }
+}
+
+/** Native Summon costs may be free or exceed an ordinary turn's AP. Keep their exact cost
+ * separate from the existing bounded scaling payload, without overflowing intermediate math.
+ */
+export function summonSkillDamageScaling(
+  source: CombatDamageScalingSource,
+  damageEffectCount: number,
+  apCost: number,
+): CombatDamageScaling {
+  assertPositiveSafeInteger(damageEffectCount, 'Summon effect count')
+  assertNonNegativeSafeInteger(apCost, 'Summon AP cost')
+  const coefficient =
+    (BigInt(apCost) * BigInt(CURRENT_SKILL_POWER_SCALING_PER_AP_BASIS_POINTS)) /
+    BigInt(damageEffectCount)
+  return {
+    source,
+    coefficientBasisPoints:
+      apCost === 0
+        ? 0
+        : Number(
+            coefficient > BigInt(MAX_DAMAGE_SCALING_COEFFICIENT_BASIS_POINTS)
+              ? MAX_DAMAGE_SCALING_COEFFICIENT_BASIS_POINTS
+              : coefficient < 1n
+                ? 1n
+                : coefficient,
+          ),
   }
 }
 

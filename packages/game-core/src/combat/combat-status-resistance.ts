@@ -1,0 +1,209 @@
+import { combatEvaluatedEffectRecipientIds } from './combat-effect-recipients'
+import { planCombatStatusCopies } from './combat-status-copy'
+import { forecastCombatStatusCopySources } from './actions-legacy'
+import { advanceBattleRng } from './battle-state'
+import type {
+  CombatActionDefinition,
+  CombatActionEvaluation,
+  CombatContentCatalog,
+  CombatEncounterState,
+} from './actions'
+
+export interface CombatTargetStatusResistance {
+  targetCombatantId: string
+  resistanceChanceBasisPoints: number
+  eligibleEffectOrdinals: readonly number[]
+}
+export interface CombatStatusResistanceResolvedEvent extends CombatTargetStatusResistance {
+  event: 'combat_status_resistance_resolved'
+  actionId: string
+  sourceCombatantId: string
+  rollBasisPoints: number
+  resisted: boolean
+  statusResistanceRulesVersion: 1
+}
+export type CombatResistedEffectOrdinals = ReadonlyMap<string, ReadonlySet<number>>
+
+/** Eligibility follows the pinned effect origin, never its display name. */
+export function isStatusResistanceEligibleEffect(
+  action: CombatActionDefinition,
+  ordinal: number,
+  content: CombatContentCatalog,
+  elemental = false,
+): boolean {
+  const origin = action.effectOrigins?.[ordinal]
+  if (origin && origin.family !== 'skill') return false
+  if (!origin && action.sourceType !== 'discipline-skill') return false
+  const effect = action.effects[ordinal]
+  if (!effect) return false
+  if (
+    elemental &&
+    effect.type === 'damage' &&
+    ['ice', 'water', 'storm'].includes(effect.element ?? '')
+  )
+    return true
+  if (effect.type === 'poison' || effect.type === 'burn' || effect.type === 'bleed') return true
+  if (effect.type === 'copy-statuses') return effect.mode === 'curse'
+  if (effect.type !== 'apply-status') return false
+  const status = content.statuses.find((definition) => definition.id === effect.statusId)
+  return (
+    status?.polarity === 'negative' &&
+    status.reactionClass !== 'system' &&
+    status.reactionClass !== 'self-cost'
+  )
+}
+
+/** Pure, conditional-on-hit probability plan; no future RNG values leave the engine. */
+export function forecastCombatStatusResistance(
+  state: CombatEncounterState,
+  action: CombatActionDefinition,
+  evaluation: CombatActionEvaluation | null,
+  content: CombatContentCatalog,
+  missedCombatantIds: ReadonlySet<string> = new Set(),
+  copySourceStates?: ReadonlyMap<number, CombatEncounterState>,
+): readonly CombatTargetStatusResistance[] {
+  if (state.statBalancePolicyVersion !== 1 || !evaluation?.legal || !evaluation.actorId) return []
+  const actor = state.tactical.battle.combatants.find((unit) => unit.id === evaluation.actorId)!
+  const byTarget = new Map<string, number[]>()
+  let sequentialCopySources = copySourceStates
+  for (const [ordinal, effect] of action.effects.entries()) {
+    if (
+      !isStatusResistanceEligibleEffect(
+        action,
+        ordinal,
+        content,
+        state.elementalDamagePolicyVersion !== undefined,
+      ) ||
+      effect.recipient === 'affected-tiles'
+    )
+      continue
+    const recipients = combatEvaluatedEffectRecipientIds(
+      state,
+      action,
+      evaluation,
+      ordinal,
+      content,
+    )
+    for (const id of recipients) {
+      const target = state.tactical.battle.combatants.find((unit) => unit.id === id)
+      if (
+        !target ||
+        target.hp <= 0 ||
+        target.teamId === actor.teamId ||
+        missedCombatantIds.has(id) ||
+        (action.effectEligibleRecipientIds?.[ordinal] !== undefined &&
+          !action.effectEligibleRecipientIds[ordinal]!.includes(id))
+      )
+        continue
+      if (state.elementalDamagePolicyVersion === 2 && effect.type === 'damage') {
+        const statusId = { ice: 'frozen', water: 'wet', storm: 'conductive' }[
+          effect.element as 'ice' | 'water' | 'storm'
+        ]
+        if (
+          !statusId ||
+          !action.effects.some((application, index) => {
+            if (
+              application.type !== 'apply-status' ||
+              application.statusId !== statusId ||
+              !isStatusResistanceEligibleEffect(action, index, content)
+            )
+              return false
+            return combatEvaluatedEffectRecipientIds(
+              state,
+              action,
+              evaluation,
+              index,
+              content,
+            ).includes(id)
+          })
+        )
+          continue
+      }
+      if (effect.type === 'copy-statuses') {
+        if (!sequentialCopySources && ordinal > 0)
+          sequentialCopySources = forecastCombatStatusCopySources(
+            state,
+            action,
+            evaluation,
+            content,
+          )
+        const source = sequentialCopySources ? sequentialCopySources.get(ordinal) : state
+        if (!source) continue
+        const copied = planCombatStatusCopies(source, evaluation.actorId, id, effect, content)
+        if (
+          !copied.copies.length &&
+          !copied.poisons.length &&
+          !copied.burns.length &&
+          !copied.bleed.length
+        )
+          continue
+      }
+      const ordinals = byTarget.get(id) ?? []
+      ordinals.push(ordinal)
+      byTarget.set(id, ordinals)
+    }
+  }
+  return [...byTarget]
+    .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
+    .map(([targetCombatantId, eligibleEffectOrdinals]) => {
+      const chance = state.statBridge?.combatants.find(
+        (unit) => unit.combatantId === targetCombatantId,
+      )?.statusResistance
+      if (chance === undefined || !Number.isSafeInteger(chance) || chance < 0 || chance > 1500)
+        throw new TypeError(
+          'Current Status Resistance requires a pinned probability from 0 to 1500 basis points.',
+        )
+      return { targetCombatantId, resistanceChanceBasisPoints: chance, eligibleEffectOrdinals }
+    })
+}
+
+/** One draw per living hostile recipient with eligible ordinary debuffs. Filtering is recorded at cast time. */
+export function rollCombatStatusResistance(
+  state: CombatEncounterState,
+  action: CombatActionDefinition,
+  evaluation: CombatActionEvaluation | null,
+  content: CombatContentCatalog,
+  missedCombatantIds: ReadonlySet<string>,
+  copySourceStates?: ReadonlyMap<number, CombatEncounterState>,
+) {
+  const targets = forecastCombatStatusResistance(
+    state,
+    action,
+    evaluation,
+    content,
+    missedCombatantIds,
+    copySourceStates,
+  )
+  let rng = state.tactical.battle.rng
+  const events: CombatStatusResistanceResolvedEvent[] = []
+  const resistedEffectOrdinalsByTarget = new Map<string, ReadonlySet<number>>()
+  for (const target of targets) {
+    if (target.resistanceChanceBasisPoints === 0) continue
+    const draw = advanceBattleRng(rng)
+    rng = draw.state
+    const rollBasisPoints = draw.value % 10000
+    const resisted = rollBasisPoints < target.resistanceChanceBasisPoints
+    if (resisted)
+      resistedEffectOrdinalsByTarget.set(
+        target.targetCombatantId,
+        new Set(target.eligibleEffectOrdinals),
+      )
+    events.push({
+      ...target,
+      event: 'combat_status_resistance_resolved',
+      actionId: action.id,
+      sourceCombatantId: evaluation!.actorId!,
+      rollBasisPoints,
+      resisted,
+      statusResistanceRulesVersion: 1,
+    })
+  }
+  return {
+    state:
+      rng === state.tactical.battle.rng
+        ? state
+        : { ...state, tactical: { ...state.tactical, battle: { ...state.tactical.battle, rng } } },
+    events,
+    resistedEffectOrdinalsByTarget,
+  }
+}

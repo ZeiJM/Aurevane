@@ -1,0 +1,171 @@
+'use client'
+
+import { currentGroundPresentation } from '@/lib/combat-ground-presentation'
+
+import type { SummonAbilityDefinition } from '@aurevane/game-core/combat/summon-content'
+import {
+  CompactSkillEffectSummary,
+  EffectTagLabel,
+} from '../character/compact-skill-effect-summary'
+import { SkillCharacteristicRows } from '../character/skill-characteristic-rows'
+import {
+  skillParameterRows,
+  skillTargetMethodExplanation,
+} from '../character/skill-detail-presentation'
+import { groupSkillEffects } from '../character/skill-effect-groups'
+import { skillPreviewEffects } from '../character/skill-effect-preview'
+import {
+  useSkillDotTriggerPolicyVersion,
+  useSkillEffectTimingPolicy,
+  useSkillGroundInteractionRules,
+  SkillEffectTimingProvider,
+} from '../character/skill-effect-timing-context'
+import type { BattleSummonInspectMetadata } from './battle-summon-inspect'
+import { BattleInfoPopover } from './battle-info-popover'
+import cockpitStyles from './battle-skill-command.module.css'
+import styles from './summon-ability-list.module.css'
+
+/** Uses the summon profile captured in the battle, including its authored effects and targeting. */
+function SummonAbilityParameters({
+  ability: capturedAbility,
+  airborne,
+}: {
+  ability: SummonAbilityDefinition
+  airborne: boolean
+}) {
+  const timingPolicy = useSkillEffectTimingPolicy()
+  const groundRules = useSkillGroundInteractionRules()
+  const ability = currentGroundPresentation(
+    capturedAbility,
+    groundRules.groundContactPolicyVersion,
+    timingPolicy,
+  ).view
+  const definition = {
+    ...ability,
+    cooldown: ability.cooldownOwnerTurns
+      ? { key: ability.id, ownerTurns: ability.cooldownOwnerTurns }
+      : null,
+  }
+  return (
+    <dl>
+      <SkillCharacteristicRows
+        rows={skillParameterRows(definition, definition, timingPolicy, {
+          ...groundRules,
+          airborneAttackElevation: airborne && !groundRules.legacyAirborne,
+        })}
+        targetMethodExplanation={skillTargetMethodExplanation(ability, groundRules)}
+        effectSummary={
+          ability.effects.length
+            ? groupSkillEffects(ability.effects).map(({ effect, count, firstIndex }) => (
+                <div key={firstIndex}>
+                  <CompactSkillEffectSummary
+                    aim={ability.target}
+                    effect={effect}
+                    count={count}
+                    skillEffects={ability.effects}
+                  />
+                </div>
+              ))
+            : 'N/A'
+        }
+      />
+    </dl>
+  )
+}
+
+function SummonAbilityDetails({ ability }: { ability: SummonAbilityDefinition }) {
+  const timingPolicy = useSkillEffectTimingPolicy()
+  const groundRules = useSkillGroundInteractionRules()
+  const dotTriggerPolicyVersion = useSkillDotTriggerPolicyVersion()
+  const legacyTriggers = dotTriggerPolicyVersion === null
+  const legacyPoisonMovement = dotTriggerPolicyVersion !== 2
+  return (
+    <>
+      <p>{ability.description}</p>
+      <ul aria-label="Effect explanations">
+        {skillPreviewEffects(ability, {
+          legacyTriggers,
+          legacyPoisonMovement,
+          ...groundRules,
+          timingPolicy,
+        }).map((effect, index) => (
+          <li key={index}>
+            <strong>
+              <EffectTagLabel label={effect.label} />
+            </strong>{' '}
+            — {effect.explanation}
+          </li>
+        ))}
+      </ul>
+      <p>A summon can use one ability per turn.</p>
+    </>
+  )
+}
+
+/** Complete pinned report used inside the summon ability information popout. */
+export function SummonAbilityReader({
+  ability,
+  airborne = false,
+}: {
+  ability: SummonAbilityDefinition
+  airborne?: boolean
+}) {
+  return (
+    <>
+      <strong>Parameters</strong>
+      <SummonAbilityParameters ability={ability} airborne={airborne} />
+      <SummonAbilityDetails ability={ability} />
+    </>
+  )
+}
+
+export function SummonAbilityList({
+  abilities,
+  airborne = false,
+  policies,
+}: {
+  abilities: readonly SummonAbilityDefinition[]
+  airborne?: boolean
+  policies: BattleSummonInspectMetadata['policies']
+}) {
+  return (
+    <SkillEffectTimingProvider
+      policy={policies.effectTimingPolicy ?? null}
+      dotTriggerPolicyVersion={policies.dotTriggerPolicyVersion ?? null}
+      frozenGroundPolicyVersion={policies.frozenGroundPolicyVersion ?? null}
+      groundContactPolicyVersion={policies.groundContactPolicyVersion ?? null}
+      airbornePolicyVersion={policies.airbornePolicyVersion ?? null}
+      airborneJumpPolicyVersion={policies.airborneJumpPolicyVersion ?? null}
+      elementalDamagePolicyVersion={policies.elementalDamagePolicyVersion ?? null}
+      healingDownPolicyVersion={policies.healingDownPolicyVersion ?? null}
+      blindsideActivationPolicyVersion={policies.blindsideActivationPolicyVersion ?? null}
+      reversalPolicyVersion={policies.reversalPolicyVersion ?? null}
+      reflectBarrierPolicyVersion={policies.reflectBarrierPolicyVersion ?? null}
+      pierceCriticalPolicyVersion={policies.pierceCriticalPolicyVersion ?? null}
+      summonPotencyPolicyVersion={policies.summonPotencyPolicyVersion ?? null}
+      ruinPolicyVersion={policies.ruinPolicyVersion ?? null}
+      pairedStatusPolicyVersion={policies.pairedStatusPolicyVersion ?? null}
+    >
+      <div className={styles.list} aria-label="Summon abilities">
+        {abilities.map((ability) => (
+          <article className={styles.card} key={ability.id} data-summon-ability={ability.id}>
+            <header>
+              <strong>{ability.name}</strong>
+              <BattleInfoPopover
+                label={`About ${ability.name}`}
+                title={ability.name}
+                trigger="!"
+                className={cockpitStyles.infoTrigger}
+                hover
+                consumeOutsideClick
+                layer="inspect"
+              >
+                <SummonAbilityReader ability={ability} airborne={airborne} />
+              </BattleInfoPopover>
+            </header>
+          </article>
+        ))}
+      </div>
+    </SkillEffectTimingProvider>
+  )
+}

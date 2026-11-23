@@ -35,6 +35,8 @@ function staffAccess(
 ): MasterPanelStaffAccessService {
   const current = access(capabilities)
   return {
+    resolveIdentity: async () => null,
+    setCharacterAccess: async () => 1,
     readAccess: vi.fn(async () => current),
     requireCapability: vi.fn(async (_userId, capability) => {
       if (!current.effectiveCapabilities.includes(capability)) {
@@ -43,11 +45,6 @@ function staffAccess(
       return current
     }),
     listStaff: vi.fn(),
-    resolveAccountByEmail: vi.fn(),
-    grantRole: vi.fn(),
-    revokeRole: vi.fn(),
-    grantCapability: vi.fn(),
-    revokeCapability: vi.fn(),
   }
 }
 
@@ -133,7 +130,7 @@ describe('live Event operations service', () => {
       expectedStateVersion: 3,
       idempotencyKey,
       command: 'pause',
-      reason: 'Pause for verification',
+
       confirmed: true,
     })
 
@@ -161,7 +158,7 @@ describe('live Event operations service', () => {
         expectedStateVersion: 3,
         idempotencyKey,
         command: 'pause',
-        reason: 'Pause for verification',
+
         confirmed: false,
       }),
     ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
@@ -180,7 +177,7 @@ describe('live Event operations service', () => {
         expectedStateVersion: 3,
         idempotencyKey,
         command: 'emergency-stop',
-        reason: 'Emergency shutdown',
+
         confirmed: true,
       }),
     ).rejects.toMatchObject({ code: 'FORBIDDEN' })
@@ -199,7 +196,7 @@ describe('live Event operations service', () => {
       expectedStateVersion: 3,
       idempotencyKey,
       command: 'emergency-stop',
-      reason: 'Emergency shutdown',
+
       confirmed: true,
     })
 
@@ -218,7 +215,7 @@ describe('live Event operations service', () => {
         runId,
         expectedStateVersion: 0,
         idempotencyKey,
-        reason: 'Advance phase',
+
         confirmed: true,
       }),
     ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
@@ -230,7 +227,7 @@ describe('live Event operations service', () => {
         phaseId: 'mobilization',
         effectOrdinal: -1,
         completionKey: idempotencyKey,
-        reason: 'Cleanup complete',
+
         confirmed: true,
       }),
     ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })

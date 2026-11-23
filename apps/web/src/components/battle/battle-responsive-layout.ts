@@ -2,16 +2,17 @@
 
 import { useCallback, useSyncExternalStore } from 'react'
 
-const DESKTOP_BATTLE_QUERY = '(min-width: 821px)'
+export const BATTLE_MOBILE_LAYOUT_QUERY =
+  '(max-width: 820px), (max-width: 980px) and (max-height: 500px) and (pointer: coarse)'
 
 function subscribe(listener: () => void): () => void {
-  const media = window.matchMedia(DESKTOP_BATTLE_QUERY)
+  const media = window.matchMedia(BATTLE_MOBILE_LAYOUT_QUERY)
   media.addEventListener('change', listener)
   return () => media.removeEventListener('change', listener)
 }
 
 function getSnapshot(): boolean {
-  return window.matchMedia(DESKTOP_BATTLE_QUERY).matches
+  return !window.matchMedia(BATTLE_MOBILE_LAYOUT_QUERY).matches
 }
 
 function getServerSnapshot(): boolean {

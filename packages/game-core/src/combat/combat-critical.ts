@@ -1,3 +1,5 @@
+import { combatEvaluatedEffectRecipientIds } from './combat-effect-recipients'
+import { hasWeakPointCritical } from './combat-attack-tags'
 import { advanceBattleRng } from './battle-state'
 import type {
   CombatActionDefinition,
@@ -24,6 +26,7 @@ export interface CombatCriticalResolvedEvent extends CombatTargetCriticalChance 
   sourceCombatantId: string
   rollBasisPoints: number | null
   critical: boolean
+  effectOrdinals?: readonly number[]
   criticalRulesVersion: typeof COMBAT_CRITICAL_RULES_VERSION
 }
 
@@ -33,8 +36,25 @@ export interface CombatCriticalRollResult {
   criticalEffectOrdinalsByTarget: ReadonlyMap<string, ReadonlySet<number>>
 }
 
-export function hasCriticalEligibleDamage(action: CombatActionDefinition): boolean {
-  return action.effects.some(isCriticalEligibleDamage)
+/** Current Pierce packets never receive critical rolls, guarantees or multipliers. */
+export function combatEffectAllowsCritical(
+  state: Pick<CombatEncounterState, 'pierceCriticalPolicyVersion'>,
+  effect: CombatActionDefinition['effects'][number],
+): boolean {
+  return !(
+    state.pierceCriticalPolicyVersion === 1 &&
+    effect.type === 'damage' &&
+    (effect.piercing === true || effect.shattersBarrier === true)
+  )
+}
+export function hasCriticalEligibleDamage(
+  action: CombatActionDefinition,
+  state?: CombatEncounterState,
+): boolean {
+  return action.effects.some(
+    (effect) =>
+      isCriticalEligibleDamage(effect) && (!state || combatEffectAllowsCritical(state, effect)),
+  )
 }
 
 /** Preview exposes probability only. It never advances authoritative RNG. */
@@ -45,11 +65,29 @@ export function forecastCombatCritical(
   missedCombatantIds: ReadonlySet<string>,
 ): CombatCriticalForecast {
   const plan = criticalPlan(state, action, evaluation, missedCombatantIds)
+  const eligibleByTarget = new Map(plan.targets.map((target) => [target.targetCombatantId, target]))
+  const forecastTargets =
+    state.pierceCriticalPolicyVersion === 1
+      ? criticalPlan(state, action, evaluation, missedCombatantIds, true).targets
+      : plan.targets
   return {
-    targetCriticalChances: plan.targets.map((target) => ({
-      targetCombatantId: target.targetCombatantId,
-      criticalChanceBasisPoints: plan.criticalChanceBasisPoints,
-    })),
+    targetCriticalChances: forecastTargets.map((target) => {
+      const eligible = eligibleByTarget.get(target.targetCombatantId)
+      const guaranteed =
+        state.pierceCriticalPolicyVersion === 1 &&
+        eligible?.effectOrdinals.some((ordinal) => {
+          const effect = action.effects[ordinal]!
+          return effect.type === 'damage' && hasWeakPointCritical(effect, target.targetCombatantId)
+        })
+      return {
+        targetCombatantId: target.targetCombatantId,
+        criticalChanceBasisPoints: eligible
+          ? guaranteed
+            ? BASIS_POINTS
+            : plan.criticalChanceBasisPoints
+          : 0,
+      }
+    }),
   }
 }
 
@@ -91,6 +129,11 @@ export function rollCombatCritical(
       critical = rollBasisPoints < plan.criticalChanceBasisPoints
     }
 
+    const guaranteed = target.effectOrdinals.some((ordinal) => {
+      const effect = action.effects[ordinal]!
+      return effect.type === 'damage' && hasWeakPointCritical(effect, target.targetCombatantId)
+    })
+    critical ||= guaranteed
     if (critical) {
       criticalEffectOrdinalsByTarget.set(target.targetCombatantId, new Set(target.effectOrdinals))
     }
@@ -99,10 +142,11 @@ export function rollCombatCritical(
       actionId: action.id,
       sourceCombatantId: plan.actorId,
       targetCombatantId: target.targetCombatantId,
-      criticalChanceBasisPoints: plan.criticalChanceBasisPoints,
+      criticalChanceBasisPoints: guaranteed ? BASIS_POINTS : plan.criticalChanceBasisPoints,
       rollBasisPoints,
       critical,
       criticalRulesVersion: COMBAT_CRITICAL_RULES_VERSION,
+      ...(state.pierceCriticalPolicyVersion === 1 ? { effectOrdinals: target.effectOrdinals } : {}),
     })
   }
 
@@ -127,12 +171,21 @@ function criticalPlan(
   action: CombatActionDefinition,
   evaluation: CombatActionEvaluation | null,
   missedCombatantIds: ReadonlySet<string>,
+  includeCurrentPierce = false,
 ): {
   actorId: string
   criticalChanceBasisPoints: number
   targets: readonly { targetCombatantId: string; effectOrdinals: readonly number[] }[]
 } {
-  if (state.statBridge?.rulesVersion !== 4 || !evaluation?.legal || !evaluation.actorId) {
+  const hasWeakPoint = action.effects.some(
+    (effect) =>
+      effect.type === 'damage' && effect.attackTagCapture?.weakPointDebuffThreshold !== undefined,
+  )
+  if (
+    (state.statBridge?.rulesVersion !== 4 && !hasWeakPoint) ||
+    !evaluation?.legal ||
+    !evaluation.actorId
+  ) {
     return { actorId: evaluation?.actorId ?? '', criticalChanceBasisPoints: 0, targets: [] }
   }
 
@@ -140,20 +193,18 @@ function criticalPlan(
   const actor = state.tactical.battle.combatants.find((unit) => unit.id === actorId)
   if (!actor) throw new TypeError('Combat critical resolution requires the committed actor.')
 
-  const criticalChanceBasisPoints = committedCriticalChance(state, actorId)
+  const criticalChanceBasisPoints =
+    state.statBridge?.rulesVersion === 4 ? committedCriticalChance(state, actorId) : 0
   const ordinalsByTarget = new Map<string, number[]>()
 
   for (const [effectOrdinal, effect] of action.effects.entries()) {
-    if (!isCriticalEligibleDamage(effect)) continue
+    if (
+      !isCriticalEligibleDamage(effect) ||
+      (!includeCurrentPierce && !combatEffectAllowsCritical(state, effect))
+    )
+      continue
 
-    const recipientIds =
-      effect.recipient === 'actor'
-        ? []
-        : effect.recipient === 'primary-unit'
-          ? evaluation.primaryCombatantId
-            ? [evaluation.primaryCombatantId]
-            : []
-          : evaluation.affectedCombatantIds
+    const recipientIds = combatEvaluatedEffectRecipientIds(state, action, evaluation, effectOrdinal)
 
     for (const targetCombatantId of recipientIds) {
       if (missedCombatantIds.has(targetCombatantId)) continue

@@ -1,11 +1,282 @@
 import { describe, expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
-import { newWorldState, revealNearby } from '@/world/travel'
-import { FRONTIER_APPROACH } from '@/world/catalog'
-import { assertEncounterRange, projectWorld, resolveWorldIntent } from './world-service'
-import { EASTERN_WATCH, EASTERN_WATCH_INTERACTION_ID, VERDANT_SETTLEMENT } from './world-objectives'
+import {
+  advanceWorldRoute,
+  isCurrentWorldRoute,
+  isWalkable,
+  newWorldState,
+  revealNearby,
+} from '@/world/travel'
+import { isKnownCell, resolveSector, visibleSectors } from './world-content'
+import { resolveWarpedContinentSector, warpedContinentSectors } from './warped-continent'
+import { GRAND_DISCOVERY_SITES } from '@/world/discovery-sites'
+import { FRONTIER_APPROACH, STEP_MS } from '@/world/catalog'
+import { wrapAtlasColumn } from '@/world/topology'
+import {
+  assertEncounterRange,
+  projectWorld,
+  projectWorldPlayers,
+  resolveWorldIntent,
+} from './world-service'
+import {
+  AURETH_SETTLEMENT,
+  CROWN_HINTERLAND_PATROL,
+  CROWN_HINTERLAND_PATROL_INTERACTION_ID,
+  CROWN_HINTERLAND_PATROL_OBJECTIVE_ID,
+  EASTERN_WATCH,
+  EASTERN_WATCH_INTERACTION_ID,
+  VERDANT_SETTLEMENT,
+} from './world-objectives'
 
 describe('world authority and spoiler projection', () => {
+  it('supplies cached full public discovery footprint proof without adding private geography', () => {
+    const first = projectWorld(newWorldState(), [], 1000)
+    expect(first.publicGrandDiscoveries).toEqual(GRAND_DISCOVERY_SITES.map((site) => site.id))
+    const next = projectWorld(
+      { ...newWorldState(), position: { sectorId: 'frostmere', x: 6, y: 4 } },
+      [],
+      1000,
+    )
+    expect(next.publicGrandDiscoveries).toBe(first.publicGrandDiscoveries)
+    const privateView = projectWorld(
+      { ...newWorldState(), position: { sectorId: 'survey-01', x: 6, y: 8 } },
+      [],
+      1000,
+    )
+    expect(privateView.publicGrandDiscoveries).toBeUndefined()
+    expect(JSON.stringify(privateView)).not.toContain('publicGrandDiscoveries')
+  })
+  it('resolves only discovered Uncharted extension ground while the character is there', () => {
+    const interior = resolveWarpedContinentSector('uncharted-expanse:32:24')!
+    expect(resolveSector(interior.id)).toBe(interior)
+    const state = {
+      ...newWorldState(),
+      position: { sectorId: interior.id, x: 6, y: 4 },
+      discoveries: { [interior.id]: [58] },
+    }
+    expect(
+      visibleSectors(state, { sceneOnly: true }).some((sector) => sector.id === interior.id),
+    ).toBe(true)
+    const view = projectWorld(state, [], 1000)
+    expect(view.sectors.find((sector) => sector.id === interior.id)?.cells).toHaveLength(1)
+    expect(view.scenery).toEqual([])
+    const mainland = { ...state, position: newWorldState().position }
+    expect(visibleSectors(mainland).some((sector) => sector.id === interior.id)).toBe(false)
+    expect(JSON.stringify(projectWorld(mainland, [], 1000))).not.toContain(interior.id)
+  })
+  it('keeps nearby surveyed Uncharted ground when legacy districts fill the scene budget', () => {
+    const nearby = Array.from(
+      { length: 25 },
+      (_, index) => `uncharted-expanse:${32 + (index % 5) - 2}:${24 + Math.floor(index / 5) - 2}`,
+    )
+    const state = {
+      ...newWorldState(),
+      position: { sectorId: 'uncharted-expanse:32:24', x: 6, y: 4 },
+      discoveries: Object.fromEntries(
+        [...nearby, ...warpedContinentSectors.map((sector) => sector.id)].map((id) => [id, [58]]),
+      ),
+    }
+    const view = projectWorld(state, [], 1000)
+    expect(view.sectors).toHaveLength(25)
+    expect(new Set(view.sectors.map((sector) => sector.id))).toEqual(new Set(nearby))
+    expect(view.scenery).toEqual([])
+    expect(
+      JSON.stringify(projectWorld({ ...state, position: newWorldState().position }, [], 1000)),
+    ).not.toContain('uncharted-expanse:32:24')
+  })
+  it('retains authored deadlines and private approved peer routes when held replacements arrive late', () => {
+    const walk = (state: ReturnType<typeof newWorldState>, x: number, now: number) =>
+      resolveWorldIntent(
+        state,
+        { kind: 'walk', destination: { sectorId: 'verdant-expanse', x, y: 4 } },
+        now,
+      )
+    let buffered = walk(newWorldState(), 8, 1000)
+    let single = walk(newWorldState(), 6, 1000)
+    const bufferedDeadlines = [buffered.nextStepAt],
+      singleDeadlines = [single.nextStepAt]
+    for (const [now, target, landed] of [
+      [1250, 9, 6],
+      [1500, 10, 7],
+      [1750, 11, 8],
+    ] as const) {
+      buffered = walk(buffered, target, now)
+      single = walk(single, landed + 1, now)
+      expect(buffered.position.x).toBe(landed)
+      expect(buffered.route.length).toBeGreaterThanOrEqual(3)
+      expect(buffered.route.every((step) => step.durationMs === 200)).toBe(true)
+      expect(
+        isCurrentWorldRoute(
+          buffered.position,
+          buffered.route,
+          visibleSectors(buffered),
+          (position) => isKnownCell(buffered, position),
+        ),
+      ).toBe(true)
+      const view = projectWorld(buffered, [], now)
+      for (const step of buffered.route)
+        expect(
+          view.sectors
+            .find((sector) => sector.id === step.position.sectorId)
+            ?.cells.some(
+              (cell) => cell.x === step.position.x && cell.y === step.position.y && cell.walkable,
+            ),
+        ).toBe(true)
+      bufferedDeadlines.push(buffered.nextStepAt)
+      singleDeadlines.push(single.nextStepAt)
+    }
+    expect(bufferedDeadlines).toEqual([1200, 1400, 1600, 1800])
+    expect(singleDeadlines).toEqual([1200, 1450, 1700, 1950])
+    expect(advanceWorldRoute(buffered, 1800).position.x).toBe(9)
+    expect(advanceWorldRoute(single, 1800).position.x).toBe(8)
+    const peers = projectWorldPlayers(
+      newWorldState(),
+      [
+        {
+          characterId: 'peer',
+          name: 'Peer',
+          level: 1,
+          portraitRef: 'starter',
+          imageUrl: null,
+          position: buffered.position,
+          online: true,
+          attackable: true,
+          movement: {
+            version: 4,
+            serverNow: 1750,
+            nextStepAt: buffered.nextStepAt,
+            route: buffered.route,
+          },
+        },
+      ],
+      ['verdant-expanse'],
+    )
+    expect(peers).toHaveLength(1)
+    expect(peers[0]!.movement).toMatchObject({
+      version: 4,
+      serverNow: 1750,
+      nextStepAt: 1800,
+      route: buffered.route,
+    })
+  })
+  it('fills the public map viewport at minimum zoom without wasting scene slots on distant corners', () => {
+    const state = newWorldState(),
+      view = projectWorld(state, [], 1000),
+      current = view.sectors.find((s) => s.id === state.position.sectorId)!,
+      ids = new Set(view.sectors.map((s) => s.id)),
+      atlas = new Map(view.atlas!.map((s) => [`${s.column}:${s.row}`, s]))
+    const width = 1296,
+      height = 944,
+      tile = 64 * 0.6,
+      cx = current.atlasColumn! * 13 + state.position.x + 0.5,
+      cy = current.atlasRow! * 9 + state.position.y + 0.5
+    for (const px of [0, width / 4, width / 2, (width * 3) / 4, width])
+      for (const py of [0, height / 4, height / 2, (height * 3) / 4, height]) {
+        const a = (px - width / 2) / (tile * 0.85),
+          b = (py - height / 2) / (tile * 0.44),
+          column = wrapAtlasColumn(Math.floor((cx + (a + b) / 2) / 13)),
+          row = Math.floor((cy + (b - a) / 2) / 9),
+          sector = atlas.get(`${column}:${row}`)
+        if (sector?.charted) expect(ids.has(sector.id), `${px},${py} needs ${sector.id}`).toBe(true)
+      }
+    expect(view.sectors.length).toBeLessThanOrEqual(25)
+  })
+  it.each([
+    { width: 1296, height: 944, tile: 64 * 0.35 },
+    { width: 1218, height: 753, tile: 64 * 0.35 },
+    { width: 375, height: 667, tile: 48 * 0.35 },
+    { width: 915, height: 412, tile: 64 * 0.35 },
+  ])(
+    'supplies public scenery at minimum zoom across $width by $height while an approved camera advances',
+    ({ width, height, tile }) => {
+      const state = { ...newWorldState(), position: { sectorId: 'atlas:62:28', x: 6, y: 4 } }
+      const moving = resolveWorldIntent(
+        state,
+        {
+          kind: 'walk',
+          destination: { sectorId: 'atlas:65:28', x: 6, y: 4 },
+        },
+        1000,
+      )
+      const view = projectWorld(moving, [], 1000)
+      const scenery = view.scenery ?? []
+      const supplied = new Set([
+        ...view.sectors.map((sector) => sector.id),
+        ...scenery.map((sector) => sector[0]),
+      ])
+      const atlas = new Map(view.atlas!.map((sector) => [`${sector.column}:${sector.row}`, sector]))
+      for (const elapsed of [0, 800, 1200, 2600]) {
+        const position = advanceWorldRoute(moving, 1000 + elapsed).position
+        const sector = view.atlas!.find((sector) => sector.id === position.sectorId)!
+        const cx = sector.column * 13 + position.x + 0.5,
+          cy = sector.row * 9 + position.y + 0.5
+        for (let ix = 0; ix <= 8; ix++)
+          for (let iy = 0; iy <= 8; iy++) {
+            const a = ((width * ix) / 8 - width / 2) / (tile * 0.85)
+            const b = ((height * iy) / 8 - height / 2) / (tile * 0.44)
+            const column = wrapAtlasColumn(Math.floor((cx + (a + b) / 2) / 13))
+            const row = Math.floor((cy + (b - a) / 2) / 9)
+            const needed = atlas.get(`${column}:${row}`)
+            if (needed?.charted)
+              expect(supplied.has(needed.id), `${elapsed}ms ${ix},${iy} needs ${needed.id}`).toBe(
+                true,
+              )
+          }
+      }
+      expect(view.sectors.length).toBeLessThanOrEqual(25)
+      expect(
+        scenery.every(
+          (sector) => view.atlas!.find((metadata) => metadata.id === sector[0])?.charted,
+        ),
+      ).toBe(true)
+      expect(scenery.length).toBeLessThanOrEqual(165)
+      expect(JSON.stringify(view).length).toBeLessThan(700000)
+    },
+  )
+  it('projects actual public water and town footprints without exposing private terrain', () => {
+    const waterDistrict = visibleSectors(newWorldState()).find(
+      (sector) =>
+        sector.townId === 'verdant-expanse' && sector.rows.some((row) => /[~lw]/.test(row)),
+    )!
+    expect(waterDistrict).toBeDefined()
+    const view = projectWorld(
+        {
+          ...newWorldState(),
+          position: { sectorId: waterDistrict.id, x: 6, y: 4 },
+        },
+        [],
+        1000,
+      ),
+      local = view.sectors.find(
+        (sector) =>
+          sector.townId &&
+          sector.cells.some(
+            (cell) => cell.terrain === '~' || cell.terrain === 'l' || cell.terrain === 'w',
+          ),
+      )!,
+      overview = view.atlas!.find((cell) => cell.id === local.id)!
+    expect(overview.townId).toBe(local.townId)
+    expect(overview.waterTiles).toHaveLength(117)
+    for (const cell of local.cells)
+      expect(overview.waterTiles![cell.y * 13 + cell.x]).toBe(
+        cell.terrain === '~' || cell.terrain === 'l' || cell.terrain === 'w' ? cell.terrain : '.',
+      )
+    const drySector = visibleSectors(newWorldState()).find(
+      (sector) => !sector.rows.some((row) => /[~lw]/.test(row)),
+    )!
+    const dry = view.atlas!.find((cell) => cell.id === drySector.id)!
+    expect(dry.waterTiles).toBeUndefined()
+    const privateView = projectWorld(
+      revealNearby({ ...newWorldState(), position: { sectorId: 'survey-01', x: 6, y: 8 } }),
+      [],
+      1000,
+    )
+    for (const cell of privateView.atlas!.filter((cell) => !cell.charted)) {
+      expect(cell.waterTiles).toBeUndefined()
+      expect(cell.townId).toBeUndefined()
+    }
+    expect(JSON.stringify(view).length).toBeLessThan(700000)
+  })
   it.each([
     {
       from: { sectorId: 'aureth-crown', x: 12, y: 4 },
@@ -69,10 +340,11 @@ describe('world authority and spoiler projection', () => {
   it('stops an old speed or broken later step before consuming a saved route', () => {
     const position = { sectorId: 'crown-road', x: 5, y: 4 }
     for (const route of [
+      [{ position: { ...position, x: 6 }, durationMs: 4000 }],
       [{ position: { ...position, x: 6 }, durationMs: 1100 }],
       [
-        { position: { ...position, x: 6 }, durationMs: 4000 },
-        { position: { ...position, x: 8 }, durationMs: 4000 },
+        { position: { ...position, x: 6 }, durationMs: STEP_MS },
+        { position: { ...position, x: 8 }, durationMs: STEP_MS },
       ],
     ]) {
       const state = { ...newWorldState(), position, route, nextStepAt: 1000 }
@@ -83,17 +355,75 @@ describe('world authority and spoiler projection', () => {
   })
   it('does not send unknown frontier names, cells or exits', () => {
     const view = projectWorld(newWorldState(), [], 1000)
-    expect(new Set(view.sectors.map((s) => s.regionId)).size).toBe(8)
+    expect(new Set(view.atlas!.map((s) => s.regionId)).size).toBe(9)
     expect(JSON.stringify(view)).not.toContain('survey-01')
     expect(JSON.stringify(view)).not.toContain('Weathered Observatory')
   })
+  it('projects Crown Hinterland as charted wilderness with only authored reciprocal exits', () => {
+    const state = {
+      ...newWorldState(),
+      position: { sectorId: 'crown-hinterland', x: 6, y: 4 },
+    }
+    const view = projectWorld(state, [], 1000)
+    const hinterland = view.sectors.find((sector) => sector.id === 'crown-hinterland')!
+
+    expect(hinterland).toMatchObject({
+      name: 'Crown Hinterland',
+      coordinate: 'S57-29',
+      regionId: 'aureth-crown',
+      charted: true,
+    })
+    expect(
+      hinterland.cells.filter((cell) => cell.y === 4).every((cell) => cell.walkable && !cell.safe),
+    ).toBe(true)
+    expect(hinterland.exits.length).toBeGreaterThan(3)
+    expect(hinterland.exits.every((exit) => exit.durationMs === STEP_MS)).toBe(true)
+    expect(view.sectors.some((sector) => sector.coordinate === 'S17-08')).toBe(false)
+  })
+
+  it('projects the rest of the Crown wilderness cluster as open authored land', () => {
+    const expected = [
+      {
+        id: 'crown-northfields',
+        coordinate: 'S53-25',
+        exits: ['aureth-crown', 'crown-uplands'],
+      },
+      {
+        id: 'crown-uplands',
+        coordinate: 'S57-25',
+        exits: ['crown-hinterland', 'crown-northfields'],
+      },
+    ]
+
+    for (const item of expected) {
+      const view = projectWorld(
+        { ...newWorldState(), position: { sectorId: item.id, x: 6, y: 4 } },
+        [],
+        1000,
+      )
+      const sector = view.sectors.find((candidate) => candidate.id === item.id)!
+      expect(sector).toMatchObject({
+        id: item.id,
+        coordinate: item.coordinate,
+        regionId: 'aureth-crown',
+        art: null,
+        charted: true,
+      })
+      expect(sector.cells.some((cell) => cell.walkable)).toBe(true)
+      expect(sector.cells.some((cell) => cell.safe)).toBe(false)
+      expect(sector.exits.length).toBeGreaterThan(2)
+      expect(sector.exits.every((exit) => exit.durationMs === STEP_MS)).toBe(true)
+    }
+  })
+
   it('exposes Crown Road as its own open territory and keeps nearby encounters local', () => {
     const state = { ...newWorldState(), position: { sectorId: 'crown-road', x: 5, y: 4 } }
     const view = projectWorld(state, [], 1000)
     const road = view.sectors.find((s) => s.id === 'crown-road')!
     expect(road).toBeDefined()
     expect(road.cells.filter((c) => c.y === 4).every((c) => c.walkable && !c.safe)).toBe(true)
-    expect(road.exits.map((e) => e.to.sectorId).sort()).toEqual(['aureth-crown', 'verdant-expanse'])
+    expect(road.exits.length).toBeGreaterThan(2)
+    expect(road.exits.every((exit) => exit.durationMs === STEP_MS)).toBe(true)
     expect(() =>
       assertEncounterRange(state, { ...state, position: { ...state.position, x: 6 } }),
     ).not.toThrow()
@@ -108,15 +438,13 @@ describe('world authority and spoiler projection', () => {
     const state = { ...newWorldState(), position: { sectorId: 'coastal-road', x: 5, y: 3 } }
     const road = projectWorld(state, [], 1000).sectors.find((s) => s.id === 'coastal-road')!
     expect(road).toBeDefined()
-    expect(road.coordinate).toBe('S18-10')
+    expect(road.coordinate).toBe('S69-37')
     expect(
       road.cells.filter((cell) => cell.y === 3).every((cell) => cell.walkable && !cell.safe),
     ).toBe(true)
     expect(road.cells.filter((cell) => cell.y >= 5).every((cell) => !cell.walkable)).toBe(true)
-    expect(road.exits.map((exit) => exit.to.sectorId).sort()).toEqual([
-      'hollow-coast',
-      'verdant-expanse',
-    ])
+    expect(road.exits.length).toBeGreaterThan(2)
+    expect(road.exits.every((exit) => exit.durationMs === STEP_MS)).toBe(true)
     expect(road.panorama).toBe('/media/art/world/coastal-road-panorama-v01.webp')
     expect(() =>
       assertEncounterRange(state, { ...state, position: { ...state.position, x: 6 } }),
@@ -128,37 +456,37 @@ describe('world authority and spoiler projection', () => {
   it.each([
     {
       id: 'eastern-march-road',
-      coordinate: 'S22-08',
+      coordinate: 'S85-29',
       panoramaVersion: 'v01',
       exits: ['emberreach', 'umbral-march'],
     },
     {
       id: 'old-coast-road',
-      coordinate: 'S20-11',
+      coordinate: 'S77-41',
       panoramaVersion: 'v01',
       exits: ['hollow-coast', 'umbral-march'],
     },
     {
       id: 'highland-road',
-      coordinate: 'S14-06',
+      coordinate: 'S53-21',
       panoramaVersion: 'v01',
       exits: ['aureth-crown', 'starfall-highlands'],
     },
     {
       id: 'northern-pass',
-      coordinate: 'S15-04',
+      coordinate: 'S57-13',
       panoramaVersion: 'v01',
       exits: ['frostmere', 'starfall-highlands'],
     },
     {
       id: 'ember-road',
-      coordinate: 'S20-07',
+      coordinate: 'S77-25',
       panoramaVersion: 'v02',
       exits: ['emberreach', 'verdant-expanse'],
     },
     {
       id: 'southern-caravan-road',
-      coordinate: 'S14-10',
+      coordinate: 'S53-37',
       panoramaVersion: 'v02',
       exits: ['aureth-crown', 'glasswind-desert'],
     },
@@ -173,7 +501,13 @@ describe('world authority and spoiler projection', () => {
       road.cells.filter((cell) => cell.y === 4).every((cell) => cell.walkable && !cell.safe),
     ).toBe(true)
     expect(road.cells.some((cell) => cell.safe)).toBe(false)
-    expect(road.exits.map((exit) => exit.to.sectorId).sort()).toEqual(exits)
+    // Expanded terrain crosses directly into adjacent geographic sectors.
+    expect(road.exits.length).toBeGreaterThan(2)
+    expect(
+      road.exits.every(
+        (exit) => exit.durationMs === STEP_MS && !exit.to.sectorId.startsWith('trail:'),
+      ),
+    ).toBe(true)
     expect(() =>
       assertEncounterRange(state, { ...state, position: { ...state.position, x: 7 } }),
     ).not.toThrow()
@@ -318,6 +652,91 @@ describe('world authority and spoiler projection', () => {
       ),
     ).toThrow()
   })
+
+  it('requires accept, patrol and return before completing the Crown Hinterland objective', () => {
+    const remote = newWorldState()
+    expect(() =>
+      resolveWorldIntent(
+        remote,
+        { kind: 'interact', interactionId: CROWN_HINTERLAND_PATROL_INTERACTION_ID },
+        1000,
+      ),
+    ).toThrow()
+
+    let state = { ...newWorldState(), position: AURETH_SETTLEMENT }
+    let view = projectWorld(state, [], 1000)
+    expect(
+      view.objectives.find((objective) => objective.id === CROWN_HINTERLAND_PATROL_OBJECTIVE_ID),
+    ).toMatchObject({
+      progress: 'available',
+      destination: null,
+      completed: false,
+    })
+    expect(view.interactions).toEqual([
+      expect.objectContaining({
+        id: CROWN_HINTERLAND_PATROL_INTERACTION_ID,
+        speaker: 'Watch officer',
+        actionLabel: 'Accept objective',
+      }),
+    ])
+
+    state = resolveWorldIntent(
+      state,
+      { kind: 'interact', interactionId: CROWN_HINTERLAND_PATROL_INTERACTION_ID },
+      1100,
+    )
+    view = projectWorld(state, [], 1100)
+    expect(
+      view.objectives.find((objective) => objective.id === CROWN_HINTERLAND_PATROL_OBJECTIVE_ID),
+    ).toMatchObject({
+      progress: 'active',
+      destination: CROWN_HINTERLAND_PATROL,
+      completed: false,
+    })
+
+    state = resolveWorldIntent(
+      { ...state, position: CROWN_HINTERLAND_PATROL },
+      { kind: 'tick' },
+      1200,
+    )
+    view = projectWorld(state, [], 1200)
+    expect(state.completedObjectives).toEqual([])
+    expect(
+      view.objectives.find((objective) => objective.id === CROWN_HINTERLAND_PATROL_OBJECTIVE_ID),
+    ).toMatchObject({
+      progress: 'ready',
+      destination: AURETH_SETTLEMENT,
+      completed: false,
+    })
+    expect(view.interactions).toEqual([])
+
+    state = resolveWorldIntent(
+      { ...state, position: AURETH_SETTLEMENT },
+      { kind: 'interact', interactionId: CROWN_HINTERLAND_PATROL_INTERACTION_ID },
+      1300,
+    )
+    view = projectWorld(state, [], 1300)
+    expect(state.completedObjectives).toEqual([CROWN_HINTERLAND_PATROL_OBJECTIVE_ID])
+    expect(
+      view.objectives.find((objective) => objective.id === CROWN_HINTERLAND_PATROL_OBJECTIVE_ID),
+    ).toMatchObject({
+      progress: 'completed',
+      destination: null,
+      completed: true,
+    })
+    expect(view.interactions[0]).toMatchObject({
+      id: CROWN_HINTERLAND_PATROL_INTERACTION_ID,
+      actionLabel: null,
+      progress: 'completed',
+    })
+    expect(() =>
+      resolveWorldIntent(
+        state,
+        { kind: 'interact', interactionId: CROWN_HINTERLAND_PATROL_INTERACTION_ID },
+        1400,
+      ),
+    ).toThrow()
+  })
 })
 
 it('stops an event route when its live objective is withdrawn, leaving quest policy intact', () => {
@@ -330,4 +749,192 @@ it('stops an event route when its live objective is withdrawn, leaving quest pol
   const next = resolveWorldIntent(state, { kind: 'tick' }, 2000, [])
   expect(next.position).toEqual(state.position)
   expect(next.route).toEqual([])
+})
+
+describe('offline characters in the shared world', () => {
+  it('keeps offline characters at their saved spot in the starting town and never attackable', () => {
+    const state = newWorldState()
+    const view = projectWorld(
+      state,
+      [
+        {
+          characterId: 'sleeper',
+          name: 'Sleeper',
+          level: 4,
+          portraitRef: 'p',
+          imageUrl: null,
+          position: state.position,
+          online: false,
+          attackable: false,
+        },
+      ],
+      1000,
+    )
+    expect(view.players).toHaveLength(1)
+    expect(view.players[0]).toMatchObject({ name: 'Sleeper', online: false, attackable: false })
+  })
+})
+
+describe('endless generated wilds', () => {
+  const walkTo = (
+    state: ReturnType<typeof newWorldState>,
+    destination: { sectorId: string; x: number; y: number },
+    t0: number,
+  ) => {
+    let now = t0
+    let next = resolveWorldIntent(state, { kind: 'walk', destination }, now)
+    for (let i = 0; i < 400 && next.route.length; i++) {
+      now = next.nextStepAt!
+      next = resolveWorldIntent(next, { kind: 'tick' }, now)
+    }
+    return { state: next, now }
+  }
+  it('lets a character leave a region through its open edge and keep exploring outward', () => {
+    const start = { ...newWorldState(), position: { sectorId: 'verdant-expanse', x: 6, y: 1 } }
+    const first = walkTo(start, { sectorId: 'wild:verdant-expanse:north:1:0', x: 6, y: 8 }, 1000)
+    expect(first.state.position).toEqual({ sectorId: 'wild:verdant-expanse:north:1:0', x: 6, y: 8 })
+    const view = projectWorld(first.state, [], first.now)
+    const wild = view.sectors.find((s) => s.id === 'wild:verdant-expanse:north:1:0')!
+    expect(wild.regionId).toBe('verdant-expanse')
+    expect(wild.cells).toHaveLength(117)
+    expect(wild.exits.some((e) => e.to.sectorId === 'verdant-expanse')).toBe(true)
+    const farther = walkTo(
+      first.state,
+      { sectorId: 'wild:verdant-expanse:north:2:0', x: 6, y: 8 },
+      first.now,
+    )
+    expect(farther.state.position.sectorId).toBe('wild:verdant-expanse:north:2:0')
+    expect(farther.state.discoveries['wild:verdant-expanse:north:1:0']).toHaveLength(117)
+    // Unvisited generated ground stays unknown.
+    expect(() =>
+      resolveWorldIntent(
+        first.state,
+        { kind: 'walk', destination: { sectorId: 'wild:verdant-expanse:north:4:0', x: 6, y: 4 } },
+        first.now,
+      ),
+    ).toThrow()
+  })
+})
+
+describe('starting a walk', () => {
+  it('paces every authoritative step while the client can preview the start immediately', () => {
+    const start = newWorldState()
+    const next = resolveWorldIntent(
+      start,
+      {
+        kind: 'walk',
+        destination: {
+          sectorId: start.position.sectorId,
+          x: start.position.x + 3,
+          y: start.position.y,
+        },
+      },
+      10_000,
+    )
+    // The immediate visual preview does not move authoritative position early.
+    expect(next.position).toEqual(start.position)
+    expect(next.route).toHaveLength(3)
+    expect(next.nextStepAt).toBe(10_000 + STEP_MS)
+    // Shortly before +2*STEP_MS only the first full interval has completed.
+    const tick = resolveWorldIntent(next, { kind: 'tick' }, 10_000 + STEP_MS * 2 - 1)
+    expect(tick.position.x).toBe(start.position.x + 1)
+    expect(tick.nextStepAt).toBe(10_000 + STEP_MS * 2)
+  })
+})
+
+describe('replanning mid-walk', () => {
+  const sec = 'aureth-crown'
+  it('plans from the tile already reached and keeps the step under way', () => {
+    const start = newWorldState()
+    const first = resolveWorldIntent(
+      start,
+      {
+        kind: 'walk',
+        destination: { sectorId: sec, x: start.position.x + 3, y: start.position.y },
+      },
+      10_000,
+    )
+    expect(first.route.length).toBeGreaterThan(2)
+    const due = first.nextStepAt!
+    // Two steps are due on the authored clock but no tick has been processed yet.
+    const now = due + STEP_MS + 10
+    const second = resolveWorldIntent(
+      first,
+      { kind: 'walk', destination: { sectorId: sec, x: start.position.x, y: start.position.y } },
+      now,
+    )
+    expect(second.position).toEqual(first.route[1]!.position)
+    expect(second.nextStepAt).toBeLessThanOrEqual(now + STEP_MS)
+    expect(second.nextStepAt).toBeGreaterThan(now)
+  })
+})
+
+describe('review regressions for authoritative walking', () => {
+  it('cannot gain speed by repeatedly plotting adjacent one-step destinations', () => {
+    let state = newWorldState()
+    for (let i = 0; i < 4; i++)
+      state = resolveWorldIntent(
+        state,
+        { kind: 'walk', destination: { sectorId: 'verdant-expanse', x: 6 + i, y: 4 } },
+        1000 + i * 10,
+      )
+    expect(resolveWorldIntent(state, { kind: 'tick' }, 1040).position).toEqual(
+      newWorldState().position,
+    )
+    expect(resolveWorldIntent(state, { kind: 'tick' }, 1200).position.x).toBe(6)
+  })
+  it('cancels an obsolete saved route before a walk can advance into a new building', () => {
+    const sector = resolveSector('verdant-expanse')!
+    const blocked = sector
+      .buildings!.flatMap((building) =>
+        Array.from({ length: building.width * building.height }, (_, index) => ({
+          x: building.x + (index % building.width),
+          y: building.y + Math.floor(index / building.width),
+        })),
+      )
+      .map((target) => ({
+        target,
+        origin: [
+          { x: target.x - 1, y: target.y },
+          { x: target.x + 1, y: target.y },
+          { x: target.x, y: target.y - 1 },
+          { x: target.x, y: target.y + 1 },
+        ].find(
+          (point) =>
+            point.x >= 0 &&
+            point.x < 13 &&
+            point.y >= 0 &&
+            point.y < 9 &&
+            isWalkable(sector, point),
+        ),
+      }))
+      .find(({ origin, target }) => origin && !isWalkable(sector, target))!
+    expect(blocked).toBeDefined()
+    const state = {
+      ...newWorldState(),
+      position: { sectorId: sector.id, ...blocked.origin! },
+      route: [{ position: { sectorId: sector.id, ...blocked.target }, durationMs: 200 }],
+      nextStepAt: 1000,
+    }
+    const replanned = resolveWorldIntent(state, { kind: 'walk', destination: state.position }, 1100)
+    expect(replanned.position).toEqual(state.position)
+    expect(replanned.route).toEqual([])
+  })
+})
+
+it('admits local movement inside an owned realm without making it discoverable from the open World', () => {
+  const realm = { sectorId: 'sealed-realm:77777777-7777-4777-8777-777777777777', x: 6, y: 4 }
+  const foreign = { ...realm, sectorId: 'sealed-realm:88888888-8888-4888-8888-888888888888' }
+  const outside = { ...newWorldState(), discoveries: { [realm.sectorId]: [58] } }
+  expect(isKnownCell(outside, realm)).toBe(false)
+  expect(visibleSectors(outside).some((sector) => sector.id === realm.sectorId)).toBe(false)
+  expect(() => resolveWorldIntent(outside, { kind: 'walk', destination: realm }, 1000)).toThrow()
+
+  const inside = { ...newWorldState(), position: realm }
+  expect(isKnownCell(inside, foreign)).toBe(false)
+  const view = projectWorld(inside, [], 1000)
+  expect(view.sectors.map(({ id }) => id)).toEqual([realm.sectorId])
+  expect(
+    resolveWorldIntent(inside, { kind: 'walk', destination: { ...realm, x: 7 } }, 1000).route,
+  ).toContainEqual(expect.objectContaining({ position: { ...realm, x: 7 } }))
 })

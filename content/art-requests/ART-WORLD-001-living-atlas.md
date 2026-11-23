@@ -13,26 +13,31 @@ Design brief used for the generation requests (summarized, not a transcript):
 
 Sharp converts original PNG masters into WebP at quality 86, retaining original dimensions. No terrain code, private frontier art, game state or third-party source material is baked into public media.
 
+## P5-W3 v02 alignment dependency — inspected 2026-09-25
 
-## 2026-09-23 regional-layout redesign direction
+**Open; no replacement media approved or delivered in this presentation slice.** The brief above records the delivered v01 composition. It must not be reused as the geometry specification for #681. Candidate inspected: `702eb44c2f93d8f17935363d86255f9142fce702` on `agent/phase5-distinct-region-layouts-20260923`. Its `REGION_LAYOUTS` in `apps/web/src/world/catalog.ts` is the exact authored 13×9 collision/safe-zone source; all eight runtime art references still point to v01. Refresh that head before producing assets.
 
-Owner live feedback identified that the eight starting regional maps read as the same settlement composition with biome reskins. The original shared brief ("walled village left, bridge middle-right, watchtower right") is therefore **retired for major-region v02 maps**. New regional paintings must follow the distinct authored geometry in `apps/web/src/world/catalog.ts` and should be compositionally recognizable even in grayscale.
+Coordinates below are zero-based candidate tile coordinates, not new gameplay or canon. Every candidate retains the explicit row-4 east/west boundary road. Preserve the actual cell rows, protected footprints and service/landmark anchors in painting review; atmosphere alone does not establish alignment.
 
-Required major-region archetypes:
+| Region             | Candidate settlement anchor | Candidate watch anchor    | Composition constraint from actual rows                                                                    |
+| ------------------ | --------------------------- | ------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Aureth Crown       | Civic Quarter (3,2)         | Road Ward (9,4)           | Broad northwestern protected civic footprint; southern road spur; water at x=8 crossed by row 4.           |
+| Verdant Expanse    | Forest Settlement (2,4)     | Eastern Watchtower (12,4) | Existing western woodland footprint and southern exit spur; water at x=10 and row-4 bridge.                |
+| Emberreach         | Basalt Citadel (1,2)        | Forge Watch (8,4)         | Narrow northwestern protected pocket; segmented rock barriers and shifting two-cell hazard channel.        |
+| Frostmere          | Mountain Refuge (5,2)       | Pass Watch (9,4)          | Central protected refuge bounded by mountain cells; southern sheltered road spur.                          |
+| Glasswind Desert   | Oasis Enclave (3,3)         | Caravan Watch (10,4)      | Western protected oasis footprint with open eastern approach and separate rock clusters.                   |
+| Hollow Coast       | Harbor Quarter (2,6)        | Tide Watch (7,4)          | Southwestern protected harbor; eastern water begins at x=7/8, with the authored row-4 crossing kept clear. |
+| Starfall Highlands | Observatory Terrace (5,2)   | Highland Watch (8,4)      | Northern terrace footprint; eastern/southeastern rock mass and southern bent path.                         |
+| Umbral March       | Frontier Outpost (2,5)      | March Watch (10,4)        | Small western protected outpost, narrow north–south clearing and solid southern boundary.                  |
 
-- **Aureth Crown — planned civic/agricultural center:** broad plaza and ordered streets opening into farms/estates; river infrastructure supports trade rather than acting as the map's dominant obstacle.
-- **Verdant Expanse — dispersed woodland settlement:** grovehold-like clusters, natural clearings, streams and living forest paths; intentionally less centralized than a fortified town.
-- **Emberreach — terraced volcanic citadel:** basalt terraces, forge/industrial yards, hardened causeways and hazard-adapted vertical structure; do not reuse Crown's plaza/bridge silhouette.
-- **Frostmere — compact alpine refuge:** inward-facing clustered shelter around warmth/water, steep mountain constraints and short protected lanes rather than a sprawling road town.
-- **Glasswind Desert — oasis/caravan settlement:** radial life around water/cisterns, caravan enclosures and exposed ruins with long open sightlines.
-- **Hollow Coast — harbor/cliff settlement:** shoreline-first composition with docks, seawalls, coves/tidal space and buildings stretched along the coast instead of a central inland town.
-- **Starfall Highlands — terrace/observatory settlement:** stepped plateaus, switchbacks, observatory/watch structures and ceremonially spaced highland architecture.
-- **Umbral March — fortified frontier outpost:** segmented stockades/watchfires and defensive perimeter logic; sparse and wary rather than another comfortable regional town.
+Acceptance remains open for each region: matching original Aurevane v02 painting, authorized provenance/registry update, overlaid walkable/blocked/protected/landmark inspection, legible environmental masks at desktop/laptop/phone sizes, and geometry/art integration together. Do not paint extra apparent routes through blocked cells or move authoritative anchors to fit a picture. Panorama alignment must also be reviewed if its visible town composition contradicts the accepted local map. No reference-game media, new settlement lore or placeholder-as-complete claim is authorized by this checklist.
 
-Permanent composition rules for v02 major-region maps:
+## Current Atlas settlement candidate
 
-1. Do not reuse a common town silhouette, bridge placement, settlement footprint or landmark triangle across regions.
-2. Settlement position, safe-zone footprint, road grammar and major terrain obstacle must visually agree with the authored `REGION_LAYOUTS` data.
-3. Every region still needs clear walkable square centers and readable routes at 13:9, but route readability must not force identical geography.
-4. Major labels on the globe identify regions/civilizations, not the only eventual explorable land. Art must leave room for surrounding wilderness-sector expansion.
-5. Preserve the approved painterly Aurevane atlas style and biome identities while making composition—not palette alone—the primary differentiator.
+The eight towns now use the runtime Atlas compositor. It draws each public sector’s authored buildings, terrain, shorelines, bridges, protected ground and landmarks from the same geometry used by movement. Eight matching V02 map compositions were captured in Chromium with labels and identity overlays disabled and now supply the regional headers. The V01 panoramas remain ambient regional artwork. The older 13×9 proposal above is archived for reference. Applying its coordinates to current saves would displace existing routes and district approaches.
+
+The current candidate carries forward the eight distinct settlement and watch names at the live Atlas anchors. The checked-in source review command can render each town at a fixed zoom and the native Living Atlas workflow covers the browser interaction surface. Owner visual acceptance remains open.
+
+## Asterwake artwork
+
+Original generated art includes two windswept trees, blue-gray basalt columns, a timber ferry terminal with a copper roof, and the Gildroot Oak. The oak uses interwoven pale trunks, looping exposed roots and a low, asymmetric amber canopy. It is an original Aurevane landmark. The renderer places the oak over a blocked root footprint and uses the existing golden tree crop for smaller trees in its grove. The northern contour and islands use canonical Atlas land and water cells. Runtime media hashes and source masters are recorded in the world provenance file.

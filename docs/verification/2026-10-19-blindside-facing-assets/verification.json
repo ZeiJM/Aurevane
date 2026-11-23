@@ -1,0 +1,44 @@
+{
+  "base": "16838f0cb1fb23ea791f3e5734b1f90c9fd64532",
+  "branch": "agent/blindside-front-gate-20261019",
+  "focused": {
+    "command": "pnpm --filter @aurevane/game-core exec vitest run src/combat/combat-blindside.test.ts src/combat/modular-correction-interactions.test.ts",
+    "passed": 52,
+    "exit": 0
+  },
+  "full": {
+    "command": "pnpm check",
+    "exit": 0,
+    "vitest": 10260,
+    "node": 7,
+    "format": true,
+    "lint": true,
+    "types": 8,
+    "buildTasks": 2,
+    "receipt": "reconcile-full-check-2.log.gz"
+  },
+  "sourceBlobs": {
+    "packages/game-core/src/combat/actions-legacy.ts": "13458253453c2eb15477a5196ac40f3e8ee0f129",
+    "packages/game-core/src/combat/combat-blindside.test.ts": "c613656e43f2478db1d3b5512d6d012a359f02e1",
+    "packages/game-core/src/combat/modular-correction-interactions.test.ts": "a562bd376b0e9bcc2ed2ffa23d9f4ee74843a2c6"
+  },
+  "limitations": [
+    "Human gameplay acceptance remains open.",
+    "Signed-in hosted battle acceptance was not performed.",
+    "Deferred Minor: attached Move regression start and reached tile share a facing sector; runtime uses reached placements."
+  ],
+  "priorFailure": "First full gate found a test-only broad-union recipient map type error; explicit apply-status/damage test payloads repaired it before final successful gate.",
+  "review": {
+    "verdict": "Ready to merge subject to final release gates",
+    "important": "Damage effect eligibility gap repaired with valid RED and 52-test GREEN; scoped rereview confirms addressed",
+    "minorDeferred": 1
+  },
+  "integrationBase": "7637a969d9152a7b26ce77e35f01873992fb8c40",
+  "worldSourceMerge": "938a2d79f04a14dc1529cbbafd9ffde460e908ba",
+  "worldFocused": {
+    "passed": 242,
+    "exit": 0
+  },
+  "integrationFailure": "First combined full gate passed all checks except build, which failed opening Turbopack persistence with invalid digit found in string. Quarantining only the generated cache and repeating the full gate passed without product changes.",
+  "releaseReceipt": "release.json"
+}

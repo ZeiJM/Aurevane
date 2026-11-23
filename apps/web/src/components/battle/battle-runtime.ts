@@ -1,19 +1,37 @@
+import { contentMediaSource } from '@aurevane/game-core/combat/content-media'
+import type { PublicCombat } from '@aurevane/game-core/combat/public-combat-presentation'
+import { isStarterCharacterPortraitRef } from '@aurevane/game-core/character/starter-options'
 import type { CharacterPortraitRef } from '@aurevane/game-core/character/creation'
-import type { CombatTargetKind, CombatTargetTeamPolicy } from '@aurevane/game-core/combat/actions'
+import type {
+  CombatTargetKind,
+  CombatTargetTeamPolicy,
+  CombatTargetSpec,
+} from '@aurevane/game-core/combat/actions'
+import type { SupportActionId } from '@aurevane/game-core/combat/support-actions'
+import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
+import type { AnyResonanceDefinition } from '@aurevane/game-core/combat/resonance'
+import { normalizeCombatEffectState } from '@aurevane/game-core/combat/combat-effect-state'
 
 import { getStarterPortraitImageAssetId } from '@/media/character'
+import { summonPortraitArtwork } from '@/media/support-action-art'
 import type { ImageAssetId } from '@/media/registry'
 import type { PvpBattleMetadata } from '@/server/battle/pvp-lobby-service'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
+import type { BattleReturnTo } from './battle-return-navigation'
 
 export type BattleTechniqueCategory = 'attack' | 'defense' | 'heal'
 
 export interface BattleSkillForecastPresentation {
+  groundIntentCapable?: boolean
+  cooldownOwnerTurns?: number | null
+  definition?: PublicCombat<MatureSkillDefinition>
+  target?: CombatTargetSpec
   id: string
   name: string
   iconKey?: string | null
   apCost: number
   mpCost: number
+  hpCost?: number
   targetKind: CombatTargetKind
   targetTeamPolicy: CombatTargetTeamPolicy
   minimumRange: number
@@ -26,18 +44,13 @@ export interface BattleSkillForecastPresentation {
 export interface BattleTechniquePresentation extends BattleSkillForecastPresentation {
   contentVersion: number
   sourceDisciplineId: string
-  cooldownOwnerTurns: number
-  category: BattleTechniqueCategory
-}
-
-export interface BattleCopiedSkillPresentation extends BattleSkillForecastPresentation {
-  contentVersion: number
-  sourceSkillId: string
-  sourceDisciplineId: string
+  sourceDisciplineName?: string
+  cooldownOwnerTurns: number | null
   category: BattleTechniqueCategory
 }
 
 export interface BattleResonancePresentation {
+  definition?: PublicCombat<AnyResonanceDefinition>
   id: string
   contentVersion: number
   name: string
@@ -47,12 +60,12 @@ export interface BattleResonancePresentation {
 export interface BattleEssencePresentation extends BattleSkillForecastPresentation {
   contentVersion: number
   description: string
-  cooldownOwnerTurns: number
+  cooldownOwnerTurns: number | null
 }
 
 interface BattleBuildPresentation {
+  supportActionId?: SupportActionId
   techniques?: readonly BattleTechniquePresentation[]
-  copiedSkills?: readonly BattleCopiedSkillPresentation[]
   resonance?: BattleResonancePresentation | null
   essence?: BattleEssencePresentation | null
 }
@@ -69,6 +82,7 @@ export type BattleRuntime =
       kind: 'pvp'
       playerName: string
       metadata: PvpBattleMetadata
+      returnTo?: BattleReturnTo
     })
 
 export interface BattleCapabilities {
@@ -117,6 +131,34 @@ export function deriveBattleCapabilities(runtime: BattleRuntime): BattleCapabili
   }
 }
 
+/** Original AI team sizes, excluding combat summons, for a like-for-like Sparring rematch. */
+export function battleSparringTeamCounts(battle: BattleSessionView): {
+  allyCount: number
+  enemyCount: number
+} {
+  const localId = battle.snapshot.statBridge.combatants.find(
+    (profile) => profile.provenance.kind === 'character-derived',
+  )?.combatantId
+  const localTeam = battle.snapshot.tactical.battle.combatants.find(
+    (combatant) => combatant.id === localId,
+  )?.teamId
+  const summons = new Set(
+    (normalizeCombatEffectState(battle.snapshot.effectState).summons ?? []).map(
+      (summon) => summon.combatantId,
+    ),
+  )
+  const profiles = battle.snapshot.statBridge.combatants.filter(
+    (profile) => profile.provenance.kind === 'scenario' && !summons.has(profile.combatantId),
+  )
+  const allyCount = profiles.filter(
+    (profile) =>
+      battle.snapshot.tactical.battle.combatants.find(
+        (combatant) => combatant.id === profile.combatantId,
+      )?.teamId === localTeam,
+  ).length
+  return { allyCount, enemyCount: profiles.length - allyCount }
+}
+
 function pveParticipants(
   battle: BattleSessionView,
   runtime: Extract<BattleRuntime, { kind: 'pve' }>,
@@ -143,16 +185,38 @@ function pveParticipants(
     })
   }
 
-  scenarioProfiles.forEach((profile, index) => {
+  const localTeamId = battle.snapshot.tactical.battle.combatants.find(
+    (c) => c.id === localProfile?.combatantId,
+  )?.teamId
+  const seats = [1, 0]
+  const allies = scenarioProfiles.filter(
+    (p) =>
+      battle.snapshot.tactical.battle.combatants.find((c) => c.id === p.combatantId)?.teamId ===
+      localTeamId,
+  )
+  const enemies = scenarioProfiles.filter((p) => !allies.includes(p))
+  scenarioProfiles.forEach((profile) => {
+    const allied = allies.includes(profile),
+      teamIndex = allied ? 0 : 1
+    const index = (allied ? allies : enemies).indexOf(profile)
+    const npc = !allied && index === 0 ? battle.snapshot.arenaNpc : undefined
     participants.push({
       combatantId: profile.combatantId,
       characterId: null,
-      name: scenarioProfiles.length === 1 ? 'Recruit' : `Recruit ${index + 1}`,
-      level: 1,
-      teamIndex: 1,
-      seatIndex: index,
-      profileImageUrl: null,
-      portraitAssetId: null,
+      name:
+        npc?.name ??
+        (allied ? `Ally ${index + 1}` : enemies.length === 1 ? 'Recruit' : `Recruit ${index + 1}`),
+      level: profile.level ?? 1,
+      teamIndex,
+      seatIndex: seats[teamIndex]++,
+      profileImageUrl: npc?.imageUrl ?? null,
+      portraitAssetId: npc
+        ? getStarterPortraitImageAssetId(
+            npc.portraitRef && isStarterCharacterPortraitRef(npc.portraitRef)
+              ? npc.portraitRef
+              : 'portrait.starter.wayfarer-01',
+          )
+        : null,
       local: false,
     })
   })
@@ -178,15 +242,42 @@ function pvpParticipants(
   }))
 }
 
+/** Playable and spectator surfaces resolve pinned summons through their owner’s presentation. */
+export function battlePresentationParticipantMap(
+  battle: BattleSessionView,
+  participants: readonly BattlePresentationParticipant[],
+): Map<string, BattlePresentationParticipant> {
+  const participantByCombatant = new Map(
+    participants.map((participant) => [participant.combatantId, participant] as const),
+  )
+  const activeSummons = normalizeCombatEffectState(battle.snapshot.effectState).summons ?? []
+  for (const summon of activeSummons) {
+    const owner = participantByCombatant.get(summon.ownerCombatantId)
+    if (!owner) continue
+    participantByCombatant.set(summon.combatantId, {
+      combatantId: summon.combatantId,
+      characterId: null,
+      name: summon.profile.name,
+      level: null,
+      teamIndex: owner.teamIndex,
+      seatIndex: owner.seatIndex,
+      profileImageUrl: summon.profile.media?.artwork
+        ? contentMediaSource(summon.profile.media.artwork)
+        : summonPortraitArtwork(summon.profile.portraitKey),
+      portraitAssetId: null,
+      local: false,
+    })
+  }
+  return participantByCombatant
+}
+
 export function buildBattleViewModel(
   battle: BattleSessionView,
   runtime: BattleRuntime,
 ): BattleViewModel {
   const participants =
     runtime.kind === 'pvp' ? pvpParticipants(runtime) : pveParticipants(battle, runtime)
-  const participantByCombatant = new Map(
-    participants.map((participant) => [participant.combatantId, participant] as const),
-  )
+  const participantByCombatant = battlePresentationParticipantMap(battle, participants)
   const localParticipant = participants.find((participant) => participant.local) ?? null
   const highestTeam = participants.reduce(
     (highest, participant) => Math.max(highest, participant.teamIndex),
@@ -207,7 +298,7 @@ export function buildBattleViewModel(
         ? `Battle Hall · Player vs Player · ${runtime.metadata.mode.toUpperCase()}`
         : 'Battle Hall · Controlled Exercise',
     objective:
-      runtime.kind === 'pvp' ? 'Defeat every opposing combatant' : 'Defeat the opposing Recruit',
+      runtime.kind === 'pvp' ? 'Defeat every opposing combatant' : 'Defeat every opposing Recruit',
   }
 }
 

@@ -1,14 +1,25 @@
+import type { FinalizedContentMediaSlots } from '../combat/content-media'
+import {
+  foundationDisciplineAttributePolicy,
+  type DisciplineAttributePolicy,
+} from './attribute-allocation'
 import type { CharacterAttributes } from './creation'
 import {
   calculateDerivedStats,
   DERIVED_STAT_IDS,
-  DERIVED_STAT_RULESET_V3,
+  DERIVED_STAT_RULESET_V5,
   type DerivedStatId,
   type DerivedStatRuleset,
   type DerivedStatSnapshot,
 } from './derived-stats'
 
+export interface DisciplinePresentationMedia extends FinalizedContentMediaSlots {
+  readonly artworkId?: string
+}
+
 export interface DisciplineDefinition {
+  /** Current display metadata; committed mechanical versions remain independent. */
+  media?: DisciplinePresentationMedia
   id: string
   definitionVersion: number
   name: string
@@ -20,6 +31,7 @@ export interface DisciplineDefinition {
 export interface PrimaryDisciplineBaseProfile {
   disciplineId: string
   profileVersion: number
+  corePolicy?: DisciplineAttributePolicy
   statOffsets: Readonly<Partial<Record<DerivedStatId, number>>>
   statCaps?: Readonly<Partial<Record<DerivedStatId, number>>>
 }
@@ -82,7 +94,7 @@ export function validatePrimaryDisciplineBaseProfile(
 
 export function calculateCharacterBuildDerivedStats(
   input: CharacterBuildDerivedStatInput,
-  ruleset: DerivedStatRuleset = DERIVED_STAT_RULESET_V3,
+  ruleset: DerivedStatRuleset = DERIVED_STAT_RULESET_V5,
 ): DerivedStatSnapshot {
   if (validateDisciplineDefinition(input.primaryDefinition).length > 0) {
     throw new TypeError('Primary Discipline definition is invalid.')
@@ -98,30 +110,35 @@ export function calculateCharacterBuildDerivedStats(
   }
 
   const base = calculateDerivedStats({ attributes: input.attributes, level: input.level }, ruleset)
-  const primaryModifiers: BuildDerivedStatModifier[] = DERIVED_STAT_IDS.flatMap((statId) => {
-    const amount = input.primaryProfile.statOffsets[statId]
-    return amount === undefined || amount === 0
+  // V4 consumes the effective Core attributes (including the Primary Core base). Its exact
+  // anchors retire the older Adventure-stat offsets/caps, while explicit equipment remains.
+  const primaryModifiers: BuildDerivedStatModifier[] =
+    ruleset.version >= 4
       ? []
-      : [
-          {
-            sourceId: `discipline.primary.${input.primaryDefinition.id}.profile.${input.primaryProfile.profileVersion}`,
-            statId,
-            amount,
-          },
-        ]
-  })
+      : DERIVED_STAT_IDS.flatMap((statId) => {
+          const amount = input.primaryProfile.statOffsets[statId]
+          return amount === undefined || amount === 0
+            ? []
+            : [
+                {
+                  sourceId: `discipline.primary.${input.primaryDefinition.id}.profile.${input.primaryProfile.profileVersion}`,
+                  statId,
+                  amount,
+                },
+              ]
+        })
 
   return applyBuildDerivedStatModifiers(
     base,
     [...primaryModifiers, ...(input.modifiers ?? [])],
     ruleset,
-    input.primaryProfile.statCaps ?? {},
+    ruleset.version >= 4 ? {} : (input.primaryProfile.statCaps ?? {}),
   )
 }
 
 export function buildPrimaryDisciplinePreview(
   input: CharacterBuildDerivedStatInput,
-  ruleset: DerivedStatRuleset = DERIVED_STAT_RULESET_V3,
+  ruleset: DerivedStatRuleset = DERIVED_STAT_RULESET_V5,
 ): PrimaryDisciplinePreview {
   return {
     definition: input.primaryDefinition,
@@ -194,4 +211,11 @@ function applyBuildDerivedStatModifiers(
   }
 
   return { ...snapshot, stats }
+}
+
+/** Legacy in-memory adapters may omit Core; production reads always supply exact SQL profiles. */
+export function disciplineAttributePolicyForProfile(
+  profile: PrimaryDisciplineBaseProfile,
+): DisciplineAttributePolicy | null {
+  return profile.corePolicy ?? foundationDisciplineAttributePolicy(profile.disciplineId)
 }

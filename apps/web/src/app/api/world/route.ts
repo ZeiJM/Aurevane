@@ -1,31 +1,86 @@
 import { AurevaneError } from '@aurevane/game-core/errors'
+import { cookies } from 'next/headers'
 import { getAuthenticatedActor } from '@/server/auth/actor'
-import { loadSelectedCharacter } from '@/server/character/selected-character'
+import { assertGameplayMutationAllowed } from '@/server/account/active-game-session'
+import { SELECTED_CHARACTER_COOKIE } from '@/server/character/selected-character'
 import { toServerErrorResponse } from '@/server/http/error-response'
 import { attackWorldPlayer } from '@/server/world/world-battle'
+import { worldAtlasReceipt } from '@/server/world/world-atlas-receipt'
 import { commitWorldCommand, readWorld } from '@/server/world/world-repository'
-import { parseWorldCommand } from '@/world/command'
+import { isWorldUuid, parseWorldCommand, repeatableActivityReference } from '@/world/command'
+import { WORLD_ATLAS_HEADER, worldRefreshResponse } from '@/world/presence'
 
 export const dynamic = 'force-dynamic'
+let lastSlowApprovalAt = -Infinity
 async function identity() {
   const actor = await getAuthenticatedActor()
-  const character = await loadSelectedCharacter(actor)
-  if (!character) throw new AurevaneError('FORBIDDEN', 'Select a character to enter the world.')
-  return { userId: actor.userId, characterId: character.id }
+  const characterId = (await cookies()).get(SELECTED_CHARACTER_COOKIE)?.value
+  if (!isWorldUuid(characterId) || characterId !== characterId.toLowerCase())
+    throw new AurevaneError('FORBIDDEN', 'Select a character to enter the world.')
+  // The cookie supplies an address only. Every World read/command (including
+  // Attack) enters read_world_state_v1, which checks ownership and pending
+  // deletion before any world-state initialization, response or mutation.
+  return { userId: actor.userId, characterId }
 }
 const json = (view: unknown) =>
   Response.json(view, { headers: { 'Cache-Control': 'private, no-store' } })
-export async function GET() {
+export async function GET(request?: Request) {
   try {
     const actor = await identity()
-    return json((await readWorld(actor.userId, actor.characterId)).view)
+    const query = new URL(request?.url ?? '/api/world', 'https://world.invalid').searchParams
+    const width = Number(query.get('sceneWidth')),
+      height = Number(query.get('sceneHeight'))
+    const viewport =
+      Number.isFinite(width) && width > 0 && Number.isFinite(height) && height > 0
+        ? { width: Math.min(3840, Math.ceil(width)), height: Math.min(2160, Math.ceil(height)) }
+        : undefined
+    const view = (
+      await (viewport
+        ? readWorld(actor.userId, actor.characterId, viewport)
+        : readWorld(actor.userId, actor.characterId))
+    ).view
+    const receipt = worldRefreshResponse(view, request?.url ?? '/api/world')
+    return json(
+      'kind' in receipt
+        ? receipt
+        : worldAtlasReceipt(receipt, request?.headers.get(WORLD_ATLAS_HEADER) ?? null),
+    )
   } catch (error) {
     return toServerErrorResponse(error)
   }
 }
 export async function POST(request: Request) {
+  const receivedAt = Date.now()
+  const startedAt = performance.now()
+  let identityAt: number | null = null
+  let intentKind: string | null = null
+  const finish = (response: Response) => {
+    if (identityAt === null || intentKind === null) return response
+    const endedAt = performance.now()
+    const identityMs = Math.max(0, identityAt - startedAt)
+    const commandMs = Math.max(0, endedAt - identityAt)
+    const totalMs = Math.max(0, endedAt - startedAt)
+    response.headers.set(
+      'Server-Timing',
+      `identity;dur=${identityMs.toFixed(1)}, command;dur=${commandMs.toFixed(1)}, total;dur=${totalMs.toFixed(1)}`,
+    )
+    // Timings only: never log tokens, identities, locations, targets or response bodies.
+    // Sample slow approvals/conflicts once per30s per server instance.
+    if ((totalMs >= 600 || response.status === 409) && Date.now() - lastSlowApprovalAt >= 30000) {
+      lastSlowApprovalAt = Date.now()
+      console.warn('World approval timing', {
+        intent: intentKind,
+        status: response.status,
+        identityMs,
+        commandMs,
+        totalMs,
+      })
+    }
+    return response
+  }
   try {
     const actor = await identity()
+    identityAt = performance.now()
     if (!request.headers.get('content-type')?.includes('application/json'))
       throw new AurevaneError('INVALID_REQUEST', 'Send a JSON travel command.')
     const body = await request.text()
@@ -39,19 +94,47 @@ export async function POST(request: Request) {
     }
     const command = parseWorldCommand(value)
     if (!command) throw new AurevaneError('INVALID_REQUEST', 'The travel command is invalid.')
+    intentKind = command.intent.kind
     if (command.characterId !== actor.characterId)
       throw new AurevaneError('STALE_VERSION', 'Your selected character changed. Refresh the map.')
-    return json(
-      command.intent.kind === 'attack'
-        ? await attackWorldPlayer(
-            actor.userId,
-            actor.characterId,
-            command.intent.targetId,
-            command.expectedVersion,
-          )
-        : await commitWorldCommand(actor.userId, actor.characterId, command),
-    )
+    if (command.intent.kind === 'board-ferry' || command.intent.kind === 'leave-ferry')
+      await assertGameplayMutationAllowed(actor.userId)
+    if (command.intent.kind === 'attack') {
+      const receipt = await attackWorldPlayer(
+        actor.userId,
+        actor.characterId,
+        command.intent.targetId,
+        command.expectedVersion,
+      )
+      return finish(
+        json(
+          request.headers.get('x-world-response') === 'movement'
+            ? receipt
+            : (await readWorld(actor.userId, actor.characterId)).view,
+        ),
+      )
+    }
+    const repeatableReport =
+      command.intent.kind === 'interact' &&
+      command.intent.actionId === 'report' &&
+      repeatableActivityReference(command.intent.interactionId) !== null
+    const result = repeatableReport
+      ? await commitWorldCommand(
+          actor.userId,
+          actor.characterId,
+          command,
+          false,
+          new Date(receivedAt).toISOString(),
+        )
+      : await commitWorldCommand(
+          actor.userId,
+          actor.characterId,
+          command,
+          request.headers.get('x-world-response') === 'movement' &&
+            ['walk', 'autopath', 'tick', 'stop'].includes(command.intent.kind),
+        )
+    return finish(json(result))
   } catch (error) {
-    return toServerErrorResponse(error)
+    return finish(toServerErrorResponse(error))
   }
 }

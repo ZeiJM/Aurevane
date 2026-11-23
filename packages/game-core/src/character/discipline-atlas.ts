@@ -1,3 +1,4 @@
+import type { DisciplinePresentationMedia } from './discipline-build'
 export const DISCIPLINE_MASTERY_STAGES = {
   initiate: 1,
   practiced: 2,
@@ -24,6 +25,7 @@ export interface DisciplinePowerProfile {
 }
 
 export type DisciplineUnlockRule =
+  | { kind: 'unavailable' }
   | { kind: 'always' }
   | { kind: 'mastery'; disciplineId: string; minimumStage: DisciplineMasteryStage }
   | { kind: 'rekindling'; minimumCount: 1 | 2 | 3 }
@@ -33,6 +35,7 @@ export type DisciplineUnlockRule =
   | { kind: 'count-of'; count: number; rules: readonly DisciplineUnlockRule[] }
 
 export interface DisciplineAtlasEntry {
+  media?: DisciplinePresentationMedia
   id: string
   name: string
   summary: string
@@ -618,6 +621,7 @@ export function disciplineMasteryStageLabel(stage: DisciplineMasteryStage): stri
 }
 
 export function describeDisciplineUnlockRule(rule: DisciplineUnlockRule): string {
+  if (rule.kind === 'unavailable') return 'Staff grant required'
   if (rule.kind === 'always') return 'Available from the beginning'
   if (rule.kind === 'mastery') {
     const discipline = DISCIPLINE_ATLAS_BY_ID[rule.disciplineId]
@@ -631,6 +635,7 @@ export function describeDisciplineUnlockRule(rule: DisciplineUnlockRule): string
 }
 
 function evaluateRule(rule: DisciplineUnlockRule, context: DisciplineAtlasContext): boolean {
+  if (rule.kind === 'unavailable') return false
   if (rule.kind === 'always') return true
   if (rule.kind === 'mastery')
     return (context.masteryByDiscipline[rule.disciplineId] ?? 1) >= rule.minimumStage
@@ -642,6 +647,7 @@ function evaluateRule(rule: DisciplineUnlockRule, context: DisciplineAtlasContex
 }
 
 function unmetRules(rule: DisciplineUnlockRule, context: DisciplineAtlasContext): string[] {
+  if (rule.kind === 'unavailable') return ['Staff grant required']
   if (evaluateRule(rule, context)) return []
   if (rule.kind === 'all') return rule.rules.flatMap((candidate) => unmetRules(candidate, context))
   if (rule.kind === 'count-of') {

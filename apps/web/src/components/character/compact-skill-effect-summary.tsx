@@ -1,0 +1,159 @@
+'use client'
+
+import type { CombatTagPresentationSnapshot } from '@aurevane/game-core/combat/combat-tag-registry'
+import { BattleInfoPopover } from '../battle/battle-info-popover'
+
+import type { MatureSkillEffectDefinition } from '@aurevane/game-core/combat/mature-skills'
+import {
+  useSkillEffectTimingPolicy,
+  useSkillGroundInteractionRules,
+} from './skill-effect-timing-context'
+
+import {
+  compactSkillEffectSummaryParts,
+  skillEffectExplanationDetails,
+  type CompactSkillEffectSummaryParts,
+} from './skill-detail-presentation'
+import styles from './compact-skill-effect-summary.module.css'
+import { previewEffectWithTag } from './skill-effect-preview'
+import { MechanicTextView } from './mechanic-text-view'
+
+/** Effect names keep their label color independently of numerical parameter brackets. */
+export function EffectTagLabel({
+  label,
+  tagPresentation,
+}: {
+  label: string
+  tagPresentation?: CombatTagPresentationSnapshot
+}) {
+  if (tagPresentation)
+    return (
+      <BattleInfoPopover
+        nested
+        referenceTrigger
+        hover
+        consumeOutsideClick
+        panelWidth={300}
+        label={`Explain ${tagPresentation.name}`}
+        title={tagPresentation.name}
+        className={styles.reference}
+        trigger={
+          <span
+            className={styles.label}
+            data-combat-tag-reference={tagPresentation.tagId}
+            data-tag-version={tagPresentation.contentVersion}
+          >
+            {tagPresentation.name}
+          </span>
+        }
+      >
+        <p>{tagPresentation.compact}</p>
+      </BattleInfoPopover>
+    )
+
+  return (
+    <span className={styles.label} data-effect-tag-label="true">
+      {label}
+    </span>
+  )
+}
+
+export function CompactSkillEffectSummary({
+  effect,
+  count = 1,
+  skillEffects,
+  tagPresentations,
+  aim,
+}: {
+  aim?: import('@aurevane/game-core/combat/actions').CombatTargetSpec
+  tagPresentations?: readonly CombatTagPresentationSnapshot[]
+  skillEffects?: readonly MatureSkillEffectDefinition[]
+  effect: MatureSkillEffectDefinition
+  count?: number
+}) {
+  const timingPolicy = useSkillEffectTimingPolicy()
+  const options = { ...useSkillGroundInteractionRules(), skillEffects, aim }
+  const parts = compactSkillEffectSummaryParts(effect, timingPolicy, options)
+  const { tagPresentation } = previewEffectWithTag(effect, tagPresentations, options)
+  return <CompactEffectSummary parts={parts} count={count} tagPresentation={tagPresentation} />
+}
+
+/** Short effects stay inline; longer phrases wrap within their available value column. */
+export function CompactEffectSummary({
+  parts,
+  count = 1,
+  tagPresentation,
+}: {
+  tagPresentation?: CombatTagPresentationSnapshot
+  parts: CompactSkillEffectSummaryParts
+  count?: number
+}) {
+  return (
+    <span className={styles.effectLine} data-compact-skill-effect="true">
+      <span data-compact-effect-phrase="true">
+        <strong className={styles.label} data-compact-effect-label="true">
+          <EffectTagLabel label={parts.label} tagPresentation={tagPresentation} />
+        </strong>
+        {parts.magnitude ? (
+          <>
+            {' '}
+            <span className={styles.magnitude} data-compact-effect-magnitude="true">
+              [{parts.magnitude}]
+            </span>
+          </>
+        ) : null}
+        {parts.duration ? (
+          <>
+            {' '}
+            <span className={styles.timing} data-compact-effect-duration="true">
+              [{parts.duration}]
+            </span>
+          </>
+        ) : null}
+        {parts.timing ? (
+          <>
+            {' '}
+            <span className={styles.timing} data-compact-effect-timing="true">
+              [{parts.timing}]
+            </span>
+          </>
+        ) : null}
+        {parts.target ? (
+          <>
+            {' '}
+            <span className={styles.target} data-compact-effect-target="true">
+              [{parts.target}]
+            </span>
+          </>
+        ) : null}
+        {count > 1 ? (
+          <span data-compact-effect-count={count} aria-label={`${count} applications`}>
+            {' '}
+            ×{count}
+          </span>
+        ) : null}
+      </span>
+    </span>
+  )
+}
+
+/** Shared supplementary facts for all full readers, including captured Basic commands. */
+export function EffectExplanationNotes({
+  parts,
+  repeatsOnEntry,
+}: {
+  parts: CompactSkillEffectSummaryParts
+  repeatsOnEntry?: boolean
+}) {
+  return (
+    <>
+      {skillEffectExplanationDetails(parts).map(({ label, value, labelParts }) => (
+        <span key={label} data-effect-explanation-detail={label}>
+          {' '}
+          <MechanicTextView text={label} parts={labelParts} />: {value}.
+        </span>
+      ))}
+      {repeatsOnEntry ? ' Repeats on entry.' : null}
+    </>
+  )
+}

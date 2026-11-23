@@ -5,6 +5,7 @@ import { createContext, useContext, type ReactNode } from 'react'
 interface BattleRuntimeContextValue {
   playerName: string
   combatantAccents: Readonly<Record<string, string>>
+  combatantNames: Readonly<Record<string, string>>
   opponentNames: readonly string[] | null
 }
 
@@ -13,16 +14,20 @@ const BattleRuntimeContext = createContext<BattleRuntimeContextValue | null>(nul
 export function BattleRuntimeProvider({
   playerName,
   combatantAccents = {},
+  combatantNames = {},
   opponentNames = null,
   children,
 }: {
   playerName: string
   combatantAccents?: Readonly<Record<string, string>>
+  combatantNames?: Readonly<Record<string, string>>
   opponentNames?: readonly string[] | null
   children: ReactNode
 }) {
   return (
-    <BattleRuntimeContext.Provider value={{ playerName, combatantAccents, opponentNames }}>
+    <BattleRuntimeContext.Provider
+      value={{ playerName, combatantAccents, combatantNames, opponentNames }}
+    >
       {children}
     </BattleRuntimeContext.Provider>
   )
@@ -38,4 +43,8 @@ export function useBattleCombatantAccents(): Readonly<Record<string, string>> {
 
 export function useBattleOpponentNames(): readonly string[] | null {
   return useContext(BattleRuntimeContext)?.opponentNames ?? null
+}
+
+export function useBattleCombatantNames(): Readonly<Record<string, string>> {
+  return useContext(BattleRuntimeContext)?.combatantNames ?? {}
 }

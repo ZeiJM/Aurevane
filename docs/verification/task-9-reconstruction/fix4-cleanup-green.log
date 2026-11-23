@@ -1,0 +1,14 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "argv": ["corepack", "pnpm", "--filter", "@aurevane/web", "exec", "vitest", "run", "e2e/players-local-fixture.test.ts"], "start": "2026-10-20T20:39:13.944825+00:00"}
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.10 /workspace/scratch/081f137b6a6d/aurevane-players-20261020/apps/web
+
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  16:39:14
+   Duration  195ms (transform 24ms, setup 0ms, import 36ms, tests 8ms, environment 0ms)
+
+{"end": "2026-10-20T20:39:14.922998+00:00", "exit": 0}

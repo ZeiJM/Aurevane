@@ -1,16 +1,22 @@
+import type { BattleEquipmentCapture } from '@aurevane/game-core/combat/combat-equipment'
 import 'server-only'
 
 import { createHash } from 'node:crypto'
+import type { CombatContentResolver } from '../combat/combat-content-resolver'
+import { isDisciplineSkillIdentity } from './discipline-skill-reference-parser'
 
+import { projectAllocationForPrimaryDisciplineChange } from '@aurevane/game-core/character/attribute-allocation'
 import type { PersistedCharacter } from '@aurevane/game-core/character/persistence'
 import {
   buildPrimaryDisciplinePreview,
+  disciplineAttributePolicyForProfile,
   type DisciplineDefinition,
   type PrimaryDisciplineBaseProfile,
   type PrimaryDisciplinePreview,
 } from '@aurevane/game-core/character/discipline-build'
 import {
   disciplineSkillCapacity,
+  disciplineSkillEligibilityId,
   validateDisciplineSkillLoadout,
   type DisciplineSkillReference,
 } from '@aurevane/game-core/character/discipline-skill-loadout'
@@ -27,9 +33,14 @@ import {
 import {
   resonanceSnapshotReference,
   resolveResonanceForPair,
-  type ResonanceDefinition,
+  type AnyResonanceDefinition,
   type ResonanceSnapshotReference,
 } from '@aurevane/game-core/combat/resonance'
+import {
+  parseSupportActionId,
+  parseCurrentSupportActionId,
+  type SupportActionId,
+} from '@aurevane/game-core/combat/support-actions'
 import { AurevaneError } from '@aurevane/game-core/errors'
 
 export interface CharacterAttunementPolicy {
@@ -39,6 +50,7 @@ export interface CharacterAttunementPolicy {
 }
 
 export interface CharacterActiveBuildRecord {
+  supportActionId?: SupportActionId
   characterId: string
   schemaVersion: number
   buildVersion: number
@@ -55,14 +67,22 @@ export interface CharacterActiveBuildRecord {
 export interface DisciplineCatalogEntry {
   definition: DisciplineDefinition
   profile: PrimaryDisciplineBaseProfile
+  playerGranted?: boolean
   masteredAt: string | null
 }
 
 export type PrimaryDisciplineCatalogEntry = DisciplineCatalogEntry
-export type SecondaryDisciplineCatalogEntry = DisciplineCatalogEntry & { masteredAt: string }
+export type SecondaryDisciplineCatalogEntry = DisciplineCatalogEntry
 
 export interface CharacterLearnedSkillRecord extends DisciplineSkillReference {
   learnedAt: string
+  /** Absent only in historical/in-memory adapters; actual joined reads always supply provenance. */
+  grantedAt?: string
+  grantSourceKind?: 'system' | 'gameplay' | 'support' | 'owner' | 'migration'
+  grantSourceId?: string
+  earnedAt?: string | null
+  earnedSourceKind?: 'system' | 'gameplay' | 'support' | 'owner' | 'migration' | null
+  earnedSourceId?: string | null
 }
 
 export interface CharacterEquippedDisciplineSkillRecord extends DisciplineSkillReference {
@@ -71,6 +91,11 @@ export interface CharacterEquippedDisciplineSkillRecord extends DisciplineSkillR
 }
 
 export interface CharacterCommittedBuildSnapshotRecord {
+  /** Server-only exact source facts, never a public profile field. */
+  catalogueToken?: string
+  skillEligibilityPolicyVersion?: 1
+  sourceHash?: string
+  supportActionId?: SupportActionId
   schemaVersion: number
   buildVersion: number
   primary: {
@@ -86,7 +111,7 @@ export interface CharacterCommittedBuildSnapshotRecord {
   extensions: {
     resonance: ResonanceSnapshotReference | null
     essence: EssenceSnapshotReference | null
-    equipmentSkills: readonly never[]
+    equipmentSkills: readonly BattleEquipmentCapture[]
     supernatural: null
     prestige: null
   }
@@ -113,9 +138,24 @@ export interface SaveDisciplineSkillsInput {
   requestFingerprint: string
 }
 
+export interface SaveSupportActionInput {
+  userId: string
+  characterId: string
+  expectedBuildVersion: number
+  supportActionId: SupportActionId
+  idempotencyKey: string
+  requestFingerprint: string
+}
+
 export interface CharacterBuildRepository {
+  /** Actual Supabase adapters supply the shared published/current and exact-pin authority. */
+  contentResolver?: CombatContentResolver
+  saveSupportAction(
+    input: SaveSupportActionInput,
+  ): Promise<{ buildVersion: number; replayed: boolean }>
   findActiveBuild(userId: string, characterId: string): Promise<CharacterActiveBuildRecord | null>
   listDisciplines(userId: string, characterId: string): Promise<readonly DisciplineCatalogEntry[]>
+  loadDisciplineNames?(ids: readonly string[]): Promise<Readonly<Record<string, string>>>
   listLearnedSkills(
     userId: string,
     characterId: string,
@@ -124,6 +164,7 @@ export interface CharacterBuildRepository {
     userId: string,
     characterId: string,
   ): Promise<readonly CharacterEquippedDisciplineSkillRecord[]>
+  loadBattleEquipment?(userId: string, characterId: string): Promise<BattleEquipmentCapture>
   loadCommittedBuildSnapshot(
     userId: string,
     characterId: string,
@@ -149,9 +190,17 @@ export interface CharacterSkillCatalogEntry {
   definition: MatureSkillDefinition
   learnedAt: string
   activeSource: boolean
+  eligibilityGrants?: readonly {
+    eligibilityDisciplineId: string
+    activeSource: boolean
+    grantedAt?: string
+    earnedAt?: string | null
+    grantSourceKind?: CharacterLearnedSkillRecord['grantSourceKind']
+  }[]
 }
 
 export interface CharacterEquippedDisciplineSkill {
+  eligibilityDisciplineId?: string
   definition: MatureSkillDefinition
   slotIndex: number
   equippedAt: string
@@ -162,7 +211,7 @@ export interface CharacterDisciplineSkillLoadoutView {
   learnedSkills: readonly CharacterSkillCatalogEntry[]
   equippedSkills: readonly CharacterEquippedDisciplineSkill[]
   extensions: {
-    resonance: ResonanceDefinition | null
+    resonance: AnyResonanceDefinition | null
     essence: EssenceDefinition | null
     equipmentSkills: readonly never[]
     supernatural: null
@@ -171,6 +220,7 @@ export interface CharacterDisciplineSkillLoadoutView {
 }
 
 export interface CharacterBuildContext {
+  disciplineNames?: Readonly<Record<string, string>>
   build: CharacterActiveBuildRecord
   current: PrimaryDisciplinePreview
   currentSecondary: DisciplineDefinition | null
@@ -209,9 +259,10 @@ export interface BuildSelectionInput {
 function calculatePreview(
   character: PersistedCharacter,
   entry: PrimaryDisciplineCatalogEntry,
+  attributes: PersistedCharacter['attributes'] = character.attributes,
 ): PrimaryDisciplinePreview {
   return buildPrimaryDisciplinePreview({
-    attributes: character.attributes,
+    attributes,
     level: character.level,
     primaryDefinition: entry.definition,
     primaryProfile: entry.profile,
@@ -246,7 +297,8 @@ function availableCatalog(catalog: readonly DisciplineCatalogEntry[]) {
   )
   const availableSecondaries = catalog.filter(
     (entry): entry is SecondaryDisciplineCatalogEntry =>
-      entry.definition.enabledForSecondary && entry.masteredAt !== null,
+      entry.definition.enabledForSecondary &&
+      (entry.masteredAt !== null || entry.playerGranted === true),
   )
   return { availablePrimaries, availableSecondaries }
 }
@@ -279,8 +331,9 @@ function selectedSecondary(
 function resolvedPrimaryEntry(
   id: string,
   context: CharacterBuildContext,
+  refreshCurrent = false,
 ): PrimaryDisciplineCatalogEntry {
-  if (id === context.current.definition.id) {
+  if (id === context.current.definition.id && !refreshCurrent) {
     return {
       definition: context.current.definition,
       profile: context.current.profile,
@@ -299,71 +352,104 @@ function resolvedSecondaryDefinition(
   return selectedSecondary(id, context.availableSecondaries).definition
 }
 
-function resolveLearnedSkill(record: CharacterLearnedSkillRecord): CharacterSkillCatalogEntry {
-  const definition = resolveMatureSkillVersion(record.skillId, record.contentVersion)
-  if (!definition || definition.sourceDisciplineId !== record.sourceDisciplineId) {
-    throw persistenceUnavailable('A learned Skill references a stale or disabled content version.')
-  }
-  return { definition, learnedAt: record.learnedAt, activeSource: false }
-}
-
-function resolveEquippedSkill(
-  record: CharacterEquippedDisciplineSkillRecord,
-): CharacterEquippedDisciplineSkill {
-  const definition = resolveMatureSkillVersion(record.skillId, record.contentVersion)
-  if (!definition || definition.sourceDisciplineId !== record.sourceDisciplineId) {
-    throw persistenceUnavailable(
-      'An equipped Skill references a stale or disabled content version.',
-    )
-  }
-  return { definition, slotIndex: record.slotIndex, equippedAt: record.equippedAt }
-}
-
-function buildDisciplineSkillView(
+async function buildDisciplineSkillView(
   build: CharacterActiveBuildRecord,
   learnedRecords: readonly CharacterLearnedSkillRecord[],
   equippedRecords: readonly CharacterEquippedDisciplineSkillRecord[],
-): CharacterDisciplineSkillLoadoutView {
+  contentResolver?: CombatContentResolver,
+): Promise<CharacterDisciplineSkillLoadoutView> {
   const secondaryDisciplineId = build.secondaryDefinition?.id ?? null
-  const activeSources = new Set(
-    build.secondaryDefinition
-      ? [build.primaryDefinition.id, build.secondaryDefinition.id]
-      : [build.primaryDefinition.id],
-  )
-  const learnedSkills = learnedRecords.map(resolveLearnedSkill).map((entry) => ({
-    ...entry,
-    activeSource: activeSources.has(entry.definition.sourceDisciplineId),
-  }))
-  const equippedSkills = equippedRecords.map(resolveEquippedSkill)
+  const activeSources = new Set([
+    build.primaryDefinition.id,
+    ...(secondaryDisciplineId ? [secondaryDisciplineId] : []),
+  ])
+  // Validate persisted pins/grants before replacing only display bodies with current content.
   const issues = validateDisciplineSkillLoadout({
     primaryDisciplineId: build.primaryDefinition.id,
     secondaryDisciplineId,
-    equipped: equippedSkills.map((entry) => ({
-      skillId: entry.definition.id,
-      contentVersion: entry.definition.contentVersion,
-      sourceDisciplineId: entry.definition.sourceDisciplineId,
-    })),
-    learned: learnedSkills.map((entry) => ({
-      skillId: entry.definition.id,
-      contentVersion: entry.definition.contentVersion,
-      sourceDisciplineId: entry.definition.sourceDisciplineId,
-    })),
+    equipped: equippedRecords,
+    learned: learnedRecords,
   })
-  if (issues.length > 0) {
+  if (issues.length > 0)
     throw persistenceUnavailable(`The committed Skill loadout is illegal: ${issues[0]?.message}`)
+  const resolver = contentResolver?.captureCurrentCatalogue
+    ? (await contentResolver.captureCurrentCatalogue()).resolver
+    : contentResolver
+  const ids = [...new Set([...learnedRecords, ...equippedRecords].map((record) => record.skillId))]
+  const definitions = resolver?.resolveCurrentSkillDefinitions
+    ? await resolver.resolveCurrentSkillDefinitions(ids)
+    : new Map(
+        await Promise.all(
+          ids.map(
+            async (id) =>
+              [
+                id,
+                resolver
+                  ? await resolver.resolveCurrentSkillDefinition(id)
+                  : resolveMatureSkillVersion(id),
+              ] as const,
+          ),
+        ),
+      )
+  function definitionFor(record: DisciplineSkillReference) {
+    const definition = definitions.get(record.skillId)
+    if (
+      !definition ||
+      definition.id !== record.skillId ||
+      definition.sourceDisciplineId !== record.sourceDisciplineId
+    ) {
+      throw persistenceUnavailable(
+        'A learned Skill references a missing or invalid current definition.',
+      )
+    }
+    return definition
   }
-
+  const learnedById = new Map<string, CharacterSkillCatalogEntry>()
+  for (const record of learnedRecords) {
+    const eligibilityDisciplineId = disciplineSkillEligibilityId(record)
+    if (!eligibilityDisciplineId)
+      throw persistenceUnavailable('A learned Skill has invalid eligibility.')
+    const activeSource = activeSources.has(eligibilityDisciplineId)
+    const previous = learnedById.get(record.skillId)
+    learnedById.set(record.skillId, {
+      definition: definitionFor(record),
+      learnedAt: record.learnedAt,
+      activeSource: activeSource || (previous?.activeSource ?? false),
+      eligibilityGrants: [
+        ...(previous?.eligibilityGrants ?? []),
+        {
+          eligibilityDisciplineId,
+          activeSource,
+          grantedAt: record.grantedAt,
+          earnedAt: record.earnedAt,
+          grantSourceKind: record.grantSourceKind,
+        },
+      ],
+    })
+  }
+  const [resonance, essence] = await Promise.all([
+    resolver?.resolveCurrentResonanceDefinition
+      ? resolver.resolveCurrentResonanceDefinition(
+          build.primaryDefinition.id,
+          secondaryDisciplineId,
+        )
+      : resolveResonanceForPair(build.primaryDefinition.id, secondaryDisciplineId),
+    resolver?.resolveCurrentEssenceDefinition
+      ? resolver.resolveCurrentEssenceDefinition(build.primaryDefinition.id, secondaryDisciplineId)
+      : resolveEssenceForBuild(build.primaryDefinition.id, secondaryDisciplineId),
+  ])
   return {
     capacity: disciplineSkillCapacity(secondaryDisciplineId),
-    learnedSkills,
-    equippedSkills,
-    extensions: {
-      resonance: resolveResonanceForPair(build.primaryDefinition.id, secondaryDisciplineId),
-      essence: resolveEssenceForBuild(build.primaryDefinition.id, secondaryDisciplineId),
-      equipmentSkills: [],
-      supernatural: null,
-      prestige: null,
-    },
+    learnedSkills: [...learnedById.values()],
+    equippedSkills: equippedRecords.map((record) => ({
+      definition: definitionFor(record),
+      slotIndex: record.slotIndex,
+      equippedAt: record.equippedAt,
+      ...(Object.hasOwn(record, 'eligibilityDisciplineId')
+        ? { eligibilityDisciplineId: record.eligibilityDisciplineId }
+        : {}),
+    })),
+    extensions: { resonance, essence, equipmentSkills: [], supernatural: null, prestige: null },
   }
 }
 
@@ -382,6 +468,33 @@ export async function loadCharacterBuildContext(
     throw persistenceUnavailable('The character build is unavailable right now.')
   }
   const { availablePrimaries, availableSecondaries } = availableCatalog(catalog)
+  const disciplineSkills = await buildDisciplineSkillView(
+    build,
+    learnedSkills,
+    equippedSkills,
+    repository.contentResolver,
+  )
+  const sourceIds = new Set(
+    [...disciplineSkills.learnedSkills, ...disciplineSkills.equippedSkills].map(
+      ({ definition }) => definition.sourceDisciplineId,
+    ),
+  )
+  // Selection availability does not hide the name of an already learned Skill's source.
+  const disciplineNames = Object.fromEntries(
+    catalog
+      .filter(({ definition }) => sourceIds.has(definition.id))
+      .map(({ definition }) => [definition.id, definition.name]),
+  )
+  const missingSourceIds = [...sourceIds].filter((id) => !Object.hasOwn(disciplineNames, id))
+  if (missingSourceIds.length && repository.loadDisciplineNames) {
+    const additionalNames = await repository
+      .loadDisciplineNames(missingSourceIds)
+      .catch(() => ({}) as Readonly<Record<string, string>>)
+    for (const id of missingSourceIds) {
+      const name = additionalNames[id]?.trim()
+      if (name && name.length <= 160) disciplineNames[id] = name
+    }
+  }
   return {
     build,
     current: calculatePreview(character, {
@@ -395,7 +508,8 @@ export async function loadCharacterBuildContext(
     availablePrimaries,
     availableSecondaries,
     attunement: buildAttunementView(build),
-    disciplineSkills: buildDisciplineSkillView(build, learnedSkills, equippedSkills),
+    disciplineSkills,
+    disciplineNames,
   }
 }
 
@@ -403,10 +517,14 @@ export async function loadCharacterCommittedBuildSnapshot(
   userId: string,
   characterId: string,
   repository: CharacterBuildRepository,
+  captureEquipment = false,
 ): Promise<CharacterCommittedBuildSnapshotRecord> {
   const snapshot = await repository.loadCommittedBuildSnapshot(userId, characterId)
   if (!snapshot) throw persistenceUnavailable('The committed build snapshot is unavailable.')
 
+  if (snapshot.supportActionId !== undefined && !parseSupportActionId(snapshot.supportActionId)) {
+    throw persistenceUnavailable('The committed build snapshot contains an invalid Support Action.')
+  }
   const secondaryDisciplineId = snapshot.secondary?.disciplineId ?? null
   const activeSources = new Set(
     snapshot.secondary
@@ -414,16 +532,28 @@ export async function loadCharacterCommittedBuildSnapshot(
       : [snapshot.primary.disciplineId],
   )
   for (const skill of snapshot.disciplineSkills) {
-    const definition = resolveMatureSkillVersion(skill.skillId, skill.contentVersion)
+    const definition = repository.contentResolver
+      ? await repository.contentResolver.resolvePinnedSkillDefinition(
+          skill.skillId,
+          skill.contentVersion,
+        )
+      : resolveMatureSkillVersion(skill.skillId, skill.contentVersion)
     if (
       !definition ||
       definition.sourceDisciplineId !== skill.sourceDisciplineId ||
-      !activeSources.has(skill.sourceDisciplineId)
+      !activeSources.has(disciplineSkillEligibilityId(skill) ?? '')
     ) {
       throw persistenceUnavailable('The committed build snapshot contains an invalid Skill.')
     }
   }
-  if (snapshot.disciplineSkills.length > disciplineSkillCapacity(secondaryDisciplineId)) {
+  if (
+    validateDisciplineSkillLoadout({
+      primaryDisciplineId: snapshot.primary.disciplineId,
+      secondaryDisciplineId,
+      equipped: snapshot.disciplineSkills,
+      learned: snapshot.disciplineSkills,
+    }).length > 0
+  ) {
     throw persistenceUnavailable('The committed build snapshot exceeds Skill capacity.')
   }
 
@@ -433,15 +563,22 @@ export async function loadCharacterCommittedBuildSnapshot(
     secondaryDisciplineId,
   )
   if (!persistedResonance) {
-    if (latestResonance) {
+    if (!repository.contentResolver && latestResonance) {
       throw persistenceUnavailable('The committed build snapshot is missing its Resonance.')
     }
   } else {
-    const resolved = resolveResonanceForPair(
-      snapshot.primary.disciplineId,
-      secondaryDisciplineId,
-      persistedResonance.contentVersion,
-    )
+    const resolved = repository.contentResolver?.resolvePinnedResonanceDefinition
+      ? await repository.contentResolver.resolvePinnedResonanceDefinition(
+          persistedResonance.disciplinePair[0],
+          persistedResonance.disciplinePair[1],
+          persistedResonance.resonanceId,
+          persistedResonance.contentVersion,
+        )
+      : resolveResonanceForPair(
+          snapshot.primary.disciplineId,
+          secondaryDisciplineId,
+          persistedResonance.contentVersion,
+        )
     if (!resolved) {
       throw persistenceUnavailable('The committed build snapshot contains an invalid Resonance.')
     }
@@ -459,15 +596,22 @@ export async function loadCharacterCommittedBuildSnapshot(
   const persistedEssence = snapshot.extensions.essence
   const latestEssence = resolveEssenceForBuild(snapshot.primary.disciplineId, secondaryDisciplineId)
   if (!persistedEssence) {
-    if (latestEssence) {
+    if (!repository.contentResolver && latestEssence) {
       throw persistenceUnavailable('The committed build snapshot is missing its Essence.')
     }
   } else {
-    const resolved = resolveEssenceForBuild(
-      snapshot.primary.disciplineId,
-      secondaryDisciplineId,
-      persistedEssence.contentVersion,
-    )
+    const resolved = repository.contentResolver?.resolvePinnedEssenceDefinition
+      ? await repository.contentResolver.resolvePinnedEssenceDefinition(
+          persistedEssence.sourceDisciplineId,
+          null,
+          persistedEssence.essenceId,
+          persistedEssence.contentVersion,
+        )
+      : resolveEssenceForBuild(
+          snapshot.primary.disciplineId,
+          secondaryDisciplineId,
+          persistedEssence.contentVersion,
+        )
     if (!resolved) {
       throw persistenceUnavailable('The committed build snapshot contains an invalid Essence.')
     }
@@ -483,7 +627,15 @@ export async function loadCharacterCommittedBuildSnapshot(
     }
   }
 
-  return snapshot
+  return captureEquipment && repository.loadBattleEquipment
+    ? {
+        ...snapshot,
+        extensions: {
+          ...snapshot.extensions,
+          equipmentSkills: [await repository.loadBattleEquipment(userId, characterId)],
+        },
+      }
+    : snapshot
 }
 
 export async function previewCharacterDisciplines(
@@ -512,7 +664,7 @@ export async function previewCharacterDisciplines(
     throw new AurevaneError('INVALID_REQUEST', 'Choose a valid Secondary Discipline to preview.')
   }
 
-  const primary = resolvedPrimaryEntry(primaryId, context)
+  const primary = resolvedPrimaryEntry(primaryId, context, input.primaryDisciplineId !== undefined)
   const secondary = resolvedSecondaryDefinition(secondaryId, context)
 
   if (secondary?.id === primary.definition.id) {
@@ -522,14 +674,41 @@ export async function previewCharacterDisciplines(
     )
   }
 
+  const changesPrimary =
+    primary.definition.id !== context.current.definition.id ||
+    primary.definition.definitionVersion !== context.current.definition.definitionVersion ||
+    primary.profile.profileVersion !== context.current.profile.profileVersion
+  let proposedAttributes = character.attributes
+  if (changesPrimary) {
+    const currentPolicy = disciplineAttributePolicyForProfile(context.current.profile)
+    const proposedPolicy = disciplineAttributePolicyForProfile(primary.profile)
+    if (!currentPolicy || !proposedPolicy) {
+      throw new AurevaneError('INVALID_REQUEST', 'The selected Primary Discipline is unavailable.')
+    }
+    const projection = projectAllocationForPrimaryDisciplineChange({
+      attributes: character.attributes,
+      level: character.level,
+      currentPolicy,
+      proposedPolicy,
+    })
+    if (projection.issues.length > 0) {
+      throw new AurevaneError(
+        'INVALID_REQUEST',
+        projection.issues[0]?.message ??
+          'That Primary Discipline cannot use the current Core Stats.',
+      )
+    }
+    proposedAttributes = projection.attributes
+  }
+
   return {
     current: context.current,
     currentSecondary: context.currentSecondary,
-    proposed: calculatePreview(character, primary),
+    proposed: calculatePreview(character, primary, proposedAttributes),
     proposedSecondary: secondary,
     buildVersion: context.build.buildVersion,
     changes: {
-      primary: primary.definition.id !== context.current.definition.id,
+      primary: changesPrimary,
       secondary: (secondary?.id ?? null) !== (context.currentSecondary?.id ?? null),
     },
     attunement: context.attunement,
@@ -581,6 +760,7 @@ export async function saveCharacterDisciplineSkills(
   input: {
     expectedBuildVersion: number
     skillIds: readonly string[]
+    eligibilitySelections?: readonly { skillId: string; eligibilityDisciplineId: string }[]
     idempotencyKey: string
   },
   repository: CharacterBuildRepository,
@@ -593,20 +773,58 @@ export async function saveCharacterDisciplineSkills(
     throw new AurevaneError('INVALID_REQUEST', 'The Discipline Skill selection is invalid.')
   }
 
-  const context = await loadCharacterBuildContext(userId, character, repository)
-  const learnedById = new Map(
+  const [context, learnedRecords] = await Promise.all([
+    loadCharacterBuildContext(userId, character, repository),
+    repository.listLearnedSkills(userId, character.id),
+  ])
+  const currentLearnedById = new Map(
     context.disciplineSkills.learnedSkills.map((entry) => [entry.definition.id, entry] as const),
   )
+  const choices = new Map<string, string>()
+  if (input.eligibilitySelections !== undefined) {
+    if (!Array.isArray(input.eligibilitySelections))
+      throw new AurevaneError('INVALID_REQUEST', 'The Skill eligibility selection is invalid.')
+    for (const choice of input.eligibilitySelections) {
+      if (
+        !choice ||
+        !isDisciplineSkillIdentity(choice.skillId) ||
+        !isDisciplineSkillIdentity(choice.eligibilityDisciplineId) ||
+        choices.has(choice.skillId) ||
+        !input.skillIds.includes(choice.skillId)
+      ) {
+        throw new AurevaneError('INVALID_REQUEST', 'The Skill eligibility selection is invalid.')
+      }
+      choices.set(choice.skillId, choice.eligibilityDisciplineId)
+    }
+  }
+  const active = new Set([context.current.definition.id, context.currentSecondary?.id])
   const selected = input.skillIds.map((candidate) => {
     const skillId = candidate.trim()
-    const entry = learnedById.get(skillId)
-    if (!skillId || !entry) {
-      throw new AurevaneError('INVALID_REQUEST', 'Only learned Discipline Skills may be equipped.')
-    }
+    const eligible = learnedRecords.filter(
+      (record) =>
+        record.skillId === skillId && active.has(disciplineSkillEligibilityId(record) ?? ''),
+    )
+    const chosen = choices.get(skillId)
+    if (!chosen && eligible.length > 1)
+      throw new AurevaneError(
+        'INVALID_REQUEST',
+        'Choose the eligible Discipline for each shared Skill before saving.',
+      )
+    const record = chosen
+      ? eligible.find((record) => disciplineSkillEligibilityId(record) === chosen)
+      : eligible[0]
+    if (!record || !currentLearnedById.get(skillId)?.definition.enabled)
+      throw new AurevaneError(
+        'INVALID_REQUEST',
+        'Only learned Skills eligible for an active Discipline may be equipped.',
+      )
     return {
-      skillId: entry.definition.id,
-      contentVersion: entry.definition.contentVersion,
-      sourceDisciplineId: entry.definition.sourceDisciplineId,
+      skillId: record.skillId,
+      contentVersion: record.contentVersion,
+      sourceDisciplineId: record.sourceDisciplineId,
+      ...(Object.hasOwn(record, 'eligibilityDisciplineId')
+        ? { eligibilityDisciplineId: record.eligibilityDisciplineId }
+        : {}),
     } satisfies DisciplineSkillReference
   })
 
@@ -614,11 +832,7 @@ export async function saveCharacterDisciplineSkills(
     primaryDisciplineId: context.current.definition.id,
     secondaryDisciplineId: context.currentSecondary?.id ?? null,
     equipped: selected,
-    learned: context.disciplineSkills.learnedSkills.map((entry) => ({
-      skillId: entry.definition.id,
-      contentVersion: entry.definition.contentVersion,
-      sourceDisciplineId: entry.definition.sourceDisciplineId,
-    })),
+    learned: learnedRecords,
   })
   if (issues.length > 0) {
     throw new AurevaneError(
@@ -630,7 +844,13 @@ export async function saveCharacterDisciplineSkills(
   const currentIds = context.disciplineSkills.equippedSkills.map((entry) => entry.definition.id)
   if (
     currentIds.length === selected.length &&
-    currentIds.every((skillId, index) => skillId === selected[index]?.skillId)
+    currentIds.every(
+      (skillId, index) =>
+        skillId === selected[index]?.skillId &&
+        (context.disciplineSkills.equippedSkills[index]?.eligibilityDisciplineId ??
+          context.disciplineSkills.equippedSkills[index]?.definition.sourceDisciplineId) ===
+          disciplineSkillEligibilityId(selected[index]!),
+    )
   ) {
     throw new AurevaneError(
       'INVALID_REQUEST',
@@ -697,7 +917,7 @@ export async function changeCharacterDisciplines(
     throw new AurevaneError('INVALID_REQUEST', 'Choose a valid Secondary Discipline to commit.')
   }
 
-  const primary = resolvedPrimaryEntry(primaryId, context)
+  const primary = resolvedPrimaryEntry(primaryId, context, input.primaryDisciplineId !== undefined)
   const secondary = resolvedSecondaryDefinition(secondaryId, context)
 
   if (secondary?.id === primary.definition.id) {
@@ -707,7 +927,10 @@ export async function changeCharacterDisciplines(
     )
   }
 
-  const changePrimary = primary.definition.id !== context.current.definition.id
+  const changePrimary =
+    primary.definition.id !== context.current.definition.id ||
+    primary.definition.definitionVersion !== context.current.definition.definitionVersion ||
+    primary.profile.profileVersion !== context.current.profile.profileVersion
   const changeSecondary = (secondary?.id ?? null) !== (context.currentSecondary?.id ?? null)
 
   if (!changePrimary && !changeSecondary) {
@@ -755,4 +978,38 @@ export async function changeCharacterPrimaryDiscipline(
 
 function persistenceUnavailable(detail: string): AurevaneError {
   return new AurevaneError('PERSISTENCE_UNAVAILABLE', detail)
+}
+
+export async function saveCharacterSupportAction(
+  userId: string,
+  character: PersistedCharacter,
+  input: { expectedBuildVersion: number; supportActionId: unknown; idempotencyKey: string },
+  repository: CharacterBuildRepository,
+): Promise<CharacterBuildContext & { replayed: boolean }> {
+  validateCommitInput(input)
+  const supportActionId = parseCurrentSupportActionId(input.supportActionId)
+  if (!supportActionId) throw new AurevaneError('INVALID_REQUEST', 'Choose a valid Support Action.')
+  await loadCharacterBuildContext(userId, character, repository)
+  const requestFingerprint = `sha256:${createHash('sha256')
+    .update(
+      JSON.stringify({
+        command: 'character.support-action.save.v1',
+        characterId: character.id,
+        expectedBuildVersion: input.expectedBuildVersion,
+        supportActionId,
+      }),
+    )
+    .digest('hex')}`
+  const saved = await repository.saveSupportAction({
+    userId,
+    characterId: character.id,
+    expectedBuildVersion: input.expectedBuildVersion,
+    supportActionId,
+    idempotencyKey: input.idempotencyKey,
+    requestFingerprint,
+  })
+  return {
+    ...(await loadCharacterBuildContext(userId, character, repository)),
+    replayed: saved.replayed,
+  }
 }

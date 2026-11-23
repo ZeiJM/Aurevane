@@ -1,0 +1,2330 @@
+{
+  "scope": "Actual local Chromium153 fixture artifacts; not pinned/full-auth/physical/true200 evidence",
+  "artifacts": [
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-basic-service/basic-service-1366.json",
+      "bytes": 125239,
+      "sha256": "bdf386e40e805fbbbd8a9be73a030c6897aa3f167d31a1042c5cac0b8350dd29"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-basic-service/basic-service-1440.json",
+      "bytes": 125239,
+      "sha256": "f7a52643a917602c3ee9e833aab0c5f80fe54c12f2c42fd58d897c9daaf29f33"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-basic-service/basic-service-390.json",
+      "bytes": 125239,
+      "sha256": "6f850e8b2d1d62bb539c768df0f20af293ff45f9dd23a91ed08b4cfdc3d7d47c"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-basic-service/basic-service-720.json",
+      "bytes": 125239,
+      "sha256": "60369614c1f8c74647e21d8bfd91b48173e7475df90cc204dc3ad37003aa62d4"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-basic-service/basic-service-restore-basic.guard-1366.png",
+      "bytes": 532241,
+      "sha256": "0e08a20edfa681909b0b4efa0ebc1438a65625d739d567f3da3501921e883e19"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-basic-service/basic-service-restore-basic.guard-1440.png",
+      "bytes": 623470,
+      "sha256": "669e3b69e9325b0b2a4a281f314f6c10b5e79cf3dcab989738e405481e69c6d0"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-basic-service/basic-service-restore-basic.guard-390.png",
+      "bytes": 186562,
+      "sha256": "e332a0e481ebc4743e8eea0e201116abec5debe7369913fe0c183480a6941b21"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-basic-service/basic-service-restore-basic.guard-720.png",
+      "bytes": 163296,
+      "sha256": "013f9247def4ce0a69035f4b7180ddb8bd636d15df32cd821e69fb54187d0574"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-basic-service/basic-service-restore-basic.move-1366.png",
+      "bytes": 540875,
+      "sha256": "ff522b65b2fad91afef61d7c1438e87a0091994e0c44389674d54545f44c6d38"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-basic-service/basic-service-restore-basic.move-1440.png",
+      "bytes": 632146,
+      "sha256": "91346559e2e359683ea34cce9a7f9cf8e3957f43732d32d9cebd034544d73937"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-basic-service/basic-service-restore-basic.move-390.png",
+      "bytes": 186275,
+      "sha256": "0f32c35813b1e5c755df7438d5c5d1cd550338b3308695032e8671c69a3c94cc"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-basic-service/basic-service-restore-basic.move-720.png",
+      "bytes": 163083,
+      "sha256": "dcecf0044a893bd8b1720fbd2573eeb6fae9385a16cd1003f9c731fbb2cb774e"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-basic-service/basic-service-restore-basic.recover-1366.png",
+      "bytes": 528148,
+      "sha256": "29378dd7ab96ca25390575f32117e5c271f362e4a50afe31560e5b18aa86a3d3"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-basic-service/basic-service-restore-basic.recover-1440.png",
+      "bytes": 619676,
+      "sha256": "16fe4da321a23a83fb3d343fa61429cce50348a90a77eca97e1898f4982baefe"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-basic-service/basic-service-restore-basic.recover-390.png",
+      "bytes": 184068,
+      "sha256": "c052864719f62888dbfcd06efeb30439597d729122f9313361f2f0a3735fa761"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-basic-service/basic-service-restore-basic.recover-720.png",
+      "bytes": 161966,
+      "sha256": "dd6f5879168cae302d8015c46d3eefb96720db676b12475139eaccf24fbcef9f"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-basic-service/basic-service-restore-basic.recover.mp-1366.png",
+      "bytes": 527807,
+      "sha256": "5d524367d7a44f66c1f1a1a44545bc4f71e4a875e5f0073a078fc74c9b905c5e"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-basic-service/basic-service-restore-basic.recover.mp-1440.png",
+      "bytes": 621073,
+      "sha256": "1aca8492dcccd7743d13b001c64c654cf753247461150d50489ff0411fd9cc53"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-basic-service/basic-service-restore-basic.recover.mp-390.png",
+      "bytes": 184119,
+      "sha256": "6cb58c034e079bf8332c3f4abf2b609632cd18004ecb45e7a9b92eaf930f9705"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-basic-service/basic-service-restore-basic.recover.mp-720.png",
+      "bytes": 161742,
+      "sha256": "ba2225e86a0521ca96cbe3912acce9029e7d2f7b2a05dffa5c24459cf8017f84"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-basic-service/basic-service-restore-unarmed.basic-1366.png",
+      "bytes": 537707,
+      "sha256": "aab79263b6c4630ae9f5e56b9cc93d0486ee3aecd6b1026451b49c964b1fff6b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-basic-service/basic-service-restore-unarmed.basic-1440.png",
+      "bytes": 630502,
+      "sha256": "ed9444d0d56c2ae0fc6e3d38002bebd33ce7f898eef42d42efe2848cd498b7ee"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-basic-service/basic-service-restore-unarmed.basic-390.png",
+      "bytes": 185291,
+      "sha256": "7affd35e1684ecdd4bcb1691972e8321b51959d37de6177e631f8f86d4d0f674"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-basic-service/basic-service-restore-unarmed.basic-720.png",
+      "bytes": 162842,
+      "sha256": "73e2621fa8e0abd3cb26f88c56f07a37cd2fe6b1ccbc64afabd798e8b72a456b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-basic-service/results.json",
+      "bytes": 1509,
+      "sha256": "15db4f5362b02006d186fdcc4d6c7fd338541c1329e8a63094c8d251d92af70f"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-event-browser/author-1366-1.png",
+      "bytes": 329006,
+      "sha256": "95654ad9f3e453907380f8428f943c2a85f9fd7624e9a23acf91fb8a9ba6d781"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-event-browser/author-1366-2.png",
+      "bytes": 675593,
+      "sha256": "2aaf8236ab4911c577edb2abf750f56a63ebc07186e1931bbf023ba7920bf0d3"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-event-browser/author-390-1.png",
+      "bytes": 142765,
+      "sha256": "d6ad76e3b5d8c48fdc30387e8369766ea4c4be55e9473a5445b83dd08c5b09ca"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-event-browser/events-1366-1.png",
+      "bytes": 389105,
+      "sha256": "7779dc2aac5adfe813d352ea80e833cd76fe92c34987ec2c021ca9361b7b6065"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-event-browser/events-1366-2.png",
+      "bytes": 737559,
+      "sha256": "8013c3476dea6828621c20a4fcfbb32afc39cc65e37f86d212f606537503dad8"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-event-browser/events-390-1.png",
+      "bytes": 128080,
+      "sha256": "46d76386af0cf83935e9d7a78efea334669e748f71f5d691aadb3a6f10eeee5d"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-event-browser/preview-1366-1.png",
+      "bytes": 415555,
+      "sha256": "0968999c42d51db24980ecdaa19a0d9d9a76f79ec07a07b207afa3b6878309ba"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-event-browser/preview-1366-2.png",
+      "bytes": 755358,
+      "sha256": "a553cb3fbf9b68bfa40d03e7ae90508db627f899b358ecd5c485e2d69836b23f"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-event-browser/preview-390-1.png",
+      "bytes": 197122,
+      "sha256": "907a3513cc8a1611dbd5d4627d1189fd2f290052e270bdaa130a87e5c4046957"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-event-browser/rewards-1366-1.png",
+      "bytes": 389105,
+      "sha256": "7779dc2aac5adfe813d352ea80e833cd76fe92c34987ec2c021ca9361b7b6065"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-event-browser/rewards-1366-2.png",
+      "bytes": 737559,
+      "sha256": "8013c3476dea6828621c20a4fcfbb32afc39cc65e37f86d212f606537503dad8"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-event-browser/rewards-390-1.png",
+      "bytes": 138205,
+      "sha256": "6e1386a6bb7e979e2e949bc188f48a7321c6625142b1209f0278e12274c40119"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/basic-editor-attack-1366.png",
+      "bytes": 423384,
+      "sha256": "92447949e872461e94807102aeef52a673faf60b54b559ee74454b750e59ccb3"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/basic-editor-attack-390.png",
+      "bytes": 117551,
+      "sha256": "e904078526e609cc3f291bc518e7aa74b41ffdbe76a00aaeb8589b2bb2e56115"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/basic-editor-move-1366.png",
+      "bytes": 473271,
+      "sha256": "60a9a12fc9b2fa3fa2a12f156f74b7678d28b3ec53372f223fcfd3c54787d839"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/basic-editor-move-390.png",
+      "bytes": 145690,
+      "sha256": "070d5fa25d038a46aa219fee2c1ad0370335dc225e98d72b3114231b50b101fa"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/basic-editor-recovery-1366.png",
+      "bytes": 422814,
+      "sha256": "75cea9d265245daba19f0aba34457252864c1c6ec5d664f2e776c4490fc067b1"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/basic-editor-recovery-390.png",
+      "bytes": 195784,
+      "sha256": "cfa19e3f4c06f954125509b9c9a4322a7fc9763c3e3fbcf02998743a19b5f479"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/basic-publication-1366.png",
+      "bytes": 504509,
+      "sha256": "5e5b4fe81e492429fa1d77acc666d09a486c170cdab225d7741d42d6772f3ff9"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/basic-publication-390.png",
+      "bytes": 149050,
+      "sha256": "2a1668c451f97b7e57b5af89131afe35eb088f957fc6fd175a195de73a1ef7f9"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/blindside-authoring-1366.png",
+      "bytes": 93754,
+      "sha256": "a1b7a6f6970652bd47e97ae3f8487af1d9ca469475bc12bb8a1d424e7bdbd1a2"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/blindside-authoring-390.png",
+      "bytes": 85176,
+      "sha256": "21e8f6c6b101999da759ac21e1eb92188ce22829aaa0d72bbb24056c7be5e455"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/blindside-reader-1366.png",
+      "bytes": 78962,
+      "sha256": "8bf6c533b782c72768d2d077eb4f3172910d0a4a018a837b135f721301d70071"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/blindside-reader-390.png",
+      "bytes": 76204,
+      "sha256": "d65bd9d7bbf547a802bfd9971dd8f2744103a66841a326889a95dd40a408d9c3"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/canonical-editor-costs-1366.png",
+      "bytes": 57720,
+      "sha256": "fc54686ddaaa5469410e602abe7dbb9d423e8584051fb00b2d7bdb452dca1794"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/canonical-editor-costs-390.png",
+      "bytes": 53463,
+      "sha256": "3db6cf3331e4c6a708969d533120b77e200726eaf32fdc8af558621166a8b8fe"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/canonical-editor-move-1366.png",
+      "bytes": 59854,
+      "sha256": "b1dc996b1fd9655fe702890bf704f919a05d3e2baed18a8f8825d104f24d239b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/canonical-editor-move-390.png",
+      "bytes": 54539,
+      "sha256": "41479bac526752f47a4d2fa141d9ab7c284ad9abe313118ac5288b688dc1101f"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/canonical-editor-ongoing-1366.png",
+      "bytes": 67009,
+      "sha256": "bdf13450d073772e01a6c8488000fe96100af8a3bdace0bbae40366fff58e1a1"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/canonical-editor-ongoing-390.png",
+      "bytes": 56436,
+      "sha256": "498b0a7cc6bd4ca7da2a971159dd59f4e11660430312c00116a2728a6822d980"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/elemental-battle-delayed-policy1-duration3-1366.png",
+      "bytes": 95802,
+      "sha256": "7335347da224bfe5b86bc161b7cd4575cd172a38002d4fcebcfe651fb99c0909"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/elemental-battle-delayed-policy1-duration3-390.png",
+      "bytes": 94792,
+      "sha256": "301975fdd7a997031afbfc5f443928ba8cdade011320ffea9e5addf0ebef7ede"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/elemental-battle-delayed-policy2-duration3-1366.png",
+      "bytes": 81367,
+      "sha256": "70aeb29582a0e634d605341005fd3a20e6e3acf3465499650b1ab1b3aeb93c20"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/elemental-battle-delayed-policy2-duration3-390.png",
+      "bytes": 80792,
+      "sha256": "d1914e5ea787c4f9d50c2daebd0b9bf5a12c9e5c4ec7ff0449de60a2e129df86"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/elemental-battle-delayed-policy2-duration4-1366.png",
+      "bytes": 81212,
+      "sha256": "15b773446af6a6bf375917c571076d10a31f8b99f37e5d408d0a4434348e7fda"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/elemental-battle-delayed-policy2-duration4-390.png",
+      "bytes": 80672,
+      "sha256": "2aa15fe347c8f08b9b24b2704715090cab413f632fac761b230ab1669b1e8c68"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/elemental-battle-historical-1366.png",
+      "bytes": 48856,
+      "sha256": "787809c1d64ad2ed84d60bde3b3eea0f5bc1d644a14f94e1ff67899cbb6964b3"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/elemental-battle-historical-390.png",
+      "bytes": 48802,
+      "sha256": "887f35f3417f96bab30856d5566230128638109df11d9c5e5bbfe2d90df31de8"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/elemental-battle-instant-policy2-duration3-1366.png",
+      "bytes": 78333,
+      "sha256": "d3125eef7c54076f757bd2eb5616315964af1ec8b0d0abac08123a9e59416ef0"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/elemental-battle-instant-policy2-duration3-390.png",
+      "bytes": 79415,
+      "sha256": "1717f0805ff8769fe9fc4f96bd14d111c4cb6b5592d893e18dd3eccc61c5cfcb"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/elemental-battle-next-round-policy2-duration3-1366.png",
+      "bytes": 77302,
+      "sha256": "7ab50de484e60c09d718c4f0469016f120d416f4ac181a4a0c8f63f4ec6f6669"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/elemental-battle-next-round-policy2-duration3-390.png",
+      "bytes": 78529,
+      "sha256": "d85fce8f6e0bb6af85a7e62615082412423af1847c4c782f6f8b8fcd5d659912"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/elemental-battle-unset-policy2-duration3-1366.png",
+      "bytes": 78333,
+      "sha256": "d3125eef7c54076f757bd2eb5616315964af1ec8b0d0abac08123a9e59416ef0"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/elemental-battle-unset-policy2-duration3-390.png",
+      "bytes": 79415,
+      "sha256": "1717f0805ff8769fe9fc4f96bd14d111c4cb6b5592d893e18dd3eccc61c5cfcb"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/elemental-summon-delayed-policy1-duration3-1366.png",
+      "bytes": 88392,
+      "sha256": "b504a9669ce4216875ae4fa387af2f40dddc7ca5d0d48df7dfcedbf87439120f"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/elemental-summon-delayed-policy1-duration3-390.png",
+      "bytes": 88384,
+      "sha256": "a9d7c97fdd7357c6aa87249ba32c17344c98ce9fcefdb22f6714e8b99fe17e27"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/elemental-summon-delayed-policy2-duration3-1366.png",
+      "bytes": 96822,
+      "sha256": "f3f9e09363f050acb06e77cea82d779582943ce313ab857128e93b5c4b7d5b08"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/elemental-summon-delayed-policy2-duration3-390.png",
+      "bytes": 97800,
+      "sha256": "12cb6f063eb2df7b6f590e301d9ac13d75fd10ccb372fe9560b9b4ad5af5f991"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/elemental-summon-delayed-policy2-duration4-1366.png",
+      "bytes": 96693,
+      "sha256": "093b287400cbded34c295cfff627708c0d570a2cb7e5381fcc8d3182d437e1dc"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/elemental-summon-delayed-policy2-duration4-390.png",
+      "bytes": 97677,
+      "sha256": "ee54bbf6f0c13735f40f9c502b468345d6851fb2ad54cd76f7d4d5b2a5330f6a"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/elemental-summon-historical-1366.png",
+      "bytes": 66078,
+      "sha256": "5c8cc414a4da4b649f888bb5402144e66385decec222565a9aad307b78dddd60"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/elemental-summon-historical-390.png",
+      "bytes": 66824,
+      "sha256": "2528c431bf6d501e4773aab32e16e5ae28af1b3994c1a34823a73b8a0bf2e41b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/elemental-summon-instant-policy2-duration3-1366.png",
+      "bytes": 93877,
+      "sha256": "64bc07b600ec59dafc76e34bcdaee6d858a35d7127fb184b22bf3f9256c61e12"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/elemental-summon-instant-policy2-duration3-390.png",
+      "bytes": 93930,
+      "sha256": "90e07d23b1f6dc9b9bfc15c3e0eb06bf5a6c7abd430ba7b724ff6ea3ea0ab22d"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/elemental-summon-next-round-policy2-duration3-1366.png",
+      "bytes": 92938,
+      "sha256": "e1ade7a8dfeceb6d9e1312a64f1fd9c6521867870e8945d4b2b5e1b0d57b90a1"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/elemental-summon-next-round-policy2-duration3-390.png",
+      "bytes": 92986,
+      "sha256": "2e307c714576f9b4bf44253767f0cf14fc2a7a1c6e0c8af541b5d656fbdc79e4"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/elemental-summon-unset-policy2-duration3-1366.png",
+      "bytes": 93877,
+      "sha256": "64bc07b600ec59dafc76e34bcdaee6d858a35d7127fb184b22bf3f9256c61e12"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/elemental-summon-unset-policy2-duration3-390.png",
+      "bytes": 93930,
+      "sha256": "90e07d23b1f6dc9b9bfc15c3e0eb06bf5a6c7abd430ba7b724ff6ea3ea0ab22d"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/fire-limited-cleanse-ground-1366.png",
+      "bytes": 70633,
+      "sha256": "be4bf43d9231e180c3239f2473554b8bcf9b1c53f098fa07287dd70f3d638623"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/fire-limited-cleanse-ground-390.png",
+      "bytes": 70578,
+      "sha256": "c7394e5aecd6641f01b9f67bd5783c2613f7696fe71b474baba10b8929921218"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/fire-limited-cleanse-unit-1366.png",
+      "bytes": 64134,
+      "sha256": "3e77c30f7b4100faca13b1136271ac4af216ed7e7b367634b11363b24306bcc2"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/fire-limited-cleanse-unit-390.png",
+      "bytes": 62751,
+      "sha256": "3ec27f7229c1fb4e81b7c39b6c5cd04d942ac0750f3752a59f755635d9a3f9f7"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/ground-reader-1366.png",
+      "bytes": 91024,
+      "sha256": "9154dafa603b01229c6f6971a19ca83f94096e18ab96173e8974898f7cccc123"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/ground-reader-390.png",
+      "bytes": 84806,
+      "sha256": "7087cb5429ecfd0ce0199605f34894f1d0e6926656794ffe198e33ef3b59fef5"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/healing-down-reader-1366.png",
+      "bytes": 69060,
+      "sha256": "a058252084b6ba726536102bc0d8163927490ad204b74a2c658aae3a29ddff7b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/healing-down-reader-390.png",
+      "bytes": 64504,
+      "sha256": "81e2bc8d5c5d5628bd1f9db8e491214979f68361993db5333a96897c1d619cf7"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/modular-inline-1366.png",
+      "bytes": 345708,
+      "sha256": "6edfaebac0d007c19803a349efa4ffb62c3f779bf8df9427c570ab82f34d30bf"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/modular-inline-390.png",
+      "bytes": 309965,
+      "sha256": "1667f4ead8554e805bfd0cd591e1d442ae23a9b6c030f710a805fba99d90593a"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/modular-manual-basics-1366.png",
+      "bytes": 461892,
+      "sha256": "3b2c06d28fc14080708cdc182f87a73d9ea7f468b56e4d0e9a51ec48f6810b67"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/modular-manual-basics-390.png",
+      "bytes": 218195,
+      "sha256": "2064e5458aa5f5b0422ddcb0a8e5b1ac495eb7fe1971d71321c39661df16af9b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/modular-manual-catalog-1366.png",
+      "bytes": 432851,
+      "sha256": "e7d95c5af8261729991fc4e54ba3b55ae259a1dbb400bc01648d40d047a52c91"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/modular-manual-catalog-390.png",
+      "bytes": 208981,
+      "sha256": "6088d2c3cf1b6f4ebb8ad5dfa278a420f6c39c94852051d9c7cd3538693c56dc"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/modular-nexus-essence-1366.png",
+      "bytes": 332284,
+      "sha256": "6f6e6a6df5869e7c8eb9b2f5d77a3ebb0225aecc004e6573be84953d25e5bae1"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/modular-nexus-essence-390.png",
+      "bytes": 177039,
+      "sha256": "b53ed09e9aac3f33418163e2f025d7f59d57fb6d008c61d465af1638dd1dde24"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/modular-nexus-resonance-1366.png",
+      "bytes": 331815,
+      "sha256": "aa7896ffdfeb9b4aadffc35c8f1779b9cb838d282dd1cee5d81c6761049ac018"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/modular-nexus-resonance-390.png",
+      "bytes": 188201,
+      "sha256": "2d59f872b58153f8fc80070e3e5724e6a55c93d88425e318f8fe16a4e52db0c1"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/modular-techniques-1366.png",
+      "bytes": 461330,
+      "sha256": "42d0c88e77f874a5c5d929d477480862f846ac7e079183751fe179dda9d3e5a2"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/modular-techniques-390.png",
+      "bytes": 192478,
+      "sha256": "1fd50086977ac049185f5114989ec9c43c1d861bfc36d07c4a543f065de8b35f"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/modular-techniques-leap-1366.png",
+      "bytes": 461330,
+      "sha256": "42d0c88e77f874a5c5d929d477480862f846ac7e079183751fe179dda9d3e5a2"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/modular-techniques-leap-390.png",
+      "bytes": 130810,
+      "sha256": "a0b2170ec4dcc8790f378e0a8be896e798ddb5050d362da69ce11e0ead1ef2e7"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/modular-techniques-maintain-1366.png",
+      "bytes": 461330,
+      "sha256": "42d0c88e77f874a5c5d929d477480862f846ac7e079183751fe179dda9d3e5a2"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/modular-techniques-maintain-390.png",
+      "bytes": 125363,
+      "sha256": "22a9ccbd73bdf66638bd40a9f1856c55b122b60903c27b276f75ede8eb20ac99"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/nexus-essence-1366.png",
+      "bytes": 413197,
+      "sha256": "a84cd253e5c6e83e3994fba4d478f090f1256aebbae851e59e7ff680ca449b0d"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/nexus-essence-390.png",
+      "bytes": 191666,
+      "sha256": "440f6bb9c1733175757c208ccbb119e9fd25bd35c4cf30b57f5c24cc43899b7a"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/nexus-resonance-1366.png",
+      "bytes": 448354,
+      "sha256": "b3064256d81e4439c64285741a00b8828ea9c5d34ef5c3e8ef8c5d4c5846e798"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/nexus-resonance-390.png",
+      "bytes": 198605,
+      "sha256": "0b23138cf88b38aae57af604875fe7460f836ab36245421289c924b848a06612"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/parameters-1366.png",
+      "bytes": 133583,
+      "sha256": "50ab1e10e601572c30d28f40bd8fef62160e76caee660e63a88e7037a6247ac8"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/parameters-390.png",
+      "bytes": 92965,
+      "sha256": "9ec7dd1b5be0ab2e3e0f6d284cf8ab59797d78474c439d059c2e1a7d8364fbec"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/results.json",
+      "bytes": 197,
+      "sha256": "f9120746c8465db5480ecaeb173eecd02f02cbd034683fe5b2cc5f8895aba20a"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/selected-preview-essence-1366.png",
+      "bytes": 262631,
+      "sha256": "8b5f033c433f8a26816e24545a55bec78e30cb5b85db4c4770da4822abb48397"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/selected-preview-essence-390.png",
+      "bytes": 124456,
+      "sha256": "c09c43e578816cd215c9d8a1cd4f82c02018672b59c982e37637728b6c50e353"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/selected-preview-skill-1366.png",
+      "bytes": 262631,
+      "sha256": "8b5f033c433f8a26816e24545a55bec78e30cb5b85db4c4770da4822abb48397"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette/selected-preview-skill-390.png",
+      "bytes": 124456,
+      "sha256": "c09c43e578816cd215c9d8a1cd4f82c02018672b59c982e37637728b6c50e353"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/basic-editor-attack-1366.png",
+      "bytes": 329481,
+      "sha256": "8282e3edf6c36d8e40c7e68d2fabe24ccb1403c12875c41af62b9e2524d0bc83"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/basic-editor-attack-390.png",
+      "bytes": 117670,
+      "sha256": "b9af6b6efd966227e664446f0ef483e7eda85ede20ddc360a629df1b94fa086b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/basic-editor-move-1366.png",
+      "bytes": 381455,
+      "sha256": "145e7c4afe5e7c632214d05dd3be3b2bcb1c4fc85a0c409f8bbd35836e72b298"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/basic-editor-move-390.png",
+      "bytes": 145597,
+      "sha256": "42e5496a4d01ea2983fbfb93a57b59cecdbfb0f2edfc9928e1ff22ebcdfa39fe"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/basic-editor-recovery-1366.png",
+      "bytes": 335745,
+      "sha256": "8409ba1f4eb805b545a36c1cc2b3b79dfa87fb6f00bd9cbfd852d98de70b9ef5"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/basic-editor-recovery-390.png",
+      "bytes": 83253,
+      "sha256": "a448b513accc9d1d534c9ade663d19db39a95c07c9dfffcd58633c973a16ac7b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/basic-publication-1366.png",
+      "bytes": 418087,
+      "sha256": "eca1c0ae6a2f581829bbb71888e1b608d881fbed54f5e937e2bd0f22219121d9"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/basic-publication-390.png",
+      "bytes": 148806,
+      "sha256": "acc26b2ee619ad2c80a60e036b8a09d7bbed792eadcb386f99aab84b37a60d26"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/blindside-authoring-1366.png",
+      "bytes": 93754,
+      "sha256": "a1b7a6f6970652bd47e97ae3f8487af1d9ca469475bc12bb8a1d424e7bdbd1a2"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/blindside-authoring-390.png",
+      "bytes": 85176,
+      "sha256": "21e8f6c6b101999da759ac21e1eb92188ce22829aaa0d72bbb24056c7be5e455"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/blindside-reader-1366.png",
+      "bytes": 78962,
+      "sha256": "8bf6c533b782c72768d2d077eb4f3172910d0a4a018a837b135f721301d70071"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/blindside-reader-390.png",
+      "bytes": 76204,
+      "sha256": "d65bd9d7bbf547a802bfd9971dd8f2744103a66841a326889a95dd40a408d9c3"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/canonical-editor-costs-1366.png",
+      "bytes": 57720,
+      "sha256": "fc54686ddaaa5469410e602abe7dbb9d423e8584051fb00b2d7bdb452dca1794"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/canonical-editor-costs-390.png",
+      "bytes": 53463,
+      "sha256": "3db6cf3331e4c6a708969d533120b77e200726eaf32fdc8af558621166a8b8fe"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/canonical-editor-move-1366.png",
+      "bytes": 59854,
+      "sha256": "b1dc996b1fd9655fe702890bf704f919a05d3e2baed18a8f8825d104f24d239b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/canonical-editor-move-390.png",
+      "bytes": 54539,
+      "sha256": "41479bac526752f47a4d2fa141d9ab7c284ad9abe313118ac5288b688dc1101f"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/canonical-editor-ongoing-1366.png",
+      "bytes": 67009,
+      "sha256": "bdf13450d073772e01a6c8488000fe96100af8a3bdace0bbae40366fff58e1a1"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/canonical-editor-ongoing-390.png",
+      "bytes": 56436,
+      "sha256": "498b0a7cc6bd4ca7da2a971159dd59f4e11660430312c00116a2728a6822d980"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/elemental-battle-delayed-policy1-duration3-1366.png",
+      "bytes": 95802,
+      "sha256": "7335347da224bfe5b86bc161b7cd4575cd172a38002d4fcebcfe651fb99c0909"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/elemental-battle-delayed-policy1-duration3-390.png",
+      "bytes": 94792,
+      "sha256": "301975fdd7a997031afbfc5f443928ba8cdade011320ffea9e5addf0ebef7ede"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/elemental-battle-delayed-policy2-duration3-1366.png",
+      "bytes": 81367,
+      "sha256": "70aeb29582a0e634d605341005fd3a20e6e3acf3465499650b1ab1b3aeb93c20"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/elemental-battle-delayed-policy2-duration3-390.png",
+      "bytes": 80792,
+      "sha256": "d1914e5ea787c4f9d50c2daebd0b9bf5a12c9e5c4ec7ff0449de60a2e129df86"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/elemental-battle-delayed-policy2-duration4-1366.png",
+      "bytes": 81212,
+      "sha256": "15b773446af6a6bf375917c571076d10a31f8b99f37e5d408d0a4434348e7fda"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/elemental-battle-delayed-policy2-duration4-390.png",
+      "bytes": 80672,
+      "sha256": "2aa15fe347c8f08b9b24b2704715090cab413f632fac761b230ab1669b1e8c68"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/elemental-battle-historical-1366.png",
+      "bytes": 48856,
+      "sha256": "787809c1d64ad2ed84d60bde3b3eea0f5bc1d644a14f94e1ff67899cbb6964b3"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/elemental-battle-historical-390.png",
+      "bytes": 48802,
+      "sha256": "887f35f3417f96bab30856d5566230128638109df11d9c5e5bbfe2d90df31de8"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/elemental-battle-instant-policy2-duration3-1366.png",
+      "bytes": 78333,
+      "sha256": "d3125eef7c54076f757bd2eb5616315964af1ec8b0d0abac08123a9e59416ef0"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/elemental-battle-instant-policy2-duration3-390.png",
+      "bytes": 79415,
+      "sha256": "1717f0805ff8769fe9fc4f96bd14d111c4cb6b5592d893e18dd3eccc61c5cfcb"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/elemental-battle-next-round-policy2-duration3-1366.png",
+      "bytes": 77302,
+      "sha256": "7ab50de484e60c09d718c4f0469016f120d416f4ac181a4a0c8f63f4ec6f6669"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/elemental-battle-next-round-policy2-duration3-390.png",
+      "bytes": 78529,
+      "sha256": "d85fce8f6e0bb6af85a7e62615082412423af1847c4c782f6f8b8fcd5d659912"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/elemental-battle-unset-policy2-duration3-1366.png",
+      "bytes": 78333,
+      "sha256": "d3125eef7c54076f757bd2eb5616315964af1ec8b0d0abac08123a9e59416ef0"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/elemental-battle-unset-policy2-duration3-390.png",
+      "bytes": 79415,
+      "sha256": "1717f0805ff8769fe9fc4f96bd14d111c4cb6b5592d893e18dd3eccc61c5cfcb"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/elemental-summon-delayed-policy1-duration3-1366.png",
+      "bytes": 88392,
+      "sha256": "b504a9669ce4216875ae4fa387af2f40dddc7ca5d0d48df7dfcedbf87439120f"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/elemental-summon-delayed-policy1-duration3-390.png",
+      "bytes": 88384,
+      "sha256": "a9d7c97fdd7357c6aa87249ba32c17344c98ce9fcefdb22f6714e8b99fe17e27"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/elemental-summon-delayed-policy2-duration3-1366.png",
+      "bytes": 96822,
+      "sha256": "f3f9e09363f050acb06e77cea82d779582943ce313ab857128e93b5c4b7d5b08"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/elemental-summon-delayed-policy2-duration3-390.png",
+      "bytes": 97800,
+      "sha256": "12cb6f063eb2df7b6f590e301d9ac13d75fd10ccb372fe9560b9b4ad5af5f991"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/elemental-summon-delayed-policy2-duration4-1366.png",
+      "bytes": 96693,
+      "sha256": "093b287400cbded34c295cfff627708c0d570a2cb7e5381fcc8d3182d437e1dc"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/elemental-summon-delayed-policy2-duration4-390.png",
+      "bytes": 97677,
+      "sha256": "ee54bbf6f0c13735f40f9c502b468345d6851fb2ad54cd76f7d4d5b2a5330f6a"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/elemental-summon-historical-1366.png",
+      "bytes": 66078,
+      "sha256": "5c8cc414a4da4b649f888bb5402144e66385decec222565a9aad307b78dddd60"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/elemental-summon-historical-390.png",
+      "bytes": 66824,
+      "sha256": "2528c431bf6d501e4773aab32e16e5ae28af1b3994c1a34823a73b8a0bf2e41b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/elemental-summon-instant-policy2-duration3-1366.png",
+      "bytes": 93877,
+      "sha256": "64bc07b600ec59dafc76e34bcdaee6d858a35d7127fb184b22bf3f9256c61e12"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/elemental-summon-instant-policy2-duration3-390.png",
+      "bytes": 93930,
+      "sha256": "90e07d23b1f6dc9b9bfc15c3e0eb06bf5a6c7abd430ba7b724ff6ea3ea0ab22d"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/elemental-summon-next-round-policy2-duration3-1366.png",
+      "bytes": 92938,
+      "sha256": "e1ade7a8dfeceb6d9e1312a64f1fd9c6521867870e8945d4b2b5e1b0d57b90a1"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/elemental-summon-next-round-policy2-duration3-390.png",
+      "bytes": 92986,
+      "sha256": "2e307c714576f9b4bf44253767f0cf14fc2a7a1c6e0c8af541b5d656fbdc79e4"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/elemental-summon-unset-policy2-duration3-1366.png",
+      "bytes": 93877,
+      "sha256": "64bc07b600ec59dafc76e34bcdaee6d858a35d7127fb184b22bf3f9256c61e12"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/elemental-summon-unset-policy2-duration3-390.png",
+      "bytes": 93930,
+      "sha256": "90e07d23b1f6dc9b9bfc15c3e0eb06bf5a6c7abd430ba7b724ff6ea3ea0ab22d"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/fire-limited-cleanse-ground-1366.png",
+      "bytes": 70633,
+      "sha256": "be4bf43d9231e180c3239f2473554b8bcf9b1c53f098fa07287dd70f3d638623"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/fire-limited-cleanse-ground-390.png",
+      "bytes": 70578,
+      "sha256": "c7394e5aecd6641f01b9f67bd5783c2613f7696fe71b474baba10b8929921218"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/fire-limited-cleanse-unit-1366.png",
+      "bytes": 64134,
+      "sha256": "3e77c30f7b4100faca13b1136271ac4af216ed7e7b367634b11363b24306bcc2"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/fire-limited-cleanse-unit-390.png",
+      "bytes": 62751,
+      "sha256": "3ec27f7229c1fb4e81b7c39b6c5cd04d942ac0750f3752a59f755635d9a3f9f7"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/ground-reader-1366.png",
+      "bytes": 91024,
+      "sha256": "9154dafa603b01229c6f6971a19ca83f94096e18ab96173e8974898f7cccc123"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/ground-reader-390.png",
+      "bytes": 84806,
+      "sha256": "7087cb5429ecfd0ce0199605f34894f1d0e6926656794ffe198e33ef3b59fef5"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/healing-down-reader-1366.png",
+      "bytes": 69060,
+      "sha256": "a058252084b6ba726536102bc0d8163927490ad204b74a2c658aae3a29ddff7b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/healing-down-reader-390.png",
+      "bytes": 64504,
+      "sha256": "81e2bc8d5c5d5628bd1f9db8e491214979f68361993db5333a96897c1d619cf7"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/modular-inline-1366.png",
+      "bytes": 345708,
+      "sha256": "6edfaebac0d007c19803a349efa4ffb62c3f779bf8df9427c570ab82f34d30bf"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/modular-inline-390.png",
+      "bytes": 309965,
+      "sha256": "1667f4ead8554e805bfd0cd591e1d442ae23a9b6c030f710a805fba99d90593a"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/modular-manual-basics-1366.png",
+      "bytes": 461892,
+      "sha256": "3b2c06d28fc14080708cdc182f87a73d9ea7f468b56e4d0e9a51ec48f6810b67"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/modular-manual-basics-390.png",
+      "bytes": 218195,
+      "sha256": "2064e5458aa5f5b0422ddcb0a8e5b1ac495eb7fe1971d71321c39661df16af9b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/modular-manual-catalog-1366.png",
+      "bytes": 432851,
+      "sha256": "e7d95c5af8261729991fc4e54ba3b55ae259a1dbb400bc01648d40d047a52c91"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/modular-manual-catalog-390.png",
+      "bytes": 208981,
+      "sha256": "6088d2c3cf1b6f4ebb8ad5dfa278a420f6c39c94852051d9c7cd3538693c56dc"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/modular-nexus-essence-1366.png",
+      "bytes": 332284,
+      "sha256": "6f6e6a6df5869e7c8eb9b2f5d77a3ebb0225aecc004e6573be84953d25e5bae1"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/modular-nexus-essence-390.png",
+      "bytes": 177039,
+      "sha256": "b53ed09e9aac3f33418163e2f025d7f59d57fb6d008c61d465af1638dd1dde24"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/modular-nexus-resonance-1366.png",
+      "bytes": 331815,
+      "sha256": "aa7896ffdfeb9b4aadffc35c8f1779b9cb838d282dd1cee5d81c6761049ac018"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/modular-nexus-resonance-390.png",
+      "bytes": 188201,
+      "sha256": "2d59f872b58153f8fc80070e3e5724e6a55c93d88425e318f8fe16a4e52db0c1"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/modular-techniques-1366.png",
+      "bytes": 461330,
+      "sha256": "42d0c88e77f874a5c5d929d477480862f846ac7e079183751fe179dda9d3e5a2"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/modular-techniques-390.png",
+      "bytes": 192478,
+      "sha256": "1fd50086977ac049185f5114989ec9c43c1d861bfc36d07c4a543f065de8b35f"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/modular-techniques-leap-1366.png",
+      "bytes": 461330,
+      "sha256": "42d0c88e77f874a5c5d929d477480862f846ac7e079183751fe179dda9d3e5a2"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/modular-techniques-leap-390.png",
+      "bytes": 130810,
+      "sha256": "a0b2170ec4dcc8790f378e0a8be896e798ddb5050d362da69ce11e0ead1ef2e7"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/modular-techniques-maintain-1366.png",
+      "bytes": 461330,
+      "sha256": "42d0c88e77f874a5c5d929d477480862f846ac7e079183751fe179dda9d3e5a2"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/modular-techniques-maintain-390.png",
+      "bytes": 125363,
+      "sha256": "22a9ccbd73bdf66638bd40a9f1856c55b122b60903c27b276f75ede8eb20ac99"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/nexus-essence-1366.png",
+      "bytes": 413197,
+      "sha256": "a84cd253e5c6e83e3994fba4d478f090f1256aebbae851e59e7ff680ca449b0d"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/nexus-essence-390.png",
+      "bytes": 191666,
+      "sha256": "440f6bb9c1733175757c208ccbb119e9fd25bd35c4cf30b57f5c24cc43899b7a"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/nexus-resonance-1366.png",
+      "bytes": 448354,
+      "sha256": "b3064256d81e4439c64285741a00b8828ea9c5d34ef5c3e8ef8c5d4c5846e798"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/nexus-resonance-390.png",
+      "bytes": 198605,
+      "sha256": "0b23138cf88b38aae57af604875fe7460f836ab36245421289c924b848a06612"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/parameters-1366.png",
+      "bytes": 133583,
+      "sha256": "50ab1e10e601572c30d28f40bd8fef62160e76caee660e63a88e7037a6247ac8"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/parameters-390.png",
+      "bytes": 92965,
+      "sha256": "9ec7dd1b5be0ab2e3e0f6d284cf8ab59797d78474c439d059c2e1a7d8364fbec"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/results.json",
+      "bytes": 197,
+      "sha256": "f9120746c8465db5480ecaeb173eecd02f02cbd034683fe5b2cc5f8895aba20a"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/selected-preview-essence-1366.png",
+      "bytes": 262631,
+      "sha256": "8b5f033c433f8a26816e24545a55bec78e30cb5b85db4c4770da4822abb48397"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/selected-preview-essence-390.png",
+      "bytes": 124456,
+      "sha256": "c09c43e578816cd215c9d8a1cd4f82c02018672b59c982e37637728b6c50e353"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/selected-preview-skill-1366.png",
+      "bytes": 262631,
+      "sha256": "8b5f033c433f8a26816e24545a55bec78e30cb5b85db4c4770da4822abb48397"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-full-palette-final/selected-preview-skill-390.png",
+      "bytes": 124456,
+      "sha256": "c09c43e578816cd215c9d8a1cd4f82c02018672b59c982e37637728b6c50e353"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-gradient-green/basic-editor-attack-1366.png",
+      "bytes": 423508,
+      "sha256": "7d929340a10cca81095bb05a41c8170fec4b77650aec917e0a84e4fca4d85f4e"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-gradient-green/basic-editor-move-1366.png",
+      "bytes": 473304,
+      "sha256": "b156ccea68ce42d1f39ffa6a1b8c7f216a08a3771272b011278e6c88a9fc7150"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-gradient-green/canonical-editor-costs-1366.png",
+      "bytes": 57720,
+      "sha256": "fc54686ddaaa5469410e602abe7dbb9d423e8584051fb00b2d7bdb452dca1794"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-gradient-green/canonical-editor-move-1366.png",
+      "bytes": 59854,
+      "sha256": "b1dc996b1fd9655fe702890bf704f919a05d3e2baed18a8f8825d104f24d239b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-gradient-green/canonical-editor-ongoing-1366.png",
+      "bytes": 67009,
+      "sha256": "bdf13450d073772e01a6c8488000fe96100af8a3bdace0bbae40366fff58e1a1"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-gradient-green/failure-state.json",
+      "bytes": 4612,
+      "sha256": "7f4208a0d20876ec7099764921b69e0483145c448cfd696af3ce9c7121058218"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-gradient-green/failure.html",
+      "bytes": 306316,
+      "sha256": "b1d038ae7a21ae65c59f2c865214484372efc4618df0ee4ecce665562938c04c"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-gradient-green/failure.json",
+      "bytes": 211,
+      "sha256": "e23b9cb8b7c0093985c2763e77aaa8e2782aff7e2c14ff66af3aec8205e7a8e8"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-gradient-green/failure.png",
+      "bytes": 422989,
+      "sha256": "e7f96a5bd6ef03719866798f090453040aef2e30dbe2a025e10489a1df3ef8d5"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-gradient-green/modular-inline-1366.png",
+      "bytes": 345708,
+      "sha256": "6edfaebac0d007c19803a349efa4ffb62c3f779bf8df9427c570ab82f34d30bf"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-gradient-green/modular-manual-basics-1366.png",
+      "bytes": 461892,
+      "sha256": "3b2c06d28fc14080708cdc182f87a73d9ea7f468b56e4d0e9a51ec48f6810b67"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-gradient-green/modular-manual-catalog-1366.png",
+      "bytes": 432851,
+      "sha256": "e7d95c5af8261729991fc4e54ba3b55ae259a1dbb400bc01648d40d047a52c91"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-gradient-green/modular-nexus-essence-1366.png",
+      "bytes": 332284,
+      "sha256": "6f6e6a6df5869e7c8eb9b2f5d77a3ebb0225aecc004e6573be84953d25e5bae1"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-gradient-green/modular-nexus-resonance-1366.png",
+      "bytes": 331815,
+      "sha256": "aa7896ffdfeb9b4aadffc35c8f1779b9cb838d282dd1cee5d81c6761049ac018"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-gradient-green/modular-techniques-1366.png",
+      "bytes": 461330,
+      "sha256": "42d0c88e77f874a5c5d929d477480862f846ac7e079183751fe179dda9d3e5a2"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-gradient-green/modular-techniques-leap-1366.png",
+      "bytes": 461330,
+      "sha256": "42d0c88e77f874a5c5d929d477480862f846ac7e079183751fe179dda9d3e5a2"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-gradient-green/modular-techniques-maintain-1366.png",
+      "bytes": 461330,
+      "sha256": "42d0c88e77f874a5c5d929d477480862f846ac7e079183751fe179dda9d3e5a2"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-gradient-red/basic-editor-attack-1366.png",
+      "bytes": 423384,
+      "sha256": "92447949e872461e94807102aeef52a673faf60b54b559ee74454b750e59ccb3"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-gradient-red/basic-editor-move-1366.png",
+      "bytes": 473271,
+      "sha256": "60a9a12fc9b2fa3fa2a12f156f74b7678d28b3ec53372f223fcfd3c54787d839"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-gradient-red/canonical-editor-costs-1366.png",
+      "bytes": 57720,
+      "sha256": "fc54686ddaaa5469410e602abe7dbb9d423e8584051fb00b2d7bdb452dca1794"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-gradient-red/canonical-editor-move-1366.png",
+      "bytes": 59854,
+      "sha256": "b1dc996b1fd9655fe702890bf704f919a05d3e2baed18a8f8825d104f24d239b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-gradient-red/canonical-editor-ongoing-1366.png",
+      "bytes": 67009,
+      "sha256": "bdf13450d073772e01a6c8488000fe96100af8a3bdace0bbae40366fff58e1a1"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-gradient-red/failure-state.json",
+      "bytes": 4612,
+      "sha256": "0facddaa21925823867b8741506981eea6213cbc6c4d101b54300dfb91945684"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-gradient-red/failure.html",
+      "bytes": 306154,
+      "sha256": "42a2a41fbd800cb13024a269ea24ec598ed5a5964950e96d8b3f0c40287b6951"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-gradient-red/failure.json",
+      "bytes": 212,
+      "sha256": "87467871112e7139eb3a8d0f1ae6398734df1bd9f8ce0ae056886640acc36ef6"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-gradient-red/failure.png",
+      "bytes": 422814,
+      "sha256": "75cea9d265245daba19f0aba34457252864c1c6ec5d664f2e776c4490fc067b1"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-gradient-red/modular-inline-1366.png",
+      "bytes": 345708,
+      "sha256": "6edfaebac0d007c19803a349efa4ffb62c3f779bf8df9427c570ab82f34d30bf"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-gradient-red/modular-manual-basics-1366.png",
+      "bytes": 461892,
+      "sha256": "3b2c06d28fc14080708cdc182f87a73d9ea7f468b56e4d0e9a51ec48f6810b67"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-gradient-red/modular-manual-catalog-1366.png",
+      "bytes": 432851,
+      "sha256": "e7d95c5af8261729991fc4e54ba3b55ae259a1dbb400bc01648d40d047a52c91"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-gradient-red/modular-nexus-essence-1366.png",
+      "bytes": 332284,
+      "sha256": "6f6e6a6df5869e7c8eb9b2f5d77a3ebb0225aecc004e6573be84953d25e5bae1"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-gradient-red/modular-nexus-resonance-1366.png",
+      "bytes": 331815,
+      "sha256": "aa7896ffdfeb9b4aadffc35c8f1779b9cb838d282dd1cee5d81c6761049ac018"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-gradient-red/modular-techniques-1366.png",
+      "bytes": 461330,
+      "sha256": "42d0c88e77f874a5c5d929d477480862f846ac7e079183751fe179dda9d3e5a2"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-gradient-red/modular-techniques-leap-1366.png",
+      "bytes": 461330,
+      "sha256": "42d0c88e77f874a5c5d929d477480862f846ac7e079183751fe179dda9d3e5a2"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-gradient-red/modular-techniques-maintain-1366.png",
+      "bytes": 461330,
+      "sha256": "42d0c88e77f874a5c5d929d477480862f846ac7e079183751fe179dda9d3e5a2"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular/canonical-editor-costs-1366.png",
+      "bytes": 57720,
+      "sha256": "fc54686ddaaa5469410e602abe7dbb9d423e8584051fb00b2d7bdb452dca1794"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular/canonical-editor-move-1366.png",
+      "bytes": 59854,
+      "sha256": "b1dc996b1fd9655fe702890bf704f919a05d3e2baed18a8f8825d104f24d239b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular/canonical-editor-ongoing-1366.png",
+      "bytes": 67009,
+      "sha256": "bdf13450d073772e01a6c8488000fe96100af8a3bdace0bbae40366fff58e1a1"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular/failure-state.json",
+      "bytes": 4148,
+      "sha256": "857a55f00fd9d69032b60f13f339a349f491cae43b2ba1168f3306c57ee53034"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular/failure.html",
+      "bytes": 302321,
+      "sha256": "81eaf8fbee0bac9f3f903b720b4bc40a053c7fa780fcb84ccb7195574a4a744d"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular/failure.json",
+      "bytes": 182,
+      "sha256": "94438f5066cc7b7d7d46d123629a3b805662388e4ffb752f6c84c210ce719f9b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular/failure.png",
+      "bytes": 425495,
+      "sha256": "23aa297f43c394ed4db6192171fddd11f225715245358759b226a0ef2032da39"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular/modular-inline-1366.png",
+      "bytes": 345708,
+      "sha256": "6edfaebac0d007c19803a349efa4ffb62c3f779bf8df9427c570ab82f34d30bf"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular/modular-manual-basics-1366.png",
+      "bytes": 461892,
+      "sha256": "3b2c06d28fc14080708cdc182f87a73d9ea7f468b56e4d0e9a51ec48f6810b67"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular/modular-manual-catalog-1366.png",
+      "bytes": 432851,
+      "sha256": "e7d95c5af8261729991fc4e54ba3b55ae259a1dbb400bc01648d40d047a52c91"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular/modular-nexus-essence-1366.png",
+      "bytes": 332284,
+      "sha256": "6f6e6a6df5869e7c8eb9b2f5d77a3ebb0225aecc004e6573be84953d25e5bae1"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular/modular-nexus-resonance-1366.png",
+      "bytes": 331815,
+      "sha256": "aa7896ffdfeb9b4aadffc35c8f1779b9cb838d282dd1cee5d81c6761049ac018"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular/modular-techniques-1366.png",
+      "bytes": 461330,
+      "sha256": "42d0c88e77f874a5c5d929d477480862f846ac7e079183751fe179dda9d3e5a2"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular/modular-techniques-leap-1366.png",
+      "bytes": 461330,
+      "sha256": "42d0c88e77f874a5c5d929d477480862f846ac7e079183751fe179dda9d3e5a2"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular/modular-techniques-maintain-1366.png",
+      "bytes": 461330,
+      "sha256": "42d0c88e77f874a5c5d929d477480862f846ac7e079183751fe179dda9d3e5a2"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-diagnostic/canonical-editor-costs-1366.png",
+      "bytes": 57720,
+      "sha256": "fc54686ddaaa5469410e602abe7dbb9d423e8584051fb00b2d7bdb452dca1794"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-diagnostic/canonical-editor-move-1366.png",
+      "bytes": 59854,
+      "sha256": "b1dc996b1fd9655fe702890bf704f919a05d3e2baed18a8f8825d104f24d239b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-diagnostic/canonical-editor-ongoing-1366.png",
+      "bytes": 67009,
+      "sha256": "bdf13450d073772e01a6c8488000fe96100af8a3bdace0bbae40366fff58e1a1"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-diagnostic/failure-state.json",
+      "bytes": 4148,
+      "sha256": "b5358dc16a4d63ae59a1e9a8a28a49709e6eb1acd1df7f1cc5cbce35552725d8"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-diagnostic/failure.html",
+      "bytes": 302321,
+      "sha256": "81eaf8fbee0bac9f3f903b720b4bc40a053c7fa780fcb84ccb7195574a4a744d"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-diagnostic/failure.json",
+      "bytes": 559,
+      "sha256": "06783b5ba47be889ce6238f9f31f17a7dc4b34831a0587620d7e12d11b6e8e6b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-diagnostic/failure.png",
+      "bytes": 425495,
+      "sha256": "23aa297f43c394ed4db6192171fddd11f225715245358759b226a0ef2032da39"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-diagnostic/modular-inline-1366.png",
+      "bytes": 345708,
+      "sha256": "6edfaebac0d007c19803a349efa4ffb62c3f779bf8df9427c570ab82f34d30bf"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-diagnostic/modular-manual-basics-1366.png",
+      "bytes": 461892,
+      "sha256": "3b2c06d28fc14080708cdc182f87a73d9ea7f468b56e4d0e9a51ec48f6810b67"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-diagnostic/modular-manual-catalog-1366.png",
+      "bytes": 432851,
+      "sha256": "e7d95c5af8261729991fc4e54ba3b55ae259a1dbb400bc01648d40d047a52c91"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-diagnostic/modular-nexus-essence-1366.png",
+      "bytes": 332284,
+      "sha256": "6f6e6a6df5869e7c8eb9b2f5d77a3ebb0225aecc004e6573be84953d25e5bae1"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-diagnostic/modular-nexus-resonance-1366.png",
+      "bytes": 331815,
+      "sha256": "aa7896ffdfeb9b4aadffc35c8f1779b9cb838d282dd1cee5d81c6761049ac018"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-diagnostic/modular-techniques-1366.png",
+      "bytes": 461330,
+      "sha256": "42d0c88e77f874a5c5d929d477480862f846ac7e079183751fe179dda9d3e5a2"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-diagnostic/modular-techniques-leap-1366.png",
+      "bytes": 461330,
+      "sha256": "42d0c88e77f874a5c5d929d477480862f846ac7e079183751fe179dda9d3e5a2"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-diagnostic/modular-techniques-maintain-1366.png",
+      "bytes": 461330,
+      "sha256": "42d0c88e77f874a5c5d929d477480862f846ac7e079183751fe179dda9d3e5a2"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green/basic-editor-attack-1366.png",
+      "bytes": 421895,
+      "sha256": "81ed62c9e670d828b603afdc95c137ef134b1e4cb6dce0feaf12509ed9f21482"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green/basic-editor-move-1366.png",
+      "bytes": 472829,
+      "sha256": "9fce639be68816321cd9f636142ec8a9d255e23f53ba0b4d95e12db673223595"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green/canonical-editor-costs-1366.png",
+      "bytes": 57720,
+      "sha256": "fc54686ddaaa5469410e602abe7dbb9d423e8584051fb00b2d7bdb452dca1794"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green/canonical-editor-move-1366.png",
+      "bytes": 59854,
+      "sha256": "b1dc996b1fd9655fe702890bf704f919a05d3e2baed18a8f8825d104f24d239b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green/canonical-editor-ongoing-1366.png",
+      "bytes": 67009,
+      "sha256": "bdf13450d073772e01a6c8488000fe96100af8a3bdace0bbae40366fff58e1a1"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green/failure-state.json",
+      "bytes": 4567,
+      "sha256": "a612181b4f987269809e3bec34a88f6aa435638d11f3e81aacc24ba469e3469d"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green/failure.html",
+      "bytes": 305627,
+      "sha256": "dfd4702afd68e4f89441cec4075f043f5a20c056d2ba75d52b9f387770509fd9"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green/failure.json",
+      "bytes": 193,
+      "sha256": "ff57773372da593ce0092e2053086bb3659e113753206f4f1488680df273c916"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green/failure.png",
+      "bytes": 433606,
+      "sha256": "72789f395a45d04e19a68e364cfc21dc393340de55ed9327acd4c76add755734"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green/modular-inline-1366.png",
+      "bytes": 345708,
+      "sha256": "6edfaebac0d007c19803a349efa4ffb62c3f779bf8df9427c570ab82f34d30bf"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green/modular-manual-basics-1366.png",
+      "bytes": 461892,
+      "sha256": "3b2c06d28fc14080708cdc182f87a73d9ea7f468b56e4d0e9a51ec48f6810b67"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green/modular-manual-catalog-1366.png",
+      "bytes": 432851,
+      "sha256": "e7d95c5af8261729991fc4e54ba3b55ae259a1dbb400bc01648d40d047a52c91"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green/modular-nexus-essence-1366.png",
+      "bytes": 332284,
+      "sha256": "6f6e6a6df5869e7c8eb9b2f5d77a3ebb0225aecc004e6573be84953d25e5bae1"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green/modular-nexus-resonance-1366.png",
+      "bytes": 331815,
+      "sha256": "aa7896ffdfeb9b4aadffc35c8f1779b9cb838d282dd1cee5d81c6761049ac018"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green/modular-techniques-1366.png",
+      "bytes": 461330,
+      "sha256": "42d0c88e77f874a5c5d929d477480862f846ac7e079183751fe179dda9d3e5a2"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green/modular-techniques-leap-1366.png",
+      "bytes": 461330,
+      "sha256": "42d0c88e77f874a5c5d929d477480862f846ac7e079183751fe179dda9d3e5a2"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green/modular-techniques-maintain-1366.png",
+      "bytes": 461330,
+      "sha256": "42d0c88e77f874a5c5d929d477480862f846ac7e079183751fe179dda9d3e5a2"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green2/basic-editor-attack-1366.png",
+      "bytes": 421895,
+      "sha256": "81ed62c9e670d828b603afdc95c137ef134b1e4cb6dce0feaf12509ed9f21482"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green2/basic-editor-move-1366.png",
+      "bytes": 472829,
+      "sha256": "9fce639be68816321cd9f636142ec8a9d255e23f53ba0b4d95e12db673223595"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green2/canonical-editor-costs-1366.png",
+      "bytes": 57720,
+      "sha256": "fc54686ddaaa5469410e602abe7dbb9d423e8584051fb00b2d7bdb452dca1794"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green2/canonical-editor-move-1366.png",
+      "bytes": 59854,
+      "sha256": "b1dc996b1fd9655fe702890bf704f919a05d3e2baed18a8f8825d104f24d239b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green2/canonical-editor-ongoing-1366.png",
+      "bytes": 67009,
+      "sha256": "bdf13450d073772e01a6c8488000fe96100af8a3bdace0bbae40366fff58e1a1"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green2/failure-state.json",
+      "bytes": 4612,
+      "sha256": "4e8570de38f214c5b74c6d252b38478917f8dce70890cd22b022de569783413a"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green2/failure.html",
+      "bytes": 305552,
+      "sha256": "4665d6c35b02e4efc880352532646f7aa60c2cfc47dc396815853594c762fae3"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green2/failure.json",
+      "bytes": 188,
+      "sha256": "243d9abb0287cc229dc51ec93392473ca3a376606e02ebf555a038de6033b11e"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green2/failure.png",
+      "bytes": 422336,
+      "sha256": "c1bd8c395a31a6cc26dfd561b9711903728cb4f7f652caa00d18e18dfa605883"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green2/modular-inline-1366.png",
+      "bytes": 345708,
+      "sha256": "6edfaebac0d007c19803a349efa4ffb62c3f779bf8df9427c570ab82f34d30bf"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green2/modular-manual-basics-1366.png",
+      "bytes": 461892,
+      "sha256": "3b2c06d28fc14080708cdc182f87a73d9ea7f468b56e4d0e9a51ec48f6810b67"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green2/modular-manual-catalog-1366.png",
+      "bytes": 432851,
+      "sha256": "e7d95c5af8261729991fc4e54ba3b55ae259a1dbb400bc01648d40d047a52c91"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green2/modular-nexus-essence-1366.png",
+      "bytes": 332284,
+      "sha256": "6f6e6a6df5869e7c8eb9b2f5d77a3ebb0225aecc004e6573be84953d25e5bae1"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green2/modular-nexus-resonance-1366.png",
+      "bytes": 331815,
+      "sha256": "aa7896ffdfeb9b4aadffc35c8f1779b9cb838d282dd1cee5d81c6761049ac018"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green2/modular-techniques-1366.png",
+      "bytes": 461330,
+      "sha256": "42d0c88e77f874a5c5d929d477480862f846ac7e079183751fe179dda9d3e5a2"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green2/modular-techniques-leap-1366.png",
+      "bytes": 461330,
+      "sha256": "42d0c88e77f874a5c5d929d477480862f846ac7e079183751fe179dda9d3e5a2"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green2/modular-techniques-maintain-1366.png",
+      "bytes": 461330,
+      "sha256": "42d0c88e77f874a5c5d929d477480862f846ac7e079183751fe179dda9d3e5a2"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green3/basic-editor-attack-1366.png",
+      "bytes": 423384,
+      "sha256": "92447949e872461e94807102aeef52a673faf60b54b559ee74454b750e59ccb3"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green3/basic-editor-move-1366.png",
+      "bytes": 473271,
+      "sha256": "60a9a12fc9b2fa3fa2a12f156f74b7678d28b3ec53372f223fcfd3c54787d839"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green3/basic-editor-recovery-1366.png",
+      "bytes": 422814,
+      "sha256": "75cea9d265245daba19f0aba34457252864c1c6ec5d664f2e776c4490fc067b1"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green3/canonical-editor-costs-1366.png",
+      "bytes": 57720,
+      "sha256": "fc54686ddaaa5469410e602abe7dbb9d423e8584051fb00b2d7bdb452dca1794"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green3/canonical-editor-move-1366.png",
+      "bytes": 59854,
+      "sha256": "b1dc996b1fd9655fe702890bf704f919a05d3e2baed18a8f8825d104f24d239b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green3/canonical-editor-ongoing-1366.png",
+      "bytes": 67009,
+      "sha256": "bdf13450d073772e01a6c8488000fe96100af8a3bdace0bbae40366fff58e1a1"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green3/failure-state.json",
+      "bytes": 4230,
+      "sha256": "aad977ebd65bba8a73145b0311c2878857ecada15ab0461296f96487c7a37efd"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green3/failure.html",
+      "bytes": 303168,
+      "sha256": "ac9e4b0aff4bd7993f74cb8a15d83109ecb8021693173cd9eb4bb673ce0deadf"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green3/failure.json",
+      "bytes": 400,
+      "sha256": "2d97783b94b71f574e095ed6bbf58a1492a5c9317ac146bcd7a8130c0be5a2c8"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green3/failure.png",
+      "bytes": 424914,
+      "sha256": "f859313fa9baffbddd45a44c6c3382e2bbce9af513bd32d2e55519044e3cd2fa"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green3/modular-inline-1366.png",
+      "bytes": 345708,
+      "sha256": "6edfaebac0d007c19803a349efa4ffb62c3f779bf8df9427c570ab82f34d30bf"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green3/modular-manual-basics-1366.png",
+      "bytes": 461892,
+      "sha256": "3b2c06d28fc14080708cdc182f87a73d9ea7f468b56e4d0e9a51ec48f6810b67"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green3/modular-manual-catalog-1366.png",
+      "bytes": 432851,
+      "sha256": "e7d95c5af8261729991fc4e54ba3b55ae259a1dbb400bc01648d40d047a52c91"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green3/modular-nexus-essence-1366.png",
+      "bytes": 332284,
+      "sha256": "6f6e6a6df5869e7c8eb9b2f5d77a3ebb0225aecc004e6573be84953d25e5bae1"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green3/modular-nexus-resonance-1366.png",
+      "bytes": 331815,
+      "sha256": "aa7896ffdfeb9b4aadffc35c8f1779b9cb838d282dd1cee5d81c6761049ac018"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green3/modular-techniques-1366.png",
+      "bytes": 461330,
+      "sha256": "42d0c88e77f874a5c5d929d477480862f846ac7e079183751fe179dda9d3e5a2"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green3/modular-techniques-leap-1366.png",
+      "bytes": 461330,
+      "sha256": "42d0c88e77f874a5c5d929d477480862f846ac7e079183751fe179dda9d3e5a2"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green3/modular-techniques-maintain-1366.png",
+      "bytes": 461330,
+      "sha256": "42d0c88e77f874a5c5d929d477480862f846ac7e079183751fe179dda9d3e5a2"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green4/basic-editor-attack-1366.png",
+      "bytes": 423384,
+      "sha256": "92447949e872461e94807102aeef52a673faf60b54b559ee74454b750e59ccb3"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green4/basic-editor-move-1366.png",
+      "bytes": 473271,
+      "sha256": "60a9a12fc9b2fa3fa2a12f156f74b7678d28b3ec53372f223fcfd3c54787d839"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green4/basic-editor-recovery-1366.png",
+      "bytes": 422814,
+      "sha256": "75cea9d265245daba19f0aba34457252864c1c6ec5d664f2e776c4490fc067b1"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green4/basic-publication-1366.png",
+      "bytes": 504725,
+      "sha256": "a3ceeecf0dd6e40658d5319eb5f54635cabe4d8e25180bffe6054c9cb8ed4a9b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green4/canonical-editor-costs-1366.png",
+      "bytes": 57720,
+      "sha256": "fc54686ddaaa5469410e602abe7dbb9d423e8584051fb00b2d7bdb452dca1794"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green4/canonical-editor-move-1366.png",
+      "bytes": 59854,
+      "sha256": "b1dc996b1fd9655fe702890bf704f919a05d3e2baed18a8f8825d104f24d239b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green4/canonical-editor-ongoing-1366.png",
+      "bytes": 67009,
+      "sha256": "bdf13450d073772e01a6c8488000fe96100af8a3bdace0bbae40366fff58e1a1"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green4/failure-state.json",
+      "bytes": 5161,
+      "sha256": "10cacddbeaab8bea25b4849984b574ffe702a54ef6ee6ad4ab9aebdca8017fb6"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green4/failure.html",
+      "bytes": 311372,
+      "sha256": "b521306a0400c9ff849d6e05f92748e4d780e03e5bf8b46c935a0b409243bc76"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green4/failure.json",
+      "bytes": 97,
+      "sha256": "2488838180dc33fcce38f0347ae34c231f1d57614e63cf3ab2d844aca4224133"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green4/failure.png",
+      "bytes": 240253,
+      "sha256": "4b18c027421cda75f99db18e75a07e5f34860a32467241010e11d55430286c3e"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green4/modular-inline-1366.png",
+      "bytes": 345708,
+      "sha256": "6edfaebac0d007c19803a349efa4ffb62c3f779bf8df9427c570ab82f34d30bf"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green4/modular-manual-basics-1366.png",
+      "bytes": 461892,
+      "sha256": "3b2c06d28fc14080708cdc182f87a73d9ea7f468b56e4d0e9a51ec48f6810b67"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green4/modular-manual-catalog-1366.png",
+      "bytes": 432851,
+      "sha256": "e7d95c5af8261729991fc4e54ba3b55ae259a1dbb400bc01648d40d047a52c91"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green4/modular-nexus-essence-1366.png",
+      "bytes": 332284,
+      "sha256": "6f6e6a6df5869e7c8eb9b2f5d77a3ebb0225aecc004e6573be84953d25e5bae1"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green4/modular-nexus-resonance-1366.png",
+      "bytes": 331815,
+      "sha256": "aa7896ffdfeb9b4aadffc35c8f1779b9cb838d282dd1cee5d81c6761049ac018"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green4/modular-techniques-1366.png",
+      "bytes": 461330,
+      "sha256": "42d0c88e77f874a5c5d929d477480862f846ac7e079183751fe179dda9d3e5a2"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green4/modular-techniques-leap-1366.png",
+      "bytes": 461330,
+      "sha256": "42d0c88e77f874a5c5d929d477480862f846ac7e079183751fe179dda9d3e5a2"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green4/modular-techniques-maintain-1366.png",
+      "bytes": 461330,
+      "sha256": "42d0c88e77f874a5c5d929d477480862f846ac7e079183751fe179dda9d3e5a2"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green5/basic-editor-attack-1366.png",
+      "bytes": 423384,
+      "sha256": "92447949e872461e94807102aeef52a673faf60b54b559ee74454b750e59ccb3"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green5/basic-editor-attack-390.png",
+      "bytes": 117551,
+      "sha256": "e904078526e609cc3f291bc518e7aa74b41ffdbe76a00aaeb8589b2bb2e56115"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green5/basic-editor-move-1366.png",
+      "bytes": 473271,
+      "sha256": "60a9a12fc9b2fa3fa2a12f156f74b7678d28b3ec53372f223fcfd3c54787d839"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green5/basic-editor-move-390.png",
+      "bytes": 145690,
+      "sha256": "070d5fa25d038a46aa219fee2c1ad0370335dc225e98d72b3114231b50b101fa"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green5/basic-editor-recovery-1366.png",
+      "bytes": 422814,
+      "sha256": "75cea9d265245daba19f0aba34457252864c1c6ec5d664f2e776c4490fc067b1"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green5/basic-editor-recovery-390.png",
+      "bytes": 195784,
+      "sha256": "cfa19e3f4c06f954125509b9c9a4322a7fc9763c3e3fbcf02998743a19b5f479"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green5/basic-publication-1366.png",
+      "bytes": 504679,
+      "sha256": "0c83dc39e207da1e7ae9b067d1d3f716944f1cd0d7cb1f483de7101f87f1432f"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green5/basic-publication-390.png",
+      "bytes": 149170,
+      "sha256": "6e012dd8e37e1de1edcaa2798e027988d70287122641bf21fa4181c0eab5e0c2"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green5/canonical-editor-costs-1366.png",
+      "bytes": 57720,
+      "sha256": "fc54686ddaaa5469410e602abe7dbb9d423e8584051fb00b2d7bdb452dca1794"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green5/canonical-editor-costs-390.png",
+      "bytes": 53463,
+      "sha256": "3db6cf3331e4c6a708969d533120b77e200726eaf32fdc8af558621166a8b8fe"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green5/canonical-editor-move-1366.png",
+      "bytes": 59854,
+      "sha256": "b1dc996b1fd9655fe702890bf704f919a05d3e2baed18a8f8825d104f24d239b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green5/canonical-editor-move-390.png",
+      "bytes": 54539,
+      "sha256": "41479bac526752f47a4d2fa141d9ab7c284ad9abe313118ac5288b688dc1101f"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green5/canonical-editor-ongoing-1366.png",
+      "bytes": 67009,
+      "sha256": "bdf13450d073772e01a6c8488000fe96100af8a3bdace0bbae40366fff58e1a1"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green5/canonical-editor-ongoing-390.png",
+      "bytes": 56436,
+      "sha256": "498b0a7cc6bd4ca7da2a971159dd59f4e11660430312c00116a2728a6822d980"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green5/modular-inline-1366.png",
+      "bytes": 345708,
+      "sha256": "6edfaebac0d007c19803a349efa4ffb62c3f779bf8df9427c570ab82f34d30bf"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green5/modular-inline-390.png",
+      "bytes": 309965,
+      "sha256": "1667f4ead8554e805bfd0cd591e1d442ae23a9b6c030f710a805fba99d90593a"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green5/modular-manual-basics-1366.png",
+      "bytes": 461892,
+      "sha256": "3b2c06d28fc14080708cdc182f87a73d9ea7f468b56e4d0e9a51ec48f6810b67"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green5/modular-manual-basics-390.png",
+      "bytes": 218195,
+      "sha256": "2064e5458aa5f5b0422ddcb0a8e5b1ac495eb7fe1971d71321c39661df16af9b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green5/modular-manual-catalog-1366.png",
+      "bytes": 432851,
+      "sha256": "e7d95c5af8261729991fc4e54ba3b55ae259a1dbb400bc01648d40d047a52c91"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green5/modular-manual-catalog-390.png",
+      "bytes": 208981,
+      "sha256": "6088d2c3cf1b6f4ebb8ad5dfa278a420f6c39c94852051d9c7cd3538693c56dc"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green5/modular-nexus-essence-1366.png",
+      "bytes": 332284,
+      "sha256": "6f6e6a6df5869e7c8eb9b2f5d77a3ebb0225aecc004e6573be84953d25e5bae1"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green5/modular-nexus-essence-390.png",
+      "bytes": 177039,
+      "sha256": "b53ed09e9aac3f33418163e2f025d7f59d57fb6d008c61d465af1638dd1dde24"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green5/modular-nexus-resonance-1366.png",
+      "bytes": 331815,
+      "sha256": "aa7896ffdfeb9b4aadffc35c8f1779b9cb838d282dd1cee5d81c6761049ac018"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green5/modular-nexus-resonance-390.png",
+      "bytes": 188201,
+      "sha256": "2d59f872b58153f8fc80070e3e5724e6a55c93d88425e318f8fe16a4e52db0c1"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green5/modular-techniques-1366.png",
+      "bytes": 461330,
+      "sha256": "42d0c88e77f874a5c5d929d477480862f846ac7e079183751fe179dda9d3e5a2"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green5/modular-techniques-390.png",
+      "bytes": 192477,
+      "sha256": "93df238f5d458b0eeaa9584cb4904c073324cf836bbaa2d330a639ea0e668f8b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green5/modular-techniques-leap-1366.png",
+      "bytes": 461330,
+      "sha256": "42d0c88e77f874a5c5d929d477480862f846ac7e079183751fe179dda9d3e5a2"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green5/modular-techniques-leap-390.png",
+      "bytes": 130810,
+      "sha256": "a0b2170ec4dcc8790f378e0a8be896e798ddb5050d362da69ce11e0ead1ef2e7"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green5/modular-techniques-maintain-1366.png",
+      "bytes": 461330,
+      "sha256": "42d0c88e77f874a5c5d929d477480862f846ac7e079183751fe179dda9d3e5a2"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green5/modular-techniques-maintain-390.png",
+      "bytes": 125363,
+      "sha256": "22a9ccbd73bdf66638bd40a9f1856c55b122b60903c27b276f75ede8eb20ac99"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green5/results.json",
+      "bytes": 429,
+      "sha256": "07ea6405ddffc0585d4ea528b52bacf5bedec537eaf8a7f11215a1909a0ba19b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green5/selected-preview-essence-1366.png",
+      "bytes": 262631,
+      "sha256": "8b5f033c433f8a26816e24545a55bec78e30cb5b85db4c4770da4822abb48397"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green5/selected-preview-essence-390.png",
+      "bytes": 124456,
+      "sha256": "c09c43e578816cd215c9d8a1cd4f82c02018672b59c982e37637728b6c50e353"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green5/selected-preview-skill-1366.png",
+      "bytes": 262631,
+      "sha256": "8b5f033c433f8a26816e24545a55bec78e30cb5b85db4c4770da4822abb48397"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-modular-green5/selected-preview-skill-390.png",
+      "bytes": 124456,
+      "sha256": "c09c43e578816cd215c9d8a1cd4f82c02018672b59c982e37637728b6c50e353"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-nexus-green/1366-768.json",
+      "bytes": 18569,
+      "sha256": "4f20237cbf07bcd04d83a5b53476f5e8bb651ed19ce7aaf51b94150500d9b50b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-nexus-green/1366-768.png",
+      "bytes": 493215,
+      "sha256": "381fbf321bf0f33fd6d7d7f8145cc26fb51e38918d6f80dbc990ff7ef13f75c8"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-nexus-green/1440-900.json",
+      "bytes": 18575,
+      "sha256": "f8806c45de24c440aa55dbe8f848dc31ee2bf58bda41bc7ea08365651ec43310"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-nexus-green/1440-900.png",
+      "bytes": 611178,
+      "sha256": "37df65be51227115966770bafea7999257054003dfb99201033f24eba1da0ff4"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-nexus-green2/1366-768.json",
+      "bytes": 18569,
+      "sha256": "4f20237cbf07bcd04d83a5b53476f5e8bb651ed19ce7aaf51b94150500d9b50b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-nexus-green2/1366-768.png",
+      "bytes": 493215,
+      "sha256": "381fbf321bf0f33fd6d7d7f8145cc26fb51e38918d6f80dbc990ff7ef13f75c8"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-nexus-green2/1440-900.json",
+      "bytes": 18575,
+      "sha256": "9146f1405b3708e099c39bbdd27355fc43b0592cbe2090737e5e3362aa11d14b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-nexus-green2/1440-900.png",
+      "bytes": 580613,
+      "sha256": "daf1f491d88cee33cf7a9bfb70c5a74411805f28456662ec078db8be86e92855"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-nexus-red/1366-768.json",
+      "bytes": 12439,
+      "sha256": "b53a4657365f22614575206cf48b0093842f402818712f544defa2e237f1f199"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-nexus-red/1366-768.png",
+      "bytes": 476116,
+      "sha256": "7870db235c683a51fe8d415adfdc00d2f4e22a8b3b6b94bf4ec065cc3e30fc0e"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-operations/music-1366-1.5.png",
+      "bytes": 1453438,
+      "sha256": "bf7ed65dac1cbfb69f203232c2896cb7bf2f8109951aa1aa69deb9c22720e195"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-operations/music-1366-1.png",
+      "bytes": 1129915,
+      "sha256": "65f1d4626a10073d07538e74bb700c283c165c98a7576f413cc634ec9787bd8a"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-operations/music-390-1.png",
+      "bytes": 243500,
+      "sha256": "9deab55f772e374024df8d21a60194cf1b43fbce08e2c2cc9ace21a6b60eaad5"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-operations/rules-1366-1.5.png",
+      "bytes": 648632,
+      "sha256": "c36b53a5551bd77b0b717aed5ad5e1fbc7a710825053bf70b6f7c9c745c4de7e"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-operations/rules-1366-1.png",
+      "bytes": 447164,
+      "sha256": "07871af47403d365714e51bbeed9bfa1f110767da1da241be0257e7233acf4bd"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-operations/rules-390-1.png",
+      "bytes": 190314,
+      "sha256": "b8057cc9580da87be4ec86736302a7bdc054074cd517e634f25c4588a27434f6"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-operations/world-1366-1.5.png",
+      "bytes": 544134,
+      "sha256": "42ef9ca5813a594a80b442baa5b601278ca0606f1d25a6d89b45e9202f147637"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-operations/world-1366-1.png",
+      "bytes": 399869,
+      "sha256": "8ea9d26e73f69ff1a6c2120dd7271ddf1229825d2bac1dc0d73abf29f8aebd43"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-operations/world-390-1.png",
+      "bytes": 182727,
+      "sha256": "edc2f42995db0790c5dc2ead686199f84c632b7bbf8f68814efc6b241d95ed80"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-paper-final/basic-editor-attack-1366.png",
+      "bytes": 329481,
+      "sha256": "8282e3edf6c36d8e40c7e68d2fabe24ccb1403c12875c41af62b9e2524d0bc83"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-paper-final/basic-editor-attack-390.png",
+      "bytes": 117670,
+      "sha256": "b9af6b6efd966227e664446f0ef483e7eda85ede20ddc360a629df1b94fa086b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-paper-final/basic-editor-move-1366.png",
+      "bytes": 381455,
+      "sha256": "145e7c4afe5e7c632214d05dd3be3b2bcb1c4fc85a0c409f8bbd35836e72b298"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-paper-final/basic-editor-move-390.png",
+      "bytes": 145597,
+      "sha256": "42e5496a4d01ea2983fbfb93a57b59cecdbfb0f2edfc9928e1ff22ebcdfa39fe"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-paper-final/basic-editor-recovery-1366.png",
+      "bytes": 335745,
+      "sha256": "8409ba1f4eb805b545a36c1cc2b3b79dfa87fb6f00bd9cbfd852d98de70b9ef5"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-paper-final/basic-editor-recovery-390.png",
+      "bytes": 83253,
+      "sha256": "a448b513accc9d1d534c9ade663d19db39a95c07c9dfffcd58633c973a16ac7b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-paper-final/basic-publication-1366.png",
+      "bytes": 417784,
+      "sha256": "4649b2cd8816c18c51bca409f431d074972762b92f90b6e7d37a6398477992b8"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-paper-final/basic-publication-390.png",
+      "bytes": 148790,
+      "sha256": "0e44710be3b606e8dcebdf8e18e6c31d9aefbdd6743d551eac20af4d570c1829"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-paper-final/canonical-editor-costs-1366.png",
+      "bytes": 57720,
+      "sha256": "fc54686ddaaa5469410e602abe7dbb9d423e8584051fb00b2d7bdb452dca1794"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-paper-final/canonical-editor-costs-390.png",
+      "bytes": 53463,
+      "sha256": "3db6cf3331e4c6a708969d533120b77e200726eaf32fdc8af558621166a8b8fe"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-paper-final/canonical-editor-move-1366.png",
+      "bytes": 59854,
+      "sha256": "b1dc996b1fd9655fe702890bf704f919a05d3e2baed18a8f8825d104f24d239b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-paper-final/canonical-editor-move-390.png",
+      "bytes": 54539,
+      "sha256": "41479bac526752f47a4d2fa141d9ab7c284ad9abe313118ac5288b688dc1101f"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-paper-final/canonical-editor-ongoing-1366.png",
+      "bytes": 67009,
+      "sha256": "bdf13450d073772e01a6c8488000fe96100af8a3bdace0bbae40366fff58e1a1"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-paper-final/canonical-editor-ongoing-390.png",
+      "bytes": 56436,
+      "sha256": "498b0a7cc6bd4ca7da2a971159dd59f4e11660430312c00116a2728a6822d980"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-paper-final/modular-inline-1366.png",
+      "bytes": 345708,
+      "sha256": "6edfaebac0d007c19803a349efa4ffb62c3f779bf8df9427c570ab82f34d30bf"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-paper-final/modular-inline-390.png",
+      "bytes": 309965,
+      "sha256": "1667f4ead8554e805bfd0cd591e1d442ae23a9b6c030f710a805fba99d90593a"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-paper-final/modular-manual-basics-1366.png",
+      "bytes": 461892,
+      "sha256": "3b2c06d28fc14080708cdc182f87a73d9ea7f468b56e4d0e9a51ec48f6810b67"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-paper-final/modular-manual-basics-390.png",
+      "bytes": 218195,
+      "sha256": "2064e5458aa5f5b0422ddcb0a8e5b1ac495eb7fe1971d71321c39661df16af9b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-paper-final/modular-manual-catalog-1366.png",
+      "bytes": 432851,
+      "sha256": "e7d95c5af8261729991fc4e54ba3b55ae259a1dbb400bc01648d40d047a52c91"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-paper-final/modular-manual-catalog-390.png",
+      "bytes": 208981,
+      "sha256": "6088d2c3cf1b6f4ebb8ad5dfa278a420f6c39c94852051d9c7cd3538693c56dc"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-paper-final/modular-nexus-essence-1366.png",
+      "bytes": 332284,
+      "sha256": "6f6e6a6df5869e7c8eb9b2f5d77a3ebb0225aecc004e6573be84953d25e5bae1"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-paper-final/modular-nexus-essence-390.png",
+      "bytes": 177039,
+      "sha256": "b53ed09e9aac3f33418163e2f025d7f59d57fb6d008c61d465af1638dd1dde24"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-paper-final/modular-nexus-resonance-1366.png",
+      "bytes": 331815,
+      "sha256": "aa7896ffdfeb9b4aadffc35c8f1779b9cb838d282dd1cee5d81c6761049ac018"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-paper-final/modular-nexus-resonance-390.png",
+      "bytes": 188201,
+      "sha256": "2d59f872b58153f8fc80070e3e5724e6a55c93d88425e318f8fe16a4e52db0c1"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-paper-final/modular-techniques-1366.png",
+      "bytes": 461330,
+      "sha256": "42d0c88e77f874a5c5d929d477480862f846ac7e079183751fe179dda9d3e5a2"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-paper-final/modular-techniques-390.png",
+      "bytes": 192477,
+      "sha256": "93df238f5d458b0eeaa9584cb4904c073324cf836bbaa2d330a639ea0e668f8b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-paper-final/modular-techniques-leap-1366.png",
+      "bytes": 461330,
+      "sha256": "42d0c88e77f874a5c5d929d477480862f846ac7e079183751fe179dda9d3e5a2"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-paper-final/modular-techniques-leap-390.png",
+      "bytes": 130810,
+      "sha256": "a0b2170ec4dcc8790f378e0a8be896e798ddb5050d362da69ce11e0ead1ef2e7"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-paper-final/modular-techniques-maintain-1366.png",
+      "bytes": 461330,
+      "sha256": "42d0c88e77f874a5c5d929d477480862f846ac7e079183751fe179dda9d3e5a2"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-paper-final/modular-techniques-maintain-390.png",
+      "bytes": 125363,
+      "sha256": "22a9ccbd73bdf66638bd40a9f1856c55b122b60903c27b276f75ede8eb20ac99"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-paper-final/results.json",
+      "bytes": 429,
+      "sha256": "07ea6405ddffc0585d4ea528b52bacf5bedec537eaf8a7f11215a1909a0ba19b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-paper-final/selected-preview-essence-1366.png",
+      "bytes": 262631,
+      "sha256": "8b5f033c433f8a26816e24545a55bec78e30cb5b85db4c4770da4822abb48397"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-paper-final/selected-preview-essence-390.png",
+      "bytes": 124456,
+      "sha256": "c09c43e578816cd215c9d8a1cd4f82c02018672b59c982e37637728b6c50e353"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-paper-final/selected-preview-skill-1366.png",
+      "bytes": 262631,
+      "sha256": "8b5f033c433f8a26816e24545a55bec78e30cb5b85db4c4770da4822abb48397"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-paper-final/selected-preview-skill-390.png",
+      "bytes": 124456,
+      "sha256": "c09c43e578816cd215c9d8a1cd4f82c02018672b59c982e37637728b6c50e353"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-primed/master-modules-1366.png",
+      "bytes": 231121,
+      "sha256": "8fbd21aa6c59df0413d798dc762c05c31bef4b5d35f3c9f7ee50e47c5c533847"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-primed/master-modules-390.png",
+      "bytes": 174753,
+      "sha256": "97a31e0e658253ff5919b4a83853c0de46b686c5579e10a2afeedb833a81ba9f"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-primed/pve-primed-popover-1366.png",
+      "bytes": 109831,
+      "sha256": "3e580d65d5623cda533ba8dfc9e6873681979c46c6f9ff600729b8ff0dd5ec0d"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-primed/pve-primed-popover-390.png",
+      "bytes": 66084,
+      "sha256": "2803cc0364016f1b19875f8e0521a0d60a5c0f9f5f47558680f6cd9dbdd2311a"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-primed/pvp-primed-popover-1366.png",
+      "bytes": 110811,
+      "sha256": "7e4dc7e8fddbc9a335eb059803555e9a5000fe95279b9e599a8880c3c46d15b4"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-primed/pvp-primed-popover-390.png",
+      "bytes": 64268,
+      "sha256": "3af225ea2a4a5b99507e834b3dc2d226687cca1daa760dd6efaf4c9bf3f95287"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-primed/results.json",
+      "bytes": 1431,
+      "sha256": "9ba7a3f475cf917181e0c06031f1424abc74607758b84285848c5d73d762de18"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-simple-requirements/linked-requirement-1366.png",
+      "bytes": 92398,
+      "sha256": "932578481f09bc5c0d8419748ae6477b17370799a710b55ac7f163d392eb6b62"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-simple-requirements/linked-requirement-390.png",
+      "bytes": 81541,
+      "sha256": "eeda6a03c42d4d6cf34d6d2175e762143440ccdc3d0a3b4feccefebb8124bfa2"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-simple-requirements/resonance-passive-1366.png",
+      "bytes": 38335,
+      "sha256": "750375be7b5097e576a76514879c3f4274023f5883485512c0cbc32f1a5d6811"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-simple-requirements/resonance-passive-390.png",
+      "bytes": 34224,
+      "sha256": "8450952418c4cac0e619aa6e1b4743f103d8e5317100a0e7267c66024db098e0"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-simple-requirements/results.json",
+      "bytes": 3915,
+      "sha256": "a53cdf6dd981ac2bdabc79f76f91593b70e4f4fab2abb3eb70b2f1eb20b982bc"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-simple-requirements/simple-master-1366.png",
+      "bytes": 574589,
+      "sha256": "f4e525af14db3ed3e861d19cd51e4cf299804604ad289b78e26b0cedbeca2b12"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-simple-requirements/simple-master-390.png",
+      "bytes": 450708,
+      "sha256": "8c541cfb87395376c636ff8cae0c7945b84d8e29c7334de385c18577d62de936"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-technique-mobile/final-320.png",
+      "bytes": 123486,
+      "sha256": "7bdee15eaeff9d03407f41ca83b03e1c0b99b5981ff35a5da81cfd4712675ee3"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-technique-mobile/final-390.png",
+      "bytes": 144807,
+      "sha256": "1df07611a28719b4c09762cea6c19858096ae7842f00da180a30645432f0ac66"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-technique-mobile/final-844.png",
+      "bytes": 138365,
+      "sha256": "64bd3f45b8e049f1dc1118ed43d029176988b2d8b204adaaae8b0edeafe90cbf"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-technique-mobile/geometry-320-0.png",
+      "bytes": 121772,
+      "sha256": "7d081a9f5ea6064eeee8f0de9ce8bccc35dd198a7381d9c9e6ce101e1fff47cb"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-technique-mobile/geometry-320-1.png",
+      "bytes": 121772,
+      "sha256": "7d081a9f5ea6064eeee8f0de9ce8bccc35dd198a7381d9c9e6ce101e1fff47cb"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-technique-mobile/geometry-320-2.png",
+      "bytes": 120696,
+      "sha256": "85ee9ea3396b5e112c97eedde50b6015f119852da30d5694b15b003233f60cb4"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-technique-mobile/geometry-320-3.png",
+      "bytes": 120696,
+      "sha256": "85ee9ea3396b5e112c97eedde50b6015f119852da30d5694b15b003233f60cb4"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-technique-mobile/geometry-320-4.png",
+      "bytes": 121736,
+      "sha256": "b76c291bd69f0ba4465c4df5f49d1e99df5caa733ee4bacc262cbb56b605c57b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-technique-mobile/geometry-320-5.png",
+      "bytes": 121736,
+      "sha256": "b76c291bd69f0ba4465c4df5f49d1e99df5caa733ee4bacc262cbb56b605c57b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-technique-mobile/geometry-320-6.png",
+      "bytes": 117415,
+      "sha256": "60a58fb17c9bd5b938f8004499d4d0ee73e3c7f880054973b6f38d7877a038ce"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-technique-mobile/geometry-320-7.png",
+      "bytes": 117415,
+      "sha256": "60a58fb17c9bd5b938f8004499d4d0ee73e3c7f880054973b6f38d7877a038ce"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-technique-mobile/geometry-390-0.png",
+      "bytes": 141492,
+      "sha256": "6b48cf4c0c783ac1953ff1d9edff4b0283bcffd90594f0d7ecd24e08cb3cf202"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-technique-mobile/geometry-390-1.png",
+      "bytes": 141492,
+      "sha256": "6b48cf4c0c783ac1953ff1d9edff4b0283bcffd90594f0d7ecd24e08cb3cf202"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-technique-mobile/geometry-390-2.png",
+      "bytes": 141079,
+      "sha256": "69c1a72dfc1d034a2f118be7f700e285bacb5641a6fecb89eaff5d5047290286"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-technique-mobile/geometry-390-3.png",
+      "bytes": 141079,
+      "sha256": "69c1a72dfc1d034a2f118be7f700e285bacb5641a6fecb89eaff5d5047290286"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-technique-mobile/geometry-390-4.png",
+      "bytes": 142993,
+      "sha256": "2f3ec7b8acf739b96749de7b092d6fa54461db013eb0afc3630ee9b18f2182b0"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-technique-mobile/geometry-390-5.png",
+      "bytes": 142993,
+      "sha256": "2f3ec7b8acf739b96749de7b092d6fa54461db013eb0afc3630ee9b18f2182b0"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-technique-mobile/geometry-390-6.png",
+      "bytes": 136337,
+      "sha256": "82936383c99396a59446fadef2faa1dd742ae664a9cc3a10a66d88c5fce1f78e"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-technique-mobile/geometry-390-7.png",
+      "bytes": 136337,
+      "sha256": "82936383c99396a59446fadef2faa1dd742ae664a9cc3a10a66d88c5fce1f78e"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-technique-mobile/geometry-844-0.png",
+      "bytes": 135798,
+      "sha256": "c6c12e5b3d00389459041957985136975b1b7c188343ba4b7cc8a09dfd5d41fe"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-technique-mobile/geometry-844-1.png",
+      "bytes": 135798,
+      "sha256": "c6c12e5b3d00389459041957985136975b1b7c188343ba4b7cc8a09dfd5d41fe"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-technique-mobile/geometry-844-2.png",
+      "bytes": 135846,
+      "sha256": "68a6fe05b732cce67a936a8d666cb43677fc31403fd5799861e570e4234300b8"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-technique-mobile/geometry-844-3.png",
+      "bytes": 135846,
+      "sha256": "68a6fe05b732cce67a936a8d666cb43677fc31403fd5799861e570e4234300b8"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-technique-mobile/geometry-844-4.png",
+      "bytes": 135857,
+      "sha256": "9a202d362027cee2893c5dea28ed4ad4785867f42a975d2b0760a920a2ae4023"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-technique-mobile/geometry-844-5.png",
+      "bytes": 135857,
+      "sha256": "9a202d362027cee2893c5dea28ed4ad4785867f42a975d2b0760a920a2ae4023"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-technique-mobile/geometry-844-6.png",
+      "bytes": 132639,
+      "sha256": "88806d48636b2208919f8157e279a3143506c36538bf2f5bc0d43db0f86c09c4"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-technique-mobile/geometry-844-7.png",
+      "bytes": 132639,
+      "sha256": "88806d48636b2208919f8157e279a3143506c36538bf2f5bc0d43db0f86c09c4"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-technique-mobile/results.json",
+      "bytes": 44097,
+      "sha256": "d622bb6e0c4d3300ae5204afd46b30cd3e65b3db722a5d19940bc80da66a5e6f"
+    }
+  ]
+}

@@ -1,4 +1,6 @@
 export const SITE_MUSIC_UPDATED_EVENT = 'aurevane:site-music-updated'
+export const SITE_MUSIC_PREVIEW_EVENT = 'aurevane:site-music-preview'
+export type SiteMusicMode = 'global' | 'custom' | 'silent'
 
 export type SiteMusicSource = 'bundled' | 'upload' | 'url'
 
@@ -13,6 +15,8 @@ export interface SiteMusicRouteOverride {
   id: string
   label: string
   pathPrefix: string
+  /** Absent on legacy rules, whose enabled flag retains custom/silent semantics. */
+  mode?: SiteMusicMode
   enabled: boolean
   track: SiteMusicTrack
 }
@@ -21,6 +25,8 @@ export interface SiteMusicDraft {
   enabled: boolean
   defaultTrack: SiteMusicTrack
   routeOverrides: SiteMusicRouteOverride[]
+  /** Absent only on legacy settings; assigned tracks seed the reusable library. */
+  songLibrary?: SiteMusicTrack[]
 }
 
 export interface SiteMusicConfig extends SiteMusicDraft {
@@ -58,13 +64,15 @@ export const DEFAULT_SITE_MUSIC_TRACK: SiteMusicTrack = {
 export async function attemptSiteMusicPlayback(
   play: () => Promise<void>,
   hidden: boolean,
+  onFailure?: (error: unknown) => void,
 ): Promise<boolean> {
   if (hidden) return false
 
   try {
     await play()
     return true
-  } catch {
+  } catch (error) {
+    onFailure?.(error)
     return false
   }
 }
@@ -145,13 +153,31 @@ export function isAllowedSiteMusicUrl(value: string): boolean {
   }
 }
 
-function parseTrack(value: unknown, field: string): SiteMusicTrack {
+export function siteMusicSourceError(value: string): string | null {
+  if (!isAllowedSiteMusicUrl(value)) {
+    return 'Audio URL must be a root-relative path or an HTTPS URL.'
+  }
+  if (value.startsWith('/')) return null
+
+  const hostname = new URL(value).hostname.toLowerCase().replace(/\.$/, '')
+  const isHost = (domain: string) => hostname === domain || hostname.endsWith(`.${domain}`)
+  if (['youtube.com', 'youtu.be', 'youtube-nocookie.com'].some(isHost)) {
+    return 'YouTube cannot be used as background music. Its links require a visible video player. Upload an audio file or use a direct audio URL.'
+  }
+  return null
+}
+
+function parseTrack(value: unknown, field: string, validateSource: boolean): SiteMusicTrack {
   if (!isRecord(value)) throw new Error(`${field} must be an object.`)
 
   const label = readString(value.label, `${field}.label`, 80)
   const url = readString(value.url, `${field}.url`, 2048)
   if (!isAllowedSiteMusicUrl(url)) {
     throw new Error(`${field}.url must be a root-relative path or an HTTPS URL.`)
+  }
+  if (validateSource) {
+    const sourceError = siteMusicSourceError(url)
+    if (sourceError) throw new Error(`${field}.url: ${sourceError}`)
   }
   if (value.source !== 'bundled' && value.source !== 'upload' && value.source !== 'url') {
     throw new Error(`${field}.source is invalid.`)
@@ -173,18 +199,18 @@ export function normalizeSiteMusicPathPrefix(value: string): string {
   return trimmed.replace(/\/+$/, '')
 }
 
-export function parseSiteMusicDraft(value: unknown): SiteMusicDraft {
+function parseDraft(value: unknown, validateSources: boolean): SiteMusicDraft {
   if (!isRecord(value)) throw new Error('Music configuration must be an object.')
   if (typeof value.enabled !== 'boolean') throw new Error('enabled must be a boolean.')
 
-  const defaultTrack = parseTrack(value.defaultTrack, 'defaultTrack')
+  const defaultTrack = parseTrack(value.defaultTrack, 'defaultTrack', validateSources)
   if (!Array.isArray(value.routeOverrides) || value.routeOverrides.length > 50) {
     throw new Error('routeOverrides must contain at most 50 entries.')
   }
 
   const ids = new Set<string>()
   const prefixes = new Set<string>()
-  const routeOverrides = value.routeOverrides.map((entry, index) => {
+  const routeOverrides = value.routeOverrides.map<SiteMusicRouteOverride>((entry, index) => {
     if (!isRecord(entry)) throw new Error(`routeOverrides[${index}] must be an object.`)
     const id = readString(entry.id, `routeOverrides[${index}].id`, 100)
     const label = readString(entry.label, `routeOverrides[${index}].label`, 80)
@@ -193,6 +219,14 @@ export function parseSiteMusicDraft(value: unknown): SiteMusicDraft {
     )
     if (typeof entry.enabled !== 'boolean') {
       throw new Error(`routeOverrides[${index}].enabled must be a boolean.`)
+    }
+    if (
+      entry.mode !== undefined &&
+      entry.mode !== 'global' &&
+      entry.mode !== 'custom' &&
+      entry.mode !== 'silent'
+    ) {
+      throw new Error(`routeOverrides[${index}].mode is invalid.`)
     }
     if (ids.has(id)) throw new Error(`Duplicate route override id: ${id}`)
     if (prefixes.has(pathPrefix)) throw new Error(`Duplicate page path prefix: ${pathPrefix}`)
@@ -203,17 +237,43 @@ export function parseSiteMusicDraft(value: unknown): SiteMusicDraft {
       id,
       label,
       pathPrefix,
+      ...(entry.mode === undefined ? {} : { mode: entry.mode }),
       enabled: entry.enabled,
-      track: parseTrack(entry.track, `routeOverrides[${index}].track`),
+      track: parseTrack(entry.track, `routeOverrides[${index}].track`, validateSources),
     }
   })
 
-  return { enabled: value.enabled, defaultTrack, routeOverrides }
+  const assigned = [defaultTrack, ...routeOverrides.map((entry) => entry.track)]
+  const libraryInput =
+    value.songLibrary === undefined
+      ? [...new Map(assigned.map((track) => [track.url, track])).values()]
+      : value.songLibrary
+  if (!Array.isArray(libraryInput) || libraryInput.length > 200) {
+    throw new Error('songLibrary must contain at most 200 songs.')
+  }
+  const songLibrary = libraryInput.map((track, index) =>
+    parseTrack(track, `songLibrary[${index}]`, validateSources),
+  )
+  const urls = new Set(songLibrary.map((track) => track.url))
+  if (urls.size !== songLibrary.length)
+    throw new Error('Each library song must have a unique audio URL.')
+  if (assigned.some((track) => !urls.has(track.url))) {
+    throw new Error(
+      'This song is still assigned. Replace its global or page selections before deleting it.',
+    )
+  }
+  return { enabled: value.enabled, defaultTrack, routeOverrides, songLibrary }
+}
+
+export function parseSiteMusicDraft(value: unknown): SiteMusicDraft {
+  return parseDraft(value, true)
 }
 
 export function parseSiteMusicConfig(value: unknown): SiteMusicConfig {
   if (!isRecord(value)) throw new Error('Music configuration must be an object.')
-  const draft = parseSiteMusicDraft(value)
+  // Keep legacy provider selections readable so the Owner can repair them.
+  // Preview/playback reject unsupported sources; every new save is strict.
+  const draft = parseDraft(value, false)
   if (!Number.isSafeInteger(value.revision) || (value.revision as number) < 1) {
     throw new Error('revision must be a positive integer.')
   }
@@ -232,16 +292,25 @@ function matchesPathPrefix(pathname: string, prefix: string): boolean {
   return pathname === prefix || pathname.startsWith(`${prefix}/`)
 }
 
+export function siteMusicOverrideMode(entry: SiteMusicRouteOverride): SiteMusicMode {
+  return entry.mode ?? (entry.enabled ? 'custom' : 'silent')
+}
+
+export function matchingSiteMusicOverride(config: SiteMusicDraft, pathname: string) {
+  return config.routeOverrides
+    .filter((entry) => matchesPathPrefix(pathname, entry.pathPrefix))
+    .toSorted((left, right) => right.pathPrefix.length - left.pathPrefix.length)[0]
+}
+
 export function resolveSiteMusicTrack(
   config: SiteMusicConfig,
   pathname: string,
 ): SiteMusicTrack | null {
-  if (!config.enabled) return null
-
-  const override = [...config.routeOverrides]
-    .filter((entry) => matchesPathPrefix(pathname, entry.pathPrefix))
-    .sort((left, right) => right.pathPrefix.length - left.pathPrefix.length)[0]
-
-  if (!override) return config.defaultTrack
-  return override.enabled ? override.track : null
+  const override = matchingSiteMusicOverride(config, pathname)
+  const mode = override ? siteMusicOverrideMode(override) : 'global'
+  if (mode === 'silent' || (mode === 'global' && !config.enabled)) return null
+  const track = mode === 'custom' && override ? override.track : config.defaultTrack
+  // Background music stays on the same native media element at the loop boundary,
+  // including older saved tracks whose optional loop setting was disabled.
+  return track.loop ? track : { ...track, loop: true }
 }

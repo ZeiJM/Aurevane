@@ -1,5 +1,7 @@
 'use client'
 
+import type { DisciplinePresentationMedia } from '@aurevane/game-core/character/discipline-build'
+
 import { useState } from 'react'
 import Link from 'next/link'
 
@@ -30,9 +32,12 @@ interface AtlasMasteryView {
   xp: number
   stage: number
   demonstratedSkillCount: number
+  earnedSkillCount: number
+  unearnedSkillCount: number
 }
 
 interface AtlasEntryView {
+  media?: DisciplinePresentationMedia
   key: string
   disciplineId: string | null
   name: string
@@ -104,7 +109,9 @@ function PowerMeter({ label, value }: { label: string; value: number }) {
   )
 }
 
-export function DisciplineMasteryPanel() {
+export function DisciplineMasteryPanel({
+  initiallyOpen = false,
+}: { initiallyOpen?: boolean } = {}) {
   const [atlas, setAtlas] = useState<NonNullable<AtlasResponse['atlas']> | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
@@ -145,6 +152,7 @@ export function DisciplineMasteryPanel() {
   return (
     <details
       className={styles.panel}
+      open={initiallyOpen || undefined}
       onToggle={(event) => {
         if (event.currentTarget.open) void load()
       }}
@@ -156,7 +164,7 @@ export function DisciplineMasteryPanel() {
         </span>
       </summary>
 
-      <details className={styles.intro} open>
+      <details className={styles.intro}>
         <summary>Mastery &amp; access guide</summary>
         <p>
           The Atlas is a map of combat traditions, not an upgrade tree. Later Disciplines trade
@@ -266,7 +274,10 @@ export function DisciplineMasteryPanel() {
                         <div className={styles.identity}>
                           <span className={styles.sigil} aria-hidden="true">
                             {entry.disciplineId ? (
-                              <FoundationDisciplineSigil disciplineId={entry.disciplineId} />
+                              <FoundationDisciplineSigil
+                                disciplineId={entry.disciplineId}
+                                media={entry.media}
+                              />
                             ) : (
                               '◇'
                             )}
@@ -286,7 +297,13 @@ export function DisciplineMasteryPanel() {
                             <div className={styles.masteryLine}>
                               <span>{masteryLabel(entry.mastery)}</span>
                               {entry.mastery ? (
-                                <span>{entry.mastery.demonstratedSkillCount}/8 demonstrated</span>
+                                <>
+                                  <span>{entry.mastery.demonstratedSkillCount} demonstrated</span>
+                                  <span>
+                                    {entry.mastery.earnedSkillCount} earned Skills ·{' '}
+                                    {entry.mastery.unearnedSkillCount} available Skills (unearned)
+                                  </span>
+                                </>
                               ) : null}
                             </div>
                             <progress

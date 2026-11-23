@@ -1,8 +1,12 @@
 import type { WorldPosition, WorldRegion, WorldRoad, WorldSector } from './types'
+import { buildAuthoredSectorCrossing } from './sector-crossings'
+import { generateSectorTerrain, riverFor } from './terrain-gen'
+import { EDGE_TILE, MAP_DIRECTIONS, OPPOSITE, wildSectorId, type MapDirection } from './wild-ids'
 
 export const GRID_WIDTH = 13
 export const GRID_HEIGHT = 9
-export const STEP_MS = 1100
+export const STEP_MS = 200
+export const ATLAS_GEOGRAPHIC_SCALE = 4
 export const WORLD_REGIONS: readonly WorldRegion[] = [
   {
     id: 'aureth-crown',
@@ -86,136 +90,63 @@ export const WORLD_REGIONS: readonly WorldRegion[] = [
   },
 ]
 
-// Major regions deliberately use different settlement/path grammars rather than one biome-reskinned
-// template. # = trees/building/wall, ~ = river/chasm, . = wilderness, = = road,
-// s = protected settlement. Road endpoints remain on the shared y=4 boundary contract.
-type RegionLayout = {
-  rows: readonly string[]
-  settlement: { name: string; x: number; y: number }
-  watch: { name: string; x: number; y: number }
-}
-const REGION_LAYOUTS: Record<string, RegionLayout> = {
-  'aureth-crown': {
-    rows: [
-      '##....##~....',
-      '#.sss.##~....',
-      '#sssss..~....',
-      '#sssss..~....',
-      '=============',
-      '#.sss...~....',
-      '...=....~....',
-      '...=....~....',
-      '...====.~....',
-    ],
-    settlement: { name: 'Civic Quarter', x: 3, y: 2 },
-    watch: { name: 'Road Ward', x: 9, y: 4 },
-  },
-  'verdant-expanse': {
-    rows: [
-      '######.###~##',
-      '#sss##..##~..',
-      '#s#s##..##~..',
-      '#sss##....~..',
-      'sssss========',
-      '#sss##....~..',
-      '###s#.....~..',
-      '###s#.....~..',
-      '###s==.###~##',
-    ],
-    settlement: { name: 'Forest Settlement', x: 2, y: 4 },
-    watch: { name: 'Eastern Watchtower', x: 12, y: 4 },
-  },
-  emberreach: {
-    rows: [
-      '####....~~###',
-      '#ss#....~~###',
-      '#ss#..##~~###',
-      '#s...###~~...',
-      '=============',
-      '..###..~~....',
-      '###....~~.###',
-      '###.##.~~####',
-      '####...~~####',
-    ],
-    settlement: { name: 'Basalt Citadel', x: 1, y: 2 },
-    watch: { name: 'Forge Watch', x: 8, y: 4 },
-  },
-  frostmere: {
-    rows: [
-      '#######...###',
-      '###..ss...###',
-      '##..ssss..###',
-      '#..sssss..###',
-      '=============',
-      '#...sss...###',
-      '##...s....###',
-      '###..=...####',
-      '####.=..#####',
-    ],
-    settlement: { name: 'Mountain Refuge', x: 5, y: 2 },
-    watch: { name: 'Pass Watch', x: 9, y: 4 },
-  },
-  'glasswind-desert': {
-    rows: [
-      '..###....###.',
-      '...#......#..',
-      '..sss........',
-      '.sssss.......',
-      '=============',
-      '..sss........',
-      '...s....###..',
-      '........#....',
-      '..###........',
-    ],
-    settlement: { name: 'Oasis Enclave', x: 3, y: 3 },
-    watch: { name: 'Caravan Watch', x: 10, y: 4 },
-  },
-  'hollow-coast': {
-    rows: [
-      '###.....~~~~~',
-      '##......~~~~~',
-      '#......~~~~~~',
-      '.......~~~~~~',
-      '=============',
-      '.sss....~~~~~',
-      'sssss...~~~~~',
-      'ssss....~~~~~',
-      '.ss.....~~~~~',
-    ],
-    settlement: { name: 'Harbor Quarter', x: 2, y: 6 },
-    watch: { name: 'Tide Watch', x: 7, y: 4 },
-  },
-  'starfall-highlands': {
-    rows: [
-      '###...#######',
-      '##..sss..####',
-      '#..sssss..###',
-      '...sss....###',
-      '=============',
-      '....=...#####',
-      '....=..######',
-      '...==..######',
-      '###...#######',
-    ],
-    settlement: { name: 'Observatory Terrace', x: 5, y: 2 },
-    watch: { name: 'Highland Watch', x: 8, y: 4 },
-  },
-  'umbral-march': {
-    rows: [
-      '######.######',
-      '####...######',
-      '###....######',
-      '##ss...######',
-      '=============',
-      '#sss...######',
-      '##s....######',
-      '###....######',
-      '#############',
-    ],
-    settlement: { name: 'Frontier Outpost', x: 2, y: 5 },
-    watch: { name: 'March Watch', x: 10, y: 4 },
-  },
-}
+// Painted sector maps share a road/bridge grammar; collision rows are explicit authored data.
+// # = trees/building/wall, ~ = river/chasm, . = wilderness, = = road, s = protected settlement.
+const ROWS = [
+  '######.###~##',
+  '#sss##..##~..',
+  '#s#s##..##~..',
+  '#sss##....~..',
+  'sssss========',
+  '#sss##....~..',
+  '###s#.....~..',
+  '###s#.....~..',
+  '###s==.###~##',
+].map((row) => row.trim())
+const CROWN_HINTERLAND_ROWS = [
+  '###..###..###',
+  '##...##...###',
+  '#....##....##',
+  '.....##......',
+  '=============',
+  '......##.....',
+  '##....##....#',
+  '###...##...##',
+  '###..####..##',
+] as const
+const CROWN_NORTHFIELDS_ROWS = [
+  '###...=...###',
+  '##....=....##',
+  '#.....=.....#',
+  '......=......',
+  '=============',
+  '......=......',
+  '#.....=.....#',
+  '##....=....##',
+  '###...=...###',
+] as const
+const CROWN_UPLANDS_ROWS = [
+  '#####...#####',
+  '####....#####',
+  '###...#######',
+  '##....#######',
+  '=====...#####',
+  '####=...#####',
+  '####=....####',
+  '####=.....###',
+  '####=...#####',
+] as const
+const CROWN_ROAD_ROWS = [
+  '###...##~~###',
+  '#..#..##~~###',
+  '#.....##~~###',
+  '.......#~~...',
+  '=============',
+  '.......#~~...',
+  '#.....##~~###',
+  '##...###~~###',
+  '########~~###',
+] as const
 // Optional exit rows align each endpoint with its own painted path.
 const LINKS: readonly [string, string, string, number, number?, number?][] = [
   ['aureth-crown', 'crown-road', 'Crown Road', STEP_MS],
@@ -235,50 +166,167 @@ const LINKS: readonly [string, string, string, number, number?, number?][] = [
   ['hollow-coast', 'old-coast-road', 'Old Coast Road', STEP_MS],
   ['old-coast-road', 'umbral-march', 'Old Coast Road', STEP_MS],
 ]
-const roads: WorldRoad[] = LINKS.flatMap(([a, b, name, durationMs, fromY = 4, toY = 4]) => [
-  { from: { sectorId: a, x: 12, y: fromY }, to: { sectorId: b, x: 0, y: toY }, name, durationMs },
-  { from: { sectorId: b, x: 0, y: toY }, to: { sectorId: a, x: 12, y: fromY }, name, durationMs },
-])
-export const CHARTED_SECTORS: readonly WorldSector[] = [
-  ...WORLD_REGIONS.map((region): WorldSector => {
-    const layout = REGION_LAYOUTS[region.id]!
-    return {
-      id: region.id,
-      name: region.name,
-      coordinate: region.sector,
-      regionId: region.id,
-      art: `/media/art/world/${region.art}-v01.webp`,
-      panorama: `/media/art/world/${region.art}-panorama-v01.webp`,
-      east: 12,
-      north: 28,
-      rows: layout.rows,
-      charted: true,
-      landmarks: [
-        {
-          id: `${region.id}-settlement`,
-          kind: 'settlement',
-          ...layout.settlement,
-        },
-        {
-          id: `${region.id}-watch`,
-          kind: 'watchtower',
-          ...layout.watch,
-        },
-        ...(region.id === 'umbral-march'
-          ? [
-              {
-                id: 'last-survey',
-                name: 'Last reliable survey',
-                kind: 'frontier' as const,
-                x: 6,
-                y: 0,
-              },
-            ]
-          : []),
-      ],
-      roads: roads.filter((road) => road.from.sectorId === region.id),
-    }
+/** Generated trail sectors between every pair of linked places, so towns sit well apart. */
+export const TRAIL_SECTORS_PER_LINK = 3
+const trailId = (a: string, b: string, i: number) => `trail:${a}:${b}:${i}`
+const legacyRoads: WorldRoad[] = LINKS.flatMap(([a, b, name, durationMs, fromY = 4, toY = 4]) => {
+  const ids = [
+    a,
+    ...Array.from({ length: TRAIL_SECTORS_PER_LINK }, (_, i) => trailId(a, b, i + 1)),
+    b,
+  ]
+  const rowsList = [fromY, ...Array.from({ length: TRAIL_SECTORS_PER_LINK - 1 }, () => 4), toY]
+  return rowsList.flatMap((row, j) => [
+    {
+      from: { sectorId: ids[j]!, x: 12, y: row },
+      to: { sectorId: ids[j + 1]!, x: 0, y: row },
+      name,
+      durationMs,
+    },
+    {
+      from: { sectorId: ids[j + 1]!, x: 0, y: row },
+      to: { sectorId: ids[j]!, x: 12, y: row },
+      name,
+      durationMs,
+    },
+  ])
+})
+const crownHinterland = {
+  id: 'crown-hinterland',
+  coordinate: 'S15-08',
+  rows: CROWN_HINTERLAND_ROWS,
+} as const
+const crownNorthfields = {
+  id: 'crown-northfields',
+  coordinate: 'S14-07',
+  rows: CROWN_NORTHFIELDS_ROWS,
+} as const
+const crownUplands = {
+  id: 'crown-uplands',
+  coordinate: 'S15-07',
+  rows: CROWN_UPLANDS_ROWS,
+} as const
+const authoredRoads: WorldRoad[] = [
+  ...buildAuthoredSectorCrossing({
+    from: { id: 'aureth-crown', coordinate: 'S14-08', rows: ROWS },
+    to: crownHinterland,
+    fromOffset: 4,
+    toOffset: 4,
+    name: 'Crown Hinterland',
+    durationMs: STEP_MS,
   }),
+  ...buildAuthoredSectorCrossing({
+    from: crownHinterland,
+    to: { id: 'crown-road', coordinate: 'S16-08', rows: CROWN_ROAD_ROWS },
+    fromOffset: 4,
+    toOffset: 4,
+    name: 'Crown Hinterland',
+    durationMs: STEP_MS,
+  }),
+  ...buildAuthoredSectorCrossing({
+    from: { id: 'aureth-crown', coordinate: 'S14-08', rows: ROWS },
+    to: crownNorthfields,
+    fromOffset: 6,
+    toOffset: 6,
+    name: 'Crown North Road',
+    durationMs: STEP_MS,
+  }),
+  ...buildAuthoredSectorCrossing({
+    from: crownNorthfields,
+    to: crownUplands,
+    fromOffset: 4,
+    toOffset: 4,
+    name: 'Northfields Crossroad',
+    durationMs: STEP_MS,
+  }),
+  ...buildAuthoredSectorCrossing({
+    from: crownHinterland,
+    to: crownUplands,
+    fromOffset: 4,
+    toOffset: 4,
+    name: 'Crown Upland Track',
+    durationMs: STEP_MS,
+  }),
+]
+const samePoint = (p: { x: number; y: number }, q: { x: number; y: number }) =>
+  p.x === q.x && p.y === q.y
+/** Region edges with no authored road open onto endless generated wilds. */
+export const WILD_DOORS: readonly { root: string; dir: MapDirection }[] = WORLD_REGIONS.flatMap(
+  (region) =>
+    MAP_DIRECTIONS.filter((dir) => {
+      if (region.id === 'umbral-march' && dir === 'north') return false
+      if (region.id === 'hollow-coast' && dir === 'south') return false
+      return ![...legacyRoads, ...authoredRoads].some(
+        (road) => road.from.sectorId === region.id && samePoint(road.from, EDGE_TILE[dir]),
+      )
+    }).map((dir) => ({ root: region.id, dir })),
+)
+const wildDoorRoads: WorldRoad[] = WILD_DOORS.flatMap(({ root, dir }) => {
+  const region = WORLD_REGIONS.find((r) => r.id === root)!
+  const landing = {
+    sectorId: wildSectorId({ root, dir, k: 1, b: 0 }),
+    ...EDGE_TILE[OPPOSITE[dir]],
+  }
+  const door = { sectorId: root, ...EDGE_TILE[dir] }
+  const name = `${region.name} Wilds`
+  return [
+    { from: door, to: landing, name, durationMs: STEP_MS },
+    { from: landing, to: door, name, durationMs: STEP_MS },
+  ]
+})
+const roads: WorldRoad[] = [...legacyRoads, ...authoredRoads, ...wildDoorRoads]
+const regionalLandmarkNames: Record<string, readonly [settlement: string, watch: string]> = {
+  'aureth-crown': ['Civic Quarter', 'Road Ward'],
+  'verdant-expanse': ['Forest Settlement', 'Eastern Watchtower'],
+  emberreach: ['Basalt Citadel', 'Forge Watch'],
+  frostmere: ['Mountain Refuge', 'Pass Watch'],
+  'glasswind-desert': ['Oasis Enclave', 'Caravan Watch'],
+  'hollow-coast': ['Harbor Quarter', 'Tide Watch'],
+  'starfall-highlands': ['Observatory Terrace', 'Highland Watch'],
+  'umbral-march': ['Frontier Outpost', 'March Watch'],
+}
+
+export const CHARTED_SECTORS: readonly WorldSector[] = [
+  ...WORLD_REGIONS.map((region): WorldSector => ({
+    id: region.id,
+    name: region.name,
+    coordinate: region.sector,
+    regionId: region.id,
+    art: `/media/art/world/${region.art}-v02.webp`,
+    panorama: `/media/art/world/${region.art}-panorama-v01.webp`,
+    east: 12,
+    north: 28,
+    rows: ROWS,
+    charted: true,
+    landmarks: [
+      {
+        id: `${region.id}-settlement`,
+        name: regionalLandmarkNames[region.id]![0],
+        kind: 'settlement',
+        x: 2,
+        y: 4,
+      },
+      {
+        id: `${region.id}-watch`,
+        name: regionalLandmarkNames[region.id]![1],
+        kind: 'watchtower',
+        x: 12,
+        y: 4,
+      },
+      ...(region.id === 'umbral-march'
+        ? [
+            {
+              id: 'last-survey',
+              name: 'Last reliable survey',
+              kind: 'frontier' as const,
+              x: 6,
+              y: 0,
+            },
+          ]
+        : []),
+    ],
+    roads: roads.filter((road) => road.from.sectorId === region.id),
+  })),
   {
     id: 'crown-road',
     name: 'Crown Road',
@@ -286,23 +334,51 @@ export const CHARTED_SECTORS: readonly WorldSector[] = [
     regionId: 'aureth-crown',
     art: '/media/art/world/crown-road-v01.webp',
     panorama: '/media/art/world/crown-road-panorama-v01.webp',
-    stepMs: 4000,
     east: 0,
     north: 8,
-    rows: [
-      '###...##~~###',
-      '#..#..##~~###',
-      '#.....##~~###',
-      '.......#~~...',
-      '=============',
-      '.......#~~...',
-      '#.....##~~###',
-      '##...###~~###',
-      '########~~###',
-    ],
+    rows: CROWN_ROAD_ROWS,
     charted: true,
     landmarks: [],
     roads: roads.filter((road) => road.from.sectorId === 'crown-road'),
+  },
+  {
+    id: 'crown-hinterland',
+    name: 'Crown Hinterland',
+    coordinate: 'S15-08',
+    regionId: 'aureth-crown',
+    art: null,
+    east: 0,
+    north: 8,
+    rows: CROWN_HINTERLAND_ROWS,
+    charted: true,
+    landmarks: [],
+    roads: roads.filter((road) => road.from.sectorId === 'crown-hinterland'),
+  },
+  {
+    id: 'crown-northfields',
+    name: 'Crown Northfields',
+    coordinate: 'S14-07',
+    regionId: 'aureth-crown',
+    art: null,
+    east: 0,
+    north: 8,
+    rows: CROWN_NORTHFIELDS_ROWS,
+    charted: true,
+    landmarks: [],
+    roads: roads.filter((road) => road.from.sectorId === 'crown-northfields'),
+  },
+  {
+    id: 'crown-uplands',
+    name: 'Crown Uplands',
+    coordinate: 'S15-07',
+    regionId: 'aureth-crown',
+    art: null,
+    east: 0,
+    north: 8,
+    rows: CROWN_UPLANDS_ROWS,
+    charted: true,
+    landmarks: [],
+    roads: roads.filter((road) => road.from.sectorId === 'crown-uplands'),
   },
   {
     id: 'coastal-road',
@@ -311,7 +387,6 @@ export const CHARTED_SECTORS: readonly WorldSector[] = [
     regionId: 'hollow-coast',
     art: '/media/art/world/coastal-road-v01.webp',
     panorama: '/media/art/world/coastal-road-panorama-v01.webp',
-    stepMs: 4000,
     east: 0,
     north: 8,
     rows: [
@@ -336,7 +411,6 @@ export const CHARTED_SECTORS: readonly WorldSector[] = [
     regionId: 'emberreach',
     art: '/media/art/world/ember-road-v01.webp',
     panorama: '/media/art/world/ember-road-panorama-v02.webp',
-    stepMs: 4000,
     east: 0,
     north: 8,
     rows: [
@@ -361,7 +435,6 @@ export const CHARTED_SECTORS: readonly WorldSector[] = [
     regionId: 'glasswind-desert',
     art: '/media/art/world/southern-caravan-road-v01.webp',
     panorama: '/media/art/world/southern-caravan-road-panorama-v02.webp',
-    stepMs: 4000,
     east: 0,
     north: 8,
     rows: [
@@ -386,7 +459,6 @@ export const CHARTED_SECTORS: readonly WorldSector[] = [
     regionId: 'starfall-highlands',
     art: '/media/art/world/highland-road-v01.webp',
     panorama: '/media/art/world/highland-road-panorama-v01.webp',
-    stepMs: 4000,
     east: 0,
     north: 8,
     rows: [
@@ -411,7 +483,6 @@ export const CHARTED_SECTORS: readonly WorldSector[] = [
     regionId: 'frostmere',
     art: '/media/art/world/northern-pass-v01.webp',
     panorama: '/media/art/world/northern-pass-panorama-v01.webp',
-    stepMs: 4000,
     east: 0,
     north: 8,
     rows: [
@@ -436,7 +507,6 @@ export const CHARTED_SECTORS: readonly WorldSector[] = [
     regionId: 'umbral-march',
     art: '/media/art/world/eastern-march-road-v01.webp',
     panorama: '/media/art/world/eastern-march-road-panorama-v01.webp',
-    stepMs: 4000,
     east: 0,
     north: 8,
     rows: [
@@ -461,7 +531,6 @@ export const CHARTED_SECTORS: readonly WorldSector[] = [
     regionId: 'umbral-march',
     art: '/media/art/world/old-coast-road-v01.webp',
     panorama: '/media/art/world/old-coast-road-panorama-v01.webp',
-    stepMs: 4000,
     east: 0,
     north: 8,
     rows: [
@@ -480,6 +549,37 @@ export const CHARTED_SECTORS: readonly WorldSector[] = [
     roads: roads.filter((road) => road.from.sectorId === 'old-coast-road'),
   },
 ]
+const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI']
+export const TRAIL_SECTORS: readonly WorldSector[] = LINKS.flatMap(
+  ([a, b, name, , fromY = 4, toY = 4]) => {
+    const from = CHARTED_SECTORS.find((s) => s.id === a)!,
+      to = CHARTED_SECTORS.find((s) => s.id === b)!
+    const rowsList = [fromY, ...Array.from({ length: TRAIL_SECTORS_PER_LINK - 1 }, () => 4), toY]
+    return Array.from({ length: TRAIL_SECTORS_PER_LINK }, (_, n): WorldSector => {
+      const i = n + 1,
+        id = trailId(a, b, i)
+      const terrain = generateSectorTerrain({
+        id,
+        arms: { w: rowsList[i - 1], e: rowsList[i] },
+        river: riverFor(id, 'v'),
+      })
+      return {
+        id,
+        name: `${name} ${ROMAN[n]}`,
+        coordinate: `${from.coordinate}·T${i}`,
+        regionId: i <= Math.ceil(TRAIL_SECTORS_PER_LINK / 2) ? from.regionId : to.regionId,
+        art: null,
+        east: 0,
+        north: 8,
+        rows: terrain.rows,
+        charted: true,
+        generated: true,
+        landmarks: terrain.landmarks,
+        roads: roads.filter((road) => road.from.sectorId === id),
+      }
+    })
+  },
+)
 export const START_POSITION: WorldPosition = { sectorId: 'verdant-expanse', x: 5, y: 4 }
 export const FRONTIER_APPROACH: WorldPosition = { sectorId: 'umbral-march', x: 6, y: 0 }
 export function worldRegion(id: string) {

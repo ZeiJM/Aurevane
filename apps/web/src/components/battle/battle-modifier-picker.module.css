@@ -1,0 +1,70 @@
+.trigger {
+  padding: 4px 8px;
+  border: 1px solid rgba(210, 179, 108, 0.45);
+  border-radius: 5px;
+  background: rgba(13, 31, 38, 0.94);
+  color: #f3ddb0;
+  font: inherit;
+  white-space: nowrap;
+}
+.panel {
+  width: 100%;
+  min-width: 0;
+}
+.panel p {
+  margin: 6px 0;
+}
+.panel h3 {
+  margin: 6px 0;
+  font-size: 1em;
+  color: #4f3922;
+}
+.lists {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.lists section {
+  min-width: 0;
+  max-height: 35vh;
+  overflow-y: auto;
+}
+.lists button {
+  display: block;
+  width: 100%;
+  margin: 3px 0;
+  padding: 6px;
+  text-align: left;
+  color: inherit;
+  background: #fffdf7;
+  border: 1px solid #a8854870;
+  border-radius: 4px;
+  font: inherit;
+  overflow-wrap: anywhere;
+}
+.lists button small {
+  display: block;
+  font-size: 0.85em;
+}
+.lists button[aria-pressed='true'],
+.lists button[aria-checked='true'] {
+  border-color: #e3bf73;
+  background: #e3d4b5;
+}
+.lists button[aria-disabled='true'] {
+  color: #62513c;
+  background: #e9e5dc;
+}
+.lists button:focus-visible {
+  outline: 2px solid #79551c;
+  outline-offset: -2px;
+}
+.information {
+  margin-top: 8px;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 480px) {
+  .lists {
+    gap: 6px;
+  }
+}

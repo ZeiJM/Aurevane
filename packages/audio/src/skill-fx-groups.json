@@ -1,0 +1,614 @@
+[
+  {
+    "key": "audio.skill-fx.v01.001",
+    "label": "Arcane Pulse 001"
+  },
+  {
+    "key": "audio.skill-fx.v01.002",
+    "label": "Arcane Pulse 002"
+  },
+  {
+    "key": "audio.skill-fx.v01.003",
+    "label": "Arcane Pulse 003"
+  },
+  {
+    "key": "audio.skill-fx.v01.004",
+    "label": "Arcane Pulse 004"
+  },
+  {
+    "key": "audio.skill-fx.v01.005",
+    "label": "Arcane Pulse 005"
+  },
+  {
+    "key": "audio.skill-fx.v01.006",
+    "label": "Arcane Pulse 006"
+  },
+  {
+    "key": "audio.skill-fx.v01.007",
+    "label": "Arcane Pulse 007"
+  },
+  {
+    "key": "audio.skill-fx.v01.008",
+    "label": "Arcane Pulse 008"
+  },
+  {
+    "key": "audio.skill-fx.v01.009",
+    "label": "Iron Pulse 009"
+  },
+  {
+    "key": "audio.skill-fx.v01.010",
+    "label": "Iron Pulse 010"
+  },
+  {
+    "key": "audio.skill-fx.v01.011",
+    "label": "Iron Pulse 011"
+  },
+  {
+    "key": "audio.skill-fx.v01.012",
+    "label": "Iron Pulse 012"
+  },
+  {
+    "key": "audio.skill-fx.v01.013",
+    "label": "Iron Pulse 013"
+  },
+  {
+    "key": "audio.skill-fx.v01.014",
+    "label": "Iron Pulse 014"
+  },
+  {
+    "key": "audio.skill-fx.v01.015",
+    "label": "Iron Pulse 015"
+  },
+  {
+    "key": "audio.skill-fx.v01.016",
+    "label": "Iron Pulse 016"
+  },
+  {
+    "key": "audio.skill-fx.v01.017",
+    "label": "Clockwork Pulse 017"
+  },
+  {
+    "key": "audio.skill-fx.v01.018",
+    "label": "Clockwork Pulse 018"
+  },
+  {
+    "key": "audio.skill-fx.v01.019",
+    "label": "Clockwork Pulse 019"
+  },
+  {
+    "key": "audio.skill-fx.v01.020",
+    "label": "Clockwork Pulse 020"
+  },
+  {
+    "key": "audio.skill-fx.v01.021",
+    "label": "Clockwork Pulse 021"
+  },
+  {
+    "key": "audio.skill-fx.v01.022",
+    "label": "Clockwork Pulse 022"
+  },
+  {
+    "key": "audio.skill-fx.v01.023",
+    "label": "Clockwork Pulse 023"
+  },
+  {
+    "key": "audio.skill-fx.v01.024",
+    "label": "Clockwork Pulse 024"
+  },
+  {
+    "key": "audio.skill-fx.v01.025",
+    "label": "Cinder Pulse 025"
+  },
+  {
+    "key": "audio.skill-fx.v01.026",
+    "label": "Cinder Pulse 026"
+  },
+  {
+    "key": "audio.skill-fx.v01.027",
+    "label": "Cinder Pulse 027"
+  },
+  {
+    "key": "audio.skill-fx.v01.028",
+    "label": "Cinder Pulse 028"
+  },
+  {
+    "key": "audio.skill-fx.v01.029",
+    "label": "Cinder Pulse 029"
+  },
+  {
+    "key": "audio.skill-fx.v01.030",
+    "label": "Cinder Pulse 030"
+  },
+  {
+    "key": "audio.skill-fx.v01.031",
+    "label": "Cinder Pulse 031"
+  },
+  {
+    "key": "audio.skill-fx.v01.032",
+    "label": "Cinder Pulse 032"
+  },
+  {
+    "key": "audio.skill-fx.v01.033",
+    "label": "Radiant Pulse 033"
+  },
+  {
+    "key": "audio.skill-fx.v01.034",
+    "label": "Radiant Pulse 034"
+  },
+  {
+    "key": "audio.skill-fx.v01.035",
+    "label": "Radiant Pulse 035"
+  },
+  {
+    "key": "audio.skill-fx.v01.036",
+    "label": "Radiant Pulse 036"
+  },
+  {
+    "key": "audio.skill-fx.v01.037",
+    "label": "Radiant Pulse 037"
+  },
+  {
+    "key": "audio.skill-fx.v01.038",
+    "label": "Radiant Pulse 038"
+  },
+  {
+    "key": "audio.skill-fx.v01.039",
+    "label": "Radiant Pulse 039"
+  },
+  {
+    "key": "audio.skill-fx.v01.040",
+    "label": "Radiant Pulse 040"
+  },
+  {
+    "key": "audio.skill-fx.v01.041",
+    "label": "Crystal Pulse 041"
+  },
+  {
+    "key": "audio.skill-fx.v01.042",
+    "label": "Crystal Pulse 042"
+  },
+  {
+    "key": "audio.skill-fx.v01.043",
+    "label": "Crystal Pulse 043"
+  },
+  {
+    "key": "audio.skill-fx.v01.044",
+    "label": "Crystal Pulse 044"
+  },
+  {
+    "key": "audio.skill-fx.v01.045",
+    "label": "Crystal Pulse 045"
+  },
+  {
+    "key": "audio.skill-fx.v01.046",
+    "label": "Crystal Pulse 046"
+  },
+  {
+    "key": "audio.skill-fx.v01.047",
+    "label": "Crystal Pulse 047"
+  },
+  {
+    "key": "audio.skill-fx.v01.048",
+    "label": "Crystal Pulse 048"
+  },
+  {
+    "key": "audio.skill-fx.v01.049",
+    "label": "Arcane Surge 049"
+  },
+  {
+    "key": "audio.skill-fx.v01.050",
+    "label": "Iron Surge 050"
+  },
+  {
+    "key": "audio.skill-fx.v01.051",
+    "label": "Clockwork Surge 051"
+  },
+  {
+    "key": "audio.skill-fx.v01.052",
+    "label": "Cinder Surge 052"
+  },
+  {
+    "key": "audio.skill-fx.v01.053",
+    "label": "Radiant Surge 053"
+  },
+  {
+    "key": "audio.skill-fx.v01.054",
+    "label": "Crystal Surge 054"
+  },
+  {
+    "key": "audio.skill-fx.v01.055",
+    "label": "Wind Surge 055"
+  },
+  {
+    "key": "audio.skill-fx.v01.056",
+    "label": "Frost Surge 056"
+  },
+  {
+    "key": "audio.skill-fx.v01.057",
+    "label": "Stone Surge 057"
+  },
+  {
+    "key": "audio.skill-fx.v01.058",
+    "label": "Verdant Surge 058"
+  },
+  {
+    "key": "audio.skill-fx.v01.059",
+    "label": "Ember Surge 059"
+  },
+  {
+    "key": "audio.skill-fx.v01.060",
+    "label": "Runic Surge 060"
+  },
+  {
+    "key": "audio.skill-fx.v01.061",
+    "label": "Shadow Surge 061"
+  },
+  {
+    "key": "audio.skill-fx.v01.062",
+    "label": "Thunder Surge 062"
+  },
+  {
+    "key": "audio.skill-fx.v01.063",
+    "label": "Tidal Surge 063"
+  },
+  {
+    "key": "audio.skill-fx.v01.064",
+    "label": "Steel Surge 064"
+  },
+  {
+    "key": "audio.skill-fx.v01.065",
+    "label": "Wild Surge 065"
+  },
+  {
+    "key": "audio.skill-fx.v01.066",
+    "label": "Wind Pulse 066"
+  },
+  {
+    "key": "audio.skill-fx.v01.067",
+    "label": "Wind Pulse 067"
+  },
+  {
+    "key": "audio.skill-fx.v01.068",
+    "label": "Wind Pulse 068"
+  },
+  {
+    "key": "audio.skill-fx.v01.069",
+    "label": "Wind Pulse 069"
+  },
+  {
+    "key": "audio.skill-fx.v01.070",
+    "label": "Wind Pulse 070"
+  },
+  {
+    "key": "audio.skill-fx.v01.071",
+    "label": "Wind Pulse 071"
+  },
+  {
+    "key": "audio.skill-fx.v01.072",
+    "label": "Wind Pulse 072"
+  },
+  {
+    "key": "audio.skill-fx.v01.073",
+    "label": "Wind Pulse 073"
+  },
+  {
+    "key": "audio.skill-fx.v01.074",
+    "label": "Frost Pulse 074"
+  },
+  {
+    "key": "audio.skill-fx.v01.075",
+    "label": "Frost Pulse 075"
+  },
+  {
+    "key": "audio.skill-fx.v01.076",
+    "label": "Frost Pulse 076"
+  },
+  {
+    "key": "audio.skill-fx.v01.077",
+    "label": "Frost Pulse 077"
+  },
+  {
+    "key": "audio.skill-fx.v01.078",
+    "label": "Frost Pulse 078"
+  },
+  {
+    "key": "audio.skill-fx.v01.079",
+    "label": "Frost Pulse 079"
+  },
+  {
+    "key": "audio.skill-fx.v01.080",
+    "label": "Frost Pulse 080"
+  },
+  {
+    "key": "audio.skill-fx.v01.081",
+    "label": "Frost Pulse 081"
+  },
+  {
+    "key": "audio.skill-fx.v01.082",
+    "label": "Stone Pulse 082"
+  },
+  {
+    "key": "audio.skill-fx.v01.083",
+    "label": "Stone Pulse 083"
+  },
+  {
+    "key": "audio.skill-fx.v01.084",
+    "label": "Stone Pulse 084"
+  },
+  {
+    "key": "audio.skill-fx.v01.085",
+    "label": "Stone Pulse 085"
+  },
+  {
+    "key": "audio.skill-fx.v01.086",
+    "label": "Stone Pulse 086"
+  },
+  {
+    "key": "audio.skill-fx.v01.087",
+    "label": "Stone Pulse 087"
+  },
+  {
+    "key": "audio.skill-fx.v01.088",
+    "label": "Stone Pulse 088"
+  },
+  {
+    "key": "audio.skill-fx.v01.089",
+    "label": "Stone Pulse 089"
+  },
+  {
+    "key": "audio.skill-fx.v01.090",
+    "label": "Verdant Pulse 090"
+  },
+  {
+    "key": "audio.skill-fx.v01.091",
+    "label": "Verdant Pulse 091"
+  },
+  {
+    "key": "audio.skill-fx.v01.092",
+    "label": "Verdant Pulse 092"
+  },
+  {
+    "key": "audio.skill-fx.v01.093",
+    "label": "Verdant Pulse 093"
+  },
+  {
+    "key": "audio.skill-fx.v01.094",
+    "label": "Verdant Pulse 094"
+  },
+  {
+    "key": "audio.skill-fx.v01.095",
+    "label": "Verdant Pulse 095"
+  },
+  {
+    "key": "audio.skill-fx.v01.096",
+    "label": "Verdant Pulse 096"
+  },
+  {
+    "key": "audio.skill-fx.v01.097",
+    "label": "Verdant Pulse 097"
+  },
+  {
+    "key": "audio.skill-fx.v01.098",
+    "label": "Ember Pulse 098"
+  },
+  {
+    "key": "audio.skill-fx.v01.099",
+    "label": "Ember Pulse 099"
+  },
+  {
+    "key": "audio.skill-fx.v01.100",
+    "label": "Ember Pulse 100"
+  },
+  {
+    "key": "audio.skill-fx.v01.101",
+    "label": "Ember Pulse 101"
+  },
+  {
+    "key": "audio.skill-fx.v01.102",
+    "label": "Ember Pulse 102"
+  },
+  {
+    "key": "audio.skill-fx.v01.103",
+    "label": "Ember Pulse 103"
+  },
+  {
+    "key": "audio.skill-fx.v01.104",
+    "label": "Ember Pulse 104"
+  },
+  {
+    "key": "audio.skill-fx.v01.105",
+    "label": "Ember Pulse 105"
+  },
+  {
+    "key": "audio.skill-fx.v01.106",
+    "label": "Runic Pulse 106"
+  },
+  {
+    "key": "audio.skill-fx.v01.107",
+    "label": "Runic Pulse 107"
+  },
+  {
+    "key": "audio.skill-fx.v01.108",
+    "label": "Runic Pulse 108"
+  },
+  {
+    "key": "audio.skill-fx.v01.109",
+    "label": "Runic Pulse 109"
+  },
+  {
+    "key": "audio.skill-fx.v01.110",
+    "label": "Runic Pulse 110"
+  },
+  {
+    "key": "audio.skill-fx.v01.111",
+    "label": "Runic Pulse 111"
+  },
+  {
+    "key": "audio.skill-fx.v01.112",
+    "label": "Runic Pulse 112"
+  },
+  {
+    "key": "audio.skill-fx.v01.113",
+    "label": "Runic Pulse 113"
+  },
+  {
+    "key": "audio.skill-fx.v01.114",
+    "label": "Shadow Pulse 114"
+  },
+  {
+    "key": "audio.skill-fx.v01.115",
+    "label": "Shadow Pulse 115"
+  },
+  {
+    "key": "audio.skill-fx.v01.116",
+    "label": "Shadow Pulse 116"
+  },
+  {
+    "key": "audio.skill-fx.v01.117",
+    "label": "Shadow Pulse 117"
+  },
+  {
+    "key": "audio.skill-fx.v01.118",
+    "label": "Shadow Pulse 118"
+  },
+  {
+    "key": "audio.skill-fx.v01.119",
+    "label": "Shadow Pulse 119"
+  },
+  {
+    "key": "audio.skill-fx.v01.120",
+    "label": "Shadow Pulse 120"
+  },
+  {
+    "key": "audio.skill-fx.v01.121",
+    "label": "Shadow Pulse 121"
+  },
+  {
+    "key": "audio.skill-fx.v01.122",
+    "label": "Thunder Pulse 122"
+  },
+  {
+    "key": "audio.skill-fx.v01.123",
+    "label": "Thunder Pulse 123"
+  },
+  {
+    "key": "audio.skill-fx.v01.124",
+    "label": "Thunder Pulse 124"
+  },
+  {
+    "key": "audio.skill-fx.v01.125",
+    "label": "Thunder Pulse 125"
+  },
+  {
+    "key": "audio.skill-fx.v01.126",
+    "label": "Thunder Pulse 126"
+  },
+  {
+    "key": "audio.skill-fx.v01.127",
+    "label": "Thunder Pulse 127"
+  },
+  {
+    "key": "audio.skill-fx.v01.128",
+    "label": "Thunder Pulse 128"
+  },
+  {
+    "key": "audio.skill-fx.v01.129",
+    "label": "Thunder Pulse 129"
+  },
+  {
+    "key": "audio.skill-fx.v01.130",
+    "label": "Tidal Pulse 130"
+  },
+  {
+    "key": "audio.skill-fx.v01.131",
+    "label": "Tidal Pulse 131"
+  },
+  {
+    "key": "audio.skill-fx.v01.132",
+    "label": "Tidal Pulse 132"
+  },
+  {
+    "key": "audio.skill-fx.v01.133",
+    "label": "Tidal Pulse 133"
+  },
+  {
+    "key": "audio.skill-fx.v01.134",
+    "label": "Tidal Pulse 134"
+  },
+  {
+    "key": "audio.skill-fx.v01.135",
+    "label": "Tidal Pulse 135"
+  },
+  {
+    "key": "audio.skill-fx.v01.136",
+    "label": "Tidal Pulse 136"
+  },
+  {
+    "key": "audio.skill-fx.v01.137",
+    "label": "Tidal Pulse 137"
+  },
+  {
+    "key": "audio.skill-fx.v01.138",
+    "label": "Steel Pulse 138"
+  },
+  {
+    "key": "audio.skill-fx.v01.139",
+    "label": "Steel Pulse 139"
+  },
+  {
+    "key": "audio.skill-fx.v01.140",
+    "label": "Steel Pulse 140"
+  },
+  {
+    "key": "audio.skill-fx.v01.141",
+    "label": "Steel Pulse 141"
+  },
+  {
+    "key": "audio.skill-fx.v01.142",
+    "label": "Steel Pulse 142"
+  },
+  {
+    "key": "audio.skill-fx.v01.143",
+    "label": "Steel Pulse 143"
+  },
+  {
+    "key": "audio.skill-fx.v01.144",
+    "label": "Steel Pulse 144"
+  },
+  {
+    "key": "audio.skill-fx.v01.145",
+    "label": "Steel Pulse 145"
+  },
+  {
+    "key": "audio.skill-fx.v01.146",
+    "label": "Wild Pulse 146"
+  },
+  {
+    "key": "audio.skill-fx.v01.147",
+    "label": "Wild Pulse 147"
+  },
+  {
+    "key": "audio.skill-fx.v01.148",
+    "label": "Wild Pulse 148"
+  },
+  {
+    "key": "audio.skill-fx.v01.149",
+    "label": "Wild Pulse 149"
+  },
+  {
+    "key": "audio.skill-fx.v01.150",
+    "label": "Wild Pulse 150"
+  },
+  {
+    "key": "audio.skill-fx.v01.151",
+    "label": "Wild Pulse 151"
+  },
+  {
+    "key": "audio.skill-fx.v01.152",
+    "label": "Wild Pulse 152"
+  },
+  {
+    "key": "audio.skill-fx.v01.153",
+    "label": "Wild Pulse 153"
+  }
+]

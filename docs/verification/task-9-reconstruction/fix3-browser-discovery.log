@@ -1,0 +1,6 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["corepack", "pnpm", "--filter", "@aurevane/web", "exec", "playwright", "test", "--config=playwright.config.ts", "e2e/master-players-recovery.pw.ts", "--project=desktop-chromium", "--repeat-each=2", "--list"], "start": "2026-10-20T19:57:35.233129+00:00"}
+Listing tests:
+  [desktop-chromium] › master-players-recovery.pw.ts:42:5 › Owner corrections and whole encounter recovery reach actual PvE, both PvP participants and spectator
+  [desktop-chromium] › master-players-recovery.pw.ts:42:5 › Owner corrections and whole encounter recovery reach actual PvE, both PvP participants and spectator
+Total: 2 tests in 1 file
+{"end": "2026-10-20T19:57:36.430947+00:00", "exit": 0}

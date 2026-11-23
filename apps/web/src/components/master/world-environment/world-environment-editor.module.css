@@ -1,0 +1,178 @@
+.editor {
+  display: grid;
+  gap: 0.65rem;
+  width: 100%;
+  max-width: 60rem;
+  margin: 1rem auto;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(205, 177, 111, 0.3);
+  color: #313b37;
+}
+.editor h2,
+.editor h3,
+.editor p {
+  margin: 0;
+  line-height: 1.6;
+}
+.editor label {
+  display: grid;
+  gap: 0.5rem;
+}
+.editor input,
+.editor select,
+.editor textarea,
+.editor button {
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  font: inherit;
+  color: inherit;
+  background: #ded4bf;
+  border: 1px solid rgba(205, 177, 111, 0.5);
+  border-radius: 0.3rem;
+}
+.editor input[type='number'],
+.editor input[type='time'],
+.editor select {
+  width: 100%;
+}
+.editor input[type='checkbox'] {
+  min-height: 0;
+  width: 1.1rem;
+  height: 1.1rem;
+  vertical-align: middle;
+}
+.editor textarea {
+  min-height: 6rem;
+  resize: vertical;
+}
+.editor button {
+  justify-self: start;
+}
+.editor ol {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding-left: 1.25rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.editor :is(input, select, textarea, button):focus-visible {
+  outline: 2px solid #dfbd72;
+  outline-offset: 3px;
+}
+
+.editor fieldset {
+  min-width: 0;
+  display: grid;
+  gap: 0.65rem;
+  border: 1px solid #9b8769;
+}
+.editor button {
+  color: #f1e5ce;
+  background: #345b52;
+}
+.editor input {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.sections {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+.editor {
+  margin: 0 auto;
+  padding: 0;
+  border: 0;
+}
+.editor fieldset {
+  align-content: start;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.75rem;
+}
+.editor label {
+  gap: 0.25rem;
+}
+.editor p {
+  line-height: 1.4;
+}
+@media (max-width: 44rem) {
+  .sections {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.editor {
+  align-content: start;
+  max-width: none;
+  gap: 0.8rem;
+  font-size: 0.875rem;
+}
+.editor > .heading {
+  padding: 0.75rem 0.85rem;
+  background: var(--master-panel, #f7f1e5);
+  border: 1px solid #b6a587;
+  border-top: 3px solid #a1844d;
+  border-radius: 0.4rem;
+}
+.editor h2 {
+  font-size: 1.1rem;
+}
+.editor fieldset {
+  gap: 0.65rem;
+  padding: 0.85rem;
+  background: var(--master-panel, #f7f1e5);
+  border: 1px solid #b6a587;
+  border-radius: 0.4rem;
+  box-shadow: 0 1px 3px #4d402a12;
+}
+.editor legend {
+  padding-inline: 0.35rem;
+  color: #375a4d;
+  font-weight: 600;
+}
+.editor button {
+  background: #315e53;
+  border-color: #274b43;
+  border-radius: 0.25rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.editor :is(input, select, textarea, button):focus-visible {
+  outline: 3px solid #237569;
+  outline-offset: 2px;
+}
+@media (max-width: 600px) {
+  .editor :is(button, input:not([type='checkbox']), select) {
+    min-height: 2.75rem;
+  }
+}
+
+.sections {
+  align-items: start;
+}
+
+.previewControls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+  gap: 0.65rem;
+}
+.previewCanvas {
+  display: block;
+  width: 100%;
+  height: clamp(14rem, 38vh, 25rem);
+  background: #203c41;
+  border-radius: 0.25rem;
+  pointer-events: none;
+}
+.authorityOverlay {
+  margin: 0.2rem 0;
+}

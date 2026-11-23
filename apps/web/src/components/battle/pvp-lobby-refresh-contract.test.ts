@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { describe, expect, it } from 'vitest'
+import { PVP_MAP_SIZES, pvpMapProfile } from '../../lib/battle/pvp-map-presentation'
 
 const here = dirname(fileURLToPath(import.meta.url))
 
@@ -11,20 +12,13 @@ function readLocalFile(name: string): string {
 }
 
 describe('PvP lobby presentation and refresh contract', () => {
-  it('uses Standard and Expanded as the player-facing PvP map size names', () => {
-    const launch = readLocalFile('battle-launch.tsx')
-    const lobby = readLocalFile('pvp-lobby-modal.tsx')
-
-    expect(launch).toContain("{value === 'medium' ? 'Standard' : 'Expanded'}")
-    expect(lobby).toContain("settings.mapSize === 'medium' ? 'Standard' : 'Expanded'")
-    expect(lobby).toContain("['Map size', mapSizeLabel]")
-  })
-
-  it('keeps the existing medium and large wire values for backward compatibility', () => {
-    const launch = readLocalFile('battle-launch.tsx')
-
-    expect(launch).toContain("useState<PvpMapSize>('medium')")
-    expect(launch).toContain("(['medium', 'large'] as const)")
+  it('presents all three AI-sized maps while retaining existing medium and large wire values', () => {
+    expect(PVP_MAP_SIZES).toEqual(['small', 'medium', 'large'])
+    expect(PVP_MAP_SIZES.map((size) => pvpMapProfile(size).description)).toEqual([
+      'Small · 9×7',
+      'Medium · 12×7',
+      'Large · 15×7',
+    ])
   })
 
   it('restores a waiting lobby from session storage after a page refresh', () => {

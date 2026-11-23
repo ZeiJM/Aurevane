@@ -109,7 +109,7 @@ function isPvpDeck(deck: HTMLElement): boolean {
 function semanticDescription(deck: HTMLElement, slug: CommandSlug): string {
   if (!isPvpDeck(deck) && slug === 'move') {
     const normalTileCost = PV1F_MOVEMENT_COST_PER_TERRAIN_POINT
-    return `Move · ${normalTileCost} AP per normal tile. Green tiles are reachable. Rough ground costs ${normalTileCost * 2} AP. Click a destination to draw the numbered path.`
+    return `Move · ${normalTileCost} AP per normal tile. Green tiles are reachable. Rough ground costs ${normalTileCost * 2} AP. Click a highlighted destination to move the full legal route. WASD moves one tile.`
   }
   return COMMAND_PRESENTATION[slug].description
 }

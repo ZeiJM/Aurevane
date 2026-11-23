@@ -5,6 +5,7 @@ import { AurevaneImage } from '@/components/media/aurevane-image'
 import type { PublicBodyBlock } from '@/content/public-information'
 
 import styles from './manual-article.module.css'
+import { ManualMechanicText } from './manual-mechanic-text'
 
 interface ManualArticleProps {
   category: string
@@ -88,6 +89,47 @@ export function ManualArticle({
               {block.title ? <h2>{block.title}</h2> : null}
               {block.paragraphs.map((paragraph) => (
                 <p key={paragraph}>{paragraph}</p>
+              ))}
+              {block.table ? (
+                <table className={styles.table}>
+                  <caption>{block.table.caption}</caption>
+                  <thead>
+                    <tr>
+                      {block.table.headers.map((header) => (
+                        <th scope="col" key={header}>
+                          {header}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {block.table.rows.map((row) => (
+                      <tr key={row[0]}>
+                        {row.map((cell, index) =>
+                          index === 0 ? (
+                            <th scope="row" key={index}>
+                              {cell}
+                            </th>
+                          ) : (
+                            <td key={index}>{cell}</td>
+                          ),
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : null}
+              {block.disclosures?.map((disclosure) => (
+                <details className={styles.disclosure} key={disclosure.title}>
+                  <summary>{disclosure.title}</summary>
+                  <ul>
+                    {disclosure.bullets.map((item, index) => (
+                      <li key={item}>
+                        <ManualMechanicText text={item} parts={disclosure.bulletParts?.[index]} />
+                      </li>
+                    ))}
+                  </ul>
+                </details>
               ))}
               {block.bullets ? (
                 <ul>

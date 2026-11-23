@@ -1,0 +1,114 @@
+{
+  "base": "16838f0cb1fb23ea791f3e5734b1f90c9fd64532",
+  "integratedCurrentMain": "8624c49a3853493cbea5f6b4855330bf0cd99117",
+  "frozenSourceSnapshotTree": "cb2dbeafe4245b6286c9634c1512e49eb3b4f0ba",
+  "initialCheckpoint": {
+    "base": "16838f0cb1fb23ea791f3e5734b1f90c9fd64532",
+    "command": "pnpm check",
+    "exit": 0,
+    "vitestByPackage": {
+      "@aurevane/game-core": 4493,
+      "@aurevane/validation": 106,
+      "@aurevane/realtime": 3,
+      "@aurevane/worker": 2,
+      "@aurevane/audio": 17,
+      "@aurevane/db": 139,
+      "@aurevane/web": 5492
+    },
+    "vitestTotal": 10252,
+    "nodeTests": 7,
+    "logs": "docs/verification/task-8/full-check-final.log",
+    "supplementalFinalTestSourceChecks": "docs/verification/task-8/final-test-source-checks.log",
+    "nativeBrowserRun": false,
+    "notes": [
+      "Unchanged package tasks used exact-input Turbo cache; changed web and DB tests/types were executed.",
+      "Native browser/physical zoom/hosted acceptance unavailable. No hosted mutation, source push, merge or deployment."
+    ]
+  },
+  "command": "pnpm check",
+  "exit": 0,
+  "completedStages": ["format", "lint", "typecheck", "test", "build"],
+  "vitestByPackage": {
+    "@aurevane/game-core": 4503,
+    "@aurevane/validation": 106,
+    "@aurevane/realtime": 3,
+    "@aurevane/worker": 2,
+    "@aurevane/audio": 17,
+    "@aurevane/db": 140,
+    "@aurevane/web": 5508
+  },
+  "vitestTotal": 10279,
+  "vitestFiles": 605,
+  "nodeTests": 7,
+  "logs": "docs/verification/task-8/focus-repair-full-check.log",
+  "focused": {
+    "dbTests": 14,
+    "webTests": 48,
+    "exit": 0
+  },
+  "nativeBrowserRun": false,
+  "hostedAcceptance": false,
+  "physicalZoomVerified": false,
+  "review": {
+    "important": "I1 resolved and approved by same reviewer",
+    "deferred": ["M1 focus restoration", "M2 inherited native-config warning"],
+    "evidence": "docs/verification/task-8/review.md"
+  },
+  "notes": [
+    "Current focus-repair pnpm check exits 0, with all preceding qualification/failure receipts retained under priorReconciledGate.",
+    "Changed web/DB test tasks execute; five unchanged package test tasks use exact-input Turbo cache.",
+    "Native initial focus RED occurs twice on pre-fix source; current-source native focus GREEN and hosted/physical zoom acceptance remain pending.",
+    "Inherited Vite native config warning remains disclosed; no warning suppression or timeout/test weakening."
+  ],
+  "nativeVerificationRepair": {
+    "publishedInitialHead": "199f4718239d85fae7ed29c468a192c7ad286216",
+    "initialDatabaseFailure": "retired resolve_master_panel_account_v1 permission denied",
+    "localFocusedExit": 0,
+    "actualPGliteTests": 15,
+    "sharedNativeSQLExecuted": true,
+    "productSourceUnchanged": true,
+    "fullGateRepeated": false,
+    "nativeOrchestrationVerified": false,
+    "report": "docs/verification/task-8/native-verification-repair.md"
+  },
+  "priorReconciledGate": {
+    "command": "pnpm check",
+    "exit": 1,
+    "failureStage": "build: generated Turbopack persistence initialization (invalid digit found in string)",
+    "completedStages": ["format", "lint", "typecheck", "test"],
+    "vitestByPackage": {
+      "@aurevane/game-core": 4503,
+      "@aurevane/validation": 106,
+      "@aurevane/realtime": 3,
+      "@aurevane/worker": 2,
+      "@aurevane/audio": 17,
+      "@aurevane/db": 139,
+      "@aurevane/web": 5508
+    },
+    "vitestTotal": 10278,
+    "vitestFiles": 605,
+    "nodeTests": 7,
+    "logs": "docs/verification/task-8/review-combined-full-check.log",
+    "buildRecovery": {
+      "command": "pnpm build",
+      "exit": 0,
+      "logs": "docs/verification/task-8/review-unchanged-source-build-retry.log",
+      "action": "Quarantined only generated apps/web/.next/cache/turbopack outside repository",
+      "productTestSourceUnchanged": true,
+      "passingSuitesRerun": false
+    }
+  },
+  "frozenProductBlob": "3180bfcdb3e0deda241e7e403949668a3db93f07",
+  "localBase": "ee1156f97bc874ad9b84704aa4d08eab642d262f",
+  "focusRepair": {
+    "nativeRedHead": "084022efb81534404f88577b73247cbd64d218c8",
+    "nativeRedRepeats": 2,
+    "nativeGreen": false,
+    "productScope": "Identity-keyed commit effect replaces timer; no M1/M2 repair",
+    "focusedTests": 14,
+    "focusedExit": 0,
+    "fullGateExit": 0,
+    "report": "docs/verification/task-8/focus-repair.md",
+    "redEvidence": "docs/verification/task-8/focus-native-red.json"
+  }
+}

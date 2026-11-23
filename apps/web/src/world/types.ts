@@ -1,3 +1,8 @@
+import type { AppearanceExpression } from '@/appearance/appearance-manifest'
+import type { WorldEnvironment } from './environment'
+import type { FerryPassage, FerryShoreSide, WorldFerryView } from './ferry'
+import type { GrandDiscoveryId } from './discovery-sites'
+
 export interface WorldPosition {
   sectorId: string
   x: number
@@ -14,8 +19,16 @@ export interface WorldState {
   position: WorldPosition
   route: TravelStep[]
   routeObjectiveId?: string | null
+  /** Final target when a long journey continues beyond the saved route window. */
+  routeDestination?: WorldPosition | null
   nextStepAt: number | null
+  ferry?: FerryPassage & { warpedPhase: number | null }
   discoveries: Record<string, number[]>
+  discoveredAnchors?: string[]
+  /** Authoritative phase captured at the uncharted continent's ferry landing. */
+  warpedPhase?: number
+  /** Field observations physically recorded during an expedition. */
+  warpedDiscoveries?: string[]
   completedObjectives: string[]
   objectiveProgress?: Record<string, WorldObjectiveProgress>
 }
@@ -40,7 +53,50 @@ export interface WorldLandmark {
   name: string
   x: number
   y: number
-  kind: 'settlement' | 'watchtower' | 'frontier' | 'anchor'
+  /** Original scenic landmark sprite; does not grant an interaction or reward. */
+  sceneryIndex?: number
+  /** Private warped-continent scenery atlas, revealed only in the local scene. */
+  warpedArt?: number
+  kind:
+    | 'settlement'
+    | 'watchtower'
+    | 'frontier'
+    | 'anchor'
+    | 'shrine'
+    | 'ruin'
+    | 'camp'
+    | 'grove'
+    | 'spring'
+    | 'hamlet'
+    | 'waystone'
+    | 'marketplace'
+    | 'bridge'
+}
+export interface WorldBuilding {
+  id: string
+  x: number
+  y: number
+  width: number
+  height: number
+  artIndex: number
+  /** Thin Crown wall runs; orientation selects the matching modular facade. */
+  wallFacing?: 'east' | 'south'
+  propIndex?: number
+}
+export interface WorldAtlasCell {
+  id: string
+  name: string
+  coordinate: string
+  regionId: string
+  column: number
+  row: number
+  charted: boolean
+  /** Public district identity; absent for private or non-town terrain. */
+  townId?: string
+  /** Public built-up outskirts only; never a safe-zone or navigation grant. */
+  settlementOutskirtsOf?: string
+  /** Public water/lava only: row-major 13x9 '~', 'l' or '.'; omitted when dry. */
+  waterTiles?: string
 }
 export interface WorldSector {
   id: string
@@ -54,6 +110,19 @@ export interface WorldSector {
   north: number
   rows: readonly string[]
   charted: boolean
+  /** Deterministically generated ground between and beyond the authored regions. */
+  generated?: boolean
+  atlasColumn?: number
+  atlasRow?: number
+  /** Local projection on a private landmass. These are not globe coordinates. */
+  sceneColumn?: number
+  sceneRow?: number
+  warpedTheme?: 'haven' | 'ashen' | 'fracture' | 'wayfarer' | 'amber' | 'amethyst'
+  townId?: string
+  /** Presentation extent; authoritative town safety still uses townId only. */
+  settlementOutskirtsOf?: string
+  landscape?: 'sakura' | 'autumn' | 'wisteria' | 'willow' | 'wildflowers'
+  buildings?: readonly WorldBuilding[]
   landmarks: readonly WorldLandmark[]
   roads: readonly WorldRoad[]
 }
@@ -62,20 +131,63 @@ export interface WorldObjective {
   name: string
   description: string
   kind: 'quest' | 'event'
+  authority?: 'personal-quest'
   autoPath: boolean
   guidance: 'exact' | 'clue'
   destination: WorldPosition | null
   completed: boolean
   progress?: WorldObjectiveProgress
 }
+export type WorldRestorationActionId =
+  'choose-restoration' | 'choose-restoration-trial' | 'restore-item' | 'claim-restoration'
+export type WorldInteractionActionId =
+  | WorldRestorationActionId
+  | 'accept'
+  | 'report'
+  | 'claim-hunt-reward'
+  | 'hand-over'
+  | 'claim-exchange'
+  | 'travel-realm'
+  | 'leave-realm'
+  | 'challenge-realm'
+  | 'challenge-npc'
+  | 'challenge-mentor'
+  | 'train-mentor'
+  | 'claim-mentor-reward'
+  | 'challenge-avenger'
+  | 'claim-avenger-reward'
 export interface WorldInteraction {
   id: string
   objectiveId: string
   title: string
   speaker: string
+  /** Stable reusable identity when more than one local topic shares a speaker. */
+  speakerId?: string
+  portraitUrl?: string
+  expression?: AppearanceExpression
   body: string
+  actionId?: WorldInteractionActionId | null
   actionLabel: string | null
+  confirmation?: { prompt: string; label: string; cancelLabel: string }
+  alternative?: { actionId: WorldInteractionActionId; label: string }
+  narrative?: { revision: number; replies: string[] }
+  lore?: string
+  declineLabel?: string
+  lastReply?: string
   progress: WorldObjectiveProgress
+}
+export interface WorldAnchorDiscovery {
+  id: string
+  name: string
+  sectorId: string
+}
+export interface WorldArchiveEntry {
+  id: string
+  kind: 'field-observation'
+  title: string
+  location: string
+  summary: string
+  provenance: string
 }
 export interface WorldPlayer {
   characterId: string
@@ -84,7 +196,19 @@ export interface WorldPlayer {
   portraitRef: string
   imageUrl: string | null
   position: WorldPosition
+  /** Seen in the World within the last 40 seconds. Absent on historical payloads. */
+  online?: boolean
   attackable: boolean
+  /** Public encounter eligibility before proximity; atomic server checks still decide attacks. */
+  attackEligible?: boolean
+  entityKind?: 'player' | 'ai'
+  /** Bounded public prefix of approved travel; never authoritative for range. */
+  movement?: {
+    version: number
+    serverNow: number
+    nextStepAt: number | null
+    route: TravelStep[]
+  }
 }
 export interface WorldCell {
   x: number
@@ -93,32 +217,102 @@ export interface WorldCell {
   walkable: boolean
   safe: boolean
 }
+export interface WorldWarpedScenery {
+  x: number
+  y: number
+  sheet: 'void-dressing' | 'void-relics' | 'void-frontier'
+  index: number
+}
+export interface WorldImpactSite {
+  x: number
+  y: number
+  index: 0 | 1 | 2
+  size: number
+}
 export interface WorldSectorView extends Omit<WorldSector, 'rows' | 'roads'> {
   cells: WorldCell[]
   exits: WorldRoad[]
+  /** A projected boarding point independent of the local boarding action. */
+  ferryDock?: { x: number; y: number; shoreSide: FerryShoreSide }
+  /** Server-authored presentation marker, supplied only after its full private footprint is known. */
+  impactSite?: WorldImpactSite
+  /** Private focal art, supplied only for surveyed ground. */
+  warpedScenery?: WorldWarpedScenery
 }
+/** Public presentation only: no private cells, roads, peers or interactions. */
+export type WorldScenerySector = readonly [
+  sectorId: string,
+  terrain: string,
+  landscape: WorldSector['landscape'] | null,
+  buildings: readonly WorldBuilding[],
+  landmarks: readonly WorldLandmark[],
+]
+/** Entered Uncharted landscape for painting only: no identities, exits, peers or discoveries. */
+export type WorldUnchartedTerrain = readonly [
+  sectorId: string,
+  terrain: string,
+  regionId: string,
+  column: number,
+  row: number,
+  theme: NonNullable<WorldSector['warpedTheme']>,
+  landscape: WorldSector['landscape'] | null,
+]
+/** Presentation extent only; it never widens owned navigation or peer visibility. */
+export interface WorldSceneViewport {
+  width: number
+  height: number
+}
+export interface WorldNpcPresentation {
+  id: string
+  name: string
+  position: WorldPosition
+  imageUrl: string | null
+  spriteUrl?: string
+}
+
 export interface WorldView {
+  ferry?: WorldFerryView
+  /** Service registration and private receive capability are available for this scene. */
+  livePresence?: boolean
   characterId: string
   version: number
   serverNow: number
   position: WorldPosition
   route: TravelStep[]
   routeObjectiveId?: string | null
+  routeDestination?: WorldPosition | null
   nextStepAt: number | null
   sectors: WorldSectorView[]
+  /** Compact public terrain buffer, independent of the authorized presence scene. */
+  scenery?: WorldScenerySector[]
+  /** Bounded scenery of the current entered Uncharted world; never navigation authority. */
+  unchartedTerrain?: WorldUnchartedTerrain[]
+  /** Full canonical public ground/approach proof for world-scale scenic art. No private sites. */
+  publicGrandDiscoveries?: readonly GrandDiscoveryId[]
+  /** Compact overview; private terrain and undiscovered landmarks never enter this list. */
+  atlas?: WorldAtlasCell[]
+  /** Opt-in scene transport receipt for this character's exact atlas projection. */
+  atlasToken?: string
   players: WorldPlayer[]
+  npcs?: WorldNpcPresentation[]
   objectives: WorldObjective[]
   interactions: WorldInteraction[]
+  anchors: WorldAnchorDiscovery[]
+  archive: WorldArchiveEntry[]
   battleSessionId: string | null
   movementBlocked: string | null
+  /** Server-owned day/night clock and weather, identical for every player. */
+  environment: WorldEnvironment
 }
 export type WorldIntent =
+  | { kind: 'board-ferry' }
+  | { kind: 'leave-ferry' }
   | { kind: 'walk'; destination: WorldPosition }
   | { kind: 'autopath'; objectiveId: string }
   | { kind: 'stop' }
   | { kind: 'tick' }
   | { kind: 'cross' }
-  | { kind: 'interact'; interactionId: string }
+  | { kind: 'interact'; interactionId: string; actionId?: WorldInteractionActionId }
   | { kind: 'attack'; targetId: string }
 export interface WorldCommand {
   characterId: string

@@ -1,13 +1,19 @@
 import 'server-only'
 
+import { createSelectedCharacterRpc } from './selected-character-rpc'
+
 import { AurevaneError } from '@aurevane/game-core/errors'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
 import {
   isMasterPanelRole,
+  MASTER_PANEL_CAPABILITIES,
+  isMasterPanelRoleDefaultsRoles,
+  type MasterPanelRoleDefaults,
+  type SaveMasterPanelRoleDefaultsInput,
   isMasterPanelSpecialCapability,
-  type DelegatedMasterPanelRole,
+  type SetCharacterStaffAccessInput,
   type MasterPanelAccessRecord,
   type MasterPanelAccountReference,
   type MasterPanelRole,
@@ -57,6 +63,14 @@ function parseAccessRow(row: JsonObject, expectedUserId?: string): MasterPanelAc
   const accessVersion = positiveBigintAsNumber(row.access_version)
   const roles = parseRoles(row.roles)
   const specialCapabilities = parseSpecialCapabilities(row.special_capabilities)
+  const effectiveCapabilities = row.effective_capabilities
+  if (
+    !Array.isArray(effectiveCapabilities) ||
+    !effectiveCapabilities.every((value) => MASTER_PANEL_CAPABILITIES.includes(value)) ||
+    new Set(effectiveCapabilities).size !== effectiveCapabilities.length ||
+    (!roles?.includes('game-owner') && effectiveCapabilities.includes('staff.manage'))
+  )
+    return null
   if (
     typeof row.user_id !== 'string' ||
     (expectedUserId !== undefined && row.user_id !== expectedUserId) ||
@@ -72,33 +86,57 @@ function parseAccessRow(row: JsonObject, expectedUserId?: string): MasterPanelAc
     accessVersion,
     roles,
     specialCapabilities,
+    effectiveCapabilities,
   }
 }
 
-function parseStaffList(data: unknown): readonly MasterPanelStaffSummary[] {
-  if (!Array.isArray(data)) {
-    throw new AurevaneError(
-      'PERSISTENCE_UNAVAILABLE',
-      'The server returned an invalid Master Panel staff list.',
-    )
-  }
+function parseRoleDefaults(value: unknown): MasterPanelRoleDefaults {
+  if (!isObject(value)) return invalidPayload()
+  const revision = positiveBigintAsNumber(value.revision)
+  if (!revision || !isMasterPanelRoleDefaultsRoles(value.roles)) return invalidPayload()
+  return { revision, roles: value.roles }
+}
 
-  return data.map((value) => {
-    if (!isObject(value)) {
-      throw new AurevaneError(
-        'PERSISTENCE_UNAVAILABLE',
-        'The server returned an invalid Master Panel staff record.',
-      )
-    }
-    const access = parseAccessRow(value)
-    if (!access || (value.email !== null && typeof value.email !== 'string')) {
-      throw new AurevaneError(
-        'PERSISTENCE_UNAVAILABLE',
-        'The server returned an invalid Master Panel staff record.',
-      )
-    }
-    return { ...access, email: value.email as string | null }
+function parseStaffList(data: unknown): readonly MasterPanelStaffSummary[] {
+  if (!Array.isArray(data)) invalidPayload()
+  return (data as unknown[]).map((value) => {
+    if (!isObject(value)) return invalidPayload()
+    const roles = parseRoles(value.roles),
+      specialCapabilities = parseSpecialCapabilities(value.specialCapabilities)
+    const accessVersion = positiveBigintAsNumber(value.accessVersion)
+    if (
+      typeof value.userId !== 'string' ||
+      (value.email !== null && typeof value.email !== 'string') ||
+      (value.characterId !== null && typeof value.characterId !== 'string') ||
+      (value.characterName !== null && typeof value.characterName !== 'string') ||
+      !['active', 'expired', 'revoked', 'unavailable', 'needs-binding', 'owner'].includes(
+        String(value.status),
+      ) ||
+      (value.expiresAt !== null &&
+        (typeof value.expiresAt !== 'string' || !Number.isFinite(Date.parse(value.expiresAt)))) ||
+      !roles ||
+      !specialCapabilities ||
+      accessVersion === null
+    )
+      return invalidPayload()
+    return {
+      userId: value.userId,
+      email: value.email,
+      characterId: value.characterId,
+      characterName: value.characterName,
+      status: value.status,
+      expiresAt: value.expiresAt,
+      accessVersion,
+      roles,
+      specialCapabilities,
+    } as MasterPanelStaffSummary
   })
+}
+function invalidPayload(): never {
+  throw new AurevaneError(
+    'PERSISTENCE_UNAVAILABLE',
+    'The server returned an invalid Staff & Access record.',
+  )
 }
 
 function mapRpcError(error: RpcError): never {
@@ -112,7 +150,10 @@ function mapRpcError(error: RpcError): never {
       cause: error,
     })
   }
+  if (error.code === '40001' || error.code === 'PT409')
+    throw new AurevaneError('STALE_VERSION', 'Refresh Staff & Access before editing again.')
   if (
+    error.code === '22023' ||
     error.code === '23503' ||
     message.includes('MASTER_PANEL_ROLE_INVALID') ||
     message.includes('MASTER_PANEL_OWNER_ROLE_PROTECTED') ||
@@ -159,10 +200,21 @@ export class RpcMasterPanelStaffAccessStore implements MasterPanelStaffAccessSto
     this.#rpc = rpc
   }
 
+  async #readCompatible(name: string, previousName: string, args: Parameters<StaffAccessRpc>[1]) {
+    const result = await this.#rpc(name, args)
+    return result.error?.code === 'PGRST202' || result.error?.code === '42883'
+      ? this.#rpc(previousName, args)
+      : result
+  }
+
   async readAccess(userId: string): Promise<MasterPanelAccessRecord | null> {
-    const { data, error } = await this.#rpc('read_master_panel_access_v1', {
-      p_user_id: userId,
-    })
+    const { data, error } = await this.#readCompatible(
+      'read_master_panel_access_v3',
+      'read_master_panel_access_v2',
+      {
+        p_user_id: userId,
+      },
+    )
     if (error) mapRpcError(error)
     const row = oneRow(data)
     if (!row) return null
@@ -176,97 +228,79 @@ export class RpcMasterPanelStaffAccessStore implements MasterPanelStaffAccessSto
     return parsed
   }
 
+  async readRoleDefaults(actorUserId: string): Promise<MasterPanelRoleDefaults> {
+    const { data, error } = await this.#readCompatible(
+      'read_master_panel_role_defaults_v2',
+      'read_master_panel_role_defaults_v1',
+      {
+        p_actor_user_id: actorUserId,
+      },
+    )
+    if (error) mapRpcError(error)
+    return parseRoleDefaults(data)
+  }
+  async saveRoleDefaults(
+    input: SaveMasterPanelRoleDefaultsInput,
+  ): Promise<MasterPanelRoleDefaults> {
+    const { data, error } = await this.#readCompatible(
+      'save_master_panel_role_defaults_v2',
+      'save_master_panel_role_defaults_v1',
+      {
+        p_actor_user_id: input.actorUserId,
+        p_expected_revision: input.expectedRevision,
+        p_roles: input.roles,
+      },
+    )
+    if (error) mapRpcError(error)
+    return parseRoleDefaults(data)
+  }
+
   async listStaff(actorUserId: string): Promise<readonly MasterPanelStaffSummary[]> {
-    const { data, error } = await this.#rpc('list_master_panel_staff_v1', {
+    const { data, error } = await this.#rpc('list_master_panel_staff_v2', {
       p_actor_user_id: actorUserId,
     })
     if (error) mapRpcError(error)
     return parseStaffList(data)
   }
-
-  async resolveAccountByEmail(
+  async resolveIdentity(
     actorUserId: string,
-    email: string,
+    query: string,
   ): Promise<MasterPanelAccountReference | null> {
-    const { data, error } = await this.#rpc('resolve_master_panel_account_v1', {
+    const { data, error } = await this.#rpc('resolve_master_panel_account_v2', {
       p_actor_user_id: actorUserId,
-      p_email: email,
+      p_query: query,
     })
     if (error) mapRpcError(error)
-    const row = oneRow(data)
-    if (!row) return null
+    if (data === null) return null
     if (
-      typeof row.user_id !== 'string' ||
-      typeof row.email !== 'string' ||
-      row.email.toLowerCase() !== email.toLowerCase()
-    ) {
-      throw new AurevaneError(
-        'PERSISTENCE_UNAVAILABLE',
-        'The server returned an invalid Master Panel account lookup.',
+      !isObject(data) ||
+      typeof data.userId !== 'string' ||
+      typeof data.email !== 'string' ||
+      !Array.isArray(data.characters)
+    )
+      return invalidPayload()
+    const characters = data.characters.map((value) => {
+      if (
+        !isObject(value) ||
+        typeof value.characterId !== 'string' ||
+        typeof value.name !== 'string' ||
+        typeof value.playable !== 'boolean'
       )
-    }
-    return { userId: row.user_id, email: row.email }
-  }
-
-  async grantRole(input: {
-    actorUserId: string
-    targetUserId: string
-    role: DelegatedMasterPanelRole
-    note: string
-  }): Promise<number> {
-    const { data, error } = await this.#rpc('grant_master_panel_role_v1', {
-      p_actor_user_id: input.actorUserId,
-      p_target_user_id: input.targetUserId,
-      p_role: input.role,
-      p_note: input.note,
+        return invalidPayload()
+      return { characterId: value.characterId, name: value.name, playable: value.playable }
     })
-    if (error) mapRpcError(error)
-    return requiredVersion(data)
+    return { userId: data.userId, email: data.email, characters }
   }
-
-  async revokeRole(input: {
-    actorUserId: string
-    targetUserId: string
-    role: DelegatedMasterPanelRole
-    note: string
-  }): Promise<number> {
-    const { data, error } = await this.#rpc('revoke_master_panel_role_v1', {
+  async setCharacterAccess(input: SetCharacterStaffAccessInput): Promise<number> {
+    const { data, error } = await this.#rpc('set_master_panel_character_access_v2', {
       p_actor_user_id: input.actorUserId,
       p_target_user_id: input.targetUserId,
-      p_role: input.role,
-      p_note: input.note,
-    })
-    if (error) mapRpcError(error)
-    return requiredVersion(data)
-  }
-
-  async grantCapability(input: {
-    actorUserId: string
-    targetUserId: string
-    capability: MasterPanelSpecialCapability
-    note: string
-  }): Promise<number> {
-    const { data, error } = await this.#rpc('grant_master_panel_capability_v1', {
-      p_actor_user_id: input.actorUserId,
-      p_target_user_id: input.targetUserId,
-      p_capability: input.capability,
-      p_note: input.note,
-    })
-    if (error) mapRpcError(error)
-    return requiredVersion(data)
-  }
-
-  async revokeCapability(input: {
-    actorUserId: string
-    targetUserId: string
-    capability: MasterPanelSpecialCapability
-    note: string
-  }): Promise<number> {
-    const { data, error } = await this.#rpc('revoke_master_panel_capability_v1', {
-      p_actor_user_id: input.actorUserId,
-      p_target_user_id: input.targetUserId,
-      p_capability: input.capability,
-      p_note: input.note,
+      p_target_character_id: input.targetCharacterId,
+      p_roles: input.roles,
+      p_special_capabilities: input.specialCapabilities,
+      p_days: input.days,
+      p_expected_version: input.expectedVersion,
+      p_enabled: input.enabled,
     })
     if (error) mapRpcError(error)
     return requiredVersion(data)
@@ -276,7 +310,9 @@ export class RpcMasterPanelStaffAccessStore implements MasterPanelStaffAccessSto
 export function createSupabaseMasterPanelStaffAccessStore(): RpcMasterPanelStaffAccessStore {
   const client = createSupabaseAdminClient()
   return new RpcMasterPanelStaffAccessStore(
-    (functionName, parameters) =>
-      client.rpc(functionName, parameters) as unknown as PromiseLike<RpcResult>,
+    createSelectedCharacterRpc(
+      (functionName, parameters) =>
+        client.rpc(functionName, parameters) as unknown as PromiseLike<RpcResult>,
+    ),
   )
 }

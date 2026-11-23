@@ -1,0 +1,427 @@
+{
+  "local_source": "b2400610c44f299903dcce3c0f9d69138bede195",
+  "remote_source": "4da2d455e18d2b633fdd63925c3374b2250e2d48",
+  "status": "incomplete non-deployable StageA checkpoint; native physical/review pending",
+  "logs": [
+    {
+      "argv": [
+        "corepack",
+        "pnpm",
+        "--filter",
+        "@aurevane/web",
+        "exec",
+        "vitest",
+        "run",
+        "e2e/players-local-fixture.test.ts"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "2026-10-20T20:45:03.772947+00:00",
+      "completedAt": "2026-10-20T20:45:04.765016+00:00",
+      "exit": 0,
+      "rawLog": "docs/verification/task-10-reconstruction/coordinating-merge-cleanup.log",
+      "file": "coordinating-merge-cleanup.log.gz",
+      "uncompressed_sha256": "edf3f4afafee295b4e19a3c5456cbb7d1da26fa72b751f83285746e82d9ece21",
+      "sha256": "a5c351206e17a6ef418a85140681221c1e552df2e4256d2b80bdd5a095d03992"
+    },
+    {
+      "argv": [
+        "corepack",
+        "pnpm",
+        "exec",
+        "supabase",
+        "migration",
+        "new",
+        "--help"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "2026-10-20T20:46:57.505987+00:00",
+      "completedAt": "2026-10-20T20:46:58.679312+00:00",
+      "exit": 0,
+      "rawLog": "docs/verification/task-10-reconstruction/boundary-migration-help.log",
+      "file": "boundary-migration-help.log.gz",
+      "uncompressed_sha256": "bf004e748d6c82647b41ab75cfb85551aa308d284262ffd5c2035cfc1b43e6a0",
+      "sha256": "01da70d4a2e4e40465a351fbe83a6c0652e3685da08f4f5a4a3dbda7bd4f1f7c"
+    },
+    {
+      "argv": [
+        "corepack",
+        "pnpm",
+        "--filter",
+        "@aurevane/db",
+        "exec",
+        "vitest",
+        "run",
+        "src/combat-content-record-lifecycle.test.ts"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "2026-10-20T20:46:56.103763+00:00",
+      "completedAt": "2026-10-20T20:46:59.934800+00:00",
+      "exit": 1,
+      "rawLog": "docs/verification/task-10-reconstruction/record-boundaries-red.log",
+      "file": "record-boundaries-red.log.gz",
+      "uncompressed_sha256": "2be40ae700decf580f3ee712f6797966b78798b1c2b05fe8280e231112850936",
+      "sha256": "bf18fc48267e788cebbedb2f7515c3e42093937b701b2bc2ae0d629076914d3a"
+    },
+    {
+      "argv": [
+        "corepack",
+        "pnpm",
+        "exec",
+        "supabase",
+        "migration",
+        "new",
+        "combat_content_record_boundaries"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "2026-10-20T20:47:11.718100+00:00",
+      "completedAt": "2026-10-20T20:47:12.865369+00:00",
+      "exit": 0,
+      "rawLog": "docs/verification/task-10-reconstruction/boundary-migration-new.log",
+      "file": "boundary-migration-new.log.gz",
+      "uncompressed_sha256": "ab754bf71a46d093dc00cd9a64412abaf32022b5ce03141bfcf4ebda12e3afd5",
+      "sha256": "67ef0551ce3526f4e564f86818728d841ec2bacd0737852d29e2805584212937"
+    },
+    {
+      "argv": [
+        "corepack",
+        "pnpm",
+        "--filter",
+        "@aurevane/db",
+        "exec",
+        "vitest",
+        "run",
+        "src/combat-content-record-lifecycle.test.ts"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "2026-10-20T20:48:13.607000+00:00",
+      "completedAt": "2026-10-20T20:48:17.466173+00:00",
+      "exit": 0,
+      "rawLog": "docs/verification/task-10-reconstruction/record-boundaries-green-attempt.log",
+      "file": "record-boundaries-green-attempt.log.gz",
+      "uncompressed_sha256": "236b4af7acb1373808aed57566d9aa9eca5fedfda87f176e98af7599685be6af",
+      "sha256": "90524008ddc1e5c8b9b1098b81522eb0aec7423ca051b3286bbe72702dcc2b08"
+    },
+    {
+      "argv": [
+        "corepack",
+        "pnpm",
+        "--filter",
+        "@aurevane/web",
+        "exec",
+        "vitest",
+        "run",
+        "src/server/master/combat-content-builtin-index.test.ts",
+        "src/server/master/combat-content-records.test.ts"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "2026-10-20T20:49:27.455423+00:00",
+      "completedAt": "2026-10-20T20:49:29.487652+00:00",
+      "exit": 1,
+      "rawLog": "docs/verification/task-10-reconstruction/builtin-index-red.log",
+      "file": "builtin-index-red.log.gz",
+      "uncompressed_sha256": "80442d2ef702e67326e09902d0112ce3729c9d139f320c3f2fe25f83ec97ab6f",
+      "sha256": "395d3a61d4fa08cf2b76364b10beb53b08dc532db90f9bb2729045be4f958950"
+    },
+    {
+      "argv": [
+        "corepack",
+        "pnpm",
+        "--filter",
+        "@aurevane/web",
+        "exec",
+        "vitest",
+        "run",
+        "src/server/master/builtin-manifest-generate.test.ts"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "2026-10-20T20:49:44.492189+00:00",
+      "completedAt": "2026-10-20T20:49:46.413228+00:00",
+      "exit": 0,
+      "rawLog": "docs/verification/task-10-reconstruction/builtin-manifest-generate.log",
+      "file": "builtin-manifest-generate.log.gz",
+      "uncompressed_sha256": "06dc9e98c1d38ff50829a8b8fa2260ec588210050bd147956ac3abf72ba02b6a",
+      "sha256": "89c82b898fc7bd343e4fed6354db37fd09a5f272caa03d15e20fbad9a1e840b0"
+    },
+    {
+      "argv": [
+        "corepack",
+        "pnpm",
+        "--filter",
+        "@aurevane/web",
+        "exec",
+        "vitest",
+        "run",
+        "src/server/master/builtin-manifest-generate.test.ts"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "2026-10-20T20:50:18.736378+00:00",
+      "completedAt": "2026-10-20T20:50:20.718310+00:00",
+      "exit": 0,
+      "rawLog": "docs/verification/task-10-reconstruction/builtin-manifest-labels.log",
+      "file": "builtin-manifest-labels.log.gz",
+      "uncompressed_sha256": "939ebc1750202f658b103d2ef5fd223d086812b6e349c9d96928df1a2d0b0984",
+      "sha256": "cfc46b5dea1b31b77ea602243f0ebadbb7fd3d4d8abfc2568337db42c7dd08ba"
+    },
+    {
+      "argv": [
+        "corepack",
+        "pnpm",
+        "--filter",
+        "@aurevane/db",
+        "exec",
+        "vitest",
+        "run",
+        "src/combat-content-record-lifecycle.test.ts"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "2026-10-20T20:51:23.352660+00:00",
+      "completedAt": "2026-10-20T20:51:27.138842+00:00",
+      "exit": 1,
+      "rawLog": "docs/verification/task-10-reconstruction/builtin-registry-red.log",
+      "file": "builtin-registry-red.log.gz",
+      "uncompressed_sha256": "16149a8f27ef246c301d493788e54d630fa1b384be05bde680d33eff3ff5001f",
+      "sha256": "fc2ec520fd0a0209dbb35d270357ac0b6b37c9159a2f6cda2fb6a85186fce83a"
+    },
+    {
+      "argv": [
+        "corepack",
+        "pnpm",
+        "--filter",
+        "@aurevane/web",
+        "exec",
+        "vitest",
+        "run",
+        "src/server/master/combat-content-builtin-index.test.ts",
+        "src/server/master/combat-content-records.test.ts",
+        "src/server/master/combat-content-record-command.test.ts"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "2026-10-20T20:52:01.054280+00:00",
+      "completedAt": "2026-10-20T20:52:04.050831+00:00",
+      "exit": 0,
+      "rawLog": "docs/verification/task-10-reconstruction/builtin-store-green-attempt.log",
+      "file": "builtin-store-green-attempt.log.gz",
+      "uncompressed_sha256": "0fc70e2a58309d0561821df542e50cc1539b2747e0bf72b7e385bd12d841726f",
+      "sha256": "e4284d54d87627f71c7c617f210438dea466e50cd3070322016f7d26f099177c"
+    },
+    {
+      "argv": [
+        "corepack",
+        "pnpm",
+        "--filter",
+        "@aurevane/db",
+        "exec",
+        "vitest",
+        "run",
+        "src/combat-content-record-lifecycle.test.ts"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "2026-10-20T20:51:59.700443+00:00",
+      "completedAt": "2026-10-20T20:52:04.111586+00:00",
+      "exit": 1,
+      "rawLog": "docs/verification/task-10-reconstruction/builtin-registry-green-attempt.log",
+      "file": "builtin-registry-green-attempt.log.gz",
+      "uncompressed_sha256": "225acfac122ef3dbdf415569758622eabcb37a3393ead58f1b61806f6204fe58",
+      "sha256": "f41e17e9adc97d98cbe974acb5b47cc0020f329dc8f427433b17aabd6cb103a2"
+    },
+    {
+      "argv": [
+        "corepack",
+        "pnpm",
+        "--filter",
+        "@aurevane/db",
+        "exec",
+        "vitest",
+        "run",
+        "src/combat-content-record-lifecycle.test.ts"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "2026-10-20T20:52:27.721249+00:00",
+      "completedAt": "2026-10-20T20:52:31.393933+00:00",
+      "exit": 0,
+      "rawLog": "docs/verification/task-10-reconstruction/builtin-registry-green.log",
+      "file": "builtin-registry-green.log.gz",
+      "uncompressed_sha256": "e0ca8a5d988c064af9773ca1ee5474838b0335a94cb682607dfe952487270735",
+      "sha256": "bc3aa6294fa710d590a567832d66f4fe6785bb889f4f5b6a30ed24b531f282ce"
+    },
+    {
+      "argv": [
+        "corepack",
+        "pnpm",
+        "exec",
+        "prettier",
+        "--write",
+        "apps/web/src/server/master/combat-content-builtin-index.ts",
+        "apps/web/src/server/master/combat-content-builtin-index.test.ts",
+        "apps/web/src/server/master/combat-content-records.test.ts",
+        "apps/web/src/server/master/combat-content-record.ts",
+        "apps/web/src/server/master/combat-content-record-command.ts",
+        "apps/web/src/server/master/supabase-combat-content-authoring-store.ts",
+        "packages/db/src/combat-content.ts",
+        "packages/db/src/combat-content-record-lifecycle.test.ts",
+        "supabase/content-builtin-manifest.json"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "2026-10-20T20:54:03.563991+00:00",
+      "completedAt": "2026-10-20T20:54:04.617730+00:00",
+      "exit": 0,
+      "rawLog": "docs/verification/task-10-reconstruction/builtin-boundary-format.log",
+      "file": "builtin-boundary-format.log.gz",
+      "uncompressed_sha256": "00385db9d0eef11cef5a22a09d0d086cfd123b8395ff78d0414468cd9fa532e2",
+      "sha256": "7a2077682d94f2e5208616a3323987fbc69add457bb128325df40794063d1abe"
+    },
+    {
+      "argv": [
+        "corepack",
+        "pnpm",
+        "--filter",
+        "@aurevane/db",
+        "exec",
+        "vitest",
+        "run",
+        "src/combat-content-record-lifecycle.test.ts"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "2026-10-20T20:54:05.076709+00:00",
+      "completedAt": "2026-10-20T20:54:10.567100+00:00",
+      "exit": 0,
+      "rawLog": "docs/verification/task-10-reconstruction/builtin-boundary-db.log",
+      "file": "builtin-boundary-db.log.gz",
+      "uncompressed_sha256": "606261a6b5eac449e190eeec55fd94a884ff56124490cab4047e962981d2fae9",
+      "sha256": "6d9d565218aefb4402349f2cbd9895ce5ebbbcbbb73a82f5cda6dcab47b8c85e"
+    },
+    {
+      "argv": [
+        "corepack",
+        "pnpm",
+        "--filter",
+        "@aurevane/db",
+        "typecheck"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "2026-10-20T20:54:05.083453+00:00",
+      "completedAt": "2026-10-20T20:54:10.616698+00:00",
+      "exit": 0,
+      "rawLog": "docs/verification/task-10-reconstruction/builtin-boundary-db-types.log",
+      "file": "builtin-boundary-db-types.log.gz",
+      "uncompressed_sha256": "8366207267355d3e3d5bf3bf6e8c94c5f93f6078c34f08973fa2b38cdda6cc92",
+      "sha256": "67be5567bde7f0f4c1fd5e775e918562bc1f228a849614e4ad48b4172e907169"
+    },
+    {
+      "argv": [
+        "corepack",
+        "pnpm",
+        "--filter",
+        "@aurevane/web",
+        "exec",
+        "eslint",
+        "src/server/master/combat-content-builtin-index.ts",
+        "src/server/master/combat-content-builtin-index.test.ts",
+        "src/server/master/combat-content-records.test.ts",
+        "src/server/master/combat-content-record.ts",
+        "src/server/master/combat-content-record-command.ts",
+        "src/server/master/supabase-combat-content-authoring-store.ts"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "2026-10-20T20:54:15.804954+00:00",
+      "completedAt": "2026-10-20T20:54:18.188967+00:00",
+      "exit": 0,
+      "rawLog": "docs/verification/task-10-reconstruction/builtin-boundary-web-lint.log",
+      "file": "builtin-boundary-web-lint.log.gz",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec"
+    },
+    {
+      "argv": [
+        "corepack",
+        "pnpm",
+        "exec",
+        "eslint",
+        "packages/db/src/combat-content.ts",
+        "packages/db/src/combat-content-record-lifecycle.test.ts"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "2026-10-20T20:54:15.803902+00:00",
+      "completedAt": "2026-10-20T20:54:18.445309+00:00",
+      "exit": 0,
+      "rawLog": "docs/verification/task-10-reconstruction/builtin-boundary-db-lint.log",
+      "file": "builtin-boundary-db-lint.log.gz",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec"
+    },
+    {
+      "argv": [
+        "corepack",
+        "pnpm",
+        "--filter",
+        "@aurevane/web",
+        "typecheck"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "2026-10-20T20:54:05.083079+00:00",
+      "completedAt": "2026-10-20T20:54:18.573802+00:00",
+      "exit": 2,
+      "rawLog": "docs/verification/task-10-reconstruction/builtin-boundary-web-types.log",
+      "file": "builtin-boundary-web-types.log.gz",
+      "uncompressed_sha256": "ef53a58d2feec23e0466e272ec751ddf8ce3f1483d672ed3143cd8c6a2769af7",
+      "sha256": "5a138a366d624ea3ba83ce6acc0460c162487fa72c3e8d4450715b0174953c07"
+    },
+    {
+      "argv": [
+        "corepack",
+        "pnpm",
+        "--filter",
+        "@aurevane/web",
+        "exec",
+        "vitest",
+        "run",
+        "src/server/master/combat-content-builtin-index.test.ts",
+        "src/server/master/combat-content-records.test.ts",
+        "src/server/master/combat-content-record-command.test.ts"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "2026-10-20T20:54:29.065391+00:00",
+      "completedAt": "2026-10-20T20:54:31.363304+00:00",
+      "exit": 0,
+      "rawLog": "docs/verification/task-10-reconstruction/builtin-boundary-final-web.log",
+      "file": "builtin-boundary-final-web.log.gz",
+      "uncompressed_sha256": "69e57e2998650e37b902cfd0a0d24761b9ee6d2aa1334189edc836b4b503c212",
+      "sha256": "618c2176491139de11e28ee34b8181e8c97bc27ec2795073a35c16718b271663"
+    },
+    {
+      "argv": [
+        "corepack",
+        "pnpm",
+        "exec",
+        "prettier",
+        "--write",
+        "apps/web/src/server/master/combat-content-records.test.ts"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "2026-10-20T20:54:31.865484+00:00",
+      "completedAt": "2026-10-20T20:54:32.631359+00:00",
+      "exit": 0,
+      "rawLog": "docs/verification/task-10-reconstruction/builtin-boundary-final-format.log",
+      "file": "builtin-boundary-final-format.log.gz",
+      "uncompressed_sha256": "d531eb5136b13920f285b3ea668425245e08aa97278ca8df186b3e333750fde3",
+      "sha256": "556c53183219c6593350a325ee7fb51337d64541d93d68018ed2efad42a68a4d"
+    },
+    {
+      "argv": [
+        "corepack",
+        "pnpm",
+        "--filter",
+        "@aurevane/web",
+        "typecheck"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "2026-10-20T20:54:30.501869+00:00",
+      "completedAt": "2026-10-20T20:54:35.299902+00:00",
+      "exit": 0,
+      "rawLog": "docs/verification/task-10-reconstruction/builtin-boundary-web-types-green.log",
+      "file": "builtin-boundary-web-types-green.log.gz",
+      "uncompressed_sha256": "99d7c2179cdd316467c51f37901025a0753453664d741214ba56fc631fa6c0bc",
+      "sha256": "e0356247813383c642bcaf9deb204edac049294684227f11c159d094ec0752cb"
+    }
+  ]
+}

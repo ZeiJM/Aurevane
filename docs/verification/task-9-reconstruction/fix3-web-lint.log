@@ -1,0 +1,2 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["corepack", "pnpm", "--filter", "@aurevane/web", "exec", "eslint", "e2e/players-local-fixture.ts", "e2e/pv1f-test-helpers.ts", "e2e/master-players-recovery.pw.ts", "--max-warnings=0"], "start": "2026-10-20T19:57:18.768341+00:00"}
+{"end": "2026-10-20T19:57:20.642936+00:00", "exit": 0}

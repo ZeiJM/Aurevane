@@ -330,3 +330,22 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* The captured reader keeps the existing two-line effect row geometry. */
+.effectReader {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  gap: 0.2rem;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  text-align: inherit;
+  cursor: pointer;
+}
+.effectReader:focus-visible {
+  outline: 2px solid var(--av-brass-300);
+  outline-offset: 2px;
+}

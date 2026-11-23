@@ -337,9 +337,9 @@
     main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind]
       > footer[data-battle-shared-footer='true']
   ) {
-    min-height: 2.65rem !important;
+    min-height: var(--av-footer-rail-height) !important;
     gap: 0.45rem !important;
-    padding: 0.3rem clamp(0.5rem, 1vw, 0.8rem) !important;
+    padding: 0.2rem clamp(0.5rem, 1vw, 0.8rem) !important;
   }
 
   :global(

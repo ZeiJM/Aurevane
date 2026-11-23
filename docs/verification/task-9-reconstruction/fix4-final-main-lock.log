@@ -1,0 +1,7 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "argv": ["python", "-c", "import shutil,subprocess; subprocess.run([\"git\",\"fetch\",\"origin\",\"main\"],check=True); print(\"MAIN\",subprocess.check_output([\"git\",\"rev-parse\",\"origin/main\"],text=True).strip()); subprocess.run([\"git\",\"merge-base\",\"--is-ancestor\",\"origin/main\",\"HEAD\"],check=True); print(\"LOCK\",subprocess.check_output([\"git\",\"hash-object\",\"apps/web/vercel.json\"],text=True).strip()); print(\"DOCKER\",shutil.which(\"docker\"),\"PSQL\",shutil.which(\"psql\")); subprocess.run([\"git\",\"diff\",\"--check\"],check=True); subprocess.run([\"git\",\"diff\",\"3a791c060efda502f8f5cb03dc052a5aefaefb9c\",\"--stat\",\"--\",\"apps/web/src\",\"packages\",\"supabase\",\"apps/web/vercel.json\"],check=True)"], "start": "2026-10-20T20:40:44.835751+00:00"}
+From https://github.com/ZeiJM/Aurevane
+ * branch                  main       -> FETCH_HEAD
+MAIN b7ba1e7b3e8b850c53f0d15842c96aecc50ae160
+LOCK b8a4e0e3c57b95a8da49c05d1fe5f60ba2181b5f
+DOCKER None PSQL None
+{"end": "2026-10-20T20:40:49.922614+00:00", "exit": 0}

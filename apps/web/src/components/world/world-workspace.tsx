@@ -1,20 +1,131 @@
 'use client'
-import { useEffect, useRef, useState } from 'react'
-import Image from 'next/image'
+import { WorldDestinationCard } from './world-destination-card'
+import { worldTimeLabel, worldDayPhase, WORLD_DAY_REAL_MS } from '@/world/environment'
+import { ChatPanel } from '@/components/social/chat/chat-panel'
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { useRouter } from 'next/navigation'
-import { WORLD_REGIONS, FRONTIER_APPROACH, worldRegion } from '@/world/catalog'
+import { WORLD_LAND_NAME } from '@/world/atlas'
+import { WORLD_REGIONS } from '@/world/catalog'
+import { mainlandSectorAtNumber, readSectorNumber } from '@/world/sector-index'
+import { canWalkPublicAtlas } from '@/world/atlas-walking'
+import { positionLabel, sectorLabel } from '@/world/coordinate-label'
+import { parseVoidSectorId, VOID_REALMS } from '@/world/void-realms'
+import { regionalWeatherLabel } from './map-weather'
 import {
-  ACTIVE_WORLD_SYNC_MS,
-  remainingTravelMs,
-  samePosition,
-  worldSyncIntervalMs,
-} from '@/world/travel'
-import type { WorldIntent, WorldPosition, WorldView } from '@/world/types'
-import { Globe } from './globe'
-import { SectorMap } from './sector-map'
-import { Surroundings } from './surroundings'
-import styles from './world.module.css'
+  defaultMapQuality,
+  readMapQuality,
+  saveMapQuality,
+  subscribeMapQuality,
+  type MapQuality,
+} from './map-quality'
+import { canAutoPath, remainingTravelMs, worldSyncDelayMs } from '@/world/travel'
+import type { WorldAttackReceipt } from '@/world/attack-receipt'
+import type { WorldMovementReceipt } from '@/world/movement-receipt'
+import { WorldNearbyPlayer } from './world-nearby-player'
+import { WorldPlacePortrait } from './world-place-portrait'
+import {
+  mergeWorldRefresh,
+  readWorldSceneRefresh,
+  WORLD_ATLAS_HEADER,
+  worldRefreshUrl,
+} from '@/world/presence'
+import type {
+  TravelStep,
+  WorldIntent,
+  WorldInteraction,
+  WorldInteractionActionId,
+  WorldPosition,
+  WorldView,
+} from '@/world/types'
+import { WorldConflict, WorldController } from './world-controller'
+import { worldSceneCoversViewport } from './world-scene-coverage'
+import { WorldLivePresence } from './world-live-presence'
+import { createSupabaseBrowserClient } from '@/lib/supabase/client'
+import { localRoute, mapPoint, prepareLocalRoute, WorldMotion } from './world-motion'
+import { WorldMap } from './world-map'
+import { GLOBE_FOCUS_EVENT, WorldGlobe } from './world-globe'
+import { worldKeyLocations, worldTravelDestination } from './world-travel-points'
+import { WorldNearbyNpc } from './world-nearby-npc'
+import { WorldMissions } from './world-missions'
+import { dialogueSpeakerId, WorldDialogue, type NarrativeReply } from './world-dialogue'
+import {
+  FERRY_CONVERSATION_ID,
+  FerryDialogueAction,
+  WorldFerryStation,
+  ferrymanTopic,
+  worldViewWithFerryman,
+} from './world-ferry'
+import dialogueStyles from './world-dialogue.module.css'
+import { clampWorldZoom, WORLD_MIN_ZOOM, WORLD_MAX_ZOOM } from './world-zoom'
+import { battleSessionHref } from '@/components/battle/battle-return-navigation'
+import styles from './workspace.module.css'
 
+const WORLD_FAVORITE_EVENT = 'aurevane-world-favorite'
+const subscribeWorldFavorite = (changed: () => void) => {
+  window.addEventListener('storage', changed)
+  window.addEventListener(WORLD_FAVORITE_EVENT, changed)
+  return () => {
+    window.removeEventListener('storage', changed)
+    window.removeEventListener(WORLD_FAVORITE_EVENT, changed)
+  }
+}
+const noWorldFavorite = () => null
+
+function centerGlobeOn(id: string) {
+  window.dispatchEvent(new CustomEvent<string>(GLOBE_FOCUS_EVENT, { detail: id }))
+}
+
+function SettingsButton({
+  open,
+  onClick,
+  className,
+}: {
+  open: boolean
+  onClick: () => void
+  className?: string
+}) {
+  return (
+    <button
+      className={className}
+      aria-label="Map settings"
+      aria-expanded={open}
+      aria-controls="world-settings"
+      onClick={onClick}
+    >
+      <svg
+        viewBox="0 0 24 24"
+        width="22"
+        height="22"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <path d="M10 2h4l.6 3 2.2 1.3 2.8-1 2 3.4-2.2 2v2.6l2.2 2-2 3.4-2.8-1-2.2 1.3-.6 3h-4l-.6-3-2.2-1.3-2.8 1-2-3.4 2.2-2v-2.6l-2.2-2 2-3.4 2.8 1L9.4 5z" />
+        <circle cx="12" cy="12" r="3.2" />
+      </svg>
+    </button>
+  )
+}
+
+let fallbackZoomLock: boolean | null = null
+const readZoomLock = () => {
+  if (fallbackZoomLock !== null) return fallbackZoomLock
+  try {
+    return localStorage.getItem('aurevane.zoomLock') === 'on'
+  } catch {
+    return false
+  }
+}
+const subscribeZoomLock = (changed: () => void) => {
+  window.addEventListener('storage', changed)
+  window.addEventListener('aurevane-zoom-lock', changed)
+  return () => {
+    window.removeEventListener('storage', changed)
+    window.removeEventListener('aurevane-zoom-lock', changed)
+  }
+}
 export function WorldWorkspace({
   initialView,
   character,
@@ -22,508 +133,1113 @@ export function WorldWorkspace({
   initialView: WorldView
   character: { name: string; portrait: string }
 }) {
-  const router = useRouter()
-  const refreshing = useRef(false)
-  const [view, setView] = useState(initialView),
-    [mode, setMode] = useState<'globe' | 'sector'>('sector'),
-    [selected, setSelected] = useState(initialView.position.sectorId)
-  const [grid, setGrid] = useState(true),
-    [motion, setMotion] = useState(true),
-    [layers, setLayers] = useState(false),
-    [panorama, setPanorama] = useState(false),
-    [focus, setFocus] = useState(0)
-  const [search, setSearch] = useState(''),
-    [target, setTarget] = useState<string | null>(null),
-    [message, setMessage] = useState(''),
-    [busy, setBusy] = useState(false)
-  const current = useRef(initialView),
-    pending = useRef(false),
-    mounted = useRef(true)
-  function accept(next: WorldView) {
-    if (!mounted.current) return
-    if (next.battleSessionId) {
-      router.replace(`/game/battle/${next.battleSessionId}`)
-      return
-    }
-    if (next.characterId !== current.current.characterId) {
-      router.refresh()
-      return
-    }
-    if (next.version < current.current.version) return
-    if (next.position.sectorId !== current.current.position.sectorId) {
-      setSelected(next.position.sectorId)
-      setPanorama(false)
-    }
-    current.current = next
-    setView(next)
-  }
-  async function refresh() {
-    if (refreshing.current) return
-    refreshing.current = true
-    try {
-      const response = await fetch('/api/world', { cache: 'no-store' })
-      const body = await response.json()
-      if (!response.ok) throw new Error(body.error?.message ?? 'The world could not be refreshed.')
-      accept(body)
-    } finally {
-      refreshing.current = false
-    }
-  }
-  async function send(intent: WorldIntent) {
-    if (pending.current) return
-    pending.current = true
-    setBusy(true)
-    try {
-      const response = await fetch('/api/world', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          intent,
-          characterId: current.current.characterId,
-          expectedVersion: current.current.version,
-          commandId: crypto.randomUUID(),
-        }),
-      })
-      const body = await response.json()
-      if (!response.ok) {
-        if (response.status === 409) await refresh()
-        throw new Error(body.error?.message ?? 'Travel could not continue.')
-      }
-      accept(body)
-      setMessage('')
-    } catch (error) {
-      if (mounted.current)
-        setMessage(error instanceof Error ? error.message : 'Travel is briefly unavailable.')
-    } finally {
-      pending.current = false
-      if (mounted.current) setBusy(false)
-    }
-  }
-  const sendRef = useRef(send),
-    refreshRef = useRef(refresh)
+  const router = useRouter(),
+    [view, setView] = useState(initialView),
+    [mode, setMode] = useState<'local' | 'global'>('local')
+  const [tab, setTab] = useState<'nearby' | 'places' | 'missions' | 'chat'>('nearby'),
+    [panelOpen, setPanelOpen] = useState(false),
+    [message, setMessage] = useState('')
+  const [conversation, setConversation] = useState<{
+    topic: WorldInteraction
+    opener: HTMLButtonElement
+  } | null>(null)
+  const openingConversation = useRef(false)
+  const [active, setActive] = useState<WorldIntent | null>(null),
+    [selectedPlayer, setSelectedPlayer] = useState<string | null>(null),
+    [approachingPlayer, setApproachingPlayer] = useState<string | null>(null),
+    [settings, setSettings] = useState(false),
+    [visiblePlayerIds, setVisiblePlayerIds] = useState<string[] | null>(null),
+    [destinationId, setDestinationId] = useState<string | null>(null),
+    [confirmDestinationId, setConfirmDestinationId] = useState<string | null>(null),
+    [sectorJump, setSectorJump] = useState('')
+  const [animate, setAnimate] = useState(true),
+    [showLocationLabels, setShowLocationLabels] = useState(true),
+    [zoom, setZoom] = useState(1),
+    [globeZoom, setGlobeZoom] = useState(0.94)
+  const [motion] = useState(() => new WorldMotion(initialView, performance.now()))
+  const [approvedPosition, setApprovedPosition] = useState(initialView.position)
+  const zoomLocked = useSyncExternalStore(subscribeZoomLock, readZoomLock, () => false)
+  const mapQuality = useSyncExternalStore(subscribeMapQuality, readMapQuality, defaultMapQuality)
+  const changeZoom = (value: number) =>
+    (mode === 'global' ? setGlobeZoom : setZoom)(clampWorldZoom(value))
+  const controller = useRef<WorldController | null>(null),
+    livePresence = useRef<WorldLivePresence | null>(null),
+    acceptedAt = useRef(0),
+    localViewActive = useRef(true)
+  const sceneCovered = useCallback(
+    (current: WorldView) => {
+      if (!localViewActive.current) return true
+      const canvas = document.querySelector<HTMLCanvasElement>('canvas[data-world-stage]')
+      if (!canvas) return false
+      const point = motion.sample(performance.now()).point
+      return worldSceneCoversViewport(
+        current,
+        [
+          point,
+          ...current.route
+            .slice(0, 4)
+            .map((step) => mapPoint(step.position, current.sectors, point)),
+        ],
+        {
+          width: canvas.clientWidth,
+          height: canvas.clientHeight,
+          // Prefetch for the smallest allowed zoom before a zoom-out exposes it.
+          tile: (canvas.clientWidth < 600 ? 48 : 64) * WORLD_MIN_ZOOM,
+        },
+      )
+    },
+    [motion],
+  )
   useEffect(() => {
-    sendRef.current = send
-    refreshRef.current = refresh
-  })
+    if (!panelOpen || settings) return
+    const closeOnOutside = (event: PointerEvent) => {
+      const target = event.target
+      if (!(target instanceof Element)) return
+      if (target.closest('#world-panel, [aria-controls="world-panel"], [data-world-dialogue]'))
+        return
+      setPanelOpen(false)
+    }
+    document.addEventListener('pointerdown', closeOnOutside, true)
+    return () => document.removeEventListener('pointerdown', closeOnOutside, true)
+  }, [panelOpen, settings])
   useEffect(() => {
-    mounted.current = true
-    let lastIdleSyncAt = Date.now()
-    const sync = () => {
-      if (pending.current) return
-      const travelling = current.current.route.length > 0 && !current.current.movementBlocked
-      if (travelling) {
-        void sendRef.current({ kind: 'tick' })
+    localViewActive.current = mode === 'local'
+    if (controller.current)
+      livePresence.current?.update(
+        controller.current.view,
+        mode === 'local' && document.visibilityState === 'visible',
+      )
+    if (mode === 'local') void controller.current?.refresh()
+  }, [mode])
+  useEffect(() => {
+    acceptedAt.current = Date.now()
+    motion.reconcile(initialView, performance.now())
+    let mounted = true,
+      timer: number | null = null,
+      arrivalTimer: number | null = null,
+      sceneTimer: number | null = null
+    const scheduleArrival = () => {
+      if (arrivalTimer !== null) clearTimeout(arrivalTimer)
+      if (!mounted) return
+      const now = performance.now()
+      setApprovedPosition(motion.approvedPosition(now))
+      const delay = motion.nextApprovedTransitionDelay(now)
+      if (delay !== null) arrivalTimer = window.setTimeout(scheduleArrival, Math.max(1, delay))
+    }
+    const accept = (next: WorldView, reconcile: boolean) => {
+      if (!mounted) return
+      if (next.battleSessionId) {
+        setView(next)
+        router.replace(battleSessionHref(next.battleSessionId, 'world'))
         return
       }
-      if (document.visibilityState === 'hidden') return
-      const now = Date.now()
-      if (
-        now - lastIdleSyncAt <
-        worldSyncIntervalMs({
-          routeLength: current.current.route.length,
-          movementBlocked: Boolean(current.current.movementBlocked),
+      if (next.characterId !== initialView.characterId) {
+        setConversation(null)
+        router.refresh()
+        return
+      }
+      acceptedAt.current = Date.now()
+      if (reconcile) motion.reconcile(next, performance.now())
+      else motion.approveReceipt(next, performance.now())
+      scheduleArrival()
+      setView(next)
+      live.update(next, localViewActive.current && document.visibilityState === 'visible')
+      schedule()
+    }
+    const instance: WorldController = new WorldController(initialView, {
+      command: async (intent, current) => {
+        const response = await fetch('/api/world', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-world-response': 'movement' },
+          body: JSON.stringify({
+            intent,
+            characterId: current.characterId,
+            expectedVersion: current.version,
+            commandId: crypto.randomUUID(),
+          }),
         })
+        const body = await response.json()
+        if (response.status === 409) throw new WorldConflict(body.error?.message)
+        if (!response.ok) throw new Error(body.error?.message ?? 'The world could not respond.')
+        if (intent.kind === 'attack') {
+          if (
+            body.characterId !== current.characterId ||
+            typeof body.battleSessionId !== 'string' ||
+            !body.battleSessionId.trim()
+          )
+            throw new Error('The encounter could not be opened safely.')
+          return body as WorldAttackReceipt
+        }
+        return body.kind === 'movement'
+          ? (body as WorldMovementReceipt)
+          : mergeWorldRefresh(current, body as WorldView)
+      },
+      refresh: async (signal, fullScene) => {
+        const previous = instance.view
+        const canvas = fullScene
+          ? document.querySelector<HTMLCanvasElement>('canvas[data-world-stage]')
+          : null
+        const viewport =
+          canvas && canvas.clientWidth > 0 && canvas.clientHeight > 0
+            ? { width: canvas.clientWidth, height: canvas.clientHeight }
+            : undefined
+        const url = fullScene && !viewport ? '/api/world' : worldRefreshUrl(previous, viewport)
+        const read = async (knownAtlas?: string) => {
+          const response = await fetch(url, {
+            cache: 'no-store',
+            signal,
+            ...(knownAtlas ? { headers: { [WORLD_ATLAS_HEADER]: knownAtlas } } : {}),
+          })
+          const body = await response.json()
+          if (!response.ok)
+            throw new Error(body.error?.message ?? 'The world could not be refreshed.')
+          return body
+        }
+        return fullScene
+          ? readWorldSceneRefresh(previous, () => instance.view, read)
+          : mergeWorldRefresh(previous, await read())
+      },
+      accept,
+      confirmMovement: (next) => {
+        if (!mounted) return
+        motion.confirmApproved(next, performance.now())
+        scheduleArrival()
+        schedule()
+      },
+      sceneCovered,
+      presentation: (next) => {
+        if (!mounted) return
+        motion.updateScene(next.sectors, performance.now())
+        scheduleArrival()
+        scheduleScene()
+        setView(next)
+        live.update(next, localViewActive.current && document.visibilityState === 'visible')
+      },
+      error: (text) => {
+        if (mounted) {
+          setMessage(text)
+          setApproachingPlayer(null)
+        }
+      },
+      busy: (intent) => {
+        if (mounted) setActive(intent?.kind === 'tick' ? null : intent)
+      },
+    })
+    controller.current = instance
+    let client: ReturnType<typeof createSupabaseBrowserClient> | null = null
+    const live = new WorldLivePresence({
+      getView: () => instance.view,
+      subscribe: (topic, changed) => {
+        client ??= createSupabaseBrowserClient()
+        const connection = client
+        const channel = connection
+          .channel(topic, { config: { private: true } })
+          .on('broadcast', { event: 'changed' }, changed)
+        let alive = true
+        void connection.auth
+          .getSession()
+          .then(async ({ data }) => {
+            if (!alive || !data.session) return
+            await connection.realtime.setAuth(data.session.access_token)
+            if (alive)
+              channel.subscribe((status) => {
+                if (status === 'SUBSCRIBED') changed()
+              })
+          })
+          .catch(() => {
+            /* Owned polling remains available. */
+          })
+        return () => {
+          alive = false
+          void connection.removeChannel(channel)
+        }
+      },
+      read: async (current, signal) => {
+        const query = new URLSearchParams({
+          version: String(current.version),
+          characterId: current.characterId,
+        })
+        const response = await fetch(`/api/world/presence?${query}`, { cache: 'no-store', signal })
+        if (!response.ok) throw new Error('World presence is temporarily unavailable.')
+        return response.json()
+      },
+      accept: (source, receipt) => {
+        if (mounted && instance.acceptPlayers(source, receipt.players)) setView(instance.view)
+      },
+    })
+    livePresence.current = live
+    live.update(initialView, localViewActive.current && document.visibilityState === 'visible')
+    const scheduleScene = () => {
+      if (sceneTimer !== null) clearTimeout(sceneTimer)
+      if (!mounted || !instance.view.route.length || instance.view.movementBlocked) return
+      const current = instance.view,
+        now = current.serverNow + Math.max(0, Date.now() - acceptedAt.current)
+      const loaded = motion.loadedHorizonMs(performance.now()),
+        remaining = remainingTravelMs(current, now)
+      if (loaded >= remaining - 1) return
+      sceneTimer = window.setTimeout(
+        async () => {
+          if (document.visibilityState === 'visible') await instance.hydrate()
+          scheduleScene()
+        },
+        Math.max(250, loaded - 1800),
+      )
+    }
+    const schedule = () => {
+      if (!mounted) return
+      if (timer) clearTimeout(timer)
+      scheduleScene()
+      const current = instance.view,
+        now = current.serverNow + Math.max(0, Date.now() - acceptedAt.current)
+      const syncDelay = worldSyncDelayMs({
+        routeLength: current.route.length,
+        movementBlocked: Boolean(current.movementBlocked),
+        nextStepAt: current.nextStepAt,
+        serverNow: now,
+        remainingMs: remainingTravelMs(current, now),
+        observePlayers: localViewActive.current,
+        onlinePlayers: current.players.filter((player) => player.online !== false).length,
+      })
+      const passage = current.ferry?.passage
+      const ferryTransition = passage
+        ? now < passage.departureAt
+          ? passage.departureAt
+          : passage.arrivalAt
+        : current.ferry?.nextDepartureAt
+      const delay =
+        ferryTransition && ferryTransition > now
+          ? Math.min(syncDelay, ferryTransition - now + 50)
+          : syncDelay
+      timer = window.setTimeout(
+        async () => {
+          if (document.visibilityState === 'visible' && !instance.pending) {
+            if (instance.view.route.length && !instance.view.movementBlocked) {
+              await instance.send({ kind: 'tick' })
+              void instance.hydrate({ movement: true })
+            } else await instance.refresh()
+          }
+          schedule()
+        },
+        Math.max(100, delay),
+      )
+    }
+    schedule()
+    scheduleArrival()
+    const visible = () => {
+      live.update(instance.view, localViewActive.current && document.visibilityState === 'visible')
+      if (document.visibilityState === 'visible') void instance.refresh(true)
+    }
+    document.addEventListener('visibilitychange', visible)
+    return () => {
+      mounted = false
+      live.dispose()
+      livePresence.current = null
+      instance.dispose()
+      if (timer) clearTimeout(timer)
+      if (arrivalTimer !== null) clearTimeout(arrivalTimer)
+      if (sceneTimer !== null) clearTimeout(sceneTimer)
+      document.removeEventListener('visibilitychange', visible)
+      controller.current = null
+    }
+  }, [initialView, router, motion, sceneCovered])
+  useEffect(() => {
+    const canvas = document.querySelector<HTMLCanvasElement>('canvas[data-world-stage]')
+    if (!canvas) return
+    const supplyViewport = () => {
+      const instance = controller.current
+      if (instance && document.visibilityState === 'visible')
+        void instance.hydrate({ viewport: true })
+    }
+    const observer = new ResizeObserver(supplyViewport)
+    observer.observe(canvas)
+    supplyViewport()
+    return () => observer.disconnect()
+  }, [zoom, mode, sceneCovered])
+  useEffect(() => {
+    if (!approachingPlayer || controller.current?.pending) return
+    const target = view.players.find((player) => player.characterId === approachingPlayer)
+    const inRange =
+      target &&
+      target.position.sectorId === approvedPosition.sectorId &&
+      Math.abs(target.position.x - approvedPosition.x) +
+        Math.abs(target.position.y - approvedPosition.y) <=
+        1
+    const now = view.serverNow + Math.max(0, Date.now() - acceptedAt.current)
+    if (!inRange && (!view.route.length || remainingTravelMs(view, now) <= 0))
+      setApproachingPlayer(null)
+  }, [approachingPlayer, approvedPosition, view, active])
+  const send = useCallback(
+    (intent: WorldIntent, previewRoute?: readonly TravelStep[]) => {
+      setMessage('')
+      const now = performance.now()
+      const instance = controller.current
+      if (intent.kind === 'stop') motion.stop(now)
+      else if (intent.kind === 'attack') motion.hold(now)
+      if (!instance) return
+      const current = instance.view
+      const walking = intent.kind === 'walk' || intent.kind === 'autopath'
+      const origin =
+        walking && !current.movementBlocked && !current.battleSessionId && !instance.attackPending
+          ? motion.sample(now).position
+          : null
+      void instance.send(intent).then(() => {
+        if (walking || intent.kind === 'stop') void instance.hydrate({ movement: true })
+      })
+      if (!origin) return
+      const objective =
+        intent.kind === 'autopath'
+          ? current.objectives.find((item) => item.id === intent.objectiveId && canAutoPath(item))
+          : undefined
+      const destination = intent.kind === 'walk' ? intent.destination : objective?.destination
+      if (destination) {
+        const route = previewRoute ?? localRoute(current, origin, destination)
+        if (route) motion.plan(route, current.sectors, now)
+      }
+    },
+    [motion],
+  )
+  const walk = useCallback(
+    (destination: WorldPosition) => {
+      const instance = controller.current
+      if (
+        !instance ||
+        instance.view.movementBlocked ||
+        instance.view.battleSessionId ||
+        instance.attackPending
       )
         return
-      lastIdleSyncAt = now
-      void refreshRef.current().catch((error) => {
-        if (mounted.current) setMessage(error.message)
-      })
-    }
-    const timer = window.setInterval(sync, ACTIVE_WORLD_SYNC_MS)
-    const onVisibilityChange = () => {
-      if (document.visibilityState !== 'visible' || pending.current) return
-      lastIdleSyncAt = Date.now()
-      void refreshRef.current().catch((error) => {
-        if (mounted.current) setMessage(error.message)
-      })
-    }
-    document.addEventListener('visibilitychange', onVisibilityChange)
-    return () => {
-      mounted.current = false
-      window.clearInterval(timer)
-      document.removeEventListener('visibilitychange', onVisibilityChange)
-    }
-  }, [])
-  const sector = view.sectors.find((s) => s.id === selected) ?? view.sectors[0]!
-  const player = view.players.find((p) => p.characterId === target) ?? view.players[0]
-  const local = view.sectors.find((s) => s.id === view.position.sectorId)!
-  const safe = local.cells.find((c) => c.x === view.position.x && c.y === view.position.y)?.safe
-  const destination = view.route.at(-1)?.position
-  const destinationName = view.sectors.find((s) => s.id === destination?.sectorId)?.name
-  const remainingSeconds = Math.ceil(remainingTravelMs(view, view.serverNow) / 1000)
-  const remainingTime =
-    remainingSeconds >= 60
-      ? `${Math.floor(remainingSeconds / 60)}m ${remainingSeconds % 60}s`
-      : `${remainingSeconds}s`
-  function select(id: string) {
-    setSelected(id)
-    setSearch('')
+      setApproachingPlayer(null)
+      send({ kind: 'walk', destination })
+    },
+    [send],
+  )
+  const stopMoving = () => {
+    setApproachingPlayer(null)
+    send({ kind: 'stop' })
   }
-  function walk(destination: WorldPosition) {
-    void send({ kind: 'walk', destination })
+  const openConversation = async (topic: WorldInteraction, opener: HTMLButtonElement) => {
+    const instance = controller.current
+    if (!instance || instance.attackPending || openingConversation.current) return
+    openingConversation.current = true
+    setMessage('')
+    setApproachingPlayer(null)
+    try {
+      if (instance.view.route.length || instance.movementPending) {
+        motion.stop(performance.now())
+        if (!(await instance.send({ kind: 'stop' })).applied) return
+        // A compact movement receipt can omit authored topics from the owned scene.
+        if (!instance.view.interactions.some((entry) => entry.id === topic.id))
+          await instance.refresh()
+      }
+      const current = instance.view
+      const ferryman = topic.id === FERRY_CONVERSATION_ID
+      if (
+        current.battleSessionId ||
+        (current.movementBlocked && !(ferryman && current.ferry?.passage))
+      )
+        return
+      const localTopic = ferryman
+        ? ferrymanTopic(current.ferry, current.serverNow)
+        : current.interactions.find((entry) => entry.id === topic.id)
+      if (!localTopic || current.route.length) {
+        setMessage('This speaker is no longer within reach.')
+        return
+      }
+      setConversation({ topic: localTopic, opener })
+    } finally {
+      openingConversation.current = false
+    }
   }
-  const disabled = busy || Boolean(view.movementBlocked)
-  const pulseObjectives = view.objectives.filter((objective) => objective.kind === 'event')
-  const questObjectives = view.objectives.filter((objective) => objective.kind === 'quest')
+  const replyToConversation = async (interactionId: string, actionId: WorldInteractionActionId) => {
+    setMessage('')
+    const receipt = await controller.current?.send({ kind: 'interact', interactionId, actionId })
+    return receipt?.applied === true
+  }
+  const replyToNarrative: NarrativeReply = async (topic, path) => {
+    const instance = controller.current
+    if (!instance || !topic.speakerId || !topic.narrative) return null
+    const response = await fetch('/api/world/conversation', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        characterId: instance.view.characterId,
+        npcId: topic.speakerId,
+        revision: topic.narrative.revision,
+        path,
+      }),
+    })
+    const body = await response.json()
+    if (!response.ok) throw new Error(body.error?.message ?? 'The speaker could not reply.')
+    const { parseNpcDialoguePage } = await import('@aurevane/validation/combat/npc-design')
+    return parseNpcDialoguePage(body)
+  }
+  const mapView = useMemo(() => worldViewWithFerryman(view), [view])
+  const ferry = view.ferry
+  const ferryman = ferrymanTopic(ferry, view.serverNow)
+  const isFerryConversation = conversation?.topic.id === FERRY_CONVERSATION_ID
+  const ferryBusy = active?.kind === 'board-ferry' || active?.kind === 'leave-ferry'
+  const ferryVisible = Boolean(ferry && ((mode === 'local' && ferry.port) || ferry.passage))
+  const currentMessage = message || (ferry?.passage ? null : view.movementBlocked)
+  const currentSector = view.sectors.find((s) => s.id === approvedPosition.sectorId)
+  const local = currentSector ?? view.sectors[0]!
+  const currentCell = currentSector?.cells.find(
+    (cell) => cell.x === approvedPosition.x && cell.y === approvedPosition.y,
+  )
+  const zone = currentCell?.safe === true ? 'safe' : currentCell?.safe === false ? 'pvp' : 'unknown'
+  const region = WORLD_REGIONS.find((r) => r.id === local.regionId),
+    voidAddress = parseVoidSectorId(approvedPosition.sectorId),
+    voidRealm = voidAddress && VOID_REALMS.find((realm) => realm.id === voidAddress.realmId),
+    localName = voidRealm
+      ? `${voidRealm.name} · ${local.name}`
+      : local.townId
+        ? (region?.name ?? local.name)
+        : local.name
+  const actionBusy = Boolean(active && ['attack', 'interact', 'cross'].includes(active.kind)),
+    disabled = actionBusy || Boolean(view.movementBlocked)
+  const visibleIds = visiblePlayerIds && new Set(visiblePlayerIds)
+  const nearby = view.players
+    .filter((player) => !visibleIds || visibleIds.has(player.characterId))
+    .sort((a, b) => {
+      const origin = mapPoint(view.position, view.sectors),
+        aa = mapPoint(a.position, view.sectors),
+        bb = mapPoint(b.position, view.sectors)
+      return (
+        Math.hypot(aa.x - origin.x, aa.y - origin.y) - Math.hypot(bb.x - origin.x, bb.y - origin.y)
+      )
+    })
+  const nearbyNpcs = mapView.npcs ?? []
+  const nearbyCount = nearby.length + nearbyNpcs.length
+  const destination = view.atlas?.find((cell) => cell.id === destinationId && cell.charted)
+  const favoriteKey = 'aurevane.worldFavorite.' + view.characterId
+  const readWorldFavorite = useCallback(() => {
+    try {
+      return localStorage.getItem(favoriteKey)
+    } catch {
+      return null
+    }
+  }, [favoriteKey])
+  const favoriteSectorId = useSyncExternalStore(
+    subscribeWorldFavorite,
+    readWorldFavorite,
+    noWorldFavorite,
+  )
+  const assignFavorite = (id: string | null) => {
+    try {
+      if (id) localStorage.setItem(favoriteKey, id)
+      else localStorage.removeItem(favoriteKey)
+      window.dispatchEvent(new Event(WORLD_FAVORITE_EVENT))
+    } catch {}
+  }
+  const focusGlobalSector = (id: string | null) => {
+    setConfirmDestinationId(null)
+    setDestinationId(id)
+    if (id) centerGlobeOn(id)
+  }
+  const keyLocations = useMemo(
+    () => worldKeyLocations({ atlas: view.atlas, anchors: view.anchors }, favoriteSectorId),
+    [view.atlas, view.anchors, favoriteSectorId],
+  )
+  const typedNumber = readSectorNumber(sectorJump)
+  const typedSectorId = typedNumber === null ? undefined : mainlandSectorAtNumber(typedNumber)?.id
+  const typedSector =
+    typedSectorId && view.atlas?.find((cell) => cell.charted && cell.id === typedSectorId)
+  const typedSectorAvailable =
+    Boolean(typedSector) &&
+    !disabled &&
+    canWalkPublicAtlas(approvedPosition, worldTravelDestination(typedSectorId!))
+  const confirmDestination = view.atlas?.find(
+    (cell) => cell.id === confirmDestinationId && cell.charted,
+  )
+  useEffect(() => {
+    if (!confirmDestinationId) return
+    const cancel = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setConfirmDestinationId(null)
+    }
+    document.addEventListener('keydown', cancel)
+    return () => document.removeEventListener('keydown', cancel)
+  }, [confirmDestinationId])
+
+  const approach = useCallback(
+    (position: WorldPosition) => {
+      const current = controller.current?.view
+      if (
+        !current ||
+        current.movementBlocked ||
+        current.battleSessionId ||
+        controller.current?.attackPending
+      )
+        return
+      const now = performance.now(),
+        from = motion.sample(now).position,
+        navigate = prepareLocalRoute(current)
+      const candidates = [
+        { ...position, x: position.x - 1 },
+        { ...position, x: position.x + 1 },
+        { ...position, y: position.y - 1 },
+        { ...position, y: position.y + 1 },
+      ]
+      const routes = candidates
+        .map((destination) => ({ destination, route: navigate(from, destination) }))
+        .filter((candidate) => candidate.route !== null)
+        .sort((a, b) => a.route!.length - b.route!.length)
+      if (routes[0]) {
+        send({ kind: 'walk', destination: routes[0].destination }, routes[0].route!)
+      } else {
+        setApproachingPlayer(null)
+        setMessage('There is no known route to that character yet.')
+      }
+    },
+    [motion, send],
+  )
+  const time = worldTimeLabel(view.environment.minuteOfDay)
+  const weatherLabel = regionalWeatherLabel(view.environment.weather, local.regionId)
+  const currentPositionFacts = (
+    <p
+      className={styles.currentCoordinates}
+      data-world-coordinates
+      aria-label="Current sector and coordinates"
+    >
+      <span className={styles.coordinateHeader}>
+        <span>{positionLabel(currentSector, approvedPosition)}</span>
+        <span className={styles.zoneStatus} data-world-zone={zone} role="status">
+          {zone === 'safe' ? 'Safe Zone' : zone === 'pvp' ? 'PvP Zone' : 'Zone unavailable'}
+        </span>
+      </span>
+    </p>
+  )
   return (
-    <section className={styles.workspace} data-world-workspace data-av-surface="moonstone">
-      <div className={styles.mapColumn}>
-        <header className={styles.toolbar}>
-          <div className={styles.heading}>
-            <span className={styles.compass} aria-hidden="true">
-              ✥
+    <section
+      className={styles.workspace}
+      data-world-workspace
+      data-world-view={mode === 'local' ? 'sector' : 'globe'}
+      data-av-surface="moonstone"
+    >
+      <header
+        className={styles.header}
+        style={{
+          backgroundImage: `linear-gradient(90deg, #071c24 30%, #071c2480), url("/media/art/world/${region?.art ?? 'verdant-expanse'}-v02.webp")`,
+        }}
+      >
+        <div>
+          <button
+            className={styles.location}
+            title={mode === 'local' ? 'Open world atlas' : 'Return to local map'}
+            aria-label={
+              mode === 'local'
+                ? `${localName} · Open world atlas`
+                : `${WORLD_LAND_NAME} · Return to local map`
+            }
+            onClick={() => setMode(mode === 'local' ? 'global' : 'local')}
+          >
+            <span className={styles.locationName}>
+              {mode === 'local' ? localName : WORLD_LAND_NAME}
             </span>
-            <div>
-              <h1>{mode === 'globe' ? 'World Map' : sector.name}</h1>
-              <p>
-                {mode === 'globe'
-                  ? 'The known world, and the roads beyond'
-                  : selected === view.position.sectorId
-                    ? `${sector.coordinate} · E${local.east + view.position.x} / N${local.north - view.position.y}`
-                    : `${sector.coordinate} · Inspecting this region`}
-              </p>
-            </div>
-          </div>
-          <div className={styles.tools}>
-            <button aria-pressed={grid} onClick={() => setGrid(!grid)}>
-              ▦ Grid
-            </button>
-            <button aria-expanded={layers} onClick={() => setLayers(!layers)}>
-              ▱ Layers
-            </button>
-            <button
-              onClick={() => {
-                setSelected(view.position.sectorId)
-                setFocus((n) => n + 1)
-              }}
+            <svg
+              data-world-map-switch
+              viewBox="0 0 24 24"
+              width="20"
+              height="20"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              aria-hidden="true"
+              focusable="false"
             >
-              ⌖ My Position
-            </button>
-            <button disabled={!local.panorama} onClick={() => setPanorama(true)}>
-              ◉ View 360°
-            </button>
-          </div>
-          <div className={styles.toolbarBottom}>
-            <div className={styles.tabs} role="group" aria-label="Map view">
-              <button aria-pressed={mode === 'globe'} onClick={() => setMode('globe')}>
-                ◎ Globe
-              </button>
-              <button aria-pressed={mode === 'sector'} onClick={() => setMode('sector')}>
-                ✥ Sector
-              </button>
-            </div>
-            <span className={styles.territory} data-safe={safe}>
-              {safe ? '◇ Protected settlement' : '⚔ Open PvP territory'}
-              <small>
-                {safe ? 'A place to rest and prepare.' : 'Other travellers may be encountered.'}
-              </small>
-            </span>
-          </div>
-          {layers ? (
-            <div className={styles.layerPanel}>
-              <label>
-                <input type="checkbox" checked={grid} onChange={(e) => setGrid(e.target.checked)} />
-                Coordinate grid
-              </label>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={motion}
-                  onChange={(e) => setMotion(e.target.checked)}
-                />
-                Environmental motion
-              </label>
-              <p>Uncharted places reveal themselves as you explore.</p>
-            </div>
-          ) : null}
-        </header>
-        <div className={styles.mapViewport}>
-          {mode === 'globe' ? (
-            <Globe
-              sectorCoordinate={local.coordinate}
-              selected={selected}
-              onSelect={select}
-              grid={grid}
+              <path d="M20 7a9 9 0 1 0 1 9M20 3v5h-5" />
+            </svg>
+          </button>
+        </div>
+        <div className={styles.environment}>
+          <span>
+            {time}
+            {view.environment.dayLengthMs === WORLD_DAY_REAL_MS ? ' UTC' : ' World'}
+          </span>
+          {mode === 'local' ? <span>{weatherLabel}</span> : null}
+        </div>
+        <button
+          className={styles.panelToggle}
+          aria-controls="world-panel"
+          aria-label={panelOpen ? 'Close details' : 'Details'}
+          aria-expanded={panelOpen}
+          onClick={() => setPanelOpen(!panelOpen)}
+        >
+          <span aria-hidden="true">☰</span>
+        </button>
+      </header>
+      <div className={styles.body}>
+        <div className={styles.stageArea}>
+          {mode === 'local' ? (
+            <WorldMap
+              view={mapView}
+              motion={motion}
               portrait={character.portrait}
-              name={character.name}
-              focusKey={focus}
+              animate={animate}
+              showLocationLabels={showLocationLabels}
+              quality={mapQuality}
+              paused={false}
+              zoom={zoom}
+              zoomLocked={zoomLocked}
+              onZoom={setZoom}
+              onVisiblePlayers={setVisiblePlayerIds}
+              onWalk={walk}
+              onStop={stopMoving}
+              onPlayer={(id) => {
+                setSelectedPlayer(id)
+                setTab('nearby')
+                setPanelOpen(true)
+              }}
             />
           ) : (
-            <SectorMap
-              sector={sector}
-              position={view.position}
-              route={view.route}
-              players={view.players}
-              portrait={character.portrait}
-              name={character.name}
-              grid={grid}
-              motion={motion}
-              disabled={disabled}
-              onMove={walk}
-              onPlayer={setTarget}
+            <WorldGlobe
+              view={view}
+              showLocationLabels={showLocationLabels}
+              zoom={globeZoom}
+              zoomLocked={zoomLocked}
+              onZoom={setGlobeZoom}
+              selected={destinationId}
+              onSelect={(id) => {
+                setConfirmDestinationId(null)
+                setDestinationId(id)
+                if (id) setPanelOpen(true)
+              }}
             />
           )}
-        </div>
-        <div className={styles.travelBar}>
-          <span data-world-travel-status>
-            {view.route.length ? (
-              <>
-                <strong>
-                  {view.route[0]?.road ?? 'Walking'} → {destinationName}
-                </strong>
-                <small>
-                  About {remainingTime} · {view.route.length} steps remaining
-                </small>
-              </>
-            ) : selected !== view.position.sectorId ? (
-              'Inspecting a charted region. Choose a walkable tile to plot your journey.'
-            ) : (
-              'Select a square to walk there.'
-            )}
-          </span>
-          {view.route.length ? (
-            <button onClick={() => void send({ kind: 'stop' })} disabled={busy}>
-              Stop travel
-            </button>
+          {ferryVisible && ferry ? (
+            <WorldFerryStation
+              ferry={ferry}
+              serverNow={view.serverNow}
+              disabled={Boolean(active || (!ferry.passage && view.movementBlocked))}
+              onTalk={(event) => {
+                if (ferryman) void openConversation(ferryman, event.currentTarget)
+              }}
+            />
           ) : null}
         </div>
-        {message || view.movementBlocked ? (
-          <p role="status" className={styles.notice}>
-            {message || view.movementBlocked}
-          </p>
-        ) : null}
-      </div>
-      <aside className={styles.sidebar}>
-        {view.interactions.length ? (
-          <section className={styles.panel} aria-label="Local interaction">
-            <h2>✦ Local interaction</h2>
-            {view.interactions.map((interaction) => (
-              <div className={styles.quest} key={interaction.id}>
-                <h3>{interaction.title}</h3>
-                <p>
-                  <strong>{interaction.speaker}</strong> · {interaction.body}
-                </p>
-                {interaction.actionLabel ? (
-                  <button
-                    className={styles.primary}
-                    disabled={disabled || view.route.length > 0}
-                    onClick={() => void send({ kind: 'interact', interactionId: interaction.id })}
-                  >
-                    {interaction.actionLabel}
-                  </button>
-                ) : (
-                  <p className={styles.quiet}>
-                    {interaction.progress === 'completed'
-                      ? 'This objective is complete.'
-                      : 'Return after checking the eastern watch.'}
-                  </p>
-                )}
-              </div>
-            ))}
-          </section>
-        ) : null}
-        {mode === 'globe' ? (
-          <section className={styles.panel}>
-            <h2>✥ World Regions</h2>
-            <input
-              className={styles.search}
-              aria-label="Find a region"
-              placeholder="Find a region…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-            <div className={styles.regionList}>
-              {WORLD_REGIONS.filter((r) => r.name.toLowerCase().includes(search.toLowerCase())).map(
-                (r) => (
-                  <button key={r.id} data-active={selected === r.id} onClick={() => select(r.id)}>
-                    <Image
-                      src={`/media/art/world/${r.art}-v01.webp`}
-                      alt=""
-                      width={56}
-                      height={47}
-                    />
-                    <span>{r.name}</span>
-                  </button>
-                ),
-              )}
+        <aside
+          id="world-panel"
+          className={`${styles.sidebar} ${panelOpen ? styles.open : ''} ${conversation ? dialogueStyles.mapObstruction : ''}`}
+          aria-label="World details"
+        >
+          {mode === 'local' ? (
+            <p className={styles.conditions} aria-label="World conditions">
+              {time} · {worldDayPhase(view.environment.minuteOfDay)} · {weatherLabel}
+              {view.environment.frozen ? ' · Frozen' : ''}
+            </p>
+          ) : null}
+          {mode === 'local' ? (
+            <div className={styles.tabs} role="tablist" aria-label="World details">
+              <button
+                id="nearby-tab"
+                role="tab"
+                aria-selected={tab === 'nearby'}
+                aria-controls="nearby-content"
+                onClick={() => setTab('nearby')}
+              >
+                Nearby <i aria-label={`${nearbyCount} visible characters`}>{nearbyCount}</i>
+              </button>
+              <button
+                id="places-tab"
+                role="tab"
+                aria-selected={tab === 'places'}
+                aria-controls="places-content"
+                onClick={() => setTab('places')}
+              >
+                Places
+              </button>
+              <button
+                id="missions-tab"
+                role="tab"
+                aria-selected={tab === 'missions'}
+                aria-controls="missions-content"
+                onClick={() => setTab('missions')}
+              >
+                Missions{' '}
+                {view.objectives.filter((o) => !o.completed).length ? (
+                  <i>{view.objectives.filter((o) => !o.completed).length}</i>
+                ) : null}
+              </button>
+              <button
+                id="chat-tab"
+                role="tab"
+                aria-selected={tab === 'chat'}
+                aria-controls="chat-content"
+                onClick={() => setTab('chat')}
+              >
+                Chat
+              </button>
             </div>
-            <p className={styles.regionDescription}>{worldRegion(selected)?.summary}</p>
-            <button className={styles.primary} onClick={() => setMode('sector')}>
-              Inspect sector →
-            </button>
-          </section>
-        ) : (
-          <section className={styles.panel}>
-            <h2>⚑ Nearby Players</h2>
-            {player ? (
+          ) : null}
+          <div className={styles.panelScroll}>
+            {mode === 'global' ? (
               <>
-                <div className={styles.playerSummary}>
-                  <Image src={player.imageUrl!} alt="" width={72} height={72} />
-                  <div>
-                    <h3>{player.name}</h3>
-                    <span>Level {player.level}</span>
-                    <small>{player.attackable ? '● Within reach' : 'Approach to interact'}</small>
-                  </div>
-                </div>
-                {view.players.length > 1 ? (
+                <section className={styles.atlasTools} aria-label="World Atlas controls">
+                  <h2>World Atlas</h2>
                   <select
-                    aria-label="Select nearby player"
-                    value={player.characterId}
-                    onChange={(e) => setTarget(e.target.value)}
+                    aria-label="Key locations"
+                    value={
+                      keyLocations.some((cell) => cell.id === destinationId) ? destinationId! : ''
+                    }
+                    onChange={(event) => focusGlobalSector(event.target.value || null)}
                   >
-                    {view.players.map((p) => (
-                      <option key={p.characterId} value={p.characterId}>
-                        {p.name}
+                    <option value="">Key locations</option>
+                    {keyLocations.map((cell) => (
+                      <option key={cell.id} value={cell.id}>
+                        {sectorLabel(cell)} · {cell.name}
                       </option>
                     ))}
                   </select>
-                ) : null}
-                <button
-                  className={styles.attack}
-                  disabled={disabled || !player.attackable}
-                  onClick={() => void send({ kind: 'attack', targetId: player.characterId })}
-                >
-                  ⚔ Attack
-                </button>
-                <p className={styles.quiet}>
-                  Attacks begin tactical combat immediately in open territory.
-                </p>
+                  <form
+                    onSubmit={(event) => {
+                      event.preventDefault()
+                      if (!typedSector || !typedSectorAvailable) {
+                        setMessage('That sector is unavailable for walking travel.')
+                        return
+                      }
+                      setMessage('')
+                      focusGlobalSector(typedSector.id)
+                    }}
+                  >
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      aria-label="Sector number"
+                      placeholder="Sector number"
+                      title={
+                        sectorJump
+                          ? typedSectorAvailable
+                            ? 'Available for walking travel'
+                            : 'Unavailable for walking travel'
+                          : 'Enter a sector number and press Enter'
+                      }
+                      aria-invalid={sectorJump.length > 0 && !typedSectorAvailable}
+                      data-sector-valid={sectorJump.length ? typedSectorAvailable : undefined}
+                      value={sectorJump}
+                      onChange={(event) => setSectorJump(event.target.value)}
+                    />
+                  </form>
+                </section>
+                <section className={styles.position} data-world-position aria-label="Your position">
+                  <div>
+                    <h2>{localName}</h2>
+                    {currentPositionFacts}
+                  </div>
+                  <button
+                    type="button"
+                    className={styles.positionFocus}
+                    aria-label="Center on your position"
+                    title="Center on your position"
+                    onClick={() => centerGlobeOn(view.position.sectorId)}
+                  >
+                    <span aria-hidden="true">◉</span>
+                  </button>
+                </section>
               </>
+            ) : null}
+            {mode === 'local' && tab === 'chat' ? (
+              <div
+                id="chat-content"
+                role="tabpanel"
+                aria-labelledby="chat-tab"
+                className={styles.chatHost}
+              >
+                <ChatPanel selfName={character.name} />
+              </div>
+            ) : mode === 'local' && tab === 'missions' ? (
+              <div id="missions-content" role="tabpanel" aria-labelledby="missions-tab">
+                <WorldMissions
+                  view={view}
+                  disabled={disabled}
+                  send={send}
+                  stopMoving={stopMoving}
+                  openConversation={(topic, opener) => void openConversation(topic, opener)}
+                />
+              </div>
+            ) : mode === 'local' && tab === 'places' ? (
+              <div
+                id="places-content"
+                role="tabpanel"
+                aria-labelledby="places-tab"
+                className={styles.landmarks}
+              >
+                <h2>Places nearby</h2>
+                {view.sectors
+                  .flatMap((sector) =>
+                    sector.landmarks
+                      .filter((p) => p.kind !== 'frontier' && !sector.id.startsWith('ferry:'))
+                      .map((p) => ({ p, sector })),
+                  )
+                  .sort((a, b) => {
+                    const here = mapPoint(view.position, view.sectors),
+                      aa = mapPoint({ ...a.p, sectorId: a.sector.id }, view.sectors),
+                      bb = mapPoint({ ...b.p, sectorId: b.sector.id }, view.sectors)
+                    return (
+                      Math.hypot(aa.x - here.x, aa.y - here.y) -
+                      Math.hypot(bb.x - here.x, bb.y - here.y)
+                    )
+                  })
+                  .map(({ p, sector }) => (
+                    <button
+                      key={p.id}
+                      disabled={disabled}
+                      onClick={() => walk({ sectorId: sector.id, x: p.x, y: p.y })}
+                    >
+                      <WorldPlacePortrait place={p} />
+                      <div>
+                        {p.name}
+                        <small>{sector.name}</small>
+                      </div>
+                      <span>↗</span>
+                    </button>
+                  ))}
+              </div>
             ) : (
-              <div className={styles.emptyPlayers}>
-                <span>♧</span>
-                <h3>A quiet stretch of road</h3>
-                <p>Other travellers appear here when they enter your surroundings.</p>
+              <div
+                id="nearby-content"
+                role={mode === 'local' ? 'tabpanel' : 'region'}
+                aria-labelledby={mode === 'local' ? 'nearby-tab' : undefined}
+                aria-label={mode === 'global' ? 'World overview' : undefined}
+              >
+                {mode === 'global' && destination ? (
+                  <WorldDestinationCard
+                    destination={destination}
+                    disabled={
+                      disabled ||
+                      !canWalkPublicAtlas(approvedPosition, worldTravelDestination(destination.id))
+                    }
+                    reviewing={confirmDestination?.id === destination.id}
+                    replacesRoute={view.route.length > 0}
+                    favorite={favoriteSectorId === destination.id}
+                    onToggleFavorite={() =>
+                      assignFavorite(favoriteSectorId === destination.id ? null : destination.id)
+                    }
+                    onReview={() => setConfirmDestinationId(destination.id)}
+                    onCancel={() => setConfirmDestinationId(null)}
+                    onClear={() => {
+                      setConfirmDestinationId(null)
+                      setDestinationId(null)
+                    }}
+                    onConfirm={() => {
+                      if (confirmDestination?.id !== destination.id) return
+                      walk(worldTravelDestination(destination.id))
+                      setConfirmDestinationId(null)
+                      setMode('local')
+                      setDestinationId(null)
+                      setPanelOpen(false)
+                    }}
+                  />
+                ) : null}
+                {mode === 'local' ? (
+                  <section className={styles.characters}>
+                    {nearbyNpcs.map((npc) => {
+                      const topic =
+                        npc.id === FERRY_CONVERSATION_ID
+                          ? ferryman
+                          : view.interactions.find((entry) => dialogueSpeakerId(entry) === npc.id)
+                      return (
+                        <WorldNearbyNpc
+                          key={npc.id}
+                          npc={npc}
+                          disabled={disabled}
+                          onTalk={
+                            topic ? (opener) => void openConversation(topic, opener) : undefined
+                          }
+                          onApproach={() => {
+                            if (npc.id === FERRY_CONVERSATION_ID) {
+                              const sectorId = npc.position.sectorId
+                              const dock = view.sectors.find(
+                                (sector) => sector.id === sectorId,
+                              )?.ferryDock
+                              if (dock) walk({ sectorId, x: dock.x, y: dock.y })
+                            } else {
+                              approach(npc.position)
+                            }
+                          }}
+                        />
+                      )
+                    })}
+                    {nearby.length
+                      ? nearby.map((player) => {
+                          const targetCell = view.sectors
+                            .find((s) => s.id === player.position.sectorId)
+                            ?.cells.find(
+                              (c) => c.x === player.position.x && c.y === player.position.y,
+                            )
+                          return (
+                            <WorldNearbyPlayer
+                              key={player.characterId}
+                              player={{
+                                ...player,
+                                attackEligible:
+                                  Boolean(player.attackEligible ?? player.attackable) &&
+                                  currentCell?.safe === false &&
+                                  targetCell?.safe === false,
+                              }}
+                              ownerPosition={approvedPosition}
+                              disabled={disabled}
+                              approaching={approachingPlayer === player.characterId}
+                              attacking={
+                                active?.kind === 'attack' && active.targetId === player.characterId
+                              }
+                              selected={selectedPlayer === player.characterId}
+                              onApproach={() => {
+                                setApproachingPlayer(player.characterId)
+                                approach(player.position)
+                              }}
+                              onAttack={() =>
+                                send({ kind: 'attack', targetId: player.characterId })
+                              }
+                            />
+                          )
+                        })
+                      : null}
+                  </section>
+                ) : null}
               </div>
             )}
-          </section>
-        )}
-        {pulseObjectives.length ? (
-          <section className={styles.panel} aria-label="World Pulse">
-            <h2>✦ World Pulse</h2>
-            <p className={styles.quiet}>
-              Live happenings that currently reach your part of the world.
-            </p>
-            {pulseObjectives.map((objective) => (
-              <div className={styles.quest} key={objective.id}>
-                <h3>{objective.name}</h3>
-                <p>○ {objective.description}</p>
-                <button
-                  className={styles.primary}
-                  disabled={
-                    busy ||
-                    (view.routeObjectiveId !== objective.id &&
-                      (disabled || !objective.autoPath || !objective.destination))
-                  }
-                  onClick={() =>
-                    void send(
-                      view.routeObjectiveId === objective.id
-                        ? { kind: 'stop' }
-                        : { kind: 'autopath', objectiveId: objective.id },
-                    )
-                  }
-                >
-                  ♧{' '}
-                  {view.routeObjectiveId === objective.id
-                    ? 'Stop Auto-path'
-                    : objective.autoPath && objective.destination
-                      ? 'Follow event route'
-                      : 'Follow the clues'}
-                </button>
-              </div>
-            ))}
-          </section>
-        ) : null}
-        <section className={styles.panel}>
-          <h2>⚑ Tracked Quests</h2>
-          {questObjectives.map((objective) => (
-            <div className={styles.quest} key={objective.id}>
-              <h3>{objective.name}</h3>
-              <p>
-                {objective.completed ? '✓ ' : '○ '}
-                {objective.description}
-              </p>
-              {!objective.completed ? (
-                <button
-                  className={styles.primary}
-                  disabled={
-                    busy ||
-                    (view.routeObjectiveId !== objective.id &&
-                      (disabled || !objective.autoPath || !objective.destination))
-                  }
-                  onClick={() =>
-                    void send(
-                      view.routeObjectiveId === objective.id
-                        ? { kind: 'stop' }
-                        : { kind: 'autopath', objectiveId: objective.id },
-                    )
-                  }
-                >
-                  ♧{' '}
-                  {view.routeObjectiveId === objective.id
-                    ? 'Stop Auto-path'
-                    : objective.autoPath && objective.destination
-                      ? 'Start Auto-path'
-                      : 'Follow the clues'}
-                </button>
-              ) : null}
-            </div>
-          ))}
-        </section>
-        {sector.exits.length ? (
-          <section className={styles.panel} aria-label="Roads and crossings">
-            <h2>Roads & crossings</h2>
-            <p className={styles.quiet}>From {sector.name}</p>
-            <div className={styles.exitList}>
-              {sector.exits.map((exit) => {
-                const targetSector = view.sectors.find((s) => s.id === exit.to.sectorId)
-                if (!targetSector) return null
-                return (
-                  <button
-                    key={`${exit.to.sectorId}:${exit.to.x}:${exit.to.y}`}
-                    disabled={disabled}
-                    onClick={() => walk(exit.to)}
-                  >
-                    <strong>Travel to {targetSector.name}</strong>
-                    <small>
-                      {exit.name} · {targetSector.coordinate}
-                    </small>
-                  </button>
-                )
-              })}
-            </div>
-          </section>
-        ) : null}
-        {!local.charted || samePosition(view.position, FRONTIER_APPROACH) ? (
-          <section className={styles.panel}>
-            <h2>Beyond the last map</h2>
-            <p>Routes beyond this point may not remain where you left them.</p>
-            {local.charted ? (
+          </div>
+          <div className={styles.panelFoot} data-world-panel-foot>
+            {mode === 'local' ? currentPositionFacts : null}
+            <div className={styles.panelFootActions}>
               <button
-                className={styles.primary}
-                disabled={disabled || view.route.length > 0}
+                type="button"
+                className={styles.locationLabels}
+                aria-label="Map location labels"
+                aria-pressed={showLocationLabels}
+                title={showLocationLabels ? 'Hide map location labels' : 'Show map location labels'}
+                onClick={() => setShowLocationLabels(!showLocationLabels)}
+              >
+                Labels
+              </button>
+              <SettingsButton open={settings} onClick={() => setSettings(!settings)} />
+            </div>
+          </div>
+        </aside>
+      </div>
+      {currentMessage ? (
+        <div className={styles.errorNotice} role="alert">
+          <span>{currentMessage}</span>
+          {message ? (
+            <button aria-label="Dismiss message" onClick={() => setMessage('')}>
+              ×
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+      {conversation ? (
+        <WorldDialogue
+          initialTopic={conversation.topic}
+          opener={conversation.opener}
+          topics={
+            isFerryConversation
+              ? ferryman
+                ? [ferryman]
+                : []
+              : view.interactions.filter(
+                  (topic) => dialogueSpeakerId(topic) === dialogueSpeakerId(conversation.topic),
+                )
+          }
+          objectives={view.objectives}
+          interruption={
+            view.battleSessionId
+              ? 'Battle started. Your conversation ended.'
+              : isFerryConversation
+                ? ferry?.passage && view.serverNow >= ferry.passage.departureAt
+                  ? 'The ferry has departed. Follow your crossing on the world map.'
+                  : null
+                : view.movementBlocked ||
+                  (view.route.length ? 'Travel interrupted the conversation.' : null)
+          }
+          error={message}
+          busy={active?.kind === 'interact' || ferryBusy}
+          onReply={replyToConversation}
+          onNarrativeReply={replyToNarrative}
+          extraResponses={
+            isFerryConversation && ferry ? (
+              <FerryDialogueAction
+                ferry={ferry}
+                serverNow={view.serverNow}
+                busy={Boolean(ferryBusy || view.battleSessionId)}
+                onCommand={(kind) => send({ kind })}
+              />
+            ) : undefined
+          }
+          onClose={() => {
+            setConversation(null)
+            setMessage('')
+          }}
+        />
+      ) : null}
+      {settings ? (
+        <>
+          <button
+            className={styles.settingsBackdrop}
+            aria-label="Close map settings"
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={() => setSettings(false)}
+            onWheel={(event) => event.stopPropagation()}
+          />
+          <div
+            id="world-settings"
+            className={styles.settings}
+            role="dialog"
+            aria-label="Map settings"
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') setSettings(false)
+            }}
+          >
+            <h3>Map settings</h3>
+            <label className={styles.zoomSetting}>
+              Zoom
+              <input
+                autoFocus
+                aria-label="Zoom level"
+                type="range"
+                min={WORLD_MIN_ZOOM * 100}
+                max={WORLD_MAX_ZOOM * 100}
+                step="1"
+                value={Math.round((mode === 'global' ? globeZoom : zoom) * 100)}
+                onChange={(event) => changeZoom(Number(event.target.value) / 100)}
+              />
+              <output>{Math.round((mode === 'global' ? globeZoom : zoom) * 100)}%</output>
+            </label>
+            <div className={styles.zoomButtons}>
+              <button
+                aria-pressed={zoomLocked}
                 onClick={() => {
-                  if (
-                    window.confirm(
-                      'Cross beyond the last reliable map? Your route ends here; the next steps must be surveyed.',
-                    )
-                  )
-                    void send({ kind: 'cross' })
+                  fallbackZoomLock = !zoomLocked
+                  try {
+                    localStorage.setItem('aurevane.zoomLock', !zoomLocked ? 'on' : 'off')
+                    fallbackZoomLock = null
+                  } catch {}
+                  window.dispatchEvent(new Event('aurevane-zoom-lock'))
                 }}
               >
-                Cross into uncharted territory
+                Zoom lock {zoomLocked ? 'On' : 'Off'}
               </button>
-            ) : (
-              <p className={styles.quiet}>
-                Your survey is saved as you explore. Known ground keeps its coordinates.
-              </p>
-            )}
-          </section>
-        ) : null}
-      </aside>
-      {panorama && local.panorama ? (
-        <Surroundings src={local.panorama} name={local.name} onClose={() => setPanorama(false)} />
+            </div>
+            <label>
+              <input
+                type="checkbox"
+                checked={animate}
+                onChange={(event) => setAnimate(event.target.checked)}
+              />{' '}
+              Ambient animation
+            </label>
+            <label className={styles.mapQuality}>
+              Map detail
+              <select
+                value={mapQuality}
+                onChange={(event) => saveMapQuality(event.target.value as MapQuality)}
+              >
+                <option value="high">High</option>
+                <option value="balanced">Balanced</option>
+                <option value="low">Low · Battery-friendly</option>
+              </select>
+            </label>
+            <p>Reduced motion follows your device preference.</p>
+            <button onClick={() => setSettings(false)}>Done</button>
+          </div>
+        </>
       ) : null}
     </section>
   )

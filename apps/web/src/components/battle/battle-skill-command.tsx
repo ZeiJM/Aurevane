@@ -1,6 +1,15 @@
 'use client'
 
+import type { BattleItemPresentation } from '@/lib/battle/battle-item-presentation'
+import { BattleItemReport } from './battle-item-report'
+import { battleControlledActionCostLabel } from './battle-captured-action-cost'
+
+import { useSkillEffectTimingPolicy } from '../character/skill-effect-timing-context'
 import Image from 'next/image'
+import type { BattleBasicActionPresentation } from '@/lib/battle/battle-basic-actions'
+import { CompactEffectSummary } from '../character/compact-skill-effect-summary'
+import { AbilityEffectExplanations } from '../character/ability-effect-explanations'
+import { MINIMUM_SKILL_INFORMATION_FIELDS } from '../character/skill-information-contract'
 
 import {
   useCallback,
@@ -11,10 +20,26 @@ import {
   useState,
   type CSSProperties,
   type SyntheticEvent,
+  type ReactNode,
 } from 'react'
 import { createPortal } from 'react-dom'
 
-import { BattleInfoPopover } from './battle-info-popover'
+import { BattleCockpitInfo } from './battle-cockpit-info'
+import { restoreBattleKeyboardFocus } from './battle-keyboard-scope'
+import { battleCooldownLabel } from './battle-action-cooldown'
+import { BattleSkillCooldown } from './battle-skill-cooldown'
+import { BattleControlledReady } from './battle-controlled-ready'
+import type { battleCapturedControlledAvailability } from './battle-captured-action-cost'
+import {
+  commandCharacteristicRows,
+  basicActionIdForCommand,
+  type BasicActionCharacterStats,
+} from '../character/basic-action-presentation'
+import {
+  BasicActionEffectExplanations,
+  BasicActionEffectSummary,
+} from '../character/basic-action-effect-details'
+import { SkillCharacteristicRows } from '../character/skill-characteristic-rows'
 
 import artworkFitStyles from './battle-skill-artwork-fit.module.css'
 import {
@@ -24,7 +49,8 @@ import {
 import styles from './battle-skill-command.module.css'
 import { BATTLE_MISSING_ARTWORK } from './battle-skill-presentation'
 
-export type BattleCommandSlot = 'inspect' | 'move' | 'attack' | 'guard' | 'recover' | 'finish'
+export type BattleCommandSlot =
+  'items' | 'inspect' | 'move' | 'attack' | 'guard' | 'recover' | 'finish'
 
 export interface BattleSkillSelectorOption {
   id: string
@@ -75,9 +101,19 @@ export function BattleSkillCommand({
   artworkSrc,
   active,
   disabled,
+  cooldownTurns = 0,
+  primeAvailable = false,
+  controlledReady = false,
+  controlledAvailability,
   onActivate,
   selector,
   tags = [],
+  children,
+  characterStats,
+  basicAction,
+  itemAction,
+  behaviorId,
+  unavailableReason,
 }: {
   slot: BattleCommandSlot
   hotkey: string
@@ -86,20 +122,72 @@ export function BattleSkillCommand({
   artworkSrc: string
   active: boolean
   disabled: boolean
+  cooldownTurns?: number
+  primeAvailable?: boolean
+  controlledReady?: boolean
+  controlledAvailability?: ReturnType<typeof battleCapturedControlledAvailability>
   onActivate: () => void
   selector?: BattleSkillSelectorConfig
   tags?: readonly string[]
+  characterStats?: BasicActionCharacterStats
+  basicAction?: BattleBasicActionPresentation | null
+  itemAction?: BattleItemPresentation | null
+  behaviorId?: string
+  unavailableReason?: string | null
+  children?: ReactNode
 }) {
+  const timingPolicy = useSkillEffectTimingPolicy()
   const informationId = useId()
   const [selectorOpen, setSelectorOpen] = useState(false)
   const [selectorStyle, setSelectorStyle] = useState<CSSProperties>({})
   const artworkRef = useRef<HTMLButtonElement | null>(null)
   const selectorRef = useRef<HTMLDivElement | null>(null)
   const canSwap = Boolean(selector && selector.options.length > 1)
+  const basicActionId = basicAction === undefined ? basicActionIdForCommand(slot, label) : null
+  const reports =
+    basicAction?.behaviors.filter(
+      (behavior) => !behaviorId || behavior.behaviorId === behaviorId,
+    ) ?? []
+  const actionDisabled =
+    (controlledAvailability?.controlledSpent && !controlledAvailability.chooseAction) ||
+    disabled ||
+    (!primeAvailable &&
+      !controlledAvailability?.chooseAction &&
+      !controlledAvailability?.canCancel &&
+      cooldownTurns > 0) ||
+    (controlledAvailability?.controlledKind === 'reversal' &&
+      !primeAvailable &&
+      !controlledAvailability.canCancel) ||
+    (basicAction !== undefined && (!basicAction?.enabled || reports.length === 0))
+  const ready =
+    controlledAvailability?.controlledKind !== 'reversal' &&
+    controlledReady &&
+    !actionDisabled &&
+    !primeAvailable &&
+    !controlledAvailability?.chooseAction
+  const capturedRows =
+    basicAction === null
+      ? MINIMUM_SKILL_INFORMATION_FIELDS.map((field) => [field, 'Unavailable'] as const)
+      : basicAction
+        ? MINIMUM_SKILL_INFORMATION_FIELDS.map((field) => {
+            const values = reports.map(
+              (behavior) =>
+                `${reports.length > 1 ? `${behavior.behaviorId}: ` : ''}${behavior.rows.find((row) => row[0] === field)?.[1] ?? 'Unavailable'}`,
+            )
+            return [
+              field,
+              values.length
+                ? field === 'Target Method'
+                  ? values
+                  : values.join('; ')
+                : 'Unavailable',
+            ] as const
+          })
+        : undefined
 
   const closeSelector = useCallback((restoreFocus = false) => {
     setSelectorOpen(false)
-    if (restoreFocus) window.requestAnimationFrame(() => artworkRef.current?.focus())
+    if (restoreFocus) restoreBattleKeyboardFocus()
   }, [])
 
   const positionSelector = useCallback(() => {
@@ -191,62 +279,174 @@ export function BattleSkillCommand({
         data-battle-command={slot}
         data-command-slot={slot}
         data-action-cost={cost}
-        disabled={disabled}
+        disabled={actionDisabled}
+        title={unavailableReason ?? undefined}
+        data-battle-cooldown-active={cooldownTurns > 0 || undefined}
         onClick={onActivate}
-        aria-label={`${label}, ${cost}`}
+        aria-label={`${label}, ${battleControlledActionCostLabel(controlledAvailability, primeAvailable && !controlledAvailability?.controlledSpent, cost)}${battleCooldownLabel(cooldownTurns)}${controlledAvailability?.controlledSpent && !controlledAvailability.chooseAction ? ', already used this battle' : ''}${controlledAvailability?.controlledPrimed ? ', primed' : ''}${ready ? ', ready to release' : ''}${unavailableReason ? `, ${unavailableReason}` : ''}`}
       >
-        <span className={styles.hotkey} data-battle-command-hotkey="true">
-          {hotkey}
-        </span>
-        <strong>{label}</strong>
         <span
           className={`${styles.artwork} ${artworkFitStyles.frame}`}
           data-battle-command-artwork="static"
+          data-battle-skill-cooldown={cooldownTurns || undefined}
           data-av-square-media="true"
           data-av-square-media-fit="contain"
           aria-hidden="true"
         >
-          <Image
-            width={64}
-            height={64}
-            unoptimized
-            src={artworkSrc}
-            alt=""
-            onError={fallbackBrokenArtwork}
+          {slot === 'items' && artworkSrc === BATTLE_MISSING_ARTWORK ? (
+            <svg viewBox="0 0 100 100" width="100%" height="100%" fill="none" aria-hidden="true">
+              <path d="M34 44V32a16 16 0 0 1 32 0v12" stroke="#c4a56c" strokeWidth="5" />
+              <rect
+                x="23"
+                y="43"
+                width="54"
+                height="40"
+                rx="6"
+                stroke="#c4a56c"
+                strokeWidth="3"
+                fill="#c4a56c18"
+              />
+              <circle cx="50" cy="59" r="5" fill="#c4a56c" />
+              <path d="M50 63v9" stroke="#c4a56c" strokeWidth="4" />
+            </svg>
+          ) : (
+            <Image
+              width={192}
+              height={192}
+              unoptimized
+              src={artworkSrc}
+              alt=""
+              onError={fallbackBrokenArtwork}
+            />
+          )}
+          <BattleSkillCooldown turns={cooldownTurns} />
+          <BattleControlledReady
+            ready={ready}
+            primed={controlledAvailability?.controlledPrimed}
+            kind={controlledAvailability?.controlledKind}
+            canPrepare={primeAvailable}
           />
         </span>
+        <strong>{label}</strong>
       </button>
+      <div className={styles.controls} data-battle-cockpit-controls="true">
+        <BattleCockpitInfo
+          selectionKey={slot}
+          label={`About ${label}`}
+          title={itemAction?.name ?? label}
+          trigger="i"
+          consumeOutsideClick
+          className={styles.infoTrigger}
+        >
+          {itemAction ? (
+            <BattleItemReport item={itemAction} />
+          ) : (
+            <>
+              <strong>Parameters</strong>
+              <dl>
+                <SkillCharacteristicRows
+                  targetMethodExplanation={
+                    reports
+                      .map((report) => report.targetMethodExplanation)
+                      .filter(Boolean)
+                      .join(' · ') || undefined
+                  }
+                  requirementParts={
+                    reports.some((report) => report.requirementParts)
+                      ? reports.flatMap((report, index) => [
+                          ...(index ? ['; '] : []),
+                          ...(reports.length > 1 ? [`${report.behaviorId}: `] : []),
+                          ...(report.requirementParts ?? [
+                            String(
+                              report.rows.find(([field]) => field === 'Requirements')?.[1] ??
+                                'Unavailable',
+                            ),
+                          ]),
+                        ])
+                      : undefined
+                  }
+                  rows={
+                    capturedRows ??
+                    commandCharacteristicRows(slot, label, cost, timingPolicy, characterStats)
+                  }
+                  effectSummary={
+                    basicAction ? (
+                      <div>
+                        {reports.flatMap((behavior) =>
+                          behavior.effects.map((effect, index) => (
+                            <div key={`${behavior.behaviorId}:${index}`}>
+                              {reports.length > 1 ? `${behavior.behaviorId}: ` : ''}
+                              <CompactEffectSummary
+                                parts={effect.parts}
+                                tagPresentation={effect.tagPresentation}
+                              />
+                            </div>
+                          )),
+                        )}
+                      </div>
+                    ) : basicActionId ? (
+                      <BasicActionEffectSummary id={basicActionId} stats={characterStats} />
+                    ) : null
+                  }
+                />
+              </dl>
+              {basicAction ? (
+                <>
+                  {reports.map((report) => (
+                    <div key={report.behaviorId}>
+                      {report.automaticActivation ? (
+                        <p>Automatic: {report.automaticActivation}</p>
+                      ) : null}
+                      {report.maintenance ? <p>{report.maintenance}</p> : null}
+                      {report.limits.some((limit) => limit !== 'Once per round') ? (
+                        <ul aria-label="Usage limits">
+                          {report.limits
+                            .filter((limit) => limit !== 'Once per round')
+                            .map((limit) => (
+                              <li key={limit}>
+                                {reports.length > 1 ? `${report.behaviorId}: ` : ''}
+                                {limit}
+                              </li>
+                            ))}
+                        </ul>
+                      ) : null}
+                    </div>
+                  ))}
+                  <AbilityEffectExplanations reports={reports} />
+                </>
+              ) : basicActionId ? (
+                <BasicActionEffectExplanations id={basicActionId} />
+              ) : null}
+              {tags.length > 0 ? (
+                <div className={styles.tags} data-battle-skill-tags="details">
+                  {tags.map((tag) => (
+                    <span key={tag}>{tag}</span>
+                  ))}
+                </div>
+              ) : (
+                <p>
+                  {slot === 'items'
+                    ? (unavailableReason ?? 'Choose an equipped consumable in the preview.')
+                    : slot === 'inspect'
+                      ? 'Select a character or tile to inspect it for free.'
+                      : slot === 'finish'
+                        ? 'Choose your final facing on the map, then finish your turn.'
+                        : null}
+                </p>
+              )}
+            </>
+          )}
+        </BattleCockpitInfo>
+        <span className={styles.hotkey} data-battle-command-hotkey="true">
+          {hotkey}
+        </span>
+      </div>
 
-      <BattleInfoPopover
-        label={`About ${label}`}
-        title={label}
-        trigger="ⓘ"
-        className={styles.infoTrigger}
-      >
-        <p>
-          <strong>{cost}</strong>
-        </p>
-        {tags.length > 0 ? (
-          <div className={styles.tags} data-battle-skill-tags="details">
-            {tags.map((tag) => (
-              <span key={tag}>{tag}</span>
-            ))}
-          </div>
-        ) : (
-          <p>
-            {slot === 'inspect'
-              ? 'Select a character or tile to inspect it for free.'
-              : slot === 'move'
-                ? 'Select reachable tiles to preview your path and its AP cost.'
-                : slot === 'finish'
-                  ? 'Choose your final facing on the map, then finish your turn.'
-                  : 'Select a target to preview the result and AP cost before confirming.'}
-          </p>
-        )}
-        {tags.length > 0 ? (
-          <p>Select a target to see the projected result before confirming.</p>
-        ) : null}
-      </BattleInfoPopover>
+      {children ? (
+        <div className={styles.extraControls} data-battle-command-extra-controls="true">
+          {children}
+        </div>
+      ) : null}
 
       {canSwap && selector ? (
         <button

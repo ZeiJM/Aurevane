@@ -1,0 +1,72 @@
+[
+  {
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "mode": "PvE",
+    "nativePrime": "passed",
+    "amberPRI": "passed",
+    "popupFits": "passed",
+    "fakePendingClock": false
+  },
+  {
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "mode": "PvP",
+    "nativePrime": "passed",
+    "amberPRI": "passed",
+    "popupFits": "passed",
+    "fakePendingClock": false
+  },
+  {
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "privacy": "passed",
+    "nativeCancel": "passed",
+    "heldMP12to13JSONReload": "passed",
+    "coreEligibility": "passed",
+    "registeredTriggerAndStatusControls": "passed",
+    "freeTextMechanics": false,
+    "errors": []
+  },
+  {
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "mode": "PvE",
+    "nativePrime": "passed",
+    "amberPRI": "passed",
+    "popupFits": "passed",
+    "fakePendingClock": false
+  },
+  {
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "mode": "PvP",
+    "nativePrime": "passed",
+    "amberPRI": "passed",
+    "popupFits": "passed",
+    "fakePendingClock": false
+  },
+  {
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "privacy": "passed",
+    "nativeCancel": "passed",
+    "heldMP12to13JSONReload": "passed",
+    "coreEligibility": "passed",
+    "registeredTriggerAndStatusControls": "passed",
+    "freeTextMechanics": false,
+    "errors": []
+  }
+]

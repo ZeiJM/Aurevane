@@ -1,3 +1,16 @@
+import { createBattleBuildAuthoritySnapshot } from './battle-build-authority'
+import {
+  captureBasicSkillSources,
+  defaultBasicSkills,
+} from '@aurevane/game-core/combat/combat-basic-actions'
+import { capturedMatureSkillAbilitySource } from '@aurevane/game-core/combat/combat-action-source'
+import { reconcileCombatAbilitySources } from '@aurevane/game-core/combat/combat-behavior-runtime'
+import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
+import {
+  resolveResonanceForPair,
+  resonanceSnapshotReference,
+} from '@aurevane/game-core/combat/resonance'
+import type { AbilityDefinition } from '@aurevane/game-core/combat/combat-definition'
 import type {
   BattleSessionRecord,
   BattleSessionRepository,
@@ -5,8 +18,39 @@ import type {
   CreateBattleSessionInput,
 } from '@aurevane/db/battle-session'
 import type { CharacterRecord, CharacterRepository } from '@aurevane/db/character'
-import { P2_3_COMBAT_CONTENT, endCombatTurn } from '@aurevane/game-core/combat/actions'
-import { selectCurrentFinalFacing } from '@aurevane/game-core/combat/board'
+import {
+  P2_3_COMBAT_CONTENT,
+  endCombatTurn,
+  executeCombatAction,
+  type CombatActionDefinition,
+} from '@aurevane/game-core/combat/actions'
+import {
+  applyCurrentBurnState,
+  applyCurrentPoisonState,
+} from '@aurevane/game-core/combat/combat-dots'
+import { createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
+import {
+  canEnterElevation,
+  movementTraversalCostAt,
+  selectCurrentFinalFacing,
+} from '@aurevane/game-core/combat/board'
+import { createBattleRngState } from '@aurevane/game-core/combat/battle-state'
+import { createStandardBattlefieldTiles } from '@aurevane/game-core/combat/standard-battlefield'
+import { spawnCombatSummon } from '@aurevane/game-core/combat/combat-summons'
+import { normalizeCombatEffectState } from '@aurevane/game-core/combat/combat-effect-state'
+import type { RecruitAiDecision } from '@aurevane/game-core/combat/recruit-ai'
+import {
+  evaluatePv1fMovement,
+  executePv1fMovement,
+  finishPv1fTurn,
+  PV1F_COMBAT_CONTENT,
+} from '@aurevane/game-core/combat/pv1f-action-economy'
+import type { TacticalHallArenaId } from '@aurevane/game-core/combat/tactical-hall-arenas'
+import {
+  SUMMON_PROFILE_SCHEMA_VERSION,
+  type SummonProfileDefinition,
+} from '@aurevane/game-core/combat/summon-content'
 import {
   reattachStatDrivenCombatBridge,
   type StatDrivenCombatEncounterState,
@@ -15,11 +59,25 @@ import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
 
+const encounterSeed = vi.hoisted(() => ({ value: 987_654_321 }))
+vi.mock('node:crypto', async (importOriginal) => {
+  const crypto = await importOriginal<typeof import('node:crypto')>()
+  return { ...crypto, randomInt: () => encounterSeed.value }
+})
+
 import {
   createBattleRecruitAiService,
   deriveRecruitTieBreakSeed,
+  resolveRecruitDecisionWithFallback,
 } from './battle-recruit-ai-service'
+import { battleSparringTeamCounts, buildBattleViewModel } from '@/components/battle/battle-runtime'
+import type { ArenaNpc } from '@aurevane/validation/combat/npc-design'
 import { createBattleSessionService } from './battle-session-service'
+import { createBattleAbortService } from './battle-abort-service'
+import { buildBattlePrivacyJournalInput } from './battle-history-privacy'
+import { projectBattleStatusStateForViewer } from './battle-live-viewer-projection'
+import { deriveParticipantBattleViewerEntitlement } from './battle-viewer-entitlement'
+import { BattleCombatantEffects } from '@/components/battle/battle-combatant-effects'
 
 const USER_ID = '11111111-1111-4111-8111-111111111111'
 const CHARACTER_ID = '22222222-2222-4222-8222-222222222222'
@@ -63,7 +121,13 @@ function characterRepository(): CharacterRepository {
   }
 }
 
-async function initialEncounter(): Promise<StatDrivenCombatEncounterState> {
+async function initialEncounter(
+  teams: { allyCount?: number; enemyCount?: number; arenaId?: TacticalHallArenaId } = {},
+  mapSeed?: number,
+  arenaNpc?: ArenaNpc,
+): Promise<StatDrivenCombatEncounterState> {
+  // Pin the creation seed too: it now determines the saved initiative tie order.
+  encounterSeed.value = mapSeed ?? 987_654_321
   let initialSnapshot: unknown = null
   const repository: BattleSessionRepository = {
     createBattleSession: vi.fn(async (input: CreateBattleSessionInput) => {
@@ -87,14 +151,32 @@ async function initialEncounter(): Promise<StatDrivenCombatEncounterState> {
   const service = createBattleSessionService({
     characters: characterRepository(),
     battles: repository,
+    ...(arenaNpc ? { readArenaNpc: async () => arenaNpc } : {}),
   })
   await service.createSession({
     userId: USER_ID,
     characterId: CHARACTER_ID,
     idempotencyKey: '44444444-4444-4444-8444-444444444444',
+    ...(arenaNpc ? { arenaNpcId: arenaNpc.id } : {}),
+    ...(Object.keys(teams).length ? { arenaId: 'duel-yard' as const, ...teams } : {}),
   })
   if (!initialSnapshot) throw new Error('Expected an initial battle snapshot.')
-  return initialSnapshot as StatDrivenCombatEncounterState
+  const state = initialSnapshot as StatDrivenCombatEncounterState
+  if (mapSeed === undefined) return state
+  // Routing fixtures cover repeatable generated maps, independently of the pinned hit-roll stream.
+  return {
+    ...state,
+    tactical: {
+      ...state.tactical,
+      battle: { ...state.tactical.battle, rng: createBattleRngState(mapSeed) },
+      tiles: createStandardBattlefieldTiles({
+        width: state.tactical.width,
+        height: state.tactical.height,
+        seed: mapSeed,
+        spawns: state.tactical.placements.map((placement) => placement.position),
+      }),
+    },
+  }
 }
 
 function advanceToRecruitTurn(
@@ -108,12 +190,104 @@ function advanceToRecruitTurn(
   return endCombatTurn(withFacing, P2_3_COMBAT_CONTENT).state as StatDrivenCombatEncounterState
 }
 
+function summonProfile(): SummonProfileDefinition {
+  return {
+    schemaVersion: SUMMON_PROFILE_SCHEMA_VERSION,
+    id: 'summon.test.service-stalker',
+    name: 'Service Stalker',
+    description: 'A test summon controlled through the authoritative AI service.',
+    flavorLine: 'It moves only when the server commands it.',
+    portraitKey: 'summon.test.service-stalker.portrait',
+    tags: ['summon', 'test'],
+    maxHp: 30,
+    maxMp: 0,
+    initiative: 100,
+    movementBudget: 4,
+    stats: {
+      accuracy: 10_000,
+      evasion: 0,
+      armor: 0,
+      ward: 0,
+      jump: 1,
+      physicalPower: 20,
+      mysticPower: 20,
+    },
+    aiProfile: 'standard',
+    aiPurposeTags: ['damage'],
+    lifetimeTurns: 3,
+    abilities: [
+      {
+        id: 'summon.test.service-stalker.strike',
+        name: 'Stalker Strike',
+        description: 'Strike an enemy through the summon-specific action path.',
+        apCost: 45,
+        mpCost: 0,
+        tags: ['attack'],
+        target: {
+          kind: 'unit',
+          teamPolicy: 'enemy',
+          shape: { kind: 'single' },
+          minimumRange: 1,
+          maximumRange: 99,
+          requiresLineOfSight: false,
+          maximumElevationDifference: null,
+          friendlyFire: 'enemies-only',
+        },
+        requirements: [],
+        effects: [{ type: 'damage', recipient: 'primary-unit', amount: 3, durationTurns: 0 }],
+        ai: { baseUtility: 1_000, purposeTags: ['damage'] },
+        media: { iconKey: null, audioCueKey: null, vfxKey: null },
+      },
+    ],
+  }
+}
+
+function stateWithActiveSummonTurn(state: StatDrivenCombatEncounterState): {
+  state: StatDrivenCombatEncounterState
+  summonId: string
+} {
+  const occupied = new Set(
+    state.tactical.placements.map((placement) => `${placement.position.x},${placement.position.y}`),
+  )
+  const position = state.tactical.tiles.find(
+    (tile) =>
+      !occupied.has(`${tile.position.x},${tile.position.y}`) &&
+      state.tactical.terrains.some(
+        (terrain) => terrain.id === tile.terrainId && terrain.traversalCost !== null,
+      ),
+  )?.position
+  if (!position) throw new Error('Expected an empty passable tile for summon service test.')
+
+  const ownerCombatantId = state.tactical.battle.currentTurn?.combatantId
+  if (!ownerCombatantId) throw new Error('Expected player turn before summon spawn.')
+
+  const spawned = spawnCombatSummon(state, {
+    ownerCombatantId,
+    sourceSkillId: 'test.summon-service',
+    sourceSkillVersion: 1,
+    profile: summonProfile(),
+    position,
+    facing: 'east',
+  })
+  const summonId = spawned.events.find((event) => event.event === 'summon_spawned')?.combatantId
+  if (!summonId) throw new Error('Expected summon spawn event.')
+
+  const recruitTurn = advanceToRecruitTurn(spawned.state)
+  const summonTurn = advanceToRecruitTurn(recruitTurn)
+  if (summonTurn.tactical.battle.currentTurn?.combatantId !== summonId) {
+    throw new Error('Expected deferred summon to lead the next round.')
+  }
+
+  return { state: summonTurn, summonId }
+}
+
 function createStatefulRepository(
   initialState: StatDrivenCombatEncounterState,
   initialVersion = 1,
 ) {
   let version = initialVersion
   let state = initialState
+  let playerMoveCount = 0
   const commits: CommitBattleIntentInput[] = []
 
   const findBattleSession = vi.fn(async (): Promise<BattleSessionRecord> => ({
@@ -154,10 +328,435 @@ function createStatefulRepository(
     commitBattleIntent,
   }
 
-  return { repository, commits, findBattleSession, commitBattleIntent, currentState: () => state }
+  return {
+    repository,
+    commits,
+    findBattleSession,
+    commitBattleIntent,
+    currentState: () => state,
+    playerMoveCount: () => playerMoveCount,
+    retreatActiveAi: () => {
+      const actor = state.tactical.placements.find(
+        (p) => p.combatantId === state.tactical.battle.currentTurn?.combatantId,
+      )!
+      const player = state.tactical.placements.find(
+        (p) => p.combatantId === `character:${CHARACTER_ID}`,
+      )!
+      const distance = (p: { x: number; y: number }) =>
+        Math.abs(p.x - player.position.x) + Math.abs(p.y - player.position.y)
+      if (distance(actor.position) < 1) return false
+      for (const destination of [
+        { x: actor.position.x, y: actor.position.y - 1 },
+        { x: actor.position.x + 1, y: actor.position.y },
+        { x: actor.position.x, y: actor.position.y + 1 },
+        { x: actor.position.x - 1, y: actor.position.y },
+      ]) {
+        if (distance(destination) <= 1) continue
+        const path = [actor.position, destination]
+        if (!evaluatePv1fMovement(state, path).movement.legal) continue
+        state = finishPv1fTurn(executePv1fMovement(state, path).state, 'west').state
+        return true
+      }
+      return false
+    },
+    playPlayerTurn: () => {
+      const placement = state.tactical.placements.find(
+        (p) => p.combatantId === `character:${CHARACTER_ID}`,
+      )!
+      // Patrol the spawn column through real movement, so crowded melee slots reopen.
+      const nextY = state.tactical.battle.round % 6
+      const destination = { x: placement.position.x, y: nextY <= 3 ? nextY : 6 - nextY }
+      const path = [placement.position, destination]
+      if (evaluatePv1fMovement(state, path).movement.legal) {
+        state = executePv1fMovement(state, path).state
+        playerMoveCount++
+      }
+      state = finishPv1fTurn(state, 'east').state
+    },
+  }
 }
 
+/** Ignore temporary occupancy for the bounded travel budget, but retain every terrain/Jump gate. */
+function groundApproachDistance(
+  state: StatDrivenCombatEncounterState,
+  actorId: string,
+  enemyPosition: { x: number; y: number },
+): number {
+  const placement = state.tactical.placements.find((row) => row.combatantId === actorId)!
+  const profile = state.tactical.movementProfiles.find(
+    (row) => row.id === placement.movementProfileId,
+  )!
+  const key = (position: { x: number; y: number }) => `${position.x},${position.y}`
+  const tiles = new Map(state.tactical.tiles.map((tile) => [key(tile.position), tile]))
+  const queue = [{ position: placement.position, distance: 0 }]
+  const visited = new Set([key(placement.position)])
+  for (let index = 0; index < queue.length; index++) {
+    const { position, distance } = queue[index]!
+    if (Math.abs(position.x - enemyPosition.x) + Math.abs(position.y - enemyPosition.y) === 1)
+      return distance
+    const tile = tiles.get(key(position))!
+    for (const neighbor of [
+      { x: position.x - 1, y: position.y },
+      { x: position.x + 1, y: position.y },
+      { x: position.x, y: position.y - 1 },
+      { x: position.x, y: position.y + 1 },
+    ]) {
+      const next = tiles.get(key(neighbor))
+      if (
+        !next ||
+        visited.has(key(neighbor)) ||
+        key(neighbor) === key(enemyPosition) ||
+        movementTraversalCostAt(state.tactical, actorId, neighbor) === null ||
+        !canEnterElevation(
+          tile.elevation,
+          next.elevation,
+          profile.maxElevationStep,
+          state.statBalancePolicyVersion,
+        )
+      )
+        continue
+      visited.add(key(neighbor))
+      queue.push({ position: neighbor, distance: distance + 1 })
+    }
+  }
+  throw new Error(`No legal ground route for ${actorId} to the opposing player.`)
+}
+
+describe('Recruit AI rejected-command recovery', () => {
+  const rejected: RecruitAiDecision = {
+    intent: {
+      kind: 'action',
+      actionId: 'test.nonexistent-command',
+      target: { kind: 'self' },
+    },
+    reason: 'legal-damage',
+    utility: 999,
+    candidateCount: 1,
+    profileId: 'recruit-standard-v2',
+    profileVersion: 2,
+    rulesVersion: 2,
+  }
+
+  it('executes an ordinary quoted Recruit choice when an authored action rejects at commit', async () => {
+    const state = advanceToRecruitTurn(await initialEncounter())
+    const result = resolveRecruitDecisionWithFallback(state, rejected, {}, 17, 'standard')
+
+    expect(result.recovery).toBe('basic')
+    expect(result.decision.intent).not.toEqual(rejected.intent)
+    expect(result.resolved.state).not.toBe(state)
+    expect(state.tactical.battle.currentTurn?.combatantId).toBe('recruit:p2-4-1')
+    expect(result.resolved.events.length).toBeGreaterThan(0)
+  })
+
+  it('legally finishes a Summon turn rather than hanging on a rejected ability', async () => {
+    const active = stateWithActiveSummonTurn(await initialEncounter())
+    const summon = normalizeCombatEffectState(active.state.effectState).summons?.find(
+      (row) => row.combatantId === active.summonId,
+    )
+    expect(summon).toBeDefined()
+
+    const result = resolveRecruitDecisionWithFallback(
+      active.state,
+      rejected,
+      {},
+      17,
+      'standard',
+      summon!,
+    )
+    expect(result.recovery).toBe('end-turn')
+    expect(result.decision.intent).toEqual({ kind: 'end-turn' })
+    expect(result.resolved.state.tactical.battle.currentTurn?.combatantId).not.toBe(active.summonId)
+    expect(
+      result.resolved.events.some(
+        (event) =>
+          typeof event === 'object' &&
+          event !== null &&
+          'event' in event &&
+          event.event === 'summon_ability_used',
+      ),
+    ).toBe(false)
+    expect(active.state.tactical.battle.currentTurn?.combatantId).toBe(active.summonId)
+  })
+})
+
 describe('P2.6 authoritative Recruit AI turn service', () => {
+  it.each(
+    (['duel-yard', 'crossroads-court', 'terraced-yard'] as const).flatMap((arenaId) =>
+      [1, 47_399_736, 987_654_321].flatMap((mapSeed) => [
+        { arenaId, allyCount: 0, enemyCount: 5, mapSeed },
+        { arenaId, allyCount: 2, enemyCount: 3, mapSeed },
+      ]),
+    ),
+  )(
+    'routes actual $arenaId AI spawns into combat ($allyCount allies/$enemyCount enemies, map seed $mapSeed)',
+    async (teams) => {
+      const spawned = await initialEncounter(teams, teams.mapSeed)
+      const durable = {
+        ...spawned,
+        tactical: {
+          ...spawned.tactical,
+          battle: {
+            ...spawned.tactical.battle,
+            battleId: 'battle:spawn-route-regression',
+            rng: {
+              algorithm: 'xorshift32-v1' as const,
+              seed: 987_654_321,
+              state: 987_654_321,
+              draws: 0,
+            },
+            combatants: spawned.tactical.battle.combatants.map((c) => ({
+              ...c,
+              hp: 10_000,
+              maxHp: 10_000,
+            })),
+          },
+        },
+      }
+      const fixture = createStatefulRepository(durable)
+      const service = createBattleRecruitAiService(fixture.repository)
+      const moved = new Set<string>()
+      const attacked = new Set<string>()
+      let version = 1
+      const runAiTurn = async () => {
+        const commitStart = fixture.commits.length
+        const result = await service.runTurn({
+          userId: USER_ID,
+          battleSessionId: SESSION_ID,
+          expectedBattleVersion: version,
+        })
+        version = result.battleVersion
+        for (const commit of fixture.commits.slice(commitStart)) {
+          for (const event of commit.events) {
+            if (!event || typeof event !== 'object' || !('event' in event)) continue
+            if (event.event === 'combatant_moved' && 'combatantId' in event)
+              moved.add(event.combatantId as string)
+            if (
+              event.event === 'damage_applied' &&
+              'sourceCombatantId' in event &&
+              'targetCombatantId' in event
+            ) {
+              const source = durable.tactical.battle.combatants.find(
+                (c) => c.id === event.sourceCombatantId,
+              )!
+              const target = durable.tactical.battle.combatants.find(
+                (c) => c.id === event.targetCombatantId,
+              )!
+              expect(target.teamId).not.toBe(source.teamId)
+              attacked.add(source.id)
+            }
+          }
+        }
+      }
+      const playerSpawn = durable.tactical.placements.find(
+        (row) => row.combatantId === `character:${CHARACTER_ID}`,
+      )!.position
+      const recruitIds = durable.tactical.battle.combatants
+        .filter((unit) => unit.id.startsWith('recruit:'))
+        .map((unit) => unit.id)
+      const initialTravelRounds = Math.max(
+        ...recruitIds.map((id) => {
+          const movement = durable.tactical.battle.combatants.find(
+            (unit) => unit.id === id,
+          )!.baseMovementBudget
+          expect(movement).toBeGreaterThan(0)
+          return Math.ceil(groundApproachDistance(durable, id, playerSpawn) / movement)
+        }),
+      )
+      const approachRoundBudget =
+        initialTravelRounds + durable.tactical.battle.combatants.length * 2
+      for (
+        let turn = 0;
+        turn < approachRoundBudget * durable.tactical.battle.combatants.length;
+        turn++
+      ) {
+        if (
+          fixture.currentState().tactical.battle.currentTurn?.combatantId ===
+          `character:${CHARACTER_ID}`
+        ) {
+          fixture.playPlayerTurn()
+          continue
+        }
+        await runAiTurn()
+      }
+      const aiIds = durable.tactical.battle.combatants
+        .filter((c) => c.id.startsWith('recruit:'))
+        .map((c) => c.id)
+        .sort()
+      // An approaching enemy can enter melee before this actor's first turn. Attacking
+      // directly from the original spawn is participation, without a gratuitous move.
+      expect([...new Set([...moved, ...attacked])].sort()).toEqual(aiIds)
+      expect(fixture.playerMoveCount()).toBeGreaterThan(0)
+      if (teams.allyCount > 0) {
+        expect([...attacked].sort()).toEqual(aiIds)
+      } else {
+        // Crowded recruits must wait when every reachable ground melee slot is occupied.
+        const crowded = fixture.currentState()
+        const player = crowded.tactical.placements.find(
+          (row) => row.combatantId === `character:${CHARACTER_ID}`,
+        )!
+        const availableMeleeTiles = crowded.tactical.tiles.filter(
+          (tile) =>
+            Math.abs(tile.position.x - player.position.x) +
+              Math.abs(tile.position.y - player.position.y) ===
+              1 &&
+            tile.elevation === 0 &&
+            movementTraversalCostAt(crowded.tactical, aiIds[0]!, tile.position) !== null,
+        )
+        expect(availableMeleeTiles.length).toBeGreaterThan(0)
+        expect(availableMeleeTiles.length).toBeLessThan(aiIds.length)
+        // Raised neighbors cannot be occupied by Jump0 recruits. Saturate actual legal
+        // melee slots instead of assuming every generated player position has four.
+        for (const tile of availableMeleeTiles) {
+          const occupant = crowded.tactical.placements.find(
+            (row) => row.position.x === tile.position.x && row.position.y === tile.position.y,
+          )
+          expect(
+            occupant,
+            `Expected the legal melee slot ${tile.position.x},${tile.position.y} to be occupied`,
+          ).toBeDefined()
+          expect(attacked.has(occupant!.combatantId)).toBe(true)
+        }
+        const slowestMovement = Math.min(
+          ...crowded.tactical.battle.combatants
+            .filter((unit) => aiIds.includes(unit.id))
+            .map((unit) => unit.baseMovementBudget),
+        )
+        expect(slowestMovement).toBeGreaterThan(0)
+        const longestApproach = Math.max(
+          ...aiIds.map((id) => groundApproachDistance(crowded, id, player.position)),
+        )
+        const flankRoundBudget = Math.ceil(longestApproach / slowestMovement) + aiIds.length + 2
+        // Open a flank through legal movement on the blocking actor's own turn.
+        // The waiting AI must resume pursuit and attack when space becomes available.
+        let openedFlank = false
+        for (
+          let turn = 0;
+          turn < flankRoundBudget * crowded.tactical.battle.combatants.length &&
+          attacked.size < aiIds.length;
+          turn++
+        ) {
+          const actorId = fixture.currentState().tactical.battle.currentTurn!.combatantId
+          if (actorId === `character:${CHARACTER_ID}`) {
+            fixture.playPlayerTurn()
+          } else if (attacked.has(actorId) && fixture.retreatActiveAi()) {
+            openedFlank = true
+          } else {
+            await runAiTurn()
+          }
+        }
+        expect(openedFlank).toBe(true)
+        expect([...attacked].sort()).toEqual(aiIds)
+      }
+    },
+    15_000,
+  )
+  it.each([
+    [0, 5],
+    [1, 4],
+    [2, 3],
+  ])(
+    'resolves consecutive allied/enemy AI turns for %s allies and %s enemies',
+    async (allyCount, enemyCount) => {
+      const initial = await initialEncounter({ allyCount, enemyCount })
+      const adjacent = {
+        ...initial,
+        tactical: {
+          ...initial.tactical,
+          battle: {
+            ...initial.tactical.battle,
+            // Session creation uses random IDs and accuracy rolls in production. Pin both
+            // here: this test checks turn routing and hostile recipients, not hit variance.
+            battleId: 'battle:consecutive-ai-turn-regression',
+            rng: {
+              algorithm: 'xorshift32-v1' as const,
+              seed: 987_654_321,
+              state: 987_654_321,
+              draws: 0,
+            },
+            combatants: initial.tactical.battle.combatants.map((c) => ({
+              ...c,
+              hp: 10_000,
+              maxHp: 10_000,
+            })),
+          },
+          placements: initial.tactical.placements.map((placement, index) => ({
+            ...placement,
+            position: { x: index, y: 3 },
+          })),
+        },
+      }
+      const state = advanceToRecruitTurn(adjacent)
+      const fixture = createStatefulRepository(state),
+        service = createBattleRecruitAiService(fixture.repository)
+      let version = 1
+      const acted = new Set<string>()
+      let damageEvents = 0
+      for (let request = 0; request < 5; request++) {
+        const actor = fixture.currentState().tactical.battle.currentTurn?.combatantId
+        expect(actor).not.toBe(`character:${CHARACTER_ID}`)
+        const result = await service.runTurn({
+          userId: USER_ID,
+          battleSessionId: SESSION_ID,
+          expectedBattleVersion: version,
+        })
+        expect(result.decisions.length).toBeGreaterThan(0)
+        expect(result.decisions.every((d) => d.combatantId === actor)).toBe(true)
+        expect(result.snapshot.tactical.battle.currentTurn?.combatantId).not.toBe(actor)
+        for (const commit of fixture.commits.slice(-result.decisions.length)) {
+          for (const event of commit.events) {
+            if (
+              event &&
+              typeof event === 'object' &&
+              'event' in event &&
+              event.event === 'damage_applied' &&
+              'sourceCombatantId' in event &&
+              'targetCombatantId' in event
+            ) {
+              const source = state.tactical.battle.combatants.find(
+                (c) => c.id === event.sourceCombatantId,
+              )
+              const target = state.tactical.battle.combatants.find(
+                (c) => c.id === event.targetCombatantId,
+              )
+              expect(source).toBeDefined()
+              expect(target).toBeDefined()
+              expect(target!.teamId).not.toBe(source!.teamId)
+              damageEvents++
+            }
+          }
+        }
+        acted.add(actor!)
+        version = result.battleVersion
+        if (result.snapshot.tactical.battle.lifecycle !== 'active') break
+      }
+      expect(damageEvents).toBeGreaterThan(0)
+      expect(acted.size).toBe(5)
+      expect(fixture.currentState().tactical.battle.currentTurn?.combatantId).toBe(
+        `character:${CHARACTER_ID}`,
+      )
+      expect([...acted].filter((id) => id.startsWith('recruit:ally-'))).toHaveLength(allyCount)
+    },
+  )
+  it('preserves original Sparring counts when a combat summon is still in the snapshot', async () => {
+    const state = await initialEncounter({ allyCount: 2, enemyCount: 3 })
+    const spawned = spawnCombatSummon(state, {
+      ownerCombatantId: `character:${CHARACTER_ID}`,
+      sourceSkillId: 'test.rematch-summon',
+      sourceSkillVersion: 1,
+      profile: summonProfile(),
+      position: { x: 0, y: 0 },
+      facing: 'east',
+    })
+    expect(
+      battleSparringTeamCounts({
+        battleSessionId: SESSION_ID,
+        battleVersion: 1,
+        snapshot: spawned.state,
+        replayed: false,
+        invalidation: null,
+      }),
+    ).toEqual({ allyCount: 2, enemyCount: 3 })
+  })
   it('derives deterministic tie-break seeds only from committed battle metadata', () => {
     const committedContext = {
       battleId: 'battle:test',
@@ -218,6 +817,265 @@ describe('P2.6 authoritative Recruit AI turn service', () => {
     }
   })
 
+  it('admits the committed Arena NPC, persists its identity, and runs its legal AI decisions', async () => {
+    const arenaNpc: ArenaNpc = {
+      id: 'a89d93a2-9899-4d8a-8b99-afd4973d17aa',
+      revision: 4,
+      name: 'Arena Fixture',
+      portraitRef: 'portrait.starter.wayfarer-02',
+      lore: 'Arena card text.',
+      arenaId: 'crossroads-court',
+      aiDifficulty: 'standard',
+    }
+    const entered = await initialEncounter({ arenaId: 'duel-yard' }, undefined, arenaNpc)
+    expect(entered.tactical).toMatchObject({ width: 12, height: 7 })
+    const fixture = createStatefulRepository(advanceToRecruitTurn(entered))
+    const service = createBattleRecruitAiService(fixture.repository)
+    const result = await service.runTurn({
+      userId: USER_ID,
+      battleSessionId: SESSION_ID,
+      expectedBattleVersion: 1,
+    })
+    expect(result.decisions.length).toBeGreaterThan(0)
+    expect(result.snapshot.arenaNpc).toEqual({
+      id: arenaNpc.id,
+      revision: 4,
+      name: 'Arena Fixture',
+      portraitRef: arenaNpc.portraitRef,
+    })
+    expect(fixture.commits.flatMap((commit) => commit.events)).toContainEqual(
+      expect.objectContaining({ event: 'recruit_ai_decision', profileId: 'recruit-standard-v2' }),
+    )
+    const model = buildBattleViewModel(
+      { ...result, replayed: false },
+      {
+        kind: 'pve',
+        playerName: 'Wayfarer',
+        playerLevel: 1,
+        playerPortraitAssetId: 'character.creation.square-portrait-01',
+        playerProfileImageUrl: null,
+      },
+    )
+    expect(model.participants).toContainEqual(
+      expect.objectContaining({
+        name: 'Arena Fixture',
+        combatantId: 'recruit:p2-4-1',
+        portraitAssetId: 'character.creation.square-portrait-02',
+      }),
+    )
+  })
+
+  it('keeps active multi-turn DoTs in the real Recruit response and rendered rail after a tick', async () => {
+    const player = `character:${CHARACTER_ID}`
+    const recruit = 'recruit:p2-4-1'
+    const initial = advanceToRecruitTurn(await initialEncounter())
+    const withBurn = applyCurrentBurnState(initial, player, recruit, 'test.rail-burn', true, 3, 3)
+    const state = reattachStatDrivenCombatBridge(
+      applyCurrentPoisonState(withBurn, player, recruit, 'test.rail-poison', true, 2, 3),
+      initial.statBridge,
+    )
+    const fixture = createStatefulRepository(state)
+    const result = await createBattleRecruitAiService(fixture.repository).runTurn({
+      userId: USER_ID,
+      battleSessionId: SESSION_ID,
+      expectedBattleVersion: 1,
+    })
+    expect(fixture.currentState().effectState?.burn[0]?.remainingTicks).toBe(2)
+    expect(fixture.currentState().effectState?.poison[0]?.remainingTicks).toBe(2)
+    const statuses = result.snapshot.statusState.find(
+      (row) => row.combatantId === recruit,
+    )!.statuses
+    expect(statuses).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          statusId: 'burn',
+          timingState: 'active',
+          remainingOwnerTurnEnds: 2,
+        }),
+        expect.objectContaining({
+          statusId: 'poison',
+          timingState: 'active',
+          remainingOwnerTurnEnds: 2,
+        }),
+      ]),
+    )
+    const markup = renderToStaticMarkup(
+      createElement(BattleCombatantEffects, { compact: true, name: 'Recruit', statuses }),
+    )
+    expect(markup).toContain('data-battle-effect-icon="burn"')
+    expect(markup).toContain('Explain Burn')
+    expect(markup).toContain('data-battle-effect-icon="poison"')
+    expect(markup).toContain('Explain Poison')
+    expect(markup).not.toContain('No combat effects')
+    const viewer = deriveParticipantBattleViewerEntitlement(
+      fixture.currentState().tactical.battle.combatants,
+      [player],
+    )
+    expect(result.snapshot.statusState).toEqual(
+      projectBattleStatusStateForViewer(fixture.currentState(), viewer),
+    )
+    expect(result.snapshot.tactical.battle).not.toHaveProperty('rng')
+    expect(result.snapshot).not.toHaveProperty('pendingEffects')
+  })
+
+  it('activates pending Burn without an empty rail frame in the Recruit boundary response', async () => {
+    const initial = await initialEncounter()
+    const recruit = 'recruit:p2-4-1'
+    const cast = executeCombatAction(
+      initial,
+      {
+        id: 'test.pending-rail-burn',
+        version: 1,
+        sourceType: 'test',
+        tags: [],
+        target: {
+          kind: 'unit',
+          teamPolicy: 'enemy',
+          shape: { kind: 'single' },
+          minimumRange: 0,
+          maximumRange: 99,
+          requiresLineOfSight: false,
+          maximumElevationDifference: null,
+          friendlyFire: 'enemies-only',
+        },
+        cost: { spendsAction: false, mp: 0 },
+        requirements: [],
+        effects: [{ type: 'burn', recipient: 'primary-unit', power: 3, durationTurns: 3 }],
+      },
+      { kind: 'unit', combatantId: recruit },
+      P2_3_COMBAT_CONTENT,
+    )
+    const state = advanceToRecruitTurn(
+      reattachStatDrivenCombatBridge(cast.state, initial.statBridge),
+    )
+    expect(state.pendingEffects).toHaveLength(1)
+    const fixture = createStatefulRepository(state)
+    const result = await createBattleRecruitAiService(fixture.repository).runTurn({
+      userId: USER_ID,
+      battleSessionId: SESSION_ID,
+      expectedBattleVersion: 1,
+    })
+    expect(
+      result.snapshot.statusState.find((row) => row.combatantId === recruit)!.statuses,
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          statusId: 'burn',
+          timingState: 'active',
+          remainingOwnerTurnEnds: 3,
+        }),
+      ]),
+    )
+    expect(result.snapshot).not.toHaveProperty('pendingEffects')
+  })
+
+  it('routes summon turns through authored summon AI and returns control after the summon turn', async () => {
+    const active = stateWithActiveSummonTurn(await initialEncounter())
+    const fixture = createStatefulRepository(active.state)
+    const service = createBattleRecruitAiService(fixture.repository)
+
+    const result = await service.runTurn({
+      userId: USER_ID,
+      battleSessionId: SESSION_ID,
+      expectedBattleVersion: 1,
+    })
+
+    expect(result.decisions.length).toBeGreaterThan(0)
+    expect(result.snapshot.tactical.battle.currentTurn?.combatantId).toBe(
+      `character:${CHARACTER_ID}`,
+    )
+    expect(
+      fixture.commits.some((commit) =>
+        commit.events.some(
+          (event) =>
+            typeof event === 'object' &&
+            event !== null &&
+            'event' in event &&
+            event.event === 'summon_ai_decision',
+        ),
+      ),
+    ).toBe(true)
+    expect(
+      fixture.commits.some((commit) =>
+        commit.events.some(
+          (event) =>
+            typeof event === 'object' &&
+            event !== null &&
+            'event' in event &&
+            event.event === 'summon_ability_used',
+        ),
+      ),
+    ).toBe(true)
+
+    const summon = result.snapshot.effectState?.summons?.find(
+      (candidate) => candidate.combatantId === active.summonId,
+    )
+    expect(summon?.turnsCompleted).toBe(1)
+  })
+
+  it.each([1, 7, 24])(
+    'completes summon and Recruit service turns on generated terrain (seed %i)',
+    async (seed) => {
+      const active = stateWithActiveSummonTurn(await initialEncounter({}, seed))
+      const fixture = createStatefulRepository(active.state)
+      const service = createBattleRecruitAiService(fixture.repository)
+      for (
+        let turn = 0;
+        turn < 16 && fixture.currentState().tactical.battle.lifecycle === 'active';
+        turn += 1
+      ) {
+        let state = fixture.currentState()
+        if (state.tactical.battle.currentTurn?.combatantId === `character:${CHARACTER_ID}`) {
+          const ended = finishPv1fTurn(state, 'east')
+          await fixture.commitBattleIntent({
+            actorKey: USER_ID,
+            idempotencyKey: `test-player-end-${turn}`,
+            requestFingerprint: `test-${turn}`,
+            userId: USER_ID,
+            battleSessionId: SESSION_ID,
+            expectedBattleVersion: fixture.commits.length + 1,
+            nextSnapshot: ended.state,
+            events: ended.events,
+            privacyJournal: buildBattlePrivacyJournalInput({
+              before: state,
+              after: ended.state,
+              commandKind: 'face',
+              events: ended.events,
+            }),
+          })
+          state = fixture.currentState()
+        }
+        if (state.tactical.battle.lifecycle !== 'active') break
+        await service.runTurn({
+          userId: USER_ID,
+          battleSessionId: SESSION_ID,
+          expectedBattleVersion: fixture.commits.length + 1,
+        })
+      }
+      expect(
+        fixture.commits.some((commit) =>
+          commit.events.some(
+            (event) =>
+              typeof event === 'object' &&
+              event !== null &&
+              'event' in event &&
+              event.event === 'summon_defeated',
+          ),
+        ),
+      ).toBe(true)
+      expect(
+        fixture
+          .currentState()
+          .effectState?.summons?.some((row) => row.combatantId === active.summonId),
+      ).toBe(false)
+      expect(
+        fixture
+          .currentState()
+          .turnTriggerState?.combatants.some((row) => row.combatantId === active.summonId),
+      ).toBe(false)
+    },
+  )
+
   it('rejects attempts to run Recruit AI during a player-controlled turn', async () => {
     const state = await initialEncounter()
     const fixture = createStatefulRepository(state)
@@ -248,3 +1106,483 @@ describe('P2.6 authoritative Recruit AI turn service', () => {
     expect(fixture.commitBattleIntent).not.toHaveBeenCalled()
   })
 })
+
+it.each([
+  'stationary',
+  'move',
+  'basic-move',
+  'controlled',
+  'controlled-move',
+  'attachment',
+  'controlled-attachment',
+] as const)(
+  'runs an admitted canonical %s Recruit behavior through service CAS without mutable published reads',
+  async (variant) => {
+    const controlled =
+      variant === 'controlled' ||
+      variant === 'controlled-move' ||
+      variant === 'controlled-attachment'
+    const attached = variant === 'attachment' || variant === 'controlled-attachment'
+    const hasMove = variant === 'move' || variant === 'basic-move' || variant === 'controlled-move'
+    const recruit = advanceToRecruitTurn(await initialEncounter())
+    const characterId = '22222222-2222-4222-8222-222222222223'
+    const actorId = `character:${characterId}`
+    const initial = JSON.parse(
+      JSON.stringify(recruit).split(recruit.tactical.battle.currentTurn!.combatantId).join(actorId),
+    ) as StatDrivenCombatEncounterState
+    const playerId = `character:${CHARACTER_ID}`
+    const ability: AbilityDefinition = {
+      schemaVersion: 1,
+      behaviors: [
+        {
+          id: 'strike',
+          activation: 'manual',
+          mode: 'action',
+          classification: 'attack',
+          attackFamily: 'physical',
+          costs: [{ resource: 'ap', amount: hasMove ? 100 : 12 }],
+          cooldown: null,
+          activationLimits: ['once-per-battle'],
+          requirements: null,
+          targeting: {
+            kind: 'unit',
+            teamPolicy: 'enemy',
+            friendlyFire: 'enemies-only',
+            shape: { kind: 'single' },
+            minimumRange: 1,
+            maximumRange: 1,
+            requiresLineOfSight: false,
+            maximumElevationDifference: null,
+            maximumSelections: 1,
+          },
+          accuracy: { kind: 'fixed', chanceBasisPoints: 10000 },
+          effects: [
+            ...(!hasMove
+              ? []
+              : [
+                  {
+                    id: 'advance',
+                    timing: 'instant' as const,
+                    payload: {
+                      type: 'move' as const,
+                      recipient: 'actor' as const,
+                      maximumTiles: 2,
+                    },
+                  },
+                ]),
+            {
+              id: 'hit',
+              ...(controlled ? { timing: 'controlled' as const } : {}),
+              payload: { type: 'damage', recipient: 'primary-unit', amount: 20 },
+            },
+          ],
+        },
+      ],
+    }
+    const original = resolveMatureSkillVersion('vanguard.forceful-strike', 2)!
+    const source = capturedMatureSkillAbilitySource(initial, {
+      ...original,
+      ability:
+        variant === 'basic-move'
+          ? {
+              ...ability,
+              behaviors: ability.behaviors.map((behavior) => ({
+                ...behavior,
+                effects: behavior.effects.filter((effect) => effect.payload.type !== 'move'),
+              })),
+            }
+          : ability,
+    })!
+    const basics =
+      variant === 'basic-move'
+        ? captureBasicSkillSources({
+            ownerCombatantId: actorId,
+            supportActionId: 'basic.recover',
+            definitions: defaultBasicSkills().map((row) =>
+              row.id === 'basic.move'
+                ? { ...row, execution: { kind: 'basic-move', costBasis: 'flat' }, ability }
+                : row,
+            ),
+          })
+        : []
+    const modifier = attached
+      ? capturedMatureSkillAbilitySource(initial, {
+          ...resolveMatureSkillVersion('vanguard.brace', 2)!,
+          ability: {
+            schemaVersion: 1,
+            behaviors: [
+              {
+                id: 'boost',
+                activation: 'manual',
+                mode: 'modifier',
+                classification: 'utility',
+                costs: [
+                  { resource: 'ap', amount: 7 },
+                  { resource: 'mp', amount: 3 },
+                ],
+                cooldown: null,
+                requirements: null,
+                targeting: null,
+                effects: [
+                  {
+                    id: 'bonus',
+                    payload: {
+                      type: 'damage-bonus',
+                      recipient: 'actor',
+                      multiplierBasisPoints: 15000,
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        })!
+      : null
+    const captures = [source, ...basics, ...(modifier ? [modifier] : [])]
+    const buildAuthority = createBattleBuildAuthoritySnapshot('pve', [
+      {
+        combatantId: actorId,
+        characterId,
+        snapshot: {
+          schemaVersion: 2,
+          buildVersion: 1,
+          primary: { disciplineId: 'vanguard', definitionVersion: 1, profileVersion: 1 },
+          secondary: { disciplineId: 'lifebinder', definitionVersion: 1 },
+          disciplineSkills: [
+            {
+              slotIndex: 1,
+              skillId: original.id,
+              contentVersion: 2,
+              sourceDisciplineId: 'vanguard',
+            },
+            ...(modifier
+              ? [
+                  {
+                    slotIndex: 2,
+                    skillId: modifier.abilityId,
+                    contentVersion: modifier.contentVersion,
+                    sourceDisciplineId: 'vanguard',
+                  },
+                ]
+              : []),
+          ],
+          extensions: {
+            essence: null,
+            resonance: resonanceSnapshotReference(
+              resolveResonanceForPair('vanguard', 'lifebinder')!,
+            ),
+            equipmentSkills: [],
+            supernatural: null,
+            prestige: null,
+          },
+        },
+      },
+    ])
+    const state = {
+      ...reconcileCombatAbilitySources(initial, captures),
+      statBridge: initial.statBridge,
+      buildAuthority,
+      tactical: {
+        ...initial.tactical,
+        tiles: initial.tactical.tiles.map((tile) =>
+          hasMove && tile.position.y === 1 && tile.position.x <= 3
+            ? {
+                ...tile,
+                elevation: 0,
+                terrainId: initial.tactical.terrains.find((terrain) => terrain.traversalCost === 1)!
+                  .id,
+              }
+            : tile,
+        ),
+        placements: initial.tactical.placements.map((row) =>
+          row.combatantId === actorId
+            ? { ...row, position: { x: hasMove ? 0 : 2, y: 1 } }
+            : row.combatantId === playerId
+              ? { ...row, position: { x: hasMove ? 3 : 1, y: 1 } }
+              : row,
+        ),
+      },
+    }
+    const fixture = createStatefulRepository(JSON.parse(JSON.stringify(state)))
+    const resolver = {
+      resolveCurrentSkillDefinition: vi.fn(async () => {
+        throw new Error('Mutable current read forbidden by stored authority.')
+      }),
+      resolvePinnedSkillDefinition: vi.fn(async () => {
+        throw new Error('Mutable pinned read forbidden by stored authority.')
+      }),
+    }
+    const result = await createBattleRecruitAiService(fixture.repository, resolver).runTurn({
+      userId: USER_ID,
+      battleSessionId: SESSION_ID,
+      expectedBattleVersion: 1,
+    })
+    expect(resolver.resolvePinnedSkillDefinition).not.toHaveBeenCalled()
+    expect(resolver.resolveCurrentSkillDefinition).not.toHaveBeenCalled()
+    const first = fixture.commits[controlled ? 1 : 0]!
+    if (controlled) {
+      const prime = fixture.commits[0]!
+      expect(prime.events).toEqual([])
+      const primed = prime.nextSnapshot as StatDrivenCombatEncounterState
+      expect(primed.tactical).toEqual(state.tactical)
+      expect(primed.abilityRuntime!.controlled!.primes).toHaveLength(1)
+      expect(fixture.currentState().abilityRuntime!.controlled!.used).toHaveLength(1)
+      expect(
+        result.decisions.some((decision) => String(decision.reason).includes('controlled')),
+      ).toBe(false)
+      expect(fixture.commits.length).toBeLessThanOrEqual(16)
+    }
+    expect(first.expectedBattleVersion).toBe(controlled ? 2 : 1)
+    expect(first.events).toContainEqual(
+      expect.objectContaining({
+        event: 'combat_action_used',
+        actionId: variant === 'basic-move' ? 'basic.move' : original.id,
+      }),
+    )
+    expect(first.events).toContainEqual(
+      expect.objectContaining({ event: 'ap_spent', amount: attached ? 19 : hasMove ? 100 : 12 }),
+    )
+    expect((first.nextSnapshot as StatDrivenCombatEncounterState).capturedAbilitySources).toEqual(
+      captures,
+    )
+    if (modifier) {
+      expect(first.events).toContainEqual(expect.objectContaining({ event: 'mp_spent', amount: 3 }))
+      if (controlled)
+        expect(
+          (fixture.commits[0]!.nextSnapshot as StatDrivenCombatEncounterState).abilityRuntime!
+            .controlled!.primes[0]!.manualModifiers,
+        ).toMatchObject([{ sourceInstanceId: modifier.sourceInstanceId, behaviorId: 'boost' }])
+      expect(JSON.stringify(result)).not.toMatch(/manualModifiers|abilityParticipants/)
+    }
+    if (hasMove) {
+      expect(
+        (first.nextSnapshot as StatDrivenCombatEncounterState).tactical.placements.find(
+          (row) => row.combatantId === actorId,
+        )!.position,
+      ).toEqual({ x: 2, y: 1 })
+      expect(
+        first.events.filter((event) => (event as { event: string }).event === 'combat_action_used'),
+      ).toHaveLength(1)
+    }
+    expect(JSON.stringify(result)).not.toMatch(
+      /capturedAbilitySources|conditionTruth|abilityParticipants|effectOrigin/,
+    )
+  },
+)
+
+function castServerEndure(initial: StatDrivenCombatEncounterState) {
+  return reattachStatDrivenCombatBridge(
+    executeCombatAction(
+      initial,
+      {
+        id: 'test.server-endure',
+        version: 1,
+        sourceType: 'test',
+        tags: [],
+        cost: { spendsAction: false, mp: 0 },
+        requirements: [],
+        target: {
+          kind: 'self',
+          teamPolicy: 'self',
+          shape: { kind: 'single' },
+          minimumRange: 0,
+          maximumRange: 0,
+          requiresLineOfSight: false,
+          maximumElevationDifference: null,
+          friendlyFire: 'allies-only',
+        },
+        effects: [
+          {
+            type: 'endure',
+            recipient: 'actor',
+            durationTurns: 4,
+            releaseBasisPoints: 15000,
+            radiusTiles: 3,
+            targetTeams: 'enemies',
+          },
+        ],
+        effectTimingModes: ['instant'],
+      },
+      { kind: 'self' },
+      PV1F_COMBAT_CONTENT,
+    ).state,
+    initial.statBridge,
+  )
+}
+it('preserves the private Endure window through saved JSON reload and authoritative Recruit AI handoff', async () => {
+  const cast = castServerEndure(await initialEncounter())
+  const player = `character:${CHARACTER_ID}`
+  expect(cast.endureState!.applications[0]).toMatchObject({
+    combatantId: player,
+    receivedDamage: 0,
+  })
+  const next = finishPv1fTurn(cast, 'east').state
+  const fixture = createStatefulRepository(JSON.parse(JSON.stringify(next)))
+  const copy = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T
+  const repository: BattleSessionRepository = {
+    ...fixture.repository,
+    findBattleSession: async (...args) => copy(await fixture.repository.findBattleSession(...args)),
+    commitBattleIntent: async (input) =>
+      copy(
+        await fixture.repository.commitBattleIntent({
+          ...input,
+          nextSnapshot: copy(input.nextSnapshot),
+        }),
+      ),
+  }
+  const result = await createBattleRecruitAiService(repository).runTurn({
+    userId: USER_ID,
+    battleSessionId: SESSION_ID,
+    expectedBattleVersion: 1,
+  })
+  expect(result.battleVersion).toBeGreaterThan(1)
+  expect(result.decisions.length).toBeGreaterThan(0)
+  expect(fixture.commits.flatMap((commit) => commit.events)).toContainEqual(
+    expect.objectContaining({ event: 'combatant_moved' }),
+  )
+  expect(fixture.currentState().endureState!.applications[0]!.combatantId).toBe(player)
+  expect(result.snapshot).not.toHaveProperty('endureState')
+  expect(
+    result.snapshot.statusState.find((row) => row.combatantId === player)!.statuses,
+  ).toContainEqual(expect.objectContaining({ statusId: 'endure' }))
+})
+it('aborts a practice battle with active Endure without an invalid partial encounter or release burst', async () => {
+  const cast = castServerEndure(await initialEncounter())
+  const scoped = {
+    ...cast,
+    abilityCooldownScopeVersion: 1 as const,
+    reflectBarrierPolicyVersion: 1 as const,
+    tactical: {
+      ...cast.tactical,
+      battle: {
+        ...cast.tactical.battle,
+        combatants: cast.tactical.battle.combatants.map((unit) => ({
+          ...unit,
+          temporaryResources: [
+            ...unit.temporaryResources,
+            {
+              key: 'p3.skill-cooldown.ability.discipline-skill.0070007200690076006100740065.main',
+              current: 3,
+              maximum: 3,
+            },
+          ].sort((left, right) => left.key.localeCompare(right.key)),
+        })),
+      },
+    },
+  }
+  const fixture = createStatefulRepository(JSON.parse(JSON.stringify(scoped)))
+  const result = await createBattleAbortService(fixture.repository).abortPractice({
+    userId: USER_ID,
+    battleSessionId: SESSION_ID,
+    expectedBattleVersion: 1,
+    idempotencyKey: 'endure-abort',
+  })
+  expect(result.snapshot.tactical.battle.lifecycle).toBe('abandoned')
+  expect(
+    fixture
+      .currentState()
+      .statusState.flatMap((row) => row.statuses)
+      .some((row) => row.statusId === 'endure'),
+  ).toBe(false)
+  expect(fixture.currentState().endureState?.applications ?? []).toEqual([])
+  expect(fixture.commits.flatMap((commit) => commit.events)).not.toContainEqual(
+    expect.objectContaining({ actionId: 'status.endure.release' }),
+  )
+  expect(result.snapshot).not.toHaveProperty('endureState')
+  expect(fixture.currentState().abilityCooldownScopeVersion).toBe(1)
+  expect(fixture.currentState().reflectBarrierPolicyVersion).toBe(1)
+  for (const unit of result.snapshot.tactical.battle.combatants) {
+    const clocks = unit.temporaryResources.filter((resource) =>
+      resource.key.startsWith('p3.skill-cooldown.'),
+    )
+    expect(clocks.length > 0).toBe(unit.id === `character:${CHARACTER_ID}`)
+  }
+})
+
+it.each([false, true])(
+  'aborts after missed Ruin with tracked debuffs and Endure=%s without losing private authority',
+  async (withEndure) => {
+    const initial = await initialEncounter()
+    const actorId = initial.tactical.battle.currentTurn!.combatantId
+    const actor = initial.tactical.battle.combatants.find((row) => row.id === actorId)!
+    const enemy = initial.tactical.battle.combatants.find((row) => row.teamId !== actor.teamId)!
+    const target: CombatActionDefinition['target'] = {
+      kind: 'unit',
+      teamPolicy: 'enemy',
+      shape: { kind: 'single' },
+      minimumRange: 1,
+      maximumRange: 15,
+      requiresLineOfSight: false,
+      maximumElevationDifference: null,
+      friendlyFire: 'enemies-only',
+    }
+    const selfDebuff: CombatActionDefinition = {
+      id: 'test.ruin-abort-slow',
+      version: 1,
+      sourceType: 'test',
+      tags: [],
+      cost: { spendsAction: false, mp: 0 },
+      requirements: [],
+      target: { ...target, kind: 'self', teamPolicy: 'self', minimumRange: 0, maximumRange: 0 },
+      effects: [
+        { type: 'apply-status', recipient: 'actor', statusId: 'slow', stacks: 1, durationTurns: 4 },
+      ],
+      effectTimingModes: ['instant'],
+    }
+    const debuffed = executeCombatAction(
+      initial,
+      selfDebuff,
+      { kind: 'self' },
+      PV1F_COMBAT_CONTENT,
+    ).state
+    const missed = executeCombatAction(
+      debuffed,
+      {
+        ...selfDebuff,
+        id: 'test.ruin-abort-miss',
+        target,
+        tags: ['attack', 'physical'],
+        accuracyRule: { kind: 'fixed', chanceBasisPoints: 0 },
+        effects: [
+          { type: 'damage', recipient: 'primary-unit', target: 'enemy', amount: 20 },
+          { type: 'ruin', recipient: 'actor', bonusPerDebuffBasisPoints: 6000 },
+        ],
+        effectTimingModes: ['instant', 'instant'],
+      },
+      { kind: 'unit', combatantId: enemy.id },
+      PV1F_COMBAT_CONTENT,
+    )
+    expect(missed.events).not.toContainEqual(expect.objectContaining({ event: 'damage_applied' }))
+    let cast = reattachStatDrivenCombatBridge(missed.state, initial.statBridge)
+    if (withEndure) cast = castServerEndure(cast)
+    expect(cast.ruinState!.nextApplicationId).toBeGreaterThan(1)
+    expect(
+      cast.statusState
+        .flatMap((row) => row.statuses)
+        .some((status) =>
+          (status.applicationModifiers ?? [status]).some(
+            (application) => application.ruinApplicationId !== undefined,
+          ),
+        ),
+    ).toBe(true)
+    const fixture = createStatefulRepository(JSON.parse(JSON.stringify(cast)))
+    const result = await createBattleAbortService(fixture.repository).abortPractice({
+      userId: USER_ID,
+      battleSessionId: SESSION_ID,
+      expectedBattleVersion: 1,
+      idempotencyKey: `ruin-abort-${withEndure}`,
+    })
+    expect(result.snapshot.tactical.battle.lifecycle).toBe('abandoned')
+    expect(fixture.currentState().ruinState).toEqual(cast.ruinState)
+    expect(fixture.currentState().capturedAbilitySources).toEqual(cast.capturedAbilitySources)
+    expect(
+      fixture.currentState().tactical.battle.combatants.map(({ id, hp, mp }) => ({ id, hp, mp })),
+    ).toEqual(cast.tactical.battle.combatants.map(({ id, hp, mp }) => ({ id, hp, mp })))
+    expect(fixture.commits.flatMap((commit) => commit.events)).not.toContainEqual(
+      expect.objectContaining({ actionId: 'status.endure.release' }),
+    )
+    expect(JSON.stringify(result.snapshot)).not.toMatch(
+      /ruinState|ruinApplicationId|attackTagCapture/,
+    )
+  },
+)

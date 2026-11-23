@@ -1,16 +1,42 @@
 import type { BattleEventRecord } from '@aurevane/db/battle-session'
 import {
   createCombatEncounterState,
+  executeCombatAction,
+  endCombatTurn,
+  type CombatActionDefinition,
   type CombatStatusInstance,
 } from '@aurevane/game-core/combat/actions'
 import { createPendingBattle, startBattle } from '@aurevane/game-core/combat/battle-state'
-import { createTacticalBattleState } from '@aurevane/game-core/combat/board'
+import {
+  createTacticalBattleState,
+  selectCurrentFinalFacing,
+} from '@aurevane/game-core/combat/board'
+import { PV1F_COMBAT_CONTENT } from '@aurevane/game-core/combat/pv1f-action-economy'
 import {
   createStatDrivenCombatEncounterState,
+  validateStatDrivenCombatEncounterState,
   type StatDrivenCombatEncounterState,
   type StatDrivenCombatProfile,
 } from '@aurevane/game-core/combat/stat-driven-combat'
 import { describe, expect, it, vi } from 'vitest'
+import { createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
+import { BattleLogFeed } from '@/components/battle/battle-log-feed'
+import { formatBattleLogForClipboard } from '@/components/battle/battle-log-clipboard'
+import { buildBattleChronicle } from '@/components/battle/battle-log-chronicle-model'
+import { createViewerSafeBattleLogService } from './battle-log-service'
+import { captureCombatAbilitySource } from '@aurevane/game-core/combat/combat-behavior-capture'
+import {
+  combatAbilityCommandContext,
+  reconcileCombatAbilitySources,
+} from '@aurevane/game-core/combat/combat-behavior-runtime'
+import { commitCombatAbilityCommand } from '@aurevane/game-core/combat/combat-ability-command'
+import { preparePv1fTurnEconomy } from '@aurevane/game-core/combat/pv1f-action-economy'
+import {
+  projectBattleStatusStateForViewer,
+  projectBattleEffectStateForViewer,
+  omitCombatExecutionMetadata,
+} from './battle-live-viewer-projection'
 
 vi.mock('server-only', () => ({}))
 
@@ -115,7 +141,7 @@ function encounter(input?: {
 function record(
   battleVersion: number,
   eventIndex: number,
-  event: Record<string, unknown>,
+  event: BattleEventRecord['event'],
 ): BattleEventRecord {
   return {
     battleVersion,
@@ -125,7 +151,979 @@ function record(
   }
 }
 
+describe('known enemy Covert application history', () => {
+  it('confirms only explicit own-source historical applications without inferring missing identities', async () => {
+    const viewer = deriveParticipantBattleViewerEntitlement(
+      encounter().tactical.battle.combatants,
+      [ACTOR],
+    )
+    const events = [
+      {
+        event: 'status_applied',
+        sourceCombatantId: ACTOR,
+        targetCombatantId: TARGET,
+        statusId: 'covert',
+        stacks: 17,
+        remainingOwnerTurnStarts: 99,
+        refreshed: true,
+      },
+      { event: 'status_applied', targetCombatantId: TARGET, statusId: 'covert' },
+      { event: 'status_applied', sourceCombatantId: ACTOR, statusId: 'covert' },
+      {
+        event: 'status_applied',
+        sourceCombatantId: 'unknown-source',
+        targetCombatantId: TARGET,
+        statusId: 'covert',
+      },
+      {
+        event: 'status_applied',
+        sourceCombatantId: ACTOR,
+        targetCombatantId: TARGET,
+        statusId: 'inspired',
+        effectStrength: { potencyBasisPoints: 99900 },
+      },
+    ]
+    const records = events.map((event, eventIndex) => record(1, eventIndex, event))
+    const journal: BattleHistoryPrivacyJournal = {
+      schemaVersion: 1,
+      battleVersion: 1,
+      actorCombatantId: ACTOR,
+      actorTeamId: 'team:a',
+      eventCount: events.length,
+      commandVisibility: { kind: 'public' },
+      eventVisibilityOverrides: events.map((_, eventIndex) => ({
+        eventIndex,
+        visibility: { kind: 'team-only', teamId: 'team:b' },
+      })),
+    }
+    const log = await createViewerSafeBattleLogService(
+      { findBattleEvents: async () => records },
+      { findBattleHistoryPrivacy: async () => ({ viewer, journals: [journal] }) },
+    ).getLog('user', 'session')
+    expect(log.entries).toHaveLength(1)
+    expect(log.entries[0]).toMatchObject({
+      statusId: 'covert',
+      actorCombatantId: ACTOR,
+      targetCombatantId: TARGET,
+      actionId: null,
+    })
+    expect(log.entries[0]).not.toHaveProperty('actionContext')
+    expect(JSON.stringify(log.entries[0]!.templateValues)).not.toMatch(/17|99|REFRESHED|STACKED/)
+    expect(JSON.stringify(log)).not.toMatch(/inspired|effectStrength/)
+    expect(projectBattleHistoryForViewer(records, [], viewer)).toEqual(records)
+  })
+
+  it.each([
+    ['instant', false],
+    ['instant', true],
+    ['next-round', false],
+    ['next-round', true],
+  ] as const)(
+    "confirms the caster team's real %s enemy application (refresh: %s), without exposing other benefits",
+    async (timing, refresh) => {
+      const before = {
+        ...encounter({
+          targetStatuses: refresh
+            ? [status('covert', TARGET, 99), status('inspired', TARGET, 99)]
+            : [],
+        }),
+        effectTimingPolicy: { version: 1, modes: { covert: timing } },
+        effectStackingPolicyVersion: 1 as const,
+      }
+      const action: CombatActionDefinition = {
+        id: 'mixed.enemy-smoke',
+        version: 1,
+        sourceType: 'test',
+        tags: [],
+        cost: { spendsAction: false, mp: 0 },
+        requirements: [],
+        target: {
+          kind: 'unit',
+          teamPolicy: 'enemy',
+          friendlyFire: 'enemies-only',
+          shape: { kind: 'single' },
+          minimumRange: 0,
+          maximumRange: 6,
+          requiresLineOfSight: false,
+          maximumElevationDifference: null,
+        },
+        effects: [
+          { type: 'damage', recipient: 'primary-unit', amount: 1 },
+          {
+            type: 'apply-status',
+            recipient: 'primary-unit',
+            statusId: 'covert',
+            stacks: 1,
+            durationTurns: 2,
+          },
+        ],
+      }
+      const cast = executeCombatAction(
+        before,
+        action,
+        { kind: 'unit', combatantId: TARGET },
+        PV1F_COMBAT_CONTENT,
+      )
+      const castState = { ...before, ...cast.state, statBridge: before.statBridge }
+      expect(cast.events.some((event) => event.event === 'damage_applied')).toBe(true)
+      expect(
+        cast.events.some(
+          (event) =>
+            (event.event === 'status_applied' && event.statusId === 'covert') ||
+            (event.event === 'effect_pending' && event.effectTag === 'covert'),
+        ),
+      ).toBe(true)
+      if (timing === 'instant')
+        expect(
+          cast.events.find(
+            (event) => event.event === 'status_applied' && event.statusId === 'covert',
+          ),
+        ).toMatchObject({ refreshed: refresh })
+      const records: BattleEventRecord[] = []
+      const journals: BattleHistoryPrivacyJournal[] = []
+      const append = (
+        prior: StatDrivenCombatEncounterState,
+        after: StatDrivenCombatEncounterState,
+        events: readonly unknown[],
+        commandKind: 'action' | 'face',
+      ) => {
+        const battleVersion = journals.length + 1
+        const actor = prior.tactical.battle.combatants.find(
+          (unit) => unit.id === prior.tactical.battle.currentTurn!.combatantId,
+        )!
+        records.push(
+          ...events.map((event, eventIndex) =>
+            record(battleVersion, eventIndex, event as BattleEventRecord['event']),
+          ),
+        )
+        journals.push({
+          ...buildBattlePrivacyJournalInput({ before: prior, after, events, commandKind }),
+          battleVersion,
+          actorCombatantId: actor.id,
+          actorTeamId: actor.teamId,
+          eventCount: events.length,
+        })
+      }
+      append(before, castState, cast.events, 'action')
+      let state = castState
+      if (timing === 'next-round') {
+        while (state.tactical.battle.round === 1) {
+          const ended = endCombatTurn(
+            { ...state, tactical: selectCurrentFinalFacing(state.tactical, 'east').state },
+            PV1F_COMBAT_CONTENT,
+          )
+          const next = { ...state, ...ended.state, statBridge: state.statBridge }
+          append(state, next, ended.events, 'face')
+          state = next
+        }
+      }
+      const guarded = executeCombatAction(
+        state,
+        {
+          ...action,
+          id: 'mixed.hidden-guard',
+          effects: [
+            {
+              type: 'apply-status',
+              recipient: 'primary-unit',
+              statusId: 'guarded',
+              stacks: 1,
+              durationTurns: 2,
+            },
+          ],
+        },
+        { kind: 'unit', combatantId: TARGET },
+        PV1F_COMBAT_CONTENT,
+      )
+      append(
+        state,
+        { ...state, ...guarded.state, statBridge: state.statBridge },
+        guarded.events,
+        'action',
+      )
+      const viewers = [
+        ['caster', ACTOR, 'team:a', true],
+        ['caster ally', ALLY, 'team:a', true],
+        ['recipient', TARGET, 'team:b', true],
+        ['recipient ally', 'recipient.ally', 'team:b', true],
+        ['unrelated opponent', 'unrelated.opponent', 'team:c', false],
+      ] as const
+      for (const [label, id, teamId, knows] of [
+        ...viewers,
+        ['spectator', '', '', false] as const,
+      ]) {
+        const viewer = id
+          ? deriveParticipantBattleViewerEntitlement([{ id, teamId }], [id])
+          : createSpectatorBattleViewerEntitlement()
+        const getLog = () =>
+          createViewerSafeBattleLogService(
+            { findBattleEvents: async () => records },
+            { findBattleHistoryPrivacy: async () => ({ viewer, journals }) },
+          ).getLog('user', 'session')
+        const log = await getLog()
+        expect(
+          log.entries.some((entry) => entry.statusId === 'covert'),
+          label,
+        ).toBe(knows)
+        expect(await getLog(), `${label} replay`).toEqual(log)
+        const copied = formatBattleLogForClipboard(log.entries, {
+          combatantNames: { [TARGET]: 'Enemy' },
+        })
+        if (knows) expect(copied, label).toContain("Covert hides Enemy's beneficial effects")
+        else expect(copied, label).not.toContain('Covert')
+        expect(
+          log.entries.some((entry) => entry.statusId === 'guarded'),
+          label,
+        ).toBe(teamId === 'team:b')
+        if (teamId === 'team:a') {
+          const confirmations = log.entries.filter((entry) => entry.statusId === 'covert')
+          expect(confirmations).toHaveLength(timing === 'next-round' ? 2 : 1)
+          expect(JSON.stringify(confirmations)).not.toMatch(
+            /99|stacks|REFRESHED|STACKED|effectStrength|remainingOwnerTurn|sourceCommandVisibility/,
+          )
+          expect(
+            buildBattleChronicle(log.entries)
+              .flatMap((round) =>
+                round.actors.flatMap((actor) => actor.actions.flatMap((action) => action.outcomes)),
+              )
+              .filter((outcome) => outcome.statusId === 'covert').length,
+          ).toBe(confirmations.length)
+        }
+      }
+    },
+  )
+})
+
 describe('CSR-3 commit-time privacy metadata', () => {
+  it.each([false, true])(
+    'keeps authoritative active Covert concealed through a queued refresh (active: %s)',
+    (active) => {
+      const makeSource = (id: string, instant: boolean) =>
+        captureCombatAbilitySource({
+          schemaVersion: 1,
+          sourceInstanceId: id,
+          ownerCombatantId: ACTOR,
+          abilityId: id,
+          contentVersion: 1,
+          sourceKind: 'discipline-skill',
+          sourceDisciplineId: 'shadehand',
+          tags: ['utility'],
+          definition: {
+            schemaVersion: 1,
+            behaviors: [
+              {
+                id: 'hide',
+                activation: 'manual',
+                mode: 'action',
+                classification: 'utility',
+                costs: [],
+                cooldown: null,
+                requirements: null,
+                targeting: {
+                  kind: 'self',
+                  teamPolicy: 'self',
+                  friendlyFire: 'allies-only',
+                  shape: { kind: 'single' },
+                  minimumRange: 0,
+                  maximumRange: 0,
+                  requiresLineOfSight: false,
+                  maximumElevationDifference: null,
+                  maximumSelections: 1,
+                },
+                effects: [
+                  {
+                    id: 'hide',
+                    ...(instant ? { timing: 'instant' as const } : {}),
+                    payload: {
+                      type: 'apply-status',
+                      recipient: 'actor',
+                      statusId: 'covert',
+                      stacks: 1,
+                      durationTurns: 2,
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        })
+      const instant = makeSource('review.instant', true),
+        pending = makeSource('review.pending', false)
+      const initial = {
+        ...preparePv1fTurnEconomy(encounter({ actorStatuses: [status('inspired', ACTOR)] })),
+        effectTimingPolicy: { version: 1 as const, modes: {} },
+        effectStackingPolicyVersion: 1 as const,
+      }
+      let state = reconcileCombatAbilitySources(initial, [instant, pending])
+      for (const source of active ? [instant, pending] : [pending])
+        state = commitCombatAbilityCommand({
+          state,
+          actorId: ACTOR,
+          root: { kind: 'canonical', source },
+          selection: { kind: 'self' },
+          content: PV1F_COMBAT_CONTENT,
+          context: combatAbilityCommandContext(state, source),
+        }).state
+      expect(
+        state.statusState
+          .find((x) => x.combatantId === ACTOR)!
+          .statuses.some((x) => x.statusId === 'covert' && x.timingState === 'active'),
+      ).toBe(active)
+      expect(
+        state.pendingEffects!.some(
+          (x) => x.effect.type === 'apply-status' && x.effect.statusId === 'covert',
+        ),
+      ).toBe(true)
+      expect(
+        validateStatDrivenCombatEncounterState(state as StatDrivenCombatEncounterState),
+      ).toEqual([])
+      for (const id of [ACTOR, ALLY]) {
+        const viewer = deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, [
+          id,
+        ])
+        const statuses = projectBattleStatusStateForViewer(
+          state as StatDrivenCombatEncounterState,
+          viewer,
+        ).find((x) => x.combatantId === ACTOR)!.statuses
+        expect(statuses.map((x) => x.statusId)).toEqual(
+          expect.arrayContaining(['inspired', 'covert']),
+        )
+        expect(statuses.some((x) => x.statusId === 'covert' && x.timingState === 'active')).toBe(
+          active,
+        )
+        expect(statuses.some((x) => x.statusId === 'covert' && x.timingState === 'pending')).toBe(
+          true,
+        )
+      }
+      for (const viewer of [
+        deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, [TARGET]),
+        createSpectatorBattleViewerEntitlement(),
+      ]) {
+        const statuses = projectBattleStatusStateForViewer(
+          state as StatDrivenCombatEncounterState,
+          viewer,
+        ).find((x) => x.combatantId === ACTOR)!.statuses
+        expect(statuses.map((x) => x.statusId)).toEqual(active ? [] : ['inspired'])
+      }
+    },
+  )
+
+  it.each([
+    'append',
+    'replace',
+    'replace-recorded',
+    'owner-clock',
+    'round-clock',
+    'skip-clock',
+  ] as const)(
+    'conceals canonical pending-Covert instances and retains only provably public facts (%s)',
+    (mode) => {
+      const source = captureCombatAbilitySource({
+        schemaVersion: 1,
+        sourceInstanceId: 'mixed.source',
+        ownerCombatantId: ACTOR,
+        abilityId: 'secret.mixed',
+        contentVersion: 1,
+        sourceKind: 'discipline-skill',
+        sourceDisciplineId: 'shadehand',
+        tags: ['utility'],
+        definition: {
+          schemaVersion: 1,
+          behaviors: [
+            {
+              id: 'shelter',
+              activation: 'manual',
+              mode: 'action',
+              classification: 'utility',
+              costs: [],
+              cooldown: null,
+              requirements: null,
+              targeting: {
+                kind: 'self',
+                teamPolicy: 'self',
+                friendlyFire: 'allies-only',
+                shape: { kind: 'single' },
+                minimumRange: 0,
+                maximumRange: 0,
+                requiresLineOfSight: false,
+                maximumElevationDifference: null,
+                maximumSelections: 1,
+              },
+              effects: [
+                ...(mode.startsWith('replace')
+                  ? [
+                      {
+                        id: 'remove',
+                        timing: 'instant' as const,
+                        payload: {
+                          type: 'remove-status' as const,
+                          recipient: 'actor' as const,
+                          statusIds: ['inspired'],
+                          removalMode: 'specified' as const,
+                        },
+                      },
+                    ]
+                  : []),
+                {
+                  id: 'hide',
+                  payload: {
+                    type: 'apply-status',
+                    recipient: 'actor',
+                    statusId: 'covert',
+                    stacks: 1,
+                  },
+                },
+                {
+                  id: 'shield',
+                  timing: 'instant',
+                  payload: { type: 'barrier-change', recipient: 'actor', amount: 17 },
+                },
+                {
+                  id: 'inspire',
+                  timing: 'instant',
+                  payload: {
+                    type: 'apply-status',
+                    recipient: 'actor',
+                    statusId: 'inspired',
+                    potencyBasisPoints: 3500,
+                    durationTurns: mode === 'owner-clock' ? 4 : 1,
+                    stacks: 1,
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      })
+      const initial = {
+        ...preparePv1fTurnEconomy(
+          encounter({
+            actorStatuses: [
+              status('guarded', ACTOR),
+              {
+                ...status('inspired', ACTOR, 1),
+                timingState: 'active',
+                remainingOwnerTurnEnds: 1,
+                potencyBasisPoints: 2000,
+                ...(mode === 'round-clock'
+                  ? {
+                      durationScope: 'rounds' as const,
+                      remainingRoundBoundaries: 4,
+                      skipCurrentOwnerTurnEnd: true,
+                    }
+                  : {}),
+                skipCurrentOwnerTurnEnd: mode !== 'skip-clock',
+              },
+            ],
+          }),
+        ),
+        effectTimingPolicy: { version: 1, modes: {} },
+        effectStackingPolicyVersion: 1 as const,
+        effectState: {
+          ongoingRecovery: [],
+          poison: [],
+          burn: [],
+          bleed: [],
+          damageHistory: [],
+          barriers: [
+            {
+              sourceActionId: source.abilityId,
+              sourceCombatantId: ACTOR,
+              targetCombatantId: ACTOR,
+              amount: 5,
+              applicationOrder: 1,
+            },
+          ],
+        },
+      }
+      if (mode === 'replace-recorded')
+        initial.statusState = initial.statusState.map((row) =>
+          row.combatantId === ACTOR
+            ? {
+                ...row,
+                statuses: row.statuses.map((status) =>
+                  status.statusId === 'inspired'
+                    ? {
+                        ...status,
+                        applicationModifiers: [
+                          { stacks: 1, sourceCombatantId: ACTOR, potencyBasisPoints: 2000 },
+                        ],
+                      }
+                    : status,
+                ),
+              }
+            : row,
+        )
+      const state = reconcileCombatAbilitySources(initial, [source])
+      const cast = commitCombatAbilityCommand({
+        state,
+        actorId: ACTOR,
+        root: { kind: 'canonical', source },
+        selection: { kind: 'self' },
+        content: PV1F_COMBAT_CONTENT,
+        context: combatAbilityCommandContext(state, source),
+      })
+      const after = { ...initial, ...cast.state, statBridge: initial.statBridge }
+      expect(
+        after.pendingEffects!.some(
+          (effect) => effect.effect.type === 'apply-status' && effect.effect.statusId === 'covert',
+        ),
+      ).toBe(true)
+      expect(after.effectState!.barriers!.map((pool) => pool.amount)).toEqual([5, 17])
+      expect(validateStatDrivenCombatEncounterState(JSON.parse(JSON.stringify(after)))).toEqual([])
+      const corrupt = JSON.parse(JSON.stringify(after)) as StatDrivenCombatEncounterState
+      corrupt.effectState!.barriers![1].sourceCommandVisibility = {
+        kind: 'team-only',
+        teamId: 'team:b',
+      }
+      expect(validateStatDrivenCombatEncounterState(corrupt)).not.toEqual([])
+      for (const id of [ACTOR, ALLY]) {
+        const viewer = deriveParticipantBattleViewerEntitlement(after.tactical.battle.combatants, [
+          id,
+        ])
+        expect(JSON.stringify(projectBattleStatusStateForViewer(after, viewer))).not.toContain(
+          'sourceCommandVisibility',
+        )
+        expect(JSON.stringify(projectBattleStatusStateForViewer(after, viewer))).not.toContain(
+          'privateSharedLifetime',
+        )
+        expect(JSON.stringify(projectBattleEffectStateForViewer(after, viewer))).not.toContain(
+          'sourceCommandVisibility',
+        )
+        expect(
+          projectBattleEffectStateForViewer(after, viewer)!.barriers!.map((pool) => pool.amount),
+        ).toEqual([5, 17])
+        expect(
+          projectBattleStatusStateForViewer(after, viewer)
+            .find((row) => row.combatantId === ACTOR)!
+            .statuses.map((row) => row.statusId),
+        ).toEqual(expect.arrayContaining(['guarded', 'inspired', 'covert', 'barrier']))
+      }
+      for (const viewer of [
+        deriveParticipantBattleViewerEntitlement(after.tactical.battle.combatants, [TARGET]),
+        createSpectatorBattleViewerEntitlement(),
+      ]) {
+        expect(
+          projectBattleEffectStateForViewer(after, viewer)!.barriers!.map((pool) => pool.amount),
+        ).toEqual([5])
+        const statuses = projectBattleStatusStateForViewer(after, viewer).find(
+          (row) => row.combatantId === ACTOR,
+        )!.statuses
+        expect(statuses.map((row) => row.statusId)).toEqual(
+          mode === 'append' ? ['guarded', 'inspired', 'barrier'] : ['guarded', 'barrier'],
+        )
+        if (mode === 'append')
+          expect(statuses.find((row) => row.statusId === 'inspired')).toMatchObject({
+            stacks: 1,
+            potencyBasisPoints: 2000,
+            remainingOwnerTurnStarts: 1,
+            remainingOwnerTurnEnds: 1,
+            applicationModifiers: [{ stacks: 1, potencyBasisPoints: 2000 }],
+          })
+        expect(statuses.find((row) => row.statusId === 'barrier')!.barrier!.amount).toBe(5)
+        const afterConcealmentEnds = { ...after, pendingEffects: [] }
+        expect(
+          projectBattleEffectStateForViewer(afterConcealmentEnds, viewer)!.barriers!.map(
+            (pool) => pool.amount,
+          ),
+        ).toEqual([5, 17])
+      }
+    },
+  )
+
+  it('keeps actual owner pending/active benefits while the enemy DTO, Chronicle, readers and clipboard remain generic', async () => {
+    const before = {
+      ...encounter({ actorStatuses: [status('covert', ACTOR, 3)] }),
+      effectTimingPolicy: { version: 1, modes: { 'barrier-change': 'instant' as const } },
+    }
+    const action: CombatActionDefinition = {
+      id: 'secret.shelter',
+      version: 1,
+      sourceType: 'test',
+      tags: [],
+      cost: { spendsAction: false, mp: 2 },
+      requirements: [],
+      target: {
+        kind: 'self',
+        teamPolicy: 'self',
+        shape: { kind: 'single' },
+        minimumRange: 0,
+        maximumRange: 0,
+        requiresLineOfSight: false,
+        maximumElevationDifference: null,
+        friendlyFire: 'allies-only',
+      },
+      effects: [
+        { type: 'apply-status', recipient: 'actor', statusId: 'guarded', stacks: 1 },
+        { type: 'barrier-change', recipient: 'actor', amount: 17 },
+      ],
+    }
+    const cast = executeCombatAction(before, action, { kind: 'self' }, PV1F_COMBAT_CONTENT)
+    const after = { ...before, ...cast.state, statBridge: before.statBridge }
+    const journal: BattleHistoryPrivacyJournal = {
+      ...buildBattlePrivacyJournalInput({
+        before,
+        after,
+        commandKind: 'action',
+        events: cast.events,
+      }),
+      battleVersion: 1,
+      actorCombatantId: ACTOR,
+      actorTeamId: 'team:a',
+      eventCount: cast.events.length,
+    }
+    const records = cast.events.map((event, index) => record(1, index, event))
+    const owner = deriveParticipantBattleViewerEntitlement(before.tactical.battle.combatants, [
+      ACTOR,
+    ])
+    const ownerRows = projectBattleStatusStateForViewer(after, owner).find(
+      (row) => row.combatantId === ACTOR,
+    )!.statuses
+    expect(ownerRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ statusId: 'guarded', timingState: 'pending' }),
+        expect.objectContaining({
+          statusId: 'barrier',
+          timingState: 'active',
+          barrier: expect.objectContaining({ amount: 17 }),
+        }),
+      ]),
+    )
+    expect(projectBattleEffectStateForViewer(after, owner)?.barriers?.[0].amount).toBe(17)
+    const names = { [ACTOR]: 'Arin', [TARGET]: 'Bryn' }
+    for (const viewer of [
+      deriveParticipantBattleViewerEntitlement(before.tactical.battle.combatants, [TARGET]),
+      createSpectatorBattleViewerEntitlement(),
+    ]) {
+      const log = await createViewerSafeBattleLogService(
+        { findBattleEvents: async () => records },
+        { findBattleHistoryPrivacy: async () => ({ viewer, journals: [journal] }) },
+      ).getLog('user', 'session')
+      expect(log.entries).toHaveLength(1)
+      expect(log.entries[0]).toMatchObject({
+        eventType: 'hidden_combat_action',
+        actionId: null,
+        actionLabel: null,
+        targetCombatantId: null,
+        facts: [],
+      })
+      const html = renderToStaticMarkup(
+        createElement(BattleLogFeed, {
+          entries: log.entries,
+          combatantNames: names,
+          playerName: 'Bryn',
+        }),
+      )
+      const copied = formatBattleLogForClipboard(log.entries, {
+        combatantNames: names,
+        playerName: 'Bryn',
+      })
+      expect(html).toContain('Arin uses a skill.')
+      expect(copied).toContain('Arin uses a skill.')
+      expect(JSON.stringify(log) + html + copied).not.toMatch(
+        /secret.shelter|Guard|Barrier|Covert|Explain|activationRound/,
+      )
+      expect(
+        projectBattleStatusStateForViewer(after, viewer).find((row) => row.combatantId === ACTOR)!
+          .statuses,
+      ).toEqual([])
+      expect(projectBattleEffectStateForViewer(after, viewer)?.barriers).toEqual([])
+    }
+  })
+
+  it.each(['instant', 'next-round'] as const)(
+    'conceals the actual %s Skill that establishes Covert from opponents and spectators',
+    (mode) => {
+      const before = { ...encounter(), effectTimingPolicy: { version: 1, modes: { covert: mode } } }
+      const action: CombatActionDefinition = {
+        id: 'secret.smoke',
+        version: 1,
+        sourceType: 'test',
+        tags: [],
+        cost: { spendsAction: false, mp: 2 },
+        requirements: [],
+        target: {
+          kind: 'self',
+          teamPolicy: 'self',
+          shape: { kind: 'single' },
+          minimumRange: 0,
+          maximumRange: 0,
+          requiresLineOfSight: false,
+          maximumElevationDifference: null,
+          friendlyFire: 'allies-only',
+        },
+        effects: [
+          { type: 'apply-status', recipient: 'actor', statusId: 'covert', stacks: 1 },
+          { type: 'apply-status', recipient: 'actor', statusId: 'guarded', stacks: 1 },
+        ],
+      }
+      const cast = executeCombatAction(before, action, { kind: 'self' }, PV1F_COMBAT_CONTENT)
+      const after = { ...before, ...cast.state, statBridge: before.statBridge }
+      const input = buildBattlePrivacyJournalInput({
+        before,
+        after,
+        commandKind: 'action',
+        events: cast.events,
+      })
+      const journal: BattleHistoryPrivacyJournal = {
+        ...input,
+        battleVersion: 1,
+        actorCombatantId: ACTOR,
+        actorTeamId: 'team:a',
+        eventCount: cast.events.length,
+      }
+      const records = cast.events.map((event, index) => record(1, index, event))
+      for (const viewer of [
+        deriveParticipantBattleViewerEntitlement(before.tactical.battle.combatants, [TARGET]),
+        createSpectatorBattleViewerEntitlement(),
+      ]) {
+        expect(
+          projectBattleStatusStateForViewer(after, viewer).find((row) => row.combatantId === ACTOR)!
+            .statuses,
+        ).toEqual([])
+        expect(
+          projectBattleHistoryForViewer(records, [journal], viewer).map((row) => row.event),
+        ).toEqual([{ event: 'hidden_combat_action', actorCombatantId: ACTOR }])
+      }
+      for (const id of [ACTOR, ALLY]) {
+        const viewer = deriveParticipantBattleViewerEntitlement(before.tactical.battle.combatants, [
+          id,
+        ])
+        expect(projectBattleHistoryForViewer(records, [journal], viewer)).toEqual(
+          records.map((row) => ({
+            ...row,
+            event: omitCombatExecutionMetadata(row.event as object),
+          })),
+        )
+      }
+    },
+  )
+
+  it('conceals pending benefits received by another Covert combatant while retaining public harm', () => {
+    const before = encounter({ allyStatuses: [status('covert', ALLY)] })
+    const events = ['guarded', 'barrier-change', 'healing', 'mp-recovery', 'exposed'].map(
+      (effectTag) => ({
+        event: 'effect_pending',
+        actionId: 'public.ally-cast',
+        sourceCombatantId: ACTOR,
+        targetCombatantId: ALLY,
+        effectTag,
+        activationRound: 2,
+      }),
+    )
+    const input = buildBattlePrivacyJournalInput({
+      before,
+      after: before,
+      commandKind: 'action',
+      events,
+    })
+    expect(input.eventVisibilityOverrides).toEqual(
+      [0, 1, 2, 3].map((eventIndex) => ({
+        eventIndex,
+        visibility: { kind: 'team-only', teamId: 'team:a' },
+      })),
+    )
+  })
+
+  it('retains original Covert cast visibility when a delayed status activates in a later public turn transition', () => {
+    const before = {
+      ...encounter({ actorStatuses: [status('covert', ACTOR, 4)] }),
+      effectTimingPolicy: { version: 1 as const, modes: {} },
+    }
+    const action: CombatActionDefinition = {
+      id: 'secret.hex',
+      version: 1,
+      sourceType: 'test',
+      tags: [],
+      cost: { spendsAction: false, mp: 0 },
+      requirements: [],
+      target: {
+        kind: 'unit',
+        teamPolicy: 'enemy',
+        shape: { kind: 'single' },
+        minimumRange: 0,
+        maximumRange: 6,
+        requiresLineOfSight: false,
+        maximumElevationDifference: null,
+        friendlyFire: 'enemies-only',
+      },
+      effects: [
+        {
+          type: 'apply-status',
+          recipient: 'primary-unit',
+          statusId: 'hexed',
+          stacks: 1,
+          durationTurns: 1,
+        },
+      ],
+    }
+    const cast = executeCombatAction(
+      before,
+      action,
+      { kind: 'unit', combatantId: TARGET },
+      PV1F_COMBAT_CONTENT,
+    )
+    let state = { ...before, ...cast.state, statBridge: before.statBridge }
+    let transition: ReturnType<typeof endCombatTurn> | undefined
+    let activationBefore = state
+    for (let turn = 0; turn < 3; turn += 1) {
+      activationBefore = state
+      transition = endCombatTurn(
+        { ...state, tactical: selectCurrentFinalFacing(state.tactical, 'east').state },
+        PV1F_COMBAT_CONTENT,
+      )
+      state = { ...state, ...transition.state, statBridge: state.statBridge }
+    }
+    if (!transition) throw new Error('Expected next-round activation.')
+    const applied = transition.events.findIndex(
+      (event) => event.event === 'status_applied' && event.actionId === action.id,
+    )
+    expect(applied).toBeGreaterThanOrEqual(0)
+    const journal = buildBattlePrivacyJournalInput({
+      before: activationBefore,
+      after: state,
+      commandKind: 'face',
+      events: transition.events,
+    })
+    expect(journal.commandVisibility).toEqual({ kind: 'public' })
+    expect(
+      journal.eventVisibilityOverrides.find((override) => override.eventIndex === applied)
+        ?.visibility,
+    ).toEqual({ kind: 'team-only', teamId: 'team:a' })
+  })
+
+  it.each(['instant', 'next-round', 'delayed'] as const)(
+    'keeps %s timed Barrier expiry private after the source Covert ends',
+    async (mode) => {
+      const initial = {
+        ...encounter({
+          actorStatuses: [
+            { ...status('covert', ACTOR, 1), remainingOwnerTurnEnds: 1, timingState: 'active' },
+          ],
+        }),
+        effectTimingPolicy: { version: 1, modes: { 'barrier-change': mode } },
+      }
+      const cast = executeCombatAction(
+        initial,
+        {
+          id: 'secret.timed-barrier',
+          version: 1,
+          sourceType: 'test',
+          tags: [],
+          cost: { spendsAction: false, mp: 0 },
+          requirements: [],
+          target: {
+            kind: 'self',
+            teamPolicy: 'self',
+            shape: { kind: 'single' },
+            minimumRange: 0,
+            maximumRange: 0,
+            requiresLineOfSight: false,
+            maximumElevationDifference: null,
+            friendlyFire: 'allies-only',
+          },
+          effects: [{ type: 'barrier-change', recipient: 'actor', amount: 17, durationTurns: 2 }],
+        },
+        { kind: 'self' },
+        PV1F_COMBAT_CONTENT,
+      )
+      let after = { ...initial, ...cast.state, statBridge: initial.statBridge }
+      let before = after
+      let ended: ReturnType<typeof endCombatTurn> | undefined
+      let expiryIndex = -1
+      for (let boundary = 0; boundary < 20 && expiryIndex < 0; boundary++) {
+        before = after
+        ended = endCombatTurn(
+          { ...before, tactical: selectCurrentFinalFacing(before.tactical, 'east').state },
+          PV1F_COMBAT_CONTENT,
+        )
+        after = { ...before, ...ended.state, statBridge: before.statBridge }
+        expiryIndex = ended.events.findIndex(
+          (event) => event.event === 'barrier_changed' && event.reason === 'expired',
+        )
+      }
+      if (!ended) throw new Error('Expected native Barrier boundary.')
+      expect(expiryIndex).toBeGreaterThanOrEqual(0)
+      expect(
+        before.statusState
+          .find((row) => row.combatantId === ACTOR)!
+          .statuses.some((row) => row.statusId === 'covert'),
+      ).toBe(false)
+      expect(ended.events[expiryIndex]).toMatchObject({
+        amount: -17,
+        before: 17,
+        after: 0,
+        sourceCommandVisibility: { kind: 'team-only', teamId: 'team:a' },
+      })
+      const boundaryActor = before.tactical.battle.currentTurn!.combatantId
+      const journal: BattleHistoryPrivacyJournal = {
+        ...buildBattlePrivacyJournalInput({
+          before,
+          after,
+          commandKind: 'face',
+          events: ended.events,
+        }),
+        battleVersion: 2,
+        actorCombatantId: boundaryActor,
+        actorTeamId: before.tactical.battle.combatants.find((unit) => unit.id === boundaryActor)!
+          .teamId,
+        eventCount: ended.events.length,
+      }
+      for (const viewer of [
+        deriveParticipantBattleViewerEntitlement(before.tactical.battle.combatants, [TARGET]),
+        createSpectatorBattleViewerEntitlement(),
+      ]) {
+        const records = ended.events.map((event, index) => record(2, index, event))
+        const log = await createViewerSafeBattleLogService(
+          { findBattleEvents: async () => records },
+          { findBattleHistoryPrivacy: async () => ({ viewer, journals: [journal] }) },
+        ).getLog('user', 'session')
+        expect(log.entries.some((entry) => entry.eventType === 'barrier_changed')).toBe(false)
+        expect(JSON.stringify(log)).not.toMatch(
+          /Barrier|secret.timed-barrier|sourceCommandVisibility/,
+        )
+      }
+    },
+  )
+
+  it('intersects original source privacy with an opposing Covert target restriction', () => {
+    const before = encounter({ targetStatuses: [status('covert', TARGET, 4)] })
+    const event = {
+      event: 'status_applied',
+      actionId: 'secret.buff',
+      sourceCombatantId: ACTOR,
+      targetCombatantId: TARGET,
+      statusId: 'guarded',
+      sourceCommandVisibility: { kind: 'team-only', teamId: 'team:a' },
+    }
+    const input = buildBattlePrivacyJournalInput({
+      before,
+      after: before,
+      commandKind: 'face',
+      events: [event],
+    })
+    const journal: BattleHistoryPrivacyJournal = {
+      ...input,
+      battleVersion: 9,
+      actorCombatantId: TARGET,
+      actorTeamId: 'team:b',
+      eventCount: 1,
+    }
+    expect(input.eventVisibilityOverrides).toEqual([
+      {
+        eventIndex: 0,
+        visibility: { kind: 'team-only', teamId: 'team:a', requiredTeamIds: ['team:b'] },
+      },
+    ])
+    for (const viewer of [
+      deriveParticipantBattleViewerEntitlement(before.tactical.battle.combatants, [ACTOR]),
+      deriveParticipantBattleViewerEntitlement(before.tactical.battle.combatants, [TARGET]),
+      createSpectatorBattleViewerEntitlement(),
+    ]) {
+      expect(projectBattleHistoryForViewer([record(9, 0, event)], [journal], viewer)).toEqual([])
+    }
+  })
+
   it('samples command-start Covert before command mutations and hides only ordinary action identity', () => {
     const before = encounter({ actorStatuses: [status('covert', ACTOR, 3)] })
     const after = encounter()
@@ -251,6 +1249,33 @@ describe('CSR-3 commit-time privacy metadata', () => {
 })
 
 describe('CSR-3 viewer-relative historical projection', () => {
+  it('retains already-public historical Covert grants rather than inferring an entire old command boundary', () => {
+    const before = encounter()
+    const records = [
+      record(1, 0, { event: 'combat_action_used', actorId: ACTOR, actionId: 'old.smoke' }),
+      record(1, 1, {
+        event: 'status_applied',
+        sourceCombatantId: ACTOR,
+        targetCombatantId: ACTOR,
+        actionId: 'old.smoke',
+        statusId: 'covert',
+      }),
+    ]
+    const journal: BattleHistoryPrivacyJournal = {
+      schemaVersion: 1,
+      battleVersion: 1,
+      actorCombatantId: ACTOR,
+      actorTeamId: 'team:a',
+      eventCount: 2,
+      commandVisibility: { kind: 'public' },
+      eventVisibilityOverrides: [],
+    }
+    const viewer = deriveParticipantBattleViewerEntitlement(before.tactical.battle.combatants, [
+      TARGET,
+    ])
+    expect(projectBattleHistoryForViewer(records, [journal], viewer)).toEqual(records)
+  })
+
   const journal: BattleHistoryPrivacyJournal = {
     battleVersion: 9,
     schemaVersion: 1,
@@ -330,49 +1355,46 @@ describe('CSR-3 viewer-relative historical projection', () => {
     expect(projectBattleHistoryForViewer(records, [journal], spectator)).toHaveLength(3)
   })
 
-  it('keeps a hidden Covert Copy grant inside the collapsed command boundary', () => {
-    const hiddenCopyJournal: BattleHistoryPrivacyJournal = {
-      battleVersion: 10,
-      schemaVersion: 1,
-      actorCombatantId: ACTOR,
-      actorTeamId: 'team:a',
-      commandVisibility: { kind: 'team-only', teamId: 'team:a' },
-      eventVisibilityOverrides: [],
-      eventCount: 2,
-    }
-    const copyRecords = [
-      record(10, 0, {
-        event: 'combat_action_used',
-        actionId: 'secret.copy',
-        actorId: ACTOR,
-      }),
-      record(10, 1, {
-        event: 'temporary_skill_copied',
-        combatantId: ACTOR,
-        sourceCombatantId: TARGET,
-        skillId: 'vanguard.forceful-strike',
-        contentVersion: 2,
-      }),
-    ]
-    const opponent = deriveParticipantBattleViewerEntitlement(combatants, [TARGET])
-    const projected = projectBattleHistoryForViewer(copyRecords, [hiddenCopyJournal], opponent)
-
-    expect(projected).toHaveLength(1)
-    expect(projected[0]?.event).toEqual({
-      event: 'hidden_combat_action',
-      actorCombatantId: ACTOR,
-    })
-    expect(JSON.stringify(projected)).not.toContain('secret.copy')
-    expect(JSON.stringify(projected)).not.toContain('vanguard.forceful-strike')
-
-    const ally = deriveParticipantBattleViewerEntitlement(combatants, [ALLY])
-    expect(projectBattleHistoryForViewer(copyRecords, [hiddenCopyJournal], ally)).toEqual(
-      copyRecords,
-    )
-  })
-
   it('keeps legacy versions public when no journal row exists', () => {
     const opponent = deriveParticipantBattleViewerEntitlement(combatants, [TARGET])
     expect(projectBattleHistoryForViewer(records, [], opponent)).toEqual(records)
   })
+})
+
+it('triggering actor identity is exposed only with a visible actor command in the same commit', () => {
+  const viewer = deriveParticipantBattleViewerEntitlement(encounter().tactical.battle.combatants, [
+    TARGET,
+  ])
+  const trigger = record(9, 0, {
+    event: 'combat_action_used',
+    actorId: ACTOR,
+    actionId: 'secret.trigger',
+  })
+  const reaction = record(9, 1, {
+    event: 'combat_action_used',
+    actorId: TARGET,
+    actionId: 'public.reaction',
+    triggeringActorId: ACTOR,
+  })
+  const hidden: BattleHistoryPrivacyJournal = {
+    schemaVersion: 1,
+    battleVersion: 9,
+    actorCombatantId: ACTOR,
+    actorTeamId: 'team:a',
+    eventCount: 2,
+    commandVisibility: { kind: 'team-only', teamId: 'team:a' },
+    eventVisibilityOverrides: [{ eventIndex: 1, visibility: { kind: 'public' } }],
+  }
+  const projected = projectBattleHistoryForViewer([trigger, reaction], [hidden], viewer)
+  expect(
+    projected.find((entry) => (entry.event as { event?: string }).event === 'combat_action_used')
+      ?.event,
+  ).not.toHaveProperty('triggeringActorId')
+  expect(projectBattleHistoryForViewer([trigger, reaction], [], viewer)[1]?.event).toHaveProperty(
+    'triggeringActorId',
+    ACTOR,
+  )
+  expect(
+    projectBattleHistoryForViewer([record(8, 0, trigger.event), reaction], [], viewer)[1]?.event,
+  ).not.toHaveProperty('triggeringActorId')
 })

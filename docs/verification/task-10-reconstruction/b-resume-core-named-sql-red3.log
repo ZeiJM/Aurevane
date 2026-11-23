@@ -1,0 +1,43 @@
+
+ RUN  v4.1.10 /workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/packages/db
+
+ ❯ src/combat-content-discipline-producers.test.ts (50 tests | 1 failed | 49 skipped) 5446ms
+   × named activation uses actual v3 Core conversion with preserved personal choices 126ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/combat-content-discipline-producers.test.ts > named activation uses actual v3 Core conversion with preserved personal choices
+AssertionError: expected { might: 7, agility: 4, …(4) } to deeply equal { might: 11, finesse: 6, …(4) }
+
+- Expected
++ Received
+
+  {
+-   "agility": 3,
+-   "finesse": 6,
+-   "intellect": 4,
+-   "might": 11,
+-   "resolve": 3,
+-   "vitality": 4,
++   "agility": 4,
++   "finesse": 4,
++   "intellect": 3,
++   "might": 7,
++   "resolve": 6,
++   "vitality": 7,
+  }
+
+ ❯ src/combat-content-discipline-producers.test.ts:1855:33
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 49 skipped (50)
+   Start at  13:17:03
+   Duration  8.86s (transform 2.48s, setup 0ms, import 3.05s, tests 5.45s, environment 0ms)
+
+undefined
+/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/packages/db:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/combat-content-discipline-producers.test.ts -t 'named activation uses actual'

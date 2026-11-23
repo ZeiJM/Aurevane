@@ -1,13 +1,17 @@
 'use client'
 
-import { CHARACTER_ATTRIBUTE_LABELS } from '@aurevane/game-core/character/attribute-allocation'
+import {
+  CHARACTER_ATTRIBUTE_LABELS,
+  spendableAttributePoints,
+} from '@aurevane/game-core/character/attribute-allocation'
 import {
   CHARACTER_ATTRIBUTE_IDS,
   type CharacterAttributeId,
   type CharacterAttributes,
 } from '@aurevane/game-core/character/creation'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
+import { createPortal } from 'react-dom'
 
 import { CharacterPortraitImage } from './character-portrait-image'
 import type { ImageAssetId } from '@/media/registry'
@@ -33,6 +37,7 @@ interface AttributeAllocationState {
 
 interface CharacterAttributeAllocationPanelProps {
   initialAllocation: AttributeAllocationState
+  resetLabel?: string
   portrait?: { name: string; imageUrl: string | null; assetId: ImageAssetId }
   focusAttributes: readonly CharacterAttributeId[]
   attributeCaps: Readonly<Partial<Record<CharacterAttributeId, number>>>
@@ -41,17 +46,26 @@ interface CharacterAttributeAllocationPanelProps {
 type SaveState = 'idle' | 'saving'
 type AttributePanelMode = 'spend' | 'reset' | 'convert'
 
+const subscribeNothing = () => () => undefined
+
 const PROFILE_PANEL_QUERY = 'profilePanel'
 const ATTRIBUTE_PANEL = 'attributes'
 const ATTRIBUTE_MODE_QUERY = 'attributeMode'
 
 export function CharacterAttributeAllocationPanel({
   initialAllocation,
+  resetLabel = 'Reset Attributes',
   portrait,
   focusAttributes,
   attributeCaps,
 }: CharacterAttributeAllocationPanelProps) {
   const router = useRouter()
+  // The sheet renders on document.body so no shell stacking context can sit above it on phones.
+  const canPortal = useSyncExternalStore(
+    subscribeNothing,
+    () => true,
+    () => false,
+  )
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const [allocation, setAllocation] = useState(initialAllocation)
@@ -63,7 +77,7 @@ export function CharacterAttributeAllocationPanel({
   const requestedReset = requestedOpen && searchParams.get(ATTRIBUTE_MODE_QUERY) === 'reset'
   const forcedMode: AttributePanelMode | null = allocation.conversionRequired
     ? 'convert'
-    : allocation.unspentPoints > 0
+    : spendableAttributePoints(allocation.attributes, allocation.pointPool, attributeCaps) > 0
       ? 'spend'
       : null
   const mode: AttributePanelMode | null = forcedMode ?? (requestedReset ? 'reset' : null)
@@ -74,14 +88,15 @@ export function CharacterAttributeAllocationPanel({
     [draft],
   )
   const availableDraft = Math.max(0, allocation.pointPool - spentDraft)
+  const spendableDraft = spendableAttributePoints(draft, allocation.pointPool, attributeCaps)
   const hasChanges = CHARACTER_ATTRIBUTE_IDS.some((id) => draft[id] !== allocation.attributes[id])
   const canSave =
     mode === 'convert'
-      ? availableDraft === 0
+      ? spendableDraft === 0
       : mode === 'reset'
-        ? hasChanges && availableDraft === 0 && allocation.resetRemaining > 0
+        ? hasChanges && spendableDraft === 0 && allocation.resetRemaining > 0
         : mode === 'spend'
-          ? hasChanges && spentDraft > allocation.spentPoints && availableDraft === 0
+          ? hasChanges && spentDraft > allocation.spentPoints && spendableDraft === 0
           : false
 
   const setResetOpen = useCallback(
@@ -172,6 +187,9 @@ export function CharacterAttributeAllocationPanel({
       setMessage(
         error instanceof Error ? error.message : 'The Core Stat change could not be saved.',
       )
+      // A concurrent level-up or Primary change can invalidate the displayed pool.
+      // The Profile revision key replaces local state only when authority changed.
+      router.refresh()
     } finally {
       setSaveState('idle')
     }
@@ -185,218 +203,229 @@ export function CharacterAttributeAllocationPanel({
         onClick={beginReset}
         disabled={allocation.resetRemaining <= 0 || forced || saveState === 'saving'}
       >
-        Reset Attributes
+        {resetLabel}
       </button>
 
-      {open ? (
-        <div
-          className={styles.backdrop}
-          role="presentation"
-          onPointerDown={() => {
-            if (!forced) closeReset()
-          }}
-          data-testid="attribute-allocation-backdrop"
-        >
-          <section
-            className={styles.dialog}
-            data-av-surface="moonstone"
-            data-character-concept="editor"
-            data-has-portrait={Boolean(portrait)}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="attribute-allocation-dialog-title"
-            onPointerDown={(event) => event.stopPropagation()}
-          >
-            {portrait ? (
-              <aside className={styles.portrait} data-av-surface="ink">
-                <div
-                  className={styles.portraitFrame}
-                  data-testid="attribute-redistribution-portrait"
-                >
-                  <CharacterPortraitImage
-                    imageUrl={portrait.imageUrl}
-                    fallbackAssetId={portrait.assetId}
-                    className={styles.portraitImage}
-                    sizes="(min-width: 761px) 28rem, 100vw"
-                    alt={`${portrait.name} portrait`}
-                  />
-                </div>
-
-                <div
-                  className={styles.portraitLower}
-                  data-testid="attribute-redistribution-lower-art"
-                >
-                  <Image
-                    src="/media/art/concept-ui/world-v01.webp"
-                    alt=""
-                    fill
-                    sizes="(min-width: 761px) 34vw, 100vw"
-                    className={styles.atmosphereArt}
-                    aria-hidden="true"
-                  />
-                  <span className={styles.atmosphereTint} aria-hidden="true" />
-
-                  <blockquote className={styles.portraitQuote}>
-                    <span>A sharper mind.</span>
-                    <span>A swifter stride.</span>
-                    <span>A greater tomorrow.</span>
-                  </blockquote>
-
-                  <div
-                    className={styles.portraitAtmosphere}
-                    data-testid="attribute-redistribution-atmosphere"
-                    aria-hidden="true"
-                  >
-                    <span className={styles.atmosphereOrbital} />
-                    <span className={styles.atmosphereSpark}>✦</span>
-                    <div className={styles.portraitIdentity}>
-                      <strong>{portrait.name}</strong>
-                      <i />
-                      <small>
-                        Strength finds
-                        <br />
-                        its own path.
-                      </small>
-                    </div>
-                  </div>
-                </div>
-              </aside>
-            ) : null}
-            <header className={styles.header}>
-              <div>
-                <span>
-                  {mode === 'reset'
-                    ? 'Full redistribution'
-                    : mode === 'convert'
-                      ? 'Core profile conversion'
-                      : 'Level gained'}
-                </span>
-                <h2 id="attribute-allocation-dialog-title">
-                  {mode === 'reset' ? 'Redistribute Attributes' : 'Spend Core Stat Points'}
-                </h2>
-              </div>
-              {!forced ? (
-                <button
-                  type="button"
-                  className={styles.close}
-                  onClick={closeReset}
-                  disabled={saveState === 'saving'}
-                >
-                  Close
-                </button>
-              ) : null}
-            </header>
-
-            {mode === 'reset' ? (
-              <div className={styles.modalMeta}>
-                <div>
-                  <span>Point pool</span>
-                  <strong>{allocation.pointPool}</strong>
-                </div>
-                <div>
-                  <span>Unspent</span>
-                  <strong>{availableDraft}</strong>
-                </div>
-                <div>
-                  <span>Resets available</span>
-                  <strong>{allocation.resetRemaining} / 5</strong>
-                </div>
-                <div>
-                  <span>Reset refresh</span>
-                  <strong>{resetRenewalLabel(allocation.resetRenewsAt)}</strong>
-                </div>
-              </div>
-            ) : (
-              <div className={styles.forcedCounter} aria-live="polite">
-                <strong>{availableDraft}</strong>
-                <span>point{availableDraft === 1 ? '' : 's'} remaining</span>
-              </div>
-            )}
-
-            <div className={styles.grid}>
-              {CHARACTER_ATTRIBUTE_IDS.map((attributeId) => {
-                const isFocus = focusAttributes.includes(attributeId)
-                const cap = attributeCaps[attributeId]
-                const minimum =
-                  mode === 'spend'
-                    ? allocation.attributes[attributeId]
-                    : allocation.baseAttributes[attributeId]
-                const canDecrease = draft[attributeId] > minimum
-                const canIncrease =
-                  spentDraft < allocation.pointPool &&
-                  (cap === undefined || draft[attributeId] < cap)
-                return (
-                  <div
-                    className={styles.attribute}
-                    key={attributeId}
-                    data-focus={isFocus ? 'true' : 'false'}
-                  >
-                    <div>
-                      <span>
-                        <Image
-                          src={`/media/profile/${attributeId}.svg`}
-                          width={28}
-                          height={28}
-                          alt=""
-                        />
-                        {CHARACTER_ATTRIBUTE_LABELS[attributeId]}
-                      </span>
-                      <small>
-                        Base {allocation.baseAttributes[attributeId]}
-                        {cap !== undefined ? ` · Cap ${cap}` : ''}
-                      </small>
-                    </div>
-                    <div className={styles.controls}>
-                      {mode !== 'spend' ? (
-                        <button
-                          type="button"
-                          onClick={() => changeAttribute(attributeId, -1)}
-                          disabled={!canDecrease || saveState === 'saving'}
-                          aria-label={`Decrease ${CHARACTER_ATTRIBUTE_LABELS[attributeId]}`}
-                        >
-                          −
-                        </button>
-                      ) : null}
-                      <strong>{draft[attributeId]}</strong>
-                      <button
-                        type="button"
-                        onClick={() => changeAttribute(attributeId, 1)}
-                        disabled={!canIncrease || saveState === 'saving'}
-                        aria-label={`Increase ${CHARACTER_ATTRIBUTE_LABELS[attributeId]}`}
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-
-            {message ? (
-              <p className={styles.message} role="alert">
-                {message}
-              </p>
-            ) : null}
-
-            <div className={styles.actions}>
-              <button
-                type="button"
-                className={mode === 'reset' ? styles.confirmReset : styles.spendButton}
-                onClick={save}
-                disabled={!canSave || saveState === 'saving'}
+      {open && canPortal
+        ? createPortal(
+            <div
+              className={styles.backdrop}
+              role="presentation"
+              onPointerDown={() => {
+                if (!forced) closeReset()
+              }}
+              data-testid="attribute-allocation-backdrop"
+            >
+              <section
+                className={styles.dialog}
+                data-av-surface="moonstone"
+                data-character-concept="editor"
+                data-has-portrait={Boolean(portrait)}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="attribute-allocation-dialog-title"
+                onPointerDown={(event) => event.stopPropagation()}
               >
-                {saveState === 'saving'
-                  ? 'Saving…'
-                  : mode === 'reset'
-                    ? 'Confirm Redistribution'
-                    : mode === 'convert'
-                      ? 'Confirm Core Stats'
-                      : 'Commit Attribute Points'}
-              </button>
-            </div>
-          </section>
-        </div>
-      ) : null}
+                {portrait ? (
+                  <aside className={styles.portrait} data-av-surface="ink">
+                    <div
+                      className={styles.portraitFrame}
+                      data-testid="attribute-redistribution-portrait"
+                    >
+                      <CharacterPortraitImage
+                        imageUrl={portrait.imageUrl}
+                        fallbackAssetId={portrait.assetId}
+                        className={styles.portraitImage}
+                        sizes="(max-height: 620px) 88px, (max-height: 700px) 112px, 165px"
+                        alt={`${portrait.name} portrait`}
+                      />
+                    </div>
+
+                    <div
+                      className={styles.portraitLower}
+                      data-testid="attribute-redistribution-lower-art"
+                    >
+                      <Image
+                        src="/media/art/concept-ui/world-v01.webp"
+                        alt=""
+                        fill
+                        sizes="(min-width: 761px) 34vw, 100vw"
+                        className={styles.atmosphereArt}
+                        aria-hidden="true"
+                      />
+                      <span className={styles.atmosphereTint} aria-hidden="true" />
+
+                      <blockquote className={styles.portraitQuote}>
+                        <span>A sharper mind.</span>
+                        <span>A swifter stride.</span>
+                        <span>A greater tomorrow.</span>
+                      </blockquote>
+
+                      <div
+                        className={styles.portraitAtmosphere}
+                        data-testid="attribute-redistribution-atmosphere"
+                      >
+                        <span className={styles.atmosphereOrbital} aria-hidden="true" />
+                        <span className={styles.atmosphereSpark} aria-hidden="true">
+                          ✦
+                        </span>
+                        <div className={styles.portraitIdentity}>
+                          <strong>{portrait.name}</strong>
+                          <i aria-hidden="true" />
+                          <small>
+                            Strength finds
+                            <br />
+                            its own path.
+                          </small>
+                        </div>
+                      </div>
+                    </div>
+                  </aside>
+                ) : null}
+                <header className={styles.header}>
+                  <div>
+                    <span>
+                      {mode === 'reset'
+                        ? 'Full redistribution'
+                        : mode === 'convert'
+                          ? 'Core profile conversion'
+                          : 'Level gained'}
+                    </span>
+                    <h2 id="attribute-allocation-dialog-title">
+                      {mode === 'reset' ? 'Redistribute Attributes' : 'Spend Core Stat Points'}
+                    </h2>
+                  </div>
+                  {!forced ? (
+                    <button
+                      type="button"
+                      className={styles.close}
+                      onClick={closeReset}
+                      disabled={saveState === 'saving'}
+                    >
+                      Close
+                    </button>
+                  ) : null}
+                </header>
+
+                {mode === 'reset' ? (
+                  <div className={styles.modalMeta}>
+                    <div>
+                      <span>Point pool</span>
+                      <strong>{allocation.pointPool}</strong>
+                    </div>
+                    <div>
+                      <span>Unspent</span>
+                      <strong>{availableDraft}</strong>
+                    </div>
+                    <div>
+                      <span>Resets available</span>
+                      <strong>{allocation.resetRemaining} / 5</strong>
+                    </div>
+                    <div>
+                      <span>Reset refresh</span>
+                      <strong>{resetRenewalLabel(allocation.resetRenewsAt)}</strong>
+                    </div>
+                  </div>
+                ) : (
+                  <div className={styles.forcedCounter} aria-live="polite">
+                    <strong>{availableDraft}</strong>
+                    <span>point{availableDraft === 1 ? '' : 's'} remaining</span>
+                  </div>
+                )}
+
+                {availableDraft > 0 && spendableDraft === 0 ? (
+                  <p className={styles.message} role="status">
+                    All Core Stats are at their current caps. The remaining {availableDraft} points
+                    stay available for a future legal allocation.
+                  </p>
+                ) : null}
+
+                <div className={styles.grid}>
+                  {CHARACTER_ATTRIBUTE_IDS.map((attributeId) => {
+                    const isFocus = focusAttributes.includes(attributeId)
+                    const cap = attributeCaps[attributeId]
+                    const minimum =
+                      mode === 'spend'
+                        ? allocation.attributes[attributeId]
+                        : allocation.baseAttributes[attributeId]
+                    const canDecrease = draft[attributeId] > minimum
+                    const canIncrease =
+                      spentDraft < allocation.pointPool &&
+                      (cap === undefined || draft[attributeId] < cap)
+                    return (
+                      <div
+                        className={styles.attribute}
+                        key={attributeId}
+                        data-focus={isFocus ? 'true' : 'false'}
+                      >
+                        <div>
+                          <span>
+                            <Image
+                              src={`/media/profile/${attributeId}.svg`}
+                              width={28}
+                              height={28}
+                              alt=""
+                            />
+                            {CHARACTER_ATTRIBUTE_LABELS[attributeId]}
+                          </span>
+                          <small>
+                            Base {allocation.baseAttributes[attributeId]}
+                            {cap !== undefined ? ` · Cap ${cap}` : ''}
+                          </small>
+                        </div>
+                        <div className={styles.controls}>
+                          {mode !== 'spend' ? (
+                            <button
+                              type="button"
+                              onClick={() => changeAttribute(attributeId, -1)}
+                              disabled={!canDecrease || saveState === 'saving'}
+                              aria-label={`Decrease ${CHARACTER_ATTRIBUTE_LABELS[attributeId]}`}
+                            >
+                              −
+                            </button>
+                          ) : null}
+                          <strong>{draft[attributeId]}</strong>
+                          <button
+                            type="button"
+                            onClick={() => changeAttribute(attributeId, 1)}
+                            disabled={!canIncrease || saveState === 'saving'}
+                            aria-label={`Increase ${CHARACTER_ATTRIBUTE_LABELS[attributeId]}`}
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {message ? (
+                  <p className={styles.message} role="alert">
+                    {message}
+                  </p>
+                ) : null}
+
+                <div className={styles.actions}>
+                  <button
+                    type="button"
+                    className={mode === 'reset' ? styles.confirmReset : styles.spendButton}
+                    onClick={save}
+                    disabled={!canSave || saveState === 'saving'}
+                  >
+                    {saveState === 'saving'
+                      ? 'Saving…'
+                      : mode === 'reset'
+                        ? 'Confirm Redistribution'
+                        : mode === 'convert'
+                          ? 'Confirm Core Stats'
+                          : 'Commit Attribute Points'}
+                  </button>
+                </div>
+              </section>
+            </div>,
+            document.body,
+          )
+        : null}
     </section>
   )
 }

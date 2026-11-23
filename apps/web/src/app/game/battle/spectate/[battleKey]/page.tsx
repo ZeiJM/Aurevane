@@ -1,3 +1,4 @@
+import { AccountBannedError } from '@aurevane/game-core/errors'
 import { isAurevaneError } from '@aurevane/game-core/errors'
 import { parsePvpBattleKey } from '@aurevane/validation/combat/pvp'
 import { headers } from 'next/headers'
@@ -64,6 +65,7 @@ export default async function PvpSpectatorPage({
   try {
     actor = await getAuthenticatedActor()
   } catch (error) {
+    if (error instanceof AccountBannedError) redirect('/account/banned')
     if (isAurevaneError(error) && error.code === 'UNAUTHENTICATED') redirect('/')
     throw error
   }

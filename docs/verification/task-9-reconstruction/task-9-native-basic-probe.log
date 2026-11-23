@@ -1,0 +1,23 @@
+{"command": ["node", "scripts/skill-parameter-palette-browser-regression.mjs"], "cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020/apps/web", "envOverrides": {"AV_BASIC_SERVICE_ACCEPTANCE": "1", "AV_BASIC_SERVICE_PROBE_ONLY": "1"}, "start": "2026-10-20T19:14:59.729187+00:00"}
+3:15:01 PM [vite] (ssr) Error when evaluating SSR module /workspace/scratch/081f137b6a6d/aurevane-players-20261020/apps/web/e2e/fixtures/basic-editor-service.ts: module is not defined
+      at eval (/workspace/scratch/081f137b6a6d/aurevane-players-20261020/node_modules/.pnpm/react@19.2.8/node_modules/react/index.js:9:3)
+      at ESModulesEvaluator.runInlinedModule (file:///workspace/scratch/081f137b6a6d/aurevane-players-20261020/node_modules/.pnpm/vite@8.2.1_@types+node@24.1.0/node_modules/vite/dist/node/module-runner.js:1015:163)
+      at SSRCompatModuleRunner.directRequest (file:///workspace/scratch/081f137b6a6d/aurevane-players-20261020/node_modules/.pnpm/vite@8.2.1_@types+node@24.1.0/node_modules/vite/dist/node/module-runner.js:1268:80)
+      at async SSRCompatModuleRunner.directRequest (file:///workspace/scratch/081f137b6a6d/aurevane-players-20261020/node_modules/.pnpm/vite@8.2.1_@types+node@24.1.0/node_modules/vite/dist/node/chunks/node.js:11851:20)
+      at async SSRCompatModuleRunner.cachedRequest (file:///workspace/scratch/081f137b6a6d/aurevane-players-20261020/node_modules/.pnpm/vite@8.2.1_@types+node@24.1.0/node_modules/vite/dist/node/module-runner.js:1175:73)
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+ReferenceError: module is not defined
+    at eval (/workspace/scratch/081f137b6a6d/aurevane-players-20261020/node_modules/.pnpm/react@19.2.8/node_modules/react/index.js:9:3)
+    at ESModulesEvaluator.runInlinedModule (file:///workspace/scratch/081f137b6a6d/aurevane-players-20261020/node_modules/.pnpm/vite@8.2.1_@types+node@24.1.0/node_modules/vite/dist/node/module-runner.js:1015:163)
+    at SSRCompatModuleRunner.directRequest (file:///workspace/scratch/081f137b6a6d/aurevane-players-20261020/node_modules/.pnpm/vite@8.2.1_@types+node@24.1.0/node_modules/vite/dist/node/module-runner.js:1268:80)
+    at async SSRCompatModuleRunner.directRequest (file:///workspace/scratch/081f137b6a6d/aurevane-players-20261020/node_modules/.pnpm/vite@8.2.1_@types+node@24.1.0/node_modules/vite/dist/node/chunks/node.js:11851:20)
+    at async SSRCompatModuleRunner.cachedRequest (file:///workspace/scratch/081f137b6a6d/aurevane-players-20261020/node_modules/.pnpm/vite@8.2.1_@types+node@24.1.0/node_modules/vite/dist/node/module-runner.js:1175:73) {
+  code: 'ERR_AMBIGUOUS_MODULE_SYNTAX'
+}
+
+Node.js v24.19.0
+
+{"exit": 1, "end": "2026-10-20T19:15:01.204899+00:00"}

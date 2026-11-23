@@ -1,0 +1,2 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["python", "-c", "import subprocess; subprocess.run(['corepack','pnpm','--filter','@aurevane/db','exec','eslint','src/master-players-recovery.test.ts','--max-warnings=0'],check=True); subprocess.run(['corepack','pnpm','--filter','@aurevane/db','exec','tsc','--noEmit'],check=True)"], "start": "2026-10-20T19:57:21.546069+00:00"}
+{"end": "2026-10-20T19:57:28.407296+00:00", "exit": 0}

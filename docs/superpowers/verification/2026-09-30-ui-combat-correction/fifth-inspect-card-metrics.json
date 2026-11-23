@@ -1,0 +1,30 @@
+[
+  {
+    "mode": "pve",
+    "mobile": false,
+    "selectedCard": true,
+    "fullDetails": true,
+    "nonmutating": true
+  },
+  {
+    "mode": "pve",
+    "mobile": true,
+    "selectedCard": true,
+    "fullDetails": true,
+    "nonmutating": true
+  },
+  {
+    "mode": "pvp",
+    "mobile": false,
+    "selectedCard": true,
+    "fullDetails": true,
+    "nonmutating": true
+  },
+  {
+    "mode": "pvp",
+    "mobile": true,
+    "selectedCard": true,
+    "fullDetails": true,
+    "nonmutating": true
+  }
+]

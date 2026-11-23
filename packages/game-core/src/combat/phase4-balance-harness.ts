@@ -1,3 +1,6 @@
+import { percentageRecoveryAmount } from './combat-percentage-recovery'
+import { DEFAULT_BLINDSIDE_MODIFIERS } from './combat-blindside'
+import { estimatedPercentageDotTotal } from './combat-percentage-dot-roster'
 import { ADVANCED_DISCIPLINES } from '../character/advanced-disciplines'
 import {
   foundationDisciplineAttributePolicy,
@@ -9,7 +12,11 @@ import {
   type CharacterAttributeId,
   type CharacterAttributes,
 } from '../character/creation'
-import { calculateDerivedStats, type DerivedStatSnapshot } from '../character/derived-stats'
+import {
+  calculateDerivedStats,
+  DERIVED_STAT_RULESET_V3,
+  type DerivedStatSnapshot,
+} from '../character/derived-stats'
 import { FOUNDATION_DISCIPLINES } from '../character/foundation-disciplines'
 import type { CombatEffectDefinition, CombatUseRequirement } from './actions'
 import { calculateScaledRawDamage, currentSkillDamageScaling } from './damage-scaling'
@@ -21,6 +28,7 @@ import {
   resolveMatureSkillForContext,
   type MatureSkillCombatContext,
   type MatureSkillDefinition,
+  type MatureSkillEffectDefinition,
 } from './mature-skills'
 import {
   calculatePv1fBasicAttackDamage,
@@ -145,7 +153,8 @@ function buildScenario(
   allocation: Phase4BalanceAllocation,
 ): Phase4BalanceScenario {
   const attributes = representativeAttributes(policy, level, allocation, damageSource)
-  const stats = calculateDerivedStats({ attributes, level })
+  // Retain the Phase4 roster benchmark; policy1 economy has separate current fixtures.
+  const stats = calculateDerivedStats({ attributes, level }, DERIVED_STAT_RULESET_V3)
   return {
     level,
     allocation,
@@ -298,18 +307,34 @@ function skillMetric(
     const authoredScaling = 'scaling' in effect ? effect.scaling : undefined
     const raw = calculateScaledRawDamage(effect.amount, authoredScaling ?? scaling, power)
     const mitigated = mitigateDamageByDefense(raw, PHASE4_BALANCE_TARGET_DEFENSE)
-    const facingMultiplier = effect.facingModifiersBasisPoints
-      ? Math.max(
-          effect.facingModifiersBasisPoints.front,
-          effect.facingModifiersBasisPoints.side,
-          effect.facingModifiersBasisPoints.rear,
-        )
-      : 10_000
+    const blindside = definition.effects.find(
+      (effect) =>
+        effect.type === 'apply-status' &&
+        effect.statusId === 'blindside' &&
+        effect.recipient === 'actor',
+    )
+    const facingMultiplier =
+      blindside?.type === 'apply-status'
+        ? Math.max(
+            10000,
+            ...Object.values(
+              blindside.blindsideModifiersBasisPoints ?? DEFAULT_BLINDSIDE_MODIFIERS,
+            ),
+          )
+        : effect.facingModifiersBasisPoints
+          ? Math.max(
+              effect.facingModifiersBasisPoints.front,
+              effect.facingModifiersBasisPoints.side,
+              effect.facingModifiersBasisPoints.rear,
+            )
+          : 10_000
     return total + Math.floor((mitigated * facingMultiplier) / 10_000)
   }, 0)
   const attritionDamage = definition.effects.reduce((total, effect) => {
+    const percentage = estimatedPercentageDotTotal(effect, directDamage)
+    if (percentage !== null) return total + percentage
     if (effect.type === 'burn') return total + 8
-    if (effect.type === 'bleed') return total + effect.damagePerTick * effect.ticks
+    if (effect.type === 'bleed') return total + (effect.damagePerTick ?? 0) * effect.ticks
     if (effect.type === 'poison') return total + 8
     return total
   }, 0)
@@ -319,14 +344,22 @@ function skillMetric(
   const expectedAttritionDamage = expectedDirectDamage + attritionDamage * (hitChance / 10_000)
   const healing = definition.effects.reduce(
     (total, effect) =>
-      effect.type === 'healing' ? total + effect.amount * (effect.ticks ?? 1) : total,
+      effect.type === 'percentage-recovery' && effect.resource === 'hp'
+        ? total +
+          percentageRecoveryAmount(stats.stats.maxHp.value, effect.percent) * (effect.ticks ?? 1)
+        : effect.type === 'healing'
+          ? total + effect.amount * (effect.ticks ?? 1)
+          : total,
     0,
   )
   const mpRecovery = definition.effects.reduce(
     (total, effect) =>
-      effect.type === 'resource-change' && effect.delta > 0
-        ? total + effect.delta * (effect.ticks ?? 1)
-        : total,
+      effect.type === 'percentage-recovery' && effect.resource === 'mp'
+        ? total +
+          percentageRecoveryAmount(stats.stats.maxMp.value, effect.percent) * (effect.ticks ?? 1)
+        : effect.type === 'resource-change' && effect.delta > 0
+          ? total + effect.delta * (effect.ticks ?? 1)
+          : total,
     0,
   )
 
@@ -434,7 +467,8 @@ function setupRequirementIdentity(requirement: SetupRequirement): SetupRequireme
   return { scope: 'target', kind: 'tag', value: requirement.tag }
 }
 
-function effectProvidesGameplayTag(effect: CombatEffectDefinition, tag: string): boolean {
+function effectProvidesGameplayTag(effect: MatureSkillEffectDefinition, tag: string): boolean {
+  if (effect.type === 'summon') return false
   if (effect.type === 'burn') return tag === 'Scorched'
   if (effect.type === 'bleed') return tag === 'Bleeding'
   if (effect.type === 'poison') return tag === 'Poisoned'
@@ -483,7 +517,10 @@ function buildEssenceReport(
       controlApSwing: 0,
     }
   }
-  const stats = calculateDerivedStats({ attributes: scenario.attributes, level: scenario.level })
+  const stats = calculateDerivedStats(
+    { attributes: scenario.attributes, level: scenario.level },
+    DERIVED_STAT_RULESET_V3,
+  )
   const metric = skillMetric(essence.skill, stats, 'pve')
   return {
     essenceId: essence.essenceId,
@@ -517,7 +554,7 @@ function buildResonanceReport(disciplineId: string): Phase4BalanceResonanceRepor
   }
 }
 
-function protectionForEffects(effects: readonly CombatEffectDefinition[]): number {
+function protectionForEffects(effects: readonly MatureSkillEffectDefinition[]): number {
   let best = 0
   for (const effect of effects) {
     if (effect.type !== 'apply-status') continue
@@ -539,7 +576,7 @@ function protectionForEffects(effects: readonly CombatEffectDefinition[]): numbe
   return best
 }
 
-function controlApSwing(effects: readonly CombatEffectDefinition[]): number {
+function controlApSwing(effects: readonly MatureSkillEffectDefinition[]): number {
   let best = 0
   for (const effect of effects) {
     if (effect.type === 'displace') {
@@ -562,6 +599,7 @@ function controlApSwing(effects: readonly CombatEffectDefinition[]): number {
 
 function assumedAreaTargets(definition: MatureSkillDefinition): number {
   if (definition.target.shape.kind === 'single') return 1
+  if (definition.target.shape.kind === 'all') return 4
   if (definition.target.shape.kind === 'circle') {
     return Math.min(4, 1 + definition.target.shape.radius)
   }
@@ -569,7 +607,7 @@ function assumedAreaTargets(definition: MatureSkillDefinition): number {
 }
 
 function isDirectDamage(
-  effect: CombatEffectDefinition,
+  effect: MatureSkillEffectDefinition,
 ): effect is Extract<CombatEffectDefinition, { type: 'damage' }> {
   return (
     effect.type === 'damage' &&

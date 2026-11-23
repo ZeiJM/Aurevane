@@ -5,6 +5,31 @@ import type {
   StarterAppearanceRef,
 } from './creation'
 
+export const ADVENTURE_CHARACTER_PORTRAITS = (['male', 'female'] as const).flatMap((gender) =>
+  Array.from({ length: 12 }, (_, index) => ({
+    ref: `portrait.adventure.${gender}-${String(index + 1).padStart(2, '0')}` as CharacterPortraitRef,
+    label: `${gender === 'male' ? 'Male' : 'Female'} adventurer ${String(index + 1).padStart(2, '0')}`,
+    presentationId: gender === 'male' ? ('masculine' as const) : ('feminine' as const),
+  })),
+)
+
+const wayfarerGallery = {
+  masculine: [3, 4, 8, 10, 13, 14, 15, 22, 27, 29, 33, 40],
+  feminine: [2, 5, 6, 7, 9, 11, 16, 17, 21, 23, 26, 30],
+} as const
+
+/** Reuse approved Wayfarer identities so creation and profile share the same references. */
+export const CREATION_CHARACTER_PORTRAITS = [
+  ...ADVENTURE_CHARACTER_PORTRAITS,
+  ...(['masculine', 'feminine'] as const).flatMap((presentationId) =>
+    wayfarerGallery[presentationId].map((number, index) => ({
+      ref: `portrait.starter.wayfarer-${String(number).padStart(2, '0')}` as CharacterPortraitRef,
+      label: `${presentationId === 'masculine' ? 'Male' : 'Female'} adventurer ${index + 13}`,
+      presentationId,
+    })),
+  ),
+]
+
 export const STARTER_CHARACTER_PORTRAITS: readonly {
   ref: CharacterPortraitRef
   label: string
@@ -49,6 +74,7 @@ export const STARTER_CHARACTER_PORTRAITS: readonly {
   { ref: 'portrait.starter.wayfarer-38', label: 'Wayfarer 38' },
   { ref: 'portrait.starter.wayfarer-39', label: 'Wayfarer 39' },
   { ref: 'portrait.starter.wayfarer-40', label: 'Wayfarer 40' },
+  ...ADVENTURE_CHARACTER_PORTRAITS,
 ]
 
 export const STARTER_CHARACTER_APPEARANCES: readonly {

@@ -1,0 +1,28 @@
+{
+  "generator": "Built-in image generation",
+  "purpose": "Illustrative ground materials only; geometry and water remain code-authoritative",
+  "layout": "2048×2048: upper half 4×2 public biome panels; lower half one generic Uncharted ground material",
+  "files": [
+    {
+      "path": "apps/web/public/media/art/world/sources/globe-terrain-materials-v02.png",
+      "sha256": "5de595691af8bc8e0ae7f29e788f1d347f6a5f4e1ee0de481b849b179e1685da",
+      "width": 1774,
+      "height": 887,
+      "bytes": 3590588
+    },
+    {
+      "path": "apps/web/public/media/art/world/sources/globe-uncharted-material-v02.png",
+      "sha256": "adc1316f6c948654736c6f1707734305147416d1cd03e9347ab977dec40ec429",
+      "width": 1774,
+      "height": 887,
+      "bytes": 3443096
+    },
+    {
+      "path": "apps/web/public/media/art/world/runtime/globe-materials-v02.webp",
+      "sha256": "53e8f5285e5c9721f0cd68a523a76001e52981a2eaf4148680158b4033b087d6",
+      "width": 2048,
+      "height": 2048,
+      "bytes": 1397452
+    }
+  ]
+}

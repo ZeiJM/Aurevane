@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+trap 'printf "P3.6 Essence assertion failed at script line %s.\n" "$LINENO" >&2' ERR
 
 source .github/scripts/auth-test-helpers.sh
 load_test_auth
@@ -62,7 +63,8 @@ pure_snapshot="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres
   from (
     select public.get_character_committed_build_snapshot_v2('$user_id'::uuid, '$character_id'::uuid) as snapshot
   ) resolved;")"
-test "$pure_snapshot" = '2||essence.vanguard.unbroken-strike|1|vanguard|essence.vanguard.unbroken-strike|1|0'
+# The selected immutable builtin is v4; legacy v1 rows above remain historical.
+test "$pure_snapshot" = '2||essence.vanguard.unbroken-strike|4|vanguard|essence.vanguard.unbroken-strike|4|0'
 
 privileges="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   select

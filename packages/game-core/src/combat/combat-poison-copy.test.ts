@@ -15,6 +15,7 @@ import { createTacticalBattleState } from './board'
 import { createStatDrivenCombatEncounterState } from './stat-driven-combat'
 import {
   advanceCurrentPoisonMovement,
+  applyCurrentPoisonState,
   currentPoisonInstance,
   removeCurrentPoisonState,
 } from './combat-dots'
@@ -431,4 +432,40 @@ describe('Curse Poison: real command and saved-state behavior', () => {
     expect(currentPoisonInstance(cleared, 'target')).toBeNull()
     expect(currentPoisonInstance(cleared, 'actor')).not.toBeNull()
   })
+})
+
+it('Copy Debuffs preserves the captured Poison movement threshold and partial progress across JSON restore', () => {
+  const base = {
+    ...world(),
+    percentageDotPolicyVersion: 1 as const,
+    dotTriggerPolicyVersion: 2 as const,
+  }
+  const poisoned = applyCurrentPoisonState(
+    base,
+    'other',
+    'actor',
+    'custom-poison',
+    true,
+    undefined,
+    3,
+    { capturedDamage: 40, profile: { kind: 'attack-percentage', basisPoints: 1500 } },
+    7,
+  )
+  const progressed = advanceCurrentPoisonMovement(poisoned, 'actor', 6).state
+  const copied = executeCombatAction(progressed, action(), TARGET, CONTENT, context()).state
+  expect(currentPoisonInstance(copied, 'actor')).toMatchObject({
+    movementRefreshTiles: 7,
+    movementRemainder: 6,
+  })
+  expect(currentPoisonInstance(copied, 'target')).toMatchObject({
+    movementRefreshTiles: 7,
+    movementRemainder: 6,
+  })
+  const loaded = JSON.parse(JSON.stringify(copied)) as CombatEncounterState
+  expect(validateCombatEncounterState(loaded)).toEqual([])
+  expect(
+    advanceCurrentPoisonMovement(loaded, 'actor', 1).state.effectState!.poison.find(
+      (row) => row.targetCombatantId === 'actor',
+    ),
+  ).toMatchObject({ movementRefreshTiles: 7, movementRemainder: 0, remainingTicks: 3 })
 })

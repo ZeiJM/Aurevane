@@ -1,6 +1,8 @@
+import { omitCombatExecutionMetadata } from './battle-live-viewer-projection'
 import 'server-only'
 
 import type { BattleEventRecord } from '@aurevane/db/battle-session'
+import type { CombatEffectOrigin } from '@aurevane/game-core/combat/actions'
 import { combatStatusMetadata } from '@aurevane/game-core/combat/combat-effect-state'
 import {
   PV1F_COMBAT_CONTENT,
@@ -12,7 +14,12 @@ import type { StatDrivenCombatEncounterState } from '@aurevane/game-core/combat/
 import type { BattleViewerEntitlement } from './battle-viewer-entitlement'
 
 export type BattlePrivacyVisibility =
-  { readonly kind: 'public' } | { readonly kind: 'team-only'; readonly teamId: string }
+  | { readonly kind: 'public' }
+  | {
+      readonly kind: 'team-only'
+      readonly teamId: string
+      readonly requiredTeamIds?: readonly string[]
+    }
 
 export interface BattlePrivacyEventOverride {
   readonly eventIndex: number
@@ -69,7 +76,13 @@ function visibilityAllowed(
   viewer: BattleViewerEntitlement,
 ): boolean {
   if (visibility.kind === 'public') return true
-  return viewer.kind === 'participant' && viewer.friendlyTeamIds.has(visibility.teamId)
+  return (
+    viewer.kind === 'participant' &&
+    viewer.friendlyTeamIds.has(visibility.teamId) &&
+    (visibility.requiredTeamIds === undefined ||
+      (Array.isArray(visibility.requiredTeamIds) &&
+        visibility.requiredTeamIds.every((teamId) => viewer.friendlyTeamIds.has(teamId))))
+  )
 }
 
 const STATUS_DEFINITIONS_BY_ID = new Map(
@@ -229,7 +242,14 @@ function sensoryPublicEventIndexes(events: readonly unknown[]): ReadonlySet<numb
 
 function lifecycleTarget(event: Record<string, unknown>): string | null {
   if (event.event === 'status_expired') return stringValue(event.combatantId)
-  if (event.event === 'status_applied' || event.event === 'status_removed') {
+  if (
+    event.event === 'status_applied' ||
+    event.event === 'status_removed' ||
+    event.event === 'barrier_changed' ||
+    event.event === 'effect_pending' ||
+    event.event === 'persistent_effect_applied' ||
+    event.event === 'recovery_scheduled'
+  ) {
     return stringValue(event.targetCombatantId)
   }
   return null
@@ -241,12 +261,18 @@ function statusLifecycleIdentityBeforeOrAfter(input: {
   statusesByCombatant: Map<string, MutableStatusIdentity[]>
   after: StatDrivenCombatEncounterState
 }): StatusIdentity | null {
-  const statusId = stringValue(input.event.statusId)
+  const statusId = stringValue(
+    input.event.event === 'effect_pending' ? input.event.effectTag : input.event.statusId,
+  )
   if (!statusId) return null
   const sourceCombatantId =
     stringValue(input.event.sourceCombatantId) ?? stringValue(input.event.combatantId)
 
-  if (input.event.event === 'status_applied') {
+  if (
+    input.event.event === 'status_applied' ||
+    input.event.event === 'effect_pending' ||
+    input.event.event === 'persistent_effect_applied'
+  ) {
     return appliedStatusIdentity(input.after, input.targetCombatantId, statusId, sourceCombatantId)
   }
 
@@ -299,8 +325,21 @@ export function buildBattlePrivacyJournalInput(input: {
     ),
   )
   const actorWasCovert = actor ? hasCovert(statusesByCombatant, actor.actorCombatantId) : false
+  const actorEstablishesCovert =
+    actor &&
+    input.events.some((raw) => {
+      const event = objectValue(raw)
+      return (
+        event?.sourceCombatantId === actor.actorCombatantId &&
+        event.targetCombatantId === actor.actorCombatantId &&
+        ((event.event === 'status_applied' && event.statusId === PV1F_COVERT_STATUS.id) ||
+          (event.event === 'effect_pending' && event.effectTag === PV1F_COVERT_STATUS.id))
+      )
+    })
   const commandVisibility =
-    input.commandKind === 'action' && actor?.actorTeamId && actorWasCovert
+    input.commandKind === 'action' &&
+    actor?.actorTeamId &&
+    (actorWasCovert || actorEstablishesCovert)
       ? teamVisibility(actor.actorTeamId)
       : publicVisibility()
   const sensoryPublicIndexes = sensoryPublicEventIndexes(input.events)
@@ -324,7 +363,10 @@ export function buildBattlePrivacyJournalInput(input: {
       after: input.after,
     })
 
-    if (targetWasCovert && !sensoryPublicIndexes.has(eventIndex)) {
+    if (
+      (targetWasCovert || identity?.statusId === PV1F_COVERT_STATUS.id) &&
+      !sensoryPublicIndexes.has(eventIndex)
+    ) {
       const polarity = identity ? statusPolarity(identity) : null
       if (polarity === 'positive' || polarity === null) {
         const teamId = teamByCombatant.get(targetCombatantId)
@@ -345,11 +387,46 @@ export function buildBattlePrivacyJournalInput(input: {
     })
   })
 
-  eventVisibilityOverrides.sort((left, right) => left.eventIndex - right.eventIndex)
+  // A delayed receipt keeps its original command restriction, even when emitted by a
+  // public turn transition. Additional target privacy is an intersection, never a grant.
+  const finalOverrides = new Map(
+    eventVisibilityOverrides.map((override) => [override.eventIndex, override]),
+  )
+  input.events.forEach((raw, eventIndex) => {
+    const event = objectValue(raw)
+    if (!event || !Object.hasOwn(event, 'sourceCommandVisibility')) return
+    const source = objectValue(event.sourceCommandVisibility)
+    const sourceTeamId = source ? stringValue(source.teamId) : null
+    if (
+      source?.kind !== 'team-only' ||
+      !sourceTeamId ||
+      ![...teamByCombatant.values()].includes(sourceTeamId) ||
+      Object.keys(source).some((key) => !['kind', 'teamId'].includes(key))
+    ) {
+      throw new Error('Invalid delayed source command visibility.')
+    }
+    const previous = finalOverrides.get(eventIndex)?.visibility ?? commandVisibility
+    const requiredTeamIds =
+      previous.kind === 'public'
+        ? []
+        : [...new Set([previous.teamId, ...(previous.requiredTeamIds ?? [])])]
+            .filter((teamId) => teamId !== sourceTeamId)
+            .sort()
+    finalOverrides.set(eventIndex, {
+      eventIndex,
+      visibility: {
+        kind: 'team-only',
+        teamId: sourceTeamId,
+        ...(requiredTeamIds.length ? { requiredTeamIds } : {}),
+      },
+    })
+  })
   return {
     schemaVersion: 1,
     commandVisibility,
-    eventVisibilityOverrides,
+    eventVisibilityOverrides: [...finalOverrides.values()].sort(
+      (left, right) => left.eventIndex - right.eventIndex,
+    ),
   }
 }
 
@@ -365,6 +442,7 @@ function projectVersion(
   records: readonly BattleEventRecord[],
   journal: BattleHistoryPrivacyJournal,
   viewer: BattleViewerEntitlement,
+  sourceTeams: ReadonlyMap<string, string>,
 ): BattleEventRecord[] {
   if (journal.eventCount !== records.length) {
     throw new Error('Battle history privacy journal event count does not match persisted history.')
@@ -384,6 +462,43 @@ function projectVersion(
     const visibility = overrides.get(record.eventIndex) ?? journal.commandVisibility
     if (!visibilityAllowed(visibility, viewer)) {
       filtered = true
+      const event = objectValue(record.event)
+      const source = event ? stringValue(event.sourceCombatantId) : null
+      const target = event ? stringValue(event.targetCombatantId) : null
+      const tag = event?.event === 'effect_pending' ? event.effectTag : event?.statusId
+      const sourceTeam = source ? sourceTeams.get(source) : undefined
+      if (
+        viewer.kind === 'participant' &&
+        source &&
+        target &&
+        tag === PV1F_COVERT_STATUS.id &&
+        (event?.event === 'status_applied' || event?.event === 'effect_pending') &&
+        (viewer.controlledCombatantIds.has(source) ||
+          (sourceTeam !== undefined && viewer.friendlyTeamIds.has(sourceTeam)))
+      ) {
+        // Match the live reader's opaque own-source confirmation. Shared clocks,
+        // stacks and refresh facts could reveal another concealed application.
+        visible.push({
+          sortIndex: record.eventIndex,
+          record: {
+            ...record,
+            event: {
+              event: event.event,
+              sourceCombatantId: source,
+              targetCombatantId: target,
+              ...(event.event === 'effect_pending'
+                ? {
+                    effectTag: PV1F_COVERT_STATUS.id,
+                    ...(Number.isSafeInteger(event.activationRound) &&
+                    Number(event.activationRound) > 0
+                      ? { activationRound: event.activationRound }
+                      : {}),
+                  }
+                : { statusId: PV1F_COVERT_STATUS.id }),
+            },
+          },
+        })
+      }
       continue
     }
     const event = objectValue(record.event)
@@ -391,7 +506,11 @@ function projectVersion(
       !commandAllowed && event
         ? {
             ...record,
-            event: Object.fromEntries(Object.entries(event).filter(([key]) => key !== 'actionId')),
+            event: Object.fromEntries(
+              Object.entries(event).filter(
+                ([key]) => !['actionId', 'sourceActionId', 'sourceSkillId'].includes(key),
+              ),
+            ),
           }
         : record
     visible.push({ sortIndex: record.eventIndex, record: visibleRecord })
@@ -428,9 +547,14 @@ export function projectBattleHistoryForViewer(
   records: readonly BattleEventRecord[],
   journals: readonly BattleHistoryPrivacyJournal[],
   viewer: BattleViewerEntitlement,
+  /** Chronicle's reader may restore only a display reference verified against pinned authority. */
+  verifyDisplayOrigin?: (visibleRecord: BattleEventRecord) => CombatEffectOrigin | null,
 ): BattleEventRecord[] {
   const journalByVersion = new Map(
     journals.map((journal) => [journal.battleVersion, journal] as const),
+  )
+  const sourceTeams = new Map(
+    journals.map((journal) => [journal.actorCombatantId, journal.actorTeamId] as const),
   )
   const recordsByVersion = new Map<number, BattleEventRecord[]>()
   const versionOrder: number[] = []
@@ -444,9 +568,140 @@ export function projectBattleHistoryForViewer(
     }
   }
 
-  return versionOrder.flatMap((battleVersion) => {
+  const projected = versionOrder.flatMap((battleVersion) => {
     const versionRecords = recordsByVersion.get(battleVersion) ?? []
     const journal = journalByVersion.get(battleVersion)
-    return journal ? projectVersion(versionRecords, journal, viewer) : versionRecords
+    return journal ? projectVersion(versionRecords, journal, viewer, sourceTeams) : versionRecords
+  })
+  // A public tick cannot reveal a Skill whose originating cast was hidden or absent.
+  // Prove attribution from the viewer's accepted command AND matching application.
+  const commands = new Set<string>()
+  const applications = new Set<string>()
+  const replacements = new Map<BattleEventRecord, BattleEventRecord>()
+  const commandKey = (actor: string, action: string) => JSON.stringify([actor, action])
+  const applicationKey = (actor: string, action: string, target: string, tag: string) =>
+    JSON.stringify([actor, action, target, tag])
+  // Reapplications can overlap without a per-instance receipt ID. Once a matching
+  // hidden application exists, this tuple cannot prove which instance a tick used.
+  // Inspect denied receipts only to withhold attribution; never export their data.
+  const uncertainApplications = new Set<string>()
+  const uncertainTicks = new WeakSet<object>()
+  for (const record of [...records].sort(
+    (a, b) => a.battleVersion - b.battleVersion || a.eventIndex - b.eventIndex,
+  )) {
+    const event = objectValue(record.event)
+    if (!event) continue
+    const actor = stringValue(event.sourceCombatantId)
+    const source = stringValue(event.sourceActionId) ?? stringValue(event.actionId)
+    const target = stringValue(event.targetCombatantId)
+    const tag = stringValue(event.event === 'effect_pending' ? event.effectTag : event.statusId)
+    if (!actor || !source || !target || !tag || !['poison', 'burn', 'bleed'].includes(tag)) continue
+    const key = applicationKey(actor, source, target, tag)
+    if (
+      ['effect_pending', 'persistent_effect_applied', 'status_applied'].includes(
+        String(event.event),
+      )
+    ) {
+      const journal = journalByVersion.get(record.battleVersion)
+      const sourceVisibility = objectValue(event.sourceCommandVisibility)
+      const sourceDenied =
+        sourceVisibility?.kind === 'team-only' &&
+        !visibilityAllowed(sourceVisibility as unknown as BattlePrivacyVisibility, viewer)
+      const denied =
+        journal &&
+        (!visibilityAllowed(journal.commandVisibility, viewer) ||
+          !visibilityAllowed(
+            eventOverrideMap(journal).get(record.eventIndex) ?? journal.commandVisibility,
+            viewer,
+          ))
+      if (denied || sourceDenied) uncertainApplications.add(key)
+    } else if (event.event === 'damage_applied' && uncertainApplications.has(key))
+      uncertainTicks.add(event)
+  }
+  for (const record of [...projected].sort(
+    (a, b) => a.battleVersion - b.battleVersion || a.eventIndex - b.eventIndex,
+  )) {
+    const event = objectValue(record.event)
+    if (!event) continue
+    const actor = stringValue(event.sourceCombatantId)
+    const actionId = stringValue(event.actionId)
+    if (event.event === 'combat_action_used') {
+      const actorId = stringValue(event.actorId)
+      if (actorId && actionId) commands.add(commandKey(actorId, actionId))
+    }
+    const target = stringValue(event.targetCombatantId)
+    const tag = stringValue(event.event === 'effect_pending' ? event.effectTag : event.statusId)
+    if (
+      actor &&
+      actionId &&
+      target &&
+      tag &&
+      ['effect_pending', 'persistent_effect_applied', 'status_applied'].includes(
+        String(event.event),
+      ) &&
+      commands.has(commandKey(actor, actionId))
+    )
+      applications.add(applicationKey(actor, actionId, target, tag))
+    if (event.event !== 'damage_applied' || !tag || !['poison', 'burn', 'bleed'].includes(tag))
+      continue
+    const source = stringValue(event.sourceActionId) ?? actionId
+    if (
+      !uncertainTicks.has(event) &&
+      actor &&
+      source &&
+      target &&
+      applications.has(applicationKey(actor, source, target, tag))
+    )
+      continue
+    replacements.set(record, {
+      ...record,
+      event: Object.fromEntries(
+        Object.entries(event).filter(
+          ([key]) => !['actionId', 'sourceActionId', 'effectOrigin'].includes(key),
+        ),
+      ),
+    })
+  }
+  // A triggering identity is presentation only after its command is visible in this same commit.
+  const visibleActors = new Set(
+    projected.flatMap((record) => {
+      const event = objectValue(record.event)
+      return event?.event === 'combat_action_used' && typeof event.actorId === 'string'
+        ? [`${record.battleVersion}:${event.actorId}`]
+        : []
+    }),
+  )
+  return projected.map((record) => {
+    const visible = replacements.get(record) ?? record
+    const event = objectValue(visible.event)
+    if (!event) return visible
+    const safeEvent = omitCombatExecutionMetadata(event)
+    if (
+      typeof safeEvent.event === 'string' &&
+      safeEvent.event.startsWith('skill_cooldown_') &&
+      typeof safeEvent.combatantId === 'string' &&
+      !viewer.controlledCombatantIds.has(safeEvent.combatantId) &&
+      typeof safeEvent.cooldownKey === 'string'
+    )
+      safeEvent.cooldownKey = 'private'
+    if (
+      typeof safeEvent.triggeringActorId !== 'string' ||
+      !visibleActors.has(`${record.battleVersion}:${safeEvent.triggeringActorId}`)
+    )
+      Reflect.deleteProperty(safeEvent, 'triggeringActorId')
+    const displayOrigin = event.effectOrigin ? verifyDisplayOrigin?.(visible) : null
+    return {
+      ...visible,
+      event: displayOrigin
+        ? {
+            ...safeEvent,
+            effectOrigin: {
+              family: displayOrigin.family,
+              contentId: displayOrigin.contentId,
+              contentVersion: displayOrigin.contentVersion,
+            },
+          }
+        : safeEvent,
+    }
   })
 }

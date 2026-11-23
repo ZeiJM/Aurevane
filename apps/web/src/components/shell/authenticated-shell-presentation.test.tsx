@@ -1,3 +1,4 @@
+import type { Route } from 'next'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
@@ -19,7 +20,11 @@ vi.mock('./account-menu', () => ({
   AccountMenu: ({
     characterName,
     masterPanelHref,
+    characterPortrait,
+    presence,
   }: {
+    characterPortrait?: React.ReactNode
+    presence?: React.ReactNode
     characterName?: string | null
     masterPanelHref?: string | null
   }) =>
@@ -27,6 +32,7 @@ vi.mock('./account-menu', () => ({
       'div',
       { 'data-testid': 'account-menu' },
       characterName ? `Welcome back, ${characterName}.` : 'Account',
+      characterPortrait,
       masterPanelHref
         ? createElement(
             'a',
@@ -34,30 +40,34 @@ vi.mock('./account-menu', () => ({
             'Master Panel',
           )
         : null,
+      presence,
     ),
 }))
 vi.mock('./game-rail', () => ({
   GameRail: () => createElement('aside', { 'data-testid': 'game-rail' }, 'Rail'),
 }))
 vi.mock('./online-presence-link', () => ({
+  OnlinePresenceHeartbeat: () => null,
   OnlinePresenceLink: () => createElement('a', { href: '/game/online' }, 'Online Users'),
 }))
 
 import { AuthenticatedShellPresentation } from './authenticated-shell-presentation'
 
 describe('authenticated shell presentation', () => {
-  it('keeps Online Users while omitting redundant back and footer navigation controls', () => {
+  it('places Online Users after the greeting and removes the footer badge', () => {
     const markup = renderToStaticMarkup(
       <AuthenticatedShellPresentation
         backHref="/game"
         backLabel="Back to game"
         sessionLabel="Passive Training"
+        character={{ id: 'character-1', name: 'Aster' }}
       >
         <section>Page content</section>
       </AuthenticatedShellPresentation>,
     )
 
-    expect(markup).toContain('Online Users')
+    expect(markup.indexOf('Welcome back, Aster.')).toBeLessThan(markup.indexOf('Online Users'))
+    expect(markup).not.toContain('<footer')
     expect(markup).not.toContain('aria-label="Back to game"')
     expect(markup).not.toContain('>Navigation<')
   })
@@ -77,7 +87,7 @@ describe('authenticated shell presentation', () => {
     const markup = renderToStaticMarkup(
       <AuthenticatedShellPresentation
         sessionLabel="Battle Hall"
-        character={{ name: 'Aster', level: 12 }}
+        character={{ id: 'character-1', name: 'Aster', level: 12 }}
         characterPortrait={<span data-testid="portrait">portrait</span>}
       >
         <section>Page content</section>
@@ -91,5 +101,23 @@ describe('authenticated shell presentation', () => {
     expect(markup).not.toContain('Level 12')
     expect(markup).toContain('data-testid="portrait"')
     expect(markup).toContain('data-testid="account-menu"')
+  })
+  it('removes navigation from live combat and spectation', () => {
+    const markup = renderToStaticMarkup(
+      <AuthenticatedShellPresentation layout="battlefield">
+        <section>Battle</section>
+      </AuthenticatedShellPresentation>,
+    )
+    expect(markup).not.toContain('data-testid="game-rail"')
+  })
+
+  it('marks session restrictions so mobile reserves the return-session dock height', () => {
+    const markup = renderToStaticMarkup(
+      <AuthenticatedShellPresentation activeBattleHref={'/game/battle/session-one' as Route}>
+        <section>Page content</section>
+      </AuthenticatedShellPresentation>,
+    )
+    expect(markup).toContain('data-av-session-restricted="true"')
+    expect(markup).toContain('href="/game/battle/session-one"')
   })
 })

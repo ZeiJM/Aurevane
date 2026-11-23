@@ -1,0 +1,44 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["env", "NEXT_TELEMETRY_DISABLED=1", "TURBO_TELEMETRY_DISABLED=1", "DO_NOT_TRACK=1", "corepack", "pnpm", "--filter", "@aurevane/web", "exec", "playwright", "test", "e2e/master-players-recovery.pw.ts", "--project=desktop-chromium", "--workers=1"], "start": "2026-10-20T19:07:27.456020+00:00"}
+[WebServer] (node:35) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] (node:49) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 1 test using 1 worker
+
+(node:74) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/1] [desktop-chromium] › e2e/master-players-recovery.pw.ts:36:5 › Owner corrections and whole encounter recovery reach actual PvE, both PvP participants and spectator
+  1) [desktop-chromium] › e2e/master-players-recovery.pw.ts:36:5 › Owner corrections and whole encounter recovery reach actual PvE, both PvP participants and spectator 
+
+    Error: browserType.launch: Executable doesn't exist at /root/.cache/ms-playwright/chromium_headless_shell-1234/chrome-headless-shell-linux64/chrome-headless-shell
+    ╔════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright was just installed or updated.       ║
+    ║ Please run the following command to download new browsers: ║
+    ║                                                            ║
+    ║     pnpm exec playwright install                           ║
+    ║                                                            ║
+    ║ <3 Playwright Team                                         ║
+    ╚════════════════════════════════════════════════════════════╝
+
+    Error Context: test-results/master-players-recovery.pw-c3772--participants-and-spectator-desktop-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/master-players-recovery.pw-c3772--participants-and-spectator-desktop-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/master-players-recovery.pw-c3772--participants-and-spectator-desktop-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  1 failed
+    [desktop-chromium] › e2e/master-players-recovery.pw.ts:36:5 › Owner corrections and whole encounter recovery reach actual PvE, both PvP participants and spectator 
+undefined
+/workspace/scratch/081f137b6a6d/aurevane-players-20261020/apps/web:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: playwright test e2e/master-players-recovery.pw.ts '--project=desktop-chromium' '--workers=1'
+{"end": "2026-10-20T19:07:30.641668+00:00", "exit": 1}

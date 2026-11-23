@@ -1,0 +1,15 @@
+# October 8 Ground, Airborne and reader refinements
+
+Owner follow-up: Healing Down reduces both HP and MP recovery by the recorded per-application potency. Pin optional `healingDownPolicyVersion:1` in new PvE/PvP/Master previews; absent historical policy retains HP-only reduction. Flat positive recovery shares the HP calculation; percentage recovery captures the reduced amount once, including delayed activation and future ticks. HP/MP Leech recovery also shares the reduction before resource caps. MP costs/drains remain unchanged. Shared Skill/status readers and Manual explicitly say HP and MP recovery. Add actual Fieldcraft PvE/PvP, preview, stacking, periodic rounding/caps, delayed serialization and historical regressions.
+
+Blindside: Instant one-owner-turn Skill-only buff, front fixed100%, default side160%/rear220%. Master edits Side damage (%) and Rear damage (%) separately per Skill, using total percentages with two decimal places (160% means +60%). Captured per-application profiles survive reapplication, Copy Buffs, pending activation and restore. Current positional Skills append immutable Blindside versions; historical coefficients remain available.
+
+Owner authorized automatic implementation and release for testing. Latest clarification: Airborne grants Target Elevation 3 only to its holder’s Attack Skills. See `docs/COMBAT.md` for the complete approved rules.
+
+Mechanical rules: Frozen Ground +10 AP affects only caster enemies; allies/caster immune, Airborne exemption and independent Slow retained. Airborne holders automatically evade any Ground-targeted Skill (0% hit), including automatic/friendly, delayed settlement and persistent entry; only Attack Skills gain elevation3 while active. Push/Pull are separate authoring and timing choices; no current Displaced marker. Preserve blockers, costs, Steam LoS and Rewind.
+
+Compatibility: new encounters pin independent optional version1 Frozen/Airborne/displacement policies; absent policies retain old mechanics. Additive timing migration admits push/pull without modifying stored policies or grants. New authoring rejects Displaced; exact historical definitions, receipts and snapshots remain readable.
+
+Readers: separate Ground area rules from authored effects; count actual terrain changes and preserve timing/transitions, explicit per-unit outcomes, cast/source/content boundaries and viewer privacy. Chronicle and Copy Full Log share the same summary. Display Chilled for the existing Frozen requirement. Resonance lists exact qualifying setup Skill names and plain sequence instructions; do not invent a Control/Utility equivalence. Vacated single-unit attack tiles have no residual red cue; retain genuine area and Line coverage across responsive PvE/PvP/spectation.
+
+Acceptance: meaningful Core/authoring/SQL/privacy/reader regressions, full workspace quality gate, responsive production-component browser checks and independent review before exact-head CI/merge. Deploy only verified merged source; verify canonical alias and HTTP/runtime evidence. Human playtest acceptance remains separate.

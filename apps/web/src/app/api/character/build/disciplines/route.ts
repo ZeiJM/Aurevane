@@ -1,8 +1,8 @@
+import { projectAllocationForPrimaryDisciplineChange } from '@aurevane/game-core/character/attribute-allocation'
 import {
-  foundationDisciplineAttributePolicy,
-  projectAllocationForPrimaryDisciplineChange,
-} from '@aurevane/game-core/character/attribute-allocation'
-import { buildPrimaryDisciplinePreview } from '@aurevane/game-core/character/discipline-build'
+  buildPrimaryDisciplinePreview,
+  disciplineAttributePolicyForProfile,
+} from '@aurevane/game-core/character/discipline-build'
 import { AurevaneError } from '@aurevane/game-core/errors'
 
 import { getAuthenticatedActor } from '@/server/auth/actor'
@@ -61,7 +61,10 @@ export async function GET() {
       character,
       createSupabaseCharacterBuildRepository(),
     )
-    return Response.json({ context }, { headers: { 'Cache-Control': 'private, no-store' } })
+    return Response.json(
+      { context: { ...context, attributes: character.attributes } },
+      { headers: { 'Cache-Control': 'private, no-store' } },
+    )
   } catch (error) {
     return toServerErrorResponse(error)
   }
@@ -78,8 +81,8 @@ export async function POST(request: Request) {
       createSupabaseCharacterBuildRepository(),
     )
 
-    const currentPolicy = foundationDisciplineAttributePolicy(preview.current.definition.id)
-    const proposedPolicy = foundationDisciplineAttributePolicy(preview.proposed.definition.id)
+    const currentPolicy = disciplineAttributePolicyForProfile(preview.current.profile)
+    const proposedPolicy = disciplineAttributePolicyForProfile(preview.proposed.profile)
     if (!currentPolicy || !proposedPolicy) {
       throw new AurevaneError('INVALID_REQUEST', 'The selected Primary Discipline is unavailable.')
     }
@@ -100,6 +103,7 @@ export async function POST(request: Request) {
 
     const alignedPreview = {
       ...preview,
+      characterId: character.id,
       currentAttributes: character.attributes,
       proposedAttributes: projection.attributes,
       proposed: buildPrimaryDisciplinePreview({
@@ -123,6 +127,12 @@ export async function PUT(request: Request) {
   try {
     const { actor, character } = await selectedCharacter()
     const body = await readJson(request)
+    if (body.expectedCharacterId !== undefined && body.expectedCharacterId !== character.id) {
+      throw new AurevaneError(
+        'INVALID_REQUEST',
+        'The selected character changed. Reopen Discipline Management to continue.',
+      )
+    }
     const expectedBuildVersion =
       typeof body.expectedBuildVersion === 'number' ? body.expectedBuildVersion : Number.NaN
     const idempotencyKey = typeof body.idempotencyKey === 'string' ? body.idempotencyKey : ''
@@ -145,7 +155,13 @@ export async function PUT(request: Request) {
     )
 
     return Response.json(
-      { context: { ...freshContext, replayed: changed.replayed } },
+      {
+        context: {
+          ...freshContext,
+          attributes: refreshedCharacter.attributes,
+          replayed: changed.replayed,
+        },
+      },
       { headers: { 'Cache-Control': 'private, no-store' } },
     )
   } catch (error) {

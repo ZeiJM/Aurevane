@@ -8,6 +8,8 @@ export const characterCreationRequestSchema = z
     slotIndex: z.number().int().min(0).max(2),
     idempotencyKey: z.string().uuid(),
     intent: characterCreationPayloadSchema,
+    expectedProfileVersion: z.number().int().positive().optional(),
+    appearance: z.unknown().optional(),
   })
   .strict()
 

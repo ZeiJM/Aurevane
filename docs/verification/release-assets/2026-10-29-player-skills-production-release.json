@@ -1,0 +1,108 @@
+{
+  "status": "live-for-owner-testing",
+  "verifiedAt": "2026-10-30T01:19:42.097003+00:00",
+  "url": "https://aurevane.vercel.app/master",
+  "pr": 991,
+  "testedHead": "e721d465c125614a18f59a5a9663e4674a743f2a",
+  "tree": "54e2a13f6b422d2d29c02ecb6a9b7cf0f8aaa510",
+  "merge": "c0996fe959a843f52f378feee28bddeadcfead5a",
+  "deployment": "dpl_8vhURf84Goyo6tzkvk7wtsHJ3pPU",
+  "uniqueHost": "aurevane-azewbbh8a-zeijms-projects.vercel.app",
+  "readyAt": "2026-10-30T00:43:39.008Z",
+  "workflowRuns": [
+    40970151729, 40970151380, 40970151532, 40970151400, 40970151405, 40970151501, 40970151385,
+    40970151498, 40970151548, 40970151551, 40970151432, 40970151604, 40970151531, 40970151519
+  ],
+  "allWorkflowsAndApplicableJobs": "passed",
+  "migration": {
+    "version": "20261029194636",
+    "sha256": "41c5b0e0ac196d64176cb773532915da9da7392bc140610b48c6ed6c8c120aca",
+    "predecessorSourceSha256": "9ffc9a73566e94698f5203eb1fc2d21a8e91c8e2f70561ce84b1f9f4fbe15de2",
+    "successorSourceSha256": "e071943b4386d565c1d6b73ff0f75494d70562640166e9924d698d77d718ceea",
+    "guardedExecutionVersion": "20261030004242",
+    "guardedExecutionSha256": "9fe7743281e2925df02173d935f6ddf1c9a86b30744cd3a6ad312581a6ea9c87",
+    "historyNormalizedToCanonical": true,
+    "preserved": [
+      "all characters/profile rows",
+      "all function ACLs/owners/security settings",
+      "unrelated function bodies"
+    ],
+    "serviceRoleOnly": true
+  },
+  "routing": {
+    "previousVersion": "5d1c322f-4e5b-48b1-9528-f1513ac65bf6",
+    "liveVersion": "eea9bd0c-01cc-4ebd-906a-19653c2a806d",
+    "preservedRules": 9,
+    "changedOnly": "added compatible candidate hosts and deployment ID"
+  },
+  "chilled": {
+    "candidateDigest": "f54a5e5eb98bbf7608359da0352d406656e22861bd6aa0f8ca639893fac1fa25",
+    "records": [
+      {
+        "key": "cinderweaver.blistering-heat",
+        "version": 9,
+        "revision": 3,
+        "draftSequence": 1
+      },
+      {
+        "key": "cinderweaver.cinder-bolt",
+        "version": 10,
+        "revision": 3,
+        "draftSequence": 1
+      },
+      {
+        "key": "cinderweaver.ember-line",
+        "version": 11,
+        "revision": 3,
+        "draftSequence": 1
+      },
+      {
+        "key": "cinderweaver.flame-burst",
+        "version": 12,
+        "revision": 3,
+        "draftSequence": 1
+      },
+      {
+        "key": "cinderweaver.flashfire",
+        "version": 7,
+        "revision": 3,
+        "draftSequence": 1
+      },
+      {
+        "key": "cinderweaver.scorch",
+        "version": 7,
+        "revision": 3,
+        "draftSequence": 1
+      },
+      {
+        "key": "essence.cinderweaver.phoenix-wake",
+        "version": 9,
+        "revision": 3,
+        "draftSequence": 1
+      }
+    ],
+    "exactPrivateReadbacks": 7,
+    "exactPublicReadbacks": 7,
+    "convertedNodes": 11,
+    "postflightCounts": {
+      "drafts": 2,
+      "history": 1281,
+      "records": 364,
+      "publications": 298
+    },
+    "preserved": "prior immutable history, unrelated publications/records/drafts/attribution/timing policy; guarded in one transaction"
+  },
+  "runtimeErrorScans": {
+    "sinceReady": "empty",
+    "finalWindow": "2026-10-30T01:15:53Z through 2026-10-30T01:19:08Z: empty"
+  },
+  "acceptanceRemaining": [
+    "Owner hands-on",
+    "independent listening",
+    "physical devices",
+    "multiplayer",
+    "sustained load"
+  ],
+  "deploymentPolicy": "one Git-backed Production build, no Preview, Git auto deployments remain disabled",
+  "documentationPR": 990
+}

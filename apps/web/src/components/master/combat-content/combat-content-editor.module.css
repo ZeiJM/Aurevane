@@ -524,7 +524,67 @@
 }
 
 .effectEditor {
-  padding: var(--av-space-4);
+  display: grid;
+  min-width: 0;
+  gap: 0.5rem;
+  padding: 0.5rem;
+}
+
+.effectTargetEditor {
+  display: flex;
+  align-items: end;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.effectTargetEditor > label {
+  flex: 0 1 20rem;
+  min-width: 0;
+}
+
+.effectTargetEditor > .field {
+  width: 100%;
+  max-width: 20rem;
+  min-width: 0;
+}
+
+.effectTargetEditor > span {
+  margin: 0 0 0.35rem;
+}
+
+@media (max-width: 600px) {
+  .effectTargetEditor.effectTargetEditor select,
+  .effectEditor.effectEditor :is(input, select) {
+    min-height: 2.75rem;
+  }
+
+  .effectTargetEditor.effectTargetEditor button {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+
+  .effectTargetEditor > span {
+    margin-bottom: 0;
+  }
+}
+
+.effectDescriptionField {
+  margin: 0 var(--av-space-4) var(--av-space-4);
+}
+
+.effectDescriptionField input {
+  min-height: 2.35rem;
+}
+
+.effectTuningGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--av-border);
 }
 
 .effectAdd {
@@ -683,6 +743,36 @@
 .confirmation code {
   color: var(--av-brass-300);
   font-family: var(--av-font-mono);
+}
+
+.resonancePreview {
+  --resonance-effect-accent: var(--av-brass-300);
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+.resonancePreview dl {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.5rem 0 0.8rem;
+}
+
+.resonancePreview dl > div {
+  display: grid;
+  grid-template-columns: minmax(6rem, 0.8fr) minmax(0, 1.2fr);
+  gap: 0.45rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--av-border);
+}
+
+.resonancePreview dt {
+  color: var(--av-text-dim);
+  font-weight: 600;
+}
+
+.resonancePreview dd {
+  margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .previewFacts,
@@ -1576,6 +1666,14 @@
     position: static;
     max-height: none;
   }
+
+  .editorMain > .reviewPanel {
+    position: static;
+    grid-column: 2;
+    grid-row: auto;
+    max-height: none;
+    overflow: visible;
+  }
 }
 
 @media (max-width: 760px) {
@@ -1607,8 +1705,719 @@
     overflow-x: auto;
   }
 
+  .editorMain > .reviewPanel {
+    grid-column: 1;
+  }
+
   .previewFacts,
   .confirmationFacts {
     grid-template-columns: 1fr;
   }
+}
+
+.authoringWorkspaceShell {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.contentTypeField {
+  display: grid;
+  grid-template-columns: auto minmax(10rem, 14rem);
+  gap: 0.65rem;
+  align-items: center;
+  justify-content: end;
+  color: var(--av-text-dim);
+  font: 650 0.55rem/1.2 var(--av-font-body);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.contentTypeField select {
+  min-height: 2.35rem;
+  padding: 0.52rem 0.62rem;
+  border: 1px solid var(--av-border-strong);
+  border-radius: var(--av-radius-sm);
+  color: var(--av-text);
+  background: rgba(3, 10, 17, 0.86);
+}
+
+/* Approved adventure workspace: readable stone work surfaces. */
+:global(.av-master) .editor {
+  --av-text: #2d332d;
+  --av-text-muted: #535448;
+  --av-text-dim: #625e4f;
+  --av-brass-300: #69532d;
+  --av-brass-200: #6d572e;
+  --av-border: #99826366;
+  --av-border-strong: #9b8362;
+  color: #2d332d;
+}
+:global(.av-master) .skillBrowser,
+:global(.av-master) .editorMain,
+:global(.av-master) .workspace,
+:global(.av-master) .typedGroup,
+:global(.av-master) .reviewPanel,
+:global(.av-master) .reviewBlock,
+:global(.av-master) .confirmation,
+:global(.av-master) .history,
+:global(.av-master) .publicationCard,
+:global(.av-master) .validationCard,
+:global(.av-master) .effectCard,
+:global(.av-master) .versionGrid,
+:global(.av-master) .mediaPreview,
+:global(.av-master) .publicationFacts {
+  color: #30372f;
+  background: linear-gradient(125deg, #d0c2a8, #bdad90);
+  border-color: #9d8865;
+  border-radius: 4px;
+  box-shadow: inset 0 1px #f5e6c44d;
+}
+:global(.av-master) .editor :is(h2, h3, h4, label, legend, p, small, dt, dd) {
+  color: inherit;
+}
+:global(.av-master) .editor :is(button, a)[data-selected='true'] {
+  color: #f1e5ce;
+  background: #345b52;
+  border-color: #437367;
+}
+:global(.av-master) .editor button:disabled {
+  opacity: 0.5;
+}
+:global(.av-master) .header,
+:global(.av-master) .tags {
+  color: #30372f;
+  background: #c8b89b;
+  border: 1px solid #998262;
+  border-radius: 4px;
+  padding: 0.8rem;
+}
+:global(.av-master) .header :is(h1, strong),
+:global(.av-master) .skillBrowserHeader strong {
+  color: #30392e;
+}
+:global(.av-master) .editorMain {
+  align-content: start;
+  gap: 0.65rem;
+}
+:global(.av-master) .skillBrowser button[data-selected='true'] strong {
+  color: #f1e5ce;
+}
+@media (min-width: 1181px) {
+  :global(.av-master) .skillBrowser {
+    grid-row: 1 / span 20;
+  }
+}
+
+/* Approved stone collection and authoring composition. */
+.authoringWorkspaceShell {
+  display: grid;
+  min-height: 0;
+  gap: 0.6rem;
+}
+.contentTypeField {
+  width: 16rem;
+}
+.editor {
+  grid-template-columns: minmax(12rem, 21%) minmax(0, 1fr) minmax(14rem, 25%);
+  gap: 0.75rem;
+}
+.skillBrowser,
+.editorMain,
+.empty {
+  background: var(--master-stone);
+  border-radius: 2px;
+}
+.skillBrowser {
+  align-content: start;
+}
+.editorMain {
+  padding: 1rem;
+}
+.skillRow {
+  background: #e4dac6;
+}
+.skillRow[data-selected='true'] {
+  background: #bcd2c8;
+  border-color: #508078;
+}
+.header,
+.skillBrowserHeader {
+  border-color: #a28d6b;
+}
+.workspace {
+  background: #dfd5c3;
+}
+.workspace :is(input, textarea, select) {
+  font-size: 0.84rem;
+}
+@media (max-width: 1180px) {
+  .editor {
+    grid-template-columns: minmax(14rem, 0.7fr) minmax(0, 1.8fr);
+  }
+}
+@media (max-width: 760px) {
+  .editor {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.mediaPreview img {
+  width: clamp(6rem, 8vw, 9rem);
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+
+.effectPicker {
+  display: grid;
+  grid-template-columns: minmax(8rem, 16rem) minmax(12rem, 24rem) max-content;
+  align-items: end;
+  gap: 0.5rem;
+}
+.effectPicker > small {
+  grid-column: 1 / -1;
+}
+
+.effectPicker > .field {
+  min-width: 0;
+}
+.effectPicker button {
+  min-height: 2.5rem;
+  margin-bottom: 0;
+}
+@media (max-width: 600px) {
+  .effectPicker {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .effectPicker > label:first-child {
+    grid-column: 1 / -1;
+  }
+}
+
+.effectBody {
+  padding: 0.35rem 0.65rem 0.55rem;
+}
+.effectBody > summary {
+  cursor: pointer;
+  color: #275e54;
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+.effectBody[open] > summary {
+  margin-bottom: 0.6rem;
+}
+:global(.av-master) .effectCard [data-effect-tag-label],
+:global(.av-master) .effectCard [data-combat-tag-reference] {
+  color: #503510;
+}
+
+.abilityWorkspace {
+  min-width: 0;
+  display: grid;
+  gap: 0.65rem;
+}
+.abilityTabs {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding-bottom: 0.45rem;
+  border-bottom: 1px solid #b6a587;
+  background: #fbf5e8;
+}
+
+/* Label-bound help stays with its control; numeric entries do not fill the card. */
+.fieldLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  min-height: 1.6rem;
+}
+
+.fieldLabel > label {
+  color: var(--av-text-dim);
+  font: 650 0.55rem/1.2 var(--av-font-body);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.fieldLabel > span {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+.field:has(> select) {
+  min-width: 0;
+  max-width: 24rem;
+}
+
+.numberField,
+.field > input[type='number'] {
+  min-width: 0;
+  max-width: 12rem;
+}
+
+.effectParameters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 20rem));
+  align-items: start;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.effectParameters > .effectEditor,
+.effectParameters > .typedGroup,
+.effectParameters > .effectReference {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 600px) {
+  .effectParameters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .fieldLabel:has(button) {
+    min-height: 2.75rem;
+  }
+
+  .fieldLabel button {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+  }
+}
+.abilityTabs button {
+  min-height: 2.35rem;
+  padding: 0.35rem 0.65rem;
+  color: #315d54;
+  background: #f7f1e5;
+  border: 1px solid #b6a587;
+}
+.abilityTabs button[aria-selected='true'],
+.abilityWorkspace .abilityTabs button[aria-selected='true']:is(:hover, :focus-visible) {
+  background: #315d54;
+  color: #fff4dc;
+  border-color: #254b43;
+}
+.abilityWorkspace > [hidden] {
+  display: none;
+}
+.abilityWorkspace [role='tabpanel'] :is(a, button, input, select, textarea, summary, [tabindex]) {
+  scroll-margin-block-start: calc(var(--ability-tabs-height, 0px) + 0.75rem);
+}
+@media (max-width: 600px) {
+  .abilityTabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+  .abilityTabs button {
+    flex-shrink: 0;
+    min-height: 2.75rem;
+  }
+}
+
+/* Recipient chips stay legible on the Master parchment palette. */
+.effectTarget {
+  color: #65310e;
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+
+.rangeGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+  align-items: start;
+}
+
+@media (max-width: 600px) {
+  .rangeGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.rangeGrid .field :is(input, select) {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 2.5rem;
+  padding: 0.45rem 0.55rem;
+  line-height: 1.3;
+}
+
+/* Media titles stay inside the panel rather than crossing nested fieldset borders. */
+.mediaEditor,
+.mediaUpload[data-media-editor] {
+  display: grid;
+  min-width: 0;
+  gap: 0.5rem;
+}
+
+.mediaUpload[data-media-editor] {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.mediaUpload[data-media-editor] > * {
+  margin: 0;
+}
+
+.mediaHeading,
+.mediaPreviewGrid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  gap: 0.75rem;
+}
+
+.mediaPreviewGrid > div {
+  display: grid;
+  gap: 0.4rem;
+  min-width: 0;
+  width: 8rem;
+  max-width: 100%;
+}
+
+.mediaPreviewGrid p,
+.mediaSound p {
+  margin: 0;
+  color: var(--av-text-muted);
+  font-size: 0.85rem;
+}
+
+.mediaPreviewGrid:empty {
+  display: none;
+}
+
+.mediaUploadDetails {
+  display: grid;
+  min-width: 0;
+  align-content: start;
+  gap: 0.45rem;
+}
+
+.mediaUploadDetails > * {
+  margin: 0;
+}
+
+@media (min-width: 600px) {
+  .mediaUpload[data-media-editor] {
+    grid-template-columns: 8rem minmax(0, 1fr);
+    align-items: start;
+    column-gap: 1rem;
+  }
+
+  .mediaUpload[data-media-editor]:has(.mediaPreviewGrid:empty) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mediaHeading {
+    grid-column: 1 / -1;
+  }
+}
+
+.mediaPreviewGrid img,
+.mediaPreviewGrid canvas {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: contain;
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius-sm);
+  background: var(--av-ink-900);
+}
+
+.mediaUploadControls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.65rem;
+}
+
+.mediaUploadControls > label {
+  flex: 1 1 15rem;
+  min-width: 0;
+}
+
+.mediaUploadControls input[type='file'] {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+}
+
+.mediaUploadControls > button {
+  flex: 0 0 auto;
+}
+
+.mediaHint {
+  color: var(--av-text-dim);
+  font-size: 0.85rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.mediaSound {
+  display: grid;
+  min-width: 0;
+  gap: 0.5rem;
+}
+
+.mediaSound audio {
+  width: 100%;
+  max-width: 24rem;
+  min-width: 0;
+}
+
+.mediaSound > button {
+  justify-self: start;
+}
+
+.mediaEditor .mediaGrid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  gap: 0.65rem;
+  align-items: end;
+}
+
+.mediaEditor .mediaAudioPreview {
+  padding: 0.45rem;
+}
+
+.mediaEditor > button,
+.mediaUpload[data-media-editor] > button {
+  justify-self: start;
+}
+
+.costEditor {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.costGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 7rem));
+  align-items: start;
+  gap: 0.5rem;
+}
+
+.costGrid .field {
+  min-width: 0;
+  align-content: start;
+}
+
+.costGrid .field input {
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.costEditor .fieldHint {
+  margin: 0;
+}
+
+.economyGrid {
+  align-items: start;
+}
+
+.economyGrid > .field {
+  max-width: 15rem;
+  align-content: start;
+}
+
+.groupActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin: 0.4rem 0;
+}
+
+.groupActions button {
+  min-height: 1.8rem;
+  width: auto;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+.usageLimits .typedGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  max-width: 30rem;
+  align-items: start;
+}
+
+.usageLimits label.checkField {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  font-size: 0.75rem;
+}
+
+.usageLimits .checkField input {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+/* Keep effect controls aligned without stretching a row to its longest hint. */
+.effectEditor .typedGrid,
+.effectTuningGrid {
+  align-items: start;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+.effectEditor .field,
+.effectTuningGrid .field {
+  align-content: start;
+  min-width: 0;
+}
+:is(.effectCard, .effectEditor, .effectParameters) .field > span,
+:is(.effectCard, .effectEditor, .effectParameters) .fieldLabel {
+  display: flex;
+  align-items: end;
+  min-height: 2rem;
+}
+:is(.effectCard, .effectEditor, .effectParameters) .field > span,
+:is(.effectCard, .effectEditor, .effectParameters) .field .fieldLabel > label {
+  color: var(--av-text-dim);
+  font: 650 0.66rem/1.25 var(--av-font-body);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+:is(.effectCard, .effectEditor, .effectParameters)
+  .field:has(> input:is([type='number'], [inputmode='decimal'])) {
+  max-width: 12rem;
+}
+:is(.effectCard, .effectEditor, .effectParameters)
+  .field
+  > :is(input:not([type='checkbox']), select) {
+  box-sizing: border-box;
+  min-height: 2.4rem;
+  padding: 0.45rem 0.55rem;
+  font: 400 0.8rem/1.3 var(--av-font-body);
+}
+.effectReference {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+@media (max-width: 600px) {
+  .effectEditor .typedGrid,
+  .effectTuningGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  :is(.effectCard, .effectEditor, .effectParameters)
+    .field
+    > :is(input:not([type='checkbox']), select) {
+    min-height: 2.75rem;
+  }
+}
+
+.effectEditor {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: start;
+  gap: 0.5rem;
+  padding: 0.35rem;
+}
+.effectEditor > .typedGrid,
+.effectEditor > .effectTuningGrid {
+  display: contents;
+}
+.effectEditor > .effectReference,
+.effectEditor > .effectTargetEditor,
+.effectEditor > .effectNote {
+  grid-column: 1 / -1;
+}
+.effectEditor .effectNote {
+  grid-column: 1 / -1;
+  order: 1;
+}
+.effectHeader {
+  padding: 0.4rem 0.5rem;
+}
+.effectActions button {
+  min-height: 2rem;
+  padding: 0.25rem 0.5rem;
+}
+@media (max-width: 1000px) {
+  .effectEditor {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 600px) {
+  .effectEditor {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .effectActions button {
+    min-height: 2.75rem;
+  }
+}
+
+.abilityTabs {
+  gap: 0.4rem;
+  padding-top: 0.55rem;
+  padding-bottom: 0.6rem;
+}
+
+.effectEditor > fieldset.typedGrid {
+  display: grid;
+  grid-column: 1 / -1;
+  min-inline-size: 0;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+}
+.effectEditor > fieldset.typedGrid legend {
+  max-inline-size: 100%;
+  overflow-wrap: anywhere;
+}
+
+.summonSkillBody {
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 0.8rem;
+}
+.summonCoreGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+.summonSection {
+  min-width: 0;
+  padding: 0.6rem;
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius-sm);
+}
+.summonSection > summary {
+  cursor: pointer;
+  color: var(--av-text);
+  font-weight: 650;
+}
+.summonSection[open] > summary {
+  margin-bottom: 0.75rem;
+}
+@media (max-width: 600px) {
+  .summonCoreGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.summonCheckbox {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  align-self: center;
+}
+.summonCheckbox input {
+  flex: 0 0 auto;
+  width: 1rem;
+  height: 1rem;
+}
+
+.summonProfile {
+  display: grid;
+  gap: 0.85rem;
 }

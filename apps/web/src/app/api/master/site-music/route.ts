@@ -69,7 +69,7 @@ export async function POST(request: Request) {
     const actor = await getAuthenticatedActor()
     await createServerMasterPanelStaffAccessService().requireCapability(
       actor.userId,
-      'staff.manage',
+      'music.manage',
     )
 
     let body: unknown
@@ -96,6 +96,9 @@ export async function POST(request: Request) {
 
     let parsedConfig
     try {
+      if (!isRecord(body.config) || body.config.songLibrary === undefined) {
+        return invalid('Refresh Site Music before saving; the complete song library is required.')
+      }
       parsedConfig = parseSiteMusicDraft(body.config)
     } catch (error) {
       return invalid(error instanceof Error ? error.message : 'Music configuration is invalid.')

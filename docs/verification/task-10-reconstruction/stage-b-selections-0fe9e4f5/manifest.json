@@ -1,0 +1,111 @@
+{
+  "local_source": "0fe9e4f5df51c8f52926ac1f3e0f56e41e6ad96e",
+  "remote_source": "35ac86d7db184e8548f21480cc306bc6e84e2a97",
+  "prior_rows_unchanged": 176,
+  "logs": [
+    {
+      "source": "docs/verification/task-10-reconstruction/b-canonical-pair-red.log",
+      "file": "b-canonical-pair-red.log.gz",
+      "bytes": 7040,
+      "sha256": "427ef5db2d66a0b3e82e53d6584fd87011377b0a80a57f64d9329c9a2ea06acf",
+      "gzip_sha256": "7c5cbac42d45d40c36fe5d76af9f5430070760e2fa38db4a44e78b5a583f279c",
+      "exit": 1
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-canonical-pair-initial-green.log",
+      "file": "b-canonical-pair-initial-green.log.gz",
+      "bytes": 2820,
+      "sha256": "52bfc693b89c4a2acd7da08f76be8718e3404e53cda752e9b7d91c1ed24f4467",
+      "gzip_sha256": "0cac7dd3c3fa5da9f43a2b8754d0acd7c4866dbdd645bd59021969c6ddfb7e59",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-current-selection-resolver-red.log",
+      "file": "b-current-selection-resolver-red.log.gz",
+      "bytes": 19412,
+      "sha256": "9411673112bf7937b686e714e6afcbe5e53be6b5db4b49f9452f67513c6074e0",
+      "gzip_sha256": "eed7e07f9bbcab16019fed01a055f0933dcdfb6f2e4fc1fb25f3e5017efe360a",
+      "exit": 1
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-current-selection-resolver-green.log",
+      "file": "b-current-selection-resolver-green.log.gz",
+      "bytes": 1940,
+      "sha256": "179723c492af54849a5e3f6a7c18f1b76fdb6bb4e466dfaf77f2eb21d8cdeb9b",
+      "gzip_sha256": "6ddf359402c50aa398cd352f68ed9a22f919e70b56927b863cf09d614aaf8c97",
+      "exit": 1
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-current-selection-resolver-confirmed-green.log",
+      "file": "b-current-selection-resolver-confirmed-green.log.gz",
+      "bytes": 628,
+      "sha256": "96d0b11114d09fe9fdede4084fd134ee7d066dd2f5eaef5df593af31f774add0",
+      "gzip_sha256": "f29cb0fe62a323d0fe687cbb7a1bf716890a45d611abdbf81f387c6c9fe3dc26",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-canonical-pair-boundary-green.log",
+      "file": "b-canonical-pair-boundary-green.log.gz",
+      "bytes": 3689,
+      "sha256": "b3b74a34a6c89903665c6d6c134554651cb417d43bdbc1a9113432d2698863fb",
+      "gzip_sha256": "1632ffdbdb6af451ea21f6d86a009e67ce2097f9bf2e97dfe3efe043679777b2",
+      "exit": 1
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-canonical-pair-boundary-confirmed-green.log",
+      "file": "b-canonical-pair-boundary-confirmed-green.log.gz",
+      "bytes": 256,
+      "sha256": "e5c8000c78f6d408407d2c6c3686a361502b26d2ec159651b1e66ad7e956900c",
+      "gzip_sha256": "4d73074e4f20d1345631cb6ddd8bad94307c368049beb77a4e989edf09f1bf3e",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-current-selection-format.log",
+      "file": "b-current-selection-format.log.gz",
+      "bytes": 255,
+      "sha256": "d5b524c6d9bc2cdc67d18bda8df349d0927c31964618b863e1b6c24da015794f",
+      "gzip_sha256": "450eab3a07aba525dfb051d840bf4287bf281b14f49ffaf823051b851675220b",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-current-selection-web-types.log",
+      "file": "b-current-selection-web-types.log.gz",
+      "bytes": 90,
+      "sha256": "99d7c2179cdd316467c51f37901025a0753453664d741214ba56fc631fa6c0bc",
+      "gzip_sha256": "e0356247813383c642bcaf9deb204edac049294684227f11c159d094ec0752cb",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-current-selection-db-types.log",
+      "file": "b-current-selection-db-types.log.gz",
+      "bytes": 15,
+      "sha256": "8366207267355d3e3d5bf3bf6e8c94c5f93f6078c34f08973fa2b38cdda6cc92",
+      "gzip_sha256": "67be5567bde7f0f4c1fd5e775e918562bc1f228a849614e4ad48b4172e907169",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-current-selection-web-lint.log",
+      "file": "b-current-selection-web-lint.log.gz",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip_sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-current-selection-db-lint.log",
+      "file": "b-current-selection-db-lint.log.gz",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip_sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-current-selection-style.log",
+      "file": "b-current-selection-style.log.gz",
+      "bytes": 66,
+      "sha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20",
+      "gzip_sha256": "710c63d8d40d5688a62c3b08053dd1971c4e4ee87b2297f3f20c2540d22cd94e",
+      "exit": 0
+    }
+  ]
+}

@@ -1,5 +1,20 @@
+import { CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS } from './combat-effect-percentages'
+import { isGeneratedCombatCompanionLink } from './combat-generated-companion-links'
+import { validateIndependentPercentageDotDamageSources } from './combat-percentage-dots'
+import { validateCombatRemovalSelection } from './combat-status-selection'
+import { validateAttackTagAction } from './combat-attack-tags'
+import { validateCombatEndureEffect } from './combat-endure'
+import { validateCombatReversalPayload } from './combat-reversal'
+import { validateCombatEffectTarget } from './combat-effect-recipients'
+import { validateCombatGroundAreaDefinition } from './combat-ground-areas'
+import {
+  validateCurrentAreaTargetRecipients,
+  validateVersionedCombatTargetSpec,
+} from './combat-targeting-shapes'
+import { assertCurrentCombatStatusId } from './retired-combat-statuses'
 import { validateCombatStatusCopyAction } from './combat-status-copy'
 import { validateCombatAccuracyDefinition } from './combat-skill-accuracy'
+import { validateCombatCounterEffect } from './combat-counter'
 import { validateVengeanceActionDefinition } from './combat-vengeance'
 import { validateBarrierEffect } from './combat-barrier'
 import { validateRecoveryEffect } from './combat-recovery'
@@ -14,6 +29,7 @@ import { validateCsrActionDefinition } from './covert-sensory-revealed'
 import type {
   CombatActionDefinition,
   CombatContentCatalog,
+  CombatEffectDefinition,
   CombatStatusDefinition,
 } from './actions'
 import { validateCombatDamageScaling } from './damage-scaling'
@@ -27,11 +43,17 @@ export function validateCombatActionDefinition(
   action: CombatActionDefinition,
   content?: CombatContentCatalog,
 ): void {
-  const copyEffects = action.effects.filter((effect) => effect.type === 'copy')
-  if (copyEffects.length > 1) {
-    throw new TypeError('A combat action may contain at most one Copy effect.')
-  }
-  validateCombatStatusCopyAction(action)
+  if (
+    Object.hasOwn(action, 'nativeBasicAttackCommand') ||
+    Object.hasOwn(action, 'equipmentBasicAttackCommand')
+  )
+    throw new TypeError('private-native-basic-command-not-authored')
+  validateAttackTagAction(action)
+  validateIndependentPercentageDotDamageSources(action.effects)
+  validateCombatGroundAreaDefinition(action)
+  validateVersionedCombatTargetSpec(action.target)
+  validateCurrentAreaTargetRecipients(action)
+  validateCombatStatusCopyAction(action, content)
   validateVengeanceActionDefinition(action)
   validateCsrActionDefinition(action)
   validateGameplayActionMetadata(action)
@@ -57,7 +79,19 @@ export function validateCombatActionDefinition(
     ['enemies-only', 'allies-only', 'all-units', 'all-except-actor'],
     'friendly-fire policy',
   )
-  knownString(action.target.shape.kind, ['single', 'circle', 'line'], 'target shape kind')
+  knownString(action.target.shape.kind, ['single', 'circle', 'line', 'all'], 'target shape kind')
+  if (
+    action.target.geometryVersion !== undefined &&
+    action.target.geometryVersion !== 2 &&
+    action.target.geometryVersion !== 3
+  )
+    throw new TypeError('Invalid geometry version.')
+  if (
+    action.target.shape.kind === 'all' &&
+    action.target.geometryVersion !== 2 &&
+    action.target.geometryVersion !== 3
+  )
+    throw new TypeError('All requires geometry version 2.')
   boolean(action.target.requiresLineOfSight, 'requiresLineOfSight')
   boolean(action.cost.spendsAction, 'spendsAction')
   nonNegativeSafeInteger(action.target.minimumRange, 'minimum range')
@@ -75,6 +109,7 @@ export function validateCombatActionDefinition(
     positiveSafeInteger(action.target.shape.length, 'line length')
   }
   nonNegativeSafeInteger(action.cost.mp, 'MP cost')
+  if (action.cost.hp !== undefined) nonNegativeSafeInteger(action.cost.hp, 'HP cost')
 
   validateCombatAccuracyDefinition(action)
 
@@ -101,6 +136,7 @@ export function validateCombatActionDefinition(
     )
     if ('statusId' in requirement) {
       requiredIdentity(requirement.statusId, 'requirement status ID')
+      assertCurrentCombatStatusId(requirement.statusId)
       if (content) statusById(content, requirement.statusId)
     }
     if ('tag' in requirement) validateGameplayTag(requirement.tag)
@@ -109,14 +145,36 @@ export function validateCombatActionDefinition(
     }
   }
 
+  const reversals = action.effects.filter((effect) => effect.type === 'reversal')
+  if (
+    reversals.length &&
+    (reversals.length !== 1 ||
+      action.target.kind !== 'self' ||
+      action.tags.includes('attack') ||
+      action.effects.some((effect) => ['damage', 'poison', 'burn', 'bleed'].includes(effect.type)))
+  )
+    throw new TypeError('Reversal requires a Self utility preparation without offensive packets.')
   for (const effect of action.effects) {
+    if (effect.type === 'reversal') {
+      validateCombatReversalPayload(effect)
+      continue
+    }
+    if (effect.authoringLink !== undefined && !isGeneratedCombatCompanionLink(effect.authoringLink))
+      throw new TypeError('Invalid generated companion link.')
+    validateCombatCounterEffect(effect)
+    validateCombatEndureEffect(effect)
+    validateCombatEffectTarget(effect, action.target)
     validateRecoveryEffect(effect)
     validateBarrierEffect(effect)
     knownString(
       effect.type,
       [
+        'weak-point',
+        'spike',
+        'ruin',
         'damage',
         'healing',
+        'percentage-recovery',
         'resource-change',
         'apply-status',
         'remove-status',
@@ -128,26 +186,14 @@ export function validateCombatActionDefinition(
         'burn',
         'barrier-change',
         'copy-statuses',
-        'copy',
         'sensory',
+        'loot',
+        'endure',
       ],
       'effect type',
     )
 
     if (effect.type === 'create-terrain') continue
-
-    if (effect.type === 'copy') {
-      if (
-        effect.recipient !== 'primary-unit' ||
-        (action.target.kind !== 'unit' && action.target.kind !== 'ground-tile') ||
-        action.target.teamPolicy === 'self'
-      ) {
-        throw new TypeError(
-          'Copy requires a selected non-self unit or an occupied ground tile as its Skill source.',
-        )
-      }
-      continue
-    }
 
     if (effect.type === 'displace' && content) statusById(content, 'displaced')
 
@@ -171,9 +217,7 @@ export function validateCombatActionDefinition(
       knownString(effect.defenseKind, ['armor', 'ward'], 'damage defense kind')
     }
     if (effect.type === 'damage' && effect.facingModifiersBasisPoints) {
-      basisPoints(effect.facingModifiersBasisPoints.front, 'front damage modifier', 22_000)
-      basisPoints(effect.facingModifiersBasisPoints.side, 'side damage modifier', 22_000)
-      basisPoints(effect.facingModifiersBasisPoints.rear, 'rear damage modifier', 22_000)
+      validateCombatDamageFacingModifiers(effect.facingModifiersBasisPoints)
     }
     if (effect.type === 'resource-change') {
       knownString(effect.resource, ['mp'], 'effect resource')
@@ -182,27 +226,40 @@ export function validateCombatActionDefinition(
       }
     }
     if (effect.type === 'remove-status') {
+      validateCombatRemovalSelection(effect)
+      if (
+        effect.removalMode !== undefined &&
+        !['specified', 'all-debuffs'].includes(effect.removalMode)
+      )
+        throw new TypeError('Unsupported status removal mode.')
       if (
         !Array.isArray(effect.statusIds) ||
         effect.statusIds.length < 1 ||
-        effect.statusIds.length > 16 ||
+        effect.statusIds.length > 32 ||
         new Set(effect.statusIds).size !== effect.statusIds.length
       ) {
-        throw new TypeError('Status removal requires one to sixteen distinct IDs.')
+        throw new TypeError('Status removal requires one to thirty-two distinct IDs.')
       }
       for (const id of effect.statusIds) {
         requiredIdentity(id, 'removed status ID')
+        assertCurrentCombatStatusId(id)
         if (content) statusById(content, id)
       }
     }
     if (
       effect.type === 'return-to-turn-start' &&
-      (effect.recipient !== 'actor' || action.target.kind !== 'self')
+      !(
+        effect.target !== undefined &&
+        effect.anchorMode === 'cast-position' &&
+        effect.recipient !== 'actor'
+      ) &&
+      (effect.recipient !== 'actor' || (effect.target !== 'self' && action.target.kind !== 'self'))
     ) {
       throw new TypeError('Rewind is a self-only effect.')
     }
     if (effect.type === 'apply-status') {
       requiredIdentity(effect.statusId, 'effect status ID')
+      assertCurrentCombatStatusId(effect.statusId)
       positiveSafeInteger(effect.stacks, 'effect status stacks')
       if (content) statusById(content, effect.statusId)
       validateBleedAuthoring(effect)
@@ -210,13 +267,28 @@ export function validateCombatActionDefinition(
   }
 }
 
+export function validateCombatDamageFacingModifiers(
+  modifiers: NonNullable<
+    Extract<CombatEffectDefinition, { type: 'damage' }>['facingModifiersBasisPoints']
+  >,
+): void {
+  basisPoints(modifiers.front, 'front damage modifier', CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS)
+  basisPoints(modifiers.side, 'side damage modifier', CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS)
+  basisPoints(modifiers.rear, 'rear damage modifier', CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS)
+}
+
 export function validateCombatStatusDefinition(status: CombatStatusDefinition): void {
   validateCombatAccuracyStatusDefinition(status)
   requiredIdentity(status.id, 'status id')
+  assertCurrentCombatStatusId(status.id)
   positiveSafeInteger(status.version, 'status version')
   positiveSafeInteger(status.maximumStacks, 'status maximum stacks')
   positiveSafeInteger(status.durationOwnerTurnStarts, 'status duration')
-  basisPoints(status.damageTakenMultiplierBasisPoints, 'damage taken multiplier', 25_000)
+  basisPoints(
+    status.damageTakenMultiplierBasisPoints,
+    'damage taken multiplier',
+    CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS,
+  )
   validateDamageModifiers(status.damageModifiers)
 
   if (status.polarity !== undefined) {
@@ -240,7 +312,7 @@ export function validateCombatStatusDefinition(status: CombatStatusDefinition): 
     boundedPositiveSafeInteger(
       status.absorbHpBasisPoints,
       1,
-      COMBAT_BASIS_POINTS,
+      CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS,
       'Absorb HP basis points',
     )
     if (status.polarity !== 'positive' || status.reactionClass !== 'reactive') {
@@ -252,7 +324,7 @@ export function validateCombatStatusDefinition(status: CombatStatusDefinition): 
     boundedPositiveSafeInteger(
       status.absorbMpBasisPoints,
       1,
-      COMBAT_BASIS_POINTS,
+      CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS,
       'Absorb MP basis points',
     )
     if (status.polarity !== 'positive' || status.reactionClass !== 'reactive') {
@@ -264,7 +336,7 @@ export function validateCombatStatusDefinition(status: CombatStatusDefinition): 
     boundedPositiveSafeInteger(
       status.reflectBasisPoints,
       1,
-      COMBAT_BASIS_POINTS,
+      CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS,
       'Reflect basis points',
     )
     if (status.polarity !== 'positive' || status.reactionClass !== 'reactive') {
@@ -297,19 +369,6 @@ export function validateCombatStatusDefinition(status: CombatStatusDefinition): 
 
   if (status.damageModifiers?.length && status.maximumStacks !== 1) {
     throw new TypeError('Conditional damage statuses must be single-stack.')
-  }
-
-  if (
-    status.nextRoundInitiative !== undefined &&
-    (!Number.isSafeInteger(status.nextRoundInitiative) ||
-      Math.abs(status.nextRoundInitiative) > 40 ||
-      status.nextRoundInitiative === 0 ||
-      status.maximumStacks !== 1 ||
-      status.endOfTurn)
-  ) {
-    throw new RangeError(
-      'Round initiative status must be single-stack, non-periodic and bounded to +/-40.',
-    )
   }
 
   if (status.endOfTurn) {

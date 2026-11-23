@@ -47,7 +47,12 @@ export interface BattleEventCursor {
 }
 
 export type BattlePrivacyVisibility =
-  { readonly kind: 'public' } | { readonly kind: 'team-only'; readonly teamId: string }
+  | { readonly kind: 'public' }
+  | {
+      readonly kind: 'team-only'
+      readonly teamId: string
+      readonly requiredTeamIds?: readonly string[]
+    }
 
 export interface BattlePrivacyEventOverride {
   readonly eventIndex: number
@@ -72,6 +77,12 @@ export interface CreateBattleSessionInput extends BattleIdempotentInput {
   rulesVersion: number
   contentVersion: number
   initialSnapshot: unknown
+  /** Server-only startup transaction; omitted preserves the historical creation RPC. */
+  startup?: {
+    startSnapshot: unknown
+    events: readonly unknown[]
+    privacyJournal: BattlePrivacyJournalInput
+  }
   participants: readonly BattleParticipantInput[]
 }
 
@@ -88,6 +99,10 @@ export interface CommitBattleIntentInput extends FindBattleIntentReplayInput {
 }
 
 export interface BattleSessionRepository {
+  /** Existing creation receipt; fresh creation remains transactional in createBattleSession. */
+  findBattleCreationReplay?(
+    input: BattleIdempotentInput & { userId: string },
+  ): Promise<BattleSessionCreationRecord | null>
   createBattleSession(
     input: CreateBattleSessionInput,
   ): Promise<TransactionalCommandResult<BattleSessionCreationRecord>>

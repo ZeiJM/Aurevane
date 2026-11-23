@@ -1,10 +1,41 @@
 import { GRID_HEIGHT, GRID_WIDTH, START_POSITION, STEP_MS } from './catalog'
+import { isWildSectorId } from './wild-ids'
 import type { TravelStep, WorldObjective, WorldPosition, WorldSector, WorldState } from './types'
+import { terrainWalkable } from './terrain'
+import { wrappedMapDistance } from './topology'
 
-export const ACTIVE_WORLD_SYNC_MS = 1200
+export const ACTIVE_WORLD_SYNC_MS = 600
 export const IDLE_WORLD_SYNC_MS = 10000
-export function worldSyncIntervalMs(state: { routeLength: number; movementBlocked: boolean }) {
-  return state.routeLength > 0 && !state.movementBlocked ? ACTIVE_WORLD_SYNC_MS : IDLE_WORLD_SYNC_MS
+export function worldSyncDelayMs(state: {
+  routeLength: number
+  movementBlocked: boolean
+  nextStepAt: number | null
+  serverNow: number
+  /** Real milliseconds until the last step lands, when known. */
+  remainingMs?: number
+  /** Approved loaded-terrain horizon; request the next scene before it is exhausted. */
+  loadedRemainingMs?: number
+  /** Foreground local-map observers still need to see other travellers move. */
+  observePlayers?: boolean
+  onlinePlayers?: number
+}) {
+  if (state.routeLength > 0 && !state.movementBlocked) {
+    const loadedDelay = Number.isFinite(state.loadedRemainingMs)
+      ? Math.max(0, state.loadedRemainingMs! - ACTIVE_WORLD_SYNC_MS)
+      : Infinity
+    if (state.nextStepAt !== null) {
+      // The client previews due steps itself, so the server only needs a confirmation every
+      // so often (and exactly on arrival), which keeps requests from queueing behind each other.
+      const untilNext = Math.max(0, state.nextStepAt - state.serverNow)
+      const untilArrival = state.remainingMs ?? ACTIVE_WORLD_SYNC_MS
+      return Math.min(
+        loadedDelay,
+        Math.max(untilNext, Math.min(ACTIVE_WORLD_SYNC_MS, untilArrival)),
+      )
+    }
+    return Math.min(loadedDelay, ACTIVE_WORLD_SYNC_MS)
+  }
+  return state.observePlayers ? ((state.onlinePlayers ?? 0) > 0 ? 1000 : 2000) : IDLE_WORLD_SYNC_MS
 }
 
 export const positionKey = (p: WorldPosition) => `${p.sectorId}:${p.x}:${p.y}`
@@ -25,10 +56,14 @@ export function cellCenter(p: { x: number; y: number }) {
   return { x: (p.x + 0.5) / GRID_WIDTH, y: (p.y + 0.5) / GRID_HEIGHT }
 }
 export function isWalkable(sector: WorldSector, p: { x: number; y: number }) {
-  return validCell(p) && ['.', '=', 's'].includes(sector.rows[p.y]?.[p.x] ?? '#')
+  return validCell(p) && terrainWalkable(sector.rows[p.y]?.[p.x] ?? '#')
 }
 export function isSafe(sector: WorldSector, p: { x: number; y: number }) {
-  return validCell(p) && sector.rows[p.y]?.[p.x] === 's'
+  return (
+    validCell(p) &&
+    (sector.rows[p.y]?.[p.x] === 's' ||
+      Boolean(sector.townId && (sector.id !== sector.townId || p.x < 10) && isWalkable(sector, p)))
+  )
 }
 export function canAutoPath(objective: Pick<WorldObjective, 'kind' | 'autoPath' | 'guidance'>) {
   return objective.autoPath && objective.guidance === 'exact'
@@ -40,12 +75,56 @@ export function newWorldState(): WorldState {
     route: [],
     nextStepAt: null,
     discoveries: {},
+    discoveredAnchors: [],
     completedObjectives: [],
     objectiveProgress: {},
   }
 }
 
-/** Bounded Dijkstra search: ordinary cells plus explicitly authored regional roads. */
+const MAX_ROUTE_SEARCH = 90000
+const MAX_ROUTE_STEPS = 1500
+/** Existing database constraint. Long journeys replenish this window while moving. */
+export const MAX_PERSISTED_ROUTE_STEPS = 256
+class MinHeap<T> {
+  private items: T[] = []
+  constructor(private readonly less: (a: T, b: T) => number) {}
+  get size() {
+    return this.items.length
+  }
+  push(item: T) {
+    const a = this.items
+    a.push(item)
+    let i = a.length - 1
+    while (i > 0) {
+      const parent = (i - 1) >> 1
+      if (this.less(a[i]!, a[parent]!) >= 0) break
+      ;[a[i], a[parent]] = [a[parent]!, a[i]!]
+      i = parent
+    }
+  }
+  pop(): T | undefined {
+    const a = this.items
+    if (!a.length) return undefined
+    const top = a[0]!
+    const last = a.pop()!
+    if (a.length) {
+      a[0] = last
+      let i = 0
+      for (;;) {
+        const l = 2 * i + 1,
+          r = l + 1
+        let m = i
+        if (l < a.length && this.less(a[l]!, a[m]!) < 0) m = l
+        if (r < a.length && this.less(a[r]!, a[m]!) < 0) m = r
+        if (m === i) break
+        ;[a[i], a[m]] = [a[m]!, a[i]!]
+        i = m
+      }
+    }
+    return top
+  }
+}
+/** Bounded A* search with Dijkstra fallback for non-geographic or faster historical roads. */
 export function findWorldRoute(
   from: WorldPosition,
   to: WorldPosition,
@@ -53,15 +132,105 @@ export function findWorldRoute(
   known?: (p: WorldPosition) => boolean,
 ): TravelStep[] | null {
   const lookup = new Map(sectors.map((s) => [s.id, s]))
+  // Discovered compatibility/frontier sectors may have only a return road into
+  // the atlas. They cannot affect a journey that cannot enter them, and must
+  // not disable its geographic lower bound or exhaust a world-wide flood.
+  const reachable = new Set([from.sectorId]),
+    pending = [from.sectorId]
+  for (let index = 0; index < pending.length; index++) {
+    const source = lookup.get(pending[index]!)
+    for (const road of source?.roads ?? []) {
+      const id = road.to.sectorId
+      if (!lookup.has(id) || reachable.has(id)) continue
+      reachable.add(id)
+      pending.push(id)
+    }
+  }
+  if (!reachable.has(to.sectorId)) return null
+  const connected = sectors.filter((sector) => reachable.has(sector.id))
   const target = lookup.get(to.sectorId)
   if (!target || !isWalkable(target, to) || (known && !known(to))) return null
-  const queue = [{ position: from, cost: 0 }]
+  // Atlas and private-realm routes both have adjacent geometry and uniform lower-bounded costs;
+  // their Manhattan estimates keep a continental journey from becoming a world-wide flood.
+  // Historical portal/trail graphs fall back to Dijkstra rather than assuming geometry they
+  // don't have. Private scene coordinates stay server-side and are never projected by this.
+  const atlasOnly = connected.every(
+    (s) =>
+      s.atlasColumn !== undefined &&
+      s.atlasRow !== undefined &&
+      (s.stepMs ?? STEP_MS) >= STEP_MS &&
+      s.roads.every((road) => {
+        const target = lookup.get(road.to.sectorId)
+        return (
+          !target ||
+          (target.atlasColumn !== undefined &&
+            target.atlasRow !== undefined &&
+            wrappedMapDistance(
+              s.atlasColumn! * GRID_WIDTH + road.from.x,
+              s.atlasRow! * GRID_HEIGHT + road.from.y,
+              target.atlasColumn * GRID_WIDTH + road.to.x,
+              target.atlasRow * GRID_HEIGHT + road.to.y,
+            ) === 1 &&
+            road.durationMs >= STEP_MS)
+        )
+      }),
+  )
+  const targetX = (target.atlasColumn ?? 0) * GRID_WIDTH + to.x,
+    targetY = (target.atlasRow ?? 0) * GRID_HEIGHT + to.y
+  const sceneOnly = connected.every(
+    (s) =>
+      s.sceneColumn !== undefined &&
+      s.sceneRow !== undefined &&
+      (s.stepMs ?? STEP_MS) >= STEP_MS &&
+      s.roads.every((road) => {
+        const next = lookup.get(road.to.sectorId)
+        return (
+          !next ||
+          (next.sceneColumn !== undefined &&
+            next.sceneRow !== undefined &&
+            Math.abs(
+              s.sceneColumn! * GRID_WIDTH +
+                road.from.x -
+                (next.sceneColumn * GRID_WIDTH + road.to.x),
+            ) +
+              Math.abs(
+                s.sceneRow! * GRID_HEIGHT + road.from.y - (next.sceneRow * GRID_HEIGHT + road.to.y),
+              ) ===
+              1 &&
+            road.durationMs >= STEP_MS)
+        )
+      }),
+  )
+  const sceneTargetX = (target.sceneColumn ?? 0) * GRID_WIDTH + to.x,
+    sceneTargetY = (target.sceneRow ?? 0) * GRID_HEIGHT + to.y
+  const estimate = (p: WorldPosition) => {
+    const sector = lookup.get(p.sectorId)!
+    if (atlasOnly)
+      return (
+        wrappedMapDistance(
+          sector.atlasColumn! * GRID_WIDTH + p.x,
+          sector.atlasRow! * GRID_HEIGHT + p.y,
+          targetX,
+          targetY,
+        ) * STEP_MS
+      )
+    if (sceneOnly)
+      return (
+        (Math.abs(sector.sceneColumn! * GRID_WIDTH + p.x - sceneTargetX) +
+          Math.abs(sector.sceneRow! * GRID_HEIGHT + p.y - sceneTargetY)) *
+        STEP_MS
+      )
+    return 0
+  }
+  const queue = new MinHeap<{ position: WorldPosition; cost: number; score: number }>(
+    (a, b) => a.score - b.score || b.cost - a.cost,
+  )
+  queue.push({ position: from, cost: 0, score: estimate(from) })
   const costs = new Map([[positionKey(from), 0]])
   const prior = new Map<string, { from: WorldPosition; step: TravelStep }>()
   let found = false
-  for (let count = 0; queue.length && count < 1500; count++) {
-    queue.sort((a, b) => a.cost - b.cost)
-    const current = queue.shift()!
+  for (let count = 0; queue.size && count < MAX_ROUTE_SEARCH; count++) {
+    const current = queue.pop()!
     if (current.cost !== costs.get(positionKey(current.position))) continue
     if (samePosition(current.position, to)) {
       found = true
@@ -90,7 +259,7 @@ export function findWorldRoute(
       if (cost >= (costs.get(key) ?? Infinity)) continue
       costs.set(key, cost)
       prior.set(key, { from: current.position, step })
-      queue.push({ position: step.position, cost })
+      queue.push({ position: step.position, cost, score: cost + estimate(step.position) })
     }
   }
   if (!found) return null
@@ -98,20 +267,43 @@ export function findWorldRoute(
   let cursor = to
   while (!samePosition(cursor, from)) {
     const previous = prior.get(positionKey(cursor))
-    if (!previous || result.length >= 256) return null
+    if (!previous || result.length >= MAX_ROUTE_STEPS) return null
     result.unshift(previous.step)
     cursor = previous.from
   }
   return result
 }
+/**
+ * A tick that arrives within this lag of its due time keeps the original schedule, so network
+ * round trips never slow walking below the authored pace. A tick later than this (a suspended or
+ * absent client) advances one step and reschedules from now: there is never offline catch-up.
+ */
+export const MOVEMENT_LAG_ALLOWANCE_MS = 8000
+export const MAX_STEPS_PER_TICK = 40
 export function advanceWorldRoute(state: WorldState, now: number): WorldState {
   if (!state.route.length || state.nextStepAt === null || now < state.nextStepAt) return state
-  const [step, ...route] = state.route
+  const route = [...state.route]
+  const first = route.shift()!
+  let position = first.position
+  if (now - state.nextStepAt > MOVEMENT_LAG_ALLOWANCE_MS)
+    return {
+      ...state,
+      position,
+      route,
+      nextStepAt: route[0] ? now + route[0].durationMs : null,
+    }
+  let anchor = state.nextStepAt
+  for (let taken = 1; route.length && taken < MAX_STEPS_PER_TICK; taken++) {
+    const due = anchor + route[0]!.durationMs
+    if (due > now) break
+    anchor = due
+    position = route.shift()!.position
+  }
   return {
     ...state,
-    position: step!.position,
+    position,
     route,
-    nextStepAt: route[0] ? now + route[0].durationMs : null,
+    nextStepAt: route[0] ? anchor + route[0].durationMs : null,
   }
 }
 /** Saved routes must still match the authored topology and movement costs after a content update. */
@@ -153,6 +345,8 @@ export function remainingTravelMs(state: Pick<WorldState, 'route' | 'nextStepAt'
 export function revealNearby(state: WorldState): WorldState {
   const p = state.position
   const cells = new Set(state.discoveries[p.sectorId] ?? [])
+  // Generated wilds reveal whole as they are entered; authored ground is surveyed around you.
+  if (isWildSectorId(p.sectorId)) for (let i = 0; i < GRID_WIDTH * GRID_HEIGHT; i++) cells.add(i)
   for (let y = p.y - 2; y <= p.y + 2; y++)
     for (let x = p.x - 2; x <= p.x + 2; x++) if (validCell({ x, y })) cells.add(y * GRID_WIDTH + x)
   return {

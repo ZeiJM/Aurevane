@@ -1,0 +1,40 @@
+name: Combat and mobile layout regressions
+
+on:
+  pull_request:
+    paths:
+      - 'apps/web/src/components/battle/**'
+      - 'apps/web/src/components/character/character-*-build-panel*'
+      - 'apps/web/src/components/shell/**'
+      - 'apps/web/scripts/*browser-regression.mjs'
+      - '.github/workflows/combat-mobile-regressions.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: combat-mobile-regressions-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mobile-regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install locked dependencies and Chromium
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+          pnpm install --frozen-lockfile
+          printf '%s\n' 'https://archive.ubuntu.com/ubuntu/' | sudo tee /etc/apt/apt-mirrors.txt >/dev/null
+          pnpm --filter @aurevane/web exec playwright install --with-deps chromium
+      - name: Verify management layout and controls
+        run: pnpm --filter @aurevane/web exec node scripts/management-mobile-browser-regression.mjs
+      - name: Verify all four Battle Hall pages
+        run: pnpm --filter @aurevane/web exec node scripts/battle-launch-browser-regression.mjs
+      - name: Verify fixed battle frame and collapsible Chronicle across modes
+        run: pnpm --filter @aurevane/web exec node scripts/battle-mobile-panel-browser-regression.mjs

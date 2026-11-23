@@ -28,10 +28,11 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
   await page.getByRole('button', { name: 'Account' }).click()
   await page.getByRole('menuitem', { name: 'Controls & Keybinds' }).click()
   await expect(page).toHaveURL(/\/game\/settings\/controls$/)
-  await page.getByRole('button', { name: 'Change Movement Skill keybind' }).click()
-  await page.keyboard.press('m')
-  await expect(page.getByTestId('keybind-move')).toContainText('M')
-  await expect(page.getByTestId('keybind-recover')).toContainText('5')
+  await page.getByRole('button', { name: 'Change Move keybind' }).click()
+  // M now belongs to Modifiers; exercise an unassigned custom Move chord.
+  await page.keyboard.press('q')
+  await expect(page.getByTestId('keybind-move')).toContainText('Q')
+  await expect(page.getByTestId('keybind-recover')).toContainText('R')
   await page.getByRole('button', { name: 'Save Controls' }).click()
   await expect(page.getByRole('status')).toContainText('Combat controls saved to your account.')
 
@@ -41,22 +42,23 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
     join auth.users account on account.id = profile.user_id
     where account.email = '${escapeSqlLiteral(email)}';
   `)
-  expect(persistedMoveKey).toBe('KeyM')
+  expect(persistedMoveKey).toBe('KeyQ')
 
   await page
     .getByRole('navigation', { name: 'Primary game navigation', exact: true })
-    .getByRole('link', { name: 'Character', exact: true })
+    .getByRole('link', { name: 'Profile', exact: true })
     .click()
   await expect(page).toHaveURL(/\/game\/character$/)
   await page
     .getByRole('navigation', { name: 'Primary game navigation', exact: true })
-    .getByRole('link', { name: /Battle Hall/ })
+    .getByRole('link', { name: /Arena/ })
     .click()
   await expect(page).toHaveURL(/\/game\/battle$/)
 
   await expect(page.getByRole('heading', { name: 'Choose your arena.' })).toBeVisible()
 
-  await page.getByRole('button', { name: 'Player vs Player' }).click()
+  await page.getByRole('button', { name: 'PVP', exact: true }).click()
+  await page.getByRole('button', { name: 'Create Lobby', exact: true }).click()
   const pvpMode = page.getByLabel('Battle format')
   const pvpSummary = page
     .locator('article[data-pvp-create-card] p')
@@ -73,7 +75,11 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
   await pvpMode.selectOption('1v1')
   await expect(pvpSummary).toContainText('Two combatants · one per side')
 
-  await page.getByRole('button', { name: 'AI Battles' }).click()
+  await page
+    .getByRole('dialog', { name: 'Create Lobby' })
+    .getByRole('button', { name: 'Close' })
+    .click()
+  await page.getByRole('button', { name: 'Sparring Yard' }).click()
   const battleMode = page.getByLabel('Battle mode')
   await expect(battleMode).toHaveValue('recruit-sparring')
   await expect(page.getByRole('button', { name: 'Enter Battle' })).toBeEnabled()
@@ -92,51 +98,133 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
   await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
   const battlefield = page.getByRole('region', { name: 'Tactical battlefield' })
   const commandDeck = page.getByRole('region', { name: 'Command Deck' })
-  const commandContext = commandDeck.locator(':scope > div').first()
+  const commandContext = page.locator('[data-battle-preview-strip]')
   await expect(battlefield).toBeVisible()
-  await expectVictoryConditionsBesideMapKey(page)
+  await expectVictoryConditionsAndTerrainKey(page)
   await expect(
     page.getByRole('button', { name: new RegExp(`Tile 2, 4;.*occupied by ${characterName}`) }),
   ).toBeVisible()
-  await expect(page.getByRole('button', { name: /Tile 8, 4;.*occupied by Recruit/ })).toBeVisible()
+  // The new Initiative curve can give the Recruit the opening turn.
+  // Check its committed position after the automatic handoff, not its spawn.
+  await expect(page.locator('main[data-unified-battle="true"]')).toHaveAttribute(
+    'data-local-turn',
+    'true',
+  )
+  const sessionId = new URL(page.url()).pathname.split('/').at(-1)!
+  const current = await page.request.get(`/api/battles/${sessionId}`)
+  expect(current.status()).toBe(200)
+  const battle: import('../src/server/battle/battle-session-service').BattleSessionView = (
+    await current.json()
+  ).battle
+  const opponent = battle.snapshot.tactical.battle.combatants.find(
+    (unit) => unit.teamId === 'opponents',
+  )!
+  const position = battle.snapshot.tactical.placements.find(
+    (unit) => unit.combatantId === opponent.id,
+  )!.position
   await expect(
-    page.getByRole('button', { name: /Tile 4, 3; rough-ground; elevation 0/ }),
+    page.getByRole('button', {
+      name: new RegExp(`Tile ${position.x + 1}, ${position.y + 1};.*occupied by Recruit`),
+    }),
   ).toBeVisible()
-  await expect(
-    page.getByRole('button', { name: /Tile 5, 2; open-ground; elevation 1/ }),
-  ).toBeVisible()
+  // Standard maps vary; inspect actual terrain instead of restoring historical fixed tiles.
+  const roughGround = page
+    .getByRole('button', { name: /^Tile \d+, \d+; rough-ground; elevation 0/ })
+    .first()
+  await expect(roughGround).toBeVisible()
+  const raisedTiles = battlefield.locator('button[data-elevation]')
+  expect(await raisedTiles.count()).toBeGreaterThanOrEqual(2)
+  const raisedPositions = await raisedTiles.evaluateAll((tiles) =>
+    tiles.map((tile) => {
+      const match = tile.getAttribute('aria-label')!.match(/^Tile (\d+), (\d+);/)
+      return { x: Number(match![1]), y: Number(match![2]) }
+    }),
+  )
+  for (const position of raisedPositions) {
+    expect(
+      raisedPositions.some(
+        (neighbor) => Math.abs(neighbor.x - position.x) + Math.abs(neighbor.y - position.y) === 1,
+      ),
+    ).toBe(true)
+  }
+  expect(
+    await battlefield.locator('button[data-terrain="open"]:not([data-elevation])').count(),
+  ).toBeGreaterThan(63 * 0.7)
   await expect(page.getByRole('button', { name: /^Tile / })).toHaveCount(63)
   await expect(page.getByRole('progressbar', { name: 'Action Economy remaining' })).toHaveAttribute(
     'aria-valuenow',
     '100',
   )
-  await expect(commandDeck.getByRole('button', { name: /^Move,/ })).toContainText('M · WASD')
-  await expect(commandDeck.locator('button[data-battle-command="attack"]')).toContainText('3')
-  await expect(commandDeck.locator('button[data-battle-command="guard"]')).toContainText('4')
-  await expect(commandDeck.locator('button[data-battle-command="recover"]')).toContainText('5')
+  await expect(commandDeck.locator('[data-command-card="move"]')).toContainText('Q')
+  await expect(commandDeck.locator('[data-command-card="attack"]')).toContainText('2')
+  await expect(commandDeck.locator('[data-command-card="guard"]')).toContainText('3')
+  await expect(page.locator('[data-battle-secondary-actions]')).toHaveCount(0)
+  const footerBox = await page.locator('[data-unified-battle-footer]').boundingBox()
+  const surrenderBox = await page
+    .getByRole('button', { name: 'Surrender', exact: true })
+    .boundingBox()
+  expect(footerBox).not.toBeNull()
+  expect(surrenderBox).not.toBeNull()
+  if (footerBox && surrenderBox) {
+    const rightInset = footerBox.x + footerBox.width - (surrenderBox.x + surrenderBox.width)
+    expect(rightInset).toBeGreaterThanOrEqual(0)
+    expect(rightInset).toBeLessThanOrEqual(24)
+  }
   expect(await hasHorizontalOverflow(page)).toBe(false)
   if (testInfo.project.name !== 'mobile-chromium') {
     expect(await hasVerticalPageOverflow(page)).toBe(false)
   }
 
-  await page.keyboard.press('m')
-  await expect(commandContext).toContainText('Move · 20 AP per normal tile')
-  await expect(commandContext).toContainText('Rough ground costs 40 AP')
+  await page.keyboard.press('q')
+  await expect(commandContext).toContainText('Move')
 
   const beforeKeyboardMove = page.getByRole('button', {
     name: new RegExp(`Tile 2, 4;.*occupied by ${characterName}`),
   })
   await expect(beforeKeyboardMove).toBeVisible()
   await page.keyboard.press('ArrowRight')
-  await expect(commandContext).toContainText('20 AP')
-  await expect(commandContext).toContainText('80 AP left')
+  await expect(page.getByRole('progressbar', { name: 'Action Economy remaining' })).toHaveAttribute(
+    'aria-valuenow',
+    '80',
+  )
   await page.getByRole('button', { name: 'Cancel Action' }).click()
 
   await commandDeck.getByRole('button', { name: /^Inspect,/ }).click()
-  await expect(commandContext).toContainText('Review terrain and unit details')
-  await page.getByRole('button', { name: /Tile 4, 3; rough-ground; elevation 0/ }).click()
-  await expect(commandContext).toContainText('Rough ground')
-  await expect(commandContext).toContainText('40 AP')
+  await expect(commandContext).toContainText('Choose a character or tile to inspect')
+  await roughGround.click()
+  await expect(commandContext).toContainText('Difficult terrain')
+  await page.getByRole('button', { name: new RegExp(`occupied by ${characterName}`) }).click()
+  await expect(page.locator('[data-battle-combatant-card="local"]')).toContainText(characterName)
+  // Self inspection keeps the dedicated selected-enemy summary in place.
+  await expect(page.locator('[data-battle-combatant-card="selected"]')).toContainText('Recruit')
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await page
+    .getByRole('button', { name: `Inspect ${characterName}`, exact: true })
+    .first()
+    .click()
+  const combatantDetails = page.getByRole('dialog', {
+    name: `${characterName} battle details`,
+    exact: true,
+  })
+  await expect(combatantDetails).toBeVisible()
+  await expect(combatantDetails).toContainText('MP')
+  await page.keyboard.press('q')
+  await expect(page.getByRole('progressbar', { name: 'Action Economy remaining' })).toHaveAttribute(
+    'aria-valuenow',
+    '80',
+  )
+  await page.keyboard.press('Escape')
+  await expect(combatantDetails).toHaveCount(0)
+  await expect(commandContext).toContainText('Your turn')
+  await expect(commandContext).toHaveAttribute('data-battle-turn-state', 'yours')
+  await expect(page.locator('main[data-unified-battle="true"]')).toHaveAttribute(
+    'data-battle-action-mode',
+    'none',
+  )
+  await expect(page.getByRole('progressbar', { name: 'Action Economy remaining' })).toHaveAttribute(
+    'aria-valuenow',
+    '80',
+  )
 
   const battleUrl = page.url()
   await page.getByRole('button', { name: 'Surrender', exact: true }).click()
@@ -208,28 +296,12 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
   expect(winningTeam).toBe('opponents')
 })
 
-async function expectVictoryConditionsBesideMapKey(
+async function expectVictoryConditionsAndTerrainKey(
   page: import('@playwright/test').Page,
 ): Promise<void> {
-  const key = page.getByRole('button', { name: 'Map Key', exact: true })
-  const victoryConditions = page.getByRole('button', { name: /Victory conditions/i })
-  await expect(victoryConditions).toBeVisible()
-
-  const [keyBox, victoryBox] = await Promise.all([
-    key.boundingBox(),
-    victoryConditions.boundingBox(),
-  ])
-  expect(keyBox).not.toBeNull()
-  expect(victoryBox).not.toBeNull()
-  if (!keyBox || !victoryBox) return
-
-  const horizontalGap = victoryBox.x - (keyBox.x + keyBox.width)
-  expect(horizontalGap).toBeGreaterThanOrEqual(-1)
-  expect(horizontalGap).toBeLessThanOrEqual(24)
-
-  const keyCenterY = keyBox.y + keyBox.height / 2
-  const victoryCenterY = victoryBox.y + victoryBox.height / 2
-  expect(Math.abs(keyCenterY - victoryCenterY)).toBeLessThanOrEqual(1)
+  await expect(page.getByRole('button', { name: 'Map Key', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /Victory conditions/i })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Terrain', exact: true })).toBeVisible()
 }
 
 async function hasHorizontalOverflow(page: import('@playwright/test').Page): Promise<boolean> {

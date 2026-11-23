@@ -1,0 +1,98 @@
+{
+  "sourceBase": "5ee76d6b74302e4460efd535655a609fc62fd85b",
+  "migrationCount": 151,
+  "lastMigrationWasEmpty": true,
+  "scope": "Actual final functions whose body directly mentions learned/equipped/discipline_skills storage; indirect callers and trial require the earlier producer trace too. Not an exhaustive actor inventory.",
+  "functions": [
+    {
+      "file": "app_private.combat_content_blockers_v1-0.sql",
+      "args": "p_key text",
+      "sha256": "a0bd047716316a505e1d66afc648c735da2f47e86d4a4d750389cc42e852cc8a"
+    },
+    {
+      "file": "app_private.guard_combat_content_admission_v1-1.sql",
+      "args": "",
+      "sha256": "ff95e77eafc099d695a7068abe5818d3a543d973efa737dfa8408732713bf8f2"
+    },
+    {
+      "file": "app_private.provision_active_discipline_skills_v1-2.sql",
+      "args": "",
+      "sha256": "b4a7782d506a039a88a8447aa7286688893317c44935f974a2d177fad0ee605d"
+    },
+    {
+      "file": "app_private.provision_mastery_skills_v1-3.sql",
+      "args": "p_character_id uuid",
+      "sha256": "e91fa50011b0a4c06a4d3317d91f116931010d5cfd2e0528329b328f04ad56c5"
+    },
+    {
+      "file": "app_private.prune_character_discipline_skill_loadout_v1-4.sql",
+      "args": "",
+      "sha256": "49d6ddca0fc873b66196d1ab4b705107a100e4e3dd5007d02d8bbd77cabf7ef0"
+    },
+    {
+      "file": "public.activate_character_build_loadout_v1-5.sql",
+      "args": "p_user_id uuid, p_character_id uuid, p_slot_index smallint, p_expected_build_version bigint, p_idempotency_key uuid, p_request_fingerprint text",
+      "sha256": "ed3df725b3b29e66c7daa7474173f67afd0862eba21fa27d6793a6cfaceeaac5"
+    },
+    {
+      "file": "public.activate_phase4_combat_interactions_v2-6.sql",
+      "args": "",
+      "sha256": "bb7a4bf2611bd288ad0de42ecc9a30bf5e39dea224cc19c991d2736267d33f6e"
+    },
+    {
+      "file": "public.activate_phase4_discipline_rebalance_v1-7.sql",
+      "args": "",
+      "sha256": "d76c89c4e2da168141d9cc29b5b9930d93f8066e6214256fd9a3c293315a558d"
+    },
+    {
+      "file": "public.get_character_committed_build_snapshot_v1-8.sql",
+      "args": "p_user_id uuid, p_character_id uuid",
+      "sha256": "f33c612f64e9fcb568651531a0ef1e651aedf500d40685e83996989d09a5ebd6"
+    },
+    {
+      "file": "public.get_character_committed_build_snapshot_v2-9.sql",
+      "args": "p_user_id uuid, p_character_id uuid",
+      "sha256": "497c4150a4645621630ed037015f0fcac9ee6c5ca195b39d1fff7667670e00ac"
+    },
+    {
+      "file": "public.get_character_discipline_skill_loadout_v1-10.sql",
+      "args": "p_user_id uuid, p_character_id uuid",
+      "sha256": "92f3721479e8ad0beb0bd31d5fce07746a77c27493dd0d72e5d6497302ce51de"
+    },
+    {
+      "file": "public.get_character_learned_skills_v1-11.sql",
+      "args": "p_user_id uuid, p_character_id uuid",
+      "sha256": "77b603a351a3c679ceb45a4f3169e629263d169b82f5e43ef5474d33a31d8777"
+    },
+    {
+      "file": "public.get_character_saved_build_loadouts_v1-12.sql",
+      "args": "p_user_id uuid, p_character_id uuid",
+      "sha256": "57f32b3390da34c9754bff0183059598f249c036a28a74669ec23f41920c937e"
+    },
+    {
+      "file": "public.get_character_saved_build_loadouts_v2-13.sql",
+      "args": "p_user_id uuid, p_character_id uuid",
+      "sha256": "fae79fdebc92bf979f3dea8c953a71c2f627e0c51de220e23de03baaa2ff324a"
+    },
+    {
+      "file": "public.read_master_player_v1-14.sql",
+      "args": "p_actor_user_id uuid, p_character_id uuid, p_actor_character_id uuid",
+      "sha256": "ea8502638a198f2f15e5bd40dbc993d34c827f7f66362c62fccd626be06a24dd"
+    },
+    {
+      "file": "public.record_character_skill_unlock_v1-15.sql",
+      "args": "p_character_id uuid, p_skill_id text, p_skill_content_version integer, p_source_discipline_id text, p_source_kind text, p_source_id text",
+      "sha256": "af26b074f1229c7c2a81cc23b9a9cb0d498d0bcb985dca40f159f34449abe784"
+    },
+    {
+      "file": "public.save_character_build_loadout_v1-16.sql",
+      "args": "p_user_id uuid, p_character_id uuid, p_slot_index smallint, p_name text, p_expected_build_version bigint, p_idempotency_key uuid, p_request_fingerprint text",
+      "sha256": "ff015e0439b421b6a23a97b6a629b1a16a04f11e77d1dfe50b0d1135386590d4"
+    },
+    {
+      "file": "public.save_character_discipline_skill_loadout_v1-17.sql",
+      "args": "p_user_id uuid, p_character_id uuid, p_expected_build_version bigint, p_skills jsonb, p_idempotency_key uuid, p_request_fingerprint text",
+      "sha256": "c3bf985a70c652654854c7d804e8d838e6f4f73409c7803e64b839c119e8c7a0"
+    }
+  ]
+}

@@ -149,11 +149,12 @@ mixed_change="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres 
   );")"
 test "$mixed_change" = '3|vanguard|lifebinder'
 
-pruned_to_two="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+retained_after_mix="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   set role service_role;
   select count(*)::text
   from public.get_character_discipline_skill_loadout_v1('$user_id'::uuid, '$character_id'::uuid);")"
-test "$pruned_to_two" = '2'
+# Mixed builds retain up to three Skills per source and four total.
+test "$retained_after_mix" = '3'
 
 mixed_payload='[{"skillId":"vanguard.forceful-strike","contentVersion":2,"sourceDisciplineId":"vanguard"},{"skillId":"vanguard.brace","contentVersion":1,"sourceDisciplineId":"vanguard"},{"skillId":"lifebinder.mending-light","contentVersion":1,"sourceDisciplineId":"lifebinder"},{"skillId":"lifebinder.barrier","contentVersion":1,"sourceDisciplineId":"lifebinder"}]'
 

@@ -1,0 +1,62 @@
+[
+  {
+    "repetition": "master-players-recovery.pw-c3772--participants-and-spectator-desktop-chromium",
+    "traceSha256": "fb21293e37a9eeb280ad5a538b11d499a987d53aa7e23cce8a3dd714b4548232",
+    "selectedActions": [
+      {
+        "title": "Verify the first XP correction in SQL",
+        "method": "test.step",
+        "error": false,
+        "durationMs": 126.21
+      },
+      {
+        "title": "Read current Players facts through the protected API",
+        "method": "test.step",
+        "error": false,
+        "durationMs": 96.27
+      },
+      {
+        "title": "Select the Discipline correction group",
+        "method": "test.step",
+        "error": false,
+        "durationMs": 69.59
+      },
+      {
+        "title": "Expect \"toHaveText\"",
+        "method": "expect",
+        "error": true,
+        "durationMs": 21.24
+      }
+    ]
+  },
+  {
+    "repetition": "master-players-recovery.pw-c3772--participants-and-spectator-desktop-chromium-repeat1",
+    "traceSha256": "70e6a6cd6a23e866a88f1bf0c6f156ed6d7e660196af71c1ea2b93a44930faee",
+    "selectedActions": [
+      {
+        "title": "Verify the first XP correction in SQL",
+        "method": "test.step",
+        "error": false,
+        "durationMs": 156.51
+      },
+      {
+        "title": "Read current Players facts through the protected API",
+        "method": "test.step",
+        "error": false,
+        "durationMs": 50.68
+      },
+      {
+        "title": "Select the Discipline correction group",
+        "method": "test.step",
+        "error": false,
+        "durationMs": 47.58
+      },
+      {
+        "title": "Expect \"toHaveText\"",
+        "method": "expect",
+        "error": true,
+        "durationMs": 30.18
+      }
+    ]
+  }
+]

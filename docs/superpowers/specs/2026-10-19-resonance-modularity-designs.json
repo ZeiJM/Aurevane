@@ -1,0 +1,6650 @@
+{
+  "schemaVersion": 1,
+  "status": "reviewed-design-candidate-not-published",
+  "baseCommit": "f65f9b1560f5e31406f2c9b4f65b432c7bd752a6",
+  "brief": "One native trigger plus at most two registered status/resource condition blocks. Generic Primed uses actual Controlled preparations; native causal ownership and distinct payoffs remain executable.",
+  "baselineManifests": [
+    {
+      "path": "docs/superpowers/specs/2026-10-18-modular-correction-cohort.json",
+      "sha256": "998a68515af8cfbb2ce38ecb949fd595a044eb617175bf14d7520ca400c8d02f"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-10-19-essence-resonance-identity-cohort.json",
+      "sha256": "d74c7e65bdf8b73560b5d890ba08c776b1a523c300fe3810e88013195a8892f1"
+    }
+  ],
+  "sharedPolicy": {
+    "barrierDurationTurns": 2,
+    "genericPrimePresence": "prime-presence omits abilityId to match any current owned Controlled prime; historical explicit abilityId remains exact.",
+    "positiveResourceWitness": {
+      "kind": "resource-change",
+      "subject": "affected",
+      "resource": "mp",
+      "direction": "gained",
+      "minimumAmount": 1
+    },
+    "triggerAuthoring": "Shared registered presets lower losslessly to event/action/subject-relation nodes. Resource-change and threshold-crossing witnesses belong to trigger qualification.",
+    "stateConditionBudget": 2,
+    "anyStatusSets": "Any blocks remain actual ORs over registered status IDs; no synthetic marker or per-Resonance handler."
+  },
+  "records": [
+    {
+      "id": "resonance.lifebinder-vanguard.mercys-edge",
+      "name": "Mercy at the Breach",
+      "pair": [
+        "lifebinder",
+        "vanguard"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "healing_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "lifebinder",
+            "requiredTags": [
+              "heal"
+            ]
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "guarded",
+            "present": true
+          },
+          {
+            "kind": "resource-state",
+            "subject": "affected",
+            "resource": "hp",
+            "comparison": "at-most",
+            "basisPoints": 3500
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.aetherist-farstrider.arcane-hunt",
+      "name": "Sighted Capacitor",
+      "pair": [
+        "aetherist",
+        "farstrider"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "revise",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "farstrider",
+            "classification": "attack"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "mark",
+            "present": true
+          },
+          {
+            "kind": "resource-state",
+            "subject": "owner",
+            "resource": "mp",
+            "comparison": "at-least",
+            "basisPoints": 5000
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [
+        {
+          "kind": "status-presence",
+          "subject": "owner",
+          "statusId": "guarded",
+          "present": true
+        }
+      ],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.aetherist-lifebinder.vital-circuit",
+      "name": "Measured Transfusion",
+      "pair": [
+        "aetherist",
+        "lifebinder"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combat_action_used",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "lifebinder",
+            "classification": "recovery"
+          },
+          {
+            "kind": "resource-state",
+            "subject": "owner",
+            "resource": "mp",
+            "comparison": "at-least",
+            "basisPoints": 6000
+          },
+          {
+            "kind": "resource-state",
+            "subject": "selected",
+            "resource": "hp",
+            "comparison": "at-most",
+            "basisPoints": 3500
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.aetherist-shadehand.veiled-conduit",
+      "name": "Dissolving Formula",
+      "pair": [
+        "aetherist",
+        "shadehand"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combat_action_used",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "shadehand",
+            "classification": "utility"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "guarded",
+            "present": true
+          },
+          {
+            "kind": "resource-state",
+            "subject": "owner",
+            "resource": "mp",
+            "comparison": "at-most",
+            "basisPoints": 7500
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.aetherist-vanguard.spellsteel-rhythm",
+      "name": "Wardbreaker Advance",
+      "pair": [
+        "aetherist",
+        "vanguard"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "vanguard",
+            "classification": "attack"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "guarded",
+            "present": true
+          },
+          {
+            "kind": "resource-state",
+            "subject": "owner",
+            "resource": "mp",
+            "comparison": "at-least",
+            "basisPoints": 5000
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.farstrider-lifebinder.guided-renewal",
+      "name": "Field Triage",
+      "pair": [
+        "farstrider",
+        "lifebinder"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "farstrider",
+            "requiredTags": [
+              "precision"
+            ],
+            "classification": "attack"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "guarded",
+            "present": true
+          },
+          {
+            "kind": "resource-state",
+            "subject": "owner",
+            "resource": "hp",
+            "comparison": "at-most",
+            "basisPoints": 5000
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.farstrider-shadehand.marked-opening",
+      "name": "Unmask the Lane",
+      "pair": [
+        "farstrider",
+        "shadehand"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "shadehand",
+            "requiredTags": [
+              "melee"
+            ],
+            "classification": "attack"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "mark",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "revealed",
+            "present": true
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.farstrider-vanguard.covering-break",
+      "name": "Picket Charge",
+      "pair": [
+        "farstrider",
+        "vanguard"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "vanguard",
+            "requiredTags": [
+              "melee"
+            ],
+            "classification": "attack"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "mark",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "guarded",
+            "present": true
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.lifebinder-shadehand.mercy-in-shadow",
+      "name": "Suffering Returned",
+      "pair": [
+        "lifebinder",
+        "shadehand"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "healing_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "lifebinder",
+            "requiredTags": [
+              "heal"
+            ]
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "invisible",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "hexed",
+            "present": true
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "affected",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.shadehand-vanguard.broken-line",
+      "name": "Broken Formation",
+      "pair": [
+        "shadehand",
+        "vanguard"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "vanguard",
+            "requiredTags": [
+              "melee"
+            ],
+            "classification": "attack"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "exposed",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "covert",
+            "present": true
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.aetherist-ironfist.conductive-impact",
+      "name": "Reservoir Palm",
+      "pair": [
+        "aetherist",
+        "ironfist"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "ironfist",
+            "classification": "attack"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "guarded",
+            "present": true
+          },
+          {
+            "kind": "resource-state",
+            "subject": "owner",
+            "resource": "mp",
+            "comparison": "at-least",
+            "basisPoints": 5000
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.farstrider-ironfist.marked-approach",
+      "name": "Drive Back the Line",
+      "pair": [
+        "farstrider",
+        "ironfist"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "ironfist",
+            "requiredTags": [
+              "melee"
+            ],
+            "classification": "attack"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "mark",
+            "present": true
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.ironfist-lifebinder.renewed-force",
+      "name": "Breath after Impact",
+      "pair": [
+        "ironfist",
+        "lifebinder"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combat_action_used",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "classification": "attack",
+            "sourceDisciplineId": "ironfist"
+          },
+          {
+            "kind": "resource-state",
+            "subject": "owner",
+            "resource": "hp",
+            "comparison": "at-most",
+            "basisPoints": 9999
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.ironfist-shadehand.broken-rhythm",
+      "name": "Low Sweep Feint",
+      "pair": [
+        "ironfist",
+        "shadehand"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "shadehand",
+            "requiredTags": [
+              "finisher"
+            ],
+            "classification": "attack"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "slow",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "airborne",
+            "present": true
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.ironfist-vanguard.tempered-response",
+      "name": "Disciplined Pressure",
+      "pair": [
+        "ironfist",
+        "vanguard"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "classification": "attack"
+          },
+          {
+            "kind": "action",
+            "attackFamily": "physical"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "affected",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "enemy"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "guarded",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "airborne",
+            "present": true
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.bastion-vanguard.linked-sequence",
+      "name": "Hold the Opening",
+      "pair": [
+        "bastion",
+        "vanguard"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "vanguard",
+            "classification": "attack"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "fortified",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "challenged",
+            "present": false
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.bastion-lifebinder.linked-sequence",
+      "name": "Shelter Choice",
+      "pair": [
+        "bastion",
+        "lifebinder"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combat_action_used",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "lifebinder",
+            "classification": "recovery"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "fortified",
+            "present": true
+          },
+          {
+            "kind": "resource-state",
+            "subject": "selected",
+            "resource": "hp",
+            "comparison": "at-most",
+            "basisPoints": 3000
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.aetherist-bastion.linked-sequence",
+      "name": "Mana Bulwark",
+      "pair": [
+        "aetherist",
+        "bastion"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combat_action_used",
+            "phase": "after"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "fortified",
+            "present": true
+          },
+          {
+            "kind": "resource-state",
+            "subject": "owner",
+            "resource": "mp",
+            "comparison": "at-most",
+            "basisPoints": 2500
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "aetherist",
+            "classification": "recovery"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.bastion-farstrider.linked-sequence",
+      "name": "Watchtower Signal",
+      "pair": [
+        "bastion",
+        "farstrider"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "guarded",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "triggering",
+            "statusId": "mark",
+            "present": true
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "enemy"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "affected",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.bastion-shadehand.linked-sequence",
+      "name": "Behind the Shield",
+      "pair": [
+        "bastion",
+        "shadehand"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combat_action_used",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "shadehand",
+            "classification": "utility"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "guarded",
+            "present": true
+          },
+          {
+            "kind": "resource-state",
+            "subject": "owner",
+            "resource": "hp",
+            "comparison": "at-most",
+            "basisPoints": 5000
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.bastion-ironfist.linked-sequence",
+      "name": "Fortress Knuckle",
+      "pair": [
+        "bastion",
+        "ironfist"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combat_action_used",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "ironfist",
+            "classification": "utility"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "fortified",
+            "present": true
+          },
+          {
+            "kind": "resource-state",
+            "subject": "owner",
+            "resource": "hp",
+            "comparison": "at-most",
+            "basisPoints": 6000
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.ravager-vanguard.linked-sequence",
+      "name": "Breach at a Price",
+      "pair": [
+        "ravager",
+        "vanguard"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "vanguard",
+            "requiredTags": [
+              "melee"
+            ],
+            "classification": "attack"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "bleed",
+            "present": true
+          },
+          {
+            "kind": "resource-state",
+            "subject": "owner",
+            "resource": "hp",
+            "comparison": "at-most",
+            "basisPoints": 3500
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.lifebinder-ravager.linked-sequence",
+      "name": "Bleeding Mercy",
+      "pair": [
+        "lifebinder",
+        "ravager"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "revise",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "healing_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "lifebinder",
+            "requiredTags": [
+              "heal"
+            ]
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "reckless",
+            "present": true
+          },
+          {
+            "kind": "resource-state",
+            "subject": "affected",
+            "resource": "hp",
+            "comparison": "at-most",
+            "basisPoints": 3500
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "affected",
+            "otherSubject": "owner",
+            "relation": "ally"
+          }
+        ]
+      },
+      "removedConditions": [
+        {
+          "kind": "resource-state",
+          "subject": "owner",
+          "resource": "hp",
+          "comparison": "at-most",
+          "basisPoints": 4000
+        }
+      ],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.aetherist-ravager.linked-sequence",
+      "name": "Unstable Reserve",
+      "pair": [
+        "aetherist",
+        "ravager"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "resource-state",
+            "subject": "owner",
+            "resource": "hp",
+            "comparison": "at-most",
+            "basisPoints": 3500
+          },
+          {
+            "kind": "resource-state",
+            "subject": "owner",
+            "resource": "mp",
+            "comparison": "at-least",
+            "basisPoints": 5000
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.farstrider-ravager.linked-sequence",
+      "name": "Barbed Pursuit",
+      "pair": [
+        "farstrider",
+        "ravager"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "farstrider",
+            "requiredTags": [
+              "ranged"
+            ],
+            "classification": "attack"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "bleed",
+            "present": true
+          },
+          {
+            "kind": "resource-state",
+            "subject": "owner",
+            "resource": "hp",
+            "comparison": "at-most",
+            "basisPoints": 5000
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.ravager-shadehand.linked-sequence",
+      "name": "Risk the Blindside",
+      "pair": [
+        "ravager",
+        "shadehand"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "shadehand",
+            "requiredTags": [
+              "opportunist"
+            ],
+            "classification": "attack"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "bleed",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "reckless",
+            "present": true
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.ironfist-ravager.linked-sequence",
+      "name": "Bloodied Separation",
+      "pair": [
+        "ironfist",
+        "ravager"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "ironfist",
+            "requiredTags": [
+              "melee"
+            ],
+            "classification": "attack"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "bleed",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "reckless",
+            "present": true
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.bastion-ravager.linked-sequence",
+      "name": "Crimson Redoubt",
+      "pair": [
+        "bastion",
+        "ravager"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "revise",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "turn_started",
+            "phase": "after"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "fortified",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "reckless",
+            "present": true
+          }
+        ]
+      },
+      "removedConditions": [
+        {
+          "kind": "resource-state",
+          "subject": "owner",
+          "resource": "hp",
+          "comparison": "at-most",
+          "basisPoints": 3500
+        }
+      ],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.edgedancer-vanguard.linked-sequence",
+      "name": "Turning Advance",
+      "pair": [
+        "edgedancer",
+        "vanguard"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "vanguard",
+            "requiredTags": [
+              "melee"
+            ],
+            "classification": "attack"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "inspired",
+            "present": true
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.edgedancer-lifebinder.linked-sequence",
+      "name": "Merciful Exit",
+      "pair": [
+        "edgedancer",
+        "lifebinder"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "healing_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "lifebinder",
+            "requiredTags": [
+              "heal"
+            ]
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "guarded",
+            "present": true
+          },
+          {
+            "kind": "resource-state",
+            "subject": "owner",
+            "resource": "hp",
+            "comparison": "at-most",
+            "basisPoints": 5000
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "affected",
+            "otherSubject": "owner",
+            "relation": "ally"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.aetherist-edgedancer.linked-sequence",
+      "name": "Aether in Poise",
+      "pair": [
+        "aetherist",
+        "edgedancer"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "revise",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combat_action_used",
+            "phase": "after"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "guarded",
+            "present": true
+          },
+          {
+            "kind": "resource-state",
+            "subject": "owner",
+            "resource": "mp",
+            "comparison": "at-most",
+            "basisPoints": 5000
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "edgedancer",
+            "classification": "utility"
+          }
+        ]
+      },
+      "removedConditions": [
+        {
+          "kind": "resource-state",
+          "subject": "owner",
+          "resource": "ap",
+          "comparison": "at-most",
+          "amount": 30
+        }
+      ],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.edgedancer-farstrider.linked-sequence",
+      "name": "Close the Sightline",
+      "pair": [
+        "edgedancer",
+        "farstrider"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "farstrider",
+            "requiredTags": [
+              "precision"
+            ],
+            "classification": "attack"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "inspired",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "slow",
+            "present": true
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.edgedancer-shadehand.linked-sequence",
+      "name": "Veiled Flourish",
+      "pair": [
+        "edgedancer",
+        "shadehand"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "shadehand",
+            "requiredTags": [
+              "melee"
+            ],
+            "classification": "attack"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "inspired",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "slow",
+            "present": true
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.edgedancer-ironfist.linked-sequence",
+      "name": "Aerial Form",
+      "pair": [
+        "edgedancer",
+        "ironfist"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "ironfist",
+            "requiredTags": [
+              "melee"
+            ],
+            "classification": "attack"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "airborne",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "inspired",
+            "present": true
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.bastion-edgedancer.linked-sequence",
+      "name": "Guarded Exchange",
+      "pair": [
+        "bastion",
+        "edgedancer"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combat_action_used",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "edgedancer",
+            "classification": "utility"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "fortified",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "guarded",
+            "present": true
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.edgedancer-ravager.linked-sequence",
+      "name": "Cut Through Pain",
+      "pair": [
+        "edgedancer",
+        "ravager"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "revise",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "reckless",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "inspired",
+            "present": true
+          }
+        ]
+      },
+      "removedConditions": [
+        {
+          "kind": "resource-state",
+          "subject": "owner",
+          "resource": "hp",
+          "comparison": "at-most",
+          "basisPoints": 6000
+        }
+      ],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.vanguard-wildwarden.linked-sequence",
+      "name": "Drive the Quarry",
+      "pair": [
+        "vanguard",
+        "wildwarden"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "vanguard",
+            "requiredTags": [
+              "melee"
+            ],
+            "classification": "attack"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "mark",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "inspired",
+            "present": true
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.lifebinder-wildwarden.linked-sequence",
+      "name": "Trail Medicine",
+      "pair": [
+        "lifebinder",
+        "wildwarden"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "healing_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "lifebinder",
+            "requiredTags": [
+              "heal"
+            ]
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "poison",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "mark",
+            "present": true
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.aetherist-wildwarden.linked-sequence",
+      "name": "Quarry Disruption",
+      "pair": [
+        "aetherist",
+        "wildwarden"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "revise",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "wildwarden",
+            "classification": "attack"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "mark",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "poison",
+            "present": true
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [
+        {
+          "kind": "resource-state",
+          "subject": "owner",
+          "resource": "mp",
+          "comparison": "at-least",
+          "basisPoints": 4000
+        }
+      ],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.farstrider-wildwarden.linked-sequence",
+      "name": "Twin Hunt",
+      "pair": [
+        "farstrider",
+        "wildwarden"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "farstrider",
+            "requiredTags": [
+              "precision"
+            ],
+            "classification": "attack"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "mark",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "poison",
+            "present": true
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.shadehand-wildwarden.linked-sequence",
+      "name": "Hidden Snare",
+      "pair": [
+        "shadehand",
+        "wildwarden"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "shadehand",
+            "requiredTags": [
+              "melee"
+            ],
+            "classification": "attack"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "mark",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "root",
+            "present": true
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.ironfist-wildwarden.linked-sequence",
+      "name": "Quarry Wheel",
+      "pair": [
+        "ironfist",
+        "wildwarden"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "revise",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "turn_ended",
+            "phase": "after"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "enemy"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "triggering",
+            "statusId": "mark",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "triggering",
+            "statusId": "root",
+            "present": true
+          }
+        ]
+      },
+      "removedConditions": [
+        {
+          "kind": "resource-state",
+          "subject": "owner",
+          "resource": "mp",
+          "comparison": "at-most",
+          "basisPoints": 4000
+        }
+      ],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.bastion-wildwarden.linked-sequence",
+      "name": "Warden of the Path",
+      "pair": [
+        "bastion",
+        "wildwarden"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "guarded",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "triggering",
+            "statusId": "mark",
+            "present": true
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "enemy"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "affected",
+            "otherSubject": "owner",
+            "relation": "ally"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.ravager-wildwarden.linked-sequence",
+      "name": "Blood Scent",
+      "pair": [
+        "ravager",
+        "wildwarden"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "ravager",
+            "requiredTags": [
+              "melee"
+            ],
+            "classification": "attack"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "mark",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "poison",
+            "present": true
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.edgedancer-wildwarden.linked-sequence",
+      "name": "Pursuit Angle",
+      "pair": [
+        "edgedancer",
+        "wildwarden"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "edgedancer",
+            "requiredTags": [
+              "melee"
+            ],
+            "classification": "attack"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "mark",
+            "present": true
+          },
+          {
+            "kind": "resource-state",
+            "subject": "affected",
+            "resource": "hp",
+            "comparison": "at-most",
+            "basisPoints": 4000
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.runeblade-vanguard.linked-sequence",
+      "name": "Rune on the Ram",
+      "pair": [
+        "runeblade",
+        "vanguard"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "barrier_absorbed",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "classification": "attack"
+          },
+          {
+            "kind": "action",
+            "attackFamily": "mystic"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "affected",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "enemy"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "triggering",
+            "statusId": "hexed",
+            "present": true
+          },
+          {
+            "kind": "resource-state",
+            "subject": "owner",
+            "resource": "mp",
+            "comparison": "at-least",
+            "amount": 12
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.lifebinder-runeblade.linked-sequence",
+      "name": "Restorative Inscription",
+      "pair": [
+        "lifebinder",
+        "runeblade"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "healing_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "lifebinder",
+            "requiredTags": [
+              "heal"
+            ]
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "guarded",
+            "present": true
+          },
+          {
+            "kind": "resource-state",
+            "subject": "owner",
+            "resource": "mp",
+            "comparison": "at-most",
+            "basisPoints": 2500
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.aetherist-runeblade.linked-sequence",
+      "name": "Unspent Circuit",
+      "pair": [
+        "aetherist",
+        "runeblade"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "runeblade",
+            "classification": "attack"
+          },
+          {
+            "kind": "resource-state",
+            "subject": "owner",
+            "resource": "mp",
+            "comparison": "at-least",
+            "basisPoints": 5000
+          },
+          {
+            "kind": "any",
+            "children": [
+              {
+                "kind": "status-presence",
+                "subject": "affected",
+                "statusId": "guarded",
+                "present": true
+              },
+              {
+                "kind": "status-presence",
+                "subject": "affected",
+                "statusId": "inspired",
+                "present": true
+              }
+            ]
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.farstrider-runeblade.linked-sequence",
+      "name": "Disrupting Inscription",
+      "pair": [
+        "farstrider",
+        "runeblade"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "farstrider",
+            "requiredTags": [
+              "precision"
+            ],
+            "classification": "attack"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "hexed",
+            "present": true
+          },
+          {
+            "kind": "resource-state",
+            "subject": "affected",
+            "resource": "mp",
+            "comparison": "at-most",
+            "basisPoints": 2500
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.runeblade-shadehand.linked-sequence",
+      "name": "Unbind the Veil",
+      "pair": [
+        "runeblade",
+        "shadehand"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combat_action_used",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "shadehand",
+            "requiredTags": [
+              "recovery"
+            ],
+            "classification": "utility"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "selected",
+            "statusId": "hexed",
+            "present": true
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "selected",
+            "otherSubject": "owner",
+            "relation": "enemy"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.ironfist-runeblade.linked-sequence",
+      "name": "Runic Pressure Point",
+      "pair": [
+        "ironfist",
+        "runeblade"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "ironfist",
+            "requiredTags": [
+              "melee"
+            ],
+            "classification": "attack"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "hexed",
+            "present": true
+          },
+          {
+            "kind": "resource-state",
+            "subject": "affected",
+            "resource": "mp",
+            "comparison": "at-most",
+            "basisPoints": 2500
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.bastion-runeblade.linked-sequence",
+      "name": "Inscribed Shelter",
+      "pair": [
+        "bastion",
+        "runeblade"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combat_action_used",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "runeblade",
+            "classification": "recovery"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "fortified",
+            "present": true
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.ravager-runeblade.linked-sequence",
+      "name": "Scarred Rune",
+      "pair": [
+        "ravager",
+        "runeblade"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "revise",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "resource-state",
+            "subject": "owner",
+            "resource": "hp",
+            "comparison": "at-most",
+            "basisPoints": 3500
+          },
+          {
+            "kind": "resource-state",
+            "subject": "owner",
+            "resource": "mp",
+            "comparison": "at-least",
+            "amount": 12
+          }
+        ]
+      },
+      "removedConditions": [
+        {
+          "kind": "status-presence",
+          "subject": "owner",
+          "statusId": "reckless",
+          "present": true
+        }
+      ],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.edgedancer-runeblade.linked-sequence",
+      "name": "Rune in Motion",
+      "pair": [
+        "edgedancer",
+        "runeblade"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "resource_changed",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "runeblade",
+            "requiredTags": [
+              "drain"
+            ],
+            "classification": "attack"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "inspired",
+            "present": true
+          },
+          {
+            "kind": "resource-threshold-crossing",
+            "subject": "affected",
+            "resource": "mp",
+            "direction": "below",
+            "thresholdBasisPoints": 2500
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "affected",
+            "otherSubject": "owner",
+            "relation": "enemy"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.runeblade-wildwarden.linked-sequence",
+      "name": "Quarry Sigil",
+      "pair": [
+        "runeblade",
+        "wildwarden"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combat_action_used",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "wildwarden",
+            "requiredTags": [
+              "mark"
+            ],
+            "classification": "utility"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "selected",
+            "statusId": "hexed",
+            "present": true
+          },
+          {
+            "kind": "resource-state",
+            "subject": "selected",
+            "resource": "mp",
+            "comparison": "at-most",
+            "basisPoints": 2500
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "selected",
+            "otherSubject": "owner",
+            "relation": "enemy"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.dawnshield-vanguard.linked-sequence",
+      "name": "Light after the Charge",
+      "pair": [
+        "dawnshield",
+        "vanguard"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combat_action_used",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "classification": "attack",
+            "sourceDisciplineId": "vanguard"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.dawnshield-lifebinder.linked-sequence",
+      "name": "Two Hands of Mercy",
+      "pair": [
+        "dawnshield",
+        "lifebinder"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combat_action_used",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "lifebinder",
+            "classification": "recovery"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "guarded",
+            "present": true
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "selected",
+            "otherSubject": "owner",
+            "relation": "ally"
+          },
+          {
+            "kind": "resource-state",
+            "subject": "selected",
+            "resource": "hp",
+            "comparison": "at-most",
+            "basisPoints": 3000
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.aetherist-dawnshield.linked-sequence",
+      "name": "Luminous Reserve",
+      "pair": [
+        "aetherist",
+        "dawnshield"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combat_action_used",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "dawnshield",
+            "classification": "recovery"
+          },
+          {
+            "kind": "resource-state",
+            "subject": "owner",
+            "resource": "mp",
+            "comparison": "at-least",
+            "basisPoints": 6000
+          },
+          {
+            "kind": "resource-state",
+            "subject": "selected",
+            "resource": "hp",
+            "comparison": "at-most",
+            "basisPoints": 5000
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.dawnshield-farstrider.linked-sequence",
+      "name": "Signal of Refuge",
+      "pair": [
+        "dawnshield",
+        "farstrider"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "revise",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "triggering",
+            "statusId": "mark",
+            "present": true
+          },
+          {
+            "kind": "resource-state",
+            "subject": "affected",
+            "resource": "hp",
+            "comparison": "at-most",
+            "basisPoints": 4000
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "enemy"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "affected",
+            "otherSubject": "owner",
+            "relation": "ally"
+          }
+        ]
+      },
+      "removedConditions": [
+        {
+          "kind": "status-presence",
+          "subject": "owner",
+          "statusId": "guarded",
+          "present": true
+        }
+      ],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.dawnshield-shadehand.linked-sequence",
+      "name": "Purge and Vanish",
+      "pair": [
+        "dawnshield",
+        "shadehand"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combat_action_used",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "shadehand",
+            "classification": "utility"
+          },
+          {
+            "kind": "resource-state",
+            "subject": "owner",
+            "resource": "hp",
+            "comparison": "at-most",
+            "basisPoints": 5000
+          },
+          {
+            "kind": "any",
+            "children": [
+              {
+                "kind": "status-presence",
+                "subject": "owner",
+                "statusId": "burn",
+                "present": true
+              },
+              {
+                "kind": "status-presence",
+                "subject": "owner",
+                "statusId": "bleed",
+                "present": true
+              },
+              {
+                "kind": "status-presence",
+                "subject": "owner",
+                "statusId": "poison",
+                "present": true
+              },
+              {
+                "kind": "status-presence",
+                "subject": "owner",
+                "statusId": "slow",
+                "present": true
+              },
+              {
+                "kind": "status-presence",
+                "subject": "owner",
+                "statusId": "root",
+                "present": true
+              },
+              {
+                "kind": "status-presence",
+                "subject": "owner",
+                "statusId": "exposed",
+                "present": true
+              },
+              {
+                "kind": "status-presence",
+                "subject": "owner",
+                "statusId": "mark",
+                "present": true
+              },
+              {
+                "kind": "status-presence",
+                "subject": "owner",
+                "statusId": "challenged",
+                "present": true
+              },
+              {
+                "kind": "status-presence",
+                "subject": "owner",
+                "statusId": "suppress",
+                "present": true
+              }
+            ]
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.dawnshield-ironfist.linked-sequence",
+      "name": "Consecrated Form",
+      "pair": [
+        "dawnshield",
+        "ironfist"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combat_action_used",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "classification": "attack",
+            "sourceDisciplineId": "ironfist"
+          },
+          {
+            "kind": "resource-state",
+            "subject": "owner",
+            "resource": "hp",
+            "comparison": "at-most",
+            "basisPoints": 6000
+          },
+          {
+            "kind": "any",
+            "children": [
+              {
+                "kind": "status-presence",
+                "subject": "owner",
+                "statusId": "burn",
+                "present": true
+              },
+              {
+                "kind": "status-presence",
+                "subject": "owner",
+                "statusId": "bleed",
+                "present": true
+              },
+              {
+                "kind": "status-presence",
+                "subject": "owner",
+                "statusId": "poison",
+                "present": true
+              },
+              {
+                "kind": "status-presence",
+                "subject": "owner",
+                "statusId": "slow",
+                "present": true
+              },
+              {
+                "kind": "status-presence",
+                "subject": "owner",
+                "statusId": "root",
+                "present": true
+              },
+              {
+                "kind": "status-presence",
+                "subject": "owner",
+                "statusId": "exposed",
+                "present": true
+              },
+              {
+                "kind": "status-presence",
+                "subject": "owner",
+                "statusId": "mark",
+                "present": true
+              },
+              {
+                "kind": "status-presence",
+                "subject": "owner",
+                "statusId": "challenged",
+                "present": true
+              },
+              {
+                "kind": "status-presence",
+                "subject": "owner",
+                "statusId": "suppress",
+                "present": true
+              }
+            ]
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.bastion-dawnshield.linked-sequence",
+      "name": "Oath of Shelter",
+      "pair": [
+        "bastion",
+        "dawnshield"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "resource-threshold-crossing",
+            "subject": "owner",
+            "resource": "hp",
+            "direction": "below",
+            "thresholdBasisPoints": 3500
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "fortified",
+            "present": true
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "affected",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.dawnshield-ravager.linked-sequence",
+      "name": "Mercy under Red Steel",
+      "pair": [
+        "dawnshield",
+        "ravager"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combat_action_used",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "ravager",
+            "classification": "utility"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "reckless",
+            "present": true
+          },
+          {
+            "kind": "resource-state",
+            "subject": "owner",
+            "resource": "hp",
+            "comparison": "at-most",
+            "basisPoints": 5000
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.dawnshield-edgedancer.linked-sequence",
+      "name": "Step into the Light",
+      "pair": [
+        "dawnshield",
+        "edgedancer"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combat_action_used",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "edgedancer",
+            "classification": "utility"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "guarded",
+            "present": true
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "resource-state",
+            "subject": "owner",
+            "resource": "hp",
+            "comparison": "at-most",
+            "basisPoints": 6000
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.dawnshield-wildwarden.linked-sequence",
+      "name": "Ward the Companion",
+      "pair": [
+        "dawnshield",
+        "wildwarden"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "healing_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "dawnshield",
+            "requiredTags": [
+              "heal"
+            ]
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "guarded",
+            "present": true
+          },
+          {
+            "kind": "resource-state",
+            "subject": "affected",
+            "resource": "hp",
+            "comparison": "at-most",
+            "basisPoints": 4000
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.dawnshield-runeblade.linked-sequence",
+      "name": "Oathbound Circuit",
+      "pair": [
+        "dawnshield",
+        "runeblade"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "revise",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combat_action_used",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "dawnshield",
+            "classification": "recovery"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "guarded",
+            "present": true
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "selected",
+            "otherSubject": "owner",
+            "relation": "ally"
+          },
+          {
+            "kind": "resource-state",
+            "subject": "selected",
+            "resource": "mp",
+            "comparison": "at-most",
+            "basisPoints": 2500
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [
+        {
+          "kind": "resource-state",
+          "subject": "selected",
+          "resource": "hp",
+          "comparison": "at-most",
+          "basisPoints": 5000
+        }
+      ],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.cinderweaver-vanguard.linked-sequence",
+      "name": "Ember Ram",
+      "pair": [
+        "cinderweaver",
+        "vanguard"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "vanguard",
+            "classification": "attack"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "burn",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "guarded",
+            "present": true
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.cinderweaver-lifebinder.linked-sequence",
+      "name": "Cauterized Relief",
+      "pair": [
+        "cinderweaver",
+        "lifebinder"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combat_action_used",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "lifebinder",
+            "classification": "recovery"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "burn",
+            "present": true
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "selected",
+            "otherSubject": "owner",
+            "relation": "ally"
+          },
+          {
+            "kind": "resource-state",
+            "subject": "selected",
+            "resource": "hp",
+            "comparison": "at-most",
+            "basisPoints": 3500
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.aetherist-cinderweaver.linked-sequence",
+      "name": "Banked Furnace",
+      "pair": [
+        "aetherist",
+        "cinderweaver"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combat_action_used",
+            "phase": "after"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "warded",
+            "present": true
+          },
+          {
+            "kind": "resource-state",
+            "subject": "owner",
+            "resource": "mp",
+            "comparison": "at-most",
+            "basisPoints": 4000
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "aetherist",
+            "classification": "recovery"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.cinderweaver-farstrider.linked-sequence",
+      "name": "Sighting Flame",
+      "pair": [
+        "cinderweaver",
+        "farstrider"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "cinderweaver",
+            "classification": "attack"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "mark",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "burn",
+            "present": true
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.cinderweaver-shadehand.linked-sequence",
+      "name": "Smoke from the Scar",
+      "pair": [
+        "cinderweaver",
+        "shadehand"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combat_action_used",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "shadehand",
+            "classification": "utility"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "burn",
+            "present": true
+          },
+          {
+            "kind": "resource-state",
+            "subject": "owner",
+            "resource": "hp",
+            "comparison": "at-most",
+            "basisPoints": 5000
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.cinderweaver-ironfist.linked-sequence",
+      "name": "Furnace Palm",
+      "pair": [
+        "cinderweaver",
+        "ironfist"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "ironfist",
+            "classification": "attack"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "guarded",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "burn",
+            "present": true
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.bastion-cinderweaver.linked-sequence",
+      "name": "Ember Watch",
+      "pair": [
+        "bastion",
+        "cinderweaver"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "fortified",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "triggering",
+            "statusId": "burn",
+            "present": true
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "enemy"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "affected",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.cinderweaver-ravager.linked-sequence",
+      "name": "Bloodfed Cinder",
+      "pair": [
+        "cinderweaver",
+        "ravager"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "revise",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "cinderweaver",
+            "classification": "attack"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "reckless",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "burn",
+            "present": true
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [
+        {
+          "kind": "resource-state",
+          "subject": "owner",
+          "resource": "hp",
+          "comparison": "at-most",
+          "basisPoints": 5000
+        }
+      ],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.cinderweaver-edgedancer.linked-sequence",
+      "name": "Ashen Tempo",
+      "pair": [
+        "cinderweaver",
+        "edgedancer"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "edgedancer",
+            "classification": "attack"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "burn",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "guarded",
+            "present": true
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.cinderweaver-wildwarden.linked-sequence",
+      "name": "Burn the Thicket",
+      "pair": [
+        "cinderweaver",
+        "wildwarden"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "cinderweaver",
+            "classification": "attack"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "poison",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "mark",
+            "present": true
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.cinderweaver-runeblade.linked-sequence",
+      "name": "Unbinding Heat",
+      "pair": [
+        "cinderweaver",
+        "runeblade"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "revise",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "runeblade",
+            "classification": "attack"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "burn",
+            "present": true
+          },
+          {
+            "kind": "any",
+            "children": [
+              {
+                "kind": "status-presence",
+                "subject": "affected",
+                "statusId": "guarded",
+                "present": true
+              },
+              {
+                "kind": "status-presence",
+                "subject": "affected",
+                "statusId": "inspired",
+                "present": true
+              }
+            ]
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [
+        {
+          "kind": "resource-state",
+          "subject": "owner",
+          "resource": "mp",
+          "comparison": "at-most",
+          "basisPoints": 7500
+        }
+      ],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.cinderweaver-dawnshield.linked-sequence",
+      "name": "Ashen Benediction",
+      "pair": [
+        "cinderweaver",
+        "dawnshield"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combat_action_used",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "dawnshield",
+            "classification": "recovery"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "selected",
+            "statusId": "burn",
+            "present": true
+          },
+          {
+            "kind": "resource-state",
+            "subject": "selected",
+            "resource": "hp",
+            "comparison": "at-most",
+            "basisPoints": 5000
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.frostweaver-vanguard.linked-sequence",
+      "name": "Cold Breach",
+      "pair": [
+        "frostweaver",
+        "vanguard"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "vanguard",
+            "requiredTags": [
+              "melee"
+            ],
+            "classification": "attack"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "frozen",
+            "present": true
+          },
+          {
+            "kind": "any",
+            "children": [
+              {
+                "kind": "status-presence",
+                "subject": "affected",
+                "statusId": "guarded",
+                "present": true
+              },
+              {
+                "kind": "status-presence",
+                "subject": "affected",
+                "statusId": "fortified",
+                "present": true
+              },
+              {
+                "kind": "status-presence",
+                "subject": "affected",
+                "statusId": "warded",
+                "present": true
+              }
+            ]
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.frostweaver-lifebinder.linked-sequence",
+      "name": "Winter Triage",
+      "pair": [
+        "frostweaver",
+        "lifebinder"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "classification": "attack"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "affected",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "enemy"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "guarded",
+            "present": true
+          },
+          {
+            "kind": "resource-threshold-crossing",
+            "subject": "owner",
+            "resource": "hp",
+            "direction": "below",
+            "thresholdBasisPoints": 2500
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.aetherist-frostweaver.linked-sequence",
+      "name": "Cold Reserve",
+      "pair": [
+        "aetherist",
+        "frostweaver"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combat_action_used",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "frostweaver",
+            "classification": "utility"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "selected",
+            "statusId": "frozen",
+            "present": true
+          },
+          {
+            "kind": "resource-state",
+            "subject": "owner",
+            "resource": "mp",
+            "comparison": "at-least",
+            "basisPoints": 5000
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.farstrider-frostweaver.linked-sequence",
+      "name": "Still Target",
+      "pair": [
+        "farstrider",
+        "frostweaver"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combat_action_used",
+            "phase": "before"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "farstrider",
+            "requiredTags": [
+              "precision"
+            ],
+            "classification": "attack"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "selected",
+            "statusId": "frozen",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "selected",
+            "statusId": "root",
+            "present": true
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.frostweaver-shadehand.linked-sequence",
+      "name": "Brittle Secret",
+      "pair": [
+        "frostweaver",
+        "shadehand"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combat_action_used",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "shadehand",
+            "requiredTags": [
+              "recovery"
+            ],
+            "classification": "utility"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "selected",
+            "statusId": "frozen",
+            "present": true
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "selected",
+            "otherSubject": "owner",
+            "relation": "enemy"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.frostweaver-ironfist.linked-sequence",
+      "name": "Crystal Impact",
+      "pair": [
+        "frostweaver",
+        "ironfist"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combat_action_used",
+            "phase": "before"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "ironfist",
+            "requiredTags": [
+              "payoff"
+            ],
+            "classification": "attack"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "selected",
+            "statusId": "frozen",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "selected",
+            "statusId": "slow",
+            "present": true
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.bastion-frostweaver.linked-sequence",
+      "name": "Icebound Watch",
+      "pair": [
+        "bastion",
+        "frostweaver"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "fortified",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "triggering",
+            "statusId": "frozen",
+            "present": true
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "enemy"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "affected",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.frostweaver-ravager.linked-sequence",
+      "name": "Cold Blood",
+      "pair": [
+        "frostweaver",
+        "ravager"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "revise",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "ravager",
+            "requiredTags": [
+              "melee"
+            ],
+            "classification": "attack"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "reckless",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "frozen",
+            "present": true
+          }
+        ]
+      },
+      "removedConditions": [
+        {
+          "kind": "resource-state",
+          "subject": "owner",
+          "resource": "hp",
+          "comparison": "at-most",
+          "basisPoints": 3500
+        }
+      ],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.edgedancer-frostweaver.linked-sequence",
+      "name": "Glacial Step",
+      "pair": [
+        "edgedancer",
+        "frostweaver"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "edgedancer",
+            "requiredTags": [
+              "melee"
+            ],
+            "classification": "attack"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "frozen",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "guarded",
+            "present": true
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.frostweaver-wildwarden.linked-sequence",
+      "name": "Frostbound Quarry",
+      "pair": [
+        "frostweaver",
+        "wildwarden"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "wildwarden",
+            "classification": "attack"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "poison",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "frozen",
+            "present": true
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.frostweaver-runeblade.linked-sequence",
+      "name": "Quiet Rune",
+      "pair": [
+        "frostweaver",
+        "runeblade"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "resource_changed",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "runeblade",
+            "requiredTags": [
+              "drain"
+            ],
+            "classification": "attack"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "frozen",
+            "present": true
+          },
+          {
+            "kind": "resource-threshold-crossing",
+            "subject": "affected",
+            "resource": "mp",
+            "direction": "below",
+            "thresholdBasisPoints": 2500
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "affected",
+            "otherSubject": "owner",
+            "relation": "enemy"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.dawnshield-frostweaver.linked-sequence",
+      "name": "Shelter from Winter",
+      "pair": [
+        "dawnshield",
+        "frostweaver"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combat_action_used",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "dawnshield",
+            "classification": "recovery"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "selected",
+            "statusId": "frozen",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "selected",
+            "statusId": "root",
+            "present": true
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.cinderweaver-frostweaver.linked-sequence",
+      "name": "Thermal Choice",
+      "pair": [
+        "cinderweaver",
+        "frostweaver"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "cinderweaver",
+            "classification": "attack"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "frozen",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "warded",
+            "present": true
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.stormsinger-vanguard.linked-sequence",
+      "name": "Thunder Breach",
+      "pair": [
+        "stormsinger",
+        "vanguard"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "vanguard",
+            "requiredTags": [
+              "melee"
+            ],
+            "classification": "attack"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "conductive",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "guarded",
+            "present": true
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.lifebinder-stormsinger.linked-sequence",
+      "name": "Restorative Current",
+      "pair": [
+        "lifebinder",
+        "stormsinger"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "revise",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "resource_changed",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "stormsinger",
+            "requiredTags": [
+              "recovery",
+              "setup"
+            ],
+            "classification": "recovery"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "guarded",
+            "present": true
+          },
+          {
+            "kind": "resource-state",
+            "subject": "owner",
+            "resource": "hp",
+            "comparison": "at-most",
+            "basisPoints": 6000
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "affected",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "resource-change",
+            "subject": "affected",
+            "resource": "mp",
+            "direction": "gained",
+            "minimumAmount": 1
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": true
+    },
+    {
+      "id": "resonance.aetherist-stormsinger.linked-sequence",
+      "name": "Charged Calculation",
+      "pair": [
+        "aetherist",
+        "stormsinger"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combat_action_used",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "aetherist",
+            "classification": "utility"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "selected",
+            "statusId": "conductive",
+            "present": true
+          },
+          {
+            "kind": "resource-state",
+            "subject": "owner",
+            "resource": "mp",
+            "comparison": "at-least",
+            "basisPoints": 6000
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.farstrider-stormsinger.linked-sequence",
+      "name": "Conductive Sight",
+      "pair": [
+        "farstrider",
+        "stormsinger"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "farstrider",
+            "requiredTags": [
+              "precision"
+            ],
+            "classification": "attack"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "conductive",
+            "present": true
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.shadehand-stormsinger.linked-sequence",
+      "name": "Static Misdirection",
+      "pair": [
+        "shadehand",
+        "stormsinger"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "shadehand",
+            "requiredTags": [
+              "melee"
+            ],
+            "classification": "attack"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "covert",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "conductive",
+            "present": true
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.ironfist-stormsinger.linked-sequence",
+      "name": "Disrupting Palm",
+      "pair": [
+        "ironfist",
+        "stormsinger"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "barrier_absorbed",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "classification": "attack"
+          },
+          {
+            "kind": "action",
+            "attackFamily": "physical"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "affected",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "enemy"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "airborne",
+            "present": true
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.bastion-stormsinger.linked-sequence",
+      "name": "Grounded Challenge",
+      "pair": [
+        "bastion",
+        "stormsinger"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combat_action_used",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "bastion",
+            "classification": "utility"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "fortified",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "selected",
+            "statusId": "conductive",
+            "present": true
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.ravager-stormsinger.linked-sequence",
+      "name": "Red Lightning",
+      "pair": [
+        "ravager",
+        "stormsinger"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "ravager",
+            "requiredTags": [
+              "melee"
+            ],
+            "classification": "attack"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "conductive",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "reckless",
+            "present": true
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.edgedancer-stormsinger.linked-sequence",
+      "name": "Arc across the Gap",
+      "pair": [
+        "edgedancer",
+        "stormsinger"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "edgedancer",
+            "requiredTags": [
+              "melee"
+            ],
+            "classification": "attack"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "conductive",
+            "present": true
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.stormsinger-wildwarden.linked-sequence",
+      "name": "Charged Quarry",
+      "pair": [
+        "stormsinger",
+        "wildwarden"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "wildwarden",
+            "classification": "attack"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "poison",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "conductive",
+            "present": true
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.runeblade-stormsinger.linked-sequence",
+      "name": "Circuit after Contact",
+      "pair": [
+        "runeblade",
+        "stormsinger"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "resource_changed",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "runeblade",
+            "requiredTags": [
+              "drain"
+            ],
+            "classification": "attack"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "conductive",
+            "present": true
+          },
+          {
+            "kind": "resource-threshold-crossing",
+            "subject": "affected",
+            "resource": "mp",
+            "direction": "below",
+            "thresholdBasisPoints": 2500
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "affected",
+            "otherSubject": "owner",
+            "relation": "enemy"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.dawnshield-stormsinger.linked-sequence",
+      "name": "Calm the Charge",
+      "pair": [
+        "dawnshield",
+        "stormsinger"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "revise",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combat_action_used",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "dawnshield",
+            "classification": "recovery"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "selected",
+            "statusId": "wet",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "selected",
+            "statusId": "conductive",
+            "present": true
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [
+        {
+          "kind": "status-presence",
+          "subject": "owner",
+          "statusId": "guarded",
+          "present": true
+        }
+      ],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.cinderweaver-stormsinger.linked-sequence",
+      "name": "Overheated Circuit",
+      "pair": [
+        "cinderweaver",
+        "stormsinger"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "cinderweaver",
+            "classification": "attack"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "burn",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "conductive",
+            "present": true
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.frostweaver-stormsinger.linked-sequence",
+      "name": "Brittle Conductor",
+      "pair": [
+        "frostweaver",
+        "stormsinger"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "frostweaver",
+            "classification": "attack"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "conductive",
+            "present": true
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.tidecaller-vanguard.linked-sequence",
+      "name": "Undertow Breach",
+      "pair": [
+        "tidecaller",
+        "vanguard"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combatant_displaced",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "vanguard",
+            "classification": "attack"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "wet",
+            "present": true
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "affected",
+            "otherSubject": "owner",
+            "relation": "enemy"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.lifebinder-tidecaller.linked-sequence",
+      "name": "Patient Waters",
+      "pair": [
+        "lifebinder",
+        "tidecaller"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "healing_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "tidecaller",
+            "requiredTags": [
+              "heal"
+            ]
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "guarded",
+            "present": true
+          },
+          {
+            "kind": "resource-state",
+            "subject": "affected",
+            "resource": "hp",
+            "comparison": "at-most",
+            "basisPoints": 5000
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.aetherist-tidecaller.linked-sequence",
+      "name": "Reserve Current",
+      "pair": [
+        "aetherist",
+        "tidecaller"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combat_action_used",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "tidecaller",
+            "classification": "recovery"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "selected",
+            "statusId": "wet",
+            "present": true
+          },
+          {
+            "kind": "resource-state",
+            "subject": "owner",
+            "resource": "mp",
+            "comparison": "at-least",
+            "basisPoints": 5000
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.farstrider-tidecaller.linked-sequence",
+      "name": "Waterline Shot",
+      "pair": [
+        "farstrider",
+        "tidecaller"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "revise",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "farstrider",
+            "requiredTags": [
+              "ranged"
+            ],
+            "classification": "attack"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "wet",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "slow",
+            "present": true
+          }
+        ]
+      },
+      "removedConditions": [
+        {
+          "kind": "resource-state",
+          "subject": "owner",
+          "resource": "hp",
+          "comparison": "at-most",
+          "basisPoints": 7000
+        }
+      ],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.shadehand-tidecaller.linked-sequence",
+      "name": "Mistbound Escape",
+      "pair": [
+        "shadehand",
+        "tidecaller"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "healing_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "tidecaller",
+            "requiredTags": [
+              "heal"
+            ]
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "covert",
+            "present": true
+          },
+          {
+            "kind": "resource-state",
+            "subject": "owner",
+            "resource": "hp",
+            "comparison": "at-most",
+            "basisPoints": 4000
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "affected",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.ironfist-tidecaller.linked-sequence",
+      "name": "Turning Current",
+      "pair": [
+        "ironfist",
+        "tidecaller"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "healing_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "tidecaller",
+            "requiredTags": [
+              "heal"
+            ]
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "airborne",
+            "present": true
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "affected",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.bastion-tidecaller.linked-sequence",
+      "name": "Harbor Guard",
+      "pair": [
+        "bastion",
+        "tidecaller"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "revise",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combat_action_used",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "tidecaller",
+            "classification": "recovery"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "fortified",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "selected",
+            "statusId": "wet",
+            "present": true
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "selected",
+            "otherSubject": "owner",
+            "relation": "ally"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [
+        {
+          "kind": "status-presence",
+          "subject": "selected",
+          "statusId": "conductive",
+          "present": true
+        }
+      ],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.ravager-tidecaller.linked-sequence",
+      "name": "Red Undertow",
+      "pair": [
+        "ravager",
+        "tidecaller"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "healing_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "tidecaller",
+            "requiredTags": [
+              "heal"
+            ]
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "reckless",
+            "present": true
+          },
+          {
+            "kind": "resource-state",
+            "subject": "owner",
+            "resource": "hp",
+            "comparison": "at-most",
+            "basisPoints": 4000
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "affected",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.edgedancer-tidecaller.linked-sequence",
+      "name": "Mistward Step",
+      "pair": [
+        "edgedancer",
+        "tidecaller"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "healing_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "tidecaller",
+            "requiredTags": [
+              "heal"
+            ]
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "guarded",
+            "present": true
+          },
+          {
+            "kind": "resource-state",
+            "subject": "owner",
+            "resource": "hp",
+            "comparison": "at-most",
+            "basisPoints": 6000
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "affected",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.tidecaller-wildwarden.linked-sequence",
+      "name": "Quarry in the Current",
+      "pair": [
+        "tidecaller",
+        "wildwarden"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combatant_displaced",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "tidecaller",
+            "classification": "attack"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "mark",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "poison",
+            "present": true
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "affected",
+            "otherSubject": "owner",
+            "relation": "enemy"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.runeblade-tidecaller.linked-sequence",
+      "name": "Washing Inscription",
+      "pair": [
+        "runeblade",
+        "tidecaller"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "revise",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "healing_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "tidecaller",
+            "requiredTags": [
+              "heal"
+            ]
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "guarded",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "hexed",
+            "present": true
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "affected",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [
+        {
+          "kind": "resource-state",
+          "subject": "owner",
+          "resource": "mp",
+          "comparison": "at-most",
+          "basisPoints": 5000
+        }
+      ],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.dawnshield-tidecaller.linked-sequence",
+      "name": "Harbor Benediction",
+      "pair": [
+        "dawnshield",
+        "tidecaller"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "revise",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combat_action_used",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "tidecaller",
+            "classification": "recovery"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "selected",
+            "statusId": "wet",
+            "present": true
+          },
+          {
+            "kind": "resource-state",
+            "subject": "selected",
+            "resource": "hp",
+            "comparison": "at-most",
+            "basisPoints": 5000
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [
+        {
+          "kind": "status-presence",
+          "subject": "selected",
+          "statusId": "guarded",
+          "present": true
+        }
+      ],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.cinderweaver-tidecaller.linked-sequence",
+      "name": "Steamfront",
+      "pair": [
+        "cinderweaver",
+        "tidecaller"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combat_action_used",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "tidecaller",
+            "classification": "recovery"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "burn",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "wet",
+            "present": true
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.frostweaver-tidecaller.linked-sequence",
+      "name": "Rime Current",
+      "pair": [
+        "frostweaver",
+        "tidecaller"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "tidecaller",
+            "classification": "attack"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "wet",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "frozen",
+            "present": true
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.stormsinger-tidecaller.linked-sequence",
+      "name": "Chosen Confluence",
+      "pair": [
+        "stormsinger",
+        "tidecaller"
+      ],
+      "beforeVersion": 8,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "stormsinger",
+            "classification": "attack"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "wet",
+            "present": true
+          },
+          {
+            "kind": "resource-state",
+            "subject": "owner",
+            "resource": "hp",
+            "comparison": "at-most",
+            "basisPoints": 5000
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.chronist-vanguard.linked-sequence",
+      "name": "Delayed Breach",
+      "pair": [
+        "chronist",
+        "vanguard"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "revise",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "prime-presence",
+            "subject": "owner",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "guarded",
+            "present": true
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "vanguard",
+            "classification": "attack"
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [
+        {
+          "kind": "status-presence",
+          "subject": "owner",
+          "statusId": "guarded",
+          "present": true
+        }
+      ],
+      "genericPrimed": true,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.chronist-lifebinder.linked-sequence",
+      "name": "Triage in Two Times",
+      "pair": [
+        "chronist",
+        "lifebinder"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combatant_rewound",
+            "phase": "after"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "guarded",
+            "present": true
+          },
+          {
+            "kind": "resource-state",
+            "subject": "owner",
+            "resource": "hp",
+            "comparison": "at-most",
+            "basisPoints": 3500
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.aetherist-chronist.linked-sequence",
+      "name": "Held Formula",
+      "pair": [
+        "aetherist",
+        "chronist"
+      ],
+      "beforeVersion": 6,
+      "keepOrRevise": "revise",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "prime-presence",
+            "subject": "owner",
+            "present": true
+          },
+          {
+            "kind": "resource-state",
+            "subject": "owner",
+            "resource": "mp",
+            "comparison": "at-least",
+            "amount": 12
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": true,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.chronist-farstrider.linked-sequence",
+      "name": "Forecasted Mark",
+      "pair": [
+        "chronist",
+        "farstrider"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "revise",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "prime-presence",
+            "subject": "owner",
+            "present": true
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "farstrider",
+            "classification": "attack"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "mark",
+            "present": true
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [
+        {
+          "kind": "status-presence",
+          "subject": "affected",
+          "statusId": "slow",
+          "present": true
+        }
+      ],
+      "genericPrimed": true,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.chronist-shadehand.linked-sequence",
+      "name": "Borrowed Concealment",
+      "pair": [
+        "chronist",
+        "shadehand"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "revise",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combat_action_used",
+            "phase": "after"
+          },
+          {
+            "kind": "prime-presence",
+            "subject": "owner",
+            "present": true
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "shadehand",
+            "classification": "attack"
+          },
+          {
+            "kind": "resource-state",
+            "subject": "owner",
+            "resource": "hp",
+            "comparison": "at-most",
+            "basisPoints": 5000
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": true,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.chronist-ironfist.linked-sequence",
+      "name": "Patient Palm",
+      "pair": [
+        "chronist",
+        "ironfist"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "ironfist",
+            "classification": "attack"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "haste",
+            "present": true
+          },
+          {
+            "kind": "resource-state",
+            "subject": "owner",
+            "resource": "ap",
+            "comparison": "at-most",
+            "amount": 25
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.bastion-chronist.linked-sequence",
+      "name": "Fortress at Dawn",
+      "pair": [
+        "bastion",
+        "chronist"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combatant_rewound",
+            "phase": "after"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "fortified",
+            "present": true
+          },
+          {
+            "kind": "resource-state",
+            "subject": "owner",
+            "resource": "hp",
+            "comparison": "at-most",
+            "basisPoints": 5000
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.chronist-ravager.linked-sequence",
+      "name": "Debt of Blood",
+      "pair": [
+        "chronist",
+        "ravager"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "revise",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "prime-presence",
+            "subject": "owner",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "reckless",
+            "present": true
+          },
+          {
+            "kind": "resource-threshold-crossing",
+            "subject": "owner",
+            "resource": "hp",
+            "direction": "below",
+            "thresholdBasisPoints": 3000
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "affected",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": true,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.chronist-edgedancer.linked-sequence",
+      "name": "Poised Moment",
+      "pair": [
+        "chronist",
+        "edgedancer"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combatant_rewound",
+            "phase": "after"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "haste",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "guarded",
+            "present": true
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.chronist-wildwarden.linked-sequence",
+      "name": "Patient Hunt",
+      "pair": [
+        "chronist",
+        "wildwarden"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "revise",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "damage_applied",
+            "phase": "after"
+          },
+          {
+            "kind": "prime-presence",
+            "subject": "owner",
+            "present": true
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "wildwarden",
+            "classification": "attack"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "affected",
+            "statusId": "mark",
+            "present": true
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [
+        {
+          "kind": "status-presence",
+          "subject": "affected",
+          "statusId": "slow",
+          "present": true
+        }
+      ],
+      "genericPrimed": true,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.chronist-runeblade.linked-sequence",
+      "name": "Deferred Inscription",
+      "pair": [
+        "chronist",
+        "runeblade"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "revise",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combat_action_used",
+            "phase": "after"
+          },
+          {
+            "kind": "prime-presence",
+            "subject": "owner",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "haste",
+            "present": true
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "runeblade",
+            "classification": "recovery"
+          }
+        ]
+      },
+      "removedConditions": [
+        {
+          "kind": "resource-state",
+          "subject": "owner",
+          "resource": "mp",
+          "comparison": "at-most",
+          "basisPoints": 7500
+        }
+      ],
+      "genericPrimed": true,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.chronist-dawnshield.linked-sequence",
+      "name": "Light after Recovery",
+      "pair": [
+        "chronist",
+        "dawnshield"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "revise",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combat_action_used",
+            "phase": "after"
+          },
+          {
+            "kind": "prime-presence",
+            "subject": "owner",
+            "present": true
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "dawnshield",
+            "classification": "recovery"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": true,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.chronist-cinderweaver.linked-sequence",
+      "name": "Banked Flash",
+      "pair": [
+        "chronist",
+        "cinderweaver"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "revise",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combat_action_used",
+            "phase": "after"
+          },
+          {
+            "kind": "prime-presence",
+            "subject": "owner",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "warded",
+            "present": true
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "cinderweaver",
+            "classification": "utility"
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": true,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.chronist-frostweaver.linked-sequence",
+      "name": "Approaching Winter",
+      "pair": [
+        "chronist",
+        "frostweaver"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "revise",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combat_action_used",
+            "phase": "after"
+          },
+          {
+            "kind": "prime-presence",
+            "subject": "owner",
+            "present": true
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "chronist",
+            "classification": "utility"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "selected",
+            "statusId": "frozen",
+            "present": true
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [
+        {
+          "kind": "status-presence",
+          "subject": "selected",
+          "statusId": "slow",
+          "present": true
+        }
+      ],
+      "genericPrimed": true,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.chronist-stormsinger.linked-sequence",
+      "name": "Forecasted Thunder",
+      "pair": [
+        "chronist",
+        "stormsinger"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "revise",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combat_action_used",
+            "phase": "after"
+          },
+          {
+            "kind": "prime-presence",
+            "subject": "owner",
+            "present": true
+          },
+          {
+            "kind": "action",
+            "sourceDisciplineId": "chronist",
+            "classification": "utility"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "selected",
+            "statusId": "conductive",
+            "present": true
+          },
+          {
+            "kind": "subject-relation",
+            "subject": "triggering",
+            "otherSubject": "owner",
+            "relation": "same-unit"
+          }
+        ]
+      },
+      "removedConditions": [
+        {
+          "kind": "status-presence",
+          "subject": "selected",
+          "statusId": "slow",
+          "present": true
+        }
+      ],
+      "genericPrimed": true,
+      "positiveMpGainWitness": false
+    },
+    {
+      "id": "resonance.chronist-tidecaller.linked-sequence",
+      "name": "Returning Current",
+      "pair": [
+        "chronist",
+        "tidecaller"
+      ],
+      "beforeVersion": 7,
+      "keepOrRevise": "keep",
+      "requirementNodes": {
+        "kind": "all",
+        "children": [
+          {
+            "kind": "event",
+            "eventType": "combatant_rewound",
+            "phase": "after"
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "wet",
+            "present": true
+          },
+          {
+            "kind": "resource-state",
+            "subject": "owner",
+            "resource": "hp",
+            "comparison": "at-most",
+            "basisPoints": 6000
+          }
+        ]
+      },
+      "removedConditions": [],
+      "genericPrimed": false,
+      "positiveMpGainWitness": false
+    }
+  ]
+}

@@ -1,0 +1,2839 @@
+{
+  "schemaVersion": 1,
+  "status": "inventory-only-not-publishable",
+  "runtimeContractTree": "e17dd5be9a16c6c04d14aad93a44c54294e62822",
+  "counts": {
+    "skill": 136,
+    "essence": 17,
+    "resonance": 136,
+    "basic": 5
+  },
+  "publishedOverrideRows": 0,
+  "publishedVersionRows": 0,
+  "draftRows": 0,
+  "requiresFreshHostedReconciliationBeforePublication": true,
+  "effectTagIds": [
+    "move",
+    "damage",
+    "pierce",
+    "healing",
+    "percentage-recovery",
+    "resource-change",
+    "apply-status",
+    "remove-status",
+    "return-to-turn-start",
+    "create-terrain",
+    "displace",
+    "poison",
+    "burn",
+    "bleed",
+    "barrier-change",
+    "copy-statuses",
+    "sensory",
+    "summon",
+    "damage-bonus"
+  ],
+  "runtimeStatusIds": [
+    "guarded",
+    "lowered-guard",
+    "exposed",
+    "covert",
+    "revealed",
+    "wet",
+    "frozen",
+    "conductive",
+    "inspired",
+    "blindside",
+    "suppress",
+    "hexed",
+    "invisible",
+    "airborne",
+    "displaced",
+    "haste",
+    "burn",
+    "bleed",
+    "poison",
+    "slow",
+    "root",
+    "reckless",
+    "fortified",
+    "challenged",
+    "mark",
+    "warded"
+  ],
+  "records": [
+    {
+      "kind": "skill",
+      "id": "vanguard.forceful-strike",
+      "beforeVersion": 5,
+      "beforeDigest": "d5fb9a830f961e0a59c91f42c00aadb9b1e8f63af0a53d0ef23502f1b57b289b",
+      "sourceDisciplineId": "vanguard",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "vanguard.cleave",
+      "beforeVersion": 5,
+      "beforeDigest": "7e89898d139a48a5502c760cfa8999e7a380da4e153b7261e26d60d29f3cf641",
+      "sourceDisciplineId": "vanguard",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "vanguard.guard-break",
+      "beforeVersion": 4,
+      "beforeDigest": "57ce53e1e85ecd44db18c8e381da186e30e7f4e30fc8941244a57f8cd67f2da1",
+      "sourceDisciplineId": "vanguard",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "vanguard.brace",
+      "beforeVersion": 4,
+      "beforeDigest": "fe196165e7ec28f0f370551806ead71beae45ab7c40b4cbdb5a760a6b4e79653",
+      "sourceDisciplineId": "vanguard",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "vanguard.rally",
+      "beforeVersion": 5,
+      "beforeDigest": "b126e4a80f35b0e1626754a540987ca037116020447f7dbe208deb06497511c1",
+      "sourceDisciplineId": "vanguard",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "vanguard.shield-bash",
+      "beforeVersion": 4,
+      "beforeDigest": "01e038cf87b857c257578779b1d014a060ba886fe33540631e73677405445d96",
+      "sourceDisciplineId": "vanguard",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "vanguard.second-wind",
+      "beforeVersion": 5,
+      "beforeDigest": "37f2d3892c86e38d5fe881e31d5f31bac7cb2b2e5d6eb3460651a047e3cedabf",
+      "sourceDisciplineId": "vanguard",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "vanguard.sweeping-strike",
+      "beforeVersion": 5,
+      "beforeDigest": "a6020c7ec80517439fb274c3ee0e33529060970b8a7808646a4276fb169fbf14",
+      "sourceDisciplineId": "vanguard",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "lifebinder.mending-light",
+      "beforeVersion": 5,
+      "beforeDigest": "3203d95ad9b12772ea61d1e9b1689598522e9fd94157ec858a578a0902b26fd9",
+      "sourceDisciplineId": "lifebinder",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "lifebinder.mend",
+      "beforeVersion": 5,
+      "beforeDigest": "d51e87e5f8cf35dc58da57995a054d5e6ae04435f3c2d1675a2118abf4d9bccf",
+      "sourceDisciplineId": "lifebinder",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "lifebinder.barrier",
+      "beforeVersion": 4,
+      "beforeDigest": "2368df68e7dc9d99a157f87bee360064cc4d46fb7a7fa1fd2636769d0ef46a50",
+      "sourceDisciplineId": "lifebinder",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "lifebinder.renew",
+      "beforeVersion": 5,
+      "beforeDigest": "8f27ed83a2a5e37c3b411d9f76bd1677a0f6c528344a7431eb71d792152e163b",
+      "sourceDisciplineId": "lifebinder",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "lifebinder.sanctuary",
+      "beforeVersion": 6,
+      "beforeDigest": "a6ecfa8c5f8894e61d7d183f0f023940631bf31b2942c8fa9c75e10139c0af74",
+      "sourceDisciplineId": "lifebinder",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "lifebinder.fortifying-light",
+      "beforeVersion": 5,
+      "beforeDigest": "55364c5ba4a9ebbb1fdc5763c2ce47596e9417201d26697ce57f00099f737e3b",
+      "sourceDisciplineId": "lifebinder",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "lifebinder.vital-sever",
+      "beforeVersion": 5,
+      "beforeDigest": "21e4ba9f86b0a6cb9d88e57668d880e12a216f44c4e4bde8e7b4827e45ea3eda",
+      "sourceDisciplineId": "lifebinder",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "lifebinder.searing-bloom",
+      "beforeVersion": 6,
+      "beforeDigest": "b4d5270c8cfee06e286e960427e8ea2f5a5c93cfc8a33243dd25972bf0cfeeb7",
+      "sourceDisciplineId": "lifebinder",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "aetherist.arc-bolt",
+      "beforeVersion": 5,
+      "beforeDigest": "0bdec5eae55833e628464d42a123465f490d9098d4ab5c291243701153f0c63e",
+      "sourceDisciplineId": "aetherist",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "aetherist.mana-burst",
+      "beforeVersion": 6,
+      "beforeDigest": "5bdb39445df669198c83fb7607acfa8adf2821cfe61111a02c4b77e46ac3aad6",
+      "sourceDisciplineId": "aetherist",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "aetherist.ward-pierce",
+      "beforeVersion": 5,
+      "beforeDigest": "b6ddc421d99cb74211ed1b1f93bf28e7751777f88e8ac3810af46ac8c2338efb",
+      "sourceDisciplineId": "aetherist",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "aetherist.arcane-field",
+      "beforeVersion": 6,
+      "beforeDigest": "beecbbf894daa7e3a5d5c6c28c1ed3eb628ea2c87d65a28ad2b66b85a3c08ddd",
+      "sourceDisciplineId": "aetherist",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "aetherist.channel",
+      "beforeVersion": 6,
+      "beforeDigest": "c056b3faa239478ac70ab1cde385ff90c636568641c2fe60cc9285022af71f2b",
+      "sourceDisciplineId": "aetherist",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "aetherist.mana-shield",
+      "beforeVersion": 5,
+      "beforeDigest": "226a2a7f9a6f91521c20c5ff6cf47f4df536b1471c67c4f17744d037178e1889",
+      "sourceDisciplineId": "aetherist",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "aetherist.chain-spark",
+      "beforeVersion": 6,
+      "beforeDigest": "4f86678d471f9bd8ce5162cc888d493b8b8999e5b139cff89d88dc1c1c4b123d",
+      "sourceDisciplineId": "aetherist",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "aetherist.overchannel",
+      "beforeVersion": 5,
+      "beforeDigest": "0f45fe072a856d68b911eccc9e1710973bde67dda43357d9241e17659e08a5ca",
+      "sourceDisciplineId": "aetherist",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "farstrider.aimed-shot",
+      "beforeVersion": 4,
+      "beforeDigest": "336a949527e0f792d032d2a6e14f1f8529ba558136597c411b188c3bd671da9e",
+      "sourceDisciplineId": "farstrider",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "farstrider.pinning-shot",
+      "beforeVersion": 4,
+      "beforeDigest": "309419f7061a23cb33757a359ce65abdb3f530b1b127e5f2d01e09407bb1eacb",
+      "sourceDisciplineId": "farstrider",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "farstrider.volley",
+      "beforeVersion": 5,
+      "beforeDigest": "6e004f078f19a2220be05620b97fd4579dbe354d97c321f44292d2845fee8f5c",
+      "sourceDisciplineId": "farstrider",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "farstrider.scouts-mark",
+      "beforeVersion": 4,
+      "beforeDigest": "53b6ffae0386d939b96008dd4c9ac1b3bd75349979a0692ef56f48b82b4bc859",
+      "sourceDisciplineId": "farstrider",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "farstrider.longshot",
+      "beforeVersion": 4,
+      "beforeDigest": "127b538b5c81f2ab63dc1566f73b91bc2dee77a479efbf607eb44e1d9dc41be7",
+      "sourceDisciplineId": "farstrider",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "farstrider.piercing-barrage",
+      "beforeVersion": 5,
+      "beforeDigest": "27c5f5497d7ef2b0bfeffc1af9adcb32138f0450903ce7097e2087882b2570f5",
+      "sourceDisciplineId": "farstrider",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "farstrider.fieldcraft",
+      "beforeVersion": 5,
+      "beforeDigest": "37ad9fa88f2c54b3e3ba6db5a3715657a82f9c15994b303a6930fc2f98d548bb",
+      "sourceDisciplineId": "farstrider",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "farstrider.keen-focus",
+      "beforeVersion": 4,
+      "beforeDigest": "8664cbfbfe2b4eef5461b311d4fb93f7735d3db5dccb8dabb6962f2cc3201bff",
+      "sourceDisciplineId": "farstrider",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "shadehand.backstab",
+      "beforeVersion": 5,
+      "beforeDigest": "018885f5bf901a219857b2f6b1b6157aaa9c238a0f2e3e65d2634e4f297a4a4f",
+      "sourceDisciplineId": "shadehand",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "shadehand.feint",
+      "beforeVersion": 4,
+      "beforeDigest": "d3ee0c81fbe3b98fb585d4ca61e6d588416be17c9005fe93a270af7023a0147b",
+      "sourceDisciplineId": "shadehand",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "shadehand.smoke-vial",
+      "beforeVersion": 5,
+      "beforeDigest": "07c0ce354a7991b74e73a30da2e99ff0e3a22dd143fea591464b9d7090815da0",
+      "sourceDisciplineId": "shadehand",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "shadehand.crippling-cut",
+      "beforeVersion": 4,
+      "beforeDigest": "c2dc9d2f8a4348e178f2ebc3ce74a7de48db9409aa454a39d45465101f5f2526",
+      "sourceDisciplineId": "shadehand",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "shadehand.exploit-opening",
+      "beforeVersion": 5,
+      "beforeDigest": "9997d9d00a8a2b35c09554a038ce51bedac10da6ba16b1d05893d1cd1bb100fe",
+      "sourceDisciplineId": "shadehand",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "shadehand.fan-of-knives",
+      "beforeVersion": 5,
+      "beforeDigest": "a55d6cb89b62f74fe3748ac267a4be2bbbaff71ee093301e7e293c44eee22688",
+      "sourceDisciplineId": "shadehand",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "shadehand.quick-hands",
+      "beforeVersion": 5,
+      "beforeDigest": "ad07f71ab89be2a65ce77d4b2f5de90e987c66c4ac8f875b1dedd00b728c4d86",
+      "sourceDisciplineId": "shadehand",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "shadehand.execution-cut",
+      "beforeVersion": 5,
+      "beforeDigest": "4d2e766906673da3e157d1ed9ef8f95032944ea4f5d53cd2678be91b06b3fa7a",
+      "sourceDisciplineId": "shadehand",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "ironfist.rising-fist",
+      "beforeVersion": 4,
+      "beforeDigest": "d5d1861c71dc09fe4f9a5820a1f6fb22a7d061e772365de111db40f358b3b617",
+      "sourceDisciplineId": "ironfist",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "ironfist.sweep",
+      "beforeVersion": 5,
+      "beforeDigest": "c145c584251cf06c19a166d74596063792846e696d5207aa5f8b9d60769b08d7",
+      "sourceDisciplineId": "ironfist",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "ironfist.focus-breath",
+      "beforeVersion": 5,
+      "beforeDigest": "9fcd69f7396528f58ec67d5a05044e4e137f51287004550c6572214dcb7d671f",
+      "sourceDisciplineId": "ironfist",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "ironfist.counter-palm",
+      "beforeVersion": 4,
+      "beforeDigest": "473d24d31f8a9bddf5c6967884738e8871669ce9d819c86e6a5e18da091eb47b",
+      "sourceDisciplineId": "ironfist",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "ironfist.breakfall",
+      "beforeVersion": 5,
+      "beforeDigest": "6a219a062d493817fb653528a0e0e13d22ce291e4fd3584a6015db4c2797a3b0",
+      "sourceDisciplineId": "ironfist",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "ironfist.hammer-knuckle",
+      "beforeVersion": 4,
+      "beforeDigest": "a9d827168f3e5602e64b5a53b796e50e588d03ebb61e4341794f78feb84c4004",
+      "sourceDisciplineId": "ironfist",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "ironfist.pressure-palm",
+      "beforeVersion": 5,
+      "beforeDigest": "4f80dae9662dc45c8ce50c2cd5129d62629a2fad4d9e7f3b8b8160760d1b9b26",
+      "sourceDisciplineId": "ironfist",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "ironfist.last-stand",
+      "beforeVersion": 5,
+      "beforeDigest": "cb837b5662fc253966d5cbba348cf7b5ff92fd3886c54b307c144fa02c7f999c",
+      "sourceDisciplineId": "ironfist",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "chronist.temporal-bolt",
+      "beforeVersion": 4,
+      "beforeDigest": "20489e4f44d720feb8c408b66873902c256f6d4fd67a5400c07b6d0d8f76c399",
+      "sourceDisciplineId": "chronist",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "chronist.haste",
+      "beforeVersion": 4,
+      "beforeDigest": "667a1913cd5bad8dc0a5c26e1c56af30aa6f7a02e01775b770a06d49b9948a01",
+      "sourceDisciplineId": "chronist",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "chronist.slow",
+      "beforeVersion": 4,
+      "beforeDigest": "13c6d3182695853b529ffa97d7a8bd273e8ddba915ea21ab455973c3efb96e53",
+      "sourceDisciplineId": "chronist",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "chronist.delay",
+      "beforeVersion": 4,
+      "beforeDigest": "57be641a08191110441a88e47cff19b7c6fed05fed9a00e3312468283409f1b0",
+      "sourceDisciplineId": "chronist",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "chronist.rewind-step",
+      "beforeVersion": 5,
+      "beforeDigest": "0789fd79da67a6603da0807984363b7f1ad9b7e09acfe91d9e6b9bd73a41be8b",
+      "sourceDisciplineId": "chronist",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "chronist.time-lock",
+      "beforeVersion": 4,
+      "beforeDigest": "2355ad904b3bbd05a05f36accbf8d1c0d3d2229fc2fd61be7245ece5617a8dac",
+      "sourceDisciplineId": "chronist",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "chronist.temporal-ward",
+      "beforeVersion": 4,
+      "beforeDigest": "a9250e9d05c6f6b2b29c6400db1ebe75e9a2324b28af0322a9a166316e3ca7d2",
+      "sourceDisciplineId": "chronist",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "chronist.stolen-moment",
+      "beforeVersion": 5,
+      "beforeDigest": "c1a4f547d1d02046d0916d6675b881b518400ee9f2498e3e26b1d31c95724128",
+      "sourceDisciplineId": "chronist",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "bastion.shield-bash",
+      "beforeVersion": 4,
+      "beforeDigest": "80424868c9c64d33f1dbdf75aac84d896e62f9b38bad886b592359204473fa03",
+      "sourceDisciplineId": "bastion",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "bastion.cover",
+      "beforeVersion": 4,
+      "beforeDigest": "5011d530a7fee315257afd086a84d65b508bb2ff5e48876f3101906bedefde94",
+      "sourceDisciplineId": "bastion",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "bastion.challenge",
+      "beforeVersion": 4,
+      "beforeDigest": "3aaa5d5953f7ba80f8268640c936c95c79ecf1e4f35e3e255e5aa9bc1f78d88d",
+      "sourceDisciplineId": "bastion",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "bastion.fortress",
+      "beforeVersion": 4,
+      "beforeDigest": "2e542b659922a8be7dc5d4f137f8ae04e1e1f70f8f155f9ad4bcb7026dde49fd",
+      "sourceDisciplineId": "bastion",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "bastion.hold-fast",
+      "beforeVersion": 5,
+      "beforeDigest": "62de719fa1ef35b74954a11966db127c2a693844dc0c69e8fbf3692602de0287",
+      "sourceDisciplineId": "bastion",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "bastion.shield-line",
+      "beforeVersion": 5,
+      "beforeDigest": "c0b79eeefc294f07ce9993012b69cad80c2187ab85e570cc96f6ed582ce4165f",
+      "sourceDisciplineId": "bastion",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "bastion.stalwart-strike",
+      "beforeVersion": 4,
+      "beforeDigest": "e1a6b836834fae61777eac9b77caed02dbf2f5b662f5672b34aa118537723ed7",
+      "sourceDisciplineId": "bastion",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "bastion.steady-footing",
+      "beforeVersion": 5,
+      "beforeDigest": "64f4c46fcfa60d4bcec6abfe97b2fd18aca33c72d192ece9a9a28a48e1db98eb",
+      "sourceDisciplineId": "bastion",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "ravager.frenzy",
+      "beforeVersion": 4,
+      "beforeDigest": "f70346d28739944a44dcbbee65d753f00cd19c1fb8dbfca022cc0420e59a8135",
+      "sourceDisciplineId": "ravager",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "ravager.gash",
+      "beforeVersion": 5,
+      "beforeDigest": "161a94b4161edcefaa0591be2152a6793a16b5d7a906b073b2f0321a4c01dd1f",
+      "sourceDisciplineId": "ravager",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "ravager.cleaving-blow",
+      "beforeVersion": 5,
+      "beforeDigest": "e5696d8381a422c609113a167e9c100508aebb7a172fdd00b049288d72efc2ed",
+      "sourceDisciplineId": "ravager",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "ravager.blood-rush",
+      "beforeVersion": 5,
+      "beforeDigest": "545e67565dbba34c36da6f670c2764510ed17bc6214abb131bed3885e4717b16",
+      "sourceDisciplineId": "ravager",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "ravager.war-roar",
+      "beforeVersion": 5,
+      "beforeDigest": "c668da420d52724a1f920cdaedd8f8d647aac8344cbcab4b42a21821edd9de86",
+      "sourceDisciplineId": "ravager",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "ravager.desperate-execution",
+      "beforeVersion": 4,
+      "beforeDigest": "0fdc90118869d4b07d285cdfbeddd0454834299052ed1697b6d138950f54dfc3",
+      "sourceDisciplineId": "ravager",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "ravager.blood-siphon",
+      "beforeVersion": 5,
+      "beforeDigest": "01d5044d5e6f893fe3ae33d027683b07d8af13c6c1fdf89eb37878e07528bc01",
+      "sourceDisciplineId": "ravager",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "ravager.open-wound",
+      "beforeVersion": 5,
+      "beforeDigest": "82a6631ec311164c520b771111e84376655c94b960c89431141ffd81135d4561",
+      "sourceDisciplineId": "ravager",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "edgedancer.lunge",
+      "beforeVersion": 4,
+      "beforeDigest": "f7dcf6271afeca0c0d18622e02a4dca961a7cb89aeab68b92640fd87d2d1730c",
+      "sourceDisciplineId": "edgedancer",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "edgedancer.riposte",
+      "beforeVersion": 4,
+      "beforeDigest": "b81d324867879639e4672566181ff9a1fb8706ad5e098ab9a8846bb474537f23",
+      "sourceDisciplineId": "edgedancer",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "edgedancer.hamstring",
+      "beforeVersion": 4,
+      "beforeDigest": "6d6a6811e50999a1e5cec11e266f819cf8214ce481a0b749039c2353934b4b8d",
+      "sourceDisciplineId": "edgedancer",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "edgedancer.flourish",
+      "beforeVersion": 4,
+      "beforeDigest": "2587734cd4ffe9b7004e48b147f2011ca1ec1b088a7a846bb34439e0aec058b7",
+      "sourceDisciplineId": "edgedancer",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "edgedancer.poised-guard",
+      "beforeVersion": 4,
+      "beforeDigest": "2f2e03db07784769f906ba41924476c22665d70c26f496bab8ac8502499f910f",
+      "sourceDisciplineId": "edgedancer",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "edgedancer.flanking-cut",
+      "beforeVersion": 5,
+      "beforeDigest": "717e106bbc84a9322c46fccae333896bafa90c4b22f405ec4671fdcda109bb13",
+      "sourceDisciplineId": "edgedancer",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "edgedancer.severing-cut",
+      "beforeVersion": 6,
+      "beforeDigest": "4ed5d10515b9f05e291954c9f63085bb7a5df8412ec7ac6404aca250579b1891",
+      "sourceDisciplineId": "edgedancer",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "edgedancer.finishing-thrust",
+      "beforeVersion": 4,
+      "beforeDigest": "9e655ad8aa11d5562f4594f24c2bcd39e6cae91bf3f048d3abd70dd9432c0c3b",
+      "sourceDisciplineId": "edgedancer",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "wildwarden.snare",
+      "beforeVersion": 4,
+      "beforeDigest": "9ee49bfafbffb7156df8742d9596605449934e79a26ea53e110da0dbad170fd9",
+      "sourceDisciplineId": "wildwarden",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "wildwarden.hunters-mark",
+      "beforeVersion": 4,
+      "beforeDigest": "3f79aa68f24f62e928aa20c5b31388e9176f2b993f5e218f20010551a5057a78",
+      "sourceDisciplineId": "wildwarden",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "wildwarden.venom-shot",
+      "beforeVersion": 7,
+      "beforeDigest": "f16838067cb919b3a7b8c99f18c96cf2788200ac222b0af3495cc7767b500071",
+      "sourceDisciplineId": "wildwarden",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "wildwarden.field-remedy",
+      "beforeVersion": 5,
+      "beforeDigest": "1c79addd1b34bc1bbc76a5d4f3573542fb282801252749b4a86a0a4dad70947a",
+      "sourceDisciplineId": "wildwarden",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "wildwarden.thorn-line",
+      "beforeVersion": 5,
+      "beforeDigest": "604d767979787f0b1740c9a7c58aaf3909359146b971adb1a13cceb6d1ce0475",
+      "sourceDisciplineId": "wildwarden",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "wildwarden.pursuit-shot",
+      "beforeVersion": 4,
+      "beforeDigest": "1aa421ba44279232c5f9ec3fdc6ab969e66b4a1d82538fbdc206efb43ace53f8",
+      "sourceDisciplineId": "wildwarden",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "wildwarden.renewing-herbs",
+      "beforeVersion": 6,
+      "beforeDigest": "eb8e51a2bc39aa890173a5f1d49588c5e1862921e46a114d5348098b0df987f1",
+      "sourceDisciplineId": "wildwarden",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "wildwarden.close-quarry",
+      "beforeVersion": 5,
+      "beforeDigest": "643435bcef896e2470a1fb1ffb53a20c071108aa7e03bb8422f1e5e762832b41",
+      "sourceDisciplineId": "wildwarden",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "runeblade.arc-edge",
+      "beforeVersion": 5,
+      "beforeDigest": "02e950cff55dfdafd5a5d3ba8c70498867e56cefafadd34d5f5c8cb5736561c5",
+      "sourceDisciplineId": "runeblade",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "runeblade.rune-guard",
+      "beforeVersion": 5,
+      "beforeDigest": "29e0cbf67dc95c60cc60c21475d9bd659298a7b2d0849b287502da69e5447a74",
+      "sourceDisciplineId": "runeblade",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "runeblade.siphon-slash",
+      "beforeVersion": 5,
+      "beforeDigest": "0b5e6ca4c753acf9c4de696610c72c05646558552689de9310963d0e05d0264f",
+      "sourceDisciplineId": "runeblade",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "runeblade.sigil-brand",
+      "beforeVersion": 5,
+      "beforeDigest": "0a4c21058a0d7385baa7fbdaa219e4ff3b9416563140ecfd4d3c83847b8a51b0",
+      "sourceDisciplineId": "runeblade",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "runeblade.rune-burst",
+      "beforeVersion": 4,
+      "beforeDigest": "3e6df06f833979ce9b69bd9c886e0863b4999b3d1b33c8034be6251741623cf6",
+      "sourceDisciplineId": "runeblade",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "runeblade.unbinding-rune",
+      "beforeVersion": 4,
+      "beforeDigest": "35a4c90d8f2075db4713a2cc27ec98d9b5e3fd1d25ea8e8319dd45bcc8594e6f",
+      "sourceDisciplineId": "runeblade",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "runeblade.aether-cut",
+      "beforeVersion": 5,
+      "beforeDigest": "9aa24f16115d8b48ca8dda3d56173850b5f4d6005236c8ca225356553b5b1772",
+      "sourceDisciplineId": "runeblade",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "runeblade.rune-mending",
+      "beforeVersion": 5,
+      "beforeDigest": "bf864e0ced68d513b998e4fb1a638a35f55f378eaf092b03cdf9844ba3526f57",
+      "sourceDisciplineId": "runeblade",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "dawnshield.radiant-strike",
+      "beforeVersion": 4,
+      "beforeDigest": "019c613fcbf5220778e58f9b258e1cd3249c09b58bb8dcb365d0bee2b443c056",
+      "sourceDisciplineId": "dawnshield",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "dawnshield.sacred-guard",
+      "beforeVersion": 6,
+      "beforeDigest": "78b1d170844a9777a4f4620cdc60b3dbf4728b5dae9be753f2f9c9ffe3c02007",
+      "sourceDisciplineId": "dawnshield",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "dawnshield.purge",
+      "beforeVersion": 4,
+      "beforeDigest": "53747b8d2b1c4d47d1931e2ee873d57f505530861fea31cede0e413ec4bba534",
+      "sourceDisciplineId": "dawnshield",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "dawnshield.consecrated-light",
+      "beforeVersion": 6,
+      "beforeDigest": "268fe36b94b783ff532cb183017d8399da03dcef16f41a3c2a4fbad81819a4da",
+      "sourceDisciplineId": "dawnshield",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "dawnshield.aegis",
+      "beforeVersion": 5,
+      "beforeDigest": "241ea9064e6606c874a6a5757bdbf99c0c923fd10ca064992964b94c47405ac3",
+      "sourceDisciplineId": "dawnshield",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "dawnshield.renewal",
+      "beforeVersion": 5,
+      "beforeDigest": "302ebfb62e7ab4dc834380a6caa08072f16ad7c7c535fe7fd6d1c8984d53757b",
+      "sourceDisciplineId": "dawnshield",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "dawnshield.judgment",
+      "beforeVersion": 4,
+      "beforeDigest": "216b181ef745ce27e3833eef17ba754bdd1d5ce0a27d70084a65a93a17f0b2c9",
+      "sourceDisciplineId": "dawnshield",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "dawnshield.last-light",
+      "beforeVersion": 5,
+      "beforeDigest": "9d6af566e8bac2348dc9497395ac49e1673201267bfbe2c1f1f165315b0a7718",
+      "sourceDisciplineId": "dawnshield",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "cinderweaver.cinder-bolt",
+      "beforeVersion": 7,
+      "beforeDigest": "6846cdbd58e3d90c92a907b0b513ccddb03b79146aab2a84b378f83cbf06eda9",
+      "sourceDisciplineId": "cinderweaver",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "cinderweaver.flame-burst",
+      "beforeVersion": 9,
+      "beforeDigest": "3dfc6195cf1bf3b8d1227beaa27d47a6d54f12b0215f0dcc7c7c62c8c5937dd6",
+      "sourceDisciplineId": "cinderweaver",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "cinderweaver.ember-line",
+      "beforeVersion": 8,
+      "beforeDigest": "c31863e6b177bea88de5bd2bfaf05097e462f4b7a7fd9c0494f39f3ef5ff3c76",
+      "sourceDisciplineId": "cinderweaver",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "cinderweaver.scorch",
+      "beforeVersion": 4,
+      "beforeDigest": "00bcc220269f69ff7ad86f58759acba3d6f266e867348acd5fbbac0652c29508",
+      "sourceDisciplineId": "cinderweaver",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "cinderweaver.ash-ward",
+      "beforeVersion": 4,
+      "beforeDigest": "7fc153176b0b8cfeceeefbf38061c6e69eda02393e5189527840d046edf05777",
+      "sourceDisciplineId": "cinderweaver",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "cinderweaver.flashfire",
+      "beforeVersion": 4,
+      "beforeDigest": "ef5fc13461f05880d1618b26f01b9038872e3d2c291fca2e368dab7576af34e5",
+      "sourceDisciplineId": "cinderweaver",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "cinderweaver.banked-embers",
+      "beforeVersion": 5,
+      "beforeDigest": "b7b873be5e6368c468e4088170d8c3ced8df662f5733da35c6637229392e5607",
+      "sourceDisciplineId": "cinderweaver",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "cinderweaver.blistering-heat",
+      "beforeVersion": 6,
+      "beforeDigest": "f27c35b2eae148ebc7c5f50cc2ee58cfa07fae8464da5f6e19d15bea75f11a91",
+      "sourceDisciplineId": "cinderweaver",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "frostweaver.ice-lance",
+      "beforeVersion": 7,
+      "beforeDigest": "bef385745a2f7d50fa9e0dc227e178ebb9cfb45174a6d665c4660de6dd934bfc",
+      "sourceDisciplineId": "frostweaver",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "frostweaver.frost-guard",
+      "beforeVersion": 4,
+      "beforeDigest": "c9acb9f3726b7bbd5a14a6b6b438e714855614d293648140ae701c7e12190f3c",
+      "sourceDisciplineId": "frostweaver",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "frostweaver.chilling-mist",
+      "beforeVersion": 7,
+      "beforeDigest": "1d09a2b355c0778fb449da8510b9dfda26824375a0d0e2fcf19ee14ced063771",
+      "sourceDisciplineId": "frostweaver",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "frostweaver.crystal-prison",
+      "beforeVersion": 4,
+      "beforeDigest": "e7ffca6bf12f27a0ab849642862c63c95ac2f2320468dbf567f3e7d61c852a03",
+      "sourceDisciplineId": "frostweaver",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "frostweaver.shatter",
+      "beforeVersion": 7,
+      "beforeDigest": "591abd7e41a8291f5139d08cc924a752ea8d8e96ce545fdd0ceb0ca1322a5ed0",
+      "sourceDisciplineId": "frostweaver",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "frostweaver.ice-line",
+      "beforeVersion": 7,
+      "beforeDigest": "abc2ac5f6d7001fb82c4e11c34bee220d56ca1bf922f4d84b205ecc11bf8771d",
+      "sourceDisciplineId": "frostweaver",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "frostweaver.thaw",
+      "beforeVersion": 6,
+      "beforeDigest": "12147a120714e9ad496bc08061fb73f4402e1888fdab97d360053c63aec4373f",
+      "sourceDisciplineId": "frostweaver",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "frostweaver.brittle-ice",
+      "beforeVersion": 6,
+      "beforeDigest": "fadd8b20020f630307361f1a505ea81605c988f7b61b7f982fcac22a6048e4d0",
+      "sourceDisciplineId": "frostweaver",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "stormsinger.arc-spark",
+      "beforeVersion": 7,
+      "beforeDigest": "ec981848b24500a430e8cd5e56ea76cc54b1abff0166e64c8224e1df4c9fec36",
+      "sourceDisciplineId": "stormsinger",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "stormsinger.lightning-line",
+      "beforeVersion": 7,
+      "beforeDigest": "6dee27fbbc71b0919e17d49242d8dbdbdcbf14c2f8684a478a970c467937c78c",
+      "sourceDisciplineId": "stormsinger",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "stormsinger.static-burst",
+      "beforeVersion": 8,
+      "beforeDigest": "d9a50759cfc856e7a9638a3cd570f28b5f6c714105e6c1e1c1b39a5d38c47cd2",
+      "sourceDisciplineId": "stormsinger",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "stormsinger.thunderclap",
+      "beforeVersion": 6,
+      "beforeDigest": "dda0296dcce0c01e96422de483ef6254aaa1bd40ba3f053ead0089d63c2024e4",
+      "sourceDisciplineId": "stormsinger",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "stormsinger.grounding",
+      "beforeVersion": 6,
+      "beforeDigest": "0ad8e0258a95497d5693de6e336bbc52cfff2a99cd0ec31db51bcfbd8a3e1c1b",
+      "sourceDisciplineId": "stormsinger",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "stormsinger.static-drain",
+      "beforeVersion": 7,
+      "beforeDigest": "8e2c30a89e3b352305c2dd991410701c2e6d45ceeeb087512fcdd1b004d2a6f8",
+      "sourceDisciplineId": "stormsinger",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "stormsinger.conductive-bolt",
+      "beforeVersion": 7,
+      "beforeDigest": "518b79433ead376ff228dae436fea89446dfa7bce7ada8b92c1b2b07b05166b9",
+      "sourceDisciplineId": "stormsinger",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "stormsinger.storm-breath",
+      "beforeVersion": 5,
+      "beforeDigest": "ea2d78158c0857962f12692934429afc1c2eb5d6e9e0c1cd65eb2be01e315f1b",
+      "sourceDisciplineId": "stormsinger",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "tidecaller.water-lance",
+      "beforeVersion": 7,
+      "beforeDigest": "1c5b58e948816303273fb6bc7adea7e0360f9511bf788da96757c62c5ad77c0b",
+      "sourceDisciplineId": "tidecaller",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "tidecaller.mist-veil",
+      "beforeVersion": 4,
+      "beforeDigest": "d65d656ae18cb0f676ce6f5d148baf9fd9515b5402de37986f72b26d9a5dcca7",
+      "sourceDisciplineId": "tidecaller",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "tidecaller.undertow",
+      "beforeVersion": 6,
+      "beforeDigest": "d82f4bd4f156ed8b5dcc85a697a64a9f605552a41bbe8bb7e690e525bab5bea7",
+      "sourceDisciplineId": "tidecaller",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "tidecaller.cleansing-rain",
+      "beforeVersion": 6,
+      "beforeDigest": "0044fc5ec0c13ac1947f30a3c28e1bacd6410a321ac02677dea95c750d58e707",
+      "sourceDisciplineId": "tidecaller",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "tidecaller.flood-line",
+      "beforeVersion": 8,
+      "beforeDigest": "887228c598fbd3016d7791d1c7d4dec6bcbeb7bf08a979e814dc476e408787cf",
+      "sourceDisciplineId": "tidecaller",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "tidecaller.springwater",
+      "beforeVersion": 5,
+      "beforeDigest": "d665a57c30024bb0980b7c75467866bd9d8b46daf796199e881505c62b142646",
+      "sourceDisciplineId": "tidecaller",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "tidecaller.still-water",
+      "beforeVersion": 5,
+      "beforeDigest": "27be41606f352cc90eddd2d1c51f7509ab4fed7f2582957e2bdb0221410a0e7a",
+      "sourceDisciplineId": "tidecaller",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "skill",
+      "id": "tidecaller.crushing-wave",
+      "beforeVersion": 6,
+      "beforeDigest": "a9498dfb440612bdf3c19dfe183ecf80d68693aac4936d00e6c3cc9570f3f017",
+      "sourceDisciplineId": "tidecaller",
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "essence",
+      "id": "essence.vanguard.unbroken-strike",
+      "beforeVersion": 4,
+      "beforeDigest": "58cbf3b874f139629964ae9a4778aa00c291ff9337fae3749d0d71334f943340",
+      "sourceDisciplineId": "vanguard",
+      "beforeSkillVersion": 4,
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "essence",
+      "id": "essence.lifebinder.verdant-rupture",
+      "beforeVersion": 5,
+      "beforeDigest": "1629ee3beaa3e0e8415ac8b6831fdbb1d13cd490fa1da597cfba3916d88030ff",
+      "sourceDisciplineId": "lifebinder",
+      "beforeSkillVersion": 5,
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "essence",
+      "id": "essence.aetherist.aether-nova",
+      "beforeVersion": 6,
+      "beforeDigest": "b38909779c6deb9e8612c7e1745405c2de3cf520187ef43c07dd7ebda3cd88ad",
+      "sourceDisciplineId": "aetherist",
+      "beforeSkillVersion": 6,
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "essence",
+      "id": "essence.farstrider.deadeye-barrage",
+      "beforeVersion": 5,
+      "beforeDigest": "7183fd6ccdc6dcd03e46a89c90df2f293f605ec9fc1c473c4d7da4f1f3c8d078",
+      "sourceDisciplineId": "farstrider",
+      "beforeSkillVersion": 5,
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "essence",
+      "id": "essence.shadehand.perfect-opening",
+      "beforeVersion": 5,
+      "beforeDigest": "7cfa8d1e177307bcc65af2148c7990a4f33465638335d609f2350ae04b19d02d",
+      "sourceDisciplineId": "shadehand",
+      "beforeSkillVersion": 5,
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "essence",
+      "id": "essence.ironfist.hundredfold-rush",
+      "beforeVersion": 4,
+      "beforeDigest": "51501bd2c8aba34bd572795f7ff6127d51122a2586bb2d6507e296c78ce4210e",
+      "sourceDisciplineId": "ironfist",
+      "beforeSkillVersion": 4,
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "essence",
+      "id": "essence.chronist.borrowed-hour",
+      "beforeVersion": 5,
+      "beforeDigest": "0b1effccc6170e1589451bc9eca2458ce468fb52bd3b6dc01450fae317877307",
+      "sourceDisciplineId": "chronist",
+      "beforeSkillVersion": 5,
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "essence",
+      "id": "essence.bastion.last-bastion",
+      "beforeVersion": 5,
+      "beforeDigest": "b89b98575370c6e5bc112d9e788a7ba9b649b44df77bc8612a3e932f82ca01d0",
+      "sourceDisciplineId": "bastion",
+      "beforeSkillVersion": 5,
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "essence",
+      "id": "essence.ravager.red-tempest",
+      "beforeVersion": 6,
+      "beforeDigest": "c4b9fab7c9381103f6a43192174ed754ec4c787497896696bbb500065123c8e0",
+      "sourceDisciplineId": "ravager",
+      "beforeSkillVersion": 6,
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "essence",
+      "id": "essence.edgedancer.sevenfold-cut",
+      "beforeVersion": 5,
+      "beforeDigest": "d72110c6506a93dece9c3f2b514cb4f4a1fea2e4132b732dc798c21a2f339247",
+      "sourceDisciplineId": "edgedancer",
+      "beforeSkillVersion": 5,
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "essence",
+      "id": "essence.wildwarden.apex-hunt",
+      "beforeVersion": 4,
+      "beforeDigest": "c7bf644b1eb4f9f90adb2609c9594169662b2c400676c7167cccd8f9f31b0e57",
+      "sourceDisciplineId": "wildwarden",
+      "beforeSkillVersion": 4,
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "essence",
+      "id": "essence.runeblade.runic-overdrive",
+      "beforeVersion": 6,
+      "beforeDigest": "a1ba3580220c86c36cd91853d47c6b0b92237f572f509d210cd88c007e7f4935",
+      "sourceDisciplineId": "runeblade",
+      "beforeSkillVersion": 6,
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "essence",
+      "id": "essence.dawnshield.dawns-oath",
+      "beforeVersion": 5,
+      "beforeDigest": "303119677c285e8bf0c611269b9e876b496a88f4661d12f6610d9a0223b9fd62",
+      "sourceDisciplineId": "dawnshield",
+      "beforeSkillVersion": 5,
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "essence",
+      "id": "essence.cinderweaver.phoenix-wake",
+      "beforeVersion": 6,
+      "beforeDigest": "2576965638d7b27634112058107d1acd9fb2d5b3be3fcab3e954d0789ac90c81",
+      "sourceDisciplineId": "cinderweaver",
+      "beforeSkillVersion": 6,
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "essence",
+      "id": "essence.frostweaver.absolute-winter",
+      "beforeVersion": 5,
+      "beforeDigest": "5ffbca5d0d417b34e19289781a6451a1e88797a7ec0bc49a32a3223e29a06b55",
+      "sourceDisciplineId": "frostweaver",
+      "beforeSkillVersion": 5,
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "essence",
+      "id": "essence.stormsinger.skybreak",
+      "beforeVersion": 5,
+      "beforeDigest": "236fa046d6aa2990e833e4c6a9c8bfa8a077409c32e7fe53912621dd70863654",
+      "sourceDisciplineId": "stormsinger",
+      "beforeSkillVersion": 5,
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "essence",
+      "id": "essence.tidecaller.tidal-crown",
+      "beforeVersion": 6,
+      "beforeDigest": "4a255f3531e2f8aa50c194641c08bf6bebad8838cb94972cd82a0ec45cf1ba16",
+      "sourceDisciplineId": "tidecaller",
+      "beforeSkillVersion": 6,
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.lifebinder-vanguard.mercys-edge",
+      "beforeVersion": 5,
+      "beforeDigest": "b2da4b062dfa67f76dab4a865a53b93989da8b6cf833008bde4bdb6aa0f76d4d",
+      "disciplinePair": [
+        "lifebinder",
+        "vanguard"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.aetherist-farstrider.arcane-hunt",
+      "beforeVersion": 5,
+      "beforeDigest": "0978e7e22a28a8de83aded3025cd193fec23165dd511d9bcc836e29d55dc2c04",
+      "disciplinePair": [
+        "aetherist",
+        "farstrider"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.aetherist-lifebinder.vital-circuit",
+      "beforeVersion": 5,
+      "beforeDigest": "2d0fb60aa6c43077bb00114f798ae93e6e96676d4980b70ee23a9ad565ac201b",
+      "disciplinePair": [
+        "aetherist",
+        "lifebinder"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.aetherist-shadehand.veiled-conduit",
+      "beforeVersion": 5,
+      "beforeDigest": "e6e6669ee7a1be370063e65963b6866623f6cc5b3ca194dd3e7e2531a23d16ad",
+      "disciplinePair": [
+        "aetherist",
+        "shadehand"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.aetherist-vanguard.spellsteel-rhythm",
+      "beforeVersion": 4,
+      "beforeDigest": "24a3819e314df4727fce2cdacae745b62050b114ee3390008e74f52736d6551a",
+      "disciplinePair": [
+        "aetherist",
+        "vanguard"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.farstrider-lifebinder.guided-renewal",
+      "beforeVersion": 5,
+      "beforeDigest": "90b28b83f101f1de56b8906cfd8670fcf364e9854c5685512e3c4acde9c9d3ff",
+      "disciplinePair": [
+        "farstrider",
+        "lifebinder"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.farstrider-shadehand.marked-opening",
+      "beforeVersion": 5,
+      "beforeDigest": "acb8442ae0f3eb9af6be94e74cf313f88570245b6ada7782a2051f95d8b47b88",
+      "disciplinePair": [
+        "farstrider",
+        "shadehand"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.farstrider-vanguard.covering-break",
+      "beforeVersion": 5,
+      "beforeDigest": "3dfc3c1b59078d9e883d8c2e63369f08c77d99009e27af2e585efe3ebc2f6bd4",
+      "disciplinePair": [
+        "farstrider",
+        "vanguard"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.lifebinder-shadehand.mercy-in-shadow",
+      "beforeVersion": 5,
+      "beforeDigest": "81fa26db3092d08d908845b62efd360236bebb401182daade2f00743fcd609d8",
+      "disciplinePair": [
+        "lifebinder",
+        "shadehand"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.shadehand-vanguard.broken-line",
+      "beforeVersion": 4,
+      "beforeDigest": "ee6ea44293387f1cbf0864978db6d2779c1d7072e0afbc0cf08bbcb171a774d2",
+      "disciplinePair": [
+        "shadehand",
+        "vanguard"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.aetherist-ironfist.conductive-impact",
+      "beforeVersion": 4,
+      "beforeDigest": "8c7213b34c53f72fbf15d767ce41d1dc0617c7f658ffcf71a95ac50191dd5b32",
+      "disciplinePair": [
+        "aetherist",
+        "ironfist"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.farstrider-ironfist.marked-approach",
+      "beforeVersion": 5,
+      "beforeDigest": "e26b837a05ab765333413984cc7a4abc613289c7f7d08321f15d06c44a988557",
+      "disciplinePair": [
+        "farstrider",
+        "ironfist"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.ironfist-lifebinder.renewed-force",
+      "beforeVersion": 5,
+      "beforeDigest": "3412ffb20241fda3e086e01fe81e73414626657920b875e291bfdc84af946fc4",
+      "disciplinePair": [
+        "ironfist",
+        "lifebinder"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.ironfist-shadehand.broken-rhythm",
+      "beforeVersion": 4,
+      "beforeDigest": "fa066fba9150f8001cf90e5545772b9054f7400761ca0b37d0fcce3b0577b484",
+      "disciplinePair": [
+        "ironfist",
+        "shadehand"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.ironfist-vanguard.tempered-response",
+      "beforeVersion": 4,
+      "beforeDigest": "79dc62701c42a3063134de495b1743cfaecbf7ec0b3585ff996207a8ded13a49",
+      "disciplinePair": [
+        "ironfist",
+        "vanguard"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.bastion-vanguard.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "0c5989bc7bb8bba194640952c51aa199d4671fdd76a8f85835f9042eca85cad3",
+      "disciplinePair": [
+        "bastion",
+        "vanguard"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.bastion-lifebinder.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "77a61dc722483fb4dae17aa8dd253f812ceb4d7daff2178c077b1273fc8b5942",
+      "disciplinePair": [
+        "bastion",
+        "lifebinder"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.aetherist-bastion.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "92147d6f7e0180fd228cc7df910f155d0f0c62aee3c86e587b8ab957328ae63d",
+      "disciplinePair": [
+        "aetherist",
+        "bastion"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.bastion-farstrider.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "ad04df15f9d53d7bedb60cc9e5321234ccd4eddadd051fb804c85e36b99435ed",
+      "disciplinePair": [
+        "bastion",
+        "farstrider"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.bastion-shadehand.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "a771c96414d9991c795af0fe0fa6ce37270af79db89e2a332bb009650aa110af",
+      "disciplinePair": [
+        "bastion",
+        "shadehand"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.bastion-ironfist.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "585428682631aecd4b0d9d5c91874c1845cbbe6c4a8cd951de0619e914b7e5f0",
+      "disciplinePair": [
+        "bastion",
+        "ironfist"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.ravager-vanguard.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "ab9a5104d176835a422566d0bd338b4e6a41226446f0c26d7e6e6dd406f12deb",
+      "disciplinePair": [
+        "ravager",
+        "vanguard"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.lifebinder-ravager.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "294e54910b57dcadc4c23ea5798ebc974a99e904884a74ca5709a20daccb6d5d",
+      "disciplinePair": [
+        "lifebinder",
+        "ravager"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.aetherist-ravager.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "bab841f52f818b6c6a30736c942c91a3365db3f6d9e0a10e6d3dc6c4d64982b1",
+      "disciplinePair": [
+        "aetherist",
+        "ravager"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.farstrider-ravager.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "7a67306602313ed4beab02f946e09f41eafccd211108eb9aacc16d27030a929a",
+      "disciplinePair": [
+        "farstrider",
+        "ravager"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.ravager-shadehand.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "28a3691570851c4207e11af55c7d9591bf7624c248775576714c90167b4f4082",
+      "disciplinePair": [
+        "ravager",
+        "shadehand"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.ironfist-ravager.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "3fa6dc8fc24aa831b42201fa9a3a6cf29a879d0b1360b448efc5eb039fde3c9e",
+      "disciplinePair": [
+        "ironfist",
+        "ravager"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.bastion-ravager.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "5d51a9c39b9c628a8d014fce26be632263797609b050af5aff31244a44eadaba",
+      "disciplinePair": [
+        "bastion",
+        "ravager"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.edgedancer-vanguard.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "6976fa8d15da4e8f94f4b29ad708f7bdb248b726cf63fb20cce74741b7b4265d",
+      "disciplinePair": [
+        "edgedancer",
+        "vanguard"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.edgedancer-lifebinder.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "2ea4e18d7e7370417b2ee504fbb8e4453c90bfa7b5ea05cdc09c7e82d9449d96",
+      "disciplinePair": [
+        "edgedancer",
+        "lifebinder"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.aetherist-edgedancer.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "7e09404695350f40338439f84861ce2949ed3f5d7796ed7d03e793fe346479ae",
+      "disciplinePair": [
+        "aetherist",
+        "edgedancer"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.edgedancer-farstrider.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "22de48e419c5181958fcc11f3c3d98655be19f457a6180681004de7c84181e7b",
+      "disciplinePair": [
+        "edgedancer",
+        "farstrider"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.edgedancer-shadehand.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "b1fbedee55f3950a11e4c3f04c494a194f27279da875733e2a3ab434a1d6de5f",
+      "disciplinePair": [
+        "edgedancer",
+        "shadehand"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.edgedancer-ironfist.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "10f6bb14cdbd6be087c5318be4453cf12429297fa9d95b59011e81b20cef7fd0",
+      "disciplinePair": [
+        "edgedancer",
+        "ironfist"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.bastion-edgedancer.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "93a3dfe35ac552f028bff0bdd74d60cb43fa80201a86fb789fb5300572b57b62",
+      "disciplinePair": [
+        "bastion",
+        "edgedancer"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.edgedancer-ravager.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "93856011e751457e0ab762d5bd5893096ce6f7615c09897b50a037f81e0b8743",
+      "disciplinePair": [
+        "edgedancer",
+        "ravager"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.vanguard-wildwarden.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "47f54a0936ae0170747c1eb245dba5ef4eaa79fb027da177c64053f25df8432c",
+      "disciplinePair": [
+        "vanguard",
+        "wildwarden"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.lifebinder-wildwarden.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "71a97f5ec682e32c6ee1457f5993aac52ad07a999c94d1a81ac643d04b6a5d7c",
+      "disciplinePair": [
+        "lifebinder",
+        "wildwarden"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.aetherist-wildwarden.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "f55a144660e3c0a2c2c45b4fd9cf15d702cde92af14a306991d2d7c17830fb4a",
+      "disciplinePair": [
+        "aetherist",
+        "wildwarden"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.farstrider-wildwarden.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "ec8f96ba44318e0117d5038c742e9499c559aa75bc5ba3683593a0d5ef20df63",
+      "disciplinePair": [
+        "farstrider",
+        "wildwarden"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.shadehand-wildwarden.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "27656ff6b004ded98144bb8e12290deecb66b4d0b8da2cdf85ef1fb9fb34a29c",
+      "disciplinePair": [
+        "shadehand",
+        "wildwarden"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.ironfist-wildwarden.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "d3b13b2ba49773fa9d0164e02e5b9b38765fe46b9a424556754cd53e8c5afa64",
+      "disciplinePair": [
+        "ironfist",
+        "wildwarden"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.bastion-wildwarden.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "5a625553eb3fcba80f0e1b21652d0ec94a167206538de471a360bce272a04797",
+      "disciplinePair": [
+        "bastion",
+        "wildwarden"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.ravager-wildwarden.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "20dd67f8aeede3e36523674dd6b97f653499ba260361eb2adc782778a4ac5964",
+      "disciplinePair": [
+        "ravager",
+        "wildwarden"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.edgedancer-wildwarden.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "08a1a5a7e64c49f460e0ce51561324f6d20e7133d5f33ffa706ab485ce92e500",
+      "disciplinePair": [
+        "edgedancer",
+        "wildwarden"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.runeblade-vanguard.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "711278437e74d7aeb482368bf3f26857a1b9a8326bc845323a887feb3bdf3b45",
+      "disciplinePair": [
+        "runeblade",
+        "vanguard"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.lifebinder-runeblade.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "b68b79e32150a914324aeb36d44169a2230054db0bbf2ad22836f6eacd9bd791",
+      "disciplinePair": [
+        "lifebinder",
+        "runeblade"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.aetherist-runeblade.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "cb26918af7991f0f83d555aef5f608c7b1abb3352555dac08c1c07419976330a",
+      "disciplinePair": [
+        "aetherist",
+        "runeblade"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.farstrider-runeblade.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "a93fdfcfa7349bfa7dfd9c5eedeba72d36fb4919a15a701b51b1a6a1a39260c7",
+      "disciplinePair": [
+        "farstrider",
+        "runeblade"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.runeblade-shadehand.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "2aaa85cafbfd03a962d671d57b4e50128a978f83f38e8d130fd49390b9971ffa",
+      "disciplinePair": [
+        "runeblade",
+        "shadehand"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.ironfist-runeblade.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "946bfcb25a96b98c228cad61dc197c63cef755d9852b54dc6f6d7ece84bc2f99",
+      "disciplinePair": [
+        "ironfist",
+        "runeblade"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.bastion-runeblade.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "0c71ee8b6a609919fc768a8ee36bca38edc7e5749791f140a133ec0a9b9ff4d0",
+      "disciplinePair": [
+        "bastion",
+        "runeblade"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.ravager-runeblade.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "d1a0b761cfe88f8116ea2139f9469c62f63e0bcd6c62abe52f1d864408d5f96b",
+      "disciplinePair": [
+        "ravager",
+        "runeblade"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.edgedancer-runeblade.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "d5d98168d5784161e01db76ef05b78447a11daf350ccd9ab8df5cc0629e0e741",
+      "disciplinePair": [
+        "edgedancer",
+        "runeblade"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.runeblade-wildwarden.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "6add7aaff73c96d5cbcc1ba868b4f18aed7849d51bda91e0c04d1a0630e97424",
+      "disciplinePair": [
+        "runeblade",
+        "wildwarden"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.dawnshield-vanguard.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "de74bebbb5ce8559a21838dc4a162c3acdc978edf2552a0db88449d06fa3732c",
+      "disciplinePair": [
+        "dawnshield",
+        "vanguard"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.dawnshield-lifebinder.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "2e852bf29eebfa5c68f4680166df36985cbc7b4a3dfa6f0978a42c84dc2fc25c",
+      "disciplinePair": [
+        "dawnshield",
+        "lifebinder"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.aetherist-dawnshield.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "f6c4bd98d847f9828270c9b9595f631f0226e8237f8a1f19b5a92f21584f1195",
+      "disciplinePair": [
+        "aetherist",
+        "dawnshield"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.dawnshield-farstrider.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "4ccff789f9fcc246847535f2aac3f201037bcd84417c904d35ed09381b766077",
+      "disciplinePair": [
+        "dawnshield",
+        "farstrider"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.dawnshield-shadehand.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "b1653e591469623bf175898f5dd2597edee898c4a6f1b7dceec9a0c4f66ddcdd",
+      "disciplinePair": [
+        "dawnshield",
+        "shadehand"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.dawnshield-ironfist.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "618f26da3733f367ddad1244c5055cffc429bfe355c49e0166989902a7f4d148",
+      "disciplinePair": [
+        "dawnshield",
+        "ironfist"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.bastion-dawnshield.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "d02c5cc6e34f43192bf91157cae2a63732326466b46c15d8e53035842c9c7a05",
+      "disciplinePair": [
+        "bastion",
+        "dawnshield"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.dawnshield-ravager.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "90f3bbb55e4c7cb66729844708b586056e73d1e7220b3c372980d95fd6ef3536",
+      "disciplinePair": [
+        "dawnshield",
+        "ravager"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.dawnshield-edgedancer.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "02c86b4996dd3366c760add01fd6ba145f60bdd7a117b88bc5956a5fc3f44deb",
+      "disciplinePair": [
+        "dawnshield",
+        "edgedancer"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.dawnshield-wildwarden.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "8f8ee034841bd332fb1d45f5637eadc21bddb073687373b04f2cf78b7cdbd0a7",
+      "disciplinePair": [
+        "dawnshield",
+        "wildwarden"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.dawnshield-runeblade.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "9aee2e977b50af067e92f4b1c80cf583e029d6305e6e4f42e11970d18d5411bc",
+      "disciplinePair": [
+        "dawnshield",
+        "runeblade"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.cinderweaver-vanguard.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "7192ae0a456d87eaf6e171511134a0b6307a60c59ed67e33ac3996aae0c51f13",
+      "disciplinePair": [
+        "cinderweaver",
+        "vanguard"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.cinderweaver-lifebinder.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "b0947df3d16c5abd074424dabd7d692abd78d8817fd8c8f12fd401fc96809f17",
+      "disciplinePair": [
+        "cinderweaver",
+        "lifebinder"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.aetherist-cinderweaver.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "8c2557367b0e317ebbb0f31135c4ee9211833603396665d990ebc1fd27a1c0c3",
+      "disciplinePair": [
+        "aetherist",
+        "cinderweaver"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.cinderweaver-farstrider.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "8b8ad7ef2328f5789568fec408a0f5784484f6c558a5017e359e85adcb9f0994",
+      "disciplinePair": [
+        "cinderweaver",
+        "farstrider"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.cinderweaver-shadehand.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "b027a04cea93dd1ddfaf857887cfc09776275a1c7ada357482e21b6cec0d3b57",
+      "disciplinePair": [
+        "cinderweaver",
+        "shadehand"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.cinderweaver-ironfist.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "cbcc6a4c2b7a7d0d804197c07f23fa5639fbb4666788d78a5b5e76a516754df4",
+      "disciplinePair": [
+        "cinderweaver",
+        "ironfist"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.bastion-cinderweaver.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "9bee0a8ad0353ed042d944eb5d66fde7f11e9d102291857d1fe025375db49e4b",
+      "disciplinePair": [
+        "bastion",
+        "cinderweaver"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.cinderweaver-ravager.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "1eabdaeda3f4a2765619de48d4151ab816c5d07f4ae258e23362c1fc5263bf56",
+      "disciplinePair": [
+        "cinderweaver",
+        "ravager"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.cinderweaver-edgedancer.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "8029b954f17d24c2d60f07c2656c55309723836e3d5a47d15c0317994951c444",
+      "disciplinePair": [
+        "cinderweaver",
+        "edgedancer"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.cinderweaver-wildwarden.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "811a37af34ccd52ed9de35c9f86c11ba4c6e5ba276e79a4b932ab5289f23dc7b",
+      "disciplinePair": [
+        "cinderweaver",
+        "wildwarden"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.cinderweaver-runeblade.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "754fd0e1ac5ca34637a95f1f37a07631b3bfca90c2c98a59f3e12b7cea21871b",
+      "disciplinePair": [
+        "cinderweaver",
+        "runeblade"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.cinderweaver-dawnshield.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "48402d985443ec2a625f5cebf904fbe27e070ca6d1b1011d5cc262cc400c1825",
+      "disciplinePair": [
+        "cinderweaver",
+        "dawnshield"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.frostweaver-vanguard.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "7e3e4af1053e4a680124648f086f7688be240458c48366a97d49f7e54657b3d7",
+      "disciplinePair": [
+        "frostweaver",
+        "vanguard"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.frostweaver-lifebinder.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "9c2f5c0bd7e1c990bbdf8ac1a1951cd043413b06b27fd3280178677ad319fe85",
+      "disciplinePair": [
+        "frostweaver",
+        "lifebinder"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.aetherist-frostweaver.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "f2293344f0757abf838fa8be49c767d15e3a097bb687b727bcff83f41b8d7f15",
+      "disciplinePair": [
+        "aetherist",
+        "frostweaver"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.farstrider-frostweaver.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "3e226915e93a9fcecb05116aaf48afde11deee0258753d8b51a3c356d96ffd0f",
+      "disciplinePair": [
+        "farstrider",
+        "frostweaver"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.frostweaver-shadehand.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "39b3c0be84cdddd918c5d60ac3573e243c9b60fb200905b47de4a5fe77e914c6",
+      "disciplinePair": [
+        "frostweaver",
+        "shadehand"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.frostweaver-ironfist.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "49606f00b63683192858c49c32da89aebf5ac90f60a8c0e23b6b2590830b4043",
+      "disciplinePair": [
+        "frostweaver",
+        "ironfist"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.bastion-frostweaver.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "73b9ad51cd6d39e34688640dc000ffbed17c20871c29750322dde3711f60043f",
+      "disciplinePair": [
+        "bastion",
+        "frostweaver"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.frostweaver-ravager.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "61c6a46f2747285614c7f33edfee837e2bb4c443288545338c499fd2c46e42b2",
+      "disciplinePair": [
+        "frostweaver",
+        "ravager"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.edgedancer-frostweaver.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "ed4082689340cb606b9cc6cedddeabf539472b52432c86dbf491e3a11a1b8592",
+      "disciplinePair": [
+        "edgedancer",
+        "frostweaver"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.frostweaver-wildwarden.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "47b9c9a89af1aa8fa0f99f0ca4683e287293874bc2e0902a28a47134a7a95b59",
+      "disciplinePair": [
+        "frostweaver",
+        "wildwarden"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.frostweaver-runeblade.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "b3ef4ea26dba735407d390e43a2af7a634b10d133e22273750d805a097b6b252",
+      "disciplinePair": [
+        "frostweaver",
+        "runeblade"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.dawnshield-frostweaver.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "9cfda5e9ad6b0ba1a1c60bf6d5862125b63bd5a08ad089ebe78e8d89460666af",
+      "disciplinePair": [
+        "dawnshield",
+        "frostweaver"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.cinderweaver-frostweaver.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "f9742c3799e034683f7ed3b65526ccee0d7827fae65753203ee31b6248daaace",
+      "disciplinePair": [
+        "cinderweaver",
+        "frostweaver"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.stormsinger-vanguard.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "b4cfe0492bf6904ee5aee986e1495b6e508d547e93fbb97ce86edc4ac622ecce",
+      "disciplinePair": [
+        "stormsinger",
+        "vanguard"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.lifebinder-stormsinger.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "38dafce4fd7d2d292b10bbf197f233b3ceb66136495bd22a8a41d206b2805e42",
+      "disciplinePair": [
+        "lifebinder",
+        "stormsinger"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.aetherist-stormsinger.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "1af7df1acbb608e102c0fe6ff42bb047ee4d30eef46a0dccd94b9ca8e35c1398",
+      "disciplinePair": [
+        "aetherist",
+        "stormsinger"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.farstrider-stormsinger.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "3252c394063a94f0ebf2aeceb9f5cdd2b9fdd9ebaccba9d58f79c12e689988e8",
+      "disciplinePair": [
+        "farstrider",
+        "stormsinger"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.shadehand-stormsinger.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "0c350413a641be3e9acb3df4e1dab31072b5e294113521985dcc4ce0ed408e83",
+      "disciplinePair": [
+        "shadehand",
+        "stormsinger"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.ironfist-stormsinger.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "4a64b006f230cc1e98fba707f311ed96243c3aa40fa3dede33192e0330a893e3",
+      "disciplinePair": [
+        "ironfist",
+        "stormsinger"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.bastion-stormsinger.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "81facfd0b09784033ee21abb4dd5d05fd0cda0840754d97a42a42a2e62448453",
+      "disciplinePair": [
+        "bastion",
+        "stormsinger"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.ravager-stormsinger.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "c320a072fb0bbc3d140019e98fec9a4bdf4227d068bcaca46354af38f86eb927",
+      "disciplinePair": [
+        "ravager",
+        "stormsinger"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.edgedancer-stormsinger.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "32a156ff4bcb6f08dac9d9371de7d1a00fe86a25be1eb631bcb40c21d5da4f88",
+      "disciplinePair": [
+        "edgedancer",
+        "stormsinger"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.stormsinger-wildwarden.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "bb39a0c13917053fead0a360ee6dc734476a8146ec305ab419107730a83a3d10",
+      "disciplinePair": [
+        "stormsinger",
+        "wildwarden"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.runeblade-stormsinger.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "ea88af96621f7989cd261477466825ad023867bf525214797c6e67bcbcded388",
+      "disciplinePair": [
+        "runeblade",
+        "stormsinger"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.dawnshield-stormsinger.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "fdc9e38d2328500a00933f5e99a0ee92112e15438989bc80513cccf72c1476e3",
+      "disciplinePair": [
+        "dawnshield",
+        "stormsinger"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.cinderweaver-stormsinger.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "db0c9406f4c942db104652ddd510592d399419af85577e2dba04eec8fcfc45ef",
+      "disciplinePair": [
+        "cinderweaver",
+        "stormsinger"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.frostweaver-stormsinger.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "68630639293e062a5de7eeffa7b68807a5fd806a45c5ccb7ebf4d93661d979c5",
+      "disciplinePair": [
+        "frostweaver",
+        "stormsinger"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.tidecaller-vanguard.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "4849d235b37a3557024ad80af944a8782a2e85151dffe2cb6885bcc86a750d25",
+      "disciplinePair": [
+        "tidecaller",
+        "vanguard"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.lifebinder-tidecaller.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "6692d81cd1967a6938ba3d7fa1414aaadf9944213a69364e8ad56f85d8c4d4e8",
+      "disciplinePair": [
+        "lifebinder",
+        "tidecaller"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.aetherist-tidecaller.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "0f7d9f6f25ebd797746508e5244ec494a7cfe0c06cd0fb9341e10e4d82167ee3",
+      "disciplinePair": [
+        "aetherist",
+        "tidecaller"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.farstrider-tidecaller.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "ba844011fa97f7ab89056a9884e637e0cad31cb3196bfa3a8f1bd488923d52af",
+      "disciplinePair": [
+        "farstrider",
+        "tidecaller"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.shadehand-tidecaller.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "db173e8f04fff5618292b05f71e554392baf7085707142a38b29bf846c4eb6b5",
+      "disciplinePair": [
+        "shadehand",
+        "tidecaller"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.ironfist-tidecaller.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "efa87eec12e77e4b23ae63d85a115844c2d826e672de5fced8e2af26b808c423",
+      "disciplinePair": [
+        "ironfist",
+        "tidecaller"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.bastion-tidecaller.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "54cac7424560059fa2948b8a54fd1350bddfefee0ab21f215babd02589846a4e",
+      "disciplinePair": [
+        "bastion",
+        "tidecaller"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.ravager-tidecaller.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "be6b9ac2de89060ff34b59175ef3b6d9569df2b1785545a010753c9f0b36f373",
+      "disciplinePair": [
+        "ravager",
+        "tidecaller"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.edgedancer-tidecaller.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "c0008d0671b73efe1bdd9d43d451b76b924039b81e35aec824f3a4745bccc9e7",
+      "disciplinePair": [
+        "edgedancer",
+        "tidecaller"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.tidecaller-wildwarden.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "c8a70e92563185148df86c5a2646993dcb45647bd8b8b975a33d579659e312de",
+      "disciplinePair": [
+        "tidecaller",
+        "wildwarden"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.runeblade-tidecaller.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "4ad1ad26f3b47bdb71f8db0108e88db4d8b9d582d7ba9830edf73344546bba22",
+      "disciplinePair": [
+        "runeblade",
+        "tidecaller"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.dawnshield-tidecaller.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "8bc0cdc401b926c20fecd5ffc2eae285fc158c696c5f943a8d2f6d883df9b19b",
+      "disciplinePair": [
+        "dawnshield",
+        "tidecaller"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.cinderweaver-tidecaller.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "c87de33106e6cb697e5e232a84881918563212757f0849d601988a4abb343e07",
+      "disciplinePair": [
+        "cinderweaver",
+        "tidecaller"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.frostweaver-tidecaller.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "e79c18663cb2c3d4b81ba62dcca1e806e2026c14c198d8c44142fe047a116ffa",
+      "disciplinePair": [
+        "frostweaver",
+        "tidecaller"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.stormsinger-tidecaller.linked-sequence",
+      "beforeVersion": 5,
+      "beforeDigest": "26cf70d9efd3d282e4bfc629e0796f06f894209d55e9e6ce4a4dc2b990b53e4a",
+      "disciplinePair": [
+        "stormsinger",
+        "tidecaller"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.chronist-vanguard.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "4507a04c5623214dc7031cad1aaf6e1ca9641c0d6514173079439fe2dc772067",
+      "disciplinePair": [
+        "chronist",
+        "vanguard"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.chronist-lifebinder.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "8850f0b16548ceb5381ede8ee1cf4671e790111b0b464a55dfc09c25c26b8646",
+      "disciplinePair": [
+        "chronist",
+        "lifebinder"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.aetherist-chronist.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "5146cf40b30bb3aac652f105a1748bc0a7cfa2a6d7ee3b1ae26ef3ba227445be",
+      "disciplinePair": [
+        "aetherist",
+        "chronist"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.chronist-farstrider.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "644827e34d39bc4ff11d5961c17805724bdefcbaea562f37deee7d2de30a1da9",
+      "disciplinePair": [
+        "chronist",
+        "farstrider"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.chronist-shadehand.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "c7165d15db4a74028af1417043d23746a780b18f68da07ae2919112c18eba738",
+      "disciplinePair": [
+        "chronist",
+        "shadehand"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.chronist-ironfist.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "13fb6a2b28c4be89d6611b4318552e02eafb515b8b8b5bea4dd789409ee71d40",
+      "disciplinePair": [
+        "chronist",
+        "ironfist"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.bastion-chronist.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "295083ecf1a5c3f2342c20c587a886246d072d5ad3fce62c848f26f5b43e04fd",
+      "disciplinePair": [
+        "bastion",
+        "chronist"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.chronist-ravager.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "7796d4194d465a740f1f26a6ce3f4660d314208b202d47fc94a3f3359431d50f",
+      "disciplinePair": [
+        "chronist",
+        "ravager"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.chronist-edgedancer.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "9d1c0f8f09bb5f2a4707f1155eab17be8439ac4e1c61ea9aea9460327dd16cca",
+      "disciplinePair": [
+        "chronist",
+        "edgedancer"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.chronist-wildwarden.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "bc7aa7c10e42c6d647ed58fa678ff2f3c8e8854fbb99695dcc74a315f641ece7",
+      "disciplinePair": [
+        "chronist",
+        "wildwarden"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.chronist-runeblade.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "8b5cb2e1250d6925f3c66dbdf150855f2052787cf52f89fc8148e1f9a41aacb0",
+      "disciplinePair": [
+        "chronist",
+        "runeblade"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.chronist-dawnshield.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "1ccb257e8a9f3dc8acf9a7c161117ecdcf587c62e8715c897c4f022582490dd8",
+      "disciplinePair": [
+        "chronist",
+        "dawnshield"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.chronist-cinderweaver.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "f2976435c245b17261881e8d11674a6597fdc782c13d889b6ce951a3c0518714",
+      "disciplinePair": [
+        "chronist",
+        "cinderweaver"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.chronist-frostweaver.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "0ba7ebb31d815cfdb104460b1aad5cb765772a24ea87720c26b9cb306d0c8ddc",
+      "disciplinePair": [
+        "chronist",
+        "frostweaver"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.chronist-stormsinger.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "8a9cff58535934932fc4dba53766abbeb412b5f44b2d1e54cbbd354081582dbe",
+      "disciplinePair": [
+        "chronist",
+        "stormsinger"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "resonance",
+      "id": "resonance.chronist-tidecaller.linked-sequence",
+      "beforeVersion": 4,
+      "beforeDigest": "f99d1d2115edd99939b8f88add63fb207e9c69b4f8d39a52adcd75f9d0073bd5",
+      "disciplinePair": [
+        "chronist",
+        "tidecaller"
+      ],
+      "designState": "per-record-design-required"
+    },
+    {
+      "kind": "basic",
+      "id": "basic.move",
+      "beforeVersion": 1,
+      "beforeDigest": "dbf668efc83d4686d4170f5c3218a1d1ed93dc49de8e54f967b33a87ef097c2d",
+      "designState": "review-universal-baseline"
+    },
+    {
+      "kind": "basic",
+      "id": "unarmed.basic",
+      "beforeVersion": 1,
+      "beforeDigest": "f89e61d920d1cbf74a52d0c8b52ee3c09e4509fc45cfb56428ad86c61ab9257c",
+      "designState": "review-universal-baseline"
+    },
+    {
+      "kind": "basic",
+      "id": "basic.guard",
+      "beforeVersion": 1,
+      "beforeDigest": "98e4bedfa403a447dc6536f0fd73b45321f7c8933db8eda4d01246e21f0ccda3",
+      "designState": "review-universal-baseline"
+    },
+    {
+      "kind": "basic",
+      "id": "basic.recover",
+      "beforeVersion": 1,
+      "beforeDigest": "4bdf1ce767c4b23df0d4ce76decff24dac1c4cc6ae8ef484e4877ca3d5396751",
+      "designState": "review-universal-baseline"
+    },
+    {
+      "kind": "basic",
+      "id": "basic.recover.mp",
+      "beforeVersion": 1,
+      "beforeDigest": "75ea4b84ee525da306b46f983bb36dd2b27148a26e34df4c0fc0fa89ff280890",
+      "designState": "review-universal-baseline"
+    }
+  ],
+  "digestConvention": "sha256:utf8-json-recursive-sorted-object-keys-compact-separators-unescaped-unicode-array-order-preserved"
+}

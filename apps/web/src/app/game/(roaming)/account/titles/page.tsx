@@ -1,9 +1,13 @@
-import { getFoundationDiscipline } from '@aurevane/game-core/character/foundation-disciplines'
+import { AccountBannedError } from '@aurevane/game-core/errors'
+import { createSupabaseCharacterBuildRepository } from '@/server/character/supabase-character-build-repository'
 import { isAurevaneError } from '@aurevane/game-core/errors'
 import { headers } from 'next/headers'
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
+import { CharacterAppearanceSettings } from '@/components/account/character-appearance-settings'
 import { CharacterTitleSettings } from '@/components/account/character-title-settings'
+import { SettingsScene } from '@/components/settings/settings-scene'
 import { AuthenticatedGameRecoveryContent } from '@/components/shell/authenticated-game-shell'
 import { getOptionalPublicSupabaseConfig } from '@/lib/supabase/config'
 import { getCurrentAccountServicesReadiness } from '@/server/account/account-services-readiness'
@@ -12,6 +16,8 @@ import {
   getActiveSpectatingForUser,
 } from '@/server/account/active-game-session'
 import { getAuthenticatedActor } from '@/server/auth/actor'
+import { loadCharacterAppearance } from '@/server/character/character-appearance-service'
+import { loadCharacterPortraitChoice } from '@/server/character/character-portrait-choice-service'
 import { loadCharacterProfileDisplay } from '@/server/character/character-profile-display-service'
 import { loadCharacterTitleState } from '@/server/character/character-title-service'
 import { loadSelectedCharacter } from '@/server/character/selected-character'
@@ -28,6 +34,7 @@ export default async function CharacterTitlesPage() {
   try {
     actor = await getAuthenticatedActor()
   } catch (error) {
+    if (error instanceof AccountBannedError) redirect('/account/banned')
     if (isAurevaneError(error) && error.code === 'UNAUTHENTICATED') redirect('/')
     throw error
   }
@@ -40,7 +47,6 @@ export default async function CharacterTitlesPage() {
     ])
   if (activeBattleResult.status === 'rejected') throw activeBattleResult.reason
   const activeBattle = activeBattleResult.value
-  if (activeBattle) redirect(`/game/battle/${activeBattle.battleSessionId}`)
   if (activeSpectatingResult.status === 'rejected') throw activeSpectatingResult.reason
   const activeSpectating = activeSpectatingResult.value
   if (activeSpectating) redirect(`/game/battle/spectate/${activeSpectating.battleKey}`)
@@ -55,14 +61,38 @@ export default async function CharacterTitlesPage() {
     throw selectedCharacterResult.reason
   }
   const character = selectedCharacterResult.value
+  if (activeBattle) {
+    if (!character) redirect(`/game/battle/${activeBattle.battleSessionId}`)
+    const appearance = await loadCharacterAppearance(actor.userId, character.id)
+    return (
+      <SettingsScene
+        title="Character appearance"
+        description="You can preview a new look now. It will activate after your battle ends."
+      >
+        <Link href={`/game/battle/${activeBattle.battleSessionId}`}>Return to battle</Link>
+        <CharacterAppearanceSettings
+          key={character.id}
+          characterId={character.id}
+          initialRemainingDesigns={appearance.remainingDesigns}
+          initialPending={Boolean(appearance.pendingImageUrl)}
+        />
+      </SettingsScene>
+    )
+  }
 
   let titleState
+  let portraitChoice
   let displayState
+  let activeBuild
+  let appearance
   try {
     if (!character) redirect('/game')
-    ;[titleState, displayState] = await Promise.all([
+    ;[titleState, displayState, portraitChoice, activeBuild, appearance] = await Promise.all([
       loadCharacterTitleState(actor.userId, character.id),
       loadCharacterProfileDisplay(actor.userId, character.id),
+      loadCharacterPortraitChoice(actor.userId, character.id),
+      createSupabaseCharacterBuildRepository().findActiveBuild(actor.userId, character.id),
+      loadCharacterAppearance(actor.userId, character.id),
     ])
   } catch (error) {
     if (isAurevaneError(error) && error.code === 'PERSISTENCE_UNAVAILABLE') {
@@ -71,17 +101,23 @@ export default async function CharacterTitlesPage() {
     throw error
   }
 
-  const discipline = getFoundationDiscipline(character.foundationDisciplineId)
-
   return (
     <CharacterTitleSettings
       characterId={character.id}
       characterName={character.name}
-      disciplineName={discipline?.name ?? 'Adventurer'}
+      disciplineName={activeBuild?.primaryDefinition.name ?? 'Unavailable Discipline'}
       personalTitle={titleState.personalTitle}
       personalTitleSetAt={titleState.personalTitleSetAt}
-      imageUrl={displayState.imageUrl}
+      imageUrl={
+        displayState.legacyImageUrl === undefined
+          ? displayState.imageUrl
+          : displayState.legacyImageUrl
+      }
       portraitRef={character.portraitRef}
+      portraitChoiceAvailable={portraitChoice.available}
+      portraitChoiceUsedAt={portraitChoice.changedAt}
+      remainingSpriteDesigns={appearance.remainingDesigns}
+      pendingSpriteDesign={Boolean(appearance.pendingImageUrl)}
     />
   )
 }

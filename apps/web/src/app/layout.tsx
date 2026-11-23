@@ -15,6 +15,7 @@ import './mobile-readability.css'
 import './concept-shell.css'
 import './profile-ui-readability-pass.css'
 import './sitewide-layout-v2.css'
+import './approved-adventure.css'
 
 export const metadata: Metadata = {
   title: 'AUREVANE',

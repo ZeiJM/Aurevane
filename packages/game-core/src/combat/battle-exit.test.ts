@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
 import { abortPracticeBattle } from './battle-exit'
-import { createPendingBattle, startBattle } from './battle-state'
+import {
+  createPendingBattle,
+  reorderBattleInitiative,
+  startBattle,
+  validateBattleState,
+} from './battle-state'
 
 function createActiveBattle() {
   return startBattle(
@@ -61,4 +66,28 @@ describe('practice battle abort', () => {
       'Only a pending or active practice battle can be aborted.',
     )
   })
+})
+
+it('normalizes current Initiative on abort without granting turns or resources', () => {
+  const initial = createActiveBattle()
+  const active = reorderBattleInitiative({
+    ...initial,
+    dynamicInitiativePolicyVersion: 1,
+    activeInitiativeModifiers: [{ combatantId: 'player', amount: -6 }],
+  })
+  expect(active.initiativeOrder).toEqual(['player', 'recruit'])
+  expect(validateBattleState(active)).toEqual([])
+  const out = abortPracticeBattle(active)
+  expect(out.state.initiativeOrder).toEqual(['recruit', 'player'])
+  expect(validateBattleState(out.state)).toEqual([])
+  expect(out.state.currentTurn).toBeNull()
+  expect(out.state.combatants).toEqual(active.combatants)
+  expect(out.state.round).toBe(active.round)
+  expect(out.state.turnNumber).toBe(active.turnNumber)
+  expect(out.events).toEqual([
+    { event: 'battle_abandoned', outcome: 'aborted', reason: 'practice-aborted' },
+  ])
+  expect(() => abortPracticeBattle(out.state)).toThrow(
+    'Only a pending or active practice battle can be aborted.',
+  )
 })

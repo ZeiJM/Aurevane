@@ -1,0 +1,10 @@
+.selection {
+  min-width: 0;
+  margin-bottom: 0.6rem;
+}
+
+.selection label,
+.selection select {
+  width: 100%;
+  min-width: 0;
+}

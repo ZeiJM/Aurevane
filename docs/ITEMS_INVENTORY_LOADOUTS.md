@@ -1,3 +1,15 @@
+November 7 Item preview corrections — **LIVE for Owner testing** at https://aurevane-rpg.com. Item tabs show the correct weapon or technique art, Support previews show editable purpose text, full Item names wrap cleanly, replacement comparisons name the removed gear, and compact slot pickers filter by available QP. All required application checks and 21 final production probes passed. One additive migration, four source10 successors and three publication11 updates preserve prior content, timing, stock and Owner drafts. [Release record](verification/2026-11-07-item-preview-corrections-production-release.md).
+
+November 6 Item/Technique/Range followup — **LIVE for Owner testing** through PR1021, production `dpl_DCs9PefFRMAawAX8JbXEWjQVmAZ6`, with all immutable history, drafts and stock preserved. [Completed release receipt](verification/2026-11-06-items-techniques-range-production-release.md).
+
+November 5 Item refinements — **LIVE for Owner testing** at https://aurevane-rpg.com, verified November 6: all eight equipment positions fit with unchanged Item artwork and clearer avatar spacing; popup facts and reports are aligned, with Uses per battle last and Consumable Slot naming. Weapons provide Manual attacks/optional imbued techniques without held passives; armor/gloves provide passive modifiers only. Reports use global timing and concise stats; Profile bonus hover lists equipment sources only. Twenty immutable source6 successors and Emberbrand publication7 are installed with drafts, inventory and historical captures preserved. Production `dpl_6pGx1VaoJydfdtbRBe9M13DkQcGC`, source `a841b6bf39e4e59e6c0b2373d23f2635db9a359d`; temporary hold removed, nine retirement guards retained, all16 final safety probes pass. No further deployment is needed. [Release receipt](verification/2026-11-05-items-polish-production-release.md); human gameplay acceptance remains open.
+
+November 5 Items — **LIVE for Owner testing** at https://aurevane-rpg.com: compact authoring, Class/Position/Type, optional weapon Imbued Techniques, equip requirements, automatic inventory actions and actual consumable stock settlement are released. All 19 source workflows pass; four guarded migrations and three exact v5 Item publications preserve prior versions, drafts, inventory and frozen encounters. Production `dpl_D79wgdgrFWWjf3kom6sfypujPk6F`, source `0fd6cb6144da1624e88d3c58a24f224693f541b2`; admission/authoring hold removed, nine retirement guards retained. This supersedes source-only Items checkpoints below. [Release receipt](verification/2026-11-05-items-production-release.md); Owner acceptance remains open.
+
+November 4 Owner followup — **implemented, not live**: current equipment has eight positions (four armor, Main Hand weapon/shield, Off Hand passive armor, two independent consumable slots); two-handed weapons block Off Hand only. The cockpit begins Inspect → Item → Move → Basic Attack → Support. Compact shared reports use Turns and explicit Instant for instant standard Damage; current Chilled-only removal is Conditional Cleanse. Equipment templates are detailed, presentation-specific, neutral and faceless. Compact inventory/report layout, packed filters, actual equipment stat deltas and accurate shared editor text guidance supersede older designs. Follow the [current authority and regression boundaries](superpowers/specs/2026-11-04-items-presentation-followup.md) before reusing an earlier component, fixture or checkpoint. Prior live release receipts below remain historical evidence; this followup has no deployment or hosted-publication authorization.
+
+November 3 Quality Point Items — **LIVE for Owner testing**: 47 genuine illustrated defaults use the shared source/current/pinned publication authority and atomic starter receipt. Six categories each hold 40 positions; Gear stacks to 1 and other Items to 99. Equipment has Head, Body, Pants, Boots, Main Hand and Off Hand, capped at 100 QP. Weapons supply Basic Attack; equipped supplies refill their finite uses each battle without consuming owned quantities; one selected equipment Support can replace normal Support. The cockpit is Inspect → Move → Basic Attack → Item → Support, retaining internal custom binding keys. Archived/disabled owned Items remain repairable; first-load grants defer clearly for capacity or pending/active battles. This supersedes older five-slot and locked Items-placeholder direction. PR #1008 merge `0af2782adea552ad7d2b18f7159fb8200356ab24` is live at https://aurevane.vercel.app on READY Production `dpl_DQpfKyFbeNKXEMxBqAMHnh76dfkE`. All 20 exact-source workflows, 112 staged and 112 canonical probes pass. Eleven migrations and 14 reviewed current publications are applied with old history and drafts preserved. Temporary maintenance is removed; nine retirement rules remain. Human acceptance and Phase 5 closure remain open. [Release receipt](verification/2026-11-03-combat-items-release.md) and [96-case Owner checklist](verification/2026-11-03-owner-combat-items-checklist.md). Full 47 reference, balance and lifecycle: [starter Items reference](verification/2026-11-03-starter-items-reference.md).
+
 # AUREVANE — Items, Effect Catalog, Inventory & Loadout System
 
 **Status:** Authoritative item/inventory/loadout specification subordinate to `docs/GAME_MASTER_PLAN.md` and `docs/GAME_MASTER_PLAN_BUILD_SYSTEM_ADDENDUM.md`, complementary to `docs/COMBAT.md`, `docs/PRODUCT_EXPERIENCE_CONTENT_SYSTEM.md`, `docs/MASTER_PANEL.md`, `docs/PLAYER_MANUAL.md`, and `docs/MONETIZATION.md`.
@@ -28,37 +40,43 @@ The former Current/Legacy, Art, Confluence, separate Trait/Reaction/Movement Art
 
 ## 1. One Item Architecture, Multiple Player-Facing Inventories
 
-Recommended player-facing views:
+Current implemented player-facing categories:
 
 ```text
-EQUIPMENT
-CONSUMABLES
+GEAR
+BATTLE ITEMS
 MATERIALS
-QUEST & KEY ITEMS
-COLLECTION / RELICS where appropriate
+GENERAL
+EVENT
+COMPANION
 ```
 
 Crowns and other ledger currencies are not physical inventory stacks.
 
-Internally, these views should share one coherent item/inventory domain where practical rather than five unrelated persistence systems.
+Internally, these views should share one coherent item/inventory domain where practical rather than six unrelated persistence systems.
 
 ---
 
 ## 2. Equipment Inventory
 
-Core slots remain:
+Current equipment positions (November 4 supersession; source followup pending release):
 
 ```text
-Main Hand
-Off Hand
-Armor
-Accessory I
-Accessory II
+Head
+Body
+Pants
+Boots
+Main Hand (weapon or shield)
+Off Hand (passive hand armor; unavailable with a two-handed Main Hand)
+Consumable 1
+Consumable 2
 ```
 
 Do not casually add many permanent equipment slots. Depth comes from effects and interactions rather than slot inflation.
 
-Equipment inventory supports:
+Current Item inventory supports equip/unequip, compare, category/search/sort/filter and the authoritative 100 QP limit. The remaining broader capabilities below are future design, not claims of delivery:
+
+Equipment inventory design includes:
 
 - equip/unequip;
 - compare;
@@ -698,12 +716,14 @@ optional Secondary Discipline
 selected Discipline Skills
 resolved build route: Resonance or Essence
 Soulmark configuration OR Soul-Severed/Mantle configuration where legal
+Head
+Body
+Pants
+Boots
 Main Hand
 Off Hand
-Armor
-Accessory I
-Accessory II
-combat consumable kit
+Consumable 1
+Consumable 2
 optional safe cosmetic battle-presentation choices
 ```
 

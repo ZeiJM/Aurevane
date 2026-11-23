@@ -1,6 +1,10 @@
 import 'server-only'
+import { throwItemRpcError } from './supabase-character-items-repository'
+import { parseDisciplineSkillReference } from './discipline-skill-reference-parser'
+import { throwCombatContentAdmissionError } from '../combat/combat-content-admission-error'
 
 import type { DisciplineSkillReference } from '@aurevane/game-core/character/discipline-skill-loadout'
+import { parseSupportActionId } from '@aurevane/game-core/combat/support-actions'
 import { AurevaneError } from '@aurevane/game-core/errors'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
@@ -19,29 +23,13 @@ function integer(value: unknown): number | null {
   return typeof value === 'number' && Number.isSafeInteger(value) ? value : null
 }
 
-function parseSkill(value: unknown): DisciplineSkillReference | null {
-  if (!isRecord(value)) return null
-  const contentVersion = integer(value.contentVersion)
-  if (
-    typeof value.skillId !== 'string' ||
-    contentVersion === null ||
-    contentVersion < 1 ||
-    typeof value.sourceDisciplineId !== 'string'
-  ) {
-    return null
-  }
-  return {
-    skillId: value.skillId,
-    contentVersion,
-    sourceDisciplineId: value.sourceDisciplineId,
-  }
-}
-
 function parseLoadout(row: unknown): CharacterSavedBuildLoadoutRecord | null {
   if (!isRecord(row) || !Array.isArray(row.discipline_skills)) return null
+  const supportActionId = parseSupportActionId(row.support_action_id)
+  if (!supportActionId) return null
   const slotIndex = integer(row.slot_index)
   const sourceBuildVersion = integer(row.source_build_version)
-  const skills = row.discipline_skills.map(parseSkill)
+  const skills = row.discipline_skills.map(parseDisciplineSkillReference)
   if (
     slotIndex === null ||
     slotIndex < 1 ||
@@ -59,6 +47,7 @@ function parseLoadout(row: unknown): CharacterSavedBuildLoadoutRecord | null {
   }
   return {
     slotIndex,
+    supportActionId,
     name: row.name,
     primaryDisciplineId: row.primary_discipline_id,
     secondaryDisciplineId: row.secondary_discipline_id,
@@ -109,6 +98,7 @@ function parseActivationResult(row: unknown): CharacterSavedBuildLoadoutActivati
 }
 
 function mutationError(error: { message: string }): AurevaneError {
+  throwCombatContentAdmissionError(error)
   if (error.message.includes('CHARACTER_BUILD_VERSION_CONFLICT')) {
     return new AurevaneError('STALE_VERSION', 'The build changed. Refresh and try again.')
   }
@@ -157,7 +147,7 @@ export function createSupabaseCharacterSavedBuildLoadoutRepository(): CharacterS
   return {
     async list(userId, characterId) {
       const supabase = createSupabaseAdminClient()
-      const { data, error } = await supabase.rpc('get_character_saved_build_loadouts_v1', {
+      const { data, error } = await supabase.rpc('get_character_saved_build_loadouts_v2', {
         p_user_id: userId,
         p_character_id: characterId,
       })
@@ -194,6 +184,7 @@ export function createSupabaseCharacterSavedBuildLoadoutRepository(): CharacterS
         p_idempotency_key: input.idempotencyKey,
         p_request_fingerprint: input.requestFingerprint,
       })
+      if (error?.message.startsWith('ITEM_')) throwItemRpcError(error)
       if (error) throw mutationError(error)
       const result =
         Array.isArray(data) && data.length === 1 ? parseActivationResult(data[0]) : null

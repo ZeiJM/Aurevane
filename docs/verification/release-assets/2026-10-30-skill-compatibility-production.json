@@ -1,0 +1,518 @@
+{
+  "pr": 996,
+  "testedHead": "6ac5f1ae7f062b44dbce4395b597d7b3e131cba1",
+  "tree": "60e13e183072d80d8011f5d11862d596e6195068",
+  "merge": "545481a00649b7fafd9edc61b5bfe400deac45db",
+  "baseline": "c6b91fabb76b9401d7fad8f0bba8ef776af485b1",
+  "workflows": 13,
+  "jobs": 19,
+  "browser": {
+    "move": 38,
+    "chromiumPassed": 379,
+    "chromiumConfiguredSkips": 284,
+    "edgePassed": 10,
+    "edgeConfiguredSkips": 2,
+    "masterAuthority": 16
+  },
+  "deployment": {
+    "id": "dpl_98NEWgarZCPxzWM9jLPuUb1KqtMQ",
+    "name": "aurevane",
+    "url": "aurevane-lfiesnfhm-zeijms-projects.vercel.app",
+    "type": "LAMBDAS",
+    "state": "INITIALIZING",
+    "createdAt": 1793395379192,
+    "creator": {
+      "uid": "VwTLakFObK5PLogxt6E3lfFr",
+      "username": "zeijm"
+    },
+    "project": {
+      "id": "prj_ZmH66I1zyOARUt8OXdTl7CN9r18d",
+      "name": "aurevane",
+      "framework": "nextjs"
+    },
+    "meta": {
+      "githubCommitRef": "545481a00649b7fafd9edc61b5bfe400deac45db",
+      "githubCommitSha": "545481a00649b7fafd9edc61b5bfe400deac45db",
+      "githubCommitMessage": "Merge pull request #996 from ZeiJM/agent/self-zero-range-20261030\n\nMake Skill editors compatibility-aware and align movement previews",
+      "githubRepo": "Aurevane",
+      "githubOrg": "ZeiJM"
+    },
+    "alias": [
+      "aurevane-zeijms-projects.vercel.app",
+      "aurevane-git-545481a00649b7fafd9edc61b5b-24a778-zeijms-projects.vercel.app"
+    ],
+    "target": "production",
+    "regions": ["cle1"],
+    "buildingAt": 1793395379192,
+    "readyState": "INITIALIZING"
+  },
+  "transitionVersion": "4c2de8ae-00d7-4c9a-9755-5e1c1faa2ca6",
+  "status": "LIVE for Owner testing",
+  "readyAt": "2026-10-30T21:24:19.222Z",
+  "promotionVerifiedAt": "2026-10-30T21:24:46Z",
+  "finalRoutingVersion": "37568deb-486e-4f95-ba99-bd5f86ece2d2",
+  "preflight": {
+    "checkedAt": "2026-10-30T21:24:34.584908+00:00",
+    "origin": "https://aurevane-lfiesnfhm-zeijms-projects.vercel.app",
+    "phase": "preflight",
+    "passed": true,
+    "results": [
+      {
+        "name": "/",
+        "url": "https://aurevane-lfiesnfhm-zeijms-projects.vercel.app/",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "bytes": 16601,
+        "sha256": "06e8882097c8c59991d0577c88dc40dcdc6b35b402b61ed3053d4db0667c9c83",
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8"
+        }
+      },
+      {
+        "name": "/manual",
+        "url": "https://aurevane-lfiesnfhm-zeijms-projects.vercel.app/manual",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "bytes": 43451,
+        "sha256": "33f45821874e01b1d7f60c91efb5d7e0484c6074f673dae74a5aabe40380410d",
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8"
+        }
+      },
+      {
+        "name": "/rules",
+        "url": "https://aurevane-lfiesnfhm-zeijms-projects.vercel.app/rules",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "bytes": 33365,
+        "sha256": "1b486e092a2d46b9c4f7fe63356bca4836cd364325c991f76244a936a2577a9d",
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8"
+        }
+      },
+      {
+        "name": "/news",
+        "url": "https://aurevane-lfiesnfhm-zeijms-projects.vercel.app/news",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "bytes": 14821,
+        "sha256": "26efaa50b48a1011d36aaf4665a780442bc45615c048486ab46e7bf0dea165b5",
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8"
+        }
+      },
+      {
+        "name": "/master",
+        "url": "https://aurevane-lfiesnfhm-zeijms-projects.vercel.app/master",
+        "status": 307,
+        "expected": 307,
+        "passed": true,
+        "bytes": 6940,
+        "sha256": "fa8b3bb4efcd5fab6ddf89491e34683fc509e4c9e12d8fdfca7b97b2f4bbb678",
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8",
+          "location": "/"
+        }
+      },
+      {
+        "name": "/game",
+        "url": "https://aurevane-lfiesnfhm-zeijms-projects.vercel.app/game",
+        "status": 307,
+        "expected": 307,
+        "passed": true,
+        "bytes": 6677,
+        "sha256": "5d6bb6229c7c092a8cddff98477f60133a722f3b7d2a432849a1342051e268f7",
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8",
+          "location": "/"
+        }
+      },
+      {
+        "name": "/api/master/access",
+        "url": "https://aurevane-lfiesnfhm-zeijms-projects.vercel.app/api/master/access",
+        "status": 401,
+        "expected": 401,
+        "passed": true,
+        "bytes": 73,
+        "sha256": "4bfe04de1cef70ace710731d4ee1e093cb59bc1a05c8615830afe1a343309c07",
+        "headers": {
+          "cache-control": "private, no-store",
+          "content-type": "application/json"
+        }
+      },
+      {
+        "name": "/api/master/moderation",
+        "url": "https://aurevane-lfiesnfhm-zeijms-projects.vercel.app/api/master/moderation",
+        "status": 401,
+        "expected": 401,
+        "passed": true,
+        "bytes": 73,
+        "sha256": "4bfe04de1cef70ace710731d4ee1e093cb59bc1a05c8615830afe1a343309c07",
+        "headers": {
+          "cache-control": "private, no-store",
+          "content-type": "application/json"
+        }
+      },
+      {
+        "name": "new header",
+        "url": "https://aurevane-lfiesnfhm-zeijms-projects.vercel.app/",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "bytes": 16601,
+        "sha256": "06e8882097c8c59991d0577c88dc40dcdc6b35b402b61ed3053d4db0667c9c83",
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8"
+        }
+      },
+      {
+        "name": "new query",
+        "url": "https://aurevane-lfiesnfhm-zeijms-projects.vercel.app/?dpl=dpl_98NEWgarZCPxzWM9jLPuUb1KqtMQ",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "bytes": 16675,
+        "sha256": "a07bba94aa19d5873ed936c68b2879bfe1743176ee5ebd27bf834451b2be163e",
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8"
+        }
+      },
+      {
+        "name": "new cookie",
+        "url": "https://aurevane-lfiesnfhm-zeijms-projects.vercel.app/",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "bytes": 16601,
+        "sha256": "06e8882097c8c59991d0577c88dc40dcdc6b35b402b61ed3053d4db0667c9c83",
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8"
+        }
+      },
+      {
+        "name": "portrait 02",
+        "url": "https://aurevane-lfiesnfhm-zeijms-projects.vercel.app/media/art/wayfarer/portrait-02-v02.webp",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "bytes": 202230,
+        "sha256": "117a7cf005a9933ff53309cbab235b76d88740119587f889c1b32c8483f1ad4f",
+        "headers": {
+          "cache-control": "public, max-age=0, must-revalidate",
+          "content-type": "image/webp"
+        }
+      },
+      {
+        "name": "portrait 21",
+        "url": "https://aurevane-lfiesnfhm-zeijms-projects.vercel.app/media/art/wayfarer/portrait-21-v02.webp",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "bytes": 207770,
+        "sha256": "b13bc447eb97429bba56026adf40b81cb54299c9a04de35aff6e64e594519676",
+        "headers": {
+          "cache-control": "public, max-age=0, must-revalidate",
+          "content-type": "image/webp"
+        }
+      },
+      {
+        "name": "portrait 40",
+        "url": "https://aurevane-lfiesnfhm-zeijms-projects.vercel.app/media/art/wayfarer/portrait-40-v02.webp",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "bytes": 169684,
+        "sha256": "7fca1e51656efb6abd4dd38b0297653fe6706e5bb59b5b2fc8486fbe429b59ab",
+        "headers": {
+          "cache-control": "public, max-age=0, must-revalidate",
+          "content-type": "image/webp"
+        }
+      }
+    ]
+  },
+  "postflight": {
+    "checkedAt": "2026-10-30T21:25:08.117228+00:00",
+    "origin": "https://aurevane.vercel.app",
+    "phase": "postflight",
+    "passed": true,
+    "results": [
+      {
+        "name": "/",
+        "url": "https://aurevane.vercel.app/",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "bytes": 16601,
+        "sha256": "06e8882097c8c59991d0577c88dc40dcdc6b35b402b61ed3053d4db0667c9c83",
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8"
+        }
+      },
+      {
+        "name": "/manual",
+        "url": "https://aurevane.vercel.app/manual",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "bytes": 43451,
+        "sha256": "33f45821874e01b1d7f60c91efb5d7e0484c6074f673dae74a5aabe40380410d",
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8"
+        }
+      },
+      {
+        "name": "/rules",
+        "url": "https://aurevane.vercel.app/rules",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "bytes": 33365,
+        "sha256": "1b486e092a2d46b9c4f7fe63356bca4836cd364325c991f76244a936a2577a9d",
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8"
+        }
+      },
+      {
+        "name": "/news",
+        "url": "https://aurevane.vercel.app/news",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "bytes": 14821,
+        "sha256": "26efaa50b48a1011d36aaf4665a780442bc45615c048486ab46e7bf0dea165b5",
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8"
+        }
+      },
+      {
+        "name": "/master",
+        "url": "https://aurevane.vercel.app/master",
+        "status": 307,
+        "expected": 307,
+        "passed": true,
+        "bytes": 6940,
+        "sha256": "fa8b3bb4efcd5fab6ddf89491e34683fc509e4c9e12d8fdfca7b97b2f4bbb678",
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8",
+          "location": "/"
+        }
+      },
+      {
+        "name": "/game",
+        "url": "https://aurevane.vercel.app/game",
+        "status": 307,
+        "expected": 307,
+        "passed": true,
+        "bytes": 6677,
+        "sha256": "5d6bb6229c7c092a8cddff98477f60133a722f3b7d2a432849a1342051e268f7",
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8",
+          "location": "/"
+        }
+      },
+      {
+        "name": "/api/master/access",
+        "url": "https://aurevane.vercel.app/api/master/access",
+        "status": 401,
+        "expected": 401,
+        "passed": true,
+        "bytes": 73,
+        "sha256": "4bfe04de1cef70ace710731d4ee1e093cb59bc1a05c8615830afe1a343309c07",
+        "headers": {
+          "cache-control": "private, no-store",
+          "content-type": "application/json"
+        }
+      },
+      {
+        "name": "/api/master/moderation",
+        "url": "https://aurevane.vercel.app/api/master/moderation",
+        "status": 401,
+        "expected": 401,
+        "passed": true,
+        "bytes": 73,
+        "sha256": "4bfe04de1cef70ace710731d4ee1e093cb59bc1a05c8615830afe1a343309c07",
+        "headers": {
+          "cache-control": "private, no-store",
+          "content-type": "application/json"
+        }
+      },
+      {
+        "name": "new header",
+        "url": "https://aurevane.vercel.app/",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "bytes": 16601,
+        "sha256": "06e8882097c8c59991d0577c88dc40dcdc6b35b402b61ed3053d4db0667c9c83",
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8"
+        }
+      },
+      {
+        "name": "new query",
+        "url": "https://aurevane.vercel.app/?dpl=dpl_98NEWgarZCPxzWM9jLPuUb1KqtMQ",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "bytes": 16675,
+        "sha256": "a07bba94aa19d5873ed936c68b2879bfe1743176ee5ebd27bf834451b2be163e",
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8"
+        }
+      },
+      {
+        "name": "new cookie",
+        "url": "https://aurevane.vercel.app/",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "bytes": 16601,
+        "sha256": "06e8882097c8c59991d0577c88dc40dcdc6b35b402b61ed3053d4db0667c9c83",
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8"
+        }
+      },
+      {
+        "name": "old header",
+        "url": "https://aurevane.vercel.app/",
+        "status": 503,
+        "expected": 503,
+        "passed": true,
+        "bytes": 101,
+        "sha256": "bc6f884fab661b9d33069fe8bc9fa472f739e13caa33a23ed267368387c29277",
+        "headers": {
+          "cache-control": "no-store",
+          "content-type": "text/plain; charset=utf-8"
+        }
+      },
+      {
+        "name": "old query",
+        "url": "https://aurevane.vercel.app/?dpl=dpl_5fkEjru5kvsHHzgqwdMysYQCR8nU",
+        "status": 503,
+        "expected": 503,
+        "passed": true,
+        "bytes": 101,
+        "sha256": "b2666429be686a5b80c0af6f0aa5950583fbfe3baaf64a1bba194feb79b41c28",
+        "headers": {
+          "cache-control": "no-store",
+          "content-type": "text/plain; charset=utf-8"
+        }
+      },
+      {
+        "name": "old cookie",
+        "url": "https://aurevane.vercel.app/",
+        "status": 503,
+        "expected": 503,
+        "passed": true,
+        "bytes": 101,
+        "sha256": "e0ed77cf6a41f484b9456707f5a6ba5f7e9fa77d53c1d99e761e763add7aa5c5",
+        "headers": {
+          "cache-control": "no-store",
+          "content-type": "text/plain; charset=utf-8",
+          "set-cookie": "__vdpl=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Lax"
+        }
+      },
+      {
+        "name": "old host",
+        "url": "https://aurevane-eqtdra0c1-zeijms-projects.vercel.app/",
+        "status": 503,
+        "expected": 503,
+        "passed": true,
+        "bytes": 101,
+        "sha256": "43ca3bb2436888179289a7427a58ac2aa47ef465abf0f2091f3084a78f8c6000",
+        "headers": {
+          "cache-control": "no-store",
+          "content-type": "text/plain; charset=utf-8"
+        }
+      },
+      {
+        "name": "old host",
+        "url": "https://aurevane-git-f18c89b0cd15658e4a5f932e291-05bfe3-zeijms-projects.vercel.app/",
+        "status": 503,
+        "expected": 503,
+        "passed": true,
+        "bytes": 101,
+        "sha256": "0b70d43e9a8fc66f7e492dead15abd6953f49d7d2db022c9429196fb77e9d66c",
+        "headers": {
+          "cache-control": "no-store",
+          "content-type": "text/plain; charset=utf-8"
+        }
+      },
+      {
+        "name": "portrait 02",
+        "url": "https://aurevane.vercel.app/media/art/wayfarer/portrait-02-v02.webp",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "bytes": 202230,
+        "sha256": "117a7cf005a9933ff53309cbab235b76d88740119587f889c1b32c8483f1ad4f",
+        "headers": {
+          "cache-control": "public, max-age=0, must-revalidate",
+          "content-type": "image/webp"
+        }
+      },
+      {
+        "name": "portrait 21",
+        "url": "https://aurevane.vercel.app/media/art/wayfarer/portrait-21-v02.webp",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "bytes": 207770,
+        "sha256": "b13bc447eb97429bba56026adf40b81cb54299c9a04de35aff6e64e594519676",
+        "headers": {
+          "cache-control": "public, max-age=0, must-revalidate",
+          "content-type": "image/webp"
+        }
+      },
+      {
+        "name": "portrait 40",
+        "url": "https://aurevane.vercel.app/media/art/wayfarer/portrait-40-v02.webp",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "bytes": 169684,
+        "sha256": "7fca1e51656efb6abd4dd38b0297653fe6706e5bb59b5b2fc8486fbe429b59ab",
+        "headers": {
+          "cache-control": "public, max-age=0, must-revalidate",
+          "content-type": "image/webp"
+        }
+      }
+    ]
+  },
+  "errorScan": {
+    "since": "2026-10-30T21:24:19.222Z",
+    "until": "2026-10-30T21:24:59.357Z",
+    "levels": ["error", "fatal"],
+    "count": 0
+  },
+  "probeNote": "Initial probes during BUILDING received the deployment loading page. After READY, all 14 staged checks passed; no application changes or rebuild.",
+  "limitations": [
+    "Owner signed-in acceptance",
+    "physical device and audible playback",
+    "multiplayer acceptance",
+    "sustained load",
+    "separate World timing work; no Phase5 closure"
+  ]
+}

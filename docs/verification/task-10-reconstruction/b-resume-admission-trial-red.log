@@ -1,0 +1,81 @@
+
+ RUN  v4.1.10 /workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/packages/db
+
+ ❯ src/combat-content-discipline-producers.test.ts (47 tests | 7 failed | 40 skipped) 3857ms
+   × committed producer pins selected earned facts and explicit policy without changing the Players sourceHash contract 28ms
+   × fresh actual admission rejects stale or forged source with whole transaction rollback 14ms
+   × fresh actual admission rejects stale or forged build with whole transaction rollback 10ms
+   × fresh actual admission rejects stale or forged earned with whole transaction rollback 9ms
+   × fresh actual admission rejects stale or forged eligibility with whole transaction rollback 9ms
+   × actual trial credits only immutable selected earned eligibility (true), once for battle-pinned Primary 10ms
+   × actual trial credits only immutable selected earned eligibility (false), once for battle-pinned Primary 6ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/combat-content-discipline-producers.test.ts > committed producer pins selected earned facts and explicit policy without changing the Players sourceHash contract
+AssertionError: expected undefined to be 1 // Object.is equality
+
+- Expected:
+1
+
++ Received:
+undefined
+
+ ❯ src/combat-content-discipline-producers.test.ts:1625:50
+    1623|   await crossTrialSkills(false)
+    1624|   const snapshot=await capturedBuild()
+    1625|   expect(snapshot.skillEligibilityPolicyVersion).toBe(1)
+       |                                                  ^
+    1626|   expect(snapshot.disciplineSkills).toEqual(expect.arrayContaining([ex…
+    1627|   const hash=(await db.query<{hash:string}>('select app_private.player…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/7]⎯
+
+ FAIL  src/combat-content-discipline-producers.test.ts > fresh actual admission rejects stale or forged source with whole transaction rollback
+ FAIL  src/combat-content-discipline-producers.test.ts > fresh actual admission rejects stale or forged build with whole transaction rollback
+ FAIL  src/combat-content-discipline-producers.test.ts > fresh actual admission rejects stale or forged earned with whole transaction rollback
+ FAIL  src/combat-content-discipline-producers.test.ts > fresh actual admission rejects stale or forged eligibility with whole transaction rollback
+AssertionError: expected [Function] to throw error matching /PLAYER_PREPARATION_STALE/ but got 'inconsistent types deduced for parame…'
+
+- Expected:
+/PLAYER_PREPARATION_STALE/
+
++ Received:
+"inconsistent types deduced for parameter $1"
+
+ ❯ denied src/combat-content-discipline-producers.test.ts:104:22
+    102| async function denied(run: () => Promise<unknown>, message: RegExp) {
+    103|   await db.exec('savepoint rejected')
+    104|   await expect(run()).rejects.toThrow(message)
+       |                      ^
+    105|   await db.exec('rollback to savepoint rejected')
+    106| }
+ ❯ src/combat-content-discipline-producers.test.ts:1638:3
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/7]⎯
+
+ FAIL  src/combat-content-discipline-producers.test.ts > actual trial credits only immutable selected earned eligibility (true), once for battle-pinned Primary
+ FAIL  src/combat-content-discipline-producers.test.ts > actual trial credits only immutable selected earned eligibility (false), once for battle-pinned Primary
+error: inconsistent types deduced for parameter $1
+ ❯ pe.Ue ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pg-protocol/src/parser.ts:442:10
+ ❯ pe.tt ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pg-protocol/src/parser.ts:220:15
+ ❯ pe.parse ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pg-protocol/src/parser.ts:104:20
+ ❯ N.qe ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pglite/src/pglite.ts:753:25
+ ❯ ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pglite/src/pglite.ts:706:13
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:5922000
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:2616044
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:2648530
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:2649134
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:5569870
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/7]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  7 failed | 40 skipped (47)
+   Start at  13:10:00
+   Duration  5.36s (transform 965ms, setup 0ms, import 1.22s, tests 3.86s, environment 0ms)
+
+undefined
+/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/packages/db:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/combat-content-discipline-producers.test.ts -t 'committed producer pins|fresh actual admission|actual trial credits'

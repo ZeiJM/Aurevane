@@ -1,0 +1,1082 @@
+[
+  {
+    "id": "atlas:63:11",
+    "townId": "frostmere",
+    "rows": [
+      ".bbb....s....",
+      ".bbb..tts....",
+      "....t...s..t.",
+      "........s..t.",
+      "sssssssssssss",
+      "........s.t..",
+      "........bbbb.",
+      "..t.....bbbb.",
+      "......t.s...."
+    ]
+  },
+  {
+    "id": "atlas:64:11",
+    "townId": "frostmere",
+    "rows": [
+      ".bbb.sss.....",
+      ".bbb.sss....t",
+      "t....sss...t.",
+      ".....sss.....",
+      "sssssssssssss",
+      "....tsss.....",
+      ".....sssbbbb.",
+      ".....sssbbbb.",
+      "....tsss....."
+    ]
+  },
+  {
+    "id": "atlas:65:11",
+    "townId": "frostmere",
+    "rows": [
+      ".bbb...t.....",
+      ".bbb.........",
+      "....t........",
+      "....t.....t..",
+      "sssssssssssss",
+      ".t...........",
+      "........bbbb.",
+      "........bbbb.",
+      "...........t."
+    ]
+  },
+  {
+    "id": "atlas:63:12",
+    "townId": "frostmere",
+    "rows": [
+      ".bbb....st...",
+      ".bbb....s....",
+      "..t.....s.t..",
+      "sssssssssssss",
+      "sssssssssssss",
+      "sssssssssssss",
+      "........bbbb.",
+      "........bbbb.",
+      ".......t.t..."
+    ]
+  },
+  {
+    "id": "frostmere",
+    "townId": "frostmere",
+    "rows": [
+      ".bbb.sss..~..",
+      ".sssbbssbb~bb",
+      ".s.sbbssbb~bb",
+      "ssbsssss..~..",
+      "ssssssssss===",
+      "ssssssss..~..",
+      ".t.s.sss..~..",
+      "...s.sss..~..",
+      "t..s=ssst.~.."
+    ]
+  },
+  {
+    "id": "atlas:65:12",
+    "townId": "frostmere",
+    "rows": [
+      ".bbb.........",
+      ".bbb.........",
+      ".............",
+      "sssssssssssss",
+      "sssssssssssss",
+      "sssssssssssss",
+      "....s...bbbb.",
+      "..t.s...bbbb.",
+      "....st..t...."
+    ]
+  },
+  {
+    "id": "atlas:63:13",
+    "townId": "frostmere",
+    "rows": [
+      ".bbb.........",
+      ".bbb.........",
+      "......t......",
+      ".............",
+      "sssssssssssss",
+      "........t....",
+      ".......tbbbb.",
+      "........bbbb.",
+      "...t....t...."
+    ]
+  },
+  {
+    "id": "atlas:64:13",
+    "townId": "frostmere",
+    "rows": [
+      ".bbb.sss.....",
+      "tbbb.sss.....",
+      ".....sss.....",
+      "....tsss.t...",
+      "sssssssssssss",
+      "..tt.sss.....",
+      ".....sssbbbb.",
+      ".....sssbbbb.",
+      "t...tssst...."
+    ]
+  },
+  {
+    "id": "atlas:65:13",
+    "townId": "frostmere",
+    "rows": [
+      ".bbbs....t...",
+      "tbbbs........",
+      "....s.....t..",
+      "....s.....t..",
+      "sssssssssssss",
+      "....s..t...t.",
+      "....s...bbbbt",
+      "....s...bbbb.",
+      "..t.s........"
+    ]
+  },
+  {
+    "id": "atlas:47:15",
+    "townId": "starfall-highlands",
+    "rows": [
+      "..t......bbb.",
+      ".........bbb.",
+      ".........bbbt",
+      ".t.....t.....",
+      ".............",
+      ".......ssssss",
+      "bbb....s....t",
+      "bbb....st....",
+      ".......s....."
+    ]
+  },
+  {
+    "id": "atlas:48:15",
+    "townId": "starfall-highlands",
+    "rows": [
+      "......s..bbbt",
+      "t.t...s..bbb.",
+      "......s..bbb.",
+      "......s......",
+      "......s..t...",
+      "sssssss..t...",
+      "bbb...s......",
+      "bbb...s....t.",
+      "......s..t..."
+    ]
+  },
+  {
+    "id": "atlas:49:15",
+    "townId": "starfall-highlands",
+    "rows": [
+      ".....t...bbb.",
+      ".........bbb.",
+      ".......t.bbb.",
+      "...t....t....",
+      ".............",
+      "tt...........",
+      "bbb..........",
+      "bbb.....tt...",
+      "............."
+    ]
+  },
+  {
+    "id": "atlas:47:16",
+    "townId": "starfall-highlands",
+    "rows": [
+      ".......s.bbb.",
+      ".....t.s.bbb.",
+      ".......s.bbb.",
+      "sssssssssssss",
+      "sssssssssssss",
+      "sssssssssssss",
+      "bbb..........",
+      "bbb..........",
+      "............."
+    ]
+  },
+  {
+    "id": "starfall-highlands",
+    "townId": "starfall-highlands",
+    "rows": [
+      "tbbb..s...~..",
+      ".sssbbs.bb~bb",
+      ".s.sbbs.bb~bb",
+      "ssbsssss..~..",
+      "ssssssssss===",
+      "ssssssss..~..",
+      "...s..s...~..",
+      "...s..s...~..",
+      ".t.s==s...~.."
+    ]
+  },
+  {
+    "id": "atlas:49:16",
+    "townId": "starfall-highlands",
+    "rows": [
+      "..t......bbb.",
+      ".........bbb.",
+      ".........bbb.",
+      "sssssssssssss",
+      "sssssssssssss",
+      "sssssssssssss",
+      "bbb..s.......",
+      "bbb..s.......",
+      ".....s......."
+    ]
+  },
+  {
+    "id": "atlas:47:17",
+    "townId": "starfall-highlands",
+    "rows": [
+      ".........bbb.",
+      "t..t..t..bbb.",
+      ".........bbb.",
+      ".t.....t.....",
+      ".............",
+      "........t....",
+      "bbb....t.....",
+      "bbb..........",
+      "............."
+    ]
+  },
+  {
+    "id": "atlas:48:17",
+    "townId": "starfall-highlands",
+    "rows": [
+      "......s..bbb.",
+      "..t...s..bbb.",
+      "......s..bbb.",
+      ".....tsssssss",
+      "......s......",
+      "......s......",
+      "bbb...s.....t",
+      "bbb...s...t..",
+      "......s......"
+    ]
+  },
+  {
+    "id": "atlas:49:17",
+    "townId": "starfall-highlands",
+    "rows": [
+      ".t...s...bbb.",
+      ".....s...bbb.",
+      ".....s...bbb.",
+      "ssssss.......",
+      "t............",
+      "..........t..",
+      "bbb..........",
+      "bbb......t...",
+      "............."
+    ]
+  },
+  {
+    "id": "atlas:79:19",
+    "townId": "emberreach",
+    "rows": [
+      "bbbb.........",
+      "bbbb.t.......",
+      "......tt..t..",
+      ".t......ttt..",
+      ".t...........",
+      ".............",
+      ".........bbb.",
+      ".........bbbs",
+      ".........bbbs"
+    ]
+  },
+  {
+    "id": "atlas:80:19",
+    "townId": "emberreach",
+    "rows": [
+      "bbbb.sss.....",
+      "bbbbtsss.....",
+      "....sssss....",
+      "...sssssss...",
+      "..sssssssss..",
+      "tsss.sss.sss.",
+      "sss..sss.bbbs",
+      "ss...sss.bbbs",
+      "s....sss.bbbs"
+    ]
+  },
+  {
+    "id": "atlas:81:19",
+    "townId": "emberreach",
+    "rows": [
+      "bbbb.........",
+      "bbbb...t.....",
+      "t............",
+      "......t......",
+      "...t........t",
+      "....t........",
+      ".........bbb.",
+      "s.t......bbb.",
+      "ss......tbbbt"
+    ]
+  },
+  {
+    "id": "atlas:79:20",
+    "townId": "emberreach",
+    "rows": [
+      "bbbb......sss",
+      "bbbb.....sss.",
+      ".....t..sss..",
+      "sssssssssssss",
+      "sssssssssssss",
+      "sssssssssssss",
+      "...t.t..sbbb.",
+      ".......t.bbb.",
+      ".........bbbs"
+    ]
+  },
+  {
+    "id": "emberreach",
+    "townId": "emberreach",
+    "rows": [
+      ".bbb.sss..l..",
+      ".sssbbssbblbb",
+      ".s.sbbssbblbb",
+      "ssbsssss..l..",
+      "ssssssssss===",
+      "ssssssss..l..",
+      "...s.sss..l..",
+      ".t.s.sss..l..",
+      "t.ts=sss..lt."
+    ]
+  },
+  {
+    "id": "atlas:81:20",
+    "townId": "emberreach",
+    "rows": [
+      "bbbb.........",
+      "bbbb.........",
+      "..sss........",
+      "sssssssssssss",
+      "sssssssssssss",
+      "sssssssssssss",
+      "..sss....bbb.",
+      "tsss.....bbb.",
+      "sss......bbb."
+    ]
+  },
+  {
+    "id": "atlas:79:21",
+    "townId": "emberreach",
+    "rows": [
+      "bbbb.......ss",
+      "bbbb........s",
+      "....t........",
+      ".............",
+      ".............",
+      "......t......",
+      ".........bbb.",
+      ".........bbb.",
+      ".........bbb."
+    ]
+  },
+  {
+    "id": "atlas:80:21",
+    "townId": "emberreach",
+    "rows": [
+      "bbbb.sss....s",
+      "bbbb.sss...ss",
+      "sss..sss..sss",
+      "tsss.sss.sss.",
+      "..sssssssss..",
+      "...sssssss...",
+      ".t..sssssbbb.",
+      ".....ssstbbb.",
+      ".....sss.bbb."
+    ]
+  },
+  {
+    "id": "atlas:81:21",
+    "townId": "emberreach",
+    "rows": [
+      "bbbb.........",
+      "bbbb.........",
+      ".......t...t.",
+      "............t",
+      "........t..t.",
+      ".........t..t",
+      ".t....t..bbb.",
+      "....t....bbb.",
+      ".........bbb."
+    ]
+  },
+  {
+    "id": "atlas:51:27",
+    "townId": "aureth-crown",
+    "rows": [
+      "bbb......bbb.",
+      "bbb......bbb.",
+      "bbb......bbb.",
+      "....t........",
+      ".......ssssss",
+      ".......ssssss",
+      ".......ss....",
+      "t......ss...t",
+      ".....t.ss.tt."
+    ]
+  },
+  {
+    "id": "atlas:52:27",
+    "townId": "aureth-crown",
+    "rows": [
+      "bbbt.sss.bbb.",
+      "bbb..sss.bbbt",
+      "bbb..ssstbbb.",
+      ".....sss.....",
+      "sssssssssssss",
+      "sssssssssssss",
+      "...t.sss.....",
+      ".....sss.....",
+      "t....sss....."
+    ]
+  },
+  {
+    "id": "atlas:53:27",
+    "townId": "aureth-crown",
+    "rows": [
+      "bbb......bbb.",
+      "bbb...t..bbb.",
+      "bbb......bbb.",
+      ".......t...t.",
+      "ssssss.t.....",
+      "ssssss..t....",
+      "....ss.......",
+      "....ss.......",
+      "....ss......."
+    ]
+  },
+  {
+    "id": "atlas:67:27",
+    "townId": "verdant-expanse",
+    "rows": [
+      "bbb..........",
+      "bbb..........",
+      "........t...t",
+      "............t",
+      ".........t...",
+      ".t.....ssssss",
+      ".........bbb.",
+      ".........bbb.",
+      "............."
+    ]
+  },
+  {
+    "id": "atlas:68:27",
+    "townId": "verdant-expanse",
+    "rows": [
+      "bbb......t~..",
+      "bbbs......~..",
+      ".sss......~..",
+      "..sss.....=.t",
+      "...sss....=..",
+      "ssssssssss=ss",
+      "....sss...~..",
+      "....sss..t~..",
+      "..t..sss..~.."
+    ]
+  },
+  {
+    "id": "atlas:69:27",
+    "townId": "verdant-expanse",
+    "rows": [
+      "bbb..........",
+      "bbb..........",
+      "...t......t..",
+      ".......t.....",
+      ".t......t....",
+      "ssss.....t...",
+      "........tbbb.",
+      ".........bbb.",
+      "............."
+    ]
+  },
+  {
+    "id": "atlas:51:28",
+    "townId": "aureth-crown",
+    "rows": [
+      "bbb..t.ssbbbt",
+      "bbb....ssbbb.",
+      "bbb....ssbbb.",
+      "sssssssssssss",
+      "sssssssssssss",
+      "sssssssssssss",
+      "....t..ss..t.",
+      "..t....sst...",
+      ".......ss...."
+    ]
+  },
+  {
+    "id": "aureth-crown",
+    "townId": "aureth-crown",
+    "rows": [
+      ".bbb.ssst.~..",
+      ".sssbbssbb~bb",
+      ".s.sbbssbb~bb",
+      "ssbsssss..~..",
+      "ssssssssss===",
+      "ssssssss..~..",
+      "...s.sss..~..",
+      "...s.sss..~..",
+      "...s=sss..~.."
+    ]
+  },
+  {
+    "id": "atlas:53:28",
+    "townId": "aureth-crown",
+    "rows": [
+      "bbb.ss..tbbb.",
+      "bbb.ss...bbb.",
+      "bbb.ss...bbb.",
+      "sssssssssssss",
+      "sssssssssssss",
+      "sssssssssssss",
+      "....ss.......",
+      "....ss.......",
+      "....ss......."
+    ]
+  },
+  {
+    "id": "atlas:67:28",
+    "townId": "verdant-expanse",
+    "rows": [
+      "bbb..........",
+      "bbb.....tt...",
+      ".............",
+      "sssssssssssss",
+      "sssssssssssss",
+      "sssssssssssss",
+      ".....t...bbb.",
+      ".t.......bbb.",
+      "...t.....t..."
+    ]
+  },
+  {
+    "id": "verdant-expanse",
+    "townId": "verdant-expanse",
+    "rows": [
+      ".bbb.sss..~..",
+      ".sssbbssbb~bb",
+      ".s.sbbssbb~bb",
+      "ssbsssssss===",
+      "ssssssssss===",
+      "ssssssssss===",
+      "...ssss...~..",
+      "t..ssss...~..",
+      "...sss....~.."
+    ]
+  },
+  {
+    "id": "atlas:69:28",
+    "townId": "verdant-expanse",
+    "rows": [
+      "bbb..........",
+      "bbb...t......",
+      ".............",
+      "sssssssssssss",
+      "sssssssssssss",
+      "sssssssssssss",
+      ".........bbb.",
+      ".........bbb.",
+      "............."
+    ]
+  },
+  {
+    "id": "atlas:51:29",
+    "townId": "aureth-crown",
+    "rows": [
+      "bbb....ssbbb.",
+      "bbb....ssbbb.",
+      "bbb....ssbbbt",
+      ".......ssssss",
+      "....t..ssssss",
+      ".............",
+      "t............",
+      ".............",
+      "............."
+    ]
+  },
+  {
+    "id": "atlas:52:29",
+    "townId": "aureth-crown",
+    "rows": [
+      "bbb..sss.bbb.",
+      "bbb..sss.bbb.",
+      "bbb.tssstbbb.",
+      "sssssssssssss",
+      "sssssssssssss",
+      ".....sss.....",
+      ".....sss.....",
+      ".....sss....t",
+      ".....sss....."
+    ]
+  },
+  {
+    "id": "atlas:53:29",
+    "townId": "aureth-crown",
+    "rows": [
+      "bbb.ss...bbb.",
+      "bbb.ss...bbb.",
+      "bbb.ss...bbb.",
+      "ssssss...t...",
+      "ssssss.......",
+      ".............",
+      "........t....",
+      "...t.........",
+      "............."
+    ]
+  },
+  {
+    "id": "atlas:67:29",
+    "townId": "verdant-expanse",
+    "rows": [
+      "bbb..........",
+      "bbb..........",
+      ".............",
+      "...t.........",
+      ".......ssssss",
+      "....t.......s",
+      "..t......bbbs",
+      "......t..bbbs",
+      "..........sss"
+    ]
+  },
+  {
+    "id": "atlas:68:29",
+    "townId": "verdant-expanse",
+    "rows": [
+      "bbbsss....~..",
+      "bbbss.....~..",
+      ".sss......~..",
+      ".sss......=..",
+      "ssssssssss=ss",
+      "ss.t......=..",
+      "ss........~..",
+      "s.........~..",
+      "....tt....~.t"
+    ]
+  },
+  {
+    "id": "atlas:69:29",
+    "townId": "verdant-expanse",
+    "rows": [
+      "bbb..........",
+      "bbb..........",
+      ".............",
+      ".............",
+      "sssst.....t..",
+      ".............",
+      ".........bbb.",
+      "......t.tbbb.",
+      ".t..........."
+    ]
+  },
+  {
+    "id": "atlas:83:35",
+    "townId": "umbral-march",
+    "rows": [
+      "bbb..........",
+      "bbb..........",
+      ".............",
+      ".............",
+      ".............",
+      ".....t.......",
+      "sssssssssssss",
+      ".........bbb.",
+      ".........bbb."
+    ]
+  },
+  {
+    "id": "atlas:84:35",
+    "townId": "umbral-march",
+    "rows": [
+      "bbb.sss....t.",
+      "bbb.sss......",
+      "..t.sss......",
+      "t...sss......",
+      "....sss..t...",
+      "....sss.....t",
+      "sssssss.t....",
+      "......sssbbb.",
+      "t.....sssbbb."
+    ]
+  },
+  {
+    "id": "atlas:85:35",
+    "townId": "umbral-march",
+    "rows": [
+      "bbb..........",
+      "bbb..........",
+      ".............",
+      "..........t..",
+      "...........t.",
+      ".............",
+      "............t",
+      ".........bbb.",
+      ".........bbb."
+    ]
+  },
+  {
+    "id": "atlas:83:36",
+    "townId": "umbral-march",
+    "rows": [
+      "bbbt.........",
+      "bbb..........",
+      "..t.t....tt..",
+      "sssssssssssss",
+      "sssssssssssss",
+      "sssssssssssss",
+      "....t........",
+      "t........bbb.",
+      ".........bbb."
+    ]
+  },
+  {
+    "id": "umbral-march",
+    "townId": "umbral-march",
+    "rows": [
+      ".bbb..sss.~..",
+      ".sssbbssbb~bb",
+      ".s.sbbssbb~bb",
+      "ssbsssss..~..",
+      "ssssssssss===",
+      "ssssssss..~..",
+      "t..s......~..",
+      "...s......~..",
+      "...s==....~.."
+    ]
+  },
+  {
+    "id": "atlas:85:36",
+    "townId": "umbral-march",
+    "rows": [
+      "bbb..........",
+      "bbb..........",
+      ".............",
+      "sssssssssssss",
+      "sssssssssssss",
+      "sssssssssssss",
+      ".............",
+      ".........bbb.",
+      ".........bbb."
+    ]
+  },
+  {
+    "id": "atlas:83:37",
+    "townId": "umbral-march",
+    "rows": [
+      "bbb.........t",
+      "bbb.........t",
+      ".......t.....",
+      ".............",
+      ".t...t.......",
+      ".............",
+      "..t..........",
+      ".........bbb.",
+      ".........bbb."
+    ]
+  },
+  {
+    "id": "atlas:84:37",
+    "townId": "umbral-march",
+    "rows": [
+      "bbb.....ss...",
+      "bbb....tss...",
+      "t.......sssss",
+      ".t.......tsss",
+      ".t........sss",
+      "..........sss",
+      "..........sss",
+      ".........bbbs",
+      ".........bbbs"
+    ]
+  },
+  {
+    "id": "atlas:85:37",
+    "townId": "umbral-march",
+    "rows": [
+      "bbb.....t....",
+      "bbbt.........",
+      "sssssssssssss",
+      ".............",
+      ".............",
+      ".............",
+      "t............",
+      ".........bbb.",
+      ".........bbb."
+    ]
+  },
+  {
+    "id": "atlas:47:39",
+    "townId": "glasswind-desert",
+    "rows": [
+      ".bbb...tbbb..",
+      ".bbb....bbb..",
+      ".............",
+      ".....t.......",
+      ".....t.......",
+      ".............",
+      "...........ts",
+      ".....t.....ss",
+      ".........tsss"
+    ]
+  },
+  {
+    "id": "atlas:48:39",
+    "townId": "glasswind-desert",
+    "rows": [
+      ".bbb.sssbbb..",
+      ".bbb.sssbbb..",
+      ".....sss.....",
+      ".....sss.....",
+      "....sssss....",
+      ".sssssssssss.",
+      "sssssssssssss",
+      "ss...sss...ss",
+      "s....sss....s"
+    ]
+  },
+  {
+    "id": "atlas:49:39",
+    "townId": "glasswind-desert",
+    "rows": [
+      ".bbb...tbbb..",
+      ".bbb....bbb..",
+      "............t",
+      ".............",
+      ".............",
+      "..........t..",
+      "st...........",
+      "ss......t....",
+      "sss...t......"
+    ]
+  },
+  {
+    "id": "atlas:47:40",
+    "townId": "glasswind-desert",
+    "rows": [
+      ".bbb..t.bbbss",
+      ".bbb....bbbs.",
+      "........sss..",
+      "sssssssssssss",
+      "sssssssssssss",
+      "sssssssssssss",
+      "........sss..",
+      ".........sss.",
+      ".t.....t.ssss"
+    ]
+  },
+  {
+    "id": "glasswind-desert",
+    "townId": "glasswind-desert",
+    "rows": [
+      ".bbb.sss..~..",
+      ".sssbbssbb~bb",
+      ".s.sbbssbb~bb",
+      "ssbsssss..~..",
+      "ssssssssss===",
+      "ssssssss..~..",
+      "...s.sss..~..",
+      "...s.sss..~..",
+      "t..s=sss..~.."
+    ]
+  },
+  {
+    "id": "atlas:49:40",
+    "townId": "glasswind-desert",
+    "rows": [
+      "sbbb..t.bbb..",
+      ".bbb....bbb..",
+      "..sss...tt...",
+      "sssssssssssss",
+      "sssssssssssss",
+      "sssssssssssss",
+      "..sss........",
+      ".sss......tt.",
+      "ssss........."
+    ]
+  },
+  {
+    "id": "atlas:47:41",
+    "townId": "glasswind-desert",
+    "rows": [
+      ".bbb...tbbbss",
+      ".bbb....bbbss",
+      "............s",
+      "........t....",
+      "t............",
+      ".............",
+      ".............",
+      ".....t.......",
+      ".........t..."
+    ]
+  },
+  {
+    "id": "atlas:48:41",
+    "townId": "glasswind-desert",
+    "rows": [
+      "sbbb.sssbbb.s",
+      "sbbb.sssbbbss",
+      "sssssssssssss",
+      ".sssssssssss.",
+      "....sssss....",
+      "t....sss.....",
+      ".....sss.....",
+      ".....sss.....",
+      ".....sss....."
+    ]
+  },
+  {
+    "id": "atlas:49:41",
+    "townId": "glasswind-desert",
+    "rows": [
+      "sbbb....bbb..",
+      "sbbb....bbb.t",
+      "s............",
+      ".............",
+      "...t......t..",
+      ".............",
+      ".............",
+      "...t........t",
+      "............."
+    ]
+  },
+  {
+    "id": "atlas:67:43",
+    "townId": "hollow-coast",
+    "rows": [
+      "bbb..........",
+      "bbb..........",
+      "..t..........",
+      "........tt...",
+      ".t...........",
+      ".............",
+      "bbb......t...",
+      "bbb..........",
+      "............t"
+    ]
+  },
+  {
+    "id": "atlas:68:43",
+    "townId": "hollow-coast",
+    "rows": [
+      "bbb..........",
+      "bbb..........",
+      "...t.........",
+      ".............",
+      "..........t..",
+      "t..........t.",
+      "bbb..........",
+      "bbb..........",
+      "..t........t."
+    ]
+  },
+  {
+    "id": "atlas:69:43",
+    "townId": "hollow-coast",
+    "rows": [
+      "bbbsss.......",
+      "bbbsss.......",
+      "...sss.......",
+      "...sss.......",
+      "...sss.......",
+      "...sss.......",
+      "bbbsss.......",
+      "bbbsss.......",
+      "...sss......."
+    ]
+  },
+  {
+    "id": "atlas:67:44",
+    "townId": "hollow-coast",
+    "rows": [
+      "bbb......t...",
+      "bbb......t...",
+      ".........t...",
+      "sssssssssssss",
+      "sssssssssssss",
+      "sssssssssssss",
+      "bbb......s...",
+      "bbb.....ts...",
+      ".........s..."
+    ]
+  },
+  {
+    "id": "hollow-coast",
+    "townId": "hollow-coast",
+    "rows": [
+      ".bbb......~..",
+      ".sssbb..bb~bb",
+      "ts.sbb..bb~bb",
+      "ssbsssss..~..",
+      "ssssssssss===",
+      "ssssssss..~..",
+      ".t.s......~..",
+      "...s......~..",
+      "...s==....~t."
+    ]
+  },
+  {
+    "id": "atlas:69:44",
+    "townId": "hollow-coast",
+    "rows": [
+      "bbbsss.......",
+      "bbbsss.......",
+      "...sss.......",
+      "sssssssssssss",
+      "sssssssssssss",
+      "sssssssssssss",
+      "bbbsss.......",
+      "bbbssstt.....",
+      "...sss......t"
+    ]
+  },
+  {
+    "id": "atlas:67:45",
+    "townId": "hollow-coast",
+    "rows": [
+      "bbb..t...stt.",
+      "bbb......st..",
+      ".........s...",
+      "t........ssss",
+      ".........s...",
+      "...t...t.s...",
+      "bbb......stt.",
+      "bbb......st..",
+      ".........s..."
+    ]
+  },
+  {
+    "id": "atlas:68:45",
+    "townId": "hollow-coast",
+    "rows": [
+      "bbb...t.t....",
+      "bbb..........",
+      ".......t..t..",
+      "sssssssssssss",
+      ".............",
+      ".............",
+      "bbb..........",
+      "bbb..........",
+      "............."
+    ]
+  },
+  {
+    "id": "atlas:69:45",
+    "townId": "hollow-coast",
+    "rows": [
+      "bbbsss..t....",
+      "bbbssst......",
+      "...sss.....t.",
+      "ssssss.....t.",
+      "...sss.......",
+      "...sss.......",
+      "bbbsss.......",
+      "bbbsss.......",
+      "...sss....t.."
+    ]
+  }
+]

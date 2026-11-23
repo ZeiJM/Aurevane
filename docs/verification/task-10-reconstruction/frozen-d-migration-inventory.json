@@ -1,0 +1,127 @@
+{
+  "purpose": "Frozen D source inventory only; not hosted absence/application or final manifest",
+  "base": "a31029c04c0ef7be9fd08092c6a70f6f086b48b6",
+  "source": "ebf7feb056653653a30a04cb63d8bd75ecee0007",
+  "migrations": [
+    {
+      "path": "supabase/migrations/20261020200612_combat_content_complete_records.sql",
+      "version": "20261020200612",
+      "name": "combat_content_complete_records",
+      "bytes": 24041,
+      "sha256": "4bf330137084e1785b694873ef734789752931b4ddcd32c424f14f81c740431c",
+      "git_blob": "59ecf60920f2486e1678d9eaf2006ea5b38657cb"
+    },
+    {
+      "path": "supabase/migrations/20261020201044_combat_content_admission_guards.sql",
+      "version": "20261020201044",
+      "name": "combat_content_admission_guards",
+      "bytes": 4879,
+      "sha256": "8488d810152dcae7558bb979633530777a12e71609d39bd25861c0677f3ea305",
+      "git_blob": "2f21bf8403f2dd3d6526943cadd052ee6cd63d44"
+    },
+    {
+      "path": "supabase/migrations/20261020201807_combat_content_typed_record_writes.sql",
+      "version": "20261020201807",
+      "name": "combat_content_typed_record_writes",
+      "bytes": 8333,
+      "sha256": "6a49a73174a6c1d213c201f2457607a1aca074b0b6627c024f1167fef6eb8744",
+      "git_blob": "6de55b3f24367a48aecfb1fa5fdb6f2ac64bf4cc"
+    },
+    {
+      "path": "supabase/migrations/20261020202415_retire_unsafe_combat_content_mutations.sql",
+      "version": "20261020202415",
+      "name": "retire_unsafe_combat_content_mutations",
+      "bytes": 2122,
+      "sha256": "c770d4b6bc629e59ce5e930ecbd154f9e63037834752dad96a5d550a859b38da",
+      "git_blob": "389803165dc178c0ccf778e557dc552e6466e1ef"
+    },
+    {
+      "path": "supabase/migrations/20261020204712_combat_content_record_boundaries.sql",
+      "version": "20261020204712",
+      "name": "combat_content_record_boundaries",
+      "bytes": 11628,
+      "sha256": "48c1d85c7581b7527a515f08115e97b16881f7f9377b5fdacc48d048d329e938",
+      "git_blob": "58eaa82abc5b7f8117bc6e9141d1b2e20f338b2d"
+    },
+    {
+      "path": "supabase/migrations/20261020204946_combat_content_builtin_identity_index.sql",
+      "version": "20261020204946",
+      "name": "combat_content_builtin_identity_index",
+      "bytes": 51752,
+      "sha256": "6e2a6aeda91657a167ae86679394759dcaf16d6071fefc4820e7e075cf96c0c8",
+      "git_blob": "5f39369765cb1e661ec4740396b8f150b97fd692"
+    },
+    {
+      "path": "supabase/migrations/20261020205631_combat_content_reference_index.sql",
+      "version": "20261020205631",
+      "name": "combat_content_reference_index",
+      "bytes": 28885,
+      "sha256": "5b19fb19a96f07208397130ed08a8ee22302d8a3ab753de11ceb4a862575d33c",
+      "git_blob": "09dfbe3ac30085a5155a60c9305107ad0dd024d4"
+    },
+    {
+      "path": "supabase/migrations/20261020211441_combat_content_restore_reference_boundaries.sql",
+      "version": "20261020211441",
+      "name": "combat_content_restore_reference_boundaries",
+      "bytes": 1071,
+      "sha256": "1e36a556400fab3f3d5549dee0415d3986430456d9b73cc720d8ef302a83b4dd",
+      "git_blob": "0a4da378aa0e6526382568775234a0e76a43a806"
+    },
+    {
+      "path": "supabase/migrations/20261020222401_published_discipline_producers.sql",
+      "version": "20261020222401",
+      "name": "published_discipline_producers",
+      "bytes": 35283,
+      "sha256": "5a57733cf83452ae1f7f53c4f0a532dcf85b7ea5f1fe5dd5254435ebe574a62c",
+      "git_blob": "d3332d9797bb66d9a13b2e4e2fd0ab28554098a8"
+    },
+    {
+      "path": "supabase/migrations/20261020225734_discipline_skill_earned_provenance.sql",
+      "version": "20261020225734",
+      "name": "discipline_skill_earned_provenance",
+      "bytes": 24923,
+      "sha256": "77a1496541827bb741bf0f853d44ed2b685bca89821176a9f3ae920b83b4de08",
+      "git_blob": "ebfb694134fedc364dfc9176f64ad91dc8bfb931"
+    },
+    {
+      "path": "supabase/migrations/20261022200753_discipline_consumer_admission.sql",
+      "version": "20261022200753",
+      "name": "discipline_consumer_admission",
+      "bytes": 22391,
+      "sha256": "3f9cdff227993d986c5c9f20aafc3c0bd69f0052db2b2ec2e983700844386c22",
+      "git_blob": "7ea9cc06a51bfda100c79b8cc5db2c713d760f3e"
+    },
+    {
+      "path": "supabase/migrations/20261022214821_finalized_combat_content_media.sql",
+      "version": "20261022214821",
+      "name": "finalized_combat_content_media",
+      "bytes": 10826,
+      "sha256": "24a6c98460ed5d130ceeac3db4e18d327d3b7d834020e8c37a6d280926733088",
+      "git_blob": "6614a8a1dddb0a3f5ce1a1cf25bf8d924deae748"
+    },
+    {
+      "path": "supabase/migrations/20261022221218_canonical_tag_presentation.sql",
+      "version": "20261022221218",
+      "name": "canonical_tag_presentation",
+      "bytes": 5331,
+      "sha256": "ee575f76013830ff6d2c99a2476646d1be479473b1070d60ccab9ae1f3bdbb7e",
+      "git_blob": "c43970ca8464b093f39a2b64a8dcf726c9e98b4a"
+    },
+    {
+      "path": "supabase/migrations/20261022225712_retained_tag_draft_envelopes.sql",
+      "version": "20261022225712",
+      "name": "retained_tag_draft_envelopes",
+      "bytes": 1728,
+      "sha256": "674e24cc981a43cb052b55f37bba1a81dc9d87378e5309095895529966875312",
+      "git_blob": "0a17d511a92b28c04a5055b4b2aeb995c539a87f"
+    },
+    {
+      "path": "supabase/migrations/20261022233500_master_content_sorted_browse.sql",
+      "version": "20261022233500",
+      "name": "master_content_sorted_browse",
+      "bytes": 5137,
+      "sha256": "d5c02d17cfd68b7f013c6ab6a53f576414d57e578abcf63cf451a0db23f25a87",
+      "git_blob": "e0616bee79719ea6d10fc35ed07b8bcb74bc77a8"
+    }
+  ]
+}

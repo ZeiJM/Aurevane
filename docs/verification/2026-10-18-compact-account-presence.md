@@ -1,0 +1,25 @@
+# Compact Account presence line and portrait
+
+**LIVE for testing:** combined PR #946/source `2ace05d9684a3cef9f35c527db93c834ee4d50ec`; production READY06:47:42.438UTC and catalogue readback verified October19. See [combined release receipt](2026-10-19-combined-owner-release.md). The following sections preserve the pre-release design/investigation and focused evidence; the combined receipt supersedes their pending release status.
+
+Owner request: replace the Online Users badge beneath Welcome back with a compact clickable text line, and use some of the saved space for a modestly larger mini portrait. Apply the shared layout on desktop and phone.
+
+The existing `/game/online` anchor and live presence count are retained. Account menu styling removes the surrounding border, padding and status dot, reduces the link to a 24px minimum line, and adds hover/focus underline while retaining the shared keyboard focus outline. The Current character caption selector is narrowed so its uppercase/tiny label treatment does not affect the count. Only the Account portrait grows from 2.4rem to 3.25rem (38.4px to 52px at the standard root scale); its responsive image hint matches the frame. The main navigation portrait is unchanged.
+
+The existing native navigation case now runs on desktop and phone, checks the menu at normal viewport widths and a 320px phone width, verifies the link is beneath the greeting without badge border/padding, checks the larger square portrait and popup containment, saves captures, and actually opens the Online Users page. Existing navigation assertions remain intact. Local native execution is unavailable because this executor has no Chromium binary; authenticated CI scenarios use disposable local accounts. Hosted browser observation remains blocked by credential protection from the preceding release; no bypass is attempted.
+
+Pre-release checks: the existing three focused shell suites pass 11 tests. Prettier, ESLint, TypeScript and diff whitespace checks pass. Independent read-only review reports no Critical or Important findings across the CSS cascade, mobile/long-name layout, native link, focus and image sizing. Whole-source quality and native CI are pending. No migration, gameplay, presence heartbeat, count authority or navigation destination changes.
+
+Status: implemented, not yet released. Main baseline is `7637a969d9152a7b26ce77e35f01873992fb8c40`, preserving the live World fix and skill-display update. The standing instruction to run the requested changes live for testing remains applicable to this Account badge refinement; perform the fresh-main and verified-source release gates first. Git auto deployments remain locked.
+
+## First native checkpoint and current-main reconciliation
+
+Candidate `9c269ee7c3a3d2ddeb3674b7cb8a8c80e031cedc` passes CI 39191981010 (10,250 Vitest plus seven Node checks), Desktop experience 39191981063 (49 passed, 26 documented project skips), Desktop page fit 39191981064 and UI review 39191981029 (110 native cases plus two one-case directory probes). Desktop, 412px phone and 320px phone captures are visually inspected; the plain line, larger square portrait and actual Online Users navigation checks pass. Artifact 12160597403 verifies as SHA256 `8220118645060d489a887ed962fe235157eaed7fd49a6c158a05496ec79ccc67` (184,664,291 bytes).
+
+Local full quality also passes on that source after generated-cache recovery. Its first build fails while loading Turbopack persistence (`invalid digit found in string`), after all tests and preceding quality steps pass. Preserve only that generated persistence directory outside `.next` and rebuild the same source: the complete gate exits zero without changing source, assertions or timeouts.
+
+Before full Browser 39191981027 finishes, main advances through the separate Blindside facing release #941 and receipt #944 to `8624c49a3853493cbea5f6b4855330bf0cd99117`. That 22-file patch has no overlap with the five-file Account patch and merges without conflicts. Preserve the newer live deployment `dpl_9mHT3oy3YxhmZvVp1rcFP6Z2Dxre`; require fresh combined-source quality and native gates before releasing this Account refinement. No Account production or browser-test code changes during reconciliation.
+
+## Initial full-browser failure
+
+Exact head6a285b52 full Browser run39194451099 finishes357passed/278skipped/1failed in full Chromium, after73focusedcases and the Account navigation/layout checks pass. The failure is World-to-battle entry in world-presence-case.ts793: the page remains on World20seconds after held movement and the primary-button click. The chained full Edge step does not run. Independent diagnosis cannot classify the cause because the677MB diagnostics artifact exceeds the connector's512MiB limit. The primary button can change Attack/Approach while the held key changes adjacency; this is a plausible test/input race, not established causation or passing acceptance. No assertion is weakened or failure labelled as infrastructure. Account source is preserved in combined PR#946, whose fresh complete native gates are now the release boundary.

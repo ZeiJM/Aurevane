@@ -1,0 +1,216 @@
+{
+  "task": "Skill requirement reader cleanup",
+  "status": "LIVE for testing",
+  "url": "https://aurevane.vercel.app",
+  "pullRequest": 954,
+  "testedHead": "dceef0c6335e6af31bb428b5dc08da458483c9fd",
+  "testedTree": "5200c75d8e2d9d5c92177e2dbd4139f7be194b7e",
+  "base": "b7ba1e7b3e8b850c53f0d15842c96aecc50ae160",
+  "merge": {
+    "sha": "acd82a21b9980c5c99af61301e53f8a20d6c1540",
+    "tree": "5200c75d8e2d9d5c92177e2dbd4139f7be194b7e",
+    "parents": [
+      "b7ba1e7b3e8b850c53f0d15842c96aecc50ae160",
+      "dceef0c6335e6af31bb428b5dc08da458483c9fd"
+    ]
+  },
+  "deployment": {
+    "id": "dpl_3DZxtQMmXYukhKaaD1d1TVC8idGu",
+    "target": "production",
+    "readyAt": "2026-10-20T22:34:49.990Z",
+    "source": "acd82a21b9980c5c99af61301e53f8a20d6c1540",
+    "canonicalVerifiedAt": "2026-10-20T22:35:24.535Z"
+  },
+  "counts": {
+    "unitVitest": 11965,
+    "node": 7,
+    "web": 6325,
+    "gameCore": 5360,
+    "db": 152,
+    "validation": 106,
+    "audio": 17,
+    "realtime": 3,
+    "worker": 2,
+    "dedicatedRequirementBrowser": 22,
+    "primedBrowser": 6,
+    "desktopExperience": {
+      "passed": 49,
+      "skipped": 26
+    },
+    "desktopFit": {
+      "passed": 8,
+      "skipped": 7
+    },
+    "uiLayout": {
+      "setupPassed": 1,
+      "passed": 110,
+      "skipped": 61,
+      "movementPassed": 1,
+      "movementSkipped": 2
+    },
+    "fullBrowser": {
+      "passed": 358,
+      "skipped": 278
+    },
+    "focusedBrowser": {
+      "passed": 73,
+      "skipped": 21
+    },
+    "edgeBrowser": {
+      "passed": 10,
+      "skipped": 2
+    },
+    "earlyMasterMovement": 4,
+    "passwordRecovery": 6,
+    "trainingBattle": 3,
+    "browserServerAbortMessages": 4
+  },
+  "workflows": [
+    {
+      "name": "Modular ability readers browser",
+      "id": 39496518710,
+      "conclusion": "success"
+    },
+    {
+      "name": "CI",
+      "id": 39496518776,
+      "conclusion": "success"
+    },
+    {
+      "name": "Desktop experience",
+      "id": 39496518705,
+      "conclusion": "success"
+    },
+    {
+      "name": "UI layout review",
+      "id": 39496518712,
+      "conclusion": "success"
+    },
+    {
+      "name": "Desktop page fit",
+      "id": 39496518688,
+      "conclusion": "success"
+    },
+    {
+      "name": "Browser smoke",
+      "id": 39496518804,
+      "conclusion": "success"
+    }
+  ],
+  "qualityRetry": {
+    "originalJob": 118882857362,
+    "run": 39496518776,
+    "head": "dceef0c6335e6af31bb428b5dc08da458483c9fd",
+    "reason": "15-minute job timeout after all unit tests passed; production build interrupted",
+    "retryAt": "2026-10-20T21:15:06.388Z",
+    "attempt": 2,
+    "retryJob": 118890778216,
+    "conclusion": "success",
+    "verifiedAt": "2026-10-20T21:26:00.670Z"
+  },
+  "artifacts": [
+    {
+      "id": 12298391165,
+      "name": "simple-requirements-browser-evidence",
+      "sha256": "2bdd96b93261fe65aca2465e8991b8824e870d9e85de9d4be505a9a4483d0def",
+      "head": "dceef0c6335e6af31bb428b5dc08da458483c9fd"
+    },
+    {
+      "id": 12298037177,
+      "name": "primed-modules-browser-evidence",
+      "sha256": "6d983c0a5a401f7bcb04b81b57816ac4485c45f605e7528d467eedaacd2a3cfc",
+      "head": "dceef0c6335e6af31bb428b5dc08da458483c9fd"
+    },
+    {
+      "id": 12297078644,
+      "name": "modular-ability-readers-review",
+      "sha256": "541acf5eda25ffaf67c78cbf1cd9d29e3e02a52ffb7a51c5d94ac8648ddcc9b2",
+      "head": "dceef0c6335e6af31bb428b5dc08da458483c9fd"
+    },
+    {
+      "id": 12297004391,
+      "name": "basic-service-restore-review",
+      "sha256": "a427ff427d0b02d3507fae066b29e5d7b2c11cba69739ed9a49971a54788897f",
+      "head": "dceef0c6335e6af31bb428b5dc08da458483c9fd"
+    }
+  ],
+  "visual": {
+    "head": "dceef0c6335e6af31bb428b5dc08da458483c9fd",
+    "artifacts": [
+      {
+        "id": 12298391165,
+        "name": "simple-requirements-browser-evidence",
+        "digest": "sha256:2bdd96b93261fe65aca2465e8991b8824e870d9e85de9d4be505a9a4483d0def"
+      },
+      {
+        "id": 12297078644,
+        "name": "modular-ability-readers-review",
+        "digest": "sha256:541acf5eda25ffaf67c78cbf1cd9d29e3e02a52ffb7a51c5d94ac8648ddcc9b2"
+      }
+    ],
+    "files": [
+      "resonance-passive-390.png",
+      "resonance-passive-1366.png",
+      "modular-nexus-resonance-390.png",
+      "modular-nexus-resonance-1366.png"
+    ]
+  },
+  "health": [
+    {
+      "path": "/",
+      "status": 200,
+      "success": true,
+      "bytes": 18397
+    },
+    {
+      "path": "/manual",
+      "status": 200,
+      "success": true,
+      "bytes": 46940
+    },
+    {
+      "path": "/manual/techniques-damage-effects",
+      "status": 200,
+      "success": true,
+      "bytes": 732457
+    },
+    {
+      "path": "/rules",
+      "status": 200,
+      "success": true,
+      "bytes": 35895
+    },
+    {
+      "path": "/api/foundation/auth-status",
+      "status": 200,
+      "success": true,
+      "bytes": 23
+    },
+    {
+      "path": "/game/world",
+      "status": 200,
+      "success": true,
+      "bytes": 18238
+    },
+    {
+      "path": "/game/character",
+      "status": 200,
+      "success": true,
+      "bytes": 18238
+    }
+  ],
+  "healthAt": "2026-10-20T22:35:43.069Z",
+  "runtimeScan": {
+    "since": "2026-10-20T22:34:49.990Z",
+    "until": "2026-10-20T22:35:52.081Z",
+    "levels": ["warning", "error", "fatal"],
+    "matchingLogs": 0
+  },
+  "scope": "Shared reader presentation only; no migration or hosted catalogue publication",
+  "openAcceptance": [
+    "Human signed-in and physical-device acceptance",
+    "Multiplayer/load acceptance",
+    "Broader Master Task8",
+    "World movement acceptance"
+  ]
+}

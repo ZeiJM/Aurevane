@@ -1,0 +1,32 @@
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #75613d66;
+  padding-bottom: 6px;
+}
+.tabs button {
+  min-height: 32px;
+  padding: 5px 10px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.tabs button[aria-selected='true'] {
+  border-color: #b99b5966;
+  background: #b99b5922;
+  font-weight: 600;
+}
+.tabs button:focus-visible {
+  outline: 2px solid #b99b59;
+  outline-offset: 2px;
+}
+@media (max-width: 650px) {
+  .tabs button {
+    min-height: 42px;
+  }
+}

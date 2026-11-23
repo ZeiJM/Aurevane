@@ -1,3 +1,7 @@
+import { SKILL_COOLDOWN_RESOURCE_PREFIX } from '@aurevane/game-core/combat/skill-cooldowns'
+import { reconcileCombatReversalState } from '@aurevane/game-core/combat/combat-reversal'
+import { projectPublicCombat } from '@aurevane/game-core/combat/public-combat-presentation'
+import { omitPendingBattlePayloads } from './battle-live-viewer-projection'
 import 'server-only'
 
 import { createHash } from 'node:crypto'
@@ -5,6 +9,10 @@ import { createHash } from 'node:crypto'
 import type { BattleSessionRecord, BattleSessionRepository } from '@aurevane/db/battle-session'
 import { createCombatEncounterState } from '@aurevane/game-core/combat/actions'
 import { abortPracticeBattle } from '@aurevane/game-core/combat/battle-exit'
+import {
+  reconcileCombatAbilitySources,
+  refreezeCapturedCombatAbilityState,
+} from '@aurevane/game-core/combat/combat-behavior-runtime'
 import {
   reattachStatDrivenCombatBridge,
   validateStatDrivenCombatEncounterState,
@@ -61,7 +69,7 @@ function readPersistedEncounter(record: BattleSessionRecord): StatDrivenCombatEn
     ) {
       throw persistenceInvalid()
     }
-    return candidate
+    return refreezeCapturedCombatAbilityState(candidate)
   } catch (error) {
     if (error instanceof AurevaneError) throw error
     throw persistenceInvalid()
@@ -99,13 +107,58 @@ function resolvePracticeAbort(state: StatDrivenCombatEncounterState): {
 } {
   try {
     const transition = abortPracticeBattle(state.tactical.battle)
-    const encounter = createCombatEncounterState(
-      { ...state.tactical, battle: transition.state },
-      state.statusState,
-    )
+    const reversalEnd = reconcileCombatReversalState({
+      ...state,
+      tactical: { ...state.tactical, battle: transition.state },
+    })
+    const encounter = {
+      ...createCombatEncounterState({ ...state.tactical, battle: transition.state }),
+      ...Object.fromEntries(
+        Object.entries(state).filter(
+          ([key]) =>
+            key.endsWith('PolicyVersion') ||
+            key === 'abilityCooldownScopeVersion' ||
+            key === 'effectTimingPolicy',
+        ),
+      ),
+      ...(state.ruinState ? { ruinState: state.ruinState } : {}),
+      // Endure's private damage window is discarded on terminal abandonment,
+      // without a natural-expiry boundary or release burst.
+      // Attach Ruin's identities and their authority together before validation.
+      statusState: state.statusState.map((row) => ({
+        ...row,
+        statuses: row.statuses.filter((status) => status.statusId !== 'endure'),
+      })),
+    }
+    // Abandonment has no activation boundary. Retain the private archive and usage while
+    // the historical fresh encounter continues to discard unsettled execution queues.
+    const retained = state.capturedAbilitySources
+      ? reconcileCombatAbilitySources(
+          {
+            ...encounter,
+            capturedAbilitySources: state.capturedAbilitySources,
+            abilityRuntime: state.abilityRuntime,
+            ...(state.reversalState ? { reversalState: reversalEnd.state.reversalState } : {}),
+          },
+          [],
+        )
+      : encounter
+    const authority = state as StatDrivenCombatEncounterState & {
+      buildAuthority?: unknown
+      buildBridge?: unknown
+    }
     return {
-      state: reattachStatDrivenCombatBridge(encounter, state.statBridge),
-      events: transition.events,
+      state: reattachStatDrivenCombatBridge(
+        {
+          ...retained,
+          ...(authority.buildAuthority === undefined
+            ? {}
+            : { buildAuthority: authority.buildAuthority }),
+          ...(authority.buildBridge === undefined ? {} : { buildBridge: authority.buildBridge }),
+        },
+        state.statBridge,
+      ),
+      events: [...transition.events, ...reversalEnd.events],
     }
   } catch (error) {
     if (error instanceof AurevaneError) throw error
@@ -113,10 +166,13 @@ function resolvePracticeAbort(state: StatDrivenCombatEncounterState): {
   }
 }
 
-function projectBattleSnapshot(state: StatDrivenCombatEncounterState): BattleSessionProjection {
+function projectBattleSnapshot(
+  state: StatDrivenCombatEncounterState,
+  controlledCombatantIds: readonly string[],
+): BattleSessionProjection {
   const battle = state.tactical.battle
-  return {
-    ...state,
+  return projectPublicCombat({
+    ...omitPendingBattlePayloads(state),
     tactical: {
       ...state.tactical,
       battle: {
@@ -125,8 +181,18 @@ function projectBattleSnapshot(state: StatDrivenCombatEncounterState): BattleSes
         rulesVersion: battle.rulesVersion,
         contentVersion: battle.contentVersion,
         lifecycle: battle.lifecycle,
-        combatants: battle.combatants,
+        combatants: battle.combatants.map((combatant) =>
+          controlledCombatantIds.includes(combatant.id)
+            ? combatant
+            : {
+                ...combatant,
+                temporaryResources: combatant.temporaryResources.filter(
+                  (resource) => !resource.key.startsWith(SKILL_COOLDOWN_RESOURCE_PREFIX),
+                ),
+              },
+        ),
         initiativeOrder: battle.initiativeOrder,
+        ...(battle.initiativeTieOrder ? { initiativeTieOrder: battle.initiativeTieOrder } : {}),
         ...(battle.roundInitiativeModifiers
           ? { roundInitiativeModifiers: battle.roundInitiativeModifiers }
           : {}),
@@ -135,7 +201,7 @@ function projectBattleSnapshot(state: StatDrivenCombatEncounterState): BattleSes
         currentTurn: battle.currentTurn,
       },
     },
-  }
+  })
 }
 
 export function createBattleAbortService(battles: BattleSessionRepository): BattleAbortService {
@@ -172,6 +238,7 @@ export function createBattleAbortService(battles: BattleSessionRepository): Batt
               battleVersion: replayOrStale.result.battleVersion,
               snapshot: replayOrStale.result.snapshot,
             }),
+            current.controlledCombatantIds,
           ),
           replayed: replayOrStale.replayed,
           invalidation: createBattleSessionChangedInvalidation({
@@ -208,6 +275,7 @@ export function createBattleAbortService(battles: BattleSessionRepository): Batt
             battleVersion: committed.result.battleVersion,
             snapshot: committed.result.snapshot,
           }),
+          current.controlledCombatantIds,
         ),
         replayed: committed.replayed,
         invalidation: createBattleSessionChangedInvalidation({

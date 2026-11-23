@@ -721,6 +721,210 @@
         "sha256": "fdb82813adb8befb51ebcd942c7e0b3e04028f2dc8729aaa488ce691919801a2",
         "encoding": "Generated center-strip wrap repair; Sharp WebP quality 86; original dimensions"
       }
+    },
+    {
+      "name": "asterwake-woodland",
+      "source": {
+        "method": "generated",
+        "provider": "OpenAI image generation",
+        "createdAt": "2026-11-22",
+        "master": "exec-d7bea5ec-d764-48ed-a1e8-1bdd79184ddd.png",
+        "sha256": "e24c1d4cd9e37aef03bd4d30fe858bb7f90f228175f0351fae34bd8c775dfc56",
+        "promptSpec": "content/art-requests/ART-WORLD-001-living-atlas.md",
+        "retention": "Original generated source retained with the conversation"
+      },
+      "runtime": {
+        "path": "/media/art/world/runtime/asterwake-woodland-v01.webp",
+        "width": 768,
+        "height": 768,
+        "bytes": 146728,
+        "sha256": "b25c7fc2857467fc789be01f274efa265f9b79bba5cfef4bfa9edc4488dc8752",
+        "encoding": "Pillow WebP quality 88; isolated woodland and basalt sprites packed at 384 px per cell"
+      }
+    },
+    {
+      "name": "asterwake-ferry-terminal",
+      "source": {
+        "method": "generated",
+        "provider": "OpenAI image generation",
+        "createdAt": "2026-11-22",
+        "master": "exec-d7bea5ec-d764-48ed-a1e8-1bdd79184ddd.png",
+        "sha256": "e24c1d4cd9e37aef03bd4d30fe858bb7f90f228175f0351fae34bd8c775dfc56",
+        "promptSpec": "content/art-requests/ART-WORLD-001-living-atlas.md",
+        "retention": "Original generated source retained with the conversation"
+      },
+      "runtime": {
+        "path": "/media/art/world/runtime/asterwake-ferry-terminal-v01.webp",
+        "width": 549,
+        "height": 480,
+        "bytes": 87184,
+        "sha256": "663a3fdee30ab9752c26e11ba548f5d6630dc3555cc047c0e06359d0162ccda8",
+        "encoding": "Pillow WebP quality 89; isolated original pier cutout"
+      }
+    },
+    {
+      "name": "gildroot-oak",
+      "source": {
+        "method": "generated",
+        "provider": "OpenAI image generation",
+        "createdAt": "2026-11-22",
+        "master": "exec-dfcf8508-e5d8-4e3f-bacd-a76e3036c31b.png",
+        "sha256": "2727d2dba83e567480ab7d05c1d5a83abf43a9262cd0d7f5832ef9ba3d59d1c7",
+        "promptSpec": "content/art-requests/ART-WORLD-001-living-atlas.md",
+        "retention": "Original generated source retained with the conversation"
+      },
+      "runtime": {
+        "path": "/media/art/world/runtime/gildroot-oak-v01.webp",
+        "width": 1200,
+        "height": 943,
+        "bytes": 528548,
+        "sha256": "8feed0ea772e322025d43588ef27220e5dc88fc329d0fb012e3ce7ad46d9c8ef",
+        "encoding": "Pillow WebP quality 90; trimmed alpha and resized to 1200 pixels wide"
+      }
+    },
+    {
+      "name": "aureth-crown-map-v02",
+      "source": {
+        "method": "runtime-composition",
+        "renderer": "apps/web/src/components/world/map-renderer.ts",
+        "master": "banner-aureth-crown.png",
+        "sha256": "4cad4400fb4e38e9995894e858de401ad4565d746d18c23e2d7184b0fba8d3bd",
+        "promptSpec": "content/art-requests/ART-WORLD-001-living-atlas.md"
+      },
+      "runtime": {
+        "path": "/media/art/world/aureth-crown-v02.webp",
+        "width": 600,
+        "height": 359,
+        "bytes": 53438,
+        "sha256": "a8c0410df35ac5e4eea62177a224116899313959f09df17b956d19ba69365c39",
+        "encoding": "Pillow WebP quality 82; Chromium capture, HUD and location labels excluded"
+      }
+    },
+    {
+      "name": "emberreach-map-v02",
+      "source": {
+        "method": "runtime-composition",
+        "renderer": "apps/web/src/components/world/map-renderer.ts",
+        "master": "banner-emberreach.png",
+        "sha256": "cdbcd3b150f820a45913acd19d6f68e20e60e2054b42479f07d163e689618478",
+        "promptSpec": "content/art-requests/ART-WORLD-001-living-atlas.md"
+      },
+      "runtime": {
+        "path": "/media/art/world/emberreach-v02.webp",
+        "width": 600,
+        "height": 359,
+        "bytes": 50202,
+        "sha256": "392b70be75c1ac61c71d9f26fd8737d15c92df1e0eb5629b2cdfe8dbba12cb4f",
+        "encoding": "Pillow WebP quality 82; Chromium capture, HUD and location labels excluded"
+      }
+    },
+    {
+      "name": "frostmere-map-v02",
+      "source": {
+        "method": "runtime-composition",
+        "renderer": "apps/web/src/components/world/map-renderer.ts",
+        "master": "banner-frostmere.png",
+        "sha256": "ef10c2671f38cbb183ffa634f3f039494f08fa9c500b63dece95cba50e727e0b",
+        "promptSpec": "content/art-requests/ART-WORLD-001-living-atlas.md"
+      },
+      "runtime": {
+        "path": "/media/art/world/frostmere-v02.webp",
+        "width": 600,
+        "height": 359,
+        "bytes": 44050,
+        "sha256": "046c978665cd1107441045a9c0079df23172ed41df26a20ff62bb6f20ba9a1d9",
+        "encoding": "Pillow WebP quality 82; Chromium capture, HUD and location labels excluded"
+      }
+    },
+    {
+      "name": "glasswind-desert-map-v02",
+      "source": {
+        "method": "runtime-composition",
+        "renderer": "apps/web/src/components/world/map-renderer.ts",
+        "master": "banner-glasswind-desert.png",
+        "sha256": "8f04d7579f8988a25f0d44367bf54cd96a76177a36bbadffbafc8642c5dee0a3",
+        "promptSpec": "content/art-requests/ART-WORLD-001-living-atlas.md"
+      },
+      "runtime": {
+        "path": "/media/art/world/glasswind-desert-v02.webp",
+        "width": 600,
+        "height": 359,
+        "bytes": 39550,
+        "sha256": "437e7b86cdccbba37e58b95904b20f2a47e2519d08ba5eecd2830a84ade60e47",
+        "encoding": "Pillow WebP quality 82; Chromium capture, HUD and location labels excluded"
+      }
+    },
+    {
+      "name": "hollow-coast-map-v02",
+      "source": {
+        "method": "runtime-composition",
+        "renderer": "apps/web/src/components/world/map-renderer.ts",
+        "master": "banner-hollow-coast.png",
+        "sha256": "f696a4948998ca4495e4e6d1ece5db65307e6309204e68f613900bb0ca7b54d3",
+        "promptSpec": "content/art-requests/ART-WORLD-001-living-atlas.md"
+      },
+      "runtime": {
+        "path": "/media/art/world/hollow-coast-v02.webp",
+        "width": 600,
+        "height": 359,
+        "bytes": 49288,
+        "sha256": "567da30e864dbf8a0ae79d12dc052939c5d77de7d1211dd481425cff734db057",
+        "encoding": "Pillow WebP quality 82; Chromium capture, HUD and location labels excluded"
+      }
+    },
+    {
+      "name": "starfall-highlands-map-v02",
+      "source": {
+        "method": "runtime-composition",
+        "renderer": "apps/web/src/components/world/map-renderer.ts",
+        "master": "banner-starfall-highlands.png",
+        "sha256": "3b81a708a8626a5eee636e85165fcef93be8880574c7e78b7e2ccfe43c50611d",
+        "promptSpec": "content/art-requests/ART-WORLD-001-living-atlas.md"
+      },
+      "runtime": {
+        "path": "/media/art/world/starfall-highlands-v02.webp",
+        "width": 600,
+        "height": 359,
+        "bytes": 47596,
+        "sha256": "4c7e0632246d50081614c9f9462d0cc04ccc352039fe4977a49a5cf5bbe5563d",
+        "encoding": "Pillow WebP quality 82; Chromium capture, HUD and location labels excluded"
+      }
+    },
+    {
+      "name": "umbral-march-map-v02",
+      "source": {
+        "method": "runtime-composition",
+        "renderer": "apps/web/src/components/world/map-renderer.ts",
+        "master": "banner-umbral-march.png",
+        "sha256": "bed7ecdabafb585ef7edf9584048f3d25765e779f8bd98cffb3e0a51db1b7ddf",
+        "promptSpec": "content/art-requests/ART-WORLD-001-living-atlas.md"
+      },
+      "runtime": {
+        "path": "/media/art/world/umbral-march-v02.webp",
+        "width": 600,
+        "height": 359,
+        "bytes": 48624,
+        "sha256": "76c186dc8a79af2020031475dd228ba57700ffe58c7a1e945f47e03634711d74",
+        "encoding": "Pillow WebP quality 82; Chromium capture, HUD and location labels excluded"
+      }
+    },
+    {
+      "name": "verdant-expanse-map-v02",
+      "source": {
+        "method": "runtime-composition",
+        "renderer": "apps/web/src/components/world/map-renderer.ts",
+        "master": "banner-verdant-expanse.png",
+        "sha256": "401e2c813610c4b079292e91450c92048bc2c57a942c525e139b667c40203299",
+        "promptSpec": "content/art-requests/ART-WORLD-001-living-atlas.md"
+      },
+      "runtime": {
+        "path": "/media/art/world/verdant-expanse-v02.webp",
+        "width": 600,
+        "height": 359,
+        "bytes": 52602,
+        "sha256": "fc4a3ecdd05e30aa62c6c414eec852e29e9010abe7e7895820fe965bcab4a642",
+        "encoding": "Pillow WebP quality 82; Chromium capture, HUD and location labels excluded"
+      }
     }
   ]
 }

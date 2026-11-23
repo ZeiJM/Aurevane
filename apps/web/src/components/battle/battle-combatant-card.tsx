@@ -1,0 +1,158 @@
+import { BattleSummonPortrait } from './battle-summon-portrait'
+import type { CSSProperties } from 'react'
+import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
+import type { BattleSessionView } from '@/server/battle/battle-session-service'
+import { pvpParticipantAccent } from './battle-combatant-colors'
+import { BattleCombatantEffects } from './battle-combatant-effects'
+import { meterPercent } from './battle-geometry'
+import type { BattlePresentationParticipant } from './battle-runtime'
+import { proposedResourceSegment, type BattleProposedCosts } from './battle-proposed-cost'
+import styles from './battle-combatant-card.module.css'
+
+/** Snapshot resources with an optional payer-only proposal; shared by all battle layouts. */
+export function BattleCombatantCard({
+  participant,
+  battle,
+  teamCount,
+  role,
+  proposedCosts,
+}: {
+  participant: BattlePresentationParticipant | null
+  battle: BattleSessionView
+  teamCount: number
+  role: 'local' | 'selected' | 'acting'
+  proposedCosts?: BattleProposedCosts | null
+}) {
+  if (!participant) return <p className={styles.empty}>Select a character to inspect.</p>
+  const combatant = battle.snapshot.tactical.battle.combatants.find(
+    (row) => row.id === participant.combatantId,
+  )
+  const placement = battle.snapshot.tactical.placements.find(
+    (row) => row.combatantId === participant.combatantId,
+  )
+  if (!combatant) return null
+  const statuses =
+    battle.snapshot.statusState.find((row) => row.combatantId === participant.combatantId)
+      ?.statuses ?? []
+  const barrier = statuses.reduce(
+    (total, status) => total + (status.barrier?.kind === 'remaining' ? status.barrier.amount : 0),
+    0,
+  )
+  const accent = pvpParticipantAccent(participant.teamIndex, participant.seatIndex, teamCount)
+  return (
+    <article
+      className={styles.card}
+      aria-label={`${participant.name} battle summary`}
+      data-battle-combatant-card={role}
+      data-defeated={combatant.hp <= 0 || undefined}
+      style={{ '--battle-combatant-accent': accent } as CSSProperties}
+    >
+      <header className={styles.identity}>
+        <strong title={participant.name}>{participant.name}</strong>
+        <span
+          className={styles.facing}
+          aria-label={`${participant.name} facing ${placement?.facing ?? 'unknown'}`}
+        >
+          {placement ? (
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M5 12h14m-6-6 6 6-6 6"
+                transform={`rotate(${{ north: -90, east: 0, south: 90, west: 180 }[placement.facing]} 12 12)`}
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          ) : (
+            <i aria-hidden="true">—</i>
+          )}
+        </span>
+      </header>
+      <button
+        type="button"
+        className={styles.portrait}
+        data-av-square-media="true"
+        data-desktop-inspect-combatant={participant.combatantId}
+        aria-label={`Inspect ${participant.name}`}
+      >
+        {participant.profileImageUrl && !participant.portraitAssetId ? (
+          <BattleSummonPortrait
+            src={participant.profileImageUrl}
+            name={participant.name}
+            fallbackClassName={styles.fallback}
+          />
+        ) : participant.portraitAssetId ? (
+          <CharacterPortraitImage
+            imageUrl={participant.profileImageUrl}
+            fallbackAssetId={participant.portraitAssetId}
+            sizes="(max-width: 820px) 68px, 81px"
+            alt=""
+          />
+        ) : (
+          <span className={styles.fallback} aria-hidden="true">
+            {participant.name.charAt(0).toUpperCase()}
+          </span>
+        )}
+      </button>
+      <div className={styles.vitals}>
+        {(['hp', 'mp'] as const).map((resource) => {
+          const maximum = resource === 'hp' ? combatant.maxHp : combatant.maxMp
+          const protection = resource === 'hp' ? barrier : 0
+          const current = combatant[resource] + protection
+          const meterMaximum = Math.max(maximum, current)
+          const barrierLabel = protection > 0 ? `, HP ${combatant.hp}, Barrier ${barrier}` : ''
+          const proposed =
+            role === 'local' && proposedCosts?.actorId === combatant.id
+              ? proposedCosts[resource]
+              : 0
+          const segment = proposedResourceSegment(combatant[resource], meterMaximum, proposed)
+          return (
+            <div key={resource} data-resource={resource}>
+              <span aria-hidden="true">{resource.toUpperCase()}</span>
+              <i
+                role="meter"
+                aria-label={`${resource.toUpperCase()} ${current} / ${maximum}${barrierLabel}`}
+                aria-valuemin={0}
+                aria-valuenow={current}
+                aria-valuemax={meterMaximum}
+                aria-valuetext={`${current} / ${maximum}${barrierLabel}${segment ? `; ${proposed} ${resource.toUpperCase()} proposed spend` : ''}`}
+              >
+                <b
+                  aria-hidden="true"
+                  style={{ width: `${meterPercent(combatant[resource], meterMaximum)}%` }}
+                />
+                {resource === 'hp' && barrier > 0 ? (
+                  <em
+                    className={styles.barrier}
+                    data-battle-hp-barrier="true"
+                    title={`Barrier ${barrier}`}
+                    aria-hidden="true"
+                    style={{
+                      left: `${meterPercent(combatant.hp, meterMaximum)}%`,
+                      width: `${meterPercent(barrier, meterMaximum)}%`,
+                    }}
+                  />
+                ) : null}
+                {segment ? (
+                  <em
+                    className={styles.proposedSpend}
+                    data-battle-proposed-resource={resource}
+                    title={`${proposed} ${resource.toUpperCase()} proposed spend`}
+                    aria-hidden="true"
+                    style={{ left: `${segment.left}%`, width: `${segment.width}%` }}
+                  />
+                ) : null}
+                <span className={styles.value} aria-hidden="true">
+                  {current}/{maximum}
+                </span>
+              </i>
+            </div>
+          )
+        })}
+      </div>
+      <BattleCombatantEffects compact name={participant.name} statuses={statuses} />
+    </article>
+  )
+}

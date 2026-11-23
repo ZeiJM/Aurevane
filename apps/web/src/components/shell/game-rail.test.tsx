@@ -17,34 +17,42 @@ function renderRail(props: Parameters<typeof GameRail>[0] = {}) {
 }
 
 describe('shared game rail', () => {
-  it('exposes Character, Arsenal, Battle Hall, Training and World Map without duplicating identity', () => {
-    navigationState.pathname = '/game/character'
+  it('uses a decorative flowing field and preserves the identity content', () => {
+    const markup = renderRail({ characterIdentity: <article>Character resources</article> })
+    expect(markup).toContain('data-aether-wisp="true"')
+    expect(markup).toContain('data-aether-runes="true"')
+    expect(markup).not.toContain('data-aether-orb')
+    expect(markup).toContain('aria-hidden="true"')
+    expect(markup).toContain('Character resources')
+  })
+
+  it('keeps settings in Account rather than duplicating them in the rail', () => {
+    const markup = renderRail()
+    expect(markup).not.toContain('href="/game/account/titles"')
+    expect(markup).not.toContain('href="/game/settings/audio"')
+    expect(markup).not.toContain('href="/game/settings/controls"')
+  })
+
+  it('starts at Haven, groups Nexus and Items under Loadout, and uses compact labels', () => {
+    navigationState.pathname = '/game/haven'
     const markup = renderRail()
     const destinations = [
-      ['/game/character', 'Character'],
-      ['/game/arsenal', 'Arsenal'],
-      ['/game/battle', 'Battle Hall'],
-      ['/game/training', 'Passive Training'],
-      ['/game/world', 'World Map'],
-    ] as const
-    for (const [href, label] of destinations) {
+      ['/game/haven', 'Haven'],
+      ['/game/character', 'Profile'],
+      ['/game/loadout', 'Arsenal'],
+      ['/game/world', 'World'],
+      ['/game/battle', 'Arena'],
+      ['/game/training', 'Training'],
+    ]
+    const positions = destinations.map(([href, label]) => {
       expect(markup).toContain(`href="${href}"`)
       expect(markup).toContain(`aria-label="${label}"`)
-    }
-    expect(markup).not.toContain('aria-label="Items"')
-    expect(markup).not.toContain('href="/game/items"')
-    expect(markup).toContain('data-nav-icon="arsenal"')
-    expect(markup).toContain('data-nav-icon="battle"')
-    expect(markup).not.toContain('href="/game/online"')
-    expect(markup).not.toContain('Adventurers')
+      return markup.indexOf(`href="${href}"`)
+    })
+    expect(positions).toEqual([...positions].sort((a, b) => a - b))
+    expect(markup).not.toContain('aria-label="Loadout"')
+    expect(markup).not.toContain('href="/game/nexus"')
     expect(markup).toContain('aria-current="page"')
-    expect(markup).not.toContain('Current character:')
-    expect(markup).not.toContain('Aster')
-    expect(markup.match(/data-aether-orb="true"/g)).toHaveLength(12)
-    expect(markup).toContain('aria-hidden="true"')
-    expect(markup).not.toContain('data-mana-strand="true"')
-    expect(markup).not.toContain('data-mana-wisp="true"')
-    expect(markup).not.toContain('data-aether-bubble="true"')
   })
 
   it.each([
@@ -56,19 +64,19 @@ describe('shared game rail', () => {
       activeSessionHref: href as Route,
       activeSessionLabel: label,
     })
-    expect(markup.match(/disabled=""/g)).toHaveLength(5)
+    expect(markup.match(/disabled=""/g)).toHaveLength(6)
     expect(markup).toContain(`href="${href}"`)
     expect(markup).toContain(label)
     expect(markup).not.toContain('href="/game/character"')
-    expect(markup).not.toContain('href="/game/arsenal"')
+    expect(markup).not.toContain('href="/game/nexus"')
     expect(markup).not.toContain('href="/game/training"')
     expect(markup).not.toContain('href="/game/online"')
+    expect(markup).not.toContain('href="/game/settings/audio"')
+    expect(markup).not.toContain('href="/game/settings/controls"')
   })
 
-  it('does not mark an unrelated route as the active destination or invent a character', () => {
-    navigationState.pathname = '/game/settings/controls'
-    const markup = renderRail()
-    expect(markup).not.toContain('aria-current="page"')
-    expect(markup).not.toContain('Current character:')
+  it('keeps Loadout active inside Nexus', () => {
+    navigationState.pathname = '/game/nexus'
+    expect(renderRail()).toMatch(/href="\/game\/loadout"[^>]*aria-current="page"/)
   })
 })

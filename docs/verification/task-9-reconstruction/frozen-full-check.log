@@ -1,0 +1,25 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["corepack", "pnpm", "check"], "start": "2026-10-20T18:52:18.930001+00:00"}
+$ pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build
+$ prettier --check "apps/**/*.{ts,tsx,js,mjs,json,css}" "packages/**/*.{ts,tsx,js,mjs,json}" package.json turbo.json pnpm-workspace.yaml .prettierrc.json eslint.config.mjs
+Checking formatting...
+All matched files use Prettier code style!
+$ turbo run lint && eslint "packages/**/*.{ts,tsx}"
+
+Attention:
+Turborepo now collects completely anonymous telemetry regarding usage.
+This information is used to shape the Turborepo roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://turborepo.dev/docs/telemetry
+
+• turbo 2.10.7
+
+   • Packages in scope: @aurevane/audio, @aurevane/db, @aurevane/game-core, @aurevane/realtime, @aurevane/ui, @aurevane/validation, @aurevane/web, @aurevane/worker
+   • Running lint in 8 packages
+   • Remote caching disabled, using shared worktree cache
+
+@aurevane/worker:lint: cache miss, executing a60dc901be1df2e8
+@aurevane/web:lint: cache miss, executing 87496f00763bcf29
+@aurevane/worker:lint: $ eslint . --max-warnings=0
+@aurevane/web:lint: $ eslint . --max-warnings=0
+
+{"end_observed": "2026-10-20T18:54:11.583133+00:00", "exit": null, "status": "approval_review_interrupted", "reason": "Outbound Vercel telemetry rejected: unidentified payload could include project/environment metadata. Format completed; lint begun; later phases not certified."}

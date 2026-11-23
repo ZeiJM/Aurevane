@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 
+import { selectDiscipline } from './discipline-library-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 function uniqueCharacterName(): string {
@@ -16,15 +17,28 @@ function skillRow(page: Page, name: string): Locator {
 }
 
 async function setSkill(page: Page, name: string, checked: boolean): Promise<void> {
-  const checkbox = skillRow(page, name).getByRole('checkbox')
-  if ((await checkbox.isChecked()) !== checked) await checkbox.click()
-}
+  const card = skillRow(page, name)
+  const checkbox = card.getByRole('checkbox')
+  if ((await checkbox.isChecked()) === checked) return
 
-async function setFavorite(page: Page, name: string): Promise<void> {
-  const star = skillRow(page, name).locator('button[data-favorite-technique-star="true"]')
-  await expect(star).toBeEnabled()
-  if ((await star.getAttribute('aria-pressed')) !== 'true') await star.click()
-  await expect(star).toHaveAttribute('aria-pressed', 'true')
+  const saved = page.waitForResponse(
+    (response) =>
+      response.url().endsWith('/api/character/build/skills') &&
+      response.request().method() === 'PUT',
+  )
+  const coarsePointer = await page.evaluate(
+    () => window.matchMedia('(hover: none), (pointer: coarse)').matches,
+  )
+
+  if (coarsePointer) {
+    await card.locator('label:has(input[type="checkbox"])').click()
+    await page.getByRole('button', { name: 'Equip technique', exact: true }).click()
+  } else {
+    await checkbox.click()
+  }
+
+  expect((await saved).status()).toBe(200)
+  await expect(checkbox).toBeChecked({ checked })
 }
 
 async function closeOpenDialog(page: Page): Promise<void> {
@@ -34,7 +48,7 @@ async function closeOpenDialog(page: Page): Promise<void> {
   await expect(dialog).toHaveCount(0)
 }
 
-test('legal Vanguard 3 + Lifebinder 1 mixed build can enter AI Sparring with favorite cockpit defaults', async ({
+test('legal Vanguard 3 + Lifebinder 1 mixed build can enter AI Sparring from its selected loadout', async ({
   page,
 }, testInfo) => {
   test.skip(
@@ -61,20 +75,17 @@ test('legal Vanguard 3 + Lifebinder 1 mixed build can enter AI Sparring with fav
   expect(prepared.body).toMatchObject({ result: { masteredDisciplines: 6, learnedSkills: 16 } })
 
   await page.reload()
-  await expect(page.getByTestId('character-profile')).toBeVisible()
+  await expect(page.locator('[data-profile-workspace]')).toBeVisible()
   await closeOpenDialog(page)
-  await page.goto('/game/arsenal')
+  await page.goto('/game/nexus')
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
 
   const disciplinePanel = page.getByTestId('primary-build-panel')
-  await disciplinePanel.getByRole('button', { name: /Manage Primary Discipline/ }).click()
+  await disciplinePanel.getByRole('button', { name: /Manage Disciplines/ }).click()
   const disciplineDialog = page.getByRole('dialog', { name: 'Discipline Management' })
   await expect(disciplineDialog).toBeVisible()
-  await page.getByLabel('Proposed Secondary').selectOption('lifebinder')
-  await page.getByRole('button', { name: 'Commit Discipline changes' }).click()
-  await expect(page.getByRole('status')).toContainText(
-    'Lifebinder is now the committed Secondary Discipline.',
-  )
+  await selectDiscipline(disciplineDialog, 'Secondary', 'Lifebinder')
+  await expect(page.getByRole('status')).toContainText('Discipline changes committed.')
   await disciplineDialog.getByRole('button', { name: 'Close' }).click()
 
   await page.getByRole('button', { name: /Manage Techniques/ }).click()
@@ -89,17 +100,11 @@ test('legal Vanguard 3 + Lifebinder 1 mixed build can enter AI Sparring with fav
   await expect(skillRow(page, 'Brace').getByRole('checkbox')).toBeChecked()
   await expect(skillRow(page, 'Mending Light').getByRole('checkbox')).toBeChecked()
 
-  const saved = page.waitForResponse(
-    (response) =>
-      response.url().endsWith('/api/character/build/skills') &&
-      response.request().method() === 'PUT',
-  )
-  await page.getByRole('button', { name: 'Commit Selected Techniques' }).click()
-  expect((await saved).status()).toBe(200)
-
-  await setFavorite(page, 'Forceful Strike')
-  await setFavorite(page, 'Brace')
-  await setFavorite(page, 'Mending Light')
+  await expect(
+    page.getByRole('dialog', { name: 'Techniques' }).getByRole('button', {
+      name: 'Commit Selected Techniques',
+    }),
+  ).toHaveCount(0)
 
   await page
     .getByRole('dialog', { name: 'Techniques' })
@@ -108,7 +113,7 @@ test('legal Vanguard 3 + Lifebinder 1 mixed build can enter AI Sparring with fav
 
   await page
     .getByRole('navigation', { name: 'Primary game navigation', exact: true })
-    .getByRole('link', { name: 'Battle Hall', exact: true })
+    .getByRole('link', { name: 'Arena', exact: true })
     .click()
   await expect(page).toHaveURL(/\/game\/battle$/)
   await page.getByLabel('Battle mode').selectOption('recruit-sparring')
@@ -118,28 +123,17 @@ test('legal Vanguard 3 + Lifebinder 1 mixed build can enter AI Sparring with fav
   await expect(page.locator('[data-unified-battle="true"]')).toBeVisible()
 
   const commandDeck = page.getByRole('region', { name: 'Command Deck' })
-  await expect(commandDeck.locator('button[data-command-slot="attack"]')).toContainText(
-    'Forceful Strike',
-    { timeout: 8000 },
-  )
-  await expect(commandDeck.locator('button[data-command-slot="guard"]')).toContainText('Brace')
-  await expect(commandDeck.locator('button[data-command-slot="recover"]')).toContainText(
-    'Mending Light',
-  )
+  await expect(
+    commandDeck.getByRole('button', { name: 'Basic Attack, 30 AP', exact: true }),
+  ).toBeVisible()
+  await expect(
+    commandDeck.getByRole('button', { name: 'HP Recovery, 50 AP', exact: true }),
+  ).toBeVisible()
 
-  await expect(
-    commandDeck
-      .locator('[data-command-card="attack"]')
-      .getByRole('button', { name: /Choose Attack skill/i }),
-  ).toHaveAttribute('data-battle-selected-skill-id', /forceful-strike/)
-  await expect(
-    commandDeck
-      .locator('[data-command-card="guard"]')
-      .getByRole('button', { name: /Choose Guard skill/i }),
-  ).toHaveAttribute('data-battle-selected-skill-id', /brace/)
-  await expect(
-    commandDeck
-      .locator('[data-command-card="recover"]')
-      .getByRole('button', { name: /Choose Heal skill/i }),
-  ).toHaveAttribute('data-battle-selected-skill-id', /mending-light/)
+  await expect(commandDeck.locator('[data-battle-skill-slot]')).toHaveCount(4)
+  for (const name of ['Forceful Strike', 'Brace', 'Mending Light']) {
+    await expect(
+      commandDeck.getByRole('button', { name: new RegExp(`^Selected ${name},`) }),
+    ).toBeVisible()
+  }
 })

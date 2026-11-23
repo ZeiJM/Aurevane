@@ -1,0 +1,24 @@
+.heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.2rem 0.5rem;
+  min-width: 0;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid #a8854866;
+  color: var(--av-parchment-100, #f3e9d5);
+  background: #131d24;
+  font: 600 clamp(13px, 0.9rem, 16px)/1.2 var(--av-font-display);
+}
+.heading > strong {
+  min-width: 0;
+  max-width: 100%;
+}
+.heading > span {
+  margin-left: auto;
+  flex: none;
+  pointer-events: none;
+  color: var(--av-brass-200, #ddbb73);
+  font-size: clamp(12px, 0.8rem, 16px);
+}

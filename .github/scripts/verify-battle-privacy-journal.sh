@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+source .github/scripts/current-character-test-snapshot.sh
 
 db_container="$(docker ps --filter 'name=supabase_db_' --format '{{.Names}}' | head -n 1)"
 test -n "$db_container"
@@ -61,6 +62,7 @@ initial_snapshot="$(jq -cn \
       }
     }
   }')"
+initial_snapshot="$(with_current_character_build "$db_container" "$user_id" "$character_id" "$player_combatant" "$initial_snapshot")"
 participants="$(jq -cn \
   --arg player "$player_combatant" \
   --arg opponent "$opponent_combatant" \

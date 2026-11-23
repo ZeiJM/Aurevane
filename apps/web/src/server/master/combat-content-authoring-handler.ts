@@ -1,3 +1,9 @@
+import { combatCategoryForAuthoring, combatCategoryIssues } from '@/lib/combat-category-authoring'
+import { combatAllForAuthoring } from '@/lib/combat-all-for-authoring'
+import {
+  combatDamageForAuthoring,
+  automaticDamageDefinitionIssues,
+} from '@/lib/combat-damage-authoring'
 import 'server-only'
 
 import { AurevaneError } from '@aurevane/game-core/errors'
@@ -7,6 +13,7 @@ import { toServerErrorResponse } from '@/server/http/error-response'
 
 import { createServerCombatContentAuthoringService } from './combat-content-authoring-server'
 import type { CombatContentAuthoringService } from './combat-content-authoring-service'
+import { readCombatContentEventSample } from './combat-content-event-sample'
 
 export interface CombatContentAuthoringHandlerDependencies {
   getActor(): Promise<{ userId: string }>
@@ -36,18 +43,22 @@ function readNullablePositiveInteger(value: unknown, field: string): number | nu
   return value as number
 }
 
-function readPositiveInteger(value: unknown, field: string): number {
-  const parsed = readNullablePositiveInteger(value, field)
-  if (parsed === null) return invalid(`${field} must be a positive integer.`)
-  return parsed
-}
-
 function readOptionalPreviewSeed(value: unknown): number | undefined {
   if (value === undefined) return undefined
   if (!Number.isSafeInteger(value) || (value as number) < 1 || (value as number) > 0xffff_ffff) {
     return invalid('seed must be a non-zero uint32 integer.')
   }
   return value as number
+}
+
+type AuthoringContentKind = 'skill' | 'essence' | 'resonance'
+
+function readAuthoringContentKind(value: unknown): AuthoringContentKind {
+  if (value === undefined) return 'skill'
+  if (value !== 'skill' && value !== 'essence' && value !== 'resonance') {
+    return invalid('contentKind must be skill, essence, or resonance.')
+  }
+  return value
 }
 
 function readOptionalCombatContext(value: unknown): 'pve' | 'pvp' | undefined {
@@ -81,6 +92,20 @@ async function readBody(request: Request): Promise<JsonObject> {
   return body
 }
 
+function currentDefinition(body: JsonObject, kind: AuthoringContentKind) {
+  const retained = combatAllForAuthoring(
+    combatDamageForAuthoring(kind, requireProperty(body, 'definition')),
+  )
+  const definition =
+    body.operation === 'preview' ? retained : combatCategoryForAuthoring(kind, retained)
+  const issues = [
+    ...automaticDamageDefinitionIssues(kind, definition),
+    ...(body.operation === 'preview' ? [] : combatCategoryIssues(kind, definition)),
+  ]
+  if (body.operation !== 'validate' && issues.length) invalid(issues[0]!.message)
+  return definition
+}
+
 function success(body: unknown): Response {
   return Response.json(body, {
     headers: { 'Cache-Control': 'private, no-store' },
@@ -101,10 +126,45 @@ export async function handleCombatContentAuthoringRequest(
     await service.requireOperator(actor.userId)
     const body = await readBody(request)
     const operation = requiredString(body.operation, 'operation')
+    if (
+      operation === 'rollback' ||
+      operation === 'restore-basic-draft' ||
+      (operation === 'record' && isObject(body.command) && body.command.action === 'restore')
+    ) {
+      invalid('Content rollback is no longer available. Edit the current settings and Commit Now.')
+    }
+    if (operation === 'record') {
+      if (
+        Object.keys(body).some((key) => !['operation', 'command'].includes(key)) ||
+        !service.recordCommand
+      )
+        invalid('A supported complete-record command is required.')
+      const result: unknown = await service.recordCommand(requireProperty(body, 'command'))
+      if (isObject(result) && isObject(result.record)) {
+        const record = { ...result.record, history: [] }
+        delete (record as JsonObject).builtinRestoreVersion
+        return success({ ...result, record })
+      }
+      return success(result)
+    }
+    const contentKind = readAuthoringContentKind(body.contentKind)
 
     if (operation === 'validate') {
-      const definition = requireProperty(body, 'definition')
-      return success({ validation: service.validateSkillDefinition(definition) })
+      const definition = currentDefinition(body, contentKind)
+      const validation =
+        contentKind === 'skill'
+          ? service.validateSkillDefinition(definition)
+          : contentKind === 'essence'
+            ? service.validateEssenceDefinition(definition)
+            : service.validateResonanceDefinition(definition)
+      const issues = [
+        ...validation.issues,
+        ...automaticDamageDefinitionIssues(contentKind, definition),
+        ...combatCategoryIssues(contentKind, definition),
+      ]
+      return success({
+        validation: { ...validation, valid: validation.valid && !issues.length, issues },
+      })
     }
 
     if (operation === 'diff') {
@@ -114,20 +174,42 @@ export async function handleCombatContentAuthoringRequest(
     }
 
     if (operation === 'preview') {
-      const definition = requireProperty(body, 'definition')
+      const definition = currentDefinition(body, contentKind)
       const seed = readOptionalPreviewSeed(body.seed)
       const combatContext = readOptionalCombatContext(body.combatContext)
+      const behaviorId =
+        body.behaviorId === undefined ? undefined : requiredString(body.behaviorId, 'behaviorId')
+      const previewSetupSkillId =
+        body.previewSetupSkillId === undefined
+          ? undefined
+          : requiredString(body.previewSetupSkillId, 'previewSetupSkillId')
+      const previewRootSkillId =
+        body.previewRootSkillId === undefined
+          ? undefined
+          : requiredString(body.previewRootSkillId, 'previewRootSkillId')
+      const previewRootBehaviorId =
+        body.previewRootBehaviorId === undefined
+          ? undefined
+          : requiredString(body.previewRootBehaviorId, 'previewRootBehaviorId')
       const preview = await service.previewSkillDefinition({
+        ...(body.eventSample === undefined
+          ? {}
+          : { eventSample: readCombatContentEventSample(body.eventSample) }),
+        ...(contentKind === 'resonance' ? { contentKind } : {}),
         actorUserId: actor.userId,
         definition,
         ...(seed === undefined ? {} : { seed }),
+        ...(behaviorId === undefined ? {} : { behaviorId }),
+        ...(previewSetupSkillId === undefined ? {} : { previewSetupSkillId }),
+        ...(previewRootSkillId === undefined ? {} : { previewRootSkillId }),
+        ...(previewRootBehaviorId === undefined ? {} : { previewRootBehaviorId }),
         ...(combatContext === undefined ? {} : { combatContext }),
       })
       return success({ preview })
     }
 
     if (operation === 'save-draft') {
-      const definition = requireProperty(body, 'definition')
+      const definition = currentDefinition(body, contentKind)
       const baseVersion = readNullablePositiveInteger(
         requireProperty(body, 'baseVersion'),
         'baseVersion',
@@ -136,38 +218,39 @@ export async function handleCombatContentAuthoringRequest(
         requireProperty(body, 'expectedDraftVersion'),
         'expectedDraftVersion',
       )
-      const draft = await service.saveSkillDraft({
+      const input = {
         actorUserId: actor.userId,
         definition,
         baseVersion,
         expectedDraftVersion,
-      })
+      }
+      const draft =
+        contentKind === 'skill'
+          ? await service.saveSkillDraft(input)
+          : contentKind === 'essence'
+            ? await service.saveEssenceDraft(input)
+            : await service.saveResonanceDraft(input)
       return success({ draft })
     }
 
     if (operation === 'publish') {
-      const definition = requireProperty(body, 'definition')
+      const definition = currentDefinition(body, contentKind)
       const expectedBaseVersion = readNullablePositiveInteger(
         requireProperty(body, 'expectedBaseVersion'),
         'expectedBaseVersion',
       )
-      const published = await service.publishSkill({
+      const input = {
         actorUserId: actor.userId,
         definition,
         expectedBaseVersion,
-      })
+      }
+      const published =
+        contentKind === 'skill'
+          ? await service.publishSkill(input)
+          : contentKind === 'essence'
+            ? await service.publishEssence(input)
+            : await service.publishResonance(input)
       return success({ published })
-    }
-
-    if (operation === 'rollback') {
-      const skillId = requiredString(body.skillId, 'skillId')
-      const targetVersion = readPositiveInteger(body.targetVersion, 'targetVersion')
-      await service.rollbackSkill({
-        actorUserId: actor.userId,
-        skillId,
-        targetVersion,
-      })
-      return success({ ok: true })
     }
 
     throw new AurevaneError('INVALID_REQUEST', 'Unsupported Master Panel authoring operation.')

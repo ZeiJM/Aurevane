@@ -3,7 +3,7 @@
   display: grid;
   min-width: 0;
   min-height: 0;
-  grid-template-rows: auto minmax(8rem, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
   overflow: hidden;
   border: 1px solid rgba(207, 169, 93, 0.22);
   border-radius: 0.65rem;
@@ -11,6 +11,7 @@
 }
 
 .header {
+  grid-row: 1;
   display: flex;
   gap: 0.65rem;
   align-items: center;
@@ -123,6 +124,7 @@
 }
 
 .messages {
+  grid-row: 2;
   min-height: 0;
   overflow: auto;
   overscroll-behavior: contain;
@@ -166,6 +168,10 @@
   font: 650 0.46rem/1 var(--av-font-mono);
 }
 
+.notice {
+  grid-row: 3;
+}
+
 .message p,
 .empty,
 .notice {
@@ -188,6 +194,7 @@
 }
 
 .composer {
+  grid-row: 4;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
   gap: 0.38rem;
@@ -276,7 +283,7 @@
 
 @media (max-width: 760px) {
   .chat {
-    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
     border-radius: 0;
     border-right: 0;
     border-bottom: 0;
@@ -317,5 +324,42 @@
   .composer input,
   .composer button {
     min-height: 2.1rem;
+  }
+}
+
+/* Mentions and shared images read cleanly inside a message. */
+.message p strong {
+  overflow: visible;
+  color: var(--av-brass-300, #e0bf7f);
+  font-size: inherit;
+  font-weight: 700;
+  text-overflow: clip;
+  white-space: normal;
+}
+.message p[data-mention] {
+  padding-left: 0.4rem;
+  border-left: 2px solid var(--av-brass-300, #e0bf7f);
+  background: rgba(224, 191, 127, 0.08);
+}
+.message img {
+  display: block;
+  justify-self: start;
+  max-width: 100%;
+  margin-top: 0.15rem;
+  object-fit: contain;
+}
+
+/* Phones: battle chat text stays readable (11px floor). */
+@media (max-width: 760px) {
+  .message p,
+  .empty,
+  .notice {
+    font-size: 0.75rem;
+  }
+  .message strong {
+    font-size: 0.75rem;
+  }
+  .message time {
+    font-size: 0.6875rem;
   }
 }

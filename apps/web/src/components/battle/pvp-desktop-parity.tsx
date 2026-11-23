@@ -1,5 +1,7 @@
 'use client'
 
+import { BattleEffectPopover } from './battle-effect-information'
+
 import type { CharacterPortraitRef } from '@aurevane/game-core/character/creation'
 import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
@@ -9,7 +11,8 @@ import { getStarterPortraitImageAssetId } from '@/media/character'
 import type { PvpBattleMetadata, PvpBattleParticipantView } from '@/server/battle/pvp-lobby-service'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
-import { statusLabel, statusIsBeneficial } from './battle-effect-summary'
+import { statusIsBeneficial } from './battle-effect-summary'
+import { terrainAdjustedBattleProfile } from '../../lib/battle/battle-elevation-stats'
 import styles from './pvp-desktop-parity.module.css'
 
 type BattleSnapshot = BattleSessionView['snapshot']
@@ -75,7 +78,12 @@ function participantState(
   return {
     combatant,
     placement,
-    profile,
+    profile: terrainAdjustedBattleProfile(
+      battle.snapshot,
+      participant.combatantId,
+      profile,
+      statuses,
+    ),
     statuses,
     active: battle.snapshot.tactical.battle.currentTurn?.combatantId === participant.combatantId,
   }
@@ -184,19 +192,19 @@ function BattleRailCard({
           <span className={styles.noStatus}>No effects</span>
         ) : (
           statuses.map((status) => {
-            const label = statusLabel(status.statusId)
-            const beneficial = statusIsBeneficial(status.statusId)
+            const beneficial = statusIsBeneficial(status.statusId, status)
             return (
-              <button
-                type="button"
+              <BattleEffectPopover
                 key={`${status.statusId}:${status.sourceCombatantId}`}
+                effect={status}
                 className={beneficial ? styles.buff : styles.debuff}
-                title={`${label}${status.stacks > 1 ? ` ×${status.stacks}` : ''}`}
-                aria-label={`${label}, ${status.stacks} stack${status.stacks === 1 ? '' : 's'}, ${status.remainingOwnerTurnStarts} turn${status.remainingOwnerTurnStarts === 1 ? '' : 's'} remaining`}
-              >
-                {beneficial ? '+' : '!'}
-                {status.stacks > 1 ? status.stacks : null}
-              </button>
+                trigger={
+                  <>
+                    {beneficial ? '+' : '!'}
+                    {status.stacks > 1 ? status.stacks : null}
+                  </>
+                }
+              />
             )
           })
         )}
@@ -267,11 +275,11 @@ function BattleRailCard({
               <dd>{percentFromBasisPoints(profile?.evasion)}</dd>
             </div>
             <div>
-              <dt>Armor</dt>
+              <dt>Physical Defense</dt>
               <dd>{profile?.armor ?? '—'}</dd>
             </div>
             <div>
-              <dt>Ward</dt>
+              <dt>Mystic Defense</dt>
               <dd>{profile?.ward ?? '—'}</dd>
             </div>
           </dl>

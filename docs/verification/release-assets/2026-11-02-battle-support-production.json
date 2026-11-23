@@ -1,0 +1,411 @@
+{
+  "pr": 1003,
+  "testedHead": "f57618c49bd81348ca2ce4d01d583e4c78dfb374",
+  "tree": "941b9588e00dd6d1307105685759e9bf24abbe7d",
+  "merge": "53e6da7a4815e9041d0f02508f89e4bbd8997dce",
+  "deployment": "dpl_6Gx7E7t4iRtAu1KQCXXfVY1yfAQ4",
+  "canonical": "https://aurevane.vercel.app",
+  "status": "READY",
+  "configuredWorkflows": {
+    "count": 20,
+    "latestAttempt": 1,
+    "allPassed": true
+  },
+  "finalRoutingVersion": "cde873e4-7984-4097-9545-ad575e03a172",
+  "routingRules": 9,
+  "migrations": [
+    {
+      "source": "20261102031427_universal_support_actions.sql",
+      "hostedVersion": "20261102151019",
+      "name": "universal_support_actions"
+    },
+    {
+      "source": "20261102151531_catalogue_archived_publications.sql",
+      "hostedVersion": "20261102151832",
+      "name": "catalogue_archived_publications"
+    }
+  ],
+  "retiredGuardSelections": 5,
+  "savedGuardSelections": 0,
+  "publication": {
+    "key": "wildwarden.renewing-herbs",
+    "previousVersion": 8,
+    "currentVersion": 9,
+    "name": "Briar Snare",
+    "revision": 3,
+    "draftBefore": null,
+    "draftAfter": null,
+    "normalCommitRpc": true
+  },
+  "preservation": {
+    "immutableVersionsBefore": 1435,
+    "immutableVersionsAfter": 1436,
+    "allPriorVersionBytesUnchanged": true,
+    "publicationCount": 302,
+    "changedPublicationKeys": ["wildwarden.renewing-herbs"],
+    "ownerDraftCount": 3,
+    "ownerDraftHash": "805a705ee2b6f3ede8c034faf96311e7",
+    "historicalSupportReceiptHash": "e167b813819c1e8592f6d97dcac0304c",
+    "readerAclOwnerConfigUnchanged": true
+  },
+  "stagedProbes": {
+    "base": "https://aurevane-fix4ugf3p-zeijms-projects.vercel.app",
+    "phase": "staged",
+    "cases": [
+      {
+        "name": "entry",
+        "path": "/",
+        "status": 200,
+        "expected": [200],
+        "bytes": 16601,
+        "location": null,
+        "cache_control": "private, no-cache, no-store, max-age=0, must-revalidate"
+      },
+      {
+        "name": "manual",
+        "path": "/manual",
+        "status": 200,
+        "expected": [200],
+        "bytes": 43451,
+        "location": null,
+        "cache_control": "private, no-cache, no-store, max-age=0, must-revalidate"
+      },
+      {
+        "name": "game guest",
+        "path": "/game",
+        "status": 307,
+        "expected": [302, 303, 307, 308],
+        "bytes": 6677,
+        "location": "/",
+        "cache_control": "private, no-cache, no-store, max-age=0, must-revalidate"
+      },
+      {
+        "name": "battle guest",
+        "path": "/game/battle",
+        "status": 307,
+        "expected": [302, 303, 307, 308],
+        "bytes": 7813,
+        "location": "/",
+        "cache_control": "private, no-cache, no-store, max-age=0, must-revalidate"
+      },
+      {
+        "name": "master guest",
+        "path": "/master",
+        "status": 307,
+        "expected": [302, 303, 307, 308],
+        "bytes": 6940,
+        "location": "/",
+        "cache_control": "private, no-cache, no-store, max-age=0, must-revalidate"
+      },
+      {
+        "name": "build authority",
+        "path": "/api/character/build/support-action",
+        "status": 401,
+        "expected": [401],
+        "bytes": 73,
+        "location": null,
+        "cache_control": "private, no-store"
+      },
+      {
+        "name": "master authority",
+        "path": "/api/master/combat-content",
+        "status": 401,
+        "expected": [401],
+        "bytes": 73,
+        "location": null,
+        "cache_control": "private, no-store"
+      },
+      {
+        "name": "current header",
+        "path": "/",
+        "status": 200,
+        "expected": [200],
+        "bytes": 16601,
+        "location": null,
+        "cache_control": "private, no-cache, no-store, max-age=0, must-revalidate"
+      },
+      {
+        "name": "current query",
+        "path": "/?dpl=dpl_6Gx7E7t4iRtAu1KQCXXfVY1yfAQ4",
+        "status": 200,
+        "expected": [200],
+        "bytes": 16675,
+        "location": null,
+        "cache_control": "private, no-cache, no-store, max-age=0, must-revalidate"
+      },
+      {
+        "name": "current cookie",
+        "path": "/",
+        "status": 200,
+        "expected": [200],
+        "bytes": 16601,
+        "location": null,
+        "cache_control": "private, no-cache, no-store, max-age=0, must-revalidate"
+      },
+      {
+        "name": "retired header",
+        "path": "/",
+        "status": 503,
+        "expected": [503],
+        "bytes": 101,
+        "location": null,
+        "cache_control": "no-store"
+      },
+      {
+        "name": "retired query",
+        "path": "/?dpl=dpl_2noMyXV766mtZwJtoGbWY4QXZxaE",
+        "status": 503,
+        "expected": [503],
+        "bytes": 101,
+        "location": null,
+        "cache_control": "no-store"
+      },
+      {
+        "name": "retired cookie",
+        "path": "/",
+        "status": 503,
+        "expected": [503],
+        "bytes": 101,
+        "location": null,
+        "cache_control": "no-store"
+      },
+      {
+        "name": "pilfer art",
+        "path": "/media/art/support/pilfer-v01.webp",
+        "status": 200,
+        "expected": [200],
+        "bytes": 115942,
+        "location": null,
+        "cache_control": "public, max-age=0, must-revalidate",
+        "sha256": "8a1d3ccf9fcacf348d784d6404c5f0fd4f9b8d488f006b89564f1415dfe721c3"
+      },
+      {
+        "name": "fleetstep art",
+        "path": "/media/art/support/fleetstep-v01.webp",
+        "status": 200,
+        "expected": [200],
+        "bytes": 158116,
+        "location": null,
+        "cache_control": "public, max-age=0, must-revalidate",
+        "sha256": "ca93e730f5182bd1173810b11cc25254fdb28663b59b6f35b81d17db57f2e69d"
+      },
+      {
+        "name": "invocation art",
+        "path": "/media/art/support/invocation-v01.webp",
+        "status": 200,
+        "expected": [200],
+        "bytes": 155218,
+        "location": null,
+        "cache_control": "public, max-age=0, must-revalidate",
+        "sha256": "f44f6304cd966b2fa2e55184ef14584eb5ad9c1df6295346432da84da9199277"
+      },
+      {
+        "name": "vesper-portrait art",
+        "path": "/media/art/support/vesper-portrait-v01.webp",
+        "status": 200,
+        "expected": [200],
+        "bytes": 130292,
+        "location": null,
+        "cache_control": "public, max-age=0, must-revalidate",
+        "sha256": "3617ade8b34476d833f441a03cde6605f36f2d721c579bea6d4001550300e6a2"
+      }
+    ],
+    "passed": 17
+  },
+  "canonicalProbes": {
+    "base": "https://aurevane.vercel.app",
+    "phase": "canonical",
+    "cases": [
+      {
+        "name": "entry",
+        "path": "/",
+        "status": 200,
+        "expected": [200],
+        "bytes": 16601,
+        "location": null,
+        "cache_control": "private, no-cache, no-store, max-age=0, must-revalidate"
+      },
+      {
+        "name": "manual",
+        "path": "/manual",
+        "status": 200,
+        "expected": [200],
+        "bytes": 43451,
+        "location": null,
+        "cache_control": "private, no-cache, no-store, max-age=0, must-revalidate"
+      },
+      {
+        "name": "game guest",
+        "path": "/game",
+        "status": 307,
+        "expected": [302, 303, 307, 308],
+        "bytes": 6677,
+        "location": "/",
+        "cache_control": "private, no-cache, no-store, max-age=0, must-revalidate"
+      },
+      {
+        "name": "battle guest",
+        "path": "/game/battle",
+        "status": 307,
+        "expected": [302, 303, 307, 308],
+        "bytes": 7813,
+        "location": "/",
+        "cache_control": "private, no-cache, no-store, max-age=0, must-revalidate"
+      },
+      {
+        "name": "master guest",
+        "path": "/master",
+        "status": 307,
+        "expected": [302, 303, 307, 308],
+        "bytes": 6940,
+        "location": "/",
+        "cache_control": "private, no-cache, no-store, max-age=0, must-revalidate"
+      },
+      {
+        "name": "build authority",
+        "path": "/api/character/build/support-action",
+        "status": 401,
+        "expected": [401],
+        "bytes": 73,
+        "location": null,
+        "cache_control": "private, no-store"
+      },
+      {
+        "name": "master authority",
+        "path": "/api/master/combat-content",
+        "status": 401,
+        "expected": [401],
+        "bytes": 73,
+        "location": null,
+        "cache_control": "private, no-store"
+      },
+      {
+        "name": "current header",
+        "path": "/",
+        "status": 200,
+        "expected": [200],
+        "bytes": 16601,
+        "location": null,
+        "cache_control": "private, no-cache, no-store, max-age=0, must-revalidate"
+      },
+      {
+        "name": "current query",
+        "path": "/?dpl=dpl_6Gx7E7t4iRtAu1KQCXXfVY1yfAQ4",
+        "status": 200,
+        "expected": [200],
+        "bytes": 16675,
+        "location": null,
+        "cache_control": "private, no-cache, no-store, max-age=0, must-revalidate"
+      },
+      {
+        "name": "current cookie",
+        "path": "/",
+        "status": 200,
+        "expected": [200],
+        "bytes": 16601,
+        "location": null,
+        "cache_control": "private, no-cache, no-store, max-age=0, must-revalidate"
+      },
+      {
+        "name": "retired header",
+        "path": "/",
+        "status": 503,
+        "expected": [503],
+        "bytes": 101,
+        "location": null,
+        "cache_control": "no-store"
+      },
+      {
+        "name": "retired query",
+        "path": "/?dpl=dpl_2noMyXV766mtZwJtoGbWY4QXZxaE",
+        "status": 503,
+        "expected": [503],
+        "bytes": 101,
+        "location": null,
+        "cache_control": "no-store"
+      },
+      {
+        "name": "retired cookie",
+        "path": "/",
+        "status": 503,
+        "expected": [503],
+        "bytes": 101,
+        "location": null,
+        "cache_control": "no-store"
+      },
+      {
+        "name": "previous header",
+        "path": "/",
+        "status": 503,
+        "expected": [503],
+        "bytes": 101,
+        "location": null,
+        "cache_control": "no-store"
+      },
+      {
+        "name": "previous query",
+        "path": "/?dpl=dpl_2Whh8R4PqfzJGjTNxYhpRzaUW5xa",
+        "status": 503,
+        "expected": [503],
+        "bytes": 101,
+        "location": null,
+        "cache_control": "no-store"
+      },
+      {
+        "name": "previous cookie",
+        "path": "/",
+        "status": 503,
+        "expected": [503],
+        "bytes": 101,
+        "location": null,
+        "cache_control": "no-store"
+      },
+      {
+        "name": "pilfer art",
+        "path": "/media/art/support/pilfer-v01.webp",
+        "status": 200,
+        "expected": [200],
+        "bytes": 115942,
+        "location": null,
+        "cache_control": "public, max-age=0, must-revalidate",
+        "sha256": "8a1d3ccf9fcacf348d784d6404c5f0fd4f9b8d488f006b89564f1415dfe721c3"
+      },
+      {
+        "name": "fleetstep art",
+        "path": "/media/art/support/fleetstep-v01.webp",
+        "status": 200,
+        "expected": [200],
+        "bytes": 158116,
+        "location": null,
+        "cache_control": "public, max-age=0, must-revalidate",
+        "sha256": "ca93e730f5182bd1173810b11cc25254fdb28663b59b6f35b81d17db57f2e69d"
+      },
+      {
+        "name": "invocation art",
+        "path": "/media/art/support/invocation-v01.webp",
+        "status": 200,
+        "expected": [200],
+        "bytes": 155218,
+        "location": null,
+        "cache_control": "public, max-age=0, must-revalidate",
+        "sha256": "f44f6304cd966b2fa2e55184ef14584eb5ad9c1df6295346432da84da9199277"
+      },
+      {
+        "name": "vesper-portrait art",
+        "path": "/media/art/support/vesper-portrait-v01.webp",
+        "status": 200,
+        "expected": [200],
+        "bytes": 130292,
+        "location": null,
+        "cache_control": "public, max-age=0, must-revalidate",
+        "sha256": "3617ade8b34476d833f441a03cde6605f36f2d721c579bea6d4001550300e6a2"
+      }
+    ],
+    "passed": 20
+  },
+  "limitations": [
+    "Human signed-in battle acceptance, physical-device and multiplayer testing remain open.",
+    "The catalogue filter source follow-up requires its own configured CI before integration; the tested application tree is unchanged.",
+    "The attempted broad local database run was interrupted; only completed focused checks are claimed."
+  ]
+}

@@ -4,37 +4,48 @@ on:
   pull_request:
     paths:
       - 'supabase/migrations/**'
+      - 'supabase/tests/captured_ability_startup.sql'
       - '.github/scripts/verify-battle-session-persistence.sh'
       - '.github/scripts/verify-battle-session-concurrency.sh'
+      - '.github/scripts/verify-item-admission-concurrency.sh'
+      - '.github/scripts/item-admission-race-fixtures.sql'
       - '.github/scripts/verify-battle-session-http.sh'
       - '.github/scripts/verify-battle-event-read.sh'
       - '.github/scripts/verify-battle-privacy-journal.sh'
       - '.github/scripts/verify-battle-history-privacy.sh'
       - '.github/scripts/verify-pv1-combat-validation-events.sh'
       - '.github/scripts/verify-pvp-authority.sh'
+      - '.github/scripts/verify-pvp-map-sizes.sh'
       - '.github/scripts/verify-pvp-lobby-seating.sh'
       - '.github/scripts/verify-pvp-spectator-join.sh'
       - '.github/workflows/battle-session-db.yml'
   push:
     branches:
       - main
-      - 'agent/**'
     paths:
       - 'supabase/migrations/**'
+      - 'supabase/tests/captured_ability_startup.sql'
       - '.github/scripts/verify-battle-session-persistence.sh'
       - '.github/scripts/verify-battle-session-concurrency.sh'
+      - '.github/scripts/verify-item-admission-concurrency.sh'
+      - '.github/scripts/item-admission-race-fixtures.sql'
       - '.github/scripts/verify-battle-session-http.sh'
       - '.github/scripts/verify-battle-event-read.sh'
       - '.github/scripts/verify-battle-privacy-journal.sh'
       - '.github/scripts/verify-battle-history-privacy.sh'
       - '.github/scripts/verify-pv1-combat-validation-events.sh'
       - '.github/scripts/verify-pvp-authority.sh'
+      - '.github/scripts/verify-pvp-map-sizes.sh'
       - '.github/scripts/verify-pvp-lobby-seating.sh'
       - '.github/scripts/verify-pvp-spectator-join.sh'
       - '.github/workflows/battle-session-db.yml'
 
 permissions:
   contents: read
+
+concurrency:
+  group: battle-session-db-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   battle-session-authority:
@@ -60,16 +71,33 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Start local Supabase stack
-        run: pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
+        run: |
+          python .github/scripts/configure-discipline-test-mail.test.py
+          python .github/scripts/configure-discipline-test-mail.py
+          pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
 
       - name: Rebuild database from migrations
         run: pnpm exec supabase db reset --local
+
+      - name: Verify captured startup transaction on the migrated database
+        run: pnpm exec supabase test db --local supabase/tests/captured_ability_startup.sql
 
       - name: Verify battle session persistence + authority
         run: bash .github/scripts/verify-battle-session-persistence.sh
 
       - name: Verify concurrent intent ordering + history
         run: bash .github/scripts/verify-battle-session-concurrency.sh
+
+      - name: Verify Item admission and inventory concurrency
+        run: bash .github/scripts/verify-item-admission-concurrency.sh
+
+      - name: Save Item concurrency failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: item-admission-concurrency-failure
+          path: /tmp/aurevane-item-race-failure
+          if-no-files-found: ignore
 
       - name: Verify service-only battle event reads
         run: bash .github/scripts/verify-battle-event-read.sh
@@ -82,6 +110,9 @@ jobs:
 
       - name: Verify PvP lobby, battle, and spectator authority
         run: bash .github/scripts/verify-pvp-authority.sh
+
+      - name: Verify PvP map-size persistence and authority
+        run: bash .github/scripts/verify-pvp-map-sizes.sh
 
       - name: Verify PvP lobby unseat and reseat authority
         run: bash .github/scripts/verify-pvp-lobby-seating.sh

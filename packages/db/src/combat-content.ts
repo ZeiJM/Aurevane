@@ -1,6 +1,16 @@
 import { randomUUID } from 'node:crypto'
 
-export type CombatContentKind = 'skill' | 'status' | 'effect-profile'
+export type CombatContentKind =
+  | 'skill'
+  | 'essence'
+  | 'resonance'
+  | 'status'
+  | 'effect-profile'
+  | 'discipline'
+  | 'tag'
+  | 'item'
+  | 'ascension'
+  | 'severence'
 
 export type CombatContentDefinition = Readonly<Record<string, unknown>>
 
@@ -46,6 +56,8 @@ export interface PublishCombatContentInput {
   readonly contentKind: CombatContentKind
   readonly definition: CombatContentDefinition
   readonly expectedBaseVersion: number | null
+  /** Trusted shipped history; independent of the selected current publication. */
+  readonly versionFloor?: number | null
   readonly actorUserId: string
 }
 
@@ -53,12 +65,16 @@ export interface CombatContentRepository {
   findDraft(contentKey: string): Promise<CombatContentDraftRecord | null>
   saveDraft(input: SaveCombatContentDraftInput): Promise<CombatContentDraftRecord>
   publish(input: PublishCombatContentInput): Promise<CombatContentVersionRecord>
-  findPublished(contentKey: string): Promise<CombatContentVersionRecord | null>
+  findPublished(
+    contentKey: string,
+    contentKind?: CombatContentKind,
+  ): Promise<CombatContentVersionRecord | null>
   listPublishedVersions(contentKey: string): Promise<readonly CombatContentVersionRecord[]>
   setCurrentPublication(
     contentKey: string,
     version: number | null,
     actorUserId: string,
+    contentKind?: CombatContentKind,
   ): Promise<void>
 }
 
@@ -78,9 +94,20 @@ const cloneDefinition = (definition: CombatContentDefinition): CombatContentDefi
 const versionDefinition = (
   definition: CombatContentDefinition,
   contentVersion: number,
+  contentKind: CombatContentKind,
 ): CombatContentDefinition => {
   const clone = cloneDefinition(definition)
-  return Object.hasOwn(clone, 'contentVersion') ? { ...clone, contentVersion } : clone
+  const versioned = Object.hasOwn(clone, 'contentVersion') ? { ...clone, contentVersion } : clone
+  if (contentKind !== 'essence') return versioned
+
+  const skill = versioned.skill
+  if (typeof skill !== 'object' || skill === null || Array.isArray(skill)) return versioned
+  return {
+    ...versioned,
+    skill: Object.hasOwn(skill, 'contentVersion')
+      ? { ...(skill as Record<string, unknown>), contentVersion }
+      : structuredClone(skill),
+  }
 }
 
 const cloneDraft = (draft: CombatContentDraftRecord): CombatContentDraftRecord => ({
@@ -163,6 +190,7 @@ export class InMemoryCombatContentRepository implements CombatContentRepository 
 
   async publish(input: PublishCombatContentInput): Promise<CombatContentVersionRecord> {
     assertOptionalPositiveVersion(input.expectedBaseVersion, 'Expected base version')
+    assertOptionalPositiveVersion(input.versionFloor ?? null, 'Publication version floor')
     const versions = this.#versions.get(input.contentKey) ?? []
     const publication = this.#publications.get(input.contentKey)
     const current = publication
@@ -191,14 +219,24 @@ export class InMemoryCombatContentRepository implements CombatContentRepository 
       (highest, version) => Math.max(highest, version.contentVersion),
       0,
     )
-    const nextVersion = Math.max(highestStoredVersion, input.expectedBaseVersion ?? 0) + 1
+    const highestVersion = Math.max(
+      highestStoredVersion,
+      input.expectedBaseVersion ?? 0,
+      input.versionFloor ?? 0,
+    )
+    if (highestVersion >= 2_147_483_647)
+      throw new CombatContentConflictError(
+        'COMBAT_CONTENT_VERSION_INVALID',
+        'Publication version is exhausted.',
+      )
+    const nextVersion = highestVersion + 1
     const now = new Date().toISOString()
     const version: CombatContentVersionRecord = {
       id: randomUUID(),
       contentKey: input.contentKey,
       contentKind: input.contentKind,
       contentVersion: nextVersion,
-      definition: versionDefinition(input.definition, nextVersion),
+      definition: versionDefinition(input.definition, nextVersion, input.contentKind),
       publishedBy: input.actorUserId,
       publishedAt: now,
     }
@@ -215,9 +253,12 @@ export class InMemoryCombatContentRepository implements CombatContentRepository 
     return cloneVersion(version)
   }
 
-  async findPublished(contentKey: string): Promise<CombatContentVersionRecord | null> {
+  async findPublished(
+    contentKey: string,
+    contentKind?: CombatContentKind,
+  ): Promise<CombatContentVersionRecord | null> {
     const publication = this.#publications.get(contentKey)
-    if (!publication) return null
+    if (!publication || (contentKind && publication.contentKind !== contentKind)) return null
 
     const version = this.#versions
       .get(contentKey)
@@ -235,9 +276,11 @@ export class InMemoryCombatContentRepository implements CombatContentRepository 
     contentKey: string,
     version: number | null,
     actorUserId: string,
+    contentKind?: CombatContentKind,
   ): Promise<void> {
     if (version === null) {
-      this.#publications.delete(contentKey)
+      if (!contentKind || this.#publications.get(contentKey)?.contentKind === contentKind)
+        this.#publications.delete(contentKey)
       return
     }
 
@@ -245,7 +288,7 @@ export class InMemoryCombatContentRepository implements CombatContentRepository 
       .get(contentKey)
       ?.find((candidate) => candidate.contentVersion === version)
 
-    if (!target) {
+    if (!target || (contentKind && target.contentKind !== contentKind)) {
       throw new CombatContentConflictError(
         'COMBAT_CONTENT_VERSION_NOT_FOUND',
         `Cannot point ${contentKey} at missing version ${version}.`,
@@ -279,4 +322,98 @@ export class InMemoryCombatContentRepository implements CombatContentRepository 
     }
     assertContentIdentity(contentKey, contentKind, known.contentKind)
   }
+}
+
+export type CombatContentLifecycle = 'draft' | 'active' | 'archived'
+export interface CompleteCombatContentVersion {
+  readonly contentVersion: number
+  readonly definition: CombatContentDefinition
+  readonly publishedBy: string
+  readonly publishedAt: string
+  readonly authoredBy: string | null
+  readonly authoredAt: string | null
+  readonly restoredSource?: 'builtin' | null
+  readonly restoredFrom: number | null
+  readonly restoredBy: string | null
+}
+export interface CompleteCombatContentRecord {
+  /** Server-derived capability; opaque retained data is not an editable definition. */
+  readonly authoringBlocker?: {
+    readonly code: 'EFFECT_PROFILE_AUTHORING_UNSUPPORTED'
+    readonly message: string
+  }
+  readonly contentKey: string
+  readonly contentKind: CombatContentKind
+  readonly lifecycle: CombatContentLifecycle
+  readonly revision: number
+  readonly versionFloor: number
+  readonly createdBy: string | null
+  readonly createdAt: string | null
+  /** Baseline identity metadata; this is not a fabricated publication/history row. */
+  readonly builtin?: { readonly contentVersion: number; readonly name: string } | null
+  /** Resolved from the existing executable catalogue only for a nonarchived baseline. */
+  readonly builtinDefinition?: CombatContentDefinition
+  /** Exact available system source; distinct from a human publication row. */
+  readonly builtinRestoreVersion?: number
+  readonly draft: {
+    readonly definition: CombatContentDefinition
+    readonly draftVersion: number
+    readonly baseVersion: number | null
+    readonly updatedBy: string
+    readonly updatedAt: string
+    readonly restoredSource?: 'builtin' | null
+    readonly restoredFrom: number | null
+    readonly restoredBy: string | null
+  } | null
+  readonly current: CompleteCombatContentVersion | null
+  readonly history: readonly CompleteCombatContentVersion[]
+  readonly usedBy: readonly {
+    readonly kind: string
+    readonly key: string
+    readonly blocking?: boolean
+  }[]
+  readonly usedByTruncated?: boolean
+  readonly links: readonly string[]
+}
+export type CompleteCombatContentWrite =
+  | {
+      readonly action: 'create'
+      readonly requestId: string
+      readonly contentKind: CombatContentKind
+      readonly definition: CombatContentDefinition
+      readonly parentKey?: string
+      readonly expectedParentRevision?: number
+    }
+  | {
+      readonly action: 'duplicate'
+      readonly requestId: string
+      readonly sourceKey: string
+      readonly expectedSourceRevision: number
+      readonly sourceDefinition?: CombatContentDefinition
+    }
+  | {
+      readonly action: 'save'
+      readonly expectedRevision: number
+      readonly definition: CombatContentDefinition
+    }
+  | {
+      readonly action: 'restore'
+      readonly expectedRevision: number
+      readonly sourceVersion: number
+      readonly sourceKind?: 'builtin'
+    }
+  | { readonly action: 'archive'; readonly expectedRevision: number }
+  | {
+      readonly action: 'link' | 'unlink'
+      readonly requestId: string
+      readonly expectedRevision: number
+      readonly childKey: string
+    }
+export type CombatContentSort = 'key-asc' | 'key-desc' | 'name-asc' | 'name-desc'
+export interface CombatContentListPage {
+  readonly records: readonly (Pick<
+    CompleteCombatContentRecord,
+    'contentKey' | 'contentKind' | 'lifecycle' | 'revision'
+  > & { readonly name?: string })[]
+  readonly nextCursor: string | null
 }

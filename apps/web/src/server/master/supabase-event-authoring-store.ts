@@ -1,6 +1,11 @@
 import 'server-only'
 
-import type { PersistentEventDefinition } from '@aurevane/game-core/events/persistent-event'
+import { createSelectedCharacterRpc } from './selected-character-rpc'
+
+import {
+  resolveEventCategory,
+  type PersistentEventDefinition,
+} from '@aurevane/game-core/events/persistent-event'
 import { AurevaneError } from '@aurevane/game-core/errors'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
@@ -10,6 +15,7 @@ import type {
   EventDefinitionDraftRecord,
   EventDefinitionVersionRecord,
   EventRunTransitionRecord,
+  EventWorkspaceCatalogue,
   ScheduledEventRunRecord,
 } from './event-authoring-service'
 
@@ -146,6 +152,7 @@ function mapRpcError(error: RpcError): never {
   const message = error.message ?? ''
   if (
     error.code === '40001' ||
+    error.code === 'PT409' ||
     message.includes('EVENT_DRAFT_BASE_VERSION_CONFLICT') ||
     message.includes('EVENT_DRAFT_VERSION_CONFLICT') ||
     message.includes('EVENT_PUBLISH_BASE_VERSION_CONFLICT')
@@ -165,6 +172,87 @@ function mapRpcError(error: RpcError): never {
       'That Event action key was already used for a different Production request.',
       { cause: error },
     )
+  }
+  if (message === 'EVENT_PERSONAL_REALM_NPCS_UNAVAILABLE')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Choose a published Story NPC with a World placement in the selected audience and a different published Story NPC as guardian.',
+      { cause: error },
+    )
+  if (message === 'EVENT_INVENTORY_DISCOVERY_ITEM_UNAVAILABLE')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Choose two enabled Material, Event, or General Items for this discovery.',
+      { cause: error },
+    )
+  if (message === 'EVENT_INVENTORY_RESTORATION_TRIAL_INVALID')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Complete the combat trial and choose Character XP packages for both restoration routes.',
+      { cause: error },
+    )
+  if (message === 'EVENT_INVENTORY_RESTORATION_TRIAL_NPC_UNAVAILABLE')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Choose a published World encounter NPC for the restoration trial.',
+      { cause: error },
+    )
+  if (message === 'EVENT_INVENTORY_RESTORATION_REWARDS_INVALID')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Choose approved reward packages with different Character XP amounts for the two restoration routes.',
+      { cause: error },
+    )
+  if (message === 'EVENT_PERSONAL_EXCHANGE_ITEMS_UNAVAILABLE')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Choose enabled Material, Event, or General stock to hand in and an enabled Event or General Item to receive.',
+      { cause: error },
+    )
+  if (message === 'EVENT_REPEATABLE_HUNT_INVALID')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Complete the hunt details and use one manual phase with no shared objectives or effects.',
+      { cause: error },
+    )
+  if (message === 'EVENT_REPEATABLE_HUNT_GIVER_UNAVAILABLE')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Choose Global audience and a published Story NPC with a World placement.',
+      { cause: error },
+    )
+  if (message === 'EVENT_REPEATABLE_HUNT_REWARD_UNAVAILABLE')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Choose an approved Character XP package for the hunt.',
+      { cause: error },
+    )
+  if (message === 'EVENT_REPEATABLE_HUNT_TARGET_UNAVAILABLE')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Choose a tag used by a published World encounter.',
+      { cause: error },
+    )
+  const privateChallengeMessages: Readonly<Record<string, string>> = {
+    EVENT_COMBAT_DISCOVERY_INVALID:
+      'Complete the daily combat discovery using Global scope and one manual phase without shared rewards or effects.',
+    EVENT_COMBAT_DISCOVERY_TARGET_UNAVAILABLE: 'Choose a tag used by a published World encounter.',
+    EVENT_COMBAT_DISCOVERY_OPPONENT_UNAVAILABLE:
+      'Choose a published World encounter that does not share the qualifying tag.',
+    EVENT_COMBAT_DISCOVERY_REWARD_UNAVAILABLE:
+      'Choose an approved Character XP package for each configured discovery reward.',
+    EVENT_COMBAT_DISCOVERY_SEASON_END_REQUIRED: 'Choose an end time for a seasonal discovery.',
+    EVENT_MENTOR_INVALID:
+      'Complete the Mentor challenge using Global scope, one manual phase and distinct rewards.',
+    EVENT_MENTOR_IDENTITY_IMMUTABLE:
+      'Use a new Event identity when adding or removing a Mentor challenge.',
+    EVENT_MENTOR_OPPONENT_UNAVAILABLE:
+      'Choose a published World encounter outside sealed realms with no qualification tags.',
+    EVENT_MENTOR_REWARD_UNAVAILABLE:
+      'Choose an approved Character XP package for each Mentor reward.',
+  }
+  if (Object.hasOwn(privateChallengeMessages, message)) {
+    throw new AurevaneError('INVALID_REQUEST', privateChallengeMessages[message]!, { cause: error })
   }
   if (
     error.code === '22023' ||
@@ -188,6 +276,21 @@ export class RpcEventAuthoringStore implements EventAuthoringStore {
   constructor(rpc: EventAuthoringRpc, actorUserId: string) {
     this.#rpc = rpc
     this.#actorUserId = actorUserId
+  }
+
+  async readCatalogue() {
+    const { data, error } = await this.#rpc('read_event_workspace_catalogue_v1', {
+      p_actor_user_id: this.#actorUserId,
+    })
+    if (error) mapRpcError(error)
+    const catalogue = isObject(data) ? data : null
+    if (!catalogue || !Array.isArray(catalogue.events) || !Array.isArray(catalogue.rewards))
+      throw unavailable()
+    const events = catalogue.events.map((entry: unknown) => {
+      if (!isObject(entry)) throw unavailable('The server returned an invalid Event catalogue.')
+      return { ...entry, category: resolveEventCategory(entry) }
+    })
+    return { events, rewards: catalogue.rewards } as unknown as EventWorkspaceCatalogue
   }
 
   async readDraft(eventKey: string): Promise<EventDefinitionDraftRecord | null> {
@@ -240,7 +343,7 @@ export class RpcEventAuthoringStore implements EventAuthoringStore {
     definition: PersistentEventDefinition
     expectedBaseVersion: number | null
     correlationKey: string
-    reason: string
+
     confirmed: boolean
   }): Promise<EventDefinitionVersionRecord> {
     const { data, error } = await this.#rpc('publish_event_definition_v2', {
@@ -249,7 +352,7 @@ export class RpcEventAuthoringStore implements EventAuthoringStore {
       p_definition: input.definition,
       p_expected_base_version: input.expectedBaseVersion,
       p_correlation_key: input.correlationKey,
-      p_reason: input.reason,
+      p_reason: null,
       p_confirmed: input.confirmed,
     })
     if (error) mapRpcError(error)
@@ -264,7 +367,7 @@ export class RpcEventAuthoringStore implements EventAuthoringStore {
     requestFingerprint: string
     scheduledStartAt: string
     scheduledEndAt: string | null
-    reason: string
+
     confirmed: boolean
   }): Promise<ScheduledEventRunRecord> {
     const { data, error } = await this.#rpc('schedule_event_run_v2', {
@@ -274,7 +377,7 @@ export class RpcEventAuthoringStore implements EventAuthoringStore {
       p_request_fingerprint: input.requestFingerprint,
       p_scheduled_start_at: input.scheduledStartAt,
       p_scheduled_end_at: input.scheduledEndAt,
-      p_reason: input.reason,
+      p_reason: null,
       p_confirmed: input.confirmed,
     })
     if (error) mapRpcError(error)
@@ -285,7 +388,7 @@ export class RpcEventAuthoringStore implements EventAuthoringStore {
     runId: string
     expectedStateVersion: number
     idempotencyKey: string
-    reason: string
+
     confirmed: boolean
   }): Promise<EventRunTransitionRecord> {
     const { data, error } = await this.#rpc('cancel_scheduled_event_run_v2', {
@@ -293,7 +396,7 @@ export class RpcEventAuthoringStore implements EventAuthoringStore {
       p_run_id: input.runId,
       p_expected_state_version: input.expectedStateVersion,
       p_idempotency_key: input.idempotencyKey,
-      p_reason: input.reason,
+      p_reason: null,
       p_confirmed: input.confirmed,
     })
     if (error) mapRpcError(error)
@@ -304,8 +407,10 @@ export class RpcEventAuthoringStore implements EventAuthoringStore {
 export function createSupabaseEventAuthoringStore(actorUserId: string): RpcEventAuthoringStore {
   const client = createSupabaseAdminClient()
   return new RpcEventAuthoringStore(
-    (functionName, parameters) =>
-      client.rpc(functionName, parameters) as unknown as PromiseLike<RpcResult>,
+    createSelectedCharacterRpc(
+      (functionName, parameters) =>
+        client.rpc(functionName, parameters) as unknown as PromiseLike<RpcResult>,
+    ),
     actorUserId,
   )
 }

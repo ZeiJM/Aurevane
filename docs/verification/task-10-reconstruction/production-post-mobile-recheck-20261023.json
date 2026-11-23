@@ -1,0 +1,13 @@
+{
+  "queriedAt": "2026-10-23T04:16Z",
+  "id": "dpl_2y76PUwvM4adpL8grUKVd5qLA7mK",
+  "state": "READY",
+  "target": "production",
+  "source": "8591a2186f39d5017bc8b0366a2afbe31021f119",
+  "branch": "8591a2186f39d5017bc8b0366a2afbe31021f119",
+  "alias": [
+    "aurevane.vercel.app",
+    "aurevane-zeijms-projects.vercel.app",
+    "aurevane-git-8591a2186f39d5017bc8b0366a2-cc0902-zeijms-projects.vercel.app"
+  ]
+}

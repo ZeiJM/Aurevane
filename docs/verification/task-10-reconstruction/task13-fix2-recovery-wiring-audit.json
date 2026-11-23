@@ -1,0 +1,161 @@
+{
+  "scope": "Source wiring and real discovery only; no native execution",
+  "main": "ff4467ed7284b7c2497caf4df6dff6669043ca39",
+  "preserved_main_paths": 28,
+  "main_changed_paths": 33,
+  "selection": {
+    "scope": "full",
+    "battle": true,
+    "commands": [
+      {
+        "name": "Repeated authoring and authority",
+        "command": "pnpm",
+        "files": [
+          "master-complete-layout.pw.ts",
+          "master-world-environment-cadence.pw.ts",
+          "master-combat-content-authoring.pw.ts",
+          "staff-selected-character-access.pw.ts",
+          "master-players-recovery.pw.ts",
+          "battle-wasd-backtracking.pw.ts"
+        ],
+        "args": [
+          "--filter",
+          "@aurevane/web",
+          "exec",
+          "playwright",
+          "test",
+          "e2e/master-complete-layout\\.pw\\.ts",
+          "e2e/master-world-environment-cadence\\.pw\\.ts",
+          "e2e/master-combat-content-authoring\\.pw\\.ts",
+          "e2e/staff-selected-character-access\\.pw\\.ts",
+          "e2e/master-players-recovery\\.pw\\.ts",
+          "e2e/battle-wasd-backtracking\\.pw\\.ts",
+          "--project=desktop-chromium",
+          "--repeat-each=2"
+        ]
+      },
+      {
+        "name": "Full Chromium regression",
+        "command": "pnpm",
+        "files": [],
+        "args": [
+          "--filter",
+          "@aurevane/web",
+          "exec",
+          "playwright",
+          "test"
+        ]
+      },
+      {
+        "name": "Edge keyboard and Support Actions",
+        "command": "pnpm",
+        "files": [
+          "battle-self-action-quick-commit.pw.ts",
+          "battle-recovery-hotkey.pw.ts",
+          "battle-support-action.pw.ts",
+          "techniques-support-action.pw.ts"
+        ],
+        "args": [
+          "--filter",
+          "@aurevane/web",
+          "exec",
+          "playwright",
+          "test",
+          "e2e/battle-self-action-quick-commit\\.pw\\.ts",
+          "e2e/battle-recovery-hotkey\\.pw\\.ts",
+          "e2e/battle-support-action\\.pw\\.ts",
+          "e2e/techniques-support-action\\.pw\\.ts",
+          "--config=playwright.edge.config.ts",
+          "--output=test-results-edge"
+        ]
+      }
+    ]
+  },
+  "authority_cases": [
+    {
+      "file": "battle-wasd-backtracking.pw.ts",
+      "title": "WASD and arrows each submit one authoritative adjacent Move",
+      "project": "desktop-chromium"
+    },
+    {
+      "file": "battle-wasd-backtracking.pw.ts",
+      "title": "WASD and arrows each submit one authoritative adjacent Move",
+      "project": "desktop-chromium"
+    },
+    {
+      "file": "master-combat-content-authoring.pw.ts",
+      "title": "Master combat authoring publishes versioned content, pins battles, and restores complete snapshots as new versions",
+      "project": "desktop-chromium"
+    },
+    {
+      "file": "master-combat-content-authoring.pw.ts",
+      "title": "finalized media controls crop actual bytes, replace the same PC file, preview sound and report failed previews",
+      "project": "desktop-chromium"
+    },
+    {
+      "file": "master-combat-content-authoring.pw.ts",
+      "title": "all five independent Basic originals restore through the mounted complete editor and real saved publication",
+      "project": "desktop-chromium"
+    },
+    {
+      "file": "master-combat-content-authoring.pw.ts",
+      "title": "Master combat authoring publishes versioned content, pins battles, and restores complete snapshots as new versions",
+      "project": "desktop-chromium"
+    },
+    {
+      "file": "master-combat-content-authoring.pw.ts",
+      "title": "finalized media controls crop actual bytes, replace the same PC file, preview sound and report failed previews",
+      "project": "desktop-chromium"
+    },
+    {
+      "file": "master-combat-content-authoring.pw.ts",
+      "title": "all five independent Basic originals restore through the mounted complete editor and real saved publication",
+      "project": "desktop-chromium"
+    },
+    {
+      "file": "master-complete-layout.pw.ts",
+      "title": "complete Master destinations fit desktop, touch and actual browser 200 percent",
+      "project": "desktop-chromium"
+    },
+    {
+      "file": "master-complete-layout.pw.ts",
+      "title": "complete Master destinations fit desktop, touch and actual browser 200 percent",
+      "project": "desktop-chromium"
+    },
+    {
+      "file": "master-players-recovery.pw.ts",
+      "title": "Owner corrections and whole encounter recovery reach actual PvE, both PvP participants and spectator",
+      "project": "desktop-chromium"
+    },
+    {
+      "file": "master-players-recovery.pw.ts",
+      "title": "Owner corrections and whole encounter recovery reach actual PvE, both PvP participants and spectator",
+      "project": "desktop-chromium"
+    },
+    {
+      "file": "master-world-environment-cadence.pw.ts",
+      "title": "saved short World cycle and weather expiry reach the live refresh, map and right panel over real time",
+      "project": "desktop-chromium"
+    },
+    {
+      "file": "master-world-environment-cadence.pw.ts",
+      "title": "saved short World cycle and weather expiry reach the live refresh, map and right panel over real time",
+      "project": "desktop-chromium"
+    },
+    {
+      "file": "staff-selected-character-access.pw.ts",
+      "title": "selected-character Staff & Access keeps authority, UTC duration, focus and responsive controls coherent",
+      "project": "desktop-chromium"
+    },
+    {
+      "file": "staff-selected-character-access.pw.ts",
+      "title": "selected-character Staff & Access keeps authority, UTC duration, focus and responsive controls coherent",
+      "project": "desktop-chromium"
+    }
+  ],
+  "configured_repeat_each": 2,
+  "retired_preliminary_phases": 0,
+  "master_components_and_original_executable": true,
+  "phase_preserved_master_artifacts": true,
+  "event_emergency_gate_retained": true
+}

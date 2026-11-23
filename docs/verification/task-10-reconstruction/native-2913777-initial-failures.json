@@ -1,0 +1,48 @@
+{
+  "head": "2913777a1dbe02477b77b55faa9e18e1cc154a62",
+  "checkout": "7654b810817e9e4adc2e00eec45d361f41b79424",
+  "tree": "4027392e9bc37606a650ea2f946f15cd56598efc",
+  "note": "Downloaded decoded native logs; test credentials redacted in public copies; original decoded-text hashes retained. Not new test executions. Other workflows still running.",
+  "logs": [
+    {
+      "job": 121238095951,
+      "path": "docs/verification/task-10-reconstruction/native-2913777-job-121238095951.log.gz",
+      "rawSha256": "d6b29e257cce1e911166d9fd9a49890747010acc547e8d82abb835ce54e1077c",
+      "gzipSha256": "01fbaded14f89c273b4f581f4f6368f81d2492a304d27ca84ffb011261a7af58",
+      "originalDecodedTextSha256": "0e89c94c96b454b817564fa13e0be720ee046b6aa3a6037f854eb4073e538ec3",
+      "sanitizedBytes": 86413
+    },
+    {
+      "job": 121238095807,
+      "path": "docs/verification/task-10-reconstruction/native-2913777-job-121238095807.log.gz",
+      "rawSha256": "f3d9d716daf6f9d92ab9a7a8dadae05ac298b16db8d4bccabd0c407da0ff24de",
+      "gzipSha256": "ee873b78cb07b5f5ff47b09fa137014bef65214ff26edfde47e18b8e07f54908",
+      "originalDecodedTextSha256": "f3d9d716daf6f9d92ab9a7a8dadae05ac298b16db8d4bccabd0c407da0ff24de",
+      "sanitizedBytes": 42720
+    },
+    {
+      "job": 121238095568,
+      "path": "docs/verification/task-10-reconstruction/native-2913777-job-121238095568.log.gz",
+      "rawSha256": "aed8873e6bb6f55a0e4b9536594b529ac6c4d23f98e9d8821a2d18898e87047a",
+      "gzipSha256": "479657b25e5a71158000cb3f8ea36c846223c66f1d8ce251fb30cc79e6d99e5a",
+      "originalDecodedTextSha256": "f573e5a5d0c51b9a690e126a7be73a7360ebf1106f53c650cf0314fa6ebf3ee7",
+      "sanitizedBytes": 88605
+    },
+    {
+      "job": 121238095508,
+      "path": "docs/verification/task-10-reconstruction/native-2913777-job-121238095508.log.gz",
+      "rawSha256": "8d2c098feb45231e05447b2fbb5a0dbe0ceedcfad48969f56929428d26550d52",
+      "gzipSha256": "ad4593d345ea7747554237e80b7038a6cb9fad8073ef8c67953d8b84bb0a501e",
+      "originalDecodedTextSha256": "28e8e3a04ff47f9f263e78218d727934e30cce67dc0182edf3c41aa0a827bb52",
+      "sanitizedBytes": 196346
+    },
+    {
+      "job": 121238152820,
+      "path": "docs/verification/task-10-reconstruction/native-2913777-job-121238152820.log.gz",
+      "rawSha256": "d66fe363eb5a9bc21096562a69260f26236ef1977dc138725dc87605c4ff5a6b",
+      "gzipSha256": "14327111f159a616aa2db330115f14463cddadab808f395bfd3f7969c05a40a9",
+      "originalDecodedTextSha256": "d66fe363eb5a9bc21096562a69260f26236ef1977dc138725dc87605c4ff5a6b",
+      "sanitizedBytes": 93787
+    }
+  ]
+}

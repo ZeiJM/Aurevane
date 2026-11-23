@@ -1,665 +1,591 @@
-/* composition-v3 contract retained: approved Arsenal workspace composition. */
-/* Approved Arsenal concept: discipline banners, grouped Technique lists, Attunement and Items. */
+/* Nexus owns its collection and detail geometry; management dialogs retain the real actions. */
 .layout {
-  display: grid;
   min-width: 0;
   min-height: 0;
-  gap: 0.72rem;
-  align-content: start;
+  height: 100%;
 }
-
 .arsenal {
+  composes: frame from './loadout-frame.module.css';
+  --av-gameplay-art-size: var(--av-cockpit-art-size);
+  display: grid;
+  grid-template-columns: minmax(17rem, 0.85fr) minmax(0, 1.65fr);
+  grid-template-rows: auto max-content auto;
+  align-content: start;
+  gap: 0.8rem;
   min-width: 0;
-  padding: clamp(0.72rem, 1vw, 0.9rem);
-  border: 1px solid var(--av-gold-rule);
+  min-height: 0;
+  height: 100%;
+  border: 0;
   border-radius: 0;
-  color: var(--av-charcoal);
   background:
-    radial-gradient(circle at 86% 0%, rgba(183, 147, 76, 0.08), transparent 26rem),
-    linear-gradient(180deg, rgba(255, 253, 246, 0.985), rgba(244, 240, 228, 0.985)),
-    var(--av-moonstone);
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.48),
-    0 0.7rem 1.8rem rgba(4, 12, 18, 0.11);
+    linear-gradient(#192a291f, #192a2925),
+    url('/media/art/concept-ui/world-v01.webp') center / cover;
+  box-shadow: none;
+  color: #333a33;
 }
-
-.pageHeading {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 1rem;
-  align-items: center;
-  padding: 0 0.1rem 0.65rem;
-  border-bottom: 1px solid var(--av-gold-rule);
-  background:
-    linear-gradient(90deg, rgba(255, 253, 246, 0.04), rgba(255, 253, 246, 0.66)),
-    url('/media/art/concept-ui/world-v01.webp') 68% 44% / 58% auto no-repeat;
-}
-
-.pageHeadingTitle {
-  display: flex;
-  min-width: 0;
-  gap: 0.72rem;
-  align-items: center;
-}
-
-.pageIcon {
-  flex: 0 0 auto;
-  color: #8c6e32;
-  font-size: 2.5rem;
-  line-height: 1;
-}
-
-.pageHeadingTitle > div {
-  display: grid;
-  min-width: 0;
-  gap: 0.12rem;
-}
-
-.pageHeading h1 {
-  margin: 0;
-  color: #172d3c;
-  font: 600 clamp(1.75rem, 2.2vw, 2.15rem)/1 var(--av-font-display);
-}
-
-.pageHeading p {
-  margin: 0;
-  color: #526a79;
-  font: italic 0.87rem/1.3 var(--av-font-display);
-}
-
-.pageHeading > small {
-  max-width: 18rem;
-  color: #4f6877;
-  font: italic 0.72rem/1.35 var(--av-font-display);
-  text-align: right;
-}
-
 .panel {
   position: relative;
   min-width: 0;
-  margin-top: 0.58rem;
-  padding: 0.58rem 0.68rem 0.68rem;
-  overflow: hidden;
-  border: 0;
-  border-top: 1px solid rgba(151, 125, 76, 0.38);
-  background: transparent;
+  min-height: 0;
+  padding: 0.85rem;
+  border: 1px solid #9c8664;
+  color: #333a33;
+  background: linear-gradient(125deg, #e0d4bef2, #c9baa0f7);
+  box-shadow:
+    inset 0 0 0 3px #e4d8c050,
+    0 5px 16px #0003;
 }
-
 .sectionHeading {
-  display: grid;
-  grid-template-columns: minmax(0, auto) minmax(0, 1fr) auto;
-  gap: 0.35rem 0.65rem;
+  display: flex;
   align-items: center;
-  min-width: 0;
-  margin-bottom: 0.5rem;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.7rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #a18a6155;
 }
-
 .sectionHeading > div {
   display: flex;
-  min-width: 0;
-  gap: 0.45rem;
+  gap: 0.5rem;
   align-items: center;
 }
-
-.sectionHeading > div > span {
-  color: #8b703b;
-  font-size: 1rem;
-}
-
 .sectionHeading h2 {
   margin: 0;
-  color: #1d3240;
-  font: 600 1.14rem/1.08 var(--av-font-display);
+  color: #333a33;
+  font: 500 1.35rem var(--av-font-display);
 }
-
-.sectionHeading > small {
-  grid-column: 2;
-  color: #5d7280;
-  font-size: 0.67rem;
-  line-height: 1.25;
+.disciplinesPanel {
+  grid-column: 1;
+  grid-row: 2 / 4;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
 }
-
-.techniquesPanel .sectionHeading > small,
-.itemsPanel .sectionHeading > small {
-  grid-column: 3;
-  grid-row: 1;
-  color: #273f50;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.disciplineList {
+.disciplinePair {
   display: grid;
-  gap: 0.34rem;
+  gap: 1rem;
+  flex: 1;
+  align-content: start;
 }
-
-.disciplineRow {
-  position: relative;
+.disciplineCard {
   display: grid;
-  grid-template-columns: 3.5rem minmax(9.5rem, 0.62fr) minmax(9rem, 0.62fr) minmax(7rem, 0.38fr);
-  min-width: 0;
-  min-height: 5.15rem;
-  gap: 0.75rem;
+  grid-template-columns: 5.5rem minmax(0, 1fr);
+  gap: 0.7rem;
   align-items: center;
-  padding: 0.55rem 0.78rem;
-  overflow: hidden;
-  border: 1px solid rgba(148, 121, 70, 0.42);
-  border-left: 3px solid #b88d40;
-  background:
-    linear-gradient(
-      90deg,
-      rgba(255, 253, 246, 0.985) 0 38%,
-      rgba(255, 253, 246, 0.86) 56%,
-      rgba(9, 25, 37, 0.6) 82%,
-      rgba(7, 19, 29, 0.92)
-    ),
-    url('/media/art/concept-ui/world-v01.webp') right 40% / 68% auto no-repeat;
-  box-shadow: inset 0 1px rgba(255, 255, 255, 0.62);
+  padding: 0.7rem 0;
+  border-bottom: 1px solid #a18a6155;
+  min-width: 0;
 }
-
-.disciplineRow[data-discipline='lifebinder'] {
-  border-left-color: #3f9e72;
-  background:
-    linear-gradient(
-      90deg,
-      rgba(255, 253, 246, 0.985) 0 38%,
-      rgba(255, 253, 246, 0.86) 56%,
-      rgba(16, 55, 40, 0.52) 80%,
-      rgba(7, 29, 24, 0.9)
-    ),
-    url('/media/art/concept-ui/world-v01.webp') right 68% / 68% auto no-repeat;
-}
-
-.mediaTile {
+.disciplineCard > div {
   display: grid;
-  width: 3.5rem;
-  height: 3.5rem;
-  aspect-ratio: 1;
-  place-items: center;
-  overflow: hidden;
-  border: 1px solid #9f875b;
-  background: #0b1c26;
-  box-shadow: 0 0.25rem 0.7rem rgba(11, 28, 38, 0.14);
+  min-width: 0;
+  gap: 0.3rem;
 }
-
-.mediaTile :is(img, svg) {
+.disciplineCard span {
+  font-size: 0.875rem;
+}
+.disciplineCard strong {
+  font: 500 1.3rem var(--av-font-display);
+  color: #333a33;
+}
+.disciplineCard p {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.4;
+}
+.disciplineSigil {
+  display: grid;
+  width: 5.5rem;
+  aspect-ratio: 1;
+  overflow: hidden;
+  place-items: center;
+  border: 1px solid #9f875b;
+  background: #1c3e3d;
+}
+.disciplineSigil :is(svg, img) {
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-}
-
-.disciplineRow .mediaTile :is(img, svg) {
-  padding: 0.14rem;
   object-fit: contain;
 }
-
-.disciplineIdentity {
-  display: grid;
-  min-width: 0;
-  gap: 0.12rem;
+.lockGlyph {
+  color: #b9b49f;
+  font-size: 2rem;
 }
-
-.disciplineIdentity strong {
-  color: #183146;
-  font: 600 1.15rem/1.05 var(--av-font-display);
+.disciplineCard[data-locked='true'] .disciplineSigil {
+  background: #a69b84;
 }
-
-.disciplineIdentity p,
-.disciplineDescription {
-  margin: 0;
-  color: #506776;
-  font-size: 0.69rem;
-  line-height: 1.33;
+.disciplinesPanel :global([data-testid='primary-build-panel']) {
+  margin-top: auto;
 }
-
-.disciplineDescription {
-  max-width: 17rem;
-}
-
-.disciplineLabel {
-  justify-self: end;
-  max-width: 8rem;
-  color: #e6c56f;
-  font: 700 0.64rem/1.3 var(--av-font-display);
-  letter-spacing: 0.08em;
-  text-align: center;
-  text-transform: uppercase;
-}
-
-.disciplinesPanel :global([data-testid='primary-build-panel']),
-.techniquesPanel :global([data-testid='skill-build-panel']) {
-  position: absolute;
-  top: 0.42rem;
-  right: 0.58rem;
-  z-index: 4;
-  margin: 0;
-  padding: 0;
-}
-
 .disciplinesPanel :global([data-testid='primary-build-panel'] > button),
 .techniquesPanel :global([data-testid='skill-build-panel'] > button) {
-  min-width: 4rem;
-  min-height: 1.7rem;
-  padding: 0.28rem 0.48rem;
-  border: 1px solid rgba(39, 119, 116, 0.42);
-  color: #285f60;
-  background: rgba(236, 246, 242, 0.86);
-  box-shadow: none;
-  font-size: 0;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.5rem 2.4rem;
+  border: 1px solid #799287;
+  background: #345951;
+  color: #f3e7cd;
 }
-
-.disciplinesPanel :global([data-testid='primary-build-panel'] > button)::after,
-.techniquesPanel :global([data-testid='skill-build-panel'] > button)::after {
-  content: none;
+.disciplinesPanel :global([data-testid='primary-build-panel'] > button strong),
+.techniquesPanel :global([data-testid='skill-build-panel'] > button strong) {
+  font: 500 1rem var(--av-font-display);
+  letter-spacing: 0;
+  text-transform: none;
 }
-
-.disciplinesPanel .sectionHeading,
-.techniquesPanel .sectionHeading {
-  padding-right: 4.6rem;
-}
-
-.techniqueGroups {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.55rem;
-}
-
-.techniqueGroup {
-  position: relative;
-  min-width: 0;
-  overflow: hidden;
-  border: 1px solid #4b6170;
-  color: #f3ede0;
-  background:
-    linear-gradient(90deg, rgba(7, 21, 32, 0.96), rgba(8, 27, 41, 0.78)),
-    url('/media/art/concept-ui/world-v01.webp') center 44% / cover;
-  box-shadow: inset 0 0 0 1px rgba(225, 193, 124, 0.05);
-}
-
-.techniqueGroup[data-discipline='lifebinder'] {
-  background:
-    linear-gradient(90deg, rgba(6, 32, 28, 0.96), rgba(10, 49, 37, 0.76)),
-    url('/media/art/concept-ui/world-v01.webp') center 68% / cover;
-}
-
-.techniqueGroup > header {
+.techniquesPanel {
+  grid-column: 2;
   display: flex;
-  min-width: 0;
-  gap: 0.55rem;
-  align-items: center;
-  padding: 0.42rem 0.55rem;
-  border-bottom: 1px solid rgba(212, 186, 130, 0.22);
-  background: rgba(3, 13, 21, 0.35);
+  flex-direction: column;
 }
-
-.techniqueGroup > header > :first-child {
-  flex: 0 0 1.7rem;
-  width: 1.7rem;
-  height: 1.7rem;
-}
-
-.techniqueGroup > header > div {
-  display: grid;
-  min-width: 0;
-  gap: 0.02rem;
-}
-
-.techniqueGroup > header strong {
-  color: #f0dfb3;
-  font: 600 0.83rem/1.05 var(--av-font-display);
-}
-
-.techniqueGroup > header small {
-  color: #b8c1c2;
-  font-size: 0.6rem;
-  line-height: 1.2;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.techniqueGroup > div {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.32rem 0.45rem;
-  padding: 0.45rem;
-}
-
-.techniqueRow,
-.emptyTechnique {
-  display: grid;
-  grid-template-columns: 3.5rem minmax(0, 1fr);
-  min-width: 0;
-  gap: 0.46rem;
-  align-items: center;
-  padding: 0;
-  border: 0;
-  background: rgba(255, 255, 255, 0.015);
-}
-
-.techniqueRow[data-equipped='true'] {
-  background: rgba(255, 255, 255, 0.035);
-  box-shadow: inset 0 0 0 1px rgba(212, 186, 130, 0.2);
-}
-
-.techniqueRow > div:last-child {
-  display: grid;
-  min-width: 0;
-  gap: 0.08rem;
-}
-
-.techniqueRow strong {
-  color: #f1e7d2;
-  font: 600 0.72rem/1.05 var(--av-font-display);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.techniqueRow small,
-.emptyTechnique > small {
-  color: #b4bcbc;
-  font-size: 0.58rem;
-  line-height: 1.15;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.emptyTechnique {
-  opacity: 0.46;
-}
-
-.emptyTechnique .mediaTile {
-  color: #a5adae;
-  border-style: dashed;
-  background: rgba(17, 38, 48, 0.74);
-  box-shadow: none;
-}
-
-.emptyTechnique .mediaTile > span {
-  font-size: 1.3rem;
-}
-
-.bottomGrid {
-  display: grid;
-  gap: 0.58rem;
-  margin-top: 0.55rem;
-}
-
-.attunementGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.5rem;
-}
-
-.attunementCard,
-.lockedAttunement {
-  display: grid;
-  grid-template-columns: 3.5rem minmax(0, 1fr);
-  min-width: 0;
-  gap: 0.55rem;
-  align-items: start;
-  padding: 0.48rem;
-  border: 1px solid rgba(126, 104, 68, 0.3);
-  background: rgba(255, 253, 246, 0.62);
-}
-
-.attunementCard > div:last-child,
-.lockedAttunement > div:last-child {
-  display: grid;
-  min-width: 0;
-  gap: 0.13rem;
-}
-
-.attunementCard strong,
-.lockedAttunement strong {
-  color: #233a49;
-  font: 600 0.82rem/1.08 var(--av-font-display);
-}
-
-.attunementCard span,
-.lockedAttunement span {
-  color: #806941;
-  font-size: 0.56rem;
-  font-weight: 750;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.attunementCard p,
-.lockedAttunement p {
-  margin: 0;
-  color: #5f707b;
-  font-size: 0.6rem;
-  line-height: 1.32;
-}
-
-.attunementCard b,
-.lockedAttunement b {
-  justify-self: start;
-  margin-top: 0.14rem;
-  padding: 0.17rem 0.45rem;
-  border: 1px solid rgba(30, 142, 123, 0.45);
-  color: #1f876f;
-  background: rgba(229, 247, 239, 0.78);
-  font-size: 0.57rem;
-  font-weight: 700;
-}
-
-.lockedAttunement {
-  opacity: 0.68;
-  background: #deddd7;
-}
-
-.lockedAttunement .mediaTile {
-  color: #727a7a;
-  background: #aeb2b1;
-  box-shadow: none;
-}
-
-.lockedAttunement b {
-  border-color: rgba(98, 102, 102, 0.28);
-  color: #59605f;
-  background: rgba(192, 194, 191, 0.7);
-}
-
-.emptyAttunement {
-  grid-column: 1 / -1;
-  margin: 0;
-  color: #657783;
-  font-style: italic;
-}
-
-.anomalyNote {
-  margin: 0.42rem 0 0;
-  color: #667783;
-  font: italic 0.61rem/1.3 var(--av-font-display);
-}
-
-.itemsPanel {
-  display: grid;
-  gap: 0.42rem;
-  align-content: start;
-  min-height: 0;
-  padding-bottom: 0.55rem;
-  background: linear-gradient(180deg, rgba(217, 219, 216, 0.58), rgba(207, 210, 207, 0.52));
-}
-
-.itemsPanel > p {
-  margin: -0.28rem 0 0;
-  color: #61717b;
-  font-size: 0.62rem;
-}
-
-.itemSlots {
-  display: grid;
-  grid-template-columns: repeat(8, minmax(2.5rem, 1fr));
-  gap: 0.34rem;
-  padding: 0.55rem;
-  border: 1px solid #59676b;
-  background: radial-gradient(circle at 50% 0%, rgba(90, 116, 126, 0.12), transparent 60%), #15242b;
-}
-
-.itemSlots > div {
-  display: grid;
-  min-width: 0;
-  aspect-ratio: 1;
-  place-items: center;
-  align-content: center;
-  gap: 0.1rem;
-  border: 1px solid #4d5c61;
-  color: #6f7b7e;
-  background: #172932;
-}
-
-.itemSlots > div > span {
-  font-size: 1rem;
-}
-
-.itemSlots small {
+.techniquesPanel .techniqueLaneIdentity {
   display: none;
 }
-
-.comingSoon {
+.techniqueLanes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.4rem;
+  margin-bottom: 0.8rem;
+}
+.techniqueLanes > .sectionHeading {
+  margin-bottom: 0;
+}
+.techniqueLane {
+  min-width: 0;
+}
+.techniqueLaneIdentity {
+  text-align: center;
+  padding: 0.2rem 0 0.6rem;
+}
+.techniqueLaneIdentity strong {
+  font: 500 1rem var(--av-font-display);
+}
+.techniqueLaneIdentity small {
+  display: block;
+  font-size: 0.8125rem;
+}
+.techniqueSlots {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.45rem;
+  align-items: start;
+}
+.overviewTechnique {
   display: grid;
   justify-items: center;
-  gap: 0.08rem;
-  margin-top: -0.1rem;
-  padding: 0.42rem 0.7rem;
-  border: 1px solid rgba(197, 160, 91, 0.35);
-  color: #e7ddc9;
-  background: #10222d;
+  min-width: 0;
+  gap: 0.4rem;
+}
+.overviewTechnique strong {
+  color: #333a33;
+  font: 500 0.875rem/1.25 var(--av-font-display);
   text-align: center;
+  overflow-wrap: anywhere;
+}
+.overviewTechniqueArt,
+.emptyTechniqueSlot,
+.lockedTechniqueSlot {
+  display: grid;
+  width: min(var(--av-cockpit-art-size), 100%);
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 1px solid #9f875b;
+  background: #b6a88e;
+  place-items: center;
+}
+.overviewTechniqueArt img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.emptyTechniqueSlot,
+.lockedTechniqueSlot {
+  font-size: 1.8rem;
+  color: #6d644f;
+}
+.bottomGrid {
+  grid-column: 2;
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 0.7rem;
+  min-width: 0;
+}
+.attunementPanel {
+  z-index: 4;
+}
+.attunementGrid {
+  display: grid;
+  gap: 0.5rem;
+}
+.powerGrid {
+  display: grid;
+  gap: 0.5rem;
+}
+.attunementCard,
+.futurePowerCard {
+  display: grid;
+  grid-template-columns: var(--av-cockpit-art-size) minmax(0, 1fr);
+  gap: 0.7rem;
+  align-items: center;
+  min-width: 0;
+}
+.attunementCard > div,
+.futurePowerCard > div {
+  display: grid;
+  min-width: 0;
+  gap: 0.2rem;
+}
+.attunementCard strong,
+.futurePowerCard strong {
+  font: 500 1.1rem/1.2 var(--av-font-display);
+  color: #333a33;
+}
+.attunementCard p,
+.futurePowerCard p {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.35;
+}
+.attunementCard b,
+.futurePowerCard b {
+  color: #376150;
+  font-size: 0.8125rem;
+}
+.attunementCard[data-active='false'] b {
+  color: #6d675b;
+}
+.attunementPreviewAnchor {
+  position: relative;
+  display: grid;
+  width: min(var(--av-cockpit-art-size), 100%);
+  aspect-ratio: 1;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.attunementPreviewAnchor:focus-visible {
+  outline: 2px solid #345951;
+  outline-offset: 3px;
+}
+.attunementArt,
+.powerGlyph {
+  display: grid;
+  width: min(var(--av-cockpit-art-size), 100%);
+  aspect-ratio: 1;
+  overflow: hidden;
+  place-items: center;
+  border: 1px solid #9f875b;
+  background: #1c3e3d;
+}
+.attunementArt img,
+.powerGlyph img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.attunementCard[data-active='false'] .attunementArt {
+  background: #ac9e82;
 }
 
-.comingSoon strong {
-  font: 600 0.82rem/1 var(--av-font-display);
-}
-
-.comingSoon small {
-  color: #aeb8b9;
-  font-size: 0.57rem;
-}
-
-@media (min-width: 1200px) {
-  .layout {
-    min-height: 100%;
-    grid-template-columns: clamp(18rem, 20.5vw, 21.8rem) minmax(0, 1fr);
-    align-items: start;
-    align-content: start;
+@media (min-width: 1600px) {
+  .techniqueSlots {
+    gap: 1rem;
   }
-
-  .layout > * {
-    min-height: 0;
-    overflow: visible;
+  .disciplineSigil {
+    width: 7rem;
   }
-
-  .bottomGrid {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 0.92fr);
+  .disciplineCard {
+    grid-template-columns: 7rem minmax(0, 1fr);
   }
 }
-
-@media (min-width: 761px) and (max-width: 1199px) {
-  .techniqueGroups,
-  .bottomGrid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .disciplineRow {
-    grid-template-columns: 3.5rem minmax(8rem, 0.7fr) minmax(0, 1fr);
-  }
-
-  .disciplineLabel {
-    display: none;
-  }
-}
-
-@media (max-width: 760px) {
-  .layout {
-    gap: 0.6rem;
-  }
-
+@media (max-width: 1100px) {
   .arsenal {
-    padding: 0.68rem;
-  }
-
-  .pageHeading {
+    height: auto;
     grid-template-columns: minmax(0, 1fr);
-    background-size: cover;
+    grid-template-rows: none;
   }
-
-  .pageHeading > small {
-    display: none;
-  }
-
-  .pageIcon {
-    font-size: 2rem;
-  }
-
-  .sectionHeading {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .sectionHeading > small,
-  .techniquesPanel .sectionHeading > small,
-  .itemsPanel .sectionHeading > small {
+  .disciplinesPanel,
+  .techniquesPanel,
+  .bottomGrid {
     grid-column: 1;
     grid-row: auto;
-    white-space: normal;
   }
-
-  .disciplinesPanel .sectionHeading,
-  .techniquesPanel .sectionHeading {
-    padding-right: 0;
+  .disciplinePair {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-
-  .disciplinesPanel :global([data-testid='primary-build-panel']),
-  .techniquesPanel :global([data-testid='skill-build-panel']) {
-    position: static;
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 0.45rem;
-  }
-
-  .disciplineRow {
-    grid-template-columns: 3.5rem minmax(0, 1fr);
-  }
-
-  .disciplineDescription,
-  .disciplineLabel {
-    display: none;
-  }
-
-  .techniqueGroups,
-  .attunementGrid,
+}
+@media (max-width: 760px) {
+  .disciplinePair,
+  .techniqueLanes,
   .bottomGrid {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: 1fr;
   }
-
-  .techniqueGroup > div {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .itemSlots {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+  .arsenal {
+    padding: 0;
   }
 }
 
-@media (max-width: 420px) {
-  .techniqueRow,
-  .emptyTechnique {
-    grid-template-columns: min(3.5rem, 18vw) minmax(0, 1fr);
-  }
+.attunementIdentity {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.attunementIdentity > b {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.attunementIdentity > strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
 
-  .mediaTile {
-    width: min(3.5rem, 18vw);
-    height: min(3.5rem, 18vw);
-  }
+.disciplineSigil,
+.overviewTechniqueArt,
+.attunementArt,
+.powerGlyph {
+  position: relative;
+  border: 1px solid #b18c47;
+  border-radius: 3px;
+  box-shadow:
+    0 0 0 1px #453c2c55,
+    0 2px 5px #20262930;
+}
+.disciplineSigil::after,
+.overviewTechniqueArt::after,
+.attunementArt::after,
+.powerGlyph::after {
+  position: absolute;
+  inset: 2px;
+  border: 1px solid #e8cc874d;
+  border-radius: 1px;
+  content: '';
+  pointer-events: none;
+}
 
+.supportSummary {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-block: 0.15rem 0.65rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid #907d52;
+  background: linear-gradient(115deg, #d6c6a8a8, #bdaf9133);
+}
+.supportSummary > div {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+.supportSummary strong {
+  color: #293a32;
+  font: 600 1rem/1.2 var(--av-font-display);
+}
+
+.techniqueSummary {
+  display: grid;
+  grid-template-columns: minmax(0, 4fr) minmax(0, 1.25fr);
+  gap: 0.65rem;
+  align-items: start;
+  margin-bottom: 0.65rem;
+}
+.techniqueSummary .supportSummary {
+  display: grid;
+  justify-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: none;
+  text-align: center;
+}
+.techniqueSummary .supportSummary > div {
+  justify-items: center;
+}
+.techniqueSummary .supportSummary > header {
+  margin-bottom: 0;
+  align-self: stretch;
+  width: 100%;
+  justify-content: center;
+}
+.techniqueSummary .supportSummary strong {
+  font-size: 0.875rem;
+  line-height: 1.25;
+}
+@media (min-width: 1101px) {
+  .techniqueSummary {
+    /* Reserve the Support heading's width instead of an extra line of row height. */
+    grid-template-columns: minmax(0, 4fr) minmax(10.5rem, 1.25fr);
+  }
+}
+@media (max-width: 480px) {
+  .techniqueSummary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .techniqueSummary .supportSummary {
+    grid-template-columns: var(--av-cockpit-art-size) minmax(0, 1fr);
+    justify-items: start;
+    text-align: left;
+  }
+  .techniqueSummary .supportSummary > div {
+    justify-items: start;
+  }
+  .techniqueSummary .supportSummary > header {
+    grid-column: 1 / -1;
+    justify-content: start;
+    text-align: left;
+  }
+}
+
+@media (min-width: 821px) {
+  .layout {
+    --av-cockpit-art-size: 5.5rem;
+  }
+}
+@media (min-width: 821px) and (max-height: 700px) {
+  .layout {
+    --av-cockpit-art-size: 4.625rem;
+  }
+}
+@media (min-width: 821px) and (max-width: 1100px) {
+  .layout {
+    --av-cockpit-art-size: 4.25rem;
+  }
+}
+@media (min-width: 821px) and (max-width: 1100px) and (max-height: 620px) {
+  .layout {
+    --av-cockpit-art-size: 4rem;
+  }
+}
+
+/* Populated Nexus rows must reserve their real artwork, labels and management controls. */
+@media (min-width: 1101px) and (max-height: 800px) {
+  .arsenal {
+    gap: 0.5rem;
+  }
+  .panel {
+    padding: 0.6rem;
+  }
+  .sectionHeading {
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.35rem;
+  }
+  .techniqueLanes {
+    margin-bottom: 0.5rem;
+  }
+  .techniqueSummary,
+  .techniquesPanel :global([data-testid='skill-build-panel']) {
+    flex-shrink: 0;
+  }
+}
+@media (min-width: 1101px) and (max-height: 700px) {
+  .arsenal {
+    gap: 0.35rem;
+  }
+  .panel {
+    padding: 0.45rem;
+  }
+  .sectionHeading {
+    margin-bottom: 0.3rem;
+    padding-bottom: 0.3rem;
+  }
+  .techniqueLanes {
+    margin-bottom: 0.35rem;
+  }
+  .disciplinesPanel :global([data-testid='primary-build-panel'] > button),
+  .techniquesPanel :global([data-testid='skill-build-panel'] > button) {
+    min-height: 2.5rem;
+    padding-block: 0.35rem;
+  }
+}
+
+/* Phones: compact Nexus. Art, headings and cards shrink so disciplines, techniques and attunement fit on fewer screens. */
+@media (max-width: 760px) {
+  .arsenal {
+    --av-cockpit-art-size: 3.5rem;
+    --av-gameplay-art-size: 3.5rem;
+    gap: 0.45rem;
+  }
+  .panel {
+    padding: 0.55rem;
+  }
+  .sectionHeading {
+    margin-bottom: 0.4rem;
+    padding-bottom: 0.3rem;
+  }
+  .sectionHeading h2 {
+    font-size: 1.05rem;
+  }
+  .disciplinePair {
+    gap: 0;
+  }
+  .disciplineCard {
+    grid-template-columns: 3.5rem minmax(0, 1fr);
+    gap: 0.55rem;
+    padding: 0.4rem 0;
+  }
+  .disciplineSigil {
+    width: 3.5rem;
+  }
+  .disciplineCard strong {
+    font-size: 1.05rem;
+  }
+  .disciplineCard p {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    font-size: 0.8125rem;
+    line-height: 1.3;
+  }
+  .techniqueLanes {
+    margin-bottom: 0.4rem;
+  }
+  .techniqueSlots {
+    gap: 0.35rem;
+  }
+  .overviewTechnique strong {
+    font-size: 0.8125rem;
+    line-height: 1.15;
+  }
+  .techniqueSummary {
+    gap: 0.4rem;
+    margin-bottom: 0.4rem;
+  }
+  .supportSummary {
+    padding: 0.3rem 0.4rem;
+  }
   .attunementCard,
-  .lockedAttunement {
-    grid-template-columns: min(3.5rem, 18vw) minmax(0, 1fr);
+  .futurePowerCard {
+    gap: 0.5rem;
+  }
+  .attunementCard strong,
+  .futurePowerCard strong {
+    font-size: 1rem;
+  }
+}
+
+/* Match the existing Discipline Skills star only on mobile. */
+.mobileSupportStar {
+  display: none;
+}
+@media (max-width: 760px) {
+  .mobileSupportStar {
+    display: inline;
+    color: #9a783d;
+    font-size: 0.95rem;
+  }
+}
+
+/* Pseudo-element is mobile-only and will not create a hidden desktop text node. */
+@media (max-width: 760px) {
+  .supportSummary .sectionHeading > div::before {
+    content: '✦';
+    color: #9a783d;
+    font-size: 0.86rem;
+    margin-right: 0.42rem;
   }
 }

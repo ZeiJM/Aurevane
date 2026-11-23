@@ -13,6 +13,7 @@ import styles from './battle-lesson-coach.module.css'
 interface BattleLessonCoachProps {
   battleSessionId: string
   recordId: TacticalHallRecordId
+  recoveryPractice?: boolean
 }
 
 const EMPTY_PROGRESS: GuidedTrainingProgress = {
@@ -159,16 +160,47 @@ function useVictoryControlBridge({
   }, [ariaLabel, counter, hasUnseenProgress, onOpen, target])
 }
 
-export function BattleLessonCoach({ battleSessionId, recordId }: BattleLessonCoachProps) {
+export function BattleLessonCoach({
+  battleSessionId,
+  recordId,
+  recoveryPractice = false,
+}: BattleLessonCoachProps) {
   if (recordId === 'guided-fundamentals') {
-    return <GuidedFundamentalsCriteria battleSessionId={battleSessionId} />
+    return (
+      <GuidedFundamentalsCriteria
+        battleSessionId={battleSessionId}
+        recoveryPractice={recoveryPractice}
+      />
+    )
   }
   return <StandardBattleCriteria recordId={recordId} />
+}
+
+function useVictoryDialogDismiss(
+  open: boolean,
+  target: HTMLButtonElement | null,
+  setOpen: (open: boolean) => void,
+) {
+  const panel = useRef<HTMLElement>(null)
+  useEffect(() => {
+    if (!open) return
+    panel.current?.focus()
+    const dismiss = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      event.preventDefault()
+      setOpen(false)
+      target?.focus()
+    }
+    document.addEventListener('keydown', dismiss)
+    return () => document.removeEventListener('keydown', dismiss)
+  }, [open, setOpen, target])
+  return panel
 }
 
 function StandardBattleCriteria({ recordId }: { recordId: TacticalHallRecordId }) {
   const [open, setOpen] = useState(false)
   const victoryTarget = useVictoryControlTarget()
+  const panel = useVictoryDialogDismiss(open, victoryTarget, setOpen)
   const record = getTacticalHallRecord(recordId)
 
   useVictoryControlBridge({
@@ -181,6 +213,8 @@ function StandardBattleCriteria({ recordId }: { recordId: TacticalHallRecordId }
   return open ? (
     <div className={styles.guidedBackdrop} onPointerDown={() => setOpen(false)}>
       <section
+        ref={panel}
+        tabIndex={-1}
         className={styles.guidedPanel}
         role="dialog"
         aria-modal="true"
@@ -212,12 +246,28 @@ function StandardBattleCriteria({ recordId }: { recordId: TacticalHallRecordId }
   ) : null
 }
 
-function GuidedFundamentalsCriteria({ battleSessionId }: { battleSessionId: string }) {
+function GuidedFundamentalsCriteria({
+  battleSessionId,
+  recoveryPractice,
+}: {
+  battleSessionId: string
+  recoveryPractice: boolean
+}) {
+  const criteria = GUIDED_CRITERIA.map((criterion) =>
+    recoveryPractice && criterion.id === 'guard'
+      ? {
+          ...criterion,
+          label: 'Use HP Recovery',
+          why: 'Recovery spends Action Economy to restore missing HP. Compare the recovery with the pressure you could apply before committing.',
+        }
+      : criterion,
+  )
   const [open, setOpen] = useState(true)
   const [progress, setProgress] = useState<GuidedTrainingProgress>(EMPTY_PROGRESS)
   const [error, setError] = useState<string | null>(null)
   const [hasUnseenProgress, setHasUnseenProgress] = useState(false)
   const victoryTarget = useVictoryControlTarget()
+  const panel = useVictoryDialogDismiss(open, victoryTarget, setOpen)
   const latestProgress = useRef<GuidedTrainingProgress>(EMPTY_PROGRESS)
   const completing = useRef(false)
 
@@ -303,6 +353,8 @@ function GuidedFundamentalsCriteria({ battleSessionId }: { battleSessionId: stri
         role="dialog"
         aria-modal="true"
         aria-labelledby="guided-training-title"
+        ref={panel}
+        tabIndex={-1}
         onPointerDown={(event) => event.stopPropagation()}
       >
         <button
@@ -322,7 +374,7 @@ function GuidedFundamentalsCriteria({ battleSessionId }: { battleSessionId: stri
           New progress highlights the Victory Conditions button instead of interrupting your turn.
         </p>
         <ol className={styles.criteria}>
-          {GUIDED_CRITERIA.map((criterion) => {
+          {criteria.map((criterion) => {
             const complete = progress[criterion.id]
             return (
               <li key={criterion.id} data-complete={complete || undefined}>

@@ -1,4 +1,15 @@
+import {
+  findBattleBasicAction,
+  battleBasicBehavior,
+  canAffordBattleBasicAction,
+  canAffordBattleCosts,
+} from '@/lib/battle/battle-basic-actions'
+import type { AbilityBehavior } from '@aurevane/game-core/combat/combat-definition'
 import { pv1fMovementModifiers } from '@aurevane/game-core/combat/pv1f-action-economy'
+import { PV1F_COMBAT_CONTENT } from '@aurevane/game-core/combat/pv1f-action-economy'
+import { airborneMovementTactical } from '@aurevane/game-core/combat/combat-airborne'
+import { canEnterElevation } from '@aurevane/game-core/combat/board'
+import { hasCombatTargetLineOfSight } from '@aurevane/game-core/combat/combat-targeting-shapes'
 import {
   PV1F_MOVEMENT_COST_PER_TERRAIN_POINT,
   movementApCostForTile,
@@ -20,6 +31,22 @@ export function positionKey(position: BattleGridPosition): string {
 
 export function positionsEqual(left: BattleGridPosition, right: BattleGridPosition): boolean {
   return left.x === right.x && left.y === right.y
+}
+
+/** A corpse remains visible on vacant ground; a living occupant receives tile selection priority. */
+export function buildDisplayedPlacementByTile(tactical: Tactical): Map<string, Placement> {
+  const livingIds = new Set(
+    tactical.battle.combatants.filter((row) => row.hp > 0).map((row) => row.id),
+  )
+  const result = new Map<string, Placement>()
+  for (const placement of tactical.placements) {
+    const key = positionKey(placement.position)
+    const existing = result.get(key)
+    if (!existing || livingIds.has(placement.combatantId) || !livingIds.has(existing.combatantId)) {
+      result.set(key, placement)
+    }
+  }
+  return result
 }
 
 /**
@@ -76,25 +103,67 @@ export function buildReachablePaths(
   state: BattleSessionView['snapshot'],
   activePlacement: Placement | null,
   actionEconomy: number,
+  maximumSteps = Infinity,
+  behaviorId?: string,
+  attachedMove?: {
+    maximumTiles: number
+    costs: AbilityBehavior['costs']
+    independentAllowance?: boolean
+    maximumElevation?: number
+    requiresLineOfSight?: boolean
+  },
 ): Map<string, BattleGridPosition[]> {
-  const tactical = state.tactical
+  let tactical = airborneMovementTactical(state, PV1F_COMBAT_CONTENT)
   const turn = tactical.battle.currentTurn
   if (!turn || !activePlacement || turn.combatantId !== activePlacement.combatantId) {
     return new Map()
   }
 
+  const basic = attachedMove
+    ? undefined
+    : findBattleBasicAction(state, activePlacement.combatantId, 'basic.move')
+  if (basic === null || basic?.enabled === false) return new Map()
+  const actor = tactical.battle.combatants.find((unit) => unit.id === activePlacement.combatantId)!
+  const behavior = basic ? battleBasicBehavior(basic, behaviorId) : undefined
+  const movementRules = attachedMove ?? behavior?.move ?? basic?.movement
+  tactical = airborneMovementTactical(state, PV1F_COMBAT_CONTENT, movementRules?.maximumElevation)
   const profile = tactical.movementProfiles.find(
     (candidate) => candidate.id === activePlacement.movementProfileId,
   )
   if (!profile) return new Map()
+  const flat = Boolean(attachedMove) || basic?.movement?.costBasis === 'flat'
+  if (
+    attachedMove &&
+    !canAffordBattleCosts(attachedMove.costs, { ap: actionEconomy, mp: actor.mp, hp: actor.hp })
+  )
+    return new Map()
+  if (
+    !attachedMove &&
+    flat &&
+    !canAffordBattleBasicAction(
+      basic,
+      { ap: actionEconomy, mp: actor.mp, hp: actor.hp },
+      behaviorId,
+    )
+  )
+    return new Map()
+  const tileCap =
+    attachedMove?.maximumTiles ??
+    behavior?.move?.maximumTiles ??
+    basic?.movement?.maximumTiles ??
+    Infinity
+  const apPerPoint = basic?.movement?.apPerTraversalPoint ?? MOVE_COST_PER_TERRAIN_POINT
 
   const modifiers = pv1fMovementModifiers(state)
   if (modifiers.blocked) return new Map()
   const tiles = new Map(tactical.tiles.map((tile) => [positionKey(tile.position), tile] as const))
+  const defeatedIds = new Set(
+    tactical.battle.combatants.filter((row) => row.hp === 0).map((row) => row.id),
+  )
   const occupied = new Map(
-    tactical.placements.map(
-      (placement) => [positionKey(placement.position), placement.combatantId] as const,
-    ),
+    tactical.placements
+      .filter((placement) => !defeatedIds.has(placement.combatantId))
+      .map((placement) => [positionKey(placement.position), placement.combatantId] as const),
   )
   const result = new Map<string, BattleGridPosition[]>()
   // Neither AP nor Movement dominates the other once tile/status surcharges apply.
@@ -140,12 +209,30 @@ export function buildReachablePaths(
       }
 
       const neighborKey = positionKey(neighbor)
+      if (
+        movementRules?.requiresLineOfSight &&
+        !hasCombatTargetLineOfSight(
+          tactical,
+          activePlacement.position,
+          neighbor,
+          state.terrainOverlays,
+        )
+      )
+        continue
       const neighborTile = tiles.get(neighborKey)
       const currentTile = tiles.get(positionKey(current.position))
       if (!neighborTile || !currentTile) continue
       const occupant = occupied.get(neighborKey)
       if (occupant && occupant !== activePlacement.combatantId) continue
-      if (Math.abs(neighborTile.elevation - currentTile.elevation) > profile.maxElevationStep) {
+      if (
+        !canEnterElevation(
+          currentTile.elevation,
+          neighborTile.elevation,
+          profile.maxElevationStep,
+          state.statBalancePolicyVersion,
+          state.airborneJumpPolicyVersion,
+        )
+      ) {
         continue
       }
 
@@ -155,10 +242,17 @@ export function buildReachablePaths(
         activePlacement.movementProfileId,
       )
       if (traversalCost === null) continue
-      const movement = current.movement + traversalCost
+      const movement = current.movement + 1
       const ap =
-        current.ap + movementApCostForTile(traversalCost, modifiers.additionalApAt(neighbor))
-      if (movement > turn.movementRemaining || ap > actionEconomy) continue
+        current.ap +
+        (flat
+          ? 0
+          : movementApCostForTile(traversalCost, modifiers.additionalApAt(neighbor), apPerPoint))
+      const allowance =
+        attachedMove && attachedMove.independentAllowance !== false
+          ? tileCap
+          : turn.movementRemaining
+      if (movement > Math.min(allowance, maximumSteps, tileCap) || ap > actionEconomy) continue
       const known = bestCosts.get(neighborKey) ?? []
       if (known.some((cost) => cost.movement <= movement && cost.ap <= ap)) continue
       bestCosts.set(neighborKey, [
@@ -175,4 +269,15 @@ export function buildReachablePaths(
   }
 
   return result
+}
+
+/** Every highlighted destination has one complete affordable route from the committed origin. */
+export function buildMovementPaths(
+  state: BattleSessionView['snapshot'],
+  activePlacement: Placement | null,
+  actionEconomy: number,
+  behaviorId?: string,
+): Map<string, BattleGridPosition[]> {
+  const paths = buildReachablePaths(state, activePlacement, actionEconomy, Infinity, behaviorId)
+  return new Map([...paths].filter(([, path]) => path.length > 1))
 }

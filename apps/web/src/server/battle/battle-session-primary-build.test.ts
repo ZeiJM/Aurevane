@@ -103,10 +103,15 @@ function committedSnapshot(): CharacterCommittedBuildSnapshotRecord {
 }
 
 describe('battle session committed Primary stat authority', () => {
-  it('uses the committed Primary profile for Movement and other derived battle values', async () => {
+  it('pins current Core-derived battle values without legacy Primary offsets', async () => {
+    let profileReady = false
     const characterRecord = character()
     const characters: CharacterRepository = {
-      findByOwnerSlot: vi.fn(async () => characterRecord),
+      findByOwnerSlot: vi.fn(async () => {
+        await Promise.resolve()
+        profileReady = true
+        return characterRecord
+      }),
       createBaseCharacter: vi.fn(async () => {
         throw new Error('Not used.')
       }),
@@ -137,14 +142,21 @@ describe('battle session committed Primary stat authority', () => {
     const build = activeBuild()
     const snapshot = committedSnapshot()
     const builds: CharacterBuildRepository = {
-      findActiveBuild: vi.fn(async () => build),
+      findActiveBuild: vi.fn(async () => {
+        expect(profileReady, 'character profile must refresh before build capture').toBe(true)
+        return build
+      }),
       listDisciplines: vi.fn(async () => []),
       listLearnedSkills: vi.fn(async () => []),
       listEquippedDisciplineSkills: vi.fn(async () => []),
-      loadCommittedBuildSnapshot: vi.fn(async () => snapshot),
+      loadCommittedBuildSnapshot: vi.fn(async () => {
+        expect(profileReady, 'character profile must refresh before snapshot capture').toBe(true)
+        return snapshot
+      }),
       changeDisciplines: vi.fn(async () => {
         throw new Error('Not used.')
       }),
+      saveSupportAction: vi.fn(async () => ({ buildVersion: 2, replayed: false })),
       saveDisciplineSkills: vi.fn(async () => {
         throw new Error('Not used.')
       }),
@@ -160,6 +172,13 @@ describe('battle session committed Primary stat authority', () => {
     const persistedInput = readCreateInput()
     if (!persistedInput) throw new Error('Expected a persisted battle snapshot.')
     const state = persistedInput.initialSnapshot as StatDrivenCombatEncounterState
+    expect(
+      (
+        persistedInput.initialSnapshot as {
+          buildAuthority: { combatants: { narratorIdentity?: unknown }[] }
+        }
+      ).buildAuthority.combatants[0]?.narratorIdentity,
+    ).toEqual({ name: 'Wayfarer', pronounPresetId: 'they_them' })
     const player = state.tactical.battle.combatants.find(
       (combatant) => combatant.id === `character:${CHARACTER_ID}`,
     )
@@ -167,11 +186,26 @@ describe('battle session committed Primary stat authority', () => {
       (candidate) => candidate.combatantId === `character:${CHARACTER_ID}`,
     )
 
-    // All Level-1 characters start at Movement 2; legacy profile offsets cannot bypass that rule.
-    // Other committed Primary modifiers must still reach the battle snapshot.
+    // Current derived curves use effective Core; the pinned Primary's legacy offsets are retired.
+    expect(state.statBalancePolicyVersion).toBe(1)
+    expect(state.statBridge).toMatchObject({ schemaVersion: 4, rulesVersion: 4 })
     expect(player?.baseMovementBudget).toBe(2)
     expect(state.tactical.battle.currentTurn?.movementRemaining).toBe(2)
-    expect(profile?.accuracy).toBe(6_950)
-    expect(profile?.evasion).toBe(320)
+    expect(profile).toMatchObject({
+      provenance: {
+        kind: 'character-derived',
+        sourceId: `character:${CHARACTER_ID}`,
+        sourceRulesVersion: 5,
+      },
+      accuracy: 8_875,
+      evasion: 375,
+      physicalPower: 52,
+      mysticPower: 52,
+      armor: 52,
+      ward: 52,
+      jump: 0,
+      criticalChance: 225,
+      statusResistance: 150,
+    })
   })
 })

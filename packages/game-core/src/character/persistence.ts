@@ -5,7 +5,6 @@ import type {
   PronounPresetId,
   StarterAppearanceRef,
 } from './creation'
-import type { FoundationDisciplineId } from './foundation-disciplines'
 
 export const BASE_CHARACTER_SLOT_INDEX = 0 as const
 
@@ -20,7 +19,7 @@ export interface PersistedCharacter {
   pronounPresetId: PronounPresetId
   portraitRef: CharacterPortraitRef
   starterAppearanceRef: StarterAppearanceRef
-  foundationDisciplineId: FoundationDisciplineId
+  foundationDisciplineId: string
   attributes: CharacterAttributes
   level: number
   xp: number

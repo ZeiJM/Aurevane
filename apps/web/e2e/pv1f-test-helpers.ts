@@ -28,7 +28,8 @@ async function confirmTestAccountEmail(email: string): Promise<void> {
 
   if (error) throw error
 
-  const user = data.users.find((candidate) => candidate.email === email)
+  const normalizedEmail = email.trim().toLowerCase()
+  const user = data.users.find((candidate) => candidate.email?.toLowerCase() === normalizedEmail)
   if (!user) throw new Error('The browser-test account was not created in local Supabase.')
 
   const { error: confirmError } = await supabase.auth.admin.updateUserById(user.id, {
@@ -52,7 +53,14 @@ async function signInExistingAccount(input: {
   await page.getByRole('button', { name: 'Enter AUREVANE' }).click()
 
   await expect(page).toHaveURL(/\/game$/)
-  await expect(page.getByRole('heading', { name: 'Choose your character.' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Choose your character' })).toBeVisible()
+}
+
+export async function allocateCreationPoints(page: Page): Promise<void> {
+  const creation = page.getByTestId('character-creation')
+  for (const attribute of ['might', 'might', 'vitality', 'vitality', 'resolve']) {
+    await creation.getByRole('button', { name: `Increase ${attribute} bonus` }).click()
+  }
 }
 
 async function createCharacterAfterSignIn(input: {
@@ -68,13 +76,29 @@ async function createCharacterAfterSignIn(input: {
   await page.getByLabel('Character name').fill(characterName)
   await page.getByRole('button', { name: 'Choose your discipline' }).click()
 
-  await expect(page.getByTestId('attribute-points')).toContainText('0 personal points remaining')
+  await expect(page.getByTestId('creation-discipline-workspace')).toBeVisible({ timeout: 15_000 })
+  const reviewCharacter = page.getByRole('button', { name: 'Review character' })
+  await expect(reviewCharacter).toBeVisible({ timeout: 15_000 })
+  await allocateCreationPoints(page)
+  await expect(reviewCharacter).toBeEnabled()
 
-  await page.getByRole('button', { name: 'Review character' }).click()
+  await reviewCharacter.click()
   await page.getByRole('button', { name: 'Create character' }).click()
 
-  await expect(page).toHaveURL(/\/game\/character$/)
-  await expect(page.getByTestId('character-profile')).toContainText(characterName)
+  await expect(page).toHaveURL(/\/game\/haven$/)
+  await expect(page.getByRole('heading', { name: /^Welcome home,/ })).toBeVisible()
+  await page.goto('/game/character')
+  await expect(page.locator('[data-profile-workspace]')).toBeVisible()
+  const railIdentity = page
+    .getByTestId('authenticated-shell')
+    .locator('[data-av-game-rail]')
+    .getByTestId('character-rail-profile')
+  await expect(railIdentity).toHaveCount(1)
+  await expect(railIdentity).toContainText(characterName)
+  const visibleRailIdentities = page.getByTestId('character-rail-profile').filter({ visible: true })
+  // The desktop rail renders one identity; the phone shell intentionally hides its rail identity.
+  const desktopRail = await page.evaluate(() => matchMedia('(min-width: 761px)').matches)
+  await expect(visibleRailIdentities).toHaveCount(desktopRail ? 1 : 0)
 }
 
 export async function createVerifiedAccountAndSignIn(input: {
@@ -117,19 +141,21 @@ export async function provisionAccountAndEnterCharacter(input: {
   email: string
   password: string
   characterName: string
-}): Promise<void> {
+}): Promise<{ userId: string }> {
   const { page, email, password, characterName } = input
   const supabase = createTestAuthAdminClient()
-  const { error } = await supabase.auth.admin.createUser({
+  const { data, error } = await supabase.auth.admin.createUser({
     email,
     password,
     email_confirm: true,
   })
 
   if (error) throw error
+  if (!data.user?.id) throw new Error('Local Supabase did not return a created user ID.')
 
   await signInExistingAccount({ page, email, password })
   await createCharacterAfterSignIn({ page, characterName })
+  return { userId: data.user.id }
 }
 
 export async function signOutFromAccountMenu(page: Page): Promise<void> {
@@ -141,7 +167,7 @@ export async function signOutFromAccountMenu(page: Page): Promise<void> {
 export async function openOfflineTraining(page: Page): Promise<void> {
   await page
     .getByRole('navigation', { name: 'Primary game navigation', exact: true })
-    .getByRole('link', { name: /Passive Training/ })
+    .getByRole('link', { name: /Training/ })
     .click()
   await expect(page).toHaveURL(/\/game\/training$/)
   await expect(page.getByRole('heading', { name: 'Passive Training' })).toBeVisible()

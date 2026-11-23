@@ -1,6 +1,9 @@
+import { openBattleInfoMenu } from './battle-info-menu-helpers'
 import { expectBattlePreviewFits } from './battle-reference-layout-helpers'
+import { expectNoSkillPreviewMetadata } from './battle-preview-metadata-helpers'
 import { expect, test, type Locator, type Page } from '@playwright/test'
 
+import { selectDiscipline } from './discipline-library-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 function uniqueCharacterName(): string {
@@ -28,43 +31,28 @@ function tileDistance(first: { x: number; y: number }, second: { x: number; y: n
 
 async function setSkill(page: Page, name: string, checked: boolean): Promise<void> {
   const checkbox = skillRow(page, name).getByRole('checkbox')
-  if ((await checkbox.isChecked()) !== checked) await checkbox.click()
-}
+  if ((await checkbox.isChecked()) === checked) return
 
-async function commitSkills(page: Page, expectedNames: readonly string[]): Promise<void> {
-  // Refresh remounts the versioned panel and can clear its transient status. Verify the
-  // authoritative response and settled selection before the existing reload-persistence checks.
   const saved = page.waitForResponse(
     (response) =>
       new URL(response.url()).pathname === '/api/character/build/skills' &&
       response.request().method() === 'PUT',
   )
-  const commit = page.getByRole('button', { name: 'Commit Selected Techniques', exact: true })
-  await commit.click()
-  const response = await saved
-  expect(response.status()).toBe(200)
-  const body = await response.json()
-  expect(
-    body.context.disciplineSkills.equippedSkills.map(
-      (entry: { definition: { id: string } }) => entry.definition.id,
-    ),
-  ).toEqual(response.request().postDataJSON().skillIds)
-  await expect(commit).toBeDisabled()
-  for (const name of expectedNames) {
-    await expect(skillRow(page, name).getByRole('checkbox')).toBeChecked()
-  }
+  await checkbox.click()
+  expect((await saved).status()).toBe(200)
+  await expect(checkbox).toBeChecked({ checked })
 }
 
-async function reloadArsenal(page: Page): Promise<void> {
-  if (new URL(page.url()).pathname.startsWith('/game/arsenal')) {
+async function reloadNexus(page: Page): Promise<void> {
+  if (new URL(page.url()).pathname.startsWith('/game/nexus')) {
     await page.reload()
   } else {
-    await page.goto('/game/arsenal')
+    await page.goto('/game/nexus')
   }
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
-  await expect(page.getByTestId('character-profile')).toBeVisible()
+  await expect(page.locator('[data-av-game-rail]')).toBeVisible()
 
-  // Arsenal build panels intentionally persist through refresh via URL state. Confirm that
+  // Nexus build panels intentionally persist through refresh via URL state. Confirm that
   // persisted panel is restored, then close it so the next buildcraft step can open the other
   // authoritative panel rather than clicking through a modal backdrop.
   const openDialog = page.getByRole('dialog')
@@ -106,7 +94,10 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   expect(prepared.body).toMatchObject({
     result: { masteredDisciplines: 6, learnedSkills: 16 },
   })
-  await reloadArsenal(page)
+  await reloadNexus(page)
+
+  const pureAttunement = page.locator('[aria-labelledby="nexus-attunement-heading"]')
+  await expect(pureAttunement).toContainText('Unbroken Strike')
 
   await page.getByRole('button', { name: /Manage Techniques/ }).click()
   const techniquesOverlay = page.locator('body > [data-techniques-overlay="true"]')
@@ -115,66 +106,182 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   expect(await page.evaluate(() => getComputedStyle(document.documentElement).overflow)).toBe(
     'hidden',
   )
-  await expect(page.getByTestId('skill-capacity')).toContainText('Vanguard')
-  await expect(page.getByTestId('skill-capacity')).toContainText('0 / 4')
-  await expect(page.getByTestId('active-essence')).toContainText('Unbroken Strike')
-  await expect(page.getByTestId('active-resonance')).toHaveCount(0)
+  await expect(page.getByTestId('skill-capacity')).toContainText('0 / 4 selected')
+  await expect(page.getByTestId('technique-preview')).not.toContainText('Build Signature')
 
   for (const skill of ['Forceful Strike', 'Cleave', 'Brace', 'Shield Bash']) {
     await setSkill(page, skill, true)
   }
 
-  await expect(page.getByTestId('skill-capacity')).toContainText('4 / 4')
-  await commitSkills(page, ['Forceful Strike', 'Cleave', 'Brace', 'Shield Bash'])
-  await reloadArsenal(page)
+  await expect(page.getByTestId('skill-capacity')).toContainText('4 / 4 selected')
+  await reloadNexus(page)
 
   const disciplinePanel = page.getByTestId('primary-build-panel')
   const disciplineLauncher = disciplinePanel.getByRole('button', {
-    name: /Manage Primary Discipline/,
+    name: /Manage Disciplines/,
   })
   await disciplineLauncher.click()
   const disciplineDialog = page.getByRole('dialog', { name: 'Discipline Management' })
   await expect(disciplineDialog).toBeVisible()
-  await page.getByLabel('Proposed Secondary').selectOption('lifebinder')
-  await expect(page.getByTestId('primary-build-preview')).toContainText('Vanguard + Lifebinder')
-  await page.getByRole('button', { name: 'Commit Discipline changes' }).click()
-  await expect(page.getByRole('status')).toContainText(
-    'Lifebinder is now the committed Secondary Discipline.',
-  )
-  await expect(disciplineLauncher).toHaveText('Discipline Management')
+  await selectDiscipline(disciplineDialog, 'Secondary', 'Lifebinder')
+  await expect(page.getByTestId('primary-build-preview')).toContainText('Lifebinder')
+  await expect(page.getByRole('status')).toContainText('Discipline changes committed.')
+  await expect(disciplineLauncher).toHaveText(/Manage Disciplines/)
   await expect(disciplinePanel).not.toContainText('Vanguard + Lifebinder')
-  await expect(disciplineDialog).toContainText('Committed Primary')
+  await expect(disciplineDialog).toContainText('Primary Discipline')
   await expect(disciplineDialog).toContainText('Vanguard')
-  await expect(disciplineDialog).toContainText('Committed Secondary')
+  await expect(disciplineDialog).toContainText('Secondary Discipline')
   await expect(disciplineDialog).toContainText('Lifebinder')
-  await reloadArsenal(page)
+  await reloadNexus(page)
+
+  const mixedAttunement = page.locator('[aria-labelledby="nexus-attunement-heading"]')
+  await expect(mixedAttunement).toContainText("Mercy's Edge")
+  await expect(mixedAttunement).not.toContainText('Unbroken Strike')
+
+  const resonancePreviewAnchor = mixedAttunement.getByLabel(/Preview Resonance: Mercy's Edge/)
+  await resonancePreviewAnchor.hover()
+  const resonancePreview = page.getByRole('dialog', { name: "Mercy's Edge" })
+  await expect(resonancePreview).toBeVisible()
+  await resonancePreviewAnchor.press('Enter')
+  if (testInfo.project.name === 'desktop-chromium') {
+    for (const viewport of [
+      { width: 1280, height: 720 },
+      { width: 1024, height: 576 },
+      { width: 1366, height: 768 },
+      { width: 1536, height: 614 },
+      { width: 1920, height: 1080 },
+    ]) {
+      await page.setViewportSize(viewport)
+      await expect
+        .poll(async () =>
+          resonancePreview.evaluate((panel) => {
+            const rect = panel.getBoundingClientRect()
+            return (
+              panel.clientHeight <= innerHeight - 16 &&
+              rect.top >= 7 &&
+              rect.bottom <= innerHeight - 7 &&
+              rect.left >= 7 &&
+              rect.right <= innerWidth - 7
+            )
+          }),
+        )
+        .toBe(true)
+        .catch(async (error) => {
+          console.error(
+            'Nexus report geometry',
+            viewport,
+            await resonancePreview.evaluate((panel) => ({
+              rect: panel.getBoundingClientRect().toJSON(),
+              scroll: panel.scrollHeight,
+              client: panel.clientHeight,
+              layout: panel.getAttribute('data-battle-info-layout'),
+              page: panel.getAttribute('data-battle-info-page'),
+              viewport: { width: innerWidth, height: innerHeight, scrollY },
+            })),
+          )
+          throw error
+        })
+    }
+    // A resized/scrolling workspace may move the source artwork offscreen while its reader stays open.
+    const priorTriggerStyle = await resonancePreviewAnchor.getAttribute('style')
+    try {
+      await resonancePreviewAnchor.evaluate((trigger) => {
+        trigger.style.transform = 'translateY(2000px)'
+        window.dispatchEvent(new Event('resize'))
+      })
+      expect(
+        await resonancePreviewAnchor.evaluate(
+          (trigger) => trigger.getBoundingClientRect().top > innerHeight,
+        ),
+      ).toBe(true)
+      await expect
+        .poll(() =>
+          resonancePreview.evaluate((panel) => {
+            const rect = panel.getBoundingClientRect()
+            return rect.top >= 7 && rect.bottom <= innerHeight - 7
+          }),
+        )
+        .toBe(true)
+    } finally {
+      await resonancePreviewAnchor.evaluate((trigger, priorStyle) => {
+        if (priorStyle === null) trigger.removeAttribute('style')
+        else trigger.setAttribute('style', priorStyle)
+        window.dispatchEvent(new Event('resize'))
+      }, priorTriggerStyle)
+    }
+  }
+  const resonanceField = (label: string) =>
+    resonancePreview
+      .locator('dt', { hasText: new RegExp(`^${label}$`) })
+      .locator('..')
+      .locator('dd')
+  await expect(resonanceField('Requirements')).toHaveText('Lifebinder Skills tagged Heal')
+  await expect(resonancePreview.locator('dt', { hasText: /^(Mode|Setup|Trigger)$/ })).toHaveCount(0)
+  await expect(resonanceField('Effects').locator(':scope > div')).toHaveText([
+    'Vanguard Skills tagged Attack + Melee: Dmg [6] [Instant] [Trigger Skill selected unit]',
+    'Vanguard Skills tagged Attack + Melee: HP Recovery [4%] [Instant] [Self]',
+  ])
+  await expect(resonancePreview.getByRole('list', { name: 'Effect explanations' })).toContainText(
+    'Restores 4% of your maximum HP. The amount is fixed when cast; Healing Down reduces it. Cannot exceed the maximum or revive.',
+  )
+  for (const field of ['Cost', 'Cooldown', 'Target Method', 'Target Elevation', 'Line of Sight']) {
+    await expect(resonanceField(field)).toHaveText('N/A')
+  }
+  await expect(resonancePreview).not.toContainText('Payoff')
+  await page.keyboard.press('Escape')
+  await expect(resonancePreview).not.toBeVisible()
 
   await page.getByRole('button', { name: /Manage Techniques/ }).click()
   const mixedCapacity = page.getByTestId('skill-capacity')
-  await expect(mixedCapacity).toContainText('Vanguard')
-  await expect(mixedCapacity).toContainText('2 / 3')
-  await expect(mixedCapacity).toContainText('Lifebinder')
-  await expect(mixedCapacity).toContainText('0 / 2')
-  await expect(page.getByTestId('active-resonance')).toContainText("Mercy's Edge")
-  await expect(page.getByTestId('active-essence')).toHaveCount(0)
+  // Current mixed builds retain up to three selections from either eligibility source.
+  await expect(mixedCapacity).toContainText('3 / 4 selected')
+  await expect(skillRow(page, 'Brace').getByRole('checkbox')).toBeChecked()
+  await expect(skillRow(page, 'Shield Bash').getByRole('checkbox')).not.toBeChecked()
+  await setSkill(page, 'Brace', false)
+  await expect(mixedCapacity).toContainText('2 / 4 selected')
 
   await setSkill(page, 'Mending Light', true)
   await setSkill(page, 'Barrier', true)
 
-  await expect(mixedCapacity).toContainText('Vanguard')
-  await expect(mixedCapacity).toContainText('Lifebinder')
-  await expect(mixedCapacity).toContainText('2 / 2')
-  await commitSkills(page, ['Forceful Strike', 'Cleave', 'Mending Light', 'Barrier'])
+  await expect(mixedCapacity).toContainText('4 / 4 selected')
+  const supportActions = page.getByRole('radiogroup', { name: 'Support Action' })
+  await expect(
+    supportActions.getByRole('radio', { name: 'HP Recovery', exact: true }),
+  ).toBeChecked()
+  const supportSaved = page.waitForResponse(
+    (response) =>
+      response.url().endsWith('/api/character/build/support-action') &&
+      response.request().method() === 'POST',
+  )
+  await supportActions.getByRole('radio', { name: 'MP Recovery', exact: true }).check()
+  expect((await supportSaved).status()).toBe(200)
+  await expect(supportActions.locator('input:checked')).toHaveCount(1)
+  await expect(mixedCapacity).toContainText('4 / 4 selected')
 
-  await reloadArsenal(page)
+  await reloadNexus(page)
+  await expect(page.locator('[aria-labelledby="nexus-attunement-heading"]')).toContainText(
+    "Mercy's Edge",
+  )
   await page.getByRole('button', { name: /Manage Techniques/ }).click()
-  await expect(page.getByTestId('skill-capacity')).toContainText('2 / 2')
-  await expect(page.getByTestId('active-resonance')).toContainText("Mercy's Edge")
-  await expect(page.getByTestId('active-essence')).toHaveCount(0)
+  await expect(page.getByTestId('skill-capacity')).toContainText('4 / 4 selected')
+  await expect(
+    supportActions.getByRole('radio', { name: 'MP Recovery', exact: true }),
+  ).toBeChecked()
+  await expect(supportActions.locator('input:checked')).toHaveCount(1)
   await expect(skillRow(page, 'Forceful Strike').getByRole('checkbox')).toBeChecked()
   await expect(skillRow(page, 'Cleave').getByRole('checkbox')).toBeChecked()
   await expect(skillRow(page, 'Mending Light').getByRole('checkbox')).toBeChecked()
   await expect(skillRow(page, 'Barrier').getByRole('checkbox')).toBeChecked()
+  await skillRow(page, 'Barrier').hover()
+  const nexusBarrierPreview = page.getByTestId('technique-preview')
+  await expect(nexusBarrierPreview.locator('strong').first()).toHaveText('Barrier')
+  const nexusBarrierParameters = await nexusBarrierPreview
+    .locator('dl > div')
+    .evaluateAll((rows) =>
+      rows.map(
+        (row) => `${row.querySelector('dt')!.textContent}: ${row.querySelector('dd')!.textContent}`,
+      ),
+    )
 
   // Tagged Techniques must keep the cockpit slot's keyboard contract and reach the same
   // authoritative preview/confirm path used by mouse input after a skill swap.
@@ -182,7 +289,7 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   await techniquesDialog.getByRole('button', { name: 'Close' }).click()
   await page
     .getByRole('navigation', { name: 'Primary game navigation', exact: true })
-    .getByRole('link', { name: 'Battle Hall', exact: true })
+    .getByRole('link', { name: 'Arena', exact: true })
     .click()
   await expect(page).toHaveURL(/\/game\/battle$/)
   await page.getByLabel('Battle mode').selectOption('recruit-sparring')
@@ -192,106 +299,207 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   const battleRoot = page.locator('[data-unified-battle="true"]')
   const battlefield = page.getByRole('region', { name: 'Tactical battlefield' })
   const commandDeck = page.getByRole('region', { name: 'Command Deck' })
-  const commandContext = commandDeck.locator(':scope > div').first()
+  const commandContext = page.locator('[data-battle-preview-strip]')
   const moveAction = commandDeck.locator('button[data-command-slot="move"]')
-  const attackCard = commandDeck.locator('[data-command-card="attack"]')
-  const attackAction = attackCard.locator('button[data-command-slot="attack"]')
-  const attackArtwork = attackCard.getByRole('button', { name: /Choose Attack skill/i })
   const finishAction = commandDeck.locator('button[data-command-slot="finish"]')
-  const confirmAction = page.getByRole('button', { name: /Confirm Action/ })
   const actionEconomy = page.getByRole('progressbar', { name: 'Action Economy remaining' })
+  await expect(battleRoot).toHaveAttribute('data-local-turn', 'true')
+  await expect(finishAction).toBeEnabled()
 
-  // Swapping an active basic Guard to ally-only Barrier must replace the self forecast with
-  // truthful skill guidance. A 1v1 has no other allied unit, and Barrier's range starts at one.
-  await commandDeck.getByRole('button', { name: 'Guard, 30 AP', exact: true }).click()
-  await expect(confirmAction).toBeEnabled()
-  const guardTargetPreview = page.waitForResponse((response) => response.url().endsWith('/preview'))
-  await battlefield
-    .getByRole('button', { name: new RegExp(`occupied by ${characterName}`) })
-    .click()
-  expect((await guardTargetPreview).request().postDataJSON().intent.target).toEqual({
-    kind: 'self',
-  })
-  await expect(confirmAction).toBeEnabled()
-  await commandDeck.getByRole('button', { name: /Choose Guard skill/ }).click()
-  await page.getByRole('option', { name: 'Barrier 40 AP', exact: true }).click()
-  const forecast = commandDeck.getByLabel('Action preview')
-  await expect(forecast).toContainText('40 AP')
-  await expect(forecast).toContainText('Ally · 1–3 tiles')
-  await expect(forecast).toContainText('Select an ally.')
-  await expect(forecast).not.toContainText('Success 100%')
-  if (testInfo.project.name !== 'mobile-chromium') {
-    const originalViewport = page.viewportSize()!
-    for (const viewport of [
-      { width: 1280, height: 720 },
-      { width: 1024, height: 768 },
-    ]) {
-      await page.setViewportSize(viewport)
-      await expectBattlePreviewFits(page)
-    }
-    await page.setViewportSize(originalViewport)
-  } else {
-    await expectBattlePreviewFits(page)
+  if (testInfo.project.name === 'desktop-chromium') {
+    // Reports remain readable on a locked battle route even in a short landscape viewport.
+    const priorViewport = page.viewportSize()!
+    await openBattleInfoMenu(page, "About Mercy's Edge")
+    await page.getByRole('button', { name: "About Mercy's Edge", exact: true }).click()
+    const report = page.getByRole('dialog', { name: "Mercy's Edge", exact: true })
+    await page.setViewportSize({ width: 844, height: 400 })
+    // Keep the normal-width report inside the viewport; content may scroll internally.
+    await expect(report).toHaveAttribute('data-battle-info-page', 'false')
+    await expect
+      .poll(() =>
+        report.evaluate((panel) => {
+          const bounds = panel.getBoundingClientRect()
+          return (
+            getComputedStyle(panel).position === 'fixed' &&
+            bounds.top >= 8 &&
+            bounds.bottom <= innerHeight - 7 &&
+            getComputedStyle(panel).overflowY === 'auto'
+          )
+        }),
+      )
+      .toBe(true)
+    expect(
+      await page.evaluate(() =>
+        [document.documentElement, document.body].every(
+          (node) => getComputedStyle(node).overflowY === 'hidden',
+        ),
+      ),
+    ).toBe(true)
+    // Long reports keep one column and scroll inside the normal-width popup.
+    await page.setViewportSize({ width: 844, height: 200 })
+    await expect(report).toHaveAttribute('data-battle-info-page', 'false')
+    await expect(report).toHaveAttribute('data-battle-info-layout', 'compact')
+    const dimensions = await report.evaluate((panel) => ({
+      width: panel.getBoundingClientRect().width,
+      availableWidth: document.documentElement.clientWidth,
+      top: panel.getBoundingClientRect().top,
+      bottom: panel.getBoundingClientRect().bottom,
+      scrollable: panel.scrollHeight > panel.clientHeight,
+      columns: [...panel.querySelectorAll('dl')].map(
+        (table) => getComputedStyle(table).columnCount,
+      ),
+    }))
+    expect(dimensions.width).toBeLessThanOrEqual(Math.min(480, dimensions.availableWidth - 16))
+    expect(dimensions.top).toBeGreaterThanOrEqual(8)
+    expect(dimensions.bottom).toBeLessThanOrEqual(193)
+    expect(dimensions.scrollable).toBe(true)
+    expect(dimensions.columns.every((value) => value === 'auto' || value === '1')).toBe(true)
+    expect(
+      await page.evaluate(() =>
+        [document.documentElement, document.body].every(
+          (node) => getComputedStyle(node).overflowY === 'hidden',
+        ),
+      ),
+    ).toBe(true)
+    await report.evaluate((panel) => {
+      panel.scrollTop = panel.scrollHeight
+    })
+    expect(await report.evaluate((panel) => panel.scrollTop)).toBeGreaterThan(0)
+    await expect(
+      report.getByRole('list', { name: 'Effect explanations' }).locator('li').last(),
+    ).toBeInViewport()
+    await page.keyboard.press('Escape')
+    await expect(report).toHaveCount(0)
+    expect(
+      await page.evaluate(() =>
+        [document.documentElement, document.body].every(
+          (node) => getComputedStyle(node).overflowY === 'hidden',
+        ),
+      ),
+    ).toBe(true)
+    await page.setViewportSize(priorViewport)
   }
 
-  await expect(confirmAction).toBeDisabled()
+  // Full MP makes Recovery unavailable, but its real self preview must remain informational.
+  const battleApiUrl = `/api/battles/${new URL(page.url()).pathname.split('/').at(-1)!}`
+  const beforeSupportRead = await page.request.get(battleApiUrl)
+  expect(beforeSupportRead.ok()).toBe(true)
+  const beforeSupportPreview = (await beforeSupportRead.json()).battle
+  const supportActor = beforeSupportPreview.snapshot.tactical.battle.combatants.find(
+    (unit: { id: string }) =>
+      unit.id === beforeSupportPreview.snapshot.tactical.battle.currentTurn.combatantId,
+  )
+  expect(supportActor.mp).toBe(supportActor.maxMp)
+  const supportPreview = page.waitForResponse((response) => response.url().endsWith('/preview'))
+  await commandDeck.getByRole('button', { name: 'MP Recovery, 50 AP', exact: true }).click()
+  const supportReceipt = await supportPreview
+  expect(supportReceipt.ok()).toBe(true)
+  expect(supportReceipt.request().postDataJSON().intent.target).toEqual({ kind: 'self' })
+  expect((await supportReceipt.json()).battlePreview.preview).toMatchObject({
+    actionId: 'basic.recover.mp',
+    legal: false,
+  })
+  await expect(actionEconomy).toHaveAttribute('aria-valuenow', '100')
+  await commandDeck.getByRole('button', { name: 'Selected Barrier, 40 AP', exact: true }).click()
+  const forecast = page.locator('[data-battle-preview-strip] [aria-label="Action preview"]')
+  await expectNoSkillPreviewMetadata(forecast)
+  await expect(
+    forecast.getByRole('button', { name: 'Show Barrier parameters', exact: true }),
+  ).toHaveCount(0)
+  await expect(forecast).not.toContainText('Success 100%')
   await expect(battlefield.locator('button[data-target="friendly"]')).toHaveCount(0)
-  await forecast.getByRole('button', { name: 'Skill details', exact: true }).click()
+  await openBattleInfoMenu(page, 'About Barrier')
+  const informationTrigger = page.getByRole('button', { name: 'About Barrier', exact: true })
+  await informationTrigger.click()
   const skillDetails = page.getByRole('dialog', { name: 'Barrier', exact: true })
-  await expect(skillDetails).toContainText('Apply 1 Guard stack')
-  await skillDetails.press('Escape')
+  await expect(skillDetails).toBeVisible()
+  const barrierParameters = skillDetails.locator('[data-battle-skill-parameters]')
+  await expect(barrierParameters.locator('[data-compact-effect-target]').first()).toHaveText(
+    '[Ally]',
+  )
+  await expect(barrierParameters.locator('dt').filter({ hasText: /^Target$/ })).toHaveCount(0)
+  await expect(
+    barrierParameters
+      .locator('dl > div')
+      .filter({ has: page.getByText('Target Method', { exact: true }) })
+      .locator('dd'),
+  ).toHaveText('Single [3]')
+  expect(
+    await barrierParameters
+      .locator('dl > div')
+      .evaluateAll((rows) =>
+        rows.map(
+          (row) =>
+            `${row.querySelector('dt')!.textContent}: ${row.querySelector('dd')!.textContent}`,
+        ),
+      ),
+  ).toEqual(nexusBarrierParameters)
+  await expect(actionEconomy).toHaveAttribute('aria-valuenow', '100')
+  await expect(skillDetails).toContainText('Guard [11%] [2 Turns]')
+  await expect(skillDetails).toContainText(
+    'Reduces incoming damage by 11% per application. Each use refreshes the duration.',
+  )
+  await expect(skillDetails).not.toContainText(
+    /up to (?:three|\d+) stacks|stack(?:ing)? (?:cap|limit)/i,
+  )
+  await page.keyboard.press('Escape')
   await expect(skillDetails).toHaveCount(0)
-
-  await commandDeck.getByRole('button', { name: /Choose Guard skill/ }).click()
-  await page.getByRole('option', { name: 'Guard 30 AP', exact: true }).click()
-  await expect(confirmAction).toBeEnabled()
-  await expect(forecast).toContainText('Success 100%')
+  const repeatedSupportPreview = page.waitForResponse(
+    (response) =>
+      response.url().endsWith('/preview') &&
+      response.request().postDataJSON().intent.actionId === 'basic.recover.mp',
+  )
+  await page.keyboard.press('Digit3')
+  await repeatedSupportPreview
+  await expect(page.locator('main[data-unified-battle]')).toHaveAttribute(
+    'data-battle-action-mode',
+    'recover',
+  )
+  await expect(forecast).toContainText('Blocked')
+  await expect(forecast).not.toContainText('Success 100%')
   await expectBattlePreviewFits(page)
+  await expect(actionEconomy).toHaveAttribute('aria-valuenow', '100')
+  const afterSupportRead = await page.request.get(battleApiUrl)
+  expect(afterSupportRead.ok()).toBe(true)
+  const afterSupportPreview = (await afterSupportRead.json()).battle
+  expect(afterSupportPreview.battleVersion).toBe(beforeSupportPreview.battleVersion)
+  expect(afterSupportPreview.snapshot).toEqual(beforeSupportPreview.snapshot)
   await page.getByRole('button', { name: 'Cancel Action', exact: true }).click()
 
-  // Forceful Strike is melee (range 1). Approach the Recruit through real movement/turn flow so
-  // the keyboard regression test never depends on a lucky adjacent spawn.
-  for (let approachTurn = 0; approachTurn < 3; approachTurn += 1) {
-    const playerTile = battlefield.getByRole('button', {
-      name: new RegExp(`occupied by ${characterName}`),
-    })
+  // Current Forceful Strike is melee at equal elevation. Keep the player on the
+  // protected flat spawn while the real Recruit approaches; adjacency alone can
+  // otherwise select an illegal raised target on a randomized standard map.
+  const playerTile = battlefield.getByRole('button', {
+    name: new RegExp(`occupied by ${characterName}`),
+  })
+  const playerSpawn = tileCoordinates(await playerTile.getAttribute('aria-label'))
+  expect(playerSpawn).not.toBeNull()
+  // Current Movement2 and randomized terrain can require more than three turns.
+  // Bound the approach by the rendered board size, retaining the exact spawn and
+  // flat melee-adjacency assertions rather than relocating either combatant.
+  const approachTurnBudget = await battlefield.getByRole('button', { name: /^Tile / }).count()
+  expect(approachTurnBudget).toBeGreaterThan(0)
+  for (let approachTurn = 0; approachTurn < approachTurnBudget; approachTurn += 1) {
     const recruitTile = battlefield.getByRole('button', { name: /occupied by Recruit/ })
     const playerPosition = tileCoordinates(await playerTile.getAttribute('aria-label'))
     const recruitPosition = tileCoordinates(await recruitTile.getAttribute('aria-label'))
-    expect(playerPosition).not.toBeNull()
+    expect(playerPosition).toEqual(playerSpawn)
     expect(recruitPosition).not.toBeNull()
-    if (!playerPosition || !recruitPosition) break
-    if (tileDistance(playerPosition, recruitPosition) === 1) break
+    if (tileDistance(playerPosition!, recruitPosition!) === 1) break
 
-    await moveAction.click()
-    const reachableTiles = battlefield.locator('button[data-reachable="true"]')
-    await expect(reachableTiles.first()).toBeVisible()
-
-    let destinationLabel: string | null = null
-    let destinationDistance = Number.POSITIVE_INFINITY
-    for (let index = 0; index < (await reachableTiles.count()); index += 1) {
-      const candidate = reachableTiles.nth(index)
-      const label = await candidate.getAttribute('aria-label')
-      const position = tileCoordinates(label)
-      if (!position || !label) continue
-      const distance = tileDistance(position, recruitPosition)
-      if (distance < destinationDistance) {
-        destinationDistance = distance
-        destinationLabel = label
-      }
-    }
-
-    expect(destinationLabel).not.toBeNull()
-    await battlefield.getByRole('button', { name: destinationLabel!, exact: true }).click()
-    await expect(confirmAction).toBeEnabled()
-    await confirmAction.click()
-    await expect(actionEconomy).not.toHaveAttribute('aria-valuenow', '100')
-
-    // Start the Technique proof on a fresh owner turn so its AP budget cannot depend on movement.
     await finishAction.click()
+    const finalTurn = page.waitForResponse('**/api/battles/*/final-turn')
+    const recruitTurn = page.waitForResponse('**/api/battles/*/recruit-turn')
     await finishAction.press('KeyD')
-    await expect(actionEconomy).toHaveAttribute('aria-valuenow', '100', { timeout: 15000 })
+    const handedOff = await finalTurn
+    expect(handedOff.status()).toBe(200)
+    const handedOffVersion = (await handedOff.json()).battle.battleVersion as number
+    const returned = await recruitTurn
+    expect(returned.status()).toBe(200)
+    expect(returned.request().postDataJSON().expectedBattleVersion).toBe(handedOffVersion)
+    expect((await returned.json()).battle.battleVersion).toBeGreaterThan(handedOffVersion)
     await expect(battleRoot).toHaveAttribute('data-local-turn', 'true')
+    await expect(actionEconomy).toHaveAttribute('aria-valuenow', '100')
   }
 
   const adjacentPlayer = tileCoordinates(
@@ -306,44 +514,71 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   )
   expect(adjacentPlayer).not.toBeNull()
   expect(adjacentRecruit).not.toBeNull()
+  expect(adjacentPlayer).toEqual(playerSpawn)
   expect(tileDistance(adjacentPlayer!, adjacentRecruit!)).toBe(1)
+  await expect(playerTile).toHaveAttribute('aria-label', /; elevation 0;/)
+  await expect(battlefield.getByRole('button', { name: /occupied by Recruit/ })).toHaveAttribute(
+    'aria-label',
+    /; elevation 0;/,
+  )
 
-  await attackArtwork.click()
-  const attackSelector = page.getByRole('listbox', { name: 'Attack skills' })
-  await expect(attackSelector.getByRole('option', { name: /Forceful Strike/ })).toBeVisible()
-  await attackSelector.getByRole('option', { name: /Forceful Strike/ }).click()
-  await expect(attackAction).toContainText('Forceful Strike')
-
-  await page.keyboard.press('Digit3')
-  await expect(attackAction).toHaveAttribute('data-battle-active', 'true')
-
-  let attackDirection: string | null = null
-  for (const key of ['KeyW', 'KeyA', 'KeyS', 'KeyD']) {
-    await page.keyboard.press(key)
-    try {
-      await expect(confirmAction).toBeEnabled({ timeout: 1500 })
-      attackDirection = key
-      break
-    } catch {
-      // Try the next cardinal direction until the current battle layout yields the legal Recruit.
-    }
-  }
-
-  expect(attackDirection).not.toBeNull()
-  await expect(commandContext).toContainText('Forceful Strike')
-  await expect(confirmAction).toBeEnabled()
-
-  await page.keyboard.press(attackDirection!)
-  await expect(actionEconomy).toHaveAttribute('aria-valuenow', '60', { timeout: 8000 })
-  await expect(confirmAction).toBeDisabled({ timeout: 8000 })
-  // Authored Attack Techniques stay selected after a successful commit (the approved
-  // post-attack cockpit contract). The previous Move selection must never be restored.
-  await expect(attackAction).toHaveAttribute('data-battle-active', 'true', { timeout: 8000 })
+  const technique = commandDeck.getByRole('button', {
+    name: /^Selected Forceful Strike, 45 AP(?:,|$)/,
+  })
+  const skillPreview = page.waitForResponse('**/api/battles/*/preview')
+  await technique.click()
+  const forecastResponse = await skillPreview
+  expect(forecastResponse.status()).toBe(200)
+  const legalForecast = (await forecastResponse.json()).battlePreview
+  expect(legalForecast.preview, JSON.stringify(legalForecast)).toMatchObject({
+    actionId: 'vanguard.forceful-strike',
+    legal: true,
+    actionEconomyBefore: 100,
+    actionEconomyAfter: 55,
+  })
+  await expect(technique).toHaveAttribute('aria-pressed', 'true')
+  await expect(actionEconomy).toHaveAttribute('aria-valuenow', '100')
+  const actor = tileCoordinates(
+    await battlefield
+      .getByRole('button', { name: new RegExp(`occupied by ${characterName}`) })
+      .getAttribute('aria-label'),
+  )!
+  const enemy = tileCoordinates(
+    await battlefield
+      .getByRole('button', { name: /occupied by Recruit/ })
+      .getAttribute('aria-label'),
+  )!
+  const direction =
+    enemy.x > actor.x ? 'KeyD' : enemy.x < actor.x ? 'KeyA' : enemy.y > actor.y ? 'KeyS' : 'KeyW'
+  const skillCommit = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'POST' &&
+      /\/(intents|commit)$/.test(new URL(response.url()).pathname),
+  )
+  await page.keyboard.press(direction)
+  const committedSkill = await skillCommit
+  expect(committedSkill.status()).toBe(200)
+  expect(committedSkill.request().postDataJSON()).toMatchObject({
+    expectedBattleVersion: legalForecast.battleVersion,
+    intent: { kind: 'action', actionId: 'vanguard.forceful-strike' },
+  })
+  expect((await committedSkill.json()).battle.battleVersion).toBe(legalForecast.battleVersion + 1)
+  await expect(actionEconomy).toHaveAttribute('aria-valuenow', '55', { timeout: 8000 })
+  // The committed cooldown replaces the armed preview; no unusable Skill stays selected.
+  await expect(technique).toBeDisabled()
+  await expect(technique).toHaveAttribute('aria-pressed', 'false')
+  await expect(technique).toHaveAccessibleName(/Cooldown: [1-3] turns? remaining$/)
+  await expect(technique.locator('[data-battle-cooldown-countdown]')).toHaveText(/^[1-3]$/)
   await expect(moveAction).not.toHaveAttribute('data-battle-active', 'true')
+  await expect(commandContext).toContainText('Your turn')
+  await expect(commandContext).toHaveAttribute('data-battle-turn-state', 'yours')
 
-  // Space still enters final-facing authority, but the retired inline row must stay hidden.
+  // Space opens the visible final-facing controls without ending on the first press.
   await page.keyboard.press('Space')
-  const legacyFacingRow = page.locator('[data-unified-facing-pad="true"]')
-  await expect(legacyFacingRow).toHaveAttribute('data-open', 'true')
-  await expect(legacyFacingRow).toBeHidden()
+  const facing = page
+    .locator('[data-battle-preview-strip]')
+    .getByRole('group', { name: 'Choose final facing', exact: true })
+  await expect(facing).toBeVisible()
+  await expect(facing.getByRole('button')).toHaveCount(4)
+  await expect(page.locator('[data-unified-facing-pad]')).toHaveCount(0)
 })

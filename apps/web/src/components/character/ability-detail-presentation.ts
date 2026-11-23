@@ -1,0 +1,817 @@
+import { damageUpTypeSummary } from '@aurevane/game-core/combat/combat-damage-up'
+import { COMBAT_BONUS_STAT_LABELS } from '@aurevane/game-core/combat/combat-stat-bonuses'
+import { effectExplanationIdentity } from './effect-explanation-identity'
+import {
+  currentGroundBehaviorPresentation,
+  currentGroundNote,
+} from '@/lib/combat-ground-presentation'
+import { withCurrentAttackRuleHelp } from './skill-effect-preview'
+import { reversalDescription, reversalMagnitude } from '../../lib/reversal-presentation'
+import { summonPotencyDescription } from '@aurevane/game-core/combat/summon-content'
+import { hasSelectedAimRequirement } from '@aurevane/game-core/combat/combat-effect-target-authoring'
+import { effectTargetLabel, effectFriendlyFireNote } from './effect-target-presentation'
+import type { CombatTagPresentationSnapshot } from '@aurevane/game-core/combat/combat-tag-registry'
+import type { MechanicTextPart } from './mechanic-text'
+import {
+  SIMPLE_AUTOMATIC_TRIGGER_OPTIONS,
+  readSimpleRequirement,
+} from '@aurevane/game-core/combat/combat-simple-requirements'
+import { plainMechanicText } from './mechanic-text'
+import {
+  COMBAT_TRIGGER_MODULES,
+  recognizeCombatRequirementModules,
+  type CombatRequirementModules,
+} from '@aurevane/game-core/combat/combat-requirement-modules'
+import { mechanicStatusTag, mechanicTag } from './mechanic-text'
+import { resolveMechanicText } from './mechanic-tag-explanation'
+import { applyAbilityTimingDefaults } from '@aurevane/game-core/combat/combat-definition'
+import { combatGroundAreaDescription } from '@aurevane/game-core/combat/combat-ground-visuals'
+import type {
+  AbilityBehavior,
+  AbilityEffect,
+  RequirementNode,
+} from '@aurevane/game-core/combat/combat-definition'
+import type { BasicSkillDefinition } from '@aurevane/game-core/combat/combat-basic-actions'
+import {
+  resolvedCombatEffectTagPresentation,
+  nativeCombatTagPayload,
+} from '@aurevane/game-core/combat/combat-tag-registry'
+import {
+  canonicalAbilityTargetSpec,
+  canonicalAbilitySupportsFireGroundIntent,
+  combatTargetCategories,
+} from '@aurevane/game-core/combat/combat-targeting-shapes'
+import {
+  combatEffectTimingMode,
+  currentCombatEffectTimingTag,
+} from '@aurevane/game-core/combat/combat-effect-timing'
+import { gameplayStatusName } from '@/lib/battle/combat-interaction-presentation'
+import { abilityCostDescription } from '@/lib/battle/ability-cost-presentation'
+import { skillInformationRows } from './skill-information-contract'
+import { canonicalEffectExplanation } from './canonical-effect-explanation'
+import {
+  compactSkillEffectSummaryParts,
+  skillEffectDescription,
+  skillTargetMethodDescription,
+  skillTargetMethodExplanation,
+  skillTargetElevationDescription,
+  skillLineOfSightDescription,
+  type CompactSkillEffectSummaryParts,
+} from './skill-detail-presentation'
+import type { SkillEffectTimingPolicy } from './skill-effect-timing-context'
+import type { BasicActionCharacterStats } from './basic-action-presentation'
+export type AbilityEffectPresentationContext = NonNullable<
+  Parameters<typeof skillEffectDescription>[1]
+>
+
+const subjects = {
+  owner: 'Self',
+  selected: 'Target',
+  affected: 'Area',
+  triggering: 'Trigger',
+} as const
+
+function requirementTerm(value: string): string {
+  return value.replace(/[-_]/gu, ' ').replace(/\b\w/gu, (letter) => letter.toUpperCase())
+}
+
+/** Render the executable requirement tree as compact modules; prose never creates a condition. */
+export function abilityRequirementDescription(
+  node: RequirementNode | null,
+  behavior?: AbilityBehavior,
+): string {
+  if (!node) return 'None'
+  if (behavior?.requirementMode === 'simple') {
+    const parts = simpleRequirementParts(node)
+    if (parts) return plainMechanicText(parts)
+  }
+  if (behavior) {
+    const modules = recognizeCombatRequirementModules(node, behavior)
+    if (modules) return plainMechanicText(modularRequirementParts(modules)) || 'None'
+  }
+  switch (node.kind) {
+    case 'all':
+    case 'any':
+      return `(${node.children.map((child) => abilityRequirementDescription(child)).join(node.kind === 'all' ? ' & ' : ' or ')})`
+    case 'resource-state':
+      if (node.comparison === 'less-than' || node.comparison === 'more-than') {
+        const parts = simpleRequirementParts(node)
+        if (parts) return plainMechanicText(parts)
+      }
+      return `${node.resource.toUpperCase()} [${{ 'at-least': '≥', 'at-most': '≤', 'less-than': '<', 'more-than': '>' }[node.comparison]} ${node.basisPoints === undefined ? node.amount : `${node.basisPoints / 100}%`}] [${subjects[node.subject]}]`
+    case 'resource-change':
+      return `${node.resource.toUpperCase()} [${node.direction === 'gained' ? 'Gained' : 'Lost'} ≥ ${node.minimumAmount}] [${subjects[node.subject]}]`
+    case 'resource-threshold-crossing':
+      return `${node.resource.toUpperCase()} [${node.direction === 'below' ? 'Falls Below' : 'Rises Above'} ${node.thresholdBasisPoints / 100}%] [${subjects[node.subject]}]`
+    case 'status-presence':
+      return `${node.present ? '' : 'No '}${gameplayStatusName(node.statusId)}${requirementSubjectSuffix(node.subject)}`
+    case 'subject-relation':
+      return `${node.relation === 'same-unit' ? 'Same Unit' : node.relation === 'ally' ? 'Ally, excluding Self' : 'Enemy'} [${subjects[node.subject]} / ${subjects[node.otherSubject]}]`
+    case 'prime-presence':
+      return `${node.present ? '' : 'No '}${node.abilityId ? `${requirementTerm(node.abilityId.split('.').at(-1) ?? node.abilityId)} [Primed]` : 'Primed'} [${subjects[node.subject]}]`
+    case 'event':
+      return `${requirementTerm(node.eventType)} [${node.phase === 'before' ? 'Before' : 'After'}]`
+    case 'action': {
+      return [
+        node.classification
+          ? node.classification === 'recovery'
+            ? 'Heal'
+            : requirementTerm(node.classification)
+          : 'Action',
+        node.attackFamily ? `[${requirementTerm(node.attackFamily)}]` : null,
+        node.sourceDisciplineId ? `[${requirementTerm(node.sourceDisciplineId)}]` : null,
+        ...(node.requiredTags ?? []).map((tag) => `[${requirementTerm(tag)}]`),
+      ]
+        .filter(Boolean)
+        .join(' ')
+    }
+  }
+}
+
+function simpleRequirementParts(node: RequirementNode): MechanicTextPart[] | null {
+  const selection = readSimpleRequirement(node)
+  if (!selection) return null
+  const target = selection.subject === 'owner' ? 'Self' : 'Target'
+  if (node.kind === 'status-presence') {
+    const tag = mechanicStatusTag(node.statusId)
+    return [
+      tag
+        ? { ...mechanicTag(tag), label: gameplayStatusName(node.statusId) }
+        : gameplayStatusName(node.statusId),
+      ` [${target}]`,
+    ]
+  }
+  if (node.kind === 'prime-presence') return [mechanicTag('primed'), ` [${target}]`]
+  if (selection.percent !== undefined) {
+    const id = selection.tagId as 'hp-less-than' | 'hp-more-than' | 'mp-less-than' | 'mp-more-than'
+    return [mechanicTag(id), ` [${selection.percent}%] [${target}]`]
+  }
+  return ['None']
+}
+
+function requirementSubjectSuffix(subject: 'owner' | 'selected' | 'affected' | 'triggering') {
+  return subject === 'selected'
+    ? ''
+    : ` [${subject === 'owner' ? 'Self' : subject === 'affected' ? 'Area' : 'Trigger'}]`
+}
+
+/** Raw and historical trees retain every branch, including unregistered identities. */
+function primitiveRequirementParts(value: RequirementNode, modular = false): MechanicTextPart[] {
+  if (
+    value.kind === 'resource-state' &&
+    (value.comparison === 'less-than' || value.comparison === 'more-than')
+  ) {
+    const parts = simpleRequirementParts(value)
+    if (parts) return parts
+  }
+  const suffix = (subject: 'owner' | 'selected' | 'affected' | 'triggering') =>
+    modular && subject === 'affected' ? ' [Affected unit]' : requirementSubjectSuffix(subject)
+  if (value.kind === 'all' || value.kind === 'any')
+    return [
+      '(',
+      ...value.children.flatMap((child, index) => [
+        ...(index ? [value.kind === 'all' ? ' & ' : ' or '] : []),
+        ...primitiveRequirementParts(child, modular),
+      ]),
+      ')',
+    ]
+  if (value.kind === 'status-presence') {
+    const tag = mechanicStatusTag(value.statusId)
+    if (tag)
+      return [
+        ...(value.present ? [] : ['No ']),
+        { ...mechanicTag(tag), label: gameplayStatusName(value.statusId) },
+        suffix(value.subject),
+      ]
+  }
+  if (value.kind === 'prime-presence' && !value.abilityId)
+    return [
+      ...(value.present ? [] : ['No ']),
+      mechanicTag('primed'),
+      ` [${subjects[value.subject]}]`,
+    ]
+  if (modular && value.kind === 'resource-state') {
+    const text = abilityRequirementDescription(value)
+    return [
+      { ...mechanicTag('resource-threshold'), label: value.resource.toUpperCase() },
+      text.slice(value.resource.length),
+    ]
+  }
+  return [abilityRequirementDescription(value)]
+}
+
+function modularRequirementParts(modules: CombatRequirementModules): MechanicTextPart[] {
+  const result: MechanicTextPart[] = []
+  const trigger = modules.trigger
+  if (trigger) {
+    const definition = COMBAT_TRIGGER_MODULES.find((module) => module.id === trigger.id)!
+    result.push({ ...mechanicTag('trigger'), label: definition.label })
+    const qualifiers = trigger.parameters.actionQualifiers.flatMap((node) => [
+      ...(node.sourceDisciplineId ? [requirementTerm(node.sourceDisciplineId)] : []),
+      ...(node.classification
+        ? [node.classification === 'recovery' ? 'Heal' : requirementTerm(node.classification)]
+        : []),
+      ...(node.attackFamily ? [requirementTerm(node.attackFamily)] : []),
+      ...(node.requiredTags ?? []).map(requirementTerm),
+    ])
+    for (const qualifier of new Set(qualifiers)) result.push(` [${qualifier}]`)
+    for (const relation of trigger.parameters.causalRelations) {
+      const relative =
+        relation.otherSubject === 'owner'
+          ? relation.subject
+          : relation.subject === 'owner'
+            ? relation.otherSubject
+            : null
+      const role =
+        relative === 'triggering'
+          ? 'Source'
+          : relative === 'affected'
+            ? 'Recipient'
+            : relative === 'selected'
+              ? 'Target'
+              : null
+      result.push(
+        role
+          ? ` [${role}: ${relation.relation === 'same-unit' ? 'Self' : relation.relation === 'ally' ? 'Ally' : 'Enemy'}]`
+          : ` [${abilityRequirementDescription(relation)}]`,
+      )
+    }
+    if (trigger.parameters.crossing)
+      result.push(` [${trigger.parameters.crossing.thresholdBasisPoints / 100}%]`)
+    if (trigger.parameters.resourceChange)
+      result.push(` [≥ ${trigger.parameters.resourceChange.minimumAmount}]`)
+  }
+  if (modules.conditions.length) {
+    if (result.length) result.push(' & ')
+    if (modules.conditions.length > 1) result.push('(')
+    modules.conditions.forEach((node, index) => {
+      if (index) result.push(' & ')
+      result.push(...primitiveRequirementParts(node, true))
+    })
+    if (modules.conditions.length > 1) result.push(')')
+  }
+  return result
+}
+
+function requirementReferenceParts(
+  node: RequirementNode | null,
+  context: AbilityEffectPresentationContext,
+  behavior?: AbilityBehavior,
+): readonly MechanicTextPart[] | undefined {
+  if (behavior?.requirementMode === 'simple' && node) {
+    const parts = simpleRequirementParts(node)
+    if (parts) return resolveMechanicText(parts, context)
+  }
+  const modules = behavior ? recognizeCombatRequirementModules(node, behavior) : null
+  const result = modules
+    ? modularRequirementParts(modules)
+    : node
+      ? primitiveRequirementParts(node)
+      : []
+  return result.some((part) => typeof part !== 'string')
+    ? resolveMechanicText(result, context)
+    : undefined
+}
+
+export interface AbilityEffectPresentation {
+  readonly explanationAdditionalNotes?: readonly string[]
+  readonly explanationTagId?: string
+  readonly explanationBaseDescription?: string
+  readonly explanationBaseParts?: readonly MechanicTextPart[]
+  readonly tagPresentation?: CombatTagPresentationSnapshot
+  readonly parts: CompactSkillEffectSummaryParts
+  readonly explanationParts?: readonly MechanicTextPart[]
+  readonly condition: string | null
+  readonly conditionParts?: readonly MechanicTextPart[]
+  readonly recipient: string
+  readonly repeatsOnEntry?: boolean
+}
+const recipients = {
+  actor: 'Self',
+  'primary-unit': 'Target',
+  'affected-units': 'Targets',
+  'affected-tiles': 'Ground',
+  'selected-tile': 'Ground',
+} as const
+
+const equipmentArmorExplanation =
+  'The displayed bypass applies only to equipment Armor. Without equipment Armor, it provides no advantage.'
+
+/** Canonical payloads reuse the established effect display grammar, with exact wrapper timing. */
+function effectPresentation(
+  effect: AbilityEffect,
+  timingPolicy: SkillEffectTimingPolicy,
+  basic?: BasicSkillDefinition,
+  stats: BasicActionCharacterStats = {},
+  controlledAction = false,
+  effectContext: AbilityEffectPresentationContext = {},
+  requirementBehavior?: AbilityBehavior,
+) {
+  const payload = effect.payload
+  let parts: CompactSkillEffectSummaryParts, description: string
+  let explanationParts: readonly MechanicTextPart[] | undefined
+  if (payload.type === 'reversal') {
+    parts = {
+      label: 'Reversal',
+      magnitude: reversalMagnitude(payload),
+      duration: effectContext.legacyReversal
+        ? 'Until next actual owner turn'
+        : 'Until triggered or cancelled',
+      timing: 'Controlled',
+    }
+    description = reversalDescription(payload, effectContext)
+  } else if (payload.type === 'move') {
+    parts = {
+      label: 'Move',
+      magnitude: String(payload.maximumTiles),
+      duration: null,
+      timing: 'Instant',
+    }
+    description =
+      basic?.execution.kind === 'basic-move'
+        ? 'Move to the chosen Ground within your remaining Movement and Jump.'
+        : 'Move to the chosen Ground within this Skill’s Move distance and Jump, independent of ordinary walking.'
+    if (payload.maximumElevation !== undefined)
+      description += ` Move elevation: ${payload.maximumElevation}.`
+    if (payload.requiresLineOfSight) description += ' Requires line of sight to each entered tile.'
+  } else if (payload.type === 'stat-bonus') {
+    const name = COMBAT_BONUS_STAT_LABELS[payload.stat].replace(/ \(.*\)$/, '')
+    const amount = payload.stat === 'evasion' ? payload.amount / 100 : payload.amount
+    const magnitude = `${amount >= 0 ? '+' : ''}${amount}${payload.stat === 'evasion' ? '%' : ''}`
+    parts = { label: name, magnitude, duration: null }
+    description =
+      payload.stat === 'movement'
+        ? `${name} ${magnitude} tiles at each own-turn start; AP and terrain costs still apply.`
+        : `${name} ${magnitude}${payload.stat === 'jump' ? ' elevation' : ''}.`
+  } else if (payload.type === 'damage-bonus') {
+    parts = {
+      label: 'Damage Up',
+      magnitude: `${(payload.multiplierBasisPoints - 10000) / 100}%${payload.damageTypes ? ` ${damageUpTypeSummary(payload.damageTypes)}` : ''}`,
+      duration: null,
+    }
+    description = payload.damageTypes
+      ? `Increase direct ${damageUpTypeSummary(payload.damageTypes)} damage dealt. Other damage types are unchanged.`
+      : payload.elementFilter
+        ? `Increase direct ${payload.elementFilter[0]!.toUpperCase() + payload.elementFilter.slice(1)} damage dealt.`
+        : 'Increase damage dealt.'
+  } else if (payload.type === 'summon') {
+    parts = {
+      label: 'Summon',
+      magnitude: payload.profile.name,
+      duration: `${payload.profile.lifetimeTurns} Turns`,
+    }
+    description = [
+      'Summon an allied companion on the chosen empty Ground.',
+      summonPotencyDescription(payload.profile, { legacy: effectContext.legacySummonPotency }),
+    ]
+      .filter(Boolean)
+      .join(' ')
+  } else {
+    const native = nativeCombatTagPayload(payload)
+    parts = compactSkillEffectSummaryParts(native, timingPolicy, {
+      explicitElemental: true,
+      ...effectContext,
+      ...(effect.timing ? { timingMode: effect.timing } : {}),
+    })
+    const mode =
+      effect.timing ??
+      (parts.timing === 'Instant'
+        ? 'instant'
+        : combatEffectTimingMode(timingPolicy ?? undefined, currentCombatEffectTimingTag(native)))
+    parts = {
+      ...parts,
+      timing:
+        mode === 'controlled'
+          ? 'Controlled'
+          : mode === 'delayed'
+            ? 'Delayed'
+            : mode === 'instant'
+              ? 'Instant'
+              : undefined,
+    }
+    const plain = canonicalEffectExplanation(native, {
+      ...effectContext,
+      timingPolicy,
+      timingMode: mode,
+    })
+    description =
+      plain?.description ??
+      skillEffectDescription(native, {
+        timingPolicy,
+        explicitElemental: true,
+        ...effectContext,
+        rewindPrimeAnchor: controlledAction,
+      })
+    if (plain?.descriptionParts) explanationParts = plain.descriptionParts
+    if (plain?.parts)
+      parts = {
+        ...parts,
+        ...plain.parts,
+        magnitude: parts.magnitude ?? plain.parts.magnitude ?? null,
+      }
+    if (payload.type === 'pierce') {
+      parts = {
+        ...parts,
+        label: 'Pierce',
+        magnitude: String(payload.amount),
+        details: [
+          ...(parts.details ?? []),
+          { label: 'Armor ignored', value: `${payload.armorIgnoredBasisPoints / 100}%` },
+        ],
+      }
+      description +=
+        timingPolicy?.tagAuthority === 'global'
+          ? ' Break the target’s Barrier. The bypass affects equipment Armor; Physical and Mystic Defense still apply.'
+          : ` ${equipmentArmorExplanation}`
+    }
+    if (
+      (payload.type === 'damage' || payload.type === 'pierce') &&
+      basic?.execution.kind === 'basic-attack'
+    ) {
+      const family = (stats.mysticPower ?? 0) > (stats.physicalPower ?? 0) ? 'Mystic' : 'Physical'
+      parts = {
+        ...parts,
+        magnitude: `${payload.amount} + floor(${basic.execution.scalingBasisPoints / 100}% ${family} Power)`,
+      }
+      description = `Deal base damage plus ${basic.execution.scalingBasisPoints / 100}% of your stronger Physical or Mystic Power, rounded down before mitigation. Physical wins ties.`
+      if (payload.type === 'pierce')
+        description +=
+          timingPolicy?.tagAuthority === 'global'
+            ? ' Break the target’s Barrier. The bypass affects equipment Armor; Physical and Mystic Defense still apply.'
+            : ` ${equipmentArmorExplanation}`
+    }
+    if (
+      payload.type === 'pierce' &&
+      !effectContext.legacyPierceCritical &&
+      !description.includes('Pierce cannot critically hit.')
+    )
+      description += ' Pierce cannot critically hit.'
+    if (payload.type === 'percentage-recovery' && basic?.execution.kind === 'basic-action')
+      description +=
+        basic.execution.recoveryRounding === 'nearest'
+          ? ' Uses the nearest whole resource amount.'
+          : ' Rounds the resource amount down.'
+  }
+  if (explanationParts) {
+    const prefix = explanationParts
+      .map((part) => (typeof part === 'string' ? part : part.label))
+      .join('')
+    // Wrappers may append timing or Controlled rules, but never rewrite the sentence.
+    explanationParts = description.startsWith(prefix)
+      ? resolveMechanicText([...explanationParts, description.slice(prefix.length)], effectContext)
+      : undefined
+  }
+  if (parts.details?.some((detail) => detail.labelParts))
+    parts = {
+      ...parts,
+      details: parts.details.map((detail) =>
+        detail.labelParts
+          ? { ...detail, labelParts: resolveMechanicText(detail.labelParts, effectContext) }
+          : detail,
+      ),
+    }
+  const durationClock = /(?:full rounds?|global round boundar(?:y|ies))/u.test(parts.duration ?? '')
+    ? 'Global round boundaries after activation'
+    : /(?:affected turns?|recipient turn ends?)/u.test(parts.duration ?? '')
+      ? 'Affected character turns after activation'
+      : null
+  parts = {
+    ...parts,
+    ...(durationClock
+      ? { details: [...(parts.details ?? []), { label: 'Duration clock', value: durationClock }] }
+      : {}),
+    duration:
+      parts.duration
+        ?.replace(/global round boundaries/gu, 'Turns')
+        .replace(/global round boundary/gu, 'Turn')
+        .replace(/affected turns/gu, 'Turns')
+        .replace(/affected turn/gu, 'Turn')
+        .replace(/recipient turn ends/gu, 'Turns')
+        .replace(/recipient turn end/gu, 'Turn')
+        .replace(/full rounds/gu, 'Turns')
+        .replace(/full round/gu, 'Turn') ?? null,
+  }
+  if (parts.timing === 'Instant' && /^1 (?:affected )?turns?$/iu.test(parts.duration ?? ''))
+    parts = { ...parts, duration: null }
+  const condition = effect.requirements
+    ? abilityRequirementDescription(effect.requirements, requirementBehavior)
+    : null
+  const conditionParts = requirementReferenceParts(
+    effect.requirements ?? null,
+    effectContext,
+    requirementBehavior,
+  )
+  return {
+    presentation: {
+      parts,
+      condition,
+      ...(conditionParts ? { conditionParts } : {}),
+      recipient: recipients[payload.recipient],
+      ...(explanationParts ? { explanationParts } : {}),
+    },
+    description,
+  }
+}
+
+export function abilityBehaviorInformation(
+  behavior: AbilityBehavior,
+  options: {
+    timingPolicy?: SkillEffectTimingPolicy
+    tagPresentation?: readonly CombatTagPresentationSnapshot[]
+    basic?: BasicSkillDefinition
+    stats?: BasicActionCharacterStats
+    effectContext?: AbilityEffectPresentationContext
+  } = {},
+) {
+  const timingPolicy = options.timingPolicy ?? null
+  behavior = applyAbilityTimingDefaults(behavior, timingPolicy ?? undefined)
+  const groundView = currentGroundBehaviorPresentation(
+    behavior,
+    options.effectContext?.groundContactPolicyVersion,
+    timingPolicy,
+  )
+  behavior = groundView.view
+  const controlledAction = behavior.effects.some((effect) => effect.timing === 'controlled')
+  const groundFire = canonicalAbilitySupportsFireGroundIntent(
+    behavior,
+    options.effectContext?.legacyElemental
+      ? null
+      : options.effectContext?.explicitElemental === false
+        ? 1
+        : 2,
+  )
+  const effectContext: AbilityEffectPresentationContext = {
+    ...options.effectContext,
+    skillEffects: behavior.effects.flatMap(({ payload }) =>
+      payload.type === 'move' ||
+      payload.type === 'stat-bonus' ||
+      payload.type === 'damage-bonus' ||
+      payload.type === 'summon' ||
+      payload.type === 'reversal'
+        ? []
+        : [nativeCombatTagPayload(payload)],
+    ),
+  }
+  const target = behavior.targeting ? canonicalAbilityTargetSpec(behavior.targeting) : null
+  const effects = behavior.effects.map((effect) => {
+    const described = effectPresentation(
+      effect,
+      timingPolicy,
+      options.basic,
+      options.stats,
+      controlledAction,
+      effectContext,
+      behavior.requirementMode === 'simple' ? behavior : undefined,
+    )
+    const capturedTag = resolvedCombatEffectTagPresentation(
+      options.tagPresentation,
+      effect.payload,
+      described.description,
+    )
+    const savedRuleHelp = (wording: string) => {
+      const payload = effect.payload
+      return payload.type === 'pierce' ||
+        payload.type === 'weak-point' ||
+        payload.type === 'spike' ||
+        payload.type === 'ruin'
+        ? withCurrentAttackRuleHelp(payload, effectContext, wording, described.description)
+        : wording
+    }
+    const tagPresentation = capturedTag
+      ? {
+          ...capturedTag,
+          ...(options.effectContext?.groundContactPolicyVersion === 1 &&
+          effect.payload.type === 'apply-status' &&
+          effect.payload.target === 'ground'
+            ? { name: described.presentation.parts.label }
+            : {}),
+          full: savedRuleHelp(
+            options.effectContext?.groundContactPolicyVersion === 1 &&
+              effect.payload.type === 'apply-status' &&
+              effect.payload.target === 'ground'
+              ? (currentGroundNote(capturedTag.full, effect.payload) ?? described.description)
+              : capturedTag.full,
+          ),
+          compact: savedRuleHelp(
+            options.effectContext?.groundContactPolicyVersion === 1 &&
+              effect.payload.type === 'apply-status' &&
+              effect.payload.target === 'ground'
+              ? (currentGroundNote(capturedTag.compact, effect.payload) ?? described.description)
+              : capturedTag.compact,
+          ),
+        }
+      : undefined
+    const baseDescription = tagPresentation?.full ?? described.description
+    const condition = described.presentation.condition
+    const description = condition
+      ? `${baseDescription} Applies only when ${condition}.`
+      : baseDescription
+    const explanationParts = condition
+      ? [
+          ...(tagPresentation
+            ? [baseDescription]
+            : (described.presentation.explanationParts ?? [baseDescription])),
+          ' Applies only when ',
+          ...(described.presentation.conditionParts ?? [condition]),
+          '.',
+        ]
+      : tagPresentation
+        ? undefined
+        : described.presentation.explanationParts
+    return {
+      ...described,
+      description,
+      presentation: {
+        ...described.presentation,
+        tagPresentation,
+        explanationTagId: effectExplanationIdentity(effect.payload),
+        explanationBaseDescription: baseDescription,
+        explanationBaseParts: tagPresentation ? undefined : described.presentation.explanationParts,
+        explanationParts,
+        parts: {
+          ...described.presentation.parts,
+          target:
+            effect.payload.type === 'weak-point' ||
+            effect.payload.type === 'spike' ||
+            effect.payload.type === 'ruin'
+              ? undefined
+              : effectTargetLabel(effect.payload, target ?? undefined),
+        },
+        ...(behavior.groundArea
+          ? { repeatsOnEntry: behavior.groundArea.entryEffectIds.includes(effect.id) }
+          : {}),
+      },
+    }
+  })
+  const nativeMove =
+    options.basic?.execution.kind === 'basic-move' &&
+    options.basic.execution.costBasis === 'per-terrain-point'
+  const move = behavior.effects.find((effect) => effect.payload.type === 'move')?.payload
+  const type =
+    behavior.classification === 'attack'
+      ? `Attack [${options.basic?.execution.kind === 'basic-attack' ? ((options.stats?.mysticPower ?? 0) > (options.stats?.physicalPower ?? 0) ? 'Mystic' : 'Physical') : behavior.attackFamily === 'mystic' ? 'Mystic' : 'Physical'}]`
+      : behavior.classification === 'recovery'
+        ? 'Heal'
+        : 'Utility'
+  // Requirements describe the whole action. Existing conditional effects explain
+  // their own gates in their full descriptions without restricting the base cast.
+  const summary = effects
+    .map(
+      ({ presentation: { parts } }) =>
+        `${parts.label}${parts.magnitude ? ` [${parts.magnitude}]` : ''}${parts.duration ? ` [${parts.duration}]` : ''}${parts.timing ? ` [${parts.timing}]` : ''}${parts.target ? ` [${parts.target}]` : ''}`,
+    )
+    .join(', ')
+  const primaryRequirement = nativeMove
+    ? 'N/A'
+    : abilityRequirementDescription(behavior.requirements, behavior)
+  const primaryParts = nativeMove
+    ? undefined
+    : requirementReferenceParts(behavior.requirements, effectContext, behavior)
+  const requirementEntries: { text: string; parts: readonly MechanicTextPart[] }[] = []
+  const activationEvent =
+    !nativeMove &&
+    behavior.requirementMode === 'simple' &&
+    behavior.activation === 'automatic' &&
+    behavior.mode === 'action' &&
+    behavior.automaticTrigger !== 'requirements-met'
+      ? SIMPLE_AUTOMATIC_TRIGGER_OPTIONS.find(({ id }) => id === behavior.automaticTrigger)?.label
+      : undefined
+  if (activationEvent) requirementEntries.push({ text: activationEvent, parts: [activationEvent] })
+  if (primaryRequirement !== 'None' && primaryRequirement !== 'N/A')
+    requirementEntries.push({
+      text: primaryRequirement,
+      parts: primaryParts ?? [primaryRequirement],
+    })
+  const requirementsSummary =
+    requirementEntries.map(({ text }) => text).join('; ') || (nativeMove ? 'N/A' : 'None')
+  const combinedRequirementParts = requirementEntries.flatMap(({ parts }, index) => [
+    ...(index ? ['; '] : []),
+    ...parts,
+  ])
+  const requirementParts = combinedRequirementParts.some((part) => typeof part !== 'string')
+    ? combinedRequirementParts
+    : undefined
+  const aimLabel = groundFire
+    ? 'Enemy / Ground'
+    : target
+      ? combatTargetCategories(target)
+          .map(
+            (category) =>
+              ({
+                self: 'Self',
+                ally: 'Ally',
+                enemy: 'Enemy',
+                ground: target.kind === 'empty-tile' ? 'Empty Tile' : 'Ground',
+              })[category],
+          )
+          .join(' / ')
+      : null
+  const groundSummary = behavior.groundArea
+    ? timingPolicy?.tagAuthority === 'global' &&
+      options.effectContext?.groundContactPolicyVersion !== 1 &&
+      behavior.groundArea.placementTimingVersion !== 1 &&
+      behavior.groundArea.targetTeams === undefined
+      ? `${behavior.groundArea.durationRounds} ${behavior.groundArea.durationRounds === 1 ? 'Round' : 'Rounds'}${behavior.groundArea.timing === 'instant' ? ' [Instant]' : behavior.groundArea.timing === 'delayed' ? ' [Delayed]' : ''}`
+      : `${groundFire ? 'Ground casts: ' : ''}${combatGroundAreaDescription(behavior.groundArea, timingPolicy?.modes['ground-area'] === 'instant' || timingPolicy?.modes['ground-area'] === 'delayed' ? timingPolicy.modes['ground-area'] : 'next-round', true)}`
+    : null
+  const moveOnly =
+    behavior.effects.length > 0 &&
+    behavior.effects.every(({ payload }) => payload.type === 'move') &&
+    !hasSelectedAimRequirement([
+      behavior.requirements,
+      ...behavior.effects.map(({ requirements }) => requirements),
+    ])
+  const deliveryNotes = target
+    ? [
+        skillTargetMethodExplanation({ target }),
+        aimLabel ? `Aim: ${aimLabel}` : '',
+        target.maximumRange > 0
+          ? `Aim reach: ${target.minimumRange}–${target.maximumRange} tiles`
+          : '',
+        effectFriendlyFireNote(
+          behavior.effects.map(({ payload }) => payload),
+          target,
+        ).replace(/^ · /u, ''),
+        groundSummary ?? '',
+        (target.maximumSelections ?? 1) > 1
+          ? `Up to ${target.maximumSelections} distinct targets`
+          : '',
+        nativeMove
+          ? 'Destination: reachable, unoccupied Ground. Movement and Jump limits apply.'
+          : '',
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : ''
+  return {
+    ...(deliveryNotes ? { targetMethodExplanation: deliveryNotes } : {}),
+    ...(requirementParts ? { requirementParts } : {}),
+    ...(behavior.requirementMode === 'simple' && behavior.activation === 'automatic'
+      ? {
+          automaticActivation:
+            behavior.mode === 'modifier'
+              ? 'On your Attack'
+              : (SIMPLE_AUTOMATIC_TRIGGER_OPTIONS.find(({ id }) => id === behavior.automaticTrigger)
+                  ?.label ??
+                (behavior.requirements ? 'When the requirement becomes true' : 'When activated')),
+        }
+      : {}),
+    ...(behavior.activation === 'ongoing'
+      ? {
+          maintenance: 'Ends when its source is removed.',
+        }
+      : {}),
+    rows: skillInformationRows({
+      'Skill Type': type,
+      Cost: abilityCostDescription(behavior.costs) + (nativeMove ? ' per traversal point' : ''),
+      Cooldown: behavior.cooldown
+        ? `${behavior.cooldown.ownerTurns} ${behavior.cooldown.ownerTurns === 1 ? 'turn' : 'turns'}`
+        : 'None',
+      Requirements: requirementsSummary,
+      Effects: summary,
+      'Target Method': nativeMove
+        ? `Path [${options.stats?.move === undefined ? 'Character Move stat' : Math.min(options.stats.move, move?.type === 'move' ? move.maximumTiles : Infinity)}]`
+        : target
+          ? moveOnly
+            ? 'Single'
+            : skillTargetMethodDescription({ target })
+          : 'N/A',
+      'Target Elevation':
+        nativeMove || moveOnly
+          ? move?.type === 'move' && move.maximumElevation !== undefined
+            ? String(move.maximumElevation)
+            : options.stats?.jump === undefined
+              ? 'Character Jump stat'
+              : String(options.stats.jump)
+          : target
+            ? skillTargetElevationDescription({ target })
+            : 'N/A',
+      'Line of Sight':
+        nativeMove || moveOnly
+          ? move?.type === 'move' && move.requiresLineOfSight
+            ? 'Required'
+            : 'Not required'
+          : target
+            ? skillLineOfSightDescription({ target })
+            : 'N/A',
+    }),
+    effects: effects.map((effect): AbilityEffectPresentation => effect.presentation),
+    effectDescriptions: effects.map((effect) => effect.description),
+    limits: [
+      ...(behavior.maximumUsesPerBattle === undefined
+        ? []
+        : [`${behavior.maximumUsesPerBattle} uses per battle`]),
+      ...(behavior.activationLimits?.map(
+        (limit) =>
+          ({
+            'once-per-action': options.effectContext?.legacyActionUsageLimits
+              ? 'Once per action'
+              : 'Once per battle',
+            'once-per-owner-turn': 'Once per owner turn',
+            'once-per-round': 'Once per round',
+            'once-per-battle': 'Once per battle',
+          })[limit],
+      ) ?? []),
+    ],
+  }
+}

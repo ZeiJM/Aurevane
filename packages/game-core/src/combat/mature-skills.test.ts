@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { maximumSupportedCombatRange } from './combat-targeting-shapes'
 
 import { createCombatEncounterState, evaluateCombatAction, executeCombatAction } from './actions'
 import { createPendingBattle, startBattle } from './battle-state'
@@ -85,6 +86,9 @@ describe('P3.3 mature Skill schema', () => {
   it('keeps representative Discipline Skills fully data-defined and valid', () => {
     for (const definition of P33_REPRESENTATIVE_DISCIPLINE_SKILLS) {
       expect(validateMatureSkillDefinition(definition)).toEqual([])
+      if (!definition.cooldown) {
+        throw new Error(`Expected historical cooldown for ${definition.id}.`)
+      }
       expect(definition.cooldown.ownerTurns).toBeGreaterThan(0)
       expect(definition.sourceDisciplineId).toMatch(/^[a-z0-9.-]+$/)
     }
@@ -118,27 +122,32 @@ describe('P3.3 mature Skill schema', () => {
     expect(resolveMatureSkillVersion('vanguard.forceful-strike', 1)).toBeNull()
     expect(resolveMatureSkillVersion('vanguard.forceful-strike', 2)?.contentVersion).toBe(2)
     expect(resolveMatureSkillVersion('vanguard.forceful-strike', 999)).toBeNull()
-    expect(resolveMatureSkillVersion('vanguard.forceful-strike')?.contentVersion).toBe(3)
+    expect(
+      resolveMatureSkillVersion('vanguard.forceful-strike')?.authoring.validationTags,
+    ).toContain('owner-rebalance-v5')
   })
 
   it('normalizes MP costs for every current mystic Skill without rewriting historical versions', () => {
     for (const definition of latestEnabledMatureSkills()) {
       if (definition.tags.includes('mystic')) {
         expect(definition.mpCost).toBe(currentMysticMpCost(definition.apCost))
+      } else if (definition.authoring.validationTags.includes('universal-support-v1')) {
+        expect(definition.mpCost).toBe(5)
       } else {
         expect(definition.mpCost ?? 0).toBe(0)
       }
     }
 
     expect(resolveMatureSkillVersion('aetherist.arc-bolt', 2)?.mpCost).toBeUndefined()
-    expect(resolveMatureSkillVersion('aetherist.arc-bolt')?.mpCost).toBe(2)
+    expect(resolveMatureSkillVersion('aetherist.arc-bolt')?.mpCost).toBe(3)
     expect(resolveMatureSkillVersion('lifebinder.vital-sever', 2)?.mpCost).toBeUndefined()
-    expect(resolveMatureSkillVersion('lifebinder.vital-sever')?.mpCost).toBe(2)
+    expect(resolveMatureSkillVersion('lifebinder.vital-sever')?.mpCost).toBe(3)
   })
 
   it('uses existing combat target, requirement, and effect authority instead of a parallel engine', () => {
     const definition = resolveMatureSkillVersion('lifebinder.mending-light', 1)
     if (!definition) throw new Error('Expected representative Lifebinder Skill.')
+    if (!definition.cooldown) throw new Error('Expected historical Lifebinder cooldown.')
     const action = toCombatActionDefinition(definition, 'pve')
     const state = encounter()
     const evaluation = evaluateCombatAction(state, action, { kind: 'self' }, { statuses: [] })
@@ -180,6 +189,7 @@ describe('P3.3 generic owner-turn cooldown clock', () => {
     const player = encounter().tactical.battle.combatants.find((row) => row.id === 'player')
     if (!player) throw new Error('Expected player combatant.')
 
+    if (!definition.cooldown) throw new Error('Expected historical Lifebinder cooldown.')
     const started = applySkillCooldown(player, definition.cooldown, {
       actionId: definition.id,
       definitionVersion: definition.contentVersion,
@@ -204,4 +214,175 @@ describe('P3.3 generic owner-turn cooldown clock', () => {
       }),
     )
   })
+})
+
+describe('Combat v5.1 authoring bounds', () => {
+  it('enforces current AP, maximum-range, and elevation bounds without invalidating historical versions', () => {
+    const attack = resolveMatureSkillVersion('vanguard.forceful-strike')
+    const utility = resolveMatureSkillVersion('aetherist.channel')
+    const recovery = resolveMatureSkillVersion('lifebinder.mend')
+    if (!attack || !utility || !recovery) throw new Error('Expected current v5.1 Skills.')
+
+    expect(validateMatureSkillDefinition({ ...attack, apCost: 44 })).toContain('apCost')
+    expect(validateMatureSkillDefinition({ ...attack, apCost: 45 })).not.toContain('apCost')
+    expect(validateMatureSkillDefinition({ ...utility, apCost: 34 })).toContain('apCost')
+    expect(validateMatureSkillDefinition({ ...utility, apCost: 35 })).not.toContain('apCost')
+    expect(validateMatureSkillDefinition({ ...recovery, apCost: 44 })).toContain('apCost')
+
+    expect(
+      validateMatureSkillDefinition({
+        ...attack,
+        target: { ...attack.target, minimumRange: 3, maximumRange: 6 },
+      }),
+    ).toEqual([])
+    expect(
+      validateMatureSkillDefinition({
+        ...attack,
+        target: { ...attack.target, maximumRange: maximumSupportedCombatRange() + 1 },
+      }),
+    ).toContain('target.maximumRange')
+    expect(
+      validateMatureSkillDefinition({
+        ...attack,
+        target: { ...attack.target, maximumElevationDifference: 3 },
+      }),
+    ).toContain('target.maximumElevationDifference')
+
+    const historicalLongshot = resolveMatureSkillVersion('farstrider.longshot', 1)
+    if (!historicalLongshot) throw new Error('Expected historical Longshot.')
+    expect(validateMatureSkillDefinition(historicalLongshot)).toEqual([])
+  })
+})
+
+describe('current explicit elemental Skill versions', () => {
+  it('includes matching explicit tags in every typed persistent Ground entry payload', () => {
+    const statusIds = { ice: 'frozen', water: 'wet', storm: 'conductive' } as const
+    for (const skill of latestEnabledMatureSkills()) {
+      if (!skill.groundArea) continue
+      const entries = skill.groundArea.entryEffectOrdinals.map((ordinal) => skill.effects[ordinal]!)
+      for (const effect of entries) {
+        if (effect.type !== 'damage' || !effect.element || !(effect.element in statusIds)) continue
+        expect(entries, skill.id).toContainEqual(
+          expect.objectContaining({
+            type: 'apply-status',
+            recipient: effect.recipient,
+            statusId: statusIds[effect.element as keyof typeof statusIds],
+          }),
+        )
+      }
+    }
+  })
+  it('appends matching editable status tags while preserving the previous typed definition', () => {
+    const ids = { ice: 'frozen', water: 'wet', storm: 'conductive' } as const
+    const typed = latestEnabledMatureSkills().filter((d) =>
+      d.effects.some((e) => e.type === 'damage' && e.element && e.element in ids),
+    )
+    expect(typed.length).toBeGreaterThan(0)
+    for (const definition of typed) {
+      for (const damage of definition.effects) {
+        if (damage.type !== 'damage' || !damage.element || !(damage.element in ids)) continue
+        expect(definition.effects).toContainEqual(
+          expect.objectContaining({
+            type: 'apply-status',
+            recipient: damage.recipient,
+            statusId: ids[damage.element as keyof typeof ids],
+          }),
+        )
+      }
+      expect(definition.authoring.validationTags).toContain('elemental-status-tags')
+      const previous = resolveMatureSkillVersion(definition.id, definition.contentVersion - 1)!
+      expect(previous.authoring.validationTags).not.toContain('elemental-status-tags')
+      expect({
+        ...definition,
+        contentVersion: previous.contentVersion,
+        effects: previous.effects,
+        authoring: previous.authoring,
+      }).toEqual(previous)
+    }
+  })
+})
+
+describe('current explicit Fire cleanse Skill versions', () => {
+  it('appends only a caster Cleanse Chilled tag to every current Fire damage Skill', () => {
+    const fire = latestEnabledMatureSkills().filter((skill) =>
+      skill.effects.some((effect) => effect.type === 'damage' && effect.element === 'fire'),
+    )
+    expect(fire.length).toBeGreaterThan(0)
+    for (const skill of fire) {
+      expect(skill.effects, skill.id).toContainEqual({
+        type: 'remove-status',
+        recipient: 'actor',
+        statusIds: ['frozen'],
+      })
+      const old = resolveMatureSkillVersion(skill.id, skill.contentVersion - 1)!
+      expect({
+        ...skill,
+        contentVersion: old.contentVersion,
+        effects: old.effects,
+        authoring: old.authoring,
+        ...(old.effectDescriptions ? { effectDescriptions: old.effectDescriptions } : {}),
+      }).toEqual(old)
+      if (skill.groundArea)
+        expect(
+          skill.groundArea.entryEffectOrdinals.map((i) => skill.effects[i]),
+        ).not.toContainEqual({ type: 'remove-status', recipient: 'actor', statusIds: ['frozen'] })
+    }
+  })
+})
+
+describe('native Skill resource costs', () => {
+  it('pays HP and MP before effects and forecasts from the same paid state', () => {
+    const definition = {
+      ...resolveMatureSkillVersion('lifebinder.mending-light', 1)!,
+      hpCost: 29,
+      mpCost: 4,
+    }
+    expect(validateMatureSkillDefinition(definition)).toEqual([])
+    const state = encounter()
+    const before = JSON.stringify(state)
+    const action = toCombatActionDefinition(definition, 'pve')
+    expect(action.cost).toMatchObject({ hp: 29, mp: 4 })
+    const preview = evaluateCombatAction(state, action, { kind: 'self' }, { statuses: [] })
+    expect(preview.legal).toBe(true)
+    expect(preview.projectedEffects).toContainEqual(
+      expect.objectContaining({ effectType: 'healing', before: 1, after: 17 }),
+    )
+    expect(JSON.stringify(state)).toBe(before)
+    const out = executeCombatAction(state, action, { kind: 'self' }, { statuses: [] })
+    expect(out.state.tactical.battle.combatants.find((row) => row.id === 'player')).toMatchObject({
+      hp: 17,
+      mp: 16,
+    })
+    expect(out.events.filter((event) => event.event === 'hp_spent')).toEqual([
+      { event: 'hp_spent', combatantId: 'player', amount: 29, remaining: 1 },
+    ])
+    expect(JSON.stringify(state)).toBe(before)
+  })
+  it('rejects lethal HP payment even if the Skill would heal, without spending resources', () => {
+    const definition = {
+      ...resolveMatureSkillVersion('lifebinder.mending-light', 1)!,
+      hpCost: 30,
+      mpCost: 4,
+    }
+    const state = encounter()
+    const before = JSON.stringify(state)
+    const action = toCombatActionDefinition(definition, 'pve')
+    const preview = evaluateCombatAction(state, action, { kind: 'self' }, { statuses: [] })
+    expect(preview.issues).toContainEqual(expect.objectContaining({ code: 'insufficient-hp' }))
+    expect(() => executeCombatAction(state, action, { kind: 'self' }, { statuses: [] })).toThrow(
+      /insufficient-hp/,
+    )
+    expect(JSON.stringify(state)).toBe(before)
+  })
+  it.each([-1, 0.5, Infinity, Number.MAX_SAFE_INTEGER + 1])(
+    'rejects invalid HP cost %s',
+    (hpCost) => {
+      expect(
+        validateMatureSkillDefinition({
+          ...resolveMatureSkillVersion('lifebinder.mending-light', 1)!,
+          hpCost,
+        }),
+      ).toContain('hpCost')
+    },
+  )
 })

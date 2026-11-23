@@ -1,0 +1,723 @@
+import { worldArtCadenceSql, worldArtPhasePeriod } from './world-art-phase'
+import { sceneryReviewCandidates, VOID_SCENERY_VIEWS } from './world-art-scenery'
+import { waterReviewCandidate } from './world-art-water'
+import { unoccupiedArtStep } from './world-art-step'
+import { waitForWorldArt } from './world-art-readiness'
+import { createHash } from 'node:crypto'
+import { writeFileSync } from 'node:fs'
+import { expect, test, type Page, type TestInfo } from '@playwright/test'
+import { settlementComposition } from '../src/components/world/map-settlement-composition'
+import { buildWaterField } from '../src/components/world/map-water'
+import { landmarkArtSize } from '../src/components/world/map-surface-art'
+import {
+  naturalDressing,
+  regionalScenery,
+  sceneryDressing,
+} from '../src/components/world/map-dressing'
+import { atlasSectors } from '../src/world/atlas'
+import { GRID_HEIGHT, GRID_WIDTH, WORLD_REGIONS } from '../src/world/catalog'
+import type { WorldPosition, WorldView } from '../src/world/types'
+import { REMOTE_GRAND_CROSSING } from '../src/world/discovery-sites'
+import { canonicalOcclusionWalks } from './world-map-correction-scenes'
+import { worldRenderTerrain } from '../src/components/world/map-render-terrain'
+import { openMapSettings, closeMapSettings } from './world-map-settings-helpers'
+import { globeTowns } from '../src/components/world/globe-atlas'
+
+export function registerWorldArtReviewCases({
+  enter,
+  world,
+  sql,
+  capture,
+  stageWalk,
+}: {
+  enter: (page: Page) => Promise<string>
+  world: (page: Page) => Promise<WorldView>
+  stageWalk: (page: Page, destination: WorldPosition) => Promise<void>
+  sql: (query: string) => string
+  capture: (page: Page, info: TestInfo, name: string) => Promise<void>
+}) {
+  // The shared SQL helper rejects every non-loopback database. Survey only the
+  // disposable character's current sector so private artwork uses real projection.
+  async function scene(
+    page: Page,
+    characterId: string,
+    position: WorldPosition,
+    phase = 0,
+    surveyed = true,
+  ) {
+    const state = {
+      position,
+      safe: false,
+      route: [],
+      routeDestination: null,
+      nextStepAt: null,
+      routeObjectiveId: null,
+      discoveries: {
+        [position.sectorId]: Array.from({ length: GRID_WIDTH * GRID_HEIGHT }, (_, i) => i).filter(
+          (i) =>
+            surveyed ||
+            (Math.abs((i % GRID_WIDTH) - position.x) <= 2 &&
+              Math.abs(Math.floor(i / GRID_WIDTH) - position.y) <= 2),
+        ),
+      },
+    }
+    const privateScene = position.sectorId.startsWith('uncharted-')
+    // Start a fresh disposable expedition before changing its real cadence;
+    // private-to-private writes deliberately retain their original deadline.
+    const actualPhase = sql(
+      `begin;
+      ${
+        privateScene
+          ? `update app_private.character_world_state set state = state || '{"position":{"sectorId":"umbral-march","x":6,"y":4}}'::jsonb where character_id='${characterId}'::uuid;
+      ${worldArtCadenceSql(position.sectorId, phase)}`
+          : ''
+      }
+      update app_private.character_world_state set state = state || '${JSON.stringify(state)}'::jsonb
+        ${privateScene ? `|| jsonb_build_object('warpedPhase', app_private.world_warped_phase_v1(floor(extract(epoch from clock_timestamp()) * 1000)::bigint))` : ''}
+      where character_id='${characterId}'::uuid
+      returning jsonb_build_object(
+        'phase', state->'warpedPhase',
+        'returnDue', app_private.world_void_return_due_v1(state, floor(extract(epoch from clock_timestamp()) * 1000)::bigint)
+      );
+      commit;`,
+    )
+    const staged = JSON.parse(actualPhase) as { phase: number | null; returnDue: boolean }
+    if (privateScene) {
+      expect(Number.isSafeInteger(staged.phase)).toBe(true)
+      expect(staged.phase! % worldArtPhasePeriod(position.sectorId)).toBe(
+        phase % worldArtPhasePeriod(position.sectorId),
+      )
+      expect(staged.returnDue).toBe(false)
+    }
+    await page.reload()
+    const canvas = page.locator('canvas[data-world-stage]')
+    await expect(canvas).toHaveAttribute('data-tile-size', /\d/)
+    const view = await world(page)
+    expect(view.position).toEqual(position)
+    const sector = view.sectors.find(({ id }) => id === position.sectorId)!
+    expect(sector).toBeDefined()
+    const dressing = [
+      ...sceneryDressing(sector),
+      ...naturalDressing(sector),
+      ...regionalScenery(sector),
+      ...settlementComposition(sector),
+    ]
+    await waitForWorldArt(page, view)
+    return {
+      sector,
+      dressing,
+      environment: view.environment,
+      actualPhase: privateScene ? staged.phase : null,
+    }
+  }
+
+  async function withPrivateArtCadence(review: () => Promise<void>) {
+    const original = Number(
+      sql(
+        'select warped_shift_minutes from app_private.world_environment_settings where singleton;',
+      ),
+    )
+    try {
+      await review()
+    } finally {
+      sql(
+        `update app_private.world_environment_settings set warped_shift_minutes = ${original} where singleton;`,
+      )
+    }
+  }
+
+  type ArtScene = Awaited<ReturnType<typeof scene>>
+
+  test('settlement outskirts have asymmetric extents without changing safe cores or saved state', async ({
+    page,
+  }, info) => {
+    test.skip(info.project.name === 'laptop-chromium', 'Review desktop and touch once each.')
+    test.setTimeout(120_000)
+    await enter(page)
+    const { characterId } = await world(page)
+    const commands: string[] = []
+    page.on('request', (request) => {
+      if (new URL(request.url()).pathname === '/api/world' && request.method() === 'POST')
+        commands.push(request.postDataJSON()?.intent?.kind)
+    })
+    for (const [townId, count] of [
+      ['aureth-crown', 14],
+      ['frostmere', 9],
+    ] as const) {
+      const district =
+        atlasSectors().find((sector) => sector.settlementOutskirtsOf === townId) ??
+        atlasSectors().find((sector) => sector.id === townId)!
+      const position = { sectorId: district.id, x: 6, y: 4 }
+      await scene(page, characterId, position)
+      const state = () =>
+        sql(
+          `select state from app_private.character_world_state where character_id='${characterId}'::uuid`,
+        )
+      const saved = state()
+      const view = await world(page)
+      const extent = globeTowns(view.atlas!).find((town) => town.sector.id === townId)!
+      expect(extent.districts).toHaveLength(count)
+      expect(extent.districts.filter((sector) => sector.townId === townId)).toHaveLength(9)
+      if (district.settlementOutskirtsOf) {
+        const sector = view.sectors.find((sector) => sector.id === district.id)!
+        expect(sector.townId).toBeUndefined()
+        expect(sector.cells.some((cell) => cell.walkable && !cell.safe)).toBe(true)
+        expect(settlementComposition(sector).length).toBeGreaterThan(0)
+      }
+      await capture(page, info, `art-surfaces-town-extent-${townId}-normal`)
+      for (const zoom of ['maximum', 'minimum']) {
+        await openMapSettings(page)
+        await page
+          .getByRole('slider', { name: 'Zoom level', exact: true })
+          .press(zoom === 'minimum' ? 'Home' : 'End')
+        await closeMapSettings(page)
+        if (zoom === 'minimum') await page.emulateMedia({ reducedMotion: 'reduce' })
+        await capture(page, info, `art-surfaces-town-extent-${townId}-${zoom}`)
+      }
+      await page.getByRole('button', { name: /Open world atlas/ }).click()
+      await expect(page.getByRole('group', { name: /World globe/ })).toBeVisible()
+      await capture(page, info, `art-surfaces-town-extent-${townId}-globe`)
+      expect(state()).toBe(saved)
+      expect((await world(page)).position).toEqual(position)
+      await page.emulateMedia({ reducedMotion: 'no-preference' })
+    }
+    expect(commands).toEqual([])
+  })
+
+  for (const townId of ['frostmere', 'emberreach']) {
+    test(`${townId} town lake is dry regional ground at every map zoom`, async ({ page }, info) => {
+      test.skip(info.project.name === 'laptop-chromium', 'Review mouse and touch once each.')
+      test.setTimeout(120_000)
+      await enter(page)
+      const { characterId } = await world(page)
+      const district = atlasSectors().find(
+        (sector) => sector.townId === townId && sector.rows.some((row) => row.includes('w')),
+      )!
+      const y = district.rows.findIndex((row) => row.includes('w'))
+      const x = district.rows[y]!.indexOf('w')
+      const position = { sectorId: district.id, x, y }
+      await scene(page, characterId, position)
+      const saved = () =>
+        sql(
+          `select state from app_private.character_world_state where character_id='${characterId}'::uuid`,
+        )
+      const before = saved()
+      const commands: string[] = []
+      page.on('request', (request) => {
+        if (new URL(request.url()).pathname === '/api/world' && request.method() === 'POST')
+          commands.push(request.postDataJSON()?.intent?.kind)
+      })
+      const view = await world(page)
+      for (const sector of worldRenderTerrain(view).filter((sector) => sector.townId === townId)) {
+        expect(sector.cells.some((cell) => cell.terrain === 'w' || cell.terrain === '~')).toBe(
+          false,
+        )
+        expect(buildWaterField([sector]).get(sector.id)!.cells.size).toBe(0)
+      }
+      expect(view.position).toEqual(position)
+      const pool = view.sectors.find((sector) => sector.id === district.id)!
+      expect(pool.cells.find((cell) => cell.x === x && cell.y === y)).toMatchObject({
+        terrain: '.',
+        walkable: true,
+        safe: true,
+      })
+      for (const zoom of ['normal', 'maximum', 'minimum']) {
+        if (zoom !== 'normal') {
+          await openMapSettings(page)
+          await page
+            .getByRole('slider', { name: 'Zoom level', exact: true })
+            .press(zoom === 'minimum' ? 'Home' : 'End')
+          await closeMapSettings(page)
+        }
+        if (zoom === 'minimum') await page.emulateMedia({ reducedMotion: 'reduce' })
+        await capture(page, info, `art-dry-town-${townId}-${zoom}`)
+      }
+      expect(saved()).toBe(before)
+      expect(commands).toEqual([])
+      await page.emulateMedia({ reducedMotion: 'no-preference' })
+    })
+  }
+
+  test('Uncharted landscape stays visible without exploration fog or survey progress changes', async ({
+    page,
+  }, info) => {
+    test.skip(info.project.name === 'laptop-chromium', 'Exercise mouse and touch once each.')
+    test.setTimeout(120_000)
+    await page.addInitScript(() => {
+      const observed = window as unknown as { __unchartedFogPaints: number }
+      observed.__unchartedFogPaints = 0
+      const original = CanvasGradient.prototype.addColorStop
+      CanvasGradient.prototype.addColorStop = function (offset, colour) {
+        if (colour === 'rgba(37,44,61,.71)' || colour === 'rgba(37,44,61,.84)')
+          observed.__unchartedFogPaints++
+        original.call(this, offset, colour)
+      }
+    })
+    await enter(page)
+    const { characterId } = await world(page)
+    await withPrivateArtCadence(async () => {
+      const position = { sectorId: 'uncharted-landing', x: 6, y: 4 }
+      await scene(page, characterId, position, 0, false)
+      const progress = () =>
+        sql(
+          `select jsonb_build_object('discoveries',state->'discoveries','completedObjectives',state->'completedObjectives','objectiveProgress',state->'objectiveProgress','discoveredAnchors',state->'discoveredAnchors','warpedDiscoveries',state->'warpedDiscoveries') from app_private.character_world_state where character_id='${characterId}'::uuid`,
+        )
+      const saved = progress()
+      const before = await world(page)
+      expect(before.sectors.find((sector) => sector.id === position.sectorId)!.cells).toHaveLength(
+        25,
+      )
+      expect(before.unchartedTerrain!.length).toBeGreaterThan(25)
+      expect(
+        worldRenderTerrain(before).find((sector) => sector.id === position.sectorId)!.cells,
+      ).toHaveLength(117)
+      const commands: string[] = []
+      page.on('request', (request) => {
+        if (new URL(request.url()).pathname === '/api/world' && request.method() === 'POST')
+          commands.push(request.postDataJSON()?.intent?.kind)
+      })
+      await openMapSettings(page)
+      await page.getByRole('slider', { name: 'Zoom level', exact: true }).press('Home')
+      await closeMapSettings(page)
+      const canvas = page.locator('canvas[data-world-stage]')
+      await expect(canvas).toHaveAttribute(
+        'data-tile-size',
+        String((await canvas.evaluate((el) => el.clientWidth < 600)) ? 48 * 0.35 : 64 * 0.35),
+      )
+      await page.emulateMedia({ reducedMotion: 'reduce' })
+      await capture(page, info, 'uncharted-no-fog-minimum-zoom')
+      expect(
+        await page.evaluate(
+          () => (window as unknown as { __unchartedFogPaints: number }).__unchartedFogPaints,
+        ),
+      ).toBe(0)
+      expect(progress()).toBe(saved)
+      expect((await world(page)).position).toEqual(position)
+      expect(commands).toEqual([])
+      await page.emulateMedia({ reducedMotion: 'no-preference' })
+    })
+  })
+
+  test('regional water materials have image-ready bank and depth review views', async ({
+    page,
+  }, info) => {
+    test.skip(info.project.name !== 'desktop-chromium', 'Review actual water surfaces once.')
+    test.setTimeout(120_000)
+    await enter(page)
+    const { characterId } = await world(page)
+    const evidence: unknown[] = []
+    for (const regionId of ['verdant-expanse', 'hollow-coast', 'glasswind-desert']) {
+      const candidate = waterReviewCandidate(atlasSectors(), regionId)
+      expect(candidate).toBeDefined()
+      const { sector } = await scene(page, characterId, {
+        sectorId: candidate!.sector.id,
+        ...candidate!.ground[0]!,
+      })
+      const profiles = [...buildWaterField([sector]).get(sector.id)!.cells.values()]
+      expect(profiles.length).toBeGreaterThan(0)
+      expect(profiles.some(({ banks }) => banks.length > 0)).toBe(true)
+      await capture(page, info, `art-water-depth-${regionId}`)
+      evidence.push({
+        regionId,
+        sector,
+        observedDepths: [...new Set(profiles.map(({ depth }) => depth))],
+        waterCells: profiles.length,
+      })
+    }
+    writeFileSync(info.outputPath('world-art-review.json'), JSON.stringify(evidence, null, 2))
+  })
+
+  test('new mainland surfaces and grand crossings have normal-zoom review views', async ({
+    page,
+  }, info) => {
+    test.skip(info.project.name === 'laptop-chromium', 'Desktop and phone surface review.')
+    test.setTimeout(150_000)
+    await enter(page)
+    const { characterId } = await world(page)
+    const evidence = []
+    const shrineSector = atlasSectors().find((sector) =>
+      sector.landmarks.some(
+        (site) =>
+          site.kind === 'shrine' &&
+          landmarkArtSize(
+            {
+              ...sector,
+              exits: [...sector.roads],
+              cells: sector.rows.flatMap((row, y) =>
+                [...row].map((terrain, x) => ({
+                  x,
+                  y,
+                  terrain,
+                  safe: false,
+                  walkable: '.st='.includes(terrain),
+                })),
+              ),
+            },
+            site,
+            1.55,
+          ) === 3.2,
+      ),
+    )
+    const shrine = shrineSector?.landmarks.find((site) => site.kind === 'shrine')
+    expect(shrine).toBeDefined()
+    const moatSector = atlasSectors().find(
+      (sector) =>
+        sector.townId === 'umbral-march' && sector.landmarks.some((site) => site.kind === 'bridge'),
+    )!
+    const moat = moatSector.landmarks.find((site) => site.kind === 'bridge')!
+    const cases = [
+      [
+        'woodland-grand-bridge',
+        REMOTE_GRAND_CROSSING.sectorId,
+        REMOTE_GRAND_CROSSING.x,
+        REMOTE_GRAND_CROSSING.y,
+      ],
+      ['town-moat-bridge', moatSector.id, moat.x, moat.y],
+      ['lavafall', 'emberreach', 9, 7],
+      ['willow-cascade', 'atlas:69:36', 8, 3],
+      ['alpine-impact', 'atlas:45:9', 9, 6],
+      ['meadow-impact', 'atlas:65:21', 2, 2],
+      ['grand-shrine', shrineSector!.id, shrine!.x, shrine!.y],
+    ] as const
+    for (const [key, sectorId, x, y] of cases) {
+      const result = await scene(page, characterId, { sectorId, x, y })
+      expect(
+        result.sector.cells.some((cell) => cell.x === x && cell.y === y && cell.walkable),
+      ).toBe(true)
+      if (key === 'grand-shrine') {
+        const site = result.sector.landmarks.find((landmark) => landmark.kind === 'shrine')!
+        expect(landmarkArtSize(result.sector, site, 1.55)).toBe(3.2)
+      }
+      await capture(page, info, `art-surfaces-${key}`)
+      evidence.push({ key, ...result })
+    }
+    writeFileSync(info.outputPath('world-art-review.json'), JSON.stringify(evidence, null, 2))
+  })
+
+  test('all new mainland scenic assets and fallen star have normal-zoom native views', async ({
+    page,
+  }, info) => {
+    test.skip(info.project.name === 'laptop-chromium', 'Desktop and phone scenery review.')
+    test.setTimeout(180_000)
+    const candidates = sceneryReviewCandidates(atlasSectors())
+    expect(candidates.size).toBe(11)
+    await enter(page)
+    const { characterId } = await world(page)
+    const evidence = []
+    for (const [key, position] of candidates) {
+      const result = await scene(page, characterId, position)
+      expect(result.dressing.some((p) => `${p.sheet}-${p.index}` === key)).toBe(true)
+      await capture(page, info, `art-scenery-${key}`)
+      evidence.push({ key, ...result })
+    }
+    writeFileSync(info.outputPath('world-art-review.json'), JSON.stringify(evidence, null, 2))
+  })
+
+  test('large rare Void time ruins and strange vegetation have normal-zoom native views', async ({
+    page,
+  }, info) => {
+    test.skip(info.project.name === 'laptop-chromium', 'Desktop and phone rare scenery review.')
+    test.setTimeout(120_000)
+    await enter(page)
+    const { characterId } = await world(page)
+    await withPrivateArtCadence(async () => {
+      const evidence = []
+      for (const { key, phase, ...position } of VOID_SCENERY_VIEWS) {
+        const result = await scene(page, characterId, position, phase)
+        const prop = result.dressing.find((p) => `${p.sheet}-${p.index}` === key)
+        expect(prop).toBeDefined()
+        if (key.startsWith('rare-')) expect(prop!.scale).toBeGreaterThan(2)
+        await capture(page, info, `art-void-scenery-${key}`)
+        evidence.push({ key, phase, ...result })
+      }
+      writeFileSync(info.outputPath('world-art-review.json'), JSON.stringify(evidence, null, 2))
+    })
+  })
+
+  for (const region of WORLD_REGIONS) {
+    test(`all ${region.name} hamlets have working scenery at normal zoom`, async ({
+      page,
+    }, info) => {
+      test.skip(info.project.name !== 'desktop-chromium', 'Capture every mainland hamlet once.')
+      test.setTimeout(180_000)
+      const hamlets = atlasSectors()
+        .filter(({ regionId }) => regionId === region.id)
+        .flatMap((sector) =>
+          sector.landmarks
+            .filter(({ kind }) => kind === 'hamlet')
+            .map((landmark) => ({ sectorId: sector.id, landmark })),
+        )
+      expect(hamlets.length).toBeGreaterThan(0)
+      await enter(page)
+      const { characterId } = await world(page)
+      const evidence: (ArtScene & { sectorId: string; name: string })[] = []
+      for (const { sectorId, landmark } of hamlets) {
+        await test.step(`${landmark.name} in ${sectorId}`, async () => {
+          const result = await scene(page, characterId, { sectorId, x: landmark.x, y: landmark.y })
+          expect(result.dressing.some(({ sheet }) => sheet === 'hamlet-dressing')).toBe(true)
+          await capture(page, info, `art-hamlet-${sectorId.replaceAll(':', '-')}`)
+          evidence.push({ sectorId, name: landmark.name, ...result })
+        })
+      }
+      writeFileSync(info.outputPath('world-art-review.json'), JSON.stringify(evidence, null, 2))
+    })
+  }
+
+  // Only the visual environment is overridden. Auth, projection, images and commands
+  // still use the real disposable backend; this is not server-weather acceptance.
+  for (const region of WORLD_REGIONS) {
+    test(`${region.name} town has image-ready native weather and motion views`, async ({
+      page,
+    }, info) => {
+      test.skip(info.project.name === 'laptop-chromium', 'Desktop and phone-sized art comparison.')
+      test.setTimeout(180_000)
+      await enter(page)
+      const { characterId } = await world(page)
+      let weather: WorldView['environment']['weather'] = 'clear'
+      await page.route('**/api/world*', async (route) => {
+        if (route.request().method() !== 'GET') return route.continue()
+        const response = await route.fetch(),
+          body = await response.json()
+        await route.fulfill({
+          response,
+          json: {
+            ...body,
+            environment: { ...body.environment, weather, minuteOfDay: 720, frozen: true },
+          },
+        })
+      })
+      try {
+        const cases: WorldView['environment']['weather'][] =
+          info.project.name === 'mobile-chromium'
+            ? ['clear', 'storm']
+            : ['clear', 'overcast', 'wind', 'fog', 'rain', 'storm']
+        const evidence: unknown[] = []
+        const canvas = page.locator('canvas[data-world-stage]')
+        for (const condition of cases) {
+          weather = condition
+          const result = await scene(page, characterId, { sectorId: region.id, x: 6, y: 4 })
+          expect(result.sector.townId).toBe(region.id)
+          expect(result.dressing.length).toBeGreaterThan(0)
+          const precipitation =
+            condition === 'rain' || condition === 'storm'
+              ? region.id === 'frostmere'
+                ? 'snow'
+                : 'rain'
+              : 'none'
+          await expect(canvas).toHaveAttribute('data-precipitation', precipitation)
+          if (precipitation !== 'none')
+            await expect
+              .poll(async () => Number(await canvas.getAttribute('data-precipitation-particles')))
+              .toBeGreaterThan(0)
+          const frames = []
+          for (let sample = 0; sample < 2; sample++) {
+            const frame = Number(await canvas.getAttribute('data-frame-now'))
+            await expect
+              .poll(async () => Number(await canvas.getAttribute('data-frame-now')))
+              .toBeGreaterThan(frame + 240)
+            // Native screenshots remain readable even when a public portrait taints Canvas.
+            const pixels = await canvas.screenshot({ animations: 'disabled' })
+            frames.push({
+              frame: Number(await canvas.getAttribute('data-frame-now')),
+              sha256: createHash('sha256').update(pixels).digest('hex'),
+            })
+            await capture(page, info, `art-town-${region.id}-${condition}-${sample}`)
+          }
+          // Rain/snow is genuinely moving, not only a weather label in scene metadata.
+          if (condition === 'rain' || condition === 'storm')
+            expect(frames[0]!.sha256).not.toBe(frames[1]!.sha256)
+          evidence.push({
+            visualFixture: { weather: condition, minuteOfDay: 720, frozen: true },
+            frames,
+            ...result,
+          })
+        }
+        await page.emulateMedia({ reducedMotion: 'reduce' })
+        await expect(canvas).toHaveAttribute('data-precipitation-particles', '0')
+        await capture(page, info, `art-town-${region.id}-reduced-motion`)
+        writeFileSync(
+          info.outputPath('world-art-review.json'),
+          JSON.stringify(
+            {
+              scope: 'local visual weather fixture, not shared weather or human acceptance',
+              evidence,
+              reducedMotion: true,
+            },
+            null,
+            2,
+          ),
+        )
+      } finally {
+        // Drain intercepted polling before Playwright disposes its route request context.
+        await page.unrouteAll({ behavior: 'wait' })
+      }
+    })
+  }
+
+  test('moving traveller keeps native identity behind settlement roofs and trees', async ({
+    page,
+  }, info) => {
+    test.skip(info.project.name === 'laptop-chromium', 'Desktop and phone-sized movement evidence.')
+    test.setTimeout(120_000)
+    await enter(page)
+    const { characterId } = await world(page)
+    const cases = canonicalOcclusionWalks()
+    const identity = page.locator('canvas[data-world-identity]')
+    const sample = async () =>
+      identity.evaluate((el) => {
+        const canvas = el as HTMLCanvasElement,
+          style = getComputedStyle(canvas)
+        return {
+          width: canvas.width,
+          height: canvas.height,
+          opacity: Number(style.opacity),
+          visible: style.display !== 'none' && style.visibility === 'visible',
+        }
+      })
+    const evidence = []
+    for (const { label, sectorId, from, to: preferred } of cases) {
+      const { sector } = await scene(page, characterId, { sectorId, ...from })
+      const start = sector.cells.find((c) => c.x === from.x && c.y === from.y)!
+      expect(start.walkable).toBe(true)
+      if (label === 'tree') expect(start.terrain).toBe('t')
+      const fresh = await world(page)
+      const destination = unoccupiedArtStep(sector, from, preferred, [
+        ...fresh.players,
+        ...(fresh.npcs ?? []),
+      ])
+      expect(destination, 'Capture walk requires an unoccupied legal adjacent cell').toBeDefined()
+      const to = destination!
+      const end = sector.cells.find((c) => c.x === to.x && c.y === to.y)!
+      expect(end.walkable).toBe(true)
+      const before = await sample()
+      expect(before.visible).toBe(true)
+      expect(before.opacity).toBe(1)
+      expect(before.width * before.height).toBeGreaterThan(0)
+      // Observe the real identity painter, supporting both embodied grayscale
+      // actors and the legacy opaque gray token without changing native drawing.
+      await identity.evaluate((el) => {
+        const context = (el as HTMLCanvasElement).getContext('2d')!,
+          draw = context.drawImage,
+          fill = context.fill
+        context.drawImage = new Proxy(draw, {
+          apply(target, receiver, args) {
+            if (context.filter.includes('grayscale')) {
+              el.dataset.testGhostPaints = String(Number(el.dataset.testGhostPaints ?? 0) + 1)
+              el.dataset.testGhostAlpha = String(context.globalAlpha)
+            }
+            return Reflect.apply(target, receiver, args)
+          },
+        })
+        context.fill = new Proxy(fill, {
+          apply(target, receiver, args) {
+            if (context.fillStyle === '#a6b1b0') {
+              el.dataset.testGhostPaints = String(Number(el.dataset.testGhostPaints ?? 0) + 1)
+              el.dataset.testGhostAlpha = String(context.globalAlpha)
+            }
+            return Reflect.apply(target, receiver, args)
+          },
+        })
+      })
+      const viewport = page.viewportSize()!
+      await page.setViewportSize({ ...viewport, height: viewport.height - 1 })
+      await expect
+        .poll(async () => Number(await identity.getAttribute('data-test-ghost-paints')))
+        .toBeGreaterThan(0)
+      const ghostPaints = Number(await identity.getAttribute('data-test-ghost-paints'))
+      const ghostAlpha = Number(await identity.getAttribute('data-test-ghost-alpha'))
+      expect(ghostAlpha).toBeGreaterThan(0)
+      expect(ghostAlpha).toBeLessThanOrEqual(1)
+      await capture(page, info, `art-occlusion-${label}-before`)
+      await stageWalk(page, to)
+      await expect.poll(async () => (await world(page)).position).toEqual(to)
+      // Wait for the actual client traveller to catch the authoritative endpoint.
+      const canvas = page.locator('canvas[data-world-stage]')
+      await expect
+        .poll(async () => Number(await canvas.getAttribute('data-traveller-x')))
+        .toBeCloseTo((sector.atlasColumn ?? 0) * GRID_WIDTH + to.x + 0.5, 2)
+      await expect
+        .poll(async () => Number(await canvas.getAttribute('data-traveller-y')))
+        .toBeCloseTo((sector.atlasRow ?? 0) * GRID_HEIGHT + to.y + 0.5, 2)
+      const after = await sample()
+      expect(after.visible).toBe(true)
+      expect(after.opacity).toBe(1)
+      expect(after.width * after.height).toBeGreaterThan(0)
+      await capture(page, info, `art-occlusion-${label}-after`)
+      evidence.push({ label, start, end, before, after, ghostPaints, ghostAlpha })
+    }
+    writeFileSync(
+      info.outputPath('world-art-review.json'),
+      JSON.stringify(
+        {
+          scope:
+            'real authorized walks behind roof/tree on a disposable character; stills are not continuous motion or human silhouette acceptance',
+          evidence,
+        },
+        null,
+        2,
+      ),
+    )
+  })
+
+  test('all Void districts, rare landmarks and refuges have surveyed scenic captures', async ({
+    page,
+  }, info) => {
+    test.skip(info.project.name !== 'desktop-chromium', 'Capture private phase artwork once.')
+    test.setTimeout(180_000)
+    await enter(page)
+    const { characterId } = await world(page)
+    const districts = [
+      'glass',
+      'belfry',
+      'pale',
+      'orchard',
+      'landing',
+      'mirrors',
+      'cinders',
+      'verge',
+      'tarn',
+      'spiral',
+      'geodes',
+      'shale',
+      'relic',
+    ]
+    const variants: [string, number, string][] = [
+      ['tarn', 7, 'The Violet Mirror'],
+      ['mirrors', 12, 'The Twin Glass'],
+      ['orchard', 8, 'The Meteor Lily'],
+      ['pale', 3, 'The Misaligned Gate'],
+      ['geodes', 3, 'The First Resonance'],
+      ['cinders', 1, 'The Unfinished Village'],
+      ['relic', 3, 'Sporelight Homes'],
+    ]
+    const cases: [string, number, string | null][] = [
+      ...districts.map((key): [string, number, string | null] => [
+        key,
+        0,
+        key === 'verge' ? 'Lantern Refuge' : null,
+      ]),
+      ...variants,
+    ]
+    await withPrivateArtCadence(async () => {
+      const evidence: (ArtScene & { phase: number })[] = []
+      for (const [key, phase, landmark] of cases) {
+        await test.step(`${key} phase ${phase}`, async () => {
+          const sectorId = `uncharted-${key}`
+          const result = await scene(page, characterId, { sectorId, x: 6, y: 4 }, phase)
+          expect(result.sector.charted).toBe(false)
+          expect(result.sector.warpedScenery).toBeDefined()
+          expect(
+            result.dressing.filter(
+              (p) =>
+                !['regional-scenery', 'regional-scenery-extra', 'rare-scenery'].includes(p.sheet),
+            ),
+          ).toHaveLength(1)
+          if (landmark) expect(result.sector.landmarks.map(({ name }) => name)).toContain(landmark)
+          await capture(page, info, `art-void-${key}-phase-${phase}`)
+          evidence.push({ phase, ...result })
+        })
+      }
+      writeFileSync(info.outputPath('world-art-review.json'), JSON.stringify(evidence, null, 2))
+    })
+  })
+}

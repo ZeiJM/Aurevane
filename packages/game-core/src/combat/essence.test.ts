@@ -1,4 +1,6 @@
+import { prePercentageRecoveryEssence } from './percentage-recovery-history.test-utils'
 import { describe, expect, it } from 'vitest'
+import { source } from './combat-behavior.test-utils'
 
 import { createCombatEncounterState } from './actions'
 import { createPendingBattle, startBattle } from './battle-state'
@@ -11,7 +13,7 @@ import {
   resolveEssenceForBuild,
   validateEssenceDefinition,
 } from './essence'
-import { currentMysticMpCost } from './mature-skills'
+import { currentMysticMpCost, latestEnabledMatureSkills } from './mature-skills'
 import { createPv1fTemporaryResources, readPv1fActionEconomy } from './pv1f-action-economy'
 import {
   createStatDrivenCombatEncounterState,
@@ -34,6 +36,38 @@ function profile(combatantId: string): StatDrivenCombatProfile {
     jump: 1,
   }
 }
+
+describe('canonical exact-version Essence routing', () => {
+  it.each([true, false])(
+    'uses root/nested canonical capture before legacy projection and current fallback; root=%s',
+    (rootEnvelope) => {
+      const original = resolveEssenceForBuild('vanguard', null)!
+      const essence = rootEnvelope
+        ? { ...original, ability: source().definition }
+        : { ...original, skill: { ...original.skill, ability: source().definition } }
+      expect(essenceSnapshotReference(essence).essenceId).toBe(essence.essenceId)
+      const input = {
+        state: encounter(),
+        essence,
+        primaryDisciplineId: 'vanguard',
+        secondaryDisciplineId: null,
+        combatContext: 'pve' as const,
+        selection: { kind: 'unit' as const, combatantId: 'recruit' },
+      }
+      const preview = evaluatePv1fEssenceSkillForAi(input)!
+      expect(preview.apCost).toBe(11)
+      expect(preview.legal).toBe(true)
+      const out = executePv1fEssenceSkill(input)
+      expect(readPv1fActionEconomy(out.state)!.current).toBe(89)
+      expect(out.state.capturedAbilitySources![0]).toMatchObject({
+        sourceKind: 'essence',
+        abilityId: essence.essenceId,
+        contentVersion: essence.contentVersion,
+        definition: source().definition,
+      })
+    },
+  )
+})
 
 function encounter(): StatDrivenCombatEncounterState {
   const playerProfile = profile('player')
@@ -119,6 +153,62 @@ describe('P3.6 versioned pure Essence framework', () => {
     expect(resolveEssenceForBuild('unknown-discipline', null)).toBeNull()
   })
 
+  it('keeps all current Essences as bounded higher-cost combat-v5 signature Skills', () => {
+    const disciplineIds = [
+      ...new Set(P36_REPRESENTATIVE_ESSENCES.map((row) => row.sourceDisciplineId)),
+    ]
+    const regularSkills = latestEnabledMatureSkills()
+
+    expect(disciplineIds).toHaveLength(17)
+    for (const disciplineId of disciplineIds) {
+      const definition = resolveEssenceForBuild(disciplineId, null)
+      if (!definition) throw new Error(`Expected current Essence for ${disciplineId}.`)
+
+      const ordinary = regularSkills.filter((skill) => skill.sourceDisciplineId === disciplineId)
+      const averageOrdinaryAp =
+        ordinary.reduce((sum, skill) => sum + skill.apCost, 0) / Math.max(1, ordinary.length)
+
+      expect(validateEssenceDefinition(definition), definition.essenceId).toEqual([])
+      expect(definition.flavorLine?.trim().length, definition.essenceId).toBeGreaterThan(0)
+      expect(definition.skill.authoring.validationTags, definition.essenceId).toContain(
+        'owner-rebalance-v5',
+      )
+      expect(definition.skill.apCost, definition.essenceId).toBeGreaterThanOrEqual(55)
+      expect(definition.skill.apCost, definition.essenceId).toBeLessThanOrEqual(75)
+      expect(definition.skill.apCost, definition.essenceId).toBeGreaterThan(averageOrdinaryAp)
+
+      if (definition.skill.requirements.length > 0) {
+        expect(definition.skill.cooldown, definition.essenceId).toBeNull()
+      } else {
+        expect(definition.skill.cooldown?.ownerTurns, definition.essenceId).toBeGreaterThanOrEqual(
+          1,
+        )
+        expect(definition.skill.cooldown?.ownerTurns, definition.essenceId).toBeLessThanOrEqual(3)
+      }
+
+      for (const effect of definition.skill.effects) {
+        expect(effect.durationTurns, definition.essenceId).toBeGreaterThanOrEqual(0)
+        expect(effect.durationTurns, definition.essenceId).toBeLessThanOrEqual(4)
+        if (
+          effect.type === 'damage' ||
+          effect.type === 'healing' ||
+          effect.type === 'barrier-change'
+        ) {
+          expect(effect.amount, definition.essenceId).toBeGreaterThanOrEqual(1)
+          expect(effect.amount, definition.essenceId).toBeLessThanOrEqual(20)
+        }
+        if (effect.type === 'resource-change') {
+          expect(Math.abs(effect.delta), definition.essenceId).toBeGreaterThanOrEqual(1)
+          expect(Math.abs(effect.delta), definition.essenceId).toBeLessThanOrEqual(20)
+        }
+        if (effect.type !== 'summon' && effect.power !== undefined) {
+          expect(effect.power, definition.essenceId).toBeGreaterThanOrEqual(1)
+          expect(effect.power, definition.essenceId).toBeLessThanOrEqual(20)
+        }
+      }
+    }
+  })
+
   it('normalizes current mystic Essence MP while retaining historical versions', () => {
     const disciplineIds = [
       ...new Set(P36_REPRESENTATIVE_ESSENCES.map((row) => row.sourceDisciplineId)),
@@ -144,12 +234,12 @@ describe('P3.6 versioned pure Essence framework', () => {
     const historical = resolveEssenceForBuild('edgedancer', null, 2)
     if (!current || !historical) throw new Error('Expected Edgedancer Essence versions.')
 
-    expect(current.contentVersion).toBe(3)
+    expect(current.contentVersion).toBe(5)
     expect(
       current.skill.effects
         .filter((effect) => effect.type === 'damage')
         .map((effect) => effect.amount),
-    ).toEqual([4, 4, 4, 4, 4, 4, 4])
+    ).toEqual([9, 9, 9, 9, 9, 9, 9])
     expect(
       historical.skill.effects
         .filter((effect) => effect.type === 'damage')
@@ -163,10 +253,10 @@ describe('P3.6 versioned pure Essence framework', () => {
 
     expect(essenceSnapshotReference(essence)).toEqual({
       essenceId: essence.essenceId,
-      contentVersion: 2,
+      contentVersion: 4,
       sourceDisciplineId: 'vanguard',
       skillId: 'essence.vanguard.unbroken-strike',
-      skillContentVersion: 2,
+      skillContentVersion: 4,
     })
 
     const historical = resolveEssenceForBuild('vanguard', null, 1)
@@ -199,7 +289,7 @@ describe('P3.6 versioned pure Essence framework', () => {
       affordable: true,
       apCost: 55,
       actionEconomyRemaining: 100,
-      baseUtility: 92,
+      baseUtility: 97,
       purposeTags: ['damage', 'finisher', 'pure-build'],
       combatEvaluation: { legal: true, primaryCombatantId: 'recruit' },
     })
@@ -240,8 +330,12 @@ describe('P3.6 versioned pure Essence framework', () => {
     })
     expect(readPv1fActionEconomy(pve.state, 'player')?.current).toBe(45)
     expect(pve.state.tactical.battle.combatants.find((row) => row.id === 'recruit')?.hp).toBe(30)
-    expect(pve.events).not.toContainEqual(
-      expect.objectContaining({ event: 'skill_cooldown_started', actionId: essence.skill.id }),
+    expect(pve.events).toContainEqual(
+      expect.objectContaining({
+        event: 'skill_cooldown_started',
+        actionId: essence.skill.id,
+        ownerTurns: 3,
+      }),
     )
     expect(pve.events).toContainEqual(
       expect.objectContaining({
@@ -287,7 +381,7 @@ describe('P3.6 versioned pure Essence framework', () => {
     expect(essence.name).toBe('Verdant Rupture')
     expect(essence.skill.tags).toEqual(expect.arrayContaining(['attack', 'cockpit:attack']))
     expect(readPv1fActionEconomy(result.state, 'player')?.current).toBe(45)
-    expect(result.state.tactical.battle.combatants.find((row) => row.id === 'recruit')?.hp).toBe(32)
+    expect(result.state.tactical.battle.combatants.find((row) => row.id === 'recruit')?.hp).toBe(31)
   })
 
   it('fails closed for a mixed build before spending AP or applying effects', () => {
@@ -309,4 +403,72 @@ describe('P3.6 versioned pure Essence framework', () => {
     expect(readPv1fActionEconomy(state, 'player')?.current).toBe(100)
     expect(state.tactical.battle.combatants.find((row) => row.id === 'recruit')?.hp).toBe(50)
   })
+})
+
+describe('Combat v5.1 Essence targeting balance', () => {
+  it('publishes current Essence versions with v5.1 targeting rules while preserving v5 history', () => {
+    const disciplineIds = [
+      ...new Set(P36_REPRESENTATIVE_ESSENCES.map((row) => row.sourceDisciplineId)),
+    ]
+    const elevations = new Map<number, number>([
+      [0, 0],
+      [1, 0],
+      [2, 0],
+    ])
+
+    for (const disciplineId of disciplineIds) {
+      const current = prePercentageRecoveryEssence(disciplineId)
+      if (!current) throw new Error(`Expected current Essence for ${disciplineId}.`)
+
+      expect(current.authoring.validationTags, current.essenceId).toContain('owner-rebalance-v5-1')
+      expect(current.skill.authoring.validationTags, current.essenceId).toContain(
+        'owner-rebalance-v5-1',
+      )
+      expect(current.skill.apCost, current.essenceId).toBeGreaterThanOrEqual(55)
+      expect(current.skill.apCost, current.essenceId).toBeLessThanOrEqual(75)
+
+      if (current.skill.target.kind === 'self') {
+        expect(current.skill.target.maximumRange, current.essenceId).toBe(0)
+        expect(current.skill.target.maximumElevationDifference, current.essenceId).toBeNull()
+      } else {
+        expect(current.skill.target.maximumRange, current.essenceId).toBeGreaterThanOrEqual(1)
+        expect(current.skill.target.maximumRange, current.essenceId).toBeLessThanOrEqual(5)
+        const elevation = current.skill.target.maximumElevationDifference
+        expect(elevation, current.essenceId).not.toBeNull()
+        expect(elevation ?? 0, current.essenceId).toBeGreaterThanOrEqual(0)
+        expect(elevation ?? 0, current.essenceId).toBeLessThanOrEqual(2)
+        elevations.set(elevation ?? 0, (elevations.get(elevation ?? 0) ?? 0) + 1)
+      }
+
+      const previous = resolveEssenceForBuild(
+        disciplineId,
+        null,
+        current.contentVersion -
+          (current.authoring.validationTags.includes('attack-percentage-dots') ? 2 : 1) -
+          (current.skill.target.geometryVersion === 2 ? 1 : 0) -
+          (current.authoring.validationTags.includes('instant-blindside-v1') ? 1 : 0),
+      )
+      if (!previous) throw new Error(`Expected prior Essence for ${disciplineId}.`)
+      expect(previous.skill.authoring.validationTags, previous.essenceId).toContain(
+        'owner-rebalance-v5',
+      )
+      expect(previous.skill.authoring.validationTags, previous.essenceId).not.toContain(
+        'owner-rebalance-v5-1',
+      )
+    }
+
+    expect(elevations.get(0) ?? 0).toBeGreaterThan(elevations.get(1) ?? 0)
+    expect(elevations.get(1) ?? 0).toBeGreaterThan(elevations.get(2) ?? 0)
+    expect(elevations.get(2) ?? 0).toBeGreaterThan(0)
+  })
+})
+
+it('current Essence audit has no typed Fire direct damage requiring a caster cleanse append', () => {
+  const disciplines = [...new Set(P36_REPRESENTATIVE_ESSENCES.map((e) => e.sourceDisciplineId))]
+  const fire = disciplines
+    .map((id) => resolveEssenceForBuild(id, null)!)
+    .filter((e) =>
+      e.skill.effects.some((effect) => effect.type === 'damage' && effect.element === 'fire'),
+    )
+  expect(fire).toEqual([])
 })

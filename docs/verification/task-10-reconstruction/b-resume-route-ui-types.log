@@ -1,0 +1,7 @@
+$ next typegen && tsc --noEmit
+Generating route types...
+✓ Types generated successfully
+Killed
+/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/apps/web:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @aurevane/web@0.0.1 typecheck: `next typegen && tsc --noEmit`
+Exit status 137

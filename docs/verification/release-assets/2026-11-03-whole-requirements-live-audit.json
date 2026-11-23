@@ -1,0 +1,2320 @@
+{
+  "read_at": "2026-11-03 07:10:53.653952+00",
+  "catalogue_token": "efa3ef9a7f7d97a458263b4543889ce0",
+  "publication_count": 303,
+  "affected": [
+    {
+      "revision": 1,
+      "has_draft": false,
+      "definition": {
+        "ai": {
+          "enabled": true,
+          "baseUtility": 74,
+          "purposeTags": ["attack", "melee", "payoff"]
+        },
+        "id": "bastion.stalwart-strike",
+        "tags": ["discipline", "bastion", "attack", "melee", "payoff", "cockpit:attack"],
+        "media": {
+          "vfxKey": "skill.bastion.stalwart-strike.vfx",
+          "iconKey": "skill.bastion.stalwart-strike.icon",
+          "audioCueKey": "skill.bastion.stalwart-strike.audio"
+        },
+        "apCost": 50,
+        "mpCost": 0,
+        "target": {
+          "kind": "unit",
+          "shape": {
+            "kind": "single"
+          },
+          "categories": ["enemy"],
+          "teamPolicy": "enemy",
+          "friendlyFire": "enemies-only",
+          "maximumRange": 1,
+          "minimumRange": 1,
+          "geometryVersion": 3,
+          "maximumSelections": 1,
+          "requiresLineOfSight": false,
+          "maximumElevationDifference": 0
+        },
+        "ability": {
+          "behaviors": [
+            {
+              "id": "stalwart-strike",
+              "mode": "action",
+              "costs": [
+                {
+                  "amount": 50,
+                  "resource": "ap"
+                }
+              ],
+              "effects": [
+                {
+                  "id": "damage",
+                  "payload": {
+                    "type": "damage",
+                    "amount": 12,
+                    "scaling": {
+                      "source": "physical-power",
+                      "coefficientBasisPoints": 2500
+                    },
+                    "recipient": "primary-unit",
+                    "defenseKind": "armor"
+                  }
+                },
+                {
+                  "id": "damage-2",
+                  "payload": {
+                    "type": "damage",
+                    "amount": 5,
+                    "scaling": {
+                      "source": "physical-power",
+                      "coefficientBasisPoints": 0
+                    },
+                    "recipient": "primary-unit",
+                    "defenseKind": "armor"
+                  },
+                  "requirements": {
+                    "kind": "status-presence",
+                    "present": true,
+                    "subject": "owner",
+                    "statusId": "fortified"
+                  }
+                }
+              ],
+              "accuracy": {
+                "kind": "standard"
+              },
+              "cooldown": {
+                "key": "bastion.stalwart-strike",
+                "ownerTurns": 2
+              },
+              "targeting": {
+                "kind": "unit",
+                "shape": {
+                  "kind": "single"
+                },
+                "categories": ["enemy"],
+                "teamPolicy": "enemy",
+                "friendlyFire": "enemies-only",
+                "maximumRange": 1,
+                "minimumRange": 1,
+                "geometryVersion": 3,
+                "maximumSelections": 1,
+                "requiresLineOfSight": false,
+                "maximumElevationDifference": 0
+              },
+              "activation": "manual",
+              "attackFamily": "physical",
+              "requirements": null,
+              "classification": "attack"
+            }
+          ],
+          "schemaVersion": 1
+        },
+        "effects": [
+          {
+            "type": "damage",
+            "amount": 18,
+            "recipient": "primary-unit",
+            "durationTurns": 0
+          }
+        ],
+        "enabled": true,
+        "nameRef": "skill.bastion.stalwart-strike.name",
+        "cooldown": {
+          "key": "bastion.stalwart-strike",
+          "ownerTurns": 2
+        },
+        "authoring": {
+          "status": "representative",
+          "schemaVersion": 1,
+          "validationTags": [
+            "p4",
+            "bastion",
+            "shared-combat-authority",
+            "phase4-discipline-rebalance",
+            "owner-rebalance-v5",
+            "power-1-20",
+            "duration-aware",
+            "cooldown-1-3",
+            "owner-rebalance-v5-1",
+            "target-budget-v5-1"
+          ]
+        },
+        "overrides": {},
+        "flavorLine": "Drive Bastion technique through the opening with a decisive, committed strike.",
+        "accuracyMode": "per-target",
+        "requirements": [],
+        "contentVersion": 6,
+        "descriptionRef": "Strike the enemy.",
+        "unlockRequirement": {
+          "kind": "discipline-mastery",
+          "minimumStage": 3
+        },
+        "sourceDisciplineId": "bastion",
+        "accuracyModifierBasisPoints": 0
+      },
+      "content_key": "bastion.stalwart-strike",
+      "content_kind": "skill",
+      "version_floor": 6,
+      "content_version": 6,
+      "highest_version": 6
+    },
+    {
+      "revision": 3,
+      "has_draft": false,
+      "definition": {
+        "ai": {
+          "enabled": true,
+          "baseUtility": 75,
+          "purposeTags": ["attack", "mystic", "payoff"]
+        },
+        "id": "cinderweaver.scorch",
+        "tags": ["discipline", "cinderweaver", "attack", "mystic", "payoff", "cockpit:attack"],
+        "media": {
+          "vfxKey": "skill.cinderweaver.scorch.vfx",
+          "iconKey": "skill.cinderweaver.scorch.icon",
+          "audioCueKey": "skill.cinderweaver.scorch.audio"
+        },
+        "apCost": 50,
+        "mpCost": 6,
+        "target": {
+          "kind": "unit",
+          "shape": {
+            "kind": "single"
+          },
+          "categories": ["enemy"],
+          "teamPolicy": "enemy",
+          "friendlyFire": "enemies-only",
+          "maximumRange": 4,
+          "minimumRange": 1,
+          "geometryVersion": 3,
+          "maximumSelections": 1,
+          "requiresLineOfSight": true,
+          "maximumElevationDifference": 0
+        },
+        "ability": {
+          "behaviors": [
+            {
+              "id": "scorch",
+              "mode": "action",
+              "costs": [
+                {
+                  "amount": 50,
+                  "resource": "ap"
+                },
+                {
+                  "amount": 6,
+                  "resource": "mp"
+                }
+              ],
+              "effects": [
+                {
+                  "id": "damage",
+                  "payload": {
+                    "type": "damage",
+                    "amount": 12,
+                    "element": "fire",
+                    "scaling": {
+                      "source": "mystic-power",
+                      "coefficientBasisPoints": 2500
+                    },
+                    "recipient": "primary-unit",
+                    "defenseKind": "ward"
+                  }
+                },
+                {
+                  "id": "damage-2",
+                  "payload": {
+                    "type": "damage",
+                    "amount": 3,
+                    "scaling": {
+                      "source": "mystic-power",
+                      "coefficientBasisPoints": 0
+                    },
+                    "recipient": "primary-unit",
+                    "defenseKind": "ward"
+                  },
+                  "requirements": {
+                    "kind": "status-presence",
+                    "present": true,
+                    "subject": "selected",
+                    "statusId": "burn"
+                  }
+                },
+                {
+                  "id": "element-fire",
+                  "payload": {
+                    "type": "remove-status",
+                    "target": "self",
+                    "recipient": "actor",
+                    "statusIds": ["frozen"],
+                    "removalMode": "specified"
+                  }
+                }
+              ],
+              "accuracy": {
+                "kind": "standard"
+              },
+              "cooldown": {
+                "key": "cinderweaver.scorch",
+                "ownerTurns": 2
+              },
+              "targeting": {
+                "kind": "unit",
+                "shape": {
+                  "kind": "single"
+                },
+                "categories": ["enemy"],
+                "teamPolicy": "enemy",
+                "friendlyFire": "enemies-only",
+                "maximumRange": 4,
+                "minimumRange": 1,
+                "geometryVersion": 3,
+                "maximumSelections": 1,
+                "requiresLineOfSight": true,
+                "maximumElevationDifference": 0
+              },
+              "activation": "manual",
+              "attackFamily": "mystic",
+              "requirements": null,
+              "classification": "attack"
+            }
+          ],
+          "schemaVersion": 1
+        },
+        "effects": [
+          {
+            "type": "damage",
+            "amount": 14,
+            "recipient": "primary-unit",
+            "durationTurns": 0
+          }
+        ],
+        "enabled": true,
+        "nameRef": "skill.cinderweaver.scorch.name",
+        "cooldown": {
+          "key": "cinderweaver.scorch",
+          "ownerTurns": 2
+        },
+        "authoring": {
+          "status": "representative",
+          "schemaVersion": 1,
+          "validationTags": [
+            "p4",
+            "cinderweaver",
+            "shared-combat-authority",
+            "phase4-discipline-rebalance",
+            "owner-rebalance-v5",
+            "power-1-20",
+            "duration-aware",
+            "cooldown-1-3",
+            "owner-rebalance-v5-1",
+            "target-budget-v5-1"
+          ]
+        },
+        "overrides": {},
+        "flavorLine": "Gather Cinderweaver power into a focused strike that tears through the enemy's guard.",
+        "accuracyMode": "per-target",
+        "requirements": [],
+        "contentVersion": 7,
+        "descriptionRef": "Strike the enemy and remove Chilled from yourself.",
+        "unlockRequirement": {
+          "kind": "discipline-mastery",
+          "minimumStage": 1
+        },
+        "sourceDisciplineId": "cinderweaver",
+        "accuracyModifierBasisPoints": 0
+      },
+      "content_key": "cinderweaver.scorch",
+      "content_kind": "skill",
+      "version_floor": 7,
+      "content_version": 7,
+      "highest_version": 7
+    },
+    {
+      "revision": 1,
+      "has_draft": false,
+      "definition": {
+        "name": "Aether Nova",
+        "skill": {
+          "ai": {
+            "enabled": true,
+            "baseUtility": 105,
+            "purposeTags": ["damage", "area", "pure-build"]
+          },
+          "id": "essence.aetherist.aether-nova",
+          "tags": ["essence", "aetherist", "attack", "mystic", "ranged", "area", "cockpit:attack"],
+          "media": {
+            "vfxKey": "essence.aetherist.aether-nova.vfx",
+            "iconKey": "essence.aetherist.aether-nova.icon",
+            "audioCueKey": "essence.aetherist.aether-nova.audio"
+          },
+          "apCost": 70,
+          "mpCost": 14,
+          "target": {
+            "kind": "unit",
+            "shape": {
+              "kind": "circle",
+              "radius": 2
+            },
+            "categories": ["enemy"],
+            "teamPolicy": "enemy",
+            "friendlyFire": "enemies-only",
+            "maximumRange": 2,
+            "minimumRange": 0,
+            "geometryVersion": 3,
+            "maximumSelections": 1,
+            "requiresLineOfSight": false,
+            "maximumElevationDifference": 0
+          },
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 15,
+              "recipient": "affected-units",
+              "durationTurns": 0
+            }
+          ],
+          "enabled": true,
+          "nameRef": "essence.aetherist.aether-nova.name",
+          "cooldown": {
+            "key": "essence.aetherist.aether-nova",
+            "ownerTurns": 4
+          },
+          "authoring": {
+            "status": "representative",
+            "schemaVersion": 1,
+            "validationTags": [
+              "p3.6",
+              "representative",
+              "essence",
+              "pure-only",
+              "aetherist",
+              "phase4-discipline-rebalance",
+              "a03-roster-rebalance",
+              "owner-rebalance-v5",
+              "power-1-20",
+              "duration-aware",
+              "cooldown-1-3",
+              "owner-rebalance-v5-1",
+              "target-budget-v5-1",
+              "targeting-shapes-v2",
+              "owner-simple-requirements-20261019"
+            ]
+          },
+          "overrides": {},
+          "battleText": "{actor} readies {ability}.",
+          "flavorLine": "A held constellation collapses all at once.",
+          "accuracyMode": "per-target",
+          "requirements": [],
+          "contentVersion": 9,
+          "descriptionRef": "Strike nearby enemies.",
+          "unlockRequirement": {
+            "kind": "discipline-mastery",
+            "minimumStage": 1
+          },
+          "sourceDisciplineId": "aetherist",
+          "accuracyModifierBasisPoints": 0
+        },
+        "ability": {
+          "behaviors": [
+            {
+              "id": "aether-nova",
+              "mode": "action",
+              "costs": [
+                {
+                  "amount": 70,
+                  "resource": "ap"
+                },
+                {
+                  "amount": 14,
+                  "resource": "mp"
+                }
+              ],
+              "effects": [
+                {
+                  "id": "nova",
+                  "payload": {
+                    "type": "damage",
+                    "amount": 15,
+                    "scaling": {
+                      "source": "mystic-power",
+                      "coefficientBasisPoints": 2500
+                    },
+                    "recipient": "affected-units",
+                    "defenseKind": "ward"
+                  }
+                },
+                {
+                  "id": "stored-aether",
+                  "payload": {
+                    "type": "damage",
+                    "amount": 5,
+                    "scaling": {
+                      "source": "mystic-power",
+                      "coefficientBasisPoints": 0
+                    },
+                    "recipient": "affected-units",
+                    "defenseKind": "ward"
+                  },
+                  "requirements": {
+                    "kind": "resource-state",
+                    "subject": "owner",
+                    "resource": "mp",
+                    "comparison": "more-than",
+                    "basisPoints": 7500
+                  }
+                }
+              ],
+              "accuracy": {
+                "kind": "standard"
+              },
+              "cooldown": {
+                "key": "essence.aetherist.aether-nova",
+                "ownerTurns": 4
+              },
+              "targeting": {
+                "kind": "unit",
+                "shape": {
+                  "kind": "circle",
+                  "radius": 2
+                },
+                "categories": ["enemy"],
+                "teamPolicy": "enemy",
+                "friendlyFire": "enemies-only",
+                "maximumRange": 2,
+                "minimumRange": 0,
+                "geometryVersion": 3,
+                "maximumSelections": 1,
+                "requiresLineOfSight": false,
+                "maximumElevationDifference": 0
+              },
+              "activation": "manual",
+              "attackFamily": "mystic",
+              "requirements": null,
+              "classification": "attack",
+              "requirementMode": "simple"
+            }
+          ],
+          "schemaVersion": 1
+        },
+        "enabled": true,
+        "authoring": {
+          "status": "representative",
+          "schemaVersion": 1,
+          "validationTags": [
+            "p3.6",
+            "representative",
+            "pure-only",
+            "aetherist",
+            "phase4-discipline-rebalance",
+            "a03-roster-rebalance",
+            "owner-rebalance-v5",
+            "duration-aware",
+            "power-1-20",
+            "owner-rebalance-v5-1",
+            "target-budget-v5-1",
+            "targeting-shapes-v2",
+            "owner-simple-requirements-20261019"
+          ]
+        },
+        "essenceId": "essence.aetherist.aether-nova",
+        "flavorLine": "A held constellation collapses all at once.",
+        "description": "Strike nearby enemies.",
+        "contentVersion": 9,
+        "sourceDisciplineId": "aetherist"
+      },
+      "content_key": "essence.aetherist.aether-nova",
+      "content_kind": "essence",
+      "version_floor": 9,
+      "content_version": 9,
+      "highest_version": 9
+    },
+    {
+      "revision": 1,
+      "has_draft": false,
+      "definition": {
+        "name": "Deadeye Barrage",
+        "skill": {
+          "ai": {
+            "enabled": true,
+            "baseUtility": 112,
+            "purposeTags": ["damage", "precision", "pure-build"]
+          },
+          "id": "essence.farstrider.deadeye-barrage",
+          "tags": [
+            "essence",
+            "farstrider",
+            "attack",
+            "ranged",
+            "precision",
+            "area",
+            "cockpit:attack"
+          ],
+          "media": {
+            "vfxKey": "essence.farstrider.deadeye-barrage.vfx",
+            "iconKey": "essence.farstrider.deadeye-barrage.icon",
+            "audioCueKey": "essence.farstrider.deadeye-barrage.audio"
+          },
+          "apCost": 75,
+          "mpCost": 5,
+          "target": {
+            "kind": "unit",
+            "shape": {
+              "kind": "single"
+            },
+            "categories": ["enemy"],
+            "teamPolicy": "enemy",
+            "friendlyFire": "enemies-only",
+            "maximumRange": 6,
+            "minimumRange": 2,
+            "geometryVersion": 3,
+            "maximumSelections": 2,
+            "requiresLineOfSight": true,
+            "maximumElevationDifference": 2
+          },
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 11,
+              "recipient": "affected-units",
+              "durationTurns": 0
+            }
+          ],
+          "enabled": true,
+          "nameRef": "essence.farstrider.deadeye-barrage.name",
+          "cooldown": {
+            "key": "essence.farstrider.deadeye-barrage",
+            "ownerTurns": 4
+          },
+          "authoring": {
+            "status": "representative",
+            "schemaVersion": 1,
+            "validationTags": [
+              "p3.6",
+              "representative",
+              "essence",
+              "pure-only",
+              "farstrider",
+              "phase4-discipline-rebalance",
+              "owner-rebalance-v5",
+              "power-1-20",
+              "duration-aware",
+              "cooldown-1-3",
+              "owner-rebalance-v5-1",
+              "target-budget-v5-1",
+              "targeting-shapes-v2"
+            ]
+          },
+          "overrides": {},
+          "battleText": "{actor} readies {ability}.",
+          "flavorLine": "Every prepared line meets in the same instant.",
+          "accuracyMode": "per-target",
+          "requirements": [],
+          "contentVersion": 7,
+          "descriptionRef": "Strike chosen enemies.",
+          "unlockRequirement": {
+            "kind": "discipline-mastery",
+            "minimumStage": 1
+          },
+          "sourceDisciplineId": "farstrider",
+          "accuracyModifierBasisPoints": 0
+        },
+        "ability": {
+          "behaviors": [
+            {
+              "id": "deadeye-barrage",
+              "mode": "action",
+              "costs": [
+                {
+                  "amount": 75,
+                  "resource": "ap"
+                },
+                {
+                  "amount": 5,
+                  "resource": "mp"
+                }
+              ],
+              "effects": [
+                {
+                  "id": "barrage",
+                  "payload": {
+                    "type": "damage",
+                    "amount": 15,
+                    "scaling": {
+                      "source": "physical-power",
+                      "coefficientBasisPoints": 2500
+                    },
+                    "recipient": "affected-units",
+                    "defenseKind": "armor"
+                  }
+                },
+                {
+                  "id": "prepared-lines",
+                  "payload": {
+                    "type": "damage",
+                    "amount": 4,
+                    "scaling": {
+                      "source": "physical-power",
+                      "coefficientBasisPoints": 0
+                    },
+                    "recipient": "affected-units",
+                    "defenseKind": "armor"
+                  },
+                  "requirements": {
+                    "kind": "status-presence",
+                    "present": true,
+                    "subject": "selected",
+                    "statusId": "mark"
+                  }
+                }
+              ],
+              "accuracy": {
+                "kind": "standard"
+              },
+              "cooldown": {
+                "key": "essence.farstrider.deadeye-barrage",
+                "ownerTurns": 4
+              },
+              "targeting": {
+                "kind": "unit",
+                "shape": {
+                  "kind": "single"
+                },
+                "categories": ["enemy"],
+                "teamPolicy": "enemy",
+                "friendlyFire": "enemies-only",
+                "maximumRange": 6,
+                "minimumRange": 2,
+                "geometryVersion": 3,
+                "maximumSelections": 2,
+                "requiresLineOfSight": true,
+                "maximumElevationDifference": 2
+              },
+              "activation": "manual",
+              "attackFamily": "physical",
+              "requirements": null,
+              "classification": "attack"
+            }
+          ],
+          "schemaVersion": 1
+        },
+        "enabled": true,
+        "authoring": {
+          "status": "representative",
+          "schemaVersion": 1,
+          "validationTags": [
+            "p3.6",
+            "representative",
+            "pure-only",
+            "farstrider",
+            "phase4-discipline-rebalance",
+            "owner-rebalance-v5",
+            "duration-aware",
+            "power-1-20",
+            "owner-rebalance-v5-1",
+            "target-budget-v5-1",
+            "targeting-shapes-v2"
+          ]
+        },
+        "essenceId": "essence.farstrider.deadeye-barrage",
+        "flavorLine": "Every prepared line meets in the same instant.",
+        "description": "Strike chosen enemies.",
+        "contentVersion": 7,
+        "sourceDisciplineId": "farstrider"
+      },
+      "content_key": "essence.farstrider.deadeye-barrage",
+      "content_kind": "essence",
+      "version_floor": 7,
+      "content_version": 7,
+      "highest_version": 7
+    },
+    {
+      "revision": 1,
+      "has_draft": false,
+      "definition": {
+        "ai": {
+          "enabled": true,
+          "baseUtility": 76,
+          "purposeTags": ["attack", "mystic", "expose", "setup"]
+        },
+        "id": "frostweaver.brittle-ice",
+        "tags": [
+          "discipline",
+          "frostweaver",
+          "attack",
+          "mystic",
+          "expose",
+          "setup",
+          "cockpit:attack"
+        ],
+        "media": {
+          "vfxKey": "skill.frostweaver.brittle-ice.vfx",
+          "iconKey": "skill.frostweaver.brittle-ice.icon",
+          "audioCueKey": "skill.frostweaver.brittle-ice.audio"
+        },
+        "apCost": 45,
+        "mpCost": 5,
+        "target": {
+          "kind": "unit",
+          "shape": {
+            "kind": "single"
+          },
+          "categories": ["enemy"],
+          "teamPolicy": "enemy",
+          "friendlyFire": "enemies-only",
+          "maximumRange": 4,
+          "minimumRange": 1,
+          "geometryVersion": 3,
+          "maximumSelections": 1,
+          "requiresLineOfSight": true,
+          "maximumElevationDifference": 0
+        },
+        "ability": {
+          "behaviors": [
+            {
+              "id": "brittle-ice",
+              "mode": "action",
+              "costs": [
+                {
+                  "amount": 45,
+                  "resource": "ap"
+                },
+                {
+                  "amount": 5,
+                  "resource": "mp"
+                }
+              ],
+              "effects": [
+                {
+                  "id": "damage",
+                  "payload": {
+                    "type": "damage",
+                    "amount": 8,
+                    "element": "ice",
+                    "scaling": {
+                      "source": "mystic-power",
+                      "coefficientBasisPoints": 2500
+                    },
+                    "recipient": "primary-unit",
+                    "defenseKind": "ward"
+                  }
+                },
+                {
+                  "id": "apply-status",
+                  "payload": {
+                    "type": "apply-status",
+                    "stacks": 1,
+                    "statusId": "exposed",
+                    "recipient": "primary-unit",
+                    "durationTurns": 2,
+                    "potencyBasisPoints": 1500
+                  },
+                  "requirements": {
+                    "kind": "status-presence",
+                    "present": true,
+                    "subject": "selected",
+                    "statusId": "frozen"
+                  }
+                },
+                {
+                  "id": "element-ice",
+                  "payload": {
+                    "type": "apply-status",
+                    "stacks": 1,
+                    "statusId": "frozen",
+                    "recipient": "primary-unit",
+                    "durationTurns": 2
+                  }
+                }
+              ],
+              "accuracy": {
+                "kind": "standard"
+              },
+              "cooldown": {
+                "key": "frostweaver.brittle-ice",
+                "ownerTurns": 3
+              },
+              "targeting": {
+                "kind": "unit",
+                "shape": {
+                  "kind": "single"
+                },
+                "categories": ["enemy"],
+                "teamPolicy": "enemy",
+                "friendlyFire": "enemies-only",
+                "maximumRange": 4,
+                "minimumRange": 1,
+                "geometryVersion": 3,
+                "maximumSelections": 1,
+                "requiresLineOfSight": true,
+                "maximumElevationDifference": 0
+              },
+              "activation": "manual",
+              "attackFamily": "mystic",
+              "requirements": null,
+              "classification": "attack"
+            }
+          ],
+          "schemaVersion": 1
+        },
+        "effects": [
+          {
+            "type": "damage",
+            "amount": 10,
+            "element": "ice",
+            "recipient": "primary-unit",
+            "durationTurns": 0
+          },
+          {
+            "type": "apply-status",
+            "stacks": 1,
+            "statusId": "exposed",
+            "recipient": "primary-unit",
+            "durationTurns": 2,
+            "potencyBasisPoints": 1329
+          },
+          {
+            "type": "apply-status",
+            "stacks": 1,
+            "statusId": "frozen",
+            "recipient": "primary-unit",
+            "durationTurns": 2
+          }
+        ],
+        "enabled": true,
+        "nameRef": "skill.frostweaver.brittle-ice.name",
+        "cooldown": {
+          "key": "frostweaver.brittle-ice",
+          "ownerTurns": 3
+        },
+        "authoring": {
+          "status": "representative",
+          "schemaVersion": 1,
+          "validationTags": [
+            "p4",
+            "frostweaver",
+            "shared-combat-authority",
+            "phase4-discipline-rebalance",
+            "owner-rebalance-v5",
+            "power-1-20",
+            "duration-aware",
+            "cooldown-1-3",
+            "owner-rebalance-v5-1",
+            "target-budget-v5-1",
+            "elemental-damage",
+            "elemental-status-tags"
+          ]
+        },
+        "overrides": {},
+        "flavorLine": "Drive Frostweaver force through the hit, turning pain into an opening the enemy cannot ignore.",
+        "accuracyMode": "per-target",
+        "requirements": [],
+        "contentVersion": 8,
+        "descriptionRef": "Strike the enemy and chill the enemy.",
+        "unlockRequirement": {
+          "kind": "discipline-mastery",
+          "minimumStage": 3
+        },
+        "sourceDisciplineId": "frostweaver",
+        "accuracyModifierBasisPoints": 0
+      },
+      "content_key": "frostweaver.brittle-ice",
+      "content_kind": "skill",
+      "version_floor": 8,
+      "content_version": 8,
+      "highest_version": 8
+    },
+    {
+      "revision": 1,
+      "has_draft": false,
+      "definition": {
+        "ai": {
+          "enabled": true,
+          "baseUtility": 75,
+          "purposeTags": ["attack", "mystic", "payoff"]
+        },
+        "id": "frostweaver.shatter",
+        "tags": ["discipline", "frostweaver", "attack", "mystic", "payoff", "cockpit:attack"],
+        "media": {
+          "vfxKey": "skill.frostweaver.shatter.vfx",
+          "iconKey": "skill.frostweaver.shatter.icon",
+          "audioCueKey": "skill.frostweaver.shatter.audio"
+        },
+        "apCost": 50,
+        "mpCost": 6,
+        "target": {
+          "kind": "unit",
+          "shape": {
+            "kind": "single"
+          },
+          "categories": ["enemy"],
+          "teamPolicy": "enemy",
+          "friendlyFire": "enemies-only",
+          "maximumRange": 4,
+          "minimumRange": 1,
+          "geometryVersion": 3,
+          "maximumSelections": 1,
+          "requiresLineOfSight": true,
+          "maximumElevationDifference": 0
+        },
+        "ability": {
+          "behaviors": [
+            {
+              "id": "shatter",
+              "mode": "action",
+              "costs": [
+                {
+                  "amount": 50,
+                  "resource": "ap"
+                },
+                {
+                  "amount": 6,
+                  "resource": "mp"
+                }
+              ],
+              "effects": [
+                {
+                  "id": "damage",
+                  "payload": {
+                    "type": "damage",
+                    "amount": 13,
+                    "element": "ice",
+                    "scaling": {
+                      "source": "mystic-power",
+                      "coefficientBasisPoints": 2500
+                    },
+                    "recipient": "primary-unit",
+                    "defenseKind": "ward"
+                  }
+                },
+                {
+                  "id": "damage-2",
+                  "payload": {
+                    "type": "damage",
+                    "amount": 3,
+                    "scaling": {
+                      "source": "mystic-power",
+                      "coefficientBasisPoints": 0
+                    },
+                    "recipient": "primary-unit",
+                    "defenseKind": "ward"
+                  },
+                  "requirements": {
+                    "kind": "status-presence",
+                    "present": true,
+                    "subject": "selected",
+                    "statusId": "frozen"
+                  }
+                },
+                {
+                  "id": "element-ice",
+                  "payload": {
+                    "type": "apply-status",
+                    "stacks": 1,
+                    "statusId": "frozen",
+                    "recipient": "primary-unit",
+                    "durationTurns": 2
+                  }
+                }
+              ],
+              "accuracy": {
+                "kind": "standard"
+              },
+              "cooldown": {
+                "key": "frostweaver.shatter",
+                "ownerTurns": 3
+              },
+              "targeting": {
+                "kind": "unit",
+                "shape": {
+                  "kind": "single"
+                },
+                "categories": ["enemy"],
+                "teamPolicy": "enemy",
+                "friendlyFire": "enemies-only",
+                "maximumRange": 4,
+                "minimumRange": 1,
+                "geometryVersion": 3,
+                "maximumSelections": 1,
+                "requiresLineOfSight": true,
+                "maximumElevationDifference": 0
+              },
+              "activation": "manual",
+              "attackFamily": "mystic",
+              "requirements": null,
+              "classification": "attack"
+            }
+          ],
+          "schemaVersion": 1
+        },
+        "effects": [
+          {
+            "type": "damage",
+            "amount": 14,
+            "element": "ice",
+            "recipient": "primary-unit",
+            "durationTurns": 0
+          },
+          {
+            "type": "apply-status",
+            "stacks": 1,
+            "statusId": "frozen",
+            "recipient": "primary-unit",
+            "durationTurns": 2
+          }
+        ],
+        "enabled": true,
+        "nameRef": "skill.frostweaver.shatter.name",
+        "cooldown": {
+          "key": "frostweaver.shatter",
+          "ownerTurns": 3
+        },
+        "authoring": {
+          "status": "representative",
+          "schemaVersion": 1,
+          "validationTags": [
+            "p4",
+            "frostweaver",
+            "shared-combat-authority",
+            "phase4-discipline-rebalance",
+            "owner-rebalance-v5",
+            "power-1-20",
+            "duration-aware",
+            "cooldown-1-3",
+            "owner-rebalance-v5-1",
+            "target-budget-v5-1",
+            "elemental-damage",
+            "elemental-status-tags"
+          ]
+        },
+        "overrides": {},
+        "flavorLine": "Gather Frostweaver power into a focused strike that tears through the enemy's guard.",
+        "accuracyMode": "per-target",
+        "requirements": [],
+        "contentVersion": 9,
+        "descriptionRef": "Strike the enemy and chill the enemy.",
+        "unlockRequirement": {
+          "kind": "discipline-mastery",
+          "minimumStage": 2
+        },
+        "sourceDisciplineId": "frostweaver",
+        "accuracyModifierBasisPoints": 0
+      },
+      "content_key": "frostweaver.shatter",
+      "content_kind": "skill",
+      "version_floor": 9,
+      "content_version": 9,
+      "highest_version": 9
+    },
+    {
+      "revision": 1,
+      "has_draft": false,
+      "definition": {
+        "ai": {
+          "enabled": true,
+          "baseUtility": 76,
+          "purposeTags": ["attack", "melee", "finisher"]
+        },
+        "id": "ravager.desperate-execution",
+        "tags": ["discipline", "ravager", "attack", "melee", "finisher", "cockpit:attack"],
+        "media": {
+          "vfxKey": "skill.ravager.desperate-execution.vfx",
+          "iconKey": "skill.ravager.desperate-execution.icon",
+          "audioCueKey": "skill.ravager.desperate-execution.audio"
+        },
+        "apCost": 60,
+        "mpCost": 8,
+        "target": {
+          "kind": "unit",
+          "shape": {
+            "kind": "single"
+          },
+          "categories": ["enemy"],
+          "teamPolicy": "enemy",
+          "friendlyFire": "enemies-only",
+          "maximumRange": 1,
+          "minimumRange": 1,
+          "geometryVersion": 3,
+          "maximumSelections": 1,
+          "requiresLineOfSight": false,
+          "maximumElevationDifference": 0
+        },
+        "ability": {
+          "behaviors": [
+            {
+              "id": "desperate-execution",
+              "mode": "action",
+              "costs": [
+                {
+                  "amount": 60,
+                  "resource": "ap"
+                },
+                {
+                  "amount": 8,
+                  "resource": "mp"
+                }
+              ],
+              "effects": [
+                {
+                  "id": "damage",
+                  "payload": {
+                    "type": "damage",
+                    "amount": 20,
+                    "scaling": {
+                      "source": "physical-power",
+                      "coefficientBasisPoints": 2500
+                    },
+                    "recipient": "primary-unit",
+                    "defenseKind": "armor"
+                  }
+                },
+                {
+                  "id": "damage-2",
+                  "payload": {
+                    "type": "damage",
+                    "amount": 4,
+                    "scaling": {
+                      "source": "physical-power",
+                      "coefficientBasisPoints": 0
+                    },
+                    "recipient": "primary-unit",
+                    "defenseKind": "armor"
+                  },
+                  "requirements": {
+                    "kind": "status-presence",
+                    "present": true,
+                    "subject": "owner",
+                    "statusId": "reckless"
+                  }
+                }
+              ],
+              "accuracy": {
+                "kind": "standard"
+              },
+              "cooldown": {
+                "key": "ravager.desperate-execution",
+                "ownerTurns": 3
+              },
+              "targeting": {
+                "kind": "unit",
+                "shape": {
+                  "kind": "single"
+                },
+                "categories": ["enemy"],
+                "teamPolicy": "enemy",
+                "friendlyFire": "enemies-only",
+                "maximumRange": 1,
+                "minimumRange": 1,
+                "geometryVersion": 3,
+                "maximumSelections": 1,
+                "requiresLineOfSight": false,
+                "maximumElevationDifference": 0
+              },
+              "activation": "manual",
+              "attackFamily": "physical",
+              "requirements": {
+                "kind": "resource-state",
+                "subject": "owner",
+                "resource": "hp",
+                "comparison": "less-than",
+                "basisPoints": 3500
+              },
+              "classification": "attack",
+              "requirementMode": "simple"
+            }
+          ],
+          "schemaVersion": 1
+        },
+        "effects": [
+          {
+            "type": "damage",
+            "amount": 18,
+            "recipient": "primary-unit",
+            "durationTurns": 0
+          }
+        ],
+        "enabled": true,
+        "nameRef": "skill.ravager.desperate-execution.name",
+        "cooldown": {
+          "key": "ravager.desperate-execution",
+          "ownerTurns": 3
+        },
+        "authoring": {
+          "status": "representative",
+          "schemaVersion": 1,
+          "validationTags": [
+            "p4",
+            "ravager",
+            "shared-combat-authority",
+            "phase4-discipline-rebalance",
+            "owner-rebalance-v5",
+            "power-1-20",
+            "duration-aware",
+            "cooldown-1-3",
+            "owner-rebalance-v5-1",
+            "target-budget-v5-1",
+            "owner-simple-requirements-20261019"
+          ]
+        },
+        "overrides": {},
+        "flavorLine": "Drive Ravager technique through the opening with a decisive, committed strike.",
+        "accuracyMode": "per-target",
+        "requirements": [],
+        "contentVersion": 7,
+        "descriptionRef": "Strike the enemy.",
+        "unlockRequirement": {
+          "kind": "discipline-mastery",
+          "minimumStage": 2
+        },
+        "sourceDisciplineId": "ravager",
+        "accuracyModifierBasisPoints": 0
+      },
+      "content_key": "ravager.desperate-execution",
+      "content_kind": "skill",
+      "version_floor": 7,
+      "content_version": 7,
+      "highest_version": 7
+    },
+    {
+      "revision": 1,
+      "has_draft": false,
+      "definition": {
+        "ai": {
+          "enabled": true,
+          "baseUtility": 74,
+          "purposeTags": ["attack", "melee", "payoff"]
+        },
+        "id": "ravager.open-wound",
+        "tags": ["discipline", "ravager", "attack", "melee", "payoff", "cockpit:attack"],
+        "media": {
+          "vfxKey": "skill.ravager.open-wound.vfx",
+          "iconKey": "skill.ravager.open-wound.icon",
+          "audioCueKey": "skill.ravager.open-wound.audio"
+        },
+        "apCost": 50,
+        "mpCost": 0,
+        "target": {
+          "kind": "unit",
+          "shape": {
+            "kind": "single"
+          },
+          "categories": ["enemy"],
+          "teamPolicy": "enemy",
+          "friendlyFire": "enemies-only",
+          "maximumRange": 1,
+          "minimumRange": 1,
+          "geometryVersion": 3,
+          "maximumSelections": 1,
+          "requiresLineOfSight": false,
+          "maximumElevationDifference": 0
+        },
+        "ability": {
+          "behaviors": [
+            {
+              "id": "open-wound",
+              "mode": "action",
+              "costs": [
+                {
+                  "amount": 50,
+                  "resource": "ap"
+                }
+              ],
+              "effects": [
+                {
+                  "id": "damage",
+                  "payload": {
+                    "type": "damage",
+                    "amount": 12,
+                    "scaling": {
+                      "source": "physical-power",
+                      "coefficientBasisPoints": 2500
+                    },
+                    "recipient": "primary-unit",
+                    "defenseKind": "armor"
+                  }
+                },
+                {
+                  "id": "bleed",
+                  "payload": {
+                    "type": "bleed",
+                    "ticks": 3,
+                    "recipient": "primary-unit",
+                    "curseCopyable": true,
+                    "damageProfile": {
+                      "kind": "attack-percentage",
+                      "basisPoints": 2000
+                    },
+                    "durationTurns": 3
+                  },
+                  "requirements": {
+                    "kind": "status-presence",
+                    "present": true,
+                    "subject": "selected",
+                    "statusId": "bleed"
+                  }
+                }
+              ],
+              "accuracy": {
+                "kind": "standard"
+              },
+              "cooldown": {
+                "key": "ravager.open-wound",
+                "ownerTurns": 3
+              },
+              "targeting": {
+                "kind": "unit",
+                "shape": {
+                  "kind": "single"
+                },
+                "categories": ["enemy"],
+                "teamPolicy": "enemy",
+                "friendlyFire": "enemies-only",
+                "maximumRange": 1,
+                "minimumRange": 1,
+                "geometryVersion": 3,
+                "maximumSelections": 1,
+                "requiresLineOfSight": false,
+                "maximumElevationDifference": 0
+              },
+              "activation": "manual",
+              "attackFamily": "physical",
+              "requirements": null,
+              "classification": "attack"
+            }
+          ],
+          "schemaVersion": 1
+        },
+        "effects": [
+          {
+            "type": "damage",
+            "amount": 18,
+            "recipient": "primary-unit",
+            "durationTurns": 0
+          }
+        ],
+        "enabled": true,
+        "nameRef": "skill.ravager.open-wound.name",
+        "cooldown": {
+          "key": "ravager.open-wound",
+          "ownerTurns": 3
+        },
+        "authoring": {
+          "status": "representative",
+          "schemaVersion": 1,
+          "validationTags": [
+            "p4",
+            "ravager",
+            "shared-combat-authority",
+            "phase4-discipline-rebalance",
+            "owner-rebalance-v5",
+            "power-1-20",
+            "duration-aware",
+            "cooldown-1-3",
+            "owner-rebalance-v5-1",
+            "target-budget-v5-1"
+          ]
+        },
+        "overrides": {},
+        "flavorLine": "Drive Ravager technique through the opening with a decisive, committed strike.",
+        "accuracyMode": "per-target",
+        "requirements": [],
+        "contentVersion": 7,
+        "descriptionRef": "Strike the enemy.",
+        "unlockRequirement": {
+          "kind": "discipline-mastery",
+          "minimumStage": 3
+        },
+        "sourceDisciplineId": "ravager",
+        "accuracyModifierBasisPoints": 0
+      },
+      "content_key": "ravager.open-wound",
+      "content_kind": "skill",
+      "version_floor": 7,
+      "content_version": 7,
+      "highest_version": 7
+    },
+    {
+      "revision": 1,
+      "has_draft": false,
+      "definition": {
+        "ai": {
+          "enabled": true,
+          "baseUtility": 99,
+          "purposeTags": ["damage", "flank", "finisher"]
+        },
+        "id": "shadehand.execution-cut",
+        "tags": [
+          "discipline",
+          "shadehand",
+          "attack",
+          "melee",
+          "opportunist",
+          "finisher",
+          "cockpit:attack"
+        ],
+        "media": {
+          "vfxKey": "skill.shadehand.execution-cut.vfx",
+          "iconKey": "skill.shadehand.execution-cut.icon",
+          "audioCueKey": "skill.shadehand.execution-cut.audio"
+        },
+        "apCost": 60,
+        "mpCost": 8,
+        "target": {
+          "kind": "unit",
+          "shape": {
+            "kind": "single"
+          },
+          "categories": ["enemy"],
+          "teamPolicy": "enemy",
+          "friendlyFire": "enemies-only",
+          "maximumRange": 1,
+          "minimumRange": 1,
+          "geometryVersion": 3,
+          "maximumSelections": 1,
+          "requiresLineOfSight": false,
+          "maximumElevationDifference": 0
+        },
+        "ability": {
+          "behaviors": [
+            {
+              "id": "execution-cut",
+              "mode": "action",
+              "costs": [
+                {
+                  "amount": 60,
+                  "resource": "ap"
+                },
+                {
+                  "amount": 8,
+                  "resource": "mp"
+                }
+              ],
+              "effects": [
+                {
+                  "id": "damage",
+                  "payload": {
+                    "type": "damage",
+                    "amount": 20,
+                    "scaling": {
+                      "source": "physical-power",
+                      "coefficientBasisPoints": 2500
+                    },
+                    "recipient": "primary-unit",
+                    "defenseKind": "armor"
+                  }
+                },
+                {
+                  "id": "damage-2",
+                  "payload": {
+                    "type": "damage",
+                    "amount": 4,
+                    "scaling": {
+                      "source": "physical-power",
+                      "coefficientBasisPoints": 0
+                    },
+                    "recipient": "primary-unit",
+                    "defenseKind": "armor"
+                  },
+                  "requirements": {
+                    "kind": "status-presence",
+                    "present": true,
+                    "subject": "selected",
+                    "statusId": "exposed"
+                  }
+                }
+              ],
+              "accuracy": {
+                "kind": "standard"
+              },
+              "cooldown": {
+                "key": "shadehand.execution-cut",
+                "ownerTurns": 3
+              },
+              "targeting": {
+                "kind": "unit",
+                "shape": {
+                  "kind": "single"
+                },
+                "categories": ["enemy"],
+                "teamPolicy": "enemy",
+                "friendlyFire": "enemies-only",
+                "maximumRange": 1,
+                "minimumRange": 1,
+                "geometryVersion": 3,
+                "maximumSelections": 1,
+                "requiresLineOfSight": false,
+                "maximumElevationDifference": 0
+              },
+              "activation": "manual",
+              "attackFamily": "physical",
+              "requirements": {
+                "kind": "resource-state",
+                "subject": "selected",
+                "resource": "hp",
+                "comparison": "less-than",
+                "basisPoints": 3500
+              },
+              "classification": "attack",
+              "requirementMode": "simple"
+            }
+          ],
+          "schemaVersion": 1
+        },
+        "effects": [
+          {
+            "type": "apply-status",
+            "stacks": 1,
+            "statusId": "blindside-vulnerability",
+            "recipient": "primary-unit",
+            "durationTurns": 1
+          },
+          {
+            "type": "damage",
+            "amount": 20,
+            "recipient": "primary-unit",
+            "durationTurns": 0
+          }
+        ],
+        "enabled": true,
+        "nameRef": "skill.shadehand.execution-cut.name",
+        "cooldown": {
+          "key": "shadehand.execution-cut",
+          "ownerTurns": 3
+        },
+        "authoring": {
+          "status": "representative",
+          "schemaVersion": 1,
+          "validationTags": [
+            "p3.8",
+            "foundation-trio",
+            "shadehand",
+            "class-expansion",
+            "phase4-discipline-rebalance",
+            "owner-rebalance-v5",
+            "power-1-20",
+            "duration-aware",
+            "cooldown-1-3",
+            "owner-rebalance-v5-1",
+            "target-budget-v5-1",
+            "instant-blindside-v1",
+            "owner-simple-requirements-20261019"
+          ]
+        },
+        "overrides": {},
+        "flavorLine": "Drive Shadehand technique through the opening with a decisive, committed strike.",
+        "accuracyMode": "per-target",
+        "requirements": [],
+        "contentVersion": 8,
+        "descriptionRef": "Strike the enemy.",
+        "unlockRequirement": {
+          "kind": "discipline-mastery",
+          "minimumStage": 1
+        },
+        "sourceDisciplineId": "shadehand",
+        "accuracyModifierBasisPoints": 0
+      },
+      "content_key": "shadehand.execution-cut",
+      "content_kind": "skill",
+      "version_floor": 8,
+      "content_version": 8,
+      "highest_version": 8
+    },
+    {
+      "revision": 1,
+      "has_draft": false,
+      "definition": {
+        "ai": {
+          "enabled": true,
+          "baseUtility": 80,
+          "purposeTags": ["attack", "mystic", "payoff"]
+        },
+        "id": "stormsinger.conductive-bolt",
+        "tags": ["discipline", "stormsinger", "attack", "mystic", "payoff", "cockpit:attack"],
+        "media": {
+          "vfxKey": "skill.stormsinger.conductive-bolt.vfx",
+          "iconKey": "skill.stormsinger.conductive-bolt.icon",
+          "audioCueKey": "skill.stormsinger.conductive-bolt.audio"
+        },
+        "apCost": 55,
+        "mpCost": 8,
+        "target": {
+          "kind": "unit",
+          "shape": {
+            "kind": "single"
+          },
+          "categories": ["enemy"],
+          "teamPolicy": "enemy",
+          "friendlyFire": "enemies-only",
+          "maximumRange": 4,
+          "minimumRange": 1,
+          "geometryVersion": 3,
+          "maximumSelections": 1,
+          "requiresLineOfSight": true,
+          "maximumElevationDifference": 0
+        },
+        "ability": {
+          "behaviors": [
+            {
+              "id": "conductive-bolt",
+              "mode": "action",
+              "costs": [
+                {
+                  "amount": 55,
+                  "resource": "ap"
+                },
+                {
+                  "amount": 8,
+                  "resource": "mp"
+                }
+              ],
+              "effects": [
+                {
+                  "id": "damage",
+                  "payload": {
+                    "type": "damage",
+                    "amount": 14,
+                    "element": "storm",
+                    "scaling": {
+                      "source": "mystic-power",
+                      "coefficientBasisPoints": 2500
+                    },
+                    "recipient": "primary-unit",
+                    "defenseKind": "ward"
+                  }
+                },
+                {
+                  "id": "damage-2",
+                  "payload": {
+                    "type": "damage",
+                    "amount": 2,
+                    "scaling": {
+                      "source": "mystic-power",
+                      "coefficientBasisPoints": 0
+                    },
+                    "recipient": "primary-unit",
+                    "defenseKind": "ward"
+                  },
+                  "requirements": {
+                    "kind": "status-presence",
+                    "present": true,
+                    "subject": "selected",
+                    "statusId": "conductive"
+                  }
+                },
+                {
+                  "id": "element-storm",
+                  "payload": {
+                    "type": "apply-status",
+                    "stacks": 1,
+                    "statusId": "conductive",
+                    "recipient": "primary-unit",
+                    "durationTurns": 2,
+                    "potencyBasisPoints": 2000
+                  }
+                }
+              ],
+              "accuracy": {
+                "kind": "standard"
+              },
+              "cooldown": {
+                "key": "stormsinger.conductive-bolt",
+                "ownerTurns": 3
+              },
+              "targeting": {
+                "kind": "unit",
+                "shape": {
+                  "kind": "single"
+                },
+                "categories": ["enemy"],
+                "teamPolicy": "enemy",
+                "friendlyFire": "enemies-only",
+                "maximumRange": 4,
+                "minimumRange": 1,
+                "geometryVersion": 3,
+                "maximumSelections": 1,
+                "requiresLineOfSight": true,
+                "maximumElevationDifference": 0
+              },
+              "activation": "manual",
+              "attackFamily": "mystic",
+              "requirements": null,
+              "classification": "attack"
+            }
+          ],
+          "schemaVersion": 1
+        },
+        "effects": [
+          {
+            "type": "damage",
+            "amount": 13,
+            "element": "storm",
+            "recipient": "primary-unit",
+            "durationTurns": 0
+          },
+          {
+            "type": "apply-status",
+            "stacks": 1,
+            "statusId": "conductive",
+            "recipient": "primary-unit",
+            "durationTurns": 2,
+            "potencyBasisPoints": 2000
+          }
+        ],
+        "enabled": true,
+        "nameRef": "skill.stormsinger.conductive-bolt.name",
+        "cooldown": {
+          "key": "stormsinger.conductive-bolt",
+          "ownerTurns": 3
+        },
+        "authoring": {
+          "status": "representative",
+          "schemaVersion": 1,
+          "validationTags": [
+            "p4",
+            "stormsinger",
+            "shared-combat-authority",
+            "phase4-discipline-rebalance",
+            "owner-rebalance-v5",
+            "power-1-20",
+            "duration-aware",
+            "cooldown-1-3",
+            "owner-rebalance-v5-1",
+            "target-budget-v5-1",
+            "elemental-damage",
+            "elemental-status-tags"
+          ]
+        },
+        "overrides": {},
+        "flavorLine": "Gather Stormsinger power into a focused strike that tears through the enemy's guard.",
+        "accuracyMode": "per-target",
+        "requirements": [],
+        "contentVersion": 9,
+        "descriptionRef": "Strike the enemy and apply Conductive.",
+        "unlockRequirement": {
+          "kind": "discipline-mastery",
+          "minimumStage": 3
+        },
+        "sourceDisciplineId": "stormsinger",
+        "accuracyModifierBasisPoints": 0
+      },
+      "content_key": "stormsinger.conductive-bolt",
+      "content_kind": "skill",
+      "version_floor": 9,
+      "content_version": 9,
+      "highest_version": 9
+    },
+    {
+      "revision": 1,
+      "has_draft": false,
+      "definition": {
+        "ai": {
+          "enabled": true,
+          "baseUtility": 77,
+          "purposeTags": ["attack", "mystic", "payoff"]
+        },
+        "id": "tidecaller.crushing-wave",
+        "tags": ["discipline", "tidecaller", "attack", "mystic", "payoff", "cockpit:attack"],
+        "media": {
+          "vfxKey": "skill.tidecaller.crushing-wave.vfx",
+          "iconKey": "skill.tidecaller.crushing-wave.icon",
+          "audioCueKey": "skill.tidecaller.crushing-wave.audio"
+        },
+        "apCost": 55,
+        "mpCost": 7,
+        "target": {
+          "kind": "unit",
+          "shape": {
+            "kind": "single"
+          },
+          "categories": ["enemy"],
+          "teamPolicy": "enemy",
+          "friendlyFire": "enemies-only",
+          "maximumRange": 4,
+          "minimumRange": 1,
+          "geometryVersion": 3,
+          "maximumSelections": 1,
+          "requiresLineOfSight": true,
+          "maximumElevationDifference": 0
+        },
+        "ability": {
+          "behaviors": [
+            {
+              "id": "crushing-wave",
+              "mode": "action",
+              "costs": [
+                {
+                  "amount": 55,
+                  "resource": "ap"
+                },
+                {
+                  "amount": 7,
+                  "resource": "mp"
+                }
+              ],
+              "effects": [
+                {
+                  "id": "damage",
+                  "payload": {
+                    "type": "damage",
+                    "amount": 14,
+                    "element": "water",
+                    "scaling": {
+                      "source": "mystic-power",
+                      "coefficientBasisPoints": 2500
+                    },
+                    "recipient": "primary-unit",
+                    "defenseKind": "ward"
+                  }
+                },
+                {
+                  "id": "displace",
+                  "payload": {
+                    "type": "displace",
+                    "distance": 1,
+                    "direction": "push",
+                    "recipient": "primary-unit"
+                  },
+                  "requirements": {
+                    "kind": "status-presence",
+                    "present": true,
+                    "subject": "selected",
+                    "statusId": "wet"
+                  }
+                },
+                {
+                  "id": "element-water",
+                  "payload": {
+                    "type": "apply-status",
+                    "stacks": 1,
+                    "statusId": "wet",
+                    "recipient": "primary-unit",
+                    "durationTurns": 2,
+                    "potencyBasisPoints": 2000
+                  }
+                }
+              ],
+              "accuracy": {
+                "kind": "standard"
+              },
+              "cooldown": {
+                "key": "tidecaller.crushing-wave",
+                "ownerTurns": 3
+              },
+              "targeting": {
+                "kind": "unit",
+                "shape": {
+                  "kind": "single"
+                },
+                "categories": ["enemy"],
+                "teamPolicy": "enemy",
+                "friendlyFire": "enemies-only",
+                "maximumRange": 4,
+                "minimumRange": 1,
+                "geometryVersion": 3,
+                "maximumSelections": 1,
+                "requiresLineOfSight": true,
+                "maximumElevationDifference": 0
+              },
+              "activation": "manual",
+              "attackFamily": "mystic",
+              "requirements": null,
+              "classification": "attack"
+            }
+          ],
+          "schemaVersion": 1
+        },
+        "effects": [
+          {
+            "type": "damage",
+            "amount": 14,
+            "element": "water",
+            "recipient": "primary-unit",
+            "durationTurns": 0
+          },
+          {
+            "type": "apply-status",
+            "stacks": 1,
+            "statusId": "wet",
+            "recipient": "primary-unit",
+            "durationTurns": 2,
+            "potencyBasisPoints": 2000
+          }
+        ],
+        "enabled": true,
+        "nameRef": "skill.tidecaller.crushing-wave.name",
+        "cooldown": {
+          "key": "tidecaller.crushing-wave",
+          "ownerTurns": 3
+        },
+        "authoring": {
+          "status": "representative",
+          "schemaVersion": 1,
+          "validationTags": [
+            "p4",
+            "tidecaller",
+            "shared-combat-authority",
+            "phase4-discipline-rebalance",
+            "owner-rebalance-v5",
+            "power-1-20",
+            "duration-aware",
+            "cooldown-1-3",
+            "owner-rebalance-v5-1",
+            "target-budget-v5-1",
+            "elemental-damage",
+            "elemental-status-tags"
+          ]
+        },
+        "overrides": {},
+        "flavorLine": "Gather Tidecaller power into a focused strike that tears through the enemy's guard.",
+        "accuracyMode": "per-target",
+        "requirements": [],
+        "contentVersion": 8,
+        "descriptionRef": "Strike the enemy and drench the enemy.",
+        "unlockRequirement": {
+          "kind": "discipline-mastery",
+          "minimumStage": 3
+        },
+        "sourceDisciplineId": "tidecaller",
+        "accuracyModifierBasisPoints": 0
+      },
+      "content_key": "tidecaller.crushing-wave",
+      "content_kind": "skill",
+      "version_floor": 8,
+      "content_version": 8,
+      "highest_version": 8
+    },
+    {
+      "revision": 1,
+      "has_draft": false,
+      "definition": {
+        "ai": {
+          "enabled": true,
+          "baseUtility": 73,
+          "purposeTags": ["attack", "melee", "recovery"]
+        },
+        "id": "wildwarden.close-quarry",
+        "tags": ["discipline", "wildwarden", "attack", "melee", "recovery", "cockpit:attack"],
+        "media": {
+          "vfxKey": "skill.wildwarden.close-quarry.vfx",
+          "iconKey": "skill.wildwarden.close-quarry.icon",
+          "audioCueKey": "skill.wildwarden.close-quarry.audio"
+        },
+        "apCost": 50,
+        "mpCost": 4,
+        "target": {
+          "kind": "ground-tile",
+          "shape": {
+            "kind": "single"
+          },
+          "categories": ["ground"],
+          "teamPolicy": "enemy",
+          "friendlyFire": "enemies-only",
+          "maximumRange": 1,
+          "minimumRange": 0,
+          "geometryVersion": 3,
+          "maximumSelections": 1,
+          "requiresLineOfSight": false,
+          "maximumElevationDifference": 0
+        },
+        "ability": {
+          "behaviors": [
+            {
+              "id": "close-quarry",
+              "mode": "action",
+              "costs": [
+                {
+                  "amount": 50,
+                  "resource": "ap"
+                },
+                {
+                  "amount": 4,
+                  "resource": "mp"
+                }
+              ],
+              "effects": [
+                {
+                  "id": "move",
+                  "payload": {
+                    "type": "move",
+                    "recipient": "actor",
+                    "maximumTiles": 1
+                  }
+                },
+                {
+                  "id": "damage",
+                  "payload": {
+                    "type": "damage",
+                    "amount": 11,
+                    "scaling": {
+                      "source": "physical-power",
+                      "coefficientBasisPoints": 2500
+                    },
+                    "recipient": "affected-units",
+                    "defenseKind": "armor"
+                  }
+                },
+                {
+                  "id": "resource-change",
+                  "payload": {
+                    "type": "resource-change",
+                    "delta": 3,
+                    "resource": "mp",
+                    "recipient": "actor"
+                  },
+                  "requirements": {
+                    "kind": "status-presence",
+                    "present": true,
+                    "subject": "selected",
+                    "statusId": "mark"
+                  }
+                }
+              ],
+              "accuracy": {
+                "kind": "standard"
+              },
+              "cooldown": {
+                "key": "wildwarden.close-quarry",
+                "ownerTurns": 3
+              },
+              "targeting": {
+                "kind": "ground-tile",
+                "shape": {
+                  "kind": "single"
+                },
+                "categories": ["ground"],
+                "teamPolicy": "enemy",
+                "friendlyFire": "enemies-only",
+                "maximumRange": 1,
+                "minimumRange": 0,
+                "geometryVersion": 3,
+                "maximumSelections": 1,
+                "requiresLineOfSight": false,
+                "maximumElevationDifference": 0
+              },
+              "activation": "manual",
+              "attackFamily": "physical",
+              "requirements": null,
+              "classification": "attack"
+            }
+          ],
+          "schemaVersion": 1
+        },
+        "effects": [
+          {
+            "type": "damage",
+            "amount": 15,
+            "recipient": "primary-unit",
+            "durationTurns": 0
+          },
+          {
+            "type": "percentage-recovery",
+            "ticks": 1,
+            "percent": 7,
+            "resource": "mp",
+            "recipient": "actor",
+            "durationTurns": 0
+          }
+        ],
+        "enabled": true,
+        "nameRef": "skill.wildwarden.close-quarry.name",
+        "cooldown": {
+          "key": "wildwarden.close-quarry",
+          "ownerTurns": 3
+        },
+        "authoring": {
+          "status": "representative",
+          "schemaVersion": 1,
+          "validationTags": [
+            "p4",
+            "wildwarden",
+            "shared-combat-authority",
+            "phase4-discipline-rebalance",
+            "owner-rebalance-v5",
+            "power-1-20",
+            "duration-aware",
+            "cooldown-1-3",
+            "owner-rebalance-v5-1",
+            "target-budget-v5-1",
+            "captured-percentage-recovery"
+          ]
+        },
+        "overrides": {},
+        "flavorLine": "Drive Wildwarden technique through the opening with a decisive, committed strike.",
+        "accuracyMode": "per-target",
+        "requirements": [],
+        "contentVersion": 7,
+        "descriptionRef": "Advance and strike the enemy.",
+        "unlockRequirement": {
+          "kind": "discipline-mastery",
+          "minimumStage": 3
+        },
+        "sourceDisciplineId": "wildwarden",
+        "accuracyModifierBasisPoints": 0
+      },
+      "content_key": "wildwarden.close-quarry",
+      "content_kind": "skill",
+      "version_floor": 7,
+      "content_version": 7,
+      "highest_version": 7
+    },
+    {
+      "revision": 1,
+      "has_draft": false,
+      "definition": {
+        "ai": {
+          "enabled": true,
+          "baseUtility": 75,
+          "purposeTags": ["attack", "ranged", "payoff"]
+        },
+        "id": "wildwarden.pursuit-shot",
+        "tags": ["discipline", "wildwarden", "attack", "ranged", "payoff", "cockpit:attack"],
+        "media": {
+          "vfxKey": "skill.wildwarden.pursuit-shot.vfx",
+          "iconKey": "skill.wildwarden.pursuit-shot.icon",
+          "audioCueKey": "skill.wildwarden.pursuit-shot.audio"
+        },
+        "apCost": 50,
+        "mpCost": 0,
+        "target": {
+          "kind": "unit",
+          "shape": {
+            "kind": "single"
+          },
+          "categories": ["enemy"],
+          "teamPolicy": "enemy",
+          "friendlyFire": "enemies-only",
+          "maximumRange": 5,
+          "minimumRange": 2,
+          "geometryVersion": 3,
+          "maximumSelections": 1,
+          "requiresLineOfSight": true,
+          "maximumElevationDifference": 0
+        },
+        "ability": {
+          "behaviors": [
+            {
+              "id": "pursuit-shot",
+              "mode": "action",
+              "costs": [
+                {
+                  "amount": 50,
+                  "resource": "ap"
+                }
+              ],
+              "effects": [
+                {
+                  "id": "damage",
+                  "payload": {
+                    "type": "damage",
+                    "amount": 13,
+                    "scaling": {
+                      "source": "physical-power",
+                      "coefficientBasisPoints": 2500
+                    },
+                    "recipient": "primary-unit",
+                    "defenseKind": "armor"
+                  }
+                },
+                {
+                  "id": "damage-2",
+                  "payload": {
+                    "type": "damage",
+                    "amount": 4,
+                    "scaling": {
+                      "source": "physical-power",
+                      "coefficientBasisPoints": 0
+                    },
+                    "recipient": "primary-unit",
+                    "defenseKind": "armor"
+                  },
+                  "requirements": {
+                    "kind": "status-presence",
+                    "present": true,
+                    "subject": "selected",
+                    "statusId": "mark"
+                  }
+                }
+              ],
+              "accuracy": {
+                "kind": "standard"
+              },
+              "cooldown": {
+                "key": "wildwarden.pursuit-shot",
+                "ownerTurns": 2
+              },
+              "targeting": {
+                "kind": "unit",
+                "shape": {
+                  "kind": "single"
+                },
+                "categories": ["enemy"],
+                "teamPolicy": "enemy",
+                "friendlyFire": "enemies-only",
+                "maximumRange": 5,
+                "minimumRange": 2,
+                "geometryVersion": 3,
+                "maximumSelections": 1,
+                "requiresLineOfSight": true,
+                "maximumElevationDifference": 0
+              },
+              "activation": "manual",
+              "attackFamily": "physical",
+              "requirements": null,
+              "classification": "attack"
+            }
+          ],
+          "schemaVersion": 1
+        },
+        "effects": [
+          {
+            "type": "damage",
+            "amount": 14,
+            "recipient": "primary-unit",
+            "durationTurns": 0
+          }
+        ],
+        "enabled": true,
+        "nameRef": "skill.wildwarden.pursuit-shot.name",
+        "cooldown": {
+          "key": "wildwarden.pursuit-shot",
+          "ownerTurns": 2
+        },
+        "authoring": {
+          "status": "representative",
+          "schemaVersion": 1,
+          "validationTags": [
+            "p4",
+            "wildwarden",
+            "shared-combat-authority",
+            "phase4-discipline-rebalance",
+            "owner-rebalance-v5",
+            "power-1-20",
+            "duration-aware",
+            "cooldown-1-3",
+            "owner-rebalance-v5-1",
+            "target-budget-v5-1"
+          ]
+        },
+        "overrides": {},
+        "flavorLine": "Drive Wildwarden technique through the opening with a decisive, committed strike.",
+        "accuracyMode": "per-target",
+        "requirements": [],
+        "contentVersion": 6,
+        "descriptionRef": "Strike the enemy.",
+        "unlockRequirement": {
+          "kind": "discipline-mastery",
+          "minimumStage": 2
+        },
+        "sourceDisciplineId": "wildwarden",
+        "accuracyModifierBasisPoints": 0
+      },
+      "content_key": "wildwarden.pursuit-shot",
+      "content_kind": "skill",
+      "version_floor": 6,
+      "content_version": 6,
+      "highest_version": 6
+    }
+  ]
+}

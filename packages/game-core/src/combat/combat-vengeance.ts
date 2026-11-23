@@ -53,6 +53,7 @@ export function validateVengeanceActionDefinition(action: CombatActionDefinition
 export function materializeVengeanceDamage(
   state: CombatEncounterState,
   action: CombatActionDefinition,
+  executionActorId?: string,
 ): { action: CombatActionDefinition; basis: readonly CombatVengeanceBasis[] } {
   validateVengeanceActionDefinition(action)
   if (
@@ -62,7 +63,7 @@ export function materializeVengeanceDamage(
   }
   const actorId =
     state.tactical.battle.lifecycle === 'active'
-      ? state.tactical.battle.currentTurn?.combatantId
+      ? (executionActorId ?? state.tactical.battle.currentTurn?.combatantId)
       : undefined
   // Preserve the established inactive-turn legality report rather than inventing a potency source.
   if (!actorId) return { action, basis: [] }

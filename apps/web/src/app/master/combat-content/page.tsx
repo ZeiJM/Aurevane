@@ -1,116 +1,97 @@
-import { latestEnabledMatureSkills } from '@aurevane/game-core/combat/mature-skills'
-import {
-  CombatContentEditor,
-  type CombatContentEditorSkillOption,
-} from '@/components/master/combat-content/combat-content-editor'
+import { SkillEffectTimingProvider } from '@/components/character/skill-effect-timing-context'
+import { CombatContentAuthoringWorkspace } from '@/components/master/combat-content/combat-content-authoring-workspace'
 import { MasterPanelShell } from '@/components/master/master-panel-shell'
-import {
-  createServerCombatContentResolver,
-  deriveSkillPresentationTags,
-} from '@/server/combat/combat-content-resolver'
+import { createServerCombatContentResolver } from '@/server/combat/combat-content-resolver'
+import { COMBAT_CONTENT_CATEGORIES } from '@/server/combat/combat-content-categories'
 import { requireMasterPanelPageAccess } from '@/server/master/master-panel-page-access'
 import { createSupabaseCombatContentAuthoringStore } from '@/server/master/supabase-combat-content-authoring-store'
-
+import { isAbilityEditorSection } from '@/lib/ability-editor-sections'
+import { BASIC_SKILL_IDS } from '@aurevane/game-core/combat/combat-basic-actions'
 export const dynamic = 'force-dynamic'
-
-async function mapInBatches<T, R>(
-  values: readonly T[],
-  batchSize: number,
-  project: (value: T) => Promise<R>,
-): Promise<R[]> {
-  const results: R[] = []
-  for (let index = 0; index < values.length; index += batchSize) {
-    results.push(...(await Promise.all(values.slice(index, index + batchSize).map(project))))
-  }
-  return results
-}
-
-function titleSkill(skillId: string): string {
-  const tail = skillId.includes('.') ? skillId.slice(skillId.indexOf('.') + 1) : skillId
-  return tail
-    .split(/[._-]/g)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ')
-}
-
-export default async function MasterCombatContentPage() {
+export default async function MasterCombatContentPage({
+  searchParams,
+}: { searchParams?: Promise<Record<string, string | string[] | undefined>> } = {}) {
   const { actor, access } = await requireMasterPanelPageAccess('content.combat.author')
   const resolver = createServerCombatContentResolver()
   const store = createSupabaseCombatContentAuthoringStore(actor.userId)
-  const catalog = latestEnabledMatureSkills()
-
-  const options = (
-    await mapInBatches(
-      catalog,
-      4,
-      async (staticDefinition): Promise<CombatContentEditorSkillOption | null> => {
-        const [current, draft, publishedVersions] = await Promise.all([
-          resolver.resolveCurrentSkillDefinition(staticDefinition.id),
-          store.findDraft(staticDefinition.id),
-          store.listPublishedVersions(staticDefinition.id),
-        ])
-        if (!current) return null
-
-        const historyByVersion = new Map<
-          number,
-          NonNullable<CombatContentEditorSkillOption['history']>[number]
-        >()
-        historyByVersion.set(staticDefinition.contentVersion, {
-          contentVersion: staticDefinition.contentVersion,
-          source: 'static-baseline',
-          current: current.contentVersion === staticDefinition.contentVersion,
-          publishedAt: null,
-        })
-        for (const version of publishedVersions) {
-          historyByVersion.set(version.contentVersion, {
-            contentVersion: version.contentVersion,
-            source: 'published',
-            current: current.contentVersion === version.contentVersion,
-            publishedAt: version.publishedAt,
-          })
-        }
-
-        return {
-          id: current.id,
-          sourceDisciplineId: current.sourceDisciplineId,
-          label: titleSkill(current.id),
-          currentVersion: current.contentVersion,
-          baseVersion: draft?.baseVersion ?? current.contentVersion,
-          draftVersion: draft?.draftVersion ?? null,
-          derivedTags: [...deriveSkillPresentationTags(current)],
-          definition: structuredClone(current),
-          history: [...historyByVersion.values()].sort(
-            (left, right) => left.contentVersion - right.contentVersion,
-          ),
-        }
-      },
-    )
+  if (!resolver.resolveCurrentCatalogue)
+    throw new Error('Authoritative combat catalogue is unavailable.')
+  const query = (await searchParams) ?? {}
+  const requestedKey =
+    typeof query.contentKey === 'string' && /^[a-z0-9][a-z0-9._-]{0,159}$/i.test(query.contentKey)
+      ? query.contentKey
+      : null
+  const initialAbilitySection = isAbilityEditorSection(query.tab) ? query.tab : undefined
+  const cataloguePromise = resolver.resolveCurrentCatalogue()
+  const linkedRecord = requestedKey ? await store.readRecord(requestedKey) : null
+  const [catalogue, initialPage] = await Promise.all([
+    cataloguePromise,
+    store.listRecords({
+      kind: linkedRecord?.contentKind ?? 'discipline',
+      sort: 'name-asc',
+      limit: 20,
+      ...(linkedRecord?.contentKind === 'skill'
+        ? {
+            category: (BASIC_SKILL_IDS as readonly string[]).includes(linkedRecord.contentKey)
+              ? ('basic' as const)
+              : ('discipline-skill' as const),
+          }
+        : {}),
+    }),
+  ])
+  const initialRecord =
+    linkedRecord ??
+    (initialPage.records[0] ? await store.readRecord(initialPage.records[0].contentKey) : null)
+  const order = [
+    'discipline',
+    'basic',
+    'skill',
+    'essence',
+    'resonance',
+    'item',
+    'ascension',
+    'severence',
+    'tag',
+    'status',
+    'effect-profile',
+  ]
+  const categories = COMBAT_CONTENT_CATEGORIES.map((entry) => entry.editor).sort(
+    (a, b) => order.indexOf(a.category) - order.indexOf(b.category),
   )
-    .filter((option): option is CombatContentEditorSkillOption => option !== null)
-    .sort(
-      (left, right) =>
-        left.sourceDisciplineId.localeCompare(right.sourceDisciplineId) ||
-        left.id.localeCompare(right.id),
-    )
-
+  const references = catalogue.entries.map((entry) => ({
+    contentKey: entry.contentKey,
+    contentKind: entry.contentKind,
+    name: String('name' in entry.definition ? entry.definition.name : entry.contentKey),
+    ...('sourceDisciplineId' in entry.definition &&
+    typeof entry.definition.sourceDisciplineId === 'string'
+      ? { sourceDisciplineId: entry.definition.sourceDisciplineId }
+      : {}),
+    ...('disciplinePair' in entry.definition && Array.isArray(entry.definition.disciplinePair)
+      ? { disciplinePair: entry.definition.disciplinePair as string[] }
+      : {}),
+  }))
   return (
-    <MasterPanelShell
-      access={access}
-      activeSection="combat"
-      title="Combat Content"
-      description="Create and refine typed, versioned Skills without stepping outside the canonical combat engine."
-    >
-      <CombatContentEditor
-        key={options
-          .map(
-            (option) =>
-              `${option.id}:${option.currentVersion}:${option.draftVersion ?? 'none'}:${option.history?.map((entry) => `${entry.contentVersion}=${entry.current ? 'current' : 'old'}`).join(',') ?? ''}`,
-          )
-          .join('|')}
-        skills={options}
-        initialSkillId={options[0]?.id}
-      />
-    </MasterPanelShell>
+    <SkillEffectTimingProvider policy={catalogue.policy}>
+      <MasterPanelShell
+        access={access}
+        activeSection="combat"
+        title="Game Content"
+        description="Create, preview and publish complete content records."
+      >
+        <CombatContentAuthoringWorkspace
+          key={actor.userId}
+          recoveryScope={
+            linkedRecord ? `${actor.userId}:linked:${linkedRecord.contentKey}` : actor.userId
+          }
+          legacyWordingRecoveryScope={actor.userId}
+          initialAbilitySection={initialAbilitySection}
+          categories={categories}
+          initialPage={initialPage}
+          initialRecord={initialRecord}
+          references={references}
+          tagPresentations={catalogue.tagPresentations ?? []}
+        />
+      </MasterPanelShell>
+    </SkillEffectTimingProvider>
   )
 }

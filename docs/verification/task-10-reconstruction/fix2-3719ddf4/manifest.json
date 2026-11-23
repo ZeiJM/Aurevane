@@ -1,0 +1,212 @@
+{
+  "local_source": "3719ddf484167acf2f74cffe049fbb97bb42262e",
+  "product_review_base": "63cfed33282925cf869955fd724da328c127fd14",
+  "tree": "34366edb569f28a02fc2f5095c1e78f1d7fe7ffd",
+  "status": "R2 profile preservation and exact Status pre-mutation validation; same scoped review pending",
+  "logs": [
+    {
+      "argv": [
+        "corepack",
+        "pnpm",
+        "--filter",
+        "@aurevane/web",
+        "exec",
+        "vitest",
+        "run",
+        "src/server/master/combat-content-preservation.test.ts",
+        "--reporter=verbose"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "2026-10-20T21:53:18.445595+00:00",
+      "completedAt": "2026-10-20T21:53:21.291283+00:00",
+      "exit": 1,
+      "rawLog": "docs/verification/task-10-reconstruction/i2-preservation-red.log",
+      "file": "i2-preservation-red.log.gz",
+      "uncompressed_sha256": "684851d664b280a1ea5353075ba5ee27b2c4241b4a4958adbe51c115b3ce8f88",
+      "sha256": "f7e070c2750a9e723ea317f9bf38b1f6f76f8c3743145b6268d471b9a08e616a"
+    },
+    {
+      "argv": [
+        "corepack",
+        "pnpm",
+        "--filter",
+        "@aurevane/web",
+        "exec",
+        "vitest",
+        "run",
+        "src/server/master/combat-content-preservation.test.ts",
+        "--reporter=verbose"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "2026-10-20T21:53:42.944618+00:00",
+      "completedAt": "2026-10-20T21:53:45.416132+00:00",
+      "exit": 1,
+      "rawLog": "docs/verification/task-10-reconstruction/i2-preservation-red-confirmed.log",
+      "file": "i2-preservation-red-confirmed.log.gz",
+      "uncompressed_sha256": "f5f906fb1bd8c1e27611e2262f564275584429b8ee05a5a82030383469bd3b53",
+      "sha256": "55818e1d360e627e29d2056f28fd69ef7e0231616771b3f49645da5dcea167d8"
+    },
+    {
+      "argv": [
+        "corepack",
+        "pnpm",
+        "--filter",
+        "@aurevane/web",
+        "exec",
+        "vitest",
+        "run",
+        "src/server/master/combat-content-preservation.test.ts",
+        "src/server/master/combat-content-standalone-boundaries.test.ts",
+        "--reporter=verbose"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "2026-10-20T21:54:09.648480+00:00",
+      "completedAt": "2026-10-20T21:54:12.060322+00:00",
+      "exit": 0,
+      "rawLog": "docs/verification/task-10-reconstruction/i2-preservation-green.log",
+      "file": "i2-preservation-green.log.gz",
+      "uncompressed_sha256": "ef28688b929c97a9fbe472387075bb678c05f2d54197b76e58c1b67267fa76fe",
+      "sha256": "1b75560feaba3b2d05dc37c8ec9aa51c89e595e04cf611c9d7ff180898b3a8a9"
+    },
+    {
+      "argv": [
+        "corepack",
+        "pnpm",
+        "exec",
+        "prettier",
+        "--write",
+        "apps/web/src/server/combat/combat-standalone-content.ts",
+        "apps/web/src/server/master/supabase-combat-content-authoring-store.ts",
+        "apps/web/src/server/master/combat-content-preservation.test.ts",
+        "apps/web/src/server/master/combat-content-standalone-boundaries.test.ts"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "2026-10-20T21:54:49.850798+00:00",
+      "completedAt": "2026-10-20T21:54:50.711983+00:00",
+      "exit": 0,
+      "rawLog": "docs/verification/task-10-reconstruction/i2-format-write.log",
+      "file": "i2-format-write.log.gz",
+      "uncompressed_sha256": "6c9697d63754a80c1029eb9fee1ffb9c5e17039f5f91a2bbcd5f26d3b7d20919",
+      "sha256": "17138faaa48027ab386f8f48eff41add61ca9602d7760f653231cceaa6a185b9"
+    },
+    {
+      "argv": [
+        "corepack",
+        "pnpm",
+        "--filter",
+        "@aurevane/web",
+        "exec",
+        "vitest",
+        "run",
+        "src/server/master/combat-content-preservation.test.ts",
+        "src/server/master/combat-content-standalone-boundaries.test.ts",
+        "src/server/master/combat-content-record-command.test.ts",
+        "src/server/master/combat-content-records.test.ts",
+        "src/server/master/supabase-combat-content-authoring-store.test.ts",
+        "src/server/combat/combat-content-catalogue.test.ts",
+        "src/server/combat/combat-content-resolver.test.ts",
+        "--reporter=verbose"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "2026-10-20T21:54:57.123489+00:00",
+      "completedAt": "2026-10-20T21:54:59.675818+00:00",
+      "exit": 0,
+      "rawLog": "docs/verification/task-10-reconstruction/i2-covering-green.log",
+      "file": "i2-covering-green.log.gz",
+      "uncompressed_sha256": "ef8316d164e25eeb4b9ebce94b0e072a6f4d51c6df3aa165fcf17d4f77921f9f",
+      "sha256": "ea78767dd974154895302a2279e3acef2adca56c4654a0fbd7fe030366b54e6e"
+    },
+    {
+      "argv": [
+        "corepack",
+        "pnpm",
+        "--filter",
+        "@aurevane/web",
+        "typecheck"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "2026-10-20T21:55:03.923341+00:00",
+      "completedAt": "2026-10-20T21:55:08.298890+00:00",
+      "exit": 0,
+      "rawLog": "docs/verification/task-10-reconstruction/i2-web-types.log",
+      "file": "i2-web-types.log.gz",
+      "uncompressed_sha256": "99d7c2179cdd316467c51f37901025a0753453664d741214ba56fc631fa6c0bc",
+      "sha256": "e0356247813383c642bcaf9deb204edac049294684227f11c159d094ec0752cb"
+    },
+    {
+      "argv": [
+        "corepack",
+        "pnpm",
+        "--filter",
+        "@aurevane/web",
+        "exec",
+        "eslint",
+        "src/server/combat/combat-standalone-content.ts",
+        "src/server/master/supabase-combat-content-authoring-store.ts",
+        "src/server/master/combat-content-preservation.test.ts",
+        "src/server/master/combat-content-standalone-boundaries.test.ts",
+        "--max-warnings=0"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "2026-10-20T21:55:16.946789+00:00",
+      "completedAt": "2026-10-20T21:55:18.873802+00:00",
+      "exit": 0,
+      "rawLog": "docs/verification/task-10-reconstruction/i2-scoped-lint.log",
+      "file": "i2-scoped-lint.log.gz",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec"
+    },
+    {
+      "argv": [
+        "corepack",
+        "pnpm",
+        "exec",
+        "prettier",
+        "--check",
+        "apps/web/src/server/combat/combat-standalone-content.ts",
+        "apps/web/src/server/master/supabase-combat-content-authoring-store.ts",
+        "apps/web/src/server/master/combat-content-preservation.test.ts",
+        "apps/web/src/server/master/combat-content-standalone-boundaries.test.ts"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "2026-10-20T21:56:15.860640+00:00",
+      "completedAt": "2026-10-20T21:56:16.807784+00:00",
+      "exit": 0,
+      "rawLog": "docs/verification/task-10-reconstruction/i2-format-check.log",
+      "file": "i2-format-check.log.gz",
+      "uncompressed_sha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20",
+      "sha256": "710c63d8d40d5688a62c3b08053dd1971c4e4ee87b2297f3f20c2540d22cd94e"
+    },
+    {
+      "argv": [
+        "git",
+        "fetch",
+        "origin",
+        "main"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "2026-10-20T21:56:21.199775+00:00",
+      "completedAt": "2026-10-20T21:56:29.524709+00:00",
+      "exit": 0,
+      "rawLog": "docs/verification/task-10-reconstruction/i2-fresh-main.log",
+      "file": "i2-fresh-main.log.gz",
+      "uncompressed_sha256": "b766328fa61582906ce1c22c1cdcfe20780b9f71144a3a9d40dae3db9f5268e5",
+      "sha256": "d7543ee30ba64c29125516f87d9c354e94b0f1639b8da89db3a005625bdac6fc"
+    },
+    {
+      "argv": [
+        "python3",
+        "-c",
+        "import pathlib,subprocess,json,hashlib; base=\"2c0af0aae204a6f7d1c3b6484ec5f148e617c218\"; p=pathlib.Path(\"docs/verification/task-10-reconstruction/verification.jsonl\"); old=subprocess.check_output([\"git\",\"show\",base+\":\"+str(p)]); current=p.read_bytes(); assert current.startswith(old); rows=[json.loads(s) for s in current[len(old):].splitlines()]; checks=[(r[\"rawLog\"],hashlib.sha256(pathlib.Path(r[\"rawLog\"]).read_bytes()).hexdigest()==r[\"sha256\"]) for r in rows]; print(\"priorRowsUnchanged=\"+str(len(old.splitlines()))); print(\"newLogsVerified=\"+str(len(checks))); assert all(ok for _,ok in checks),checks; main=subprocess.check_output([\"git\",\"rev-parse\",\"origin/main\"],text=True).strip(); subprocess.run([\"git\",\"merge-base\",\"--is-ancestor\",main,\"HEAD\"],check=True); print(\"freshMain=\"+main); blob=subprocess.check_output([\"git\",\"hash-object\",\"apps/web/vercel.json\"],text=True).strip(); assert blob==\"b8a4e0e3c57b95a8da49c05d1fe5f60ba2181b5f\"; print(\"deploymentLock=\"+blob); subprocess.run([\"git\",\"diff\",\"--check\"],check=True); print(\"ledger/logs/ancestry/lock/diff: PASS\")"
+      ],
+      "cwd": "/workspace/scratch/081f137b6a6d/aurevane-content-20261020",
+      "startedAt": "2026-10-20T21:56:49.017133+00:00",
+      "completedAt": "2026-10-20T21:56:49.072841+00:00",
+      "exit": 0,
+      "rawLog": "docs/verification/task-10-reconstruction/i2-integrity.log",
+      "file": "i2-integrity.log.gz",
+      "uncompressed_sha256": "4624c766e2934c44998169ff6e2ae3a8efb5f49d6e3292ef1e31785744a32602",
+      "sha256": "32ce1eeb0a181ed47c48ba586f86b677398e067c89cb9e964b49e36d795dcfba"
+    }
+  ]
+}

@@ -1,4 +1,9 @@
+import { ITEM_TECHNIQUE_ART } from './item-technique-art'
+import { ITEM_ART } from './item-art'
+import { EQUIPMENT_ART } from './equipment-art'
 import { WORLD_ART } from './world-art'
+import { BATTLE_ART } from './battle-art'
+import { SUPPORT_ACTION_ART, VESPER_PORTRAIT_ART } from './support-action-art'
 import { disciplineSigilArtwork } from './discipline-sigil-art'
 import { GENERATED_STARTER_PORTRAITS_1 } from './generated-starter-portraits-1'
 import { GENERATED_STARTER_PORTRAITS_2 } from './generated-starter-portraits-2'
@@ -7,7 +12,6 @@ import { GENERATED_STARTER_PORTRAITS_4 } from './generated-starter-portraits-4'
 import { GENERATED_STARTER_PORTRAITS_5 } from './generated-starter-portraits-5'
 import { GENERATED_STARTER_PORTRAITS_6 } from './generated-starter-portraits-6'
 import { GENERATED_STARTER_PORTRAITS_7 } from './generated-starter-portraits-7'
-import { RESTORED_STARTER_PORTRAIT_07 } from './restored-starter-portrait-07'
 
 export type ImageAssetStatus = 'requested' | 'approved'
 export type ImageAssetKind = 'environment' | 'character' | 'ui' | 'icon'
@@ -69,7 +73,107 @@ const legacySquareStarterPortraitAssetIds = [
 ] as const
 
 const IMAGE_ASSETS = [
+  ...EQUIPMENT_ART,
+  ...(['additional', 'prestige'] as const).map((name) => ({
+    id: `environment.entry.${name}-doorway` as const,
+    kind: 'environment' as const,
+    status: 'approved' as const,
+    requestId: 'ART-UI-ENTRY-20261001',
+    generationRequestId: 'ART-UI-ENTRY-20261001',
+    decorative: true,
+    alt: '',
+    src: `/media/art/entry/${name}-doorway-v01.webp`,
+    width: 640,
+    height: 640,
+  })),
+  ...(
+    [
+      ['gateway', 'environment.entry.gateway'],
+      ['roster-gallery', 'environment.entry.roster-gallery'],
+    ] as const
+  ).map(([name, id]) => ({
+    id,
+    kind: 'environment' as const,
+    status: 'approved' as const,
+    requestId: 'ART-UI-ENTRY-20261001',
+    generationRequestId: 'ART-UI-ENTRY-20261001',
+    decorative: true,
+    alt: '',
+    src: `/media/art/entry/${name}-v01.webp`,
+    width: 1672,
+    height: 941,
+  })),
+  ...(['male', 'female'] as const).flatMap((gender) =>
+    Array.from({ length: 12 }, (_, index) => ({
+      id: `character.adventure.${gender}-${String(index + 1).padStart(2, '0')}`,
+      kind: 'character' as const,
+      status: 'approved' as const,
+      requestId: 'ART-UI-20260929',
+      decorative: false,
+      alt: `${gender === 'male' ? 'Male' : 'Female'} adventurer ${index + 1}`,
+      src: `/media/art/adventure/${gender}-${String(index + 1).padStart(2, '0')}-v01.webp`,
+      width: 384,
+      height: 384,
+    })),
+  ),
+  {
+    id: 'environment.character-creation.wayfarer-gate',
+    kind: 'environment',
+    status: 'approved',
+    requestId: 'ART-UI-CREATION-20261110',
+    generationRequestId: 'ART-UI-CREATION-20261110',
+    decorative: true,
+    alt: '',
+    src: '/media/art/adventure/wayfarer-gate-v01.webp',
+    width: 960,
+    height: 1200,
+  },
+  {
+    id: 'environment.adventure.threshold',
+    kind: 'environment',
+    status: 'approved',
+    requestId: 'ART-UI-20260929',
+    decorative: true,
+    alt: '',
+    src: '/media/art/adventure/threshold-v01.webp',
+    width: 1672,
+    height: 941,
+  },
+  {
+    id: 'environment.adventure.haven',
+    kind: 'environment',
+    status: 'approved',
+    requestId: 'ART-UI-20260929',
+    decorative: true,
+    alt: '',
+    src: '/media/art/adventure/haven-v01.webp',
+    width: 1672,
+    height: 941,
+  },
   ...WORLD_ART,
+  ...BATTLE_ART,
+  ...ITEM_ART,
+  ...ITEM_TECHNIQUE_ART,
+  ...SUPPORT_ACTION_ART.map((row) => ({
+    ...row,
+    kind: 'icon' as const,
+    status: 'approved' as const,
+    requestId: 'ART-SUPPORT-20261102',
+    decorative: false,
+    alt: row.name,
+    width: 768,
+    height: 768,
+  })),
+  {
+    ...VESPER_PORTRAIT_ART,
+    kind: 'character',
+    status: 'approved',
+    requestId: 'ART-SUPPORT-20261102',
+    decorative: false,
+    alt: 'Vesper, a silver-blue moon drake with curled ivory horns and a luminous crescent tail.',
+    width: 768,
+    height: 768,
+  },
   ...phase4Sigils.map(([discipline, requestId]) => ({
     id: `art.phase4.${discipline}.identity.v01`,
     kind: 'icon' as const,
@@ -158,28 +262,26 @@ const IMAGE_ASSETS = [
     kind: 'character' as const,
     status: 'approved' as const,
     requestId: 'ART-CHR-001',
-    generationRequestId: conceptUiGenerationRequestId,
+    generationRequestId:
+      index === 0 ? conceptUiGenerationRequestId : 'ART-CHR-WAYFARER-HQ-20261030',
     decorative: false,
     alt: portrait.alt,
     src: portrait.src,
-    // The matching large HQ preview is available for the first identity.
-    width: index === 0 ? 400 : 96,
-    height: index === 0 ? 400 : 96,
+    // The existing first identity retains its original large preview.
+    width: index === 0 ? 400 : 1024,
+    height: index === 0 ? 400 : 1024,
   })),
   ...generatedStarterPortraits.slice(4).map((portrait) => ({
     id: portrait.id,
     kind: 'character' as const,
     status: 'approved' as const,
     requestId: 'ART-CHR-001',
-    generationRequestId: conceptUiGenerationRequestId,
+    generationRequestId: 'ART-CHR-WAYFARER-HQ-20261030',
     decorative: false,
     alt: portrait.alt,
-    src:
-      portrait.id === RESTORED_STARTER_PORTRAIT_07.id
-        ? RESTORED_STARTER_PORTRAIT_07.src
-        : portrait.src,
-    width: 96,
-    height: 96,
+    src: portrait.src,
+    width: 1024,
+    height: 1024,
   })),
   {
     id: 'character.creation.appearance-reference',

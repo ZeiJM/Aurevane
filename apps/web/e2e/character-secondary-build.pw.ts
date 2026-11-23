@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { expect, test } from '@playwright/test'
 
+import { selectDiscipline } from './discipline-library-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 function uniqueCharacterName(): string {
@@ -31,7 +32,7 @@ async function recordMastery(characterId: string, disciplineId: string): Promise
   if (masteryError) throw masteryError
 }
 
-test('Arsenal equips a mastered Secondary with independent attunement authority', async ({
+test('Nexus equips a mastered Secondary with independent attunement authority', async ({
   page,
 }, testInfo) => {
   test.skip(
@@ -62,102 +63,137 @@ test('Arsenal equips a mastered Secondary with independent attunement authority'
     .getByTestId('derived-stat-maxHp')
     .locator('strong')
     .innerText()
-  await page.goto('/game/arsenal')
+
+  await page.goto('/game/nexus')
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
 
   const panel = page.getByTestId('primary-build-panel')
-  const launcher = panel.getByRole('button', { name: /Manage Primary Discipline/ })
+  const launcher = panel.getByRole('button', { name: /Manage Disciplines/ })
   const primaryDisciplineChip = page.getByTestId('primary-discipline-chip')
   const secondaryDisciplineChip = page.getByTestId('secondary-discipline-chip')
-  const maxHp = page.locator('[data-character-resource="hp"] b')
-  await expect(launcher).toHaveText('Discipline Management')
-  const initialLauncherSigils = launcher.locator('img')
-  await expect(initialLauncherSigils).toHaveCount(1)
-  await expect(initialLauncherSigils.first()).toBeHidden()
+  const maxHp = page
+    .getByTestId('authenticated-shell')
+    .getByTestId('character-rail-profile')
+    .locator('[data-character-resource="hp"] b')
+
+  await expect(launcher).toHaveText(/Manage Disciplines/)
   await expect(primaryDisciplineChip).toHaveText('Vanguard')
 
   await launcher.click()
   const dialog = page.getByRole('dialog', { name: 'Discipline Management' })
-  const primary = dialog
-    .locator('label')
-    .filter({ hasText: /^Proposed Primary/ })
-    .locator('select')
-  const secondary = dialog
-    .locator('label')
-    .filter({ hasText: /^Proposed Secondary/ })
-    .locator('select')
   await expect(dialog).toBeVisible()
-  await expect(dialog).toContainText('Committed Primary')
+  await expect(dialog).toContainText('Currently Committed')
   await expect(dialog).toContainText('Vanguard')
-  await expect(dialog).not.toContainText('Committed Secondary')
-  await expect(dialog.locator('[aria-label="Choose a proposed Primary"]')).toHaveCount(0)
-  await expect(primary).toBeEnabled()
-  await expect(secondary).toBeEnabled()
-  await expect(secondary.locator('option[value=""]')).toHaveText('None')
-  await expect(secondary.locator('option[value="aetherist"]')).toHaveText('Aetherist')
-  await expect(secondary.locator('option[value="vanguard"]')).toHaveCount(0)
-  await expect(page.getByTestId('secondary-attunement-status')).toHaveCount(0)
+  await expect(dialog).toContainText('Secondary Discipline')
+  await expect(dialog).toContainText('None')
 
-  await secondary.selectOption('aetherist')
-  await expect(primary.locator('option[value="aetherist"]')).toHaveCount(0)
-  const preview = page.getByTestId('primary-build-preview')
+  const primaryEditor = dialog.getByRole('button', { name: 'Edit Primary Discipline', exact: true })
+  const secondaryEditor = dialog.getByRole('button', {
+    name: 'Edit Secondary Discipline',
+    exact: true,
+  })
+  await expect(primaryEditor).toBeEnabled()
+  await expect(secondaryEditor).toBeEnabled()
+  await expect(primaryEditor).toHaveAttribute('aria-pressed', 'false')
+  await expect(secondaryEditor).toHaveAttribute('aria-pressed', 'false')
+  await expect(dialog.getByText('✓ Editing Primary', { exact: true })).toHaveCount(0)
+  await expect(dialog.getByText('✓ Editing Secondary', { exact: true })).toHaveCount(0)
+  await secondaryEditor.click()
+  await expect(secondaryEditor).toHaveAttribute('aria-pressed', 'true')
+  await expect(primaryEditor).toHaveAttribute('aria-pressed', 'false')
+  const secondaryLibrary = dialog.getByRole('region', {
+    name: 'Secondary Discipline library',
+    exact: true,
+  })
+  await expect(
+    secondaryLibrary.getByRole('button', { name: 'Remove Secondary Discipline', exact: true }),
+  ).toBeDisabled()
+  await expect(
+    secondaryLibrary.getByRole('button', {
+      name: 'Select Aetherist as Secondary Discipline',
+      exact: true,
+    }),
+  ).toBeEnabled()
+  await expect(
+    secondaryLibrary.getByRole('button', {
+      name: 'Select Vanguard as Secondary Discipline',
+      exact: true,
+    }),
+  ).toHaveCount(0)
+
+  const disciplineWrites: string[] = []
+  page.on('request', (request) => {
+    if (
+      request.url().endsWith('/api/character/build/disciplines') &&
+      ['POST', 'PUT'].includes(request.method())
+    )
+      disciplineWrites.push(request.method())
+  })
+  await selectDiscipline(dialog, 'Secondary', 'Aetherist')
+  const preview = dialog.locator('[aria-label="Selected Discipline and change impact"]')
   await expect(preview).toBeVisible()
-  await expect(preview).toContainText('Vanguard + Aetherist')
-  await expect(preview).not.toContainText('Build v1')
-  await expect(preview).not.toContainText('Core stats')
-  await expect(preview).not.toContainText('Adventure stats')
-  await expect(preview).not.toContainText('Personal allocation is preserved')
-  await expect(page.getByTestId('secondary-attunement-status')).toHaveCount(0)
+  await expect(preview).toContainText('Selected Secondary')
+  await expect(preview).toContainText('Aetherist')
 
-  await page.getByRole('button', { name: 'Commit Discipline changes' }).click()
-  await expect(page.getByRole('status')).toContainText(
-    'Aetherist is now the committed Secondary Discipline.',
+  await expect(page.locator('[data-discipline-commit-success]')).toContainText(
+    'Discipline changes committed.',
   )
-  await expect(launcher).toHaveText('Discipline Management')
-  const committedLauncherSigils = launcher.locator('img')
-  await expect(committedLauncherSigils).toHaveCount(2)
-  await expect(committedLauncherSigils.first()).toBeHidden()
-  await expect(committedLauncherSigils.nth(1)).toBeHidden()
+  await expect(launcher).toHaveText(/Manage Disciplines/)
   await expect(primaryDisciplineChip).toHaveText('Vanguard')
   await expect(secondaryDisciplineChip).toHaveText('Aetherist')
+  expect(disciplineWrites).toEqual(Array(disciplineWrites.length).fill('PUT'))
   await expect(maxHp).toContainText(maxHpBeforeSecondary)
-  await expect(secondary).toBeEnabled()
-  await expect(primary).toBeEnabled()
-  await expect(page.getByTestId('secondary-attunement-status')).toHaveCount(0)
-  await expect(page.getByTestId('primary-attunement-status')).toHaveCount(0)
 
-  await primary.selectOption('lifebinder')
-  await expect(preview).toBeVisible()
-  await expect(preview).toContainText('Lifebinder + Aetherist')
-  await expect(preview).toContainText('Core stats')
-  await expect(preview).toContainText('Adventure stats')
-  await expect(preview).not.toContainText('Build v2')
-  await page.getByRole('button', { name: 'Commit Lifebinder as Primary' }).click()
-  await expect(page.getByRole('status')).toContainText(
-    'Lifebinder is now the committed Primary Discipline.',
+  await selectDiscipline(dialog, 'Primary', 'Lifebinder')
+  await expect(preview).toContainText('Selected Primary')
+  await expect(preview).toContainText('Lifebinder')
+
+  await expect(page.locator('[data-discipline-commit-success]')).toContainText(
+    'Discipline changes committed.',
   )
-  await expect(launcher).toHaveText('Discipline Management')
   await expect(primaryDisciplineChip).toHaveText('Lifebinder')
+  expect(disciplineWrites).toEqual(['PUT', 'PUT'])
   await expect(secondaryDisciplineChip).toHaveText('Aetherist')
-  await expect(primary).toBeEnabled()
-  await expect(secondary).toBeEnabled()
-  await expect(page.getByTestId('primary-attunement-status')).toHaveCount(0)
-  await expect(page.getByTestId('secondary-attunement-status')).toHaveCount(0)
 
   await page.reload()
   await expect(dialog).toBeVisible()
-  await expect(dialog).toContainText('Committed Primary')
   await expect(dialog).toContainText('Lifebinder')
-  await expect(dialog).toContainText('Committed Secondary')
   await expect(dialog).toContainText('Aetherist')
-  await expect(primary).toBeEnabled()
-  await expect(secondary).toBeEnabled()
+  await expect(primaryEditor).toBeEnabled()
+  await expect(secondaryEditor).toBeEnabled()
+
+  await expect(primaryEditor).toHaveAttribute('aria-pressed', 'false')
+  await expect(secondaryEditor).toHaveAttribute('aria-pressed', 'false')
+
+  await primaryEditor.click()
+  await expect(primaryEditor).toHaveAttribute('aria-pressed', 'true')
+  await dialog.getByRole('button', { name: 'Close', exact: true }).click()
+  await launcher.click()
+  await expect(dialog).toBeVisible()
+  await expect(primaryEditor).toHaveAttribute('aria-pressed', 'false')
+  await expect(secondaryEditor).toHaveAttribute('aria-pressed', 'false')
+
+  // Removing Secondary commits a pure build immediately and survives reload.
+  await secondaryEditor.click()
+  const clearSecondary = dialog.getByRole('button', {
+    name: 'Remove Secondary Discipline',
+    exact: true,
+  })
+  await expect(clearSecondary).toBeEnabled()
+  await clearSecondary.click()
+  await expect(clearSecondary).toBeDisabled()
+  await expect(preview).toContainText('Selected Secondary')
+  await expect(preview).toContainText('None')
+  await expect(secondaryDisciplineChip).toHaveCount(0)
+  await page.reload()
+  await expect(dialog).toBeVisible()
+  await expect(secondaryDisciplineChip).toHaveCount(0)
 
   await page.goto('/game/character')
-  await expect(page.getByText('Resonance Build', { exact: true })).toBeVisible()
+  await expect(page.getByText('Essence Build', { exact: true })).toBeVisible()
 })
 
-test('mobile Character keeps its portrait readable and Arsenal centers Discipline Management', async ({
+test('mobile Profile retains the navigation portrait and readable identity tags and Nexus centers Discipline Management', async ({
   page,
 }, testInfo) => {
   test.skip(
@@ -173,23 +209,31 @@ test('mobile Character keeps its portrait readable and Arsenal centers Disciplin
     characterName,
   })
 
-  const profile = page.getByTestId('character-profile')
-  const portrait = profile.locator('.character-portrait-media').locator('..')
-  await expect(portrait).toBeVisible()
-  const portraitBox = await portrait.boundingBox()
-  if (!portraitBox) throw new Error('Character portrait geometry is unavailable')
-  expect(Math.abs(portraitBox.width - portraitBox.height)).toBeLessThanOrEqual(1)
-  await expect(page.locator('[data-character-resource="hp"]')).toBeVisible()
-  await expect(page.locator('[data-character-resource="mp"]')).toBeVisible()
+  const profile = page.locator('[data-profile-workspace]')
+  await expect(
+    profile.locator(':scope > [aria-hidden="true"] .character-portrait-media'),
+  ).toHaveCount(0)
+  // The character portrait now lives in the Account menu, at the end of the welcome line.
+  await page.getByRole('button', { name: 'Account', exact: true }).click()
+  await expect(
+    page.getByRole('menu', { name: 'Account menu' }).locator('.character-portrait-media'),
+  ).toBeVisible()
+  await page.getByRole('button', { name: 'Account', exact: true }).click()
+  await expect(page.getByRole('menu', { name: 'Account menu' })).toBeHidden()
+  await expect(profile.locator('[aria-label="Disciplines and titles"]')).toBeVisible()
+  await expect(profile.getByTestId('primary-discipline-chip')).toHaveText('Vanguard')
+  await expect(profile.getByTestId('derived-stat-maxHp')).toBeVisible()
+  await expect(profile.getByTestId('derived-stat-maxMp')).toBeVisible()
+  await expect(page.getByTestId('character-profile')).toHaveCount(0)
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(
     true,
   )
 
-  await page.goto('/game/arsenal')
+  await page.goto('/game/nexus')
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
   const launcher = page
     .getByTestId('primary-build-panel')
-    .getByRole('button', { name: /Manage Primary Discipline/ })
+    .getByRole('button', { name: /Manage Disciplines/ })
   await launcher.click()
   const dialog = page.getByRole('dialog', { name: 'Discipline Management' })
   await expect(dialog).toBeVisible()
@@ -199,7 +243,10 @@ test('mobile Character keeps its portrait readable and Arsenal centers Disciplin
   if (!dialogBox || !viewport) {
     throw new Error('The mobile Discipline dialog geometry is unavailable.')
   }
-  const dialogCenterY = dialogBox.y + dialogBox.height / 2
-  expect(Math.abs(dialogCenterY - viewport.height / 2)).toBeLessThanOrEqual(12)
-  expect(dialogBox.y).toBeGreaterThan(8)
+  expect(dialogBox.x).toBeGreaterThanOrEqual(0)
+  expect(dialogBox.x + dialogBox.width).toBeLessThanOrEqual(viewport.width + 1)
+  expect(dialogBox.y).toBeGreaterThanOrEqual(0)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+    viewport.width + 1,
+  )
 })

@@ -1,0 +1,1470 @@
+{
+  "records": [
+    {
+      "content_key": "cinderweaver.blistering-heat",
+      "content_kind": "skill",
+      "content_version": 8,
+      "definition": {
+        "ai": {
+          "enabled": true,
+          "baseUtility": 74,
+          "purposeTags": [
+            "control",
+            "burn",
+            "setup"
+          ]
+        },
+        "id": "cinderweaver.blistering-heat",
+        "tags": [
+          "discipline",
+          "cinderweaver",
+          "control",
+          "burn",
+          "setup",
+          "attack",
+          "mystic",
+          "cockpit:attack"
+        ],
+        "media": {
+          "vfxKey": "skill.cinderweaver.blistering-heat.vfx",
+          "iconKey": "skill.cinderweaver.blistering-heat.icon",
+          "audioCueKey": "skill.cinderweaver.blistering-heat.audio"
+        },
+        "apCost": 55,
+        "mpCost": 8,
+        "target": {
+          "kind": "unit",
+          "shape": {
+            "kind": "single"
+          },
+          "categories": [
+            "enemy"
+          ],
+          "teamPolicy": "enemy",
+          "friendlyFire": "enemies-only",
+          "maximumRange": 4,
+          "minimumRange": 1,
+          "geometryVersion": 3,
+          "maximumSelections": 1,
+          "requiresLineOfSight": true,
+          "maximumElevationDifference": 0
+        },
+        "ability": {
+          "behaviors": [
+            {
+              "id": "blistering-heat",
+              "mode": "action",
+              "costs": [
+                {
+                  "amount": 55,
+                  "resource": "ap"
+                },
+                {
+                  "amount": 8,
+                  "resource": "mp"
+                },
+                {
+                  "amount": 20,
+                  "resource": "hp"
+                }
+              ],
+              "effects": [
+                {
+                  "id": "damage",
+                  "payload": {
+                    "type": "damage",
+                    "amount": 14,
+                    "element": "fire",
+                    "scaling": {
+                      "source": "mystic-power",
+                      "coefficientBasisPoints": 2500
+                    },
+                    "recipient": "primary-unit",
+                    "defenseKind": "ward"
+                  }
+                },
+                {
+                  "id": "burn",
+                  "payload": {
+                    "type": "burn",
+                    "recipient": "primary-unit",
+                    "curseCopyable": true,
+                    "damageProfile": {
+                      "kind": "attack-percentage",
+                      "basisPoints": 2500,
+                      "decayBasisPointsPerTick": 500
+                    },
+                    "durationTurns": 3
+                  }
+                },
+                {
+                  "id": "element-fire",
+                  "payload": {
+                    "type": "remove-status",
+                    "recipient": "actor",
+                    "statusIds": [
+                      "frozen"
+                    ]
+                  }
+                }
+              ],
+              "accuracy": {
+                "kind": "standard"
+              },
+              "cooldown": {
+                "key": "cinderweaver.blistering-heat",
+                "ownerTurns": 3
+              },
+              "targeting": {
+                "kind": "unit",
+                "shape": {
+                  "kind": "single"
+                },
+                "categories": [
+                  "enemy"
+                ],
+                "teamPolicy": "enemy",
+                "friendlyFire": "enemies-only",
+                "maximumRange": 4,
+                "minimumRange": 1,
+                "geometryVersion": 3,
+                "maximumSelections": 1,
+                "requiresLineOfSight": true,
+                "maximumElevationDifference": 0
+              },
+              "activation": "manual",
+              "attackFamily": "mystic",
+              "requirements": null,
+              "classification": "attack"
+            }
+          ],
+          "schemaVersion": 1
+        },
+        "effects": [
+          {
+            "type": "damage",
+            "amount": 6,
+            "element": "fire",
+            "recipient": "primary-unit",
+            "durationTurns": 0
+          },
+          {
+            "type": "burn",
+            "recipient": "primary-unit",
+            "curseCopyable": true,
+            "damageProfile": {
+              "kind": "attack-percentage",
+              "basisPoints": 1500,
+              "decayBasisPointsPerTick": 500
+            },
+            "durationTurns": 3
+          },
+          {
+            "type": "apply-status",
+            "stacks": 1,
+            "statusId": "slow",
+            "recipient": "primary-unit",
+            "durationTurns": 2
+          },
+          {
+            "type": "remove-status",
+            "recipient": "actor",
+            "statusIds": [
+              "frozen"
+            ]
+          }
+        ],
+        "enabled": true,
+        "nameRef": "skill.cinderweaver.blistering-heat.name",
+        "cooldown": {
+          "key": "cinderweaver.blistering-heat",
+          "ownerTurns": 3
+        },
+        "authoring": {
+          "status": "representative",
+          "schemaVersion": 1,
+          "validationTags": [
+            "p4",
+            "cinderweaver",
+            "shared-combat-authority",
+            "phase4-discipline-rebalance",
+            "owner-rebalance-v5",
+            "power-1-20",
+            "duration-aware",
+            "cooldown-1-3",
+            "owner-rebalance-v5-1",
+            "target-budget-v5-1",
+            "attack-percentage-dots",
+            "elemental-status-tags"
+          ]
+        },
+        "overrides": {},
+        "flavorLine": "Bind the enemy's momentum and force their next move into a narrower path.",
+        "accuracyMode": "per-target",
+        "requirements": [],
+        "contentVersion": 8,
+        "descriptionRef": "Strike the enemy, burn enemies, and remove Chilled from yourself.",
+        "unlockRequirement": {
+          "kind": "discipline-mastery",
+          "minimumStage": 3
+        },
+        "sourceDisciplineId": "cinderweaver",
+        "accuracyModifierBasisPoints": 0
+      },
+      "revision": 1,
+      "draft_sequence": 0,
+      "version_floor": 8,
+      "lifecycle": "active",
+      "restore_pending": false,
+      "highest_version": 8,
+      "has_draft": false
+    },
+    {
+      "content_key": "cinderweaver.cinder-bolt",
+      "content_kind": "skill",
+      "content_version": 9,
+      "definition": {
+        "ai": {
+          "enabled": true,
+          "baseUtility": 81,
+          "purposeTags": [
+            "attack",
+            "mystic",
+            "burn",
+            "setup"
+          ]
+        },
+        "id": "cinderweaver.cinder-bolt",
+        "tags": [
+          "discipline",
+          "cinderweaver",
+          "attack",
+          "mystic",
+          "burn",
+          "setup",
+          "cockpit:attack"
+        ],
+        "media": {
+          "vfxKey": "skill.cinderweaver.cinder-bolt.vfx",
+          "iconKey": "skill.cinderweaver.cinder-bolt.icon",
+          "audioCueKey": "skill.cinderweaver.cinder-bolt.audio"
+        },
+        "apCost": 45,
+        "mpCost": 5,
+        "target": {
+          "kind": "unit",
+          "shape": {
+            "kind": "single"
+          },
+          "categories": [
+            "enemy"
+          ],
+          "teamPolicy": "enemy",
+          "friendlyFire": "enemies-only",
+          "maximumRange": 4,
+          "minimumRange": 1,
+          "geometryVersion": 3,
+          "maximumSelections": 1,
+          "requiresLineOfSight": true,
+          "maximumElevationDifference": 0
+        },
+        "ability": {
+          "behaviors": [
+            {
+              "id": "cinder-bolt",
+              "mode": "action",
+              "costs": [
+                {
+                  "amount": 45,
+                  "resource": "ap"
+                },
+                {
+                  "amount": 5,
+                  "resource": "mp"
+                }
+              ],
+              "effects": [
+                {
+                  "id": "damage",
+                  "payload": {
+                    "type": "damage",
+                    "amount": 10,
+                    "element": "fire",
+                    "scaling": {
+                      "source": "mystic-power",
+                      "coefficientBasisPoints": 2500
+                    },
+                    "recipient": "primary-unit",
+                    "defenseKind": "ward"
+                  }
+                },
+                {
+                  "id": "burn",
+                  "payload": {
+                    "type": "burn",
+                    "recipient": "primary-unit",
+                    "curseCopyable": true,
+                    "damageProfile": {
+                      "kind": "attack-percentage",
+                      "basisPoints": 2000,
+                      "decayBasisPointsPerTick": 500
+                    },
+                    "durationTurns": 3
+                  }
+                },
+                {
+                  "id": "element-fire",
+                  "payload": {
+                    "type": "remove-status",
+                    "recipient": "actor",
+                    "statusIds": [
+                      "frozen"
+                    ]
+                  }
+                }
+              ],
+              "accuracy": {
+                "kind": "standard"
+              },
+              "cooldown": {
+                "key": "cinderweaver.cinder-bolt",
+                "ownerTurns": 2
+              },
+              "targeting": {
+                "kind": "unit",
+                "shape": {
+                  "kind": "single"
+                },
+                "categories": [
+                  "enemy"
+                ],
+                "teamPolicy": "enemy",
+                "friendlyFire": "enemies-only",
+                "maximumRange": 4,
+                "minimumRange": 1,
+                "geometryVersion": 3,
+                "maximumSelections": 1,
+                "requiresLineOfSight": true,
+                "maximumElevationDifference": 0
+              },
+              "activation": "manual",
+              "attackFamily": "mystic",
+              "requirements": null,
+              "classification": "attack"
+            }
+          ],
+          "schemaVersion": 1
+        },
+        "effects": [
+          {
+            "type": "damage",
+            "amount": 10,
+            "element": "fire",
+            "recipient": "primary-unit",
+            "durationTurns": 0
+          },
+          {
+            "type": "burn",
+            "recipient": "primary-unit",
+            "curseCopyable": true,
+            "damageProfile": {
+              "kind": "attack-percentage",
+              "basisPoints": 2500,
+              "decayBasisPointsPerTick": 500
+            },
+            "durationTurns": 3
+          },
+          {
+            "type": "remove-status",
+            "recipient": "actor",
+            "statusIds": [
+              "frozen"
+            ]
+          }
+        ],
+        "enabled": true,
+        "nameRef": "skill.cinderweaver.cinder-bolt.name",
+        "cooldown": {
+          "key": "cinderweaver.cinder-bolt",
+          "ownerTurns": 2
+        },
+        "authoring": {
+          "status": "representative",
+          "schemaVersion": 1,
+          "validationTags": [
+            "p4",
+            "cinderweaver",
+            "shared-combat-authority",
+            "phase4-discipline-rebalance",
+            "owner-rebalance-v5",
+            "power-1-20",
+            "duration-aware",
+            "cooldown-1-3",
+            "owner-rebalance-v5-1",
+            "target-budget-v5-1",
+            "attack-percentage-dots",
+            "elemental-status-tags"
+          ]
+        },
+        "overrides": {},
+        "flavorLine": "Gather Cinderweaver power into a focused strike that tears through the enemy's guard.",
+        "accuracyMode": "per-target",
+        "requirements": [],
+        "contentVersion": 9,
+        "descriptionRef": "Strike the enemy, burn enemies, and remove Chilled from yourself.",
+        "unlockRequirement": {
+          "kind": "discipline-mastery",
+          "minimumStage": 1
+        },
+        "sourceDisciplineId": "cinderweaver",
+        "accuracyModifierBasisPoints": 0
+      },
+      "revision": 1,
+      "draft_sequence": 0,
+      "version_floor": 9,
+      "lifecycle": "active",
+      "restore_pending": false,
+      "highest_version": 9,
+      "has_draft": false
+    },
+    {
+      "content_key": "cinderweaver.ember-line",
+      "content_kind": "skill",
+      "content_version": 10,
+      "definition": {
+        "ai": {
+          "enabled": true,
+          "baseUtility": 81,
+          "purposeTags": [
+            "attack",
+            "mystic",
+            "line",
+            "burn",
+            "setup"
+          ]
+        },
+        "id": "cinderweaver.ember-line",
+        "tags": [
+          "discipline",
+          "cinderweaver",
+          "attack",
+          "mystic",
+          "line",
+          "burn",
+          "setup",
+          "cockpit:attack"
+        ],
+        "media": {
+          "vfxKey": "skill.cinderweaver.ember-line.vfx",
+          "iconKey": "skill.cinderweaver.ember-line.icon",
+          "audioCueKey": "skill.cinderweaver.ember-line.audio"
+        },
+        "apCost": 50,
+        "mpCost": 6,
+        "target": {
+          "kind": "unit",
+          "shape": {
+            "kind": "line",
+            "length": 3
+          },
+          "categories": [
+            "enemy"
+          ],
+          "teamPolicy": "enemy",
+          "friendlyFire": "enemies-only",
+          "maximumRange": 3,
+          "minimumRange": 0,
+          "geometryVersion": 3,
+          "maximumSelections": 1,
+          "requiresLineOfSight": true,
+          "maximumElevationDifference": 0
+        },
+        "ability": {
+          "behaviors": [
+            {
+              "id": "ember-line",
+              "mode": "action",
+              "costs": [
+                {
+                  "amount": 50,
+                  "resource": "ap"
+                },
+                {
+                  "amount": 6,
+                  "resource": "mp"
+                }
+              ],
+              "effects": [
+                {
+                  "id": "damage",
+                  "payload": {
+                    "type": "damage",
+                    "amount": 9,
+                    "element": "fire",
+                    "scaling": {
+                      "source": "mystic-power",
+                      "coefficientBasisPoints": 2500
+                    },
+                    "recipient": "affected-units",
+                    "defenseKind": "ward"
+                  }
+                },
+                {
+                  "id": "burn",
+                  "payload": {
+                    "type": "burn",
+                    "recipient": "affected-units",
+                    "curseCopyable": true,
+                    "damageProfile": {
+                      "kind": "attack-percentage",
+                      "basisPoints": 1500,
+                      "decayBasisPointsPerTick": 500
+                    },
+                    "durationTurns": 3
+                  }
+                },
+                {
+                  "id": "element-fire",
+                  "payload": {
+                    "type": "remove-status",
+                    "recipient": "actor",
+                    "statusIds": [
+                      "frozen"
+                    ]
+                  }
+                }
+              ],
+              "accuracy": {
+                "kind": "standard"
+              },
+              "cooldown": {
+                "key": "cinderweaver.ember-line",
+                "ownerTurns": 3
+              },
+              "targeting": {
+                "kind": "unit",
+                "shape": {
+                  "kind": "line",
+                  "length": 3
+                },
+                "categories": [
+                  "enemy"
+                ],
+                "teamPolicy": "enemy",
+                "friendlyFire": "enemies-only",
+                "maximumRange": 3,
+                "minimumRange": 0,
+                "geometryVersion": 3,
+                "maximumSelections": 1,
+                "requiresLineOfSight": true,
+                "maximumElevationDifference": 0
+              },
+              "activation": "manual",
+              "attackFamily": "mystic",
+              "requirements": null,
+              "classification": "attack"
+            }
+          ],
+          "schemaVersion": 1
+        },
+        "effects": [
+          {
+            "type": "damage",
+            "amount": 9,
+            "element": "fire",
+            "recipient": "affected-units",
+            "durationTurns": 0
+          },
+          {
+            "type": "burn",
+            "recipient": "affected-units",
+            "curseCopyable": true,
+            "damageProfile": {
+              "kind": "attack-percentage",
+              "basisPoints": 2000,
+              "decayBasisPointsPerTick": 500
+            },
+            "durationTurns": 3
+          },
+          {
+            "type": "remove-status",
+            "recipient": "actor",
+            "statusIds": [
+              "frozen"
+            ]
+          }
+        ],
+        "enabled": true,
+        "nameRef": "skill.cinderweaver.ember-line.name",
+        "cooldown": {
+          "key": "cinderweaver.ember-line",
+          "ownerTurns": 3
+        },
+        "authoring": {
+          "status": "representative",
+          "schemaVersion": 1,
+          "validationTags": [
+            "p4",
+            "cinderweaver",
+            "shared-combat-authority",
+            "phase4-discipline-rebalance",
+            "owner-rebalance-v5",
+            "power-1-20",
+            "duration-aware",
+            "cooldown-1-3",
+            "owner-rebalance-v5-1",
+            "target-budget-v5-1",
+            "attack-percentage-dots",
+            "targeting-shapes-v2",
+            "elemental-status-tags"
+          ]
+        },
+        "overrides": {},
+        "flavorLine": "Unleash Cinderweaver force across the field and catch every foe inside the sweep.",
+        "accuracyMode": "per-target",
+        "requirements": [],
+        "contentVersion": 10,
+        "descriptionRef": "Strike enemies along a line, burn enemies, and remove Chilled from yourself.",
+        "unlockRequirement": {
+          "kind": "discipline-mastery",
+          "minimumStage": 1
+        },
+        "sourceDisciplineId": "cinderweaver",
+        "accuracyModifierBasisPoints": 0
+      },
+      "revision": 1,
+      "draft_sequence": 0,
+      "version_floor": 10,
+      "lifecycle": "active",
+      "restore_pending": false,
+      "highest_version": 10,
+      "has_draft": false
+    },
+    {
+      "content_key": "cinderweaver.flame-burst",
+      "content_kind": "skill",
+      "content_version": 11,
+      "definition": {
+        "ai": {
+          "enabled": true,
+          "baseUtility": 88,
+          "purposeTags": [
+            "attack",
+            "mystic",
+            "area",
+            "burn",
+            "ground"
+          ]
+        },
+        "id": "cinderweaver.flame-burst",
+        "tags": [
+          "discipline",
+          "cinderweaver",
+          "attack",
+          "mystic",
+          "area",
+          "cockpit:attack"
+        ],
+        "media": {
+          "vfxKey": "skill.cinderweaver.flame-burst.vfx",
+          "iconKey": "skill.cinderweaver.flame-burst.icon",
+          "audioCueKey": "skill.cinderweaver.flame-burst.audio"
+        },
+        "apCost": 55,
+        "mpCost": 3,
+        "target": {
+          "kind": "ground-tile",
+          "shape": {
+            "kind": "circle",
+            "radius": 1
+          },
+          "teamPolicy": "enemy",
+          "friendlyFire": "enemies-only",
+          "maximumRange": 1,
+          "minimumRange": 0,
+          "geometryVersion": 2,
+          "maximumSelections": 1,
+          "requiresLineOfSight": true,
+          "maximumElevationDifference": 0
+        },
+        "ability": {
+          "behaviors": [
+            {
+              "id": "persistent-ground",
+              "mode": "action",
+              "costs": [
+                {
+                  "amount": 55,
+                  "resource": "ap"
+                },
+                {
+                  "amount": 3,
+                  "resource": "mp"
+                }
+              ],
+              "effects": [
+                {
+                  "id": "entry-0",
+                  "payload": {
+                    "type": "damage",
+                    "amount": 8,
+                    "element": "fire",
+                    "recipient": "affected-units",
+                    "durationTurns": 0
+                  }
+                },
+                {
+                  "id": "entry-1",
+                  "payload": {
+                    "type": "burn",
+                    "recipient": "affected-units",
+                    "curseCopyable": true,
+                    "damageProfile": {
+                      "kind": "attack-percentage",
+                      "basisPoints": 2000,
+                      "decayBasisPointsPerTick": 500
+                    },
+                    "durationTurns": 3
+                  }
+                },
+                {
+                  "id": "entry-2",
+                  "payload": {
+                    "type": "remove-status",
+                    "recipient": "actor",
+                    "statusIds": [
+                      "frozen"
+                    ]
+                  }
+                }
+              ],
+              "accuracy": {
+                "kind": "fixed",
+                "chanceBasisPoints": 10000
+              },
+              "cooldown": {
+                "key": "cinderweaver.flame-burst",
+                "ownerTurns": 3
+              },
+              "targeting": {
+                "kind": "ground-tile",
+                "shape": {
+                  "kind": "circle",
+                  "radius": 1
+                },
+                "teamPolicy": "enemy",
+                "friendlyFire": "enemies-only",
+                "maximumRange": 1,
+                "minimumRange": 0,
+                "geometryVersion": 2,
+                "maximumSelections": 1,
+                "requiresLineOfSight": true,
+                "maximumElevationDifference": 0
+              },
+              "activation": "manual",
+              "groundArea": {
+                "durationRounds": 3,
+                "entryEffectIds": [
+                  "entry-0",
+                  "entry-1"
+                ],
+                "visualPresetId": "embers"
+              },
+              "attackFamily": "mystic",
+              "requirements": null,
+              "classification": "attack"
+            }
+          ],
+          "schemaVersion": 1
+        },
+        "effects": [
+          {
+            "type": "damage",
+            "amount": 8,
+            "element": "fire",
+            "recipient": "affected-units",
+            "durationTurns": 0
+          },
+          {
+            "type": "burn",
+            "recipient": "affected-units",
+            "curseCopyable": true,
+            "damageProfile": {
+              "kind": "attack-percentage",
+              "basisPoints": 2000,
+              "decayBasisPointsPerTick": 500
+            },
+            "durationTurns": 3
+          },
+          {
+            "type": "remove-status",
+            "recipient": "actor",
+            "statusIds": [
+              "frozen"
+            ]
+          }
+        ],
+        "enabled": true,
+        "nameRef": "skill.cinderweaver.flame-burst.name",
+        "cooldown": {
+          "key": "cinderweaver.flame-burst",
+          "ownerTurns": 3
+        },
+        "authoring": {
+          "status": "representative",
+          "schemaVersion": 1,
+          "validationTags": [
+            "p4",
+            "cinderweaver",
+            "shared-combat-authority",
+            "phase4-discipline-rebalance",
+            "owner-rebalance-v5",
+            "power-1-20",
+            "duration-aware",
+            "cooldown-1-3",
+            "owner-rebalance-v5-1",
+            "target-budget-v5-1",
+            "attack-percentage-dots",
+            "targeting-shapes-v2",
+            "persistent-ground-areas",
+            "elemental-status-tags"
+          ]
+        },
+        "overrides": {},
+        "flavorLine": "Unleash Cinderweaver force across the field and catch every foe inside the sweep.",
+        "groundArea": {
+          "durationRounds": 3,
+          "visualPresetId": "embers",
+          "entryEffectOrdinals": [
+            0,
+            1
+          ]
+        },
+        "accuracyMode": "automatic",
+        "requirements": [],
+        "contentVersion": 11,
+        "descriptionRef": "Create a field of embers that damages and burns enemies.",
+        "unlockRequirement": {
+          "kind": "discipline-mastery",
+          "minimumStage": 1
+        },
+        "sourceDisciplineId": "cinderweaver"
+      },
+      "revision": 1,
+      "draft_sequence": 0,
+      "version_floor": 11,
+      "lifecycle": "active",
+      "restore_pending": false,
+      "highest_version": 11,
+      "has_draft": false
+    },
+    {
+      "content_key": "cinderweaver.flashfire",
+      "content_kind": "skill",
+      "content_version": 6,
+      "definition": {
+        "ai": {
+          "enabled": true,
+          "baseUtility": 76,
+          "purposeTags": [
+            "attack",
+            "mystic",
+            "expose"
+          ]
+        },
+        "id": "cinderweaver.flashfire",
+        "tags": [
+          "discipline",
+          "cinderweaver",
+          "attack",
+          "mystic",
+          "expose",
+          "cockpit:attack"
+        ],
+        "media": {
+          "vfxKey": "skill.cinderweaver.flashfire.vfx",
+          "iconKey": "skill.cinderweaver.flashfire.icon",
+          "audioCueKey": "skill.cinderweaver.flashfire.audio"
+        },
+        "apCost": 40,
+        "mpCost": 4,
+        "target": {
+          "kind": "unit",
+          "shape": {
+            "kind": "single"
+          },
+          "categories": [
+            "enemy"
+          ],
+          "teamPolicy": "enemy",
+          "friendlyFire": "enemies-only",
+          "maximumRange": 2,
+          "minimumRange": 1,
+          "geometryVersion": 3,
+          "maximumSelections": 1,
+          "requiresLineOfSight": true,
+          "maximumElevationDifference": 0
+        },
+        "ability": {
+          "behaviors": [
+            {
+              "id": "flashfire",
+              "mode": "action",
+              "costs": [
+                {
+                  "amount": 40,
+                  "resource": "ap"
+                },
+                {
+                  "amount": 4,
+                  "resource": "mp"
+                }
+              ],
+              "effects": [
+                {
+                  "id": "damage",
+                  "payload": {
+                    "type": "damage",
+                    "amount": 8,
+                    "element": "fire",
+                    "scaling": {
+                      "source": "mystic-power",
+                      "coefficientBasisPoints": 2500
+                    },
+                    "recipient": "primary-unit",
+                    "defenseKind": "ward"
+                  }
+                },
+                {
+                  "id": "apply-status",
+                  "payload": {
+                    "type": "apply-status",
+                    "stacks": 1,
+                    "statusId": "exposed",
+                    "recipient": "primary-unit",
+                    "durationTurns": 1,
+                    "potencyBasisPoints": 1500
+                  }
+                },
+                {
+                  "id": "element-fire",
+                  "payload": {
+                    "type": "remove-status",
+                    "recipient": "actor",
+                    "statusIds": [
+                      "frozen"
+                    ]
+                  }
+                }
+              ],
+              "accuracy": {
+                "kind": "standard"
+              },
+              "cooldown": {
+                "key": "cinderweaver.flashfire",
+                "ownerTurns": 3
+              },
+              "targeting": {
+                "kind": "unit",
+                "shape": {
+                  "kind": "single"
+                },
+                "categories": [
+                  "enemy"
+                ],
+                "teamPolicy": "enemy",
+                "friendlyFire": "enemies-only",
+                "maximumRange": 2,
+                "minimumRange": 1,
+                "geometryVersion": 3,
+                "maximumSelections": 1,
+                "requiresLineOfSight": true,
+                "maximumElevationDifference": 0
+              },
+              "activation": "manual",
+              "attackFamily": "mystic",
+              "requirements": null,
+              "classification": "attack"
+            }
+          ],
+          "schemaVersion": 1
+        },
+        "effects": [
+          {
+            "type": "damage",
+            "amount": 12,
+            "recipient": "primary-unit",
+            "durationTurns": 0
+          },
+          {
+            "type": "apply-status",
+            "stacks": 1,
+            "statusId": "exposed",
+            "recipient": "primary-unit",
+            "durationTurns": 2,
+            "potencyBasisPoints": 1426
+          }
+        ],
+        "enabled": true,
+        "nameRef": "skill.cinderweaver.flashfire.name",
+        "cooldown": {
+          "key": "cinderweaver.flashfire",
+          "ownerTurns": 3
+        },
+        "authoring": {
+          "status": "representative",
+          "schemaVersion": 1,
+          "validationTags": [
+            "p4",
+            "cinderweaver",
+            "shared-combat-authority",
+            "phase4-discipline-rebalance",
+            "owner-rebalance-v5",
+            "power-1-20",
+            "duration-aware",
+            "cooldown-1-3",
+            "owner-rebalance-v5-1",
+            "target-budget-v5-1"
+          ]
+        },
+        "overrides": {},
+        "flavorLine": "Drive Cinderweaver force through the hit, turning pain into an opening the enemy cannot ignore.",
+        "accuracyMode": "per-target",
+        "requirements": [],
+        "contentVersion": 6,
+        "descriptionRef": "Strike the enemy, make the enemy Vulnerable, and remove Chilled from yourself.",
+        "unlockRequirement": {
+          "kind": "discipline-mastery",
+          "minimumStage": 2
+        },
+        "sourceDisciplineId": "cinderweaver",
+        "accuracyModifierBasisPoints": 0
+      },
+      "revision": 1,
+      "draft_sequence": 0,
+      "version_floor": 6,
+      "lifecycle": "active",
+      "restore_pending": false,
+      "highest_version": 6,
+      "has_draft": false
+    },
+    {
+      "content_key": "cinderweaver.scorch",
+      "content_kind": "skill",
+      "content_version": 6,
+      "definition": {
+        "ai": {
+          "enabled": true,
+          "baseUtility": 75,
+          "purposeTags": [
+            "attack",
+            "mystic",
+            "payoff"
+          ]
+        },
+        "id": "cinderweaver.scorch",
+        "tags": [
+          "discipline",
+          "cinderweaver",
+          "attack",
+          "mystic",
+          "payoff",
+          "cockpit:attack"
+        ],
+        "media": {
+          "vfxKey": "skill.cinderweaver.scorch.vfx",
+          "iconKey": "skill.cinderweaver.scorch.icon",
+          "audioCueKey": "skill.cinderweaver.scorch.audio"
+        },
+        "apCost": 50,
+        "mpCost": 6,
+        "target": {
+          "kind": "unit",
+          "shape": {
+            "kind": "single"
+          },
+          "categories": [
+            "enemy"
+          ],
+          "teamPolicy": "enemy",
+          "friendlyFire": "enemies-only",
+          "maximumRange": 4,
+          "minimumRange": 1,
+          "geometryVersion": 3,
+          "maximumSelections": 1,
+          "requiresLineOfSight": true,
+          "maximumElevationDifference": 0
+        },
+        "ability": {
+          "behaviors": [
+            {
+              "id": "scorch",
+              "mode": "action",
+              "costs": [
+                {
+                  "amount": 50,
+                  "resource": "ap"
+                },
+                {
+                  "amount": 6,
+                  "resource": "mp"
+                }
+              ],
+              "effects": [
+                {
+                  "id": "damage",
+                  "payload": {
+                    "type": "damage",
+                    "amount": 12,
+                    "element": "fire",
+                    "scaling": {
+                      "source": "mystic-power",
+                      "coefficientBasisPoints": 2500
+                    },
+                    "recipient": "primary-unit",
+                    "defenseKind": "ward"
+                  }
+                },
+                {
+                  "id": "damage-2",
+                  "payload": {
+                    "type": "damage",
+                    "amount": 3,
+                    "scaling": {
+                      "source": "mystic-power",
+                      "coefficientBasisPoints": 0
+                    },
+                    "recipient": "primary-unit",
+                    "defenseKind": "ward"
+                  },
+                  "requirements": {
+                    "kind": "status-presence",
+                    "present": true,
+                    "subject": "selected",
+                    "statusId": "burn"
+                  }
+                },
+                {
+                  "id": "element-fire",
+                  "payload": {
+                    "type": "remove-status",
+                    "recipient": "actor",
+                    "statusIds": [
+                      "frozen"
+                    ]
+                  }
+                }
+              ],
+              "accuracy": {
+                "kind": "standard"
+              },
+              "cooldown": {
+                "key": "cinderweaver.scorch",
+                "ownerTurns": 2
+              },
+              "targeting": {
+                "kind": "unit",
+                "shape": {
+                  "kind": "single"
+                },
+                "categories": [
+                  "enemy"
+                ],
+                "teamPolicy": "enemy",
+                "friendlyFire": "enemies-only",
+                "maximumRange": 4,
+                "minimumRange": 1,
+                "geometryVersion": 3,
+                "maximumSelections": 1,
+                "requiresLineOfSight": true,
+                "maximumElevationDifference": 0
+              },
+              "activation": "manual",
+              "attackFamily": "mystic",
+              "requirements": null,
+              "classification": "attack"
+            }
+          ],
+          "schemaVersion": 1
+        },
+        "effects": [
+          {
+            "type": "damage",
+            "amount": 14,
+            "recipient": "primary-unit",
+            "durationTurns": 0
+          }
+        ],
+        "enabled": true,
+        "nameRef": "skill.cinderweaver.scorch.name",
+        "cooldown": {
+          "key": "cinderweaver.scorch",
+          "ownerTurns": 2
+        },
+        "authoring": {
+          "status": "representative",
+          "schemaVersion": 1,
+          "validationTags": [
+            "p4",
+            "cinderweaver",
+            "shared-combat-authority",
+            "phase4-discipline-rebalance",
+            "owner-rebalance-v5",
+            "power-1-20",
+            "duration-aware",
+            "cooldown-1-3",
+            "owner-rebalance-v5-1",
+            "target-budget-v5-1"
+          ]
+        },
+        "overrides": {},
+        "flavorLine": "Gather Cinderweaver power into a focused strike that tears through the enemy's guard.",
+        "accuracyMode": "per-target",
+        "requirements": [],
+        "contentVersion": 6,
+        "descriptionRef": "Strike the enemy and remove Chilled from yourself.",
+        "unlockRequirement": {
+          "kind": "discipline-mastery",
+          "minimumStage": 1
+        },
+        "sourceDisciplineId": "cinderweaver",
+        "accuracyModifierBasisPoints": 0
+      },
+      "revision": 1,
+      "draft_sequence": 0,
+      "version_floor": 6,
+      "lifecycle": "active",
+      "restore_pending": false,
+      "highest_version": 6,
+      "has_draft": false
+    },
+    {
+      "content_key": "essence.cinderweaver.phoenix-wake",
+      "content_kind": "essence",
+      "content_version": 8,
+      "definition": {
+        "name": "Phoenix Wake",
+        "skill": {
+          "ai": {
+            "enabled": true,
+            "baseUtility": 108,
+            "purposeTags": [
+              "attack",
+              "mystic",
+              "area",
+              "burn"
+            ]
+          },
+          "id": "essence.cinderweaver.phoenix-wake",
+          "tags": [
+            "essence",
+            "cinderweaver",
+            "attack",
+            "mystic",
+            "area",
+            "burn",
+            "cockpit:attack"
+          ],
+          "media": {
+            "vfxKey": "essence.cinderweaver.phoenix-wake.vfx",
+            "iconKey": "essence.cinderweaver.phoenix-wake.icon",
+            "audioCueKey": "essence.cinderweaver.phoenix-wake.audio"
+          },
+          "apCost": 70,
+          "mpCost": 10,
+          "target": {
+            "kind": "unit",
+            "shape": {
+              "kind": "circle",
+              "radius": 2
+            },
+            "categories": [
+              "enemy"
+            ],
+            "teamPolicy": "enemy",
+            "friendlyFire": "enemies-only",
+            "maximumRange": 2,
+            "minimumRange": 0,
+            "geometryVersion": 3,
+            "maximumSelections": 1,
+            "requiresLineOfSight": true,
+            "maximumElevationDifference": 0
+          },
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 11,
+              "recipient": "affected-units",
+              "durationTurns": 0
+            },
+            {
+              "type": "burn",
+              "recipient": "affected-units",
+              "curseCopyable": true,
+              "damageProfile": {
+                "kind": "attack-percentage",
+                "basisPoints": 2500,
+                "decayBasisPointsPerTick": 500
+              },
+              "durationTurns": 3
+            }
+          ],
+          "enabled": true,
+          "nameRef": "essence.cinderweaver.phoenix-wake.name",
+          "cooldown": {
+            "key": "essence.cinderweaver.phoenix-wake",
+            "ownerTurns": 4
+          },
+          "authoring": {
+            "status": "representative",
+            "schemaVersion": 1,
+            "validationTags": [
+              "p4",
+              "cinderweaver",
+              "shared-combat-authority",
+              "phase4-discipline-rebalance",
+              "owner-rebalance-v5",
+              "power-1-20",
+              "duration-aware",
+              "cooldown-1-3",
+              "owner-rebalance-v5-1",
+              "target-budget-v5-1",
+              "attack-percentage-dots",
+              "targeting-shapes-v2"
+            ]
+          },
+          "overrides": {},
+          "flavorLine": "Unleash Cinderweaver force across the field and catch every foe inside the sweep.",
+          "accuracyMode": "per-target",
+          "requirements": [],
+          "contentVersion": 8,
+          "descriptionRef": "Strike nearby enemies, burn enemies, and remove Chilled from yourself.",
+          "unlockRequirement": {
+            "kind": "discipline-mastery",
+            "minimumStage": 1
+          },
+          "sourceDisciplineId": "cinderweaver",
+          "accuracyModifierBasisPoints": 0
+        },
+        "ability": {
+          "behaviors": [
+            {
+              "id": "phoenix-wake",
+              "mode": "action",
+              "costs": [
+                {
+                  "amount": 70,
+                  "resource": "ap"
+                },
+                {
+                  "amount": 10,
+                  "resource": "mp"
+                }
+              ],
+              "effects": [
+                {
+                  "id": "damage",
+                  "payload": {
+                    "type": "damage",
+                    "amount": 14,
+                    "element": "fire",
+                    "scaling": {
+                      "source": "mystic-power",
+                      "coefficientBasisPoints": 2500
+                    },
+                    "recipient": "affected-units",
+                    "defenseKind": "ward"
+                  }
+                },
+                {
+                  "id": "burn",
+                  "payload": {
+                    "type": "burn",
+                    "recipient": "affected-units",
+                    "curseCopyable": true,
+                    "damageProfile": {
+                      "kind": "attack-percentage",
+                      "basisPoints": 2000,
+                      "decayBasisPointsPerTick": 500
+                    },
+                    "durationTurns": 3
+                  }
+                },
+                {
+                  "id": "element-fire",
+                  "payload": {
+                    "type": "remove-status",
+                    "recipient": "actor",
+                    "statusIds": [
+                      "frozen"
+                    ]
+                  }
+                }
+              ],
+              "accuracy": {
+                "kind": "standard"
+              },
+              "cooldown": {
+                "key": "essence.cinderweaver.phoenix-wake",
+                "ownerTurns": 4
+              },
+              "targeting": {
+                "kind": "unit",
+                "shape": {
+                  "kind": "circle",
+                  "radius": 2
+                },
+                "categories": [
+                  "enemy"
+                ],
+                "teamPolicy": "enemy",
+                "friendlyFire": "enemies-only",
+                "maximumRange": 2,
+                "minimumRange": 0,
+                "geometryVersion": 3,
+                "maximumSelections": 1,
+                "requiresLineOfSight": true,
+                "maximumElevationDifference": 0
+              },
+              "activation": "manual",
+              "attackFamily": "mystic",
+              "requirements": null,
+              "classification": "attack"
+            }
+          ],
+          "schemaVersion": 1
+        },
+        "enabled": true,
+        "authoring": {
+          "status": "representative",
+          "schemaVersion": 1,
+          "validationTags": [
+            "p4",
+            "cinderweaver",
+            "shared-combat-authority",
+            "phase4-discipline-rebalance",
+            "owner-rebalance-v5",
+            "duration-aware",
+            "power-1-20",
+            "owner-rebalance-v5-1",
+            "target-budget-v5-1",
+            "attack-percentage-dots",
+            "targeting-shapes-v2"
+          ]
+        },
+        "essenceId": "essence.cinderweaver.phoenix-wake",
+        "flavorLine": "A high-cost Cinderweaver signature attack built for a decisive payoff.",
+        "description": "Strike nearby enemies, burn enemies, and remove Chilled from yourself.",
+        "contentVersion": 8,
+        "sourceDisciplineId": "cinderweaver"
+      },
+      "revision": 1,
+      "draft_sequence": 0,
+      "version_floor": 8,
+      "lifecycle": "active",
+      "restore_pending": false,
+      "highest_version": 8,
+      "has_draft": false
+    }
+  ]
+}

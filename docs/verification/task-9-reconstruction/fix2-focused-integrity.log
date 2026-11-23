@@ -1,0 +1,4 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["bash", "-e", "-c", "corepack pnpm exec eslint packages/db/src/master-players-recovery.test.ts; corepack pnpm --filter @aurevane/db typecheck; python -c 'import ast,pathlib; ast.parse(pathlib.Path(\".github/scripts/verify-master-players-recovery.py\").read_text()); print(\"Native Python syntax passes; no native execution claimed\")'"], "start": "2026-10-20T19:33:29.095854+00:00"}
+$ tsc --noEmit
+Native Python syntax passes; no native execution claimed
+{"end": "2026-10-20T19:33:36.125461+00:00", "exit": 0}

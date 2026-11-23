@@ -1,17 +1,54 @@
+import { CURRENT_EFFECT_PERCENT_MAXIMUM } from './combat-effect-percentages'
+import {
+  CURRENT_EFFECT_DURATION_MAXIMUM_TURNS,
+  CURRENT_RECOVERY_MAXIMUM_APPLICATIONS,
+} from './combat-effect-duration'
+import { validateCapturedPercentageRecovery } from './combat-percentage-recovery'
 import type { CombatEffectDefinition, CombatEncounterIssue, CombatEncounterState } from './actions'
 import { normalizeCombatEffectState, type CombatOngoingRecovery } from './combat-effect-state'
 
 /** Shared by the live combat boundary and Master Panel validation. */
 export function validateRecoveryEffect(effect: CombatEffectDefinition): void {
-  if (effect.type !== 'healing' && effect.type !== 'resource-change') return
+  if (effect.type === 'percentage-recovery') {
+    if (
+      'amount' in effect ||
+      'delta' in effect ||
+      'power' in effect ||
+      'potencyBasisPoints' in effect ||
+      (effect.durationTurns !== undefined && effect.durationTurns !== (effect.ticks ?? 1) - 1)
+    )
+      throw new TypeError(
+        'Percentage recovery uses percent and applications, without offensive Power.',
+      )
+    if (
+      !['hp', 'mp'].includes(effect.resource) ||
+      !Number.isSafeInteger(effect.percent) ||
+      effect.percent < 1 ||
+      effect.percent > CURRENT_EFFECT_PERCENT_MAXIMUM
+    )
+      throw new RangeError(
+        `Recovery requires HP/MP and an integer percentage between 1 and ${CURRENT_EFFECT_PERCENT_MAXIMUM}.`,
+      )
+  } else if (effect.type !== 'healing' && effect.type !== 'resource-change') return
+  if (
+    effect.type === 'resource-change' &&
+    effect.basis !== undefined &&
+    (effect.basis !== 'maximum-mp-percent' ||
+      !Number.isSafeInteger(effect.delta) ||
+      effect.delta > -1 ||
+      effect.delta < -CURRENT_EFFECT_PERCENT_MAXIMUM)
+  )
+    throw new RangeError(
+      `Percentage MP Drain requires a potency between 1 and ${CURRENT_EFFECT_PERCENT_MAXIMUM} percent.`,
+    )
   const ticks = effect.ticks
   if (ticks === undefined) return // Immutable historical single-application effects.
   if (effect.type === 'resource-change' && effect.delta < 0 && ticks !== 1) {
     throw new RangeError('MP Drain is immediate-only and must use one tick.')
   }
-  if (!Number.isSafeInteger(ticks) || ticks < 1 || ticks > 4) {
+  if (!Number.isSafeInteger(ticks) || ticks < 1 || ticks > CURRENT_RECOVERY_MAXIMUM_APPLICATIONS) {
     throw new RangeError(
-      `${effect.type === 'healing' ? 'Healing' : 'MP recovery'} ticks must be an integer between 1 and 4.`,
+      `${effect.type === 'healing' ? 'Healing' : 'MP recovery'} ticks must be an integer between 1 and ${CURRENT_RECOVERY_MAXIMUM_APPLICATIONS}.`,
     )
   }
 }
@@ -24,10 +61,15 @@ function recoveryKey(row: CombatOngoingRecovery): string {
 export function replaceRecoverySchedule(
   state: CombatEncounterState,
   recovery: CombatOngoingRecovery,
+  previous?: CombatOngoingRecovery,
 ): CombatEncounterState {
   const effects = normalizeCombatEffectState(state.effectState)
   const key = recoveryKey(recovery)
-  const remaining = effects.ongoingRecovery.filter((row) => recoveryKey(row) !== key)
+  const remaining = effects.ongoingRecovery.filter((row) =>
+    previous
+      ? row !== previous
+      : state.effectStackingPolicyVersion === 1 || recoveryKey(row) !== key,
+  )
   const alive = state.tactical.battle.combatants.some(
     (row) => row.id === recovery.targetCombatantId && row.hp > 0,
   )
@@ -66,7 +108,7 @@ export function validateOngoingRecoveryState(
     {
       field: 'effectState.ongoingRecovery',
       message:
-        'Recovery schedules must have valid identities, safe amounts, one to three future ticks, and unique recipient/resource/action keys.',
+        'Recovery schedules must have valid identities, safe amounts, up to 99 future ticks, and unique recipient/resource/action keys.',
     },
   ]
   if (
@@ -74,7 +116,8 @@ export function validateOngoingRecoveryState(
     typeof effects !== 'object' ||
     Array.isArray(effects) ||
     !Array.isArray(effects.ongoingRecovery) ||
-    effects.ongoingRecovery.length > state.tactical.battle.combatants.length * 256
+    (state.effectStackingPolicyVersion !== 1 &&
+      effects.ongoingRecovery.length > state.tactical.battle.combatants.length * 256)
   )
     return invalid
   const ids = new Set(state.tactical.battle.combatants.map((row) => row.id))
@@ -92,11 +135,25 @@ export function validateOngoingRecoveryState(
       row.amountPerTick < 0 ||
       !Number.isSafeInteger(row.remainingFutureTicks) ||
       row.remainingFutureTicks < 1 ||
-      row.remainingFutureTicks > 3
+      row.remainingFutureTicks > CURRENT_EFFECT_DURATION_MAXIMUM_TURNS ||
+      (row.skipCurrentOwnerTurnEnd !== undefined &&
+        typeof row.skipCurrentOwnerTurnEnd !== 'boolean')
     )
       return invalid
+    if (row.percentageRecovery !== undefined) {
+      try {
+        validateCapturedPercentageRecovery(row.percentageRecovery)
+        if (
+          row.percentageRecovery.resource !== row.kind ||
+          row.percentageRecovery.amountPerApplication !== row.amountPerTick
+        )
+          return invalid
+      } catch {
+        return invalid
+      }
+    }
     const key = recoveryKey(row)
-    if (seen.has(key)) return invalid
+    if (state.effectStackingPolicyVersion !== 1 && seen.has(key)) return invalid
     seen.add(key)
   }
   return []
