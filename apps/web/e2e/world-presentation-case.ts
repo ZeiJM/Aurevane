@@ -13,6 +13,7 @@ import {
 } from './world-ground-coverage'
 import { installWorldRenderTiming } from './world-render-diagnostics'
 import { wrappedMapX } from '../src/world/topology'
+import sharp from 'sharp'
 
 function captureLocalNameplate(el: HTMLElement | SVGElement) {
   const context = document
@@ -657,36 +658,7 @@ export function registerWorldInputCases({
     await zoom.press('Home')
     await expect(zoom).toHaveValue('35')
     await closeMapSettings(page)
-    await canvas.evaluate((el) => {
-      const stage = el as HTMLCanvasElement
-      const context = stage.getContext('2d')!,
-        original = context.drawImage.bind(context)
-      const originalFill = context.fillRect.bind(context)
-      let groundLayers = 0
-      context.fillRect = (x, y, width, height) => {
-        if (x === 0 && y === 0 && width === stage.clientWidth && height === stage.clientHeight)
-          groundLayers = 0
-        originalFill(x, y, width, height)
-      }
-      context.drawImage = ((image: CanvasImageSource, ...args: number[]) => {
-        const tile = Number(stage.dataset.tileSize)
-        const isGroundRaster =
-          image instanceof HTMLCanvasElement ||
-          (typeof ImageBitmap !== 'undefined' && image instanceof ImageBitmap)
-        if (
-          isGroundRaster &&
-          args.length === 4 &&
-          args[0] === 0 &&
-          args[1] === 0 &&
-          args[2] === 13 * tile &&
-          args[3] === 9 * tile
-        ) {
-          groundLayers++
-          stage.dataset.testGroundLayers = String(groundLayers)
-        }
-        Reflect.apply(original, context, [image, ...args])
-      }) as typeof context.drawImage
-    })
+    await canvas.evaluate(installWorldGroundCoverage)
     const delayedReads: Promise<void>[] = []
     let delayEnabled = true
     const delayScene = (route: import('@playwright/test').Route) => {
@@ -713,13 +685,31 @@ export function registerWorldInputCases({
       )
       await stageWalk(page, { sectorId: 'atlas:63:28', x: 6, y: 4 })
       expect((await dispatched).status()).toBe(200)
+      const minPainted = info.project.name === 'desktop-chromium' ? 25 : 0
       await expect
-        .poll(() => canvas.evaluate((el) => Number(el.dataset.testGroundLayers)))
-        .toBeGreaterThan(0)
-      if (info.project.name === 'desktop-chromium')
-        await expect
-          .poll(() => canvas.evaluate((el) => Number(el.dataset.testGroundLayers)))
-          .toBeGreaterThan(25)
+        .poll(async () => {
+          const painted = await canvas.getAttribute('data-painted-ground-ids')
+          return painted ? new Set<string>(JSON.parse(painted)).size : 0
+        })
+        .toBeGreaterThan(minPainted)
+      // Check the composited result even when many sectors share one cached draw.
+      const shot = await canvas.screenshot()
+      const { width, height } = await sharp(shot).metadata()
+      const side = Math.floor(Math.min(width!, height!) / 6)
+      for (const left of [0, width! - side]) {
+        for (const top of [0, height! - side]) {
+          const { data, info: raster } = await sharp(shot)
+            .extract({ left, top, width: side, height: side })
+            .removeAlpha()
+            .raw()
+            .toBuffer({ resolveWithObject: true })
+          const colours = new Set<number>()
+          for (let i = 0; i < data.length; i += raster.channels * 3) {
+            colours.add((data[i]! << 16) | (data[i + 1]! << 8) | data[i + 2]!)
+          }
+          expect(colours.size, 'Ground detail reaches every corner').toBeGreaterThan(48)
+        }
+      }
       await capture(page, info, 'minimum-zoom-scenery-during-walk')
       await expect
         .poll(async () => (await world(page)).position, { timeout: 12000 })
@@ -1152,10 +1142,10 @@ export function registerWorldInputCases({
         portrait = new URL(el.dataset.portrait!, location.href).href
       context.drawImage = ((image: CanvasImageSource, ...args: number[]) => {
         if (
-          image instanceof HTMLImageElement &&
-          image.src === portrait &&
           context.strokeStyle === '#ead399' &&
-          args.length === 8
+          ((image instanceof HTMLImageElement && image.src === portrait && args.length === 8) ||
+            ((image instanceof ImageBitmap || image instanceof HTMLCanvasElement) &&
+              args.length === 4))
         ) {
           el.dataset.testPortraitDraw = JSON.stringify({
             width: args.at(-2),
