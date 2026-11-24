@@ -36,9 +36,9 @@ describe('mission status and authoritative turn-in', () => {
       objectiveProgress: { 'eastern-watch': 'ready' as const },
     }
     const ready = projectWorld(state, [], 1000)
-    expect(render(ready)).toContain('Talk to Watch officer')
+    expect(render(ready)).toContain('Talk to Tamsin Reed (Watch Officer)')
     expect(render(ready)).not.toContain('Complete quest')
-    expect(render({ ...ready, interactions: [] })).not.toContain('Talk to Watch officer')
+    expect(render({ ...ready, interactions: [] })).not.toContain('Talk to Tamsin Reed (Watch Officer)')
     expect(render({ ...ready, interactions: [] })).not.toContain('Complete quest')
     expect(render(projectWorld(newWorldState(), [], 1000))).not.toContain('Complete quest')
     expect(

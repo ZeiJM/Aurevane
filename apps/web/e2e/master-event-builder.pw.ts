@@ -486,7 +486,7 @@ async function completeAuthoredStoryJourney(
     .getByRole('region', { name: 'Local interaction' })
     .getByRole('heading', { name: title, exact: true })
     .locator('..')
-  const giver = realm ? 'Maren Vale' : 'Watch officer'
+  const giver = realm ? 'Maren Vale (Quest Giver)' : 'Tamsin Reed (Watch Officer)'
   const talk = () => interaction.getByRole('button', { name: `Talk to ${giver}` }).click()
   const dialogue = page.getByRole('dialog', { name: giver })
   const progress = async () =>
@@ -796,7 +796,7 @@ async function challengeFixtureNpc(
     outcome = 'Victory',
   }: { title?: string; action?: string; outcome?: 'Victory' | 'Defeat' | 'Surrender' } = {},
 ) {
-  const speaker = title === 'Challenge' ? `${name} (Challenger)` : name
+  const speaker = `${name} (${title.startsWith('Mentor challenge') ? 'Mentor' : 'Challenger'})`
   await page
     .getByRole('region', { name: 'Local interaction' })
     .getByRole('heading', { name: title, exact: true })
@@ -1073,14 +1073,14 @@ async function completeCinderwakeRestoration(
       .getByRole('region', { name: 'Local interaction' })
       .getByRole('heading', { name: title, exact: true })
       .locator('..')
-      .getByRole('button', { name: `Talk to ${smith}` })
+      .getByRole('button', { name: `Talk to ${smith} (Weaponsmith)` })
       .click()
   const challenge = async (weaponName: string) => {
     await page.goto('/game/world')
     await move(encounterPosition)
     await challengeFixtureNpc(page, challenger, characterId, weaponName)
   }
-  const dialogue = page.getByRole('dialog', { name: smith })
+  const dialogue = page.getByRole('dialog', { name: `${smith} (Weaponsmith)` })
   await page.goto('/game/world')
   await openMissions()
   await expect(page.getByText(clue)).toBeVisible()
@@ -1396,9 +1396,9 @@ test('an authored Alder Venn wolf hunt credits five World victories and starts c
       .getByRole('region', { name: 'Local interaction' })
       .getByRole('heading', { name: title, exact: true })
       .locator('..')
-      .getByRole('button', { name: `Talk to ${giver}`, exact: true })
+      .getByRole('button', { name: `Talk to ${giver} (Hunter)`, exact: true })
       .click()
-  const dialogue = page.getByRole('dialog', { name: giver })
+  const dialogue = page.getByRole('dialog', { name: `${giver} (Hunter)` })
   const readObjective = async () =>
     (await readWorld()).objectives.find((objective) => objective.name === title)
   const xp = () =>
@@ -1686,9 +1686,9 @@ test('an authored Ashen Sentinel discovery unlocks one private challenge after f
     .getByRole('region', { name: 'Local interaction' })
     .getByRole('heading', { name: title, exact: true })
     .locator('..')
-    .getByRole('button', { name: `Talk to ${champion}`, exact: true })
+    .getByRole('button', { name: `Talk to ${champion} (Challenger)`, exact: true })
     .click()
-  const dialogue = page.getByRole('dialog', { name: champion })
+  const dialogue = page.getByRole('dialog', { name: `${champion} (Challenger)` })
   await expect(
     dialogue.getByRole('button', { name: 'Collect Character XP', exact: true }),
   ).toBeVisible()
@@ -2004,8 +2004,8 @@ async function completeMentorChallenge(
     .getByRole('heading', { name: title, exact: true })
     .locator('..')
     .first()
-  await claimRow.getByRole('button', { name: `Talk to ${npcName}`, exact: true }).click()
-  const dialogue = page.getByRole('dialog', { name: npcName })
+  await claimRow.getByRole('button', { name: `Talk to ${npcName} (Mentor)`, exact: true }).click()
+  const dialogue = page.getByRole('dialog', { name: `${npcName} (Mentor)` })
   const speech = canTrain ? 'Your mentor offers practice.' : 'You earned the fast victory bonus.'
   await expect(dialogue.locator('p[aria-live="polite"]').filter({ hasText: speech })).toBeVisible()
   await dialogue.getByRole('button', { name: 'Collect Character XP', exact: true }).click()

@@ -5,6 +5,7 @@ import {
   compileAppearanceManifest,
 } from '@/appearance/appearance-manifest'
 import { hashString } from '@/world/terrain-gen'
+import { worldNpcName } from '@/world/npc-name'
 
 import {
   npcDialogueReplyPage,
@@ -69,9 +70,7 @@ export function projectLocalWorldNpcs(state: WorldState, rows: readonly Publishe
       row.imageUrl,
       row.portraitRef ?? 'portrait.starter.wayfarer-01',
     )
-    const name = /\([^()]+\)$/.test(row.name)
-      ? row.name
-      : `${row.name} (${row.encounter ? 'Challenger' : 'Resident'})`
+    const name = worldNpcName(row.name, row.encounter ? 'Challenger' : 'Resident')
     const motionImageUrl = imageUrl?.startsWith(APPEARANCE_ASSET_PREFIX)
       ? imageUrl
       : npcLooks[hashString(row.id) % npcLooks.length]!

@@ -105,7 +105,7 @@ export function ferrymanTopic(
         : ticket.canBoard
           ? 'Boarding is open. Get aboard before the countdown ends.'
           : 'Boarding is open at your departure terminal. Return there before it sails.'
-      : `${crossing} Reserve a free place here. Boarding opens ten minutes before departure. Missed boarding is non-refundable.`
+      : `${crossing} Reserve a free place here. Boarding opens ten minutes before departure.`
   return {
     id: FERRY_CONVERSATION_ID,
     objectiveId: FERRY_CONVERSATION_ID,

@@ -1,5 +1,6 @@
 import 'server-only'
 
+import { PERSONAL_QUEST_GIVERS } from '@aurevane/game-core/events/persistent-event'
 import { APPEARANCE_PRESETS, compileAppearanceManifest } from '@/appearance/appearance-manifest'
 import { samePosition } from '@/world/travel'
 import { isKnownCell } from './world-content'
@@ -58,7 +59,7 @@ const INTERACTION_OBJECTIVES: readonly InteractionObjectiveDefinition[] = [
     origin: VERDANT_SETTLEMENT,
     target: EASTERN_WATCH,
     title: 'The Eastern Watch',
-    speaker: 'Tamsin Reed (Watch Officer)',
+    speaker: PERSONAL_QUEST_GIVERS[EASTERN_WATCH_INTERACTION_ID].speaker,
     portraitUrl: compileAppearanceManifest(APPEARANCE_PRESETS[0].blueprint).portraits.neutral,
     descriptions: {
       available: 'Speak with the watch officer at the protected settlement.',
@@ -80,7 +81,7 @@ const INTERACTION_OBJECTIVES: readonly InteractionObjectiveDefinition[] = [
     origin: AURETH_SETTLEMENT,
     target: CROWN_HINTERLAND_PATROL,
     title: 'Hinterland Patrol',
-    speaker: 'Oren Vale (Watch Officer)',
+    speaker: PERSONAL_QUEST_GIVERS[CROWN_HINTERLAND_PATROL_INTERACTION_ID].speaker,
     portraitUrl: compileAppearanceManifest(APPEARANCE_PRESETS[1].blueprint).portraits.neutral,
     descriptions: {
       available: 'Speak with the watch officer at the Aureth Crown settlement.',

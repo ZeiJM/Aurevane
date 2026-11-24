@@ -7,12 +7,12 @@ export interface PersonalJourneyPosition {
 export const PERSONAL_QUEST_GIVERS = {
   'eastern-watch-officer': {
     label: 'Verdant Expanse Watch officer',
-    speaker: 'Watch officer',
+    speaker: 'Tamsin Reed (Watch Officer)',
     position: { sectorId: 'verdant-expanse', x: 2, y: 4 },
   },
   'crown-hinterland-watch-officer': {
     label: 'Aureth Crown Watch officer',
-    speaker: 'Watch officer',
+    speaker: 'Oren Vale (Watch Officer)',
     position: { sectorId: 'aureth-crown', x: 2, y: 4 },
   },
 } as const
