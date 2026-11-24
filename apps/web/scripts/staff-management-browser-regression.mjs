@@ -48,10 +48,6 @@ await fs.writeFile(
     .join('\n'),
 )
 await fs.writeFile(
-  resolve(fixture, 'next-link.jsx'),
-  "import React from 'react';export default function Link({prefetch,...props}){return <a {...props}/>}",
-)
-await fs.writeFile(
   resolve(fixture, 'next-mock.jsx'),
   'export const useRouter=()=>({refresh(){},push(){}})',
 )
@@ -68,7 +64,7 @@ const server = await createServer({
       '@/components/shell/authenticated-game-shell': resolve(fixture, 'shell.jsx'),
       '@': resolve(web, 'src'),
       '@aurevane/ui/styles.css': resolve(root, 'packages/ui/src/styles.css'),
-      'next/link': resolve(fixture, 'next-link.jsx'),
+      'next/link': resolve(web, 'e2e/fixtures/next-link.jsx'),
       'next/navigation': resolve(fixture, 'next-mock.jsx'),
       react: resolve(web, 'node_modules/react'),
       'react-dom': resolve(web, 'node_modules/react-dom'),

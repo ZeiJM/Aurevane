@@ -54,7 +54,7 @@ test('mobile Techniques header keeps capacity status clear of title and Close', 
   expect(prepared.ok).toBe(true)
 
   await page.reload()
-  await expect(page.locator('[data-profile-workspace]')).toBeVisible()
+  await expect(page.locator('[data-profile-workspace]').filter({ visible: true })).toBeVisible()
   await closeOpenDialog(page)
   await page.goto('/game/nexus')
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()

@@ -79,10 +79,6 @@ import{CharacterProfileDetails}from'@/components/character/character-profile-det
 const attributes={might:4,finesse:3,vitality:5,agility:5,intellect:10,resolve:9};
 createRoot(document.getElementById('root')).render(<><LoadoutHeader active="nexus"/><CharacterProfileDetails presentationLabel="Masculine" buildTypeLabel="Resonance Build" cycleNumber={1} attributes={attributes} derived={calculateDerivedStats({attributes,level:1})}/></>);`,
 )
-await fs.writeFile(
-  resolve(fixture, 'next-link.jsx'),
-  `import React from 'react';export default function Link({prefetch,...props}){return <a {...props}/>}`,
-)
 const server = await createServer({
   configFile: false,
   root: fixture,
@@ -93,7 +89,7 @@ const server = await createServer({
       '@aurevane/game-core': resolve(root, 'packages/game-core/src'),
       '@aurevane/ui/styles.css': resolve(root, 'packages/ui/src/styles.css'),
       'next/image': resolve(fixture, 'next-mock.jsx'),
-      'next/link': resolve(fixture, 'next-link.jsx'),
+      'next/link': resolve(web, 'e2e/fixtures/next-link.jsx'),
       'next/navigation': resolve(fixture, 'next-mock.jsx'),
       react: resolve(web, 'node_modules/react'),
       'react-dom': resolve(web, 'node_modules/react-dom'),

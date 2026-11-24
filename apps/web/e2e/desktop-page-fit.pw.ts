@@ -165,7 +165,7 @@ test('desktop Profile and all Battle Hall setups fit without clipped controls or
     await page.setViewportSize(viewport)
     const size = `${viewport.width}x${viewport.height}`
     await page.goto('/game/character')
-    await expect(page.locator('[data-profile-workspace]')).toBeVisible()
+    await expect(page.locator('[data-profile-workspace]').filter({ visible: true })).toBeVisible()
     await settleLayout(page)
     const reset = page.getByRole('button', { name: 'Reset Stats' })
     await expectAboveFooter(page, reset)

@@ -55,8 +55,12 @@ describe('authenticated navigation performance contracts', () => {
     expect(rail).toContain('onBlur={clearIntent}')
     expect(rail).toContain('onFocus=')
     expect(rail).toContain('useLinkStatus()')
-    expect(source('src/app/game/(roaming)/loading.tsx')).toContain('role="status"')
-    expect(source('src/app/game/battle/loading.tsx')).toContain("from '../(roaming)/loading'")
+    expect(source('src/components/shell/game-page-loading.tsx')).toContain('role="status"')
+    for (const route of ['(roaming)/world', '(roaming)/nexus', 'battle']) {
+      expect(source(`src/app/game/${route}/loading.tsx`)).toContain(
+        "from '@/components/shell/game-page-loading'",
+      )
+    }
   })
 
   it('uses the scalar online count instead of loading directory rows for the footer', () => {

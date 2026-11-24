@@ -1,1 +1,1 @@
-export { default } from '../(roaming)/loading'
+export { default } from '@/components/shell/game-page-loading'

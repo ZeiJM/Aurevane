@@ -1052,13 +1052,13 @@ export function registerWorldInputCases({
         const portrait = new URL(el.dataset.portrait!, location.href).href
         ctx.drawImage = ((image: CanvasImageSource, ...args: number[]) => {
           if (
-            image instanceof HTMLImageElement &&
-            image.src === portrait &&
             ctx.strokeStyle === '#ead399' &&
-            args.length === 8
+            ((image instanceof HTMLImageElement && image.src === portrait && args.length === 8) ||
+              ((image instanceof ImageBitmap || image instanceof HTMLCanvasElement) &&
+                args.length === 4))
           ) {
-            el.dataset.testDrawnX = String(args.at(-4)! + 17)
-            el.dataset.testDrawnY = String(args.at(-3)! + 34)
+            el.dataset.testDrawnX = String(args.at(-4)! + args.at(-2)! / 2)
+            el.dataset.testDrawnY = String(args.at(-3)! + args.at(-1)!)
           }
           ;(draw as (...args: unknown[]) => void)(image, ...args)
         }) as typeof ctx.drawImage

@@ -60,10 +60,6 @@ const nextImageBrowserDefines = {
   'process.env.NEXT_SUPPORTS_IMMUTABLE_ASSETS': 'false',
 }
 await fs.writeFile(resolve(fixture, 'empty.js'), 'export {}')
-await fs.writeFile(
-  resolve(fixture, 'next-link.jsx'),
-  `import React from 'react';export default function Link({prefetch,...props}){return <a {...props}/>} `,
-)
 await fs.copyFile(
   resolve(web, 'e2e/fixtures/discipline-management-navigation.jsx'),
   resolve(fixture, 'next-mock.jsx'),
@@ -79,7 +75,7 @@ const config = {
       '@item-art-manifest': resolve(root, 'docs/artwork/2026-11-03-starter-items.json'),
       'server-only': resolve(fixture, 'empty.js'),
       'next/navigation': resolve(fixture, 'next-mock.jsx'),
-      'next/link': resolve(fixture, 'next-link.jsx'),
+      'next/link': resolve(web, 'e2e/fixtures/next-link.jsx'),
       '@aurevane/game-core': resolve(root, 'packages/game-core/src'),
       '@aurevane/validation': resolve(root, 'packages/validation/src'),
       '@aurevane/ui/styles.css': resolve(root, 'packages/ui/src/styles.css'),

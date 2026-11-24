@@ -137,7 +137,7 @@ test('desktop Profile and every Battle Hall tab fit without sacrificing readable
     await page.setViewportSize(size)
     const suffix = `${size.width}x${size.height}`
     await page.goto('/game/character')
-    await expect(page.locator('[data-profile-workspace]')).toBeVisible()
+    await expect(page.locator('[data-profile-workspace]').filter({ visible: true })).toBeVisible()
     await readable(page.getByTestId('derived-stat-movement').locator('span').first(), 13)
     await fit(page, `Profile-${suffix}`, testInfo)
     const reset = page.getByRole('button', { name: 'Reset Stats' })
@@ -245,7 +245,7 @@ test('desktop Profile and every Battle Hall tab fit without sacrificing readable
   // Very short windows may scroll, but cannot trap the Character controls underneath the footer.
   await page.setViewportSize({ width: 1024, height: 576 })
   await page.goto('/game/character')
-  await expect(page.locator('[data-profile-workspace]')).toBeVisible()
+  await expect(page.locator('[data-profile-workspace]').filter({ visible: true })).toBeVisible()
   await reachable(page, page.getByRole('button', { name: 'Reset Stats' }))
   await page.goto('/game/battle')
   await page
@@ -728,7 +728,7 @@ test('supplementary presence never blocks primary rail navigation', async ({ pag
   })
   try {
     await page.goto('/game/character')
-    await expect(page.locator('[data-profile-workspace]')).toBeVisible()
+    await expect(page.locator('[data-profile-workspace]').filter({ visible: true })).toBeVisible()
     await expect(page.getByRole('menu', { name: 'Account menu' })).toBeHidden()
     await expect.poll(() => presenceRequests).toBe(1)
     await page.getByRole('button', { name: 'Account', exact: true }).click()
