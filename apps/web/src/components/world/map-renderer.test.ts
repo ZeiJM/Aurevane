@@ -2886,6 +2886,29 @@ describe('native map input and bounded lifecycle', () => {
       vi.unstubAllGlobals()
     }
   })
+
+  it('takes one visible tile on a fresh key reversal while the previous approval trails', () => {
+    const position = { sectorId: 'hollow-coast', x: 10, y: 6 }
+    const view = projectWorld({ ...newWorldState(), position }, [], 1000)
+    const s = scene(false, view)
+    const clock = vi.spyOn(performance, 'now').mockReturnValue(0)
+    try {
+      const east = { ...position, x: position.x + 1 }
+      const route = localRoute(view, position, east)!
+      s.motion.plan(route, view.sectors, 0)
+      clock.mockReturnValue(201)
+      expect(s.motion.sample(201).position).toEqual(east)
+      expect(s.motion.approvedPosition(201)).toEqual(position)
+
+      s.listeners.get('keydown')!({ key: 'a', preventDefault() {} } as unknown as Event)
+      expect(s.select.mock.calls[0]?.[0]).toEqual(position)
+      expect(s.select.mock.calls[0]?.[1]).toBe('west')
+    } finally {
+      s.renderer.dispose()
+      clock.mockRestore()
+      vi.unstubAllGlobals()
+    }
+  })
   it.each([450, 550])(
     'does not cancel a held-key route when approval leads its %ims visual landing',
     (now) => {

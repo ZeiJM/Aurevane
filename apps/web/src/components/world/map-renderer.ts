@@ -5079,7 +5079,13 @@ export function createMapRenderer(
       standing = mapPoint(pivot, view.sectors, sample.point),
       perpendicular = offset.x ? 'y' : 'x'
     const sampleOnLane = Math.abs(standing[perpendicular] - sample.point[perpendicular]) < 1e-7
+    const landing = mapPoint(motion.nextLanding(now), view.sectors, sample.point)
+    const followingCurrentHeading =
+      (landing.x - sample.point.x) * offset.x + (landing.y - sample.point.y) * offset.y > 1e-7
+    // A fresh reversal starts from the visible tile. An older approval may be
+    // ahead in the new direction only because the visual has already passed it.
     const p =
+      (!initial || followingCurrentHeading) &&
       Math.abs(approved[perpendicular] - standing[perpendicular]) < 1e-7 &&
       (approved.x - sample.point.x) * offset.x + (approved.y - sample.point.y) * offset.y > 0
         ? approved
