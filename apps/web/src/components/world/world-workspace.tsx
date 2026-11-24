@@ -168,7 +168,6 @@ export function WorldWorkspace({
     [showLocationLabels, setShowLocationLabels] = useState(true),
     [zoom, setZoom] = useState(1),
     [globeZoom, setGlobeZoom] = useState(0.94)
-  const [chatTarget, setChatTarget] = useState<string | null>(null)
   const [motion] = useState(() => new WorldMotion(initialView, performance.now()))
   const [approvedPosition, setApprovedPosition] = useState(initialView.position)
   const zoomLocked = useSyncExternalStore(subscribeZoomLock, readZoomLock, () => false)
@@ -915,10 +914,7 @@ export function WorldWorkspace({
                 role="tab"
                 aria-selected={tab === 'chat'}
                 aria-controls="chat-content"
-                onClick={() => {
-                  setChatTarget(null)
-                  setTab('chat')
-                }}
+                onClick={() => setTab('chat')}
               >
                 Chat
               </button>
@@ -997,12 +993,7 @@ export function WorldWorkspace({
                 aria-labelledby="chat-tab"
                 className={styles.chatHost}
               >
-                <ChatPanel
-                  selfName={character.name}
-                  {...(chatTarget
-                    ? { lockedChannel: 'world', initialDraft: `@${chatTarget} ` }
-                    : {})}
-                />
+                <ChatPanel selfName={character.name} />
               </div>
             ) : mode === 'local' && tab === 'missions' ? (
               <div id="missions-content" role="tabpanel" aria-labelledby="missions-tab">
@@ -1143,10 +1134,6 @@ export function WorldWorkspace({
                               onApproach={() => {
                                 setApproachingPlayer(player.characterId)
                                 approach(player.position)
-                              }}
-                              onTalk={() => {
-                                setChatTarget(player.name)
-                                setTab('chat')
                               }}
                               onAttack={() =>
                                 send({ kind: 'attack', targetId: player.characterId })

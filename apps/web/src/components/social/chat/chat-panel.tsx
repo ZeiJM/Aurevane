@@ -61,12 +61,10 @@ const FEED_POLL_MS = 2500
 export function ChatPanel({
   selfName,
   lockedChannel,
-  initialDraft = '',
 }: {
   selfName: string
   /** Lobby chat pins the panel to one channel and hides the switcher. */
   lockedChannel?: ChannelId
-  initialDraft?: string
 }) {
   const [settings, setSettings] = useState<ChatSettings | null>(null)
   const [channel, setChannel] = useState<ChannelId>(lockedChannel ?? 'world')
@@ -76,7 +74,7 @@ export function ChatPanel({
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [typers, setTypers] = useState<{ characterId: string; name: string }[]>([])
   const [notice, setNotice] = useState<string | null>(null)
-  const [draft, setDraft] = useState(initialDraft)
+  const [draft, setDraft] = useState('')
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null)
   const [emojiOpen, setEmojiOpen] = useState(false)
   const [candidates, setCandidates] = useState<MentionCandidate[]>([])

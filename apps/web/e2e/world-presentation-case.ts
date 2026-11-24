@@ -228,22 +228,27 @@ export async function verifyWorldPresentation(
   await expect(labelsToggle).toHaveAttribute('aria-pressed', 'false')
   const townMarkers = workspace.locator('[data-globe-town]')
   await expect(townMarkers.first()).toBeVisible()
-  const townIcons = await townMarkers.evaluateAll((markers) =>
+  const townSymbols = townMarkers.locator('[data-globe-town-symbol]')
+  await expect(townSymbols).toHaveCount(await townMarkers.count())
+  const townIcons = await townSymbols.evaluateAll((markers) =>
     markers.map((marker) => {
-      const svg = marker.querySelector('svg')!
+      const style = getComputedStyle(marker)
       return {
-        symbol: svg.querySelector('path')!.getAttribute('d'),
-        width: svg.getBoundingClientRect().width,
+        symbol: style.backgroundPosition,
+        image: style.backgroundImage,
+        width: marker.getBoundingClientRect().width,
+        height: marker.getBoundingClientRect().height,
       }
     }),
   )
-  expect(new Set(townIcons.map((icon) => icon.symbol)).size).toBeGreaterThan(1)
-  expect(new Set(townIcons.map((icon) => icon.width)).size).toBeGreaterThan(1)
+  expect(townIcons.length).toBeGreaterThan(1)
+  expect(new Set(townIcons.map((icon) => icon.symbol)).size).toBe(townIcons.length)
   for (const icon of townIcons) {
-    expect(icon.width).toBeGreaterThanOrEqual(24)
-    expect(icon.width).toBeLessThanOrEqual(34)
+    expect(icon.image).toContain('/media/art/world/runtime/atlas-markers-v01.webp')
+    expect(icon.width).toBeGreaterThanOrEqual(20)
+    expect(icon.width).toBeLessThanOrEqual(28)
+    expect(icon.height).toBe(icon.width)
   }
-  await expect(workspace.locator('[data-globe-travel-point]')).toHaveCount(0)
 
   await expect(townMarkers.locator('span')).toHaveCount(0)
   await labelsToggle.click()
@@ -463,7 +468,9 @@ export function registerWorldInputCases({
         Number(url.searchParams.get('sceneWidth')) > 1296
       )
     })
-    await page.setViewportSize({ width: 3200, height: 1800 })
+    // At the new minimum zoom a 3200px window fits in the initial scene.
+    // A larger window still requires an expanded public viewport receipt.
+    await page.setViewportSize({ width: 3840, height: 2304 })
     const receipt = await expanded
     expect(receipt.ok()).toBe(true)
     const view = (await receipt.json()) as WorldView
@@ -655,6 +662,9 @@ export function registerWorldInputCases({
   }, info) => {
     test.skip(info.project.name === 'laptop-chromium', 'Check mouse and touch coverage once each.')
     test.setTimeout(60000)
+    // Keep more than 25 sectors in the desktop field of view at the new minimum zoom.
+    if (info.project.name === 'desktop-chromium')
+      await page.setViewportSize({ width: 2400, height: 1500 })
     await enter(page)
     const initial = await world(page)
     place(initial.characterId, 'atlas:62:28', 6, 4)

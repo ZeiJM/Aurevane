@@ -154,8 +154,9 @@ export function correctionScenes() {
     {
       id: 'coast-ocean-depth',
       position: point(oceanSector, {
-        x: Math.max(0, Math.min(12, ocean.worldx - oceanSector.atlasColumn! * 13)),
-        y: Math.max(0, Math.min(8, ocean.worldy - oceanSector.atlasRow! * 9)),
+        // Look diagonally across the coast so the offshore sprite reaches a phone viewport.
+        x: ocean.worldx - oceanSector.atlasColumn! * 13 + 4,
+        y: ocean.worldy - oceanSector.atlasRow! * 9,
       }),
       assets: ['ocean-grand-islet-v01.webp'],
       zoom: WORLD_MIN_ZOOM,
