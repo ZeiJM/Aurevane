@@ -97,7 +97,11 @@ export async function POST(request: Request) {
     intentKind = command.intent.kind
     if (command.characterId !== actor.characterId)
       throw new AurevaneError('STALE_VERSION', 'Your selected character changed. Refresh the map.')
-    if (command.intent.kind === 'board-ferry' || command.intent.kind === 'leave-ferry')
+    if (
+      command.intent.kind === 'buy-ferry-boarding' ||
+      command.intent.kind === 'board-ferry' ||
+      command.intent.kind === 'leave-ferry'
+    )
       await assertGameplayMutationAllowed(actor.userId)
     if (command.intent.kind === 'attack') {
       const receipt = await attackWorldPlayer(

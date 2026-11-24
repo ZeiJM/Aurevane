@@ -1,7 +1,13 @@
 import type { MapDirection } from './wild-ids'
 import type { AppearanceExpression } from '@/appearance/appearance-manifest'
 import type { WorldEnvironment } from './environment'
-import type { FerryPassage, FerryShoreSide, WorldFerryView } from './ferry'
+import type {
+  FerryIntent,
+  FerryPassage,
+  FerryShoreSide,
+  FerryTicket,
+  WorldFerryView,
+} from './ferry'
 import type { GrandDiscoveryId } from './discovery-sites'
 
 export interface WorldPosition {
@@ -24,6 +30,7 @@ export interface WorldState {
   routeDestination?: WorldPosition | null
   nextStepAt: number | null
   ferry?: FerryPassage & { warpedPhase: number | null }
+  ferryTicket?: FerryTicket
   discoveries: Record<string, number[]>
   discoveredAnchors?: string[]
   /** Authoritative phase captured at the uncharted continent's ferry landing. */
@@ -306,8 +313,7 @@ export interface WorldView {
   environment: WorldEnvironment
 }
 export type WorldIntent =
-  | { kind: 'board-ferry' }
-  | { kind: 'leave-ferry' }
+  | FerryIntent
   | { kind: 'walk'; destination: WorldPosition; direction?: MapDirection }
   | { kind: 'autopath'; objectiveId: string }
   | { kind: 'stop' }

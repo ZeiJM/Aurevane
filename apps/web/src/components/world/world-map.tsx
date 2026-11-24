@@ -21,6 +21,7 @@ export function WorldMap({
   onWalk,
   onStop,
   onPlayer,
+  onFerryman,
   onVisiblePlayers,
 }: {
   view: WorldView
@@ -41,16 +42,17 @@ export function WorldMap({
   ) => void
   onStop: () => void
   onPlayer: (id: string) => void
+  onFerryman?: (opener: HTMLElement) => void
   onVisiblePlayers: (ids: string[]) => void
 }) {
   const canvas = useRef<HTMLCanvasElement>(null),
     identityCanvas = useRef<HTMLCanvasElement>(null),
     renderer = useRef<ReturnType<typeof createMapRenderer>>(null)
   const initial = useRef(view)
-  const callbacks = useRef({ onWalk, onStop, onPlayer, onZoom, onVisiblePlayers })
+  const callbacks = useRef({ onWalk, onStop, onPlayer, onFerryman, onZoom, onVisiblePlayers })
   useEffect(() => {
-    callbacks.current = { onWalk, onStop, onPlayer, onZoom, onVisiblePlayers }
-  }, [onWalk, onStop, onPlayer, onZoom, onVisiblePlayers])
+    callbacks.current = { onWalk, onStop, onPlayer, onFerryman, onZoom, onVisiblePlayers }
+  }, [onWalk, onStop, onPlayer, onFerryman, onZoom, onVisiblePlayers])
   useEffect(() => {
     if (!canvas.current) return
     renderer.current = createMapRenderer(
@@ -63,6 +65,9 @@ export function WorldMap({
       (ids) => callbacks.current.onVisiblePlayers(ids),
       () => callbacks.current.onStop(),
       identityCanvas.current ?? undefined,
+      () => {
+        if (canvas.current) callbacks.current.onFerryman?.(canvas.current)
+      },
     )
     return () => renderer.current?.dispose()
   }, [motion]) // Initial snapshot is replaced below without recreating the renderer.

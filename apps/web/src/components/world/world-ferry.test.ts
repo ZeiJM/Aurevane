@@ -1,7 +1,7 @@
 import { expect, it, vi } from 'vitest'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { FERRY_MAINLAND_DOCK, FERRYMAN_SPRITE } from '@/world/ferry'
+import { FERRY_MAINLAND_DOCK, FERRYMAN_DECK_POSITION, FERRYMAN_SPRITE } from '@/world/ferry'
 import { newWorldState } from '@/world/travel'
 import { projectWorld } from '@/server/world/world-service'
 import {
@@ -33,30 +33,34 @@ it('uses the whole ferry card as the conversation button and keeps underway stat
   const station = render({ ...dock, nextDepartureAt: 600_000 }, 0)
   expect(station.match(/<button\b/g)).toHaveLength(1)
   expect(station).toMatch(
-    /<button[^>]+aria-label="Ferry Terminal\. Talk to Ferryman"[^>]*>.*Ferry Terminal.*Boarding opens in.*5:00.*<\/button>/,
+    /<button[^>]+aria-label="Ferry Terminal\. Talk to Ferryman"[^>]*>.*Ferry Terminal.*Next departure in.*10:00.*<\/button>/,
   )
   const underway = render(waiting, 360_000)
-  expect(underway).not.toContain('<button')
+  expect(underway).toMatch(/aria-label="Ferry crossing\. Talk to Ferryman"/)
   expect(underway).toContain('Underway')
   expect(underway).toContain('4:00')
 })
 
-it('exposes boarding only from the server-reported port', () => {
+it('offers buying throughout the long countdown and boarding only with the right ticket', () => {
   expect(ferrymanTopic(dock, 1)?.speaker).toBe('Ferryman')
-  expect(ferryStatus(dock, 1).action).toBe('board-ferry')
-  expect(ferryStatus({ ...dock, nextDepartureAt: 500_000 }, 1)).toMatchObject({
-    label: 'Boarding opens in',
-    at: 200_000,
-    action: null,
+  expect(ferryStatus(dock, 1).action).toBe('buy-ferry-boarding')
+  const ticket = { direction: 'outbound', departureAt: 300_000, canBoard: true } as const
+  expect(ferryStatus({ ...dock, ticket }, 1)).toMatchObject({
+    label: 'Boarding booked · departs in',
+    at: ticket.departureAt,
+    action: 'board-ferry',
   })
-  expect(ferryStatus(dock, 300_000).action).toBeNull()
-  expect(ferrymanTopic({ ...dock, port: null }, 1)).toBeNull()
+  const away = { ...dock, port: null, ticket: { ...ticket, canBoard: false } }
+  expect(ferryStatus(away, 1)).toMatchObject({ at: ticket.departureAt, action: null })
+  expect(ferrymanTopic(away, 1)).toBeNull()
+  expect(ferryStatus(away, ticket.departureAt)).toMatchObject({ at: null, action: null })
+  expect(ferryStatus({ ...dock, ticket }, ticket.departureAt).action).toBeNull()
 })
 
 it('offers disembark only while waiting and distinguishes underway from arrival', () => {
   expect(ferryStatus(waiting, 299_999)).toMatchObject({ action: 'leave-ferry', at: 300_000 })
   expect(ferryStatus(waiting, 300_000)).toMatchObject({ action: null, at: 600_000 })
-  expect(ferrymanTopic(waiting, 300_000)).toBeNull()
+  expect(ferrymanTopic(waiting, 300_000)?.body).toContain('underway')
   expect(ferryStatus(waiting, 600_000)).toMatchObject({
     action: null,
     at: null,
@@ -80,4 +84,23 @@ it('keeps the Ferryman at the same surveyed dock when movement clears boarding e
     expect.objectContaining(npc),
   ])
   expect(worldViewWithFerryman({ ...view, sectors: [] }).npcs).toBeUndefined()
+})
+
+it('puts the same talkable Ferryman on the ship deck before and during the crossing', () => {
+  const departureAt = 1_800_000_000_000
+  const arrivalAt = departureAt + 300_000
+  const sectorId = `ferry:outbound:${departureAt}`
+  const position = { sectorId, x: 6, y: 4 }
+  const ferry = { direction: 'outbound' as const, departureAt, arrivalAt, warpedPhase: null }
+  const aboard = worldViewWithFerryman(
+    projectWorld({ ...newWorldState(), position, ferry }, [], departureAt),
+  )
+  expect(aboard.npcs).toContainEqual(
+    expect.objectContaining({
+      spriteUrl: FERRYMAN_SPRITE,
+      position: { ...FERRYMAN_DECK_POSITION, sectorId },
+    }),
+  )
+  expect(ferrymanTopic(aboard.ferry, departureAt - 1)?.body).toContain('reboard')
+  expect(ferrymanTopic(aboard.ferry, arrivalAt - 1)?.body).toContain('underway')
 })

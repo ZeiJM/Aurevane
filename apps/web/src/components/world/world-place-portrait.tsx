@@ -26,7 +26,7 @@ export function WorldPlacePortrait({ place }: { place: WorldLandmark }) {
         className={styles.placePortrait}
         aria-hidden="true"
         style={{
-          backgroundImage: 'url(/media/art/world/runtime/ferry-terminal-v01.webp)',
+          backgroundImage: 'url(/media/art/world/runtime/ferry-terminal-v02.webp)',
           backgroundPosition: 'center',
           backgroundSize: 'cover',
         }}

@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest'
 import { GRID_HEIGHT, GRID_WIDTH } from '@/world/catalog'
 import type { WorldAtlasCell } from '@/world/types'
-import { asterwakeShore } from './asterwake-shore'
+import { asterwakeOceanFringes, asterwakeShore } from './asterwake-shore'
 
 function island(column: number, waterTiles?: string): WorldAtlasCell {
   return {
@@ -44,4 +44,19 @@ it('treats an uncharted neighbor as ocean even when it carries dry tile data', (
 
   expect(sample(GRID_WIDTH - 0.5, 4.5)).toBe(1)
   expect(sample(GRID_WIDTH, 4.5)).toBeLessThan(0.55)
+})
+
+it('continues the shallow fringe into otherwise empty offshore sectors', () => {
+  const coast = island(5)
+  const chart = new Map([['5:10', coast]])
+  const lookup = (x: number, y: number) => chart.get(`${x}:${y}`)
+  const ocean = asterwakeOceanFringes(chart)
+  expect(ocean.has('5:10')).toBe(false)
+  expect(ocean.get('5:11')?.waterTiles).toBe('~'.repeat(GRID_WIDTH * GRID_HEIGHT))
+  const onshore = asterwakeShore(5, 10, lookup)!
+  const offshore = asterwakeShore(5, 11, lookup)!
+  expect(offshore(4, 0)).toBe(onshore(4, GRID_HEIGHT))
+  expect(offshore(4, 0.25)).toBeGreaterThan(0)
+  expect(offshore(4, 0.5)).toBe(0)
+  expect(asterwakeShore(5, 12, lookup)).toBeUndefined()
 })

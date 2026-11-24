@@ -175,7 +175,10 @@ function routeTo(state: WorldState, destination: WorldPosition, explore: boolean
 
 export function resolveWorldIntent(
   state: WorldState,
-  intent: Exclude<WorldIntent, { kind: 'attack' | 'board-ferry' | 'leave-ferry' }>,
+  intent: Exclude<
+    WorldIntent,
+    { kind: 'attack' | 'buy-ferry-boarding' | 'board-ferry' | 'leave-ferry' }
+  >,
   now: number,
   objectives: readonly WorldObjective[] = WORLD_OBJECTIVES,
 ): WorldState {

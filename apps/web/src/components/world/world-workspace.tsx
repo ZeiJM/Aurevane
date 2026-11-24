@@ -1,4 +1,5 @@
 'use client'
+import { FERRY_CONVERSATION_ID } from '@/world/ferry'
 import type { MapDirection } from '@/world/wild-ids'
 import { WorldDestinationCard } from './world-destination-card'
 import { worldTimeLabel, worldDayPhase, WORLD_DAY_REAL_MS } from '@/world/environment'
@@ -49,7 +50,6 @@ import { WorldNearbyNpc } from './world-nearby-npc'
 import { WorldMissions } from './world-missions'
 import { dialogueSpeakerId, WorldDialogue, type NarrativeReply } from './world-dialogue'
 import {
-  FERRY_CONVERSATION_ID,
   FerryDialogueAction,
   WorldFerryStation,
   ferrymanTopic,
@@ -141,7 +141,7 @@ export function WorldWorkspace({
     [message, setMessage] = useState('')
   const [conversation, setConversation] = useState<{
     topic: WorldInteraction
-    opener: HTMLButtonElement
+    opener: HTMLElement
   } | null>(null)
   const openingConversation = useRef(false)
   const [active, setActive] = useState<WorldIntent | null>(null),
@@ -405,7 +405,7 @@ export function WorldWorkspace({
         ? now < passage.departureAt
           ? passage.departureAt
           : passage.arrivalAt
-        : current.ferry?.nextDepartureAt
+        : (current.ferry?.ticket?.departureAt ?? current.ferry?.nextDepartureAt)
       const delay =
         ferryTransition && ferryTransition > now
           ? Math.min(syncDelay, ferryTransition - now + 50)
@@ -538,7 +538,7 @@ export function WorldWorkspace({
     setApproachingPlayer(null)
     send({ kind: 'stop' })
   }
-  const openConversation = async (topic: WorldInteraction, opener: HTMLButtonElement) => {
+  const openConversation = async (topic: WorldInteraction, opener: HTMLElement) => {
     const instance = controller.current
     if (!instance || instance.attackPending || openingConversation.current) return
     openingConversation.current = true
@@ -598,8 +598,10 @@ export function WorldWorkspace({
   const ferry = view.ferry
   const ferryman = ferrymanTopic(ferry, view.serverNow)
   const isFerryConversation = conversation?.topic.id === FERRY_CONVERSATION_ID
-  const ferryBusy = active?.kind === 'board-ferry' || active?.kind === 'leave-ferry'
-  const ferryVisible = Boolean(ferry && ((mode === 'local' && ferry.port) || ferry.passage))
+  const ferryBusy =
+    active?.kind === 'buy-ferry-boarding' ||
+    active?.kind === 'board-ferry' ||
+    active?.kind === 'leave-ferry'
   const currentMessage = message || (ferry?.passage ? null : view.movementBlocked)
   const currentSector = view.sectors.find((s) => s.id === approvedPosition.sectorId)
   const local = currentSector ?? view.sectors[0]!
@@ -808,6 +810,9 @@ export function WorldWorkspace({
               onVisiblePlayers={setVisiblePlayerIds}
               onWalk={walk}
               onStop={stopMoving}
+              onFerryman={(opener) => {
+                if (ferryman) void openConversation(ferryman, opener)
+              }}
               onPlayer={(id) => {
                 setSelectedPlayer(id)
                 setTab('nearby')
@@ -830,9 +835,10 @@ export function WorldWorkspace({
               }}
             />
           )}
-          {ferryVisible && ferry ? (
+          {ferry ? (
             <WorldFerryStation
               ferry={ferry}
+              showPort={mode === 'local'}
               serverNow={view.serverNow}
               disabled={Boolean(active || (!ferry.passage && view.movementBlocked))}
               onTalk={(event) => {
@@ -1167,9 +1173,9 @@ export function WorldWorkspace({
             view.battleSessionId
               ? 'Battle started. Your conversation ended.'
               : isFerryConversation
-                ? ferry?.passage && view.serverNow >= ferry.passage.departureAt
-                  ? 'The ferry has departed. Follow your crossing on the world map.'
-                  : null
+                ? ferryman
+                  ? null
+                  : 'The Ferryman is no longer within reach.'
                 : view.movementBlocked ||
                   (view.route.length ? 'Travel interrupted the conversation.' : null)
           }
@@ -1183,7 +1189,7 @@ export function WorldWorkspace({
                 ferry={ferry}
                 serverNow={view.serverNow}
                 busy={Boolean(ferryBusy || view.battleSessionId)}
-                onCommand={(kind) => send({ kind })}
+                onCommand={send}
               />
             ) : undefined
           }

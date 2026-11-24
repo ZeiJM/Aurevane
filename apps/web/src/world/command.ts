@@ -58,11 +58,18 @@ export function parseWorldCommand(value: unknown): WorldCommand | null {
     input.kind === 'tick' ||
     input.kind === 'stop' ||
     input.kind === 'cross' ||
-    input.kind === 'board-ferry' ||
     input.kind === 'leave-ferry'
   )
     intent = { kind: input.kind }
-  else if (input.kind === 'walk' && object(input.destination)) {
+  else if (input.kind === 'buy-ferry-boarding' || input.kind === 'board-ferry') {
+    if (
+      typeof input.departureAt !== 'number' ||
+      !Number.isSafeInteger(input.departureAt) ||
+      input.departureAt < 1
+    )
+      return null
+    intent = { kind: input.kind, departureAt: input.departureAt }
+  } else if (input.kind === 'walk' && object(input.destination)) {
     const p = input.destination
     if (
       (input.direction !== undefined &&

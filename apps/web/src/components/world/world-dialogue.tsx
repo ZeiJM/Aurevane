@@ -37,7 +37,7 @@ export function WorldDialogue({
   extraResponses,
   showHistory = true,
 }: {
-  opener: HTMLButtonElement
+  opener: HTMLElement
   initialTopic: WorldInteraction
   topics: WorldInteraction[]
   objectives: WorldObjective[]

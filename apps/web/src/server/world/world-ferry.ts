@@ -71,16 +71,30 @@ export function projectWorldFerry(state: WorldState, now: number): WorldFerryVie
       passage: { direction, departureAt, arrivalAt },
     }
   }
-  if (state.route.length) return
-  const dock = worldFerryDock(state.position.sectorId)
-  if (!dock || !nearFerryDock(state.position, dock)) return
+  const dock = state.route.length ? null : worldFerryDock(state.position.sectorId)
   const port =
-    dock.sectorId === FERRY_MAINLAND_DOCK.sectorId
-      ? 'mainland'
-      : dock.sectorId === FERRY_NORTH_DOCK.sectorId
-        ? 'north-shore'
-        : dock.sectorId === FERRY_ASTERWAKE_DOCK.sectorId
-          ? 'asterwake'
-          : 'uncharted'
-  return { port, nextDepartureAt: nextFerryDeparture(port, now), fareCrowns: 0 }
+    !dock || !nearFerryDock(state.position, dock)
+      ? null
+      : dock.sectorId === FERRY_MAINLAND_DOCK.sectorId
+        ? 'mainland'
+        : dock.sectorId === FERRY_NORTH_DOCK.sectorId
+          ? 'north-shore'
+          : dock.sectorId === FERRY_ASTERWAKE_DOCK.sectorId
+            ? 'asterwake'
+            : 'uncharted'
+  const nextDepartureAt = port ? nextFerryDeparture(port, now) : null
+  const ticket = state.ferryTicket
+  if (ticket && now < ticket.departureAt) {
+    return {
+      port,
+      nextDepartureAt,
+      fareCrowns: 0,
+      ticket: {
+        direction: ticket.direction,
+        departureAt: ticket.departureAt,
+        canBoard: dock?.sectorId === ticket.sectorId && nextDepartureAt === ticket.departureAt,
+      },
+    }
+  }
+  if (port) return { port, nextDepartureAt, fareCrowns: 0 }
 }
