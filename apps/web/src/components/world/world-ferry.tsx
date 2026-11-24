@@ -8,7 +8,8 @@ import {
   FERRY_NORTH_DOCK,
   FERRY_ASTERWAKE_DOCK,
   type FerryPort,
-  FERRY_TERMINAL_NAME,
+  FERRY_TERMINAL_NAMES,
+  ferryBoardingOpens,
   type FerryIntent,
   type WorldFerryView,
 } from '@/world/ferry'
@@ -78,9 +79,7 @@ function ferrymanIdentity(ferry?: WorldFerryView, dockSectorId?: string) {
 }
 
 function portName(port: WorldFerryView['port']) {
-  if (port === 'north-shore') return 'North Shore Ferry Terminal'
-  if (port === 'asterwake') return 'Asterwake Ferry Terminal'
-  return FERRY_TERMINAL_NAME
+  return port ? FERRY_TERMINAL_NAMES[port] : 'Ferry crossing'
 }
 
 export function ferrymanTopic(
@@ -92,19 +91,21 @@ export function ferrymanTopic(
   const crew = ferrymanIdentity(ferry)
   const crossing =
     port === 'north-shore'
-      ? 'The ferry to Asterwake takes five minutes.'
+      ? 'The ferry to Asterwake takes 25 minutes.'
       : port === 'asterwake'
-        ? 'The ferry to the North Shore takes five minutes.'
-        : 'The crossing takes five minutes.'
+        ? 'The ferry to the North Shore takes 25 minutes.'
+        : 'The crossing takes 25 minutes.'
   const body = passage
     ? serverNow < passage.departureAt
       ? 'You’re aboard. You can step back onto the dock and reboard before we leave.'
       : 'We’re underway. You can walk the deck while we make the crossing.'
     : ticket && ticket.departureAt > serverNow
-      ? ticket.canBoard
-        ? 'Your boarding is booked. Get aboard before the countdown ends.'
-        : 'Your boarding is booked at another terminal. Be there before it sails.'
-      : `${crossing} Boarding is free. Buy it here, then board before departure. Missed boarding is non-refundable.`
+      ? serverNow < ferryBoardingOpens(ticket.departureAt)
+        ? 'Your place is booked. Boarding opens ten minutes before departure.'
+        : ticket.canBoard
+          ? 'Boarding is open. Get aboard before the countdown ends.'
+          : 'Boarding is open at your departure terminal. Return there before it sails.'
+      : `${crossing} Reserve a free place here. Boarding opens ten minutes before departure. Missed boarding is non-refundable.`
   return {
     id: FERRY_CONVERSATION_ID,
     objectiveId: FERRY_CONVERSATION_ID,
@@ -135,8 +136,10 @@ export function ferryStatus(ferry: WorldFerryView, now: number) {
     return { label: 'Arriving…', at: null, action: null } as const
   }
   if (ferry.ticket && now < ferry.ticket.departureAt) {
+    const opensAt = ferryBoardingOpens(ferry.ticket.departureAt)
+    if (now < opensAt) return { label: 'Boarding opens in', at: opensAt, action: null } as const
     return {
-      label: 'Boarding booked · departs in',
+      label: ferry.ticket.canBoard ? 'Boarding open · departs in' : 'Reserved · departs in',
       at: ferry.ticket.departureAt,
       action: ferry.ticket.canBoard ? 'board-ferry' : null,
     } as const

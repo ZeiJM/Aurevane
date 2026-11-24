@@ -58,7 +58,7 @@ const sightingKinds = ['dolphins', 'gulls', 'shoal', 'whale'] as const
 /** Derive sightings from the sailing clock so deckmates see the same crossing. */
 export function ferrySeaSighting(passage: FerryPassage, elapsed: number) {
   const openWater = elapsed - 25
-  if (openWater < 0 || elapsed > 270) return null
+  if (openWater < 0 || elapsed > (passage.arrivalAt - passage.departureAt) / 1_000 - 30) return null
   const slot = Math.floor(openWater / 38)
   const random = seeded(`${passage.direction}:${passage.departureAt}:${slot}`)
   const duration = 8 + Math.floor(random() * 5)

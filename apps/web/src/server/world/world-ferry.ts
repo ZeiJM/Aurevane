@@ -4,6 +4,7 @@ import {
   FERRY_NORTH_DOCK,
   FERRY_ASTERWAKE_DOCK,
   nearFerryDock,
+  ferryBoardingOpens,
   nextFerryDeparture,
   type WorldFerryView,
 } from '@/world/ferry'
@@ -92,7 +93,10 @@ export function projectWorldFerry(state: WorldState, now: number): WorldFerryVie
       ticket: {
         direction: ticket.direction,
         departureAt: ticket.departureAt,
-        canBoard: dock?.sectorId === ticket.sectorId && nextDepartureAt === ticket.departureAt,
+        canBoard:
+          dock?.sectorId === ticket.sectorId &&
+          nextDepartureAt === ticket.departureAt &&
+          now >= ferryBoardingOpens(ticket.departureAt),
       },
     }
   }

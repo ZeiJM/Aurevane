@@ -45,8 +45,10 @@ import {
   FERRY_NORTH_DOCK,
   FERRY_ASTERWAKE_DOCK,
   FERRY_CONVERSATION_ID,
+  FERRY_DIRECTIONS,
   ferryAtPort,
   isFerryTerminalLandmark,
+  nextFerryDeparture,
 } from '@/world/ferry'
 import { hashString } from '@/world/terrain-gen'
 import {
@@ -945,6 +947,7 @@ export function createMapRenderer(
     const version = ferryVesselVersion(id)
     const key = `ferry-passenger-hull-${version}`
     if (!images.has(key)) load('ferry-passenger-hull', version, 'webp', key)
+    return images.get(key)
   }
   let ferryClockAt = performance.now()
   let hitTargets: {
@@ -1247,7 +1250,6 @@ export function createMapRenderer(
     ) {
       load('ferry-terminal', 'v02')
       load('ferry-deck-planks', 'v01')
-      load('ferry-vessel', 'v01')
     }
     if (
       !images.has('asterwake-woodland') &&
@@ -2717,7 +2719,7 @@ export function createMapRenderer(
           tile,
           ferryFrame,
           quality === 'low',
-          images.get(`ferry-passenger-hull-${ferryVesselVersion(sector.id)}`),
+          loadFerryVessel(sector.id),
         )
       } else if (projection?.layer && index >= projection.start && index < projection.end) {
         if (index === projection.start) {
@@ -3464,19 +3466,19 @@ export function createMapRenderer(
     // Both piers and ships use the completed water plane across sector edges.
     for (const { pier } of piers)
       paintFerryPier(ctx, pier, screen, tile, images.get('ferry-deck-planks'))
-    const vessel = images.get('ferry-vessel')
-    if (piers.length && vessel?.complete && vessel.naturalWidth) {
-      const ferryTime = view.serverNow + Math.max(0, now - ferryClockAt)
-      const vesselWidth = tile * 4.85
+    const ferryTime = view.serverNow + Math.max(0, now - ferryClockAt)
+    for (const { dock, pier } of piers) {
+      if (!ferryAtPort(dock.port, ferryTime)) continue
+      const departure = nextFerryDeparture(dock.port, ferryTime)
+      const vessel = loadFerryVessel(`ferry:${FERRY_DIRECTIONS[dock.port]}:${departure}`)
+      if (!vessel?.complete || !vessel.naturalWidth) continue
+      const vesselWidth = tile * 5.3
       const vesselHeight = vesselWidth * (vessel.naturalHeight / vessel.naturalWidth)
-      for (const { dock, pier } of piers) {
-        if (!ferryAtPort(dock.port, ferryTime)) continue
-        const mooring = screen(pier.mooring)
-        const x = mooring.x - vesselWidth * 0.46
-        const y = mooring.y - vesselHeight * 0.76
-        if (x < width && x + vesselWidth > 0 && y < height && y + vesselHeight > 0)
-          ctx.drawImage(vessel, x, y, vesselWidth, vesselHeight)
-      }
+      const mooring = screen(pier.mooring)
+      const x = mooring.x - vesselWidth * 0.46
+      const y = mooring.y - vesselHeight * 0.76
+      if (x < width && x + vesselWidth > 0 && y < height && y + vesselHeight > 0)
+        ctx.drawImage(vessel, x, y, vesselWidth, vesselHeight)
     }
     if (cacheScenery && !cachedScenery) stationaryScenery = scenery
     if (timing) {

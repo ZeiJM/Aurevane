@@ -1,5 +1,5 @@
 'use client'
-import { FERRY_CONVERSATION_ID } from '@/world/ferry'
+import { ferryBoardingOpens, FERRY_CONVERSATION_ID, FERRY_TERMINAL_NAMES } from '@/world/ferry'
 import type { MapDirection } from '@/world/wild-ids'
 import { WorldDestinationCard } from './world-destination-card'
 import { worldTimeLabel, worldDayPhase, WORLD_DAY_REAL_MS } from '@/world/environment'
@@ -49,6 +49,7 @@ import {
   worldInteractionRange,
   WorldMotion,
 } from './world-motion'
+import { UNCHARTED_FERRY_CHART_ID } from './globe-ferry'
 import { WorldMap } from './world-map'
 import { GLOBE_FOCUS_EVENT, WorldGlobe } from './world-globe'
 import { worldKeyLocations, worldReachableTravelDestination } from './world-travel-points'
@@ -418,7 +419,9 @@ export function WorldWorkspace({
         ? now < passage.departureAt
           ? passage.departureAt
           : passage.arrivalAt
-        : (current.ferry?.ticket?.departureAt ?? current.ferry?.nextDepartureAt)
+        : current.ferry?.ticket && now < ferryBoardingOpens(current.ferry.ticket.departureAt)
+          ? ferryBoardingOpens(current.ferry.ticket.departureAt)
+          : (current.ferry?.ticket?.departureAt ?? current.ferry?.nextDepartureAt)
       const delay =
         ferryTransition && ferryTransition > now
           ? Math.min(syncDelay, ferryTransition - now + 50)
@@ -671,7 +674,21 @@ export function WorldWorkspace({
     if (id) centerGlobeOn(id)
   }
   const keyLocations = useMemo(
-    () => worldKeyLocations({ atlas: view.atlas, anchors: view.anchors }, favoriteSectorId),
+    () =>
+      [
+        ...worldKeyLocations({ atlas: view.atlas, anchors: view.anchors }, favoriteSectorId).map(
+          (cell) => ({
+            id: cell.id,
+            name: cell.name,
+            label: `${sectorLabel(cell)} · ${cell.name}`,
+          }),
+        ),
+        {
+          id: UNCHARTED_FERRY_CHART_ID,
+          name: FERRY_TERMINAL_NAMES.uncharted,
+          label: `Uncharted Lands · ${FERRY_TERMINAL_NAMES.uncharted}`,
+        },
+      ].sort((a, b) => a.name.localeCompare(b.name, 'en')),
     [view.atlas, view.anchors, favoriteSectorId],
   )
   const typedNumber = readSectorNumber(sectorJump)
@@ -922,7 +939,7 @@ export function WorldWorkspace({
                     <option value="">Key locations</option>
                     {keyLocations.map((cell) => (
                       <option key={cell.id} value={cell.id}>
-                        {sectorLabel(cell)} · {cell.name}
+                        {cell.label}
                       </option>
                     ))}
                   </select>
@@ -1174,6 +1191,7 @@ export function WorldWorkspace({
       {conversation ? (
         <WorldDialogue
           initialTopic={conversation.topic}
+          showHistory={false}
           opener={conversation.opener}
           topics={
             isFerryConversation

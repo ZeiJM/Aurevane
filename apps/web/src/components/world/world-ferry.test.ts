@@ -14,7 +14,7 @@ import {
 
 vi.mock('server-only', () => ({}))
 
-const dock = { port: 'mainland', nextDepartureAt: 300_000, fareCrowns: 0 } as const
+const dock = { port: 'mainland', nextDepartureAt: 900_000, fareCrowns: 0 } as const
 const waiting = {
   ...dock,
   passage: { direction: 'outbound', departureAt: 300_000, arrivalAt: 600_000 },
@@ -33,7 +33,7 @@ it('uses the whole ferry card as the conversation button and keeps underway stat
   const station = render({ ...dock, nextDepartureAt: 600_000 }, 0)
   expect(station.match(/<button\b/g)).toHaveLength(1)
   expect(station).toMatch(
-    /<button[^>]+aria-label="Ferry Terminal\. Talk to Krane \(Ferryman\)"[^>]*>.*Ferry Terminal.*Next departure in.*10:00.*<\/button>/,
+    /<button[^>]+aria-label="Lantern Quay Ferry Terminal\. Talk to Krane \(Ferryman\)"[^>]*>.*Ferry Terminal.*Next departure in.*10:00.*<\/button>/,
   )
   const underway = render(waiting, 360_000)
   expect(underway).toMatch(/aria-label="Ferry crossing\. Talk to Krane \(Ferryman\)"/)
@@ -44,14 +44,19 @@ it('uses the whole ferry card as the conversation button and keeps underway stat
 it('offers buying throughout the long countdown and boarding only with the right ticket', () => {
   expect(ferrymanTopic(dock, 1)?.speaker).toBe('Krane (Ferryman)')
   expect(ferryStatus(dock, 1).action).toBe('buy-ferry-boarding')
-  const ticket = { direction: 'outbound', departureAt: 300_000, canBoard: true } as const
-  expect(ferryStatus({ ...dock, ticket }, 1)).toMatchObject({
-    label: 'Boarding booked · departs in',
+  const ticket = { direction: 'outbound', departureAt: 900_000, canBoard: true } as const
+  expect(ferryStatus({ ...dock, ticket }, 299_999)).toMatchObject({
+    label: 'Boarding opens in',
+    at: 300_000,
+    action: null,
+  })
+  expect(ferryStatus({ ...dock, ticket }, 300_000)).toMatchObject({
+    label: 'Boarding open · departs in',
     at: ticket.departureAt,
     action: 'board-ferry',
   })
   const away = { ...dock, port: null, ticket: { ...ticket, canBoard: false } }
-  expect(ferryStatus(away, 1)).toMatchObject({ at: ticket.departureAt, action: null })
+  expect(ferryStatus(away, 300_000)).toMatchObject({ at: ticket.departureAt, action: null })
   expect(ferrymanTopic(away, 1)).toBeNull()
   expect(ferryStatus(away, ticket.departureAt)).toMatchObject({ at: null, action: null })
   expect(ferryStatus({ ...dock, ticket }, ticket.departureAt).action).toBeNull()

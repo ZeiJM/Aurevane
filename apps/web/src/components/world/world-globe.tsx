@@ -7,6 +7,7 @@ import {
   FERRY_NORTH_DOCK,
   FERRY_ASTERWAKE_DOCK,
   PUBLIC_FERRY_TERMINALS,
+  FERRY_TERMINAL_NAMES,
 } from '@/world/ferry'
 import { globeSectorCenter, globeSectorCoordinate, projectGlobePoint } from '@/world/globe-math'
 import { ASTERWAKE_GOLDEN_TREE, ASTERWAKE_NAME } from '@/world/asterwake'
@@ -14,7 +15,11 @@ import type { WorldPosition, WorldView } from '@/world/types'
 import { SphericalView } from './spherical-view'
 import { projectGlobeTowns } from './globe-atlas'
 import { UNCHARTED_VEIL_FOCUS } from './globe-veil'
-import { globeFerryPosition, UNCHARTED_FERRY_CHART_LOCATION } from './globe-ferry'
+import {
+  globeFerryPosition,
+  UNCHARTED_FERRY_CHART_ID,
+  UNCHARTED_FERRY_CHART_LOCATION,
+} from './globe-ferry'
 import { worldTravelDestination } from './world-travel-points'
 import styles from './workspace.module.css'
 
@@ -108,6 +113,10 @@ export function WorldGlobe({
     // deriving state in an effect or remounting the expensive globe canvas.
     const focus = (event: Event) => {
       const id = (event as CustomEvent<string>).detail
+      if (id === UNCHARTED_FERRY_CHART_ID) {
+        setCamera(UNCHARTED_FERRY_CHART_LOCATION)
+        return
+      }
       const sector = view.atlas?.find((cell) => cell.id === id && cell.charted)
       const point = sector && globeSectorCenter(sector.coordinate, ATLAS_COLUMNS, ATLAS_ROWS)
       if (point) setCamera(point)
@@ -252,8 +261,8 @@ export function WorldGlobe({
             <span
               className={styles.globeTerminal}
               role="img"
-              aria-label="Uncharted Lands Ferry Terminal (approximate)"
-              title="Uncharted Lands Ferry Terminal (approximate)"
+              aria-label={`${FERRY_TERMINAL_NAMES.uncharted} (illustrated harbor)`}
+              title={FERRY_TERMINAL_NAMES.uncharted}
               style={unchartedTerminal}
             >
               <AtlasMarker index={8} />

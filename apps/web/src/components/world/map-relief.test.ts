@@ -24,7 +24,7 @@ const sector = (cells: [number, number, string][]): WorldSectorView => ({
 
 it('does not turn an isolated rock into a square raised plateau on open ground', () => {
   const ctx = new Proxy(
-    { createLinearGradient: () => ({ addColorStop: vi.fn() }) },
+    { createRadialGradient: () => ({ addColorStop: vi.fn() }) },
     { get: (target, key) => (key in target ? target[key as keyof typeof target] : vi.fn()) },
   ) as unknown as CanvasRenderingContext2D
   expect(
@@ -42,14 +42,16 @@ it('does not turn an isolated rock into a square raised plateau on open ground',
   ).toBe(0)
 })
 
-it('paints layered cliff faces toward known natural valley ground, never unknown cells or roads', () => {
+it('feathers clustered rock contacts toward supplied dry ground without a square outline', () => {
   const lines: number[][] = []
+  const contacts: number[][] = []
   const colours: string[] = []
   const ctx = new Proxy(
     {
       moveTo: (x: number, y: number) => lines.push([x, y]),
       lineTo: (x: number, y: number) => lines.push([x, y]),
-      createLinearGradient: () => ({
+      translate: (x: number, y: number) => contacts.push([x, y]),
+      createRadialGradient: () => ({
         addColorStop: (_at: number, colour: string) => colours.push(colour),
       }),
     },
@@ -63,11 +65,9 @@ it('paints layered cliff faces toward known natural valley ground, never unknown
   const before = JSON.stringify(source)
   expect(paintTerrainRelief(ctx, source, 64)).toBe(1)
   expect(JSON.stringify(source)).toBe(before)
-  expect(lines.length).toBeGreaterThan(6)
-  expect(
-    lines.every(([x, y]) => x! >= 3 * 64 && x! <= 4 * 64 && y! >= 3 * 64 && y! <= 4 * 64),
-  ).toBe(true)
-  expect(colours.some((c) => c.includes('.4'))).toBe(true)
+  expect(lines).toEqual([])
+  expect(contacts).toEqual([[3.86 * 64, 3.5 * 64]])
+  expect(colours.at(-1)).toMatch(/,0\)$/)
   for (const terrain of ['~', 'l', '=', 's', '#'])
     expect(
       paintTerrainRelief(
@@ -94,7 +94,7 @@ it('limits private relief to supplied adjacent cells and keeps cold and Void roc
   const stops: string[] = []
   const ctx = new Proxy(
     {
-      createLinearGradient: () => ({
+      createRadialGradient: () => ({
         addColorStop: (_at: number, colour: string) => stops.push(colour),
       }),
     },

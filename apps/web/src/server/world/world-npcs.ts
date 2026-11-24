@@ -16,6 +16,7 @@ import { readPublishedWorldNpcs } from '@/server/master/npc-design-store'
 import { isWalkable } from '@/world/travel'
 import type { WorldInteraction, WorldNpcPresentation, WorldState } from '@/world/types'
 import { isKnownCell, resolveSector } from './world-content'
+import { localObjectiveNpcs } from './world-objectives'
 
 const NPC_CACHE_MS = 5_000
 const npcLooks = APPEARANCE_PRESETS.map(
@@ -133,7 +134,10 @@ function cachedNpcRows(sectorId: string) {
 /** Compact movement acknowledgements never wait for NPC data. */
 export function peekWorldNpcs(state: WorldState) {
   const rows = cachedNpcRows(state.position.sectorId)
-  return rows ? projectLocalWorldNpcs(state, rows) : undefined
+  if (!rows) return undefined
+  const local = projectLocalWorldNpcs(state, rows)
+  local.npcs.push(...localObjectiveNpcs(state))
+  return local
 }
 
 export async function loadWorldNpcs(state: WorldState) {
@@ -160,5 +164,7 @@ export async function loadWorldNpcs(state: WorldState) {
     }
     rows = await (lookup ?? [])
   }
-  return projectLocalWorldNpcs(state, rows)
+  const local = projectLocalWorldNpcs(state, rows)
+  local.npcs.push(...localObjectiveNpcs(state))
+  return local
 }

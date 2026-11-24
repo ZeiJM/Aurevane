@@ -6,7 +6,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
 import { projectWorld, projectWorldSector, resolveWorldIntent } from '@/server/world/world-service'
 import { voidRealmFerryDock } from '@/server/world/void-realms'
-import { FERRYMAN_PORTRAIT, FERRYMAN_SPRITE } from '@/world/ferry'
+import {
+  FERRY_BOARDING_MS,
+  FERRY_TERMINAL_NAMES,
+  FERRYMAN_PORTRAIT,
+  FERRYMAN_SPRITE,
+  nextFerryDeparture,
+} from '@/world/ferry'
 import { atlasSectors } from '@/world/atlas'
 import { CHARTED_SECTORS, GRID_HEIGHT, GRID_WIDTH } from '@/world/catalog'
 import { GRAND_DISCOVERY_SITES, OFFSHORE_DISCOVERY } from '@/world/discovery-sites'
@@ -551,7 +557,12 @@ describe('native map input and bounded lifecycle', () => {
   it('renders the full Orchard ferry with a visible Ferryman and accepts clicks inland', () => {
     const { sectorId, x, y } = voidRealmFerryDock('hollow-orchard')
     const position = { sectorId, x, y }
-    const view = projectWorld(revealNearby({ ...newWorldState(), position }), [], 10 * 60_000)
+    const departure = nextFerryDeparture('uncharted', 0)
+    const view = projectWorld(
+      revealNearby({ ...newWorldState(), position }),
+      [],
+      departure - FERRY_BOARDING_MS / 2,
+    )
     const s = scene(true, {
       ...view,
       players: [
@@ -578,7 +589,10 @@ describe('native map input and bounded lifecycle', () => {
     })
     try {
       s.frame(40)
-      const hull = s.spriteDraws.find(({ src }) => src.endsWith('ferry-vessel-v01.webp'))
+      const vessel = ferryVesselVersion(`ferry:return:${departure}`)
+      const hull = s.spriteDraws.find(({ src }) =>
+        src.endsWith(`ferry-passenger-hull-${vessel}.webp`),
+      )
       const sprite = s.identityDraws.find(({ image }) =>
         s.composites
           .get(image)
@@ -587,14 +601,14 @@ describe('native map input and bounded lifecycle', () => {
       expect(hull?.args).toHaveLength(4)
       expect(sprite?.args.at(-1)).toBeGreaterThan(64)
       expect(s.texts.map(({ text }) => text)).toEqual(
-        expect.arrayContaining(['Ferry Terminal', 'Ferryman']),
+        expect.arrayContaining([FERRY_TERMINAL_NAMES.uncharted, 'Ferryman']),
       )
       const labelColours = Object.fromEntries(s.texts.map(({ text, colour }) => [text, colour]))
       expect(labelColours).toMatchObject({
         Wayfarer: '#ffdb86',
         'Orchard visitor': '#a5efe2',
         Ferryman: '#ffc2a6',
-        'Ferry Terminal': '#dbc8ff',
+        [FERRY_TERMINAL_NAMES.uncharted]: '#dbc8ff',
       })
       const destination = { sectorId, x: x + 3, y }
       expect(

@@ -25,6 +25,7 @@ import {
   FERRY_NORTH_DOCK,
   FERRY_TERMINAL_LANDMARK,
   FERRY_TERMINAL_NAME,
+  FERRY_TERMINAL_NAMES,
 } from './ferry'
 import { asterwakeCoastAt, asterwakeSector } from './asterwake'
 import type { WorldBuilding, WorldLandmark, WorldRoad, WorldSector } from './types'
@@ -754,7 +755,7 @@ export function atlasSectors(): readonly WorldSector[] {
       if (id === FERRY_NORTH_DOCK.sectorId)
         landmarks.push({
           id: 'north-shore:ferry-terminal',
-          name: 'North Shore Ferry Terminal',
+          name: FERRY_TERMINAL_NAMES['north-shore'],
           kind: 'waystone',
           x: FERRY_NORTH_DOCK.x,
           y: FERRY_NORTH_DOCK.y,
@@ -765,7 +766,7 @@ export function atlasSectors(): readonly WorldSector[] {
         name:
           authored?.name ??
           (id === FERRY_MAINLAND_DOCK.sectorId ? FERRY_TERMINAL_NAME : undefined) ??
-          (id === FERRY_NORTH_DOCK.sectorId ? 'North Shore Ferry Terminal' : undefined) ??
+          (id === FERRY_NORTH_DOCK.sectorId ? FERRY_TERMINAL_NAMES['north-shore'] : undefined) ??
           grandDiscoverySectorName(id) ??
           (scenicCenter
             ? scenic.name

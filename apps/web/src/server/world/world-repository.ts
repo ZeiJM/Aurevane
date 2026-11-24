@@ -123,6 +123,8 @@ export function worldRpcError(error: { message?: string; code?: string }): never
     throw new AurevaneError('INVALID_REQUEST', 'Buy boarding for this sailing first.')
   if (message.includes('WORLD_FERRY_TICKET_ACTIVE'))
     throw new AurevaneError('INVALID_REQUEST', 'You already have boarding for another sailing.')
+  if (message.includes('WORLD_FERRY_BOARDING_CLOSED'))
+    throw new AurevaneError('INVALID_REQUEST', 'Boarding opens ten minutes before departure.')
   if (message.includes('WORLD_FERRY_WINDOW'))
     throw new AurevaneError('INVALID_REQUEST', 'This sailing has departed.')
   if (message.includes('WORLD_FERRY_UNDERWAY'))
@@ -475,7 +477,7 @@ export async function commitWorldCommand(
     command.intent.kind === 'board-ferry' ||
     command.intent.kind === 'leave-ferry'
   ) {
-    const { error } = await createSupabaseAdminClient().rpc('commit_world_ferry_v2', {
+    const { error } = await createSupabaseAdminClient().rpc('commit_world_ferry_v3', {
       p_user_id: userId,
       p_character_id: characterId,
       p_expected_version: command.expectedVersion,

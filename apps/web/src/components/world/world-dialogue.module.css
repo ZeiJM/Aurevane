@@ -104,11 +104,14 @@
   overflow-wrap: anywhere;
   text-shadow: 0 2px 9px #070e18a6;
 }
-.header button {
+.dialogue .header button {
   width: 44px;
   flex-shrink: 0;
   padding: 0;
   font-size: 1.4rem;
+  border-color: #d57970;
+  background: linear-gradient(155deg, #a83d3a, #792524);
+  color: #fff0e6;
 }
 .reading {
   grid-area: reading;

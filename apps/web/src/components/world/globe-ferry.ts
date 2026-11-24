@@ -2,7 +2,8 @@ import { projectWorldFerries } from '@/world/ferry'
 import type { GlobeLocation } from '@/world/globe-math'
 // This illustrated harbor marks the ferry service on the same public chart as
 // the Uncharted Lands cover. The live landing moves and remains private.
-export const UNCHARTED_FERRY_CHART_LOCATION = { longitude: 163, latitude: -5.5 } as const
+export const UNCHARTED_FERRY_CHART_ID = 'charted-veilwatch-harbor'
+export const UNCHARTED_FERRY_CHART_LOCATION = { longitude: 163, latitude: -25.65 } as const
 
 /** A chart approximation only. Never takes or exposes a private dock coordinate. */
 export function globeFerryPosition(
@@ -16,8 +17,6 @@ export function globeFerryPosition(
   if (!passage) return null
   const fraction = (now - passage.departureAt) / (passage.arrivalAt - passage.departureAt)
   const distance = passage.direction.endsWith('outbound') ? fraction : 1 - fraction
-  // The hull is no longer visible once it passes under the uncharted veil.
-  if (!remote && distance > 0.75) return null
   const destination = remote ?? UNCHARTED_FERRY_CHART_LOCATION
   const delta = ((destination.longitude - dock.longitude + 540) % 360) - 180
   return {

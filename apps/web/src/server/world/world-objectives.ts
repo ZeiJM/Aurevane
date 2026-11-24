@@ -2,9 +2,11 @@ import 'server-only'
 
 import { APPEARANCE_PRESETS, compileAppearanceManifest } from '@/appearance/appearance-manifest'
 import { samePosition } from '@/world/travel'
+import { isKnownCell } from './world-content'
 import type {
   WorldInteraction,
   WorldInteractionActionId,
+  WorldNpcPresentation,
   WorldObjective,
   WorldObjectiveProgress,
   WorldPosition,
@@ -56,7 +58,7 @@ const INTERACTION_OBJECTIVES: readonly InteractionObjectiveDefinition[] = [
     origin: VERDANT_SETTLEMENT,
     target: EASTERN_WATCH,
     title: 'The Eastern Watch',
-    speaker: 'Watch officer',
+    speaker: 'Tamsin Reed (Watch Officer)',
     portraitUrl: compileAppearanceManifest(APPEARANCE_PRESETS[0].blueprint).portraits.neutral,
     descriptions: {
       available: 'Speak with the watch officer at the protected settlement.',
@@ -78,7 +80,7 @@ const INTERACTION_OBJECTIVES: readonly InteractionObjectiveDefinition[] = [
     origin: AURETH_SETTLEMENT,
     target: CROWN_HINTERLAND_PATROL,
     title: 'Hinterland Patrol',
-    speaker: 'Watch officer',
+    speaker: 'Oren Vale (Watch Officer)',
     portraitUrl: compileAppearanceManifest(APPEARANCE_PRESETS[1].blueprint).portraits.neutral,
     descriptions: {
       available: 'Speak with the watch officer at the Aureth Crown settlement.',
@@ -219,6 +221,23 @@ function worldInteractionAction(
   if (progress === 'available') return { id: 'accept', label: 'Accept objective' }
   if (progress === 'ready') return { id: 'report', label: 'Report back' }
   return null
+}
+
+export function localObjectiveNpcs(state: WorldState): WorldNpcPresentation[] {
+  return INTERACTION_OBJECTIVES.flatMap(({ interactionId, origin, speaker, portraitUrl }) =>
+    state.position.sectorId === origin.sectorId && isKnownCell(state, origin)
+      ? [
+          {
+            id: interactionId,
+            name: speaker,
+            position: origin,
+            imageUrl: portraitUrl,
+            motionImageUrl: portraitUrl,
+            interactionRadius: 0,
+          },
+        ]
+      : [],
+  )
 }
 
 export function localWorldInteractions(state: WorldState): WorldInteraction[] {

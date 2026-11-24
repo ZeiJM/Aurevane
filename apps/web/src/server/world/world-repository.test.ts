@@ -97,7 +97,10 @@ it('loads only local published NPCs and reuses the sector result between present
     p_sector_id: 'verdant-expanse',
   })
   for (const { view } of results) {
-    expect(view.npcs).toHaveLength(1)
+    expect(view.npcs).toMatchObject([
+      { name: 'World Fixture (Resident)', interactionRadius: 2 },
+      { name: 'Tamsin Reed (Watch Officer)', interactionRadius: 0 },
+    ])
     expect(view.players).toEqual([])
     expect(view.interactions).toContainEqual(
       expect.objectContaining({

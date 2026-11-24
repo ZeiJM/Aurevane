@@ -26,7 +26,7 @@ import type { SetPracticePlanRequest } from '@aurevane/validation/player/wayfare
 import { provisionAccountAndEnterCharacter, openOfflineTraining } from './pv1f-test-helpers'
 import { STEP_MS, WORLD_REGIONS } from '../src/world/catalog'
 import { newWorldState, samePosition } from '../src/world/travel'
-import { FERRY_MAINLAND_DOCK } from '../src/world/ferry'
+import { FERRY_MAINLAND_DOCK, FERRY_TERMINAL_NAMES } from '../src/world/ferry'
 import { OFFSHORE_DISCOVERY } from '../src/world/discovery-sites'
 import type { WorldView } from '../src/world/types'
 import { verifyWorldPresentation, registerWorldInputCases } from './world-presentation-case'
@@ -495,13 +495,13 @@ test('Eastern Watch objective persists accept, inspect and idempotent return com
 
   const interaction = page.getByRole('region', { name: 'Local interaction' })
   await expect(interaction.getByRole('heading', { name: 'The Eastern Watch' })).toBeVisible()
-  await expect(interaction).toContainText('Watch officer')
+  await expect(interaction).toContainText('Tamsin Reed (Watch Officer)')
   const talk = interaction
     .getByRole('heading', { name: 'The Eastern Watch', exact: true })
     .locator('..')
-    .getByRole('button', { name: 'Talk to Watch officer', exact: true })
+    .getByRole('button', { name: 'Talk to Tamsin Reed (Watch Officer)', exact: true })
   await talk.click()
-  const dialogue = page.getByRole('dialog', { name: 'Watch officer' })
+  const dialogue = page.getByRole('dialog', { name: 'Tamsin Reed (Watch Officer)' })
   await expect(
     dialogue.getByText('The eastern tower has gone quiet.', { exact: false }),
   ).toBeVisible()
@@ -519,8 +519,13 @@ test('Eastern Watch objective persists accept, inspect and idempotent return com
     await expect(page.locator('#world-panel')).toBeHidden()
   }
   await expect(dialogue.getByRole('button', { name: 'End conversation' })).toBeFocused()
+  await expect(dialogue.getByRole('button', { name: 'History' })).toHaveCount(0)
+  await expect(dialogue.getByRole('button', { name: 'End conversation' })).toHaveCSS(
+    'background-image',
+    /rgb\(168, 61, 58\)/,
+  )
   await page.keyboard.press('Shift+Tab')
-  await expect(dialogue.getByRole('button', { name: 'History' })).toBeFocused()
+  await expect(dialogue.getByRole('button', { name: 'Accept objective' })).toBeFocused()
   await page.keyboard.press('Tab')
   await expect(dialogue.getByRole('button', { name: 'End conversation' })).toBeFocused()
   await capture(page, info, 'eastern-watch-dialogue')
@@ -533,10 +538,6 @@ test('Eastern Watch objective persists accept, inspect and idempotent return com
   await talk.click()
   await dialogue.getByRole('button', { name: 'Accept objective' }).click()
   await expect(dialogue.getByText('In progress', { exact: true })).toBeVisible()
-  await dialogue.getByRole('button', { name: 'History' }).click()
-  await expect(dialogue.getByRole('region', { name: 'Conversation history' })).toContainText(
-    'Accept objective',
-  )
   await dialogue.getByRole('button', { name: 'End conversation' }).click()
   await expect(page.getByText('Reach the eastern watchtower across the river.')).toBeVisible()
   let state = await world(page)
@@ -548,10 +549,7 @@ test('Eastern Watch objective persists accept, inspect and idempotent return com
   await reloadWorld(page)
   await expect(page.getByText('Reach the eastern watchtower across the river.')).toBeVisible()
   await talk.click()
-  await dialogue.getByRole('button', { name: 'History' }).click()
-  await expect(dialogue.getByRole('region', { name: 'Conversation history' })).toContainText(
-    'Your last reply: Accept objective',
-  )
+  await expect(dialogue.getByText('In progress', { exact: true })).toBeVisible()
   await dialogue.getByRole('button', { name: 'End conversation' }).click()
   place(initial.characterId, 'verdant-expanse', 12, 4, false)
   await reloadWorld(page)
@@ -631,9 +629,9 @@ test('Crown Hinterland patrol persists accept, field check and idempotent return
 
   const interaction = page.getByRole('region', { name: 'Local interaction' })
   await expect(interaction.getByRole('heading', { name: 'Hinterland Patrol' })).toBeVisible()
-  await expect(interaction).toContainText('Watch officer')
-  const talk = interaction.getByRole('button', { name: 'Talk to Watch officer' })
-  const dialogue = page.getByRole('dialog', { name: 'Watch officer' })
+  await expect(interaction).toContainText('Oren Vale (Watch Officer)')
+  const talk = interaction.getByRole('button', { name: 'Talk to Oren Vale (Watch Officer)' })
+  const dialogue = page.getByRole('dialog', { name: 'Oren Vale (Watch Officer)' })
   await talk.click()
   await dialogue.getByRole('button', { name: 'Accept objective' }).click()
   await expect(dialogue.getByText('In progress', { exact: true })).toBeVisible()
@@ -1814,12 +1812,15 @@ test('alphabetical Key locations select a destination dot without submitting tra
   expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b, 'en')))
   await expect(
     locationPicker.locator(`option[value="${FERRY_MAINLAND_DOCK.sectorId}"]`),
-  ).toContainText('Ferry Terminal')
+  ).toContainText(FERRY_TERMINAL_NAMES.mainland)
+  for (const terminalName of Object.values(FERRY_TERMINAL_NAMES)) {
+    expect(names).toContain(terminalName)
+  }
   await locationPicker.selectOption(FERRY_MAINLAND_DOCK.sectorId)
   await expect(selected(FERRY_MAINLAND_DOCK.sectorId)).toBeVisible()
-  await expect(selected(FERRY_MAINLAND_DOCK.sectorId)).toHaveCSS(
-    'background-color',
-    'rgb(201, 62, 64)',
+  await expect(selected(FERRY_MAINLAND_DOCK.sectorId).locator('i')).toHaveCSS(
+    'background-image',
+    /atlas-markers-v01\.webp/,
   )
   await expect(page.getByRole('region', { name: 'Selected destination' })).toContainText('Y:8')
   await locationPicker.selectOption(known[0]!.id)
@@ -2036,7 +2037,9 @@ test('settles an arrived ferry at the active Uncharted coast and lets the passen
   expect(scene.position).toEqual(dock)
   expect(scene.ferry?.port).toBe('uncharted')
   const terminal = scene.sectors.find(({ id }) => id === dock.sectorId)!
-  expect(terminal.landmarks).toContainEqual(expect.objectContaining({ name: 'Ferry Terminal' }))
+  expect(terminal.landmarks).toContainEqual(
+    expect.objectContaining({ name: FERRY_TERMINAL_NAMES.uncharted }),
+  )
   const west = terminal.ferryDock?.shoreSide === 'west'
   expect(terminal.cells).toContainEqual(
     expect.objectContaining({
