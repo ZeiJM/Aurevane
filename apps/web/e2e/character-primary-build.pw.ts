@@ -92,7 +92,7 @@ test('Nexus immediately commits Primary Discipline while Character preserves per
   await dialog.getByRole('button', { name: 'Close', exact: true }).click()
 
   await page.goto('/game/character')
-  await expect(page.locator('[data-profile-workspace]')).toBeVisible()
+  await expect(page.locator('[data-profile-workspace]').filter({ visible: true })).toBeVisible()
 
   for (const id of ATTRIBUTE_IDS) {
     const expected = expectedAetheristAttributes.get(id)

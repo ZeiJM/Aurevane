@@ -1,5 +1,7 @@
 # AUREVANE — Roadmap status index
 
+The November 23 movement update opens all known dry world terrain to walking. The current travel rules are in [World map travel](WORLD.md#world-map-travel).
+
 **Latest reconciled evidence:** [17 November 2026 verified release and status](ROADMAP_STATUS_2026-11-15.md). This is the current **status** entry point; the [master plan](GAME_MASTER_PLAN.md), [historical detailed roadmap](ROADMAP_DETAILED_2026-10-13.md), [product-validation gates](ROADMAP_PRODUCT_VALIDATION.md), and domain specifications retain the approved game vision and rules. See [November 14 independent PR #1040 audit](https://github.com/ZeiJM/Aurevane/issues/1041) for older-SHA findings, not an unqualified current acceptance claim.
 
 | Scope | Current reality | Next evidence boundary |

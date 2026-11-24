@@ -4,7 +4,11 @@ import { hashString } from '@/world/terrain-gen'
 
 const wrapPublicTreeX = (x: number) => ((x % WORLD_MAP_WIDTH) + WORLD_MAP_WIDTH) % WORLD_MAP_WIDTH
 
-/** Cosmetic growth only; offsets stay within the supplied tree cell. */
+// Saplings and mature crowns share a small set of physical sizes. This also
+// lets distant groves reuse their pre-scaled artwork while the camera moves.
+const woodlandGrowth = [0.62, 0.73, 0.82, 0.89, 0.95, 1, 1.08, 1.18] as const
+
+/** Constrained trees keep their authored root and never grow into a nearby path. */
 export function vegetationPose(
   seed: string,
   x: number,
@@ -12,39 +16,54 @@ export function vegetationPose(
   anchored: boolean,
   privateScene = false,
 ) {
-  if (anchored) return { x: 0, y: 0, scale: 1 }
-  // Camera wrapping changes drawing coordinates, never a public tree's identity.
   const canonicalX = seed === 'public' ? wrapPublicTreeX(x) : x
   const individual = hashString(`${seed}:${canonicalX}:${y}:growth`)
-  const grove = hashString(`${seed}:${Math.floor(canonicalX / 3)}:${Math.floor(y / 3)}:grove`)
+  const fixed = anchored || privateScene
   return {
-    x: privateScene ? 0 : ((individual % 997) / 996 - 0.5) * 0.3,
-    y: privateScene ? 0 : (((individual >>> 10) % 991) / 990 - 0.5) * 0.24,
-    scale: Math.min(
-      privateScene ? 1 : 1.18,
-      0.78 + ((grove % 101) / 100) * 0.24 + (((individual >>> 20) % 101) / 100) * 0.16,
-    ),
+    x: fixed ? 0 : ((individual % 997) / 996 - 0.5) * 0.3,
+    y: fixed ? 0 : (((individual >>> 10) % 991) / 990 - 0.5) * 0.24,
+    scale: woodlandGrowth[(individual >>> 18) % (fixed ? 6 : woodlandGrowth.length)]!,
   }
 }
 
-// Source cells in living-trees-v01. Each region keeps its signature tree as
-// the most common silhouette and mixes in species suited to the same ground.
-const mainlandTrees: Readonly<Partial<Record<string, readonly [number, ...number[]]>>> = {
-  'aureth-crown': [0, 0, 1, 5, 6],
-  'verdant-expanse': [1, 1, 7, 3, 6],
-  frostmere: [2, 2, 2, 3],
-  'starfall-highlands': [3, 3, 7, 0],
-  emberreach: [4, 4, 5, 0],
-  'glasswind-desert': [5, 5, 4],
-  'hollow-coast': [6, 6, 7, 3],
-  'umbral-march': [7, 7, 3, 6],
+// Source cells in living-trees-v01. The first species is the regional
+// signature. Every companion is a tree suited to the same ground.
+const mainlandTrees: Readonly<Partial<Record<string, readonly number[]>>> = {
+  'aureth-crown': [0, 1, 5, 6],
+  'verdant-expanse': [1, 7, 3, 6],
+  frostmere: [2, 3],
+  'starfall-highlands': [3, 7, 0],
+  emberreach: [4, 5, 0],
+  'glasswind-desert': [5, 4],
+  'hollow-coast': [6, 7, 3],
+  'umbral-march': [7, 3, 6],
 }
 
-export function mainlandTreeIndex(regionId: string, x: number, y: number, anchored: boolean) {
+export function mainlandTreeIndex(regionId: string, x: number, y: number, signatureOnly = false) {
   const species = mainlandTrees[regionId]
-  if (!species || anchored) return species?.[0]
-  const seed = hashString(`${regionId}:${wrapPublicTreeX(x)}:${y}:species`)
-  return species[(seed >>> 10) % species.length]
+  if (!species || signatureOnly) return species?.[0]
+  const wx = wrapPublicTreeX(x)
+  const seed = hashString(`${regionId}:${Math.floor(wx / 2)}:${Math.floor(y / 2)}:species`)
+  // Reserve one signature and one companion per small stand. Shuffling which
+  // cells they occupy breaks runs of cloned trees without a repeating grid.
+  const slot = (wx % 2) + 2 * (y & 1)
+  const rank = slot ^ (seed & 3)
+  if (rank === 0 || (rank > 1 && ((seed >>> (8 + rank)) & 1) === 0)) return species[0]
+  return species[1 + ((seed >>> (4 + slot * 5)) % (species.length - 1))]
+}
+
+const groveCompanions = {
+  sakura: [1, 7], // elm and alder between the flowering cherries
+  autumn: [4, 0], // russet rowan and golden oak among the orange maples
+  wisteria: [7, 6], // alder and willow among the hanging purple crowns
+  willow: [7, 1],
+} as const
+
+export function groveCompanion(landscape: WorldSector['landscape'], x: number, y: number) {
+  if (!landscape || landscape === 'wildflowers') return undefined
+  const seed = hashString(`${landscape}:${wrapPublicTreeX(x)}:${y}:companion`)
+  if ((seed >>> 8) % 3 !== 0) return undefined
+  return groveCompanions[landscape][(seed >>> 18) % 2]
 }
 
 // Stable individual gust signatures. Some trees never move, while others have

@@ -1,5 +1,5 @@
 import { GRID_HEIGHT, GRID_WIDTH } from './catalog'
-import { terrainWalkable } from './terrain'
+import { openScenerySurface } from './terrain'
 import { wrapAtlasColumn } from './topology'
 import type { WorldSector } from './types'
 
@@ -55,7 +55,7 @@ export function trimRoadShorelines(sectors: readonly WorldSector[]) {
             nextY = y + dy * sign * i
           if (crossing(sector, nextX, nextY, dx, dy)) continue
           const next = at(sector, nextX, nextY)
-          return next !== null && terrainWalkable(next.terrain)
+          return next !== null && openScenerySurface(next.terrain)
         }
         return false
       }

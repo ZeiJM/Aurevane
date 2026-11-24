@@ -453,6 +453,26 @@ async function buildDisciplineSkillView(
   }
 }
 
+/** Rail portraits need the committed disciplines and stats, without loading the skill catalogue. */
+export async function loadCharacterIdentityBuild(
+  userId: string,
+  character: PersistedCharacter,
+  repository: Pick<CharacterBuildRepository, 'findActiveBuild'>,
+) {
+  const build = await repository.findActiveBuild(userId, character.id)
+  if (!build || build.characterId !== character.id) {
+    throw persistenceUnavailable('The character build is unavailable right now.')
+  }
+  return {
+    current: calculatePreview(character, {
+      definition: build.primaryDefinition,
+      profile: build.primaryProfile,
+      masteredAt: null,
+    }),
+    currentSecondary: build.secondaryDefinition,
+  }
+}
+
 export async function loadCharacterBuildContext(
   userId: string,
   character: PersistedCharacter,

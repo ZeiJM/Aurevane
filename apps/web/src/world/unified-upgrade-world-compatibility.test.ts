@@ -108,13 +108,13 @@ it('preserves world addresses and historic routes through the authorized map geo
   }).toEqual({
     ...baseline,
     // The older baseline and named long routes remain archived. The current
-    // snapshot adds the north coast, island chain, terminal and blocked water.
+    // snapshot includes the island chain and dry scenery crossings at sector borders.
     atlasSectors: 2195,
     resolvedServerSectors: 2244,
     counts: {
-      walkable: 246526,
-      roads: 84728,
-      safe: 7030,
+      walkable: 254826,
+      roads: 88504,
+      safe: 7656,
       water: 1974,
       lava: 15,
     },
@@ -137,7 +137,7 @@ it('preserves world addresses and historic routes through the authorized map geo
                       : 0),
     })),
     landmarks: 669,
-    authorityDigest: '111854d583429a62d23c56ca234b914a1e992830206018c71f79b4398e6515ac',
+    authorityDigest: '31ca6775394b492498799aae4ff2cf7be820ce2c36d55efdcc915c9c9724cd08',
     landmarkDigest: '9f24713c4f53d0efb481d010c19a60908eee35da7af87c2e624294295f51a832',
   })
 })

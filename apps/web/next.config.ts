@@ -40,6 +40,7 @@ const unprovisionedProductionEnvironment =
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  outputFileTracingIncludes: { '/api/media/appearance/**': ['./src/appearance/faces/*.json'] },
   reactStrictMode: true,
   typedRoutes: true,
   async headers() {

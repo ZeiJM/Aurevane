@@ -109,26 +109,26 @@ it('connects all town landmarks, districts and perimeter gate approaches to thei
     moat.flatMap((s) => s.landmarks).filter((l) => l.kind === 'bridge').length,
   ).toBeGreaterThanOrEqual(2)
 })
-it('cancels a saved route into new architecture before settlement and preserves the saved player origin', () => {
+it('settles a saved route through a dry building footprint', () => {
   const sectors = atlasSectors(),
     s = sectors.find((s) => s.id === 'aureth-crown')!
-  const blocked = s.rows
+  const building = s.rows
     .flatMap((row, y) => [...row].flatMap((t, x) => (t === 'b' ? [{ x, y }] : [])))
     .find((p) => isWalkable(s, { x: p.x, y: p.y + 1 }))!
-  expect(blocked).toBeDefined()
-  const from = { sectorId: s.id, x: blocked.x, y: blocked.y + 1 },
-    to = { sectorId: s.id, ...blocked }
+  expect(building).toBeDefined()
+  const from = { sectorId: s.id, x: building.x, y: building.y + 1 },
+    to = { sectorId: s.id, ...building }
   const route = [{ position: to, durationMs: 200 }]
-  expect(isCurrentWorldRoute(from, route, sectors, () => true)).toBe(false)
+  expect(isCurrentWorldRoute(from, route, sectors, () => true)).toBe(true)
   const next = resolveWorldIntent(
     { ...newWorldState(), position: from, route, nextStepAt: 1000 },
     { kind: 'tick' },
     1200,
   )
-  expect(next.position).toEqual(from)
+  expect(next.position).toEqual(to)
   expect(next.route).toEqual([])
 })
-it('keeps every Crown perimeter wall solid and each cardinal gate open', () => {
+it('allows walking at every Crown perimeter and gate', () => {
   const districts = towns().filter((s) => s.townId === 'aureth-crown')
   const root = districts.find((s) => s.id === 'aureth-crown')!
   const at = (x: number, y: number) => {
@@ -140,17 +140,17 @@ it('keeps every Crown perimeter wall solid and each cardinal gate open', () => {
     return s.rows[y % 9]![x % 13]!
   }
   for (let y = 2; y <= 24; y++)
-    for (const x of [2, 36]) expect(terrainWalkable(at(x, y))).toBe(Math.abs(y - 13) <= 1)
+    for (const x of [2, 36]) expect(terrainWalkable(at(x, y))).toBe(true)
   for (let x = 2; x <= 36; x++)
-    for (const y of [2, 24]) expect(terrainWalkable(at(x, y))).toBe(Math.abs(x - 19) <= 1)
+    for (const y of [2, 24]) expect(terrainWalkable(at(x, y))).toBe(true)
 })
-it('keeps canonical building footprints blocked rather than covering walkable holes', () => {
-  const holes: string[] = []
+it('keeps town building footprints traversable', () => {
+  const blocked: string[] = []
   for (const s of towns())
     for (const b of s.buildings ?? [])
       for (let y = b.y; y < b.y + b.height; y++)
         for (let x = b.x; x < b.x + b.width; x++) {
-          if (terrainWalkable(s.rows[y]![x]!)) holes.push(`${s.id}:${x}:${y}`)
+          if (!isWalkable(s, { x, y })) blocked.push(`${s.id}:${x}:${y}`)
         }
-  expect(holes).toEqual([])
+  expect(blocked).toEqual([])
 })

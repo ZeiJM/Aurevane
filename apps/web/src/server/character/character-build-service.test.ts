@@ -6,6 +6,7 @@ import {
   changeCharacterDisciplines,
   changeCharacterPrimaryDiscipline,
   loadCharacterBuildContext,
+  loadCharacterIdentityBuild,
   loadCharacterCommittedBuildSnapshot,
   previewCharacterDisciplines,
   previewCharacterPrimaryDiscipline,
@@ -164,6 +165,23 @@ function repository(overrides: Partial<CharacterBuildRepository> = {}): Characte
 }
 
 describe('character build service', () => {
+  it('renders identical rail disciplines and stats with one owner-scoped build read', async () => {
+    const source = character()
+    const activeBuild = build(vanguard, 4, lifebinder)
+    const repo = repository({ findActiveBuild: vi.fn(async () => activeBuild) })
+    const full = await loadCharacterBuildContext(userId, source, repo)
+    vi.clearAllMocks()
+    const rail = await loadCharacterIdentityBuild(userId, source, repo)
+    expect(rail).toEqual({ current: full.current, currentSecondary: full.currentSecondary })
+    expect(repo.findActiveBuild).toHaveBeenCalledExactlyOnceWith(userId, source.id)
+    expect(repo.listDisciplines).not.toHaveBeenCalled()
+    expect(repo.listLearnedSkills).not.toHaveBeenCalled()
+    expect(repo.listEquippedDisciplineSkills).not.toHaveBeenCalled()
+    await expect(
+      loadCharacterIdentityBuild(userId, { ...source, id: 'another-character' }, repo),
+    ).rejects.toMatchObject({ code: 'PERSISTENCE_UNAVAILABLE' })
+  })
+
   it('computes the committed Primary and exposes learned Skills without changing assigned attributes', async () => {
     const source = character()
     const before = structuredClone(source.attributes)

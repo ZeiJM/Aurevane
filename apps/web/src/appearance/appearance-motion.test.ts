@@ -22,18 +22,49 @@ import { paintedPlayerLook } from './appearance-painted-looks'
 import { wardrobeLook } from './appearance-painted-wardrobe'
 import { renderAppearanceAsset } from './appearance-svg'
 
-it('serves the expanded motion atlas at its own immutable path', async () => {
+it('serves the current walk cycle at a fresh immutable URL for existing characters', async () => {
   const manifest = compileAppearanceManifest(APPEARANCE_PRESETS[0].blueprint)
   const [version, blueprint] = manifest.id.split('/')
   expect(manifest.atlas).toBe(`/api/media/appearance/${manifest.id}/atlas.svg`)
-  expect(manifest.motionAtlas).toBe(`/api/media/appearance/${manifest.id}/motion.svg`)
+  expect(manifest.motionAtlas).toBe(`/api/media/appearance/${manifest.id}/motion-v2.svg`)
   const response = await GET(new Request(`https://aurevane.invalid${manifest.motionAtlas}`), {
-    params: Promise.resolve({ version: version!, blueprint: blueprint!, asset: 'motion.svg' }),
+    params: Promise.resolve({ version: version!, blueprint: blueprint!, asset: 'motion-v2.svg' }),
   })
   expect(response.status).toBe(200)
   expect(response.headers.get('Cache-Control')).toContain('immutable')
   const { width, height, columns, rows } = APPEARANCE_MOTION_FRAME
   expect(await response.text()).toContain(`viewBox="0 0 ${width * columns} ${height * rows}"`)
+})
+
+it('preserves the previous immutable motion URLs for saved characters and older clients', async () => {
+  const preset = APPEARANCE_PRESETS[0].blueprint
+  const previous = [
+    [preset, '068c7e7d384b0093b262b7b4c2dd66b1e1e4a1d4244da5158c58829a6da23487'],
+    [
+      { ...preset, palette: 'ivory' },
+      'f10521e78d80b1ae177f42d32789fd8bb73f7418af045bad4cae57a8712bf8c2',
+    ],
+    [
+      paintedPlayerAppearanceBlueprint(paintedPlayerLook(wardrobeLook())),
+      '704c5fba1915f24a52fb7230c5c9c9913bf77afe8812f5f1eadbd2253c983f31',
+    ],
+  ] as const
+  for (const [look, expected] of previous) {
+    const { id } = compileAppearanceManifest(look)
+    const [version, blueprint] = id.split('/')
+    const response = await GET(
+      new Request(`https://aurevane.invalid/api/media/appearance/${id}/motion.svg`),
+      {
+        params: Promise.resolve({ version: version!, blueprint: blueprint!, asset: 'motion.svg' }),
+      },
+    )
+    expect(response.status).toBe(200)
+    expect(
+      createHash('sha256')
+        .update(await response.text())
+        .digest('hex'),
+    ).toBe(expected)
+  }
 })
 
 it('plays each walk frame once in every cycle', () => {
@@ -79,7 +110,7 @@ it.each(looks.map((look) => ({ look, id: compileAppearanceManifest(look).id })))
   'renders complete cells for every pose and direction in $id',
   async ({ look, id }) => {
     const { width, height, frames } = APPEARANCE_MOTION_FRAME
-    let atlas = renderAppearanceAsset(look, 'motion')
+    let atlas = renderAppearanceAsset(look, 'motion-v2')
     // Convert embedded WebP to PNG for the test rasterizer. The browser loads WebP directly.
     for (const uri of atlas.match(/data:image\/webp;base64,[A-Za-z0-9+/=]+/g) ?? []) {
       const png = await sharp(Buffer.from(uri.split(',')[1]!, 'base64'))

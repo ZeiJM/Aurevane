@@ -13,6 +13,7 @@ import { CharacterPortraitImage } from '@/components/character/character-portrai
 import type { ImageAssetId } from '@/media/registry'
 import { BattleSummonPortrait } from './battle-summon-portrait'
 import type { BattleAppearanceCue } from './battle-appearance-cues'
+import readyStyles from '../character/appearance-ready-stance.module.css'
 import styles from './battlefield-appearance-token.module.css'
 
 export function BattlefieldAppearanceToken({
@@ -71,8 +72,13 @@ export function BattlefieldAppearanceToken({
         <span
           key={walking ? pose : (cue?.key ?? pose)}
           aria-hidden="true"
-          className={styles.actor}
+          className={
+            pose === 'down' || pose === 'walk'
+              ? styles.actor
+              : `${styles.actor} ${readyStyles.ready}`
+          }
           data-battle-appearance-pose={pose}
+          data-appearance-facing={facing}
           style={
             {
               '--atlas': `url("${atlas}")`,

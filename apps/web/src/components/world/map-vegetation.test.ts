@@ -1,6 +1,7 @@
 import { expect, it } from 'vitest'
 import {
   forestCanopy,
+  groveCompanion,
   mainlandTreeIndex,
   vegetationPose,
   treeFlex,
@@ -12,21 +13,25 @@ it('breaks regular woodland rows with deterministic in-cell feet and varied grow
   const poses = Array.from({ length: 80 }, (_, i) =>
     vegetationPose('public', i % 10, Math.floor(i / 10), false),
   )
-  expect(new Set(poses.map((p) => p.scale)).size).toBeGreaterThan(10)
+  expect(new Set(poses.map((p) => p.scale)).size).toBe(8)
   expect(new Set(poses.map((p) => p.x)).size).toBeGreaterThan(10)
   for (let i = 0; i < poses.length; i++) {
     const p = poses[i]!
     expect(p).toEqual(vegetationPose('public', i % 10, Math.floor(i / 10), false))
     expect(Math.abs(p.x)).toBeLessThanOrEqual(0.15)
     expect(Math.abs(p.y)).toBeLessThanOrEqual(0.12)
-    expect(p.scale).toBeGreaterThanOrEqual(0.78)
+    expect(p.scale).toBeGreaterThanOrEqual(0.62)
     expect(p.scale).toBeLessThanOrEqual(1.18)
   }
   expect(vegetationPose('private', 2, 3, false)).not.toEqual(vegetationPose('public', 2, 3, false))
 })
-it('keeps authored avenues and landmark-adjacent trees anchored and full-sized', () => {
-  for (let x = 0; x < 20; x++)
-    expect(vegetationPose('public', x, 5, true)).toEqual({ x: 0, y: 0, scale: 1 })
+it('mixes young and mature trees on avenues while keeping every root fixed', () => {
+  const trees = Array.from({ length: 60 }, (_, i) => vegetationPose('public', i, 5, true))
+  expect(new Set(trees.map((tree) => tree.scale)).size).toBe(6)
+  for (const tree of trees) {
+    expect([tree.x, tree.y]).toEqual([0, 0])
+    expect(tree.scale).toBeLessThanOrEqual(1)
+  }
 })
 
 it('varies private growth without moving roots or enlarging crowns over a surveyed landmark', () => {
@@ -46,7 +51,7 @@ it('keeps the same public tree growth through wrapped camera representations', (
   expect(vegetationPose('public', 2, 3, false)).toEqual(vegetationPose('public', -1662, 3, false))
 })
 
-it('mixes mainland woodland silhouettes without changing authored avenues', () => {
+it('selects climate-suited mainland silhouettes with a frequent regional signature', () => {
   for (const [region, expected] of [
     ['verdant-expanse', [1, 3, 6, 7]],
     ['frostmere', [2, 3]],
@@ -62,6 +67,34 @@ it('mixes mainland woodland silhouettes without changing authored avenues', () =
     expect(mainlandTreeIndex(region, 668, 309, true)).toBe(signature)
     expect(mainlandTreeIndex(region, 668 + WORLD_MAP_WIDTH, 309, false)).toBe(sample[60])
   }
+})
+
+it('keeps both signature and companion species in each complete mainland stand', () => {
+  for (const region of ['emberreach', 'frostmere', 'glasswind-desert', 'hollow-coast'])
+    for (let y = 0; y < 13; y += 2)
+      for (let x = -4; x < 18; x += 2) {
+        const stand = [0, 1, 2, 3].map((slot) =>
+          mainlandTreeIndex(region, x + (slot & 1), y + (slot >> 1)),
+        )
+        expect(new Set(stand).size).toBeGreaterThan(1)
+        expect(stand).toContain(mainlandTreeIndex(region, x, y, true))
+      }
+})
+
+it.each([
+  ['sakura', [1, 7]],
+  ['autumn', [0, 4]],
+  ['wisteria', [6, 7]],
+  ['willow', [1, 7]],
+] as const)('mixes compatible companion trees into the %s canopy', (landscape, allowed) => {
+  const samples = Array.from({ length: 117 }, (_, i) =>
+    groveCompanion(landscape, i % 13, Math.floor(i / 13)),
+  )
+  const companions = samples.filter((sample) => sample !== undefined)
+  expect([...new Set(companions)].sort()).toEqual(allowed)
+  expect(companions.length).toBeGreaterThan(20)
+  expect(companions.length).toBeLessThan(60)
+  expect(groveCompanion(landscape, 3, 7)).toBe(groveCompanion(landscape, 3 + WORLD_MAP_WIDTH, 7))
 })
 
 it('gives trees distinct wind strengths and phases, including sheltered still ones', () => {

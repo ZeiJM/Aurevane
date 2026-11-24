@@ -478,7 +478,8 @@ async function reviewBuilder(browser, origin) {
     const randomize = dialog.getByRole('button', { name: 'Randomize', exact: true })
     const reset = dialog.getByRole('button', { name: 'Reset', exact: true })
     const confirm = dialog.getByRole('button', { name: 'Confirm appearance' })
-    const pose = dialog.getByRole('combobox', { name: 'Battle pose' })
+    const fieldPreviews = dialog.getByRole('group', { name: 'Field previews' })
+    const battlePoses = dialog.getByRole('group', { name: 'Battle poses' })
     const face = dialog.getByRole('combobox', { name: 'Face', exact: true })
     const setting = dialog.getByRole('combobox', { name: 'Portrait setting' })
     const src = () => portrait.getAttribute('src')
@@ -505,6 +506,7 @@ async function reviewBuilder(browser, origin) {
     const sharedOptions = await wardrobeOptionIds()
     await male.check()
     const maleFaces = await face.locator('option').allTextContents()
+    assert(maleFaces.length > 60 && femaleFaces.length > 60)
     assert(maleFaces.every((option) => !femaleFaces.includes(option)))
     assert.deepEqual(await wardrobeOptionIds(), sharedOptions)
     await randomize.click()
@@ -536,7 +538,7 @@ async function reviewBuilder(browser, origin) {
     await facewear.selectOption('eyepatch')
     await faceColor.selectOption('walnut')
     assert((await setting.locator('option').count()) >= 51)
-    assert.equal(await setting.locator('optgroup').count(), 3)
+    assert.equal(await setting.locator('optgroup').count(), 4)
     await setting.selectOption('verdant')
     assert.equal(await setting.inputValue(), 'verdant')
     await setting.selectOption('orchard')
@@ -574,31 +576,58 @@ async function reviewBuilder(browser, origin) {
       assert.equal(scenery[3], 255)
     }
 
-    const movement = dialog.locator('[data-preview-motion="walk"]')
-    const idle = dialog.locator('[data-preview-motion="idle"]')
-    for (const preview of [movement, idle]) {
-      const [first, later] = await preview.evaluate((sprite) => {
+    const movement = fieldPreviews.locator('[data-preview-motion="walk"]')
+    const idle = battlePoses.locator('[data-preview-motion="idle"]')
+    for (const [preview, property] of [
+      [movement, 'backgroundPositionX'],
+      [idle, 'transform'],
+    ]) {
+      const [first, later] = await preview.evaluate((sprite, property) => {
         const [animation] = sprite.getAnimations()
         animation.pause()
         animation.currentTime = 0
-        const first = getComputedStyle(sprite).backgroundPositionX
+        const first = getComputedStyle(sprite)[property]
         animation.currentTime = animation.effect.getTiming().duration / 2
-        const later = getComputedStyle(sprite).backgroundPositionX
+        const later = getComputedStyle(sprite)[property]
         animation.play()
         return [first, later]
-      })
+      }, property)
       assert.notEqual(first, later)
     }
-    assert.equal(await pose.locator('option').count(), 6)
-    const standingBounds = await idle.boundingBox()
-    for (const choice of ['walk', 'attack', 'cast', 'hit', 'down']) {
-      await pose.selectOption(choice)
-      const sprite = dialog.getByText('Battle', { exact: true }).locator('..').locator('span')
-      const bounds = await sprite.boundingBox()
-      assert.equal(bounds.height, standingBounds.height)
-      assert.equal(bounds.width, standingBounds.width)
-    }
-    assert.equal(await idle.count(), 0)
+    assert.deepEqual(await fieldPreviews.locator('figcaption').allTextContents(), [
+      'Icon',
+      'Movement',
+    ])
+    assert.deepEqual(await battlePoses.locator('figcaption').allTextContents(), [
+      'Idle',
+      'Walk',
+      'Attack',
+      'Cast',
+      'Hit',
+      'Down',
+    ])
+    assert.equal(await dialog.getByRole('combobox', { name: 'Battle pose' }).count(), 0)
+    const fieldBounds = await fieldPreviews.boundingBox()
+    const frames = await battlePoses.locator('figure').evaluateAll((figures) =>
+      figures.map((figure) => {
+        const sprite = figure.querySelector('span')
+        const box = figure.getBoundingClientRect()
+        return {
+          top: box.top,
+          left: box.left,
+          right: box.right,
+          width: sprite.offsetWidth,
+          height: sprite.offsetHeight,
+        }
+      }),
+    )
+    assert(frames[0].top >= fieldBounds.y + fieldBounds.height)
+    frames.forEach((frame, index) => {
+      assert(Math.abs(frame.top - frames[0].top) <= 1)
+      assert(Math.abs(frame.width - frames[0].width) <= 1 && frame.width >= 20)
+      assert(Math.abs(frame.height - frames[0].height) <= 1)
+      if (index) assert(frame.left >= frames[index - 1].right)
+    })
 
     const bounds = await dialog.evaluate((element) => {
       const box = element.getBoundingClientRect()

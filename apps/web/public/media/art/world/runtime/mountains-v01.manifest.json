@@ -9,7 +9,7 @@
   },
   "styles": ["rugged highland", "snowbound alpine", "Void riftstone"],
   "cellsPerStyle": ["clustered foothills", "major spire", "rounded hills", "open traversable pass"],
-  "collision": "only preexisting nonwalkable rock terrain; pass imagery only on existing walkable road",
+  "collision": "scenic summits on dry rocky ground; pass imagery follows existing roads",
   "quality": "normal-resolution sheet always; high-resolution sheet only on demand at increased zoom",
   "sources": [
     {

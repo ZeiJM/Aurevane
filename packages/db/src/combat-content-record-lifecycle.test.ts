@@ -679,6 +679,7 @@ it('retains all 48 legacy, 36 workspace and 4 Owner actor contracts with private
     'public.teleport_master_player_v4(uuid,uuid,bigint,uuid,text,integer,integer,integer,text,boolean,uuid)',
     'public.teleport_master_player_v5(uuid,uuid,bigint,uuid,text,integer,integer,integer,text,boolean,uuid)',
     'public.teleport_master_player_v6(uuid,uuid,bigint,uuid,text,integer,integer,integer,text,boolean,uuid)',
+    'public.teleport_master_player_v7(uuid,uuid,bigint,uuid,text,integer,integer,integer,text,boolean,uuid)',
     'public.publish_battlefield_elevation_policy_v2(uuid,integer,jsonb,uuid)',
     'public.publish_battlefield_elevation_policy_v3(uuid,integer,jsonb,uuid)',
     'public.publish_combat_effect_timing_policy_v2(uuid,integer,jsonb,text,uuid)',
@@ -735,7 +736,7 @@ it('retains all 48 legacy, 36 workspace and 4 Owner actor contracts with private
     )
   ).rows
   expect(legacyActorSignatures).toHaveLength(48)
-  expect(workspaceContracts).toHaveLength(36)
+  expect(workspaceContracts).toHaveLength(37)
   expect(ownerContracts).toHaveLength(4)
   expect(await actorSignatures()).toEqual(
     [

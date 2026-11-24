@@ -3,7 +3,10 @@ import { createHash, randomUUID } from 'node:crypto'
 import { AurevaneError } from '@aurevane/game-core/errors'
 import type { NpcDialogueRequest } from '@aurevane/validation/combat/npc-design'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
-import { loadPublicCharacterProfileImageMap } from '@/server/character/character-profile-display-service'
+import {
+  publicPeerPortraits,
+  resetPublicPeerPortraits,
+} from '@/server/character/public-portrait-cache'
 import { resolvePublicCharacterImageUrl } from '@/media/public-character-portrait'
 import {
   isSafe,
@@ -215,26 +218,13 @@ async function readWorldData(
   }
   return data
 }
-/* Walking sends a request per confirmation, so the two lookups that rarely change are kept
-   briefly in memory: portraits for 30 s, Master environment settings for 5 s. */
-const PORTRAIT_TTL_MS = 30_000
 const ENVIRONMENT_TTL_MS = 5_000
-let portraitCache: { key: string; at: number; value: ReadonlyMap<string, string> } | null = null
 let environmentCache: {
   at: number
   value: Awaited<ReturnType<typeof readWorldEnvironmentSettings>>
 } | null = null
-async function cachedProfileImages(ids: readonly string[]) {
-  const key = [...ids].sort().join(',')
-  const now = Date.now()
-  if (portraitCache && portraitCache.key === key && now - portraitCache.at < PORTRAIT_TTL_MS)
-    return portraitCache.value
-  const value = await loadPublicCharacterProfileImageMap(ids).catch(() => new Map<string, string>())
-  portraitCache = { key, at: now, value }
-  return value
-}
 export async function resolveWorldPlayerImages(players: readonly WorldPlayer[]) {
-  const profileImages = await cachedProfileImages(players.map((player) => player.characterId))
+  const profileImages = await publicPeerPortraits(players.map((player) => player.characterId))
   return players.map((player) => ({
     ...player,
     imageUrl: resolvePublicCharacterImageUrl(
@@ -253,7 +243,7 @@ async function cachedEnvironmentSettings() {
 }
 export function resetWorldReadCaches() {
   resetWorldNpcReadCache()
-  portraitCache = null
+  resetPublicPeerPortraits()
   environmentCache = null
 }
 export async function readWorldDialogue(userId: string, request: NpcDialogueRequest) {

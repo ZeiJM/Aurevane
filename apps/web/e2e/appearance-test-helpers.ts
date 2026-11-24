@@ -1,4 +1,4 @@
-import { expect, type Page } from '@playwright/test'
+import { expect, type Locator, type Page } from '@playwright/test'
 import { createClient } from '@supabase/supabase-js'
 import type { AppearanceBlueprint } from '../src/appearance/appearance-manifest'
 
@@ -48,4 +48,25 @@ export async function saveFixtureAppearance(
   const { appearance } = await response.json()
   expect(appearance).toMatchObject({ imageUrl: expect.any(String), appearanceTokens: 0 })
   return appearance.imageUrl
+}
+
+/** Sample inside one old 300ms atlas interval without depending on browser scheduling. */
+export async function expectSmoothReadyStance(actor: Locator) {
+  await expect(actor).toBeVisible()
+  const poses = await actor.evaluate((element) => {
+    const animation = element.getAnimations()[0]
+    if (!animation) return []
+    const originalTime = animation.currentTime
+    animation.pause()
+    try {
+      return Array.from({ length: 9 }, (_, index) => {
+        animation.currentTime = 350 + index * 16
+        return getComputedStyle(element).transform
+      })
+    } finally {
+      animation.currentTime = originalTime
+      animation.play()
+    }
+  })
+  expect(new Set(poses).size).toBe(9)
 }

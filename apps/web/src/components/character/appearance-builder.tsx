@@ -1,6 +1,7 @@
 'use client'
 
-import { useId, useMemo, useState, type CSSProperties } from 'react'
+import { useId, useMemo, type CSSProperties } from 'react'
+import { PORTRAIT_FACES, portraitFace } from '@/appearance/appearance-face-catalog'
 import { APPEARANCE_BACKDROP_GROUPS } from '@/appearance/appearance-backdrop-catalog'
 import {
   APPEARANCE_EXPRESSIONS,
@@ -21,7 +22,6 @@ import {
   APPEARANCE_GENDERS,
   appearanceGenderForIdentity,
   defaultPaintedLookForGender,
-  paintedIdentitiesForGender,
   paintedPlayerAppearanceBlueprint,
   paintedPlayerLook,
   randomPaintedLookForGender,
@@ -33,6 +33,7 @@ import {
   wardrobeLook,
   type PaintedPlayerLook,
 } from '@/appearance/appearance-painted-wardrobe'
+import readyStyles from './appearance-ready-stance.module.css'
 import styles from './appearance-builder.module.css'
 
 const genderChoices = Object.keys(APPEARANCE_GENDERS) as AppearanceGender[]
@@ -60,9 +61,9 @@ const fieldLabels = {
   facewear: 'Facewear style',
   faceColor: 'Facewear color',
   backdrop: 'Portrait setting',
-} satisfies Record<keyof PaintedPlayerLook, string>
+} satisfies Record<Exclude<keyof PaintedPlayerLook, 'faceId'>, string>
 
-const displayLabels: Partial<Record<keyof PaintedPlayerLook, string>> = {
+const displayLabels: Partial<Record<Exclude<keyof PaintedPlayerLook, 'faceId'>, string>> = {
   outerwear: 'Clothing',
   gear: 'Accessory',
   headwear: 'Headwear',
@@ -131,7 +132,7 @@ function PaintedFields({
   disabled: boolean
   onChange: (blueprint: AppearanceBlueprint) => void
 }) {
-  const faces: readonly string[] = paintedIdentitiesForGender(gender)
+  const faces = PORTRAIT_FACES.filter((face) => appearanceGenderForIdentity(face.rig) === gender)
   return (
     <fieldset className={styles.controls} aria-label="Appearance options" disabled={disabled}>
       {legacy ? <p className={styles.legacyHint}>Edits start a painted look.</p> : null}
@@ -147,28 +148,49 @@ function PaintedFields({
                 title={
                   field === 'backdrop' ? PAINTED_PLAYER_FIELDS.backdrop[look.backdrop] : undefined
                 }
-                value={look[field]}
+                value={field === 'identity' ? (look.faceId ?? 'fit' + look.identity) : look[field]}
                 disabled={Boolean(dyePiece && look[dyePiece] === 'none')}
                 onChange={(event) => {
                   const choice = event.target.value
-                  if (Object.hasOwn(options, choice))
-                    onChange(paintedPlayerAppearanceBlueprint({ ...look, [field]: choice }))
+                  if (field === 'identity') {
+                    const face = portraitFace(choice)
+                    if (face && appearanceGenderForIdentity(face.rig) === gender)
+                      onChange(
+                        paintedPlayerAppearanceBlueprint({
+                          ...look,
+                          identity: face.rig,
+                          faceId: face.id,
+                        }),
+                      )
+                  } else if (Object.hasOwn(options, choice)) {
+                    onChange(
+                      paintedPlayerAppearanceBlueprint({
+                        ...look,
+                        faceId: look.faceId ?? 'fit' + look.identity,
+                        [field]: choice,
+                      }),
+                    )
+                  }
                 }}
               >
-                {field === 'backdrop' ? (
+                {field === 'identity' ? (
+                  faces.map(({ id, name }) => (
+                    <option key={id} value={id}>
+                      {name}
+                    </option>
+                  ))
+                ) : field === 'backdrop' ? (
                   <PortraitSettingOptions />
                 ) : (
-                  Object.entries(options)
-                    .filter(([id]) => field !== 'identity' || faces.includes(id))
-                    .map(([id, option]) => (
-                      <option key={id} value={id}>
-                        {id === 'natural'
-                          ? 'Original'
-                          : typeof option === 'string'
-                            ? option
-                            : option.label}
-                      </option>
-                    ))
+                  Object.entries(options).map(([id, option]) => (
+                    <option key={id} value={id}>
+                      {id === 'natural'
+                        ? 'Original'
+                        : typeof option === 'string'
+                          ? option
+                          : option.label}
+                    </option>
+                  ))
                 )}
               </select>
             </label>
@@ -192,7 +214,6 @@ export function AppearanceBuilder({
 }) {
   const manifest = useMemo(() => compileAppearanceManifest(value), [value])
   const genderGroupName = useId()
-  const [battlePose, setBattlePose] = useState<AppearancePose>('idle')
   const painted = 'identity' in value ? value : null
   const gender = painted ? appearanceGenderForIdentity(painted.identity) : initialGender
   const look: PaintedPlayerLook | null = painted
@@ -205,7 +226,10 @@ export function AppearanceBuilder({
 
   function selectGender(nextGender: AppearanceGender) {
     const defaults = defaultPaintedLookForGender(nextGender)
-    const next = painted && look ? { ...look, identity: defaults.identity } : defaults
+    const next =
+      painted && look
+        ? { ...look, faceId: 'fit' + defaults.identity, identity: defaults.identity }
+        : { ...defaults, faceId: 'fit' + defaults.identity }
     onChange(paintedPlayerAppearanceBlueprint(next))
   }
 
@@ -249,33 +273,32 @@ export function AppearanceBuilder({
       <div className={styles.preview}>
         <Portraits manifest={manifest} />
         <div className={styles.gameplay} role="group" aria-label="Gameplay previews">
-          <figure className={styles.icon}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={manifest.icon} alt="" width={34} height={34} />
-            <figcaption>Icon</figcaption>
-          </figure>
-          <PosePreview manifest={manifest} size={47} facing="south" pose="walk" label="Movement" />
-          <div className={styles.battle}>
+          <div className={styles.fieldPreviews} role="group" aria-label="Field previews">
+            <figure className={styles.icon}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={manifest.icon} alt="" width={34} height={34} />
+              <figcaption>Icon</figcaption>
+            </figure>
             <PosePreview
               manifest={manifest}
-              size={58}
-              facing="east"
-              pose={battlePose}
-              label="Battle"
-              animateIdle
+              size={47}
+              facing="south"
+              pose="walk"
+              label="Movement"
             />
-            <select
-              aria-label="Battle pose"
-              value={battlePose}
-              disabled={disabled}
-              onChange={(event) => setBattlePose(event.target.value as AppearancePose)}
-            >
-              {APPEARANCE_POSES.map((pose) => (
-                <option key={pose} value={pose}>
-                  {title(pose)}
-                </option>
-              ))}
-            </select>
+          </div>
+          <div className={styles.battle} role="group" aria-label="Battle poses">
+            {APPEARANCE_POSES.map((pose) => (
+              <PosePreview
+                key={pose}
+                manifest={manifest}
+                size={58}
+                facing="east"
+                pose={pose}
+                label={title(pose)}
+                animateIdle
+              />
+            ))}
           </div>
         </div>
       </div>
@@ -336,13 +359,14 @@ export function PosePreview({
   const continuous = pose === 'idle' || pose === 'walk'
   const frameCount = continuous ? frames : APPEARANCE_FRAME.frames
   const animate = pose !== 'down' && (pose !== 'idle' || animateIdle)
-  const duration =
-    pose === 'walk' ? APPEARANCE_WALK_CYCLE_MS : pose === 'idle' ? APPEARANCE_READY_CYCLE_MS : 900
   return (
     <figure>
       <span
         aria-hidden="true"
-        className={styles.sprite}
+        className={
+          animate && pose === 'idle' ? `${styles.sprite} ${readyStyles.ready}` : styles.sprite
+        }
+        data-appearance-facing={facing}
         data-preview-motion={animate ? pose : undefined}
         style={
           {
@@ -353,7 +377,8 @@ export function PosePreview({
             '--last-frame': (100 * (column + frameCount - 1)) / (columns - 1) + '%',
             '--sprite-row': (100 * row) / (rows - 1) + '%',
             '--preview-frames': frameCount,
-            '--preview-cycle': duration + 'ms',
+            '--preview-cycle': `${pose === 'walk' ? APPEARANCE_WALK_CYCLE_MS : 900}ms`,
+            '--ready-duration': `${APPEARANCE_READY_CYCLE_MS}ms`,
           } as CSSProperties
         }
       />

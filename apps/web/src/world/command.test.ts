@@ -17,6 +17,16 @@ it('accepts intent but never accepts client state', () => {
     intent: { kind: 'walk', destination: { sectorId: 'verdant-expanse', x: 5, y: 4 } },
   })
 })
+it('preserves a keyboard heading and rejects an unknown one', () => {
+  const walk = { kind: 'walk', destination: { sectorId: 'verdant-expanse', x: 5, y: 4 } }
+  for (const direction of ['north', 'east', 'south', 'west']) {
+    const intent = { ...walk, direction }
+    expect(parseWorldCommand({ ...base, intent })?.intent).toEqual(intent)
+  }
+  for (const direction of ['northwest', null, {}, 1]) {
+    expect(parseWorldCommand({ ...base, intent: { ...walk, direction } })).toBeNull()
+  }
+})
 it('accepts bounded local interaction intent', () => {
   expect(
     parseWorldCommand({

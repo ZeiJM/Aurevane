@@ -49,10 +49,6 @@ await fs.writeFile(
     .join('\n'),
 )
 await fs.writeFile(
-  resolve(fixture, 'next-link.jsx'),
-  `import React from 'react';export default function Link({prefetch,...props}){return <a {...props}/>}`,
-)
-await fs.writeFile(
   resolve(fixture, 'next-mock.jsx'),
   `import React,{useSyncExternalStore} from 'react';export default function Image({fill,priority,unoptimized,...props}){return <img {...props}/>};for(const method of ['pushState','replaceState']){const original=history[method].bind(history);history[method]=(...args)=>{original(...args);dispatchEvent(new PopStateEvent('popstate'))}};const subscribe=cb=>{addEventListener('popstate',cb);return()=>removeEventListener('popstate',cb)};export const usePathname=()=>useSyncExternalStore(subscribe,()=>location.pathname,()=>'/');export const useRouter=()=>({push:url=>history.pushState(null,'',url),refresh(){}});export const useSearchParams=()=>new URLSearchParams(location.search);`,
 )
@@ -73,7 +69,9 @@ const config = {
       configureServer(server) {
         let route
         server.middlewares.use(async (request, response, next) => {
-          const match = request.url?.match(/^\/api\/media\/appearance\/(\d)\/([a-z.]+)\/([a-z.]+)$/)
+          const match = request.url?.match(
+            /^\/api\/media\/appearance\/(\d)\/([a-z0-9.]+)\/([a-z0-9-]+\.svg)$/,
+          )
           if (!match) return next()
           try {
             const { GET } = await (route ??= server.ssrLoadModule(
@@ -101,7 +99,7 @@ const config = {
       '@aurevane/validation': resolve(root, 'packages/validation/src'),
       '@aurevane/audio': resolve(root, 'packages/audio/src/index.ts'),
       '@aurevane/ui/styles.css': resolve(root, 'packages/ui/src/styles.css'),
-      'next/link': resolve(fixture, 'next-link.jsx'),
+      'next/link': resolve(web, 'e2e/fixtures/next-link.jsx'),
       'next/image': resolve(fixture, 'next-mock.jsx'),
       'next/navigation': resolve(fixture, 'next-mock.jsx'),
       react: resolve(web, 'node_modules/react'),
@@ -798,7 +796,7 @@ try {
       await wardrobe.getByLabel('Facewear style').selectOption('mask')
       await wardrobe.getByLabel('Portrait setting').selectOption('frost')
       const appearancePath =
-        '/api/media/appearance/6/scout.quilted.midnight.rope.cedar.circlet.natural.mask.ice.stocky.espresso.quiff.platinum.violet.frost'
+        '/api/media/appearance/6/fitscout.quilted.midnight.rope.cedar.circlet.natural.mask.ice.stocky.espresso.quiff.platinum.violet.frost'
       const portrait = wardrobe.getByRole('img', { name: 'Neutral appearance portrait' })
       await expect(portrait).toHaveAttribute('src', `${appearancePath}/neutral.svg`)
       await expect

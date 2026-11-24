@@ -1,3 +1,4 @@
+import type { MapDirection } from './wild-ids'
 import type { AppearanceExpression } from '@/appearance/appearance-manifest'
 import type { WorldEnvironment } from './environment'
 import type { FerryPassage, FerryShoreSide, WorldFerryView } from './ferry'
@@ -307,7 +308,7 @@ export interface WorldView {
 export type WorldIntent =
   | { kind: 'board-ferry' }
   | { kind: 'leave-ferry' }
-  | { kind: 'walk'; destination: WorldPosition }
+  | { kind: 'walk'; destination: WorldPosition; direction?: MapDirection }
   | { kind: 'autopath'; objectiveId: string }
   | { kind: 'stop' }
   | { kind: 'tick' }

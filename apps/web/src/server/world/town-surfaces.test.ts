@@ -2,6 +2,7 @@ import { mainlandSectorNumber } from '@/world/sector-index'
 import { expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
 import { atlasSectors } from '@/world/atlas'
+import { worldSurfaceRows } from '@/world/terrain'
 import { isSafe, isWalkable, newWorldState } from '@/world/travel'
 import { projectWorld, projectWorldSector, resolveWorldIntent } from './world-service'
 import { resolveSector } from './world-content'
@@ -73,8 +74,7 @@ it.each(['frostmere', 'emberreach'])(
     expect(distantPaint.cells.some((cell) => cell.terrain === 'w' || cell.terrain === '~')).toBe(
       false,
     )
-    // The registered staff-teleport body is immutable even though both shallow
-    // water and its replacement dry surface have identical movement and safety.
+    // Staff travel must see the same dry surface as ordinary walking.
     for (const sector of districts) {
       const geometry = masterTeleportGeometry(
         {
@@ -85,7 +85,7 @@ it.each(['frostmere', 'emberreach'])(
         },
         resolveSector,
       )[0]!
-      expect(geometry.rows).toBe(sector.rows)
+      expect(geometry.rows).toEqual(worldSurfaceRows(sector))
       expect(geometry.safeCells).toEqual(
         sector.rows.flatMap((row, y) =>
           [...row].flatMap((_, x) => (isSafe(sector, { x, y }) ? [y * 13 + x] : [])),

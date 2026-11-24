@@ -65,9 +65,16 @@ function clothPigment(dye: Dye) {
   </filter>`
 }
 
-export function paintedPortraitWardrobe(look: PaintedPlayerLook, subject: string) {
-  const { x, y, width, neck, braid } = fits[look.identity]
-  const { outerwear: coat, clothColor, gear, gearColor } = look
+export function paintedPortraitWardrobe(
+  look: PaintedPlayerLook,
+  subject: string,
+  independentHead = false,
+) {
+  const { x, y, width, neck, braid } = independentHead
+    ? { ...fits.guard, x: 145, y: 157, width: 246, braid: undefined }
+    : fits[look.identity]
+  const { clothColor, gear, gearColor } = look
+  const coat = independentHead && look.outerwear === 'none' ? 'compass' : look.outerwear
   const scale = WARDROBE_FRAMES[look.bodyFrame].torsoScale
   const frame = 1 + (scale - 1) * 0.66
   const fit = (art: string) =>
@@ -86,7 +93,9 @@ export function paintedPortraitWardrobe(look: PaintedPlayerLook, subject: string
       `<clipPath id="portrait-neck"><path d="${neck}"/></clipPath>` +
       (braid ? `<clipPath id="portrait-braid"><path d="${braid}"/></clipPath>` : '') +
       clothPigment(clothColor)
-    outfit = `<g clip-path="url(#portrait-neck)">${subject}</g>${fit(tailored)}${tail}`
+    outfit = independentHead
+      ? subject + fit(tailored)
+      : `<g clip-path="url(#portrait-neck)">${subject}</g>${fit(tailored)}${tail}`
   } else if (frame !== 1) {
     definition = `<clipPath id="portrait-shoulders"><path d="M0 ${y + 40}Q128 ${y + 10} 256 ${y + 42}V256H0Z"/></clipPath>
       <clipPath id="portrait-upper"><path d="M0 0H256V${y + 42}Q128 ${y + 10} 0 ${y + 40}Z"/></clipPath>`
@@ -94,7 +103,8 @@ export function paintedPortraitWardrobe(look: PaintedPlayerLook, subject: string
       <g clip-path="url(#portrait-shoulders)">${fit(subject)}</g>`
   }
 
-  if (gear !== 'none') {
+  // All current gear pieces are waist-mounted and sit below the framed portrait.
+  if (gear !== 'none' && !look.faceId) {
     const filter = gearColor === 'natural' ? '' : ' filter="url(#portrait-gear-dye)"'
     definition += paintedDyeFilter('portrait-gear-dye', gearColor)
     outfit +=

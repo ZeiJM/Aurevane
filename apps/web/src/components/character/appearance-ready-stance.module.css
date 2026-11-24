@@ -1,0 +1,28 @@
+.ready {
+  transform-origin: 50% 90.625%; /* Atlas foot anchor, 58 of 64 pixels. */
+  animation: ready-breath var(--ready-duration) ease-in-out var(--ready-delay, 0ms) infinite;
+}
+
+.ready[data-appearance-facing='east'] {
+  --ready-lean: 0.85deg;
+}
+
+.ready[data-appearance-facing='west'] {
+  --ready-lean: -0.85deg;
+}
+
+@keyframes ready-breath {
+  0%,
+  100% {
+    transform: rotate(0deg) scale(1);
+  }
+  46% {
+    transform: rotate(var(--ready-lean, 0deg)) scale(1.015, 0.966);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ready {
+    animation: none;
+  }
+}

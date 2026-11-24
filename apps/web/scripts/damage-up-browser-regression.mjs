@@ -25,10 +25,6 @@ await fs.copyFile(
   resolve(fixture, 'next-mock.jsx'),
 )
 await fs.writeFile(
-  resolve(fixture, 'next-link.jsx'),
-  `import React from 'react';export default function Link({prefetch,...props}){return <a {...props}/>}`,
-)
-await fs.writeFile(
   resolve(fixture, 'production-styles.js'),
   "import '@aurevane/ui/styles.css';import '@/app/globals.css'",
 )
@@ -45,7 +41,7 @@ const server = await createServer({
       '@': resolve(web, 'src'),
       '@aurevane/game-core': resolve(root, 'packages/game-core/src'),
       '@aurevane/ui/styles.css': resolve(root, 'packages/ui/src/styles.css'),
-      'next/link': resolve(fixture, 'next-link.jsx'),
+      'next/link': resolve(web, 'e2e/fixtures/next-link.jsx'),
       'next/image': resolve(fixture, 'next-mock.jsx'),
       'next/navigation': resolve(fixture, 'next-mock.jsx'),
       react: resolve(web, 'node_modules/react'),

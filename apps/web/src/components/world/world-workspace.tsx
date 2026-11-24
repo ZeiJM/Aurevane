@@ -1,4 +1,5 @@
 'use client'
+import type { MapDirection } from '@/world/wild-ids'
 import { WorldDestinationCard } from './world-destination-card'
 import { worldTimeLabel, worldDayPhase, WORLD_DAY_REAL_MS } from '@/world/environment'
 import { ChatPanel } from '@/components/social/chat/chat-panel'
@@ -468,10 +469,15 @@ export function WorldWorkspace({
       setApproachingPlayer(null)
   }, [approachingPlayer, approvedPosition, view, active])
   const send = useCallback(
-    (intent: WorldIntent, previewRoute?: readonly TravelStep[]) => {
+    (
+      intent: WorldIntent,
+      previewRoute?: readonly TravelStep[],
+      previewDestination?: WorldPosition,
+    ) => {
       setMessage('')
       const now = performance.now()
       const instance = controller.current
+      if (intent.kind !== 'walk' || !intent.direction) motion.clearPendingTurn()
       if (intent.kind === 'stop') motion.stop(now)
       else if (intent.kind === 'attack') motion.hold(now)
       if (!instance) return
@@ -481,7 +487,11 @@ export function WorldWorkspace({
         walking && !current.movementBlocked && !current.battleSessionId && !instance.attackPending
           ? motion.sample(now).position
           : null
-      void instance.send(intent).then(() => {
+      let turn: ReturnType<WorldMotion['planDirectional']>
+      const previousWritePending = instance.movementPending
+      void instance.send(intent).then((receipt) => {
+        if (receipt.applied && receipt.view && turn && controller.current === instance)
+          motion.confirmDirectional(receipt.view, turn, performance.now())
         if (walking || intent.kind === 'stop') void instance.hydrate({ movement: true })
       })
       if (!origin) return
@@ -490,15 +500,23 @@ export function WorldWorkspace({
           ? current.objectives.find((item) => item.id === intent.objectiveId && canAutoPath(item))
           : undefined
       const destination = intent.kind === 'walk' ? intent.destination : objective?.destination
-      if (destination) {
+      if (intent.kind === 'walk' && intent.direction) {
+        turn = motion.planDirectional(
+          previewDestination ?? intent.destination,
+          intent.direction,
+          current.sectors,
+          now,
+          previousWritePending,
+        )
+      } else if (destination) {
         const route = previewRoute ?? localRoute(current, origin, destination)
-        if (route) motion.plan(route, current.sectors, now)
+        if (route) motion.plan(route, current.sectors, now, 'destination')
       }
     },
     [motion],
   )
   const walk = useCallback(
-    (destination: WorldPosition) => {
+    (destination: WorldPosition, direction?: MapDirection, previewDestination?: WorldPosition) => {
       const instance = controller.current
       if (
         !instance ||
@@ -508,7 +526,11 @@ export function WorldWorkspace({
       )
         return
       setApproachingPlayer(null)
-      send({ kind: 'walk', destination })
+      send(
+        direction ? { kind: 'walk', destination, direction } : { kind: 'walk', destination },
+        undefined,
+        previewDestination,
+      )
     },
     [send],
   )

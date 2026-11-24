@@ -1,7 +1,7 @@
 import { expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
 import { projectWorld, resolveWorldIntent } from '@/server/world/world-service'
-import { newWorldState } from '@/world/travel'
+import { newWorldState, revealNearby } from '@/world/travel'
 import { mapPoint } from './world-motion'
 import { worldSceneCoversViewport } from './world-scene-coverage'
 import { WorldController } from './world-controller'
@@ -39,7 +39,7 @@ it.each([
   { x: 5, y: 7 },
   { x: 11, y: 4 },
 ])(
-  'detects missing public background after movement to$x,$y despite supplied route ground',
+  'supplies public ground when turning away from the sent route to $x,$y before the next scene',
   (position) => {
     const state = resolveWorldIntent(
       newWorldState(),
@@ -59,7 +59,7 @@ it.each([
         ),
     ).toBe(true)
     expect(worldSceneCoversViewport(view, [mapPoint(destination, view.sectors)], viewport)).toBe(
-      false,
+      true,
     )
     const fresh = projectWorld(
       { ...state, position: destination, route: [], nextStepAt: null },
@@ -82,13 +82,24 @@ it.each(['camera movement', 'viewport expansion', 'same-version viewport expansi
   async (change) => {
     const state = newWorldState()
     const earlier = { ...projectWorld(state, [], 1000), characterId: 'owner' }
+    const town = earlier.sectors.find((sector) => sector.id === state.position.sectorId)!
+    const nextDistrict = earlier.sectors.find(
+      (sector) => sector.atlasColumn === town.atlasColumn! + 1 && sector.atlasRow === town.atlasRow,
+    )!
     const size = change !== 'camera movement' ? { width: 2560, height: 1440 } : viewport
     const current = {
       ...projectWorld(
         {
           ...state,
           version: change === 'same-version viewport expansion' ? state.version : state.version + 1,
-          position: change === 'camera movement' ? { ...state.position, x: 11 } : state.position,
+          position:
+            change === 'camera movement'
+              ? {
+                  sectorId: nextDistrict.id,
+                  x: 8,
+                  y: 4,
+                }
+              : state.position,
         },
         [],
         1600,
@@ -158,3 +169,43 @@ it('accepts useful older public ground when the current viewport is already inco
   expect(presentation).toHaveBeenCalledOnce()
   controller.dispose()
 })
+
+it.each(['void:hollow-orchard:22:11', 'uncharted-landing'])(
+  'hydrates the current private realm viewport in %s without changing discovery or navigation',
+  async (sectorId) => {
+    const state = revealNearby({ ...newWorldState(), position: { sectorId, x: 6, y: 4 } })
+    const complete = projectWorld(state, [], 2000)
+    const cold = { ...complete, unchartedTerrain: undefined }
+    const point = mapPoint(cold.position, cold.sectors)
+    const covered = (view: typeof complete) => worldSceneCoversViewport(view, [point], viewport)
+    const other = projectWorld(
+      revealNearby({ ...state, position: { sectorId: 'void:ivory-veil:22:11', x: 6, y: 4 } }),
+      [],
+      2000,
+    )
+    expect(covered(cold)).toBe(false)
+    expect(covered({ ...cold, unchartedTerrain: other.unchartedTerrain })).toBe(false)
+    expect(covered(complete)).toBe(true)
+    const presentation = vi.fn()
+    const controller = new WorldController(cold, {
+      command: vi.fn(),
+      refresh: vi
+        .fn()
+        .mockResolvedValueOnce(complete)
+        .mockResolvedValueOnce({ ...cold, serverNow: 1900 }),
+      accept: vi.fn(),
+      presentation,
+      sceneCovered: covered,
+      error: vi.fn(),
+      busy: vi.fn(),
+    })
+    await controller.hydrate({ viewport: true })
+    expect(covered(controller.view)).toBe(true)
+    expect(controller.view.sectors).toBe(cold.sectors)
+    expect(controller.view.players).toEqual(cold.players)
+    await controller.hydrate()
+    expect(covered(controller.view)).toBe(true)
+    expect(presentation).toHaveBeenCalledTimes(1)
+    controller.dispose()
+  },
+)

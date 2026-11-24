@@ -13,6 +13,7 @@ import {
 } from './world-ground-coverage'
 import { installWorldRenderTiming } from './world-render-diagnostics'
 import { wrappedMapX } from '../src/world/topology'
+import sharp from 'sharp'
 
 function captureLocalNameplate(el: HTMLElement | SVGElement) {
   const context = document
@@ -360,11 +361,12 @@ export async function verifyWorldPresentation(
           return null
         }
         expect(response.ok(), `World movement snapshot status ${response.status()}`).toBe(true)
-        return ((await response.json()) as WorldView).position
+        const { position, route } = (await response.json()) as WorldView
+        return { position, remainingSteps: route.length }
       },
       { timeout: 12000 },
     )
-    .toEqual({ sectorId: 'atlas:58:28', x: 7, y: 4 })
+    .toEqual({ position: { sectorId: 'atlas:58:28', x: 7, y: 4 }, remainingSteps: 0 })
   await expect
     .poll(async () => Number(await canvas.getAttribute('data-camera-x')), { timeout: 5000 })
     .toBe(58 * GRID_WIDTH + 7.5)
@@ -657,36 +659,7 @@ export function registerWorldInputCases({
     await zoom.press('Home')
     await expect(zoom).toHaveValue('35')
     await closeMapSettings(page)
-    await canvas.evaluate((el) => {
-      const stage = el as HTMLCanvasElement
-      const context = stage.getContext('2d')!,
-        original = context.drawImage.bind(context)
-      const originalFill = context.fillRect.bind(context)
-      let groundLayers = 0
-      context.fillRect = (x, y, width, height) => {
-        if (x === 0 && y === 0 && width === stage.clientWidth && height === stage.clientHeight)
-          groundLayers = 0
-        originalFill(x, y, width, height)
-      }
-      context.drawImage = ((image: CanvasImageSource, ...args: number[]) => {
-        const tile = Number(stage.dataset.tileSize)
-        const isGroundRaster =
-          image instanceof HTMLCanvasElement ||
-          (typeof ImageBitmap !== 'undefined' && image instanceof ImageBitmap)
-        if (
-          isGroundRaster &&
-          args.length === 4 &&
-          args[0] === 0 &&
-          args[1] === 0 &&
-          args[2] === 13 * tile &&
-          args[3] === 9 * tile
-        ) {
-          groundLayers++
-          stage.dataset.testGroundLayers = String(groundLayers)
-        }
-        Reflect.apply(original, context, [image, ...args])
-      }) as typeof context.drawImage
-    })
+    await canvas.evaluate(installWorldGroundCoverage)
     const delayedReads: Promise<void>[] = []
     let delayEnabled = true
     const delayScene = (route: import('@playwright/test').Route) => {
@@ -713,13 +686,31 @@ export function registerWorldInputCases({
       )
       await stageWalk(page, { sectorId: 'atlas:63:28', x: 6, y: 4 })
       expect((await dispatched).status()).toBe(200)
+      const minPainted = info.project.name === 'desktop-chromium' ? 25 : 0
       await expect
-        .poll(() => canvas.evaluate((el) => Number(el.dataset.testGroundLayers)))
-        .toBeGreaterThan(0)
-      if (info.project.name === 'desktop-chromium')
-        await expect
-          .poll(() => canvas.evaluate((el) => Number(el.dataset.testGroundLayers)))
-          .toBeGreaterThan(25)
+        .poll(async () => {
+          const painted = await canvas.getAttribute('data-painted-ground-ids')
+          return painted ? new Set<string>(JSON.parse(painted)).size : 0
+        })
+        .toBeGreaterThan(minPainted)
+      // Check the composited result even when many sectors share one cached draw.
+      const shot = await canvas.screenshot()
+      const { width, height } = await sharp(shot).metadata()
+      const side = Math.floor(Math.min(width!, height!) / 6)
+      for (const left of [0, width! - side]) {
+        for (const top of [0, height! - side]) {
+          const { data, info: raster } = await sharp(shot)
+            .extract({ left, top, width: side, height: side })
+            .removeAlpha()
+            .raw()
+            .toBuffer({ resolveWithObject: true })
+          const colours = new Set<number>()
+          for (let i = 0; i < data.length; i += raster.channels * 3) {
+            colours.add((data[i]! << 16) | (data[i + 1]! << 8) | data[i + 2]!)
+          }
+          expect(colours.size, 'Ground detail reaches every corner').toBeGreaterThan(48)
+        }
+      }
       await capture(page, info, 'minimum-zoom-scenery-during-walk')
       await expect
         .poll(async () => (await world(page)).position, { timeout: 12000 })
@@ -829,7 +820,7 @@ export function registerWorldInputCases({
       release()
     }
   })
-  test('a pointer direction change keeps moving through a timely delayed approval', async ({
+  test('a pointer direction change keeps moving past three tiles while approval is delayed', async ({
     page,
   }, info) => {
     test.skip(info.project.name === 'laptop-chromium', 'Check mouse and touch once each.')
@@ -961,7 +952,7 @@ export function registerWorldInputCases({
       releaseFirst()
       expect((await turnRequest).postDataJSON().intent.destination).toEqual(destination)
       await turnResponseReady
-      await page.clock.runFor(550)
+      await page.clock.runFor(710)
       await expect(canvas).toHaveAttribute('data-test-turn-samples', /\[/)
       expect(delayed).toBe(true)
       const samples = JSON.parse((await canvas.getAttribute('data-test-turn-samples'))!) as {
@@ -971,7 +962,7 @@ export function registerWorldInputCases({
       }[]
       // Ignore initial pointer scheduling; the new route has four legal steps,
       // so it cannot have reached its destination during this observation.
-      const during = samples.filter((sample) => sample.time >= 120 && sample.time <= 545)
+      const during = samples.filter((sample) => sample.time >= 120 && sample.time <= 705)
       expect(during.length).toBeGreaterThan(10)
       let lastMove = during[0]!.time
       let longestPause = 0
@@ -995,7 +986,7 @@ export function registerWorldInputCases({
       )
       releaseTurn()
       await (await approval).finished()
-      await page.clock.runFor(100)
+      await page.clock.runFor(16)
       const afterApproval = await canvas.evaluate((el) => ({
         x: Number(el.dataset.travellerX),
         y: Number(el.dataset.travellerY),
@@ -1052,13 +1043,13 @@ export function registerWorldInputCases({
         const portrait = new URL(el.dataset.portrait!, location.href).href
         ctx.drawImage = ((image: CanvasImageSource, ...args: number[]) => {
           if (
-            image instanceof HTMLImageElement &&
-            image.src === portrait &&
             ctx.strokeStyle === '#ead399' &&
-            args.length === 8
+            ((image instanceof HTMLImageElement && image.src === portrait && args.length === 8) ||
+              ((image instanceof ImageBitmap || image instanceof HTMLCanvasElement) &&
+                args.length === 4))
           ) {
-            el.dataset.testDrawnX = String(args.at(-4)! + 17)
-            el.dataset.testDrawnY = String(args.at(-3)! + 34)
+            el.dataset.testDrawnX = String(args.at(-4)! + args.at(-2)! / 2)
+            el.dataset.testDrawnY = String(args.at(-3)! + args.at(-1)!)
           }
           ;(draw as (...args: unknown[]) => void)(image, ...args)
         }) as typeof ctx.drawImage
@@ -1152,10 +1143,10 @@ export function registerWorldInputCases({
         portrait = new URL(el.dataset.portrait!, location.href).href
       context.drawImage = ((image: CanvasImageSource, ...args: number[]) => {
         if (
-          image instanceof HTMLImageElement &&
-          image.src === portrait &&
           context.strokeStyle === '#ead399' &&
-          args.length === 8
+          ((image instanceof HTMLImageElement && image.src === portrait && args.length === 8) ||
+            ((image instanceof ImageBitmap || image instanceof HTMLCanvasElement) &&
+              args.length === 4))
         ) {
           el.dataset.testPortraitDraw = JSON.stringify({
             width: args.at(-2),

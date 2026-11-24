@@ -36,6 +36,7 @@ export function publicGroundCoversViewport(
   for (const sector of sectors) {
     if (
       sector.charted &&
+      sector.cells.length === GRID_WIDTH * GRID_HEIGHT &&
       sector.atlasColumn !== undefined &&
       sector.atlasRow !== undefined &&
       !sector.warpedTheme &&
@@ -80,85 +81,100 @@ export function buildPublicCoasts(view: Pick<WorldView, 'sectors' | 'atlas'>) {
   ])
   const field = new Map<string, CoastEdge[]>()
   for (const sector of view.sectors) {
-    const edges: CoastEdge[] = []
+    const column = sector.atlasColumn,
+      row = sector.atlasRow
+    let cells: Map<string, string> | undefined
+    const edges =
+      view.atlas && sector.charted && column !== undefined && row !== undefined
+        ? publicCoastEdges(
+            column,
+            row,
+            (c, r) => occupied.has(`${c}:${r}`),
+            (x, y) => {
+              cells ??= new Map(sector.cells.map((cell) => [`${cell.x}:${cell.y}`, cell.terrain]))
+              return cells.get(`${x}:${y}`)
+            },
+          )
+        : []
     field.set(sector.id, edges)
-    if (
-      !view.atlas ||
-      !sector.charted ||
-      sector.atlasColumn === undefined ||
-      sector.atlasRow === undefined
-    )
-      continue
-    // Interior chunks cannot expose a coast. Avoid indexing all their cells.
-    if (
-      offsets.every(([dx, dy]) => {
-        const neighbor = atlasNeighbor(sector.atlasColumn!, sector.atlasRow!, dx, dy)
-        return neighbor && occupied.has(`${neighbor.column}:${neighbor.row}`)
-      })
-    )
-      continue
-    const known = new Map(sector.cells.map((cell) => [`${cell.x}:${cell.y}`, cell.terrain]))
-    for (let side = 0; side < 4; side++) {
-      const [dx, dy] = offsets[side]!
-      const neighbor = atlasNeighbor(sector.atlasColumn, sector.atlasRow, dx, dy)
-      if (neighbor && occupied.has(`${neighbor.column}:${neighbor.row}`)) continue
-      const length = side % 2 ? GRID_HEIGHT : GRID_WIDTH
-      let start: number | null = null
-      for (let i = 0; i <= length; i++) {
-        const x = side === 1 ? GRID_WIDTH - 1 : side === 3 ? 0 : i,
-          y = side === 0 ? 0 : side === 2 ? GRID_HEIGHT - 1 : i,
-          terrain = i < length ? known.get(`${x}:${y}`) : undefined,
-          land =
-            terrain !== undefined &&
-            terrain !== '~' &&
-            terrain !== 'w' &&
-            terrain !== 'l' &&
-            terrain !== '?'
-        if (land && start === null) start = i
-        if (!land && start !== null) {
-          edges.push({
-            side: side as CoastEdge['side'],
-            from: start,
-            to: i,
-            seed: hashString(`${sector.atlasColumn}:${sector.atlasRow}:${side}`),
-            openStart: false,
-            openEnd: false,
-          })
-          start = null
-        }
-      }
-    }
-    // An exposed side can end at another occupied chunk or in the middle of
-    // its own water channel. Round only the open-sea corners where two full
-    // land edges meet and the diagonal has no public terrain.
-    const corners = [
-      { x: -1, y: -1, horizontal: 0, vertical: 3 },
-      { x: 1, y: -1, horizontal: 0, vertical: 1 },
-      { x: -1, y: 1, horizontal: 2, vertical: 3 },
-      { x: 1, y: 1, horizontal: 2, vertical: 1 },
-    ] as const
-    for (const corner of corners) {
-      const diagonal = atlasNeighbor(sector.atlasColumn, sector.atlasRow, corner.x, corner.y)
-      if (diagonal && occupied.has(`${diagonal.column}:${diagonal.row}`)) continue
-      const xEnd = corner.x > 0 ? 'openEnd' : 'openStart'
-      const yEnd = corner.y > 0 ? 'openEnd' : 'openStart'
-      const horizontal = edges.find(
-        (edge) =>
-          edge.side === corner.horizontal &&
-          (corner.x > 0 ? edge.to === GRID_WIDTH : edge.from === 0),
-      )
-      const vertical = edges.find(
-        (edge) =>
-          edge.side === corner.vertical &&
-          (corner.y > 0 ? edge.to === GRID_HEIGHT : edge.from === 0),
-      )
-      if (horizontal && vertical) {
-        horizontal[xEnd] = true
-        vertical[yEnd] = true
+  }
+  return field
+}
+
+export function publicCoastEdges(
+  column: number,
+  row: number,
+  occupied: (column: number, row: number) => boolean,
+  surface: (x: number, y: number) => string | undefined,
+) {
+  const edges: CoastEdge[] = []
+  // Interior chunks cannot expose a coast. Avoid indexing all their cells.
+  if (
+    offsets.every(([dx, dy]) => {
+      const neighbor = atlasNeighbor(column, row, dx, dy)
+      return neighbor && occupied(neighbor.column, neighbor.row)
+    })
+  )
+    return edges
+  for (let side = 0; side < 4; side++) {
+    const [dx, dy] = offsets[side]!
+    const neighbor = atlasNeighbor(column, row, dx, dy)
+    if (neighbor && occupied(neighbor.column, neighbor.row)) continue
+    const length = side % 2 ? GRID_HEIGHT : GRID_WIDTH
+    let start: number | null = null
+    for (let i = 0; i <= length; i++) {
+      const x = side === 1 ? GRID_WIDTH - 1 : side === 3 ? 0 : i,
+        y = side === 0 ? 0 : side === 2 ? GRID_HEIGHT - 1 : i,
+        terrain = i < length ? surface(x, y) : undefined,
+        land =
+          terrain !== undefined &&
+          terrain !== '~' &&
+          terrain !== 'w' &&
+          terrain !== 'l' &&
+          terrain !== '?'
+      if (land && start === null) start = i
+      if (!land && start !== null) {
+        edges.push({
+          side: side as CoastEdge['side'],
+          from: start,
+          to: i,
+          seed: hashString(`${column}:${row}:${side}`),
+          openStart: false,
+          openEnd: false,
+        })
+        start = null
       }
     }
   }
-  return field
+  // An exposed side can end at another occupied chunk or in the middle of
+  // its own water channel. Round only the open-sea corners where two full
+  // land edges meet and the diagonal has no public terrain.
+  const corners = [
+    { x: -1, y: -1, horizontal: 0, vertical: 3 },
+    { x: 1, y: -1, horizontal: 0, vertical: 1 },
+    { x: -1, y: 1, horizontal: 2, vertical: 3 },
+    { x: 1, y: 1, horizontal: 2, vertical: 1 },
+  ] as const
+  for (const corner of corners) {
+    const diagonal = atlasNeighbor(column, row, corner.x, corner.y)
+    if (diagonal && occupied(diagonal.column, diagonal.row)) continue
+    const xEnd = corner.x > 0 ? 'openEnd' : 'openStart'
+    const yEnd = corner.y > 0 ? 'openEnd' : 'openStart'
+    const horizontal = edges.find(
+      (edge) =>
+        edge.side === corner.horizontal &&
+        (corner.x > 0 ? edge.to === GRID_WIDTH : edge.from === 0),
+    )
+    const vertical = edges.find(
+      (edge) =>
+        edge.side === corner.vertical && (corner.y > 0 ? edge.to === GRID_HEIGHT : edge.from === 0),
+    )
+    if (horizontal && vertical) {
+      horizontal[xEnd] = true
+      vertical[yEnd] = true
+    }
+  }
+  return edges
 }
 
 /** Positive distance points out to sea. Dry material uses a separate inland pass. */

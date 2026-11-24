@@ -1,3 +1,4 @@
+import { PORTRAIT_FACES, portraitFace } from '@/appearance/appearance-face-catalog'
 import 'server-only'
 
 import { randomInt } from 'node:crypto'
@@ -56,7 +57,10 @@ const paintedVariationFields: Partial<Record<NpcVariantField, keyof PaintedLook>
 }
 
 function variationValue(blueprint: AppearanceBlueprint, field: NpcVariantField) {
-  if (blueprint.v === 6) return blueprint[field as keyof PaintedPlayerLook]
+  if (blueprint.v === 6)
+    return field === 'identity'
+      ? (blueprint.faceId ?? blueprint.identity)
+      : blueprint[field as keyof PaintedPlayerLook]
   if (blueprint.v === 5) return blueprint[field as keyof PaintedWardrobeLook]
   const paintedField = paintedVariationFields[field]
   return blueprint.v === 4 && paintedField
@@ -70,7 +74,10 @@ function variationPool({ base, vary }: NpcVariantRequest) {
     if (base.v === 6)
       return {
         field,
-        options: Object.keys(PAINTED_PLAYER_FIELDS[field as keyof PaintedPlayerLook]),
+        options:
+          field === 'identity'
+            ? PORTRAIT_FACES.map(({ id }) => id)
+            : Object.keys(PAINTED_PLAYER_FIELDS[field as keyof typeof PAINTED_PLAYER_FIELDS]),
       }
     if (base.v === 5)
       return {
@@ -100,6 +107,11 @@ function variationPool({ base, vary }: NpcVariantRequest) {
     for (const { field, options } of parts) {
       const radix = BigInt(options.length)
       draft[field] = options[Number(position % radix)]
+      if (base.v === 6 && field === 'identity') {
+        const face = portraitFace(draft[field])!
+        draft.faceId = face.id
+        draft.identity = face.rig
+      }
       position /= radix
     }
     const blueprint =

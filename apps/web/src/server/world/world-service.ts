@@ -1,4 +1,6 @@
 import 'server-only'
+import { directionalWalk } from '@/world/directional-walk'
+import { MAP_X, MAP_Y } from '@/components/world/map-projection'
 import { encodeTerrainRows, worldSurfaceRows } from '@/world/terrain'
 import { AurevaneError } from '@aurevane/game-core/errors'
 import { FRONTIER_APPROACH, GRID_HEIGHT, GRID_WIDTH, STEP_MS } from '@/world/catalog'
@@ -251,7 +253,21 @@ export function resolveWorldIntent(
       !isKnown(walking, destination)
     )
       invalid('Survey this ground before plotting a route.')
-    const route = routeTo(walking, destination, intent.kind === 'walk')
+    const route =
+      intent.kind === 'walk' && intent.direction
+        ? directionalWalk(
+            walking.position,
+            destination,
+            intent.direction,
+            resolveSector,
+            (p) => isLocalVoidWalk(walking.position.sectorId, p.sectorId) || isKnown(walking, p),
+            walking.route[0] &&
+              walking.nextStepAt !== null &&
+              walking.nextStepAt - now < walking.route[0].durationMs
+              ? walking.route[0]
+              : undefined,
+          )
+        : routeTo(walking, destination, intent.kind === 'walk')
     if (!route) invalid('There is no known walkable route to that location.')
     // Replanning never accelerates movement: a step already under way keeps its schedule,
     // otherwise the first new step waits a full interval.
@@ -605,8 +621,10 @@ export function projectWorld(
   const sceneWidth = viewport?.width ?? 1296
   const sceneHeight = viewport?.height ?? 944
   const sceneTile = (sceneWidth < 600 ? 48 : 64) * 0.35
-  const sceneryHalfWidth = sceneWidth / sceneTile / 2 + 1
-  const sceneryHalfHeight = sceneHeight / sceneTile / 2 + 1
+  // An input reversal can precede the next full scene by several movement
+  // receipts. Eight tiles of public ground in every direction cover that turn.
+  const sceneryHalfWidth = sceneWidth / sceneTile / 2 + 8 * MAP_X
+  const sceneryHalfHeight = sceneHeight / sceneTile / 2 + 8 * MAP_Y
   const scenery: WorldScenerySector[] =
     currentSector.charted && currentAddress
       ? visible
@@ -619,13 +637,13 @@ export function projectWorld(
               sceneryAnchors.some((anchor) => {
                 const dx = wrappedMapX(address.column * GRID_WIDTH, anchor.x) - anchor.x,
                   dy = address.row * GRID_HEIGHT - anchor.y,
-                  x = (dx - dy) * 0.85,
-                  y = (dx + dy) * 0.44
+                  x = (dx - dy) * MAP_X,
+                  y = (dx + dy) * MAP_Y
                 return (
-                  x - GRID_HEIGHT * 0.85 <= sceneryHalfWidth &&
-                  x + GRID_WIDTH * 0.85 >= -sceneryHalfWidth &&
+                  x - GRID_HEIGHT * MAP_X <= sceneryHalfWidth &&
+                  x + GRID_WIDTH * MAP_X >= -sceneryHalfWidth &&
                   y <= sceneryHalfHeight &&
-                  y + (GRID_WIDTH + GRID_HEIGHT) * 0.44 >= -sceneryHalfHeight
+                  y + (GRID_WIDTH + GRID_HEIGHT) * MAP_Y >= -sceneryHalfHeight
                 )
               })
             )

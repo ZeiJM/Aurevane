@@ -146,6 +146,44 @@ describe('world visual motion', () => {
     delayed.reconcile(receipt(), 950)
     expect(delayed.sample(951).moving).toBe(true)
   })
+  it('walks a clicked route at its authored pace through a slow acknowledgement', () => {
+    const motion = new WorldMotion(view)
+    motion.plan(forward, sectors, 0, 'destination')
+    for (let now = 16; now <= 1200; now += 16) {
+      if (now === 800) motion.updateScene(sectors, now)
+      expect(motion.sample(now).point.x).toBeCloseTo(1.5 + now / 200, 8)
+      expect(motion.approvedPosition(now)).toEqual(position)
+    }
+    const before = motion.sample(1200)
+    motion.reconcile(receipt(), 1200)
+    expect(motion.sample(1200).point).toEqual(before.point)
+    expect(motion.sample(1216).point.x).toBeCloseTo(before.point.x + 16 / 200, 8)
+    expect(motion.sample(1600).position).toEqual(forward.at(-1)!.position)
+  })
+  it('ends a destination preview at the last supplied legal edge', () => {
+    const water = sectors.map((sector) => ({
+      ...sector,
+      cells: sector.cells.map((cell) =>
+        cell.x === 6 && cell.y === 4 ? { ...cell, walkable: false, terrain: '~' } : cell,
+      ),
+    }))
+    const motion = new WorldMotion({ ...view, sectors: water })
+    motion.plan(forward, water, 0, 'destination')
+    expect(motion.sample(750).moving).toBe(true)
+    expect(motion.sample(10000).position).toEqual(forward[3]!.position)
+    expect(motion.approvedPosition(10000)).toEqual(position)
+    const disconnected = new WorldMotion(view)
+    disconnected.plan([forward[3]!], sectors, 0, 'destination')
+    expect(disconnected.sample(10000).position).toEqual(position)
+  })
+  it('stops a destination preview immediately on a blocking receipt', () => {
+    const motion = new WorldMotion(view)
+    motion.plan(forward, sectors, 0, 'destination')
+    const before = motion.sample(950).point
+    motion.reconcile(receipt(forward, { movementBlocked: 'battle' }), 950)
+    expect(motion.sample(1400)).toMatchObject({ point: before, moving: false })
+    expect(motion.approvedPosition(1400)).toEqual(position)
+  })
   it('uses the full bounded preview during a partial direction change without landing an unapproved tile', () => {
     const turn = [3, 2, 1, 0].map((y) => ({ position: { ...position, y }, durationMs: 200 }))
     const motion = new WorldMotion(view)
@@ -405,7 +443,7 @@ describe('world visual motion', () => {
       expect(motion.sample(6000).moving).toBe(false)
     }
   })
-  it('does not jump over an already observed visual pause when loaded geometry arrives late', () => {
+  it('resumes a loaded crossing immediately at walking speed after its visual prefix ended', () => {
     const from = { ...position, x: 11 },
       edge = { ...position, x: 12 }
     const to = { sectorId: 'b', x: 0, y: 4 }
@@ -420,12 +458,39 @@ describe('world visual motion', () => {
     const before = motion.sample(5200)
     expect(before.moving).toBe(false)
     motion.updateScene([first, second])
-    expect(motion.sample(5200)).toEqual(before)
-    motion.reconcile({ ...confirmed, sectors: [first, second], serverNow: 1200 }, 5200)
     expect(motion.sample(5200).point).toEqual(before.point)
     expect(motion.sample(5216).point.x - before.point.x).toBeCloseTo(16 / 200)
     expect(motion.sample(5400).position).toEqual(to)
   })
+  it.each(['mount', 'receipt'] as const)(
+    'waits for the first approved edge on %s, then starts it at authored speed',
+    (entry) => {
+      const from = { ...position, x: 12 }
+      const to = { sectorId: 'b', x: 0, y: 4 }
+      const first = {
+        ...sectors[0]!,
+        exits: [{ from, to, durationMs: 200, name: 'Known crossing' }],
+      }
+      const second = { ...sectors[0]!, id: 'b', atlasColumn: 1 }
+      const confirmed = receipt([{ position: to, durationMs: 200 }], {
+        position: from,
+        sectors: [first],
+      })
+      const motion = new WorldMotion(
+        entry === 'mount' ? confirmed : { ...confirmed, route: [], nextStepAt: null },
+        5000,
+      )
+      if (entry === 'receipt') motion.reconcile(confirmed, 5050)
+      const before = motion.sample(5500)
+      expect(before.moving).toBe(false)
+      motion.updateScene([first, { ...second, cells: [] }], 5500)
+      expect(motion.sample(5600)).toEqual(before)
+      motion.updateScene([first, second], 5600)
+      expect(motion.sample(5600).point).toEqual(before.point)
+      expect(motion.sample(5650).point.x - before.point.x).toBeCloseTo(0.25)
+      expect(motion.sample(5800).position).toEqual(to)
+    },
+  )
   it.each(['sector', 'cell', 'road'] as const)(
     'trims a now-withheld future visual %s without changing the current point or authored phase',
     (withheld) => {

@@ -144,9 +144,36 @@ export function registerWorldLandscapeCases(helpers: Helpers) {
     await enter(page)
     const initial = await world(page)
     place(initial.characterId, 'atlas:58:28', 11, 7)
-    // This disposable visual-only fixture exposes the material weights with
-    // original texture/scenery images absent. No fixture movement command is sent.
-    await page.route('**/media/art/world/runtime/**', (route) => route.abort())
+    // Isolate the blend from texture variation. A failed image now displays the
+    // regional preview, which contains real foliage and stone colours of its own.
+    const coloursBySlot = [
+      '#727254',
+      '#557748',
+      '#a5b1b5',
+      '#7c7c77',
+      '#5c5150',
+      '#ab956e',
+      '#73827b',
+      '#384e48',
+    ]
+    const tilePixels = 32
+    const sheetWidth = tilePixels * 4
+    const sheet = Buffer.alloc(sheetWidth * tilePixels * 2 * 3)
+    for (let i = 0; i < sheet.length / 3; i++) {
+      const col = Math.floor((i % sheetWidth) / tilePixels)
+      const row = Math.floor(i / (sheetWidth * tilePixels))
+      sheet.writeUIntBE(Number.parseInt(coloursBySlot[row * 4 + col]!.slice(1), 16), i * 3, 3)
+    }
+    const tileSheet = await sharp(sheet, {
+      raw: { width: sheetWidth, height: 2 * tilePixels, channels: 3 },
+    })
+      .png()
+      .toBuffer()
+    await page.route('**/media/art/world/runtime/**', (route) =>
+      new URL(route.request().url()).pathname.endsWith('/regional-ground-v02.webp')
+        ? route.fulfill({ contentType: 'image/png', body: tileSheet })
+        : route.abort(),
+    )
     const regions = new Map([
       ['58:28', 'verdant-expanse'],
       ['59:28', 'umbral-march'],
@@ -246,7 +273,7 @@ export function registerWorldLandscapeCases(helpers: Helpers) {
       info.outputPath('world-art-review.json'),
       JSON.stringify(
         {
-          scope: 'four-biome fallback palette with static relief',
+          scope: 'four-biome calibrated palette with static relief',
           projection,
           colours,
           materialMean,

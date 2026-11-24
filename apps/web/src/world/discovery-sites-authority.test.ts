@@ -26,7 +26,7 @@ it('blocks the valley pools and preserves dry avenues through the cliffs', () =>
     expect(sector.rows[p.y]![p.x], `${gx}:${gy}`).toBe('~')
     expect(isWalkable(sector, p)).toBe(false)
   }
-  let blocked = 0
+  let rocky = 0
   let open = 0
   for (let x = site.left; x < site.left + site.width; x++) {
     const y = site.top + ((4 - (site.top % 9) + 9) % 9),
@@ -36,11 +36,11 @@ it('blocks the valley pools and preserves dry avenues through the cliffs', () =>
     const barrier = grandDiscoveryBarrier(site.id, x - site.left, y - site.top)
     if (barrier) expect(s.rows[y % 9]![x % 13], `${x}:${y}`).toBe('#')
     else expect(s.rows[y % 9]![x % 13], `${x}:${y}`).toMatch(/^[.=]$/)
-    expect(isWalkable(s, { x: x % 13, y: y % 9 })).toBe(!barrier)
-    if (barrier) blocked++
+    expect(isWalkable(s, { x: x % 13, y: y % 9 })).toBe(true)
+    if (barrier) rocky++
     else open++
   }
-  expect(blocked).toBe(site.width - 9)
+  expect(rocky).toBe(site.width - 9)
   expect(open).toBe(9)
 })
 it('reserves the entire discovery grounds and southern approach without dense trees or generated POI overlaps', () => {
@@ -53,20 +53,8 @@ it('reserves the entire discovery grounds and southern approach without dense tr
           (s) => s.atlasColumn === Math.floor(gx / 13) && s.atlasRow === Math.floor(gy / 9),
         )
         expect(s, `${site.id} ${gx}:${gy}`).toBeDefined()
-        if (site.id === 'remote-colosseum') {
-          const barrier = grandDiscoveryBarrier(site.id, gx - site.left, gy - site.top)
-          const terrain = s!.rows[gy % 9]![gx % 13]
-          if (barrier && terrain === '#')
-            expect(
-              isWalkable(s!, { x: gx % 13, y: gy % 9 }),
-              'colosseum perimeter blocks movement',
-            ).toBe(false)
-          else
-            expect(
-              isWalkable(s!, { x: gx % 13, y: gy % 9 }),
-              'arena floor and roads remain reachable',
-            ).toBe(true)
-        }
+        if (site.id === 'remote-colosseum')
+          expect(isWalkable(s!, { x: gx % 13, y: gy % 9 }), 'arena floor and perimeter').toBe(true)
         if (s!.rows[gy % 9]![gx % 13] === 't') overlaps.push(`${gx}:${gy}:tree`)
         for (const l of s!.landmarks)
           if (s!.atlasColumn! * 13 + l.x === gx && s!.atlasRow! * 9 + l.y === gy)

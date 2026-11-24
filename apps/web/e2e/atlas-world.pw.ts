@@ -1515,24 +1515,48 @@ test('a synthetic population of 100 has bounded rendering at high DPI and lower 
   }))
   const identity = page.locator('canvas[data-world-identity]')
   await identity.evaluate((el) => {
-    const context = (el as HTMLCanvasElement).getContext('2d')!,
-      original = context.drawImage.bind(context),
-      clear = context.clearRect.bind(context),
-      sources = new Set<string>()
+    // Follow each original portrait through the crop canvas and its immutable bitmap.
+    // Count it only when the identity canvas actually paints that portrait.
+    const sources = new Set<string>()
+    const origins = new WeakMap<object, HTMLImageElement>()
+    const identity = (el as HTMLCanvasElement).getContext('2d')!
+    const originalClear = identity.clearRect.bind(identity)
     let paints = 0
-    context.clearRect = (x, y, width, height) => {
+    identity.clearRect = (x, y, width, height) => {
       el.dataset.testIdentityPaints = String(++paints)
-      clear(x, y, width, height)
+      originalClear(x, y, width, height)
     }
-    context.drawImage = (image: CanvasImageSource, ...args: number[]) => {
-      if (image instanceof HTMLImageElement && image.src.includes('syntheticPortrait=')) {
-        sources.add(image.src)
-        el.dataset.testPortraitSources = String(sources.size)
-        el.dataset.testPortraitMinimumWidth = String(
-          Math.min(Number(el.dataset.testPortraitMinimumWidth ?? Infinity), image.naturalWidth),
-        )
+    for (const type of [CanvasRenderingContext2D, OffscreenCanvasRenderingContext2D]) {
+      const original = type.prototype.drawImage
+      type.prototype.drawImage = function (
+        this: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
+        image: CanvasImageSource,
+        ...coordinates: number[]
+      ) {
+        const portrait = image instanceof HTMLImageElement ? image : origins.get(image)
+        if (portrait?.src.includes('syntheticPortrait=')) {
+          if (this === identity) {
+            sources.add(portrait.src)
+            el.dataset.testPortraitSources = String(sources.size)
+            el.dataset.testPortraitMinimumWidth = String(
+              Math.min(
+                Number(el.dataset.testPortraitMinimumWidth ?? Infinity),
+                portrait.naturalWidth,
+              ),
+            )
+          } else {
+            origins.set(this.canvas, portrait)
+          }
+        }
+        Reflect.apply(original, this, [image, ...coordinates])
       }
-      Reflect.apply(original, context, [image, ...args])
+    }
+    const transfer = OffscreenCanvas.prototype.transferToImageBitmap
+    OffscreenCanvas.prototype.transferToImageBitmap = function () {
+      const bitmap = transfer.call(this)
+      const source = origins.get(this)
+      if (source) origins.set(bitmap, source)
+      return bitmap
     }
   })
   await page.route('**/api/world*', async (route) => {

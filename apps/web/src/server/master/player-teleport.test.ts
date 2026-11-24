@@ -91,7 +91,7 @@ it('checks staff access before preparing geometry and sends only typed destinati
   const rpc = vi.fn(async (name: string) =>
     name === 'read_master_player_v1'
       ? raw
-      : name === 'teleport_master_player_v6'
+      : name === 'teleport_master_player_v7'
         ? { position: { sectorId: 'atlas:28:28', x: 6, y: 4 }, version: 7, replayed: false }
         : {},
   )
@@ -116,7 +116,7 @@ it('checks staff access before preparing geometry and sends only typed destinati
     version: 7,
     replayed: false,
   })
-  expect(rpc).toHaveBeenCalledWith('teleport_master_player_v6', {
+  expect(rpc).toHaveBeenCalledWith('teleport_master_player_v7', {
     p_actor_user_id: 'owner',
     p_character_id: 'target',
     p_expected_version: 6,
@@ -151,7 +151,7 @@ it('uses a new immutable geometry release and covers the expanded private contin
     masterTeleportGeometry,
     parseMasterTeleportDestination,
   } = await import('./player-teleport')
-  expect(MASTER_TELEPORT_GEOMETRY_VERSION).toBe('2026-11-23-v6')
+  expect(MASTER_TELEPORT_GEOMETRY_VERSION).toBe('2026-11-24-v7')
   expect(
     parseMasterTeleportDestination({
       map: 'currentVoid',
@@ -175,6 +175,7 @@ it.each([
   '2026-11-14-v3',
   '2026-11-14-v4',
   '2026-11-18-v5',
+  '2026-11-23-v6',
   'unrecognized',
 ])(
   'refuses stale Void coordinate version %s before preparation or commit',

@@ -348,6 +348,13 @@
   background: #aa906029;
 }
 
+.railLink:has([data-nav-pending]) {
+  cursor: progress;
+  color: #f5d992;
+  background-color: #a0834947;
+  box-shadow: inset 0 -2px #dab572;
+}
+
 .railLink:disabled {
   opacity: 0.55;
   cursor: not-allowed;

@@ -1,9 +1,9 @@
 'use client'
 
 import type { Route } from 'next'
-import Link from 'next/link'
+import Link, { useLinkStatus } from 'next/link'
 import { usePathname } from 'next/navigation'
-import type { ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 
 import { gameNavigation } from './game-navigation'
 import styles from './authenticated-game-shell.module.css'
@@ -70,6 +70,15 @@ function NavigationIcon({ name }: { name: (typeof gameNavigation)[number]['icon'
   )
 }
 
+function DestinationLabel({ label }: { label: string }) {
+  const { pending } = useLinkStatus()
+  return (
+    <span aria-busy={pending || undefined} data-nav-pending={pending || undefined}>
+      {label}
+    </span>
+  )
+}
+
 export interface GameRailProps {
   characterIdentity?: ReactNode
   activeSessionHref?: Route | null
@@ -83,6 +92,22 @@ export function GameRail({
 }: GameRailProps) {
   const pathname = usePathname()
   const restricted = Boolean(activeSessionHref)
+  const [warmHref, setWarmHref] = useState<Route | null>(null)
+  const dwell = useRef<ReturnType<typeof setTimeout> | null>(null)
+  function cancelDwell() {
+    if (dwell.current !== null) clearTimeout(dwell.current)
+    dwell.current = null
+  }
+  function clearIntent() {
+    cancelDwell()
+    setWarmHref(null)
+  }
+  function warmDestination(href: Route) {
+    cancelDwell()
+    dwell.current = setTimeout(() => setWarmHref(href), 100)
+  }
+  useEffect(() => cancelDwell, [])
+
   return (
     <aside
       className={styles.rail}
@@ -98,8 +123,8 @@ export function GameRail({
             item.href &&
             (pathname === item.href ||
               pathname.startsWith(item.href + '/') ||
-              (item.href === '/game/loadout' &&
-                (pathname.startsWith('/game/nexus') || pathname.startsWith('/game/arsenal')))),
+              (item.href === '/game/nexus' &&
+                (pathname.startsWith('/game/loadout') || pathname.startsWith('/game/arsenal')))),
           )
           return restricted ? (
             <button
@@ -117,7 +142,16 @@ export function GameRail({
           ) : (
             <Link
               key={item.href}
-              prefetch={false}
+              prefetch={!active && warmHref === item.href}
+              onPointerEnter={(event) => {
+                if (!active && event.pointerType !== 'touch') warmDestination(item.href)
+              }}
+              onPointerLeave={clearIntent}
+              onFocus={() => {
+                if (!active) warmDestination(item.href)
+              }}
+              onBlur={clearIntent}
+              onNavigate={clearIntent}
               className={styles.railLink}
               href={item.href}
               aria-label={item.label}
@@ -125,7 +159,7 @@ export function GameRail({
               title={item.detail}
             >
               <NavigationIcon name={item.icon} />
-              <span>{item.label}</span>
+              <DestinationLabel label={item.label} />
             </Link>
           )
         })}

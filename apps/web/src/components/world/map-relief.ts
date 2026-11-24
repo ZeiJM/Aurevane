@@ -167,19 +167,40 @@ export function paintTerrainContours(
     pixels = raster.pixels.data
   const shadow = sector.warpedTheme ? [74, 49, 99] : [30, 43, 38],
     light = sector.warpedTheme ? [255, 247, 189] : [251, 244, 210]
-  for (let y = 0; y < height; y++)
+  // Each wave is an X phase plus a Y phase. Factor their sine/cosine
+  // addition so neighboring pixels keep the exact same continuous field
+  // without five trigonometric calls per terrain pixel.
+  const phases = new Float64Array(width * 6)
+  for (let x = 0; x < width; x++) {
+    const longitude = ((origin.x + (x + 0.5) / contourResolution) * Math.PI * 2) / WORLD_MAP_WIDTH
+    const i = x * 6
+    phases[i] = Math.cos(longitude * 45)
+    phases[i + 1] = Math.sin(longitude * 45)
+    phases[i + 2] = Math.cos(longitude * 19)
+    phases[i + 3] = Math.sin(longitude * 19)
+    phases[i + 4] = Math.cos(longitude * 71)
+    phases[i + 5] = Math.sin(longitude * 71)
+  }
+  for (let y = 0; y < height; y++) {
+    const wy = origin.y + (y + 0.5) / contourResolution
+    const ay = wy * 0.19,
+      by = -wy * 0.13,
+      cy = wy * 0.31
+    const ac = Math.cos(ay) * (0.51 * 0.82) + Math.sin(ay) * (0.4 * 0.18)
+    const as = -Math.sin(ay) * (0.51 * 0.82) + Math.cos(ay) * (0.4 * 0.18)
+    const bc = -Math.sin(by) * (0.28 * 0.82) + Math.cos(by) * (0.35 * 0.18)
+    const bs = -Math.cos(by) * (0.28 * 0.82) - Math.sin(by) * (0.35 * 0.18)
+    const cc = Math.cos(cy) * (0.21 * 0.82),
+      cs = -Math.sin(cy) * (0.21 * 0.82)
     for (let x = 0; x < width; x++) {
-      const wx = origin.x + (x + 0.5) / contourResolution,
-        wy = origin.y + (y + 0.5) / contourResolution,
-        longitude = (wx * Math.PI * 2) / WORLD_MAP_WIDTH
-      // Integer longitudinal harmonics close at the public wrap. Their periods span
-      // many cells, so the same ridge/basin crosses tile and sector boundaries.
-      const a = longitude * 45 + wy * 0.19,
-        b = longitude * 19 - wy * 0.13,
-        c = longitude * 71 + wy * 0.31
-      const slope = Math.cos(a) * 0.51 - Math.sin(b) * 0.28 + Math.cos(c) * 0.21
-      const basin = Math.sin(a) * 0.4 + Math.cos(b) * 0.35
-      const shade = Math.max(-1, Math.min(1, slope * 0.82 + basin * 0.18)),
+      const phase = x * 6
+      const shade =
+          phases[phase]! * ac +
+          phases[phase + 1]! * as +
+          phases[phase + 2]! * bc +
+          phases[phase + 3]! * bs +
+          phases[phase + 4]! * cc +
+          phases[phase + 5]! * cs,
         colour = shade < 0 ? shadow : light,
         i = (y * width + x) * 4
       pixels[i] = colour[0]!
@@ -187,6 +208,7 @@ export function paintTerrainContours(
       pixels[i + 2] = colour[2]!
       pixels[i + 3] = Math.round(Math.abs(shade) * (shade < 0 ? 112 : 66))
     }
+  }
   raster.context.putImageData(raster.pixels, 0, 0)
   for (const cell of cells)
     context.drawImage(

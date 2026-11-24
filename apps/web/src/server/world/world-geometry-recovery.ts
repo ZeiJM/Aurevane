@@ -1,7 +1,7 @@
 import 'server-only'
 import { ASTERWAKE_REGION_ID } from '@/world/asterwake'
 import { atlasSectors } from '@/world/atlas'
-import { terrainWalkable } from '@/world/terrain'
+import { isWalkable } from '@/world/travel'
 import type { WorldPosition, WorldSector } from '@/world/types'
 import { GRID_HEIGHT, GRID_WIDTH } from '@/world/catalog'
 import { ATLAS_COLUMNS } from '@/world/topology'
@@ -13,7 +13,7 @@ type PublicComponent = {
   connected: Map<string, WorldPosition[]>
 }
 
-/** Construct the canonical public travel component only when an old saved wall
+/** Construct the canonical public travel component only when a saved liquid
  * origin needs repair. The cached map is based on the same sector rows and
  * cross-sector roads as the normal server pathfinder. */
 let componentCache: PublicComponent | null = null
@@ -46,7 +46,7 @@ function publicComponent(): PublicComponent {
     const local = code % CELLS
     const x = local % GRID_WIDTH
     const y = Math.floor(local / GRID_WIDTH)
-    if (!terrainWalkable(sectors[si]?.rows[y]?.[x] ?? '#')) return
+    if (!isWalkable(sectors[si]!, { x, y })) return
     visited[code] = 1
     queue.push(code)
   }
@@ -79,8 +79,7 @@ function publicComponent(): PublicComponent {
 
 /** Return null for ordinary legal locations and all private worlds. Only a
  * genuinely impassable persisted mainland origin is repaired into the canonical
- * connected component. This catches old arena/cliff walls AND any historical
- * city/terrain cell that a subsequent art release made solid. No browser may
+ * connected component when a later map has open liquid at that tile. No browser may
  * choose this destination. */
 export function savedWorldGeometryRecovery(position: WorldPosition): WorldPosition | null {
   if (
@@ -98,11 +97,12 @@ export function savedWorldGeometryRecovery(position: WorldPosition): WorldPositi
     return null
   const sector = chartedSector(position.sectorId)
   if (!sector) return null
-  const at = sector.rows[position.y]?.[position.x] ?? '#'
-  if (terrainWalkable(at)) return null
+  if (isWalkable(sector, position)) return null
   if (sector.regionId === ASTERWAKE_REGION_ID) {
     const land = sector.rows.flatMap((row, y) =>
-      [...row].flatMap((tile, x) => (terrainWalkable(tile) ? [{ sectorId: sector.id, x, y }] : [])),
+      [...row].flatMap((_, x) =>
+        isWalkable(sector, { x, y }) ? [{ sectorId: sector.id, x, y }] : [],
+      ),
     )
     const distance = (target: WorldPosition) =>
       (position.x - target.x) ** 2 + (position.y - target.y) ** 2

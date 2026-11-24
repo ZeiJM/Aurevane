@@ -57,10 +57,6 @@ await fs.writeFile(
     .join('\n'),
 )
 await fs.writeFile(
-  resolve(fixture, 'next-link.jsx'),
-  `import React from 'react';export default function Link({prefetch,...props}){return <a {...props}/>}`,
-)
-await fs.writeFile(
   resolve(fixture, 'next-dynamic.jsx'),
   `import React from 'react';export default function dynamic(loader){const Component=React.lazy(()=>loader().then(value=>({default:value})));return props=><React.Suspense fallback={null}><Component {...props}/></React.Suspense>}`,
 )
@@ -83,7 +79,7 @@ const server = await createServer({
       '@aurevane/validation': resolve(root, 'packages/validation/src'),
       '@aurevane/audio': resolve(root, 'packages/audio/src/index.ts'),
       '@aurevane/ui/styles.css': resolve(root, 'packages/ui/src/styles.css'),
-      'next/link': resolve(fixture, 'next-link.jsx'),
+      'next/link': resolve(web, 'e2e/fixtures/next-link.jsx'),
       'next/dynamic': resolve(fixture, 'next-dynamic.jsx'),
       'next/image': resolve(fixture, 'next-mock.jsx'),
       'next/navigation': resolve(fixture, 'next-mock.jsx'),

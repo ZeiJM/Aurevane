@@ -1,3 +1,4 @@
+import facePalettes from './appearance-face-palette.json'
 import {
   APPEARANCE_FACINGS,
   type AppearanceExpression,
@@ -242,9 +243,29 @@ function pigmentFilter(id: string, rgb: readonly number[], midpoint: number, gai
 const irises = (eyes: readonly Iris[], dx = 0) =>
   eyes.map(([x, y, radius]) => `<circle cx="${x + dx}" cy="${y}" r="${radius}"/>`).join('')
 
+// Registered scalp and iris landmarks for the straight-on field plates in the motion atlas.
+const frontalFeatures = {
+  scout: { scalp: 'M47 18H82V40L75 47 74 39 70 33 68 37 63 34 59 39 55 37 54 47 47 42Z', eyeY: 40 },
+  ranger: {
+    scalp: 'M50 14H78V32L76 40 71 34 67 25 63 24 58 29 56 37 59 39 57 57 51 64 49 58 52 40Z',
+    eyeY: 32,
+  },
+  guard: { scalp: 'M54 11H75L74 26 71 19 66 20 58 19 55 27Z', eyeY: 24 },
+  elder: {
+    scalp: 'M50 16H78L81 33 75 41 72 37 73 31 68 25 63 24 58 27 57 35 53 41 47 33Z',
+    eyeY: 32,
+  },
+  pinescout: {
+    scalp:
+      'M48 14H79L79 38 75 43 72 35 70 27 67 25 60 29 59 36 54 40 56 53 54 64 49 66 48 60 51 50Z',
+    eyeY: 32,
+  },
+} as const
+
 export function paintedFeatureDyes(
   look: PaintedWardrobeLook | PaintedPlayerLook,
   expression?: AppearanceExpression,
+  frontal = false,
 ) {
   const hair = WARDROBE_HAIR_COLORS[look.hairDye].rgb
   const eyes = WARDROBE_EYE_COLORS[look.eyeColor].rgb
@@ -252,11 +273,23 @@ export function paintedFeatureDyes(
   const hairClip = expression
     ? `<path d="${portraitScalps[identity]}"/>`
     : fieldScalps[identity]
-        .map((d, i) => `<path transform="translate(${128 * i})" d="${d}"/>`)
+        .map(
+          (d, i) =>
+            `<path transform="translate(${128 * i})" d="${frontal && i === 0 ? frontalFeatures[identity].scalp : d}"/>`,
+        )
         .join('')
   const irisClip = expression
     ? irises(PAINTED_PORTRAIT_IRISES[identity][expression])
-    : fieldIrises[identity].map((eye, i) => irises(eye, i * 128)).join('')
+    : fieldIrises[identity]
+        .map((eye, i) =>
+          frontal && i === 0
+            ? irises([
+                [60.5, frontalFeatures[identity].eyeY, 1],
+                [67.5, frontalFeatures[identity].eyeY, 1],
+              ])
+            : irises(eye, i * 128),
+        )
+        .join('')
   return (
     (hair
       ? `<clipPath id="hair-region">${hairClip}</clipPath>` +
@@ -452,7 +485,11 @@ function paintedPlayerHairLayers(look: PaintedPlayerLook, facing?: AppearanceFac
   const artX = center + x * fieldScale - visualWidth / 2
   const artY = Math.max(facing ? 2 : 0, anchorY + top * fieldScale)
   const filter = `painted-hair-dye-${facing ?? 'portrait'}`
-  const pigment = WARDROBE_HAIR_COLORS[hairDye].rgb ?? sourceHair[identity]
+  const painted =
+    look.faceId && Object.hasOwn(facePalettes, look.faceId)
+      ? facePalettes[look.faceId as keyof typeof facePalettes]
+      : null
+  const pigment = WARDROBE_HAIR_COLORS[hairDye].rgb ?? painted?.hair ?? sourceHair[identity]
   const transform = facing
     ? `translate(3.52 7.44) scale(.32)${facing === 'west' ? ` translate(${center * 2} 0) scale(-1 1)` : ''}`
     : ''

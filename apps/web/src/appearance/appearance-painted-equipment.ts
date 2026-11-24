@@ -1,3 +1,6 @@
+import fittedArt from './appearance-fitted-equipment.json'
+import classicFit from './appearance-classic-fit.json'
+import type { FaceFit } from './appearance-face-paint'
 import type { AppearanceExpression, AppearanceFacing } from './appearance-manifest'
 import { type PaintedLook } from './appearance-painted-catalog'
 import { PAINTED_PORTRAIT_IRISES } from './appearance-painted-features'
@@ -23,6 +26,11 @@ const fieldHeads = {
   guard: { south: [63, 13, 24], east: [66, 15, 25], north: [64, 14, 23], west: [62, 15, 24] },
   elder: { south: [63, 18, 31], east: [63, 18, 30], north: [64, 17, 27], west: [65, 17, 29] },
 } as const satisfies Record<PaintedPlayerLook['identity'], Record<AppearanceFacing, HeadAnchor>>
+
+export function fieldFaceAnchor(identity: PaintedPlayerLook['identity'], facing: AppearanceFacing) {
+  const [x, y, w] = fieldHeads[identity][facing]
+  return { x: facing === 'south' ? 64 : x, y, w }
+}
 
 const portraitHeads = {
   pinescout: [131, 9, 157, 150, 76],
@@ -86,8 +94,14 @@ export function paintedEquipmentDyes(look: EquippedLook) {
   )
 }
 
-export function paintedFieldEquipment(look: EquippedLook, facing: AppearanceFacing) {
-  const [x, scalp, width] = fieldHeads[look.identity][facing]
+export function paintedFieldEquipment(
+  look: EquippedLook,
+  facing: AppearanceFacing,
+  frontal = false,
+) {
+  const front = frontal && facing === 'south'
+  const [oldX, scalp, width] = fieldHeads[look.identity][facing]
+  const x = front ? 64 : oldX
   const lowerFace = look.facewear === 'veil' || look.facewear === 'mask'
   const patch = 'backdrop' in look && look.facewear === 'eyepatch'
   const facewear = patch
@@ -121,10 +135,91 @@ export function paintedFieldEquipment(look: EquippedLook, facing: AppearanceFaci
   return `<g transform="translate(3.52 7.44) scale(.32)">${headwearImage(look, facing, [x, scalp, width])}${facewear}</g>`
 }
 
+export function fittedPortraitHat(
+  look: PaintedPlayerLook,
+  expression: AppearanceExpression,
+  registered?: FaceFit,
+) {
+  if (!look.faceId || (look.headwear !== 'arcanist' && look.headwear !== 'furcap')) return null
+  const fit = registered ?? classicFit[look.identity][expression]
+  const width = Math.max(
+    registered?.width ?? portraitHeads[look.identity][2],
+    (fit.temples[1]![0]! - fit.temples[0]![0]!) * 1.55,
+  )
+  const cap = look.headwear === 'furcap'
+  const w = width * (cap ? 1.08 : 1.35),
+    h = w * (cap ? 0.53 : 0.67)
+  const bottom = fit.eyes[0]![1]! - width * 0.09
+  const center = (fit.temples[1]![0]! + fit.temples[0]![0]!) / 2 - width * 0.1
+  return { left: center - w / 2, top: bottom - h, w, h, bottom }
+}
+
+function fittedPortraitEquipment(
+  look: PaintedPlayerLook,
+  expression: AppearanceExpression,
+  registered?: FaceFit,
+) {
+  const fit = registered ?? classicFit[look.identity][expression]
+  // Runtime face plates and classic portraits share measured expression-specific anchors.
+  const [near, far] = fit.eyes as readonly (readonly number[])[]
+  const [lx, ly] = near!,
+    [rx, ry] = far!
+  const [temple, other] = fit.temples
+  const x = temple![0]!,
+    end = other![0]!,
+    width = Math.max(60, end - x)
+  const span = rx! - lx!
+  const tilt = (Math.atan2(ry! - ly!, span) * 180) / Math.PI
+  const item = (
+    style: keyof typeof fittedArt,
+    left: number,
+    top: number,
+    w: number,
+    h: number,
+    dye: Dye,
+    id: string,
+  ) =>
+    `<image href="${fittedArt[style]}" x="${left}" y="${top}" width="${w}" height="${h}" preserveAspectRatio="none"${dye === 'natural' ? '' : ` filter="url(#dye-${id})"`}/>`
+  let hat = ''
+  if (look.headwear === 'furcap' || look.headwear === 'arcanist') {
+    const box = fittedPortraitHat(look, expression, registered)!
+    hat = item(look.headwear, box.left, box.top, box.w, box.h, look.headColor, 'headwear')
+  } else {
+    const scalp = registered?.top ?? portraitHeads[look.identity][1]
+    hat = headwearImage(look, 'east', [(x + end) / 2 - width * 0.08, scalp, width * 1.5])
+  }
+  const type = look.facewear
+  if (type === 'none') return hat
+  let face: string
+  if (type === 'goggles') {
+    const w = span / 0.4,
+      h = w * 0.39
+    face = item(type, lx! - w * 0.47, ly! - h * 0.52, w, h, look.faceColor, 'facewear')
+  } else if (type === 'eyepatch') {
+    const w = width * 1.14,
+      h = span * 0.86
+    face = item(type, lx! - w * 0.53, ly! - h * 0.53, w, h, look.faceColor, 'facewear')
+  } else {
+    const left = x - 2,
+      right = other![0]! + width * 0.1,
+      top = fit.nose[1]! - width * 0.094
+    const h = fit.chin[1]! - top + 2
+    face = item(type, left, top, right - left, h, look.faceColor, 'facewear')
+  }
+  return (
+    hat +
+    (type === 'goggles' || type === 'eyepatch'
+      ? `<g transform="rotate(${tilt} ${lx} ${ly})">${face}</g>`
+      : face)
+  )
+}
+
 export function paintedPlayerPortraitEquipment(
   look: PaintedPlayerLook,
   expression: AppearanceExpression,
+  fit?: FaceFit,
 ) {
+  if (look.faceId) return fittedPortraitEquipment(look, expression, fit)
   const [x, scalp, width] = portraitHeads[look.identity]
   const [nearEye, farEye] = PAINTED_PORTRAIT_IRISES[look.identity][expression]
   const span = farEye[0] - nearEye[0]

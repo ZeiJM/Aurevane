@@ -201,7 +201,7 @@ export function correctionScenes() {
     if (site.id === 'remote-colosseum' || site.id === 'elemental-valley') {
       // Review the rear masonry / statue-side cascade instead of enlarging only
       // the arena floor or central basin. Resolve to real nearby legal ground.
-      const focus = site.id === 'remote-colosseum' ? { u: 0.5, v: 0.3 } : { u: 0.63, v: 0.58 }
+      const focus = site.id === 'remote-colosseum' ? { u: 0.5, v: 0.2 } : { u: 0.63, v: 0.58 }
       const dx = ((focus.u - geometry.anchorX) * geometry.widthTiles) / MAP_X
       const dy = ((focus.v - geometry.anchorY) * geometry.heightTiles) / MAP_Y
       const x = Math.floor(geometry.worldx + (dx + dy) / 2)
@@ -213,8 +213,10 @@ export function correctionScenes() {
       detailPosition = point(detailSector, { x: x % 13, y: y % 9 })
       if (site.id === 'remote-colosseum')
         detailSides = [-5, 5].map((offset) => {
-          const wx = x + offset,
-            wy = y - offset
+          // Step forward on the right to sample the arena floor as well as the left rear wall.
+          const forward = offset > 0 ? 10 : 0
+          const wx = x + offset + forward,
+            wy = y - offset + forward
           const sector = sectors.find(
             (s) => s.atlasColumn === Math.floor(wx / 13) && s.atlasRow === Math.floor(wy / 9),
           )
@@ -224,8 +226,6 @@ export function correctionScenes() {
             id,
             position: point(sector, { x: wx % 13, y: wy % 9 }),
             asset: `colosseum-${id}-detail-v01.webp`,
-            // Legal-ground snapping places the right viewpoint inside the open
-            // floor ellipse; the left viewpoint remains behind the rear wall.
             identity: id === 'left' ? ('occluded' as const) : ('clear' as const),
           }
         })
