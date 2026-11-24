@@ -34,7 +34,11 @@ export function WorldMap({
   zoom: number
   zoomLocked: boolean
   onZoom: (zoom: number) => void
-  onWalk: (position: WorldPosition, direction?: MapDirection) => void
+  onWalk: (
+    position: WorldPosition,
+    direction?: MapDirection,
+    previewDestination?: WorldPosition,
+  ) => void
   onStop: () => void
   onPlayer: (id: string) => void
   onVisiblePlayers: (ids: string[]) => void
@@ -53,7 +57,7 @@ export function WorldMap({
       canvas.current,
       motion,
       initial.current,
-      (position, direction) => callbacks.current.onWalk(position, direction),
+      (...args) => callbacks.current.onWalk(...args),
       (id) => callbacks.current.onPlayer(id),
       (zoom) => callbacks.current.onZoom(zoom),
       (ids) => callbacks.current.onVisiblePlayers(ids),

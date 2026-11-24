@@ -3,7 +3,7 @@ import { createRequire } from 'node:module'
 import { readFile } from 'node:fs/promises'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
-import { projectWorld, projectWorldSector } from '@/server/world/world-service'
+import { projectWorld, projectWorldSector, resolveWorldIntent } from '@/server/world/world-service'
 import { voidRealmFerryDock } from '@/server/world/void-realms'
 import { FERRYMAN_PORTRAIT, FERRYMAN_SPRITE } from '@/world/ferry'
 import { atlasSectors } from '@/world/atlas'
@@ -1620,9 +1620,9 @@ describe('native map input and bounded lifecycle', () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
     const clock = vi.spyOn(performance, 'now').mockReturnValue(0)
     const s = scene()
-    s.select.mockImplementation((destination) => {
+    s.select.mockImplementation((destination, _direction, preview = destination) => {
       const now = performance.now()
-      const route = localRoute(s.view, s.motion.sample(now).position, destination)
+      const route = localRoute(s.view, s.motion.sample(now).position, preview)
       if (route) s.motion.plan(route, s.view.sectors, now)
     })
     try {
@@ -2859,25 +2859,29 @@ describe('native map input and bounded lifecycle', () => {
       }
     }
   })
-  it('finishes the first legal held-key step when keyup beats the movement receipt', () => {
-    const s = scene()
-    const view = {
-      ...s.view,
-      sectors: s.view.sectors.map((sector) => ({
-        ...sector,
-        cells: sector.cells.map((cell) => ({ ...cell, terrain: '.', walkable: true })),
-      })),
-    }
-    s.renderer.update(view)
+  it('keeps a tap to one authoritative tile when the release waits two steps for the first receipt', () => {
+    const origin = { sectorId: 'atlas:58:28', x: 6, y: 4 }
+    const first = { ...origin, x: 7 }
+    const state = { ...newWorldState(), position: origin }
+    const view = projectWorld(state, [], 1000)
+    const s = scene(false, view)
     try {
-      const origin = view.position
       s.listeners.get('keydown')!({ key: 'ArrowRight', preventDefault() {} } as unknown as Event)
-      expect(s.select).toHaveBeenCalledWith({ ...origin, x: origin.x + 3 }, 'east')
+      const [destination, direction, preview] = s.select.mock.calls[0]!
+      expect(preview).toEqual({ ...origin, x: 9 })
+      const started = resolveWorldIntent(state, { kind: 'walk', direction, destination }, 1000)
+      expect(started.route.map((step) => step.position)).toEqual([first])
 
-      // The controller applies the server receipt asynchronously. Keyup must not
-      // overwrite the approved route with the still-current origin meanwhile.
       s.listeners.get('keyup')!({ key: 'ArrowRight' } as unknown as Event)
-      expect(s.select).toHaveBeenLastCalledWith({ ...origin, x: origin.x + 1 }, 'east')
+      const [released, heading] = s.select.mock.calls.at(-1)!
+      expect(released).toEqual(first)
+      const stopped = resolveWorldIntent(
+        started,
+        { kind: 'walk', direction: heading, destination: released },
+        1430,
+      )
+      expect(stopped.position).toEqual(first)
+      expect(stopped.route).toEqual([])
     } finally {
       s.renderer.dispose()
       vi.unstubAllGlobals()
@@ -2920,7 +2924,10 @@ describe('native map input and bounded lifecycle', () => {
           key: 'ArrowRight',
           preventDefault() {},
         } as unknown as Event)
-        expect(s.select).toHaveBeenCalledWith({ ...approved, x: approved.x + 3 }, 'east')
+        expect(s.select).toHaveBeenCalledWith({ ...approved, x: approved.x + 1 }, 'east', {
+          ...approved,
+          x: approved.x + 3,
+        })
         s.listeners.get('keyup')!({ key: 'ArrowRight' } as unknown as Event)
         expect(s.select).toHaveBeenLastCalledWith({ ...approved, x: approved.x + 1 }, 'east')
         expect(s.select).not.toHaveBeenCalledWith(approved, 'east')

@@ -11,7 +11,7 @@ import { paintedPlayerLook } from './appearance-painted-looks'
 import { wardrobeLook } from './appearance-painted-wardrobe'
 import { renderAppearanceAsset } from './appearance-svg'
 
-const { width, height, frames } = APPEARANCE_MOTION_FRAME
+const { width, height, frames, columns } = APPEARANCE_MOTION_FRAME
 const looks = [
   {
     name: 'dressed scout',
@@ -34,13 +34,24 @@ const looks = [
   },
 ]
 
-async function walkStrip(atlas: string, facing: AppearanceFacing) {
-  const { column, row } = appearanceMotionFrameIndex(facing, 'walk', 0)
+async function walkRow(atlas: string) {
+  const { row } = appearanceMotionFrameIndex('south', 'walk', 0)
   return sharp(Buffer.from(atlas))
-    .extract({ left: column * width, top: row * height, width: width * frames, height })
+    .extract({ left: 0, top: row * height, width: width * columns, height })
     .ensureAlpha()
     .raw()
     .toBuffer()
+}
+
+function walkStrip(row: Buffer, facing: AppearanceFacing) {
+  const { column } = appearanceMotionFrameIndex(facing, 'walk', 0)
+  const stripStride = width * frames * 4
+  const strip = Buffer.alloc(stripStride * height)
+  for (let y = 0; y < height; y++) {
+    const start = (y * columns + column) * width * 4
+    row.copy(strip, y * stripStride, start, start + stripStride)
+  }
+  return strip
 }
 
 function outlineAt(pixels: Buffer, frame: number) {
@@ -63,10 +74,10 @@ function outlineAt(pixels: Buffer, frame: number) {
 it.each(looks)(
   '$name alternates its feet along the viewing axis and keeps its profile gait',
   async ({ look }) => {
-    const updated = renderAppearanceAsset(look, 'motion-v2')
-    const previous = renderAppearanceAsset(look, 'motion')
+    const updated = await walkRow(renderAppearanceAsset(look, 'motion-v2'))
+    const previous = await walkRow(renderAppearanceAsset(look, 'motion'))
     for (const facing of ['south', 'north'] as const) {
-      const strip = await walkStrip(updated, facing)
+      const strip = walkStrip(updated, facing)
       const first = outlineAt(strip, 0)
       const opposite = outlineAt(strip, frames / 2)
       const towards = facing === 'south' ? 1 : -1
@@ -76,9 +87,7 @@ it.each(looks)(
       expect(Math.max(...crowns) - Math.min(...crowns)).toBeLessThanOrEqual(2)
     }
     for (const facing of ['east', 'west'] as const) {
-      expect((await walkStrip(updated, facing)).equals(await walkStrip(previous, facing))).toBe(
-        true,
-      )
+      expect(walkStrip(updated, facing).equals(walkStrip(previous, facing))).toBe(true)
     }
   },
   30000,

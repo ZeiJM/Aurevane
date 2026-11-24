@@ -469,7 +469,11 @@ export function WorldWorkspace({
       setApproachingPlayer(null)
   }, [approachingPlayer, approvedPosition, view, active])
   const send = useCallback(
-    (intent: WorldIntent, previewRoute?: readonly TravelStep[]) => {
+    (
+      intent: WorldIntent,
+      previewRoute?: readonly TravelStep[],
+      previewDestination?: WorldPosition,
+    ) => {
       setMessage('')
       const now = performance.now()
       const instance = controller.current
@@ -498,7 +502,7 @@ export function WorldWorkspace({
       const destination = intent.kind === 'walk' ? intent.destination : objective?.destination
       if (intent.kind === 'walk' && intent.direction) {
         turn = motion.planDirectional(
-          intent.destination,
+          previewDestination ?? intent.destination,
           intent.direction,
           current.sectors,
           now,
@@ -512,7 +516,7 @@ export function WorldWorkspace({
     [motion],
   )
   const walk = useCallback(
-    (destination: WorldPosition, direction?: MapDirection) => {
+    (destination: WorldPosition, direction?: MapDirection, previewDestination?: WorldPosition) => {
       const instance = controller.current
       if (
         !instance ||
@@ -522,7 +526,11 @@ export function WorldWorkspace({
       )
         return
       setApproachingPlayer(null)
-      send(direction ? { kind: 'walk', destination, direction } : { kind: 'walk', destination })
+      send(
+        direction ? { kind: 'walk', destination, direction } : { kind: 'walk', destination },
+        undefined,
+        previewDestination,
+      )
     },
     [send],
   )

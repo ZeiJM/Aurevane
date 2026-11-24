@@ -735,7 +735,11 @@ export function createMapRenderer(
   canvas: HTMLCanvasElement,
   motion: WorldMotion,
   initial: WorldView,
-  select: (position: WorldPosition, direction?: MapDirection) => void,
+  select: (
+    position: WorldPosition,
+    direction?: MapDirection,
+    previewDestination?: WorldPosition,
+  ) => void,
   selectPlayer: (id: string) => void,
   onZoom: (zoom: number) => void = () => {},
   onVisiblePlayers: (ids: string[]) => void = () => {},
@@ -792,6 +796,7 @@ export function createMapRenderer(
   let heldDestination: WorldPosition | null = null
   let heldReleaseOrigin: WorldPosition | null = null
   let heldFirstDestination: WorldPosition | null = null
+  let initialKeyStep = false
   function releaseHeldKeys(finishStep = true) {
     const direction = heldDirection
     const destination = heldDestination
@@ -809,7 +814,8 @@ export function createMapRenderer(
       // The movement receipt can arrive after an immediate keyup. In that gap
       // WorldMotion still reports the old origin, which must not overwrite the
       // already-approved route. Finish its first legal step instead.
-      const released = origin && first && samePosition(landing, origin) ? first : landing
+      const released =
+        first && (initialKeyStep || (origin && samePosition(landing, origin))) ? first : landing
       if (!samePosition(released, destination)) {
         select(released, direction)
         requestDraw()
@@ -4937,7 +4943,8 @@ export function createMapRenderer(
     s: 'south',
     d: 'east',
   }
-  function walkHeldKey() {
+  function walkHeldKey(initial = false) {
+    initialKeyStep = initial
     keyTimer = null
     const direction = [...heldKeys.values()].at(-1)
     if (!direction || disposed || paused || document.visibilityState !== 'visible') return
@@ -5004,7 +5011,11 @@ export function createMapRenderer(
       heldDestination = position
       heldReleaseOrigin = motion.nextLanding(now)
       heldFirstDestination = first
-      select(position, direction)
+      // The release write can queue behind a delayed receipt. A tap must never
+      // authorize three steps while it waits. Keep lookahead for interpolation
+      // and extend the server route only after a held-key interval elapses.
+      if (initial && !samePosition(first, position)) select(first, direction, position)
+      else select(position, direction)
       requestDraw()
     } else if (heldDirection !== direction) {
       // A blocked turn must also cancel the previous click or held heading.
@@ -5032,7 +5043,7 @@ export function createMapRenderer(
     if (event.repeat || heldKeys.has(name)) return
     heldKeys.set(name, direction)
     if (keyTimer !== null) clearTimeout(keyTimer)
-    walkHeldKey()
+    walkHeldKey(true)
   }
   const keyUp = (event: KeyboardEvent) => {
     const key = event.key.toLowerCase()
@@ -5041,7 +5052,7 @@ export function createMapRenderer(
     if (!heldKeys.size) releaseHeldKeys()
     else {
       if (keyTimer !== null) clearTimeout(keyTimer)
-      walkHeldKey()
+      walkHeldKey(true)
     }
   }
   const blur = (event: FocusEvent) => {
