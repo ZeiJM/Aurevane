@@ -65,6 +65,11 @@ export function parseWorldCommand(value: unknown): WorldCommand | null {
   else if (input.kind === 'walk' && object(input.destination)) {
     const p = input.destination
     if (
+      (input.direction !== undefined &&
+        input.direction !== 'north' &&
+        input.direction !== 'east' &&
+        input.direction !== 'south' &&
+        input.direction !== 'west') ||
       typeof p.sectorId !== 'string' ||
       p.sectorId.length > 64 ||
       typeof p.x !== 'number' ||
@@ -72,7 +77,11 @@ export function parseWorldCommand(value: unknown): WorldCommand | null {
       !validCell({ x: p.x, y: p.y })
     )
       return null
-    intent = { kind: 'walk', destination: { sectorId: p.sectorId, x: p.x, y: p.y } }
+    intent = {
+      kind: 'walk',
+      destination: { sectorId: p.sectorId, x: p.x, y: p.y },
+      ...(input.direction === undefined ? {} : { direction: input.direction }),
+    }
   } else if (
     input.kind === 'interact' &&
     typeof input.interactionId === 'string' &&

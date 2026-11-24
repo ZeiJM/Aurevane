@@ -1,7 +1,7 @@
 import { GRID_HEIGHT, GRID_WIDTH, START_POSITION, STEP_MS } from './catalog'
 import { isWildSectorId } from './wild-ids'
 import type { TravelStep, WorldObjective, WorldPosition, WorldSector, WorldState } from './types'
-import { terrainWalkable } from './terrain'
+import { terrainWalkable, worldSurfaceRows } from './terrain'
 import { wrappedMapDistance } from './topology'
 
 export const ACTIVE_WORLD_SYNC_MS = 600
@@ -56,7 +56,7 @@ export function cellCenter(p: { x: number; y: number }) {
   return { x: (p.x + 0.5) / GRID_WIDTH, y: (p.y + 0.5) / GRID_HEIGHT }
 }
 export function isWalkable(sector: WorldSector, p: { x: number; y: number }) {
-  return validCell(p) && terrainWalkable(sector.rows[p.y]?.[p.x] ?? '#')
+  return validCell(p) && terrainWalkable(worldSurfaceRows(sector)[p.y]?.[p.x])
 }
 export function isSafe(sector: WorldSector, p: { x: number; y: number }) {
   return (

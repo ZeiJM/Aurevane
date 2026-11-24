@@ -80,7 +80,11 @@ it('returns a private, public-terrain-only region preview with no player session
   const { view } = await response.json()
   expect(view.position.sectorId).toBe('frostmere')
   expect(view.sectors[0]).toMatchObject({ id: 'frostmere', charted: true })
-  expect(view.sectors[0].cells.some((cell: { walkable: boolean }) => !cell.walkable)).toBe(true)
+  const cells: { terrain: string; walkable: boolean }[] = view.sectors[0].cells
+  expect(cells.length).toBeGreaterThan(0)
+  for (const cell of cells) {
+    expect(cell.walkable).toBe(['.', '=', 's', 't', '#', 'b'].includes(cell.terrain))
+  }
   expect(view.sectors.every((sector: { charted: boolean }) => sector.charted)).toBe(true)
   expect(view).toMatchObject({
     characterId: '',

@@ -35,7 +35,6 @@ describe('authenticated navigation performance contracts', () => {
 
   it('disables automatic Link prefetch across the authenticated shell', () => {
     for (const path of [
-      'src/components/shell/game-rail.tsx',
       'src/components/shell/authenticated-shell-presentation.tsx',
       'src/components/shell/online-presence-link.tsx',
       'src/components/shell/account-menu.tsx',
@@ -47,6 +46,17 @@ describe('authenticated navigation performance contracts', () => {
       expect(linkCount).toBeGreaterThan(0)
       expect(disabledPrefetchCount).toBe(linkCount)
     }
+  })
+
+  it('warms only an intended rail destination and supplies a loading boundary for dynamic pages', () => {
+    const rail = source('src/components/shell/game-rail.tsx')
+    expect(rail).toContain('prefetch={!active && warmHref === item.href ? null : false}')
+    expect(rail).toContain('onPointerLeave={clearIntent}')
+    expect(rail).toContain('onBlur={clearIntent}')
+    expect(rail).toContain('onFocus=')
+    expect(rail).toContain('useLinkStatus()')
+    expect(source('src/app/game/(roaming)/loading.tsx')).toContain('role="status"')
+    expect(source('src/app/game/battle/loading.tsx')).toContain("from '../(roaming)/loading'")
   })
 
   it('uses the scalar online count instead of loading directory rows for the footer', () => {

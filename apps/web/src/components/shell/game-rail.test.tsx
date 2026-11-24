@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from 'vitest'
 const navigationState = vi.hoisted(() => ({ pathname: '/game/character' }))
 vi.mock('next/navigation', () => ({ usePathname: () => navigationState.pathname }))
 vi.mock('next/link', () => ({
+  useLinkStatus: () => ({ pending: false }),
   default: ({ children, ...props }: React.ComponentProps<'a'>) =>
     createElement('a', props, children),
 }))
@@ -39,7 +40,7 @@ describe('shared game rail', () => {
     const destinations = [
       ['/game/haven', 'Haven'],
       ['/game/character', 'Profile'],
-      ['/game/loadout', 'Arsenal'],
+      ['/game/nexus', 'Arsenal'],
       ['/game/world', 'World'],
       ['/game/battle', 'Arena'],
       ['/game/training', 'Training'],
@@ -51,7 +52,7 @@ describe('shared game rail', () => {
     })
     expect(positions).toEqual([...positions].sort((a, b) => a - b))
     expect(markup).not.toContain('aria-label="Loadout"')
-    expect(markup).not.toContain('href="/game/nexus"')
+    expect(markup).not.toContain('href="/game/loadout"')
     expect(markup).toContain('aria-current="page"')
   })
 
@@ -75,8 +76,11 @@ describe('shared game rail', () => {
     expect(markup).not.toContain('href="/game/settings/controls"')
   })
 
-  it('keeps Loadout active inside Nexus', () => {
-    navigationState.pathname = '/game/nexus'
-    expect(renderRail()).toMatch(/href="\/game\/loadout"[^>]*aria-current="page"/)
-  })
+  it.each(['/game/nexus', '/game/loadout/items', '/game/arsenal'])(
+    'keeps Arsenal active on %s',
+    (pathname) => {
+      navigationState.pathname = pathname
+      expect(renderRail()).toMatch(/href="\/game\/nexus"[^>]*aria-current="page"/)
+    },
+  )
 })

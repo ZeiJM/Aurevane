@@ -17,12 +17,15 @@ export function unchartedRenderTerrain(
 ): WorldSectorView[] {
   const source = view.unchartedTerrain
   const current = view.sectors.find((sector) => sector.id === view.position?.sectorId)
-  if (!source?.length) return base
   const domain = current && mapSceneDomain(current)
-  if (!current?.warpedTheme || current.charted)
-    return base.filter(
-      (sector) => !sector.warpedTheme || sector.charted || mapSceneDomain(sector) === domain,
-    )
+  const belongs = (sector: WorldSectorView) =>
+    current?.warpedTheme && !current.charted
+      ? mapSceneDomain(sector) === domain
+      : !sector.warpedTheme || sector.charted || mapSceneDomain(sector) === domain
+  // During a crossing even an empty terrain receipt can retain authority cells
+  // from the previous scene. Never project those across realms at a shared address.
+  if (!source?.length || !current?.warpedTheme || current.charted)
+    return base.every(belongs) ? base : base.filter(belongs)
   const realm = parseVoidSectorId(current.id)
   const legacy = domain === 'uncharted:legacy'
   if (!realm && !legacy) return base

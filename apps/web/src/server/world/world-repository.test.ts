@@ -525,7 +525,7 @@ it.each(['scene', 'environment'] as const)(
     ])
     expect(sceneRpc).toHaveBeenCalledTimes(1)
     expect(environmentSettings).toHaveBeenCalledTimes(1)
-    expect(loadPublicCharacterProfileImageMap).toHaveBeenCalledTimes(1)
+    expect(loadPublicCharacterProfileImageMap).not.toHaveBeenCalled()
   },
 )
 

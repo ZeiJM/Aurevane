@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { atlasSectors } from '@/world/atlas'
+import { terrainWalkable } from '@/world/terrain'
+import type { WorldSectorView } from '@/world/types'
 import {
   isMajorMountainRangeSector,
+  indexMountainPlacements,
   mountainPlacements,
   denseMountainRidge,
   drawMountainScree,
@@ -16,22 +19,25 @@ describe('authored mountain scenery on authoritative terrain', () => {
           x,
           y,
           terrain,
-          walkable: ['.', '=', 's', 't', 'w'].includes(terrain),
+          walkable: terrainWalkable(terrain),
           safe: false,
         })),
       ),
     }))
     const ridge = sectors.filter(isMajorMountainRangeSector)
-    const features = ridge.flatMap(mountainPlacements)
+    const features = ridge.flatMap((s) => mountainPlacements(s))
     expect(ridge.length).toBeGreaterThan(8)
     expect(features.filter((feature) => !feature.pass).length).toBeGreaterThan(8)
-    expect(features.some((feature) => feature.heightTiles >= 6)).toBe(true)
+    expect(
+      features.filter((feature) => !feature.pass).every((feature) => feature.heightTiles >= 9),
+    ).toBe(true)
+    expect(features.filter((feature) => !feature.pass).length).toBeLessThan(ridge.length / 2)
     expect(features.some((feature) => feature.index >= 4 && feature.index <= 7)).toBe(true)
     expect(features.some((feature) => feature.index <= 3)).toBe(true)
     expect(features.some((feature) => feature.pass)).toBe(true)
   })
 
-  it('anchors every mountain on an existing blocked rock and every pass on a walkable road', () => {
+  it('anchors every mountain on dry rocky ground and every pass on a marked road', () => {
     const sectors = atlasSectors().slice(0, 2500)
     for (const sector of sectors) {
       const view = {
@@ -41,7 +47,7 @@ describe('authored mountain scenery on authoritative terrain', () => {
             x,
             y,
             terrain,
-            walkable: ['.', '=', 's', 't', 'w'].includes(terrain),
+            walkable: terrainWalkable(terrain),
             safe: false,
           })),
         ),
@@ -53,7 +59,7 @@ describe('authored mountain scenery on authoritative terrain', () => {
           (candidate) => candidate.x === feature.cellX && candidate.y === feature.cellY,
         )
         expect(cell?.terrain).toBe(feature.pass ? '=' : '#')
-        expect(cell?.walkable).toBe(feature.pass)
+        expect(cell?.walkable).toBe(true)
         if (!feature.pass)
           expect(
             view.landmarks.every(
@@ -83,7 +89,7 @@ describe('authored mountain scenery on authoritative terrain', () => {
   })
 })
 
-it('thins individual scree only where large rocky mountain scenes replace it', () => {
+it('groups exposed scree into spaced outcrops outside towns', () => {
   const sector = atlasSectors().find((s) => s.atlasColumn === 48 && s.atlasRow === 7)!
   const view = {
     ...sector,
@@ -92,7 +98,7 @@ it('thins individual scree only where large rocky mountain scenes replace it', (
         x,
         y,
         terrain,
-        walkable: terrain !== '#',
+        walkable: terrainWalkable(terrain),
         safe: false,
       })),
     ),
@@ -100,8 +106,8 @@ it('thins individual scree only where large rocky mountain scenes replace it', (
   expect(denseMountainRidge(view)).toBe(true)
   const rock = view.cells.filter((cell) => cell.terrain === '#')
   const scattered = rock.filter((cell) => drawMountainScree(sector.id, cell.x, cell.y))
-  expect(scattered.length).toBeGreaterThan(8)
-  expect(scattered.length).toBeLessThan(rock.length * 0.42)
+  expect(scattered.length).toBeGreaterThan(2)
+  expect(scattered.length).toBeLessThan(rock.length * 0.22)
   const town = atlasSectors().find((s) => s.id === 'starfall-highlands')!
   expect(
     denseMountainRidge({
@@ -111,10 +117,43 @@ it('thins individual scree only where large rocky mountain scenes replace it', (
           x,
           y,
           terrain,
-          walkable: terrain !== '#',
+          walkable: terrainWalkable(terrain),
           safe: false,
         })),
       ),
     }),
   ).toBe(false)
+})
+
+it('keeps a large formation off neighboring water, missing ground and landmarks in its sightline', () => {
+  const source = atlasSectors().find((s) => s.id === 'atlas:46:7')!
+  const cells = Array.from({ length: 117 }, (_, i) => {
+    const x = i % 13,
+      y = Math.floor(i / 13)
+    return { x, y, terrain: x === 6 && y === 4 ? '#' : '.', walkable: true, safe: false }
+  })
+  const sector: WorldSectorView = { ...source, landmarks: [], exits: [], cells }
+  expect(indexMountainPlacements([sector])).toHaveLength(1)
+  const support = (c: (typeof cells)[number]) => c.x === 4 && c.y === 6
+  for (const terrain of ['~', 'w', 'l', '=']) {
+    const changed = {
+      ...sector,
+      cells: cells.map((c) =>
+        support(c) ? { ...c, terrain, walkable: terrainWalkable(terrain) } : c,
+      ),
+    }
+    expect(indexMountainPlacements([changed])).toEqual([])
+  }
+  expect(indexMountainPlacements([{ ...sector, cells: cells.filter((c) => !support(c)) }])).toEqual(
+    [],
+  )
+  const neighbor: WorldSectorView = {
+    ...sector,
+    id: 'atlas:45:6',
+    atlasColumn: 45,
+    atlasRow: 6,
+    cells: [],
+    landmarks: [{ id: 'shrine', kind: 'shrine', name: 'Shrine', x: 12, y: 7 }],
+  }
+  expect(indexMountainPlacements([sector, neighbor])).toEqual([])
 })

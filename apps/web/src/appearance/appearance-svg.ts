@@ -1,3 +1,5 @@
+import { facePainting, faceLayers, naturalFaceSkin, fieldFacePaint } from './appearance-face-paint'
+import { studioColor, type StudioColor } from './appearance-backdrop-catalog'
 import {
   APPEARANCE_FACINGS,
   APPEARANCE_FRAME,
@@ -26,6 +28,8 @@ import {
   paintedEquipmentDyes,
   paintedFieldEquipment,
   paintedPlayerPortraitEquipment,
+  fittedPortraitHat,
+  fieldFaceAnchor,
   paintedPortraitEquipment,
 } from './appearance-painted-equipment'
 import {
@@ -55,6 +59,8 @@ import {
   PINE_SCOUT_CUTOUTS,
   PINE_SCOUT_PORTRAIT_SKIN,
 } from './appearance-painted-player.generated'
+import { FRONTAL_ACTORS } from './appearance-frontal.generated'
+import { DEPTH_WALK_MAPS, DEPTH_WALK_SCALE } from './appearance-depth-walk.generated'
 import { PAINTED_BACKDROPS } from './appearance-painted-backdrops.generated'
 import { paintedPortraitWardrobe } from './appearance-painted-portrait-wardrobe'
 import { renderLowerGarment } from './appearance-lower-art'
@@ -234,9 +240,10 @@ function portrait(blueprint: AppearanceBlueprint, mood: AppearanceExpression, ic
 function sprite(
   blueprint: Exclude<AppearanceBlueprint, AnyPaintedAppearanceBlueprint>,
   facing: AppearanceFacing,
-  pose: AppearancePose,
+  pose: AppearancePose | 'walk-base',
   frame: number,
   motion = false,
+  frontal = false,
 ) {
   const [fabric, shade, light, trim] = palettes[blueprint.palette]
   const [skin, skinShade, skinLight] = skins[blueprint.complexion]
@@ -283,7 +290,7 @@ function sprite(
         ? downStance(facing)
         : `translate(${pose === 'down' ? 12 : 0} ${-rise}) rotate(${tilt} 24 53)`
   return `
-    <ellipse cx="24" cy="${motion && pose === 'down' ? 55 : 58}" rx="${pose === 'down' ? 16 : 12}" ry="3" fill="#171d23" fill-opacity=".42"/>
+    ${pose !== 'walk-base' ? `<ellipse cx="24" cy="${motion && pose === 'down' ? 55 : 58}" rx="${pose === 'down' ? 16 : 12}" ry="3" fill="#171d23" fill-opacity=".42"/>` : ''}
     <g transform="${transform}">
       <g transform="translate(24 0) scale(${look} 1) translate(-24 0)">
         ${
@@ -299,7 +306,7 @@ function sprite(
               ? wardrobeLegs(palettes[blueprint.palette], walk)
               : `<path fill="none" stroke="#28242a" stroke-width="7" stroke-linecap="round" d="M21 40l${-walk - 1} 15m7-15 ${walk + 1} 15"/>
         <path fill="none" stroke="${shade}" stroke-width="4" stroke-linecap="round" d="M21 40l${-walk - 1} 12m7-12 ${walk + 1} 12"/>
-        <path fill="#392d31" stroke="#211f25" d="M${18 - walk} 53h6v5h-8v-2Zm${13 + 2 * walk} 0h6l2 3v2h-8Z"/>`
+        <path fill="#392d31" stroke="#211f25" d="${pose === 'walk-base' || (frontal && facing === 'south') ? 'M18 53h5l-.2 5H16v-2Zm8 0h5l2 3v2h-7Z' : `M${18 - walk} 53h6v5h-8v-2Zm${13 + 2 * walk} 0h6l2 3v2h-8Z`}"/>`
         }
         ${
           garment
@@ -333,7 +340,7 @@ function sprite(
             curls: 'M17 18q-3 0-2-4l1-3q-1-4 4-3 2-4 5-1 4-3 7 2l-1 7-3-3-7 1-1 4Z',
           }[blueprint.hair]
         }"/>
-        ${back ? `<path fill="${hair}" stroke="${hairLight}" stroke-width=".55" d="M18 12q7-5 12 0l-1 8-5 2-5-2Z"/>` : `<path fill="none" stroke="${skinLight}" stroke-width=".75" d="M22 17l2 1m3-1 2 1"/><path stroke="#312329" d="M${profile ? 28 : 22} 16h1${profile ? '' : 'm3 0h1'}"/>`}
+        ${back ? `<path fill="${hair}" stroke="${hairLight}" stroke-width=".55" d="M18 12q7-5 12 0l-1 8-5 2-5-2Z"/>` : `<path fill="none" stroke="${skinLight}" stroke-width=".75" d="M22 17l2 1m3-1 2 1"/><path stroke="#312329" d="M${profile ? 28 : frontal ? 20 : 22} 16h1${profile ? '' : frontal ? 'm6 0h1' : 'm3 0h1'}"/>`}
         ${pose === 'cast' && frame > 0 ? `<path fill="${trim}" fill-opacity=".75" d="m${26 + shoulder + arm} ${23 - arm / 1.4} 2 4-2 4-2-4Z"/>` : ''}${motion && pose === 'attack' && frame === 2 ? '<path d="M34 21q6 1 9 8" fill="none" stroke="#ecdaa8" stroke-width="1.4" stroke-linecap="round" opacity=".72"/>' : ''}
       </g>
     </g>`
@@ -350,13 +357,22 @@ const originalSkinMidtones = {
   elder: [180, 132, 100],
 } as const
 
+// Replace just the south-facing cell. The existing side and rear sources retain their
+// exact original pixels and registration in every skin and clothing layer.
+function frontalSheet(source: string, front: string) {
+  return `<g><svg x="128" y="0" width="384" height="176" viewBox="128 0 384 176" overflow="hidden"><image href="${source}" width="512" height="176"/></svg><image href="${front}" width="128" height="176"/></g>`
+}
+
 function wardrobeSkinDye(
   blueprint: WardrobeAppearanceBlueprint | PaintedPlayerAppearanceBlueprint,
   mask: string,
   width: number,
   height: number,
+  frontalMask?: string,
 ) {
-  const color = WARDROBE_SKIN_TONES[blueprint.skinTone].rgb
+  const color =
+    WARDROBE_SKIN_TONES[blueprint.skinTone].rgb ??
+    (blueprint.v === 6 && width === 512 ? naturalFaceSkin(blueprint.faceId) : null)
   if (!color) return ''
   const midpoint = originalSkinMidtones[blueprint.identity]
   const matrix = color
@@ -366,7 +382,7 @@ function wardrobeSkinDye(
       ),
     )
     .join(' ')
-  return `<mask id="wardrobe-skin" maskUnits="userSpaceOnUse" x="0" y="0" width="${width}" height="${height}"><image href="${mask}" width="${width}" height="${height}"/></mask>
+  return `<mask id="wardrobe-skin" maskUnits="userSpaceOnUse" x="0" y="0" width="${width}" height="${height}">${frontalMask ? frontalSheet(mask, frontalMask) : `<image href="${mask}" width="${width}" height="${height}"/>`}</mask>
     <filter id="wardrobe-skin-dye" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="${matrix} 0 0 0 1 0"/></filter>`
 }
 
@@ -393,6 +409,7 @@ function paintedPlayerPortrait(
     facewear,
   } = blueprint
   if (
+    !blueprint.faceId &&
     identity === 'pinescout' &&
     backdrop === 'original' &&
     skinTone === 'natural' &&
@@ -420,26 +437,39 @@ function paintedPlayerPortrait(
   const photo =
     (skin ? paintedSkinComposite('wardrobe-portrait') : '<use href="#wardrobe-portrait"/>') +
     paintedFeatureComposite(blueprint, 'wardrobe-portrait')
+  const painting = facePainting(blueprint.faceId)
+  const painted = painting && faceLayers(blueprint, painting, expression)
+  const fitted = Boolean(blueprint.faceId)
   const [backHair, frontHair] = paintedHairLayers(blueprint)
-  const wardrobe = paintedPortraitWardrobe(blueprint, photo)
+  const wardrobe = paintedPortraitWardrobe(blueprint, painted?.head ?? photo, Boolean(painted))
+  const equipment = paintedPlayerPortraitEquipment(blueprint, expression, painted?.fit)
+  const hat = fittedPortraitHat(blueprint, expression, painted?.fit)
+  const subject = backHair + wardrobe.art + frontHair
   const art =
-    backHair + wardrobe.art + frontHair + paintedPlayerPortraitEquipment(blueprint, expression)
-  const framed =
-    headwear === 'arcanist'
+    (hat
+      ? `<defs><clipPath id="under-brim"><path d="M0 ${hat.bottom - hat.h * 0.24} Q128 ${hat.bottom - hat.h * 0.27} 256 ${hat.bottom - hat.h * 0.3} V256H0Z"/></clipPath></defs><g clip-path="url(#under-brim)">${subject}</g>`
+      : subject) + equipment
+  const fittedScale = hat ? Math.min(1, 249 / (256 - hat.top)) : 1
+  const framed = fitted
+    ? `<g transform="translate(${128 * (1 - fittedScale)} ${256 * (1 - fittedScale)}) scale(${fittedScale})">${art}</g>`
+    : headwear === 'arcanist'
       ? `<g transform="translate(26 61) scale(.79)">${art}</g>`
       : headwear === 'furcap'
         ? `<g transform="translate(15 49) scale(.85)">${art}</g>`
         : art
   const portrait = icon ? `<g transform="translate(-11 -4) scale(.34)">${framed}</g>` : framed
   const size = icon ? 64 : 256
-  const scene = backdrop === 'original' ? PAINTED_STUDIO_PAPER : PAINTED_BACKDROPS[backdrop]
-  const definitions = `<defs><image id="wardrobe-portrait" href="${source}" width="256" height="256"/>
-    ${skin}${featureDyes}${wardrobe.definitions}${paintedEquipmentDyes(blueprint)}</defs>`
-  return svg(
-    size,
-    size,
-    `${definitions}<image href="${scene}" width="${size}" height="${size}"/>${portrait}`,
-  )
+  const studio = studioColor(backdrop)
+  const scene =
+    !studio &&
+    (backdrop === 'original'
+      ? PAINTED_STUDIO_PAPER
+      : PAINTED_BACKDROPS[backdrop as Exclude<typeof backdrop, 'original' | StudioColor>])
+  const background = studio
+    ? `<defs><radialGradient id="studio-light" cx=".40" cy=".32" r=".9"><stop stop-color="${studio[1]}"/><stop offset=".58" stop-color="${studio[2]}"/><stop offset="1" stop-color="${studio[3]}"/></radialGradient></defs><rect width="${size}" height="${size}" fill="url(#studio-light)"/>`
+    : `<image href="${scene}" width="${size}" height="${size}"/>`
+  const definitions = `<defs>${painted ? painted.defs : `<image id="wardrobe-portrait" href="${source}" width="256" height="256"/>${skin}${featureDyes}`}${wardrobe.definitions}${paintedEquipmentDyes(blueprint)}</defs>`
+  return svg(size, size, definitions + background + portrait)
 }
 
 function paintedCharacterPortrait(
@@ -532,6 +562,25 @@ const motionWalkClips = `
   <clipPath id="motion-left"><path d="M0 43h24v21H0z"/></clipPath>
   <clipPath id="motion-right"><path d="M24 43h24v21H24z"/></clipPath>`
 
+// Depth motion deforms the complete dressed actor with a single continuous field.
+// The front and rear cycles each have a planted boot, a passing knee and a reciprocal arm.
+const depthWalkFilters = Object.entries(DEPTH_WALK_MAPS)
+  .flatMap(([facing, maps]) =>
+    maps.map(
+      (map, frame) =>
+        `<filter id="depth-${facing}-${frame}" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse" x="0" y="0" width="48" height="64" color-interpolation-filters="sRGB"><feImage href="${map}" x="0" y="0" width="48" height="64" result="stride"/><feDisplacementMap in="SourceGraphic" in2="stride" scale="${DEPTH_WALK_SCALE}" xChannelSelector="R" yChannelSelector="G"/></filter>`,
+    ),
+  )
+  .join('')
+
+function depthWalkFrame(facing: 'north' | 'south', frame: number, actor: string, equipment = '') {
+  // Long weapons and rigid packs follow their torso attachment without bending at the knees.
+  const anchored = equipment
+    ? `<g transform="translate(0 ${rounded(0.2 - 0.55 * swing[frame]! ** 2)})">${equipment}</g>`
+    : ''
+  return `<ellipse cx="24" cy="58" rx="11" ry="2.5" fill="#171d23" fill-opacity=".4"/><g filter="url(#depth-${facing}-${frame})">${actor}</g>${anchored}`
+}
+
 function paintedWalkMotion(facing: AppearanceFacing, frame: number, body: string, wardrobe = '') {
   const step = swing[frame]!
   const passing = passingStride(frame)
@@ -580,12 +629,17 @@ const wardrobeGearLayers = { ...PAINTED_ACCESSORY_LAYERS, ...WARDROBE_GEAR_LAYER
 const wardrobeBodyClips =
   '<clipPath id="wardrobe-head"><rect width="48" height="26"/></clipPath><clipPath id="wardrobe-torso"><path d="M0 26h48v38H0z"/></clipPath>'
 
-function renderPaintedCharacterAtlas(blueprint: AnyPaintedAppearanceBlueprint, motion = false) {
+function renderPaintedCharacterAtlas(
+  blueprint: AnyPaintedAppearanceBlueprint,
+  motion: boolean,
+  depthWalk: boolean,
+) {
   const { outerwear, clothColor, gear, gearColor } = blueprint
   const source =
     blueprint.v === 6
       ? PAINTED_PLAYER_SPRITES[blueprint.identity]
       : PAINTED_ACTORS[blueprint.identity]
+  const front = depthWalk ? FRONTAL_ACTORS[blueprint.identity] : undefined
   const skin =
     blueprint.v !== 4
       ? wardrobeSkinDye(
@@ -595,17 +649,22 @@ function renderPaintedCharacterAtlas(blueprint: AnyPaintedAppearanceBlueprint, m
             : PAINTED_FIELD_SKIN_MASKS[blueprint.identity],
           512,
           176,
+          front?.skin,
         )
       : ''
-  const featureDyes = blueprint.v !== 4 ? paintedFeatureDyes(blueprint) : ''
+  const featureDyes = blueprint.v !== 4 ? paintedFeatureDyes(blueprint, undefined, depthWalk) : ''
   const featureComposite =
     blueprint.v !== 4 ? paintedFeatureComposite(blueprint, 'wardrobe-body') : ''
   const scaling = blueprint.v !== 4 ? WARDROBE_FRAMES[blueprint.bodyFrame].torsoScale : 1
   const hood = outerwear === 'hooded'
+  const actorImage = (id: string) =>
+    front
+      ? `<g id="${id}">${frontalSheet(source, front.body)}</g>`
+      : `<image id="${id}" href="${source}" width="512" height="176"/>`
   const layers = [
     skin || featureDyes
-      ? `<image id="wardrobe-body" href="${source}" width="512" height="176"/>${skin}${featureDyes}<g id="painted-body">${skin ? paintedSkinComposite('wardrobe-body') : '<use href="#wardrobe-body"/>'}${featureComposite}</g>`
-      : paintedLayerDefinition('body', source),
+      ? `${actorImage('wardrobe-body')}${skin}${featureDyes}<g id="painted-body">${skin ? paintedSkinComposite('wardrobe-body') : '<use href="#wardrobe-body"/>'}${featureComposite}</g>`
+      : actorImage('painted-body'),
   ]
   if (outerwear !== 'none')
     layers.push(paintedLayerDefinition('clothing', wardrobeOuterLayers[outerwear], clothColor))
@@ -615,10 +674,29 @@ function renderPaintedCharacterAtlas(blueprint: AnyPaintedAppearanceBlueprint, m
     scaling === 1 || !art
       ? art
       : `<g transform="translate(24) scale(${scaling} 1) translate(-24)">${art}</g>`
+  const face = blueprint.v === 6 ? facePainting(blueprint.faceId) : null
+  if (face) {
+    layers.push(
+      `<image id="field-face-front" href="${face.front}" width="40" height="46"/><image id="field-face-side" href="${face.field}" width="38" height="46"/>`,
+    )
+  }
   const parts = APPEARANCE_FACINGS.map((facing) => {
     const [backHair, frontHair] =
       blueprint.v !== 4 ? paintedHairLayers(blueprint, facing) : ['', '']
-    const naturalBody = backHair + paintedLayer(facing, 'body') + frontHair
+    let faceLayer = ''
+    if (face && blueprint.v === 6 && facing !== 'north') {
+      const { x, y, w } = fieldFaceAnchor(blueprint.identity, facing)
+      const h = w * 1.24
+      const view = facing === 'south' ? 'front' : 'side'
+      const mirror = facing === 'west' ? `translate(${2 * x} 0) scale(-1 1)` : ''
+      const faceArt = fieldFacePaint(blueprint, facing)
+      faceLayer = `<g transform="translate(3.52 7.44) scale(.32) ${mirror}"><svg x="${x - w * 0.5}" y="${y}" width="${w}" height="${h}" viewBox="0 0 ${view === 'front' ? 40 : 38} 46" overflow="hidden">${faceArt}</svg></g>`
+    }
+    const naturalBody =
+      backHair +
+      paintedLayer(facing, 'body') +
+      (faceLayer ? `<use href="#painted-face-${facing}"/>` : '') +
+      frontHair
     const head = `<g clip-path="url(#wardrobe-head)">${naturalBody}</g>`
     const body =
       scaling === 1
@@ -626,20 +704,27 @@ function renderPaintedCharacterAtlas(blueprint: AnyPaintedAppearanceBlueprint, m
         : `${head}<g clip-path="url(#wardrobe-torso)">${fit(naturalBody)}</g>`
     const clothing = outerwear === 'none' ? '' : fit(paintedLayer(facing, 'clothing', clothColor))
     const accessory = gear === 'none' ? '' : fit(paintedLayer(facing, 'gear', gearColor))
-    return `<g id="painted-body-${facing}">${body}</g>
+    return `${faceLayer ? `<g id="painted-face-${facing}">${faceLayer}</g>` : ''}<g id="painted-body-${facing}">${body}</g>
       <g id="painted-clothing-${facing}">${clothing}</g><g id="painted-gear-${facing}">${accessory}</g>
-      <g id="painted-equipment-${facing}">${hood ? head : ''}${paintedFieldEquipment(blueprint, facing)}</g>
+      <g id="painted-equipment-${facing}">${hood ? head : ''}${paintedFieldEquipment(blueprint, facing, depthWalk)}</g>
       <g id="painted-character-${facing}"><use href="#painted-body-${facing}"/>
         <use href="#painted-clothing-${facing}"/><use href="#painted-gear-${facing}"/>
         <use href="#painted-equipment-${facing}"/></g>`
   }).join('')
-  const definitions = `<defs>${motion ? motionWalkClips : paintedWalkClips}${scaling !== 1 || hood ? wardrobeBodyClips : ''}${paintedEquipmentDyes(blueprint)}${layers.join('')}${parts}</defs>`
+  const definitions = `<defs>${motion ? motionWalkClips : paintedWalkClips}${depthWalk ? depthWalkFilters : ''}${scaling !== 1 || hood ? wardrobeBodyClips : ''}${paintedEquipmentDyes(blueprint)}${layers.join('')}${parts}</defs>`
   return renderSpriteAtlas(
     definitions,
     (facing, pose, frame) => {
       const complete = `<use href="#painted-character-${facing}"/>`
       if (pose !== 'walk') return paintedSprite(facing, pose, frame, complete, motion)
       if (!motion) return paintedCharacterWalk(facing, frame)
+      if (depthWalk && (facing === 'north' || facing === 'south'))
+        return depthWalkFrame(
+          facing,
+          frame,
+          `<use href="#painted-body-${facing}"/><use href="#painted-clothing-${facing}"/>`,
+          `<use href="#painted-gear-${facing}"/><use href="#painted-equipment-${facing}"/>`,
+        )
       return paintedWalkMotion(
         facing,
         frame,
@@ -655,10 +740,11 @@ export function renderAppearanceAsset(
   blueprint: AppearanceBlueprint,
   asset: AppearanceAsset,
 ): string {
-  const motion = asset === 'motion'
+  const depthWalk = asset === 'motion-v2'
+  const motion = asset === 'motion' || depthWalk
   if (blueprint.v === 4 || blueprint.v === 5 || blueprint.v === 6)
     return asset === 'atlas' || motion
-      ? renderPaintedCharacterAtlas(blueprint, motion)
+      ? renderPaintedCharacterAtlas(blueprint, motion, depthWalk)
       : paintedCharacterPortrait(blueprint, asset === 'icon' ? 'neutral' : asset, asset === 'icon')
   const preset = matchingPresetIndex(blueprint)
   if (asset !== 'atlas' && !motion) {
@@ -670,13 +756,41 @@ export function renderAppearanceAsset(
   }
   const { width } = APPEARANCE_FRAME
   const painted = PAINTED_PRESET_SPRITES[preset]
-  const definitions = painted
-    ? `<defs>${motion ? motionWalkClips : paintedFrameClips}${painted.map((part, index) => `<image id="body-${APPEARANCE_FACINGS[index]}" href="${part.uri}" x="${(width - part.width) / 2}" y="6" width="${part.width}" height="52"/>`).join('')}</defs>`
+  const presetFront = depthWalk
+    ? [FRONTAL_ACTORS.pinescout, FRONTAL_ACTORS.winterguard, FRONTAL_ACTORS.emberenvoy][preset]
+    : undefined
+  const actorDefinitions = painted
+    ? `${motion ? motionWalkClips : paintedFrameClips}${painted
+        .map((part, index) => {
+          if (presetFront && index === 0) {
+            const scale = 52 / presetFront.height
+            return `<image id="body-south" href="${presetFront.body}" x="${24 - 64 * scale}" y="${6 - presetFront.top * scale}" width="${128 * scale}" height="${176 * scale}"/>`
+          }
+          return `<image id="body-${APPEARANCE_FACINGS[index]}" href="${part.uri}" x="${(width - part.width) / 2}" y="6" width="${part.width}" height="52"/>`
+        })
+        .join('')}`
     : ''
+  const vectorWalkBases =
+    !painted && depthWalk
+      ? (['south', 'north'] as const)
+          .map(
+            (facing) =>
+              `<g id="body-${facing}">${sprite(blueprint, facing, 'walk-base', 0, false, facing === 'south')}</g>`,
+          )
+          .join('')
+      : ''
+  const definitions =
+    painted || depthWalk
+      ? `<defs>${actorDefinitions}${vectorWalkBases}${depthWalk ? depthWalkFilters : ''}</defs>`
+      : ''
   return renderSpriteAtlas(
     definitions,
     (facing, pose, frame) => {
-      if (!painted) return sprite(blueprint, facing, pose, frame, motion)
+      if (depthWalk && pose === 'walk' && (facing === 'north' || facing === 'south')) {
+        return depthWalkFrame(facing, frame, `<use href="#body-${facing}"/>`)
+      }
+      if (!painted)
+        return sprite(blueprint, facing, pose, frame, motion, depthWalk && facing === 'south')
       const body = `<use href="#body-${facing}"/>`
       return motion && pose === 'walk'
         ? paintedWalkMotion(facing, frame, body)

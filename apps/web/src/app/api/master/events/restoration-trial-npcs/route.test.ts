@@ -20,10 +20,10 @@ vi.mock('@/server/master/npc-design-store', () => ({
 import { GET } from './route'
 import { resolveSector } from '@/server/world/world-content'
 
-const sectorId = 'verdant-expanse'
-// Use an actual solid building in the current layout; the old 10:0 cell is now open.
+const sectorId = 'emberreach'
+// Use a real lava cell in the current layout.
 const blocked = resolveSector(sectorId)!.rows.flatMap((row, y) =>
-  [...row].flatMap((terrain, x) => (terrain === 'b' ? [{ x, y }] : [])),
+  [...row].flatMap((terrain, x) => (terrain === 'l' ? [{ x, y }] : [])),
 )[0]!
 const sentinel = {
   id: '39076058-5dba-457a-899c-d57b958540ca',
@@ -44,7 +44,7 @@ function request(sector = sectorId) {
 beforeEach(() => {
   vi.resetAllMocks()
   expect(blocked).toBeDefined()
-  expect(resolveSector(sectorId)!.rows[blocked.y]![blocked.x]).toBe('b')
+  expect(resolveSector(sectorId)!.rows[blocked.y]![blocked.x]).toBe('l')
   mocks.getActor.mockResolvedValue({ userId: 'verified-author' })
   mocks.readPublishedWorldNpcs.mockResolvedValue([
     sentinel,
@@ -107,9 +107,7 @@ it('provides only charted sector identities and labels when no sector has been s
   )
   expect(response.status).toBe(200)
   expect(await response.json()).toEqual({
-    sectors: expect.arrayContaining([
-      { id: sectorId, name: expect.stringMatching(/Verdant Expanse/) },
-    ]),
+    sectors: expect.arrayContaining([{ id: sectorId, name: expect.stringMatching(/Emberreach/) }]),
   })
   expect(mocks.readPublishedWorldNpcs).not.toHaveBeenCalled()
 })
@@ -119,12 +117,15 @@ function npcRequest(npcId = sentinel.id) {
 }
 
 it('restores a saved encounter by ID with its committed sector and minimal identity', async () => {
-  mocks.readPublishedRestorationTrialNpc.mockResolvedValue({ ...sentinel, sectorId: 'emberreach' })
+  mocks.readPublishedRestorationTrialNpc.mockResolvedValue({
+    ...sentinel,
+    sectorId: 'verdant-expanse',
+  })
   const response = await GET(npcRequest())
   expect(response.status).toBe(200)
   expect(response.headers.get('cache-control')).toBe('private, no-store')
   expect(await response.json()).toEqual({
-    npc: { id: sentinel.id, name: sentinel.name, sectorId: 'emberreach' },
+    npc: { id: sentinel.id, name: sentinel.name, sectorId: 'verdant-expanse' },
   })
   expect(mocks.readPublishedRestorationTrialNpc).toHaveBeenCalledExactlyOnceWith(
     'verified-author',

@@ -8,6 +8,7 @@ import {
   MAX_VOID_SECTOR_NUMBER,
   VOID_SECTOR_NUMBER_OFFSET,
 } from '@/world/sector-index'
+import { worldSurfaceRows } from '@/world/terrain'
 import { isSafe } from '@/world/travel'
 import type { WorldSector } from '@/world/types'
 
@@ -99,7 +100,7 @@ export function masterTeleportGeometry(
       sectorId: actual.id,
       realmId: destination.map === 'mainland' ? null : actual.id.split(':')[1]!,
       sectorNumber,
-      rows: actual.rows,
+      rows: worldSurfaceRows(actual),
       safeCells,
     }
   })

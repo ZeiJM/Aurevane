@@ -8,6 +8,7 @@ import {
 } from '@/appearance/appearance-manifest'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { findPlayableOwnedCharacterById } from './character-slot-service'
+import { invalidatePublicPeerPortrait } from './public-portrait-cache'
 
 function unavailable() {
   return new AurevaneError(
@@ -92,6 +93,7 @@ export async function commitCharacterAppearance(input: {
     (data.pendingImageUrl !== null && typeof data.pendingImageUrl !== 'string')
   )
     throw unavailable()
+  invalidatePublicPeerPortrait(input.characterId)
   return {
     imageUrl: data.imageUrl,
     pendingImageUrl: data.pendingImageUrl,

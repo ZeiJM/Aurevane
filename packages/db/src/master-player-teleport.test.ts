@@ -582,3 +582,24 @@ it('isolates the new mainland chart numbers in v6 and commits only walkable cell
   await denied(() => call(2, 0), /DESTINATION_BLOCKED/)
   expect((await call(6, 4)).rows[0]!.result.position).toEqual({ sectorId, x: 6, y: 4 })
 })
+
+it.each([0, 1])(
+  'allows dry scenery at x=%s and refuses water, lava and unknown terrain in v7',
+  async (x) => {
+    await seed()
+    const rows = ['#bw~l?.......', ...Array(8).fill('.............')]
+    await db.query('select public.install_master_teleport_geometry_v1($1,$2,$3,null)', [
+      owner,
+      '2026-11-24-v7',
+      [{ ...geometry[0]!, sectorNumber: 1, rows }],
+    ])
+    const call = (target: number) =>
+      db.query<{ result: { position: unknown } }>(
+        "select public.teleport_master_player_v7($1,$2,5,$3,'mainland',1,$4,0,'Reviewed recovery',true,null) result",
+        [owner, character, request, target],
+      )
+    for (const wetOrUnknown of [2, 3, 4, 5])
+      await denied(() => call(wetOrUnknown), /DESTINATION_BLOCKED/)
+    expect((await call(x)).rows[0]!.result.position).toEqual({ sectorId, x, y: 0 })
+  },
+)

@@ -463,9 +463,9 @@ describe('one traversable world atlas', () => {
     expect(cascade.rows.join('')).toContain('~')
     expect(terrainWalkable('~')).toBe(false)
   })
-  it('makes foliage walkable while keeping water, lava and buildings blocked', () => {
-    for (const t of ['.', '=', 's', 't']) expect(terrainWalkable(t)).toBe(true)
-    for (const t of ['~', 'l', 'b', '#', '?', '']) expect(terrainWalkable(t)).toBe(false)
+  it('opens all dry terrain and rejects liquids or missing ground', () => {
+    for (const t of ['.', '=', 's', 't', '#', 'b']) expect(terrainWalkable(t)).toBe(true)
+    for (const t of ['~', 'w', 'l', '?', '', undefined]) expect(terrainWalkable(t)).toBe(false)
   })
   it('gives all eight towns distinct streets and keeps their squares clear of dense trees', () => {
     const sectors = atlasSectors()
@@ -521,7 +521,7 @@ describe('one traversable world atlas', () => {
     expect(canWalkPublicAtlas(start, FERRY_NORTH_DOCK)).toBe(true)
     expect(canWalkPublicAtlas(start, FERRY_ASTERWAKE_DOCK)).toBe(false)
     expect(canWalkPublicAtlas(FERRY_ASTERWAKE_DOCK, grove)).toBe(true)
-    expect(canWalkPublicAtlas(FERRY_ASTERWAKE_DOCK, ASTERWAKE_GOLDEN_TREE)).toBe(false)
+    expect(canWalkPublicAtlas(FERRY_ASTERWAKE_DOCK, ASTERWAKE_GOLDEN_TREE)).toBe(true)
     const mainland = atlasSectors().filter((s) => s.regionId === ASTERWAKE_REGION_ID)
     expect(mainland.some((s) => s.name === 'Morrow Isle')).toBe(true)
     expect(mainland.some((s) => s.name === 'The Kestrel Skerries')).toBe(true)

@@ -829,7 +829,7 @@ export function registerWorldInputCases({
       release()
     }
   })
-  test('a pointer direction change keeps moving through a timely delayed approval', async ({
+  test('a pointer direction change keeps moving past three tiles while approval is delayed', async ({
     page,
   }, info) => {
     test.skip(info.project.name === 'laptop-chromium', 'Check mouse and touch once each.')
@@ -961,7 +961,7 @@ export function registerWorldInputCases({
       releaseFirst()
       expect((await turnRequest).postDataJSON().intent.destination).toEqual(destination)
       await turnResponseReady
-      await page.clock.runFor(550)
+      await page.clock.runFor(710)
       await expect(canvas).toHaveAttribute('data-test-turn-samples', /\[/)
       expect(delayed).toBe(true)
       const samples = JSON.parse((await canvas.getAttribute('data-test-turn-samples'))!) as {
@@ -971,7 +971,7 @@ export function registerWorldInputCases({
       }[]
       // Ignore initial pointer scheduling; the new route has four legal steps,
       // so it cannot have reached its destination during this observation.
-      const during = samples.filter((sample) => sample.time >= 120 && sample.time <= 545)
+      const during = samples.filter((sample) => sample.time >= 120 && sample.time <= 705)
       expect(during.length).toBeGreaterThan(10)
       let lastMove = during[0]!.time
       let longestPause = 0
@@ -995,7 +995,7 @@ export function registerWorldInputCases({
       )
       releaseTurn()
       await (await approval).finished()
-      await page.clock.runFor(100)
+      await page.clock.runFor(16)
       const afterApproval = await canvas.evaluate((el) => ({
         x: Number(el.dataset.travellerX),
         y: Number(el.dataset.travellerY),

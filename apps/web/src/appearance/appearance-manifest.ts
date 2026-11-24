@@ -1,3 +1,4 @@
+import { portraitFace } from './appearance-face-catalog'
 import {
   PAINTED_CLOTHING,
   PAINTED_FIELDS,
@@ -127,7 +128,8 @@ export function paintedPlayerAppearanceBlueprint(
   look: PaintedPlayerLook,
 ): PaintedPlayerAppearanceBlueprint {
   const normalized = readPaintedPlayerLook(paintedPlayerRecipe(look))
-  if (!normalized) throw new TypeError('Incompatible painted appearance')
+  if (!normalized || normalized.identity !== look.identity || normalized.faceId !== look.faceId)
+    throw new TypeError('Incompatible painted appearance')
   return Object.freeze({
     ...scoutBase,
     ...paintedIdentityParts[look.identity],
@@ -147,7 +149,7 @@ export type AppearanceBlueprint = SharedAppearanceParts &
 export type AppearanceExpression = (typeof APPEARANCE_EXPRESSIONS)[number]
 export type AppearanceFacing = (typeof APPEARANCE_FACINGS)[number]
 export type AppearancePose = (typeof APPEARANCE_POSES)[number]
-export type AppearanceAsset = AppearanceExpression | 'icon' | 'atlas' | 'motion'
+export type AppearanceAsset = AppearanceExpression | 'icon' | 'atlas' | 'motion' | 'motion-v2'
 
 export const APPEARANCE_FRAME = {
   width: 48,
@@ -240,13 +242,16 @@ export function parseAppearanceBlueprint(input: unknown): AppearanceBlueprint | 
     const wardrobeFields = Object.keys(catalog).filter(
       (field) => hasFeatures || !featureFields.includes(field),
     )
-    const recipe = wardrobeFields.map((field) => values[field])
+    const hasFace = values.v === 6 && Object.hasOwn(values, 'faceId')
+    if (hasFace && portraitFace(values.faceId)?.rig !== values.identity) return null
+    const part = (field: string) =>
+      field === 'identity' && hasFace ? values.faceId : values[field]
+    const recipe = wardrobeFields.map(part)
     const originalFeatures = featureFields.every((field) => values[field] === 'natural')
-    if (Object.keys(values).length !== fields.length + wardrobeFields.length + 1) return null
+    if (Object.keys(values).length !== fields.length + wardrobeFields.length + 1 + Number(hasFace))
+      return null
     const parts = originalFeatures
-      ? wardrobeFields
-          .filter((field) => !featureFields.includes(field))
-          .map((field) => values[field])
+      ? wardrobeFields.filter((field) => !featureFields.includes(field)).map(part)
       : recipe
     const blueprint =
       values.v === 6 ? playerBlueprintFromParts(parts) : wardrobeBlueprintFromParts(parts)
@@ -377,7 +382,7 @@ export function compileAppearanceManifest(input: AppearanceBlueprint) {
     portraits,
     icon: `${base}/icon.svg`,
     atlas: `${base}/atlas.svg`,
-    motionAtlas: `${base}/motion.svg`,
+    motionAtlas: `${base}/motion-v2.svg`,
     frame: APPEARANCE_FRAME,
   })
 }
@@ -442,6 +447,7 @@ export function isAppearanceAsset(value: string): value is AppearanceAsset {
   return (
     value === 'atlas' ||
     value === 'motion' ||
+    value === 'motion-v2' ||
     value === 'icon' ||
     APPEARANCE_EXPRESSIONS.some((mood) => mood === value)
   )

@@ -10,7 +10,7 @@ export function mountainFrontierAt(column: number, row: number): boolean {
   const taper = Math.min(1, (column - 41) / 3, (58 - column) / 3)
   return Math.abs(row - crest) <= halfWidth * taper
 }
-/** Canonical traversable north-south pass through otherwise blocked alpine rock. */
+/** The marked through-road across the alpine terrain. */
 export function mountainFrontierPass(x: number, y: number): boolean {
   return x === 6 || y === 4
 }

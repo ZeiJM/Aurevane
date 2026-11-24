@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { grantAppearanceToken } from './appearance-test-helpers'
+import { expectSmoothReadyStance, grantAppearanceToken } from './appearance-test-helpers'
 import { allocateCreationPoints, createVerifiedAccountAndSignIn } from './pv1f-test-helpers'
 
 test('@painted-wardrobe saves independent painted features and accessories using one token', async ({
@@ -13,11 +13,7 @@ test('@painted-wardrobe saves independent painted features and accessories using
     .replace(/\d/g, (digit) => String.fromCharCode(65 + Number(digit)))
   // Browser Smoke shares one database across projects and reserves saved recipes
   // across characters. Give the laptop project its own initial and final look.
-  const identity = isMobile
-    ? 'ranger'
-    : testInfo.project.name === 'laptop-chromium'
-      ? 'scout'
-      : 'guard'
+  const identity = isMobile ? 'f64' : testInfo.project.name === 'laptop-chromium' ? 'm64' : 'm63'
   const characterName = `Warden ${suffix}`
   await createVerifiedAccountAndSignIn({
     page,
@@ -29,6 +25,16 @@ test('@painted-wardrobe saves independent painted features and accessories using
   await page.getByRole('button', { name: 'Build my character' }).click()
   const dialog = page.getByRole('dialog', { name: 'Character appearance' })
   await dialog.getByRole('radio', { name: isMobile ? 'Female' : 'Male', exact: true }).check()
+  const battlePoses = dialog.getByRole('group', { name: 'Battle poses' })
+  await expect(battlePoses.locator('figcaption')).toHaveText([
+    'Idle',
+    'Walk',
+    'Attack',
+    'Cast',
+    'Hit',
+    'Down',
+  ])
+  await expectSmoothReadyStance(battlePoses.locator('[data-preview-motion="idle"]'))
   const outfit = dialog.getByRole('group', { name: 'Appearance options' })
   const control = (name: string) => outfit.getByRole('combobox', { name, exact: true })
   await control('Face').selectOption(identity)

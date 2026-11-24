@@ -62,7 +62,7 @@ export function createGroundProjectionCache(pixelLimit = 8_000_000) {
     beginFrame() {
       frame++
     },
-    get(source: StaticMapRaster, width: number, height: number, ratio: number) {
+    get(source: StaticMapRaster, width: number, height: number, ratio: number, entryLimit = 16) {
       if (![width, height, ratio].every((value) => Number.isFinite(value) && value > 0)) return null
       const cached = entries.get(source)
       if (cached?.width === width && cached.height === height && cached.ratio === ratio) {
@@ -81,7 +81,7 @@ export function createGroundProjectionCache(pixelLimit = 8_000_000) {
       if (area > pixelLimit) return null
       // Never evict a bitmap already used in this frame. If the visible set
       // exceeds the budget, retain its warmed subset and draw the rest directly.
-      while (entries.size && (pixels + area > pixelLimit || entries.size >= 16)) {
+      while (entries.size && (pixels + area > pixelLimit || entries.size >= entryLimit)) {
         const oldest = entries.keys().next().value!
         if (entries.get(oldest)!.frame === frame) return null
         remove(oldest)

@@ -1,4 +1,25 @@
+export const STUDIO_COLORS = {
+  parchment: ['Warm Parchment', '#deccaa', '#aa906e', '#695849'],
+  midnight: ['Midnight Blue', '#536879', '#2c4157', '#182737'],
+  pinegreen: ['Forest Green', '#849580', '#496552', '#2b423a'],
+  plumstudio: ['Dusky Plum', '#9d7f95', '#70556e', '#463544'],
+  terracotta: ['Terracotta', '#cf9a7a', '#986c55', '#60483d'],
+  pearl: ['Pearl Grey', '#dad7ce', '#a9a8a2', '#747a77'],
+  garnetstudio: ['Garnet', '#ad8180', '#80565b', '#523a45'],
+  tealstudio: ['Deep Teal', '#80a2a1', '#52777b', '#314e57'],
+  amberstudio: ['Old Gold', '#d5b47b', '#a88953', '#655b42'],
+  lavender: ['Lavender Mist', '#c2b7ce', '#918799', '#625d71'],
+} as const
+export type StudioColor = keyof typeof STUDIO_COLORS
+export function studioColor(id: string) {
+  return Object.hasOwn(STUDIO_COLORS, id) ? STUDIO_COLORS[id as StudioColor] : null
+}
+const studioLabels = Object.fromEntries(
+  Object.entries(STUDIO_COLORS).map(([id, [name]]) => [id, name]),
+) as Record<StudioColor, string>
+
 export const APPEARANCE_BACKDROP_GROUPS = {
+  'Studio colors': studioLabels,
   'Cosmic and Void': {
     astral: 'Cosmic Horizon',
     nebula: 'The Fallen Firmament',
@@ -58,9 +79,10 @@ export const APPEARANCE_BACKDROP_GROUPS = {
 } as const
 
 export const APPEARANCE_BACKDROPS = {
+  ...studioLabels,
   ...APPEARANCE_BACKDROP_GROUPS['Cosmic and Void'],
   ...APPEARANCE_BACKDROP_GROUPS['Wilds and Roads'],
   ...APPEARANCE_BACKDROP_GROUPS['Settlements and Interiors'],
 }
 
-export type AppearanceBackdrop = keyof typeof APPEARANCE_BACKDROPS
+export type AppearanceBackdrop = Exclude<keyof typeof APPEARANCE_BACKDROPS, StudioColor>

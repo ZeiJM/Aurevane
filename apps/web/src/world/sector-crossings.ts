@@ -1,3 +1,4 @@
+import { terrainWalkable } from './terrain'
 import type { WorldRoad, WorldSector } from './types'
 
 const ATLAS_COLUMNS = 32
@@ -78,7 +79,7 @@ function edgePosition(sector: CrossingSector, direction: SectorNeighborDirection
 }
 
 function isAuthoredWalkable(sector: CrossingSector, position: { x: number; y: number }) {
-  return ['.', '=', 's'].includes(sector.rows[position.y]?.[position.x] ?? '#')
+  return terrainWalkable(sector.rows[position.y]?.[position.x])
 }
 
 export function buildAuthoredSectorCrossing({

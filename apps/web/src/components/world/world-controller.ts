@@ -278,6 +278,7 @@ export class WorldController {
           ...this.view,
           sectors: incoming.sectors,
           scenery: incoming.scenery,
+          unchartedTerrain: incoming.unchartedTerrain,
           atlas: incoming.atlas,
         }) === false
       )
@@ -312,6 +313,7 @@ export class WorldController {
         ...this.view,
         sectors: incoming.sectors,
         scenery: incoming.scenery,
+        unchartedTerrain: incoming.unchartedTerrain,
         publicGrandDiscoveries: incoming.publicGrandDiscoveries,
         atlas: incoming.atlas,
         atlasToken: incoming.atlasToken,

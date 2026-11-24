@@ -91,6 +91,24 @@ it('withdraws private terrain on leaving Uncharted and rejects retained geometry
     position: { sectorId: 'void:ivory-veil:32:24', x: 6, y: 4 },
   })
   const privateView = projectWorld(state, [], 1000)
+  const otherRealm = projectWorld(
+    revealNearby({
+      ...newWorldState(),
+      position: { ...state.position, sectorId: 'void:hollow-orchard:16:10' },
+    }),
+    [],
+    1000,
+  )
+  for (const unchartedTerrain of [[], undefined]) {
+    const transitioning = {
+      ...privateView,
+      sectors: [...privateView.sectors, ...otherRealm.sectors],
+      unchartedTerrain,
+    }
+    expect(
+      worldRenderTerrain(transitioning).some((s) => s.id.startsWith('void:hollow-orchard:')),
+    ).toBe(false)
+  }
   expect((privateView.unchartedTerrain ?? []).length).toBeGreaterThan(0)
   const returned = { ...state, position: newWorldState().position }
   const retainedScene = {

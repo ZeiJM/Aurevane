@@ -1,8 +1,7 @@
 import { atlasSectors } from './atlas'
 import { GRID_HEIGHT, GRID_WIDTH } from './catalog'
 import { ATLAS_ROWS, WORLD_MAP_WIDTH } from './topology'
-import { terrainWalkable } from './terrain'
-import { validCell } from './travel'
+import { isWalkable, validCell } from './travel'
 import type { WorldPosition } from './types'
 
 const height = ATLAS_ROWS * GRID_HEIGHT
@@ -18,7 +17,7 @@ function buildWalkingMap() {
     origins.set(sector.id, origin)
     for (let y = 0; y < GRID_HEIGHT; y++)
       for (let x = 0; x < GRID_WIDTH; x++)
-        if (terrainWalkable(sector.rows[y]![x]!)) labels[origin + y * WORLD_MAP_WIDTH + x] = -1
+        if (isWalkable(sector, { x, y })) labels[origin + y * WORLD_MAP_WIDTH + x] = -1
   }
   const queue = new Int32Array(size)
   let component = 0

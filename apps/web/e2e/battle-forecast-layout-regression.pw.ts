@@ -6,7 +6,7 @@ import path from 'node:path'
 import { APPEARANCE_PRESETS } from '../src/appearance/appearance-manifest'
 import { scheduledEffectPreviewLabel } from '../src/components/battle/battle-preview-content'
 import { gameplayStatusName } from '../src/lib/battle/combat-interaction-presentation'
-import { saveFixtureAppearance } from './appearance-test-helpers'
+import { expectSmoothReadyStance, saveFixtureAppearance } from './appearance-test-helpers'
 import { expectTerrainKey } from './battle-map-key-helpers'
 import { expectNoSkillPreviewMetadata } from './battle-preview-metadata-helpers'
 
@@ -813,7 +813,7 @@ test('AI forecast arming, inline targets and cockpit reading keep the desktop bo
   const characterTile = page.getByRole('button', {
     name: new RegExp(`occupied by ${characterName}`),
   })
-  await expect(characterTile.locator('[data-battle-appearance-pose]')).toBeVisible()
+  await expectSmoothReadyStance(characterTile.locator('[data-battle-appearance-pose="idle"]'))
   await arrangeAdjacentCombatants(page)
   await exerciseForecast(page, testInfo, 'pve', nexusRows)
 })
@@ -871,6 +871,9 @@ test('share-code PvP forecast uses the same fixed desktop board and readable lan
     const activeHost =
       (await host.locator('main[data-unified-battle]').getAttribute('data-local-turn')) === 'true'
     const active = activeHost ? host : guest
+    for (const page of [host, guest]) {
+      await expectSmoothReadyStance(page.locator('[data-battle-appearance-pose="idle"]').first())
+    }
     await arrangeAdjacentCombatants(active)
     await exerciseForecast(active, testInfo, 'pvp', activeHost ? hostRows : guestRows)
   } finally {

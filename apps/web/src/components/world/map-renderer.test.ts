@@ -7,7 +7,7 @@ import { projectWorld, projectWorldSector } from '@/server/world/world-service'
 import { voidRealmFerryDock } from '@/server/world/void-realms'
 import { FERRYMAN_PORTRAIT, FERRYMAN_SPRITE } from '@/world/ferry'
 import { atlasSectors } from '@/world/atlas'
-import { CHARTED_SECTORS } from '@/world/catalog'
+import { CHARTED_SECTORS, GRID_HEIGHT, GRID_WIDTH } from '@/world/catalog'
 import { GRAND_DISCOVERY_SITES, OFFSHORE_DISCOVERY } from '@/world/discovery-sites'
 import { WORLD_MAP_WIDTH } from '@/world/topology'
 import legacyTownTopology from '@/world/town-topology.legacy.json'
@@ -20,6 +20,7 @@ import { MAP_X, MAP_Y, projectMapPoint, unprojectMapPoint } from './map-projecti
 import type { WorldView } from '@/world/types'
 import * as biomes from './map-biome-transitions'
 import * as waterPainting from './map-water'
+import * as vegetation from './map-vegetation'
 import { worldWindTarget } from './map-weather'
 import * as weatherPainting from './map-weather'
 import { worldRenderTerrain } from './map-render-terrain'
@@ -373,6 +374,25 @@ function scene(reduced = false, initial?: WorldView) {
     onStop,
     identityCanvas,
   )!
+  const resolvePaintedSource = (draw: (typeof draws)[number]) => {
+    const contents = layerDraws.get(draw.image)
+    const source = contents?.length === 1 ? contents[0] : undefined
+    if (
+      source?.args.length !== 8 ||
+      draw.args.length !== 4 ||
+      source.args[4] !== 0 ||
+      source.args[5] !== 0 ||
+      source.args[6] !== draw.image.width ||
+      source.args[7] !== draw.image.height
+    )
+      return draw
+    return {
+      ...draw,
+      src: source.src,
+      image: source.image,
+      args: [...source.args.slice(0, 4), ...draw.args],
+    }
+  }
   return {
     fills,
     rectangles,
@@ -382,27 +402,10 @@ function scene(reduced = false, initial?: WorldView) {
     // Anchor, silhouette and growth checks concern the painted CSS geometry,
     // while raw draws remain available for resampling/work-count assertions.
     get spriteDraws() {
-      return draws
-        .filter((draw) => !offscreenDraws.has(draw))
-        .map((draw) => {
-          const contents = layerDraws.get(draw.image)
-          const source = contents?.length === 1 ? contents[0] : undefined
-          if (
-            source?.args.length !== 8 ||
-            draw.args.length !== 4 ||
-            source.args[4] !== 0 ||
-            source.args[5] !== 0 ||
-            source.args[6] !== draw.image.width ||
-            source.args[7] !== draw.image.height
-          )
-            return draw
-          return {
-            ...draw,
-            src: source.src,
-            image: source.image,
-            args: [...source.args.slice(0, 4), ...draw.args],
-          }
-        })
+      return draws.filter((draw) => !offscreenDraws.has(draw)).map(resolvePaintedSource)
+    },
+    get identitySprites() {
+      return identityDraws.map(resolvePaintedSource)
     },
     texts,
     transforms,
@@ -473,7 +476,7 @@ describe('native map input and bounded lifecycle', () => {
       )
       expect(s.texts.map(({ text }) => text)).not.toContain('Stern cabin')
       expect(s.texts.map(({ text }) => text)).not.toContain('Foremast')
-      expect(view.sectors[0]?.cells.find(({ x, y }) => x === 8 && y === 6)?.walkable).toBe(false)
+      expect(view.sectors[0]?.cells.find(({ x, y }) => x === 8 && y === 6)?.walkable).toBe(true)
     } finally {
       s.renderer.dispose()
       vi.unstubAllGlobals()
@@ -577,7 +580,11 @@ describe('native map input and bounded lifecycle', () => {
     try {
       s.frame(40)
       const hull = s.spriteDraws.find(({ src }) => src.endsWith('ferry-vessel-v01.webp'))
-      const sprite = s.spriteDraws.find(({ src }) => src === FERRYMAN_SPRITE)
+      const sprite = s.identityDraws.find(({ image }) =>
+        s.composites
+          .get(image)
+          ?.some((source) => (source as HTMLImageElement).src === FERRYMAN_SPRITE),
+      )
       expect(hull?.args).toHaveLength(4)
       expect(sprite?.args.at(-1)).toBeGreaterThan(64)
       expect(s.texts.map(({ text }) => text)).toEqual(
@@ -613,7 +620,7 @@ describe('native map input and bounded lifecycle', () => {
       vi.unstubAllGlobals()
     }
   })
-  it('paints charted dry ground while awaiting the next scene and leaves water to the sea layer', () => {
+  it('uses the regional artwork and published liquid mask while the public scene is pending', () => {
     const view = legacyTownView('verdant-expanse')
     const own = view.sectors.find((sector) => sector.id === view.position.sectorId)!
     const candidate = {
@@ -634,8 +641,23 @@ describe('native map input and bounded lifecycle', () => {
     try {
       s.renderer.settings({ animate: false, zoom: 0.35 })
       s.frame(40)
-      expect(s.rectangles.filter(({ colour }) => colour === '#ab956e')).toHaveLength(1)
-      s.rectangles.length = 0
+      const desertCrop = () =>
+        s.draws.some(
+          ({ src, args }) =>
+            src.endsWith('regional-ground-v02.webp') &&
+            args[0]! >= 300 &&
+            args[0]! < 600 &&
+            args[1]! >= 600,
+        )
+      expect(desertCrop()).toBe(true)
+      const publicWater = () =>
+        s.gradients.some(
+          ({ stops, coordinates }) =>
+            stops.some((stop) => stop[1] === '#245e67') &&
+            coordinates[0] === -candidate.column * GRID_WIDTH * 16,
+        )
+      expect(publicWater()).toBe(false)
+      s.gradients.length = 0
       s.renderer.update({
         ...view,
         atlas: [{ ...candidate, waterTiles: '~'.repeat(117) }],
@@ -643,7 +665,78 @@ describe('native map input and bounded lifecycle', () => {
         sectors: [centre],
       })
       s.frame(90)
-      expect(s.rectangles.some(({ colour }) => colour === '#ab956e')).toBe(false)
+      expect(publicWater()).toBe(true)
+      const point = projectMapPoint(
+        { x: candidate.column * GRID_WIDTH + 0.5, y: candidate.row * GRID_HEIGHT + 0.5 },
+        mapPoint(view.position, [centre]),
+        { x: 0, y: 0 },
+        64 * 0.35,
+        800,
+        600,
+      )
+      s.event('pointerdown', point.x, point.y)
+      s.event('pointerup', point.x, point.y)
+      expect(s.select).not.toHaveBeenCalled()
+      s.gradients.length = s.draws.length = 0
+      s.renderer.update({
+        ...view,
+        atlas: [{ ...candidate, charted: false, waterTiles: '~'.repeat(117) }],
+        scenery: [],
+        sectors: [centre],
+      })
+      s.frame(140)
+      expect(publicWater()).toBe(false)
+      expect(desertCrop()).toBe(false)
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  })
+  it('fills gaps behind a partial public sector while allowing only supplied ground clicks', () => {
+    const view = legacyTownView('verdant-expanse', 5, 4)
+    const current = view.sectors[0]!
+    const supplied = {
+      ...current,
+      landmarks: [],
+      buildings: [],
+      cells: current.cells.filter((cell) => cell.x === 5 && cell.y === 4),
+    }
+    const s = scene(true, { ...view, sectors: [supplied] })
+    try {
+      s.frame(40)
+      expect(s.rectangles.some(({ colour }) => colour === '#233d3c')).toBe(false)
+      const sampledMaterial = s.draws.find(
+        ({ src, args }) =>
+          src.endsWith('regional-ground-v02.webp') && args[6] === 17 && args[7] === 17,
+      )
+      expect(sampledMaterial).toBeDefined()
+      s.event('pointerdown', 563.2, 384.48)
+      s.event('pointerup', 563.2, 384.48)
+      expect(s.select).not.toHaveBeenCalled()
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  })
+  it('keeps the public atlas visible when the owned sector arrives before its cells', () => {
+    const view = legacyTownView('verdant-expanse', 5, 4)
+    const s = scene(true, view)
+    try {
+      s.frame(40)
+      s.draws.length = 0
+      s.renderer.update({ ...view, sectors: [], scenery: [] })
+      s.frame(90)
+      const groundSheet = s.images.find((image) =>
+        (image as HTMLImageElement).src.endsWith('regional-ground-v02.webp'),
+      )!
+      expect(
+        s.draws.some(({ image }) =>
+          s.composites.get(image)?.includes(groundSheet as HTMLImageElement),
+        ),
+      ).toBe(true)
+      s.event('pointerdown', 563.2, 384.48)
+      s.event('pointerup', 563.2, 384.48)
+      expect(s.select).not.toHaveBeenCalled()
     } finally {
       s.renderer.dispose()
       vi.unstubAllGlobals()
@@ -1014,16 +1107,16 @@ describe('native map input and bounded lifecycle', () => {
       )!
       Object.assign(nature, { complete: false, naturalWidth: 0 })
       s.renderer.settings({ animate: false, zoom: 0.35 })
-      s.frame(40)
-      const layers = s.layerCount()
+      for (let at = 40; at < 5040 && s.frames.size; at += 40) s.frame(at)
+      s.canvas.dataset.renderDiagnostics = 'timing'
       expect(s.draws.filter((draw) => draw.src.endsWith('nature-v02.webp'))).toHaveLength(0)
       expect(s.frames.size).toBe(0)
       Object.assign(nature, { complete: true, naturalWidth: 1200 })
       nature.onload!()
       expect(s.frames.size).toBe(1)
-      s.frame(80)
+      s.frame(5080)
       expect(s.draws.some((draw) => draw.src.endsWith('nature-v02.webp'))).toBe(true)
-      expect(s.layerCount()).toBe(layers)
+      expect(JSON.parse(s.canvas.dataset.renderTiming!).groundBuilds).toBe(0)
       expect(s.frames.size).toBe(0)
       expect(s.select).not.toHaveBeenCalled()
     } finally {
@@ -1069,7 +1162,7 @@ describe('native map input and bounded lifecycle', () => {
     ['autumn', 'verdant-expanse', 'autumn', 7, false, 'beauties', 1077, 439, 891, 1335],
     ['wisteria', 'verdant-expanse', 'wisteria', 7, false, 'beauties', 1540, 443, 1323, 1774],
   ] as const)(
-    'isolates the fallback %s canopy and roots at the original painted scale',
+    'isolates the fallback %s canopy with its roots fixed at its growth scale',
     (
       _name,
       regionId,
@@ -1125,8 +1218,13 @@ describe('native map input and bounded lifecycle', () => {
       expect(a[0]).toBeGreaterThanOrEqual(safeLeft)
       expect(a[0]! + a[2]!).toBeLessThanOrEqual(safeRight)
       expect(a[1]! + a[3]!).toBeGreaterThan(contactY)
-      expect(a[6]! / a[2]!).toBeCloseTo((64 * 1.65) / (family === 'nature' ? 1514 / 4 : 1774 / 4))
-      expect(a[7]! / a[3]!).toBeCloseTo((64 * 2.55) / (family === 'nature' ? 1039 / 2 : 887 / 2))
+      const { scale } = vegetation.vegetationPose('public', point.x - 0.5, point.y - 0.5, true)
+      expect(a[6]! / a[2]!).toBeCloseTo(
+        (64 * 1.65 * scale) / (family === 'nature' ? 1514 / 4 : 1774 / 4),
+      )
+      expect(a[7]! / a[3]!).toBeCloseTo(
+        (64 * 2.55 * scale) / (family === 'nature' ? 1039 / 2 : 887 / 2),
+      )
       expect(m[0]! * x + m[2]! * y + m[4]!).toBeCloseTo(expected.x * 1.5, 1)
       expect(m[1]! * x + m[3]! * y + m[5]!).toBeCloseTo(expected.y * 1.5, 1)
       s.renderer.dispose()
@@ -1176,8 +1274,9 @@ describe('native map input and bounded lifecycle', () => {
               y = a[5]! + ((py - a[1]!) / a[3]!) * a[7]!
             return { x: m[0]! * x + m[2]! * y + m[4]!, y: m[1]! * x + m[3]! * y + m[5]! }
           }
-        contacts.push(project(960, 488))
-        canopies.push(project(960, 40))
+        const trunkX = a[0]! + a[2]! / 2
+        contacts.push(project(trunkX, 488))
+        canopies.push(project(trunkX, 40))
         layers.push(s.layerCount())
       }
       for (const contact of contacts) {
@@ -1337,6 +1436,46 @@ describe('native map input and bounded lifecycle', () => {
     s.renderer.dispose()
     build.mockRestore()
     vi.unstubAllGlobals()
+  })
+  it('progressively refines a delayed wide public overview and finishes with motion disabled', () => {
+    const base = projectWorld(newWorldState(), [], 1000)
+    const home = base.sectors.find((sector) => sector.id === base.position.sectorId)!
+    const dry = (sector: typeof home) => ({
+      ...sector,
+      landmarks: [],
+      buildings: [],
+      cells: sector.cells.map((cell) => ({ ...cell, terrain: '.', walkable: true })),
+    })
+    const sectors = worldRenderTerrain(base).map(dry)
+    const partial = { ...base, sectors: [dry(home)], scenery: [] }
+    const s = scene(true, partial)
+    try {
+      Object.assign(s.canvas, { clientWidth: 1920, clientHeight: 1080 })
+      s.resize()
+      s.renderer.settings({ animate: false, zoom: 0.35 })
+      s.canvas.dataset.renderDiagnostics = 'timing'
+      s.frame(300)
+      s.renderer.update({ ...base, sectors, scenery: [] })
+      const counts: number[] = []
+      for (let at = 340; at < 5400 && s.frames.size; at += 40) {
+        s.frame(at)
+        counts.push(JSON.parse(s.canvas.dataset.renderTiming!).groundBuilds)
+        s.draws.length = 0
+      }
+      expect(counts.filter((count) => count > 0).length).toBeGreaterThan(8)
+      expect(Math.max(...counts)).toBe(1)
+      expect(s.frames.size).toBe(0)
+      // A late specialty sheet has no material to replace on the dry terrain.
+      s.images.find((image) =>
+        (image as HTMLImageElement).src.endsWith('water-materials-v01.webp'),
+      )!.onload!()
+      s.frame(5500)
+      expect(JSON.parse(s.canvas.dataset.renderTiming!).groundBuilds).toBe(0)
+      expect(s.frames.size).toBe(0)
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
   })
   it('retains visible ground rasters when movement only changes distant supplied neighbours', () => {
     const build = vi.spyOn(biomes, 'buildBiomeTransitions')
@@ -1775,6 +1914,46 @@ describe('native map input and bounded lifecycle', () => {
       vi.unstubAllGlobals()
     }
   })
+  it('resumes the earlier held key immediately on release and stops on a blocked turn', () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] })
+    const s = scene()
+    const position = s.view.position
+    const view = {
+      ...s.view,
+      sectors: s.view.sectors.map((sector) => ({
+        ...sector,
+        cells: sector.cells.map((cell) => {
+          const blocked = sector.id === position.sectorId && cell.y === position.y + 1
+          return { ...cell, walkable: !blocked, terrain: blocked ? '~' : '.' }
+        }),
+      })),
+    }
+    s.renderer.update(view)
+    s.select.mockImplementation((destination, direction) => {
+      s.motion.planDirectional(destination, direction, view.sectors, performance.now())
+    })
+    const key = (event: string, key: string, repeat = false) =>
+      s.listeners.get(event)!({ key, repeat, preventDefault() {} } as unknown as Event)
+    try {
+      key('keydown', 'w')
+      key('keydown', 'd')
+      key('keydown', 'w', true)
+      expect(s.select.mock.calls.at(-1)?.[1]).toBe('east')
+      key('keyup', 'd')
+      expect(s.select.mock.calls.at(-1)?.[1]).toBe('north')
+      key('keydown', 's')
+      expect(s.onStop).toHaveBeenCalledOnce()
+      vi.advanceTimersByTime(1000)
+      expect(s.onStop).toHaveBeenCalledOnce()
+      key('keyup', 's')
+      expect(s.select.mock.calls.at(-1)?.[1]).toBe('north')
+      key('keyup', 'w')
+    } finally {
+      s.renderer.dispose()
+      vi.useRealTimers()
+      vi.unstubAllGlobals()
+    }
+  })
   it('does not submit held-key destinations on water or beyond supplied terrain', () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] })
     const s = scene()
@@ -1798,7 +1977,10 @@ describe('native map input and bounded lifecycle', () => {
     })
     s.listeners.get('keydown')!({ key: 'd', preventDefault() {} } as unknown as Event)
     vi.advanceTimersByTime(1200)
-    expect(s.select).toHaveBeenCalledExactlyOnceWith({ ...view.position, x: view.position.x + 1 })
+    expect(s.select).toHaveBeenCalledExactlyOnceWith(
+      { ...view.position, x: view.position.x + 1 },
+      'east',
+    )
     s.renderer.update({ ...view, sectors: [] })
     vi.advanceTimersByTime(1200)
     expect(s.select).toHaveBeenCalledTimes(1)
@@ -1958,21 +2140,23 @@ describe('native map input and bounded lifecycle', () => {
         dy = a[5]! + ((y - a[1]!) / a[3]!) * a[7]!
       return { x: m[0]! * dx + m[2]! * dy + m[4]!, y: m[1]! * dx + m[3]! * dy + m[5]! }
     }
-    const center = paintedPoint(1194.72, 308.14)
-    const point = mapPoint({ sectorId: s.view.position.sectorId, x: 10, y: 4 }, s.view.sectors)
-    const expected = projectMapPoint(
-      point,
-      mapPoint(s.view.position, s.view.sectors),
-      { x: 0, y: 0 },
-      64,
-      800,
-      600,
-    )
-    expect(center.x).toBeCloseTo(expected.x * 1.5, 1)
-    expect(center.y).toBeCloseTo(expected.y * 1.5, 1)
-    const a = paintedPoint(1035, 386),
-      b = paintedPoint(1354, 230)
-    expect((b.x - a.x) * (b.y - a.y)).toBeGreaterThan(0)
+    // The two painted tread thresholds meet the ground centres on opposite banks.
+    for (const [sourceX, sourceY, tileX] of [
+      [415, 145, 9],
+      [91, 404, 11],
+    ] as const) {
+      const contact = paintedPoint(950 + (460 * sourceX) / 512, 60 + (380 * sourceY) / 512)
+      const expected = projectMapPoint(
+        mapPoint({ sectorId: s.view.position.sectorId, x: tileX, y: 4 }, s.view.sectors),
+        mapPoint(s.view.position, s.view.sectors),
+        { x: 0, y: 0 },
+        64,
+        800,
+        600,
+      )
+      expect(contact.x).toBeCloseTo(expected.x * 1.5, 1)
+      expect(contact.y).toBeCloseTo(expected.y * 1.5, 1)
+    }
     expect(
       s.clips.some(
         (clip) => clip.path.some((part) => part.operation === 'C') && clip.order < bridge.order,
@@ -2113,6 +2297,9 @@ describe('native map input and bounded lifecycle', () => {
             : ['#702f25', '#bd5b2e', '#4d2526']
         const materialGradients = s.gradients.filter(
           (gradient) =>
+            // The two full-resolution beds belong to the tested crossing;
+            // the surrounding overview can also paint its own distant rivers.
+            gradient.coordinates[2]! - gradient.coordinates[0]! === WORLD_MAP_WIDTH * 64 &&
             gradient.stops.length === 3 &&
             gradient.stops.every((stop, i) => stop[1] === colours[i]),
         )
@@ -2659,7 +2846,10 @@ describe('native map input and bounded lifecycle', () => {
         s.listeners.get('keydown')!({ key, preventDefault } as unknown as Event)
         s.listeners.get('keyup')!({ key } as unknown as Event)
         const target = { ...view.position, x: view.position.x + dx, y: view.position.y + dy }
-        expect(s.select).toHaveBeenLastCalledWith(target)
+        expect(s.select).toHaveBeenLastCalledWith(
+          target,
+          dx > 0 ? 'east' : dx < 0 ? 'west' : dy < 0 ? 'north' : 'south',
+        )
         expect(s.motion.sample(201).position).toEqual(target)
         expect(preventDefault).toHaveBeenCalledOnce()
       } finally {
@@ -2682,12 +2872,12 @@ describe('native map input and bounded lifecycle', () => {
     try {
       const origin = view.position
       s.listeners.get('keydown')!({ key: 'ArrowRight', preventDefault() {} } as unknown as Event)
-      expect(s.select).toHaveBeenCalledWith({ ...origin, x: origin.x + 3 })
+      expect(s.select).toHaveBeenCalledWith({ ...origin, x: origin.x + 3 }, 'east')
 
       // The controller applies the server receipt asynchronously. Keyup must not
       // overwrite the approved route with the still-current origin meanwhile.
       s.listeners.get('keyup')!({ key: 'ArrowRight' } as unknown as Event)
-      expect(s.select).toHaveBeenLastCalledWith({ ...origin, x: origin.x + 1 })
+      expect(s.select).toHaveBeenLastCalledWith({ ...origin, x: origin.x + 1 }, 'east')
     } finally {
       s.renderer.dispose()
       vi.unstubAllGlobals()
@@ -2730,10 +2920,10 @@ describe('native map input and bounded lifecycle', () => {
           key: 'ArrowRight',
           preventDefault() {},
         } as unknown as Event)
-        expect(s.select).toHaveBeenCalledWith({ ...approved, x: approved.x + 3 })
+        expect(s.select).toHaveBeenCalledWith({ ...approved, x: approved.x + 3 }, 'east')
         s.listeners.get('keyup')!({ key: 'ArrowRight' } as unknown as Event)
-        expect(s.select).toHaveBeenLastCalledWith({ ...approved, x: approved.x + 1 })
-        expect(s.select).not.toHaveBeenCalledWith(approved)
+        expect(s.select).toHaveBeenLastCalledWith({ ...approved, x: approved.x + 1 }, 'east')
+        expect(s.select).not.toHaveBeenCalledWith(approved, 'east')
       } finally {
         s.renderer.dispose()
         clock.mockRestore()
@@ -3001,6 +3191,11 @@ describe('native map input and bounded lifecycle', () => {
       now += 140
       s.frame(now)
       expect(Number(s.canvas.dataset.tileSize)).toBeCloseTo(22.4)
+      // At minimum zoom a large public surface can finish across several frames.
+      for (let i = 0; i < 128 && s.frames.size; i++) {
+        now += 16
+        s.frame(now)
+      }
       expect(s.frames.size).toBe(0)
     } finally {
       s.renderer.dispose()
@@ -3103,7 +3298,19 @@ describe('native map input and bounded lifecycle', () => {
     vi.unstubAllGlobals()
   })
   it('varies tree canopy sway independently while keeping the trunk base fixed', () => {
-    const s = scene()
+    const view = projectWorld(newWorldState(), [], 1000)
+    const forest = view.sectors.find((sector) => sector.id === view.position.sectorId)!
+    const s = scene(false, {
+      ...view,
+      sectors: [
+        {
+          ...forest,
+          buildings: [],
+          landmarks: [],
+          cells: forest.cells.map((cell) => ({ ...cell, terrain: 't' })),
+        },
+      ],
+    })
     s.frame(120)
     const canopies = s.transforms.filter((t) => t[0] === 1 && t[1] === 0 && t[3] === 1)
     expect(canopies.length).toBeGreaterThan(1)
@@ -3233,7 +3440,7 @@ describe('native map input and bounded lifecycle', () => {
     vi.unstubAllGlobals()
   })
   it('inverts a ground click exactly and never walks on the river or after dragging', () => {
-    const s = scene()
+    const s = scene(false, legacyTownView('verdant-expanse', 5, 4))
     s.event('pointerdown', 563.2, 384.48)
     s.event('pointerup', 563.2, 384.48)
     expect(s.select).toHaveBeenLastCalledWith({ sectorId: 'verdant-expanse', x: 8, y: 4 })
@@ -3308,11 +3515,13 @@ describe('native map input and bounded lifecycle', () => {
             s.draws
               .filter(
                 (draw) =>
-                  (draw.src.endsWith('living-trees-v01.webp') && Math.abs(draw.args[1]!) < 1e-6) ||
+                  draw.src.endsWith('living-trees-v01.webp') ||
                   (draw.src === '' &&
                     draw.args.length === 4 &&
-                    draw.image.width === Math.ceil(tile * 1.9 * 1.5) &&
-                    draw.image.height === Math.ceil(tile * 2.8 * 1.5)),
+                    s.composites.get(draw.image)?.length === 1 &&
+                    (s.composites.get(draw.image)![0] as HTMLImageElement).src?.endsWith(
+                      'living-trees-v01.webp',
+                    )),
               )
               .map((draw) => {
                 const [x, y, width, height] = draw.args.slice(-4)
@@ -3641,9 +3850,9 @@ describe('native map input and bounded lifecycle', () => {
       const requests = s.images.length
       s.frame(100)
       expect(s.images.length).toBe(requests)
-      expect(s.identityDraws.filter(({ src }) => src.startsWith('/crowd-')).length).toBeGreaterThan(
-        100,
-      )
+      expect(
+        s.identitySprites.filter(({ src }) => src.startsWith('/crowd-')).length,
+      ).toBeGreaterThan(100)
     } finally {
       s.renderer.dispose()
       vi.unstubAllGlobals()
@@ -3699,7 +3908,7 @@ describe('native map input and bounded lifecycle', () => {
     const labels = s.texts.filter(({ text }) => text === 'Wayfarer' || text.startsWith('Neighbour'))
     expect(labels.some(({ text }) => text === 'Wayfarer')).toBe(true)
     expect(labels.length).toBeLessThanOrEqual(12)
-    expect(s.identityDraws.filter(({ src }) => src === '/peer.webp').length).toBeGreaterThan(12)
+    expect(s.identitySprites.filter(({ src }) => src === '/peer.webp').length).toBeGreaterThan(12)
     for (const [index, label] of labels.entries()) {
       const fontSize = Number(/(\d+)px/.exec(label.font)![1])
       const width = label.text.length * 7 + 12
@@ -3867,7 +4076,7 @@ describe('native map input and bounded lifecycle', () => {
       })
       s.renderer.settings({ animate: true, zoom })
       s.frame(40)
-      const draw = s.identityDraws.find((entry) => entry.src === '/scaled-peer.webp')!
+      const draw = s.identitySprites.find((entry) => entry.src === '/scaled-peer.webp')!
       const scale = Number(s.canvas.dataset.tileSize) / 64
       const diameter = Math.round(34 * scale * 3) / 3
       expect(draw.args.at(-2)).toBe(diameter)
@@ -5008,7 +5217,99 @@ it('uses the decoded snowy hamlet sheet only in Frostmere and falls back while i
   }
 })
 
-it('renders different woodland growth sizes while keeping town trees authored', () => {
+it('draws the moving camera past The Fallen Arch from its pre-scaled art after the first frame', () => {
+  const initial = projectWorld(newWorldState(), [], 1000)
+  const own = initial.sectors.find((s) => s.id === initial.position.sectorId)!
+  const view = {
+    ...initial,
+    scenery: [],
+    sectors: [
+      {
+        ...own,
+        buildings: [],
+        cells: own.cells.map((c) => ({ ...c, terrain: '.', walkable: true })),
+        landmarks: [
+          { id: 'fallen-arch', name: 'The Fallen Arch', kind: 'ruin' as const, x: 7, y: 4 },
+        ],
+      },
+    ],
+  }
+  const s = scene(false, view)
+  try {
+    s.frame(40)
+    const source = s.draws.find(
+      (draw) => draw.src.endsWith('props-v02.webp') && draw.args[4] === 0 && draw.args[5] === 0,
+    )!
+    expect(source).toBeDefined()
+    const baked = [...s.composites].find(
+      ([layer, contents]) =>
+        contents.length === 1 &&
+        contents[0] === source.image &&
+        (layer as HTMLCanvasElement).width === source.args[6],
+    )![0]
+    s.motion.plan(
+      [{ position: { ...view.position, x: view.position.x + 1 }, durationMs: 200 }],
+      view.sectors,
+      40,
+    )
+    for (const now of [80, 120]) {
+      s.draws.length = 0
+      s.frame(now)
+      expect(s.draws.some((draw) => draw.src.endsWith('props-v02.webp'))).toBe(false)
+      expect(s.draws.some((draw) => draw.image === baked)).toBe(true)
+    }
+  } finally {
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+})
+
+it('reuses authored canopy geometry while walking in wind and refreshes it when the assets load', () => {
+  const initial = projectWorld(newWorldState(), [], 1000)
+  const own = initial.sectors.find((sector) => sector.id === initial.position.sectorId)!
+  const view = {
+    ...initial,
+    scenery: [],
+    atlas: [],
+    players: [],
+    environment: { ...initial.environment, weather: 'wind' as const },
+    sectors: [
+      {
+        ...own,
+        regionId: 'emberreach',
+        townId: undefined,
+        buildings: [],
+        landmarks: [],
+        cells: own.cells.map((cell) => ({ ...cell, terrain: 't', walkable: true })),
+      },
+    ],
+  }
+  const growth = vi.spyOn(vegetation, 'vegetationPose')
+  const s = scene(false, view)
+  try {
+    s.frame(40)
+    expect(growth).toHaveBeenCalledTimes(own.cells.length)
+    growth.mockClear()
+    const next = { ...view.position, x: view.position.x + 1 }
+    s.motion.plan([{ position: next, durationMs: 200 }], view.sectors, 40)
+    s.renderer.update({ ...view, players: [] })
+    s.frame(80)
+    s.frame(120)
+    expect(growth).not.toHaveBeenCalled()
+    const sheet = s.images.find((image) =>
+      (image as HTMLImageElement).src.endsWith('living-trees-v01.webp'),
+    )!
+    sheet.onload!()
+    s.frame(160)
+    expect(growth).toHaveBeenCalledTimes(own.cells.length)
+  } finally {
+    growth.mockRestore()
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+})
+
+it('renders young and mature trees throughout both the wild and settled districts', () => {
   const initial = projectWorld(newWorldState(), [], 1000)
   const root = initial.sectors.find((s) => s.id === initial.position.sectorId)!
   const forest = {
@@ -5034,7 +5335,7 @@ it('renders different woodland growth sizes while keeping town trees authored', 
     }
   }
   expect(run().size).toBeGreaterThan(5)
-  expect(run(root.id).size).toBe(1)
+  expect(run(root.id).size).toBe(6)
 })
 
 it('softens the winter marketplace pavement perimeter, not just roads outside the square', () => {
@@ -5359,6 +5660,69 @@ it('draws an anchored animated lava cascade only on the real Emberreach lava cha
   }
 })
 
+it('registers travellers, NPCs and clicks on the painted East Moat Bridge deck', () => {
+  const sector = atlasSectors().find((sector) =>
+    sector.landmarks.some((site) => site.name === 'East Moat Bridge'),
+  )!
+  const at = (x: number) => ({ sectorId: sector.id, x, y: 4 })
+  const view = projectWorld({ ...newWorldState(), position: at(7) }, [], 1000)
+  const s = scene(true, {
+    ...view,
+    scenery: [],
+    sectors: [view.sectors.find((candidate) => candidate.id === sector.id)!],
+    players: [
+      {
+        characterId: 'deck-peer',
+        name: 'Peer',
+        level: 1,
+        portraitRef: '',
+        imageUrl: '/deck-peer.png',
+        position: at(9),
+        online: true,
+        attackable: false,
+      },
+    ],
+    npcs: [{ id: 'deck-npc', name: 'NPC', imageUrl: '/deck-npc.png', position: at(8) }],
+  })
+  try {
+    s.canvas.dataset.portrait = '/deck-self.png'
+    const img = (s.images as HTMLImageElement[]).find((i) =>
+      i.src.endsWith('grand-bridges-v01.webp'),
+    )!
+    Object.assign(img, { complete: true, width: 1536, height: 512, naturalWidth: 1536 })
+    s.frame(40)
+    const bridge = s.draws.find((draw) => draw.image === img)!
+    const { args, matrix: m } = bridge
+    const treadPoint = (fraction: number, depth: number) => {
+      const x = args[4]! + ((425 + (107 - 425) * fraction) / 512) * args[6]!
+      const y = args[5]! + (depth / 512) * args[7]!
+      return { x: (m[0]! * x + m[2]! * y + m[4]!) / 1.5, y: (m[1]! * x + m[3]! * y + m[5]!) / 1.5 }
+    }
+    for (const [src, fraction, depth] of [
+      ['self', 0.25, 153],
+      ['npc', 0.5, 195],
+      ['peer', 0.75, 247],
+    ] as const) {
+      const foot = treadPoint(fraction, depth)
+      const portrait = s.identityDraws.find((draw) => draw.src === '/deck-' + src + '.png')!
+      expect(Math.abs(portrait.args[4]! + portrait.args[6]! / 2 - foot.x)).toBeLessThan(0.5)
+      expect(Math.abs(portrait.args[5]! + portrait.args[7]! - foot.y)).toBeLessThan(0.5)
+      expect(portrait.filter).not.toContain('grayscale')
+    }
+    const peer = treadPoint(0.75, 247)
+    s.event('pointerdown', peer.x, peer.y - 17)
+    s.event('pointerup', peer.x, peer.y - 17)
+    expect(s.selectPlayer).toHaveBeenCalledWith('deck-peer')
+    const target = treadPoint(0.5, 195)
+    s.event('pointerdown', target.x, target.y)
+    s.event('pointerup', target.x, target.y)
+    expect(s.select).toHaveBeenCalledWith(at(8))
+  } finally {
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+})
+
 it('draws the approved grand bridge over the offshore channel', () => {
   const position = { sectorId: OFFSHORE_DISCOVERY.bridgeSectorId, x: 4, y: 4 }
   const s = scene(true, projectWorld({ ...newWorldState(), position }, [], 1000))
@@ -5517,6 +5881,53 @@ it('enlarges a clear-ground shrine without moving its visual foot as nearby grou
   expect(grand.width).toBeGreaterThan(ordinary.width * 1.9)
   expect(grand.footX).toBeCloseTo(ordinary.footX, 5)
   expect(grand.footY).toBeCloseTo(ordinary.footY, 5)
+})
+
+it.each([
+  ['East Moat Bridge', 1.4],
+  ['West Moat Bridge', 0.65],
+] as const)('continues the painted moat through the walkable %s at zoom %s', (name, zoom) => {
+  const sector = atlasSectors().find((s) => s.landmarks.some((l) => l.name === name))!
+  const bridge = sector.landmarks.find((l) => l.name === name)!
+  const view = projectWorld(
+    { ...newWorldState(), position: { sectorId: sector.id, x: bridge.x, y: bridge.y } },
+    [],
+    1000,
+  )
+  const own = view.sectors.find((s) => s.id === sector.id)!
+  const before = JSON.stringify(own.cells)
+  const water = vi.spyOn(waterPainting, 'paintWaterGround')
+  const lavaMotion = vi.spyOn(waterPainting, 'paintLavaMotion')
+  const s = scene(false, { ...view, sectors: [own], scenery: [], players: [] })
+  try {
+    s.renderer.settings({ animate: true, zoom })
+    s.frame(40)
+    const wx = own.atlasColumn! * GRID_WIDTH + bridge.x
+    const wy = own.atlasRow! * GRID_HEIGHT + bridge.y
+    const cell = (y: number) => water.mock.calls.find((call) => call[5] === wx && call[6] === y)
+    const under = cell(wy)
+    expect(under, 'paint the same textured bed beneath the stone avenue').toBeDefined()
+    for (const [mouthY, side] of [
+      [wy - 1, 2],
+      [wy + 1, 0],
+    ] as const) {
+      const mouth = cell(mouthY)!
+      expect(mouth[1].banks.some((bank) => bank.side === side)).toBe(false)
+      expect(under![4]).toBe(mouth[4])
+      expect(under![7]).toBe(mouth[7])
+    }
+    expect(under![4]?.src).toContain('water-materials')
+    expect(lavaMotion).not.toHaveBeenCalled()
+    const paints = water.mock.calls.length
+    s.frame(120)
+    expect(water.mock.calls).toHaveLength(paints)
+    expect(JSON.stringify(own.cells)).toBe(before)
+  } finally {
+    s.renderer.dispose()
+    water.mockRestore()
+    lavaMotion.mockRestore()
+    vi.unstubAllGlobals()
+  }
 })
 
 it('renders the canonical moat crossing while blocking the channel', () => {

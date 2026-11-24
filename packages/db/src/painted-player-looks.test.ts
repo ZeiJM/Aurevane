@@ -1,3 +1,4 @@
+import { PORTRAIT_FACES } from '../../../apps/web/src/appearance/appearance-face-catalog'
 import { expect, it } from 'vitest'
 import { PAINTED_PORTRAIT_SETTINGS } from '../../../apps/web/src/appearance/appearance-painted-wardrobe'
 import { createCombatContentTestDatabase } from './test-support/combat-content-test-database'
@@ -13,12 +14,13 @@ it('admits every canonical painted setting through the shared NPC and player val
     const candidates = Object.keys(PAINTED_PORTRAIT_SETTINGS).map((setting) =>
       original.replace('.original/', `.${setting}/`),
     )
+    candidates.push(...PORTRAIT_FACES.map(({ id }) => original.replace('pinescout.', id + '.')))
     const check = (urls: string[]) =>
       db.query<{ url: string; valid: boolean }>(
         'select url, app_private.valid_npc_appearance_v1(to_jsonb(url)) as valid from unnest($1::text[]) url',
         [urls],
       )
-    expect((await check([...candidates, tailored])).rows).toHaveLength(52)
+    expect((await check([...candidates, tailored])).rows).toHaveLength(195)
     expect((await check([...candidates, tailored])).rows.filter(({ valid }) => !valid)).toEqual([])
     const invalid = [
       original.replace('.original/', '.invented/'),
@@ -27,6 +29,7 @@ it('admits every canonical painted setting through the shared NPC and player val
       original.replace('/6/', '/5/').replace('.original/', '/'),
       original.replace('.none.natural.', '.none.ochre.'),
       tailored.replace('.eyepatch.', '.invented.'),
+      ...['f00', 'm65', 'f001', 'fitunknown'].map((id) => original.replace('pinescout.', id + '.')),
     ]
     expect((await check(invalid)).rows.map(({ valid }) => valid)).toEqual(invalid.map(() => false))
 
@@ -48,8 +51,9 @@ it('admits every canonical painted setting through the shared NPC and player val
         [actor, characterId, recipe],
       )
     await expect(save(invalid[0]!)).rejects.toThrow()
-    await expect(save(tailored)).resolves.toMatchObject({
-      rows: [{ receipt: { imageUrl: tailored } }],
+    const saved = tailored.replace('pinescout.', 'm64.').replace('.astral/', '.midnight/')
+    await expect(save(saved)).resolves.toMatchObject({
+      rows: [{ receipt: { imageUrl: saved } }],
     })
   } finally {
     await db.close()

@@ -1,4 +1,5 @@
 'use client'
+import type { MapDirection } from '@/world/wild-ids'
 import { useEffect, useRef } from 'react'
 import type { WorldPosition, WorldView } from '@/world/types'
 import { createMapRenderer } from './map-renderer'
@@ -33,7 +34,7 @@ export function WorldMap({
   zoom: number
   zoomLocked: boolean
   onZoom: (zoom: number) => void
-  onWalk: (position: WorldPosition) => void
+  onWalk: (position: WorldPosition, direction?: MapDirection) => void
   onStop: () => void
   onPlayer: (id: string) => void
   onVisiblePlayers: (ids: string[]) => void
@@ -52,7 +53,7 @@ export function WorldMap({
       canvas.current,
       motion,
       initial.current,
-      (position) => callbacks.current.onWalk(position),
+      (position, direction) => callbacks.current.onWalk(position, direction),
       (id) => callbacks.current.onPlayer(id),
       (zoom) => callbacks.current.onZoom(zoom),
       (ids) => callbacks.current.onVisiblePlayers(ids),

@@ -399,7 +399,7 @@ describe('Event Builder authoring service', () => {
   })
 
   it.each([
-    ['a blocked tile', { sectorId: 'verdant-expanse', x: 0, y: 0 }],
+    ['a river tile', { sectorId: 'verdant-expanse', x: 10, y: 2 }],
     ['an unknown sector', { sectorId: 'missing-sector', x: 3, y: 4 }],
   ])('rejects a restoration checkpoint on %s before publication', async (_label, checkpoint) => {
     const { service, store } = serviceFor(access(OWNER, ['game-owner']))

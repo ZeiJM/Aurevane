@@ -4,7 +4,7 @@ import 'server-only'
 import { supercontinentTerrain } from './supercontinent-terrain'
 
 import { GRID_HEIGHT, GRID_WIDTH, STEP_MS } from '@/world/catalog'
-import { terrainWalkable } from '@/world/terrain'
+import { openScenerySurface, terrainWalkable } from '@/world/terrain'
 import {
   VOID_REALMS,
   VOID_REALM_COLUMNS,
@@ -996,7 +996,7 @@ function terrainAt(realmId: VoidRealmId, x: number, y: number): string {
   const [column, row, dockX, dockY] = coastalFerryDocks[realmId]
   if (
     Math.abs(x - (column * GRID_WIDTH + dockX)) + Math.abs(y - (row * GRID_HEIGHT + dockY)) <= 1 &&
-    terrainWalkable(terrain)
+    openScenerySurface(terrain)
   )
     return 's'
   if (

@@ -15,7 +15,7 @@ import {
   grandDiscoverySectorName,
   remoteCrossingWaterAt,
 } from './discovery-sites'
-import { terrainWalkable } from './terrain'
+import { openScenerySurface, terrainWalkable, worldSurfaceRows } from './terrain'
 import { structuralTerrainAt } from './discovery-collision'
 import { mountainFrontierAt, mountainFrontierPass } from './mountain-frontier'
 import { trimRoadShorelines } from './road-shorelines'
@@ -444,8 +444,7 @@ export function atlasSectors(): readonly WorldSector[] {
             grid[y]![x] !== 'w'
           )
             grid[y]![x] = town && (!isRoot || x < 10) ? 's' : '='
-      // A true ridge cannot be crossed by walking through the peaks. Deliberate
-      // cross-sector dry passes join navigable plateaus and the southern foothills.
+      // The marked road links the alpine plateaus and southern foothills.
       if (newMountainLand)
         for (let y = 0; y < GRID_HEIGHT; y++)
           for (let x = 0; x < GRID_WIDTH; x++) if (mountainFrontierPass(x, y)) grid[y]![x] = '='
@@ -519,7 +518,7 @@ export function atlasSectors(): readonly WorldSector[] {
           for (let x = 0; x < GRID_WIDTH; x++)
             if (remoteCrossingWaterAt(column, row, x, y) && !['=', '~', 'l'].includes(grid[y]![x]!))
               grid[y]![x] = 'w'
-      // Permanent walls override old roads and shallows outside authored gates.
+      // Paint the rocky perimeter outside the authored gates.
       // Deep water and lava keep their original nonwalkable collision rules.
       if (!town)
         for (let y = 0; y < GRID_HEIGHT; y++)
@@ -541,9 +540,8 @@ export function atlasSectors(): readonly WorldSector[] {
           return
         const blocked = (cx: number, cy: number) =>
           (cx >= x && cx < x + width && cy >= y && cy < y + height) ||
-          !terrainWalkable(grid[cy]?.[cx] ?? '#')
-        // Reject overlaps and facades without an exit instead of painting walkable
-        // holes beneath a supposedly solid building sprite.
+          !openScenerySurface(grid[cy]?.[cx])
+        // Keep footprints distinct and leave visible approach space beside facades.
         if (index !== 9) {
           if (
             (authored?.landmarks ?? []).some(
@@ -729,14 +727,14 @@ export function atlasSectors(): readonly WorldSector[] {
         }).landmarks
         for (const landmark of candidates.slice(0, 1))
           if (
-            terrainWalkable(grid[landmark.y]![landmark.x]!) &&
+            openScenerySurface(grid[landmark.y]![landmark.x]!) &&
             !inDiscoveryGrounds(column * GRID_WIDTH + landmark.x, row * GRID_HEIGHT + landmark.y)
           )
             landmarks.push(landmark)
       }
       // An authored interaction or POI is an approach tile, not a building footprint.
       for (const landmark of landmarks) {
-        if (!terrainWalkable(grid[landmark.y]![landmark.x]!))
+        if (!openScenerySurface(grid[landmark.y]![landmark.x]!))
           grid[landmark.y]![landmark.x] = town && landmark.x < 10 ? 's' : '.'
         if (landmark.kind !== 'bridge')
           for (let dy = -1; dy <= 1; dy++)
@@ -843,8 +841,8 @@ export function atlasSectors(): readonly WorldSector[] {
           y: dy ? (dy > 0 ? 0 : GRID_HEIGHT - 1) : offset,
         }
         if (
-          terrainWalkable(sector.rows[from.y]![from.x]!) &&
-          terrainWalkable(neighbor.rows[to.y]![to.x]!)
+          terrainWalkable(worldSurfaceRows(sector)[from.y]![from.x]!) &&
+          terrainWalkable(worldSurfaceRows(neighbor)[to.y]![to.x]!)
         )
           roads.push({ from, to, durationMs: STEP_MS, name: neighbor.name })
       }

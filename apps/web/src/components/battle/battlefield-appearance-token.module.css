@@ -5,14 +5,21 @@
   left: 50%;
   width: 94%;
   aspect-ratio: 3 / 4;
-  transform: translateX(-50%);
+  translate: -50% 0;
+  pointer-events: none;
+  --motion-timing: steps(var(--motion-steps), jump-none);
+  --receipt-duration: 520ms;
+}
+
+.actor::before {
+  content: '';
+  display: block;
+  width: 100%;
+  height: 100%;
   background-image: var(--atlas);
   background-repeat: no-repeat;
   background-size: var(--atlas-size);
   background-position: var(--x0) var(--y);
-  pointer-events: none;
-  --motion-timing: steps(var(--motion-steps), jump-none);
-  --receipt-duration: 520ms;
 }
 
 :global(
@@ -29,11 +36,7 @@
   box-shadow: none !important;
 }
 
-.actor[data-battle-appearance-pose='idle'] {
-  animation: actor-ready var(--ready-duration) var(--motion-timing) infinite;
-}
-
-.actor[data-battle-appearance-pose='walk'] {
+.actor[data-battle-appearance-pose='walk']::before {
   animation: actor-walk var(--walk-duration) var(--motion-timing) infinite;
 }
 
@@ -42,9 +45,15 @@
   [data-battle-appearance-pose='cast'],
   [data-battle-appearance-pose='hit']
 ) {
-  animation:
-    actor-receipt var(--receipt-duration) step-end both,
-    actor-ready var(--ready-duration) var(--motion-timing) var(--receipt-duration) infinite;
+  --ready-delay: var(--receipt-duration);
+}
+
+.actor:is(
+    [data-battle-appearance-pose='attack'],
+    [data-battle-appearance-pose='cast'],
+    [data-battle-appearance-pose='hit']
+  )::before {
+  animation: actor-receipt var(--receipt-duration) step-end both;
 }
 
 @keyframes actor-walk {
@@ -53,15 +62,6 @@
   }
   to {
     background-position: var(--x-last) var(--y);
-  }
-}
-
-@keyframes actor-ready {
-  from {
-    background-position: var(--x0) var(--idle-y);
-  }
-  to {
-    background-position: var(--x-last) var(--idle-y);
   }
 }
 
@@ -84,10 +84,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .actor[data-battle-appearance-pose] {
+  .actor[data-battle-appearance-pose]::before {
     animation: none;
   }
-  .actor:not([data-battle-appearance-pose='down']) {
+  .actor:not([data-battle-appearance-pose='down'])::before {
     background-position: var(--x0) var(--idle-y);
   }
 }

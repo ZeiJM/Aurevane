@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
 import { projectWorld } from '@/server/world/world-service'
 import { newWorldState } from '@/world/travel'
-import { GRID_HEIGHT } from '@/world/catalog'
+import { GRID_HEIGHT, GRID_WIDTH } from '@/world/catalog'
 import { WORLD_MAP_WIDTH } from '@/world/topology'
 import type { WorldView } from '@/world/types'
 import { worldRenderTerrain } from './map-render-terrain'
@@ -14,6 +14,7 @@ import {
   paintCoastSea,
   paintOpenSea,
   publicGroundCoversViewport,
+  publicCoastEdges,
 } from './map-coast'
 
 describe('public shoreline presentation', () => {
@@ -38,6 +39,9 @@ describe('public shoreline presentation', () => {
     expect(covers(land.map((sector) => ({ ...sector, charted: sector.id !== 'atlas:0:28' })))).toBe(
       false,
     )
+    expect(
+      covers(land.map((s) => (s.id === 'atlas:0:28' ? { ...s, cells: s.cells.slice(1) } : s))),
+    ).toBe(false)
     coasts.delete('atlas:127:28')
     expect(covers(land)).toBe(false)
   })
@@ -624,4 +628,30 @@ it('keeps three geographically distinct sandy beach clusters on actual public co
   }
   expect(authoredBeach('hollow-coast', 68, 42)).toBeNull()
   expect(authoredBeach('hollow-coast')).toBeNull()
+})
+
+it('gives an unloaded Umbral coast the same shoreline as the full sector and keeps its inland neighbor continuous', () => {
+  for (const [id, eastCoast] of [
+    ['atlas:85:28', true],
+    ['atlas:118:28', false],
+  ] as const) {
+    const world = projectWorld(
+      { ...newWorldState(), position: { sectorId: id, x: 12, y: 4 } },
+      [],
+      1000,
+    )
+    const sector = world.sectors.find((s) => s.id === id)!
+    const chart = world.atlas!.find((s) => s.id === id)!
+    const charted = new Set(
+      world.atlas!.filter((s) => s.charted).map((s) => `${s.column}:${s.row}`),
+    )
+    const edges = publicCoastEdges(
+      chart.column,
+      chart.row,
+      (c, r) => charted.has(`${c}:${r}`),
+      (x, y) => chart.waterTiles?.[y * GRID_WIDTH + x] ?? '.',
+    )
+    expect(edges).toEqual(buildPublicCoasts({ sectors: [sector], atlas: world.atlas }).get(id))
+    expect(edges.some((edge) => edge.side === 1 && edge.from <= 4 && edge.to > 4)).toBe(eastCoast)
+  }
 })

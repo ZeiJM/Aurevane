@@ -1,6 +1,6 @@
+import { PORTRAIT_FACES } from './appearance-face-catalog'
 import {
   PAINTED_PLAYER_FIELDS,
-  paintedPlayerRecipe,
   wardrobeLook,
   type PaintedPlayerLook,
 } from './appearance-painted-wardrobe'
@@ -220,10 +220,65 @@ export function randomPaintedLookForGender(
   random = Math.random,
   current?: PaintedPlayerLook,
 ): PaintedPlayerLook {
-  const currentRecipe = current && paintedPlayerRecipe(current).join('.')
-  const looks = CURATED_PAINTED_LOOKS.filter(
-    (entry) =>
-      entry.gender === gender && paintedPlayerRecipe(entry.look).join('.') !== currentRecipe,
+  const faces = PORTRAIT_FACES.filter(
+    (face) => appearanceGenderForIdentity(face.rig) === gender && face.id !== current?.faceId,
   )
-  return looks[Math.floor(random() * looks.length)]!.look
+  const choose = <T>(choices: readonly T[]) =>
+    choices[Math.min(choices.length - 1, Math.floor(random() * choices.length))]!
+  const face = choose(faces)
+  const ensemble = choose(ensembles)
+  const [, clothColor, accent, backdrop] = choose(ensemble.palettes)
+  const setting =
+    random() < 0.16
+      ? choose([
+          'parchment',
+          'midnight',
+          'pinegreen',
+          'plumstudio',
+          'terracotta',
+          'pearl',
+          'garnetstudio',
+          'tealstudio',
+          'amberstudio',
+          'lavender',
+        ] as const)
+      : backdrop
+  const hairstyle = choose(
+    [ensemble.hairstyle, 'natural', 'waves', 'braid', 'layers'].filter(
+      (id) => id in PAINTED_PLAYER_FIELDS.hairstyle,
+    ),
+  ) as PaintedPlayerLook['hairstyle']
+  return {
+    ...defaultPaintedLookForGender(gender),
+    identity: face.rig,
+    faceId: face.id,
+    hairstyle,
+    clothColor,
+    backdrop: setting,
+    outerwear: ensemble.outerwear,
+    gear: ensemble.gear,
+    headwear: ensemble.headwear,
+    facewear: ensemble.facewear,
+    bodyFrame: choose(
+      ['natural', 'strong', 'broad', 'stocky', 'slight'].filter(
+        (id) => id in PAINTED_PLAYER_FIELDS.bodyFrame,
+      ),
+    ) as PaintedPlayerLook['bodyFrame'],
+    hairDye: choose([
+      'natural',
+      'natural',
+      'chestnut',
+      'espresso',
+      'auburn',
+      'ash',
+      'onyx',
+      'silver',
+      'honey',
+    ]),
+    eyeColor: choose(['natural', 'natural', 'hazel', 'brown', 'gray', 'green', 'blue']),
+    gearColor: ensemble.gear === 'none' ? 'natural' : accent,
+    headColor:
+      ensemble.headwear === 'none' ? 'natural' : choose(['natural', 'walnut', 'leather', accent]),
+    faceColor: ensemble.facewear === 'none' ? 'natural' : choose(['natural', 'leather', 'ink']),
+  }
 }

@@ -51,7 +51,7 @@ function sector(id: string, atlasRow = 0, cells: [number, number, string][] = []
       x,
       y,
       terrain,
-      walkable: terrain !== '~',
+      walkable: terrainWalkable(terrain),
       safe: false,
     })),
   }
@@ -428,7 +428,7 @@ describe('world-connected water presentation', () => {
       vi.unstubAllGlobals()
     }
   })
-  it('shares depth colours where a walkable shallow tile meets deep water', () => {
+  it('shares depth colours where shallow water meets deep water', () => {
     const cells: [number, number, string][] = Array.from({ length: 49 }, (_, n) => [
       n % 7,
       Math.floor(n / 7),
@@ -446,7 +446,7 @@ describe('world-connected water presentation', () => {
     expect(shallow.cornerDepths![2]).toBe(south.cornerDepths![1])
     // This is presentation continuity, never permission to walk on deep water.
     expect(terrainWalkable('~')).toBe(false)
-    expect(terrainWalkable('w')).toBe(true)
+    expect(terrainWalkable('w')).toBe(false)
   })
 
   it('derives increasing depth from supplied banks and shares corner depths across sector edges', () => {

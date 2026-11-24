@@ -17,6 +17,7 @@ import {
 import { atlasSectors } from '../src/world/atlas'
 import { GRID_HEIGHT, GRID_WIDTH, WORLD_REGIONS } from '../src/world/catalog'
 import type { WorldPosition, WorldView } from '../src/world/types'
+import { terrainWalkable, worldSurfaceRows } from '../src/world/terrain'
 import { REMOTE_GRAND_CROSSING } from '../src/world/discovery-sites'
 import { canonicalOcclusionWalks } from './world-map-correction-scenes'
 import { worldRenderTerrain } from '../src/components/world/map-render-terrain'
@@ -343,13 +344,13 @@ export function registerWorldArtReviewCases({
             {
               ...sector,
               exits: [...sector.roads],
-              cells: sector.rows.flatMap((row, y) =>
+              cells: worldSurfaceRows(sector).flatMap((row, y) =>
                 [...row].map((terrain, x) => ({
                   x,
                   y,
                   terrain,
                   safe: false,
-                  walkable: '.st='.includes(terrain),
+                  walkable: terrainWalkable(terrain),
                 })),
               ),
             },

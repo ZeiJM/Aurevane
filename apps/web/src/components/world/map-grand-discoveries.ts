@@ -171,7 +171,7 @@ export function grandDiscoveryPlacements(
             ? cell.terrain !== '~' || cell.walkable
             : wet
               ? cell.terrain !== '~' || cell.walkable
-              : barrier && cell.terrain === '#' && !cell.walkable
+              : barrier && cell.terrain === '#'
                 ? false
                 : !cell.walkable || !['.', 't', '='].includes(cell.terrain)
         ) {

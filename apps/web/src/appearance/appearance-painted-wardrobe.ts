@@ -1,3 +1,4 @@
+import { portraitFace } from './appearance-face-catalog'
 import {
   DEFAULT_PAINTED_LOOK,
   PAINTED_ACCESSORIES,
@@ -179,7 +180,7 @@ export const PAINTED_PLAYER_FIELDS = {
 
 export type PaintedPlayerLook = Readonly<{
   [Field in keyof typeof PAINTED_PLAYER_FIELDS]: keyof (typeof PAINTED_PLAYER_FIELDS)[Field]
-}>
+}> & { readonly faceId?: string }
 
 type PaintedWardrobeParts = Omit<PaintedPlayerLook, 'backdrop'>
 
@@ -229,7 +230,8 @@ export function wardrobeRecipe(look: PaintedWardrobeParts) {
 }
 
 export function paintedPlayerRecipe(look: PaintedPlayerLook) {
-  return [...wardrobeRecipe(look), look.backdrop] as const
+  const [identity, ...parts] = wardrobeRecipe(look)
+  return [look.faceId ?? identity, ...parts, look.backdrop] as const
 }
 
 const wardrobeFields = Object.keys(PAINTED_WARDROBE_FIELDS) as (keyof PaintedWardrobeLook)[]
@@ -264,8 +266,15 @@ export function readPaintedPlayerLook(values: readonly unknown[]): PaintedPlayer
   const backdrop = values.at(-1)
   if (typeof backdrop !== 'string' || !Object.hasOwn(PAINTED_PORTRAIT_SETTINGS, backdrop))
     return null
-  const parts = readLook(values.slice(0, -1), PAINTED_PLAYER_FIELDS)
-  return parts ? { ...parts, backdrop: backdrop as PaintedPlayerLook['backdrop'] } : null
+  const face = portraitFace(values[0])
+  const parts = readLook([face?.rig ?? values[0], ...values.slice(1, -1)], PAINTED_PLAYER_FIELDS)
+  return parts
+    ? {
+        ...parts,
+        ...(face ? { faceId: face.id } : {}),
+        backdrop: backdrop as PaintedPlayerLook['backdrop'],
+      }
+    : null
 }
 
 export function randomWardrobeLook(): PaintedWardrobeLook {

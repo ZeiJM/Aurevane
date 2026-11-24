@@ -7,6 +7,7 @@ import {
   newWorldState,
   revealNearby,
 } from '@/world/travel'
+import { mapPoint, WorldMotion } from '@/components/world/world-motion'
 import { isKnownCell, resolveSector, visibleSectors } from './world-content'
 import { resolveWarpedContinentSector, warpedContinentSectors } from './warped-continent'
 import { GRAND_DISCOVERY_SITES } from '@/world/discovery-sites'
@@ -84,6 +85,70 @@ describe('world authority and spoiler projection', () => {
       JSON.stringify(projectWorld({ ...state, position: newWorldState().position }, [], 1000)),
     ).not.toContain('uncharted-expanse:32:24')
   })
+  it('keeps delayed keyboard targets on the authoritative lane and never reverses a late release', () => {
+    const state = newWorldState()
+    const { position } = state
+    const east = (x: number, y: number) => ({
+      kind: 'walk' as const,
+      destination: { ...position, x, y },
+      direction: 'east' as const,
+    })
+    const held = resolveWorldIntent(state, east(position.x + 5, position.y - 1), 1000)
+    expect(held.route.map((step) => step.position)).toEqual(
+      [1, 2, 3].map((dx) => ({ ...position, x: position.x + dx })),
+    )
+    const released = resolveWorldIntent(held, east(position.x + 1, position.y), 1550)
+    expect(released.position).toEqual({ ...position, x: position.x + 2 })
+    expect(released.route).toEqual([])
+    expect(released.nextStepAt).toBeNull()
+  })
+
+  it('preserves only the in-flight tile when turning from east to north between landings', () => {
+    const state = newWorldState()
+    const { position } = state
+    const east = resolveWorldIntent(
+      state,
+      {
+        kind: 'walk',
+        direction: 'east',
+        destination: { ...position, x: position.x + 3 },
+      },
+      1000,
+    )
+    const corner = { ...position, x: position.x + 1 }
+    const north = resolveWorldIntent(
+      east,
+      {
+        kind: 'walk',
+        direction: 'north',
+        destination: { ...corner, y: position.y - 1 },
+      },
+      1099,
+    )
+    expect(north.route.map((step) => step.position)).toEqual([
+      corner,
+      { ...corner, y: corner.y - 1 },
+    ])
+    const initialView = projectWorld(state, [], 1000)
+    const motion = new WorldMotion(initialView, 0)
+    const eastDestination = { ...position, x: position.x + 3 }
+    const northDestination = { ...corner, y: corner.y - 1 }
+    motion.planDirectional(eastDestination, 'east', initialView.sectors, 0)
+    const northView = projectWorld(north, [], 1099)
+    motion.planDirectional(northDestination, 'north', initialView.sectors, 99)
+    const atReceipt = motion.sample(153).point
+    motion.reconcile(northView, 153)
+    expect(motion.sample(153).point).toEqual(atReceipt)
+    const startPoint = mapPoint(position, initialView.sectors)
+    for (const now of [160, 180, 200, 240, 320, 400]) {
+      const { point } = motion.sample(now)
+      expect(point.x).toBeCloseTo(startPoint.x + Math.min(1, now / 200), 8)
+      expect(point.y).toBeCloseTo(startPoint.y - Math.max(0, now / 200 - 1), 8)
+    }
+    expect(north.nextStepAt).toBe(east.nextStepAt)
+    expect(advanceWorldRoute(north, 1400).position).toEqual({ ...corner, y: corner.y - 1 })
+  })
+
   it('retains authored deadlines and private approved peer routes when held replacements arrive late', () => {
     const walk = (state: ReturnType<typeof newWorldState>, x: number, now: number) =>
       resolveWorldIntent(
@@ -883,15 +948,37 @@ describe('review regressions for authoritative walking', () => {
     )
     expect(resolveWorldIntent(state, { kind: 'tick' }, 1200).position.x).toBe(6)
   })
-  it('cancels an obsolete saved route before a walk can advance into a new building', () => {
-    const sector = resolveSector('verdant-expanse')!
-    const blocked = sector
-      .buildings!.flatMap((building) =>
-        Array.from({ length: building.width * building.height }, (_, index) => ({
-          x: building.x + (index % building.width),
-          y: building.y + Math.floor(index / building.width),
-        })),
-      )
+  it.each([
+    ['atlas:48:7', '#'],
+    ['aureth-crown', 'b'],
+    ['void:hollow-orchard:47:12', '#'],
+  ])('walks straight onto %s dry scenery from all four sides', (sectorId, terrain) => {
+    const sector = resolveSector(sectorId!)!
+    const neighbors = (x: number, y: number) => [
+      { sectorId: sector.id, x: x + 1, y },
+      { sectorId: sector.id, x: x - 1, y },
+      { sectorId: sector.id, x, y: y + 1 },
+      { sectorId: sector.id, x, y: y - 1 },
+    ]
+    const target = sector.rows.flatMap((row, y) =>
+      [...row].flatMap((cell, x) =>
+        cell === terrain && neighbors(x, y).every((point) => isWalkable(sector, point))
+          ? [{ sectorId: sector.id, x, y }]
+          : [],
+      ),
+    )[0]
+    expect(target).toBeDefined()
+    for (const position of neighbors(target!.x, target!.y)) {
+      const state = { ...newWorldState(), position }
+      const next = resolveWorldIntent(state, { kind: 'walk', destination: target! }, 1000)
+      expect(next.route).toEqual([{ position: target, durationMs: STEP_MS }])
+      expect(resolveWorldIntent(next, { kind: 'tick' }, 1000 + STEP_MS).position).toEqual(target)
+    }
+  })
+  it('cancels an obsolete saved route before a walk can advance into lava', () => {
+    const sector = resolveSector('emberreach')!
+    const blocked = sector.rows
+      .flatMap((row, y) => [...row].flatMap((terrain, x) => (terrain === 'l' ? [{ x, y }] : [])))
       .map((target) => ({
         target,
         origin: [

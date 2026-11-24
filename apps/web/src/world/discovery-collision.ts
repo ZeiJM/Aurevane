@@ -1,11 +1,6 @@
 import { GRAND_DISCOVERY_SITES, type GrandDiscoveryId } from './discovery-sites'
 
-/**
- * Static public movement geometry matching the art's defended wall/cliff silhouette.
- * Solid walls supersede old roads and shallows while preserving deep water,
- * town squares and saved IDs. Explicit openings lead into the arena and valley
- * instead of allowing players to walk through solid surrounding cliffs.
- */
+/** Footprint of the painted arena perimeter and valley cliffs. */
 export function grandDiscoveryBarrier(id: GrandDiscoveryId, x: number, y: number): boolean {
   const site = GRAND_DISCOVERY_SITES.find((item) => item.id === id)
   if (
@@ -37,10 +32,7 @@ export function grandDiscoveryBarrier(id: GrandDiscoveryId, x: number, y: number
   return false
 }
 
-/** Every defended ring cell is solid, including old roads and shallow pools.
- * Only the explicit authored gate in grandDiscoveryBarrier permits entry.
- * Deep rivers/lava remain their original nonwalkable terrain. Historic
- * saved origins affected by this change are repaired by world-geometry-recovery. */
+/** Paint authored masonry and cliffs as rocky ground, preserving the river and lava beds. */
 export function structuralTerrainAt(worldX: number, worldY: number, terrain: string): string {
   for (const site of GRAND_DISCOVERY_SITES) {
     if (!grandDiscoveryBarrier(site.id, worldX - site.left, worldY - site.top)) continue

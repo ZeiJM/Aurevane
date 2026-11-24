@@ -1,5 +1,6 @@
 import 'server-only'
 
+import { cache } from 'react'
 import { AurevaneError } from '@aurevane/game-core/errors'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
@@ -10,32 +11,31 @@ export interface CharacterTitleState {
   personalTitleSetAt: string | null
 }
 
-export async function loadCharacterTitleState(
-  userId: string,
-  characterId: string,
-): Promise<CharacterTitleState> {
-  const supabase = createSupabaseAdminClient()
-  const { data, error } = await supabase.rpc('get_character_personal_title_v1', {
-    p_user_id: userId,
-    p_character_id: characterId,
-  })
+export const loadCharacterTitleState = cache(
+  async (userId: string, characterId: string): Promise<CharacterTitleState> => {
+    const supabase = createSupabaseAdminClient()
+    const { data, error } = await supabase.rpc('get_character_personal_title_v1', {
+      p_user_id: userId,
+      p_character_id: characterId,
+    })
 
-  if (error) {
-    if (error.message.includes('CHARACTER_NOT_PLAYABLE')) {
-      throw new AurevaneError('FORBIDDEN', 'That character is not available to this account.')
+    if (error) {
+      if (error.message.includes('CHARACTER_NOT_PLAYABLE')) {
+        throw new AurevaneError('FORBIDDEN', 'That character is not available to this account.')
+      }
+      throw unavailable()
     }
-    throw unavailable()
-  }
 
-  const row = Array.isArray(data) && data.length === 1 ? data[0] : null
-  if (!row || typeof row !== 'object') throw unavailable()
+    const row = Array.isArray(data) && data.length === 1 ? data[0] : null
+    if (!row || typeof row !== 'object') throw unavailable()
 
-  return {
-    personalTitle: isStarterTitle(row.personal_title) ? row.personal_title : null,
-    personalTitleSetAt:
-      typeof row.personal_title_set_at === 'string' ? row.personal_title_set_at : null,
-  }
-}
+    return {
+      personalTitle: isStarterTitle(row.personal_title) ? row.personal_title : null,
+      personalTitleSetAt:
+        typeof row.personal_title_set_at === 'string' ? row.personal_title_set_at : null,
+    }
+  },
+)
 
 export async function setCharacterPersonalTitle(input: {
   userId: string

@@ -1,0 +1,23 @@
+// Eight-pixel averages of the clean interior of each regional-ground-v02 material.
+// This synchronous first-paint mip uses the same colours and phase as the full sheet.
+const pixels =
+  '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'
+let source: HTMLCanvasElement | undefined
+export function groundMaterialPreview() {
+  if (source) return source
+  const canvas = document.createElement('canvas')
+  canvas.width = 32
+  canvas.height = 16
+  const context = canvas.getContext('2d')!
+  const preview = context.createImageData(canvas.width, canvas.height)
+  const bytes = atob(pixels)
+  for (let i = 0; i < bytes.length / 3; i++) {
+    preview.data[i * 4] = bytes.charCodeAt(i * 3)
+    preview.data[i * 4 + 1] = bytes.charCodeAt(i * 3 + 1)
+    preview.data[i * 4 + 2] = bytes.charCodeAt(i * 3 + 2)
+    preview.data[i * 4 + 3] = 255
+  }
+  context.putImageData(preview, 0, 0)
+  source = canvas
+  return canvas
+}

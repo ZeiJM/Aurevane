@@ -1,3 +1,5 @@
+import type { MapDirection } from '@/world/wild-ids'
+import { directionalWalk, KEY_LOOKAHEAD_STEPS, walkOffset } from '@/world/directional-walk'
 import { GRID_HEIGHT, GRID_WIDTH, STEP_MS } from '@/world/catalog'
 import {
   findWorldRoute,
@@ -44,10 +46,10 @@ export function prepareLocalRoute(view: Pick<WorldView, 'sectors'>) {
   if (cached) return cached
   const known = new Set<string>()
   const sectors = view.sectors.map((sector) => {
-    const terrain = Array<string>(GRID_WIDTH * GRID_HEIGHT).fill('#')
+    const terrain = Array<string>(GRID_WIDTH * GRID_HEIGHT).fill('?')
     for (const cell of sector.cells) {
       known.add(positionKey({ sectorId: sector.id, x: cell.x, y: cell.y }))
-      terrain[cell.y * GRID_WIDTH + cell.x] = cell.walkable ? cell.terrain : '#'
+      terrain[cell.y * GRID_WIDTH + cell.x] = cell.walkable ? cell.terrain : '?'
     }
     return {
       ...sector,
@@ -90,10 +92,12 @@ function loadedRoute(
   return result
 }
 
-/** A receipt clock can advance labels only through supplied legal, walkable edges. */
-function approvedLoadedRoute(
-  view: Pick<WorldView, 'position' | 'sectors'> & { route: readonly TravelStep[] },
-) {
+/** The contiguous prefix with supplied walkable endpoints, legal edges and authored costs. */
+function knownWalkableRoute(view: {
+  position: WorldPosition
+  sectors: readonly WorldSectorView[]
+  route: readonly TravelStep[]
+}) {
   const sectors = new Map(view.sectors.map((sector) => [sector.id, sector]))
   const knownWalkable = (position: WorldPosition) =>
     sectors
@@ -147,6 +151,8 @@ function knownPositionAtPoint(
   return null
 }
 
+type DirectionalTurn = { direction: MapDirection; corner: WorldPosition | null }
+
 /** Visual interpolation has no authority over collision, encounter range or rewards. */
 export class WorldMotion {
   private origin: MapPoint
@@ -164,6 +170,7 @@ export class WorldMotion {
   private extendApprovedVisual = false
   private lastSampledAt = 0
   private suspendedAt: number | null = null
+  private pendingTurn: DirectionalTurn | null = null
   constructor(view: WorldView, now = 0) {
     this.origin = mapPoint(view.position, view.sectors)
     this.standing = view.position
@@ -171,12 +178,14 @@ export class WorldMotion {
     this.startedAt = now
     this.lastSampledAt = now
     this.approve(view, now)
+    this.extendApprovedVisual =
+      this.approvedFirstAt !== null &&
+      view.sectors.some((sector) => sector.id === view.position.sectorId)
     if (this.approvedFirstAt !== null && this.approvedRoute.length) {
       // A freshly mounted scene has no earlier visual to preserve. Start at the
       // captured approved phase, including prefixes already due at the snapshot.
       this.route = routePoints(this.approvedRoute, view.sectors, this.origin)
       this.startedAt = this.approvedFirstAt - this.approvedRoute[0]!.durationMs
-      this.extendApprovedVisual = true
     }
   }
   private approve(view: WorldView, now: number) {
@@ -185,6 +194,7 @@ export class WorldMotion {
     this.approvedRawRoute = view.route
     const frozen = Boolean(view.movementBlocked || view.battleSessionId)
     this.movementFrozen = frozen
+    if (frozen) this.clearPendingTurn()
     const validClock =
       Number.isSafeInteger(view.serverNow) &&
       view.serverNow >= 0 &&
@@ -215,7 +225,7 @@ export class WorldMotion {
       : loadedRoute(this.approvedRawRoute, sectors)
     this.approvedRoute =
       this.approvedFirstAt !== null
-        ? approvedLoadedRoute({
+        ? knownWalkableRoute({
             position: this.approvedOrigin,
             route: this.approvedRawRoute,
             sectors,
@@ -287,24 +297,18 @@ export class WorldMotion {
       from = step.position
     }
   }
-  /** Widen loaded approval and an agreeing visual prefix without restarting either clock. */
+  /** Continue an agreeing visual prefix as soon as its approved geometry is supplied. */
   updateScene(sectors: WorldView['sectors'], now = this.lastSampledAt): void {
     now = this.suspendedAt ?? now
     this.loadApprovedScene(sectors)
     this.trimVisualToScene(sectors, now)
-    if (
-      !this.extendApprovedVisual ||
-      this.movementFrozen ||
-      this.approvedFirstAt === null ||
-      now > this.startedAt + this.route.reduce((sum, step) => sum + step.duration, 0)
-    )
-      return
+    if (!this.extendApprovedVisual || this.movementFrozen || this.approvedFirstAt === null) return
     const positions = [this.approvedOrigin, ...this.approvedRawRoute.map((s) => s.position)]
     const from = positions.findIndex(
       (position) => positionKey(position) === positionKey(this.standing),
     )
     if (from < 0) return
-    const loaded = approvedLoadedRoute({
+    const loaded = knownWalkableRoute({
       position: this.standing,
       route: this.approvedRawRoute.slice(from),
       sectors,
@@ -330,8 +334,12 @@ export class WorldMotion {
     )
       return
     const tail = loaded.slice(existing.length)
-    if (tail.length)
+    if (tail.length) {
+      // Waiting at the edge of the loaded scene must not count as walking the next tile.
+      const prefixMs = this.route.reduce((sum, step) => sum + step.duration, 0)
+      this.startedAt = Math.max(this.startedAt, now - prefixMs)
       this.route.push(...routePoints(tail, sectors, this.route.at(-1)?.point ?? this.origin))
+    }
   }
   /** Approved landed tile for display only; preview plans never change this clock. */
   approvedPosition(now: number): WorldPosition {
@@ -406,7 +414,126 @@ export class WorldMotion {
     }
     return this.sample(now).position
   }
-  plan(route: readonly TravelStep[], sectors: readonly WorldSectorView[], now: number) {
+  /** A turn made between centers finishes the current edge before taking its new heading. */
+  directionalOrigin(
+    direction: MapDirection,
+    sectors: readonly WorldSectorView[],
+    now: number,
+    sample = this.sample(now),
+  ) {
+    const center = mapPoint(sample.position, sectors, sample.point)
+    const perpendicular = walkOffset[direction].x ? 'y' : 'x'
+    return Math.abs(sample.point[perpendicular] - center[perpendicular]) > 1e-7
+      ? this.nextLanding(now)
+      : sample.position
+  }
+  clearPendingTurn() {
+    this.pendingTurn = null
+  }
+  /** An older movement write can advance the previous heading while the turn waits in the queue. */
+  confirmDirectional(view: WorldView, turn: DirectionalTurn, now: number) {
+    if (turn !== this.pendingTurn || this.movementFrozen) return
+    const { direction } = turn
+    const visual = this.sample(now)
+    const axis = walkOffset[direction].x ? 'y' : 'x'
+    this.pendingTurn = null
+    if (
+      turn.corner &&
+      Math.abs(mapPoint(turn.corner, view.sectors, visual.point)[axis] - visual.point[axis]) < 1e-7
+    )
+      return
+    const start = mapPoint(view.position, view.sectors, visual.point)
+    const first = view.route[0]?.position
+    const corner =
+      turn.corner ??
+      (first && mapPoint(first, view.sectors, start)[axis] !== start[axis] ? first : view.position)
+    const prefix = localRoute(view, visual.position, corner)
+    const index = view.route.findIndex((step) => positionKey(step.position) === positionKey(corner))
+    const join =
+      index < 0 && positionKey(view.position) !== positionKey(corner)
+        ? localRoute(view, corner, view.position)
+        : []
+    if (!prefix || !join) {
+      this.confirmApproved(view, now)
+      return
+    }
+    this.plan(
+      [...prefix, ...join, ...view.route.slice(index + 1)],
+      view.sectors,
+      now,
+      'destination',
+    )
+    if (Math.abs(visual.point[axis] - mapPoint(corner, view.sectors, visual.point)[axis]) > 1e-7) {
+      turn.corner = corner
+      this.pendingTurn = turn
+    }
+  }
+  planDirectional(
+    destination: WorldPosition,
+    direction: MapDirection,
+    sectors: readonly WorldSectorView[],
+    now: number,
+    previousWritePending = false,
+  ) {
+    const sample = this.sample(now)
+    const axis = walkOffset[direction].x ? 'y' : 'x'
+    const turn = this.pendingTurn
+    if (
+      turn?.direction === direction &&
+      (!turn.corner ||
+        Math.abs(mapPoint(turn.corner, sectors, sample.point)[axis] - sample.point[axis]) > 1e-7)
+    )
+      return turn
+    this.pendingTurn = null
+    const landing = this.nextLanding(now)
+    const pivot = this.directionalOrigin(direction, sectors, now, sample)
+    const sectorAt = (id: string) => sectors.find((sector) => sector.id === id)
+    let edge: TravelStep | null = null
+    if (positionKey(sample.position) !== positionKey(pivot)) {
+      const source = sectorAt(sample.position.sectorId)
+      const crossing = source?.exits.find(
+        (exit) =>
+          positionKey(exit.from) === positionKey(sample.position) &&
+          positionKey(exit.to) === positionKey(pivot),
+      )
+      edge = { position: pivot, durationMs: crossing?.durationMs ?? source?.stepMs ?? STEP_MS }
+    }
+    const landingPoint = mapPoint(landing, sectors, sample.point)
+    if (sample.moving && Math.abs(landingPoint[axis] - sample.point[axis]) > 1e-7) {
+      const nextIndex =
+        this.approvedVisualRoute.findIndex(
+          (step) => positionKey(step.position) === positionKey(landing),
+        ) + 1
+      const after = nextIndex && this.approvedVisualRoute[nextIndex]?.position
+      const changingLane =
+        after && mapPoint(after, sectors, landingPoint)[axis] !== landingPoint[axis]
+      if (previousWritePending || changingLane) {
+        // Finish the in-progress edge. The next write confirms the corner before turning.
+        if (edge) this.plan([edge], sectors, now)
+        else this.hold(now)
+        this.pendingTurn = { direction, corner: null }
+        return this.pendingTurn
+      }
+    }
+    const route = directionalWalk(pivot, destination, direction, sectorAt)
+    // OS-independent repeats replace one another while a write is in flight. They must
+    // not grant fresh speculative distance every time the same key timer fires.
+    const approved = mapPoint(this.approvedPosition(now), sectors, sample.point)
+    const beyondApproval = route.findIndex((step) => {
+      const target = mapPoint(step.position, sectors, approved)
+      return Math.abs(target.x - approved.x) + Math.abs(target.y - approved.y) > KEY_LOOKAHEAD_STEPS
+    })
+    if (beyondApproval >= 0) route.length = beyondApproval
+    if (edge) route.unshift(edge)
+    if (route.length) this.plan(route, sectors, now)
+    else this.hold(now)
+  }
+  plan(
+    route: readonly TravelStep[],
+    sectors: readonly WorldSectorView[],
+    now: number,
+    preview: 'bounded' | 'destination' = 'bounded',
+  ) {
     if (this.movementFrozen) return
     now = this.suspendedAt ?? now
     const sample = this.sample(now)
@@ -418,6 +545,10 @@ export class WorldMotion {
       (step) => positionKey(step.position) === positionKey(sample.position),
     )
     if (reached >= 0) route = route.slice(reached + 1)
+    // A fixed destination only needs visual prediction across edges that this
+    // scene already proves. A slow acknowledgement must not interrupt that walk.
+    if (preview === 'destination')
+      route = knownWalkableRoute({ position: sample.position, sectors, route })
     if (!route.length) {
       const sector = sectors.find((sector) => sector.id === sample.position.sectorId)
       const centre = mapPoint(sample.position, sectors, sample.point)
@@ -458,6 +589,8 @@ export class WorldMotion {
       // Repeated clicks/held input must keep the same walking speed. A half-
       // finished step needs half its authored time, rather than a new full step.
       first.duration = (first.duration * distance) / (wholeStep || 1)
+    }
+    if (preview === 'bounded' && this.route.length) {
       let unconfirmed = 0
       const end = this.route.findIndex(
         (step, index) => index >= common && (unconfirmed += step.duration) > 600,
@@ -504,6 +637,20 @@ export class WorldMotion {
     }
     const authoritative = mapPoint(view.position, view.sectors, visual.point)
     const route = routePoints(loadedRoute(view.route, view.sectors), view.sectors, authoritative)
+    if (
+      this.extendApprovedVisual &&
+      !route.length &&
+      positionKey(visual.position) === positionKey(view.position) &&
+      visual.point.x === authoritative.x &&
+      visual.point.y === authoritative.y
+    ) {
+      // The first approved step may be just outside the current scene.
+      this.origin = authoritative
+      this.standing = view.position
+      this.route = []
+      this.startedAt = now
+      return
+    }
     // Find the visual point on the confirmed forward path. Late confirmations must not
     // rewind an already interpolated step, including at sector boundaries.
     const points = [{ point: authoritative, position: view.position, duration: 0 }, ...route]

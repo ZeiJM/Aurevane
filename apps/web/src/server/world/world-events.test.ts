@@ -17,7 +17,7 @@ it('rejects uncharted, malformed or blocked event destinations', () => {
   expect(
     eventWorldObjectives([
       { ...row(true), navigation: { ...row(true).navigation, sectorId: 'survey-01' } },
-      { ...row(true), navigation: { ...row(true).navigation, x: 0, y: 0 } },
+      { ...row(true), navigation: { ...row(true).navigation, x: 10, y: 2 } },
       null,
     ]),
   ).toEqual([])

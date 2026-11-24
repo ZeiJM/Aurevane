@@ -1,12 +1,23 @@
-/** Shared collision vocabulary. Foliage is scenery; deep water/lava/buildings are real obstacles. */
-export function terrainWalkable(terrain: string): boolean {
+/** Every authored dry surface is traversable, including rock and building footprints. */
+export function terrainWalkable(terrain: string | undefined): boolean {
+  return (
+    terrain === '.' ||
+    terrain === '=' ||
+    terrain === 's' ||
+    terrain === 't' ||
+    terrain === '#' ||
+    terrain === 'b'
+  )
+}
+
+/** Keep building approaches and landmark art clear of existing rock or architecture. */
+export function openScenerySurface(terrain: string | undefined): boolean {
   return terrain === '.' || terrain === '=' || terrain === 's' || terrain === 't' || terrain === 'w'
 }
 
 const dryTownSurfaces = new WeakMap<readonly string[], readonly string[]>()
-/** Replace the two retired town lakes with regional dry ground for painting.
- * Canonical rows remain pinned by staff teleport; both surfaces have identical
- * walkability and town safety, so no saved position or route needs migration. */
+/** Replace the two retired town lakes with regional dry ground for painting and walking.
+ * The historic source encoding remains available for existing map data. */
 export function worldSurfaceRows(sector: {
   rows: readonly string[]
   charted: boolean

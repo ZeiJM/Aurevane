@@ -22,6 +22,10 @@ The world should therefore feel **persistent, shared, reactive, authored, and op
 
 The central mythology supports this goal. Aurevane, the imprisoned goddess of Becoming, should slowly move from forgotten religious mystery to apparent protector to unsettling world-level antagonist. Her story should arrive through the same living-world machinery that makes the server feel active: region changes, quests, NPC reactions, Expeditions, community objectives, Chronicle entries, seasonal arcs, and world events.
 
+## World map travel
+
+Players can walk across known dry land, including ground beneath trees, rocks, mountains and buildings. Water, shallows and lava stop a walking character. A bridge provides a dry crossing and the character appears on its deck. Holding a movement key continues in that direction until release or an obstruction. Clicking a destination can route around an obstruction. Uncharted maps retain their survey and visibility rules.
+
 ## 2. Living World Principles
 
 The world should support:

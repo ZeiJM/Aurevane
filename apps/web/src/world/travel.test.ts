@@ -337,7 +337,7 @@ describe('world travel', () => {
       WORLD,
     )!
     expect(across.map((step) => step.position)).toEqual([
-      { sectorId: 'crown-road', x: 6, y: 4 },
+      { sectorId: 'crown-road', x: 7, y: 3 },
       { sectorId: 'crown-road', x: 7, y: 4 },
       { sectorId: 'crown-road', x: 8, y: 4 },
       { sectorId: 'crown-road', x: 9, y: 4 },
@@ -392,13 +392,13 @@ describe('world travel', () => {
     expect(route.every((step) => step.durationMs <= STEP_MS)).toBe(true)
   })
   describe.each([
-    { id: 'eastern-march-road', from: 'emberreach', to: 'umbral-march', walkableVerge: false },
-    { id: 'old-coast-road', from: 'hollow-coast', to: 'umbral-march', walkableVerge: false },
+    { id: 'eastern-march-road', from: 'emberreach', to: 'umbral-march' },
+    { id: 'old-coast-road', from: 'hollow-coast', to: 'umbral-march' },
     { id: 'highland-road', from: 'aureth-crown', to: 'starfall-highlands' },
     { id: 'northern-pass', from: 'starfall-highlands', to: 'frostmere' },
     { id: 'ember-road', from: 'verdant-expanse', to: 'emberreach' },
     { id: 'southern-caravan-road', from: 'aureth-crown', to: 'glasswind-desert' },
-  ])('$id', ({ id, from, to, walkableVerge = true }) => {
+  ])('$id', ({ id, from, to }) => {
     it.each([false, true])('traverses every encounterable square (reverse: %s)', (reverse) => {
       const endpoints = [
         { sectorId: from, x: 12, y: 4 },
@@ -416,19 +416,15 @@ describe('world travel', () => {
       expect(route.every((step) => step.durationMs <= STEP_MS)).toBe(true)
       expect(route.at(-1)?.position).toEqual(endpoints[1])
     })
-    it('permits only terrain squares clear of painted obstacles', () => {
+    it('allows every dry verge and keeps liquid cells blocked', () => {
       const from = { sectorId: id, x: 6, y: 4 }
-      if (walkableVerge)
-        expect(findWorldRoute(from, { ...from, y: 3 }, WORLD)?.at(-1)?.position).toEqual({
-          ...from,
-          y: 3,
-        })
-      // These two woodland roads have narrow decorative verges; adjacent cell centres
-      // already fall inside the painted boulders and trees, including E6/N3.
-      const blockedRows = walkableVerge ? [0, 1, 7, 8] : [0, 1, 2, 3, 5, 6, 7, 8]
-      for (const y of blockedRows)
-        for (let x = 0; x < 13; x++)
-          expect(findWorldRoute(from, { ...from, x, y }, WORLD)).toBeNull()
+      const sector = WORLD.find((candidate) => candidate.id === id)!
+      for (const [y, row] of sector.rows.entries())
+        for (const [x, terrain] of [...row].entries()) {
+          const route = findWorldRoute(from, { ...from, x, y }, [sector])
+          if (terrain === '~' || terrain === 'l' || terrain === 'w') expect(route).toBeNull()
+          else expect(route).not.toBeNull()
+        }
     })
   })
   it('connects the desert to volcanic country through encounterable roads', () => {
