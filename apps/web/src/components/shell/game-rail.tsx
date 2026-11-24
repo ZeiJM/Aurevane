@@ -142,7 +142,7 @@ export function GameRail({
           ) : (
             <Link
               key={item.href}
-              prefetch={!active && warmHref === item.href ? null : false}
+              prefetch={!active && warmHref === item.href}
               onPointerEnter={(event) => {
                 if (!active && event.pointerType !== 'touch') warmDestination(item.href)
               }}
