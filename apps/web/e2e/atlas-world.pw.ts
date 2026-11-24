@@ -1467,7 +1467,7 @@ test('a synthetic population of 100 has bounded rendering at high DPI and lower 
   await openMapSettings(page)
   await page.getByRole('slider', { name: 'Zoom level', exact: true }).press('Home')
   await closeMapSettings(page)
-  await expect.poll(() => canvas.evaluate((el) => Number(el.dataset.tileSize))).toBe(48 * 0.35)
+  await expect.poll(() => canvas.evaluate((el) => Number(el.dataset.tileSize))).toBe(48 * 0.64)
   const viewport = await canvas.evaluate((el) => ({
     width: el.clientWidth,
     height: el.clientHeight,
@@ -1982,16 +1982,14 @@ test('shows the coast terminal and keeps its Ferryman in Nearby outside boarding
   await reloadWorld(page)
   expect((await world(page)).ferry).toBeUndefined()
   const outside = await showNearby()
-  await expect(outside.getByRole('button', { name: 'Approach Ferryman' })).toBeVisible()
-  place(characterId, FERRY_MAINLAND_DOCK.sectorId, FERRY_MAINLAND_DOCK.x, FERRY_MAINLAND_DOCK.y)
-  await reloadWorld(page)
+  await outside.getByRole('button', { name: 'Approach Krane (Ferryman)' }).click()
+  const talk = outside.getByRole('button', { name: 'Talk to Krane (Ferryman)' })
+  await expect(talk).toBeVisible({ timeout: 12_000 })
   expect((await world(page)).ferry?.port).toBe('mainland')
-  const onDock = await showNearby()
-  await expect(onDock.getByRole('button', { name: 'Talk to Ferryman' })).toBeVisible()
   await capture(page, info, 'coastal-ferry-terminal')
-  await onDock.getByRole('button', { name: 'Talk to Ferryman' }).click()
-  const dialogue = page.getByRole('dialog', { name: 'Ferryman' })
-  await expect(dialogue.locator('img')).toHaveAttribute('src', /ferryman-portrait-v02\.webp$/)
+  await talk.click()
+  const dialogue = page.getByRole('dialog', { name: 'Krane (Ferryman)' })
+  await expect(dialogue.locator('img')).toHaveAttribute('src', /appearance.*neutral\.svg$/)
   await expect
     .poll(() => dialogue.locator('img').evaluate((img: HTMLImageElement) => img.naturalWidth))
     .toBeGreaterThan(0)
@@ -2050,7 +2048,7 @@ test('settles an arrived ferry at the active Uncharted coast and lets the passen
   )
   expect(scene.atlas!.every((cell) => !cell.id.startsWith('void:'))).toBe(true)
   const station = page.getByRole('region', { name: 'Ferry station' })
-  await expect(station.getByRole('button', { name: 'Talk to Ferryman' })).toBeVisible()
+  await expect(station.getByRole('button', { name: /Talk to .+ \(Ferryman\)/ })).toBeVisible()
   const walk = { ...dock, x: dock.x + 2 }
   await stageWalk(page, walk)
   await expect.poll(async () => (await world(page)).position).toEqual(walk)

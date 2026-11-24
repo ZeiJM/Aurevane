@@ -1,5 +1,5 @@
 import type { FerryPassage } from '@/world/ferry'
-import { seeded } from '@/world/terrain-gen'
+import { hashString, seeded } from '@/world/terrain-gen'
 import type { WorldWind } from './map-weather'
 
 type ProjectDeckPoint = (x: number, y: number) => { x: number; y: number }
@@ -43,6 +43,12 @@ export function ferryWaterFrame(
     drift: animate ? wind.offset : 0,
     wind: wind.speed,
   }
+}
+
+const ferryVesselVersions = ['v02', 'v03', 'v04'] as const
+
+export function ferryVesselVersion(sectorId: string) {
+  return ferryVesselVersions[hashString(sectorId) % ferryVesselVersions.length]!
 }
 
 type FerryWaterFrame = ReturnType<typeof ferryWaterFrame>
@@ -156,6 +162,8 @@ export function paintFerrySea(
   context: CanvasRenderingContext2D,
   width: number,
   height: number,
+  deck: { x: number; y: number },
+  tile: number,
   frame: FerryWaterFrame,
   lowDetail: boolean,
   art: SeaArt,
@@ -188,10 +196,11 @@ export function paintFerrySea(
   const coast = frame.shore ? art[frame.shore.coast] : undefined
   if (frame.shore && ready(coast)) {
     const { arriving, offset } = frame.shore
-    const coastHeight = Math.min(height * 0.63, Math.max(height * 0.38, width * 0.36))
-    const coastWidth = width * 1.13
-    const y = height * (arriving ? -0.11 : -0.065) - offset * coastHeight
-    context.drawImage(coast, -width * 0.065, y, coastWidth, coastHeight)
+    const coastWidth = 27 * tile
+    const coastHeight = coastWidth * (coast.naturalHeight / coast.naturalWidth)
+    const x = deck.x - coastWidth / 2 + (arriving ? 1.5 : -1.5) * tile
+    const y = deck.y - coastHeight - (1.5 + offset * 10) * tile
+    context.drawImage(coast, x, y, coastWidth, coastHeight)
   }
   if (frame.sighting) paintFerrySighting(context, width, height, frame.sighting, art.dolphin)
 }
@@ -239,10 +248,10 @@ export function paintFerryHull(
   const bowStep = project(7.5, 4.5)
   const nearStep = project(6.5, 5.5)
   if (ready(hull)) {
-    // Registration in a reference image 850 × 478. The three deck points
-    // align the existing walking cells and fitting anchors with the painted floor.
-    const sourceBow = { x: 65.52, y: 20.97 }
-    const sourceNear = { x: -23.42, y: 11.24 }
+    // Source floor anchors in the 1536 × 1024 painting. The same world-space
+    // grid projects avatars, wake, coast and pointer coordinates.
+    const sourceBow = { x: 111, y: 44 }
+    const sourceNear = { x: -34, y: 18 }
     const determinant = sourceBow.x * sourceNear.y - sourceNear.x * sourceBow.y
     const a =
       ((bowStep.x - center.x) * sourceNear.y - (nearStep.x - center.x) * sourceBow.y) / determinant
@@ -254,7 +263,7 @@ export function paintFerryHull(
       ((nearStep.y - center.y) * sourceBow.x - (bowStep.y - center.y) * sourceNear.x) / determinant
     context.save()
     context.transform(a, b, c, d, center.x, center.y)
-    context.drawImage(hull, -393.8, -200.7, 850, 478)
+    context.drawImage(hull, -700, -648, 1536, 1024)
     context.restore()
     return
   }
@@ -268,67 +277,6 @@ export function paintFerryHull(
   context.lineWidth = tile * 0.12
   context.beginPath()
   context.ellipse(0, 0, tile * 6, tile * 2.8, 0, 0, Math.PI * 2)
-  context.fill()
-  context.stroke()
-  context.restore()
-}
-
-export function paintFerryRig(
-  context: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  size: number,
-  frame: FerryWaterFrame,
-) {
-  const reach = size * (0.11 + frame.chop * 0.085)
-  const lift = Math.sin(frame.phase * (4 + frame.chop * 4)) * size * (0.012 + frame.chop * 0.025)
-  context.save()
-  context.translate(x, y)
-  if (frame.underway) {
-    // Both ties stay on the yard. The free edge bellies toward the bow and
-    // relaxes in light wind. Keep the cloth on the existing mast depth slot.
-    const billow = (0.04 + frame.chop * 0.028) * Math.sin(frame.phase * 3.3)
-    const fabric = context.createLinearGradient(-size * 0.21, size * 0.22, size * 0.2, size * 0.6)
-    fabric.addColorStop(0, '#eee0b3')
-    fabric.addColorStop(0.52, '#c8aa71')
-    fabric.addColorStop(1, '#8d6946')
-    context.fillStyle = fabric
-    context.strokeStyle = '#6f5638'
-    context.lineWidth = Math.max(0.8, size * 0.012)
-    context.beginPath()
-    context.moveTo(-size * 0.225, size * 0.2)
-    context.lineTo(size * 0.16, size * 0.315)
-    context.quadraticCurveTo(
-      size * (0.27 + billow),
-      size * 0.43,
-      size * (0.13 + billow),
-      size * 0.6,
-    )
-    context.quadraticCurveTo(-size * 0.09, size * (0.51 + billow), -size * 0.27, size * 0.46)
-    context.quadraticCurveTo(-size * (0.19 - billow), size * 0.33, -size * 0.225, size * 0.2)
-    context.closePath()
-    context.fill()
-    context.stroke()
-    context.strokeStyle = 'rgba(247,224,175,.6)'
-    context.lineWidth = Math.max(0.6, size * 0.006)
-    context.beginPath()
-    context.moveTo(-size * 0.1, size * 0.24)
-    context.quadraticCurveTo(-size * (0.03 - billow), size * 0.37, -size * 0.12, size * 0.5)
-    context.moveTo(size * 0.04, size * 0.28)
-    context.quadraticCurveTo(size * (0.12 + billow), size * 0.44, size * 0.025, size * 0.55)
-    context.stroke()
-  }
-  if (frame.wind < 0) context.scale(-1, 1)
-  context.fillStyle = '#9c493d'
-  context.strokeStyle = '#542e27'
-  context.lineWidth = Math.max(0.6, size * 0.005)
-  context.beginPath()
-  context.moveTo(0, 0)
-  context.quadraticCurveTo(reach * 0.55, lift, reach, size * 0.012 + lift)
-  context.lineTo(reach * 0.79, size * 0.036 + lift)
-  context.lineTo(reach, size * 0.068 + lift)
-  context.quadraticCurveTo(reach * 0.52, size * 0.055, 0, size * 0.06)
-  context.closePath()
   context.fill()
   context.stroke()
   context.restore()

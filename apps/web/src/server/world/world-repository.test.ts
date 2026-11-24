@@ -101,7 +101,7 @@ it('loads only local published NPCs and reuses the sector result between present
     expect(view.players).toEqual([])
     expect(view.interactions).toContainEqual(
       expect.objectContaining({
-        speaker: 'World Fixture',
+        speaker: 'World Fixture (Resident)',
         body: 'Safe travels.',
         actionLabel: null,
       }),

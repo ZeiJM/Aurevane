@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { advanceWorldRoute, MOVEMENT_LAG_ALLOWANCE_MS, newWorldState } from '@/world/travel'
 import type { TravelStep, WorldSectorView, WorldView } from '@/world/types'
-import { localRoute, WorldMotion } from './world-motion'
+import { localRoute, WorldMotion, worldApproachRoute } from './world-motion'
 const position = { sectorId: 'a', x: 1, y: 4 }
 const sectors: WorldSectorView[] = [
   {
@@ -1163,4 +1163,13 @@ it('holds an attack preview at its exact visual point while retaining the approv
   motion.hold(100)
   expect(motion.sample(300)).toMatchObject({ point, moving: false })
   expect(motion.approvedPosition(200)).toEqual(route[0]!.position)
+})
+
+it('approaches a reachable tile inside the advertised interaction radius', () => {
+  const target = { ...view.position, x: view.position.x + 3 }
+  const approach = worldApproachRoute(view, view.position, target, 2)
+  expect(approach?.destination).toEqual({ ...view.position, x: view.position.x + 1 })
+  expect(approach?.route).toHaveLength(1)
+  const arrived = worldApproachRoute(view, approach!.destination, target, 2)
+  expect(arrived?.route).toEqual([])
 })

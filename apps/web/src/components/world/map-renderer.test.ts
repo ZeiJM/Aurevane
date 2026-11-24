@@ -1,3 +1,4 @@
+import { ferryVesselVersion } from './map-ferry-deck'
 import { resolveWorldEnvironment, DEFAULT_WORLD_ENVIRONMENT_SETTINGS } from '@/world/environment'
 import { createRequire } from 'node:module'
 import { readFile } from 'node:fs/promises'
@@ -469,9 +470,7 @@ describe('native map input and bounded lifecycle', () => {
       s.frame(40)
       expect(s.draws.map(({ src }) => src)).toEqual(
         expect.arrayContaining([
-          '/media/art/world/runtime/ferry-passenger-hull-v01.webp',
-          '/media/art/world/runtime/ferry-cabin-v01.webp',
-          '/media/art/world/runtime/ferry-sails-v01.webp',
+          `/media/art/world/runtime/ferry-passenger-hull-${ferryVesselVersion(state.position.sectorId)}.webp`,
         ]),
       )
       expect(s.texts.map(({ text }) => text)).not.toContain('Stern cabin')
@@ -692,7 +691,7 @@ describe('native map input and bounded lifecycle', () => {
       vi.unstubAllGlobals()
     }
   })
-  it('fills gaps behind a partial public sector while allowing only supplied ground clicks', () => {
+  it('submits charted ground clicks through a partial public navigation scene', () => {
     const view = legacyTownView('verdant-expanse', 5, 4)
     const current = view.sectors[0]!
     const supplied = {
@@ -712,7 +711,7 @@ describe('native map input and bounded lifecycle', () => {
       expect(sampledMaterial).toBeDefined()
       s.event('pointerdown', 563.2, 384.48)
       s.event('pointerup', 563.2, 384.48)
-      expect(s.select).not.toHaveBeenCalled()
+      expect(s.select).toHaveBeenCalledWith({ sectorId: current.id, x: 8, y: 4 })
     } finally {
       s.renderer.dispose()
       vi.unstubAllGlobals()
@@ -3030,7 +3029,7 @@ describe('native map input and bounded lifecycle', () => {
     s.renderer.dispose()
     vi.unstubAllGlobals()
   })
-  it.each([390, 800])('zooms out to 35%% at width %i without moving the camera', (width) => {
+  it.each([390, 800])('zooms out to 64%% at width %i without moving the camera', (width) => {
     const s = scene()
     Object.assign(s.canvas, { clientWidth: width })
     s.resize()
@@ -3039,8 +3038,8 @@ describe('native map input and bounded lifecycle', () => {
     const camera = [s.canvas.dataset.cameraX, s.canvas.dataset.cameraY]
     s.listeners.get('wheel')!({ deltaY: 10000, preventDefault() {} } as unknown as Event)
     s.frame(80)
-    expect(s.onZoom).toHaveBeenLastCalledWith(0.35)
-    expect(Number(s.canvas.dataset.tileSize)).toBeCloseTo((width < 600 ? 48 : 64) * 0.35)
+    expect(s.onZoom).toHaveBeenLastCalledWith(0.64)
+    expect(Number(s.canvas.dataset.tileSize)).toBeCloseTo((width < 600 ? 48 : 64) * 0.64)
     expect([s.canvas.dataset.cameraX, s.canvas.dataset.cameraY]).toEqual(camera)
     expect(s.select).not.toHaveBeenCalled()
     s.renderer.settings({ animate: false, zoom: 0.35, zoomLocked: true })
@@ -4029,7 +4028,7 @@ describe('native map input and bounded lifecycle', () => {
     expect(s.draws.length).toBeGreaterThan(scenery)
     s.event('pointerdown', 400, 283)
     s.event('pointerup', 400, 283)
-    expect(s.select).not.toHaveBeenCalled()
+    expect(s.select).toHaveBeenCalledWith({ sectorId: s.view.position.sectorId, x: 5, y: 4 })
     s.renderer.dispose()
     vi.unstubAllGlobals()
   })

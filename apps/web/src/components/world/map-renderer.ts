@@ -33,6 +33,7 @@ import { createWorldLightingCache, paintWorldLighting } from './map-daylight'
 import {
   APPEARANCE_ASSET_PREFIX,
   APPEARANCE_FRAME,
+  APPEARANCE_MOTION_FRAME,
   appearanceManifestFromImageUrl,
   appearanceMotionFrameIndex,
   appearanceWalkFrame,
@@ -148,7 +149,12 @@ import { ShallowWaterRipples } from './map-shallow-ripples'
 import { colosseumArenaMaterial, valleyDetailArt } from './map-grand-detail-art'
 import { townArchitectureArt, crownWallArt, crownWallSegments } from './map-town-architecture'
 import { settlementFloorIndex } from './map-settlement-floor'
-import { ferryWaterFrame, paintFerryHull, paintFerryRig, paintFerrySea } from './map-ferry-deck'
+import {
+  ferryVesselVersion,
+  ferryWaterFrame,
+  paintFerryHull,
+  paintFerrySea,
+} from './map-ferry-deck'
 import { buildWarpedTerrainEdges, paintWarpedScree, WARPED_GROUND_COLOR } from './map-warped-ground'
 import {
   regionalBuildingIndex,
@@ -164,7 +170,14 @@ import {
 } from './map-regional-art'
 import { createChimneyPuff, paintChimneySmoke } from './map-chimney'
 
-import { MAP_X, MAP_Y, mapWalkFacing, projectMapPoint, unprojectMapPoint } from './map-projection'
+import {
+  FERRY_ROW_SCALE,
+  MAP_X,
+  MAP_Y,
+  mapWalkFacing,
+  projectMapPoint,
+  unprojectMapPoint,
+} from './map-projection'
 
 const BASE = '/media/art/world/runtime/'
 const WINTER_ART = 'frostmere'
@@ -372,7 +385,6 @@ interface Scenery {
   grandBridge?: boolean
   forge?: boolean
   chimney?: Chimney
-  ferryMast?: boolean
   voidGlimmer?: string
   townLight?: 'town-centres-north' | 'town-centres-south'
   windFlex?: number
@@ -390,7 +402,7 @@ const STATIONARY_SCENERY_PIXEL_LIMIT = 800_000
 const BIOME_RASTER_PIXEL_LIMIT = 4_000_000
 
 function usesCompactScenery(item: Scenery) {
-  return !item.underpass && !item.mirror && !item.ferryMast && !item.waterfall && !item.oceanFeature
+  return !item.underpass && !item.mirror && !item.waterfall && !item.oceanFeature
 }
 // Inspected biomes-v02 floor contacts, excluding empty cell padding. Preserve
 // the original painted scale; anchor the rubble floor rather than the cell edge.
@@ -834,9 +846,18 @@ export function createMapRenderer(
     width: number
     height: number
     decks: BridgeDeck[]
+    rowScale: number
   }
   const paintedProjections: PaintedProjection[] = []
   const remoteMotion = new WorldPlayerMotion(initial, performance.now(), camera)
+  const npcReceipt = (scene: WorldRenderView) => ({
+    sectors: scene.sectors,
+    players: (scene.npcs ?? [])
+      .filter((npc) => npc.movement)
+      .map((npc) => ({ characterId: npc.id, position: npc.position, movement: npc.movement })),
+  })
+  let previousNpcTracks = Boolean(initial.npcs?.some((npc) => npc.movement))
+  const npcMotion = new WorldPlayerMotion(npcReceipt(initial), performance.now(), camera)
   let animate = true,
     showLocationLabels = true,
     visualMinuteOfDay = view.environment.minuteOfDay,
@@ -919,8 +940,21 @@ export function createMapRenderer(
   let wind: WorldWind | undefined
   let surfaceRain: number | undefined
   let chimneyPuff: HTMLCanvasElement | undefined
+  const loadFerryVessel = (id: string) => {
+    if (!id.startsWith('ferry:')) return
+    const version = ferryVesselVersion(id)
+    const key = `ferry-passenger-hull-${version}`
+    if (!images.has(key)) load('ferry-passenger-hull', version, 'webp', key)
+  }
   let ferryClockAt = performance.now()
-  let hitTargets: { id: string; self: boolean; x: number; y: number; radius: number }[] = []
+  let hitTargets: {
+    id: string
+    self: boolean
+    x: number
+    y: number
+    radius: number
+    halfWidth?: number
+  }[] = []
   const frameTimes: number[] = []
   const terrainKeys = new Map<string, string>()
   const featureKeys = new Map<string, string>()
@@ -1058,7 +1092,7 @@ export function createMapRenderer(
     clearStationaryGround()
     clearStationaryScenery()
   }
-  const load = (name: string, version = 'v02', format = 'webp') => {
+  const load = (name: string, version = 'v02', format = 'webp', key = name) => {
     const image = new Image()
     if (name === 'terrain' || name === 'regional-ground' || name === 'water-materials')
       image.fetchPriority = 'high'
@@ -1092,7 +1126,7 @@ export function createMapRenderer(
       requestDraw()
     }
     image.src = BASE + name + '-' + version + '.' + format
-    images.set(name, image)
+    images.set(key, image)
   }
   for (const name of ['terrain', 'buildings', 'nature', 'props', 'biomes']) load(name)
   load('beauties', 'v03')
@@ -1199,11 +1233,10 @@ export function createMapRenderer(
       )
     )
       load('hamlet-buildings-winter', 'v01')
-    if (!images.has('ferry-fittings') && renderSectors.some(({ id }) => id.startsWith('ferry:'))) {
-      load('ferry-fittings', 'v02', 'svg')
-      load('ferry-cabin', 'v01')
-      load('ferry-sails', 'v01')
-      load('ferry-passenger-hull', 'v01')
+    if (
+      !images.has('ferry-pine-coast') &&
+      renderSectors.some(({ id }) => id.startsWith('ferry:'))
+    ) {
       load('ferry-pine-coast', 'v01')
       load('ferry-cliff-coast', 'v01')
       load('ferry-dolphin', 'v01')
@@ -1262,6 +1295,7 @@ export function createMapRenderer(
       load('warped-refuges', 'v01')
   }
   loadRegionalArt()
+  loadFerryVessel(view.position.sectorId)
   // Fit the complete hull at the normal zoom, including on narrow screens.
   const tileSize = () =>
     view.position.sectorId.startsWith('ferry:')
@@ -1305,7 +1339,9 @@ export function createMapRenderer(
   const observer = new ResizeObserver(resize)
   observer.observe(canvas)
   resize()
-  const screen = (point: MapPoint) => projectMapPoint(point, camera, pan, tile, width, height)
+  const deckRowScale = () => (view.position.sectorId.startsWith('ferry:') ? FERRY_ROW_SCALE : 1)
+  const screen = (point: MapPoint) =>
+    projectMapPoint(point, camera, pan, tile, width, height, deckRowScale())
   const world = (x: number, y: number, projection?: PaintedProjection) =>
     unprojectMapPoint(
       { x, y },
@@ -1314,21 +1350,39 @@ export function createMapRenderer(
       projection?.tile ?? tile,
       projection?.width ?? width,
       projection?.height ?? height,
+      projection?.rowScale ?? deckRowScale(),
     )
   const sectorOrigin = (sector: WorldSectorView) => sectorMapOrigin(sector, camera.x)
-  const pick = (point: MapPoint, sectors = view.sectors, referenceX = camera.x) => {
-    // Prefer the current legacy/private sector over a public sector at the same address.
-    const ordered = [...sectors].sort(
-      (a, b) => Number(b.id === view.position.sectorId) - Number(a.id === view.position.sectorId),
-    )
-    for (const sector of ordered) {
+  const pick = (
+    point: MapPoint,
+    sectors = view.sectors,
+    referenceX = camera.x,
+    allowChart = false,
+  ): WorldPosition | null => {
+    const current = sectors.find(({ id }) => id === view.position.sectorId)
+    const onFerry = view.position.sectorId.startsWith('ferry:')
+    const ordered = current ? [current, ...sectors.filter((sector) => sector !== current)] : sectors
+    for (const sector of onFerry ? ordered.slice(0, 1) : ordered) {
+      if (onFerry && sector !== current) return null
       const origin = sectorMapOrigin(sector, referenceX),
         x = Math.floor(point.x - origin.x),
         y = Math.floor(point.y - origin.y)
+      if (x < 0 || x >= GRID_WIDTH || y < 0 || y >= GRID_HEIGHT) continue
       const cell = sector.cells.find((c) => c.x === x && c.y === y)
-      if (cell?.walkable) return { sectorId: sector.id, x, y }
+      if (cell) return cell.walkable ? { sectorId: sector.id, x, y } : null
     }
-    return null
+    if (!allowChart || onFerry || !current?.charted) return null
+    // A chart-only tile is still pickable when a wider zoom exposes it. The
+    // local chart identifies liquid; the server owns all route validation.
+    const column = Math.floor(point.x / GRID_WIDTH)
+    const row = Math.floor(point.y / GRID_HEIGHT)
+    const chart = chartedTerrain.get(`${wrapAtlasColumn(column)}:${row}`)
+    const x = Math.floor(point.x - column * GRID_WIDTH)
+    const y = Math.floor(point.y - row * GRID_HEIGHT)
+    const material = chart?.waterTiles?.[y * GRID_WIDTH + x]
+    return chart && material !== 'l' && !isWaterTerrain(material)
+      ? { sectorId: chart.id, x, y }
+      : null
   }
   const chartCellSize = 16
   function paintChartMaterial(
@@ -2354,13 +2408,23 @@ export function createMapRenderer(
     const movementActive =
       sample.moving || remoteMoving || sample.point.x !== camera.x || sample.point.y !== camera.y
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0)
-    if (ferryFrame)
-      paintFerrySea(ctx, width, height, ferryFrame, quality === 'low', {
-        pine: images.get('ferry-pine-coast'),
-        cliff: images.get('ferry-cliff-coast'),
-        dolphin: images.get('ferry-dolphin'),
-      })
-    else {
+    if (ferryFrame && current) {
+      const origin = sectorOrigin(current)
+      paintFerrySea(
+        ctx,
+        width,
+        height,
+        screen({ x: origin.x + 6.5, y: origin.y + 4.5 }),
+        tile,
+        ferryFrame,
+        quality === 'low',
+        {
+          pine: images.get('ferry-pine-coast'),
+          cliff: images.get('ferry-cliff-coast'),
+          dolphin: images.get('ferry-dolphin'),
+        },
+      )
+    } else {
       ctx.fillStyle = current?.warpedTheme
         ? WARPED_GROUND_COLOR
         : chartedFrame
@@ -2653,7 +2717,7 @@ export function createMapRenderer(
           tile,
           ferryFrame,
           quality === 'low',
-          images.get('ferry-passenger-hull'),
+          images.get(`ferry-passenger-hull-${ferryVesselVersion(sector.id)}`),
         )
       } else if (projection?.layer && index >= projection.start && index < projection.end) {
         if (index === projection.start) {
@@ -3157,32 +3221,7 @@ export function createMapRenderer(
             continue
           }
           if (!props?.complete || !props.naturalWidth) continue
-          if (sector.id.startsWith('ferry:')) {
-            const mast = landmark.id === 'ferry-mast'
-            const painted = images.get(mast ? 'ferry-sails' : 'ferry-cabin')
-            const paintedReady = Boolean(painted?.complete && painted.naturalWidth)
-            const fittings = paintedReady ? painted : images.get('ferry-fittings')
-            if (fittings?.complete && fittings.naturalWidth) {
-              const size = tile * (mast ? 3.4 : 2.55)
-              addScenery({
-                x: origin.x + landmark.x + (mast ? 1.27 : 0.5),
-                y: origin.y + landmark.y + 0.6,
-                width: size,
-                height: paintedReady
-                  ? (size * fittings.naturalHeight) / fittings.naturalWidth
-                  : size,
-                image: fittings,
-                index: paintedReady || !mast ? 0 : 1,
-                columns: paintedReady ? 1 : 2,
-                rows: 1,
-                anchorX: paintedReady && mast ? 0.55 : 0.5,
-                anchorY: paintedReady ? 0.95 : 0.83,
-                tree: false,
-                ferryMast: mast && !paintedReady,
-              })
-            }
-            continue
-          }
+          if (sector.id.startsWith('ferry:')) continue
 
           if (landmark.warpedArt !== undefined && landmark.sceneryIndex !== 4) {
             const asset = landmark.warpedArt < 6 ? warpedLandmarks : warpedRefuges
@@ -3514,14 +3553,15 @@ export function createMapRenderer(
     }
     for (const npc of view.npcs ?? []) {
       if (!view.sectors.some((sector) => sector.id === npc.position.sectorId)) continue
-      const point = mapPoint(npc.position, view.sectors, camera)
+      const point =
+        npcMotion.sample(npc.id, now, camera) ?? mapPoint(npc.position, view.sectors, camera)
       stacks.set(`npc:${npc.id}`, {
         point,
         people: [
           {
             id: `npc:${npc.id}`,
             name: npc.name,
-            image: npc.imageUrl,
+            image: npc.motionImageUrl ?? npc.imageUrl,
             self: false,
             npc: true,
             spriteUrl: npc.spriteUrl,
@@ -3550,7 +3590,7 @@ export function createMapRenderer(
         ordinal,
       })),
     ].sort((a, b) => a.y - b.y)
-    const tokenScale = Math.max(tile / 64, ferryFrame ? 0.55 : 0)
+    const tokenScale = ferryFrame ? Math.max(0.35, tile / 48) : tile / 64
     const radius = Math.round(34 * tokenScale * identityRatio) / identityRatio / 2
     const previousActorPositions = actorPositions
     actorPositions = new Map()
@@ -3586,8 +3626,12 @@ export function createMapRenderer(
       point: MapPoint,
       self: boolean,
       spriteUrl?: string,
+      npc = false,
     ) => {
-      if ((tile < 42 && !ferryFrame) || (!self && requestedActors >= MAX_EMBODIED_ACTORS - 1))
+      if (
+        (tile < (npc ? 22 : 42) && !ferryFrame) ||
+        (!self && requestedActors >= MAX_EMBODIED_ACTORS - 1)
+      )
         return null
       if (spriteUrl) {
         requestedActors++
@@ -3614,7 +3658,11 @@ export function createMapRenderer(
         ...appearanceMotionFrameIndex(
           facing,
           walkingSince === null ? 'idle' : 'walk',
-          walkingSince === null ? 0 : appearanceWalkFrame(now - walkingSince),
+          walkingSince === null
+            ? npc && ambient
+              ? Math.floor((now + (hashString(id) % 2600)) / 240) % APPEARANCE_MOTION_FRAME.frames
+              : 0
+            : appearanceWalkFrame(now - walkingSince),
         ),
         still: false,
       }
@@ -3900,6 +3948,9 @@ export function createMapRenderer(
       ctx.restore()
       return true
     }
+    // The camera changes depth order as the avatar walks. Give wind its own
+    // stable pass so crossing the shadow budget never snaps a canopy upright.
+    const foliage = ambient ? budget.foliage * Math.max(0, Math.min(1, (tile - 22) / 10)) : 0
     let detailedScenery = 0
     let glimmerCount = 0
     let townLightCount = 0
@@ -3918,7 +3969,7 @@ export function createMapRenderer(
             next.type !== 'scenery' ||
             !usesCompactScenery(next.item) ||
             // Moving canopies stay individual only at useful pixel sizes.
-            (ambient && budget.foliage > 0 && tile >= 32 && next.item.windFlex !== undefined)
+            (foliage > 0 && next.item.windFlex !== undefined)
           )
             break
           items.push(next.item)
@@ -3951,7 +4002,30 @@ export function createMapRenderer(
       // cropped draw, without per-object shadows, transforms or canopy sway.
       const detailed = tile >= 32 && detailedScenery < 180
       if (detailed) detailedScenery++
+      const windFlex = item.windFlex
+      const movingTree = foliage > 0 && windFlex !== undefined
+      const treeBend = movingTree
+        ? treeWindBend(
+            item.windSeed ?? hashString(`${item.x}:${item.y}:${item.index}`),
+            now,
+            wind.speed,
+            windFlex,
+            foliage,
+          )
+        : 0
       if (!detailed && usesCompactScenery(item)) {
+        if (movingTree) {
+          ctx.save()
+          ctx.transform(1, 0, -treeBend, 1, p.x, p.y)
+          paintCompact(
+            ctx,
+            item,
+            -item.width * (item.anchorX ?? 0.5),
+            -item.height * (item.anchorY ?? 1),
+          )
+          ctx.restore()
+          continue
+        }
         const x = p.x - item.width * (item.anchorX ?? 0.5)
         const y = p.y - item.height * (item.anchorY ?? 1)
         paintCompact(ctx, item, x, y)
@@ -3971,22 +4045,13 @@ export function createMapRenderer(
         ctx.ellipse(0, 0, 1, 1, 0, 0, Math.PI * 2)
         ctx.fill()
         ctx.restore()
-      } else if (!item.grandFeature && !item.oceanFeature) {
+      } else if (!item.tree && !item.grandFeature && !item.oceanFeature) {
         ctx.fillStyle = 'rgba(20,32,25,.2)'
         ctx.beginPath()
         ctx.ellipse(p.x, p.y - 4, item.width * 0.36, 10, 0, 0, Math.PI * 2)
         ctx.fill()
       }
-      // Stable individual phase, pace, strength and sheltered pauses. The base
-      // stays fixed while the canopy bends, rather than sliding the whole tree.
-      // Animate a deterministic subset; stationary trees remain batchable.
-      // Only the upper canopy shears; the trunk's foot stays fixed.
-      const movingTree = detailed && ambient && budget.foliage > 0 && item.windFlex !== undefined
-      if (movingTree) {
-        const seed = item.windSeed ?? hashString(`${item.x}:${item.y}:${item.index}`)
-        const bend = treeWindBend(seed, now, wind.speed, item.windFlex!, budget.foliage)
-        ctx.transform(1, 0, -bend, 1, p.x, p.y)
-      }
+      if (movingTree) ctx.transform(1, 0, -treeBend, 1, p.x, p.y)
       const anchored = item.anchorY !== undefined
       if (anchored) {
         if (!movingTree) ctx.translate(p.x, p.y)
@@ -4138,14 +4203,6 @@ export function createMapRenderer(
         }
         ctx.restore()
       }
-      if (item.ferryMast && ferryFrame)
-        paintFerryRig(
-          ctx,
-          spriteX + item.width * (114 / 240),
-          spriteY + item.height * (45 / 240),
-          item.width,
-          ferryFrame,
-        )
       if (item.forge && ambient && budget.clouds) {
         const x = item.width * 0.12
         const y = -item.height * 0.22
@@ -4577,6 +4634,7 @@ export function createMapRenderer(
           stack.point,
           person.self,
           person.spriteUrl,
+          person.npc,
         )
         const image = actor ? null : visibleImage(compactPortraitSource(person.image))
         const previous =
@@ -4593,7 +4651,8 @@ export function createMapRenderer(
             self: person.self,
             x,
             y: y - (ferryman && actor ? radius * 1.65 : radius),
-            radius: person.self ? radius * 0.85 : radius * (ferryman ? 1.5 : 1) + 4 * tokenScale,
+            radius: radius + 4 * tokenScale,
+            halfWidth: ferryman && actor ? 9 * tokenScale : undefined,
           })
         }
         identity.push(
@@ -4718,6 +4777,7 @@ export function createMapRenderer(
       width,
       height,
       decks,
+      rowScale: deckRowScale(),
     })
     if (paintedProjections.length > 64) paintedProjections.shift()
     if (timing) {
@@ -4804,7 +4864,7 @@ export function createMapRenderer(
       dirty = true
     }
     const sample = motion.sample(now),
-      remoteMoving = remoteMotion.moving(now),
+      remoteMoving = remoteMotion.moving(now) || npcMotion.moving(now),
       settling = sample.point.x !== camera.x || sample.point.y !== camera.y,
       interval =
         sample.moving || remoteMoving || settling
@@ -4900,10 +4960,14 @@ export function createMapRenderer(
       y = event.clientY - bounds.top,
       eventAt = Number(event.timeStamp),
       projection =
-        Number.isFinite(eventAt) && eventAt > 0
+        (Number.isFinite(eventAt) && eventAt > 0
           ? paintedProjections.findLast((frame) => frame.at <= eventAt)
-          : undefined,
+          : undefined) ?? paintedProjections.at(-1),
       ground = world(x, y, projection)
+    const ferryTileCenter =
+      projection?.rowScale === FERRY_ROW_SCALE &&
+      Math.abs(ground.x - Math.floor(ground.x) - 0.5) < 0.17 &&
+      Math.abs(ground.y - Math.floor(ground.y) - 0.5) < 0.17
     drag = {
       x: event.clientX,
       y: event.clientY,
@@ -4920,9 +4984,9 @@ export function createMapRenderer(
             break
           }
           // The deck's former footprint can show open water beneath the arch.
-          if (bridgeDeckPoint(deck, ground)) return null
+          if (bridgeDeckPoint(deck, ground) && !pick(ground, renderSectors)) return null
         }
-        const position = pick(target, renderSectors, projection?.camera.x ?? camera.x)
+        const position = pick(target, renderSectors, projection?.camera.x ?? camera.x, true)
         if (
           !position ||
           (!position.sectorId.startsWith('void:') && !position.sectorId.startsWith('uncharted-'))
@@ -4940,7 +5004,13 @@ export function createMapRenderer(
           : null
       })(),
       player:
-        hitTargets.find((target) => Math.hypot(target.x - x, target.y - y) < target.radius) ?? null,
+        hitTargets.find(
+          (target) =>
+            !target.self &&
+            !(ferryTileCenter && target.id === `npc:${FERRY_CONVERSATION_ID}`) &&
+            (target.halfWidth === undefined || Math.abs(target.x - x) <= target.halfWidth) &&
+            Math.hypot(target.x - x, target.y - y) < target.radius,
+        ) ?? null,
     }
   }
   const move = (event: PointerEvent) => {
@@ -5019,7 +5089,7 @@ export function createMapRenderer(
     const base = { x: Math.floor(p.x) + 0.5, y: Math.floor(p.y) + 0.5 }
     const localVoid = isVoidRealmSectorId(sample.position.sectorId)
     const pickStep = (point: MapPoint) =>
-      pick(point) ?? (localVoid ? pick(point, renderSectors) : null)
+      pick(point) ?? pick(point, renderSectors, camera.x, !localVoid)
     let from = pickStep(base) ?? sample.position,
       position: WorldPosition | null = null,
       first: WorldPosition | null = null
@@ -5153,6 +5223,7 @@ export function createMapRenderer(
         }
         chartCoasts.clear()
       }
+      if (view.position.sectorId !== next.position.sectorId) loadFerryVessel(next.position.sectorId)
       const changedDeck =
         view.position.sectorId.startsWith('ferry:') !== next.position.sectorId.startsWith('ferry:')
       view = next
@@ -5162,6 +5233,11 @@ export function createMapRenderer(
       // presence receipts avoid rebuilding remote navigation while real exits,
       // cadence and collision changes remain live.
       remoteMotion.update(next, peerStarted, camera)
+      if (next.npcs?.some((npc) => npc.movement) || previousNpcTracks) {
+        const receipt = npcReceipt(next)
+        npcMotion.update(receipt, peerStarted, camera)
+        previousNpcTracks = receipt.players.length > 0
+      }
       const indexStarted = profiling ? performance.now() : 0
       const nextDependencies = new Set(visibleGroundIds)
       const relevantDependencies = new Set([...activeVisibleTerrainIds, ...nextDependencies])

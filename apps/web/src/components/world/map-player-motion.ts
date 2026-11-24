@@ -8,7 +8,10 @@ const MAX_STEPS = 12
 const MAX_CATCHUP_MS = 1200
 const REAPPEAR_MS = 750
 const MAX_RECENT_POSES = 100
-type Receipt = Pick<WorldView, 'players' | 'sectors'>
+type Receipt = {
+  sectors: WorldView['sectors']
+  players: Pick<WorldView['players'][number], 'characterId' | 'position' | 'movement' | 'online'>[]
+}
 type Segment = {
   point: MapPoint
   position: WorldPosition

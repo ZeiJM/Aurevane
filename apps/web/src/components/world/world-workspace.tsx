@@ -42,7 +42,13 @@ import { WorldConflict, WorldController } from './world-controller'
 import { worldSceneCoversViewport } from './world-scene-coverage'
 import { WorldLivePresence } from './world-live-presence'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
-import { localRoute, mapPoint, prepareLocalRoute, WorldMotion } from './world-motion'
+import {
+  clickWalkPreview,
+  mapPoint,
+  worldApproachRoute,
+  worldInteractionRange,
+  WorldMotion,
+} from './world-motion'
 import { WorldMap } from './world-map'
 import { GLOBE_FOCUS_EVENT, WorldGlobe } from './world-globe'
 import { worldKeyLocations, worldReachableTravelDestination } from './world-travel-points'
@@ -56,7 +62,12 @@ import {
   worldViewWithFerryman,
 } from './world-ferry'
 import dialogueStyles from './world-dialogue.module.css'
-import { clampWorldZoom, WORLD_MIN_ZOOM, WORLD_MAX_ZOOM } from './world-zoom'
+import {
+  clampWorldZoom,
+  WORLD_MIN_ZOOM,
+  worldZoomFromPercent,
+  worldZoomPercent,
+} from './world-zoom'
 import { battleSessionHref } from '@/components/battle/battle-return-navigation'
 import styles from './workspace.module.css'
 
@@ -156,10 +167,12 @@ export function WorldWorkspace({
     [showLocationLabels, setShowLocationLabels] = useState(true),
     [zoom, setZoom] = useState(1),
     [globeZoom, setGlobeZoom] = useState(0.94)
+  const [chatTarget, setChatTarget] = useState<string | null>(null)
   const [motion] = useState(() => new WorldMotion(initialView, performance.now()))
   const [approvedPosition, setApprovedPosition] = useState(initialView.position)
   const zoomLocked = useSyncExternalStore(subscribeZoomLock, readZoomLock, () => false)
   const mapQuality = useSyncExternalStore(subscribeMapQuality, readMapQuality, defaultMapQuality)
+  const zoomPercent = worldZoomPercent(mode === 'global' ? globeZoom : zoom)
   const changeZoom = (value: number) =>
     (mode === 'global' ? setGlobeZoom : setZoom)(clampWorldZoom(value))
   const controller = useRef<WorldController | null>(null),
@@ -489,18 +502,12 @@ export function WorldWorkspace({
           : null
       let turn: ReturnType<WorldMotion['planDirectional']>
       const previousWritePending = instance.movementPending
-      void instance.send(intent).then((receipt) => {
-        if (receipt.applied && receipt.view && turn && controller.current === instance)
-          motion.confirmDirectional(receipt.view, turn, performance.now())
-        if (walking || intent.kind === 'stop') void instance.hydrate({ movement: true })
-      })
-      if (!origin) return
       const objective =
         intent.kind === 'autopath'
           ? current.objectives.find((item) => item.id === intent.objectiveId && canAutoPath(item))
           : undefined
       const destination = intent.kind === 'walk' ? intent.destination : objective?.destination
-      if (intent.kind === 'walk' && intent.direction) {
+      if (origin && intent.kind === 'walk' && intent.direction) {
         turn = motion.planDirectional(
           previewDestination ?? intent.destination,
           intent.direction,
@@ -508,10 +515,15 @@ export function WorldWorkspace({
           now,
           previousWritePending,
         )
-      } else if (destination) {
-        const route = previewRoute ?? localRoute(current, origin, destination)
+      } else if (origin && destination) {
+        const route = previewRoute ?? clickWalkPreview(current, origin, destination)
         if (route) motion.plan(route, current.sectors, now, 'destination')
       }
+      void instance.send(intent).then((receipt) => {
+        if (receipt.applied && receipt.view && turn && controller.current === instance)
+          motion.confirmDirectional(receipt.view, turn, performance.now())
+        if (walking || intent.kind === 'stop') void instance.hydrate({ movement: true })
+      })
     },
     [motion],
   )
@@ -686,34 +698,25 @@ export function WorldWorkspace({
   }, [confirmDestinationId])
 
   const approach = useCallback(
-    (position: WorldPosition) => {
-      const current = controller.current?.view
-      if (
-        !current ||
-        current.movementBlocked ||
-        current.battleSessionId ||
-        controller.current?.attackPending
-      )
+    (position: WorldPosition, radius = 1) => {
+      const instance = controller.current
+      const current = instance?.view
+      if (!current || current.movementBlocked || current.battleSessionId || instance.attackPending)
         return
-      const now = performance.now(),
-        from = motion.sample(now).position,
-        navigate = prepareLocalRoute(current)
-      const candidates = [
-        { ...position, x: position.x - 1 },
-        { ...position, x: position.x + 1 },
-        { ...position, y: position.y - 1 },
-        { ...position, y: position.y + 1 },
-      ]
-      const routes = candidates
-        .map((destination) => ({ destination, route: navigate(from, destination) }))
-        .filter((candidate) => candidate.route !== null)
-        .sort((a, b) => a.route!.length - b.route!.length)
-      if (routes[0]) {
-        send({ kind: 'walk', destination: routes[0].destination }, routes[0].route!)
-      } else {
+      const from = motion.sample(performance.now()).position
+      const target = worldApproachRoute(current, from, position, radius)
+      if (!target) {
         setApproachingPlayer(null)
-        setMessage('There is no known route to that character yet.')
+        setMessage('There is no known route into interaction range.')
+        return
       }
+      if (!target.route.length) {
+        setApproachingPlayer(null)
+        if (current.route.length || instance.movementPending) send({ kind: 'stop' })
+        void instance.hydrate({ movement: true })
+        return
+      }
+      send({ kind: 'walk', destination: target.destination }, target.route)
     },
     [motion, send],
   )
@@ -895,7 +898,10 @@ export function WorldWorkspace({
                 role="tab"
                 aria-selected={tab === 'chat'}
                 aria-controls="chat-content"
-                onClick={() => setTab('chat')}
+                onClick={() => {
+                  setChatTarget(null)
+                  setTab('chat')
+                }}
               >
                 Chat
               </button>
@@ -974,7 +980,12 @@ export function WorldWorkspace({
                 aria-labelledby="chat-tab"
                 className={styles.chatHost}
               >
-                <ChatPanel selfName={character.name} />
+                <ChatPanel
+                  selfName={character.name}
+                  {...(chatTarget
+                    ? { lockedChannel: 'world', initialDraft: `@${chatTarget} ` }
+                    : {})}
+                />
               </div>
             ) : mode === 'local' && tab === 'missions' ? (
               <div id="missions-content" role="tabpanel" aria-labelledby="missions-tab">
@@ -1061,10 +1072,21 @@ export function WorldWorkspace({
                 {mode === 'local' ? (
                   <section className={styles.characters}>
                     {nearbyNpcs.map((npc) => {
-                      const topic =
-                        npc.id === FERRY_CONVERSATION_ID
+                      const isFerryman = npc.id === FERRY_CONVERSATION_ID
+                      const dock =
+                        isFerryman && !ferry?.passage
+                          ? view.sectors.find(({ id }) => id === npc.position.sectorId)?.ferryDock
+                          : undefined
+                      const target = dock
+                        ? { sectorId: npc.position.sectorId, x: dock.x, y: dock.y }
+                        : npc.position
+                      const reach = npc.interactionRadius ?? 1
+                      const ready = worldInteractionRange(approvedPosition, target, reach)
+                      const topic = ready
+                        ? isFerryman
                           ? ferryman
                           : view.interactions.find((entry) => dialogueSpeakerId(entry) === npc.id)
+                        : undefined
                       return (
                         <WorldNearbyNpc
                           key={npc.id}
@@ -1073,17 +1095,7 @@ export function WorldWorkspace({
                           onTalk={
                             topic ? (opener) => void openConversation(topic, opener) : undefined
                           }
-                          onApproach={() => {
-                            if (npc.id === FERRY_CONVERSATION_ID) {
-                              const sectorId = npc.position.sectorId
-                              const dock = view.sectors.find(
-                                (sector) => sector.id === sectorId,
-                              )?.ferryDock
-                              if (dock) walk({ sectorId, x: dock.x, y: dock.y })
-                            } else {
-                              approach(npc.position)
-                            }
-                          }}
+                          onApproach={() => approach(target, reach)}
                         />
                       )
                     })}
@@ -1114,6 +1126,10 @@ export function WorldWorkspace({
                               onApproach={() => {
                                 setApproachingPlayer(player.characterId)
                                 approach(player.position)
+                              }}
+                              onTalk={() => {
+                                setChatTarget(player.name)
+                                setTab('chat')
                               }}
                               onAttack={() =>
                                 send({ kind: 'attack', targetId: player.characterId })
@@ -1224,13 +1240,14 @@ export function WorldWorkspace({
                 autoFocus
                 aria-label="Zoom level"
                 type="range"
-                min={WORLD_MIN_ZOOM * 100}
-                max={WORLD_MAX_ZOOM * 100}
+                min={0}
+                max={100}
                 step="1"
-                value={Math.round((mode === 'global' ? globeZoom : zoom) * 100)}
-                onChange={(event) => changeZoom(Number(event.target.value) / 100)}
+                value={zoomPercent}
+                aria-valuetext={`${zoomPercent}%`}
+                onChange={(event) => changeZoom(worldZoomFromPercent(Number(event.target.value)))}
               />
-              <output>{Math.round((mode === 'global' ? globeZoom : zoom) * 100)}%</output>
+              <output>{zoomPercent}%</output>
             </label>
             <div className={styles.zoomButtons}>
               <button

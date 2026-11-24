@@ -10,6 +10,7 @@ export interface WorldNearbyPlayerProps {
   attacking: boolean
   onApproach: () => void
   onAttack: () => void
+  onTalk?: () => void
   selected: boolean
 }
 
@@ -21,6 +22,7 @@ export function WorldNearbyPlayer({
   attacking,
   onApproach,
   onAttack,
+  onTalk,
   selected,
 }: WorldNearbyPlayerProps) {
   // Range follows the approved position; animated travel never grants attack authority.
@@ -53,7 +55,12 @@ export function WorldNearbyPlayer({
         </small>
       </div>
       <div className={styles.rowActions} data-world-player-actions>
-        <button className={styles.secondaryPlayerAction} type="button" disabled title="Coming soon">
+        <button
+          className={styles.secondaryPlayerAction}
+          type="button"
+          disabled={disabled || !inRange || !onTalk}
+          onClick={onTalk}
+        >
           {player.entityKind === 'ai' ? 'Interact' : 'Talk'}
         </button>
         <button

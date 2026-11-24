@@ -2,7 +2,7 @@ import { projectWorldFerries } from '@/world/ferry'
 import type { GlobeLocation } from '@/world/globe-math'
 // This illustrated harbor marks the ferry service on the same public chart as
 // the Uncharted Lands cover. The live landing moves and remains private.
-export const UNCHARTED_FERRY_CHART_LOCATION = { longitude: 163, latitude: -22 } as const
+export const UNCHARTED_FERRY_CHART_LOCATION = { longitude: 163, latitude: -5.5 } as const
 
 /** A chart approximation only. Never takes or exposes a private dock coordinate. */
 export function globeFerryPosition(

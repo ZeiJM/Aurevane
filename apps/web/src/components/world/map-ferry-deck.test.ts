@@ -1,6 +1,6 @@
 import type { FerryPassage } from '@/world/ferry'
 import { expect, it } from 'vitest'
-import { ferrySeaSighting, ferryWaterFrame } from './map-ferry-deck'
+import { ferrySeaSighting, ferryVesselVersion, ferryWaterFrame } from './map-ferry-deck'
 
 const passage = { direction: 'outbound', departureAt: 10_000, arrivalAt: 310_000 } as const
 
@@ -54,4 +54,13 @@ it('selects stable but varied wildlife per sailing and leaves both coasts clear'
   ).toBeGreaterThan(1)
   expect(first.slice(0, 25).every((sighting) => sighting === null)).toBe(true)
   expect(first.slice(271).every((sighting) => sighting === null)).toBe(true)
+})
+
+it('keeps the vessel stable per sailing and uses the full fleet over time', () => {
+  const trips = Array.from(
+    { length: 24 },
+    (_, hour) => `ferry:outbound:${1_800_000_000_000 + hour * 3_600_000}`,
+  )
+  expect(trips.map(ferryVesselVersion)).toEqual(trips.map(ferryVesselVersion))
+  expect(new Set(trips.map(ferryVesselVersion))).toEqual(new Set(['v02', 'v03', 'v04']))
 })

@@ -5,14 +5,77 @@ import {
   FERRY_CONVERSATION_ID,
   FERRYMAN_DECK_POSITION,
   FERRY_MAINLAND_DOCK,
-  FERRYMAN_PORTRAIT,
-  FERRYMAN_SPRITE,
+  FERRY_NORTH_DOCK,
+  FERRY_ASTERWAKE_DOCK,
+  type FerryPort,
   FERRY_TERMINAL_NAME,
   type FerryIntent,
   type WorldFerryView,
 } from '@/world/ferry'
 import type { WorldInteraction, WorldView } from '@/world/types'
+import { APPEARANCE_PRESETS, compileAppearanceManifest } from '@/appearance/appearance-manifest'
 import styles from './world-ferry.module.css'
+
+const ferrymen = {
+  mainland: {
+    name: 'Krane',
+    look: {
+      ...APPEARANCE_PRESETS[1].blueprint,
+      coat: 'longcoat',
+      palette: 'pine',
+      accessory: 'scarf',
+    },
+  },
+  uncharted: {
+    name: 'Sable',
+    look: { ...APPEARANCE_PRESETS[2].blueprint, coat: 'longcoat', palette: 'slate' },
+  },
+  'north-shore': {
+    name: 'Merrick',
+    look: {
+      ...APPEARANCE_PRESETS[0].blueprint,
+      hair: 'swept',
+      coat: 'mantle',
+      accessory: 'brooch',
+      palette: 'indigo',
+    },
+  },
+  asterwake: {
+    name: 'Iona',
+    look: {
+      ...APPEARANCE_PRESETS[0].blueprint,
+      complexion: 'brown',
+      hairColor: 'onyx',
+      palette: 'saffron',
+    },
+  },
+} as const
+
+function ferrymanIdentity(ferry?: WorldFerryView, dockSectorId?: string) {
+  const departure = ferry?.passage?.direction
+  const port: FerryPort =
+    departure === 'outbound'
+      ? 'mainland'
+      : departure === 'return'
+        ? 'uncharted'
+        : departure === 'asterwake-outbound'
+          ? 'north-shore'
+          : departure === 'asterwake-return'
+            ? 'asterwake'
+            : (ferry?.port ??
+              (dockSectorId === FERRY_NORTH_DOCK.sectorId
+                ? 'north-shore'
+                : dockSectorId === FERRY_ASTERWAKE_DOCK.sectorId
+                  ? 'asterwake'
+                  : dockSectorId === FERRY_MAINLAND_DOCK.sectorId
+                    ? 'mainland'
+                    : 'uncharted'))
+  const crew = ferrymen[port]
+  return {
+    name: `${crew.name} (Ferryman)`,
+    imageUrl: compileAppearanceManifest(crew.look).portraits.neutral,
+  }
+}
 
 function portName(port: WorldFerryView['port']) {
   if (port === 'north-shore') return 'North Shore Ferry Terminal'
@@ -26,6 +89,7 @@ export function ferrymanTopic(
 ): WorldInteraction | null {
   if (!ferry || (!ferry.port && !ferry.passage)) return null
   const { passage, ticket, port } = ferry
+  const crew = ferrymanIdentity(ferry)
   const crossing =
     port === 'north-shore'
       ? 'The ferry to Asterwake takes five minutes.'
@@ -45,10 +109,10 @@ export function ferrymanTopic(
     id: FERRY_CONVERSATION_ID,
     objectiveId: FERRY_CONVERSATION_ID,
     speakerId: FERRY_CONVERSATION_ID,
-    speaker: 'Ferryman',
+    speaker: crew.name,
     title: portName(ferry.port),
     body,
-    portraitUrl: FERRYMAN_PORTRAIT,
+    portraitUrl: crew.imageUrl,
     actionId: null,
     actionLabel: null,
     progress: 'completed',
@@ -111,10 +175,9 @@ export function worldViewWithFerryman(view: WorldView): WorldView {
       ...(view.npcs ?? []),
       {
         id: FERRY_CONVERSATION_ID,
-        name: 'Ferryman',
+        ...ferrymanIdentity(view.ferry, sector?.id),
         position,
-        imageUrl: FERRYMAN_PORTRAIT,
-        spriteUrl: FERRYMAN_SPRITE,
+        interactionRadius: 1,
       },
     ],
   }
@@ -176,7 +239,7 @@ export function WorldFerryStation({
         <button
           type="button"
           className={styles.stationCard}
-          aria-label={`${name}. Talk to Ferryman`}
+          aria-label={`${name}. Talk to ${ferrymanIdentity(ferry).name}`}
           aria-haspopup="dialog"
           aria-describedby={statusId}
           disabled={disabled}
