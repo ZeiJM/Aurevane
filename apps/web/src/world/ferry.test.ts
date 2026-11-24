@@ -78,6 +78,27 @@ describe('public ferry timetable', () => {
     expect(projectWorld(newWorldState(), [], departureAt).ferry).toBeUndefined()
   })
 
+  it('keeps a reserved sailing visible away from the terminal until its exact departure', () => {
+    const ferryTicket = {
+      direction: 'outbound' as const,
+      departureAt,
+      sectorId: FERRY_MAINLAND_DOCK.sectorId,
+    }
+    const dock = { ...newWorldState(), position: FERRY_MAINLAND_DOCK, ferryTicket }
+    const away = { ...dock, position: { ...FERRY_MAINLAND_DOCK, y: FERRY_MAINLAND_DOCK.y - 2 } }
+    expect(projectWorldFerry(dock, departureAt - 1)?.ticket).toEqual({
+      direction: 'outbound',
+      departureAt,
+      canBoard: true,
+    })
+    expect(projectWorldFerry(away, departureAt - 1)).toMatchObject({
+      port: null,
+      ticket: { direction: 'outbound', departureAt, canBoard: false },
+    })
+    expect(projectWorldFerry(away, departureAt)).toBeUndefined()
+    expect(projectWorldFerry(dock, departureAt)?.ticket).toBeUndefined()
+  })
+
   it('connects the named terminal on the south shore to the mainland road', () => {
     const terminal = resolveSector(FERRY_MAINLAND_DOCK.sectorId)!
     const previous = { sectorId: 'atlas:126:32', x: 6, y: 4 }
@@ -137,9 +158,13 @@ describe('public ferry timetable', () => {
       characterId: uuid,
       commandId: uuid,
       expectedVersion: 1,
-      intent: { kind: 'board-ferry', fare: 1000, destination: 'somewhere else' },
+      intent: { kind: 'board-ferry', departureAt, fare: 1000, destination: 'somewhere else' },
     }
-    expect(parseWorldCommand(body)?.intent).toEqual({ kind: 'board-ferry' })
+    expect(parseWorldCommand(body)?.intent).toEqual({ kind: 'board-ferry', departureAt })
+    expect(parseWorldCommand({ ...body, intent: { kind: 'board-ferry' } })).toBeNull()
+    expect(
+      parseWorldCommand({ ...body, intent: { kind: 'buy-ferry-boarding', departureAt: -1 } }),
+    ).toBeNull()
   })
 
   it.each(VOID_REALMS)('offers the private return ferry on the $name coast', ({ id }) => {

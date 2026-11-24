@@ -2,17 +2,17 @@
 
 import { useEffect, useId, useState, type MouseEventHandler } from 'react'
 import {
-  FERRY_BOARDING_MS,
+  FERRY_CONVERSATION_ID,
+  FERRYMAN_DECK_POSITION,
   FERRY_MAINLAND_DOCK,
   FERRYMAN_PORTRAIT,
   FERRYMAN_SPRITE,
   FERRY_TERMINAL_NAME,
+  type FerryIntent,
   type WorldFerryView,
 } from '@/world/ferry'
 import type { WorldInteraction, WorldView } from '@/world/types'
 import styles from './world-ferry.module.css'
-
-export const FERRY_CONVERSATION_ID = 'world-ferryman'
 
 function portName(port: WorldFerryView['port']) {
   if (port === 'north-shore') return 'North Shore Ferry Terminal'
@@ -24,21 +24,30 @@ export function ferrymanTopic(
   ferry: WorldFerryView | undefined,
   serverNow: number,
 ): WorldInteraction | null {
-  if (!ferry || (ferry.passage && serverNow >= ferry.passage.departureAt)) return null
-  if (!ferry.port && !ferry.passage) return null
+  if (!ferry || (!ferry.port && !ferry.passage)) return null
+  const { passage, ticket, port } = ferry
+  const crossing =
+    port === 'north-shore'
+      ? 'The ferry to Asterwake takes five minutes.'
+      : port === 'asterwake'
+        ? 'The ferry to the North Shore takes five minutes.'
+        : 'The crossing takes five minutes.'
+  const body = passage
+    ? serverNow < passage.departureAt
+      ? 'You’re aboard. You can step back onto the dock and reboard before we leave.'
+      : 'We’re underway. You can walk the deck while we make the crossing.'
+    : ticket && ticket.departureAt > serverNow
+      ? ticket.canBoard
+        ? 'Your boarding is booked. Get aboard before the countdown ends.'
+        : 'Your boarding is booked at another terminal. Be there before it sails.'
+      : `${crossing} Boarding is free. Buy it here, then board before departure. Missed boarding is non-refundable.`
   return {
     id: FERRY_CONVERSATION_ID,
     objectiveId: FERRY_CONVERSATION_ID,
     speakerId: FERRY_CONVERSATION_ID,
     speaker: 'Ferryman',
     title: portName(ferry.port),
-    body: ferry.passage
-      ? 'You’re aboard. You can step back onto the dock until we leave.'
-      : ferry.port === 'north-shore'
-        ? 'The ferry to Asterwake takes five minutes. The fare is free.'
-        : ferry.port === 'asterwake'
-          ? 'The ferry to the North Shore takes five minutes. The fare is free.'
-          : 'There’s room aboard. The crossing takes five minutes and the fare is free.',
+    body,
     portraitUrl: FERRYMAN_PORTRAIT,
     actionId: null,
     actionLabel: null,
@@ -61,15 +70,22 @@ export function ferryStatus(ferry: WorldFerryView, now: number) {
     }
     return { label: 'Arriving…', at: null, action: null } as const
   }
-  if (!ferry.port) return { label: '', at: null, action: null } as const
-  const opensAt = ferry.nextDepartureAt === null ? null : ferry.nextDepartureAt - FERRY_BOARDING_MS
-  if (opensAt !== null && opensAt > now) {
-    return { label: 'Boarding opens in', at: opensAt, action: null } as const
+  if (ferry.ticket && now < ferry.ticket.departureAt) {
+    return {
+      label: 'Boarding booked · departs in',
+      at: ferry.ticket.departureAt,
+      action: ferry.ticket.canBoard ? 'board-ferry' : null,
+    } as const
   }
+  if (!ferry.port) return { label: '', at: null, action: null } as const
+  if (ferry.nextDepartureAt === null)
+    return { label: 'Ferry timetable unavailable', at: null, action: null } as const
+  if (now >= ferry.nextDepartureAt)
+    return { label: 'Sailing departed', at: null, action: null } as const
   return {
-    label: ferry.nextDepartureAt !== null ? 'Next departure in' : 'Ferry timetable unavailable',
+    label: 'Next departure in',
     at: ferry.nextDepartureAt,
-    action: ferry.nextDepartureAt !== null && ferry.nextDepartureAt > now ? 'board-ferry' : null,
+    action: 'buy-ferry-boarding',
   } as const
 }
 
@@ -78,7 +94,17 @@ export function worldViewWithFerryman(view: WorldView): WorldView {
     view.sectors.find(
       (candidate) => candidate.id === view.position.sectorId && candidate.ferryDock,
     ) ?? view.sectors.find((candidate) => candidate.ferryDock)
-  if (!sector?.ferryDock) return view
+  const dock = sector?.ferryDock
+  const position = view.ferry?.passage
+    ? { ...FERRYMAN_DECK_POSITION, sectorId: view.position.sectorId }
+    : dock
+      ? {
+          x: dock.x + (sector.id === FERRY_MAINLAND_DOCK.sectorId ? -1 : 1),
+          y: dock.y,
+          sectorId: sector.id,
+        }
+      : null
+  if (!position) return view
   return {
     ...view,
     npcs: [
@@ -86,11 +112,7 @@ export function worldViewWithFerryman(view: WorldView): WorldView {
       {
         id: FERRY_CONVERSATION_ID,
         name: 'Ferryman',
-        position: {
-          x: sector.ferryDock.x + (sector.id === FERRY_MAINLAND_DOCK.sectorId ? -1 : 1),
-          y: sector.ferryDock.y,
-          sectorId: sector.id,
-        },
+        position,
         imageUrl: FERRYMAN_PORTRAIT,
         spriteUrl: FERRYMAN_SPRITE,
       },
@@ -119,18 +141,26 @@ export function WorldFerryStation({
   ferry,
   serverNow,
   disabled,
+  showPort = true,
   onTalk,
 }: {
   ferry: WorldFerryView
   serverNow: number
   disabled: boolean
+  showPort?: boolean
   onTalk: MouseEventHandler<HTMLButtonElement>
 }) {
   const now = useFerryClock(serverNow)
   const status = ferryStatus(ferry, now)
   const statusId = useId()
-  if (!ferry.port && !ferry.passage) return null
-  const name = ferry.passage ? 'Ferry crossing' : portName(ferry.port)
+  const ticketActive = ferry.ticket && now < ferry.ticket.departureAt
+  if (!ferry.passage && !ticketActive && (!showPort || !ferry.port)) return null
+  const canTalk = Boolean(ferry.passage || (showPort && ferry.port))
+  const name = ferry.passage
+    ? 'Ferry crossing'
+    : ticketActive
+      ? 'Ferry boarding'
+      : portName(ferry.port)
   const details = (
     <span className={styles.stationCopy}>
       <strong>{name}</strong>
@@ -142,7 +172,7 @@ export function WorldFerryStation({
   )
   return (
     <section className={styles.station} aria-label="Ferry station">
-      {status.action || (ferry.port && !ferry.passage) ? (
+      {canTalk ? (
         <button
           type="button"
           className={styles.stationCard}
@@ -173,7 +203,7 @@ export function FerryDialogueAction({
   ferry: WorldFerryView
   serverNow: number
   busy: boolean
-  onCommand: (kind: 'board-ferry' | 'leave-ferry') => void
+  onCommand: (intent: FerryIntent) => void
 }) {
   const now = useFerryClock(serverNow)
   const status = ferryStatus(ferry, now)
@@ -189,10 +219,16 @@ export function FerryDialogueAction({
           className={styles.primary}
           disabled={busy}
           onClick={() => {
-            if (status.action) onCommand(status.action)
+            if (status.action === 'leave-ferry') onCommand({ kind: status.action })
+            else if (status.action !== null && status.at !== null)
+              onCommand({ kind: status.action, departureAt: status.at })
           }}
         >
-          {status.action === 'board-ferry' ? 'Board for free' : 'Disembark'}
+          {status.action === 'buy-ferry-boarding'
+            ? 'Buy boarding (free)'
+            : status.action === 'board-ferry'
+              ? 'Board ferry'
+              : 'Disembark'}
         </button>
       ) : null}
     </>

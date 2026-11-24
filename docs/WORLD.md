@@ -26,6 +26,8 @@ The central mythology supports this goal. Aurevane, the imprisoned goddess of Be
 
 Players can walk across known dry land, including ground beneath trees, rocks, mountains and buildings. Water, shallows and lava stop a walking character. A bridge provides a dry crossing and the character appears on its deck. Holding a movement key continues in that direction until release or an obstruction. Clicking a destination can route around an obstruction. Uncharted maps retain their survey and visibility rules.
 
+At ferry terminals, players can buy boarding for the next scheduled departure during its full countdown. Boarding costs zero Crowns. Purchasing leaves the character at the terminal and pins that sailing's World countdown even while the character walks away. Each character can hold one active boarding ticket. A ticket permits boarding and reboarding at its origin terminal until departure. The ticket expires at departure, with no refund or rollover if missed. Passengers aboard share the five-minute crossing and can talk to the Ferryman on deck. The server settles arrival at the applicable destination terminal. Terminal buildings remain on shore and their jetties follow the adjoining water.
+
 ## 2. Living World Principles
 
 The world should support:

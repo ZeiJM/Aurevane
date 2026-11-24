@@ -2,7 +2,7 @@
 begin;
 set local plpgsql.check_asserts = on;
 create or replace function app_private.world_ferry_now_v1() returns bigint
-language sql volatile set search_path = '' as $$ select 1799999700000::bigint $$;
+language sql volatile set search_path = '' as $$ select 1799997300000::bigint $$;
 
 insert into auth.users(id) values
   ('85000000-0000-4000-8000-000000000001'),
@@ -64,15 +64,22 @@ declare
   companion_state jsonb;
   payload jsonb;
 begin
-  captain_state := public.commit_world_ferry_v1(captain,captain_character,1,gen_random_uuid(),'board-ferry','captain');
-  companion_state := public.commit_world_ferry_v1(companion,companion_character,1,gen_random_uuid(),'board-ferry','companion');
+  captain_state := public.commit_world_ferry_v2(captain,captain_character,1,gen_random_uuid(),
+    'buy-ferry-boarding','captain-ticket',1800000000000);
+  companion_state := public.commit_world_ferry_v2(companion,companion_character,1,gen_random_uuid(),
+    'buy-ferry-boarding','companion-ticket',1800000000000);
+  assert captain_state->'position' = dock and companion_state->'position' = dock;
+  captain_state := public.commit_world_ferry_v2(captain,captain_character,2,gen_random_uuid(),
+    'board-ferry','captain',1800000000000);
+  companion_state := public.commit_world_ferry_v2(companion,companion_character,2,gen_random_uuid(),
+    'board-ferry','companion',1800000000000);
   assert captain_state->'position' = companion_state->'position';
   assert captain_state#>>'{position,sectorId}' = deck;
-  payload := public.read_world_scene_players_v2(captain,captain_character,2,array[deck],dock);
+  payload := public.read_world_scene_players_v2(captain,captain_character,3,array[deck],dock);
   assert jsonb_array_length(payload->'players') = 1;
   assert payload#>>'{players,0,characterId}' = companion_character::text;
   assert payload#>>'{players,0,position,sectorId}' = deck;
-  payload := public.read_world_live_players_v1(captain,captain_character,2);
+  payload := public.read_world_live_players_v1(captain,captain_character,3);
   assert payload->>'registered' = 'true';
   assert payload#>>'{players,0,characterId}' = companion_character::text;
   payload := public.read_world_scene_players_v2(observer,observer_character,1,array['atlas:126:33'],dock);

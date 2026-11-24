@@ -5,7 +5,7 @@ import {
   type StaticMapRaster,
 } from './map-static-raster'
 
-/** Cover only the filtered half-device-pixel border between adjacent rasters.
+/** Cover only the subpixel gap and resampling footprint between adjacent rasters.
  * Interior pixels keep their exact projection; no grid or texture rescaling. */
 export function drawGroundSurface(
   context: CanvasRenderingContext2D,
@@ -14,7 +14,7 @@ export function drawGroundSurface(
   height: number,
   ratio: number,
 ) {
-  const bleed = 0.5 / ratio,
+  const bleed = 1.25 / ratio,
     sw = source.width,
     sh = source.height
   for (const [sx, sy, sourceWidth, sourceHeight, x, y, w, h] of [
@@ -73,10 +73,10 @@ export function createGroundProjectionCache(pixelLimit = 8_000_000) {
       }
       if (cached) remove(source)
       // Keep every projected corner and its filtered edge inside the bitmap.
-      const left = Math.floor(-height * MAP_X * ratio) - 1
-      const top = -1
-      const right = Math.ceil(width * MAP_X * ratio) + 1
-      const bottom = Math.ceil((width + height) * MAP_Y * ratio) + 1
+      const left = Math.floor(-height * MAP_X * ratio) - 2
+      const top = -2
+      const right = Math.ceil(width * MAP_X * ratio) + 2
+      const bottom = Math.ceil((width + height) * MAP_Y * ratio) + 2
       const area = (right - left) * (bottom - top)
       if (area > pixelLimit) return null
       // Never evict a bitmap already used in this frame. If the visible set

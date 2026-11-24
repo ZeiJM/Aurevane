@@ -683,8 +683,11 @@ function paintDepth(
     for (const [pixel, corner] of [0, 1, 3, 2].entries())
       raster.pixels.data.set([...colour(corners[corner]!), 255], pixel * 4)
     raster.context.putImageData(raster.pixels, 0, 0)
+    context.save()
     context.imageSmoothingEnabled = true
+    context.imageSmoothingQuality = 'low'
     context.drawImage(raster.layer, -tile / 2, -tile / 2, tile * 2, tile * 2)
+    context.restore()
   } else {
     // A failed secondary canvas must not erase material-free depth contrast.
     const gradient = context.createLinearGradient(0, 0, tile, tile)
@@ -721,7 +724,7 @@ function paintLakeSurface(
     dy = worldY - basin.top
   if (dx >= basin.width || dy < 0 || dy >= basin.height) return
   context.save()
-  context.globalAlpha = cell.shallow ? 0.22 : 0.42
+  context.globalAlpha = 0.34
   context.drawImage(
     art,
     ((index % 2) + x + (dx / basin.width) * width) * sw,
@@ -756,6 +759,9 @@ export function paintWaterGround(
     if (!material?.complete || !material.naturalWidth) return
     const sw = material.width / 2,
       sh = material.height / 2
+    const inset = 2
+    const patchWidth = (sw - inset * 2) / 4
+    const patchHeight = (sh - inset * 2) / 4
     const flipX = Math.floor(worldX / 4) % 2 !== 0,
       flipY = Math.floor(worldY / 4) % 2 !== 0
     const px = ((worldX % 4) + 4) % 4,
@@ -766,14 +772,14 @@ export function paintWaterGround(
     context.scale(flipX ? -1 : 1, flipY ? -1 : 1)
     context.drawImage(
       material,
-      (index % 2) * sw + ((flipX ? 3 - px : px) * sw) / 4,
-      Math.floor(index / 2) * sh + ((flipY ? 3 - py : py) * sh) / 4,
-      sw / 4,
-      sh / 4,
+      (index % 2) * sw + inset + (flipX ? 3 - px : px) * patchWidth,
+      Math.floor(index / 2) * sh + inset + (flipY ? 3 - py : py) * patchHeight,
+      patchWidth,
+      patchHeight,
       0,
       0,
-      tile + 1,
-      tile + 1,
+      tile,
+      tile,
     )
     context.restore()
   }
@@ -860,7 +866,8 @@ export function paintWaterGround(
         'rgba(13,67,78,.20)',
         'rgba(181,220,205,.27)',
       ]
-  for (let i = 0; i < 19; i++) {
+  const filaments = cell.channel ? 19 : 8
+  for (let i = 0; i < filaments; i++) {
     const salt = hashString(`${cell.seed}:${i}`),
       from = ((salt % 8191) / 8191) * 0.88
     const offset = (((salt >>> 13) % 1021) / 1021 - 0.5) * 0.66
@@ -871,7 +878,7 @@ export function paintWaterGround(
       tile,
     )
     context.strokeStyle = colours[i % colours.length]!
-    context.lineWidth = tile * (i % 5 === 0 ? 0.045 : 0.009)
+    context.lineWidth = tile * (cell.channel && i % 5 === 0 ? 0.045 : 0.009)
     context.stroke()
   }
   context.restore()
@@ -923,20 +930,14 @@ export function paintWaterMotion(
   const roughness = Math.min(1, Math.abs(weather?.windSpeed ?? 0) / 0.06)
   if (!cell.channel) {
     const phase = (now / (4200 + (cell.seed % 1800)) + (cell.seed % 997) / 997) % 1
-    const radius = tile * (0.13 + phase * 0.29)
+    const radius = tile * (0.08 + phase * 0.2)
+    const x = tile * (0.26 + ((cell.seed >>> 6) % 49) / 100)
+    const y = tile * (0.26 + ((cell.seed >>> 15) % 49) / 100)
     context.strokeStyle = palette?.glint ?? '#bbded0'
-    context.globalAlpha = Math.sin(phase * Math.PI) * (0.16 + roughness * 0.14)
+    context.globalAlpha = Math.sin(phase * Math.PI) * (0.12 + roughness * 0.12)
     context.lineWidth = tile * 0.012
     context.beginPath()
-    context.ellipse(
-      tile / 2,
-      tile / 2,
-      radius,
-      radius * (0.86 - roughness * 0.12),
-      0,
-      0,
-      Math.PI * 2,
-    )
+    context.ellipse(x, y, radius, radius * (0.86 - roughness * 0.12), 0, 0, Math.PI * 2)
     context.stroke()
   } else {
     const speed = 8500 + (cell.seed % 3500)

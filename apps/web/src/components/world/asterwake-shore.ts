@@ -1,6 +1,6 @@
 import { ASTERWAKE_REGION_ID } from '@/world/asterwake'
 import { GRID_HEIGHT, GRID_WIDTH } from '@/world/catalog'
-import { ATLAS_COLUMNS, wrapAtlasColumn } from '@/world/topology'
+import { ATLAS_COLUMNS, ATLAS_ROWS, wrapAtlasColumn } from '@/world/topology'
 import type { WorldAtlasCell } from '@/world/types'
 
 type ChartedCell = (column: number, row: number) => WorldAtlasCell | undefined
@@ -31,7 +31,7 @@ export function asterwakeShore(column: number, row: number, charted: ChartedCell
       }
     }
   }
-  if (mask.every((sample) => sample === 1)) return undefined
+  if (mask.every((sample) => sample === 1) || mask.every((sample) => sample === 0)) return undefined
   const half = ATLAS_COLUMNS / 2
   const west = (wrapAtlasColumn(column + half) - half) * GRID_WIDTH
   return (x: number, y: number) => {
@@ -53,6 +53,33 @@ export function asterwakeShore(column: number, row: number, charted: ChartedCell
         (1 - coverage)
     )
   }
+}
+
+/** Supply a paint-only offshore fringe so sediment can cross a missing ocean sector. */
+export function asterwakeOceanFringes(charted: ReadonlyMap<string, WorldAtlasCell>) {
+  const fringes = new Map<string, WorldAtlasCell>()
+  const waterTiles = '~'.repeat(GRID_WIDTH * GRID_HEIGHT)
+  for (const island of charted.values()) {
+    if (island.regionId !== ASTERWAKE_REGION_ID) continue
+    for (let dy = -1; dy <= 1; dy++) {
+      const row = island.row + dy
+      if (row < 0 || row >= ATLAS_ROWS) continue
+      for (let dx = -1; dx <= 1; dx++) {
+        const column = wrapAtlasColumn(island.column + dx)
+        const key = `${column}:${row}`
+        if (charted.has(key) || fringes.has(key)) continue
+        if (!asterwakeShore(column, row, (x, y) => charted.get(`${x}:${y}`))) continue
+        fringes.set(key, {
+          ...island,
+          id: `asterwake-offshore:${key}`,
+          column,
+          row,
+          waterTiles,
+        })
+      }
+    }
+  }
+  return fringes
 }
 
 /** The cached shoreline leaves wet sediment visible without changing any walkable cell. */

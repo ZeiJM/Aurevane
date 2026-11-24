@@ -1,5 +1,6 @@
+import type { FerryPassage } from '@/world/ferry'
 import { expect, it } from 'vitest'
-import { ferryHullEdges, ferryWaterFrame } from './map-ferry-deck'
+import { ferrySeaSighting, ferryWaterFrame } from './map-ferry-deck'
 
 const passage = { direction: 'outbound', departureAt: 10_000, arrivalAt: 310_000 } as const
 
@@ -26,27 +27,31 @@ it('keeps the crossing readable without advancing cosmetic motion when reduced',
 it('moves even in still weather, leaves the departure shore and approaches the destination shore', () => {
   const calm = { speed: 0, offset: 0 }
   const frame = (serverNow: number) => ferryWaterFrame(passage, serverNow, 500, calm, true)
-  expect(frame(9_999)).toMatchObject({ advance: 0, shore: { arriving: false, offset: 0 } })
-  expect(frame(21_000)).toMatchObject({ advance: 264, shore: { arriving: false, offset: 0.5 } })
+  expect(frame(9_999)).toMatchObject({
+    advance: 0,
+    shore: { coast: 'pine', arriving: false, offset: 0 },
+  })
+  expect(frame(21_000)).toMatchObject({
+    advance: 264,
+    shore: { coast: 'pine', arriving: false, offset: 0.5 },
+  })
   expect(frame(32_000)).toMatchObject({ advance: 528, shore: null })
-  expect(frame(298_000).shore).toEqual({ arriving: true, offset: 0.5 })
+  expect(frame(298_000).shore).toEqual({ coast: 'cliff', arriving: true, offset: 0.5 })
   expect(ferryWaterFrame(passage, 298_000, 500, calm, false)).toMatchObject({
     advance: 0,
-    shore: { arriving: true, offset: 0 },
+    shore: { coast: 'cliff', arriving: true, offset: 0 },
   })
 })
 
-it('builds the visible hull only below existing deck edges, including blocked fittings', () => {
-  const cell = (x: number, y: number, terrain: '~' | 's' | '#') => ({
-    x,
-    y,
-    terrain,
-    safe: terrain !== '~',
-    walkable: terrain === 's',
-  })
-  expect(ferryHullEdges([cell(0, 0, 's'), cell(1, 0, '#'), cell(0, 1, '~')])).toEqual([
-    [0, 1, 1, 1],
-    [1, 1, 2, 1],
-    [2, 0, 2, 1],
-  ])
+it('selects stable but varied wildlife per sailing and leaves both coasts clear', () => {
+  const sightings = (trip: FerryPassage) =>
+    Array.from({ length: 300 }, (_, second) => ferrySeaSighting(trip, second))
+  const first = sightings(passage)
+  expect(first).toEqual(sightings(passage))
+  expect(first).not.toEqual(sightings({ ...passage, departureAt: passage.departureAt + 3_600_000 }))
+  expect(
+    new Set(first.flatMap((sighting) => (sighting ? [sighting.kind] : []))).size,
+  ).toBeGreaterThan(1)
+  expect(first.slice(0, 25).every((sighting) => sighting === null)).toBe(true)
+  expect(first.slice(271).every((sighting) => sighting === null)).toBe(true)
 })

@@ -115,9 +115,16 @@ export function worldRpcError(error: { message?: string; code?: string }): never
   if (message.includes('WORLD_QUEST_ACTION_UNAVAILABLE'))
     throw new AurevaneError('INVALID_REQUEST', 'This quest response is no longer available.')
   if (message.includes('WORLD_FERRY_PORT'))
-    throw new AurevaneError('INVALID_REQUEST', 'Stop at the ferry station before boarding.')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Stop at the ferry terminal to buy boarding or board.',
+    )
+  if (message.includes('WORLD_FERRY_TICKET_REQUIRED'))
+    throw new AurevaneError('INVALID_REQUEST', 'Buy boarding for this sailing first.')
+  if (message.includes('WORLD_FERRY_TICKET_ACTIVE'))
+    throw new AurevaneError('INVALID_REQUEST', 'You already have boarding for another sailing.')
   if (message.includes('WORLD_FERRY_WINDOW'))
-    throw new AurevaneError('INVALID_REQUEST', 'Boarding opens five minutes before departure.')
+    throw new AurevaneError('INVALID_REQUEST', 'This sailing has departed.')
   if (message.includes('WORLD_FERRY_UNDERWAY'))
     throw new AurevaneError('INVALID_REQUEST', 'Disembark after the ferry reaches its destination.')
   if (message.includes('WORLD_STEP_NOT_DUE'))
@@ -463,13 +470,18 @@ export async function commitWorldCommand(
       }),
     )
     .digest('hex')
-  if (command.intent.kind === 'board-ferry' || command.intent.kind === 'leave-ferry') {
-    const { error } = await createSupabaseAdminClient().rpc('commit_world_ferry_v1', {
+  if (
+    command.intent.kind === 'buy-ferry-boarding' ||
+    command.intent.kind === 'board-ferry' ||
+    command.intent.kind === 'leave-ferry'
+  ) {
+    const { error } = await createSupabaseAdminClient().rpc('commit_world_ferry_v2', {
       p_user_id: userId,
       p_character_id: characterId,
       p_expected_version: command.expectedVersion,
       p_command_id: command.commandId,
       p_kind: command.intent.kind,
+      p_departure_at: command.intent.kind === 'leave-ferry' ? null : command.intent.departureAt,
       p_request_fingerprint: fingerprint,
     })
     if (error) worldRpcError(error)

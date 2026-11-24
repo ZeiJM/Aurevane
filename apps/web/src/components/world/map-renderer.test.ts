@@ -469,7 +469,7 @@ describe('native map input and bounded lifecycle', () => {
       s.frame(40)
       expect(s.draws.map(({ src }) => src)).toEqual(
         expect.arrayContaining([
-          '/media/art/world/runtime/ferry-deck-planks-v01.webp',
+          '/media/art/world/runtime/ferry-passenger-hull-v01.webp',
           '/media/art/world/runtime/ferry-cabin-v01.webp',
           '/media/art/world/runtime/ferry-sails-v01.webp',
         ]),

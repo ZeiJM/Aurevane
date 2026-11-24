@@ -2,7 +2,8 @@ import type { WorldPosition } from './types'
 
 export const FERRY_HOUR_MS = 60 * 60 * 1000
 export const FERRY_DURATION_MS = 5 * 60 * 1000
-export const FERRY_BOARDING_MS = FERRY_DURATION_MS
+export const FERRY_CONVERSATION_ID = 'world-ferryman'
+export const FERRYMAN_DECK_POSITION = { x: 4, y: 4 } as const
 export const FERRY_RETURN_OFFSET_MS = 30 * 60 * 1000
 export const FERRY_MAINLAND_DOCK = { sectorId: 'atlas:126:33', x: 6, y: 8 } as const
 export const FERRY_NORTH_DOCK = { sectorId: 'atlas:126:30', x: 6, y: 0 } as const
@@ -27,11 +28,23 @@ export interface FerryPassage {
   arrivalAt: number
 }
 
+export interface FerryTicket {
+  direction: FerryDirection
+  departureAt: number
+  sectorId: string
+}
+
+export type FerryIntent =
+  | { kind: 'buy-ferry-boarding'; departureAt: number }
+  | { kind: 'board-ferry'; departureAt: number }
+  | { kind: 'leave-ferry' }
+
 export interface WorldFerryView {
   port: FerryPort | null
   nextDepartureAt: number | null
   fareCrowns: 0
   passage?: FerryPassage
+  ticket?: Omit<FerryTicket, 'sectorId'> & { canBoard: boolean }
 }
 
 export function nextFerryDeparture(port: FerryPort, now: number): number {
