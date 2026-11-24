@@ -69,7 +69,9 @@ const config = {
       configureServer(server) {
         let route
         server.middlewares.use(async (request, response, next) => {
-          const match = request.url?.match(/^\/api\/media\/appearance\/(\d)\/([a-z.]+)\/([a-z.]+)$/)
+          const match = request.url?.match(
+            /^\/api\/media\/appearance\/(\d)\/([a-z0-9.]+)\/([a-z0-9-]+\.svg)$/,
+          )
           if (!match) return next()
           try {
             const { GET } = await (route ??= server.ssrLoadModule(
@@ -794,7 +796,7 @@ try {
       await wardrobe.getByLabel('Facewear style').selectOption('mask')
       await wardrobe.getByLabel('Portrait setting').selectOption('frost')
       const appearancePath =
-        '/api/media/appearance/6/scout.quilted.midnight.rope.cedar.circlet.natural.mask.ice.stocky.espresso.quiff.platinum.violet.frost'
+        '/api/media/appearance/6/fitscout.quilted.midnight.rope.cedar.circlet.natural.mask.ice.stocky.espresso.quiff.platinum.violet.frost'
       const portrait = wardrobe.getByRole('img', { name: 'Neutral appearance portrait' })
       await expect(portrait).toHaveAttribute('src', `${appearancePath}/neutral.svg`)
       await expect
