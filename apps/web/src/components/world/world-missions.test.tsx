@@ -38,7 +38,9 @@ describe('mission status and authoritative turn-in', () => {
     const ready = projectWorld(state, [], 1000)
     expect(render(ready)).toContain('Talk to Tamsin Reed (Watch Officer)')
     expect(render(ready)).not.toContain('Complete quest')
-    expect(render({ ...ready, interactions: [] })).not.toContain('Talk to Tamsin Reed (Watch Officer)')
+    expect(render({ ...ready, interactions: [] })).not.toContain(
+      'Talk to Tamsin Reed (Watch Officer)',
+    )
     expect(render({ ...ready, interactions: [] })).not.toContain('Complete quest')
     expect(render(projectWorld(newWorldState(), [], 1000))).not.toContain('Complete quest')
     expect(
