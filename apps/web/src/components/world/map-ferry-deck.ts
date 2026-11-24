@@ -200,7 +200,10 @@ export function paintFerrySea(
     const coastHeight = coastWidth * (coast.naturalHeight / coast.naturalWidth)
     const x = deck.x - coastWidth / 2 + (arriving ? 1.5 : -1.5) * tile
     const y = deck.y - coastHeight - (1.5 + offset * 10) * tile
+    context.save()
+    context.globalAlpha *= Math.min(1, (1 - offset) * 4)
     context.drawImage(coast, x, y, coastWidth, coastHeight)
+    context.restore()
   }
   if (frame.sighting) paintFerrySighting(context, width, height, frame.sighting, art.dolphin)
 }

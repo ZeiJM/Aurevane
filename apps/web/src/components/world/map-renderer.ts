@@ -1237,8 +1237,8 @@ export function createMapRenderer(
       !images.has('ferry-pine-coast') &&
       renderSectors.some(({ id }) => id.startsWith('ferry:'))
     ) {
-      load('ferry-pine-coast', 'v01')
-      load('ferry-cliff-coast', 'v01')
+      load('ferry-pine-coast', 'v02')
+      load('ferry-cliff-coast', 'v02')
       load('ferry-dolphin', 'v01')
     }
     if (
