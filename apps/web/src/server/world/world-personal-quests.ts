@@ -292,8 +292,7 @@ export function projectPersonalQuests(
         ? 'Challenger'
         : restoration
           ? 'Weaponsmith'
-          : repeatable &&
-              (typeof row.requiredDefeats === 'number' || row.action === 'claim-hunt-reward')
+          : repeatable && !giver && typeof row.speaker === 'string'
             ? 'Hunter'
             : 'Quest Giver'
     interactions.push({

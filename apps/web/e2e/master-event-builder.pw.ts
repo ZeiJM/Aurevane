@@ -1406,6 +1406,9 @@ test('an authored Alder Venn wolf hunt credits five World victories and starts c
 
   await page.goto('/game/world')
   await move(origin)
+  await expect
+    .poll(async () => (await readWorld()).interactions.find((entry) => entry.title === title))
+    .toMatchObject({ speaker: `${giver} (Hunter)`, actionId: 'accept' })
   await talk()
   await dialogue.getByRole('button', { name: 'Accept activity', exact: true }).click()
   await expect
