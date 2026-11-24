@@ -21,6 +21,7 @@ import { terrainWalkable, worldSurfaceRows } from '../src/world/terrain'
 import { REMOTE_GRAND_CROSSING } from '../src/world/discovery-sites'
 import { canonicalOcclusionWalks } from './world-map-correction-scenes'
 import { worldRenderTerrain } from '../src/components/world/map-render-terrain'
+import { WORLD_MIN_ZOOM } from '../src/components/world/world-zoom'
 import { openMapSettings, closeMapSettings } from './world-map-settings-helpers'
 import { globeTowns } from '../src/components/world/globe-atlas'
 
@@ -283,7 +284,11 @@ export function registerWorldArtReviewCases({
       const canvas = page.locator('canvas[data-world-stage]')
       await expect(canvas).toHaveAttribute(
         'data-tile-size',
-        String((await canvas.evaluate((el) => el.clientWidth < 600)) ? 48 * 0.35 : 64 * 0.35),
+        String(
+          (await canvas.evaluate((el) => el.clientWidth < 600))
+            ? 48 * WORLD_MIN_ZOOM
+            : 64 * WORLD_MIN_ZOOM,
+        ),
       )
       await page.emulateMedia({ reducedMotion: 'reduce' })
       await capture(page, info, 'uncharted-no-fog-minimum-zoom')

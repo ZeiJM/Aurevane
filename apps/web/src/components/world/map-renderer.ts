@@ -5157,6 +5157,14 @@ export function createMapRenderer(
     keyTimer = setTimeout(walkHeldKey, Math.max(0, now + cadence - performance.now()))
   }
   const key = (event: KeyboardEvent) => {
+    if (
+      event.defaultPrevented ||
+      event.isComposing ||
+      event.ctrlKey ||
+      event.altKey ||
+      event.metaKey
+    )
+      return
     if (event.key === 'Escape') {
       event.preventDefault()
       releaseHeldKeys(false)
@@ -5188,7 +5196,41 @@ export function createMapRenderer(
     const target = event.relatedTarget as HTMLElement | null
     releaseHeldKeys(!target?.getAttribute?.('data-world-primary-action'))
   }
+  const worldKeyboardTarget = (target: EventTarget | null): target is Element => {
+    if (!(target instanceof Element)) return false
+    const workspace = canvas.closest('[data-world-workspace]')
+    return Boolean(
+      workspace &&
+      (target === document.body ||
+        target === document.documentElement ||
+        workspace.contains(target)) &&
+      !target.closest(
+        'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="textbox"], [role="combobox"], [role="slider"], [role="menu"], [role="dialog"], dialog',
+      ) &&
+      !workspace.querySelector('[role="dialog"], dialog[open]') &&
+      !document.querySelector('[aria-modal="true"], dialog[open]'),
+    )
+  }
+  const documentKey = (event: KeyboardEvent) => {
+    // The World stays keyboard-controlled after opening it or using its sidebar.
+    // Keep Escape local, and let controls that handled a key keep it.
+    const name = event.key.toLowerCase()
+    if (
+      event.defaultPrevented ||
+      !Object.hasOwn(keyDirections, name) ||
+      !worldKeyboardTarget(event.target) ||
+      (name.startsWith('arrow') && event.target.closest('[role="tablist"]'))
+    )
+      return
+    key(event)
+  }
+  const focusChanged = (event: FocusEvent) => {
+    if (heldKeys.size && !worldKeyboardTarget(event.target)) releaseHeldKeys()
+  }
   const windowBlur = () => releaseHeldKeys()
+  document.addEventListener('keydown', documentKey)
+  document.addEventListener('keyup', keyUp)
+  document.addEventListener('focusin', focusChanged)
   canvas.addEventListener('pointerdown', down)
   canvas.addEventListener('pointermove', move)
   canvas.addEventListener('pointerup', up)
@@ -5326,6 +5368,9 @@ export function createMapRenderer(
       cancelAnimationFrame(frame)
       observer.disconnect()
       document.removeEventListener('visibilitychange', visibility)
+      document.removeEventListener('keydown', documentKey)
+      document.removeEventListener('keyup', keyUp)
+      document.removeEventListener('focusin', focusChanged)
       clearCache()
       for (const image of images.values()) image.onload = null
       for (const image of portraits.values()) image.onload = null
