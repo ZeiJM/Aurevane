@@ -1,3 +1,4 @@
+import { CHARACTER_PAINT } from './appearance-character-materials.generated'
 import { patternedBackdrop, studioColor } from './appearance-backdrop-catalog'
 import { LANDSCAPE_PAINTINGS } from './appearance-landscape-paintings.generated'
 import { GARMENT_PAINTINGS } from './appearance-garment-paintings.generated'
@@ -88,13 +89,28 @@ function faceGeometry(look: Look) {
   const seed = key(look.faceId?.replace(/(?:soft|keen)$/, '') ?? look.identity)
   const soft = face?.shape === 1
   const keen = face?.shape === 2
+  const youth = look.apparentAge === 'youthful'
+  const elder = look.apparentAge === 'elder'
+  const older = elder || look.apparentAge === 'mature'
   return {
-    cheeks: (feminine ? 44 : 48) + (seed % 10) + (soft ? 4 : keen ? -4 : 0),
-    jaw: (feminine ? 19 : 27) + ((seed >>> 5) % 8) + (soft ? 5 : keen ? -6 : 0),
-    chin: 159 + ((seed >>> 9) % 6) + (soft ? -3 : keen ? 5 : 0),
+    cheeks:
+      (feminine ? 44 : 48) +
+      (seed % 10) +
+      (soft ? 4 : keen ? -4 : 0) +
+      (youth ? 2 : elder ? -3 : 0),
+    jaw:
+      (feminine ? 19 : 27) +
+      ((seed >>> 5) % 8) +
+      (soft ? 5 : keen ? -6 : 0) +
+      (youth ? -3 : older ? 2 : 0),
+    chin: 159 + ((seed >>> 9) % 6) + (soft ? -3 : keen ? 5 : 0) + (youth ? -7 : elder ? 3 : 0),
     eyeGap: 21 + ((seed >>> 12) % 7) + (soft ? 2 : 0),
     eyeWidth: 14 + ((seed >>> 15) % 5),
-    arch: (feminine ? 8 : 6) + ((seed >>> 19) % 4) + (soft ? 3 : keen ? -2 : 0),
+    arch:
+      (feminine ? 8 : 6) +
+      ((seed >>> 19) % 4) +
+      (soft ? 3 : keen ? -2 : 0) +
+      (youth ? 2 : older ? -1 : 0),
     mouth: 13 + ((seed >>> 2) % 7),
     nose: 5 + ((seed >>> 4) % 4),
     seed,
@@ -195,9 +211,11 @@ function hairArt(look: Look, color: RGB, cheeks: number, facing: AppearanceFacin
   const accent = look.hairAccent && WARDROBE_HAIR_COLORS[look.hairAccent].rgb
   const dual = accent && look.hairAccent !== look.hairDye
   const id = 'hair-pigment-' + facing
-  const paint = dual ? `url(#${id})` : shade(color)
-  const lightPaint = dual ? `url(#${id}-light)` : shade(color, 0.75, 47)
   const placement = look.hairPlacement ?? 'streak'
+  const paint = dual && placement !== 'underlight' ? `url(#${id})` : shade(color)
+  const lightPaint =
+    dual && placement !== 'underlight' ? `url(#${id}-light)` : shade(color, 0.75, 47)
+  const backPaint = dual ? `url(#${id})` : shade(color, 0.63)
   const stops =
     placement === 'tips'
       ? [0, 0.68, 0.96]
@@ -226,10 +244,10 @@ function hairArt(look: Look, color: RGB, cheeks: number, facing: AppearanceFacin
   const tailY =
     family === 'topknot' ? crown - 3 : family === 'bun' ? 110 : 77 + (variation === 2 ? 34 : 0)
   const longBack = long
-    ? `<path d="M${left + 13} 72Q${left - 18} 100 ${left - 8} 139T${left - 18} ${tip}Q${left + 15} ${tip - 5} 112 151h34q23 34 60 ${tip - 151}Q${right + 4} 164 ${right + 10} 140T${right - 8} 72Z" fill="${dual ? paint : shadow}" ${inkStroke} stroke-width="2.5"/>`
+    ? `<path d="M${left + 13} 72Q${left - 18} 100 ${left - 8} 139T${left - 18} ${tip}Q${left + 15} ${tip - 5} 112 151h34q23 34 60 ${tip - 151}Q${right + 4} 164 ${right + 10} 140T${right - 8} 72Z" fill="${backPaint}" ${inkStroke} stroke-width="2.5"/>`
     : ''
   const backTail = tied
-    ? `<path d="M${tailX - 9} ${tailY + 13}c-15-3-16-23-2-28 13-7 22 2 23 15q${side * 24} 21 ${side * (family === 'pony' ? 20 : 7)} ${family === 'pony' ? 50 + variation * 6 : 14}q${-side * 17}-3 ${-side * 21}-23Z" fill="${shadow}" ${inkStroke} stroke-width="2.5"/>`
+    ? `<path d="M${tailX - 9} ${tailY + 13}c-15-3-16-23-2-28 13-7 22 2 23 15q${side * 24} 21 ${side * (family === 'pony' ? 20 : 7)} ${family === 'pony' ? 50 + variation * 6 : 14}q${-side * 17}-3 ${-side * 21}-23Z" fill="${backPaint}" ${inkStroke} stroke-width="2.5"/>`
     : ''
   const braids = braided
     ? (family === 'twins' ? [-1, 1] : [side])
@@ -254,8 +272,16 @@ function hairArt(look: Look, color: RGB, cheeks: number, facing: AppearanceFacin
           : `Q${right - 9} 87 158 77q-23 ${variation % 2 ? 12 : -8} -40 -3Q96 98 ${left + 8} 102`
   const lift = family === 'feather' && variation === 3 ? -8 : 0
   const headShade = `<path d="M${left + 1} 89Q96 ${crown - volume + 20} 120 ${crown - volume + 10}q-6 22-19 34t-23 29Z" fill="${shadow}" opacity=".62"/>`
-  const front = `<path d="M${left} 109Q${left - 9} ${crown + 9} 98 ${crown - volume + lift}Q128 ${crown - volume - 13 + lift} 156 ${crown - volume + 2}Q${right + 14} ${crown + 10} ${right} 114l-10-20 ${fringe}l-4 17Z" fill="${base}" ${inkStroke} stroke-width="3"/>
+  const hairShape = `M${left} 109Q${left - 9} ${crown + 9} 98 ${crown - volume + lift}Q128 ${crown - volume - 13 + lift} 156 ${crown - volume + 2}Q${right + 14} ${crown + 10} ${right} 114l-10-20 ${fringe}l-4 17Z`
+  const front = `<path d="${hairShape}" fill="${base}" ${inkStroke} stroke-width="3"/>
+    ${
+      facing === 'south'
+        ? `<defs><clipPath id="hair-material"><path d="${hairShape}"/></clipPath></defs>
+    <image href="${CHARACTER_PAINT.hair}" x="${left - 3}" y="${Math.max(0, crown - volume - 6)}" width="${right - left + 6}" height="112" preserveAspectRatio="none" clip-path="url(#hair-material)" opacity=".35" style="mix-blend-mode: soft-light"/>`
+        : ''
+    }
     ${headShade}
+    ${dual && placement === 'underlight' ? `<path d="M${left + 7} 88q4 15 2 24l11-11 2-15Zm${right - left - 18} 7 5 14 7-2-4-15Z" fill="${shade(accent, 0.78, 28)}"/>` : ''}
     <path d="M${left + 8} 80Q91 ${crown - volume + 14} 132 ${crown - volume + 3}q26 1 44 18-24-9-52-4t-48 23Z" fill="${gleam}" opacity=".84"/>
     <path d="M${left + 16} 68Q100 ${crown - volume + 7} 125 ${crown - volume + 6}m15 0q21 1 35 12" fill="none" stroke="${shade(color, 0.87, 68)}" stroke-width="2" opacity=".75"/>
     ${
@@ -269,7 +295,7 @@ function hairArt(look: Look, color: RGB, cheeks: number, facing: AppearanceFacin
     }
     ${family === 'crown' ? braids : ''}
     ${family === 'braid' ? braids : ''}`
-  return { back: defs + longBack + backTail + (family === 'twins' ? braids : ''), front }
+  return { defs, back: defs + longBack + backTail + (family === 'twins' ? braids : ''), front }
 }
 
 function beardArt(style: Look['facialHair'], color: RGB, chin: number) {
@@ -301,11 +327,16 @@ function beardArt(style: Look['facialHair'], color: RGB, chin: number) {
   }
 }
 
-function headwearArt(style: Look['headwear'], color: RGB, cheeks: number) {
+function headwearArt(
+  style: Look['headwear'],
+  color: RGB,
+  cheeks: number,
+  facing: AppearanceFacing,
+) {
   const base = shade(color)
   const dark = shade(color, 0.57)
   const light = shade(color, 0.83, 50)
-  const width = cheeks + 10
+  const width = cheeks + (facing === 'east' || facing === 'west' ? 4 : 10)
   const band = `M${128 - width} 64Q128 40 ${128 + width} 64l-4 13Q128 54 ${132 - width} 77Z`
   switch (style) {
     case 'none':
@@ -335,10 +366,23 @@ function facewearArt(
   eyes: number,
   width: number,
   cheeks: number,
+  facing: AppearanceFacing,
 ) {
   const base = shade(color)
   const dark = shade(color, 0.61)
   const light = shade(color, 0.8, 55)
+  if (facing === 'east' || facing === 'west') {
+    const strap = `<path d="M99 103q17-4 37 1" fill="none" stroke="${dark}" stroke-width="4"/>`
+    if (style === 'eyepatch' && facing === 'east') return strap
+    if (style === 'eyepatch')
+      return `${strap}<path d="M135 99q17-8 32 0l-4 14q-15 8-25-1Z" fill="${base}" ${inkStroke} stroke-width="2"/>`
+    if (style === 'goggles')
+      return `${strap}<ellipse cx="151" cy="103" rx="${width + 1}" ry="12" fill="#a3d6d0" fill-opacity=".32" stroke="${dark}" stroke-width="4"/><path d="m144 107 9-9" stroke="${light}" stroke-width="2"/>`
+    if (style === 'mask')
+      return `<path d="M104 112q28 2 51-6l18 12-14 17-20-5-24-8Z" fill="${base}" ${inkStroke} stroke-width="2.5"/><path d="m121 117 31 1" stroke="${light}" stroke-width="2"/>`
+    if (style === 'veil')
+      return `<path d="M104 108q29 14 67 10l2 18-15 22q-27-6-44-24Z" fill="${base}" ${inkStroke} stroke-width="2.5"/><path d="M118 122q22 18 47 11m-32 4 16 8" stroke="${light}" stroke-width="2" fill="none"/>`
+  }
   switch (style) {
     case 'none':
       return ''
@@ -375,10 +419,32 @@ const scarStrokes: NonNullable<Partial<Record<NonNullable<Look['scar']>, string>
   jaw: 'M87 133q9 3 16 13',
 }
 
-function faceScar(scar: Look['scar'], skin: RGB, profile: boolean) {
+function faceScar(scar: Look['scar'], skin: RGB, facing: AppearanceFacing) {
   const line = scar && scarStrokes[scar]
-  if (!line) return ''
-  return `<g ${profile ? 'transform="translate(12 0)"' : ''} fill="none" stroke-linecap="round"><path d="${line}" stroke="${shade(skin, 0.69)}" stroke-width="3.1"/><path d="${line}" transform="translate(.6 .9)" stroke="${shade(skin, 0.91, 47)}" stroke-width="1.2"/></g>`
+  if (!line || facing === 'north' || (scar === 'cross' && facing === 'west')) return ''
+  const profile = facing === 'east' || facing === 'west'
+  return `<g ${profile ? 'transform="translate(-4 0)"' : ''} fill="none" stroke-linecap="round"><path d="${line}" stroke="${shade(skin, 0.69)}" stroke-width="3.1"/><path d="${line}" transform="translate(.6 .9)" stroke="${shade(skin, 0.91, 47)}" stroke-width="1.2"/></g>`
+}
+
+function ageMarks(age: Look['apparentAge'], pigment: RGB, facing: AppearanceFacing) {
+  if (age !== 'mature' && age !== 'elder') return ''
+  const elder = age === 'elder'
+  const profile = facing === 'east' || facing === 'west'
+  const ageLines = profile
+    ? 'M145 115q7 3 14-1m-8 14q-5 5-6 11'
+    : 'M89 112q10 5 20 3m38 0q10 2 20-3M111 125q-6 7-6 13m46-13q6 7 6 13'
+  const deepLines = profile
+    ? 'M140 89q10-4 20-1m-18 29q8 4 13 2m-36 4 7 6'
+    : 'M104 80q24-6 48 0m-39 6q15-3 30 0m-55 29q9 6 15 5m48 0q6 0 15-5m-55 28q16 7 33 0'
+  return `<g data-age-lines="${age}" fill="none" stroke-linecap="round">
+    <path d="${ageLines}" stroke="${shade(pigment, 0.67)}" opacity=".59" stroke-width="${elder ? 2.3 : 1.5}"/>
+    ${
+      elder
+        ? `<path d="${deepLines}" stroke="${shade(pigment, 0.63)}" stroke-width="1.6" opacity=".64"/>
+      <path d="${ageLines}" transform="translate(0 .8)" stroke="${shade(pigment, 0.86, 46)}" stroke-width=".8" opacity=".62"/>`
+        : ''
+    }
+  </g>`
 }
 
 function portraitHead(look: Look, mood: AppearanceExpression, facing: AppearanceFacing = 'south') {
@@ -413,31 +479,68 @@ function portraitHead(look: Look, mood: AppearanceExpression, facing: Appearance
       const focus = mood === 'surprised' ? 2.8 : mood === 'happy' ? -2 : 0
       const aperture = Math.max(4, arch + focus)
       const pivot = (seed % 3) - 1
-      const iris = side === 1 && look.secondEye ? WARDROBE_EYE_COLORS[look.secondEye].rgb : null
+      const iris = side === -1 && look.secondEye ? WARDROBE_EYE_COLORS[look.secondEye].rgb : null
       const irisColor = shade(iris ?? eyes, 0.92, 16)
       const eye = `M${x - eyeWidth} 105q${eyeWidth} ${-aperture * 2} ${2 * eyeWidth} -1q${-eyeWidth} ${aperture * 1.28} ${-2 * eyeWidth} 1Z`
       const pupilX = x + pivot
+      const outline = `eye-${facing}-${side < 0 ? 'right' : 'left'}`
       const irisWidth = Math.min(8.5, aperture + 1.5)
       return `<path d="M${x - eyeWidth} ${91 - expression * side}q${eyeWidth} ${-7 + expression * side} ${2 * eyeWidth} ${expression * side * 2}" fill="none" stroke="${shade(hair, 0.62)}" stroke-width="${feminine ? 2.9 : 4}" stroke-linecap="round"/>
       <path d="${eye}" fill="#fff0db" stroke="${ink}" stroke-width="1.5"/>
-      <svg x="${x - eyeWidth - 1}" y="89" width="${2 * eyeWidth + 2}" height="27" overflow="hidden" viewBox="${x - eyeWidth - 1} 89 ${2 * eyeWidth + 2} 27">
+      <defs><clipPath id="${outline}"><path d="${eye}"/></clipPath></defs>
+      <g clip-path="url(#${outline})">
         <ellipse cx="${pupilX}" cy="103" rx="${irisWidth}" ry="${aperture * 0.88}" fill="${irisColor}" stroke="${shade(iris ?? eyes, 0.58)}" stroke-width="1"/>
         <ellipse cx="${pupilX}" cy="102" rx="2.5" ry="${Math.min(4.8, aperture - 0.4)}" fill="${ink}"/>
         <circle cx="${pupilX - 2.8}" cy="${102 - aperture * 0.37}" r="1.75" fill="#fff4db"/><circle cx="${pupilX + 2.5}" cy="105" r=".7" fill="#fff4db"/>
-      </svg>
+      </g>
       <path d="M${x - eyeWidth} 105q${eyeWidth} ${-aperture * 2} ${2 * eyeWidth} -1" fill="none" stroke="${ink}" stroke-width="${feminine ? 2.55 : 1.95}" stroke-linecap="round"/>`
     })
     .join('')
   const neck = `<path d="M105 141h46q-6 21 3 38l15 11-41 26-40-26 13-12q7-19 4-37Z" fill="${skin}" ${inkStroke} stroke-width="3"/>
     <path d="M105 146h45q-3 12-8 19l-35 9Z" fill="${skinShadow}"/>`
-  const frontHair = profile
-    ? `<g transform="translate(8 -1) scale(.94 1)">${hairParts.front}</g>`
+  const hatCover = look.headwear === 'furcap' || look.headwear === 'arcanist'
+  const shortHair = [
+    'natural',
+    'crop',
+    'sidepart',
+    'pixie',
+    'feather',
+    'shag',
+    'sidefringe',
+    'spiked',
+    'quiff',
+    'frosted',
+    'brushed',
+    'loosequiff',
+    'curls',
+    'coils',
+    'curlsweep',
+    'crown',
+    'coronet',
+    'halo',
+    'ropebraid',
+    'topknot',
+    'warrior',
+    'doublenot',
+    'hightwist',
+  ].includes(look.hairstyle)
+  const fittedHair = hatCover
+    ? `<defs><clipPath id="hat-fit-${facing}"><path d="M0 77q128 12 256-10v189H0Z"/></clipPath></defs><g clip-path="url(#hat-fit-${facing})">${hairParts.front}</g>`
     : hairParts.front
+  const frontHair = profile
+    ? `<g transform="translate(8 -1) scale(.94 1)">${fittedHair}</g>`
+    : fittedHair
   const headArt = back
     ? `<path d="${headShape}" fill="${shade(hair, 0.74)}" ${inkStroke} stroke-width="3"/>${frontHair}`
     : `<path d="M${left + 6} 102q-14-9-11 8 1 12 14 12m${2 * cheeks - 14}-20q14-9 11 8-1 12-14 12" fill="${skinShadow}" ${inkStroke} stroke-width="2.2"/>
       <defs><linearGradient id="face-light-${facing}" x1="0" y1=".15" x2="1" y2=".85"><stop stop-color="${shade(complexion, 0.94, 19)}"/><stop offset=".67" stop-color="${skin}"/><stop offset="1" stop-color="${skinShadow}"/></linearGradient></defs>
       <path d="${path}" fill="url(#face-light-${facing})" ${inkStroke} stroke-width="2.45"/>
+      ${
+        !profile
+          ? `<defs><clipPath id="skin-fit"><path d="${path}"/></clipPath></defs>
+      <image href="${CHARACTER_PAINT.skin}" x="70" y="45" width="116" height="125" preserveAspectRatio="none" clip-path="url(#skin-fit)" opacity=".22" style="mix-blend-mode: soft-light"/>`
+          : ''
+      }
       <path d="M${left + 8} 89q20-30 49-25t${cheeks - 12} 25q-21-11-34 2-27-13-61-2Z" fill="${skinShadow}" opacity=".63"/>
       <path d="M${profile ? 114 : 108} 117q9-13 16-11l7 21-16 2Z" fill="${skinLight}" opacity=".84"/>
       <path d="M${left + 13} 122q12 2 21 7m${cheeks - 17} 0q10-7 21-7" fill="none" stroke="${blush}" stroke-width="3.5" stroke-linecap="round"/>
@@ -446,11 +549,12 @@ function portraitHead(look: Look, mood: AppearanceExpression, facing: Appearance
       <path d="${profile ? 'M152 120q7 3 14 1' : `M128 111l-${nose} 14q${nose} 4 ${nose + 5} 0`}" fill="none" stroke="${skinShadow}" stroke-width="2.2" stroke-linecap="round"/>
       <path d="${mouthForms[mood]}" ${profile ? 'transform="translate(31 0) scale(.87 1)"' : ''} fill="${mood === 'happy' || mood === 'surprised' ? '#754753' : 'none'}" stroke="#774f51" stroke-width="2.4" stroke-linecap="round"/>
       ${mood === 'happy' ? '<path d="M120 140q8 4 16 0" stroke="#fff0db" stroke-width="2" fill="none"/>' : ''}
-      ${faceScar(look.scar, complexion, profile)}${beardArt(look.facialHair, hair, chin)}${frontHair}${facewearArt(look.facewear, face, eyeGap, eyeWidth, cheeks)}`
+      ${ageMarks(look.apparentAge, complexion, facing)}
+      ${faceScar(look.scar, complexion, facing)}${beardArt(look.facialHair, hair, chin)}${frontHair}${facewearArt(look.facewear, face, eyeGap, eyeWidth, cheeks, facing)}`
   return {
     neck,
-    hairBack: hairParts.back,
-    head: `${headArt}${headwearArt(look.headwear, head, cheeks)}`,
+    hairBack: hatCover && shortHair ? hairParts.defs : hairParts.back,
+    head: `${headArt}${headwearArt(look.headwear, head, cheeks, facing)}`,
     shade: skinShadow,
   }
 }
@@ -476,6 +580,36 @@ const clothingDetail: Record<Look['outerwear'], string> = {
     '<path d="m64 197 36 59m-22-69 42 69m72-59-36 59m22-69-42 69M105 185l23 27 23-27" stroke="#dfb48e" stroke-opacity=".65" stroke-width="2" fill="none"/>',
 }
 
+function gearArt(gear: Look['gear'], pigment: RGB) {
+  const base = shade(pigment)
+  const rim = shade(pigment, 0.76, 63)
+  const edge = `stroke="${ink}" stroke-width="1.5" stroke-linejoin="round"`
+  switch (gear) {
+    case 'none':
+      return ''
+    case 'mapcase':
+      return `<path d="M4 7q13-8 26 0v17H4Z" fill="${base}" ${edge}/><path d="M4 8q13-5 26 0v7q-13 5-26 0Z" fill="${rim}" ${edge}/><rect x="14" y="12" width="6" height="5" rx="1" fill="${metal}"/>`
+    case 'potions':
+      return `<path d="M3 3h27v5H3Z" fill="${base}" ${edge}/>${[9, 17, 25]
+        .map(
+          (x, i) =>
+            `<path d="M${x - 2} 6h4v5l2 4v7h-8v-7l2-4Z" fill="${['#89c6bf', '#cf92a2', '#e0b46e'][i]}" ${edge}/><path d="M${x - 2} 6h4" stroke="${rim}" stroke-width="2"/>`,
+        )
+        .join('')}`
+    case 'bedroll':
+      return `<path d="M4 6h23q6 6 0 16H4q-6-7 0-16Z" fill="${base}" ${edge}/><path d="M10 6v16m10-16v16" stroke="${rim}" stroke-width="3"/><ellipse cx="28" cy="14" rx="4" ry="8" fill="${rim}" ${edge}/><path d="M28 11q5 5-1 6" stroke="${base}" stroke-width="1.4" fill="none"/>`
+    case 'journal':
+      return `<path d="M3 5h15v18H3Z" fill="${base}" ${edge}/><path d="M6 7v13m2-13h7" stroke="${rim}" stroke-width="1.7"/><path d="M23 12q-2-6 3-6t3 6m-7 0h8l2 10H20Z" fill="${rim}" ${edge}/><path d="M24 15h4v5h-4Z" fill="${metal}"/>`
+    case 'rope':
+      return `<path d="M10 3q15-1 15 11T16 25 7 14 16 8 22 15 15 21 10 12 17 10m2 12 8 3" fill="none" stroke="${ink}" stroke-width="5" stroke-linecap="round"/><ellipse cx="16" cy="14" rx="8.5" ry="10" fill="none" stroke="${rim}" stroke-width="2.6"/><ellipse cx="16" cy="14" rx="4.7" ry="6" fill="none" stroke="${base}" stroke-width="2.4"/>`
+    case 'sword':
+      return `<path d="m4 22 18-15 4 4-18 15Z" fill="${base}" ${edge}/><path d="m20 7 7 6m-4-4 7-6" stroke="${rim}" stroke-width="3" stroke-linecap="round"/><circle cx="30" cy="3" r="2" fill="${metal}"/>`
+    case 'girdle':
+      return `<path d="M2 9q15 2 30-1v12q-15 4-30 0Z" fill="${base}" ${edge}/><path d="m8 15 6 5 6-5-6-5Zm13 0 4 4 4-4-4-4Z" fill="${rim}" stroke="${metal}" stroke-width="1.5"/>`
+    case 'utility':
+      return `<path d="M3 7h28v7H3ZM6 14h7v10H6Zm14 0h9l-1 10h-7Z" fill="${base}" ${edge}/><path d="M7 17h5m10 0h6" stroke="${rim}" stroke-width="2"/><rect x="13" y="7" width="8" height="7" rx="1" fill="${metal}" ${edge}/>`
+  }
+}
 function portraitClothing(look: Look) {
   const { cloth, gear } = colorOptions(look)
   const build = WARDROBE_FRAMES[look.bodyFrame].torsoScale
@@ -500,7 +634,7 @@ function portraitClothing(look: Look) {
     <path d="M42 229q9-18 36-29m138 32q-12-21-39-32M96 196q0 18 10 29m52-30q0 18-8 32" fill="none" stroke="${light}" opacity=".83" stroke-width="4"/>
     <path d="M101 177q13 24 27 27 15-3 28-27l8 4q-13 25-36 37-22-10-35-37Z" fill="${light}" opacity=".74" stroke="${shadeColor}" stroke-width="1.4"/>
     <path d="M52 248q20-20 39-25m103 0q16 7 25 25" stroke="${light}" stroke-width="1.5" stroke-dasharray="2 3" fill="none" opacity=".73"/>
-    ${clothingDetail[look.outerwear]}${strap}
+    ${clothingDetail[look.outerwear]}${strap}<g transform="translate(157 206) scale(1.65)">${gearArt(look.gear, gear)}</g>
   </g>`
 }
 
@@ -516,6 +650,11 @@ export function illustratedPortrait(look: Look, expression: AppearanceExpression
     ${character.hairBack}${character.neck}${portraitClothing(look)}${character.head}
     <rect width="256" height="256" fill="#b6aeac" filter="url(#paper-fiber)" opacity=".12" style="mix-blend-mode: multiply"/>
   </svg>`
+}
+
+export function illustratedSpriteMaterials() {
+  return `<image id="field-thread" href="${CHARACTER_PAINT.thread}" width="26" height="21" preserveAspectRatio="none"/>
+    <image id="field-leather" href="${CHARACTER_PAINT.leather}" width="26" height="21" preserveAspectRatio="none"/>`
 }
 
 export function illustratedSprite(
@@ -542,8 +681,10 @@ export function illustratedSprite(
   const sleeve = look.outerwear === 'shearling' ? '#ddc2af' : thread
   const clothOfPose = pose === 'hit' ? shade(cloth, 0.72, 28) : torso
   const bodyWidth = (profile ? 8 : 10) * build
+  const nearSide = facing === 'west' || rear ? -1 : 1
+  const farSide = nearSide === 1 ? -1 : 1
   const arm = (side: -1 | 1) => {
-    const near = profile ? side === 1 : rear ? side === -1 : side === 1
+    const near = side === nearSide || !profile
     const shoulder = 24 + side * bodyWidth * (profile ? 0.7 : 0.91)
     const elbow = shoulder + (profile ? direction : side * 2) + side * stride * 0.58
     const wrist =
@@ -587,14 +728,24 @@ export function illustratedSprite(
       : look.outerwear === 'shearling'
         ? `<path d="M${24 - bodyWidth} 31q1-6 6-6 2 6 4 6 2 0 4-6 5 0 7 6-3 2-7 1-4 6-8 0-3 1-6-1Z" fill="#ddc2af" stroke="#887384" stroke-width=".75"/>`
         : `<path d="M${24 - bodyWidth * 0.6} 26l${bodyWidth * 0.56} 7 ${bodyWidth * 0.63}-7" fill="none" stroke="${thread}" stroke-width="1.4"/><circle cx="24" cy="34" r="1" fill="${metal}"/>`
+  const jacket = `M${24 - bodyWidth} 29q${bodyWidth} -8 ${bodyWidth * 2} 0l-3 14q${-bodyWidth + 3} 5 ${-bodyWidth * 2 + 6} 0Z`
+  const texture =
+    look.outerwear === 'brigandine' || look.outerwear === 'brocade' ? 'thread' : 'leather'
+  const garmentFit = `field-jacket-${facing}-${pose}-${frame}`
   const body = `${leg(-1)}${leg(1)}<g transform="translate(0 ${-lift})">
     ${longCoat ? `<path d="M${24 - bodyWidth * 0.79} 28q-2 11 -4 18 5 1 12-3l7 4q1-10-3-19Z" fill="${depth}" stroke="${ink}" stroke-width="1.1"/>` : ''}
-    ${arm(-1)}
-    <path d="M${24 - bodyWidth} 29q${bodyWidth} -8 ${bodyWidth * 2} 0l-3 14q${-bodyWidth + 3} 5 ${-bodyWidth * 2 + 6} 0Z" fill="${clothOfPose}" ${inkStroke} stroke-width="1.25"/>
+    ${profile ? arm(farSide) : ''}
+    <path d="${jacket}" fill="${clothOfPose}" ${inkStroke} stroke-width="1.25"/>
+    <defs><clipPath id="${garmentFit}"><path d="${jacket}"/></clipPath></defs>
+    <use href="#field-${texture}" x="11" y="25" opacity=".26" clip-path="url(#${garmentFit})" style="mix-blend-mode: soft-light"/>
     <path d="M${24 - bodyWidth * 0.62} 39q${bodyWidth * 0.66} 4 ${bodyWidth * 1.24} 0" stroke="${depth}" stroke-width="2" fill="none"/>
     ${detail}
-    ${look.gear !== 'none' ? `<path d="M${24 - bodyWidth * 0.75} 29l${bodyWidth * 1.28} 12" stroke="${shade(gear)}" stroke-width="1.7"/><rect x="${26 + bodyWidth * 0.23}" y="39" width="4.3" height="4.5" rx="1" fill="${shade(gear)}" stroke="${ink}" stroke-width=".8"/><path d="M29 40l2 0" stroke="${metal}" stroke-width=".8"/>` : ''}
-    ${arm(1)}
+    ${
+      look.gear !== 'none'
+        ? `<path d="M${24 - bodyWidth * 0.75} 29l${bodyWidth * 1.28} 12" stroke="${shade(gear)}" stroke-width="1.4"/><g transform="translate(${23 + bodyWidth * 0.21} 36) scale(.26)">${gearArt(look.gear, gear)}</g>`
+        : ''
+    }
+    ${profile ? arm(nearSide) : arm(-1) + arm(1)}
     <use href="#${headId}" transform="${headTransform}"/>
   </g>`
   const poseTransform =

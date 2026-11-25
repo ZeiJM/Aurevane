@@ -46,6 +46,12 @@ begin
     backdrop := 'original';
   end if;
 
+  if parts[last_base] ~ '^age-' then
+    if parts[last_base] not in ('age-youthful','age-mature','age-elder') then
+      return false;
+    end if;
+    last_base := last_base - 1;
+  end if;
   if parts[last_base] ~ '^scar-' then
     if parts[last_base] not in ('scar-cross','scar-cheek','scar-brow','scar-bridge','scar-jaw') then
       return false;

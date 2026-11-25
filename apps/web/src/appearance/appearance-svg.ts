@@ -2,6 +2,7 @@ import {
   illustratedPortrait,
   illustratedSprite,
   illustratedSpriteHead,
+  illustratedSpriteMaterials,
 } from './appearance-illustrated'
 import { facePainting, faceLayers, naturalFaceSkin, fieldFacePaint } from './appearance-face-paint'
 import {
@@ -759,6 +760,11 @@ export function renderAppearanceAsset(
   if (
     blueprint.v === 6 &&
     (illustrated ||
+      blueprint.apparentAge ||
+      blueprint.facialHair ||
+      blueprint.hairAccent ||
+      blueprint.secondEye ||
+      blueprint.scar ||
       blueprint.faceId?.endsWith('soft') ||
       blueprint.faceId?.endsWith('keen') ||
       !Object.hasOwn(WARDROBE_HAIRSTYLES, blueprint.hairstyle) ||
@@ -771,7 +777,7 @@ export function renderAppearanceAsset(
     )
     const frames = motion ? APPEARANCE_MOTION_FRAME.frames : APPEARANCE_FRAME.frames
     return renderSpriteAtlas(
-      `<defs>${heads.join('')}</defs>`,
+      `<defs>${illustratedSpriteMaterials()}${heads.join('')}</defs>`,
       (facing, pose, frame) =>
         illustratedSprite(blueprint, facing, pose, frame, frames, 'painted-' + facing),
       motion,

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 
+import { resolvePublicCharacterImageUrl } from '@/media/public-character-portrait'
 import type { ImageAssetId } from '@/media/registry'
 
 import { AurevaneImage } from '@/components/media/aurevane-image'
@@ -26,22 +27,23 @@ export function CharacterPortraitImage({
   priority = false,
 }: CharacterPortraitImageProps) {
   const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null)
-  const useRemoteImage = Boolean(imageUrl && failedImageUrl !== imageUrl)
+  const source = resolvePublicCharacterImageUrl(imageUrl, null)
+  const useRemoteImage = Boolean(source && failedImageUrl !== source)
   const portraitClassName = ['character-portrait-media', className].filter(Boolean).join(' ')
 
-  if (imageUrl && useRemoteImage) {
+  if (source && useRemoteImage) {
     return (
       // Direct character image URLs intentionally support arbitrary http(s) hosts and animated GIFs.
       // eslint-disable-next-line @next/next/no-img-element
       <img
-        src={imageUrl}
+        src={source}
         alt={alt}
         className={portraitClassName}
         loading={priority ? 'eager' : 'lazy'}
         fetchPriority={priority ? 'high' : undefined}
         referrerPolicy="no-referrer"
         onError={() => {
-          setFailedImageUrl(imageUrl)
+          setFailedImageUrl(source)
           onRemoteError?.()
         }}
       />

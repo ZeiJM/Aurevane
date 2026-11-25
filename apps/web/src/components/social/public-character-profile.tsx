@@ -23,9 +23,10 @@ export function PublicCharacterPortrait({
 }) {
   const [failedSources, setFailedSources] = useState<string[]>([])
   const className = large ? styles.heroPortrait : styles.avatar
-  const starterSource = resolvePublicCharacterImageUrl(null, character.portraitRef)
+  const activeSource = resolvePublicCharacterImageUrl(character.imageUrl, null)
+  const starterSource = resolvePublicCharacterImageUrl(null, character.portraitRef, true)
   const source =
-    [character.imageUrl, starterSource].find(
+    [activeSource, starterSource].find(
       (candidate): candidate is string => Boolean(candidate) && !failedSources.includes(candidate!),
     ) ?? null
   if (source) {

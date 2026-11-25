@@ -299,12 +299,20 @@ export const FACIAL_SCARS = {
   jaw: 'Jawline scar',
 } as const
 
+export const APPEARANCE_AGES = {
+  youthful: 'Youthful adult',
+  adult: 'Adult',
+  mature: 'Middle-aged',
+  elder: 'Elder',
+} as const
+
 const optionalPlayerFields = {
   facialHair: [FACIAL_HAIR_STYLES, 'beard', 'none'],
   hairAccent: [WARDROBE_HAIR_COLORS, 'accent', 'natural'],
   hairPlacement: [HAIR_COLOR_PLACEMENTS, 'dye', 'streak'],
   secondEye: [WARDROBE_EYE_COLORS, 'eye', 'natural'],
   scar: [FACIAL_SCARS, 'scar', 'none'],
+  apparentAge: [APPEARANCE_AGES, 'age', 'adult'],
 } as const
 
 export const PLAYER_APPEARANCE_DETAILS = Object.keys(
@@ -320,6 +328,7 @@ export const PAINTED_PLAYER_FIELDS = {
   hairPlacement: HAIR_COLOR_PLACEMENTS,
   secondEye: WARDROBE_EYE_COLORS,
   scar: FACIAL_SCARS,
+  apparentAge: APPEARANCE_AGES,
   backdrop: PAINTED_PORTRAIT_SETTINGS,
 } as const
 
@@ -354,6 +363,7 @@ export const PAINTED_WARDROBE_LABELS = {
   hairPlacement: 'Two-tone placement',
   secondEye: 'Right eye color',
   scar: 'Facial scar',
+  apparentAge: 'Apparent age',
   eyeColor: 'Eye color',
 } satisfies Record<keyof PaintedWardrobeLook | keyof typeof optionalPlayerFields, string>
 

@@ -4,6 +4,7 @@ import { APPEARANCE_BACKDROPS, PATTERNED_BACKDROPS } from './appearance-backdrop
 import { PORTRAIT_FACES } from './appearance-face-catalog'
 import {
   APPEARANCE_EXPRESSIONS,
+  parseAppearanceBlueprint,
   appearanceManifestFromImageUrl,
   compileAppearanceManifest,
 } from './appearance-manifest'
@@ -14,8 +15,9 @@ import {
   randomPaintedLookForGender,
 } from './appearance-painted-looks'
 import { illustratedPortrait } from './appearance-illustrated'
+import { ILLUSTRATED_STARTER_GALLERY } from './appearance-starter-gallery'
 import { renderAppearanceAsset } from './appearance-svg'
-import { PLAYER_HAIRSTYLES } from './appearance-painted-wardrobe'
+import { APPEARANCE_AGES, PLAYER_HAIRSTYLES, WARDROBE_GEAR } from './appearance-painted-wardrobe'
 
 const svg = (look: ReturnType<typeof paintedPlayerAppearanceBlueprint>) =>
   illustratedPortrait(look, 'neutral', false)
@@ -92,6 +94,58 @@ describe('illustrated player and NPC customization', () => {
     expect(artwork).toContain('width="1536" height="384"')
     expect(artwork.match(/data-limb="arm-left"/g)).toHaveLength(112)
     expect(artwork.match(/data-limb="arm-right"/g)).toHaveLength(112)
+  })
+
+  it('renders the full starter portrait catalogue using shared customization recipes', () => {
+    const looks = [...ILLUSTRATED_STARTER_GALLERY.values()]
+    expect(looks).toHaveLength(64)
+    expect(new Set(looks.map(({ manifest }) => manifest.portraits.neutral)).size).toBe(64)
+    for (const { manifest, name } of looks) {
+      expect(name).toBeTruthy()
+      expect(appearanceManifestFromImageUrl(manifest.portraits.neutral)?.id).toBe(manifest.id)
+      expect(manifest.motionAtlas).toMatch(/illustrated-motion-v2[.]svg$/)
+    }
+  })
+
+  it('shows apparent age in all five expressions and the movement atlas', () => {
+    const original = defaultPaintedLookForGender('feminine')
+    const ages = Object.keys(APPEARANCE_AGES) as (keyof typeof APPEARANCE_AGES)[]
+    const looks = ages.map((apparentAge) =>
+      paintedPlayerAppearanceBlueprint({
+        ...original,
+        apparentAge,
+        hairstyle: 'coils',
+        headwear: 'circlet',
+      }),
+    )
+    for (const mood of APPEARANCE_EXPRESSIONS) {
+      const paintings = looks.map((look) => renderAppearanceAsset(look, mood, true))
+      expect(new Set(paintings).size).toBe(ages.length)
+      expect(paintings[0]).not.toContain('data-age-lines')
+      expect(paintings[2]).toContain('data-age-lines="mature"')
+      expect(paintings[3]).toContain('data-age-lines="elder"')
+    }
+    for (const look of looks) {
+      expect(parseAppearanceBlueprint(look)).toEqual(look)
+      expect(
+        appearanceManifestFromImageUrl(compileAppearanceManifest(look).neutralUrl)?.blueprint,
+      ).toEqual(look)
+    }
+    expect(renderAppearanceAsset(looks[3]!, 'motion-v2', true)).toContain('data-age-lines="elder"')
+  })
+
+  it('draws each distinct accessory in the portrait and movement sprite', () => {
+    const gear = Object.keys(WARDROBE_GEAR) as (keyof typeof WARDROBE_GEAR)[]
+    const looks = gear.map((item) =>
+      paintedPlayerAppearanceBlueprint({
+        ...defaultPaintedLookForGender('feminine'),
+        gear: item,
+      }),
+    )
+    expect(new Set(looks.map(svg)).size).toBe(gear.length)
+    expect(new Set(looks.map((look) => renderAppearanceAsset(look, 'motion-v2', true))).size).toBe(
+      gear.length,
+    )
   })
 
   it('keeps the down pose inside its sprite cell and ornaments studio settings', async () => {

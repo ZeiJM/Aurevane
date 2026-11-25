@@ -70,6 +70,7 @@ export function projectLocalWorldNpcs(state: WorldState, rows: readonly Publishe
     const imageUrl = resolvePublicCharacterImageUrl(
       row.imageUrl,
       row.portraitRef ?? 'portrait.starter.wayfarer-01',
+      true,
     )
     const name = worldNpcName(row.name, row.encounter ? 'Challenger' : 'Resident')
     const motionImageUrl = imageUrl?.startsWith(APPEARANCE_ASSET_PREFIX)

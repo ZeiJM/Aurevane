@@ -40,6 +40,7 @@ import styles from './appearance-builder.module.css'
 const genderChoices = Object.keys(APPEARANCE_GENDERS) as AppearanceGender[]
 const fields = [
   'identity',
+  'apparentAge',
   'bodyFrame',
   'skinTone',
   'hairstyle',
@@ -151,11 +152,13 @@ function PaintedFields({
           const dyePiece = dyedPieces[field]
           const options = PAINTED_PLAYER_FIELDS[field]
           const defaultValue =
-            field === 'hairPlacement'
-              ? 'streak'
-              : field === 'hairAccent' || field === 'secondEye'
-                ? 'natural'
-                : 'none'
+            field === 'apparentAge'
+              ? 'adult'
+              : field === 'hairPlacement'
+                ? 'streak'
+                : field === 'hairAccent' || field === 'secondEye'
+                  ? 'natural'
+                  : 'none'
           return (
             <label key={field}>
               <span>{displayLabels[field] ?? fieldLabels[field]}</span>
@@ -326,6 +329,7 @@ export function AppearanceBuilder({
 
       <div
         className={styles.preview}
+        data-appearance-preview
         aria-busy={preview.id !== manifest.id && failedPreview !== manifest.id}
       >
         {failedPreview === manifest.id && preview.id !== manifest.id ? (

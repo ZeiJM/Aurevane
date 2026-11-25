@@ -87,9 +87,10 @@ test('@painted-wardrobe saves independent painted features and accessories using
   await control('Two-tone placement').selectOption('tips')
   await control('Right eye color (heterochromia)').selectOption('blue')
   await control('Facial scar').selectOption('cross')
+  await control('Apparent age').selectOption('mature')
   await control('Portrait setting').selectOption('frost')
   await expect(dialog.getByText(/spends one Appearance Token/)).toBeVisible()
-  const path = `/api/media/appearance/6/${identity}.hawkmantle.cobalt.mapcase.crimson.${isMobile ? 'bandana' : 'arcanist'}.amber.eyepatch.charcoal.natural.natural.twins.lilac.green.accent-silver.dye-tips.eye-blue.scar-cross.frost`
+  const path = `/api/media/appearance/6/${identity}.hawkmantle.cobalt.mapcase.crimson.${isMobile ? 'bandana' : 'arcanist'}.amber.eyepatch.charcoal.natural.natural.twins.lilac.green.accent-silver.dye-tips.eye-blue.scar-cross.age-mature.frost`
   const atlasWidth = await page.evaluate(async (imagePath) => {
     const image = new Image()
     image.src = imagePath
@@ -112,5 +113,6 @@ test('@painted-wardrobe saves independent painted features and accessories using
   await page.reload()
   await designSprite.click()
   await expect(control('Portrait setting')).toHaveValue('frost')
+  await expect(control('Apparent age')).toHaveValue('mature')
   await expect(confirm).toBeDisabled()
 })

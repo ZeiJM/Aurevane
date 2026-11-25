@@ -1,7 +1,11 @@
 import 'server-only'
 
 import { PERSONAL_QUEST_GIVERS } from '@aurevane/game-core/events/persistent-event'
-import { APPEARANCE_PRESETS, compileAppearanceManifest } from '@/appearance/appearance-manifest'
+import { compileAppearanceManifest } from '@/appearance/appearance-manifest'
+import {
+  defaultPaintedLookForGender,
+  paintedPlayerAppearanceBlueprint,
+} from '@/appearance/appearance-painted-looks'
 import { samePosition } from '@/world/travel'
 import { isKnownCell } from './world-content'
 import type {
@@ -60,7 +64,18 @@ const INTERACTION_OBJECTIVES: readonly InteractionObjectiveDefinition[] = [
     target: EASTERN_WATCH,
     title: 'The Eastern Watch',
     speaker: PERSONAL_QUEST_GIVERS[EASTERN_WATCH_INTERACTION_ID].speaker,
-    portraitUrl: compileAppearanceManifest(APPEARANCE_PRESETS[0].blueprint).portraits.neutral,
+    portraitUrl: compileAppearanceManifest(
+      paintedPlayerAppearanceBlueprint({
+        ...defaultPaintedLookForGender('feminine'),
+        identity: 'ranger',
+        faceId: 'f22',
+        outerwear: 'pine',
+        clothColor: 'fern',
+        hairstyle: 'braid',
+        gear: 'journal',
+        backdrop: 'verdant',
+      }),
+    ).portraits.neutral,
     descriptions: {
       available: 'Speak with the watch officer at the protected settlement.',
       active: 'Reach the eastern watchtower across the river.',
@@ -82,7 +97,18 @@ const INTERACTION_OBJECTIVES: readonly InteractionObjectiveDefinition[] = [
     target: CROWN_HINTERLAND_PATROL,
     title: 'Hinterland Patrol',
     speaker: PERSONAL_QUEST_GIVERS[CROWN_HINTERLAND_PATROL_INTERACTION_ID].speaker,
-    portraitUrl: compileAppearanceManifest(APPEARANCE_PRESETS[1].blueprint).portraits.neutral,
+    portraitUrl: compileAppearanceManifest(
+      paintedPlayerAppearanceBlueprint({
+        ...defaultPaintedLookForGender('masculine'),
+        identity: 'guard',
+        faceId: 'm02',
+        outerwear: 'brigandine',
+        clothColor: 'midnight',
+        hairstyle: 'brushed',
+        gear: 'sword',
+        backdrop: 'crown',
+      }),
+    ).portraits.neutral,
     descriptions: {
       available: 'Speak with the watch officer at the Aureth Crown settlement.',
       active: 'Reach the central road in Crown Hinterland.',

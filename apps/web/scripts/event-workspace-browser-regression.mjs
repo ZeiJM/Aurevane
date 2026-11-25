@@ -70,7 +70,7 @@ const config = {
         let route
         server.middlewares.use(async (request, response, next) => {
           const match = request.url?.match(
-            /^\/api\/media\/appearance\/(\d)\/([a-z0-9.]+)\/([a-z0-9-]+\.svg)$/,
+            /^\/api\/media\/appearance\/(\d)\/([a-z0-9.-]+)\/([a-z0-9-]+\.svg)$/,
           )
           if (!match) return next()
           try {
@@ -789,8 +789,8 @@ try {
       await wardrobe.getByLabel('Body build').selectOption('stocky')
       await wardrobe.getByLabel('Skin tone').selectOption('espresso')
       await wardrobe.getByLabel('Hairstyle').selectOption('quiff')
-      await wardrobe.getByLabel('Hair color').selectOption('platinum')
-      await wardrobe.getByLabel('Eye color').selectOption('violet')
+      await wardrobe.getByLabel('Hair color', { exact: true }).selectOption('platinum')
+      await wardrobe.getByLabel('Eye color', { exact: true }).selectOption('violet')
       await wardrobe.getByLabel('Clothing style').selectOption('quilted')
       await wardrobe.getByLabel('Accessory style', { exact: true }).selectOption('rope')
       await wardrobe.getByLabel('Facewear style').selectOption('mask')
@@ -798,15 +798,63 @@ try {
       const appearancePath =
         '/api/media/appearance/6/fitscout.quilted.midnight.rope.cedar.circlet.natural.mask.ice.stocky.espresso.quiff.platinum.violet.frost'
       const portrait = wardrobe.getByRole('img', { name: 'Neutral appearance portrait' })
-      await expect(portrait).toHaveAttribute('src', `${appearancePath}/neutral.svg`)
+      await expect(portrait).toHaveAttribute('src', `${appearancePath}/illustrated-neutral.svg`)
       await expect
         .poll(() => portrait.evaluate((element) => element.naturalWidth))
         .toBeGreaterThan(0)
       await page.screenshot({ path: resolve(output, `wardrobe-${viewport.width}.png`) })
       await wardrobe.getByRole('button', { name: 'Use this appearance' }).click()
       await expect(wardrobe).toBeHidden()
-      await expect(greeting).toHaveAttribute('src', `${appearancePath}/happy.svg`)
+      await expect(greeting).toHaveAttribute('src', `${appearancePath}/illustrated-happy.svg`)
       await expect(page.getByText('Draft saved.', { exact: true })).toHaveCount(0)
+      if (viewport.width === 1366) {
+        await page.getByRole('button', { name: 'Build appearance', exact: true }).click()
+        const rendered = wardrobe.locator('[data-appearance-preview]')
+        const recipeIds = () =>
+          rendered.evaluate((root) =>
+            Array.from(root.querySelectorAll('img, [data-appearance-facing]'), (node) => {
+              const source =
+                node instanceof HTMLImageElement ? node.src : node.style.backgroundImage
+              return source.match(/\/api\/media\/appearance\/([^/]+\/[^/]+)\//)?.[1] ?? ''
+            }),
+          )
+        const original = await recipeIds()
+        const sadPattern = '**/api/media/appearance/6/*/illustrated-sad.svg'
+        let release
+        const waitForRelease = new Promise((resolve) => {
+          release = resolve
+        })
+        await page.route(
+          sadPattern,
+          async (route) => {
+            await waitForRelease
+            await route.continue()
+          },
+          { times: 1 },
+        )
+        try {
+          const requested = page.waitForRequest((request) =>
+            request.url().endsWith('/illustrated-sad.svg'),
+          )
+          await wardrobe.getByRole('button', { name: 'Randomize' }).click()
+          await requested
+          await expect(rendered).toHaveAttribute('aria-busy', 'true')
+          assert.deepEqual(await recipeIds(), original)
+        } finally {
+          release()
+        }
+        await expect(rendered).toHaveAttribute('aria-busy', 'false')
+        const randomized = await recipeIds()
+        assert.equal(randomized.length, 13)
+        assert.equal(new Set(randomized).size, 1)
+        assert.notEqual(randomized[0], original[0])
+        await wardrobe.getByLabel('Apparent age', { exact: true }).selectOption('elder')
+        await expect(rendered).toHaveAttribute('aria-busy', 'false')
+        await expect(
+          wardrobe.getByRole('img', { name: 'Neutral appearance portrait' }),
+        ).toHaveAttribute('src', /[.]age-elder[.]/)
+        await wardrobe.getByRole('button', { name: 'Close', exact: true }).click()
+      }
     }
     assert.deepEqual(errors, [])
     console.log(

@@ -31,6 +31,9 @@ it('admits every canonical painted setting through the shared NPC and player val
       tailored.replace('.eyepatch.', '.invented.'),
       tailored.replace('.astral/', '.scar-cross.scar-jaw.astral/'),
       tailored.replace('.astral/', '.eye-natural.astral/'),
+      tailored.replace('.astral/', '.age-adult.astral/'),
+      tailored.replace('.astral/', '.age-child.astral/'),
+      tailored.replace('.astral/', '.age-mature.scar-cross.astral/'),
       tailored.replace('.astral/', '.scar-cross.dye-tips.astral/'),
       tailored.replace('neutral.svg', 'illustrated-neutral.svg'),
       ...['f00', 'm65', 'f001', 'fitunknown'].map((id) => original.replace('pinescout.', id + '.')),
@@ -58,7 +61,10 @@ it('admits every canonical painted setting through the shared NPC and player val
     const saved = tailored
       .replace('pinescout.', 'm64keen.')
       .replace('.braid.', '.longbraid.')
-      .replace('.astral/', '.beard-full.accent-silver.dye-split.eye-blue.scar-cross.wavejade/')
+      .replace(
+        '.astral/',
+        '.beard-full.accent-silver.dye-split.eye-blue.scar-cross.age-elder.wavejade/',
+      )
     await expect(save(saved)).resolves.toMatchObject({
       rows: [{ receipt: { imageUrl: saved } }],
     })

@@ -211,7 +211,7 @@ export function NpcAppearanceBatch({
                 <li key={`${imageUrl}-${index}`}>
                   <div className={styles.variantArt}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={imageUrl} alt="Portrait" width={76} height={76} />
+                    <img src={manifest.portraits.neutral} alt="Portrait" width={76} height={76} />
                     <span
                       role="img"
                       aria-label="Field sprite"

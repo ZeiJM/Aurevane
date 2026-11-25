@@ -29,6 +29,8 @@ import { appearanceGenderForIdentity } from '@/appearance/appearance-painted-loo
 import { AppearanceBuilderDialog } from './appearance-builder-dialog'
 import { AurevaneImage } from '@/components/media/aurevane-image'
 import { getStarterPortraitImageAssetId } from '@/media/character'
+import { illustratedStarterPortrait } from '@/appearance/appearance-starter-gallery'
+import { CharacterPortraitImage } from './character-portrait-image'
 
 import { FoundationDisciplineSigil } from './foundation-discipline-sigil'
 import styles from './character-creation-experience.module.css'
@@ -330,11 +332,14 @@ export function CharacterCreationExperience({
                         }}
                         type="radio"
                       />
-                      <AurevaneImage
-                        assetId={getStarterPortraitImageAssetId(option.ref)}
+                      <CharacterPortraitImage
+                        imageUrl={
+                          illustratedStarterPortrait(option.ref)?.manifest.portraits.neutral
+                        }
+                        fallbackAssetId={getStarterPortraitImageAssetId(option.ref)}
                         sizes="6rem"
                       />
-                      <span>{option.label}</span>
+                      <span>{illustratedStarterPortrait(option.ref)?.name ?? option.label}</span>
                     </label>
                   ))}
                 </div>
@@ -345,14 +350,19 @@ export function CharacterCreationExperience({
                   {manualLook ? (
                     <AppearancePortraitPreview manifest={compileAppearanceManifest(manualLook)} />
                   ) : (
-                    <AurevaneImage
-                      assetId={getStarterPortraitImageAssetId(portraitRef)}
+                    <CharacterPortraitImage
+                      imageUrl={illustratedStarterPortrait(portraitRef)?.manifest.portraits.neutral}
+                      fallbackAssetId={getStarterPortraitImageAssetId(portraitRef)}
                       sizes="(max-width: 760px) 7rem, (max-height: 800px) 16rem, 24rem"
                     />
                   )}
                 </div>
                 <div className={styles.previewCopy}>
-                  <span>{manualLook ? 'Your custom look' : selectedPortrait.label}</span>
+                  <span>
+                    {manualLook
+                      ? 'Your custom look'
+                      : (illustratedStarterPortrait(portraitRef)?.name ?? selectedPortrait.label)}
+                  </span>
                   <small>
                     {CHARACTER_PRESENTATIONS.find((option) => option.id === presentationId)?.label}
                   </small>
@@ -556,8 +566,9 @@ export function CharacterCreationExperience({
                 {manualLook ? (
                   <AppearancePortraitPreview manifest={compileAppearanceManifest(manualLook)} />
                 ) : (
-                  <AurevaneImage
-                    assetId={getStarterPortraitImageAssetId(portraitRef)}
+                  <CharacterPortraitImage
+                    imageUrl={illustratedStarterPortrait(portraitRef)?.manifest.portraits.neutral}
+                    fallbackAssetId={getStarterPortraitImageAssetId(portraitRef)}
                     sizes="14rem"
                   />
                 )}

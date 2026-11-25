@@ -254,6 +254,7 @@ export function randomPaintedLookForGender(
       : {}),
     clothColor,
     backdrop: setting,
+    ...(random() < 0.25 ? { apparentAge: choose(['youthful', 'mature', 'elder'] as const) } : {}),
     outerwear: ensemble.outerwear,
     gear: ensemble.gear,
     headwear: ensemble.headwear,
