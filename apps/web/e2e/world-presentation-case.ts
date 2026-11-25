@@ -19,6 +19,7 @@ import {
 } from './world-ground-coverage'
 import { installWorldRenderTiming } from './world-render-diagnostics'
 import { wrappedMapX } from '../src/world/topology'
+import { APPEARANCE_FRAME } from '../src/appearance/appearance-manifest'
 import sharp from 'sharp'
 
 function captureLocalNameplate(el: HTMLElement | SVGElement) {
@@ -44,6 +45,59 @@ function captureLocalNameplate(el: HTMLElement | SVGElement) {
     if (maxWidth === undefined) draw(text, x, y)
     else draw(text, x, y, maxWidth)
   }
+}
+
+function captureLocalIdentity(el: HTMLElement | SVGElement, frame: typeof APPEARANCE_FRAME) {
+  const context = document
+    .querySelector<HTMLCanvasElement>('canvas[data-world-identity]')!
+    .getContext('2d')!
+  const draw = context.drawImage
+  const ellipse = context.ellipse
+  let anchor: { x: number; y: number } | undefined
+  context.ellipse = function (x, y, ...args) {
+    anchor = { x, y }
+    return Reflect.apply(ellipse, this, [x, y, ...args])
+  }
+  context.drawImage = function (
+    this: CanvasRenderingContext2D,
+    image: CanvasImageSource,
+    ...args: number[]
+  ) {
+    const position = anchor
+    anchor = undefined
+    const result = Reflect.apply(draw, this, [image, ...args])
+    if (context.strokeStyle !== '#ead399') return result
+    const [left, top, width, height] = args.slice(-4)
+    const ratio = context.getTransform().a
+    const cached = args.length === 4
+    if (
+      width &&
+      height &&
+      ((args.length === 8 && image instanceof HTMLImageElement && image.naturalWidth > 0) ||
+        (cached && (image instanceof ImageBitmap || image instanceof HTMLCanvasElement)))
+    ) {
+      // The actor's marker is at the feet, above the padded raster's bottom edge.
+      const actorScale = (Number(el.dataset.tileSize) / 64) * 1.22
+      const actorEdge = (value: number) =>
+        cached ? (Math.round(value * ratio) - 4) / ratio : value
+      if (
+        position &&
+        (Math.abs(left! - actorEdge(position.x - frame.anchorX * actorScale)) > 1e-9 ||
+          Math.abs(top! - actorEdge(position.y - frame.anchorY * actorScale)) > 1e-9)
+      )
+        return result
+      el.dataset.testIdentityDraw = JSON.stringify({
+        x: position?.x ?? left! + width / 2,
+        y: position?.y ?? top! + height,
+        actor: !!position,
+        cached,
+        width,
+        height,
+        ratio,
+      })
+    }
+    return result
+  } as typeof context.drawImage
 }
 
 async function readLocalNameplate(
@@ -203,7 +257,7 @@ export async function verifyWorldPresentation(
   const currentPin = page.getByLabel('Your current position', { exact: true })
   await expect(currentPin).toBeVisible()
   const pinMetrics = await currentPin.evaluate((pin) => {
-    const marker = pin.querySelector('i')!.getBoundingClientRect()
+    const marker = pin.getBoundingClientRect()
     const label = pin.querySelector('span')!
     const style = getComputedStyle(label)
     const bounds = label.getBoundingClientRect()
@@ -1054,25 +1108,7 @@ export function registerWorldInputCases({
         await page.getByRole('checkbox', { name: 'Ambient animation', exact: true }).uncheck()
         await closeMapSettings(page)
       }
-      await canvas.evaluate((el) => {
-        const ctx = document
-            .querySelector<HTMLCanvasElement>('canvas[data-world-identity]')!
-            .getContext('2d')!,
-          draw = ctx.drawImage.bind(ctx)
-        const portrait = new URL(el.dataset.portrait!, location.href).href
-        ctx.drawImage = ((image: CanvasImageSource, ...args: number[]) => {
-          if (
-            ctx.strokeStyle === '#ead399' &&
-            ((image instanceof HTMLImageElement && image.src === portrait && args.length === 8) ||
-              ((image instanceof ImageBitmap || image instanceof HTMLCanvasElement) &&
-                args.length === 4))
-          ) {
-            el.dataset.testDrawnX = String(args.at(-4)! + args.at(-2)! / 2)
-            el.dataset.testDrawnY = String(args.at(-3)! + args.at(-1)!)
-          }
-          ;(draw as (...args: unknown[]) => void)(image, ...args)
-        }) as typeof ctx.drawImage
-      })
+      await canvas.evaluate(captureLocalIdentity, APPEARANCE_FRAME)
       // Separate empty destinations keep a preceding case's token out of the click.
       const destination = { sectorId: 'atlas:58:28', x: mode === 'effects off' ? 9 : 8, y: 4 }
       await stageWalk(page, destination)
@@ -1101,12 +1137,14 @@ export function registerWorldInputCases({
               tile = Number(el.dataset.tileSize)
             const expectedX = el.clientWidth / 2 + (target.x - x - (target.y - y)) * tile * 0.85,
               expectedY = el.clientHeight / 2 + (target.x - x + (target.y - y)) * tile * 0.44,
-              tolerance = 0.5 / Math.min(devicePixelRatio || 1, 1.5) + 1e-9
+              draw = JSON.parse(el.dataset.testIdentityDraw ?? 'null'),
+              tolerance = 0.5 / (draw?.ratio ?? 1) + 1e-9
             return {
               camera: { x, y },
               drawnAtTarget:
-                Math.abs(Number(el.dataset.testDrawnX) - expectedX) <= tolerance &&
-                Math.abs(Number(el.dataset.testDrawnY) - expectedY) <= tolerance,
+                !!draw &&
+                Math.abs(draw.x - expectedX) <= tolerance &&
+                Math.abs(draw.y - expectedY) <= tolerance,
             }
           }, target),
         )
@@ -1156,28 +1194,7 @@ export function registerWorldInputCases({
     const canvas = page.locator('canvas[data-world-stage]')
     await expect(canvas).toHaveAttribute('data-character-name', name)
     await canvas.evaluate(captureLocalNameplate)
-    await canvas.evaluate((el) => {
-      const context = document
-          .querySelector<HTMLCanvasElement>('canvas[data-world-identity]')!
-          .getContext('2d')!,
-        draw = context.drawImage.bind(context),
-        portrait = new URL(el.dataset.portrait!, location.href).href
-      context.drawImage = ((image: CanvasImageSource, ...args: number[]) => {
-        if (
-          context.strokeStyle === '#ead399' &&
-          ((image instanceof HTMLImageElement && image.src === portrait && args.length === 8) ||
-            ((image instanceof ImageBitmap || image instanceof HTMLCanvasElement) &&
-              args.length === 4))
-        ) {
-          el.dataset.testPortraitDraw = JSON.stringify({
-            width: args.at(-2),
-            height: args.at(-1),
-            ratio: context.getTransform().a,
-          })
-        }
-        ;(draw as (...args: unknown[]) => void)(image, ...args)
-      }) as typeof context.drawImage
-    })
+    await canvas.evaluate(captureLocalIdentity, APPEARANCE_FRAME)
     const verifyPortraitZoom = async (zoom: number) => {
       await expect(canvas).toHaveAttribute(
         'data-tile-size',
@@ -1185,22 +1202,34 @@ export function registerWorldInputCases({
       )
       await expect
         .poll(() =>
-          canvas.evaluate((el) => {
-            if (!el.dataset.testPortraitDraw) return false
-            const { width, height, ratio } = JSON.parse(el.dataset.testPortraitDraw) as {
+          canvas.evaluate((el, frame) => {
+            if (!el.dataset.testIdentityDraw) return false
+            const { width, height, ratio, actor, cached } = JSON.parse(
+              el.dataset.testIdentityDraw,
+            ) as {
               width: number
               height: number
               ratio: number
+              actor: boolean
+              cached: boolean
             }
-            const expected = Math.round(((34 * Number(el.dataset.tileSize)) / 64) * ratio) / ratio
+            const tile = Number(el.dataset.tileSize)
+            if (tile >= 42) {
+              const scale = (tile / 64) * 1.22
+              const expected = (side: number) =>
+                cached ? (Math.ceil(side * (scale * ratio)) + 8) / ratio : side * scale
+              return actor && width === expected(frame.width) && height === expected(frame.height)
+            }
+            if (actor) return false
+            const expected = Math.round(((34 * tile) / 64) * ratio) / ratio
             return width === expected && height === expected
-          }),
+          }, APPEARANCE_FRAME),
         )
         .toBe(true)
       const nameplate = await readLocalNameplate(canvas, name, 64 * worldZoomFromPercent(zoom))
       const metrics = await canvas.evaluate((el) => ({
         tileSize: Number(el.dataset.tileSize),
-        ...JSON.parse(el.dataset.testPortraitDraw!),
+        ...JSON.parse(el.dataset.testIdentityDraw!),
       }))
       await info.attach(`portrait-zoom-${zoom}`, {
         body: JSON.stringify({ zoom, ...metrics, nameplate }, null, 2),
@@ -1287,14 +1316,19 @@ export function registerWorldInputCases({
     )
     await slider.press('End')
     await expect(globe).toHaveAttribute('data-globe-zoom', String(GLOBE_MAX_ZOOM))
-    await slider.fill(String(worldZoomPercent(0.94, GLOBE_MAX_ZOOM)))
+    await closeMapSettings(page)
+    await globe.hover()
+    await page.mouse.wheel(0, 600)
+    await expect(globe).toHaveAttribute('data-globe-zoom', String(GLOBE_MAX_ZOOM))
+    await openMapSettings(page)
     await page.getByRole('button', { name: 'Zoom lock On', exact: true }).click()
     await closeMapSettings(page)
     await globe.hover()
-    await page.mouse.wheel(0, -6000)
-    await expect(globe).toHaveAttribute('data-globe-zoom', String(GLOBE_MAX_ZOOM))
+    await page.mouse.wheel(0, 600)
+    await expect
+      .poll(async () => Number(await globe.getAttribute('data-globe-zoom')))
+      .toBeLessThan(GLOBE_MAX_ZOOM)
     await page.getByRole('button', { name: /Return to local map/ }).click()
-    await closeMapSettings(page)
     await canvas.hover()
     await page.mouse.wheel(0, -160)
     await expect

@@ -84,7 +84,10 @@ export function installCorrectionObserver() {
             height: image.naturalHeight,
           }
         }
-        if (identity && paint.filter.includes('grayscale')) evidence.ghostPaints++
+        if (identity && Math.abs(paint.globalAlpha - 0.85) < 0.001) {
+          evidence.ghostPaints++
+          if (paint.strokeStyle === '#ead399') evidence.selfGhostPaints++
+        } else if (identity && paint.filter.includes('grayscale')) evidence.ghostPaints++
         return Reflect.apply(target, receiver, values)
       },
     })

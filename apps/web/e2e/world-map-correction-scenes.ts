@@ -1,5 +1,5 @@
 import { atlasSectors } from '../src/world/atlas'
-import { WORLD_REGIONS } from '../src/world/catalog'
+import { GRID_HEIGHT, GRID_WIDTH, WORLD_REGIONS } from '../src/world/catalog'
 import { GRAND_DISCOVERY_SITES, REMOTE_GRAND_CROSSING } from '../src/world/discovery-sites'
 import { isSafe, isWalkable } from '../src/world/travel'
 import type { WorldPosition, WorldSector, WorldSectorView } from '../src/world/types'
@@ -75,18 +75,24 @@ export function correctionScenes() {
   }))
   const water = buildWaterField(views)
   const lake = views
-    .flatMap((sector) =>
-      [...(water.get(sector.id)?.cells.values() ?? [])]
+    .flatMap((sector) => {
+      if (!sector.charted || sector.townId) return []
+      const left = sector.atlasColumn! * GRID_WIDTH
+      const top = sector.atlasRow! * GRID_HEIGHT
+      // A complete pool is available in both server viewports. Cross-sector
+      // rivers can change basin classification when the renderer adds decks.
+      return [...(water.get(sector.id)?.cells.values() ?? [])]
         .filter(
-          (cell) =>
-            cell.basin &&
-            !cell.shallow &&
-            !sector.townId &&
-            cell.basin.width <= 16 &&
-            cell.basin.height <= 14,
+          ({ basin, shallow }) =>
+            basin &&
+            !shallow &&
+            basin.left >= left &&
+            basin.left + basin.width <= left + GRID_WIDTH &&
+            basin.top >= top &&
+            basin.top + basin.height <= top + GRID_HEIGHT,
         )
-        .map((cell) => ({ sector, cell })),
-    )
+        .map((cell) => ({ sector, cell }))
+    })
     .sort(
       (a, b) =>
         b.cell.basin!.width * b.cell.basin!.height - a.cell.basin!.width * a.cell.basin!.height,

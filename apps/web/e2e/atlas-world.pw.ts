@@ -588,7 +588,10 @@ test('Eastern Watch objective persists accept, inspect and idempotent return com
   await talk.click()
   await dialogue.getByRole('button', { name: 'Report back' }).click()
   await expect(dialogue.getByText('Completed', { exact: true })).toBeVisible()
-  await expect(portrait).toHaveAttribute('src', /\/happy\.svg$/)
+  await expect(portrait).toHaveAttribute(
+    'src',
+    /^\/api\/media\/appearance\/6\/.+\/illustrated-happy\.svg$/,
+  )
   await expect
     .poll(() => portrait.evaluate((image) => (image as HTMLImageElement).naturalWidth))
     .toBeGreaterThan(0)

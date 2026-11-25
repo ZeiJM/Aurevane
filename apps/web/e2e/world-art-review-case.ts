@@ -599,15 +599,18 @@ export function registerWorldArtReviewCases({
       expect(before.visible).toBe(true)
       expect(before.opacity).toBe(1)
       expect(before.width * before.height).toBeGreaterThan(0)
-      // Observe the real identity painter, supporting both embodied grayscale
-      // actors and the legacy opaque gray token without changing native drawing.
+      // The composed actor frame is already tinted when it reaches the identity
+      // layer. Its translucent body and the legacy gray token are both observable.
       await identity.evaluate((el) => {
         const context = (el as HTMLCanvasElement).getContext('2d')!,
           draw = context.drawImage,
           fill = context.fill
         context.drawImage = new Proxy(draw, {
           apply(target, receiver, args) {
-            if (context.filter.includes('grayscale')) {
+            if (
+              context.filter.includes('grayscale') ||
+              Math.abs(context.globalAlpha - 0.85) < 0.001
+            ) {
               el.dataset.testGhostPaints = String(Number(el.dataset.testGhostPaints ?? 0) + 1)
               el.dataset.testGhostAlpha = String(context.globalAlpha)
             }
