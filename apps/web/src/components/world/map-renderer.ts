@@ -3671,6 +3671,11 @@ export function createMapRenderer(
     }
     type Nameplate = { point: MapPoint; person: (typeof selfStack.people)[number] }
     const nameplates: Nameplate[] = []
+    const actorScale = tokenScale * 1.22
+    const identityPoint = (projected: MapPoint) => ({
+      x: Math.round((projected.x - radius) * identityRatio) / identityRatio + radius,
+      y: Math.round(projected.y * identityRatio) / identityRatio,
+    })
     let identityBounds: { left: number; top: number; right: number; bottom: number } | null = null
     const includeIdentityBounds = (left: number, top: number, right: number, bottom: number) => {
       const padding = Math.max(2 / identityRatio, 1)
@@ -3697,10 +3702,7 @@ export function createMapRenderer(
       previousPicture: HTMLImageElement | null,
     ) => {
       const ctx = personContext
-      const point = {
-        x: Math.round((projected.x - radius) * identityRatio) / identityRatio + radius,
-        y: Math.round(projected.y * identityRatio) / identityRatio,
-      }
+      const point = identityPoint(projected)
       if (point.x < -40 || point.x > width + 40 || point.y < -60 || point.y > height + 60) return
       const people = stack.people,
         selfIndex = people.findIndex((person) => person.self),
@@ -3715,7 +3717,7 @@ export function createMapRenderer(
       ctx.globalAlpha = 1
       if (actor) {
         const { width, height, anchorX, anchorY } = APPEARANCE_FRAME
-        const scale = tokenScale * 1.22
+        const scale = actorScale
         ctx.imageSmoothingEnabled = true
         ctx.imageSmoothingQuality = 'high'
         ctx.globalAlpha = ghost ? 0.85 : 1
@@ -3875,6 +3877,9 @@ export function createMapRenderer(
       )
     }
     const cacheBiomeRasters = rasterZoomAt === null && (tile >= 32 || width >= 600 || ratio > 1)
+    // Swaying foliage breaks up the phone overview's scenery batches. Use the
+    // same bounded crop cache for individual scenery in those mixed runs.
+    const phoneOverview = width < 600 && tile < 32
     const paintCompact = (
       target: CanvasRenderingContext2D,
       item: Scenery,
@@ -3883,7 +3888,8 @@ export function createMapRenderer(
     ) => {
       const raster =
         cacheBiomeRasters &&
-        (item.image === biomes ||
+        ((phoneOverview && usesCompactScenery(item)) ||
+          item.image === biomes ||
           item.image === livingTrees ||
           item.image === beauties ||
           (item.tree && (item.image === forestTrees || item.image === asterwakeWoodland)) ||
@@ -4539,6 +4545,7 @@ export function createMapRenderer(
       phaseAt = ended
     }
     // Keep labels and portraits on the retained layer above the weather.
+    const idlePoseChanges = new Map<number, LabelBounds>()
     const identity: (string | number | boolean | null)[] = [
       identityRatio,
       width,
@@ -4675,6 +4682,26 @@ export function createMapRenderer(
           actor?.column ?? null,
           actor?.row ?? null,
         )
+        const poseIndex = identity.length - 2
+        const oldColumn = paintedIdentity?.[poseIndex]
+        if (
+          person.npc &&
+          actor &&
+          !actor.still &&
+          typeof oldColumn === 'number' &&
+          oldColumn !== actor.column
+        ) {
+          const { x, y } = identityPoint(p)
+          const { width, height, anchorX, anchorY } = APPEARANCE_FRAME
+          // Cover the filtered pose's shadow and its device-pixel rounding.
+          const pad = 8 / identityRatio
+          idlePoseChanges.set(poseIndex, {
+            left: x - anchorX * actorScale - pad,
+            top: y - anchorY * actorScale - pad,
+            right: x + (width - anchorX) * actorScale + pad,
+            bottom: y + (height - anchorY) * actorScale + pad,
+          })
+        }
         return [{ stack, feet: p, ghost, actor, image, previous }]
       })
     // Publish this frame's projection before drawing identities so native
@@ -4687,32 +4714,51 @@ export function createMapRenderer(
     canvas.dataset.embodiedActors = String(embodiedActors)
     canvas.dataset.frameNow = String(now)
     canvas.dataset.frameStarted = String(start)
-    const repaintIdentity =
+    const repaintAllIdentities =
       !identityContext ||
       !paintedIdentity ||
       identity.length !== paintedIdentity.length ||
-      identity.some((value, index) => value !== paintedIdentity![index])
-    if (repaintIdentity) {
+      identity.some(
+        (value, index) => value !== paintedIdentity![index] && !idlePoseChanges.has(index),
+      )
+    let poseBounds: LabelBounds | undefined
+    if (!repaintAllIdentities)
+      for (const bounds of idlePoseChanges.values()) {
+        poseBounds = poseBounds
+          ? {
+              left: Math.min(poseBounds.left, bounds.left),
+              top: Math.min(poseBounds.top, bounds.top),
+              right: Math.max(poseBounds.right, bounds.right),
+              bottom: Math.max(poseBounds.bottom, bounds.bottom),
+            }
+          : bounds
+      }
+    if (repaintAllIdentities || poseBounds) {
       if (identityContext) {
         identityContext.setTransform(identityRatio, 0, 0, identityRatio, 0, 0)
-        if (paintedIdentityBounds) {
-          const left = Math.max(
-            0,
-            Math.floor(paintedIdentityBounds.left * identityRatio) / identityRatio,
-          )
-          const top = Math.max(
-            0,
-            Math.floor(paintedIdentityBounds.top * identityRatio) / identityRatio,
-          )
+        const clearBounds = poseBounds ?? paintedIdentityBounds
+        if (clearBounds) {
+          const left = Math.max(0, Math.floor(clearBounds.left * identityRatio) / identityRatio)
+          const top = Math.max(0, Math.floor(clearBounds.top * identityRatio) / identityRatio)
           const right = Math.min(
             width,
-            Math.ceil(paintedIdentityBounds.right * identityRatio) / identityRatio,
+            Math.ceil(clearBounds.right * identityRatio) / identityRatio,
           )
           const bottom = Math.min(
             height,
-            Math.ceil(paintedIdentityBounds.bottom * identityRatio) / identityRatio,
+            Math.ceil(clearBounds.bottom * identityRatio) / identityRatio,
           )
-          identityContext.clearRect(left, top, right - left, bottom - top)
+          const clearWidth = Math.max(0, right - left)
+          const clearHeight = Math.max(0, bottom - top)
+          identityContext.clearRect(left, top, clearWidth, clearHeight)
+          if (poseBounds) {
+            // Keep the original depth and label ordering where the pose overlaps
+            // other identities. Pixels elsewhere already contain the same scene.
+            identityContext.save()
+            identityContext.beginPath()
+            identityContext.rect(left, top, clearWidth, clearHeight)
+            identityContext.clip()
+          }
         } else identityContext.clearRect(0, 0, width, height)
       }
       for (const { stack, feet, ghost, actor, image, previous } of identities) {
@@ -4765,6 +4811,7 @@ export function createMapRenderer(
           }
         }
       }
+      if (poseBounds) identityContext?.restore()
       paintedIdentity = identity
       paintedIdentityBounds = identityBounds
     }

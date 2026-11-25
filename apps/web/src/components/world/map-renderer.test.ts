@@ -1,5 +1,6 @@
 import { ferryVesselVersion } from './map-ferry-deck'
 import { resolveWorldEnvironment, DEFAULT_WORLD_ENVIRONMENT_SETTINGS } from '@/world/environment'
+import { APPEARANCE_PRESETS, compileAppearanceManifest } from '@/appearance/appearance-manifest'
 import { createRequire } from 'node:module'
 import { readFile } from 'node:fs/promises'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -3830,6 +3831,90 @@ describe('native map input and bounded lifecycle', () => {
       expect(Number(s.canvas.dataset.cachedGroundProjectionPixels)).toBeLessThanOrEqual(8_000_000)
     } finally {
       s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  })
+  it('reuses the painted town building crop across wide-zoom phone frames', () => {
+    const clock = vi.spyOn(performance, 'now').mockReturnValue(0)
+    const s = scene(false, legacyTownView('verdant-expanse', 5, 4))
+    const isTownArt = ({ src }: { src: string }) =>
+      src.endsWith('town-ordinary-architecture-v01.webp')
+    try {
+      Object.assign(s.canvas, { clientWidth: 389, clientHeight: 669 })
+      window.devicePixelRatio = 2.625
+      s.resize()
+      s.renderer.settings({ animate: true, zoom: 0.64 })
+      clock.mockReturnValue(200)
+      s.frame(200)
+      const initial = s.spriteDraws.filter(isTownArt).map(({ args }) => args)
+      expect(initial.length).toBeGreaterThan(0)
+      s.draws.length = 0
+      clock.mockReturnValue(250)
+      s.frame(250)
+      expect(s.spriteDraws.filter(isTownArt).map(({ args }) => args)).toEqual(initial)
+      expect(s.draws.filter(isTownArt)).toHaveLength(0)
+    } finally {
+      s.renderer.dispose()
+      clock.mockRestore()
+      vi.unstubAllGlobals()
+    }
+  })
+  it('repaints only the watch officer footprint when its idle pose advances', () => {
+    const clock = vi.spyOn(performance, 'now').mockReturnValue(0)
+    const view = legacyTownView('verdant-expanse', 5, 4)
+    const look = compileAppearanceManifest(APPEARANCE_PRESETS[0]!.blueprint)
+    const s = scene(false, {
+      ...view,
+      npcs: [
+        {
+          id: 'eastern-watch-officer',
+          name: 'Tamsin Reed (Watch Officer)',
+          imageUrl: look.portraits.neutral,
+          motionImageUrl: look.portraits.neutral,
+          position: { ...view.position, x: 2 },
+        },
+      ],
+      players: [
+        {
+          characterId: 'distant-peer',
+          name: 'Distant peer',
+          level: 1,
+          portraitRef: '',
+          imageUrl: '/distant-peer.webp',
+          online: true,
+          attackable: false,
+          position: { ...view.position, x: 8, y: 2 },
+        },
+      ],
+    })
+    try {
+      const isMotion = ({ src }: { src: string }) => src === look.motionAtlas
+      s.frame(40)
+      const source = s.draws.find(isMotion)
+      const pose = s.identityDraws.find(({ image }) =>
+        s.composites.get(image)?.some((part) => 'src' in part && part.src === look.motionAtlas),
+      )
+      const peer = s.identitySprites.find(({ src }) => src === '/distant-peer.webp')
+      expect(source).toBeDefined()
+      expect(pose).toBeDefined()
+      expect(peer).toBeDefined()
+      s.identityClear.mockClear()
+      s.draws.length = 0
+      clock.mockReturnValue(300)
+      s.frame(300)
+      const next = s.draws.find(isMotion)
+      expect(next).toBeDefined()
+      expect(next!.args[0]).not.toBe(source!.args[0])
+      expect(s.identityClear).toHaveBeenCalledTimes(1)
+      const [left, top, width, height] = s.identityClear.mock.calls[0]!
+      const [poseX, poseY, , poseHeight] = pose!.args.slice(-4)
+      expect(left).toBeLessThanOrEqual(poseX!)
+      expect(top).toBeLessThanOrEqual(poseY!)
+      expect(left + width).toBeLessThan(peer!.args[4]!)
+      expect(top + height).toBeGreaterThanOrEqual(poseY! + poseHeight!)
+    } finally {
+      s.renderer.dispose()
+      clock.mockRestore()
       vi.unstubAllGlobals()
     }
   })
