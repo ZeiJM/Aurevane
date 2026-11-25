@@ -29,6 +29,7 @@ describe('painted sprite rig', () => {
         for (let frame = 0; frame < 8; frame++) {
           const svg = render(facing, pose, frame)
           expect(svg.match(/data-rig-arm=/g)).toHaveLength(2)
+          expect(svg.match(/href="#rig-hand"/g)).toHaveLength(2)
           expect(svg.match(/data-rig-leg=/g)).toHaveLength(2)
           expect(svg).not.toMatch(/undefined|NaN/)
         }
@@ -40,6 +41,6 @@ describe('painted sprite rig', () => {
     expect(render('east', 'walk', 2)).not.toBe(render('east', 'walk', 6))
     expect(render('east', 'cast', 2)).not.toBe(render('east', 'idle', 2))
     expect(render('west', 'walk', 6)).toContain('translate(48 0) scale(-1 1)')
-    expect(paintedSpriteRigDefinitions().match(/data:image\/webp;base64,/g)).toHaveLength(12)
+    expect(paintedSpriteRigDefinitions()).toContain('id="rig-hand" href="data:image/webp;base64,')
   })
 })

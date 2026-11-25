@@ -56,6 +56,7 @@ export type PaintedPortraitLayers = Readonly<{
   faceMarks?: string
   torsoScale?: number
   gear?: PaintedLayer
+  gearPlacement?: 'sash' | 'shoulder' | 'waist' | 'behind'
   facialHair?: Readonly<{ layer: PaintedLayer; upperLipOnly: boolean }>
   hairAccent?: Readonly<{ filter: string; placement: 'split' | 'tips' | 'streak' | 'underlight' }>
   eyeFilters?: readonly [viewerLeft?: string, viewerRight?: string]
@@ -82,17 +83,29 @@ export function fitPortraitAccessories(
     const hood = headwear.kind === 'hood'
     const band = closedCrown ? hairline + 7 : brow - 8
     const padding = hood ? 15 : closedCrown ? 8 : 3
+    const guides = headwear.layer.anchors
+    const fittedWidth = temples[1] - temples[0] + 2 * padding
+    const horizontalScale = fittedWidth / (guides.right - guides.left)
+    const verticalScale = Math.min(horizontalScale, (band - 4) / guides.bottom)
     const hatTarget = {
       left: temples[0] - padding,
       right: temples[1] + padding,
-      top: hood ? hairline - 2 : band - (closedCrown ? 11 : 3),
+      top: hood ? hairline - 2 : band - (guides.bottom - guides.top) * verticalScale,
       bottom: hood ? eyesY : band,
     }
     hat = layerImage(headwear.layer, hatTarget)
     hatBack = rearImage(headwear.layer, hatTarget)
+    if (hood) {
+      const faceOpening = `${scope}-hood-opening`
+      const betweenEyes = (eyes[0] + eyes[1]) / 2
+      const radius = (temples[1] - temples[0]) / 2 - 5
+      const openingTop = hairline - 1
+      const openingBottom = chin + 5
+      hat = `<defs><mask id="${faceOpening}"><rect width="256" height="256" fill="white"/><ellipse cx="${betweenEyes}" cy="${(openingTop + openingBottom) / 2}" rx="${radius}" ry="${(openingBottom - openingTop) / 2}" fill="black"/></mask></defs><g mask="url(#${faceOpening})">${hat}</g>`
+    }
     if (closedCrown) {
       const clip = `${scope}-brim-fit`
-      fittedHair = `<clipPath id="${clip}"><path d="M0 0H${temples[0] - 7}V${band}Q128 ${band - 12} ${temples[1] + 7} ${band}V0H256V256H0Z"/></clipPath><g clip-path="url(#${clip})">${hairstyle}</g>`
+      fittedHair = `<clipPath id="${clip}"><path d="M0 ${band + 12}L${temples[0] - 7} ${band + 2}Q128 ${band - 11} ${temples[1] + 7} ${band + 2}L256 ${band + 12}V256H0Z"/></clipPath><g clip-path="url(#${clip})">${hairstyle}</g>`
     }
   }
 
@@ -108,9 +121,9 @@ export function fitPortraitAccessories(
     const lenses = layerImage(facewear.layer, lensTarget)
     accessoryBack = rearImage(facewear.layer, lensTarget)
     if (facewear.kind === 'lenses') {
-      const lensRadius = (eyes[1] - eyes[0]) * 0.315
+      const lensRadius = (eyes[1] - eyes[0]) * 0.31
       const mask = `${scope}-lens-transmission`
-      accessory = `<defs><mask id="${mask}"><rect width="256" height="256" fill="white"/>${eyes.map((x) => `<ellipse cx="${x}" cy="${eyesY}" rx="${lensRadius}" ry="8" fill="#272727"/>`).join('')}</mask></defs><g mask="url(#${mask})">${lenses}</g>`
+      accessory = `<defs><mask id="${mask}"><rect width="256" height="256" fill="white"/>${eyes.map((x) => `<ellipse cx="${x}" cy="${eyesY}" rx="${lensRadius}" ry="9" fill="#141414"/>`).join('')}</mask></defs><g mask="url(#${mask})">${lenses}</g>`
     } else {
       accessory = lenses
     }
@@ -187,12 +200,20 @@ export function renderFittedPortrait(
     <use href="#painted-garment-source" mask="url(#painted-collar-mask)"/>
     <g mask="url(#painted-shoulder-mask)"><use href="#painted-garment-source" transform="translate(128 0) scale(${torsoScale} 1) translate(-128 0)"/></g>`
   }
+  const gearPlacement = layers.gearPlacement ?? 'sash'
+  const gearPositions = {
+    sash: { left: -43, right: 50, top: -12, bottom: 79 },
+    shoulder: { left: 35, right: 81, top: -6, bottom: 65 },
+    waist: { left: -56, right: 46, top: 49, bottom: 118 },
+    behind: { left: 43, right: 98, top: -24, bottom: 35 },
+  }
+  const gearPosition = gearPositions[gearPlacement]
   const gear = layers.gear
     ? layerImage(layers.gear, {
-        left: 128 - 53 * torsoScale,
-        right: 128 + 53 * torsoScale,
-        top: shoulder - 17,
-        bottom: shoulder + 71,
+        left: 128 + gearPosition.left * torsoScale,
+        right: 128 + gearPosition.right * torsoScale,
+        top: shoulder + gearPosition.top,
+        bottom: shoulder + gearPosition.bottom,
       })
     : ''
   const hairTarget = { left: temples[0], right: temples[1], top: hairline, bottom: brow }
@@ -236,7 +257,7 @@ export function renderFittedPortrait(
   const viewBox = icon ? '44 28 168 168' : '0 0 256 256'
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="${viewBox}">
     ${layers.paintedFilters ? `<defs>${layers.paintedFilters}</defs>` : ''}
-    ${backdrop}${hatBack}${rearImage(hair, hairTarget)}${accessoryBack}
-    ${neckUnderlay}${head}${layers.faceMarks ?? ''}${clothing}${gear}${beard}${fittedHair}${accessory}${hat}
+    ${backdrop}${gearPlacement === 'behind' ? gear : ''}${hatBack}${rearImage(hair, hairTarget)}${accessoryBack}
+    ${neckUnderlay}${head}${layers.faceMarks ?? ''}${clothing}${gearPlacement === 'behind' ? '' : gear}${beard}${fittedHair}${accessory}${hat}
   </svg>`
 }

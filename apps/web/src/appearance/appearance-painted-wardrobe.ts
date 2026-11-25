@@ -93,8 +93,8 @@ export const WARDROBE_SKIN_TONES = {
   copper: { label: 'Copper brown', rgb: [144, 88, 61] },
   umber: { label: 'Umber', rgb: [121, 83, 69] },
   mahogany: { label: 'Mahogany', rgb: [110, 68, 57] },
-  cacao: { label: 'Cacao', rgb: [86, 56, 47] },
-  espresso: { label: 'Espresso', rgb: [67, 45, 40] },
+  cacao: { label: 'Cacao', rgb: [102, 66, 45] },
+  espresso: { label: 'Espresso', rgb: [86, 53, 37] },
 } as const
 
 export const WARDROBE_HAIRSTYLES = {

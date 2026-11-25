@@ -33,7 +33,10 @@ export function renderPaintedSpriteRig({
   mantle,
   satchel,
   outfit,
-  dye,
+  fabricDye,
+  outfitDye,
+  sleeve = 'armFront',
+  handDye,
   gear,
   gearDye,
 }: {
@@ -47,7 +50,10 @@ export function renderPaintedSpriteRig({
   mantle: boolean
   satchel: boolean
   outfit?: string
-  dye?: string
+  fabricDye?: string
+  outfitDye?: string
+  sleeve?: 'armFront' | 'armSide' | 'sleeveSeafarer' | 'sleeveWool'
+  handDye?: string
   gear?: string
   gearDye?: string
 }) {
@@ -63,11 +69,15 @@ export function renderPaintedSpriteRig({
     [24, torsoY],
     [torsoWidth, 22],
   )
+  const dyePart = (art: string, filter = fabricDye) =>
+    filter ? `<g filter="url(#${filter})">${art}</g>` : art
   const torso =
     !profile && !rear && outfit
-      ? `<use href="#${outfit}" transform="translate(${24 - torsoWidth * 0.63} ${torsoY - 1}) scale(${torsoWidth * 1.26} 24)"/>`
-      : torsoBase
-  const colorClothing = (layer: string) => (dye ? `<g filter="url(#${dye})">${layer}</g>` : layer)
+      ? dyePart(
+          `<use href="#${outfit}" transform="translate(${24 - torsoWidth * 0.63} ${torsoY - 1}) scale(${torsoWidth * 1.26} 24)"/>`,
+          outfitDye ?? '',
+        )
+      : dyePart(torsoBase)
   const nearShoulder: Point = [24 + torsoWidth * (profile ? 0.13 : 0.42), torsoY + 3]
   const attackArm = -(pose === 'cast' ? 52 : 30) - Math.abs(phase) * 10
   const arm = (side: -1 | 1) => {
@@ -80,7 +90,12 @@ export function renderPaintedSpriteRig({
       : walking && profile
         ? side * phase * 21
         : side * -7
-    return `<g data-rig-arm="${leading ? 'near' : 'far'}" data-limb="arm-${leading ? 'right' : 'left'}">${placePart(profile ? 'armSide' : 'armFront', shoulder, [profile ? 6.7 : 5.4, 20], angle, !leading)}</g>`
+    const width = profile ? 6.7 : 5.4
+    const wrist = belowJoint(shoulder, 11, angle)
+    return `<g data-rig-arm="${leading ? 'near' : 'far'}" data-limb="arm-${leading ? 'right' : 'left'}">
+      ${dyePart(placePart('hand', wrist, [width * 0.69, 8], angle, !leading), handDye ?? '')}
+      ${dyePart(placePart(sleeve, shoulder, [width, 13.1], angle, !leading))}
+    </g>`
   }
   const leg = (side: -1 | 1) => {
     const hip: Point = [24 + side * (profile ? 2.7 : 3.7), torsoY + 17]
@@ -106,9 +121,9 @@ export function renderPaintedSpriteRig({
       : ''
   const shoulderCapY = torsoY + 2.1
   const shoulderCap = profile
-    ? `<svg x="20" y="${shoulderCapY}" width="9" height="8" viewBox="20 ${shoulderCapY} 9 8" overflow="hidden">${placePart('armSide', [24.3, shoulderCapY], [8.1, 21])}</svg>`
+    ? `<svg x="20" y="${shoulderCapY}" width="9" height="8" viewBox="20 ${shoulderCapY} 9 8" overflow="hidden">${dyePart(placePart(sleeve, [24.3, shoulderCapY], [8.1, 15]))}</svg>`
     : ''
-  const figure = `${colorClothing(cloak)}${leg(-1)}${leg(1)}${arm(-1)}${colorClothing(torso + shoulderPieces)}${belt}${shoulderCap}${arm(1)}
+  const figure = `${dyePart(cloak)}${leg(-1)}${leg(1)}${arm(-1)}${torso}${dyePart(shoulderPieces)}${belt}${shoulderCap}${arm(1)}
     <g transform="translate(0 ${torsoY - 20})">${head}</g>`
   const reaction = pose === 'hit' ? 'rotate(-9 24 58)' : ''
   const alignment = facing === 'west' ? 'translate(48 0) scale(-1 1)' : ''

@@ -63,8 +63,9 @@ describe('illustrated player and NPC customization', () => {
       true,
     )
     expect(renders.every((svg) => svg.includes(FITTED_ART_SOURCE['moss-cloak'].href))).toBe(true)
-    expect(renders[1]).toContain(FITTED_ART_SOURCE['river-scholar-happy'].href)
-    expect(renders[2]).toContain(FITTED_ART_SOURCE['river-scholar-angry'].href)
+    expect(renders.every((svg) => svg.includes(FITTED_ART_SOURCE['river-scholar'].href))).toBe(true)
+    expect(renders[0]).not.toContain('feDisplacementMap')
+    expect(renders.slice(1).every((svg) => svg.includes('feDisplacementMap'))).toBe(true)
   })
 
   it('round-trips each added head and face accessory and fits the corresponding painted art', () => {

@@ -4,6 +4,7 @@ import {
   fittedCharacterSpriteHead,
   fittedSpriteGear,
   fittedSpriteOutfit,
+  fittedSpriteSkinPigment,
 } from './appearance-fitted-portrait'
 import { LANDSCAPE_PAINTINGS } from './appearance-landscape-paintings.generated'
 import type {
@@ -12,7 +13,7 @@ import type {
   AppearancePose,
   PaintedPlayerAppearanceBlueprint,
 } from './appearance-manifest'
-import { paintedDyeFilter } from './appearance-painted-equipment'
+import { paintedDyeFilter, paintedPigmentFilter } from './appearance-painted-equipment'
 import {
   paintedSpriteRigDefinitions,
   renderPaintedSpriteRig,
@@ -21,6 +22,32 @@ import { WARDROBE_FRAMES } from './appearance-painted-wardrobe'
 import { PATTERN_PAINTINGS } from './appearance-pattern-paintings.generated'
 
 type Look = PaintedPlayerAppearanceBlueprint
+
+const naturalSpriteFabric = {
+  none: [189, 175, 144],
+  compass: [69, 98, 98],
+  pine: [104, 105, 66],
+  hawkmantle: [164, 119, 48],
+  shearling: [113, 94, 72],
+  scarf: [81, 105, 102],
+  brigandine: [113, 108, 72],
+  brocade: [104, 69, 84],
+  hooded: [74, 82, 100],
+  quilted: [154, 86, 56],
+} as const satisfies Record<Look['outerwear'], readonly [number, number, number]>
+
+const illustratedSleeves = {
+  none: 'armSide',
+  compass: 'armFront',
+  pine: 'sleeveWool',
+  hawkmantle: 'sleeveSeafarer',
+  shearling: 'sleeveWool',
+  scarf: 'armFront',
+  brigandine: 'sleeveWool',
+  brocade: 'sleeveWool',
+  hooded: 'armFront',
+  quilted: 'sleeveWool',
+} as const satisfies Record<Look['outerwear'], string>
 
 const key = (id: string) => {
   let value = 0
@@ -62,7 +89,7 @@ function portraitBackground(id: Look['backdrop']) {
     PATTERN_PAINTINGS[id as keyof typeof PATTERN_PAINTINGS] ??
     LANDSCAPE_PAINTINGS[id as keyof typeof LANDSCAPE_PAINTINGS]
   const pattern = patternedBackdrop(id)
-  const studio = studioColor(id)
+  const studio = studioColor(id === 'original' ? 'parchment' : id)
   const seed = key(id)
   const hues = [
     ['#303854', '#677690', '#b7c9cb'],
@@ -87,10 +114,9 @@ function portraitBackground(id: Look['backdrop']) {
   <rect width="256" height="256" fill="url(#paper-glow)"/>
   ${painting ? `<image href="${painting}" width="256" height="256" opacity=".88"/>` : ''}
   ${landscape ? landscapeBrushwork(id, outer!, middle!, pale!) : ''}
-  <rect width="256" height="256" fill="url(#painted-motif)" opacity="${pattern ? (painting ? '.07' : '.34') : studio ? '.34' : '.12'}" ${studio ? 'mask="url(#studio-corners)"' : ''}/>
-  <circle cx="128" cy="106" r="77" fill="none" stroke="${pale}" opacity=".37"/>
-  <circle cx="128" cy="106" r="83" fill="none" stroke="${pale}" stroke-dasharray="1 5" opacity=".39"/>
-  <path d="M13 49V15h38m154 0h38v34M13 207v34h38m154 0h38v-34" fill="none" stroke="${pale}" opacity=".57"/>`
+  <rect width="256" height="256" fill="url(#painted-motif)" opacity="${pattern ? (painting ? '.07' : '.34') : studio ? '.22' : '.12'}" ${studio ? 'mask="url(#studio-corners)"' : ''}/>
+  ${studio ? '' : `<circle cx="128" cy="106" r="83" fill="none" stroke="${pale}" stroke-dasharray="1 5" opacity=".29"/>`}
+  <path d="M13 49V15h38m154 0h38v34M13 207v34h38m154 0h38v-34" fill="none" stroke="${pale}" opacity="${studio ? '.34' : '.5'}"/>`
 }
 
 function landscapeBrushwork(id: string, dark: string, mid: string, light: string) {
@@ -116,7 +142,12 @@ export function illustratedPortrait(look: Look, expression: AppearanceExpression
 
 export function illustratedSpriteMaterials(look: Look) {
   const gear = fittedSpriteGear(look)
-  return `${paintedSpriteRigDefinitions()}${paintedDyeFilter('rig-cloth', look.clothColor)}${paintedDyeFilter('rig-gear', look.gearColor)}
+  const fabric =
+    look.clothColor === 'natural'
+      ? paintedPigmentFilter('rig-fabric', naturalSpriteFabric[look.outerwear])
+      : paintedDyeFilter('rig-fabric', look.clothColor)
+  return `${paintedSpriteRigDefinitions()}${fabric}${paintedDyeFilter('rig-gear', look.gearColor)}
+  ${paintedPigmentFilter('rig-skin', fittedSpriteSkinPigment(look))}
   <image id="rig-worn-outfit" href="${fittedSpriteOutfit(look)}" width="1" height="1" preserveAspectRatio="none"/>
   ${gear ? `<image id="rig-worn-gear" href="${gear}" width="1" height="1" preserveAspectRatio="none"/>` : ''}`
 }
@@ -143,7 +174,10 @@ export function illustratedSprite(
       look.outerwear === 'scarf',
     satchel: look.gear !== 'none',
     outfit: 'rig-worn-outfit',
-    dye: look.clothColor === 'natural' ? undefined : 'rig-cloth',
+    fabricDye: 'rig-fabric',
+    outfitDye: look.clothColor === 'natural' ? undefined : 'rig-fabric',
+    sleeve: illustratedSleeves[look.outerwear],
+    handDye: 'rig-skin',
     gear: look.gear === 'none' ? undefined : 'rig-worn-gear',
     gearDye: look.gearColor === 'natural' ? undefined : 'rig-gear',
   })

@@ -507,7 +507,10 @@ test('Eastern Watch objective persists accept, inspect and idempotent return com
   ).toBeVisible()
   await expect(page.locator('[data-world-stage]')).toBeVisible()
   const portrait = dialogue.locator('img')
-  await expect(portrait).toHaveAttribute('src', /\/neutral\.svg$/)
+  await expect(portrait).toHaveAttribute(
+    'src',
+    /^\/api\/media\/appearance\/6\/.+\/illustrated-neutral\.svg$/,
+  )
   await expect
     .poll(() => portrait.evaluate((image) => (image as HTMLImageElement).naturalWidth))
     .toBeGreaterThan(0)

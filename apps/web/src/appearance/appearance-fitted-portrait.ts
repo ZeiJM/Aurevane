@@ -115,6 +115,17 @@ const fittedGear = {
   girdle: 'archivist-brocade-girdle',
 } as const satisfies Record<Exclude<PaintedPlayerLook['gear'], 'none'>, SourceName>
 
+const gearPlacement = {
+  utility: 'waist',
+  mapcase: 'sash',
+  potions: 'sash',
+  bedroll: 'behind',
+  journal: 'waist',
+  rope: 'shoulder',
+  sword: 'waist',
+  girdle: 'waist',
+} as const satisfies Record<keyof typeof fittedGear, string>
+
 const replacementHeadwear = {
   arcanist: 'astronomerhat',
   bandana: 'wayfarercap',
@@ -264,15 +275,14 @@ export function fittedCharacterPortrait(
     neck: [128 - face.neck, 128 + face.neck],
     shoulder: face.chin + 28,
   }
-  const expressionSource = `${face.source}-${expression}` as SourceName
-  const usesPaintedExpression = Object.hasOwn(FITTED_ART_SOURCE, expressionSource)
-  const faceSource = usesPaintedExpression ? expressionSource : face.source
+  const faceSource = FITTED_ART_SOURCE[face.source]
   const naturalOrDyed = <T>(
     layer: T,
     filter: string,
     pigment: readonly [number, number, number] | null,
   ) => (pigment ? { ...layer, filter } : layer)
   const hairDye = WARDROBE_HAIR_COLORS[look.hairDye].rgb
+  const hair = FITTED_ART_SOURCE[FITTED_HAIR_ART[look.hairstyle]]
   const fabricDye = WARDROBE_DYES[look.clothColor].rgb
   const accentDye = look.hairAccent ? WARDROBE_HAIR_COLORS[look.hairAccent].rgb : null
   const leftEye = WARDROBE_EYE_COLORS[look.secondEye ?? look.eyeColor].rgb
@@ -283,21 +293,22 @@ export function fittedCharacterPortrait(
   const skinDye = WARDROBE_SKIN_TONES[look.skinTone].rgb
   const neckPigment = skinDye
     ? ([pigmentCss(skinDye, 0.82), pigmentCss(skinDye, 0.59)] as const)
-    : face.skin
+    : 'neckPigments' in faceSource
+      ? ([pigmentCss(faceSource.neckPigments[0]), pigmentCss(faceSource.neckPigments[1])] as const)
+      : face.skin
   const beard = look.facialHair && look.facialHair !== 'none' ? fittedBeards[look.facialHair] : null
+  const beardDye = hairDye ?? ('hairPigment' in hair ? hair.hairPigment : null)
   return renderFittedPortrait(
     {
-      face: naturalOrDyed(FITTED_ART_SOURCE[faceSource], 'painted-skin', skinDye),
+      face: naturalOrDyed(faceSource, 'painted-skin', skinDye),
       landmarks,
       neckPigment,
       faceMarks: fittedFaceMarks(look, landmarks, neckPigment[1]),
-      expressionMap:
-        expression !== 'neutral' && !usesPaintedExpression
-          ? PORTRAIT_EXPRESSION_MAPS[expression]
-          : undefined,
+      expressionMap: expression !== 'neutral' ? PORTRAIT_EXPRESSION_MAPS[expression] : undefined,
       torsoScale: WARDROBE_FRAMES[look.bodyFrame].torsoScale,
       paintedFilters:
         paintedPigmentFilter('painted-hair', hairDye) +
+        (beard ? paintedPigmentFilter('painted-beard', beardDye) : '') +
         paintedPigmentFilter('painted-hair-second', accentDye) +
         paintedPigmentFilter('painted-eye-left', leftEye) +
         paintedPigmentFilter('painted-eye-right', rightEye) +
@@ -306,11 +317,7 @@ export function fittedCharacterPortrait(
         paintedPigmentFilter('painted-gear', gearDye) +
         paintedPigmentFilter('painted-hat', headDye) +
         paintedPigmentFilter('painted-accessory', accessoryDye),
-      hair: naturalOrDyed(
-        FITTED_ART_SOURCE[FITTED_HAIR_ART[look.hairstyle]],
-        'painted-hair',
-        hairDye,
-      ),
+      hair: naturalOrDyed(hair, 'painted-hair', hairDye),
       hairAccent: accentDye
         ? { filter: 'painted-hair-second', placement: look.hairPlacement ?? 'streak' }
         : undefined,
@@ -327,9 +334,10 @@ export function fittedCharacterPortrait(
         look.gear === 'none'
           ? undefined
           : naturalOrDyed(FITTED_ART_SOURCE[fittedGear[look.gear]], 'painted-gear', gearDye),
+      gearPlacement: look.gear === 'none' ? undefined : gearPlacement[look.gear],
       facialHair: beard
         ? {
-            layer: naturalOrDyed(FITTED_ART_SOURCE[beard], 'painted-hair', hairDye),
+            layer: naturalOrDyed(FITTED_ART_SOURCE[beard], 'painted-beard', beardDye),
             upperLipOnly: look.facialHair === 'moustache',
           }
         : undefined,
@@ -381,12 +389,41 @@ const longHair = new Set<PaintedPlayerLook['hairstyle']>([
   'silkwave',
 ])
 
+const boundHair = new Set<PaintedPlayerLook['hairstyle']>([
+  'bun',
+  'topknot',
+  'tightbun',
+  'loosebun',
+  'sidebun',
+  'warrior',
+  'doublenot',
+  'hightwist',
+  'coils',
+])
+const looseWaveHair = new Set<PaintedPlayerLook['hairstyle']>([
+  'waves',
+  'ringlets',
+  'mermaid',
+  'softwave',
+  'silkwave',
+  'longbraid',
+  'curlsweep',
+])
+
 export function fittedSpriteOutfit(look: PaintedPlayerAppearanceBlueprint) {
   return PAINTED_SPRITE_HEADS[fittedGarments[look.outerwear]].href
 }
 
 export function fittedSpriteGear(look: PaintedPlayerAppearanceBlueprint) {
   return look.gear === 'none' ? undefined : PAINTED_SPRITE_HEADS[fittedGear[look.gear]].href
+}
+
+export function fittedSpriteSkinPigment(look: PaintedPlayerAppearanceBlueprint): Pigment {
+  const face = FITTED_ART_SOURCE[fittedFace(look).source]
+  return (
+    WARDROBE_SKIN_TONES[look.skinTone].rgb ??
+    ('neckPigments' in face ? face.neckPigments[0] : [170, 119, 85])
+  )
 }
 
 export function fittedCharacterSpriteHead(
@@ -399,8 +436,12 @@ export function fittedCharacterSpriteHead(
   const rear = facing === 'north'
   const profile = facing === 'east' || facing === 'west'
   const long = longHair.has(look.hairstyle)
-  const skinColor = WARDROBE_SKIN_TONES[look.skinTone].rgb
-  const hairColor = WARDROBE_HAIR_COLORS[look.hairDye].rgb
+  const hairArt = FITTED_ART_SOURCE[FITTED_HAIR_ART[look.hairstyle]]
+  const skinColor =
+    rear || profile ? fittedSpriteSkinPigment(look) : WARDROBE_SKIN_TONES[look.skinTone].rgb
+  const naturalHair =
+    (rear || profile) && 'hairPigment' in hairArt ? (hairArt.hairPigment as Pigment) : null
+  const hairColor = WARDROBE_HAIR_COLORS[look.hairDye].rgb ?? naturalHair
   const hairAccent = look.hairAccent ? WARDROBE_HAIR_COLORS[look.hairAccent].rgb : null
   const headColor = WARDROBE_DYES[look.headColor].rgb
   const faceColor = WARDROBE_DYES[look.faceColor].rgb
@@ -462,22 +503,31 @@ export function fittedCharacterSpriteHead(
           },
           skinId,
         )
+  const tied = boundHair.has(look.hairstyle)
+  const waves = looseWaveHair.has(look.hairstyle)
+  const facingHair = rear
+    ? tied
+      ? 'bunBackHair'
+      : waves
+        ? 'longBackHair'
+        : long
+          ? 'braidBackHair'
+          : 'shortBackHair'
+    : tied
+      ? 'curledSideHair'
+      : waves
+        ? 'waveSideHair'
+        : long
+          ? 'longSideHair'
+          : 'shortSideHair'
   const rawHair =
     rear || profile
       ? image(
-          PAINTED_SPRITE_HEADS[
-            rear
-              ? long
-                ? 'longBackHair'
-                : 'shortBackHair'
-              : long
-                ? 'longSideHair'
-                : 'shortSideHair'
-          ].href,
+          PAINTED_SPRITE_HEADS[facingHair].href,
           long ? 50 : 66,
-          20,
+          tied ? 10 : 20,
           long ? 138 : 116,
-          long ? 173 : 111,
+          long ? 173 : tied ? 134 : 111,
         )
       : registeredImage(PAINTED_SPRITE_HEADS[FITTED_HAIR_ART[look.hairstyle]], {
           left: landmarks.temples[0],
