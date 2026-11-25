@@ -7,7 +7,11 @@ import {
   compileAppearanceManifest,
   parseAppearanceBlueprint,
 } from './appearance-manifest'
-import { APPEARANCE_BACKDROPS, STUDIO_COLORS } from './appearance-backdrop-catalog'
+import {
+  APPEARANCE_BACKDROPS,
+  PATTERNED_BACKDROPS,
+  STUDIO_COLORS,
+} from './appearance-backdrop-catalog'
 import {
   APPEARANCE_GENDERS,
   CURATED_PAINTED_LOOKS,
@@ -109,9 +113,13 @@ describe('painted player appearance', () => {
 
   it('uses settings only for portraits and randomizes within the selected gender', () => {
     const genderChoices = Object.keys(APPEARANCE_GENDERS) as AppearanceGender[]
-    expect(new Set([...Object.keys(PAINTED_BACKDROPS), ...Object.keys(STUDIO_COLORS)])).toEqual(
-      new Set(Object.keys(APPEARANCE_BACKDROPS)),
-    )
+    expect(
+      new Set([
+        ...Object.keys(PAINTED_BACKDROPS),
+        ...Object.keys(STUDIO_COLORS),
+        ...Object.keys(PATTERNED_BACKDROPS),
+      ]),
+    ).toEqual(new Set(Object.keys(APPEARANCE_BACKDROPS)))
     expect(new Set(Object.values(PAINTED_BACKDROPS)).size).toBe(50)
     for (const gender of genderChoices) {
       const look = defaultPaintedLookForGender(gender)

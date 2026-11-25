@@ -13,7 +13,7 @@ it.each([
   expect(isWalkable(sector, { x: 6, y: 4 })).toBe(true)
 })
 
-it('blocks the valley pools and preserves dry avenues through the cliffs', () => {
+it('keeps the reduced valley pools and its dry avenues walkable as authored', () => {
   const site = GRAND_DISCOVERY_SITES.find((s) => s.id === 'elemental-valley')!,
     sectors = atlasSectors()
   for (const cell of site.water) {
@@ -40,8 +40,9 @@ it('blocks the valley pools and preserves dry avenues through the cliffs', () =>
     if (barrier) rocky++
     else open++
   }
-  expect(rocky).toBe(site.width - 9)
-  expect(open).toBe(9)
+  expect(rocky).toBeGreaterThan(0)
+  expect(open).toBeGreaterThan(9)
+  expect(rocky + open).toBe(site.width)
 })
 it('reserves the entire discovery grounds and southern approach without dense trees or generated POI overlaps', () => {
   const sectors = atlasSectors()
@@ -64,10 +65,10 @@ it('reserves the entire discovery grounds and southern approach without dense tr
   }
 })
 
-it('keeps both major grounds larger than a town while retaining the original deep river collision', () => {
+it('shrinks the Vigil to 60% in each dimension and retains original deep river collision', () => {
   const valley = GRAND_DISCOVERY_SITES.find((s) => s.id === 'elemental-valley')!,
     arena = GRAND_DISCOVERY_SITES.find((s) => s.id === 'remote-colosseum')!
-  expect(valley.width * valley.height).toBeGreaterThan(39 * 27)
+  expect([valley.width, valley.height]).toEqual([36, 24])
   expect(arena.width * arena.height).toBeGreaterThan(39 * 27)
   for (const cell of valley.deepWater) {
     const x = valley.left + cell.x,

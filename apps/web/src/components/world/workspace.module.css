@@ -689,30 +689,42 @@
 }
 .globePin {
   position: absolute;
-  z-index: 2;
-  display: flex;
-  height: 12px;
-  align-items: center;
-  gap: 6px;
-  transform: translate(-6px, -6px);
+  z-index: 7;
+  display: block;
+  width: 9px;
+  height: 9px;
+  transform: translate(-50%, -50%);
+  border: 1px solid #17232a;
+  border-radius: 50%;
+  background: #ffe6a4;
+  box-shadow:
+    0 0 0 2px #dfb46c99,
+    0 0 8px #ffe6a480;
   font:
     600 12px Georgia,
     serif;
   color: #fff0c7;
-  text-shadow: 0 1px 3px #051c22;
   white-space: nowrap;
   pointer-events: none;
 }
 .globePin > span {
   position: absolute;
-  top: 34px;
-  left: 6px;
+  bottom: calc(100% + 8px);
+  left: 50%;
   transform: translateX(-50%);
-  width: max-content;
   padding: 4px 6px;
   border: 1px solid #d0ac6680;
   border-radius: 4px;
   background: #071c24ed;
+}
+.globePin > span::after {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  width: 1px;
+  height: 8px;
+  background: #ffe6a4;
+  content: '';
 }
 .workspace .globeTown {
   position: absolute;
@@ -759,11 +771,6 @@
   background-size: 400% 300%;
   background-repeat: no-repeat;
   pointer-events: none;
-}
-.globePin .atlasMarker {
-  flex: 0 0 16px;
-  width: 16px;
-  filter: drop-shadow(0 1px 2px #06161d);
 }
 .globeCaption {
   position: absolute;

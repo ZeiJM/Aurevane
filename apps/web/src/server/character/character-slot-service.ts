@@ -198,7 +198,7 @@ export async function createCharacterInSlot(command: {
   if (command.appearance !== undefined && !blueprint) {
     throw new AurevaneError('INVALID_REQUEST', 'Choose compatible appearance parts.')
   }
-  const appearanceUrl = blueprint ? compileAppearanceManifest(blueprint).portraits.neutral : null
+  const appearanceUrl = blueprint ? compileAppearanceManifest(blueprint).neutralUrl : null
   const requestFingerprint = createHash('sha256')
     .update(
       JSON.stringify({

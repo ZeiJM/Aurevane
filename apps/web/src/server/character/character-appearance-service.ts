@@ -52,7 +52,7 @@ export async function commitCharacterAppearance(input: {
 }) {
   const blueprint = parseAppearanceBlueprint(input.blueprint)
   if (!blueprint) throw new AurevaneError('INVALID_REQUEST', 'Choose compatible appearance parts.')
-  const imageUrl = compileAppearanceManifest(blueprint).portraits.neutral
+  const imageUrl = compileAppearanceManifest(blueprint).neutralUrl
   const { data, error } = await createSupabaseAdminClient().rpc('commit_character_appearance_v4', {
     p_user_id: input.userId,
     p_character_id: input.characterId,

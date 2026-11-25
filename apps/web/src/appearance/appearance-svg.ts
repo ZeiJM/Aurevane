@@ -1,5 +1,15 @@
+import {
+  illustratedPortrait,
+  illustratedSprite,
+  illustratedSpriteHead,
+} from './appearance-illustrated'
 import { facePainting, faceLayers, naturalFaceSkin, fieldFacePaint } from './appearance-face-paint'
-import { studioColor, type StudioColor } from './appearance-backdrop-catalog'
+import {
+  patternedBackdrop,
+  studioColor,
+  type StudioColor,
+  type PatternedBackdrop,
+} from './appearance-backdrop-catalog'
 import {
   APPEARANCE_FACINGS,
   APPEARANCE_FRAME,
@@ -39,6 +49,7 @@ import {
 } from './appearance-painted-features'
 import {
   WARDROBE_FRAMES,
+  WARDROBE_HAIRSTYLES,
   WARDROBE_SKIN_TONES,
   type PaintedWardrobeLook,
 } from './appearance-painted-wardrobe'
@@ -464,7 +475,9 @@ function paintedPlayerPortrait(
     !studio &&
     (backdrop === 'original'
       ? PAINTED_STUDIO_PAPER
-      : PAINTED_BACKDROPS[backdrop as Exclude<typeof backdrop, 'original' | StudioColor>])
+      : PAINTED_BACKDROPS[
+          backdrop as Exclude<typeof backdrop, 'original' | StudioColor | PatternedBackdrop>
+        ])
   const background = studio
     ? `<defs><radialGradient id="studio-light" cx=".40" cy=".32" r=".9"><stop stop-color="${studio[1]}"/><stop offset=".58" stop-color="${studio[2]}"/><stop offset="1" stop-color="${studio[3]}"/></radialGradient></defs><rect width="${size}" height="${size}" fill="url(#studio-light)"/>`
     : `<image href="${scene}" width="${size}" height="${size}"/>`
@@ -739,9 +752,31 @@ function renderPaintedCharacterAtlas(
 export function renderAppearanceAsset(
   blueprint: AppearanceBlueprint,
   asset: AppearanceAsset,
+  illustrated = false,
 ): string {
   const depthWalk = asset === 'motion-v2'
   const motion = asset === 'motion' || depthWalk
+  if (
+    blueprint.v === 6 &&
+    (illustrated ||
+      blueprint.faceId?.endsWith('soft') ||
+      blueprint.faceId?.endsWith('keen') ||
+      !Object.hasOwn(WARDROBE_HAIRSTYLES, blueprint.hairstyle) ||
+      patternedBackdrop(blueprint.backdrop))
+  ) {
+    if (asset !== 'atlas' && asset !== 'motion' && asset !== 'motion-v2')
+      return illustratedPortrait(blueprint, asset === 'icon' ? 'neutral' : asset, asset === 'icon')
+    const heads = APPEARANCE_FACINGS.map((facing) =>
+      illustratedSpriteHead(blueprint, facing, 'painted-' + facing),
+    )
+    const frames = motion ? APPEARANCE_MOTION_FRAME.frames : APPEARANCE_FRAME.frames
+    return renderSpriteAtlas(
+      `<defs>${heads.join('')}</defs>`,
+      (facing, pose, frame) =>
+        illustratedSprite(blueprint, facing, pose, frame, frames, 'painted-' + facing),
+      motion,
+    )
+  }
   if (blueprint.v === 4 || blueprint.v === 5 || blueprint.v === 6)
     return asset === 'atlas' || motion
       ? renderPaintedCharacterAtlas(blueprint, motion, depthWalk)

@@ -14,43 +14,65 @@ import {
   type WorldFerryView,
 } from '@/world/ferry'
 import type { WorldInteraction, WorldView } from '@/world/types'
-import { APPEARANCE_PRESETS, compileAppearanceManifest } from '@/appearance/appearance-manifest'
+import { compileAppearanceManifest } from '@/appearance/appearance-manifest'
+import {
+  defaultPaintedLookForGender,
+  paintedPlayerAppearanceBlueprint,
+  type PaintedPlayerLook,
+} from '@/appearance/appearance-painted-looks'
 import styles from './world-ferry.module.css'
 
 const ferrymen = {
   mainland: {
     name: 'Krane',
     look: {
-      ...APPEARANCE_PRESETS[1].blueprint,
-      coat: 'longcoat',
-      palette: 'pine',
-      accessory: 'scarf',
+      ...defaultPaintedLookForGender('masculine'),
+      identity: 'guard',
+      bodyFrame: 'broad',
+      outerwear: 'compass',
+      clothColor: 'cedar',
+      gear: 'rope',
+      backdrop: 'hollow',
     },
   },
   uncharted: {
     name: 'Sable',
-    look: { ...APPEARANCE_PRESETS[2].blueprint, coat: 'longcoat', palette: 'slate' },
+    look: {
+      ...defaultPaintedLookForGender('feminine'),
+      identity: 'ranger',
+      hairstyle: 'layers',
+      outerwear: 'hooded',
+      clothColor: 'midnight',
+      gear: 'mapcase',
+      backdrop: 'umbral',
+    },
   },
   'north-shore': {
     name: 'Merrick',
     look: {
-      ...APPEARANCE_PRESETS[0].blueprint,
-      hair: 'swept',
-      coat: 'mantle',
-      accessory: 'brooch',
-      palette: 'indigo',
+      ...defaultPaintedLookForGender('masculine'),
+      identity: 'elder',
+      hairDye: 'silver',
+      outerwear: 'shearling',
+      clothColor: 'denim',
+      headwear: 'furcap',
+      backdrop: 'northernpass',
     },
   },
   asterwake: {
     name: 'Iona',
     look: {
-      ...APPEARANCE_PRESETS[0].blueprint,
-      complexion: 'brown',
-      hairColor: 'onyx',
-      palette: 'saffron',
+      ...defaultPaintedLookForGender('feminine'),
+      skinTone: 'umber',
+      hairstyle: 'braid',
+      hairDye: 'onyx',
+      outerwear: 'scarf',
+      clothColor: 'ochre',
+      gear: 'rope',
+      backdrop: 'asterwake',
     },
   },
-} as const
+} satisfies Record<FerryPort, { name: string; look: PaintedPlayerLook }>
 
 function ferrymanIdentity(ferry?: WorldFerryView, dockSectorId?: string) {
   const departure = ferry?.passage?.direction
@@ -74,7 +96,8 @@ function ferrymanIdentity(ferry?: WorldFerryView, dockSectorId?: string) {
   const crew = ferrymen[port]
   return {
     name: `${crew.name} (Ferryman)`,
-    imageUrl: compileAppearanceManifest(crew.look).portraits.neutral,
+    imageUrl: compileAppearanceManifest(paintedPlayerAppearanceBlueprint(crew.look)).portraits
+      .neutral,
   }
 }
 

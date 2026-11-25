@@ -1,17 +1,30 @@
-// Between Frostmere and Emberreach, on the authored public land corridor.
-const valleyLeft = 899,
-  valleyTop = 129
-const valleyWater = Array.from({ length: 40 }, (_, y) =>
-  Array.from({ length: 60 }, (_, x) => ({ x, y })),
+// Keep the basin centered on its established public ground.
+export const SHADOWS_VIGIL_SCALE = 0.6
+const valleyWidth = 60 * SHADOWS_VIGIL_SCALE
+const valleyHeight = 40 * SHADOWS_VIGIL_SCALE
+const valleyLeft = 929 - valleyWidth / 2
+const valleyTop = Math.round(158 - 29 * SHADOWS_VIGIL_SCALE)
+const valleyBasin = 158 - valleyTop
+
+function valleyWaterShape(x: number, y: number) {
+  const stream = y < 25 && Math.abs(x - (30 + Math.sin(y / 5) * 2)) < 1.8
+  const basin = ((x - 30) / 15) ** 2 + ((y - 29) / 8) ** 2 < 1 + Math.sin(x * 0.7 + y * 0.4) * 0.055
+  return stream || basin
+}
+
+const valleyWater = Array.from({ length: valleyHeight }, (_, y) =>
+  Array.from({ length: valleyWidth }, (_, x) => ({ x, y })),
 )
   .flat()
   .filter(({ x, y }) => {
-    // Existing avenues cross between cascades, rather than being concealed by new water.
-    if ((valleyTop + y) % 9 === 4 || (valleyLeft + x) % 52 === 6) return false
-    const stream = y < 25 && Math.abs(x - (30 + Math.sin(y / 5) * 2)) < 1.8
-    const basin =
-      ((x - 30) / 15) ** 2 + ((y - 29) / 8) ** 2 < 1 + Math.sin(x * 0.7 + y * 0.4) * 0.055
-    return stream || basin
+    const worldX = valleyLeft + x
+    const worldY = valleyTop + y
+    if (worldY % 9 === 4 || worldX % 52 === 6) return false
+    // The reduced cascade must not introduce water on a previously dry tile.
+    return (
+      valleyWaterShape(x / SHADOWS_VIGIL_SCALE, y / SHADOWS_VIGIL_SCALE) &&
+      valleyWaterShape(worldX - 899, worldY - 129)
+    )
   })
 /** Public mainland art footprints. No interaction, reward or private geography is authored here. */
 export const GRAND_DISCOVERY_SITES = [
@@ -23,8 +36,9 @@ export const GRAND_DISCOVERY_SITES = [
     sectorId: 'atlas:71:16',
     left: valleyLeft,
     top: valleyTop,
-    width: 60,
-    height: 40,
+    width: valleyWidth,
+    height: valleyHeight,
+    basinY: valleyBasin,
     regionId: 'verdant-expanse',
     water: valleyWater,
     // The new public corridor has no pre-existing deep-river cells; never

@@ -69,7 +69,7 @@ function variationValue(blueprint: AppearanceBlueprint, field: NpcVariantField) 
 }
 
 function variationPool({ base, vary }: NpcVariantRequest) {
-  const seen = new Set([compileAppearanceManifest(base).portraits.neutral])
+  const seen = new Set([compileAppearanceManifest(base).neutralUrl])
   const parts = vary.map((field) => {
     if (base.v === 6)
       return {
@@ -123,7 +123,7 @@ function variationPool({ base, vary }: NpcVariantRequest) {
             ? paintedAppearanceBlueprint(draft as PaintedLook)
             : parseAppearanceBlueprint(draft)
     if (!blueprint) continue
-    const url = compileAppearanceManifest(blueprint).portraits.neutral
+    const url = compileAppearanceManifest(blueprint).neutralUrl
     if (seen.has(url)) continue
     seen.add(url)
     candidates.push({ blueprint, url })
@@ -134,7 +134,7 @@ function variationPool({ base, vary }: NpcVariantRequest) {
 
 export async function previewNpcAppearanceVariants(actorUserId: string, input: NpcVariantRequest) {
   if (input.mode === 'uniform') {
-    const url = compileAppearanceManifest(input.base).portraits.neutral
+    const url = compileAppearanceManifest(input.base).neutralUrl
     return Array.from({ length: input.count }, () => url)
   }
 

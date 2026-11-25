@@ -755,6 +755,7 @@ export function createMapRenderer(
     position: WorldPosition,
     direction?: MapDirection,
     previewDestination?: WorldPosition,
+    continuing?: boolean,
   ) => void,
   selectPlayer: (id: string) => void,
   onZoom: (zoom: number) => void = () => {},
@@ -5189,7 +5190,8 @@ export function createMapRenderer(
       // authorize three steps while it waits. Keep lookahead for interpolation
       // and extend the server route only after a held-key interval elapses.
       if (initial && !samePosition(first, position)) select(first, direction, position)
-      else select(position, direction)
+      else if (initial) select(position, direction)
+      else select(position, direction, undefined, true)
       requestDraw()
     } else if (heldDirection !== direction) {
       // A blocked turn must also cancel the previous click or held heading.

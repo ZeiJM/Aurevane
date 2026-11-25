@@ -48,9 +48,11 @@ describe('grand discovery placement', () => {
       widthTiles: 64,
       footprint: { width: 48, height: 36 },
     })
-    expect(result.find((p) => p.id === 'elemental-valley')!.footprint.width).toBeGreaterThanOrEqual(
-      12,
-    )
+    expect(result.find((p) => p.id === 'elemental-valley')).toMatchObject({
+      widthTiles: 44.4,
+      heightTiles: 33.6,
+      footprint: { width: 36, height: 24 },
+    })
     expect(JSON.stringify(sectors)).toBe(before)
     expect(grandDiscoveryPlacements([...sectors].reverse())).toEqual(result)
   })
@@ -123,10 +125,14 @@ describe('grand discovery placement', () => {
   })
   it('requires the exact authoritative waterfall pool, and never invents a scenic bridge crossing', () => {
     const sectors = canonical(),
-      site = grandDiscoverySites.find((s) => s.id === 'elemental-valley')!
+      site = grandDiscoverySites.find((s) => s.id === 'elemental-valley')!,
+      pool = site.water.find((cell) => cell.y >= site.basinY)!
     expect(
       grandDiscoveryPlacements(
-        mutateCell(sectors, site.left + 30, site.top, { terrain: '.', walkable: true }),
+        mutateCell(sectors, site.left + pool.x, site.top + pool.y, {
+          terrain: '.',
+          walkable: true,
+        }),
       ).some((p) => p.id === site.id),
     ).toBe(false)
     expect(

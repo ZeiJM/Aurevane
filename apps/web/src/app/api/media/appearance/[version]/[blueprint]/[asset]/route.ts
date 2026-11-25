@@ -7,10 +7,12 @@ export async function GET(
 ) {
   const { version, blueprint: id, asset: filename } = await params
   const blueprint = appearanceBlueprintFromId(id, version)
-  const asset = filename.endsWith('.svg') ? filename.slice(0, -4) : ''
+  const illustrated = filename.startsWith('illustrated-')
+  const asset = filename.endsWith('.svg') ? filename.slice(illustrated ? 12 : 0, -4) : ''
+  if (illustrated && blueprint?.v !== 6) return new Response(null, { status: 404 })
   if (!blueprint || !isAppearanceAsset(asset)) return new Response(null, { status: 404 })
 
-  return new Response(renderAppearanceAsset(blueprint, asset), {
+  return new Response(renderAppearanceAsset(blueprint, asset, illustrated), {
     headers: {
       'Content-Type': 'image/svg+xml; charset=utf-8',
       'Cache-Control': 'public, max-age=31536000, immutable',

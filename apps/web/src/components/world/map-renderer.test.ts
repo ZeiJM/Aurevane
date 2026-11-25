@@ -18,12 +18,14 @@ import { atlasSectors } from '@/world/atlas'
 import { CHARTED_SECTORS, GRID_HEIGHT, GRID_WIDTH } from '@/world/catalog'
 import { GRAND_DISCOVERY_SITES, OFFSHORE_DISCOVERY } from '@/world/discovery-sites'
 import { WORLD_MAP_WIDTH } from '@/world/topology'
+import { WORLD_MIN_ZOOM } from './world-zoom'
 import legacyTownTopology from '@/world/town-topology.legacy.json'
 import townGrandManifest from '../../../public/media/art/world/runtime/town-grand-architecture-v01.manifest.json'
 import { newWorldState, revealNearby } from '@/world/travel'
 import { localRoute, mapPoint, WorldMotion } from './world-motion'
 import * as navigation from './world-motion'
 import { createMapRenderer } from './map-renderer'
+import { WorldController } from './world-controller'
 import { MAP_X, MAP_Y, projectMapPoint, unprojectMapPoint } from './map-projection'
 import type { WorldView } from '@/world/types'
 import * as biomes from './map-biome-transitions'
@@ -1774,6 +1776,68 @@ describe('native map input and bounded lifecycle', () => {
       vi.unstubAllGlobals()
     },
   )
+  it('maintains a held walk from Gildtide through a dry sector seam over a slow connection', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] })
+    let state = revealNearby({
+      ...newWorldState(),
+      position: { sectorId: 'atlas:4:15', x: 6, y: 4 },
+    })
+    const clock = () => 10_000 + performance.now()
+    const s = scene(true, projectWorld(state, [], clock()))
+    const failures: string[] = []
+    let version = s.view.version
+    const controller: WorldController = new WorldController(s.view, {
+      command: async (intent) => {
+        if (intent.kind !== 'walk' && intent.kind !== 'stop') throw new Error(intent.kind)
+        await new Promise((resolve) => setTimeout(resolve, 275))
+        const serverNow = clock()
+        state = resolveWorldIntent(state, intent, serverNow)
+        const next = projectWorld({ ...state, version: ++version }, [], serverNow)
+        await new Promise((resolve) => setTimeout(resolve, 275))
+        return next
+      },
+      refresh: async () => controller.view,
+      accept: (view, reconcile) => {
+        if (reconcile) s.motion.reconcile(view, performance.now())
+        else s.motion.approveReceipt(view, performance.now())
+        s.renderer.update(view)
+      },
+      error: (message) => failures.push(message),
+      busy: () => {},
+    })
+    s.select.mockImplementation((destination, direction, previewDestination, continuing) => {
+      const turn = s.motion.planDirectional(
+        previewDestination ?? destination,
+        direction,
+        controller.view.sectors,
+        performance.now(),
+        controller.movementPending,
+        continuing,
+      )
+      void controller.send({ kind: 'walk', destination, direction }).then(({ applied, view }) => {
+        if (applied && view && turn) s.motion.confirmDirectional(view, turn, performance.now())
+      })
+    })
+    try {
+      s.listeners.get('keydown')!({ key: 'w', preventDefault() {} } as unknown as Event)
+      const trail: number[] = []
+      for (let elapsed = 100; elapsed <= 2800; elapsed += 100) {
+        await vi.advanceTimersByTimeAsync(100)
+        trail.push(s.motion.sample(performance.now()).point.y)
+      }
+      s.listeners.get('keyup')!({ key: 'w' } as unknown as Event)
+      await vi.advanceTimersByTimeAsync(650)
+      expect(failures).toEqual([])
+      expect(trail.map((y, index) => (index === 0 ? 0.5 : trail[index - 1]! - y))).toEqual(
+        Array(28).fill(0.5),
+      )
+    } finally {
+      controller.dispose()
+      s.renderer.dispose()
+      vi.useRealTimers()
+      vi.unstubAllGlobals()
+    }
+  })
   it('continues authored held-key cadence until the actual delayed key release', () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] })
     const s = scene()
@@ -6547,7 +6611,7 @@ it.each([
     try {
       window.devicePixelRatio = density
       Object.assign(s.canvas, { clientWidth: 390 })
-      s.renderer.settings({ animate: false, zoom: 0.35, quality })
+      s.renderer.settings({ animate: false, zoom: WORLD_MIN_ZOOM, quality })
       s.resize()
       s.frame(40)
       for (const detail of valleyDetailArt) {

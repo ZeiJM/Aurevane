@@ -1,4 +1,8 @@
-import { GRAND_DISCOVERY_SITES, type GrandDiscoveryId } from './discovery-sites'
+import {
+  GRAND_DISCOVERY_SITES,
+  SHADOWS_VIGIL_SCALE,
+  type GrandDiscoveryId,
+} from './discovery-sites'
 
 /** Footprint of the painted arena perimeter and valley cliffs. */
 export function grandDiscoveryBarrier(id: GrandDiscoveryId, x: number, y: number): boolean {
@@ -22,11 +26,13 @@ export function grandDiscoveryBarrier(id: GrandDiscoveryId, x: number, y: number
     return ring > 0.58 && ring <= 1.1 && !gate
   }
   if (id === 'elemental-valley') {
-    const edge = Math.min(x, site.width - 1 - x)
+    const edge = Math.min(x, site.width - 1 - x) / SHADOWS_VIGIL_SCALE
+    const originalX = x / SHADOWS_VIGIL_SCALE
+    const originalY = y / SHADOWS_VIGIL_SCALE
     // Cliff crests form a crescent; the central upper cascade remains water.
-    const back = y < 4 && (x < 26 || x > 34)
-    const slopes = edge < 3 && y < site.height - 5
-    const southern = y >= site.height - 4 && edge < 17
+    const back = originalY < 4 && (originalX < 26 || originalX > 34)
+    const slopes = edge < 3 && originalY < 35
+    const southern = originalY >= 36 && edge < 17
     return back || slopes || southern
   }
   return false

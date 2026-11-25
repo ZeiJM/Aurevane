@@ -15,7 +15,9 @@ vi.mock('./spherical-view', () => ({
 }))
 import { WorldGlobe } from './world-globe'
 import { atlasSectors } from '@/world/atlas'
-import { globeSectorCenter } from '@/world/globe-math'
+import { globeSectorCenter, projectGlobePoint } from '@/world/globe-math'
+import { FERRY_ASTERWAKE_DOCK, FERRY_TERMINAL_NAMES } from '@/world/ferry'
+import { GLOBE_MAX_ZOOM } from './world-zoom'
 import { resolveWorldEnvironment } from '@/world/environment'
 
 function atlasCell(column: number, row: number, name: string): WorldAtlasCell {
@@ -144,6 +146,34 @@ describe('globe geographic labels', () => {
     expect(render(view, onSelect, true, hidden.id)).not.toContain('data-globe-destination')
     expect(view.position).toEqual({ sectorId: mainland.id, x: 6, y: 4 })
     expect(view.route).toEqual([])
+  })
+  it('marks the exact tile inland from Gildtide using the chart during a scene handoff', () => {
+    const dock = atlasCell(4, 15, FERRY_TERMINAL_NAMES.asterwake)
+    const inland = atlasCell(4, 14, 'Asterwake')
+    const view = viewFor([dock, inland])
+    view.position = { sectorId: inland.id, x: 7, y: 0 }
+    render(view)
+    const camera = capture.sphere!.camera
+    expect(camera).toEqual({
+      longitude: ((4 + 7.5 / 13) * 360) / 128 - 180,
+      latitude: 90 - ((14 + 0.5 / 9) * 180) / 64,
+    })
+    expect(capture.sphere?.maxZoom).toBe(GLOBE_MAX_ZOOM)
+    const markers = Children.toArray(capture.sphere?.children).filter(
+      isValidElement<{ 'aria-label'?: string; style: { left: string; top: string } }>,
+    )
+    const here = markers.find((item) => item.props['aria-label'] === 'Your current position')
+    const terminal = markers.find((item) => item.props['aria-label'] === 'Select ' + dock.name)
+    expect(here?.props.style).toEqual({ left: '50%', top: '50%' })
+    const projected = projectGlobePoint(
+      {
+        longitude: ((4 + (FERRY_ASTERWAKE_DOCK.x + 0.5) / 13) * 360) / 128 - 180,
+        latitude: 90 - ((15 + (FERRY_ASTERWAKE_DOCK.y + 0.5) / 9) * 180) / 64,
+      },
+      camera,
+    )
+    expect(Number.parseFloat(terminal!.props.style.top)).toBeCloseTo((1 - projected.y * 0.94) * 50)
+    expect(terminal!.props.style.top).not.toBe(here!.props.style.top)
   })
   it('hides town names while preserving selectable town icons and the current-position pin', () => {
     const view = viewFor([atlasCell(0, 2, 'South town')])

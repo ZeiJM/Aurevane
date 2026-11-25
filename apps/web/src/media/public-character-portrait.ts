@@ -1,4 +1,5 @@
 import { isStarterCharacterPortraitRef } from '@aurevane/game-core/character/starter-options'
+import { appearanceManifestFromImageUrl } from '@/appearance/appearance-manifest'
 import { starterPortraitArtworkVersion } from './starter-portrait-version'
 
 export function resolvePublicCharacterImageUrl(
@@ -6,6 +7,8 @@ export function resolvePublicCharacterImageUrl(
   portraitRef: string | null | undefined,
 ): string | null {
   const custom = profileImageUrl?.trim()
+  if (custom?.startsWith('/api/media/appearance/6/'))
+    return appearanceManifestFromImageUrl(custom)?.portraits.neutral ?? custom
   if (custom) return custom
   if (!portraitRef || !isStarterCharacterPortraitRef(portraitRef)) return null
 

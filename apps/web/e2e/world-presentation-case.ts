@@ -6,6 +6,7 @@ import { worldRenderTerrain } from '../src/components/world/map-render-terrain'
 import { mapPoint } from '../src/components/world/world-motion'
 import { projectMapPoint } from '../src/components/world/map-projection'
 import {
+  GLOBE_MAX_ZOOM,
   WORLD_MIN_ZOOM,
   worldZoomFromPercent,
   worldZoomPercent,
@@ -1282,12 +1283,17 @@ export function registerWorldInputCases({
     ).toEqual(pageScale)
     await openMapSettings(page)
     await expect(page.getByRole('slider', { name: 'Zoom level', exact: true })).toHaveValue(
-      String(worldZoomPercent(0.94)),
+      String(worldZoomPercent(0.94, GLOBE_MAX_ZOOM)),
     )
-    await closeMapSettings(page)
-    await page.getByRole('button', { name: /Return to local map/ }).click()
-    await openMapSettings(page)
+    await slider.press('End')
+    await expect(globe).toHaveAttribute('data-globe-zoom', String(GLOBE_MAX_ZOOM))
+    await slider.fill(String(worldZoomPercent(0.94, GLOBE_MAX_ZOOM)))
     await page.getByRole('button', { name: 'Zoom lock On', exact: true }).click()
+    await closeMapSettings(page)
+    await globe.hover()
+    await page.mouse.wheel(0, -6000)
+    await expect(globe).toHaveAttribute('data-globe-zoom', String(GLOBE_MAX_ZOOM))
+    await page.getByRole('button', { name: /Return to local map/ }).click()
     await closeMapSettings(page)
     await canvas.hover()
     await page.mouse.wheel(0, -160)

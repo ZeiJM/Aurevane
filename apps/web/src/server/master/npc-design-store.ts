@@ -69,7 +69,8 @@ function staffRpc(forbiddenMessage = 'NPC Design page access is required.') {
 function validNpcPresentation(value: { portraitRef: string | null; imageUrl?: string | null }) {
   return (
     (!value.portraitRef || isStarterCharacterPortraitRef(value.portraitRef)) &&
-    (!value.imageUrl || Boolean(appearanceManifestFromImageUrl(value.imageUrl)))
+    (!value.imageUrl ||
+      appearanceManifestFromImageUrl(value.imageUrl)?.neutralUrl === value.imageUrl)
   )
 }
 

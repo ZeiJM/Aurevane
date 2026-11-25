@@ -145,6 +145,7 @@ export interface PortraitFace {
   name: string
   rig: Rig
   painted: boolean
+  shape?: 1 | 2
 }
 function paintedFaces(prefix: string, names: string[], rigs: Rig[]): PortraitFace[] {
   return names.map((name, i) => ({
@@ -154,7 +155,177 @@ function paintedFaces(prefix: string, names: string[], rigs: Rig[]): PortraitFac
     painted: true,
   }))
 }
-export const PORTRAIT_FACES: readonly PortraitFace[] = [
+const variantNames = {
+  feminine: [
+    [
+      'Adelise',
+      'Aurelia',
+      'Beatrix',
+      'Celandine',
+      'Cressida',
+      'Dahlia',
+      'Delphine',
+      'Elysia',
+      'Esme',
+      'Faela',
+      'Gwendolen',
+      'Illyra',
+      'Juna',
+      'Kaori',
+      'Kestrel',
+      'Leora',
+      'Liliane',
+      'Mirelle',
+      'Nerissa',
+      'Nivara',
+      'Odette',
+      'Oriana',
+      'Perrine',
+      'Reina',
+      'Selene',
+      'Seraphine',
+      'Sorrel',
+      'Sylva',
+      'Valeria',
+      'Vianne',
+      'Yvette',
+      'Zelene',
+    ],
+    [
+      'Aderyn',
+      'Aleria',
+      'Astraea',
+      'Belen',
+      'Briar',
+      'Cyra',
+      'Damaris',
+      'Eira',
+      'Elara',
+      'Enya',
+      'Freya',
+      'Iseult',
+      'Jora',
+      'Kalina',
+      'Kerensa',
+      'Lysandra',
+      'Maera',
+      'Morwen',
+      'Nessa',
+      'Nyra',
+      'Oksana',
+      'Rhiannon',
+      'Runae',
+      'Sable',
+      'Safiya',
+      'Saskia',
+      'Silena',
+      'Talia',
+      'Vala',
+      'Wren',
+      'Yuna',
+      'Zora',
+    ],
+  ],
+  masculine: [
+    [
+      'Adrian',
+      'Aeron',
+      'Amias',
+      'Aster',
+      'Bastian',
+      'Cael',
+      'Caspian',
+      'Cedran',
+      'Dain',
+      'Dorian',
+      'Elias',
+      'Emilian',
+      'Evander',
+      'Faron',
+      'Felix',
+      'Galen',
+      'Garran',
+      'Ivar',
+      'Jalen',
+      'Kaito',
+      'Laurent',
+      'Lior',
+      'Lucien',
+      'Matteo',
+      'Nerian',
+      'Orion',
+      'Perrin',
+      'Rainier',
+      'Renan',
+      'Sorenel',
+      'Tolan',
+      'Vireo',
+    ],
+    [
+      'Aedric',
+      'Alastair',
+      'Amon',
+      'Arden',
+      'Beren',
+      'Brand',
+      'Cadell',
+      'Caelan',
+      'Dacre',
+      'Dastan',
+      'Eldric',
+      'Errol',
+      'Faolan',
+      'Fenris',
+      'Gavran',
+      'Hektor',
+      'Idris',
+      'Iskander',
+      'Jareth',
+      'Kellan',
+      'Kieran',
+      'Laziel',
+      'Lorcan',
+      'Marek',
+      'Nadir',
+      'Nikolai',
+      'Ossian',
+      'Rhydan',
+      'Saren',
+      'Tahmir',
+      'Valen',
+      'Zevran',
+    ],
+  ],
+} as const
+
+function variantName(face: PortraitFace, shape: 1 | 2) {
+  if (!face.painted) {
+    const legacy = classicFaces[face.rig]
+    const variants =
+      shape === 1
+        ? {
+            pinescout: 'Grove Scout',
+            ranger: 'Dawn Ranger',
+            scout: 'Road Scout',
+            guard: 'Tower Guard',
+            elder: 'Wandering Sage',
+          }
+        : {
+            pinescout: 'Briar Scout',
+            ranger: 'Dusk Ranger',
+            scout: 'Ridge Scout',
+            guard: 'Gate Sentinel',
+            elder: 'Winter Wayfarer',
+          }
+    return variants[face.rig] ?? legacy
+  }
+  const roster = variantNames[face.id[0] === 'f' ? 'feminine' : 'masculine'][shape - 1]!
+  const index = Number(face.id.slice(1)) - 1
+  const name = roster[index % roster.length]!
+  return index < roster.length ? name : name + (shape === 1 ? ' of Dawn' : ' of Dusk')
+}
+
+const originalFaces: readonly PortraitFace[] = [
   ...Object.entries(classicFaces).map(([rig, name]) => ({
     id: 'fit' + rig,
     name,
@@ -163,6 +334,18 @@ export const PORTRAIT_FACES: readonly PortraitFace[] = [
   })),
   ...paintedFaces('f', femaleNames, ['pinescout', 'ranger']),
   ...paintedFaces('m', maleNames, ['scout', 'guard', 'elder']),
+]
+export const PORTRAIT_FACES: readonly PortraitFace[] = [
+  ...originalFaces,
+  ...originalFaces.flatMap((face) =>
+    ([1, 2] as const).map((shape) => ({
+      id: face.id + (shape === 1 ? 'soft' : 'keen'),
+      name: variantName(face, shape),
+      rig: face.rig,
+      painted: false,
+      shape,
+    })),
+  ),
 ]
 const byId = new Map(PORTRAIT_FACES.map((face) => [face.id, face]))
 export function portraitFace(id: unknown): PortraitFace | undefined {

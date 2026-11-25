@@ -472,9 +472,11 @@ const paintedHairFits = {
 
 function paintedPlayerHairLayers(look: PaintedPlayerLook, facing?: AppearanceFacing) {
   const { hairstyle, identity, hairDye } = look
-  if (hairstyle === 'natural') return ['', ''] as const
-  const { crown, front, width, x, top } = paintedHairFits[hairstyle]
-  const asset = PAINTED_HAIRSTYLES[hairstyle]
+  if (hairstyle === 'natural' || !Object.hasOwn(paintedHairFits, hairstyle))
+    return ['', ''] as const
+  const registeredHair = hairstyle as keyof typeof paintedHairFits
+  const { crown, front, width, x, top } = paintedHairFits[registeredHair]
+  const asset = PAINTED_HAIRSTYLES[registeredHair]
   const fieldScale = facing ? 0.25 : 1
   const visualWidth = width * fieldScale
   const height = (visualWidth * asset.height) / asset.width

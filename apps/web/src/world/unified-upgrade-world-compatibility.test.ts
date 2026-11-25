@@ -126,10 +126,10 @@ it('preserves world addresses and historic routes through the authorized map geo
     atlasSectors: 2195,
     resolvedServerSectors: 2244,
     counts: {
-      walkable: 254826,
-      roads: 88504,
+      walkable: 255085,
+      roads: 88610,
       safe: 7656,
-      water: 1974,
+      water: 1715,
       lava: 15,
     },
     regions: baseline.regions.map((region) => ({
@@ -150,8 +150,8 @@ it('preserves world addresses and historic routes through the authorized map geo
                       ? 5
                       : 0),
     })),
-    landmarks: 669,
-    authorityDigest: '31ca6775394b492498799aae4ff2cf7be820ce2c36d55efdcc915c9c9724cd08',
-    landmarkDigest: '9f24713c4f53d0efb481d010c19a60908eee35da7af87c2e624294295f51a832',
+    landmarks: 672,
+    authorityDigest: '9a79daa60d1d175a6f5146d37b6bcf7756efb5017cbb3035e93a4296e7abf3a5',
+    landmarkDigest: '04e7de90b31afdb2dbcdc403148fb20be01e61456a5fce1094ebed96c3d286d8',
   })
 })

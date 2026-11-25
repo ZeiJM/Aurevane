@@ -64,8 +64,9 @@ import {
 } from './world-ferry'
 import dialogueStyles from './world-dialogue.module.css'
 import {
-  clampWorldZoom,
   WORLD_MIN_ZOOM,
+  GLOBE_MAX_ZOOM,
+  WORLD_MAX_ZOOM,
   worldZoomFromPercent,
   worldZoomPercent,
 } from './world-zoom'
@@ -172,9 +173,9 @@ export function WorldWorkspace({
   const [approvedPosition, setApprovedPosition] = useState(initialView.position)
   const zoomLocked = useSyncExternalStore(subscribeZoomLock, readZoomLock, () => false)
   const mapQuality = useSyncExternalStore(subscribeMapQuality, readMapQuality, defaultMapQuality)
-  const zoomPercent = worldZoomPercent(mode === 'global' ? globeZoom : zoom)
-  const changeZoom = (value: number) =>
-    (mode === 'global' ? setGlobeZoom : setZoom)(clampWorldZoom(value))
+  const maxZoom = mode === 'global' ? GLOBE_MAX_ZOOM : WORLD_MAX_ZOOM
+  const zoomPercent = worldZoomPercent(mode === 'global' ? globeZoom : zoom, maxZoom)
+  const changeZoom = (value: number) => (mode === 'global' ? setGlobeZoom : setZoom)(value)
   const controller = useRef<WorldController | null>(null),
     livePresence = useRef<WorldLivePresence | null>(null),
     acceptedAt = useRef(0),
@@ -488,6 +489,7 @@ export function WorldWorkspace({
       intent: WorldIntent,
       previewRoute?: readonly TravelStep[],
       previewDestination?: WorldPosition,
+      continuing = false,
     ) => {
       setMessage('')
       const now = performance.now()
@@ -516,6 +518,7 @@ export function WorldWorkspace({
           current.sectors,
           now,
           previousWritePending,
+          continuing,
         )
       } else if (origin && destination) {
         const route = previewRoute ?? clickWalkPreview(current, origin, destination)
@@ -524,13 +527,19 @@ export function WorldWorkspace({
       void instance.send(intent).then((receipt) => {
         if (receipt.applied && receipt.view && turn && controller.current === instance)
           motion.confirmDirectional(receipt.view, turn, performance.now())
-        if (walking || intent.kind === 'stop') void instance.hydrate({ movement: true })
+        if (receipt.applied && (walking || intent.kind === 'stop'))
+          void instance.hydrate({ movement: true })
       })
     },
     [motion],
   )
   const walk = useCallback(
-    (destination: WorldPosition, direction?: MapDirection, previewDestination?: WorldPosition) => {
+    (
+      destination: WorldPosition,
+      direction?: MapDirection,
+      previewDestination?: WorldPosition,
+      continuing?: boolean,
+    ) => {
       const instance = controller.current
       if (
         !instance ||
@@ -544,6 +553,7 @@ export function WorldWorkspace({
         direction ? { kind: 'walk', destination, direction } : { kind: 'walk', destination },
         undefined,
         previewDestination,
+        continuing,
       )
     },
     [send],
@@ -840,7 +850,7 @@ export function WorldWorkspace({
             />
           ) : (
             <WorldGlobe
-              view={view}
+              view={{ ...view, position: approvedPosition }}
               showLocationLabels={showLocationLabels}
               zoom={globeZoom}
               zoomLocked={zoomLocked}
@@ -1250,7 +1260,9 @@ export function WorldWorkspace({
                 step="1"
                 value={zoomPercent}
                 aria-valuetext={`${zoomPercent}%`}
-                onChange={(event) => changeZoom(worldZoomFromPercent(Number(event.target.value)))}
+                onChange={(event) =>
+                  changeZoom(worldZoomFromPercent(Number(event.target.value), maxZoom))
+                }
               />
               <output>{zoomPercent}%</output>
             </label>

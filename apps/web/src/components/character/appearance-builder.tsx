@@ -1,6 +1,6 @@
 'use client'
 
-import { useId, useMemo, type CSSProperties } from 'react'
+import { useEffect, useId, useMemo, useState, type CSSProperties } from 'react'
 import { PORTRAIT_FACES, portraitFace } from '@/appearance/appearance-face-catalog'
 import { APPEARANCE_BACKDROP_GROUPS } from '@/appearance/appearance-backdrop-catalog'
 import {
@@ -31,6 +31,7 @@ import {
   PAINTED_PLAYER_FIELDS,
   PAINTED_WARDROBE_LABELS,
   wardrobeLook,
+  PLAYER_HAIRSTYLE_GROUPS,
   type PaintedPlayerLook,
 } from '@/appearance/appearance-painted-wardrobe'
 import readyStyles from './appearance-ready-stance.module.css'
@@ -43,7 +44,12 @@ const fields = [
   'skinTone',
   'hairstyle',
   'hairDye',
+  'hairAccent',
+  'hairPlacement',
   'eyeColor',
+  'secondEye',
+  'facialHair',
+  'scar',
   'outerwear',
   'gear',
   'headwear',
@@ -58,12 +64,16 @@ const fields = [
 const fieldLabels = {
   ...PAINTED_WARDROBE_LABELS,
   identity: 'Face',
+  eyeColor: 'Eye color',
+  secondEye: 'Right eye color (heterochromia)',
   facewear: 'Facewear style',
   faceColor: 'Facewear color',
   backdrop: 'Portrait setting',
 } satisfies Record<Exclude<keyof PaintedPlayerLook, 'faceId'>, string>
 
 const displayLabels: Partial<Record<Exclude<keyof PaintedPlayerLook, 'faceId'>, string>> = {
+  eyeColor: 'Eye color',
+  secondEye: 'Right eye color',
   outerwear: 'Clothing',
   gear: 'Accessory',
   headwear: 'Headwear',
@@ -140,6 +150,12 @@ function PaintedFields({
         {fields.map((field) => {
           const dyePiece = dyedPieces[field]
           const options = PAINTED_PLAYER_FIELDS[field]
+          const defaultValue =
+            field === 'hairPlacement'
+              ? 'streak'
+              : field === 'hairAccent' || field === 'secondEye'
+                ? 'natural'
+                : 'none'
           return (
             <label key={field}>
               <span>{displayLabels[field] ?? fieldLabels[field]}</span>
@@ -148,8 +164,15 @@ function PaintedFields({
                 title={
                   field === 'backdrop' ? PAINTED_PLAYER_FIELDS.backdrop[look.backdrop] : undefined
                 }
-                value={field === 'identity' ? (look.faceId ?? 'fit' + look.identity) : look[field]}
-                disabled={Boolean(dyePiece && look[dyePiece] === 'none')}
+                value={
+                  field === 'identity'
+                    ? (look.faceId ?? 'fit' + look.identity)
+                    : (look[field] ?? defaultValue)
+                }
+                disabled={
+                  Boolean(dyePiece && look[dyePiece] === 'none') ||
+                  (field === 'hairPlacement' && (!look.hairAccent || look.hairAccent === 'natural'))
+                }
                 onChange={(event) => {
                   const choice = event.target.value
                   if (field === 'identity') {
@@ -181,11 +204,25 @@ function PaintedFields({
                   ))
                 ) : field === 'backdrop' ? (
                   <PortraitSettingOptions />
+                ) : field === 'hairstyle' ? (
+                  Object.entries(PLAYER_HAIRSTYLE_GROUPS).map(([group, styles]) => (
+                    <optgroup key={group} label={group}>
+                      {styles.map((id) => (
+                        <option key={id} value={id}>
+                          {PAINTED_PLAYER_FIELDS.hairstyle[id]}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))
                 ) : (
                   Object.entries(options).map(([id, option]) => (
                     <option key={id} value={id}>
                       {id === 'natural'
-                        ? 'Original'
+                        ? field === 'secondEye'
+                          ? 'Match left eye'
+                          : field === 'hairAccent'
+                            ? 'No second color'
+                            : 'Original'
                         : typeof option === 'string'
                           ? option
                           : option.label}
@@ -213,6 +250,23 @@ export function AppearanceBuilder({
   disabled?: boolean
 }) {
   const manifest = useMemo(() => compileAppearanceManifest(value), [value])
+  const [preview, setPreview] = useState(manifest)
+  const [failedPreview, setFailedPreview] = useState<string>()
+  useEffect(() => {
+    if (manifest.id === preview.id) return
+    let current = true
+    void loadAppearanceCandidate(manifest.blueprint).then(
+      (ready) => {
+        if (current) setPreview(ready)
+      },
+      () => {
+        if (current) setFailedPreview(manifest.id)
+      },
+    )
+    return () => {
+      current = false
+    }
+  }, [manifest, preview.id])
   const genderGroupName = useId()
   const painted = 'identity' in value ? value : null
   const gender = painted ? appearanceGenderForIdentity(painted.identity) : initialGender
@@ -270,28 +324,28 @@ export function AppearanceBuilder({
         </button>
       </div>
 
-      <div className={styles.preview}>
-        <Portraits manifest={manifest} />
+      <div
+        className={styles.preview}
+        aria-busy={preview.id !== manifest.id && failedPreview !== manifest.id}
+      >
+        {failedPreview === manifest.id && preview.id !== manifest.id ? (
+          <p role="status">This preview could not load. Change an option to try again.</p>
+        ) : null}
+        <Portraits key={preview.id} manifest={preview} />
         <div className={styles.gameplay} role="group" aria-label="Gameplay previews">
           <div className={styles.fieldPreviews} role="group" aria-label="Field previews">
             <figure className={styles.icon}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={manifest.icon} alt="" width={34} height={34} />
+              <img src={preview.icon} alt="" width={34} height={34} />
               <figcaption>Icon</figcaption>
             </figure>
-            <PosePreview
-              manifest={manifest}
-              size={47}
-              facing="south"
-              pose="walk"
-              label="Movement"
-            />
+            <PosePreview manifest={preview} size={47} facing="south" pose="walk" label="Movement" />
           </div>
           <div className={styles.battle} role="group" aria-label="Battle poses">
             {APPEARANCE_POSES.map((pose) => (
               <PosePreview
                 key={pose}
-                manifest={manifest}
+                manifest={preview}
                 size={58}
                 facing="east"
                 pose={pose}
@@ -400,7 +454,9 @@ export async function loadAppearanceCandidate(blueprint: AppearanceBlueprint) {
       (src) =>
         new Promise<void>((resolve, reject) => {
           const image = new Image()
-          image.onload = () => resolve()
+          image.onload = () => {
+            void image.decode().then(resolve, reject)
+          }
           image.onerror = () => reject(new Error('The preview is incomplete. Try again.'))
           image.src = src
         }),

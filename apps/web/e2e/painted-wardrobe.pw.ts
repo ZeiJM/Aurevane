@@ -83,15 +83,19 @@ test('@painted-wardrobe saves independent painted features and accessories using
   await control('Hairstyle').selectOption('twins')
   await control('Hair color').selectOption('lilac')
   await control('Eye color').selectOption('green')
+  await control('Second hair color').selectOption('silver')
+  await control('Two-tone placement').selectOption('tips')
+  await control('Right eye color (heterochromia)').selectOption('blue')
+  await control('Facial scar').selectOption('cross')
   await control('Portrait setting').selectOption('frost')
   await expect(dialog.getByText(/spends one Appearance Token/)).toBeVisible()
-  const path = `/api/media/appearance/6/${identity}.hawkmantle.cobalt.mapcase.crimson.${isMobile ? 'bandana' : 'arcanist'}.amber.eyepatch.charcoal.natural.natural.twins.lilac.green.frost`
+  const path = `/api/media/appearance/6/${identity}.hawkmantle.cobalt.mapcase.crimson.${isMobile ? 'bandana' : 'arcanist'}.amber.eyepatch.charcoal.natural.natural.twins.lilac.green.accent-silver.dye-tips.eye-blue.scar-cross.frost`
   const atlasWidth = await page.evaluate(async (imagePath) => {
     const image = new Image()
     image.src = imagePath
     await image.decode()
     return image.naturalWidth
-  }, `${path}/atlas.svg`)
+  }, `${path}/illustrated-atlas.svg`)
   expect(atlasWidth).toBe(576)
   await page.screenshot({ path: testInfo.outputPath('painted-wardrobe.png') })
   const confirm = dialog.getByRole('button', { name: 'Confirm appearance' })

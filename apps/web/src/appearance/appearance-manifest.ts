@@ -13,6 +13,8 @@ import {
   paintedPlayerRecipe,
   WARDROBE_OUTERWEAR,
   readPaintedPlayerLook,
+  paintedDetailRecipe,
+  PLAYER_APPEARANCE_DETAILS,
   readWardrobeLook,
   wardrobeRecipe,
   type PaintedPlayerLook,
@@ -239,23 +241,36 @@ export function parseAppearanceBlueprint(input: unknown): AppearanceBlueprint | 
     const featureFields = Object.keys(originalWardrobeFeatures)
     const hasFeatures = featureFields.some((field) => Object.hasOwn(values, field))
     const catalog = values.v === 6 ? PAINTED_PLAYER_FIELDS : PAINTED_WARDROBE_FIELDS
+    const detailFields =
+      values.v === 6
+        ? PLAYER_APPEARANCE_DETAILS.filter((field) => Object.hasOwn(values, field))
+        : []
+    if (detailFields.some((field) => typeof values[field] !== 'string')) return null
+    const details = paintedDetailRecipe(values)
+    if (detailFields.length !== details.length) return null
     const wardrobeFields = Object.keys(catalog).filter(
-      (field) => hasFeatures || !featureFields.includes(field),
+      (field) =>
+        !PLAYER_APPEARANCE_DETAILS.some((detail) => detail === field) &&
+        (hasFeatures || !featureFields.includes(field)),
     )
     const hasFace = values.v === 6 && Object.hasOwn(values, 'faceId')
     if (hasFace && portraitFace(values.faceId)?.rig !== values.identity) return null
     const part = (field: string) =>
       field === 'identity' && hasFace ? values.faceId : values[field]
-    const recipe = wardrobeFields.map(part)
-    const originalFeatures = featureFields.every((field) => values[field] === 'natural')
-    if (Object.keys(values).length !== fields.length + wardrobeFields.length + 1 + Number(hasFace))
+    if (
+      Object.keys(values).length !==
+      fields.length + wardrobeFields.length + 1 + Number(hasFace) + detailFields.length
+    )
       return null
-    const parts = originalFeatures
-      ? wardrobeFields.filter((field) => !featureFields.includes(field)).map(part)
-      : recipe
+    const originalFeatures = featureFields.every((field) => values[field] === 'natural')
+    const parts = wardrobeFields
+      .filter((field) => !originalFeatures || !featureFields.includes(field))
+      .flatMap((field) => (field === 'backdrop' ? [...details, part(field)] : [part(field)]))
     const blueprint =
       values.v === 6 ? playerBlueprintFromParts(parts) : wardrobeBlueprintFromParts(parts)
-    return blueprint && fields.every((field) => values[field] === blueprint[field])
+    return blueprint &&
+      fields.every((field) => values[field] === blueprint[field]) &&
+      (blueprint.v !== 6 || detailFields.every((field) => values[field] === blueprint[field]))
       ? blueprint
       : null
   }
@@ -371,18 +386,21 @@ export function compileAppearanceManifest(input: AppearanceBlueprint) {
   if (blueprint.v === 3) parts.push(blueprint.cuff)
   const id = `${blueprint.v}/${parts.join('.')}`
   const base = `${APPEARANCE_ASSET_PREFIX}${id}`
+  const neutralUrl = `${base}/neutral.svg`
+  const assetPrefix = blueprint.v === 6 ? 'illustrated-' : ''
   const portraits = Object.freeze(
     Object.fromEntries(
-      APPEARANCE_EXPRESSIONS.map((mood) => [mood, `${base}/${mood}.svg`]),
+      APPEARANCE_EXPRESSIONS.map((mood) => [mood, `${base}/${assetPrefix}${mood}.svg`]),
     ) as Record<AppearanceExpression, string>,
   )
   return Object.freeze({
     id,
     blueprint,
+    neutralUrl,
     portraits,
-    icon: `${base}/icon.svg`,
-    atlas: `${base}/atlas.svg`,
-    motionAtlas: `${base}/motion-v2.svg`,
+    icon: `${base}/${assetPrefix}icon.svg`,
+    atlas: `${base}/${assetPrefix}atlas.svg`,
+    motionAtlas: `${base}/${assetPrefix}motion-v2.svg`,
     frame: APPEARANCE_FRAME,
   })
 }
@@ -404,7 +422,7 @@ export function appearanceBlueprintFromId(
   assetVersion: AppearanceBlueprint['v'] | string = 1,
 ): AppearanceBlueprint | null {
   if (assetVersion === 6 || assetVersion === '6') {
-    return id.length <= 140 ? playerBlueprintFromParts(id.split('.')) : null
+    return id.length <= 225 ? playerBlueprintFromParts(id.split('.')) : null
   }
   if (assetVersion === 5 || assetVersion === '5') {
     if (id.length > 140) return null
@@ -434,10 +452,10 @@ export function appearanceBlueprintFromId(
 }
 
 export function appearanceManifestFromImageUrl(url: string | null | undefined) {
-  if (!url?.startsWith(APPEARANCE_ASSET_PREFIX) || !url.endsWith('/neutral.svg')) return null
-  const [version, id, extra] = url
-    .slice(APPEARANCE_ASSET_PREFIX.length, -'/neutral.svg'.length)
-    .split('/')
+  if (!url?.startsWith(APPEARANCE_ASSET_PREFIX)) return null
+  const [version, id, asset, extra] = url.slice(APPEARANCE_ASSET_PREFIX.length).split('/')
+  if (asset !== 'neutral.svg' && !(version === '6' && asset === 'illustrated-neutral.svg'))
+    return null
   if (!version || !id || extra !== undefined) return null
   const blueprint = appearanceBlueprintFromId(id, version)
   return blueprint ? compileAppearanceManifest(blueprint) : null

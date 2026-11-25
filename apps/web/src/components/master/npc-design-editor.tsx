@@ -371,7 +371,7 @@ export function NpcDesignEditor({
               onConfirm={(blueprint) =>
                 setDraft({
                   ...draft,
-                  imageUrl: compileAppearanceManifest(blueprint).portraits.neutral,
+                  imageUrl: compileAppearanceManifest(blueprint).neutralUrl,
                 })
               }
             />

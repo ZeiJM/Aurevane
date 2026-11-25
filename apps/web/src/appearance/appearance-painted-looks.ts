@@ -1,3 +1,4 @@
+import { PATTERNED_BACKDROPS } from './appearance-backdrop-catalog'
 import { PORTRAIT_FACES } from './appearance-face-catalog'
 import {
   PAINTED_PLAYER_FIELDS,
@@ -230,29 +231,27 @@ export function randomPaintedLookForGender(
   const [, clothColor, accent, backdrop] = choose(ensemble.palettes)
   const setting =
     random() < 0.16
-      ? choose([
-          'parchment',
-          'midnight',
-          'pinegreen',
-          'plumstudio',
-          'terracotta',
-          'pearl',
-          'garnetstudio',
-          'tealstudio',
-          'amberstudio',
-          'lavender',
-        ] as const)
+      ? choose(Object.keys(PATTERNED_BACKDROPS) as (keyof typeof PATTERNED_BACKDROPS)[])
       : backdrop
-  const hairstyle = choose(
-    [ensemble.hairstyle, 'natural', 'waves', 'braid', 'layers'].filter(
-      (id) => id in PAINTED_PLAYER_FIELDS.hairstyle,
-    ),
-  ) as PaintedPlayerLook['hairstyle']
+  const hairstyle =
+    random() < 0.55
+      ? ensemble.hairstyle
+      : choose(Object.keys(PAINTED_PLAYER_FIELDS.hairstyle) as PaintedPlayerLook['hairstyle'][])
+  const secondary =
+    random() < 0.12 ? choose(['silver', 'lilac', 'copper', 'teal'] as const) : undefined
   return {
     ...defaultPaintedLookForGender(gender),
     identity: face.rig,
     faceId: face.id,
     hairstyle,
+    ...(secondary
+      ? { hairAccent: secondary, hairPlacement: choose(['tips', 'streak', 'underlight'] as const) }
+      : {}),
+    ...(random() < 0.1 ? { secondEye: choose(['amber', 'green', 'blue', 'violet'] as const) } : {}),
+    ...(random() < 0.12 ? { scar: choose(['cross', 'cheek', 'brow', 'jaw'] as const) } : {}),
+    ...(gender === 'masculine' && random() < 0.25
+      ? { facialHair: choose(['stubble', 'goatee', 'anchor', 'boxed', 'full'] as const) }
+      : {}),
     clothColor,
     backdrop: setting,
     outerwear: ensemble.outerwear,

@@ -1,9 +1,10 @@
 import 'server-only'
 import {
   APPEARANCE_ASSET_PREFIX,
-  APPEARANCE_PRESETS,
+  paintedPlayerAppearanceBlueprint,
   compileAppearanceManifest,
 } from '@/appearance/appearance-manifest'
+import { CURATED_PAINTED_LOOKS } from '@/appearance/appearance-painted-looks'
 import { hashString } from '@/world/terrain-gen'
 import { worldNpcName } from '@/world/npc-name'
 
@@ -20,8 +21,8 @@ import { isKnownCell, resolveSector } from './world-content'
 import { localObjectiveNpcs } from './world-objectives'
 
 const NPC_CACHE_MS = 5_000
-const npcLooks = APPEARANCE_PRESETS.map(
-  ({ blueprint }) => compileAppearanceManifest(blueprint).portraits.neutral,
+const npcLooks = CURATED_PAINTED_LOOKS.map(
+  ({ look }) => compileAppearanceManifest(paintedPlayerAppearanceBlueprint(look)).portraits.neutral,
 )
 const NPC_CACHE_SECTORS = 64
 const cache = new Map<string, { expires: number; rows: PublishedWorldNpc[] }>()

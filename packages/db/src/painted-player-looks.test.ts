@@ -20,7 +20,7 @@ it('admits every canonical painted setting through the shared NPC and player val
         'select url, app_private.valid_npc_appearance_v1(to_jsonb(url)) as valid from unnest($1::text[]) url',
         [urls],
       )
-    expect((await check([...candidates, tailored])).rows).toHaveLength(195)
+    expect((await check([...candidates, tailored])).rows).toHaveLength(471)
     expect((await check([...candidates, tailored])).rows.filter(({ valid }) => !valid)).toEqual([])
     const invalid = [
       original.replace('.original/', '.invented/'),
@@ -29,6 +29,10 @@ it('admits every canonical painted setting through the shared NPC and player val
       original.replace('/6/', '/5/').replace('.original/', '/'),
       original.replace('.none.natural.', '.none.ochre.'),
       tailored.replace('.eyepatch.', '.invented.'),
+      tailored.replace('.astral/', '.scar-cross.scar-jaw.astral/'),
+      tailored.replace('.astral/', '.eye-natural.astral/'),
+      tailored.replace('.astral/', '.scar-cross.dye-tips.astral/'),
+      tailored.replace('neutral.svg', 'illustrated-neutral.svg'),
       ...['f00', 'm65', 'f001', 'fitunknown'].map((id) => original.replace('pinescout.', id + '.')),
     ]
     expect((await check(invalid)).rows.map(({ valid }) => valid)).toEqual(invalid.map(() => false))
@@ -51,7 +55,10 @@ it('admits every canonical painted setting through the shared NPC and player val
         [actor, characterId, recipe],
       )
     await expect(save(invalid[0]!)).rejects.toThrow()
-    const saved = tailored.replace('pinescout.', 'm64.').replace('.astral/', '.midnight/')
+    const saved = tailored
+      .replace('pinescout.', 'm64keen.')
+      .replace('.braid.', '.longbraid.')
+      .replace('.astral/', '.beard-full.accent-silver.dye-split.eye-blue.scar-cross.wavejade/')
     await expect(save(saved)).resolves.toMatchObject({
       rows: [{ receipt: { imageUrl: saved } }],
     })
