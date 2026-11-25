@@ -29,7 +29,7 @@ const naturalSpriteFabric = {
   pine: [104, 105, 66],
   hawkmantle: [164, 119, 48],
   shearling: [113, 94, 72],
-  scarf: [81, 105, 102],
+  scarf: [140, 77, 62],
   brigandine: [113, 108, 72],
   brocade: [104, 69, 84],
   hooded: [74, 82, 100],
@@ -86,8 +86,8 @@ const studioDecor: Record<
 
 function portraitBackground(id: Look['backdrop']) {
   const painting =
-    PATTERN_PAINTINGS[id as keyof typeof PATTERN_PAINTINGS] ??
-    LANDSCAPE_PAINTINGS[id as keyof typeof LANDSCAPE_PAINTINGS]
+    LANDSCAPE_PAINTINGS[id as keyof typeof LANDSCAPE_PAINTINGS] ??
+    PATTERN_PAINTINGS[id as keyof typeof PATTERN_PAINTINGS]
   const pattern = patternedBackdrop(id)
   const studio = studioColor(id === 'original' ? 'parchment' : id)
   const seed = key(id)
@@ -114,7 +114,7 @@ function portraitBackground(id: Look['backdrop']) {
   <rect width="256" height="256" fill="url(#paper-glow)"/>
   ${painting ? `<image href="${painting}" width="256" height="256" opacity=".88"/>` : ''}
   ${landscape ? landscapeBrushwork(id, outer!, middle!, pale!) : ''}
-  <rect width="256" height="256" fill="url(#painted-motif)" opacity="${pattern ? (painting ? '.07' : '.34') : studio ? '.22' : '.12'}" ${studio ? 'mask="url(#studio-corners)"' : ''}/>
+  <rect width="256" height="256" fill="url(#painted-motif)" opacity="${painting ? '.07' : pattern ? '.34' : studio ? '.22' : '.12'}" ${studio ? 'mask="url(#studio-corners)"' : ''}/>
   ${studio ? '' : `<circle cx="128" cy="106" r="83" fill="none" stroke="${pale}" stroke-dasharray="1 5" opacity=".29"/>`}
   <path d="M13 49V15h38m154 0h38v34M13 207v34h38m154 0h38v-34" fill="none" stroke="${pale}" opacity="${studio ? '.34' : '.5'}"/>`
 }

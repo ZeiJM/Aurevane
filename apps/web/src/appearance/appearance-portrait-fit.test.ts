@@ -3,6 +3,7 @@ import { FITTED_ACCESSORY_ART } from './appearance-fitted-accessories.generated'
 import { FITTED_ART_SOURCE } from './appearance-fitted-source.generated'
 import {
   fitPortraitLayer,
+  fittedFacialHairTarget,
   fittedHairTarget,
   renderFittedPortrait,
   type PaintedPortraitLayers,
@@ -28,6 +29,18 @@ describe('painted portrait fitting', () => {
         format: 'webp',
         hasAlpha: true,
       })
+    }
+  })
+
+  it('registers the illustrated noses and mouths between the eye line and chin', () => {
+    const faces = Object.values(FITTED_ART_SOURCE).filter((art) => 'facialGuides' in art)
+    expect(faces).toHaveLength(60)
+    for (const { anchors, height, facialGuides } of faces) {
+      expect(facialGuides.center).toBeGreaterThan(0.35)
+      expect(facialGuides.center).toBeLessThan(0.75)
+      expect(facialGuides.nose * height).toBeGreaterThan(anchors.top)
+      expect(facialGuides.lip).toBeGreaterThan(facialGuides.nose)
+      expect(facialGuides.lip * height).toBeLessThan(anchors.bottom)
     }
   })
 
@@ -147,5 +160,16 @@ describe('painted portrait fitting', () => {
     expect(behind).toBeGreaterThan(0)
     expect(collar).toBeGreaterThan(behind)
     expect(fringe).toBeGreaterThan(collar)
+  })
+
+  it('follows the painted mouth instead of centering a moustache on the canvas', () => {
+    const landmarks = { ...bare.landmarks, mouth: [140, 145] as const }
+    expect(fittedFacialHairTarget(landmarks, 'upperLip')).toEqual({
+      left: 126,
+      right: 154,
+      top: 139,
+      bottom: 146,
+    })
+    expect(fittedFacialHairTarget(landmarks, 'chin').top).toBeGreaterThan(145)
   })
 })

@@ -5,8 +5,10 @@ import sharp from 'sharp'
 
 import { FITTED_ACCESSORY_ART } from '../src/appearance/appearance-fitted-accessories.generated.ts'
 import { FITTED_ART_SOURCE } from '../src/appearance/appearance-fitted-source.generated.ts'
+import { LANDSCAPE_PAINTINGS } from '../src/appearance/appearance-landscape-paintings.generated.ts'
 import { PAINTED_SPRITE_HEADS } from '../src/appearance/appearance-painted-sprite-heads.generated.ts'
 import { PAINTED_SPRITE_PARTS } from '../src/appearance/appearance-painted-sprite-parts.generated.ts'
+import { PATTERN_PAINTINGS } from '../src/appearance/appearance-pattern-paintings.generated.ts'
 
 const [, , input] = process.argv
 assert(input, 'Pass an asset sheet manifest with paths, registrations and ordered slot IDs.')
@@ -15,6 +17,8 @@ const source = { ...FITTED_ART_SOURCE }
 const accessories = { ...FITTED_ACCESSORY_ART }
 const heads = { ...PAINTED_SPRITE_HEADS }
 const parts = { ...PAINTED_SPRITE_PARTS }
+const patterns = { ...PATTERN_PAINTINGS }
+const landscapes = { ...LANDSCAPE_PAINTINGS }
 const digests = []
 
 // Displacement maps sample the same painting in a different pose. Keep the
@@ -151,7 +155,7 @@ function hairOpening(data, width, bounds) {
   return bounds.height * 0.34
 }
 
-function registration(sheet, slot, data, width, bounds) {
+function registration(sheet, slot, data, width, bounds, region) {
   const { height, left, top, width: assetWidth } = bounds
   const sample = (x, y) =>
     [...data.subarray(((top + Math.round(y)) * width + left + Math.round(x)) * 4)].slice(0, 3)
@@ -162,17 +166,34 @@ function registration(sheet, slot, data, width, bounds) {
     bottom: slot.guides[3] * height,
   }
   if (sheet.kind === 'face') {
+    const face = slot.face
+    const featureX = (x) => (x - region.left - left) / assetWidth
+    const featureY = (y) => (y - region.top - top) / height
+    const calibrated = face && {
+      left: face.eyes[0] - region.left - left,
+      right: face.eyes[1] - region.left - left,
+      top: face.eyes[2] - region.top - top,
+      bottom: face.chin - region.top - top,
+    }
     return {
-      anchors: measured ?? {
-        left: assetWidth * 0.3,
-        right: assetWidth * 0.7,
-        top: height * 0.445,
-        bottom: height * 0.865,
-      },
+      anchors: calibrated ??
+        measured ?? {
+          left: assetWidth * 0.3,
+          right: assetWidth * 0.7,
+          top: height * 0.445,
+          bottom: height * 0.865,
+        },
       neckPigments: [
         sample(assetWidth * 0.58, height * 0.92),
         sample(assetWidth * 0.45, height * 0.92),
       ],
+      ...(face && {
+        facialGuides: {
+          center: featureX(face.mouth[0]),
+          nose: featureY(face.nose),
+          lip: featureY(face.mouth[1]),
+        },
+      }),
     }
   }
   const facingHair = sheet.kind === 'sprite' && slot.id.endsWith('Hair')
@@ -279,6 +300,17 @@ for (const sheet of sheets) {
       width: Math.round(width * x[column + 1]) - left,
       height: Math.round(height * y[row + 1]) - top,
     }
+    if (sheet.kind === 'pattern' || sheet.kind === 'landscape') {
+      const painting = await sharp(bytes)
+        .extract(region)
+        .resize(256, 256, { fit: 'cover' })
+        .webp({ quality: 85 })
+        .toBuffer()
+      const catalogue = sheet.kind === 'pattern' ? patterns : landscapes
+      catalogue[slot.id] = `data:image/webp;base64,${painting.toString('base64')}`
+      if (sheet.kind === 'landscape') delete patterns[slot.id]
+      continue
+    }
     const cutout = await sharp(bytes).extract(region).png().toBuffer()
     const oriented = sharp(cutout)
     if (slot.mirror) oriented.flop()
@@ -291,7 +323,7 @@ for (const sheet of sheets) {
     if (slot.lensOpenings) clearLensCenters(data, info.width, bounds, slot.lensOpenings)
     if (sheet.kind === 'face')
       assert(bounds.height > bounds.width, `Invalid face proportions for ${slot.id}`)
-    const guides = registration(sheet, slot, data, info.width, bounds)
+    const guides = registration(sheet, slot, data, info.width, bounds, region)
     const raw = sharp(data, { raw: info })
     const small = await encode(raw, bounds, guides, 92, 86)
     if (sheet.kind === 'part') {
@@ -323,6 +355,8 @@ const outputs = [
   ['appearance-fitted-accessories', 'FITTED_ACCESSORY_ART', accessories],
   ['appearance-painted-sprite-heads', 'PAINTED_SPRITE_HEADS', heads],
   ['appearance-painted-sprite-parts', 'PAINTED_SPRITE_PARTS', parts],
+  ['appearance-pattern-paintings', 'PATTERN_PAINTINGS', patterns],
+  ['appearance-landscape-paintings', 'LANDSCAPE_PAINTINGS', landscapes],
   [
     'appearance-portrait-expression-maps',
     'PORTRAIT_EXPRESSION_MAPS',

@@ -5,7 +5,9 @@ import { FITTED_FACEWEAR, FITTED_HEADWEAR } from './appearance-fitted-accessorie
 import { FITTED_ACCESSORY_ART } from './appearance-fitted-accessories.generated'
 import { FITTED_HAIR_ART } from './appearance-fitted-portrait'
 import { FITTED_ART_SOURCE } from './appearance-fitted-source.generated'
+import { LANDSCAPE_PAINTINGS } from './appearance-landscape-paintings.generated'
 import { PAINTED_SPRITE_HEADS } from './appearance-painted-sprite-heads.generated'
+import { PATTERN_PAINTINGS } from './appearance-pattern-paintings.generated'
 import { PORTRAIT_FACES } from './appearance-face-catalog'
 import {
   APPEARANCE_EXPRESSIONS,
@@ -28,6 +30,14 @@ const svg = (look: ReturnType<typeof paintedPlayerAppearanceBlueprint>) =>
   illustratedPortrait(look, 'neutral', false)
 
 describe('illustrated player and NPC customization', () => {
+  it('has individual paintings for every studio, pattern and place in the backdrop catalogue', () => {
+    const paintings = { ...LANDSCAPE_PAINTINGS, ...PATTERN_PAINTINGS }
+    expect(Object.keys(paintings).sort()).toEqual(
+      ['original', ...Object.keys(APPEARANCE_BACKDROPS)].sort(),
+    )
+    expect(new Set(Object.values(paintings)).size).toBe(Object.keys(paintings).length)
+  })
+
   it('round-trips a long canonical recipe with the new accessories and independent customization fields', () => {
     const recipe =
       'fitpinescoutkeen.hawkmantle.buttercup.utility.buttercup.branchlightcrown.buttercup.moonsteellenses.buttercup.natural.alabaster.loosequiff.charcoal.natural.beard-moustache.accent-charcoal.dye-underlight.eye-violet.scar-bridge.age-youthful.prestigesanctum'
@@ -141,7 +151,9 @@ describe('illustrated player and NPC customization', () => {
     expect(appearanceManifestFromImageUrl(manifest.portraits.neutral)?.blueprint).toEqual(blueprint)
     for (const mood of APPEARANCE_EXPRESSIONS) {
       const portrait = renderAppearanceAsset(blueprint, mood, true)
-      expect(portrait).toContain('M151 116l12 14')
+      expect(portrait).toMatch(
+        /data-scar="cross"[^>]+>\s*<path d="M[\d.]+ [\d.]+l12 14m0-14-12 14"/,
+      )
       expect(portrait).toContain('painted-hair-accent')
       expect(portrait).toContain('painted-eye-left')
       expect(portrait).toContain('painted-eye-right')

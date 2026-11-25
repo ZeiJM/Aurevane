@@ -43,4 +43,19 @@ describe('painted sprite rig', () => {
     expect(render('west', 'walk', 6)).toContain('translate(48 0) scale(-1 1)')
     expect(paintedSpriteRigDefinitions()).toContain('id="rig-hand" href="data:image/webp;base64,')
   })
+
+  it('swings each arm against the leg on its side during a profile walk', () => {
+    for (const [frame, legSign] of [
+      [2, 1],
+      [6, -1],
+    ] as const) {
+      const svg = render('east', 'walk', frame)
+      const arm = svg.split('data-limb="arm-right"')[1]!
+      const leg = svg.split('data-rig-leg="near"')[1]!
+      const armAngle = Number(arm.match(/href="#rig-armFront"[^>]+rotate\(([^)]+)/)?.[1])
+      const legAngle = Number(leg.match(/href="#rig-thigh"[^>]+rotate\(([^)]+)/)?.[1])
+      expect(Math.sign(legAngle)).toBe(legSign)
+      expect(Math.sign(armAngle)).toBe(-legSign)
+    }
+  })
 })

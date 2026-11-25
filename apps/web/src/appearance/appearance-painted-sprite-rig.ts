@@ -4,6 +4,8 @@ import { PAINTED_SPRITE_PARTS } from './appearance-painted-sprite-parts.generate
 type Part = keyof typeof PAINTED_SPRITE_PARTS
 type Point = readonly [x: number, y: number]
 
+export const PAINTED_SPRITE_COLLAR_Y = 17
+
 export function paintedSpriteRigDefinitions() {
   return Object.entries(PAINTED_SPRITE_PARTS)
     .map(
@@ -66,12 +68,13 @@ export function renderPaintedSpriteRig({
   const phase = Math.sin((frame * 2 * Math.PI) / frames)
   const walking = pose === 'walk'
   const attacking = pose === 'attack' || pose === 'cast'
-  const torsoY = 20 - (walking ? Math.abs(phase) * 0.9 : pose === 'idle' ? phase * 0.45 : 0)
+  const torsoY =
+    PAINTED_SPRITE_COLLAR_Y - (walking ? Math.abs(phase) * 0.9 : pose === 'idle' ? phase * 0.45 : 0)
   const torsoWidth = bodyBuild * (profile ? 11 : 18)
   const torsoBase = placePart(
     profile ? 'torsoSide' : rear ? 'torsoBack' : 'torsoFront',
     [24, torsoY],
-    [torsoWidth, 22],
+    [torsoWidth, 23],
   )
   const dyePart = (art: string, filter = fabricDye) =>
     filter ? `<g filter="url(#${filter})">${art}</g>` : art
@@ -91,8 +94,8 @@ export function renderPaintedSpriteRig({
       ? leading
         ? attackArm
         : 16
-      : walking && profile
-        ? side * phase * 21
+      : walking
+        ? -side * phase * (profile ? 21 : 6) - (profile ? 0 : side * 7)
         : side * -7
     const width = profile ? 6.7 : 5.4
     const wrist = belowJoint(shoulder, 11, angle)
@@ -102,14 +105,14 @@ export function renderPaintedSpriteRig({
     </g>`
   }
   const leg = (side: -1 | 1) => {
-    const hip: Point = [24 + side * (profile ? 2.7 : 3.7), torsoY + 17]
+    const hip: Point = [24 + side * (profile ? 2.7 : 3.7), torsoY + 19]
     const swing = walking ? side * phase : 0
     const thighAngle = profile ? swing * 23 : -side * (4 + swing * 5)
     const shinAngle = profile ? thighAngle + Math.max(0, swing) * 17 : -side * 3
-    const knee = belowJoint(hip, 10.8, thighAngle)
+    const knee = belowJoint(hip, 11.8, thighAngle)
     const boot = profile ? 'bootSide' : rear ? 'bootBack' : 'bootFront'
     return `<g data-rig-leg="${side === 1 ? 'near' : 'far'}">
-      ${placePart('thigh', hip, [7, 13], thighAngle)}
+      ${placePart('thigh', hip, [7, 14], thighAngle)}
       ${placePart(boot, knee, [profile ? 8 : 5.5, 10.7], shinAngle)}
     </g>`
   }
@@ -143,7 +146,7 @@ export function renderPaintedSpriteRig({
     ? `<svg x="20" y="${shoulderCapY}" width="9" height="8" viewBox="20 ${shoulderCapY} 9 8" overflow="hidden">${dyePart(placePart(sleeve, [24.3, shoulderCapY], [8.1, 15]))}</svg>`
     : ''
   const figure = `${packedGear}${dyePart(cloak)}${leg(-1)}${leg(1)}${arm(-1)}${torso}${dyePart(shoulderPieces)}${wornGear}${shoulderCap}${arm(1)}
-    <g transform="translate(0 ${torsoY - 20})">${head}</g>`
+    <g transform="translate(0 ${torsoY - PAINTED_SPRITE_COLLAR_Y})">${head}</g>`
   const reaction = pose === 'hit' ? 'rotate(-9 24 58)' : ''
   const alignment = facing === 'west' ? 'translate(48 0) scale(-1 1)' : ''
   const down = pose === 'down' ? 'translate(24 53) rotate(-90) scale(.73) translate(-24 -30)' : ''
