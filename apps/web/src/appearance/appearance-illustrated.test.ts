@@ -21,10 +21,16 @@ import {
   paintedPlayerAppearanceBlueprint,
   randomPaintedLookForGender,
 } from './appearance-painted-looks'
-import { illustratedPortrait } from './appearance-illustrated'
+import { illustratedPortrait, illustratedSpriteMaterials } from './appearance-illustrated'
 import { ILLUSTRATED_STARTER_GALLERY } from './appearance-starter-gallery'
 import { renderAppearanceAsset } from './appearance-svg'
-import { APPEARANCE_AGES, PLAYER_HAIRSTYLES, WARDROBE_GEAR } from './appearance-painted-wardrobe'
+import {
+  APPEARANCE_AGES,
+  PLAYER_HAIRSTYLES,
+  WARDROBE_GEAR,
+  type PaintedPlayerLook,
+} from './appearance-painted-wardrobe'
+import { PAINTED_SPRITE_OUTFITS } from './appearance-painted-sprite-outfits.generated'
 
 const svg = (look: ReturnType<typeof paintedPlayerAppearanceBlueprint>) =>
   illustratedPortrait(look, 'neutral', false)
@@ -96,6 +102,11 @@ describe('illustrated player and NPC customization', () => {
   })
 
   it('triples the face choices for each gender and makes all 48 hair silhouettes visible', () => {
+    const facesByImage = new Map(
+      Object.values(FITTED_ART_SOURCE)
+        .filter((source) => 'facialGuides' in source)
+        .map((source) => [source.href as string, source] as const),
+    )
     for (const [gender, total] of [
       ['feminine', 198],
       ['masculine', 201],
@@ -104,15 +115,24 @@ describe('illustrated player and NPC customization', () => {
       expect(faces).toHaveLength(total)
       expect(
         new Set(
-          faces.map(({ rig, id }) =>
-            svg(
+          faces.map(({ rig, id }) => {
+            const portrait = svg(
               paintedPlayerAppearanceBlueprint({
                 ...defaultPaintedLookForGender(gender),
                 identity: rig,
                 faceId: id,
               }),
-            ),
-          ),
+            )
+            const [, href, width, height] = portrait.match(
+              /clip-path="url\(#painted-scalp\)"><image href="([^"]+)" x="[^"]+" y="[^"]+" width="([^"]+)" height="([^"]+)"/,
+            )!
+            const painting = facesByImage.get(href!)!
+            expect(Number(width) / Number(height), id).toBeCloseTo(
+              painting.width / painting.height,
+              6,
+            )
+            return portrait
+          }),
         ).size,
       ).toBe(total)
     }
@@ -130,6 +150,24 @@ describe('illustrated player and NPC customization', () => {
         ),
       ).size,
     ).toBe(48)
+  })
+
+  it('embeds only the selected outfit’s directional artwork and sleeve', () => {
+    for (const outerwear of Object.keys(
+      PAINTED_SPRITE_OUTFITS,
+    ) as PaintedPlayerLook['outerwear'][]) {
+      const look = paintedPlayerAppearanceBlueprint({
+        ...defaultPaintedLookForGender('masculine'),
+        outerwear,
+      })
+      const materials = illustratedSpriteMaterials(look)
+      const outfit = PAINTED_SPRITE_OUTFITS[outerwear]
+      expect(new Set(Object.values(outfit)).size).toBe(3)
+      for (const direction of ['side', 'back', 'sleeve'] as const) {
+        expect(materials).toContain(`id="rig-worn-outfit-${direction}" href="${outfit[direction]}"`)
+      }
+      expect(materials).not.toContain('id="rig-torsoBack"')
+    }
   })
 
   it('round-trips new materials and renders their visible marks, without changing the walking cell layout', async () => {

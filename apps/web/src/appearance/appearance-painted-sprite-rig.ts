@@ -1,13 +1,30 @@
 import type { AppearanceFacing, AppearancePose } from './appearance-manifest'
 import { PAINTED_SPRITE_PARTS } from './appearance-painted-sprite-parts.generated'
 
-type Part = keyof typeof PAINTED_SPRITE_PARTS
+type Outfit = Readonly<Record<'front' | 'back' | 'side' | 'sleeve', string>>
+type Part = keyof typeof PAINTED_SPRITE_PARTS | `worn-outfit-${keyof Outfit}`
 type Point = readonly [x: number, y: number]
 
 export const PAINTED_SPRITE_COLLAR_Y = 17
 
-export function paintedSpriteRigDefinitions() {
-  return Object.entries(PAINTED_SPRITE_PARTS)
+export function paintedSpriteRigDefinitions(outfit?: Outfit) {
+  const { hand, thigh, bootFront, bootBack, bootSide, cloak, satchel } = PAINTED_SPRITE_PARTS
+  const parts = outfit
+    ? {
+        hand,
+        thigh,
+        bootFront,
+        bootBack,
+        bootSide,
+        cloak,
+        satchel,
+        'worn-outfit-front': outfit.front,
+        'worn-outfit-back': outfit.back,
+        'worn-outfit-side': outfit.side,
+        'worn-outfit-sleeve': outfit.sleeve,
+      }
+    : PAINTED_SPRITE_PARTS
+  return Object.entries(parts)
     .map(
       ([name, href]) =>
         `<image id="rig-${name}" href="${href}" width="1" height="1" preserveAspectRatio="none"/>`,
@@ -34,7 +51,7 @@ export function renderPaintedSpriteRig({
   cape,
   mantle,
   satchel,
-  outfit,
+  fittedOutfit = false,
   fabricDye,
   outfitDye,
   sleeve = 'armFront',
@@ -51,7 +68,7 @@ export function renderPaintedSpriteRig({
   cape: boolean
   mantle: boolean
   satchel: boolean
-  outfit?: string
+  fittedOutfit?: boolean
   fabricDye?: string
   outfitDye?: string
   sleeve?: 'armFront' | 'armSide' | 'sleeveSeafarer' | 'sleeveWool'
@@ -71,20 +88,32 @@ export function renderPaintedSpriteRig({
   const torsoY =
     PAINTED_SPRITE_COLLAR_Y - (walking ? Math.abs(phase) * 0.9 : pose === 'idle' ? phase * 0.45 : 0)
   const torsoWidth = bodyBuild * (profile ? 11 : 18)
-  const torsoBase = placePart(
-    profile ? 'torsoSide' : rear ? 'torsoBack' : 'torsoFront',
-    [24, torsoY],
-    [torsoWidth, 23],
-  )
+  const torsoPart = fittedOutfit
+    ? profile
+      ? 'worn-outfit-side'
+      : rear
+        ? 'worn-outfit-back'
+        : 'worn-outfit-front'
+    : profile
+      ? 'torsoSide'
+      : rear
+        ? 'torsoBack'
+        : 'torsoFront'
   const dyePart = (art: string, filter = fabricDye) =>
     filter ? `<g filter="url(#${filter})">${art}</g>` : art
-  const torso =
-    !profile && !rear && outfit
-      ? dyePart(
-          `<use href="#${outfit}" transform="translate(${24 - torsoWidth * 0.63} ${torsoY - 1}) scale(${torsoWidth * 1.26} 24)"/>`,
-          outfitDye ?? '',
-        )
-      : dyePart(torsoBase)
+  const torso = dyePart(
+    placePart(
+      torsoPart,
+      [24, torsoY - (fittedOutfit ? 1 : 0)],
+      fittedOutfit ? [torsoWidth * 1.26, 24] : [torsoWidth, 23],
+    ),
+    fittedOutfit ? (outfitDye ?? '') : fabricDye,
+  )
+  const paintedSleeve = (shoulder: Point, size: Point, angle = 0, mirrored = false) =>
+    dyePart(
+      placePart(fittedOutfit ? 'worn-outfit-sleeve' : sleeve, shoulder, size, angle, mirrored),
+      fittedOutfit ? (outfitDye ?? '') : fabricDye,
+    )
   const nearShoulder: Point = [24 + torsoWidth * (profile ? 0.13 : 0.42), torsoY + 3]
   const attackArm = -(pose === 'cast' ? 52 : 30) - Math.abs(phase) * 10
   const arm = (side: -1 | 1) => {
@@ -101,7 +130,7 @@ export function renderPaintedSpriteRig({
     const wrist = belowJoint(shoulder, 11, angle)
     return `<g data-rig-arm="${leading ? 'near' : 'far'}" data-limb="arm-${leading ? 'right' : 'left'}">
       ${dyePart(placePart('hand', wrist, [width * 0.69, 8], angle, !leading), handDye ?? '')}
-      ${dyePart(placePart(sleeve, shoulder, [width, 13.1], angle, !leading))}
+      ${paintedSleeve(shoulder, [width, 13.1], angle, !leading)}
     </g>`
   }
   const leg = (side: -1 | 1) => {
@@ -120,7 +149,8 @@ export function renderPaintedSpriteRig({
   const cloak = cape
     ? placePart('cloak', [24, torsoY + 1], [torsoWidth + 14, 35], walking ? phase * 4 : 0)
     : ''
-  const shoulderPieces = mantle ? placePart('mantle', [24, torsoY + 1], [torsoWidth * 1.18, 6]) : ''
+  const shoulderPieces =
+    mantle && !fittedOutfit ? placePart('mantle', [24, torsoY + 1], [torsoWidth * 1.18, 6]) : ''
   let wornGear = satchel && !gear ? placePart('satchel', [24, torsoY + 17], [torsoWidth, 8]) : ''
   let packedGear = ''
   if (gear && (!rear || gear.placement === 'behind' || gear.placement === 'waist')) {
@@ -143,7 +173,7 @@ export function renderPaintedSpriteRig({
   }
   const shoulderCapY = torsoY + 2.1
   const shoulderCap = profile
-    ? `<svg x="20" y="${shoulderCapY}" width="9" height="8" viewBox="20 ${shoulderCapY} 9 8" overflow="hidden">${dyePart(placePart(sleeve, [24.3, shoulderCapY], [8.1, 15]))}</svg>`
+    ? `<svg x="20" y="${shoulderCapY}" width="9" height="8" viewBox="20 ${shoulderCapY} 9 8" overflow="hidden">${paintedSleeve([24.3, shoulderCapY], [8.1, 15])}</svg>`
     : ''
   const figure = `${packedGear}${dyePart(cloak)}${leg(-1)}${leg(1)}${arm(-1)}${torso}${dyePart(shoulderPieces)}${wornGear}${shoulderCap}${arm(1)}
     <g transform="translate(0 ${torsoY - PAINTED_SPRITE_COLLAR_Y})">${head}</g>`

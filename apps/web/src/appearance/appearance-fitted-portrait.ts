@@ -8,6 +8,7 @@ import type {
 } from './appearance-manifest'
 import { paintedPigmentFilter } from './appearance-painted-equipment'
 import { PAINTED_SPRITE_HEADS } from './appearance-painted-sprite-heads.generated'
+import { PAINTED_SPRITE_OUTFITS } from './appearance-painted-sprite-outfits.generated'
 import { PAINTED_SPRITE_COLLAR_Y } from './appearance-painted-sprite-rig'
 import {
   WARDROBE_DYES,
@@ -169,7 +170,6 @@ const registeredFaces = {
   f01: {
     source: 'river-scholar',
     eyeWidth: 22,
-    temple: 48,
     chin: 157,
     neck: 21,
     skin: ['#b48164', '#744f38'],
@@ -177,7 +177,6 @@ const registeredFaces = {
   f02: {
     source: 'storm-navigator',
     eyeWidth: 23,
-    temple: 50,
     chin: 158,
     neck: 23,
     skin: ['#a16b43', '#694a38'],
@@ -185,7 +184,6 @@ const registeredFaces = {
   m01: {
     source: 'night-courier',
     eyeWidth: 23,
-    temple: 51,
     chin: 164,
     neck: 22,
     skin: ['#b0815e', '#7c543c'],
@@ -193,7 +191,6 @@ const registeredFaces = {
   m02: {
     source: 'bronze-warden',
     eyeWidth: 25,
-    temple: 54,
     chin: 163,
     neck: 25,
     skin: ['#aa7854', '#764c36'],
@@ -234,7 +231,6 @@ function fittedFace(look: PaintedPlayerAppearanceBlueprint) {
   return {
     source,
     eyeWidth: 20.7 + ((seed * 11) % 29) * 0.15 + shape * 0.6,
-    temple: (feminine ? 45 : 49) + ((seed * 7) % 37) * 0.2 + shape * 2.6,
     chin: (feminine ? 155 : 159) + ((seed * 17) % 47) * 0.16 - shape * 2.1,
     neck: (feminine ? 20 : 22) + ((seed * 19) % 17) * 0.2,
     skin: [pigmentCss(pigments[0]), pigmentCss(pigments[1])] as const,
@@ -246,9 +242,17 @@ function faceLandmarks(
   youthful = false,
 ): PortraitFaceLandmarks {
   const source = FITTED_ART_SOURCE[face.source]
-  const eyes = [128 - face.eyeWidth, 128 + face.eyeWidth] as const
   const eyesY = 98
-  const chin = face.chin - (youthful ? 3 : 0)
+  const sourceEyeSpan = source.anchors.right - source.anchors.left
+  const sourceJawHeight = source.anchors.bottom - source.anchors.top
+  const desiredJawHeight = face.chin - eyesY - (youthful ? 3 : 0)
+  // Preserve the painted proportions while keeping the intended face size.
+  const scale = Math.sqrt(
+    (2 * face.eyeWidth * desiredJawHeight) / (sourceEyeSpan * sourceJawHeight),
+  )
+  const eyeHalfWidth = (sourceEyeSpan * scale) / 2
+  const eyes = [128 - eyeHalfWidth, 128 + eyeHalfWidth] as const
+  const chin = eyesY + sourceJawHeight * scale
   const fit = fitPortraitLayer(source.anchors, {
     left: eyes[0],
     right: eyes[1],
@@ -258,16 +262,20 @@ function faceLandmarks(
   const projectY = (fraction: number) => fit.origin[1] + fraction * source.height * fit.scaleY
   const guides = 'facialGuides' in source ? source.facialGuides : undefined
   const center = guides ? fit.origin[0] + guides.center * source.width * fit.scaleX : 128
+  const templeLeft = fit.origin[0] + source.width * scale * 0.07
+  const templeRight = fit.origin[0] + source.width * scale * 0.93
+  const neckHalfWidth = Math.min(face.neck, (templeRight - templeLeft) / 4)
+  const jawHeight = chin - eyesY
   return {
     eyes,
     eyesY,
-    temples: [128 - face.temple, 128 + face.temple],
-    hairline: 67,
-    brow: 89,
+    temples: [templeLeft, templeRight],
+    hairline: eyesY - jawHeight * 0.48,
+    brow: eyesY - jawHeight * 0.14,
     nose: guides ? projectY(guides.nose) : 116,
     mouth: guides ? [center, projectY(guides.lip)] : undefined,
     chin,
-    neck: [center - face.neck, center + face.neck],
+    neck: [center - neckHalfWidth, center + neckHalfWidth],
     shoulder: chin + 28,
   }
 }
@@ -349,6 +357,7 @@ export function fittedCharacterPortrait(
       neckPigment,
       faceMarks: fittedFaceMarks(look, landmarks, neckPigment[1]),
       expressionMap: expression !== 'neutral' ? PORTRAIT_EXPRESSION_MAPS[expression] : undefined,
+      expressionIntensity: expression === 'happy' || expression === 'sad' ? 22 : 18,
       torsoScale: WARDROBE_FRAMES[look.bodyFrame].torsoScale,
       paintedFilters:
         paintedPigmentFilter('painted-hair', hairDye) +
@@ -475,7 +484,10 @@ const looseWaveHair = new Set<PaintedPlayerLook['hairstyle']>([
 ])
 
 export function fittedSpriteOutfit(look: PaintedPlayerAppearanceBlueprint) {
-  return PAINTED_SPRITE_HEADS[fittedGarments[look.outerwear]].href
+  return {
+    front: PAINTED_SPRITE_HEADS[fittedGarments[look.outerwear]].href,
+    ...PAINTED_SPRITE_OUTFITS[look.outerwear],
+  }
 }
 
 export function fittedSpriteGear(look: PaintedPlayerAppearanceBlueprint) {

@@ -10,6 +10,7 @@ describe('painted sprite rig', () => {
     facing: (typeof APPEARANCE_FACINGS)[number],
     pose: (typeof APPEARANCE_POSES)[number],
     frame: number,
+    fittedOutfit = false,
   ) =>
     renderPaintedSpriteRig({
       facing,
@@ -21,6 +22,7 @@ describe('painted sprite rig', () => {
       cape: true,
       mantle: true,
       satchel: true,
+      fittedOutfit,
     })
 
   it('paints both arms and legs in the logical rig for every facing, pose and frame', () => {
@@ -42,6 +44,18 @@ describe('painted sprite rig', () => {
     expect(render('east', 'cast', 2)).not.toBe(render('east', 'idle', 2))
     expect(render('west', 'walk', 6)).toContain('translate(48 0) scale(-1 1)')
     expect(paintedSpriteRigDefinitions()).toContain('id="rig-hand" href="data:image/webp;base64,')
+  })
+
+  it('uses the selected outfit throughout all views and frames', () => {
+    for (const facing of APPEARANCE_FACINGS) {
+      const part = facing === 'south' ? 'front' : facing === 'north' ? 'back' : 'side'
+      for (const pose of APPEARANCE_POSES) {
+        const svg = render(facing, pose, 2, true)
+        expect(svg).toContain(`href="#rig-worn-outfit-${part}"`)
+        expect(svg).toContain('href="#rig-worn-outfit-sleeve"')
+        expect(svg).not.toContain('href="#rig-torso')
+      }
+    }
   })
 
   it('swings each arm against the leg on its side during a profile walk', () => {

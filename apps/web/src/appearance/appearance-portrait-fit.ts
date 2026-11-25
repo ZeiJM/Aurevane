@@ -115,6 +115,7 @@ export type PaintedPortraitLayers = Readonly<{
   garment: PaintedLayer
   paintedFilters?: string
   expressionMap?: string
+  expressionIntensity?: number
   faceMarks?: string
   torsoScale?: number
   gear?: PaintedLayer
@@ -175,7 +176,10 @@ export function fitPortraitAccessories(
     }
     if (closedCrown) {
       const clip = `${scope}-brim-fit`
-      fittedHair = `<clipPath id="${clip}"><path d="M0 ${band + 12}L${temples[0] - 7} ${band + 2}Q128 ${band - 11} ${temples[1] + 7} ${band + 2}L256 ${band + 12}V256H0Z"/></clipPath><g clip-path="url(#${clip})">${hairstyle}</g>`
+      const left = temples[0] - 7
+      const right = temples[1] + 7
+      const crownCenter = (left + right) / 2
+      fittedHair = `<clipPath id="${clip}"><path d="M${left} ${band + 2}Q${crownCenter} ${band - 11} ${right} ${band + 2}L${right + 4} ${eyesY + 10}L256 ${chin + 6}V256H0V${chin + 6}L${left - 4} ${eyesY + 10}Z"/></clipPath><g clip-path="url(#${clip})">${hairstyle}</g>`
     }
   }
 
@@ -239,8 +243,15 @@ export function renderFittedPortrait(
   const fittedFaceImage = layers.trimScalp
     ? `<clipPath id="painted-scalp"><path d="M0 ${brow} Q${neckCenter} ${2 * (hairline - 10) - brow} 256 ${brow} V256 H0Z"/></clipPath><g clip-path="url(#painted-scalp)">${faceImage}</g>`
     : faceImage
+  // The expression maps were painted on a reference with eyes at y=98,
+  // 44 units apart, and the mouth at y=138. Keep the movement on the
+  // corresponding features once different face proportions are fitted.
+  const expressionScaleX = (eyes[1] - eyes[0]) / 44
+  const expressionScaleY = landmarks.mouth ? (landmarks.mouth[1] - eyesY) / 40 : 1
+  const expressionX = (eyes[0] + eyes[1]) / 2 - 128 * expressionScaleX
+  const expressionY = eyesY - 98 * expressionScaleY
   const headSource = layers.expressionMap
-    ? `<filter id="painted-expression" x="0" y="0" width="256" height="256" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feImage href="${layers.expressionMap}" x="0" y="0" width="256" height="256" result="expression-shape"/><feDisplacementMap in="SourceGraphic" in2="expression-shape" scale="18" xChannelSelector="R" yChannelSelector="G"/></filter><g filter="url(#painted-expression)">${fittedFaceImage}</g>`
+    ? `<filter id="painted-expression" x="0" y="0" width="256" height="256" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-color="#808080" result="rest"/><feImage href="${layers.expressionMap}" x="${expressionX}" y="${expressionY}" width="${256 * expressionScaleX}" height="${256 * expressionScaleY}" preserveAspectRatio="none" result="expression-shape"/><feComposite in="expression-shape" in2="rest" operator="over" result="fitted-expression"/><feDisplacementMap in="SourceGraphic" in2="fitted-expression" scale="${layers.expressionIntensity ?? 18}" xChannelSelector="R" yChannelSelector="G"/></filter><g filter="url(#painted-expression)">${fittedFaceImage}</g>`
     : fittedFaceImage
   const irisRadius = (eyes[1] - eyes[0]) * 0.105
   const irisOverlay = layers.eyeFilters
@@ -305,12 +316,13 @@ export function renderFittedPortrait(
     const middle = (hairline + bottom) / 2
     const region = {
       split: '<path d="M130 0h126v256H124Z" fill="white"/>',
-      streak: `<path d="M145 0h15L${temples[1]} 256h-15Z" fill="white"/>`,
+      streak: `<path d="M145 0h15Q156 71 ${temples[1]} 256h-15Q141 71 145 0Z" fill="white" filter="url(#painted-streak-edge)"/>`,
       tips: `<rect y="${middle}" width="256" height="${Math.max(1, bottom - middle)}" fill="url(#painted-hair-fade)"/>`,
       underlight: `<path d="M0 ${brow}Q145 ${middle} 256 ${brow + 6}v180H0Z" fill="#bcbcbc"/>`,
     }[placement]
     hairstyle = `<defs>
       <g id="painted-hair-source">${layerImage({ ...hair, filter: undefined }, hairTarget)}</g>
+      <filter id="painted-streak-edge"><feGaussianBlur stdDeviation="1.5"/></filter>
       <linearGradient id="painted-hair-fade" x2="0" y2="1">
         <stop offset="0" stop-color="black"/><stop offset=".16" stop-color="white"/>
       </linearGradient>

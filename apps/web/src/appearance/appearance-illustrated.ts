@@ -36,19 +36,6 @@ const naturalSpriteFabric = {
   quilted: [154, 86, 56],
 } as const satisfies Record<Look['outerwear'], readonly [number, number, number]>
 
-const illustratedSleeves = {
-  none: 'armSide',
-  compass: 'armFront',
-  pine: 'sleeveWool',
-  hawkmantle: 'sleeveSeafarer',
-  shearling: 'sleeveWool',
-  scarf: 'armFront',
-  brigandine: 'sleeveWool',
-  brocade: 'sleeveWool',
-  hooded: 'armFront',
-  quilted: 'sleeveWool',
-} as const satisfies Record<Look['outerwear'], string>
-
 const key = (id: string) => {
   let value = 0
   for (const letter of id) value = (Math.imul(value, 31) + letter.charCodeAt(0)) >>> 0
@@ -146,9 +133,8 @@ export function illustratedSpriteMaterials(look: Look) {
     look.clothColor === 'natural'
       ? paintedPigmentFilter('rig-fabric', naturalSpriteFabric[look.outerwear])
       : paintedDyeFilter('rig-fabric', look.clothColor)
-  return `${paintedSpriteRigDefinitions()}${fabric}${paintedDyeFilter('rig-gear', look.gearColor)}
+  return `${paintedSpriteRigDefinitions(fittedSpriteOutfit(look))}${fabric}${paintedDyeFilter('rig-gear', look.gearColor)}
   ${paintedPigmentFilter('rig-skin', fittedSpriteSkinPigment(look))}
-  <image id="rig-worn-outfit" href="${fittedSpriteOutfit(look)}" width="1" height="1" preserveAspectRatio="none"/>
   ${gear ? `<image id="rig-worn-gear" href="${gear.art.href}" width="1" height="1" preserveAspectRatio="none"/>` : ''}`
 }
 
@@ -169,15 +155,11 @@ export function illustratedSprite(
     head: `<use href="#${headId}"/>`,
     bodyBuild: WARDROBE_FRAMES[look.bodyFrame].torsoScale,
     cape: look.outerwear === 'pine' || look.outerwear === 'compass' || look.outerwear === 'hooded',
-    mantle:
-      look.outerwear === 'hawkmantle' ||
-      look.outerwear === 'shearling' ||
-      look.outerwear === 'scarf',
+    mantle: false,
     satchel: look.gear !== 'none',
-    outfit: 'rig-worn-outfit',
+    fittedOutfit: true,
     fabricDye: 'rig-fabric',
     outfitDye: look.clothColor === 'natural' ? undefined : 'rig-fabric',
-    sleeve: illustratedSleeves[look.outerwear],
     handDye: 'rig-skin',
     gear: gear && {
       id: 'rig-worn-gear',
