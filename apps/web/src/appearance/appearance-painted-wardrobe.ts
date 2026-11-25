@@ -1,4 +1,5 @@
 import { portraitFace } from './appearance-face-catalog'
+import { PAINTED_FACEWEAR_STYLES, PAINTED_HEADWEAR_STYLES } from './appearance-fitted-accessories'
 import {
   DEFAULT_PAINTED_LOOK,
   PAINTED_ACCESSORIES,
@@ -322,6 +323,8 @@ export const PLAYER_APPEARANCE_DETAILS = Object.keys(
 export const PAINTED_PLAYER_FIELDS = {
   ...PAINTED_WARDROBE_FIELDS,
   identity: { pinescout: 'Pine Scout', ...PAINTED_FIELDS.identity },
+  headwear: { ...WARDROBE_HEADWEAR, ...PAINTED_HEADWEAR_STYLES },
+  facewear: { ...WARDROBE_FACEWEAR, ...PAINTED_FACEWEAR_STYLES },
   hairstyle: PLAYER_HAIRSTYLES,
   facialHair: FACIAL_HAIR_STYLES,
   hairAccent: WARDROBE_HAIR_COLORS,

@@ -41,7 +41,13 @@ const portraitHeads = {
 } as const satisfies Record<PaintedPlayerLook['identity'], PortraitAnchor>
 
 export function paintedDyeFilter(id: string, color?: Dye) {
-  const pigment = color ? WARDROBE_DYES[color].rgb : null
+  return paintedPigmentFilter(id, color ? WARDROBE_DYES[color].rgb : null)
+}
+
+export function paintedPigmentFilter(
+  id: string,
+  pigment: readonly [number, number, number] | null,
+) {
   if (!pigment) return ''
   const matrix = pigment
     .map((channel) => {
@@ -53,14 +59,15 @@ export function paintedDyeFilter(id: string, color?: Dye) {
 }
 
 function equipmentImage(
-  style: Equipment,
+  style: string,
   facing: AppearanceFacing,
   id: string,
   [x, y, width, height]: readonly [number, number, number, number],
   dye: Dye,
 ) {
+  if (!Object.hasOwn(equipment, style)) return ''
   const filter = dye === 'natural' ? '' : ` filter="url(#${id})"`
-  return `<image href="${equipment[style][facing]}" x="${x}" y="${y}" width="${width}" height="${height}" preserveAspectRatio="none"${filter}/>`
+  return `<image href="${equipment[style as Equipment][facing]}" x="${x}" y="${y}" width="${width}" height="${height}" preserveAspectRatio="none"${filter}/>`
 }
 
 function headwearImage(
@@ -189,7 +196,7 @@ function fittedPortraitEquipment(
     hat = headwearImage(look, 'east', [(x + end) / 2 - width * 0.08, scalp, width * 1.5])
   }
   const type = look.facewear
-  if (type === 'none') return hat
+  if (type !== 'goggles' && type !== 'eyepatch' && type !== 'veil' && type !== 'mask') return hat
   let face: string
   if (type === 'goggles') {
     const w = span / 0.4,

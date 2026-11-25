@@ -16,7 +16,7 @@ declare
     'auburn','ginger','rosewood','honey','ash','flax','silver','platinum','plum','wine',
     'lilac','ocean','teal','moss'];
 begin
-  if p_url is null or p_url !~ '^/api/media/appearance/6/[a-z0-9.-]{1,225}/neutral[.]svg$' then
+  if p_url is null or p_url !~ '^/api/media/appearance/6/[a-z0-9.-]{1,255}/neutral[.]svg$' then
     return false;
   end if;
 
@@ -34,6 +34,18 @@ begin
     face := substring(face from 4);
   end if;
   parts[1] := face;
+  if parts[6] in (
+    'wayfarercap','tidecirclet','crescentcirclet','astronomerhat',
+    'goldwingtricorn','hunterhood','branchlightcrown','stormcap'
+  ) then
+    parts[6] := 'arcanist';
+  end if;
+  if parts[8] in (
+    'garnetveil','scholarlenses','bronzemasque','ravenpatch',
+    'moonsteellenses','seascarf','pearlveil','explorergoggles'
+  ) then
+    parts[8] := 'veil';
+  end if;
 
   last_base := cardinality(parts) - 1;
   backdrop := parts[last_base + 1];
@@ -91,9 +103,14 @@ begin
   ) then
     parts[12] := 'feather';
   end if;
+  -- Check the selected setting and normalized wardrobe through the existing
+  -- allowlists. Each check fits the earlier URL envelope independently.
   return app_private.valid_original_player_look_url_v1(
+    '/api/media/appearance/6/scout.none.natural.none.natural.none.natural.none.natural.natural.natural.' ||
+      backdrop || '/neutral.svg'
+  ) and app_private.valid_original_player_look_url_v1(
     '/api/media/appearance/6/' || array_to_string(parts[1:last_base], '.') ||
-      '.' || backdrop || '/neutral.svg'
+      '.original/neutral.svg'
   );
 end;
 $$;

@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { GET } from '@/app/api/media/appearance/[version]/[blueprint]/[asset]/route'
 import { APPEARANCE_BACKDROPS, PATTERNED_BACKDROPS } from './appearance-backdrop-catalog'
+import { FITTED_FACEWEAR, FITTED_HEADWEAR } from './appearance-fitted-accessories'
+import { FITTED_ACCESSORY_ART } from './appearance-fitted-accessories.generated'
+import { FITTED_HAIR_ART } from './appearance-fitted-portrait'
+import { FITTED_ART_SOURCE } from './appearance-fitted-source.generated'
+import { PAINTED_SPRITE_HEADS } from './appearance-painted-sprite-heads.generated'
 import { PORTRAIT_FACES } from './appearance-face-catalog'
 import {
   APPEARANCE_EXPRESSIONS,
@@ -23,6 +28,62 @@ const svg = (look: ReturnType<typeof paintedPlayerAppearanceBlueprint>) =>
   illustratedPortrait(look, 'neutral', false)
 
 describe('illustrated player and NPC customization', () => {
+  it('round-trips a long canonical recipe with the new accessories and independent customization fields', () => {
+    const recipe =
+      'fitpinescoutkeen.hawkmantle.buttercup.utility.buttercup.branchlightcrown.buttercup.moonsteellenses.buttercup.natural.alabaster.loosequiff.charcoal.natural.beard-moustache.accent-charcoal.dye-underlight.eye-violet.scar-bridge.age-youthful.prestigesanctum'
+    expect(recipe.length).toBeGreaterThan(225)
+    const manifest = appearanceManifestFromImageUrl(`/api/media/appearance/6/${recipe}/neutral.svg`)
+    expect(manifest?.id).toBe(`6/${recipe}`)
+  })
+
+  it('keeps all hair choices and their distinct fitted source art', () => {
+    expect(Object.keys(FITTED_HAIR_ART).sort()).toEqual(Object.keys(PLAYER_HAIRSTYLES).sort())
+    expect(
+      new Set(Object.values(FITTED_HAIR_ART).map((name) => FITTED_ART_SOURCE[name].href)).size,
+    ).toBe(48)
+  })
+
+  it('keeps the same fitted hair and clothing while swapping rendered face expressions', () => {
+    const look = paintedPlayerAppearanceBlueprint({
+      ...defaultPaintedLookForGender('feminine'),
+      identity: 'pinescout',
+      faceId: 'f01',
+      outerwear: 'pine',
+      hairstyle: 'waves',
+      gear: 'none',
+      clothColor: 'natural',
+      headwear: 'none',
+      headColor: 'natural',
+      facewear: 'none',
+      faceColor: 'natural',
+    })
+    const renders = APPEARANCE_EXPRESSIONS.map((mood) => renderAppearanceAsset(look, mood, true))
+    expect(new Set(renders).size).toBe(5)
+    expect(renders.every((svg) => svg.includes(FITTED_ART_SOURCE['silvertip-waves'].href))).toBe(
+      true,
+    )
+    expect(renders.every((svg) => svg.includes(FITTED_ART_SOURCE['moss-cloak'].href))).toBe(true)
+    expect(renders[1]).toContain(FITTED_ART_SOURCE['river-scholar-happy'].href)
+    expect(renders[2]).toContain(FITTED_ART_SOURCE['river-scholar-angry'].href)
+  })
+
+  it('round-trips each added head and face accessory and fits the corresponding painted art', () => {
+    const base = defaultPaintedLookForGender('feminine')
+    for (const field of ['headwear', 'facewear'] as const) {
+      const catalogue = field === 'headwear' ? FITTED_HEADWEAR : FITTED_FACEWEAR
+      for (const [id, [art]] of Object.entries<
+        readonly [keyof typeof FITTED_ACCESSORY_ART, string]
+      >(catalogue)) {
+        const look = paintedPlayerAppearanceBlueprint({ ...base, [field]: id })
+        const manifest = compileAppearanceManifest(look)
+        expect(appearanceManifestFromImageUrl(manifest.neutralUrl)?.blueprint).toEqual(look)
+        for (const mood of APPEARANCE_EXPRESSIONS)
+          expect(renderAppearanceAsset(look, mood)).toContain(FITTED_ACCESSORY_ART[art].href)
+        expect(renderAppearanceAsset(look, 'motion-v2')).toContain(PAINTED_SPRITE_HEADS[art].href)
+      }
+    }
+  })
+
   it('triples the face choices for each gender and makes all 48 hair silhouettes visible', () => {
     for (const [gender, total] of [
       ['feminine', 198],
@@ -79,10 +140,11 @@ describe('illustrated player and NPC customization', () => {
     expect(appearanceManifestFromImageUrl(manifest.portraits.neutral)?.blueprint).toEqual(blueprint)
     for (const mood of APPEARANCE_EXPRESSIONS) {
       const portrait = renderAppearanceAsset(blueprint, mood, true)
-      expect(portrait).toContain('M151 116l13 15')
-      expect(portrait).toContain('hair-pigment')
-      expect(portrait).toContain('rgb(91,138,185)')
-      expect(portrait).toContain('rgb(67,45,40)')
+      expect(portrait).toContain('M151 116l12 14')
+      expect(portrait).toContain('painted-hair-accent')
+      expect(portrait).toContain('painted-eye-left')
+      expect(portrait).toContain('painted-eye-right')
+      expect(portrait).toContain('painted-skin')
       expect(portrait).toContain('data:image/webp')
     }
     const [version, id] = manifest.id.split('/') as [string, string]
@@ -158,7 +220,20 @@ describe('illustrated player and NPC customization', () => {
     const motion = renderAppearanceAsset(look, 'motion-v2', true)
     expect(motion).toContain('translate(24 53) rotate(-90)')
     const { default: sharp } = await import('sharp')
-    const { data, info } = await sharp(Buffer.from(motion))
+    // libvips' SVG renderer does not decode embedded WebP. Transcode the same
+    // alpha pixels for the existing cell and body coverage assertions.
+    const embeddedWebP = /data:image\/webp;base64,([A-Za-z0-9+/=]+)/g
+    const pngSources = await Promise.all(
+      [...motion.matchAll(embeddedWebP)].map(async ([, source]) =>
+        (await sharp(Buffer.from(source!, 'base64')).png().toBuffer()).toString('base64'),
+      ),
+    )
+    let sourceIndex = 0
+    const compatibleMotion = motion.replace(
+      embeddedWebP,
+      () => `data:image/png;base64,${pngSources[sourceIndex++]}`,
+    )
+    const { data, info } = await sharp(Buffer.from(compatibleMotion))
       .extract({ left: 0, top: 320, width: 48, height: 50 })
       .ensureAlpha()
       .raw()

@@ -5,6 +5,7 @@ import {
   illustratedSpriteMaterials,
 } from './appearance-illustrated'
 import { facePainting, faceLayers, naturalFaceSkin, fieldFacePaint } from './appearance-face-paint'
+import { FITTED_FACEWEAR, FITTED_HEADWEAR } from './appearance-fitted-accessories'
 import {
   patternedBackdrop,
   studioColor,
@@ -760,6 +761,8 @@ export function renderAppearanceAsset(
   if (
     blueprint.v === 6 &&
     (illustrated ||
+      Object.hasOwn(FITTED_HEADWEAR, blueprint.headwear) ||
+      Object.hasOwn(FITTED_FACEWEAR, blueprint.facewear) ||
       blueprint.apparentAge ||
       blueprint.facialHair ||
       blueprint.hairAccent ||
@@ -777,7 +780,7 @@ export function renderAppearanceAsset(
     )
     const frames = motion ? APPEARANCE_MOTION_FRAME.frames : APPEARANCE_FRAME.frames
     return renderSpriteAtlas(
-      `<defs>${illustratedSpriteMaterials()}${heads.join('')}</defs>`,
+      `<defs>${illustratedSpriteMaterials(blueprint)}${heads.join('')}</defs>`,
       (facing, pose, frame) =>
         illustratedSprite(blueprint, facing, pose, frame, frames, 'painted-' + facing),
       motion,

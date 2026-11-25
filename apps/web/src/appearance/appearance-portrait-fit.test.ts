@@ -1,0 +1,119 @@
+import { describe, expect, it } from 'vitest'
+import { FITTED_ACCESSORY_ART } from './appearance-fitted-accessories.generated'
+import { FITTED_ART_SOURCE } from './appearance-fitted-source.generated'
+import {
+  fitPortraitLayer,
+  renderFittedPortrait,
+  type PaintedPortraitLayers,
+} from './appearance-portrait-fit'
+
+describe('painted portrait fitting', () => {
+  it('keeps every source cutout and its calibration inside the source image', async () => {
+    const { default: sharp } = await import('sharp')
+    for (const [name, layer] of Object.entries({ ...FITTED_ART_SOURCE, ...FITTED_ACCESSORY_ART })) {
+      const { anchors, width, height } = layer
+      expect([anchors.left, anchors.right], name).toEqual(
+        [anchors.left, anchors.right].sort((a, b) => a - b),
+      )
+      expect(anchors.left, name).toBeGreaterThanOrEqual(0)
+      expect(anchors.right, name).toBeLessThanOrEqual(width)
+      expect(anchors.top, name).toBeGreaterThanOrEqual(0)
+      expect(anchors.bottom, name).toBeGreaterThan(anchors.top)
+      expect(anchors.bottom, name).toBeLessThanOrEqual(height)
+      const art = Buffer.from(layer.href.slice('data:image/webp;base64,'.length), 'base64')
+      await expect(sharp(art).metadata()).resolves.toMatchObject({
+        width,
+        height,
+        format: 'webp',
+        hasAlpha: true,
+      })
+    }
+  })
+
+  it('registers both pairs of guides even if source artwork has uneven padding', () => {
+    const source = { left: 53, right: 143, top: 40, bottom: 260 }
+    const target = { left: 91, right: 165, top: 98, bottom: 159 }
+    const { origin, scaleX, scaleY } = fitPortraitLayer(source, target)
+    expect(origin[0] + source.left * scaleX).toBeCloseTo(target.left)
+    expect(origin[0] + source.right * scaleX).toBeCloseTo(target.right)
+    expect(origin[1] + source.top * scaleY).toBeCloseTo(target.top)
+    expect(origin[1] + source.bottom * scaleY).toBeCloseTo(target.bottom)
+  })
+
+  const paintedPart = (name: string) => ({
+    href: `data:image/webp;name=${name}`,
+    width: 300,
+    height: 300,
+    anchors: { left: 90, right: 210, top: 100, bottom: 230 },
+  })
+  const bare: PaintedPortraitLayers = {
+    face: paintedPart('face'),
+    neckPigment: ['#b58060', '#6b4338'],
+    landmarks: {
+      temples: [74, 182],
+      eyes: [102, 154],
+      eyesY: 103,
+      hairline: 60,
+      brow: 88,
+      nose: 119,
+      chin: 169,
+      neck: [104, 152],
+      shoulder: 199,
+    },
+    garment: paintedPart('garment'),
+    hair: paintedPart('hair'),
+  }
+
+  it('puts the painted collar over the neck continuation and hair over the garment', () => {
+    const result = renderFittedPortrait(bare, '<rect id="paper"/>')
+    const order = [
+      'id="paper"',
+      'url(#neck-continuation)',
+      'name=face',
+      'name=garment',
+      'name=hair',
+    ]
+    expect(order.map((marker) => result.indexOf(marker))).toEqual(
+      order.map((marker) => result.indexOf(marker)).sort((a, b) => a - b),
+    )
+    expect(order.every((marker) => result.includes(marker))).toBe(true)
+    expect(result).not.toContain('brim-fit')
+  })
+
+  it('repositions a lens opening when a different face moves its pupils', () => {
+    const fitted = (eyes: readonly [number, number], eyesY: number) =>
+      renderFittedPortrait(
+        {
+          ...bare,
+          landmarks: { ...bare.landmarks, eyes, eyesY },
+          facewear: { layer: paintedPart('lenses'), kind: 'lenses' },
+        },
+        '',
+      )
+    expect(fitted([102, 154], 103)).toContain('<ellipse cx="102" cy="103"')
+    expect(fitted([108, 148], 95)).toContain('<ellipse cx="108" cy="95"')
+  })
+
+  it('puts accessory straps behind the head and keeps its front over the face', () => {
+    const veil = paintedPart('veil')
+    const strap = paintedPart('veil-strap')
+    const result = renderFittedPortrait(
+      { ...bare, facewear: { layer: { ...veil, rearHref: strap.href }, kind: 'veil' } },
+      '',
+    )
+    const strapPosition = result.indexOf('href="' + strap.href + '"')
+    const facePosition = result.indexOf('href="' + bare.face.href + '"')
+    const veilPosition = result.indexOf('href="' + veil.href + '"')
+    expect(strapPosition).toBeGreaterThanOrEqual(0)
+    expect(strapPosition).toBeLessThan(facePosition)
+    expect(veilPosition).toBeGreaterThan(facePosition)
+  })
+
+  it('clips crown hair for a cap and allows it to show beneath an open circlet', () => {
+    const withHeadwear = (kind: 'cap' | 'circlet') =>
+      renderFittedPortrait({ ...bare, headwear: { layer: paintedPart(kind), kind } }, '')
+    expect(withHeadwear('cap')).toContain('clip-path="url(#portrait-brim-fit)"')
+    expect(withHeadwear('circlet')).not.toContain('brim-fit')
+    expect(withHeadwear('circlet')).toContain('name=circlet')
+  })
+})
