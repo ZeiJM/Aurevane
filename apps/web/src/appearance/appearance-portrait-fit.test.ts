@@ -3,6 +3,7 @@ import { FITTED_ACCESSORY_ART } from './appearance-fitted-accessories.generated'
 import { FITTED_ART_SOURCE } from './appearance-fitted-source.generated'
 import {
   fitPortraitLayer,
+  fittedHairTarget,
   renderFittedPortrait,
   type PaintedPortraitLayers,
 } from './appearance-portrait-fit'
@@ -109,11 +110,42 @@ describe('painted portrait fitting', () => {
     expect(veilPosition).toBeGreaterThan(facePosition)
   })
 
+  it('keeps the exposed eye visible when a hand-selected patch is fitted', () => {
+    const result = renderFittedPortrait(
+      { ...bare, facewear: { layer: paintedPart('eye-patch'), kind: 'patch' } },
+      '',
+    )
+    expect(result).toContain('mask="url(#portrait-uncovered-eye)"')
+    expect(result).toContain('<ellipse cx="102" cy="103"')
+    expect(result).not.toContain('<ellipse cx="154" cy="103"')
+  })
+
   it('clips crown hair for a cap and allows it to show beneath an open circlet', () => {
     const withHeadwear = (kind: 'cap' | 'circlet') =>
       renderFittedPortrait({ ...bare, headwear: { layer: paintedPart(kind), kind } }, '')
     expect(withHeadwear('cap')).toContain('clip-path="url(#portrait-brim-fit)"')
     expect(withHeadwear('circlet')).not.toContain('brim-fit')
     expect(withHeadwear('circlet')).toContain('name=circlet')
+  })
+
+  it('bounds short and long hair to the head measured in the portrait', () => {
+    const wideHair = { ...bare.hair, width: 450 }
+    const short = fittedHairTarget(wideHair, bare.landmarks, 'short')
+    const long = fittedHairTarget(wideHair, bare.landmarks, 'long')
+    const scale = fitPortraitLayer(wideHair.anchors, short)
+    expect(wideHair.width * scale.scaleX).toBeCloseTo(108 * 1.37)
+    expect(scale.scaleY).toBeLessThanOrEqual(scale.scaleX * 1.18)
+    expect((short.left + short.right) / 2).toBe(128)
+    expect(long.right - long.left).toBeGreaterThan(short.right - short.left)
+  })
+
+  it('puts the lower lengths of loose hair behind the fitted collar', () => {
+    const result = renderFittedPortrait({ ...bare, tuckHairBehindShoulders: true }, '')
+    const behind = result.indexOf('clip-path="url(#hair-behind-shoulders)"')
+    const collar = result.indexOf('clip-path="url(#painted-neck-opening)"')
+    const fringe = result.indexOf('clip-path="url(#hair-above-shoulders)"')
+    expect(behind).toBeGreaterThan(0)
+    expect(collar).toBeGreaterThan(behind)
+    expect(fringe).toBeGreaterThan(collar)
   })
 })

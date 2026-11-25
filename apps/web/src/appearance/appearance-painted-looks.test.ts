@@ -152,4 +152,61 @@ describe('painted player appearance', () => {
     ).toBeNull()
     expect(appearanceManifestFromImageUrl(url.replace('.none.natural.', '.none.ochre.'))).toBeNull()
   })
+
+  it('rolls varied, readable looks without putting bulky hair under caps or hiding expressions', () => {
+    let seed = 1881051
+    const random = () => (seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 2 ** 32
+    const lowCrownCuts = new Set<string>([
+      'crop',
+      'sidepart',
+      'brushed',
+      'crown',
+      'tightbun',
+      'twinlow',
+    ])
+    const hairstyleChoices = new Set<string>()
+    const outfits = new Set<string>()
+    const faces = new Set<string>()
+    let headwearCount = 0
+    let facewearCount = 0
+    let dualColorCount = 0
+
+    for (const gender of ['feminine', 'masculine'] as const) {
+      let previous: PaintedPlayerLook | undefined
+      for (let index = 0; index < 800; index++) {
+        const look = randomPaintedLookForGender(gender, random, previous)
+        expect(look.faceId).not.toBe(previous?.faceId)
+        expect(appearanceGenderForIdentity(look.identity)).toBe(gender)
+        if (look.headwear !== 'none') {
+          headwearCount++
+          expect(look.hairAccent).toBeUndefined()
+          if (look.headwear !== 'circlet') expect(lowCrownCuts.has(look.hairstyle)).toBe(true)
+        }
+        if (look.facewear !== 'none') {
+          facewearCount++
+          expect(look.facewear).toBe('moonsteellenses')
+          expect(['crop', 'sidepart', 'brushed', 'crown']).toContain(look.hairstyle)
+          expect(look.headwear).toBe('none')
+          expect(look.facialHair ?? 'none').toBe('none')
+          expect(look.secondEye).toBeUndefined()
+        }
+        if (look.hairAccent) {
+          dualColorCount++
+          expect(look.hairAccent).not.toBe(look.hairDye)
+          expect(look.hairPlacement).toBe('streak')
+        }
+        if (look.secondEye) expect(look.secondEye).not.toBe(look.eyeColor)
+        hairstyleChoices.add(look.hairstyle)
+        outfits.add(look.outerwear)
+        faces.add(look.faceId!)
+        previous = look
+      }
+    }
+    expect(hairstyleChoices).toEqual(new Set(Object.keys(PAINTED_PLAYER_FIELDS.hairstyle)))
+    expect(outfits).toEqual(new Set(Object.keys(PAINTED_PLAYER_FIELDS.outerwear)))
+    expect(faces.size).toBeGreaterThan(350)
+    expect(headwearCount).toBeGreaterThan(100)
+    expect(facewearCount).toBeGreaterThan(20)
+    expect(dualColorCount).toBeGreaterThan(100)
+  })
 })

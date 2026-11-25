@@ -54,7 +54,11 @@ export function renderPaintedSpriteRig({
   outfitDye?: string
   sleeve?: 'armFront' | 'armSide' | 'sleeveSeafarer' | 'sleeveWool'
   handDye?: string
-  gear?: string
+  gear?: Readonly<{
+    id: string
+    placement: 'sash' | 'shoulder' | 'waist' | 'behind'
+    ratio: number
+  }>
   gearDye?: string
 }) {
   const profile = facing === 'east' || facing === 'west'
@@ -114,16 +118,31 @@ export function renderPaintedSpriteRig({
     ? placePart('cloak', [24, torsoY + 1], [torsoWidth + 14, 35], walking ? phase * 4 : 0)
     : ''
   const shoulderPieces = mantle ? placePart('mantle', [24, torsoY + 1], [torsoWidth * 1.18, 6]) : ''
-  const belt = gear
-    ? `<use href="#${gear}" transform="translate(${24 - torsoWidth * 0.33} ${torsoY + (rear ? 12 : 7)}) scale(${torsoWidth * 0.76} 15)"${gearDye ? ` filter="url(#${gearDye})"` : ''}/>`
-    : satchel
-      ? placePart('satchel', [24, torsoY + 17], [torsoWidth, 8])
-      : ''
+  let wornGear = satchel && !gear ? placePart('satchel', [24, torsoY + 17], [torsoWidth, 8]) : ''
+  let packedGear = ''
+  if (gear && (!rear || gear.placement === 'behind' || gear.placement === 'waist')) {
+    const placement = {
+      sash: { center: 24, top: 6, width: torsoWidth * 0.84, height: 15 },
+      shoulder: { center: 24 + torsoWidth * 0.26, top: 6, width: torsoWidth * 0.48, height: 10 },
+      waist: { center: 24, top: 15, width: torsoWidth * 0.92, height: 10 },
+      behind: {
+        center: rear ? 24 : profile ? 20 : 24 + torsoWidth * 0.42,
+        top: 6,
+        width: torsoWidth * 0.8,
+        height: 14,
+      },
+    }[gear.placement]
+    const width = Math.min(placement.width, placement.height * gear.ratio)
+    const height = width / gear.ratio
+    const item = `<use href="#${gear.id}" transform="translate(${placement.center - width / 2} ${torsoY + placement.top}) scale(${width} ${height})"${gearDye ? ` filter="url(#${gearDye})"` : ''}/>`
+    if (gear.placement === 'behind' && !rear) packedGear = item
+    else wornGear = item
+  }
   const shoulderCapY = torsoY + 2.1
   const shoulderCap = profile
     ? `<svg x="20" y="${shoulderCapY}" width="9" height="8" viewBox="20 ${shoulderCapY} 9 8" overflow="hidden">${dyePart(placePart(sleeve, [24.3, shoulderCapY], [8.1, 15]))}</svg>`
     : ''
-  const figure = `${dyePart(cloak)}${leg(-1)}${leg(1)}${arm(-1)}${torso}${dyePart(shoulderPieces)}${belt}${shoulderCap}${arm(1)}
+  const figure = `${packedGear}${dyePart(cloak)}${leg(-1)}${leg(1)}${arm(-1)}${torso}${dyePart(shoulderPieces)}${wornGear}${shoulderCap}${arm(1)}
     <g transform="translate(0 ${torsoY - 20})">${head}</g>`
   const reaction = pose === 'hit' ? 'rotate(-9 24 58)' : ''
   const alignment = facing === 'west' ? 'translate(48 0) scale(-1 1)' : ''

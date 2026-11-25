@@ -106,6 +106,37 @@ function foreground(data, width, height) {
   return { left, top, width: right - left + 1, height: bottom - top + 1 }
 }
 
+function clearDetachedHairSpeckles(data, width, height) {
+  const pixels = width * height
+  const visited = new Uint8Array(pixels)
+  const components = []
+  for (let origin = 0; origin < pixels; origin++) {
+    if (visited[origin] || data[origin * 4 + 3] === 0) continue
+    visited[origin] = 1
+    const component = [origin]
+    for (let index = 0; index < component.length; index++) {
+      const pixel = component[index]
+      const x = pixel % width
+      const y = Math.floor(pixel / width)
+      for (let row = Math.max(0, y - 1); row <= Math.min(height - 1, y + 1); row++) {
+        for (let col = Math.max(0, x - 1); col <= Math.min(width - 1, x + 1); col++) {
+          const neighbor = row * width + col
+          if (visited[neighbor] || data[neighbor * 4 + 3] === 0) continue
+          visited[neighbor] = 1
+          component.push(neighbor)
+        }
+      }
+    }
+    components.push(component)
+  }
+  // A hair sheet can contain dots and short cutout fragments from adjacent
+  // cells. They must not participate in the silhouette or its fitting guides.
+  const largest = components.reduce((size, component) => Math.max(size, component.length), 0)
+  for (const component of components)
+    if (component.length < largest * 0.014)
+      for (const pixel of component) data.fill(0, pixel * 4, pixel * 4 + 4)
+}
+
 function hairOpening(data, width, bounds) {
   let consecutive = 0
   for (let y = bounds.top + 8; y < bounds.top + bounds.height * 0.72; y++) {
@@ -144,8 +175,8 @@ function registration(sheet, slot, data, width, bounds) {
       ],
     }
   }
-  if (sheet.kind === 'hair') {
-    const opening = hairOpening(data, width, bounds)
+  const facingHair = sheet.kind === 'sprite' && slot.id.endsWith('Hair')
+  if (sheet.kind === 'hair' || facingHair) {
     const crown = []
     for (let y = 0.15; y < 0.43; y += 0.05) {
       for (let x = 0.28; x < 0.73; x += 0.065) {
@@ -155,6 +186,9 @@ function registration(sheet, slot, data, width, bounds) {
       }
     }
     crown.sort((a, b) => a[0] - b[0])
+    const hairPigment = crown[Math.floor(crown.length / 2)] ?? [99, 71, 54]
+    if (facingHair) return { hairPigment }
+    const opening = hairOpening(data, width, bounds)
     return {
       anchors: measured ?? {
         left: assetWidth * 0.19,
@@ -162,7 +196,7 @@ function registration(sheet, slot, data, width, bounds) {
         top: opening - assetWidth * 0.065,
         bottom: opening + assetWidth * 0.075,
       },
-      hairPigment: crown[Math.floor(crown.length / 2)] ?? [99, 71, 54],
+      hairPigment,
     }
   }
   const ratios = {
@@ -249,7 +283,11 @@ for (const sheet of sheets) {
     const oriented = sharp(cutout)
     if (slot.mirror) oriented.flop()
     const { data, info } = await oriented.ensureAlpha().raw().toBuffer({ resolveWithObject: true })
-    const bounds = foreground(data, info.width, info.height)
+    let bounds = foreground(data, info.width, info.height)
+    if (sheet.kind === 'hair') {
+      clearDetachedHairSpeckles(data, info.width, info.height)
+      bounds = foreground(data, info.width, info.height)
+    }
     if (slot.lensOpenings) clearLensCenters(data, info.width, bounds, slot.lensOpenings)
     if (sheet.kind === 'face')
       assert(bounds.height > bounds.width, `Invalid face proportions for ${slot.id}`)

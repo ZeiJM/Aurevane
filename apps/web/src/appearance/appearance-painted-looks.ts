@@ -1,4 +1,3 @@
-import { PATTERNED_BACKDROPS } from './appearance-backdrop-catalog'
 import { PORTRAIT_FACES } from './appearance-face-catalog'
 import {
   PAINTED_PLAYER_FIELDS,
@@ -16,6 +15,7 @@ export {
 export const APPEARANCE_GENDERS = { feminine: 'Female', masculine: 'Male' } as const
 export type AppearanceGender = keyof typeof APPEARANCE_GENDERS
 type Identity = PaintedPlayerLook['identity']
+type Hairstyle = PaintedPlayerLook['hairstyle']
 
 const identitiesByGender = {
   feminine: ['pinescout', 'ranger'],
@@ -216,6 +216,56 @@ export const CURATED_PAINTED_LOOKS = Object.freeze(
   }),
 )
 
+const capCuts = [
+  'crop',
+  'sidepart',
+  'brushed',
+  'crown',
+  'tightbun',
+  'twinlow',
+] as const satisfies readonly Hairstyle[]
+
+const lensCuts = ['crop', 'sidepart', 'brushed', 'crown'] as const satisfies readonly Hairstyle[]
+
+const visibleBrowCuts = [
+  'crop',
+  'sidepart',
+  'brushed',
+  'crown',
+  'bun',
+  'coronet',
+  'halo',
+  'tightbun',
+  'loosebun',
+  'braid',
+  'fishtail',
+  'lowpony',
+  'twinlow',
+] as const satisfies readonly Hairstyle[]
+
+const rollStudios = {
+  none: 'parchment',
+  compass: 'tealstudio',
+  pine: 'pinegreen',
+  hawkmantle: 'amberstudio',
+  shearling: 'pearl',
+  scarf: 'terracotta',
+  brigandine: 'midnight',
+  brocade: 'plumstudio',
+  hooded: 'garnetstudio',
+  quilted: 'amberstudio',
+} as const satisfies Record<PaintedPlayerLook['outerwear'], PaintedPlayerLook['backdrop']>
+
+const restrainedHairPairs = [
+  ['espresso', 'silver'],
+  ['chestnut', 'copper'],
+  ['auburn', 'honey'],
+  ['onyx', 'ash'],
+] as const satisfies readonly (readonly [
+  PaintedPlayerLook['hairDye'],
+  PaintedPlayerLook['hairDye'],
+])[]
+
 export function randomPaintedLookForGender(
   gender: AppearanceGender,
   random = Math.random,
@@ -228,57 +278,77 @@ export function randomPaintedLookForGender(
     choices[Math.min(choices.length - 1, Math.floor(random() * choices.length))]!
   const face = choose(faces)
   const ensemble = choose(ensembles)
-  const [, clothColor, accent, backdrop] = choose(ensemble.palettes)
-  const setting =
-    random() < 0.16
-      ? choose(Object.keys(PATTERNED_BACKDROPS) as (keyof typeof PATTERNED_BACKDROPS)[])
-      : backdrop
-  const hairstyle =
-    random() < 0.55
-      ? ensemble.hairstyle
-      : choose(Object.keys(PAINTED_PLAYER_FIELDS.hairstyle) as PaintedPlayerLook['hairstyle'][])
-  const secondary =
-    random() < 0.12 ? choose(['silver', 'lilac', 'copper', 'teal'] as const) : undefined
-  return {
-    ...defaultPaintedLookForGender(gender),
-    identity: face.rig,
-    faceId: face.id,
-    hairstyle,
-    ...(secondary
-      ? { hairAccent: secondary, hairPlacement: choose(['tips', 'streak', 'underlight'] as const) }
-      : {}),
-    ...(random() < 0.1 ? { secondEye: choose(['amber', 'green', 'blue', 'violet'] as const) } : {}),
-    ...(random() < 0.12 ? { scar: choose(['cross', 'cheek', 'brow', 'jaw'] as const) } : {}),
-    ...(gender === 'masculine' && random() < 0.25
-      ? { facialHair: choose(['stubble', 'goatee', 'anchor', 'boxed', 'full'] as const) }
-      : {}),
-    clothColor,
-    backdrop: setting,
-    ...(random() < 0.25 ? { apparentAge: choose(['youthful', 'mature', 'elder'] as const) } : {}),
-    outerwear: ensemble.outerwear,
-    gear: ensemble.gear,
-    headwear: ensemble.headwear,
-    facewear: ensemble.facewear,
-    bodyFrame: choose(
-      ['natural', 'strong', 'broad', 'stocky', 'slight'].filter(
-        (id) => id in PAINTED_PLAYER_FIELDS.bodyFrame,
-      ),
-    ) as PaintedPlayerLook['bodyFrame'],
-    hairDye: choose([
+  const [, paletteColor, accent, setting] = choose(ensemble.palettes)
+  const headwear = random() < 0.62 ? ensemble.headwear : 'none'
+  // A roll starts with a readable expression; broad eye and mouth coverings
+  // remain available in the editor for intentional designs.
+  const facewear = ensemble.facewear === 'goggles' && random() < 0.55 ? 'moonsteellenses' : 'none'
+  const gear = random() < 0.7 ? ensemble.gear : 'none'
+  const cuts =
+    facewear !== 'none'
+      ? lensCuts
+      : headwear === 'circlet'
+        ? visibleBrowCuts
+        : headwear !== 'none'
+          ? capCuts
+          : (Object.keys(PAINTED_PLAYER_FIELDS.hairstyle) as Hairstyle[])
+  const preferred = cuts.some((cut) => cut === ensemble.hairstyle)
+  const hairstyle = random() < 0.48 && preferred ? ensemble.hairstyle : choose(cuts)
+  const faceIsUnframed = headwear === 'none' && facewear === 'none'
+  const twoTone = faceIsUnframed && random() < 0.15 ? choose(restrainedHairPairs) : undefined
+  const hairDye =
+    twoTone?.[0] ??
+    choose([
       'natural',
       'natural',
-      'chestnut',
+      'natural',
       'espresso',
+      'chestnut',
       'auburn',
       'ash',
       'onyx',
       'silver',
       'honey',
-    ]),
-    eyeColor: choose(['natural', 'natural', 'hazel', 'brown', 'gray', 'green', 'blue']),
-    gearColor: ensemble.gear === 'none' ? 'natural' : accent,
-    headColor:
-      ensemble.headwear === 'none' ? 'natural' : choose(['natural', 'walnut', 'leather', accent]),
-    faceColor: ensemble.facewear === 'none' ? 'natural' : choose(['natural', 'leather', 'ink']),
+    ] as const)
+  const eyeColor = choose([
+    'natural',
+    'natural',
+    'hazel',
+    'brown',
+    'gray',
+    'green',
+    'blue',
+  ] as const)
+  return {
+    ...defaultPaintedLookForGender(gender),
+    identity: face.rig,
+    faceId: face.id,
+    hairstyle,
+    ...(twoTone ? { hairAccent: twoTone[1], hairPlacement: 'streak' as const } : {}),
+    ...(faceIsUnframed && random() < 0.1
+      ? {
+          secondEye: choose(
+            (['amber', 'green', 'blue', 'violet'] as const).filter((color) => color !== eyeColor),
+          ),
+        }
+      : {}),
+    ...(faceIsUnframed && !twoTone && random() < 0.12
+      ? { scar: choose(['cross', 'cheek', 'brow', 'jaw'] as const) }
+      : {}),
+    ...(gender === 'masculine' && faceIsUnframed && random() < 0.25
+      ? { facialHair: choose(['moustache', 'goatee'] as const) }
+      : {}),
+    clothColor: random() < 0.57 ? 'natural' : paletteColor,
+    backdrop: random() < 0.78 ? rollStudios[ensemble.outerwear] : setting,
+    outerwear: ensemble.outerwear,
+    gear,
+    headwear,
+    facewear,
+    bodyFrame: choose(['natural', 'strong', 'broad', 'stocky', 'slight'] as const),
+    hairDye,
+    eyeColor,
+    gearColor: gear === 'none' || random() < 0.7 ? 'natural' : accent,
+    headColor: 'natural',
+    faceColor: 'natural',
   }
 }

@@ -149,7 +149,7 @@ export function illustratedSpriteMaterials(look: Look) {
   return `${paintedSpriteRigDefinitions()}${fabric}${paintedDyeFilter('rig-gear', look.gearColor)}
   ${paintedPigmentFilter('rig-skin', fittedSpriteSkinPigment(look))}
   <image id="rig-worn-outfit" href="${fittedSpriteOutfit(look)}" width="1" height="1" preserveAspectRatio="none"/>
-  ${gear ? `<image id="rig-worn-gear" href="${gear}" width="1" height="1" preserveAspectRatio="none"/>` : ''}`
+  ${gear ? `<image id="rig-worn-gear" href="${gear.art.href}" width="1" height="1" preserveAspectRatio="none"/>` : ''}`
 }
 
 export function illustratedSprite(
@@ -160,6 +160,7 @@ export function illustratedSprite(
   frames: number,
   headId: string,
 ) {
+  const gear = fittedSpriteGear(look)
   return renderPaintedSpriteRig({
     facing,
     pose,
@@ -178,7 +179,11 @@ export function illustratedSprite(
     outfitDye: look.clothColor === 'natural' ? undefined : 'rig-fabric',
     sleeve: illustratedSleeves[look.outerwear],
     handDye: 'rig-skin',
-    gear: look.gear === 'none' ? undefined : 'rig-worn-gear',
+    gear: gear && {
+      id: 'rig-worn-gear',
+      placement: gear.placement,
+      ratio: gear.art.width / gear.art.height,
+    },
     gearDye: look.gearColor === 'natural' ? undefined : 'rig-gear',
   })
 }
