@@ -280,7 +280,10 @@ export async function verifyWorldScenePresence(
     const canvas = page.locator('canvas[data-world-stage]'),
       player = page.locator(`[data-world-player="${id}"]`)
     await expect(player).toBeVisible({ timeout: 15000 })
-    await expect(player.locator('img')).toHaveAttribute('src', /starter-portrait/)
+    await expect(player.locator('img')).toHaveAttribute(
+      'src',
+      /^\/api\/media\/appearance\/6\/.+\/illustrated-neutral\.svg$/,
+    )
     // This explicit second-account fixture makes density coverage non-vacuous.
     const density = await player.evaluate((row) => {
       const portrait = row.querySelector('img')!.getBoundingClientRect()
