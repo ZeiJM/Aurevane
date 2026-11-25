@@ -15,7 +15,13 @@ import {
 import { waitForWorldArt } from './world-art-readiness'
 import { openMapSettings, closeMapSettings } from './world-map-settings-helpers'
 import { matchesWorldWalk } from './world-presence-diagnostics'
-import { WORLD_MAX_ZOOM } from '../src/components/world/world-zoom'
+import { UNCHARTED_VEIL_FOCUS } from '../src/components/world/globe-veil'
+import {
+  WORLD_MAX_ZOOM,
+  WORLD_MIN_ZOOM,
+  worldZoomFromPercent,
+  worldZoomPercent,
+} from '../src/components/world/world-zoom'
 
 interface Harness {
   enter: (page: Page) => Promise<string>
@@ -33,19 +39,15 @@ const digest = (data: Buffer) => createHash('sha256').update(data).digest('hex')
 async function zoom(page: Page, value: number) {
   await openMapSettings(page)
   const control = page.getByRole('slider', { name: 'Zoom level', exact: true })
-  const desired = Math.round(value * 100)
-  if (Number(await control.inputValue()) !== desired) {
-    await control.press('Home')
-    for (let index = 35; index < desired; index++) await control.press('ArrowRight')
-  }
+  const desired = worldZoomPercent(value)
+  if (Number(await control.inputValue()) !== desired) await control.fill(String(desired))
   await expect(control).toHaveValue(String(desired))
   await closeMapSettings(page)
-  await expect(page.locator(stage)).toHaveAttribute(
-    'data-tile-size',
-    String(
-      (await page.locator(stage).evaluate((el) => el.clientWidth < 600)) ? 48 * value : 64 * value,
-    ),
-  )
+  const canvas = page.locator(stage)
+  const baseTile = await canvas.evaluate((el) => (el.clientWidth < 600 ? 48 : 64))
+  await expect
+    .poll(async () => Number(await canvas.getAttribute('data-tile-size')))
+    .toBeCloseTo(baseTile * worldZoomFromPercent(desired), 0)
 }
 async function savePair(info: TestInfo, name: string, first: Buffer, second: Buffer) {
   const a = await sharp(first).metadata(),
@@ -316,7 +318,7 @@ export function registerWorldMapCorrectionCases(harness: Harness) {
         const normal = await page
           .locator('[data-world-workspace]')
           .screenshot({ animations: 'disabled' })
-        await zoom(page, 0.35)
+        await zoom(page, WORLD_MIN_ZOOM)
         const minimum = await page
           .locator('[data-world-workspace]')
           .screenshot({ animations: 'disabled' })
@@ -325,7 +327,10 @@ export function registerWorldMapCorrectionCases(harness: Harness) {
           new Set(view.sectors.filter((s) => s.townId === spec.position.sectorId).map((s) => s.id))
             .size,
         ).toBeGreaterThan(1)
-        await run.record(spec.id, view, { pairOrder: 'normal above minimum', zooms: [1, 0.35] })
+        await run.record(spec.id, view, {
+          pairOrder: 'normal above minimum',
+          zooms: [1, WORLD_MIN_ZOOM],
+        })
       }
     } finally {
       await run.finish(info)
@@ -611,8 +616,10 @@ export function registerWorldMapCorrectionCases(harness: Harness) {
         const longitude =
           ((current.atlasColumn! + (globeView.position.x + 0.5) / 13) * 360) / 128 - 180
         const latitude = 90 - ((current.atlasRow! + (globeView.position.y + 0.5) / 9) * 180) / 64
-        const horizontal = Math.round((((180 - longitude + 540) % 360) - 180) / 10)
-        const vertical = Math.round((-45 - latitude) / 10)
+        const horizontal = Math.round(
+          (((UNCHARTED_VEIL_FOCUS.longitude - longitude + 540) % 360) - 180) / 10,
+        )
+        const vertical = Math.round((UNCHARTED_VEIL_FOCUS.latitude - latitude) / 10)
         for (let index = 0; index < Math.abs(vertical); index++)
           await globe.press(vertical < 0 ? 'ArrowDown' : 'ArrowUp')
         for (let index = 0; index < Math.abs(horizontal); index++)

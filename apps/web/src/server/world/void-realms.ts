@@ -1,4 +1,4 @@
-import { FERRY_TERMINAL_NAME } from '@/world/ferry'
+import { FERRY_TERMINAL_NAMES } from '@/world/ferry'
 import 'server-only'
 
 import { supercontinentTerrain } from './supercontinent-terrain'
@@ -1123,7 +1123,7 @@ export function resolveVoidSector(id: string): WorldSector | null {
   if (dock.sectorId === id)
     landmarks.push({
       id: `${id}:ferry-terminal`,
-      name: FERRY_TERMINAL_NAME,
+      name: FERRY_TERMINAL_NAMES.uncharted,
       kind: 'waystone',
       x: dock.x,
       y: dock.y,

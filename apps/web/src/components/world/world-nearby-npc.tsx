@@ -24,13 +24,13 @@ export function WorldNearbyNpc({
       )}
       <div className={styles.playerIdentity}>
         <strong title={npc.name}>{npc.name}</strong>
-        <small>NPC</small>
       </div>
       <div className={styles.rowActions}>
         <button
           className={styles.primaryPlayerAction}
           type="button"
           disabled={disabled}
+          data-world-primary-action={onTalk ? 'talk' : 'approach'}
           aria-label={onTalk ? `Talk to ${npc.name}` : `Approach ${npc.name}`}
           onClick={(event) => (onTalk ? onTalk(event.currentTarget) : onApproach())}
         >

@@ -31,7 +31,13 @@ const npc: PublishedWorldNpc = {
 it('projects an authoritative local World greeting without any quest or combat action', () => {
   const state = newWorldState()
   const { npcs, interactions } = projectLocalWorldNpcs(state, [npc])
-  expect(npcs).toEqual([expect.objectContaining({ id: npc.id, name: npc.name })])
+  expect(npcs).toEqual([
+    expect.objectContaining({
+      id: npc.id,
+      name: npc.name + ' (Resident)',
+      interactionRadius: npc.radius,
+    }),
+  ])
   expect(interactions).toEqual([
     expect.objectContaining({
       speakerId: npc.id,

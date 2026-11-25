@@ -1,4 +1,11 @@
 import 'server-only'
+import {
+  APPEARANCE_ASSET_PREFIX,
+  APPEARANCE_PRESETS,
+  compileAppearanceManifest,
+} from '@/appearance/appearance-manifest'
+import { hashString } from '@/world/terrain-gen'
+import { worldNpcName } from '@/world/npc-name'
 
 import {
   npcDialogueReplyPage,
@@ -10,8 +17,12 @@ import { readPublishedWorldNpcs } from '@/server/master/npc-design-store'
 import { isWalkable } from '@/world/travel'
 import type { WorldInteraction, WorldNpcPresentation, WorldState } from '@/world/types'
 import { isKnownCell, resolveSector } from './world-content'
+import { localObjectiveNpcs } from './world-objectives'
 
 const NPC_CACHE_MS = 5_000
+const npcLooks = APPEARANCE_PRESETS.map(
+  ({ blueprint }) => compileAppearanceManifest(blueprint).portraits.neutral,
+)
 const NPC_CACHE_SECTORS = 64
 const cache = new Map<string, { expires: number; rows: PublishedWorldNpc[] }>()
 const pending = new Map<string, Promise<PublishedWorldNpc[]>>()
@@ -59,13 +70,24 @@ export function projectLocalWorldNpcs(state: WorldState, rows: readonly Publishe
       row.imageUrl,
       row.portraitRef ?? 'portrait.starter.wayfarer-01',
     )
-    npcs.push({ id: row.id, name: row.name, position, imageUrl })
+    const name = worldNpcName(row.name, row.encounter ? 'Challenger' : 'Resident')
+    const motionImageUrl = imageUrl?.startsWith(APPEARANCE_ASSET_PREFIX)
+      ? imageUrl
+      : npcLooks[hashString(row.id) % npcLooks.length]!
+    npcs.push({
+      id: row.id,
+      name,
+      position,
+      imageUrl,
+      motionImageUrl,
+      interactionRadius: row.radius,
+    })
     if (!withinNpcReach(state, row)) continue
     interactions.push({
       id: `npc-greeting:${row.id}`,
       objectiveId: `npc-greeting:${row.id}`,
       speakerId: row.id,
-      speaker: row.name,
+      speaker: name,
       title: 'Greeting',
       body: row.greeting,
       ...(row.dialogue?.length
@@ -84,7 +106,7 @@ export function projectLocalWorldNpcs(state: WorldState, rows: readonly Publishe
         id: `npc-challenge-${row.id}`,
         objectiveId: `npc-challenge-${row.id}`,
         speakerId: row.id,
-        speaker: row.name,
+        speaker: name,
         title: 'Challenge',
         body: row.greeting,
         ...(row.greetingExpression ? { expression: row.greetingExpression } : {}),
@@ -111,7 +133,10 @@ function cachedNpcRows(sectorId: string) {
 /** Compact movement acknowledgements never wait for NPC data. */
 export function peekWorldNpcs(state: WorldState) {
   const rows = cachedNpcRows(state.position.sectorId)
-  return rows ? projectLocalWorldNpcs(state, rows) : undefined
+  if (!rows) return undefined
+  const local = projectLocalWorldNpcs(state, rows)
+  local.npcs.push(...localObjectiveNpcs(state))
+  return local
 }
 
 export async function loadWorldNpcs(state: WorldState) {
@@ -138,5 +163,7 @@ export async function loadWorldNpcs(state: WorldState) {
     }
     rows = await (lookup ?? [])
   }
-  return projectLocalWorldNpcs(state, rows)
+  const local = projectLocalWorldNpcs(state, rows)
+  local.npcs.push(...localObjectiveNpcs(state))
+  return local
 }

@@ -1,5 +1,5 @@
 import { GRID_HEIGHT, GRID_WIDTH } from './catalog'
-import { FERRY_ASTERWAKE_DOCK } from './ferry'
+import { FERRY_ASTERWAKE_DOCK, FERRY_TERMINAL_NAMES } from './ferry'
 import { hashString } from './terrain-gen'
 import { ATLAS_ROWS, wrapAtlasColumn } from './topology'
 import type { WorldSector } from './types'
@@ -59,7 +59,7 @@ export function asterwakeSector(column: number, row: number): WorldSector | unde
   )
   return {
     id,
-    name: dock ? 'Asterwake Ferry Terminal' : golden ? 'Gildroot Grove' : shore.name,
+    name: dock ? FERRY_TERMINAL_NAMES.asterwake : golden ? 'Gildroot Grove' : shore.name,
     coordinate: `S${String(column + 1).padStart(2, '0')}-${String(row + 1).padStart(2, '0')}`,
     regionId: ASTERWAKE_REGION_ID,
     atlasColumn: column,
@@ -75,7 +75,7 @@ export function asterwakeSector(column: number, row: number): WorldSector | unde
       ? [
           {
             id: 'asterwake:ferry-terminal',
-            name: 'Asterwake Ferry Terminal',
+            name: FERRY_TERMINAL_NAMES.asterwake,
             kind: 'waystone',
             x: FERRY_ASTERWAKE_DOCK.x,
             y: FERRY_ASTERWAKE_DOCK.y,

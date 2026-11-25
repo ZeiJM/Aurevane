@@ -88,7 +88,7 @@ beforeEach(() => {
 })
 
 describe('globe geographic labels', () => {
-  it('gives public towns distinct regional symbols and extent-based sizes at their exact anchors', () => {
+  it('gives public towns distinct painted regional markers at their exact anchors', () => {
     const atlas = atlasSectors().map((sector) => ({
       id: sector.id,
       name: sector.name,
@@ -101,8 +101,7 @@ describe('globe geographic labels', () => {
       settlementOutskirtsOf: sector.settlementOutskirtsOf,
     }))
     const towns = atlas.filter((cell) => cell.charted && cell.id === cell.townId)
-    const symbols = new Set<string>(),
-      sizes = new Set<number>()
+    const symbols = new Set<number>()
     for (const town of towns) {
       const view = viewFor([town, ...atlas.filter((cell) => cell.id !== town.id)])
       const onSelect = vi.fn()
@@ -118,16 +117,9 @@ describe('globe geographic labels', () => {
         )
         .find((child) => child.props['aria-label'] === `Select ${town.name} town`)!
       const icon = Children.toArray(marker.props.children as ReactNode)
-        .filter(isValidElement<{ width: number; children: unknown }>)
-        .find((child) => child.type === 'svg')!
-      const path = Children.toArray(icon.props.children as ReactNode).filter(
-        isValidElement<{ d: string }>,
-      )[0]!
-      symbols.add(path.props.d)
-      const size = Number(icon.props.width)
-      sizes.add(size)
-      expect(size).toBeGreaterThanOrEqual(24)
-      expect(size).toBeLessThanOrEqual(34)
+        .filter(isValidElement<{ index?: number; town?: string }>)
+        .find((child) => child.props.town === town.id)!
+      symbols.add(icon.props.index!)
       expect(marker.props.style).toMatchObject({ left: '50%', top: '50%' })
       marker.props.onClick()
       expect(onSelect).toHaveBeenLastCalledWith(town.id)
@@ -136,7 +128,6 @@ describe('globe geographic labels', () => {
     }
     expect(towns).toHaveLength(8)
     expect(symbols.size).toBe(8)
-    expect(sizes.size).toBe(6)
   })
   it('shows a distinct destination dot and keeps Travel Point cycle controls off the globe', () => {
     const mainland = atlasCell(126, 33, 'Ferry Terminal')

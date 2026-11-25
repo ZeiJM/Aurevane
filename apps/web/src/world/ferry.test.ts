@@ -1,8 +1,13 @@
 import { describe, expect, it, vi } from 'vitest'
 import { parseWorldCommand } from './command'
 import {
+  FERRY_BOARDING_MS,
+  FERRY_CIRCUIT_MS,
+  FERRY_DURATION_MS,
   FERRY_MAINLAND_DOCK,
+  FERRY_RETURN_OFFSET_MS,
   FERRY_TERMINAL_LANDMARK,
+  FERRY_TERMINAL_NAMES,
   ferryAtPort,
   nextFerryDeparture,
   projectWorldFerries,
@@ -16,27 +21,30 @@ import { VOID_REALMS } from './void-realms'
 
 vi.mock('server-only', () => ({}))
 
-const departureAt = 1_800_000_000_000
-const arrivalAt = departureAt + 300_000
+const departureAt = 1_800_002_460_000
+const arrivalAt = departureAt + FERRY_DURATION_MS
+const returnAt = departureAt + FERRY_RETURN_OFFSET_MS
+const mainlandSailings = (now: number) =>
+  projectWorldFerries(now).filter(({ direction }) => !direction.startsWith('asterwake-'))
 
 describe('public ferry timetable', () => {
-  it('sails hourly each way, including when there are no passengers', () => {
+  it('sails for 25 minutes and docks for 10 minutes even without passengers', () => {
     expect(nextFerryDeparture('mainland', departureAt - 1)).toBe(departureAt)
-    expect(nextFerryDeparture('mainland', departureAt)).toBe(departureAt + 3_600_000)
-    expect(nextFerryDeparture('uncharted', departureAt)).toBe(departureAt + 1_800_000)
-    expect(projectWorldFerries(departureAt - 1)).toEqual([])
-    expect(projectWorldFerries(departureAt)).toEqual([
+    expect(nextFerryDeparture('mainland', departureAt)).toBe(departureAt + FERRY_CIRCUIT_MS)
+    expect(nextFerryDeparture('uncharted', departureAt)).toBe(returnAt)
+    expect(mainlandSailings(departureAt - 1)).toEqual([])
+    expect(mainlandSailings(departureAt)).toEqual([
       { direction: 'outbound', departureAt, arrivalAt },
     ])
-    expect(projectWorldFerries(arrivalAt)).toEqual([])
-    expect(projectWorldFerries(departureAt + 1_800_001)).toMatchObject([{ direction: 'return' }])
+    expect(mainlandSailings(arrivalAt)).toEqual([])
+    expect(mainlandSailings(returnAt + 1)).toMatchObject([{ direction: 'return' }])
     expect(ferryAtPort('mainland', departureAt - 1)).toBe(true)
     expect(ferryAtPort('mainland', departureAt)).toBe(false)
-    expect(ferryAtPort('mainland', departureAt + 2_099_999)).toBe(false)
-    expect(ferryAtPort('mainland', departureAt + 2_100_000)).toBe(true)
+    expect(ferryAtPort('mainland', returnAt + FERRY_DURATION_MS - 1)).toBe(false)
+    expect(ferryAtPort('mainland', returnAt + FERRY_DURATION_MS)).toBe(true)
     expect(ferryAtPort('uncharted', arrivalAt - 1)).toBe(false)
     expect(ferryAtPort('uncharted', arrivalAt)).toBe(true)
-    expect(ferryAtPort('uncharted', departureAt + 1_800_000)).toBe(false)
+    expect(ferryAtPort('uncharted', returnAt)).toBe(false)
   })
 
   it('shares the passenger deck for the same passage without opening a mainland route', () => {
@@ -86,7 +94,10 @@ describe('public ferry timetable', () => {
     }
     const dock = { ...newWorldState(), position: FERRY_MAINLAND_DOCK, ferryTicket }
     const away = { ...dock, position: { ...FERRY_MAINLAND_DOCK, y: FERRY_MAINLAND_DOCK.y - 2 } }
-    expect(projectWorldFerry(dock, departureAt - 1)?.ticket).toEqual({
+    expect(projectWorldFerry(dock, departureAt - FERRY_BOARDING_MS - 1)?.ticket?.canBoard).toBe(
+      false,
+    )
+    expect(projectWorldFerry(dock, departureAt - FERRY_BOARDING_MS)?.ticket).toEqual({
       direction: 'outbound',
       departureAt,
       canBoard: true,
@@ -102,7 +113,7 @@ describe('public ferry timetable', () => {
   it('connects the named terminal on the south shore to the mainland road', () => {
     const terminal = resolveSector(FERRY_MAINLAND_DOCK.sectorId)!
     const previous = { sectorId: 'atlas:126:32', x: 6, y: 4 }
-    expect(terminal.name).toBe('Ferry Terminal')
+    expect(terminal.name).toBe(FERRY_TERMINAL_NAMES.mainland)
     expect(terminal.landmarks).toContainEqual(
       expect.objectContaining({ id: FERRY_TERMINAL_LANDMARK }),
     )
@@ -128,7 +139,7 @@ describe('public ferry timetable', () => {
       { name: 'Deckmate', position: { sectorId, x: 7, y: 4 } },
       {
         name: 'Later passenger',
-        position: { sectorId: `ferry:outbound:${departureAt + 3_600_000}`, x: 7, y: 4 },
+        position: { sectorId: `ferry:outbound:${departureAt + FERRY_CIRCUIT_MS}`, x: 7, y: 4 },
       },
       { name: 'Dock observer', position: FERRY_MAINLAND_DOCK },
     ].map((player, index) => ({
@@ -175,12 +186,14 @@ describe('public ferry timetable', () => {
     expect(view.ferry).toEqual({
       port: 'uncharted',
       fareCrowns: 0,
-      nextDepartureAt: departureAt + 1_800_000,
+      nextDepartureAt: returnAt,
     })
     expect(view.atlas?.some((cell) => cell.id === position.sectorId)).toBe(false)
     const terminal = view.sectors.find(({ id }) => id === position.sectorId)
     expect(terminal?.ferryDock).toEqual({ x: position.x, y: position.y, shoreSide })
-    expect(terminal?.landmarks).toContainEqual(expect.objectContaining({ name: 'Ferry Terminal' }))
+    expect(terminal?.landmarks).toContainEqual(
+      expect.objectContaining({ name: FERRY_TERMINAL_NAMES.uncharted }),
+    )
     expect(
       projectWorldFerry({ ...state, position: voidRealmLanding(id) }, arrivalAt),
     ).toBeUndefined()

@@ -6,7 +6,13 @@ import { isKnownCell, visibleSectors, WORLD_SECTORS } from '@/server/world/world
 import { isWarpedContinentSector } from '@/server/world/warped-continent'
 import { atlasSectors } from './atlas'
 import { GRID_HEIGHT, GRID_WIDTH, WORLD_REGIONS } from './catalog'
-import { FERRY_MAINLAND_DOCK, FERRY_TERMINAL_LANDMARK, FERRY_TERMINAL_NAME } from './ferry'
+import {
+  FERRY_ASTERWAKE_DOCK,
+  FERRY_MAINLAND_DOCK,
+  FERRY_NORTH_DOCK,
+  FERRY_TERMINAL_LANDMARK,
+  FERRY_TERMINAL_NAMES,
+} from './ferry'
 import { ATLAS_COLUMNS, ATLAS_ROWS } from './topology'
 import { findWorldRoute, isSafe, isWalkable, newWorldState } from './travel'
 
@@ -34,7 +40,7 @@ it('preserves world addresses and historic routes through the authorized map geo
     {
       ...FERRY_MAINLAND_DOCK,
       id: FERRY_TERMINAL_LANDMARK,
-      name: FERRY_TERMINAL_NAME,
+      name: FERRY_TERMINAL_NAMES.mainland,
       kind: 'waystone',
     },
   ])
@@ -53,8 +59,16 @@ it('preserves world addresses and historic routes through the authorized map geo
     sector.stepMs,
     sector.rows,
     sector.roads.map((road) => {
+      if (road.to.sectorId === FERRY_NORTH_DOCK.sectorId) {
+        expect(road.name).toBe(FERRY_TERMINAL_NAMES['north-shore'])
+        return { ...road, name: 'North Shore Ferry Terminal' }
+      }
+      if (road.to.sectorId === FERRY_ASTERWAKE_DOCK.sectorId) {
+        expect(road.name).toBe(FERRY_TERMINAL_NAMES.asterwake)
+        return { ...road, name: 'Asterwake Ferry Terminal' }
+      }
       if (road.to.sectorId !== FERRY_MAINLAND_DOCK.sectorId) return road
-      expect(road.name).toBe(FERRY_TERMINAL_NAME)
+      expect(road.name).toBe(FERRY_TERMINAL_NAMES.mainland)
       // Keep comparing the same geometry and routing authority with the archived name.
       return { ...road, name: 'Umbral March Countryside' }
     }),

@@ -667,7 +667,7 @@ describe('world authority and spoiler projection', () => {
     expect(view.interactions).toEqual([
       expect.objectContaining({
         id: EASTERN_WATCH_INTERACTION_ID,
-        speaker: 'Watch officer',
+        speaker: 'Tamsin Reed (Watch Officer)',
         actionLabel: 'Accept objective',
       }),
     ])
@@ -740,7 +740,7 @@ describe('world authority and spoiler projection', () => {
     expect(view.interactions).toEqual([
       expect.objectContaining({
         id: CROWN_HINTERLAND_PATROL_INTERACTION_ID,
-        speaker: 'Watch officer',
+        speaker: 'Oren Vale (Watch Officer)',
         actionLabel: 'Accept objective',
       }),
     ])

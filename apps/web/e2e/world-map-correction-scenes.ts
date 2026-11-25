@@ -12,6 +12,7 @@ import {
 import { lavaFallSite } from '../src/components/world/map-surface-art'
 import { townArchitectureArt } from '../src/components/world/map-town-architecture'
 import { valleyDetailArt } from '../src/components/world/map-grand-detail-art'
+import { WORLD_MIN_ZOOM } from '../src/components/world/world-zoom'
 import { MAP_X, MAP_Y } from '../src/components/world/map-projection'
 
 export interface CorrectionScene {
@@ -153,11 +154,12 @@ export function correctionScenes() {
     {
       id: 'coast-ocean-depth',
       position: point(oceanSector, {
-        x: Math.max(0, Math.min(12, ocean.worldx - oceanSector.atlasColumn! * 13)),
-        y: Math.max(0, Math.min(8, ocean.worldy - oceanSector.atlasRow! * 9)),
+        // Look diagonally across the coast so the offshore sprite reaches a phone viewport.
+        x: ocean.worldx - oceanSector.atlasColumn! * 13 + 4,
+        y: ocean.worldy - oceanSector.atlasRow! * 9,
       }),
       assets: ['ocean-grand-islet-v01.webp'],
-      zoom: 0.35,
+      zoom: WORLD_MIN_ZOOM,
       storm: true,
       reducedPair: true,
       expect: 'coast',
@@ -241,7 +243,7 @@ export function correctionScenes() {
         site.id === 'elemental-valley'
           ? valleyDetailArt.map((detail) => `${detail.sheet}-v01.webp`)
           : undefined,
-      zoom: site.width >= 40 ? 0.35 : 0.65,
+      zoom: site.width >= 40 ? WORLD_MIN_ZOOM : 0.65,
       expect: site.id === 'remote-colosseum' ? 'arena' : undefined,
       footprint: { left: site.left, top: site.top, width: site.width, height: site.height },
       artTiles: { width: geometry.widthTiles, height: geometry.heightTiles },

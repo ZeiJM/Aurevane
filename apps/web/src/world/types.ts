@@ -275,7 +275,10 @@ export interface WorldNpcPresentation {
   name: string
   position: WorldPosition
   imageUrl: string | null
+  motionImageUrl?: string
   spriteUrl?: string
+  interactionRadius?: number
+  movement?: WorldPlayer['movement']
 }
 
 export interface WorldView {

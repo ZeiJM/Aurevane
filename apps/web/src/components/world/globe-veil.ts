@@ -6,7 +6,7 @@ import {
 } from './globe-terrain'
 
 /** The cartographer's illustrative cover is not a set of game coordinates. */
-export const UNCHARTED_VEIL_FOCUS = { longitude: 180, latitude: -45 } as const
+export const UNCHARTED_VEIL_FOCUS = { longitude: 180, latitude: -61 } as const
 let cached: { width: number; height: number; pixels: Uint8Array } | undefined
 let cachedPainting: GlobeMaterialPainting | undefined
 
@@ -23,8 +23,8 @@ export function globeVeilTexture(painting?: GlobeMaterialPainting) {
     for (let x = 0; x < width; x++) {
       const longitude = ((x + 0.5) / width) * 360 - 180,
         latitude = 90 - ((y + 0.5) / height) * 180
-      const dx = (((longitude - UNCHARTED_VEIL_FOCUS.longitude + 540) % 360) - 180) / 102
-      const dy = (latitude - UNCHARTED_VEIL_FOCUS.latitude) / 38
+      const dx = (((longitude - UNCHARTED_VEIL_FOCUS.longitude + 540) % 360) - 180) / 127
+      const dy = (latitude - UNCHARTED_VEIL_FOCUS.latitude) / 34
       if (Math.abs(dx) > 1.6 || Math.abs(dy) > 1.6) continue
       const coast =
         Math.min(

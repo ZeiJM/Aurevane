@@ -719,11 +719,11 @@
   transform: translate(-50%, -50%);
   display: grid;
   place-items: center;
-  width: 30px;
-  min-height: 30px;
+  width: 28px;
+  min-height: 28px;
   padding: 2px;
-  border: 0;
-  background: #122e32bd;
+  border: 1px solid #d2af6e82;
+  background: #0f2931d9;
   border-radius: 50%;
   color: #f5e8c6;
   font:
@@ -751,18 +751,19 @@
   outline: 2px solid #ffe2a1;
   outline-offset: 3px;
 }
-.globePin i {
+.atlasMarker {
   display: block;
-  box-sizing: border-box;
-  flex: 0 0 12px;
-  background: #ffe2a1;
-  width: 12px;
-  height: 12px;
-  border: 2px solid #071c24;
-  border-radius: 50%;
-  box-shadow:
-    0 0 0 2px #ffe2a1b3,
-    0 0 10px #ffe5b180;
+  width: 100%;
+  aspect-ratio: 1;
+  background-image: url('/media/art/world/runtime/atlas-markers-v01.webp');
+  background-size: 400% 300%;
+  background-repeat: no-repeat;
+  pointer-events: none;
+}
+.globePin .atlasMarker {
+  flex: 0 0 16px;
+  width: 16px;
+  filter: drop-shadow(0 1px 2px #06161d);
 }
 .globeCaption {
   position: absolute;
@@ -814,52 +815,41 @@
 .globeDestinationPin {
   position: absolute;
   z-index: 6;
-  width: 12px;
-  height: 12px;
-  transform: translate(-50%, -50%);
-  border: 2px solid #fff0df;
-  border-radius: 50%;
-  background: #c93e40;
-  box-shadow:
-    0 0 0 2px #260f17c9,
-    0 0 9px #ef5c5aa3;
+  width: 18px;
+  height: 18px;
+  transform: translate(-35%, -90%);
+  filter: drop-shadow(0 1px 3px #260f17);
   pointer-events: none;
 }
-.globeFerry {
-  position: absolute;
-  z-index: 2;
-  display: grid;
-  place-items: center;
-  width: 25px;
-  height: 25px;
-  color: #ffe6a9;
-  background: #183039df;
-  border: 1px solid #c2a573;
-  border-radius: 50%;
-  pointer-events: none;
-  transform: translate(-50%, -50%);
-  box-shadow: 0 0 12px #ffd58755;
-}
+.globeFerry,
 .workspace .globeTerminal {
   position: absolute;
-  z-index: 5;
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  color: #ffebb9;
-  background: #173c48;
-  border: 1px solid #e0c485;
+  padding: 2px;
+  border: 1px solid #d2af6e99;
   border-radius: 50%;
+  background: #0f2931e8;
   transform: translate(-50%, -50%);
-  box-shadow: 0 2px 8px #06161d;
+  box-shadow: 0 1px 4px #06161d;
+}
+.globeFerry {
+  z-index: 2;
+  width: 22px;
+  height: 22px;
+  pointer-events: none;
+}
+.workspace .globeTerminal {
+  z-index: 5;
+  width: 24px;
+  height: 24px;
+  min-height: 24px;
 }
 .workspace button.globeTerminal:hover,
 .workspace button.globeTerminal:focus-visible,
 .workspace button.globeTerminal[aria-pressed='true'] {
-  color: #1f3133;
-  background: #f0d997;
+  border-color: #fae1a6;
+  background: #245060;
 }
 .destination {
   padding: 8px 14px 12px;

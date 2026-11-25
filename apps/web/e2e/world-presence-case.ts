@@ -34,6 +34,7 @@ import { writeFile } from 'node:fs/promises'
 import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { GRID_HEIGHT, GRID_WIDTH } from '../src/world/catalog'
+import { WORLD_MIN_ZOOM } from '../src/components/world/world-zoom'
 import type { WorldView } from '../src/world/types'
 
 const privateJoinErrorCategory = (value: unknown) => {
@@ -683,7 +684,8 @@ export async function verifyWorldScenePresence(
             sy = (dx + dy) * metrics.tile * 0.44,
             offscreen = Math.abs(sx) > box.width / 2 + 35 || Math.abs(sy) > box.height / 2 + 55,
             zoomedInside =
-              Math.abs(sx * 0.6) < box.width / 2 - 40 && Math.abs(sy * 0.6) < box.height / 2 - 60
+              Math.abs(sx * WORLD_MIN_ZOOM) < box.width / 2 - 40 &&
+              Math.abs(sy * WORLD_MIN_ZOOM) < box.height / 2 - 60
           return offscreen && zoomedInside ? [{ sector, cell }] : []
         }),
     )[0]
@@ -696,8 +698,7 @@ export async function verifyWorldScenePresence(
     const zoom = page.getByRole('slider', { name: 'Zoom level', exact: true })
     await zoom.focus()
     await zoom.press('Home')
-    for (let i = 0; i < 25; i++) await zoom.press('ArrowRight')
-    await expect(zoom).toHaveValue('60')
+    await expect(zoom).toHaveValue('0')
     await closeMapSettings(page)
     await expect(player).toBeVisible({ timeout: 10000 })
     await capture(page, info, 'nearby-follows-zoom-viewport')

@@ -15,6 +15,7 @@ import {
   PERSONAL_QUEST_INTERACTION_PREFIX,
   REPEATABLE_ACTIVITY_INTERACTION_PREFIX,
 } from '@/world/command'
+import { worldNpcName } from '@/world/npc-name'
 import { validCell } from '@/world/travel'
 import type { WorldInteraction, WorldObjective, WorldPosition } from '@/world/types'
 
@@ -160,7 +161,8 @@ export function projectPersonalQuests(
       continue
 
     const giver = isPersonalQuestGiver(row.giverId) ? PERSONAL_QUEST_GIVERS[row.giverId] : null
-    const speaker = typeof row.speaker === 'string' ? row.speaker.slice(0, 60) : giver?.speaker
+    const speaker =
+      giver?.speaker ?? (typeof row.speaker === 'string' ? row.speaker.slice(0, 60) : null)
     if (!speaker) continue
     const portraitRef =
       typeof row.portraitRef === 'string' && isStarterCharacterPortraitRef(row.portraitRef)
@@ -284,6 +286,15 @@ export function projectPersonalQuests(
         ? row.action
         : null
     const alternativeAction = row.alternativeAction
+    const role = mentor
+      ? 'Mentor'
+      : avenger
+        ? 'Challenger'
+        : restoration
+          ? 'Weaponsmith'
+          : repeatable && !giver && typeof row.speaker === 'string'
+            ? 'Hunter'
+            : 'Quest Giver'
     interactions.push({
       id,
       objectiveId: id,
@@ -292,7 +303,7 @@ export function projectPersonalQuests(
       progress: displayedProgress,
       actionId,
       speakerId: row.giverId,
-      speaker,
+      speaker: speaker === 'Sealed realm gate' ? speaker : worldNpcName(speaker, role),
       ...(portraitUrl ? { portraitUrl } : {}),
       ...(typeof row.lore === 'string' ? { lore: row.lore.slice(0, 800) } : {}),
       ...(alternativeAction === 'leave-realm' ||

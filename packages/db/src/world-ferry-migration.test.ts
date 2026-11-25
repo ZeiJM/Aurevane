@@ -8,6 +8,7 @@ const second = '33333333-3333-4333-8333-333333333333'
 const command = '44444444-4444-4444-8444-444444444444'
 const disembark = '55555555-5555-4555-8555-555555555555'
 const departure = 1_800_000_000_000
+const currentDeparture = 1_800_002_460_000
 const terminal = { sectorId: 'atlas:126:33', x: 6, y: 8 }
 const dock = { ...terminal, x: 5 }
 const state = { position: dock, version: 1, route: [], nextStepAt: null }
@@ -62,6 +63,36 @@ beforeAll(async () => {
   await db.exec(migration('20261119114000_uncharted_coastal_ferry_terminals'))
   await db.exec(migration('20261123011000_asterwake_ferry'))
   await db.exec(migration('20261124110000_world_ferry_boarding_tickets'))
+  await clock(departure - 1)
+  await db.exec(`
+    insert into app_private.character_world_state(character_id,state)
+      values ('${player}', '${JSON.stringify({
+        ...state,
+        ferryTicket: { direction: 'outbound', departureAt: departure, sectorId: dock.sectorId },
+      })}'), ('${second}', '${JSON.stringify({
+        ...state,
+        ferry: { direction: 'outbound', departureAt: departure, arrivalAt: departure + 300_000 },
+      })}');
+  `)
+  await db.exec(migration('20261124200902_world_ferry_crossing_schedule'))
+  const { rows } = await db.query<{ state: Record<string, unknown> }>(
+    'select state from app_private.character_world_state order by character_id',
+  )
+  expect(rows.map((row) => row.state)).toEqual([
+    {
+      ...state,
+      version: 2,
+      ferryTicket: {
+        direction: 'outbound',
+        departureAt: currentDeparture,
+        sectorId: dock.sectorId,
+      },
+    },
+    {
+      ...state,
+      ferry: { direction: 'outbound', departureAt: departure, arrivalAt: departure + 300_000 },
+    },
+  ])
 }, 30_000)
 beforeEach(async () => {
   await db.exec(`
@@ -312,29 +343,40 @@ describe('boarding reservations for a scheduled sailing', () => {
   const retry = '88888888-8888-4888-8888-888888888888'
   const reboard = '99999999-9999-4999-8999-999999999999'
 
-  async function ticketCommand(kind: string, version: number, id: string, sailing = departure) {
+  async function ticketCommand(
+    kind: string,
+    version: number,
+    id: string,
+    sailing = currentDeparture,
+  ) {
     const { rows } = await db.query<{ state: unknown }>(
-      'select public.commit_world_ferry_v2($1,$2,$3,$4,$5,$6,$7) as state',
+      'select public.commit_world_ferry_v3($1,$2,$3,$4,$5,$6,$7) as state',
       [user, player, version, id, kind, id, kind === 'leave-ferry' ? null : sailing],
     )
     return rows[0]?.state
   }
 
   it('buys early at no cost and requires the ticket for boarding and reboarding', async () => {
-    await clock(departure - 2_700_000)
-    await expect(ticketCommand('board-ferry', 1, boarding)).rejects.toThrow(
-      'WORLD_FERRY_TICKET_REQUIRED',
-    )
+    await clock(currentDeparture - 2_700_000)
     const purchased = await ticketCommand('buy-ferry-boarding', 1, command)
-    const ferryTicket = { direction: 'outbound', departureAt: departure, sectorId: dock.sectorId }
+    const ferryTicket = {
+      direction: 'outbound',
+      departureAt: currentDeparture,
+      sectorId: dock.sectorId,
+    }
     expect(purchased).toMatchObject({ version: 2, position: dock, ferryTicket })
     expect(purchased).not.toHaveProperty('ferry')
     await expect(ticketCommand('buy-ferry-boarding', 1, command)).resolves.toEqual(purchased)
     await expect(ticketCommand('buy-ferry-boarding', 2, retry)).resolves.toEqual(purchased)
+    await clock(currentDeparture - 600_001)
+    await expect(ticketCommand('board-ferry', 2, boarding)).rejects.toThrow(
+      'WORLD_FERRY_BOARDING_CLOSED',
+    )
+    await clock(currentDeparture - 600_000)
     await expect(ticketCommand('board-ferry', 2, boarding)).resolves.toMatchObject({
       version: 3,
-      position: { sectorId: `ferry:outbound:${departure}`, x: 6, y: 4 },
-      ferry: { departureAt: departure, arrivalAt: departure + 300_000 },
+      position: { sectorId: `ferry:outbound:${currentDeparture}`, x: 6, y: 4 },
+      ferry: { departureAt: currentDeparture, arrivalAt: currentDeparture + 1_500_000 },
     })
     await expect(ticketCommand('leave-ferry', 3, disembark)).resolves.toMatchObject({
       version: 4,
@@ -343,27 +385,31 @@ describe('boarding reservations for a scheduled sailing', () => {
     })
     await expect(ticketCommand('board-ferry', 4, reboard)).resolves.toMatchObject({
       version: 5,
-      ferry: { departureAt: departure },
+      ferry: { departureAt: currentDeparture },
     })
-    await clock(departure)
+    await clock(currentDeparture)
     await expect(
       ticketCommand('leave-ferry', 5, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
     ).rejects.toThrow('WORLD_FERRY_UNDERWAY')
-    await clock(departure + 300_000)
+    await clock(currentDeparture + 1_500_000)
     const landed = await read()
     expect(landed).not.toHaveProperty('ferryTicket')
     expect(landed).not.toHaveProperty('ferry')
   })
 
   it('rejects a missed or stale sailing without moving the passenger or transferring the ticket', async () => {
-    await clock(departure - 1)
+    await clock(currentDeparture - 1)
     await ticketCommand('buy-ferry-boarding', 1, command)
-    await clock(departure)
+    await clock(currentDeparture)
     await expect(ticketCommand('board-ferry', 2, boarding)).rejects.toThrow('WORLD_FERRY_WINDOW')
     await expect(ticketCommand('buy-ferry-boarding', 2, retry)).rejects.toThrow(
       'WORLD_FERRY_WINDOW',
     )
-    const later = departure + 3_600_000
+    const later = currentDeparture + 4_200_000
+    await expect(ticketCommand('board-ferry', 2, boarding, later)).rejects.toThrow(
+      'WORLD_FERRY_BOARDING_CLOSED',
+    )
+    await clock(later - 600_000)
     await expect(ticketCommand('board-ferry', 2, boarding, later)).rejects.toThrow(
       'WORLD_FERRY_TICKET_REQUIRED',
     )
@@ -377,10 +423,14 @@ describe('boarding reservations for a scheduled sailing', () => {
 
   it('gives only the service role access to boarding authority', async () => {
     const { rows } = await db.query(`
-      select has_function_privilege('authenticated','public.commit_world_ferry_v2(uuid,uuid,bigint,uuid,text,text,bigint)','execute') as direct,
-             has_function_privilege('service_role','public.commit_world_ferry_v2(uuid,uuid,bigint,uuid,text,text,bigint)','execute') as service,
+      select has_function_privilege('authenticated','public.commit_world_ferry_v3(uuid,uuid,bigint,uuid,text,text,bigint)','execute') as direct,
+             has_function_privilege('service_role','public.commit_world_ferry_v3(uuid,uuid,bigint,uuid,text,text,bigint)','execute') as service,
+             has_function_privilege('anon','public.commit_world_ferry_v3(uuid,uuid,bigint,uuid,text,text,bigint)','execute') as anonymous,
+             has_function_privilege('service_role','public.commit_world_ferry_v2(uuid,uuid,bigint,uuid,text,text,bigint)','execute') as previous,
              has_function_privilege('service_role','public.commit_world_ferry_v1(uuid,uuid,bigint,uuid,text,text)','execute') as legacy
     `)
-    expect(rows).toEqual([{ direct: false, service: true, legacy: false }])
+    expect(rows).toEqual([
+      { direct: false, service: true, anonymous: false, previous: false, legacy: false },
+    ])
   })
 })

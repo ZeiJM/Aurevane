@@ -5,6 +5,11 @@ import type { WorldView } from '../src/world/types'
 import { worldRenderTerrain } from '../src/components/world/map-render-terrain'
 import { mapPoint } from '../src/components/world/world-motion'
 import { projectMapPoint } from '../src/components/world/map-projection'
+import {
+  WORLD_MIN_ZOOM,
+  worldZoomFromPercent,
+  worldZoomPercent,
+} from '../src/components/world/world-zoom'
 import { worldSceneCoversViewport } from '../src/components/world/world-scene-coverage'
 import {
   installWorldGroundCoverage,
@@ -223,22 +228,27 @@ export async function verifyWorldPresentation(
   await expect(labelsToggle).toHaveAttribute('aria-pressed', 'false')
   const townMarkers = workspace.locator('[data-globe-town]')
   await expect(townMarkers.first()).toBeVisible()
-  const townIcons = await townMarkers.evaluateAll((markers) =>
+  const townSymbols = townMarkers.locator('[data-globe-town-symbol]')
+  await expect(townSymbols).toHaveCount(await townMarkers.count())
+  const townIcons = await townSymbols.evaluateAll((markers) =>
     markers.map((marker) => {
-      const svg = marker.querySelector('svg')!
+      const style = getComputedStyle(marker)
       return {
-        symbol: svg.querySelector('path')!.getAttribute('d'),
-        width: svg.getBoundingClientRect().width,
+        symbol: style.backgroundPosition,
+        image: style.backgroundImage,
+        width: marker.getBoundingClientRect().width,
+        height: marker.getBoundingClientRect().height,
       }
     }),
   )
-  expect(new Set(townIcons.map((icon) => icon.symbol)).size).toBeGreaterThan(1)
-  expect(new Set(townIcons.map((icon) => icon.width)).size).toBeGreaterThan(1)
+  expect(townIcons.length).toBeGreaterThan(1)
+  expect(new Set(townIcons.map((icon) => icon.symbol)).size).toBe(townIcons.length)
   for (const icon of townIcons) {
-    expect(icon.width).toBeGreaterThanOrEqual(24)
-    expect(icon.width).toBeLessThanOrEqual(34)
+    expect(icon.image).toContain('/media/art/world/runtime/atlas-markers-v01.webp')
+    expect(icon.width).toBeGreaterThanOrEqual(20)
+    expect(icon.width).toBeLessThanOrEqual(28)
+    expect(icon.height).toBe(icon.width)
   }
-  await expect(workspace.locator('[data-globe-travel-point]')).toHaveCount(0)
 
   await expect(townMarkers.locator('span')).toHaveCount(0)
   await labelsToggle.click()
@@ -423,15 +433,16 @@ export function registerWorldInputCases({
     const view = await world(page)
     expect(view.position).toEqual({ sectorId: 'atlas:76:25', x: 9, y: 4 })
     const baseTile = await canvas.evaluate((el) => (el.clientWidth < 600 ? 48 : 64))
-    for (const zoom of [100, 35]) {
+    for (const zoom of [0, worldZoomPercent(1)]) {
       await openMapSettings(page)
       const slider = page.getByRole('slider', { name: 'Zoom level', exact: true })
-      await slider.focus()
-      await slider.press('Home')
-      if (zoom === 100) for (let step = 35; step < 100; step++) await slider.press('ArrowRight')
+      await slider.fill(String(zoom))
       await expect(slider).toHaveValue(String(zoom))
       await closeMapSettings(page)
-      await expect(canvas).toHaveAttribute('data-tile-size', String(baseTile * (zoom / 100)))
+      await expect(canvas).toHaveAttribute(
+        'data-tile-size',
+        String(baseTile * worldZoomFromPercent(zoom)),
+      )
       await expect
         .poll(() => canvas.evaluate((el) => Number(el.dataset.cachedSectors)))
         .toBeGreaterThan(1)
@@ -457,7 +468,9 @@ export function registerWorldInputCases({
         Number(url.searchParams.get('sceneWidth')) > 1296
       )
     })
-    await page.setViewportSize({ width: 2560, height: 1440 })
+    // At the new minimum zoom a 3200px window fits in the initial scene.
+    // A larger window still requires an expanded public viewport receipt.
+    await page.setViewportSize({ width: 3840, height: 2304 })
     const receipt = await expanded
     expect(receipt.ok()).toBe(true)
     const view = (await receipt.json()) as WorldView
@@ -465,15 +478,17 @@ export function registerWorldInputCases({
     expect(size.width).toBeGreaterThan(1296)
     expect(new URL(receipt.url()).searchParams.get('sceneWidth')).toBe(String(size.width))
     const camera = mapPoint(view.position, view.sectors)
-    expect(worldSceneCoversViewport(view, [camera], { ...size, tile: 64 * 0.35 })).toBe(true)
+    expect(worldSceneCoversViewport(view, [camera], { ...size, tile: 64 * WORLD_MIN_ZOOM })).toBe(
+      true,
+    )
     expect(view.sectors.length).toBeLessThanOrEqual(25)
     await openMapSettings(page)
     const zoom = page.getByRole('slider', { name: 'Zoom level', exact: true })
     await zoom.focus()
     await zoom.press('Home')
-    await expect(zoom).toHaveValue('35')
+    await expect(zoom).toHaveValue('0')
     await closeMapSettings(page)
-    await expect(canvas).toHaveAttribute('data-tile-size', '22.4')
+    await expect(canvas).toHaveAttribute('data-tile-size', String(64 * WORLD_MIN_ZOOM))
     const target = worldRenderTerrain(view)
       .filter((sector) => !view.sectors.some((known) => known.id === sector.id))
       .flatMap((sector) =>
@@ -487,7 +502,7 @@ export function registerWorldInputCases({
                 mapPoint(position, [sector], camera),
                 camera,
                 { x: 0, y: 0 },
-                64 * 0.35,
+                64 * WORLD_MIN_ZOOM,
                 size.width,
                 size.height,
               ),
@@ -578,7 +593,7 @@ export function registerWorldInputCases({
       const zoom = page.getByRole('slider', { name: 'Zoom level', exact: true })
       await zoom.focus()
       await zoom.press('Home')
-      await expect(zoom).toHaveValue('35')
+      await expect(zoom).toHaveValue('0')
       await closeMapSettings(page)
       await canvas.evaluate(installWorldRenderTiming)
       await canvas.evaluate(installWorldGroundCoverage)
@@ -647,6 +662,9 @@ export function registerWorldInputCases({
   }, info) => {
     test.skip(info.project.name === 'laptop-chromium', 'Check mouse and touch coverage once each.')
     test.setTimeout(60000)
+    // Keep more than 25 sectors in the desktop field of view at the new minimum zoom.
+    if (info.project.name === 'desktop-chromium')
+      await page.setViewportSize({ width: 2400, height: 1500 })
     await enter(page)
     const initial = await world(page)
     place(initial.characterId, 'atlas:62:28', 6, 4)
@@ -657,7 +675,7 @@ export function registerWorldInputCases({
     const zoom = page.getByRole('slider', { name: 'Zoom level', exact: true })
     await zoom.focus()
     await zoom.press('Home')
-    await expect(zoom).toHaveValue('35')
+    await expect(zoom).toHaveValue('0')
     await closeMapSettings(page)
     await canvas.evaluate(installWorldGroundCoverage)
     const delayedReads: Promise<void>[] = []
@@ -1110,13 +1128,15 @@ export function registerWorldInputCases({
     await openMapSettings(page)
     await page.getByRole('checkbox', { name: 'Ambient animation', exact: true }).uncheck()
     const slider = page.getByRole('slider', { name: 'Zoom level', exact: true })
-    for (const zoom of [35, 140, 100]) {
-      if (zoom === 35) await slider.press('Home')
-      else if (zoom === 140) await slider.press('End')
-      else for (let i = 0; i < 40; i++) await slider.press('ArrowLeft')
+    for (const zoom of [0, 100, worldZoomPercent(1)]) {
+      await slider.fill(String(zoom))
       await expect(slider).toHaveValue(String(zoom))
       const baseTileSize = await canvas.evaluate((el) => (el.clientWidth < 600 ? 48 : 64))
-      const metrics = await readLocalNameplate(canvas, name, (baseTileSize * zoom) / 100)
+      const metrics = await readLocalNameplate(
+        canvas,
+        name,
+        baseTileSize * worldZoomFromPercent(zoom),
+      )
       await info.attach(`nameplate-native-${zoom}`, {
         body: JSON.stringify({ zoom, ...metrics }, null, 2),
         contentType: 'application/json',
@@ -1158,7 +1178,10 @@ export function registerWorldInputCases({
       }) as typeof context.drawImage
     })
     const verifyPortraitZoom = async (zoom: number) => {
-      await expect(canvas).toHaveAttribute('data-tile-size', String((64 * zoom) / 100))
+      await expect(canvas).toHaveAttribute(
+        'data-tile-size',
+        String(64 * worldZoomFromPercent(zoom)),
+      )
       await expect
         .poll(() =>
           canvas.evaluate((el) => {
@@ -1173,7 +1196,7 @@ export function registerWorldInputCases({
           }),
         )
         .toBe(true)
-      const nameplate = await readLocalNameplate(canvas, name, (64 * zoom) / 100)
+      const nameplate = await readLocalNameplate(canvas, name, 64 * worldZoomFromPercent(zoom))
       const metrics = await canvas.evaluate((el) => ({
         tileSize: Number(el.dataset.tileSize),
         ...JSON.parse(el.dataset.testPortraitDraw!),
@@ -1188,28 +1211,29 @@ export function registerWorldInputCases({
     await openMapSettings(page)
     const slider = page.getByRole('slider', { name: 'Zoom level', exact: true })
     await slider.press('Home')
-    await expect(slider).toHaveValue('35')
+    await expect(slider).toHaveValue('0')
     await page.getByRole('checkbox', { name: 'Ambient animation', exact: true }).uncheck()
-    await expect(canvas).toHaveAttribute('data-tile-size', String(64 * 0.35))
-    await verifyPortraitZoom(35)
+    await expect(canvas).toHaveAttribute('data-tile-size', String(64 * WORLD_MIN_ZOOM))
+    await verifyPortraitZoom(0)
     await slider.press('End')
-    await expect(slider).toHaveValue('140')
-    await verifyPortraitZoom(140)
-    for (let i = 0; i < 40; i++) await slider.press('ArrowLeft')
     await expect(slider).toHaveValue('100')
     await verifyPortraitZoom(100)
+    const normalZoom = worldZoomPercent(1)
+    await slider.fill(String(normalZoom))
+    await expect(slider).toHaveValue(String(normalZoom))
+    await verifyPortraitZoom(normalZoom)
     await slider.press('Home')
-    await expect(slider).toHaveValue('35')
-    await expect(canvas).toHaveAttribute('data-tile-size', String(64 * 0.35))
+    await expect(slider).toHaveValue('0')
+    await expect(canvas).toHaveAttribute('data-tile-size', String(64 * WORLD_MIN_ZOOM))
     const beforeZoom = await canvas.screenshot()
     for (let i = 0; i < 5; i++) await slider.press('ArrowRight')
-    await expect(slider).toHaveValue('40')
+    await expect(slider).toHaveValue('5')
     await expect(page.getByRole('button', { name: 'Zoom in', exact: true })).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'Zoom out', exact: true })).toHaveCount(0)
     // The popup blocks input, not rendering: slider changes must paint while open.
     await expect
       .poll(async () => Number(await canvas.getAttribute('data-tile-size')))
-      .toBeCloseTo(64 * 0.4)
+      .toBeCloseTo(64 * worldZoomFromPercent(5))
     // Browser screenshots remain readable when public avatars taint the canvas.
     expect((await canvas.screenshot()).equals(beforeZoom)).toBe(false)
     await page.getByRole('button', { name: 'Zoom lock Off', exact: true }).click()
@@ -1257,7 +1281,9 @@ export function registerWorldInputCases({
       })),
     ).toEqual(pageScale)
     await openMapSettings(page)
-    await expect(page.getByRole('slider', { name: 'Zoom level', exact: true })).toHaveValue('94')
+    await expect(page.getByRole('slider', { name: 'Zoom level', exact: true })).toHaveValue(
+      String(worldZoomPercent(0.94)),
+    )
     await closeMapSettings(page)
     await page.getByRole('button', { name: /Return to local map/ }).click()
     await openMapSettings(page)
@@ -1309,7 +1335,7 @@ export function registerWorldInputCases({
     await capture(page, info, 'settings-dismissal-without-map-command')
   })
 
-  test('holding WASD walks repeatedly at bounded cadence and releasing the key ends the stream', async ({
+  test('holding WASD walks repeatedly from a focused World sidebar tab until release', async ({
     page,
   }, info) => {
     test.skip(info.project.name !== 'desktop-chromium', 'Exercise real held keyboard input once.')
@@ -1356,7 +1382,7 @@ export function registerWorldInputCases({
     })
     await canvas.evaluate((element) => {
       const stage = element as HTMLCanvasElement
-      stage.addEventListener(
+      document.addEventListener(
         'keydown',
         (event) => {
           if (event.key.toLowerCase() === 'd' && !event.repeat)
@@ -1364,7 +1390,7 @@ export function registerWorldInputCases({
         },
         { capture: true },
       )
-      stage.addEventListener(
+      document.addEventListener(
         'keyup',
         (event) => {
           if (event.key.toLowerCase() === 'd') stage.dataset.heldUpAt = String(performance.now())
@@ -1372,7 +1398,9 @@ export function registerWorldInputCases({
         { capture: true },
       )
     })
-    await canvas.focus()
+    const sidebarTab = page.getByRole('tab', { name: /Nearby/ })
+    await sidebarTab.focus()
+    await expect(sidebarTab).toBeFocused()
     await page.keyboard.down('d')
     await page.waitForTimeout(700)
     await page.keyboard.up('d')
@@ -1457,14 +1485,14 @@ export function registerWorldInputCases({
       await canvas.getAttribute('data-camera-y'),
     ]
     await pinch(10)
-    await expect(canvas).toHaveAttribute('data-tile-size', String(48 * 0.35))
+    await expect(canvas).toHaveAttribute('data-tile-size', String(48 * WORLD_MIN_ZOOM))
     expect([
       await canvas.getAttribute('data-camera-x'),
       await canvas.getAttribute('data-camera-y'),
     ]).toEqual(camera)
     await capture(page, info, 'mobile-map-max-zoom-out')
     await openMapSettings(page)
-    await expect(page.getByRole('slider', { name: 'Zoom level', exact: true })).toHaveValue('35')
+    await expect(page.getByRole('slider', { name: 'Zoom level', exact: true })).toHaveValue('0')
     await page.getByRole('button', { name: 'Zoom lock Off', exact: true }).click()
     await closeMapSettings(page)
     const locked = await canvas.getAttribute('data-tile-size')

@@ -72,14 +72,22 @@ it('shows owned hunt progress and keeps a pending XP reward visible alongside it
     body: 'Follow the tracks beyond the farms.',
     giverId,
     speaker: 'Alder Venn',
-    progress: 'active',
-    defeats: 3,
-    requiredDefeats: 5,
     local: true,
   }
-  const active = projectRepeatableTravel([hunt])
+  // The offer names its published hunt giver before the database sends a defeat counter.
+  const offer = projectRepeatableTravel([{ ...hunt, progress: 'available', action: 'accept' }])
+  expect(offer.interactions[0]).toMatchObject({
+    speaker: 'Alder Venn (Hunter)',
+    actionLabel: 'Accept activity',
+  })
+  const active = projectRepeatableTravel([
+    { ...hunt, progress: 'active', defeats: 3, requiredDefeats: 5 },
+  ])
   expect(active.objectives[0]?.description).toContain('3 of 5 qualifying defeats.')
-  expect(active.interactions[0]?.body).toContain('3 of 5 qualifying defeats.')
+  expect(active.interactions[0]).toMatchObject({
+    speaker: 'Alder Venn (Hunter)',
+    body: expect.stringContaining('3 of 5 qualifying defeats.'),
+  })
   const pending = projectRepeatableTravel([
     {
       ...hunt,
@@ -97,6 +105,7 @@ it('shows owned hunt progress and keeps a pending XP reward visible alongside it
     description: expect.stringContaining('Available again'),
   })
   expect(pending.interactions[0]).toMatchObject({
+    speaker: 'Alder Venn (Hunter)',
     actionId: 'claim-hunt-reward',
     actionLabel: 'Collect Character XP',
   })

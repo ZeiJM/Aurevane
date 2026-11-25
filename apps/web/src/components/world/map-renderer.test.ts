@@ -1,11 +1,19 @@
+import { ferryVesselVersion } from './map-ferry-deck'
 import { resolveWorldEnvironment, DEFAULT_WORLD_ENVIRONMENT_SETTINGS } from '@/world/environment'
+import { APPEARANCE_PRESETS, compileAppearanceManifest } from '@/appearance/appearance-manifest'
 import { createRequire } from 'node:module'
 import { readFile } from 'node:fs/promises'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
 import { projectWorld, projectWorldSector, resolveWorldIntent } from '@/server/world/world-service'
 import { voidRealmFerryDock } from '@/server/world/void-realms'
-import { FERRYMAN_PORTRAIT, FERRYMAN_SPRITE } from '@/world/ferry'
+import {
+  FERRY_BOARDING_MS,
+  FERRY_TERMINAL_NAMES,
+  FERRYMAN_PORTRAIT,
+  FERRYMAN_SPRITE,
+  nextFerryDeparture,
+} from '@/world/ferry'
 import { atlasSectors } from '@/world/atlas'
 import { CHARTED_SECTORS, GRID_HEIGHT, GRID_WIDTH } from '@/world/catalog'
 import { GRAND_DISCOVERY_SITES, OFFSHORE_DISCOVERY } from '@/world/discovery-sites'
@@ -469,9 +477,7 @@ describe('native map input and bounded lifecycle', () => {
       s.frame(40)
       expect(s.draws.map(({ src }) => src)).toEqual(
         expect.arrayContaining([
-          '/media/art/world/runtime/ferry-passenger-hull-v01.webp',
-          '/media/art/world/runtime/ferry-cabin-v01.webp',
-          '/media/art/world/runtime/ferry-sails-v01.webp',
+          `/media/art/world/runtime/ferry-passenger-hull-${ferryVesselVersion(state.position.sectorId)}.webp`,
         ]),
       )
       expect(s.texts.map(({ text }) => text)).not.toContain('Stern cabin')
@@ -552,7 +558,12 @@ describe('native map input and bounded lifecycle', () => {
   it('renders the full Orchard ferry with a visible Ferryman and accepts clicks inland', () => {
     const { sectorId, x, y } = voidRealmFerryDock('hollow-orchard')
     const position = { sectorId, x, y }
-    const view = projectWorld(revealNearby({ ...newWorldState(), position }), [], 10 * 60_000)
+    const departure = nextFerryDeparture('uncharted', 0)
+    const view = projectWorld(
+      revealNearby({ ...newWorldState(), position }),
+      [],
+      departure - FERRY_BOARDING_MS / 2,
+    )
     const s = scene(true, {
       ...view,
       players: [
@@ -579,7 +590,10 @@ describe('native map input and bounded lifecycle', () => {
     })
     try {
       s.frame(40)
-      const hull = s.spriteDraws.find(({ src }) => src.endsWith('ferry-vessel-v01.webp'))
+      const vessel = ferryVesselVersion(`ferry:return:${departure}`)
+      const hull = s.spriteDraws.find(({ src }) =>
+        src.endsWith(`ferry-passenger-hull-${vessel}.webp`),
+      )
       const sprite = s.identityDraws.find(({ image }) =>
         s.composites
           .get(image)
@@ -588,14 +602,14 @@ describe('native map input and bounded lifecycle', () => {
       expect(hull?.args).toHaveLength(4)
       expect(sprite?.args.at(-1)).toBeGreaterThan(64)
       expect(s.texts.map(({ text }) => text)).toEqual(
-        expect.arrayContaining(['Ferry Terminal', 'Ferryman']),
+        expect.arrayContaining([FERRY_TERMINAL_NAMES.uncharted, 'Ferryman']),
       )
       const labelColours = Object.fromEntries(s.texts.map(({ text, colour }) => [text, colour]))
       expect(labelColours).toMatchObject({
         Wayfarer: '#ffdb86',
         'Orchard visitor': '#a5efe2',
         Ferryman: '#ffc2a6',
-        'Ferry Terminal': '#dbc8ff',
+        [FERRY_TERMINAL_NAMES.uncharted]: '#dbc8ff',
       })
       const destination = { sectorId, x: x + 3, y }
       expect(
@@ -692,7 +706,7 @@ describe('native map input and bounded lifecycle', () => {
       vi.unstubAllGlobals()
     }
   })
-  it('fills gaps behind a partial public sector while allowing only supplied ground clicks', () => {
+  it('submits charted ground clicks through a partial public navigation scene', () => {
     const view = legacyTownView('verdant-expanse', 5, 4)
     const current = view.sectors[0]!
     const supplied = {
@@ -712,7 +726,7 @@ describe('native map input and bounded lifecycle', () => {
       expect(sampledMaterial).toBeDefined()
       s.event('pointerdown', 563.2, 384.48)
       s.event('pointerup', 563.2, 384.48)
-      expect(s.select).not.toHaveBeenCalled()
+      expect(s.select).toHaveBeenCalledWith({ sectorId: current.id, x: 8, y: 4 })
     } finally {
       s.renderer.dispose()
       vi.unstubAllGlobals()
@@ -2887,6 +2901,29 @@ describe('native map input and bounded lifecycle', () => {
       vi.unstubAllGlobals()
     }
   })
+
+  it('takes one visible tile on a fresh key reversal while the previous approval trails', () => {
+    const position = { sectorId: 'hollow-coast', x: 10, y: 6 }
+    const view = projectWorld({ ...newWorldState(), position }, [], 1000)
+    const s = scene(false, view)
+    const clock = vi.spyOn(performance, 'now').mockReturnValue(0)
+    try {
+      const east = { ...position, x: position.x + 1 }
+      const route = localRoute(view, position, east)!
+      s.motion.plan(route, view.sectors, 0)
+      clock.mockReturnValue(201)
+      expect(s.motion.sample(201).position).toEqual(east)
+      expect(s.motion.approvedPosition(201)).toEqual(position)
+
+      s.listeners.get('keydown')!({ key: 'a', preventDefault() {} } as unknown as Event)
+      expect(s.select.mock.calls[0]?.[0]).toEqual(position)
+      expect(s.select.mock.calls[0]?.[1]).toBe('west')
+    } finally {
+      s.renderer.dispose()
+      clock.mockRestore()
+      vi.unstubAllGlobals()
+    }
+  })
   it.each([450, 550])(
     'does not cancel a held-key route when approval leads its %ims visual landing',
     (now) => {
@@ -3030,7 +3067,7 @@ describe('native map input and bounded lifecycle', () => {
     s.renderer.dispose()
     vi.unstubAllGlobals()
   })
-  it.each([390, 800])('zooms out to 35%% at width %i without moving the camera', (width) => {
+  it.each([390, 800])('zooms out to 64%% at width %i without moving the camera', (width) => {
     const s = scene()
     Object.assign(s.canvas, { clientWidth: width })
     s.resize()
@@ -3039,8 +3076,8 @@ describe('native map input and bounded lifecycle', () => {
     const camera = [s.canvas.dataset.cameraX, s.canvas.dataset.cameraY]
     s.listeners.get('wheel')!({ deltaY: 10000, preventDefault() {} } as unknown as Event)
     s.frame(80)
-    expect(s.onZoom).toHaveBeenLastCalledWith(0.35)
-    expect(Number(s.canvas.dataset.tileSize)).toBeCloseTo((width < 600 ? 48 : 64) * 0.35)
+    expect(s.onZoom).toHaveBeenLastCalledWith(0.64)
+    expect(Number(s.canvas.dataset.tileSize)).toBeCloseTo((width < 600 ? 48 : 64) * 0.64)
     expect([s.canvas.dataset.cameraX, s.canvas.dataset.cameraY]).toEqual(camera)
     expect(s.select).not.toHaveBeenCalled()
     s.renderer.settings({ animate: false, zoom: 0.35, zoomLocked: true })
@@ -3797,6 +3834,90 @@ describe('native map input and bounded lifecycle', () => {
       vi.unstubAllGlobals()
     }
   })
+  it('reuses the painted town building crop across wide-zoom phone frames', () => {
+    const clock = vi.spyOn(performance, 'now').mockReturnValue(0)
+    const s = scene(false, legacyTownView('verdant-expanse', 5, 4))
+    const isTownArt = ({ src }: { src: string }) =>
+      src.endsWith('town-ordinary-architecture-v01.webp')
+    try {
+      Object.assign(s.canvas, { clientWidth: 389, clientHeight: 669 })
+      window.devicePixelRatio = 2.625
+      s.resize()
+      s.renderer.settings({ animate: true, zoom: 0.64 })
+      clock.mockReturnValue(200)
+      s.frame(200)
+      const initial = s.spriteDraws.filter(isTownArt).map(({ args }) => args)
+      expect(initial.length).toBeGreaterThan(0)
+      s.draws.length = 0
+      clock.mockReturnValue(250)
+      s.frame(250)
+      expect(s.spriteDraws.filter(isTownArt).map(({ args }) => args)).toEqual(initial)
+      expect(s.draws.filter(isTownArt)).toHaveLength(0)
+    } finally {
+      s.renderer.dispose()
+      clock.mockRestore()
+      vi.unstubAllGlobals()
+    }
+  })
+  it('repaints only the watch officer footprint when its idle pose advances', () => {
+    const clock = vi.spyOn(performance, 'now').mockReturnValue(0)
+    const view = legacyTownView('verdant-expanse', 5, 4)
+    const look = compileAppearanceManifest(APPEARANCE_PRESETS[0]!.blueprint)
+    const s = scene(false, {
+      ...view,
+      npcs: [
+        {
+          id: 'eastern-watch-officer',
+          name: 'Tamsin Reed (Watch Officer)',
+          imageUrl: look.portraits.neutral,
+          motionImageUrl: look.portraits.neutral,
+          position: { ...view.position, x: 2 },
+        },
+      ],
+      players: [
+        {
+          characterId: 'distant-peer',
+          name: 'Distant peer',
+          level: 1,
+          portraitRef: '',
+          imageUrl: '/distant-peer.webp',
+          online: true,
+          attackable: false,
+          position: { ...view.position, x: 8, y: 2 },
+        },
+      ],
+    })
+    try {
+      const isMotion = ({ src }: { src: string }) => src === look.motionAtlas
+      s.frame(40)
+      const source = s.draws.find(isMotion)
+      const pose = s.identityDraws.find(({ image }) =>
+        s.composites.get(image)?.some((part) => 'src' in part && part.src === look.motionAtlas),
+      )
+      const peer = s.identitySprites.find(({ src }) => src === '/distant-peer.webp')
+      expect(source).toBeDefined()
+      expect(pose).toBeDefined()
+      expect(peer).toBeDefined()
+      s.identityClear.mockClear()
+      s.draws.length = 0
+      clock.mockReturnValue(300)
+      s.frame(300)
+      const next = s.draws.find(isMotion)
+      expect(next).toBeDefined()
+      expect(next!.args[0]).not.toBe(source!.args[0])
+      expect(s.identityClear).toHaveBeenCalledTimes(1)
+      const [left, top, width, height] = s.identityClear.mock.calls[0]!
+      const [poseX, poseY, , poseHeight] = pose!.args.slice(-4)
+      expect(left).toBeLessThanOrEqual(poseX!)
+      expect(top).toBeLessThanOrEqual(poseY!)
+      expect(left + width).toBeLessThan(peer!.args[4]!)
+      expect(top + height).toBeGreaterThanOrEqual(poseY! + poseHeight!)
+    } finally {
+      s.renderer.dispose()
+      clock.mockRestore()
+      vi.unstubAllGlobals()
+    }
+  })
   it('caps high-DPI resolution and reports bounded terrain memory', () => {
     const s = scene()
     expect(s.canvas.width).toBe(1200)
@@ -4029,7 +4150,7 @@ describe('native map input and bounded lifecycle', () => {
     expect(s.draws.length).toBeGreaterThan(scenery)
     s.event('pointerdown', 400, 283)
     s.event('pointerup', 400, 283)
-    expect(s.select).not.toHaveBeenCalled()
+    expect(s.select).toHaveBeenCalledWith({ sectorId: s.view.position.sectorId, x: 5, y: 4 })
     s.renderer.dispose()
     vi.unstubAllGlobals()
   })

@@ -8,7 +8,7 @@ import {
   positionKey,
 } from '@/world/travel'
 import type { TravelStep, WorldPosition, WorldSectorView, WorldView } from '@/world/types'
-import { sectorMapOrigin } from '@/world/topology'
+import { sectorMapOrigin, wrappedMapX } from '@/world/topology'
 
 export interface MapPoint {
   x: number
@@ -67,6 +67,76 @@ export function prepareLocalRoute(view: Pick<WorldView, 'sectors'>) {
 export function localRoute(view: WorldView, from: WorldPosition, to: WorldPosition) {
   return prepareLocalRoute(view)(from, to)
 }
+export function worldInteractionRange(from: WorldPosition, target: WorldPosition, radius = 1) {
+  return (
+    from.sectorId === target.sectorId &&
+    Math.abs(from.x - target.x) + Math.abs(from.y - target.y) <= radius
+  )
+}
+
+export function worldApproachRoute(
+  view: WorldView,
+  from: WorldPosition,
+  target: WorldPosition,
+  radius = 1,
+) {
+  const sector = view.sectors.find(({ id }) => id === target.sectorId)
+  if (!sector) return null
+  const navigate = prepareLocalRoute(view)
+  let best: { destination: WorldPosition; route: TravelStep[]; time: number } | null = null
+  for (const cell of sector.cells) {
+    const destination = { sectorId: target.sectorId, x: cell.x, y: cell.y }
+    if (!cell.walkable || !worldInteractionRange(destination, target, radius)) continue
+    const route = navigate(from, destination)
+    if (!route) continue
+    const time = route.reduce((total, step) => total + step.durationMs, 0)
+    if (
+      best === null ||
+      time < best.time ||
+      (time === best.time && positionKey(best.destination) === positionKey(target))
+    ) {
+      best = { destination, route, time }
+    }
+  }
+  return best
+}
+
+/** Keep the first visible step responsive when a public destination extends past the scene receipt. */
+export function clickWalkPreview(view: WorldView, from: WorldPosition, to: WorldPosition) {
+  const exact = localRoute(view, from, to)
+  if (exact || view.sectors.some(({ id }) => id === to.sectorId)) return exact
+  const source = view.sectors.find(({ id }) => id === from.sectorId)
+  const target = view.atlas?.find(({ id, charted }) => id === to.sectorId && charted)
+  if (!source?.charted || !target) return null
+  const origin = mapPoint(from, view.sectors)
+  const goal = {
+    x: wrappedMapX(target.column * GRID_WIDTH + to.x + 0.5, origin.x),
+    y: target.row * GRID_HEIGHT + to.y + 0.5,
+  }
+  const sectors = new Map(view.sectors.map((sector) => [sector.id, sector]))
+  let best: TravelStep | null = null
+  let closest = Math.abs(goal.x - origin.x) + Math.abs(goal.y - origin.y)
+  for (const direction of ['east', 'west', 'south', 'north'] as const) {
+    const offset = walkOffset[direction]
+    const neighbor = { ...from, x: from.x + offset.x, y: from.y + offset.y }
+    const crossing = source.exits.find(({ from: departure, to: arrival }) => {
+      if (positionKey(departure) !== positionKey(from)) return false
+      const point = mapPoint(arrival, view.sectors, origin)
+      return point.x === origin.x + offset.x && point.y === origin.y + offset.y
+    })
+    const step = directionalWalk(from, crossing?.to ?? neighbor, direction, (id) =>
+      sectors.get(id),
+    )[0]
+    if (!step) continue
+    const point = mapPoint(step.position, view.sectors, origin)
+    const distance = Math.abs(goal.x - point.x) + Math.abs(goal.y - point.y)
+    if (distance >= closest) continue
+    closest = distance
+    best = step
+  }
+  return best ? [best] : null
+}
+
 function loadedRoute(
   route: readonly TravelStep[],
   sectors: readonly WorldSectorView[],

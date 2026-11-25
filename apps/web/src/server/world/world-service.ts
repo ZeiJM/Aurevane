@@ -145,6 +145,13 @@ function publicAtlasSurface(sector: ReturnType<typeof visibleSectors>[number]) {
   return surface
 }
 function routeTo(state: WorldState, destination: WorldPosition, explore: boolean) {
+  if (state.ferry && state.position.sectorId.startsWith('ferry:')) {
+    const deck = resolveSector(state.position.sectorId)
+    return deck && destination.sectorId === deck.id
+      ? findWorldRoute(state.position, destination, [deck])
+      : null
+  }
+
   const local =
     explore &&
     validCell(destination) &&
