@@ -599,7 +599,7 @@ export function illustratedSprite(
   </g>`
   const poseTransform =
     pose === 'down'
-      ? 'translate(0 35) rotate(-86 24 32) scale(.83)'
+      ? 'translate(24 53) rotate(-90) scale(.73) translate(-24 -30)'
       : pose === 'hit'
         ? `rotate(${-direction * (4 + frame)} 24 58)`
         : pose === 'attack'

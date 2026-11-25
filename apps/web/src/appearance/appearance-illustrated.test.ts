@@ -94,6 +94,27 @@ describe('illustrated player and NPC customization', () => {
     expect(artwork.match(/data-limb="arm-right"/g)).toHaveLength(112)
   })
 
+  it('keeps the down pose inside its sprite cell and ornaments studio settings', async () => {
+    const look = paintedPlayerAppearanceBlueprint({
+      ...defaultPaintedLookForGender('masculine'),
+      backdrop: 'midnight',
+    })
+    const portrait = svg(look)
+    expect(portrait).toContain('mask="url(#studio-corners)"')
+    const motion = renderAppearanceAsset(look, 'motion-v2', true)
+    expect(motion).toContain('translate(24 53) rotate(-90)')
+    const { default: sharp } = await import('sharp')
+    const { data, info } = await sharp(Buffer.from(motion))
+      .extract({ left: 0, top: 320, width: 48, height: 50 })
+      .ensureAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true })
+    let bodyPixels = 0
+    for (let offset = 3; offset < data.length; offset += info.channels)
+      if (data[offset]! > 128) bodyPixels++
+    expect(bodyPixels).toBeGreaterThan(110)
+  })
+
   it('keeps randomly combined expressions linked to the same portrait recipe', () => {
     let seed = 46
     const random = () => (seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 2 ** 32
