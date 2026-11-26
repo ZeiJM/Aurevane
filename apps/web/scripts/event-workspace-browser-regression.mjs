@@ -786,17 +786,12 @@ try {
     if (viewport.zoom === 1) {
       await page.getByRole('button', { name: 'Build appearance', exact: true }).click()
       const wardrobe = page.getByRole('dialog', { name: 'Character appearance' })
-      await wardrobe.getByLabel('Body build').selectOption('stocky')
-      await wardrobe.getByLabel('Skin tone').selectOption('espresso')
-      await wardrobe.getByLabel('Hairstyle').selectOption('quiff')
-      await wardrobe.getByLabel('Hair color', { exact: true }).selectOption('platinum')
-      await wardrobe.getByLabel('Eye color', { exact: true }).selectOption('violet')
-      await wardrobe.getByLabel('Clothing style').selectOption('quilted')
-      await wardrobe.getByLabel('Accessory style', { exact: true }).selectOption('rope')
-      await wardrobe.getByLabel('Facewear style').selectOption('mask')
+      await wardrobe.getByRole('radio', { name: 'Female', exact: true }).check()
+      await wardrobe.getByLabel('Look', { exact: true }).selectOption('asta')
+      await wardrobe.getByLabel('Cape color', { exact: true }).selectOption('denim')
       await wardrobe.getByLabel('Portrait setting').selectOption('frost')
       const appearancePath =
-        '/api/media/appearance/6/fitscout.quilted.midnight.rope.cedar.circlet.natural.mask.ice.stocky.espresso.quiff.platinum.violet.frost'
+        '/api/media/appearance/6/f32.pine.denim.none.natural.none.natural.none.natural.natural.natural.layers.natural.natural.frost'
       const portrait = wardrobe.getByRole('img', { name: 'Neutral appearance portrait' })
       await expect(portrait).toHaveAttribute('src', `${appearancePath}/illustrated-neutral.svg`)
       await expect
@@ -810,6 +805,7 @@ try {
       if (viewport.width === 1366) {
         await page.getByRole('button', { name: 'Build appearance', exact: true }).click()
         const rendered = wardrobe.locator('[data-appearance-preview]')
+        await expect(rendered).toHaveAttribute('aria-busy', 'false')
         const recipeIds = () =>
           rendered.evaluate((root) =>
             Array.from(root.querySelectorAll('img, [data-appearance-facing]'), (node) => {
@@ -848,11 +844,12 @@ try {
         assert.equal(randomized.length, 13)
         assert.equal(new Set(randomized).size, 1)
         assert.notEqual(randomized[0], original[0])
-        await wardrobe.getByLabel('Apparent age', { exact: true }).selectOption('elder')
+        await wardrobe.getByRole('radio', { name: 'Male', exact: true }).check()
+        await wardrobe.getByLabel('Look', { exact: true }).selectOption('kieran')
         await expect(rendered).toHaveAttribute('aria-busy', 'false')
         await expect(
           wardrobe.getByRole('img', { name: 'Neutral appearance portrait' }),
-        ).toHaveAttribute('src', /[.]age-elder[.]/)
+        ).toHaveAttribute('src', /\/6\/m21keen\.[^/]+\.age-elder\.[^/]+\/illustrated-neutral\.svg$/)
         await wardrobe.getByRole('button', { name: 'Close', exact: true }).click()
       }
     }
