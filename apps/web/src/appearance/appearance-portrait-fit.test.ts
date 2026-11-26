@@ -129,36 +129,14 @@ describe('painted portrait fitting', () => {
     expect(result).toContain('<use href="#painted-root-hair"/>')
   })
 
-  it('uses the painted face silhouette to tuck the hair from the brow through the cheeks', () => {
-    const result = renderFittedPortrait({ ...bare, tuckHairBehindFace: true }, '')
-    expect(result).toContain('id="portrait-face-hair-overlap"')
-    expect(result).toContain('y1="88" y2="174"')
-    expect(result).toContain(
-      'href="#painted-head-source" filter="url(#portrait-face-hair-overlap-silhouette)"',
-    )
-    expect(result.indexOf('mask="url(#portrait-face-hair-overlap)"')).toBeLessThan(
+  it('keeps cropped hairstyles off the brow, eye, and cheek while retaining the temple silhouette', () => {
+    const result = renderFittedPortrait({ ...bare, clearCheeks: true }, '')
+    expect(result).toContain('id="portrait-short-fringe"')
+    expect(result).toContain('M88 101Q128 95 168 101L154 169H102Z')
+    expect(result.indexOf('clip-path="url(#portrait-short-fringe)"')).toBeLessThan(
       result.indexOf('name=hair'),
     )
-    expect(result.match(/name=face/g)).toHaveLength(1)
-    expect(renderFittedPortrait(bare, '')).not.toContain('portrait-face-hair-overlap')
-  })
-
-  it('registers an off-center painted part to the anatomy across different face widths', () => {
-    const hair = { ...bare.hair, hairlineGuide: { part: [0.62, 0.22] as const, crownWidth: 0.68 } }
-    for (const temples of [
-      [84, 161],
-      [69, 184],
-    ] as const) {
-      const landmarks = { ...bare.landmarks, temples }
-      const { origin, scaleX, scaleY } = fitPortraitLayer(
-        hair.anchors,
-        fittedHairTarget(hair, landmarks, 'long'),
-      )
-      expect(origin[0] + 0.62 * hair.width * scaleX).toBeCloseTo((temples[0] + temples[1]) / 2)
-      expect(origin[1] + 0.22 * hair.height * scaleY).toBeCloseTo(67.28)
-      expect(scaleY).toBeLessThanOrEqual(scaleX + 1e-8)
-      expect(origin[1]).toBeGreaterThanOrEqual(7 - 1e-8)
-    }
+    expect(renderFittedPortrait(bare, '')).not.toContain('portrait-short-fringe')
   })
 
   it('repositions a lens opening when a different face moves its pupils', () => {

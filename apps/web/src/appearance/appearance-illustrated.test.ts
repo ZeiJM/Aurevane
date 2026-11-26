@@ -33,7 +33,6 @@ import {
   type PaintedPlayerLook,
 } from './appearance-painted-wardrobe'
 import { PAINTED_SPRITE_OUTFITS } from './appearance-painted-sprite-outfits.generated'
-import { TAILORED_HAIR } from './appearance-tailored-hair.generated'
 import { REPAINTED_FACES } from './appearance-repainted-faces.generated'
 import { REPAINTED_GARMENTS } from './appearance-repainted-garments.generated'
 import { REPAINTED_OUTFITS } from './appearance-repainted-outfits.generated'
@@ -81,9 +80,9 @@ describe('illustrated player and NPC customization', () => {
     })
     const renders = APPEARANCE_EXPRESSIONS.map((mood) => renderAppearanceAsset(look, mood, true))
     expect(new Set(renders).size).toBe(5)
-    expect(
-      renders.every((svg) => svg.includes(TAILORED_HAIR['silvertip-waves'].portrait.href)),
-    ).toBe(true)
+    expect(renders.every((svg) => svg.includes(FITTED_ART_SOURCE['silvertip-waves'].href))).toBe(
+      true,
+    )
     expect(
       renders.every((svg) => svg.includes(REPAINTED_GARMENTS['moss-cloak'].portrait.href)),
     ).toBe(true)

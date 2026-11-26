@@ -24,33 +24,21 @@ import { REPAINTED_FACES } from './appearance-repainted-faces.generated'
 import { REPAINTED_GARMENTS } from './appearance-repainted-garments.generated'
 import { REPAINTED_HAIR } from './appearance-repainted-hair.generated'
 import { REPAINTED_OUTFITS } from './appearance-repainted-outfits.generated'
-import { FLOWING_HAIR } from './appearance-flowing-hair.generated'
-import { TAILORED_HAIR } from './appearance-tailored-hair.generated'
-import { TIED_HAIR } from './appearance-tied-hair.generated'
 import {
+  clearShortHairFromFace,
   fitPortraitAccessories,
   fittedFacialHairTarget,
-  fittedHairCrownWidth,
   fittedHairTarget,
-  fitScalpToHairline,
   fitPortraitLayer,
   PORTRAIT_TEMPLE_FRACTION,
   renderFittedPortrait,
-  tuckHairBehindFace,
   type PortraitAnchors,
   type PortraitFaceLandmarks,
 } from './appearance-portrait-fit'
 
 type SourceName = keyof typeof FITTED_ART_SOURCE
 
-const wardrobePaintings = {
-  ...PAINTED_HAIRLINE_REFITS,
-  ...REPAINTED_HAIR,
-  ...REPAINTED_GARMENTS,
-  ...TAILORED_HAIR,
-  ...FLOWING_HAIR,
-  ...TIED_HAIR,
-}
+const wardrobePaintings = { ...PAINTED_HAIRLINE_REFITS, ...REPAINTED_HAIR, ...REPAINTED_GARMENTS }
 type RefitArt = typeof wardrobePaintings
 const refits: {
   [Name in SourceName]?: Name extends keyof RefitArt ? RefitArt[Name] : never
@@ -437,21 +425,11 @@ const rootsVisible = new Set<PaintedPlayerLook['hairstyle']>([
   'waves',
 ])
 
-const tuckedFringe = new Set<PaintedPlayerLook['hairstyle']>([
+const croppedFringe = new Set<PaintedPlayerLook['hairstyle']>([
   'natural',
   'sidepart',
   'coils',
   'curls',
-  'fishtail',
-  'twins',
-  'sidepony',
-  'razor',
-  'bun',
-  'pony',
-  'loosebun',
-  'sidebun',
-  'hightwist',
-  'ropebraid',
 ])
 const repaintedExpressionStrength = { neutral: 0, happy: 22, angry: 18, sad: 21, surprised: 23 }
 
@@ -540,8 +518,8 @@ export function fittedCharacterPortrait(
         paintedPigmentFilter('painted-hat', headDye) +
         paintedPigmentFilter('painted-accessory', accessoryDye),
       hair: naturalOrDyed(hair, 'painted-hair', hairDye),
-      rootedHair: rootsVisible.has(look.hairstyle) || 'hairlineGuide' in hair,
-      tuckHairBehindFace: tuckedFringe.has(look.hairstyle) || 'hairlineGuide' in hair,
+      rootedHair: rootsVisible.has(look.hairstyle),
+      clearCheeks: croppedFringe.has(look.hairstyle),
       hairLength: longHair.has(look.hairstyle) ? 'long' : 'short',
       hairAdjustment: hairRegistrations[look.hairstyle],
       tuckHairBehindShoulders: shoulderLengthLooseHair.has(look.hairstyle),
@@ -841,16 +819,11 @@ export function fittedCharacterSpriteHead(
     replacementFacewear[look.facewear as keyof typeof replacementFacewear] ?? look.facewear
   const hat = FITTED_HEADWEAR[hatId as keyof typeof FITTED_HEADWEAR]
   const facewear = FITTED_FACEWEAR[accessoryId as keyof typeof FITTED_FACEWEAR]
-  const tuckFringe =
-    !rear && !profile && (tuckedFringe.has(look.hairstyle) || 'hairlineGuide' in hairArt)
-  const skinSource = `${id}-skin-source`
-  const scalp =
-    !rear && !profile
-      ? fitScalpToHairline(skin, hairArt, hairTarget, landmarks, `${id}-scalp-fit`)
-      : skin
   const worn = fitPortraitAccessories(
     landmarks,
-    tuckFringe ? tuckHairBehindFace(hair, landmarks, skinSource, `${id}-face-hair-overlap`) : hair,
+    !rear && !profile && croppedFringe.has(look.hairstyle)
+      ? clearShortHairFromFace(hair, landmarks, `${id}-short-fringe`)
+      : hair,
     hat && {
       layer: { ...PAINTED_SPRITE_HEADS[hat[0]], filter: headColorId },
       kind: hat[1],
@@ -905,7 +878,7 @@ export function fittedCharacterSpriteHead(
     ? Math.max(184, hairLeft + hairWidth) - Math.min(71, hairLeft)
     : rear
       ? hairWidth
-      : fittedHairCrownWidth(hairArt, hairTarget)
+      : hairArt.width * fitPortraitLayer(hairArt.anchors, hairTarget).scaleX
   const headScale = Math.min(
     profile || rear ? 0.073 : 0.076,
     (torsoWidth * (profile ? 0.55 : 0.39)) / faceWidth,
@@ -916,7 +889,7 @@ export function fittedCharacterSpriteHead(
   const chin = profile ? 151 : rear ? 155 : landmarks.chin
   const headY = PAINTED_SPRITE_COLLAR_Y - headScale * (chin + (profile ? 10 : 6))
   const transform = `translate(${headX} ${headY}) scale(${headScale})`
-  return `<defs>${defs}${tuckFringe ? `<g id="${skinSource}">${scalp}</g>` : ''}</defs>
-    <g id="${id}-base" transform="${transform}">${worn.hatBack}${worn.accessoryBack}${tuckFringe ? `<use href="#${skinSource}"/>` : scalp}${marks}</g>
+  return `<defs>${defs}</defs>
+    <g id="${id}-base" transform="${transform}">${worn.hatBack}${worn.accessoryBack}${skin}${marks}</g>
     <g id="${id}" transform="${transform}">${beard}${nearFacewear}${worn.fittedHair}${worn.hat}</g>`
 }
