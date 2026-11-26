@@ -46,6 +46,7 @@ export function renderPaintedSpriteRig({
   pose,
   frame,
   frames,
+  face,
   head,
   bodyBuild,
   cape,
@@ -63,6 +64,7 @@ export function renderPaintedSpriteRig({
   pose: AppearancePose
   frame: number
   frames: number
+  face?: string
   head: string
   bodyBuild: number
   cape: boolean
@@ -87,7 +89,7 @@ export function renderPaintedSpriteRig({
   const attacking = pose === 'attack' || pose === 'cast'
   const torsoY =
     PAINTED_SPRITE_COLLAR_Y - (walking ? Math.abs(phase) * 0.9 : pose === 'idle' ? phase * 0.45 : 0)
-  const torsoWidth = bodyBuild * (profile ? 11 : 18)
+  const torsoWidth = bodyBuild * (profile ? (fittedOutfit ? 12 : 11) : 18)
   const torsoPart = fittedOutfit
     ? profile
       ? 'worn-outfit-side'
@@ -175,8 +177,12 @@ export function renderPaintedSpriteRig({
   const shoulderCap = profile
     ? `<svg x="20" y="${shoulderCapY}" width="9" height="8" viewBox="20 ${shoulderCapY} 9 8" overflow="hidden">${paintedSleeve([24.3, shoulderCapY], [8.1, 15])}</svg>`
     : ''
-  const figure = `${packedGear}${dyePart(cloak)}${leg(-1)}${leg(1)}${arm(-1)}${torso}${dyePart(shoulderPieces)}${wornGear}${shoulderCap}${arm(1)}
-    <g transform="translate(0 ${torsoY - PAINTED_SPRITE_COLLAR_Y})">${head}</g>`
+  const placeHead = `translate(0 ${torsoY - PAINTED_SPRITE_COLLAR_Y})`
+  // Tuck the painted neck under the outfit, with long hair and accessories
+  // still able to overlap the shoulder from the front.
+  const lowerHead = face ? `<g transform="${placeHead}">${face}</g>` : ''
+  const figure = `${packedGear}${dyePart(cloak)}${leg(-1)}${leg(1)}${arm(-1)}${lowerHead}${torso}${dyePart(shoulderPieces)}${wornGear}${shoulderCap}${arm(1)}
+    <g transform="${placeHead}">${head}</g>`
   const reaction = pose === 'hit' ? 'rotate(-9 24 58)' : ''
   const alignment = facing === 'west' ? 'translate(48 0) scale(-1 1)' : ''
   const down = pose === 'down' ? 'translate(24 53) rotate(-90) scale(.73) translate(-24 -30)' : ''

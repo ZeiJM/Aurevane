@@ -186,20 +186,25 @@ export function fitPortraitAccessories(
   let accessory = ''
   let accessoryBack = ''
   if (facewear?.kind === 'lenses' || facewear?.kind === 'mask') {
+    const lenses = facewear.kind === 'lenses'
+    const [left, right] = lenses
+      ? boundedFittingWidth(facewear.layer, eyes[0], eyes[1], (temples[1] - temples[0]) * 1.02)
+      : eyes
+    const opening = lenses ? Math.min(9, (right - left) * 0.18) : 9
     const lensTarget = {
-      left: eyes[0],
-      right: eyes[1],
-      top: eyesY - 9,
-      bottom: eyesY + 9,
+      left,
+      right,
+      top: eyesY - opening,
+      bottom: eyesY + opening,
     }
-    const lenses = layerImage(facewear.layer, lensTarget)
+    const lensImage = layerImage(facewear.layer, lensTarget)
     accessoryBack = rearImage(facewear.layer, lensTarget)
-    if (facewear.kind === 'lenses') {
+    if (lenses) {
       const lensRadius = (eyes[1] - eyes[0]) * 0.31
       const mask = `${scope}-lens-transmission`
-      accessory = `<defs><mask id="${mask}"><rect width="256" height="256" fill="white"/>${eyes.map((x) => `<ellipse cx="${x}" cy="${eyesY}" rx="${lensRadius}" ry="9" fill="#141414"/>`).join('')}</mask></defs><g mask="url(#${mask})">${lenses}</g>`
+      accessory = `<defs><mask id="${mask}"><rect width="256" height="256" fill="white"/>${eyes.map((x) => `<ellipse cx="${x}" cy="${eyesY}" rx="${lensRadius}" ry="${opening}" fill="#141414"/>`).join('')}</mask></defs><g mask="url(#${mask})">${lensImage}</g>`
     } else {
-      accessory = lenses
+      accessory = lensImage
     }
   } else if (facewear?.kind === 'veil') {
     const veilTarget = {
@@ -240,9 +245,21 @@ export function renderFittedPortrait(
   const { temples, eyes, eyesY, hairline, brow, chin, neck, shoulder } = landmarks
   const neckCenter = (neck[0] + neck[1]) / 2
   const faceImage = layerImage(face, { left: eyes[0], right: eyes[1], top: eyesY, bottom: chin })
-  const fittedFaceImage = layers.trimScalp
-    ? `<clipPath id="painted-scalp"><path d="M0 ${brow} Q${neckCenter} ${2 * (hairline - 10) - brow} 256 ${brow} V256 H0Z"/></clipPath><g clip-path="url(#painted-scalp)">${faceImage}</g>`
+  // Extend the scalp under the replaceable fringe so its antialiased edge
+  // cannot expose the portrait backdrop between the two paintings.
+  const scalpFit = layers.trimScalp
+    ? `<clipPath id="painted-scalp"><path d="M0 ${brow} Q${neckCenter} ${2 * (hairline - 16) - brow} 256 ${brow} V256 H0Z"/></clipPath><g clip-path="url(#painted-scalp)">${faceImage}</g>`
     : faceImage
+  // Fade the painted crop into skin below the jaw, where some bases end in a
+  // flat edge. Keep the jaw and its shading fully opaque.
+  const fittedFaceImage = `<defs>
+    <linearGradient id="painted-neck-feather" gradientUnits="userSpaceOnUse" x2="0" y1="${chin + 3}" y2="${chin + 19}">
+      <stop stop-color="white"/><stop offset="1" stop-color="white" stop-opacity="0"/>
+    </linearGradient>
+    <mask id="painted-neck-fit" maskUnits="userSpaceOnUse" x="0" y="0" width="256" height="256">
+      <rect width="256" height="256" fill="url(#painted-neck-feather)"/>
+    </mask>
+  </defs><g mask="url(#painted-neck-fit)">${scalpFit}</g>`
   // The expression maps were painted on a reference with eyes at y=98,
   // 44 units apart, and the mouth at y=138. Keep the movement on the
   // corresponding features once different face proportions are fitted.
@@ -265,37 +282,41 @@ export function renderFittedPortrait(
     ? `<defs><g id="painted-head-source">${headSource}</g></defs><use href="#painted-head-source"/>${irisOverlay}`
     : headSource
   const neckUnderlay = `<defs>
-    <linearGradient id="neck-continuation">
+    <linearGradient id="neck-continuation" x1="0" y1="0" x2=".92" y2=".37">
       <stop stop-color="${neckPigment[1]}"/>
-      <stop offset=".62" stop-color="${neckPigment[0]}"/>
+      <stop offset=".65" stop-color="${neckPigment[0]}"/>
       <stop offset="1" stop-color="${neckPigment[1]}"/>
     </linearGradient>
+    <linearGradient id="neck-contact-shade" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="${neckPigment[1]}" stop-opacity=".45"/>
+      <stop offset="1" stop-color="${neckPigment[1]}" stop-opacity="0"/>
+    </linearGradient>
+    <path id="neck-contour" d="M${neck[0]} ${chin - 5}H${neck[1]}Q${neck[1] - 2} ${chin + 7} ${neck[1] + 4} ${shoulder + 9}H${neck[0] - 4}Q${neck[0] + 2} ${chin + 7} ${neck[0]} ${chin - 5}Z"/>
   </defs>
-  <path d="M${neck[0] - 2} ${chin - 1}H${neck[1] + 2}L${neck[1] + 6} 256H${neck[0] - 6}Z" fill="url(#neck-continuation)"/>`
-  let clothing = layerImage(garment, {
-    left: neck[0],
-    right: neck[1],
-    top: chin + 4,
+  <use href="#neck-contour" fill="url(#neck-continuation)"/>
+  <use href="#neck-contour" fill="url(#neck-contact-shade)"/>`
+  const torsoScale = layers.torsoScale ?? 1
+  // Fit the whole garment once. A crossfade between two sized copies leaves
+  // transparent folds and double edges across the shoulders.
+  const garmentScale = 1 + (torsoScale - 1) * 0.8
+  const collarSpan = ((neck[1] - neck[0]) * garmentScale) / 2
+  const [garmentLeft, garmentRight] = boundedFittingWidth(
+    garment,
+    neckCenter - collarSpan,
+    neckCenter + collarSpan,
+    Math.min(260, (temples[1] - temples[0]) * 2.45 * garmentScale),
+  )
+  const garmentImage = layerImage(garment, {
+    left: garmentLeft,
+    right: garmentRight,
+    top: chin + 1,
     bottom: shoulder,
   })
-  const torsoScale = layers.torsoScale ?? 1
-  if (torsoScale !== 1) {
-    const seam = shoulder + 28
-    clothing = `<defs>
-      <g id="painted-garment-source">${clothing}</g>
-      <linearGradient id="painted-collar-fade" gradientUnits="userSpaceOnUse" x2="0" y1="${shoulder}" y2="${seam}"><stop stop-color="white"/><stop offset="1" stop-color="black"/></linearGradient>
-      <linearGradient id="painted-shoulder-fade" gradientUnits="userSpaceOnUse" x2="0" y1="${shoulder}" y2="${seam}"><stop stop-color="black"/><stop offset="1" stop-color="white"/></linearGradient>
-      <mask id="painted-collar-mask"><rect width="256" height="256" fill="url(#painted-collar-fade)"/></mask>
-      <mask id="painted-shoulder-mask"><rect width="256" height="256" fill="url(#painted-shoulder-fade)"/></mask>
-    </defs>
-    <use href="#painted-garment-source" mask="url(#painted-collar-mask)"/>
-    <g mask="url(#painted-shoulder-mask)"><use href="#painted-garment-source" transform="translate(${neckCenter} 0) scale(${torsoScale} 1) translate(${-neckCenter} 0)"/></g>`
-  }
   // The collar wraps around the neck. Keep the painted sides while giving
   // the chin and the center of the throat a continuous clear opening.
   const collarLeft = neck[0] - 3
   const collarRight = neck[1] + 3
-  clothing = `<defs><clipPath id="painted-neck-opening"><path d="M0 0H${collarLeft}V${chin - 3}Q${neckCenter} ${chin + 13} ${collarRight} ${chin - 3}V0H256V256H0Z"/></clipPath></defs><g clip-path="url(#painted-neck-opening)">${clothing}</g>`
+  const clothing = `<defs><clipPath id="painted-neck-opening"><path d="M0 0H${collarLeft}V${chin - 3}Q${neckCenter} ${chin + 12} ${collarRight} ${chin - 3}V0H256V256H0Z"/></clipPath></defs><g clip-path="url(#painted-neck-opening)">${garmentImage}</g>`
   const gearPlacement = layers.gearPlacement ?? 'sash'
   const gearPositions = {
     sash: { left: -43, right: 50, top: -12, bottom: 79 },
@@ -356,6 +377,6 @@ export function renderFittedPortrait(
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="${viewBox}">
     ${layers.paintedFilters ? `<defs>${layers.paintedFilters}</defs>` : ''}
     ${backdrop}${gearPlacement === 'behind' ? gear : ''}${hatBack}${rearImage(hair, hairTarget)}${shoulderHair}${accessoryBack}
-    ${neckUnderlay}${head}${layers.faceMarks ?? ''}${clothing}${gearPlacement === 'behind' ? '' : gear}${beard}${frontHair}${accessory}${hat}
+    ${neckUnderlay}${head}${layers.faceMarks ?? ''}${clothing}${gearPlacement === 'behind' ? '' : gear}${beard}${accessory}${frontHair}${hat}
   </svg>`
 }

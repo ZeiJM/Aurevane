@@ -148,14 +148,18 @@ const replacementFacewear = {
 
 type Pigment = readonly [number, number, number]
 
-function pigmentCss(pigment: Pigment, shade = 1) {
+function pigmentCss(pigment: readonly number[], shade = 1) {
   return `rgb(${pigment.map((channel) => Math.round(channel * shade)).join(',')})`
+}
+
+function skinToneSlope(tone: Pigment, light: Pigment) {
+  return Math.max(0.46, Math.min(1.1, luminance(tone) / Math.max(55, luminance(light))))
 }
 
 function calibratedSkinFilter(id: string, tone: Pigment | null, light: Pigment) {
   if (!tone) return ''
   const sourceLuminance = luminance(light)
-  const slope = Math.max(0.46, Math.min(1.1, luminance(tone) / Math.max(55, sourceLuminance)))
+  const slope = skinToneSlope(tone, light)
   const matrix = tone.flatMap((channel) => [
     0.2126 * slope,
     0.7152 * slope,
@@ -342,10 +346,18 @@ export function fittedCharacterPortrait(
   const skinDye = WARDROBE_SKIN_TONES[look.skinTone].rgb
   const originalSkin =
     'neckPigments' in faceSource ? faceSource.neckPigments[0] : ([170, 119, 85] as const)
+  const originalShadow =
+    'neckPigments' in faceSource ? faceSource.neckPigments[1] : ([120, 76, 57] as const)
+  const shadeDifference = skinDye
+    ? (luminance(originalShadow) - luminance(originalSkin)) * skinToneSlope(skinDye, originalSkin)
+    : 0
   const neckPigment = skinDye
-    ? ([pigmentCss(skinDye, 0.82), pigmentCss(skinDye, 0.59)] as const)
+    ? ([
+        pigmentCss(skinDye),
+        pigmentCss(skinDye.map((channel) => Math.max(0, Math.min(255, channel + shadeDifference)))),
+      ] as const)
     : 'neckPigments' in faceSource
-      ? ([pigmentCss(faceSource.neckPigments[0]), pigmentCss(faceSource.neckPigments[1])] as const)
+      ? ([pigmentCss(originalSkin), pigmentCss(originalShadow)] as const)
       : face.skin
   const beard = look.facialHair && look.facialHair !== 'none' ? fittedBeards[look.facialHair] : null
   const beardDye = hairDye ?? ('hairPigment' in hair ? hair.hairPigment : null)
@@ -357,7 +369,7 @@ export function fittedCharacterPortrait(
       neckPigment,
       faceMarks: fittedFaceMarks(look, landmarks, neckPigment[1]),
       expressionMap: expression !== 'neutral' ? PORTRAIT_EXPRESSION_MAPS[expression] : undefined,
-      expressionIntensity: expression === 'happy' || expression === 'sad' ? 22 : 18,
+      expressionIntensity: expression === 'happy' || expression === 'sad' ? 18 : 16,
       torsoScale: WARDROBE_FRAMES[look.bodyFrame].torsoScale,
       paintedFilters:
         paintedPigmentFilter('painted-hair', hairDye) +
@@ -684,9 +696,13 @@ export function fittedCharacterSpriteHead(
   const nearFacewear = !profile
     ? worn.accessory
     : `<clipPath id="${id}-near-face"><rect x="130" width="64" height="210"/></clipPath><g clip-path="url(#${id}-near-face)">${worn.accessory}</g>`
-  const headScale = 0.079
+  const headScale = profile || rear ? 0.08 : 0.084
   const neckCenter = rear || profile ? 128 : (landmarks.neck[0] + landmarks.neck[1]) / 2
   const headX = 24 - headScale * neckCenter
-  const headY = PAINTED_SPRITE_COLLAR_Y - headScale * (landmarks.chin + 12)
-  return `<g id="${id}"><defs>${defs}</defs><g transform="translate(${headX} ${headY}) scale(${headScale})">${worn.hatBack}${worn.accessoryBack}${skin}${marks}${beard}${worn.fittedHair}${nearFacewear}${worn.hat}</g></g>`
+  const chin = profile ? 151 : rear ? 155 : landmarks.chin
+  const headY = PAINTED_SPRITE_COLLAR_Y - headScale * (chin + 6)
+  const transform = `translate(${headX} ${headY}) scale(${headScale})`
+  return `<defs>${defs}</defs>
+    <g id="${id}-base" transform="${transform}">${worn.hatBack}${worn.accessoryBack}${skin}${marks}</g>
+    <g id="${id}" transform="${transform}">${beard}${nearFacewear}${worn.fittedHair}${worn.hat}</g>`
 }

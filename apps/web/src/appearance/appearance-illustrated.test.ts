@@ -84,6 +84,20 @@ describe('illustrated player and NPC customization', () => {
     expect(renders.slice(1).every((svg) => svg.includes('feDisplacementMap'))).toBe(true)
   })
 
+  it('keeps one opaque garment and blends the painted crop below the chin across builds', () => {
+    const base = defaultPaintedLookForGender('feminine')
+    const source = FITTED_ART_SOURCE['moss-cloak'].href
+    const widths = (['slight', 'natural', 'stocky'] as const).map((bodyFrame) => {
+      const look = paintedPlayerAppearanceBlueprint({ ...base, outerwear: 'pine', bodyFrame })
+      const portrait = renderAppearanceAsset(look, 'neutral', true)
+      expect(portrait.split(source)).toHaveLength(2)
+      expect(portrait).toContain('mask="url(#painted-neck-fit)"')
+      return Number(portrait.split(source)[1]?.match(/width="([^"]+)"/)?.[1])
+    })
+    expect(widths[0]).toBeLessThan(widths[1]!)
+    expect(widths[1]).toBeLessThan(widths[2]!)
+  })
+
   it('round-trips each added head and face accessory and fits the corresponding painted art', () => {
     const base = defaultPaintedLookForGender('feminine')
     for (const field of ['headwear', 'facewear'] as const) {

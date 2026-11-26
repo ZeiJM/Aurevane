@@ -17,6 +17,7 @@ describe('painted sprite rig', () => {
       pose,
       frame,
       frames: 8,
+      face: fittedOutfit ? '<use href="#test-face"/>' : undefined,
       head: '<use href="#test-head"/>',
       bodyBuild: 1,
       cape: true,
@@ -54,6 +55,9 @@ describe('painted sprite rig', () => {
         expect(svg).toContain(`href="#rig-worn-outfit-${part}"`)
         expect(svg).toContain('href="#rig-worn-outfit-sleeve"')
         expect(svg).not.toContain('href="#rig-torso')
+        const torso = svg.indexOf(`href="#rig-worn-outfit-${part}"`)
+        expect(svg.indexOf('href="#test-face"')).toBeLessThan(torso)
+        expect(svg.indexOf('href="#test-head"')).toBeGreaterThan(torso)
       }
     }
   })
