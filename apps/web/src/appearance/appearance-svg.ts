@@ -808,7 +808,7 @@ export function renderAppearanceAsset(
         ? (['left', 'passing', 'passing', 'right', 'right', 'passing', 'passing', 'left'] as const)
         : (['left', 'passing', 'right'] as const)
       return renderSpriteAtlas(
-        studySpriteMaterials(study),
+        studySpriteMaterials(study, blueprint.clothColor),
         (facing, pose, frame) => {
           if (pose === 'walk') {
             return `<ellipse cx="24" cy="58" rx="10" ry="2.5" fill="#171d23" fill-opacity=".4"/>${studySpriteArt(facing, stride[frame]!)}`

@@ -27,8 +27,26 @@ describe.each(Object.values(PAINTED_STUDIES))('$key painted character study', (s
   })
 
   it('displays custom selections through the shared renderer', () => {
-    const blueprint = paintedPlayerAppearanceBlueprint({ ...study.look, hairDye: 'silver' })
+    const blueprint = paintedPlayerAppearanceBlueprint({ ...study.look, hairDye: 'charcoal' })
     expect(matchingPaintedStudy(blueprint)).toBeUndefined()
     expect(renderAppearanceAsset(blueprint, 'neutral', true)).toContain('painted-hair')
   })
+})
+
+it('keeps Asta’s authored cape and poses when changing the cloth dye', () => {
+  const original = paintedPlayerAppearanceBlueprint(PAINTED_STUDIES.f32.look)
+  const dyed = paintedPlayerAppearanceBlueprint({ ...original, clothColor: 'denim' })
+  expect(matchingPaintedStudy(dyed)).toBe('asta')
+  expect(
+    appearanceManifestFromImageUrl(compileAppearanceManifest(dyed).neutralUrl)?.blueprint,
+  ).toEqual(dyed)
+  for (const mood of APPEARANCE_EXPRESSIONS) {
+    expect(renderAppearanceAsset(original, mood, true)).not.toContain('study-fabric-dye')
+    const portrait = renderAppearanceAsset(dyed, mood, true)
+    expect(portrait).toContain('mask="url(#study-portrait-fabric)"')
+    expect(portrait).toContain('filter="url(#study-fabric-dye)"')
+  }
+  const atlas = renderAppearanceAsset(dyed, 'motion-v2', true)
+  expect(atlas).toContain('mask="url(#study-east-passing-fabric)"')
+  expect(atlas).toContain('mask="url(#study-north-cast-fabric)"')
 })
