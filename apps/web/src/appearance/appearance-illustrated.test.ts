@@ -92,7 +92,12 @@ describe('illustrated player and NPC customization', () => {
       const portrait = renderAppearanceAsset(look, 'neutral', true)
       expect(portrait.split(source)).toHaveLength(2)
       expect(portrait).toContain('mask="url(#painted-neck-fit)"')
-      return Number(portrait.split(source)[1]?.match(/width="([^"]+)"/)?.[1])
+      const width = Number(portrait.split(source)[1]?.match(/width="([^"]+)"/)?.[1])
+      const headWidth = Number(
+        portrait.match(/mask="url\(#painted-neck-fit\)"[^]*?<image[^>]+width="([^"]+)"/)?.[1],
+      )
+      expect(width / headWidth).toBeGreaterThan(2)
+      return width
     })
     expect(widths[0]).toBeLessThan(widths[1]!)
     expect(widths[1]).toBeLessThan(widths[2]!)

@@ -9,7 +9,7 @@ import type {
 import { paintedPigmentFilter } from './appearance-painted-equipment'
 import { PAINTED_SPRITE_HEADS } from './appearance-painted-sprite-heads.generated'
 import { PAINTED_SPRITE_OUTFITS } from './appearance-painted-sprite-outfits.generated'
-import { PAINTED_SPRITE_COLLAR_Y } from './appearance-painted-sprite-rig'
+import { fittedSpriteTorsoWidth, PAINTED_SPRITE_COLLAR_Y } from './appearance-painted-sprite-rig'
 import {
   WARDROBE_DYES,
   WARDROBE_EYE_COLORS,
@@ -24,6 +24,7 @@ import {
   fittedFacialHairTarget,
   fittedHairTarget,
   fitPortraitLayer,
+  PORTRAIT_TEMPLE_FRACTION,
   renderFittedPortrait,
   type PortraitAnchors,
   type PortraitFaceLandmarks,
@@ -266,8 +267,9 @@ function faceLandmarks(
   const projectY = (fraction: number) => fit.origin[1] + fraction * source.height * fit.scaleY
   const guides = 'facialGuides' in source ? source.facialGuides : undefined
   const center = guides ? fit.origin[0] + guides.center * source.width * fit.scaleX : 128
-  const templeLeft = fit.origin[0] + source.width * scale * 0.07
-  const templeRight = fit.origin[0] + source.width * scale * 0.93
+  const templeMargin = (source.width * scale * (1 - PORTRAIT_TEMPLE_FRACTION)) / 2
+  const templeLeft = fit.origin[0] + templeMargin
+  const templeRight = fit.origin[0] + source.width * scale - templeMargin
   const neckHalfWidth = Math.min(face.neck, (templeRight - templeLeft) / 4)
   const jawHeight = chin - eyesY
   return {
@@ -696,7 +698,17 @@ export function fittedCharacterSpriteHead(
   const nearFacewear = !profile
     ? worn.accessory
     : `<clipPath id="${id}-near-face"><rect x="130" width="64" height="210"/></clipPath><g clip-path="url(#${id}-near-face)">${worn.accessory}</g>`
-  const headScale = profile || rear ? 0.08 : 0.084
+  const bodyBuild = WARDROBE_FRAMES[look.bodyFrame].torsoScale
+  const torsoWidth = fittedSpriteTorsoWidth(facing, bodyBuild) * 1.26
+  const faceWidth = profile
+    ? 113
+    : rear
+      ? 98
+      : (landmarks.temples[1] - landmarks.temples[0]) / PORTRAIT_TEMPLE_FRACTION
+  const headScale = Math.min(
+    profile || rear ? 0.08 : 0.084,
+    (torsoWidth * (profile ? 0.61 : 0.43)) / faceWidth,
+  )
   const neckCenter = rear || profile ? 128 : (landmarks.neck[0] + landmarks.neck[1]) / 2
   const headX = 24 - headScale * neckCenter
   const chin = profile ? 151 : rear ? 155 : landmarks.chin

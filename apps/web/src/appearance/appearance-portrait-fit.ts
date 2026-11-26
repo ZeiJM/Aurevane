@@ -1,4 +1,5 @@
 type Point = readonly [x: number, y: number]
+export const PORTRAIT_TEMPLE_FRACTION = 0.86
 
 export type PortraitAnchors = Readonly<{
   left: number
@@ -299,16 +300,23 @@ export function renderFittedPortrait(
   // Fit the whole garment once. A crossfade between two sized copies leaves
   // transparent folds and double edges across the shoulders.
   const garmentScale = 1 + (torsoScale - 1) * 0.8
-  const collarSpan = ((neck[1] - neck[0]) * garmentScale) / 2
-  const [garmentLeft, garmentRight] = boundedFittingWidth(
-    garment,
-    neckCenter - collarSpan,
-    neckCenter + collarSpan,
-    Math.min(260, (temples[1] - temples[0]) * 2.45 * garmentScale),
+  // The neck locates the collar, but its width is a poor proxy for the
+  // shoulders. Keep lighter outfits distinct without shrinking the whole
+  // silhouette around a narrow jaw or a slender build.
+  const faceWidth = (temples[1] - temples[0]) / PORTRAIT_TEMPLE_FRACTION
+  const neckSpan = neck[1] - neck[0]
+  const sourceCollarSpan = garment.anchors.right - garment.anchors.left
+  const naturalWidth = (neckSpan * garmentScale * garment.width) / sourceCollarSpan
+  const minimumWidth = faceWidth * (2.05 + (garmentScale - 1) * 0.24)
+  const garmentWidth = Math.min(
+    Math.max(260, minimumWidth),
+    faceWidth * 2.45,
+    Math.max(minimumWidth, naturalWidth),
   )
+  const collarSpan = (garmentWidth * sourceCollarSpan) / garment.width / 2
   const garmentImage = layerImage(garment, {
-    left: garmentLeft,
-    right: garmentRight,
+    left: neckCenter - collarSpan,
+    right: neckCenter + collarSpan,
     top: chin + 1,
     bottom: shoulder,
   })
@@ -325,8 +333,13 @@ export function renderFittedPortrait(
     behind: { left: 43, right: 98, top: -24, bottom: 35 },
   }
   const gearPosition = gearPositions[gearPlacement]
+  const gearScale = Math.min(torsoScale, garmentWidth / 196)
+  const gearTop =
+    gearPlacement === 'waist'
+      ? Math.max(shoulder + gearPosition.top, 248)
+      : shoulder + gearPosition.top
   const gear = layers.gear
-    ? `<image href="${layers.gear.href}" x="${neckCenter + gearPosition.left * torsoScale}" y="${shoulder + gearPosition.top}" width="${(gearPosition.right - gearPosition.left) * torsoScale}" height="${gearPosition.bottom - gearPosition.top}" preserveAspectRatio="xMidYMin meet"${layers.gear.filter ? ` filter="url(#${layers.gear.filter})"` : ''}/>`
+    ? `<image href="${layers.gear.href}" x="${neckCenter + gearPosition.left * gearScale}" y="${gearTop}" width="${(gearPosition.right - gearPosition.left) * gearScale}" height="${gearPosition.bottom - gearPosition.top}" preserveAspectRatio="xMidYMin meet"${layers.gear.filter ? ` filter="url(#${layers.gear.filter})"` : ''}/>`
     : ''
   const hairTarget = fittedHairTarget(hair, landmarks, layers.hairLength ?? 'short')
   let hairstyle = layerImage(hair, hairTarget)

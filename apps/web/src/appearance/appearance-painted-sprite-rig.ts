@@ -7,6 +7,12 @@ type Point = readonly [x: number, y: number]
 
 export const PAINTED_SPRITE_COLLAR_Y = 17
 
+export function fittedSpriteTorsoWidth(facing: AppearanceFacing, bodyBuild: number) {
+  const profile = facing === 'east' || facing === 'west'
+  // Preserve body-build variation while leaving room for the head and arms.
+  return (profile ? 12 : 18) * (1 + (bodyBuild - 1) * 0.6)
+}
+
 export function paintedSpriteRigDefinitions(outfit?: Outfit) {
   const { hand, thigh, bootFront, bootBack, bootSide, cloak, satchel } = PAINTED_SPRITE_PARTS
   const parts = outfit
@@ -89,7 +95,9 @@ export function renderPaintedSpriteRig({
   const attacking = pose === 'attack' || pose === 'cast'
   const torsoY =
     PAINTED_SPRITE_COLLAR_Y - (walking ? Math.abs(phase) * 0.9 : pose === 'idle' ? phase * 0.45 : 0)
-  const torsoWidth = bodyBuild * (profile ? (fittedOutfit ? 12 : 11) : 18)
+  const torsoWidth = fittedOutfit
+    ? fittedSpriteTorsoWidth(facing, bodyBuild)
+    : bodyBuild * (profile ? 11 : 18)
   const torsoPart = fittedOutfit
     ? profile
       ? 'worn-outfit-side'
