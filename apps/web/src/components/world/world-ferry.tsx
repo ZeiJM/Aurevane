@@ -16,62 +16,17 @@ import {
 import type { WorldInteraction, WorldView } from '@/world/types'
 import { compileAppearanceManifest } from '@/appearance/appearance-manifest'
 import {
-  defaultPaintedLookForGender,
   paintedPlayerAppearanceBlueprint,
   type PaintedPlayerLook,
 } from '@/appearance/appearance-painted-looks'
+import { PAINTED_STUDIES } from '@/appearance/appearance-painted-studies'
 import styles from './world-ferry.module.css'
 
 const ferrymen = {
-  mainland: {
-    name: 'Krane',
-    look: {
-      ...defaultPaintedLookForGender('masculine'),
-      identity: 'guard',
-      bodyFrame: 'broad',
-      outerwear: 'compass',
-      clothColor: 'cedar',
-      gear: 'rope',
-      backdrop: 'hollow',
-    },
-  },
-  uncharted: {
-    name: 'Sable',
-    look: {
-      ...defaultPaintedLookForGender('feminine'),
-      identity: 'ranger',
-      hairstyle: 'layers',
-      outerwear: 'hooded',
-      clothColor: 'midnight',
-      gear: 'mapcase',
-      backdrop: 'umbral',
-    },
-  },
-  'north-shore': {
-    name: 'Merrick',
-    look: {
-      ...defaultPaintedLookForGender('masculine'),
-      identity: 'elder',
-      hairDye: 'silver',
-      outerwear: 'shearling',
-      clothColor: 'denim',
-      headwear: 'furcap',
-      backdrop: 'northernpass',
-    },
-  },
-  asterwake: {
-    name: 'Iona',
-    look: {
-      ...defaultPaintedLookForGender('feminine'),
-      skinTone: 'umber',
-      hairstyle: 'braid',
-      hairDye: 'onyx',
-      outerwear: 'scarf',
-      clothColor: 'ochre',
-      gear: 'rope',
-      backdrop: 'asterwake',
-    },
-  },
+  mainland: { name: 'Krane', look: { ...PAINTED_STUDIES.m01.look, backdrop: 'hollow' } },
+  uncharted: { name: 'Sable', look: { ...PAINTED_STUDIES.f32.look, backdrop: 'umbral' } },
+  'north-shore': { name: 'Merrick', look: PAINTED_STUDIES.m02.look },
+  asterwake: { name: 'Iona', look: { ...PAINTED_STUDIES.f05.look, backdrop: 'asterwake' } },
 } satisfies Record<FerryPort, { name: string; look: PaintedPlayerLook }>
 
 function ferrymanIdentity(ferry?: WorldFerryView, dockSectorId?: string) {

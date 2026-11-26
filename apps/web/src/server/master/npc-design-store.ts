@@ -14,6 +14,7 @@ import {
   type NpcDesignRecord,
 } from '@aurevane/validation/combat/npc-design'
 
+import { isActivePaintedAppearance } from '@/appearance/appearance-active-catalog'
 import { appearanceManifestFromImageUrl } from '@/appearance/appearance-manifest'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createSelectedCharacterRpc } from './selected-character-rpc'
@@ -104,8 +105,14 @@ export async function findNpcAppearanceConflicts(actorUserId: string, imageUrls:
 
 export async function writeNpcDesign(actorUserId: string, command: NpcDesignCommand) {
   if (command.kind === 'save') {
-    if (!validNpcPresentation(command.draft)) {
-      throw new AurevaneError('INVALID_REQUEST', 'Choose a valid catalog appearance or portrait.')
+    if (
+      !validNpcPresentation(command.draft) ||
+      (command.draft.imageUrl &&
+        !isActivePaintedAppearance(
+          appearanceManifestFromImageUrl(command.draft.imageUrl)?.blueprint,
+        ))
+    ) {
+      throw new AurevaneError('INVALID_REQUEST', 'Choose an available painted appearance.')
     }
     const placement = command.draft.world
     if (placement) {

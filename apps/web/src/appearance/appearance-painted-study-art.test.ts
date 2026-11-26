@@ -1,3 +1,4 @@
+import { GET } from '@/app/api/media/appearance/[version]/[blueprint]/[asset]/route'
 import { describe, expect, it } from 'vitest'
 import { PAINTED_STUDIES, matchingPaintedStudy } from './appearance-painted-studies'
 import {
@@ -49,4 +50,17 @@ it('keeps Asta’s authored cape and poses when changing the cloth dye', () => {
   const atlas = renderAppearanceAsset(dyed, 'motion-v2', true)
   expect(atlas).toContain('mask="url(#study-east-passing-fabric)"')
   expect(atlas).toContain('mask="url(#study-north-cast-fabric)"')
+})
+
+it('serves approved artwork at the canonical URL saved by the conversion', async () => {
+  const blueprint = paintedPlayerAppearanceBlueprint(PAINTED_STUDIES.f32.look)
+  const manifest = compileAppearanceManifest(blueprint)
+  const response = await GET(new Request('https://aurevane.test' + manifest.neutralUrl), {
+    params: Promise.resolve({
+      version: '6',
+      blueprint: manifest.id.slice(2),
+      asset: 'neutral.svg',
+    }),
+  })
+  expect(await response.text()).toBe(renderAppearanceAsset(blueprint, 'neutral', true))
 })

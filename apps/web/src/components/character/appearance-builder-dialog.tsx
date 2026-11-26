@@ -3,11 +3,15 @@
 import { useId, useRef, useState } from 'react'
 import type { AppearanceBlueprint } from '@/appearance/appearance-manifest'
 import {
-  defaultPaintedLookForGender,
+  appearanceGenderForIdentity,
   paintedPlayerAppearanceBlueprint,
   type AppearanceGender,
 } from '@/appearance/appearance-painted-looks'
 import { AppearanceBuilder, loadAppearanceCandidate } from './appearance-builder'
+import {
+  isActivePaintedAppearance,
+  pickActivePaintedLook,
+} from '@/appearance/appearance-active-catalog'
 import styles from './appearance-builder.module.css'
 
 export function AppearanceBuilderDialog({
@@ -44,9 +48,12 @@ export function AppearanceBuilderDialog({
     setPending(true)
     try {
       const active = prepare ? await prepare() : value
-      const initial =
-        active ??
-        paintedPlayerAppearanceBlueprint(defaultPaintedLookForGender(initialGender ?? 'feminine'))
+      const gender =
+        initialGender ??
+        (active && 'identity' in active ? appearanceGenderForIdentity(active.identity) : undefined)
+      const initial = isActivePaintedAppearance(active)
+        ? active
+        : paintedPlayerAppearanceBlueprint(pickActivePaintedLook(gender, () => 0))
       initialCandidate.current = initial
       setCandidate(initial)
     } catch (failure) {

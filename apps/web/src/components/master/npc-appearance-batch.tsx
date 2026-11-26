@@ -7,7 +7,7 @@ import {
   appearanceManifestFromImageUrl,
   type AppearanceBlueprint,
 } from '@/appearance/appearance-manifest'
-import { defaultPaintedLookForGender } from '@/appearance/appearance-painted-looks'
+import { pickActivePaintedLook } from '@/appearance/appearance-active-catalog'
 import { PAINTED_IDENTITIES, PAINTED_CLOTHING } from '@/appearance/appearance-painted-catalog'
 import {
   PAINTED_PLAYER_FIELDS,
@@ -42,17 +42,10 @@ export function NpcAppearanceBatch({
   onReview: (imageUrl: string) => void
 }) {
   const [base, setBase] = useState<AppearanceBlueprint>(() =>
-    paintedPlayerAppearanceBlueprint(defaultPaintedLookForGender('masculine')),
+    paintedPlayerAppearanceBlueprint(pickActivePaintedLook('masculine', () => 0)),
   )
   const [count, setCount] = useState(4)
-  const [vary, setVary] = useState<NpcVariantField[]>([
-    'identity',
-    'bodyFrame',
-    'skinTone',
-    'outerwear',
-    'gear',
-    'headwear',
-  ])
+  const [vary, setVary] = useState<NpcVariantField[]>(['backdrop'])
   const [uniform, setUniform] = useState(false)
   const [batch, setBatch] = useState<{ images: string[]; mode: NpcVariantRequest['mode'] } | null>(
     null,

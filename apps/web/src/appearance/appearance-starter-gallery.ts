@@ -2,9 +2,11 @@ import {
   CREATION_CHARACTER_PORTRAITS,
   STARTER_CHARACTER_PORTRAITS,
 } from '@aurevane/game-core/character/starter-options'
-import { PORTRAIT_FACES } from './appearance-face-catalog'
+import { activePaintedLooksForGender } from './appearance-active-catalog'
 import { compileAppearanceManifest, paintedPlayerAppearanceBlueprint } from './appearance-manifest'
-import { appearanceGenderForIdentity, CURATED_PAINTED_LOOKS } from './appearance-painted-looks'
+import { PAINTED_PORTRAIT_SETTINGS, type PaintedPlayerLook } from './appearance-painted-wardrobe'
+
+const backdrops = Object.keys(PAINTED_PORTRAIT_SETTINGS) as PaintedPlayerLook['backdrop'][]
 
 const creationGender = new Map(
   CREATION_CHARACTER_PORTRAITS.map(({ ref, presentationId }) => [ref, presentationId]),
@@ -19,20 +21,12 @@ export const ILLUSTRATED_STARTER_GALLERY = new Map<
 >(
   STARTER_CHARACTER_PORTRAITS.map(({ ref }, index) => {
     const gender = creationGender.get(ref) ?? (index % 2 ? 'masculine' : 'feminine')
-    const faces = PORTRAIT_FACES.filter(
-      (face) => face.painted && appearanceGenderForIdentity(face.rig) === gender,
-    )
-    const face = faces[(index * 11 + 5) % faces.length]!
-    const outfits = CURATED_PAINTED_LOOKS.filter(({ look }) => look.identity === face.rig)
-    const outfit = outfits[(index * 7 + 2) % outfits.length]!
+    const pool = activePaintedLooksForGender(gender)
+    const { look, label } = pool[index % pool.length]!
     const manifest = compileAppearanceManifest(
-      paintedPlayerAppearanceBlueprint({
-        ...outfit.look,
-        faceId: face.id,
-        ...(index % 8 === 0 ? { apparentAge: 'mature' } : {}),
-      }),
+      paintedPlayerAppearanceBlueprint({ ...look, backdrop: backdrops[index]! }),
     )
-    return [ref, { name: face.name, manifest }] as const
+    return [ref, { name: label, manifest }] as const
   }),
 )
 

@@ -2,10 +2,8 @@ import 'server-only'
 
 import { PERSONAL_QUEST_GIVERS } from '@aurevane/game-core/events/persistent-event'
 import { compileAppearanceManifest } from '@/appearance/appearance-manifest'
-import {
-  defaultPaintedLookForGender,
-  paintedPlayerAppearanceBlueprint,
-} from '@/appearance/appearance-painted-looks'
+import { paintedPlayerAppearanceBlueprint } from '@/appearance/appearance-painted-looks'
+import { PAINTED_STUDIES } from '@/appearance/appearance-painted-studies'
 import { samePosition } from '@/world/travel'
 import { isKnownCell } from './world-content'
 import type {
@@ -65,16 +63,7 @@ const INTERACTION_OBJECTIVES: readonly InteractionObjectiveDefinition[] = [
     title: 'The Eastern Watch',
     speaker: PERSONAL_QUEST_GIVERS[EASTERN_WATCH_INTERACTION_ID].speaker,
     portraitUrl: compileAppearanceManifest(
-      paintedPlayerAppearanceBlueprint({
-        ...defaultPaintedLookForGender('feminine'),
-        identity: 'ranger',
-        faceId: 'f22',
-        outerwear: 'pine',
-        clothColor: 'fern',
-        hairstyle: 'braid',
-        gear: 'journal',
-        backdrop: 'verdant',
-      }),
+      paintedPlayerAppearanceBlueprint({ ...PAINTED_STUDIES.f04.look, backdrop: 'verdant' }),
     ).portraits.neutral,
     descriptions: {
       available: 'Speak with the watch officer at the protected settlement.',
@@ -98,16 +87,7 @@ const INTERACTION_OBJECTIVES: readonly InteractionObjectiveDefinition[] = [
     title: 'Hinterland Patrol',
     speaker: PERSONAL_QUEST_GIVERS[CROWN_HINTERLAND_PATROL_INTERACTION_ID].speaker,
     portraitUrl: compileAppearanceManifest(
-      paintedPlayerAppearanceBlueprint({
-        ...defaultPaintedLookForGender('masculine'),
-        identity: 'guard',
-        faceId: 'm02',
-        outerwear: 'brigandine',
-        clothColor: 'midnight',
-        hairstyle: 'brushed',
-        gear: 'sword',
-        backdrop: 'crown',
-      }),
+      paintedPlayerAppearanceBlueprint({ ...PAINTED_STUDIES.m10.look, backdrop: 'crown' }),
     ).portraits.neutral,
     descriptions: {
       available: 'Speak with the watch officer at the Aureth Crown settlement.',
