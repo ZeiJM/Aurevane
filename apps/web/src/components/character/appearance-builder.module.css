@@ -357,6 +357,10 @@
   animation: pose-preview var(--preview-cycle) steps(var(--preview-frames), jump-none) infinite;
 }
 
+.sprite[data-preview-motion='down'] {
+  animation: pose-preview 280ms steps(3, jump-none) both;
+}
+
 @keyframes pose-preview {
   to {
     background-position: var(--last-frame) var(--sprite-row);

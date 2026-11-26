@@ -72,16 +72,16 @@ export function fittedHairTarget(
     hair,
     temples[0],
     temples[1],
-    headWidth * (length === 'long' ? 1.53 : 1.37),
+    headWidth * (length === 'long' ? 1.45 : 1.29),
   )
   const horizontalScale = (right - left) / (hair.anchors.right - hair.anchors.left)
   const guideHeight = hair.anchors.bottom - hair.anchors.top
-  const opening = (hairline + brow) / 2
+  const opening = hairline + (brow - hairline) * 0.44
   const sourceOpening = (hair.anchors.top + hair.anchors.bottom) / 2
   const verticalSpan = Math.min(
     brow - hairline,
     guideHeight * horizontalScale * 1.18,
-    ((opening - 4) * guideHeight) / sourceOpening,
+    ((opening - 7) * guideHeight) / sourceOpening,
   )
   return { left, right, top: opening - verticalSpan / 2, bottom: opening + verticalSpan / 2 }
 }
@@ -387,9 +387,15 @@ export function renderFittedPortrait(
   }
   const size = icon ? 64 : 256
   const viewBox = icon ? '44 28 168 168' : '0 0 256 256'
+  // Scale the head and its fittings together around the base of the jaw.
+  // The collar stays on the body registration and overlaps the neck below it.
+  const headScale = icon ? 1 : 0.93
+  const headTransform = `translate(${neckCenter} ${chin}) scale(${headScale}) translate(${-neckCenter} ${-chin})`
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="${viewBox}">
     ${layers.paintedFilters ? `<defs>${layers.paintedFilters}</defs>` : ''}
-    ${backdrop}${gearPlacement === 'behind' ? gear : ''}${hatBack}${rearImage(hair, hairTarget)}${shoulderHair}${accessoryBack}
-    ${neckUnderlay}${head}${layers.faceMarks ?? ''}${clothing}${gearPlacement === 'behind' ? '' : gear}${beard}${accessory}${frontHair}${hat}
+    ${backdrop}${gearPlacement === 'behind' ? gear : ''}
+    <g transform="${headTransform}">${hatBack}${rearImage(hair, hairTarget)}${shoulderHair}${accessoryBack}</g>
+    ${neckUnderlay}<g transform="${headTransform}">${head}${layers.faceMarks ?? ''}</g>${clothing}${gearPlacement === 'behind' ? '' : gear}
+    <g transform="${headTransform}">${beard}${accessory}${frontHair}${hat}</g>
   </svg>`
 }

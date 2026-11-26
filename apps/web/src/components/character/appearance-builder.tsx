@@ -416,7 +416,7 @@ export function PosePreview({
   const { column, row } = appearanceMotionFrameIndex(facing, pose, 0)
   const continuous = pose === 'idle' || pose === 'walk'
   const frameCount = continuous ? frames : APPEARANCE_FRAME.frames
-  const animate = pose !== 'down' && (pose !== 'idle' || animateIdle)
+  const animate = pose !== 'idle' || animateIdle
   return (
     <figure>
       <span

@@ -624,14 +624,16 @@ export function fittedCharacterSpriteHead(
           },
           skinId,
         )
+  // Register a directional painting by the crown. Long styles keep their
+  // length behind the neck instead of enlarging the hair around the face.
   const rawHair =
     rear || profile
       ? image(
           facingHairArt.href,
-          long ? 50 : 66,
-          tied ? 10 : 20,
-          long ? 138 : 116,
-          long ? 173 : tied ? 134 : 111,
+          profile ? (long ? 53 : 65) : long ? 64 : 74,
+          tied ? 19 : 26,
+          profile ? (long ? 124 : 107) : long ? 128 : 108,
+          long ? 156 : tied ? 121 : 101,
         )
       : registeredImage(
           PAINTED_SPRITE_HEADS[FITTED_HAIR_ART[look.hairstyle]],
@@ -706,13 +708,13 @@ export function fittedCharacterSpriteHead(
       ? 98
       : (landmarks.temples[1] - landmarks.temples[0]) / PORTRAIT_TEMPLE_FRACTION
   const headScale = Math.min(
-    profile || rear ? 0.08 : 0.084,
-    (torsoWidth * (profile ? 0.61 : 0.43)) / faceWidth,
+    profile || rear ? 0.073 : 0.076,
+    (torsoWidth * (profile ? 0.55 : 0.39)) / faceWidth,
   )
   const neckCenter = rear || profile ? 128 : (landmarks.neck[0] + landmarks.neck[1]) / 2
   const headX = 24 - headScale * neckCenter
   const chin = profile ? 151 : rear ? 155 : landmarks.chin
-  const headY = PAINTED_SPRITE_COLLAR_Y - headScale * (chin + 6)
+  const headY = PAINTED_SPRITE_COLLAR_Y - headScale * (chin + (profile ? 10 : 6))
   const transform = `translate(${headX} ${headY}) scale(${headScale})`
   return `<defs>${defs}</defs>
     <g id="${id}-base" transform="${transform}">${worn.hatBack}${worn.accessoryBack}${skin}${marks}</g>

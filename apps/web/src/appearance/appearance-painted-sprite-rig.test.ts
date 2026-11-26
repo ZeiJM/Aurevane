@@ -55,9 +55,33 @@ describe('painted sprite rig', () => {
         expect(svg).toContain(`href="#rig-worn-outfit-${part}"`)
         expect(svg).toContain('href="#rig-worn-outfit-sleeve"')
         expect(svg).not.toContain('href="#rig-torso')
+        expect(svg.match(/href="#rig-visible-hand"/g)).toHaveLength(2)
         const torso = svg.indexOf(`href="#rig-worn-outfit-${part}"`)
         expect(svg.indexOf('href="#test-face"')).toBeLessThan(torso)
         expect(svg.indexOf('href="#test-head"')).toBeGreaterThan(torso)
+        if (part === 'side') {
+          expect(svg).not.toContain('<svg x="20"')
+          expect(svg).toMatch(
+            /<svg x="0" y="[^"]+" width="48" height="22"[^>]*><g data-rig-arm="near"/,
+          )
+        }
+      }
+    }
+  })
+
+  it('fits the painted hands separately from the forearm for illustrated outfits', () => {
+    const art = { front: '', back: '', side: '', sleeve: '' }
+    expect(paintedSpriteRigDefinitions(art)).toContain('id="rig-visible-hand"')
+    expect(paintedSpriteRigDefinitions(art)).toContain('viewBox="0 .62 1 .38"')
+    expect(paintedSpriteRigDefinitions()).not.toContain('id="rig-visible-hand"')
+  })
+
+  it('paints three distinct authored moments for each fitted pose and facing', () => {
+    for (const facing of APPEARANCE_FACINGS) {
+      for (const pose of APPEARANCE_POSES) {
+        const frames = [0, 1, 2].map((frame) => render(facing, pose, frame, true))
+        expect(new Set(frames).size, `${facing} ${pose}`).toBe(3)
+        if (pose === 'down') expect(frames[0]).toContain('rotate(-90)')
       }
     }
   })

@@ -146,10 +146,11 @@ describe('painted portrait fitting', () => {
     const short = fittedHairTarget(wideHair, bare.landmarks, 'short')
     const long = fittedHairTarget(wideHair, bare.landmarks, 'long')
     const scale = fitPortraitLayer(wideHair.anchors, short)
-    expect(wideHair.width * scale.scaleX).toBeCloseTo(108 * 1.37)
+    expect(wideHair.width * scale.scaleX).toBeCloseTo(108 * 1.29)
     expect(scale.scaleY).toBeLessThanOrEqual(scale.scaleX * 1.18)
     expect((short.left + short.right) / 2).toBe(128)
     expect(long.right - long.left).toBeGreaterThan(short.right - short.left)
+    expect(wideHair.width * fitPortraitLayer(wideHair.anchors, long).scaleX).toBeCloseTo(108 * 1.45)
   })
 
   it('puts the lower lengths of loose hair behind the fitted collar', () => {

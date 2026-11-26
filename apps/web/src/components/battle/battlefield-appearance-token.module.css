@@ -40,6 +40,16 @@
   animation: actor-walk var(--walk-duration) var(--motion-timing) infinite;
 }
 
+.actor[data-battle-appearance-pose='down']::before {
+  animation: actor-settle 280ms steps(3, jump-none) both;
+}
+
+@keyframes actor-settle {
+  to {
+    background-position: var(--x2) var(--y);
+  }
+}
+
 .actor:is(
   [data-battle-appearance-pose='attack'],
   [data-battle-appearance-pose='cast'],
