@@ -27,6 +27,7 @@ const refitDigests = []
 const refits = {}
 const repaintDigests = { face: [], hair: [], garment: [], outfit: [] }
 const repaintedArt = { face: {}, hair: {}, garment: {}, outfit: {} }
+const hairCollections = new Map()
 
 // Displacement maps sample the same painting in a different pose. Keep the
 // effects local to facial features so hair, costume, and head outline stay fixed.
@@ -234,6 +235,7 @@ function registration(sheet, slot, data, width, bounds, region) {
         bottom: opening + assetWidth * 0.075,
       },
       hairPigment,
+      ...(slot.hairlineGuide && { hairlineGuide: slot.hairlineGuide }),
     }
   }
   const ratios = {
@@ -302,13 +304,21 @@ for (const sheet of sheets) {
   const outfitPart = { 'outfit-side': 'side', 'outfit-back': 'back', 'outfit-sleeve': 'sleeve' }[
     sheet.kind
   ]
-  const provenance = sheet.repaint
-    ? repaintDigests[outfitPart ? 'outfit' : sheet.kind]
-    : sheet.refit
-      ? refitDigests
-      : outfitPart
-        ? outfitDigests
-        : digests
+  if (sheet.hairCollection) {
+    assert(sheet.kind === 'hair' && ['tailored', 'flowing', 'tied'].includes(sheet.hairCollection))
+    if (!hairCollections.has(sheet.hairCollection))
+      hairCollections.set(sheet.hairCollection, { art: {}, digests: [] })
+  }
+  const hairCollection = hairCollections.get(sheet.hairCollection)
+  const provenance =
+    hairCollection?.digests ??
+    (sheet.repaint
+      ? repaintDigests[outfitPart ? 'outfit' : sheet.kind]
+      : sheet.refit
+        ? refitDigests
+        : outfitPart
+          ? outfitDigests
+          : digests)
   if (sheet.refit) assert(['hair', 'garment'].includes(sheet.kind))
   if (sheet.repaint) assert(outfitPart || ['face', 'hair', 'garment'].includes(sheet.kind))
   provenance.push(`${sheet.kind} ${createHash('sha256').update(bytes).digest('hex')}`)
@@ -345,7 +355,8 @@ for (const sheet of sheets) {
     if (slot.rotate) oriented.rotate(slot.rotate, { background: '#0000' })
     const { data, info } = await oriented.ensureAlpha().raw().toBuffer({ resolveWithObject: true })
     // Repainted hair uses softly transparent fibres around the part.
-    const alphaFloor = (sheet.refit || sheet.repaint) && sheet.kind === 'hair' ? 16 : 105
+    const alphaFloor =
+      (sheet.refit || sheet.repaint || hairCollection) && sheet.kind === 'hair' ? 16 : 105
     let bounds = foreground(data, info.width, info.height, alphaFloor)
     if (sheet.kind === 'hair') {
       clearDetachedHairSpeckles(data, info.width, info.height)
@@ -357,6 +368,17 @@ for (const sheet of sheets) {
     const guides = registration(sheet, slot, data, info.width, bounds, region)
     const raw = sharp(data, { raw: info })
     const small = await encode(raw, bounds, guides, 92, 86)
+    if (hairCollection) {
+      assert(
+        Object.hasOwn(source, slot.id) && slot.hairlineGuide,
+        `Missing hairline registration for ${slot.id}`,
+      )
+      hairCollection.art[slot.id] = {
+        portrait: await encode(raw, bounds, guides, 250, 81),
+        sprite: small,
+      }
+      continue
+    }
     if (outfitPart) {
       const catalogue = sheet.repaint ? repaintedArt.outfit : outfits
       catalogue[slot.id] = { ...catalogue[slot.id], [outfitPart]: small.href }
@@ -449,6 +471,9 @@ for (const [kind, name] of Object.entries({
       repaintedArt[kind],
       repaintDigests[kind],
     ])
+}
+for (const [name, { art, digests: hairDigests }] of hairCollections) {
+  outputs.push([`appearance-${name}-hair`, `${name.toUpperCase()}_HAIR`, art, hairDigests])
 }
 
 for (const [name, constant, catalogue, provenance = digests] of outputs) {

@@ -15,6 +15,7 @@ type PaintedLayer = Readonly<{
   width: number
   height: number
   anchors: PortraitAnchors
+  hairlineGuide?: Readonly<{ part: Point; crownWidth: number }>
 }>
 
 type FacialHairFit = 'upperLip' | 'chin' | 'jaw'
@@ -70,6 +71,21 @@ export function fittedHairTarget(
 ): PortraitAnchors {
   const { temples, hairline, brow } = landmarks
   const headWidth = temples[1] - temples[0]
+  if (hair.hairlineGuide) {
+    const { part, crownWidth } = hair.hairlineGuide
+    const sourceCrown = crownWidth * hair.width
+    const scaleX = Math.min((headWidth * 1.13) / sourceCrown, (headWidth * 1.7) / hair.width)
+    const rootY = hairline + (brow - hairline) * 0.26 + adjustment[1]
+    const scaleY = Math.min(scaleX, (rootY - 7) / (part[1] * hair.height))
+    const left = (temples[0] + temples[1]) / 2 - part[0] * hair.width * scaleX + adjustment[0]
+    const top = rootY - part[1] * hair.height * scaleY
+    return {
+      left: left + hair.anchors.left * scaleX,
+      right: left + hair.anchors.right * scaleX,
+      top: top + hair.anchors.top * scaleY,
+      bottom: top + hair.anchors.bottom * scaleY,
+    }
+  }
   const [left, right] = boundedFittingWidth(
     hair,
     temples[0],
@@ -93,15 +109,53 @@ export function fittedHairTarget(
   }
 }
 
-export function clearShortHairFromFace(
-  hair: string,
-  { eyes, eyesY, chin, temples }: PortraitFaceLandmarks,
+export function fittedHairCrownWidth(hair: PaintedLayer, target: PortraitAnchors) {
+  const width = hair.width * fitPortraitLayer(hair.anchors, target).scaleX
+  return width * (hair.hairlineGuide?.crownWidth ?? 1)
+}
+
+export function fitScalpToHairline(
+  face: string,
+  hair: PaintedLayer,
+  target: PortraitAnchors,
+  { temples, eyes, brow }: PortraitFaceLandmarks,
   id: string,
 ) {
-  const left = (eyes[0] + temples[0]) / 2
-  const right = (eyes[1] + temples[1]) / 2
-  const mid = (left + right) / 2
-  return `<clipPath id="${id}"><path clip-rule="evenodd" d="M0 0H256V256H0Z M${left} ${eyesY - 2}Q${mid} ${eyesY - 8} ${right} ${eyesY - 2}L${eyes[1]} ${chin}H${eyes[0]}Z"/></clipPath><g clip-path="url(#${id})">${hair}</g>`
+  if (!hair.hairlineGuide) return face
+  const { origin, scaleX, scaleY } = fitPortraitLayer(hair.anchors, target)
+  const [partX, partY] = hair.hairlineGuide.part
+  const middle = origin[0] + partX * hair.width * scaleX
+  const root = origin[1] + partY * hair.height * scaleY
+  // The bald source extends above the hairline. Keep enough overlap beneath
+  // the part without exposing a skin patch beside an off-center crown.
+  return `<clipPath id="${id}"><path d="M0 ${brow}H${temples[0] + 2}Q${eyes[0]} ${root + 5} ${middle} ${root - 6}Q${eyes[1]} ${root + 5} ${temples[1] - 2} ${brow}H256V256H0Z"/></clipPath><g clip-path="url(#${id})">${face}</g>`
+}
+
+export function tuckHairBehindFace(
+  hair: string,
+  { brow, eyesY, chin }: PortraitFaceLandmarks,
+  skinId: string,
+  id: string,
+) {
+  // Hide hair behind the actual face and ears while letting the part overlap
+  // the forehead and allowing braids to fall over clothing below the jaw.
+  const top = Math.min(brow, eyesY - 7)
+  const bottom = chin + 5
+  const span = bottom - top
+  return `<defs>
+    <linearGradient id="${id}-fade" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="${top}" y2="${bottom}">
+      <stop stop-color="black"/><stop offset="${(eyesY - 4 - top) / span}" stop-color="white"/>
+      <stop offset="${(chin - 5 - top) / span}" stop-color="white"/><stop offset="1" stop-color="black"/>
+    </linearGradient>
+    <mask id="${id}-window" maskUnits="userSpaceOnUse" x="0" y="0" width="256" height="256">
+      <rect width="256" height="256" fill="url(#${id}-fade)"/>
+    </mask>
+    <filter id="${id}-silhouette"><feFlood flood-color="black" result="ink"/><feComposite in="ink" in2="SourceAlpha" operator="in"/></filter>
+    <mask id="${id}" maskUnits="userSpaceOnUse" x="0" y="0" width="256" height="256">
+      <rect width="256" height="256" fill="white"/>
+      <g mask="url(#${id}-window)"><use href="#${skinId}" filter="url(#${id}-silhouette)"/></g>
+    </mask>
+  </defs><g mask="url(#${id})">${hair}</g>`
 }
 
 type HairPlacement = 'split' | 'tips' | 'streak' | 'underlight' | 'ombre' | 'ribbons'
@@ -133,7 +187,7 @@ export type PaintedPortraitLayers = Readonly<{
   hair: PaintedLayer
   hairLength?: 'short' | 'long'
   rootedHair?: boolean
-  clearCheeks?: boolean
+  tuckHairBehindFace?: boolean
   tuckHairBehindShoulders?: boolean
   garment: PaintedLayer
   lowCollar?: boolean
@@ -270,12 +324,20 @@ export function renderFittedPortrait(
   const { face, landmarks, neckPigment, hair, garment, headwear, facewear } = layers
   const { temples, eyes, eyesY, hairline, brow, chin, neck, shoulder } = landmarks
   const neckCenter = (neck[0] + neck[1]) / 2
+  const hairTarget = fittedHairTarget(
+    hair,
+    landmarks,
+    layers.hairLength ?? 'short',
+    layers.hairAdjustment,
+  )
   const faceImage = layerImage(face, { left: eyes[0], right: eyes[1], top: eyesY, bottom: chin })
   // Extend the scalp under the replaceable fringe so its antialiased edge
   // cannot expose the portrait backdrop between the two paintings.
-  const scalpFit = layers.trimScalp
-    ? `<clipPath id="painted-scalp"><path d="M0 ${brow} Q${neckCenter} ${2 * (hairline - 16) - brow} 256 ${brow} V256 H0Z"/></clipPath><g clip-path="url(#painted-scalp)">${faceImage}</g>`
-    : faceImage
+  const scalpFit = hair.hairlineGuide
+    ? fitScalpToHairline(faceImage, hair, hairTarget, landmarks, 'painted-scalp')
+    : layers.trimScalp
+      ? `<clipPath id="painted-scalp"><path d="M0 ${brow} Q${neckCenter} ${2 * (hairline - 16) - brow} 256 ${brow} V256 H0Z"/></clipPath><g clip-path="url(#painted-scalp)">${faceImage}</g>`
+      : faceImage
   // Fade the painted crop into skin below the jaw, where some bases end in a
   // flat edge. Keep the jaw and its shading fully opaque.
   const fittedFaceImage = `<defs>
@@ -316,7 +378,7 @@ export function renderFittedPortrait(
   }
   const blendRoots = layers.rootedHair && (!headwear || headwear.kind === 'circlet')
   const head =
-    irisOverlay || blendRoots
+    irisOverlay || blendRoots || layers.tuckHairBehindFace
       ? `<defs><g id="painted-head-source">${headSource}</g></defs><use href="#painted-head-source"/>${irisOverlay}`
       : headSource
   const upperNeck = (neck[1] - neck[0]) * 0.34
@@ -385,12 +447,6 @@ export function renderFittedPortrait(
   const gear = layers.gear
     ? `<image href="${layers.gear.href}" x="${neckCenter + gearPosition.left * gearScale}" y="${gearTop}" width="${(gearPosition.right - gearPosition.left) * gearScale}" height="${gearPosition.bottom - gearPosition.top}" preserveAspectRatio="xMidYMin meet"${layers.gear.filter ? ` filter="url(#${layers.gear.filter})"` : ''}/>`
     : ''
-  const hairTarget = fittedHairTarget(
-    hair,
-    landmarks,
-    layers.hairLength ?? 'short',
-    layers.hairAdjustment,
-  )
   let hairstyle = layerImage(hair, hairTarget)
   if (layers.hairAccent) {
     const { placement, filter, highlight } = layers.hairAccent
@@ -426,8 +482,13 @@ export function renderFittedPortrait(
     : ''
   const { hat, hatBack, fittedHair, accessory, accessoryBack } = fitPortraitAccessories(
     landmarks,
-    layers.clearCheeks
-      ? clearShortHairFromFace(hairstyle, landmarks, 'portrait-short-fringe')
+    layers.tuckHairBehindFace
+      ? tuckHairBehindFace(
+          hairstyle,
+          landmarks,
+          'painted-head-source',
+          'portrait-face-hair-overlap',
+        )
       : hairstyle,
     headwear,
     facewear,
@@ -472,7 +533,7 @@ export function renderFittedPortrait(
   const viewBox = icon ? '44 28 168 168' : '0 0 256 256'
   // Scale the head and its fittings together around the base of the jaw.
   // The collar stays on the body registration and overlaps the neck below it.
-  const crownWidth = hair.width * fitPortraitLayer(hair.anchors, hairTarget).scaleX
+  const crownWidth = fittedHairCrownWidth(hair, hairTarget)
   const headEnvelope = Math.max(faceWidth, crownWidth)
   const headScale = icon ? 1 : Math.min(0.93, Math.max(0.79, (garmentWidth * 0.485) / headEnvelope))
   const headTransform = `translate(${neckCenter} ${chin}) scale(${headScale}) translate(${-neckCenter} ${-chin})`
