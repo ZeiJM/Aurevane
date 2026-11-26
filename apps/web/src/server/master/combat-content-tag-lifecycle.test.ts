@@ -38,7 +38,7 @@ beforeAll(async () => {
     await database.exec(`insert into auth.users(id,email,email_confirmed_at) values('${owner}','owner@example.test',now()),('${session.userId}','staff@example.test',now());
       insert into app_private.master_panel_role_assignments(user_id,role) values('${owner}','game-owner');
       insert into public.characters(id,user_id,slot_index,rules_version,name,name_key,presentation_id,pronoun_preset_id,portrait_ref,starter_appearance_ref,foundation_discipline_id,might,finesse,vitality,agility,intellect,resolve,level,xp,progression_cycle,created_at,cycle_started_at,last_active_at)
-      values('${selected}','${session.userId}',0,1,'Test Player','test-player','default','they','portrait','appearance','vanguard',12,4,7,4,3,6,1,0,1,now(),now(),now());`)
+      values('${selected}','${session.userId}',0,1,'Test Player','test-player','default','they','portrait','appearance','vanguard',12,4,7,4,3,6,1,0,1,'2026-10-01T00:00:00Z',now(),now());`)
     await database.query(
       'select public.set_master_panel_character_access_v2($1,$2,$3,$4::text[],$5::text[],null,0,true)',
       [owner, session.userId, selected, ['content-staff'], []],
