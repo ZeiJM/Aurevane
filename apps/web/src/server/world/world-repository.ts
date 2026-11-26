@@ -239,6 +239,7 @@ export async function resolveWorldPlayerImages(players: readonly WorldPlayer[]) 
     imageUrl: resolvePublicCharacterImageUrl(
       profileImages.get(player.characterId),
       player.portraitRef,
+      true,
     ),
   }))
 }

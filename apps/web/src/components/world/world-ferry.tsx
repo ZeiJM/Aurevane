@@ -14,43 +14,20 @@ import {
   type WorldFerryView,
 } from '@/world/ferry'
 import type { WorldInteraction, WorldView } from '@/world/types'
-import { APPEARANCE_PRESETS, compileAppearanceManifest } from '@/appearance/appearance-manifest'
+import { compileAppearanceManifest } from '@/appearance/appearance-manifest'
+import {
+  paintedPlayerAppearanceBlueprint,
+  type PaintedPlayerLook,
+} from '@/appearance/appearance-painted-looks'
+import { PAINTED_STUDIES } from '@/appearance/appearance-painted-studies'
 import styles from './world-ferry.module.css'
 
 const ferrymen = {
-  mainland: {
-    name: 'Krane',
-    look: {
-      ...APPEARANCE_PRESETS[1].blueprint,
-      coat: 'longcoat',
-      palette: 'pine',
-      accessory: 'scarf',
-    },
-  },
-  uncharted: {
-    name: 'Sable',
-    look: { ...APPEARANCE_PRESETS[2].blueprint, coat: 'longcoat', palette: 'slate' },
-  },
-  'north-shore': {
-    name: 'Merrick',
-    look: {
-      ...APPEARANCE_PRESETS[0].blueprint,
-      hair: 'swept',
-      coat: 'mantle',
-      accessory: 'brooch',
-      palette: 'indigo',
-    },
-  },
-  asterwake: {
-    name: 'Iona',
-    look: {
-      ...APPEARANCE_PRESETS[0].blueprint,
-      complexion: 'brown',
-      hairColor: 'onyx',
-      palette: 'saffron',
-    },
-  },
-} as const
+  mainland: { name: 'Krane', look: { ...PAINTED_STUDIES.m01.look, backdrop: 'hollow' } },
+  uncharted: { name: 'Sable', look: { ...PAINTED_STUDIES.f32.look, backdrop: 'umbral' } },
+  'north-shore': { name: 'Merrick', look: PAINTED_STUDIES.m02.look },
+  asterwake: { name: 'Iona', look: { ...PAINTED_STUDIES.f05.look, backdrop: 'asterwake' } },
+} satisfies Record<FerryPort, { name: string; look: PaintedPlayerLook }>
 
 function ferrymanIdentity(ferry?: WorldFerryView, dockSectorId?: string) {
   const departure = ferry?.passage?.direction
@@ -74,7 +51,8 @@ function ferrymanIdentity(ferry?: WorldFerryView, dockSectorId?: string) {
   const crew = ferrymen[port]
   return {
     name: `${crew.name} (Ferryman)`,
-    imageUrl: compileAppearanceManifest(crew.look).portraits.neutral,
+    imageUrl: compileAppearanceManifest(paintedPlayerAppearanceBlueprint(crew.look)).portraits
+      .neutral,
   }
 }
 

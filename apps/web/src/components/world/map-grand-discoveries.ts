@@ -1,6 +1,10 @@
 import { GRID_HEIGHT, GRID_WIDTH } from '@/world/catalog'
 import { hashString } from '@/world/terrain-gen'
-import { GRAND_DISCOVERY_SITES, type GrandDiscoveryId } from '@/world/discovery-sites'
+import {
+  GRAND_DISCOVERY_SITES,
+  SHADOWS_VIGIL_SCALE,
+  type GrandDiscoveryId,
+} from '@/world/discovery-sites'
 import { grandDiscoveryBarrier } from '@/world/discovery-collision'
 import type { WorldAtlasCell, WorldCell, WorldSectorView } from '@/world/types'
 import { ATLAS_ROWS, wrapAtlasColumn, wrappedMapX } from '@/world/topology'
@@ -55,8 +59,8 @@ const art = {
     rows: 1,
     waterfall: true,
     waterfallStyle: 'grand',
-    widthTiles: 74,
-    heightTiles: 56,
+    widthTiles: 74 * SHADOWS_VIGIL_SCALE,
+    heightTiles: 56 * SHADOWS_VIGIL_SCALE,
     anchorX: 0.5,
     anchorY: 0.88,
   },
@@ -85,7 +89,7 @@ function discoveryArtAnchor(site: (typeof GRAND_DISCOVERY_SITES)[number]) {
           ? 0.77
           : 0.76
   const groundX = site.left + site.width / 2
-  const groundY = site.top + (site.id === 'elemental-valley' ? 29 : site.height / 2)
+  const groundY = site.top + ('basinY' in site ? site.basinY : site.height / 2)
   const dx = ((piece.anchorX - 0.5) * piece.widthTiles) / MAP_X
   const dy = ((piece.anchorY - sourceY) * piece.heightTiles) / MAP_Y
   return { worldx: groundX + (dx + dy) / 2, worldy: groundY + (dy - dx) / 2 }

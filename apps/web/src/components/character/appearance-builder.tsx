@@ -1,8 +1,13 @@
 'use client'
 
-import { useId, useMemo, type CSSProperties } from 'react'
-import { PORTRAIT_FACES, portraitFace } from '@/appearance/appearance-face-catalog'
+import { useEffect, useId, useMemo, useState, type CSSProperties } from 'react'
 import { APPEARANCE_BACKDROP_GROUPS } from '@/appearance/appearance-backdrop-catalog'
+import {
+  activePaintedLookKey,
+  activePaintedLooksForGender,
+  isActivePaintedAppearance,
+  pickActivePaintedLook,
+} from '@/appearance/appearance-active-catalog'
 import {
   APPEARANCE_EXPRESSIONS,
   APPEARANCE_FRAME,
@@ -21,62 +26,18 @@ import {
 import {
   APPEARANCE_GENDERS,
   appearanceGenderForIdentity,
-  defaultPaintedLookForGender,
   paintedPlayerAppearanceBlueprint,
-  paintedPlayerLook,
-  randomPaintedLookForGender,
   type AppearanceGender,
 } from '@/appearance/appearance-painted-looks'
 import {
   PAINTED_PLAYER_FIELDS,
-  PAINTED_WARDROBE_LABELS,
-  wardrobeLook,
+  WARDROBE_DYES,
   type PaintedPlayerLook,
 } from '@/appearance/appearance-painted-wardrobe'
 import readyStyles from './appearance-ready-stance.module.css'
 import styles from './appearance-builder.module.css'
 
 const genderChoices = Object.keys(APPEARANCE_GENDERS) as AppearanceGender[]
-const fields = [
-  'identity',
-  'bodyFrame',
-  'skinTone',
-  'hairstyle',
-  'hairDye',
-  'eyeColor',
-  'outerwear',
-  'gear',
-  'headwear',
-  'clothColor',
-  'gearColor',
-  'headColor',
-  'facewear',
-  'faceColor',
-  'backdrop',
-] as const satisfies readonly (keyof PaintedPlayerLook)[]
-
-const fieldLabels = {
-  ...PAINTED_WARDROBE_LABELS,
-  identity: 'Face',
-  facewear: 'Facewear style',
-  faceColor: 'Facewear color',
-  backdrop: 'Portrait setting',
-} satisfies Record<Exclude<keyof PaintedPlayerLook, 'faceId'>, string>
-
-const displayLabels: Partial<Record<Exclude<keyof PaintedPlayerLook, 'faceId'>, string>> = {
-  outerwear: 'Clothing',
-  gear: 'Accessory',
-  headwear: 'Headwear',
-  facewear: 'Facewear',
-}
-
-const dyedPieces: Partial<Record<keyof PaintedPlayerLook, keyof PaintedPlayerLook>> = {
-  clothColor: 'outerwear',
-  gearColor: 'gear',
-  headColor: 'headwear',
-  faceColor: 'facewear',
-} as const
-
 function title(value: string) {
   return value.charAt(0).toUpperCase() + value.slice(1)
 }
@@ -119,88 +80,6 @@ function PortraitSettingOptions() {
   )
 }
 
-function PaintedFields({
-  gender,
-  look,
-  legacy,
-  disabled,
-  onChange,
-}: {
-  gender: AppearanceGender
-  look: PaintedPlayerLook
-  legacy: boolean
-  disabled: boolean
-  onChange: (blueprint: AppearanceBlueprint) => void
-}) {
-  const faces = PORTRAIT_FACES.filter((face) => appearanceGenderForIdentity(face.rig) === gender)
-  return (
-    <fieldset className={styles.controls} aria-label="Appearance options" disabled={disabled}>
-      {legacy ? <p className={styles.legacyHint}>Edits start a painted look.</p> : null}
-      <div className={styles.fields}>
-        {fields.map((field) => {
-          const dyePiece = dyedPieces[field]
-          const options = PAINTED_PLAYER_FIELDS[field]
-          return (
-            <label key={field}>
-              <span>{displayLabels[field] ?? fieldLabels[field]}</span>
-              <select
-                aria-label={fieldLabels[field]}
-                title={
-                  field === 'backdrop' ? PAINTED_PLAYER_FIELDS.backdrop[look.backdrop] : undefined
-                }
-                value={field === 'identity' ? (look.faceId ?? 'fit' + look.identity) : look[field]}
-                disabled={Boolean(dyePiece && look[dyePiece] === 'none')}
-                onChange={(event) => {
-                  const choice = event.target.value
-                  if (field === 'identity') {
-                    const face = portraitFace(choice)
-                    if (face && appearanceGenderForIdentity(face.rig) === gender)
-                      onChange(
-                        paintedPlayerAppearanceBlueprint({
-                          ...look,
-                          identity: face.rig,
-                          faceId: face.id,
-                        }),
-                      )
-                  } else if (Object.hasOwn(options, choice)) {
-                    onChange(
-                      paintedPlayerAppearanceBlueprint({
-                        ...look,
-                        faceId: look.faceId ?? 'fit' + look.identity,
-                        [field]: choice,
-                      }),
-                    )
-                  }
-                }}
-              >
-                {field === 'identity' ? (
-                  faces.map(({ id, name }) => (
-                    <option key={id} value={id}>
-                      {name}
-                    </option>
-                  ))
-                ) : field === 'backdrop' ? (
-                  <PortraitSettingOptions />
-                ) : (
-                  Object.entries(options).map(([id, option]) => (
-                    <option key={id} value={id}>
-                      {id === 'natural'
-                        ? 'Original'
-                        : typeof option === 'string'
-                          ? option
-                          : option.label}
-                    </option>
-                  ))
-                )}
-              </select>
-            </label>
-          )
-        })}
-      </div>
-    </fieldset>
-  )
-}
-
 export function AppearanceBuilder({
   value,
   initialGender,
@@ -213,25 +92,31 @@ export function AppearanceBuilder({
   disabled?: boolean
 }) {
   const manifest = useMemo(() => compileAppearanceManifest(value), [value])
+  const [preview, setPreview] = useState(manifest)
+  const [failedPreview, setFailedPreview] = useState<string>()
+  useEffect(() => {
+    if (manifest.id === preview.id) return
+    let current = true
+    void loadAppearanceCandidate(manifest.blueprint).then(
+      (ready) => {
+        if (current) setPreview(ready)
+      },
+      () => {
+        if (current) setFailedPreview(manifest.id)
+      },
+    )
+    return () => {
+      current = false
+    }
+  }, [manifest, preview.id])
   const genderGroupName = useId()
-  const painted = 'identity' in value ? value : null
-  const gender = painted ? appearanceGenderForIdentity(painted.identity) : initialGender
-  const look: PaintedPlayerLook | null = painted
-    ? painted.v === 6
-      ? painted
-      : paintedPlayerLook(painted.v === 5 ? painted : wardrobeLook(painted))
-    : gender
-      ? defaultPaintedLookForGender(gender)
-      : null
-
-  function selectGender(nextGender: AppearanceGender) {
-    const defaults = defaultPaintedLookForGender(nextGender)
-    const next =
-      painted && look
-        ? { ...look, faceId: 'fit' + defaults.identity, identity: defaults.identity }
-        : { ...defaults, faceId: 'fit' + defaults.identity }
-    onChange(paintedPlayerAppearanceBlueprint(next))
-  }
+  const look = isActivePaintedAppearance(value)
+    ? value
+    : pickActivePaintedLook(initialGender, () => 0)
+  const gender = appearanceGenderForIdentity(look.identity)
+  const choices = activePaintedLooksForGender(gender)
+  const selected = activePaintedLookKey(look)
+  const choose = (next: PaintedPlayerLook) => onChange(paintedPlayerAppearanceBlueprint(next))
 
   return (
     <div className={styles.builder}>
@@ -246,7 +131,7 @@ export function AppearanceBuilder({
                   name={genderGroupName}
                   value={choice}
                   checked={gender === choice}
-                  onChange={() => selectGender(choice)}
+                  onChange={() => choose(pickActivePaintedLook(choice, () => 0))}
                 />
                 <span>{APPEARANCE_GENDERS[choice]}</span>
               </label>
@@ -256,42 +141,36 @@ export function AppearanceBuilder({
         <button
           type="button"
           className={styles.randomize}
-          disabled={disabled || !gender}
-          onClick={() => {
-            if (gender && look)
-              onChange(
-                paintedPlayerAppearanceBlueprint(
-                  randomPaintedLookForGender(gender, undefined, look),
-                ),
-              )
-          }}
+          disabled={disabled}
+          onClick={() => choose(pickActivePaintedLook(gender, Math.random, look))}
         >
           Randomize
         </button>
       </div>
 
-      <div className={styles.preview}>
-        <Portraits manifest={manifest} />
+      <div
+        className={styles.preview}
+        data-appearance-preview
+        aria-busy={preview.id !== manifest.id && failedPreview !== manifest.id}
+      >
+        {failedPreview === manifest.id && preview.id !== manifest.id ? (
+          <p role="status">This preview could not load. Change an option to try again.</p>
+        ) : null}
+        <Portraits key={preview.id} manifest={preview} />
         <div className={styles.gameplay} role="group" aria-label="Gameplay previews">
           <div className={styles.fieldPreviews} role="group" aria-label="Field previews">
             <figure className={styles.icon}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={manifest.icon} alt="" width={34} height={34} />
+              <img src={preview.icon} alt="" width={34} height={34} />
               <figcaption>Icon</figcaption>
             </figure>
-            <PosePreview
-              manifest={manifest}
-              size={47}
-              facing="south"
-              pose="walk"
-              label="Movement"
-            />
+            <PosePreview manifest={preview} size={47} facing="south" pose="walk" label="Movement" />
           </div>
           <div className={styles.battle} role="group" aria-label="Battle poses">
             {APPEARANCE_POSES.map((pose) => (
               <PosePreview
                 key={pose}
-                manifest={manifest}
+                manifest={preview}
                 size={58}
                 facing="east"
                 pose={pose}
@@ -303,19 +182,61 @@ export function AppearanceBuilder({
         </div>
       </div>
 
-      {gender && look ? (
-        <PaintedFields
-          gender={gender}
-          look={look}
-          legacy={!painted}
-          disabled={disabled}
-          onChange={onChange}
-        />
-      ) : (
-        <p className={styles.controls + ' ' + styles.legacyHint}>
-          Choose a gender to start a painted look.
-        </p>
-      )}
+      <fieldset className={styles.controls} disabled={disabled}>
+        <legend>Painted appearance</legend>
+        <div className={styles.fields}>
+          <label>
+            <span>Look</span>
+            <select
+              aria-label="Look"
+              value={selected}
+              onChange={(event) => {
+                const choice = choices.find(({ key }) => key === event.target.value)
+                if (choice) choose(choice.look)
+              }}
+            >
+              {choices.map(({ key, label }) => (
+                <option key={key} value={key}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span>Portrait setting</span>
+            <select
+              aria-label="Portrait setting"
+              value={look.backdrop}
+              onChange={(event) => {
+                const backdrop = event.target.value as PaintedPlayerLook['backdrop']
+                if (Object.hasOwn(PAINTED_PLAYER_FIELDS.backdrop, backdrop))
+                  choose({ ...look, backdrop })
+              }}
+            >
+              <PortraitSettingOptions />
+            </select>
+          </label>
+          {selected === 'asta' ? (
+            <label>
+              <span>Cape color</span>
+              <select
+                aria-label="Cape color"
+                value={look.clothColor}
+                onChange={(event) => {
+                  const clothColor = event.target.value as PaintedPlayerLook['clothColor']
+                  if (Object.hasOwn(WARDROBE_DYES, clothColor)) choose({ ...look, clothColor })
+                }}
+              >
+                {Object.entries(WARDROBE_DYES).map(([key, { label }]) => (
+                  <option key={key} value={key}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+        </div>
+      </fieldset>
     </div>
   )
 }
@@ -358,7 +279,7 @@ export function PosePreview({
   const { column, row } = appearanceMotionFrameIndex(facing, pose, 0)
   const continuous = pose === 'idle' || pose === 'walk'
   const frameCount = continuous ? frames : APPEARANCE_FRAME.frames
-  const animate = pose !== 'down' && (pose !== 'idle' || animateIdle)
+  const animate = pose !== 'idle' || animateIdle
   return (
     <figure>
       <span
@@ -400,7 +321,9 @@ export async function loadAppearanceCandidate(blueprint: AppearanceBlueprint) {
       (src) =>
         new Promise<void>((resolve, reject) => {
           const image = new Image()
-          image.onload = () => resolve()
+          image.onload = () => {
+            void image.decode().then(resolve, reject)
+          }
           image.onerror = () => reject(new Error('The preview is incomplete. Try again.'))
           image.src = src
         }),

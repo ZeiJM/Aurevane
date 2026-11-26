@@ -544,6 +544,7 @@ export class WorldMotion {
     sectors: readonly WorldSectorView[],
     now: number,
     previousWritePending = false,
+    continuing = false,
   ) {
     const sample = this.sample(now)
     const axis = walkOffset[direction].x ? 'y' : 'x'
@@ -589,20 +590,21 @@ export class WorldMotion {
     // OS-independent repeats replace one another while a write is in flight. They must
     // not grant fresh speculative distance every time the same key timer fires.
     const approved = mapPoint(this.approvedPosition(now), sectors, sample.point)
+    const lead = continuing ? KEY_LOOKAHEAD_STEPS * 2 : KEY_LOOKAHEAD_STEPS
     const beyondApproval = route.findIndex((step) => {
       const target = mapPoint(step.position, sectors, approved)
-      return Math.abs(target.x - approved.x) + Math.abs(target.y - approved.y) > KEY_LOOKAHEAD_STEPS
+      return Math.abs(target.x - approved.x) + Math.abs(target.y - approved.y) > lead
     })
     if (beyondApproval >= 0) route.length = beyondApproval
     if (edge) route.unshift(edge)
-    if (route.length) this.plan(route, sectors, now)
+    if (route.length) this.plan(route, sectors, now, continuing ? 'held' : 'bounded')
     else this.hold(now)
   }
   plan(
     route: readonly TravelStep[],
     sectors: readonly WorldSectorView[],
     now: number,
-    preview: 'bounded' | 'destination' = 'bounded',
+    preview: 'bounded' | 'held' | 'destination' = 'bounded',
   ) {
     if (this.movementFrozen) return
     now = this.suspendedAt ?? now
@@ -660,17 +662,18 @@ export class WorldMotion {
       // finished step needs half its authored time, rather than a new full step.
       first.duration = (first.duration * distance) / (wholeStep || 1)
     }
-    if (preview === 'bounded' && this.route.length) {
+    if (preview !== 'destination' && this.route.length) {
+      const limit = (preview === 'held' ? 2 : 1) * KEY_LOOKAHEAD_STEPS * STEP_MS
       let unconfirmed = 0
       const end = this.route.findIndex(
-        (step, index) => index >= common && (unconfirmed += step.duration) > 600,
+        (step, index) => index >= common && (unconfirmed += step.duration) > limit,
       )
       if (end >= 0) {
         // A partial turn seldom divides into whole 200ms intervals. Keep the
         // intersecting segment and freeze its clock at the exact preview bound;
         // dropping it would insert a pause before a timely approval arrives.
         this.previewEndsAt =
-          now + this.route.slice(0, common).reduce((sum, step) => sum + step.duration, 0) + 600
+          now + this.route.slice(0, common).reduce((sum, step) => sum + step.duration, 0) + limit
         this.route = this.route.slice(0, end + 1)
       }
     }

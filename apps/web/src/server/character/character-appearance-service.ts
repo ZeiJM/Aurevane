@@ -6,6 +6,7 @@ import {
   compileAppearanceManifest,
   parseAppearanceBlueprint,
 } from '@/appearance/appearance-manifest'
+import { isActivePaintedAppearance } from '@/appearance/appearance-active-catalog'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { findPlayableOwnedCharacterById } from './character-slot-service'
 import { invalidatePublicPeerPortrait } from './public-portrait-cache'
@@ -51,8 +52,9 @@ export async function commitCharacterAppearance(input: {
   blueprint: unknown
 }) {
   const blueprint = parseAppearanceBlueprint(input.blueprint)
-  if (!blueprint) throw new AurevaneError('INVALID_REQUEST', 'Choose compatible appearance parts.')
-  const imageUrl = compileAppearanceManifest(blueprint).portraits.neutral
+  if (!isActivePaintedAppearance(blueprint))
+    throw new AurevaneError('INVALID_REQUEST', 'Choose an available painted appearance.')
+  const imageUrl = compileAppearanceManifest(blueprint).neutralUrl
   const { data, error } = await createSupabaseAdminClient().rpc('commit_character_appearance_v4', {
     p_user_id: input.userId,
     p_character_id: input.characterId,

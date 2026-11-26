@@ -4,10 +4,10 @@ import {
   type AppearanceBlueprint,
 } from '@/appearance/appearance-manifest'
 import {
-  PAINTED_PLAYER_FIELDS,
-  PAINTED_WARDROBE_FIELDS,
-  type PaintedPlayerLook,
-} from '@/appearance/appearance-painted-wardrobe'
+  isActivePaintedAppearance,
+  activePaintedLookKey,
+} from '@/appearance/appearance-active-catalog'
+import type { PaintedPlayerLook } from '@/appearance/appearance-painted-wardrobe'
 
 export const NPC_VARIANT_BATCH_MIN = 2
 export const NPC_VARIANT_BATCH_MAX = 8
@@ -24,9 +24,8 @@ export const NPC_PAINTED_VARIANT_FIELDS: LegacyNpcVariantField[] = [
 ]
 
 export function npcVariantFields(blueprint: AppearanceBlueprint): readonly NpcVariantField[] {
-  if (blueprint.v === 6) return Object.keys(PAINTED_PLAYER_FIELDS) as (keyof PaintedPlayerLook)[]
-  if (blueprint.v === 5) return Object.keys(PAINTED_WARDROBE_FIELDS) as (keyof PaintedPlayerLook)[]
-  return blueprint.v === 4 ? NPC_PAINTED_VARIANT_FIELDS : NPC_VARIANT_FIELDS
+  if (!isActivePaintedAppearance(blueprint)) return []
+  return activePaintedLookKey(blueprint) === 'asta' ? ['backdrop', 'clothColor'] : ['backdrop']
 }
 
 export type NpcVariantRequest = {
@@ -42,7 +41,7 @@ export function parseNpcVariantRequest(input: unknown): NpcVariantRequest | null
   const blueprint = parseAppearanceBlueprint(base)
   if (
     Object.keys(extra).length ||
-    !blueprint ||
+    !isActivePaintedAppearance(blueprint) ||
     typeof count !== 'number' ||
     !Number.isInteger(count) ||
     count < NPC_VARIANT_BATCH_MIN ||

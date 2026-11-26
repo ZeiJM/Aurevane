@@ -124,7 +124,7 @@ beforeAll(async () => {
     for (const [index, character] of characters.entries()) {
       await database.query(
         `insert into public.characters(id,user_id,slot_index,rules_version,name,name_key,presentation_id,pronoun_preset_id,portrait_ref,starter_appearance_ref,foundation_discipline_id,might,finesse,vitality,agility,intellect,resolve,level,xp,progression_cycle,created_at,cycle_started_at,last_active_at)
-        values($1,$2,$3,1,$4,$4,'default','they','portrait','appearance','vanguard',12,4,7,4,3,6,1,0,1,now(),now(),now())`,
+        values($1,$2,$3,1,$4,$4,'default','they','portrait','appearance','vanguard',12,4,7,4,3,6,1,0,1,'2026-10-01T00:00:00Z',now(),now())`,
         [character, user, index, `support-${index}`],
       )
       const choice = ['basic.guard', 'basic.recover', 'basic.recover.mp'][index]!

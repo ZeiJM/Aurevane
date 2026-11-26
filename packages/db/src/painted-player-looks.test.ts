@@ -1,4 +1,8 @@
 import { PORTRAIT_FACES } from '../../../apps/web/src/appearance/appearance-face-catalog'
+import {
+  PAINTED_FACEWEAR_STYLES,
+  PAINTED_HEADWEAR_STYLES,
+} from '../../../apps/web/src/appearance/appearance-fitted-accessories'
 import { expect, it } from 'vitest'
 import { PAINTED_PORTRAIT_SETTINGS } from '../../../apps/web/src/appearance/appearance-painted-wardrobe'
 import { createCombatContentTestDatabase } from './test-support/combat-content-test-database'
@@ -20,8 +24,20 @@ it('admits every canonical painted setting through the shared NPC and player val
         'select url, app_private.valid_npc_appearance_v1(to_jsonb(url)) as valid from unnest($1::text[]) url',
         [urls],
       )
-    expect((await check([...candidates, tailored])).rows).toHaveLength(195)
+    expect((await check([...candidates, tailored])).rows).toHaveLength(471)
     expect((await check([...candidates, tailored])).rows.filter(({ valid }) => !valid)).toEqual([])
+    const newAccessories = [
+      '/api/media/appearance/6/fitpinescoutkeen.hawkmantle.buttercup.utility.buttercup.branchlightcrown.buttercup.moonsteellenses.buttercup.natural.alabaster.loosequiff.charcoal.natural.beard-moustache.accent-charcoal.dye-underlight.eye-violet.scar-bridge.age-youthful.prestigesanctum/neutral.svg',
+      ...Object.keys(PAINTED_HEADWEAR_STYLES).map((style) =>
+        tailored.replace('.circlet.', `.${style}.`),
+      ),
+      ...Object.keys(PAINTED_FACEWEAR_STYLES).map((style) =>
+        tailored.replace('.eyepatch.', `.${style}.`),
+      ),
+    ]
+    expect((await check(newAccessories)).rows.map(({ valid }) => valid)).toEqual(
+      newAccessories.map(() => true),
+    )
     const invalid = [
       original.replace('.original/', '.invented/'),
       original.replace('.original/', '/'),
@@ -29,6 +45,13 @@ it('admits every canonical painted setting through the shared NPC and player val
       original.replace('/6/', '/5/').replace('.original/', '/'),
       original.replace('.none.natural.', '.none.ochre.'),
       tailored.replace('.eyepatch.', '.invented.'),
+      tailored.replace('.astral/', '.scar-cross.scar-jaw.astral/'),
+      tailored.replace('.astral/', '.eye-natural.astral/'),
+      tailored.replace('.astral/', '.age-adult.astral/'),
+      tailored.replace('.astral/', '.age-child.astral/'),
+      tailored.replace('.astral/', '.age-mature.scar-cross.astral/'),
+      tailored.replace('.astral/', '.scar-cross.dye-tips.astral/'),
+      tailored.replace('neutral.svg', 'illustrated-neutral.svg'),
       ...['f00', 'm65', 'f001', 'fitunknown'].map((id) => original.replace('pinescout.', id + '.')),
     ]
     expect((await check(invalid)).rows.map(({ valid }) => valid)).toEqual(invalid.map(() => false))
@@ -51,7 +74,15 @@ it('admits every canonical painted setting through the shared NPC and player val
         [actor, characterId, recipe],
       )
     await expect(save(invalid[0]!)).rejects.toThrow()
-    const saved = tailored.replace('pinescout.', 'm64.').replace('.astral/', '.midnight/')
+    const saved = tailored
+      .replace('pinescout.', 'm64keen.')
+      .replace('.circlet.', '.crescentcirclet.')
+      .replace('.eyepatch.', '.ravenpatch.')
+      .replace('.braid.', '.longbraid.')
+      .replace(
+        '.astral/',
+        '.beard-full.accent-silver.dye-split.eye-blue.scar-cross.age-elder.wavejade/',
+      )
     await expect(save(saved)).resolves.toMatchObject({
       rows: [{ receipt: { imageUrl: saved } }],
     })

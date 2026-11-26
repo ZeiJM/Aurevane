@@ -65,6 +65,10 @@
   justify-content: space-between;
 }
 
+.toolbar {
+  flex-wrap: wrap;
+}
+
 .dialogHeader h2 {
   margin: 0;
   font-size: clamp(1.05rem, 3vw, 1.35rem);
@@ -357,6 +361,10 @@
   animation: pose-preview var(--preview-cycle) steps(var(--preview-frames), jump-none) infinite;
 }
 
+.sprite[data-preview-motion='down'] {
+  animation: pose-preview 280ms steps(3, jump-none) both;
+}
+
 @keyframes pose-preview {
   to {
     background-position: var(--last-frame) var(--sprite-row);
@@ -434,7 +442,7 @@
 @media (min-width: 33rem) and (max-height: 32rem) {
   .dialog {
     --alternate-size: 1.65rem;
-    --control-height: 1.95rem;
+    --control-height: 1.65rem;
     --dialog-padding: 0.55rem;
     --gap: 0.33rem;
     --gameplay-sprite-width: 2rem;
@@ -448,8 +456,20 @@
   }
 
   .fields {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 0.35rem 0.4rem;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.25rem 0.35rem;
+  }
+
+  .fields label {
+    gap: 0.08rem;
+    font-size: 0.69rem;
+    line-height: 1;
+  }
+
+  .fields select {
+    height: var(--control-height);
+    padding-block: 0;
+    font-size: 0.75rem;
   }
 
   .gameplay {
@@ -482,14 +502,19 @@
   .dialog {
     --alternate-size: 1.375rem;
     --gameplay-sprite-width: 1.85rem;
-    --control-height: 1.7rem;
+    --control-height: 1.55rem;
     --dialog-padding: 0.33rem;
     --gap: 0.2rem;
     max-height: calc(100dvh - 0.375rem);
   }
 
   .fields {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 0.25rem 0.35rem;
+  }
+
+  .fields label:last-child {
+    grid-column: span 2;
   }
 
   .fields label {
@@ -544,6 +569,10 @@
 }
 
 @media (width < 36rem) and (orientation: portrait) {
+  .fields {
+    row-gap: 0.3rem;
+  }
+
   .preview {
     grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr);
     align-items: end;
@@ -580,9 +609,27 @@
   }
 }
 
+@media (width < 36rem) and (max-height: 44rem) and (orientation: portrait) {
+  .dialog {
+    max-height: calc(100dvh - 0.5rem);
+  }
+
+  .fields {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .fields label:last-child {
+    grid-column: span 2;
+  }
+}
+
 @media (max-width: 22rem) and (max-height: 39rem) {
   .dialog {
     --dialog-padding: 0.38rem;
+    --control-height: 1.65rem;
+    --gap: 0.25rem;
+    --gameplay-sprite-width: 1.72rem;
+    max-height: calc(100dvh - 0.25rem);
   }
 
   .dialogFooter {
@@ -600,6 +647,14 @@
   .fields label {
     gap: 0.08rem;
     line-height: 1;
+  }
+
+  .fields {
+    row-gap: 0.22rem;
+  }
+
+  .portraits {
+    --alternate-size: 1.32rem;
   }
 }
 

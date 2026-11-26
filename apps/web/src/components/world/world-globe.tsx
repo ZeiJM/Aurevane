@@ -20,6 +20,7 @@ import {
   UNCHARTED_FERRY_CHART_ID,
   UNCHARTED_FERRY_CHART_LOCATION,
 } from './globe-ferry'
+import { GLOBE_MAX_ZOOM } from './world-zoom'
 import { worldTravelDestination } from './world-travel-points'
 import styles from './workspace.module.css'
 
@@ -45,6 +46,11 @@ function AtlasMarker({ index, town }: { index: number; town?: string }) {
   )
 }
 
+const cellLocation = ({ column, row }: { column: number; row: number }, x: number, y: number) => ({
+  longitude: ((column + (x + 0.5) / GRID_WIDTH) * 360) / ATLAS_COLUMNS - 180,
+  latitude: 90 - ((row + (y + 0.5) / GRID_HEIGHT) * 180) / ATLAS_ROWS,
+})
+
 export const GLOBE_FOCUS_EVENT = 'aurevane-world-globe-focus'
 export function WorldGlobe({
   view,
@@ -65,22 +71,20 @@ export function WorldGlobe({
   showLocationLabels?: boolean
   onZoom: (zoom: number) => void
 }) {
-  const current = view.sectors.find((sector) => sector.id === view.position.sectorId)!
-  const sectorCenter = globeSectorCenter(current.coordinate, ATLAS_COLUMNS, ATLAS_ROWS)
-  const mapped =
-    sectorCenter && current.atlasColumn !== undefined && current.atlasRow !== undefined
-      ? {
-          longitude:
-            ((current.atlasColumn + (view.position.x + 0.5) / GRID_WIDTH) * 360) / ATLAS_COLUMNS -
-            180,
-          latitude:
-            90 - ((current.atlasRow + (view.position.y + 0.5) / GRID_HEIGHT) * 180) / ATLAS_ROWS,
-        }
-      : sectorCenter
-  const anchor = view.atlas?.find((s) => s.id === current.regionId)
+  const current = view.sectors.find((sector) => sector.id === view.position.sectorId)
+  const currentChart = view.atlas?.find(
+    ({ id, charted }) => charted && id === view.position.sectorId,
+  )
+  const address =
+    currentChart ??
+    (current?.charted && current.atlasColumn !== undefined && current.atlasRow !== undefined
+      ? { column: current.atlasColumn, row: current.atlasRow }
+      : undefined)
+  const mapped = address && cellLocation(address, view.position.x, view.position.y)
+  const anchor = view.atlas?.find((s) => s.id === current?.regionId)
   const location =
     mapped ??
-    (current.warpedTheme
+    (current?.warpedTheme
       ? UNCHARTED_VEIL_FOCUS
       : (globeSectorCenter(anchor?.coordinate ?? '', ATLAS_COLUMNS, ATLAS_ROWS) ?? {
           longitude: 0,
@@ -124,19 +128,10 @@ export function WorldGlobe({
     window.addEventListener(GLOBE_FOCUS_EVENT, focus)
     return () => window.removeEventListener(GLOBE_FOCUS_EVENT, focus)
   }, [view.atlas])
-  const pin = projectGlobePoint(location, camera)
   const labels = projectGlobeTowns(view.atlas ?? [], camera, zoom)
   const veil = projectGlobePoint(UNCHARTED_VEIL_FOCUS, camera)
   const veilX = veil.x * zoom
   const veilY = veil.y * zoom
-  const cellLocation = (
-    { column, row }: { column: number; row: number },
-    x: number,
-    y: number,
-  ) => ({
-    longitude: ((column + (x + 0.5) / GRID_WIDTH) * 360) / ATLAS_COLUMNS - 180,
-    latitude: 90 - ((row + (y + 0.5) / GRID_HEIGHT) * 180) / ATLAS_ROWS,
-  })
   const ports = PUBLIC_FERRY_TERMINALS.flatMap(({ dock, name }) => {
     const sector = view.atlas?.find((cell) => cell.charted && cell.id === dock.sectorId)
     return sector ? [{ dock, name, location: cellLocation(sector, dock.x, dock.y) }] : []
@@ -149,6 +144,7 @@ export function WorldGlobe({
       ? { left: `${(x + 1) * 50}%`, top: `${(1 - y) * 50}%` }
       : undefined
   }
+  const currentPin = mapped && markerStyle(mapped)
   const unchartedTerminal = markerStyle(UNCHARTED_FERRY_CHART_LOCATION)
   const dockLocation = ports.find(({ dock }) => dock === FERRY_MAINLAND_DOCK)?.location
   const northernDeparture = ports.find(({ dock }) => dock === FERRY_NORTH_DOCK)?.location
@@ -181,6 +177,7 @@ export function WorldGlobe({
           src="/media/art/world/runtime/globe-materials-v02.webp"
           camera={camera}
           zoom={zoom}
+          maxZoom={GLOBE_MAX_ZOOM}
           onCamera={setCamera}
           onZoom={onZoom}
           zoomLocked={zoomLocked}
@@ -214,13 +211,8 @@ export function WorldGlobe({
               <AtlasMarker index={townMarkers[sector.id] ?? 0} town={sector.id} />
             </button>
           ))}
-          {mapped && pin.visible ? (
-            <span
-              className={styles.globePin}
-              style={{ left: `${(pin.x * zoom + 1) * 50}%`, top: `${(1 - pin.y * zoom) * 50}%` }}
-              aria-label="Your current position"
-            >
-              <AtlasMarker index={10} />
+          {currentPin ? (
+            <span className={styles.globePin} style={currentPin} aria-label="Your current position">
               <span>You are here</span>
             </span>
           ) : null}

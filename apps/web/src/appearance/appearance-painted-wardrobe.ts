@@ -1,4 +1,5 @@
 import { portraitFace } from './appearance-face-catalog'
+import { PAINTED_FACEWEAR_STYLES, PAINTED_HEADWEAR_STYLES } from './appearance-fitted-accessories'
 import {
   DEFAULT_PAINTED_LOOK,
   PAINTED_ACCESSORIES,
@@ -92,8 +93,8 @@ export const WARDROBE_SKIN_TONES = {
   copper: { label: 'Copper brown', rgb: [144, 88, 61] },
   umber: { label: 'Umber', rgb: [121, 83, 69] },
   mahogany: { label: 'Mahogany', rgb: [110, 68, 57] },
-  cacao: { label: 'Cacao', rgb: [86, 56, 47] },
-  espresso: { label: 'Espresso', rgb: [67, 45, 40] },
+  cacao: { label: 'Cacao', rgb: [102, 66, 45] },
+  espresso: { label: 'Espresso', rgb: [86, 53, 37] },
 } as const
 
 export const WARDROBE_HAIRSTYLES = {
@@ -109,6 +110,117 @@ export const WARDROBE_HAIRSTYLES = {
   braid: 'Shoulder braid',
   twins: 'Twin braids',
   waves: 'Long waves',
+} as const
+
+const extraHairstyles = {
+  crop: 'Close crop',
+  sidepart: 'Clean side part',
+  pixie: 'Layered pixie',
+  shag: 'Windblown shag',
+  sidefringe: 'Side fringe',
+  spiked: 'Blade spikes',
+  frosted: 'High swept pompadour',
+  brushed: 'Brushed-back quiff',
+  loosequiff: 'Loose quiff',
+  coils: 'Tight coils',
+  ringlets: 'Shoulder ringlets',
+  curlsweep: 'Swept curls',
+  coronet: 'Braided coronet',
+  halo: 'Double crown braid',
+  ropebraid: 'Rope crown braid',
+  razor: 'Razor layers',
+  curtain: 'Curtain layers',
+  pageboy: 'Pageboy',
+  tightbun: 'Sleek low bun',
+  loosebun: 'Loose low bun',
+  sidebun: 'Side bun',
+  warrior: 'Warrior knot',
+  doublenot: 'Twin knots',
+  hightwist: 'High twist',
+  highpony: 'High ponytail',
+  lowpony: 'Low ponytail',
+  sidepony: 'Side ponytail',
+  fishtail: 'Fishtail braid',
+  loosebraid: 'Loose shoulder braid',
+  longbraid: 'Long braid',
+  twinloops: 'Twin braid loops',
+  twinlow: 'Low twin braids',
+  twinribbons: 'Ribbon twin braids',
+  mermaid: 'Long flowing waves',
+  softwave: 'Soft waves',
+  silkwave: 'Silken long waves',
+} as const
+
+export const PLAYER_HAIRSTYLES = { ...WARDROBE_HAIRSTYLES, ...extraHairstyles } as const
+
+export const PLAYER_HAIRSTYLE_GROUPS = {
+  'Short cuts and fringes': [
+    'natural',
+    'crop',
+    'sidepart',
+    'pixie',
+    'feather',
+    'shag',
+    'sidefringe',
+    'spiked',
+    'quiff',
+    'frosted',
+    'brushed',
+    'loosequiff',
+  ],
+  'Curls, layers and waves': [
+    'curls',
+    'coils',
+    'ringlets',
+    'curlsweep',
+    'layers',
+    'razor',
+    'curtain',
+    'pageboy',
+    'waves',
+    'mermaid',
+    'softwave',
+    'silkwave',
+  ],
+  Braids: [
+    'crown',
+    'coronet',
+    'halo',
+    'ropebraid',
+    'braid',
+    'fishtail',
+    'loosebraid',
+    'longbraid',
+    'twins',
+    'twinloops',
+    'twinlow',
+    'twinribbons',
+  ],
+  'Buns, knots and ponytails': [
+    'bun',
+    'tightbun',
+    'loosebun',
+    'sidebun',
+    'topknot',
+    'warrior',
+    'doublenot',
+    'hightwist',
+    'pony',
+    'highpony',
+    'lowpony',
+    'sidepony',
+  ],
+} as const satisfies Record<string, readonly (keyof typeof PLAYER_HAIRSTYLES)[]>
+
+export const FACIAL_HAIR_STYLES = {
+  none: 'Clean-shaven',
+  stubble: 'Short stubble',
+  moustache: 'Styled moustache',
+  goatee: 'Pointed goatee',
+  boxed: 'Short boxed beard',
+  anchor: 'Anchor beard',
+  full: 'Full beard',
+  braided: 'Braided beard',
 } as const
 
 export const WARDROBE_HAIR_COLORS = {
@@ -146,6 +258,20 @@ export const WARDROBE_EYE_COLORS = {
   violet: { label: 'Violet', rgb: [132, 99, 168] },
 } as const
 
+export const PLAYER_EYE_COLORS = {
+  ...WARDROBE_EYE_COLORS,
+  jade: { label: 'Jade', rgb: [52, 147, 117] },
+  cobalt: { label: 'Cobalt', rgb: [61, 113, 196] },
+  rose: { label: 'Rose quartz', rgb: [177, 108, 141] },
+  gold: { label: 'Sun gold', rgb: [198, 151, 63] },
+} as const
+
+export const IRIS_PATTERNS = {
+  paired: 'Different eye colors',
+  central: 'Inner iris ring',
+  sectoral: 'Split-color iris',
+} as const
+
 export const PAINTED_WARDROBE_FIELDS = {
   ...PAINTED_FIELDS,
   outerwear: WARDROBE_OUTERWEAR,
@@ -172,15 +298,78 @@ export const PAINTED_PORTRAIT_SETTINGS = {
   ...APPEARANCE_BACKDROPS,
 } as const
 
+export const HAIR_COLOR_PLACEMENTS = {
+  streak: 'Face-framing streak',
+  tips: 'Dip-dyed tips',
+  split: 'Split dye',
+  underlight: 'Underlights',
+  ombre: 'Soft ombré',
+  ribbons: 'Twin color ribbons',
+} as const
+
+export const FACIAL_SCARS = {
+  none: 'None',
+  cross: 'Cross-shaped cheek scar',
+  cheek: 'Diagonal cheek scar',
+  brow: 'Split eyebrow',
+  bridge: 'Nose bridge scar',
+  jaw: 'Jawline scar',
+  cheekpair: 'Twin cheek scars',
+  lip: 'Split lower lip',
+  temple: 'Temple graze',
+  browarch: 'Arched brow scar',
+  cheekstar: 'Cheek star',
+} as const
+
+export const APPEARANCE_AGES = {
+  youthful: 'Youthful adult',
+  adult: 'Adult',
+  mature: 'Middle-aged',
+  elder: 'Elder',
+} as const
+
+const optionalPlayerFields = {
+  facialHair: [FACIAL_HAIR_STYLES, 'beard', 'none'],
+  hairAccent: [WARDROBE_HAIR_COLORS, 'accent', 'natural'],
+  hairHighlight: [WARDROBE_HAIR_COLORS, 'highlight', 'natural'],
+  hairPlacement: [HAIR_COLOR_PLACEMENTS, 'dye', 'streak'],
+  secondEye: [PLAYER_EYE_COLORS, 'eye', 'natural'],
+  irisPattern: [IRIS_PATTERNS, 'iris', 'paired'],
+  scar: [FACIAL_SCARS, 'scar', 'none'],
+  apparentAge: [APPEARANCE_AGES, 'age', 'adult'],
+} as const
+
+export const PLAYER_APPEARANCE_DETAILS = Object.keys(
+  optionalPlayerFields,
+) as (keyof typeof optionalPlayerFields)[]
+
 export const PAINTED_PLAYER_FIELDS = {
   ...PAINTED_WARDROBE_FIELDS,
   identity: { pinescout: 'Pine Scout', ...PAINTED_FIELDS.identity },
+  headwear: { ...WARDROBE_HEADWEAR, ...PAINTED_HEADWEAR_STYLES },
+  facewear: { ...WARDROBE_FACEWEAR, ...PAINTED_FACEWEAR_STYLES },
+  hairstyle: PLAYER_HAIRSTYLES,
+  eyeColor: PLAYER_EYE_COLORS,
+  facialHair: FACIAL_HAIR_STYLES,
+  hairAccent: WARDROBE_HAIR_COLORS,
+  hairHighlight: WARDROBE_HAIR_COLORS,
+  hairPlacement: HAIR_COLOR_PLACEMENTS,
+  secondEye: PLAYER_EYE_COLORS,
+  irisPattern: IRIS_PATTERNS,
+  scar: FACIAL_SCARS,
+  apparentAge: APPEARANCE_AGES,
   backdrop: PAINTED_PORTRAIT_SETTINGS,
 } as const
 
 export type PaintedPlayerLook = Readonly<{
-  [Field in keyof typeof PAINTED_PLAYER_FIELDS]: keyof (typeof PAINTED_PLAYER_FIELDS)[Field]
-}> & { readonly faceId?: string }
+  [
+    Field in Exclude<keyof typeof PAINTED_PLAYER_FIELDS, keyof typeof optionalPlayerFields>
+  ]: keyof (typeof PAINTED_PLAYER_FIELDS)[Field]
+}> & {
+  readonly faceId?: string
+} & Readonly<{
+    [Field in keyof typeof optionalPlayerFields]?: keyof (typeof optionalPlayerFields)[Field][0]
+  }>
 
 type PaintedWardrobeParts = Omit<PaintedPlayerLook, 'backdrop'>
 
@@ -198,8 +387,16 @@ export const PAINTED_WARDROBE_LABELS = {
   skinTone: 'Skin tone',
   hairstyle: 'Hairstyle',
   hairDye: 'Hair color',
+  facialHair: 'Facial hair',
+  hairAccent: 'Second hair color',
+  hairHighlight: 'Third hair color',
+  hairPlacement: 'Two-tone placement',
+  secondEye: 'Right eye color',
+  irisPattern: 'Heterochromia pattern',
+  scar: 'Facial scar',
+  apparentAge: 'Apparent age',
   eyeColor: 'Eye color',
-} satisfies Record<keyof PaintedWardrobeLook, string>
+} satisfies Record<keyof PaintedWardrobeLook | keyof typeof optionalPlayerFields, string>
 
 export const originalWardrobeFeatures = {
   hairstyle: 'natural',
@@ -231,7 +428,16 @@ export function wardrobeRecipe(look: PaintedWardrobeParts) {
 
 export function paintedPlayerRecipe(look: PaintedPlayerLook) {
   const [identity, ...parts] = wardrobeRecipe(look)
-  return [look.faceId ?? identity, ...parts, look.backdrop] as const
+  return [look.faceId ?? identity, ...parts, ...paintedDetailRecipe(look), look.backdrop] as const
+}
+
+export function paintedDetailRecipe(values: Record<string, unknown>) {
+  return PLAYER_APPEARANCE_DETAILS.flatMap((field) => {
+    const [, marker, fallback] = optionalPlayerFields[field]
+    const value = values[field]
+    if (value === undefined || value === fallback) return []
+    return [typeof value === 'string' ? `${marker}-${value}` : marker + '-invalid']
+  })
 }
 
 const wardrobeFields = Object.keys(PAINTED_WARDROBE_FIELDS) as (keyof PaintedWardrobeLook)[]
@@ -267,11 +473,25 @@ export function readPaintedPlayerLook(values: readonly unknown[]): PaintedPlayer
   if (typeof backdrop !== 'string' || !Object.hasOwn(PAINTED_PORTRAIT_SETTINGS, backdrop))
     return null
   const face = portraitFace(values[0])
-  const parts = readLook([face?.rig ?? values[0], ...values.slice(1, -1)], PAINTED_PLAYER_FIELDS)
+  let end = values.length - 1
+  const details: Record<string, string> = {}
+  for (const field of [...PLAYER_APPEARANCE_DETAILS].reverse()) {
+    const [options, marker, fallback] = optionalPlayerFields[field]
+    const part = values[end - 1]
+    if (typeof part !== 'string' || !part.startsWith(marker + '-')) continue
+    const selected = part.slice(marker.length + 1)
+    if (!Object.hasOwn(options, selected) || selected === fallback) return null
+    details[field] = selected
+    end--
+  }
+  if ((details.hairHighlight && !details.hairAccent) || (details.irisPattern && !details.secondEye))
+    return null
+  const parts = readLook([face?.rig ?? values[0], ...values.slice(1, end)], PAINTED_PLAYER_FIELDS)
   return parts
     ? {
         ...parts,
         ...(face ? { faceId: face.id } : {}),
+        ...details,
         backdrop: backdrop as PaintedPlayerLook['backdrop'],
       }
     : null

@@ -1,3 +1,4 @@
+import { illustratedStarterPortrait } from '@/appearance/appearance-starter-gallery'
 import { AccountBannedError } from '@aurevane/game-core/errors'
 import { isAurevaneError } from '@aurevane/game-core/errors'
 import { headers } from 'next/headers'
@@ -55,7 +56,9 @@ export default async function WorldMapPage() {
   }
   const [identity, world] = loaded
   const portrait =
-    identity.imageUrl ?? getImageAsset(getStarterPortraitImageAssetId(character.portraitRef)).src
+    identity.imageUrl ??
+    illustratedStarterPortrait(character.portraitRef)?.manifest.portraits.neutral ??
+    getImageAsset(getStarterPortraitImageAssetId(character.portraitRef)).src
   if (!portrait) throw new Error('The registered character portrait is unavailable.')
   return (
     <div className={styles.layout} data-world-shell>

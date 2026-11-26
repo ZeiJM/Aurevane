@@ -1,6 +1,9 @@
 import { expect, type Locator, type Page } from '@playwright/test'
 import { createClient } from '@supabase/supabase-js'
-import type { AppearanceBlueprint } from '../src/appearance/appearance-manifest'
+import {
+  compileAppearanceManifest,
+  type AppearanceBlueprint,
+} from '../src/appearance/appearance-manifest'
 
 export async function grantAppearanceToken(userId: string): Promise<string> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -46,8 +49,9 @@ export async function saveFixtureAppearance(
   })
   expect(response.ok()).toBe(true)
   const { appearance } = await response.json()
-  expect(appearance).toMatchObject({ imageUrl: expect.any(String), appearanceTokens: 0 })
-  return appearance.imageUrl
+  const manifest = compileAppearanceManifest(blueprint)
+  expect(appearance).toMatchObject({ imageUrl: manifest.neutralUrl, appearanceTokens: 0 })
+  return manifest.portraits.neutral
 }
 
 /** Sample inside one old 300ms atlas interval without depending on browser scheduling. */

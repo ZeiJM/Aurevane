@@ -1,7 +1,9 @@
 import 'server-only'
 
 import { PERSONAL_QUEST_GIVERS } from '@aurevane/game-core/events/persistent-event'
-import { APPEARANCE_PRESETS, compileAppearanceManifest } from '@/appearance/appearance-manifest'
+import { compileAppearanceManifest } from '@/appearance/appearance-manifest'
+import { paintedPlayerAppearanceBlueprint } from '@/appearance/appearance-painted-looks'
+import { PAINTED_STUDIES } from '@/appearance/appearance-painted-studies'
 import { samePosition } from '@/world/travel'
 import { isKnownCell } from './world-content'
 import type {
@@ -60,7 +62,9 @@ const INTERACTION_OBJECTIVES: readonly InteractionObjectiveDefinition[] = [
     target: EASTERN_WATCH,
     title: 'The Eastern Watch',
     speaker: PERSONAL_QUEST_GIVERS[EASTERN_WATCH_INTERACTION_ID].speaker,
-    portraitUrl: compileAppearanceManifest(APPEARANCE_PRESETS[0].blueprint).portraits.neutral,
+    portraitUrl: compileAppearanceManifest(
+      paintedPlayerAppearanceBlueprint({ ...PAINTED_STUDIES.f04.look, backdrop: 'verdant' }),
+    ).portraits.neutral,
     descriptions: {
       available: 'Speak with the watch officer at the protected settlement.',
       active: 'Reach the eastern watchtower across the river.',
@@ -82,7 +86,9 @@ const INTERACTION_OBJECTIVES: readonly InteractionObjectiveDefinition[] = [
     target: CROWN_HINTERLAND_PATROL,
     title: 'Hinterland Patrol',
     speaker: PERSONAL_QUEST_GIVERS[CROWN_HINTERLAND_PATROL_INTERACTION_ID].speaker,
-    portraitUrl: compileAppearanceManifest(APPEARANCE_PRESETS[1].blueprint).portraits.neutral,
+    portraitUrl: compileAppearanceManifest(
+      paintedPlayerAppearanceBlueprint({ ...PAINTED_STUDIES.m10.look, backdrop: 'crown' }),
+    ).portraits.neutral,
     descriptions: {
       available: 'Speak with the watch officer at the Aureth Crown settlement.',
       active: 'Reach the central road in Crown Hinterland.',

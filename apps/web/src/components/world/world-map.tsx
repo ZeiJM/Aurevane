@@ -39,6 +39,7 @@ export function WorldMap({
     position: WorldPosition,
     direction?: MapDirection,
     previewDestination?: WorldPosition,
+    continuing?: boolean,
   ) => void
   onStop: () => void
   onPlayer: (id: string) => void

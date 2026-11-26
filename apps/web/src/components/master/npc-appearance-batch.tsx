@@ -3,10 +3,11 @@
 import { useState, type FormEvent } from 'react'
 import {
   APPEARANCE_FRAME,
-  APPEARANCE_PRESETS,
+  paintedPlayerAppearanceBlueprint,
   appearanceManifestFromImageUrl,
   type AppearanceBlueprint,
 } from '@/appearance/appearance-manifest'
+import { pickActivePaintedLook } from '@/appearance/appearance-active-catalog'
 import { PAINTED_IDENTITIES, PAINTED_CLOTHING } from '@/appearance/appearance-painted-catalog'
 import {
   PAINTED_PLAYER_FIELDS,
@@ -18,7 +19,6 @@ import { AppearanceBuilderDialog } from '@/components/character/appearance-build
 import {
   NPC_VARIANT_BATCH_MAX,
   NPC_VARIANT_BATCH_MIN,
-  NPC_VARIANT_FIELDS,
   npcVariantFields,
   type NpcVariantField,
   type NpcVariantRequest,
@@ -41,11 +41,11 @@ export function NpcAppearanceBatch({
   reviewDisabled: boolean
   onReview: (imageUrl: string) => void
 }) {
-  const [base, setBase] = useState<AppearanceBlueprint>(APPEARANCE_PRESETS[1].blueprint)
-  const [count, setCount] = useState(4)
-  const [vary, setVary] = useState<NpcVariantField[]>(() =>
-    NPC_VARIANT_FIELDS.filter((field) => field !== 'palette' && field !== 'accessory'),
+  const [base, setBase] = useState<AppearanceBlueprint>(() =>
+    paintedPlayerAppearanceBlueprint(pickActivePaintedLook('masculine', () => 0)),
   )
+  const [count, setCount] = useState(4)
+  const [vary, setVary] = useState<NpcVariantField[]>(['backdrop'])
   const [uniform, setUniform] = useState(false)
   const [batch, setBatch] = useState<{ images: string[]; mode: NpcVariantRequest['mode'] } | null>(
     null,
@@ -204,7 +204,7 @@ export function NpcAppearanceBatch({
                 <li key={`${imageUrl}-${index}`}>
                   <div className={styles.variantArt}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={imageUrl} alt="Portrait" width={76} height={76} />
+                    <img src={manifest.portraits.neutral} alt="Portrait" width={76} height={76} />
                     <span
                       role="img"
                       aria-label="Field sprite"

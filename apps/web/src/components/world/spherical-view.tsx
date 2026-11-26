@@ -6,12 +6,13 @@ import styles from './world.module.css'
 import type { WorldAtlasCell } from '@/world/types'
 import { globeAtlasDetailPixels, readGlobePainting, type GlobePainting } from './globe-atlas'
 import { globeFallbackPixels } from './globe-fallback'
-import { clampWorldZoom } from './world-zoom'
+import { clampWorldZoom, WORLD_MAX_ZOOM } from './world-zoom'
 
 interface Props {
   src: string
   camera: GlobeLocation
   zoom: number
+  maxZoom?: number
   zoomLocked?: boolean
   panorama?: boolean
   grid?: boolean
@@ -27,6 +28,7 @@ export function SphericalView({
   src,
   camera,
   zoom,
+  maxZoom = WORLD_MAX_ZOOM,
   zoomLocked = false,
   panorama = false,
   grid = true,
@@ -47,11 +49,11 @@ export function SphericalView({
     const wheel = (event: WheelEvent) => {
       event.preventDefault()
       if (!zoomLocked)
-        onZoom(clampWorldZoom(zoom - event.deltaY * (event.ctrlKey ? 0.006 : 0.0008)))
+        onZoom(clampWorldZoom(zoom - event.deltaY * (event.ctrlKey ? 0.006 : 0.0008), maxZoom))
     }
     element.addEventListener('wheel', wheel, { passive: false })
     return () => element.removeEventListener('wheel', wheel)
-  }, [zoomLocked, zoom, onZoom])
+  }, [zoomLocked, zoom, maxZoom, onZoom])
   const drag = useRef<{ x: number; y: number; camera: GlobeLocation } | null>(null)
   const consumedDrag = useRef(false)
   const touchPoints = useRef(new Map<number, { x: number; y: number }>())
@@ -171,6 +173,7 @@ export function SphericalView({
       ref={host}
       className={panorama ? styles.panoramaScene : styles.sphere}
       role="group"
+      data-globe-zoom={panorama ? undefined : zoom}
       aria-label={
         panorama
           ? '360 degree surroundings. Drag or use arrow keys to look around.'
@@ -212,7 +215,12 @@ export function SphericalView({
           touchPoints.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
         if (pinch.current && touchPoints.current.size >= 2) {
           if (!zoomLocked && pinch.current.distance > 0)
-            onZoom(clampWorldZoom((pinch.current.zoom * touchDistance()) / pinch.current.distance))
+            onZoom(
+              clampWorldZoom(
+                (pinch.current.zoom * touchDistance()) / pinch.current.distance,
+                maxZoom,
+              ),
+            )
           return
         }
         if (gestured.current) return
@@ -248,6 +256,7 @@ export function SphericalView({
         const bounds = e.currentTarget.getBoundingClientRect(),
           x = (((e.clientX - bounds.left) / bounds.width) * 2 - 1) / zoom,
           y = (1 - ((e.clientY - bounds.top) / bounds.height) * 2) / zoom
+        if (Math.hypot(x, y) > 1 / Math.max(1, zoom)) return
         const location = unprojectGlobePoint(x, y, start.camera)
         if (location) onActivate(location)
       }}

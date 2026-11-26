@@ -5,7 +5,7 @@ import {
   type AppearanceFacing,
 } from './appearance-manifest'
 import {
-  WARDROBE_EYE_COLORS,
+  PLAYER_EYE_COLORS,
   WARDROBE_HAIR_COLORS,
   type PaintedPlayerLook,
   type PaintedWardrobeLook,
@@ -268,7 +268,7 @@ export function paintedFeatureDyes(
   frontal = false,
 ) {
   const hair = WARDROBE_HAIR_COLORS[look.hairDye].rgb
-  const eyes = WARDROBE_EYE_COLORS[look.eyeColor].rgb
+  const eyes = PLAYER_EYE_COLORS[look.eyeColor].rgb
   const { identity } = look
   const hairClip = expression
     ? `<path d="${portraitScalps[identity]}"/>`
@@ -472,9 +472,11 @@ const paintedHairFits = {
 
 function paintedPlayerHairLayers(look: PaintedPlayerLook, facing?: AppearanceFacing) {
   const { hairstyle, identity, hairDye } = look
-  if (hairstyle === 'natural') return ['', ''] as const
-  const { crown, front, width, x, top } = paintedHairFits[hairstyle]
-  const asset = PAINTED_HAIRSTYLES[hairstyle]
+  if (hairstyle === 'natural' || !Object.hasOwn(paintedHairFits, hairstyle))
+    return ['', ''] as const
+  const registeredHair = hairstyle as keyof typeof paintedHairFits
+  const { crown, front, width, x, top } = paintedHairFits[registeredHair]
+  const asset = PAINTED_HAIRSTYLES[registeredHair]
   const fieldScale = facing ? 0.25 : 1
   const visualWidth = width * fieldScale
   const height = (visualWidth * asset.height) / asset.width

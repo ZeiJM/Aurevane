@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 import { expectSmoothReadyStance, grantAppearanceToken } from './appearance-test-helpers'
 import { allocateCreationPoints, createVerifiedAccountAndSignIn } from './pv1f-test-helpers'
 
-test('@painted-wardrobe saves independent painted features and accessories using one token', async ({
+test('@painted-wardrobe saves an approved painted look and setting using one token', async ({
   page,
   isMobile,
 }, testInfo) => {
@@ -13,11 +13,16 @@ test('@painted-wardrobe saves independent painted features and accessories using
     .replace(/\d/g, (digit) => String.fromCharCode(65 + Number(digit)))
   // Browser Smoke shares one database across projects and reserves saved recipes
   // across characters. Give the laptop project its own initial and final look.
-  const identity = isMobile ? 'f64' : testInfo.project.name === 'laptop-chromium' ? 'm64' : 'm63'
+  const look = isMobile
+    ? 'asta'
+    : testInfo.project.name === 'laptop-chromium'
+      ? 'kieran'
+      : 'cassian'
+  const faceId = { asta: 'f32', kieran: 'm21keen', cassian: 'm02' }[look]
   const characterName = `Warden ${suffix}`
   await createVerifiedAccountAndSignIn({
     page,
-    email: `wardrobe-${identity}-${Date.now()}@example.com`,
+    email: `wardrobe-${look}-${Date.now()}@example.com`,
     password: 'Painted-wardrobe-browser-2026!',
   })
   await page.getByRole('link', { name: 'Create Character' }).first().click()
@@ -35,12 +40,10 @@ test('@painted-wardrobe saves independent painted features and accessories using
     'Down',
   ])
   await expectSmoothReadyStance(battlePoses.locator('[data-preview-motion="idle"]'))
-  const outfit = dialog.getByRole('group', { name: 'Appearance options' })
-  const control = (name: string) => outfit.getByRole('combobox', { name, exact: true })
-  await control('Face').selectOption(identity)
-  await expect(control('Face')).toHaveValue(identity)
-  await control('Clothing style').selectOption('shearling')
-  await control('Clothing color').selectOption('pine')
+  const control = (name: string) => dialog.getByRole('combobox', { name, exact: true })
+  await control('Look').selectOption(look)
+  await control('Portrait setting').selectOption('lunar')
+  await expect(control('Look')).toHaveValue(look)
   await dialog.getByRole('button', { name: 'Use this appearance' }).click()
   await expect(dialog).toBeHidden({ timeout: 20_000 })
 
@@ -65,33 +68,26 @@ test('@painted-wardrobe saves independent painted features and accessories using
   })
   await expect(appearanceSettings.getByText('1 Appearance Token available.')).toBeVisible()
   await designSprite.click()
-  await expect(control('Clothing color')).toHaveValue('pine')
-  await expect(control('Accessory color')).toBeDisabled()
-  await control('Clothing style').selectOption('hawkmantle')
-  await control('Clothing color').selectOption('cobalt')
-  await control('Accessory style').selectOption('mapcase')
-  await control('Accessory color').selectOption('crimson')
-  await expect(control('Clothing color')).toHaveValue('cobalt')
-  await expect(control('Accessory color')).toHaveValue('crimson')
-  await control('Headwear style').selectOption(isMobile ? 'bandana' : 'arcanist')
-  await control('Headwear color').selectOption('amber')
-  await control('Facewear style').selectOption('eyepatch')
-  await control('Facewear color').selectOption('charcoal')
-  await expect(control('Accessory color')).toHaveValue('crimson')
-  await expect(control('Headwear color')).toHaveValue('amber')
-  await expect(control('Facewear color')).toHaveValue('charcoal')
-  await control('Hairstyle').selectOption('twins')
-  await control('Hair color').selectOption('lilac')
-  await control('Eye color').selectOption('green')
+  await expect(control('Look')).toHaveValue(look)
+  await expect(control('Portrait setting')).toHaveValue('lunar')
+  if (isMobile) {
+    await control('Cape color').selectOption('denim')
+    await expect(control('Cape color')).toHaveValue('denim')
+  }
   await control('Portrait setting').selectOption('frost')
   await expect(dialog.getByText(/spends one Appearance Token/)).toBeVisible()
-  const path = `/api/media/appearance/6/${identity}.hawkmantle.cobalt.mapcase.crimson.${isMobile ? 'bandana' : 'arcanist'}.amber.eyepatch.charcoal.natural.natural.twins.lilac.green.frost`
+  const preview = dialog.getByAltText('Neutral appearance portrait')
+  await expect(preview).toHaveAttribute(
+    'src',
+    new RegExp('/6/' + faceId + '[.].*[.]frost/illustrated-neutral[.]svg$'),
+  )
+  const path = (await preview.getAttribute('src'))!.replace('/illustrated-neutral.svg', '')
   const atlasWidth = await page.evaluate(async (imagePath) => {
     const image = new Image()
     image.src = imagePath
     await image.decode()
     return image.naturalWidth
-  }, `${path}/atlas.svg`)
+  }, `${path}/illustrated-atlas.svg`)
   expect(atlasWidth).toBe(576)
   await page.screenshot({ path: testInfo.outputPath('painted-wardrobe.png') })
   const confirm = dialog.getByRole('button', { name: 'Confirm appearance' })
@@ -108,5 +104,7 @@ test('@painted-wardrobe saves independent painted features and accessories using
   await page.reload()
   await designSprite.click()
   await expect(control('Portrait setting')).toHaveValue('frost')
+  await expect(control('Look')).toHaveValue(look)
+  if (isMobile) await expect(control('Cape color')).toHaveValue('denim')
   await expect(confirm).toBeDisabled()
 })

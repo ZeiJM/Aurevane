@@ -1,5 +1,21 @@
+import {
+  illustratedPortrait,
+  illustratedSprite,
+  illustratedSpriteHead,
+  illustratedSpriteMaterials,
+} from './appearance-illustrated'
 import { facePainting, faceLayers, naturalFaceSkin, fieldFacePaint } from './appearance-face-paint'
-import { studioColor, type StudioColor } from './appearance-backdrop-catalog'
+import { FITTED_FACEWEAR, FITTED_HEADWEAR } from './appearance-fitted-accessories'
+import { daryaCastLight, daryaSpriteArt, daryaSpriteMaterials } from './appearance-darya-art'
+import { paintedDaryaHairstyle } from './appearance-darya-look'
+import { matchingPaintedStudy } from './appearance-painted-studies'
+import { studyCastGlow, studySpriteArt, studySpriteMaterials } from './appearance-painted-study-art'
+import {
+  patternedBackdrop,
+  studioColor,
+  type StudioColor,
+  type PatternedBackdrop,
+} from './appearance-backdrop-catalog'
 import {
   APPEARANCE_FACINGS,
   APPEARANCE_FRAME,
@@ -38,7 +54,9 @@ import {
   paintedHairLayers,
 } from './appearance-painted-features'
 import {
+  WARDROBE_EYE_COLORS,
   WARDROBE_FRAMES,
+  WARDROBE_HAIRSTYLES,
   WARDROBE_SKIN_TONES,
   type PaintedWardrobeLook,
 } from './appearance-painted-wardrobe'
@@ -464,7 +482,9 @@ function paintedPlayerPortrait(
     !studio &&
     (backdrop === 'original'
       ? PAINTED_STUDIO_PAPER
-      : PAINTED_BACKDROPS[backdrop as Exclude<typeof backdrop, 'original' | StudioColor>])
+      : PAINTED_BACKDROPS[
+          backdrop as Exclude<typeof backdrop, 'original' | StudioColor | PatternedBackdrop>
+        ])
   const background = studio
     ? `<defs><radialGradient id="studio-light" cx=".40" cy=".32" r=".9"><stop stop-color="${studio[1]}"/><stop offset=".58" stop-color="${studio[2]}"/><stop offset="1" stop-color="${studio[3]}"/></radialGradient></defs><rect width="${size}" height="${size}" fill="url(#studio-light)"/>`
     : `<image href="${scene}" width="${size}" height="${size}"/>`
@@ -739,9 +759,93 @@ function renderPaintedCharacterAtlas(
 export function renderAppearanceAsset(
   blueprint: AppearanceBlueprint,
   asset: AppearanceAsset,
+  illustrated = false,
 ): string {
   const depthWalk = asset === 'motion-v2'
   const motion = asset === 'motion' || depthWalk
+  if (
+    blueprint.v === 6 &&
+    (illustrated ||
+      Object.hasOwn(FITTED_HEADWEAR, blueprint.headwear) ||
+      Object.hasOwn(FITTED_FACEWEAR, blueprint.facewear) ||
+      blueprint.apparentAge ||
+      blueprint.facialHair ||
+      blueprint.hairAccent ||
+      blueprint.secondEye ||
+      blueprint.scar ||
+      !Object.hasOwn(WARDROBE_EYE_COLORS, blueprint.eyeColor) ||
+      blueprint.faceId?.endsWith('soft') ||
+      blueprint.faceId?.endsWith('keen') ||
+      !Object.hasOwn(WARDROBE_HAIRSTYLES, blueprint.hairstyle) ||
+      patternedBackdrop(blueprint.backdrop))
+  ) {
+    if (asset !== 'atlas' && asset !== 'motion' && asset !== 'motion-v2')
+      return illustratedPortrait(blueprint, asset === 'icon' ? 'neutral' : asset, asset === 'icon')
+    const daryaHairstyle = paintedDaryaHairstyle(blueprint)
+    if (daryaHairstyle) {
+      const strides = motion
+        ? (['left', 'left', 'passing', 'passing', 'right', 'right', 'passing', 'passing'] as const)
+        : (['left', 'passing', 'right'] as const)
+      return renderSpriteAtlas(
+        daryaSpriteMaterials(daryaHairstyle),
+        (facing, pose, frame) => {
+          if (pose === 'walk') {
+            const rise = motion && frame % 4 === 2 ? -0.65 : 0
+            return `<ellipse cx="24" cy="58" rx="10" ry="2.5" fill="#171d23" fill-opacity=".4"/><g transform="translate(0 ${rise})">${daryaSpriteArt(facing, strides[frame]!)}</g>`
+          }
+          if (pose === 'cast' && frame > 0) {
+            const art = paintedSprite(facing, 'idle', 0, daryaSpriteArt(facing, 'cast'))
+            return art + daryaCastLight(daryaHairstyle, facing, frame)
+          }
+          return paintedSprite(facing, pose, frame, daryaSpriteArt(facing, 'idle'), motion)
+        },
+        motion,
+      )
+    }
+    const study = matchingPaintedStudy(blueprint)
+    if (study) {
+      const stride = motion
+        ? (['left', 'passing', 'passing', 'right', 'right', 'passing', 'passing', 'left'] as const)
+        : (['left', 'passing', 'right'] as const)
+      return renderSpriteAtlas(
+        studySpriteMaterials(study, blueprint.clothColor),
+        (facing, pose, frame) => {
+          if (pose === 'walk') {
+            return `<ellipse cx="24" cy="58" rx="10" ry="2.5" fill="#171d23" fill-opacity=".4"/>${studySpriteArt(facing, stride[frame]!)}`
+          }
+          if (pose === 'attack') {
+            return paintedSprite(
+              facing,
+              'idle',
+              0,
+              studySpriteArt(facing, frame === 1 ? 'attack' : 'brace'),
+            )
+          }
+          if (pose === 'cast') {
+            const art = paintedSprite(
+              facing,
+              'idle',
+              0,
+              studySpriteArt(facing, frame ? 'cast' : 'brace'),
+            )
+            return art + (frame ? studyCastGlow(study, facing, frame) : '')
+          }
+          return paintedSprite(facing, pose, frame, studySpriteArt(facing, 'idle'), motion)
+        },
+        motion,
+      )
+    }
+    const heads = APPEARANCE_FACINGS.map((facing) =>
+      illustratedSpriteHead(blueprint, facing, 'painted-' + facing),
+    )
+    const frames = motion ? APPEARANCE_MOTION_FRAME.frames : APPEARANCE_FRAME.frames
+    return renderSpriteAtlas(
+      `<defs>${illustratedSpriteMaterials(blueprint)}${heads.join('')}</defs>`,
+      (facing, pose, frame) =>
+        illustratedSprite(blueprint, facing, pose, frame, frames, 'painted-' + facing),
+      motion,
+    )
+  }
   if (blueprint.v === 4 || blueprint.v === 5 || blueprint.v === 6)
     return asset === 'atlas' || motion
       ? renderPaintedCharacterAtlas(blueprint, motion, depthWalk)

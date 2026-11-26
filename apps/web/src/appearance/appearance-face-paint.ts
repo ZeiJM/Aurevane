@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import type { AppearanceExpression } from './appearance-manifest'
 import { portraitFace } from './appearance-face-catalog'
 import {
-  WARDROBE_EYE_COLORS,
+  PLAYER_EYE_COLORS,
   WARDROBE_HAIR_COLORS,
   WARDROBE_SKIN_TONES,
   type PaintedPlayerLook,
@@ -61,7 +61,7 @@ export function faceLayers(
   const fit = painting.fit[mood]
   const skin = WARDROBE_SKIN_TONES[look.skinTone].rgb
   const hair = WARDROBE_HAIR_COLORS[look.hairDye].rgb
-  const eyes = WARDROBE_EYE_COLORS[look.eyeColor].rgb
+  const eyes = PLAYER_EYE_COLORS[look.eyeColor].rgb
   const head = '<use href="#registered-head"/>'
   const defs = `<image id="registered-head" href="${painting.poses[mood]}" width="256" height="256"/>
     <clipPath id="face-hair"><polygon points="${fit.hair}"/></clipPath><clipPath id="face-eyes">${fit.irises.map((points) => `<polygon points="${points}"/>`).join('')}</clipPath>
@@ -91,7 +91,7 @@ export function fieldFacePaint(look: PaintedPlayerLook, facing: 'east' | 'south'
   const width = front ? 40 : 38
   const head = `<use href="#field-face-${view}"/>`
   const hair = WARDROBE_HAIR_COLORS[look.hairDye].rgb
-  const eyes = WARDROBE_EYE_COLORS[look.eyeColor].rgb
+  const eyes = PLAYER_EYE_COLORS[look.eyeColor].rgb
   const skin = WARDROBE_SKIN_TONES[look.skinTone].rgb
   if (!hair && !eyes && !skin) return head
   const id = `field-face-paint-${facing}`

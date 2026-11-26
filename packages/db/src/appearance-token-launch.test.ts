@@ -43,7 +43,7 @@ beforeAll(async () => {
       "insert into public.character_profile_display (character_id,user_id,image_url) values ($1,$2,'https://example.com/portrait.webp')",
       [first, user],
     )
-  })
+  }, '20261125142500_illustrated_appearance_catalogue.sql')
 }, 60000)
 afterAll(async () => db?.close())
 

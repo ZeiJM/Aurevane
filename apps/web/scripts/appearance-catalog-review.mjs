@@ -482,7 +482,11 @@ async function reviewBuilder(browser, origin) {
     const battlePoses = dialog.getByRole('group', { name: 'Battle poses' })
     const face = dialog.getByRole('combobox', { name: 'Face', exact: true })
     const setting = dialog.getByRole('combobox', { name: 'Portrait setting' })
-    const src = () => portrait.getAttribute('src')
+    const src = async () => {
+      await dialog.locator('[data-appearance-preview][aria-busy="false"]').waitFor()
+      assert.equal(await dialog.getByText('This preview could not load.').count(), 0)
+      return portrait.getAttribute('src')
+    }
     const wardrobeOptionIds = () =>
       dialog.getByRole('group', { name: 'Appearance options' }).evaluate((fields) =>
         Array.from(fields.querySelectorAll('select'))
@@ -538,7 +542,16 @@ async function reviewBuilder(browser, origin) {
     await facewear.selectOption('eyepatch')
     await faceColor.selectOption('walnut')
     assert((await setting.locator('option').count()) >= 51)
-    assert.equal(await setting.locator('optgroup').count(), 4)
+    assert.deepEqual(
+      await setting.locator('optgroup').evaluateAll((groups) => groups.map((group) => group.label)),
+      [
+        'Studio colors',
+        'Patterned backgrounds',
+        'Cosmic and Void',
+        'Wilds and Roads',
+        'Settlements and Interiors',
+      ],
+    )
     await setting.selectOption('verdant')
     assert.equal(await setting.inputValue(), 'verdant')
     await setting.selectOption('orchard')

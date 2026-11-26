@@ -47,8 +47,8 @@ test('Appearance & Title saves repeatable free titles and previews a design befo
   const design = appearance.getByRole('button', { name: 'Design sprite' })
   const dialog = page.getByRole('dialog', { name: 'Character appearance' })
   const confirm = dialog.getByRole('button', { name: 'Confirm appearance' })
-  const clothingStyle = dialog.getByRole('combobox', { name: 'Clothing style', exact: true })
-  const clothingColor = dialog.getByRole('combobox', { name: 'Clothing color', exact: true })
+  const look = dialog.getByRole('combobox', { name: 'Look', exact: true })
+  const capeColor = dialog.getByRole('combobox', { name: 'Cape color', exact: true })
   const dye =
     info.project.name === 'desktop-chromium'
       ? 'garnet'
@@ -57,10 +57,10 @@ test('Appearance & Title saves repeatable free titles and previews a design befo
         : 'lagoon'
   await design.click()
   await expect(dialog).toBeVisible()
-  await expect(clothingStyle).toBeEnabled()
-  await clothingStyle.selectOption('shearling')
-  await clothingColor.selectOption(dye)
-  await expect(clothingColor).toHaveValue(dye)
+  await dialog.getByRole('radio', { name: 'Female', exact: true }).check()
+  await look.selectOption('asta')
+  await capeColor.selectOption(dye)
+  await expect(capeColor).toHaveValue(dye)
   await expect(confirm).toBeDisabled()
   await expect(dialog.getByText('You need an Appearance Token', { exact: false })).toBeVisible()
   await page.keyboard.press('Escape')
@@ -71,9 +71,10 @@ test('Appearance & Title saves repeatable free titles and previews a design befo
   await page.reload()
   await expect(appearance.getByText('1 Appearance Token available.')).toBeVisible()
   await design.click()
-  await expect(clothingColor).not.toHaveValue(dye)
-  await clothingStyle.selectOption('shearling')
-  await clothingColor.selectOption(dye)
+  await dialog.getByRole('radio', { name: 'Female', exact: true }).check()
+  await look.selectOption('asta')
+  await expect(capeColor).not.toHaveValue(dye)
+  await capeColor.selectOption(dye)
   await expect(confirm).toBeEnabled()
   await expect(
     dialog.getByText('Confirming a different look spends one Appearance Token.'),
@@ -85,7 +86,7 @@ test('Appearance & Title saves repeatable free titles and previews a design befo
   await page.reload()
   await expect(appearance.getByText('0 Appearance Tokens available.')).toBeVisible()
   await design.click()
-  await expect(clothingColor).toHaveValue(dye)
+  await expect(capeColor).toHaveValue(dye)
   await expect(confirm).toBeDisabled()
 })
 
