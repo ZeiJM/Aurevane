@@ -1,4 +1,5 @@
 import { patternedBackdrop, studioColor } from './appearance-backdrop-catalog'
+import { CATALOG_BACKDROP_ART } from './appearance-catalog-art'
 import { daryaPaintedPortrait } from './appearance-darya-art'
 import {
   fittedCharacterPortrait,
@@ -7,7 +8,6 @@ import {
   fittedSpriteOutfit,
   fittedSpriteSkinPigment,
 } from './appearance-fitted-portrait'
-import { LANDSCAPE_PAINTINGS } from './appearance-landscape-paintings.generated'
 import type {
   AppearanceExpression,
   AppearanceFacing,
@@ -20,7 +20,6 @@ import {
   renderPaintedSpriteRig,
 } from './appearance-painted-sprite-rig'
 import { WARDROBE_FRAMES } from './appearance-painted-wardrobe'
-import { PATTERN_PAINTINGS } from './appearance-pattern-paintings.generated'
 
 type Look = PaintedPlayerAppearanceBlueprint
 
@@ -73,9 +72,7 @@ const studioDecor: Record<
 }
 
 function portraitBackground(id: Look['backdrop']) {
-  const painting =
-    LANDSCAPE_PAINTINGS[id as keyof typeof LANDSCAPE_PAINTINGS] ??
-    PATTERN_PAINTINGS[id as keyof typeof PATTERN_PAINTINGS]
+  const painting = CATALOG_BACKDROP_ART[id]
   const pattern = patternedBackdrop(id)
   const studio = studioColor(id === 'original' ? 'parchment' : id)
   const seed = key(id)
@@ -164,6 +161,7 @@ export function illustratedSprite(
     mantle: false,
     satchel: look.gear !== 'none',
     fittedOutfit: true,
+    feminine: look.identity === 'pinescout' || look.identity === 'ranger',
     fabricDye: 'rig-fabric',
     outfitDye: look.clothColor === 'natural' ? undefined : 'rig-fabric',
     handDye: 'rig-skin',

@@ -1,5 +1,5 @@
 import type { AppearanceFacing, AppearancePose } from './appearance-manifest'
-import { PAINTED_HAND_POSES } from './appearance-painted-sprite-hands.generated'
+import { CATALOG_SPRITE_BODY, CATALOG_SPRITE_HANDS } from './appearance-catalog-art'
 import { PAINTED_SPRITE_PARTS } from './appearance-painted-sprite-parts.generated'
 
 type Outfit = Readonly<Record<'front' | 'back' | 'side' | 'sleeve', string>>
@@ -15,19 +15,26 @@ type Point = readonly [x: number, y: number]
 
 export const PAINTED_SPRITE_COLLAR_Y = 17
 
-export function fittedSpriteTorsoWidth(facing: AppearanceFacing, bodyBuild: number) {
+export function fittedSpriteTorsoWidth(
+  facing: AppearanceFacing,
+  bodyBuild: number,
+  feminine = false,
+) {
   const profile = facing === 'east' || facing === 'west'
   // Preserve body-build variation while leaving room for the head and arms.
-  return (profile ? 12 : 18) * (1 + (bodyBuild - 1) * 0.6)
+  return (
+    (profile ? (feminine ? 11.6 : 12.2) : feminine ? 16.6 : 17.8) * (1 + (bodyBuild - 1) * 0.67)
+  )
 }
 
 export function paintedSpriteRigDefinitions(outfit?: Outfit) {
-  const { thigh, bootFront, bootBack, bootSide, cloak, satchel } = PAINTED_SPRITE_PARTS
+  const { thigh, bootFront, bootBack, bootSide } = CATALOG_SPRITE_BODY
+  const { cloak, satchel } = PAINTED_SPRITE_PARTS
   const parts = outfit
     ? {
-        'visible-hand': PAINTED_HAND_POSES.relaxed,
-        'grip-hand': PAINTED_HAND_POSES.grip,
-        'casting-hand': PAINTED_HAND_POSES.cast,
+        'visible-hand': CATALOG_SPRITE_HANDS.relaxed,
+        'grip-hand': CATALOG_SPRITE_HANDS.grip,
+        'casting-hand': CATALOG_SPRITE_HANDS.cast,
         thigh,
         bootFront,
         bootBack,
@@ -78,6 +85,7 @@ export function renderPaintedSpriteRig({
   mantle,
   satchel,
   fittedOutfit = false,
+  feminine = false,
   fabricDye,
   outfitDye,
   sleeve = 'armFront',
@@ -96,6 +104,7 @@ export function renderPaintedSpriteRig({
   mantle: boolean
   satchel: boolean
   fittedOutfit?: boolean
+  feminine?: boolean
   fabricDye?: string
   outfitDye?: string
   sleeve?: 'armFront' | 'armSide' | 'sleeveSeafarer' | 'sleeveWool'
@@ -125,7 +134,7 @@ export function renderPaintedSpriteRig({
     recoil * 0.8 -
     charge * 0.55
   const torsoWidth = fittedOutfit
-    ? fittedSpriteTorsoWidth(facing, bodyBuild)
+    ? fittedSpriteTorsoWidth(facing, bodyBuild, feminine)
     : bodyBuild * (profile ? 11 : 18)
   const torsoPart = fittedOutfit
     ? profile
@@ -146,8 +155,8 @@ export function renderPaintedSpriteRig({
     fittedOutfit ? [torsoWidth * 1.26, 22.5] : [torsoWidth, 23],
   )
   const torso = dyePart(torsoArt, fittedOutfit ? (outfitDye ?? '') : fabricDye)
-  const waist = torsoWidth * (profile ? 0.51 : 0.49)
-  const shoulders = torsoWidth * 0.65
+  const waist = torsoWidth * (profile ? 0.49 : feminine ? 0.42 : 0.45)
+  const shoulders = torsoWidth * 0.61
   const contour = `M${24 - shoulders} ${torsoY - 3}H${24 + shoulders}V${torsoY + 7}Q${24 + shoulders} ${torsoY + 13} ${24 + waist} ${torsoY + 18}L${24 + waist} ${torsoY + 23}H${24 - waist}L${24 - waist} ${torsoY + 18}Q${24 - shoulders} ${torsoY + 13} ${24 - shoulders} ${torsoY + 7}Z`
   const torsoClip = `rig-waist-${facing}-${pose}-${frame}`
   const body = fittedOutfit
@@ -160,7 +169,7 @@ export function renderPaintedSpriteRig({
     )
   const nearShoulder: Point = [
     24 +
-      torsoWidth * (profile ? 0.13 : fittedOutfit ? 0.48 : 0.42) -
+      torsoWidth * (profile ? 0.11 : 0.42) -
       (fittedOutfit && attacking && !profile ? 2.5 + strike * 1.75 : 0),
     torsoY + 3,
   ]
@@ -201,7 +210,7 @@ export function renderPaintedSpriteRig({
   const arm = (side: -1 | 1) => {
     const leading = side === 1
     const { shoulder, elbow, wrist, angle, forearmAngle } = leading ? nearPose : armPose(side)
-    const width = profile ? (fittedOutfit ? 6.1 : 6.7) : 5.4
+    const width = fittedOutfit ? (feminine ? 4.55 : 5) : profile ? 6.7 : 5.4
     const handPart = !fittedOutfit
       ? 'hand'
       : pose === 'attack' && leading
@@ -213,7 +222,7 @@ export function renderPaintedSpriteRig({
       placePart(
         handPart,
         wrist,
-        fittedOutfit ? [width * 0.73, handPart === 'grip-hand' ? 4.2 : 5.1] : [width * 0.69, 8],
+        fittedOutfit ? [width * 0.66, handPart === 'grip-hand' ? 3.4 : 4.25] : [width * 0.69, 8],
         fittedOutfit ? forearmAngle : angle,
         !leading,
       ),

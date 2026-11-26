@@ -198,14 +198,17 @@ describe('painted portrait fitting', () => {
     expect(wideHair.width * fitPortraitLayer(wideHair.anchors, long).scaleX).toBeCloseTo(108 * 1.45)
   })
 
-  it('puts the lower lengths of loose hair behind the fitted collar', () => {
-    const result = renderFittedPortrait({ ...bare, tuckHairBehindShoulders: true }, '')
-    const behind = result.indexOf('clip-path="url(#hair-behind-shoulders)"')
+  it('tucks painted locks behind the head and protects the eyes under the fringe', () => {
+    const hair = { ...bare.hair, crownOpening: 0.32 }
+    const result = renderFittedPortrait({ ...bare, hair }, '')
+    const locks = result.indexOf('<use href="#fitted-hair-paint"/>')
     const collar = result.indexOf('clip-path="url(#painted-neck-opening)"')
-    const fringe = result.indexOf('clip-path="url(#hair-above-shoulders)"')
-    expect(behind).toBeGreaterThan(0)
-    expect(collar).toBeGreaterThan(behind)
+    const fringe = result.indexOf('mask="url(#painted-fringe-fit)"')
+    expect(locks).toBeGreaterThan(0)
+    expect(collar).toBeGreaterThan(locks)
     expect(fringe).toBeGreaterThan(collar)
+    const fit = fitPortraitLayer(hair.anchors, fittedHairTarget(hair, bare.landmarks, 'long'))
+    expect(fit.scaleX).toBeCloseTo(fit.scaleY, 8)
   })
 
   it('follows the painted mouth instead of centering a moustache on the canvas', () => {

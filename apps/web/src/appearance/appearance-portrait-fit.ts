@@ -11,6 +11,7 @@ export type PortraitAnchors = Readonly<{
 type PaintedLayer = Readonly<{
   href: string
   rearHref?: string
+  crownOpening?: number
   filter?: string
   width: number
   height: number
@@ -70,6 +71,25 @@ export function fittedHairTarget(
 ): PortraitAnchors {
   const { temples, hairline, brow } = landmarks
   const headWidth = temples[1] - temples[0]
+  if (hair.crownOpening !== undefined) {
+    // Register the painted part at the scalp and keep the opening around
+    // the face. Long locks keep their length independently of the crown.
+    const span = hair.anchors.right - hair.anchors.left
+    const opening = hair.crownOpening * hair.height
+    const targetOpening = hairline + (brow - hairline) * 0.34
+    const scale = Math.min(
+      (headWidth * 1.05) / span,
+      (headWidth * (length === 'long' ? 1.95 : 1.71)) / hair.width,
+      (targetOpening - 6) / Math.max(1, opening),
+    )
+    const center = (temples[0] + temples[1]) / 2
+    return {
+      left: center - (span * scale) / 2 + adjustment[0],
+      right: center + (span * scale) / 2 + adjustment[0],
+      top: targetOpening + (hair.anchors.top - opening) * scale + adjustment[1],
+      bottom: targetOpening + (hair.anchors.bottom - opening) * scale + adjustment[1],
+    }
+  }
   const [left, right] = boundedFittingWidth(
     hair,
     temples[0],
@@ -115,7 +135,7 @@ export function fittedFacialHairTarget(
     return { left: center - 14, right: center + 14, top: lip - 6, bottom: lip + 1 }
   }
   if (fit === 'chin') {
-    return { left: center - 13, right: center + 13, top: lip + 4, bottom: chin + 3 }
+    return { left: center - 9, right: center + 9, top: lip + 2, bottom: chin + 0.8 }
   }
   return {
     left: (temples[0] + neck[0]) / 2,
@@ -127,14 +147,12 @@ export function fittedFacialHairTarget(
 
 export type PaintedPortraitLayers = Readonly<{
   face: PaintedLayer
-  trimScalp?: boolean
   landmarks: PortraitFaceLandmarks
   neckPigment: readonly [light: string, shadow: string]
   hair: PaintedLayer
   hairLength?: 'short' | 'long'
   rootedHair?: boolean
   clearCheeks?: boolean
-  tuckHairBehindShoulders?: boolean
   garment: PaintedLayer
   lowCollar?: boolean
   paintedFilters?: string
@@ -170,11 +188,11 @@ export function fitPortraitAccessories(
   if (headwear) {
     const closedCrown = headwear.kind !== 'circlet'
     const hood = headwear.kind === 'hood'
-    const band = closedCrown ? hairline + 7 : brow - 8
+    const band = hood ? hairline + 9 : closedCrown ? brow - 3 : brow - 8
     const padding = hood ? 15 : closedCrown ? 8 : 3
     const guides = headwear.layer.anchors
     const headWidth = temples[1] - temples[0]
-    const brimWidth = headwear.wideBrim ? 1.58 : hood ? 1.42 : closedCrown ? 1.3 : 1.14
+    const brimWidth = headwear.wideBrim ? 1.68 : hood ? 1.5 : closedCrown ? 1.55 : 1.14
     const [left, right] = boundedFittingWidth(
       headwear.layer,
       temples[0] - padding,
@@ -202,10 +220,10 @@ export function fitPortraitAccessories(
     }
     if (closedCrown) {
       const clip = `${scope}-brim-fit`
-      const left = temples[0] - 7
-      const right = temples[1] + 7
+      const left = temples[0] - 4
+      const right = temples[1] + 4
       const crownCenter = (left + right) / 2
-      fittedHair = `<clipPath id="${clip}"><path d="M${left} ${band + 2}Q${crownCenter} ${band - 11} ${right} ${band + 2}L${right + 4} ${eyesY + 10}L256 ${chin + 6}V256H0V${chin + 6}L${left - 4} ${eyesY + 10}Z"/></clipPath><g clip-path="url(#${clip})">${hairstyle}</g>`
+      fittedHair = `<clipPath id="${clip}"><path d="M${left} ${band - 3}Q${crownCenter} ${band - 13} ${right} ${band - 3}L${right + 4} ${eyesY + 10}L256 ${chin + 6}V256H0V${chin + 6}L${left - 4} ${eyesY + 10}Z"/></clipPath><g clip-path="url(#${clip})">${hairstyle}</g>`
     }
   }
 
@@ -214,7 +232,7 @@ export function fitPortraitAccessories(
   if (facewear?.kind === 'lenses' || facewear?.kind === 'mask') {
     const lenses = facewear.kind === 'lenses'
     const [left, right] = lenses
-      ? boundedFittingWidth(facewear.layer, eyes[0], eyes[1], (temples[1] - temples[0]) * 1.02)
+      ? boundedFittingWidth(facewear.layer, eyes[0], eyes[1], (temples[1] - temples[0]) * 1.23)
       : eyes
     const opening = lenses ? Math.min(9, (right - left) * 0.18) : 9
     const lensTarget = {
@@ -271,21 +289,16 @@ export function renderFittedPortrait(
   const { temples, eyes, eyesY, hairline, brow, chin, neck, shoulder } = landmarks
   const neckCenter = (neck[0] + neck[1]) / 2
   const faceImage = layerImage(face, { left: eyes[0], right: eyes[1], top: eyesY, bottom: chin })
-  // Extend the scalp under the replaceable fringe so its antialiased edge
-  // cannot expose the portrait backdrop between the two paintings.
-  const scalpFit = layers.trimScalp
-    ? `<clipPath id="painted-scalp"><path d="M0 ${brow} Q${neckCenter} ${2 * (hairline - 16) - brow} 256 ${brow} V256 H0Z"/></clipPath><g clip-path="url(#painted-scalp)">${faceImage}</g>`
-    : faceImage
   // Fade the painted crop into skin below the jaw, where some bases end in a
   // flat edge. Keep the jaw and its shading fully opaque.
   const fittedFaceImage = `<defs>
-    <linearGradient id="painted-neck-feather" gradientUnits="userSpaceOnUse" x2="0" y1="${chin + 3}" y2="${chin + 19}">
+    <linearGradient id="painted-neck-feather" gradientUnits="userSpaceOnUse" x2="0" y1="${chin + 12}" y2="${chin + 35}">
       <stop stop-color="white"/><stop offset="1" stop-color="white" stop-opacity="0"/>
     </linearGradient>
     <mask id="painted-neck-fit" maskUnits="userSpaceOnUse" x="0" y="0" width="256" height="256">
       <rect width="256" height="256" fill="url(#painted-neck-feather)"/>
     </mask>
-  </defs><g mask="url(#painted-neck-fit)">${scalpFit}</g>`
+  </defs><g mask="url(#painted-neck-fit)">${faceImage}</g>`
   // The expression maps were painted on a reference with eyes at y=98,
   // 44 units apart, and the mouth at y=138. Keep the movement on the
   // corresponding features once different face proportions are fitted.
@@ -303,9 +316,14 @@ export function renderFittedPortrait(
       ?.map((filter, index) => {
         if (!filter) return ''
         const clip = `painted-iris-${index}`
-        return `<clipPath id="${clip}"><ellipse cx="${eyes[index]}" cy="${eyesY}" rx="${irisRadius}" ry="${irisHeight}"/></clipPath><g clip-path="url(#${clip})"><use href="#painted-head-source" filter="url(#${filter})"/></g>`
+        return `<mask id="${clip}"><ellipse cx="${eyes[index]}" cy="${eyesY}" rx="${irisRadius}" ry="${irisHeight}" fill="white" filter="url(#painted-iris-rolloff)"/></mask><g mask="url(#${clip})" opacity=".82"><use href="#painted-head-source" filter="url(#${filter})"/></g>`
       })
       .join('') ?? ''
+  if (irisOverlay) {
+    irisOverlay =
+      '<defs><filter id="painted-iris-rolloff"><feGaussianBlur stdDeviation=".62"/></filter></defs>' +
+      irisOverlay
+  }
   if (layers.irisAccent) {
     const x = eyes[0]
     const shape =
@@ -331,8 +349,8 @@ export function renderFittedPortrait(
       <stop offset="1" stop-color="${neckPigment[1]}" stop-opacity="0"/>
     </linearGradient>
     <path id="neck-contour" d="M${neckCenter - upperNeck} ${chin + 3}Q${neckCenter} ${chin - 9} ${neckCenter + upperNeck} ${chin + 3}
-      C${neck[1]} ${chin + 12} ${neck[1] + 3} ${shoulder + 2} ${neck[1] + 12} ${shoulder + 11}
-      H${neck[0] - 12}C${neck[0] - 3} ${shoulder + 2} ${neck[0]} ${chin + 12} ${neckCenter - upperNeck} ${chin + 3}Z"/>
+      C${neck[1] + 9} ${chin + 7} ${neck[1] + 19} ${shoulder - 7} ${neck[1] + 25} ${shoulder + 11}
+      L${neck[1] + 27} ${shoulder + 40}H${neck[0] - 27}L${neck[0] - 25} ${shoulder + 11}C${neck[0] - 19} ${shoulder - 7} ${neck[0] - 9} ${chin + 7} ${neckCenter - upperNeck} ${chin + 3}Z"/>
   </defs>
   <use href="#neck-contour" fill="url(#neck-continuation)"/>
   <use href="#neck-contour" fill="url(#neck-contact-shade)"/>`
@@ -347,27 +365,26 @@ export function renderFittedPortrait(
   const neckSpan = neck[1] - neck[0]
   const sourceCollarSpan = garment.anchors.right - garment.anchors.left
   const naturalWidth = (neckSpan * garmentScale * garment.width) / sourceCollarSpan
-  const minimumWidth = faceWidth * (2.1 + (garmentScale - 1) * 0.24)
+  const minimumWidth = Math.max(238, faceWidth * 2.45) * garmentScale
   const garmentWidth = Math.min(
     Math.max(260, minimumWidth),
-    faceWidth * 2.45,
+    faceWidth * 2.8 * garmentScale,
     Math.max(minimumWidth, naturalWidth),
   )
   const collarSpan = (garmentWidth * sourceCollarSpan) / garment.width / 2
   const garmentImage = layerImage(garment, {
     left: neckCenter - collarSpan,
     right: neckCenter + collarSpan,
-    top: chin + (layers.lowCollar ? 4 : 1),
-    bottom: shoulder,
+    top: chin + (layers.lowCollar ? 5 : 1),
+    bottom: layers.lowCollar
+      ? chin + 5 + ((garment.anchors.bottom - garment.anchors.top) * garmentWidth) / garment.width
+      : shoulder,
   })
   // The collar wraps around the neck. Keep the painted sides while giving
   // the chin and the center of the throat a continuous clear opening.
   const collarLeft = neck[0] - 3
   const collarRight = neck[1] + 3
-  const opening = layers.lowCollar
-    ? `M0 ${chin + 19}Q${collarLeft - 18} ${chin + 14} ${collarLeft} ${chin}
-       Q${neckCenter} ${chin + 20} ${collarRight} ${chin}Q${collarRight + 18} ${chin + 14} 256 ${chin + 19}V256H0Z`
-    : `M0 0H${collarLeft}V${chin - 3}Q${neckCenter} ${chin + 12} ${collarRight} ${chin - 3}V0H256V256H0Z`
+  const opening = `M0 0H${collarLeft}V${chin - 3}Q${neckCenter} ${chin + 9} ${collarRight} ${chin - 3}V0H256V256H0Z`
   const clothing = `<defs><clipPath id="painted-neck-opening"><path d="${opening}"/></clipPath></defs><g clip-path="url(#painted-neck-opening)">${garmentImage}</g>`
   const gearPlacement = layers.gearPlacement ?? 'sash'
   const gearPositions = {
@@ -456,18 +473,28 @@ export function renderFittedPortrait(
         <use href="#painted-root-hair" filter="url(#painted-root-contact)"/>
       </g></g>`
     : ''
-  let shoulderHair = ''
   const hairPaint = blendRoots ? '<use href="#painted-root-hair"/>' : fittedHair
-  let frontHair = hairPaint
-  if (layers.tuckHairBehindShoulders) {
-    const split = chin + 4
-    const cut = `M0 ${split + 18}Q128 ${split - 10} 256 ${split + 18}`
-    const splitLayers = `<defs><g id="fitted-hair-paint">${hairPaint}</g>
-      <clipPath id="hair-behind-shoulders"><path d="${cut}V256H0Z"/></clipPath>
-      <clipPath id="hair-above-shoulders"><path d="${cut}V0H0Z"/></clipPath></defs>`
-    shoulderHair = `${splitLayers}<use href="#fitted-hair-paint" clip-path="url(#hair-behind-shoulders)"/>`
-    frontHair = '<use href="#fitted-hair-paint" clip-path="url(#hair-above-shoulders)"/>'
-  }
+  // The longer locks grow behind the cheek. Reuse the painted fringe above
+  // the brow so moving it behind the head never makes the scalp show through.
+  const layeredHair =
+    hair.crownOpening !== undefined
+      ? `<defs>
+      <g id="fitted-hair-paint">${hairPaint}</g>
+      <filter id="fringe-contact-rolloff"><feGaussianBlur stdDeviation="1.5"/></filter>
+      <mask id="painted-fringe-fit">
+        <rect width="256" height="256" fill="white"/>
+        <path d="M${eyes[0] - 12} ${eyesY + 4} Q${eyes[0] - 13} ${brow - 3} ${eyes[0]} ${brow - 3}
+          H${eyes[1]} Q${eyes[1] + 13} ${brow - 3} ${eyes[1] + 12} ${eyesY + 4}
+          Q${eyes[1] + 7} ${chin - 8} ${neckCenter} ${chin + 1}
+          Q${eyes[0] - 7} ${chin - 8} ${eyes[0] - 12} ${eyesY + 4}Z"
+          fill="black" filter="url(#fringe-contact-rolloff)"/>
+      </mask>
+    </defs>`
+      : ''
+  const hairBack = layeredHair ? '<use href="#fitted-hair-paint"/>' : ''
+  const frontHair = layeredHair
+    ? '<use href="#fitted-hair-paint" mask="url(#painted-fringe-fit)"/>'
+    : hairPaint
   const size = icon ? 64 : 256
   const viewBox = icon ? '44 28 168 168' : '0 0 256 256'
   // Scale the head and its fittings together around the base of the jaw.
@@ -479,7 +506,7 @@ export function renderFittedPortrait(
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="${viewBox}">
     ${layers.paintedFilters ? `<defs>${layers.paintedFilters}</defs>` : ''}
     ${backdrop}${gearPlacement === 'behind' ? gear : ''}
-    <g transform="${headTransform}">${hatBack}${rearImage(hair, hairTarget)}${shoulderHair}${accessoryBack}</g>
+    <g transform="${headTransform}">${layeredHair}${hatBack}${rearImage(hair, hairTarget)}${hairBack}${accessoryBack}</g>
     ${neckUnderlay}<g transform="${headTransform}">${head}${layers.faceMarks ?? ''}</g>${clothing}${gearPlacement === 'behind' ? '' : gear}
     <g transform="${headTransform}">${beard}${accessory}${rootShadow}${frontHair}${hat}</g>
   </svg>`
