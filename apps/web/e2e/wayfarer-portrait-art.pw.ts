@@ -19,9 +19,12 @@ test('all replacement Wayfarer public aliases decode as distinct approved painte
       await image.decode()
       const target = await fetch(source)
       if (!target.ok) throw new Error('Portrait alias failed: ' + source)
+      const targetUrl = new URL(target.url)
+      if (targetUrl.origin !== location.origin)
+        throw new Error('Portrait alias left the current origin: ' + source)
       results.push({
         source,
-        target: new URL(target.url).pathname,
+        target: targetUrl.pathname,
         width: image.naturalWidth,
         height: image.naturalHeight,
       })

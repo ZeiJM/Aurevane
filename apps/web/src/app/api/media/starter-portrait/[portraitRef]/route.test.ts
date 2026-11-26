@@ -13,7 +13,9 @@ describe('starter portrait media route', () => {
     const url = new URL(resolvePublicCharacterImageUrl(null, portraitRef)!, 'https://aurevane.test')
     const response = await GET(new Request(url), { params: Promise.resolve({ portraitRef }) })
     expect(response.status).toBe(307)
-    const location = new URL(response.headers.get('location')!)
+    const target = response.headers.get('location')!
+    expect(target).toMatch(/^\/api\/media\/appearance\//)
+    const location = new URL(target, url)
     expect(location.origin).toBe(url.origin)
     expect(
       isActivePaintedAppearance(appearanceManifestFromImageUrl(location.pathname)?.blueprint),
