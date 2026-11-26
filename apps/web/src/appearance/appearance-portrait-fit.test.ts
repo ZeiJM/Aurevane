@@ -7,6 +7,7 @@ import {
   fitPortraitLayer,
   fittedFacialHairTarget,
   fittedHairTarget,
+  portraitHairEnvelope,
   renderFittedPortrait,
   type PaintedPortraitLayers,
 } from './appearance-portrait-fit'
@@ -196,6 +197,28 @@ describe('painted portrait fitting', () => {
     expect((short.left + short.right) / 2).toBe(128)
     expect(long.right - long.left).toBeGreaterThan(short.right - short.left)
     expect(wideHair.width * fitPortraitLayer(wideHair.anchors, long).scaleX).toBeCloseTo(108 * 1.45)
+  })
+
+  it('fits a painted opening over the eyes without squeezing the hair or changing the portrait framing', () => {
+    const hair = {
+      ...bare.hair,
+      opening: { left: 0.28, right: 0.67, eyeLine: 0.34, part: 0.19 },
+    }
+    for (const eyes of [
+      [102, 154],
+      [107, 149],
+    ] as const) {
+      const landmarks = { ...bare.landmarks, eyes }
+      const target = fittedHairTarget(hair, landmarks, 'long')
+      const { origin, scaleX, scaleY } = fitPortraitLayer(hair.anchors, target)
+      expect(scaleX).toBeCloseTo(scaleY)
+      expect(
+        origin[0] + ((hair.opening.left + hair.opening.right) / 2) * hair.width * scaleX,
+      ).toBeCloseTo(128)
+      expect(origin[1] + hair.opening.eyeLine * hair.height * scaleY).toBeCloseTo(landmarks.eyesY)
+      expect(origin[1]).toBeGreaterThanOrEqual(7 - 1e-7)
+      expect(portraitHairEnvelope(hair, target, landmarks.temples, 'long')).toBeCloseTo(108 * 1.45)
+    }
   })
 
   it('puts the lower lengths of loose hair behind the fitted collar', () => {

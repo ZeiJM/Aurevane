@@ -1,6 +1,13 @@
 type Point = readonly [x: number, y: number]
 export const PORTRAIT_TEMPLE_FRACTION = 0.86
 
+export type HairOpening = Readonly<{
+  left: number
+  right: number
+  eyeLine: number
+  part: number
+}>
+
 export type PortraitAnchors = Readonly<{
   left: number
   right: number
@@ -15,6 +22,7 @@ type PaintedLayer = Readonly<{
   width: number
   height: number
   anchors: PortraitAnchors
+  opening?: HairOpening
 }>
 
 type FacialHairFit = 'upperLip' | 'chin' | 'jaw'
@@ -64,12 +72,27 @@ function boundedFittingWidth(
 
 export function fittedHairTarget(
   hair: PaintedLayer,
-  landmarks: Pick<PortraitFaceLandmarks, 'temples' | 'hairline' | 'brow'>,
+  landmarks: Pick<PortraitFaceLandmarks, 'temples' | 'hairline' | 'brow' | 'eyes' | 'eyesY'>,
   length: 'short' | 'long',
   adjustment: Point = [0, 0],
 ): PortraitAnchors {
   const { temples, hairline, brow } = landmarks
   const headWidth = temples[1] - temples[0]
+  if (hair.opening) {
+    const { left, right, eyeLine } = hair.opening
+    const { eyes, eyesY } = landmarks
+    const eyeSpan = eyes[1] - eyes[0]
+    const sourceOpening = (right - left) * hair.width
+    const scale = Math.min((eyeSpan * 1.67) / sourceOpening, (eyesY - 7) / (eyeLine * hair.height))
+    const x = (eyes[0] + eyes[1] - (left + right) * hair.width * scale) / 2
+    const y = eyesY - eyeLine * hair.height * scale
+    return {
+      left: x + hair.anchors.left * scale,
+      right: x + hair.anchors.right * scale,
+      top: y + hair.anchors.top * scale,
+      bottom: y + hair.anchors.bottom * scale,
+    }
+  }
   const [left, right] = boundedFittingWidth(
     hair,
     temples[0],
@@ -91,6 +114,37 @@ export function fittedHairTarget(
     top: opening - verticalSpan / 2 + adjustment[1],
     bottom: opening + verticalSpan / 2 + adjustment[1],
   }
+}
+
+export function fittedScalpOpening(
+  face: string,
+  hair: PaintedLayer,
+  target: PortraitAnchors,
+  { eyes, temples, brow }: PortraitFaceLandmarks,
+  id: string,
+) {
+  const opening = hair.opening
+  if (!opening) return face
+  const { origin, scaleY } = fitPortraitLayer(hair.anchors, target)
+  const part = origin[1] + opening.part * hair.height * scaleY
+  const center = (eyes[0] + eyes[1]) / 2
+  const [left, right] = temples
+  // The source face includes a bald crown. Preserve the forehead under the
+  // registered part and taper it behind the hair at the temples.
+  return `<clipPath id="${id}"><path d="M0 ${brow}H${left + 2}Q${eyes[0]} ${part + 6} ${center} ${part - 6}Q${eyes[1]} ${part + 6} ${right - 2} ${brow}H256V256H0Z"/></clipPath><g clip-path="url(#${id})">${face}</g>`
+}
+
+export function portraitHairEnvelope(
+  hair: PaintedLayer,
+  target: PortraitAnchors,
+  temples: PortraitFaceLandmarks['temples'],
+  length: 'short' | 'long',
+) {
+  // The tips can spread onto the shoulders. Keep the same face framing when
+  // replacing the artwork for a hairstyle with a wider or longer sweep.
+  return hair.opening
+    ? (temples[1] - temples[0]) * (length === 'long' ? 1.45 : 1.29)
+    : hair.width * fitPortraitLayer(hair.anchors, target).scaleX
 }
 
 export function clearShortHairFromFace(
@@ -270,12 +324,16 @@ export function renderFittedPortrait(
   const { face, landmarks, neckPigment, hair, garment, headwear, facewear } = layers
   const { temples, eyes, eyesY, hairline, brow, chin, neck, shoulder } = landmarks
   const neckCenter = (neck[0] + neck[1]) / 2
+  const hairLength = layers.hairLength ?? 'short'
+  const hairTarget = fittedHairTarget(hair, landmarks, hairLength, layers.hairAdjustment)
   const faceImage = layerImage(face, { left: eyes[0], right: eyes[1], top: eyesY, bottom: chin })
   // Extend the scalp under the replaceable fringe so its antialiased edge
   // cannot expose the portrait backdrop between the two paintings.
-  const scalpFit = layers.trimScalp
-    ? `<clipPath id="painted-scalp"><path d="M0 ${brow} Q${neckCenter} ${2 * (hairline - 16) - brow} 256 ${brow} V256 H0Z"/></clipPath><g clip-path="url(#painted-scalp)">${faceImage}</g>`
-    : faceImage
+  const scalpFit = hair.opening
+    ? fittedScalpOpening(faceImage, hair, hairTarget, landmarks, 'painted-scalp')
+    : layers.trimScalp
+      ? `<clipPath id="painted-scalp"><path d="M0 ${brow} Q${neckCenter} ${2 * (hairline - 16) - brow} 256 ${brow} V256 H0Z"/></clipPath><g clip-path="url(#painted-scalp)">${faceImage}</g>`
+      : faceImage
   // Fade the painted crop into skin below the jaw, where some bases end in a
   // flat edge. Keep the jaw and its shading fully opaque.
   const fittedFaceImage = `<defs>
@@ -385,12 +443,6 @@ export function renderFittedPortrait(
   const gear = layers.gear
     ? `<image href="${layers.gear.href}" x="${neckCenter + gearPosition.left * gearScale}" y="${gearTop}" width="${(gearPosition.right - gearPosition.left) * gearScale}" height="${gearPosition.bottom - gearPosition.top}" preserveAspectRatio="xMidYMin meet"${layers.gear.filter ? ` filter="url(#${layers.gear.filter})"` : ''}/>`
     : ''
-  const hairTarget = fittedHairTarget(
-    hair,
-    landmarks,
-    layers.hairLength ?? 'short',
-    layers.hairAdjustment,
-  )
   let hairstyle = layerImage(hair, hairTarget)
   if (layers.hairAccent) {
     const { placement, filter, highlight } = layers.hairAccent
@@ -461,10 +513,13 @@ export function renderFittedPortrait(
   let frontHair = hairPaint
   if (layers.tuckHairBehindShoulders) {
     const split = chin + 4
-    const cut = `M0 ${split + 18}Q128 ${split - 10} 256 ${split + 18}`
+    const acrossShoulders = `M0 ${split + 18}Q128 ${split - 10} 256 ${split + 18}`
+    const acrossFarShoulder = `${neckCenter} 256V${split + 2}Q${neckCenter + 48} ${split + 1} 256 ${split + 18}`
+    const behind = hair.opening ? `M${acrossFarShoulder}V256Z` : `${acrossShoulders}V256H0Z`
+    const inFront = hair.opening ? `M0 256L${acrossFarShoulder}V0H0Z` : `${acrossShoulders}V0H0Z`
     const splitLayers = `<defs><g id="fitted-hair-paint">${hairPaint}</g>
-      <clipPath id="hair-behind-shoulders"><path d="${cut}V256H0Z"/></clipPath>
-      <clipPath id="hair-above-shoulders"><path d="${cut}V0H0Z"/></clipPath></defs>`
+      <clipPath id="hair-behind-shoulders"><path d="${behind}"/></clipPath>
+      <clipPath id="hair-above-shoulders"><path d="${inFront}"/></clipPath></defs>`
     shoulderHair = `${splitLayers}<use href="#fitted-hair-paint" clip-path="url(#hair-behind-shoulders)"/>`
     frontHair = '<use href="#fitted-hair-paint" clip-path="url(#hair-above-shoulders)"/>'
   }
@@ -472,7 +527,7 @@ export function renderFittedPortrait(
   const viewBox = icon ? '44 28 168 168' : '0 0 256 256'
   // Scale the head and its fittings together around the base of the jaw.
   // The collar stays on the body registration and overlaps the neck below it.
-  const crownWidth = hair.width * fitPortraitLayer(hair.anchors, hairTarget).scaleX
+  const crownWidth = portraitHairEnvelope(hair, hairTarget, temples, hairLength)
   const headEnvelope = Math.max(faceWidth, crownWidth)
   const headScale = icon ? 1 : Math.min(0.93, Math.max(0.79, (garmentWidth * 0.485) / headEnvelope))
   const headTransform = `translate(${neckCenter} ${chin}) scale(${headScale}) translate(${-neckCenter} ${-chin})`

@@ -1,6 +1,7 @@
 import { FITTED_ACCESSORY_ART } from './appearance-fitted-accessories.generated'
 import { FITTED_FACEWEAR, FITTED_HEADWEAR } from './appearance-fitted-accessories'
 import { FITTED_ART_SOURCE } from './appearance-fitted-source.generated'
+import { REPAINTED_HAIR_OPENINGS } from './appearance-repainted-hair-openings.generated'
 import { PAINTED_HAIRLINE_REFITS } from './appearance-hairline-refits.generated'
 import type {
   AppearanceExpression,
@@ -29,8 +30,10 @@ import {
   fitPortraitAccessories,
   fittedFacialHairTarget,
   fittedHairTarget,
+  fittedScalpOpening,
   fitPortraitLayer,
   PORTRAIT_TEMPLE_FRACTION,
+  portraitHairEnvelope,
   renderFittedPortrait,
   type PortraitAnchors,
   type PortraitFaceLandmarks,
@@ -38,7 +41,12 @@ import {
 
 type SourceName = keyof typeof FITTED_ART_SOURCE
 
-const wardrobePaintings = { ...PAINTED_HAIRLINE_REFITS, ...REPAINTED_HAIR, ...REPAINTED_GARMENTS }
+const wardrobePaintings = {
+  ...PAINTED_HAIRLINE_REFITS,
+  ...REPAINTED_HAIR,
+  ...REPAINTED_GARMENTS,
+  ...REPAINTED_HAIR_OPENINGS,
+}
 type RefitArt = typeof wardrobePaintings
 const refits: {
   [Name in SourceName]?: Name extends keyof RefitArt ? RefitArt[Name] : never
@@ -518,7 +526,7 @@ export function fittedCharacterPortrait(
         paintedPigmentFilter('painted-hat', headDye) +
         paintedPigmentFilter('painted-accessory', accessoryDye),
       hair: naturalOrDyed(hair, 'painted-hair', hairDye),
-      rootedHair: rootsVisible.has(look.hairstyle),
+      rootedHair: rootsVisible.has(look.hairstyle) || 'opening' in hair,
       clearCheeks: croppedFringe.has(look.hairstyle),
       hairLength: longHair.has(look.hairstyle) ? 'long' : 'short',
       hairAdjustment: hairRegistrations[look.hairstyle],
@@ -867,6 +875,10 @@ export function fittedCharacterSpriteHead(
   const nearFacewear = !profile
     ? worn.accessory
     : `<clipPath id="${id}-near-face"><rect x="130" width="64" height="210"/></clipPath><g clip-path="url(#${id}-near-face)">${worn.accessory}</g>`
+  const fittedSkin =
+    rear || profile
+      ? skin
+      : fittedScalpOpening(skin, hairArt, hairTarget, landmarks, `${id}-painted-scalp`)
   const bodyBuild = WARDROBE_FRAMES[look.bodyFrame].torsoScale
   const torsoWidth = fittedSpriteTorsoWidth(facing, bodyBuild) * 1.26
   const faceWidth = profile
@@ -878,7 +890,7 @@ export function fittedCharacterSpriteHead(
     ? Math.max(184, hairLeft + hairWidth) - Math.min(71, hairLeft)
     : rear
       ? hairWidth
-      : hairArt.width * fitPortraitLayer(hairArt.anchors, hairTarget).scaleX
+      : portraitHairEnvelope(hairArt, hairTarget, landmarks.temples, long ? 'long' : 'short')
   const headScale = Math.min(
     profile || rear ? 0.073 : 0.076,
     (torsoWidth * (profile ? 0.55 : 0.39)) / faceWidth,
@@ -890,6 +902,6 @@ export function fittedCharacterSpriteHead(
   const headY = PAINTED_SPRITE_COLLAR_Y - headScale * (chin + (profile ? 10 : 6))
   const transform = `translate(${headX} ${headY}) scale(${headScale})`
   return `<defs>${defs}</defs>
-    <g id="${id}-base" transform="${transform}">${worn.hatBack}${worn.accessoryBack}${skin}${marks}</g>
+    <g id="${id}-base" transform="${transform}">${worn.hatBack}${worn.accessoryBack}${fittedSkin}${marks}</g>
     <g id="${id}" transform="${transform}">${beard}${nearFacewear}${worn.fittedHair}${worn.hat}</g>`
 }
