@@ -1507,12 +1507,29 @@ test('a synthetic population of 100 has bounded rendering at high DPI and lower 
       })
   })
   expect(ground.length).toBeGreaterThanOrEqual(100)
+  const starterPortrait = '/api/media/starter-portrait/portrait.starter.wayfarer-01'
+  const approvedPortrait = await page.request.get(starterPortrait)
+  expect(approvedPortrait.ok()).toBe(true)
+  expect(approvedPortrait.headers()['content-type']).toContain('image/svg+xml')
+  const portraitSvg = await approvedPortrait.text()
+  const intrinsicSize = /^(<svg[^>]*?\s)width="256" height="256" viewBox="0 0 256 256"/
+  expect(portraitSvg).toMatch(intrinsicSize)
+  // Keep the crowd workload at its original decoded size using the active art.
+  // The rest of the test still counts actual painted portraits before timing begins.
+  const crowdPortrait = portraitSvg.replace(
+    intrinsicSize,
+    '$1width="400" height="400" viewBox="0 0 256 256"',
+  )
+  await page.route(
+    /\/api\/media\/starter-portrait\/portrait\.starter\.wayfarer-01\?syntheticPortrait=\d+$/,
+    (route) => route.fulfill({ contentType: 'image/svg+xml', body: crowdPortrait }),
+  )
   const players = Array.from({ length: 100 }, (_, i) => ({
     characterId: `synthetic-${i}`,
     name: `Traveller ${i + 1}`,
     level: 10,
     portraitRef: '',
-    imageUrl: `/api/media/starter-portrait/portrait.starter.wayfarer-01?syntheticPortrait=${i}`,
+    imageUrl: `${starterPortrait}?syntheticPortrait=${i}`,
     online: true,
     attackable: false,
     position: ground[i]!,
