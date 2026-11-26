@@ -626,19 +626,19 @@ export function fittedCharacterSpriteHead(
         )
   // Register a directional painting by the crown. Long styles keep their
   // length behind the neck instead of enlarging the hair around the face.
+  const hairWidth = profile ? (long ? 124 : 107) : long ? 128 : 108
+  const hairLeft = profile ? (long ? 53 : 65) : long ? 64 : 74
+  const hairTarget = fittedHairTarget(hairArt, landmarks, long ? 'long' : 'short')
   const rawHair =
     rear || profile
       ? image(
           facingHairArt.href,
-          profile ? (long ? 53 : 65) : long ? 64 : 74,
+          hairLeft,
           tied ? 19 : 26,
-          profile ? (long ? 124 : 107) : long ? 128 : 108,
+          hairWidth,
           long ? 156 : tied ? 121 : 101,
         )
-      : registeredImage(
-          PAINTED_SPRITE_HEADS[FITTED_HAIR_ART[look.hairstyle]],
-          fittedHairTarget(hairArt, landmarks, long ? 'long' : 'short'),
-        )
+      : registeredImage(PAINTED_SPRITE_HEADS[FITTED_HAIR_ART[look.hairstyle]], hairTarget)
   const colorHair = hairId ? `filter="url(#${hairId})"` : ''
   const accentArea =
     look.hairPlacement === 'split'
@@ -707,9 +707,15 @@ export function fittedCharacterSpriteHead(
     : rear
       ? 98
       : (landmarks.temples[1] - landmarks.temples[0]) / PORTRAIT_TEMPLE_FRACTION
+  const crownWidth = profile
+    ? Math.max(184, hairLeft + hairWidth) - Math.min(71, hairLeft)
+    : rear
+      ? hairWidth
+      : hairArt.width * fitPortraitLayer(hairArt.anchors, hairTarget).scaleX
   const headScale = Math.min(
     profile || rear ? 0.073 : 0.076,
     (torsoWidth * (profile ? 0.55 : 0.39)) / faceWidth,
+    (torsoWidth * (profile ? (hat ? 0.49 : 0.53) : 0.42)) / Math.max(faceWidth, crownWidth),
   )
   const neckCenter = rear || profile ? 128 : (landmarks.neck[0] + landmarks.neck[1]) / 2
   const headX = 24 - headScale * neckCenter

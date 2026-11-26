@@ -53,7 +53,8 @@ describe('painted sprite rig', () => {
       for (const pose of APPEARANCE_POSES) {
         const svg = render(facing, pose, 2, true)
         expect(svg).toContain(`href="#rig-worn-outfit-${part}"`)
-        expect(svg).toContain('href="#rig-worn-outfit-sleeve"')
+        expect(svg.match(/href="#rig-upper-sleeve"/g)).toHaveLength(2)
+        expect(svg.match(/href="#rig-lower-sleeve"/g)).toHaveLength(2)
         expect(svg).not.toContain('href="#rig-torso')
         expect(svg.match(/href="#rig-visible-hand"/g)).toHaveLength(2)
         const torso = svg.indexOf(`href="#rig-worn-outfit-${part}"`)
@@ -73,6 +74,8 @@ describe('painted sprite rig', () => {
     const art = { front: '', back: '', side: '', sleeve: '' }
     expect(paintedSpriteRigDefinitions(art)).toContain('id="rig-visible-hand"')
     expect(paintedSpriteRigDefinitions(art)).toContain('viewBox="0 .62 1 .38"')
+    expect(paintedSpriteRigDefinitions(art)).toContain('id="rig-upper-sleeve"')
+    expect(paintedSpriteRigDefinitions(art)).toContain('id="rig-lower-sleeve"')
     expect(paintedSpriteRigDefinitions()).not.toContain('id="rig-visible-hand"')
   })
 
@@ -84,6 +87,16 @@ describe('painted sprite rig', () => {
         if (pose === 'down') expect(frames[0]).toContain('rotate(-90)')
       }
     }
+  })
+
+  it('bends the forearm at the elbow in a fitted profile cast', () => {
+    const frame = render('east', 'cast', 1, true).split('data-rig-arm="near"')[1]!
+    const rotation = (part: string) =>
+      Number(frame.match(new RegExp(`href="#rig-${part}"[^>]+rotate\\(([^)]+)\\)`))?.[1])
+    const upper = rotation('upper-sleeve')
+    const lower = rotation('lower-sleeve')
+    expect(lower).toBeLessThan(upper)
+    expect(rotation('visible-hand')).toBe(lower)
   })
 
   it('swings each arm against the leg on its side during a profile walk', () => {

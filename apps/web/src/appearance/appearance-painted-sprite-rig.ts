@@ -2,7 +2,12 @@ import type { AppearanceFacing, AppearancePose } from './appearance-manifest'
 import { PAINTED_SPRITE_PARTS } from './appearance-painted-sprite-parts.generated'
 
 type Outfit = Readonly<Record<'front' | 'back' | 'side' | 'sleeve', string>>
-type Part = keyof typeof PAINTED_SPRITE_PARTS | `worn-outfit-${keyof Outfit}` | 'visible-hand'
+type Part =
+  | keyof typeof PAINTED_SPRITE_PARTS
+  | `worn-outfit-${keyof Outfit}`
+  | 'visible-hand'
+  | 'upper-sleeve'
+  | 'lower-sleeve'
 type Point = readonly [x: number, y: number]
 
 export const PAINTED_SPRITE_COLLAR_Y = 17
@@ -38,10 +43,15 @@ export function paintedSpriteRigDefinitions(outfit?: Outfit) {
     .join('')
   // The lower portion of the painted forearm contains the hand. Draw it
   // at its own scale so the sleeve does not swallow the fingers.
-  const handCrop = outfit
-    ? '<svg id="rig-visible-hand" width="1" height="1" viewBox="0 .62 1 .38" preserveAspectRatio="none" overflow="hidden"><use href="#rig-hand"/></svg>'
-    : ''
-  return images + handCrop
+  if (!outfit) return images
+  const crop = (id: Part, source: Part, viewBox: string) =>
+    `<svg id="rig-${id}" width="1" height="1" viewBox="${viewBox}" preserveAspectRatio="none" overflow="hidden"><use href="#rig-${source}"/></svg>`
+  return (
+    images +
+    crop('visible-hand', 'hand', '0 .62 1 .38') +
+    crop('upper-sleeve', 'worn-outfit-sleeve', '0 0 1 .62') +
+    crop('lower-sleeve', 'worn-outfit-sleeve', '0 .48 1 .52')
+  )
 }
 
 function placePart(part: Part, [x, y]: Point, [width, height]: Point, angle = 0, mirrored = false) {
@@ -141,7 +151,7 @@ export function renderPaintedSpriteRig({
   const nearShoulder: Point = [
     24 +
       torsoWidth * (profile ? 0.13 : fittedOutfit ? 0.48 : 0.42) -
-      (fittedOutfit && attacking && !profile ? 2.5 : 0),
+      (fittedOutfit && attacking && !profile ? 2.5 + strike * 1.75 : 0),
     torsoY + 3,
   ]
   const attackArm = fittedOutfit
@@ -149,7 +159,7 @@ export function renderPaintedSpriteRig({
       ? -23 - charge * (profile ? 33 : 25)
       : 9 - strike * (profile ? 64 : 50)
     : -(pose === 'cast' ? 52 : 30) - Math.abs(phase) * 10
-  const arm = (side: -1 | 1) => {
+  const armPose = (side: -1 | 1) => {
     const leading = side === 1
     const shoulder: Point = leading ? nearShoulder : [48 - nearShoulder[0], nearShoulder[1]]
     const angle = attacking
@@ -163,19 +173,44 @@ export function renderPaintedSpriteRig({
         : side * -7 +
           (fittedOutfit && pose === 'idle' ? phase * 2.2 : 0) +
           side * (recoil * 19 + settling * 4)
+    const elbow = belowJoint(shoulder, 7.55, angle)
+    const bend = attacking
+      ? pose === 'cast'
+        ? 20 + (1 - charge) * 12
+        : 10 + (1 - strike) * 24
+      : walking
+        ? 7 + Math.max(0, side * phase) * 9
+        : 7 + recoil * 11
+    const forearmAngle = angle + (profile ? -bend : side * bend * (pose === 'cast' ? 0.56 : -0.56))
+    const wrist = fittedOutfit
+      ? belowJoint(elbow, 5.8, forearmAngle)
+      : belowJoint(shoulder, 11, angle)
+    return { shoulder, elbow, wrist, angle, forearmAngle }
+  }
+  const nearPose = armPose(1)
+  const arm = (side: -1 | 1) => {
+    const leading = side === 1
+    const { shoulder, elbow, wrist, angle, forearmAngle } = leading ? nearPose : armPose(side)
     const width = profile ? (fittedOutfit ? 6.1 : 6.7) : 5.4
-    const wrist = belowJoint(shoulder, fittedOutfit ? 12 : 11, angle)
     const hand = dyePart(
       placePart(
         fittedOutfit ? 'visible-hand' : 'hand',
         wrist,
         fittedOutfit ? [width * 0.82, 5.1] : [width * 0.69, 8],
-        angle,
+        fittedOutfit ? forearmAngle : angle,
         !leading,
       ),
       handDye ?? '',
     )
-    const sleeve = paintedSleeve(shoulder, [width, 13.1], angle, !leading)
+    // Let the painted elbow overlap the top of the forearm so the two
+    // segments bend without exposing a hard gap across the sleeve.
+    const sleeve = fittedOutfit
+      ? dyePart(
+          placePart('lower-sleeve', elbow, [width * 0.89, 7], forearmAngle, !leading) +
+            placePart('upper-sleeve', shoulder, [width, 8.85], angle, !leading),
+          outfitDye ?? '',
+        )
+      : paintedSleeve(shoulder, [width, 13.1], angle, !leading)
     return `<g data-rig-arm="${leading ? 'near' : 'far'}" data-limb="arm-${leading ? 'right' : 'left'}">
       ${fittedOutfit ? sleeve + hand : hand + sleeve}
     </g>`
@@ -243,7 +278,11 @@ export function renderPaintedSpriteRig({
     : nearArm
   const figure = `${packedGear}${dyePart(cloak)}${leg(-1)}${leg(1)}${arm(-1)}${lowerHead}${torso}${dyePart(shoulderPieces)}${wornGear}${shoulderCap}${visibleArm}
     <g transform="${placeHead}">${head}</g>`
-  const lean = (fittedOutfit && profile && walking ? 3 : 0) + strike * 4 - recoil * 10 + charge * 2
+  const lean =
+    (fittedOutfit && profile && walking ? 3 : 0) +
+    strike * (profile ? 4 : 2.5) -
+    recoil * 10 +
+    charge * 2
   const reaction = fittedOutfit
     ? lean
       ? `rotate(${lean} 24 57)`
@@ -256,8 +295,10 @@ export function renderPaintedSpriteRig({
     pose === 'down'
       ? `translate(24 ${53 + settling}) rotate(${-90 + settling * 2}) scale(.73) translate(-24 -30)`
       : ''
-  const [gripX, gripY] = belowJoint(nearShoulder, fittedOutfit ? 15.2 : 17.5, attackArm)
-  const focusX = Math.min(43, gripX + 6)
+  const [gripX, gripY] = fittedOutfit
+    ? belowJoint(nearPose.wrist, 2.5, nearPose.forearmAngle)
+    : belowJoint(nearShoulder, 17.5, attackArm)
+  const focusX = Math.min(38, gripX + 5)
   const focusY = Math.max(12, gripY - 6)
   const focus =
     pose === 'cast'
@@ -265,7 +306,7 @@ export function renderPaintedSpriteRig({
         ? `<g transform="translate(${focusX} ${focusY}) scale(${0.65 + charge * 0.42})"><circle cy="3.2" r="${2.8 + charge * 2}" fill="#f3ca62" opacity="${0.13 + charge * 0.18}"/><path d="M0 0l1.6 3.7-1.6 3.4-1.5-3.4Z" fill="#f9e7ab" stroke="#bd874e" stroke-width=".65"/></g>`
         : '<path d="M43 23l1.6 3.7-1.6 3.4-1.5-3.4Z" fill="#f9e7ab" stroke="#bd874e" stroke-width=".65"/>'
       : ''
-  const swordAngle = fittedOutfit ? -27 + strike * (profile ? 63 : 47) : 20
+  const swordAngle = fittedOutfit ? -27 + strike * (profile ? 36 : 33) : 20
   const sword =
     pose === 'attack'
       ? `<g transform="translate(${gripX} ${gripY}) rotate(${swordAngle})"><path d="M0 0V-11l1.4-3 1 3L1 0Z" fill="#e6deca" stroke="#574d56" stroke-width=".48"/><path d="M-1.5-1h4M.5 0v2" stroke="#b58a57" stroke-width="1.1"/></g>`

@@ -389,7 +389,9 @@ export function renderFittedPortrait(
   const viewBox = icon ? '44 28 168 168' : '0 0 256 256'
   // Scale the head and its fittings together around the base of the jaw.
   // The collar stays on the body registration and overlaps the neck below it.
-  const headScale = icon ? 1 : 0.93
+  const crownWidth = hair.width * fitPortraitLayer(hair.anchors, hairTarget).scaleX
+  const headEnvelope = Math.max(faceWidth, crownWidth)
+  const headScale = icon ? 1 : Math.min(0.93, Math.max(0.82, (garmentWidth * 0.49) / headEnvelope))
   const headTransform = `translate(${neckCenter} ${chin}) scale(${headScale}) translate(${-neckCenter} ${-chin})`
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="${viewBox}">
     ${layers.paintedFilters ? `<defs>${layers.paintedFilters}</defs>` : ''}
