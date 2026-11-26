@@ -42,7 +42,7 @@ describe('Public character profile', () => {
   })
 })
 
-it('renders the illustrated starter portrait for a public character without a custom image', () => {
+it('renders the approved painted starter portrait for a public character without a custom image', () => {
   const markup = renderToStaticMarkup(
     createElement(PublicCharacterPortrait, {
       character: {
@@ -62,7 +62,7 @@ it('renders the illustrated starter portrait for a public character without a cu
 
   expect(markup).toContain('<img')
   expect(markup).toContain(
-    'src="/api/media/appearance/6/f08.brocade.ink.journal.violet.arcanist.violet.none.natural.natural.natural.astral/illustrated-neutral.svg"',
+    'src="/api/media/appearance/6/f32.pine.natural.none.natural.none.natural.none.natural.natural.natural.layers.natural.natural.pearl/illustrated-neutral.svg"',
   )
   expect(markup).not.toContain('/api/media/starter-portrait/')
   expect(markup).toContain('Starter Vale portrait')
