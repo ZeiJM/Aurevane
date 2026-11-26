@@ -4,6 +4,7 @@ import { useEffect, useId, useMemo, useState, type CSSProperties } from 'react'
 import { PORTRAIT_FACES, portraitFace } from '@/appearance/appearance-face-catalog'
 import { APPEARANCE_BACKDROP_GROUPS } from '@/appearance/appearance-backdrop-catalog'
 import { daryaCourierBlueprint, daryaCourierLook } from '@/appearance/appearance-darya-look'
+import { paintedStudyForFace } from '@/appearance/appearance-painted-studies'
 import {
   APPEARANCE_EXPRESSIONS,
   APPEARANCE_FRAME,
@@ -300,6 +301,8 @@ export function AppearanceBuilder({
       ? defaultPaintedLookForGender(gender)
       : null
 
+  const study = paintedStudyForFace(look?.faceId)
+
   function selectGender(nextGender: AppearanceGender) {
     const defaults = defaultPaintedLookForGender(nextGender)
     const next =
@@ -336,6 +339,15 @@ export function AppearanceBuilder({
             onClick={() => onChange(daryaCourierBlueprint())}
           >
             Try courier look
+          </button>
+        ) : null}
+        {study ? (
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => onChange(paintedPlayerAppearanceBlueprint(study.look))}
+          >
+            {study.label}
           </button>
         ) : null}
         <button

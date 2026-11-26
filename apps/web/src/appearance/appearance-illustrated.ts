@@ -1,6 +1,7 @@
 import { patternedBackdrop, studioColor } from './appearance-backdrop-catalog'
 import { CATALOG_BACKDROP_ART } from './appearance-catalog-art'
 import { daryaPaintedPortrait } from './appearance-darya-art'
+import { studyPortrait } from './appearance-painted-study-art'
 import {
   fittedCharacterPortrait,
   fittedCharacterSpriteHead,
@@ -125,6 +126,7 @@ export function illustratedPortrait(look: Look, expression: AppearanceExpression
   const background = portraitBackground(look.backdrop)
   return (
     daryaPaintedPortrait(look, expression, background, icon) ??
+    studyPortrait(look, expression, background, icon) ??
     fittedCharacterPortrait(look, expression, background, icon)
   )
 }

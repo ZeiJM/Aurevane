@@ -8,6 +8,8 @@ import { facePainting, faceLayers, naturalFaceSkin, fieldFacePaint } from './app
 import { FITTED_FACEWEAR, FITTED_HEADWEAR } from './appearance-fitted-accessories'
 import { daryaCastLight, daryaSpriteArt, daryaSpriteMaterials } from './appearance-darya-art'
 import { paintedDaryaHairstyle } from './appearance-darya-look'
+import { matchingPaintedStudy } from './appearance-painted-studies'
+import { studyCastGlow, studySpriteArt, studySpriteMaterials } from './appearance-painted-study-art'
 import {
   patternedBackdrop,
   studioColor,
@@ -796,6 +798,39 @@ export function renderAppearanceAsset(
             return art + daryaCastLight(daryaHairstyle, facing, frame)
           }
           return paintedSprite(facing, pose, frame, daryaSpriteArt(facing, 'idle'), motion)
+        },
+        motion,
+      )
+    }
+    const study = matchingPaintedStudy(blueprint)
+    if (study) {
+      const stride = motion
+        ? (['left', 'passing', 'passing', 'right', 'right', 'passing', 'passing', 'left'] as const)
+        : (['left', 'passing', 'right'] as const)
+      return renderSpriteAtlas(
+        studySpriteMaterials(study),
+        (facing, pose, frame) => {
+          if (pose === 'walk') {
+            return `<ellipse cx="24" cy="58" rx="10" ry="2.5" fill="#171d23" fill-opacity=".4"/>${studySpriteArt(facing, stride[frame]!)}`
+          }
+          if (pose === 'attack') {
+            return paintedSprite(
+              facing,
+              'idle',
+              0,
+              studySpriteArt(facing, frame === 1 ? 'attack' : 'brace'),
+            )
+          }
+          if (pose === 'cast') {
+            const art = paintedSprite(
+              facing,
+              'idle',
+              0,
+              studySpriteArt(facing, frame ? 'cast' : 'brace'),
+            )
+            return art + (frame ? studyCastGlow(study, facing, frame) : '')
+          }
+          return paintedSprite(facing, pose, frame, studySpriteArt(facing, 'idle'), motion)
         },
         motion,
       )

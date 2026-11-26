@@ -4,7 +4,7 @@ import { readFile, writeFile } from 'node:fs/promises'
 import sharp from 'sharp'
 
 const [, , manifestPath] = process.argv
-assert(manifestPath, 'Pass a Darya art manifest.')
+assert(manifestPath, 'Pass a painted character art manifest.')
 const manifest = JSON.parse(await readFile(manifestPath, 'utf8'))
 const poses = ['idle', 'left', 'right', 'cast']
 const facings = ['south', 'east', 'north']
@@ -32,7 +32,7 @@ async function cutout(source, region) {
       bottom = Math.max(bottom, y)
     }
   }
-  assert(right > left && bottom > top, 'Empty Darya art cell')
+  assert(right > left && bottom > top, 'Empty painted art cell')
   const width = right - left + 1
   const height = bottom - top + 1
   const bytes = await sharp(data, { raw: info })
@@ -72,7 +72,7 @@ async function sprite(cell, anchorX, scale, palm) {
   const height = round(cell.height * scale)
   const x = round(24 - (anchorX - cell.left) * scale)
   const y = round(58 - height)
-  assert(x >= 0 && x + width <= 48 && y >= 1, 'Darya sprite overflows its frame')
+  assert(x >= 0 && x + width <= 48 && y >= 1, 'Painted sprite overflows its frame')
   const bytes = await sharp(cell.bytes)
     .resize({ height: 116 })
     .webp({ quality: 84, alphaQuality: 98 })
@@ -107,23 +107,25 @@ async function passingSprites({ path, column, anchors, rows }) {
 
 for (const item of manifest) {
   const { name, kind, path, rows, anchors } = item
-  assert(['coils', 'low-pony'].includes(name) && ['portraits', 'sprites'].includes(kind))
+  const darya = ['coils', 'low-pony'].includes(name)
+  assert(/^[a-z]+(?:-[a-z]+)*$/.test(name) && ['portraits', 'sprites', 'actions'].includes(kind))
   const source = await readFile(path)
   const digest = createHash('sha256').update(source).digest('hex')
   const digests = [digest]
   const { width, height, hasAlpha } = await sharp(source).metadata()
-  assert(hasAlpha, 'Darya assets require actual transparency')
-  const columns = kind === 'portraits' ? 3 : 4
+  assert(hasAlpha, 'Painted art requires transparency')
+  const columns = kind === 'sprites' ? 4 : 3
   const cells = await Promise.all(
     anchors.map((_, index) => {
       const row = Math.floor(index / columns)
       const column = index % columns
-      const left = Math.round((width * column) / columns)
+      const edges = item.columns?.[row]
+      const left = Math.round(width * (edges?.[column] ?? column / columns))
       const top = Math.round(height * rows[row])
       return cutout(source, {
         left,
         top,
-        width: Math.round((width * (column + 1)) / columns) - left,
+        width: Math.round(width * (edges?.[column + 1] ?? (column + 1) / columns)) - left,
         height: Math.round(height * rows[row + 1]) - top,
       })
     }),
@@ -137,33 +139,53 @@ for (const item of manifest) {
       ),
     )
   } else {
-    assert.equal(cells.length, facings.length * poses.length)
-    const scale = 53 / cells[0].height
+    const framePoses =
+      kind === 'actions'
+        ? ['brace', 'attack', 'cast']
+        : item.passing
+          ? poses
+          : ['idle', 'left', 'passing', 'right']
+    assert.equal(cells.length, facings.length * framePoses.length)
+    const scale = darya
+      ? 53 / cells[0].height
+      : Math.min(
+          53 / Math.max(...cells.map((cell) => cell.height)),
+          44 / Math.max(...cells.map((cell) => cell.width)),
+        )
     const frames = await Promise.all(
       cells.map((cell, i) =>
         sprite(
           cell,
           anchors[i],
           scale,
-          i % poses.length === 3 ? item.palms[Math.floor(i / poses.length)] : undefined,
+          item.palms &&
+            (item.poseRows?.[Math.floor(i / framePoses.length)] ?? framePoses)[
+              i % framePoses.length
+            ] === 'cast'
+            ? item.palms[Math.floor(i / framePoses.length)]
+            : undefined,
         ),
       ),
     )
-    const passing = await passingSprites(item.passing)
-    digests.push(passing.digest)
+    const passing = item.passing ? await passingSprites(item.passing) : null
+    if (passing) digests.push(passing.digest)
     data = Object.fromEntries(
       facings.map((facing, row) => [
         facing,
         Object.fromEntries([
-          ...poses.map((pose, column) => [pose, frames[row * poses.length + column]]),
-          ['passing', passing.frames[row]],
+          ...(item.poseRows?.[row] ?? framePoses).map((pose, column) => [
+            pose,
+            frames[row * framePoses.length + column],
+          ]),
+          ...(passing ? [['passing', passing.frames[row]]] : []),
         ]),
       ]),
     )
   }
-  const constant = `DARYA_${name.toUpperCase().replace('-', '_')}_${kind.toUpperCase()}`
+  const prefix = darya ? 'darya' : 'painted-study'
+  const constant = `${prefix.toUpperCase().replace('-', '_')}_${name.toUpperCase().replace('-', '_')}_${kind.toUpperCase()}`
   const file = new URL(
-    `../src/appearance/appearance-darya-${name}-${kind}.generated.ts`,
+    `../src/appearance/appearance-${prefix}-${name}-${kind}.generated.ts`,
     import.meta.url,
   )
   await writeFile(
