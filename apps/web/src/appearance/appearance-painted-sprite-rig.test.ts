@@ -56,7 +56,7 @@ describe('painted sprite rig', () => {
         expect(svg.match(/href="#rig-upper-sleeve"/g)).toHaveLength(2)
         expect(svg.match(/href="#rig-lower-sleeve"/g)).toHaveLength(2)
         expect(svg).not.toContain('href="#rig-torso')
-        expect(svg.match(/href="#rig-visible-hand"/g)).toHaveLength(2)
+        expect(svg.match(/href="#rig-(?:visible-hand|grip-hand|casting-hand)"/g)).toHaveLength(2)
         const torso = svg.indexOf(`href="#rig-worn-outfit-${part}"`)
         expect(svg.indexOf('href="#test-face"')).toBeLessThan(torso)
         expect(svg.indexOf('href="#test-head"')).toBeGreaterThan(torso)
@@ -73,7 +73,8 @@ describe('painted sprite rig', () => {
   it('fits the painted hands separately from the forearm for illustrated outfits', () => {
     const art = { front: '', back: '', side: '', sleeve: '' }
     expect(paintedSpriteRigDefinitions(art)).toContain('id="rig-visible-hand"')
-    expect(paintedSpriteRigDefinitions(art)).toContain('viewBox="0 .62 1 .38"')
+    expect(paintedSpriteRigDefinitions(art)).toContain('id="rig-grip-hand"')
+    expect(paintedSpriteRigDefinitions(art)).toContain('id="rig-casting-hand"')
     expect(paintedSpriteRigDefinitions(art)).toContain('id="rig-upper-sleeve"')
     expect(paintedSpriteRigDefinitions(art)).toContain('id="rig-lower-sleeve"')
     expect(paintedSpriteRigDefinitions()).not.toContain('id="rig-visible-hand"')
@@ -96,7 +97,7 @@ describe('painted sprite rig', () => {
     const upper = rotation('upper-sleeve')
     const lower = rotation('lower-sleeve')
     expect(lower).toBeLessThan(upper)
-    expect(rotation('visible-hand')).toBe(lower)
+    expect(rotation('casting-hand')).toBe(lower)
   })
 
   it('swings each arm against the leg on its side during a profile walk', () => {

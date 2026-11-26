@@ -17,6 +17,8 @@ import {
 } from './appearance-manifest'
 import {
   appearanceGenderForIdentity,
+  authoredPlayerLook,
+  canAuthorPlayerLook,
   defaultPaintedLookForGender,
   paintedPlayerAppearanceBlueprint,
   randomPaintedLookForGender,
@@ -226,6 +228,49 @@ describe('illustrated player and NPC customization', () => {
     expect(artwork).toContain('width="1536" height="384"')
     expect(artwork.match(/data-limb="arm-left"/g)).toHaveLength(112)
     expect(artwork.match(/data-limb="arm-right"/g)).toHaveLength(112)
+  })
+
+  it('keeps a third hair color, split-color iris and new scar in a saved look', () => {
+    const look = paintedPlayerAppearanceBlueprint({
+      ...defaultPaintedLookForGender('feminine'),
+      hairDye: 'chestnut',
+      hairAccent: 'ocean',
+      hairHighlight: 'silver',
+      hairPlacement: 'ribbons',
+      eyeColor: 'jade',
+      secondEye: 'gold',
+      irisPattern: 'sectoral',
+      scar: 'browarch',
+    })
+    const manifest = compileAppearanceManifest(look)
+    expect(appearanceManifestFromImageUrl(manifest.neutralUrl)?.blueprint).toEqual(look)
+    const portrait = renderAppearanceAsset(look, 'neutral', true)
+    expect(portrait).toContain('painted-hair-highlight')
+    expect(portrait).toContain('painted-iris-accent')
+    expect(portrait).toContain('data-scar="browarch"')
+    expect(renderAppearanceAsset(look, 'motion-v2', true)).toContain('painted-south-highlight-fit')
+  })
+
+  it('enforces authored gender style eligibility and preserves older recipe parsing', () => {
+    const earlier = paintedPlayerAppearanceBlueprint({
+      ...defaultPaintedLookForGender('feminine'),
+      facialHair: 'full',
+      hairstyle: 'warrior',
+    })
+    expect(canAuthorPlayerLook(earlier)).toBe(false)
+    const changed = authoredPlayerLook(earlier)
+    expect(changed.facialHair).toBeUndefined()
+    expect(changed.hairstyle).toBe('natural')
+    expect(canAuthorPlayerLook(changed)).toBe(true)
+    expect(
+      appearanceManifestFromImageUrl(compileAppearanceManifest(earlier).neutralUrl)?.blueprint,
+    ).toEqual(earlier)
+    expect(
+      canAuthorPlayerLook({
+        ...defaultPaintedLookForGender('masculine'),
+        hairstyle: 'twinribbons',
+      }),
+    ).toBe(false)
   })
 
   it('renders the full starter portrait catalogue using shared customization recipes', () => {

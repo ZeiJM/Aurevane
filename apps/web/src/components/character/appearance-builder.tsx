@@ -21,7 +21,9 @@ import {
 import {
   APPEARANCE_GENDERS,
   appearanceGenderForIdentity,
+  authoredPlayerLook,
   defaultPaintedLookForGender,
+  hairstyleAvailableForGender,
   paintedPlayerAppearanceBlueprint,
   paintedPlayerLook,
   randomPaintedLookForGender,
@@ -46,9 +48,11 @@ const fields = [
   'hairstyle',
   'hairDye',
   'hairAccent',
+  'hairHighlight',
   'hairPlacement',
   'eyeColor',
   'secondEye',
+  'irisPattern',
   'facialHair',
   'scar',
   'outerwear',
@@ -148,94 +152,108 @@ function PaintedFields({
     <fieldset className={styles.controls} aria-label="Appearance options" disabled={disabled}>
       {legacy ? <p className={styles.legacyHint}>Edits start a painted look.</p> : null}
       <div className={styles.fields}>
-        {fields.map((field) => {
-          const dyePiece = dyedPieces[field]
-          const options = PAINTED_PLAYER_FIELDS[field]
-          const defaultValue =
-            field === 'apparentAge'
-              ? 'adult'
-              : field === 'hairPlacement'
-                ? 'streak'
-                : field === 'hairAccent' || field === 'secondEye'
-                  ? 'natural'
-                  : 'none'
-          return (
-            <label key={field}>
-              <span>{displayLabels[field] ?? fieldLabels[field]}</span>
-              <select
-                aria-label={fieldLabels[field]}
-                title={
-                  field === 'backdrop' ? PAINTED_PLAYER_FIELDS.backdrop[look.backdrop] : undefined
-                }
-                value={
-                  field === 'identity'
-                    ? (look.faceId ?? 'fit' + look.identity)
-                    : (look[field] ?? defaultValue)
-                }
-                disabled={
-                  Boolean(dyePiece && look[dyePiece] === 'none') ||
-                  (field === 'hairPlacement' && (!look.hairAccent || look.hairAccent === 'natural'))
-                }
-                onChange={(event) => {
-                  const choice = event.target.value
-                  if (field === 'identity') {
-                    const face = portraitFace(choice)
-                    if (face && appearanceGenderForIdentity(face.rig) === gender)
-                      onChange(
-                        paintedPlayerAppearanceBlueprint({
-                          ...look,
-                          identity: face.rig,
-                          faceId: face.id,
-                        }),
-                      )
-                  } else if (Object.hasOwn(options, choice)) {
-                    onChange(
-                      paintedPlayerAppearanceBlueprint({
-                        ...look,
-                        faceId: look.faceId ?? 'fit' + look.identity,
-                        [field]: choice,
-                      }),
-                    )
+        {fields
+          .filter((field) => field !== 'facialHair' || gender === 'masculine')
+          .map((field) => {
+            const dyePiece = dyedPieces[field]
+            const options = PAINTED_PLAYER_FIELDS[field]
+            const defaultValue =
+              field === 'apparentAge'
+                ? 'adult'
+                : field === 'hairPlacement'
+                  ? 'streak'
+                  : field === 'irisPattern'
+                    ? 'paired'
+                    : field === 'hairAccent' || field === 'hairHighlight' || field === 'secondEye'
+                      ? 'natural'
+                      : 'none'
+            return (
+              <label key={field}>
+                <span>{displayLabels[field] ?? fieldLabels[field]}</span>
+                <select
+                  aria-label={fieldLabels[field]}
+                  title={
+                    field === 'backdrop' ? PAINTED_PLAYER_FIELDS.backdrop[look.backdrop] : undefined
                   }
-                }}
-              >
-                {field === 'identity' ? (
-                  faces.map(({ id, name }) => (
-                    <option key={id} value={id}>
-                      {name}
-                    </option>
-                  ))
-                ) : field === 'backdrop' ? (
-                  <PortraitSettingOptions />
-                ) : field === 'hairstyle' ? (
-                  Object.entries(PLAYER_HAIRSTYLE_GROUPS).map(([group, styles]) => (
-                    <optgroup key={group} label={group}>
-                      {styles.map((id) => (
-                        <option key={id} value={id}>
-                          {PAINTED_PLAYER_FIELDS.hairstyle[id]}
-                        </option>
-                      ))}
-                    </optgroup>
-                  ))
-                ) : (
-                  Object.entries(options).map(([id, option]) => (
-                    <option key={id} value={id}>
-                      {id === 'natural'
-                        ? field === 'secondEye'
-                          ? 'Match left eye'
-                          : field === 'hairAccent'
-                            ? 'No second color'
-                            : 'Original'
-                        : typeof option === 'string'
-                          ? option
-                          : option.label}
-                    </option>
-                  ))
-                )}
-              </select>
-            </label>
-          )
-        })}
+                  value={
+                    field === 'identity'
+                      ? (look.faceId ?? 'fit' + look.identity)
+                      : (look[field] ?? defaultValue)
+                  }
+                  disabled={
+                    Boolean(dyePiece && look[dyePiece] === 'none') ||
+                    ((field === 'hairPlacement' || field === 'hairHighlight') &&
+                      (!look.hairAccent || look.hairAccent === 'natural')) ||
+                    (field === 'irisPattern' && (!look.secondEye || look.secondEye === 'natural'))
+                  }
+                  onChange={(event) => {
+                    const choice = event.target.value
+                    if (field === 'identity') {
+                      const face = portraitFace(choice)
+                      if (face && appearanceGenderForIdentity(face.rig) === gender)
+                        onChange(
+                          paintedPlayerAppearanceBlueprint(
+                            authoredPlayerLook({
+                              ...look,
+                              identity: face.rig,
+                              faceId: face.id,
+                            }),
+                          ),
+                        )
+                    } else if (Object.hasOwn(options, choice)) {
+                      onChange(
+                        paintedPlayerAppearanceBlueprint(
+                          authoredPlayerLook({
+                            ...look,
+                            faceId: look.faceId ?? 'fit' + look.identity,
+                            [field]: choice,
+                          }),
+                        ),
+                      )
+                    }
+                  }}
+                >
+                  {field === 'identity' ? (
+                    faces.map(({ id, name }) => (
+                      <option key={id} value={id}>
+                        {name}
+                      </option>
+                    ))
+                  ) : field === 'backdrop' ? (
+                    <PortraitSettingOptions />
+                  ) : field === 'hairstyle' ? (
+                    Object.entries(PLAYER_HAIRSTYLE_GROUPS).map(([group, styles]) => (
+                      <optgroup key={group} label={group}>
+                        {styles
+                          .filter((id) => hairstyleAvailableForGender(id, gender))
+                          .map((id) => (
+                            <option key={id} value={id}>
+                              {PAINTED_PLAYER_FIELDS.hairstyle[id]}
+                            </option>
+                          ))}
+                      </optgroup>
+                    ))
+                  ) : (
+                    Object.entries(options).map(([id, option]) => (
+                      <option key={id} value={id}>
+                        {id === 'natural'
+                          ? field === 'secondEye'
+                            ? 'Match left eye'
+                            : field === 'hairAccent'
+                              ? 'No second color'
+                              : field === 'hairHighlight'
+                                ? 'No third color'
+                                : 'Original'
+                          : typeof option === 'string'
+                            ? option
+                            : option.label}
+                      </option>
+                    ))
+                  )}
+                </select>
+              </label>
+            )
+          })}
       </div>
     </fieldset>
   )
@@ -287,7 +305,7 @@ export function AppearanceBuilder({
       painted && look
         ? { ...look, faceId: 'fit' + defaults.identity, identity: defaults.identity }
         : { ...defaults, faceId: 'fit' + defaults.identity }
-    onChange(paintedPlayerAppearanceBlueprint(next))
+    onChange(paintedPlayerAppearanceBlueprint(authoredPlayerLook(next)))
   }
 
   return (

@@ -422,7 +422,7 @@ export function appearanceBlueprintFromId(
   assetVersion: AppearanceBlueprint['v'] | string = 1,
 ): AppearanceBlueprint | null {
   if (assetVersion === 6 || assetVersion === '6') {
-    return id.length <= 255 ? playerBlueprintFromParts(id.split('.')) : null
+    return id.length <= 320 ? playerBlueprintFromParts(id.split('.')) : null
   }
   if (assetVersion === 5 || assetVersion === '5') {
     if (id.length > 140) return null

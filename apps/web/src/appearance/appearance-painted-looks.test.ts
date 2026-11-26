@@ -167,6 +167,7 @@ describe('painted player appearance', () => {
     const hairstyleChoices = new Set<string>()
     const outfits = new Set<string>()
     const faces = new Set<string>()
+    const hairPlacements = new Set<string>()
     let headwearCount = 0
     let facewearCount = 0
     let dualColorCount = 0
@@ -193,7 +194,8 @@ describe('painted player appearance', () => {
         if (look.hairAccent) {
           dualColorCount++
           expect(look.hairAccent).not.toBe(look.hairDye)
-          expect(look.hairPlacement).toBe('streak')
+          expect(look.hairPlacement).toBeDefined()
+          hairPlacements.add(look.hairPlacement!)
         }
         if (look.secondEye) expect(look.secondEye).not.toBe(look.eyeColor)
         hairstyleChoices.add(look.hairstyle)
@@ -208,5 +210,6 @@ describe('painted player appearance', () => {
     expect(headwearCount).toBeGreaterThan(100)
     expect(facewearCount).toBeGreaterThan(20)
     expect(dualColorCount).toBeGreaterThan(100)
+    expect(hairPlacements).toEqual(new Set(['streak', 'ombre', 'ribbons', 'tips']))
   })
 })

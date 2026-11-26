@@ -50,6 +50,7 @@ import {
   paintedHairLayers,
 } from './appearance-painted-features'
 import {
+  WARDROBE_EYE_COLORS,
   WARDROBE_FRAMES,
   WARDROBE_HAIRSTYLES,
   WARDROBE_SKIN_TONES,
@@ -768,6 +769,7 @@ export function renderAppearanceAsset(
       blueprint.hairAccent ||
       blueprint.secondEye ||
       blueprint.scar ||
+      !Object.hasOwn(WARDROBE_EYE_COLORS, blueprint.eyeColor) ||
       blueprint.faceId?.endsWith('soft') ||
       blueprint.faceId?.endsWith('keen') ||
       !Object.hasOwn(WARDROBE_HAIRSTYLES, blueprint.hairstyle) ||

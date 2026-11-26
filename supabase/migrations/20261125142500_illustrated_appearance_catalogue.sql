@@ -16,7 +16,8 @@ declare
     'auburn','ginger','rosewood','honey','ash','flax','silver','platinum','plum','wine',
     'lilac','ocean','teal','moss'];
 begin
-  if p_url is null or p_url !~ '^/api/media/appearance/6/[a-z0-9.-]{1,255}/neutral[.]svg$' then
+  if p_url is null or char_length(recipe) > 320 or
+    p_url !~ '^/api/media/appearance/6/[a-z0-9.-]+/neutral[.]svg$' then
     return false;
   end if;
 
@@ -65,21 +66,33 @@ begin
     last_base := last_base - 1;
   end if;
   if parts[last_base] ~ '^scar-' then
-    if parts[last_base] not in ('scar-cross','scar-cheek','scar-brow','scar-bridge','scar-jaw') then
+    if parts[last_base] not in ('scar-cross','scar-cheek','scar-brow','scar-bridge','scar-jaw',
+      'scar-cheekpair','scar-lip','scar-temple','scar-browarch','scar-cheekstar') then
       return false;
     end if;
     last_base := last_base - 1;
   end if;
+  if parts[last_base] ~ '^iris-' then
+    if parts[last_base] not in ('iris-central','iris-sectoral') or
+      coalesce(parts[last_base - 1], '') !~ '^eye-' then return false; end if;
+    last_base := last_base - 1;
+  end if;
   if parts[last_base] ~ '^eye-' then
-    if parts[last_base] not in ('eye-brown','eye-amber','eye-hazel','eye-green','eye-blue','eye-gray','eye-violet') then
+    if parts[last_base] not in ('eye-brown','eye-amber','eye-hazel','eye-green','eye-blue','eye-gray','eye-violet',
+      'eye-jade','eye-cobalt','eye-rose','eye-gold') then
       return false;
     end if;
     last_base := last_base - 1;
   end if;
   if parts[last_base] ~ '^dye-' then
-    if parts[last_base] not in ('dye-tips','dye-split','dye-underlight') then
+    if parts[last_base] not in ('dye-tips','dye-split','dye-underlight','dye-ombre','dye-ribbons') then
       return false;
     end if;
+    last_base := last_base - 1;
+  end if;
+  if parts[last_base] ~ '^highlight-' then
+    detail := substring(parts[last_base] from 11);
+    if not detail = any(palette) or coalesce(parts[last_base - 1], '') !~ '^accent-' then return false; end if;
     last_base := last_base - 1;
   end if;
   if parts[last_base] ~ '^accent-' then
@@ -94,6 +107,9 @@ begin
     last_base := last_base - 1;
   end if;
   if last_base not in (11, 14) then return false; end if;
+  if last_base = 14 and parts[14] in ('jade','cobalt','rose','gold') then
+    parts[14] := 'gray';
+  end if;
   if last_base = 14 and parts[12] in (
     'crop','sidepart','pixie','shag','sidefringe','spiked','frosted','brushed','loosequiff',
     'coils','ringlets','curlsweep','coronet','halo','ropebraid','razor','curtain','pageboy',

@@ -258,6 +258,20 @@ export const WARDROBE_EYE_COLORS = {
   violet: { label: 'Violet', rgb: [132, 99, 168] },
 } as const
 
+export const PLAYER_EYE_COLORS = {
+  ...WARDROBE_EYE_COLORS,
+  jade: { label: 'Jade', rgb: [52, 147, 117] },
+  cobalt: { label: 'Cobalt', rgb: [61, 113, 196] },
+  rose: { label: 'Rose quartz', rgb: [177, 108, 141] },
+  gold: { label: 'Sun gold', rgb: [198, 151, 63] },
+} as const
+
+export const IRIS_PATTERNS = {
+  paired: 'Different eye colors',
+  central: 'Inner iris ring',
+  sectoral: 'Split-color iris',
+} as const
+
 export const PAINTED_WARDROBE_FIELDS = {
   ...PAINTED_FIELDS,
   outerwear: WARDROBE_OUTERWEAR,
@@ -289,6 +303,8 @@ export const HAIR_COLOR_PLACEMENTS = {
   tips: 'Dip-dyed tips',
   split: 'Split dye',
   underlight: 'Underlights',
+  ombre: 'Soft ombré',
+  ribbons: 'Twin color ribbons',
 } as const
 
 export const FACIAL_SCARS = {
@@ -298,6 +314,11 @@ export const FACIAL_SCARS = {
   brow: 'Split eyebrow',
   bridge: 'Nose bridge scar',
   jaw: 'Jawline scar',
+  cheekpair: 'Twin cheek scars',
+  lip: 'Split lower lip',
+  temple: 'Temple graze',
+  browarch: 'Arched brow scar',
+  cheekstar: 'Cheek star',
 } as const
 
 export const APPEARANCE_AGES = {
@@ -310,8 +331,10 @@ export const APPEARANCE_AGES = {
 const optionalPlayerFields = {
   facialHair: [FACIAL_HAIR_STYLES, 'beard', 'none'],
   hairAccent: [WARDROBE_HAIR_COLORS, 'accent', 'natural'],
+  hairHighlight: [WARDROBE_HAIR_COLORS, 'highlight', 'natural'],
   hairPlacement: [HAIR_COLOR_PLACEMENTS, 'dye', 'streak'],
-  secondEye: [WARDROBE_EYE_COLORS, 'eye', 'natural'],
+  secondEye: [PLAYER_EYE_COLORS, 'eye', 'natural'],
+  irisPattern: [IRIS_PATTERNS, 'iris', 'paired'],
   scar: [FACIAL_SCARS, 'scar', 'none'],
   apparentAge: [APPEARANCE_AGES, 'age', 'adult'],
 } as const
@@ -326,10 +349,13 @@ export const PAINTED_PLAYER_FIELDS = {
   headwear: { ...WARDROBE_HEADWEAR, ...PAINTED_HEADWEAR_STYLES },
   facewear: { ...WARDROBE_FACEWEAR, ...PAINTED_FACEWEAR_STYLES },
   hairstyle: PLAYER_HAIRSTYLES,
+  eyeColor: PLAYER_EYE_COLORS,
   facialHair: FACIAL_HAIR_STYLES,
   hairAccent: WARDROBE_HAIR_COLORS,
+  hairHighlight: WARDROBE_HAIR_COLORS,
   hairPlacement: HAIR_COLOR_PLACEMENTS,
-  secondEye: WARDROBE_EYE_COLORS,
+  secondEye: PLAYER_EYE_COLORS,
+  irisPattern: IRIS_PATTERNS,
   scar: FACIAL_SCARS,
   apparentAge: APPEARANCE_AGES,
   backdrop: PAINTED_PORTRAIT_SETTINGS,
@@ -363,8 +389,10 @@ export const PAINTED_WARDROBE_LABELS = {
   hairDye: 'Hair color',
   facialHair: 'Facial hair',
   hairAccent: 'Second hair color',
+  hairHighlight: 'Third hair color',
   hairPlacement: 'Two-tone placement',
   secondEye: 'Right eye color',
+  irisPattern: 'Heterochromia pattern',
   scar: 'Facial scar',
   apparentAge: 'Apparent age',
   eyeColor: 'Eye color',
@@ -456,6 +484,8 @@ export function readPaintedPlayerLook(values: readonly unknown[]): PaintedPlayer
     details[field] = selected
     end--
   }
+  if ((details.hairHighlight && !details.hairAccent) || (details.irisPattern && !details.secondEye))
+    return null
   const parts = readLook([face?.rig ?? values[0], ...values.slice(1, end)], PAINTED_PLAYER_FIELDS)
   return parts
     ? {

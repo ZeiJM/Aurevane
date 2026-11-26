@@ -30,6 +30,34 @@ export function appearanceGenderForIdentity(identity: Identity): AppearanceGende
   return paintedIdentitiesForGender('feminine').includes(identity) ? 'feminine' : 'masculine'
 }
 
+const masculineCuts = new Set<Hairstyle>(['spiked', 'frosted', 'warrior', 'brushed'])
+const feminineCuts = new Set<Hairstyle>(['twinloops', 'twinribbons', 'sidebun', 'mermaid'])
+
+export function hairstyleAvailableForGender(style: Hairstyle, gender: AppearanceGender) {
+  return !(gender === 'feminine' ? masculineCuts : feminineCuts).has(style)
+}
+
+export function canAuthorPlayerLook(look: PaintedPlayerLook) {
+  const gender = appearanceGenderForIdentity(look.identity)
+  return (
+    hairstyleAvailableForGender(look.hairstyle, gender) &&
+    (gender === 'masculine' || !look.facialHair || look.facialHair === 'none')
+  )
+}
+
+export function authoredPlayerLook(look: PaintedPlayerLook): PaintedPlayerLook {
+  const gender = appearanceGenderForIdentity(look.identity)
+  return {
+    ...look,
+    hairstyle: hairstyleAvailableForGender(look.hairstyle, gender) ? look.hairstyle : 'natural',
+    ...(gender === 'feminine' ? { facialHair: undefined } : {}),
+    ...(!look.hairAccent || look.hairAccent === 'natural'
+      ? { hairHighlight: undefined, hairPlacement: undefined }
+      : {}),
+    ...(!look.secondEye || look.secondEye === 'natural' ? { irisPattern: undefined } : {}),
+  }
+}
+
 export function defaultPaintedLookForGender(gender: AppearanceGender): PaintedPlayerLook {
   return {
     ...wardrobeLook(),
@@ -292,8 +320,9 @@ export function randomPaintedLookForGender(
         : headwear !== 'none'
           ? capCuts
           : (Object.keys(PAINTED_PLAYER_FIELDS.hairstyle) as Hairstyle[])
-  const preferred = cuts.some((cut) => cut === ensemble.hairstyle)
-  const hairstyle = random() < 0.48 && preferred ? ensemble.hairstyle : choose(cuts)
+  const eligibleCuts = cuts.filter((cut) => hairstyleAvailableForGender(cut, gender))
+  const preferred = eligibleCuts.some((cut) => cut === ensemble.hairstyle)
+  const hairstyle = random() < 0.48 && preferred ? ensemble.hairstyle : choose(eligibleCuts)
   const faceIsUnframed = headwear === 'none' && facewear === 'none'
   const twoTone = faceIsUnframed && random() < 0.15 ? choose(restrainedHairPairs) : undefined
   const hairDye =
@@ -324,16 +353,39 @@ export function randomPaintedLookForGender(
     identity: face.rig,
     faceId: face.id,
     hairstyle,
-    ...(twoTone ? { hairAccent: twoTone[1], hairPlacement: 'streak' as const } : {}),
+    ...(twoTone
+      ? {
+          hairAccent: twoTone[1],
+          hairPlacement: choose(['streak', 'ombre', 'ribbons', 'tips'] as const),
+          ...(random() < 0.22
+            ? { hairHighlight: choose(['honey', 'silver', 'platinum', 'rosewood'] as const) }
+            : {}),
+        }
+      : {}),
     ...(faceIsUnframed && random() < 0.1
       ? {
           secondEye: choose(
-            (['amber', 'green', 'blue', 'violet'] as const).filter((color) => color !== eyeColor),
+            (
+              ['amber', 'green', 'blue', 'violet', 'jade', 'cobalt', 'rose', 'gold'] as const
+            ).filter((color) => color !== eyeColor),
           ),
+          irisPattern: choose(['paired', 'paired', 'central', 'sectoral'] as const),
         }
       : {}),
     ...(faceIsUnframed && !twoTone && random() < 0.12
-      ? { scar: choose(['cross', 'cheek', 'brow', 'jaw'] as const) }
+      ? {
+          scar: choose([
+            'cross',
+            'cheek',
+            'brow',
+            'jaw',
+            'cheekpair',
+            'lip',
+            'temple',
+            'browarch',
+            'cheekstar',
+          ] as const),
+        }
       : {}),
     ...(gender === 'masculine' && faceIsUnframed && random() < 0.25
       ? { facialHair: choose(['moustache', 'goatee'] as const) }

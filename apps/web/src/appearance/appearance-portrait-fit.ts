@@ -65,6 +65,7 @@ export function fittedHairTarget(
   hair: PaintedLayer,
   landmarks: Pick<PortraitFaceLandmarks, 'temples' | 'hairline' | 'brow'>,
   length: 'short' | 'long',
+  adjustment: Point = [0, 0],
 ): PortraitAnchors {
   const { temples, hairline, brow } = landmarks
   const headWidth = temples[1] - temples[0]
@@ -83,8 +84,15 @@ export function fittedHairTarget(
     guideHeight * horizontalScale * 1.18,
     ((opening - 7) * guideHeight) / sourceOpening,
   )
-  return { left, right, top: opening - verticalSpan / 2, bottom: opening + verticalSpan / 2 }
+  return {
+    left: left + adjustment[0],
+    right: right + adjustment[0],
+    top: opening - verticalSpan / 2 + adjustment[1],
+    bottom: opening + verticalSpan / 2 + adjustment[1],
+  }
 }
+
+type HairPlacement = 'split' | 'tips' | 'streak' | 'underlight' | 'ombre' | 'ribbons'
 
 export function fittedFacialHairTarget(
   { mouth, nose, chin, neck, temples }: PortraitFaceLandmarks,
@@ -122,8 +130,10 @@ export type PaintedPortraitLayers = Readonly<{
   gear?: PaintedLayer
   gearPlacement?: 'sash' | 'shoulder' | 'waist' | 'behind'
   facialHair?: Readonly<{ layer: PaintedLayer; fit: FacialHairFit }>
-  hairAccent?: Readonly<{ filter: string; placement: 'split' | 'tips' | 'streak' | 'underlight' }>
+  hairAdjustment?: Point
+  hairAccent?: Readonly<{ filter: string; placement: HairPlacement; highlight?: string }>
   eyeFilters?: readonly [viewerLeft?: string, viewerRight?: string]
+  irisAccent?: Readonly<{ filter: string; pattern: 'central' | 'sectoral' }>
   headwear?: Readonly<{ layer: PaintedLayer; kind: 'cap' | 'circlet' | 'hood'; wideBrim?: boolean }>
   facewear?: Readonly<{ layer: PaintedLayer; kind: 'lenses' | 'veil' | 'mask' | 'patch' }>
 }>
@@ -272,13 +282,22 @@ export function renderFittedPortrait(
     ? `<filter id="painted-expression" x="0" y="0" width="256" height="256" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-color="#808080" result="rest"/><feImage href="${layers.expressionMap}" x="${expressionX}" y="${expressionY}" width="${256 * expressionScaleX}" height="${256 * expressionScaleY}" preserveAspectRatio="none" result="expression-shape"/><feComposite in="expression-shape" in2="rest" operator="over" result="fitted-expression"/><feDisplacementMap in="SourceGraphic" in2="fitted-expression" scale="${layers.expressionIntensity ?? 18}" xChannelSelector="R" yChannelSelector="G"/></filter><g filter="url(#painted-expression)">${fittedFaceImage}</g>`
     : fittedFaceImage
   const irisRadius = (eyes[1] - eyes[0]) * 0.105
-  const irisOverlay = layers.eyeFilters
-    ?.map((filter, index) => {
-      if (!filter) return ''
-      const clip = `painted-iris-${index}`
-      return `<clipPath id="${clip}"><ellipse cx="${eyes[index]}" cy="${eyesY}" rx="${irisRadius}" ry="${irisRadius * 1.17}"/></clipPath><g clip-path="url(#${clip})"><use href="#painted-head-source" filter="url(#${filter})"/></g>`
-    })
-    .join('')
+  let irisOverlay =
+    layers.eyeFilters
+      ?.map((filter, index) => {
+        if (!filter) return ''
+        const clip = `painted-iris-${index}`
+        return `<clipPath id="${clip}"><ellipse cx="${eyes[index]}" cy="${eyesY}" rx="${irisRadius}" ry="${irisRadius * 1.17}"/></clipPath><g clip-path="url(#${clip})"><use href="#painted-head-source" filter="url(#${filter})"/></g>`
+      })
+      .join('') ?? ''
+  if (layers.irisAccent) {
+    const x = eyes[0]
+    const shape =
+      layers.irisAccent.pattern === 'central'
+        ? `<ellipse cx="${x}" cy="${eyesY}" rx="${irisRadius * 0.56}" ry="${irisRadius * 0.62}"/>`
+        : `<path d="M${x} ${eyesY - irisRadius * 1.17}a${irisRadius} ${irisRadius * 1.17} 0 0 1 0 ${irisRadius * 2.34}Z"/>`
+    irisOverlay += `<clipPath id="painted-iris-accent">${shape}</clipPath><g clip-path="url(#painted-iris-accent)"><use href="#painted-head-source" filter="url(#${layers.irisAccent.filter})"/></g>`
+  }
   const head = irisOverlay
     ? `<defs><g id="painted-head-source">${headSource}</g></defs><use href="#painted-head-source"/>${irisOverlay}`
     : headSource
@@ -307,7 +326,7 @@ export function renderFittedPortrait(
   const neckSpan = neck[1] - neck[0]
   const sourceCollarSpan = garment.anchors.right - garment.anchors.left
   const naturalWidth = (neckSpan * garmentScale * garment.width) / sourceCollarSpan
-  const minimumWidth = faceWidth * (2.05 + (garmentScale - 1) * 0.24)
+  const minimumWidth = faceWidth * (2.1 + (garmentScale - 1) * 0.24)
   const garmentWidth = Math.min(
     Math.max(260, minimumWidth),
     faceWidth * 2.45,
@@ -341,10 +360,15 @@ export function renderFittedPortrait(
   const gear = layers.gear
     ? `<image href="${layers.gear.href}" x="${neckCenter + gearPosition.left * gearScale}" y="${gearTop}" width="${(gearPosition.right - gearPosition.left) * gearScale}" height="${gearPosition.bottom - gearPosition.top}" preserveAspectRatio="xMidYMin meet"${layers.gear.filter ? ` filter="url(#${layers.gear.filter})"` : ''}/>`
     : ''
-  const hairTarget = fittedHairTarget(hair, landmarks, layers.hairLength ?? 'short')
+  const hairTarget = fittedHairTarget(
+    hair,
+    landmarks,
+    layers.hairLength ?? 'short',
+    layers.hairAdjustment,
+  )
   let hairstyle = layerImage(hair, hairTarget)
   if (layers.hairAccent) {
-    const { placement, filter } = layers.hairAccent
+    const { placement, filter, highlight } = layers.hairAccent
     const { origin, scaleY } = fitPortraitLayer(hair.anchors, hairTarget)
     const bottom = origin[1] + hair.height * scaleY
     const middle = (hairline + bottom) / 2
@@ -353,6 +377,8 @@ export function renderFittedPortrait(
       streak: `<path d="M145 0h15Q156 71 ${temples[1]} 256h-15Q141 71 145 0Z" fill="white" filter="url(#painted-streak-edge)"/>`,
       tips: `<rect y="${middle}" width="256" height="${Math.max(1, bottom - middle)}" fill="url(#painted-hair-fade)"/>`,
       underlight: `<path d="M0 ${brow}Q145 ${middle} 256 ${brow + 6}v180H0Z" fill="#bcbcbc"/>`,
+      ombre: '<rect width="256" height="256" fill="url(#painted-ombre-fade)"/>',
+      ribbons: `<path d="M${hairTarget.left + 7} 0q-8 75 22 256h-11Q${hairTarget.left - 14} 75 ${hairTarget.left - 4} 0ZM${hairTarget.right - 12} 0q18 75 9 256h-9q7-184-11-256Z" fill="white" filter="url(#painted-streak-edge)"/>`,
     }[placement]
     hairstyle = `<defs>
       <g id="painted-hair-source">${layerImage({ ...hair, filter: undefined }, hairTarget)}</g>
@@ -360,10 +386,15 @@ export function renderFittedPortrait(
       <linearGradient id="painted-hair-fade" x2="0" y2="1">
         <stop offset="0" stop-color="black"/><stop offset=".16" stop-color="white"/>
       </linearGradient>
+      <linearGradient id="painted-ombre-fade" gradientUnits="userSpaceOnUse" x2="0" y1="${hairline}" y2="${bottom}">
+        <stop stop-color="black"/><stop offset=".42" stop-color="black"/><stop offset="1" stop-color="white"/>
+      </linearGradient>
       <mask id="painted-hair-accent">${region}</mask>
+      ${highlight ? `<mask id="painted-hair-highlight"><path d="M${hairTarget.left + 16} 0q-5 90 31 256h-12q-30-161-31-256Z" fill="white" filter="url(#painted-streak-edge)"/></mask>` : ''}
     </defs>
     <use href="#painted-hair-source" ${hair.filter ? `filter="url(#${hair.filter})"` : ''}/>
-    <use href="#painted-hair-source" filter="url(#${filter})" mask="url(#painted-hair-accent)"/>`
+    <use href="#painted-hair-source" filter="url(#${filter})" mask="url(#painted-hair-accent)"/>
+    ${highlight ? `<use href="#painted-hair-source" filter="url(#${highlight})" mask="url(#painted-hair-highlight)"/>` : ''}`
   }
   const beard = layers.facialHair
     ? layerImage(layers.facialHair.layer, fittedFacialHairTarget(landmarks, layers.facialHair.fit))
@@ -391,7 +422,7 @@ export function renderFittedPortrait(
   // The collar stays on the body registration and overlaps the neck below it.
   const crownWidth = hair.width * fitPortraitLayer(hair.anchors, hairTarget).scaleX
   const headEnvelope = Math.max(faceWidth, crownWidth)
-  const headScale = icon ? 1 : Math.min(0.93, Math.max(0.82, (garmentWidth * 0.49) / headEnvelope))
+  const headScale = icon ? 1 : Math.min(0.93, Math.max(0.79, (garmentWidth * 0.485) / headEnvelope))
   const headTransform = `translate(${neckCenter} ${chin}) scale(${headScale}) translate(${-neckCenter} ${-chin})`
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="${viewBox}">
     ${layers.paintedFilters ? `<defs>${layers.paintedFilters}</defs>` : ''}
