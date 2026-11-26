@@ -1,4 +1,5 @@
 import { patternedBackdrop, studioColor } from './appearance-backdrop-catalog'
+import { daryaPaintedPortrait } from './appearance-darya-art'
 import {
   fittedCharacterPortrait,
   fittedCharacterSpriteHead,
@@ -124,7 +125,11 @@ function landscapeBrushwork(id: string, dark: string, mid: string, light: string
 }
 
 export function illustratedPortrait(look: Look, expression: AppearanceExpression, icon: boolean) {
-  return fittedCharacterPortrait(look, expression, portraitBackground(look.backdrop), icon)
+  const background = portraitBackground(look.backdrop)
+  return (
+    daryaPaintedPortrait(look, expression, background, icon) ??
+    fittedCharacterPortrait(look, expression, background, icon)
+  )
 }
 
 export function illustratedSpriteMaterials(look: Look) {

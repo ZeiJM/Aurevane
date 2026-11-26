@@ -3,6 +3,7 @@
 import { useEffect, useId, useMemo, useState, type CSSProperties } from 'react'
 import { PORTRAIT_FACES, portraitFace } from '@/appearance/appearance-face-catalog'
 import { APPEARANCE_BACKDROP_GROUPS } from '@/appearance/appearance-backdrop-catalog'
+import { daryaCourierBlueprint, daryaCourierLook } from '@/appearance/appearance-darya-look'
 import {
   APPEARANCE_EXPRESSIONS,
   APPEARANCE_FRAME,
@@ -328,6 +329,15 @@ export function AppearanceBuilder({
             ))}
           </div>
         </fieldset>
+        {look?.faceId === daryaCourierLook.faceId ? (
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => onChange(daryaCourierBlueprint())}
+          >
+            Try courier look
+          </button>
+        ) : null}
         <button
           type="button"
           className={styles.randomize}

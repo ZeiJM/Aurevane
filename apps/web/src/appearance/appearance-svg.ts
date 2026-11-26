@@ -6,6 +6,8 @@ import {
 } from './appearance-illustrated'
 import { facePainting, faceLayers, naturalFaceSkin, fieldFacePaint } from './appearance-face-paint'
 import { FITTED_FACEWEAR, FITTED_HEADWEAR } from './appearance-fitted-accessories'
+import { daryaCastLight, daryaSpriteArt, daryaSpriteMaterials } from './appearance-darya-art'
+import { paintedDaryaHairstyle } from './appearance-darya-look'
 import {
   patternedBackdrop,
   studioColor,
@@ -777,6 +779,27 @@ export function renderAppearanceAsset(
   ) {
     if (asset !== 'atlas' && asset !== 'motion' && asset !== 'motion-v2')
       return illustratedPortrait(blueprint, asset === 'icon' ? 'neutral' : asset, asset === 'icon')
+    const daryaHairstyle = paintedDaryaHairstyle(blueprint)
+    if (daryaHairstyle) {
+      const strides = motion
+        ? (['left', 'left', 'passing', 'passing', 'right', 'right', 'passing', 'passing'] as const)
+        : (['left', 'passing', 'right'] as const)
+      return renderSpriteAtlas(
+        daryaSpriteMaterials(daryaHairstyle),
+        (facing, pose, frame) => {
+          if (pose === 'walk') {
+            const rise = motion && frame % 4 === 2 ? -0.65 : 0
+            return `<ellipse cx="24" cy="58" rx="10" ry="2.5" fill="#171d23" fill-opacity=".4"/><g transform="translate(0 ${rise})">${daryaSpriteArt(facing, strides[frame]!)}</g>`
+          }
+          if (pose === 'cast' && frame > 0) {
+            const art = paintedSprite(facing, 'idle', 0, daryaSpriteArt(facing, 'cast'))
+            return art + daryaCastLight(daryaHairstyle, facing, frame)
+          }
+          return paintedSprite(facing, pose, frame, daryaSpriteArt(facing, 'idle'), motion)
+        },
+        motion,
+      )
+    }
     const heads = APPEARANCE_FACINGS.map((facing) =>
       illustratedSpriteHead(blueprint, facing, 'painted-' + facing),
     )
