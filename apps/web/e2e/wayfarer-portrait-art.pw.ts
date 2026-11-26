@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { resolvePublicCharacterImageUrl } from '../src/media/public-character-portrait'
 
-test('all replacement Wayfarer public aliases decode as distinct 1024px portraits', async ({
+test('all replacement Wayfarer public aliases decode as distinct approved painted portraits', async ({
   page,
 }) => {
   const sources = Array.from({ length: 39 }, (_, index) =>
@@ -17,14 +17,21 @@ test('all replacement Wayfarer public aliases decode as distinct 1024px portrait
       const image = new Image()
       image.src = source
       await image.decode()
-      results.push({ source, width: image.naturalWidth, height: image.naturalHeight })
+      const target = await fetch(source)
+      if (!target.ok) throw new Error('Portrait alias failed: ' + source)
+      results.push({
+        source,
+        target: new URL(target.url).pathname,
+        width: image.naturalWidth,
+        height: image.naturalHeight,
+      })
     }
     return results
   }, sources)
   expect(images).toHaveLength(39)
-  expect(new Set(images.map((image) => image.source)).size).toBe(39)
+  expect(new Set(images.map((image) => image.target)).size).toBe(39)
   for (const image of images) {
-    expect(image.source).toContain('?v=wayfarer-v02')
-    expect([image.width, image.height]).toEqual([1024, 1024])
+    expect(image.target).toMatch(/^\/api\/media\/appearance\/6\/.+\/illustrated-neutral[.]svg$/)
+    expect([image.width, image.height]).toEqual([256, 256])
   }
 })

@@ -45,7 +45,7 @@ beforeAll(async () => {
       await db.exec(`insert into auth.users(id,email,email_confirmed_at) values('${owner}','owner@example.test',now()),('${other}','other@example.test',now());
     insert into app_private.master_panel_role_assignments(user_id,role) values('${owner}','game-owner');
     insert into public.characters(id,user_id,slot_index,rules_version,name,name_key,presentation_id,pronoun_preset_id,portrait_ref,starter_appearance_ref,foundation_discipline_id,might,finesse,vitality,agility,intellect,resolve,level,xp,progression_cycle,created_at,cycle_started_at,last_active_at)
-    values('${character}','${other}',0,1,'Test Player','test-player','default','they','portrait','appearance','vanguard',12,4,7,4,3,6,1,0,1,now(),now(),now());`)
+    values('${character}','${other}',0,1,'Test Player','test-player','default','they','portrait','appearance','vanguard',12,4,7,4,3,6,1,0,1,'2026-10-01T00:00:00Z',now(),now());`)
       await db.exec(
         `select * from public.record_character_skill_unlock_v1('${character}',(select skill_id from app_private.phase4_skill_catalog where discipline_id='wildwarden' order by skill_id limit 1),(select content_version from app_private.phase4_skill_catalog where discipline_id='wildwarden' order by skill_id limit 1),'wildwarden','support','discipline-testing-open:v1');`,
       )
