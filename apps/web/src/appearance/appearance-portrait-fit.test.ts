@@ -94,6 +94,16 @@ describe('painted portrait fitting', () => {
     expect(result).not.toContain('brim-fit')
   })
 
+  it('restricts hair root shading to the face and fades it out at the brows', () => {
+    const result = renderFittedPortrait({ ...bare, rootedHair: true }, '')
+    expect(result).toContain('id="painted-root-skin" mask-type="alpha"')
+    expect(result).toContain('<use href="#painted-head-source"/>')
+    expect(result).toContain('y1="65" y2="89"')
+    expect(result).toContain('mask="url(#painted-root-region)"><g mask="url(#painted-root-skin)"')
+    expect(result.match(/name=hair/g)).toHaveLength(1)
+    expect(result).toContain('<use href="#painted-root-hair"/>')
+  })
+
   it('repositions a lens opening when a different face moves its pupils', () => {
     const fitted = (eyes: readonly [number, number], eyesY: number) =>
       renderFittedPortrait(

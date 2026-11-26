@@ -120,8 +120,10 @@ export type PaintedPortraitLayers = Readonly<{
   neckPigment: readonly [light: string, shadow: string]
   hair: PaintedLayer
   hairLength?: 'short' | 'long'
+  rootedHair?: boolean
   tuckHairBehindShoulders?: boolean
   garment: PaintedLayer
+  lowCollar?: boolean
   paintedFilters?: string
   expressionMap?: string
   expressionIntensity?: number
@@ -298,9 +300,12 @@ export function renderFittedPortrait(
         : `<path d="M${x} ${eyesY - irisRadius * 1.17}a${irisRadius} ${irisRadius * 1.17} 0 0 1 0 ${irisRadius * 2.34}Z"/>`
     irisOverlay += `<clipPath id="painted-iris-accent">${shape}</clipPath><g clip-path="url(#painted-iris-accent)"><use href="#painted-head-source" filter="url(#${layers.irisAccent.filter})"/></g>`
   }
-  const head = irisOverlay
-    ? `<defs><g id="painted-head-source">${headSource}</g></defs><use href="#painted-head-source"/>${irisOverlay}`
-    : headSource
+  const blendRoots = layers.rootedHair && (!headwear || headwear.kind === 'circlet')
+  const head =
+    irisOverlay || blendRoots
+      ? `<defs><g id="painted-head-source">${headSource}</g></defs><use href="#painted-head-source"/>${irisOverlay}`
+      : headSource
+  const upperNeck = (neck[1] - neck[0]) * 0.34
   const neckUnderlay = `<defs>
     <linearGradient id="neck-continuation" x1="0" y1="0" x2=".92" y2=".37">
       <stop stop-color="${neckPigment[1]}"/>
@@ -311,7 +316,9 @@ export function renderFittedPortrait(
       <stop stop-color="${neckPigment[1]}" stop-opacity=".45"/>
       <stop offset="1" stop-color="${neckPigment[1]}" stop-opacity="0"/>
     </linearGradient>
-    <path id="neck-contour" d="M${neck[0]} ${chin - 5}H${neck[1]}Q${neck[1] - 2} ${chin + 7} ${neck[1] + 4} ${shoulder + 9}H${neck[0] - 4}Q${neck[0] + 2} ${chin + 7} ${neck[0]} ${chin - 5}Z"/>
+    <path id="neck-contour" d="M${neckCenter - upperNeck} ${chin + 3}Q${neckCenter} ${chin - 9} ${neckCenter + upperNeck} ${chin + 3}
+      C${neck[1]} ${chin + 12} ${neck[1] + 3} ${shoulder + 2} ${neck[1] + 12} ${shoulder + 11}
+      H${neck[0] - 12}C${neck[0] - 3} ${shoulder + 2} ${neck[0]} ${chin + 12} ${neckCenter - upperNeck} ${chin + 3}Z"/>
   </defs>
   <use href="#neck-contour" fill="url(#neck-continuation)"/>
   <use href="#neck-contour" fill="url(#neck-contact-shade)"/>`
@@ -336,14 +343,18 @@ export function renderFittedPortrait(
   const garmentImage = layerImage(garment, {
     left: neckCenter - collarSpan,
     right: neckCenter + collarSpan,
-    top: chin + 1,
+    top: chin + (layers.lowCollar ? 4 : 1),
     bottom: shoulder,
   })
   // The collar wraps around the neck. Keep the painted sides while giving
   // the chin and the center of the throat a continuous clear opening.
   const collarLeft = neck[0] - 3
   const collarRight = neck[1] + 3
-  const clothing = `<defs><clipPath id="painted-neck-opening"><path d="M0 0H${collarLeft}V${chin - 3}Q${neckCenter} ${chin + 12} ${collarRight} ${chin - 3}V0H256V256H0Z"/></clipPath></defs><g clip-path="url(#painted-neck-opening)">${garmentImage}</g>`
+  const opening = layers.lowCollar
+    ? `M0 ${chin + 19}Q${collarLeft - 18} ${chin + 14} ${collarLeft} ${chin}
+       Q${neckCenter} ${chin + 20} ${collarRight} ${chin}Q${collarRight + 18} ${chin + 14} 256 ${chin + 19}V256H0Z`
+    : `M0 0H${collarLeft}V${chin - 3}Q${neckCenter} ${chin + 12} ${collarRight} ${chin - 3}V0H256V256H0Z`
+  const clothing = `<defs><clipPath id="painted-neck-opening"><path d="${opening}"/></clipPath></defs><g clip-path="url(#painted-neck-opening)">${garmentImage}</g>`
   const gearPlacement = layers.gearPlacement ?? 'sash'
   const gearPositions = {
     sash: { left: -43, right: 50, top: -12, bottom: 79 },
@@ -405,12 +416,37 @@ export function renderFittedPortrait(
     headwear,
     facewear,
   )
+  // Project the painted fringe onto the actual skin silhouette. Restrict the
+  // contact shade to the hairline and temples so it cannot tint the eyes or
+  // show as a halo against a light backdrop.
+  const rootShadow = blendRoots
+    ? `<defs><g id="painted-root-hair">${fittedHair}</g>
+      <filter id="painted-root-contact" x="0" y="0" width="256" height="256" filterUnits="userSpaceOnUse">
+        <feGaussianBlur in="SourceAlpha" stdDeviation="1.45"/>
+        <feOffset dx=".15" dy="1.05" result="contact"/>
+        <feFlood flood-color="${neckPigment[1]}" flood-opacity=".54"/>
+        <feComposite in2="contact" operator="in"/>
+      </filter>
+      <mask id="painted-root-skin" mask-type="alpha" maskUnits="userSpaceOnUse" x="0" y="0" width="256" height="256">
+        <use href="#painted-head-source"/>
+      </mask>
+      <linearGradient id="painted-root-rolloff" gradientUnits="userSpaceOnUse" x2="0" y1="${hairline + 5}" y2="${brow + 1}">
+        <stop stop-color="white"/><stop offset="1" stop-color="white" stop-opacity="0"/>
+      </linearGradient>
+      <mask id="painted-root-region" maskUnits="userSpaceOnUse" x="0" y="0" width="256" height="${brow + 1}">
+        <rect width="256" height="${brow + 1}" fill="url(#painted-root-rolloff)"/>
+      </mask></defs>
+      <g mask="url(#painted-root-region)"><g mask="url(#painted-root-skin)">
+        <use href="#painted-root-hair" filter="url(#painted-root-contact)"/>
+      </g></g>`
+    : ''
   let shoulderHair = ''
-  let frontHair = fittedHair
+  const hairPaint = blendRoots ? '<use href="#painted-root-hair"/>' : fittedHair
+  let frontHair = hairPaint
   if (layers.tuckHairBehindShoulders) {
     const split = chin + 4
     const cut = `M0 ${split + 18}Q128 ${split - 10} 256 ${split + 18}`
-    const splitLayers = `<defs><g id="fitted-hair-paint">${fittedHair}</g>
+    const splitLayers = `<defs><g id="fitted-hair-paint">${hairPaint}</g>
       <clipPath id="hair-behind-shoulders"><path d="${cut}V256H0Z"/></clipPath>
       <clipPath id="hair-above-shoulders"><path d="${cut}V0H0Z"/></clipPath></defs>`
     shoulderHair = `${splitLayers}<use href="#fitted-hair-paint" clip-path="url(#hair-behind-shoulders)"/>`
@@ -429,6 +465,6 @@ export function renderFittedPortrait(
     ${backdrop}${gearPlacement === 'behind' ? gear : ''}
     <g transform="${headTransform}">${hatBack}${rearImage(hair, hairTarget)}${shoulderHair}${accessoryBack}</g>
     ${neckUnderlay}<g transform="${headTransform}">${head}${layers.faceMarks ?? ''}</g>${clothing}${gearPlacement === 'behind' ? '' : gear}
-    <g transform="${headTransform}">${beard}${accessory}${frontHair}${hat}</g>
+    <g transform="${headTransform}">${beard}${accessory}${rootShadow}${frontHair}${hat}</g>
   </svg>`
 }

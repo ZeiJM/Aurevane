@@ -1,6 +1,7 @@
 import { FITTED_ACCESSORY_ART } from './appearance-fitted-accessories.generated'
 import { FITTED_FACEWEAR, FITTED_HEADWEAR } from './appearance-fitted-accessories'
 import { FITTED_ART_SOURCE } from './appearance-fitted-source.generated'
+import { PAINTED_HAIRLINE_REFITS } from './appearance-hairline-refits.generated'
 import type {
   AppearanceExpression,
   AppearanceFacing,
@@ -31,6 +32,11 @@ import {
 } from './appearance-portrait-fit'
 
 type SourceName = keyof typeof FITTED_ART_SOURCE
+
+type RefitArt = typeof PAINTED_HAIRLINE_REFITS
+const refits: {
+  [Name in SourceName]?: Name extends keyof RefitArt ? RefitArt[Name] : never
+} = PAINTED_HAIRLINE_REFITS
 
 export const FITTED_HAIR_ART = {
   natural: 'feathery-adventurer-cut',
@@ -330,7 +336,22 @@ const hairRegistrations: Partial<
   fishtail: [-4, -2],
   loosebraid: [-2, -2],
   sidefringe: [2, -2],
+  longbraid: [1, -6],
+  coils: [0, -4],
 }
+
+const rootsVisible = new Set<PaintedPlayerLook['hairstyle']>([
+  'layers',
+  'longbraid',
+  'braid',
+  'loosebraid',
+  'fishtail',
+  'coils',
+  'sidepart',
+  'tightbun',
+  'crown',
+  'waves',
+])
 
 export function fittedCharacterPortrait(
   look: PaintedPlayerAppearanceBlueprint,
@@ -353,7 +374,10 @@ export function fittedCharacterPortrait(
     pigment: readonly [number, number, number] | null,
   ) => (pigment ? { ...layer, filter } : layer)
   const hairDye = WARDROBE_HAIR_COLORS[look.hairDye].rgb
-  const hair = FITTED_ART_SOURCE[FITTED_HAIR_ART[look.hairstyle]]
+  const hairName = FITTED_HAIR_ART[look.hairstyle]
+  const garmentName = fittedGarments[look.outerwear]
+  const newGarment = refits[garmentName]
+  const hair = refits[hairName]?.portrait ?? FITTED_ART_SOURCE[hairName]
   const fabricDye = WARDROBE_DYES[look.clothColor].rgb
   const accentDye = look.hairAccent ? WARDROBE_HAIR_COLORS[look.hairAccent].rgb : null
   const highlightDye = look.hairHighlight ? WARDROBE_HAIR_COLORS[look.hairHighlight].rgb : null
@@ -413,6 +437,7 @@ export function fittedCharacterPortrait(
         paintedPigmentFilter('painted-hat', headDye) +
         paintedPigmentFilter('painted-accessory', accessoryDye),
       hair: naturalOrDyed(hair, 'painted-hair', hairDye),
+      rootedHair: rootsVisible.has(look.hairstyle),
       hairLength: longHair.has(look.hairstyle) ? 'long' : 'short',
       hairAdjustment: hairRegistrations[look.hairstyle],
       tuckHairBehindShoulders: shoulderLengthLooseHair.has(look.hairstyle),
@@ -429,10 +454,11 @@ export function fittedCharacterPortrait(
       ],
       irisAccent: pattern && secondaryEye ? { filter: 'painted-iris-color', pattern } : undefined,
       garment: naturalOrDyed(
-        FITTED_ART_SOURCE[fittedGarments[look.outerwear]],
+        newGarment?.portrait ?? FITTED_ART_SOURCE[garmentName],
         'painted-fabric',
         fabricDye,
       ),
+      lowCollar: Boolean(newGarment),
       gear:
         look.gear === 'none'
           ? undefined
@@ -532,8 +558,9 @@ const looseWaveHair = new Set<PaintedPlayerLook['hairstyle']>([
 ])
 
 export function fittedSpriteOutfit(look: PaintedPlayerAppearanceBlueprint) {
+  const garmentName = fittedGarments[look.outerwear]
   return {
-    front: PAINTED_SPRITE_HEADS[fittedGarments[look.outerwear]].href,
+    front: (refits[garmentName]?.sprite ?? PAINTED_SPRITE_HEADS[garmentName]).href,
     ...PAINTED_SPRITE_OUTFITS[look.outerwear],
   }
 }
@@ -584,7 +611,9 @@ export function fittedCharacterSpriteHead(
           ? 'longSideHair'
           : 'shortSideHair'
   const facingHairArt = PAINTED_SPRITE_HEADS[facingHair]
-  const hairArt = FITTED_ART_SOURCE[FITTED_HAIR_ART[look.hairstyle]]
+  const hairName = FITTED_HAIR_ART[look.hairstyle]
+  const hairRefit = refits[hairName]
+  const hairArt = hairRefit?.portrait ?? FITTED_ART_SOURCE[hairName]
   const skinColor =
     rear || profile ? fittedSpriteSkinPigment(look) : WARDROBE_SKIN_TONES[look.skinTone].rgb
   const naturalHair = hairArt.hairPigment
@@ -628,7 +657,7 @@ export function fittedCharacterSpriteHead(
   ) =>
     `<image href="${href}" x="${left}" y="${top}" width="${width}" height="${height}" preserveAspectRatio="none"${tint ? ` filter="url(#${tint})"` : ''}/>`
   const registeredImage = (
-    source: (typeof PAINTED_SPRITE_HEADS)[SourceName],
+    source: { href: string; width: number; height: number; anchors: PortraitAnchors },
     target: PortraitAnchors,
     tint?: string,
   ) => {
@@ -683,7 +712,7 @@ export function fittedCharacterSpriteHead(
           hairWidth,
           long ? 156 : tied ? 121 : 101,
         )
-      : registeredImage(PAINTED_SPRITE_HEADS[FITTED_HAIR_ART[look.hairstyle]], hairTarget)
+      : registeredImage(hairRefit?.sprite ?? PAINTED_SPRITE_HEADS[hairName], hairTarget)
   const colorHair = hairId ? `filter="url(#${hairId})"` : ''
   const accentArea =
     look.hairPlacement === 'split'
