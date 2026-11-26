@@ -155,7 +155,7 @@ export function illustratedSprite(
     face: `<use href="#${headId}-base"/>`,
     head: `<use href="#${headId}"/>`,
     bodyBuild: WARDROBE_FRAMES[look.bodyFrame].torsoScale,
-    cape: look.outerwear === 'pine' || look.outerwear === 'compass' || look.outerwear === 'hooded',
+    cape: look.outerwear === 'compass' || look.outerwear === 'hooded',
     mantle: false,
     satchel: look.gear !== 'none',
     fittedOutfit: true,

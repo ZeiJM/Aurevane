@@ -25,6 +25,8 @@ const digests = []
 const outfitDigests = []
 const refitDigests = []
 const refits = {}
+const repaintDigests = { face: [], hair: [], garment: [], outfit: [] }
+const repaintedArt = { face: {}, hair: {}, garment: {}, outfit: {} }
 
 // Displacement maps sample the same painting in a different pose. Keep the
 // effects local to facial features so hair, costume, and head outline stay fixed.
@@ -187,10 +189,20 @@ function registration(sheet, slot, data, width, bounds, region) {
           top: height * 0.445,
           bottom: height * 0.865,
         },
-      neckPigments: [
+      neckPigments: face?.neckPigments ?? [
         sample(assetWidth * 0.58, height * 0.92),
         sample(assetWidth * 0.45, height * 0.92),
       ],
+      ...(face?.midTone && { midTone: face.midTone }),
+      ...(face?.fit && {
+        fit: {
+          temples: face.fit.temples.map(featureX),
+          hairline: featureY(face.fit.hairline),
+          brow: featureY(face.fit.brow),
+          neck: face.fit.neck.map(featureX),
+          iris: face.fit.iris / (face.eyes[1] - face.eyes[0]),
+        },
+      }),
       ...(face && {
         facialGuides: {
           center: featureX(face.mouth[0]),
@@ -290,8 +302,15 @@ for (const sheet of sheets) {
   const outfitPart = { 'outfit-side': 'side', 'outfit-back': 'back', 'outfit-sleeve': 'sleeve' }[
     sheet.kind
   ]
-  const provenance = sheet.refit ? refitDigests : outfitPart ? outfitDigests : digests
+  const provenance = sheet.repaint
+    ? repaintDigests[outfitPart ? 'outfit' : sheet.kind]
+    : sheet.refit
+      ? refitDigests
+      : outfitPart
+        ? outfitDigests
+        : digests
   if (sheet.refit) assert(['hair', 'garment'].includes(sheet.kind))
+  if (sheet.repaint) assert(outfitPart || ['face', 'hair', 'garment'].includes(sheet.kind))
   provenance.push(`${sheet.kind} ${createHash('sha256').update(bytes).digest('hex')}`)
   const { width, height } = await sharp(bytes).metadata()
   const x = sheet.columns ?? [0, 0.25, 0.5, 0.75, 1]
@@ -326,7 +345,7 @@ for (const sheet of sheets) {
     if (slot.rotate) oriented.rotate(slot.rotate, { background: '#0000' })
     const { data, info } = await oriented.ensureAlpha().raw().toBuffer({ resolveWithObject: true })
     // Repainted hair uses softly transparent fibres around the part.
-    const alphaFloor = sheet.refit && sheet.kind === 'hair' ? 16 : 105
+    const alphaFloor = (sheet.refit || sheet.repaint) && sheet.kind === 'hair' ? 16 : 105
     let bounds = foreground(data, info.width, info.height, alphaFloor)
     if (sheet.kind === 'hair') {
       clearDetachedHairSpeckles(data, info.width, info.height)
@@ -338,16 +357,28 @@ for (const sheet of sheets) {
     const guides = registration(sheet, slot, data, info.width, bounds, region)
     const raw = sharp(data, { raw: info })
     const small = await encode(raw, bounds, guides, 92, 86)
-    if (sheet.refit) {
-      assert(Object.hasOwn(source, slot.id), `Unknown portrait refit ${slot.id}`)
-      refits[slot.id] = {
-        portrait: await encode(raw, bounds, guides, 288, 87),
-        sprite: small,
-      }
+    if (outfitPart) {
+      const catalogue = sheet.repaint ? repaintedArt.outfit : outfits
+      catalogue[slot.id] = { ...catalogue[slot.id], [outfitPart]: small.href }
       continue
     }
-    if (outfitPart) {
-      outfits[slot.id] = { ...outfits[slot.id], [outfitPart]: small.href }
+    if (sheet.refit || sheet.repaint) {
+      const repaintFace = sheet.repaint && sheet.kind === 'face'
+      assert(
+        repaintFace ? /^f\d+$/.test(slot.id) && slot.face?.fit : Object.hasOwn(source, slot.id),
+        `Missing artwork registration for ${slot.id}`,
+      )
+      const catalogue = sheet.repaint ? repaintedArt[sheet.kind] : refits
+      catalogue[slot.id] = {
+        portrait: await encode(
+          raw,
+          bounds,
+          guides,
+          sheet.repaint ? 264 : 288,
+          sheet.repaint ? 82 : 87,
+        ),
+        sprite: small,
+      }
       continue
     }
     if (sheet.kind === 'part') {
@@ -366,7 +397,7 @@ for (const sheet of sheets) {
   }
 }
 
-if (sheets.some(({ kind }) => kind === 'face')) {
+if (sheets.some(({ kind, repaint }) => kind === 'face' && !repaint)) {
   // Expressions deform the registered neutral painting instead of swapping to
   // independently painted heads with a different face or outline.
   for (const key of Object.keys(source)) {
@@ -405,6 +436,20 @@ if (outfitDigests.length)
   ])
 if (refitDigests.length)
   outputs.push(['appearance-hairline-refits', 'PAINTED_HAIRLINE_REFITS', refits, refitDigests])
+for (const [kind, name] of Object.entries({
+  face: 'faces',
+  hair: 'hair',
+  garment: 'garments',
+  outfit: 'outfits',
+})) {
+  if (repaintDigests[kind].length)
+    outputs.push([
+      `appearance-repainted-${name}`,
+      `REPAINTED_${name.toUpperCase()}`,
+      repaintedArt[kind],
+      repaintDigests[kind],
+    ])
+}
 
 for (const [name, constant, catalogue, provenance = digests] of outputs) {
   await writeFile(

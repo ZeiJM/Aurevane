@@ -33,6 +33,9 @@ import {
   type PaintedPlayerLook,
 } from './appearance-painted-wardrobe'
 import { PAINTED_SPRITE_OUTFITS } from './appearance-painted-sprite-outfits.generated'
+import { REPAINTED_FACES } from './appearance-repainted-faces.generated'
+import { REPAINTED_GARMENTS } from './appearance-repainted-garments.generated'
+import { REPAINTED_OUTFITS } from './appearance-repainted-outfits.generated'
 
 const svg = (look: ReturnType<typeof paintedPlayerAppearanceBlueprint>) =>
   illustratedPortrait(look, 'neutral', false)
@@ -80,7 +83,9 @@ describe('illustrated player and NPC customization', () => {
     expect(renders.every((svg) => svg.includes(FITTED_ART_SOURCE['silvertip-waves'].href))).toBe(
       true,
     )
-    expect(renders.every((svg) => svg.includes(FITTED_ART_SOURCE['moss-cloak'].href))).toBe(true)
+    expect(
+      renders.every((svg) => svg.includes(REPAINTED_GARMENTS['moss-cloak'].portrait.href)),
+    ).toBe(true)
     expect(renders.every((svg) => svg.includes(FITTED_ART_SOURCE['river-scholar'].href))).toBe(true)
     expect(renders[0]).not.toContain('feDisplacementMap')
     expect(renders.slice(1).every((svg) => svg.includes('feDisplacementMap'))).toBe(true)
@@ -88,7 +93,7 @@ describe('illustrated player and NPC customization', () => {
 
   it('keeps one opaque garment and blends the painted crop below the chin across builds', () => {
     const base = defaultPaintedLookForGender('feminine')
-    const source = FITTED_ART_SOURCE['moss-cloak'].href
+    const source = REPAINTED_GARMENTS['moss-cloak'].portrait.href
     const widths = (['slight', 'natural', 'stocky'] as const).map((bodyFrame) => {
       const look = paintedPlayerAppearanceBlueprint({ ...base, outerwear: 'pine', bodyFrame })
       const portrait = renderAppearanceAsset(look, 'neutral', true)
@@ -124,7 +129,10 @@ describe('illustrated player and NPC customization', () => {
 
   it('triples the face choices for each gender and makes all 48 hair silhouettes visible', () => {
     const facesByImage = new Map(
-      Object.values(FITTED_ART_SOURCE)
+      [
+        ...Object.values(FITTED_ART_SOURCE),
+        ...Object.values(REPAINTED_FACES).map(({ portrait }) => portrait),
+      ]
         .filter((source) => 'facialGuides' in source)
         .map((source) => [source.href as string, source] as const),
     )
@@ -182,10 +190,16 @@ describe('illustrated player and NPC customization', () => {
         outerwear,
       })
       const materials = illustratedSpriteMaterials(look)
-      const outfit = PAINTED_SPRITE_OUTFITS[outerwear]
+      const outfit = {
+        ...PAINTED_SPRITE_OUTFITS[outerwear],
+        ...REPAINTED_OUTFITS[outerwear as keyof typeof REPAINTED_OUTFITS],
+      }
       expect(new Set(Object.values(outfit)).size).toBe(3)
       for (const direction of ['side', 'back', 'sleeve'] as const) {
-        expect(materials).toContain(`id="rig-worn-outfit-${direction}" href="${outfit[direction]}"`)
+        expect(
+          materials.includes(`id="rig-worn-outfit-${direction}" href="${outfit[direction]}"`),
+          `${outerwear} ${direction}`,
+        ).toBe(true)
       }
       expect(materials).not.toContain('id="rig-torsoBack"')
     }

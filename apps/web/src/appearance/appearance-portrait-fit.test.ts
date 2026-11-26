@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { FITTED_ACCESSORY_ART } from './appearance-fitted-accessories.generated'
 import { FITTED_ART_SOURCE } from './appearance-fitted-source.generated'
+import { REPAINTED_FACES } from './appearance-repainted-faces.generated'
+import { REPAINTED_HAIR } from './appearance-repainted-hair.generated'
 import {
   fitPortraitLayer,
   fittedFacialHairTarget,
@@ -12,7 +14,17 @@ import {
 describe('painted portrait fitting', () => {
   it('keeps every source cutout and its calibration inside the source image', async () => {
     const { default: sharp } = await import('sharp')
-    for (const [name, layer] of Object.entries({ ...FITTED_ART_SOURCE, ...FITTED_ACCESSORY_ART })) {
+    const repaints = Object.fromEntries(
+      Object.entries({ ...REPAINTED_FACES, ...REPAINTED_HAIR }).map(([name, assets]) => [
+        name,
+        assets.portrait,
+      ]),
+    )
+    for (const [name, layer] of Object.entries({
+      ...FITTED_ART_SOURCE,
+      ...FITTED_ACCESSORY_ART,
+      ...repaints,
+    })) {
       const { anchors, width, height } = layer
       expect([anchors.left, anchors.right], name).toEqual(
         [anchors.left, anchors.right].sort((a, b) => a - b),
@@ -52,6 +64,19 @@ describe('painted portrait fitting', () => {
     expect(origin[0] + source.right * scaleX).toBeCloseTo(target.right)
     expect(origin[1] + source.top * scaleY).toBeCloseTo(target.top)
     expect(origin[1] + source.bottom * scaleY).toBeCloseTo(target.bottom)
+  })
+
+  it('measures repainted forehead, brow, iris and neck landmarks on each source', () => {
+    for (const { portrait, sprite } of Object.values(REPAINTED_FACES)) {
+      const { anchors, height, fit } = portrait
+      expect(fit.hairline).toBeGreaterThan(0)
+      expect(fit.brow).toBeGreaterThan(fit.hairline)
+      expect(fit.brow * height).toBeLessThan(anchors.top)
+      expect(fit.temples[0]).toBeLessThan(fit.neck[0])
+      expect(fit.temples[1]).toBeGreaterThan(fit.neck[1])
+      expect(fit.iris).toBeLessThan(0.1)
+      expect(sprite.fit).toEqual(fit)
+    }
   })
 
   const paintedPart = (name: string) => ({
@@ -102,6 +127,16 @@ describe('painted portrait fitting', () => {
     expect(result).toContain('mask="url(#painted-root-region)"><g mask="url(#painted-root-skin)"')
     expect(result.match(/name=hair/g)).toHaveLength(1)
     expect(result).toContain('<use href="#painted-root-hair"/>')
+  })
+
+  it('keeps cropped hairstyles off the brow, eye, and cheek while retaining the temple silhouette', () => {
+    const result = renderFittedPortrait({ ...bare, clearCheeks: true }, '')
+    expect(result).toContain('id="portrait-short-fringe"')
+    expect(result).toContain('M88 101Q128 95 168 101L154 169H102Z')
+    expect(result.indexOf('clip-path="url(#portrait-short-fringe)"')).toBeLessThan(
+      result.indexOf('name=hair'),
+    )
+    expect(renderFittedPortrait(bare, '')).not.toContain('portrait-short-fringe')
   })
 
   it('repositions a lens opening when a different face moves its pupils', () => {

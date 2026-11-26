@@ -23,6 +23,7 @@ export type PortraitFaceLandmarks = Readonly<{
   temples: readonly [left: number, right: number]
   eyes: readonly [left: number, right: number]
   eyesY: number
+  irisRatio?: number
   hairline: number
   brow: number
   nose: number
@@ -92,6 +93,17 @@ export function fittedHairTarget(
   }
 }
 
+export function clearShortHairFromFace(
+  hair: string,
+  { eyes, eyesY, chin, temples }: PortraitFaceLandmarks,
+  id: string,
+) {
+  const left = (eyes[0] + temples[0]) / 2
+  const right = (eyes[1] + temples[1]) / 2
+  const mid = (left + right) / 2
+  return `<clipPath id="${id}"><path clip-rule="evenodd" d="M0 0H256V256H0Z M${left} ${eyesY - 2}Q${mid} ${eyesY - 8} ${right} ${eyesY - 2}L${eyes[1]} ${chin}H${eyes[0]}Z"/></clipPath><g clip-path="url(#${id})">${hair}</g>`
+}
+
 type HairPlacement = 'split' | 'tips' | 'streak' | 'underlight' | 'ombre' | 'ribbons'
 
 export function fittedFacialHairTarget(
@@ -121,6 +133,7 @@ export type PaintedPortraitLayers = Readonly<{
   hair: PaintedLayer
   hairLength?: 'short' | 'long'
   rootedHair?: boolean
+  clearCheeks?: boolean
   tuckHairBehindShoulders?: boolean
   garment: PaintedLayer
   lowCollar?: boolean
@@ -283,13 +296,14 @@ export function renderFittedPortrait(
   const headSource = layers.expressionMap
     ? `<filter id="painted-expression" x="0" y="0" width="256" height="256" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-color="#808080" result="rest"/><feImage href="${layers.expressionMap}" x="${expressionX}" y="${expressionY}" width="${256 * expressionScaleX}" height="${256 * expressionScaleY}" preserveAspectRatio="none" result="expression-shape"/><feComposite in="expression-shape" in2="rest" operator="over" result="fitted-expression"/><feDisplacementMap in="SourceGraphic" in2="fitted-expression" scale="${layers.expressionIntensity ?? 18}" xChannelSelector="R" yChannelSelector="G"/></filter><g filter="url(#painted-expression)">${fittedFaceImage}</g>`
     : fittedFaceImage
-  const irisRadius = (eyes[1] - eyes[0]) * 0.105
+  const irisRadius = (eyes[1] - eyes[0]) * (landmarks.irisRatio ?? 0.105)
+  const irisHeight = irisRadius * (landmarks.irisRatio ? 0.94 : 1.17)
   let irisOverlay =
     layers.eyeFilters
       ?.map((filter, index) => {
         if (!filter) return ''
         const clip = `painted-iris-${index}`
-        return `<clipPath id="${clip}"><ellipse cx="${eyes[index]}" cy="${eyesY}" rx="${irisRadius}" ry="${irisRadius * 1.17}"/></clipPath><g clip-path="url(#${clip})"><use href="#painted-head-source" filter="url(#${filter})"/></g>`
+        return `<clipPath id="${clip}"><ellipse cx="${eyes[index]}" cy="${eyesY}" rx="${irisRadius}" ry="${irisHeight}"/></clipPath><g clip-path="url(#${clip})"><use href="#painted-head-source" filter="url(#${filter})"/></g>`
       })
       .join('') ?? ''
   if (layers.irisAccent) {
@@ -297,7 +311,7 @@ export function renderFittedPortrait(
     const shape =
       layers.irisAccent.pattern === 'central'
         ? `<ellipse cx="${x}" cy="${eyesY}" rx="${irisRadius * 0.56}" ry="${irisRadius * 0.62}"/>`
-        : `<path d="M${x} ${eyesY - irisRadius * 1.17}a${irisRadius} ${irisRadius * 1.17} 0 0 1 0 ${irisRadius * 2.34}Z"/>`
+        : `<path d="M${x} ${eyesY - irisHeight}a${irisRadius} ${irisHeight} 0 0 1 0 ${irisHeight * 2}Z"/>`
     irisOverlay += `<clipPath id="painted-iris-accent">${shape}</clipPath><g clip-path="url(#painted-iris-accent)"><use href="#painted-head-source" filter="url(#${layers.irisAccent.filter})"/></g>`
   }
   const blendRoots = layers.rootedHair && (!headwear || headwear.kind === 'circlet')
@@ -412,7 +426,9 @@ export function renderFittedPortrait(
     : ''
   const { hat, hatBack, fittedHair, accessory, accessoryBack } = fitPortraitAccessories(
     landmarks,
-    hairstyle,
+    layers.clearCheeks
+      ? clearShortHairFromFace(hairstyle, landmarks, 'portrait-short-fringe')
+      : hairstyle,
     headwear,
     facewear,
   )
