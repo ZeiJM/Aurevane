@@ -61,6 +61,42 @@ export const AUTHORED_CHARACTERS = [
     gender: 'feminine',
     label: 'Glacier Relay Warden',
   },
+  { key: 'elf-f-0003', race: 'elf', gender: 'feminine', label: 'Bluefall Harpist' },
+  { key: 'elf-f-0004', race: 'elf', gender: 'feminine', label: 'Copperwood Bowyer' },
+  { key: 'elf-m-0003', race: 'elf', gender: 'masculine', label: 'Ivory Fen Physician' },
+  { key: 'elf-m-0004', race: 'elf', gender: 'masculine', label: 'Winter Pear Astronomer' },
+  { key: 'fae-f-0003', race: 'fae', gender: 'feminine', label: 'Pollen Court Scribe' },
+  { key: 'fae-m-0003', race: 'fae', gender: 'masculine', label: 'Hawthorn Wind Reader' },
+  { key: 'fae-m-0004', race: 'fae', gender: 'masculine', label: 'Moonpool Apiarist' },
+  { key: 'human-f-0003', race: 'human', gender: 'feminine', label: 'Ashbank Surveyor' },
+  { key: 'human-m-0003', race: 'human', gender: 'masculine', label: 'Rainmarket Cook' },
+  { key: 'human-m-0004', race: 'human', gender: 'masculine', label: 'Juniper Road Peddler' },
+  {
+    key: 'mountain-orc-f-0004',
+    race: 'mountain-orc',
+    gender: 'feminine',
+    label: 'Basalt Stair Warden',
+  },
+  {
+    key: 'mountain-orc-m-0003',
+    race: 'mountain-orc',
+    gender: 'masculine',
+    label: 'Garnet Quarry Foreman',
+  },
+  {
+    key: 'mountain-orc-m-0004',
+    race: 'mountain-orc',
+    gender: 'masculine',
+    label: 'Thunder Gate Mason',
+  },
+  { key: 'fae-f-0004', race: 'fae', gender: 'feminine', label: 'Cairnlight Shepherd' },
+  { key: 'human-f-0004', race: 'human', gender: 'feminine', label: 'Tideglass Diver' },
+  {
+    key: 'mountain-orc-f-0003',
+    race: 'mountain-orc',
+    gender: 'feminine',
+    label: 'Iron Pass Scout',
+  },
 ] as const satisfies readonly AuthoredCharacter[]
 
 const byKey = new Map<string, AuthoredCharacter>(

@@ -8,20 +8,36 @@
   "characters": [
     "elf-f-0001",
     "elf-f-0002",
+    "elf-f-0003",
+    "elf-f-0004",
     "elf-m-0001",
     "elf-m-0002",
+    "elf-m-0003",
+    "elf-m-0004",
     "fae-f-0001",
     "fae-f-0002",
+    "fae-f-0003",
+    "fae-f-0004",
     "fae-m-0001",
     "fae-m-0002",
+    "fae-m-0003",
+    "fae-m-0004",
     "human-f-0001",
     "human-f-0002",
+    "human-f-0003",
+    "human-f-0004",
     "human-m-0001",
     "human-m-0002",
+    "human-m-0003",
+    "human-m-0004",
     "mountain-orc-f-0001",
     "mountain-orc-f-0002",
+    "mountain-orc-f-0003",
+    "mountain-orc-f-0004",
     "mountain-orc-m-0001",
-    "mountain-orc-m-0002"
+    "mountain-orc-m-0002",
+    "mountain-orc-m-0003",
+    "mountain-orc-m-0004"
   ],
   "secondArtBatch": {
     "artDirection": "Crisp tapered ink, angular cel shadows, cinematic colored rim light, and fully illustrated fantasy settings.",
@@ -219,6 +235,113 @@
             "spriteSheet": "exec-99c4a341-a7ec-47fd-b501-06a37807cac8.png"
           }
         ]
+      }
+    ]
+  },
+  "thirdArtBatch": {
+    "artDirection": "Ink contours, sharp cel shadows and fully painted original Aurevane locations.",
+    "portraitGrid": "Two rows of five expression paintings. Each row has its own pose and palette.",
+    "spriteGrid": "Two blocks of 5 × 3 front, side and rear motion drawings based on the respective portrait variant.",
+    "characters": [
+      {
+        "key": "elf-f-0003",
+        "label": "Bluefall Harpist",
+        "portraitSheet": "exec-1c4cc6b8-db2b-4610-9683-c47cd2f0454b.png",
+        "spriteSheet": "exec-11df6101-ba70-40b2-b269-0890bbfb46ed.png"
+      },
+      {
+        "key": "elf-f-0004",
+        "label": "Copperwood Bowyer",
+        "portraitSheet": "exec-3e287f99-d944-4cdb-b615-303437609720.png",
+        "spriteSheet": "exec-e143084b-23cb-4429-9051-1a3682a06d8c.png"
+      },
+      {
+        "key": "elf-m-0003",
+        "label": "Ivory Fen Physician",
+        "portraitSheet": "exec-434e9012-708a-4122-8e81-f054e6ea4355.png",
+        "spriteSheet": "exec-566870df-8ec6-4576-b4c4-4a77721e391e.png"
+      },
+      {
+        "key": "elf-m-0004",
+        "label": "Winter Pear Astronomer",
+        "portraitSheet": "exec-e9935ca8-e80d-4639-ab18-d2bb6b518742.png",
+        "spriteSheet": "exec-2aa0f022-f87c-49b3-a952-32c7483377f3.png"
+      },
+      {
+        "key": "fae-f-0003",
+        "label": "Pollen Court Scribe",
+        "portraitSheet": "exec-3003c595-c4af-484e-b35c-4ffc74c347de.png",
+        "spriteSheet": "exec-9c9c6b77-a15b-49ba-8505-fa81f047ae7d.png"
+      },
+      {
+        "key": "fae-f-0004",
+        "label": "Cairnlight Shepherd",
+        "portraitSheet": "exec-3c7a87d4-e24d-4238-ba50-8e52fb443822.png",
+        "spriteSheet": "exec-8af6c3f1-4cfa-46f9-858d-056375effe60.png"
+      },
+      {
+        "key": "fae-m-0003",
+        "label": "Hawthorn Wind Reader",
+        "portraitSheet": "exec-3a9e238f-5f81-4ea9-86f9-002beec8bb40.png",
+        "spriteSheet": "exec-ff6bfa67-619b-4eac-ba63-f1644b534061.png"
+      },
+      {
+        "key": "fae-m-0004",
+        "label": "Moonpool Apiarist",
+        "portraitSheet": "exec-7eb0bbe7-e322-4b4f-b2bf-5d513786e94e.png",
+        "spriteSheet": "exec-928c4166-ff26-4dc8-887e-1b486e28834b.png"
+      },
+      {
+        "key": "human-f-0003",
+        "label": "Ashbank Surveyor",
+        "portraitSheet": "exec-05978982-1c5a-46d1-9911-71e1827ba68f.png",
+        "spriteSheet": "exec-d015c887-0aff-4170-b0ca-9489fe3ee9be.png"
+      },
+      {
+        "key": "human-f-0004",
+        "label": "Tideglass Diver",
+        "portraitSheet": "exec-85e0a089-be93-462a-b4a9-9cf4a5dd859d.png",
+        "spriteSheet": "exec-a5a25146-01a1-421d-9135-b35984432eff.png"
+      },
+      {
+        "key": "human-m-0003",
+        "label": "Rainmarket Cook",
+        "portraitSheet": "exec-16641c00-6190-48f2-bd87-e284327e33ae.png",
+        "spriteSheet": "exec-db068771-3cf8-49ca-9241-31a6163511e5.png"
+      },
+      {
+        "key": "human-m-0004",
+        "label": "Juniper Road Peddler",
+        "portraitSheet": "exec-56d33c3a-215b-4aa5-af10-f7523433300c.png",
+        "spriteSheet": "exec-77a00a8e-236a-4cc4-baae-c57d9d12d38b.png"
+      },
+      {
+        "key": "mountain-orc-f-0003",
+        "label": "Iron Pass Scout",
+        "originalPortraitSheet": "exec-40ff7358-f434-47b5-bde1-3d13bce524fa.png",
+        "portraitSheet": "exec-46aa2932-920c-4847-a440-12fc2db5e5be.png",
+        "revision": "Lower canine tips follow the lower dental arch across expressions.",
+        "spriteSheet": "exec-0404c489-14ec-42f3-a5af-8fbdcaa8c28c.png"
+      },
+      {
+        "key": "mountain-orc-f-0004",
+        "label": "Basalt Stair Warden",
+        "originalPortraitSheet": "exec-7952e443-71c9-42cf-82af-684dba18b70e.png",
+        "portraitSheet": "exec-5008486a-203f-4aa0-8127-b162030c3178.png",
+        "revision": "Lower canine tips follow the lower dental arch across expressions.",
+        "spriteSheet": "exec-6223962f-41cc-48bb-a250-540d90f647d8.png"
+      },
+      {
+        "key": "mountain-orc-m-0003",
+        "label": "Garnet Quarry Foreman",
+        "portraitSheet": "exec-7bee49ac-8682-4f3a-9076-2b14c060f272.png",
+        "spriteSheet": "exec-81af181e-91ae-4e95-a0fe-2d1f78339386.png"
+      },
+      {
+        "key": "mountain-orc-m-0004",
+        "label": "Thunder Gate Mason",
+        "portraitSheet": "exec-7c360997-30d0-4d54-8122-f68312ea31f1.png",
+        "spriteSheet": "exec-9219407f-07d4-4fbd-85a9-b09a359c8f41.png"
       }
     ]
   }

@@ -41,7 +41,7 @@ RACES = {
         ("iridescent ear edges", "short luminous freckles", "faintly luminescent irises"),
     ),
     "mountain-orc": (
-        "large, broadly built mountain orc with two lower tusks",
+        "large, broadly built mountain orc with two short upright tusks rooted in the lower canine sockets",
         ("gray-green skin", "smoky jade skin", "blue gray-green skin", "olive skin", "slate skin"),
         ("a healed cheek scar", "a brass tusk ring", "one chipped tusk"),
     ),
