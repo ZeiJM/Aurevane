@@ -509,7 +509,7 @@ test('Eastern Watch objective persists accept, inspect and idempotent return com
   const portrait = dialogue.locator('img')
   await expect(portrait).toHaveAttribute(
     'src',
-    /^\/api\/media\/appearance\/6\/.+\/illustrated-neutral\.svg$/,
+    /^\/api\/media\/appearance\/6\/.+\/illustrated-(?:posed-)?neutral\.svg$/,
   )
   await expect
     .poll(() => portrait.evaluate((image) => (image as HTMLImageElement).naturalWidth))
@@ -590,7 +590,7 @@ test('Eastern Watch objective persists accept, inspect and idempotent return com
   await expect(dialogue.getByText('Completed', { exact: true })).toBeVisible()
   await expect(portrait).toHaveAttribute(
     'src',
-    /^\/api\/media\/appearance\/6\/.+\/illustrated-happy\.svg$/,
+    /^\/api\/media\/appearance\/6\/.+\/illustrated-(?:posed-)?happy\.svg$/,
   )
   await expect
     .poll(() => portrait.evaluate((image) => (image as HTMLImageElement).naturalWidth))
@@ -1457,6 +1457,64 @@ test('rapid ground clicks settle at the last legal tile and keyboard movement cr
   await page.reload()
   await expect(canvas).toBeVisible()
   expect((await world(page)).position.sectorId).not.toBe('atlas:58:28')
+})
+
+test('held movement advances while its first server receipt is delayed', async ({ page }, info) => {
+  test.skip(info.project.name !== 'desktop-chromium', 'Exercise delayed keyboard input once.')
+  await enter(page)
+  const initial = await world(page)
+  place(initial.characterId, 'atlas:58:28', 6, 4)
+  await page.reload()
+  const canvas = page.locator('canvas[data-world-stage]')
+  await expect(canvas).toHaveAttribute('data-camera-x', /\d/)
+  const origin = Number(await canvas.getAttribute('data-camera-x'))
+  await canvas.focus()
+
+  let delayed = false
+  let release!: () => void
+  const receiptGate = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  await page.route('**/api/world', async (route) => {
+    const request = route.request()
+    if (
+      delayed ||
+      request.method() !== 'POST' ||
+      request.postDataJSON()?.intent?.direction !== 'east'
+    ) {
+      await route.continue()
+      return
+    }
+    delayed = true
+    const response = await route.fetch()
+    await receiptGate
+    await route.fulfill({ response })
+  })
+
+  try {
+    await page.keyboard.down('d')
+    await expect.poll(() => delayed).toBe(true)
+    // Keep the real first write in flight until the camera has advanced beyond a tap.
+    await expect
+      .poll(async () => Number(await canvas.getAttribute('data-camera-x')))
+      .toBeGreaterThan(origin + 2)
+    release()
+    await expect
+      .poll(async () => Number(await canvas.getAttribute('data-camera-x')))
+      .toBeGreaterThan(origin + 4)
+  } finally {
+    release()
+    await page.keyboard.up('d')
+    await page.unroute('**/api/world')
+  }
+  const settled = async () => {
+    const current = await world(page)
+    return (
+      current.route.length === 0 &&
+      (current.position.sectorId !== 'atlas:58:28' || current.position.x >= 8)
+    )
+  }
+  await expect.poll(settled).toBe(true)
 })
 
 test('a synthetic population of 100 has bounded rendering at high DPI and lower CPU speed', async ({

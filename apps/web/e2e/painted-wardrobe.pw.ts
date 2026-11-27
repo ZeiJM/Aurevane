@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 import { expectSmoothReadyStance, grantAppearanceToken } from './appearance-test-helpers'
 import { allocateCreationPoints, createVerifiedAccountAndSignIn } from './pv1f-test-helpers'
 
-test('@painted-wardrobe saves an approved painted look and setting using one token', async ({
+test('@painted-wardrobe saves a painted pose variant and setting using one token', async ({
   page,
   isMobile,
 }, testInfo) => {
@@ -70,25 +70,25 @@ test('@painted-wardrobe saves an approved painted look and setting using one tok
   await designSprite.click()
   await expect(control('Look')).toHaveValue(look)
   await expect(control('Portrait setting')).toHaveValue('lunar')
-  if (isMobile) {
-    await control('Cape color').selectOption('denim')
-    await expect(control('Cape color')).toHaveValue('denim')
-  }
+  const variant = isMobile ? '1' : '2'
+  await expect(control('Variant').locator('option')).toHaveCount(3)
+  await control('Variant').selectOption(variant)
+  if (isMobile) await expect(control('Cape color')).toHaveValue('ember')
   await control('Portrait setting').selectOption('frost')
   await expect(dialog.getByText(/spends one Appearance Token/)).toBeVisible()
   const preview = dialog.getByAltText('Neutral appearance portrait')
   await expect(preview).toHaveAttribute(
     'src',
-    new RegExp('/6/' + faceId + '[.].*[.]frost/illustrated-neutral[.]svg$'),
+    new RegExp('/6/' + faceId + '[.].*[.]frost/illustrated-posed-neutral[.]svg$'),
   )
-  const path = (await preview.getAttribute('src'))!.replace('/illustrated-neutral.svg', '')
+  const path = (await preview.getAttribute('src'))!.replace('/illustrated-posed-neutral.svg', '')
   const atlasWidth = await page.evaluate(async (imagePath) => {
     const image = new Image()
     image.src = imagePath
     await image.decode()
     return image.naturalWidth
-  }, `${path}/illustrated-atlas.svg`)
-  expect(atlasWidth).toBe(576)
+  }, `${path}/illustrated-motion-v3.svg`)
+  expect(atlasWidth).toBe(1536)
   await page.screenshot({ path: testInfo.outputPath('painted-wardrobe.png') })
   const confirm = dialog.getByRole('button', { name: 'Confirm appearance' })
   await confirm.click()
@@ -105,6 +105,7 @@ test('@painted-wardrobe saves an approved painted look and setting using one tok
   await designSprite.click()
   await expect(control('Portrait setting')).toHaveValue('frost')
   await expect(control('Look')).toHaveValue(look)
-  if (isMobile) await expect(control('Cape color')).toHaveValue('denim')
+  await expect(control('Variant')).toHaveValue(variant)
+  if (isMobile) await expect(control('Cape color')).toHaveValue('ember')
   await expect(confirm).toBeDisabled()
 })

@@ -14,7 +14,7 @@ import {
   featuredStudy,
   featuredVariantDye,
 } from './appearance-featured-variants'
-import { paintedDaryaHairstyle } from './appearance-darya-look'
+import { paintedDaryaHairstyle } from './appearance-darya-recipe'
 import { matchingPaintedStudy } from './appearance-painted-studies'
 import { studyCastGlow, studySpriteArt, studySpriteMaterials } from './appearance-painted-study-art'
 import {

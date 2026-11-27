@@ -1,4 +1,4 @@
-import { daryaCourierLook } from './appearance-darya-look'
+import { daryaCourierLook } from './appearance-darya-recipe'
 import { PORTRAIT_FACES } from './appearance-face-catalog'
 import { featuredVariantDyes } from './appearance-featured-variants'
 import { appearanceEnsembles } from './appearance-look-ensembles'

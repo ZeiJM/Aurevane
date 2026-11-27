@@ -1,4 +1,4 @@
-import { daryaCourierLook, paintedDaryaHairstyle } from './appearance-darya-look'
+import { daryaCourierLook, paintedDaryaHairstyle } from './appearance-darya-recipe'
 import { matchingPaintedStudy, paintedStudyForFace } from './appearance-painted-studies'
 import type { PaintedPlayerLook } from './appearance-painted-wardrobe'
 

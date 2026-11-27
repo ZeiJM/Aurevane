@@ -183,18 +183,22 @@ export function AppearanceBuilder({
         <Portraits key={preview.id} manifest={preview} />
         <div className={styles.gameplay} role="group" aria-label="Gameplay previews">
           <div className={styles.battle}>
-            <PosePreview manifest={preview} size={47} facing="south" pose="walk" label="Field" />
-            {APPEARANCE_POSES.map((pose) => (
-              <PosePreview
-                key={pose}
-                manifest={preview}
-                size={58}
-                facing="east"
-                pose={pose}
-                label={title(pose)}
-                animateIdle
-              />
-            ))}
+            <div role="group" aria-label="Field previews">
+              <PosePreview manifest={preview} size={47} facing="south" pose="walk" label="Field" />
+            </div>
+            <div className={styles.battlePoses} role="group" aria-label="Battle poses">
+              {APPEARANCE_POSES.map((pose) => (
+                <PosePreview
+                  key={pose}
+                  manifest={preview}
+                  size={58}
+                  facing="east"
+                  pose={pose}
+                  label={title(pose)}
+                  animateIdle
+                />
+              ))}
+            </div>
           </div>
         </div>
       </div>
