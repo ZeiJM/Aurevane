@@ -1,15 +1,20 @@
+import { poseFeaturedPortrait, type PortraitStance } from './appearance-portrait-poses'
 import { DARYA_COILS_PORTRAITS } from './appearance-darya-coils-portraits.generated'
 import { DARYA_COILS_SPRITES } from './appearance-darya-coils-sprites.generated'
 import { DARYA_LOW_PONY_PORTRAITS } from './appearance-darya-low-pony-portraits.generated'
 import { DARYA_LOW_PONY_SPRITES } from './appearance-darya-low-pony-sprites.generated'
-import { paintedDaryaHairstyle } from './appearance-darya-look'
+import {
+  featuredDaryaHairstyle,
+  featuredPaintFilter,
+  featuredVariantDye,
+} from './appearance-featured-variants'
 import type {
   AppearanceExpression,
   AppearanceFacing,
   PaintedPlayerAppearanceBlueprint,
 } from './appearance-manifest'
 
-type DaryaHairstyle = NonNullable<ReturnType<typeof paintedDaryaHairstyle>>
+type DaryaHairstyle = NonNullable<ReturnType<typeof featuredDaryaHairstyle>>
 type DaryaPose = 'idle' | 'left' | 'passing' | 'right' | 'cast'
 type DaryaSprite = Readonly<{ href: string; x: number; y: number; width: number; height: number }>
 type DaryaSpriteSheet = Record<
@@ -31,13 +36,16 @@ export function daryaPaintedPortrait(
   mood: AppearanceExpression,
   background: string,
   icon: boolean,
+  stance: PortraitStance = 0,
 ) {
-  const hairstyle = paintedDaryaHairstyle(look)
+  const hairstyle = featuredDaryaHairstyle(look)
   if (!hairstyle) return undefined
   const size = icon ? 64 : 256
   const viewBox = icon ? '56 28 144 144' : '0 0 256 256'
+  const dye = featuredVariantDye(look)
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="${viewBox}">
-    ${background}<image href="${portraits[hairstyle][mood]}" width="256" height="256"/>
+    ${background}${dye ? featuredPaintFilter('featured-portrait', dye) : ''}
+    ${poseFeaturedPortrait(`<image href="${portraits[hairstyle][mood]}" width="256" height="256"${dye ? ' filter="url(#featured-portrait)"' : ''}/>`, stance)}
   </svg>`
 }
 

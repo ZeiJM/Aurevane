@@ -10,7 +10,7 @@ import {
 import { AppearanceBuilder, loadAppearanceCandidate } from './appearance-builder'
 import {
   isActivePaintedAppearance,
-  pickActivePaintedLook,
+  defaultActivePaintedLook,
 } from '@/appearance/appearance-active-catalog'
 import styles from './appearance-builder.module.css'
 
@@ -53,7 +53,7 @@ export function AppearanceBuilderDialog({
         (active && 'identity' in active ? appearanceGenderForIdentity(active.identity) : undefined)
       const initial = isActivePaintedAppearance(active)
         ? active
-        : paintedPlayerAppearanceBlueprint(pickActivePaintedLook(gender, () => 0))
+        : paintedPlayerAppearanceBlueprint(defaultActivePaintedLook(gender))
       initialCandidate.current = initial
       setCandidate(initial)
     } catch (failure) {

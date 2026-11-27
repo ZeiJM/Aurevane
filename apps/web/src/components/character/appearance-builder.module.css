@@ -23,7 +23,9 @@
   background: rgb(7 13 17 / 76%);
 }
 
-.dialog :is(button, select) {
+.dialog .builder :is(button, select, input),
+.dialog > header button,
+.dialog > footer button {
   min-height: var(--control-height);
   border: 1px solid #67706b;
   border-radius: 0.35rem;
@@ -36,18 +38,18 @@
   padding: 0.3rem 0.7rem;
 }
 
-.dialog select {
+.dialog :is(select, input) {
   padding: 0.25rem 0.25rem 0.25rem 0.45rem;
   text-overflow: ellipsis;
 }
 
-.dialog :is(button, select, label):focus-visible,
+.dialog :is(button, select, input, label):focus-visible,
 .gender label:has(input:focus-visible) span {
   outline: 2px solid #f1ca87;
   outline-offset: 2px;
 }
 
-.dialog :is(button, select):disabled {
+.dialog :is(button, select, input):disabled {
   opacity: 0.53;
 }
 
@@ -142,7 +144,7 @@
   border-bottom: 1px solid #46534e;
 }
 
-.gender {
+.dialog .gender {
   position: relative;
   min-inline-size: 0;
   margin: 0;
@@ -267,8 +269,13 @@
   align-content: center;
 }
 
-.neutralPortrait .portrait {
+.neutralImage {
+  position: relative;
+  width: 100%;
   max-width: calc(var(--alternate-size) * 2 + 0.4rem);
+}
+
+.neutralPortrait .portrait {
   border-color: #ad9160;
 }
 
@@ -310,39 +317,34 @@
   align-items: end;
 }
 
-.fieldPreviews {
-  display: flex;
-  justify-content: center;
-  align-items: end;
-  gap: clamp(1.25rem, 6vw, 2.75rem);
-}
-
-.fieldPreviews figure {
-  width: clamp(3rem, 6vw, 4.5rem);
-}
-
-.icon img {
+.icon {
+  position: absolute;
+  inset-inline-start: 0.32rem;
+  inset-block-end: 0.56rem;
   display: block;
-  width: clamp(1.65rem, 4vw, 2.125rem);
+  width: 23%;
+  max-width: 2.2rem;
   height: auto;
-  margin-block-end: 0.16rem;
-  border: 1px solid #97805a;
+  aspect-ratio: 1;
+  border: 1px solid #e0bd80;
   border-radius: 50%;
+  background: #213034;
+  box-shadow:
+    0 0 0 2px #202c30,
+    0 1px 4px #171d23;
 }
 
 .battle {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   align-items: end;
   gap: 0.12rem;
   min-width: 0;
-  padding-block-start: 0.2rem;
-  border-block-start: 1px solid #465953;
 }
 
 .battle figcaption {
   font-size: clamp(0.625rem, 1.6vw, 0.75rem);
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .sprite {
@@ -357,21 +359,88 @@
   width: min(100%, var(--sprite-width), var(--gameplay-sprite-width));
 }
 
-.sprite[data-preview-motion]:where(:not([data-preview-motion='idle'])) {
-  animation: pose-preview var(--preview-cycle) steps(var(--preview-frames), jump-none) infinite;
+.sprite[data-preview-motion='walk'] {
+  animation: stride-preview var(--preview-cycle) steps(var(--preview-frames), jump-none) infinite;
+}
+
+.sprite[data-preview-motion='attack'] {
+  animation: strike-preview 1450ms step-end infinite;
+}
+
+.sprite[data-preview-motion='cast'] {
+  animation: cast-preview 1900ms step-end infinite;
+}
+
+.sprite[data-preview-motion='hit'] {
+  animation: recoil-preview 1500ms step-end infinite;
 }
 
 .sprite[data-preview-motion='down'] {
-  animation: pose-preview 280ms steps(3, jump-none) both;
+  animation: fall-preview 450ms step-end both;
 }
 
-@keyframes pose-preview {
+@keyframes stride-preview {
   to {
     background-position: var(--last-frame) var(--sprite-row);
   }
 }
 
-.controls {
+@keyframes strike-preview {
+  0%,
+  42%,
+  100% {
+    background-position: var(--first-frame) var(--sprite-row);
+  }
+  24% {
+    background-position: var(--middle-frame) var(--sprite-row);
+  }
+  31% {
+    background-position: var(--last-frame) var(--sprite-row);
+  }
+}
+
+@keyframes cast-preview {
+  0%,
+  66%,
+  100% {
+    background-position: var(--first-frame) var(--sprite-row);
+  }
+  24% {
+    background-position: var(--middle-frame) var(--sprite-row);
+  }
+  40% {
+    background-position: var(--last-frame) var(--sprite-row);
+  }
+}
+
+@keyframes recoil-preview {
+  0%,
+  45%,
+  100% {
+    background-position: var(--first-frame) var(--sprite-row);
+  }
+  22% {
+    background-position: var(--middle-frame) var(--sprite-row);
+  }
+  32% {
+    background-position: var(--last-frame) var(--sprite-row);
+  }
+}
+
+@keyframes fall-preview {
+  0% {
+    background-position: var(--first-frame) var(--sprite-row);
+  }
+  28% {
+    background-position: var(--middle-frame) var(--sprite-row);
+  }
+  70%,
+  100% {
+    background-position: var(--last-frame) var(--sprite-row);
+  }
+}
+
+.dialog .controls {
   grid-area: controls;
   min-inline-size: 0;
   margin: 0;
@@ -381,7 +450,7 @@
 
 .fields {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.55rem 0.5rem;
 }
 
@@ -396,11 +465,15 @@
   line-height: 1.12;
 }
 
-.fields select {
+.fields :is(select, input) {
   width: 100%;
   min-width: 0;
   font-size: 0.85rem;
   font-weight: 400;
+}
+
+.fields .lookSearch {
+  grid-column: 1 / -1;
 }
 
 .fields label span {
@@ -456,7 +529,7 @@
   }
 
   .fields {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.25rem 0.35rem;
   }
 
@@ -476,22 +549,6 @@
     padding: 0.2rem 0.3rem;
   }
 
-  .fieldPreviews {
-    gap: 0.8rem;
-  }
-
-  .fieldPreviews figure {
-    display: flex;
-    align-items: center;
-    gap: 0.15rem;
-    width: auto;
-  }
-
-  .fieldPreviews .sprite {
-    width: 1.6rem;
-  }
-
-  .fieldPreviews figcaption,
   .battle figcaption,
   .alternatePortraits figcaption {
     font-size: 0.58rem;
@@ -509,12 +566,8 @@
   }
 
   .fields {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.25rem 0.35rem;
-  }
-
-  .fields label:last-child {
-    grid-column: span 2;
   }
 
   .fields label {
@@ -574,8 +627,7 @@
   }
 
   .preview {
-    grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr);
-    align-items: end;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .portraits {
@@ -594,12 +646,6 @@
     display: contents;
   }
 
-  .fieldPreviews {
-    align-self: stretch;
-    align-items: center;
-    gap: 0.12rem;
-  }
-
   .battle {
     grid-column: 1 / -1;
     padding: 0.12rem;
@@ -612,14 +658,6 @@
 @media (width < 36rem) and (max-height: 44rem) and (orientation: portrait) {
   .dialog {
     max-height: calc(100dvh - 0.5rem);
-  }
-
-  .fields {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  .fields label:last-child {
-    grid-column: span 2;
   }
 }
 
@@ -661,5 +699,9 @@
 @media (prefers-reduced-motion: reduce) {
   .sprite[data-preview-motion] {
     animation: none;
+  }
+
+  .sprite[data-preview-motion='down'] {
+    background-position: var(--last-frame) var(--sprite-row);
   }
 }

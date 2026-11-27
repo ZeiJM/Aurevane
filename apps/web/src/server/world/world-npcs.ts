@@ -4,7 +4,7 @@ import {
   paintedPlayerAppearanceBlueprint,
   compileAppearanceManifest,
 } from '@/appearance/appearance-manifest'
-import { ACTIVE_PAINTED_LOOKS } from '@/appearance/appearance-active-catalog'
+import { FEATURED_PAINTED_LOOKS } from '@/appearance/appearance-active-catalog'
 import { hashString } from '@/world/terrain-gen'
 import { worldNpcName } from '@/world/npc-name'
 
@@ -21,7 +21,7 @@ import { isKnownCell, resolveSector } from './world-content'
 import { localObjectiveNpcs } from './world-objectives'
 
 const NPC_CACHE_MS = 5_000
-const npcLooks = ACTIVE_PAINTED_LOOKS.map(
+const npcLooks = FEATURED_PAINTED_LOOKS.map(
   ({ look }) => compileAppearanceManifest(paintedPlayerAppearanceBlueprint(look)).portraits.neutral,
 )
 const NPC_CACHE_SECTORS = 64

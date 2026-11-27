@@ -1776,7 +1776,27 @@ describe('native map input and bounded lifecycle', () => {
       vi.unstubAllGlobals()
     },
   )
-  it('maintains a held walk from Gildtide through a dry sector seam over a slow connection', async () => {
+  it.each([
+    { label: 'steady latency', legs: [[275, 275]] },
+    {
+      label: 'jittery latency',
+      legs: [
+        [70, 105],
+        [115, 630],
+        [35, 145],
+        [210, 110],
+        [155, 510],
+      ],
+    },
+    {
+      label: 'delayed initial receipt',
+      legs: [
+        [115, 785],
+        [70, 105],
+        [35, 145],
+      ],
+    },
+  ])('maintains a held walk through a dry sector seam with $label', async ({ legs }) => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] })
     let state = revealNearby({
       ...newWorldState(),
@@ -1785,15 +1805,17 @@ describe('native map input and bounded lifecycle', () => {
     const clock = () => 10_000 + performance.now()
     const s = scene(true, projectWorld(state, [], clock()))
     const failures: string[] = []
-    let version = s.view.version
+    let version = s.view.version,
+      command = 0
     const controller: WorldController = new WorldController(s.view, {
       command: async (intent) => {
         if (intent.kind !== 'walk' && intent.kind !== 'stop') throw new Error(intent.kind)
-        await new Promise((resolve) => setTimeout(resolve, 275))
+        const [outbound, inbound] = legs[command++ % legs.length]!
+        await new Promise((resolve) => setTimeout(resolve, outbound))
         const serverNow = clock()
         state = resolveWorldIntent(state, intent, serverNow)
         const next = projectWorld({ ...state, version: ++version }, [], serverNow)
-        await new Promise((resolve) => setTimeout(resolve, 275))
+        await new Promise((resolve) => setTimeout(resolve, inbound))
         return next
       },
       refresh: async () => controller.view,

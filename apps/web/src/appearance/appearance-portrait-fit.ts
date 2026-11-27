@@ -1,3 +1,9 @@
+import {
+  portraitPoseFilter,
+  portraitStances,
+  type PortraitStance,
+} from './appearance-portrait-poses'
+
 type Point = readonly [x: number, y: number]
 export const PORTRAIT_TEMPLE_FRACTION = 0.86
 
@@ -160,6 +166,7 @@ export type PaintedPortraitLayers = Readonly<{
   expressionIntensity?: number
   faceMarks?: string
   torsoScale?: number
+  stance?: PortraitStance
   gear?: PaintedLayer
   gearPlacement?: 'sash' | 'shoulder' | 'waist' | 'behind'
   facialHair?: Readonly<{ layer: PaintedLayer; fit: FacialHairFit }>
@@ -502,12 +509,17 @@ export function renderFittedPortrait(
   const crownWidth = hair.width * fitPortraitLayer(hair.anchors, hairTarget).scaleX
   const headEnvelope = Math.max(faceWidth, crownWidth)
   const headScale = icon ? 1 : Math.min(0.93, Math.max(0.79, (garmentWidth * 0.485) / headEnvelope))
-  const headTransform = `translate(${neckCenter} ${chin}) scale(${headScale}) translate(${-neckCenter} ${-chin})`
+  const stance = layers.stance ?? 0
+  const pose = portraitStances[stance]
+  const posedChin = `translate(${pose.headX} ${pose.headY}) rotate(${pose.headTilt})`
+  const bodyPart = (art: string) =>
+    stance && art ? `<g filter="url(#portrait-stance-torso)">${art}</g>` : art
+  const headTransform = `translate(${neckCenter} ${chin})${stance ? ' ' + posedChin : ''} scale(${headScale}) translate(${-neckCenter} ${-chin})`
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="${viewBox}">
-    ${layers.paintedFilters ? `<defs>${layers.paintedFilters}</defs>` : ''}
-    ${backdrop}${gearPlacement === 'behind' ? gear : ''}
+    ${layers.paintedFilters || stance ? `<defs>${layers.paintedFilters ?? ''}${portraitPoseFilter(stance, 'torso')}</defs>` : ''}
+    ${backdrop}${gearPlacement === 'behind' ? bodyPart(gear) : ''}
     <g transform="${headTransform}">${layeredHair}${hatBack}${rearImage(hair, hairTarget)}${hairBack}${accessoryBack}</g>
-    ${neckUnderlay}<g transform="${headTransform}">${head}${layers.faceMarks ?? ''}</g>${clothing}${gearPlacement === 'behind' ? '' : gear}
+    ${neckUnderlay}<g transform="${headTransform}">${head}${layers.faceMarks ?? ''}</g>${bodyPart(clothing + (gearPlacement === 'behind' ? '' : gear))}
     <g transform="${headTransform}">${beard}${accessory}${rootShadow}${frontHair}${hat}</g>
   </svg>`
 }

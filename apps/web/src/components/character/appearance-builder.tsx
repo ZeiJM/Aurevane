@@ -3,8 +3,9 @@
 import { useEffect, useId, useMemo, useState, type CSSProperties } from 'react'
 import { APPEARANCE_BACKDROP_GROUPS } from '@/appearance/appearance-backdrop-catalog'
 import {
-  activePaintedLookKey,
+  findActivePaintedLook,
   activePaintedLooksForGender,
+  defaultActivePaintedLook,
   isActivePaintedAppearance,
   pickActivePaintedLook,
 } from '@/appearance/appearance-active-catalog'
@@ -46,7 +47,17 @@ function Portraits({ manifest }: { manifest: AppearanceManifest }) {
   return (
     <div className={styles.portraits} role="group" aria-label="Portrait expressions">
       <figure className={styles.neutralPortrait}>
-        <AppearancePortraitPreview manifest={manifest} />
+        <div className={styles.neutralImage}>
+          <AppearancePortraitPreview manifest={manifest} />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            className={styles.icon}
+            src={manifest.icon}
+            alt="Character icon"
+            width={32}
+            height={32}
+          />
+        </div>
         <figcaption>Neutral</figcaption>
       </figure>
       <div className={styles.alternatePortraits}>
@@ -110,12 +121,19 @@ export function AppearanceBuilder({
     }
   }, [manifest, preview.id])
   const genderGroupName = useId()
-  const look = isActivePaintedAppearance(value)
-    ? value
-    : pickActivePaintedLook(initialGender, () => 0)
+  const [search, setSearch] = useState('')
+  const look = isActivePaintedAppearance(value) ? value : defaultActivePaintedLook(initialGender)
   const gender = appearanceGenderForIdentity(look.identity)
   const choices = activePaintedLooksForGender(gender)
-  const selected = activePaintedLookKey(look)
+  const { choice: selected, variant } = findActivePaintedLook(look)!
+  const query = search.trim().toLowerCase()
+  const groups = Map.groupBy(
+    choices.filter(
+      ({ key, label, group }) =>
+        key === selected.key || `${label} ${group}`.toLowerCase().includes(query),
+    ),
+    ({ group }) => group,
+  )
   const choose = (next: PaintedPlayerLook) => onChange(paintedPlayerAppearanceBlueprint(next))
 
   return (
@@ -131,7 +149,10 @@ export function AppearanceBuilder({
                   name={genderGroupName}
                   value={choice}
                   checked={gender === choice}
-                  onChange={() => choose(pickActivePaintedLook(choice, () => 0))}
+                  onChange={() => {
+                    setSearch('')
+                    choose(defaultActivePaintedLook(choice))
+                  }}
                 />
                 <span>{APPEARANCE_GENDERS[choice]}</span>
               </label>
@@ -142,7 +163,10 @@ export function AppearanceBuilder({
           type="button"
           className={styles.randomize}
           disabled={disabled}
-          onClick={() => choose(pickActivePaintedLook(gender, Math.random, look))}
+          onClick={() => {
+            setSearch('')
+            choose(pickActivePaintedLook(gender, Math.random, look))
+          }}
         >
           Randomize
         </button>
@@ -158,15 +182,8 @@ export function AppearanceBuilder({
         ) : null}
         <Portraits key={preview.id} manifest={preview} />
         <div className={styles.gameplay} role="group" aria-label="Gameplay previews">
-          <div className={styles.fieldPreviews} role="group" aria-label="Field previews">
-            <figure className={styles.icon}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={preview.icon} alt="" width={34} height={34} />
-              <figcaption>Icon</figcaption>
-            </figure>
-            <PosePreview manifest={preview} size={47} facing="south" pose="walk" label="Movement" />
-          </div>
-          <div className={styles.battle} role="group" aria-label="Battle poses">
+          <div className={styles.battle}>
+            <PosePreview manifest={preview} size={47} facing="south" pose="walk" label="Field" />
             {APPEARANCE_POSES.map((pose) => (
               <PosePreview
                 key={pose}
@@ -185,19 +202,49 @@ export function AppearanceBuilder({
       <fieldset className={styles.controls} disabled={disabled}>
         <legend>Painted appearance</legend>
         <div className={styles.fields}>
+          <label className={styles.lookSearch}>
+            <span>Find a look</span>
+            <input
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder={`Search ${choices.length} looks`}
+            />
+          </label>
           <label>
             <span>Look</span>
             <select
               aria-label="Look"
-              value={selected}
+              value={selected.key}
               onChange={(event) => {
                 const choice = choices.find(({ key }) => key === event.target.value)
-                if (choice) choose(choice.look)
+                if (choice) choose(choice.variants[0])
               }}
             >
-              {choices.map(({ key, label }) => (
-                <option key={key} value={key}>
-                  {label}
+              {[...groups].map(([group, options]) => (
+                <optgroup key={group} label={group}>
+                  {options.map(({ key, label }) => (
+                    <option key={key} value={key}>
+                      {label}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span>Variant</span>
+            <select
+              aria-label="Variant"
+              value={variant}
+              onChange={(event) => {
+                const next = selected.variants[Number(event.target.value)]
+                if (next) choose({ ...next, backdrop: look.backdrop })
+              }}
+            >
+              {selected.variants.map((_, index) => (
+                <option key={index} value={index}>
+                  Variant {index + 1} · {(['Relaxed', 'Guarded', 'Focused'] as const)[index]}
                 </option>
               ))}
             </select>
@@ -216,7 +263,7 @@ export function AppearanceBuilder({
               <PortraitSettingOptions />
             </select>
           </label>
-          {selected === 'asta' ? (
+          {selected.key === 'asta' ? (
             <label>
               <span>Cape color</span>
               <select
@@ -295,6 +342,7 @@ export function PosePreview({
             backgroundSize: columns * 100 + '% ' + rows * 100 + '%',
             '--sprite-width': size + 'px',
             '--first-frame': (100 * column) / (columns - 1) + '%',
+            '--middle-frame': (100 * (column + 1)) / (columns - 1) + '%',
             '--last-frame': (100 * (column + frameCount - 1)) / (columns - 1) + '%',
             '--sprite-row': (100 * row) / (rows - 1) + '%',
             '--preview-frames': frameCount,

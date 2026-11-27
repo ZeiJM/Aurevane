@@ -1,3 +1,4 @@
+import { poseFeaturedPortrait, type PortraitStance } from './appearance-portrait-poses'
 import { PAINTED_STUDY_YUNA_ACTIONS } from './appearance-painted-study-yuna-actions.generated'
 import { PAINTED_STUDY_YUNA_PORTRAITS } from './appearance-painted-study-yuna-portraits.generated'
 import { PAINTED_STUDY_YUNA_SPRITES } from './appearance-painted-study-yuna-sprites.generated'
@@ -23,14 +24,18 @@ import { PAINTED_STUDY_ASTA_SPRITES } from './appearance-painted-study-asta-spri
 import { PAINTED_STUDY_CASSIAN_PORTRAITS } from './appearance-painted-study-cassian-portraits.generated'
 import { PAINTED_STUDY_CASSIAN_SPRITES } from './appearance-painted-study-cassian-sprites.generated'
 import { paintedDyeFilter } from './appearance-painted-equipment'
-import { matchingPaintedStudy } from './appearance-painted-studies'
+import {
+  featuredPaintFilter,
+  featuredStudy,
+  featuredVariantDye,
+} from './appearance-featured-variants'
 import type {
   AppearanceExpression,
   AppearanceFacing,
   PaintedPlayerAppearanceBlueprint,
 } from './appearance-manifest'
 
-type Study = NonNullable<ReturnType<typeof matchingPaintedStudy>>
+type Study = NonNullable<ReturnType<typeof featuredStudy>>
 type WalkPose = 'idle' | 'left' | 'passing' | 'right'
 type ActionPose = 'brace' | 'attack' | 'cast'
 type Painting = Readonly<{ href: string; fabric?: string }>
@@ -112,8 +117,9 @@ export function studyPortrait(
   mood: AppearanceExpression,
   backdrop: string,
   icon: boolean,
+  stance: PortraitStance = 0,
 ) {
-  const study = matchingPaintedStudy(look)
+  const study = featuredStudy(look)
   if (!study) return undefined
   const size = icon ? 64 : 256
   const viewBox = icon ? '56 28 144 144' : '0 0 256 256'
@@ -121,10 +127,12 @@ export function studyPortrait(
   const painting = typeof portrait === 'string' ? { href: portrait } : portrait
   const frame = { ...painting, x: 0, y: 0, width: 256, height: 256 }
   const tinted = look.clothColor !== 'natural' && Boolean(painting.fabric)
+  const dye = tinted ? undefined : featuredVariantDye(look)
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="${viewBox}">
     ${backdrop}
     <defs>${tinted ? paintedDyeFilter('study-fabric-dye', look.clothColor) : ''}${studyPainting('study-portrait', frame, tinted)}</defs>
-    <use href="#study-portrait"/>
+    ${dye ? featuredPaintFilter('featured-portrait', dye) : ''}
+    ${poseFeaturedPortrait(`<use href="#study-portrait"${dye ? ' filter="url(#featured-portrait)"' : ''}/>`, stance)}
   </svg>`
 }
 
