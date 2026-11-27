@@ -1,0 +1,18 @@
+{
+  "project": "Aurevane",
+  "status": "art-study",
+  "date": "2026-11-27",
+  "direction": "Original dark-fantasy anime art with sharp ink, angular cel shadows, cinematic lighting and illustrated settings.",
+  "portraitFormat": "448 × 448 WebP expression frames cropped from six-panel master sheets.",
+  "spriteFormat": "Transparent concept pose sheets for art review. Gameplay motion atlases require the complete four-facing motion frames.",
+  "characters": [
+    "elf-f-0001",
+    "elf-m-0001",
+    "fae-f-0001",
+    "fae-m-0001",
+    "human-f-0001",
+    "human-m-0001",
+    "mountain-orc-f-0001",
+    "mountain-orc-m-0001"
+  ]
+}
