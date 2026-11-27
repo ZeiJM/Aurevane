@@ -101,6 +101,84 @@ const tile = (page, x, y) =>
     .locator('#battlefield')
     .getByRole('button', { name: new RegExp(`^Tile ${x + 1}, ${y + 1};`) })
 try {
+  // Exercise the same terrain and sprite layer through all three consumers.
+  const appearance = await server.ssrLoadModule(
+    '@/app/api/media/appearance/[version]/[blueprint]/[asset]/route.ts',
+  )
+  for (const mode of ['pve', 'pvp', 'spectator']) {
+    const page = await browser.newPage({ viewport: { width: 1447, height: 700 } })
+    page.on('pageerror', (error) => errors.push(error.message))
+    await page.route('**/api/media/appearance/**', async (route) => {
+      const [version, blueprint, asset] = new URL(route.request().url()).pathname
+        .split('/')
+        .slice(-3)
+      const response = await appearance.GET(new Request(route.request().url()), {
+        params: Promise.resolve({ version, blueprint, asset }),
+      })
+      await route.fulfill({
+        status: response.status,
+        contentType: 'image/svg+xml',
+        body: await response.text(),
+      })
+    })
+    await page.goto(server.resolvedUrls.local[0] + `?mode=${mode}&targeting=single&terrace`)
+    const board = page.locator('#battlefield [data-battle-terrace]')
+    await board.waitFor()
+    await board.locator('[data-battle-appearance-pose]').first().waitFor()
+    const geometry = await board.evaluate((element) => {
+      const tiles = [...element.querySelectorAll('button[data-battle-tile]')]
+      const field = element.parentElement
+      const bounds = element.getBoundingClientRect()
+      const firstRow = tiles[0].getBoundingClientRect()
+      const lastRow = tiles[tiles.length - 9].getBoundingClientRect()
+      return {
+        renderedTiles: tiles.length,
+        widthRatio: bounds.width / field.clientWidth,
+        backWidth: firstRow.width,
+        frontWidth: lastRow.width,
+        background: getComputedStyle(field).backgroundImage,
+        allCentersTargetTheirTile: tiles.every((cell) => {
+          const rect = cell.getBoundingClientRect()
+          return (
+            document
+              .elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2)
+              ?.closest('button[data-battle-tile]') === cell
+          )
+        }),
+      }
+    })
+    assert.equal(geometry.renderedTiles, 63)
+    assert.ok(geometry.widthRatio > 0.77 && geometry.widthRatio < 0.81)
+    assert.ok(geometry.frontWidth > geometry.backWidth)
+    assert.match(geometry.background, /citadel-terrace-v01\.webp/)
+    assert.equal(geometry.allCentersTargetTheirTile, true)
+    assert.equal(await board.locator('[data-terrain-elevated="true"]').count(), 6)
+    if (mode !== 'spectator') {
+      await page.locator('[data-command-slot="move"]').click()
+      await page.screenshot({ path: resolve(output, `terrace-${mode}-desktop.png`) })
+      const destination = board.locator('button[data-reachable="true"]').first()
+      const key = await destination.getAttribute('data-battle-tile')
+      await destination.click()
+      await page.waitForFunction(
+        (tileKey) =>
+          document
+            .querySelector(`[data-battle-tile="${tileKey}"]`)
+            ?.ariaLabel?.includes('occupied by Zei'),
+        key,
+      )
+      assert.equal((await commits(page)).length, 1)
+    } else {
+      await page.screenshot({ path: resolve(output, 'terrace-spectator-desktop.png') })
+      await tile(page, 4, 3).click()
+      assert.equal((await commits(page)).length, 0)
+    }
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.waitForFunction(() => !document.querySelector('[data-battle-terrace]'))
+    assert.equal(await page.locator('#battlefield button[data-battle-tile]').count(), 63)
+    cases++
+    await page.close()
+  }
+
   // Compass badges stay readable at board edges without changing portrait or meter geometry.
   for (const mode of ['pve', 'pvp', 'spectator']) {
     for (const viewport of [
@@ -133,6 +211,9 @@ try {
             badge: rect(el),
             token: rect(token),
             tile: rect(tile),
+            terrace: tile.parentElement.hasAttribute('data-battle-terrace'),
+            offsetLeft: el.offsetLeft,
+            offsetTop: el.offsetTop,
             direction: el.dataset.facing,
             color: getComputedStyle(el).color,
             identity: getComputedStyle(token).borderTopColor,
@@ -167,12 +248,17 @@ try {
             geometry.badge.right <= geometry.tile.right + 1,
         )
         assert.ok(
-          geometry.badge.top >= geometry.tile.top && geometry.badge.top <= geometry.tile.top + 3,
+          geometry.terrace
+            ? geometry.offsetTop >= 0 && geometry.offsetTop <= 3
+            : geometry.badge.top >= geometry.tile.top &&
+                geometry.badge.top <= geometry.tile.top + 3,
           'Facing sits inside the tile top-left',
         )
         assert.ok(
-          geometry.badge.left >= geometry.tile.left &&
-            geometry.badge.left <= geometry.tile.left + 3,
+          geometry.terrace
+            ? geometry.offsetLeft >= 0 && geometry.offsetLeft <= 3
+            : geometry.badge.left >= geometry.tile.left &&
+                geometry.badge.left <= geometry.tile.left + 3,
           'Facing is independent of portrait position',
         )
         const angle = {

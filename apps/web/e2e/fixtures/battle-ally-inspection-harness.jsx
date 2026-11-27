@@ -197,6 +197,8 @@ const pending = createPendingBattle({
   })),
 })
 const fixtureMapParameters = new URLSearchParams(location.search)
+const terraceReview = fixtureMapParameters.has('terrace')
+const terraceLooks = terraceReview ? await import('@/appearance/appearance-starter-gallery') : null
 const fixtureColumns = Number(fixtureMapParameters.get('columns'))
 const [fixtureMapWidth, fixtureMapHeight] = [9, 12, 15].includes(fixtureColumns)
   ? [fixtureColumns, 7]
@@ -207,11 +209,15 @@ const tactical = createTacticalBattleState({
   battle: startBattle(pending).state,
   width: fixtureMapWidth,
   height: fixtureMapHeight,
-  terrains: [{ id: 'open-ground', traversalCost: 1 }],
+  terrains: [
+    { id: 'open-ground', traversalCost: 1 },
+    ...(terraceReview ? [{ id: 'rough-ground', traversalCost: 2 }] : []),
+  ],
   tiles: Array.from({ length: fixtureMapWidth * fixtureMapHeight }, (_, i) => ({
     position: { x: i % fixtureMapWidth, y: Math.floor(i / fixtureMapWidth) },
-    terrainId: 'open-ground',
-    elevation: 0,
+    terrainId:
+      terraceReview && [3, 9, 22, 23, 31, 44, 45].includes(i) ? 'rough-ground' : 'open-ground',
+    elevation: terraceReview ? ({ 17: 2, 26: 1, 47: 1, 48: 3, 53: 1, 62: 2 }[i] ?? 0) : 0,
   })),
   movementProfiles: [{ id: 'ground', maxElevationStep: 1, terrainCostOverrides: [] }],
   placements: ids.map((id, index) => ({
@@ -312,13 +318,18 @@ if (groundPreset) {
 
 const participantNames = ['Zei', 'Ally 1', 'Recruit 1', 'Recruit 2']
 const turnName = new URLSearchParams(location.search).get('turnName')
+const terraceProfiles = terraceLooks
+  ? [...terraceLooks.ILLUSTRATED_STARTER_GALLERY.values()].map(
+      ({ manifest }) => manifest.neutralUrl,
+    )
+  : []
 const participants = ids.map((id, index) => ({
   combatantId: id,
   characterId: id,
   characterName: index === 2 && turnName ? turnName : participantNames[index],
   characterLevel: 1,
   portraitRef: 'portrait.adventure.male-01',
-  profileImageUrl: null,
+  profileImageUrl: terraceProfiles[index] ?? null,
   teamIndex: index < 2 ? 0 : 1,
   seatIndex: index % 2,
 }))
@@ -336,7 +347,7 @@ const runtime = {
   playerName: 'Zei',
   playerLevel: 1,
   playerPortraitAssetId: 'character.adventure.male-01',
-  playerProfileImageUrl: null,
+  playerProfileImageUrl: terraceProfiles[0] ?? null,
   supportActionId: 'basic.recover',
   techniques: [
     [mend, 'heal', 'Mend'],

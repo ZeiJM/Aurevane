@@ -4,6 +4,7 @@ import { BattleCommittedAudio } from './battle-committed-audio'
 import { BattleMapTokenPolish } from './battle-map-token-polish'
 import { BattleTerrainPresentationPolish } from './battle-terrain-presentation-polish'
 import styles from './battlefield-presentation-bundle.module.css'
+import './battlefield-terrace.module.css'
 
 interface BattlefieldPresentationBundleProps {
   battleSessionId: string

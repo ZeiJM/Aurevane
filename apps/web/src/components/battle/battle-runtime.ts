@@ -12,12 +12,15 @@ import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-sk
 import type { AnyResonanceDefinition } from '@aurevane/game-core/combat/resonance'
 import { normalizeCombatEffectState } from '@aurevane/game-core/combat/combat-effect-state'
 
+import { APPEARANCE_PRESETS, compileAppearanceManifest } from '@/appearance/appearance-manifest'
 import { getStarterPortraitImageAssetId } from '@/media/character'
 import { summonPortraitArtwork } from '@/media/support-action-art'
 import type { ImageAssetId } from '@/media/registry'
 import type { PvpBattleMetadata } from '@/server/battle/pvp-lobby-service'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 import type { BattleReturnTo } from './battle-return-navigation'
+
+const recruitBattlefieldAppearance = compileAppearanceManifest(APPEARANCE_PRESETS[1].blueprint)
 
 export type BattleTechniqueCategory = 'attack' | 'defense' | 'heal'
 
@@ -102,6 +105,7 @@ export interface BattlePresentationParticipant {
   teamIndex: number
   seatIndex: number
   profileImageUrl: string | null
+  battlefieldImageUrl?: string
   portraitAssetId: ImageAssetId | null
   local: boolean
 }
@@ -210,6 +214,7 @@ function pveParticipants(
       teamIndex,
       seatIndex: seats[teamIndex]++,
       profileImageUrl: npc?.imageUrl ?? null,
+      battlefieldImageUrl: !allied && !npc ? recruitBattlefieldAppearance.neutralUrl : undefined,
       portraitAssetId: npc
         ? getStarterPortraitImageAssetId(
             npc.portraitRef && isStarterCharacterPortraitRef(npc.portraitRef)

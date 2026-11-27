@@ -1,0 +1,18 @@
+{
+  "requestId": "ART-BATTLE-TERRACE-20261126",
+  "source": {
+    "provider": "OpenAI built-in image generation",
+    "master": "exec-991b542e-8328-40a7-927d-70c1681ea8b6.png",
+    "sha256": "ffd988be4c7f3430d29f2b4c34cd2d1eb905a26a683a65852cbdc69d23c8c90c",
+    "reference": "Owner-selected second battlefield crop and full Aurevane arena concept"
+  },
+  "runtime": {
+    "path": "/media/art/battle/citadel-terrace-v01.webp",
+    "width": 1600,
+    "height": 718,
+    "bytes": 298062,
+    "sha256": "28541b6d638b96b00429cde8eb6755734c93fd64400b082cefa3acf34874582b",
+    "derivative": "Sharp WebP, width 1600, quality 88, effort 6"
+  },
+  "review": "Environment-only daylight-to-dusk stone terrace painted without combatants, tiles, or interface. The tactical grid is registered over the clear deck at runtime."
+}

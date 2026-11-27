@@ -28,17 +28,20 @@ export async function expectCombatantIdentityColors(root: Locator) {
                 token?.querySelector<HTMLElement>(':scope > i')
               if (!portrait || !facing || !token || !arrow) return false
               const accent = getComputedStyle(card).borderTopColor
+              const tokenBorder = getComputedStyle(token).borderTopColor
+              const hasSprite = token.querySelector(':scope > [data-battle-appearance-pose]')
               return (
                 getComputedStyle(portrait).borderTopColor === accent &&
                 getComputedStyle(facing).color === accent &&
-                getComputedStyle(token).borderTopColor === accent &&
+                tokenBorder === (hasSprite ? 'rgba(0, 0, 0, 0)' : accent) &&
                 getComputedStyle(arrow).color === accent
               )
             })
           )
         }),
       {
-        message: 'Rail portraits and facing arrows must match their combatant token identity color',
+        message:
+          'Rail portraits and facing arrows must match the identity color, with rings only for portrait tokens',
       },
     )
     .toBe(true)
