@@ -280,10 +280,12 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
     const board = element.querySelector('[data-board-auto-fit]')!
     const boardRect = board.getBoundingClientRect()
     const viewport = board.parentElement!.getBoundingClientRect()
+    const terrace = board.hasAttribute('data-battle-terrace')
     const tile = board.querySelector('button')!.getBoundingClientRect()
     const last = board.querySelector('button:last-child')!.getBoundingClientRect()
     return {
       board: boardRect.toJSON(),
+      terrace,
       viewport: viewport.toJSON(),
       tile: tile.toJSON(),
       last: last.toJSON(),
@@ -317,19 +319,27 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
         ),
         reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches,
       },
-      tokens: [...board.querySelectorAll('button[aria-label*="occupied by"] > [data-team]')].map(
-        (token) => ({
+      tokens: [
+        ...board.querySelectorAll<HTMLElement>('button[aria-label*="occupied by"] > [data-team]'),
+      ].map((token) => {
+        const cell = token.parentElement!
+        const renderedTile = cell.getBoundingClientRect()
+        return {
           token: token.getBoundingClientRect().toJSON(),
-          tile: token.parentElement!.getBoundingClientRect().toJSON(),
+          tokenSize: token.offsetWidth,
+          tileSize: terrace
+            ? Math.min(cell.offsetWidth, cell.offsetHeight)
+            : Math.min(renderedTile.width, renderedTile.height),
+          sprite: token.querySelector('[data-battle-appearance-pose]') !== null,
           portrait: token
             .querySelector(
               ':scope > .character-portrait-media, :scope > [class*="unitPortraitFallback"]',
-            )!
-            .getBoundingClientRect()
+            )
+            ?.getBoundingClientRect()
             .toJSON(),
           border: parseFloat(getComputedStyle(token).borderLeftWidth),
-        }),
-      ),
+        }
+      }),
       cards: [...element.querySelectorAll('[data-battle-combatant-card]')].map((card) => {
         const portrait = card.querySelector('[data-av-square-media]')!
         const header = card.querySelector('header')!
@@ -408,7 +418,8 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
       .evaluate((node) => getComputedStyle(node).animationName),
   ).toBe('none')
   await page.emulateMedia({ reducedMotion: null })
-  expect(Math.abs(geometry.tile.width - geometry.tile.height)).toBeLessThanOrEqual(1)
+  if (geometry.terrace) expect(geometry.tile.width).not.toBe(geometry.last.width)
+  else expect(Math.abs(geometry.tile.width - geometry.tile.height)).toBeLessThanOrEqual(1)
   if (geometry.w > 820) {
     expect(Math.abs(geometry.footer.height - geometry.footerRailHeight)).toBeLessThanOrEqual(1)
     expect(geometry.scrollHeight).toBeLessThanOrEqual(geometry.h + 1)
@@ -422,10 +433,14 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
     expect(geometry.deck.top).toBeGreaterThanOrEqual(geometry.forecast.bottom - 1)
   }
   expect(geometry.tokens.length, 'occupied map tokens are measured').toBeGreaterThan(0)
-  for (const { token, tile, portrait, border } of geometry.tokens) {
-    expect(token.width).toBeGreaterThan(tile.width * 0.8)
-    expect(token.width).toBeLessThanOrEqual(tile.width * 0.9)
+  for (const { token, tokenSize, tileSize, portrait, sprite, border } of geometry.tokens) {
+    const width = geometry.terrace ? tokenSize : token.width
+    expect(width).toBeGreaterThan(tileSize * 0.8)
+    expect(width).toBeLessThanOrEqual(tileSize * 0.9)
     expect(Math.abs(token.width - token.height)).toBeLessThanOrEqual(1)
+    if (sprite) continue
+    expect(portrait, 'combatants without sprites use an identity portrait').toBeDefined()
+    if (!portrait) continue
     expect(
       Math.abs(portrait.width - portrait.height),
       'portrait crop stays circular',
