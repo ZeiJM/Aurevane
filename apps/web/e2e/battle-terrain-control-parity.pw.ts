@@ -98,7 +98,14 @@ async function captureBattleScaleGeometry(page: Page): Promise<BattleScaleGeomet
     await expect(surfaces[label], `${label} scale surface`).toBeVisible()
     const box = await surfaces[label].boundingBox()
     expect(box, `${label} scale measurement`).not.toBeNull()
-    geometry[label] = {
+    const tokenSize =
+      label === 'token'
+        ? await surfaces.token.evaluate((element) => ({
+            width: (element as HTMLElement).offsetWidth,
+            height: (element as HTMLElement).offsetHeight,
+          }))
+        : null
+    geometry[label] = tokenSize ?? {
       width: Math.round(box!.width * 10) / 10,
       height: Math.round(box!.height * 10) / 10,
     }

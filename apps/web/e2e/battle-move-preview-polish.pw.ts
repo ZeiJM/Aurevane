@@ -84,13 +84,14 @@ test('keeps Move reachable tiles distinct and executes one clicked path through 
       const tile = token?.parentElement
       if (token && tile) {
         const [x, y] = token.style.translate.split(' ').map(Number.parseFloat)
-        const corner = tile.getBoundingClientRect()
-        const marker = tile
-          .querySelector(':scope > [data-battle-facing-indicator="true"]')
-          ?.getBoundingClientRect()
+        const marker = tile.querySelector<HTMLElement>(
+          ':scope > [data-battle-facing-indicator="true"]',
+        )
         samples.push({
           distance: Math.hypot(x!, y!),
-          facing: marker ? { left: marker.left - corner.left, top: marker.top - corner.top } : null,
+          facing: marker
+            ? { left: marker.offsetLeft + tile.clientLeft, top: marker.offsetTop + tile.clientTop }
+            : null,
         })
       } else if (samples.length > 0) {
         return

@@ -26,6 +26,9 @@ export async function expectBattleChronicleGutterGeometry(page: Page, requireGro
       columns,
       rows,
       gap: parseFloat(getComputedStyle(board).columnGap) || 0,
+      terrace: board.hasAttribute('data-battle-terrace')
+        ? { width: viewport.clientWidth * 0.79, height: viewport.clientHeight * 0.64 }
+        : null,
       board: board.getBoundingClientRect().toJSON(),
       chronicle: stage
         .querySelector('[data-battle-side="selected"]')!
@@ -48,12 +51,18 @@ export async function expectBattleChronicleGutterGeometry(page: Page, requireGro
     ),
   )
   expect(
-    Math.abs(geometry.board.width - (columns! * originalTile + (columns! - 1) * gap)),
-    'Chronicle growth preserves the original fitted board width',
+    Math.abs(
+      geometry.board.width -
+        (geometry.terrace?.width ?? columns! * originalTile + (columns! - 1) * gap),
+    ),
+    'The battlefield retains its fitted width beside the Chronicle',
   ).toBeLessThanOrEqual(1)
   expect(
-    Math.abs(geometry.board.height - (rows! * originalTile + (rows! - 1) * gap)),
-    'Chronicle growth preserves the original fitted board height',
+    Math.abs(
+      geometry.board.height -
+        (geometry.terrace?.height ?? rows! * originalTile + (rows! - 1) * gap),
+    ),
+    'The battlefield retains its fitted height beside the Chronicle',
   ).toBeLessThanOrEqual(1)
   const originalRail =
     Math.min(14 * rootFont, Math.max(10 * rootFont, geometry.screenWidth * 0.14)) - rootFont

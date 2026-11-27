@@ -40,6 +40,18 @@ export const BATTLE_ART = [
     height: 941,
   },
   {
+    id: 'environment.battle.citadel-terrace.v01',
+    kind: 'environment',
+    status: 'approved',
+    requestId: 'ART-BATTLE-TERRACE-20261126',
+    generationRequestId: 'exec-991b542e-8328-40a7-927d-70c1681ea8b6',
+    decorative: true,
+    alt: '',
+    src: '/media/art/battle/citadel-terrace-v01.webp',
+    width: 1600,
+    height: 718,
+  },
+  {
     id: 'environment.battle.enchanted-arena.v01',
     kind: 'environment',
     status: 'approved',

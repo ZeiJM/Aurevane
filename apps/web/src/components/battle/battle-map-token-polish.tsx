@@ -1,8 +1,10 @@
 'use client'
 
 import { useLayoutEffect } from 'react'
+import { battlefieldTerraceBillboard, fitBattlefieldTerrace } from './battlefield-terrace'
 
 const DESKTOP_PVP_TOKEN_QUERY = '(min-width: 821px)'
+const COMPACT_TOUCH_QUERY = '(max-width: 980px) and (max-height: 500px) and (pointer: coarse)'
 const ROOMY_BATTLE_QUERY = '(min-width: 1101px)'
 const CHRONICLE_GUTTER_PROPERTY = '--battle-chronicle-gutter-transfer'
 const PLAYER_TOKEN_SHADOW = '0 0.45rem 1rem rgba(0, 0, 0, 0.35)'
@@ -128,19 +130,30 @@ function syncBoardScale(): { width: number; height: number } | null {
         availableWidth = viewport.clientWidth - horizontalPadding
       }
     }
-    const fitted = fitBattleArenaBoard(width, height, availableWidth, availableHeight, gap)
+    const terrace = window.matchMedia(COMPACT_TOUCH_QUERY).matches
+      ? null
+      : fitBattlefieldTerrace(width, height, viewport.clientWidth, viewport.clientHeight)
+    board.toggleAttribute('data-battle-terrace', terrace !== null)
+    if (terrace) board.style.setProperty('--battle-terrace-projection', terrace.projection)
+    else board.style.removeProperty('--battle-terrace-projection')
+    const fitted =
+      terrace ?? fitBattleArenaBoard(width, height, availableWidth, availableHeight, gap)
     board.style.setProperty('box-sizing', 'border-box', 'important')
     board.style.setProperty('width', `${fitted.width}px`, 'important')
     board.style.setProperty('max-width', '100%', 'important')
     board.style.setProperty('height', `${fitted.height}px`, 'important')
     board.style.setProperty('max-height', '100%', 'important')
   } else if (width === 13 && height === 9) {
+    board.removeAttribute('data-battle-terrace')
+    board.style.removeProperty('--battle-terrace-projection')
     board.style.setProperty('box-sizing', 'border-box', 'important')
     board.style.setProperty('width', 'min(100%, 620px)', 'important')
     board.style.setProperty('max-width', '620px', 'important')
     board.style.setProperty('height', 'auto', 'important')
     board.style.setProperty('max-height', 'none', 'important')
   } else {
+    board.removeAttribute('data-battle-terrace')
+    board.style.removeProperty('--battle-terrace-projection')
     board.style.removeProperty('box-sizing')
     board.style.removeProperty('width')
     board.style.removeProperty('max-width')
@@ -243,7 +256,12 @@ function polishBattlefieldTokens(
     if (!token) continue
 
     // Portraits, rings and facing cues scale from the actual tile, including nonstandard maps.
-    const cell = tile.getBoundingClientRect()
+    // Use the tile's local dimensions before projection so the token scales only once.
+    const board = tile.parentElement
+    const terrace = board?.hasAttribute('data-battle-terrace') ? board : null
+    const cell = terrace
+      ? { width: tile.offsetWidth, height: tile.offsetHeight }
+      : tile.getBoundingClientRect()
     const tokenSize = `${Math.max(0, Math.min(cell.width, cell.height) * 0.85)}px`
     token.style.setProperty('--battle-token-size', tokenSize)
     token.style.setProperty('position', 'absolute', 'important')
@@ -256,7 +274,14 @@ function polishBattlefieldTokens(
     token.style.setProperty('width', tokenSize, 'important')
     token.style.setProperty('height', tokenSize, 'important')
     token.style.setProperty('aspect-ratio', '1', 'important')
-    token.style.setProperty('transform', 'translate(-50%, -50%)', 'important')
+    const billboard = terrace
+      ? battlefieldTerraceBillboard(
+          tile.offsetLeft + cell.width / 2 - terrace.offsetWidth / 2,
+          tile.offsetTop + cell.height / 2 - terrace.offsetHeight,
+          terrace.offsetHeight,
+        )
+      : ''
+    token.style.setProperty('transform', `translate(-50%, -50%) ${billboard}`.trim(), 'important')
 
     const name = token.querySelector<HTMLElement>(':scope > strong')
     const combatantName = combatantNameForTile(tile, token, combatantAccents)
