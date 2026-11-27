@@ -18,6 +18,7 @@ import {
   battleGroundAreaLabel,
   battleGroundAreaDescriptions,
 } from './battle-ground-area-layer'
+import { BattleTerraceTerrain, battleTerrainSurface } from './battle-terrace-terrain'
 
 import { BattleRouteFrame } from './battle-route-frame'
 import { useBattleTabCyclePrevention } from './battle-tab-cycle-prevention'
@@ -82,10 +83,6 @@ function participantName(
 ): string {
   if (!combatantId) return 'Awaiting next activation'
   return participants.get(combatantId)?.name ?? 'Unknown combatant'
-}
-
-function terrainPresentation(terrainId: string): 'rough' | 'open' {
-  return terrainId.includes('rough') || terrainId.includes('difficult') ? 'rough' : 'open'
 }
 
 export function PvpSpectatorExperience(props: Parameters<typeof PvpSpectatorExperienceContent>[0]) {
@@ -480,7 +477,7 @@ function PvpSpectatorExperienceContent({
                         (candidate) => candidate.id === placement.combatantId,
                       )
                     : undefined
-                  const terrain = terrainPresentation(tile.terrainId)
+                  const terrain = battleTerrainSurface(tile.terrainId)
                   const overlay = terrainOverlayAt(battle.snapshot, tile.position)
                   const x = tile.position.x + 1
                   const y = tile.position.y + 1
@@ -498,6 +495,7 @@ function PvpSpectatorExperienceContent({
                       data-terrain={terrain}
                       data-terrain-overlay={overlay?.kind}
                       data-elevation={tile.elevation > 0 || undefined}
+                      data-terrace-height={tile.elevation > 0 ? tile.elevation : undefined}
                       data-inspect-active={inspectMode || undefined}
                       data-selected={selected || undefined}
                       key={key}
@@ -509,6 +507,11 @@ function PvpSpectatorExperienceContent({
                       aria-label={`Tile ${x}, ${y}; ${tile.terrainId}; elevation ${tile.elevation}${participant ? `; occupied by ${participant.name}` : ''}${overlay ? `; ${terrainOverlayDescription(overlay)}` : ''}${battleGroundAreaLabel(battle.snapshot.groundAreas, tactical.battle.round, tile.position)}`}
                       aria-pressed={selected}
                     >
+                      <BattleTerraceTerrain
+                        terrain={terrain}
+                        height={tile.elevation}
+                        overlay={overlay?.kind}
+                      />
                       <BattleGroundAreaLayer
                         steam={overlay?.kind === 'steam'}
                         areas={battle.snapshot.groundAreas}

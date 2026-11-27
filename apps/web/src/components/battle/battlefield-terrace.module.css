@@ -8,7 +8,6 @@
 }
 
 :global(section#battlefield div > [data-battle-terrace]) {
-  --terrace-material: none;
   --terrace-tint: transparent;
   position: absolute !important;
   top: 23%;
@@ -29,31 +28,78 @@
   aspect-ratio: auto !important;
   border-color: #d7bb856b !important;
   border-radius: 0 !important;
-  background:
-    linear-gradient(var(--terrace-tint), var(--terrace-tint)),
-    var(--terrace-material) center / 100% 100% !important;
+  background: var(--terrace-tint) !important;
+}
+
+:global([data-terrace-relief]),
+:global([data-terrace-weather]) {
+  display: none;
+}
+
+:global(#battlefield [data-battle-terrace] :is([data-terrace-relief], [data-terrace-weather])) {
+  position: absolute;
+  display: block;
+  left: 50%;
+  width: 100%;
+  pointer-events: none;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  transform: translateX(-50%) var(--terrace-billboard, translate(0));
+  transform-origin: center;
+}
+
+:global(#battlefield [data-battle-terrace] [data-terrace-relief]) {
+  top: calc(30% - var(--terrace-lift, 0px));
+  height: calc(51% + var(--terrace-lift, 0px));
+  z-index: 1;
+  background-image: var(--terrace-relief);
+}
+
+:global(#battlefield [data-battle-terrace] [data-terrace-relief='rough']) {
+  --terrace-relief: url('/media/art/battle/terrace-gravel-v01.webp');
+  top: 11%;
+  width: 94%;
+  height: 76%;
+}
+
+:global(#battlefield [data-battle-terrace] [data-terrace-relief='blocked']) {
+  --terrace-relief: url('/media/art/battle/terrace-rubble-v01.webp');
+  top: calc(11% - var(--terrace-lift, 0px));
+  width: 90%;
+  height: calc(72% + var(--terrace-lift, 0px));
+}
+
+:global(#battlefield [data-battle-terrace] [data-terrace-relief='rise']) {
+  --terrace-relief: url('/media/art/battle/terrace-rise-1-v01.webp');
 }
 
 :global(
-  section#battlefield
-    [data-battle-terrace]
-    > button:is([data-terrain='rough'], [data-terrain-presentation='difficult'])
+  #battlefield [data-battle-terrace] [data-terrace-height='2'] > [data-terrace-relief='rise']
 ) {
-  --terrace-material: url('/media/art/battle/terrain-rough-moss-v01.webp');
-  --terrace-tint: #4c392b42;
-}
-
-:global(section#battlefield [data-battle-terrace] > button[data-terrain-elevated]) {
-  --terrace-material: url('/media/art/battle/terrain-raised-ledge-v02.webp');
-  --terrace-tint: #63482925;
+  --terrace-relief: url('/media/art/battle/terrace-rise-2-v01.webp');
 }
 
 :global(
-  section#battlefield
-    [data-battle-terrace]
-    > button[data-terrain-elevated][data-terrain-presentation='difficult']
+  #battlefield [data-battle-terrace] [data-terrace-height='3'] > [data-terrace-relief='rise']
 ) {
-  --terrace-tint: #41452777;
+  --terrace-relief: url('/media/art/battle/terrace-rise-3-v01.webp');
+}
+
+:global(#battlefield [data-battle-terrace] [data-terrace-weather='frozen']) {
+  top: calc(24% - var(--terrace-lift, 0px));
+  width: 90%;
+  height: 50%;
+  z-index: 2;
+  background-image: url('/media/art/battle/terrace-ice-v01.webp');
+}
+
+:global(#battlefield [data-battle-terrace] [data-terrace-weather='steam']) {
+  top: calc(10% - var(--terrace-lift, 0px));
+  height: 65%;
+  z-index: 3;
+  opacity: 0.8;
+  background-image: url('/media/art/battle/terrace-steam-v01.webp');
 }
 
 :global(
@@ -77,49 +123,51 @@
   outline-offset: -3px;
 }
 
-/* Live ground effects, target paints and facing markers remain on the tile buttons. */
+/* Height labels and facing read in the same screen plane as the actors. */
 :global(
-  main
-    #battlefield
+  #battlefield
     [data-battle-terrace]
-    > button[data-battle-tile][data-terrain-overlay='frozen'][aria-label]
+    :is([data-terrain-elevation-marker], [data-terrain-overlay-marker])
 ) {
-  --terrace-tint: #8cdfed55;
+  transform: var(--terrace-badge-billboard, none);
+}
+
+:global(#battlefield [data-battle-terrace] [data-battle-facing-indicator]) {
+  min-width: 15px;
+  min-height: 15px;
+}
+
+/* A raised token may overlap the tile behind it. The ground footprint owns input. */
+:global(#battlefield [data-battle-terrace] > button[data-terrace-height] > [data-team]) {
+  pointer-events: none;
+}
+
+:global(#battlefield [data-battle-terrace] > button > [data-team] > [data-battle-appearance-pose]) {
+  /* Atlas frames plant their feet close to row 56 of 64. Place those pixels at the surface. */
+  bottom: 20%;
+  width: 180%;
 }
 
 :global(
-  main
-    #battlefield
-    [data-battle-terrace]
-    > button[data-battle-tile][data-terrain-overlay='steam'][aria-label]
-) {
-  --terrace-tint: #bdced37a;
-}
-
-:global(section#battlefield [data-battle-terrace] [data-battle-facing-indicator]) {
-  scale: 0.86;
-}
-
-:global(
-  section#battlefield [data-battle-terrace] > button > [data-team] > [data-battle-appearance-pose]
-) {
-  bottom: 31%;
-  width: 195%;
-}
-
-:global(
-  section#battlefield
-    [data-battle-terrace]
-    > button
-    > [data-team]:has(> [data-battle-appearance-pose])
+  #battlefield [data-battle-terrace] > button > [data-team]:has(> [data-battle-appearance-pose])
 )::before {
   position: absolute;
-  right: 0;
-  bottom: 19%;
-  left: 0;
-  height: 28%;
+  top: 50%;
+  left: 50%;
+  width: 60%;
+  height: 16%;
+  translate: -50% -30%;
   border-radius: 50%;
-  background: radial-gradient(ellipse, #180e0bbf 0%, #16100b55 45%, transparent 73%);
+  background: radial-gradient(ellipse, #18130bd9 0%, #18130b62 46%, transparent 74%);
   content: '';
   pointer-events: none;
+}
+
+:global(
+  #battlefield
+    [data-battle-terrace]
+    > button
+    > [data-team][data-defeated]:has(> [data-battle-appearance-pose])
+)::before {
+  width: 88%;
 }
