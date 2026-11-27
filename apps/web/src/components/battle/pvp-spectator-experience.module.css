@@ -14,7 +14,7 @@
   --av-border-strong: #9e8862;
   background:
     linear-gradient(#17232b38, #101a2377),
-    url('/media/art/battle/citadel-dusk-v01.webp') center/cover;
+    url('/media/art/battle/citadel-terrace-anime-v01.webp') center/cover;
   overflow: hidden;
 }
 .header {
@@ -114,7 +114,7 @@
   border: 1px solid #bab69d66;
   border-radius: 2px;
   color: #e8e2d2;
-  background: url('/media/art/battle/terrain-open-stone-v01.webp') center/cover;
+  background: url('/media/art/battle/terrace-stone-anime-v01.webp') center/cover;
   cursor: pointer;
 }
 .tile[data-selected] {

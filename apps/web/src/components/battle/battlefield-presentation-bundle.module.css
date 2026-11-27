@@ -217,7 +217,7 @@
 }
 :global(main[data-battle-concept='true'] #battlefield button[aria-label^='Tile ']) {
   background-color: #475357;
-  background-image: url('/media/art/battle/terrain-open-stone-v01.webp');
+  background-image: url('/media/art/battle/terrace-stone-anime-v01.webp');
   background-size: cover;
   background-position: center;
 }
@@ -225,14 +225,14 @@
   main[data-battle-concept='true'] #battlefield button[data-terrain-presentation='difficult']
 ),
 :global(main[data-battle-concept='true'] #battlefield button[data-terrain='rough']) {
-  background-image: url('/media/art/battle/terrain-rough-moss-v01.webp');
+  background-image: url('/media/art/battle/terrace-gravel-anime-v01.webp');
 }
 :global(
   main[data-battle-concept='true']
     #battlefield
     button[data-terrain-elevated='true']:not([data-terrain='rough'])
 ) {
-  background-image: url('/media/art/battle/terrain-raised-ledge-v02.webp');
+  background-image: url('/media/art/battle/terrace-rise-1-anime-v01.webp');
 }
 @media (max-width: 820px) {
   :global(
@@ -242,77 +242,5 @@
       > [data-team]
   ) {
     border-width: 1px !important;
-  }
-}
-
-/* Match the authored torches to the scenic image's center/cover crop in every battle mode. */
-:global(main[data-battle-concept='true']) {
-  position: relative;
-  isolation: isolate;
-}
-:global(main[data-battle-concept='true'])::before,
-:global(main[data-battle-concept='true'])::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background-position: center;
-  background-size: cover;
-  background-repeat: no-repeat;
-}
-:global(main[data-battle-concept='true'])::before {
-  background-image: url('/media/art/battle/citadel-dusk-v01.webp');
-  mask-image: url('/media/art/battle/citadel-fire-mask.svg');
-  mask-size: cover;
-  mask-position: center;
-  mask-repeat: no-repeat;
-  filter: brightness(2.1) saturate(1.4);
-  opacity: 0.35;
-}
-:global(main[data-battle-concept='true'])::after {
-  background-image: url('/media/art/battle/citadel-fire-embers.svg');
-  opacity: 0;
-}
-@media (prefers-reduced-motion: no-preference) {
-  :global(main[data-battle-concept='true'])::before {
-    animation: citadelFirelight 2.8s ease-in-out infinite;
-  }
-  :global(main[data-battle-concept='true'])::after {
-    animation: citadelEmbers 4.6s ease-out infinite;
-  }
-}
-@keyframes citadelFirelight {
-  0%,
-  100% {
-    opacity: 0.3;
-  }
-  19% {
-    opacity: 0.58;
-  }
-  38% {
-    opacity: 0.4;
-  }
-  67% {
-    opacity: 0.72;
-  }
-  83% {
-    opacity: 0.46;
-  }
-}
-@keyframes citadelEmbers {
-  0% {
-    opacity: 0;
-    transform: translateY(3px);
-  }
-  24% {
-    opacity: 0.65;
-  }
-  70% {
-    opacity: 0.3;
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(-14px);
   }
 }

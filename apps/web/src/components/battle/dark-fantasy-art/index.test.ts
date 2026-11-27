@@ -27,10 +27,10 @@ describe('dark-fantasy combat artwork', () => {
     const essence = battleSkillArtwork('essence.aetherist.aether-nova')
     const resonance = battleResonanceArtwork('resonance.farstrider-shadehand.marked-opening')
 
-    expect(skill).toBe('/media/art/discipline-skills/lifebinder-vital-sever-v01.webp')
-    expect(essence).toBe('/media/art/essence-skills/aetherist-aether-nova-v01.webp')
+    expect(skill).toBe('/media/art/discipline-skills/lifebinder-vital-sever-anime-v01.webp')
+    expect(essence).toBe('/media/art/essence-skills/aetherist-aether-nova-anime-v01.webp')
     expect(resonance).toBe(
-      '/media/art/resonances/resonance-farstrider-shadehand-marked-opening-v01.webp',
+      '/media/art/resonances/resonance-farstrider-shadehand-marked-opening-anime-v01.webp',
     )
 
     expect(skill).not.toBe(DARK_FANTASY_COMBAT_ARTWORK['lifebinder.vital-sever'])

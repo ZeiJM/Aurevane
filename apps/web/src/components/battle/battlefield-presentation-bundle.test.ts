@@ -117,9 +117,9 @@ describe('shared battlefield presentation bundle', () => {
   it('uses separate production terrain materials without owning command or card geometry', () => {
     const styles = readLocalFile('battlefield-presentation-bundle.module.css')
     for (const file of [
-      'terrain-open-stone-v01.webp',
-      'terrain-rough-moss-v01.webp',
-      'terrain-raised-ledge-v02.webp',
+      'terrace-stone-anime-v01.webp',
+      'terrace-gravel-anime-v01.webp',
+      'terrace-rise-1-anime-v01.webp',
     ])
       expect(styles).toContain(file)
     expect(styles).toContain("button[data-terrain-presentation='difficult']")

@@ -2,6 +2,7 @@ import {
   APPEARANCE_CATALOG,
   parseAppearanceBlueprint,
   type AppearanceBlueprint,
+  type LegacyAppearanceBlueprint,
 } from '@/appearance/appearance-manifest'
 import {
   isActivePaintedAppearance,
@@ -29,7 +30,7 @@ export function npcVariantFields(blueprint: AppearanceBlueprint): readonly NpcVa
 }
 
 export type NpcVariantRequest = {
-  base: AppearanceBlueprint
+  base: LegacyAppearanceBlueprint
   count: number
   vary: NpcVariantField[]
   mode: 'distinct' | 'uniform'

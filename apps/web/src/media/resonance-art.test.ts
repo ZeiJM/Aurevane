@@ -32,10 +32,10 @@ describe('approved Resonance artwork — complete 136 of 136', () => {
 
   it('maps the former fallback range and rejects unknown Resonance ids', () => {
     expect(resonanceArtwork('resonance.frostweaver-runeblade.linked-sequence')).toBe(
-      '/media/art/resonances/resonance-frostweaver-runeblade-frozen-sigil-v01.webp',
+      '/media/art/resonances/resonance-frostweaver-runeblade-frozen-sigil-anime-v01.webp',
     )
     expect(resonanceArtwork('resonance.chronist-tidecaller.linked-sequence')).toBe(
-      '/media/art/resonances/resonance-chronist-tidecaller-measured-tide-v01.webp',
+      '/media/art/resonances/resonance-chronist-tidecaller-measured-tide-anime-v01.webp',
     )
     expect(resonanceArtwork('resonance.unknown.invalid')).toBeNull()
   })

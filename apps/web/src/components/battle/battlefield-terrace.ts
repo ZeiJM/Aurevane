@@ -25,3 +25,24 @@ export function battlefieldTerraceBillboard(x: number, y: number, height: number
   const scaleY = (1 - (y * TERRACE_DEPTH) / height) / (1 + TERRACE_DEPTH)
   return `matrix(1, 0, ${shear}, ${scaleY}, 0, 0)`
 }
+
+const summitHeights = [0, 0.26, 0.62, 1.24] as const
+
+export function battlefieldTerraceLift(elevation: number, cellHeight: number) {
+  return (summitHeights[Math.max(0, Math.min(3, elevation))] ?? 0) * cellHeight
+}
+
+export function projectBattlefieldTerracePoint(x: number, y: number, height: number) {
+  const scale = 1 / (1 - (y * TERRACE_DEPTH) / height)
+  return { x: x * scale, y: y * (1 + TERRACE_DEPTH) * scale, scale }
+}
+
+export function battlefieldTerraceOcclusion(
+  footY: number,
+  spriteHeight: number,
+  cliffTopY: number,
+  cliffFootY: number,
+) {
+  if (cliffFootY <= footY || cliffTopY >= footY) return 0
+  return Math.min(1, (footY - cliffTopY) / spriteHeight)
+}

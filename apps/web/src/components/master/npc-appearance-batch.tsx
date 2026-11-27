@@ -5,7 +5,7 @@ import {
   APPEARANCE_FRAME,
   paintedPlayerAppearanceBlueprint,
   appearanceManifestFromImageUrl,
-  type AppearanceBlueprint,
+  type LegacyAppearanceBlueprint,
 } from '@/appearance/appearance-manifest'
 import { pickActivePaintedLook } from '@/appearance/appearance-active-catalog'
 import { PAINTED_IDENTITIES, PAINTED_CLOTHING } from '@/appearance/appearance-painted-catalog'
@@ -41,7 +41,7 @@ export function NpcAppearanceBatch({
   reviewDisabled: boolean
   onReview: (imageUrl: string) => void
 }) {
-  const [base, setBase] = useState<AppearanceBlueprint>(() =>
+  const [base, setBase] = useState<LegacyAppearanceBlueprint>(() =>
     paintedPlayerAppearanceBlueprint(pickActivePaintedLook('masculine', () => 0)),
   )
   const [count, setCount] = useState(4)
@@ -110,6 +110,7 @@ export function NpcAppearanceBatch({
               confirmLabel="Use this starting look"
               value={base}
               onConfirm={(next) => {
+                if (next.v === 7) return
                 if ('bodyFrame' in next && !wardrobe)
                   setVary(['identity', 'bodyFrame', 'skinTone', 'outerwear', 'gear', 'headwear'])
                 if (wardrobe && !('bodyFrame' in next)) setVary(['body', 'coat'])

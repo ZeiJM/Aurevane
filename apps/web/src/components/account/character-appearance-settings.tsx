@@ -76,6 +76,7 @@ export function CharacterAppearanceSettings({
         {appearanceTokens} Appearance {appearanceTokens === 1 ? 'Token' : 'Tokens'} available.
       </p>
       <AppearanceBuilderDialog
+        allowAuthored
         label="Design sprite"
         confirmLabel="Confirm appearance"
         initialGender={initialGender}

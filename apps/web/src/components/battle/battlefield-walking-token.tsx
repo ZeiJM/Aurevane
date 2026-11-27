@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, useState, type ComponentProps, type ReactNode 
 import { positionKey, type BattleFacing, type BattleGridPosition } from './battle-geometry'
 import { BattlefieldAppearanceToken } from './battlefield-appearance-token'
 import type { BattlefieldWalk } from './battlefield-walks'
+import { battlefieldTerraceLift } from './battlefield-terrace'
 
 const WALK_STEP_MS = 165
 type WalkPlayback = {
@@ -20,9 +21,13 @@ interface BattlefieldWalkingTokenProps extends ComponentProps<'span'> {
 }
 
 function center(tile: HTMLElement): BattleGridPosition {
+  const cellHeight = tile.offsetHeight
+  const lift = tile.parentElement?.hasAttribute('data-battle-terrace')
+    ? battlefieldTerraceLift(Number(tile.dataset.terraceHeight ?? 0), cellHeight)
+    : 0
   return {
     x: tile.offsetLeft + tile.offsetWidth / 2,
-    y: tile.offsetTop + tile.offsetHeight / 2,
+    y: tile.offsetTop + cellHeight / 2 - lift,
   }
 }
 

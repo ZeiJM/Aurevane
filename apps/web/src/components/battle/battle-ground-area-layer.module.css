@@ -31,6 +31,14 @@
   background-size: 45% 60%;
   animation: groundDrift 3.2s linear infinite;
 }
+.layer[data-ground-area-preset='embers'] i {
+  background:
+    radial-gradient(ellipse at 20% 72%, #ffe7b8 0 1px, #f7985860 2px, transparent 4px),
+    radial-gradient(ellipse at 70% 30%, #fbd294 0 1px, #e9602f60 2px, transparent 4px),
+    radial-gradient(ellipse at 38% 95%, #f1834759 0 1px, transparent 3px);
+  background-size: 47% 60%;
+  animation: groundDrift 5.1s ease-in-out infinite;
+}
 .layer[data-ground-area-preset='frost'] i {
   background: repeating-linear-gradient(
     120deg,

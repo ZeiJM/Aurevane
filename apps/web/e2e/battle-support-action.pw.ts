@@ -104,7 +104,7 @@ async function expectSupportSelectionFill(page: Page, actionId: string) {
   expect(fill.tileBorder).toBe(isHealing ? 'rgb(102, 218, 143)' : 'rgb(108, 145, 198)')
   expect(fill.tileShadow).toBe('none')
   expect(fill.texture).toContain(
-    fill.terrace ? 'citadel-terrace-v01.webp' : 'terrain-open-stone-v01.webp',
+    fill.terrace ? 'citadel-terrace-anime-v01.webp' : 'terrace-stone-anime-v01.webp',
   )
 }
 

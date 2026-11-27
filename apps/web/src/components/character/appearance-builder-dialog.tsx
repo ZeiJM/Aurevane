@@ -23,6 +23,7 @@ export function AppearanceBuilderDialog({
   onConfirm,
   confirmationHint,
   confirmDisabled = false,
+  allowAuthored = false,
 }: {
   label: string
   confirmLabel: string
@@ -32,6 +33,7 @@ export function AppearanceBuilderDialog({
   onConfirm: (blueprint: AppearanceBlueprint) => void | Promise<void>
   confirmationHint?: string
   confirmDisabled?: boolean
+  allowAuthored?: boolean
 }) {
   const id = useId()
   const dialog = useRef<HTMLDialogElement>(null)
@@ -51,9 +53,10 @@ export function AppearanceBuilderDialog({
       const gender =
         initialGender ??
         (active && 'identity' in active ? appearanceGenderForIdentity(active.identity) : undefined)
-      const initial = isActivePaintedAppearance(active)
-        ? active
-        : paintedPlayerAppearanceBlueprint(defaultActivePaintedLook(gender))
+      const initial =
+        isActivePaintedAppearance(active) || (allowAuthored && active?.v === 7)
+          ? active
+          : paintedPlayerAppearanceBlueprint(defaultActivePaintedLook(gender))
       initialCandidate.current = initial
       setCandidate(initial)
     } catch (failure) {
@@ -109,6 +112,7 @@ export function AppearanceBuilderDialog({
             initialGender={initialGender}
             onChange={setCandidate}
             disabled={pending}
+            allowAuthored={allowAuthored}
           />
         ) : null}
         {error ? (

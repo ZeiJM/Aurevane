@@ -4,6 +4,7 @@ import sharp from 'sharp'
 import { describe, expect, it } from 'vitest'
 
 import * as appearance from './appearance-manifest'
+import { AUTHORED_CHARACTERS, authoredAppearance } from './appearance-authored-catalog'
 import {
   DEFAULT_PAINTED_LOOK,
   PAINTED_CLOTHING,
@@ -19,6 +20,34 @@ import {
 import { GET } from '@/app/api/media/appearance/[version]/[blueprint]/[asset]/route'
 
 const sha256 = (data: string) => createHash('sha256').update(data).digest('hex')
+
+it('round trips both authored variants and serves their own expression and sprite assets', async () => {
+  const request = new Request('https://aurevane.invalid')
+  for (const character of AUTHORED_CHARACTERS) {
+    for (const variant of [1, 2]) {
+      const blueprint = authoredAppearance(character.key, variant)
+      expect(blueprint).not.toBeNull()
+      const manifest = appearance.compileAppearanceManifest(blueprint!)
+      expect(appearance.appearanceManifestFromImageUrl(manifest.neutralUrl)).toEqual(manifest)
+      const folder = `/media/art/character-catalogue/${character.key}/variant-${variant}`
+      expect(manifest.motionAtlas).toBe(`${folder}/sprites.webp`)
+      for (const asset of ['icon', ...appearance.APPEARANCE_EXPRESSIONS]) {
+        const response = await GET(request, {
+          params: Promise.resolve({
+            version: '7',
+            blueprint: manifest.id.slice(2),
+            asset: `${asset}.svg`,
+          }),
+        })
+        expect(response.status).toBe(307)
+        expect(response.headers.get('location')).toBe(`${folder}/${asset}.webp`)
+        expect(response.headers.get('Cache-Control')).toContain('immutable')
+      }
+    }
+  }
+  expect(appearance.appearanceBlueprintFromId('elf-f-0375.v1', '7')).toBeNull()
+  expect(appearance.appearanceBlueprintFromId('elf-f-0001.v3', '7')).toBeNull()
+})
 
 it('round trips expanded recipes and serves every asset with immutable URLs', async () => {
   const base = wardrobeLook()
@@ -295,6 +324,7 @@ describe('manual appearance manifests', () => {
       accessory: 'satchel',
     })!
     const after = appearance.varyAppearanceOutfit(before)
+    if (before.v === 7 || after.v === 7) throw new Error('Expected a legacy wardrobe recipe')
     expect(after.coat).not.toBe(before.coat)
     expect(after.coat).not.toBe('poncho')
     expect({ ...after, coat: before.coat }).toEqual(before)

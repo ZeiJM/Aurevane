@@ -221,7 +221,7 @@ try {
         assert.equal(paint.shadow, 'none', 'Legacy highlights must not add a second tint')
         assert.ok(
           paint.texture.includes(
-            paint.terrace ? 'citadel-terrace-v01.webp' : 'terrain-open-stone-v01.webp',
+            paint.terrace ? 'citadel-terrace-anime-v01.webp' : 'terrace-stone-anime-v01.webp',
           ),
         )
         assert.equal(paint.position, 'relative', 'Buff tiles retain normal board layout')

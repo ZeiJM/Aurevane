@@ -184,6 +184,10 @@ export function isActivePaintedAppearance(
   return blueprint?.v === 6 && activePaintedLookKey(blueprint) !== undefined
 }
 
+export function isActivePlayerAppearance(blueprint: AppearanceBlueprint | null | undefined) {
+  return blueprint?.v === 7 || isActivePaintedAppearance(blueprint)
+}
+
 export function activePaintedLooksForGender(gender?: AppearanceGender) {
   return gender ? catalogue[gender] : allChoices
 }

@@ -10,7 +10,7 @@ import {
   compileAppearanceManifest,
   parseAppearanceBlueprint,
   wardrobeAppearanceBlueprint,
-  type AppearanceBlueprint,
+  type LegacyAppearanceBlueprint,
 } from '@/appearance/appearance-manifest'
 import { PAINTED_FIELDS, type PaintedLook } from '@/appearance/appearance-painted-catalog'
 import {
@@ -56,7 +56,7 @@ const paintedVariationFields: Partial<Record<NpcVariantField, keyof PaintedLook>
   hairColor: 'gearColor',
 }
 
-function variationValue(blueprint: AppearanceBlueprint, field: NpcVariantField) {
+function variationValue(blueprint: LegacyAppearanceBlueprint, field: NpcVariantField) {
   if (blueprint.v === 6)
     return field === 'identity'
       ? (blueprint.faceId ?? blueprint.identity)
@@ -100,7 +100,7 @@ function variationPool({ base, vary }: NpcVariantRequest) {
   const limit = BigInt(SEARCH_LIMIT)
   let stride = combinations >= limit ? combinations / limit : 1n
   while (greatestCommonDivisor(stride, combinations) !== 1n) stride++
-  const candidates: { blueprint: AppearanceBlueprint; url: string }[] = []
+  const candidates: { blueprint: LegacyAppearanceBlueprint; url: string }[] = []
   for (let i = 0n; i < combinations && i < limit; i++) {
     let position = (start + i * stride) % combinations
     const draft: Record<string, unknown> = { ...base }
@@ -122,7 +122,7 @@ function variationPool({ base, vary }: NpcVariantRequest) {
           : base.v === 4
             ? paintedAppearanceBlueprint(draft as PaintedLook)
             : parseAppearanceBlueprint(draft)
-    if (!blueprint) continue
+    if (!blueprint || blueprint.v === 7) continue
     const url = compileAppearanceManifest(blueprint).neutralUrl
     if (seen.has(url)) continue
     seen.add(url)

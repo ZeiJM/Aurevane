@@ -1,0 +1,48 @@
+{
+  "requestId": "ART-ANIME-BATTLE-20261127",
+  "source": [
+    {
+      "file": "exec-610e8943-ca9a-4986-90de-b027de66e570.png",
+      "sha256": "06eaefdfb1c31531b9b7b425cf6d07b67a20309cd1fceabd057353b26bdb2006"
+    },
+    {
+      "file": "exec-6b90235c-b89d-4843-9a63-b25b52e50eb0.png",
+      "sha256": "2a046c40d0df5ae5aca14bf5bde4f40eea38a749e3889b5ddddf425f562c0f5d"
+    }
+  ],
+  "runtime": [
+    {
+      "file": "citadel-terrace-anime-v01.webp",
+      "sha256": "bbbd84a8ef37f7e469403792346fcb098887f37bbb961e1e1d76d04ce457340b"
+    },
+    {
+      "file": "terrace-stone-anime-v01.webp",
+      "sha256": "4cb96a302238237e29c9cca175ff342c63a70465dd8612fca62a2a5a6e28178b"
+    },
+    {
+      "file": "terrace-rise-1-anime-v01.webp",
+      "sha256": "5ccebb0381052aea16d1007af89c5e15234666c07d9c0acd73fa5e6bdbc40570"
+    },
+    {
+      "file": "terrace-rise-2-anime-v01.webp",
+      "sha256": "8649039ac9bb637197df3eae2d09345280ee282a69924c80ba5009b199575f9b"
+    },
+    {
+      "file": "terrace-rise-3-anime-v01.webp",
+      "sha256": "8157faac5a1e89a28da95b7b0fd6253a69b7a053e237139f3a4470787f84e1da"
+    },
+    {
+      "file": "terrace-gravel-anime-v01.webp",
+      "sha256": "20d83c5e02db171d7e42c84f08ddcbffaec352666c296ee61437df43b8b134a2"
+    },
+    {
+      "file": "terrace-rubble-anime-v01.webp",
+      "sha256": "77a023e502d5623be5c6c737b481fd6e8af84c1034cb2d297a58ccab39ba0df9"
+    },
+    {
+      "file": "terrace-ice-anime-v01.webp",
+      "sha256": "8ee06e2287bff606850b1cc7d9ed287728f7acf66010012750c7c25d6ef981e7"
+    }
+  ],
+  "review": "Original stylized moonlit terrace and six scene props. Layout is registered to the original perspective and functional deck."
+}

@@ -121,7 +121,9 @@ try {
         body: await response.text(),
       })
     })
-    await page.goto(server.resolvedUrls.local[0] + `?mode=${mode}&targeting=single&terrace`)
+    await page.goto(
+      server.resolvedUrls.local[0] + `?mode=${mode}&targeting=single&terrace&terrace-weather`,
+    )
     const board = page.locator('#battlefield [data-battle-terrace]')
     await board.waitFor()
     await board.locator('[data-battle-appearance-pose]').first().waitFor()
@@ -164,9 +166,50 @@ try {
     assert.equal(geometry.renderedTiles, 63)
     assert.ok(geometry.widthRatio > 0.77 && geometry.widthRatio < 0.81)
     assert.ok(geometry.frontWidth > geometry.backWidth)
-    assert.match(geometry.background, /citadel-terrace-v01\.webp/)
+    assert.match(geometry.background, /citadel-terrace-anime-v01\.webp/)
     assert.equal(geometry.allCentersTargetTheirTile, true)
     assert.equal(await board.locator('[data-terrain-elevated="true"]').count(), 6)
+    const relief = await board.evaluate((element) => {
+      const display = (key) => {
+        const cell = element.querySelector(`[data-battle-tile="${key}"]`)
+        const token = cell.querySelector('[data-team]')
+        return {
+          lift: parseFloat(getComputedStyle(cell).getPropertyValue('--terrace-lift')),
+          top: token ? parseFloat(getComputedStyle(token).top) : null,
+          halfHeight: cell.clientHeight / 2,
+          covered: parseFloat(getComputedStyle(cell).getPropertyValue('--terrace-covered')),
+        }
+      }
+      return {
+        summit: display('4:3'),
+        behind: display('3:3'),
+        cliff: display('3:4'),
+        materials: Array.from(
+          element.querySelectorAll('[data-terrace-relief="rise"]'),
+          (node) => getComputedStyle(node).backgroundImage,
+        ),
+      }
+    })
+    assert.ok(relief.summit.lift > 0 && relief.summit.top < relief.summit.halfHeight)
+    assert.ok(relief.cliff.lift > relief.summit.lift)
+    assert.ok(relief.behind.covered > 0, 'A visible actor behind a higher summit has a silhouette')
+    assert.equal(new Set(relief.materials).size, 3)
+    const weather = (reduced) =>
+      board.evaluate((_board, expectStill) => {
+        const ice = document.querySelector('[data-terrace-weather="frozen"]')
+        const steam = document.querySelector('[data-terrace-weather="steam"]')
+        const cliff = document.querySelector('[data-terrace-height="3"] [data-terrace-relief]')
+        return [
+          (getComputedStyle(ice, '::after').animationName === 'none') === expectStill,
+          (getComputedStyle(steam).animationName === 'none') === expectStill,
+          getComputedStyle(cliff).animationName === 'none',
+        ]
+      }, reduced)
+    await page.emulateMedia({ reducedMotion: 'no-preference' })
+    assert.deepEqual(await weather(false), [true, true, true])
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    assert.deepEqual(await weather(true), [true, true, true])
+    await page.emulateMedia({ reducedMotion: 'no-preference' })
     if (mode !== 'spectator') {
       await page.locator('[data-command-slot="move"]').click()
       await page.screenshot({ path: resolve(output, `terrace-${mode}-desktop.png`) })
@@ -248,7 +291,7 @@ try {
             identity: getComputedStyle(token).borderTopColor,
             pointer: getComputedStyle(el).pointerEvents,
             radius: getComputedStyle(el).borderRadius,
-            transform: getComputedStyle(el).transform,
+            arrowTransform: getComputedStyle(el.querySelector('svg')).transform,
             svg: rect(el.querySelector('svg')),
           }
         })
@@ -296,7 +339,15 @@ try {
           south: 'matrix(-1, 0, 0, -1',
           west: 'matrix(0, -1, 1, 0',
         }[geometry.direction]
-        assert.ok(geometry.transform.startsWith(angle), 'Arrow rotation matches recorded facing')
+        assert.ok(
+          geometry.arrowTransform.startsWith(angle),
+          'Arrow rotation matches recorded facing',
+        )
+        if (geometry.terrace)
+          assert.ok(
+            Math.abs(geometry.badge.width - geometry.badge.height) <= 1,
+            'A projected facing badge remains round in screen space',
+          )
       }
       assert.deepEqual(directions.sort(), ['east', 'north', 'south', 'west'])
       await page.emulateMedia({ reducedMotion: 'reduce' })

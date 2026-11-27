@@ -272,7 +272,9 @@ describe('Arsenal renders current published artwork through the validated public
       /aria-label="Preview Resonance:[\s\S]*?src="\/api\/content-media\/00000000-0000-4000-8000-000000000014"/,
     )
     const builtin = renderToStaticMarkup(<EssenceHoverPreview essence={oldEssence} />)
-    expect(builtin).toContain('src="/media/art/essence-skills/aetherist-aether-nova-v01.webp"')
+    expect(builtin).toContain(
+      'src="/media/art/essence-skills/aetherist-aether-nova-anime-v01.webp"',
+    )
     const missing = renderToStaticMarkup(
       <EssenceHoverPreview
         essence={{

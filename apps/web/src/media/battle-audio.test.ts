@@ -116,7 +116,7 @@ describe('committed battle audio', () => {
     expect(cursor.advance(13)).toBe(true)
     expect(cursor.advance(NaN)).toBe(false)
   })
-  it('keeps only new sound cues while preserving the established artwork', () => {
+  it('pairs the sound cues with the current artwork', () => {
     expect([...audioAssetRegistry.values()].filter((asset) => asset.kind === 'sfx')).toHaveLength(
       459,
     )
@@ -124,13 +124,13 @@ describe('committed battle audio', () => {
       false,
     )
     expect(phase4DisciplineSigil('bastion')).toBe(
-      '/media/art/discipline-sigils/bastion-sigil-v01.webp',
+      '/media/art/discipline-sigils/bastion-sigil-anime-v01.webp',
     )
     expect(phase4SkillArtwork('essence.bastion.last-bastion')).toBe(
-      '/media/art/essence-skills/bastion-last-bastion-v01.webp',
+      '/media/art/essence-skills/bastion-last-bastion-anime-v01.webp',
     )
     expect(phase4SkillArtwork('bastion.fortress')).toBe(
-      '/media/art/discipline-skills/bastion-fortress-v02.webp',
+      '/media/art/discipline-skills/bastion-fortress-anime-v01.webp',
     )
   })
   it('routes Ironfist regular and three-hit Essence actions to their own media family', () => {
@@ -148,10 +148,10 @@ describe('committed battle audio', () => {
       ])
     }
     expect(phase4SkillArtwork('essence.ironfist.hundredfold-rush')).toBe(
-      '/media/art/essence-skills/ironfist-hundredfold-rush-v01.webp',
+      '/media/art/essence-skills/ironfist-hundredfold-rush-anime-v01.webp',
     )
     expect(phase4SkillArtwork('ironfist.breakfall')).toBe(
-      '/media/art/discipline-skills/ironfist-breakfall-v01.webp',
+      '/media/art/discipline-skills/ironfist-breakfall-anime-v01.webp',
     )
     expect(phase4SkillArtwork('essence.ironfist.unknown')).toBeNull()
     expect(

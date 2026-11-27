@@ -33,6 +33,7 @@ import {
   appearanceMotionFrameIndex,
   type AppearanceAsset,
   type AppearanceBlueprint,
+  type LegacyAppearanceBlueprint,
   type AppearanceExpression,
   type AppearanceFacing,
   type AppearancePose,
@@ -142,12 +143,12 @@ function svg(width: number, height: number, drawing: string) {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${drawing}</svg>`
 }
 
-function matchingPresetIndex(blueprint: AppearanceBlueprint) {
+function matchingPresetIndex(blueprint: LegacyAppearanceBlueprint) {
   return APPEARANCE_PRESETS.findIndex(({ blueprint: preset }) =>
     Object.keys(preset).every(
       (field) =>
-        preset[field as keyof AppearanceBlueprint] ===
-        blueprint[field as keyof AppearanceBlueprint],
+        preset[field as keyof LegacyAppearanceBlueprint] ===
+        blueprint[field as keyof LegacyAppearanceBlueprint],
     ),
   )
 }
@@ -245,7 +246,7 @@ function paintedSprite(
   `
 }
 
-function portrait(blueprint: AppearanceBlueprint, mood: AppearanceExpression, icon: boolean) {
+function portrait(blueprint: LegacyAppearanceBlueprint, mood: AppearanceExpression, icon: boolean) {
   const [fabric, shade, light, trim] = palettes[blueprint.palette]
   const [skin, skinShade, skinLight] = skins[blueprint.complexion]
   const [hair, hairLight] = hairs[blueprint.hairColor]
@@ -294,7 +295,7 @@ function portrait(blueprint: AppearanceBlueprint, mood: AppearanceExpression, ic
 }
 
 function sprite(
-  blueprint: Exclude<AppearanceBlueprint, AnyPaintedAppearanceBlueprint>,
+  blueprint: Exclude<LegacyAppearanceBlueprint, AnyPaintedAppearanceBlueprint>,
   facing: AppearanceFacing,
   pose: AppearancePose | 'walk-base',
   frame: number,
@@ -307,7 +308,7 @@ function sprite(
   const back = facing === 'north'
   const profile = facing === 'east' || facing === 'west'
   const shoulder = { slight: 6, average: 8, broad: 10 }[blueprint.body]
-  const legacyHems: Partial<Record<AppearanceBlueprint['coat'], number>> = {
+  const legacyHems: Partial<Record<LegacyAppearanceBlueprint['coat'], number>> = {
     tunic: 39,
     longcoat: 48,
     mantle: 43,
@@ -800,6 +801,7 @@ export function renderAppearanceAsset(
   illustrated = false,
   posedPortrait = false,
 ): string {
+  if (blueprint.v === 7) throw new TypeError('Authored appearances use their original art assets')
   const newMotion = asset === 'motion-v3' && blueprint.v === 6
   const depthWalk = asset === 'motion-v2' || newMotion
   const motion = asset === 'motion' || asset === 'motion-v3' || depthWalk

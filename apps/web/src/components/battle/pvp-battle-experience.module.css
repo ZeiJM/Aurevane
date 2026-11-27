@@ -17,7 +17,7 @@
   --av-border-strong: #9e8862;
   background:
     linear-gradient(#17232b38, #101a2377),
-    url('/media/art/battle/citadel-dusk-v01.webp') center/cover;
+    url('/media/art/battle/citadel-terrace-anime-v01.webp') center/cover;
 }
 .header {
   position: relative;
@@ -202,14 +202,14 @@
   border: 1px solid #bab69d66;
   border-radius: 2px;
   color: #e8e2d2;
-  background: url('/media/art/battle/terrain-open-stone-v01.webp') center/cover;
+  background: url('/media/art/battle/terrace-stone-anime-v01.webp') center/cover;
   cursor: pointer;
 }
 .tile[data-terrain='rough'] {
-  background-image: url('/media/art/battle/terrain-rough-moss-v01.webp');
+  background-image: url('/media/art/battle/terrace-gravel-anime-v01.webp');
 }
 .tile[data-elevation] {
-  background-image: url('/media/art/battle/terrain-raised-ledge-v02.webp');
+  background-image: url('/media/art/battle/terrace-rise-1-anime-v01.webp');
   box-shadow: inset 0 -3px #111b1a99;
 }
 .tile[data-reachable] {

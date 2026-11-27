@@ -1,3 +1,4 @@
+import { authoredAppearanceSource } from '@/appearance/appearance-authored-catalog'
 import { hasOriginalFeaturedArt } from '@/appearance/appearance-featured-variants'
 import { appearanceBlueprintFromId, isAppearanceAsset } from '@/appearance/appearance-manifest'
 import { renderAppearanceAsset } from '@/appearance/appearance-svg'
@@ -8,6 +9,17 @@ export async function GET(
 ) {
   const { version, blueprint: id, asset: filename } = await params
   const blueprint = appearanceBlueprintFromId(id, version)
+  if (blueprint?.v === 7) {
+    const asset = /^(neutral|happy|angry|sad|surprised|icon)\.svg$/.exec(filename)?.[1]
+    if (!asset) return new Response(null, { status: 404 })
+    return new Response(null, {
+      status: 307,
+      headers: {
+        Location: `${authoredAppearanceSource(blueprint)}/${asset}.webp`,
+        'Cache-Control': 'public, max-age=31536000, immutable',
+      },
+    })
+  }
   const illustrated = filename.startsWith('illustrated-')
   const posed = filename.startsWith('illustrated-posed-')
   const prefixLength = posed ? 'illustrated-posed-'.length : illustrated ? 'illustrated-'.length : 0

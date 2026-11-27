@@ -295,6 +295,7 @@ export function CharacterCreationExperience({
                   {portraitChoices.length} portraits. Scroll to see them all.
                 </p>
                 <AppearanceBuilderDialog
+                  allowAuthored
                   label="Build my character"
                   confirmLabel="Use this appearance"
                   initialGender={presentationId === 'androgynous' ? undefined : presentationId}
