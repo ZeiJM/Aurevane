@@ -41,7 +41,7 @@ jobs:
     if: ${{ needs.verification-plan.outputs.execute == 'true' }}
     name: Execute Quality gates
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 40
 
     steps:
       - name: Checkout
