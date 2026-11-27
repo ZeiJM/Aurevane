@@ -213,9 +213,32 @@ def verify_art(characters, root):
     return counts, problems
 
 
+def sync_cutover(characters, root):
+    registry = json.loads((root / "provenance.json").read_text())["characters"]
+    keys = set(registry)
+    registered = [record for record in characters if record["key"] in keys]
+    if len(registered) != len(registry):
+        raise ValueError("The verified roster contains a duplicate or unknown character")
+    counts, problems = verify_art(registered, root)
+    if problems or counts["complete_characters"] != len(registered) or not registered:
+        raise ValueError("Only characters with verified portraits and sprite atlases may be assigned")
+    migration = (
+        Path(__file__).resolve().parents[2]
+        / "supabase/migrations/20261128000000_authored_character_cutover.sql"
+    )
+    source = migration.read_text()
+    start = "  -- BEGIN VERIFIED AUTHORED CHARACTERS\n"
+    stop = "  -- END VERIFIED AUTHORED CHARACTERS\n"
+    before, rest = source.split(start, 1)
+    _, after = rest.split(stop, 1)
+    values = ",\n".join(f"  ('{key}')" for key in sorted(keys))
+    migration.write_text(f"{before}{start}{values}\n{stop}{after}")
+    print(f"Verified {len(keys):,} characters for the appearance reassignment.")
+
+
 def main():
     parser = ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("briefs", "status", "check"))
+    parser.add_argument("command", choices=("briefs", "status", "check", "sync-cutover"))
     parser.add_argument("--art-root", type=Path, default=ART_ROOT)
     args = parser.parse_args()
     characters = list(catalogue())
@@ -223,6 +246,9 @@ def main():
     if args.command == "briefs":
         for character in characters:
             print(json.dumps(character, ensure_ascii=False))
+        return 0
+    if args.command == "sync-cutover":
+        sync_cutover(characters, args.art_root)
         return 0
 
     counts, problems = verify_art(characters, args.art_root)

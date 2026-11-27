@@ -42,4 +42,16 @@ describe('public character image resolution', () => {
   it('returns no public image for an invalid portrait reference', () => {
     expect(resolvePublicCharacterImageUrl(null, 'portrait.invalid')).toBeNull()
   })
+
+  it('uses authored art for the live starter while historical callers keep the saved route', () => {
+    const ref = 'portrait.adventure.male-01'
+    expect(resolvePublicCharacterImageUrl(null, ref, true)).toBe(
+      '/api/media/appearance/7/human-m-0001.v1/neutral.svg',
+    )
+    expect(resolvePublicCharacterImageUrl(null, ref)).toBe(
+      '/api/media/starter-portrait/portrait.adventure.male-01',
+    )
+    const saved = '/api/media/appearance/7/mountain-orc-f-0004.v2/neutral.svg'
+    expect(resolvePublicCharacterImageUrl(saved, ref, true)).toBe(saved)
+  })
 })

@@ -21,16 +21,17 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 
 import {
-  compileAppearanceManifest,
-  type AppearanceBlueprint,
-} from '@/appearance/appearance-manifest'
+  APPEARANCE_RACES,
+  AUTHORED_CHARACTERS,
+  authoredAppearance,
+  authoredCharacter,
+  defaultAuthoredAppearance,
+  type AuthoredAppearanceBlueprint,
+} from '@/appearance/appearance-authored-catalog'
+import { compileAppearanceManifest } from '@/appearance/appearance-manifest'
 import { AppearancePortraitPreview } from './appearance-builder'
-import { appearanceGenderForIdentity } from '@/appearance/appearance-painted-looks'
 import { AppearanceBuilderDialog } from './appearance-builder-dialog'
 import { AurevaneImage } from '@/components/media/aurevane-image'
-import { getStarterPortraitImageAssetId } from '@/media/character'
-import { illustratedStarterPortrait } from '@/appearance/appearance-starter-gallery'
-import { CharacterPortraitImage } from './character-portrait-image'
 
 import { FoundationDisciplineSigil } from './foundation-discipline-sigil'
 import styles from './character-creation-experience.module.css'
@@ -69,8 +70,7 @@ export function CharacterCreationExperience({
   const [step, setStep] = useState<Step>('identity')
   const [name, setName] = useState('')
   const [presentationId, setPresentationId] = useState<CharacterPresentationId>('masculine')
-  const [portraitRef, setPortraitRef] = useState(CREATION_CHARACTER_PORTRAITS[0].ref)
-  const [manualLook, setManualLook] = useState<AppearanceBlueprint | null>(null)
+  const [manualLook, setManualLook] = useState<AuthoredAppearanceBlueprint | null>(null)
   const [foundationDisciplineId, setFoundationDisciplineId] = useState(
     disciplines[0]?.id ?? 'vanguard',
   )
@@ -88,13 +88,16 @@ export function CharacterCreationExperience({
   const idempotencyKey = useRef<string | null>(null)
   const stepHeading = useRef<HTMLHeadingElement>(null)
 
-  const portraitChoices = CREATION_CHARACTER_PORTRAITS.filter(
-    (option) => option.presentationId === presentationId,
+  const gender = presentationId === 'masculine' ? 'masculine' : 'feminine'
+  const selectedLook = manualLook ?? defaultAuthoredAppearance(gender)
+  const selectedCharacter = authoredCharacter(selectedLook.character)!
+  const selectedAppearance = compileAppearanceManifest(selectedLook)
+  const portraitChoices = Object.keys(APPEARANCE_RACES).flatMap(
+    (race) =>
+      AUTHORED_CHARACTERS.find((look) => look.gender === gender && look.race === race) ?? [],
   )
   const selectedDiscipline =
     disciplines.find((candidate) => candidate.id === foundationDisciplineId) ?? disciplines[0]
-  const selectedPortrait =
-    portraitChoices.find((option) => option.ref === portraitRef) ?? portraitChoices[0]
   const spentPoints = CHARACTER_ATTRIBUTE_IDS.reduce(
     (total, attributeId) => total + attributeBonuses[attributeId],
     0,
@@ -128,7 +131,9 @@ export function CharacterCreationExperience({
       // Kept for the v1 server/data contract. The player-facing UI intentionally does not
       // expose pronouns; a deterministic compatibility value follows the chosen presentation.
       pronounPresetId: defaultPronounPresetForPresentation(presentationId),
-      portraitRef,
+      portraitRef: CREATION_CHARACTER_PORTRAITS.find(
+        (portrait) => portrait.presentationId === gender,
+      )!.ref,
       starterAppearanceRef: STARTER_CHARACTER_APPEARANCES[0].ref,
       attributeBonuses,
       foundationDisciplineId,
@@ -272,11 +277,6 @@ export function CharacterCreationExperience({
                             changed()
                             setPresentationId(option.id)
                             setManualLook(null)
-                            setPortraitRef(
-                              CREATION_CHARACTER_PORTRAITS.find(
-                                (portrait) => portrait.presentationId === option.id,
-                              )!.ref,
-                            )
                           }}
                           type="radio"
                         />
@@ -291,56 +291,43 @@ export function CharacterCreationExperience({
             <div className={styles.identityWorkspace}>
               <div className={styles.choiceGroup} data-portrait-library="true">
                 <h2 className={styles.collectionHeading}>Choose your visage</h2>
-                <p className={styles.choiceHint}>
-                  {portraitChoices.length} portraits. Scroll to see them all.
-                </p>
                 <AppearanceBuilderDialog
-                  allowAuthored
                   label="Build my character"
                   confirmLabel="Use this appearance"
-                  initialGender={presentationId === 'androgynous' ? undefined : presentationId}
-                  value={manualLook}
+                  initialGender={gender}
+                  value={selectedLook}
                   onConfirm={(look) => {
                     changed()
                     setManualLook(look)
-                    if (look.v >= 4 && 'identity' in look) {
-                      const gender = appearanceGenderForIdentity(look.identity)
-                      setPresentationId(gender)
-                      setPortraitRef(
-                        CREATION_CHARACTER_PORTRAITS.find(
-                          (portrait) => portrait.presentationId === gender,
-                        )!.ref,
-                      )
-                    }
+                    setPresentationId(authoredCharacter(look.character)!.gender)
                   }}
                 />
                 <div className={styles.portraitGrid} data-portrait-grid="true" key={presentationId}>
                   {portraitChoices.map((option) => (
                     <label
-                      key={option.ref}
+                      key={option.key}
                       className={styles.portraitChoice}
-                      data-selected={!manualLook && portraitRef === option.ref}
+                      data-selected={
+                        selectedLook.character === option.key && selectedLook.variant === 1
+                      }
                       title={option.label}
                     >
                       <input
                         aria-label={option.label}
-                        checked={!manualLook && portraitRef === option.ref}
+                        checked={
+                          selectedLook.character === option.key && selectedLook.variant === 1
+                        }
                         name="portrait"
                         onChange={() => {
                           changed()
-                          setPortraitRef(option.ref)
-                          setManualLook(null)
+                          setManualLook(authoredAppearance(option.key, 1))
                         }}
                         type="radio"
                       />
-                      <CharacterPortraitImage
-                        imageUrl={
-                          illustratedStarterPortrait(option.ref)?.manifest.portraits.neutral
-                        }
-                        fallbackAssetId={getStarterPortraitImageAssetId(option.ref)}
-                        sizes="6rem"
+                      <AppearancePortraitPreview
+                        manifest={compileAppearanceManifest(authoredAppearance(option.key, 1)!)}
                       />
-                      <span>{illustratedStarterPortrait(option.ref)?.name ?? option.label}</span>
+                      <span>{APPEARANCE_RACES[option.race]}</span>
                     </label>
                   ))}
                 </div>
@@ -348,25 +335,11 @@ export function CharacterCreationExperience({
               <aside className={styles.portraitPreview} aria-label="Selected portrait preview">
                 <span className={styles.previewLabel}>Your likeness</span>
                 <div className={styles.previewFrame}>
-                  {manualLook ? (
-                    <AppearancePortraitPreview manifest={compileAppearanceManifest(manualLook)} />
-                  ) : (
-                    <CharacterPortraitImage
-                      imageUrl={illustratedStarterPortrait(portraitRef)?.manifest.portraits.neutral}
-                      fallbackAssetId={getStarterPortraitImageAssetId(portraitRef)}
-                      sizes="(max-width: 760px) 7rem, (max-height: 800px) 16rem, 24rem"
-                    />
-                  )}
+                  <AppearancePortraitPreview manifest={selectedAppearance} />
                 </div>
                 <div className={styles.previewCopy}>
-                  <span>
-                    {manualLook
-                      ? 'Your custom look'
-                      : (illustratedStarterPortrait(portraitRef)?.name ?? selectedPortrait.label)}
-                  </span>
-                  <small>
-                    {CHARACTER_PRESENTATIONS.find((option) => option.id === presentationId)?.label}
-                  </small>
+                  <span>{selectedCharacter.label}</span>
+                  <small>{APPEARANCE_RACES[selectedCharacter.race]}</small>
                 </div>
                 <label
                   className={styles.field}
@@ -564,15 +537,7 @@ export function CharacterCreationExperience({
             </p>
             <div className={styles.reviewWorkspace}>
               <div className={styles.reviewPortrait} data-testid="creation-confirm-portrait">
-                {manualLook ? (
-                  <AppearancePortraitPreview manifest={compileAppearanceManifest(manualLook)} />
-                ) : (
-                  <CharacterPortraitImage
-                    imageUrl={illustratedStarterPortrait(portraitRef)?.manifest.portraits.neutral}
-                    fallbackAssetId={getStarterPortraitImageAssetId(portraitRef)}
-                    sizes="14rem"
-                  />
-                )}
+                <AppearancePortraitPreview manifest={selectedAppearance} />
               </div>
               <div className={styles.reviewSummary} data-testid="creation-confirm-summary">
                 <div
@@ -610,7 +575,7 @@ export function CharacterCreationExperience({
                   </div>
                   <div>
                     <dt>Portrait</dt>
-                    <dd>{selectedPortrait.label}</dd>
+                    <dd>{selectedCharacter.label}</dd>
                   </div>
                   {CHARACTER_ATTRIBUTE_IDS.map((attributeId) => (
                     <div key={attributeId}>

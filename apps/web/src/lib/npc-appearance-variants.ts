@@ -1,36 +1,14 @@
-import {
-  APPEARANCE_CATALOG,
-  parseAppearanceBlueprint,
-  type AppearanceBlueprint,
-  type LegacyAppearanceBlueprint,
-} from '@/appearance/appearance-manifest'
-import {
-  isActivePaintedAppearance,
-  activePaintedLookKey,
-} from '@/appearance/appearance-active-catalog'
-import type { PaintedPlayerLook } from '@/appearance/appearance-painted-wardrobe'
+import type { AuthoredAppearanceBlueprint } from '@/appearance/appearance-authored-catalog'
+import { parseAppearanceBlueprint } from '@/appearance/appearance-manifest'
 
 export const NPC_VARIANT_BATCH_MIN = 2
 export const NPC_VARIANT_BATCH_MAX = 8
 export const NPC_VARIANT_POOL_LIMIT = 64
-export type LegacyNpcVariantField = keyof typeof APPEARANCE_CATALOG
-export type NpcVariantField = LegacyNpcVariantField | keyof PaintedPlayerLook
-export const NPC_VARIANT_FIELDS = Object.keys(APPEARANCE_CATALOG) as LegacyNpcVariantField[]
-export const NPC_PAINTED_VARIANT_FIELDS: LegacyNpcVariantField[] = [
-  'body',
-  'coat',
-  'palette',
-  'accessory',
-  'hairColor',
-]
-
-export function npcVariantFields(blueprint: AppearanceBlueprint): readonly NpcVariantField[] {
-  if (!isActivePaintedAppearance(blueprint)) return []
-  return activePaintedLookKey(blueprint) === 'asta' ? ['backdrop', 'clothColor'] : ['backdrop']
-}
+export const NPC_VARIANT_FIELDS = ['character', 'variant'] as const
+export type NpcVariantField = (typeof NPC_VARIANT_FIELDS)[number]
 
 export type NpcVariantRequest = {
-  base: LegacyAppearanceBlueprint
+  base: AuthoredAppearanceBlueprint
   count: number
   vary: NpcVariantField[]
   mode: 'distinct' | 'uniform'
@@ -42,17 +20,20 @@ export function parseNpcVariantRequest(input: unknown): NpcVariantRequest | null
   const blueprint = parseAppearanceBlueprint(base)
   if (
     Object.keys(extra).length ||
-    !isActivePaintedAppearance(blueprint) ||
+    blueprint?.v !== 7 ||
     typeof count !== 'number' ||
     !Number.isInteger(count) ||
     count < NPC_VARIANT_BATCH_MIN ||
     count > NPC_VARIANT_BATCH_MAX ||
     !Array.isArray(vary) ||
-    !vary.every((field): field is NpcVariantField => npcVariantFields(blueprint).includes(field)) ||
+    !vary.every(
+      (field): field is NpcVariantField => field === 'character' || field === 'variant',
+    ) ||
     new Set(vary).size !== vary.length ||
     (mode !== 'distinct' && mode !== 'uniform') ||
     (mode === 'distinct' ? vary.length === 0 : vary.length !== 0)
   )
     return null
+
   return { base: blueprint, count, vary, mode }
 }

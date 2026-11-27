@@ -1,11 +1,5 @@
 import 'server-only'
-import {
-  APPEARANCE_ASSET_PREFIX,
-  paintedPlayerAppearanceBlueprint,
-  compileAppearanceManifest,
-} from '@/appearance/appearance-manifest'
-import { FEATURED_PAINTED_LOOKS } from '@/appearance/appearance-active-catalog'
-import { hashString } from '@/world/terrain-gen'
+import { liveCharacterAppearanceUrl } from '@/appearance/appearance-live'
 import { worldNpcName } from '@/world/npc-name'
 
 import {
@@ -13,7 +7,6 @@ import {
   type NpcDialogueRequest,
   type PublishedWorldNpc,
 } from '@aurevane/validation/combat/npc-design'
-import { resolvePublicCharacterImageUrl } from '@/media/public-character-portrait'
 import { readPublishedWorldNpcs } from '@/server/master/npc-design-store'
 import { isWalkable } from '@/world/travel'
 import type { WorldInteraction, WorldNpcPresentation, WorldState } from '@/world/types'
@@ -21,9 +14,6 @@ import { isKnownCell, resolveSector } from './world-content'
 import { localObjectiveNpcs } from './world-objectives'
 
 const NPC_CACHE_MS = 5_000
-const npcLooks = FEATURED_PAINTED_LOOKS.map(
-  ({ look }) => compileAppearanceManifest(paintedPlayerAppearanceBlueprint(look)).portraits.neutral,
-)
 const NPC_CACHE_SECTORS = 64
 const cache = new Map<string, { expires: number; rows: PublishedWorldNpc[] }>()
 const pending = new Map<string, Promise<PublishedWorldNpc[]>>()
@@ -67,21 +57,14 @@ export function projectLocalWorldNpcs(state: WorldState, rows: readonly Publishe
   for (const row of rows) {
     const position = knownNpcPosition(state, row, sector)
     if (!position) continue
-    const imageUrl = resolvePublicCharacterImageUrl(
-      row.imageUrl,
-      row.portraitRef ?? 'portrait.starter.wayfarer-01',
-      true,
-    )
+    const imageUrl = liveCharacterAppearanceUrl(row.imageUrl, row.portraitRef)
     const name = worldNpcName(row.name, row.encounter ? 'Challenger' : 'Resident')
-    const motionImageUrl = imageUrl?.startsWith(APPEARANCE_ASSET_PREFIX)
-      ? imageUrl
-      : npcLooks[hashString(row.id) % npcLooks.length]!
     npcs.push({
       id: row.id,
       name,
       position,
       imageUrl,
-      motionImageUrl,
+      motionImageUrl: imageUrl,
       interactionRadius: row.radius,
     })
     if (!withinNpcReach(state, row)) continue

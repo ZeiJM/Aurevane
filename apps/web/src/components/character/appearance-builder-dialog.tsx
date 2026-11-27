@@ -2,16 +2,10 @@
 
 import { useId, useRef, useState } from 'react'
 import type { AppearanceBlueprint } from '@/appearance/appearance-manifest'
-import {
-  appearanceGenderForIdentity,
-  paintedPlayerAppearanceBlueprint,
-  type AppearanceGender,
-} from '@/appearance/appearance-painted-looks'
+import type { AuthoredAppearanceBlueprint } from '@/appearance/appearance-authored-catalog'
+import type { AppearanceGender } from '@/appearance/appearance-gender'
+import { authoredPresentation } from '@/appearance/appearance-live'
 import { AppearanceBuilder, loadAppearanceCandidate } from './appearance-builder'
-import {
-  isActivePaintedAppearance,
-  defaultActivePaintedLook,
-} from '@/appearance/appearance-active-catalog'
 import styles from './appearance-builder.module.css'
 
 export function AppearanceBuilderDialog({
@@ -23,23 +17,21 @@ export function AppearanceBuilderDialog({
   onConfirm,
   confirmationHint,
   confirmDisabled = false,
-  allowAuthored = false,
 }: {
   label: string
   confirmLabel: string
   value?: AppearanceBlueprint | null
   initialGender?: AppearanceGender
   prepare?: () => Promise<AppearanceBlueprint | null>
-  onConfirm: (blueprint: AppearanceBlueprint) => void | Promise<void>
+  onConfirm: (blueprint: AuthoredAppearanceBlueprint) => void | Promise<void>
   confirmationHint?: string
   confirmDisabled?: boolean
-  allowAuthored?: boolean
 }) {
   const id = useId()
   const dialog = useRef<HTMLDialogElement>(null)
   const trigger = useRef<HTMLButtonElement>(null)
-  const initialCandidate = useRef<AppearanceBlueprint | null>(null)
-  const [candidate, setCandidate] = useState<AppearanceBlueprint | null>(null)
+  const initialCandidate = useRef<AuthoredAppearanceBlueprint | null>(null)
+  const [candidate, setCandidate] = useState<AuthoredAppearanceBlueprint | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
 
@@ -50,13 +42,7 @@ export function AppearanceBuilderDialog({
     setPending(true)
     try {
       const active = prepare ? await prepare() : value
-      const gender =
-        initialGender ??
-        (active && 'identity' in active ? appearanceGenderForIdentity(active.identity) : undefined)
-      const initial =
-        isActivePaintedAppearance(active) || (allowAuthored && active?.v === 7)
-          ? active
-          : paintedPlayerAppearanceBlueprint(defaultActivePaintedLook(gender))
+      const initial = authoredPresentation(active, null, initialGender)
       initialCandidate.current = initial
       setCandidate(initial)
     } catch (failure) {
@@ -107,13 +93,7 @@ export function AppearanceBuilderDialog({
           </button>
         </header>
         {candidate ? (
-          <AppearanceBuilder
-            value={candidate}
-            initialGender={initialGender}
-            onChange={setCandidate}
-            disabled={pending}
-            allowAuthored={allowAuthored}
-          />
+          <AppearanceBuilder value={candidate} onChange={setCandidate} disabled={pending} />
         ) : null}
         {error ? (
           <p className={styles.dialogError} role="alert">

@@ -9,6 +9,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
 import { getStarterPortraitImageAssetId } from '@/media/character'
+import { liveCharacterAppearanceUrl } from '@/appearance/appearance-live'
 import type { PvpLobbyMemberView, PvpLobbyView } from '@/server/battle/pvp-lobby-service'
 
 import { pvpMapProfile } from '@/lib/battle/pvp-map-presentation'
@@ -63,7 +64,7 @@ function memberForSeat(
 function Portrait({ member }: { member: PvpLobbyMemberView }) {
   return (
     <CharacterPortraitImage
-      imageUrl={member.profileImageUrl}
+      imageUrl={liveCharacterAppearanceUrl(member.profileImageUrl, member.portraitRef)}
       fallbackAssetId={getStarterPortraitImageAssetId(member.portraitRef as CharacterPortraitRef)}
       className={styles.portrait}
       alt={`${member.characterName} portrait`}

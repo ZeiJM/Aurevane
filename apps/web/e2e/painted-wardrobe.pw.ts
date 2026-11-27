@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 import { expectSmoothReadyStance, grantAppearanceToken } from './appearance-test-helpers'
 import { allocateCreationPoints, createVerifiedAccountAndSignIn } from './pv1f-test-helpers'
 
-test('@painted-wardrobe saves a painted pose variant and setting using one token', async ({
+test('@painted-wardrobe saves an authored pose variant using one token', async ({
   page,
   isMobile,
 }, testInfo) => {
@@ -14,11 +14,10 @@ test('@painted-wardrobe saves a painted pose variant and setting using one token
   // Browser Smoke shares one database across projects and reserves saved recipes
   // across characters. Give the laptop project its own initial and final look.
   const look = isMobile
-    ? 'asta'
+    ? 'human-f-0005'
     : testInfo.project.name === 'laptop-chromium'
-      ? 'kieran'
-      : 'cassian'
-  const faceId = { asta: 'f32', kieran: 'm21keen', cassian: 'm02' }[look]
+      ? 'human-m-0005'
+      : 'human-m-0006'
   const characterName = `Warden ${suffix}`
   await createVerifiedAccountAndSignIn({
     page,
@@ -42,8 +41,8 @@ test('@painted-wardrobe saves a painted pose variant and setting using one token
   await expectSmoothReadyStance(battlePoses.locator('[data-preview-motion="idle"]'))
   const control = (name: string) => dialog.getByRole('combobox', { name, exact: true })
   await control('Look').selectOption(look)
-  await control('Portrait setting').selectOption('lunar')
   await expect(control('Look')).toHaveValue(look)
+  await expect(control('Race').locator('option')).toHaveCount(4)
   await dialog.getByRole('button', { name: 'Use this appearance' }).click()
   await expect(dialog).toBeHidden({ timeout: 20_000 })
 
@@ -69,26 +68,21 @@ test('@painted-wardrobe saves a painted pose variant and setting using one token
   await expect(appearanceSettings.getByText('1 Appearance Token available.')).toBeVisible()
   await designSprite.click()
   await expect(control('Look')).toHaveValue(look)
-  await expect(control('Portrait setting')).toHaveValue('lunar')
-  const variant = isMobile ? '1' : '2'
-  await expect(control('Variant').locator('option')).toHaveCount(3)
+  await expect(control('Race')).toHaveValue('human')
+  const variant = '2'
+  await expect(control('Variant').locator('option')).toHaveCount(2)
   await control('Variant').selectOption(variant)
-  if (isMobile) await expect(control('Cape color')).toHaveValue('ember')
-  await control('Portrait setting').selectOption('frost')
   await expect(dialog.getByText(/spends one Appearance Token/)).toBeVisible()
   const preview = dialog.getByAltText('Neutral appearance portrait')
-  await expect(preview).toHaveAttribute(
-    'src',
-    new RegExp('/6/' + faceId + '[.].*[.]frost/illustrated-posed-neutral[.]svg$'),
-  )
-  const path = (await preview.getAttribute('src'))!.replace('/illustrated-posed-neutral.svg', '')
+  const path = `/api/media/appearance/7/${look}.v${variant}`
+  await expect(preview).toHaveAttribute('src', `${path}/neutral.svg`)
   const atlasWidth = await page.evaluate(async (imagePath) => {
     const image = new Image()
     image.src = imagePath
     await image.decode()
     return image.naturalWidth
-  }, `${path}/illustrated-motion-v3.svg`)
-  expect(atlasWidth).toBe(1536)
+  }, `/media/art/character-catalogue/${look}/variant-${variant}/sprites.webp`)
+  expect(atlasWidth).toBe(3072)
   await page.screenshot({ path: testInfo.outputPath('painted-wardrobe.png') })
   const confirm = dialog.getByRole('button', { name: 'Confirm appearance' })
   await confirm.click()
@@ -103,9 +97,7 @@ test('@painted-wardrobe saves a painted pose variant and setting using one token
   })
   await page.reload()
   await designSprite.click()
-  await expect(control('Portrait setting')).toHaveValue('frost')
   await expect(control('Look')).toHaveValue(look)
   await expect(control('Variant')).toHaveValue(variant)
-  if (isMobile) await expect(control('Cape color')).toHaveValue('ember')
   await expect(confirm).toBeDisabled()
 })

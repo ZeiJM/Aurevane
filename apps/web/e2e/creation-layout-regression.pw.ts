@@ -41,7 +41,7 @@ test('Creation exposes 24 portraits per gender and preserves the complete authen
   const library = creation.locator('[data-portrait-library]')
   const portraits = library.locator('input[name="portrait"]')
   await expect(library).toBeVisible()
-  await expect(portraits).toHaveCount(24)
+  await expect(portraits).toHaveCount(4)
   const decoded = await library.locator('img').evaluateAll(async (images) => {
     return Promise.all(
       images.map(async (image) => {
@@ -66,11 +66,11 @@ test('Creation exposes 24 portraits per gender and preserves the complete authen
       }),
     )
   })
-  expect(decoded).toHaveLength(24)
+  expect(decoded).toHaveLength(4)
   expect(
     decoded.every((image) => image.loaded && image.width >= 96 && image.width === image.height),
   ).toBe(true)
-  expect(new Set(decoded.map((image) => image.src)).size).toBe(24)
+  expect(new Set(decoded.map((image) => image.src)).size).toBe(4)
 
   const sizes =
     info.project.name === 'mobile-chromium'
@@ -166,8 +166,8 @@ test('Creation exposes 24 portraits per gender and preserves the complete authen
         .soft(metrics.gender.bottom, `${label}: Gender precedes the collection`)
         .toBeLessThanOrEqual(metrics.gallery.y)
       expect
-        .soft(metrics.galleryOverflow, `${label}: gallery keeps scrolling within the workspace`)
-        .toBeGreaterThan(0)
+        .soft(metrics.galleryOverflow, `${label}: featured looks fit within the workspace`)
+        .toBeLessThanOrEqual(1)
     }
     if (size.width >= 1280 && size.height >= 768)
       expect
@@ -207,7 +207,7 @@ test('Creation exposes 24 portraits per gender and preserves the complete authen
   expect(focusedPortrait.top).toBeGreaterThanOrEqual(0)
   expect(focusedPortrait.bottom).toBeLessThanOrEqual(focusedPortrait.viewportHeight + 1)
   await creation.getByRole('radio', { name: 'Female', exact: true }).check()
-  await expect(portraits).toHaveCount(24)
+  await expect(portraits).toHaveCount(4)
   await expect(portraits.first()).toBeChecked()
   await portraits.last().check()
   await expect(creation.locator('input[name="appearance"]')).toHaveCount(0)
@@ -264,7 +264,7 @@ test('Creation exposes 24 portraits per gender and preserves the complete authen
       .poll(() => page.evaluate(() => document.documentElement.scrollHeight - innerHeight))
       .toBeLessThanOrEqual(1)
   await expect(creation.getByText('Portrait', { exact: true })).toBeVisible()
-  await expect(creation.getByText('Female adventurer 24', { exact: true })).toBeVisible()
+  await expect(creation.getByText('Basalt Citadel Vanguard', { exact: true })).toBeVisible()
   await expect(creation.getByText('Starter appearance', { exact: true })).toHaveCount(0)
   await expect(creation).not.toContainText(/pronouns/i)
   if (process.env.LAYOUT_REVIEW_OUTPUT)
@@ -324,7 +324,7 @@ test('Creation exposes 24 portraits per gender and preserves the complete authen
   const payload = await response.json()
   expect(payload.character).toMatchObject({
     name: characterName,
-    portraitRef: 'portrait.starter.wayfarer-30',
+    portraitRef: 'portrait.adventure.female-01',
     presentationId: 'feminine',
     starterAppearanceRef: 'appearance.starter.roadworn',
   })

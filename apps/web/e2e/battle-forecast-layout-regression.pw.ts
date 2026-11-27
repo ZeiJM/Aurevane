@@ -3,8 +3,7 @@ import { execFileSync } from 'node:child_process'
 import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
-import { paintedPlayerAppearanceBlueprint } from '../src/appearance/appearance-manifest'
-import { PAINTED_STUDIES } from '../src/appearance/appearance-painted-studies'
+import { authoredAppearance } from '../src/appearance/appearance-authored-catalog'
 import { scheduledEffectPreviewLabel } from '../src/components/battle/battle-preview-content'
 import { gameplayStatusName } from '../src/lib/battle/combat-interaction-presentation'
 import { expectSmoothReadyStance, saveFixtureAppearance } from './appearance-test-helpers'
@@ -62,12 +61,12 @@ async function provision(page: Page, prefix: 'Forecast' | 'ForeHost' | 'ForeGues
     password: 'Forecast-layout-2026!',
     characterName: name,
   })
-  const settings = { Forecast: 'archive', ForeHost: 'violet', ForeGuest: 'glasswindoasis' } as const
-  await saveFixtureAppearance(
-    page,
-    userId,
-    paintedPlayerAppearanceBlueprint({ ...PAINTED_STUDIES.m10.look, backdrop: settings[prefix] }),
-  )
+  const settings = {
+    Forecast: 'elf-m-0004',
+    ForeHost: 'fae-m-0004',
+    ForeGuest: 'mountain-orc-m-0004',
+  } as const
+  await saveFixtureAppearance(page, userId, authoredAppearance(settings[prefix], 2)!)
   return name
 }
 

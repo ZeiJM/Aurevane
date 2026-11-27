@@ -12,7 +12,8 @@ import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-sk
 import type { AnyResonanceDefinition } from '@aurevane/game-core/combat/resonance'
 import { normalizeCombatEffectState } from '@aurevane/game-core/combat/combat-effect-state'
 
-import { APPEARANCE_PRESETS, compileAppearanceManifest } from '@/appearance/appearance-manifest'
+import { authoredAppearance } from '@/appearance/appearance-authored-catalog'
+import { compileAppearanceManifest } from '@/appearance/appearance-manifest'
 import { getStarterPortraitImageAssetId } from '@/media/character'
 import { summonPortraitArtwork } from '@/media/support-action-art'
 import type { ImageAssetId } from '@/media/registry'
@@ -20,7 +21,9 @@ import type { PvpBattleMetadata } from '@/server/battle/pvp-lobby-service'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 import type { BattleReturnTo } from './battle-return-navigation'
 
-const recruitBattlefieldAppearance = compileAppearanceManifest(APPEARANCE_PRESETS[1].blueprint)
+const recruitBattlefieldAppearance = compileAppearanceManifest(
+  authoredAppearance('human-m-0001', 2)!,
+)
 
 export type BattleTechniqueCategory = 'attack' | 'defense' | 'heal'
 

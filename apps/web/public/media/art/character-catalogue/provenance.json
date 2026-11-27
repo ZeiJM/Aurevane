@@ -10,34 +10,50 @@
     "elf-f-0002",
     "elf-f-0003",
     "elf-f-0004",
+    "elf-f-0005",
+    "elf-f-0006",
     "elf-m-0001",
     "elf-m-0002",
     "elf-m-0003",
     "elf-m-0004",
+    "elf-m-0005",
+    "elf-m-0006",
     "fae-f-0001",
     "fae-f-0002",
     "fae-f-0003",
     "fae-f-0004",
+    "fae-f-0005",
+    "fae-f-0006",
     "fae-m-0001",
     "fae-m-0002",
     "fae-m-0003",
     "fae-m-0004",
+    "fae-m-0005",
+    "fae-m-0006",
     "human-f-0001",
     "human-f-0002",
     "human-f-0003",
     "human-f-0004",
+    "human-f-0005",
+    "human-f-0006",
     "human-m-0001",
     "human-m-0002",
     "human-m-0003",
     "human-m-0004",
+    "human-m-0005",
+    "human-m-0006",
     "mountain-orc-f-0001",
     "mountain-orc-f-0002",
     "mountain-orc-f-0003",
     "mountain-orc-f-0004",
+    "mountain-orc-f-0005",
+    "mountain-orc-f-0006",
     "mountain-orc-m-0001",
     "mountain-orc-m-0002",
     "mountain-orc-m-0003",
-    "mountain-orc-m-0004"
+    "mountain-orc-m-0004",
+    "mountain-orc-m-0005",
+    "mountain-orc-m-0006"
   ],
   "secondArtBatch": {
     "artDirection": "Crisp tapered ink, angular cel shadows, cinematic colored rim light, and fully illustrated fantasy settings.",
@@ -342,6 +358,109 @@
         "label": "Thunder Gate Mason",
         "portraitSheet": "exec-7c360997-30d0-4d54-8122-f68312ea31f1.png",
         "spriteSheet": "exec-9219407f-07d4-4fbd-85a9-b09a359c8f41.png"
+      }
+    ]
+  },
+  "fourthArtBatch": {
+    "artDirection": "Ink contours, sharp cel shadows and fully painted original Aurevane locations.",
+    "portraitGrid": "Two rows of five expression paintings. Each row has its own pose and palette.",
+    "spriteGrid": "Two blocks of 5 × 3 front, side and rear motion drawings based on the respective portrait variant.",
+    "characters": [
+      {
+        "key": "elf-f-0005",
+        "label": "Sunsill Roof Gardener",
+        "portraitSheet": "exec-5d5ed329-a1d3-4cfd-97c9-eff108e3ee60.png",
+        "spriteSheet": "exec-d9d390e8-6f3e-429a-b0c0-f153d951b6a1.png"
+      },
+      {
+        "key": "elf-f-0006",
+        "label": "Glass Dune Reclaimer",
+        "portraitSheet": "exec-dcda3755-e082-4f36-8a34-9febb145f3f1.png",
+        "spriteSheet": "exec-2cda7059-988b-4d67-b1b0-dc3aed656fa4.png"
+      },
+      {
+        "key": "elf-m-0005",
+        "label": "Riverstone Map Binder",
+        "portraitSheet": "exec-fe06296f-a24a-4aff-be00-b86b0aed5bcf.png",
+        "spriteSheet": "exec-6f72e84f-d470-463c-8f8c-d2fe1d56d45b.png"
+      },
+      {
+        "key": "elf-m-0006",
+        "label": "Black Creek Apiarist",
+        "portraitSheet": "exec-8f418f61-b44e-48ca-acb6-febb97c35b33.png",
+        "spriteSheet": "exec-bd6034e4-d95e-4e15-809d-d8396af5fb7a.png"
+      },
+      {
+        "key": "fae-f-0005",
+        "label": "Honeyglass Weaver",
+        "portraitSheet": "exec-d3d8ac46-6793-4cc3-9ee1-08449f892889.png",
+        "spriteSheet": "exec-371fafcc-cb0a-4789-a17f-78b831593ae4.png"
+      },
+      {
+        "key": "fae-f-0006",
+        "label": "Seaflower Lantern Dancer",
+        "portraitSheet": "exec-1f404117-a41d-44bc-9b87-f82ea3f47edb.png",
+        "spriteSheet": "exec-72a3ed78-8b91-44b7-b0cb-c2f511c37dde.png"
+      },
+      {
+        "key": "fae-m-0005",
+        "label": "Rainlily Ferry Clerk",
+        "portraitSheet": "exec-a842b7ef-6fc5-41fe-8342-941758d73f5c.png",
+        "spriteSheet": "exec-f397d185-e182-4ae2-ad17-2af5ebc3f813.png"
+      },
+      {
+        "key": "fae-m-0006",
+        "label": "Cedar Stair Bellkeeper",
+        "portraitSheet": "exec-2bfbc862-bacf-4e20-b575-029e8c682558.png",
+        "spriteSheet": "exec-362e17cb-7cd6-4877-836e-14c209106698.png"
+      },
+      {
+        "key": "human-f-0005",
+        "label": "Copper Quay Mechanic",
+        "portraitSheet": "exec-42fd6d11-97bc-4115-b868-1d77d1cbf4b2.png",
+        "spriteSheet": "exec-7c655457-4d9a-4c98-bb4c-4143611b8334.png"
+      },
+      {
+        "key": "human-f-0006",
+        "label": "Lanternwake Search Pilot",
+        "portraitSheet": "exec-29cb4eea-3395-4ba3-aaae-38b67483b8c0.png",
+        "spriteSheet": "exec-bae8493a-9907-41ba-8854-885f9e7f1736.png"
+      },
+      {
+        "key": "human-m-0005",
+        "label": "Brinewatch Signalman",
+        "portraitSheet": "exec-10202928-0610-486a-afb1-e7bcc4c985c9.png",
+        "spriteSheet": "exec-a3659960-09e2-4ef5-9c95-ced81ed647b0.png"
+      },
+      {
+        "key": "human-m-0006",
+        "label": "Plum Orchard Gatekeeper",
+        "portraitSheet": "exec-42d57e2a-1cd1-494f-8929-dd472bc50d1d.png",
+        "spriteSheet": "exec-e750db6e-70d1-43b7-aab6-b2842503abc5.png"
+      },
+      {
+        "key": "mountain-orc-f-0005",
+        "label": "Red Basin Cartwright",
+        "portraitSheet": "exec-f2bbac6c-06e3-411c-b762-8c0565b3e915.png",
+        "spriteSheet": "exec-d1c46fa0-dae0-452b-abf9-8cd6ecc04575.png"
+      },
+      {
+        "key": "mountain-orc-f-0006",
+        "label": "Sleetwood Caravaner",
+        "portraitSheet": "exec-78700dfc-b975-40c7-adb2-03d66fb4afd1.png",
+        "spriteSheet": "exec-c3078105-bd8e-4ff3-8d3c-fce66ac55690.png"
+      },
+      {
+        "key": "mountain-orc-m-0005",
+        "label": "Slategrove Trail Warden",
+        "portraitSheet": "exec-297688ed-e69c-493f-a4a1-dd2fbf3789b8.png",
+        "spriteSheet": "exec-20fa09c2-1828-466e-823c-b6da6e004786.png"
+      },
+      {
+        "key": "mountain-orc-m-0006",
+        "label": "Copper Hollow Diver",
+        "portraitSheet": "exec-8e8ad7fd-1505-4241-b073-f409e3bcaac6.png",
+        "spriteSheet": "exec-ef2a9e45-c90b-4a31-ba01-ed984a8c96ae.png"
       }
     ]
   }

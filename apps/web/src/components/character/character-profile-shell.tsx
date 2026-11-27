@@ -22,6 +22,7 @@ import { CharacterProfileDetails } from '@/components/character/character-profil
 import type { EquipmentStatBonus } from '@/lib/items/equipment-stat-presentation'
 import { type SupernaturalChoiceOption } from '@/components/character/character-supernatural-choice-controls'
 import { getStarterPortraitImageAssetId } from '@/media/character'
+import { liveCharacterAppearanceUrl } from '@/appearance/appearance-live'
 
 import styles from './character-profile-shell.module.css'
 
@@ -228,7 +229,7 @@ export function CharacterProfileShell({
               resetLabel="Reset Stats"
               portrait={{
                 name: profile.identity.name,
-                imageUrl,
+                imageUrl: liveCharacterAppearanceUrl(imageUrl, profile.identity.portraitRef),
                 assetId: getStarterPortraitImageAssetId(profile.identity.portraitRef),
               }}
               focusAttributes={focusAttributes}

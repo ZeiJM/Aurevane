@@ -97,6 +97,42 @@ export const AUTHORED_CHARACTERS = [
     gender: 'feminine',
     label: 'Iron Pass Scout',
   },
+  { key: 'elf-f-0005', race: 'elf', gender: 'feminine', label: 'Sunsill Roof Gardener' },
+  { key: 'elf-f-0006', race: 'elf', gender: 'feminine', label: 'Glass Dune Reclaimer' },
+  { key: 'elf-m-0005', race: 'elf', gender: 'masculine', label: 'Riverstone Map Binder' },
+  { key: 'elf-m-0006', race: 'elf', gender: 'masculine', label: 'Black Creek Apiarist' },
+  { key: 'fae-f-0005', race: 'fae', gender: 'feminine', label: 'Honeyglass Weaver' },
+  { key: 'fae-f-0006', race: 'fae', gender: 'feminine', label: 'Seaflower Lantern Dancer' },
+  { key: 'fae-m-0005', race: 'fae', gender: 'masculine', label: 'Rainlily Ferry Clerk' },
+  { key: 'fae-m-0006', race: 'fae', gender: 'masculine', label: 'Cedar Stair Bellkeeper' },
+  { key: 'human-f-0005', race: 'human', gender: 'feminine', label: 'Copper Quay Mechanic' },
+  { key: 'human-f-0006', race: 'human', gender: 'feminine', label: 'Lanternwake Search Pilot' },
+  { key: 'human-m-0005', race: 'human', gender: 'masculine', label: 'Brinewatch Signalman' },
+  { key: 'human-m-0006', race: 'human', gender: 'masculine', label: 'Plum Orchard Gatekeeper' },
+  {
+    key: 'mountain-orc-f-0005',
+    race: 'mountain-orc',
+    gender: 'feminine',
+    label: 'Red Basin Cartwright',
+  },
+  {
+    key: 'mountain-orc-f-0006',
+    race: 'mountain-orc',
+    gender: 'feminine',
+    label: 'Sleetwood Caravaner',
+  },
+  {
+    key: 'mountain-orc-m-0005',
+    race: 'mountain-orc',
+    gender: 'masculine',
+    label: 'Slategrove Trail Warden',
+  },
+  {
+    key: 'mountain-orc-m-0006',
+    race: 'mountain-orc',
+    gender: 'masculine',
+    label: 'Copper Hollow Diver',
+  },
 ] as const satisfies readonly AuthoredCharacter[]
 
 const byKey = new Map<string, AuthoredCharacter>(
@@ -118,4 +154,9 @@ export function authoredAppearance(
 
 export function authoredAppearanceSource(blueprint: AuthoredAppearanceBlueprint) {
   return `/media/art/character-catalogue/${blueprint.character}/variant-${blueprint.variant}`
+}
+
+export function defaultAuthoredAppearance(gender: AppearanceGender = 'feminine') {
+  const presentation = gender === 'masculine' ? 'm' : 'f'
+  return authoredAppearance(`human-${presentation}-0001`, 1)!
 }

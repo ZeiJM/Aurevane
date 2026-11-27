@@ -1,10 +1,6 @@
 'use client'
 
 import { useRef, useState, type FormEvent } from 'react'
-import {
-  isStarterCharacterPortraitRef,
-  STARTER_CHARACTER_PORTRAITS,
-} from '@aurevane/game-core/character/starter-options'
 import { getTacticalHallArena } from '@aurevane/game-core/combat/tactical-hall-arenas'
 import {
   NPC_ARENA_IDS,
@@ -29,10 +25,8 @@ import {
 } from '@/appearance/appearance-manifest'
 import { AppearancePortraitPreview, PosePreview } from '@/components/character/appearance-builder'
 import { AppearanceBuilderDialog } from '@/components/character/appearance-builder-dialog'
-import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
 import { ArenaNpcCard } from '@/components/battle/arena-npc-card'
-import { getStarterPortraitImageAssetId } from '@/media/character'
-import { resolvePublicCharacterImageUrl } from '@/media/public-character-portrait'
+import { authoredPresentation, liveCharacterAppearanceUrl } from '@/appearance/appearance-live'
 import type { NpcArenaRehearsal } from '@/server/master/npc-arena-rehearsal'
 import { NpcDialogueEditor } from './npc-dialogue-editor'
 import { NpcAppearanceBatch } from './npc-appearance-batch'
@@ -66,34 +60,26 @@ const INITIAL_DRAFT: NpcDesignDraft = {
 
 function NpcAppearancePreview({ draft }: { draft: NpcDesignDraft }) {
   const [facing, setFacing] = useState<AppearanceFacing>('south')
-  const manifest = appearanceManifestFromImageUrl(draft.imageUrl)
+  const manifest = compileAppearanceManifest(
+    authoredPresentation(
+      appearanceManifestFromImageUrl(draft.imageUrl)?.blueprint,
+      draft.portraitRef,
+    ),
+  )
   const world = draft.uses.includes('world') ? draft.world : undefined
   const showBattle = draft.uses.includes('arena') || Boolean(world?.encounter)
-  const portrait =
-    draft.portraitRef && isStarterCharacterPortraitRef(draft.portraitRef)
-      ? draft.portraitRef
-      : 'portrait.starter.wayfarer-01'
 
   return (
     <details className={styles.lookPreview}>
       <summary>Preview draft appearance</summary>
       <div className={styles.lookSurfaces}>
         <figure>
-          {manifest ? (
-            <AppearancePortraitPreview manifest={manifest} expression={world?.greetingExpression} />
-          ) : (
-            <CharacterPortraitImage
-              imageUrl={draft.imageUrl}
-              fallbackAssetId={getStarterPortraitImageAssetId(portrait)}
-              alt=""
-              sizes="96px"
-            />
-          )}
+          <AppearancePortraitPreview manifest={manifest} expression={world?.greetingExpression} />
           <figcaption>
             {world?.greetingExpression ? 'Greeting portrait' : 'Identity portrait'}
           </figcaption>
         </figure>
-        {manifest && world ? (
+        {world ? (
           <PosePreview
             manifest={manifest}
             size={44}
@@ -102,7 +88,7 @@ function NpcAppearancePreview({ draft }: { draft: NpcDesignDraft }) {
             label="World actor"
           />
         ) : null}
-        {manifest && showBattle ? (
+        {showBattle ? (
           <PosePreview
             manifest={manifest}
             size={72}
@@ -111,13 +97,8 @@ function NpcAppearancePreview({ draft }: { draft: NpcDesignDraft }) {
             label="Battle actor"
           />
         ) : null}
-        {!manifest && (world || showBattle) ? (
-          <p className={styles.hint}>
-            This draft uses a portrait. Build an appearance to preview its field sprite.
-          </p>
-        ) : null}
       </div>
-      {manifest && (world || showBattle) ? (
+      {world || showBattle ? (
         <label className={styles.previewFacing}>
           Actor facing
           <select
@@ -220,7 +201,20 @@ export function NpcDesignEditor({
       const response = await fetch('/api/master/npc-design', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(command),
+        body: JSON.stringify(
+          command.kind === 'save' && command.draft.imageUrl
+            ? {
+                ...command,
+                draft: {
+                  ...command.draft,
+                  imageUrl: liveCharacterAppearanceUrl(
+                    command.draft.imageUrl,
+                    command.draft.portraitRef,
+                  ),
+                },
+              }
+            : command,
+        ),
       })
       const result = (await response.json()) as {
         record?: NpcDesignRecord
@@ -349,25 +343,14 @@ export function NpcDesignEditor({
               onChange={(event) => setDraft({ ...draft, name: event.target.value })}
             />
           </label>
-          <label>
-            Portrait
-            <select
-              value={draft.portraitRef ?? ''}
-              onChange={(event) => setDraft({ ...draft, portraitRef: event.target.value || null })}
-            >
-              <option value="">Standard portrait</option>
-              {STARTER_CHARACTER_PORTRAITS.map(({ ref, label }) => (
-                <option key={ref} value={ref}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
           <div className={styles.actions}>
             <AppearanceBuilderDialog
               label="Build appearance"
               confirmLabel="Use this appearance"
-              value={appearanceManifestFromImageUrl(draft.imageUrl)?.blueprint}
+              value={authoredPresentation(
+                appearanceManifestFromImageUrl(draft.imageUrl)?.blueprint,
+                draft.portraitRef,
+              )}
               onConfirm={(blueprint) =>
                 setDraft({
                   ...draft,
@@ -375,19 +358,8 @@ export function NpcDesignEditor({
                 })
               }
             />
-            {draft.imageUrl ? (
-              <button type="button" onClick={() => setDraft({ ...draft, imageUrl: null })}>
-                Use portrait only
-              </button>
-            ) : null}
           </div>
           <NpcAppearancePreview key={selectedId ?? 'new'} draft={draft} />
-          {draft.imageUrl ? (
-            <p className={styles.hint}>
-              Generated look applies to the card, dialogue and compatible world and battle actors.
-              The selected portrait is its fallback.
-            </p>
-          ) : null}
         </fieldset>
         {arena ? (
           <fieldset disabled={busy}>
@@ -452,7 +424,7 @@ export function NpcDesignEditor({
               name={draft.name.trim() || 'Unnamed NPC'}
               lore={arena.lore.trim()}
               portraitRef={draft.portraitRef}
-              imageUrl={draft.imageUrl}
+              imageUrl={liveCharacterAppearanceUrl(draft.imageUrl, draft.portraitRef)}
             />
             {current ? (
               <div>
@@ -585,11 +557,7 @@ export function NpcDesignEditor({
                 speaker: draft.name.trim(),
                 title: 'Greeting',
                 body: world.greeting.trim(),
-                portraitUrl:
-                  resolvePublicCharacterImageUrl(
-                    draft.imageUrl,
-                    draft.portraitRef ?? 'portrait.starter.wayfarer-01',
-                  ) ?? undefined,
+                portraitUrl: liveCharacterAppearanceUrl(draft.imageUrl, draft.portraitRef),
                 expression: world.greetingExpression,
                 ...(world.dialogue?.length
                   ? {

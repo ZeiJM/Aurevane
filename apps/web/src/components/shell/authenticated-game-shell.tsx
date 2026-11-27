@@ -9,6 +9,7 @@ import { CharacterIdentityCard } from '@/components/character/character-identity
 import { loadCharacterIdentityRailContext } from '@/server/character/character-identity-rail-context'
 import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
 import { getStarterPortraitImageAssetId } from '@/media/character'
+import { liveCharacterAppearanceUrl } from '@/appearance/appearance-live'
 import {
   getActiveBattleForUser,
   getActiveSpectatingForUser,
@@ -43,7 +44,7 @@ function ShellCharacterPortrait({
   return (
     <span className={styles.screenPortrait} title={character.name}>
       <CharacterPortraitImage
-        imageUrl={imageUrl}
+        imageUrl={liveCharacterAppearanceUrl(imageUrl, character.portraitRef)}
         fallbackAssetId={getStarterPortraitImageAssetId(character.portraitRef)}
         className={styles.screenPortraitImage}
         sizes={rail ? '(max-height: 620px) 88px, (max-height: 700px) 112px, 165px' : '3.25rem'}
