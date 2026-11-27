@@ -96,10 +96,6 @@
   --terrace-tint: #bdced37a;
 }
 
-:global(section#battlefield [data-battle-terrace] > button > [data-team]) {
-  pointer-events: none;
-}
-
 :global(section#battlefield [data-battle-terrace] [data-battle-facing-indicator]) {
   scale: 0.86;
 }
