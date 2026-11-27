@@ -3755,7 +3755,10 @@ describe('native map input and bounded lifecycle', () => {
         expect(blits.length).toBeGreaterThan(0)
         expect(
           blits.every(
-            ({ matrix, args }) => matrix.join(',') === '1,0,0,1,0,0' && args.length === 2,
+            ({ matrix, args }) =>
+              matrix.join(',') === '1,0,0,1,0,0' &&
+              args.length === 2 &&
+              args.every(Number.isInteger),
           ),
         ).toBe(true)
         expect(blits.at(-1)!.args).not.toEqual(projection.args)
@@ -6788,6 +6791,7 @@ it('translates a bounded dry terrain composite through short desktop movement wi
     s.frame(120)
     const moved = s.draws.filter(({ image }) => image === initial.image)
     expect(moved.length).toBeGreaterThan(0)
+    expect(moved.every(({ args }) => args.length === 2 && args.every(Number.isInteger))).toBe(true)
     expect(moved.at(-1)!.args).not.toEqual(initial.args)
     expect(s.layerCount()).toBe(before)
     expect(JSON.parse(s.canvas.dataset.renderTiming!).groundBuilds).toBe(0)

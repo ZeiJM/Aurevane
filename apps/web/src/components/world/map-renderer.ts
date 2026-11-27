@@ -2730,7 +2730,9 @@ export function createMapRenderer(
         if (index === projection.start) {
           ctx.save()
           ctx.setTransform(1, 0, 0, 1, 0, 0)
-          ctx.drawImage(projection.layer, projection.left, projection.top)
+          // These rasters already match the backing density. Place them on
+          // device pixels so a moving camera does not resample the terrain.
+          ctx.drawImage(projection.layer, Math.round(projection.left), Math.round(projection.top))
           ctx.restore()
         }
       } else {
@@ -2771,8 +2773,8 @@ export function createMapRenderer(
             ctx.setTransform(1, 0, 0, 1, 0, 0)
             ctx.drawImage(
               projected.canvas,
-              p.x * ratio + projected.left,
-              p.y * ratio + projected.top,
+              Math.round(p.x * ratio) + projected.left,
+              Math.round(p.y * ratio) + projected.top,
             )
           } else drawGroundSurface(ctx, surface, GRID_WIDTH * tile, GRID_HEIGHT * tile, ratio)
         }
