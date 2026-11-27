@@ -214,7 +214,11 @@ export async function verifyWorldScenePresence(
     place: (id: string, sector: string, x: number, y: number, safe?: boolean) => void
     sql: (query: string) => string
     capture: (page: Page, info: TestInfo, name: string) => Promise<void>
-    stageWalk: (page: Page, position: WorldView['position']) => Promise<void>
+    stageWalk: (
+      page: Page,
+      position: WorldView['position'],
+      snapshot?: Pick<WorldView, 'sectors'>,
+    ) => Promise<void>
   },
 ) {
   test.skip(info.project.name !== 'desktop-chromium', 'Exercise two-account presence once.')
@@ -235,7 +239,11 @@ export async function verifyWorldScenePresence(
     fixtureIds.push(owner.characterId, id)
     diagnostics.fixture('owner', owner.characterId)
     diagnostics.fixture('peer', id)
-    const checkedWalk = (actor: Page, destination: WorldView['position']) => {
+    const checkedWalk = (
+      actor: Page,
+      destination: WorldView['position'],
+      snapshot?: Pick<WorldView, 'sectors'>,
+    ) => {
       const observer = actor === page ? 'owner' : 'peer'
       diagnostics.walk(observer, destination)
       const approval = actor
@@ -269,7 +277,7 @@ export async function verifyWorldScenePresence(
         })
       // Callers observe both immediately, while keeping arrival deadlines tied
       // to click completion rather than adding approval latency to the budget.
-      return { click: stageWalk(actor, destination), approval }
+      return { click: stageWalk(actor, destination, snapshot), approval }
     }
     // Stop the target's heartbeat before testing deliberately aged presence.
     await other.goto('about:blank')
@@ -410,6 +418,13 @@ export async function verifyWorldScenePresence(
       limit: 300,
     })
     await other.goto('/game/world')
+    const destination = { sectorId: 'atlas:59:28', x: 4, y: 4 }
+    // Load the fixture geometry before starting the delivery clock. The clock
+    // still covers the real canvas click, authoritative walk and peer receipt.
+    const peerScene = await world(other)
+    expect(peerScene.characterId).toBe(id)
+    expect(peerScene.position).toEqual({ sectorId: destination.sectorId, x: 0, y: 4 })
+    expect(peerScene.sectors.some(({ id }) => id === destination.sectorId)).toBe(true)
     let blockedFallbackReads = 0
     const generalWorldUrl = /^https?:\/\/[^/?#]+\/api\/world(?:\?.*)?$/
     const fallbackRoute = async (route: Route) => {
@@ -450,9 +465,8 @@ export async function verifyWorldScenePresence(
       },
       { timeout: 12000 },
     )
-    const destination = { sectorId: 'atlas:59:28', x: 4, y: 4 }
     let observed: { players: WorldView['players'] }
-    const walking = checkedWalk(other, destination)
+    const walking = checkedWalk(other, destination, peerScene)
     const delivery = movedPresence.then(async (response) => ({
       observed: (await response.json()) as { players: WorldView['players'] },
       elapsedMs: Date.now() - startedAt,

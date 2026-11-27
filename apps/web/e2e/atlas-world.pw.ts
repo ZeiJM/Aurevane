@@ -341,8 +341,12 @@ async function reviewSectorTravel(page: Page, sectorId: string) {
   await page.getByRole('button', { name: 'Confirm travel', exact: true }).click()
 }
 // Exercise actual canvas picking or the globe's charted-destination controls.
-async function stageWalk(page: Page, destination: { sectorId: string; x: number; y: number }) {
-  const current = await world(page)
+async function stageWalk(
+  page: Page,
+  destination: WorldView['position'],
+  snapshot?: Pick<WorldView, 'sectors'>,
+) {
+  const current = snapshot ?? (await world(page))
   const sector = current.sectors.find((s) => s.id === destination.sectorId)
   if (!sector) {
     await page.getByRole('button', { name: /Open world atlas/ }).click()
