@@ -329,10 +329,12 @@ export function renderPaintedSpriteRig({
   const alignment = facing === 'west' ? 'translate(48 0) scale(-1 1)' : ''
   const down =
     pose === 'down'
-      ? stagedFall && frame < 2
-        ? frame === 0
-          ? ''
-          : 'translate(24 40) rotate(-45) scale(.82) translate(-24 -29)'
+      ? stagedFall
+        ? [
+            '',
+            'translate(24 37) rotate(-45) scale(.79) translate(-24 -29)',
+            'translate(24 51.5) rotate(-88) scale(.71) translate(-24 -30)',
+          ][actionFrame]!
         : `translate(24 ${53 + settling}) rotate(${-90 + settling * 2}) scale(.73) translate(-24 -30)`
       : ''
   const [gripX, gripY] = fittedOutfit

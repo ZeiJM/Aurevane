@@ -3986,12 +3986,14 @@ describe('native map input and bounded lifecycle', () => {
       expect(peer).toBeDefined()
       s.identityClear.mockClear()
       s.draws.length = 0
+      s.identityDraws.length = 0
       clock.mockReturnValue(300)
       s.frame(300)
       const next = s.draws.find(isMotion)
       expect(next).toBeDefined()
       expect(next!.args[0]).not.toBe(source!.args[0])
       expect(s.identityClear).toHaveBeenCalledTimes(1)
+      expect(s.identitySprites.some(({ src }) => src === '/distant-peer.webp')).toBe(false)
       const [left, top, width, height] = s.identityClear.mock.calls[0]!
       const [poseX, poseY, , poseHeight] = pose!.args.slice(-4)
       expect(left).toBeLessThanOrEqual(poseX!)

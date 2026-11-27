@@ -3701,6 +3701,7 @@ export function createMapRenderer(
       actor: ReturnType<typeof visibleActor>,
       picture: HTMLImageElement | null,
       previousPicture: HTMLImageElement | null,
+      paintClip?: LabelBounds,
     ) => {
       const ctx = personContext
       const point = identityPoint(projected)
@@ -3714,6 +3715,20 @@ export function createMapRenderer(
               ? 0
               : Math.floor(now / 3600) % people.length,
         person = people[index]!
+      if (!ghost || actor) nameplates.push({ point, person })
+      if (paintClip) {
+        // A stationary crowd does not need its canvas commands replayed for
+        // a local NPC pose. Keep its nameplates in the layout calculation.
+        const padding = Math.max(radius * 2 + 16 * tokenScale, 20 * tokenScale, 8)
+        const actorHeight = actor ? APPEARANCE_FRAME.height * actorScale : 0
+        if (
+          point.x + padding < paintClip.left ||
+          point.x - padding > paintClip.right ||
+          point.y + padding < paintClip.top ||
+          point.y - Math.max(padding, actorHeight + 8) > paintClip.bottom
+        )
+          return
+      }
       ctx.save()
       ctx.globalAlpha = 1
       if (actor) {
@@ -3826,7 +3841,6 @@ export function createMapRenderer(
           point.y - 26 * tokenScale + 2,
         )
       }
-      if (!ghost || actor) nameplates.push({ point, person })
     }
     function paintNameplate({ point, person }: Nameplate, occupied: LabelBounds[], dense: boolean) {
       const ctx = personContext
@@ -4735,6 +4749,7 @@ export function createMapRenderer(
           : bounds
       }
     if (repaintAllIdentities || poseBounds) {
+      let paintClip: LabelBounds | undefined
       if (identityContext) {
         identityContext.setTransform(identityRatio, 0, 0, identityRatio, 0, 0)
         const clearBounds = poseBounds ?? paintedIdentityBounds
@@ -4753,6 +4768,8 @@ export function createMapRenderer(
           const clearHeight = Math.max(0, bottom - top)
           identityContext.clearRect(left, top, clearWidth, clearHeight)
           if (poseBounds) {
+            paintClip = { left, top, right, bottom }
+            identityBounds = paintedIdentityBounds ? { ...paintedIdentityBounds } : null
             // Keep the original depth and label ordering where the pose overlaps
             // other identities. Pixels elsewhere already contain the same scene.
             identityContext.save()
@@ -4763,8 +4780,8 @@ export function createMapRenderer(
         } else identityContext.clearRect(0, 0, width, height)
       }
       for (const { stack, feet, ghost, actor, image, previous } of identities) {
-        drawPerson(stack, feet, ghost && Boolean(actor), actor, image, previous)
-        if (ghost && !actor) drawPerson(stack, feet, true, null, image, previous)
+        drawPerson(stack, feet, ghost && Boolean(actor), actor, image, previous, paintClip)
+        if (ghost && !actor) drawPerson(stack, feet, true, null, image, previous, paintClip)
       }
       // Labels are independent of actor bodies, click targets and the nearby-player list.
       // In a crowd prioritize the player and the center of the viewport, then skip collisions.
