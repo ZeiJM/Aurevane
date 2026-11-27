@@ -2521,10 +2521,14 @@ export function createMapRenderer(
           ctx.restore()
         }
     }
-    // The compositor rasterizes these draws after the callback. Use the
-    // lighter sampler while animating the viewport; source crops and cached
-    // terrain are still prepared at high quality and labels keep native density.
-    ctx.imageSmoothingQuality = movementActive || quality === 'low' ? 'medium' : 'high'
+    // Use bilinear sampling for the balanced stage where the compositor has
+    // to resample moving scenery or a zoomed-out, high-DPI phone view.
+    const phoneOverview = width < 600 && tile < 32
+    if (quality === 'balanced' && (movementActive || (phoneOverview && ratio > 1))) {
+      ctx.imageSmoothingQuality = 'low'
+    } else {
+      ctx.imageSmoothingQuality = movementActive || quality === 'low' ? 'medium' : 'high'
+    }
     const projection = cacheStationaryGround
       ? stationaryGroundLayer(visible, ambient, movementActive)
       : null
@@ -3894,7 +3898,6 @@ export function createMapRenderer(
     const cacheBiomeRasters = rasterZoomAt === null && (tile >= 32 || width >= 600 || ratio > 1)
     // Swaying foliage breaks up the phone overview's scenery batches. Use the
     // same bounded crop cache for individual scenery in those mixed runs.
-    const phoneOverview = width < 600 && tile < 32
     const paintCompact = (
       target: CanvasRenderingContext2D,
       item: Scenery,

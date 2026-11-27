@@ -335,13 +335,20 @@ function scene(reduced = false, initial?: WorldView) {
       listeners.set('document:' + name, callback),
     removeEventListener: (name: string) => listeners.delete('document:' + name),
   })
+  const stageSampling: ImageSmoothingQuality[] = []
+  const stageContext = new Proxy(context, {
+    set(target, key, value) {
+      if (key === 'imageSmoothingQuality') stageSampling.push(value)
+      return Reflect.set(target, key, value)
+    },
+  })
   const canvas = {
     clientWidth: 800,
     clientHeight: 600,
     width: 0,
     height: 0,
     dataset: { characterName: 'Wayfarer' },
-    getContext: () => context,
+    getContext: () => stageContext,
     getBoundingClientRect: () => ({ left: 0, top: 0 }),
     setPointerCapture() {},
     addEventListener: (name: string, callback: EventListener) => listeners.set(name, callback),
@@ -428,6 +435,7 @@ function scene(reduced = false, initial?: WorldView) {
     resize: () => resizeCallback(),
     view,
     canvas,
+    stageSampling,
     identityCanvas,
     identityDraws,
     identityClear,
@@ -3881,6 +3889,43 @@ describe('native map input and bounded lifecycle', () => {
       vi.unstubAllGlobals()
     }
   })
+  it('uses lighter terrain sampling during balanced movement and at the phone overview', () => {
+    const clock = vi.spyOn(performance, 'now').mockReturnValue(0)
+    const s = scene(false, legacyTownView('verdant-expanse', 5, 4))
+    const samplingAt = (now: number) => {
+      s.stageSampling.length = 0
+      s.frame(now)
+      return s.stageSampling[0]
+    }
+    try {
+      expect(samplingAt(40)).toBe('high')
+
+      s.motion.plan(
+        [{ position: { ...s.view.position, x: 6 }, durationMs: 200 }],
+        s.view.sectors,
+        40,
+      )
+      expect(samplingAt(80)).toBe('low')
+
+      for (let at = 120; at < 1000; at += 40) s.frame(at)
+      expect(samplingAt(1000)).toBe('high')
+
+      Object.assign(s.canvas, { clientWidth: 389, clientHeight: 669 })
+      window.devicePixelRatio = 2.625
+      s.resize()
+      s.renderer.settings({ animate: true, zoom: 0.64, quality: 'balanced' })
+      expect(samplingAt(1040)).toBe('low')
+      expect(s.identityCanvas.width).toBe(Math.round(389 * 2.625))
+
+      s.renderer.settings({ animate: true, zoom: 0.64, quality: 'high' })
+      expect(samplingAt(1080)).toBe('high')
+    } finally {
+      s.renderer.dispose()
+      clock.mockRestore()
+      vi.unstubAllGlobals()
+    }
+  })
+
   it('reuses the settled wide-zoom phone terrain projection without repainting its affine border', () => {
     const base = projectWorld(newWorldState(), [], 1000)
     const sector = base.sectors.find((candidate) => candidate.id === base.position.sectorId)!
