@@ -125,6 +125,20 @@ try {
     const board = page.locator('#battlefield [data-battle-terrace]')
     await board.waitFor()
     await board.locator('[data-battle-appearance-pose]').first().waitFor()
+    const recruits = page.locator(
+      '#battlefield button[aria-label*="occupied by Recruit"] > [data-team]',
+    )
+    if (mode === 'pve') {
+      const recruitCount = await recruits.count()
+      assert.ok(recruitCount > 0)
+      for (const recruit of await recruits.all()) {
+        await recruit.locator(':scope > [data-battle-appearance-pose]').waitFor()
+      }
+      assert.equal(
+        await recruits.locator(':scope > [data-battle-appearance-pose]').count(),
+        recruitCount,
+      )
+    }
     const geometry = await board.evaluate((element) => {
       const tiles = [...element.querySelectorAll('button[data-battle-tile]')]
       const field = element.parentElement
@@ -175,6 +189,21 @@ try {
     await page.setViewportSize({ width: 390, height: 844 })
     await page.waitForFunction(() => !document.querySelector('[data-battle-terrace]'))
     assert.equal(await page.locator('#battlefield button[data-battle-tile]').count(), 63)
+    if (mode === 'pve') {
+      const portraits = recruits.locator(
+        ':scope > .character-portrait-media, :scope > [class*="unitPortraitFallback"]',
+      )
+      await portraits.last().waitFor({ timeout: 5000 })
+      assert.equal(await portraits.count(), await recruits.count())
+      assert.equal(await recruits.locator(':scope > [data-battle-appearance-pose]').count(), 0)
+      assert.ok(
+        (
+          await portraits.evaluateAll((nodes) =>
+            nodes.map((node) => getComputedStyle(node).borderRadius),
+          )
+        ).every((radius) => radius === '50%'),
+      )
+    }
     cases++
     await page.close()
   }
