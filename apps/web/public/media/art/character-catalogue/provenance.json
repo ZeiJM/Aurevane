@@ -7,12 +7,219 @@
   "spriteFormat": "Transparent 3072 × 768 WebP motion atlases with 96 × 128 frames. South, east and north have original action drawings. West mirrors east.",
   "characters": [
     "elf-f-0001",
+    "elf-f-0002",
     "elf-m-0001",
+    "elf-m-0002",
     "fae-f-0001",
+    "fae-f-0002",
     "fae-m-0001",
+    "fae-m-0002",
     "human-f-0001",
+    "human-f-0002",
     "human-m-0001",
+    "human-m-0002",
     "mountain-orc-f-0001",
-    "mountain-orc-m-0001"
-  ]
+    "mountain-orc-f-0002",
+    "mountain-orc-m-0001",
+    "mountain-orc-m-0002"
+  ],
+  "secondArtBatch": {
+    "artDirection": "Crisp tapered ink, angular cel shadows, cinematic colored rim light, and fully illustrated fantasy settings.",
+    "expressions": ["neutral", "happy", "angry", "sad", "surprised"],
+    "spriteSheet": "Hand-inked 5 × 3 panel grid of full-body idle, walk, strike, cast, and hit art in front, profile, and rear views. References use the matching neutral portrait.",
+    "characters": [
+      {
+        "key": "human-m-0002",
+        "label": "Canal Bellkeeper",
+        "race": "human",
+        "gender": "masculine",
+        "subject": "A middle-aged adult human man with deep brown skin, a shaven head, a broad straight nose, heavy brows, an angular close-cut black beard, and a gentle square jaw",
+        "setting": "an old limestone canal lock at dawn, mist over water and a bell tower framed by reeds",
+        "variants": [
+          {
+            "variant": 1,
+            "design": "cedar-red work cloak, ivory linen collar, brass latch, olive eyes",
+            "pose": "Heroic three-quarter chest-up stance facing slightly right of camera, head near center.",
+            "portraitSheet": "exec-3958d41f-5909-47c9-a754-4a1ef58ce8e3.png",
+            "spriteSheet": "exec-1ebc2f50-71cb-4ecf-9bf0-5658259d9a57.png"
+          },
+          {
+            "variant": 2,
+            "design": "deep plum and pale lilac work cloak, graphite linen collar, silver latch, copper eyes and a healed eyebrow notch",
+            "pose": "three-quarter view from below, chin lifted toward the canal bell",
+            "portraitSheet": "exec-a90414a0-f5c9-4367-aef1-41d1d40692ae.png",
+            "spriteSheet": "exec-e04f1dfb-be72-42b4-a35c-0a4deaede81d.png"
+          }
+        ]
+      },
+      {
+        "key": "human-f-0002",
+        "label": "Salt Road Courier",
+        "race": "human",
+        "gender": "feminine",
+        "subject": "A young adult human woman with medium-tan skin, square cheekbones, a straight slim nose, chestnut hair shaved at one side with a neat braided bun, and a sharp earnest gaze",
+        "setting": "windy salt marsh and white cliffs in afternoon light, signal flags far back",
+        "variants": [
+          {
+            "variant": 1,
+            "design": "rust-orange scarf and flax traveling coat, teal sash, dark brown eyes",
+            "pose": "Heroic three-quarter chest-up stance facing slightly right of camera, head near center.",
+            "portraitSheet": "exec-62b77349-dd20-469a-b8ba-b6ccac459560.png",
+            "spriteSheet": "exec-b07a52f8-49e4-40ab-b3a0-00d348f11da3.png"
+          },
+          {
+            "variant": 2,
+            "design": "bottle green scarf, dusty mauve coat, onyx sash, golden eyes and a silver temple streak",
+            "pose": "chest turned away, glancing back over the near shoulder",
+            "portraitSheet": "exec-d88883de-7801-4ae5-9161-a0867c4366ac.png",
+            "spriteSheet": "exec-10833e06-0024-4eaa-99be-951574c93e5d.png"
+          }
+        ]
+      },
+      {
+        "key": "elf-m-0002",
+        "label": "Sunken Orchard Keeper",
+        "race": "elf",
+        "gender": "masculine",
+        "subject": "A slender older adult elf man with long pointed ears, pale freckled skin, a pronounced hooked nose, and copper curly shoulder-length hair",
+        "setting": "a flooded apple orchard, morning sunlight, terraced masonry disappearing beneath clear water",
+        "variants": [
+          {
+            "variant": 1,
+            "design": "malachite layered coat and warm ochre shawl, bronze acorn fastener, hazel eyes",
+            "pose": "Heroic three-quarter chest-up stance facing slightly right of camera, head near center.",
+            "portraitSheet": "exec-bb6a177e-e571-4289-a457-425d5944965c.png",
+            "spriteSheet": "exec-e69990be-0dab-40f5-aece-0880cafae892.png"
+          },
+          {
+            "variant": 2,
+            "design": "ink violet layered coat and vermilion shawl, pewter acorn fastener, blue-gray eyes and a single pale lock of hair",
+            "pose": "left profile with face turned partway toward camera, eyes lowered toward the water",
+            "portraitSheet": "exec-be0ed739-3369-417e-b108-5732866726ca.png",
+            "spriteSheet": "exec-bf250d38-2f64-4ba9-b95c-3bc45052bf2e.png"
+          }
+        ]
+      },
+      {
+        "key": "elf-f-0002",
+        "label": "Glassbridge Lamplighter",
+        "race": "elf",
+        "gender": "feminine",
+        "subject": "An adult elf woman with deep umber skin, long outward pointed ears, broad cheekbones, dark straight eyebrows and silver-white twists wound into a braided crown",
+        "setting": "a glasswork footbridge above brownstone roofs at dusk, lit by rows of painted colored lanterns",
+        "variants": [
+          {
+            "variant": 1,
+            "design": "cobalt cloak, saffron-lined shoulder armor, amber eyes, glass earring",
+            "pose": "Heroic three-quarter chest-up stance facing slightly right of camera, head near center.",
+            "portraitSheet": "exec-d3a3a526-aa56-41c8-81cc-4c4cc4d4a5de.png",
+            "spriteSheet": "exec-63cbbff0-cb38-47c1-975a-243a0192dc33.png"
+          },
+          {
+            "variant": 2,
+            "design": "warm coral cloak, moon-white shoulder armor with graphite lining, blue-gray eyes and a little cheek scar",
+            "pose": "symmetrical straight-on bust, head inclined slightly to the left in inspection",
+            "portraitSheet": "exec-3b023b03-b1ef-4f0f-8ca4-2d212b94b41d.png",
+            "spriteSheet": "exec-de018459-6cee-44a1-9df8-0dc724fbc398.png"
+          }
+        ]
+      },
+      {
+        "key": "fae-m-0002",
+        "label": "Wisteria Archivist",
+        "race": "fae",
+        "gender": "masculine",
+        "subject": "A slender adult fae man with dusty turquoise skin, a diamond face, dark violet hair tied low, tapered petal ears, and thin swept moth antennae",
+        "setting": "a trellised archive courtyard at violet twilight, old stone niches and overhead wisteria",
+        "variants": [
+          {
+            "variant": 1,
+            "design": "umber leather coat with pale gold piping, dark violet undershirt, luminous lilac eyes",
+            "pose": "Heroic three-quarter chest-up stance facing slightly right of camera, head near center.",
+            "portraitSheet": "exec-21df3004-0b61-4265-9efa-1cdda981611d.png",
+            "spriteSheet": "exec-6ce9a4b3-a9bf-4c77-b335-95effbc41a46.png"
+          },
+          {
+            "variant": 2,
+            "design": "midnight indigo coat with mint piping, silver undershirt, bright amber eyes and one pale streak in the tied-back violet hair",
+            "pose": "one shoulder nearer camera and head turned the opposite way, a little low-angle",
+            "portraitSheet": "exec-13cbdd0a-9818-4e27-89df-f07b2531a611.png",
+            "spriteSheet": "exec-aeff325f-62fa-4ee5-a7bb-65a2b410d850.png"
+          }
+        ]
+      },
+      {
+        "key": "fae-f-0002",
+        "label": "Mistfen Piper",
+        "race": "fae",
+        "gender": "feminine",
+        "subject": "An adult fae woman with warm clay-pink skin, round jade eyes, forked pointed leaf ears, fine reedlike antennae and long dark green-black hair tied at the nape",
+        "setting": "a blue-hour fen with reeds, small luminous insects and a distant wooden lookout",
+        "variants": [
+          {
+            "variant": 1,
+            "design": "white linen, moss-green short cloak with cinnabar clasp, jade eyes",
+            "pose": "Heroic three-quarter chest-up stance facing slightly right of camera, head near center.",
+            "portraitSheet": "exec-830e34bb-8c6e-4250-9051-bc614857498d.png",
+            "spriteSheet": "exec-0e47d9f1-3e7d-4ad0-b96d-bf5ed3dafabe.png"
+          },
+          {
+            "variant": 2,
+            "design": "saffron linen, deep indigo cloak with pearl clasp, rose-gold eyes and fine pale freckles across cheeks",
+            "pose": "angled down slightly from camera, chin gently tucked and eyes toward a side light",
+            "portraitSheet": "exec-7720b84b-93a6-4440-be60-b3b763a05128.png",
+            "spriteSheet": "exec-db4fc54c-0f8e-49fb-ae96-6454e7fd1bdc.png"
+          }
+        ]
+      },
+      {
+        "key": "mountain-orc-m-0002",
+        "label": "Ember Kiln Smith",
+        "race": "mountain-orc",
+        "gender": "masculine",
+        "subject": "A wide muscular middle-aged adult mountain orc man with russet-brown skin, an angular underbite with two pale lower tusks, a short square beard, shaved scalp and a copper ring on one tusk",
+        "setting": "a rain-damp mountain forge above old stone roofs, kiln embers and cool dusk skies",
+        "variants": [
+          {
+            "variant": 1,
+            "design": "slate work apron with amber seams, bone-white scarf, copper eyes",
+            "pose": "Heroic three-quarter chest-up stance facing slightly right of camera, head near center.",
+            "portraitSheet": "exec-86d0c3c8-58e7-43b7-afb1-af839f2e565a.png",
+            "spriteSheet": "exec-7e384136-4f67-4d66-b7ab-c21bcff93cf4.png"
+          },
+          {
+            "variant": 2,
+            "design": "deep navy work apron with pale teal seams, oxblood scarf, steel blue eyes and a thin temple scar",
+            "pose": "front-facing broad shoulders, head turned sideways toward the kiln glow",
+            "portraitSheet": "exec-36d7fddb-5ca4-420e-bb27-b5a308b1f1f7.png",
+            "spriteSheet": "exec-634c62d6-553b-4ac9-adc0-0aeae815345b.png"
+          }
+        ]
+      },
+      {
+        "key": "mountain-orc-f-0002",
+        "label": "Glacier Relay Warden",
+        "race": "mountain-orc",
+        "gender": "feminine",
+        "subject": "A powerful adult mountain orc woman with slate-blue skin, a broad straight nose, ivory lower tusks, dense cropped copper coils and an angular strong jaw",
+        "setting": "an icy relay outpost on a glacial shelf, painted snow spires and a copper weather vane",
+        "variants": [
+          {
+            "variant": 1,
+            "design": "brown fur-lined cloak and cool teal leather collar, bright moss-green eyes",
+            "pose": "Heroic three-quarter chest-up stance facing slightly right of camera, head near center.",
+            "portraitSheet": "exec-dd194c0b-c4b5-4301-9ae9-6e17366d7249.png",
+            "spriteSheet": "exec-b74a6745-340b-41b4-b273-4e50df69b5cf.png"
+          },
+          {
+            "variant": 2,
+            "design": "cream fur-lined cloak, wine-red leather collar, brass trace accents, ice-blue eyes and a healed cheek nick",
+            "pose": "upward-looking profile at three quarters, body turning toward the snowy ridge",
+            "portraitSheet": "exec-c734a28a-72fe-4d34-aaf1-d4e74e9ea209.png",
+            "spriteSheet": "exec-99c4a341-a7ec-47fd-b501-06a37807cac8.png"
+          }
+        ]
+      }
+    ]
+  }
 }

@@ -43,6 +43,24 @@ export const AUTHORED_CHARACTERS = [
     gender: 'feminine',
     label: 'Basalt Citadel Vanguard',
   },
+  { key: 'human-m-0002', race: 'human', gender: 'masculine', label: 'Canal Bellkeeper' },
+  { key: 'human-f-0002', race: 'human', gender: 'feminine', label: 'Salt Road Courier' },
+  { key: 'elf-m-0002', race: 'elf', gender: 'masculine', label: 'Sunken Orchard Keeper' },
+  { key: 'elf-f-0002', race: 'elf', gender: 'feminine', label: 'Glassbridge Lamplighter' },
+  { key: 'fae-m-0002', race: 'fae', gender: 'masculine', label: 'Wisteria Archivist' },
+  { key: 'fae-f-0002', race: 'fae', gender: 'feminine', label: 'Mistfen Piper' },
+  {
+    key: 'mountain-orc-m-0002',
+    race: 'mountain-orc',
+    gender: 'masculine',
+    label: 'Ember Kiln Smith',
+  },
+  {
+    key: 'mountain-orc-f-0002',
+    race: 'mountain-orc',
+    gender: 'feminine',
+    label: 'Glacier Relay Warden',
+  },
 ] as const satisfies readonly AuthoredCharacter[]
 
 const byKey = new Map<string, AuthoredCharacter>(

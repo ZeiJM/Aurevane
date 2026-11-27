@@ -168,6 +168,7 @@ def verify_art(characters, root):
     for character in characters:
         key = character["key"]
         portraits_ready = 0
+        atlases_ready = 0
         for variant in VARIANTS:
             atlas = root / key / variant / "sprites.webp"
             if not atlas.is_file():
@@ -185,6 +186,7 @@ def verify_art(characters, root):
                     counts["invalid_atlases"] += 1
                 else:
                     counts["ready_atlases"] += 1
+                    atlases_ready += 1
             for expression in EXPRESSION_NAMES:
                 file = root / key / variant / f"{expression}.webp"
                 if not file.is_file():
@@ -206,6 +208,8 @@ def verify_art(characters, root):
                     portraits_ready += 1
         if portraits_ready == len(VARIANTS) * len(EXPRESSION_NAMES):
             counts["complete_portraits"] += 1
+            if atlases_ready == len(VARIANTS):
+                counts["complete_characters"] += 1
     return counts, problems
 
 
@@ -232,6 +236,11 @@ def main():
     print(
         f'{counts["ready_atlases"]:,} gameplay sprite atlases decoded, '
         f'{counts["missing_atlases"]:,} missing, {counts["invalid_atlases"]:,} invalid.'
+    )
+    print(
+        f'{counts["complete_characters"]:,}/{len(characters):,} characters complete '
+        'with both portrait variants and both sprite atlases. '
+        f'{len(characters) - counts["complete_characters"]:,} remaining.'
     )
     unfinished = any(counts[key] for key in ("missing", "invalid", "missing_atlases", "invalid_atlases"))
     return int(args.command == "check" and unfinished)
