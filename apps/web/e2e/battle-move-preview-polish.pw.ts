@@ -58,14 +58,20 @@ test('keeps Move reachable tiles distinct and executes one clicked path through 
 
   const reachableStyle = await reachable.evaluate((tile) => {
     const style = getComputedStyle(tile)
-    return { borderColor: style.borderColor, boxShadow: style.boxShadow }
+    return {
+      borderColor: style.borderColor,
+      boxShadow: style.boxShadow,
+      terrace: tile.parentElement!.hasAttribute('data-battle-terrace'),
+    }
   })
   const neutralStyle = await neutral.evaluate((tile) => {
     const style = getComputedStyle(tile)
     return { borderColor: style.borderColor, boxShadow: style.boxShadow }
   })
 
-  expect(reachableStyle.borderColor).toBe('rgb(105, 210, 204)')
+  expect(reachableStyle.borderColor).toBe(
+    reachableStyle.terrace ? 'rgb(193, 215, 150)' : 'rgb(105, 210, 204)',
+  )
   expect(reachableStyle.boxShadow).toContain('inset')
   expect(reachableStyle.boxShadow).toContain('39, 190, 182')
   expect(neutralStyle.borderColor).not.toContain('226, 83, 83')
