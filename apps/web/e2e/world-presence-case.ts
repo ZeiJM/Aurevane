@@ -326,21 +326,35 @@ export async function verifyWorldScenePresence(
 
     // Let globe mode schedule its slower idle timer, then return. Local
     // observation must restart promptly instead of retaining a ten-second wait.
-    const globePresence = page.waitForResponse(
-      (response) =>
+    const workspace = page.locator('[data-world-workspace]')
+    const isPresenceRead = (response: Response) => {
+      const url = new URL(response.url())
+      return (
         response.request().method() === 'GET' &&
-        new URL(response.url()).searchParams.has('presenceVersion'),
-    )
+        url.pathname === '/api/world' &&
+        url.searchParams.get('characterId') === owner.characterId &&
+        url.searchParams.has('presenceVersion')
+      )
+    }
     await page.getByRole('button', { name: /Open world atlas/ }).click()
-    await globePresence
-    const localPresence = page.waitForResponse(
-      (response) =>
-        response.request().method() === 'GET' &&
-        new URL(response.url()).searchParams.has('presenceVersion'),
-      { timeout: 5000 },
-    )
-    await page.getByRole('button', { name: /Return to local map/ }).click()
-    expect((await (await localPresence).json()).kind).toBe('presence')
+    await expect(workspace).toHaveAttribute('data-world-view', 'globe')
+    const globePresence = await page.waitForResponse(isPresenceRead)
+    expect(globePresence.ok()).toBe(true)
+    await globePresence.finished()
+
+    const returnToLocal = page.getByRole('button', { name: /Return to local map/ })
+    // Keep actionability retries out of the five-second observation window.
+    await returnToLocal.click({ trial: true, timeout: 5000 })
+    const [localPresence] = await Promise.all([
+      page.waitForResponse(isPresenceRead, { timeout: 5000 }),
+      returnToLocal.click({ timeout: 5000 }),
+    ])
+    await expect(workspace).toHaveAttribute('data-world-view', 'sector')
+    expect(localPresence.ok()).toBe(true)
+    expect(await localPresence.json()).toMatchObject({
+      kind: 'presence',
+      characterId: owner.characterId,
+    })
 
     // Rejoin a real authenticated private channel before disabling fallback polling.
     let mainDocumentReady = false
