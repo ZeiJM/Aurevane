@@ -97,6 +97,9 @@
   .actor[data-battle-appearance-pose]::before {
     animation: none;
   }
+  .actor[data-battle-appearance-pose='down']::before {
+    background-position: var(--x2) var(--y);
+  }
   .actor:not([data-battle-appearance-pose='down'])::before {
     background-position: var(--x0) var(--idle-y);
   }

@@ -1,3 +1,4 @@
+import { paintedLookStance } from './appearance-active-catalog'
 import { portraitFace } from './appearance-face-catalog'
 import {
   PAINTED_CLOTHING,
@@ -151,7 +152,8 @@ export type AppearanceBlueprint = SharedAppearanceParts &
 export type AppearanceExpression = (typeof APPEARANCE_EXPRESSIONS)[number]
 export type AppearanceFacing = (typeof APPEARANCE_FACINGS)[number]
 export type AppearancePose = (typeof APPEARANCE_POSES)[number]
-export type AppearanceAsset = AppearanceExpression | 'icon' | 'atlas' | 'motion' | 'motion-v2'
+export type AppearanceAsset =
+  AppearanceExpression | 'icon' | 'atlas' | 'motion' | 'motion-v2' | 'motion-v3'
 
 export const APPEARANCE_FRAME = {
   width: 48,
@@ -388,9 +390,11 @@ export function compileAppearanceManifest(input: AppearanceBlueprint) {
   const base = `${APPEARANCE_ASSET_PREFIX}${id}`
   const neutralUrl = `${base}/neutral.svg`
   const assetPrefix = blueprint.v === 6 ? 'illustrated-' : ''
+  const portraitPrefix =
+    blueprint.v === 6 && paintedLookStance(blueprint) ? 'illustrated-posed-' : assetPrefix
   const portraits = Object.freeze(
     Object.fromEntries(
-      APPEARANCE_EXPRESSIONS.map((mood) => [mood, `${base}/${assetPrefix}${mood}.svg`]),
+      APPEARANCE_EXPRESSIONS.map((mood) => [mood, `${base}/${portraitPrefix}${mood}.svg`]),
     ) as Record<AppearanceExpression, string>,
   )
   return Object.freeze({
@@ -398,9 +402,9 @@ export function compileAppearanceManifest(input: AppearanceBlueprint) {
     blueprint,
     neutralUrl,
     portraits,
-    icon: `${base}/${assetPrefix}icon.svg`,
+    icon: `${base}/${portraitPrefix}icon.svg`,
     atlas: `${base}/${assetPrefix}atlas.svg`,
-    motionAtlas: `${base}/${assetPrefix}motion-v2.svg`,
+    motionAtlas: `${base}/${assetPrefix}${blueprint.v === 6 ? 'motion-v3' : 'motion-v2'}.svg`,
     frame: APPEARANCE_FRAME,
   })
 }
@@ -454,7 +458,13 @@ export function appearanceBlueprintFromId(
 export function appearanceManifestFromImageUrl(url: string | null | undefined) {
   if (!url?.startsWith(APPEARANCE_ASSET_PREFIX)) return null
   const [version, id, asset, extra] = url.slice(APPEARANCE_ASSET_PREFIX.length).split('/')
-  if (asset !== 'neutral.svg' && !(version === '6' && asset === 'illustrated-neutral.svg'))
+  if (
+    asset !== 'neutral.svg' &&
+    !(
+      version === '6' &&
+      (asset === 'illustrated-neutral.svg' || asset === 'illustrated-posed-neutral.svg')
+    )
+  )
     return null
   if (!version || !id || extra !== undefined) return null
   const blueprint = appearanceBlueprintFromId(id, version)
@@ -466,6 +476,7 @@ export function isAppearanceAsset(value: string): value is AppearanceAsset {
     value === 'atlas' ||
     value === 'motion' ||
     value === 'motion-v2' ||
+    value === 'motion-v3' ||
     value === 'icon' ||
     APPEARANCE_EXPRESSIONS.some((mood) => mood === value)
   )

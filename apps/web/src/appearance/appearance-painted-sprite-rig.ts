@@ -85,6 +85,8 @@ export function renderPaintedSpriteRig({
   mantle,
   satchel,
   fittedOutfit = false,
+  stagedFall = false,
+  idleStance = 0,
   feminine = false,
   fabricDye,
   outfitDye,
@@ -104,6 +106,8 @@ export function renderPaintedSpriteRig({
   mantle: boolean
   satchel: boolean
   fittedOutfit?: boolean
+  stagedFall?: boolean
+  idleStance?: number
   feminine?: boolean
   fabricDye?: string
   outfitDye?: string
@@ -121,6 +125,8 @@ export function renderPaintedSpriteRig({
   const phase = Math.sin((frame * 2 * Math.PI) / frames)
   const walking = pose === 'walk'
   const attacking = pose === 'attack' || pose === 'cast'
+  const guarded = pose === 'idle' && idleStance === 1
+  const focused = pose === 'idle' && idleStance === 2
   // Battle and creator callers share the first three action frames.
   const actionFrame = Math.min(frame, 2)
   const strike = fittedOutfit && pose === 'attack' ? [0, 1, 0.34][actionFrame]! : 0
@@ -132,7 +138,8 @@ export function renderPaintedSpriteRig({
     (walking ? Math.abs(phase) * 0.9 : pose === 'idle' ? phase * 0.45 : 0) +
     strike * 0.7 +
     recoil * 0.8 -
-    charge * 0.55
+    charge * 0.55 +
+    Number(guarded) * 0.5
   const torsoWidth = fittedOutfit
     ? fittedSpriteTorsoWidth(facing, bodyBuild, feminine)
     : bodyBuild * (profile ? 11 : 18)
@@ -192,19 +199,22 @@ export function renderPaintedSpriteRig({
         : side * -7 +
           (fittedOutfit && pose === 'idle' ? phase * 2.2 : 0) +
           side * (settling * 4 - recoil * 12)
-    const elbow = belowJoint(shoulder, 7.55, angle)
+    const preparedAngle =
+      angle + (guarded ? (side === 1 ? -13 : 10) : focused && side === 1 ? -28 : 0)
+    const elbow = belowJoint(shoulder, 7.55, preparedAngle)
     const bend = attacking
       ? pose === 'cast'
         ? 20 + (1 - charge) * 12
         : 10 + (1 - strike) * 24
       : walking
         ? 7 + Math.max(0, side * phase) * 9
-        : 7 + recoil * 11
-    const forearmAngle = angle + (profile ? -bend : side * bend * (pose === 'cast' ? 0.56 : -0.56))
+        : 7 + recoil * 11 + (guarded ? 15 : focused && side === 1 ? 26 : 0)
+    const forearmAngle =
+      preparedAngle + (profile ? -bend : side * bend * (pose === 'cast' ? 0.56 : -0.56))
     const wrist = fittedOutfit
       ? belowJoint(elbow, 5.8, forearmAngle)
       : belowJoint(shoulder, 11, angle)
-    return { shoulder, elbow, wrist, angle, forearmAngle }
+    return { shoulder, elbow, wrist, angle: preparedAngle, forearmAngle }
   }
   const nearPose = armPose(1)
   const arm = (side: -1 | 1) => {
@@ -215,7 +225,7 @@ export function renderPaintedSpriteRig({
       ? 'hand'
       : pose === 'attack' && leading
         ? 'grip-hand'
-        : pose === 'cast'
+        : pose === 'cast' || (focused && leading)
           ? 'casting-hand'
           : 'visible-hand'
     const hand = dyePart(
@@ -249,7 +259,7 @@ export function renderPaintedSpriteRig({
     const swing = walking ? side * phase : 0
     const thighAngle =
       (profile ? swing * 23 : -side * (4 + swing * 5)) -
-      side * (strike * 8 + recoil * 6 + settling * 3)
+      side * (strike * 8 + recoil * 6 + settling * 3 + Number(guarded) * 7)
     const shinAngle = profile ? thighAngle + Math.max(0, swing) * 17 : -side * (3 + strike * 2)
     const knee = belowJoint(hip, 11.8, thighAngle)
     const boot = profile ? 'bootSide' : rear ? 'bootBack' : 'bootFront'
@@ -319,7 +329,13 @@ export function renderPaintedSpriteRig({
   const alignment = facing === 'west' ? 'translate(48 0) scale(-1 1)' : ''
   const down =
     pose === 'down'
-      ? `translate(24 ${53 + settling}) rotate(${-90 + settling * 2}) scale(.73) translate(-24 -30)`
+      ? stagedFall
+        ? [
+            '',
+            'translate(24 37) rotate(-45) scale(.79) translate(-24 -29)',
+            'translate(24 51.5) rotate(-88) scale(.71) translate(-24 -30)',
+          ][actionFrame]!
+        : `translate(24 ${53 + settling}) rotate(${-90 + settling * 2}) scale(.73) translate(-24 -30)`
       : ''
   const [gripX, gripY] = fittedOutfit
     ? belowJoint(nearPose.wrist, 2.5, nearPose.forearmAngle)

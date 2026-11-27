@@ -2521,10 +2521,14 @@ export function createMapRenderer(
           ctx.restore()
         }
     }
-    // The compositor rasterizes these draws after the callback. Use the
-    // lighter sampler while animating the viewport; source crops and cached
-    // terrain are still prepared at high quality and labels keep native density.
-    ctx.imageSmoothingQuality = movementActive || quality === 'low' ? 'medium' : 'high'
+    // Use bilinear sampling for the balanced stage where the compositor has
+    // to resample moving scenery or a zoomed-out, high-DPI phone view.
+    const phoneOverview = width < 600 && tile < 32
+    if (quality === 'balanced' && (movementActive || (phoneOverview && ratio > 1))) {
+      ctx.imageSmoothingQuality = 'low'
+    } else {
+      ctx.imageSmoothingQuality = movementActive || quality === 'low' ? 'medium' : 'high'
+    }
     const projection = cacheStationaryGround
       ? stationaryGroundLayer(visible, ambient, movementActive)
       : null
@@ -2726,7 +2730,9 @@ export function createMapRenderer(
         if (index === projection.start) {
           ctx.save()
           ctx.setTransform(1, 0, 0, 1, 0, 0)
-          ctx.drawImage(projection.layer, projection.left, projection.top)
+          // These rasters already match the backing density. Place them on
+          // device pixels so a moving camera does not resample the terrain.
+          ctx.drawImage(projection.layer, Math.round(projection.left), Math.round(projection.top))
           ctx.restore()
         }
       } else {
@@ -2767,8 +2773,8 @@ export function createMapRenderer(
             ctx.setTransform(1, 0, 0, 1, 0, 0)
             ctx.drawImage(
               projected.canvas,
-              p.x * ratio + projected.left,
-              p.y * ratio + projected.top,
+              Math.round(p.x * ratio) + projected.left,
+              Math.round(p.y * ratio) + projected.top,
             )
           } else drawGroundSurface(ctx, surface, GRID_WIDTH * tile, GRID_HEIGHT * tile, ratio)
         }
@@ -3701,6 +3707,7 @@ export function createMapRenderer(
       actor: ReturnType<typeof visibleActor>,
       picture: HTMLImageElement | null,
       previousPicture: HTMLImageElement | null,
+      paintClip?: LabelBounds,
     ) => {
       const ctx = personContext
       const point = identityPoint(projected)
@@ -3714,6 +3721,20 @@ export function createMapRenderer(
               ? 0
               : Math.floor(now / 3600) % people.length,
         person = people[index]!
+      if (!ghost || actor) nameplates.push({ point, person })
+      if (paintClip) {
+        // A stationary crowd does not need its canvas commands replayed for
+        // a local NPC pose. Keep its nameplates in the layout calculation.
+        const padding = Math.max(radius * 2 + 16 * tokenScale, 20 * tokenScale, 8)
+        const actorHeight = actor ? APPEARANCE_FRAME.height * actorScale : 0
+        if (
+          point.x + padding < paintClip.left ||
+          point.x - padding > paintClip.right ||
+          point.y + padding < paintClip.top ||
+          point.y - Math.max(padding, actorHeight + 8) > paintClip.bottom
+        )
+          return
+      }
       ctx.save()
       ctx.globalAlpha = 1
       if (actor) {
@@ -3826,7 +3847,6 @@ export function createMapRenderer(
           point.y - 26 * tokenScale + 2,
         )
       }
-      if (!ghost || actor) nameplates.push({ point, person })
     }
     function paintNameplate({ point, person }: Nameplate, occupied: LabelBounds[], dense: boolean) {
       const ctx = personContext
@@ -3880,7 +3900,6 @@ export function createMapRenderer(
     const cacheBiomeRasters = rasterZoomAt === null && (tile >= 32 || width >= 600 || ratio > 1)
     // Swaying foliage breaks up the phone overview's scenery batches. Use the
     // same bounded crop cache for individual scenery in those mixed runs.
-    const phoneOverview = width < 600 && tile < 32
     const paintCompact = (
       target: CanvasRenderingContext2D,
       item: Scenery,
@@ -4735,6 +4754,7 @@ export function createMapRenderer(
           : bounds
       }
     if (repaintAllIdentities || poseBounds) {
+      let paintClip: LabelBounds | undefined
       if (identityContext) {
         identityContext.setTransform(identityRatio, 0, 0, identityRatio, 0, 0)
         const clearBounds = poseBounds ?? paintedIdentityBounds
@@ -4753,6 +4773,8 @@ export function createMapRenderer(
           const clearHeight = Math.max(0, bottom - top)
           identityContext.clearRect(left, top, clearWidth, clearHeight)
           if (poseBounds) {
+            paintClip = { left, top, right, bottom }
+            identityBounds = paintedIdentityBounds ? { ...paintedIdentityBounds } : null
             // Keep the original depth and label ordering where the pose overlaps
             // other identities. Pixels elsewhere already contain the same scene.
             identityContext.save()
@@ -4763,8 +4785,8 @@ export function createMapRenderer(
         } else identityContext.clearRect(0, 0, width, height)
       }
       for (const { stack, feet, ghost, actor, image, previous } of identities) {
-        drawPerson(stack, feet, ghost && Boolean(actor), actor, image, previous)
-        if (ghost && !actor) drawPerson(stack, feet, true, null, image, previous)
+        drawPerson(stack, feet, ghost && Boolean(actor), actor, image, previous, paintClip)
+        if (ghost && !actor) drawPerson(stack, feet, true, null, image, previous, paintClip)
       }
       // Labels are independent of actor bodies, click targets and the nearby-player list.
       // In a crowd prioritize the player and the center of the viewport, then skip collisions.

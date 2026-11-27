@@ -119,6 +119,20 @@ describe('painted portrait fitting', () => {
     expect(result).not.toContain('brim-fit')
   })
 
+  it('keeps the neck attached to the shifted jaw and pinned at the shoulders in posed portraits', () => {
+    const upright = renderFittedPortrait(bare, '')
+    const guarded = renderFittedPortrait({ ...bare, stance: 1 }, '')
+    const alert = renderFittedPortrait({ ...bare, stance: 2 }, '')
+    const neck = (portrait: string) => portrait.match(/id="neck-contour" d="([^"]+)"/)?.[1]
+
+    expect(neck(upright)).toContain('Q128 160')
+    expect(neck(guarded)).toContain('Q133 163')
+    expect(neck(alert)).toContain('Q123 155')
+    for (const portrait of [upright, guarded, alert]) {
+      expect(neck(portrait)).toContain('L179 239H77L79 210')
+    }
+  })
+
   it('restricts hair root shading to the face and fades it out at the brows', () => {
     const result = renderFittedPortrait({ ...bare, rootedHair: true }, '')
     expect(result).toContain('id="painted-root-skin" mask-type="alpha"')

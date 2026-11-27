@@ -127,13 +127,11 @@ async function expectCanonicalFacingIndicators(root: ReturnType<Page['locator']>
     elements.map((element) => {
       const indicator = element as HTMLElement
       const tile = indicator.parentElement as HTMLElement
-      const indicatorRect = indicator.getBoundingClientRect()
-      const tileRect = tile.getBoundingClientRect()
       return {
-        width: indicatorRect.width,
-        height: indicatorRect.height,
-        leftOffset: indicatorRect.left - tileRect.left,
-        topOffset: indicatorRect.top - tileRect.top,
+        width: indicator.offsetWidth,
+        height: indicator.offsetHeight,
+        leftOffset: indicator.offsetLeft + tile.clientLeft,
+        topOffset: indicator.offsetTop + tile.clientTop,
         path: indicator.querySelector('path')?.getAttribute('d') ?? '',
       }
     }),
@@ -159,14 +157,12 @@ async function expectCanonicalFacingIndicators(root: ReturnType<Page['locator']>
     const directions = ['north', 'east', 'south', 'west'] as const
     const samples = directions.map((direction) => {
       indicator.dataset.facing = direction
-      const indicatorRect = indicator.getBoundingClientRect()
-      const tileRect = tile.getBoundingClientRect()
       return {
         direction,
-        width: indicatorRect.width,
-        height: indicatorRect.height,
-        leftOffset: indicatorRect.left - tileRect.left,
-        topOffset: indicatorRect.top - tileRect.top,
+        width: indicator.offsetWidth,
+        height: indicator.offsetHeight,
+        leftOffset: indicator.offsetLeft + tile.clientLeft,
+        topOffset: indicator.offsetTop + tile.clientTop,
         transform: getComputedStyle(indicator).transform,
       }
     })
@@ -223,10 +219,9 @@ async function expectLargeBoardGeometry(root: ReturnType<Page['locator']>) {
       )
       .filter((indicator): indicator is HTMLElement => Boolean(indicator))
       .map((indicator) => {
-        const rect = indicator.getBoundingClientRect()
         return {
-          width: rect.width,
-          height: rect.height,
+          width: indicator.offsetWidth,
+          height: indicator.offsetHeight,
           top: getComputedStyle(indicator).top,
           left: getComputedStyle(indicator).left,
           path: indicator.querySelector('path')?.getAttribute('d') ?? '',
@@ -234,15 +229,22 @@ async function expectLargeBoardGeometry(root: ReturnType<Page['locator']>) {
       })
     const rect = element.getBoundingClientRect()
     return {
+      terrace: element.hasAttribute('data-battle-terrace'),
       boardRatio: rect.width / rect.height,
+      fieldRatio: element.parentElement!.clientWidth / element.parentElement!.clientHeight,
       tileRatios,
       tokenRatios,
       indicators,
     }
   })
 
-  expect(Math.abs(geometry.boardRatio - 15 / 7)).toBeLessThan(0.03)
-  for (const ratio of geometry.tileRatios) expect(Math.abs(ratio - 1)).toBeLessThan(0.04)
+  if (geometry.terrace) {
+    expect(Math.abs(geometry.boardRatio - (geometry.fieldRatio * 0.79) / 0.64)).toBeLessThan(0.03)
+    expect(geometry.tileRatios[0]!).toBeGreaterThan(geometry.tileRatios[2]!)
+  } else {
+    expect(Math.abs(geometry.boardRatio - 15 / 7)).toBeLessThan(0.03)
+    for (const ratio of geometry.tileRatios) expect(Math.abs(ratio - 1)).toBeLessThan(0.04)
+  }
   for (const ratio of geometry.tokenRatios) expect(ratio).toBeLessThanOrEqual(0.9)
   expect(geometry.indicators.length).toBeGreaterThanOrEqual(2)
   expect(new Set(geometry.indicators.map((indicator) => indicator.width.toFixed(2))).size).toBe(1)

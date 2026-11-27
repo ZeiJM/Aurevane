@@ -292,7 +292,7 @@ describe('illustrated player and NPC customization', () => {
     for (const { manifest, name } of looks) {
       expect(name).toBeTruthy()
       expect(appearanceManifestFromImageUrl(manifest.portraits.neutral)?.id).toBe(manifest.id)
-      expect(manifest.motionAtlas).toMatch(/illustrated-motion-v2[.]svg$/)
+      expect(manifest.motionAtlas).toMatch(/illustrated-motion-v3[.]svg$/)
     }
   })
 

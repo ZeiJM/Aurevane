@@ -248,7 +248,18 @@ test('complete Master destinations and appearance editor fit desktop, touch and 
         await page.getByRole('button', { name: 'Design sprite', exact: true }).click()
         const dialog = page.getByRole('dialog', { name: 'Character appearance', exact: true })
         const portraits = dialog.getByRole('group', { name: 'Portrait expressions' })
-        await expect(portraits.getByRole('img')).toHaveCount(5)
+        await expect(portraits.getByRole('img', { name: / appearance portrait$/ })).toHaveCount(5)
+        for (const expression of ['Neutral', 'Happy', 'Angry', 'Sad', 'Surprised']) {
+          await expect(
+            portraits.getByRole('img', { name: `${expression} appearance portrait`, exact: true }),
+          ).toBeVisible()
+        }
+        const neutral = portraits.getByRole('figure').filter({
+          has: page.getByRole('img', { name: 'Neutral appearance portrait', exact: true }),
+        })
+        await expect(
+          neutral.getByRole('img', { name: 'Character icon', exact: true }),
+        ).toBeVisible()
         await expect(dialog).toBeInViewport({ ratio: 1 })
         const layout = await dialog.evaluate((element) => ({
           bounds: element.getBoundingClientRect().toJSON(),

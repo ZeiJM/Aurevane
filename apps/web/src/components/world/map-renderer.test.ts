@@ -335,13 +335,20 @@ function scene(reduced = false, initial?: WorldView) {
       listeners.set('document:' + name, callback),
     removeEventListener: (name: string) => listeners.delete('document:' + name),
   })
+  const stageSampling: ImageSmoothingQuality[] = []
+  const stageContext = new Proxy(context, {
+    set(target, key, value) {
+      if (key === 'imageSmoothingQuality') stageSampling.push(value)
+      return Reflect.set(target, key, value)
+    },
+  })
   const canvas = {
     clientWidth: 800,
     clientHeight: 600,
     width: 0,
     height: 0,
     dataset: { characterName: 'Wayfarer' },
-    getContext: () => context,
+    getContext: () => stageContext,
     getBoundingClientRect: () => ({ left: 0, top: 0 }),
     setPointerCapture() {},
     addEventListener: (name: string, callback: EventListener) => listeners.set(name, callback),
@@ -428,6 +435,7 @@ function scene(reduced = false, initial?: WorldView) {
     resize: () => resizeCallback(),
     view,
     canvas,
+    stageSampling,
     identityCanvas,
     identityDraws,
     identityClear,
@@ -1776,7 +1784,27 @@ describe('native map input and bounded lifecycle', () => {
       vi.unstubAllGlobals()
     },
   )
-  it('maintains a held walk from Gildtide through a dry sector seam over a slow connection', async () => {
+  it.each([
+    { label: 'steady latency', legs: [[275, 275]] },
+    {
+      label: 'jittery latency',
+      legs: [
+        [70, 105],
+        [115, 630],
+        [35, 145],
+        [210, 110],
+        [155, 510],
+      ],
+    },
+    {
+      label: 'delayed initial receipt',
+      legs: [
+        [115, 785],
+        [70, 105],
+        [35, 145],
+      ],
+    },
+  ])('maintains a held walk through a dry sector seam with $label', async ({ legs }) => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] })
     let state = revealNearby({
       ...newWorldState(),
@@ -1785,15 +1813,17 @@ describe('native map input and bounded lifecycle', () => {
     const clock = () => 10_000 + performance.now()
     const s = scene(true, projectWorld(state, [], clock()))
     const failures: string[] = []
-    let version = s.view.version
+    let version = s.view.version,
+      command = 0
     const controller: WorldController = new WorldController(s.view, {
       command: async (intent) => {
         if (intent.kind !== 'walk' && intent.kind !== 'stop') throw new Error(intent.kind)
-        await new Promise((resolve) => setTimeout(resolve, 275))
+        const [outbound, inbound] = legs[command++ % legs.length]!
+        await new Promise((resolve) => setTimeout(resolve, outbound))
         const serverNow = clock()
         state = resolveWorldIntent(state, intent, serverNow)
         const next = projectWorld({ ...state, version: ++version }, [], serverNow)
-        await new Promise((resolve) => setTimeout(resolve, 275))
+        await new Promise((resolve) => setTimeout(resolve, inbound))
         return next
       },
       refresh: async () => controller.view,
@@ -3725,7 +3755,10 @@ describe('native map input and bounded lifecycle', () => {
         expect(blits.length).toBeGreaterThan(0)
         expect(
           blits.every(
-            ({ matrix, args }) => matrix.join(',') === '1,0,0,1,0,0' && args.length === 2,
+            ({ matrix, args }) =>
+              matrix.join(',') === '1,0,0,1,0,0' &&
+              args.length === 2 &&
+              args.every(Number.isInteger),
           ),
         ).toBe(true)
         expect(blits.at(-1)!.args).not.toEqual(projection.args)
@@ -3859,6 +3892,43 @@ describe('native map input and bounded lifecycle', () => {
       vi.unstubAllGlobals()
     }
   })
+  it('uses lighter terrain sampling during balanced movement and at the phone overview', () => {
+    const clock = vi.spyOn(performance, 'now').mockReturnValue(0)
+    const s = scene(false, legacyTownView('verdant-expanse', 5, 4))
+    const samplingAt = (now: number) => {
+      s.stageSampling.length = 0
+      s.frame(now)
+      return s.stageSampling[0]
+    }
+    try {
+      expect(samplingAt(40)).toBe('high')
+
+      s.motion.plan(
+        [{ position: { ...s.view.position, x: 6 }, durationMs: 200 }],
+        s.view.sectors,
+        40,
+      )
+      expect(samplingAt(80)).toBe('low')
+
+      for (let at = 120; at < 1000; at += 40) s.frame(at)
+      expect(samplingAt(1000)).toBe('high')
+
+      Object.assign(s.canvas, { clientWidth: 389, clientHeight: 669 })
+      window.devicePixelRatio = 2.625
+      s.resize()
+      s.renderer.settings({ animate: true, zoom: 0.64, quality: 'balanced' })
+      expect(samplingAt(1040)).toBe('low')
+      expect(s.identityCanvas.width).toBe(Math.round(389 * 2.625))
+
+      s.renderer.settings({ animate: true, zoom: 0.64, quality: 'high' })
+      expect(samplingAt(1080)).toBe('high')
+    } finally {
+      s.renderer.dispose()
+      clock.mockRestore()
+      vi.unstubAllGlobals()
+    }
+  })
+
   it('reuses the settled wide-zoom phone terrain projection without repainting its affine border', () => {
     const base = projectWorld(newWorldState(), [], 1000)
     const sector = base.sectors.find((candidate) => candidate.id === base.position.sectorId)!
@@ -3964,12 +4034,14 @@ describe('native map input and bounded lifecycle', () => {
       expect(peer).toBeDefined()
       s.identityClear.mockClear()
       s.draws.length = 0
+      s.identityDraws.length = 0
       clock.mockReturnValue(300)
       s.frame(300)
       const next = s.draws.find(isMotion)
       expect(next).toBeDefined()
       expect(next!.args[0]).not.toBe(source!.args[0])
       expect(s.identityClear).toHaveBeenCalledTimes(1)
+      expect(s.identitySprites.some(({ src }) => src === '/distant-peer.webp')).toBe(false)
       const [left, top, width, height] = s.identityClear.mock.calls[0]!
       const [poseX, poseY, , poseHeight] = pose!.args.slice(-4)
       expect(left).toBeLessThanOrEqual(poseX!)
@@ -6719,6 +6791,7 @@ it('translates a bounded dry terrain composite through short desktop movement wi
     s.frame(120)
     const moved = s.draws.filter(({ image }) => image === initial.image)
     expect(moved.length).toBeGreaterThan(0)
+    expect(moved.every(({ args }) => args.length === 2 && args.every(Number.isInteger))).toBe(true)
     expect(moved.at(-1)!.args).not.toEqual(initial.args)
     expect(s.layerCount()).toBe(before)
     expect(JSON.parse(s.canvas.dataset.renderTiming!).groundBuilds).toBe(0)

@@ -169,10 +169,11 @@ async function selectMoveAndVerifySharedTreatment(root: ReturnType<Page['locator
 
   const reachable = battlefield.locator('button[data-reachable]')
   await expect.poll(() => reachable.count()).toBeGreaterThan(0)
-  const borderColor = await reachable
-    .first()
-    .evaluate((element) => getComputedStyle(element).borderColor)
-  expect(borderColor).toMatch(/105, 210, 204/)
+  const { borderColor, terrace } = await reachable.first().evaluate((tile) => ({
+    borderColor: getComputedStyle(tile).borderColor,
+    terrace: tile.parentElement?.hasAttribute('data-battle-terrace'),
+  }))
+  expect(borderColor).toBe(terrace ? 'rgb(193, 215, 150)' : 'rgb(105, 210, 204)')
 }
 
 async function plotOneDesktopWasdStep(

@@ -787,7 +787,37 @@ try {
       await page.getByRole('button', { name: 'Build appearance', exact: true }).click()
       const wardrobe = page.getByRole('dialog', { name: 'Character appearance' })
       await wardrobe.getByRole('radio', { name: 'Female', exact: true }).check()
-      await wardrobe.getByLabel('Look', { exact: true }).selectOption('asta')
+      const looks = wardrobe.getByLabel('Look', { exact: true })
+      const variants = wardrobe.getByLabel('Variant', { exact: true })
+      await expect(looks.locator('option')).toHaveCount(500)
+      await expect(variants.locator('option')).toHaveCount(3)
+      await wardrobe.getByLabel('Find a look').fill('Shieldline')
+      await expect(looks.locator('option', { hasText: 'Shieldline Bastion 01' })).toHaveCount(1)
+      await looks.selectOption({ label: 'Shieldline Bastion 01' })
+      const rendered = wardrobe.locator('[data-appearance-preview]')
+      await expect(rendered).toHaveAttribute('aria-busy', 'false')
+      const primaryPortrait = wardrobe.getByRole('img', { name: 'Neutral appearance portrait' })
+      const original = await primaryPortrait.getAttribute('src')
+      await variants.selectOption('2')
+      await expect(primaryPortrait).not.toHaveAttribute('src', original)
+      await expect(rendered).toHaveAttribute('aria-busy', 'false')
+      const icon = wardrobe.getByRole('img', { name: 'Character icon' })
+      const portraitBox = await primaryPortrait.boundingBox()
+      const iconBox = await icon.boundingBox()
+      assert.ok(portraitBox && iconBox)
+      assert.ok(iconBox.x > portraitBox.x && iconBox.y > portraitBox.y + portraitBox.height / 2)
+      assert.ok(iconBox.y + iconBox.height <= portraitBox.y + portraitBox.height)
+      const sprites = rendered.locator('[data-preview-motion]')
+      await expect(sprites).toHaveCount(7)
+      assert.ok(
+        await sprites.evaluateAll((nodes) =>
+          nodes.every((node) =>
+            getComputedStyle(node).backgroundImage.includes('illustrated-motion-v3.svg'),
+          ),
+        ),
+      )
+      await wardrobe.getByLabel('Find a look').clear()
+      await looks.selectOption('asta')
       await wardrobe.getByLabel('Cape color', { exact: true }).selectOption('denim')
       await wardrobe.getByLabel('Portrait setting').selectOption('frost')
       const appearancePath =
@@ -815,7 +845,7 @@ try {
             }),
           )
         const original = await recipeIds()
-        const sadPattern = '**/api/media/appearance/6/*/illustrated-sad.svg'
+        const sadPattern = /\/api\/media\/appearance\/6\/[^/]+\/illustrated-(?:posed-)?sad[.]svg$/
         let release
         const waitForRelease = new Promise((resolve) => {
           release = resolve
@@ -829,9 +859,7 @@ try {
           { times: 1 },
         )
         try {
-          const requested = page.waitForRequest((request) =>
-            request.url().endsWith('/illustrated-sad.svg'),
-          )
+          const requested = page.waitForRequest((request) => sadPattern.test(request.url()))
           await wardrobe.getByRole('button', { name: 'Randomize' }).click()
           await requested
           await expect(rendered).toHaveAttribute('aria-busy', 'true')
@@ -845,7 +873,8 @@ try {
         assert.equal(new Set(randomized).size, 1)
         assert.notEqual(randomized[0], original[0])
         await wardrobe.getByRole('radio', { name: 'Male', exact: true }).check()
-        await wardrobe.getByLabel('Look', { exact: true }).selectOption('kieran')
+        await expect(looks.locator('option')).toHaveCount(500)
+        await looks.selectOption('kieran')
         await expect(rendered).toHaveAttribute('aria-busy', 'false')
         await expect(
           wardrobe.getByRole('img', { name: 'Neutral appearance portrait' }),

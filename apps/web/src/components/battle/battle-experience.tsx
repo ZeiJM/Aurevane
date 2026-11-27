@@ -3543,7 +3543,9 @@ function BattleExperienceContent({
                           data-defeated={combatant?.hp === 0 || undefined}
                           walk={battlefieldWalks.get(placement.combatantId)}
                           appearance={{
-                            imageUrl: participant.profileImageUrl,
+                            imageUrl:
+                              (desktopLayout ? participant.battlefieldImageUrl : undefined) ??
+                              participant.profileImageUrl,
                             portraitAssetId: participant.portraitAssetId,
                             facing: placement.facing,
                             defeated: combatant?.hp === 0,

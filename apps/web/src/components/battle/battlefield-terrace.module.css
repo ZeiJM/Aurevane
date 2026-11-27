@@ -1,0 +1,125 @@
+/* The viewport continues to size the cockpit. Only its painted scene and board are projected. */
+:global(section#battlefield div:has(> [data-battle-terrace])) {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: #3c3026 url('/media/art/battle/citadel-terrace-v01.webp') center 71% / 100% 116%
+    no-repeat;
+}
+
+:global(section#battlefield div > [data-battle-terrace]) {
+  --terrace-material: none;
+  --terrace-tint: transparent;
+  position: absolute !important;
+  top: 23%;
+  left: 54%;
+  margin: 0 !important;
+  padding: 0 !important;
+  translate: -50% 0;
+  transform: var(--battle-terrace-projection);
+  transform-origin: 50% 100%;
+}
+
+:global(main #battlefield [data-battle-terrace] > button[data-battle-tile][aria-label]) {
+  align-self: stretch;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  overflow: visible !important;
+  aspect-ratio: auto !important;
+  border-color: #d7bb856b !important;
+  border-radius: 0 !important;
+  background:
+    linear-gradient(var(--terrace-tint), var(--terrace-tint)),
+    var(--terrace-material) center / 100% 100% !important;
+}
+
+:global(
+  section#battlefield
+    [data-battle-terrace]
+    > button:is([data-terrain='rough'], [data-terrain-presentation='difficult'])
+) {
+  --terrace-material: url('/media/art/battle/terrain-rough-moss-v01.webp');
+  --terrace-tint: #4c392b42;
+}
+
+:global(section#battlefield [data-battle-terrace] > button[data-terrain-elevated]) {
+  --terrace-material: url('/media/art/battle/terrain-raised-ledge-v02.webp');
+  --terrace-tint: #63482925;
+}
+
+:global(
+  section#battlefield
+    [data-battle-terrace]
+    > button[data-terrain-elevated][data-terrain-presentation='difficult']
+) {
+  --terrace-tint: #41452777;
+}
+
+:global(
+  main #battlefield [data-battle-terrace] > button[data-battle-tile][data-reachable][aria-label]
+),
+:global(main #battlefield [data-battle-terrace] > button[data-battle-tile][data-path][aria-label]) {
+  --terrace-tint: #86ae6763;
+  border-color: #c1d796 !important;
+}
+
+:global(main #battlefield [data-battle-terrace] > button[data-battle-tile][data-path][aria-label]) {
+  --terrace-tint: #9cc5748c;
+}
+
+:global(
+  section#battlefield
+    [data-battle-terrace]
+    > button[data-battle-tile]:is([data-selected], [data-preview-tile])
+) {
+  outline: 2px solid #f5dd9a;
+  outline-offset: -3px;
+}
+
+/* Live ground effects, target paints and facing markers remain on the tile buttons. */
+:global(
+  main
+    #battlefield
+    [data-battle-terrace]
+    > button[data-battle-tile][data-terrain-overlay='frozen'][aria-label]
+) {
+  --terrace-tint: #8cdfed55;
+}
+
+:global(
+  main
+    #battlefield
+    [data-battle-terrace]
+    > button[data-battle-tile][data-terrain-overlay='steam'][aria-label]
+) {
+  --terrace-tint: #bdced37a;
+}
+
+:global(section#battlefield [data-battle-terrace] [data-battle-facing-indicator]) {
+  scale: 0.86;
+}
+
+:global(
+  section#battlefield [data-battle-terrace] > button > [data-team] > [data-battle-appearance-pose]
+) {
+  bottom: 31%;
+  width: 195%;
+}
+
+:global(
+  section#battlefield
+    [data-battle-terrace]
+    > button
+    > [data-team]:has(> [data-battle-appearance-pose])
+)::before {
+  position: absolute;
+  right: 0;
+  bottom: 19%;
+  left: 0;
+  height: 28%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, #180e0bbf 0%, #16100b55 45%, transparent 73%);
+  content: '';
+  pointer-events: none;
+}

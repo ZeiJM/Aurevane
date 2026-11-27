@@ -47,6 +47,8 @@ jobs:
       - run: pnpm --filter @aurevane/web exec playwright install --with-deps chromium
         if: ${{ !cancelled() }}
       - run: |
+          python .github/scripts/configure-supabase-test-ports.test.py
+          python .github/scripts/configure-supabase-test-ports.py
           python .github/scripts/configure-discipline-test-mail.test.py
           python .github/scripts/configure-discipline-test-mail.py
           pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
@@ -59,7 +61,7 @@ jobs:
           status_env="$(pnpm exec supabase status -o env)"
           eval "$(printf '%s\n' "$status_env" | grep -E '^(ANON_KEY|SERVICE_ROLE_KEY|SECRET_KEY)=')"
           export AUREVANE_ENV=local NEXT_PUBLIC_AUREVANE_ENV=local
-          export NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+          export NEXT_PUBLIC_SUPABASE_URL="$SUPABASE_TEST_API_URL"
           export NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY"
           export SUPABASE_SECRET_KEY="${SECRET_KEY:-${SERVICE_ROLE_KEY:-}}"
           pnpm --filter @aurevane/web build

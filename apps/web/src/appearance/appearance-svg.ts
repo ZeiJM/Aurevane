@@ -1,3 +1,4 @@
+import { paintedLookStance } from './appearance-active-catalog'
 import {
   illustratedPortrait,
   illustratedSprite,
@@ -7,7 +8,13 @@ import {
 import { facePainting, faceLayers, naturalFaceSkin, fieldFacePaint } from './appearance-face-paint'
 import { FITTED_FACEWEAR, FITTED_HEADWEAR } from './appearance-fitted-accessories'
 import { daryaCastLight, daryaSpriteArt, daryaSpriteMaterials } from './appearance-darya-art'
-import { paintedDaryaHairstyle } from './appearance-darya-look'
+import {
+  featuredDaryaHairstyle,
+  featuredPaintFilter,
+  featuredStudy,
+  featuredVariantDye,
+} from './appearance-featured-variants'
+import { paintedDaryaHairstyle } from './appearance-darya-recipe'
 import { matchingPaintedStudy } from './appearance-painted-studies'
 import { studyCastGlow, studySpriteArt, studySpriteMaterials } from './appearance-painted-study-art'
 import {
@@ -170,6 +177,37 @@ function downStance(facing: AppearanceFacing) {
   const direction = facing === 'west' ? -1 : 1
   // Rotate around the center of the standing cell so the head and feet fit the same frame.
   return `translate(24 46.5) rotate(${-90 * direction}) scale(.72) translate(-24 -32)`
+}
+
+const paintedWalkPoses = [
+  'left',
+  'left',
+  'passing',
+  'right',
+  'right',
+  'right',
+  'passing',
+  'left',
+] as const
+
+function paintedWalkFrame(facing: AppearanceFacing, frame: number, art: string) {
+  const direction = facing === 'west' ? -1 : 1
+  const lean = rounded(swing[frame]! * 1.65 * direction)
+  const passing = passingStride(frame)
+  const lift = rounded(0.32 + 0.27 * Math.abs(swing[frame]!))
+  const weight = rounded(
+    passing * (facing === 'south' || facing === 'north' ? 0.55 : 0.3) * direction,
+  )
+  return `<ellipse cx="24" cy="58" rx="10" ry="2.5" fill="#171d23" fill-opacity=".4"/>
+    <g transform="translate(${weight} ${-lift}) rotate(${lean} 24 55)">${art}</g>`
+}
+
+function paintedFallFrame(facing: AppearanceFacing, frame: number, art: string) {
+  if (frame === 0) return paintedSprite(facing, 'idle', 0, art)
+  if (frame === 2) return paintedSprite(facing, 'down', 2, art, true)
+  const angle = facing === 'west' ? 45 : -45
+  return `<ellipse cx="24" cy="57" rx="13" ry="2.5" fill="#171d23" fill-opacity=".4"/>
+    <g transform="translate(24 40) rotate(${angle}) scale(.82) translate(-24 -32)">${art}</g>`
 }
 
 function paintedSprite(
@@ -760,12 +798,16 @@ export function renderAppearanceAsset(
   blueprint: AppearanceBlueprint,
   asset: AppearanceAsset,
   illustrated = false,
+  posedPortrait = false,
 ): string {
-  const depthWalk = asset === 'motion-v2'
-  const motion = asset === 'motion' || depthWalk
+  const newMotion = asset === 'motion-v3' && blueprint.v === 6
+  const depthWalk = asset === 'motion-v2' || newMotion
+  const motion = asset === 'motion' || asset === 'motion-v3' || depthWalk
   if (
     blueprint.v === 6 &&
     (illustrated ||
+      newMotion ||
+      (posedPortrait && paintedLookStance(blueprint) !== 0) ||
       Object.hasOwn(FITTED_HEADWEAR, blueprint.headwear) ||
       Object.hasOwn(FITTED_FACEWEAR, blueprint.facewear) ||
       blueprint.apparentAge ||
@@ -779,58 +821,74 @@ export function renderAppearanceAsset(
       !Object.hasOwn(WARDROBE_HAIRSTYLES, blueprint.hairstyle) ||
       patternedBackdrop(blueprint.backdrop))
   ) {
-    if (asset !== 'atlas' && asset !== 'motion' && asset !== 'motion-v2')
-      return illustratedPortrait(blueprint, asset === 'icon' ? 'neutral' : asset, asset === 'icon')
-    const daryaHairstyle = paintedDaryaHairstyle(blueprint)
+    if (asset !== 'atlas' && asset !== 'motion' && asset !== 'motion-v2' && asset !== 'motion-v3')
+      return illustratedPortrait(
+        blueprint,
+        asset === 'icon' ? 'neutral' : asset,
+        asset === 'icon',
+        posedPortrait ? paintedLookStance(blueprint) : 0,
+      )
+    const stance = newMotion ? paintedLookStance(blueprint) : 0
+    const dye = newMotion ? featuredVariantDye(blueprint) : undefined
+    const tint = (art: string) => (dye ? `<g filter="url(#featured-motion)">${art}</g>` : art)
+    const filter = dye ? featuredPaintFilter('featured-motion', dye) : ''
+    const daryaHairstyle = newMotion
+      ? featuredDaryaHairstyle(blueprint)
+      : paintedDaryaHairstyle(blueprint)
     if (daryaHairstyle) {
       const strides = motion
         ? (['left', 'left', 'passing', 'passing', 'right', 'right', 'passing', 'passing'] as const)
         : (['left', 'passing', 'right'] as const)
+      const art = (facing: AppearanceFacing, pose: Parameters<typeof daryaSpriteArt>[1]) =>
+        tint(daryaSpriteArt(facing, pose))
       return renderSpriteAtlas(
-        daryaSpriteMaterials(daryaHairstyle),
+        filter + daryaSpriteMaterials(daryaHairstyle),
         (facing, pose, frame) => {
+          if (newMotion && pose === 'walk')
+            return paintedWalkFrame(facing, frame, art(facing, paintedWalkPoses[frame]!))
+          if (newMotion && pose === 'down')
+            return paintedFallFrame(facing, frame, art(facing, 'idle'))
           if (pose === 'walk') {
             const rise = motion && frame % 4 === 2 ? -0.65 : 0
             return `<ellipse cx="24" cy="58" rx="10" ry="2.5" fill="#171d23" fill-opacity=".4"/><g transform="translate(0 ${rise})">${daryaSpriteArt(facing, strides[frame]!)}</g>`
           }
           if (pose === 'cast' && frame > 0) {
-            const art = paintedSprite(facing, 'idle', 0, daryaSpriteArt(facing, 'cast'))
-            return art + daryaCastLight(daryaHairstyle, facing, frame)
+            const casting = paintedSprite(facing, 'idle', 0, art(facing, 'cast'))
+            return casting + daryaCastLight(daryaHairstyle, facing, frame)
           }
-          return paintedSprite(facing, pose, frame, daryaSpriteArt(facing, 'idle'), motion)
+          const painting =
+            pose === 'idle' ? (['idle', 'passing', 'cast'] as const)[stance]! : 'idle'
+          return paintedSprite(facing, pose, frame, art(facing, painting), motion)
         },
         motion,
       )
     }
-    const study = matchingPaintedStudy(blueprint)
+    const study = newMotion ? featuredStudy(blueprint) : matchingPaintedStudy(blueprint)
     if (study) {
       const stride = motion
         ? (['left', 'passing', 'passing', 'right', 'right', 'passing', 'passing', 'left'] as const)
         : (['left', 'passing', 'right'] as const)
+      const art = (facing: AppearanceFacing, pose: Parameters<typeof studySpriteArt>[1]) =>
+        dye && study !== 'asta' ? tint(studySpriteArt(facing, pose)) : studySpriteArt(facing, pose)
       return renderSpriteAtlas(
-        studySpriteMaterials(study, blueprint.clothColor),
+        filter + studySpriteMaterials(study, blueprint.clothColor),
         (facing, pose, frame) => {
+          if (newMotion && pose === 'walk')
+            return paintedWalkFrame(facing, frame, art(facing, paintedWalkPoses[frame]!))
+          if (newMotion && pose === 'down')
+            return paintedFallFrame(facing, frame, art(facing, 'idle'))
           if (pose === 'walk') {
             return `<ellipse cx="24" cy="58" rx="10" ry="2.5" fill="#171d23" fill-opacity=".4"/>${studySpriteArt(facing, stride[frame]!)}`
           }
           if (pose === 'attack') {
-            return paintedSprite(
-              facing,
-              'idle',
-              0,
-              studySpriteArt(facing, frame === 1 ? 'attack' : 'brace'),
-            )
+            return paintedSprite(facing, 'idle', 0, art(facing, frame === 1 ? 'attack' : 'brace'))
           }
           if (pose === 'cast') {
-            const art = paintedSprite(
-              facing,
-              'idle',
-              0,
-              studySpriteArt(facing, frame ? 'cast' : 'brace'),
-            )
-            return art + (frame ? studyCastGlow(study, facing, frame) : '')
+            const casting = paintedSprite(facing, 'idle', 0, art(facing, frame ? 'cast' : 'brace'))
+            return casting + (frame ? studyCastGlow(study, facing, frame) : '')
           }
-          return paintedSprite(facing, pose, frame, studySpriteArt(facing, 'idle'), motion)
+          const painting = pose === 'idle' ? (['idle', 'brace', 'cast'] as const)[stance]! : 'idle'
+          return paintedSprite(facing, pose, frame, art(facing, painting), motion)
         },
         motion,
       )
@@ -842,7 +900,16 @@ export function renderAppearanceAsset(
     return renderSpriteAtlas(
       `<defs>${illustratedSpriteMaterials(blueprint)}${heads.join('')}</defs>`,
       (facing, pose, frame) =>
-        illustratedSprite(blueprint, facing, pose, frame, frames, 'painted-' + facing),
+        illustratedSprite(
+          blueprint,
+          facing,
+          pose,
+          frame,
+          frames,
+          'painted-' + facing,
+          newMotion,
+          stance,
+        ),
       motion,
     )
   }

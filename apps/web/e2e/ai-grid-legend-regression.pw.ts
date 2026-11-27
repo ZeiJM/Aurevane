@@ -58,8 +58,11 @@ test('keeps the desktop AI 9x7 grid, header map key, and battle log dock structu
     const tile97Rect = tile97.getBoundingClientRect()
 
     return {
+      terrace: element.hasAttribute('data-battle-terrace'),
+      viewportClientWidth: viewport.clientWidth,
       tileWidth: tile11Rect.width,
       tileHeight: tile11Rect.height,
+      lastTileWidth: tile97Rect.width,
       columnGap: tile21Rect.left - tile11Rect.right,
       rowGap: tile12Rect.top - tile11Rect.bottom,
       boardLeft: boardRect.left,
@@ -75,10 +78,17 @@ test('keeps the desktop AI 9x7 grid, header map key, and battle log dock structu
     }
   })
 
-  expect(Math.abs(geometry.tileWidth - geometry.tileHeight)).toBeLessThanOrEqual(1.5)
-  expect(geometry.columnGap).toBeGreaterThan(0)
+  if (geometry.terrace) {
+    expect(geometry.lastTileWidth).toBeGreaterThan(geometry.tileWidth)
+    expect(
+      Math.abs((geometry.boardRight - geometry.boardLeft) / geometry.viewportClientWidth - 0.79),
+    ).toBeLessThan(0.01)
+  } else {
+    expect(Math.abs(geometry.tileWidth - geometry.tileHeight)).toBeLessThanOrEqual(1.5)
+    expect(geometry.columnGap).toBeGreaterThan(0)
+    expect(Math.abs(geometry.columnGap - geometry.rowGap)).toBeLessThanOrEqual(1.5)
+  }
   expect(geometry.rowGap).toBeGreaterThan(0)
-  expect(Math.abs(geometry.columnGap - geometry.rowGap)).toBeLessThanOrEqual(1.5)
 
   expect(geometry.boardLeft).toBeGreaterThanOrEqual(geometry.viewportLeft - 1)
   expect(geometry.boardRight).toBeLessThanOrEqual(geometry.viewportRight + 1)

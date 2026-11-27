@@ -1,3 +1,4 @@
+import type { PortraitStance } from './appearance-portrait-poses'
 import {
   CATALOG_DIRECTION_HAIR,
   CATALOG_FACE_ART,
@@ -346,6 +347,7 @@ export function fittedCharacterPortrait(
   expression: AppearanceExpression,
   backdrop: string,
   icon: boolean,
+  stance: PortraitStance = 0,
 ) {
   const face = fittedFace(look)
   const hatId = replacementHeadwear[look.headwear] ?? look.headwear
@@ -403,6 +405,7 @@ export function fittedCharacterPortrait(
       face: naturalOrDyed(faceSource, 'painted-skin', skinDye),
       landmarks,
       neckPigment,
+      stance,
       faceMarks: fittedFaceMarks(look, landmarks, neckPigment[1]),
       expressionMap: expression !== 'neutral' ? PORTRAIT_EXPRESSION_MAPS[expression] : undefined,
       expressionIntensity: faceSource.fit

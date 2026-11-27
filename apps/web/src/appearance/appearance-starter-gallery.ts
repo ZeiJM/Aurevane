@@ -2,7 +2,9 @@ import {
   CREATION_CHARACTER_PORTRAITS,
   STARTER_CHARACTER_PORTRAITS,
 } from '@aurevane/game-core/character/starter-options'
-import { activePaintedLooksForGender } from './appearance-active-catalog'
+import { FEATURED_PAINTED_LOOKS } from './appearance-active-catalog'
+import { appearanceGenderForIdentity } from './appearance-painted-looks'
+import { portraitFace } from './appearance-face-catalog'
 import { compileAppearanceManifest, paintedPlayerAppearanceBlueprint } from './appearance-manifest'
 import { PAINTED_PORTRAIT_SETTINGS, type PaintedPlayerLook } from './appearance-painted-wardrobe'
 
@@ -21,12 +23,25 @@ export const ILLUSTRATED_STARTER_GALLERY = new Map<
 >(
   STARTER_CHARACTER_PORTRAITS.map(({ ref }, index) => {
     const gender = creationGender.get(ref) ?? (index % 2 ? 'masculine' : 'feminine')
-    const pool = activePaintedLooksForGender(gender)
-    const { look, label } = pool[index % pool.length]!
+    const pool = FEATURED_PAINTED_LOOKS.filter(
+      ({ look }) => appearanceGenderForIdentity(look.identity) === gender,
+    )
+    const { look } = pool[index % pool.length]!
     const manifest = compileAppearanceManifest(
       paintedPlayerAppearanceBlueprint({ ...look, backdrop: backdrops[index]! }),
     )
-    return [ref, { name: label, manifest }] as const
+    return [
+      ref,
+      {
+        name:
+          look.faceId === 'f12'
+            ? look.hairstyle === 'coils'
+              ? 'Darya · Tight coils'
+              : 'Darya · Low ponytail'
+            : portraitFace(look.faceId)!.name,
+        manifest,
+      },
+    ] as const
   }),
 )
 

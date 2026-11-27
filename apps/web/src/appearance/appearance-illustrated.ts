@@ -1,3 +1,4 @@
+import type { PortraitStance } from './appearance-portrait-poses'
 import { patternedBackdrop, studioColor } from './appearance-backdrop-catalog'
 import { CATALOG_BACKDROP_ART } from './appearance-catalog-art'
 import { daryaPaintedPortrait } from './appearance-darya-art'
@@ -122,12 +123,17 @@ function landscapeBrushwork(id: string, dark: string, mid: string, light: string
   <path d="M6 194Q36 192 65 201m116 1 64-9M12 229l45 1m117 1 71-13" fill="none" stroke="${light}" stroke-width="2" opacity=".28"/>`
 }
 
-export function illustratedPortrait(look: Look, expression: AppearanceExpression, icon: boolean) {
+export function illustratedPortrait(
+  look: Look,
+  expression: AppearanceExpression,
+  icon: boolean,
+  stance: PortraitStance = 0,
+) {
   const background = portraitBackground(look.backdrop)
   return (
-    daryaPaintedPortrait(look, expression, background, icon) ??
-    studyPortrait(look, expression, background, icon) ??
-    fittedCharacterPortrait(look, expression, background, icon)
+    daryaPaintedPortrait(look, expression, background, icon, stance) ??
+    studyPortrait(look, expression, background, icon, stance) ??
+    fittedCharacterPortrait(look, expression, background, icon, stance)
   )
 }
 
@@ -149,6 +155,8 @@ export function illustratedSprite(
   frame: number,
   frames: number,
   headId: string,
+  stagedFall = false,
+  idleStance = 0,
 ) {
   const gear = fittedSpriteGear(look)
   return renderPaintedSpriteRig({
@@ -163,6 +171,8 @@ export function illustratedSprite(
     mantle: false,
     satchel: look.gear !== 'none',
     fittedOutfit: true,
+    stagedFall,
+    idleStance,
     feminine: look.identity === 'pinescout' || look.identity === 'ranger',
     fabricDye: 'rig-fabric',
     outfitDye: look.clothColor === 'natural' ? undefined : 'rig-fabric',

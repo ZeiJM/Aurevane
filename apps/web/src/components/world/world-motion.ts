@@ -235,6 +235,7 @@ export class WorldMotion {
   private approvedVisualRoute: readonly TravelStep[] = []
   private approvedRawRoute: readonly TravelStep[] = []
   private approvedAt = 0
+  private serverClockOffset: number | null = null
   private approvedFirstAt: number | null = null
   private movementFrozen = false
   private extendApprovedVisual = false
@@ -265,6 +266,17 @@ export class WorldMotion {
     const frozen = Boolean(view.movementBlocked || view.battleSessionId)
     this.movementFrozen = frozen
     if (frozen) this.clearPendingTurn()
+    if (Number.isSafeInteger(view.serverNow) && view.serverNow >= 0) {
+      // A response's arrival offset includes transport time. Keep the smallest
+      // observed offset within the current clock range so a
+      // slow reply cannot postpone an already-approved landing.
+      const observedOffset = now - view.serverNow
+      const previousOffset = this.serverClockOffset
+      this.serverClockOffset =
+        previousOffset === null || observedOffset - previousOffset > MOVEMENT_LAG_ALLOWANCE_MS
+          ? observedOffset
+          : Math.min(previousOffset, observedOffset)
+    }
     const validClock =
       Number.isSafeInteger(view.serverNow) &&
       view.serverNow >= 0 &&
@@ -277,7 +289,7 @@ export class WorldMotion {
       !frozen && validClock
         ? view.serverNow - view.nextStepAt! > MOVEMENT_LAG_ALLOWANCE_MS
           ? now
-          : now + view.nextStepAt! - view.serverNow
+          : (this.serverClockOffset ?? now - view.serverNow) + view.nextStepAt!
         : null
     this.loadApprovedScene(view.sectors)
   }
@@ -589,10 +601,38 @@ export class WorldMotion {
     const route = directionalWalk(pivot, destination, direction, sectorAt)
     // OS-independent repeats replace one another while a write is in flight. They must
     // not grant fresh speculative distance every time the same key timer fires.
-    const approved = mapPoint(this.approvedPosition(now), sectors, sample.point)
-    const lead = continuing ? KEY_LOOKAHEAD_STEPS * 2 : KEY_LOOKAHEAD_STEPS
+    const landed = this.approvedPosition(now)
+    const travelAxis = axis === 'x' ? 'y' : 'x'
+    let approved = mapPoint(landed, sectors, sample.point)
+    if (continuing) {
+      // Previously approved forward tiles do not spend the speculative budget,
+      // even when their server arrival deadlines are still in the future.
+      const positions = [this.approvedOrigin, ...this.approvedRoute.map((step) => step.position)]
+      const first = positions.findIndex((position) => positionKey(position) === positionKey(landed))
+      const lane = mapPoint(pivot, sectors, sample.point)[axis]
+      for (const position of positions.slice(first + 1)) {
+        const next = mapPoint(position, sectors, approved)
+        if (
+          Math.abs(next[axis] - lane) > 1e-7 ||
+          (next[travelAxis] - approved[travelAxis]) * walkOffset[direction][travelAxis] <= 0
+        )
+          break
+        approved = next
+      }
+    }
+    // One extra visual edge can bridge a delayed receipt when the server
+    // already supplied a route. A silent server still gets the original cap.
+    const lead = continuing
+      ? KEY_LOOKAHEAD_STEPS * 2 + Number(this.approvedRoute.length > 0)
+      : KEY_LOOKAHEAD_STEPS
     const beyondApproval = route.findIndex((step) => {
       const target = mapPoint(step.position, sectors, approved)
+      if (
+        continuing &&
+        Math.abs(target[axis] - approved[axis]) < 1e-7 &&
+        (target[travelAxis] - approved[travelAxis]) * walkOffset[direction][travelAxis] <= 0
+      )
+        return false
       return Math.abs(target.x - approved.x) + Math.abs(target.y - approved.y) > lead
     })
     if (beyondApproval >= 0) route.length = beyondApproval

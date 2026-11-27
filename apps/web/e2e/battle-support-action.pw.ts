@@ -81,6 +81,8 @@ async function expectSupportSelectionFill(page: Page, actionId: string) {
   const fill = await tile.evaluate((node) => {
     const overlay = getComputedStyle(node, '::after')
     const token = node.querySelector<HTMLElement>(':scope > [data-team]')!
+    const board = node.parentElement!
+    const terrace = board.hasAttribute('data-battle-terrace')
     return {
       background: overlay.backgroundColor,
       inset: overlay.inset,
@@ -90,7 +92,8 @@ async function expectSupportSelectionFill(page: Page, actionId: string) {
       pointerEvents: overlay.pointerEvents,
       tileBorder: getComputedStyle(node).borderColor,
       tileShadow: getComputedStyle(node).boxShadow,
-      texture: getComputedStyle(node).backgroundImage,
+      texture: getComputedStyle(terrace ? board.parentElement! : node).backgroundImage,
+      terrace,
     }
   })
   expect(fill.background).toBe(isHealing ? 'rgba(102, 218, 143, 0.5)' : 'rgba(108, 145, 198, 0.5)')
@@ -100,7 +103,9 @@ async function expectSupportSelectionFill(page: Page, actionId: string) {
   expect(fill.pointerEvents).toBe('none')
   expect(fill.tileBorder).toBe(isHealing ? 'rgb(102, 218, 143)' : 'rgb(108, 145, 198)')
   expect(fill.tileShadow).toBe('none')
-  expect(fill.texture).toContain('terrain-open-stone-v01.webp')
+  expect(fill.texture).toContain(
+    fill.terrace ? 'citadel-terrace-v01.webp' : 'terrain-open-stone-v01.webp',
+  )
 }
 
 for (const [supportActionId, label, cost] of [
