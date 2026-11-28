@@ -164,7 +164,10 @@ try {
       }
     })
     assert.equal(geometry.renderedTiles, 63)
-    assert.ok(geometry.widthRatio > 0.77 && geometry.widthRatio < 0.81)
+    assert.ok(
+      Math.abs(geometry.widthRatio - 0.86) < 0.01,
+      `${mode} terrace should span 86% of the battlefield, got ${geometry.widthRatio}`,
+    )
     assert.ok(geometry.frontWidth > geometry.backWidth)
     assert.match(geometry.background, /citadel-terrace-anime-v01\.webp/)
     assert.equal(geometry.allCentersTargetTheirTile, true)
@@ -279,6 +282,10 @@ try {
           const tile = el.parentElement,
             token = tile.querySelector('[data-team]')
           const rect = (value) => value.getBoundingClientRect().toJSON()
+          const tokenStyle = getComputedStyle(token)
+          const hasStandingSprite = token.querySelector(':scope > [data-battle-appearance-pose]')
+          const accent = document.createElement('span').style
+          accent.color = tokenStyle.getPropertyValue('--battle-combatant-accent')
           return {
             badge: rect(el),
             token: rect(token),
@@ -288,7 +295,7 @@ try {
             offsetTop: el.offsetTop,
             direction: el.dataset.facing,
             color: getComputedStyle(el).color,
-            identity: getComputedStyle(token).borderTopColor,
+            identity: hasStandingSprite ? accent.color : tokenStyle.borderTopColor,
             pointer: getComputedStyle(el).pointerEvents,
             radius: getComputedStyle(el).borderRadius,
             arrowTransform: getComputedStyle(el.querySelector('svg')).transform,
@@ -314,7 +321,7 @@ try {
         )
         assert.equal(geometry.pointer, 'none')
         assert.equal(geometry.radius, '50%')
-        assert.equal(geometry.color, geometry.identity)
+        assert.equal(geometry.color, geometry.identity, 'Facing identifies the same combatant')
         assert.ok(
           geometry.badge.left >= geometry.tile.left - 1 &&
             geometry.badge.right <= geometry.tile.right + 1,
