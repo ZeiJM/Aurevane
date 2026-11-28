@@ -22,6 +22,15 @@ import { wrappedMapX } from '../src/world/topology'
 import { APPEARANCE_FRAME } from '../src/appearance/appearance-manifest'
 import sharp from 'sharp'
 
+// Atlas fixtures create authored characters. Their feet sit at 113px in a 2× source frame.
+const LOCAL_AUTHORED_ACTOR = {
+  width: APPEARANCE_FRAME.width,
+  height: APPEARANCE_FRAME.height,
+  anchorX: APPEARANCE_FRAME.anchorX,
+  anchorY: 56.5,
+  scale: 1.53,
+}
+
 function captureLocalNameplate(el: HTMLElement | SVGElement) {
   const context = document
     .querySelector<HTMLCanvasElement>('canvas[data-world-identity]')!
@@ -47,7 +56,7 @@ function captureLocalNameplate(el: HTMLElement | SVGElement) {
   }
 }
 
-function captureLocalIdentity(el: HTMLElement | SVGElement, frame: typeof APPEARANCE_FRAME) {
+function captureLocalIdentity(el: HTMLElement | SVGElement, frame: typeof LOCAL_AUTHORED_ACTOR) {
   const context = document
     .querySelector<HTMLCanvasElement>('canvas[data-world-identity]')!
     .getContext('2d')!
@@ -77,7 +86,7 @@ function captureLocalIdentity(el: HTMLElement | SVGElement, frame: typeof APPEAR
         (cached && (image instanceof ImageBitmap || image instanceof HTMLCanvasElement)))
     ) {
       // The actor's marker is at the feet, above the padded raster's bottom edge.
-      const actorScale = (Number(el.dataset.tileSize) / 64) * 1.22
+      const actorScale = (Number(el.dataset.tileSize) / 64) * frame.scale
       const actorEdge = (value: number) =>
         cached ? (Math.round(value * ratio) - 4) / ratio : value
       if (
@@ -1108,7 +1117,7 @@ export function registerWorldInputCases({
         await page.getByRole('checkbox', { name: 'Ambient animation', exact: true }).uncheck()
         await closeMapSettings(page)
       }
-      await canvas.evaluate(captureLocalIdentity, APPEARANCE_FRAME)
+      await canvas.evaluate(captureLocalIdentity, LOCAL_AUTHORED_ACTOR)
       // Separate empty destinations keep a preceding case's token out of the click.
       const destination = { sectorId: 'atlas:58:28', x: mode === 'effects off' ? 9 : 8, y: 4 }
       await stageWalk(page, destination)
@@ -1142,7 +1151,7 @@ export function registerWorldInputCases({
             return {
               camera: { x, y },
               drawnAtTarget:
-                !!draw &&
+                draw?.actor === true &&
                 Math.abs(draw.x - expectedX) <= tolerance &&
                 Math.abs(draw.y - expectedY) <= tolerance,
             }
@@ -1194,7 +1203,7 @@ export function registerWorldInputCases({
     const canvas = page.locator('canvas[data-world-stage]')
     await expect(canvas).toHaveAttribute('data-character-name', name)
     await canvas.evaluate(captureLocalNameplate)
-    await canvas.evaluate(captureLocalIdentity, APPEARANCE_FRAME)
+    await canvas.evaluate(captureLocalIdentity, LOCAL_AUTHORED_ACTOR)
     const verifyPortraitZoom = async (zoom: number) => {
       await expect(canvas).toHaveAttribute(
         'data-tile-size',
@@ -1213,17 +1222,12 @@ export function registerWorldInputCases({
               actor: boolean
               cached: boolean
             }
-            const tile = Number(el.dataset.tileSize)
-            if (tile >= 42) {
-              const scale = (tile / 64) * 1.22
-              const expected = (side: number) =>
-                cached ? (Math.ceil(side * (scale * ratio)) + 8) / ratio : side * scale
-              return actor && width === expected(frame.width) && height === expected(frame.height)
-            }
-            if (actor) return false
-            const expected = Math.round(((34 * tile) / 64) * ratio) / ratio
-            return width === expected && height === expected
-          }, APPEARANCE_FRAME),
+            // The local actor stays embodied at every supported desktop zoom.
+            const scale = (Number(el.dataset.tileSize) / 64) * frame.scale
+            const expected = (side: number) =>
+              cached ? (Math.ceil(side * (scale * ratio)) + 8) / ratio : side * scale
+            return actor && width === expected(frame.width) && height === expected(frame.height)
+          }, LOCAL_AUTHORED_ACTOR),
         )
         .toBe(true)
       const nameplate = await readLocalNameplate(canvas, name, 64 * worldZoomFromPercent(zoom))

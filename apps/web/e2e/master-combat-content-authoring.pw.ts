@@ -1105,7 +1105,7 @@ test('finalized media automatically centers actual image bytes, replaces the sam
     const panel = page.getByRole('group', { name: /^Artwork and sound/ })
     const input = panel.getByLabel('Upload content media')
     const builtin = panel.getByAltText('Current artwork')
-    await expect(builtin).toHaveAttribute('src', '/media/skills/basic-attack-fist.webp')
+    await expect(builtin).toHaveAttribute('src', '/media/skills/basic-attack-fist-anime-v01.webp')
     await expect
       .poll(() => builtin.evaluate((image: HTMLImageElement) => image.naturalWidth))
       .toBeGreaterThan(0)
