@@ -222,7 +222,9 @@
 .reviewPortrait > :is(img, div) {
   display: block;
   width: 100%;
+  max-width: none;
   height: 100%;
+  margin: 0;
   object-fit: cover;
 }
 .previewCopy {

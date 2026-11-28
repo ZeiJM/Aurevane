@@ -4,6 +4,13 @@ import { expect, test, type Locator } from '@playwright/test'
 
 import { createVerifiedAccountAndSignIn } from './pv1f-test-helpers'
 
+// The browser projects create characters in the same database. Authored looks are exclusive.
+const creationLooks = {
+  'desktop-chromium': { label: 'Basalt Citadel Vanguard', key: 'mountain-orc-f-0001' },
+  'laptop-chromium': { label: 'Garden Lanternkeeper', key: 'fae-f-0001' },
+  'mobile-chromium': { label: 'Cedarwood Archer', key: 'elf-f-0001' },
+}
+
 test('Creation exposes four race portraits per gender and preserves the complete authenticated three-step journey', async ({
   page,
 }, info) => {
@@ -209,7 +216,9 @@ test('Creation exposes four race portraits per gender and preserves the complete
   await creation.getByRole('radio', { name: 'Female', exact: true }).check()
   await expect(portraits).toHaveCount(4)
   await expect(portraits.first()).toBeChecked()
-  await portraits.last().check()
+  const look = creationLooks[info.project.name as keyof typeof creationLooks]
+  const selectedPortrait = library.getByRole('radio', { name: look.label, exact: true })
+  await selectedPortrait.check()
   await expect(creation.locator('input[name="appearance"]')).toHaveCount(0)
   await next.click()
   await expect(creation).toHaveAttribute('data-step', 'discipline')
@@ -264,7 +273,7 @@ test('Creation exposes four race portraits per gender and preserves the complete
       .poll(() => page.evaluate(() => document.documentElement.scrollHeight - innerHeight))
       .toBeLessThanOrEqual(1)
   await expect(creation.getByText('Portrait', { exact: true })).toBeVisible()
-  await expect(creation.getByText('Basalt Citadel Vanguard', { exact: true })).toBeVisible()
+  await expect(creation.getByText(look.label, { exact: true })).toBeVisible()
   await expect(creation.getByText('Starter appearance', { exact: true })).toHaveCount(0)
   await expect(creation).not.toContainText(/pronouns/i)
   if (process.env.LAYOUT_REVIEW_OUTPUT)
@@ -280,7 +289,7 @@ test('Creation exposes four race portraits per gender and preserves the complete
   await expect(disciplines.nth(1)).toBeChecked()
   await creation.getByRole('button', { name: 'Back', exact: true }).click()
   await expect(name).toHaveValue(characterName)
-  await expect(portraits.last()).toBeChecked()
+  await expect(selectedPortrait).toBeChecked()
   await expect(creation.getByRole('radio', { name: 'Female', exact: true })).toBeChecked()
   await next.click()
   await creation.getByRole('button', { name: 'Review character', exact: true }).click()
@@ -315,13 +324,12 @@ test('Creation exposes four race portraits per gender and preserves the complete
   await expect(creation.getByRole('alert')).toHaveText('Temporary test interruption.')
   const responsePromise = page.waitForResponse(
     (response) =>
-      response.url().endsWith('/api/character') &&
-      response.request().method() === 'POST' &&
-      response.status() === 201,
+      response.url().endsWith('/api/character') && response.request().method() === 'POST',
   )
   await creation.getByRole('button', { name: 'Create character', exact: true }).click()
   const response = await responsePromise
   const payload = await response.json()
+  expect(response.status(), JSON.stringify(payload.error)).toBe(201)
   expect(payload.character).toMatchObject({
     name: characterName,
     portraitRef: 'portrait.adventure.female-01',
@@ -335,7 +343,12 @@ test('Creation exposes four race portraits per gender and preserves the complete
   await expect(page).toHaveURL(/\/game\/haven$/)
   const appearance = await page.request.get('/api/account/appearance')
   expect(appearance.ok()).toBe(true)
-  expect(await appearance.json()).toMatchObject({ appearance: { appearanceTokens: 0 } })
+  expect(await appearance.json()).toMatchObject({
+    appearance: {
+      appearanceTokens: 0,
+      imageUrl: `/api/media/appearance/7/${look.key}.v1/neutral.svg`,
+    },
+  })
   await page.goto('/game/character')
   const railIdentity = page
     .getByTestId('authenticated-shell')
