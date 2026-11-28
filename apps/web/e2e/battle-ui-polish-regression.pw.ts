@@ -1,6 +1,7 @@
 import { expect, test, type Page, type Locator } from '@playwright/test'
 
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
+import { TERRACE_HEIGHT_FRACTION, TERRACE_WIDTH_FRACTION } from './battle-terrace-layout-helpers'
 
 function uniqueIdentity(prefix: string): { email: string; characterName: string } {
   const seed = `${Date.now()}${Math.floor(Math.random() * 100_000)}`
@@ -247,7 +248,12 @@ async function expectLargeBoardGeometry(root: ReturnType<Page['locator']>) {
   })
 
   if (geometry.terrace) {
-    expect(Math.abs(geometry.boardRatio - (geometry.fieldRatio * 0.79) / 0.64)).toBeLessThan(0.03)
+    expect(
+      Math.abs(
+        geometry.boardRatio -
+          (geometry.fieldRatio * TERRACE_WIDTH_FRACTION) / TERRACE_HEIGHT_FRACTION,
+      ),
+    ).toBeLessThan(0.03)
     expect(geometry.tileRatios[0]!).toBeGreaterThan(geometry.tileRatios[2]!)
   } else {
     expect(Math.abs(geometry.boardRatio - 15 / 7)).toBeLessThan(0.03)

@@ -9,6 +9,7 @@ import { DEFAULT_COMBAT_KEYBINDS } from '@aurevane/validation/player/combat-cont
 
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 import { targetForecast } from './refined-battle-helpers'
+import { expectBattleTileIdentity } from './battle-identity-color-helpers'
 
 async function saveSupport(page: Page, supportActionId: CurrentSupportActionId) {
   const response = await page.request.get('/api/character/build/support-action')
@@ -67,7 +68,7 @@ async function readBattle(page: Page): Promise<BattleSessionView> {
 }
 
 async function expectSupportSelectionFill(page: Page, actionId: string) {
-  const identityRing = await page
+  const identityAccent = await page
     .locator('[data-battle-combatant-card="local"]')
     .evaluate((card) => getComputedStyle(card).borderColor)
   const tile = page.locator('#battlefield button[data-self-target="true"]').first()
@@ -88,7 +89,6 @@ async function expectSupportSelectionFill(page: Page, actionId: string) {
       inset: overlay.inset,
       overlayLayer: Number(overlay.zIndex),
       tokenLayer: Number(getComputedStyle(token).zIndex),
-      ring: getComputedStyle(token).borderColor,
       pointerEvents: overlay.pointerEvents,
       tileBorder: getComputedStyle(node).borderColor,
       tileShadow: getComputedStyle(node).boxShadow,
@@ -99,7 +99,7 @@ async function expectSupportSelectionFill(page: Page, actionId: string) {
   expect(fill.background).toBe(isHealing ? 'rgba(102, 218, 143, 0.5)' : 'rgba(108, 145, 198, 0.5)')
   expect(fill.inset).toBe('0px')
   expect(fill.tokenLayer).toBeGreaterThan(fill.overlayLayer)
-  expect(fill.ring).toBe(identityRing)
+  await expectBattleTileIdentity(tile, identityAccent)
   expect(fill.pointerEvents).toBe('none')
   expect(fill.tileBorder).toBe(isHealing ? 'rgb(102, 218, 143)' : 'rgb(108, 145, 198)')
   expect(fill.tileShadow).toBe('none')

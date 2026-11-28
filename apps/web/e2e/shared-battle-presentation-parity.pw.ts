@@ -72,22 +72,19 @@ async function expectMobileTokenMeters(root: ReturnType<Page['locator']>) {
       const arrow = element.querySelector<HTMLElement>(
         ':scope > [data-battle-facing-indicator="true"]',
       )!
-      const portraitCandidates = Array.from(tokenElement.children).filter(
-        (child): child is HTMLElement =>
-          child instanceof HTMLElement &&
-          (child.classList.contains('character-portrait-media') ||
-            Array.from(child.classList).some((className) =>
-              className.includes('unitPortraitFallback'),
-            )),
+      const visualCandidates = Array.from(
+        tokenElement.querySelectorAll<HTMLElement>(
+          ':scope > :is([data-battle-appearance-pose], .character-portrait-media, [class*="unitPortraitFallback"])',
+        ),
       )
-      const portrait = portraitCandidates[0]!
+      const visual = visualCandidates[0]
+      const sprite = visual?.hasAttribute('data-battle-appearance-pose') ?? false
       const tileRect = element.getBoundingClientRect()
       const tokenRect = tokenElement.getBoundingClientRect()
       const meterRect = meterElement.getBoundingClientRect()
       const hpTrackRect = hpTrack.getBoundingClientRect()
       const mpTrackRect = mpTrack.getBoundingClientRect()
       const arrowRect = arrow.getBoundingClientRect()
-      const portraitRect = portrait.getBoundingClientRect()
       return {
         tileLeft: tileRect.left,
         tileRight: tileRect.right,
@@ -110,12 +107,12 @@ async function expectMobileTokenMeters(root: ReturnType<Page['locator']>) {
         arrowHeight: arrowRect.height,
         arrowPointerEvents: getComputedStyle(arrow).pointerEvents,
         arrowBorderRadius: getComputedStyle(arrow).borderRadius,
-        portraitLeft: portraitRect.left,
-        portraitRight: portraitRect.right,
-        portraitTop: portraitRect.top,
-        portraitBottom: portraitRect.bottom,
-        portraitCount: portraitCandidates.length,
-        portraitBorderRadius: getComputedStyle(portrait).borderRadius,
+        visualCount: visualCandidates.length,
+        visual: visual?.getBoundingClientRect().toJSON(),
+        visualBorderRadius: visual && getComputedStyle(visual).borderRadius,
+        sprite,
+        spriteBackground:
+          sprite && visual ? getComputedStyle(visual, '::before').backgroundImage : null,
         hpWidth: hp.getBoundingClientRect().width,
         mpWidth: mp.getBoundingClientRect().width,
         hpBackground: getComputedStyle(hp).backgroundImage,
@@ -131,12 +128,21 @@ async function expectMobileTokenMeters(root: ReturnType<Page['locator']>) {
     expect(geometry.meterTop).toBeGreaterThanOrEqual(geometry.tokenBottom - 3)
     expect(geometry.meterBottom).toBeLessThanOrEqual(geometry.tileBottom + 2)
 
-    expect(geometry.portraitCount).toBe(1)
-    expect(geometry.portraitBorderRadius).toBe('50%')
-    expect(geometry.portraitLeft).toBeGreaterThanOrEqual(geometry.tokenLeft - 1)
-    expect(geometry.portraitRight).toBeLessThanOrEqual(geometry.tokenRight + 1)
-    expect(geometry.portraitTop).toBeGreaterThanOrEqual(geometry.tokenTop - 1)
-    expect(geometry.portraitBottom).toBeLessThanOrEqual(geometry.tokenBottom + 1)
+    expect(geometry.visualCount).toBe(1)
+    const visual = geometry.visual!
+    expect(visual.bottom).toBeLessThanOrEqual(geometry.tokenBottom + 1)
+    if (geometry.sprite) {
+      expect(geometry.spriteBackground).toMatch(/^url\(/)
+      expect(visual.width).toBeGreaterThan(geometry.tokenRight - geometry.tokenLeft)
+      expect(Math.abs((visual.left + visual.right) / 2 - tokenCenter)).toBeLessThanOrEqual(1)
+      expect(visual.height).toBeGreaterThan(visual.width)
+      expect(visual.bottom).toBeLessThanOrEqual(geometry.meterTop + 1)
+    } else {
+      expect(geometry.visualBorderRadius).toBe('50%')
+      expect(visual.left).toBeGreaterThanOrEqual(geometry.tokenLeft - 1)
+      expect(visual.right).toBeLessThanOrEqual(geometry.tokenRight + 1)
+      expect(visual.top).toBeGreaterThanOrEqual(geometry.tokenTop - 1)
+    }
 
     expect(geometry.arrowTop).toBeGreaterThanOrEqual(geometry.tileTop - 1)
     // Facing is pinned to the tile's top-left corner, independent of portrait/meter geometry.
