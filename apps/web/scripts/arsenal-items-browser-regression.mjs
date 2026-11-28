@@ -672,7 +672,11 @@ try {
         await expect
           .poll(() => image.evaluate((img) => img.complete && img.naturalWidth > 0))
           .toBe(true)
-        assert.ok((await image.getAttribute('src')).includes(`${artwork}-technique-v01.webp`))
+        const source = await image.evaluate((img) => {
+          const url = new URL(img.src)
+          return url.pathname === '/_next/image' ? url.searchParams.get('url') : url.pathname
+        })
+        assert.equal(source, `/media/art/items/techniques/${artwork}-technique-anime-v01.webp`)
         await popup.getByRole('tab', { name: 'Imbued Technique', exact: true }).press('Home')
         await expect(popup.getByRole('img', { name, exact: true })).toBeVisible()
         await expect(popup.getByRole('img', { name: technique, exact: true })).toHaveCount(0)

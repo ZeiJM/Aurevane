@@ -23,7 +23,7 @@ function effectBadge(source: string): string {
 describe('approved Chronist Skill artwork', () => {
   it.each(['haste', 'delay'])('uses approved artwork for %s', (skill) => {
     expect(phase4SkillArtwork(`chronist.${skill}`)).toBe(
-      `/media/art/discipline-skills/chronist-${skill}-v01.webp`,
+      `/media/art/discipline-skills/chronist-${skill}-anime-v01.webp`,
     )
   })
 })

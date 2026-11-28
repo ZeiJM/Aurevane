@@ -119,7 +119,7 @@ try {
           const icon = command.locator('img')
           assert.ok(
             (await icon.getAttribute('src')).includes(
-              `/media/art/support/${action.id}-v${['pilfer', 'invocation'].includes(action.id) ? '02' : '01'}.webp`,
+              `/media/art/support/${action.id}-anime-v01.webp`,
             ),
           )
           await icon.evaluate((img) => img.decode())
@@ -160,7 +160,7 @@ try {
         } else assert.equal(await page.locator('button[data-command-slot="guard"]').count(), 0)
         if (action.id === 'invocation') {
           const portrait = page
-            .locator('#battlefield img[src*="/media/art/support/vesper-portrait-v01.webp"]')
+            .locator('#battlefield img[src*="/media/art/support/vesper-portrait-anime-v01.webp"]')
             .first()
           await portrait.waitFor()
           await portrait.evaluate((img) => img.decode())

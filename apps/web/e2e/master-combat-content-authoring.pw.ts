@@ -621,7 +621,7 @@ test('Master combat authoring publishes and pins versioned content, rejects reti
     const artworkPreview = page.getByRole('img', { name: 'Current artwork', exact: true })
     await expect(artworkPreview).toHaveAttribute(
       'src',
-      '/media/art/discipline-skills/vanguard-forceful-strike-v01.webp',
+      '/media/art/discipline-skills/vanguard-forceful-strike-anime-v01.webp',
     )
     await expect
       .poll(() => artworkPreview.evaluate((image: HTMLImageElement) => image.naturalWidth))
@@ -669,7 +669,7 @@ test('Master combat authoring publishes and pins versioned content, rejects reti
     const publishedSkillArtwork = publishedSkillButton.locator('img')
     await expect(publishedSkillArtwork).toHaveAttribute(
       'src',
-      '/media/art/discipline-skills/vanguard-forceful-strike-v01.webp',
+      '/media/art/discipline-skills/vanguard-forceful-strike-anime-v01.webp',
     )
     await expect
       .poll(() => publishedSkillArtwork.evaluate((image: HTMLImageElement) => image.naturalWidth))
@@ -1273,7 +1273,7 @@ test('finalized media automatically centers actual image bytes, replaces the sam
       const current = artwork.getByAltText('Current artwork')
       await expect(current).toHaveAttribute(
         'src',
-        '/media/art/discipline-sigils/aetherist-sigil-v01.webp',
+        '/media/art/discipline-sigils/aetherist-sigil-anime-v01.webp',
       )
       await expect
         .poll(() => current.evaluate((image: HTMLImageElement) => image.naturalWidth))
