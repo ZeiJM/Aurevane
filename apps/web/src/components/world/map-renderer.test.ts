@@ -15,7 +15,7 @@ import {
   nextFerryDeparture,
 } from '@/world/ferry'
 import { atlasSectors } from '@/world/atlas'
-import { CHARTED_SECTORS, GRID_HEIGHT, GRID_WIDTH } from '@/world/catalog'
+import { CHARTED_SECTORS, GRID_HEIGHT, GRID_WIDTH, STEP_MS } from '@/world/catalog'
 import { GRAND_DISCOVERY_SITES, OFFSHORE_DISCOVERY } from '@/world/discovery-sites'
 import { WORLD_MAP_WIDTH } from '@/world/topology'
 import { WORLD_MIN_ZOOM } from './world-zoom'
@@ -453,6 +453,7 @@ function scene(reduced = false, initial?: WorldView) {
       listeners.get(name)!({
         clientX: x,
         clientY: y,
+        button: 0,
         pointerId: 1,
         ...(timeStamp === undefined ? {} : { timeStamp }),
       } as unknown as Event)
@@ -487,7 +488,7 @@ describe('native map input and bounded lifecycle', () => {
       s.frame(40)
       expect(s.draws.map(({ src }) => src)).toEqual(
         expect.arrayContaining([
-          `/media/art/world/runtime/ferry-passenger-hull-${ferryVesselVersion(state.position.sectorId)}.webp`,
+          `/media/art/world/runtime/anime/ferry-passenger-hull-${ferryVesselVersion(state.position.sectorId)}.webp`,
         ]),
       )
       expect(s.texts.map(({ text }) => text)).not.toContain('Stern cabin')
@@ -1666,7 +1667,7 @@ describe('native map input and bounded lifecycle', () => {
       vi.advanceTimersByTime(200)
       expect(s.motion.sample(260).point).toEqual(before)
       expect(s.motion.sample(276).moving).toBe(true)
-      s.listeners.get('keyup')!({ key: 'd' } as unknown as Event)
+      s.listeners.get('document:keyup')!({ key: 'd' } as unknown as Event)
       const calls = s.select.mock.calls.length
       vi.advanceTimersByTime(1000)
       expect(s.select).toHaveBeenCalledTimes(calls)
@@ -1738,7 +1739,7 @@ describe('native map input and bounded lifecycle', () => {
       const before = s.motion.sample(460).point
       vi.advanceTimersByTime(400)
       expect(s.motion.sample(460).point).toEqual(before)
-      s.listeners.get('keyup')!({ key: 'd' } as unknown as Event)
+      s.listeners.get('document:keyup')!({ key: 'd' } as unknown as Event)
       const calls = s.select.mock.calls.length
       vi.advanceTimersByTime(1000)
       expect(s.select).toHaveBeenCalledTimes(calls)
@@ -1771,7 +1772,7 @@ describe('native map input and bounded lifecycle', () => {
       vi.advanceTimersByTime(1)
       expect(s.select).toHaveBeenCalledTimes(2)
       expect(s.motion.sample(stepMs).position).toEqual({ ...view.position, x: view.position.x + 1 })
-      s.listeners.get('keyup')?.({ key: 'd' } as unknown as Event)
+      s.listeners.get('document:keyup')?.({ key: 'd' } as unknown as Event)
       const calls = s.select.mock.calls.length
       vi.advanceTimersByTime(1000)
       expect(s.select).toHaveBeenCalledTimes(calls)
@@ -1855,7 +1856,7 @@ describe('native map input and bounded lifecycle', () => {
         await vi.advanceTimersByTimeAsync(100)
         trail.push(s.motion.sample(performance.now()).point.y)
       }
-      s.listeners.get('keyup')!({ key: 'w' } as unknown as Event)
+      s.listeners.get('document:keyup')!({ key: 'w' } as unknown as Event)
       await vi.advanceTimersByTimeAsync(650)
       expect(failures).toEqual([])
       expect(trail.map((y, index) => (index === 0 ? 0.5 : trail[index - 1]! - y))).toEqual(
@@ -1882,7 +1883,7 @@ describe('native map input and bounded lifecycle', () => {
       s.listeners.get('keydown')!({ key: 'd', preventDefault() {} } as unknown as Event)
       vi.advanceTimersByTime(850)
       expect(selectedAt).toEqual([0, 200, 400, 600, 800])
-      s.listeners.get('keyup')!({ key: 'd' } as unknown as Event)
+      s.listeners.get('document:keyup')!({ key: 'd' } as unknown as Event)
       vi.advanceTimersByTime(1000)
       expect(selectedAt).toEqual([0, 200, 400, 600, 800, 850])
       expect(s.motion.sample(1850).position).toEqual({
@@ -1914,7 +1915,7 @@ describe('native map input and bounded lifecycle', () => {
         s.listeners.get('keydown')!({ key: 'd', preventDefault() {} } as unknown as Event)
         vi.advanceTimersByTime(stepMs - cost)
         expect(selectedAt).toEqual([0, stepMs])
-        s.listeners.get('keyup')!({ key: 'd' } as unknown as Event)
+        s.listeners.get('document:keyup')!({ key: 'd' } as unknown as Event)
         expect(s.motion.sample(stepMs + cost).moving).toBe(true)
       } finally {
         s.renderer.dispose()
@@ -1938,7 +1939,10 @@ describe('native map input and bounded lifecycle', () => {
         vi.advanceTimersByTime(50)
         if (release === 'hidden') s.visibility('hidden')
         else if (release === 'dispose') s.renderer.dispose()
-        else s.listeners.get(release)?.({ key: 'd' } as unknown as Event)
+        else
+          s.listeners.get(release === 'keyup' ? 'document:keyup' : release)?.({
+            key: 'd',
+          } as unknown as Event)
         const calls = s.select.mock.calls.length
         vi.advanceTimersByTime(1000)
         expect(s.select).toHaveBeenCalledTimes(calls)
@@ -2011,7 +2015,7 @@ describe('native map input and bounded lifecycle', () => {
       vi.advanceTimersByTime(1)
       expect(s.motion.sample(600).position).toEqual(east)
       expect(s.select).toHaveBeenCalledTimes(3)
-      s.listeners.get('keyup')!({ key: 'd' } as unknown as Event)
+      s.listeners.get('document:keyup')!({ key: 'd' } as unknown as Event)
       const calls = s.select.mock.calls.length
       vi.advanceTimersByTime(1000)
       expect(s.select).toHaveBeenCalledTimes(calls)
@@ -2041,7 +2045,11 @@ describe('native map input and bounded lifecycle', () => {
       s.motion.planDirectional(destination, direction, view.sectors, performance.now())
     })
     const key = (event: string, key: string, repeat = false) =>
-      s.listeners.get(event)!({ key, repeat, preventDefault() {} } as unknown as Event)
+      s.listeners.get(event === 'keyup' ? 'document:keyup' : event)!({
+        key,
+        repeat,
+        preventDefault() {},
+      } as unknown as Event)
     try {
       key('keydown', 'w')
       key('keydown', 'd')
@@ -2952,7 +2960,7 @@ describe('native map input and bounded lifecycle', () => {
       try {
         const preventDefault = vi.fn()
         s.listeners.get('keydown')!({ key, preventDefault } as unknown as Event)
-        s.listeners.get('keyup')!({ key } as unknown as Event)
+        s.listeners.get('document:keyup')!({ key } as unknown as Event)
         const target = { ...view.position, x: view.position.x + dx, y: view.position.y + dy }
         expect(s.select).toHaveBeenLastCalledWith(
           target,
@@ -2965,6 +2973,29 @@ describe('native map input and bounded lifecycle', () => {
         clock.mockRestore()
         vi.unstubAllGlobals()
       }
+    }
+  })
+  it('keeps the held heading when an equivalent movement key is pressed and released', () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] })
+    const s = scene()
+    const press = (key: string) =>
+      s.listeners.get('keydown')!({ key, preventDefault() {} } as unknown as Event)
+    const release = (key: string) => s.listeners.get('document:keyup')!({ key } as unknown as Event)
+    try {
+      press('d')
+      press('ArrowRight')
+      release('ArrowRight')
+      expect(s.select).toHaveBeenCalledTimes(1)
+      vi.advanceTimersByTime(STEP_MS)
+      expect(s.select).toHaveBeenCalledTimes(2)
+      release('d')
+      const calls = s.select.mock.calls.length
+      vi.advanceTimersByTime(1000)
+      expect(s.select).toHaveBeenCalledTimes(calls)
+    } finally {
+      s.renderer.dispose()
+      vi.useRealTimers()
+      vi.unstubAllGlobals()
     }
   })
   it('keeps a tap to one authoritative tile when the release waits two steps for the first receipt', () => {
@@ -2980,7 +3011,7 @@ describe('native map input and bounded lifecycle', () => {
       const started = resolveWorldIntent(state, { kind: 'walk', direction, destination }, 1000)
       expect(started.route.map((step) => step.position)).toEqual([first])
 
-      s.listeners.get('keyup')!({ key: 'ArrowRight' } as unknown as Event)
+      s.listeners.get('document:keyup')!({ key: 'ArrowRight' } as unknown as Event)
       const [released, heading] = s.select.mock.calls.at(-1)!
       expect(released).toEqual(first)
       const stopped = resolveWorldIntent(
@@ -3059,7 +3090,7 @@ describe('native map input and bounded lifecycle', () => {
           ...approved,
           x: approved.x + 3,
         })
-        s.listeners.get('keyup')!({ key: 'ArrowRight' } as unknown as Event)
+        s.listeners.get('document:keyup')!({ key: 'ArrowRight' } as unknown as Event)
         expect(s.select).toHaveBeenLastCalledWith({ ...approved, x: approved.x + 1 }, 'east')
         expect(s.select).not.toHaveBeenCalledWith(approved, 'east')
       } finally {
@@ -3141,6 +3172,7 @@ describe('native map input and bounded lifecycle', () => {
     const touch = (name: string, id: number, x: number) =>
       s.listeners.get(name)!({
         pointerType: 'touch',
+        button: 0,
         pointerId: id,
         clientX: x,
         clientY: 300,
@@ -3208,6 +3240,7 @@ describe('native map input and bounded lifecycle', () => {
         const touch = (name: string, id: number, x: number) =>
           s.listeners.get(name)!({
             pointerType: 'touch',
+            button: 0,
             pointerId: id,
             clientX: x,
             clientY: 300,

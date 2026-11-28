@@ -44,6 +44,14 @@ beforeAll(async () => {
       [first, user],
     )
   }, '20261125142500_illustrated_appearance_catalogue.sql')
+  for (const migration of [
+    '20261127214500_authored_player_appearance_urls.sql',
+    '20261128010000_allow_shared_character_appearances.sql',
+  ]) {
+    await db.exec(
+      readFileSync(new URL(`../../../supabase/migrations/${migration}`, import.meta.url), 'utf8'),
+    )
+  }
 }, 60000)
 afterAll(async () => db?.close())
 
@@ -118,13 +126,24 @@ it('spends one on a changed look, preserves retries, and rolls back a change wit
   expect(await balance(first)).toBe(98)
   await commit(first, 0, look)
   expect(await balance(first)).toBe(98)
-  await expect(commit(second, 0, look)).rejects.toThrow('CHARACTER_APPEARANCE_DUPLICATE')
-  expect(await balance(second)).toBe(99)
+  const authored = '/api/media/appearance/7/human-m-0010.v1/neutral.svg'
+  await commit(second, 0, authored)
+  await commit(first, 1, authored)
+  expect(await balance(second)).toBe(98)
+  expect(await balance(first)).toBe(97)
+  expect(
+    (
+      await db.query(
+        'select character_id from public.character_profile_display where appearance_image_url=$1 order by character_id',
+        [authored],
+      )
+    ).rows,
+  ).toEqual([{ character_id: first }, { character_id: second }])
   await db.query(
     "delete from app_private.character_item_stacks where character_id = $1 and item_id = 'item.appearance-token'",
     [first],
   )
-  await expect(commit(first, 1, look.replace('umber', 'green'))).rejects.toThrow(
+  await expect(commit(first, 2, look.replace('umber', 'green'))).rejects.toThrow(
     'APPEARANCE_TOKEN_REQUIRED',
   )
   expect(
@@ -134,7 +153,7 @@ it('spends one on a changed look, preserves retries, and rolls back a change wit
         [first],
       )
     ).rows,
-  ).toEqual([{ appearance_image_url: look, appearance_revision: 1 }])
+  ).toEqual([{ appearance_image_url: authored, appearance_revision: 2 }])
   expect(
     (
       await db.query(

@@ -52,10 +52,10 @@ describe('Places nearby representative portraits', () => {
     ['grove', 'beauties-v03.webp', '66.66666666666666% 100%'],
     ['anchor', 'beauties-v03.webp', '33.33333333333333% 100%'],
   ] as const)(
-    'uses the existing %s artwork cell without a diamond marker',
+    'uses the repainted %s artwork cell without a diamond marker',
     (kind, sheet, position) => {
       const markup = render(kind)
-      expect(markup).toContain(`background-image:url(/media/art/world/runtime/${sheet})`)
+      expect(markup).toContain(`background-image:url(/media/art/world/runtime/anime/${sheet})`)
       expect(markup).toContain(`background-position:${position}`)
       expect(markup).toMatch(/<span[^>]*class="[^"]*placePortrait[^>]*aria-hidden="true"/)
       expect(markup).not.toContain('◇')
@@ -78,7 +78,9 @@ describe('Places nearby representative portraits', () => {
     'uses authored scenic cell %i in preference to the generic landmark kind',
     (index, position) => {
       const markup = render('spring', index as number)
-      expect(markup).toContain('background-image:url(/media/art/world/runtime/beauties-v03.webp)')
+      expect(markup).toContain(
+        'background-image:url(/media/art/world/runtime/anime/beauties-v03.webp)',
+      )
       expect(markup).toContain(`background-position:${position}`)
     },
   )
@@ -86,7 +88,9 @@ describe('Places nearby representative portraits', () => {
     'keeps invalid scenic index %s within the named landmark artwork',
     (index) => {
       const markup = render('spring', index)
-      expect(markup).toContain('background-image:url(/media/art/world/runtime/props-v02.webp)')
+      expect(markup).toContain(
+        'background-image:url(/media/art/world/runtime/anime/props-v02.webp)',
+      )
       expect(markup).toContain('background-position:66.66666666666666% 100%')
     },
   )

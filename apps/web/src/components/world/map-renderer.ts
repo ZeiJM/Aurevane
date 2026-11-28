@@ -135,6 +135,7 @@ import {
   sceneryDressing,
 } from './map-dressing'
 import { DEFAULT_MAP_QUALITY, mapQualityBudgets, type MapQuality } from './map-quality'
+import { worldMapArtSource } from './map-art-source'
 import { buildTrailGround, naturalTrailWear, paintNaturalTrail } from './map-trail'
 import { paintSnowRoadShoulders } from './map-snow-road'
 import { paintTerrainRelief, paintTerrainContours } from './map-relief'
@@ -181,7 +182,6 @@ import {
   unprojectMapPoint,
 } from './map-projection'
 
-const BASE = '/media/art/world/runtime/'
 const WINTER_ART = 'frostmere'
 const WINTER_ATLAS_ASPECT = 336 / 384
 
@@ -811,18 +811,20 @@ export function createMapRenderer(
   const heldKeys = new Map<string, MapDirection>()
   let keyTimer: ReturnType<typeof setTimeout> | null = null
   let heldDirection: MapDirection | null = null
-  let heldDestination: WorldPosition | null = null
   let heldReleaseOrigin: WorldPosition | null = null
   let heldFirstDestination: WorldPosition | null = null
+  let requestedKeyDestination: WorldPosition | null = null
+  let heldPreviewDestination: WorldPosition | null = null
   let initialKeyStep = false
   function releaseHeldKeys(finishStep = true) {
     const direction = heldDirection
-    const destination = heldDestination
+    const destination = heldPreviewDestination
     const origin = heldReleaseOrigin
     const first = heldFirstDestination
-    heldDestination = null
     heldReleaseOrigin = null
     heldFirstDestination = null
+    requestedKeyDestination = null
+    heldPreviewDestination = null
     heldKeys.clear()
     heldDirection = null
     if (keyTimer !== null) clearTimeout(keyTimer)
@@ -1129,7 +1131,7 @@ export function createMapRenderer(
       }
       requestDraw()
     }
-    image.src = BASE + name + '-' + version + '.' + format
+    image.src = worldMapArtSource(`${name}-${version}.${format}`)
     images.set(key, image)
   }
   for (const name of ['terrain', 'buildings', 'nature', 'props', 'biomes']) load(name)
@@ -2425,6 +2427,7 @@ export function createMapRenderer(
           pine: images.get('ferry-pine-coast'),
           cliff: images.get('ferry-cliff-coast'),
           dolphin: images.get('ferry-dolphin'),
+          water: images.get('water-materials'),
         },
       )
     } else {
@@ -5022,6 +5025,7 @@ export function createMapRenderer(
     changeZoom(zoom * Math.exp(-event.deltaY * (event.ctrlKey ? 0.006 : 0.0015)))
   }
   const down = (event: PointerEvent) => {
+    if (event.button !== 0) return
     canvas.setPointerCapture(event.pointerId)
     if (event.pointerType === 'touch') {
       pointers.set(event.pointerId, { x: event.clientX, y: event.clientY })
@@ -5107,6 +5111,7 @@ export function createMapRenderer(
       drag = null
       return
     }
+    if (event.button !== 0) return
     const start = drag
     drag = null
     if (!start || Math.hypot(event.clientX - start.x, event.clientY - start.y) > 7) return
@@ -5140,7 +5145,6 @@ export function createMapRenderer(
     d: 'east',
   }
   function walkHeldKey(initial = false) {
-    initialKeyStep = initial
     keyTimer = null
     const direction = [...heldKeys.values()].at(-1)
     if (!direction || disposed || paused || document.visibilityState !== 'visible') return
@@ -5209,20 +5213,34 @@ export function createMapRenderer(
         (exit) => samePosition(exit.from, sample.position) && samePosition(exit.to, first),
       )
       cadence = Math.max(STEP_MS, crossing?.durationMs ?? sector?.stepMs ?? STEP_MS)
+      const requested = initial ? first : position
+      const sendKeyWalk =
+        initial ||
+        heldDirection !== direction ||
+        !requestedKeyDestination ||
+        !samePosition(requestedKeyDestination, requested) ||
+        (!sample.moving && !samePosition(sample.position, requested))
+      if (sendKeyWalk) {
+        initialKeyStep = initial
+        heldReleaseOrigin = motion.nextLanding(now)
+        heldFirstDestination = first
+        requestedKeyDestination = requested
+        heldPreviewDestination = position
+      }
       heldDirection = direction
-      heldDestination = position
-      heldReleaseOrigin = motion.nextLanding(now)
-      heldFirstDestination = first
       // The release write can queue behind a delayed receipt. A tap must never
       // authorize three steps while it waits. Keep lookahead for interpolation
       // and extend the server route only after a held-key interval elapses.
-      if (initial && !samePosition(first, position)) select(first, direction, position)
-      else if (initial) select(position, direction)
-      else select(position, direction, undefined, true)
-      requestDraw()
+      if (sendKeyWalk) {
+        if (initial && !samePosition(first, position)) select(first, direction, position)
+        else if (initial) select(position, direction)
+        else select(position, direction, undefined, true)
+        requestDraw()
+      }
     } else if (heldDirection !== direction) {
       // A blocked turn must also cancel the previous click or held heading.
-      heldDestination = null
+      requestedKeyDestination = null
+      heldPreviewDestination = null
       heldDirection = direction
       onStop()
     }
@@ -5252,16 +5270,19 @@ export function createMapRenderer(
     if (!Object.hasOwn(keyDirections, name) || !direction) return
     event.preventDefault()
     if (event.repeat || heldKeys.has(name)) return
+    const previous = [...heldKeys.values()].at(-1)
     heldKeys.set(name, direction)
+    if (previous === direction) return
     if (keyTimer !== null) clearTimeout(keyTimer)
     walkHeldKey(true)
   }
   const keyUp = (event: KeyboardEvent) => {
     const key = event.key.toLowerCase()
-    const wasActive = [...heldKeys.keys()].at(-1) === key
-    if (!heldKeys.delete(key) || !wasActive) return
-    if (!heldKeys.size) releaseHeldKeys()
-    else {
+    const previous = [...heldKeys.values()].at(-1)
+    if (!heldKeys.delete(key)) return
+    const direction = [...heldKeys.values()].at(-1)
+    if (!direction) releaseHeldKeys()
+    else if (direction !== previous) {
       if (keyTimer !== null) clearTimeout(keyTimer)
       walkHeldKey(true)
     }
@@ -5305,14 +5326,13 @@ export function createMapRenderer(
   }
   const windowBlur = () => releaseHeldKeys()
   document.addEventListener('keydown', documentKey)
-  document.addEventListener('keyup', keyUp)
+  document.addEventListener('keyup', keyUp, true)
   document.addEventListener('focusin', focusChanged)
   canvas.addEventListener('pointerdown', down)
   canvas.addEventListener('pointermove', move)
   canvas.addEventListener('pointerup', up)
   canvas.addEventListener('pointercancel', cancel)
   canvas.addEventListener('keydown', key)
-  canvas.addEventListener('keyup', keyUp)
   canvas.addEventListener('blur', blur)
   window.addEventListener('blur', windowBlur)
   canvas.addEventListener('wheel', wheel, { passive: false })
@@ -5445,7 +5465,7 @@ export function createMapRenderer(
       observer.disconnect()
       document.removeEventListener('visibilitychange', visibility)
       document.removeEventListener('keydown', documentKey)
-      document.removeEventListener('keyup', keyUp)
+      document.removeEventListener('keyup', keyUp, true)
       document.removeEventListener('focusin', focusChanged)
       clearCache()
       for (const image of images.values()) image.onload = null
@@ -5456,7 +5476,6 @@ export function createMapRenderer(
       canvas.removeEventListener('pointerup', up)
       canvas.removeEventListener('pointercancel', cancel)
       canvas.removeEventListener('keydown', key)
-      canvas.removeEventListener('keyup', keyUp)
       canvas.removeEventListener('blur', blur)
       window.removeEventListener('blur', windowBlur)
       canvas.removeEventListener('wheel', wheel)
