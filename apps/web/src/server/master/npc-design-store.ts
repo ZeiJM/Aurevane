@@ -14,7 +14,7 @@ import {
   type NpcDesignRecord,
 } from '@aurevane/validation/combat/npc-design'
 
-import { isActivePaintedAppearance } from '@/appearance/appearance-active-catalog'
+import { liveCharacterAppearanceUrl } from '@/appearance/appearance-live'
 import { appearanceManifestFromImageUrl } from '@/appearance/appearance-manifest'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createSelectedCharacterRpc } from './selected-character-rpc'
@@ -108,9 +108,7 @@ export async function writeNpcDesign(actorUserId: string, command: NpcDesignComm
     if (
       !validNpcPresentation(command.draft) ||
       (command.draft.imageUrl &&
-        !isActivePaintedAppearance(
-          appearanceManifestFromImageUrl(command.draft.imageUrl)?.blueprint,
-        ))
+        appearanceManifestFromImageUrl(command.draft.imageUrl)?.blueprint.v !== 7)
     ) {
       throw new AurevaneError('INVALID_REQUEST', 'Choose an available painted appearance.')
     }
@@ -161,7 +159,7 @@ export async function readPublishedArenaNpcs(id: string | null = null): Promise<
   return data.map((value) => {
     const npc = parseArenaNpc(value)
     if (!npc || !validNpcPresentation(npc)) invalidNpcResponse()
-    return npc
+    return { ...npc, imageUrl: liveCharacterAppearanceUrl(npc.imageUrl, npc.portraitRef) }
   })
 }
 
@@ -174,7 +172,7 @@ export async function readPublishedWorldNpcs(sectorId: string): Promise<Publishe
   return data.map((value) => {
     const npc = parsePublishedWorldNpc(value)
     if (!npc || !validNpcPresentation(npc) || npc.sectorId !== sectorId) invalidNpcResponse()
-    return npc
+    return { ...npc, imageUrl: liveCharacterAppearanceUrl(npc.imageUrl, npc.portraitRef) }
   })
 }
 
@@ -190,7 +188,7 @@ export async function readPublishedStoryNpcs(
   return data.map((value) => {
     const npc = parsePublishedStoryNpc(value)
     if (!npc || !validNpcPresentation(npc)) invalidNpcResponse()
-    return npc
+    return { ...npc, imageUrl: liveCharacterAppearanceUrl(npc.imageUrl, npc.portraitRef) }
   })
 }
 

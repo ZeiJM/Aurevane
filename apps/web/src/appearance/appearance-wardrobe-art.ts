@@ -1,5 +1,5 @@
 import type { Cuff } from './appearance-cuff-catalog'
-import type { AppearanceBlueprint } from './appearance-manifest'
+import type { LegacyAppearanceBlueprint as AppearanceBlueprint } from './appearance-manifest'
 import type { WardrobeCut } from './appearance-wardrobe-catalog'
 
 // Original vector garment parts in the actor rig's 48 × 64 coordinates. The waist stays

@@ -1,7 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-import { paintedPlayerAppearanceBlueprint } from '../src/appearance/appearance-manifest'
-import { PAINTED_STUDIES } from '../src/appearance/appearance-painted-studies'
+import { authoredAppearance } from '../src/appearance/appearance-authored-catalog'
 import { saveFixtureAppearance } from './appearance-test-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
@@ -24,11 +23,7 @@ test('ordinary desktop shell fits its identity and every navigation control with
     characterName: `Frame Explorer ${nameSuffix}`,
   })
 
-  const imageUrl = await saveFixtureAppearance(
-    page,
-    userId,
-    paintedPlayerAppearanceBlueprint({ ...PAINTED_STUDIES.f04.look, backdrop: 'hourless' }),
-  )
+  const imageUrl = await saveFixtureAppearance(page, userId, authoredAppearance('elf-f-0004', 2)!)
   await page.goto('/game/character')
   const railImage = page.locator('[data-av-game-rail] [data-character-portrait-frame] img')
   await expect(railImage).toHaveAttribute('src', imageUrl)

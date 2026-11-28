@@ -1,6 +1,7 @@
 import { battleChronicleScrollRegion, setBattleChronicleOpen } from './battle-log-layout-helpers'
 import { expect, type Page, type TestInfo } from '@playwright/test'
 import { expectRefinedCockpit, targetForecast } from './refined-battle-helpers'
+import { TERRACE_HEIGHT_FRACTION, TERRACE_WIDTH_FRACTION } from './battle-terrace-layout-helpers'
 
 export async function expectBattleChronicleGutterGeometry(page: Page, requireGrowth = false) {
   const geometry = await page.locator('#battlefield [data-board-auto-fit]').evaluate((board) => {
@@ -26,9 +27,9 @@ export async function expectBattleChronicleGutterGeometry(page: Page, requireGro
       columns,
       rows,
       gap: parseFloat(getComputedStyle(board).columnGap) || 0,
-      terrace: board.hasAttribute('data-battle-terrace')
-        ? { width: viewport.clientWidth * 0.79, height: viewport.clientHeight * 0.64 }
-        : null,
+      terrace: board.hasAttribute('data-battle-terrace'),
+      viewportWidth: viewport.clientWidth,
+      viewportHeight: viewport.clientHeight,
       board: board.getBoundingClientRect().toJSON(),
       chronicle: stage
         .querySelector('[data-battle-side="selected"]')!
@@ -53,14 +54,18 @@ export async function expectBattleChronicleGutterGeometry(page: Page, requireGro
   expect(
     Math.abs(
       geometry.board.width -
-        (geometry.terrace?.width ?? columns! * originalTile + (columns! - 1) * gap),
+        (geometry.terrace
+          ? geometry.viewportWidth * TERRACE_WIDTH_FRACTION
+          : columns! * originalTile + (columns! - 1) * gap),
     ),
     'The battlefield retains its fitted width beside the Chronicle',
   ).toBeLessThanOrEqual(1)
   expect(
     Math.abs(
       geometry.board.height -
-        (geometry.terrace?.height ?? rows! * originalTile + (rows! - 1) * gap),
+        (geometry.terrace
+          ? geometry.viewportHeight * TERRACE_HEIGHT_FRACTION
+          : rows! * originalTile + (rows! - 1) * gap),
     ),
     'The battlefield retains its fitted height beside the Chronicle',
   ).toBeLessThanOrEqual(1)
@@ -107,6 +112,7 @@ export async function expectBattleHeaderAndArtworkGeometry(page: Page) {
       image: frame.querySelector('img')!.getBoundingClientRect().toJSON(),
     }))
     const cards = [...element.querySelectorAll('[data-battle-combatant-card]')].map((card) => ({
+      bounds: card.getBoundingClientRect().toJSON(),
       portrait: card.querySelector('[data-av-square-media]')!.getBoundingClientRect().toJSON(),
       resources: [...card.querySelectorAll('[data-resource]')].map((resource) => ({
         track: resource.querySelector('i')!.getBoundingClientRect().toJSON(),
@@ -167,14 +173,12 @@ export async function expectBattleHeaderAndArtworkGeometry(page: Page) {
   const baseline = geometry.selected[0]!.frame
   expect(baseline.width).toBeGreaterThan(0)
   for (const card of geometry.cards) {
-    if (!mobile)
-      expect(
-        Math.abs(card.portrait.width - baseline.width),
-        'combatant portraits match cockpit artwork',
-      ).toBeLessThanOrEqual(1)
+    expect(card.portrait.x).toBeGreaterThanOrEqual(card.bounds.x - 1)
+    expect(card.portrait.right).toBeLessThanOrEqual(card.bounds.right + 1)
     expect(Math.abs(card.portrait.width - card.portrait.height)).toBeLessThanOrEqual(1)
     expect(card.portrait.width).toBeGreaterThan(0)
     const [hp, mp] = card.resources
+    if (!mobile) expect(card.portrait.right).toBeLessThanOrEqual(hp!.track.x + 1)
     expect(hp!.track.width, 'resource tracks stay visible').toBeGreaterThan(0)
     expect(
       Math.abs(hp!.track.width - mp!.track.width),

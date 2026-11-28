@@ -1,4 +1,9 @@
 import { paintedLookStance } from './appearance-active-catalog'
+import {
+  authoredAppearance,
+  authoredAppearanceSource,
+  type AuthoredAppearanceBlueprint,
+} from './appearance-authored-catalog'
 import { portraitFace } from './appearance-face-catalog'
 import {
   PAINTED_CLOTHING,
@@ -141,13 +146,15 @@ export function paintedPlayerAppearanceBlueprint(
   })
 }
 
-export type AppearanceBlueprint = SharedAppearanceParts &
+export type LegacyAppearanceBlueprint = SharedAppearanceParts &
   (
     | { readonly v: 1 }
     | { readonly v: 2; readonly lower: LowerGarment }
     | { readonly v: 3; readonly lower: LowerGarmentChoice; readonly cuff: Cuff }
     | AnyPaintedAppearanceBlueprint
   )
+
+export type AppearanceBlueprint = LegacyAppearanceBlueprint | AuthoredAppearanceBlueprint
 
 export type AppearanceExpression = (typeof APPEARANCE_EXPRESSIONS)[number]
 export type AppearanceFacing = (typeof APPEARANCE_FACINGS)[number]
@@ -239,6 +246,10 @@ export const APPEARANCE_PRESETS = [
 export function parseAppearanceBlueprint(input: unknown): AppearanceBlueprint | null {
   if (typeof input !== 'object' || input === null || Array.isArray(input)) return null
   const values = input as Record<string, unknown>
+  if (values.v === 7)
+    return Object.keys(values).length === 3
+      ? authoredAppearance(values.character, values.variant)
+      : null
   if (values.v === 5 || values.v === 6) {
     const featureFields = Object.keys(originalWardrobeFeatures)
     const hasFeatures = featureFields.some((field) => Object.hasOwn(values, field))
@@ -297,7 +308,7 @@ export function parseAppearanceBlueprint(input: unknown): AppearanceBlueprint | 
     const choices: readonly unknown[] = APPEARANCE_CATALOG[field]
     if (!choices.includes(values[field])) return null
   }
-  const blueprint = values as Exclude<AppearanceBlueprint, AnyPaintedAppearanceBlueprint>
+  const blueprint = values as Exclude<LegacyAppearanceBlueprint, AnyPaintedAppearanceBlueprint>
   if (
     appearanceClothingConflict(blueprint) ||
     (blueprint.v !== 1 &&
@@ -313,7 +324,7 @@ export function withLowerGarment(
   blueprint: AppearanceBlueprint,
   choice: LowerGarmentChoice,
 ): AppearanceBlueprint | null {
-  if (blueprint.v === 4 || blueprint.v === 5 || blueprint.v === 6)
+  if (blueprint.v === 4 || blueprint.v === 5 || blueprint.v === 6 || blueprint.v === 7)
     return choice === 'original' ? blueprint : null
   if (blueprint.v === 3) return parseAppearanceBlueprint({ ...blueprint, lower: choice })
   if (choice !== 'original') return parseAppearanceBlueprint({ ...blueprint, v: 2, lower: choice })
@@ -328,7 +339,7 @@ export function withCuff(
   blueprint: AppearanceBlueprint,
   choice: CuffChoice,
 ): AppearanceBlueprint | null {
-  if (blueprint.v === 4 || blueprint.v === 5 || blueprint.v === 6)
+  if (blueprint.v === 4 || blueprint.v === 5 || blueprint.v === 6 || blueprint.v === 7)
     return choice === 'original' ? blueprint : null
   if (choice !== 'original') {
     return parseAppearanceBlueprint({
@@ -347,6 +358,8 @@ export function withCuff(
 }
 
 export function varyAppearanceOutfit(blueprint: AppearanceBlueprint): AppearanceBlueprint {
+  if (blueprint.v === 7)
+    return authoredAppearance(blueprint.character, blueprint.variant === 1 ? 2 : 1) ?? blueprint
   if (blueprint.v === 5 || blueprint.v === 6) {
     const outerwear = Object.keys(WARDROBE_OUTERWEAR) as PaintedWardrobeLook['outerwear'][]
     const index = outerwear.indexOf(blueprint.outerwear)
@@ -376,6 +389,26 @@ export function varyAppearanceOutfit(blueprint: AppearanceBlueprint): Appearance
 export function compileAppearanceManifest(input: AppearanceBlueprint) {
   const blueprint = parseAppearanceBlueprint(input)
   if (!blueprint) throw new TypeError('Incompatible appearance')
+  if (blueprint.v === 7) {
+    const id = `7/${blueprint.character}.v${blueprint.variant}`
+    const base = `${APPEARANCE_ASSET_PREFIX}${id}`
+    const neutralUrl = `${base}/neutral.svg`
+    const motionAtlas = `${authoredAppearanceSource(blueprint)}/sprites.webp`
+    return Object.freeze({
+      id,
+      blueprint,
+      neutralUrl,
+      portraits: Object.freeze(
+        Object.fromEntries(
+          APPEARANCE_EXPRESSIONS.map((mood) => [mood, `${base}/${mood}.svg`]),
+        ) as Record<AppearanceExpression, string>,
+      ),
+      icon: `${base}/icon.svg`,
+      atlas: motionAtlas,
+      motionAtlas,
+      frame: APPEARANCE_MOTION_FRAME,
+    })
+  }
   const parts: string[] =
     blueprint.v === 6
       ? [...paintedPlayerRecipe(blueprint)]
@@ -425,6 +458,10 @@ export function appearanceBlueprintFromId(
   id: string,
   assetVersion: AppearanceBlueprint['v'] | string = 1,
 ): AppearanceBlueprint | null {
+  if (assetVersion === 7 || assetVersion === '7') {
+    const match = /^([a-z-]{3,35}\d{4})\.v([12])$/.exec(id)
+    return match ? authoredAppearance(match[1], Number(match[2])) : null
+  }
   if (assetVersion === 6 || assetVersion === '6') {
     return id.length <= 320 ? playerBlueprintFromParts(id.split('.')) : null
   }

@@ -229,7 +229,7 @@ it('projects Vesper static artwork into shared battle cards and Inspect without 
   }
   const id = snapshot.effectState!.summons![0]!.combatantId
   const participant = battlePresentationParticipantMap(view, [owner]).get(id)!
-  const src = '/media/art/support/vesper-portrait-v01.webp'
+  const src = '/media/art/support/vesper-portrait-anime-v01.webp'
   expect(participant.profileImageUrl).toBe(src)
   expect(readSummonInspectMetadata(snapshot, id)).toMatchObject({
     name: 'Vesper',

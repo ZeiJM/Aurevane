@@ -4,9 +4,9 @@ import { presentItem } from './item-presentation'
 it('uses independent Support artwork and preserves captured absence without new default fallback', () => {
   const current = starterItemDefinitions().find((item) => item.id === 'stormcaller-staff')!
   const result = presentItem(current)
-  expect(result.artworkSrc).toBe('/media/art/items/stormcaller-staff-v01.webp')
+  expect(result.artworkSrc).toBe('/media/art/items/stormcaller-staff-anime-v01.webp')
   expect(result.actions.support?.artworkSrc).toBe(
-    '/media/art/items/techniques/stormcaller-staff-technique-v01.webp',
+    '/media/art/items/techniques/stormcaller-staff-technique-anime-v01.webp',
   )
   const historical = {
     ...current,
@@ -41,7 +41,7 @@ it('prefers exact finalized technique artwork over built-in and weapon artwork',
     },
   }
   expect(presentItem(current).actions.support?.artworkSrc).toBe(`/api/content-media/${artwork.id}`)
-  expect(presentItem(current).artworkSrc).toBe('/media/art/items/emberbrand-v01.webp')
+  expect(presentItem(current).artworkSrc).toBe('/media/art/items/emberbrand-anime-v01.webp')
 })
 
 it('projects exact authored purpose text and leaves absent captured purpose unavailable', () => {

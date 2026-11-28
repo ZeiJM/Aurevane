@@ -4,7 +4,6 @@ import {
   compileAppearanceManifest,
   parseAppearanceBlueprint,
 } from '@/appearance/appearance-manifest'
-import { isActivePaintedAppearance } from '@/appearance/appearance-active-catalog'
 import { throwCombatContentAdmissionError } from '../combat/combat-content-admission-error'
 
 import { createHash } from 'node:crypto'
@@ -196,7 +195,7 @@ export async function createCharacterInSlot(command: {
   const seed = validation.value
 
   const blueprint = parseAppearanceBlueprint(command.appearance)
-  if (command.appearance !== undefined && !isActivePaintedAppearance(blueprint)) {
+  if (command.appearance !== undefined && blueprint?.v !== 7) {
     throw new AurevaneError('INVALID_REQUEST', 'Choose an available painted appearance.')
   }
   const appearanceUrl = blueprint ? compileAppearanceManifest(blueprint).neutralUrl : null

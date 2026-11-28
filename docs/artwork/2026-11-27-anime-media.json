@@ -1,0 +1,2663 @@
+{
+  "direction": "Original inked cel-shaded fantasy art",
+  "counts": {
+    "items": 47,
+    "skills": 136,
+    "essences": 17,
+    "resonances": 136,
+    "sigils": 17,
+    "support": 8,
+    "commands": 7,
+    "supernatural": 3,
+    "terrainOverlays": 1,
+    "publishedUploads": 6
+  },
+  "assets": [
+    {
+      "previous": "/media/art/items/wayfarer-hood-v01.webp",
+      "current": "/media/art/items/wayfarer-hood-anime-v01.webp",
+      "master": "exec-07d6d8fd-6576-43ff-ba21-bad1efa56c52.png",
+      "tile": 1,
+      "sha256": "4ff1c6420aab236c4f2be16ff5bcb8ae954e9d6fe8fd8a3066ee516b54a55e1f"
+    },
+    {
+      "previous": "/media/art/items/ember-stitched-cowl-v01.webp",
+      "current": "/media/art/items/ember-stitched-cowl-anime-v01.webp",
+      "master": "exec-07d6d8fd-6576-43ff-ba21-bad1efa56c52.png",
+      "tile": 2,
+      "sha256": "24394241e9454897b08bdeac6b74d71c78f82ddd966e6d9c3dc1c918e7677d64"
+    },
+    {
+      "previous": "/media/art/items/warden-helm-v01.webp",
+      "current": "/media/art/items/warden-helm-anime-v01.webp",
+      "master": "exec-07d6d8fd-6576-43ff-ba21-bad1efa56c52.png",
+      "tile": 3,
+      "sha256": "1b2cf7da7d13464f70d76b60422657f3af815196027570b89d2ae5136361ab88"
+    },
+    {
+      "previous": "/media/art/items/traveler-jerkin-v01.webp",
+      "current": "/media/art/items/traveler-jerkin-anime-v01.webp",
+      "master": "exec-07d6d8fd-6576-43ff-ba21-bad1efa56c52.png",
+      "tile": 4,
+      "sha256": "fc588e05ba6ceaba2ebda682b312b3541524ff29764afb14b5c782f3a3f80191"
+    },
+    {
+      "previous": "/media/art/items/stormweave-robe-v01.webp",
+      "current": "/media/art/items/stormweave-robe-anime-v01.webp",
+      "master": "exec-07d6d8fd-6576-43ff-ba21-bad1efa56c52.png",
+      "tile": 5,
+      "sha256": "064b05ce17ac72e4b80c4684c30ddd891c0312428c0f3f5a0cd6afcc26e51d95"
+    },
+    {
+      "previous": "/media/art/items/duskplate-cuirass-v01.webp",
+      "current": "/media/art/items/duskplate-cuirass-anime-v01.webp",
+      "master": "exec-07d6d8fd-6576-43ff-ba21-bad1efa56c52.png",
+      "tile": 6,
+      "sha256": "48b44bc9278087a43752d1c5ffabc4c69be478253143570d97b5fa2f82cbee02"
+    },
+    {
+      "previous": "/media/art/items/roadworn-trousers-v01.webp",
+      "current": "/media/art/items/roadworn-trousers-anime-v01.webp",
+      "master": "exec-07d6d8fd-6576-43ff-ba21-bad1efa56c52.png",
+      "tile": 7,
+      "sha256": "c186b528f49a8335763bfbdad46a8d4dbbeb1d89d08c6688ef29bcd1e36bf865"
+    },
+    {
+      "previous": "/media/art/items/reinforced-greaves-v01.webp",
+      "current": "/media/art/items/reinforced-greaves-anime-v01.webp",
+      "master": "exec-07d6d8fd-6576-43ff-ba21-bad1efa56c52.png",
+      "tile": 8,
+      "sha256": "956ae7f1fe040f86610979c969f379758c3c1ed1c85eb4d4f448578605cd22c9"
+    },
+    {
+      "previous": "/media/art/items/shadowstep-leggings-v01.webp",
+      "current": "/media/art/items/shadowstep-leggings-anime-v01.webp",
+      "master": "exec-07d6d8fd-6576-43ff-ba21-bad1efa56c52.png",
+      "tile": 9,
+      "sha256": "36d756f398547ffba979a6eb5fbcbf2299c855890014d152aa4c6c30e3ccdc02"
+    },
+    {
+      "previous": "/media/art/items/trailbound-boots-v01.webp",
+      "current": "/media/art/items/trailbound-boots-anime-v01.webp",
+      "master": "exec-07d6d8fd-6576-43ff-ba21-bad1efa56c52.png",
+      "tile": 10,
+      "sha256": "1d29a8ff9d661003b82f9cf3969e690bca911c4ba9ac7f95c3b5fa37900c2137"
+    },
+    {
+      "previous": "/media/art/items/galewalker-boots-v01.webp",
+      "current": "/media/art/items/galewalker-boots-anime-v01.webp",
+      "master": "exec-07d6d8fd-6576-43ff-ba21-bad1efa56c52.png",
+      "tile": 11,
+      "sha256": "35069028c67be441866285993234f72880d241ed43fecb333396712064ac95d3"
+    },
+    {
+      "previous": "/media/art/items/quickdraw-glove-v01.webp",
+      "current": "/media/art/items/quickdraw-glove-anime-v01.webp",
+      "master": "exec-07d6d8fd-6576-43ff-ba21-bad1efa56c52.png",
+      "tile": 12,
+      "sha256": "6572a72c32e84f1210368d735f86c318210b0959b058090c44b22a87828ed117"
+    },
+    {
+      "previous": "/media/art/items/wardstone-bracer-v01.webp",
+      "current": "/media/art/items/wardstone-bracer-anime-v01.webp",
+      "master": "exec-07d6d8fd-6576-43ff-ba21-bad1efa56c52.png",
+      "tile": 13,
+      "sha256": "297ee370fb190f04f449a73929d38e62c886bdfad7e4c2e3f9d3aac1549a4026"
+    },
+    {
+      "previous": "/media/art/items/iron-shortsword-v01.webp",
+      "current": "/media/art/items/iron-shortsword-anime-v01.webp",
+      "master": "exec-07d6d8fd-6576-43ff-ba21-bad1efa56c52.png",
+      "tile": 14,
+      "sha256": "e6551d9c4af1303b86c7476cb98743bd9bb7c7cf5e580cc48894c6f675d5fdec"
+    },
+    {
+      "previous": "/media/art/items/hollow-dagger-v01.webp",
+      "current": "/media/art/items/hollow-dagger-anime-v01.webp",
+      "master": "exec-07d6d8fd-6576-43ff-ba21-bad1efa56c52.png",
+      "tile": 15,
+      "sha256": "3221d43aa0d095b81f8d420d73369ddc19ccaf5fa3bd06873a86cf2ebe2f98d5"
+    },
+    {
+      "previous": "/media/art/items/buckler-patience-v01.webp",
+      "current": "/media/art/items/buckler-patience-anime-v01.webp",
+      "master": "exec-07d6d8fd-6576-43ff-ba21-bad1efa56c52.png",
+      "tile": 16,
+      "sha256": "441a83f19daeb90b1ef28293365888d3c341e715dcdb363ce93b80115e320f22"
+    },
+    {
+      "previous": "/media/art/items/twinfang-blade-v01.webp",
+      "current": "/media/art/items/twinfang-blade-anime-v01.webp",
+      "master": "exec-90abe05c-b21e-4d2d-9b23-d02c02ffb2f9.png",
+      "tile": 1,
+      "sha256": "868ee70c31abc9045627f8a039684dfb95b218c2c353f3648623ad389005d224"
+    },
+    {
+      "previous": "/media/art/items/tower-shield-v01.webp",
+      "current": "/media/art/items/tower-shield-anime-v01.webp",
+      "master": "exec-90abe05c-b21e-4d2d-9b23-d02c02ffb2f9.png",
+      "tile": 2,
+      "sha256": "448e81b716c7f7d14e84b3ff826d7679db1d226564fd47e69b4c5979547a29bb"
+    },
+    {
+      "previous": "/media/art/items/stormcaller-staff-v01.webp",
+      "current": "/media/art/items/stormcaller-staff-anime-v01.webp",
+      "master": "exec-90abe05c-b21e-4d2d-9b23-d02c02ffb2f9.png",
+      "tile": 3,
+      "sha256": "f7c81e6c4c9a0cbb5f71ce8755323135b1fb37b54c6c28c58fa74a3b7928555a"
+    },
+    {
+      "previous": "/media/art/items/emberbrand-v01.webp",
+      "current": "/media/art/items/emberbrand-anime-v01.webp",
+      "master": "exec-90abe05c-b21e-4d2d-9b23-d02c02ffb2f9.png",
+      "tile": 4,
+      "sha256": "92c57ee91d1db7b0005142a557e9115f4dad1ca1c78c0bc32a24928c181152fc"
+    },
+    {
+      "previous": "/media/art/items/sunsplitter-v01.webp",
+      "current": "/media/art/items/sunsplitter-anime-v01.webp",
+      "master": "exec-90abe05c-b21e-4d2d-9b23-d02c02ffb2f9.png",
+      "tile": 5,
+      "sha256": "2f5ac0dd1258d257c2a244eb7848089c11f8fb02c90787b55496ead52d51c3f4"
+    },
+    {
+      "previous": "/media/art/items/mender-salve-v01.webp",
+      "current": "/media/art/items/mender-salve-anime-v01.webp",
+      "master": "exec-90abe05c-b21e-4d2d-9b23-d02c02ffb2f9.png",
+      "tile": 6,
+      "sha256": "3368702bf33e4ea54f1fbde482d035472e8b0b5a2d7e6adb49b79b8c6cb75ebb"
+    },
+    {
+      "previous": "/media/art/items/clarity-draught-v01.webp",
+      "current": "/media/art/items/clarity-draught-anime-v01.webp",
+      "master": "exec-90abe05c-b21e-4d2d-9b23-d02c02ffb2f9.png",
+      "tile": 7,
+      "sha256": "61ac7268fff5b3b3fb171e9142674f4de5b7bb02155153b5a19b9e4ca0b31782"
+    },
+    {
+      "previous": "/media/art/items/purifying-incense-v01.webp",
+      "current": "/media/art/items/purifying-incense-anime-v01.webp",
+      "master": "exec-90abe05c-b21e-4d2d-9b23-d02c02ffb2f9.png",
+      "tile": 8,
+      "sha256": "6083339d8f0316f7fb8279400ca6c4c8d8dfc017e8371e212a8082e5bb786204"
+    },
+    {
+      "previous": "/media/art/items/whetstone-charm-v01.webp",
+      "current": "/media/art/items/whetstone-charm-anime-v01.webp",
+      "master": "exec-90abe05c-b21e-4d2d-9b23-d02c02ffb2f9.png",
+      "tile": 9,
+      "sha256": "e1cb559a146f35afa1db340fb2f813480454cef4ae3fd413a05fbfc9c7b5dffd"
+    },
+    {
+      "previous": "/media/art/items/ironbark-tonic-v01.webp",
+      "current": "/media/art/items/ironbark-tonic-anime-v01.webp",
+      "master": "exec-90abe05c-b21e-4d2d-9b23-d02c02ffb2f9.png",
+      "tile": 10,
+      "sha256": "191fd369b5d7bc54b4b635ab4c32595fff04d37892ba9f7ab61535b144652ec5"
+    },
+    {
+      "previous": "/media/art/items/swiftleaf-tea-v01.webp",
+      "current": "/media/art/items/swiftleaf-tea-anime-v01.webp",
+      "master": "exec-90abe05c-b21e-4d2d-9b23-d02c02ffb2f9.png",
+      "tile": 11,
+      "sha256": "f058f0a99babc51d681ba61e6b8315bea32f28aa8face629c462aa8cc46d81a6"
+    },
+    {
+      "previous": "/media/art/items/emberflask-v01.webp",
+      "current": "/media/art/items/emberflask-anime-v01.webp",
+      "master": "exec-90abe05c-b21e-4d2d-9b23-d02c02ffb2f9.png",
+      "tile": 12,
+      "sha256": "6418d96514e6a597fd23b3e0c1d01d08a0642537a61341128a8db39a9fad02c9"
+    },
+    {
+      "previous": "/media/art/items/vulnerability-oil-v01.webp",
+      "current": "/media/art/items/vulnerability-oil-anime-v01.webp",
+      "master": "exec-90abe05c-b21e-4d2d-9b23-d02c02ffb2f9.png",
+      "tile": 13,
+      "sha256": "8be1901cb862781a4e8f0cbaa23f7aeb34d7720b9ae5d578b50cdcc33bc0f9c9"
+    },
+    {
+      "previous": "/media/art/items/frostbind-powder-v01.webp",
+      "current": "/media/art/items/frostbind-powder-anime-v01.webp",
+      "master": "exec-90abe05c-b21e-4d2d-9b23-d02c02ffb2f9.png",
+      "tile": 14,
+      "sha256": "51dbe3a60e2a831b31e0869e2abd612998159945eabeb4b5471bef964abaef7d"
+    },
+    {
+      "previous": "/media/art/items/smoke-veil-v01.webp",
+      "current": "/media/art/items/smoke-veil-anime-v01.webp",
+      "master": "exec-90abe05c-b21e-4d2d-9b23-d02c02ffb2f9.png",
+      "tile": 15,
+      "sha256": "932a90bb720cafd9e8fe0f251e99378d09de3a15e43e20eba3378dc4eb3e11c9"
+    },
+    {
+      "previous": "/media/art/items/ward-sigil-scroll-v01.webp",
+      "current": "/media/art/items/ward-sigil-scroll-anime-v01.webp",
+      "master": "exec-90abe05c-b21e-4d2d-9b23-d02c02ffb2f9.png",
+      "tile": 16,
+      "sha256": "ff2d615592187d67c974005eec188125a0312548ef902833b7ff3038599fb634"
+    },
+    {
+      "previous": "/media/art/items/ashwood-plank-v01.webp",
+      "current": "/media/art/items/ashwood-plank-anime-v01.webp",
+      "master": "exec-09ee1c30-14c8-4407-a3b9-0dbc58d8e0a9.png",
+      "tile": 1,
+      "sha256": "cb3cedd6aaac7e30cc371e68bbe37db28d886d329af088575ef87da63eda604b"
+    },
+    {
+      "previous": "/media/art/items/ironvein-ore-v01.webp",
+      "current": "/media/art/items/ironvein-ore-anime-v01.webp",
+      "master": "exec-09ee1c30-14c8-4407-a3b9-0dbc58d8e0a9.png",
+      "tile": 2,
+      "sha256": "95f4697d7c7b6f918ec7f1cfe84849d359f03236e25e4d4a0d6a572ac7e0566a"
+    },
+    {
+      "previous": "/media/art/items/dusk-petal-v01.webp",
+      "current": "/media/art/items/dusk-petal-anime-v01.webp",
+      "master": "exec-09ee1c30-14c8-4407-a3b9-0dbc58d8e0a9.png",
+      "tile": 3,
+      "sha256": "bf7531dae75734b0a319ddac24867f976f516e2ec919182c8f03304c1fbe54f6"
+    },
+    {
+      "previous": "/media/art/items/wyrm-scale-shard-v01.webp",
+      "current": "/media/art/items/wyrm-scale-shard-anime-v01.webp",
+      "master": "exec-09ee1c30-14c8-4407-a3b9-0dbc58d8e0a9.png",
+      "tile": 4,
+      "sha256": "791b3547d3f4c828b7810cc35b535478ac725442f226858082e11b4a4aa184d5"
+    },
+    {
+      "previous": "/media/art/items/glimmer-dust-v01.webp",
+      "current": "/media/art/items/glimmer-dust-anime-v01.webp",
+      "master": "exec-09ee1c30-14c8-4407-a3b9-0dbc58d8e0a9.png",
+      "tile": 5,
+      "sha256": "42e67fa376b90f8535400ef0157e8e54db47cd569576165c7dce651847b307f4"
+    },
+    {
+      "previous": "/media/art/items/lantern-oil-v01.webp",
+      "current": "/media/art/items/lantern-oil-anime-v01.webp",
+      "master": "exec-09ee1c30-14c8-4407-a3b9-0dbc58d8e0a9.png",
+      "tile": 6,
+      "sha256": "efb2a8a8a860d540922cfa44f3c843098e907e22637f70137106739ec5c0318e"
+    },
+    {
+      "previous": "/media/art/items/rope-coil-v01.webp",
+      "current": "/media/art/items/rope-coil-anime-v01.webp",
+      "master": "exec-09ee1c30-14c8-4407-a3b9-0dbc58d8e0a9.png",
+      "tile": 7,
+      "sha256": "93402689e937455fdc0a5b9e073484874eca74bf9ae92f313e60a1e6013439f8"
+    },
+    {
+      "previous": "/media/art/items/worn-map-fragment-v01.webp",
+      "current": "/media/art/items/worn-map-fragment-anime-v01.webp",
+      "master": "exec-09ee1c30-14c8-4407-a3b9-0dbc58d8e0a9.png",
+      "tile": 8,
+      "sha256": "22880e95b8b2fc90c48af4b9385947d7b4585ba0627d532243c7f10b9e8aee33"
+    },
+    {
+      "previous": "/media/art/items/travel-rations-v01.webp",
+      "current": "/media/art/items/travel-rations-anime-v01.webp",
+      "master": "exec-09ee1c30-14c8-4407-a3b9-0dbc58d8e0a9.png",
+      "tile": 9,
+      "sha256": "c2e5876740a00b9a2c3cf4afc2abf4b79791fd58abb9184b9aad7a5f3419d908"
+    },
+    {
+      "previous": "/media/art/items/letter-introduction-v01.webp",
+      "current": "/media/art/items/letter-introduction-anime-v01.webp",
+      "master": "exec-09ee1c30-14c8-4407-a3b9-0dbc58d8e0a9.png",
+      "tile": 10,
+      "sha256": "aa9c68a9664158f9eee17e84b7470e5dc235b24de181115885d921531f2ab522"
+    },
+    {
+      "previous": "/media/art/items/cracked-aurevane-sigil-v01.webp",
+      "current": "/media/art/items/cracked-aurevane-sigil-anime-v01.webp",
+      "master": "exec-09ee1c30-14c8-4407-a3b9-0dbc58d8e0a9.png",
+      "tile": 11,
+      "sha256": "bd1f4550bda921352d1128eb4fb41e90b0877e1373c61f0a1d83c8d102afe076"
+    },
+    {
+      "previous": "/media/art/items/gatewarden-token-v01.webp",
+      "current": "/media/art/items/gatewarden-token-anime-v01.webp",
+      "master": "exec-09ee1c30-14c8-4407-a3b9-0dbc58d8e0a9.png",
+      "tile": 12,
+      "sha256": "10e0657a986ae1028ad7baad42ef1944a986612937804ae96c173397d0e16c0c"
+    },
+    {
+      "previous": "/media/art/items/hearthbite-treat-v01.webp",
+      "current": "/media/art/items/hearthbite-treat-anime-v01.webp",
+      "master": "exec-09ee1c30-14c8-4407-a3b9-0dbc58d8e0a9.png",
+      "tile": 13,
+      "sha256": "f93b2aa244132d79620d3bc056a3f81c2681607d9b0bb7a9177f02f3227c7569"
+    },
+    {
+      "previous": "/media/art/items/bond-ribbon-v01.webp",
+      "current": "/media/art/items/bond-ribbon-anime-v01.webp",
+      "master": "exec-09ee1c30-14c8-4407-a3b9-0dbc58d8e0a9.png",
+      "tile": 14,
+      "sha256": "9f8b33a8f6ca92c74cc43441c86122d6acab5a3d86f58d7bfe97de42ecb956ec"
+    },
+    {
+      "previous": "/media/art/items/travel-collar-v01.webp",
+      "current": "/media/art/items/travel-collar-anime-v01.webp",
+      "master": "exec-09ee1c30-14c8-4407-a3b9-0dbc58d8e0a9.png",
+      "tile": 15,
+      "sha256": "a84505b21d9639d799c30003f4179adf432944962257b9d0c966b21ac8480a51"
+    },
+    {
+      "previous": "/media/art/discipline-skills/vanguard-forceful-strike-v01.webp",
+      "current": "/media/art/discipline-skills/vanguard-forceful-strike-anime-v01.webp",
+      "master": "exec-e2545232-a24e-40c8-b62d-3eba64de06d3.png",
+      "tile": 1,
+      "sha256": "060c25853c3af65bf7754e591e8e1e03c3df0af2c79b3ccdf905bac3f634d41e"
+    },
+    {
+      "previous": "/media/art/discipline-skills/vanguard-cleave-v01.webp",
+      "current": "/media/art/discipline-skills/vanguard-cleave-anime-v01.webp",
+      "master": "exec-e2545232-a24e-40c8-b62d-3eba64de06d3.png",
+      "tile": 2,
+      "sha256": "cfe2d7f8f3b88b3f8f08773aded6f03628f48d1c6f27b37030e45ed75b0c89d3"
+    },
+    {
+      "previous": "/media/art/discipline-skills/vanguard-guard-break-v01.webp",
+      "current": "/media/art/discipline-skills/vanguard-guard-break-anime-v01.webp",
+      "master": "exec-e2545232-a24e-40c8-b62d-3eba64de06d3.png",
+      "tile": 3,
+      "sha256": "e4f1b71a496efd39e8bab2260ea8d1bcbc074c8e3d9667180949a47a9df9b009"
+    },
+    {
+      "previous": "/media/art/discipline-skills/vanguard-brace-v01.webp",
+      "current": "/media/art/discipline-skills/vanguard-brace-anime-v01.webp",
+      "master": "exec-e2545232-a24e-40c8-b62d-3eba64de06d3.png",
+      "tile": 4,
+      "sha256": "1ee9e29106bd702d2c82378e75e54d105a4f2dce04a82d7a4fd4487a84e70a90"
+    },
+    {
+      "previous": "/media/art/discipline-skills/vanguard-rally-v01.webp",
+      "current": "/media/art/discipline-skills/vanguard-rally-anime-v01.webp",
+      "master": "exec-e2545232-a24e-40c8-b62d-3eba64de06d3.png",
+      "tile": 5,
+      "sha256": "304194119ebc656f423065fd232c6c48ec7a3d33c0feb0243d356aceb1a1d3fb"
+    },
+    {
+      "previous": "/media/art/discipline-skills/vanguard-shield-bash-v01.webp",
+      "current": "/media/art/discipline-skills/vanguard-shield-bash-anime-v01.webp",
+      "master": "exec-e2545232-a24e-40c8-b62d-3eba64de06d3.png",
+      "tile": 6,
+      "sha256": "85967c903f7c788acaeafa461fa6bb1fad6ea583263a5a5369fe332dd71d4320"
+    },
+    {
+      "previous": "/media/art/discipline-skills/vanguard-second-wind-v01.webp",
+      "current": "/media/art/discipline-skills/vanguard-second-wind-anime-v01.webp",
+      "master": "exec-e2545232-a24e-40c8-b62d-3eba64de06d3.png",
+      "tile": 7,
+      "sha256": "2285f62d99842aaf315965cdd7d8594318b243a63c8d24e682075fd8321da7ee"
+    },
+    {
+      "previous": "/media/art/discipline-skills/vanguard-sweeping-strike-v01.webp",
+      "current": "/media/art/discipline-skills/vanguard-sweeping-strike-anime-v01.webp",
+      "master": "exec-e2545232-a24e-40c8-b62d-3eba64de06d3.png",
+      "tile": 8,
+      "sha256": "d6cf1cbb54dcae5b71289d215882cf67b2cf46fefb728c87bf9983f000ff4711"
+    },
+    {
+      "previous": "/media/art/discipline-skills/farstrider-aimed-shot-v01.webp",
+      "current": "/media/art/discipline-skills/farstrider-aimed-shot-anime-v01.webp",
+      "master": "exec-e2545232-a24e-40c8-b62d-3eba64de06d3.png",
+      "tile": 9,
+      "sha256": "2088815731c7bc9657326dca5f46b3dbac830e3ba1696e5c3a6ca07acf724812"
+    },
+    {
+      "previous": "/media/art/discipline-skills/farstrider-pinning-shot-v01.webp",
+      "current": "/media/art/discipline-skills/farstrider-pinning-shot-anime-v01.webp",
+      "master": "exec-e2545232-a24e-40c8-b62d-3eba64de06d3.png",
+      "tile": 10,
+      "sha256": "4f97ac1d80968f918e80adee60dd749962ad897c4766cd71ad002f53d585cec4"
+    },
+    {
+      "previous": "/media/art/discipline-skills/farstrider-volley-v01.webp",
+      "current": "/media/art/discipline-skills/farstrider-volley-anime-v01.webp",
+      "master": "exec-e2545232-a24e-40c8-b62d-3eba64de06d3.png",
+      "tile": 11,
+      "sha256": "a72e3a9c3a3c58abd917ebfe416e6e237fc32946c8db0bc1621bb84c8844f491"
+    },
+    {
+      "previous": "/media/art/discipline-skills/farstrider-scouts-mark-v01.webp",
+      "current": "/media/art/discipline-skills/farstrider-scouts-mark-anime-v01.webp",
+      "master": "exec-e2545232-a24e-40c8-b62d-3eba64de06d3.png",
+      "tile": 12,
+      "sha256": "28db735044934cdca97a960042eb3a9bdda42e934e692cbf09084b4c372d55db"
+    },
+    {
+      "previous": "/media/art/discipline-skills/farstrider-longshot-v01.webp",
+      "current": "/media/art/discipline-skills/farstrider-longshot-anime-v01.webp",
+      "master": "exec-e2545232-a24e-40c8-b62d-3eba64de06d3.png",
+      "tile": 13,
+      "sha256": "9d345d314a094f6da142a2df6e3d8405ca0aa198a11ef299b180b9ce8ee8e395"
+    },
+    {
+      "previous": "/media/art/discipline-skills/farstrider-piercing-barrage-v01.webp",
+      "current": "/media/art/discipline-skills/farstrider-piercing-barrage-anime-v01.webp",
+      "master": "exec-e2545232-a24e-40c8-b62d-3eba64de06d3.png",
+      "tile": 14,
+      "sha256": "3f0ed50da1a4dd8dcfe1511a6e70892fcd9c366e4558e9c8e98c53b5897f0bc6"
+    },
+    {
+      "previous": "/media/art/discipline-skills/farstrider-keen-focus-v01.webp",
+      "current": "/media/art/discipline-skills/farstrider-keen-focus-anime-v01.webp",
+      "master": "exec-e2545232-a24e-40c8-b62d-3eba64de06d3.png",
+      "tile": 15,
+      "sha256": "c54a064b82eca44e6b5c080a8386fde7c2b0ac5b29b0ca76f6950a7a92b342ad"
+    },
+    {
+      "previous": "/media/art/discipline-skills/farstrider-fieldcraft-v01.webp",
+      "current": "/media/art/discipline-skills/farstrider-fieldcraft-anime-v01.webp",
+      "master": "exec-e2545232-a24e-40c8-b62d-3eba64de06d3.png",
+      "tile": 16,
+      "sha256": "dedf74a24638253e2de5c8bec49fe7c92c8cf337b2430d9fac520bfc1c6406e6"
+    },
+    {
+      "previous": "/media/art/discipline-skills/shadehand-backstab-v01.webp",
+      "current": "/media/art/discipline-skills/shadehand-backstab-anime-v01.webp",
+      "master": "exec-6e8e262c-3fa3-4b2d-8df0-19f9ae8947fd.png",
+      "tile": 1,
+      "sha256": "cee758ee717554cda539063de9eea5e18411d6cde9bd9fb44b8ef8600c0ea727"
+    },
+    {
+      "previous": "/media/art/discipline-skills/shadehand-smoke-vial-v01.webp",
+      "current": "/media/art/discipline-skills/shadehand-smoke-vial-anime-v01.webp",
+      "master": "exec-6e8e262c-3fa3-4b2d-8df0-19f9ae8947fd.png",
+      "tile": 2,
+      "sha256": "946f91a3076eaa972fcdcfeee1eec0794c64dbe01aba8922c26bb316e32f8adc"
+    },
+    {
+      "previous": "/media/art/discipline-skills/shadehand-crippling-cut-v01.webp",
+      "current": "/media/art/discipline-skills/shadehand-crippling-cut-anime-v01.webp",
+      "master": "exec-6e8e262c-3fa3-4b2d-8df0-19f9ae8947fd.png",
+      "tile": 3,
+      "sha256": "71ddb8ff240c1bb24dad2e3ee9ce83cd28ded5d4ab7bd42be2da4cf09d21d522"
+    },
+    {
+      "previous": "/media/art/discipline-skills/shadehand-feint-v01.webp",
+      "current": "/media/art/discipline-skills/shadehand-feint-anime-v01.webp",
+      "master": "exec-6e8e262c-3fa3-4b2d-8df0-19f9ae8947fd.png",
+      "tile": 4,
+      "sha256": "554b6032ea17961f41b518d85acccfc04a8721ba604523872516b24acc2f99a0"
+    },
+    {
+      "previous": "/media/art/discipline-skills/shadehand-exploit-opening-v01.webp",
+      "current": "/media/art/discipline-skills/shadehand-exploit-opening-anime-v01.webp",
+      "master": "exec-6e8e262c-3fa3-4b2d-8df0-19f9ae8947fd.png",
+      "tile": 5,
+      "sha256": "5972eb5c2dd2164183de5385d5440b29ca7005b9b63ca8bd040f19923c1cd21b"
+    },
+    {
+      "previous": "/media/art/discipline-skills/shadehand-fan-of-knives-v01.webp",
+      "current": "/media/art/discipline-skills/shadehand-fan-of-knives-anime-v01.webp",
+      "master": "exec-6e8e262c-3fa3-4b2d-8df0-19f9ae8947fd.png",
+      "tile": 6,
+      "sha256": "82fae29b56c6df18f25c08f60b89089263d929e5c6b0b4a68ab6b04c79413831"
+    },
+    {
+      "previous": "/media/art/discipline-skills/shadehand-quick-hands-v01.webp",
+      "current": "/media/art/discipline-skills/shadehand-quick-hands-anime-v01.webp",
+      "master": "exec-6e8e262c-3fa3-4b2d-8df0-19f9ae8947fd.png",
+      "tile": 7,
+      "sha256": "9ed73f04a09235068e96630d07caef802f30bdf5dff672b4f5825d99c5fc0d02"
+    },
+    {
+      "previous": "/media/art/discipline-skills/shadehand-execution-cut-v01.webp",
+      "current": "/media/art/discipline-skills/shadehand-execution-cut-anime-v01.webp",
+      "master": "exec-6e8e262c-3fa3-4b2d-8df0-19f9ae8947fd.png",
+      "tile": 8,
+      "sha256": "1d157c9e72847908480863ba8399fd8b247706a8e769887d9a3c07b1c6b15c7c"
+    },
+    {
+      "previous": "/media/art/discipline-skills/lifebinder-mending-light-v01.webp",
+      "current": "/media/art/discipline-skills/lifebinder-mending-light-anime-v01.webp",
+      "master": "exec-6e8e262c-3fa3-4b2d-8df0-19f9ae8947fd.png",
+      "tile": 9,
+      "sha256": "3dd46b447ae65ded43f80e8e3740b6c01a0510841ccd1157bece14dac0410d44"
+    },
+    {
+      "previous": "/media/art/discipline-skills/lifebinder-mend-v01.webp",
+      "current": "/media/art/discipline-skills/lifebinder-mend-anime-v01.webp",
+      "master": "exec-6e8e262c-3fa3-4b2d-8df0-19f9ae8947fd.png",
+      "tile": 10,
+      "sha256": "1df14fa6fd12d3bfb8d969fc7d8a5f0b95ee1eb60c319316512e2a715fb172ad"
+    },
+    {
+      "previous": "/media/art/discipline-skills/lifebinder-barrier-v01.webp",
+      "current": "/media/art/discipline-skills/lifebinder-barrier-anime-v01.webp",
+      "master": "exec-6e8e262c-3fa3-4b2d-8df0-19f9ae8947fd.png",
+      "tile": 11,
+      "sha256": "ada8cf0572ba93ce6c6b79c145185a534068c0f26b7fadbd366b50bc836b4d4e"
+    },
+    {
+      "previous": "/media/art/discipline-skills/lifebinder-renew-v01.webp",
+      "current": "/media/art/discipline-skills/lifebinder-renew-anime-v01.webp",
+      "master": "exec-6e8e262c-3fa3-4b2d-8df0-19f9ae8947fd.png",
+      "tile": 12,
+      "sha256": "370d3259c366918f8ca429e63a3ba051adb62eef2c7400b00fbb82740d9fd04f"
+    },
+    {
+      "previous": "/media/art/discipline-skills/lifebinder-sanctuary-v01.webp",
+      "current": "/media/art/discipline-skills/lifebinder-sanctuary-anime-v01.webp",
+      "master": "exec-6e8e262c-3fa3-4b2d-8df0-19f9ae8947fd.png",
+      "tile": 13,
+      "sha256": "d4adbcc961691f7abd1be8ad94110a0dea608f00ec092140e39f819e46086541"
+    },
+    {
+      "previous": "/media/art/discipline-skills/lifebinder-fortifying-light-v01.webp",
+      "current": "/media/art/discipline-skills/lifebinder-fortifying-light-anime-v01.webp",
+      "master": "exec-6e8e262c-3fa3-4b2d-8df0-19f9ae8947fd.png",
+      "tile": 14,
+      "sha256": "4c0b878180c94362fa7d30904104abe707a3b0b53d90b80b70b44a97bc5dfbb3"
+    },
+    {
+      "previous": "/media/art/discipline-skills/lifebinder-vital-sever-v01.webp",
+      "current": "/media/art/discipline-skills/lifebinder-vital-sever-anime-v01.webp",
+      "master": "exec-6e8e262c-3fa3-4b2d-8df0-19f9ae8947fd.png",
+      "tile": 15,
+      "sha256": "6a01cfe39e487147840a91c405dd83ced24bb3a12526055611b6addf1086994e"
+    },
+    {
+      "previous": "/media/art/discipline-skills/lifebinder-searing-bloom-v01.webp",
+      "current": "/media/art/discipline-skills/lifebinder-searing-bloom-anime-v01.webp",
+      "master": "exec-6e8e262c-3fa3-4b2d-8df0-19f9ae8947fd.png",
+      "tile": 16,
+      "sha256": "27a0247e48c9fa135e57ab36aaf881c8c5d15a939a10d19dad7a32047fd3b3ab"
+    },
+    {
+      "previous": "/media/art/discipline-skills/ironfist-rising-fist-v01.webp",
+      "current": "/media/art/discipline-skills/ironfist-rising-fist-anime-v01.webp",
+      "master": "exec-6426ec6f-82c2-4ac5-88dd-d382222c5a6b.png",
+      "tile": 1,
+      "sha256": "36987ea0f68324587bb2a862927ee63e45a215a63ebc1e9ee81658a8aae3c069"
+    },
+    {
+      "previous": "/media/art/discipline-skills/ironfist-sweep-v01.webp",
+      "current": "/media/art/discipline-skills/ironfist-sweep-anime-v01.webp",
+      "master": "exec-6426ec6f-82c2-4ac5-88dd-d382222c5a6b.png",
+      "tile": 2,
+      "sha256": "9a9196a48edfd95c5cebbe74530b4064b805a8df64f489558628f835386712be"
+    },
+    {
+      "previous": "/media/art/discipline-skills/ironfist-focus-breath-v01.webp",
+      "current": "/media/art/discipline-skills/ironfist-focus-breath-anime-v01.webp",
+      "master": "exec-6426ec6f-82c2-4ac5-88dd-d382222c5a6b.png",
+      "tile": 3,
+      "sha256": "1c7086ffb75dd133e5b1499611b594cfb4bb2004e685776ed58d3c8d311bd461"
+    },
+    {
+      "previous": "/media/art/discipline-skills/ironfist-counter-palm-v01.webp",
+      "current": "/media/art/discipline-skills/ironfist-counter-palm-anime-v01.webp",
+      "master": "exec-6426ec6f-82c2-4ac5-88dd-d382222c5a6b.png",
+      "tile": 4,
+      "sha256": "62cf55c76e5eb923f1f7573b9933b658ecedd7cb8a417bb222b73c919ce93dc2"
+    },
+    {
+      "previous": "/media/art/discipline-skills/ironfist-breakfall-v01.webp",
+      "current": "/media/art/discipline-skills/ironfist-breakfall-anime-v01.webp",
+      "master": "exec-6426ec6f-82c2-4ac5-88dd-d382222c5a6b.png",
+      "tile": 5,
+      "sha256": "f438d875b1a60d6b2a91d142a041821e9e13d3437d11ec801dade023825000f2"
+    },
+    {
+      "previous": "/media/art/discipline-skills/ironfist-hammer-knuckle-v01.webp",
+      "current": "/media/art/discipline-skills/ironfist-hammer-knuckle-anime-v01.webp",
+      "master": "exec-6426ec6f-82c2-4ac5-88dd-d382222c5a6b.png",
+      "tile": 6,
+      "sha256": "34c52cf93ac071c1b5a9f8131268bda8a6281e5d6871ef87e455c1a422518dc8"
+    },
+    {
+      "previous": "/media/art/discipline-skills/ironfist-pressure-palm-v01.webp",
+      "current": "/media/art/discipline-skills/ironfist-pressure-palm-anime-v01.webp",
+      "master": "exec-6426ec6f-82c2-4ac5-88dd-d382222c5a6b.png",
+      "tile": 7,
+      "sha256": "52385f486fbcd03ff4454a0271b28f7542e2e06359726e0bd29004a96553d15c"
+    },
+    {
+      "previous": "/media/art/discipline-skills/ironfist-last-stand-v01.webp",
+      "current": "/media/art/discipline-skills/ironfist-last-stand-anime-v01.webp",
+      "master": "exec-6426ec6f-82c2-4ac5-88dd-d382222c5a6b.png",
+      "tile": 8,
+      "sha256": "c077d3232734c06a8f1fbecdd2086b418698a0af74a4d0e38bfebb0f49e1e956"
+    },
+    {
+      "previous": "/media/art/discipline-skills/aetherist-arc-bolt-v01.webp",
+      "current": "/media/art/discipline-skills/aetherist-arc-bolt-anime-v01.webp",
+      "master": "exec-6426ec6f-82c2-4ac5-88dd-d382222c5a6b.png",
+      "tile": 9,
+      "sha256": "e972a81ccb5dc60be22f6f25212295cb8136b0a2bb46455ef8d5dae5834d9f78"
+    },
+    {
+      "previous": "/media/art/discipline-skills/aetherist-mana-burst-v01.webp",
+      "current": "/media/art/discipline-skills/aetherist-mana-burst-anime-v01.webp",
+      "master": "exec-6426ec6f-82c2-4ac5-88dd-d382222c5a6b.png",
+      "tile": 10,
+      "sha256": "cb0921a5f17437f986ac91b71df0c079d27bbb0253dcc1351f7fa55ec21503e6"
+    },
+    {
+      "previous": "/media/art/discipline-skills/aetherist-ward-pierce-v01.webp",
+      "current": "/media/art/discipline-skills/aetherist-ward-pierce-anime-v01.webp",
+      "master": "exec-6426ec6f-82c2-4ac5-88dd-d382222c5a6b.png",
+      "tile": 11,
+      "sha256": "f28f4e2b64b80e2bc617c72992df7c4e5a66bd2c6d8e58aa24856198c0bc9214"
+    },
+    {
+      "previous": "/media/art/discipline-skills/aetherist-arcane-field-v01.webp",
+      "current": "/media/art/discipline-skills/aetherist-arcane-field-anime-v01.webp",
+      "master": "exec-6426ec6f-82c2-4ac5-88dd-d382222c5a6b.png",
+      "tile": 12,
+      "sha256": "4efc6ec6b61be6918976a3980c1ff6b73e3947cedb2de0fdcd017859acb86de1"
+    },
+    {
+      "previous": "/media/art/discipline-skills/aetherist-channel-v01.webp",
+      "current": "/media/art/discipline-skills/aetherist-channel-anime-v01.webp",
+      "master": "exec-6426ec6f-82c2-4ac5-88dd-d382222c5a6b.png",
+      "tile": 13,
+      "sha256": "aba585efdb00ce3a757093cec07c3e0e61487ab1713db9fe94d9bc7f6996fccc"
+    },
+    {
+      "previous": "/media/art/discipline-skills/aetherist-mana-shield-v01.webp",
+      "current": "/media/art/discipline-skills/aetherist-mana-shield-anime-v01.webp",
+      "master": "exec-6426ec6f-82c2-4ac5-88dd-d382222c5a6b.png",
+      "tile": 14,
+      "sha256": "04400e388decb0356a5fde6a0b588b1671e1abf07a2570eeccbcb1c3a7730253"
+    },
+    {
+      "previous": "/media/art/discipline-skills/aetherist-chain-spark-v01.webp",
+      "current": "/media/art/discipline-skills/aetherist-chain-spark-anime-v01.webp",
+      "master": "exec-6426ec6f-82c2-4ac5-88dd-d382222c5a6b.png",
+      "tile": 15,
+      "sha256": "2b4f4011a077a6dc9d5406a77ad1d31649c65cac5d285a2bd9c539716cfb66ca"
+    },
+    {
+      "previous": "/media/art/discipline-skills/aetherist-overchannel-v01.webp",
+      "current": "/media/art/discipline-skills/aetherist-overchannel-anime-v01.webp",
+      "master": "exec-6426ec6f-82c2-4ac5-88dd-d382222c5a6b.png",
+      "tile": 16,
+      "sha256": "9d7bcf90ced774208e3bf7f0642c3bb146c1531f6b8c0be29e8947ed51b4b839"
+    },
+    {
+      "previous": "/media/art/discipline-skills/chronist-temporal-bolt-v01.webp",
+      "current": "/media/art/discipline-skills/chronist-temporal-bolt-anime-v01.webp",
+      "master": "exec-a2238493-79d4-4e12-92be-76d7e5954e4e.png",
+      "tile": 1,
+      "sha256": "1cb0f89d4ac9fc64f645ef5f1ac54669c167a9e06140ea6f61ca4556fd470134"
+    },
+    {
+      "previous": "/media/art/discipline-skills/chronist-haste-v01.webp",
+      "current": "/media/art/discipline-skills/chronist-haste-anime-v01.webp",
+      "master": "exec-a2238493-79d4-4e12-92be-76d7e5954e4e.png",
+      "tile": 2,
+      "sha256": "9e18608160e9cd1f419a7422435854d9de8b263274ba84ba5787dbcf39255639"
+    },
+    {
+      "previous": "/media/art/discipline-skills/chronist-slow-v01.webp",
+      "current": "/media/art/discipline-skills/chronist-slow-anime-v01.webp",
+      "master": "exec-a2238493-79d4-4e12-92be-76d7e5954e4e.png",
+      "tile": 3,
+      "sha256": "198d368e0c02c81c0557f06cd9aadb99eaead07e570f3cbefb3ef49b88764176"
+    },
+    {
+      "previous": "/media/art/discipline-skills/chronist-delay-v01.webp",
+      "current": "/media/art/discipline-skills/chronist-delay-anime-v01.webp",
+      "master": "exec-a2238493-79d4-4e12-92be-76d7e5954e4e.png",
+      "tile": 4,
+      "sha256": "935294152d8ecd6464f3641ecc9d095142a8f0c2f8114f7069f75b9a062a5979"
+    },
+    {
+      "previous": "/media/art/discipline-skills/chronist-rewind-step-v01.webp",
+      "current": "/media/art/discipline-skills/chronist-rewind-step-anime-v01.webp",
+      "master": "exec-a2238493-79d4-4e12-92be-76d7e5954e4e.png",
+      "tile": 5,
+      "sha256": "07dd4ae849a03122534396aea1271f502cd751e4b8f2cecae9f81f4b4534720c"
+    },
+    {
+      "previous": "/media/art/discipline-skills/chronist-time-lock-v01.webp",
+      "current": "/media/art/discipline-skills/chronist-time-lock-anime-v01.webp",
+      "master": "exec-a2238493-79d4-4e12-92be-76d7e5954e4e.png",
+      "tile": 6,
+      "sha256": "8b3f8b014b5d1b60d61475ed6012c542d8c0275c74dd44c8474d35629e54a547"
+    },
+    {
+      "previous": "/media/art/discipline-skills/chronist-temporal-ward-v01.webp",
+      "current": "/media/art/discipline-skills/chronist-temporal-ward-anime-v01.webp",
+      "master": "exec-a2238493-79d4-4e12-92be-76d7e5954e4e.png",
+      "tile": 7,
+      "sha256": "932f9a769b9838df8b039b874399d31d3e5ca03a2618a6fb1cc0b6e4d1d731e4"
+    },
+    {
+      "previous": "/media/art/discipline-skills/chronist-stolen-moment-v01.webp",
+      "current": "/media/art/discipline-skills/chronist-stolen-moment-anime-v01.webp",
+      "master": "exec-a2238493-79d4-4e12-92be-76d7e5954e4e.png",
+      "tile": 8,
+      "sha256": "cab8e3fc72ff611dbcdf68ec70be0786e3dd0f1f79f9147c2718693ec8667977"
+    },
+    {
+      "previous": "/media/art/discipline-skills/bastion-shield-bash-v02.webp",
+      "current": "/media/art/discipline-skills/bastion-shield-bash-anime-v01.webp",
+      "master": "exec-a2238493-79d4-4e12-92be-76d7e5954e4e.png",
+      "tile": 9,
+      "sha256": "b0c59e6e2bcfc9a17a3337d8729aa9044800729593e8053b001fb27a318e02fa"
+    },
+    {
+      "previous": "/media/art/discipline-skills/bastion-cover-v02.webp",
+      "current": "/media/art/discipline-skills/bastion-cover-anime-v01.webp",
+      "master": "exec-a2238493-79d4-4e12-92be-76d7e5954e4e.png",
+      "tile": 10,
+      "sha256": "def7d79d0bb6cd995cda429cb63d9de93c0931c5ab7b6fdbfd5fff7fd772f850"
+    },
+    {
+      "previous": "/media/art/discipline-skills/bastion-challenge-v02.webp",
+      "current": "/media/art/discipline-skills/bastion-challenge-anime-v01.webp",
+      "master": "exec-a2238493-79d4-4e12-92be-76d7e5954e4e.png",
+      "tile": 11,
+      "sha256": "dd9da6aa7c0c65b9b732c37c2d7c15457f59db70a031750f49496d13ba54d554"
+    },
+    {
+      "previous": "/media/art/discipline-skills/bastion-fortress-v02.webp",
+      "current": "/media/art/discipline-skills/bastion-fortress-anime-v01.webp",
+      "master": "exec-a2238493-79d4-4e12-92be-76d7e5954e4e.png",
+      "tile": 12,
+      "sha256": "75a526940b51bf56bcf372d7590d58a6ba1695209e9760191027b3d383e482bd"
+    },
+    {
+      "previous": "/media/art/discipline-skills/bastion-hold-fast-v02.webp",
+      "current": "/media/art/discipline-skills/bastion-hold-fast-anime-v01.webp",
+      "master": "exec-a2238493-79d4-4e12-92be-76d7e5954e4e.png",
+      "tile": 13,
+      "sha256": "bec097dd18d6fb2a006568041ae93c61da15c3778722e39092bf173fc68e77a4"
+    },
+    {
+      "previous": "/media/art/discipline-skills/bastion-shield-line-v02.webp",
+      "current": "/media/art/discipline-skills/bastion-shield-line-anime-v01.webp",
+      "master": "exec-a2238493-79d4-4e12-92be-76d7e5954e4e.png",
+      "tile": 14,
+      "sha256": "410e27234c8e5540e9f254cc4cf772898b859d7aa9d5a99cdf2929fa7890b04f"
+    },
+    {
+      "previous": "/media/art/discipline-skills/bastion-stalwart-strike-v02.webp",
+      "current": "/media/art/discipline-skills/bastion-stalwart-strike-anime-v01.webp",
+      "master": "exec-a2238493-79d4-4e12-92be-76d7e5954e4e.png",
+      "tile": 15,
+      "sha256": "b213c61e1ebe17e164b29454f1f5238c53fe7b10404d237fac51e290dd9762c3"
+    },
+    {
+      "previous": "/media/art/discipline-skills/bastion-steady-footing-v02.webp",
+      "current": "/media/art/discipline-skills/bastion-steady-footing-anime-v01.webp",
+      "master": "exec-a2238493-79d4-4e12-92be-76d7e5954e4e.png",
+      "tile": 16,
+      "sha256": "42c25bd76ab4f68a147cb8ab6ca60ae3731ab4d1e868b07babd3ae1ac8122075"
+    },
+    {
+      "previous": "/media/art/discipline-skills/ravager-frenzy-v01.webp",
+      "current": "/media/art/discipline-skills/ravager-frenzy-anime-v01.webp",
+      "master": "exec-22cbbc08-8005-4661-bbfc-8dc0815f5f51.png",
+      "tile": 1,
+      "sha256": "79205f8c91b0765f8eb7c1e56d863d1027f85a10e40164a1509d889053fd3505"
+    },
+    {
+      "previous": "/media/art/discipline-skills/ravager-gash-v01.webp",
+      "current": "/media/art/discipline-skills/ravager-gash-anime-v01.webp",
+      "master": "exec-22cbbc08-8005-4661-bbfc-8dc0815f5f51.png",
+      "tile": 2,
+      "sha256": "7485ff5d2398b300dbf25d398ab03364578add3f062a8d46153680687c9b67aa"
+    },
+    {
+      "previous": "/media/art/discipline-skills/ravager-cleaving-blow-v01.webp",
+      "current": "/media/art/discipline-skills/ravager-cleaving-blow-anime-v01.webp",
+      "master": "exec-22cbbc08-8005-4661-bbfc-8dc0815f5f51.png",
+      "tile": 3,
+      "sha256": "8c2e0a792b102854cc5b3684c0d6295c0e8d47c749465d082e54a61624172952"
+    },
+    {
+      "previous": "/media/art/discipline-skills/ravager-blood-rush-v01.webp",
+      "current": "/media/art/discipline-skills/ravager-blood-rush-anime-v01.webp",
+      "master": "exec-22cbbc08-8005-4661-bbfc-8dc0815f5f51.png",
+      "tile": 4,
+      "sha256": "35091d9d9d9fd026bb4e56af43d2c1a7f8f35eed65c9764a1e2168e5a98ab255"
+    },
+    {
+      "previous": "/media/art/discipline-skills/ravager-war-roar-v01.webp",
+      "current": "/media/art/discipline-skills/ravager-war-roar-anime-v01.webp",
+      "master": "exec-22cbbc08-8005-4661-bbfc-8dc0815f5f51.png",
+      "tile": 5,
+      "sha256": "bd1a4115bcdd0da26b4607c32a950f99aca69cbd79a33b537c8bdcf5b63b148e"
+    },
+    {
+      "previous": "/media/art/discipline-skills/ravager-desperate-execution-v01.webp",
+      "current": "/media/art/discipline-skills/ravager-desperate-execution-anime-v01.webp",
+      "master": "exec-22cbbc08-8005-4661-bbfc-8dc0815f5f51.png",
+      "tile": 6,
+      "sha256": "c90f6d147a3742dea89a21492b5f4961f0ea00f787075b0d57d5fc82b9fd6921"
+    },
+    {
+      "previous": "/media/art/discipline-skills/ravager-blood-siphon-v01.webp",
+      "current": "/media/art/discipline-skills/ravager-blood-siphon-anime-v01.webp",
+      "master": "exec-22cbbc08-8005-4661-bbfc-8dc0815f5f51.png",
+      "tile": 7,
+      "sha256": "1eb890e271a295e617bf7d326cab0200b5a8706c82ca0082a2daf739b6b08ce4"
+    },
+    {
+      "previous": "/media/art/discipline-skills/ravager-open-wound-v01.webp",
+      "current": "/media/art/discipline-skills/ravager-open-wound-anime-v01.webp",
+      "master": "exec-22cbbc08-8005-4661-bbfc-8dc0815f5f51.png",
+      "tile": 8,
+      "sha256": "6a1a305ac7bb59b3414b53285553694fee0be586817dff524dd884ec7bd57724"
+    },
+    {
+      "previous": "/media/art/discipline-skills/edgedancer-lunge-v01.webp",
+      "current": "/media/art/discipline-skills/edgedancer-lunge-anime-v01.webp",
+      "master": "exec-22cbbc08-8005-4661-bbfc-8dc0815f5f51.png",
+      "tile": 9,
+      "sha256": "9b881078ff6e85fc1206acca6c50191169e22b62556ae8f49a6030baa40a5790"
+    },
+    {
+      "previous": "/media/art/discipline-skills/edgedancer-riposte-v01.webp",
+      "current": "/media/art/discipline-skills/edgedancer-riposte-anime-v01.webp",
+      "master": "exec-22cbbc08-8005-4661-bbfc-8dc0815f5f51.png",
+      "tile": 10,
+      "sha256": "4359e82cd6989894d4188356395cb93dcdf844e5f850b424433599ec1f769322"
+    },
+    {
+      "previous": "/media/art/discipline-skills/edgedancer-hamstring-v01.webp",
+      "current": "/media/art/discipline-skills/edgedancer-hamstring-anime-v01.webp",
+      "master": "exec-22cbbc08-8005-4661-bbfc-8dc0815f5f51.png",
+      "tile": 11,
+      "sha256": "2490e76fe325a2937488a20d25124065e475a96cc1f25fbce16c49b914805f09"
+    },
+    {
+      "previous": "/media/art/discipline-skills/edgedancer-flourish-v01.webp",
+      "current": "/media/art/discipline-skills/edgedancer-flourish-anime-v01.webp",
+      "master": "exec-22cbbc08-8005-4661-bbfc-8dc0815f5f51.png",
+      "tile": 12,
+      "sha256": "425ee3fe111446833e756748d0e4594a601f195f9edf5b61a882950e62f098c9"
+    },
+    {
+      "previous": "/media/art/discipline-skills/edgedancer-poised-guard-v01.webp",
+      "current": "/media/art/discipline-skills/edgedancer-poised-guard-anime-v01.webp",
+      "master": "exec-22cbbc08-8005-4661-bbfc-8dc0815f5f51.png",
+      "tile": 13,
+      "sha256": "1d4860daaf72b0e5f29365577df1a78643d4310e4e3199178cdd7885779dcd1f"
+    },
+    {
+      "previous": "/media/art/discipline-skills/edgedancer-flanking-cut-v01.webp",
+      "current": "/media/art/discipline-skills/edgedancer-flanking-cut-anime-v01.webp",
+      "master": "exec-22cbbc08-8005-4661-bbfc-8dc0815f5f51.png",
+      "tile": 14,
+      "sha256": "29a9d90a8a8fc125592b33f04913b6a79c84209f8826d2af68c690194bee8c96"
+    },
+    {
+      "previous": "/media/art/discipline-skills/edgedancer-severing-cut-v01.webp",
+      "current": "/media/art/discipline-skills/edgedancer-severing-cut-anime-v01.webp",
+      "master": "exec-22cbbc08-8005-4661-bbfc-8dc0815f5f51.png",
+      "tile": 15,
+      "sha256": "459de2ccaf2065a6365c1e15a66bc5e9ff0ba936810130b143926aaefd52b865"
+    },
+    {
+      "previous": "/media/art/discipline-skills/edgedancer-finishing-thrust-v01.webp",
+      "current": "/media/art/discipline-skills/edgedancer-finishing-thrust-anime-v01.webp",
+      "master": "exec-22cbbc08-8005-4661-bbfc-8dc0815f5f51.png",
+      "tile": 16,
+      "sha256": "2065de58eddf7bee452906c44f2af0c9269c674a07306ce8e16c46909cbbb27f"
+    },
+    {
+      "previous": "/media/art/discipline-skills/wildwarden-snare-v01.webp",
+      "current": "/media/art/discipline-skills/wildwarden-snare-anime-v01.webp",
+      "master": "exec-be47e57a-20d9-4e63-82b4-534936b1355a.png",
+      "tile": 1,
+      "sha256": "1fe6c438d7ffc08a6c6193eedf678d72ec4e7cfd1dd515f0971807233a55b6d9"
+    },
+    {
+      "previous": "/media/art/discipline-skills/wildwarden-hunters-mark-v01.webp",
+      "current": "/media/art/discipline-skills/wildwarden-hunters-mark-anime-v01.webp",
+      "master": "exec-be47e57a-20d9-4e63-82b4-534936b1355a.png",
+      "tile": 2,
+      "sha256": "edd939566a3832f284d181395f4d1cc6f73ab11aad56c1c6ea33d13e6015961b"
+    },
+    {
+      "previous": "/media/art/discipline-skills/wildwarden-venom-shot-v01.webp",
+      "current": "/media/art/discipline-skills/wildwarden-venom-shot-anime-v01.webp",
+      "master": "exec-be47e57a-20d9-4e63-82b4-534936b1355a.png",
+      "tile": 3,
+      "sha256": "e6f57055f5977f17fe51d336a25ee9fce37997c769e8464385e5615bb7204eac"
+    },
+    {
+      "previous": "/media/art/discipline-skills/wildwarden-field-remedy-v01.webp",
+      "current": "/media/art/discipline-skills/wildwarden-field-remedy-anime-v01.webp",
+      "master": "exec-be47e57a-20d9-4e63-82b4-534936b1355a.png",
+      "tile": 4,
+      "sha256": "61a071840aa01b5bef52499e0bf4656bca8a9a083fca1e2c9ae1d0e65ce54e1b"
+    },
+    {
+      "previous": "/media/art/discipline-skills/wildwarden-thorn-line-v01.webp",
+      "current": "/media/art/discipline-skills/wildwarden-thorn-line-anime-v01.webp",
+      "master": "exec-be47e57a-20d9-4e63-82b4-534936b1355a.png",
+      "tile": 5,
+      "sha256": "fd9ffa553aae9086e8f3121e5846415ae8ced09072e15d743dd9d4ed7888b618"
+    },
+    {
+      "previous": "/media/art/discipline-skills/wildwarden-pursuit-shot-v01.webp",
+      "current": "/media/art/discipline-skills/wildwarden-pursuit-shot-anime-v01.webp",
+      "master": "exec-be47e57a-20d9-4e63-82b4-534936b1355a.png",
+      "tile": 6,
+      "sha256": "c110b45529859ae384cf173f06605cedc96ec0e9df467559a86afc31c9297144"
+    },
+    {
+      "previous": "/media/art/discipline-skills/wildwarden-renewing-herbs-v01.webp",
+      "current": "/media/art/discipline-skills/wildwarden-renewing-herbs-anime-v01.webp",
+      "master": "exec-be47e57a-20d9-4e63-82b4-534936b1355a.png",
+      "tile": 7,
+      "sha256": "22b7465d8b427b5eb405c1a4f0301535c3731cf776613d10417e290cd1db3067"
+    },
+    {
+      "previous": "/media/art/discipline-skills/wildwarden-close-quarry-v01.webp",
+      "current": "/media/art/discipline-skills/wildwarden-close-quarry-anime-v01.webp",
+      "master": "exec-be47e57a-20d9-4e63-82b4-534936b1355a.png",
+      "tile": 8,
+      "sha256": "a3e8438af9ff36e92385c8854c90ab79f3d1df3948628fdef38a538f3068f54a"
+    },
+    {
+      "previous": "/media/art/discipline-skills/runeblade-arc-edge-v01.webp",
+      "current": "/media/art/discipline-skills/runeblade-arc-edge-anime-v01.webp",
+      "master": "exec-be47e57a-20d9-4e63-82b4-534936b1355a.png",
+      "tile": 9,
+      "sha256": "9354f6e61332694a080e49757a7392206744d9f3055c3217dd021b364e389a79"
+    },
+    {
+      "previous": "/media/art/discipline-skills/runeblade-rune-guard-v01.webp",
+      "current": "/media/art/discipline-skills/runeblade-rune-guard-anime-v01.webp",
+      "master": "exec-be47e57a-20d9-4e63-82b4-534936b1355a.png",
+      "tile": 10,
+      "sha256": "405d4b5ce6c7fb4217ffdfb3198324440adc2c8d52f6a921ee34aba5453181c0"
+    },
+    {
+      "previous": "/media/art/discipline-skills/runeblade-siphon-slash-v01.webp",
+      "current": "/media/art/discipline-skills/runeblade-siphon-slash-anime-v01.webp",
+      "master": "exec-be47e57a-20d9-4e63-82b4-534936b1355a.png",
+      "tile": 11,
+      "sha256": "0a3e3f1db2efd6cac48d6b46899f3a2ee133cbcefca5df432bddb8d036db403a"
+    },
+    {
+      "previous": "/media/art/discipline-skills/runeblade-sigil-brand-v01.webp",
+      "current": "/media/art/discipline-skills/runeblade-sigil-brand-anime-v01.webp",
+      "master": "exec-be47e57a-20d9-4e63-82b4-534936b1355a.png",
+      "tile": 12,
+      "sha256": "e75607591063e0e4568d5484f44c3afe5f807a33bba3ffa7f2c9df2e63431bca"
+    },
+    {
+      "previous": "/media/art/discipline-skills/runeblade-rune-burst-v01.webp",
+      "current": "/media/art/discipline-skills/runeblade-rune-burst-anime-v01.webp",
+      "master": "exec-be47e57a-20d9-4e63-82b4-534936b1355a.png",
+      "tile": 13,
+      "sha256": "c4a7979a93aec38cf9228b5885d209290edc95b54e29fd41fded6c29301ea01c"
+    },
+    {
+      "previous": "/media/art/discipline-skills/runeblade-unbinding-rune-v01.webp",
+      "current": "/media/art/discipline-skills/runeblade-unbinding-rune-anime-v01.webp",
+      "master": "exec-be47e57a-20d9-4e63-82b4-534936b1355a.png",
+      "tile": 14,
+      "sha256": "84d0cc6282e0be36d9f89c286f23b020a9abea3b70394ed103b2e40c48be861f"
+    },
+    {
+      "previous": "/media/art/discipline-skills/runeblade-aether-cut-v01.webp",
+      "current": "/media/art/discipline-skills/runeblade-aether-cut-anime-v01.webp",
+      "master": "exec-be47e57a-20d9-4e63-82b4-534936b1355a.png",
+      "tile": 15,
+      "sha256": "36bec268ce9667056a435dc85a3f155c6e6d3f4227e3df7a049109ee846f1890"
+    },
+    {
+      "previous": "/media/art/discipline-skills/runeblade-rune-mending-v01.webp",
+      "current": "/media/art/discipline-skills/runeblade-rune-mending-anime-v01.webp",
+      "master": "exec-be47e57a-20d9-4e63-82b4-534936b1355a.png",
+      "tile": 16,
+      "sha256": "6770465f60adf42d52d21b2f413b8c3ee004db2347067dc86ed1e09b972a3efe"
+    },
+    {
+      "previous": "/media/art/discipline-skills/dawnshield-radiant-strike-v01.webp",
+      "current": "/media/art/discipline-skills/dawnshield-radiant-strike-anime-v01.webp",
+      "master": "exec-72871fb1-1e16-4185-be8a-6383fbc08d27.png",
+      "tile": 1,
+      "sha256": "afc19f610298d7be6ed49e00a0d2b4eaad71859fcf2342e038eac1a7beac1af8"
+    },
+    {
+      "previous": "/media/art/discipline-skills/dawnshield-sacred-guard-v01.webp",
+      "current": "/media/art/discipline-skills/dawnshield-sacred-guard-anime-v01.webp",
+      "master": "exec-72871fb1-1e16-4185-be8a-6383fbc08d27.png",
+      "tile": 2,
+      "sha256": "69e4cf611568dbc6981c83b5215827a4922b209200dec19def51fbe208333a16"
+    },
+    {
+      "previous": "/media/art/discipline-skills/dawnshield-purge-v01.webp",
+      "current": "/media/art/discipline-skills/dawnshield-purge-anime-v01.webp",
+      "master": "exec-72871fb1-1e16-4185-be8a-6383fbc08d27.png",
+      "tile": 3,
+      "sha256": "fff1d10872324e706ea13e1a84405efbbe90ab862b87b1ea454f94385c947538"
+    },
+    {
+      "previous": "/media/art/discipline-skills/dawnshield-consecrated-light-v01.webp",
+      "current": "/media/art/discipline-skills/dawnshield-consecrated-light-anime-v01.webp",
+      "master": "exec-72871fb1-1e16-4185-be8a-6383fbc08d27.png",
+      "tile": 4,
+      "sha256": "9a6206db5b96cb8c882dae58bbb3faeeaa6845deb4dfe4cae7ddec1e5a6ca6e6"
+    },
+    {
+      "previous": "/media/art/discipline-skills/dawnshield-aegis-v01.webp",
+      "current": "/media/art/discipline-skills/dawnshield-aegis-anime-v01.webp",
+      "master": "exec-72871fb1-1e16-4185-be8a-6383fbc08d27.png",
+      "tile": 5,
+      "sha256": "53ca89751e42ea111763068c97be29ce4214c0b5059a881d3c8b15ab5d455634"
+    },
+    {
+      "previous": "/media/art/discipline-skills/dawnshield-renewal-v01.webp",
+      "current": "/media/art/discipline-skills/dawnshield-renewal-anime-v01.webp",
+      "master": "exec-72871fb1-1e16-4185-be8a-6383fbc08d27.png",
+      "tile": 6,
+      "sha256": "505273c39f37ad53687daf602c741ca083c1b37292d4f5eac1ee9266de22dd7e"
+    },
+    {
+      "previous": "/media/art/discipline-skills/dawnshield-judgment-v01.webp",
+      "current": "/media/art/discipline-skills/dawnshield-judgment-anime-v01.webp",
+      "master": "exec-72871fb1-1e16-4185-be8a-6383fbc08d27.png",
+      "tile": 7,
+      "sha256": "c6b138c1c8520f690cf7a4c9b17124cd26b910e4bb2694cfbef3415843e9a37b"
+    },
+    {
+      "previous": "/media/art/discipline-skills/dawnshield-last-light-v01.webp",
+      "current": "/media/art/discipline-skills/dawnshield-last-light-anime-v01.webp",
+      "master": "exec-72871fb1-1e16-4185-be8a-6383fbc08d27.png",
+      "tile": 8,
+      "sha256": "6722f9a5af2030f166fd84650cd80ba691244654a01aa18ec601e96598f60c3d"
+    },
+    {
+      "previous": "/media/art/discipline-skills/cinderweaver-cinder-bolt-v01.webp",
+      "current": "/media/art/discipline-skills/cinderweaver-cinder-bolt-anime-v01.webp",
+      "master": "exec-72871fb1-1e16-4185-be8a-6383fbc08d27.png",
+      "tile": 9,
+      "sha256": "57b8ef05aeafa3e3a34fc2dbb1c5c7df340829f8a22f5bf9621129916cc11f43"
+    },
+    {
+      "previous": "/media/art/discipline-skills/cinderweaver-flame-burst-v01.webp",
+      "current": "/media/art/discipline-skills/cinderweaver-flame-burst-anime-v01.webp",
+      "master": "exec-72871fb1-1e16-4185-be8a-6383fbc08d27.png",
+      "tile": 10,
+      "sha256": "7ea5c1abcf51b9cb9ed998c414ecda3e7599f859fe2fe6ad710b0de35d5aa92a"
+    },
+    {
+      "previous": "/media/art/discipline-skills/cinderweaver-ember-line-v01.webp",
+      "current": "/media/art/discipline-skills/cinderweaver-ember-line-anime-v01.webp",
+      "master": "exec-72871fb1-1e16-4185-be8a-6383fbc08d27.png",
+      "tile": 11,
+      "sha256": "8d28771c33b70daf7000cf982c2befcf3020df127a3c1bbcef4f46a3cadf35ac"
+    },
+    {
+      "previous": "/media/art/discipline-skills/cinderweaver-scorch-v01.webp",
+      "current": "/media/art/discipline-skills/cinderweaver-scorch-anime-v01.webp",
+      "master": "exec-72871fb1-1e16-4185-be8a-6383fbc08d27.png",
+      "tile": 12,
+      "sha256": "59b224c3514b7261681300a80b2188ff028f0c07bea561b2c6c7f252816e91d9"
+    },
+    {
+      "previous": "/media/art/discipline-skills/cinderweaver-ash-ward-v01.webp",
+      "current": "/media/art/discipline-skills/cinderweaver-ash-ward-anime-v01.webp",
+      "master": "exec-72871fb1-1e16-4185-be8a-6383fbc08d27.png",
+      "tile": 13,
+      "sha256": "713e5972f29834da4e842bb97ab4f62dd529c1da0b62515d17354ee6210d6121"
+    },
+    {
+      "previous": "/media/art/discipline-skills/cinderweaver-flashfire-v01.webp",
+      "current": "/media/art/discipline-skills/cinderweaver-flashfire-anime-v01.webp",
+      "master": "exec-72871fb1-1e16-4185-be8a-6383fbc08d27.png",
+      "tile": 14,
+      "sha256": "6bed5884f6887e1fbf8ea9c3964c5c264e2c465185a77dfc80db5fda8203cb9b"
+    },
+    {
+      "previous": "/media/art/discipline-skills/cinderweaver-banked-embers-v01.webp",
+      "current": "/media/art/discipline-skills/cinderweaver-banked-embers-anime-v01.webp",
+      "master": "exec-72871fb1-1e16-4185-be8a-6383fbc08d27.png",
+      "tile": 15,
+      "sha256": "05a73b31ce298dc9f3e83a02bea6d10a056d127a47effd365f59a39475593fb6"
+    },
+    {
+      "previous": "/media/art/discipline-skills/cinderweaver-blistering-heat-v01.webp",
+      "current": "/media/art/discipline-skills/cinderweaver-blistering-heat-anime-v01.webp",
+      "master": "exec-72871fb1-1e16-4185-be8a-6383fbc08d27.png",
+      "tile": 16,
+      "sha256": "782ce12c78bc7698f0a801e0d57f96174fcb8607b7b13bb14512883bdee05d45"
+    },
+    {
+      "previous": "/media/art/discipline-skills/frostweaver-ice-lance-v01.webp",
+      "current": "/media/art/discipline-skills/frostweaver-ice-lance-anime-v01.webp",
+      "master": "exec-0873db03-4f22-41a3-955d-2f921a89445f.png",
+      "tile": 1,
+      "sha256": "aed411e8b20634a5ef4a4815243bd0f2c163946953d90546810cd11fef16029b"
+    },
+    {
+      "previous": "/media/art/discipline-skills/frostweaver-frost-guard-v01.webp",
+      "current": "/media/art/discipline-skills/frostweaver-frost-guard-anime-v01.webp",
+      "master": "exec-0873db03-4f22-41a3-955d-2f921a89445f.png",
+      "tile": 2,
+      "sha256": "3ad49381a6e9fe09f4647e503238a5e6dec6972d3b76b6f800fb04cf3cf3bfa1"
+    },
+    {
+      "previous": "/media/art/discipline-skills/frostweaver-chilling-mist-v01.webp",
+      "current": "/media/art/discipline-skills/frostweaver-chilling-mist-anime-v01.webp",
+      "master": "exec-0873db03-4f22-41a3-955d-2f921a89445f.png",
+      "tile": 3,
+      "sha256": "1880ce2c3612ba93dd9af6991832e36d17b744e780f972f891b07f67bdd8662f"
+    },
+    {
+      "previous": "/media/art/discipline-skills/frostweaver-crystal-prison-v01.webp",
+      "current": "/media/art/discipline-skills/frostweaver-crystal-prison-anime-v01.webp",
+      "master": "exec-0873db03-4f22-41a3-955d-2f921a89445f.png",
+      "tile": 4,
+      "sha256": "a56199a9140182bba921fd0c2b26f9f54304c0b8f383761c9b5442e4a71758b9"
+    },
+    {
+      "previous": "/media/art/discipline-skills/frostweaver-shatter-v01.webp",
+      "current": "/media/art/discipline-skills/frostweaver-shatter-anime-v01.webp",
+      "master": "exec-0873db03-4f22-41a3-955d-2f921a89445f.png",
+      "tile": 5,
+      "sha256": "886f3e8b068d95d1e3e29f98841e8711cd63545c26ec16c0c71fd51684a6ea12"
+    },
+    {
+      "previous": "/media/art/discipline-skills/frostweaver-ice-line-v01.webp",
+      "current": "/media/art/discipline-skills/frostweaver-ice-line-anime-v01.webp",
+      "master": "exec-0873db03-4f22-41a3-955d-2f921a89445f.png",
+      "tile": 6,
+      "sha256": "33e59e414f44d8738c471aac98bb2cda6ded96a6c634b4a0efcc4a43572c6cf1"
+    },
+    {
+      "previous": "/media/art/discipline-skills/frostweaver-thaw-v01.webp",
+      "current": "/media/art/discipline-skills/frostweaver-thaw-anime-v01.webp",
+      "master": "exec-0873db03-4f22-41a3-955d-2f921a89445f.png",
+      "tile": 7,
+      "sha256": "4597fab1b852730b3ce0e8941a78cfc6f782295fb810a1ce06f00f208f1670dc"
+    },
+    {
+      "previous": "/media/art/discipline-skills/frostweaver-brittle-ice-v01.webp",
+      "current": "/media/art/discipline-skills/frostweaver-brittle-ice-anime-v01.webp",
+      "master": "exec-0873db03-4f22-41a3-955d-2f921a89445f.png",
+      "tile": 8,
+      "sha256": "485e847c1c3f8a9da8a7cc242bb61cfa58d9d43ed1d8e725ad40eab737da603c"
+    },
+    {
+      "previous": "/media/art/discipline-skills/stormsinger-arc-spark-v01.webp",
+      "current": "/media/art/discipline-skills/stormsinger-arc-spark-anime-v01.webp",
+      "master": "exec-0873db03-4f22-41a3-955d-2f921a89445f.png",
+      "tile": 9,
+      "sha256": "a58b1ed5b9e0d63bae3f1756df8d0246e772121248cbb142ad3979314f92313a"
+    },
+    {
+      "previous": "/media/art/discipline-skills/stormsinger-lightning-line-v01.webp",
+      "current": "/media/art/discipline-skills/stormsinger-lightning-line-anime-v01.webp",
+      "master": "exec-0873db03-4f22-41a3-955d-2f921a89445f.png",
+      "tile": 10,
+      "sha256": "1feb154115f5d520312034777974ec3b7d4dfda11bfec2c611bad76e45eb5b25"
+    },
+    {
+      "previous": "/media/art/discipline-skills/stormsinger-static-burst-v01.webp",
+      "current": "/media/art/discipline-skills/stormsinger-static-burst-anime-v01.webp",
+      "master": "exec-0873db03-4f22-41a3-955d-2f921a89445f.png",
+      "tile": 11,
+      "sha256": "f535a86c6107c6e25408872640d166523e905e4fc02fdf936e2f38d50feb2af4"
+    },
+    {
+      "previous": "/media/art/discipline-skills/stormsinger-thunderclap-v01.webp",
+      "current": "/media/art/discipline-skills/stormsinger-thunderclap-anime-v01.webp",
+      "master": "exec-0873db03-4f22-41a3-955d-2f921a89445f.png",
+      "tile": 12,
+      "sha256": "069931604fb7d445bcb1311b8c88075d87d05094161c7bd7fbd858fe0c4528e5"
+    },
+    {
+      "previous": "/media/art/discipline-skills/stormsinger-grounding-v01.webp",
+      "current": "/media/art/discipline-skills/stormsinger-grounding-anime-v01.webp",
+      "master": "exec-0873db03-4f22-41a3-955d-2f921a89445f.png",
+      "tile": 13,
+      "sha256": "1519bc175f09c213e8efab4429d711ce178ef79748941e8521fe8a081eff058d"
+    },
+    {
+      "previous": "/media/art/discipline-skills/stormsinger-static-drain-v01.webp",
+      "current": "/media/art/discipline-skills/stormsinger-static-drain-anime-v01.webp",
+      "master": "exec-0873db03-4f22-41a3-955d-2f921a89445f.png",
+      "tile": 14,
+      "sha256": "442398220870c0da7762152eae212623a57a1c8868a7894caee3d8ab7a86e033"
+    },
+    {
+      "previous": "/media/art/discipline-skills/stormsinger-conductive-bolt-v01.webp",
+      "current": "/media/art/discipline-skills/stormsinger-conductive-bolt-anime-v01.webp",
+      "master": "exec-0873db03-4f22-41a3-955d-2f921a89445f.png",
+      "tile": 15,
+      "sha256": "77608af5463c0a5ba8daf8409804709afe5501416481275c0a383659d40c9e54"
+    },
+    {
+      "previous": "/media/art/discipline-skills/stormsinger-storm-breath-v01.webp",
+      "current": "/media/art/discipline-skills/stormsinger-storm-breath-anime-v01.webp",
+      "master": "exec-0873db03-4f22-41a3-955d-2f921a89445f.png",
+      "tile": 16,
+      "sha256": "308cbea9ac67c6cda2e55d6abd656896714a001fafb88d0f757d5639d2acf8ed"
+    },
+    {
+      "previous": "/media/art/discipline-skills/tidecaller-water-lance-v01.webp",
+      "current": "/media/art/discipline-skills/tidecaller-water-lance-anime-v01.webp",
+      "master": "exec-45eb649c-c7a8-4a43-830a-012447e8e1dd.png",
+      "tile": 1,
+      "sha256": "3132d8757f46cf9f63b2cd1c7747083f895fd7a0568825094efb03cdcb3ecef8"
+    },
+    {
+      "previous": "/media/art/discipline-skills/tidecaller-mist-veil-v01.webp",
+      "current": "/media/art/discipline-skills/tidecaller-mist-veil-anime-v01.webp",
+      "master": "exec-45eb649c-c7a8-4a43-830a-012447e8e1dd.png",
+      "tile": 2,
+      "sha256": "ee3e9bac296fbf48a83e448cc25844589c679b12a1c68d253be0ec946e793033"
+    },
+    {
+      "previous": "/media/art/discipline-skills/tidecaller-undertow-v01.webp",
+      "current": "/media/art/discipline-skills/tidecaller-undertow-anime-v01.webp",
+      "master": "exec-45eb649c-c7a8-4a43-830a-012447e8e1dd.png",
+      "tile": 3,
+      "sha256": "d57c682a9812228e8b77fa7fb8e7a5a77468f25756ea4319bc925bb75a98dcd3"
+    },
+    {
+      "previous": "/media/art/discipline-skills/tidecaller-cleansing-rain-v01.webp",
+      "current": "/media/art/discipline-skills/tidecaller-cleansing-rain-anime-v01.webp",
+      "master": "exec-45eb649c-c7a8-4a43-830a-012447e8e1dd.png",
+      "tile": 4,
+      "sha256": "9922a60df3681deadfcf651aace218ef97cb8aa0918c7d900123becf965ea6f0"
+    },
+    {
+      "previous": "/media/art/discipline-skills/tidecaller-flood-line-v01.webp",
+      "current": "/media/art/discipline-skills/tidecaller-flood-line-anime-v01.webp",
+      "master": "exec-45eb649c-c7a8-4a43-830a-012447e8e1dd.png",
+      "tile": 5,
+      "sha256": "7f9756d8599447ba035d604cceed58474d3820b761e3d85b7a29cd4e4ed5a023"
+    },
+    {
+      "previous": "/media/art/discipline-skills/tidecaller-springwater-v01.webp",
+      "current": "/media/art/discipline-skills/tidecaller-springwater-anime-v01.webp",
+      "master": "exec-45eb649c-c7a8-4a43-830a-012447e8e1dd.png",
+      "tile": 6,
+      "sha256": "9dff43e27b92861cd5470d40cc91e95e6bc92e5a56aba602b088cdf30463a17c"
+    },
+    {
+      "previous": "/media/art/discipline-skills/tidecaller-still-water-v01.webp",
+      "current": "/media/art/discipline-skills/tidecaller-still-water-anime-v01.webp",
+      "master": "exec-45eb649c-c7a8-4a43-830a-012447e8e1dd.png",
+      "tile": 7,
+      "sha256": "22df9d376c6c11ce2a5e1bfd172015098080dbeecb06da6b4575e9c40b24ff5f"
+    },
+    {
+      "previous": "/media/art/discipline-skills/tidecaller-crushing-wave-v01.webp",
+      "current": "/media/art/discipline-skills/tidecaller-crushing-wave-anime-v01.webp",
+      "master": "exec-45eb649c-c7a8-4a43-830a-012447e8e1dd.png",
+      "tile": 8,
+      "sha256": "b329382e76d21706f804fc50e14a67f874ebc57807d9b4e89dcc6bd0e3bf6604"
+    },
+    {
+      "previous": "/media/art/essence-skills/vanguard-unbroken-strike-v01.webp",
+      "current": "/media/art/essence-skills/vanguard-unbroken-strike-anime-v01.webp",
+      "master": "exec-ff72a414-f7f9-4bf1-87f6-2abf90da8cfe.png",
+      "tile": 1,
+      "sha256": "3452462037ad4459a09973958028de0227a4340095986394cd01edbe84cde0d8"
+    },
+    {
+      "previous": "/media/art/essence-skills/farstrider-deadeye-barrage-v01.webp",
+      "current": "/media/art/essence-skills/farstrider-deadeye-barrage-anime-v01.webp",
+      "master": "exec-ff72a414-f7f9-4bf1-87f6-2abf90da8cfe.png",
+      "tile": 2,
+      "sha256": "79df560c20dc1ca6547e5832e5468de9d5b273d37948681a8ed6e87d8fbc8838"
+    },
+    {
+      "previous": "/media/art/essence-skills/shadehand-perfect-opening-v01.webp",
+      "current": "/media/art/essence-skills/shadehand-perfect-opening-anime-v01.webp",
+      "master": "exec-ff72a414-f7f9-4bf1-87f6-2abf90da8cfe.png",
+      "tile": 3,
+      "sha256": "77a8c24c883f1b094dfab2d8003afdfc2f3bc77593e0ea35e38fc41791a3344b"
+    },
+    {
+      "previous": "/media/art/essence-skills/lifebinder-verdant-rupture-v01.webp",
+      "current": "/media/art/essence-skills/lifebinder-verdant-rupture-anime-v01.webp",
+      "master": "exec-ff72a414-f7f9-4bf1-87f6-2abf90da8cfe.png",
+      "tile": 4,
+      "sha256": "381fdd6848239fb6cca8007689b19cc26ddc2bf650f633184dfa656d6b7b5933"
+    },
+    {
+      "previous": "/media/art/essence-skills/ironfist-hundredfold-rush-v01.webp",
+      "current": "/media/art/essence-skills/ironfist-hundredfold-rush-anime-v01.webp",
+      "master": "exec-ff72a414-f7f9-4bf1-87f6-2abf90da8cfe.png",
+      "tile": 5,
+      "sha256": "82c02ce72af824ef70df55d7e84f75b60142e4d8133dae30f34c34dc6da38d44"
+    },
+    {
+      "previous": "/media/art/essence-skills/bastion-last-bastion-v01.webp",
+      "current": "/media/art/essence-skills/bastion-last-bastion-anime-v01.webp",
+      "master": "exec-ff72a414-f7f9-4bf1-87f6-2abf90da8cfe.png",
+      "tile": 6,
+      "sha256": "2bf08a8946405cffdf87a6d450bae51d1298fbfae885041a8b3ce04f98ab0043"
+    },
+    {
+      "previous": "/media/art/essence-skills/dawnshield-dawns-oath-v01.webp",
+      "current": "/media/art/essence-skills/dawnshield-dawns-oath-anime-v01.webp",
+      "master": "exec-ff72a414-f7f9-4bf1-87f6-2abf90da8cfe.png",
+      "tile": 7,
+      "sha256": "2b6bae81f678a6555fa34bdeb43fb447dd1b4f38ca52a9461b870da7b86d81da"
+    },
+    {
+      "previous": "/media/art/essence-skills/ravager-red-tempest-v01.webp",
+      "current": "/media/art/essence-skills/ravager-red-tempest-anime-v01.webp",
+      "master": "exec-ff72a414-f7f9-4bf1-87f6-2abf90da8cfe.png",
+      "tile": 8,
+      "sha256": "4f4269a22f22009bbe62ee1903eac9fa934c51ff4d09f35fa6b903a57a2ebc92"
+    },
+    {
+      "previous": "/media/art/essence-skills/edgedancer-sevenfold-cut-v01.webp",
+      "current": "/media/art/essence-skills/edgedancer-sevenfold-cut-anime-v01.webp",
+      "master": "exec-ff72a414-f7f9-4bf1-87f6-2abf90da8cfe.png",
+      "tile": 9,
+      "sha256": "e0276f1ad1e4b54d840bf8901eef72b6bb793e637a853202f7d8567924acb217"
+    },
+    {
+      "previous": "/media/art/essence-skills/wildwarden-apex-hunt-v01.webp",
+      "current": "/media/art/essence-skills/wildwarden-apex-hunt-anime-v01.webp",
+      "master": "exec-ff72a414-f7f9-4bf1-87f6-2abf90da8cfe.png",
+      "tile": 10,
+      "sha256": "0158f97d64f1e7d7321b0d9f74dccd0accd933ef5a601e827661e1811e28d584"
+    },
+    {
+      "previous": "/media/art/essence-skills/aetherist-aether-nova-v01.webp",
+      "current": "/media/art/essence-skills/aetherist-aether-nova-anime-v01.webp",
+      "master": "exec-ff72a414-f7f9-4bf1-87f6-2abf90da8cfe.png",
+      "tile": 11,
+      "sha256": "ecfdfa3cdc4988259db009b0d4118bbd390020edb75632622943e3fc13ffca3a"
+    },
+    {
+      "previous": "/media/art/essence-skills/runeblade-runic-overdrive-v01.webp",
+      "current": "/media/art/essence-skills/runeblade-runic-overdrive-anime-v01.webp",
+      "master": "exec-ff72a414-f7f9-4bf1-87f6-2abf90da8cfe.png",
+      "tile": 12,
+      "sha256": "b6df62926acb8b8d278b3063043f4af3c24844eaa335915591137d087d95fce6"
+    },
+    {
+      "previous": "/media/art/essence-skills/chronist-borrowed-hour-v01.webp",
+      "current": "/media/art/essence-skills/chronist-borrowed-hour-anime-v01.webp",
+      "master": "exec-ff72a414-f7f9-4bf1-87f6-2abf90da8cfe.png",
+      "tile": 13,
+      "sha256": "4fb966f4cb04edecb44be25499bfbcde2799abde9117270d396f96d17b53533d"
+    },
+    {
+      "previous": "/media/art/essence-skills/cinderweaver-phoenix-wake-v01.webp",
+      "current": "/media/art/essence-skills/cinderweaver-phoenix-wake-anime-v01.webp",
+      "master": "exec-ff72a414-f7f9-4bf1-87f6-2abf90da8cfe.png",
+      "tile": 14,
+      "sha256": "09c496820c1e8118be5f334b337cb7cbfac3b0ca4ae7445a8e86081bc66dc964"
+    },
+    {
+      "previous": "/media/art/essence-skills/frostweaver-absolute-winter-v01.webp",
+      "current": "/media/art/essence-skills/frostweaver-absolute-winter-anime-v01.webp",
+      "master": "exec-ff72a414-f7f9-4bf1-87f6-2abf90da8cfe.png",
+      "tile": 15,
+      "sha256": "d66644a4c1463d8944e1715f4897ef6e9f68dc642d2e4a9eb4dabc4629400c61"
+    },
+    {
+      "previous": "/media/art/essence-skills/stormsinger-skybreak-v01.webp",
+      "current": "/media/art/essence-skills/stormsinger-skybreak-anime-v01.webp",
+      "master": "exec-ff72a414-f7f9-4bf1-87f6-2abf90da8cfe.png",
+      "tile": 16,
+      "sha256": "56cb2a7526e357e37a59a3594eceae68e3338b581d5ce3c994e464bb05fc36d3"
+    },
+    {
+      "previous": "/media/art/essence-skills/tidecaller-tidal-crown-v01.webp",
+      "current": "/media/art/essence-skills/tidecaller-tidal-crown-anime-v01.webp",
+      "master": "exec-0dae7ef6-b994-4c94-8d61-08b6c4c35b6a.png",
+      "tile": 1,
+      "sha256": "587fbf812ea74c1337fe3f0227c8b12aa91c85af6d37732c1a0ba7673069783c"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-lifebinder-vanguard-mercys-edge-v01.webp",
+      "current": "/media/art/resonances/resonance-lifebinder-vanguard-mercys-edge-anime-v01.webp",
+      "master": "exec-2c8b4ea5-5fc9-493c-a5f1-c98385a67c25.png",
+      "tile": 1,
+      "sha256": "f672201c952ddac56ca400d2081f630b3d4388ce69b661044c887c69def89a03"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-aetherist-farstrider-arcane-hunt-v01.webp",
+      "current": "/media/art/resonances/resonance-aetherist-farstrider-arcane-hunt-anime-v01.webp",
+      "master": "exec-2c8b4ea5-5fc9-493c-a5f1-c98385a67c25.png",
+      "tile": 2,
+      "sha256": "1b03f8f68bfb36ce4ec81f9953209f5ded7fae24750a73b9b855835f7b4fbb7b"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-aetherist-lifebinder-vital-circuit-v01.webp",
+      "current": "/media/art/resonances/resonance-aetherist-lifebinder-vital-circuit-anime-v01.webp",
+      "master": "exec-2c8b4ea5-5fc9-493c-a5f1-c98385a67c25.png",
+      "tile": 3,
+      "sha256": "e0a32097b6f85c8361af9aedd3b06478317f9ab2924e32d9a26f67847e4fe031"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-aetherist-shadehand-veiled-conduit-v01.webp",
+      "current": "/media/art/resonances/resonance-aetherist-shadehand-veiled-conduit-anime-v01.webp",
+      "master": "exec-2c8b4ea5-5fc9-493c-a5f1-c98385a67c25.png",
+      "tile": 4,
+      "sha256": "aed4f7e2f0ddfcc7983f2e040dcf17a212e1169f26c91e44fb9369b72199ac46"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-aetherist-vanguard-spellsteel-rhythm-v01.webp",
+      "current": "/media/art/resonances/resonance-aetherist-vanguard-spellsteel-rhythm-anime-v01.webp",
+      "master": "exec-2c8b4ea5-5fc9-493c-a5f1-c98385a67c25.png",
+      "tile": 5,
+      "sha256": "677e980924211eb26d15106f3ea23a3dcaba7685958b52c3d7b68eb1c18a556d"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-farstrider-lifebinder-guided-renewal-v01.webp",
+      "current": "/media/art/resonances/resonance-farstrider-lifebinder-guided-renewal-anime-v01.webp",
+      "master": "exec-2c8b4ea5-5fc9-493c-a5f1-c98385a67c25.png",
+      "tile": 6,
+      "sha256": "7183bd58c4904e17c5c4cb5d3c140a4db6766da5f1abfd437033ddcf0c08e8ba"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-farstrider-shadehand-marked-opening-v01.webp",
+      "current": "/media/art/resonances/resonance-farstrider-shadehand-marked-opening-anime-v01.webp",
+      "master": "exec-2c8b4ea5-5fc9-493c-a5f1-c98385a67c25.png",
+      "tile": 7,
+      "sha256": "237d3f4da4437510640391254cc0b8e8bb23d742e0e4fc366d15f0f7b27fe4e5"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-farstrider-vanguard-covering-break-v01.webp",
+      "current": "/media/art/resonances/resonance-farstrider-vanguard-covering-break-anime-v01.webp",
+      "master": "exec-2c8b4ea5-5fc9-493c-a5f1-c98385a67c25.png",
+      "tile": 8,
+      "sha256": "eba28a7028bfddca5fcc0ecf73b8aba669a1416b7b4e8137030f143273bd633c"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-lifebinder-shadehand-mercy-in-shadow-v01.webp",
+      "current": "/media/art/resonances/resonance-lifebinder-shadehand-mercy-in-shadow-anime-v01.webp",
+      "master": "exec-2c8b4ea5-5fc9-493c-a5f1-c98385a67c25.png",
+      "tile": 9,
+      "sha256": "89cd1f12e041d341889145d5e24c1e27c9db5b2e32c32bce9da4c68354fb370e"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-shadehand-vanguard-broken-line-v01.webp",
+      "current": "/media/art/resonances/resonance-shadehand-vanguard-broken-line-anime-v01.webp",
+      "master": "exec-2c8b4ea5-5fc9-493c-a5f1-c98385a67c25.png",
+      "tile": 10,
+      "sha256": "94ab24ec1a9d4218141b66284b51ad5515583d961a2a11e8ed42c9bc4a311422"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-aetherist-ironfist-conductive-impact-v01.webp",
+      "current": "/media/art/resonances/resonance-aetherist-ironfist-conductive-impact-anime-v01.webp",
+      "master": "exec-2c8b4ea5-5fc9-493c-a5f1-c98385a67c25.png",
+      "tile": 11,
+      "sha256": "d5e1a743902dadd4b9103112dc95ae42d6fad86a9d6fd0c391d0be0e75d1bac2"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-farstrider-ironfist-marked-approach-v01.webp",
+      "current": "/media/art/resonances/resonance-farstrider-ironfist-marked-approach-anime-v01.webp",
+      "master": "exec-2c8b4ea5-5fc9-493c-a5f1-c98385a67c25.png",
+      "tile": 12,
+      "sha256": "b1cc33c01d46d2fefcc496a1e3f59c8833fe6687273707665a8bf7d480b05f98"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-ironfist-lifebinder-renewed-force-v01.webp",
+      "current": "/media/art/resonances/resonance-ironfist-lifebinder-renewed-force-anime-v01.webp",
+      "master": "exec-2c8b4ea5-5fc9-493c-a5f1-c98385a67c25.png",
+      "tile": 13,
+      "sha256": "5569bebcf542a6916209f3afcf36eb96db59018cbc97714fbde0c78265ca7f65"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-ironfist-shadehand-broken-rhythm-v01.webp",
+      "current": "/media/art/resonances/resonance-ironfist-shadehand-broken-rhythm-anime-v01.webp",
+      "master": "exec-2c8b4ea5-5fc9-493c-a5f1-c98385a67c25.png",
+      "tile": 14,
+      "sha256": "9afe772b36c4c67f809408ad00c87af9edd069ea1af71e61d8cacb08c38c4b20"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-ironfist-vanguard-tempered-response-v01.webp",
+      "current": "/media/art/resonances/resonance-ironfist-vanguard-tempered-response-anime-v01.webp",
+      "master": "exec-2c8b4ea5-5fc9-493c-a5f1-c98385a67c25.png",
+      "tile": 15,
+      "sha256": "e02986ef2c69d7c250b0c3c45430025dc73963640ce6ce4076415ca85dd4df76"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-bastion-vanguard-tempered-vanguard-v01.webp",
+      "current": "/media/art/resonances/resonance-bastion-vanguard-tempered-vanguard-anime-v01.webp",
+      "master": "exec-2c8b4ea5-5fc9-493c-a5f1-c98385a67c25.png",
+      "tile": 16,
+      "sha256": "59d929e716e79082a3115b599c24c8bd04a307b2c1324373e4d404ec15272c1c"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-bastion-lifebinder-tempered-bloom-v01.webp",
+      "current": "/media/art/resonances/resonance-bastion-lifebinder-tempered-bloom-anime-v01.webp",
+      "master": "exec-eca2cccc-702f-469f-bbfe-9138a633cb2a.png",
+      "tile": 1,
+      "sha256": "425a83bfa51d86a313720fde94cf9fbec8e4e8214d59ebb4c2b51f9150514a7a"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-aetherist-bastion-tempered-arc-v01.webp",
+      "current": "/media/art/resonances/resonance-aetherist-bastion-tempered-arc-anime-v01.webp",
+      "master": "exec-eca2cccc-702f-469f-bbfe-9138a633cb2a.png",
+      "tile": 2,
+      "sha256": "dc0ab3d01cf84a28acf98da838dee6a26705cbcd61f3b9f1affc8538cd6fe007"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-bastion-farstrider-tempered-volley-v01.webp",
+      "current": "/media/art/resonances/resonance-bastion-farstrider-tempered-volley-anime-v01.webp",
+      "master": "exec-eca2cccc-702f-469f-bbfe-9138a633cb2a.png",
+      "tile": 3,
+      "sha256": "65b680ae61f377808e74f398870d3436f70fee4beaf7871bde10d07b829e4d29"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-bastion-shadehand-tempered-ambush-v01.webp",
+      "current": "/media/art/resonances/resonance-bastion-shadehand-tempered-ambush-anime-v01.webp",
+      "master": "exec-eca2cccc-702f-469f-bbfe-9138a633cb2a.png",
+      "tile": 4,
+      "sha256": "3b446487a3494b2c12e5df38f481fe9e3920baddbd633783cfa4b7de24ce2f1e"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-bastion-ironfist-tempered-impact-v01.webp",
+      "current": "/media/art/resonances/resonance-bastion-ironfist-tempered-impact-anime-v01.webp",
+      "master": "exec-eca2cccc-702f-469f-bbfe-9138a633cb2a.png",
+      "tile": 5,
+      "sha256": "4d92a3d940af937a5a2f0026758a89e9bf2655fda8b3354b0c0e89b8397bbc60"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-ravager-vanguard-crimson-vanguard-v01.webp",
+      "current": "/media/art/resonances/resonance-ravager-vanguard-crimson-vanguard-anime-v01.webp",
+      "master": "exec-eca2cccc-702f-469f-bbfe-9138a633cb2a.png",
+      "tile": 6,
+      "sha256": "d66959e591321547ceca10d70f3d1a07f55912e61120337e23903e96684623bf"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-lifebinder-ravager-crimson-bloom-v01.webp",
+      "current": "/media/art/resonances/resonance-lifebinder-ravager-crimson-bloom-anime-v01.webp",
+      "master": "exec-eca2cccc-702f-469f-bbfe-9138a633cb2a.png",
+      "tile": 7,
+      "sha256": "01c4cf313512a2037bd8cbd8373ce3e506e0cbe610c1b14f1009f00609061191"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-aetherist-ravager-crimson-arc-v01.webp",
+      "current": "/media/art/resonances/resonance-aetherist-ravager-crimson-arc-anime-v01.webp",
+      "master": "exec-eca2cccc-702f-469f-bbfe-9138a633cb2a.png",
+      "tile": 8,
+      "sha256": "143c865dfa661f97461102d77531b259dc60af545b295bc2d7c86441347024d0"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-farstrider-ravager-crimson-volley-v01.webp",
+      "current": "/media/art/resonances/resonance-farstrider-ravager-crimson-volley-anime-v01.webp",
+      "master": "exec-eca2cccc-702f-469f-bbfe-9138a633cb2a.png",
+      "tile": 9,
+      "sha256": "bc317dbb0182585cc234df905cd42a002dd219fae6fbc9a6827bd1869f11df17"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-ravager-shadehand-crimson-ambush-v01.webp",
+      "current": "/media/art/resonances/resonance-ravager-shadehand-crimson-ambush-anime-v01.webp",
+      "master": "exec-eca2cccc-702f-469f-bbfe-9138a633cb2a.png",
+      "tile": 10,
+      "sha256": "833271e664a7ebf3057f652c150e46f8c762ff18502317fd1b31afb6695ef24f"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-ironfist-ravager-crimson-impact-v01.webp",
+      "current": "/media/art/resonances/resonance-ironfist-ravager-crimson-impact-anime-v01.webp",
+      "master": "exec-eca2cccc-702f-469f-bbfe-9138a633cb2a.png",
+      "tile": 11,
+      "sha256": "3112ee33ac3411661e542d8244ef9e4956442d2710da2fb053924024919a17b3"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-bastion-ravager-crimson-bulwark-v01.webp",
+      "current": "/media/art/resonances/resonance-bastion-ravager-crimson-bulwark-anime-v01.webp",
+      "master": "exec-eca2cccc-702f-469f-bbfe-9138a633cb2a.png",
+      "tile": 12,
+      "sha256": "5559dc00f951041aeeeaf9ba28901175c358a0bb13fda5893c8a1688dcdfc4ab"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-edgedancer-vanguard-poised-vanguard-v01.webp",
+      "current": "/media/art/resonances/resonance-edgedancer-vanguard-poised-vanguard-anime-v01.webp",
+      "master": "exec-eca2cccc-702f-469f-bbfe-9138a633cb2a.png",
+      "tile": 13,
+      "sha256": "fdecbb4a7f821ffe211e445b37e75d2771450f4e5f13c036c7db497958f00ced"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-edgedancer-lifebinder-poised-bloom-v01.webp",
+      "current": "/media/art/resonances/resonance-edgedancer-lifebinder-poised-bloom-anime-v01.webp",
+      "master": "exec-eca2cccc-702f-469f-bbfe-9138a633cb2a.png",
+      "tile": 14,
+      "sha256": "cffb4f229a00e5b00900d7e16d4a121d075696f1a60cd2892fda914200986e65"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-aetherist-edgedancer-poised-arc-v01.webp",
+      "current": "/media/art/resonances/resonance-aetherist-edgedancer-poised-arc-anime-v01.webp",
+      "master": "exec-eca2cccc-702f-469f-bbfe-9138a633cb2a.png",
+      "tile": 15,
+      "sha256": "2d752d49305b70963aaefabfb8cb47c9b032259b6daa79d1229146079f929697"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-edgedancer-farstrider-poised-volley-v01.webp",
+      "current": "/media/art/resonances/resonance-edgedancer-farstrider-poised-volley-anime-v01.webp",
+      "master": "exec-eca2cccc-702f-469f-bbfe-9138a633cb2a.png",
+      "tile": 16,
+      "sha256": "421cd9778da9f2e17f10fd899d2f23e6fb9dff4a933302d9180f47f7a635a286"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-edgedancer-shadehand-poised-ambush-v01.webp",
+      "current": "/media/art/resonances/resonance-edgedancer-shadehand-poised-ambush-anime-v01.webp",
+      "master": "exec-575d9d7b-1c3d-45a3-91e5-975790f1389f.png",
+      "tile": 1,
+      "sha256": "ca2cc203e5ac738273fb1efa884c0594aca22e896eb5900a586b73558bd44229"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-edgedancer-ironfist-poised-impact-v01.webp",
+      "current": "/media/art/resonances/resonance-edgedancer-ironfist-poised-impact-anime-v01.webp",
+      "master": "exec-575d9d7b-1c3d-45a3-91e5-975790f1389f.png",
+      "tile": 2,
+      "sha256": "50c7cb62dda2e1945dbd32f8df8a70add187aab2c6ae2be5dd66ece019f00a76"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-bastion-edgedancer-poised-bulwark-v01.webp",
+      "current": "/media/art/resonances/resonance-bastion-edgedancer-poised-bulwark-anime-v01.webp",
+      "master": "exec-575d9d7b-1c3d-45a3-91e5-975790f1389f.png",
+      "tile": 3,
+      "sha256": "096f5b81df510be9575169c4420dbff5d04c8411740a0499fa2b81c432658701"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-edgedancer-ravager-poised-fury-v01.webp",
+      "current": "/media/art/resonances/resonance-edgedancer-ravager-poised-fury-anime-v01.webp",
+      "master": "exec-575d9d7b-1c3d-45a3-91e5-975790f1389f.png",
+      "tile": 4,
+      "sha256": "a5d2b57493b68df370f25e692ac7b23877074e06c8b14557bb78164ea4274c69"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-vanguard-wildwarden-quarry-vanguard-v01.webp",
+      "current": "/media/art/resonances/resonance-vanguard-wildwarden-quarry-vanguard-anime-v01.webp",
+      "master": "exec-575d9d7b-1c3d-45a3-91e5-975790f1389f.png",
+      "tile": 5,
+      "sha256": "56d56695915d955edd3c441a002f303ad103a8d0b47ba062f7afd5df11e31f4b"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-lifebinder-wildwarden-quarry-bloom-v01.webp",
+      "current": "/media/art/resonances/resonance-lifebinder-wildwarden-quarry-bloom-anime-v01.webp",
+      "master": "exec-575d9d7b-1c3d-45a3-91e5-975790f1389f.png",
+      "tile": 6,
+      "sha256": "23e45af294736600f7146621c57a730ff882a2bae24ff6bbb672f06eec37c1df"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-aetherist-wildwarden-quarry-arc-v01.webp",
+      "current": "/media/art/resonances/resonance-aetherist-wildwarden-quarry-arc-anime-v01.webp",
+      "master": "exec-575d9d7b-1c3d-45a3-91e5-975790f1389f.png",
+      "tile": 7,
+      "sha256": "d6e82ca8b6c5f24ebfb2709a8fb634a981b7e5537cbd1da2550c9d9fee38c92d"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-farstrider-wildwarden-quarry-volley-v01.webp",
+      "current": "/media/art/resonances/resonance-farstrider-wildwarden-quarry-volley-anime-v01.webp",
+      "master": "exec-575d9d7b-1c3d-45a3-91e5-975790f1389f.png",
+      "tile": 8,
+      "sha256": "c79283fb7d2c11e4ff14e7f8afac57cbd506e529c8b0c460afa4c959d12ca947"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-shadehand-wildwarden-quarry-ambush-v01.webp",
+      "current": "/media/art/resonances/resonance-shadehand-wildwarden-quarry-ambush-anime-v01.webp",
+      "master": "exec-575d9d7b-1c3d-45a3-91e5-975790f1389f.png",
+      "tile": 9,
+      "sha256": "c3cccea3a635068d78e77a2a67304184e8d916fa95935f6edd27b5056f103bfd"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-ironfist-wildwarden-quarry-impact-v01.webp",
+      "current": "/media/art/resonances/resonance-ironfist-wildwarden-quarry-impact-anime-v01.webp",
+      "master": "exec-575d9d7b-1c3d-45a3-91e5-975790f1389f.png",
+      "tile": 10,
+      "sha256": "26dced2579e00728a18e71ff2f8e2e183e83b2640799489686491d538840b4b8"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-bastion-wildwarden-quarry-bulwark-v01.webp",
+      "current": "/media/art/resonances/resonance-bastion-wildwarden-quarry-bulwark-anime-v01.webp",
+      "master": "exec-575d9d7b-1c3d-45a3-91e5-975790f1389f.png",
+      "tile": 11,
+      "sha256": "81c2fa039f2aa5fd91155bf622e82f31053c0f866e822178c69feeb12ab9e784"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-ravager-wildwarden-quarry-fury-v01.webp",
+      "current": "/media/art/resonances/resonance-ravager-wildwarden-quarry-fury-anime-v01.webp",
+      "master": "exec-575d9d7b-1c3d-45a3-91e5-975790f1389f.png",
+      "tile": 12,
+      "sha256": "6bf49495d1d56d99aaad3d29af7e294bd14481862a85ceb6b93595d929a18b41"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-edgedancer-wildwarden-quarry-edge-v01.webp",
+      "current": "/media/art/resonances/resonance-edgedancer-wildwarden-quarry-edge-anime-v01.webp",
+      "master": "exec-575d9d7b-1c3d-45a3-91e5-975790f1389f.png",
+      "tile": 13,
+      "sha256": "e93032483c40f7ad9b9db748bf6ff3dcc9c30c65a698b01e708cee589ebcfd90"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-runeblade-vanguard-runic-vanguard-v01.webp",
+      "current": "/media/art/resonances/resonance-runeblade-vanguard-runic-vanguard-anime-v01.webp",
+      "master": "exec-575d9d7b-1c3d-45a3-91e5-975790f1389f.png",
+      "tile": 14,
+      "sha256": "626b2a345387f15c630460a46a718404a83e5106bbefd17529d4f7c3f67cb4d0"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-lifebinder-runeblade-runic-bloom-v01.webp",
+      "current": "/media/art/resonances/resonance-lifebinder-runeblade-runic-bloom-anime-v01.webp",
+      "master": "exec-575d9d7b-1c3d-45a3-91e5-975790f1389f.png",
+      "tile": 15,
+      "sha256": "1745d0bdb81d651d0ecbdfd4761acc10a48fe7b90762a2d41e532a9aa307fb9b"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-aetherist-runeblade-runic-arc-v01.webp",
+      "current": "/media/art/resonances/resonance-aetherist-runeblade-runic-arc-anime-v01.webp",
+      "master": "exec-575d9d7b-1c3d-45a3-91e5-975790f1389f.png",
+      "tile": 16,
+      "sha256": "5195d5a47ffad3b3abbf39a5f85c56f30e0a290a4f35d7ee8def969e325aa091"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-farstrider-runeblade-runic-volley-v01.webp",
+      "current": "/media/art/resonances/resonance-farstrider-runeblade-runic-volley-anime-v01.webp",
+      "master": "exec-05c1396e-3c42-4392-acd7-df35efecd45b.png",
+      "tile": 1,
+      "sha256": "e531b152066e1147c98db86112c196402dd9e7d584d37c6bc91c9235c9f758a5"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-runeblade-shadehand-runic-ambush-v01.webp",
+      "current": "/media/art/resonances/resonance-runeblade-shadehand-runic-ambush-anime-v01.webp",
+      "master": "exec-05c1396e-3c42-4392-acd7-df35efecd45b.png",
+      "tile": 2,
+      "sha256": "759e4ed1cf74daaf8212bb2c93b8d9c9ff553f4ac3a35c4bebbc5bf13e31bbdb"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-ironfist-runeblade-runic-impact-v01.webp",
+      "current": "/media/art/resonances/resonance-ironfist-runeblade-runic-impact-anime-v01.webp",
+      "master": "exec-05c1396e-3c42-4392-acd7-df35efecd45b.png",
+      "tile": 3,
+      "sha256": "f9caad82cad688d0e700916aec629162924cab01ad565b538b3c2d847f35c9dd"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-bastion-runeblade-runic-bulwark-v01.webp",
+      "current": "/media/art/resonances/resonance-bastion-runeblade-runic-bulwark-anime-v01.webp",
+      "master": "exec-05c1396e-3c42-4392-acd7-df35efecd45b.png",
+      "tile": 4,
+      "sha256": "1a7a318b76a75d560c1aa198452114b30e03146396d79dc6390708d10044ca2b"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-ravager-runeblade-runic-fury-v01.webp",
+      "current": "/media/art/resonances/resonance-ravager-runeblade-runic-fury-anime-v01.webp",
+      "master": "exec-05c1396e-3c42-4392-acd7-df35efecd45b.png",
+      "tile": 5,
+      "sha256": "0dc1800cd0e252a1961e1068c7f9b105379a2a82868dcc256d34206da4a4a227"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-edgedancer-runeblade-runic-edge-v01.webp",
+      "current": "/media/art/resonances/resonance-edgedancer-runeblade-runic-edge-anime-v01.webp",
+      "master": "exec-05c1396e-3c42-4392-acd7-df35efecd45b.png",
+      "tile": 6,
+      "sha256": "5678ec0d9365a16beb845c7db1a6ddf9663b934ac544cab30906523624536da2"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-runeblade-wildwarden-runic-hunt-v01.webp",
+      "current": "/media/art/resonances/resonance-runeblade-wildwarden-runic-hunt-anime-v01.webp",
+      "master": "exec-05c1396e-3c42-4392-acd7-df35efecd45b.png",
+      "tile": 7,
+      "sha256": "481e5dc47711b3999b375735487bd1f99e8a14f5f517c9bb7020de0f1d42350f"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-dawnshield-vanguard-dawnlit-vanguard-v01.webp",
+      "current": "/media/art/resonances/resonance-dawnshield-vanguard-dawnlit-vanguard-anime-v01.webp",
+      "master": "exec-05c1396e-3c42-4392-acd7-df35efecd45b.png",
+      "tile": 8,
+      "sha256": "68409568732575803dd2ee1ea5e2ee92ff1711e4584ada0c451a9e4c7798f472"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-dawnshield-lifebinder-dawnlit-bloom-v01.webp",
+      "current": "/media/art/resonances/resonance-dawnshield-lifebinder-dawnlit-bloom-anime-v01.webp",
+      "master": "exec-05c1396e-3c42-4392-acd7-df35efecd45b.png",
+      "tile": 9,
+      "sha256": "633e308258d7d58d1f26bfc4ed4565ebd3260569ad8acd67e7fd88dc9f07e982"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-aetherist-dawnshield-dawnlit-arc-v01.webp",
+      "current": "/media/art/resonances/resonance-aetherist-dawnshield-dawnlit-arc-anime-v01.webp",
+      "master": "exec-05c1396e-3c42-4392-acd7-df35efecd45b.png",
+      "tile": 10,
+      "sha256": "edb6ff515de37929fa033f154c6938d366db484541bdd220308aa63a2a355539"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-dawnshield-farstrider-dawnlit-volley-v01.webp",
+      "current": "/media/art/resonances/resonance-dawnshield-farstrider-dawnlit-volley-anime-v01.webp",
+      "master": "exec-05c1396e-3c42-4392-acd7-df35efecd45b.png",
+      "tile": 11,
+      "sha256": "a0a3505a0edc8589cdcd4cf0d4792a8341a61b75a8e03c1708c2074eaa06c8fe"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-dawnshield-shadehand-dawnlit-ambush-v01.webp",
+      "current": "/media/art/resonances/resonance-dawnshield-shadehand-dawnlit-ambush-anime-v01.webp",
+      "master": "exec-05c1396e-3c42-4392-acd7-df35efecd45b.png",
+      "tile": 12,
+      "sha256": "e7fa05d04be3b8ca15642bc8be1040e00eddace960bcd166894a4c285758c7c7"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-dawnshield-ironfist-dawnlit-impact-v01.webp",
+      "current": "/media/art/resonances/resonance-dawnshield-ironfist-dawnlit-impact-anime-v01.webp",
+      "master": "exec-05c1396e-3c42-4392-acd7-df35efecd45b.png",
+      "tile": 13,
+      "sha256": "db8cbd4720ac348d1f65ca374fcccd43a9c50fabe2fc303a1418905b54767eb0"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-bastion-dawnshield-dawnlit-bulwark-v01.webp",
+      "current": "/media/art/resonances/resonance-bastion-dawnshield-dawnlit-bulwark-anime-v01.webp",
+      "master": "exec-05c1396e-3c42-4392-acd7-df35efecd45b.png",
+      "tile": 14,
+      "sha256": "579e73d7ecf8c9f190f60484ce6d8c47c60c9f5462aacd4670ce727ab071e7cd"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-dawnshield-ravager-dawnlit-fury-v01.webp",
+      "current": "/media/art/resonances/resonance-dawnshield-ravager-dawnlit-fury-anime-v01.webp",
+      "master": "exec-05c1396e-3c42-4392-acd7-df35efecd45b.png",
+      "tile": 15,
+      "sha256": "91b1dc61a43c7316b72093495378ea2a187d81af8182b302f3f26a352ac5d7ec"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-dawnshield-edgedancer-dawnlit-edge-v01.webp",
+      "current": "/media/art/resonances/resonance-dawnshield-edgedancer-dawnlit-edge-anime-v01.webp",
+      "master": "exec-05c1396e-3c42-4392-acd7-df35efecd45b.png",
+      "tile": 16,
+      "sha256": "5fbba6169cb07445794ed89ad52a547bc84c66a09ebba03e8722a68f80979244"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-dawnshield-wildwarden-dawnlit-hunt-v01.webp",
+      "current": "/media/art/resonances/resonance-dawnshield-wildwarden-dawnlit-hunt-anime-v01.webp",
+      "master": "exec-e7094002-806b-4dbe-a4a6-18764998f671.png",
+      "tile": 1,
+      "sha256": "cc9cb599e38ab0dd8e671829a159ea4a65028c23b59324aff26d0f35c8522569"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-dawnshield-runeblade-dawnlit-sigil-v01.webp",
+      "current": "/media/art/resonances/resonance-dawnshield-runeblade-dawnlit-sigil-anime-v01.webp",
+      "master": "exec-e7094002-806b-4dbe-a4a6-18764998f671.png",
+      "tile": 2,
+      "sha256": "aa86e2fcf00cb49a12e6f2659ed3ff53f6984aa4b752e076352ba35a10126f2d"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-cinderweaver-vanguard-ember-vanguard-v01.webp",
+      "current": "/media/art/resonances/resonance-cinderweaver-vanguard-ember-vanguard-anime-v01.webp",
+      "master": "exec-e7094002-806b-4dbe-a4a6-18764998f671.png",
+      "tile": 3,
+      "sha256": "f5254564c4865b3d633e7efa7cc8a96ed49639e793a919de67c6d52cf217effb"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-cinderweaver-lifebinder-ember-bloom-v01.webp",
+      "current": "/media/art/resonances/resonance-cinderweaver-lifebinder-ember-bloom-anime-v01.webp",
+      "master": "exec-e7094002-806b-4dbe-a4a6-18764998f671.png",
+      "tile": 4,
+      "sha256": "6895a552db21da40cf1aaac267847f80580e5a12f9350916338d0cecb0625088"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-aetherist-cinderweaver-ember-arc-v01.webp",
+      "current": "/media/art/resonances/resonance-aetherist-cinderweaver-ember-arc-anime-v01.webp",
+      "master": "exec-e7094002-806b-4dbe-a4a6-18764998f671.png",
+      "tile": 5,
+      "sha256": "e03e9c876b083f0a13f586b020a8acf75ad3c008251081b90d16d2e80c5cf3b4"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-cinderweaver-farstrider-ember-volley-v01.webp",
+      "current": "/media/art/resonances/resonance-cinderweaver-farstrider-ember-volley-anime-v01.webp",
+      "master": "exec-e7094002-806b-4dbe-a4a6-18764998f671.png",
+      "tile": 6,
+      "sha256": "d40403c0d758f6e74be9a8ae75c9d6309a27ce42973ef1db8e2536e6bb939903"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-cinderweaver-shadehand-ember-ambush-v01.webp",
+      "current": "/media/art/resonances/resonance-cinderweaver-shadehand-ember-ambush-anime-v01.webp",
+      "master": "exec-e7094002-806b-4dbe-a4a6-18764998f671.png",
+      "tile": 7,
+      "sha256": "3019fba69bc708e3bdc1111829c4512d8a12f6e4acd66014d957b2a3d1e3babb"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-cinderweaver-ironfist-ember-impact-v01.webp",
+      "current": "/media/art/resonances/resonance-cinderweaver-ironfist-ember-impact-anime-v01.webp",
+      "master": "exec-e7094002-806b-4dbe-a4a6-18764998f671.png",
+      "tile": 8,
+      "sha256": "0f3a128800cacc71cd7b7e1983e1ad3c8f8525abc2326437c24992eb8213fc12"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-bastion-cinderweaver-ember-bulwark-v01.webp",
+      "current": "/media/art/resonances/resonance-bastion-cinderweaver-ember-bulwark-anime-v01.webp",
+      "master": "exec-e7094002-806b-4dbe-a4a6-18764998f671.png",
+      "tile": 9,
+      "sha256": "d56818cae8b798f01bd0b5354d5bdbc634f41aae8a0ae89d7520d7efb8319534"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-cinderweaver-ravager-ember-fury-v01.webp",
+      "current": "/media/art/resonances/resonance-cinderweaver-ravager-ember-fury-anime-v01.webp",
+      "master": "exec-e7094002-806b-4dbe-a4a6-18764998f671.png",
+      "tile": 10,
+      "sha256": "71aa52849c0e32eccc62cc3c0b82e45193e0c1206ba38b5fa46bd3637761fff4"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-cinderweaver-edgedancer-ember-edge-v01.webp",
+      "current": "/media/art/resonances/resonance-cinderweaver-edgedancer-ember-edge-anime-v01.webp",
+      "master": "exec-e7094002-806b-4dbe-a4a6-18764998f671.png",
+      "tile": 11,
+      "sha256": "e574543794c0707a63a1bb8ba53ecf55c6dcc360dba67e2216c6c91d5185e1c6"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-cinderweaver-wildwarden-ember-hunt-v01.webp",
+      "current": "/media/art/resonances/resonance-cinderweaver-wildwarden-ember-hunt-anime-v01.webp",
+      "master": "exec-e7094002-806b-4dbe-a4a6-18764998f671.png",
+      "tile": 12,
+      "sha256": "f5330512b72cdd17516963abc4067d4523c79037be1167da86687e1b4836e76d"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-cinderweaver-runeblade-ember-sigil-v01.webp",
+      "current": "/media/art/resonances/resonance-cinderweaver-runeblade-ember-sigil-anime-v01.webp",
+      "master": "exec-e7094002-806b-4dbe-a4a6-18764998f671.png",
+      "tile": 13,
+      "sha256": "fc76fdf7bab6b1b5308db3fe9b7e97e91e66006577093404fa7c04476c8df167"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-cinderweaver-dawnshield-ember-aegis-v01.webp",
+      "current": "/media/art/resonances/resonance-cinderweaver-dawnshield-ember-aegis-anime-v01.webp",
+      "master": "exec-e7094002-806b-4dbe-a4a6-18764998f671.png",
+      "tile": 14,
+      "sha256": "b66ff3494787e2ad7a8c90db20fdc53bb24e6f500b787507470a8d1b55910957"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-frostweaver-vanguard-frozen-vanguard-v01.webp",
+      "current": "/media/art/resonances/resonance-frostweaver-vanguard-frozen-vanguard-anime-v01.webp",
+      "master": "exec-e7094002-806b-4dbe-a4a6-18764998f671.png",
+      "tile": 15,
+      "sha256": "3f655f2d9a0ab2bf1e35da1463eeba352b87afed2b9ef026c06e949d9e7d248c"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-frostweaver-lifebinder-frozen-bloom-v01.webp",
+      "current": "/media/art/resonances/resonance-frostweaver-lifebinder-frozen-bloom-anime-v01.webp",
+      "master": "exec-e7094002-806b-4dbe-a4a6-18764998f671.png",
+      "tile": 16,
+      "sha256": "8b60a08ad742c17df84d2b3fc62e6884fe8d3e14111e02cb6aa022ddbd33229f"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-aetherist-frostweaver-frozen-arc-v01.webp",
+      "current": "/media/art/resonances/resonance-aetherist-frostweaver-frozen-arc-anime-v01.webp",
+      "master": "exec-64fe51eb-b2bc-40a1-8bb6-65e9a5771dab.png",
+      "tile": 1,
+      "sha256": "8e6c7ad02b5dfd058ac31cab3b56b2acabbe68571e47f514efc868c5a1fa15b3"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-farstrider-frostweaver-frozen-volley-v01.webp",
+      "current": "/media/art/resonances/resonance-farstrider-frostweaver-frozen-volley-anime-v01.webp",
+      "master": "exec-64fe51eb-b2bc-40a1-8bb6-65e9a5771dab.png",
+      "tile": 2,
+      "sha256": "420d3d93e711a29a0e20ad76ec28dc9d320680ca285fd6f3ff217684345c00c3"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-frostweaver-shadehand-frozen-ambush-v01.webp",
+      "current": "/media/art/resonances/resonance-frostweaver-shadehand-frozen-ambush-anime-v01.webp",
+      "master": "exec-64fe51eb-b2bc-40a1-8bb6-65e9a5771dab.png",
+      "tile": 3,
+      "sha256": "e4df4051d7a2cb805f671c3aaaa34b868f9256d36529a98623c8f97484d47b26"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-frostweaver-ironfist-frozen-impact-v01.webp",
+      "current": "/media/art/resonances/resonance-frostweaver-ironfist-frozen-impact-anime-v01.webp",
+      "master": "exec-64fe51eb-b2bc-40a1-8bb6-65e9a5771dab.png",
+      "tile": 4,
+      "sha256": "8753653dfe9715ca00a327ae8de65952786aea57023e2d77dba3e855604930c1"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-bastion-frostweaver-frozen-bulwark-v01.webp",
+      "current": "/media/art/resonances/resonance-bastion-frostweaver-frozen-bulwark-anime-v01.webp",
+      "master": "exec-64fe51eb-b2bc-40a1-8bb6-65e9a5771dab.png",
+      "tile": 5,
+      "sha256": "f5b554b0c10cff7fa514b13802680112fb8362a21ebe26436d206c523d87b075"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-frostweaver-ravager-frozen-fury-v01.webp",
+      "current": "/media/art/resonances/resonance-frostweaver-ravager-frozen-fury-anime-v01.webp",
+      "master": "exec-64fe51eb-b2bc-40a1-8bb6-65e9a5771dab.png",
+      "tile": 6,
+      "sha256": "5f72dd01d7e031c9bbf70be00bdf7407d840832081f524a9aacb417e6f76f702"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-edgedancer-frostweaver-frozen-edge-v01.webp",
+      "current": "/media/art/resonances/resonance-edgedancer-frostweaver-frozen-edge-anime-v01.webp",
+      "master": "exec-64fe51eb-b2bc-40a1-8bb6-65e9a5771dab.png",
+      "tile": 7,
+      "sha256": "48ce1be835e8bd38401cda1fad1a219ae9c97db6bebd4160d192dcfacb7ef874"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-frostweaver-wildwarden-frozen-hunt-v01.webp",
+      "current": "/media/art/resonances/resonance-frostweaver-wildwarden-frozen-hunt-anime-v01.webp",
+      "master": "exec-64fe51eb-b2bc-40a1-8bb6-65e9a5771dab.png",
+      "tile": 8,
+      "sha256": "763c16cc6bc2aab89b434ca22d8c9c079396beab8f340794082c38f77760ad2c"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-frostweaver-runeblade-frozen-sigil-v01.webp",
+      "current": "/media/art/resonances/resonance-frostweaver-runeblade-frozen-sigil-anime-v01.webp",
+      "master": "exec-64fe51eb-b2bc-40a1-8bb6-65e9a5771dab.png",
+      "tile": 9,
+      "sha256": "5b72b3ff9047c1824de83187f09cd9d9aa3760f2ca7f9fad4bcf467d1f0e2606"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-dawnshield-frostweaver-frozen-aegis-v01.webp",
+      "current": "/media/art/resonances/resonance-dawnshield-frostweaver-frozen-aegis-anime-v01.webp",
+      "master": "exec-64fe51eb-b2bc-40a1-8bb6-65e9a5771dab.png",
+      "tile": 10,
+      "sha256": "71d4afe4552f8bd0387a65ec652b17391a4d6a7b50288dcae06d32ea39320b94"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-cinderweaver-frostweaver-frozen-flare-v01.webp",
+      "current": "/media/art/resonances/resonance-cinderweaver-frostweaver-frozen-flare-anime-v01.webp",
+      "master": "exec-64fe51eb-b2bc-40a1-8bb6-65e9a5771dab.png",
+      "tile": 11,
+      "sha256": "c03b960d531833167201a88fe2eb98e0e7cd83bd7ad42e52c3b46864fdaa8197"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-stormsinger-vanguard-charged-vanguard-v01.webp",
+      "current": "/media/art/resonances/resonance-stormsinger-vanguard-charged-vanguard-anime-v01.webp",
+      "master": "exec-64fe51eb-b2bc-40a1-8bb6-65e9a5771dab.png",
+      "tile": 12,
+      "sha256": "5859ce77fd049726fea4479959811564f70e2daa027a0e70f7507a1ee485cec3"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-lifebinder-stormsinger-charged-bloom-v01.webp",
+      "current": "/media/art/resonances/resonance-lifebinder-stormsinger-charged-bloom-anime-v01.webp",
+      "master": "exec-64fe51eb-b2bc-40a1-8bb6-65e9a5771dab.png",
+      "tile": 13,
+      "sha256": "3645d7a3c0915c04979e42766f0eecc601ad3549e98dc640058f1db1cfc8bf16"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-aetherist-stormsinger-charged-arc-v01.webp",
+      "current": "/media/art/resonances/resonance-aetherist-stormsinger-charged-arc-anime-v01.webp",
+      "master": "exec-64fe51eb-b2bc-40a1-8bb6-65e9a5771dab.png",
+      "tile": 14,
+      "sha256": "e8fbf6c44a986909aa0f0f498c9b5787f3a8b0ef1998318a9700a4280b142835"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-farstrider-stormsinger-charged-volley-v01.webp",
+      "current": "/media/art/resonances/resonance-farstrider-stormsinger-charged-volley-anime-v01.webp",
+      "master": "exec-64fe51eb-b2bc-40a1-8bb6-65e9a5771dab.png",
+      "tile": 15,
+      "sha256": "86ee3c61a7936daa80a9fa7860a319010a27eacc5a7accde3610422d7511417f"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-shadehand-stormsinger-charged-ambush-v01.webp",
+      "current": "/media/art/resonances/resonance-shadehand-stormsinger-charged-ambush-anime-v01.webp",
+      "master": "exec-64fe51eb-b2bc-40a1-8bb6-65e9a5771dab.png",
+      "tile": 16,
+      "sha256": "cdd4c238f4931d8dc09457eb00c3ffde9a1dfd331aebe7eece66db3b7db25af8"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-ironfist-stormsinger-charged-impact-v01.webp",
+      "current": "/media/art/resonances/resonance-ironfist-stormsinger-charged-impact-anime-v01.webp",
+      "master": "exec-dfc01f61-d995-490b-8d8c-d817473fc7a4.png",
+      "tile": 1,
+      "sha256": "e1b4fa07aa13e23841501cd551aa3c21c0bf63084e357acfd54ce1d23d7a76a9"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-bastion-stormsinger-charged-bulwark-v01.webp",
+      "current": "/media/art/resonances/resonance-bastion-stormsinger-charged-bulwark-anime-v01.webp",
+      "master": "exec-dfc01f61-d995-490b-8d8c-d817473fc7a4.png",
+      "tile": 2,
+      "sha256": "1a22708c620bb65769f8534b0ba4126fc835175272f85b59d58f041eef95c578"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-ravager-stormsinger-charged-fury-v01.webp",
+      "current": "/media/art/resonances/resonance-ravager-stormsinger-charged-fury-anime-v01.webp",
+      "master": "exec-dfc01f61-d995-490b-8d8c-d817473fc7a4.png",
+      "tile": 3,
+      "sha256": "346df779c2edcde63c8570d53d0e5acfd23c187c4e0cac1460bdbb1935002700"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-edgedancer-stormsinger-charged-edge-v01.webp",
+      "current": "/media/art/resonances/resonance-edgedancer-stormsinger-charged-edge-anime-v01.webp",
+      "master": "exec-dfc01f61-d995-490b-8d8c-d817473fc7a4.png",
+      "tile": 4,
+      "sha256": "f805cf33b4a3f56083298e9ec39d2bdb1b047d4a2fd45d67137c1739015f138e"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-stormsinger-wildwarden-charged-hunt-v01.webp",
+      "current": "/media/art/resonances/resonance-stormsinger-wildwarden-charged-hunt-anime-v01.webp",
+      "master": "exec-dfc01f61-d995-490b-8d8c-d817473fc7a4.png",
+      "tile": 5,
+      "sha256": "7c3ce2920b90c79cfb413f1c45becaa7c851d0696d00d99bce6e1d8380ad8102"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-runeblade-stormsinger-charged-sigil-v01.webp",
+      "current": "/media/art/resonances/resonance-runeblade-stormsinger-charged-sigil-anime-v01.webp",
+      "master": "exec-dfc01f61-d995-490b-8d8c-d817473fc7a4.png",
+      "tile": 6,
+      "sha256": "7ae3f5ad9a738fda680329f3f45d2423ed183554c642b11f7cc0464fc9e0dd00"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-dawnshield-stormsinger-charged-aegis-v01.webp",
+      "current": "/media/art/resonances/resonance-dawnshield-stormsinger-charged-aegis-anime-v01.webp",
+      "master": "exec-dfc01f61-d995-490b-8d8c-d817473fc7a4.png",
+      "tile": 7,
+      "sha256": "7fec02f1f67a3f56fd8dd868b71c4d5ec737a4066e61feb4c02d9721e0fe9133"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-cinderweaver-stormsinger-charged-flare-v01.webp",
+      "current": "/media/art/resonances/resonance-cinderweaver-stormsinger-charged-flare-anime-v01.webp",
+      "master": "exec-dfc01f61-d995-490b-8d8c-d817473fc7a4.png",
+      "tile": 8,
+      "sha256": "0ee61cf1483defead29c97d79c147b1bf162f997b8f568606d11586329cc222c"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-frostweaver-stormsinger-charged-crystal-v01.webp",
+      "current": "/media/art/resonances/resonance-frostweaver-stormsinger-charged-crystal-anime-v01.webp",
+      "master": "exec-dfc01f61-d995-490b-8d8c-d817473fc7a4.png",
+      "tile": 9,
+      "sha256": "64c8169609212a81b263f9efa8a3d06c8ea242862c2bc29bd5cb08cc2d56bf11"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-tidecaller-vanguard-renewing-vanguard-v01.webp",
+      "current": "/media/art/resonances/resonance-tidecaller-vanguard-renewing-vanguard-anime-v01.webp",
+      "master": "exec-dfc01f61-d995-490b-8d8c-d817473fc7a4.png",
+      "tile": 10,
+      "sha256": "b795176b50ba9fe52dabc80ee5b228907276a54ec539bfe46506bb782934ffd3"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-lifebinder-tidecaller-renewing-bloom-v01.webp",
+      "current": "/media/art/resonances/resonance-lifebinder-tidecaller-renewing-bloom-anime-v01.webp",
+      "master": "exec-dfc01f61-d995-490b-8d8c-d817473fc7a4.png",
+      "tile": 11,
+      "sha256": "7368b22e5ca0a6a08210cf6e117ee95b3a187042d38de2aafcb2c26a21d17834"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-aetherist-tidecaller-renewing-arc-v01.webp",
+      "current": "/media/art/resonances/resonance-aetherist-tidecaller-renewing-arc-anime-v01.webp",
+      "master": "exec-dfc01f61-d995-490b-8d8c-d817473fc7a4.png",
+      "tile": 12,
+      "sha256": "0f75351b495cecd1eddb9efcb99d83e460fee0a1f588c9684d8d3ffec11c649e"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-farstrider-tidecaller-renewing-volley-v01.webp",
+      "current": "/media/art/resonances/resonance-farstrider-tidecaller-renewing-volley-anime-v01.webp",
+      "master": "exec-dfc01f61-d995-490b-8d8c-d817473fc7a4.png",
+      "tile": 13,
+      "sha256": "c331c43a6487199b39cdad55169f1f48a522070e5bd88d5fcd13406bcc065faa"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-shadehand-tidecaller-renewing-ambush-v01.webp",
+      "current": "/media/art/resonances/resonance-shadehand-tidecaller-renewing-ambush-anime-v01.webp",
+      "master": "exec-dfc01f61-d995-490b-8d8c-d817473fc7a4.png",
+      "tile": 14,
+      "sha256": "47d8314be7a83480f111f0d53be38d3b9be95cd465f304eb1bbea9083e62aba3"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-ironfist-tidecaller-renewing-impact-v01.webp",
+      "current": "/media/art/resonances/resonance-ironfist-tidecaller-renewing-impact-anime-v01.webp",
+      "master": "exec-dfc01f61-d995-490b-8d8c-d817473fc7a4.png",
+      "tile": 15,
+      "sha256": "13038c9d7292365e0e7ca33422dce0e0cfcad4cd2e10ae862bb4b25258334ef8"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-bastion-tidecaller-renewing-bulwark-v01.webp",
+      "current": "/media/art/resonances/resonance-bastion-tidecaller-renewing-bulwark-anime-v01.webp",
+      "master": "exec-dfc01f61-d995-490b-8d8c-d817473fc7a4.png",
+      "tile": 16,
+      "sha256": "a4f8eebb20c7ef5f37170b9737477ce0aa5148cd3d3923b96026a2b2c7d171ad"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-ravager-tidecaller-renewing-fury-v01.webp",
+      "current": "/media/art/resonances/resonance-ravager-tidecaller-renewing-fury-anime-v01.webp",
+      "master": "exec-cd5f4bab-c219-4dde-a8d9-906ca2236dc9.png",
+      "tile": 1,
+      "sha256": "981176f5706167b494d85231526c51cc7441dd6a5faf3c0208058c46de4d1ebb"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-edgedancer-tidecaller-renewing-edge-v01.webp",
+      "current": "/media/art/resonances/resonance-edgedancer-tidecaller-renewing-edge-anime-v01.webp",
+      "master": "exec-cd5f4bab-c219-4dde-a8d9-906ca2236dc9.png",
+      "tile": 2,
+      "sha256": "dbec7afbe802e108566400bf71492cd6796202a99379f7fffef2bf6f3303ed9e"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-tidecaller-wildwarden-renewing-hunt-v01.webp",
+      "current": "/media/art/resonances/resonance-tidecaller-wildwarden-renewing-hunt-anime-v01.webp",
+      "master": "exec-cd5f4bab-c219-4dde-a8d9-906ca2236dc9.png",
+      "tile": 3,
+      "sha256": "3ee2bb265372d70a52f815fd49fa67d9ed1cfb5f5e531f9d83fc296e51117ca3"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-runeblade-tidecaller-renewing-sigil-v01.webp",
+      "current": "/media/art/resonances/resonance-runeblade-tidecaller-renewing-sigil-anime-v01.webp",
+      "master": "exec-cd5f4bab-c219-4dde-a8d9-906ca2236dc9.png",
+      "tile": 4,
+      "sha256": "7e493bcd5f0a021f89a2be165c7751cd02094895b8f0d87eb2fed1eb316e82f6"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-dawnshield-tidecaller-renewing-aegis-v01.webp",
+      "current": "/media/art/resonances/resonance-dawnshield-tidecaller-renewing-aegis-anime-v01.webp",
+      "master": "exec-cd5f4bab-c219-4dde-a8d9-906ca2236dc9.png",
+      "tile": 5,
+      "sha256": "976b5a5258e9c2fa932287996b7c62a8fe91e24223a58aebd8bdca15065e9c5c"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-cinderweaver-tidecaller-renewing-flare-v01.webp",
+      "current": "/media/art/resonances/resonance-cinderweaver-tidecaller-renewing-flare-anime-v01.webp",
+      "master": "exec-cd5f4bab-c219-4dde-a8d9-906ca2236dc9.png",
+      "tile": 6,
+      "sha256": "5922619db14e063c34817648f258b1a0f50562e26e0ab2e50910b621c90f5dce"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-frostweaver-tidecaller-renewing-crystal-v01.webp",
+      "current": "/media/art/resonances/resonance-frostweaver-tidecaller-renewing-crystal-anime-v01.webp",
+      "master": "exec-cd5f4bab-c219-4dde-a8d9-906ca2236dc9.png",
+      "tile": 7,
+      "sha256": "56303c209934f1737d6eaed67cae243fe74493241adf38f9e4ae50b80a6146f7"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-stormsinger-tidecaller-renewing-thunder-v01.webp",
+      "current": "/media/art/resonances/resonance-stormsinger-tidecaller-renewing-thunder-anime-v01.webp",
+      "master": "exec-cd5f4bab-c219-4dde-a8d9-906ca2236dc9.png",
+      "tile": 8,
+      "sha256": "24d00a0543e104e6c01f5fbd20cb6fce82f4fc1993e23b7491098239b20b3be6"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-chronist-vanguard-measured-vanguard-v01.webp",
+      "current": "/media/art/resonances/resonance-chronist-vanguard-measured-vanguard-anime-v01.webp",
+      "master": "exec-cd5f4bab-c219-4dde-a8d9-906ca2236dc9.png",
+      "tile": 9,
+      "sha256": "7ab11f09e9425c5de5c11a39be67be6199abb5e7175e961974305a615dbfce10"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-chronist-lifebinder-measured-bloom-v01.webp",
+      "current": "/media/art/resonances/resonance-chronist-lifebinder-measured-bloom-anime-v01.webp",
+      "master": "exec-cd5f4bab-c219-4dde-a8d9-906ca2236dc9.png",
+      "tile": 10,
+      "sha256": "0a02e2b38bd497c8e90aeb7b9e37522a0159de008f331f2b8d063f2880c4ac86"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-aetherist-chronist-measured-arc-v01.webp",
+      "current": "/media/art/resonances/resonance-aetherist-chronist-measured-arc-anime-v01.webp",
+      "master": "exec-cd5f4bab-c219-4dde-a8d9-906ca2236dc9.png",
+      "tile": 11,
+      "sha256": "8f6d220179e7ddb45c9ce68b8027544d789e2f81e52148062bc4f0a0d3ca45bd"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-chronist-farstrider-measured-volley-v01.webp",
+      "current": "/media/art/resonances/resonance-chronist-farstrider-measured-volley-anime-v01.webp",
+      "master": "exec-cd5f4bab-c219-4dde-a8d9-906ca2236dc9.png",
+      "tile": 12,
+      "sha256": "037fcaf3068b2dcb75e1159d695857503f8b7e681e05b2a65fe5e4b0c3d023bf"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-chronist-shadehand-measured-ambush-v01.webp",
+      "current": "/media/art/resonances/resonance-chronist-shadehand-measured-ambush-anime-v01.webp",
+      "master": "exec-cd5f4bab-c219-4dde-a8d9-906ca2236dc9.png",
+      "tile": 13,
+      "sha256": "8a750fdff0fcffb8922b99d7e441fb0a6b1df82eac21ad969cdf6f565bf0b3cf"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-chronist-ironfist-measured-impact-v01.webp",
+      "current": "/media/art/resonances/resonance-chronist-ironfist-measured-impact-anime-v01.webp",
+      "master": "exec-cd5f4bab-c219-4dde-a8d9-906ca2236dc9.png",
+      "tile": 14,
+      "sha256": "1ca77c03d8e67a593fc32be29cec98c76671c1eb65d42cf84c0634a65ab17ea7"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-bastion-chronist-measured-bulwark-v01.webp",
+      "current": "/media/art/resonances/resonance-bastion-chronist-measured-bulwark-anime-v01.webp",
+      "master": "exec-cd5f4bab-c219-4dde-a8d9-906ca2236dc9.png",
+      "tile": 15,
+      "sha256": "c306eb6d7455a548fab8541fb1872bf72f7999b8df84a7168b74ee2188678dad"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-chronist-ravager-measured-fury-v01.webp",
+      "current": "/media/art/resonances/resonance-chronist-ravager-measured-fury-anime-v01.webp",
+      "master": "exec-cd5f4bab-c219-4dde-a8d9-906ca2236dc9.png",
+      "tile": 16,
+      "sha256": "a417f7e45c65dbb66e2471220adb4977a2ade0f5ac4cecc71b39b17afcc9c9a0"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-chronist-edgedancer-measured-edge-v01.webp",
+      "current": "/media/art/resonances/resonance-chronist-edgedancer-measured-edge-anime-v01.webp",
+      "master": "exec-537c80fb-2cf8-4af3-8825-736b23522f00.png",
+      "tile": 1,
+      "sha256": "92798fbb29ab4bfb5000be16ad541f6314fb115a0e629a01b4c0ca3c6c3d9ec3"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-chronist-wildwarden-measured-hunt-v01.webp",
+      "current": "/media/art/resonances/resonance-chronist-wildwarden-measured-hunt-anime-v01.webp",
+      "master": "exec-537c80fb-2cf8-4af3-8825-736b23522f00.png",
+      "tile": 2,
+      "sha256": "84a6be31364c7040454a01bb5f3ac9fab767ff7e707cd1dbe1a3a7208b372a54"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-chronist-runeblade-measured-sigil-v01.webp",
+      "current": "/media/art/resonances/resonance-chronist-runeblade-measured-sigil-anime-v01.webp",
+      "master": "exec-537c80fb-2cf8-4af3-8825-736b23522f00.png",
+      "tile": 3,
+      "sha256": "5b6c34cda7da2ae272e795bddddaa6f8f3b07d5a9e4820ae861bcf8d62e6cf7d"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-chronist-dawnshield-measured-aegis-v01.webp",
+      "current": "/media/art/resonances/resonance-chronist-dawnshield-measured-aegis-anime-v01.webp",
+      "master": "exec-537c80fb-2cf8-4af3-8825-736b23522f00.png",
+      "tile": 4,
+      "sha256": "d2f278df1896fad8b445fd63d9b508a0f5160591337a9aa49cd649de15f396a8"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-chronist-cinderweaver-measured-flare-v01.webp",
+      "current": "/media/art/resonances/resonance-chronist-cinderweaver-measured-flare-anime-v01.webp",
+      "master": "exec-537c80fb-2cf8-4af3-8825-736b23522f00.png",
+      "tile": 5,
+      "sha256": "161ab8da77e573e0a8d0608118aa577855a36b49a28ff38d276b636bfbe4dc6d"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-chronist-frostweaver-measured-crystal-v01.webp",
+      "current": "/media/art/resonances/resonance-chronist-frostweaver-measured-crystal-anime-v01.webp",
+      "master": "exec-537c80fb-2cf8-4af3-8825-736b23522f00.png",
+      "tile": 6,
+      "sha256": "9f113255b17d09b97d16f599edcf04f57a255e06734eeb9b4c04073e48f70987"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-chronist-stormsinger-measured-thunder-v01.webp",
+      "current": "/media/art/resonances/resonance-chronist-stormsinger-measured-thunder-anime-v01.webp",
+      "master": "exec-537c80fb-2cf8-4af3-8825-736b23522f00.png",
+      "tile": 7,
+      "sha256": "9b6276abad18232322dba3578336a4f33baecc1c4634c22b4d866c86c921a34e"
+    },
+    {
+      "previous": "/media/art/resonances/resonance-chronist-tidecaller-measured-tide-v01.webp",
+      "current": "/media/art/resonances/resonance-chronist-tidecaller-measured-tide-anime-v01.webp",
+      "master": "exec-537c80fb-2cf8-4af3-8825-736b23522f00.png",
+      "tile": 8,
+      "sha256": "fb589dfc85169790d65b32e52b032ace841ad0b98d58a844cc1e24947bb2ea99"
+    },
+    {
+      "previous": "/media/art/discipline-sigils/vanguard-sigil-v01.webp",
+      "current": "/media/art/discipline-sigils/vanguard-sigil-anime-v01.webp",
+      "master": "exec-98e0c13e-2dd0-4e61-bade-6177445fc409.png",
+      "tile": 1,
+      "sha256": "b1999c76e5ac8afea437595edfb51aaa4b3e1e08eb1e21f88192cb853589bf18"
+    },
+    {
+      "previous": "/media/art/discipline-sigils/farstrider-sigil-v01.webp",
+      "current": "/media/art/discipline-sigils/farstrider-sigil-anime-v01.webp",
+      "master": "exec-98e0c13e-2dd0-4e61-bade-6177445fc409.png",
+      "tile": 2,
+      "sha256": "e513e45b079d06b6eb1d34f33c506d603145224f6e37f107a0c2b6130f4bf5dc"
+    },
+    {
+      "previous": "/media/art/discipline-sigils/shadehand-sigil-v01.webp",
+      "current": "/media/art/discipline-sigils/shadehand-sigil-anime-v01.webp",
+      "master": "exec-98e0c13e-2dd0-4e61-bade-6177445fc409.png",
+      "tile": 3,
+      "sha256": "b99ac0264013a6ebcecf9f8edb4500a46138d4ef6a89facae36897fc7b76a167"
+    },
+    {
+      "previous": "/media/art/discipline-sigils/ironfist-sigil-v01.webp",
+      "current": "/media/art/discipline-sigils/ironfist-sigil-anime-v01.webp",
+      "master": "exec-98e0c13e-2dd0-4e61-bade-6177445fc409.png",
+      "tile": 4,
+      "sha256": "78255d543efacd9715ea2cefcbc339008e957218a71f3aa80f13095e4c194d7e"
+    },
+    {
+      "previous": "/media/art/discipline-sigils/aetherist-sigil-v01.webp",
+      "current": "/media/art/discipline-sigils/aetherist-sigil-anime-v01.webp",
+      "master": "exec-98e0c13e-2dd0-4e61-bade-6177445fc409.png",
+      "tile": 5,
+      "sha256": "ac651bad1eeae4cd38781aca36fdd86f84269cce4c0f2d1ca09ff4d3f93a38ac"
+    },
+    {
+      "previous": "/media/art/discipline-sigils/lifebinder-sigil-v01.webp",
+      "current": "/media/art/discipline-sigils/lifebinder-sigil-anime-v01.webp",
+      "master": "exec-98e0c13e-2dd0-4e61-bade-6177445fc409.png",
+      "tile": 6,
+      "sha256": "33121360fc9e63a83ccef553c1d110bccc9090dc41c70b224b50ab8f5ce2f6c6"
+    },
+    {
+      "previous": "/media/art/discipline-sigils/bastion-sigil-v01.webp",
+      "current": "/media/art/discipline-sigils/bastion-sigil-anime-v01.webp",
+      "master": "exec-98e0c13e-2dd0-4e61-bade-6177445fc409.png",
+      "tile": 7,
+      "sha256": "4277d797ddf629869ef752c44cb5be6107055284f797b29574798415bca768a1"
+    },
+    {
+      "previous": "/media/art/discipline-sigils/chronist-sigil-v01.webp",
+      "current": "/media/art/discipline-sigils/chronist-sigil-anime-v01.webp",
+      "master": "exec-98e0c13e-2dd0-4e61-bade-6177445fc409.png",
+      "tile": 8,
+      "sha256": "7fa20755bedd5565a1f73a0f79d21dbd0d6a690fa3dc6f27a193fd4465c7dd84"
+    },
+    {
+      "previous": "/media/art/discipline-sigils/cinderweaver-sigil-v01.webp",
+      "current": "/media/art/discipline-sigils/cinderweaver-sigil-anime-v01.webp",
+      "master": "exec-98e0c13e-2dd0-4e61-bade-6177445fc409.png",
+      "tile": 9,
+      "sha256": "fd1817ac236b15989703dcd599286a744bbc30b4f3cbf3aad83c1edd3b92a710"
+    },
+    {
+      "previous": "/media/art/discipline-sigils/dawnshield-sigil-v01.webp",
+      "current": "/media/art/discipline-sigils/dawnshield-sigil-anime-v01.webp",
+      "master": "exec-98e0c13e-2dd0-4e61-bade-6177445fc409.png",
+      "tile": 10,
+      "sha256": "0aa15f54bb9084886466022e7bb9021ef5d9d7a0a97ed5b4a05c7e0cc3742dc3"
+    },
+    {
+      "previous": "/media/art/discipline-sigils/edgedancer-sigil-v01.webp",
+      "current": "/media/art/discipline-sigils/edgedancer-sigil-anime-v01.webp",
+      "master": "exec-98e0c13e-2dd0-4e61-bade-6177445fc409.png",
+      "tile": 11,
+      "sha256": "e62ad7ec44ebe51685188478d627aa38d7d3521177b2cedbbfb10211fd632d62"
+    },
+    {
+      "previous": "/media/art/discipline-sigils/frostweaver-sigil-v01.webp",
+      "current": "/media/art/discipline-sigils/frostweaver-sigil-anime-v01.webp",
+      "master": "exec-98e0c13e-2dd0-4e61-bade-6177445fc409.png",
+      "tile": 12,
+      "sha256": "b90fc1513ef3e97a458b82d0918c6f39246339557aec20daa32b8d7545fda2a0"
+    },
+    {
+      "previous": "/media/art/discipline-sigils/ravager-sigil-v01.webp",
+      "current": "/media/art/discipline-sigils/ravager-sigil-anime-v01.webp",
+      "master": "exec-98e0c13e-2dd0-4e61-bade-6177445fc409.png",
+      "tile": 13,
+      "sha256": "345b52b7bdf16cec1bfcb87c39eacfc0ed48fb4bb140106319018f394a4108bd"
+    },
+    {
+      "previous": "/media/art/discipline-sigils/runeblade-sigil-v01.webp",
+      "current": "/media/art/discipline-sigils/runeblade-sigil-anime-v01.webp",
+      "master": "exec-98e0c13e-2dd0-4e61-bade-6177445fc409.png",
+      "tile": 14,
+      "sha256": "710a0e65ee2cc6323af9ad517004d35af3200786045b76fd37845a6c09a2faac"
+    },
+    {
+      "previous": "/media/art/discipline-sigils/stormsinger-sigil-v01.webp",
+      "current": "/media/art/discipline-sigils/stormsinger-sigil-anime-v01.webp",
+      "master": "exec-98e0c13e-2dd0-4e61-bade-6177445fc409.png",
+      "tile": 15,
+      "sha256": "e69f95d2ec5db9054ce2f3a1cbce0337be59e9e8ab69bf4fbdf11c0fb020a658"
+    },
+    {
+      "previous": "/media/art/discipline-sigils/tidecaller-sigil-v01.webp",
+      "current": "/media/art/discipline-sigils/tidecaller-sigil-anime-v01.webp",
+      "master": "exec-98e0c13e-2dd0-4e61-bade-6177445fc409.png",
+      "tile": 16,
+      "sha256": "de0939dd2b55cdf0e5dc3ea737fab7053336c2007fb3c7b82351c5389baaeb9f"
+    },
+    {
+      "previous": "/media/art/discipline-sigils/wildwarden-sigil-v01.webp",
+      "current": "/media/art/discipline-sigils/wildwarden-sigil-anime-v01.webp",
+      "master": "exec-b3089913-f9b7-4967-82b0-0ad8e2459ac9.png",
+      "tile": 1,
+      "sha256": "c11e7e2dfacc190fb39d3d53d18a4668d1e9ee922edcbb8ecff7fcb33796f4be"
+    },
+    {
+      "previous": "/media/art/support/pilfer-v02.webp",
+      "current": "/media/art/support/pilfer-anime-v01.webp",
+      "master": "exec-d8d1cfd0-e8ff-4dd9-83c7-96a5c1e8edea.png",
+      "tile": 1,
+      "sha256": "6629d63c97dfa25c9066f10eeb69562c0a201e7b28e19ffc3d8fbeb5f1eab7e7"
+    },
+    {
+      "previous": "/media/art/support/fleetstep-v01.webp",
+      "current": "/media/art/support/fleetstep-anime-v01.webp",
+      "master": "exec-d8d1cfd0-e8ff-4dd9-83c7-96a5c1e8edea.png",
+      "tile": 2,
+      "sha256": "9a334e3c3a5d88e95d1f95e4de6bfc31e8b9532210757c5988eeeeed62008a6f"
+    },
+    {
+      "previous": "/media/art/support/invocation-v02.webp",
+      "current": "/media/art/support/invocation-anime-v01.webp",
+      "master": "exec-d8d1cfd0-e8ff-4dd9-83c7-96a5c1e8edea.png",
+      "tile": 3,
+      "sha256": "db33ae524d3a5a671f1ad2492de8074e2edd864ca44d97809bc960a378e987c1"
+    },
+    {
+      "previous": "/media/art/support/vesper-portrait-v01.webp",
+      "current": "/media/art/support/vesper-portrait-anime-v01.webp",
+      "master": "exec-d8d1cfd0-e8ff-4dd9-83c7-96a5c1e8edea.png",
+      "tile": 4,
+      "sha256": "5fa260e5f44d15df18a1ae512bb33ca1b59a95c9f6c190269a00a894842f6711"
+    },
+    {
+      "previous": "/media/art/items/techniques/twinfang-blade-technique-v01.webp",
+      "current": "/media/art/items/techniques/twinfang-blade-technique-anime-v01.webp",
+      "master": "exec-d8d1cfd0-e8ff-4dd9-83c7-96a5c1e8edea.png",
+      "tile": 5,
+      "sha256": "659a6167011a4f22d7522a3acb271dab47370aa5d8cb93554b33f4ea408d9dac"
+    },
+    {
+      "previous": "/media/art/items/techniques/tower-shield-technique-v01.webp",
+      "current": "/media/art/items/techniques/tower-shield-technique-anime-v01.webp",
+      "master": "exec-d8d1cfd0-e8ff-4dd9-83c7-96a5c1e8edea.png",
+      "tile": 6,
+      "sha256": "7bfbb96fe96b1af0d607040aab46533125c07c8c3bcef67ca6dbc087cfbc7549"
+    },
+    {
+      "previous": "/media/art/items/techniques/stormcaller-staff-technique-v01.webp",
+      "current": "/media/art/items/techniques/stormcaller-staff-technique-anime-v01.webp",
+      "master": "exec-d8d1cfd0-e8ff-4dd9-83c7-96a5c1e8edea.png",
+      "tile": 7,
+      "sha256": "8e6f3fc1bbf75fd0e824bbfebab0970a220805eaf696c5389035d82813a3d020"
+    },
+    {
+      "previous": "/media/art/items/techniques/emberbrand-technique-v01.webp",
+      "current": "/media/art/items/techniques/emberbrand-technique-anime-v01.webp",
+      "master": "exec-d8d1cfd0-e8ff-4dd9-83c7-96a5c1e8edea.png",
+      "tile": 8,
+      "sha256": "3b19ab8a141c9344393733ec42d8699ddd50dee2f77d1aa766ed10054dc5a335"
+    },
+    {
+      "previous": "/media/skills/inspect.webp",
+      "current": "/media/skills/inspect-anime-v01.webp",
+      "master": "exec-85e299d5-b20a-4eb2-922f-c836a44b98e2.png",
+      "tile": 1,
+      "sha256": "e10cdef62f641166c5faa1999f7905d6e7d76eb60b8ea6749aca509e88e86818"
+    },
+    {
+      "previous": "/media/skills/move.webp",
+      "current": "/media/skills/move-anime-v01.webp",
+      "master": "exec-85e299d5-b20a-4eb2-922f-c836a44b98e2.png",
+      "tile": 2,
+      "sha256": "640ae293b86e6fbdddd484a5228c13400623205af84cebfa20c895714c1b38b3"
+    },
+    {
+      "previous": "/media/skills/basic-attack-fist.webp",
+      "current": "/media/skills/basic-attack-fist-anime-v01.webp",
+      "master": "exec-85e299d5-b20a-4eb2-922f-c836a44b98e2.png",
+      "tile": 3,
+      "sha256": "22c3c51c264ef45e9444d915ef4ef0ecb4bdbf683eb5f17558a4b2b4f7cbc8af"
+    },
+    {
+      "previous": "/media/skills/guard.webp",
+      "current": "/media/skills/guard-anime-v01.webp",
+      "master": "exec-85e299d5-b20a-4eb2-922f-c836a44b98e2.png",
+      "tile": 4,
+      "sha256": "1cac84269b352e74e09c067ae85857e7e5d45a62a483e5ea1e3ea1fa877a464e"
+    },
+    {
+      "previous": "/media/skills/finish-turn.webp",
+      "current": "/media/skills/finish-turn-anime-v01.webp",
+      "master": "exec-85e299d5-b20a-4eb2-922f-c836a44b98e2.png",
+      "tile": 5,
+      "sha256": "1578c24f9c52ce26aee31d6a10822c26cebd7206474a4a0c27a4e7ae416c263e"
+    },
+    {
+      "previous": "/media/skills/hp-recovery.webp",
+      "current": "/media/skills/hp-recovery-anime-v01.webp",
+      "master": "exec-85e299d5-b20a-4eb2-922f-c836a44b98e2.png",
+      "tile": 6,
+      "sha256": "7106088bf3042259fdd29dcc3bd003b55efe2c3d9d6b58e196cf8d84b5a4e02b"
+    },
+    {
+      "previous": "/media/skills/mp-recovery-dark-fantasy-v1.webp",
+      "current": "/media/skills/mp-recovery-dark-fantasy-anime-v01.webp",
+      "master": "exec-85e299d5-b20a-4eb2-922f-c836a44b98e2.png",
+      "tile": 7,
+      "sha256": "bce16e05295ac6658fb50a5191c7372540478e0c11427eb52010696f9392ebb4"
+    },
+    {
+      "previous": "/media/art/nexus/nexus-ascension-default-v01.webp",
+      "current": "/media/art/nexus/nexus-ascension-anime-v01.webp",
+      "master": "exec-3c9c3539-6e01-448c-ba1e-d023124d193f.png",
+      "tile": 1,
+      "sha256": "ff4d8fd5485de8814ca8751b5c8ce58610a2db5676389aa3f3d0246be2062863"
+    },
+    {
+      "previous": "/media/art/nexus/nexus-severed-default-v01.webp",
+      "current": "/media/art/nexus/nexus-severance-anime-v01.webp",
+      "master": "exec-3c9c3539-6e01-448c-ba1e-d023124d193f.png",
+      "tile": 2,
+      "sha256": "97ea2d2625cb7d1d19b44b8248ba1d0a291052f3581b1923188d3229e65d5d68"
+    },
+    {
+      "previous": null,
+      "current": "/media/art/nexus/nexus-paths-anime-v01.webp",
+      "master": "exec-3c9c3539-6e01-448c-ba1e-d023124d193f.png",
+      "tile": 3,
+      "sha256": "7728ad3308b624fc5c3c27c106d7ca92228e59e96d74eea5a5c06dc085ce848e"
+    },
+    {
+      "previous": "/media/art/battle/terrace-steam-v01.webp",
+      "current": "/media/art/battle/terrace-steam-anime-v01.webp",
+      "master": "exec-8c3292d6-6053-4b00-83dc-9b37cff62416.png",
+      "tile": 1,
+      "sha256": "e64f82f79e5998c4eb312eba7c8544cf4b9d35a71eccfba6b340940ef0c0639a"
+    },
+    {
+      "previous": "/api/content-media/f63abd95-14eb-4da5-8e89-131d0d2d4d68",
+      "current": "/media/art/discipline-sigils/warrior-lineage-anime-v01.webp",
+      "master": "exec-697ffc29-f9a9-43be-8194-7150e73908c2.png",
+      "tile": 1,
+      "sha256": "d2e183dea0aa3bf37e7a1a6f214355467248a9b5220cf1784db542a20aef0a5b"
+    },
+    {
+      "previous": "/api/content-media/e86b3a5c-a6e6-4283-84a7-49271bbde89e",
+      "current": "/media/art/discipline-skills/crimson-ignition-anime-v01.webp",
+      "master": "exec-697ffc29-f9a9-43be-8194-7150e73908c2.png",
+      "tile": 2,
+      "sha256": "1461099502a99bfced67f381275fe02378573c7de0eb2e2852885bf198c024d2"
+    },
+    {
+      "previous": "/api/content-media/40bc394f-a924-43b4-9b0d-dbc3f136192b",
+      "current": "/media/art/discipline-skills/celestial-sphere-anime-v01.webp",
+      "master": "exec-697ffc29-f9a9-43be-8194-7150e73908c2.png",
+      "tile": 3,
+      "sha256": "450ed6f24d699354ca3f31f6c527f4b139bdea15bdd3076ddab8e29b24aee017"
+    },
+    {
+      "previous": "/api/content-media/b55353ac-eeaf-402d-824f-8d8e30f46a59",
+      "current": "/media/art/discipline-skills/space-fold-anime-v01.webp",
+      "master": "exec-697ffc29-f9a9-43be-8194-7150e73908c2.png",
+      "tile": 4,
+      "sha256": "981010778048def0f700fd968e894007f31b27c1561e2c73daa459b4921b286d"
+    },
+    {
+      "previous": "/api/content-media/f6ba91b3-6887-4197-8cc6-22f0aa48361b",
+      "current": "/media/art/resonances/silver-instinct-anime-v01.webp",
+      "master": "exec-697ffc29-f9a9-43be-8194-7150e73908c2.png",
+      "tile": 5,
+      "sha256": "c51a02b0a6b1634d67871f52bdd9df2955d7ac4edc4dda9f5bbfbdfc64578ec3"
+    },
+    {
+      "previous": "/api/content-media/777136d0-b986-4cd7-8806-c131b9a8d175",
+      "current": "/media/art/essence-skills/cobalt-beam-anime-v01.webp",
+      "master": "exec-697ffc29-f9a9-43be-8194-7150e73908c2.png",
+      "tile": 6,
+      "sha256": "ad9acbfab009bd81e852c93751353de51e5ea0e7ebd00d619602355c54b396db"
+    }
+  ]
+}

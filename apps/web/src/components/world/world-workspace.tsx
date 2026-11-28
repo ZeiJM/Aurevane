@@ -261,9 +261,10 @@ export function WorldWorkspace({
       schedule()
     }
     const instance: WorldController = new WorldController(initialView, {
-      command: async (intent, current) => {
+      command: async (intent, current, signal) => {
         const response = await fetch('/api/world', {
           method: 'POST',
+          signal,
           headers: { 'Content-Type': 'application/json', 'x-world-response': 'movement' },
           body: JSON.stringify({
             intent,

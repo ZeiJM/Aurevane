@@ -11,7 +11,7 @@ export const ITEM_TECHNIQUE_ART = [
   requestId: 'ART-ITEM-TECHNIQUE-20261106',
   decorative: false,
   alt: alt!,
-  src: `/media/art/items/techniques/${id}-technique-v01.webp`,
+  src: `/media/art/items/techniques/${id}-technique-anime-v01.webp`,
   width: 512,
   height: 512,
 }))

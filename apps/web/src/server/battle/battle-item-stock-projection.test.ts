@@ -108,14 +108,14 @@ it.each([false, true])(
     const actions = projectBattleItems(state, owner)
     expect(actions.find((a) => a.role === 'attack')).toMatchObject({
       name: 'Tower Shield',
-      artworkSrc: '/media/art/items/tower-shield-v01.webp',
+      artworkSrc: '/media/art/items/tower-shield-anime-v01.webp',
       iconKey: 'item.tower-shield.art.v1',
     })
     expect(actions.find((a) => a.role === 'support')).toMatchObject({
       name: 'Tower Guard',
       artworkSrc: historical
-        ? '/media/art/items/tower-shield-v01.webp'
-        : '/media/art/items/techniques/tower-shield-technique-v01.webp',
+        ? '/media/art/items/tower-shield-anime-v01.webp'
+        : '/media/art/items/techniques/tower-shield-technique-anime-v01.webp',
       iconKey: historical ? 'item.tower-shield.art.v1' : 'item.tower-shield.technique.art.v1',
     })
   },
@@ -128,6 +128,6 @@ it('keeps weapon and technique names/art distinct in the actual guided Support l
   expect(actions.find((action) => action.role === 'attack')).toMatchObject({ name: 'Tower Shield' })
   expect(actions.find((action) => action.role === 'support')).toMatchObject({
     name: 'Tower Guard',
-    artworkSrc: '/media/art/items/techniques/tower-shield-technique-v01.webp',
+    artworkSrc: '/media/art/items/techniques/tower-shield-technique-anime-v01.webp',
   })
 })

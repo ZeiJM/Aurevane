@@ -19,67 +19,67 @@ describe('Skill media hook registry', () => {
         skillId: 'lifebinder.mend',
       }),
     )
-    expect(icon?.previewSrc).toBe('/media/art/discipline-skills/lifebinder-mend-v01.webp')
+    expect(icon?.previewSrc).toBe('/media/art/discipline-skills/lifebinder-mend-anime-v01.webp')
     expect(registeredSkillArtworkSource('lifebinder.mend')).toBe(icon?.previewSrc)
     expect(registeredSkillArtworkSource('lifebinder.vital-sever')).toBe(
-      '/media/art/discipline-skills/lifebinder-vital-sever-v01.webp',
+      '/media/art/discipline-skills/lifebinder-vital-sever-anime-v01.webp',
     )
     expect(registeredSkillArtworkSource('ironfist.rising-fist')).toBe(
-      '/media/art/discipline-skills/ironfist-rising-fist-v01.webp',
+      '/media/art/discipline-skills/ironfist-rising-fist-anime-v01.webp',
     )
     expect(registeredSkillArtworkSource('aetherist.arc-bolt')).toBe(
-      '/media/art/discipline-skills/aetherist-arc-bolt-v01.webp',
+      '/media/art/discipline-skills/aetherist-arc-bolt-anime-v01.webp',
     )
     expect(registeredSkillArtworkSource('chronist.temporal-bolt')).toBe(
-      '/media/art/discipline-skills/chronist-temporal-bolt-v01.webp',
+      '/media/art/discipline-skills/chronist-temporal-bolt-anime-v01.webp',
     )
     expect(registeredSkillArtworkSource('chronist.stolen-moment')).toBe(
-      '/media/art/discipline-skills/chronist-stolen-moment-v01.webp',
+      '/media/art/discipline-skills/chronist-stolen-moment-anime-v01.webp',
     )
     expect(registeredSkillArtworkSource('bastion.shield-bash')).toBe(
-      '/media/art/discipline-skills/bastion-shield-bash-v02.webp',
+      '/media/art/discipline-skills/bastion-shield-bash-anime-v01.webp',
     )
     expect(registeredSkillArtworkSource('bastion.steady-footing')).toBe(
-      '/media/art/discipline-skills/bastion-steady-footing-v02.webp',
+      '/media/art/discipline-skills/bastion-steady-footing-anime-v01.webp',
     )
     expect(registeredSkillArtworkSource('ravager.frenzy')).toBe(
-      '/media/art/discipline-skills/ravager-frenzy-v01.webp',
+      '/media/art/discipline-skills/ravager-frenzy-anime-v01.webp',
     )
     expect(registeredSkillArtworkSource('edgedancer.lunge')).toBe(
-      '/media/art/discipline-skills/edgedancer-lunge-v01.webp',
+      '/media/art/discipline-skills/edgedancer-lunge-anime-v01.webp',
     )
     expect(registeredSkillArtworkSource('edgedancer.finishing-thrust')).toBe(
-      '/media/art/discipline-skills/edgedancer-finishing-thrust-v01.webp',
+      '/media/art/discipline-skills/edgedancer-finishing-thrust-anime-v01.webp',
     )
     expect(registeredSkillArtworkSource('wildwarden.snare')).toBe(
-      '/media/art/discipline-skills/wildwarden-snare-v01.webp',
+      '/media/art/discipline-skills/wildwarden-snare-anime-v01.webp',
     )
     expect(registeredSkillArtworkSource('wildwarden.close-quarry')).toBe(
-      '/media/art/discipline-skills/wildwarden-close-quarry-v01.webp',
+      '/media/art/discipline-skills/wildwarden-close-quarry-anime-v01.webp',
     )
     expect(registeredSkillArtworkSource('runeblade.aether-cut')).toBe(
-      '/media/art/discipline-skills/runeblade-aether-cut-v01.webp',
+      '/media/art/discipline-skills/runeblade-aether-cut-anime-v01.webp',
     )
     expect(registeredSkillArtworkSource('runeblade.rune-mending')).toBe(
-      '/media/art/discipline-skills/runeblade-rune-mending-v01.webp',
+      '/media/art/discipline-skills/runeblade-rune-mending-anime-v01.webp',
     )
     expect(registeredSkillArtworkSource('dawnshield.radiant-strike')).toBe(
-      '/media/art/discipline-skills/dawnshield-radiant-strike-v01.webp',
+      '/media/art/discipline-skills/dawnshield-radiant-strike-anime-v01.webp',
     )
     expect(registeredSkillArtworkSource('cinderweaver.cinder-bolt')).toBe(
-      '/media/art/discipline-skills/cinderweaver-cinder-bolt-v01.webp',
+      '/media/art/discipline-skills/cinderweaver-cinder-bolt-anime-v01.webp',
     )
     expect(registeredSkillArtworkSource('frostweaver.ice-lance')).toBe(
-      '/media/art/discipline-skills/frostweaver-ice-lance-v01.webp',
+      '/media/art/discipline-skills/frostweaver-ice-lance-anime-v01.webp',
     )
     expect(registeredSkillArtworkSource('stormsinger.arc-spark')).toBe(
-      '/media/art/discipline-skills/stormsinger-arc-spark-v01.webp',
+      '/media/art/discipline-skills/stormsinger-arc-spark-anime-v01.webp',
     )
     expect(registeredSkillArtworkSource('tidecaller.water-lance')).toBe(
-      '/media/art/discipline-skills/tidecaller-water-lance-v01.webp',
+      '/media/art/discipline-skills/tidecaller-water-lance-anime-v01.webp',
     )
     expect(registeredSkillArtworkSource('tidecaller.crushing-wave')).toBe(
-      '/media/art/discipline-skills/tidecaller-crushing-wave-v01.webp',
+      '/media/art/discipline-skills/tidecaller-crushing-wave-anime-v01.webp',
     )
     const essence = resolveSkillIconHook('essence.aetherist.aether-nova.icon')
     expect(essence).toEqual(
@@ -88,7 +88,9 @@ describe('Skill media hook registry', () => {
         skillId: 'essence.aetherist.aether-nova',
       }),
     )
-    expect(essence?.previewSrc).toBe('/media/art/essence-skills/aetherist-aether-nova-v01.webp')
+    expect(essence?.previewSrc).toBe(
+      '/media/art/essence-skills/aetherist-aether-nova-anime-v01.webp',
+    )
     expect(
       skillIconHookOptions.filter((option) => option.skillId.startsWith('essence.')),
     ).toHaveLength(17)

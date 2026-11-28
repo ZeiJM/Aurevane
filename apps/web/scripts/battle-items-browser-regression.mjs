@@ -720,7 +720,7 @@ try {
             assert.ok((await attack.getAttribute('aria-label')).startsWith('Iron Shortsword,'))
             assert.ok(
               (await attack.locator('img').getAttribute('src')).includes(
-                'iron-shortsword-v01.webp',
+                'iron-shortsword-anime-v01.webp',
               ),
             )
             await attack.click()

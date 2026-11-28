@@ -2,7 +2,7 @@ import type { DisciplineDefinition } from '@aurevane/game-core/character/discipl
 import type { CharacterProfileReadModel } from '@aurevane/game-core/character/profile'
 
 import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
-import { illustratedStarterPortrait } from '@/appearance/appearance-starter-gallery'
+import { liveCharacterAppearanceUrl } from '@/appearance/appearance-live'
 import { getStarterPortraitImageAssetId } from '@/media/character'
 
 import styles from './character-identity-card.module.css'
@@ -44,10 +44,7 @@ export function CharacterIdentityCard({
       <div className={styles.portraitFrame} data-character-portrait-frame>
         <div className={styles.portrait}>
           <CharacterPortraitImage
-            imageUrl={
-              imageUrl ??
-              illustratedStarterPortrait(profile.identity.portraitRef)?.manifest.portraits.neutral
-            }
+            imageUrl={liveCharacterAppearanceUrl(imageUrl, profile.identity.portraitRef)}
             priority={compactRail}
             fallbackAssetId={getStarterPortraitImageAssetId(profile.identity.portraitRef)}
             sizes={

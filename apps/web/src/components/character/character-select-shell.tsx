@@ -10,7 +10,7 @@ import { CharacterDeletionDialog } from './character-deletion-dialog'
 import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
 import { AccountMenu } from '@/components/shell/account-menu'
 import { SiteHeader } from '@/components/shell/site-header'
-import { illustratedStarterPortrait } from '@/appearance/appearance-starter-gallery'
+import { liveCharacterAppearanceUrl } from '@/appearance/appearance-live'
 import { getStarterPortraitImageAssetId } from '@/media/character'
 import type { AccountDeletionState } from '@/server/account/account-deletion-service'
 import type { CharacterSlotCharacter } from '@/server/character/character-slot-service'
@@ -297,10 +297,10 @@ export function CharacterSelectShell({
                 </span>
                 <div className={styles.portrait} data-av-square-media="true">
                   <CharacterPortraitImage
-                    imageUrl={
-                      profileImageUrls[character.id] ??
-                      illustratedStarterPortrait(character.portraitRef)?.manifest.portraits.neutral
-                    }
+                    imageUrl={liveCharacterAppearanceUrl(
+                      profileImageUrls[character.id],
+                      character.portraitRef,
+                    )}
                     fallbackAssetId={getStarterPortraitImageAssetId(character.portraitRef)}
                     sizes="(max-width: 760px) 7rem, (max-height: 650px) 10rem, 18rem"
                     alt={`${character.name} portrait`}

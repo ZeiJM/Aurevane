@@ -6,6 +6,7 @@ import {
 } from './battle-captured-action-cost'
 
 import { readableDisciplineName } from '@/lib/discipline-display-name'
+import { SUPERNATURAL_ART } from '@/media/supernatural-art'
 import { contentArtworkKey } from '@aurevane/game-core/combat/content-media'
 
 import Image from 'next/image'
@@ -430,8 +431,8 @@ export function BattleSelectedSkills({
         )}
       </article>
       <article className={styles.future} data-battle-special="supernatural">
-        <span className={styles.emptyArt} aria-hidden="true">
-          ◇
+        <span className={styles.artworkFrame} data-av-square-media="true" aria-hidden="true">
+          <Image src={SUPERNATURAL_ART.battleSlot} width={192} height={192} alt="" unoptimized />
         </span>
         <strong>Severance / Ascension</strong>
         <SkillControls

@@ -1,0 +1,709 @@
+{
+  "project": "Aurevane",
+  "status": "partial-catalogue",
+  "date": "2026-11-27",
+  "direction": "Original dark-fantasy anime art with sharp ink, angular cel shadows, cinematic lighting and illustrated settings.",
+  "portraitFormat": "448 × 448 WebP expression frames cropped from six-panel master sheets.",
+  "spriteFormat": "Transparent 3072 × 768 WebP motion atlases with 96 × 128 frames. South, east and north have original action drawings. West mirrors east.",
+  "characters": [
+    "elf-f-0001",
+    "elf-f-0002",
+    "elf-f-0003",
+    "elf-f-0004",
+    "elf-f-0005",
+    "elf-f-0006",
+    "elf-f-0007",
+    "elf-f-0008",
+    "elf-f-0009",
+    "elf-f-0010",
+    "elf-m-0001",
+    "elf-m-0002",
+    "elf-m-0003",
+    "elf-m-0004",
+    "elf-m-0005",
+    "elf-m-0006",
+    "elf-m-0007",
+    "elf-m-0008",
+    "elf-m-0009",
+    "elf-m-0010",
+    "fae-f-0001",
+    "fae-f-0002",
+    "fae-f-0003",
+    "fae-f-0004",
+    "fae-f-0005",
+    "fae-f-0006",
+    "fae-f-0007",
+    "fae-f-0008",
+    "fae-f-0009",
+    "fae-f-0010",
+    "fae-m-0001",
+    "fae-m-0002",
+    "fae-m-0003",
+    "fae-m-0004",
+    "fae-m-0005",
+    "fae-m-0006",
+    "fae-m-0007",
+    "fae-m-0008",
+    "fae-m-0009",
+    "fae-m-0010",
+    "human-f-0001",
+    "human-f-0002",
+    "human-f-0003",
+    "human-f-0004",
+    "human-f-0005",
+    "human-f-0006",
+    "human-f-0007",
+    "human-f-0008",
+    "human-f-0009",
+    "human-f-0010",
+    "human-m-0001",
+    "human-m-0002",
+    "human-m-0003",
+    "human-m-0004",
+    "human-m-0005",
+    "human-m-0006",
+    "human-m-0007",
+    "human-m-0008",
+    "human-m-0009",
+    "human-m-0010",
+    "mountain-orc-f-0001",
+    "mountain-orc-f-0002",
+    "mountain-orc-f-0003",
+    "mountain-orc-f-0004",
+    "mountain-orc-f-0005",
+    "mountain-orc-f-0006",
+    "mountain-orc-f-0007",
+    "mountain-orc-f-0008",
+    "mountain-orc-f-0009",
+    "mountain-orc-f-0010",
+    "mountain-orc-m-0001",
+    "mountain-orc-m-0002",
+    "mountain-orc-m-0003",
+    "mountain-orc-m-0004",
+    "mountain-orc-m-0005",
+    "mountain-orc-m-0006",
+    "mountain-orc-m-0007",
+    "mountain-orc-m-0008",
+    "mountain-orc-m-0009",
+    "mountain-orc-m-0010"
+  ],
+  "secondArtBatch": {
+    "artDirection": "Crisp tapered ink, angular cel shadows, cinematic colored rim light, and fully illustrated fantasy settings.",
+    "expressions": ["neutral", "happy", "angry", "sad", "surprised"],
+    "spriteSheet": "Hand-inked 5 × 3 panel grid of full-body idle, walk, strike, cast, and hit art in front, profile, and rear views. References use the matching neutral portrait.",
+    "characters": [
+      {
+        "key": "human-m-0002",
+        "label": "Canal Bellkeeper",
+        "race": "human",
+        "gender": "masculine",
+        "subject": "A middle-aged adult human man with deep brown skin, a shaven head, a broad straight nose, heavy brows, an angular close-cut black beard, and a gentle square jaw",
+        "setting": "an old limestone canal lock at dawn, mist over water and a bell tower framed by reeds",
+        "variants": [
+          {
+            "variant": 1,
+            "design": "cedar-red work cloak, ivory linen collar, brass latch, olive eyes",
+            "pose": "Heroic three-quarter chest-up stance facing slightly right of camera, head near center.",
+            "portraitSheet": "exec-3958d41f-5909-47c9-a754-4a1ef58ce8e3.png",
+            "spriteSheet": "exec-1ebc2f50-71cb-4ecf-9bf0-5658259d9a57.png"
+          },
+          {
+            "variant": 2,
+            "design": "deep plum and pale lilac work cloak, graphite linen collar, silver latch, copper eyes and a healed eyebrow notch",
+            "pose": "three-quarter view from below, chin lifted toward the canal bell",
+            "portraitSheet": "exec-a90414a0-f5c9-4367-aef1-41d1d40692ae.png",
+            "spriteSheet": "exec-e04f1dfb-be72-42b4-a35c-0a4deaede81d.png"
+          }
+        ]
+      },
+      {
+        "key": "human-f-0002",
+        "label": "Salt Road Courier",
+        "race": "human",
+        "gender": "feminine",
+        "subject": "A young adult human woman with medium-tan skin, square cheekbones, a straight slim nose, chestnut hair shaved at one side with a neat braided bun, and a sharp earnest gaze",
+        "setting": "windy salt marsh and white cliffs in afternoon light, signal flags far back",
+        "variants": [
+          {
+            "variant": 1,
+            "design": "rust-orange scarf and flax traveling coat, teal sash, dark brown eyes",
+            "pose": "Heroic three-quarter chest-up stance facing slightly right of camera, head near center.",
+            "portraitSheet": "exec-62b77349-dd20-469a-b8ba-b6ccac459560.png",
+            "spriteSheet": "exec-b07a52f8-49e4-40ab-b3a0-00d348f11da3.png"
+          },
+          {
+            "variant": 2,
+            "design": "bottle green scarf, dusty mauve coat, onyx sash, golden eyes and a silver temple streak",
+            "pose": "chest turned away, glancing back over the near shoulder",
+            "portraitSheet": "exec-d88883de-7801-4ae5-9161-a0867c4366ac.png",
+            "spriteSheet": "exec-10833e06-0024-4eaa-99be-951574c93e5d.png"
+          }
+        ]
+      },
+      {
+        "key": "elf-m-0002",
+        "label": "Sunken Orchard Keeper",
+        "race": "elf",
+        "gender": "masculine",
+        "subject": "A slender older adult elf man with long pointed ears, pale freckled skin, a pronounced hooked nose, and copper curly shoulder-length hair",
+        "setting": "a flooded apple orchard, morning sunlight, terraced masonry disappearing beneath clear water",
+        "variants": [
+          {
+            "variant": 1,
+            "design": "malachite layered coat and warm ochre shawl, bronze acorn fastener, hazel eyes",
+            "pose": "Heroic three-quarter chest-up stance facing slightly right of camera, head near center.",
+            "portraitSheet": "exec-bb6a177e-e571-4289-a457-425d5944965c.png",
+            "spriteSheet": "exec-e69990be-0dab-40f5-aece-0880cafae892.png"
+          },
+          {
+            "variant": 2,
+            "design": "ink violet layered coat and vermilion shawl, pewter acorn fastener, blue-gray eyes and a single pale lock of hair",
+            "pose": "left profile with face turned partway toward camera, eyes lowered toward the water",
+            "portraitSheet": "exec-be0ed739-3369-417e-b108-5732866726ca.png",
+            "spriteSheet": "exec-bf250d38-2f64-4ba9-b95c-3bc45052bf2e.png"
+          }
+        ]
+      },
+      {
+        "key": "elf-f-0002",
+        "label": "Glassbridge Lamplighter",
+        "race": "elf",
+        "gender": "feminine",
+        "subject": "An adult elf woman with deep umber skin, long outward pointed ears, broad cheekbones, dark straight eyebrows and silver-white twists wound into a braided crown",
+        "setting": "a glasswork footbridge above brownstone roofs at dusk, lit by rows of painted colored lanterns",
+        "variants": [
+          {
+            "variant": 1,
+            "design": "cobalt cloak, saffron-lined shoulder armor, amber eyes, glass earring",
+            "pose": "Heroic three-quarter chest-up stance facing slightly right of camera, head near center.",
+            "portraitSheet": "exec-d3a3a526-aa56-41c8-81cc-4c4cc4d4a5de.png",
+            "spriteSheet": "exec-63cbbff0-cb38-47c1-975a-243a0192dc33.png"
+          },
+          {
+            "variant": 2,
+            "design": "warm coral cloak, moon-white shoulder armor with graphite lining, blue-gray eyes and a little cheek scar",
+            "pose": "symmetrical straight-on bust, head inclined slightly to the left in inspection",
+            "portraitSheet": "exec-3b023b03-b1ef-4f0f-8ca4-2d212b94b41d.png",
+            "spriteSheet": "exec-de018459-6cee-44a1-9df8-0dc724fbc398.png"
+          }
+        ]
+      },
+      {
+        "key": "fae-m-0002",
+        "label": "Wisteria Archivist",
+        "race": "fae",
+        "gender": "masculine",
+        "subject": "A slender adult fae man with dusty turquoise skin, a diamond face, dark violet hair tied low, tapered petal ears, and thin swept moth antennae",
+        "setting": "a trellised archive courtyard at violet twilight, old stone niches and overhead wisteria",
+        "variants": [
+          {
+            "variant": 1,
+            "design": "umber leather coat with pale gold piping, dark violet undershirt, luminous lilac eyes",
+            "pose": "Heroic three-quarter chest-up stance facing slightly right of camera, head near center.",
+            "portraitSheet": "exec-21df3004-0b61-4265-9efa-1cdda981611d.png",
+            "spriteSheet": "exec-6ce9a4b3-a9bf-4c77-b335-95effbc41a46.png"
+          },
+          {
+            "variant": 2,
+            "design": "midnight indigo coat with mint piping, silver undershirt, bright amber eyes and one pale streak in the tied-back violet hair",
+            "pose": "one shoulder nearer camera and head turned the opposite way, a little low-angle",
+            "portraitSheet": "exec-13cbdd0a-9818-4e27-89df-f07b2531a611.png",
+            "spriteSheet": "exec-aeff325f-62fa-4ee5-a7bb-65a2b410d850.png"
+          }
+        ]
+      },
+      {
+        "key": "fae-f-0002",
+        "label": "Mistfen Piper",
+        "race": "fae",
+        "gender": "feminine",
+        "subject": "An adult fae woman with warm clay-pink skin, round jade eyes, forked pointed leaf ears, fine reedlike antennae and long dark green-black hair tied at the nape",
+        "setting": "a blue-hour fen with reeds, small luminous insects and a distant wooden lookout",
+        "variants": [
+          {
+            "variant": 1,
+            "design": "white linen, moss-green short cloak with cinnabar clasp, jade eyes",
+            "pose": "Heroic three-quarter chest-up stance facing slightly right of camera, head near center.",
+            "portraitSheet": "exec-830e34bb-8c6e-4250-9051-bc614857498d.png",
+            "spriteSheet": "exec-0e47d9f1-3e7d-4ad0-b96d-bf5ed3dafabe.png"
+          },
+          {
+            "variant": 2,
+            "design": "saffron linen, deep indigo cloak with pearl clasp, rose-gold eyes and fine pale freckles across cheeks",
+            "pose": "angled down slightly from camera, chin gently tucked and eyes toward a side light",
+            "portraitSheet": "exec-7720b84b-93a6-4440-be60-b3b763a05128.png",
+            "spriteSheet": "exec-db4fc54c-0f8e-49fb-ae96-6454e7fd1bdc.png"
+          }
+        ]
+      },
+      {
+        "key": "mountain-orc-m-0002",
+        "label": "Ember Kiln Smith",
+        "race": "mountain-orc",
+        "gender": "masculine",
+        "subject": "A wide muscular middle-aged adult mountain orc man with russet-brown skin, an angular underbite with two pale lower tusks, a short square beard, shaved scalp and a copper ring on one tusk",
+        "setting": "a rain-damp mountain forge above old stone roofs, kiln embers and cool dusk skies",
+        "variants": [
+          {
+            "variant": 1,
+            "design": "slate work apron with amber seams, bone-white scarf, copper eyes",
+            "pose": "Heroic three-quarter chest-up stance facing slightly right of camera, head near center.",
+            "portraitSheet": "exec-86d0c3c8-58e7-43b7-afb1-af839f2e565a.png",
+            "spriteSheet": "exec-7e384136-4f67-4d66-b7ab-c21bcff93cf4.png"
+          },
+          {
+            "variant": 2,
+            "design": "deep navy work apron with pale teal seams, oxblood scarf, steel blue eyes and a thin temple scar",
+            "pose": "front-facing broad shoulders, head turned sideways toward the kiln glow",
+            "portraitSheet": "exec-36d7fddb-5ca4-420e-bb27-b5a308b1f1f7.png",
+            "spriteSheet": "exec-634c62d6-553b-4ac9-adc0-0aeae815345b.png"
+          }
+        ]
+      },
+      {
+        "key": "mountain-orc-f-0002",
+        "label": "Glacier Relay Warden",
+        "race": "mountain-orc",
+        "gender": "feminine",
+        "subject": "A powerful adult mountain orc woman with slate-blue skin, a broad straight nose, ivory lower tusks, dense cropped copper coils and an angular strong jaw",
+        "setting": "an icy relay outpost on a glacial shelf, painted snow spires and a copper weather vane",
+        "variants": [
+          {
+            "variant": 1,
+            "design": "brown fur-lined cloak and cool teal leather collar, bright moss-green eyes",
+            "pose": "Heroic three-quarter chest-up stance facing slightly right of camera, head near center.",
+            "portraitSheet": "exec-dd194c0b-c4b5-4301-9ae9-6e17366d7249.png",
+            "spriteSheet": "exec-b74a6745-340b-41b4-b273-4e50df69b5cf.png"
+          },
+          {
+            "variant": 2,
+            "design": "cream fur-lined cloak, wine-red leather collar, brass trace accents, ice-blue eyes and a healed cheek nick",
+            "pose": "upward-looking profile at three quarters, body turning toward the snowy ridge",
+            "portraitSheet": "exec-c734a28a-72fe-4d34-aaf1-d4e74e9ea209.png",
+            "spriteSheet": "exec-99c4a341-a7ec-47fd-b501-06a37807cac8.png"
+          }
+        ]
+      }
+    ]
+  },
+  "thirdArtBatch": {
+    "artDirection": "Ink contours, sharp cel shadows and fully painted original Aurevane locations.",
+    "portraitGrid": "Two rows of five expression paintings. Each row has its own pose and palette.",
+    "spriteGrid": "Two blocks of 5 × 3 front, side and rear motion drawings based on the respective portrait variant.",
+    "characters": [
+      {
+        "key": "elf-f-0003",
+        "label": "Bluefall Harpist",
+        "portraitSheet": "exec-1c4cc6b8-db2b-4610-9683-c47cd2f0454b.png",
+        "spriteSheet": "exec-11df6101-ba70-40b2-b269-0890bbfb46ed.png"
+      },
+      {
+        "key": "elf-f-0004",
+        "label": "Copperwood Bowyer",
+        "portraitSheet": "exec-3e287f99-d944-4cdb-b615-303437609720.png",
+        "spriteSheet": "exec-e143084b-23cb-4429-9051-1a3682a06d8c.png"
+      },
+      {
+        "key": "elf-m-0003",
+        "label": "Ivory Fen Physician",
+        "portraitSheet": "exec-434e9012-708a-4122-8e81-f054e6ea4355.png",
+        "spriteSheet": "exec-566870df-8ec6-4576-b4c4-4a77721e391e.png"
+      },
+      {
+        "key": "elf-m-0004",
+        "label": "Winter Pear Astronomer",
+        "portraitSheet": "exec-e9935ca8-e80d-4639-ab18-d2bb6b518742.png",
+        "spriteSheet": "exec-2aa0f022-f87c-49b3-a952-32c7483377f3.png"
+      },
+      {
+        "key": "fae-f-0003",
+        "label": "Pollen Court Scribe",
+        "portraitSheet": "exec-3003c595-c4af-484e-b35c-4ffc74c347de.png",
+        "spriteSheet": "exec-9c9c6b77-a15b-49ba-8505-fa81f047ae7d.png"
+      },
+      {
+        "key": "fae-f-0004",
+        "label": "Cairnlight Shepherd",
+        "portraitSheet": "exec-3c7a87d4-e24d-4238-ba50-8e52fb443822.png",
+        "spriteSheet": "exec-8af6c3f1-4cfa-46f9-858d-056375effe60.png"
+      },
+      {
+        "key": "fae-m-0003",
+        "label": "Hawthorn Wind Reader",
+        "portraitSheet": "exec-3a9e238f-5f81-4ea9-86f9-002beec8bb40.png",
+        "spriteSheet": "exec-ff6bfa67-619b-4eac-ba63-f1644b534061.png"
+      },
+      {
+        "key": "fae-m-0004",
+        "label": "Moonpool Apiarist",
+        "portraitSheet": "exec-7eb0bbe7-e322-4b4f-b2bf-5d513786e94e.png",
+        "spriteSheet": "exec-928c4166-ff26-4dc8-887e-1b486e28834b.png"
+      },
+      {
+        "key": "human-f-0003",
+        "label": "Ashbank Surveyor",
+        "portraitSheet": "exec-05978982-1c5a-46d1-9911-71e1827ba68f.png",
+        "spriteSheet": "exec-d015c887-0aff-4170-b0ca-9489fe3ee9be.png"
+      },
+      {
+        "key": "human-f-0004",
+        "label": "Tideglass Diver",
+        "portraitSheet": "exec-85e0a089-be93-462a-b4a9-9cf4a5dd859d.png",
+        "spriteSheet": "exec-a5a25146-01a1-421d-9135-b35984432eff.png"
+      },
+      {
+        "key": "human-m-0003",
+        "label": "Rainmarket Cook",
+        "portraitSheet": "exec-16641c00-6190-48f2-bd87-e284327e33ae.png",
+        "spriteSheet": "exec-db068771-3cf8-49ca-9241-31a6163511e5.png"
+      },
+      {
+        "key": "human-m-0004",
+        "label": "Juniper Road Peddler",
+        "portraitSheet": "exec-56d33c3a-215b-4aa5-af10-f7523433300c.png",
+        "spriteSheet": "exec-77a00a8e-236a-4cc4-baae-c57d9d12d38b.png"
+      },
+      {
+        "key": "mountain-orc-f-0003",
+        "label": "Iron Pass Scout",
+        "originalPortraitSheet": "exec-40ff7358-f434-47b5-bde1-3d13bce524fa.png",
+        "portraitSheet": "exec-46aa2932-920c-4847-a440-12fc2db5e5be.png",
+        "revision": "Lower canine tips follow the lower dental arch across expressions.",
+        "spriteSheet": "exec-0404c489-14ec-42f3-a5af-8fbdcaa8c28c.png"
+      },
+      {
+        "key": "mountain-orc-f-0004",
+        "label": "Basalt Stair Warden",
+        "originalPortraitSheet": "exec-7952e443-71c9-42cf-82af-684dba18b70e.png",
+        "portraitSheet": "exec-5008486a-203f-4aa0-8127-b162030c3178.png",
+        "revision": "Lower canine tips follow the lower dental arch across expressions.",
+        "spriteSheet": "exec-6223962f-41cc-48bb-a250-540d90f647d8.png"
+      },
+      {
+        "key": "mountain-orc-m-0003",
+        "label": "Garnet Quarry Foreman",
+        "portraitSheet": "exec-7bee49ac-8682-4f3a-9076-2b14c060f272.png",
+        "spriteSheet": "exec-81af181e-91ae-4e95-a0fe-2d1f78339386.png"
+      },
+      {
+        "key": "mountain-orc-m-0004",
+        "label": "Thunder Gate Mason",
+        "portraitSheet": "exec-7c360997-30d0-4d54-8122-f68312ea31f1.png",
+        "spriteSheet": "exec-9219407f-07d4-4fbd-85a9-b09a359c8f41.png"
+      }
+    ]
+  },
+  "fourthArtBatch": {
+    "artDirection": "Ink contours, sharp cel shadows and fully painted original Aurevane locations.",
+    "portraitGrid": "Two rows of five expression paintings. Each row has its own pose and palette.",
+    "spriteGrid": "Two blocks of 5 × 3 front, side and rear motion drawings based on the respective portrait variant.",
+    "characters": [
+      {
+        "key": "elf-f-0005",
+        "label": "Sunsill Roof Gardener",
+        "portraitSheet": "exec-5d5ed329-a1d3-4cfd-97c9-eff108e3ee60.png",
+        "spriteSheet": "exec-d9d390e8-6f3e-429a-b0c0-f153d951b6a1.png"
+      },
+      {
+        "key": "elf-f-0006",
+        "label": "Glass Dune Reclaimer",
+        "portraitSheet": "exec-dcda3755-e082-4f36-8a34-9febb145f3f1.png",
+        "spriteSheet": "exec-2cda7059-988b-4d67-b1b0-dc3aed656fa4.png"
+      },
+      {
+        "key": "elf-m-0005",
+        "label": "Riverstone Map Binder",
+        "portraitSheet": "exec-fe06296f-a24a-4aff-be00-b86b0aed5bcf.png",
+        "spriteSheet": "exec-6f72e84f-d470-463c-8f8c-d2fe1d56d45b.png"
+      },
+      {
+        "key": "elf-m-0006",
+        "label": "Black Creek Apiarist",
+        "portraitSheet": "exec-8f418f61-b44e-48ca-acb6-febb97c35b33.png",
+        "spriteSheet": "exec-bd6034e4-d95e-4e15-809d-d8396af5fb7a.png"
+      },
+      {
+        "key": "fae-f-0005",
+        "label": "Honeyglass Weaver",
+        "portraitSheet": "exec-d3d8ac46-6793-4cc3-9ee1-08449f892889.png",
+        "spriteSheet": "exec-371fafcc-cb0a-4789-a17f-78b831593ae4.png"
+      },
+      {
+        "key": "fae-f-0006",
+        "label": "Seaflower Lantern Dancer",
+        "portraitSheet": "exec-1f404117-a41d-44bc-9b87-f82ea3f47edb.png",
+        "spriteSheet": "exec-72a3ed78-8b91-44b7-b0cb-c2f511c37dde.png"
+      },
+      {
+        "key": "fae-m-0005",
+        "label": "Rainlily Ferry Clerk",
+        "portraitSheet": "exec-a842b7ef-6fc5-41fe-8342-941758d73f5c.png",
+        "spriteSheet": "exec-f397d185-e182-4ae2-ad17-2af5ebc3f813.png"
+      },
+      {
+        "key": "fae-m-0006",
+        "label": "Cedar Stair Bellkeeper",
+        "portraitSheet": "exec-2bfbc862-bacf-4e20-b575-029e8c682558.png",
+        "spriteSheet": "exec-362e17cb-7cd6-4877-836e-14c209106698.png"
+      },
+      {
+        "key": "human-f-0005",
+        "label": "Copper Quay Mechanic",
+        "portraitSheet": "exec-42fd6d11-97bc-4115-b868-1d77d1cbf4b2.png",
+        "spriteSheet": "exec-7c655457-4d9a-4c98-bb4c-4143611b8334.png"
+      },
+      {
+        "key": "human-f-0006",
+        "label": "Lanternwake Search Pilot",
+        "portraitSheet": "exec-29cb4eea-3395-4ba3-aaae-38b67483b8c0.png",
+        "spriteSheet": "exec-bae8493a-9907-41ba-8854-885f9e7f1736.png"
+      },
+      {
+        "key": "human-m-0005",
+        "label": "Brinewatch Signalman",
+        "portraitSheet": "exec-10202928-0610-486a-afb1-e7bcc4c985c9.png",
+        "spriteSheet": "exec-a3659960-09e2-4ef5-9c95-ced81ed647b0.png"
+      },
+      {
+        "key": "human-m-0006",
+        "label": "Plum Orchard Gatekeeper",
+        "portraitSheet": "exec-42d57e2a-1cd1-494f-8929-dd472bc50d1d.png",
+        "spriteSheet": "exec-e750db6e-70d1-43b7-aab6-b2842503abc5.png"
+      },
+      {
+        "key": "mountain-orc-f-0005",
+        "label": "Red Basin Cartwright",
+        "portraitSheet": "exec-f2bbac6c-06e3-411c-b762-8c0565b3e915.png",
+        "spriteSheet": "exec-d1c46fa0-dae0-452b-abf9-8cd6ecc04575.png"
+      },
+      {
+        "key": "mountain-orc-f-0006",
+        "label": "Sleetwood Caravaner",
+        "portraitSheet": "exec-78700dfc-b975-40c7-adb2-03d66fb4afd1.png",
+        "spriteSheet": "exec-c3078105-bd8e-4ff3-8d3c-fce66ac55690.png"
+      },
+      {
+        "key": "mountain-orc-m-0005",
+        "label": "Slategrove Trail Warden",
+        "portraitSheet": "exec-297688ed-e69c-493f-a4a1-dd2fbf3789b8.png",
+        "spriteSheet": "exec-20fa09c2-1828-466e-823c-b6da6e004786.png"
+      },
+      {
+        "key": "mountain-orc-m-0006",
+        "label": "Copper Hollow Diver",
+        "portraitSheet": "exec-8e8ad7fd-1505-4241-b073-f409e3bcaac6.png",
+        "spriteSheet": "exec-ef2a9e45-c90b-4a31-ba01-ed984a8c96ae.png"
+      }
+    ]
+  },
+  "fifthArtBatch": {
+    "artDirection": "Ink contours, sharp cel shadows and fully painted original Aurevane locations.",
+    "portraitGrid": "Two rows of five expression paintings. Each row has its own pose and palette.",
+    "spriteGrid": "Two blocks of 5 × 3 front, side and rear motion drawings based on the respective portrait variant.",
+    "characters": [
+      {
+        "key": "elf-f-0007",
+        "label": "Cloudmere Netmaker",
+        "portraitSheet": "exec-fa55a72a-2867-4612-b3cb-e225c976c042.png",
+        "spriteSheet": "exec-8e56cb8d-eed1-4eba-b639-fc7ea271bae5.png"
+      },
+      {
+        "key": "elf-f-0008",
+        "label": "Nightbell Orchard Scout",
+        "portraitSheet": "exec-acf2284f-3db3-4228-a74f-cd8efd16f886.png",
+        "spriteSheet": "exec-4f6b0d85-5a18-42e3-9693-2423f7a5febe.png"
+      },
+      {
+        "key": "elf-m-0007",
+        "label": "Raincrag Bridge Surveyor",
+        "portraitSheet": "exec-bc49149b-1584-43e8-a6dd-5ff1393df1e5.png",
+        "spriteSheet": "exec-6f26377a-ddd0-4707-92f1-d336860d0827.png"
+      },
+      {
+        "key": "elf-m-0008",
+        "label": "Rimehollow Glassworker",
+        "portraitSheet": "exec-276ffe8b-4780-4992-9aa0-e407c6dabb1e.png",
+        "spriteSheet": "exec-7a9cc5d3-d4f8-4a18-be97-effc46a7ee5e.png"
+      },
+      {
+        "key": "fae-f-0007",
+        "label": "Silkfen Lantern Binder",
+        "portraitSheet": "exec-fc0f4956-eaaf-4347-8e7d-587501a2abe4.png",
+        "spriteSheet": "exec-2a3d2119-80f2-42ae-a1be-a7d4ff16ebe6.png"
+      },
+      {
+        "key": "fae-f-0008",
+        "label": "Miststep Orchard Tender",
+        "portraitSheet": "exec-9625384b-1e78-41dc-a0ea-c4de47f99f37.png",
+        "spriteSheet": "exec-ef13e1f7-3970-4c92-a2d2-0d010f5dd899.png"
+      },
+      {
+        "key": "fae-m-0007",
+        "label": "Juniper Pollen Cartographer",
+        "portraitSheet": "exec-23ad4a17-0e6a-4cda-b367-f5d7aedca9ce.png",
+        "spriteSheet": "exec-64915994-f722-4b9c-a207-59ec2319f294.png"
+      },
+      {
+        "key": "fae-m-0008",
+        "label": "Hollowglass Herb Broker",
+        "portraitSheet": "exec-9f839769-78b9-429a-8433-ce96dcda0d7a.png",
+        "spriteSheet": "exec-da843e1b-f409-4aff-a44c-18314811f351.png"
+      },
+      {
+        "key": "human-f-0007",
+        "label": "Marshglass Ferrier",
+        "portraitSheet": "exec-0f38079a-1ead-478a-83d4-cad4dc008237.png",
+        "spriteSheet": "exec-b6de95de-bb17-4ee5-a4ef-8019aa4b68a5.png"
+      },
+      {
+        "key": "human-f-0008",
+        "label": "Frostquill Courier",
+        "portraitSheet": "exec-d1118081-08da-40a2-83f7-6373a7ec3688.png",
+        "spriteSheet": "exec-e473237f-5e11-4dae-a675-85d2618fcb92.png"
+      },
+      {
+        "key": "human-m-0007",
+        "label": "Coldstar Millwright",
+        "portraitSheet": "exec-af17a071-1846-4f43-ae1c-090d7de15169.png",
+        "spriteSheet": "exec-f8165438-4aec-4e91-825f-b2638b38ea98.png"
+      },
+      {
+        "key": "human-m-0008",
+        "label": "Stormjaw Quarry Scribe",
+        "portraitSheet": "exec-a026f396-0eaa-48a2-8109-57d055406568.png",
+        "spriteSheet": "exec-27c4f7fb-f968-48f5-95f4-ad66933df4ed.png"
+      },
+      {
+        "key": "mountain-orc-f-0007",
+        "label": "Ironspine Gatekeeper",
+        "portraitSheet": "exec-c10c913c-0e05-432f-9c27-a5ab1508f153.png",
+        "spriteSheet": "exec-3660596b-c502-4a68-bec6-b979f7dd6a0e.png"
+      },
+      {
+        "key": "mountain-orc-f-0008",
+        "label": "Slate Pearl Locksmith",
+        "portraitSheet": "exec-27a93bf6-5dc7-4650-8794-82485b0de377.png",
+        "spriteSheet": "exec-f3cf6c37-b604-440a-a882-0cfee1f2a9f1.png"
+      },
+      {
+        "key": "mountain-orc-m-0007",
+        "label": "Cinder Reed Armorer",
+        "portraitSheet": "exec-d75c5a2d-ff5c-43ea-ace7-f8ab59a602ef.png",
+        "spriteSheet": "exec-902506fd-da56-4c45-a624-7d5c14953c7c.png"
+      },
+      {
+        "key": "mountain-orc-m-0008",
+        "label": "Greywater Ridge Potter",
+        "portraitSheet": "exec-69646a2d-f9e2-4e6a-a42d-9507857b08ba.png",
+        "spriteSheet": "exec-e1bcbe8d-c313-41ba-8129-03476eb0a6c3.png"
+      }
+    ]
+  },
+  "sixthArtBatch": {
+    "artDirection": "Ink contours, sharp cel shadows and fully painted original Aurevane locations.",
+    "portraitGrid": "Two rows of five expression paintings. Each row has its own pose and palette.",
+    "spriteGrid": "Two blocks of 5 × 3 front, side and rear motion drawings based on the respective portrait variant.",
+    "characters": [
+      {
+        "key": "elf-f-0009",
+        "label": "Ambergrove Arrowmaker",
+        "portraitSheet": "exec-e7d26fb2-dcd5-4c27-9eca-2a48f246be73.png",
+        "spriteSheet": "exec-7b72a14f-acaa-4c9f-b514-754b28c48a0d.png"
+      },
+      {
+        "key": "elf-f-0010",
+        "label": "Frostmoor Envoy",
+        "portraitSheet": "exec-8465c8d6-e715-41ce-92ee-d18067cdc25f.png",
+        "spriteSheet": "exec-eea8a2b9-bca8-48cb-8b20-b4963ed009a3.png"
+      },
+      {
+        "key": "elf-m-0009",
+        "label": "Moonweir Musician",
+        "portraitSheet": "exec-ee35aa6b-fd7b-41f9-8568-37a7fc33db90.png",
+        "spriteSheet": "exec-70f4b0e1-b78f-4d62-8786-060b4e8e0adf.png"
+      },
+      {
+        "key": "elf-m-0010",
+        "label": "Clearbrook Tinker",
+        "portraitSheet": "exec-bfe806b9-a5a7-4989-bbd4-0b5ba7605b3c.png",
+        "spriteSheet": "exec-d240cd70-ad09-4827-ae10-1b9c42d2bfe5.png"
+      },
+      {
+        "key": "fae-f-0009",
+        "label": "Thistlewind Apothecary",
+        "portraitSheet": "exec-84530240-9607-45d6-8a52-17a69d885dfe.png",
+        "spriteSheet": "exec-f0402808-b1a2-4a83-bce3-97c6725b3da2.png"
+      },
+      {
+        "key": "fae-f-0010",
+        "label": "Dewveil Violinist",
+        "portraitSheet": "exec-04b68ae6-50f8-4859-b541-a76ec8a0a88e.png",
+        "spriteSheet": "exec-c35a21c1-e800-4750-b6e2-bdea391c264e.png"
+      },
+      {
+        "key": "fae-m-0009",
+        "label": "Sunfen Reedwright",
+        "portraitSheet": "exec-86bf1d24-46f5-405e-9f0c-4c484b05ea38.png",
+        "spriteSheet": "exec-6daeba3e-bb91-4b4a-af01-cfc203c23ff3.png"
+      },
+      {
+        "key": "fae-m-0010",
+        "label": "Hollowbriar Messenger",
+        "portraitSheet": "exec-b7a4eb03-7991-484b-8b56-7c2401a3c3bb.png",
+        "spriteSheet": "exec-f2ec476a-992c-4797-a0b3-94da201232f7.png"
+      },
+      {
+        "key": "human-f-0009",
+        "label": "Saltglass Navigator",
+        "portraitSheet": "exec-d0c69275-8e91-4a28-ad6b-04ccab8db0b9.png",
+        "spriteSheet": "exec-950e7371-c1ad-495e-85af-344875e29ade.png"
+      },
+      {
+        "key": "human-f-0010",
+        "label": "Juneshore Mapbinder",
+        "portraitSheet": "exec-2c318349-9dd0-45b7-bcc5-645a3266bee8.png",
+        "spriteSheet": "exec-77227d52-10db-4095-9832-71823662c875.png"
+      },
+      {
+        "key": "human-m-0009",
+        "label": "Saffron Dune Herald",
+        "originalPortraitSheet": "exec-c06d0f83-cc49-435a-8969-64a75f36cf2d.png",
+        "portraitFraming": "Individually cropped portrait panels to square while preserving the upper framing.",
+        "portraitSheet": "exec-c06d0f83-cc49-435a-8969-64a75f36cf2d--square-cells.png",
+        "spriteSheet": "exec-8dcdee08-83a7-4d20-82bd-66d66d3fdb2b.png"
+      },
+      {
+        "key": "human-m-0010",
+        "label": "Westgate Ropekeeper",
+        "portraitSheet": "exec-26040dab-ed1f-45d8-b337-f34bc10709e9.png",
+        "spriteSheet": "exec-3e22ce8f-1f25-4db8-aa34-647ed708df07.png"
+      },
+      {
+        "key": "mountain-orc-f-0009",
+        "label": "Thunderglass Watcher",
+        "portraitSheet": "exec-2d50673a-afa7-4716-a09e-9d0ce4eee1ae.png",
+        "spriteSheet": "exec-dc7190f7-7fdb-4b46-a266-4df931e92a83.png"
+      },
+      {
+        "key": "mountain-orc-f-0010",
+        "label": "Redcairn Bellsinger",
+        "portraitSheet": "exec-10307765-38d5-4a19-b9df-3ce5ab8b8531.png",
+        "spriteSheet": "exec-558c66a3-a1ee-4eb4-b45c-c05ff09342db.png"
+      },
+      {
+        "key": "mountain-orc-m-0009",
+        "label": "Snowbell Mason",
+        "originalPortraitSheet": "exec-8fcc5ada-6d39-4d1c-ac40-acd053356062.png",
+        "portraitFraming": "Individually cropped portrait panels to square while preserving the upper framing.",
+        "portraitSheet": "exec-8fcc5ada-6d39-4d1c-ac40-acd053356062--square-cells.png",
+        "spriteSheet": "exec-f0a5d5d3-02ee-421a-ab06-2b87b2bb3393.png"
+      },
+      {
+        "key": "mountain-orc-m-0010",
+        "label": "Graymere Bridgewright",
+        "portraitSheet": "exec-bf74c748-1121-4de7-bce6-3890dceea68a.png",
+        "spriteSheet": "exec-0e4ac939-c3a2-483e-9232-8935b29cf5be.png"
+      }
+    ]
+  }
+}

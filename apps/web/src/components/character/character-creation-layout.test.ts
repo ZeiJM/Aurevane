@@ -8,12 +8,12 @@ import { CharacterCreationExperience } from './character-creation-experience'
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn() }) }))
 
 describe('Character Creation layout ownership', () => {
-  it('shows the new wayfarer-gate illustration and 24 portraits on entry', () => {
+  it('shows the new wayfarer-gate illustration and one portrait per race on entry', () => {
     const markup = renderToStaticMarkup(
       createElement(CharacterCreationExperience, { slotIndex: 0 }),
     )
     expect(markup).toContain('wayfarer-gate-v01.webp')
-    expect(markup.match(/name="portrait"/gu)).toHaveLength(24)
+    expect(markup.match(/name="portrait"/gu)).toHaveLength(4)
   })
 
   it('offers the manual builder without a separate starter outfit picker', () => {

@@ -59,7 +59,7 @@
   width: 100%;
   height: 2rem;
   border: 1px solid #756b56;
-  background: url('/media/art/battle/terrain-open-stone-v01.webp') center/cover;
+  background: url('/media/art/battle/terrace-stone-anime-v01.webp') center/cover;
   color: #ceeff6;
   font-style: normal;
 }
@@ -68,10 +68,10 @@
   opacity: 0.5;
 }
 .sample [data-key='rough'] {
-  background-image: url('/media/art/battle/terrain-rough-moss-v01.webp');
+  background-image: url('/media/art/battle/terrace-gravel-anime-v01.webp');
 }
 .sample [data-key='elevated'] {
-  background-image: url('/media/art/battle/terrain-raised-ledge-v02.webp');
+  background-image: url('/media/art/battle/terrace-rise-1-anime-v01.webp');
   color: #fff1c8;
 }
 .sample [data-key='blocked'] {

@@ -101,11 +101,11 @@ describe('portrait loading in the authenticated shell', () => {
     )
   })
 
-  it('retains the built-in portrait after cosmetic data is unavailable', async () => {
+  it('uses the authored starter portrait after cosmetic data is unavailable', async () => {
     vi.mocked(loadCharacterProfileDisplay).mockRejectedValueOnce(new Error('unavailable'))
     const shell = await AuthenticatedShellFrame({ children: null })
     expect(renderToStaticMarkup(shell.props.characterPortrait as ReactElement)).toContain(
-      'built-in-portrait.webp',
+      '/api/media/appearance/7/human-f-0001.v1/neutral.svg',
     )
   })
 

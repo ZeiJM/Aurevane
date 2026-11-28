@@ -1,5 +1,20 @@
 import { expect, type Locator } from '@playwright/test'
 
+export async function expectBattleTileIdentity(tile: Locator, accent: string) {
+  await expect
+    .poll(() =>
+      tile.evaluate((element) => {
+        const token = element.querySelector(':scope > [data-team]')
+        if (!token) return null
+        const ring = getComputedStyle(token).borderTopColor
+        if (!token.querySelector(':scope > [data-battle-appearance-pose]')) return ring
+        const facing = element.querySelector(':scope > [data-battle-facing-indicator]')
+        return facing && ring === 'rgba(0, 0, 0, 0)' ? getComputedStyle(facing).color : null
+      }),
+    )
+    .toBe(accent)
+}
+
 /** Check the mounted cascade, including the shared playable and spectator surfaces. */
 export async function expectCombatantIdentityColors(root: Locator) {
   await expect

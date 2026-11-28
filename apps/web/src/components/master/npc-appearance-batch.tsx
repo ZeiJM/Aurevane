@@ -2,35 +2,22 @@
 
 import { useState, type FormEvent } from 'react'
 import {
-  APPEARANCE_FRAME,
-  paintedPlayerAppearanceBlueprint,
-  appearanceManifestFromImageUrl,
-  type AppearanceBlueprint,
-} from '@/appearance/appearance-manifest'
-import { pickActivePaintedLook } from '@/appearance/appearance-active-catalog'
-import { PAINTED_IDENTITIES, PAINTED_CLOTHING } from '@/appearance/appearance-painted-catalog'
-import {
-  PAINTED_PLAYER_FIELDS,
-  PAINTED_WARDROBE_LABELS,
-  WARDROBE_OUTERWEAR,
-  type PaintedWardrobeLook,
-} from '@/appearance/appearance-painted-wardrobe'
+  authoredCharacter,
+  defaultAuthoredAppearance,
+} from '@/appearance/appearance-authored-catalog'
+import { appearanceManifestFromImageUrl } from '@/appearance/appearance-manifest'
+import { PosePreview } from '@/components/character/appearance-builder'
 import { AppearanceBuilderDialog } from '@/components/character/appearance-builder-dialog'
 import {
   NPC_VARIANT_BATCH_MAX,
   NPC_VARIANT_BATCH_MIN,
-  npcVariantFields,
+  NPC_VARIANT_FIELDS,
   type NpcVariantField,
   type NpcVariantRequest,
 } from '@/lib/npc-appearance-variants'
 import styles from './npc-design-editor.module.css'
 
-const fieldLabel = (field: NpcVariantField) =>
-  field === 'coat'
-    ? 'Silhouette'
-    : field.replace(/^[a-z]|[A-Z]/g, (letter, offset: number) =>
-        offset === 0 ? letter.toUpperCase() : ` ${letter.toLowerCase()}`,
-      )
+const fieldLabels = { character: 'Character', variant: 'Variant' } as const
 
 export function NpcAppearanceBatch({
   canApproveUniforms,
@@ -41,30 +28,15 @@ export function NpcAppearanceBatch({
   reviewDisabled: boolean
   onReview: (imageUrl: string) => void
 }) {
-  const [base, setBase] = useState<AppearanceBlueprint>(() =>
-    paintedPlayerAppearanceBlueprint(pickActivePaintedLook('masculine', () => 0)),
-  )
+  const [base, setBase] = useState(() => defaultAuthoredAppearance('masculine'))
   const [count, setCount] = useState(4)
-  const [vary, setVary] = useState<NpcVariantField[]>(['backdrop'])
+  const [vary, setVary] = useState<NpcVariantField[]>(['character', 'variant'])
   const [uniform, setUniform] = useState(false)
   const [batch, setBatch] = useState<{ images: string[]; mode: NpcVariantRequest['mode'] } | null>(
     null,
   )
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
-
-  const painted = base.v === 4 || base.v === 5 || base.v === 6 ? base : null
-  const wardrobe = painted && 'bodyFrame' in painted ? painted : null
-  const fields = npcVariantFields(base)
-  const allowed = vary.filter((field) => fields.includes(field))
-  const paintedLabels: Partial<Record<NpcVariantField, string>> = {
-    body: 'Character',
-    coat: 'Clothing style',
-    palette: 'Clothing color',
-    accessory: 'Accessory style',
-    hairColor: 'Accessory color',
-    backdrop: 'Portrait setting',
-  }
 
   async function generate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -80,7 +52,7 @@ export function NpcAppearanceBatch({
         body: JSON.stringify({
           base,
           count,
-          vary: uniform ? [] : allowed,
+          vary: uniform ? [] : vary,
           mode,
         } satisfies NpcVariantRequest),
       })
@@ -109,12 +81,7 @@ export function NpcAppearanceBatch({
               label="Edit starting look"
               confirmLabel="Use this starting look"
               value={base}
-              onConfirm={(next) => {
-                if ('bodyFrame' in next && !wardrobe)
-                  setVary(['identity', 'bodyFrame', 'skinTone', 'outerwear', 'gear', 'headwear'])
-                if (wardrobe && !('bodyFrame' in next)) setVary(['body', 'coat'])
-                setBase(next)
-              }}
+              onConfirm={setBase}
             />
             <label>
               Candidates
@@ -128,13 +95,7 @@ export function NpcAppearanceBatch({
               />
             </label>
           </div>
-          <p className={styles.hint}>
-            {wardrobe
-              ? `${PAINTED_PLAYER_FIELDS.identity[wardrobe.identity]} · ${WARDROBE_OUTERWEAR[wardrobe.outerwear]}`
-              : painted?.v === 4
-                ? `${PAINTED_IDENTITIES[painted.identity]} · ${PAINTED_CLOTHING[painted.outerwear]}`
-                : `Palette: ${base.palette}. Accessory: ${base.accessory}.`}
-          </p>
+          <p className={styles.hint}>{authoredCharacter(base.character)?.label}</p>
           {canApproveUniforms ? (
             <label>
               <input
@@ -156,7 +117,7 @@ export function NpcAppearanceBatch({
             <legend>Features allowed to vary</legend>
             <p className={styles.hint}>Unchecked features stay the same for every candidate.</p>
             <div className={styles.variantFields}>
-              {fields.map((field) => (
+              {NPC_VARIANT_FIELDS.map((field) => (
                 <label key={field}>
                   <input
                     type="checkbox"
@@ -169,18 +130,13 @@ export function NpcAppearanceBatch({
                       )
                     }
                   />{' '}
-                  {(wardrobe
-                    ? (PAINTED_WARDROBE_LABELS[field as keyof PaintedWardrobeLook] ??
-                      paintedLabels[field])
-                    : painted
-                      ? paintedLabels[field]
-                      : undefined) ?? fieldLabel(field)}
+                  {fieldLabels[field]}
                 </label>
               ))}
             </div>
           </fieldset>
         )}
-        <button type="submit" disabled={pending || (!uniform && allowed.length === 0)}>
+        <button type="submit" disabled={pending || (!uniform && vary.length === 0)}>
           {pending ? 'Generating…' : 'Generate previews'}
         </button>
         {error ? <p role="alert">{error}</p> : null}
@@ -205,16 +161,12 @@ export function NpcAppearanceBatch({
                   <div className={styles.variantArt}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={manifest.portraits.neutral} alt="Portrait" width={76} height={76} />
-                    <span
-                      role="img"
-                      aria-label="Field sprite"
-                      className={styles.variantSprite}
-                      style={{
-                        width: APPEARANCE_FRAME.width,
-                        height: APPEARANCE_FRAME.height,
-                        backgroundImage: `url("${manifest.atlas}")`,
-                        backgroundSize: `${APPEARANCE_FRAME.columns * 100}% ${APPEARANCE_FRAME.rows * 100}%`,
-                      }}
+                    <PosePreview
+                      manifest={manifest}
+                      size={52}
+                      facing="south"
+                      pose="idle"
+                      label="Idle"
                     />
                   </div>
                   <button

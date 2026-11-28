@@ -145,7 +145,9 @@ it('shows saved finalized Invocation artwork in Skill Manager instead of its def
   expect(nodes(invocation).find((row) => row.props.width === 160)?.props.src).toBe(
     '/api/content-media/00000000-0000-4000-8000-000000000099',
   )
-  expect(nodes(tree).some((row) => row.props.src === '/media/skills/hp-recovery.webp')).toBe(true)
+  expect(
+    nodes(tree).some((row) => row.props.src === '/media/skills/hp-recovery-anime-v01.webp'),
+  ).toBe(true)
 })
 
 it('keeps one equipment Support selected and lets the retained Basic choice replace it through the existing atomic writer', async () => {
@@ -154,7 +156,7 @@ it('keeps one equipment Support selected and lets the retained Basic choice repl
     name: 'Wardstone Bracer',
     enabled: true,
     actions: { support: { behaviorId: 'prayer', name: 'Warding Prayer' } },
-    artworkSrc: '/media/art/items/wardstone-bracer-v01.webp',
+    artworkSrc: '/media/art/items/wardstone-bracer-anime-v01.webp',
     reports: [],
   }
   const initialItemsView = {

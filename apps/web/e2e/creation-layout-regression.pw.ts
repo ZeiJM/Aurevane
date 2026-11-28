@@ -4,7 +4,14 @@ import { expect, test, type Locator } from '@playwright/test'
 
 import { createVerifiedAccountAndSignIn } from './pv1f-test-helpers'
 
-test('Creation exposes 24 portraits per gender and preserves the complete authenticated three-step journey', async ({
+// The browser projects create characters in the same database. Authored looks are exclusive.
+const creationLooks = {
+  'desktop-chromium': { label: 'Basalt Citadel Vanguard', key: 'mountain-orc-f-0001' },
+  'laptop-chromium': { label: 'Garden Lanternkeeper', key: 'fae-f-0001' },
+  'mobile-chromium': { label: 'Cedarwood Archer', key: 'elf-f-0001' },
+}
+
+test('Creation exposes four race portraits per gender and preserves the complete authenticated three-step journey', async ({
   page,
 }, info) => {
   test.setTimeout(120_000)
@@ -41,7 +48,7 @@ test('Creation exposes 24 portraits per gender and preserves the complete authen
   const library = creation.locator('[data-portrait-library]')
   const portraits = library.locator('input[name="portrait"]')
   await expect(library).toBeVisible()
-  await expect(portraits).toHaveCount(24)
+  await expect(portraits).toHaveCount(4)
   const decoded = await library.locator('img').evaluateAll(async (images) => {
     return Promise.all(
       images.map(async (image) => {
@@ -66,11 +73,11 @@ test('Creation exposes 24 portraits per gender and preserves the complete authen
       }),
     )
   })
-  expect(decoded).toHaveLength(24)
+  expect(decoded).toHaveLength(4)
   expect(
     decoded.every((image) => image.loaded && image.width >= 96 && image.width === image.height),
   ).toBe(true)
-  expect(new Set(decoded.map((image) => image.src)).size).toBe(24)
+  expect(new Set(decoded.map((image) => image.src)).size).toBe(4)
 
   const sizes =
     info.project.name === 'mobile-chromium'
@@ -166,8 +173,8 @@ test('Creation exposes 24 portraits per gender and preserves the complete authen
         .soft(metrics.gender.bottom, `${label}: Gender precedes the collection`)
         .toBeLessThanOrEqual(metrics.gallery.y)
       expect
-        .soft(metrics.galleryOverflow, `${label}: gallery keeps scrolling within the workspace`)
-        .toBeGreaterThan(0)
+        .soft(metrics.galleryOverflow, `${label}: featured looks fit within the workspace`)
+        .toBeLessThanOrEqual(1)
     }
     if (size.width >= 1280 && size.height >= 768)
       expect
@@ -195,7 +202,7 @@ test('Creation exposes 24 portraits per gender and preserves the complete authen
   await portraits.last().check()
   await portraits.last().focus()
   await page.keyboard.press('ArrowLeft')
-  await expect(portraits.nth(22)).toBeChecked()
+  await expect(portraits.nth(2)).toBeChecked()
   await page.keyboard.press('ArrowRight')
   await expect(portraits.last()).toBeChecked()
   await expect(portraits.last()).toBeInViewport({ ratio: 1 })
@@ -207,9 +214,11 @@ test('Creation exposes 24 portraits per gender and preserves the complete authen
   expect(focusedPortrait.top).toBeGreaterThanOrEqual(0)
   expect(focusedPortrait.bottom).toBeLessThanOrEqual(focusedPortrait.viewportHeight + 1)
   await creation.getByRole('radio', { name: 'Female', exact: true }).check()
-  await expect(portraits).toHaveCount(24)
+  await expect(portraits).toHaveCount(4)
   await expect(portraits.first()).toBeChecked()
-  await portraits.last().check()
+  const look = creationLooks[info.project.name as keyof typeof creationLooks]
+  const selectedPortrait = library.getByRole('radio', { name: look.label, exact: true })
+  await selectedPortrait.check()
   await expect(creation.locator('input[name="appearance"]')).toHaveCount(0)
   await next.click()
   await expect(creation).toHaveAttribute('data-step', 'discipline')
@@ -264,7 +273,7 @@ test('Creation exposes 24 portraits per gender and preserves the complete authen
       .poll(() => page.evaluate(() => document.documentElement.scrollHeight - innerHeight))
       .toBeLessThanOrEqual(1)
   await expect(creation.getByText('Portrait', { exact: true })).toBeVisible()
-  await expect(creation.getByText('Female adventurer 24', { exact: true })).toBeVisible()
+  await expect(creation.getByText(look.label, { exact: true })).toBeVisible()
   await expect(creation.getByText('Starter appearance', { exact: true })).toHaveCount(0)
   await expect(creation).not.toContainText(/pronouns/i)
   if (process.env.LAYOUT_REVIEW_OUTPUT)
@@ -280,7 +289,7 @@ test('Creation exposes 24 portraits per gender and preserves the complete authen
   await expect(disciplines.nth(1)).toBeChecked()
   await creation.getByRole('button', { name: 'Back', exact: true }).click()
   await expect(name).toHaveValue(characterName)
-  await expect(portraits.last()).toBeChecked()
+  await expect(selectedPortrait).toBeChecked()
   await expect(creation.getByRole('radio', { name: 'Female', exact: true })).toBeChecked()
   await next.click()
   await creation.getByRole('button', { name: 'Review character', exact: true }).click()
@@ -315,16 +324,15 @@ test('Creation exposes 24 portraits per gender and preserves the complete authen
   await expect(creation.getByRole('alert')).toHaveText('Temporary test interruption.')
   const responsePromise = page.waitForResponse(
     (response) =>
-      response.url().endsWith('/api/character') &&
-      response.request().method() === 'POST' &&
-      response.status() === 201,
+      response.url().endsWith('/api/character') && response.request().method() === 'POST',
   )
   await creation.getByRole('button', { name: 'Create character', exact: true }).click()
   const response = await responsePromise
   const payload = await response.json()
+  expect(response.status(), JSON.stringify(payload.error)).toBe(201)
   expect(payload.character).toMatchObject({
     name: characterName,
-    portraitRef: 'portrait.starter.wayfarer-30',
+    portraitRef: 'portrait.adventure.female-01',
     presentationId: 'feminine',
     starterAppearanceRef: 'appearance.starter.roadworn',
   })
@@ -335,7 +343,12 @@ test('Creation exposes 24 portraits per gender and preserves the complete authen
   await expect(page).toHaveURL(/\/game\/haven$/)
   const appearance = await page.request.get('/api/account/appearance')
   expect(appearance.ok()).toBe(true)
-  expect(await appearance.json()).toMatchObject({ appearance: { appearanceTokens: 0 } })
+  expect(await appearance.json()).toMatchObject({
+    appearance: {
+      appearanceTokens: 0,
+      imageUrl: `/api/media/appearance/7/${look.key}.v1/neutral.svg`,
+    },
+  })
   await page.goto('/game/character')
   const railIdentity = page
     .getByTestId('authenticated-shell')

@@ -1029,10 +1029,10 @@ it('renders configured activation values and only recorded result values from th
 
 describe('mobile Chronicle artwork identity', () => {
   it.each([
-    ['basic.attack.unarmed.basic', '/media/skills/basic-attack-fist.webp'],
-    ['basic.guard', '/media/skills/guard.webp'],
-    ['basic.recover', '/media/skills/hp-recovery.webp'],
-    ['basic.recover.mp', '/media/skills/mp-recovery-dark-fantasy-v1.webp'],
+    ['basic.attack.unarmed.basic', '/media/skills/basic-attack-fist-anime-v01.webp'],
+    ['basic.guard', '/media/skills/guard-anime-v01.webp'],
+    ['basic.recover', '/media/skills/hp-recovery-anime-v01.webp'],
+    ['basic.recover.mp', '/media/skills/mp-recovery-dark-fantasy-anime-v01.webp'],
     ['battle.lowered-guard.apply', '/media/skills/defenseless-dark-fantasy-v1.webp'],
     ['unknown.event', '/media/skills/chronicle-event-dark-fantasy-v1.webp'],
   ])('uses recorded %s artwork without enriched skill context', (actionId, source) => {
@@ -1041,7 +1041,7 @@ describe('mobile Chronicle artwork identity', () => {
       <MobileBattleChronicle entries={entries} currentRound={1} />,
     )
     expect(markup).toContain(`src="${source}"`)
-    expect(markup).not.toContain('/media/skills/inspect.webp')
+    expect(markup).not.toContain('/media/skills/inspect-anime-v01.webp')
   })
 })
 

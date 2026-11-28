@@ -1,14 +1,13 @@
 'use client'
 
 import { useEffect, useId, useMemo, useState, type CSSProperties } from 'react'
-import { APPEARANCE_BACKDROP_GROUPS } from '@/appearance/appearance-backdrop-catalog'
 import {
-  findActivePaintedLook,
-  activePaintedLooksForGender,
-  defaultActivePaintedLook,
-  isActivePaintedAppearance,
-  pickActivePaintedLook,
-} from '@/appearance/appearance-active-catalog'
+  APPEARANCE_RACES,
+  AUTHORED_CHARACTERS,
+  authoredAppearance,
+  authoredCharacter,
+  type AuthoredAppearanceBlueprint,
+} from '@/appearance/appearance-authored-catalog'
 import {
   APPEARANCE_EXPRESSIONS,
   APPEARANCE_FRAME,
@@ -24,23 +23,24 @@ import {
   type AppearanceManifest,
   type AppearancePose,
 } from '@/appearance/appearance-manifest'
-import {
-  APPEARANCE_GENDERS,
-  appearanceGenderForIdentity,
-  paintedPlayerAppearanceBlueprint,
-  type AppearanceGender,
-} from '@/appearance/appearance-painted-looks'
-import {
-  PAINTED_PLAYER_FIELDS,
-  WARDROBE_DYES,
-  type PaintedPlayerLook,
-} from '@/appearance/appearance-painted-wardrobe'
+import { APPEARANCE_GENDERS, type AppearanceGender } from '@/appearance/appearance-gender'
 import readyStyles from './appearance-ready-stance.module.css'
 import styles from './appearance-builder.module.css'
 
 const genderChoices = Object.keys(APPEARANCE_GENDERS) as AppearanceGender[]
 function title(value: string) {
   return value.charAt(0).toUpperCase() + value.slice(1)
+}
+
+function randomAuthoredLook(
+  current: AuthoredAppearanceBlueprint,
+  catalogue: readonly { key: string }[],
+) {
+  const choices = catalogue.filter(({ key }) => key !== current.character)
+  const next = choices[Math.floor(Math.random() * choices.length)]
+  return next
+    ? authoredAppearance(next.key, Math.random() < 0.5 ? 1 : 2)
+    : authoredAppearance(current.character, current.variant === 1 ? 2 : 1)
 }
 
 function Portraits({ manifest }: { manifest: AppearanceManifest }) {
@@ -74,32 +74,13 @@ function Portraits({ manifest }: { manifest: AppearanceManifest }) {
   )
 }
 
-function PortraitSettingOptions() {
-  return (
-    <>
-      <option value="original">{PAINTED_PLAYER_FIELDS.backdrop.original}</option>
-      {Object.entries(APPEARANCE_BACKDROP_GROUPS).map(([group, settings]) => (
-        <optgroup key={group} label={group}>
-          {Object.entries(settings).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </optgroup>
-      ))}
-    </>
-  )
-}
-
 export function AppearanceBuilder({
   value,
-  initialGender,
   onChange,
   disabled = false,
 }: {
-  value: AppearanceBlueprint
-  initialGender?: AppearanceGender
-  onChange: (blueprint: AppearanceBlueprint) => void
+  value: AuthoredAppearanceBlueprint
+  onChange: (blueprint: AuthoredAppearanceBlueprint) => void
   disabled?: boolean
 }) {
   const manifest = useMemo(() => compileAppearanceManifest(value), [value])
@@ -122,19 +103,16 @@ export function AppearanceBuilder({
   }, [manifest, preview.id])
   const genderGroupName = useId()
   const [search, setSearch] = useState('')
-  const look = isActivePaintedAppearance(value) ? value : defaultActivePaintedLook(initialGender)
-  const gender = appearanceGenderForIdentity(look.identity)
-  const choices = activePaintedLooksForGender(gender)
-  const { choice: selected, variant } = findActivePaintedLook(look)!
+  const authored = authoredCharacter(value.character)!
+  const gender = authored.gender
+  const availableAuthored = AUTHORED_CHARACTERS.filter((character) => character.gender === gender)
+  const raceChoices = Array.from(new Set(availableAuthored.map((character) => character.race)))
+  const raceCatalogue = availableAuthored.filter((character) => character.race === authored.race)
   const query = search.trim().toLowerCase()
-  const groups = Map.groupBy(
-    choices.filter(
-      ({ key, label, group }) =>
-        key === selected.key || `${label} ${group}`.toLowerCase().includes(query),
-    ),
-    ({ group }) => group,
-  )
-  const choose = (next: PaintedPlayerLook) => onChange(paintedPlayerAppearanceBlueprint(next))
+  const chooseAuthored = (key: string, variant: number = 1) => {
+    const next = authoredAppearance(key, variant)
+    if (next) onChange(next)
+  }
 
   return (
     <div className={styles.builder}>
@@ -151,7 +129,11 @@ export function AppearanceBuilder({
                   checked={gender === choice}
                   onChange={() => {
                     setSearch('')
-                    choose(defaultActivePaintedLook(choice))
+                    const matchingRace = AUTHORED_CHARACTERS.find(
+                      (character) =>
+                        character.gender === choice && character.race === authored.race,
+                    )
+                    if (matchingRace) chooseAuthored(matchingRace.key)
                   }}
                 />
                 <span>{APPEARANCE_GENDERS[choice]}</span>
@@ -165,7 +147,8 @@ export function AppearanceBuilder({
           disabled={disabled}
           onClick={() => {
             setSearch('')
-            choose(pickActivePaintedLook(gender, Math.random, look))
+            const next = randomAuthoredLook(value, raceCatalogue)
+            if (next) onChange(next)
           }}
         >
           Randomize
@@ -184,14 +167,14 @@ export function AppearanceBuilder({
         <div className={styles.gameplay} role="group" aria-label="Gameplay previews">
           <div className={styles.battle}>
             <div role="group" aria-label="Field previews">
-              <PosePreview manifest={preview} size={47} facing="south" pose="walk" label="Field" />
+              <PosePreview manifest={preview} size={70} facing="south" pose="walk" label="Field" />
             </div>
             <div className={styles.battlePoses} role="group" aria-label="Battle poses">
               {APPEARANCE_POSES.map((pose) => (
                 <PosePreview
                   key={pose}
                   manifest={preview}
-                  size={58}
+                  size={78}
                   facing="east"
                   pose={pose}
                   label={title(pose)}
@@ -207,85 +190,63 @@ export function AppearanceBuilder({
         <legend>Painted appearance</legend>
         <div className={styles.fields}>
           <label className={styles.lookSearch}>
+            <span>Race</span>
+            <select
+              aria-label="Race"
+              value={authored.race}
+              onChange={(event) => {
+                setSearch('')
+                const next = availableAuthored.find(({ race }) => race === event.target.value)
+                if (next) chooseAuthored(next.key)
+              }}
+            >
+              {raceChoices.map((race) => (
+                <option key={race} value={race}>
+                  {APPEARANCE_RACES[race]}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <div className={styles.fields}>
+          <label className={styles.lookSearch}>
             <span>Find a look</span>
             <input
               type="search"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder={`Search ${choices.length} looks`}
+              placeholder={`Search ${raceCatalogue.length} looks`}
             />
           </label>
           <label>
             <span>Look</span>
             <select
               aria-label="Look"
-              value={selected.key}
-              onChange={(event) => {
-                const choice = choices.find(({ key }) => key === event.target.value)
-                if (choice) choose(choice.variants[0])
-              }}
+              value={authored.key}
+              onChange={(event) => chooseAuthored(event.target.value)}
             >
-              {[...groups].map(([group, options]) => (
-                <optgroup key={group} label={group}>
-                  {options.map(({ key, label }) => (
-                    <option key={key} value={key}>
-                      {label}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
+              {raceCatalogue
+                .filter(
+                  ({ key, label }) => key === authored.key || label.toLowerCase().includes(query),
+                )
+                .map(({ key, label }) => (
+                  <option key={key} value={key}>
+                    {label}
+                  </option>
+                ))}
             </select>
           </label>
           <label>
             <span>Variant</span>
             <select
               aria-label="Variant"
-              value={variant}
-              onChange={(event) => {
-                const next = selected.variants[Number(event.target.value)]
-                if (next) choose({ ...next, backdrop: look.backdrop })
-              }}
+              value={value.variant}
+              onChange={(event) => chooseAuthored(authored.key, Number(event.target.value))}
             >
-              {selected.variants.map((_, index) => (
-                <option key={index} value={index}>
-                  Variant {index + 1} · {(['Relaxed', 'Guarded', 'Focused'] as const)[index]}
-                </option>
-              ))}
+              <option value={1}>Variant 1</option>
+              <option value={2}>Variant 2</option>
             </select>
           </label>
-          <label>
-            <span>Portrait setting</span>
-            <select
-              aria-label="Portrait setting"
-              value={look.backdrop}
-              onChange={(event) => {
-                const backdrop = event.target.value as PaintedPlayerLook['backdrop']
-                if (Object.hasOwn(PAINTED_PLAYER_FIELDS.backdrop, backdrop))
-                  choose({ ...look, backdrop })
-              }}
-            >
-              <PortraitSettingOptions />
-            </select>
-          </label>
-          {selected.key === 'asta' ? (
-            <label>
-              <span>Cape color</span>
-              <select
-                aria-label="Cape color"
-                value={look.clothColor}
-                onChange={(event) => {
-                  const clothColor = event.target.value as PaintedPlayerLook['clothColor']
-                  if (Object.hasOwn(WARDROBE_DYES, clothColor)) choose({ ...look, clothColor })
-                }}
-              >
-                {Object.entries(WARDROBE_DYES).map(([key, { label }]) => (
-                  <option key={key} value={key}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
         </div>
       </fieldset>
     </div>

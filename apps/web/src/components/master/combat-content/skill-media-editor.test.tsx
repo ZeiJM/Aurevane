@@ -20,7 +20,7 @@ describe('Master Panel Skill media editor', () => {
 
     expect(markup).toContain('Restore default artwork')
     expect(markup).not.toContain('aria-label="Skill artwork hook"')
-    expect(markup).toContain('src="/media/art/discipline-skills/lifebinder-mend-v01.webp"')
+    expect(markup).toContain('src="/media/art/discipline-skills/lifebinder-mend-anime-v01.webp"')
     expect(markup).toContain('aria-label="Skill audio hook"')
     expect(markup).toContain(
       '<option value="audio.skill-fx.v01.082" selected="">Stone Pulse 082</option>',
@@ -95,11 +95,11 @@ it('uses one artwork preview with Restore default and upload instead of browsing
 })
 
 it.each([
-  ['basic.move', '/media/skills/move.webp'],
-  ['unarmed.basic', '/media/skills/basic-attack-fist.webp'],
-  ['basic.guard', '/media/skills/guard.webp'],
-  ['basic.recover', '/media/skills/hp-recovery.webp'],
-  ['basic.recover.mp', '/media/skills/mp-recovery-dark-fantasy-v1.webp'],
+  ['basic.move', '/media/skills/move-anime-v01.webp'],
+  ['unarmed.basic', '/media/skills/basic-attack-fist-anime-v01.webp'],
+  ['basic.guard', '/media/skills/guard-anime-v01.webp'],
+  ['basic.recover', '/media/skills/hp-recovery-anime-v01.webp'],
+  ['basic.recover.mp', '/media/skills/mp-recovery-dark-fantasy-anime-v01.webp'],
 ])(
   'previews the existing builtin %s artwork in a single media group without intersecting legends',
   (id, source) => {

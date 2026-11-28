@@ -1,4 +1,4 @@
-import { illustratedStarterPortrait } from '@/appearance/appearance-starter-gallery'
+import { liveCharacterAppearanceUrl } from '@/appearance/appearance-live'
 import { AccountBannedError } from '@aurevane/game-core/errors'
 import { isAurevaneError } from '@aurevane/game-core/errors'
 import { headers } from 'next/headers'
@@ -18,8 +18,6 @@ import { getAuthenticatedActor } from '@/server/auth/actor'
 import { loadSelectedCharacter } from '@/server/character/selected-character'
 import { loadCharacterIdentityRailContext } from '@/server/character/character-identity-rail-context'
 import { readWorld } from '@/server/world/world-repository'
-import { getStarterPortraitImageAssetId } from '@/media/character'
-import { getImageAsset } from '@/media/registry'
 export const dynamic = 'force-dynamic'
 export default async function WorldMapPage() {
   const readiness = getCurrentAccountServicesReadiness(
@@ -55,11 +53,7 @@ export default async function WorldMapPage() {
     throw error
   }
   const [identity, world] = loaded
-  const portrait =
-    identity.imageUrl ??
-    illustratedStarterPortrait(character.portraitRef)?.manifest.portraits.neutral ??
-    getImageAsset(getStarterPortraitImageAssetId(character.portraitRef)).src
-  if (!portrait) throw new Error('The registered character portrait is unavailable.')
+  const portrait = liveCharacterAppearanceUrl(identity.imageUrl, character.portraitRef)
   return (
     <div className={styles.layout} data-world-shell>
       <CharacterIdentityCard {...identity} />

@@ -10,6 +10,7 @@ import { createAccountAndEnterCharacter } from './pv1f-test-helpers'
 import { expectNoSkillPreviewMetadata } from './battle-preview-metadata-helpers'
 import { expectBasicAttackPotentialRange } from './battle-target-range-helpers'
 import { equipBraceInFirstSkillSlot } from './refined-battle-helpers'
+import { expectBattleTileIdentity } from './battle-identity-color-helpers'
 
 async function enterBattle(page: Page, recoveryPractice = false) {
   const name = `Wayfarer ${Date.now()
@@ -190,14 +191,13 @@ test('single target input executes Brace once and repeated keys do not dispatch'
       background: overlay.backgroundColor,
       overlayLayer: Number(overlay.zIndex),
       tokenLayer: Number(getComputedStyle(token).zIndex),
-      ring: getComputedStyle(token).borderColor,
       tileBorder: getComputedStyle(tile).borderColor,
       tileShadow: getComputedStyle(tile).boxShadow,
     }
   })
   expect(selfGlow.background).toBe('rgba(108, 145, 198, 0.5)')
   expect(selfGlow.tokenLayer).toBeGreaterThan(selfGlow.overlayLayer)
-  expect(selfGlow.ring).toBe('rgb(208, 170, 98)')
+  await expectBattleTileIdentity(localTile, 'rgb(208, 170, 98)')
   expect(selfGlow.tileBorder).toBe('rgb(108, 145, 198)')
   expect(selfGlow.tileShadow).toBe('none')
   expect(commits).toBe(0)

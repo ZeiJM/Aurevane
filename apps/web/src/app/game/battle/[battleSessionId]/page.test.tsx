@@ -143,7 +143,7 @@ it.each(['pve', 'pvp'] as const)(
         onInspect={vi.fn()}
       />,
     )
-    expect(html).toContain('src="/api/content-media/f6ba91b3-6887-4197-8cc6-22f0aa48361b"')
+    expect(html).toContain('src="/media/art/resonances/silver-instinct-anime-v01.webp"')
     expect(html).toContain('aria-label="Ultra Instinct, Resonance, inspect"')
     expect(JSON.stringify(current)).not.toContain('sourceInstanceId')
   },

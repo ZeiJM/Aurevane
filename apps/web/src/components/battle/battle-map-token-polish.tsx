@@ -1,7 +1,13 @@
 'use client'
 
 import { useLayoutEffect } from 'react'
-import { battlefieldTerraceBillboard, fitBattlefieldTerrace } from './battlefield-terrace'
+import {
+  battlefieldTerraceBillboard,
+  battlefieldTerraceLift,
+  battlefieldTerraceOcclusion,
+  fitBattlefieldTerrace,
+  projectBattlefieldTerracePoint,
+} from './battlefield-terrace'
 
 const DESKTOP_PVP_TOKEN_QUERY = '(min-width: 821px)'
 const COMPACT_TOUCH_QUERY = '(max-width: 980px) and (max-height: 500px) and (pointer: coarse)'
@@ -232,6 +238,87 @@ function combatantNameForTile(
   return occupiedName && combatantAccents[occupiedName] ? occupiedName : tokenName
 }
 
+function terraceCell(tile: HTMLButtonElement, boardWidth: number, boardHeight: number) {
+  const height = tile.offsetHeight
+  const width = tile.offsetWidth
+  const x = tile.offsetLeft + width / 2 - boardWidth / 2
+  const y = tile.offsetTop + height / 2 - boardHeight
+  const badges = Array.from(
+    tile.querySelectorAll<HTMLElement>(
+      ':scope > [data-battle-facing-indicator], :scope > [data-terrain-elevation-marker], :scope > [data-terrain-overlay-marker]',
+    ),
+    (badge) => ({
+      badge,
+      x: x - width / 2 + badge.offsetLeft + badge.offsetWidth / 2,
+      y: y - height / 2 + badge.offsetTop + badge.offsetHeight / 2,
+    }),
+  )
+  return {
+    x,
+    y,
+    width,
+    height,
+    badges,
+    lift: battlefieldTerraceLift(Number(tile.dataset.terraceHeight ?? 0), height),
+  }
+}
+
+function polishTerraceScene(tiles: readonly HTMLButtonElement[], board: HTMLElement) {
+  const height = board.offsetHeight
+  if (!height) return
+  const width = board.offsetWidth
+  const cells = tiles
+    .filter((tile) =>
+      tile.matches(
+        '[data-terrace-height], [data-terrain-overlay], [data-terrain="rough"], [data-terrain="blocked"], [aria-label*="occupied by"]',
+      ),
+    )
+    .map((tile) => ({ tile, ...terraceCell(tile, width, height) }))
+  const cliffs = cells.flatMap(({ tile, x, y, width, height: cellHeight, lift }) => {
+    const rise = tile.dataset.terrain === 'blocked' ? Math.max(lift, cellHeight * 0.5) : lift
+    if (!rise) return []
+    const base = projectBattlefieldTerracePoint(x, y, height)
+    return [
+      {
+        tile,
+        x: base.x,
+        radius: width * base.scale * 0.49,
+        baseY: base.y,
+        topY: projectBattlefieldTerracePoint(x, y - rise, height).y,
+      },
+    ]
+  })
+
+  for (const { tile, x, y, lift, badges } of cells) {
+    const surfaceY = y - lift
+    tile.style.setProperty('--terrace-lift', `${lift}px`)
+    tile.style.setProperty('--terrace-billboard', battlefieldTerraceBillboard(x, surfaceY, height))
+    // Facing and terrain status glyphs have different anchors from the character's feet.
+    for (const { badge, x: centerX, y: centerY } of badges) {
+      badge.style.setProperty(
+        '--terrace-badge-billboard',
+        battlefieldTerraceBillboard(centerX, centerY, height),
+      )
+    }
+    const actor = tile.querySelector<HTMLElement>('[data-battle-appearance-pose]')
+    if (!actor) continue
+    const foot = projectBattlefieldTerracePoint(x, surfaceY, height)
+    const actorHeight = actor.offsetHeight * foot.scale
+    if (!actorHeight) continue
+    let covered = 0
+    for (const cliff of cliffs) {
+      if (cliff.tile === tile || Math.abs(cliff.x - foot.x) > cliff.radius) continue
+      covered = Math.max(
+        covered,
+        battlefieldTerraceOcclusion(foot.y, actorHeight, cliff.topY, cliff.baseY),
+      )
+    }
+    if (covered > 0)
+      tile.style.setProperty('--terrace-covered', `${Math.min(100, 12.5 + covered * 100)}%`)
+    else tile.style.removeProperty('--terrace-covered')
+  }
+}
+
 function polishBattlefieldTokens(
   playerName?: string,
   combatantAccents: Readonly<Record<string, string>> = {},
@@ -244,8 +331,16 @@ function polishBattlefieldTokens(
     '#battlefield button[aria-label^="Tile "]',
   ))
     syncSemanticTargetTile(tile, activeSemanticColor(tile))
-  const occupiedTiles = Array.from(
-    document.querySelectorAll<HTMLButtonElement>('#battlefield button[aria-label*="occupied by"]'),
+  const board = document.querySelector<HTMLElement>('#battlefield [data-board-auto-fit]')
+  const terrace = board?.hasAttribute('data-battle-terrace') ? board : null
+  if (terrace) {
+    polishTerraceScene(
+      Array.from(terrace.querySelectorAll<HTMLButtonElement>(':scope > button[data-battle-tile]')),
+      terrace,
+    )
+  }
+  const occupiedTiles = document.querySelectorAll<HTMLButtonElement>(
+    '#battlefield button[aria-label*="occupied by"]',
   )
 
   for (const tile of occupiedTiles) {
@@ -257,15 +352,17 @@ function polishBattlefieldTokens(
 
     // Portraits, rings and facing cues scale from the actual tile, including nonstandard maps.
     // Use the tile's local dimensions before projection so the token scales only once.
-    const board = tile.parentElement
-    const terrace = board?.hasAttribute('data-battle-terrace') ? board : null
     const cell = terrace
       ? { width: tile.offsetWidth, height: tile.offsetHeight }
       : tile.getBoundingClientRect()
     const tokenSize = `${Math.max(0, Math.min(cell.width, cell.height) * 0.85)}px`
     token.style.setProperty('--battle-token-size', tokenSize)
     token.style.setProperty('position', 'absolute', 'important')
-    token.style.setProperty('top', '50%', 'important')
+    token.style.setProperty(
+      'top',
+      terrace ? 'calc(50% - var(--terrace-lift, 0px))' : '50%',
+      'important',
+    )
     token.style.setProperty('left', '50%', 'important')
     token.style.setProperty('z-index', '4', 'important')
     token.style.setProperty('box-sizing', 'border-box', 'important')
@@ -274,13 +371,7 @@ function polishBattlefieldTokens(
     token.style.setProperty('width', tokenSize, 'important')
     token.style.setProperty('height', tokenSize, 'important')
     token.style.setProperty('aspect-ratio', '1', 'important')
-    const billboard = terrace
-      ? battlefieldTerraceBillboard(
-          tile.offsetLeft + cell.width / 2 - terrace.offsetWidth / 2,
-          tile.offsetTop + cell.height / 2 - terrace.offsetHeight,
-          terrace.offsetHeight,
-        )
-      : ''
+    const billboard = terrace ? 'var(--terrace-billboard, none)' : ''
     token.style.setProperty('transform', `translate(-50%, -50%) ${billboard}`.trim(), 'important')
 
     const name = token.querySelector<HTMLElement>(':scope > strong')
@@ -354,6 +445,8 @@ export function BattleMapTokenPolish({
         'data-ground-path',
         'data-self-target',
         'data-heal-target',
+        'data-terrace-height',
+        'data-terrain-overlay',
       ],
     })
 

@@ -217,7 +217,7 @@ const tactical = createTacticalBattleState({
     position: { x: i % fixtureMapWidth, y: Math.floor(i / fixtureMapWidth) },
     terrainId:
       terraceReview && [3, 9, 22, 23, 31, 44, 45].includes(i) ? 'rough-ground' : 'open-ground',
-    elevation: terraceReview ? ({ 17: 2, 26: 1, 47: 1, 48: 3, 53: 1, 62: 2 }[i] ?? 0) : 0,
+    elevation: terraceReview ? ({ 17: 2, 26: 1, 31: 1, 39: 3, 47: 1, 62: 2 }[i] ?? 0) : 0,
   })),
   movementProfiles: [{ id: 'ground', maxElevationStep: 1, terrainCostOverrides: [] }],
   placements: ids.map((id, index) => ({
@@ -253,6 +253,22 @@ const initialBattle = {
   invalidation: null,
 }
 const mode = new URLSearchParams(location.search).get('mode') || 'pve'
+if (fixtureMapParameters.has('terrace-weather')) {
+  initialBattle.snapshot = setTerrainOverlay(
+    initialBattle.snapshot,
+    { x: 6, y: 2 },
+    'frozen',
+    'enemy-one',
+    'fixture.ice',
+  ).state
+  initialBattle.snapshot = setTerrainOverlay(
+    initialBattle.snapshot,
+    { x: 7, y: 2 },
+    'steam',
+    'enemy-one',
+    'fixture.steam',
+  ).state
+}
 if (new URLSearchParams(location.search).get('airborne') === '1') {
   initialBattle.snapshot = createStatBalancedCombatEncounterState(
     initialBattle.snapshot,

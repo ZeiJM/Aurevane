@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { TERRACE_WIDTH_FRACTION } from './battle-terrace-layout-helpers'
 
 import { expectTerrainKey } from './battle-map-key-helpers'
 import {
@@ -81,7 +82,10 @@ test('keeps the desktop AI 9x7 grid, header map key, and battle log dock structu
   if (geometry.terrace) {
     expect(geometry.lastTileWidth).toBeGreaterThan(geometry.tileWidth)
     expect(
-      Math.abs((geometry.boardRight - geometry.boardLeft) / geometry.viewportClientWidth - 0.79),
+      Math.abs(
+        (geometry.boardRight - geometry.boardLeft) / geometry.viewportClientWidth -
+          TERRACE_WIDTH_FRACTION,
+      ),
     ).toBeLessThan(0.01)
   } else {
     expect(Math.abs(geometry.tileWidth - geometry.tileHeight)).toBeLessThanOrEqual(1.5)

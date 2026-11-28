@@ -15,19 +15,15 @@ import {
 } from '@/world/ferry'
 import type { WorldInteraction, WorldView } from '@/world/types'
 import { compileAppearanceManifest } from '@/appearance/appearance-manifest'
-import {
-  paintedPlayerAppearanceBlueprint,
-  type PaintedPlayerLook,
-} from '@/appearance/appearance-painted-looks'
-import { PAINTED_STUDIES } from '@/appearance/appearance-painted-studies'
+import { authoredAppearance } from '@/appearance/appearance-authored-catalog'
 import styles from './world-ferry.module.css'
 
 const ferrymen = {
-  mainland: { name: 'Krane', look: { ...PAINTED_STUDIES.m01.look, backdrop: 'hollow' } },
-  uncharted: { name: 'Sable', look: { ...PAINTED_STUDIES.f32.look, backdrop: 'umbral' } },
-  'north-shore': { name: 'Merrick', look: PAINTED_STUDIES.m02.look },
-  asterwake: { name: 'Iona', look: { ...PAINTED_STUDIES.f05.look, backdrop: 'asterwake' } },
-} satisfies Record<FerryPort, { name: string; look: PaintedPlayerLook }>
+  mainland: { name: 'Krane', character: 'human-m-0001' },
+  uncharted: { name: 'Sable', character: 'human-f-0002' },
+  'north-shore': { name: 'Merrick', character: 'human-m-0002' },
+  asterwake: { name: 'Iona', character: 'human-f-0004' },
+} satisfies Record<FerryPort, { name: string; character: string }>
 
 function ferrymanIdentity(ferry?: WorldFerryView, dockSectorId?: string) {
   const departure = ferry?.passage?.direction
@@ -51,8 +47,7 @@ function ferrymanIdentity(ferry?: WorldFerryView, dockSectorId?: string) {
   const crew = ferrymen[port]
   return {
     name: `${crew.name} (Ferryman)`,
-    imageUrl: compileAppearanceManifest(paintedPlayerAppearanceBlueprint(crew.look)).portraits
-      .neutral,
+    imageUrl: compileAppearanceManifest(authoredAppearance(crew.character, 1)!).neutralUrl,
   }
 }
 

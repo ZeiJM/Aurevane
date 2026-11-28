@@ -35,6 +35,7 @@ import {
 import { airborneJump } from '@aurevane/game-core/combat/combat-airborne'
 import { hasGameplayTag } from '@aurevane/game-core/combat/gameplay-tags'
 import { BattleGroundAreaLayer, battleGroundAreaLabel } from './battle-ground-area-layer'
+import { BattleTerraceTerrain, battleTerrainSurface } from './battle-terrace-terrain'
 import { battleProposedCosts } from './battle-proposed-cost'
 
 import {
@@ -3423,7 +3424,7 @@ function BattleExperienceContent({
                       combatant && combatant.hp > 0 ? (placement?.combatantId ?? null) : null,
                       tile.position,
                     )
-                  const terrain = tile.terrainId === 'rough-ground' ? 'rough' : 'open'
+                  const terrain = battleTerrainSurface(tile.terrainId)
                   const overlay = terrainOverlayAt(battle.snapshot, tile.position)
 
                   return (
@@ -3454,6 +3455,7 @@ function BattleExperienceContent({
                       data-terrain={terrain}
                       data-terrain-overlay={overlay?.kind}
                       data-elevation={tile.elevation > 0 || undefined}
+                      data-terrace-height={tile.elevation > 0 ? tile.elevation : undefined}
                       data-reachable={reachable || undefined}
                       data-path={pathIndex >= 0 || undefined}
                       data-path-index={pathIndex >= 0 ? pathIndex : undefined}
@@ -3500,6 +3502,12 @@ function BattleExperienceContent({
                       }}
                       aria-label={`Tile ${tile.position.x + 1}, ${tile.position.y + 1}; ${tile.terrainId}; elevation ${tile.elevation}${participant ? `; occupied by ${participant.name}` : ''}${overlay ? `; ${terrainOverlayDescription(overlay)}` : ''}${battleGroundAreaLabel(battle.snapshot.groundAreas, tactical.battle.round, tile.position)}`}
                     >
+                      <BattleTerraceTerrain
+                        terrain={terrain}
+                        height={tile.elevation}
+                        overlay={overlay?.kind}
+                        position={tile.position}
+                      />
                       <BattleGroundAreaLayer
                         steam={overlay?.kind === 'steam'}
                         areas={battle.snapshot.groundAreas}

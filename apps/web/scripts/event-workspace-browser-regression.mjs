@@ -789,11 +789,12 @@ try {
       await wardrobe.getByRole('radio', { name: 'Female', exact: true }).check()
       const looks = wardrobe.getByLabel('Look', { exact: true })
       const variants = wardrobe.getByLabel('Variant', { exact: true })
-      await expect(looks.locator('option')).toHaveCount(500)
-      await expect(variants.locator('option')).toHaveCount(3)
-      await wardrobe.getByLabel('Find a look').fill('Shieldline')
-      await expect(looks.locator('option', { hasText: 'Shieldline Bastion 01' })).toHaveCount(1)
-      await looks.selectOption({ label: 'Shieldline Bastion 01' })
+      await wardrobe.getByLabel('Race', { exact: true }).selectOption('fae')
+      await expect(looks.locator('option')).toHaveCount(10)
+      await expect(variants.locator('option')).toHaveCount(2)
+      await wardrobe.getByLabel('Find a look').fill('Pollen Court')
+      await expect(looks.locator('option', { hasText: 'Pollen Court Scribe' })).toHaveCount(1)
+      await looks.selectOption({ label: 'Pollen Court Scribe' })
       const rendered = wardrobe.locator('[data-appearance-preview]')
       await expect(rendered).toHaveAttribute('aria-busy', 'false')
       const primaryPortrait = wardrobe.getByRole('img', { name: 'Neutral appearance portrait' })
@@ -812,25 +813,21 @@ try {
       assert.ok(
         await sprites.evaluateAll((nodes) =>
           nodes.every((node) =>
-            getComputedStyle(node).backgroundImage.includes('illustrated-motion-v3.svg'),
+            getComputedStyle(node).backgroundImage.includes('/fae-f-0003/variant-2/sprites.webp'),
           ),
         ),
       )
       await wardrobe.getByLabel('Find a look').clear()
-      await looks.selectOption('asta')
-      await wardrobe.getByLabel('Cape color', { exact: true }).selectOption('denim')
-      await wardrobe.getByLabel('Portrait setting').selectOption('frost')
-      const appearancePath =
-        '/api/media/appearance/6/f32.pine.denim.none.natural.none.natural.none.natural.natural.natural.layers.natural.natural.frost'
+      const appearancePath = '/api/media/appearance/7/fae-f-0003.v2'
       const portrait = wardrobe.getByRole('img', { name: 'Neutral appearance portrait' })
-      await expect(portrait).toHaveAttribute('src', `${appearancePath}/illustrated-neutral.svg`)
+      await expect(portrait).toHaveAttribute('src', `${appearancePath}/neutral.svg`)
       await expect
         .poll(() => portrait.evaluate((element) => element.naturalWidth))
         .toBeGreaterThan(0)
       await page.screenshot({ path: resolve(output, `wardrobe-${viewport.width}.png`) })
       await wardrobe.getByRole('button', { name: 'Use this appearance' }).click()
       await expect(wardrobe).toBeHidden()
-      await expect(greeting).toHaveAttribute('src', `${appearancePath}/illustrated-happy.svg`)
+      await expect(greeting).toHaveAttribute('src', `${appearancePath}/happy.svg`)
       await expect(page.getByText('Draft saved.', { exact: true })).toHaveCount(0)
       if (viewport.width === 1366) {
         await page.getByRole('button', { name: 'Build appearance', exact: true }).click()
@@ -841,11 +838,13 @@ try {
             Array.from(root.querySelectorAll('img, [data-appearance-facing]'), (node) => {
               const source =
                 node instanceof HTMLImageElement ? node.src : node.style.backgroundImage
-              return source.match(/\/api\/media\/appearance\/([^/]+\/[^/]+)\//)?.[1] ?? ''
+              const portrait = source.match(/\/api\/media\/appearance\/7\/([^/]+)\//)
+              const sprite = source.match(/\/character-catalogue\/([^/]+)\/variant-([12])\//)
+              return portrait?.[1] ?? (sprite ? `${sprite[1]}.v${sprite[2]}` : '')
             }),
           )
         const original = await recipeIds()
-        const sadPattern = /\/api\/media\/appearance\/6\/[^/]+\/illustrated-(?:posed-)?sad[.]svg$/
+        const sadPattern = /\/api\/media\/appearance\/7\/[^/]+\/sad[.]svg$/
         let release
         const waitForRelease = new Promise((resolve) => {
           release = resolve
@@ -873,12 +872,12 @@ try {
         assert.equal(new Set(randomized).size, 1)
         assert.notEqual(randomized[0], original[0])
         await wardrobe.getByRole('radio', { name: 'Male', exact: true }).check()
-        await expect(looks.locator('option')).toHaveCount(500)
-        await looks.selectOption('kieran')
+        await expect(looks.locator('option')).toHaveCount(10)
+        await looks.selectOption('fae-m-0004')
         await expect(rendered).toHaveAttribute('aria-busy', 'false')
         await expect(
           wardrobe.getByRole('img', { name: 'Neutral appearance portrait' }),
-        ).toHaveAttribute('src', /\/6\/m21keen\.[^/]+\.age-elder\.[^/]+\/illustrated-neutral\.svg$/)
+        ).toHaveAttribute('src', '/api/media/appearance/7/fae-m-0004.v1/neutral.svg')
         await wardrobe.getByRole('button', { name: 'Close', exact: true }).click()
       }
     }

@@ -198,7 +198,7 @@ it.each(['owner', 'opponent', 'spectator'] as const)(
       contentVersion: 2,
     })
     expect(chronicleActionArtwork(action)).toBe(
-      '/api/content-media/f6ba91b3-6887-4197-8cc6-22f0aa48361b',
+      '/media/art/resonances/silver-instinct-anime-v01.webp',
     )
     const html = renderToStaticMarkup(<BattleLogChronicle entries={view.entries} {...names} />)
     const copied = formatBattleLogForClipboard(view.entries, names)
