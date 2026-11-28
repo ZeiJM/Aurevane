@@ -1,4 +1,3 @@
-import { illustratedStarterPortrait } from '@/appearance/appearance-starter-gallery'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { createHash } from 'node:crypto'
 vi.mock('server-only', () => ({}))
@@ -702,8 +701,7 @@ it('reads only the server-projected scene and includes known neighbouring player
     expect.objectContaining({
       characterId: 'neighbour',
       attackable: false,
-      imageUrl: illustratedStarterPortrait('portrait.starter.wayfarer-07')!.manifest.portraits
-        .neutral,
+      imageUrl: '/api/media/appearance/7/human-f-0002.v2/neutral.svg',
     }),
   ])
 })
@@ -1032,8 +1030,7 @@ it('projects custom avatars and selected starter portraits for nearby players', 
   )
   expect(view.players.find((player) => player.characterId === starterId)).toMatchObject({
     portraitRef: 'portrait.starter.wayfarer-07',
-    imageUrl: illustratedStarterPortrait('portrait.starter.wayfarer-07')!.manifest.portraits
-      .neutral,
+    imageUrl: '/api/media/appearance/7/human-f-0002.v2/neutral.svg',
   })
 })
 

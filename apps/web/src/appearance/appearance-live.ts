@@ -2,6 +2,7 @@ import { CREATION_CHARACTER_PORTRAITS } from '@aurevane/game-core/character/star
 import { authoredAppearance, defaultAuthoredAppearance } from './appearance-authored-catalog'
 import { appearanceGenderForIdentity, type AppearanceGender } from './appearance-gender'
 import {
+  APPEARANCE_ASSET_PREFIX,
   appearanceManifestFromImageUrl,
   compileAppearanceManifest,
   type AppearanceBlueprint,
@@ -40,7 +41,14 @@ export function liveCharacterAppearanceUrl(
   portraitRef?: string | null,
   initialGender?: AppearanceGender,
 ) {
-  const recipe = appearanceManifestFromImageUrl(imageUrl)?.blueprint
+  const source = imageUrl?.trim()
+  if (
+    source &&
+    !source.startsWith(APPEARANCE_ASSET_PREFIX) &&
+    !source.startsWith('/api/media/starter-portrait/')
+  )
+    return source
+  const recipe = appearanceManifestFromImageUrl(source)?.blueprint
   return compileAppearanceManifest(authoredPresentation(recipe, portraitRef, initialGender))
     .neutralUrl
 }

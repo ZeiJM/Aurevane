@@ -4,7 +4,7 @@ import { expect, test, type Locator } from '@playwright/test'
 
 import { createVerifiedAccountAndSignIn } from './pv1f-test-helpers'
 
-test('Creation exposes 24 portraits per gender and preserves the complete authenticated three-step journey', async ({
+test('Creation exposes four race portraits per gender and preserves the complete authenticated three-step journey', async ({
   page,
 }, info) => {
   test.setTimeout(120_000)
@@ -195,7 +195,7 @@ test('Creation exposes 24 portraits per gender and preserves the complete authen
   await portraits.last().check()
   await portraits.last().focus()
   await page.keyboard.press('ArrowLeft')
-  await expect(portraits.nth(22)).toBeChecked()
+  await expect(portraits.nth(2)).toBeChecked()
   await page.keyboard.press('ArrowRight')
   await expect(portraits.last()).toBeChecked()
   await expect(portraits.last()).toBeInViewport({ ratio: 1 })

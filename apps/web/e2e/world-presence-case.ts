@@ -290,7 +290,7 @@ export async function verifyWorldScenePresence(
     await expect(player).toBeVisible({ timeout: 15000 })
     await expect(player.locator('img')).toHaveAttribute(
       'src',
-      /^\/api\/media\/appearance\/6\/.+\/illustrated-neutral\.svg$/,
+      /^\/api\/media\/appearance\/7\/[^/]+\/neutral\.svg$/,
     )
     // This explicit second-account fixture makes density coverage non-vacuous.
     const density = await player.evaluate((row) => {
