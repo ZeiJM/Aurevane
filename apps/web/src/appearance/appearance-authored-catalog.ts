@@ -133,6 +133,42 @@ export const AUTHORED_CHARACTERS = [
     gender: 'masculine',
     label: 'Copper Hollow Diver',
   },
+  { key: 'elf-f-0007', race: 'elf', gender: 'feminine', label: 'Cloudmere Netmaker' },
+  { key: 'elf-f-0008', race: 'elf', gender: 'feminine', label: 'Nightbell Orchard Scout' },
+  { key: 'elf-m-0007', race: 'elf', gender: 'masculine', label: 'Raincrag Bridge Surveyor' },
+  { key: 'elf-m-0008', race: 'elf', gender: 'masculine', label: 'Rimehollow Glassworker' },
+  { key: 'fae-f-0007', race: 'fae', gender: 'feminine', label: 'Silkfen Lantern Binder' },
+  { key: 'fae-f-0008', race: 'fae', gender: 'feminine', label: 'Miststep Orchard Tender' },
+  { key: 'fae-m-0007', race: 'fae', gender: 'masculine', label: 'Juniper Pollen Cartographer' },
+  { key: 'fae-m-0008', race: 'fae', gender: 'masculine', label: 'Hollowglass Herb Broker' },
+  { key: 'human-f-0007', race: 'human', gender: 'feminine', label: 'Marshglass Ferrier' },
+  { key: 'human-f-0008', race: 'human', gender: 'feminine', label: 'Frostquill Courier' },
+  { key: 'human-m-0007', race: 'human', gender: 'masculine', label: 'Coldstar Millwright' },
+  { key: 'human-m-0008', race: 'human', gender: 'masculine', label: 'Stormjaw Quarry Scribe' },
+  {
+    key: 'mountain-orc-f-0007',
+    race: 'mountain-orc',
+    gender: 'feminine',
+    label: 'Ironspine Gatekeeper',
+  },
+  {
+    key: 'mountain-orc-f-0008',
+    race: 'mountain-orc',
+    gender: 'feminine',
+    label: 'Slate Pearl Locksmith',
+  },
+  {
+    key: 'mountain-orc-m-0007',
+    race: 'mountain-orc',
+    gender: 'masculine',
+    label: 'Cinder Reed Armorer',
+  },
+  {
+    key: 'mountain-orc-m-0008',
+    race: 'mountain-orc',
+    gender: 'masculine',
+    label: 'Greywater Ridge Potter',
+  },
 ] as const satisfies readonly AuthoredCharacter[]
 
 const byKey = new Map<string, AuthoredCharacter>(

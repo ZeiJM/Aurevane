@@ -12,48 +12,64 @@
     "elf-f-0004",
     "elf-f-0005",
     "elf-f-0006",
+    "elf-f-0007",
+    "elf-f-0008",
     "elf-m-0001",
     "elf-m-0002",
     "elf-m-0003",
     "elf-m-0004",
     "elf-m-0005",
     "elf-m-0006",
+    "elf-m-0007",
+    "elf-m-0008",
     "fae-f-0001",
     "fae-f-0002",
     "fae-f-0003",
     "fae-f-0004",
     "fae-f-0005",
     "fae-f-0006",
+    "fae-f-0007",
+    "fae-f-0008",
     "fae-m-0001",
     "fae-m-0002",
     "fae-m-0003",
     "fae-m-0004",
     "fae-m-0005",
     "fae-m-0006",
+    "fae-m-0007",
+    "fae-m-0008",
     "human-f-0001",
     "human-f-0002",
     "human-f-0003",
     "human-f-0004",
     "human-f-0005",
     "human-f-0006",
+    "human-f-0007",
+    "human-f-0008",
     "human-m-0001",
     "human-m-0002",
     "human-m-0003",
     "human-m-0004",
     "human-m-0005",
     "human-m-0006",
+    "human-m-0007",
+    "human-m-0008",
     "mountain-orc-f-0001",
     "mountain-orc-f-0002",
     "mountain-orc-f-0003",
     "mountain-orc-f-0004",
     "mountain-orc-f-0005",
     "mountain-orc-f-0006",
+    "mountain-orc-f-0007",
+    "mountain-orc-f-0008",
     "mountain-orc-m-0001",
     "mountain-orc-m-0002",
     "mountain-orc-m-0003",
     "mountain-orc-m-0004",
     "mountain-orc-m-0005",
-    "mountain-orc-m-0006"
+    "mountain-orc-m-0006",
+    "mountain-orc-m-0007",
+    "mountain-orc-m-0008"
   ],
   "secondArtBatch": {
     "artDirection": "Crisp tapered ink, angular cel shadows, cinematic colored rim light, and fully illustrated fantasy settings.",
@@ -461,6 +477,109 @@
         "label": "Copper Hollow Diver",
         "portraitSheet": "exec-8e8ad7fd-1505-4241-b073-f409e3bcaac6.png",
         "spriteSheet": "exec-ef2a9e45-c90b-4a31-ba01-ed984a8c96ae.png"
+      }
+    ]
+  },
+  "fifthArtBatch": {
+    "artDirection": "Ink contours, sharp cel shadows and fully painted original Aurevane locations.",
+    "portraitGrid": "Two rows of five expression paintings. Each row has its own pose and palette.",
+    "spriteGrid": "Two blocks of 5 × 3 front, side and rear motion drawings based on the respective portrait variant.",
+    "characters": [
+      {
+        "key": "elf-f-0007",
+        "label": "Cloudmere Netmaker",
+        "portraitSheet": "exec-fa55a72a-2867-4612-b3cb-e225c976c042.png",
+        "spriteSheet": "exec-8e56cb8d-eed1-4eba-b639-fc7ea271bae5.png"
+      },
+      {
+        "key": "elf-f-0008",
+        "label": "Nightbell Orchard Scout",
+        "portraitSheet": "exec-acf2284f-3db3-4228-a74f-cd8efd16f886.png",
+        "spriteSheet": "exec-4f6b0d85-5a18-42e3-9693-2423f7a5febe.png"
+      },
+      {
+        "key": "elf-m-0007",
+        "label": "Raincrag Bridge Surveyor",
+        "portraitSheet": "exec-bc49149b-1584-43e8-a6dd-5ff1393df1e5.png",
+        "spriteSheet": "exec-6f26377a-ddd0-4707-92f1-d336860d0827.png"
+      },
+      {
+        "key": "elf-m-0008",
+        "label": "Rimehollow Glassworker",
+        "portraitSheet": "exec-276ffe8b-4780-4992-9aa0-e407c6dabb1e.png",
+        "spriteSheet": "exec-7a9cc5d3-d4f8-4a18-be97-effc46a7ee5e.png"
+      },
+      {
+        "key": "fae-f-0007",
+        "label": "Silkfen Lantern Binder",
+        "portraitSheet": "exec-fc0f4956-eaaf-4347-8e7d-587501a2abe4.png",
+        "spriteSheet": "exec-2a3d2119-80f2-42ae-a1be-a7d4ff16ebe6.png"
+      },
+      {
+        "key": "fae-f-0008",
+        "label": "Miststep Orchard Tender",
+        "portraitSheet": "exec-9625384b-1e78-41dc-a0ea-c4de47f99f37.png",
+        "spriteSheet": "exec-ef13e1f7-3970-4c92-a2d2-0d010f5dd899.png"
+      },
+      {
+        "key": "fae-m-0007",
+        "label": "Juniper Pollen Cartographer",
+        "portraitSheet": "exec-23ad4a17-0e6a-4cda-b367-f5d7aedca9ce.png",
+        "spriteSheet": "exec-64915994-f722-4b9c-a207-59ec2319f294.png"
+      },
+      {
+        "key": "fae-m-0008",
+        "label": "Hollowglass Herb Broker",
+        "portraitSheet": "exec-9f839769-78b9-429a-8433-ce96dcda0d7a.png",
+        "spriteSheet": "exec-da843e1b-f409-4aff-a44c-18314811f351.png"
+      },
+      {
+        "key": "human-f-0007",
+        "label": "Marshglass Ferrier",
+        "portraitSheet": "exec-0f38079a-1ead-478a-83d4-cad4dc008237.png",
+        "spriteSheet": "exec-b6de95de-bb17-4ee5-a4ef-8019aa4b68a5.png"
+      },
+      {
+        "key": "human-f-0008",
+        "label": "Frostquill Courier",
+        "portraitSheet": "exec-d1118081-08da-40a2-83f7-6373a7ec3688.png",
+        "spriteSheet": "exec-e473237f-5e11-4dae-a675-85d2618fcb92.png"
+      },
+      {
+        "key": "human-m-0007",
+        "label": "Coldstar Millwright",
+        "portraitSheet": "exec-af17a071-1846-4f43-ae1c-090d7de15169.png",
+        "spriteSheet": "exec-f8165438-4aec-4e91-825f-b2638b38ea98.png"
+      },
+      {
+        "key": "human-m-0008",
+        "label": "Stormjaw Quarry Scribe",
+        "portraitSheet": "exec-a026f396-0eaa-48a2-8109-57d055406568.png",
+        "spriteSheet": "exec-27c4f7fb-f968-48f5-95f4-ad66933df4ed.png"
+      },
+      {
+        "key": "mountain-orc-f-0007",
+        "label": "Ironspine Gatekeeper",
+        "portraitSheet": "exec-c10c913c-0e05-432f-9c27-a5ab1508f153.png",
+        "spriteSheet": "exec-3660596b-c502-4a68-bec6-b979f7dd6a0e.png"
+      },
+      {
+        "key": "mountain-orc-f-0008",
+        "label": "Slate Pearl Locksmith",
+        "portraitSheet": "exec-27a93bf6-5dc7-4650-8794-82485b0de377.png",
+        "spriteSheet": "exec-f3cf6c37-b604-440a-a882-0cfee1f2a9f1.png"
+      },
+      {
+        "key": "mountain-orc-m-0007",
+        "label": "Cinder Reed Armorer",
+        "portraitSheet": "exec-d75c5a2d-ff5c-43ea-ace7-f8ab59a602ef.png",
+        "spriteSheet": "exec-902506fd-da56-4c45-a624-7d5c14953c7c.png"
+      },
+      {
+        "key": "mountain-orc-m-0008",
+        "label": "Greywater Ridge Potter",
+        "portraitSheet": "exec-69646a2d-f9e2-4e6a-a42d-9507857b08ba.png",
+        "spriteSheet": "exec-e1bcbe8d-c313-41ba-8129-03476eb0a6c3.png"
       }
     ]
   }
