@@ -217,7 +217,7 @@ const tactical = createTacticalBattleState({
     position: { x: i % fixtureMapWidth, y: Math.floor(i / fixtureMapWidth) },
     terrainId:
       terraceReview && [3, 9, 22, 23, 31, 44, 45].includes(i) ? 'rough-ground' : 'open-ground',
-    elevation: terraceReview ? ({ 17: 2, 26: 1, 47: 1, 48: 3, 53: 1, 62: 2 }[i] ?? 0) : 0,
+    elevation: terraceReview ? ({ 17: 2, 26: 1, 31: 1, 39: 3, 47: 1, 62: 2 }[i] ?? 0) : 0,
   })),
   movementProfiles: [{ id: 'ground', maxElevationStep: 1, terrainCostOverrides: [] }],
   placements: ids.map((id, index) => ({

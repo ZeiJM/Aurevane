@@ -153,17 +153,19 @@ async function expectCanonicalFacingIndicators(root: ReturnType<Page['locator']>
   const rotations = await indicators.first().evaluate((element) => {
     const indicator = element as HTMLElement
     const tile = indicator.parentElement as HTMLElement
+    const arrow = indicator.querySelector('svg')!
     const original = indicator.dataset.facing
     const directions = ['north', 'east', 'south', 'west'] as const
     const samples = directions.map((direction) => {
       indicator.dataset.facing = direction
+      const { a, b, c, d } = new DOMMatrix(getComputedStyle(arrow).transform)
       return {
-        direction,
         width: indicator.offsetWidth,
         height: indicator.offsetHeight,
         leftOffset: indicator.offsetLeft + tile.clientLeft,
         topOffset: indicator.offsetTop + tile.clientTop,
-        transform: getComputedStyle(indicator).transform,
+        badgeTransform: getComputedStyle(indicator).transform,
+        arrowTransform: [a, b, c, d],
       }
     })
     if (original) indicator.dataset.facing = original
@@ -171,8 +173,14 @@ async function expectCanonicalFacingIndicators(root: ReturnType<Page['locator']>
   })
 
   const rotationReference = rotations[0]!
-  expect(new Set(rotations.map((sample) => sample.transform)).size).toBe(4)
+  expect(rotations.map((sample) => sample.arrowTransform)).toEqual([
+    [1, 0, 0, 1],
+    [0, 1, -1, 0],
+    [-1, 0, 0, -1],
+    [0, -1, 1, 0],
+  ])
   for (const sample of rotations) {
+    expect(sample.badgeTransform).toBe(rotationReference.badgeTransform)
     expect(Math.abs(sample.width - rotationReference.width)).toBeLessThanOrEqual(0.5)
     expect(Math.abs(sample.height - rotationReference.height)).toBeLessThanOrEqual(0.5)
     expect(sample.leftOffset).toBeGreaterThanOrEqual(1)
