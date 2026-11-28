@@ -932,6 +932,17 @@ describe('replanning mid-walk', () => {
     expect(second.nextStepAt).toBeLessThanOrEqual(now + STEP_MS)
     expect(second.nextStepAt).toBeGreaterThan(now)
   })
+  it('finishes the current edge before turning toward a new click', () => {
+    const start = newWorldState()
+    const next = { ...start.position, x: start.position.x + 1 }
+    const first = resolveWorldIntent(start, { kind: 'walk', destination: next }, 1000)
+    const destination = { ...start.position, y: start.position.y - 1 }
+    const turned = resolveWorldIntent(first, { kind: 'walk', destination }, 1050)
+    expect(turned.route[0]?.position).toEqual(next)
+    expect(turned.route.at(-1)?.position).toEqual(destination)
+    expect(turned.nextStepAt).toBe(first.nextStepAt)
+    expect(resolveWorldIntent(turned, { kind: 'tick' }, 1200).position).toEqual(next)
+  })
 })
 
 describe('review regressions for authoritative walking', () => {

@@ -22,6 +22,7 @@ import {
 } from './globe-ferry'
 import { GLOBE_MAX_ZOOM } from './world-zoom'
 import { worldTravelDestination } from './world-travel-points'
+import { worldMapArtSource } from './map-art-source'
 import styles from './workspace.module.css'
 
 const townMarkers: Readonly<Record<string, number>> = {
@@ -174,7 +175,7 @@ export function WorldGlobe({
     <div className={styles.globeScene} role="region" aria-label="World Atlas">
       <div className={styles.globeFrame}>
         <SphericalView
-          src="/media/art/world/runtime/globe-materials-v02.webp"
+          src={worldMapArtSource('globe-materials-v02.webp')}
           camera={camera}
           zoom={zoom}
           maxZoom={GLOBE_MAX_ZOOM}

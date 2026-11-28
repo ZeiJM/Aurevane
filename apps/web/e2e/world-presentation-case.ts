@@ -308,7 +308,7 @@ export async function verifyWorldPresentation(
   expect(townIcons.length).toBeGreaterThan(1)
   expect(new Set(townIcons.map((icon) => icon.symbol)).size).toBe(townIcons.length)
   for (const icon of townIcons) {
-    expect(icon.image).toContain('/media/art/world/runtime/atlas-markers-v01.webp')
+    expect(icon.image).toContain('/media/art/world/runtime/anime/atlas-markers-v01.webp')
     expect(icon.width).toBeGreaterThanOrEqual(20)
     expect(icon.width).toBeLessThanOrEqual(28)
     expect(icon.height).toBe(icon.width)

@@ -135,6 +135,7 @@ import {
   sceneryDressing,
 } from './map-dressing'
 import { DEFAULT_MAP_QUALITY, mapQualityBudgets, type MapQuality } from './map-quality'
+import { worldMapArtSource } from './map-art-source'
 import { buildTrailGround, naturalTrailWear, paintNaturalTrail } from './map-trail'
 import { paintSnowRoadShoulders } from './map-snow-road'
 import { paintTerrainRelief, paintTerrainContours } from './map-relief'
@@ -181,7 +182,6 @@ import {
   unprojectMapPoint,
 } from './map-projection'
 
-const BASE = '/media/art/world/runtime/'
 const WINTER_ART = 'frostmere'
 const WINTER_ATLAS_ASPECT = 336 / 384
 
@@ -402,6 +402,7 @@ interface SceneryBatch {
 }
 const STATIONARY_SCENERY_PIXEL_LIMIT = 800_000
 const BIOME_RASTER_PIXEL_LIMIT = 4_000_000
+const GILDROOT_OAK_WIDTH_TILES = 36
 
 function usesCompactScenery(item: Scenery) {
   return !item.underpass && !item.mirror && !item.waterfall && !item.oceanFeature
@@ -811,18 +812,20 @@ export function createMapRenderer(
   const heldKeys = new Map<string, MapDirection>()
   let keyTimer: ReturnType<typeof setTimeout> | null = null
   let heldDirection: MapDirection | null = null
-  let heldDestination: WorldPosition | null = null
   let heldReleaseOrigin: WorldPosition | null = null
   let heldFirstDestination: WorldPosition | null = null
+  let requestedKeyDestination: WorldPosition | null = null
+  let heldPreviewDestination: WorldPosition | null = null
   let initialKeyStep = false
   function releaseHeldKeys(finishStep = true) {
     const direction = heldDirection
-    const destination = heldDestination
+    const destination = heldPreviewDestination
     const origin = heldReleaseOrigin
     const first = heldFirstDestination
-    heldDestination = null
     heldReleaseOrigin = null
     heldFirstDestination = null
+    requestedKeyDestination = null
+    heldPreviewDestination = null
     heldKeys.clear()
     heldDirection = null
     if (keyTimer !== null) clearTimeout(keyTimer)
@@ -1129,7 +1132,7 @@ export function createMapRenderer(
       }
       requestDraw()
     }
-    image.src = BASE + name + '-' + version + '.' + format
+    image.src = worldMapArtSource(`${name}-${version}.${format}`)
     images.set(key, image)
   }
   for (const name of ['terrain', 'buildings', 'nature', 'props', 'biomes']) load(name)
@@ -1266,7 +1269,7 @@ export function createMapRenderer(
       !images.has('gildroot-oak') &&
       renderSectors.some(({ id }) => id === ASTERWAKE_GOLDEN_TREE.sectorId)
     )
-      load('gildroot-oak', 'v01')
+      load('gildroot-oak', 'v02')
     if (!images.has('forest-variety') && renderSectors.some((sector) => sector.warpedTheme))
       load('forest-variety', 'v01')
     if (!images.has(WINTER_ART) && renderSectors.some((sector) => sector.regionId === WINTER_ART))
@@ -2425,6 +2428,7 @@ export function createMapRenderer(
           pine: images.get('ferry-pine-coast'),
           cliff: images.get('ferry-cliff-coast'),
           dolphin: images.get('ferry-dolphin'),
+          water: images.get('water-materials'),
         },
       )
     } else {
@@ -2629,13 +2633,13 @@ export function createMapRenderer(
         )
       )
         return
-      if (
+      const visible =
         left + item.width > 0 &&
         left < width &&
         p.y + item.height * (1 - (item.anchorY ?? 1)) > 0 &&
         p.y - item.height * (item.anchorY ?? 1) < height
-      )
-        scenery.push(item)
+      if (visible) scenery.push(item)
+      return visible
     }
     const highResMountains =
       quality !== 'low' &&
@@ -2672,6 +2676,39 @@ export function createMapRenderer(
       coastEdges = 0,
       wildlifeWalking = 0
     if (!cachedScenery) {
+      const oak = images.get('gildroot-oak')
+      const grove =
+        oak?.complete && oak.naturalWidth
+          ? renderSectors.find(
+              ({ id, landmarks }) =>
+                id === ASTERWAKE_GOLDEN_TREE.sectorId &&
+                landmarks.some(({ id }) => id === ASTERWAKE_GOLDEN_TREE_ID),
+            )
+          : undefined
+      if (oak && grove) {
+        // The canopy can enter the viewport well before its own sector does.
+        const origin = sectorOrigin(grove)
+        const size = tile * GILDROOT_OAK_WIDTH_TILES
+        const tree: Scenery = {
+          x: origin.x + ASTERWAKE_GOLDEN_TREE.x + 0.5,
+          y: origin.y + ASTERWAKE_GOLDEN_TREE.y + 0.9,
+          width: size,
+          height: size * (oak.naturalHeight / oak.naturalWidth),
+          image: oak,
+          index: 0,
+          columns: 1,
+          rows: 1,
+          anchorX: 0.42,
+          anchorY: 0.9,
+          tree: false,
+          grandFeature: true,
+        }
+        if (addScenery(tree) && size * ratio > oak.naturalWidth) {
+          if (!images.has('gildroot-oak-hd')) load('gildroot-oak-hd', 'v01')
+          const detail = images.get('gildroot-oak-hd')
+          if (detail?.complete && detail.naturalWidth) tree.image = detail
+        }
+      }
       if (mountainSheet?.complete && mountainSheet.naturalWidth) {
         for (const feature of mountains) {
           addScenery({
@@ -2854,11 +2891,12 @@ export function createMapRenderer(
               const dy = Math.abs(cell.y - ASTERWAKE_GOLDEN_TREE.y)
               if (grove && dx <= 1 && dy <= 1) continue
               const seed = hashString(`${sector.id}:${cell.x}:${cell.y}:woodland`)
+              const species = (seed >>> 15) % 12
               const livingSpecies =
                 !rock && livingTrees?.complete && livingTrees.naturalWidth
-                  ? grove && seed % 3 !== 0
-                    ? 0 // Golden oaks cluster around the Gildroot.
-                    : (seed >>> 15) % 6 === 0
+                  ? species < (grove ? 10 : 8)
+                    ? 0 // Living golden oaks dominate the island, especially the grove.
+                    : species === 11
                       ? 3 // Wind-tolerant pines among the salt-bent island trees.
                       : undefined
                   : undefined
@@ -2876,7 +2914,7 @@ export function createMapRenderer(
                   rows: 2,
                   anchorY: livingSpecies !== undefined ? 488 / 512 : 0.93,
                   tree: !rock,
-                  windFlex: 0.76 + (seed % 13) * 0.03,
+                  windFlex: rock ? undefined : 0.76 + (seed % 13) * 0.03,
                 })
                 continue
               }
@@ -3185,25 +3223,7 @@ export function createMapRenderer(
       // Painting them after the character pass would hide someone on a bridge/anchor.
       if (!cachedScenery)
         for (const landmark of sector.landmarks) {
-          if (landmark.id === ASTERWAKE_GOLDEN_TREE_ID) {
-            const oak = images.get('gildroot-oak')
-            if (oak?.complete && oak.naturalWidth)
-              addScenery({
-                x: origin.x + ASTERWAKE_GOLDEN_TREE.x + 0.5,
-                y: origin.y + ASTERWAKE_GOLDEN_TREE.y + 0.9,
-                width: tile * 12,
-                height: tile * 12 * (oak.naturalHeight / oak.naturalWidth),
-                image: oak,
-                index: 0,
-                columns: 1,
-                rows: 1,
-                anchorX: 0.42,
-                anchorY: 0.9,
-                tree: false,
-                grandFeature: true,
-              })
-            continue
-          }
+          if (landmark.id === ASTERWAKE_GOLDEN_TREE_ID) continue
           if (isFerryTerminalLandmark(landmark.id)) {
             const dock = dockBySector.get(sector.id)!
             const northReach = dock.port === 'asterwake'
@@ -5022,6 +5042,7 @@ export function createMapRenderer(
     changeZoom(zoom * Math.exp(-event.deltaY * (event.ctrlKey ? 0.006 : 0.0015)))
   }
   const down = (event: PointerEvent) => {
+    if (event.button !== 0) return
     canvas.setPointerCapture(event.pointerId)
     if (event.pointerType === 'touch') {
       pointers.set(event.pointerId, { x: event.clientX, y: event.clientY })
@@ -5107,6 +5128,7 @@ export function createMapRenderer(
       drag = null
       return
     }
+    if (event.button !== 0) return
     const start = drag
     drag = null
     if (!start || Math.hypot(event.clientX - start.x, event.clientY - start.y) > 7) return
@@ -5140,7 +5162,6 @@ export function createMapRenderer(
     d: 'east',
   }
   function walkHeldKey(initial = false) {
-    initialKeyStep = initial
     keyTimer = null
     const direction = [...heldKeys.values()].at(-1)
     if (!direction || disposed || paused || document.visibilityState !== 'visible') return
@@ -5209,20 +5230,34 @@ export function createMapRenderer(
         (exit) => samePosition(exit.from, sample.position) && samePosition(exit.to, first),
       )
       cadence = Math.max(STEP_MS, crossing?.durationMs ?? sector?.stepMs ?? STEP_MS)
+      const requested = initial ? first : position
+      const sendKeyWalk =
+        initial ||
+        heldDirection !== direction ||
+        !requestedKeyDestination ||
+        !samePosition(requestedKeyDestination, requested) ||
+        (!sample.moving && !samePosition(sample.position, requested))
+      if (sendKeyWalk) {
+        initialKeyStep = initial
+        heldReleaseOrigin = motion.nextLanding(now)
+        heldFirstDestination = first
+        requestedKeyDestination = requested
+        heldPreviewDestination = position
+      }
       heldDirection = direction
-      heldDestination = position
-      heldReleaseOrigin = motion.nextLanding(now)
-      heldFirstDestination = first
       // The release write can queue behind a delayed receipt. A tap must never
       // authorize three steps while it waits. Keep lookahead for interpolation
       // and extend the server route only after a held-key interval elapses.
-      if (initial && !samePosition(first, position)) select(first, direction, position)
-      else if (initial) select(position, direction)
-      else select(position, direction, undefined, true)
-      requestDraw()
+      if (sendKeyWalk) {
+        if (initial && !samePosition(first, position)) select(first, direction, position)
+        else if (initial) select(position, direction)
+        else select(position, direction, undefined, true)
+        requestDraw()
+      }
     } else if (heldDirection !== direction) {
       // A blocked turn must also cancel the previous click or held heading.
-      heldDestination = null
+      requestedKeyDestination = null
+      heldPreviewDestination = null
       heldDirection = direction
       onStop()
     }
@@ -5252,16 +5287,19 @@ export function createMapRenderer(
     if (!Object.hasOwn(keyDirections, name) || !direction) return
     event.preventDefault()
     if (event.repeat || heldKeys.has(name)) return
+    const previous = [...heldKeys.values()].at(-1)
     heldKeys.set(name, direction)
+    if (previous === direction) return
     if (keyTimer !== null) clearTimeout(keyTimer)
     walkHeldKey(true)
   }
   const keyUp = (event: KeyboardEvent) => {
     const key = event.key.toLowerCase()
-    const wasActive = [...heldKeys.keys()].at(-1) === key
-    if (!heldKeys.delete(key) || !wasActive) return
-    if (!heldKeys.size) releaseHeldKeys()
-    else {
+    const previous = [...heldKeys.values()].at(-1)
+    if (!heldKeys.delete(key)) return
+    const direction = [...heldKeys.values()].at(-1)
+    if (!direction) releaseHeldKeys()
+    else if (direction !== previous) {
       if (keyTimer !== null) clearTimeout(keyTimer)
       walkHeldKey(true)
     }
@@ -5305,14 +5343,13 @@ export function createMapRenderer(
   }
   const windowBlur = () => releaseHeldKeys()
   document.addEventListener('keydown', documentKey)
-  document.addEventListener('keyup', keyUp)
+  document.addEventListener('keyup', keyUp, true)
   document.addEventListener('focusin', focusChanged)
   canvas.addEventListener('pointerdown', down)
   canvas.addEventListener('pointermove', move)
   canvas.addEventListener('pointerup', up)
   canvas.addEventListener('pointercancel', cancel)
   canvas.addEventListener('keydown', key)
-  canvas.addEventListener('keyup', keyUp)
   canvas.addEventListener('blur', blur)
   window.addEventListener('blur', windowBlur)
   canvas.addEventListener('wheel', wheel, { passive: false })
@@ -5445,7 +5482,7 @@ export function createMapRenderer(
       observer.disconnect()
       document.removeEventListener('visibilitychange', visibility)
       document.removeEventListener('keydown', documentKey)
-      document.removeEventListener('keyup', keyUp)
+      document.removeEventListener('keyup', keyUp, true)
       document.removeEventListener('focusin', focusChanged)
       clearCache()
       for (const image of images.values()) image.onload = null
@@ -5456,7 +5493,6 @@ export function createMapRenderer(
       canvas.removeEventListener('pointerup', up)
       canvas.removeEventListener('pointercancel', cancel)
       canvas.removeEventListener('keydown', key)
-      canvas.removeEventListener('keyup', keyUp)
       canvas.removeEventListener('blur', blur)
       window.removeEventListener('blur', windowBlur)
       canvas.removeEventListener('wheel', wheel)

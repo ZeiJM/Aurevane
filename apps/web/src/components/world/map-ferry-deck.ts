@@ -76,6 +76,7 @@ type SeaArt = {
   pine?: HTMLImageElement
   cliff?: HTMLImageElement
   dolphin?: HTMLImageElement
+  water?: HTMLImageElement
 }
 
 function ready(image: HTMLImageElement | undefined): image is HTMLImageElement {
@@ -174,6 +175,28 @@ export function paintFerrySea(
   depth.addColorStop(1, '#173a4d')
   context.fillStyle = depth
   context.fillRect(0, 0, width, height)
+
+  if (ready(art.water) && width > 0 && height > 0) {
+    const cellWidth = art.water.naturalWidth / 2
+    const cellHeight = art.water.naturalHeight / 2
+    const scale = Math.max(width / cellWidth, height / cellHeight) / 0.94
+    const sourceWidth = width / scale
+    const sourceHeight = height / scale
+    context.save()
+    context.globalAlpha *= 0.62
+    context.drawImage(
+      art.water,
+      (cellWidth - sourceWidth) / 2,
+      cellHeight + (cellHeight - sourceHeight) / 2,
+      sourceWidth,
+      sourceHeight,
+      0,
+      0,
+      width,
+      height,
+    )
+    context.restore()
+  }
 
   // Relative motion follows the passage clock even when weather is completely calm.
   const waveCount = lowDetail ? 18 : 42
