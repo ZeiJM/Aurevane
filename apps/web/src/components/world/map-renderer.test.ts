@@ -9,13 +9,14 @@ import { projectWorld, projectWorldSector, resolveWorldIntent } from '@/server/w
 import { voidRealmFerryDock } from '@/server/world/void-realms'
 import {
   FERRY_BOARDING_MS,
+  FERRY_MAINLAND_DOCK,
   FERRY_TERMINAL_NAMES,
   FERRYMAN_PORTRAIT,
   FERRYMAN_SPRITE,
   nextFerryDeparture,
 } from '@/world/ferry'
 import { atlasSectors } from '@/world/atlas'
-import { CHARTED_SECTORS, GRID_HEIGHT, GRID_WIDTH } from '@/world/catalog'
+import { CHARTED_SECTORS, GRID_HEIGHT, GRID_WIDTH, STEP_MS } from '@/world/catalog'
 import { GRAND_DISCOVERY_SITES, OFFSHORE_DISCOVERY } from '@/world/discovery-sites'
 import { WORLD_MAP_WIDTH } from '@/world/topology'
 import { WORLD_MIN_ZOOM } from './world-zoom'
@@ -453,6 +454,7 @@ function scene(reduced = false, initial?: WorldView) {
       listeners.get(name)!({
         clientX: x,
         clientY: y,
+        button: 0,
         pointerId: 1,
         ...(timeStamp === undefined ? {} : { timeStamp }),
       } as unknown as Event)
@@ -487,7 +489,7 @@ describe('native map input and bounded lifecycle', () => {
       s.frame(40)
       expect(s.draws.map(({ src }) => src)).toEqual(
         expect.arrayContaining([
-          `/media/art/world/runtime/ferry-passenger-hull-${ferryVesselVersion(state.position.sectorId)}.webp`,
+          `/media/art/world/runtime/anime/ferry-passenger-hull-${ferryVesselVersion(state.position.sectorId)}.webp`,
         ]),
       )
       expect(s.texts.map(({ text }) => text)).not.toContain('Stern cabin')
@@ -560,6 +562,29 @@ describe('native map input and bounded lifecycle', () => {
       s.event('pointerdown', candidate!.point.x, candidate!.point.y)
       s.event('pointerup', candidate!.point.x, candidate!.point.y)
       expect(s.select).not.toHaveBeenCalled()
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  })
+  it.each([
+    ['boarding', -1_000, 1],
+    ['underway', 1_000, 0],
+  ] as const)('paints the Lantern Quay berth during %s', (_phase, offset, count) => {
+    const departure = nextFerryDeparture('mainland', 0)
+    const view = projectWorld(
+      { ...newWorldState(), position: FERRY_MAINLAND_DOCK },
+      [],
+      departure + offset,
+    )
+    const s = scene(true, view)
+    try {
+      s.frame(40)
+      const hulls = s.spriteDraws.filter(({ src }) => src.includes('/ferry-passenger-hull-'))
+      const deck = s.spriteDraws.find(({ src }) => src.endsWith('/ferry-deck-planks-v01.webp'))
+      expect(hulls).toHaveLength(count)
+      expect(deck).toBeDefined()
+      if (hulls.length) expect(hulls[0]!.order).toBeLessThan(deck!.order)
     } finally {
       s.renderer.dispose()
       vi.unstubAllGlobals()
@@ -1501,6 +1526,48 @@ describe('native map input and bounded lifecycle', () => {
       vi.unstubAllGlobals()
     }
   })
+  it('defers every newly exposed cold terrain build until active movement settles', () => {
+    const base = projectWorld(newWorldState(), [], 1000)
+    const home = base.sectors.find((sector) => sector.id === base.position.sectorId)!
+    const dry = (sector: typeof home) => ({
+      ...sector,
+      landmarks: [],
+      buildings: [],
+      cells: sector.cells.map((cell) => ({ ...cell, terrain: '.', walkable: true })),
+    })
+    const sectors = worldRenderTerrain(base).map(dry)
+    const s = scene(true, { ...base, sectors: [dry(home)], scenery: [] })
+    try {
+      s.canvas.dataset.renderDiagnostics = 'timing'
+      s.frame(40)
+      s.renderer.update({ ...base, sectors, scenery: [] })
+      s.motion.plan(
+        [{ position: { ...base.position, x: base.position.x + 1 }, durationMs: 240 }],
+        sectors,
+        40,
+      )
+
+      s.frame(80)
+      expect(JSON.parse(s.canvas.dataset.renderTiming!).groundBuilds).toBe(0)
+
+      for (let at = 120; at <= 240; at += 40) {
+        s.frame(at)
+        expect(JSON.parse(s.canvas.dataset.renderTiming!).groundBuilds).toBe(0)
+      }
+
+      let refined = false
+      for (let at = 320; at <= 1600; at += 40) {
+        s.frame(at)
+        const builds = JSON.parse(s.canvas.dataset.renderTiming!).groundBuilds
+        expect(builds).toBeLessThanOrEqual(1)
+        refined ||= builds > 0
+      }
+      expect(refined).toBe(true)
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  })
   it('retains visible ground rasters when movement only changes distant supplied neighbours', () => {
     const build = vi.spyOn(biomes, 'buildBiomeTransitions')
     const state = { ...newWorldState(), position: { sectorId: 'atlas:58:28', x: 12, y: 4 } }
@@ -1666,7 +1733,7 @@ describe('native map input and bounded lifecycle', () => {
       vi.advanceTimersByTime(200)
       expect(s.motion.sample(260).point).toEqual(before)
       expect(s.motion.sample(276).moving).toBe(true)
-      s.listeners.get('keyup')!({ key: 'd' } as unknown as Event)
+      s.listeners.get('document:keyup')!({ key: 'd' } as unknown as Event)
       const calls = s.select.mock.calls.length
       vi.advanceTimersByTime(1000)
       expect(s.select).toHaveBeenCalledTimes(calls)
@@ -1738,7 +1805,7 @@ describe('native map input and bounded lifecycle', () => {
       const before = s.motion.sample(460).point
       vi.advanceTimersByTime(400)
       expect(s.motion.sample(460).point).toEqual(before)
-      s.listeners.get('keyup')!({ key: 'd' } as unknown as Event)
+      s.listeners.get('document:keyup')!({ key: 'd' } as unknown as Event)
       const calls = s.select.mock.calls.length
       vi.advanceTimersByTime(1000)
       expect(s.select).toHaveBeenCalledTimes(calls)
@@ -1771,7 +1838,7 @@ describe('native map input and bounded lifecycle', () => {
       vi.advanceTimersByTime(1)
       expect(s.select).toHaveBeenCalledTimes(2)
       expect(s.motion.sample(stepMs).position).toEqual({ ...view.position, x: view.position.x + 1 })
-      s.listeners.get('keyup')?.({ key: 'd' } as unknown as Event)
+      s.listeners.get('document:keyup')?.({ key: 'd' } as unknown as Event)
       const calls = s.select.mock.calls.length
       vi.advanceTimersByTime(1000)
       expect(s.select).toHaveBeenCalledTimes(calls)
@@ -1855,7 +1922,7 @@ describe('native map input and bounded lifecycle', () => {
         await vi.advanceTimersByTimeAsync(100)
         trail.push(s.motion.sample(performance.now()).point.y)
       }
-      s.listeners.get('keyup')!({ key: 'w' } as unknown as Event)
+      s.listeners.get('document:keyup')!({ key: 'w' } as unknown as Event)
       await vi.advanceTimersByTimeAsync(650)
       expect(failures).toEqual([])
       expect(trail.map((y, index) => (index === 0 ? 0.5 : trail[index - 1]! - y))).toEqual(
@@ -1882,7 +1949,7 @@ describe('native map input and bounded lifecycle', () => {
       s.listeners.get('keydown')!({ key: 'd', preventDefault() {} } as unknown as Event)
       vi.advanceTimersByTime(850)
       expect(selectedAt).toEqual([0, 200, 400, 600, 800])
-      s.listeners.get('keyup')!({ key: 'd' } as unknown as Event)
+      s.listeners.get('document:keyup')!({ key: 'd' } as unknown as Event)
       vi.advanceTimersByTime(1000)
       expect(selectedAt).toEqual([0, 200, 400, 600, 800, 850])
       expect(s.motion.sample(1850).position).toEqual({
@@ -1914,7 +1981,7 @@ describe('native map input and bounded lifecycle', () => {
         s.listeners.get('keydown')!({ key: 'd', preventDefault() {} } as unknown as Event)
         vi.advanceTimersByTime(stepMs - cost)
         expect(selectedAt).toEqual([0, stepMs])
-        s.listeners.get('keyup')!({ key: 'd' } as unknown as Event)
+        s.listeners.get('document:keyup')!({ key: 'd' } as unknown as Event)
         expect(s.motion.sample(stepMs + cost).moving).toBe(true)
       } finally {
         s.renderer.dispose()
@@ -1938,7 +2005,10 @@ describe('native map input and bounded lifecycle', () => {
         vi.advanceTimersByTime(50)
         if (release === 'hidden') s.visibility('hidden')
         else if (release === 'dispose') s.renderer.dispose()
-        else s.listeners.get(release)?.({ key: 'd' } as unknown as Event)
+        else
+          s.listeners.get(release === 'keyup' ? 'document:keyup' : release)?.({
+            key: 'd',
+          } as unknown as Event)
         const calls = s.select.mock.calls.length
         vi.advanceTimersByTime(1000)
         expect(s.select).toHaveBeenCalledTimes(calls)
@@ -2011,7 +2081,7 @@ describe('native map input and bounded lifecycle', () => {
       vi.advanceTimersByTime(1)
       expect(s.motion.sample(600).position).toEqual(east)
       expect(s.select).toHaveBeenCalledTimes(3)
-      s.listeners.get('keyup')!({ key: 'd' } as unknown as Event)
+      s.listeners.get('document:keyup')!({ key: 'd' } as unknown as Event)
       const calls = s.select.mock.calls.length
       vi.advanceTimersByTime(1000)
       expect(s.select).toHaveBeenCalledTimes(calls)
@@ -2041,7 +2111,11 @@ describe('native map input and bounded lifecycle', () => {
       s.motion.planDirectional(destination, direction, view.sectors, performance.now())
     })
     const key = (event: string, key: string, repeat = false) =>
-      s.listeners.get(event)!({ key, repeat, preventDefault() {} } as unknown as Event)
+      s.listeners.get(event === 'keyup' ? 'document:keyup' : event)!({
+        key,
+        repeat,
+        preventDefault() {},
+      } as unknown as Event)
     try {
       key('keydown', 'w')
       key('keydown', 'd')
@@ -2952,7 +3026,7 @@ describe('native map input and bounded lifecycle', () => {
       try {
         const preventDefault = vi.fn()
         s.listeners.get('keydown')!({ key, preventDefault } as unknown as Event)
-        s.listeners.get('keyup')!({ key } as unknown as Event)
+        s.listeners.get('document:keyup')!({ key } as unknown as Event)
         const target = { ...view.position, x: view.position.x + dx, y: view.position.y + dy }
         expect(s.select).toHaveBeenLastCalledWith(
           target,
@@ -2965,6 +3039,29 @@ describe('native map input and bounded lifecycle', () => {
         clock.mockRestore()
         vi.unstubAllGlobals()
       }
+    }
+  })
+  it('keeps the held heading when an equivalent movement key is pressed and released', () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] })
+    const s = scene()
+    const press = (key: string) =>
+      s.listeners.get('keydown')!({ key, preventDefault() {} } as unknown as Event)
+    const release = (key: string) => s.listeners.get('document:keyup')!({ key } as unknown as Event)
+    try {
+      press('d')
+      press('ArrowRight')
+      release('ArrowRight')
+      expect(s.select).toHaveBeenCalledTimes(1)
+      vi.advanceTimersByTime(STEP_MS)
+      expect(s.select).toHaveBeenCalledTimes(2)
+      release('d')
+      const calls = s.select.mock.calls.length
+      vi.advanceTimersByTime(1000)
+      expect(s.select).toHaveBeenCalledTimes(calls)
+    } finally {
+      s.renderer.dispose()
+      vi.useRealTimers()
+      vi.unstubAllGlobals()
     }
   })
   it('keeps a tap to one authoritative tile when the release waits two steps for the first receipt', () => {
@@ -2980,7 +3077,7 @@ describe('native map input and bounded lifecycle', () => {
       const started = resolveWorldIntent(state, { kind: 'walk', direction, destination }, 1000)
       expect(started.route.map((step) => step.position)).toEqual([first])
 
-      s.listeners.get('keyup')!({ key: 'ArrowRight' } as unknown as Event)
+      s.listeners.get('document:keyup')!({ key: 'ArrowRight' } as unknown as Event)
       const [released, heading] = s.select.mock.calls.at(-1)!
       expect(released).toEqual(first)
       const stopped = resolveWorldIntent(
@@ -3059,7 +3156,7 @@ describe('native map input and bounded lifecycle', () => {
           ...approved,
           x: approved.x + 3,
         })
-        s.listeners.get('keyup')!({ key: 'ArrowRight' } as unknown as Event)
+        s.listeners.get('document:keyup')!({ key: 'ArrowRight' } as unknown as Event)
         expect(s.select).toHaveBeenLastCalledWith({ ...approved, x: approved.x + 1 }, 'east')
         expect(s.select).not.toHaveBeenCalledWith(approved, 'east')
       } finally {
@@ -3141,6 +3238,7 @@ describe('native map input and bounded lifecycle', () => {
     const touch = (name: string, id: number, x: number) =>
       s.listeners.get(name)!({
         pointerType: 'touch',
+        button: 0,
         pointerId: id,
         clientX: x,
         clientY: 300,
@@ -3208,6 +3306,7 @@ describe('native map input and bounded lifecycle', () => {
         const touch = (name: string, id: number, x: number) =>
           s.listeners.get(name)!({
             pointerType: 'touch',
+            button: 0,
             pointerId: id,
             clientX: x,
             clientY: 300,
@@ -3460,6 +3559,59 @@ describe('native map input and bounded lifecycle', () => {
     expect(s.transforms.filter((t) => t[0] === 1 && t[1] === 0 && t[3] === 1)).toEqual([])
     s.renderer.dispose()
     vi.unstubAllGlobals()
+  })
+  it('keeps Asterwake stone still and gives living golden oaks most woodland placements', () => {
+    const view = projectWorld(
+      { ...newWorldState(), position: { sectorId: 'atlas:7:9', x: 6, y: 4 } },
+      [],
+      1000,
+    )
+    const island = view.sectors.find((sector) => sector.id === view.position.sectorId)!
+    const s = scene(false, {
+      ...view,
+      sectors: [island],
+      environment: { ...view.environment, weather: 'storm' },
+    })
+    try {
+      s.frame(120)
+      const woodland = s.spriteDraws.filter(({ src }) =>
+        src.endsWith('asterwake-woodland-v01.webp'),
+      )
+      const stones = woodland.filter(({ args }) => args[1]! > 0)
+      const golden = s.spriteDraws.filter(
+        ({ src, args }) => src.endsWith('living-trees-v01.webp') && args[0] === 0 && args[1] === 0,
+      )
+      const living = s.spriteDraws.filter(({ src }) => src.endsWith('living-trees-v01.webp'))
+      expect(stones.length).toBeGreaterThan(0)
+      expect(stones.every(({ matrix }) => matrix[2] === 0)).toBe(true)
+      expect(golden.length).toBeGreaterThan(
+        living.length - golden.length + woodland.length - stones.length,
+      )
+      expect(golden.some(({ matrix }) => matrix[2] !== 0)).toBe(true)
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  })
+  it('draws the Gildroot Oak at triple its old size around the same root anchor', () => {
+    const view = projectWorld(
+      { ...newWorldState(), position: { sectorId: 'atlas:6:9', x: 6, y: 4 } },
+      [],
+      1000,
+    )
+    const s = scene(false, view)
+    try {
+      s.frame(120)
+      const oak = s.spriteDraws.find(({ src }) => src.includes('gildroot-oak-'))!
+      const [, , , , left, top, width, height] = oak.args
+      expect(width).toBe(36 * 64)
+      expect(left).toBeCloseTo(-width! * 0.42)
+      expect(top).toBeCloseTo(-height! * 0.9)
+      expect(oak.matrix[2]).toBe(0)
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
   })
   it('keeps a traveller visible above a bridge or landmark prop', () => {
     const s = scene(false, legacyTownView('verdant-expanse'))
@@ -3990,6 +4142,22 @@ describe('native map input and bounded lifecycle', () => {
     } finally {
       s.renderer.dispose()
       clock.mockRestore()
+      vi.unstubAllGlobals()
+    }
+  })
+  it('keeps the local character sprite at the widest phone zoom', () => {
+    const s = scene(false, legacyTownView('verdant-expanse', 5, 4))
+    try {
+      Object.assign(s.canvas, { clientWidth: 389, clientHeight: 669 })
+      s.canvas.dataset.portrait = '/api/media/appearance/7/human-m-0008.v1/neutral.svg'
+      s.resize()
+      s.renderer.settings({ animate: true, zoom: WORLD_MIN_ZOOM })
+      s.frame(40)
+      const sprite = s.draws.find(({ src }) => src.endsWith('/human-m-0008/variant-1/sprites.webp'))
+      expect(sprite?.args.slice(2, 4)).toEqual([96, 128])
+      expect(s.canvas.dataset.embodiedActors).toBe('1')
+    } finally {
+      s.renderer.dispose()
       vi.unstubAllGlobals()
     }
   })
@@ -6753,7 +6921,7 @@ it('keeps three immutable cloud silhouettes across moving frames and releases th
   }
 })
 
-it('translates a bounded dry terrain composite through short desktop movement without rerasterizing', () => {
+it('translates a bounded dry terrain composite and defers invalidated terrain until movement settles', () => {
   const base = projectWorld(newWorldState(), [], 1000)
   const view: WorldView = {
     ...base,
@@ -6799,12 +6967,8 @@ it('translates a bounded dry terrain composite through short desktop movement wi
       .onload!()
     s.draws.length = 0
     s.frame(160)
-    expect(
-      s.draws.some(
-        ({ image, args }) =>
-          image !== initial.image && image.width > s.canvas.width && args.length === 2,
-      ),
-    ).toBe(true)
+    expect(JSON.parse(s.canvas.dataset.renderTiming!).groundBuilds).toBe(0)
+    expect(s.draws.some(({ image }) => image === initial.image)).toBe(false)
   } finally {
     s.renderer.dispose()
     vi.unstubAllGlobals()

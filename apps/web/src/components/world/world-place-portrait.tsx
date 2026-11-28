@@ -1,5 +1,6 @@
 import type { WorldLandmark } from '@/world/types'
 import { isFerryTerminalLandmark } from '@/world/ferry'
+import { worldMapArtSource } from './map-art-source'
 import styles from './workspace.module.css'
 
 // Cells from the existing original World runtime sheets (see runtime/manifest.json).
@@ -26,7 +27,7 @@ export function WorldPlacePortrait({ place }: { place: WorldLandmark }) {
         className={styles.placePortrait}
         aria-hidden="true"
         style={{
-          backgroundImage: 'url(/media/art/world/runtime/ferry-terminal-v02.webp)',
+          backgroundImage: `url(${worldMapArtSource('ferry-terminal-v02.webp')})`,
           backgroundPosition: 'center',
           backgroundSize: 'cover',
         }}
@@ -45,7 +46,7 @@ export function WorldPlacePortrait({ place }: { place: WorldLandmark }) {
       className={styles.placePortrait}
       aria-hidden="true"
       style={{
-        backgroundImage: `url(/media/art/world/runtime/${sheet})`,
+        backgroundImage: `url(${worldMapArtSource(sheet)})`,
         backgroundSize: `${columns * 100}% ${rows * 100}%`,
         backgroundPosition: `${((index % columns) / (columns - 1)) * 100}% ${(Math.floor(index / columns) / (rows - 1)) * 100}%`,
       }}

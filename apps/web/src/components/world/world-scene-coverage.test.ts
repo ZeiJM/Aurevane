@@ -5,15 +5,20 @@ import { newWorldState, revealNearby } from '@/world/travel'
 import { mapPoint } from './world-motion'
 import { worldSceneCoversViewport } from './world-scene-coverage'
 import { WorldController } from './world-controller'
-const viewport = { width: 1296, height: 944, tile: 64 * 0.35 }
-it.each([64, 64 * 0.35])('supplies the reported Emberreach viewport at tile size %d', (tile) => {
-  const state = { ...newWorldState(), position: { sectorId: 'atlas:76:25', x: 9, y: 4 } }
-  const size = { width: 1218, height: 803 }
-  const view = projectWorld(state, [], 1000, undefined, undefined, size)
-  expect(
-    worldSceneCoversViewport(view, [mapPoint(view.position, view.sectors)], { ...size, tile }),
-  ).toBe(true)
-})
+import { WORLD_MIN_ZOOM } from './world-zoom'
+const viewport = { width: 1296, height: 944, tile: 64 * WORLD_MIN_ZOOM }
+const sceneryViewport = { ...viewport, width: 2560, height: 1440 }
+it.each([64, 64 * WORLD_MIN_ZOOM])(
+  'supplies the reported Emberreach viewport at tile size %d',
+  (tile) => {
+    const state = { ...newWorldState(), position: { sectorId: 'atlas:76:25', x: 9, y: 4 } }
+    const size = { width: 1218, height: 803 }
+    const view = projectWorld(state, [], 1000, undefined, undefined, size)
+    expect(
+      worldSceneCoversViewport(view, [mapPoint(view.position, view.sectors)], { ...size, tile }),
+    ).toBe(true)
+  },
+)
 it.each([
   { width: 1920, height: 1080 },
   { width: 2560, height: 1440 },
@@ -25,7 +30,7 @@ it.each([
   expect(
     worldSceneCoversViewport(view, [mapPoint(view.position, view.sectors)], {
       ...size,
-      tile: (size.width < 600 ? 48 : 64) * 0.35,
+      tile: (size.width < 600 ? 48 : 64) * WORLD_MIN_ZOOM,
     }),
   ).toBe(true)
   expect(view.sectors.length).toBeLessThanOrEqual(25)
@@ -72,10 +77,10 @@ it.each([
   },
 )
 it('keeps unchanged covered scenery and requires complete supplied ground', () => {
-  const view = projectWorld(newWorldState(), [], 1000),
+  const view = projectWorld(newWorldState(), [], 1000, undefined, undefined, sceneryViewport),
     point = mapPoint(view.position, view.sectors)
-  expect(worldSceneCoversViewport(view, [point], viewport)).toBe(true)
-  expect(worldSceneCoversViewport({ ...view, scenery: [] }, [point], viewport)).toBe(false)
+  expect(worldSceneCoversViewport(view, [point], sceneryViewport)).toBe(true)
+  expect(worldSceneCoversViewport({ ...view, scenery: [] }, [point], sceneryViewport)).toBe(false)
 })
 it.each(['camera movement', 'viewport expansion', 'same-version viewport expansion'] as const)(
   'does not withdraw covered public background after %s when an earlier scene arrives late',
@@ -147,11 +152,14 @@ it.each(['camera movement', 'viewport expansion', 'same-version viewport expansi
   },
 )
 it('accepts useful older public ground when the current viewport is already incomplete', async () => {
-  const complete = { ...projectWorld(newWorldState(), [], 1000), characterId: 'owner' }
+  const complete = {
+    ...projectWorld(newWorldState(), [], 1000, undefined, undefined, sceneryViewport),
+    characterId: 'owner',
+  }
   const current = { ...complete, version: complete.version + 1, scenery: [] }
   const point = mapPoint(current.position, current.sectors)
   const sceneCovered = (scene: typeof complete) =>
-    worldSceneCoversViewport(scene, [point], viewport)
+    worldSceneCoversViewport(scene, [point], sceneryViewport)
   expect(sceneCovered(current)).toBe(false)
   const presentation = vi.fn()
   const controller = new WorldController(current, {

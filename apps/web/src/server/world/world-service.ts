@@ -1,6 +1,7 @@
 import 'server-only'
 import { directionalWalk } from '@/world/directional-walk'
 import { MAP_X, MAP_Y } from '@/components/world/map-projection'
+import { WORLD_MIN_ZOOM } from '@/components/world/world-zoom'
 import { encodeTerrainRows, worldSurfaceRows } from '@/world/terrain'
 import { AurevaneError } from '@aurevane/game-core/errors'
 import { FRONTIER_APPROACH, GRID_HEIGHT, GRID_WIDTH, STEP_MS } from '@/world/catalog'
@@ -263,7 +264,13 @@ export function resolveWorldIntent(
       !isKnown(walking, destination)
     )
       invalid('Survey this ground before plotting a route.')
-    const route =
+    const underway =
+      walking.route[0] &&
+      walking.nextStepAt !== null &&
+      walking.nextStepAt - now < walking.route[0].durationMs
+        ? walking.route[0]
+        : undefined
+    let route =
       intent.kind === 'walk' && intent.direction
         ? directionalWalk(
             walking.position,
@@ -271,17 +278,25 @@ export function resolveWorldIntent(
             intent.direction,
             resolveSector,
             (p) => isLocalVoidWalk(walking.position.sectorId, p.sectorId) || isKnown(walking, p),
-            walking.route[0] &&
-              walking.nextStepAt !== null &&
-              walking.nextStepAt - now < walking.route[0].durationMs
-              ? walking.route[0]
-              : undefined,
+            underway,
           )
         : routeTo(walking, destination, intent.kind === 'walk')
     if (!route) invalid('There is no known walkable route to that location.')
+    if (
+      intent.kind === 'walk' &&
+      !intent.direction &&
+      underway &&
+      route!.length &&
+      !samePosition(route![0]!.position, underway.position)
+    ) {
+      // Finish the ongoing edge before turning. Use the original legal path if
+      // the landing would strand this particular destination.
+      const onward = routeTo({ ...walking, position: underway.position }, destination, true)
+      if (onward) route = [underway, ...onward]
+    }
     // Replanning never accelerates movement: a step already under way keeps its schedule,
     // otherwise the first new step waits a full interval.
-    const underWay =
+    const hasScheduledStep =
       walking.route.length > 0 && walking.nextStepAt !== null && walking.nextStepAt > now
     // A step under way keeps its deadline. Every new authoritative step costs its full
     // interval; the immediate client preview does not grant an instant server step.
@@ -291,7 +306,7 @@ export function resolveWorldIntent(
       routeDestination: route!.length > MAX_PERSISTED_ROUTE_STEPS ? destination : null,
       routeObjectiveId: intent.kind === 'autopath' ? intent.objectiveId : null,
       nextStepAt: route!.length
-        ? underWay
+        ? hasScheduledStep
           ? Math.min(walking.nextStepAt!, now + route![0]!.durationMs)
           : now + route![0]!.durationMs
         : null,
@@ -630,7 +645,7 @@ export function projectWorld(
   })
   const sceneWidth = viewport?.width ?? 1296
   const sceneHeight = viewport?.height ?? 944
-  const sceneTile = (sceneWidth < 600 ? 48 : 64) * 0.35
+  const sceneTile = (sceneWidth < 600 ? 48 : 64) * WORLD_MIN_ZOOM
   // An input reversal can precede the next full scene by several movement
   // receipts. Eight tiles of public ground in every direction cover that turn.
   const sceneryHalfWidth = sceneWidth / sceneTile / 2 + 8 * MAP_X

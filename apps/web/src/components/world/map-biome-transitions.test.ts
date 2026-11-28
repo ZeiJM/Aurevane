@@ -67,15 +67,22 @@ describe('known public biome boundary transitions', () => {
 
   it('retains every unchanged biome raster while the public viewport advances', () => {
     const view = (sectorId: string, x: number) =>
-      projectWorld({ ...newWorldState(), position: { sectorId, x, y: 4 } }, [], 1000)
+      projectWorld(
+        { ...newWorldState(), position: { sectorId, x, y: 4 } },
+        [],
+        1000,
+        undefined,
+        undefined,
+        { width: 2560, height: 1728 },
+      )
     const before = worldRenderTerrain(view('atlas:58:28', 12))
     const after = worldRenderTerrain(view('atlas:59:28', 3), before)
-    expect(before.length).toBeGreaterThanOrEqual(49)
-    expect(after.length).toBeGreaterThanOrEqual(49)
+    expect(before.length).toBeGreaterThanOrEqual(25)
+    expect(after.length).toBeGreaterThanOrEqual(25)
     const old = buildBiomeTransitions(before)
     const next = buildBiomeTransitions(after)
     const shared = after.filter((entry) => old.has(entry.id))
-    expect(shared.length).toBeGreaterThanOrEqual(46)
+    expect(shared.length).toBeGreaterThanOrEqual(22)
     // Ground at a newly supplied biome boundary can legitimately acquire a
     // corner. Check the full set whose eight neighboring inputs stayed stable.
     const changed = [

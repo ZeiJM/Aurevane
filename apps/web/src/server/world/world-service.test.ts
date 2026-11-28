@@ -8,6 +8,7 @@ import {
   revealNearby,
 } from '@/world/travel'
 import { mapPoint, WorldMotion } from '@/components/world/world-motion'
+import { WORLD_MIN_ZOOM } from '@/components/world/world-zoom'
 import { isKnownCell, resolveSector, visibleSectors } from './world-content'
 import { resolveWarpedContinentSector, warpedContinentSectors } from './warped-continent'
 import { GRAND_DISCOVERY_SITES } from '@/world/discovery-sites'
@@ -232,7 +233,7 @@ describe('world authority and spoiler projection', () => {
       atlas = new Map(view.atlas!.map((s) => [`${s.column}:${s.row}`, s]))
     const width = 1296,
       height = 944,
-      tile = 64 * 0.6,
+      tile = 64 * WORLD_MIN_ZOOM,
       cx = current.atlasColumn! * 13 + state.position.x + 0.5,
       cy = current.atlasRow! * 9 + state.position.y + 0.5
     for (const px of [0, width / 4, width / 2, (width * 3) / 4, width])
@@ -247,10 +248,10 @@ describe('world authority and spoiler projection', () => {
     expect(view.sectors.length).toBeLessThanOrEqual(25)
   })
   it.each([
-    { width: 1296, height: 944, tile: 64 * 0.35 },
-    { width: 1218, height: 753, tile: 64 * 0.35 },
-    { width: 375, height: 667, tile: 48 * 0.35 },
-    { width: 915, height: 412, tile: 64 * 0.35 },
+    { width: 1296, height: 944, tile: 64 * WORLD_MIN_ZOOM },
+    { width: 1218, height: 753, tile: 64 * WORLD_MIN_ZOOM },
+    { width: 375, height: 667, tile: 48 * WORLD_MIN_ZOOM },
+    { width: 915, height: 412, tile: 64 * WORLD_MIN_ZOOM },
   ])(
     'supplies public scenery at minimum zoom across $width by $height while an approved camera advances',
     ({ width, height, tile }) => {
@@ -931,6 +932,17 @@ describe('replanning mid-walk', () => {
     expect(second.position).toEqual(first.route[1]!.position)
     expect(second.nextStepAt).toBeLessThanOrEqual(now + STEP_MS)
     expect(second.nextStepAt).toBeGreaterThan(now)
+  })
+  it('finishes the current edge before turning toward a new click', () => {
+    const start = newWorldState()
+    const next = { ...start.position, x: start.position.x + 1 }
+    const first = resolveWorldIntent(start, { kind: 'walk', destination: next }, 1000)
+    const destination = { ...start.position, y: start.position.y - 1 }
+    const turned = resolveWorldIntent(first, { kind: 'walk', destination }, 1050)
+    expect(turned.route[0]?.position).toEqual(next)
+    expect(turned.route.at(-1)?.position).toEqual(destination)
+    expect(turned.nextStepAt).toBe(first.nextStepAt)
+    expect(resolveWorldIntent(turned, { kind: 'tick' }, 1200).position).toEqual(next)
   })
 })
 

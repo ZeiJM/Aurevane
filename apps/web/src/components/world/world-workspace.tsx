@@ -4,7 +4,15 @@ import type { MapDirection } from '@/world/wild-ids'
 import { WorldDestinationCard } from './world-destination-card'
 import { worldTimeLabel, worldDayPhase, WORLD_DAY_REAL_MS } from '@/world/environment'
 import { ChatPanel } from '@/components/social/chat/chat-panel'
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import {
+  startTransition,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react'
 import { useRouter } from 'next/navigation'
 import { WORLD_LAND_NAME } from '@/world/atlas'
 import { WORLD_REGIONS } from '@/world/catalog'
@@ -19,7 +27,7 @@ import {
   subscribeMapQuality,
   type MapQuality,
 } from './map-quality'
-import { canAutoPath, remainingTravelMs, worldSyncDelayMs } from '@/world/travel'
+import { canAutoPath, remainingTravelMs, samePosition, worldSyncDelayMs } from '@/world/travel'
 import type { WorldAttackReceipt } from '@/world/attack-receipt'
 import type { WorldMovementReceipt } from '@/world/movement-receipt'
 import { WorldNearbyPlayer } from './world-nearby-player'
@@ -44,6 +52,7 @@ import { WorldLivePresence } from './world-live-presence'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import {
   clickWalkPreview,
+  localRoute,
   mapPoint,
   worldApproachRoute,
   worldInteractionRange,
@@ -256,7 +265,10 @@ export function WorldWorkspace({
       if (reconcile) motion.reconcile(next, performance.now())
       else motion.approveReceipt(next, performance.now())
       scheduleArrival()
-      setView(next)
+      // The controller and motion authority are already current. Keep the
+      // receipt's React presentation interruptible so a sector-transition
+      // commit cannot monopolize the main thread between movement frames.
+      startTransition(() => setView(next))
       live.update(next, localViewActive.current && document.visibilityState === 'visible')
       schedule()
     }
@@ -327,7 +339,10 @@ export function WorldWorkspace({
         motion.updateScene(next.sectors, performance.now())
         scheduleArrival()
         scheduleScene()
-        setView(next)
+        // Scene hydration can replace hundreds of kilobytes of terrain while
+        // held movement is already running. Keep the authority/motion update
+        // immediate, but let React split the presentation render across frames.
+        startTransition(() => setView(next))
         live.update(next, localViewActive.current && document.visibilityState === 'visible')
       },
       error: (text) => {
@@ -522,7 +537,21 @@ export function WorldWorkspace({
           continuing,
         )
       } else if (origin && destination) {
-        const route = previewRoute ?? clickWalkPreview(current, origin, destination)
+        let route = previewRoute ?? clickWalkPreview(current, origin, destination)
+        if (intent.kind === 'walk' && !samePosition(origin, destination)) {
+          const landing = motion.nextLanding(now)
+          const { point } = motion.sample(now)
+          const center = mapPoint(origin, current.sectors, point)
+          if (
+            !samePosition(landing, origin) &&
+            Math.hypot(point.x - center.x, point.y - center.y) > 1e-7 &&
+            (!route?.[0] || !samePosition(route[0].position, landing))
+          ) {
+            const edge = localRoute(current, origin, landing)
+            const onward = clickWalkPreview(current, landing, destination)
+            if (edge?.length === 1 && onward) route = [...edge, ...onward]
+          }
+        }
         if (route) motion.plan(route, current.sectors, now, 'destination')
       }
       void instance.send(intent).then((receipt) => {
@@ -563,30 +592,41 @@ export function WorldWorkspace({
     setApproachingPlayer(null)
     send({ kind: 'stop' })
   }
-  const openConversation = async (topic: WorldInteraction, opener: HTMLElement) => {
+  const openConversation = async (
+    speakerId: string,
+    opener: HTMLElement,
+    interactionId?: string,
+  ) => {
     const instance = controller.current
     if (!instance || instance.attackPending || openingConversation.current) return
     openingConversation.current = true
     setMessage('')
     setApproachingPlayer(null)
     try {
+      const ferryman = speakerId === FERRY_CONVERSATION_ID
+      const findTopic = (current: WorldView) =>
+        ferryman
+          ? ferrymanTopic(current.ferry, current.serverNow)
+          : current.interactions.find((entry) =>
+              interactionId ? entry.id === interactionId : dialogueSpeakerId(entry) === speakerId,
+            )
+      if (instance.view.route.length && !instance.pending) await instance.send({ kind: 'tick' })
       if (instance.view.route.length || instance.movementPending) {
         motion.stop(performance.now())
         if (!(await instance.send({ kind: 'stop' })).applied) return
-        // A compact movement receipt can omit authored topics from the owned scene.
-        if (!instance.view.interactions.some((entry) => entry.id === topic.id))
-          await instance.refresh()
       }
+      // The movement receipt is deliberately compact. When it omitted a topic,
+      // get the authoritative dialogue at the now-settled position.
+      if (!findTopic(instance.view)) await instance.refresh(true)
+
       const current = instance.view
-      const ferryman = topic.id === FERRY_CONVERSATION_ID
       if (
+        controller.current !== instance ||
         current.battleSessionId ||
         (current.movementBlocked && !(ferryman && current.ferry?.passage))
       )
         return
-      const localTopic = ferryman
-        ? ferrymanTopic(current.ferry, current.serverNow)
-        : current.interactions.find((entry) => entry.id === topic.id)
+      const localTopic = findTopic(current)
       if (!localTopic || current.route.length) {
         setMessage('This speaker is no longer within reach.')
         return
@@ -730,17 +770,22 @@ export function WorldWorkspace({
       const current = instance?.view
       if (!current || current.movementBlocked || current.battleSessionId || instance.attackPending)
         return
-      const from = motion.sample(performance.now()).position
+      const now = performance.now()
+      const from = motion.sample(now).position
       const target = worldApproachRoute(current, from, position, radius)
       if (!target) {
         setApproachingPlayer(null)
         setMessage('There is no known route into interaction range.')
         return
       }
-      if (!target.route.length) {
+      if (
+        !target.route.length &&
+        samePosition(motion.approvedPosition(now), target.destination) &&
+        !instance.movementPending
+      ) {
         setApproachingPlayer(null)
-        if (current.route.length || instance.movementPending) send({ kind: 'stop' })
-        void instance.hydrate({ movement: true })
+        if (current.route.length) send({ kind: 'stop' })
+        else void instance.hydrate({ movement: true })
         return
       }
       send({ kind: 'walk', destination: target.destination }, target.route)
@@ -841,7 +886,7 @@ export function WorldWorkspace({
               onWalk={walk}
               onStop={stopMoving}
               onFerryman={(opener) => {
-                if (ferryman) void openConversation(ferryman, opener)
+                if (ferryman) void openConversation(FERRY_CONVERSATION_ID, opener)
               }}
               onPlayer={(id) => {
                 setSelectedPlayer(id)
@@ -872,7 +917,7 @@ export function WorldWorkspace({
               serverNow={view.serverNow}
               disabled={Boolean(active || (!ferry.passage && view.movementBlocked))}
               onTalk={(event) => {
-                if (ferryman) void openConversation(ferryman, event.currentTarget)
+                if (ferryman) void openConversation(FERRY_CONVERSATION_ID, event.currentTarget)
               }}
             />
           ) : null}
@@ -1013,7 +1058,9 @@ export function WorldWorkspace({
                   disabled={disabled}
                   send={send}
                   stopMoving={stopMoving}
-                  openConversation={(topic, opener) => void openConversation(topic, opener)}
+                  openConversation={(topic, opener) =>
+                    void openConversation(dialogueSpeakerId(topic), opener, topic.id)
+                  }
                 />
               </div>
             ) : mode === 'local' && tab === 'places' ? (
@@ -1101,18 +1148,13 @@ export function WorldWorkspace({
                         : npc.position
                       const reach = npc.interactionRadius ?? 1
                       const ready = worldInteractionRange(approvedPosition, target, reach)
-                      const topic = ready
-                        ? isFerryman
-                          ? ferryman
-                          : view.interactions.find((entry) => dialogueSpeakerId(entry) === npc.id)
-                        : undefined
                       return (
                         <WorldNearbyNpc
                           key={npc.id}
                           npc={npc}
                           disabled={disabled}
                           onTalk={
-                            topic ? (opener) => void openConversation(topic, opener) : undefined
+                            ready ? (opener) => void openConversation(npc.id, opener) : undefined
                           }
                           onApproach={() => approach(target, reach)}
                         />

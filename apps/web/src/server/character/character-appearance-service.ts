@@ -60,12 +60,6 @@ export async function commitCharacterAppearance(input: {
     p_expected_revision: input.expectedRevision,
     p_image_url: imageUrl,
   })
-  if (error?.message.includes('CHARACTER_APPEARANCE_DUPLICATE')) {
-    throw new AurevaneError(
-      'STALE_VERSION',
-      'Another character already uses this look. Change one or more parts.',
-    )
-  }
   if (error?.message.includes('CHARACTER_APPEARANCE_STALE')) {
     throw new AurevaneError(
       'STALE_VERSION',

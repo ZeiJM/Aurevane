@@ -130,12 +130,6 @@ begin
     raise exception 'player appearance accepted an alias for a v2 outfit';
   exception when sqlstate '22023' then null;
   end;
-  begin
-    perform public.commit_character_appearance_v4(v_user,v_other_character,0,v_next);
-    raise exception 'duplicate design accepted';
-  exception when unique_violation then
-    assert sqlerrm='CHARACTER_APPEARANCE_DUPLICATE';
-  end;
   perform public.grant_character_items_v1(
     v_user,v_character,v_inventory_revision+2,
     'appearance-test-extra','[{"itemId":"item.appearance-token","quantity":1}]'::jsonb
@@ -196,11 +190,11 @@ begin
   v_creation := public.create_character_with_appearance_v1(
     v_new_user,1::smallint,'84000000-0000-4000-8000-000000000032','sprite-creation-custom',1,
     'Custom Design','custom-design','default','they','portrait.adventure.male-01',
-    'appearance.test','vanguard',2,0,2,0,0,1,null,replace(v_first,'.pine/','.garnet/')
+    'appearance.test','vanguard',2,0,2,0,0,1,null,v_third
   )->0;
   v_created := (v_creation->>'id')::uuid;
-  assert (select appearance_revision=1 and appearance_image_url=replace(v_first,'.pine/','.garnet/')
-    from public.character_profile_display where character_id=v_created), 'a custom starting design is saved on creation';
+  assert (select appearance_revision=1 and appearance_image_url=v_third
+    from public.character_profile_display where character_id=v_created), 'creation accepts another account’s active design';
   assert public.read_character_appearance_tokens_v1(v_new_user,v_created)=0, 'a custom starting design requires no inventory';
   assert app_private.valid_npc_appearance_v1(to_jsonb(v_painted)), 'NPC accepts a painted layered outfit';
   assert not app_private.valid_npc_appearance_v1(to_jsonb(replace(v_painted,'.pine.','.invented.'))), 'painted outfit names are exact';

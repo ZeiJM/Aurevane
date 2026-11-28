@@ -247,12 +247,6 @@ export async function createCharacterInSlot(command: {
   })
 
   if (error) {
-    if (error.message.includes('CHARACTER_APPEARANCE_DUPLICATE')) {
-      throw new AurevaneError(
-        'STALE_VERSION',
-        'Another character already uses this look. Change one or more parts.',
-      )
-    }
     throwCombatContentAdmissionError(error)
     if (error.message.includes('CHARACTER_CORE_STALE'))
       throw new AurevaneError(

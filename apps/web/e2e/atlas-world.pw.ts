@@ -1460,6 +1460,40 @@ test('rapid ground clicks settle at the last legal tile and keyboard movement cr
   expect((await world(page)).position.sectorId).not.toBe('atlas:58:28')
 })
 
+test('Nearby Approach ends at the watch officer and opens Talk with a compact arrival receipt', async ({
+  page,
+}, info) => {
+  test.skip(info.project.name === 'laptop-chromium', 'Exercise desktop and phone Nearby controls.')
+  await enter(page)
+  const initial = await world(page)
+  place(initial.characterId, 'verdant-expanse', 6, 4, true)
+  await reloadWorld(page)
+  await page.getByRole('tab', { name: /Nearby/ }).click()
+  const npc = page.locator('[data-world-nearby-npc="eastern-watch-officer"]')
+  const stripArrivalTopic = async (route: import('@playwright/test').Route) => {
+    if (route.request().method() !== 'POST') return await route.continue()
+    const response = await route.fetch()
+    if (!response.ok()) return await route.fulfill({ response })
+    const receipt = await response.json()
+    if (receipt.kind === 'movement') receipt.interactions = []
+    await route.fulfill({ response, json: receipt })
+  }
+  await page.route('**/api/world', stripArrivalTopic)
+  try {
+    await npc.getByRole('button', { name: 'Approach Tamsin Reed (Watch Officer)' }).click()
+    const talk = npc.getByRole('button', { name: 'Talk to Tamsin Reed (Watch Officer)' })
+    await expect(talk).toBeVisible()
+    await talk.click()
+    const dialogue = page.getByRole('dialog', { name: 'Tamsin Reed (Watch Officer)' })
+    await expect(dialogue.getByRole('button', { name: 'Accept objective' })).toBeVisible()
+    const arrived = await world(page)
+    expect(arrived.position).toEqual({ sectorId: 'verdant-expanse', x: 2, y: 4 })
+    expect(arrived.route).toEqual([])
+  } finally {
+    await page.unroute('**/api/world', stripArrivalTopic)
+  }
+})
+
 test('held movement advances while its first server receipt is delayed', async ({ page }, info) => {
   test.skip(info.project.name !== 'desktop-chromium', 'Exercise delayed keyboard input once.')
   await enter(page)

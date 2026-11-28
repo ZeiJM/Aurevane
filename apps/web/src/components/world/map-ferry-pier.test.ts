@@ -52,11 +52,27 @@ it.each(ids)('places the whole pier over water from the shore in %s', (sectorId)
           y: from.y + normal.y * along + cross.y * side,
         }),
       ).toBe(true)
-  expect(waterAt(mooring)).toBe(true)
+  expect(mooring).not.toBeNull()
+  if (!mooring) return
+  const berthOffset = (mooring.x - from.x) * cross.x + (mooring.y - from.y) * cross.y
+  const preferredSide = shoreSide === 'north' ? -1 : 1
+  const signedOffset = berthOffset * preferredSide
+  // The largest painted boat reaches 0.75 tiles on its hull side and 3.52
+  // tiles on its sail side. Neither silhouette crosses the pier's outer edge.
+  expect(signedOffset - 0.75 > 0.39 || signedOffset + 3.52 < -0.39).toBe(true)
+  for (const along of [-2.85, -2, -1, 0, 1, 2, 2.85])
+    for (const across of [-0.8, 0, 0.8])
+      expect(
+        waterAt({
+          x: mooring.x + normal.x * along + cross.x * across,
+          y: mooring.y + normal.y * along + cross.y * across,
+        }),
+      ).toBe(true)
 })
 
 it('does not draw a pier or mooring through dry or withheld terrain', () => {
   expect(ferryPierPlacement({ x: 3.5, y: 6.5 }, 'west', () => false)).toBeNull()
   const pier = ferryPierPlacement({ x: 3.5, y: 6.5 }, 'west', ({ x }) => Math.floor(x) === 2)
   expect(pier?.to.x).toBeGreaterThan(2)
+  expect(pier?.mooring).toBeNull()
 })
