@@ -417,7 +417,7 @@ describe('world command ordering', () => {
           ? { kind, destination: { sectorId: 'a', x: 2, y: 2 } }
           : { kind, targetId: 'one' }
       const submitted = controller.send(intent)
-      expect(command).toHaveBeenCalledWith(intent, view)
+      expect(command).toHaveBeenCalledWith(intent, view, expect.any(AbortSignal))
       expect(signal?.aborted).toBe(true)
       read.resolve({ ...view, version: 999 })
       await refreshing
@@ -486,6 +486,7 @@ describe('world command ordering', () => {
       expect(command).toHaveBeenCalledWith(
         { kind: 'autopath', objectiveId: 'last-survey' },
         segment,
+        expect.any(AbortSignal),
       ),
     )
     expect(controller.view.route.length).toBe(256)
@@ -618,6 +619,50 @@ describe('world command ordering', () => {
     expect((await controller.send({ kind: 'stop' })).applied).toBe(true)
     expect(refresh).toHaveBeenCalledTimes(1)
     expect(command.mock.calls[1]![1].version).toBe(4)
+  })
+  it('unblocks the last keyboard direction when an earlier movement response stalls', async () => {
+    vi.useFakeTimers()
+    const command = vi
+      .fn()
+      .mockImplementationOnce(
+        (_intent, _current, signal: AbortSignal) =>
+          new Promise((_resolve, reject) => {
+            signal.addEventListener('abort', () => reject(signal.reason), { once: true })
+          }),
+      )
+      .mockResolvedValueOnce({ ...view, version: 2 })
+    const error = vi.fn()
+    const controller = new WorldController(view, {
+      command,
+      refresh: vi.fn(),
+      accept: vi.fn(),
+      error,
+      busy: vi.fn(),
+    })
+    try {
+      const stalled = controller.send({
+        kind: 'walk',
+        destination: { sectorId: 'a', x: 2, y: 1 },
+        direction: 'east',
+      })
+      const turn = {
+        kind: 'walk',
+        destination: { sectorId: 'a', x: 1, y: 2 },
+        direction: 'south',
+      } as const
+      const latest = controller.send(turn)
+      await vi.advanceTimersByTimeAsync(4999)
+      expect(command).toHaveBeenCalledTimes(1)
+      await vi.advanceTimersByTimeAsync(1)
+      expect(await stalled).toEqual({ applied: false })
+      expect((await latest).applied).toBe(true)
+      expect(command.mock.calls.map(([intent]) => intent.direction)).toEqual(['east', 'south'])
+      expect(error).not.toHaveBeenCalled()
+      expect(controller.pending).toBe(false)
+    } finally {
+      controller.dispose()
+      vi.useRealTimers()
+    }
   })
   it('does not overwrite or discard an encounter with a newer movement request', async () => {
     const first = deferred(),

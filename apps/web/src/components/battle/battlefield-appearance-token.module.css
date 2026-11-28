@@ -1,9 +1,9 @@
 .actor {
   position: absolute;
   z-index: 2;
-  bottom: 8%;
+  bottom: 3%;
   left: 50%;
-  width: 94%;
+  width: 122%;
   aspect-ratio: 3 / 4;
   translate: -50% 0;
   pointer-events: none;

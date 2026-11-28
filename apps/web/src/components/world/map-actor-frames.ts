@@ -5,7 +5,13 @@ import {
   type StaticMapRaster,
 } from './map-static-raster'
 
-type Actor = { atlas: HTMLImageElement; column: number; row: number; still: boolean }
+type Actor = {
+  atlas: HTMLImageElement
+  column: number
+  row: number
+  still: boolean
+  frameScale?: number
+}
 const { width, height } = APPEARANCE_FRAME
 const maxPixels = 3 * 1024 * 1024
 const maxFrames = 256
@@ -23,12 +29,14 @@ function drawBody(
   y: number,
   scale: number,
 ) {
+  const sourceWidth = width * (actor.frameScale ?? 1)
+  const sourceHeight = height * (actor.frameScale ?? 1)
   ctx.drawImage(
     actor.atlas,
-    actor.column * width,
-    actor.row * height,
-    actor.still ? actor.atlas.naturalWidth : width,
-    actor.still ? actor.atlas.naturalHeight : height,
+    actor.column * sourceWidth,
+    actor.row * sourceHeight,
+    actor.still ? actor.atlas.naturalWidth : sourceWidth,
+    actor.still ? actor.atlas.naturalHeight : sourceHeight,
     x,
     y,
     width * scale,
@@ -56,6 +64,7 @@ export function createMapActorFrames() {
         actor.column,
         actor.row,
         actor.still,
+        actor.frameScale ?? 1,
         density,
         ghost,
       ])

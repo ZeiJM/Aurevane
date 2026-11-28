@@ -18,6 +18,7 @@ import { type CharacterWorkspaceProps } from '@/components/character/character-p
 import { CharacterSkillBuildPanel } from '@/components/character/character-skill-build-panel'
 import { FoundationDisciplineSigil } from '@/components/character/foundation-discipline-sigil'
 import { LoadoutHeader } from '@/components/character/loadout-header'
+import { SUPERNATURAL_ART } from '@/media/supernatural-art'
 
 import { skillPreviewEffects } from './skill-effect-preview'
 import { skillDisplayName } from './skill-detail-presentation'
@@ -478,7 +479,7 @@ export function CharacterArsenalShell({
               <article className={styles.futurePowerCard} data-power="ascension">
                 <span className={styles.powerGlyph} data-gameplay-art="power" aria-hidden="true">
                   <Image
-                    src="/media/art/nexus/nexus-ascension-default-v01.webp"
+                    src={SUPERNATURAL_ART.ascension}
                     width={160}
                     height={160}
                     unoptimized
@@ -493,7 +494,7 @@ export function CharacterArsenalShell({
               <article className={styles.futurePowerCard} data-power="severed">
                 <span className={styles.powerGlyph} data-gameplay-art="power" aria-hidden="true">
                   <Image
-                    src="/media/art/nexus/nexus-severed-default-v01.webp"
+                    src={SUPERNATURAL_ART.severance}
                     width={160}
                     height={160}
                     unoptimized

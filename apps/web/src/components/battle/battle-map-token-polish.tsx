@@ -289,7 +289,7 @@ function polishTerraceScene(tiles: readonly HTMLButtonElement[], board: HTMLElem
     ]
   })
 
-  for (const { tile, x, y, width, height: cellHeight, lift, badges } of cells) {
+  for (const { tile, x, y, lift, badges } of cells) {
     const surfaceY = y - lift
     tile.style.setProperty('--terrace-lift', `${lift}px`)
     tile.style.setProperty('--terrace-billboard', battlefieldTerraceBillboard(x, surfaceY, height))
@@ -300,9 +300,10 @@ function polishTerraceScene(tiles: readonly HTMLButtonElement[], board: HTMLElem
         battlefieldTerraceBillboard(centerX, centerY, height),
       )
     }
-    if (!tile.querySelector('[data-battle-appearance-pose]')) continue
+    const actor = tile.querySelector<HTMLElement>('[data-battle-appearance-pose]')
+    if (!actor) continue
     const foot = projectBattlefieldTerracePoint(x, surfaceY, height)
-    const actorHeight = Math.min(width, cellHeight) * 0.85 * 2.4 * foot.scale
+    const actorHeight = actor.offsetHeight * foot.scale
     if (!actorHeight) continue
     let covered = 0
     for (const cliff of cliffs) {

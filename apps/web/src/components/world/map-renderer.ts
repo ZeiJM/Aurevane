@@ -3600,6 +3600,7 @@ export function createMapRenderer(
       })),
     ].sort((a, b) => a.y - b.y)
     const tokenScale = ferryFrame ? Math.max(0.35, tile / 48) : tile / 64
+    const actorScaleFor = (self: boolean) => tokenScale * (self ? 1.53 : 1.36)
     const radius = Math.round(34 * tokenScale * identityRatio) / identityRatio / 2
     const previousActorPositions = actorPositions
     actorPositions = new Map()
@@ -3638,7 +3639,7 @@ export function createMapRenderer(
       npc = false,
     ) => {
       if (
-        (tile < (npc ? 22 : 42) && !ferryFrame) ||
+        (tile < (npc ? 22 : self ? 32 : 42) && !ferryFrame) ||
         (!self && requestedActors >= MAX_EMBODIED_ACTORS - 1)
       )
         return null
@@ -3647,7 +3648,7 @@ export function createMapRenderer(
         const sprite = visibleImage(spriteUrl)
         if (!sprite) return null
         embodiedActors++
-        return { atlas: sprite, column: 0, row: 0, still: true }
+        return { atlas: sprite, column: 0, row: 0, still: true, frameScale: 1 }
       }
       const asset = manifestFor(image)
       if (!asset) return null
@@ -3674,11 +3675,11 @@ export function createMapRenderer(
             : appearanceWalkFrame(now - walkingSince),
         ),
         still: false,
+        frameScale: asset.blueprint.v === 7 ? 2 : 1,
       }
     }
     type Nameplate = { point: MapPoint; person: (typeof selfStack.people)[number] }
     const nameplates: Nameplate[] = []
-    const actorScale = tokenScale * 1.22
     const identityPoint = (projected: MapPoint) => ({
       x: Math.round((projected.x - radius) * identityRatio) / identityRatio + radius,
       y: Math.round(projected.y * identityRatio) / identityRatio,
@@ -3721,6 +3722,7 @@ export function createMapRenderer(
               ? 0
               : Math.floor(now / 3600) % people.length,
         person = people[index]!
+      const actorScale = actorScaleFor(person.self)
       if (!ghost || actor) nameplates.push({ point, person })
       if (paintClip) {
         // A stationary crowd does not need its canvas commands replayed for
@@ -3738,7 +3740,8 @@ export function createMapRenderer(
       ctx.save()
       ctx.globalAlpha = 1
       if (actor) {
-        const { width, height, anchorX, anchorY } = APPEARANCE_FRAME
+        const { width, height, anchorX } = APPEARANCE_FRAME
+        const anchorY = actor.frameScale === 2 ? 56.5 : APPEARANCE_FRAME.anchorY
         const scale = actorScale
         ctx.imageSmoothingEnabled = true
         ctx.imageSmoothingQuality = 'high'
@@ -4712,7 +4715,9 @@ export function createMapRenderer(
           oldColumn !== actor.column
         ) {
           const { x, y } = identityPoint(p)
-          const { width, height, anchorX, anchorY } = APPEARANCE_FRAME
+          const { width, height, anchorX } = APPEARANCE_FRAME
+          const anchorY = actor.frameScale === 2 ? 56.5 : APPEARANCE_FRAME.anchorY
+          const actorScale = actorScaleFor(person.self)
           // Cover the filtered pose's shadow and its device-pixel rounding.
           const pad = 8 / identityRatio
           idlePoseChanges.set(poseIndex, {

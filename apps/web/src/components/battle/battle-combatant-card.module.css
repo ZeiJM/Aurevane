@@ -140,9 +140,11 @@
 @media (min-width: 821px) {
   .card {
     container-type: inline-size;
+    --battle-card-portrait-size: min(8.25rem, calc(var(--av-cockpit-art-size) * 1.34));
     display: grid;
-    grid-template-columns: var(--av-cockpit-art-size) minmax(0, 1fr);
-    grid-template-rows: 1.25rem var(--av-cockpit-art-size) auto;
+    grid-template-columns: min(48%, var(--battle-card-portrait-size)) minmax(0, 1fr);
+    grid-template-rows: 1.25rem auto auto;
+    align-content: start;
     gap: 0.2rem;
     /* Both summaries reserve the same portrait and two effect rows. */
     height: auto;
@@ -150,8 +152,8 @@
   }
   .card .portrait {
     container-type: size;
-    width: var(--av-cockpit-art-size);
-    height: var(--av-cockpit-art-size) !important;
+    width: 100%;
+    height: auto !important;
     grid-column: 1;
     grid-row: 2;
     min-height: 0;
@@ -199,7 +201,8 @@
 }
 @media (min-width: 821px) and (max-height: 700px) {
   .card {
-    grid-template-rows: 1.125rem var(--av-cockpit-art-size) auto;
+    --battle-card-portrait-size: min(5.5rem, calc(var(--av-cockpit-art-size) * 1.15));
+    grid-template-rows: 1.125rem auto auto;
     gap: 0 0.2rem;
     padding: 1px;
   }
@@ -332,13 +335,13 @@
 
 @media (max-width: 820px), (max-width: 980px) and (max-height: 500px) and (pointer: coarse) {
   .card {
-    grid-template-columns: 2rem minmax(0, 1fr);
+    grid-template-columns: 2.25rem minmax(0, 1fr);
     gap: 0.05rem 0.2rem;
     padding: 0.15rem;
   }
   .card .portrait {
-    width: 2rem;
-    height: 2rem;
+    width: 2.25rem;
+    height: 2.25rem;
   }
   .card > section {
     max-height: 1.2rem;

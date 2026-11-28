@@ -10,8 +10,8 @@
 :global(section#battlefield div > [data-battle-terrace]) {
   --terrace-tint: transparent;
   position: absolute !important;
-  top: 23%;
-  left: 54%;
+  top: 19%;
+  left: 53%;
   margin: 0 !important;
   padding: 0 !important;
   translate: -50% 0;
@@ -112,7 +112,7 @@
 
 :global(#battlefield [data-terrace-weather='steam']) {
   opacity: 0.72;
-  background-image: url('/media/art/battle/terrace-steam-v01.webp');
+  background-image: url('/media/art/battle/terrace-steam-anime-v01.webp');
 }
 
 :global(#battlefield [data-battle-terrace] [data-terrace-weather='steam']) {
@@ -216,9 +216,9 @@
 }
 
 :global(#battlefield [data-battle-terrace] > button > [data-team] > [data-battle-appearance-pose]) {
-  /* Atlas frames plant their feet close to row 56 of 64. Place those pixels at the surface. */
-  bottom: 20%;
-  width: 180%;
+  /* Keep the foot row on the tile center as the standing sprite grows. */
+  bottom: 18%;
+  width: 210%;
 }
 
 :global(

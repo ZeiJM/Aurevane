@@ -47,6 +47,14 @@ it('reuses native-density actor poses across people and camera movement and isol
   expect(surfaces.every((s) => s.width === 0 && s.height === 0)).toBe(true)
 })
 
+it('samples an entire native-resolution authored pose at its correct atlas column and row', () => {
+  const { draws, actor, ctx, frames } = actorScene()
+  const atlas = { ...actor.atlas, naturalWidth: 3072, naturalHeight: 768 } as HTMLImageElement
+  frames.draw(ctx, { ...actor, atlas, frameScale: 2 }, 10, 20, 1.5, 2, false)
+  expect(draws).toHaveBeenCalledExactlyOnceWith(atlas, 768, 128, 96, 128, 4, 4, 144, 192)
+  frames.clear()
+})
+
 it('keeps the actor surface cache bounded across a crowd changing poses', () => {
   const { surfaces, actor, ctx, frames } = actorScene()
   for (let i = 0; i < 800; i++)

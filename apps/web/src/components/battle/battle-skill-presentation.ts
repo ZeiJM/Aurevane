@@ -1,5 +1,5 @@
 import { imageAssetRegistry } from '@/media/registry'
-import { contentMediaKeySource } from '@aurevane/game-core/combat/content-media'
+import { publishedContentArtwork } from '@/media/published-content-art'
 import {
   PV1F_BASIC_ATTACK_ID,
   PV1F_GUARD_ACTION_ID,
@@ -70,7 +70,7 @@ const ACTION_ARTWORK = new Map<string, string>([
 export function battleSkillArtwork(actionId: string, iconKey?: string | null): string {
   const hooked = resolveSkillIconHook(iconKey)
   return (
-    contentMediaKeySource(iconKey) ??
+    publishedContentArtwork(iconKey) ??
     imageAssetRegistry.get(iconKey ?? '')?.src ??
     (hooked ? disciplineSkillArtwork(hooked.skillId) : null) ??
     disciplineSkillArtwork(actionId) ??
@@ -81,7 +81,7 @@ export function battleSkillArtwork(actionId: string, iconKey?: string | null): s
 
 export function battleResonanceArtwork(resonanceId: string, iconKey?: string | null): string {
   return (
-    contentMediaKeySource(iconKey) ??
+    publishedContentArtwork(iconKey) ??
     resonanceArtwork(resonanceId) ??
     darkFantasyResonanceArtwork(resonanceId) ??
     BATTLE_MISSING_ARTWORK

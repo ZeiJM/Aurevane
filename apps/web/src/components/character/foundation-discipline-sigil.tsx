@@ -1,6 +1,7 @@
-import { contentMediaSource } from '@aurevane/game-core/combat/content-media'
+import { contentArtworkKey, contentMediaSource } from '@aurevane/game-core/combat/content-media'
 import type { DisciplinePresentationMedia } from '@aurevane/game-core/character/discipline-build'
 import { imageAssetRegistry } from '@/media/registry'
+import { publishedContentArtwork } from '@/media/published-content-art'
 import { phase4DisciplineSigil } from '@/components/battle/phase4-combat-art'
 import Image from 'next/image'
 import type { ReactNode } from 'react'
@@ -50,7 +51,7 @@ export function FoundationDisciplineSigil({
       <Image
         data-gameplay-art="discipline"
         className={className}
-        src={contentMediaSource(media.artwork)}
+        src={publishedContentArtwork(contentArtworkKey(media)) ?? contentMediaSource(media.artwork)}
         width={media.artwork.width}
         height={media.artwork.height}
         alt=""

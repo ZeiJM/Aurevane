@@ -2,6 +2,7 @@ import { ADVANCED_DISCIPLINES } from '@aurevane/game-core/character/advanced-dis
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 import { resolveEssenceForBuild } from '@aurevane/game-core/combat/essence'
 import { essenceSkillArtwork } from '../../media/essence-skill-art'
+import { disciplineSigilArtwork } from '../../media/discipline-sigil-art'
 import { imageAssetRegistry } from '../../media/registry'
 import { regularSkillArtwork } from '../../media/regular-skill-art'
 
@@ -70,6 +71,8 @@ function frame(color: string, body: string): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><defs><radialGradient id="bg"><stop stop-color="${color}" stop-opacity=".2"/><stop offset="1" stop-color="#0a1017"/></radialGradient></defs><rect x="2" y="2" width="124" height="124" rx="16" fill="#0a1017"/><rect x="5" y="5" width="118" height="118" rx="13" fill="url(#bg)" stroke="${color}" stroke-opacity=".55"/><g fill="none" stroke="${color}" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">${body}</g></svg>`
 }
 export function phase4DisciplineSigil(disciplineId: string): string | null {
+  const current = disciplineSigilArtwork(disciplineId)
+  if (current) return current
   const image = imageAssetRegistry.get(`art.phase4.${disciplineId}.identity.v01`)
   if (image?.status === 'approved' && image.src) return image.src
   const color = PHASE4_DISCIPLINE_COLORS[disciplineId]

@@ -7,8 +7,8 @@ export function fitBattlefieldTerrace(
   viewportHeight: number,
 ) {
   // The footprint is registered to the clear stone deck in the terrace painting.
-  const width = viewportWidth * 0.79
-  const height = viewportHeight * 0.64
+  const width = viewportWidth * 0.86
+  const height = viewportHeight * 0.7
   const depth = TERRACE_DEPTH
   if (rows < 7 || width / (columns * (1 + depth)) < 32 || height / (rows * (1 + depth)) < 24)
     return null

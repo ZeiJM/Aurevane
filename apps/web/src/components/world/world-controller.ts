@@ -13,6 +13,24 @@ type Job = {
   promise: Promise<Receipt>
 }
 const movement = (intent: WorldIntent) => ['walk', 'autopath', 'stop'].includes(intent.kind)
+const WORLD_REQUEST_TIMEOUT_MS = 5000
+
+async function requestWithDeadline<T>(
+  request: (signal: AbortSignal) => Promise<T>,
+  cancellation?: AbortSignal,
+): Promise<T> {
+  const deadline = new AbortController()
+  const timer = setTimeout(
+    () => deadline.abort(new Error('The world connection timed out.')),
+    WORLD_REQUEST_TIMEOUT_MS,
+  )
+  const signal = cancellation ? AbortSignal.any([cancellation, deadline.signal]) : deadline.signal
+  try {
+    return await request(signal)
+  } finally {
+    clearTimeout(timer)
+  }
+}
 
 /** One authority channel. New movement replaces queued movement, never an action. */
 export class WorldController {
@@ -34,6 +52,7 @@ export class WorldController {
       command: (
         intent: WorldIntent,
         view: WorldView,
+        signal: AbortSignal,
       ) => Promise<WorldView | WorldAttackReceipt | WorldMovementReceipt>
       refresh: (signal?: AbortSignal, fullScene?: boolean) => Promise<WorldView>
       accept: (view: WorldView, reconcile: boolean) => void
@@ -185,7 +204,10 @@ export class WorldController {
       source = this.view
     this.sceneRead = read
     try {
-      const incoming = await this.transport.refresh(read.signal, true)
+      const incoming = await requestWithDeadline(
+        (signal) => this.transport.refresh(signal, true),
+        read.signal,
+      )
       if (
         this.disposed ||
         read.signal.aborted ||
@@ -372,7 +394,10 @@ export class WorldController {
     this.idleRead = read
     this.running = true
     try {
-      const view = await this.transport.refresh(read.signal)
+      const view = await requestWithDeadline(
+        (signal) => this.transport.refresh(signal),
+        read.signal,
+      )
       if (this.idleRead === read && !read.signal.aborted) this.accept(view, true)
     } catch (error) {
       if (!this.disposed && this.idleRead === read && !read.signal.aborted)
@@ -402,16 +427,20 @@ export class WorldController {
       let receipt: WorldView | WorldAttackReceipt | WorldMovementReceipt,
         source = this.view
       try {
-        receipt = await this.transport.command(job.intent, source)
+        receipt = await requestWithDeadline((signal) =>
+          this.transport.command(job.intent, source, signal),
+        )
       } catch (error) {
         if (!(error instanceof WorldConflict)) throw error
-        this.accept(await this.transport.refresh(), false)
+        this.accept(await requestWithDeadline((signal) => this.transport.refresh(signal)), false)
         if (movement(job.intent) && job.sequence < this.latestMovement) {
           job.resolve({ applied: false })
           return
         }
         source = this.view
-        receipt = await this.transport.command(job.intent, source)
+        receipt = await requestWithDeadline((signal) =>
+          this.transport.command(job.intent, source, signal),
+        )
       }
       let view: WorldView,
         acceptReceipt = true

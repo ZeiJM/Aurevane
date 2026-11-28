@@ -7,7 +7,10 @@
     "resonances": 136,
     "sigils": 17,
     "support": 8,
-    "commands": 7
+    "commands": 7,
+    "supernatural": 3,
+    "terrainOverlays": 1,
+    "publishedUploads": 6
   },
   "assets": [
     {
@@ -2585,6 +2588,76 @@
       "master": "exec-85e299d5-b20a-4eb2-922f-c836a44b98e2.png",
       "tile": 7,
       "sha256": "bce16e05295ac6658fb50a5191c7372540478e0c11427eb52010696f9392ebb4"
+    },
+    {
+      "previous": "/media/art/nexus/nexus-ascension-default-v01.webp",
+      "current": "/media/art/nexus/nexus-ascension-anime-v01.webp",
+      "master": "exec-3c9c3539-6e01-448c-ba1e-d023124d193f.png",
+      "tile": 1,
+      "sha256": "ff4d8fd5485de8814ca8751b5c8ce58610a2db5676389aa3f3d0246be2062863"
+    },
+    {
+      "previous": "/media/art/nexus/nexus-severed-default-v01.webp",
+      "current": "/media/art/nexus/nexus-severance-anime-v01.webp",
+      "master": "exec-3c9c3539-6e01-448c-ba1e-d023124d193f.png",
+      "tile": 2,
+      "sha256": "97ea2d2625cb7d1d19b44b8248ba1d0a291052f3581b1923188d3229e65d5d68"
+    },
+    {
+      "previous": null,
+      "current": "/media/art/nexus/nexus-paths-anime-v01.webp",
+      "master": "exec-3c9c3539-6e01-448c-ba1e-d023124d193f.png",
+      "tile": 3,
+      "sha256": "7728ad3308b624fc5c3c27c106d7ca92228e59e96d74eea5a5c06dc085ce848e"
+    },
+    {
+      "previous": "/media/art/battle/terrace-steam-v01.webp",
+      "current": "/media/art/battle/terrace-steam-anime-v01.webp",
+      "master": "exec-8c3292d6-6053-4b00-83dc-9b37cff62416.png",
+      "tile": 1,
+      "sha256": "e64f82f79e5998c4eb312eba7c8544cf4b9d35a71eccfba6b340940ef0c0639a"
+    },
+    {
+      "previous": "/api/content-media/f63abd95-14eb-4da5-8e89-131d0d2d4d68",
+      "current": "/media/art/discipline-sigils/warrior-lineage-anime-v01.webp",
+      "master": "exec-697ffc29-f9a9-43be-8194-7150e73908c2.png",
+      "tile": 1,
+      "sha256": "d2e183dea0aa3bf37e7a1a6f214355467248a9b5220cf1784db542a20aef0a5b"
+    },
+    {
+      "previous": "/api/content-media/e86b3a5c-a6e6-4283-84a7-49271bbde89e",
+      "current": "/media/art/discipline-skills/crimson-ignition-anime-v01.webp",
+      "master": "exec-697ffc29-f9a9-43be-8194-7150e73908c2.png",
+      "tile": 2,
+      "sha256": "1461099502a99bfced67f381275fe02378573c7de0eb2e2852885bf198c024d2"
+    },
+    {
+      "previous": "/api/content-media/40bc394f-a924-43b4-9b0d-dbc3f136192b",
+      "current": "/media/art/discipline-skills/celestial-sphere-anime-v01.webp",
+      "master": "exec-697ffc29-f9a9-43be-8194-7150e73908c2.png",
+      "tile": 3,
+      "sha256": "450ed6f24d699354ca3f31f6c527f4b139bdea15bdd3076ddab8e29b24aee017"
+    },
+    {
+      "previous": "/api/content-media/b55353ac-eeaf-402d-824f-8d8e30f46a59",
+      "current": "/media/art/discipline-skills/space-fold-anime-v01.webp",
+      "master": "exec-697ffc29-f9a9-43be-8194-7150e73908c2.png",
+      "tile": 4,
+      "sha256": "981010778048def0f700fd968e894007f31b27c1561e2c73daa459b4921b286d"
+    },
+    {
+      "previous": "/api/content-media/f6ba91b3-6887-4197-8cc6-22f0aa48361b",
+      "current": "/media/art/resonances/silver-instinct-anime-v01.webp",
+      "master": "exec-697ffc29-f9a9-43be-8194-7150e73908c2.png",
+      "tile": 5,
+      "sha256": "c51a02b0a6b1634d67871f52bdd9df2955d7ac4edc4dda9f5bbfbdfc64578ec3"
+    },
+    {
+      "previous": "/api/content-media/777136d0-b986-4cd7-8806-c131b9a8d175",
+      "current": "/media/art/essence-skills/cobalt-beam-anime-v01.webp",
+      "master": "exec-697ffc29-f9a9-43be-8194-7150e73908c2.png",
+      "tile": 6,
+      "sha256": "ad9acbfab009bd81e852c93751353de51e5ea0e7ebd00d619602355c54b396db"
     }
   ]
 }
