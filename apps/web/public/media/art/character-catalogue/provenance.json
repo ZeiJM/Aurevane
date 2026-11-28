@@ -14,6 +14,8 @@
     "elf-f-0006",
     "elf-f-0007",
     "elf-f-0008",
+    "elf-f-0009",
+    "elf-f-0010",
     "elf-m-0001",
     "elf-m-0002",
     "elf-m-0003",
@@ -22,6 +24,8 @@
     "elf-m-0006",
     "elf-m-0007",
     "elf-m-0008",
+    "elf-m-0009",
+    "elf-m-0010",
     "fae-f-0001",
     "fae-f-0002",
     "fae-f-0003",
@@ -30,6 +34,8 @@
     "fae-f-0006",
     "fae-f-0007",
     "fae-f-0008",
+    "fae-f-0009",
+    "fae-f-0010",
     "fae-m-0001",
     "fae-m-0002",
     "fae-m-0003",
@@ -38,6 +44,8 @@
     "fae-m-0006",
     "fae-m-0007",
     "fae-m-0008",
+    "fae-m-0009",
+    "fae-m-0010",
     "human-f-0001",
     "human-f-0002",
     "human-f-0003",
@@ -46,6 +54,8 @@
     "human-f-0006",
     "human-f-0007",
     "human-f-0008",
+    "human-f-0009",
+    "human-f-0010",
     "human-m-0001",
     "human-m-0002",
     "human-m-0003",
@@ -54,6 +64,8 @@
     "human-m-0006",
     "human-m-0007",
     "human-m-0008",
+    "human-m-0009",
+    "human-m-0010",
     "mountain-orc-f-0001",
     "mountain-orc-f-0002",
     "mountain-orc-f-0003",
@@ -62,6 +74,8 @@
     "mountain-orc-f-0006",
     "mountain-orc-f-0007",
     "mountain-orc-f-0008",
+    "mountain-orc-f-0009",
+    "mountain-orc-f-0010",
     "mountain-orc-m-0001",
     "mountain-orc-m-0002",
     "mountain-orc-m-0003",
@@ -69,7 +83,9 @@
     "mountain-orc-m-0005",
     "mountain-orc-m-0006",
     "mountain-orc-m-0007",
-    "mountain-orc-m-0008"
+    "mountain-orc-m-0008",
+    "mountain-orc-m-0009",
+    "mountain-orc-m-0010"
   ],
   "secondArtBatch": {
     "artDirection": "Crisp tapered ink, angular cel shadows, cinematic colored rim light, and fully illustrated fantasy settings.",
@@ -580,6 +596,113 @@
         "label": "Greywater Ridge Potter",
         "portraitSheet": "exec-69646a2d-f9e2-4e6a-a42d-9507857b08ba.png",
         "spriteSheet": "exec-e1bcbe8d-c313-41ba-8129-03476eb0a6c3.png"
+      }
+    ]
+  },
+  "sixthArtBatch": {
+    "artDirection": "Ink contours, sharp cel shadows and fully painted original Aurevane locations.",
+    "portraitGrid": "Two rows of five expression paintings. Each row has its own pose and palette.",
+    "spriteGrid": "Two blocks of 5 × 3 front, side and rear motion drawings based on the respective portrait variant.",
+    "characters": [
+      {
+        "key": "elf-f-0009",
+        "label": "Ambergrove Arrowmaker",
+        "portraitSheet": "exec-e7d26fb2-dcd5-4c27-9eca-2a48f246be73.png",
+        "spriteSheet": "exec-7b72a14f-acaa-4c9f-b514-754b28c48a0d.png"
+      },
+      {
+        "key": "elf-f-0010",
+        "label": "Frostmoor Envoy",
+        "portraitSheet": "exec-8465c8d6-e715-41ce-92ee-d18067cdc25f.png",
+        "spriteSheet": "exec-eea8a2b9-bca8-48cb-8b20-b4963ed009a3.png"
+      },
+      {
+        "key": "elf-m-0009",
+        "label": "Moonweir Musician",
+        "portraitSheet": "exec-ee35aa6b-fd7b-41f9-8568-37a7fc33db90.png",
+        "spriteSheet": "exec-70f4b0e1-b78f-4d62-8786-060b4e8e0adf.png"
+      },
+      {
+        "key": "elf-m-0010",
+        "label": "Clearbrook Tinker",
+        "portraitSheet": "exec-bfe806b9-a5a7-4989-bbd4-0b5ba7605b3c.png",
+        "spriteSheet": "exec-d240cd70-ad09-4827-ae10-1b9c42d2bfe5.png"
+      },
+      {
+        "key": "fae-f-0009",
+        "label": "Thistlewind Apothecary",
+        "portraitSheet": "exec-84530240-9607-45d6-8a52-17a69d885dfe.png",
+        "spriteSheet": "exec-f0402808-b1a2-4a83-bce3-97c6725b3da2.png"
+      },
+      {
+        "key": "fae-f-0010",
+        "label": "Dewveil Violinist",
+        "portraitSheet": "exec-04b68ae6-50f8-4859-b541-a76ec8a0a88e.png",
+        "spriteSheet": "exec-c35a21c1-e800-4750-b6e2-bdea391c264e.png"
+      },
+      {
+        "key": "fae-m-0009",
+        "label": "Sunfen Reedwright",
+        "portraitSheet": "exec-86bf1d24-46f5-405e-9f0c-4c484b05ea38.png",
+        "spriteSheet": "exec-6daeba3e-bb91-4b4a-af01-cfc203c23ff3.png"
+      },
+      {
+        "key": "fae-m-0010",
+        "label": "Hollowbriar Messenger",
+        "portraitSheet": "exec-b7a4eb03-7991-484b-8b56-7c2401a3c3bb.png",
+        "spriteSheet": "exec-f2ec476a-992c-4797-a0b3-94da201232f7.png"
+      },
+      {
+        "key": "human-f-0009",
+        "label": "Saltglass Navigator",
+        "portraitSheet": "exec-d0c69275-8e91-4a28-ad6b-04ccab8db0b9.png",
+        "spriteSheet": "exec-950e7371-c1ad-495e-85af-344875e29ade.png"
+      },
+      {
+        "key": "human-f-0010",
+        "label": "Juneshore Mapbinder",
+        "portraitSheet": "exec-2c318349-9dd0-45b7-bcc5-645a3266bee8.png",
+        "spriteSheet": "exec-77227d52-10db-4095-9832-71823662c875.png"
+      },
+      {
+        "key": "human-m-0009",
+        "label": "Saffron Dune Herald",
+        "originalPortraitSheet": "exec-c06d0f83-cc49-435a-8969-64a75f36cf2d.png",
+        "portraitFraming": "Individually cropped portrait panels to square while preserving the upper framing.",
+        "portraitSheet": "exec-c06d0f83-cc49-435a-8969-64a75f36cf2d--square-cells.png",
+        "spriteSheet": "exec-8dcdee08-83a7-4d20-82bd-66d66d3fdb2b.png"
+      },
+      {
+        "key": "human-m-0010",
+        "label": "Westgate Ropekeeper",
+        "portraitSheet": "exec-26040dab-ed1f-45d8-b337-f34bc10709e9.png",
+        "spriteSheet": "exec-3e22ce8f-1f25-4db8-aa34-647ed708df07.png"
+      },
+      {
+        "key": "mountain-orc-f-0009",
+        "label": "Thunderglass Watcher",
+        "portraitSheet": "exec-2d50673a-afa7-4716-a09e-9d0ce4eee1ae.png",
+        "spriteSheet": "exec-dc7190f7-7fdb-4b46-a266-4df931e92a83.png"
+      },
+      {
+        "key": "mountain-orc-f-0010",
+        "label": "Redcairn Bellsinger",
+        "portraitSheet": "exec-10307765-38d5-4a19-b9df-3ce5ab8b8531.png",
+        "spriteSheet": "exec-558c66a3-a1ee-4eb4-b45c-c05ff09342db.png"
+      },
+      {
+        "key": "mountain-orc-m-0009",
+        "label": "Snowbell Mason",
+        "originalPortraitSheet": "exec-8fcc5ada-6d39-4d1c-ac40-acd053356062.png",
+        "portraitFraming": "Individually cropped portrait panels to square while preserving the upper framing.",
+        "portraitSheet": "exec-8fcc5ada-6d39-4d1c-ac40-acd053356062--square-cells.png",
+        "spriteSheet": "exec-f0a5d5d3-02ee-421a-ab06-2b87b2bb3393.png"
+      },
+      {
+        "key": "mountain-orc-m-0010",
+        "label": "Graymere Bridgewright",
+        "portraitSheet": "exec-bf74c748-1121-4de7-bce6-3890dceea68a.png",
+        "spriteSheet": "exec-0e4ac939-c3a2-483e-9232-8935b29cf5be.png"
       }
     ]
   }

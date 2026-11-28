@@ -169,6 +169,42 @@ export const AUTHORED_CHARACTERS = [
     gender: 'masculine',
     label: 'Greywater Ridge Potter',
   },
+  { key: 'elf-f-0009', race: 'elf', gender: 'feminine', label: 'Ambergrove Arrowmaker' },
+  { key: 'elf-f-0010', race: 'elf', gender: 'feminine', label: 'Frostmoor Envoy' },
+  { key: 'elf-m-0009', race: 'elf', gender: 'masculine', label: 'Moonweir Musician' },
+  { key: 'elf-m-0010', race: 'elf', gender: 'masculine', label: 'Clearbrook Tinker' },
+  { key: 'fae-f-0009', race: 'fae', gender: 'feminine', label: 'Thistlewind Apothecary' },
+  { key: 'fae-f-0010', race: 'fae', gender: 'feminine', label: 'Dewveil Violinist' },
+  { key: 'fae-m-0009', race: 'fae', gender: 'masculine', label: 'Sunfen Reedwright' },
+  { key: 'fae-m-0010', race: 'fae', gender: 'masculine', label: 'Hollowbriar Messenger' },
+  { key: 'human-f-0009', race: 'human', gender: 'feminine', label: 'Saltglass Navigator' },
+  { key: 'human-f-0010', race: 'human', gender: 'feminine', label: 'Juneshore Mapbinder' },
+  { key: 'human-m-0009', race: 'human', gender: 'masculine', label: 'Saffron Dune Herald' },
+  { key: 'human-m-0010', race: 'human', gender: 'masculine', label: 'Westgate Ropekeeper' },
+  {
+    key: 'mountain-orc-f-0009',
+    race: 'mountain-orc',
+    gender: 'feminine',
+    label: 'Thunderglass Watcher',
+  },
+  {
+    key: 'mountain-orc-f-0010',
+    race: 'mountain-orc',
+    gender: 'feminine',
+    label: 'Redcairn Bellsinger',
+  },
+  {
+    key: 'mountain-orc-m-0009',
+    race: 'mountain-orc',
+    gender: 'masculine',
+    label: 'Snowbell Mason',
+  },
+  {
+    key: 'mountain-orc-m-0010',
+    race: 'mountain-orc',
+    gender: 'masculine',
+    label: 'Graymere Bridgewright',
+  },
 ] as const satisfies readonly AuthoredCharacter[]
 
 const byKey = new Map<string, AuthoredCharacter>(
