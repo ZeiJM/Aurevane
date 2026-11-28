@@ -29,6 +29,7 @@ on:
       - 'apps/web/e2e/world-timing-metrics.test.ts'
       - 'apps/web/e2e/world-render-diagnostics.ts'
       - 'apps/web/e2e/world-render-diagnostics.test.ts'
+      - 'apps/web/e2e/world-presentation-case.ts'
       - '.github/scripts/configure-supabase-test-ports.py'
       - '.github/scripts/configure-supabase-test-ports.test.py'
       - '.github/workflows/world-timing-repeat.yml'
@@ -87,6 +88,11 @@ jobs:
             --output=test-results/desktop-movement \
             --grep 'known neighbouring players follow the visible viewport|holding WASD walks repeatedly|rapid ground clicks settle at the last legal tile' \
             --reporter=list,github
+          AUREVANE_WORLD_LONG_HOLD=1 pnpm --filter @aurevane/web exec playwright test e2e/atlas-world.pw.ts \
+            --project=desktop-chromium --workers=1 --retries=0 \
+            --output=test-results/desktop-long-hold \
+            --grep 'one-minute .* key hold renders continuously across World sectors' \
+            --reporter=list,github
       - name: Save compact repeat boundary and motion evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -102,6 +108,7 @@ jobs:
             apps/web/test-results/**/world-presence-boundaries.json
             apps/web/test-results/**/world-presence-cleanup.json
             apps/web/test-results/**/attachments/held-walk-approval-timings-*.json
+            apps/web/test-results/**/attachments/held-minute-*-continuity-*.json
             apps/web/test-results/**/attachments/rapid-ground-click-intents-*.json
             apps/web/test-results/**/synthetic-world-render-cost.json
             apps/web/test-results/**/attachments/synthetic-world-render-cost-*.json

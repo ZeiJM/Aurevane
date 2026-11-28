@@ -74,7 +74,7 @@ import {
 } from '@/world/topology'
 import { mapPoint, type MapPoint, WorldMotion } from './world-motion'
 import { WorldPlayerMotion } from './map-player-motion'
-import { clampWorldZoom } from './world-zoom'
+import { clampWorldZoom, WORLD_MIN_ZOOM } from './world-zoom'
 import { samePosition } from '@/world/travel'
 import { isLocalVoidWalk, isVoidRealmSectorId } from '@/world/void-realms'
 import { retainWorldSceneReferences } from '@/world/presence'
@@ -403,6 +403,12 @@ interface SceneryBatch {
 const STATIONARY_SCENERY_PIXEL_LIMIT = 800_000
 const BIOME_RASTER_PIXEL_LIMIT = 4_000_000
 const GILDROOT_OAK_WIDTH_TILES = 36
+const PHONE_TILE_SIZE = 48
+const MOVING_MAP_BUDGET = {
+  ...mapQualityBudgets.low,
+  weather: 1,
+  foliage: 0.45,
+} as const
 
 function usesCompactScenery(item: Scenery) {
   return !item.underpass && !item.mirror && !item.waterfall && !item.oceanFeature
@@ -806,7 +812,7 @@ export function createMapRenderer(
     dirty = true,
     wasMoving = false,
     wasRemoteMoving = false,
-    pendingOverviewGround = false,
+    pendingGroundRefinement = false,
     visiblePlayerKey: string | null = null
   const pan = { x: 0, y: 0 }
   const heldKeys = new Map<string, MapDirection>()
@@ -1140,6 +1146,16 @@ export function createMapRenderer(
   load('regional-ground', 'v02')
   load('living-trees', 'v01')
   load('water-materials', 'v01')
+  // These compact public sheets recur across long mainland routes. Start their
+  // decode with the base map so a region/hamlet boundary cannot introduce the
+  // first image decode in the middle of a held movement frame.
+  for (const name of [
+    'hamlet-dressing',
+    'regional-scenery',
+    'regional-scenery-extra',
+    'ocean-features',
+  ])
+    load(name, 'v01')
   const loadRegionalArt = () => {
     for (const discovery of [...grandDiscoveries, ...oceanDiscoveries])
       if (!images.has(discovery.sheet)) load(discovery.sheet, 'v01')
@@ -1306,7 +1322,7 @@ export function createMapRenderer(
   const tileSize = () =>
     view.position.sectorId.startsWith('ferry:')
       ? Math.min(51, width / 19, height / 16) * zoom
-      : (width < 600 ? 48 : 64) * zoom
+      : (width < 600 ? PHONE_TILE_SIZE : 64) * zoom
   const resize = () => {
     weatherVeil.clear()
     lighting.clear()
@@ -1933,7 +1949,7 @@ export function createMapRenderer(
     }
     return image
   }
-  function biomeRaster(item: Scenery) {
+  function biomeRaster(item: Scenery, allowBuild = true) {
     // Individual tree growth changes CSS sizes continuously. Round only the
     // backing resolution upward so nearby sizes share a sharp, bounded crop;
     // the supplied width, height, root anchor and canopy transform stay exact.
@@ -1951,6 +1967,10 @@ export function createMapRenderer(
       biomeRasters.set(key, cached)
       return cached
     }
+    // A direct atlas crop remains sharp while walking. Avoid allocating and
+    // transferring a new per-species raster on the movement frame that first
+    // exposes it; the settled frame can populate the cache instead.
+    if (!allowBuild) return null
 
     // Pre-scale atlas crops that otherwise repeatedly resample large source
     // images for each canopy shear, including seasonal desktop foliage.
@@ -2080,14 +2100,20 @@ export function createMapRenderer(
     visible: readonly WorldSectorView[],
     ambient: boolean,
     moving: boolean,
+    groundInView: (point: MapPoint) => boolean,
   ) {
-    // Only combine a consecutive dry run. Liquid/coast ordering is unchanged.
+    // Only combine a consecutive dry run. Reuse overscan that is already
+    // cached, but leave cold offscreen ground out of the viewport rebuild.
     let start = 0,
       end = 0,
       runStart = 0
     visible.forEach((sector, index) => {
       const origin = sectorOrigin(sector)
       if (
+        (sector.charted &&
+          chartedTerrain.size > 0 &&
+          !groundInView(screen(origin)) &&
+          cache.get(sector.id)?.key !== groundKey(sector)) ||
         coastField.get(sector.id)?.length ||
         (ambient &&
           sector.cells.some(
@@ -2249,6 +2275,8 @@ export function createMapRenderer(
       view.atlas?.some((sector) => sector.charted && sector.id === view.position.sectorId)
     const regionId = current?.regionId ?? 'verdant-expanse'
     const weather = view.environment.weather
+    const movementActive =
+      sample.moving || remoteMoving || sample.point.x !== camera.x || sample.point.y !== camera.y
     if (animate) visualMinuteOfDay = view.environment.minuteOfDay
     const windTarget = worldWindTarget(weather, regionId)
     const ambient = animate && !reduced
@@ -2257,8 +2285,13 @@ export function createMapRenderer(
     const rainTarget = surfaceRainTarget(weather, regionId)
     surfaceRain = advanceSurfaceRain(surfaceRain ?? rainTarget, rainTarget, windElapsed)
     const surfaceWeather = { rain: surfaceRain, windSpeed: wind.speed }
-    const budget = mapQualityBudgets[quality]
+    // Keep weather and living foliage visibly active while walking, but bound
+    // decorative water, wildlife and cloud work so it cannot steal movement
+    // frames. Settled scenes immediately return to the selected quality.
+    const budget = movementActive ? MOVING_MAP_BUDGET : mapQualityBudgets[quality]
     const richAtmosphere = budget.clouds && (width >= 600 || quality === 'high')
+    const weatherVeilQuality =
+      mapQualityBudgets[quality].clouds && (width >= 600 || quality === 'high') ? 1 : 0.55
     const colosseum = grandDiscoveries.find((site) => site.id === 'remote-colosseum')
     if (colosseum) {
       const item = {
@@ -2393,10 +2426,20 @@ export function createMapRenderer(
         p.y < height + bleed
       )
     }
-    // At continental zoom a terrain receipt can supply dozens of sectors in one
-    // tick. Paint the public chart immediately, then refine nearest ground first.
+    // A newly exposed cold sector can take longer than a movement frame to
+    // construct. Keep every active-movement frame on the public chart surface,
+    // then refine full terrain nearest-first after motion settles. The chart is
+    // world-aligned and preserves authoritative water/lava coverage; scenery,
+    // actors and already-cached detailed terrain stay on their normal paths.
+    // At continental zoom the same fallback also bounds a large scene receipt.
+    const refiningDeferredGround = pendingGroundRefinement && !movementActive
     const pendingDetail = new Map<string, WorldAtlasCell>()
-    if (current?.charted && width >= 600 && tile < 32 && visible.length >= 16) {
+    if (
+      current?.charted &&
+      (movementActive ||
+        refiningDeferredGround ||
+        (width >= 600 && tile < 32 && visible.length >= 16))
+    ) {
       const waiting: { id: string; chart: WorldAtlasCell; distance: number }[] = []
       for (const sector of visible) {
         if (!sector.charted || cache.get(sector.id)?.key === groundKey(sector)) continue
@@ -2408,11 +2451,10 @@ export function createMapRenderer(
         waiting.push({ id: sector.id, chart, distance: dx * dx + dy * dy })
       }
       waiting.sort((a, b) => a.distance - b.distance)
-      for (const { id, chart } of waiting.slice(1)) pendingDetail.set(id, chart)
+      for (const { id, chart } of waiting.slice(movementActive ? 0 : 1))
+        pendingDetail.set(id, chart)
     }
-    pendingOverviewGround = pendingDetail.size > 0
-    const movementActive =
-      sample.moving || remoteMoving || sample.point.x !== camera.x || sample.point.y !== camera.y
+    pendingGroundRefinement = pendingDetail.size > 0
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0)
     if (ferryFrame && current) {
       const origin = sectorOrigin(current)
@@ -2533,9 +2575,12 @@ export function createMapRenderer(
     } else {
       ctx.imageSmoothingQuality = movementActive || quality === 'low' ? 'medium' : 'high'
     }
-    const projection = cacheStationaryGround
-      ? stationaryGroundLayer(visible, ambient, movementActive)
-      : null
+    // The viewport-size composite builds all of its source sectors at once.
+    // Allow it again only after the deferred terrain has been refined.
+    const projection =
+      cacheStationaryGround && !refiningDeferredGround
+        ? stationaryGroundLayer(visible, ambient, movementActive, groundInView)
+        : null
     if (timing) {
       timing.projectedGroundSectors = projection?.layer ? projection.end - projection.start : 0
       timing.projectedGroundPixels = projection?.layer
@@ -3491,22 +3536,28 @@ export function createMapRenderer(
           }
     }
     // Both piers and ships use the completed water plane across sector edges.
-    for (const { pier } of piers)
-      paintFerryPier(ctx, pier, screen, tile, images.get('ferry-deck-planks'))
     const ferryTime = view.serverNow + Math.max(0, now - ferryClockAt)
     for (const { dock, pier } of piers) {
-      if (!ferryAtPort(dock.port, ferryTime)) continue
+      if (!pier.mooring || !ferryAtPort(dock.port, ferryTime)) continue
       const departure = nextFerryDeparture(dock.port, ferryTime)
       const vessel = loadFerryVessel(`ferry:${FERRY_DIRECTIONS[dock.port]}:${departure}`)
       if (!vessel?.complete || !vessel.naturalWidth) continue
       const vesselWidth = tile * 5.3
       const vesselHeight = vesselWidth * (vessel.naturalHeight / vessel.naturalWidth)
       const mooring = screen(pier.mooring)
-      const x = mooring.x - vesselWidth * 0.46
-      const y = mooring.y - vesselHeight * 0.76
-      if (x < width && x + vesselWidth > 0 && y < height && y + vesselHeight > 0)
-        ctx.drawImage(vessel, x, y, vesselWidth, vesselHeight)
+      const mirrored = dock.shoreSide !== 'west'
+      const x = mooring.x - vesselWidth * (mirrored ? 0.57 : 0.43)
+      const y = mooring.y - vesselHeight * 0.65
+      if (x >= width || x + vesselWidth <= 0 || y >= height || y + vesselHeight <= 0) continue
+      ctx.save()
+      ctx.translate(mooring.x, mooring.y)
+      if (mirrored) ctx.scale(-1, 1)
+      ctx.drawImage(vessel, -vesselWidth * 0.43, -vesselHeight * 0.65, vesselWidth, vesselHeight)
+      ctx.restore()
     }
+    // Keep the boarding deck and piles in the foreground.
+    for (const { pier } of piers)
+      paintFerryPier(ctx, pier, screen, tile, images.get('ferry-deck-planks'))
     if (cacheScenery && !cachedScenery) stationaryScenery = scenery
     if (timing) {
       const ended = performance.now()
@@ -3659,7 +3710,7 @@ export function createMapRenderer(
       npc = false,
     ) => {
       if (
-        (tile < (npc ? 22 : self ? 32 : 42) && !ferryFrame) ||
+        (tile < (npc ? 22 : self ? PHONE_TILE_SIZE * WORLD_MIN_ZOOM : 42) && !ferryFrame) ||
         (!self && requestedActors >= MAX_EMBODIED_ACTORS - 1)
       )
         return null
@@ -3937,7 +3988,7 @@ export function createMapRenderer(
           item.image === beauties ||
           (item.tree && (item.image === forestTrees || item.image === asterwakeWoodland)) ||
           (item.image === props && !item.underpass && item.index === 3))
-          ? biomeRaster(item)
+          ? biomeRaster(item, !movementActive)
           : null
       if (raster) target.drawImage(raster, x, y, item.width, item.height)
       else
@@ -4042,7 +4093,7 @@ export function createMapRenderer(
           p.x,
           p.y,
           tile,
-          ambient ? wildlifeParts : undefined,
+          ambient && !movementActive ? wildlifeParts : undefined,
         )
         continue
       }
@@ -4507,7 +4558,7 @@ export function createMapRenderer(
         height,
         weather,
         wind.offset,
-        richAtmosphere ? 1 : 0.55,
+        weatherVeilQuality,
         weatherVeil,
         ratio,
       )
@@ -4972,7 +5023,7 @@ export function createMapRenderer(
     // Finishing motion must paint its endpoint before switching to the idle cadence.
     if (
       dirty ||
-      pendingOverviewGround ||
+      pendingGroundRefinement ||
       (wasMoving && !sample.moving) ||
       (wasRemoteMoving && !remoteMoving) ||
       rafAt - lastPaintRaf >= interval - 1
@@ -4988,7 +5039,7 @@ export function createMapRenderer(
       sample.point.x !== camera.x ||
       sample.point.y !== camera.y ||
       rasterZoomAt !== null ||
-      pendingOverviewGround ||
+      pendingGroundRefinement ||
       (animate && !reduced)
     )
       frame = requestAnimationFrame(loop)

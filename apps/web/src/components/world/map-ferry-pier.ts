@@ -26,13 +26,33 @@ export function ferryPierPlacement(
   let tiles = 1
   while (tiles < 4 && waterAt(at(first + tiles))) tiles++
   const from = at(first - 0.57)
+  const length = tiles - 0.08
   const to = at(first + tiles - 0.65)
   const cross = { x: -normal.y, y: normal.x }
-  const along = at(first + Math.max(0, tiles - 0.6))
-  const starboard = { x: along.x + cross.x, y: along.y + cross.y }
-  const port = { x: along.x - cross.x, y: along.y - cross.y }
-  const mooring = waterAt(starboard) ? starboard : waterAt(port) ? port : to
-  return { from, to, normal, cross, length: tiles - 0.08, mooring }
+  const pier = { from, to, normal, cross, length }
+  // The hull runs parallel to the jetty. Prefer the bankward side of the
+  // painted sail's projection so the hull can stay close to the outer piles.
+  const preferredSide = shoreSide === 'north' ? -1 : 1
+  for (const side of [preferredSide, -preferredSide]) {
+    const clearance = side === preferredSide ? 1.27 : 4.05
+    for (const extra of [0, 0.5, 1]) {
+      const offset = side * (clearance + extra)
+      for (const depth of [2.4, 2.9, 3.4, 3.9]) {
+        const center = at(first + depth)
+        const berth = { x: center.x + cross.x * offset, y: center.y + cross.y * offset }
+        const afloat = [-2.85, -2, -1, 0, 1, 2, 2.85].every((along) =>
+          [-0.8, 0, 0.8].every((across) =>
+            waterAt({
+              x: berth.x + normal.x * along + cross.x * across,
+              y: berth.y + normal.y * along + cross.y * across,
+            }),
+          ),
+        )
+        if (afloat) return { ...pier, mooring: berth }
+      }
+    }
+  }
+  return { ...pier, mooring: null }
 }
 
 type FerryPier = NonNullable<ReturnType<typeof ferryPierPlacement>>

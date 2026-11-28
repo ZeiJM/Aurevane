@@ -1494,6 +1494,236 @@ export function registerWorldInputCases({
     await capture(page, info, 'held-walk-key-release')
   })
 
+  for (const hold of [
+    {
+      name: 'east',
+      key: 'd',
+      sectorId: 'atlas:42:31',
+      x: 0,
+      y: 4,
+      axis: 'x',
+      sectorSpan: GRID_WIDTH,
+      minimumTransitions: 20,
+    },
+    {
+      name: 'south',
+      key: 'ArrowDown',
+      sectorId: 'atlas:45:6',
+      x: 0,
+      y: 0,
+      axis: 'y',
+      sectorSpan: GRID_HEIGHT,
+      minimumTransitions: 30,
+    },
+  ] as const) {
+    test(`a one-minute ${hold.name} key hold renders continuously across World sectors`, async ({
+      page,
+    }, info) => {
+      test.skip(
+        process.env.AUREVANE_WORLD_LONG_HOLD !== '1',
+        'Run the release-only full-minute movement gate on its isolated hosted job.',
+      )
+      test.skip(info.project.name !== 'desktop-chromium', 'Exercise real held keyboard input once.')
+      test.setTimeout(150000)
+      await enter(page)
+      const initial = await world(page)
+      place(initial.characterId, hold.sectorId, hold.x, hold.y)
+      await page.reload()
+      const canvas = page.locator('canvas[data-world-stage]')
+      await expect(canvas).toHaveAttribute('data-camera-x', /\d/)
+
+      let delayedResponses = 0,
+        walkConflicts = 0
+      const delayWorldWrites = async (route: import('@playwright/test').Route) => {
+        if (route.request().method() !== 'POST') return route.continue()
+        const response = await route.fetch()
+        delayedResponses++
+        if (response.status() === 409) walkConflicts++
+        await new Promise<void>((resolve) => setTimeout(resolve, 90))
+        await route.fulfill({ response })
+      }
+      await page.route('**/api/world', delayWorldWrites)
+      try {
+        await canvas.evaluate(
+          (element, scenario) => {
+            interface LongHoldState {
+              active: boolean
+              firstRafAt?: number
+              lastRafAt?: number
+              lastRenderedAt?: number
+              startX?: number
+              startY?: number
+              lastX?: number
+              lastY?: number
+              endX?: number
+              endY?: number
+              durationMs: number
+              rafFrames: number
+              renderedFrames: number
+              maxRafGapMs: number
+              maxRenderedGapMs: number
+              maxLateralDrift: number
+              reversals: number
+              sectorTransitions: number
+            }
+            const stage = element as HTMLCanvasElement & { __releaseLongHold?: LongHoldState }
+            const state: LongHoldState = {
+              active: true,
+              durationMs: 0,
+              rafFrames: 0,
+              renderedFrames: 0,
+              maxRafGapMs: 0,
+              maxRenderedGapMs: 0,
+              maxLateralDrift: 0,
+              reversals: 0,
+              sectorTransitions: 0,
+            }
+            const sectors = new Set<number>()
+            stage.__releaseLongHold = state
+            document.addEventListener(
+              'keydown',
+              (event) => {
+                if (event.key === scenario.key && !event.repeat)
+                  stage.dataset.longHoldDownAt = String(performance.now())
+              },
+              { capture: true },
+            )
+            document.addEventListener(
+              'keyup',
+              (event) => {
+                if (event.key === scenario.key)
+                  stage.dataset.longHoldUpAt = String(performance.now())
+              },
+              { capture: true },
+            )
+            const sample = (rafAt: number) => {
+              if (!state.active) return
+              const x = Number(stage.dataset.cameraX),
+                y = Number(stage.dataset.cameraY),
+                renderedAt = Number(stage.dataset.frameNow)
+              if (Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(renderedAt)) {
+                state.rafFrames++
+                if (state.firstRafAt === undefined) {
+                  state.firstRafAt = rafAt
+                  state.startX = x
+                  state.startY = y
+                } else {
+                  state.durationMs = rafAt - state.firstRafAt
+                  state.maxRafGapMs = Math.max(state.maxRafGapMs, rafAt - state.lastRafAt!)
+                  const forward = scenario.axis === 'x' ? x - state.lastX! : y - state.lastY!
+                  if (forward < -0.001) state.reversals++
+                }
+                if (renderedAt !== state.lastRenderedAt) {
+                  state.renderedFrames++
+                  if (state.lastRenderedAt !== undefined)
+                    state.maxRenderedGapMs = Math.max(
+                      state.maxRenderedGapMs,
+                      renderedAt - state.lastRenderedAt,
+                    )
+                  state.lastRenderedAt = renderedAt
+                }
+                const lateral = scenario.axis === 'x' ? y - state.startY! : x - state.startX!
+                state.maxLateralDrift = Math.max(state.maxLateralDrift, Math.abs(lateral))
+                sectors.add(Math.floor((scenario.axis === 'x' ? x : y) / scenario.sectorSpan))
+                state.sectorTransitions = Math.max(0, sectors.size - 1)
+                state.lastRafAt = rafAt
+                state.lastX = state.endX = x
+                state.lastY = state.endY = y
+              }
+              requestAnimationFrame(sample)
+            }
+            requestAnimationFrame(sample)
+          },
+          hold,
+        )
+        await canvas.focus()
+        await page.keyboard.down(hold.key)
+        await page.waitForTimeout(60100)
+        await page.keyboard.up(hold.key)
+        const released = await canvas.evaluate((element) => {
+          const stage = element as HTMLCanvasElement & {
+            __releaseLongHold?: { active: boolean }
+          }
+          if (stage.__releaseLongHold) stage.__releaseLongHold.active = false
+          return {
+            x: Number(stage.dataset.cameraX),
+            y: Number(stage.dataset.cameraY),
+            heldMs:
+              Number(stage.dataset.longHoldUpAt) - Number(stage.dataset.longHoldDownAt),
+          }
+        })
+        await expect
+          .poll(async () => (await world(page)).route.length, { timeout: 12000 })
+          .toBe(0)
+        await page.waitForTimeout(STEP_MS + 100)
+        const settled = await canvas.evaluate((element) => ({
+          x: Number(element.dataset.cameraX),
+          y: Number(element.dataset.cameraY),
+        }))
+        await page.waitForTimeout(600)
+        const afterSettle = await canvas.evaluate((element) => ({
+          x: Number(element.dataset.cameraX),
+          y: Number(element.dataset.cameraY),
+        }))
+        const state = await canvas.evaluate((element) => {
+          const stage = element as HTMLCanvasElement & {
+            __releaseLongHold?: Omit<{ active: boolean }, 'active'> & Record<string, unknown>
+          }
+          return { ...stage.__releaseLongHold }
+        })
+        const forwardProgress =
+            hold.axis === 'x'
+              ? Number(state.endX) - Number(state.startX)
+              : Number(state.endY) - Number(state.startY),
+          releaseSettling =
+            hold.axis === 'x' ? settled.x - released.x : settled.y - released.y,
+          postSettleDrift = Math.hypot(
+            afterSettle.x - settled.x,
+            afterSettle.y - settled.y,
+          ),
+          evidence = {
+            scenario: hold.name,
+            heldMs: released.heldMs,
+            forwardProgress,
+            releaseSettling,
+            postSettleDrift,
+            delayedResponses,
+            walkConflicts,
+            state,
+            final: (await world(page)).position,
+          }
+        await info.attach(`held-minute-${hold.name}-continuity.json`, {
+          body: JSON.stringify(evidence, null, 2),
+          contentType: 'application/json',
+        })
+        expect(released.heldMs).toBeGreaterThanOrEqual(60000)
+        expect(forwardProgress).toBeGreaterThan(295)
+        expect(state.sectorTransitions).toBeGreaterThanOrEqual(hold.minimumTransitions)
+        expect(state.reversals).toBe(0)
+        expect(state.maxLateralDrift).toBeLessThan(0.01)
+        expect(state.renderedFrames).toBeGreaterThan(500)
+        expect(state.maxRafGapMs).toBeLessThan(100)
+        expect(state.maxRenderedGapMs).toBeLessThan(100)
+        expect(releaseSettling).toBeGreaterThanOrEqual(-0.001)
+        expect(releaseSettling).toBeLessThanOrEqual(1.05)
+        expect(postSettleDrift).toBeLessThan(0.001)
+        expect(delayedResponses).toBeGreaterThan(200)
+        expect(walkConflicts).toBe(0)
+      } finally {
+        await page.keyboard.up(hold.key).catch(() => {})
+        await canvas
+          .evaluate((element) => {
+            const stage = element as HTMLCanvasElement & {
+              __releaseLongHold?: { active: boolean }
+            }
+            if (stage.__releaseLongHold) stage.__releaseLongHold.active = false
+          })
+          .catch(() => {})
+        await page.unroute('**/api/world', delayWorldWrites)
+      }
+    })
+  }
+
   test('two-finger map pinch zooms without walking and respects zoom lock', async ({
     page,
   }, info) => {

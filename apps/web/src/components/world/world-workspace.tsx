@@ -4,7 +4,15 @@ import type { MapDirection } from '@/world/wild-ids'
 import { WorldDestinationCard } from './world-destination-card'
 import { worldTimeLabel, worldDayPhase, WORLD_DAY_REAL_MS } from '@/world/environment'
 import { ChatPanel } from '@/components/social/chat/chat-panel'
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import {
+  startTransition,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react'
 import { useRouter } from 'next/navigation'
 import { WORLD_LAND_NAME } from '@/world/atlas'
 import { WORLD_REGIONS } from '@/world/catalog'
@@ -257,7 +265,10 @@ export function WorldWorkspace({
       if (reconcile) motion.reconcile(next, performance.now())
       else motion.approveReceipt(next, performance.now())
       scheduleArrival()
-      setView(next)
+      // The controller and motion authority are already current. Keep the
+      // receipt's React presentation interruptible so a sector-transition
+      // commit cannot monopolize the main thread between movement frames.
+      startTransition(() => setView(next))
       live.update(next, localViewActive.current && document.visibilityState === 'visible')
       schedule()
     }
@@ -328,7 +339,10 @@ export function WorldWorkspace({
         motion.updateScene(next.sectors, performance.now())
         scheduleArrival()
         scheduleScene()
-        setView(next)
+        // Scene hydration can replace hundreds of kilobytes of terrain while
+        // held movement is already running. Keep the authority/motion update
+        // immediate, but let React split the presentation render across frames.
+        startTransition(() => setView(next))
         live.update(next, localViewActive.current && document.visibilityState === 'visible')
       },
       error: (text) => {

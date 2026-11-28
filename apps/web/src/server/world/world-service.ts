@@ -1,6 +1,7 @@
 import 'server-only'
 import { directionalWalk } from '@/world/directional-walk'
 import { MAP_X, MAP_Y } from '@/components/world/map-projection'
+import { WORLD_MIN_ZOOM } from '@/components/world/world-zoom'
 import { encodeTerrainRows, worldSurfaceRows } from '@/world/terrain'
 import { AurevaneError } from '@aurevane/game-core/errors'
 import { FRONTIER_APPROACH, GRID_HEIGHT, GRID_WIDTH, STEP_MS } from '@/world/catalog'
@@ -644,7 +645,7 @@ export function projectWorld(
   })
   const sceneWidth = viewport?.width ?? 1296
   const sceneHeight = viewport?.height ?? 944
-  const sceneTile = (sceneWidth < 600 ? 48 : 64) * 0.35
+  const sceneTile = (sceneWidth < 600 ? 48 : 64) * WORLD_MIN_ZOOM
   // An input reversal can precede the next full scene by several movement
   // receipts. Eight tiles of public ground in every direction cover that turn.
   const sceneryHalfWidth = sceneWidth / sceneTile / 2 + 8 * MAP_X

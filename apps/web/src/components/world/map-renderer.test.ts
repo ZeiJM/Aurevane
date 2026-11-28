@@ -9,6 +9,7 @@ import { projectWorld, projectWorldSector, resolveWorldIntent } from '@/server/w
 import { voidRealmFerryDock } from '@/server/world/void-realms'
 import {
   FERRY_BOARDING_MS,
+  FERRY_MAINLAND_DOCK,
   FERRY_TERMINAL_NAMES,
   FERRYMAN_PORTRAIT,
   FERRYMAN_SPRITE,
@@ -561,6 +562,29 @@ describe('native map input and bounded lifecycle', () => {
       s.event('pointerdown', candidate!.point.x, candidate!.point.y)
       s.event('pointerup', candidate!.point.x, candidate!.point.y)
       expect(s.select).not.toHaveBeenCalled()
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  })
+  it.each([
+    ['boarding', -1_000, 1],
+    ['underway', 1_000, 0],
+  ] as const)('paints the Lantern Quay berth during %s', (_phase, offset, count) => {
+    const departure = nextFerryDeparture('mainland', 0)
+    const view = projectWorld(
+      { ...newWorldState(), position: FERRY_MAINLAND_DOCK },
+      [],
+      departure + offset,
+    )
+    const s = scene(true, view)
+    try {
+      s.frame(40)
+      const hulls = s.spriteDraws.filter(({ src }) => src.includes('/ferry-passenger-hull-'))
+      const deck = s.spriteDraws.find(({ src }) => src.endsWith('/ferry-deck-planks-v01.webp'))
+      expect(hulls).toHaveLength(count)
+      expect(deck).toBeDefined()
+      if (hulls.length) expect(hulls[0]!.order).toBeLessThan(deck!.order)
     } finally {
       s.renderer.dispose()
       vi.unstubAllGlobals()
@@ -1497,6 +1521,48 @@ describe('native map input and bounded lifecycle', () => {
       s.frame(5500)
       expect(JSON.parse(s.canvas.dataset.renderTiming!).groundBuilds).toBe(0)
       expect(s.frames.size).toBe(0)
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  })
+  it('defers every newly exposed cold terrain build until active movement settles', () => {
+    const base = projectWorld(newWorldState(), [], 1000)
+    const home = base.sectors.find((sector) => sector.id === base.position.sectorId)!
+    const dry = (sector: typeof home) => ({
+      ...sector,
+      landmarks: [],
+      buildings: [],
+      cells: sector.cells.map((cell) => ({ ...cell, terrain: '.', walkable: true })),
+    })
+    const sectors = worldRenderTerrain(base).map(dry)
+    const s = scene(true, { ...base, sectors: [dry(home)], scenery: [] })
+    try {
+      s.canvas.dataset.renderDiagnostics = 'timing'
+      s.frame(40)
+      s.renderer.update({ ...base, sectors, scenery: [] })
+      s.motion.plan(
+        [{ position: { ...base.position, x: base.position.x + 1 }, durationMs: 240 }],
+        sectors,
+        40,
+      )
+
+      s.frame(80)
+      expect(JSON.parse(s.canvas.dataset.renderTiming!).groundBuilds).toBe(0)
+
+      for (let at = 120; at <= 240; at += 40) {
+        s.frame(at)
+        expect(JSON.parse(s.canvas.dataset.renderTiming!).groundBuilds).toBe(0)
+      }
+
+      let refined = false
+      for (let at = 320; at <= 1600; at += 40) {
+        s.frame(at)
+        const builds = JSON.parse(s.canvas.dataset.renderTiming!).groundBuilds
+        expect(builds).toBeLessThanOrEqual(1)
+        refined ||= builds > 0
+      }
+      expect(refined).toBe(true)
     } finally {
       s.renderer.dispose()
       vi.unstubAllGlobals()
@@ -4076,6 +4142,22 @@ describe('native map input and bounded lifecycle', () => {
     } finally {
       s.renderer.dispose()
       clock.mockRestore()
+      vi.unstubAllGlobals()
+    }
+  })
+  it('keeps the local character sprite at the widest phone zoom', () => {
+    const s = scene(false, legacyTownView('verdant-expanse', 5, 4))
+    try {
+      Object.assign(s.canvas, { clientWidth: 389, clientHeight: 669 })
+      s.canvas.dataset.portrait = '/api/media/appearance/7/human-m-0008.v1/neutral.svg'
+      s.resize()
+      s.renderer.settings({ animate: true, zoom: WORLD_MIN_ZOOM })
+      s.frame(40)
+      const sprite = s.draws.find(({ src }) => src.endsWith('/human-m-0008/variant-1/sprites.webp'))
+      expect(sprite?.args.slice(2, 4)).toEqual([96, 128])
+      expect(s.canvas.dataset.embodiedActors).toBe('1')
+    } finally {
+      s.renderer.dispose()
       vi.unstubAllGlobals()
     }
   })
@@ -6839,7 +6921,7 @@ it('keeps three immutable cloud silhouettes across moving frames and releases th
   }
 })
 
-it('translates a bounded dry terrain composite through short desktop movement without rerasterizing', () => {
+it('translates a bounded dry terrain composite and defers invalidated terrain until movement settles', () => {
   const base = projectWorld(newWorldState(), [], 1000)
   const view: WorldView = {
     ...base,
@@ -6885,12 +6967,8 @@ it('translates a bounded dry terrain composite through short desktop movement wi
       .onload!()
     s.draws.length = 0
     s.frame(160)
-    expect(
-      s.draws.some(
-        ({ image, args }) =>
-          image !== initial.image && image.width > s.canvas.width && args.length === 2,
-      ),
-    ).toBe(true)
+    expect(JSON.parse(s.canvas.dataset.renderTiming!).groundBuilds).toBe(0)
+    expect(s.draws.some(({ image }) => image === initial.image)).toBe(false)
   } finally {
     s.renderer.dispose()
     vi.unstubAllGlobals()
