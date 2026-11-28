@@ -3494,6 +3494,59 @@ describe('native map input and bounded lifecycle', () => {
     s.renderer.dispose()
     vi.unstubAllGlobals()
   })
+  it('keeps Asterwake stone still and gives living golden oaks most woodland placements', () => {
+    const view = projectWorld(
+      { ...newWorldState(), position: { sectorId: 'atlas:7:9', x: 6, y: 4 } },
+      [],
+      1000,
+    )
+    const island = view.sectors.find((sector) => sector.id === view.position.sectorId)!
+    const s = scene(false, {
+      ...view,
+      sectors: [island],
+      environment: { ...view.environment, weather: 'storm' },
+    })
+    try {
+      s.frame(120)
+      const woodland = s.spriteDraws.filter(({ src }) =>
+        src.endsWith('asterwake-woodland-v01.webp'),
+      )
+      const stones = woodland.filter(({ args }) => args[1]! > 0)
+      const golden = s.spriteDraws.filter(
+        ({ src, args }) => src.endsWith('living-trees-v01.webp') && args[0] === 0 && args[1] === 0,
+      )
+      const living = s.spriteDraws.filter(({ src }) => src.endsWith('living-trees-v01.webp'))
+      expect(stones.length).toBeGreaterThan(0)
+      expect(stones.every(({ matrix }) => matrix[2] === 0)).toBe(true)
+      expect(golden.length).toBeGreaterThan(
+        living.length - golden.length + woodland.length - stones.length,
+      )
+      expect(golden.some(({ matrix }) => matrix[2] !== 0)).toBe(true)
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  })
+  it('draws the Gildroot Oak at triple its old size around the same root anchor', () => {
+    const view = projectWorld(
+      { ...newWorldState(), position: { sectorId: 'atlas:6:9', x: 6, y: 4 } },
+      [],
+      1000,
+    )
+    const s = scene(false, view)
+    try {
+      s.frame(120)
+      const oak = s.spriteDraws.find(({ src }) => src.includes('gildroot-oak-'))!
+      const [, , , , left, top, width, height] = oak.args
+      expect(width).toBe(36 * 64)
+      expect(left).toBeCloseTo(-width! * 0.42)
+      expect(top).toBeCloseTo(-height! * 0.9)
+      expect(oak.matrix[2]).toBe(0)
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  })
   it('keeps a traveller visible above a bridge or landmark prop', () => {
     const s = scene(false, legacyTownView('verdant-expanse'))
     const sector = s.view.sectors.find((sector) => sector.id === s.view.position.sectorId)!

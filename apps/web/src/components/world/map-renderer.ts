@@ -402,6 +402,7 @@ interface SceneryBatch {
 }
 const STATIONARY_SCENERY_PIXEL_LIMIT = 800_000
 const BIOME_RASTER_PIXEL_LIMIT = 4_000_000
+const GILDROOT_OAK_WIDTH_TILES = 36
 
 function usesCompactScenery(item: Scenery) {
   return !item.underpass && !item.mirror && !item.waterfall && !item.oceanFeature
@@ -1268,7 +1269,7 @@ export function createMapRenderer(
       !images.has('gildroot-oak') &&
       renderSectors.some(({ id }) => id === ASTERWAKE_GOLDEN_TREE.sectorId)
     )
-      load('gildroot-oak', 'v01')
+      load('gildroot-oak', 'v02')
     if (!images.has('forest-variety') && renderSectors.some((sector) => sector.warpedTheme))
       load('forest-variety', 'v01')
     if (!images.has(WINTER_ART) && renderSectors.some((sector) => sector.regionId === WINTER_ART))
@@ -2632,13 +2633,13 @@ export function createMapRenderer(
         )
       )
         return
-      if (
+      const visible =
         left + item.width > 0 &&
         left < width &&
         p.y + item.height * (1 - (item.anchorY ?? 1)) > 0 &&
         p.y - item.height * (item.anchorY ?? 1) < height
-      )
-        scenery.push(item)
+      if (visible) scenery.push(item)
+      return visible
     }
     const highResMountains =
       quality !== 'low' &&
@@ -2675,6 +2676,39 @@ export function createMapRenderer(
       coastEdges = 0,
       wildlifeWalking = 0
     if (!cachedScenery) {
+      const oak = images.get('gildroot-oak')
+      const grove =
+        oak?.complete && oak.naturalWidth
+          ? renderSectors.find(
+              ({ id, landmarks }) =>
+                id === ASTERWAKE_GOLDEN_TREE.sectorId &&
+                landmarks.some(({ id }) => id === ASTERWAKE_GOLDEN_TREE_ID),
+            )
+          : undefined
+      if (oak && grove) {
+        // The canopy can enter the viewport well before its own sector does.
+        const origin = sectorOrigin(grove)
+        const size = tile * GILDROOT_OAK_WIDTH_TILES
+        const tree: Scenery = {
+          x: origin.x + ASTERWAKE_GOLDEN_TREE.x + 0.5,
+          y: origin.y + ASTERWAKE_GOLDEN_TREE.y + 0.9,
+          width: size,
+          height: size * (oak.naturalHeight / oak.naturalWidth),
+          image: oak,
+          index: 0,
+          columns: 1,
+          rows: 1,
+          anchorX: 0.42,
+          anchorY: 0.9,
+          tree: false,
+          grandFeature: true,
+        }
+        if (addScenery(tree) && size * ratio > oak.naturalWidth) {
+          if (!images.has('gildroot-oak-hd')) load('gildroot-oak-hd', 'v01')
+          const detail = images.get('gildroot-oak-hd')
+          if (detail?.complete && detail.naturalWidth) tree.image = detail
+        }
+      }
       if (mountainSheet?.complete && mountainSheet.naturalWidth) {
         for (const feature of mountains) {
           addScenery({
@@ -2857,11 +2891,12 @@ export function createMapRenderer(
               const dy = Math.abs(cell.y - ASTERWAKE_GOLDEN_TREE.y)
               if (grove && dx <= 1 && dy <= 1) continue
               const seed = hashString(`${sector.id}:${cell.x}:${cell.y}:woodland`)
+              const species = (seed >>> 15) % 12
               const livingSpecies =
                 !rock && livingTrees?.complete && livingTrees.naturalWidth
-                  ? grove && seed % 3 !== 0
-                    ? 0 // Golden oaks cluster around the Gildroot.
-                    : (seed >>> 15) % 6 === 0
+                  ? species < (grove ? 10 : 8)
+                    ? 0 // Living golden oaks dominate the island, especially the grove.
+                    : species === 11
                       ? 3 // Wind-tolerant pines among the salt-bent island trees.
                       : undefined
                   : undefined
@@ -2879,7 +2914,7 @@ export function createMapRenderer(
                   rows: 2,
                   anchorY: livingSpecies !== undefined ? 488 / 512 : 0.93,
                   tree: !rock,
-                  windFlex: 0.76 + (seed % 13) * 0.03,
+                  windFlex: rock ? undefined : 0.76 + (seed % 13) * 0.03,
                 })
                 continue
               }
@@ -3188,25 +3223,7 @@ export function createMapRenderer(
       // Painting them after the character pass would hide someone on a bridge/anchor.
       if (!cachedScenery)
         for (const landmark of sector.landmarks) {
-          if (landmark.id === ASTERWAKE_GOLDEN_TREE_ID) {
-            const oak = images.get('gildroot-oak')
-            if (oak?.complete && oak.naturalWidth)
-              addScenery({
-                x: origin.x + ASTERWAKE_GOLDEN_TREE.x + 0.5,
-                y: origin.y + ASTERWAKE_GOLDEN_TREE.y + 0.9,
-                width: tile * 12,
-                height: tile * 12 * (oak.naturalHeight / oak.naturalWidth),
-                image: oak,
-                index: 0,
-                columns: 1,
-                rows: 1,
-                anchorX: 0.42,
-                anchorY: 0.9,
-                tree: false,
-                grandFeature: true,
-              })
-            continue
-          }
+          if (landmark.id === ASTERWAKE_GOLDEN_TREE_ID) continue
           if (isFerryTerminalLandmark(landmark.id)) {
             const dock = dockBySector.get(sector.id)!
             const northReach = dock.port === 'asterwake'
